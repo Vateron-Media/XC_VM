@@ -7,6 +7,16 @@
 [![Pull Requests](https://img.shields.io/github/issues-pr/Vateron-Media/XC_VM)](https://github.com/Vateron-Media/XC_VM/pulls)
 [![All Contributors](https://img.shields.io/badge/all_contributors-0-orange.svg)](CONTRIBUTORS.md)
 
+[![PHP 8.2](https://img.shields.io/badge/PHP-8.1.33-blue?logo=php&logoColor=white)]()
+[![Nginx 1.24](https://img.shields.io/badge/Nginx-1.28.0-brightgreen?logo=nginx&logoColor=white)]()
+[![FFmpeg 4.4+](https://img.shields.io/badge/FFmpeg-4.4-critical?logo=ffmpeg&logoColor=white)]()
+
+---
+
+<p align="center">
+  <img src="https://avatars.githubusercontent.com/u/149707645?s=400&v=4" alt="Vateron Media Logo" width="400" />
+</p>
+
 ---
 
 ## 📌 About the Project
