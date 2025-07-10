@@ -1,0 +1,10 @@
+src/bin/install/loadbalancer.tar.gz filter=lfs diff=lfs merge=lfs -text
+src/bin/ffmpeg_bin/** filter=lfs diff=lfs merge=lfs -text
+src/bin/maxmind/GeoIP2-ISP.mmdb filter=lfs diff=lfs merge=lfs -text
+src/bin/maxmind/cidr.db filter=lfs diff=lfs merge=lfs -text
+src/bin/redis/redis-server filter=lfs diff=lfs merge=lfs -text
+src/bin/install/proxy.tar.gz filter=lfs diff=lfs merge=lfs -text
+src/bin/install/database.sql filter=lfs diff=lfs merge=lfs -text
+src/bin/guess filter=lfs diff=lfs merge=lfs -text
+src/bin/yt-dlp filter=lfs diff=lfs merge=lfs -text
+src/public/assets/admin/videos/login-bg.mp4 filter=lfs diff=lfs merge=lfs -text
