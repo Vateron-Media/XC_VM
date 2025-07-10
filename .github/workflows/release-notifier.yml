@@ -1,0 +1,43 @@
+name: Release Notifier
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  notify-telegram:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Release Notification to Telegram
+        env:
+          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TOPIC_ID: ${{ secrets.TELEGRAM_TOPIC_ID }}
+        run: |
+          RELEASE_TYPE="Release"
+          if [ "${{ github.event.release.prerelease }}" == "true" ]; then
+            RELEASE_TYPE="Prerelease"
+          fi
+
+          RELEASE_TAG=${GITHUB_REF#refs/tags/}
+          
+          MESSAGE=$(cat <<EOF
+          🔔 *${RELEASE_TYPE} Published* 🔔
+
+          📦 *Repository:* [${{ github.repository }}](https://github.com/${{ github.repository }})
+          🏷 *Version:* \`${RELEASE_TAG}\`
+          📛 *Title:* ${{ github.event.release.name }}
+
+          🔗 [View Release](https://github.com/${{ github.repository }}/releases/tag/${RELEASE_TAG})
+          EOF
+          )
+
+          curl -s -X POST \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"chat_id\": \"$CHAT_ID\",
+              \"message_thread_id\": \"$TOPIC_ID\",
+              \"text\": \"$MESSAGE\",
+              \"parse_mode\": \"Markdown\"
+            }" \
+            "https://api.telegram.org/bot$BOT_TOKEN/sendMessage"

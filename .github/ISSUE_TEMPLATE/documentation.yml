@@ -1,0 +1,70 @@
+name: Documentation Issue
+description: Report an issue or suggest an improvement for the documentation
+labels: ["documentation"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping us improve our documentation! Please provide the details below.
+
+  - type: input
+    id: title
+    attributes:
+      label: Title
+      description: A brief title describing the documentation issue or suggestion.
+      placeholder: Improve setup guide for new users
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: |
+        Provide a detailed description of the documentation issue or improvement.
+        Include links, screenshots, or code snippets if applicable.
+      placeholder: The current setup guide lacks details about environment configuration...
+    validations:
+      required: true
+
+  - type: input
+    id: location
+    attributes:
+      label: Location
+      description: Specify the location of the documentation (e.g., file name or section).
+      placeholder: docs/setup.md or "Getting Started" section
+    validations:
+      required: false
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this documentation issue?
+      options:
+        - High
+        - Medium
+        - Low
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional Context
+      description: Include any other relevant details or suggestions.
+      placeholder: Add a step-by-step example for setup...
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: agreement
+    attributes:
+      label: Agreement
+      description: Confirm the following before submitting.
+      options:
+        - label: I have checked existing documentation to ensure this is not already addressed.
+          required: true
+        - label: I am willing to help update the documentation if needed.
+          required: false
