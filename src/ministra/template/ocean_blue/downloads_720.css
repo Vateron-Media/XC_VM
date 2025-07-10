@@ -1,0 +1,152 @@
+/* 
+    Document   : downloads
+    Created on : 12.07.2011, 11:26:16
+    Author     : affect
+*/
+/* <passive row> */
+.blue_row_bg {
+    clear: both;
+}
+
+.blue_row_bg .d_number_block {
+    background-position: -92px 0px;
+    width: 34px;
+    height: 21px;
+    float: left;
+    margin: 4px 0 0 4px;
+    color: #002864;
+    text-shadow: #fff 0 1px 0;
+    font-size: 18px;
+    text-align: center;
+    overflow: hidden;
+}
+
+.blue_row_bg .d_name_block,
+.blue_row_bg .d_status_block,
+.blue_row_bg .d_progress_block {
+    white-space: pre;
+    float: left;
+    width: 247px;
+    color: #fff;
+    font-size: 20px;
+    text-shadow: #0f385a 1px 2px 0;
+    margin: 0px 5px 0 3px;
+    padding-left: 3px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: "Myriad Pro Cond";
+}
+
+.blue_row_bg .d_name_block {
+    padding-top: 0;
+    margin-left: 5px;
+    width: 600px;
+    font-family: "Roboto"
+}
+
+.blue_row_bg .d_progress_block {
+    line-height: 32px;
+    width: 185px;
+    margin-top: 5px;
+}
+
+.blue_row_bg .d_status_block {
+    padding-top: 3px;
+    width: 135px;
+}
+
+/* </passive row> */
+/* <progress bar> */
+.pb,
+.pb span {
+    display: block;
+    height: 16px;
+}
+
+.pb {
+    float: left;
+    width: 110px;
+    background: #0077BB;
+    border-radius: 4px;
+    border: 1px solid #fff;
+    margin-top: 5px;
+}
+
+.pb span {
+    float: left;
+    width: 110px;
+    background: #003366;
+    border-radius: 4px;
+}
+
+/* </progress bar> */
+/* <active row> */
+.active_row_bg .active_d_number_block {
+    width: 34px;
+    height: 29px;
+    line-height: 35px;
+    background-position: -92px -21px;
+    margin: 6px 2px 0 6px;
+    float: left;
+    font-size: 22px;
+    color: #fff;
+    text-shadow: #122946 0 -1px 0;
+    text-align: center;
+    white-space: pre;
+    overflow: hidden;
+    padding-top: -1px;
+}
+
+.active_row_bg .active_d_name_block,
+.active_row_bg .active_d_progress_block,
+.active_row_bg .active_d_status_block {
+    width: 250px;
+    float: left;
+    font-size: 20px;
+    color: #002864;
+    text-shadow: none;
+    margin: 12px 5px 0 4px;
+    white-space: pre;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: "Myriad Pro Cond";
+}
+
+.active_row_bg .active_d_name_block {
+    padding-top: 0;
+    width: 610px;
+    font-family: "Roboto";
+    font-weight: bold;
+    margin-top: 8px;
+}
+
+.active_row_bg .active_d_progress_block {
+    line-height: 30px;
+    width: 185px;
+}
+
+.active_row_bg .pb {
+    border-color: #333;
+}
+
+.txt {
+    margin-left: 3px;
+}
+
+.active_row_bg .active_d_status_block {
+    width: 135px;
+    line-height: 30px;
+}
+
+/* </active row> */
+/* <row_font> */
+.blue_row_bg .d_name_block,
+.blue_row_bg .d_progress_block,
+.blue_row_bg .d_status_block,
+.active_row_bg .active_d_name_block,
+.active_row_bg .active_d_progress_block,
+.active_row_bg .active_d_status_block {
+    font-size: 26px;
+}
+
+/* </row_font> */

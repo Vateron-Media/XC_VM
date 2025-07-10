@@ -1,0 +1,264 @@
+<html>
+
+<head>
+    <script language="JavaScript" src="js/pres.js"></script>
+    <script>
+        var iid = 1;
+
+        var pread = [];
+
+        read = {
+            "result": {}
+        };
+
+        var menuT = [
+            ['check', parent.t('Enable TimeShift:')],
+            ['check', parent.t('Enable TimeShift icon:')],
+            ['select', parent.t('TimeShift location:'),
+                '', parent.t('None')
+            ],
+            ['select', parent.t('TimeShift length:'),
+                900, '15 ' + parent.t('minutes'),
+                1800, '30 ' + parent.t('minutes'),
+                3600, '1 ' + parent.t('hour'),
+                7200, '2 ' + parent.t('hours'),
+                10800, '3 ' + parent.t('hours'),
+                18000, '5 ' + (parent.main_lang == 'ru' ? parent.t('hours2') : parent.t('hours')),
+                36000, '10 ' + (parent.main_lang == 'ru' ? parent.t('hours2') : parent.t('hours')),
+                72000, '20 ' + (parent.main_lang == 'ru' ? parent.t('hours2') : parent.t('hours')),
+                86400, '24 ' + parent.t('hours')
+            ],
+            ['select', parent.t('Using buffer mode:'),
+                'cyclic', parent.t('Cyclic rewriting')/*,
+                'stop_on_full', parent.t('Stop when full')*/
+            ],
+            ['select', parent.t('TimeShift on exit:'),
+                'no_save', parent.t('Do not save buffer'),
+                'save', parent.t('Save buffer')/*,
+                'ask', parent.t('Request to save')*/
+            ],
+            ['select', parent.t('TimeShift delay:'),
+                'on_pause', parent.t('By pressing "Pause" button'),
+                '1', '1 ' + parent.t('sec.'),
+                '3', '3 ' + parent.t('sec.'),
+                '5', '5 ' + parent.t('sec.'),
+                '10', '10 ' + parent.t('sec.')
+            ]
+        ];
+
+        var mid = menuT.length + 2;
+
+        parent.load({ "type": "stb", "action": "get_settings_profile" }, function (profile) {
+
+            init();
+
+            var storage_info = JSON.parse(parent.stb.RDir('get_storage_info')) || [];
+
+            var devices = storage_info.map(function (storage) {
+                return {
+                    "name": storage.vendor + ' ' + storage.model + (storage.label ? '(' + storage.label + ')' : '')
+                        + (storage_info.length > 1 ? ' #' + storage.partitionNum : ''),
+                    "path": storage.mountPath,
+                    "read_only": storage.isReadOnly
+                }
+            });
+
+            var path_dom_obj = document.getElementById('i3');
+
+            devices.forEach(function (storage) {
+                if (storage.read_only === 0) {
+                    var option = document.createElement("option");
+                    option.text = storage.name;
+                    option.value = storage.path;
+                    path_dom_obj.add(option);
+                }
+            });
+
+            if (profile.hasOwnProperty('ts_enabled')) {
+                if (profile.ts_enabled === '1') {
+                    document.getElementById('i1').setAttribute('checked', 'checked');
+                } else {
+                    document.getElementById('i1').removeAttribute('checked');
+                }
+            }
+
+            if (profile.hasOwnProperty('ts_enable_icon')) {
+                if (profile.ts_enable_icon === '1') {
+                    document.getElementById('i2').setAttribute('checked', 'checked');
+                } else {
+                    document.getElementById('i2').removeAttribute('checked');
+                }
+            }
+
+            if (profile.hasOwnProperty('ts_path')) {
+                var path_dom_obj = document.querySelector('#i3 option[value="' + profile.ts_path + '"]');
+                if (path_dom_obj) {
+                    path_dom_obj.setAttribute('selected', 'selected');
+                }
+            }
+
+            if (profile.hasOwnProperty('ts_max_length')) {
+                document.querySelector('#i4 option[value="' + profile.ts_max_length + '"]').setAttribute('selected', 'selected');
+            }
+
+            if (profile.hasOwnProperty('ts_buffer_use')) {
+                document.querySelector('#i5 option[value="' + profile.ts_buffer_use + '"]').setAttribute('selected', 'selected');
+            }
+
+            if (profile.hasOwnProperty('ts_action_on_exit')) {
+                document.querySelector('#i6 option[value="' + profile.ts_action_on_exit + '"]').setAttribute('selected', 'selected');
+            }
+
+            if (profile.hasOwnProperty('ts_delay')) {
+                document.querySelector('#i7 option[value="' + profile.ts_delay + '"]').setAttribute('selected', 'selected');
+            }
+
+        });
+        var step;
+        function onLoad() {
+            sload();
+            switch (screen.height) {
+                case 480:
+                    step = 308 / 15;
+                    break;
+                case 576:
+                    step = 308 / 15;
+                    break;
+                case 720:
+                    step = 584 / 15;
+                    break;
+                case 1080:
+                    step = 876 / 15;
+                    break;
+            }
+            parent.cont.focus();
+            document.getElementById("i1").focus();
+            document.getElementById("i8").value = parent.t('OK');
+            document.getElementById("i9").value = parent.t('Cancel');
+        }
+
+        function submit() {
+
+            var erm = "";
+
+            var save_data = {
+                "ts_enabled": document.getElementById('i1').checked ? 1 : 0,
+                "ts_enable_icon": document.getElementById('i2').checked ? 1 : 0,
+                "ts_path": document.getElementById('i3').options[document.getElementById('i3').selectedIndex].value,
+                "ts_max_length": document.getElementById('i4').options[document.getElementById('i4').selectedIndex].value,
+                "ts_buffer_use": document.getElementById('i5').options[document.getElementById('i5').selectedIndex].value,
+                "ts_action_on_exit": document.getElementById('i6').options[document.getElementById('i6').selectedIndex].value,
+                "ts_delay": document.getElementById('i7').options[document.getElementById('i7').selectedIndex].value
+            }
+
+            parent.load(
+                {
+                    "type": "stb",
+                    "action": "set_timeshift_settings",
+                    "data": JSON.stringify(save_data)
+                },
+                function (result) {
+                    if (!result) {
+                        erm += parent.t('Saving error');
+                    } else {
+                        if (erm != '') {
+                            parent.erMes(erm, "i" + iid);
+                        } else {
+                            try {
+                                save_data.type = "settings";
+                                parent.stb.SendEventToPortal(JSON.stringify(save_data));
+                            } catch (e) {
+                            }
+                            back();
+                        }
+                    }
+                });
+        }
+
+        function change(a) {
+            if (iid <= mid - 2)
+                switch (menuT[iid - 1][0]) {
+                    case "select":
+                        fc = false;
+                        break;
+                    case "sc":
+                        var d = document.getElementById('i11');
+                        d.style.visibility = 'visible';
+                        gr = gr + (1 * a);
+                        if (gr > 15) gr = 15;
+                        if (gr <= 0) {
+                            gr = 0;
+                            d.style.visibility = 'hidden';
+                        }
+                        d.style.width = step * gr;
+                        document.getElementById('i12').innerHTML = gr;
+                        break;
+                }
+            else if (iid + a <= mid && iid + a >= mid - 1) {
+                iid += a;
+                document.getElementById('i' + iid).focus();
+            }
+        }
+
+    </script>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+<body onload="onLoad()" onkeydown="pressKey(event);">
+    <div id="blueback">
+        <table width="100%" border="0" cellpadding="0" cellspacing="0">
+
+            <tr>
+                <td align="right"><span id="t1"></span></td>
+                <td><input type="checkbox" id="i1" /><label></label></td>
+            </tr>
+
+            <tr>
+                <td align="right"><span id="t2"></span></td>
+                <td><input type="checkbox" id="i2" /><label></label></td>
+            </tr>
+
+            <tr>
+                <td align="right"><span id="t3"></span></td>
+                <td>
+                    <div class="sub_select"><select id="i3"></select></div>
+                </td>
+            </tr>
+
+            <tr>
+                <td align="right"><span id="t4"></span></td>
+                <td>
+                    <div class="sub_select"><select id="i4"></select></div>
+                </td>
+            </tr>
+
+            <tr>
+                <td align="right"><span id="t5"></span></td>
+                <td>
+                    <div class="sub_select"><select id="i5"></select></div>
+                </td>
+            </tr>
+
+            <tr>
+                <td align="right"><span id="t6"></span></td>
+                <td>
+                    <div class="sub_select"><select id="i6"></select></div>
+                </td>
+            </tr>
+
+            <tr>
+                <td align="right"><span id="t7"></span></td>
+                <td>
+                    <div class="sub_select"><select id="i7"></select></div>
+                </td>
+            </tr>
+
+        </table>
+
+    </div>
+    <div id="footer">
+        <input id="i9" type="button" class="but" value="Cancel" onClick="back();" />
+        <input id="i8" type="button" value="" onClick="submit();" />
+    </div>
+</body>
+
+</html>

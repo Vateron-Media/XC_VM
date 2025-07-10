@@ -1,0 +1,136 @@
+#epg_simple .blue_row_bg[active="active"] {
+    background: #fff;
+}
+
+#epg_simple .t_time_block {
+    width: 80px;
+    height: 45px;
+    line-height: 45px;
+    font-size: 24px;
+    color: #fff;
+    background: #99999933;
+    text-align: center;
+    white-space: pre;
+    overflow: hidden;
+    position: absolute;
+    left: 0;
+}
+
+#epg_simple .blue_row_bg[active="active"] .t_time_block {
+    width: 80px;
+    height: 45px;
+    line-height: 45px;
+    font-size: 24px;
+    color: #fff;
+    background: #888;
+    text-align: center;
+    white-space: pre;
+    overflow: hidden;
+    position: absolute;
+    left: 0;
+}
+
+#epg_simple .name_block {
+    color: #fff;
+    font-size: 24px;
+    padding-left: 10px;
+    white-space: pre;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 820px;
+    margin-top: -2px;
+    left: 80px;
+    position: absolute;
+}
+
+#epg_simple .mark_archive_block {
+    position: absolute;
+    top: 4px;
+    left: 68px;
+    height: 8px;
+    width: 8px;
+    background: #ff5252;
+    border-radius: 100%;
+}
+
+#epg_simple .blue_row_bg[rel="close"] .name_block {
+    color: #ccc !important;
+}
+
+#epg_simple .blue_row_bg[active="active"][rel="close"] .name_block {
+    color: #ccc !important;
+}
+
+#epg_simple .blue_row_bg[active="active"] .name_block {
+    color: #888;
+}
+
+#epg_simple .week {
+    position: absolute;
+    left: 70px;
+    top: 92px;
+    list-style: none;
+    color: #fff;
+}
+
+#epg_simple .week li {
+    width: 197px;
+    height: 35px;
+    /*margin: 0 0 1px 0;*/
+    font-size: 22px;
+    padding: 10px 0 0 2px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-align: center;
+    color: #fff;
+    background: #888;
+}
+
+#epg_simple .week li[active="active"] {
+    color: #888 !important;
+    background: #fff !important;
+}
+
+#epg_simple .week li[rel="close"] {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+#epg_simple .program_info,
+#epg_simple .full_program_info {
+    position: absolute;
+    top: 420px;
+    left: 70px;
+    height: 195px;
+    width: 1110px;
+    font-size: 24px;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.2);
+    padding-left: 15px;
+    padding-right: 15px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    overflow: hidden;
+    text-align: left;
+}
+
+#epg_simple .program_info .time,
+#epg_simple .full_program_info .time {
+    font-weight: bold;
+}
+
+#epg_simple .full_program_info {
+    height: 529px;
+    top: 85px;
+    width: 1110px;
+    left: 70px;
+}
+
+#epg_simple .full_program_info_content {
+    position: absolute;
+    width: 1083px;
+    height: 524px;
+    overflow: hidden;
+    padding-top: 3px;
+    /*text-align: justify;*/
+}

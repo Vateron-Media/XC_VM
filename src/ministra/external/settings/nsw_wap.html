@@ -1,0 +1,152 @@
+<html>
+
+<head>
+  <script>
+    var iid = 1;
+    var menuT = [['input', parent.t('Passphrase')],
+    ['input', parent.t('Default Key') + " (1-4)"],
+    ['input', parent.t('Key') + '1' + '(5,10,13,26 ' + parent.t('symbols') + ')'],
+    ['input', parent.t('Key') + '2' + '(5,10,13,26 ' + parent.t('symbols') + ')'],
+    ['input', parent.t('Key') + '3' + '(5,10,13,26 ' + parent.t('symbols') + ')'],
+    ['input', parent.t('Key') + '4' + '(5,10,13,26 ' + parent.t('symbols') + ')']];
+    var mid = menuT.length + 2;
+    var pread = ["", "wifi_wep_def_key", "wifi_wep_key1", "wifi_wep_key2", "wifi_wep_key3", "wifi_wep_key4"];
+    var tread = '{"varList":["' + pread[0] + '"';
+    for (i = 1; i < pread.length; i++) { tread += ',"' + pread[i] + '"'; }
+    tread += ']}';
+    read = JSON.parse(parent.stb.GetEnv(tread));
+    function onLoad() {
+      sload();
+      init();
+      mid += 2;
+      parent.document.getElementById("zagolovok").innerHTML = "/" + parent.t('Wireless (Wi-Fi)') + "/" + parent.t('WEP setup');
+      parent.cont.focus();
+      document.getElementById("i1").focus();
+      document.getElementById("i6").id = "i8";
+      document.getElementById("i5").id = "i7";
+      document.getElementById("i4").id = "i6";
+      document.getElementById("i3").id = "i5";
+      document.getElementById("i2").id = "i4";
+      document.getElementById("te2").id = "i3";
+      document.getElementById("te1").id = "i2";
+      document.getElementById("i1").value = '';
+      document.getElementById("i2").value = parent.t('Generate WEP 64 keys');
+      document.getElementById("i3").value = parent.t('Generate WEP 128 keys');
+      document.getElementById("i9").value = parent.t('OK');
+      document.getElementById("i10").value = parent.t('Cancel');
+    }
+
+    function submit() {
+      var erm = "";
+      var pars = /^[1-4]$/;
+      var hex = /^[a-fA-F0-9]+$/;
+      parent.wset += ',"wifi_psk":""';
+      var t = document.getElementById('i4').value;
+      if (t != read.result.wifi_wep_def_key) if (pars.test(t)) parent.wset += ',"wifi_wep_def_key":"' + t + '"'; else erm += parent.t("No correct");
+      t = document.getElementById('i5').value;
+      a = t.length;
+      if (t != read.result.wifi_wep_key1) switch (t.length) {
+        case 5: case 13: if (t.split('').reduce(function (prev, curr, idx) { return prev && curr.charCodeAt(0) >= 32 && curr.charCodeAt(0) <= 126; }, true) && t.length > 1) parent.wset += ',"wifi_wep_key1":"' + t + '"'; else erm += "No correct"; break;
+        case 10: case 26: if (hex.test(t)) parent.wset += ',"wifi_wep_key1":"' + t + '"'; else erm += parent.t("No correct"); break;
+        default: erm += parent.t("No correct");
+      }
+      t = document.getElementById('i6').value;
+      if (a == t.length) {
+        if (t != read.result.wifi_wep_key2) switch (t.length) {
+          case 5: case 13: if (t.split('').reduce(function (prev, curr, idx) { return prev && curr.charCodeAt(0) >= 32 && curr.charCodeAt(0) <= 126; }, true) && t.length > 1) parent.wset += ',"wifi_wep_key2":"' + t + '"'; else erm += "No correct"; break;
+          case 10: case 26: if (hex.test(t)) parent.wset += ',"wifi_wep_key2":"' + t + '"'; else erm += parent.t("No correct"); break;
+          default: erm += parent.t("No correct");
+        }
+      }
+      else erm += "No correct lengrh";
+      t = document.getElementById('i7').value;
+      if (a == t.length) {
+        if (t != read.result.wifi_wep_key3) switch (t.length) {
+          case 5: case 13: if (t.split('').reduce(function (prev, curr, idx) { return prev && curr.charCodeAt(0) >= 32 && curr.charCodeAt(0) <= 126; }, true) && t.length > 1) parent.wset += ',"wifi_wep_key3":"' + t + '"'; else erm += "No correct"; break;
+          case 10: case 26: if (hex.test(t)) parent.wset += ',"wifi_wep_key3":"' + t + '"'; else erm += parent.t("No correct"); break;
+          default: erm += "No correct lengrh";
+        }
+      }
+      else erm += "No correct lengrh";
+      if (a == t.length) {
+        t = document.getElementById('i8').value;
+        if (t != read.result.wifi_wep_key4) switch (t.length) {
+          case 5: case 13: if (t.split('').reduce(function (prev, curr, idx) { return prev && curr.charCodeAt(0) >= 32 && curr.charCodeAt(0) <= 126; }, true) && t.length > 1) parent.wset += ',"wifi_wep_key4":"' + t + '"'; else erm += "No correct"; break;
+          case 10: case 26: if (hex.test(t)) parent.wset += ',"wifi_wep_key4":"' + t + '"'; else erm += parent.t("No correct"); break;
+          default: erm += "No correct lengrh";
+        }
+      }
+      else erm += "No correct lengrh";
+      parent.wset += '}';
+      if (erm != "") parent.erMes(erm, "i" + iid); else { parent.stb.SetEnv(parent.wset); var nt = parent.stb.ServiceControl('wifi', 'restart'); parent.wset = '{'; back(); }
+    }
+
+    function change(a) { if (iid + a <= mid && iid + a >= mid - 1) { iid += a; document.getElementById('i' + iid).focus(); } }
+
+    function generate64() {
+      var a = document.getElementById('i1').value;
+      if (a.length >= 1) {
+        var key = JSON.parse(parent.stb.GetWepKey64ByPassPhrase(a));
+        document.getElementById('i5').value = key.result['wep64-key1'];
+        document.getElementById('i6').value = key.result['wep64-key2'];
+        document.getElementById('i7').value = key.result['wep64-key3'];
+        document.getElementById('i8').value = key.result['wep64-key4'];
+      }
+      else parent.erMes('No correct', "i" + iid);
+    }
+    function generate128() {
+      var a = document.getElementById('i1').value;
+      if (a.length >= 1) {
+        var key = JSON.parse(parent.stb.GetWepKey128ByPassPhrase(a));
+        document.getElementById('i5').value = key.result['wep128-key1'];
+        document.getElementById('i6').value = key.result['wep128-key1'];
+        document.getElementById('i7').value = key.result['wep128-key1'];
+        document.getElementById('i8').value = key.result['wep128-key1'];
+      }
+      else parent.erMes('No correct', "i" + iid);
+    }
+  </script>
+  <script language="JavaScript" src="js/pres.js"></script>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+<body onload="onLoad()" onkeydown="pressKey(event);">
+  <div id="blueback">
+    <table width="100%" border="0" cellpadding="0" cellspacing="0">
+      <tr>
+        <td align="right"><span id="t1"></span></td>
+        <td width="10"><input id="i1" maxlenght="32" type="password" /></td>
+      </tr>
+      <tr>
+        <td align="right"><input id="te1" type="button" value="" onClick="generate64()" /></td>
+        <td><input id="te2" type="button" value="" onClick="generate128()" /></td>
+      </tr>
+      <tr>
+        <td align="right"><span id="t2"></span></td>
+        <td><input id="i2" maxlenght="1" type="text" /></td>
+      </tr>
+      <tr>
+        <td align="right"><span id="t3"></span></td>
+        <td><input id="i3" maxlenght="26" type="password" /></td>
+      </tr>
+      <tr>
+        <td align="right"><span id="t4"></span></td>
+        <td><input id="i4" maxlenght="26" type="password" /></td>
+      </tr>
+      <tr>
+        <td align="right"><span id="t5"></span></td>
+        <td><input id="i5" maxlenght="26" type="password" /></td>
+      </tr>
+      <tr>
+        <td align="right"><span id="t6"></span></td>
+        <td><input id="i6" maxlenght="26" type="password" /></td>
+      </tr>
+    </table>
+
+  </div>
+  <div id="footer">
+    <input id="i10" type="button" value="" onClick="parent.wset='{';parent.nextMenu('g_nets.html');" />
+    <input id="i9" type="button" value="" class="chb" onClick="submit();" />
+  </div>
+</body>
+
+</html>

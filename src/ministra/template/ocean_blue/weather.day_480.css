@@ -1,0 +1,141 @@
+.weather_forecast {
+    position: absolute;
+    left: 69px;
+    top: 100px;
+    font-size: 16px;
+}
+
+.weather_forecast .weather_row_1 {
+    position: absolute;
+    width: 141px;
+    height: 282px;
+    background-image: url("i_480/25alfa_20.png");
+    color: #fff;
+    text-shadow: rgba(0, 50, 80, 0.5) 1px 2px 0;
+}
+
+.weather_forecast .weather_col_1 {
+    left: 15px;
+    -webkit-border-top-left-radius: 14px;
+    -moz-border-radius-topleft: 14px;
+    -webkit-border-bottom-left-radius: 14px;
+    -moz-border-radius-bottomleft: 14px;
+}
+
+.weather_forecast .weather_col_2 {
+    left: 158px;
+}
+
+.weather_forecast .weather_col_3 {
+    left: 301px;
+}
+
+.weather_forecast .weather_col_4 {
+    left: 444px;
+    -webkit-border-top-right-radius: 14px;
+    -moz-border-radius-topright: 14px;
+    -webkit-border-bottom-right-radius: 14px;
+    -moz-border-radius-bottomright: 14px;
+}
+
+.weather_forecast .day_weather_layer_1 {
+    position: absolute;
+    top: 150px;
+    left: 0;
+    width: 100%;
+}
+
+.weather_forecast .day_weather_layer_2 {
+    position: absolute;
+    top: 150px;
+    left: 0;
+    width: 100%;
+}
+
+.weather_forecast .day_weather_layer_3 {
+    position: absolute;
+    top: 150px;
+    left: 0;
+    width: 100%;
+}
+
+.weather_forecast .day_weather_temp {
+    position: absolute;
+    top: 158px;
+    right: 0;
+    width: 100%;
+    text-align: right;
+    font-size: 32px;
+    font-family: "Roboto", sans-serif;
+    font-weight: bold;
+}
+
+.weather_forecast .day_weather_text,
+.day_weather_descr {
+    text-align: center;
+    padding: 2px 0 0 0;
+    width: 100%;
+}
+
+.weather_forecast .day_weather_descr {
+    position: absolute;
+    top: 40px;
+    width: 100%;
+}
+
+.weather_forecast .day_weather_sub {
+    font-family: "Myriad Pro Cond", sans-serif;
+}
+
+
+.weather_forecast .wind_direction_N {
+    -webkit-transform: rotate(180deg);
+    display: inline-block;
+    margin: 0 5px 0 8px;
+}
+
+.weather_forecast .wind_direction_NE {
+    -webkit-transform: rotate(225deg);
+    display: inline-block;
+    margin: 0 5px 0 8px;
+}
+
+.weather_forecast .wind_direction_E {
+    -webkit-transform: rotate(270deg);
+    display: inline-block;
+    margin: 0 5px 0 8px;
+}
+
+.weather_forecast .wind_direction_SE {
+    -webkit-transform: rotate(315deg);
+    display: inline-block;
+    margin: 0 5px 0 8px;
+}
+
+.weather_forecast .wind_direction_S {
+    -webkit-transform: rotate(0deg);
+    display: inline-block;
+    margin: 0 5px 0 8px;
+}
+
+.weather_forecast .wind_direction_SW {
+    -webkit-transform: rotate(45deg);
+    display: inline-block;
+    margin: 0 5px 0 8px;
+}
+
+.weather_forecast .wind_direction_W {
+    -webkit-transform: rotate(90deg);
+    display: inline-block;
+    margin: 0 5px 0 8px;
+}
+
+.weather_forecast .wind_direction_NW {
+    -webkit-transform: rotate(135deg);
+    display: inline-block;
+    margin: 0 5px 0 8px;
+}
+
+.weather_forecast .wind_direction_na {
+    display: none;
+}

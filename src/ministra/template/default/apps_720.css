@@ -1,0 +1,45 @@
+#apps .app_block {
+    width: 180px;
+    height: 90px;
+    float: left;
+    margin: 0 18px 14px 18px;
+    border-radius: 3px;
+}
+
+#apps .app_block:focus {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+#apps .app_icon_block {
+    width: 48px;
+    height: 48px;
+    margin: 6px auto 0;
+    background-size: 48px 48px !important;
+}
+
+#apps .app_title_block {
+    height: 32px;
+    width: 100%;
+    text-align: center;
+    white-space: pre;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#apps .simple_layer {
+    overflow: auto;
+    top: 115px;
+}
+
+#apps ::-webkit-scrollbar {
+    width: 15px;
+}
+
+#apps ::-webkit-scrollbar-track {
+    border-radius: 0 0 10px
+}
+
+#apps ::-webkit-scrollbar-thumb {
+    background: #4C6285;
+    border-radius: 10px;
+}

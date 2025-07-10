@@ -1,0 +1,39 @@
+#update_settings .select_container {
+    position: absolute;
+    top: 80px;
+    left: 40px;
+    width: 1100px;
+}
+
+#update_settings .select_source {
+    color: #000;
+    background-color: #d8a903;
+    padding: 1px 2px 1px 2px;
+    -webkit-border-radius: 4px;
+    -moz-border-radius: 4px;
+    float: left;
+    width: 1030px;
+}
+
+#update_settings .rarr,
+#update_settings .larr {
+    float: left;
+    margin: 0 3px 0 3px;
+}
+
+
+#update_settings .source {
+    margin: 50px 0 0 10px;
+    color: #99A8B5;
+    clear: both;
+    font-family: "Myriad Pro Cond", sans-serif;
+}
+
+#update_settings .source .uri {
+    color: #fff;
+    font-family: "Myriad Pro", sans-serif;
+}
+
+#update_settings .method {
+    margin: 0 0 0 10px
+}

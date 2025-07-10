@@ -1,0 +1,29 @@
+.simple_layer {
+    padding: 20px;
+    width: 1100px;
+    height: 490px;
+}
+
+.main_container,
+.payment_container,
+.agreement_container,
+.terms_container {
+    position: absolute;
+    left: 15px;
+    height: 488px;
+    width: 1100px;
+}
+
+.main_content,
+.payment_content,
+.agreement_content,
+.terms_content {
+    position: absolute;
+    height: 488px;
+    width: 1080px;
+    overflow: hidden;
+}
+
+#account .label {
+    color: #FFE8C7;
+}

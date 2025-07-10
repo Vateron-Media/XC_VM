@@ -1,0 +1,45 @@
+/* LOADER */
+
+.loader {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 720px;
+    height: 480px;
+    background-image: url("i_480/bg2.png");
+}
+
+.loader_bar {
+    position: absolute;
+    left: 2px;
+    top: 2px;
+    width: 0px;
+    height: 18px;
+    background-image: url("i_480/loading.png");
+}
+
+.loader_bar_bg {
+    position: absolute;
+    left: 234px;
+    top: 230px;
+    width: 252px;
+    height: 22px;
+    background-image: url("i_480/loading_bg.gif");
+}
+
+.loader_log {
+    position: absolute;
+    left: 100px;
+    top: 300px;
+    width: 500px;
+    height: 200px;
+    border: 2px solid #fff;
+    padding: 3px;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    overflow: auto;
+    color: #fff;
+    font-size: 16px;
+}
+
+/* END LOADER */

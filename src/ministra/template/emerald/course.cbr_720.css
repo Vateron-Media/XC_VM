@@ -1,0 +1,78 @@
+.course_block {
+    position: absolute;
+    left: 70px;
+    top: 135px;
+    width: 293px;
+    color: #fff;
+    font-size: 22px;
+    text-align: center;
+    background-image: url("i_720/25alfa_20.png");
+    -moz-border-radius: 10px;
+    -webkit-border-radius: 10px;
+    padding: 0 0 3px 0;
+}
+
+.course_title,
+.course_date {
+    color: #99A8B5;
+}
+
+.course_block dt {
+    float: left;
+    width: 65px;
+    text-align: right;
+
+}
+
+.course_block dd {
+    text-align: left;
+    margin: 0 0 0 70px;
+}
+
+.course_block .trend_val {
+    font-size: 12px;
+}
+
+.uarr {
+    font-size: 18px;
+    font-weight: bold;
+    color: #0f0;
+    float: left;
+    width: 8px;
+}
+
+.darr {
+    font-size: 18px;
+    font-weight: bold;
+    color: #f00;
+    float: left;
+    width: 8px;
+}
+
+
+.course_block ul {
+    list-style: none;
+    margin: auto;
+}
+
+.course_block ul li {
+    float: left;
+}
+
+.course_block .course_currency {
+    width: 100px;
+    text-align: right;
+}
+
+.course_block .course_value {
+    width: 115px;
+    margin: 0 0 0 4px;
+    text-align: right;
+}
+
+.course_block .course_trend {
+    text-align: left;
+    margin: 0 0 0 4px;
+    width: 56px;
+    font-family: "Myriad Pro Cond", serif;
+}

@@ -1,0 +1,13 @@
+.simple_layer {
+    position: absolute;
+    left: 69px;
+    top: 58px;
+    font-size: 18px;
+    color: #fff;
+    background-image: url("i_480/25alfa_20.png");
+    height: 330px;
+    width: 590px;
+    padding: 20px 0 0 0;
+    -moz-border-radius: 10px;
+    -webkit-border-radius: 10px;
+}

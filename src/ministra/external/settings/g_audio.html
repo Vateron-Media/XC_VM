@@ -1,0 +1,108 @@
+<html>
+
+<head>
+  <script>
+    var iid = 1;
+    var menuT = [['select', parent.t('Stereo Out Mode:'), "STEREO", parent.t("Stereo"), "MONO", parent.t("Mono"), "MONO_LEFT", parent.t("Mono Left"), "MONO_RIGHT", parent.t("Mono Right"), "LT_RT", parent.t("Lt/Rt")],
+    ['select', parent.t('SPDIF Mode:'), "1", parent.t("PCM"), "2", parent.t("Bitstream")],
+    ['select', parent.t('HDMI Audio:'), "PCM", parent.t("PCM"), "SPDIF", parent.t("SPDIF")]];
+    var mid = menuT.length + 2;
+    var pread = ["audio_stereo_out_mode", "audio_spdif_mode", "audio_hdmi_audio_mode"];
+    var tread = '{"varList":["' + pread[0] + '"';
+    for (i = 1; i < pread.length; i++) { tread += ',"' + pread[i] + '"'; }
+    tread += ']}';
+    read = JSON.parse(parent.stb.GetEnv(tread));
+    var bp = read.result;
+    read.result.audio_spdif_mode = parent.prof.spdif_mode;
+    if (read.result.audio_spdif_mode == "") read.result.audio_spdif_mode = "BITSTEAM";
+    if (read.result.audio_hdmi_audio_mode == "") read.result.audio_hdmi_audio_mode = "PCM";
+    var gr = parseInt(read.result.audio_initial_volume);
+    if (read.result.audio_initial_volume == '') gr = 0;
+
+    function onLoad() {
+      sload();
+      init();
+      parent.cont.focus();
+      document.getElementById("i1").focus();
+      document.getElementById("i4").value = parent.t('OK');
+      document.getElementById("i5").value = parent.t('Cancel');
+    }
+
+    function submit() {
+      var wf = false; var pr = false;
+      var wr = '{';
+      var t = document.getElementById("i1").value;
+      if (t != read.result.audio_stereo_out_mode) { wf = true; wr += '"audio_stereo_out_mode":"' + t + '"'; pr = true; }
+      t = document.getElementById("i2").value;
+      if (t != read.result.audio_spdif_mode) { wf = true; wr += (pr ? ',' : '') + '"audio_spdif_mode":"' + (t == 1 ? 'PCM' : 'BITSTEAM') + '"'; parent.prof.spdif_mode = t; pr = true; parent.stb.SetupSPdif(t); parent.load({ "type": "stb", "action": "set_spdif_mode", "spdif_mode": t }, function (result) { if (!result) { erm += parent.t('Saving error'); } }); }
+      t = document.getElementById("i3").value;
+      if (t != read.result.audio_hdmi_audio_mode) { wf = true; wr += (pr ? ',' : '') + '"audio_hdmi_audio_mode":"' + t + '"'; parent.stb.SetHDMIAudioOut(t == "SPDIF" ? 1 : 0) }
+      wr += '}';
+      if (wf) { parent.stb.SetEnv(wr); }
+      back();
+    }
+
+    function SSM(a) {
+      if (fc) switch (a) {
+        case "STEREO": parent.stb.SetStereoMode(0); break;
+        case "MONO": parent.stb.SetStereoMode(1); break;
+        case "MONO_LEFT": parent.stb.SetStereoMode(2); break;
+        case "MONO_RIGHT": parent.stb.SetStereoMode(3); break;
+        case "LT_RT": parent.stb.SetStereoMode(4); break;
+      }
+    }
+
+    function backUp() {
+      if (bp.audio_stereo_out_mode != document.getElementById("i1").value) { SSM(bp.audio_stereo_out_mode); }
+      back();
+    }
+
+    function change(a) {
+      if (iid <= mid - 2)
+        switch (menuT[iid - 1][0]) {
+          case "select":
+            fc = true;
+            var d = document.getElementById('i' + iid);
+            var b = (d.selectedIndex + a >= 0 ? (d.selectedIndex + a < d.length ? d.selectedIndex + a : d.length - 1) : 0);
+            switch (iid) {
+              case 1: SSM(d[b].value); break;
+            }
+            fc = false; break;
+        }
+      else if (iid + a <= mid && iid + a >= mid - 1) { iid += a; document.getElementById('i' + iid).focus(); }
+    }
+  </script>
+  <script language="JavaScript" src="js/pres.js"></script>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+<body onload="onLoad()" onkeydown="pressKey(event);">
+  <div id="blueback">
+    <table class="nsp" width="100%" border="0" cellpadding="0" cellspacing="0">
+      <tr>
+        <td align="right"><span id="t1"></span>
+        <td>
+          <div class="sub_select"><select id="i1" onChange="SSM(this.value)"></select></div>
+        </td>
+      </tr>
+      <tr>
+        <td align="right"><span id="t2"></span>
+        <td>
+          <div class="sub_select"><select id="i2"></select></div>
+        </td>
+      </tr>
+      <tr>
+        <td align="right"><span id="t3"></span>
+        <td>
+          <div class="sub_select"><select id="i3"></select></div>
+        </td>
+      </tr>
+    </table>
+
+  </div>
+  <div id="footer">
+    <input id="i5" type="button" value="" onClick="backUp();" />
+    <input id="i4" type="button" value="" onClick="submit();" />
+  </div>
+</body>
+
+</html>

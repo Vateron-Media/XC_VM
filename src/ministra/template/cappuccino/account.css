@@ -1,0 +1,23 @@
+.main_container,
+.payment_container,
+.agreement_container,
+.terms_container {
+    position: absolute;
+    left: 15px;
+    height: 380px;
+    width: 583px;
+}
+
+.main_content,
+.payment_content,
+.agreement_content,
+.terms_content {
+    position: absolute;
+    height: 380px;
+    width: 560px;
+    overflow: hidden;
+}
+
+#account .label {
+    color: #FFE8C7;
+}

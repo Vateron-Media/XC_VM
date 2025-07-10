@@ -1,0 +1,38 @@
+#!/usr/bin/python3
+import os, sys, hashlib, time
+
+rBaseDir = os.path.dirname(os.path.realpath(__file__)) + "/"
+rPHPDir = rBaseDir + "bin/php/bin/php"
+rCLIDir = rBaseDir + "includes/cli/"
+
+
+def md5(rFilename):
+    rMD5 = hashlib.md5()
+    with open(rFilename, "rb") as rFile:
+        for rChunk in iter(lambda: rFile.read(4096), b""):
+            rMD5.update(rChunk)
+    return rMD5.hexdigest()
+
+
+def doUpdate(rFilename):
+    os.system("sudo systemctl stop xc_vm")
+    os.system('sudo tar -zxvf "%s" -C "%s"' % (rFilename, rBaseDir))
+    os.system('sudo chown -R xc_vm:xc_vm "%s"' % rBaseDir)
+    os.system('sudo %s %supdate.php "post-update"' % (rPHPDir, rCLIDir))
+    os.system("sudo systemctl start xc_vm")
+    os.remove(rFilename)
+    return True
+
+
+if __name__ == "__main__":
+    try:
+        rFilename = sys.argv[1]
+        rMD5 = sys.argv[2]
+    except:
+        print("Please run the update from the XC_VM Admin Interface.")
+        sys.exit(1)
+    if md5(rFilename) == rMD5:
+        doUpdate(rFilename)
+    else:
+        print("CRC ERROR")
+    sys.exit(1)

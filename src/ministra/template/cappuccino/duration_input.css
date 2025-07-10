@@ -1,0 +1,34 @@
+.duration_box {
+    position: absolute;
+    z-index: 100;
+    width: 334px;
+    height: 222px;
+    left: 192px;
+    top: 190px;
+    background: url("i/input_episode_bg.png");
+}
+
+.duration_box_input {
+    position: absolute;
+    top: 83px;
+    left: 123px;
+    width: 89px;
+    height: 40px;
+    background: url("i/input_channel.png") center;
+    font: 34px "Myriad Pro Cond";
+    text-align: center;
+    color: #048;
+    overflow: hidden;
+    white-space: pre;
+    padding: 4px 0 0 0;
+}
+
+.duration_box_title {
+    position: absolute;
+    top: 129px;
+    width: 100%;
+    font: 14px "Myriad Pro Cond";
+    color: #333;
+    font-weight: bold;
+    text-align: center;
+}

@@ -1,0 +1,40 @@
+#radio .playing_block {
+    width: 34px;
+    height: 30px;
+    float: left;
+    margin: 4px 0 0 4px;
+    background-image: url("i_720/mb_player.png");
+    background-position: 0 0;
+}
+
+#radio .active_playing_block {
+    width: 34px;
+    height: 39px;
+    margin: 6px 2px 0 0;
+    float: left;
+    background-image: url("i_720/mb_player.png");
+    background-position: 0 -29px;
+}
+
+#radio .paused_block {
+    width: 34px;
+    height: 30px;
+    float: left;
+    margin: 4px 0 0 4px;
+    background-image: url("i_720/mb_player.png");
+    background-position: -34px 0;
+}
+
+#radio .active_paused_block {
+    width: 34px;
+    height: 39px;
+    margin: 6px 2px 0 0;
+    float: left;
+    background-image: url("i_720/mb_player.png");
+    background-position: -34px -29px;
+}
+
+#radio .active_row_bg[status="playing"] .active_name_block,
+#radio .playing .active_name_block {
+    margin-top: 4px;
+}

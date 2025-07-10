@@ -1,0 +1,90 @@
+<html>
+
+<head>
+  <script>
+    var iid = 1;
+    var ni = 1;
+    read = new Object();
+    var pread = ["wifi_int_ip", "wifi_int_mask", "wifi_int_gw", "wifi_int_dns"];
+    var tread = '{"varList":["' + pread[0] + '"';
+    for (i = 1; i < pread.length; i++) { tread += ',"' + pread[i] + '"'; }
+    tread += ']}';
+    read = JSON.parse(parent.stb.GetEnv(tread));
+    var menuT = [['dn', parent.t('IP address:')], ['dn', parent.t('Network mask:')], ['dn', parent.t('Gateway(s):')], ['dn', parent.t('DNS1:')]];
+    var mid = menuT.length + 2;
+    function onLoad() {
+      parent.document.getElementById("zagolovok").innerHTML = "/" + parent.t('Wireless (Wi-Fi)') + "/" + parent.t('Manual');
+      sload();
+      init();
+      parent.lani = 2;
+      parent.cont.focus();
+      document.getElementById("i1").focus();
+      document.getElementById("i5").value = parent.t('Next');
+      document.getElementById("i6").value = parent.t('Cancel');
+      fln = true;
+    }
+
+    function submit() {
+      var erm = ""; var pr = false; parent.wfl = false;
+      var t1 = document.getElementById("i1").value + '.' + document.getElementById("i12").value + '.' + document.getElementById("i13").value + '.' + document.getElementById("i14").value;
+      var t2 = document.getElementById("i2").value + '.' + document.getElementById("i22").value + '.' + document.getElementById("i23").value + '.' + document.getElementById("i24").value;
+      var t3 = document.getElementById("i3").value + '.' + document.getElementById("i32").value + '.' + document.getElementById("i33").value + '.' + document.getElementById("i34").value;
+      var t4 = document.getElementById("i4").value + '.' + document.getElementById("i42").value + '.' + document.getElementById("i43").value + '.' + document.getElementById("i44").value;
+      if (t1 != "0.0.0.0" && t1 != read.result.wifi_int_ip) if (cIP(t1)) { parent.wset += '"wifi_int_ip":"' + t1 + '"'; pr = true; } else erm += menuT[0][1] + '<br />';
+      if (t2 != "0.0.0.0" && t2 != read.result.wifi_int_mask) if (cIP(t2)) { parent.wset += (pr ? ',' : '') + '"wifi_int_mask":"' + t1 + '"'; } else erm += menuT[1][1] + '<br />';
+      if (t3 != "0.0.0.0" && t3 != read.result.wifi_int_gw) if (cIP(t3)) { parent.wset += (pr ? ',' : '') + '"wifi_int_gw":"' + t3 + '"'; } else erm += menuT[2][1] + '<br />';
+      if (t4 != "0.0.0.0" && t4 != read.result.wifi_int_dns) if (cIP(t4)) { parent.wset += (pr ? ',' : '') + '"wifi_int_dns":"' + t4 + '"'; } else erm += menuT[3][1];
+      if (erm != "") parent.erMes(parent.t('No correct') + '<br />' + erm, "i" + iid); else { parent.nextMenu('nsw_dhcp.html'); }
+    }
+
+    function change(a) {
+      if (iid <= mid - 2) switch (menuT[iid - 1][0]) {
+        case "dn": ni += a; if (ni < 1) ni = 1; if (ni > 4) ni = 4; if (ni != 1) document.getElementById('i' + iid + ni).focus(); else document.getElementById('i' + iid).focus(); break;
+      }
+      else if (iid + a <= mid && iid + a >= mid - 1) { iid += a; document.getElementById('i' + iid).focus(); }
+    }
+  </script>
+  <script language="JavaScript" src="js/pres.js"></script>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+<body onload="onLoad()" onkeydown="pressKey(event);">
+  <div id="blueback">
+    <table class="nsl1" width="100%" border="0" cellpadding="0" cellspacing="0">
+      <tr>
+        <td align="right"><span id="t1"></span></td>
+        <td class="ds"><input type="text" maxlength="3" class="ds" id="i1" onfocus="this.select(true)" /><span
+            class="ds">.</span><input type="text" maxlength="3" class="ds" id="i12" onfocus="this.select(true)" /><span
+            class="ds">.</span><input type="text" maxlength="3" class="ds" id="i13" onfocus="this.select(true)" /><span
+            class="ds">.</span><input type="text" maxlength="3" class="ds" id="i14" onfocus="this.select(true)" />
+      </tr>
+      <tr>
+        <td align="right"><span id="t2"></span></td>
+        <td class="ds"><input type="text" maxlength="3" class="ds" id="i2" onfocus="this.select(true)" /><span
+            class="ds">.</span><input type="text" maxlength="3" class="ds" id="i22" onfocus="this.select(true)" /><span
+            class="ds">.</span><input type="text" maxlength="3" class="ds" id="i23" onfocus="this.select(true)" /><span
+            class="ds">.</span><input type="text" maxlength="3" class="ds" id="i24" onfocus="this.select(true)" />
+      </tr>
+      <tr>
+        <td align="right"><span id="t3"></span></td>
+        <td class="ds"><input type="text" maxlength="3" class="ds" id="i3" onfocus="this.select(true)" /><span
+            class="ds">.</span><input type="text" maxlength="3" class="ds" id="i32" onfocus="this.select(true)" /><span
+            class="ds">.</span><input type="text" maxlength="3" class="ds" id="i33" onfocus="this.select(true)" /><span
+            class="ds">.</span><input type="text" maxlength="3" class="ds" id="i34" onfocus="this.select(true)" />
+      </tr>
+      <tr>
+        <td align="right"><span id="t4"></span></td>
+        <td class="ds"><input type="text" maxlength="3" class="ds" id="i4" onfocus="this.select(true)" /><span
+            class="ds">.</span><input type="text" maxlength="3" class="ds" id="i42" onfocus="this.select(true)" /><span
+            class="ds">.</span><input type="text" maxlength="3" class="ds" id="i43" onfocus="this.select(true)" /><span
+            class="ds">.</span><input type="text" maxlength="3" class="ds" id="i44" onfocus="this.select(true)" />
+      </tr>
+    </table>
+
+  </div>
+  <div id="footer">
+    <input id="i6" type="button" value="" onClick="parent.wfl=true;parent.wset='{';parent.nextMenu('g_nets.html')" />
+    <input id="i5" type="button" value="" onClick="submit();" />
+  </div>
+</body>
+
+</html>

@@ -1,0 +1,78 @@
+#service_management .description_block {
+    display: none !important;
+}
+
+#service_management .subscribed_str_block,
+#service_management .not_subscribed_str_block {
+    position: absolute;
+    right: 1px;
+    top: 0;
+    width: 194px;
+    height: 28px;
+    padding: 8px 0 0 6px;
+    font-family: "Myriad Pro Cond", sans-serif;
+    font-size: 20px;
+}
+
+#service_management .subscribed_str_block {
+    background: url("i_720/mb_table02.png") 202px 0;
+    color: #122f59;
+}
+
+#service_management .not_subscribed_str_block {
+    background: url("i_720/mb_table04.png") 202px 0;
+    color: #fff;
+}
+
+#service_management .active_name_block {
+    margin-top: 0;
+}
+
+#service_management .active_description_block {
+    color: #284B82;
+    font-size: 20px;
+    line-height: 21px;
+    white-space: pre;
+    overflow: hidden;
+    width: 1068px;
+    float: left;
+    text-overflow: ellipsis;
+    margin: -5px 0 0 2px;
+    height: 21px;
+}
+
+.active_subscribed_str_block {
+    position: absolute;
+    right: 23px;
+    top: 4px;
+    width: 201px;
+    height: 36px;
+    background: url("i_720/mb_table_act02.png") 219px -4px;
+    padding: 15px 0 0 8px;
+    color: #000;
+    font-family: "Myriad Pro Cond", sans-serif;
+    font-size: 20px;
+    overflow: hidden;
+}
+
+.active_not_subscribed_str_block {
+    position: absolute;
+    right: 23px;
+    top: 4px;
+    width: 201px;
+    height: 36px;
+    background: url("i_720/mb_table_act02.png") 219px -4px;
+    padding: 15px 0 0 8px;
+    color: #000;
+    font-family: "Myriad Pro Cond", sans-serif;
+    font-size: 20px;
+    overflow: hidden;
+}
+
+#package_info .label {
+    color: #99A8B5;
+}
+
+#package_info .info-block {
+    margin-bottom: 10px;
+}

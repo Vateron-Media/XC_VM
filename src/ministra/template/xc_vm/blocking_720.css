@@ -1,0 +1,61 @@
+.cut_off {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 1000;
+    width: 1280px;
+    height: 720px;
+    background-image: url("i_720/bg2.png");
+    background-size: cover;
+}
+
+.cut_off_text {
+    text-align: center;
+    vertical-align: middle;
+    height: 720px;
+    width: 1280px;
+    display: table-cell;
+    font: 18px trebuchet ms, Arial, Helvetica, sans-serif;
+    color: #fff;
+    padding-top: 65px;
+    text-transform: uppercase;
+}
+
+.blocking_buttons {
+    position: absolute;
+    bottom: 50px;
+    right: 50px;
+}
+
+.blocking_account_info,
+.blocking_account_payment,
+.blocking_account_reboot {
+    margin-left: 30px;
+    float: left;
+    color: white;
+    font-size: 12px;
+    text-transform: uppercase;
+}
+
+.blocking_buttons .color_btn,
+.blocking_buttons .color_btn {
+    width: 15px;
+    height: 15px;
+    -webkit-border-radius: 15px;
+    float: left;
+    margin-right: 8px;
+    margin-top: -1px;
+    opacity: 0.5;
+}
+
+.blocking_buttons .blue {
+    background-color: #306eff;
+}
+
+.blocking_buttons .yellow {
+    background-color: #ffe928;
+}
+
+.blocking_buttons .red {
+    background-color: #ff3b24;
+}

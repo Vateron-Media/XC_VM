@@ -1,0 +1,59 @@
+<html>
+
+<head>
+  <script>
+    var iid = 1;
+    var mid = 10;
+    read = new Object();
+    var pread = ["ntpurl", "mcip_img_conf", "mcport_img_conf"];
+    var tread = '{"varList":["' + pread[0] + '"';
+    for (i = 1; i < pread.length; i++) { tread += ',"' + pread[i] + '"'; }
+    tread += ']}';
+    read = JSON.parse(parent.stb.GetEnv(tread));
+    var menuT = [['input', parent.t('NTP server:')]];
+    var mid = menuT.length + 2;
+    function onLoad() {
+      sload();
+      init();
+      parent.cont.focus();
+      document.getElementById("i1").focus();
+      document.getElementById("i2").value = parent.t('OK');
+      document.getElementById("i3").value = parent.t('Cancel');
+    }
+
+    function submit() {
+      var wf = false; var pr = false;
+      var erm = "";
+      var wr = '{';
+      var t = document.getElementById("i1").value;
+      if (t != read.result.ntpurl) { wf = true; wr += '"ntpurl":"' + t + '"'; pr = true; };
+      if (read.result.mcip_img_conf != "") { wf = true; wr += (pr ? ',' : '') + '"mcip_img_conf":""'; pr = true; }
+      if (read.result.mcport_img_conf != "") { wf = true; wr += (pr ? ',' : '') + '"mcport_img_conf":""'; }
+      wr += '}';
+      if (erm != "") parent.erMes(erm, "i" + iid);
+      else { if (wf) { parent.stb.SetEnv(wr); parent.rebut = true; } back(); }
+    }
+    function change(a) {
+      if (iid > mid - 2) if (iid + a <= mid && iid + a >= mid - 1) { iid += a; document.getElementById('i' + iid).focus(); }
+    }
+  </script>
+  <script language="JavaScript" src="js/pres.js"></script>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+<body onload="onLoad()" onkeydown="pressKey(event);">
+  <div id="blueback">
+    <table class="nsl" width="100%" border="0" cellpadding="0" cellspacing="0">
+      <tr>
+        <td align="right"><span id="t1"></span></td>
+        <td><input id="i1" type="text" value="" /></td>
+      </tr>
+    </table>
+
+  </div>
+  <div id="footer">
+    <input id="i3" type="button" value="" onClick="back();" />
+    <input id="i2" type="button" value="" onClick="submit();" />
+  </div>
+</body>
+
+</html>

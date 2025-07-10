@@ -1,0 +1,218 @@
+/* 
+    Document   : Downloads_dialog
+    Created on : 12.07.2011, 11:26:16
+    Author     : Affect
+*/
+/* <dialog create download lay> */
+#downloadsDialogCreate {
+    z-index: 1;
+    display: none;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    margin-left: -250px;
+    margin-top: -125px;
+    /*height:250px;*/
+    width: 484px;
+    border-width: 11px 13px 15px 13px;
+    -webkit-border-image: url(i/downloads/modal_bg.png) 11 13 15 13 stretch stretch;
+}
+
+#downloadsDialogCreate .header {
+    /*position:absolute;*/
+    width: 480px;
+    height: 50px;
+    font-size: 30px;
+    color: #002864;
+}
+
+#downloadsDialogCreate .main {
+    /*position:absolute;*/
+    left: 2px;
+    bottom: 10px;
+    width: 480px;
+    /*height:190px;*/
+}
+
+#downloadsDialogCreate .item {
+    position: relative;
+    height: 0px;
+    width: 468px;
+    margin-bottom: 10px;
+    border-width: 20px 6px 20px 6px;
+    -webkit-border-image: url(i/downloads/item_bg.png) 20 6 20 6 stretch stretch;
+}
+
+#downloadsDialogCreate .label {
+    position: absolute;
+    width: 150px;
+    height: 40px;
+    top: -20px;
+    font-size: 22px;
+    color: #002864;
+    text-shadow: #fff 1px 1px 1px;
+    line-height: 38px;
+}
+
+#downloadsDialogCreate .main .item .input_cover {
+    position: absolute;
+    height: 0px;
+    width: 280px;
+    top: -13px;
+    left: 160px;
+    border-width: 13px 13px 14px 13px;
+    -webkit-border-image: url(i/downloads/input.png) 13 13 14 13 stretch stretch;
+}
+
+#downloadsDialogCreate .main .item .input_cover_act {
+    position: absolute;
+    height: 0px;
+    width: 280px;
+    top: -13px;
+    left: 160px;
+    border-width: 13px 13px 14px 13px;
+    -webkit-border-image: url(i/downloads/input_act.png) 13 13 14 13 stretch stretch;
+}
+
+#downloadsDialogCreate .main .item .input_cover_act input,
+#downloadsDialogCreate .main .item .input_cover input {
+    position: absolute;
+    width: 280px;
+    margin-top: -9px;
+    background: transparent
+}
+
+#downloadsDialogCreate .button_layer {
+    position: relative;
+    height: 31px;
+    width: 480px;
+    padding-top: 10px;
+}
+
+#downloadsDialogCreate .main .buttons_lay input {
+    background: url(i/downloads/btn2.png) right no-repeat;
+    width: 300px;
+    margin-top: -7px;
+    position: relative;
+    font-size: 19px;
+    font-weight: bold;
+    text-align: center;
+    color: #fff;
+    line-height: 28px;
+    text-shadow: #808080 -1px -1px 3px;
+    position: relative;
+    height: 31px;
+    width: 200px;
+    margin: 0 20px;
+    float: left;
+}
+
+#downloadsDialogCreate .main .buttons_lay input.active {
+    background-position: right;
+}
+
+#downloadsDialogCreate .main .buttons_lay input:focus {
+    background: url(i/downloads/btn2.png) left no-repeat;
+    font-size: 19px;
+    font-weight: bold;
+    text-align: center;
+    color: #fff;
+    line-height: 28px;
+    text-shadow: #000 -1px -1px 3px;
+}
+
+#downloadsDialogCreate input {
+    border: none !important;
+}
+
+#downloadsDialogCreate .selectbox_cover {
+    position: absolute;
+    height: 0px;
+    line-height: 2px;
+    width: 280px;
+    top: -13px;
+    left: 160px;
+    border-width: 13px 13px 14px 13px;
+    -webkit-border-image: url(i/downloads/combobox.png) 13 13 14 13 stretch stretch;
+}
+
+#downloadsDialogCreate .selectbox_cover_act {
+    position: absolute;
+    height: 0px;
+    line-height: 2px;
+    width: 280px;
+    top: -13px;
+    left: 160px;
+    border-width: 13px 13px 14px 13px;
+    -webkit-border-image: url(i/downloads/combobox_act.png) 13 13 14 13 stretch stretch;
+}
+
+#downloadsDialogCreate .selectbox_cover_act input,
+#downloadsDialogCreate .selectbox_cover input {
+    position: absolute;
+    width: 280px;
+    margin-top: -9px;
+    background: none;
+    border: none
+}
+
+#select_device_shadow {
+    display: none;
+    z-index: 2000;
+    width: 100%;
+    height: 100%;
+    background: url(i/downloads/bg_50.png);
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+#select_device.combo_bg {
+    display: none;
+    z-index: 2002;
+    position: absolute;
+    border-width: 18px 4px 18px 4px;
+    -webkit-border-image: url(i/downloads/combobox_bg.png) 18 4 18 4 stretch stretch;
+    top: 50%;
+    left: 50%;
+    margin: 0px 0 0 -250px;
+    width: 500px;
+}
+
+#select_device .combo_arrow_top {
+    height: 18px;
+    width: 100%;
+    background: url(i/downloads/combobox_arrow.png) top no-repeat;
+    margin-top: -18px;
+}
+
+#select_device .combo_arrow_bottom {
+    height: 18px;
+    width: 100%;
+    background: url(i/downloads/combobox_arrow.png) bottom no-repeat;
+    margin-bottom: -18px;
+}
+
+#select_device .combo_btn {
+    white-space: nowrap;
+    height: 0px;
+    border-width: 15px 8px 15px 8px;
+    -webkit-border-image: url(i/downloads/combobox_btn_act.png) 15 8 15 8 stretch stretch;
+    line-height: 0px;
+    font-size: 17px;
+    color: #333;
+    font-weight: bold;
+}
+
+#select_device .combo_btn_act {
+    white-space: nowrap;
+    height: 0px;
+    border-width: 15px 8px 15px 8px;
+    -webkit-border-image: url(i/downloads/combobox_btn.png) 15 8 15 8 stretch stretch;
+    line-height: 0px;
+    font-size: 19px;
+    color: #fff;
+    font-weight: bold;
+}
+
+/* </dialog create download lay> */

@@ -1,0 +1,246 @@
+<html>
+
+<head>
+
+  <script>
+    var iid = 1; var flb = false;
+    var flesh = new Object();
+    var vers = parent.stb.GetDeviceImageVersionCurrent().split(' ');
+    var menuT = new Array();
+    var sc = 0;
+    var errf; var turl;
+    var mid;
+    var model = parent.stb.RDir("Model");
+    var pread = ["a", "b", "c"];
+    var read = { "result": { "a": "0", "b": "/" + model.toLowerCase() + "/imageupdate", "c": parent.t('Verify') } }
+    var chb = document.getElementsByName('chb');
+    var info = document.getElementsByName('info');
+    var lp = 0; var ln;
+    var crash = [1, 7, 17, 19, 20, 22, 27, 25];
+    switch (parent.put) {
+      case 576: lp = 560 / 100; break;
+      case 720: lp = 1070 / 100; break;
+      case 1080: lp = 1605 / 100; break;
+    }
+    function load() {
+      flesh = JSON.parse(parent.stb.RDir("get_storage_info"));
+      var j = 2;
+      menuT = [['select', parent.t('Disk:'), '0', parent.t('No disk found')], ['input', parent.t('Path:')], ['input', '']];
+      for (var i = 0; i < flesh.length; i++) {
+        menuT[0][j] = i;
+        j++;
+        menuT[0][j] = flesh[i].vendor + ' ' + flesh[i].model;
+        if (flesh[i].label != '') { menuT[0][j] += ' (' + flesh[i].label + ')'; }
+        else { if (flesh[i].partitionNum == 1) { sc++; } }
+        j++;
+      }
+      ln = document.getElementById('prbar_line');
+      errf = sc > 1 || flesh.length < 1;
+      mid = menuT.length + 2;
+      init();
+    }
+
+    function onLoad() {
+      load();
+      sload();
+      fusb = true;
+      var info_width = document.getElementById("blueback").offsetWidth + 'px'
+      info[0].style.width = info_width;
+      info[2].style.width = info_width;
+      info[0].innerHTML = parent.t('Current version:') + ' <span class="item_name">' + parent.stb.RDir("ImageVersion") + '&nbsp;&nbsp;&nbsp;</span>' + parent.t('Description:') + ' <span class="item_name">' + parent.stb.RDir("ImageDescription") + '</span>';
+      info[1].innerHTML = parent.t('Date:') + ' <span class="item_name">' + parent.stb.RDir("ImageDate") + '</span>';
+      info[2].innerHTML = parent.t('Available version:') + ' <span class="item_name">n/a</span>';
+      info[3].innerHTML = '<span class="item_name"><br /></span>';
+      parent.cont.focus();
+      document.getElementById("i1").focus();
+      chb[1].value = parent.t("Start update");
+      chb[0].value = parent.t('Cancel');
+      mid--;
+    }
+
+    function submit(start) {
+      var st = parent.stbUpdate.getStatus();
+      if (st == 21 && start) {
+        var activeBank = parent.stbUpdate.getActiveBank();
+        model = model.toUpperCase();
+        if (model !== 'MAG200') {
+          if (activeBank == 1) {
+            parent.stbUpdate.startUpdate(0, turl);
+          } else {
+            if (activeBank == 0) {
+              parent.stbUpdate.startUpdate(1, turl);
+            } else {
+              parent.stbUpdate.startUpdate(0, turl);
+            }
+          }
+        } else {
+          if (activeBank == -1) {
+            parent.stbUpdate.startUpdate(0, turl);
+          } else {
+            if (parent.stbUpdate.GetFlashBankCount() != 2) {
+              block = false;
+              parent.erMes(parent.t('Updating error!'), 'i' + (iid + 1));
+              return;
+            }
+            else if (activeBank == 1) {
+              parent.stbUpdate.startUpdate(0, turl);
+            } else {
+              if (activeBank == 0) {
+                parent.stbUpdate.startUpdate(1, turl);
+              } else {
+                parent.stbUpdate.startUpdate(0, turl);
+              }
+            }
+          }
+        }
+        block = true;
+        setTimeout("submit()", 1000);
+      }
+      if (crash.indexOf(parent.stbUpdate.getStatus()) != -1) {
+        block = false;
+        parent.erMes(parent.t('Update fails!'), 'i' + iid);
+        return;
+      }
+      else {
+        info[4].innerHTML = parent.stbUpdate.getStatusStr();
+        var proc = parent.stbUpdate.getPercents();
+        ln.style.width = parseInt(proc) * lp + 'px';
+        pr.innerHTML = proc + '%';
+        setTimeout("submit()", 1000);
+      }
+    }
+
+    function check() {
+      if (flesh[0] != 'undefined' && flesh[0] != null) {
+        turl = flesh[document.getElementById('i1').value].mountPath + document.getElementById('i2').value;
+        parent.stbUpdate.startCheck(turl);
+        checkst();
+      }
+      else parent.erMes(parent.t('USB device was not found!'), 'i' + iid);
+    }
+
+    function checkst() {
+      var st = parent.stbUpdate.getStatus();
+      if (st == 21) {
+        chb[0].id = 'i5';
+        chb[1].id = 'i4';
+        chb[1].style.visibility = 'visible';
+        mid = 5; flb = true;
+        info[2].innerHTML = parent.t('Available version:') + ' <span class="item_name">' + parent.stbUpdate.getImageVersionStr() + '&nbsp;&nbsp;&nbsp;</span>' + parent.t('Description:') + ' <span class="item_name">' + parent.stbUpdate.getImageDescStr() + '</span>';
+        info[3].innerHTML = parent.t('Date:') + ' <span class="item_name">' + parent.stbUpdate.getImageDateStr() + '</span>';
+        info[4].innerHTML = parent.stbUpdate.getStatusStr();
+      }
+      else if (st != 26 && st != 23) {
+        info[3].innerHTML = '<span class="item_name">' + parent.t('Update files were not found or damaged!') + '</span>';
+        info[2].innerHTML = parent.t('Available version:') + ' <span class="item_name">n/a</span>';
+        info[4].innerHTML = '';
+        flb = false; mid = 4; chb[1].id = 'i0';
+        chb[1].style.visibility = 'hidden';
+        chb[0].id = 'i4';
+      }
+      else setTimeout("checkst()", 100);
+    }
+
+    function change(a) {
+      if (iid <= mid - 2)
+        switch (menuT[iid - 1][0]) {
+          case "select":
+            fc = true;
+            var d = document.getElementById('i' + iid);
+            var b = (d.selectedIndex + a >= 0 ? (d.selectedIndex + a < d.length ? d.selectedIndex + a : d.length - 1) : 0);
+            fc = false; break;
+        }
+      else if (iid + a <= mid && iid + a >= mid - 1 && flb) { iid += a; document.getElementById('i' + iid).focus(); }
+    }
+
+    function on() {
+      flb = false; chb[1].id = 'i0';
+      chb[1].style.visibility = 'hidden';
+      chb[0].id = 'i4';
+      mid = 4;
+      info[2].innerHTML = parent.t('Available version:') + ' <span class="item_name">n/a</span>';
+      info[3].innerHTML = '<span class="item_name"><br /></span>';
+    }
+  </script>
+  <script language="JavaScript" src="js/pres.js"></script>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+<body onload="onLoad()" onkeydown="pressKey(event);">
+  <div id="blueback">
+    <table width="100%" border="0" cellpadding="0" cellspacing="0">
+      <tr>
+        <td colspan="2" align="left">
+          <div name="info" class="list_head" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td align="left" colspan="2">
+          <div name="info" class="list_head"></div>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2">
+          <div style="height:2px; background:#FFF; width:100%; margin:5px 0;"></div>
+        </td>
+      </tr>
+      <tr>
+        <td align="left"><span id="t1" class="item_name"></span></td>
+        <td width="10">
+          <div class="sub_select_long"><select id="i1" class="sub_select_long" onChange="on()"></select></div>
+        </td>
+      </tr>
+      <tr>
+        <td align="left"><span id="t2" class="item_name"></span></td>
+        <td width="10"><input type="text" id="i2" class="long_input" /></td>
+      </tr>
+      <tr>
+        <td align="left"><span id="t3" class="item_name"></span></td>
+        <td width="10"><input type="button" id="i3" onClick="check()" class="ibu" /></td>
+      </tr>
+      <tr>
+        <td colspan="2">
+          <div style="height:2px; background:#FFF; width:100%; margin:5px 0;"></div>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2">
+          <div name="info" class="list_head" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td align="left" colspan="2">
+          <div name="info" class="list_head"></div>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2">
+          <div style="height:2px; background:#FFF; width:100%; margin:5px 0;"></div>
+        </td>
+      </tr>
+      <tr>
+        <td style="height:1px;" align="center" colspan="2">
+          <div id="update_prbar">
+            <div id="prbar_bg"></div>
+            <div id="prbar_line"></div>
+          </div>
+          <div id="pr" class="percent" align="center">0%</div>
+        </td>
+      </tr>
+      <tr>
+        <td align="center" colspan="2">
+          <div name="info" class="list_head"></div>
+        </td>
+      </tr>
+    </table>
+  </div>
+  <div id="footer">
+    <input id="i4" type="button" name="chb" value="" onClick="parent.nextMenu('g_update.html');" />
+    <input id="i0" type="button" name="chb" value=""
+      onClick="parent.conf(parent.t('After updating the device will reboot automatically. Start updating?'),'i'+iid,'erMbeck();cont.contentWindow.submit(true)');"
+      style="visibility: hidden;" />
+  </div>
+</body>
+
+</html>

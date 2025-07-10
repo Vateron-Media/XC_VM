@@ -1,0 +1,88 @@
+#!/bin/sh
+
+SCRIPT=/home/xc_vm
+USER=$(whoami)
+
+if [ "$USER" != "root" ]; then
+  echo "Please run as root!"
+  exit 0
+fi
+
+start() {
+  pids=$(pgrep -u xc_vm nginx | wc -l)
+  if [ $pids != 0 ]; then
+    echo 'XC_VM is already running'
+    return 1
+  fi
+  echo 'Starting XC_VM...'
+  sudo chown -R xc_vm:xc_vm /sys/class/net
+  sudo chown -R xc_vm:xc_vm /home/xc_vm/content/streams
+  sudo chown -R xc_vm:xc_vm /home/xc_vm/tmp
+  if [ -f $SCRIPT/bin/redis/redis-server ]; then
+    sudo -u xc_vm $SCRIPT/bin/redis/redis-server $SCRIPT/bin/redis/redis.conf >/dev/null 2>/dev/null
+  fi
+  sudo -u xc_vm $SCRIPT/bin/nginx/sbin/nginx >/dev/null 2>/dev/null
+  sudo -u xc_vm $SCRIPT/bin/nginx_rtmp/sbin/nginx_rtmp >/dev/null 2>/dev/null
+  sudo -u xc_vm $SCRIPT/bin/daemons.sh
+  sudo $SCRIPT/bin/php/bin/php $SCRIPT/includes/cli/startup.php
+  sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/includes/cli/signals.php >/dev/null 2>/dev/null &
+  sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/includes/cli/watchdog.php >/dev/null 2>/dev/null &
+  sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/includes/cli/queue.php >/dev/null 2>/dev/null &
+  if [ -f $SCRIPT/includes/cli/cache_handler.php ]; then
+    sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/includes/cli/cache_handler.php >/dev/null 2>/dev/null &
+  fi
+  if [ -f $SCRIPT/includes/cli/connection_sync.php ]; then
+    sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/includes/cli/connection_sync.php >/dev/null 2>/dev/null &
+  fi
+  echo 'Running in foreground...'
+  sleep infinity
+}
+
+stop() {
+  pids=$(pgrep -u xc_vm nginx | wc -l)
+  if [ $pids = 0 ]; then
+    echo 'XC_VM is not running'
+    return 1
+  fi
+  echo 'Stopping XC_VM...'
+  sudo killall -u xc_vm
+  sleep 1
+  sudo killall -u xc_vm
+  sleep 1
+  sudo killall -u xc_vm
+}
+
+restart() {
+  ps -U xc_vm | egrep -v "ffmpeg|PID" | awk '{print $1}' | xargs kill -9
+  start
+}
+
+reload() {
+  pids=$(pgrep -u xc_vm nginx | wc -l)
+  if [ $pids = 0 ]]; then
+    echo 'XC_VM is not running'
+    return 1
+  fi
+  echo 'Reloading XC_VM...'
+  sudo -u xc_vm $SCRIPT/bin/nginx/sbin/nginx -s reload
+  sudo -u xc_vm $SCRIPT/bin/nginx_rtmp/sbin/nginx_rtmp -s reload
+}
+
+case "$1" in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  reload)
+    reload
+    ;;
+  restart)
+    restart
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart|reload}"
+esac
+
+exit 0

@@ -1,0 +1,143 @@
+/* VCLUB */
+.ears_back {
+    position: absolute;
+    width: 40px;
+    height: 420px;
+    left: 0;
+    top: 73px;
+    background-image: url("i_720/ears.png");
+    background-position: 0 0;
+}
+
+.ears_movie {
+    position: absolute;
+    width: 40px;
+    height: 420px;
+    left: 680px;
+    top: 73px;
+    background-image: url("i_720/ears.png");
+    background-position: -40px 0;
+}
+
+.vclub_info_box {
+    position: absolute;
+    width: 400px;
+    height: 196px;
+    top: 74px;
+    left: 810px;
+    line-height: 26px;
+    color: #fff;
+    font-size: 25px;
+    overflow: hidden;
+    padding: 5px;
+}
+
+.vclub_info_box_mask {
+    -webkit-mask: -webkit-gradient(linear, left 191, left bottom, from(rgba(0, 0, 0, 1)), to(rgba(0, 0, 0, 0)));
+}
+
+.vclub_info_box span {
+    color: #ffc528;
+    font-size: 25px;
+    font-family: "Myriad Pro Cond", serif;
+}
+
+.vclub_screenshot_box {
+    position: absolute;
+    background: url("i_720/mb_prev_bg.png");
+    height: 322px;
+    width: 242px;
+    top: 280px;
+    left: 822px;
+    padding: 5px;
+}
+
+.vclub_screenshot_box img {
+    width: 240px;
+    height: 320px;
+}
+
+.today_block {
+    position: absolute;
+    right: 1px;
+    top: 0;
+    width: 194px;
+    height: 34px;
+    background-image: url("i_720/mb_table02.png");
+    background-position: 202px 0;
+    padding: 2px 0 0 6px;
+    color: #fff;
+    font-family: "Roboto", sans-serif;
+    font-size: 24px;
+    overflow: hidden;
+}
+
+.yesterday_block {
+    position: absolute;
+    right: 1px;
+    top: 0;
+    width: 194px;
+    height: 34px;
+    background-image: url("i_720/mb_table03.png");
+    background-position: 202px 0;
+    padding: 2px 0 0 6px;
+    color: #919191;
+    font-family: "Roboto", sans-serif;
+    font-size: 24px;
+    overflow: hidden;
+}
+
+.week_and_more_block {
+    position: absolute;
+    right: 1px;
+    top: 0;
+    width: 194px;
+    height: 34px;
+    background-image: url("i_720/mb_table04.png");
+    background-position: 202px 0;
+    padding: 2px 0 0 6px;
+    color: #626262;
+    font-family: "Roboto", sans-serif;
+    font-size: 24px;
+    overflow: hidden;
+}
+
+.active_today_block,
+.active_yesterday_block,
+.active_week_and_more_block {
+    position: absolute;
+    right: 23px;
+    top: 4px;
+    width: 201px;
+    height: 42px;
+    background-image: url("i_720/mb_table_act02.png");
+    background-position: 219px -4px;
+    padding: 9px 0 0 8px;
+    color: #000;
+    font-family: "Roboto", sans-serif;
+    font-size: 24px;
+    overflow: hidden;
+    font-weight: bold;
+}
+
+.disabled_all_buttons span {
+    color: #707070 !important;
+}
+
+#vclub .low_quality_block {
+    float: left;
+    width: 28px;
+    height: 28px;
+    background-image: url("i_720/low_q.png");
+    margin: 5px 0 0 2px;
+}
+
+#vclub .active_low_quality_block {
+    float: left;
+    width: 28px;
+    height: 28px;
+    background-image: url("i_720/low_q.png");
+    margin: 11px 2px 0 2px;
+}
+
+/* END VCLUB */

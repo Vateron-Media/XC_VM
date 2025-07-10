@@ -1,0 +1,81 @@
+<html>
+
+<head>
+    <script type="text/javascript" language="JavaScript">
+        var iid = 1;
+        var mid = 10;
+        read = new Object();
+        var pread = ["1", "2", "3"];
+        read = { 'result': { '1': '', '2': '', '3': '' } };
+        var menuT = [['input', parent.t('New password:')], ['input', parent.t('Confirm password:')]];
+        var mid = menuT.length + 2;
+        function onLoad() {
+            sload();
+            init();
+            parent.cont.focus();
+            document.getElementById("i1").focus();
+            document.getElementById("i3").value = parent.t('OK');
+            document.getElementById("i4").value = parent.t('Cancel');
+        }
+
+        function submit() {
+            var p1 = document.getElementById('i1').value;
+            var p2 = document.getElementById('i2').value;
+            if (p1 != '' && p2 != '') {
+                document.getElementById('i1').value = '';
+                document.getElementById('i2').value = '';
+                if (p2 == p1) {
+                    parent.load({
+                        "type": "stb",
+                        "action": "set_settings_password",
+                        "pass": p1,
+                        "repeat_pass": p2
+                    }, function (result) {
+                        if (!result) {
+                            parent.erMes(parent.t('Saving error'), "i" + iid);
+                        } else {
+                            try {
+                                parent.stb.SendEventToPortal('{"type":"settings","settings_password":"' + p1 + '"}');
+                            } catch (e) {
+                            }
+                            back();
+                        }
+                    });
+                } else {
+                    parent.erMes(parent.t('New and confirm passwords must be same'), "i" + iid);
+                }
+            } else {
+                parent.erMes(parent.t('Error filling in forms'), "i" + iid);
+            }
+        }
+        function change(a) {
+            if (iid > mid - 2) if (iid + a <= mid && iid + a >= mid - 1) {
+                iid += a;
+                document.getElementById('i' + iid).focus();
+            }
+        }
+    </script>
+    <script language="JavaScript" src="js/pres.js"></script>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+
+<body onload="onLoad()" onkeydown="pressKey(event);">
+    <div id="blueback">
+        <table class="nsp" width="100%" border="0" cellpadding="0" cellspacing="0">
+            <tr>
+                <td align="right"><span id="t1"></span></td>
+                <td><input type="password" id="i1">
+            </tr>
+            <tr>
+                <td align="right"><span id="t2"></span></td>
+                <td><input type="password" id="i2" value=""></td>
+            </tr>
+        </table>
+    </div>
+    <div id="footer">
+        <input id="i4" type="button" value="" onClick="back();" />
+        <input id="i3" type="button" value="" onClick="submit();" />
+    </div>
+</body>
+
+</html>

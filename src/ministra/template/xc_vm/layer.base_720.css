@@ -1,0 +1,260 @@
+/**
+ * Empty.
+ */
+
+.screensaver {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 720px;
+    width: 1280px;
+    z-index: 1001;
+    background-color: #000;
+}
+
+.screensaver .screensaver_clock {
+    position: absolute;
+    left: 20px;
+    top: 20px;
+    height: 40px;
+    width: 100px;
+    color: #fff;
+    font-size: 36px;
+    /*-webkit-transition: opacity 1s linear;*/
+}
+
+dl.definition_list {
+    margin: 0 auto;
+    width: 610px;
+    font-size: 32px;
+}
+
+dl.definition_list dt {
+    float: left;
+    padding: 5px;
+    width: 300px;
+    clear: left;
+    text-align: right;
+    font-weight: bold;
+}
+
+dl.definition_list dd {
+    padding: 5px 0;
+
+}
+
+/*
+Clock On Video by Agnitumus
+*/
+
+.onVideoOff {
+    display: none;
+}
+
+.onVideoupRight {
+    top: 127px;
+    right: 130px;
+}
+
+.onVideoupLeft {
+    top: 127px;
+    left: 130px;
+}
+
+.onVideodownRight {
+    bottom: 127px;
+    right: 130px;
+}
+
+.onVideodownLeft {
+    bottom: 127px;
+    left: 130px;
+}
+
+/*
+END Clock On Video
+*/
+
+.modal_form {
+    position: absolute;
+    top: 0 !important;
+    left: 0 !important;
+    width: 1280px;
+    height: 720px;
+    background: url("i_720/bg.png");
+    border-width: 0;
+    margin-left: 0;
+    margin-top: 0;
+    -webkit-border-image: none;
+}
+
+.modal_form .modal_container {
+    width: 450px;
+    position: absolute;
+    padding-bottom: 20px;
+    top: 265px;
+    left: 415px;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.modal_form .title {
+    font-size: 26px;
+    color: #fff;
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.modal_form .text {
+    font-size: 20px;
+    margin-bottom: 20px;
+    color: #fff;
+    border: 0;
+    -webkit-border-image: none;
+}
+
+.modal_form .status {
+    position: absolute;
+    top: 3px;
+    right: 5px;
+    font-size: 22px;
+    color: #990000;
+}
+
+.modal_form .item {
+    border-width: 0;
+    -webkit-border-image: none;
+    margin-bottom: 6px;
+}
+
+.modal_form .item input {
+    float: none;
+    height: 50px;
+    width: 340px;
+    margin-top: 0;
+    border-width: 0;
+    -webkit-border-image: none;
+    -webkit-border-radius: 0;
+    font-size: 26px;
+    padding: 0 20px 0 20px;
+    color: #888;
+    border: 0px;
+}
+
+.modal_form .item input:focus {
+    -webkit-border-image: url(i/input_act.png) 13 13 14 13 stretch stretch;
+}
+
+.modal_form .label {
+    float: left;
+    font-size: 22px;
+    color: #fff;
+    text-shadow: none;
+    line-height: 42px;
+    margin-top: -20px;
+    margin-left: 35px;
+}
+
+.modal_form .buttons {
+    width: 100%;
+    text-align: center;
+}
+
+.modal_form .buttons input {
+    background: none;
+    font-size: 16px;
+    font-weight: bold;
+    text-align: center;
+    color: #fff;
+    text-shadow: none;
+    height: 35px;
+    line-height: 35px;
+    width: 190px;
+    margin: 0;
+    border: none;
+}
+
+.modal_form .buttons input:focus {
+    background: #fff;
+    color: #888;
+    text-shadow: none;
+}
+
+.modal_form .form_select {
+    height: 5px;
+    width: 233px !important;
+    top: -13px;
+    border-width: 13px 13px 14px 13px;
+    -webkit-border-image: url(i/combobox.png) 13 13 14 13 stretch stretch !important;
+    float: right;
+    margin-top: -15px;
+    line-height: 2px;
+    overflow: hidden;
+    font-size: 18px;
+}
+
+.modal_form .form_select.active {
+    -webkit-border-image: url(i/combobox_act.png) 13 13 14 13 stretch stretch !important;
+}
+
+.modal_form .form_time,
+.modal_form .form_date {
+    height: 5px;
+    top: -13px;
+    border-width: 13px 13px 14px 13px;
+    -webkit-border-image: url(i/input.png) 13 12 14 12 stretch stretch !important;
+    float: left;
+    margin-top: -15px;
+    line-height: 10px;
+    /*overflow: hidden;*/
+    margin-right: 10px;
+    font-size: 18px;
+    /*font-family: "Courier New", serif;*/
+}
+
+.modal_form .form_time.active,
+.modal_form .form_date.active {
+    -webkit-border-image: url(i/input_act.png) 13 12 14 12 stretch stretch !important;
+}
+
+.modal_form .form_time.edit,
+.modal_form .form_date.edit {
+    color: #00f;
+}
+
+.modal_form .form_time .highlight,
+.modal_form .form_date .highlight {
+    color: #f00;
+}
+
+.modal_form .form_time {
+    width: 45px;
+}
+
+.modal_form .form_date {
+    width: 88px;
+}
+
+.modal_form .fixed_container {
+    width: 280px;
+    float: right;
+}
+
+.modal_form .select_arrow {
+    float: right;
+    font-size: 20px;
+    font-family: "Myriad Pro Cond", serif;
+    position: relative;
+    bottom: 11px;
+    color: #888;
+    height: 40px;
+    width: 10px;
+    padding-right: 2px;
+}
+
+.modal_form .select_arrow.active {
+    color: #035f9e;
+}
+
+#local_pvr_confirm {
+    margin-top: -164px;
+}

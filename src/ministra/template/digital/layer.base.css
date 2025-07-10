@@ -1,0 +1,81 @@
+/**
+ * Empty.
+ */
+
+.color_button_bar .separator {
+    background: url(i/footer_bg2.png);
+    height: 40px;
+    width: 14px;
+    margin: 0;
+}
+
+.screensaver {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 576px;
+    width: 720px;
+    z-index: 1001;
+    background-color: #000;
+}
+
+.screensaver .screensaver_clock {
+    position: absolute;
+    left: 20px;
+    top: 20px;
+    height: 40px;
+    width: 100px;
+    color: #fff;
+    font-size: 30px;
+}
+
+dl.definition_list {
+    margin: 0 auto;
+    width: 410px;
+}
+
+dl.definition_list dt {
+    float: left;
+    padding: 5px;
+    width: 200px;
+    clear: left;
+    text-align: right;
+    font-weight: bold;
+}
+
+dl.definition_list dd {
+    padding: 5px 0;
+
+}
+
+/*
+Clock On Video by Agnitumus
+*/
+
+.onVideoOff {
+    display: none;
+}
+
+.onVideoupRight {
+    top: 95px;
+    right: 95px;
+}
+
+.onVideoupLeft {
+    top: 95px;
+    left: 95px;
+}
+
+.onVideodownRight {
+    bottom: 95px;
+    right: 95px;
+}
+
+.onVideodownLeft {
+    bottom: 95px;
+    left: 95px;
+}
+
+/*
+END Clock On Video
+*/

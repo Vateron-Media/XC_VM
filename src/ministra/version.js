@@ -1,0 +1,1 @@
+var ver = 'XC_VM 1.0';

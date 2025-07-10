@@ -1,0 +1,11 @@
+#network_status .network_status_list {
+    margin-top: 40px;
+}
+
+#network_status .if_down {
+    color: #f00;
+}
+
+#network_status .if_up {
+    color: #0f0;
+}

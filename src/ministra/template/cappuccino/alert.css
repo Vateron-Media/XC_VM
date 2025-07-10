@@ -1,0 +1,122 @@
+/* ALERT */
+
+.mb_info {
+    z-index: 100;
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.mb_info_top {
+    height: 20px;
+    background: url("i/mb_context_bg.png");
+    background-position: 0 -35px;
+}
+
+.mb_info_top_head {
+    height: 35px;
+    background: url("i/mb_context_bg.png") top;
+}
+
+.mb_info_main {
+    background: url("i/mb_context_bg.png") bottom;
+    padding-bottom: 30px;
+    color: #fff;
+}
+
+.mb_info_lb {
+    width: 20px;
+    background: url("i/mb_context_borders.png") bottom left;
+}
+
+.mb_info_lt {
+    width: 20px;
+    height: 20px;
+    background: url("i/mb_context_borders.png");
+    background-position: 0 -35px;
+}
+
+.mb_info_rt {
+    width: 20px;
+    height: 20px;
+    background: url("i/mb_context_borders.png");
+    background-position: -20px -35px;
+}
+
+.mb_info_rb {
+    width: 20px;
+    background: url("i/mb_context_borders.png") bottom right;
+}
+
+.mb_info_lt_head {
+    width: 20px;
+    height: 35px;
+    background: url("i/mb_context_borders.png") top left;
+}
+
+.mb_info_rt_head {
+    width: 20px;
+    height: 35px;
+    background: url("i/mb_context_borders.png") top right;
+}
+
+.ico_alert {
+    height: 80px;
+    width: 70px;
+    background: url("i/ico_alert.png");
+    float: left;
+}
+
+.ico_confirm {
+    height: 80px;
+    width: 70px;
+    background: url("i/ico_confirm.png");
+    float: left;
+}
+
+.ico_info {
+    height: 80px;
+    width: 70px;
+    background: url("i/ico_info.png");
+    float: left;
+}
+
+.alert_outer {
+    height: 100%;
+    width: 100%;
+    display: table;
+    vertical-align: middle;
+}
+
+.confirm_container,
+.alert_container {
+    position: relative;
+    vertical-align: middle;
+    display: table-cell;
+}
+
+
+.confirm_container table,
+.alert_container table {
+    border: 0;
+    border-collapse: collapse;
+    margin: auto;
+}
+
+.info_container {
+    position: relative;
+    vertical-align: bottom;
+    display: table-cell;
+}
+
+.info_container table {
+    border: 0;
+    border-collapse: collapse;
+    margin: 0 0 20px 20px;
+    width: 94%;
+    color: #fff;
+}
+
+/* END ALERT */

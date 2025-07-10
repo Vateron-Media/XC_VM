@@ -1,0 +1,99 @@
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <script language="JavaScript" src="js/main.js"></script>
+    <script>
+        main_lang = "en";
+        var all_lang = ["ru", "bg", "uk"];
+        var wifi_ssid = new Array();
+        rebut = false;
+        rebut2 = false;
+        pd = 1;
+        vid = 1;
+        pos = 2;
+        st = 0;
+        stel = 2;
+        punkti = new Array();
+        kol = 0;
+        perB = false;
+        see = 6;
+        lang = new Object();
+        read = new Object();
+        var ind = 1;
+        var maxin = 1;
+        put = "";
+        var lani = 0;
+        var lvni = 1;
+        var wfl = true;
+        var wset = '{';
+        cont = new Object();
+        w = 660;
+        h = 466;//высота, ширина
+        a = 40;
+        b = 30;//отступ
+        try {
+            var stb = gSTB;
+        } catch (e) {
+        }
+
+        if (_GET.hasOwnProperty('language')) {
+            main_lang = _GET['language'];
+        } else {
+            main_lang = stb.RDir('getenv language');
+        }
+
+        if (main_lang == '') main_lang = 'en';
+
+        var prof = new Object();
+
+        function langv() {
+            try {
+                main_lang = main_lang.toLowerCase();
+            } catch (e) {
+            }
+
+            if (all_lang.indexOf(main_lang) != -1) {
+                loadScript('js/langs/' + main_lang + '.js', 'up_fl()');
+            } else {
+                main_lang = 'en';
+                up_fl()
+            }
+        }
+
+        function loadScript(src, callback) {
+            var apiRequestNode = document.createElement('script');
+            apiRequestNode.src = src;
+            apiRequestNode.type = 'text/javascript';
+            apiRequestNode.setAttribute('onLoad', callback);
+            document.documentElement.firstChild.appendChild(apiRequestNode);
+            //setTimeout(function(){eval(callback);}, 500);
+        }
+
+        function t(par) {
+            if (main_lang != "en") if (lang[par] != null && lang[par] != 'undefined') par = lang[par];
+            return par;
+        }
+    </script>
+
+    <script type="text/javascript" src="../../JsHttpRequest.js"></script>
+</head>
+
+<body onload="onLoad();" onkeydown="pressKey(event);" style="overflow: hidden;display:none;">
+    <div id="center">
+        <span id="zagolovok" class="header_text"></span>
+        <span id="ico" class="header_icon"></span>
+
+        <div id="confirm" class="modal">
+            <div id="modal_ico" class="ico_alert"></div>
+            <input id="b1" type="button" />
+        </div>
+        <div id="confirmb" class="modal_big">
+            <div id="modal_ico" class="ico_alert"></div>
+            <input id="b1b" type="button" />
+        </div>
+        <iframe name="cont" id="cont" src="" frameborder="0" style="visibility: hidden;"></iframe>
+    </div>
+</body>
+
+</html>

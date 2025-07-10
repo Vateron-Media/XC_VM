@@ -1,0 +1,52 @@
+#media_browser .playing_block {
+    width: 16px;
+    height: 16px;
+    margin-top: 17px;
+    margin-left: 10px;
+    background: url("i_720/play_white.png");
+    background-size: cover;
+    float: left;
+}
+
+#media_browser .active_playing_block {
+    width: 16px;
+    height: 16px;
+    margin-top: 17px;
+    margin-left: 10px;
+    background: url("i_720/play.png");
+    background-size: cover;
+    float: left;
+}
+
+#media_browser .seek_bar_block {
+    display: none;
+}
+
+#media_browser .active_row_bg .active_seek_bar_block {
+    display: none;
+}
+
+#media_browser .active_row_bg[status="playing"] .active_seek_bar_block {
+    display: block;
+    height: 4px;
+    width: 1097px;
+    border: 1px solid #002864;
+    background-color: #0077BB;
+    -webkit-border-radius: 2px;
+    float: left;
+    overflow: hidden;
+}
+
+#media_browser .seek_bar_inner {
+    height: 4px;
+    width: 0;
+    background-color: #fff;
+}
+
+#media_browser .mb_header_first {
+    width: 1140px;
+}
+
+#network_folder {
+    margin-top: -198px;
+}

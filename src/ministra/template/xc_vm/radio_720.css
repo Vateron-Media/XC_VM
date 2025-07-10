@@ -1,0 +1,19 @@
+#radio .playing_block {
+    width: 16px;
+    height: 16px;
+    margin-top: 17px;
+    margin-left: 10px;
+    background: url("i_720/play_white.png");
+    background-size: cover;
+    float: left;
+}
+
+#radio .active_playing_block {
+    width: 16px;
+    height: 16px;
+    margin-top: 17px;
+    margin-left: 10px;
+    background: url("i_720/play.png");
+    background-size: cover;
+    float: left;
+}

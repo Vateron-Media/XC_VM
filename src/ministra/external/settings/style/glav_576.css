@@ -1,0 +1,134 @@
+< !-- * {
+    margin: 0;
+    padding: 0;
+}
+
+html,
+body {
+    overflow: hidden;
+    font-family: "Myriad Pro";
+    color: #FFF;
+    widht: 624;
+    height: 430;
+}
+
+a {
+    outline: none;
+    text-decoration: none;
+}
+
+:focus {
+    outline: none;
+}
+
+#center {
+    background: url(576/bg.png) no-repeat;
+}
+
+.header_text {
+    position: absolute;
+    margin-top: 9px;
+    margin-left: 25px;
+    max-width: 550;
+    overflow: hidden;
+    font-family: "Myriad Pro Cond";
+    font-size: 30px;
+    text-shadow: -1px -1px 0 #000;
+}
+
+.header_icon {
+    position: absolute;
+    margin-top: 4px;
+    right: 20px;
+    height: 68px;
+    width: 68px;
+    z-index: 110;
+}
+
+.modal_big {
+    position: absolute;
+    background: -webkit-gradient(linear, left bottom, left top, color-stop(0, #eee), color-stop(1, #ccc));
+    border: solid 2px rgba(0, 0, 0, .7);
+    border-radius: 7px;
+    width: 550px;
+    max-width: 550px;
+    max-height: 350px;
+    ;
+    overflow: hidden;
+    margin: 70px 0 0 25px;
+    padding: 10px 10px;
+    -webkit-box-shadow: 0px 0px 200px #000;
+    color: #247;
+    font-family: "Myriad Pro";
+    font-size: 20px;
+    display: none;
+    z-index: 9999;
+}
+
+.modal {
+    position: absolute;
+    background: -webkit-gradient(linear, left bottom, left top, color-stop(0, #eee), color-stop(1, #ccc));
+    border: solid 2px rgba(0, 0, 0, .7);
+    border-radius: 7px;
+    width: 450px;
+    max-width: 450px;
+    max-height: 250px;
+    ;
+    overflow: hidden;
+    margin: 120px 0 0 70px;
+    padding: 10px 10px;
+    -webkit-box-shadow: 0px 0px 200px #000;
+    color: #247;
+    font-family: "Myriad Pro";
+    font-size: 20px;
+    display: none;
+    z-index: 9999;
+}
+
+#modal_ico {
+    height: 80px;
+    width: 70px;
+    float: left;
+    margin-right: 20px;
+}
+
+.ico_alert {
+    background: url(720/ico_alert.png);
+}
+
+.ico_info {
+    background: url(720/ico_info.png);
+}
+
+.ico_issue {
+    background: url(720/ico_issue.png);
+}
+
+#modal_btn {
+    position: relative;
+    height: 50px;
+    width: 450px;
+    bottom: 0px;
+}
+
+#modal_btn input[type=button] {
+    position: relative;
+    height: 42px;
+    margin-left: 10px;
+    background: none;
+    white-space: nowrap;
+    font-family: "Myriad Pro";
+    font-size: 22px;
+    font-weight: bold;
+    color: #fff;
+    float: right;
+    border-width: 0 20px;
+    -webkit-border-image: url(576/btn.png) 0 20 0 20 stretch stretch;
+    text-shadow: -1px -2px 0 #555;
+}
+
+#modal_btn input[type=button]:focus {
+    background: none;
+    border-width: 0 20px;
+    -webkit-border-image: url(576/btn_act.png) 0 20 0 20 stretch stretch;
+}

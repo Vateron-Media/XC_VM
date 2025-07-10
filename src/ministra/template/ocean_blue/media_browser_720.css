@@ -1,0 +1,109 @@
+.dir_block {
+    width: 34px;
+    height: 30px;
+    float: left;
+    margin: 4px 0 0 4px;
+    background-image: url("i_720/mb_icons.png");
+    background-position: -156px 0;
+}
+
+.back_block {
+    width: 34px;
+    height: 30px;
+    float: left;
+    margin: 4px 0 0 4px;
+    background-image: url("i_720/mb_icons.png");
+    background-position: -190px 0;
+}
+
+.active_dir_block {
+    width: 34px;
+    height: 39px;
+    margin: 6px 2px 0 0;
+    float: left;
+    background-image: url("i_720/mb_icons.png");
+    background-position: -156px -29px;
+}
+
+.active_back_block {
+    width: 34px;
+    height: 39px;
+    margin: 6px 2px 0 0;
+    float: left;
+    background-image: url("i_720/mb_icons.png");
+    background-position: -190px -29px;
+}
+
+#media_browser .playing_block {
+    width: 34px;
+    height: 30px;
+    float: left;
+    margin: 4px 0 0 4px;
+    background-image: url("i_720/mb_player.png");
+    background-position: 0 0;
+}
+
+#media_browser .active_playing_block {
+    width: 34px;
+    height: 39px;
+    margin: 6px 2px 0 0;
+    float: left;
+    background-image: url("i_720/mb_player.png");
+    background-position: 0 -29px;
+}
+
+#media_browser .paused_block {
+    width: 34px;
+    height: 30px;
+    float: left;
+    margin: 4px 0 0 4px;
+    background-image: url("i_720/mb_player.png");
+    background-position: -34px 0;
+}
+
+#media_browser .active_paused_block {
+    width: 34px;
+    height: 39px;
+    margin: 6px 2px 0 0;
+    float: left;
+    background-image: url("i_720/mb_player.png");
+    background-position: -34px -29px;
+}
+
+#media_browser .seek_bar_block {
+    display: none;
+}
+
+#media_browser .active_row_bg[status="playing"] .active_name_block,
+#media_browser .playing .active_name_block {
+    margin-top: 4px;
+}
+
+#media_browser .active_row_bg .active_seek_bar_block {
+    display: none;
+}
+
+#media_browser .active_row_bg[status="playing"] .active_seek_bar_block {
+    display: block;
+    height: 4px;
+    width: 1097px;
+    border: 1px solid #002864;
+    background-color: #0077BB;
+    -webkit-border-radius: 2px;
+    float: left;
+    overflow: hidden;
+}
+
+#media_browser .seek_bar_inner {
+    height: 4px;
+    width: 0;
+    background-color: #fff;
+}
+
+#media_browser .mb_header_first {
+    width: 1000px;
+}
+
+#network_folder {
+    margin-top: -198px;
+}

@@ -1,0 +1,498 @@
+<html>
+
+<head>
+    <script>
+        var iid = 1;
+        _ = function (o) { return o };
+        var iso639 = [
+            {
+                code: ['eng', 'en'],
+                id: 'English', name: _('English'), nativeName: ''
+            },
+            {
+                code: ['rus', 'ru'],
+                id: 'Russian', name: _('Russian'), nativeName: 'Русский'
+            },
+            {
+                code: ['ukr', 'uk'],
+                id: 'Ukrainian', name: _('Ukrainian'), nativeName: 'Українська'
+            },
+            {
+                code: ['bel', 'be'],
+                id: 'Belarusian', name: _('Belarusian'), nativeName: 'Беларуская'
+            },
+            {
+                code: ['fre', 'fra', 'fr'],
+                id: 'French', name: _('French'), nativeName: 'Fran?ais'
+            },
+            {
+                code: ['ger', 'deu', 'de'],
+                id: 'German', name: _('German'), nativeName: 'Deutsch'
+            },
+            {
+                code: ['ita', 'it'],
+                id: 'Italian', name: _('Italian'), nativeName: 'Italiano'
+            },
+            {
+                code: ['spa', 'es'],
+                id: 'Spanish', name: _('Spanish'), nativeName: 'Espa?ol'
+            },
+            {
+                code: ['por', 'pt'],
+                id: 'Portuguese', name: _('Portuguese'), nativeName: 'Portugu?s'
+            },
+            {
+                code: ['swe', 'sv'],
+                id: 'Swedish', name: _('Swedish'), nativeName: 'Svenska'
+            },
+            {
+                code: ['nor', 'no'],
+                id: 'Norwegian', name: _('Norwegian'), nativeName: 'Norsk'
+            },
+            {
+                code: ['dut', 'nld', 'nl'],
+                id: 'Dutch', name: _('Dutch'), nativeName: 'Nederlands'
+            },
+            {
+                code: ['srp', 'scc', 'sr'],
+                id: 'Serbian', name: _('Serbian'), nativeName: 'Српски'
+            },
+            {
+                code: ['slv', 'sl'],
+                id: 'Slovenian', name: _('Slovenian'), nativeName: 'Sloven??ina'
+            },
+            {
+                code: ['hrv', 'hr', 'scr'],
+                id: 'Croatian', name: _('Croatian'), nativeName: 'Hrvatski'
+            },
+            {
+                code: ['alb', 'sqi', 'sq'],
+                id: 'Albanian', name: _('Albanian'), nativeName: 'Shqip'
+            },
+            {
+                code: ['jpn', 'ja'],
+                id: 'Japanese', name: _('Japanese'), nativeName: ''
+            },
+            {
+                code: ['chi', 'zho', 'zh'],
+                id: 'Chinese', name: _('Chinese'), nativeName: ''
+            },
+            {
+                code: ['kor', 'ko'],
+                id: 'Korean', name: _('Korean'), nativeName: ''
+            },
+            {
+                code: ['vie', 'vi'],
+                id: 'Vietnamese', name: _('Vietnamese'), nativeName: 'Ti?ng Vi?t'
+            },
+            {
+                code: ['lav', 'lv'],
+                id: 'Latvian', name: _('Latvian'), nativeName: 'Latvie?u'
+            },
+            {
+                code: ['lit', 'lt'],
+                id: 'Lithuanian', name: _('Lithuanian'), nativeName: 'Lietuvi?'
+            },
+            {
+                code: ['est', 'et'],
+                id: 'Estonian', name: _('Estonian'), nativeName: 'Eesti'
+            },
+            {
+                code: ['fin', 'fi'],
+                id: 'Finnish', name: _('Finnish'), nativeName: 'Suomi'
+            },
+            {
+                code: ['hun', 'hu'],
+                id: 'Hungarian', name: _('Hungarian'), nativeName: 'Magyar'
+            },
+            {
+                code: ['cze', 'ces', 'cs'],
+                id: 'Czech', name: _('Czech'), nativeName: '?e?tina'
+            },
+            {
+                code: ['slo', 'slk', 'sk'],
+                id: 'Slovak', name: _('Slovak'), nativeName: 'Sloven?ina'
+            },
+            {
+                code: ['bul', 'bg'],
+                id: 'Bulgarian', name: _('Bulgarian'), nativeName: 'Български'
+            },
+            {
+                code: ['pol', 'pl'],
+                id: 'Polish', name: _('Polish'), nativeName: 'Polski'
+            },
+            {
+                code: ['rum', 'ron', 'ro'],
+                id: 'Romanian', name: _('Romanian'), nativeName: 'Rom?n?'
+            },
+            {
+                code: ['gre', 'ell', 'el'],
+                id: 'Greek', name: _('Greek'), nativeName: '????????'
+            },
+            {
+                code: ['heb', 'he'],
+                id: 'Hebrew', name: _('Hebrew'), nativeName: '?????'
+            },
+            {
+                code: ['tur', 'tr'],
+                id: 'Turkish', name: _('Turkish'), nativeName: 'T?rk?e'
+            },
+            {
+                code: ['dan', 'da'],
+                id: 'Danish', name: _('Danish'), nativeName: 'Dansk'
+            },
+            {
+                code: ['ice', 'isl', 'is'],
+                id: 'Icelandic', name: _('Icelandic'), nativeName: '?slenska'
+            },
+            {
+                code: ['hin', 'hi'],
+                id: 'Hindi', name: _('Hindi'), nativeName: ''
+            },
+            {
+                code: ['ben', 'bn'],
+                id: 'Bengali', name: _('Bengali'), nativeName: ''
+            },
+            {
+                code: ['ara', 'ar'],
+                id: 'Arabic', name: _('Arabic'), nativeName: '???????'
+            },
+            {
+                code: ['arm', 'hye', 'hy'],
+                id: 'Armenian', name: _('Armenian'), nativeName: '???????'
+            },
+            {
+                code: ['geo', 'kat', 'ka'],
+                id: 'Georgian', name: _('Georgian'), nativeName: ''
+            },
+            {
+                code: ['aze', 'az'],
+                id: 'Azerbaijani', name: _('Azerbaijani'), nativeName: 'Az?rbaycanca'
+            },
+            {
+                code: ['bak', 'ba'],
+                id: 'Bashkir', name: _('Bashkir'), nativeName: 'Баш?орт'
+            },
+            {
+                code: ['baq', 'eus', 'eu'],
+                id: 'Basque', name: _('Basque'), nativeName: 'Euskara'
+            },
+            {
+                code: ['bos', 'bs'],
+                id: 'Bosnian', name: _('Bosnian'), nativeName: 'Bosanski'
+            },
+            {
+                code: ['bua'],
+                id: 'Buriat', name: _('Buriat'), nativeName: 'Буряад хэлэн'
+            },
+            {
+                code: ['bur', 'mya', 'my'],
+                id: 'Burmese', name: _('Burmese'), nativeName: ''
+            },
+            {
+                code: ['che', 'ce'],
+                id: 'Chechen', name: _('Chechen'), nativeName: 'Нохчийн'
+            },
+            {
+                code: ['wel', 'cym', 'cy'],
+                id: 'Welsh', name: _('Welsh'), nativeName: 'Cymraeg'
+            },
+            {
+                code: ['dzo', 'dz'],
+                id: 'Dzongkha', name: _('Dzongkha'), nativeName: ''
+            },
+            {
+                code: ['epo', 'eo'],
+                id: 'Esperanto', name: _('Esperanto'), nativeName: ''
+            },
+            {
+                code: ['per', 'fa'],
+                id: 'Persian', name: _('Persian'), nativeName: '?????'
+            },
+            {
+                code: ['gle', 'ga'],
+                id: 'Irish', name: _('Irish'), nativeName: 'Gaeilge'
+            },
+            {
+                code: ['guj', 'gu'],
+                id: 'Gujarati', name: _('Gujarati'), nativeName: ''
+            },
+            {
+                code: ['ind', 'id'],
+                id: 'Indonesian', name: _('Indonesian'), nativeName: 'Bahasa Indonesia'
+            },
+            {
+                code: ['ira'],
+                id: 'Iranian', name: _('Iranian'), nativeName: ''
+            },
+            {
+                code: ['kas', 'ks'],
+                id: 'Kashmiri', name: _('Kashmiri'), nativeName: ''
+            },
+            {
+                code: ['kaz', 'kk'],
+                id: 'Kazakh', name: _('Kazakh'), nativeName: '?аза?ша'
+            },
+            {
+                code: ['kbd'],
+                id: 'Kabardian', name: _('Kabardian'), nativeName: 'Адыгэбзэ'
+            },
+            {
+                code: ['kom', 'kv'],
+                id: 'Komi', name: _('Komi'), nativeName: 'Коми'
+            },
+            {
+                code: ['krl'],
+                id: 'Karelian', name: _('Karelian'), nativeName: 'Кarjala'
+            },
+            {
+                code: ['kur', 'ku'],
+                id: 'Kurdish', name: _('Kurdish'), nativeName: 'Kurd?, ??????'
+            },
+            {
+                code: ['mar', 'mr'],
+                id: 'Marathi', name: _('Marathi'), nativeName: ''
+            },
+            {
+                code: ['mac', 'mkd', 'mk'],
+                id: 'Macedonian', name: _('Macedonian'), nativeName: 'Македонски'
+            },
+            {
+                code: ['nep', 'ne'],
+                id: 'Nepali', name: _('Nepali'), nativeName: ''
+            },
+            {
+                code: ['oss', 'os'],
+                id: 'Ossetian', name: _('Ossetian'), nativeName: 'Иронау'
+            },
+            {
+                code: ['sah'],
+                id: 'Yakut', name: _('Yakut'), nativeName: 'Саха тыла'
+            },
+            {
+                code: ['som', 'so'],
+                id: 'Somali', name: _('Somali'), nativeName: 'Soomaaliga'
+            },
+            {
+                code: ['tam', 'ta'],
+                id: 'Tamil', name: _('Tamil'), nativeName: ''
+            },
+            {
+                code: ['tat', 'tt'],
+                id: 'Tatar', name: _('Tatar'), nativeName: 'Tatar?a'
+            },
+            {
+                code: ['tel', 'te'],
+                id: 'Telugu', name: _('Telugu'), nativeName: ''
+            },
+            {
+                code: ['tgk', 'tg'],
+                id: 'Tajik', name: _('Tajik'), nativeName: 'То?ик?'
+            },
+            {
+                code: ['tha', 'th'],
+                id: 'Thai', name: _('Thai'), nativeName: ''
+            },
+            {
+                code: ['tuk', 'tk'],
+                id: 'Turkmen', name: _('Turkmen'), nativeName: 'Туркмен'
+            },
+            {
+                code: ['udm'],
+                id: 'Udmurt', name: _('Udmurt'), nativeName: 'Удмурт кыл'
+            },
+            {
+                code: ['urd', 'ur'],
+                id: 'Urdu', name: _('Urdu'), nativeName: '????'
+            },
+            {
+                code: ['uzb', 'uz'],
+                id: 'Uzbek', name: _('Uzbek'), nativeName: 'O‘zbek'
+            },
+            {
+                code: ['xal'],
+                id: 'Kalmyk', name: _('Kalmyk'), nativeName: 'Хальмг'
+            },
+            {
+                code: ['tib', 'bod', 'bo'],
+                id: 'Tibetan', name: _('Tibetan'), nativeName: ''
+            },
+            {
+                code: ['yid', 'yi'],
+                id: 'Yiddish', name: _('Yiddish'), nativeName: '??????'
+            }
+        ];
+
+        var sizeList = [
+            18, parent.t('Small'),
+            20, parent.t('Normal'),
+            23, parent.t('Large'),
+            26, parent.t('Huge')
+        ];
+
+        var colorList = [
+            0xFFFFFF, parent.t('White'),
+            0x000000, parent.t('Black'),
+            0xFF0000, parent.t('Red'),
+            0x0000FF, parent.t('Blue'),
+            0x00FF00, parent.t('Green'),
+            0xFFFF00, parent.t('Yellow'),
+            0x00FFFF, parent.t('Cyan'),
+            0xFF00FF, parent.t('Magenta'),
+            0xC0C0C0, parent.t('Silver'),
+            0x808080, parent.t('Gray'),
+            0x800000, parent.t('Maroon'),
+            0x808000, parent.t('Olive'),
+            0x800080, parent.t('Purple'),
+            0x008080, parent.t('Teal'),
+            0x000080, parent.t('Navy')
+        ];
+
+        var menuT = [
+            ['select', parent.t('Primary audio language:')],
+            ['select', parent.t('Secondary audio language:')],
+            ['select', parent.t('Primary subtitle language:')],
+            ['select', parent.t('Secondary subtitle language:')],
+            ['select', parent.t('Subtitle size:')],
+            ['select', parent.t('Subtitle color:')]
+        ];
+
+        var options = [];
+
+        for (var i = 0; i < iso639.length; i++) {
+            options[options.length] = iso639[i].code[0];
+            options[options.length] = iso639[i].id;
+        }
+
+        menuT[0] = menuT[0].concat(options);
+        menuT[1] = menuT[1].concat(options);
+
+        options.unshift('', 'Off');
+
+        menuT[2] = menuT[2].concat(options);
+        menuT[3] = menuT[3].concat(options);
+
+        menuT[4] = menuT[4].concat(sizeList);
+        menuT[5] = menuT[5].concat(colorList);
+
+        var mid = menuT.length + 2;
+        var pread = [0, 1, 2, 3, 4, 5];
+        var read = {
+            result: [
+                parent.prof.pri_audio_lang || parent._GET['pri_audio_lang'],
+                parent.prof.sec_audio_lang || parent._GET['sec_audio_lang'],
+                parent.prof.pri_subtitle_lang || parent._GET['pri_subtitle_lang'],
+                parent.prof.sec_subtitle_lang || parent._GET['sec_subtitle_lang'],
+                parent.prof.subtitle_size || parent._GET['subtitle_size'] || 20,
+                parent.prof.subtitle_color || parent._GET['subtitle_color'] || 0xFFFFFF
+            ]
+        };
+
+        function onLoad() {
+            sload();
+            init();
+            parent.cont.focus();
+            document.getElementById("i1").focus();
+            document.getElementById("i7").value = parent.t('OK');
+            document.getElementById("i8").value = parent.t('Cancel');
+        }
+
+        function submit() {
+
+            var save_data = {
+                pri_audio_lang: document.getElementById("i1").value,
+                sec_audio_lang: document.getElementById("i2").value,
+                pri_subtitle_lang: document.getElementById("i3").value,
+                sec_subtitle_lang: document.getElementById("i4").value,
+                subtitle_size: document.getElementById("i5").value,
+                subtitle_color: document.getElementById("i6").value
+            };
+
+            parent._GET['pri_audio_lang'] = parent.prof.pri_audio_lang = save_data['pri_audio_lang'];
+            parent._GET['sec_audio_lang'] = parent.prof.sec_audio_lang = save_data['sec_audio_lang'];
+            parent._GET['pri_subtitle_lang'] = parent.prof.pri_subtitle_lang = save_data['pri_subtitle_lang'];
+            parent._GET['sec_subtitle_lang'] = parent.prof.sec_subtitle_lang = save_data['sec_subtitle_lang'];
+            parent._GET['subtitle_size'] = parent.prof.subtitle_size = save_data['subtitle_size'];
+            parent._GET['subtitle_color'] = parent.prof.subtitle_color = save_data['subtitle_color'];
+
+            save_data.type = "stb";
+            save_data.action = "set_lang_priority";
+
+            parent.load(
+                save_data,
+                function (result) {
+                    save_data.type = "settings";
+                    save_data.action = undefined;
+                    parent.stb.SendEventToPortal(JSON.stringify(save_data));
+
+                    back();
+                }
+            );
+        }
+
+        function change(a) {
+            if (iid <= mid - 2)
+                switch (menuT[iid - 1][0]) {
+                    case "select":
+                        fc = true;
+                        break;
+                }
+            else if (iid + a <= mid && iid + a >= mid - 1) {
+                iid += a;
+                document.getElementById('i' + iid).focus();
+            }
+        }
+    </script>
+
+    <script language="JavaScript" src="js/pres.js"></script>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+<body onload="onLoad()" onkeydown="pressKey(event);">
+    <div id="blueback">
+        <table class="nsp2" width="100%" border="0" cellpadding="0" cellspacing="0">
+            <tr>
+                <td align="right"><span id="t1"></span>
+                <td>
+                    <div class="sub_select"><select id="i1"></select></div>
+                </td>
+            </tr>
+            <tr>
+                <td align="right"><span id="t2"></span>
+                <td>
+                    <div class="sub_select"><select id="i2"></select></div>
+                </td>
+            </tr>
+            <tr>
+                <td align="right"><span id="t3"></span>
+                <td>
+                    <div class="sub_select"><select id="i3"></select></div>
+                </td>
+            </tr>
+            <tr>
+                <td align="right"><span id="t4"></span>
+                <td>
+                    <div class="sub_select"><select id="i4"></select></div>
+                </td>
+            </tr>
+            <tr>
+                <td align="right"><span id="t5"></span>
+                <td>
+                    <div class="sub_select"><select id="i5"></select></div>
+                </td>
+            </tr>
+            <tr>
+                <td align="right"><span id="t6"></span>
+                <td>
+                    <div class="sub_select"><select id="i6"></select></div>
+                </td>
+            </tr>
+        </table>
+
+    </div>
+    <div id="footer">
+        <input id="i8" type="button" value="" onClick="back();" />
+        <input id="i7" type="button" value="" onClick="submit();" />
+    </div>
+</body>
+
+</html>

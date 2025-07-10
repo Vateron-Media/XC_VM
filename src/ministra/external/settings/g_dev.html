@@ -1,0 +1,109 @@
+<html>
+
+<head>
+  <script>
+    var iid = 1;
+    var version = parent.stb.GetDeviceImageVersion();
+    var t_model;
+    if (parseInt(version) >= 214) {
+      try {
+        t_model = parent.stb.GetDeviceModelExt();
+      }
+      catch (e) {
+        t_model = parent.stb.GetDeviceModel();
+      }
+    }
+    else {
+      t_model = parent.stb.GetDeviceModel();
+    }
+    var menuT = [['text', parent.t('Model:'), t_model],
+    ['text', parent.t('Serial number:'), parent.stb.GetDeviceSerialNumber()],
+    ['text', parent.t('MAC:'), parent.stb.GetDeviceMacAddress()],
+    ['text', parent.t('Vendor:'), parent.stb.GetDeviceVendor()],
+    ['text', parent.t('Version Hardware:'), parent.stb.GetDeviceVersionHardware()],
+    ['text', parent.t('Active bank:'), parent.stb.GetDeviceActiveBank()],
+    ['text', parent.t('Image version:'), version],
+    ['text', parent.t('Image description:'), parent.stb.GetDeviceImageDesc()],
+    ['text', parent.t('RootFS version:'), parent.stb.GetDeviceImageVersionCurrent()]];
+    var mid = 11;
+    function onLoad() {
+      sload();
+      init();
+      parent.cont.focus();
+      document.getElementById("i1").focus();
+      mid = 0;
+      document.getElementById("i1").value = parent.t('Back');
+    }
+
+    function change(a) { }
+  </script>
+  <script language="JavaScript" src="js/pres.js"></script>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+<body onload="onLoad()" onkeydown="pressKey(event);">
+  <div id="blueback">
+    <table width="100%" border="0" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="width: 35%" align="right">
+          <div id="t1" class="list_head"></div>
+        </td>
+        <td class="dev"><span id="t11" class="item_name"></span></td>
+      </tr>
+      <tr>
+        <td align="right">
+          <div id="t2" class="list_head"></div>
+        </td>
+        <td><span id="t21" class="item_name"></span>
+        </td>
+      </tr>
+      <tr>
+        <td align="right">
+          <div id="t3" class="list_head"></div>
+        </td>
+        <td><span id="t31" class="item_name"></span>
+        </td>
+      </tr>
+      <tr>
+        <td align="right">
+          <div id="t4" class="list_head"></div>
+        <td><span id="t41" class="item_name"></span>
+        </td>
+      </tr>
+      <tr>
+        <td align="right">
+          <div id="t5" class="list_head"></div>
+        <td><span id="t51" class="item_name"></span>
+        </td>
+      </tr>
+      <tr>
+        <td align="right">
+          <div id="t6" class="list_head"></div>
+        <td><span id="t61" class="item_name"></span>
+        </td>
+      </tr>
+      <tr>
+        <td align="right">
+          <div id="t7" class="list_head"></div>
+        <td><span id="t71" class="item_name"></span>
+        </td>
+      </tr>
+      <tr>
+        <td align="right">
+          <div id="t8" class="list_head"></div>
+        <td><span id="t81" class="item_name"></span>
+        </td>
+      </tr>
+      <tr>
+        <td align="right">
+          <div id="t9" class="list_head"></div>
+        <td><span id="t91" class="item_name"></span>
+        </td>
+      </tr>
+    </table>
+  </div>
+  <div id="footer">
+    <input id="i1" type="button" value="" onClick="back();" />
+  </div>
+</body>
+
+</html>

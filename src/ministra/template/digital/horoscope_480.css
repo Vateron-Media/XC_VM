@@ -1,0 +1,62 @@
+.horoscope_menu {
+    margin: 340px 0 0 90px;
+    list-style: none;
+}
+
+.horoscope_menu li {
+    display: block;
+    float: left;
+    margin: 0 30px 0 0;
+    width: 160px;
+    height: 121px;
+}
+
+.horoscope_common_info {
+    position: absolute;
+    top: 110px;
+    left: 70px;
+    background-image: url("i/25alfa_20.png");
+    min-height: 80px;
+    width: 560px;
+    padding: 4px;
+    -moz-border-radius: 10px;
+    -webkit-border-radius: 10px;
+    color: #fff;
+    font-size: 18px;
+}
+
+.horoscope_info {
+    position: absolute;
+    bottom: 220px;
+    left: 70px;
+    background-image: url("i/25alfa_20.png");
+    min-height: 80px;
+    width: 560px;
+    padding: 4px;
+    -moz-border-radius: 10px;
+    -webkit-border-radius: 10px;
+    color: #fff;
+    font-size: 18px;
+}
+
+.horoscope_info span {
+    color: #ffc528;
+}
+
+.horoscope_left_arrow {
+    position: absolute;
+    bottom: 0;
+    left: -16px;
+    height: 162px;
+    width: 220px;
+    background-image: url("i/mm_hor_left.png ");
+}
+
+.horoscope_right_arrow {
+    position: absolute;
+    bottom: 0;
+    right: -16px;
+    height: 162px;
+    width: 220px;
+    background-image: url("i/mm_hor_right.png ");
+}

@@ -1,0 +1,112 @@
+#records .t_start_block {
+    position: absolute;
+    right: 1px;
+    top: 0;
+    width: 195px;
+    height: 28px;
+    background: url("i_720/mb_table04.png") 202px 0;
+    padding: 8px 0 0 6px;
+    color: #fff;
+    font-family: "Myriad Pro Cond", sans-serif;
+    overflow: hidden;
+    font-size: 22px;
+}
+
+/*#records .blue_row_bg[rel="close"] .t_start_block{
+    color: #fff;
+}*/
+
+#records .blue_row_bg.close .t_start_block {
+    color: #0a5104;
+}
+
+/*#records .blue_row_bg[rel=""] .t_start_block{
+    color: #f77;
+}*/
+
+#records .blue_row_bg .t_start_block {
+    color: #FF4949;
+}
+
+#records .active_t_start_block {
+    background: url("i_720/mb_table_act02.png") 217px -4px;
+    color: #fff;
+    font-family: "Myriad Pro Cond", sans-serif;
+    font-size: 22px;
+    height: 47px;
+    overflow: hidden;
+    padding: 3px 0 0 6px;
+    position: absolute;
+    right: 23px;
+    top: 4px;
+    width: 201px;
+}
+
+#records .ch_name_block {
+    color: #748b70;
+    font-size: 26px;
+    margin: 0 204px 0 3px;
+    overflow: hidden;
+    padding-left: 3px;
+    white-space: pre;
+}
+
+/*#records .blue_row_bg[rel="close"] .ch_name_block{
+    color: #FFFFFF !important;
+}*/
+
+#records .blue_row_bg.close .ch_name_block {
+    color: #0a5104 !important;
+}
+
+#records .active_ch_name_block {
+    color: #808080;
+    font-size: 26px;
+    margin-right: 231px;
+    margin-top: 7px;
+    overflow: hidden;
+    white-space: pre;
+    font-weight: bold;
+}
+
+/*#records .active_row_bg[rel="close"] .active_ch_name_block{
+    color: #002864 !important;
+}*/
+
+#records .active_row_bg.close .active_ch_name_block {
+    color: #fff !important;
+}
+
+#records .length_block {
+    width: 0;
+    height: 0;
+    overflow: hidden;
+}
+
+#records .active_length_block {
+    color: #fff;
+    font-family: "Myriad Pro Cond", sans-serif;
+    font-size: 22px;
+    height: 27px;
+    overflow: hidden;
+    padding: 3px 0 0 6px;
+    position: absolute;
+    right: 23px;
+    top: 24px;
+    width: 201px;
+}
+
+#records .rest_length_block {
+    position: absolute;
+    right: 73px;
+    top: 614px;
+    color: #fff;
+}
+
+#records .rest_length_title {
+    font-size: 22px;
+}
+
+#records .rest_length {
+    font-size: 24px;
+}

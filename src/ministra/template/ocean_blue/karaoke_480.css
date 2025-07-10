@@ -1,0 +1,28 @@
+.singer_block {
+    color: #fff;
+    font-size: 18px;
+    text-shadow: #122946 0 -1px 0;
+    margin: 0 0 0 3px;
+    padding-left: 3px;
+    white-space: pre;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 300px;
+    height: 24px;
+    float: left;
+}
+
+.active_singer_block {
+    font-size: 20px;
+    color: #002864;
+    /*text-shadow: #fff 0 1px 0;*/
+    margin-top: 5px;
+    margin-right: 25px;
+    margin-left: 5px;
+    white-space: pre;
+    overflow: hidden;
+    width: 280px;
+    float: left;
+    text-overflow: ellipsis;
+    /*font-weight: bold;*/
+}

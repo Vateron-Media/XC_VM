@@ -1,0 +1,143 @@
+/* VCLUB */
+.ears_back {
+    position: absolute;
+    width: 40px;
+    height: 420px;
+    left: 0px;
+    top: 73px;
+    background-image: url("i/ears.png");
+    background-position: 0px 0px;
+}
+
+.ears_movie {
+    position: absolute;
+    width: 40px;
+    height: 420px;
+    left: 680px;
+    top: 73px;
+    background-image: url("i/ears.png");
+    background-position: -40px 0px;
+}
+
+.vclub_info_box {
+    position: absolute;
+    width: 254px;
+    height: 102px;
+    top: 70px;
+    left: 418px;
+    line-height: 18px;
+    color: #fff;
+    font-size: 16px;
+    overflow: hidden;
+}
+
+.vclub_info_box_mask {
+    -webkit-mask: -webkit-gradient(linear, left 92, left bottom, from(rgba(0, 0, 0, 1)), to(rgba(0, 0, 0, 0)));
+}
+
+.vclub_info_box span {
+    color: #FFE8C7;
+    font-size: 16px;
+    font-family: "Myriad Pro Cond";
+}
+
+.vclub_screenshot_box {
+    position: absolute;
+    background: url("i/mb_prev_bg.png");
+    height: 322px;
+    width: 242px;
+    top: 173px;
+    left: 419px;
+    padding: 5px;
+}
+
+.vclub_screenshot_box img {
+    width: 240px;
+    height: 320px;
+}
+
+.today_block {
+    position: absolute;
+    right: 2px;
+    top: 0;
+    width: 94px;
+    height: 25px;
+    background-image: url("i/mb_table02.png");
+    background-position: 102px 0;
+    padding: 3px 0 0 6px;
+    color: #5A3807;
+    /*float: right;
+    margin: 0px 0 0 4px;*/
+}
+
+.yesterday_block {
+    position: absolute;
+    right: 2px;
+    top: 0;
+    width: 94px;
+    height: 25px;
+    background-image: url("i/mb_table03.png");
+    background-position: 102px 0;
+    padding: 3px 0 0 6px;
+    color: #5A3807;
+    /*float: right;
+    margin: 0px 0 0 4px;*/
+}
+
+.week_and_more_block {
+    position: absolute;
+    right: 2px;
+    top: 0;
+    /*width: 135px;*/
+    width: 94px;
+    height: 25px;
+    background-image: url("i/mb_table04.png");
+    background-position: 102px 0;
+    padding: 3px 0 0 6px;
+    color: #5A3807;
+    font-family: "Myriad Pro Cond", sans-serif;
+    overflow: hidden;
+    font-size: 18px;
+    /*float: right;
+    margin: 0px 0 0 4px;*/
+}
+
+.active_today_block,
+.active_yesterday_block,
+.active_week_and_more_block {
+    position: absolute;
+    right: 23px;
+    top: 4px;
+    width: 101px;
+    height: 32px;
+    background-image: url("i/mb_table_act02.png");
+    background-position: 118px -4px;
+    padding: 11px 0 0 8px;
+    color: #fff;
+    font-family: "Myriad Pro Cond", sans-serif;
+    overflow: hidden;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.disabled_all_buttons span {
+    color: #707070 !important;
+}
+
+#vclub .low_quality_block {
+    float: left;
+    width: 20px;
+    height: 20px;
+    background-image: url("i/low_q.png");
+    margin: 5px 0 0 2px;
+}
+
+#vclub .active_low_quality_block {
+    float: left;
+    width: 20px;
+    height: 20px;
+    background-image: url("i/low_q.png");
+    margin: 11px 2px 0 2px;
+}
+
+/* END VCLUB */

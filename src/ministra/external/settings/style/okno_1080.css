@@ -1,0 +1,597 @@
+< !-- * {
+    margin: 0;
+    padding: 0;
+}
+
+html,
+body {
+    overflow: hidden;
+    font-family: "Myriad Pro";
+    color: #fff;
+    width: 1714px;
+    height: 874px;
+}
+
+a {
+    outline: none;
+    text-decoration: none;
+}
+
+:focus {
+    outline: none;
+}
+
+.menu_container {
+    position: absolute;
+    margin-top: 128px;
+    margin-left: 48px;
+    width: 1500px;
+    height: 714px;
+}
+
+.menutrans_top {
+    height: 102px;
+    width: 1500px;
+    position: absolute;
+    top: 0px;
+    background: -webkit-gradient(linear, left bottom, left top, color-stop(1, rgba(37, 83, 155, 1)), color-stop(0, rgba(35, 78, 146, 0.3)));
+    z-index: 100;
+}
+
+.menutrans_bottom {
+    height: 102px;
+    width: 1500px;
+    position: absolute;
+    bottom: 0px;
+    background: -webkit-gradient(linear, left bottom, left top, color-stop(1, rgba(21, 48, 90, 0.3)), color-stop(0, rgba(19, 44, 83, 1)));
+    z-index: 100;
+}
+
+.menu_block {
+    display: block;
+    float: left;
+    height: 102px;
+    width: 1620px;
+    background: none;
+    font-family: "Trebuchet MS";
+    font-size: 63px;
+    line-height: 99px;
+    font-weight: bold;
+    color: #FFF;
+}
+
+.menu_block_act {
+    display: block;
+    float: left;
+    height: 102px;
+    width: 1620px;
+    background: #FFF;
+    border-radius: 9px;
+    font-family: "Trebuchet MS";
+    font-size: 63px;
+    line-height: 99px;
+    font-weight: bold;
+    color: #247;
+}
+
+.menu_icon {
+    height: 72px;
+    float: left;
+    width: 72px;
+    margin: 15px 30px 15px 15px;
+}
+
+#footer {
+    position: absolute;
+    height: 75px;
+    width: 1665px;
+    top: 783px;
+    left: 3px;
+}
+
+#footer input[type=button] {
+    position: relative;
+    height: 75px;
+    margin-left: 30px;
+    margin-top: 8px;
+    background: none;
+    white-space: nowrap;
+    font-family: "Myriad Pro";
+    font-size: 48px;
+    font-weight: bold;
+    color: #fff;
+    float: right;
+    border-width: 0 20px;
+    -webkit-border-image: url(1080/btn.png) 0 20 0 20 stretch stretch;
+    text-shadow: -1px 2px 0 #555;
+}
+
+#footer input[type=button]:focus {
+    background: none;
+    color: #fff;
+    border-width: 0 20px;
+    -webkit-border-image: url(1080/btn_act.png) 0 20 0 20 stretch stretch;
+}
+
+#blueback {
+    position: absolute;
+    height: 684px;
+    width: 1605px;
+    padding: 15px;
+    top: 93px;
+    left: 33px;
+}
+
+#blueback .input_dot {
+    height: 45px;
+    width: 198px;
+    background: url(1080/input_dot.png);
+    position: absolute;
+}
+
+#blueback span {
+    font-family: "Trebuchet MS";
+    font-size: 45px;
+    font-weight: bold;
+    color: #fff;
+}
+
+
+#blueback input[type=button] {
+    position: relative;
+    height: 75px;
+    margin: 6px 0 6px 15px;
+    background: none;
+    white-space: nowrap;
+    font-family: "Myriad Pro";
+    font-size: 48px;
+    font-weight: bold;
+    color: #fff;
+    border-width: 0 20px;
+    -webkit-border-image: url(1080/btn.png) 0 20 0 20 stretch stretch;
+    text-shadow: -1px 2px 0 #555;
+}
+
+#blueback input[type=button]:focus {
+    background: none;
+    color: #fff;
+    border-width: 0 20px;
+    -webkit-border-image: url(1080/btn_act.png) 0 20 0 20 stretch stretch;
+}
+
+#blueback input[type="checkbox"] {
+    position: absolute;
+    left: -9999px;
+}
+
+#blueback input[type="checkbox"]+label {
+    background: url(1080/checkbox.png) 0 0 no-repeat;
+    padding: 36px 0 36px 69px;
+    display: block;
+    margin: 6px 15px;
+}
+
+#blueback input[type="checkbox"]:focus+label {
+    background: url(1080/checkbox_act.png) 0 0 no-repeat;
+}
+
+#blueback input[type="checkbox"]:checked+label {
+    background-position: 0 -96px;
+}
+
+#blueback input[type="checkbox"]:checked:focus+label {}
+
+#blueback input[type=text] {
+    position: relative;
+    height: 69px;
+    width: 900px;
+    margin: 6px 0 6px 15px;
+    background: none;
+    font-family: "Trebuchet MS";
+    font-size: 45px;
+    color: #135;
+    border-width: 0 12px;
+    -webkit-border-image: url(1080/input.png) 0 12 0 12 stretch stretch;
+}
+
+#blueback input[type=text]:focus {
+    height: 69px;
+    position: relative;
+    font-size: 45px;
+    font-weight: bold;
+    -webkit-border-image: url(1080/input_act.png) 0 12 0 12 stretch stretch;
+}
+
+#blueback input[type=password] {
+    position: relative;
+    height: 69px;
+    width: 900px;
+    margin: 6px 0 6px 15px;
+    background: none;
+    font-family: "Trebuchet MS";
+    font-size: 45px;
+    color: #135;
+    border-width: 0 12px;
+    -webkit-border-image: url(1080/input.png) 0 12 0 12 stretch stretch;
+}
+
+#blueback input[type=password]:focus {
+    height: 69px;
+    position: relative;
+    font-size: 45px;
+    font-weight: bold;
+    -webkit-border-image: url(1080/input_act.png) 0 12 0 12 stretch stretch;
+}
+
+
+#blueback input[type=text].ds {
+    display: inline;
+    position: relative;
+    height: 69px;
+    width: 195px;
+    margin: 6px 0 6px 15px;
+    background: none;
+    font-family: "Trebuchet MS";
+    font-size: 45px;
+    color: #135;
+    border-width: 0 12px;
+    -webkit-border-image: url(1080/input.png) 0 12 0 12 stretch stretch;
+}
+
+#blueback input[type=text].ds:focus {
+    display: inline;
+    position: relative;
+    font-size: 45px;
+    font-weight: bold;
+    -webkit-border-image: url(1080/input_act.png) 0 12 0 12 stretch stretch;
+}
+
+#blueback td.ds {
+    width: 915px;
+}
+
+#blueback td.dev {
+    width: 1260px;
+    max-width: 1300px;
+}
+
+#blueback span.ds {
+    font-family: "Trebuchet MS";
+    font-size: 45px;
+    margin: 0 -5 0 12;
+    font-weight: bold;
+    color: #fff;
+}
+
+#blueback .sub_select {
+    height: 75px;
+    position: relative;
+    width: 890px;
+    margin: 5px 0 5px 15px;
+}
+
+#blueback .sub_select_long {
+    height: 75px;
+    position: relative;
+    width: 1260px;
+    margin: 5px 0 5px 8px;
+}
+
+#blueback select.sub_select_long {
+    height: 75px;
+    width: 1270px;
+    background: none;
+    font-family: "Trebuchet MS";
+    font-weight: bold;
+    font-size: 45px;
+    color: #135;
+    border-width: 2px 51px 2px 12px;
+    -webkit-border-image: url(1080/select.png) 2 51 2 12 stretch stretch;
+    overflow: hidden;
+}
+
+#blueback select.sub_select_long:focus {
+    height: 75px;
+    font-size: 45px;
+    border-width: 2 51px 2 12px;
+    font-weight: bold;
+    -webkit-border-image: url(1080/select_act.png) 0 51 0 12 stretch stretch;
+}
+
+#blueback input.long_input {
+    width: 1275px;
+}
+
+#blueback input.long_input1 {
+    width: 1485px;
+}
+
+#blueback select {
+    height: 75px;
+    width: 900px;
+    background: none;
+    font-family: "Trebuchet MS";
+    font-weight: bold;
+    font-size: 45px;
+    color: #135;
+    border-width: 2px 51px 2px 12px;
+    -webkit-border-image: url(1080/select.png) 2 51 2 12 stretch stretch;
+    overflow: hidden;
+}
+
+#blueback select:focus {
+    height: 75px;
+    font-size: 45px;
+    border-width: 2 51px 2 12px;
+    font-weight: bold;
+    -webkit-border-image: url(1080/select_act.png) 0 51 0 12 stretch stretch;
+}
+
+#ch {}
+
+#ch1 {
+    height: 120px;
+}
+
+#footer .but {
+    width: 240px;
+}
+
+#blueback input[type=button].volume {
+    position: relative;
+    height: 69px;
+    width: 900px;
+    margin: 6px 0 6px 15px;
+    ;
+    background: none;
+    font-family: "Myriad Pro";
+    font-size: 33px;
+    color: #fff;
+    border-width: 0 12px;
+    -webkit-border-image: url(1080/input.png) 0 12 0 12 stretch stretch;
+}
+
+#blueback input[type=button].volume:focus {
+    background: none;
+    -webkit-border-image: url(1080/input_act.png) 0 12 0 12 stretch stretch;
+}
+
+#blueback .volume_bar {
+    position: relative;
+    height: 69px;
+    width: 0px;
+    background: none;
+    border-width: 0 12px;
+    -webkit-border-image: url(1080/volume.png) 0 12 0 12 stretch;
+    margin: -75px 0 0 15px;
+}
+
+#blueback .volume_percent {
+    position: relative;
+    height: 69px;
+    width: 882px;
+    color: #fff;
+    font-family: "Myriad Pro";
+    font-size: 38px;
+    text-shadow: 2px 0 3px #122748, -2px 0 3px #122748, 0 2px 3px #122748, 0 -2px 3px #122748;
+    margin: -58px 0 0 30px;
+}
+
+
+#menu_buttons {
+    position: absolute;
+    width: 1770px;
+    margin: 255px 0 0 0;
+}
+
+#menu_buttons input[type=button] {
+    position: relative;
+    width: auto !IMPORTANT;
+    min-width: 900px;
+    max-width: 1650px;
+    height: 105px;
+    background: none;
+    white-space: nowrap;
+    font-family: "Myriad Pro";
+    font-size: 63px;
+    font-weight: bold;
+    color: #fff;
+    border-width: 0 20px;
+    -webkit-border-image: url(1080/menu_btn.png) 0 20 0 20 stretch stretch;
+    text-shadow: -1px -2px 0 #152b4f;
+}
+
+#menu_buttons input[type=button]:focus {
+    background: none;
+    -webkit-border-image: url(1080/menu_btn_act.png) 0 20 0 20 stretch stretch;
+}
+
+#blueback input[type=text].arrow {
+    position: relative;
+    height: 69px;
+    width: 900px;
+    margin: 15px 0 15px 15px;
+    ;
+    background: none;
+    font-family: "Myriad Pro";
+    font-size: 45px;
+    font-weight: bold;
+    color: #135;
+    border-width: 0 39px;
+    -webkit-border-image: url(1080/input_arrow.png) 0 39 0 39 stretch stretch;
+}
+
+#blueback input[type=text].arrow:focus {
+    background: none;
+    -webkit-border-image: url(1080/input_arrow_act.png) 0 39 0 39 stretch stretch;
+}
+
+#blueback .item_name {
+    font-family: "Trebuchet MS";
+    font-size: 38px;
+    font-weight: bold;
+    color: #fff;
+}
+
+#blueback span.item_name {
+    font-family: "Trebuchet MS";
+    font-size: 45px;
+    font-weight: bold;
+    color: #fff;
+}
+
+.wifi_list {
+    border: solid 5px;
+    height: 480px;
+    width: 1605px;
+    margin: 15px 0px 15px 3px;
+    background: none;
+}
+
+.wifi_line1 {
+    height: 60px;
+    width: 1575px;
+    background: #FFFFFF;
+    padding: 0 15px;
+    font-family: "Trebuchet MS";
+    font-weight: bold;
+    font-size: 45px;
+    color: #247;
+}
+
+.wifi_line2 {
+    height: 60px;
+    width: 1575px;
+    background: #f4f6f9;
+    padding: 0 15px;
+    font-family: "Trebuchet MS";
+    font-weight: bold;
+    font-size: 45px;
+    color: #247;
+}
+
+.wifi_line_act {
+    height: 60px;
+    width: 1575px;
+    background: #247;
+    padding: 0 15px;
+    font-family: "Trebuchet MS";
+    font-weight: bold;
+    font-size: 45px;
+    color: #fff;
+}
+
+.signal_1 {
+    height: 36px;
+    width: 51px;
+    float: left;
+    margin: 12px 15px 0 0;
+    background: url(1080/signal1.png);
+}
+
+.signal_2 {
+    height: 36px;
+    width: 51px;
+    float: left;
+    margin: 12px 15px 0 0;
+    background: url(1080/signal2.png);
+}
+
+.signal_3 {
+    height: 36px;
+    width: 51px;
+    float: left;
+    margin: 12px 15px 0 0;
+    background: url(1080/signal3.png);
+}
+
+.signal_4 {
+    height: 36px;
+    width: 51px;
+    float: left;
+    margin: 12px 15px 0 0;
+    background: url(1080/signal4.png);
+}
+
+.list_head {
+    font-family: "Trebuchet MS";
+    font-size: 38px;
+    color: #fff;
+    font-weight: normal;
+    margin-right: 10px;
+    max-width: 100%;
+    word-wrap: break-word;
+    word-break: break-all;
+}
+
+
+.nsl {
+    margin-top: 270px;
+}
+
+.nsl1 {
+    margin-top: 150px;
+}
+
+.nsp1 {
+    margin-top: 180px;
+}
+
+.nsp {
+    margin-top: 190px;
+}
+
+.nsp {
+    margin-top: 150px;
+}
+
+.nsw {
+    margin-top: 240px;
+}
+
+.audio {
+    margin-top: 75px;
+}
+
+#skan {
+    width: 900px;
+    float: left
+}
+
+.upd {
+    margin-top: 105;
+}
+
+#update_prbar {
+    height: 69px;
+    width: 1605px;
+    margin-left: 15px;
+    margin-top: 22px;
+}
+
+#prbar_bg {
+    position: absolute;
+    width: 1605px;
+    height: 69px;
+    background: url(1080/progress_bg.png) no-repeat;
+}
+
+#prbar_line {
+    position: absolute;
+    width: 0px;
+    height: 69px;
+    background: url(1080/progress.png) no-repeat;
+}
+
+.percent {
+    position: relative;
+    height: 69px;
+    width: 882px;
+    color: #fff;
+    font-family: "Myriad Pro";
+    font-size: 38px;
+    text-shadow: 2px 0 3px #bb6016, -2px 0 3px #bb6016, 0 2px 3px #bb6016, 0 -2px 3px #bb6016;
+    margin: -58px 0 0 30px;
+}
+
+-->

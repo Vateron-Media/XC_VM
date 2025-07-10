@@ -1,0 +1,122 @@
+<html>
+
+<head>
+    <script>
+        var iid = 1;
+
+        var menuT = [
+            ['select', parent.t('Open after loading:'), 'main_menu', parent.t('Main menu'), 'last_channel', parent.t('Last TV channel')],
+            ['check', parent.t('Play in preview only by OK:')]
+        ];
+
+        var themes_select = ['select', parent.t('Theme:')];
+
+        parent.prof.themes = parent.prof.themes || [];
+
+        parent.prof.themes.map(function (theme) {
+            themes_select.push(theme.id);
+            themes_select.push(theme.name);
+        });
+
+        menuT.push(themes_select);
+
+        var mid = menuT.length + 2;
+        var pread = [0, 1, 2];
+        var read = {
+            result: [
+                parent.prof.show_after_loading,
+                parent.prof.play_in_preview_by_ok,
+                parent.prof.user_theme
+            ]
+        };
+
+        function onLoad() {
+            sload();
+            init();
+            parent.cont.focus();
+            document.getElementById("i1").focus();
+            document.getElementById("i4").value = parent.t('OK');
+            document.getElementById("i5").value = parent.t('Cancel');
+
+            if (parent.prof.play_in_preview_by_ok) {
+                document.getElementById('i2').setAttribute('checked', 'checked');
+            }
+        }
+
+        function submit() {
+
+            var save_data = {
+                "show_after_loading": document.getElementById("i1").value,
+                "play_in_preview_by_ok": document.getElementById("i2").checked,
+                "theme": document.getElementById("i3").value
+            };
+
+            parent.rebut = document.getElementById("i3").value != parent.prof.user_theme;
+
+            parent.prof.show_after_loading = save_data.show_after_loading;
+            parent.prof.play_in_preview_by_ok = save_data.play_in_preview_by_ok;
+
+            parent.prof.user_theme = save_data.theme;
+
+            save_data.type = "stb";
+            save_data.action = "set_portal_prefs";
+
+            parent.load(
+                save_data,
+                function (result) {
+                    save_data.type = "settings";
+                    save_data.action = undefined;
+                    parent.stb.SendEventToPortal(JSON.stringify(save_data));
+
+                    back();
+                }
+            );
+        }
+
+        function change(a) {
+            if (iid <= mid - 2)
+                switch (menuT[iid - 1][0]) {
+                    case "select":
+                        fc = true;
+                        break;
+                }
+            else if (iid + a <= mid && iid + a >= mid - 1) {
+                iid += a;
+                document.getElementById('i' + iid).focus();
+            }
+        }
+    </script>
+
+    <script language="JavaScript" src="js/pres.js"></script>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+
+<body onload="onLoad()" onkeydown="pressKey(event);">
+    <div id="blueback">
+        <table class="nsp" width="100%" border="0" cellpadding="0" cellspacing="0">
+            <tr>
+                <td align="right"><span id="t1"></span>
+                <td>
+                    <div class="sub_select"><select id="i1"></select></div>
+                </td>
+            </tr>
+            <tr>
+                <td align="right"><span id="t2"></span></td>
+                <td><input type="checkbox" id="i2" /><label></label></td>
+            </tr>
+            <tr>
+                <td align="right"><span id="t3"></span>
+                <td>
+                    <div class="sub_select"><select id="i3"></select></div>
+                </td>
+            </tr>
+        </table>
+
+    </div>
+    <div id="footer">
+        <input id="i5" type="button" value="" onClick="back();" />
+        <input id="i4" type="button" value="" onClick="submit();" />
+    </div>
+</body>
+
+</html>

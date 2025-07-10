@@ -1,0 +1,75 @@
+<html>
+
+<head>
+    <script>
+        var iid = 1;
+        var mid = 5;
+        function onLoad() {
+            sload();
+            var menuP = {
+                "dhcp": [parent.t('Auto (DHCP)'), 1],
+                "dhcp_manual": [parent.t('Auto (DHCP), manual DNS'), 2],
+                "manual": [parent.t('Manual'), 3],
+                "no_ip": [parent.t('No IP'), 4]
+            }
+            var nom, number;
+            for (var i = 0; i < parent.prof.modules.length; i++) {
+                if (parent.prof.modules[i].name == "net") { number = i; break; }
+            }
+            for (var i = 0; i < parent.prof.modules[number].sub.length; i++) {
+                if (parent.prof.modules[number].sub[i].name == "ethernet") { nom = i; break; }
+            }
+            ind = nom + 1;
+            var text = '';
+            for (var i = 0; i < parent.prof.modules[number].sub[nom].sub.length; i++) {
+                if (i < parent.prof.modules[number].sub[nom].sub.length - 1) text += '<input id="i' + (i + 1) + '" type="button" value="' + menuP[parent.prof.modules[number].sub[nom].sub[i].name][0] + '" onClick="ent(' + menuP[parent.prof.modules[number].sub[nom].sub[i].name][1] + ');"/><br />';
+                else text += '<input id="i' + (i + 1) + '" type="button" value="' + menuP[parent.prof.modules[number].sub[nom].sub[i].name][0] + '" onClick="ent(' + menuP[parent.prof.modules[number].sub[nom].sub[i].name][1] + ');"/>';
+            }
+            var d = document.getElementById("i" + mid);
+            mid = parent.prof.modules[number].sub[nom].sub.length + 1;
+            d.id = 'i' + mid;
+            d.value = parent.t('Back');
+            document.getElementById('menu_buttons').innerHTML = text;
+            document.getElementById("i1").focus();
+            parent.document.getElementById("zagolovok").innerHTML += "/" + parent.t('Wired (Ethernet)');
+        }
+
+
+        function backH() {
+            parent.nextMenu('g_nets.html');
+        }
+
+        function dhcp() {
+            parent.stb.SetEnv('{"lan_noip":"","ipaddr_conf":"","dnsip":""}');
+        }
+
+        function ent(a) {
+            switch (a) {
+                case 1: parent.conf(parent.t('Confirm change(s)?'), 'i' + iid, 'cont.contentWindow.dhcp();var nt=stb.ServiceControl(\'network\',\'restart\');erMbeck();');
+                    break;
+                case 2: parent.nextMenu('nsl_ldhcp.html')
+                    break;
+                case 3: parent.nextMenu('nsl_lst.html')
+                    break;
+                case 4: parent.conf(parent.t('Confirm change(s)?'), 'i' + iid, 'cont.contentWindow.ip();var nt=stb.ServiceControl(\'network\',\'restart\');erMbeck();');
+                    break;
+            }
+        }
+
+        function ip() {
+            parent.stb.SetEnv('{"lan_noip":"true"}');
+        }
+        function change(a) { }
+    </script>
+    <script language="JavaScript" src="js/pres.js"></script>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+<body onload="onLoad()" onkeydown="pressKey(event);">
+    <div align="center" id="menu_buttons" style="display:block;">
+    </div>
+    <div id="footer">
+        <input id="i5" type="button" value="" onClick="backH();" />
+    </div>
+</body>
+
+</html>

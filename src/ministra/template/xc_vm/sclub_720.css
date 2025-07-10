@@ -1,0 +1,92 @@
+/* VCLUB */
+.ears_back {
+    position: absolute;
+    width: 40px;
+    height: 420px;
+    left: 0;
+    top: 73px;
+    background-image: url("i_720/ears.png");
+    background-position: 0 0;
+}
+
+.ears_movie {
+    position: absolute;
+    width: 40px;
+    height: 420px;
+    left: 680px;
+    top: 73px;
+    background-image: url("i_720/ears.png");
+    background-position: -40px 0;
+}
+
+.vclub_info_box {
+    display: none;
+}
+
+.vclub_screenshot_box {
+    position: absolute;
+    height: 500px;
+    width: 333px;
+    top: 82px;
+    left: 878px;
+}
+
+.vclub_screenshot_box img {
+    width: 333px;
+    height: 500px;
+}
+
+.today_block,
+.yesterday_block,
+.week_and_more_block {
+    position: absolute;
+    right: 0px;
+    top: 0px;
+    width: 200px;
+    height: 50px;
+    line-height: 50px;
+    color: #fff;
+    background: #99999933;
+    white-space: pre;
+    font-size: 24px;
+    overflow: hidden;
+}
+
+.active_today_block,
+.active_yesterday_block,
+.active_week_and_more_block {
+    position: absolute;
+    right: 0px;
+    top: 0px;
+    width: 200px;
+    height: 50px;
+    line-height: 50px;
+    color: #fff;
+    background: #888;
+    white-space: pre;
+    font-size: 24px;
+    overflow: hidden;
+}
+
+
+.disabled_all_buttons span {
+    color: #707070 !important;
+}
+
+#vclub .low_quality_block {
+    float: left;
+    width: 28px;
+    height: 28px;
+    background-image: url("i_720/low_q.png");
+    margin: 5px 0 0 2px;
+}
+
+#vclub .active_low_quality_block {
+    float: left;
+    width: 28px;
+    height: 28px;
+    background-image: url("i_720/low_q.png");
+    margin: 11px 2px 0 2px;
+}
+
+/* END VCLUB */

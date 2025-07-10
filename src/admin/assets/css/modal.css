@@ -1,0 +1,25 @@
+.wrapper {
+	padding: 0 !important;
+}
+
+.container-fluid {
+	width: 100% !important;
+	max-width: 100% !important;
+}
+
+body {
+	padding-bottom: 0 !important;
+}
+
+.page-title-box {
+	display: none !important;
+}
+
+.wrapper {
+	margin-top: 12px;
+	margin-bottom: 12px;
+}
+
+.card {
+	margin-bottom: 0 !important;
+}

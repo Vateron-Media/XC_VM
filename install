@@ -1,0 +1,409 @@
+#!/usr/bin/python3
+import subprocess, os, random, string, sys, shutil, socket, time, io
+
+if sys.version_info.major != 3:
+    print("Please run with python3.")
+    sys.exit(1)
+
+rPath = os.path.dirname(os.path.realpath(__file__))
+rPackages = [
+    "cpufrequtils",
+    "iproute2",
+    "net-tools",
+    "dirmngr",
+    "gpg-agent",
+    "software-properties-common",
+    "libmaxminddb0",
+    "libmaxminddb-dev",
+    "mmdb-bin",
+    "libcurl4",
+    "libgeoip-dev",
+    "libxslt1-dev",
+    "libonig-dev",
+    "e2fsprogs",
+    "wget",
+    "mariadb-server",
+    "sysstat",
+    "alsa-utils",
+    "v4l-utils",
+    "mcrypt",
+    "certbot",
+    "iptables-persistent",
+    "libjpeg-dev",
+    "libpng-dev",
+    "xz-utils",
+    "zip",
+    "unzip",
+    "libssh2-1t64",
+    "php-ssh2",
+    "cron"
+]
+rRemove = ["mysql-server"]
+rMySQLCnf = '# XC_VM\n[client]\nport                            = 3306\n\n[mysqld_safe]\nnice                            = 0\n\n[mysqld]\nuser                            = mysql\nport                            = 3306\nbasedir                         = /usr\ndatadir                         = /var/lib/mysql\ntmpdir                          = /tmp\nlc-messages-dir                 = /usr/share/mysql\nskip-external-locking\nskip-name-resolve\nbind-address                    = *\n\n# MyISAM\nkey_buffer_size                 = 32M\nmyisam_sort_buffer_size         = 4M\nmyisam-recover-options          = BACKUP\nmax_length_for_sort_data        = 4096\n\n# Connections\nmax_connections                 = 200\nback_log                        = 256\nmax_connect_errors              = 1000\n\n# Packet and cache\nmax_allowed_packet              = 16M\nopen_files_limit                = 2048\ninnodb_open_files               = 1024\ntable_open_cache                = 1024\ntable_definition_cache          = 1024\n\n# Temp tables\ntmp_table_size                  = 64M\nmax_heap_table_size             = 64M\n\n# InnoDB\ninnodb_buffer_pool_size         = 2G\ninnodb_buffer_pool_instances    = 1\ninnodb_read_io_threads          = 4\ninnodb_write_io_threads         = 4\ninnodb_thread_concurrency       = 8\ninnodb_flush_log_at_trx_commit  = 1\ninnodb_flush_method             = O_DIRECT\ninnodb_file_per_table           = 1\ninnodb_io_capacity              = 1000\ninnodb_table_locks              = 1\ninnodb_lock_wait_timeout        = 30\n\n# Logging\nexpire_logs_days                = 7\nmax_binlog_size                 = 64M\n\n# Query cache – still disabled\nquery_cache_limit               = 0\nquery_cache_size                = 0\nquery_cache_type                = 0\n\nperformance_schema              = 0\n\nsql_mode                        = "NO_ENGINE_SUBSTITUTION"\n\n[mariadb]\nthread_cache_size               = 64\nthread_handling                 = pool-of-threads\nthread_pool_size                = 4\nthread_pool_idle_timeout        = 20\nthread_pool_max_threads         = 256\n\n[mysqldump]\nquick\nquote-names\nmax_allowed_packet              = 16M\n\n[mysql]\n\n[isamchk]\nkey_buffer_size                 = 8M'
+rConfig = '; XC_VM Configuration\n; -----------------\n; To change your username or password, modify BOTH\n; below and XC_VM will read and re-encrypt them.\n\n[XC_VM]\nhostname    =   "127.0.0.1"\ndatabase    =   "xc_vm"\nport        =   3306\nserver_id   =   1\n\n[Encrypted]\nusername    =   "%s"\npassword    =   "%s"'
+rRedisConfig = 'bind *\nprotected-mode yes\nport 6379\ntcp-backlog 511\ntimeout 0\ntcp-keepalive 300\ndaemonize yes\nsupervised no\npidfile /home/xc_vm/bin/redis/redis-server.pid\nloglevel warning\nlogfile /home/xc_vm/bin/redis/redis-server.log\ndatabases 1\nalways-show-logo yes\nstop-writes-on-bgsave-error no\nrdbcompression no\nrdbchecksum no\ndbfilename dump.rdb\ndir /home/xc_vm/bin/redis/\nslave-serve-stale-data yes\nslave-read-only yes\nrepl-diskless-sync no\nrepl-diskless-sync-delay 5\nrepl-disable-tcp-nodelay no\nslave-priority 100\nrequirepass #PASSWORD#\nmaxclients 655350\nlazyfree-lazy-eviction no\nlazyfree-lazy-expire no\nlazyfree-lazy-server-del no\nslave-lazy-flush no\nappendonly no\nappendfilename "appendonly.aof"\nappendfsync everysec\nno-appendfsync-on-rewrite no\nauto-aof-rewrite-percentage 100\nauto-aof-rewrite-min-size 64mb\naof-load-truncated yes\naof-use-rdb-preamble no\nlua-time-limit 5000\nslowlog-log-slower-than 10000\nslowlog-max-len 128\nlatency-monitor-threshold 0\nnotify-keyspace-events ""\nhash-max-ziplist-entries 512\nhash-max-ziplist-value 64\nlist-max-ziplist-size -2\nlist-compress-depth 0\nset-max-intset-entries 512\nzset-max-ziplist-entries 128\nzset-max-ziplist-value 64\nhll-sparse-max-bytes 3000\nactiverehashing yes\nclient-output-buffer-limit normal 0 0 0\nclient-output-buffer-limit slave 256mb 64mb 60\nclient-output-buffer-limit pubsub 32mb 8mb 60\nhz 10\naof-rewrite-incremental-fsync yes\nsave 60 1000\nserver-threads 4\nserver-thread-affinity true'
+rSysCtl = "# XC_VM\n\nnet.ipv4.tcp_congestion_control = bbr\nnet.core.default_qdisc = fq\nnet.ipv4.tcp_rmem = 8192 87380 134217728\nnet.ipv4.udp_rmem_min = 16384\nnet.core.rmem_default = 262144\nnet.core.rmem_max = 268435456\nnet.ipv4.tcp_wmem = 8192 65536 134217728\nnet.ipv4.udp_wmem_min = 16384\nnet.core.wmem_default = 262144\nnet.core.wmem_max = 268435456\nnet.core.somaxconn = 1000000\nnet.core.netdev_max_backlog = 250000\nnet.core.optmem_max = 65535\nnet.ipv4.tcp_max_tw_buckets = 1440000\nnet.ipv4.tcp_max_orphans = 16384\nnet.ipv4.ip_local_port_range = 2000 65000\nnet.ipv4.tcp_no_metrics_save = 1\nnet.ipv4.tcp_slow_start_after_idle = 0\nnet.ipv4.tcp_fin_timeout = 15\nnet.ipv4.tcp_keepalive_time = 300\nnet.ipv4.tcp_keepalive_probes = 5\nnet.ipv4.tcp_keepalive_intvl = 15\nfs.file-max=20970800\nfs.nr_open=20970800\nfs.aio-max-nr=20970800\nnet.ipv4.tcp_timestamps = 1\nnet.ipv4.tcp_window_scaling = 1\nnet.ipv4.tcp_mtu_probing = 1\nnet.ipv4.route.flush = 1\nnet.ipv6.route.flush = 1"
+rSystemd = "[Unit]\nSourcePath=/home/xc_vm/service\nDescription=XC_VM Service\nAfter=network.target\nStartLimitIntervalSec=0\n\n[Service]\nType=simple\nUser=root\nRestart=always\nRestartSec=1\nExecStart=/bin/bash /home/xc_vm/service start\nExecRestart=/bin/bash /home/xc_vm/service restart\nExecStop=/bin/bash /home/xc_vm/service stop\n\n[Install]\nWantedBy=multi-user.target"
+rChoice = "23456789abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ"
+rConfigPath = "/home/xc_vm/config/config.ini"
+
+rVersions = {
+    "22.04": "jammy",
+    "22.10": "kinetic",
+}
+
+
+class col:
+    HEADER = "\033[95m"
+    OKBLUE = "\033[94m"
+    OKGREEN = "\033[92m"
+    WARNING = "\033[93m"
+    FAIL = "\033[91m"
+    ENDC = "\033[0m"
+    BOLD = "\033[1m"
+    UNDERLINE = "\033[4m"
+
+
+def generate(length=32):
+    return "".join(random.choice(rChoice) for i in range(length))
+
+
+def getIP():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))
+    return s.getsockname()[0]
+
+
+def printc(rText, rColour=col.OKBLUE, rPadding=0):
+    rLeft = int(30 - (len(rText) / 2))
+    rRight = 60 - rLeft - len(rText)
+    print(
+        "%s |--------------------------------------------------------------| %s"
+        % (rColour, col.ENDC)
+    )
+    for i in range(rPadding):
+        print(
+            "%s |                                                              | %s"
+            % (rColour, col.ENDC)
+        )
+    print("%s | %s%s%s | %s" % (rColour, " " * rLeft, rText, " " * rRight, col.ENDC))
+    for i in range(rPadding):
+        print(
+            "%s |                                                              | %s"
+            % (rColour, col.ENDC)
+        )
+    print(
+        "%s |--------------------------------------------------------------| %s"
+        % (rColour, col.ENDC)
+    )
+    print(" ")
+
+
+if __name__ == "__main__":
+    ##################################################
+    # START                                          #
+    ##################################################
+
+    try:
+        rVersion = os.popen("lsb_release -sr").read().strip()
+    except:
+        rVersion = None
+    if not rVersion in rVersions:
+        printc("Unsupported Operating System")
+        sys.exit(1)
+
+    if not os.path.exists("./xc_vm.tar.gz"):
+        print(
+            "Fatal Error: xc_vm.tar.gz is missing. Please download it from XC_VM billing panel."
+        )
+        sys.exit(1)
+
+    printc("XC_VM", col.OKGREEN, 2)
+    rHost = "127.0.0.1"
+    rServerID = 1
+    rUsername = generate()
+    rPassword = generate()
+    rDatabase = "xc_vm"
+    rPort = 3306
+
+    if os.path.exists("/home/xc_vm/"):
+        printc("XC_VM Directory Exists!")
+        while True:
+            rAnswer = input("Continue and overwrite? (Y / N) : ")
+            if rAnswer.upper() in ["Y", "N"]:
+                break
+        if rAnswer == "N":
+            sys.exit(1)
+
+    ##################################################
+    # UPGRADE                                        #
+    ##################################################
+
+    printc("Patching OpenSSL")
+    os.system(
+        "wget -O /tmp/libssl1.1_1.1.1f-1ubuntu2_amd64.deb http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2_amd64.deb"
+    )
+    os.system("sudo dpkg -i /tmp/libssl1.1_1.1.1f-1ubuntu2_amd64.deb")
+    os.remove("/tmp/libssl1.1_1.1.1f-1ubuntu2_amd64.deb")
+
+    ##################################################
+    # UPGRADE                                        #
+    ##################################################
+
+    printc("Preparing Installation")
+    for rFile in [
+        "/var/lib/dpkg/lock-frontend",
+        "/var/cache/apt/archives/lock",
+        "/var/lib/dpkg/lock",
+        "/var/lib/apt/lists/lock",
+    ]:
+        if os.path.exists(rFile):
+            try:
+                os.remove(rFile)
+            except:
+                pass
+    printc("Updating system")
+    os.system("sudo apt-get update")
+    os.system(
+        "sudo DEBIAN_FRONTEND=noninteractive apt-get -yq install software-properties-common"
+    )
+    if rVersion in rVersions:
+        printc("Adding repo: Ubuntu %s" % rVersion)
+        os.system(
+            "sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xF1656F24C74CD1D8"
+        )
+        os.system(
+            "sudo add-apt-repository -y 'deb [arch=amd64,arm64,ppc64el] http://ams2.mirrors.digitalocean.com/mariadb/repo/10.6/ubuntu %s main'"
+            % rVersions[rVersion]
+        )
+    else:
+        print("Installing system version of MariaDB")
+    os.system("sudo add-apt-repository -y ppa:maxmind/ppa")
+    os.system("sudo apt-get update")
+    for rPackage in rRemove:
+        printc("Removing %s" % rPackage)
+        os.system("sudo apt-get remove %s -y" % rPackage)
+    for rPackage in rPackages:
+        printc("Installing %s" % rPackage)
+        os.system(
+            "sudo DEBIAN_FRONTEND=noninteractive apt-get -yq install %s" % rPackage
+        )
+    try:
+        subprocess.check_output("getent passwd xc_vm".split())
+    except:
+        printc("Creating user")
+        os.system(
+            "sudo adduser --system --shell /bin/false --group --disabled-login xc_vm"
+        )
+    if not os.path.exists("/home/xc_vm"):
+        os.mkdir("/home/xc_vm")
+
+    ##################################################
+    # INSTALL                                        #
+    ##################################################
+
+    printc("Installing XC_VM")
+    if os.path.exists("./xc_vm.tar.gz"):
+        os.system('sudo tar -zxvf "./xc_vm.tar.gz" -C "/home/xc_vm/"')
+        if not os.path.exists("/home/xc_vm/status"):
+            printc("Failed to extract! Exiting")
+            sys.exit(1)
+
+    ##################################################
+    # MYSQL                                          #
+    ##################################################
+
+    printc("Configuring MySQL")
+    rCreate = True
+    if os.path.exists("/etc/mysql/my.cnf"):
+        if open("/etc/mysql/my.cnf", "r").read(5) == "# XC_VM":
+            rCreate = False
+    if rCreate:
+        rFile = io.open("/etc/mysql/my.cnf", "w", encoding="utf-8")
+        rFile.write(rMySQLCnf)
+        rFile.close()
+        os.system("sudo service mariadb restart")
+    rExtra = ""
+    rRet = os.system('mysql -u root -e "SELECT VERSION();"')
+    if rRet != 0:
+        while True:
+            rExtra = " -p%s" % input("Root MySQL Password: ")
+            rRet = os.system('mysql -u root%s -e "SELECT VERSION();"' % rExtra)
+            if rRet == 0:
+                break
+            else:
+                printc("Invalid password! Please try again.")
+    os.system(
+        'sudo mysql -u root%s -e "DROP DATABASE IF EXISTS xc_vm; CREATE DATABASE IF NOT EXISTS xc_vm;"'
+        % rExtra
+    )
+    os.system(
+        'sudo mysql -u root%s -e "DROP DATABASE IF EXISTS xc_vm_migrate; CREATE DATABASE IF NOT EXISTS xc_vm_migrate;"'
+        % rExtra
+    )
+    os.system(
+        'sudo mysql -u root%s xc_vm < "/home/xc_vm/bin/install/database.sql"' % rExtra
+    )
+    os.system(
+        "sudo mysql -u root%s -e \"CREATE USER '%s'@'localhost' IDENTIFIED BY '%s';\""
+        % (rExtra, rUsername, rPassword)
+    )
+    os.system(
+        "sudo mysql -u root%s -e \"GRANT ALL PRIVILEGES ON xc_vm.* TO '%s'@'localhost';\""
+        % (rExtra, rUsername)
+    )
+    os.system(
+        "sudo mysql -u root%s -e \"GRANT ALL PRIVILEGES ON xc_vm_migrate.* TO '%s'@'localhost';\""
+        % (rExtra, rUsername)
+    )
+    os.system(
+        "sudo mysql -u root%s -e \"GRANT ALL PRIVILEGES ON mysql.* TO '%s'@'localhost';\""
+        % (rExtra, rUsername)
+    )
+    os.system(
+        "sudo mysql -u root%s -e \"GRANT GRANT OPTION ON xc_vm.* TO '%s'@'localhost';\""
+        % (rExtra, rUsername)
+    )
+    os.system(
+        "sudo mysql -u root%s -e \"CREATE USER '%s'@'127.0.0.1' IDENTIFIED BY '%s';\""
+        % (rExtra, rUsername, rPassword)
+    )
+    os.system(
+        "sudo mysql -u root%s -e \"GRANT ALL PRIVILEGES ON xc_vm.* TO '%s'@'127.0.0.1';\""
+        % (rExtra, rUsername)
+    )
+    os.system(
+        "sudo mysql -u root%s -e \"GRANT ALL PRIVILEGES ON xc_vm_migrate.* TO '%s'@'127.0.0.1';\""
+        % (rExtra, rUsername)
+    )
+    os.system(
+        "sudo mysql -u root%s -e \"GRANT ALL PRIVILEGES ON mysql.* TO '%s'@'127.0.0.1';\""
+        % (rExtra, rUsername)
+    )
+    os.system(
+        "sudo mysql -u root%s -e \"GRANT GRANT OPTION ON xc_vm.* TO '%s'@'127.0.0.1';\""
+        % (rExtra, rUsername)
+    )
+    os.system('sudo mysql -u root%s -e "FLUSH PRIVILEGES;"' % rExtra)
+    rConfigData = rConfig % (rUsername, rPassword)
+    rFile = io.open(rConfigPath, "w", encoding="utf-8")
+    rFile.write(rConfigData)
+    rFile.close()
+
+    ##################################################
+    # CONFIGURE                                      #
+    ##################################################
+
+    printc("Configuring System")
+    if not "/home/xc_vm/" in open("/etc/fstab").read():
+        rFile = io.open("/etc/fstab", "a", encoding="utf-8")
+        rFile.write(
+            "\ntmpfs /home/xc_vm/content/streams tmpfs defaults,noatime,nosuid,nodev,noexec,mode=1777,size=90% 0 0\ntmpfs /home/xc_vm/tmp tmpfs defaults,noatime,nosuid,nodev,noexec,mode=1777,size=6G 0 0"
+        )
+        rFile.close()
+    if os.path.exists("/etc/init.d/xc_vm"):
+        os.remove("/etc/init.d/xc_vm")
+    if os.path.exists("/etc/systemd/system/xc_vm.service"):
+        os.remove("/etc/systemd/system/xc_vm.service")
+    if not os.path.exists("/etc/systemd/system/xc_vm.service"):
+        rFile = io.open("/etc/systemd/system/xc_vm.service", "w", encoding="utf-8")
+        rFile.write(rSystemd)
+        rFile.close()
+        os.system("sudo chmod +x /etc/systemd/system/xc_vm.service")
+        os.system("sudo systemctl daemon-reload")
+        os.system("sudo systemctl enable xc_vm")
+    print(
+        "Custom sysctl.conf - If you have your own custom sysctl.conf, type N or it will be overwritten. If you don't know what a sysctl configuration is, type Y as it will correctly set your TCP settings and open file limits."
+    )
+    print(" ")
+    while True:
+        rAnswer = input("Overwrite sysctl configuration? Recommended! (Y / N): ")
+        if rAnswer.upper() in ["Y", "N"]:
+            break
+    if rAnswer.upper() == "Y":
+        try:
+            os.system("sudo modprobe ip_conntrack")
+        except:
+            pass
+        try:
+            rFile = io.open("/etc/sysctl.conf", "w", encoding="utf-8")
+            rFile.write(rSysCtl)
+            rFile.close()
+            os.system("sudo sysctl -p >/dev/null 2>&1")
+            rFile = open("/home/xc_vm/config/sysctl.on", "w")
+            rFile.close()
+        except:
+            print("Failed to write to sysctl file.")
+    else:
+        if os.path.exists("/home/xc_vm/config/sysctl.on"):
+            os.remove("/home/xc_vm/config/sysctl.on")
+    if not "DefaultLimitNOFILE=655350" in open("/etc/systemd/system.conf").read():
+        os.system(
+            'sudo echo "\nDefaultLimitNOFILE=655350" >> "/etc/systemd/system.conf"'
+        )
+        os.system('sudo echo "\nDefaultLimitNOFILE=655350" >> "/etc/systemd/user.conf"')
+    if not os.path.exists("/home/xc_vm/bin/redis/redis.conf"):
+        rFile = io.open("/home/xc_vm/bin/redis/redis.conf", "w", encoding="utf-8")
+        rFile.write(rRedisConfig)
+        rFile.close()
+
+    ##################################################
+    # ACCESS CODE                                    #
+    ##################################################
+
+    rCodeDir = "/home/xc_vm/bin/nginx/conf/codes/"
+    rHasAdmin = None
+    for rCode in os.listdir(rCodeDir):
+        if rCode.endswith(".conf"):
+            if rCode.split(".")[0] == "setup":
+                os.remove(rCodeDir + "setup.conf")
+            elif "/home/xc_vm/admin" in open(rCodeDir + rCode, "r").read():
+                rHasAdmin = rCode
+    if not rHasAdmin:
+        rCode = generate(8)
+        os.system(
+            "sudo mysql -u root%s -e \"USE xc_vm; INSERT INTO access_codes(code, type, enabled, groups) VALUES('%s', 0, 1, '[1]');\""
+            % (rExtra, rCode)
+        )
+        rTemplate = open(rCodeDir + "template").read()
+        rTemplate = rTemplate.replace("#WHITELIST#", "")
+        rTemplate = rTemplate.replace("#TYPE#", "admin")
+        rTemplate = rTemplate.replace("#CODE#", rCode)
+        rTemplate = rTemplate.replace("#BURST#", "500")
+        rFile = io.open("%s%s.conf" % (rCodeDir, rCode), "w", encoding="utf-8")
+        rFile.write(rTemplate)
+        rFile.close()
+    else:
+        rCode = rHasAdmin.split(".")[0]
+
+    ##################################################
+    # FINISHED                                       #
+    ##################################################
+
+    os.system("sudo mount -a  >/dev/null 2>&1")
+    os.system("sudo chown xc_vm:xc_vm -R /home/xc_vm  >/dev/null 2>&1")
+    os.system("sudo systemctl daemon-reload")
+    os.system("sudo systemctl start xc_vm")
+
+    time.sleep(10)
+
+    os.system("sudo /home/xc_vm/status 1")
+    os.system("sudo chown xc_vm:xc_vm -R /home/xc_vm/config/")
+    os.system(
+        "sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/includes/cli/startup.php >/dev/null 2>&1"
+    )
+
+    rFile = io.open(rPath + "/credentials.txt", "w", encoding="utf-8")
+    rFile.write("MySQL Username: %s\nMySQL Password: %s" % (rUsername, rPassword))
+    rFile.close()
+
+    time.sleep(3)
+    os.system("service xc_vm restart")
+
+    printc("Installation completed!", col.OKGREEN, 2)
+    printc("Continue Setup: http://%s/%s" % (getIP(), rCode))
+    print(" ")
+    printc("Your mysql credentials have been saved to:")
+    printc(rPath + "/credentials.txt")
+    print(" ")
+    printc("Please move this file somewhere safe!")

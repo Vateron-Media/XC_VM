@@ -1,0 +1,70 @@
+.radio_widget_block {
+    position: absolute;
+    left: 61px;
+    top: 359px;
+    width: 293px;
+    height: 82px;
+    color: #fff;
+    font-size: 20px;
+    text-align: center;
+    background-image: url("i_720/25alfa_20.png");
+    -moz-border-radius: 10px;
+    -webkit-border-radius: 10px;
+    padding: 0 0 5px 0;
+}
+
+.radio_widget_block .title {
+    white-space: pre;
+    overflow: hidden;
+    margin: 0 8px;
+    text-overflow: ellipsis;
+}
+
+.radio_widget_block .items {
+    margin: 0 auto;
+    color: #bcf092;
+    font-size: 16px;
+    position: relative;
+    top: -2px;
+}
+
+.radio_widget_block .buttons_block {
+    position: relative;
+    top: 2px;
+}
+
+.radio_widget_block .prev_btn {
+    width: 38px;
+    height: 29px;
+    position: absolute;
+    left: 43px;
+    background-image: url("i_720/mb_player.png");
+    background-position: -106px 0;
+}
+
+.radio_widget_block .next_btn {
+    width: 38px;
+    height: 29px;
+    position: absolute;
+    left: 208px;
+    background-image: url("i_720/mb_player.png");
+    background-position: -68px 0;
+}
+
+.radio_widget_block .play_btn {
+    width: 34px;
+    height: 29px;
+    position: absolute;
+    left: 128px;
+    background-image: url("i_720/mb_player.png");
+    background-position: 0 0;
+}
+
+.radio_widget_block .pause_btn {
+    position: absolute;
+    left: 128px;
+    width: 34px;
+    height: 29px;
+    background-image: url("i_720/mb_player.png");
+    background-position: -34px 0;
+}

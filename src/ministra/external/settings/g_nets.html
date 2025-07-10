@@ -1,0 +1,138 @@
+<html>
+
+<head>
+    <script>
+        var iid = 1; var mid = 4; var menuT = new Array(); var fl = true; var fl1 = false; var fl2 = false; var ind = 1;
+        var number = 0;
+
+        function onLoad() {
+            sload();
+            parent.cont.focus();
+            switch (parent.lani) {
+                case 0: initH(); break;
+                case 1: ent(2); parent.lani = 0; break;
+                case 2: ent(3); parent.lani = 0; break;
+            }
+        }
+
+        function initH() {
+            var menuP = {
+                "ethernet": [parent.t('Wired (Ethernet)'), 1],
+                "pppoe": [parent.t('PPPoE'), 2],
+                "wifi": [parent.t('Wireless (Wi-Fi)'), 3]
+            }
+            for (var i = 0; i < parent.prof.modules.length; i++) {
+                if (parent.prof.modules[i].name == "net") { number = i; break; }
+            }
+            var text = '';
+            for (var i = 0; i < parent.prof.modules[number].sub.length; i++) {
+                if (i < parent.prof.modules[number].sub.length - 1) text += '<input id="i' + (i + 1) + '" type="button" value="' + menuP[parent.prof.modules[number].sub[i].name][0] + '" onClick="ent(' + menuP[parent.prof.modules[number].sub[i].name][1] + ');"/><br />';
+                else text += '<input id="i' + (i + 1) + '" type="button" value="' + menuP[parent.prof.modules[number].sub[i].name][0] + '" onClick="ent(' + menuP[parent.prof.modules[number].sub[i].name][1] + ');"/>';
+            }
+            var d = document.getElementById("i" + mid);
+            mid = parent.prof.modules[number].sub.length + 1;
+            d.id = 'i' + mid;
+            d.value = parent.t('Back');
+            document.getElementById('menu_buttons').innerHTML = text;
+            document.getElementById("i" + iid).focus();
+        }
+
+        function init_H2() {
+
+            var menuP = {
+                "dhcp": [parent.t('Auto (DHCP)'), 1],
+                "dhcp_manual": [parent.t('Auto (DHCP), manual DNS'), 2],
+                "disable": [parent.t('Disable PPPoE'), 3]
+            }
+            var nom;
+            if (number == 0) for (var i = 0; i < parent.prof.modules.length; i++) {
+                if (parent.prof.modules[i].name == "net") { number = i; break; }
+            }
+            for (var i = 0; i < parent.prof.modules[number].sub.length; i++) {
+                if (parent.prof.modules[number].sub[i].name == "pppoe") { nom = i; break; }
+            }
+            ind = nom + 1;
+            var text = '';
+            for (var i = 0; i < parent.prof.modules[number].sub[nom].sub.length; i++) {
+                if (i < parent.prof.modules[number].sub[nom].sub.length - 1) text += '<input id="i' + (i + 1) + '" type="button" value="' + menuP[parent.prof.modules[number].sub[nom].sub[i].name][0] + '" onClick="ent(' + menuP[parent.prof.modules[number].sub[nom].sub[i].name][1] + ');"/><br />';
+                else text += '<input id="i' + (i + 1) + '" type="button" value="' + menuP[parent.prof.modules[number].sub[nom].sub[i].name][0] + '" onClick="ent(' + menuP[parent.prof.modules[number].sub[nom].sub[i].name][1] + ');"/>';
+            }
+            var d = document.getElementById("i" + mid);
+            mid = parent.prof.modules[number].sub[nom].sub.length + 1;
+            d.id = 'i' + mid;
+            d.value = parent.t('Back');
+            document.getElementById('menu_buttons').innerHTML = text;
+            document.getElementById("i1").focus();
+        }
+
+
+
+        function init_H3() {
+
+            var menuP = {
+                "dhcp": [parent.t('Auto (DHCP)'), 1],
+                "dhcp_manual": [parent.t('Auto (DHCP), manual DNS'), 2],
+                "manual": [parent.t('Manual'), 3]
+            }
+            var nom;
+            if (number == 0) for (var i = 0; i < parent.prof.modules.length; i++) {
+                if (parent.prof.modules[i].name == "net") { number = i; break; }
+            }
+            for (var i = 0; i < parent.prof.modules[number].sub.length; i++) {
+                if (parent.prof.modules[number].sub[i].name == "wifi") { nom = i; break; }
+            }
+            var text = '';
+            for (var i = 0; i < parent.prof.modules[number].sub[nom].sub.length; i++) {
+                if (i < parent.prof.modules[number].sub[nom].sub.length - 1) text += '<input id="i' + (i + 1) + '" type="button" value="' + menuP[parent.prof.modules[number].sub[nom].sub[i].name][0] + '" onClick="ent(' + menuP[parent.prof.modules[number].sub[nom].sub[i].name][1] + ');"/><br />';
+                else text += '<input id="i' + (i + 1) + '" type="button" value="' + menuP[parent.prof.modules[number].sub[nom].sub[i].name][0] + '" onClick="ent(' + menuP[parent.prof.modules[number].sub[nom].sub[i].name][1] + ');"/>';
+            }
+            ind = nom + 1;
+            var d = document.getElementById("i" + mid);
+            mid = parent.prof.modules[number].sub[nom].sub.length + 1;
+            d.id = 'i' + mid;
+            d.value = parent.t('Back');
+            document.getElementById('menu_buttons').innerHTML = text;
+            document.getElementById("i1").focus();
+        }
+
+
+        function ent(a) {
+            ind = iid;
+            switch (a) {
+                case 1: if (fl1) { parent.nextMenu("nsp_pavto.html"); }
+                else if (fl2) { parent.nextMenu("nsw_dhcp.html"); }
+                else { parent.nextMenu("ns_lans.html"); } break;
+                case 2: if (fl1) { parent.nextMenu("nsp_pad.html"); }
+                else if (fl2) { parent.nextMenu("nsw_dhd.html"); }
+                else { iid = 1; document.getElementById("i1").focus(); parent.document.getElementById("zagolovok").innerHTML += "/" + parent.t('PPPoE'); init_H2(); fl1 = true; fl = false; } break;
+                case 3: if (fl1) { parent.conf(parent.t('Do you want to do it?'), 'i' + iid, 'cont.contentWindow.submit();erMbeck();'); }
+                else if (fl2) { parent.nextMenu("nsw_stat.html"); }
+                else { iid = 1; document.getElementById("i1").focus(); parent.document.getElementById("zagolovok").innerHTML += "/" + parent.t('Wireless (Wi-Fi)'); init_H3(); fl2 = true; fl = false; } break;
+            }
+            fl = false;
+        }
+
+        function submit() {
+            parent.stb.SetEnv('{"pppoe_enabled":""}'); ind = 2;
+        }
+
+        function backH() {
+            if (fl) back(); else { iid = ind; initH(); document.getElementById("i" + ind).focus(); fl = true; fl1 = false; fl2 = false; mid = parent.prof.modules[number].sub.length + 1; parent.document.getElementById("zagolovok").innerHTML = parent.t('Network'); }
+        }
+        function change(a) { }
+    </script>
+    <script language="JavaScript" src="js/pres.js"></script>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+<body onload="onLoad()" onkeydown="pressKey(event);">
+    <div align="center" id="menu_buttons">
+        <input id="i1" type="button" onClick="ent(1);" /><br />
+        <input id="i2" type="button" onClick="ent(2);" /><br />
+        <input id="i3" type="button" onClick="ent(3);" />
+    </div>
+    <div id="footer">
+        <input id="i4" type="button" value="" onClick="parent.lani=0;backH();" />
+    </div>
+</body>
+
+</html>

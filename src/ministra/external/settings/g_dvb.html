@@ -1,0 +1,430 @@
+<html>
+
+<head>
+    <script>
+        var iid = 1;
+        var scanning = false;
+        var keyCodeNum = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57];
+        var keyCodeArrow = [37, 38, 39, 40];
+        var keyCodeService = [8, 13, 27, 116];
+
+        parent.stbEvent.onBroadcastMessage = function (win_id, msg) {
+            try {
+                msg = JSON.parse(msg);
+                console.log('scan msg', msg);
+            } catch (error) {
+                console.log('scan error', error);
+            }
+
+            scan_progress(msg);
+        };
+
+        var supported_scan_types = parent._GET['dvb_supported_scan_types'] ? parent._GET['dvb_supported_scan_types'] : [];
+        var current_scan_types = parent._GET['dvb_current_scan_types'] ? JSON.parse(decodeURIComponent(parent._GET['dvb_current_scan_types'])) : [];
+
+        var signal_type_select = ['select', parent.t('Signal type:')];
+
+        supported_scan_types.map(function (scan_type) {
+            signal_type_select.push(scan_type.type);
+            signal_type_select.push(scan_type.name);
+        });
+
+        var current_signal_type_select = ['select', parent.t('Signal type:')];
+
+        current_scan_types.map(function (scan_type) {
+            current_signal_type_select.push(scan_type);
+            current_signal_type_select.push(scan_type);
+        });
+
+        var freq_select = ['select', parent.t('Frequency') + ':'];
+        var bandwidth = ['select', parent.t('Bandwidth (MHz):'), 6, 6, 7, 7, 8, 8];
+        var scan_type = ['select', parent.t('Scan type') + ':', 'auto', parent.t('Auto scan'), 'manual', parent.t('Manual scan')];
+        var speed_select = ['select', parent.t('Transfer rate') + ':'];
+        var modulation_select = ['select', parent.t('Modulation') + ':', 0, parent.t('Auto'), 1, '16 QAM', 2, '32 QAM', 3, '64 QAM', 4, '128 QAM', 5, '265 QAM'];
+        var network_input = ['input', parent.t('Network code') + ':'];
+
+
+        var menuT = [
+            scan_type,
+            freq_select,
+            signal_type_select,
+            bandwidth,
+            speed_select,
+            modulation_select,
+            network_input
+        ];
+
+        var send_event_data_attr = {
+            2: { name: "frequency", default_val: 50000 },
+            3: { name: "type", default_val: "1" },
+            4: { name: "bandwidth", default_val: 8 },
+            5: { name: "symRate", default_val: 6875 },
+            6: { name: "modulation", default_val: 0 },
+            7: { name: "networkId", default_val: 0 }
+        };
+
+        var mid = menuT.length + 4;
+        var pread = ["dvb_type", "dvb_power"];
+
+        var tread = { "varList": pread };
+
+        var read = JSON.parse(parent.stb.GetEnv(JSON.stringify(tread)));
+        if (read.result.dvb_power == "" || read.result.dvb_power == "false") read.result.dvb_power = 0;
+        if (read.result.dvb_power == "true") read.result.dvb_power = 1;
+
+        pread = [null, null, "dvb_type"];
+
+        read.result = {
+            'dvb_type': parseInt(read.result.dvb_type, 10)
+        };
+
+        function onLoad() {
+            sload();
+            init();
+            parent.cont.focus();
+            document.getElementById("i1").focus();
+            document.getElementById("i11").value = parent.t('Cancel');
+            document.getElementById("i10").value = parent.t('OK');
+            document.getElementById("i9").value = parent.t('Clear list');
+            document.getElementById("i8").value = parent.t('Start scan');
+            document.getElementById("freq_label").innerHTML = parent.t('Frequency') + ':';
+            document.getElementById("total_label").innerHTML = parent.t('Total found') + ':';
+            document.getElementById("last_label").innerHTML = parent.t('Last found') + ':';
+            document.getElementById("i2").value = 50000;
+            document.getElementById("i5").value = 6875;
+            document.getElementById("i7").value = '';
+
+            document.getElementById("progress_wrap").style.width = '80%';
+
+            document.getElementById("i1").onchange = function () { check_scan_type(); };
+            check_scan_type();
+            document.getElementById("i3").onchange = function () { check_signal_type(); };
+
+            document.getElementById("i2").addEventListener('input', function (e) {
+                this.value = this.value.replace(/[^\d]/ig, '');
+            });
+        }
+
+        function submit() {
+
+            var dvb_type = document.getElementById("i3").value;
+            var antena_power = JSON.parse(parent.stb.GetEnv('{"varList":["dvb_power"]}'));
+
+            parent.rebut = true;
+
+            for (var i in current_scan_types) {
+                if (current_scan_types.hasOwnProperty(i)) {
+                    if (current_scan_types[i].type == dvb_type) {
+                        parent.rebut = false;
+                        break;
+                    }
+                }
+            }
+
+            var save_data = {
+                "dvb_type": dvb_type,
+                "dvb_antenna_power": antena_power.result.dvb_power,
+                "type": "settings"
+            };
+
+            parent.stb.SendEventToPortal(JSON.stringify(save_data));
+            back();
+            stop_scan();
+        }
+
+        function clear_channel_list() {
+            parent.stb.SendEventToPortal(JSON.stringify({ "type": "settings", "clear_dvb_channels": true }));
+            document.getElementById("i9").value = parent.t('List is cleared');
+        }
+
+        function scan() {
+
+            if (scanning) {
+                stop_scan();
+            } else {
+
+                var send_event_data = { type: "settings", data: {} };
+
+                for (var i = 2; i <= 7; i++) {
+                    send_event_data.data = get_form_value(send_event_data.data, send_event_data_attr[i].name, document.getElementById("i" + i), send_event_data_attr[i].default_val);
+                }
+
+                if (send_event_data.data.length == 0) {
+                    stop_scan();
+                    return;
+                }
+
+                if (document.getElementById("i1").value == 'manual') {
+                    send_event_data.data["scanMode"] = 2;
+                    send_event_data["start_manual_dvb_scan"] = true;
+                } else {
+                    send_event_data.data["scanMode"] = 0;
+                    send_event_data["start_dvb_scan"] = true;
+                }
+
+                toggle_display_form(false, [1, 2, 3, 4, 5, 6, 7]);
+
+                total_found = 0;
+                var progress = document.getElementById('progress');
+                progress.style.width = '0%';
+
+                document.getElementById("freq_label").innerHTML = parent.t('Frequency') + ':';
+                document.getElementById("total_label").innerHTML = parent.t('Total found') + ':';
+                document.getElementById("last_label").innerHTML = parent.t('Last found') + ':';
+
+                document.getElementById("progress_wrap").style.width = '80%';
+
+                document.getElementById('scan_block').style.visibility = 'visible';
+                document.getElementById('scan_info_block').style.visibility = 'visible';
+                document.getElementById('total').innerHTML = '0';
+                document.getElementById('freq').innerHTML = '';
+                document.getElementById('last').innerHTML = '';
+                document.getElementById("i8").value = parent.t('Stop scan');
+
+                parent.stb.SendEventToPortal(JSON.stringify(send_event_data));
+
+                scanning = true;
+            }
+        }
+
+        function stop_scan() {
+
+            document.getElementById('scan_block').style.visibility = 'hidden';
+            document.getElementById('scan_info_block').style.visibility = 'hidden';
+
+            toggle_display_form(true, [1, 2, 3, 4, 5, 6, 7]);
+
+            parent.stb.SendEventToPortal(JSON.stringify({ "type": "settings", "stop_dvb_scan": true }));
+            document.getElementById("i8").value = parent.t('Start scan');
+            scanning = false;
+            iid = 1;
+            document.getElementById("i" + iid).focus();
+        }
+
+        var total_found = 0;
+
+        function scan_progress(e) {
+
+            var progress = document.getElementById('progress');
+
+            if (e.hasOwnProperty('state') && e.state == 'finished') {
+                progress.style.width = '100%';
+                scanning = false;
+                total_found = 0;
+                parent.stb.SendEventToPortal(JSON.stringify({ "type": "settings", "update_dvb_channels": true }));
+                document.getElementById('i8').value = parent.t('New scan');
+
+                document.getElementById('i8').onclick = function () {
+                    document.getElementById('scan_block').style.visibility = 'hidden';
+                    document.getElementById('scan_info_block').style.visibility = 'hidden';
+
+                    toggle_display_form(true, [1, 2, 3, 4, 5, 6, 7]);
+                    document.getElementById('i8').value = parent.t('Start scan');
+                    document.getElementById('i8').onclick = function () { scan(); };
+                };
+
+                return;
+            }
+
+            if (e.hasOwnProperty('progress')) {
+                progress.style.width = e.progress + '%';
+            }
+
+            if (e.hasOwnProperty('frequency')) {
+                document.getElementById('freq').innerHTML = e.frequency;
+            }
+
+            if (e.hasOwnProperty('id')) {
+                total_found++;
+                document.getElementById('total').innerHTML = total_found;
+                document.getElementById('last').innerHTML = e.name;
+            }
+        }
+
+        function change(a) {
+            if (iid <= mid - 3) {
+
+                if (iid == 2 || iid == 5) {
+                    var freq_dom = document.getElementById('i' + iid);
+
+                    var interval = { min: 50000, max: 858000, step: 500 };
+
+                    if (iid == 5) {
+                        interval.step = 1;
+                        interval.max = 7200;
+                        interval.min = 870;
+                    }
+
+                    if (a > 0 && freq_dom.value < interval.max || a < 0 && freq_dom.value > interval.min) {
+                        freq_dom.value = parseInt(freq_dom.value, 10) + a * interval.step;
+                    }
+
+                } else {
+                    switch (menuT[iid - 1][0]) {
+                        case "select":
+                            fc = true;
+                            break;
+                    }
+                }
+            }
+            else if (iid + a <= mid && iid + a >= mid - 1) {
+                iid += a;
+                document.getElementById('i' + iid).focus();
+            }
+        }
+
+        function check_scan_type() {
+            toggle_display_form(document.getElementById('i1').value != 'auto', [2, 6, 7]);
+        }
+
+        function get_form_value(data, attr_name, field, default_val) {
+
+            if (field.style.display != 'none') {
+                data[attr_name] = field.value ? field.value : default_val;
+            }
+            return data;
+        }
+
+        function toggle_display_form(show, objects) {
+
+            var display_val = show ? 'inline' : 'none';
+            var target = objects ? objects : [];
+            for (var i in target) {
+                document.getElementById('i' + target[i]).style.display = display_val;
+                document.getElementById('t' + target[i]).style.display = display_val;
+            }
+
+        }
+
+        function check_signal_type() {
+            var antena_power = JSON.parse(parent.stb.GetEnv('{"varList":["dvb_power"]}'));
+            var dvb_type = document.getElementById('i3').value;
+            console.log('selected signal type - ' + document.getElementById('i3').value);
+            console.log('antena_power.result.dvb_power - ' + antena_power.result.dvb_power);
+            if (document.getElementById('i3').value == '1') {
+                if (antena_power.result.dvb_power && antena_power.result.dvb_power == 'true') {
+                    parent.conf(parent.t("For the selected type of signal, necessary to turn off the power of antenna. The power will be turned off after rebooting the device. Rebooting now?"), '', 'stb.SetEnv(\'{"dvb_power": false, "dvb_type": ' + dvb_type + '}\');stb.ExecAction("reboot");stbWebWindow.close();', 1);
+                }
+            } else {
+                if (!antena_power.result.dvb_power || antena_power.result.dvb_power == 'false') {
+                    parent.conf(parent.t("For the selected type of signal, necessary to turn on the power of antenna. The power turns on after rebooting the device. Rebooting now?"), '', 'stb.SetEnv(\'{"dvb_power": true, "dvb_type": ' + dvb_type + '}\');stb.ExecAction("reboot");stbWebWindow.close();', 1);
+                }
+            }
+        }
+
+        function pressKeyC(e) {
+
+            if (e.keyCode == 0) {
+                return;
+            }
+
+            //console.log(e.keyCode);
+            //console.log(iid);
+
+            if (iid == 2) {
+                if (keyCodeNum.indexOf(e.keyCode) != -1 || keyCodeArrow.indexOf(e.keyCode) != -1 || keyCodeService.indexOf(e.keyCode) != -1) {
+                    var d = document.getElementById('i' + iid);
+                    if (keyCodeArrow.indexOf(e.keyCode) != -1) {
+                        d.setAttribute('readonly', 0);
+                        if (isNaN(d.value) || d.value == '' || !d.value) {
+                            d.value = 50000;
+                        }
+                        if (parseInt(d.value, 10) < 50000) {
+                            d.value = 50000;
+                        } else if (parseInt(d.value, 10) > 858000) {
+                            d.value = 858000;
+                        }
+                    } else {
+                        d.removeAttribute('readonly', 0);
+                        if (e.keyCode == 13) {
+                            d.value = '';
+                            return false;
+                        }
+                        d.focus();
+                    }
+                }
+            }
+
+            pressKey(e);
+        }
+    </script>
+
+    <script language="JavaScript" src="js/pres.js"></script>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+
+<body onload="onLoad()" onkeydown="pressKeyC(event);">
+
+    <div id="blueback">
+        <table id="content" width="100%" border="0" cellpadding="0" cellspacing="0">
+            <tr id="tr1"><!-- сканирование -->
+                <td align="right"><span id="t1"></span>
+                <td>
+                    <div class="sub_select"><select id="i1"></select></div>
+                </td>
+            </tr>
+            <tr id="tr2"><!-- частота -->
+                <td align="right"><span id="t2"></span>
+                <td>
+                    <input id="i2" type="text" readonly="readonly" class="arrow" />
+                </td>
+            </tr>
+            <tr id="tr3"><!-- тип -->
+                <td align="right"><span id="t3"></span>
+                <td>
+                    <div class="sub_select"><select id="i3"></select></div>
+                </td>
+            </tr>
+            <tr id="tr4"><!-- bandwidth -->
+                <td align="right"><span id="t4"></span>
+                <td>
+                    <div class="sub_select"><select id="i4"></select></div>
+                </td>
+            </tr>
+            <tr id="tr5"><!-- скорость -->
+                <td align="right"><span id="t5"></span>
+                <td>
+                    <input id="i5" type="text" readonly="readonly" class="arrow" />
+                </td>
+            </tr>
+            <tr id="tr6"><!-- модуляция -->
+                <td align="right"><span id="t6"></span>
+                <td>
+                    <div class="sub_select"><select id="i6"></select></div>
+                </td>
+            </tr>
+            <tr id="tr7"><!-- код сети -->
+                <td align="right"><span id="t7"></span>
+                <td>
+                    <input id="i7" type="text" />
+                </td>
+            </tr>
+            <tr id="scan_block" style="visibility: hidden">
+                <td colspan="2">
+                    <div id="progress_wrap"
+                        style="position:relative; height: 20px; border: 1px solid #fff; border-radius: 3px; margin: 0 auto">
+                        <div id="progress"
+                            style="position:absolute;width: 50%;height: 20px; border-radius: 3px; background-color: #fff">
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            <tr id="scan_info_block" style="visibility: hidden">
+                <td colspan="2" style="text-align: center">
+                    <span id="freq_label"></span> <span id="freq"></span><br>
+                    <span id="total_label"></span> <span id="total"></span><br>
+                    <span id="last_label"></span> <span id="last"></span><br>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div id="footer">
+        <input id="i11" type="button" value="" onClick="stop_scan();back();" />
+        <input id="i10" type="button" value="" onClick="submit();" />
+        <input id="i9" type="button" value="" onclick="clear_channel_list()" />
+        <input id="i8" type="button" value="" onclick="scan();" />
+    </div>
+</body>
+
+</html>

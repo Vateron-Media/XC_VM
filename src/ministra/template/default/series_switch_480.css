@@ -1,0 +1,47 @@
+/* SERIES SWITCH */
+.series_switch {
+    position: absolute;
+    z-index: 100;
+    width: 334px;
+    height: 222px;
+    left: 192px;
+    top: 190px;
+    background: url("i/input_episode_bg.png");
+}
+
+.series_switch_input {
+    position: absolute;
+    top: 83px;
+    left: 123px;
+    width: 89px;
+    height: 40px;
+    background: url("i/input_channel.png") center;
+    font: 34px "Myriad Pro Cond";
+    text-align: center;
+    color: #048;
+    overflow: hidden;
+    white-space: pre;
+    padding: 4px 0 0 0;
+}
+
+.series_switch_title {
+    position: absolute;
+    top: 129px;
+    width: 100%;
+    font-size: 14px;
+    color: #333;
+    font-weight: bold;
+    text-align: center
+}
+
+.series_switch .continuously {
+    position: absolute;
+    top: 129px;
+    width: 100%;
+    font-size: 14px;
+    color: #333;
+    font-weight: bold;
+    text-align: center
+}
+
+/* END SERIES SWITCH */

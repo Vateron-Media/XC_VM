@@ -1,0 +1,285 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+
+<head>
+    <script type="text/javascript">
+        this.loadRequiredFiles = function (callback) {
+            var scripts = ['version.js', 'global.js', 'JsHttpRequest.js', 'keydown.keycodes.js', 'keydown.observer.js', 'watchdog.js', 'usbdisk.js', 'load_bar.js', 'xpcom.common.js', 'xpcom.webkit.js', 'blocking.js', 'player.js'];
+            var filesloaded = 0;
+            var filestoload = scripts.length;
+            var i = 0;
+            onLoadScript();
+
+            function finishLoad() {
+                if (filesloaded === filestoload) {
+                    callback();
+                }
+            }
+
+            function onLoadScript() {
+                if (i < scripts.length) {
+                    var script = document.createElement('script');
+                    script.type = 'text/javascript';
+                    script.src = scripts[i];
+                    script.onload = function () {
+                        filesloaded++;
+                        i++;
+                        onLoadScript();
+                    };
+                    document.head.appendChild(script);
+                } else {
+                    finishLoad();
+                }
+            }
+        };
+    </script>
+    <title>Portal</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+    <script type="text/javascript" defer="defer">
+
+        var debug = 1;
+        var stb;
+        var _GET = {};
+        var resolution_prefix = '';
+
+        var module = module || {};
+        var word = {};
+        var windowId;
+        var focus_module = '', referrer = '', single_module = [];
+
+        window.loadRequiredFiles(load_base);
+
+        function load_base() {
+            window.onerror = function (msg, url, lno) {
+                _debug('line: ' + lno + '; msg: "' + msg + '" url: ' + url);
+                return true;
+            };
+            get_params();
+
+            if (_GET.hasOwnProperty('debug')) {
+                debug = 1;
+            }
+
+            if (_GET.hasOwnProperty('referrer')) {
+                referrer = decodeURIComponent(_GET['referrer']);
+            }
+
+            if (_GET.hasOwnProperty('single_module')) {
+                single_module = _GET['single_module'].split(',');
+            }
+
+            if (_GET && _GET.hasOwnProperty('focus_module')) {
+                focus_module = _GET['focus_module'];
+            }
+            init();
+        }
+
+        var loader = {
+
+            chain: [],
+            cur_idx: -1,
+            head: document.getElementsByTagName("head")[0],
+            max_load_percent: 50,
+            step: 0,
+            template: 'default',
+            paused: false,
+
+            set_template: function (template) {
+                _debug('loader.set_template', template);
+                this.template = template;
+            },
+
+            add: function (modules) {
+                _debug('loader.add');
+
+                modules = modules || [];
+
+                this.cur_idx = -1;
+
+                for (var i = 0; i < modules.length; i++) {
+                    if (this.chain.indexOf(modules[i]) >= 0) {
+                        modules.splice(i, 1);
+                    }
+                }
+
+                this.chain = modules;
+
+                this.step = Math.ceil(this.max_load_percent / this.chain.length);
+
+                this.next();
+            },
+
+            next: function () {
+                _debug('loader.next');
+
+                _debug('loader.paused', this.paused);
+
+                if (this.paused) {
+                    return;
+                }
+
+                if (this.cur_idx < this.chain.length - 1) {
+                    this.cur_idx++;
+                    this.append(this.chain[this.cur_idx]);
+                }
+            },
+
+            append: function (module) {
+                _debug('loader.append');
+
+                stb.loader.add_pos(this.step, 'append ' + module);
+
+                this.append_style(module);
+
+                this.append_javascript(module);
+            },
+
+            append_style: function (module) {
+                _debug('loader.append_style', module);
+
+                if (module.indexOf('external_') === 0) {
+                    _debug('skip style loading', module);
+                    return;
+                }
+
+                var _style = document.createElement('link');
+                _style.type = "text/css";
+                _style.rel = "stylesheet";
+
+                if (module.indexOf('supermodule') > 0) {
+                    _style.href = module + resolution_prefix + ".css&single_module=" + single_module.join(',');
+                } else {
+                    _style.href = 'template/' + this.template + '/' + module + resolution_prefix + ".css";
+                }
+
+                this.head.appendChild(_style);
+                _debug('append', _style.href);
+            },
+
+            append_javascript: function (module) {
+                _debug('loader.append_javascript', module);
+
+                var _script = document.createElement('script');
+                _script.type = "text/javascript";
+                if (module.indexOf('supermodule') > 0) {
+                    _script.src = module + ".js&single_module=" + single_module.join(',');
+                } else {
+                    if (module.indexOf('external_') === 0) {
+                        _script.src = '../server/api/ext_module.php?name=' + module.replace('external_', '') + '&mac=' + stb.mac;
+                    } else {
+                        _script.src = module + ".js";
+                    }
+                }
+
+                _script.onerror = function () {
+                    _debug('Error loading script', _script.src);
+                    loader.next();
+                };
+
+                this.head.appendChild(_script);
+                _debug('append', _script.src);
+            },
+
+            pause: function () {
+                _debug('loader.pause');
+                this.paused = true;
+            },
+
+            resume: function () {
+                _debug('loader.resume');
+                if (this.paused) {
+                    this.paused = false;
+                    this.next();
+                }
+            }
+        };
+
+        /**
+         * Init STB.
+         */
+        function init() {
+            if (typeof (gSTB) == 'undefined') {
+                resolution_prefix = '_720';
+            } else {
+                stb.resize_window();
+            }
+            if (typeof (stbWebWindow) != 'undefined') {
+                windowId = stbWebWindow.windowId();
+            }
+            if (_GET && _GET.hasOwnProperty('access_token')) {
+                stb.access_token = _GET['access_token'];
+            }
+            stb.loader = new load_bar();
+            stb.loader.bind();
+            stb.loader.stop();
+            stb.loader.set_callback(
+                function () {
+                    stb.post_loading_handle();
+                }
+            );
+
+            stb.init();
+            (function () {
+                if (stb.player.on) {
+                    if (stb.player.con_menu && stb.player.con_menu.on) {
+                        stb.player.con_menu.hide();
+                    }
+                    if (single_module.length) {
+                        if (stb.player.on) {
+                            stb.player.show_prev_layer();
+                        }
+                        return;
+                    }
+                    stb.player.prev_layer && stb.player.prev_layer.hide && stb.player.prev_layer.hide();
+                    if (stb.player.on) {
+                        stb.player.stop();
+                    }
+                    main_menu.show();
+                }
+            }).bind(key.MENU);
+
+            (function () {
+                _debug('stb.cur_single_module', stb.cur_single_module);
+                if (single_module.length && (single_module.indexOf('tv') == -1 || stb.cur_single_module != 'tv')) {
+                    return;
+                }
+                if (!stb.player.channels || stb.player.channels.length == 0) {
+                    return;
+                }
+                stb.cur_layer && stb.cur_layer.hide && stb.cur_layer.hide();
+                if (module && module.tv) {
+                    stb.set_cur_place(module.tv.layer_name);
+                    stb.set_cur_layer(module.tv);
+                }
+                if (!module.blocking.on) {
+                    stb.player.play_last();
+                }
+            }).bind(key.TV);
+
+            (function () {
+                if (module.radio && !module.radio.on) {
+                    keydown_observer.emulate_key(key.MENU);
+                    main_menu.hide();
+                    module.radio.show();
+                    module.radio.cur_view = 'short';
+                    module.radio.shift_row_callback = function () {
+                        module.radio.play();
+                        module.radio.shift_row_callback = null;
+                        module.radio.cur_view = 'wide';
+                    };
+                }
+            }).bind(key.AUDIO);
+
+            (function () {
+                stb.switchPower();
+            }).bind(key.POWER);
+        }
+    </script>
+
+</head>
+
+<body>
+</body>
+
+</html>

@@ -1,0 +1,148 @@
+#audioclub .genres_block {
+    position: absolute;
+    right: 2px;
+    top: 0;
+    width: 94px;
+    height: 25px;
+    background-image: url("i/mb_table03.png");
+    background-position: 102px 0;
+    padding: 5px 0 0 6px;
+    color: #fff;
+    overflow: hidden;
+    font-family: "Myriad Pro Cond", sans-serif;
+    white-space: pre;
+    text-overflow: ellipsis;
+}
+
+#audioclub[data-place="albums"] .name_block {
+    margin-right: 101px
+}
+
+#audioclub[data-place="albums"] .active_name_block {
+    margin-right: 130px;
+}
+
+#audioclub .active_genres_block {
+    position: absolute;
+    right: 23px;
+    top: 4px;
+    width: 101px;
+    height: 32px;
+    background-image: url("i/mb_table_act02.png");
+    background-position: 118px -4px;
+    padding: 13px 0 0 8px;
+    color: #202020;
+    font-family: "Myriad Pro Cond", sans-serif;
+    overflow: hidden;
+    white-space: pre;
+    text-overflow: ellipsis;
+}
+
+.audioclub_info_box {
+    position: absolute;
+    width: 240px;
+    height: 196px;
+    top: 326px;
+    left: 414px;
+    color: #FFF;
+    overflow: hidden;
+    padding: 5px;
+}
+
+.audioclub_info_box span {
+    color: #ffc528;
+    font-family: "Myriad Pro Cond", serif;
+}
+
+.audioclub_screenshot_box {
+    position: absolute;
+    /* background: url("i/mb_prev_bg.png"); */
+    height: 242px;
+    width: 242px;
+    top: 70px;
+    left: 414px;
+    padding: 5px;
+}
+
+.audioclub_screenshot_box img {
+    width: 240px;
+    height: 240px;
+}
+
+#audioclub .playing_block {
+    width: 24px;
+    height: 21px;
+    float: left;
+    margin: 4px 0 0 4px;
+    background-image: url("i/mb_player.png");
+    background-position: 0 0;
+}
+
+#audioclub .active_playing_block {
+    width: 24px;
+    height: 31px;
+    margin: 6px 2px 0 0;
+    float: left;
+    background-image: url("i/mb_player.png");
+    background-position: 0 -21px;
+}
+
+#audioclub .paused_block {
+    width: 24px;
+    height: 21px;
+    float: left;
+    margin: 4px 0 0 4px;
+    background-image: url("i/mb_player.png");
+    background-position: -24px 0;
+}
+
+#audioclub .active_paused_block {
+    width: 24px;
+    height: 31px;
+    margin: 6px 2px 0 0;
+    float: left;
+    background-image: url("i/mb_player.png");
+    background-position: -24px -21px;
+}
+
+#audioclub .seek_bar_block {
+    display: none;
+}
+
+#audioclub .active_row_bg[status="playing"] .active_name_block,
+#audioclub .playing .active_name_block {
+    margin-top: 3px;
+}
+
+#audioclub .active_row_bg .active_seek_bar_block {
+    display: none;
+}
+
+#audioclub .active_row_bg[status="playing"] .active_seek_bar_block {
+    display: block;
+    height: 4px;
+    width: 325px;
+    border: 1px solid #fff;
+    background-color: #fff;
+    -webkit-border-radius: 2px;
+    float: left;
+    overflow: hidden;
+}
+
+#audioclub .seek_bar_inner {
+    height: 4px;
+    width: 0;
+    background-color: #202020;
+}
+
+.audioclub_buttons_bar span {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    max-width: 110px;
+    width: 110px;
+}
+
+.audioclub_wide_text_input .item input {
+    width: 94%;
+}

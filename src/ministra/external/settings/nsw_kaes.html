@@ -1,0 +1,134 @@
+<html>
+
+<head>
+  <script>
+    var iid = 3;
+    var menuT = [['select', parent.t('Authentication:'), "open", parent.t("Open"), "shared", parent.t("Shared key"), "wep_auto", parent.t("Auto open/share"), "wpapsk", parent.t("WPA PSK"), "wpa2psk", parent.t("WPA2 PSK")],
+    ['select', parent.t('Encoding:'), "none", parent.t("NONE"), "wep", parent.t("WEP"), "tkip", parent.t("TKIP"), "aes", parent.t("AES")],
+    ['input', parent.t('Key or Passphrase:')]];
+    var mid = menuT.length + 2;
+    var pread = ["wifi_auth", "wifi_enc", "wifi_psk", "wifi_wep_key1"];
+    var tread = '{"varList":["' + pread[0] + '"';
+    for (i = 1; i < pread.length; i++) { tread += ',"' + pread[i] + '"'; }
+    tread += ']}';
+    read = JSON.parse(parent.stb.GetEnv(tread));
+    var flc = false;
+    var chb = document.getElementsByClassName("chb");
+    var flw;
+
+    function onLoad() {
+      if (parent.wifi_ssid[0]) {
+        switch (parent.wifi_ssid[1]) {
+          case "WPA2": read.result.wifi_auth = "wpa2psk"; break;
+          case "WPAAUTO": read.result.wifi_auth = "wep_auto"; break;
+          case "WPA": read.result.wifi_auth = "wpapsk"; break;
+          default: read.result.wifi_auth = "open"; break;
+        }
+        switch (parent.wifi_ssid[2]) {
+          case "TKIP": read.result.wifi_enc = "tkip"; break;
+          case "WEP": read.result.wifi_enc = "wep"; break;
+          case "CCMP": read.result.wifi_enc = "aes"; break;
+          default: read.result.wifi_enc = "none"; break;
+        }
+        document.getElementById("info1").innerHTML = parent.wifi_ssid[0];
+        document.getElementById("info2").innerHTML = parent.t('SSID (wifi "group"):');
+      }
+      flw = read.result.wifi_enc != "wep";
+      sload();
+      init();
+      parent.document.getElementById("zagolovok").innerHTML = "/" + parent.t('Wireless (Wi-Fi)') + "/" + parent.t('Keys and Encoding setup');
+      parent.cont.focus();
+      document.getElementById("i1").focus();
+      chb[1].style.visibility = "hidden";
+      chb[1].value = parent.t('WEP setup');
+      chb[3].value = parent.t('OK');
+      chb[2].value = parent.t('Cancel');
+      if (read.result.wifi_enc == "none") { flc = true; mid--; chb[0].id = 'te1'; document.getElementById("t3").style.visibility = "hidden"; chb[0].style.visibility = "hidden"; chb[3].id = "i3"; chb[2].id = "i4"; }
+      if (read.result.wifi_enc == "wep") { mid++; chb[1].style.visibility = "visible"; chb[1].id = 'i4'; chb[2].id = 'i6'; chb[3].id = 'i5'; chb[0].value = read.result.wifi_wep_key1; }
+      document.getElementById("i3").focus();
+    }
+
+    function submit() {
+      var erm = "";
+      var t = document.getElementById("i1").value;
+      if (t != read.result.wifi_auth) { parent.wset += ',"wifi_auth":"' + t + '"'; }
+      t = document.getElementById("i2").value;
+      if (t != read.result.wifi_enc) { parent.wset += ',"wifi_enc":"' + t + '"'; }
+      var fw = t != 'wep';
+      if (t == 'none') { parent.wset += ',"wifi_psk":"","wifi_wep_key1":"","wifi_wep_key2":"","wifi_wep_key3":"","wifi_wep_key4":""'; }
+      else {
+        t = document.getElementById("i3").value;
+        if (fw) { if (t != read.result.wifi_psk) if (t.length < 1) erm += "No correct length"; else { if (t.split('').reduce(function (prev, curr, idx) { return prev && curr.charCodeAt(0) >= 32 && curr.charCodeAt(0) <= 126; }, true) && t.length > 1) { parent.wset += ',"wifi_psk":"' + t + '"'; parent.wset += ',"wifi_wep_key1":"","wifi_wep_key2":"","wifi_wep_key3":"","wifi_wep_key4":""'; } else erm += "No correct"; } }
+        else if (t != read.result.wifi_wep_key1) switch (t.length) {
+          case 5: case 13: if (t.split('').reduce(function (prev, curr, idx) { return prev && curr.charCodeAt(0) >= 32 && curr.charCodeAt(0) <= 126; }, true) && t.length > 1) parent.wset += ',"wifi_psk":"","wifi_wep_key1":"' + t + '","wifi_wep_key2":"' + t + '","wifi_wep_key3":"' + t + '","wifi_wep_key4":"' + t + '"'; else erm += "No correct"; break;
+          case 10: case 26: if (hex.test(t)) parent.wset += ',"wifi_psk":"","wifi_wep_key1":"' + t + '","wifi_wep_key2":"' + t + '","wifi_wep_key3":"' + t + '","wifi_wep_key4":"' + t + '"'; else erm += "No correct"; break;
+          default: erm += "No correct length";
+        }
+      }
+      if (erm != "") parent.erMes(erm, "i" + iid); else { parent.wset += '}'; parent.stb.SetEnv(parent.wset); var nt = parent.stb.ServiceControl('wifi', 'restart'); parent.wset = '{'; back(); }
+    }
+
+
+
+
+    function dsel(a) {
+      switch (a) {
+        case "none": mid = 4; document.getElementById("t3").style.visibility = "hidden"; chb[0].style.visibility = "hidden"; chb[1].style.visibility = "hidden"; chb[0].id = "te1"; chb[1].id = 'te'; chb[2].id = 'i4'; chb[3].id = 'i3'; break;
+        case "tkip": case "aes": mid = 5; document.getElementById("t3").style.visibility = "visible"; chb[0].style.visibility = "visible"; chb[1].style.visibility = "hidden"; chb[0].id = 'i3'; chb[1].id = 'te'; chb[2].id = 'i5'; chb[3].id = 'i4'; break;
+        case "wep": mid = 6; document.getElementById("t3").style.visibility = "visible"; chb[0].style.visibility = "visible"; chb[1].style.visibility = "visible"; chb[1].id = 'i4'; chb[2].id = 'i6'; chb[3].id = 'i5'; break;
+      }
+    }
+
+    function change(a) {
+      if (iid <= mid - 2)
+        switch (menuT[iid - 1][0]) {
+          case "select":
+            fc = true;
+            var d = document.getElementById('i' + iid);
+            var b = (d.selectedIndex + a >= 0 ? (d.selectedIndex + a < d.length ? d.selectedIndex + a : d.length - 1) : 0);
+            fc = false; if (iid == 2) dsel(d[b].value); break;
+        }
+      else if (iid + a <= mid && iid + a >= mid - 1) { iid += a; document.getElementById('i' + iid).focus(); }
+    }
+  </script>
+  <script language="JavaScript" src="js/pres.js"></script>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+<body onload="onLoad()" onkeydown="pressKey(event);">
+  <div id="blueback">
+    <table class="nsp1" width="100%" border="0" cellpadding="0" cellspacing="0">
+      <tr>
+        <td align="right"><span id="info2"></span></td>
+        <td width="10"><span id="info1"></span></td>
+      </tr>
+      <tr>
+        <td align="right"><span id="t1"></span></td>
+        <td width="10">
+          <div class="sub_select"><select id="i1"></select></div>
+        </td>
+      </tr>
+      <tr>
+        <td align="right"><span id="t2"></span></td>
+        <td width="10">
+          <div class="sub_select"><select id="i2" onChange="dsel(this.value)"></select></div>
+        </td>
+      </tr>
+      <tr>
+        <td align="right"><span id="t3"></span></td>
+        <td width="10"><input id="i3" maxlenght="63" class="chb" type="password" /></td>
+      </tr>
+      <tr>
+        <td align="right"></td>
+        <td width="10"><input id="te" class="chb" type="button" onClick="parent.nextMenu('nsw_wap.html');" /></td>
+      </tr>
+    </table>
+
+  </div>
+  <div id="footer">
+    <input id="i5" type="button" value="" class="chb"
+      onClick="parent.wset='{';parent.wifi_ssid.length=0;parent.nextMenu('g_nets.html');" />
+    <input id="i4" type="button" value="" class="chb" onClick="submit();" />
+  </div>
+</body>
+
+</html>

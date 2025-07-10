@@ -1,0 +1,118 @@
+<html>
+
+<head>
+    <script type="text/javascript" language="JavaScript">
+
+        get_rc_data = function () {
+            var remoteControlFileData = parent.gSTB.LoadUserData('remoteControl.json');
+            try {
+                remoteControlFileData = JSON.parse(remoteControlFileData);
+            } catch (error) {
+                remoteControlFileData = { enable: false, deviceName: '', password: '' };
+                parent.gSTB.SaveUserData('remoteControl.json', JSON.stringify(remoteControlFileData));
+            }
+
+            return remoteControlFileData;
+        };
+
+        set_rc_data = function (remoteControlFileData) {
+            try {
+                parent.gSTB.SaveUserData('remoteControl.json', JSON.stringify(remoteControlFileData));
+            } catch (error) {
+                console.log(error);
+            }
+        };
+
+        toggle_rc = function (state) {
+            parent.gSTB.SetNetRcStatus(state);
+        }
+
+        init_rc = function () {
+            remoteControlFileData = get_rc_data();
+            if (remoteControlFileData.enable) {
+                parent.gSTB.ConfigNetRc(remoteControlFileData.deviceName, remoteControlFileData.password);
+            }
+            toggle_rc(remoteControlFileData.enable);
+            console.log("remote control enabled - " + (remoteControlFileData.enable ? 'true' : 'false'));
+        };
+
+        var rc_data = get_rc_data();
+        var iid = 1;
+        var mid = 10;
+        read = new Object();
+        var pread = ["1", "2", "3"];
+        read = { 'result': { '1': '', '2': '', '3': '' } };
+        var menuT = [
+            ['check', parent.t('Enable remote control:')],
+            ['input', parent.t('Device name:')],
+            ['input', parent.t('Password (only digits):')]
+        ];
+        var mid = menuT.length + 2;
+        function onLoad() {
+            sload();
+            init();
+            parent.cont.focus();
+            if (rc_data.enable) {
+                document.getElementById('i1').setAttribute('checked', 'checked');
+            }
+            toggle_rc(document.getElementById("i1").checked);
+            document.getElementById("i1").focus();
+            document.getElementById("i2").value = rc_data.deviceName;
+            document.getElementById("i3").value = rc_data.password;
+            document.getElementById("i4").value = parent.t('OK');
+            document.getElementById("i5").value = parent.t('Cancel');
+        }
+
+        function submit() {
+            var p1 = document.getElementById('i2').value;
+            var p2 = document.getElementById('i3').value;
+            if (/[^\d]/ig.test(p2)) {
+                parent.erMes(parent.t('Password must contain only digits'), "i" + iid);
+                return;
+            } else {
+                rc_data.enable = document.getElementById("i1").checked;
+                rc_data.deviceName = p1;
+                rc_data.password = p2;
+            }
+            set_rc_data(rc_data);
+            toggle_rc(false);
+            init_rc();
+            back();
+        }
+        function change(a) {
+            if (iid > mid - 2) {
+                if (iid + a <= mid && iid + a >= mid - 1) {
+                    iid += a;
+                    document.getElementById('i' + iid).focus();
+                }
+            }
+        }
+    </script>
+    <script language="JavaScript" src="js/pres.js"></script>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+
+<body onload="onLoad()" onkeydown="pressKey(event);">
+    <div id="blueback">
+        <table class="nsp" width="100%" border="0" cellpadding="0" cellspacing="0">
+            <tr>
+                <td align="right"><span id="t1"></span></td>
+                <td><input type="checkbox" id="i1" /><label></label></td>
+            </tr>
+            <tr>
+                <td align="right"><span id="t2"></span></td>
+                <td><input type="text" id="i2">
+            </tr>
+            <tr>
+                <td align="right"><span id="t3"></span></td>
+                <td><input type="password" id="i3" value=""></td>
+            </tr>
+        </table>
+    </div>
+    <div id="footer">
+        <input id="i5" type="button" value="" onClick="back();" />
+        <input id="i4" type="button" value="" onClick="submit();" />
+    </div>
+</body>
+
+</html>

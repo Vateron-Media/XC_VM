@@ -1,0 +1,94 @@
+.curweather_block {
+    position: absolute;
+    right: 25px;
+    top: 83px;
+    width: 190px;
+    color: #fff;
+    /*text-shadow: rgba(0, 50, 80, 0.5) 1px 2px 0;*/
+    font-size: 16px;
+    /*background-image: url("i_480/25alfa_20.png");
+    -moz-border-radius: 10px;
+    -webkit-border-radius: 10px;*/
+}
+
+.curweather_block .city {
+    display: none;
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    font-family: "Roboto", sans-serif;
+    /*color: #99a8b5;*/
+}
+
+.curweather_block .curweather_img {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+}
+
+.curweather_block .curweather_descr {
+    margin: 85px 0 0 0;
+    padding: 0 0 3px 3px;
+    text-align: right;
+}
+
+.curweather_block .curweather_wind {
+    float: right;
+}
+
+.curweather_block .curweather_title {
+    font-family: "Roboto", sans-serif;
+    /*color: #99a8b5;*/
+}
+
+.curweather_block .wind_direction_N {
+    -webkit-transform: rotate(180deg);
+    float: left;
+    margin: 0 5px 0 8px;
+}
+
+.curweather_block .wind_direction_NE {
+    -webkit-transform: rotate(225deg);
+    float: left;
+    margin: 0 5px 0 8px;
+}
+
+.curweather_block .wind_direction_E {
+    -webkit-transform: rotate(270deg);
+    float: left;
+    margin: 0 5px 0 8px;
+}
+
+.curweather_block .wind_direction_SE {
+    -webkit-transform: rotate(315deg);
+    float: left;
+    margin: 0 5px 0 8px;
+}
+
+.curweather_block .wind_direction_S {
+    -webkit-transform: rotate(0deg);
+    float: left;
+    margin: 0 5px 0 8px;
+}
+
+.curweather_block .wind_direction_SW {
+    -webkit-transform: rotate(45deg);
+    float: left;
+    margin: 0 5px 0 8px;
+}
+
+.curweather_block .wind_direction_W {
+    -webkit-transform: rotate(90deg);
+    float: left;
+    margin: 0 5px 0 8px;
+}
+
+.curweather_block .wind_direction_NW {
+    -webkit-transform: rotate(135deg);
+    float: left;
+    margin: 0 5px 0 8px;
+}
+
+.curweather_block .wind_direction_na {
+    display: none;
+}

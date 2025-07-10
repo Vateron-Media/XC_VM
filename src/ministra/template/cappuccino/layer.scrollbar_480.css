@@ -1,0 +1,28 @@
+/* SCROLLBAR */
+.mb_scroll {
+    width: 22px;
+    float: right;
+}
+
+.mb_scroll_t {
+    background: url("i_480/mb_scroll_bg.png") top no-repeat;
+    width: 22px;
+    /*height: 350px;*/
+}
+
+.mb_scroll_b {
+    background: url("i_480/mb_scroll_bg.png") bottom no-repeat;
+    width: 22px;
+    height: 10px;
+}
+
+.mb_scroll_c {
+    position: relative;
+    background: url("i_480/mb_scroll.png");
+    height: 30px;
+    width: 10px;
+    top: 6px;
+    margin: 6px 6px 0 6px;
+}
+
+/* END SCROLLBAR */

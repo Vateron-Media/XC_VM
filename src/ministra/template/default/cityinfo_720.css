@@ -1,0 +1,18 @@
+.cityinfo_info_box {
+    position: absolute;
+    width: 371px;
+    min-height: 140px;
+    top: 83px;
+    left: 819px;
+    padding: 10px;
+    color: #fff;
+    font-size: 24px;
+    background-image: url("i_720/25alfa_20.png");
+    -moz-border-radius: 8px;
+    -webkit-border-radius: 8px;
+}
+
+.cityinfo_info_box span {
+    color: #cfeafe;
+    font-size: 24px;
+}

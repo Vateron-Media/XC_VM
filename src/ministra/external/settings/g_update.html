@@ -1,0 +1,111 @@
+<html>
+
+<head>
+
+  <script>
+    var iid = 1;
+    var menuT = [['select', parent.t('Download method for Bootstrap:'), "0", parent.t("From HTTP"), "1", parent.t("From USB")]];
+    if (parent.stbUpdate.GetFlashBankCount() != 2) menuT.splice(1, 1);
+    var mid = menuT.length + 2;
+    var pread = ["a"]; var model = parent.stb.RDir("Model").toLowerCase();
+    var read = { "result": { "a": "0" } }
+    var text = [parent.t("Update from HTTP"), parent.t("Update from USB"), parent.t("Bootstrap and imageupdate will be downloaded from USB"), parent.t("Bootstrap will be downloaded using multicast group"), parent.t("Bootstrap will be downloaded from TFTP Server")];
+    var pre = ["update_url", "bootstrap_url", "dnsip", "ipaddr_conf", "netmask"];
+    var tread = '{"varList":["' + pre[0] + '"';
+    for (i = 1; i < pre.length; i++) { tread += ',"' + pre[i] + '"'; }
+    tread += ']}';
+    var retext = JSON.parse(parent.stb.GetEnv(tread));
+    var urlt = [parent.prof.update_url == '' || parent.prof.update_url == undefined ? retext.result.update_url : parent.prof.update_url, '/' + parent.stb.RDir("Model").toLowerCase() + "/imageupdate"];
+    urlt[2] = urlt[1]; urlt[3] = retext.result.update_url; urlt[4] = urlt[1];
+
+    function onLoad() {
+      sload();
+      init();
+      parent.cont.focus();
+      document.getElementById("i1").focus();
+      document.getElementById("i2").value = parent.t("Start update");
+      document.getElementById("info1").innerHTML = text[0];
+      document.getElementById("info2").innerHTML = parent.t("Update URL:") + ' <span id="info3" class="item_name"> ' + urlt[0] + '</span>';
+      document.getElementById("i3").value = parent.t('Cancel');
+    }
+
+    function submit() {
+      var par = /^igmp:\/\/(([01]?\d?\d|2[0-4]\d|25[0-5])\.){3}([01]?\d?\d|2[0-4]\d|25[0-5]):[0-9]+$/;
+      switch (document.getElementById('i1').value) {
+        case '0': parent.nextMenu('upd_web.html'); break;
+        case '1': parent.nextMenu('upd_usb.html'); break;
+        case '2': var ef = false; var sc = 0; var numb = 0;
+          var flash = JSON.parse(parent.stb.RDir("get_storage_info"));
+          if (flash[0] == 'undefined' || flash[0] == null) { parent.erMes(parent.t('USB device was not found!'), 'i' + iid); }
+          else {
+            for (var i = 0; i < flash.length; i++) {
+              if (flash[i].partitionNum == 1) { sc++; numb = i; }
+              if (sc > 2) { ef = true; break; }
+            }
+            if (!(parent.stb.IsFileExist(flash[numb].mountPath + '/' + model + '/imageupdate') && parent.stb.IsFileExist(flash[numb].mountPath + '/' + model + '/Bootstrap'))) ef = true;
+            if (!ef) { parent.conf(parent.t('To update the device must be rebood. Do it?'), 'i' + iid, 'stb.ExecAction("UpdateSW up_usb")') }
+            else parent.erMes(parent.t('Bootstrap or image not found!'), 'i' + iid);
+          }
+          break;
+      }
+    }
+    function change(a) {
+      if (iid <= mid - 2)
+        switch (menuT[iid - 1][0]) {
+          case "select":
+            fc = true;
+            var d = document.getElementById('i' + iid);
+            var b = (d.selectedIndex + a >= 0 ? (d.selectedIndex + a < d.length ? d.selectedIndex + a : d.length - 1) : 0);
+            upd(d[b].value);
+            fc = false; break;
+        }
+      else if (iid + a <= mid && iid + a >= mid - 1) { iid += a; document.getElementById('i' + iid).focus(); }
+    }
+
+    function upd(a) {
+      document.getElementById('info1').innerHTML = text[a];
+      document.getElementById('info3').innerHTML = urlt[a];
+    }
+  </script>
+  <script language="JavaScript" src="js/pres.js"></script>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+<body onload="onLoad()" onkeydown="pressKey(event);">
+  <div id="blueback">
+    <table class="upd" width="100%" border="0" cellpadding="0" cellspacing="0">
+      <tr>
+        <td align="right"><span id="t1"></span></td>
+        <td width="10">
+          <div class="sub_select"><select id="i1" onChange="upd(this.value)"></select></div>
+      </tr>
+      <tr>
+        <td colspan="2">
+          <div style="height:2px; background:#FFF; width:100%; margin:5px 0;"></div>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2" align="center"><br /><span id="info1" class="list_head"></span></td>
+      </tr>
+      <tr>
+        <td align="right"><span id="t3"></span></td>
+        <td>
+          <div class="sub_select"></div>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2">
+          <div style="height:2px; background:#FFF; width:100%; margin:5px 0;"></div>
+        </td>
+      </tr>
+      <tr>
+        <td align="center" colspan="2"><br /><span id="info2" class="list_head"></span></td>
+      </tr>
+    </table>
+  </div>
+  <div id="footer">
+    <input id="i3" type="button" value="" onClick="back();" />
+    <input id="i2" type="button" value="" onClick="submit();" />
+  </div>
+</body>
+
+</html>

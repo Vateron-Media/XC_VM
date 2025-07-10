@@ -1,0 +1,66 @@
+/* VCLUB INFO */
+.mb_main_filminfo {
+    position: absolute;
+    width: 1140px;
+    height: 532px;
+    left: 70px;
+    top: 82px;
+}
+
+.mb_filminfo_name {
+    width: 1140px;
+    font-size: 26px;
+    color: #fff;
+}
+
+.mb_filminfo_fullinfo {
+    position: relative;
+    float: left;
+    font-size: 25px;
+    color: #fff;
+    /*text-align: justify;*/
+}
+
+.mb_hidden_overflow {
+    float: left;
+    overflow: hidden;
+    width: 748px;
+    height: 480px;
+    margin-top: 10px;
+    text-align: left;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 10px 20px 10px 20px;
+}
+
+.mb_filminfo_fullinfo span {
+    font-weight: bold;
+}
+
+.hr_filminfo {
+    margin: 5px 0;
+    width: 100%;
+    height: 2px;
+}
+
+.mb_filminfo_prev {
+    position: absolute;
+    height: 500px;
+    width: 333px;
+    top: 42px;
+    left: 808px;
+}
+
+.mb_filminfo_prev img {
+    width: 333px;
+    height: 500px;
+}
+
+.mb_filminfo_trans {
+    height: 60px;
+    width: 865px;
+    position: absolute;
+    /*top: 430px;*/
+    bottom: 0;
+}
+
+/* END VCLUB INFO */

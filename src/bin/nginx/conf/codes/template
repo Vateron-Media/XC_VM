@@ -1,0 +1,20 @@
+location ^~ /#CODE# {
+    alias /home/xc_vm/#TYPE#;
+    index index.php index.html index.htm;
+    try_files $uri $uri.html $uri/ @extensionless-php;
+    #WHITELIST#
+    location ~ \.php$ {
+        limit_req zone=one burst=#BURST# nodelay;
+        try_files $uri =404;
+        fastcgi_index index.php;
+        fastcgi_pass php;
+        include fastcgi_params;
+        fastcgi_buffering on;
+        fastcgi_buffers 96 32k;
+        fastcgi_buffer_size 32k;
+        fastcgi_max_temp_file_size 0;
+        fastcgi_keep_conn on;
+        fastcgi_param SCRIPT_FILENAME $request_filename;
+        fastcgi_param SCRIPT_NAME $fastcgi_script_name;
+    }
+}

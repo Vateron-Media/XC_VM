@@ -1,0 +1,134 @@
+< !-- * {
+    margin: 0;
+    padding: 0;
+}
+
+html,
+body {
+    overflow: hidden;
+    font-family: "Myriad Pro";
+    color: #FFF;
+    width: 1714px;
+    height: 874px;
+}
+
+a {
+    outline: none;
+    text-decoration: none;
+}
+
+:focus {
+    outline: none;
+}
+
+#center {
+    background: url(1080/bg.png) no-repeat;
+}
+
+.header_text {
+    position: absolute;
+    margin-top: 12px;
+    max-width: 1500px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    margin-left: 45px;
+    font-family: "Trebuchet MS";
+    font-size: 60px;
+    text-shadow: -2px -3px 0 #0f2240;
+}
+
+.header_icon {
+    position: absolute;
+    margin-top: 5px;
+    right: 70px;
+    height: 136px;
+    width: 136px;
+    z-index: 110;
+}
+
+.modal_big {
+    position: absolute;
+    background: -webkit-gradient(linear, left bottom, left top, color-stop(0, #eee), color-stop(1, #ccc));
+    border: solid 3px rgba(0, 0, 0, .7);
+    border-radius: 12px;
+    width: 1350px;
+    max-width: 1350px;
+    max-height: 670px;
+    overflow: hidden;
+    margin: 150px 0 0 150px;
+    padding: 30px 30px;
+    -webkit-box-shadow: 0px 0px 300px #000;
+    color: #247;
+    font-family: "Myriad Pro";
+    font-size: 45px;
+    display: none;
+    z-index: 9999;
+}
+
+.modal {
+    position: absolute;
+    background: -webkit-gradient(linear, left bottom, left top, color-stop(0, #eee), color-stop(1, #ccc));
+    border: solid 3px rgba(0, 0, 0, .7);
+    border-radius: 12px;
+    width: 900px;
+    max-width: 900px;
+    overflow: hidden;
+    margin: 300px 0 0 420px;
+    padding: 30px 30px;
+    -webkit-box-shadow: 0px 0px 300px #000;
+    color: #247;
+    font-family: "Myriad Pro";
+    font-size: 45px;
+    display: none;
+    z-index: 9999;
+}
+
+#modal_ico {
+    height: 120px;
+    width: 105px;
+    float: left;
+    margin-right: 30px;
+}
+
+.ico_alert {
+    background: url(720/ico_alert.png) no-repeat;
+}
+
+.ico_info {
+    background: url(720/ico_info.png) no-repeat;
+}
+
+.ico_issue {
+    background: url(720/ico_issue.png) no-repeat;
+}
+
+#modal_btn {
+    position: relative;
+    height: 90px;
+    width: 900px;
+    bottom: 0px;
+    right: 15px;
+}
+
+#modal_btn input[type=button] {
+    position: relative;
+    height: 75px;
+    margin-left: 30px;
+    background: none;
+    white-space: nowrap;
+    font-family: "Myriad Pro";
+    font-size: 48px;
+    font-weight: bold;
+    color: #fff;
+    float: right;
+    border-width: 0 20px;
+    -webkit-border-image: url(1080/btn.png) 0 20 0 20 stretch stretch;
+    text-shadow: -1px -2px 0 #555;
+}
+
+#modal_btn input[type=button]:focus {
+    background: none;
+    border-width: 0 20px;
+    -webkit-border-image: url(1080/btn_act.png) 0 20 0 20 stretch stretch;
+}

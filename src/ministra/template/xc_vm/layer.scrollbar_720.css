@@ -1,0 +1,27 @@
+/* SCROLLBAR */
+.mb_scroll {
+    width: 10px;
+    float: right;
+    margin-top: 18px;
+}
+
+.mb_scroll_t {
+    background: rgba(255, 255, 255, 0.5);
+    width: 10px;
+    margin-left: 5px;
+}
+
+.mb_scroll_b {
+    width: 10px;
+    height: 10px;
+}
+
+.mb_scroll_c {
+    position: relative;
+    height: 30px;
+    width: 10px;
+    top: 0px;
+    background: #888;
+}
+
+/* END SCROLLBAR */

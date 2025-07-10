@@ -1,0 +1,46 @@
+/* SERIES SWITCH */
+.series_switch {
+    position: absolute;
+    top: 0 !important;
+    left: 0 !important;
+    width: 1280px;
+    height: 720px;
+    background: url("i_720/bg.png");
+}
+
+.series_switch_input {
+    position: absolute;
+    top: 335px;
+    left: 565px;
+    width: 150px;
+    height: 50px;
+    line-height: 50px;
+    background: #ffffff;
+    font-size: 30px;
+    text-align: center;
+    color: #888;
+    overflow: hidden;
+    white-space: pre;
+}
+
+.series_switch_title {
+    position: absolute;
+    top: 310px;
+    width: 100%;
+    font-size: 14px;
+    color: #fff;
+    font-weight: bold;
+    text-align: center
+}
+
+.series_switch .continuously {
+    position: absolute;
+    top: 390px;
+    width: 100%;
+    font-size: 14px;
+    color: #fff;
+    font-weight: bold;
+    text-align: center
+}
+
+/* END SERIES SWITCH */

@@ -1,0 +1,73 @@
+#service_management .description_block {
+    display: none !important;
+}
+
+#service_management .subscribed_str_block,
+#service_management .not_subscribed_str_block {
+    position: absolute;
+    right: 2px;
+    top: 0;
+    width: 96px;
+    height: 25px;
+    padding: 3px 0 0 4px;
+}
+
+#service_management .subscribed_str_block {
+    background: url("i/mb_table02.png") 102px 0;
+    color: #4f7249;
+}
+
+#service_management .not_subscribed_str_block {
+    background: url("i/mb_table04.png") 102px 0;
+    color: #fff;
+}
+
+#service_management .active_name_block {
+    margin-top: -4px;
+    margin-left: 2px;
+}
+
+#service_management .active_description_block {
+    color: #fff;
+    font-size: 18px;
+    line-height: 19px;
+    white-space: pre;
+    overflow: hidden;
+    width: 480px;
+    float: left;
+    text-overflow: ellipsis;
+    margin: -5px 0 0 2px;
+    height: 20px;
+}
+
+.active_subscribed_str_block {
+    position: absolute;
+    right: 23px;
+    top: 4px;
+    width: 102px;
+    height: 32px;
+    background: url("i/mb_table_act02.png") 118px -4px;
+    padding: 11px 0 0 7px;
+    color: #fff;
+    overflow: hidden;
+}
+
+.active_not_subscribed_str_block {
+    position: absolute;
+    right: 23px;
+    top: 4px;
+    width: 102px;
+    height: 32px;
+    background: url("i/mb_table_act02.png") 118px -4px;
+    padding: 11px 0 0 7px;
+    color: #fff;
+    overflow: hidden;
+}
+
+#package_info .label {
+    color: #bcf092;
+}
+
+#package_info .info-block {
+    margin-bottom: 10px;
+}

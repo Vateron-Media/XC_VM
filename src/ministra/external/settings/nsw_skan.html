@@ -1,0 +1,128 @@
+<html>
+
+<head>
+    <script>
+        var iid = 0; var mid = 0; var ind = 1; var fb = false; var vid = 0;
+        read = JSON.parse(parent.stb.GetWifiGroups());
+        re = JSON.parse(parent.stb.GetEnv('{"varList":["wifi_ssid"]}'));
+        for (var i in read.result) mid++;
+        var inft = document.getElementsByClassName("item_name");
+
+
+        function onLoad() {
+            parent.document.getElementById("zagolovok").innerHTML = parent.t('Select WiFI group (by pressing OK or Enter)');
+            sload();
+            parent.cont.focus();
+            document.getElementsByClassName("item_name")[0].innerHTML = parent.t('Avaliable WLAN groups:');
+            document.getElementById("b1").value = parent.t('Cancel');
+            if (mid == 0) { document.getElementById("b1").focus(); }
+            else {
+                document.getElementById("i1").className = 'wifi_line_act';
+                generate();
+            }
+        }
+
+        function sload() {
+            var fileref = document.createElement("link");
+            fileref.setAttribute("rel", "stylesheet");
+            fileref.setAttribute("type", "text/css");
+            fileref.setAttribute("href", 'style/okno_' + parent.put + '.css');
+            document.getElementsByTagName("head")[0].appendChild(fileref);
+            var html = document.getElementsByTagName('body')[0];
+            var img = document.createElement('img');
+            img.src = 'http://127.0.0.1/12313432.jpg';
+            img.onerror = function () { document.body.removeChild(img); parent.cont.style.visibility = 'visible'; }
+            html.appendChild(img);
+        }
+
+        function pressKey(e) {
+            ec = e.keyCode;
+            switch (ec) {
+                case 8: break;
+                case 13: submit(vid); break;
+                case 27: parent.nextMenu("glavnaya.html"); break;
+                case 40: perehod(1); break;
+                case 38: perehod(-1); break;
+                case 85: // power button
+                    var power_off = parent.stb.GetStandByStatus();
+                    if (power_off) {
+                        power_off = false;
+                        parent.stb.StandBy(0);
+                    } else {
+                        power_off = true;
+                        parent.stb.StandBy(1);
+                    }
+                    break;
+            }
+        }
+
+        function submit(a) {
+            var erm = "";
+            if (parent.wfl) parent.wset += '"wifi_int_ip":""';
+            if (read.result[a].ssid != re.result.wifi_ssid) { parent.wset += ',"wifi_ssid":"' + read.result[a].ssid + '"'; }
+            parent.wifi_ssid[0] = read.result[a].ssid; parent.wifi_ssid[1] = read.result[a].auth; parent.wifi_ssid[2] = read.result[a].enc;
+            if (read.result[a].ssid.length < 1) erm += parent.t("Invalid format");
+            if (erm != "") parent.erMes(erm, "i" + iid); else { parent.nextMenu('nsw_kaes.html'); }
+        }
+
+        function perehod(a) {
+            if (mid != 0) {
+                if (a < 0 && fb) { document.getElementById('b1').blur(); fb = false; }
+                else {
+                    vid += a;
+                    ind += a;
+                    if (vid > mid - 1) { vid = mid - 1; fb = true; }
+                    else {
+                        if (vid < 0) vid = 0;
+                        if (ind > 8) { ind = 8; iid++; }
+                        else if (ind < 1) { ind = 1; iid--; }
+                        if (iid > mid - 1) { iid = mid - 1; } else if (iid < 0) iid = 0;
+                    }
+                }
+                generate();
+            }
+        }
+
+
+        function generate() {
+            var j = iid; var s = 1;
+            inft[1].innerHTML = ''; inft[2].innerHTML = ''; inft[3].innerHTML = '';
+            for (var i = 1; i <= 8; i++) {
+                var d = document.getElementById('i' + i);
+                if (j < mid) s = read.result[j].signalInfo <= -80 ? 1 : read.result[j].signalInfo <= -70 ? 2 : read.result[j].signalInfo <= -50 ? 3 : 4;
+                d.className = "wifi_line" + (i % 2 == 1 ? '1' : '2'); d.innerHTML = j < mid ? '<div class="signal_' + s + '"></div>' + read.result[j].ssid : ''; j++;
+            }
+            if (!fb) {
+                document.getElementById('i' + ind).className = 'wifi_line_act';
+                inft[1].innerHTML = read.result[vid].rfInfo; inft[2].innerHTML = read.result[vid].auth; inft[3].innerHTML = read.result[vid].enc;
+            }
+            else { document.getElementById('b1').focus(); ind--; }
+        }
+    </script>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+<body onload="onLoad()" onkeydown="pressKey(event);">
+    <div id="blueback">
+        <div class="item_name"></div>
+        <div class="wifi_list">
+            <div id="i1" class="wifi_line1"></div>
+            <div id="i2" class="wifi_line2"></div>
+            <div id="i3" class="wifi_line1"></div>
+            <div id="i4" class="wifi_line2"></div>
+            <div id="i5" class="wifi_line1"></div>
+            <div id="i6" class="wifi_line2"></div>
+            <div id="i7" class="wifi_line1"></div>
+            <div id="i8" class="wifi_line2"></div>
+        </div>
+
+        <div class="item_name"></div>
+        <span id="skan" class="item_name"></span>
+        <span class="item_name"></span>
+
+    </div>
+    <div id="footer">
+        <input id="b1" type="button" value="" onClick="parent.wset='{';parent.nextMenu('nsw_dhcp.html')" />
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,213 @@
+#!/home/xc_vm/bin/php/bin/php
+<?php
+
+if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
+	require str_replace('\\', '/', dirname($argv[0])) . '/includes/admin.php';
+	echo "\n";
+	$rAction = (1 < count($argv) ? $argv[1] : null);
+
+	switch ($rAction) {
+		case 'rescue':
+			$db->query("DELETE FROM `access_codes` WHERE `code` = 'rescue';");
+			$db->query("INSERT INTO `access_codes`(`code`, `type`, `enabled`, `groups`) VALUES('rescue', 0, 1, '[1]');");
+			echo 'A rescue access code has been created.' . "\n" . "Please ensure you delete this after you're done with it." . "\n";
+			echo 'Access: http://' . CoreUtilities::$rServers[SERVER_ID]['server_ip'] . ':' . CoreUtilities::$rServers[SERVER_ID]['http_broadcast_port'] . '/rescue/' . "\n\n";
+			updateCodes();
+			shell_exec('sudo ' . MAIN_HOME . 'service reload 2>/dev/null');
+
+			break;
+
+		case 'access':
+			echo 'Generating access code configuration...' . "\n\n";
+			updateCodes();
+			shell_exec('sudo ' . MAIN_HOME . 'service reload 2>/dev/null');
+
+			foreach (getcodes(0) as $rCode) {
+				echo 'http://' . CoreUtilities::$rServers[SERVER_ID]['server_ip'] . ':' . CoreUtilities::$rServers[SERVER_ID]['http_broadcast_port'] . '/' . $rCode['code'] . '/' . "\n";
+			}
+			echo "\n";
+
+			break;
+
+		case 'ports':
+			echo 'Generating port configuration...' . "\n\n";
+			$rConfig = array('http' => array_unique(array_merge(array(CoreUtilities::$rServers[SERVER_ID]['http_broadcast_port']), (explode(',', CoreUtilities::$rServers[SERVER_ID]['http_ports_add']) ?: array()))), 'https' => array_unique(array_merge(array(CoreUtilities::$rServers[SERVER_ID]['https_broadcast_port']), (explode(',', CoreUtilities::$rServers[SERVER_ID]['https_ports_add']) ?: array()))), 'rtmp' => CoreUtilities::$rServers[SERVER_ID]['rtmp_port']);
+
+			foreach ($rConfig as $rKey => $rPorts) {
+				if ($rKey == 'http') {
+					$rListen = array();
+
+					foreach ($rPorts as $rPort) {
+						if (!(is_numeric($rPort) && 80 <= $rPort && $rPort <= 65535)) {
+						} else {
+							$rListen[] = 'listen ' . intval($rPort) . ';';
+						}
+					}
+					file_put_contents(MAIN_HOME . 'bin/nginx/conf/ports/http.conf', implode(' ', $rListen));
+					file_put_contents(MAIN_HOME . 'bin/nginx_rtmp/conf/live.conf', 'on_play http://127.0.0.1:' . intval($rPorts[0]) . '/stream/rtmp; on_publish http://127.0.0.1:' . intval($rPorts[0]) . '/stream/rtmp; on_play_done http://127.0.0.1:' . intval($rPorts[0]) . '/stream/rtmp;');
+				} else {
+					if ($rKey == 'https') {
+						$rListen = array();
+
+						foreach ($rPorts as $rPort) {
+							if (!(is_numeric($rPort) && 80 <= $rPort && $rPort <= 65535)) {
+							} else {
+								$rListen[] = 'listen ' . intval($rPort) . ' ssl;';
+							}
+						}
+						file_put_contents(MAIN_HOME . 'bin/nginx/conf/ports/https.conf', implode(' ', $rListen));
+					} else {
+						if ($rKey != 'rtmp') {
+						} else {
+							file_put_contents(MAIN_HOME . 'bin/nginx_rtmp/conf/port.conf', 'listen ' . intval($rPorts) . ';');
+						}
+					}
+				}
+			}
+
+			if (0 >= count($rConfig['http'])) {
+			} else {
+				echo 'HTTP Ports: ' . implode(', ', $rConfig['http']) . "\n";
+			}
+
+			if (0 >= count($rConfig['https'])) {
+			} else {
+				echo 'SSL Ports: ' . implode(', ', $rConfig['https']) . "\n";
+			}
+
+			if (empty($rConfig['http'])) {
+			} else {
+				echo 'RTMP Port: ' . $rConfig['rtmp'] . "\n";
+			}
+
+			shell_exec('sudo ' . MAIN_HOME . 'service reload 2>/dev/null');
+			echo "\n";
+
+			break;
+
+		case 'user':
+			$rGroup = getMemberGroup(1);
+
+			if ($rGroup && $rGroup['is_admin']) {
+			} else {
+				$db->query('DELETE FROM `users_groups` WHERE `group_id` = 1;');
+				$db->query("INSERT INTO `users_groups` (`group_id`, `group_name`, `is_admin`, `is_reseller`, `total_allowed_gen_trials`, `total_allowed_gen_in`, `delete_users`, `allowed_pages`, `can_delete`, `create_sub_resellers`, `create_sub_resellers_price`, `reseller_client_connection_logs`, `can_view_vod`, `allow_download`, `minimum_trial_credits`, `allow_restrictions`, `allow_change_username`, `allow_change_password`, `minimum_username_length`, `minimum_password_length`) VALUES (1, 'Administrators', 1, 0, 0, 'day', 0, '[]', 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 8, 8);");
+			}
+
+			$rPassword = generateString(10);
+			$db->query("DELETE FROM `users` WHERE `username` = 'rescue';");
+			$rArray = array('username' => 'rescue', 'password' => $rPassword, 'member_group_id' => 1, 'status' => 1, 'credits' => 0);
+			API::processUser($rArray, true);
+			echo 'A rescue user has been created.' . "\n" . "Please ensure you delete this after you're done with it." . "\n";
+			echo 'Username: rescue' . "\n";
+			echo 'Password: ' . $rPassword . "\n\n";
+
+			break;
+
+		case 'mysql':
+			Fcf52f24C866c872();
+			echo 'Load balancers have been granted access to MySQL in the system.' . "\n\n";
+
+			break;
+
+		case 'database':
+			if (file_exists(MAIN_HOME . 'bin/install/database.sql')) {
+				$db->query('DROP DATABASE IF EXISTS `xc_vm`;');
+				$db->query('CREATE DATABASE IF NOT EXISTS `xc_vm`;');
+				shell_exec('sudo mysql xc_vm < "' . MAIN_HOME . 'bin/install/database.sql"');
+				shell_exec('sudo ' . PHP_BIN . ' ' . INCLUDES_PATH . 'startup.php');
+				Fcf52f24C866C872();
+				$db = new Database($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
+				CoreUtilities::$db = &$db;
+				CoreUtilities::init();
+				API::$db = &$db;
+				API::init();
+				$db->query("INSERT INTO `access_codes`(`code`, `type`, `enabled`, `groups`) VALUES('rescue', 0, 1, '[1]');");
+				$rPassword = generateString(10);
+				$rArray = array('username' => 'rescue', 'password' => $rPassword, 'member_group_id' => 1, 'status' => 1, 'credits' => 0);
+				API::processUser($rArray, true);
+				echo 'Blank XC_VM database has been restored.' . "\n" . 'Configuring ports...' . "\n";
+				$rSocket = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
+				socket_connect($rSocket, '8.8.8.8', 53);
+				socket_getsockname($rSocket, $rIP);
+				socket_shutdown($rSocket);
+				socket_close($rSocket);
+				$db->query('UPDATE `servers` SET `server_ip` = ? WHERE `id` = 1;', $rIP);
+				file_put_contents(MAIN_HOME . 'bin/nginx/conf/ports/http.conf', 'listen 80;');
+				file_put_contents(MAIN_HOME . 'bin/nginx/conf/ports/https.conf', 'listen 443 ssl;');
+				file_put_contents(MAIN_HOME . 'bin/nginx_rtmp/conf/live.conf', 'on_play http://127.0.0.1:80/stream/rtmp; on_publish http://127.0.0.1:80/stream/rtmp; on_play_done http://127.0.0.1:80/stream/rtmp;');
+				file_put_contents(MAIN_HOME . 'bin/nginx_rtmp/conf/port.conf', 'listen 8880;');
+				$rServices = 4;
+				shell_exec('sudo rm ' . MAIN_HOME . 'bin/php/etc/*.conf');
+				$rNewScript = '#! /bin/bash' . "\n";
+				$rNewBalance = 'upstream php {' . "\n" . '    least_conn;' . "\n";
+				$rTemplate = file_get_contents(MAIN_HOME . 'bin/php/etc/template');
+
+				foreach (range(1, $rServices) as $i) {
+					$rNewScript .= 'start-stop-daemon --start --quiet --pidfile ' . MAIN_HOME . 'bin/php/sockets/' . $i . '.pid --exec ' . MAIN_HOME . 'bin/php/sbin/php-fpm -- --daemonize --fpm-config ' . MAIN_HOME . 'bin/php/etc/' . $i . '.conf' . "\n";
+					$rNewBalance .= '    server unix:' . MAIN_HOME . 'bin/php/sockets/' . $i . '.sock;' . "\n";
+					file_put_contents(MAIN_HOME . 'bin/php/etc/' . $i . '.conf', str_replace('#PATH#', MAIN_HOME, str_replace('#ID#', $i, $rTemplate)));
+				}
+				file_put_contents(MAIN_HOME . 'bin/daemons.sh', $rNewScript);
+				file_put_contents(MAIN_HOME . 'bin/nginx/conf/balance.conf', $rNewBalance . '}');
+				shell_exec('sudo systemctl stop xc_vm');
+				shell_exec('sudo systemctl start xc_vm');
+				echo 'Access: http://' . $rIP . '/rescue/' . "\n\n";
+				echo 'Username: rescue' . "\n";
+				echo 'Password: ' . $rPassword . "\n\n";
+				echo 'You need to edit the server settings after logging in.' . "\n\n";
+
+				break;
+			} else {
+				exit('FATAL: database.sql file is missing from the installation.');
+			}
+
+			// no break
+		case 'migration':
+			$db->query('DROP DATABASE IF EXISTS `xc_vm_migrate`;');
+			$db->query('CREATE DATABASE IF NOT EXISTS `xc_vm_migrate`;');
+			echo 'Migration database has been cleared.' . "\n";
+			$de57b163e9d85b49 = (count($argv) == 3 ? $argv[2] : null);
+
+			if ($de57b163e9d85b49 && file_exists($de57b163e9d85b49) && pathinfo($de57b163e9d85b49['extension'] == 'sql')) {
+				echo 'Restoring: ' . $de57b163e9d85b49 . "\n";
+				shell_exec('sudo mysql xc_vm_migrate < ' . escapeshellarg($de57b163e9d85b49));
+				echo 'If no errors were shown above, restore was completed.' . "\n\n";
+			} else {
+				echo 'You can restore a database to it using:' . "\n";
+				echo 'sudo mysql xc_vm_migrate < backup.sql' . "\n\n";
+			}
+
+			fCf52F24C866c872();
+
+			break;
+
+		case 'flush':
+			$db->query('TRUNCATE `blocked_ips`;');
+			shell_exec('sudo rm ' . FLOOD_TMP_PATH . 'block_*');
+			shell_exec('sudo ' . BIN_PATH . 'nginx/sbin/nginx -s reload');
+			shell_exec('sudo ' . BIN_PATH . 'nginx_rtmp/sbin/nginx_rtmp -s reload');
+			shell_exec('sudo iptables -F && sudo ip6tables -F');
+			shell_exec('sudo iptables-save && sudo ip6tables-save');
+			echo "Blocked IP's have been flushed." . "\n\n";
+
+			break;
+
+		default:
+			echo 'Actions' . "\n" . '----------------------------------------------------------------' . "\n";
+			echo 'rescue' . "\t\t\t" . 'Create a rescue access code for the admin panel.' . "\n";
+			echo 'user' . "\t\t\t" . 'Create a rescue admin user for the admin panel.' . "\n";
+			echo 'mysql' . "\t\t\t" . 'Reauthorise load balancers on MySQL.' . "\n";
+			echo 'database' . "\t\t" . 'Restore blank XC_VM database.' . "\n";
+			echo 'migration' . "\t\t" . 'Clear migration database.' . "\n";
+			echo 'flush' . "\t\t\t" . 'Flush blocked IP database.' . "\n";
+			echo 'ports' . "\t\t\t" . 'Regenerate ports from SQL table.' . "\n";
+			echo 'access' . "\t\t\t" . 'Regenerate access codes from SQL table.' . "\n\n";
+
+			break;
+	}
+
+	exit();
+}
+
+exit('Please run as root!' . "\n");

@@ -1,0 +1,382 @@
+<html>
+
+<head>
+    <script>
+        var debug = 1;
+        parent.debug = 1;
+        var iid = 1;
+        var mid = 5;
+        var menuT = new Array();
+        var fl = true;
+        var ind = 1;
+        var number = 0;
+        var read = JSON.parse(parent.stb.GetEnv('{"varList":["lan_noip","ipaddr_conf","dnsip","pppoe_enabled","pppoe_login","pppoe_dns1","wifi_ssid","wifi_int_ip"]}'));
+        var chek = document.getElementsByClassName("check");
+        var oldKeyDownHandler, resultTracertBlock;
+        function _debug() { }
+        var loader = { next: function () { } };
+
+        function onLoad() {
+            get_word = parent.t;
+            sload();
+            parent.cont.focus();
+            var menuP = {
+                "wired": [parent.t('Wired (Ethernet)'), 1],
+                "pppoe": [parent.t('PPPoE'), 2],
+                "wireless": [parent.t('Wireless (Wi-Fi)'), 3],
+                "speed": [parent.t('Speed test'), 4],
+                "traceroute": [parent.t('Extended diagnostics'), 5]
+            }
+            for (var i = 0; i < parent.prof.modules.length; i++) {
+                if (parent.prof.modules[i].name == "net_info") { number = i; break; }
+            }
+            var text = '';
+            for (var i = 0; i < parent.prof.modules[number].sub.length; i++) {
+                if (i < parent.prof.modules[number].sub.length - 1) text += '<input id="i' + (i + 1) + '" type="button" value="' + menuP[parent.prof.modules[number].sub[i].name][0] + '" onClick="ent(' + menuP[parent.prof.modules[number].sub[i].name][1] + ');"/><br />';
+                else text += '<input id="i' + (i + 1) + '" type="button" value="' + menuP[parent.prof.modules[number].sub[i].name][0] + '" onClick="ent(' + menuP[parent.prof.modules[number].sub[i].name][1] + ');"/>';
+            }
+            mid = parent.prof.modules[number].sub.length + 1;
+            var d = document.getElementById("i5");
+            d.id = 'i' + mid;
+            d.value = parent.t('Back');
+            document.getElementById('menu_buttons').innerHTML = text;
+
+            buttonHeight = getNumericalCSSAtr('i1', 'height');
+            menuButtonsTop = getNumericalCSSAtr('menu_buttons', 'margin-top');
+
+            if (buttonHeight != null && menuButtonsTop != null && menuButtonsTop >= buttonHeight / 2) {
+                buttonHeight = buttonHeight / 2;
+                document.getElementById('menu_buttons').style['margin-top'] = menuButtonsTop > buttonHeight ? menuButtonsTop - buttonHeight : buttonHeight;
+            }
+
+            document.getElementById("i1").focus();
+        }
+
+        function getNumericalCSSAtr(id, attr) {
+            attrVal = window.getComputedStyle(document.getElementById(id)).getPropertyValue(attr).replace('px', '');
+            if (attrVal) {
+                attrVal = parseInt(attrVal, 10);
+                return !isNaN(attrVal) ? attrVal : 0;
+            }
+            return null;
+        }
+
+        function ent(a) {
+            ind = iid;
+            document.getElementById("menu_buttons").style.display = "none";
+            if (a <= 3) chek[0].style.display = "block"; else chek[1].style.display = "block";
+            var tt = parent.stb.GetNetworkGateways();
+            var tt1 = parent.stb.GetNetworkNameServers();
+            for (var i = 1; i <= 8; i++) {
+                document.getElementById("t" + i).innerHTML = ""; document.getElementById("t" + i + '1').innerHTML = "";
+            }
+            switch (a) {
+                case 1: mid = 10;
+                    if (read.result.lan_noip != 'true') {
+                        var tcur = '';
+                        if (!cIP(read.result.ipaddr_conf)) {
+                            tcur = parent.t("DHCP")
+                            if (cIP(read.result.dnsip)) tcur += '(' + parent.t("manual DNS") + ')';
+                        }
+                        else tcur = parent.t('Static IP');
+                    }
+                    else tcup = parent.t("No config");
+                    menuT = [['text', parent.t('Current configuration'), tcur],
+                    ['text', parent.t('Current status'), ''],
+                    ['text', parent.t('Link status:'), parent.stb.GetLanLinkStatus() ? parent.t("UP") : parent.t("Down")],
+                    ['text', parent.t('MAC address:'), parent.stb.GetDeviceMacAddress()],
+                    ['text', parent.t('IP address:'), parent.stb.RDir('IPAddress')],
+                    ['text', parent.t('Network mask:'), parent.stb.RDir('IPMask')],
+                    ['text', parent.t('Gateway(s):'), (tt == '' ? 'n/a' : tt.replace(/\r\n|\r|\n/g, ', '))],
+                    ['text', parent.t('DNS server(s):'), (tt1 == '' ? 'n/a' : tt1.replace(/\r\n|\r|\n/g, ', '))]];
+                    mid = 10;
+                    init();
+                    break;
+                case 2: mid = 8;
+                    var tcur = '';
+                    if (read.result.pppoe_enabled == "true") {
+                        tcur = parent.t("Disabled");
+                    }
+                    else {
+                        tcur = read.result.pppoe_login;
+                        if (cIP(read.result.pppoe_dns1)) tcur += '(' + parent.t("manual DNS") + ')';
+                    }
+                    var tip = parent.stb.GetPppoeIp();
+                    menuT = [['text', parent.t('Current configuration'), tcur],
+                    ['text', parent.t('Current status'), ''],
+                    ['text', parent.t('Link status:'), parent.stb.GetPppoeLinkStatus() ? parent.t("UP") : parent.t("Down")],
+                    ['text', parent.t('IP address:'), tip == "" ? "n/a" : tip],
+                    ['text', parent.t('Gateway(s):'), (tt == '' ? 'n/a' : tt.replace(/\r\n|\r|\n/g, ', '))],
+                    ['text', parent.t('DNS server(s):'), (tt1 == '' ? 'n/a' : tt1.replace(/\r\n|\r|\n/g, ', '))]];
+                    init(); break;
+                case 3: mid = 9;
+                    var tcur = '"' + read.result.wifi_ssid + '" (';
+                    if (cIP(read.result.wifi_int_ip)) tcur += parent.t('Static IP') + ')';
+                    else tcur += parent.t('DHCP') + ')';
+                    var tmac = parent.stb.GetNetworkWifiMac();
+                    var tip = parent.stb.RDir('WiFi_ip');
+                    menuT = [['text', parent.t('Current configuration'), tcur],
+                    ['text', parent.t('Current status'), ''],
+                    ['text', parent.t('Link status:'), parent.stb.GetWifiLinkStatus() ? parent.t("UP") : parent.t("Down")],
+                    ['text', parent.t('MAC address:'), tmac == '' ? 'n/a' : tmac],
+                    ['text', parent.t('IP address:'), tip == '' ? 'n/a' : tip],
+                    ['text', parent.t('Gateway(s):'), (tt == '' ? 'n/a' : tt.replace(/\r\n|\r|\n/g, ', '))],
+                    ['text', parent.t('DNS server(s):'), (tt1 == '' ? 'n/a' : tt1.replace(/\r\n|\r|\n/g, ', '))]];
+                    init(); break;
+                case 4: mid = 5;
+                    var d = document.getElementById('tt31');
+                    var speedtest = new Speedtest(parent.prof.test_download_url);
+                    speedtest.onSuccess(function (speed) {
+                        d.innerHTML = speed;
+                    });
+                    speedtest.onCheck(function (result) {
+                        if (result.state == 2) {
+                            d.innerHTML = parent.t('Testing');
+                        } else if (result.state == 4 || result.state == 5) {
+                            d.innerHTML = parent.t('Error');
+                        } else if (result.state == 1) {
+                            d.innerHTML = parent.t('Waiting');
+                        }
+                    });
+                    menuT = [['text', 'LAN:', parent.stb.GetLanLinkStatus() ? parent.t("UP") : parent.t("Down")], ['text', 'WLAN:', parent.stb.GetWifiLinkStatus() ? parent.t("UP") : parent.t("Down")], ['text', parent.t('Speed test') + ':', '']];
+                    for (i = 0; i < menuT.length; i++) {
+                        document.getElementById('tt' + (i + 1)).innerHTML = menuT[i][1];
+                        document.getElementById('tt' + (i + 1) + '1').innerHTML = menuT[i][2];
+                    }
+                    speedtest.start();
+                    break;
+                case 5: mid = 11;
+                    parent.confb('<span style="color: red;text-shadow: 1px 1px 1px #000;">' + parent.t('Attention') + '!</span><br/>' + parent.t('Testing can take a long time.<br> You can not interrupt the test before it is completed'), 'i5', "parent.sett_traceroute_start();");
+                    chek[0].style.display = "none";
+                    chek[1].style.display = "none";
+                    document.getElementById("menu_buttons").style.display = "block";
+                    break;
+            }
+            if (typeof (mid) != 'undefined' && mid != 11) {
+                document.getElementById("i" + (parent.prof.modules[number].sub.length + 1)).focus();
+                mid = 0;
+                fl = false;
+            }
+        }
+
+        parent.sett_traceroute_start = function () {
+            console.log('sett_traceroute_start');
+            try {
+                console.log(parent.prof);
+                var traceroute = new Traceroute({ send_statistic: true, time: parent.prof.mtr_report_cycles, callback: addTracerouteResult, domains: parent.prof.mtr_hostnames });
+
+                var t = 0;
+                var timer = setInterval(function () {
+                    if (t > 100 || (!traceroute._is_run && traceroute.getStartTime())) {
+                        cTime = new Date();
+                        if (cTime.getTime() >= traceroute.getEndTime() || t > 20) {
+                            parent.traceroute_results = traceroute.getResult();
+                            clearInterval(timer);
+                            showResults();
+                            if (parent.document.getElementById("confirm") && parent.document.getElementById("confirm").style.display == "block") {
+                                parent.document.getElementById('b1').focus();
+                            } else {
+                                document.getElementById('i' + (parent.prof.modules[number].sub.length + 1)).focus();
+                            }
+                        }
+
+                    } else if (!traceroute.getStartTime()) {
+                        if (!traceroute._is_run) {
+                            traceroute.start();
+                        }
+                        if (!parent.document.getElementById("confirm") || parent.document.getElementById("confirm").style.display != "block") {
+                            parent.erMes(parent.t('Perform diagnostics') + '...' +
+                                '<br>' + parent.t('Start') + ': ' + traceroute.getStartTime(true) +
+                                '<br>' + parent.t('Estimated time of completion') + ': ' + traceroute.getEndTime(true), 'i' + (parent.prof.modules[number].sub.length + 1));
+                            parent.document.getElementById('b1').blur();
+                            parent.spos = 0;
+                        }
+                    }
+                    t++;
+                }, 300);
+                parent.traceroute = traceroute;
+            } catch (e) {
+                document.getElementById("i1").focus();
+            }
+        };
+
+        function showResults() {
+            document.getElementById("menu_buttons").style.display = "none";
+            chek[0].style.display = "none";
+            chek[1].style.display = "none";
+
+            var tr = document.createElement('tr');
+            [parent.t('IP Address'), parent.t('Loss'), parent.t('Ping')].forEach(function (item) {
+                div = document.createElement('div');
+                div.setAttribute('class', 'list_head');
+                div.innerText = item;
+                td = document.createElement('td');
+                td.appendChild(div);
+                tr.appendChild(td);
+            });
+
+            var tracertResultHead = document.getElementById('tracert_result_head');
+            if (tracertResultHead.childNodes.length > 0) {
+                tracertResultHead.insertBefore(tr, tracertResultHead.childNodes[0]);
+            } else {
+                tracertResultHead.appendChild(tr);
+            }
+
+            oldKeyDownHandler = document.body.onkeydown;
+            document.body.onkeydown = replPressKey;
+
+            document.getElementById('t11').innerText = parent.t('Results of extended diagnostics') + ':';
+            chek[0].style.display = "block";
+            chek[2].style.display = "block";
+        }
+
+        function addTracerouteResult(result) {
+            if (result instanceof Array) {
+                resultTracertBlock = !resultTracertBlock ? document.getElementById('tracert_result') : resultTracertBlock;
+                if (resultTracertBlock) {
+                    result.forEach(function (item) {
+                        var tr = document.createElement('tr');
+                        item.forEach(function (itemT) {
+                            span = document.createElement('span');
+                            span.setAttribute('class', 'item_name');
+                            span.innerText = itemT;
+                            td = document.createElement('td');
+                            td.appendChild(span);
+                            tr.appendChild(td);
+                        });
+                        resultTracertBlock.children[0].appendChild(tr);
+                    });
+                }
+            }
+        }
+        function replPressKey(e) {
+            ec = e.keyCode;
+            if (ec) {
+                resultTracertBlock = !resultTracertBlock ? document.getElementById('tracert_result') : resultTracertBlock;
+                switch (ec) {
+                    case 40: {
+                        resultTracertBlock.scrollTop += 40;
+                        e.preventDefault();
+                        e.stopImmediatePropagation();
+                        break;
+                    }
+                    case 38: {
+                        resultTracertBlock.scrollTop -= 40;
+                        e.preventDefault();
+                        e.stopImmediatePropagation();
+                        break;
+                    }
+                    case 13: {
+                        document.body.onkeydown = oldKeyDownHandler;
+                        oldKeyDownHandler = function () { };
+                        document.body.onkeydown(e);
+                        break;
+                    }
+                }
+            }
+        }
+
+        function backH() {
+            if (fl) back(); else { chek[0].style.display = "none"; chek[1].style.display = "none"; document.getElementById("menu_buttons").style.display = "block"; fl = true; mid = parent.prof.modules[number].sub.length + 1; document.getElementById("i" + ind).focus(); }
+        }
+        function change(a) { }
+    </script>
+    <script language="JavaScript" src="js/pres.js"></script>
+    <script type="text/javascript" src="../../speedtest.js"></script>
+    <script type="text/javascript" src="../../traceroute.js"></script>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+<body onload="onLoad()" onkeydown="pressKey(event);">
+    <div align="center" id="menu_buttons" style="display:block;">
+
+    </div>
+    <div id="blueback" class="check" style="display:none;">
+        <table width="100%" border="0" cellpadding="0" cellspacing="0">
+            <tr>
+                <td colspan="2"><span id="t1" class="list_head"></span>
+                    <div style="height:2px; background:#FFF; width:100%; margin:5px 0;"></div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2" align="center"><span id="t11" class="item_name"></span></td>
+            </tr>
+            <td colspan="2"><span id="t2" class="list_head"></span>
+                <div style="height:2px; background:#FFF; width:100%; margin:5px 0;"></div><span id="t21"></span>
+            </td>
+            </tr>
+            <tr>
+                <td align="right">
+                    <div id="t3" class="list_head"></div>
+                </td>
+                <td><span id="t31" class="item_name"></span></td>
+            </tr>
+            <tr>
+                <td align="right">
+                    <div id="t4" class="list_head"></div>
+                </td>
+                <td><span id="t41" class="item_name"></span></td>
+            </tr>
+            <tr>
+                <td align="right">
+                    <div id="t5" class="list_head"></div>
+                </td>
+                <td><span id="t51" class="item_name"></span></td>
+            </tr>
+            <tr>
+                <td align="right">
+                    <div id="t6" class="list_head"></div>
+                </td>
+                <td><span id="t61" class="item_name"></span></td>
+            </tr>
+            <tr>
+                <td align="right">
+                    <div id="t7" class="list_head"></div>
+                </td>
+                <td><span id="t71" class="item_name"></span></td>
+            </tr>
+            <tr>
+                <td align="right">
+                    <div id="t8" class="list_head"></div>
+                </td>
+                <td><span id="t81" class="item_name"></span></td>
+            </tr>
+        </table>
+    </div>
+    <div id="blueback" class="check" style="display:none;">
+        <table class="nsp" width="100%" border="0" cellpadding="0" cellspacing="0">
+            <tr>
+                <td align="right">
+                    <div id="tt1" class="list_head"></div>
+                </td>
+                <td width="50%"><span id="tt11" class="item_name"></span></td>
+            </tr>
+            <tr>
+                <td align="right">
+                    <div id="tt2" class="list_head"></div>
+                </td>
+                <td><span id="tt21" class="item_name"></span></td>
+            </tr>
+            <tr>
+                <td align="right">
+                    <div id="tt3" class="list_head"></div>
+                </td>
+                <td><span id="tt31" class="item_name"></span></td>
+            </tr>
+        </table>
+    </div>
+    <div id="blueback" class="check" style="display:none;">
+        <table id="tracert_result_head" width="95%" border="0" cellpadding="0" cellspacing="0">
+
+        </table>
+        <div id="tracert_result">
+            <table width="100%" class="tracert_result" border="0" cellpadding="0" cellspacing="0">
+
+            </table>
+        </div>
+    </div>
+    <div id="footer">
+        <input id="i5" type="button" value="" onClick="backH();" />
+    </div>
+</body>
+
+</html>

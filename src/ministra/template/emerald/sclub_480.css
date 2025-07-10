@@ -1,0 +1,142 @@
+/* VCLUB */
+.ears_back {
+    position: absolute;
+    width: 40px;
+    height: 420px;
+    left: 0px;
+    top: 73px;
+    background-image: url("i_480/ears.png");
+    background-position: 0px 0px;
+}
+
+.ears_movie {
+    position: absolute;
+    width: 40px;
+    height: 420px;
+    left: 680px;
+    top: 73px;
+    background-image: url("i_480/ears.png");
+    background-position: -40px 0px;
+}
+
+.vclub_info_box {
+    position: absolute;
+    width: 240px;
+    height: 61px;
+    top: 58px;
+    left: 413px;
+    line-height: 15px;
+    color: #fff;
+    font-size: 16px;
+    overflow: hidden;
+}
+
+.vclub_info_box_mask {
+    -webkit-mask: -webkit-gradient(linear, left 55, left bottom, from(rgba(0, 0, 0, 1)), to(rgba(0, 0, 0, 0)));
+}
+
+.vclub_info_box span {
+    color: #bcf092;
+    font-size: 14px;
+    font-family: "Myriad Pro Cond";
+}
+
+.vclub_screenshot_box {
+    position: absolute;
+    background: url("i_480/mb_prev_bg.png");
+    height: 302px;
+    width: 227px;
+    top: 121px;
+    left: 412px;
+    padding: 5px;
+}
+
+.vclub_screenshot_box img {
+    width: 225px;
+    height: 300px;
+}
+
+.today_block {
+    position: absolute;
+    right: 2px;
+    top: 0;
+    width: 94px;
+    height: 25px;
+    background-image: url("i_480/mb_table.png");
+    background-position: 102px -30px;
+    padding: 3px 0 0 6px;
+    color: #0A5104;
+    /*float: right;
+    margin: 0px 0 0 4px;*/
+}
+
+.yesterday_block {
+    position: absolute;
+    right: 2px;
+    top: 0;
+    width: 94px;
+    height: 25px;
+    background-image: url("i_480/mb_table.png");
+    background-position: 102px -60px;
+    padding: 3px 0 0 6px;
+    color: #4f7249;
+    /*float: right;
+    margin: 0px 0 0 4px;*/
+}
+
+.week_and_more_block {
+    position: absolute;
+    right: -3px;
+    top: 0;
+
+    /*width: 135px;*/
+    width: 96px;
+    height: 22px;
+    background-image: url("i_480/mb_table.png");
+    background-position: 102px -75px;
+    padding: 3px 0 0 6px;
+    color: #748b70;
+    font-family: "Myriad Pro Cond", sans-serif;
+    overflow: hidden;
+    font-size: 16px;
+    /*float: right;
+    margin: 0px 0 0 4px;*/
+}
+
+.active_today_block,
+.active_yesterday_block,
+.active_week_and_more_block {
+    position: absolute;
+    right: 9px;
+    top: 4px;
+    width: 101px;
+    height: 27px;
+    background-image: url("i_480/mb_table_act.png");
+    background-position: 118px -58px;
+    color: #fff;
+    font-family: "Myriad Pro Cond", sans-serif;
+    overflow: hidden;
+    padding: 11px 0 0 8px;
+}
+
+.disabled_all_buttons span {
+    color: #707070 !important;
+}
+
+#vclub .low_quality_block {
+    float: left;
+    width: 20px;
+    height: 20px;
+    background-image: url("i_480/low_q.png");
+    margin: 2px 0 0 2px;
+}
+
+#vclub .active_low_quality_block {
+    float: left;
+    width: 20px;
+    height: 20px;
+    background-image: url("i_480/low_q.png");
+    margin: 8px 2px 0 2px;
+}
+
+/* END VCLUB */
