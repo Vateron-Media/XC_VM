@@ -1,12 +1,11 @@
 # **XtreamUI OpenSource / XC_VM Server**  
-[![Main version](https://img.shields.io/github/v/release/Vateron-Media/Xtream_main?label=Main%20Release&color=green)](https://github.com/Vateron-Media/Xtream_main/)
-[![Sub version](https://img.shields.io/github/v/release/Vateron-Media/Xtream_lb?label=LB%20Release&color=blue)](https://github.com/Vateron-Media/Xtream_lb/)
-[![License](https://img.shields.io/github/license/Vateron-Media/Xtream_main)](LICENSE)
-[![Forks](https://img.shields.io/github/forks/Vateron-Media/Xtream_main?style=flat)](https://github.com/Vateron-Media/Xtream_main/fork)
-[![Stars](https://img.shields.io/github/stars/Vateron-Media/Xtream_main?style=flat)](https://github.com/Vateron-Media/Xtream_main/stargazers)
-[![Issues](https://img.shields.io/github/issues/Vateron-Media/Xtream_main)](https://github.com/Vateron-Media/Xtream_main/issues)
-[![Pull Requests](https://img.shields.io/github/issues-pr/Vateron-Media/Xtream_main)](https://github.com/Vateron-Media/Xtream_main/pulls)
-[![All Contributors](https://img.shields.io/badge/all_contributors-2-orange.svg)](CONTRIBUTORS.md)
+[![Last version](https://img.shields.io/github/v/release/Vateron-Media/XC_VM?label=Main%20Release&color=green)](https://github.com/Vateron-Media/XC_VM/)
+[![License](https://img.shields.io/github/license/Vateron-Media/XC_VM)](LICENSE)
+[![Forks](https://img.shields.io/github/forks/Vateron-Media/XC_VM?style=flat)](https://github.com/Vateron-Media/XC_VM/fork)
+[![Stars](https://img.shields.io/github/stars/Vateron-Media/XC_VM?style=flat)](https://github.com/Vateron-Media/XC_VM/stargazers)
+[![Issues](https://img.shields.io/github/issues/Vateron-Media/XC_VM)](https://github.com/Vateron-Media/XC_VM/issues)
+[![Pull Requests](https://img.shields.io/github/issues-pr/Vateron-Media/XC_VM)](https://github.com/Vateron-Media/XC_VM/pulls)
+[![All Contributors](https://img.shields.io/badge/all_contributors-0-orange.svg)](CONTRIBUTORS.md)
 
 ---
 
@@ -20,8 +19,7 @@ XtreamUI OpenSource is a **community-driven** project based on publicly availabl
 
 ## ⚠️ Warnings
 
-🔴 **The panel is currently in ALPHA testing.**  
-🔴 **Balancer (SUB) is NOT fully functional and will be fixed after core panel issues are resolved.**  
+🔴 **The panel is currently in BETA testing.**  
 🛑 **Avoid Cyrillic characters or special symbols** in filenames when uploading via the panel.
 
 ---
@@ -30,7 +28,7 @@ XtreamUI OpenSource is a **community-driven** project based on publicly availabl
 
 | Repository | Description |
 |------------|-------------|
-| [🔹 XC_VM](https://github.com/Vateron-Media/Xtream_main) | streaming panel |
+| [🔹 XC_VM](https://github.com/Vateron-Media/XC_VM) | streaming panel |
 | [⚙ Xtream Build](https://github.com/Vateron-Media/Xtream_build) | Build scripts and tools |
 
 ---
@@ -39,24 +37,52 @@ XtreamUI OpenSource is a **community-driven** project based on publicly availabl
 
 ✅ **Supported OS:** Ubuntu 22.04+
 
-### 1️⃣ Update the system
-```sh
+---
+
+### 1️⃣ Update Your System
+
+Make sure your system is up to date:
+
+```bash
 sudo apt update && sudo apt full-upgrade -y
-````
-
-### 2️⃣ Install required packages
-
-```sh
-sudo apt install -y python3-pip git
 ```
 
-### 3️⃣ Clone and run the installer
+---
 
-```sh
-git clone https://github.com/Vateron-Media/Xtream_install
-cd Xtream_install/
-pip3 install -r requirements.txt
-sudo python3 install.py
+### 2️⃣ Install Required Dependencies
+
+Install essential packages:
+
+```bash
+sudo apt install -y python3-pip unzip
+```
+
+---
+
+### 3️⃣ Get the Latest Release
+
+Check the latest available version here:
+👉 [Latest Release](https://github.com/Vateron-Media/XC_VM/releases/latest)
+
+---
+
+### 4️⃣ Download the Release Package
+
+Replace `v1.x.x` with the actual release version:
+
+```bash
+wget https://github.com/Vateron-Media/XC_VM/releases/download/v1.x.x/XC_VM.zip
+```
+
+---
+
+### 5️⃣ Unzip and Install
+
+Extract the package and run the installer:
+
+```bash
+unzip XC_VM.zip
+sudo python3 install
 ```
 
 ---
@@ -87,8 +113,8 @@ journalctl -u xc_vm -f
 
 ## 📚 Documentation
 
-* [🇬🇧 English Guide](https://github.com/Vateron-Media/Xtream_main/blob/main/doc/en/main-page.md)
-* [🇷🇺 Руководство на русском](https://github.com/Vateron-Media/Xtream_main/blob/main/doc/ru/main-page.md)
+* [🇬🇧 English Guide](https://github.com/Vateron-Media/XC_VM/blob/main/doc/en/main-page.md)
+* [🇷🇺 Руководство на русском](https://github.com/Vateron-Media/XC_VM/blob/main/doc/ru/main-page.md)
 
 ---
 

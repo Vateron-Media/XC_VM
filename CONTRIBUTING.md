@@ -10,7 +10,7 @@ Thank you for considering contributing to this project! Follow these guidelines 
 - Keep pull requests focused on a single change.
 - If you are refactoring and are not sure if the code is unused elsewhere, comment it out. It will be removed after the release.
 
-## 🛠️ Customizing the development environment
+<!-- ## 🛠️ Customizing the development environment
 Unfortunately you will have to install the panel on the server completely. It does not have a developer mode
 1. Clone the repository:
    ```sh
@@ -24,7 +24,7 @@ Unfortunately you will have to install the panel on the server completely. It do
 2. Start the installation:
    ```sh
    sudo python3 install.py
-   ```
+   ``` -->
 
 ## ✨ Code Standards
 - Use **K&R** coding style for PHP.
