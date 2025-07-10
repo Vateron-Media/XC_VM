@@ -32,14 +32,6 @@ XtreamUI OpenSource is a **community-driven** project based on publicly availabl
 🔴 **The panel is currently in BETA testing.**  
 🛑 **Avoid Cyrillic characters or special symbols** in filenames when uploading via the panel.
 
----
-
-## 📂 Project Repositories
-
-| Repository | Description |
-|------------|-------------|
-| [🔹 XC_VM](https://github.com/Vateron-Media/XC_VM) | streaming panel |
-| [⚙ Xtream Build](https://github.com/Vateron-Media/Xtream_build) | Build scripts and tools |
 
 ---
 
@@ -99,7 +91,7 @@ sudo python3 install
 
 ## 🛠️ Panel Management
 
-Use `systemctl` to manage the Xtream Codes service:
+Use `systemctl` to manage the XC_VM service:
 
 ```sh
 sudo systemctl start xc_vm
