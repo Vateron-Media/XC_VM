@@ -49,12 +49,7 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 				} ?>
 				<div class="card bg-info text-white cta-box">
 					<?php
-					if (is_array($rUpdate) &&
-						$rUpdate["version"] &&
-						(0 < version_compare($rUpdate["version"], XC_VM_VERSION) ||
-							(version_compare($rUpdate["version"], XC_VM_VERSION) == 0 &&
-								intval(XC_VM_REVISION) < intval($rUpdate["revision"])))
-					) {
+					if (is_array($rUpdate) && $rUpdate["version"] && (0 < version_compare($rUpdate["version"], XC_VM_VERSION) || (version_compare($rUpdate["version"], XC_VM_VERSION) == 0))) {
 						?>
 						<div class="card-body" style="max-height: 250px;">
 							<h5 class="card-title text-white">Update Available</h5>

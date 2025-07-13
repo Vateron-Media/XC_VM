@@ -191,7 +191,7 @@
                                     </li>
                                 <?php endif; ?>
 
-                                <?php if (!$rMobile && isset($rUpdate) && is_array($rUpdate) && $rUpdate['version'] && (0 < version_compare($rUpdate['version'], XC_VM_VERSION) || version_compare($rUpdate['version'], XC_VM_VERSION) == 0 && intval(XC_VM_REVISION) < intval($rUpdate['revision']))): ?>
+                                <?php if (!$rMobile && isset($rUpdate) && is_array($rUpdate) && $rUpdate['version'] && (0 < version_compare($rUpdate['version'], XC_VM_VERSION) || version_compare($rUpdate['version'], XC_VM_VERSION) == 0)): ?>
                                     <li class="notification-list">
                                         <a href="settings" class="nav-link right-bar-toggle waves-effect <?php echo $rUserInfo['theme'] == 1 ? 'text-white' : 'text-warning'; ?>" title="Official Release v<?php echo $rUpdate['version'] . ($rUpdate['revision'] ? ' R' . intval($rUpdate['revision']) : ''); ?> is available to download.">
                                             <i class="mdi mdi-update noti-icon"></i>

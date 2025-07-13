@@ -69754,7 +69754,6 @@ CREATE TABLE IF NOT EXISTS `servers` (
   `time_offset` int(11) DEFAULT '0',
   `ping` int(11) DEFAULT '0',
   `requests_per_second` int(11) DEFAULT '0',
-  `xc_vm_revision` int(2) DEFAULT NULL,
   `php_version` int(2) DEFAULT '74',
   `php_pids` longtext COLLATE utf8_unicode_ci DEFAULT NULL,
   `connections` int(16) DEFAULT 0,
@@ -69768,7 +69767,7 @@ CREATE TABLE IF NOT EXISTS `servers` (
   KEY `status` (`status`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
-INSERT INTO `servers` (`id`, `server_type`, `xc_vm_version`, `server_name`, `domain_name`, `server_ip`, `private_ip`, `is_main`, `enabled`, `parent_id`, `http_broadcast_port`, `https_broadcast_port`, `http_ports_add`, `https_ports_add`, `total_clients`, `network_interface`, `status`, `enable_geoip`, `geoip_countries`, `last_check_ago`, `server_hardware`, `total_services`, `persistent_connections`, `rtmp_port`, `geoip_type`, `isp_names`, `isp_type`, `enable_isp`, `network_guaranteed_speed`, `timeshift_only`, `whitelist_ips`, `watchdog_data`, `video_devices`, `audio_devices`, `gpu_info`, `interfaces`, `random_ip`, `enable_proxy`, `enable_https`, `certbot_renew`, `certbot_ssl`, `uuid`, `use_disk`, `last_status`, `time_offset`, `ping`, `requests_per_second`, `xc_vm_revision`, `php_version`, `php_pids`, `connections`, `users`, `remote_status`, `governors`, `governor`, `sysctl`) VALUES (1, 0, '1.5.8', 'Main Server', '', '127.0.0.1', '', 1, 1, 0, 80, 443, NULL, NULL, 1000, 'auto', 1, 0, '[]', 0, NULL, 4, 0, 8880, 'low_priority', '', 'low_priority', 0, 1000, 0, '["127.0.0.1"]', NULL, '[]', '[]', '[]', '["eth0"]', 0, 0, 0, 0, NULL, NULL, 0, 0, 0, 0, 0, NULL, 74, NULL, 0, 0, 1, NULL, NULL, NULL);
+INSERT INTO `servers` (`id`, `server_type`, `xc_vm_version`, `server_name`, `domain_name`, `server_ip`, `private_ip`, `is_main`, `enabled`, `parent_id`, `http_broadcast_port`, `https_broadcast_port`, `http_ports_add`, `https_ports_add`, `total_clients`, `network_interface`, `status`, `enable_geoip`, `geoip_countries`, `last_check_ago`, `server_hardware`, `total_services`, `persistent_connections`, `rtmp_port`, `geoip_type`, `isp_names`, `isp_type`, `enable_isp`, `network_guaranteed_speed`, `timeshift_only`, `whitelist_ips`, `watchdog_data`, `video_devices`, `audio_devices`, `gpu_info`, `interfaces`, `random_ip`, `enable_proxy`, `enable_https`, `certbot_renew`, `certbot_ssl`, `uuid`, `use_disk`, `last_status`, `time_offset`, `ping`, `requests_per_second`, `php_version`, `php_pids`, `connections`, `users`, `remote_status`, `governors`, `governor`, `sysctl`) VALUES (1, 0, '1.5.8', 'Main Server', '', '127.0.0.1', '', 1, 1, 0, 80, 443, NULL, NULL, 1000, 'auto', 1, 0, '[]', 0, NULL, 4, 0, 8880, 'low_priority', '', 'low_priority', 0, 1000, 0, '["127.0.0.1"]', NULL, '[]', '[]', '[]', '["eth0"]', 0, 0, 0, 0, NULL, NULL, 0, 0, 0, 0, 0, 74, NULL, 0, 0, 1, NULL, NULL, NULL);
 
 CREATE TABLE IF NOT EXISTS `servers_stats` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -70263,7 +70262,6 @@ CREATE TABLE IF NOT EXISTS `streams_series` (
   `plex_uuid` varchar(256) DEFAULT '',
   `similar` mediumtext,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `tmdb_id` (`tmdb_id`),
   KEY `last_modified` (`last_modified`),
   FULLTEXT KEY `search` (`title`,`plot`,`cast`,`director`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
