@@ -61,7 +61,7 @@ function loadcli() {
                     }
                 }
             }
-            $db->query('UPDATE `servers` SET `status` = 1, `xc_vm_version` = ?, `xc_vm_revision` = ? WHERE `id` = ?;', XC_VM_VERSION, XC_VM_REVISION, SERVER_ID);
+            $db->query('UPDATE `servers` SET `status` = 1, `xc_vm_version` = ? WHERE `id` = ?;', XC_VM_VERSION, SERVER_ID);
             if (!CoreUtilities::$rServers[SERVER_ID]['is_main']) {
                 if (!file_exists('/etc/init.d/xc_vm')) {
                 } else {

@@ -49,12 +49,6 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 				CoreUtilities::$db->query('ALTER TABLE `servers` DROP INDEX `private_ip`;');
 			}
 
-			CoreUtilities::$db->query("SHOW INDEXES IN `streams_series` WHERE `key_name` = 'tmdb_id' AND `Non_unique` = 0;");
-
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `streams_series` DROP INDEX `tmdb_id`, ADD UNIQUE INDEX `tmdb_id` (`tmdb_id`);');
-			}
-
 			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'hide_failures';");
 
 			if (CoreUtilities::$db->num_rows() == 0) {
@@ -708,12 +702,6 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 
 			if (CoreUtilities::$db->num_rows() == 0) {
 				CoreUtilities::$db->query('ALTER TABLE `streams_series` ADD COLUMN `similar` MEDIUMTEXT NULL DEFAULT NULL;');
-			}
-
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'xc_vm_revision';");
-
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `servers` ADD COLUMN `xc_vm_revision` INT(2) NULL DEFAULT NULL;');
 			}
 
 			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'ffmpeg_cpu';");
@@ -1613,93 +1601,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 			shell_exec('sudo systemctl daemon-reload');
 		}
 
-		if (!file_exists(MAIN_HOME . 'includes/nhandler.php')) {
-		} else {
-			unlink(MAIN_HOME . 'includes/nhandler.php');
-		}
-
-		if (!file_exists(MAIN_HOME . 'includes/handler.php')) {
-		} else {
-			unlink(MAIN_HOME . 'includes/handler.php');
-		}
-
-		if (!file_exists(MAIN_HOME . 'includes/cli/closed_cons.php')) {
-		} else {
-			unlink(MAIN_HOME . 'includes/cli/closed_cons.php');
-		}
-
-		if (!file_exists(MAIN_HOME . 'includes/cli/connection_sync.php')) {
-		} else {
-			unlink(MAIN_HOME . 'includes/cli/connection_sync.php');
-		}
-
-		if (!file_exists(MAIN_HOME . 'includes/cli/aes.php')) {
-		} else {
-			unlink(MAIN_HOME . 'includes/cli/aes.php');
-		}
-
-		if (!file_exists(MAIN_HOME . 'bin/ffmpeg')) {
-		} else {
-			unlink(MAIN_HOME . 'bin/ffmpeg');
-		}
-
-		if (!file_exists(MAIN_HOME . 'bin/ffprobe')) {
-		} else {
-			unlink(MAIN_HOME . 'bin/ffprobe');
-		}
-
-		if (!file_exists(MAIN_HOME . 'www/c/') || is_link(MAIN_HOME . 'www/c')) {
-		} else {
-			shell_exec('sudo rm -rf ' . MAIN_HOME . 'www/c');
-		}
-
-		if (!file_exists(MAIN_HOME . 'ministra/new/')) {
-		} else {
-			shell_exec('sudo rm -rf ' . MAIN_HOME . 'ministra/new');
-		}
-
-		if (!file_exists(MAIN_HOME . 'bin/nginx/conf/cloudflare.conf')) {
-		} else {
-			unlink(MAIN_HOME . 'bin/nginx/conf/cloudflare.conf');
-		}
-
-		if (!file_exists(MAIN_HOME . 'bin/nginx/conf/blacklist.conf')) {
-		} else {
-			unlink(MAIN_HOME . 'bin/nginx/conf/blacklist.conf');
-		}
-
-		if (!file_exists(MAIN_HOME . 'bin/nginx/conf/cloudflare_ip')) {
-		} else {
-			unlink(MAIN_HOME . 'bin/nginx/conf/cloudflare_ip');
-		}
-
-		if (!file_exists(MAIN_HOME . 'bin/nginx/conf/ip_cdn.conf')) {
-		} else {
-			unlink(MAIN_HOME . 'bin/nginx/conf/ip_cdn.conf');
-		}
-
-		if (!file_exists(MAIN_HOME . 'bin/nginx/conf/ip_cloudflare.conf')) {
-		} else {
-			unlink(MAIN_HOME . 'bin/nginx/conf/ip_cloudflare.conf');
-		}
-
-		if (!file_exists(MAIN_HOME . 'bin/nginx/conf/ip_xc_vm.conf')) {
-		} else {
-			unlink(MAIN_HOME . 'bin/nginx/conf/ip_xc_vm.conf');
-		}
-
-		if (!file_exists(MAIN_HOME . 'admin/subreseller_setup.php')) {
-		} else {
-			unlink(MAIN_HOME . 'admin/subreseller_setup.php');
-		}
-
-		if (!file_exists(MAIN_HOME . 'admin/subresellers.php')) {
-		} else {
-			unlink(MAIN_HOME . 'admin/subresellers.php');
-		}
-
-		if (!$rServers[SERVER_ID]['is_main']) {
-		} else {
+		if ($rServers[SERVER_ID]['is_main']) {
 			foreach ($rServers as $rServerID => $rServerArray) {
 				CoreUtilities::$db->query('DELETE FROM `signals` WHERE `custom_data` = ?;', json_encode(array('action' => 'update_binaries')));
 				CoreUtilities::$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rServerID, time(), json_encode(array('action' => 'update_binaries')));
@@ -1762,10 +1664,9 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 		if (!$rFirstRun || $rServers[SERVER_ID]['is_main']) {
 			CoreUtilities::$db->query('UPDATE `servers` SET `is_main` = 0 WHERE `id` <> ?;', SERVER_ID);
 			CoreUtilities::$db->query('UPDATE `servers` SET `is_main` = 1 WHERE `id` = ?;', SERVER_ID);
-			CoreUtilities::$db->query('UPDATE `settings` SET `status_uuid` = ?;', md5(XC_VM_VERSION . ((XC_VM_REVISION ? 'R' . XC_VM_REVISION : ''))));
+			CoreUtilities::$db->query('UPDATE `settings` SET `status_uuid` = ?;', md5(XC_VM_VERSION));
 
-			if (!(stripos(CoreUtilities::$rSettings['server_name'], 'xtream') !== false || stripos(CoreUtilities::$rSettings['server_name'], 'zapx') !== false || stripos(CoreUtilities::$rSettings['server_name'], 'streamcreed') !== false)) {
-			} else {
+			if (stripos(CoreUtilities::$rSettings['server_name'], 'xtream') !== false || stripos(CoreUtilities::$rSettings['server_name'], 'zapx') !== false || stripos(CoreUtilities::$rSettings['server_name'], 'streamcreed') !== false) {
 				CoreUtilities::$db->query("UPDATE `settings` SET `server_name` = 'XC_VM';");
 			}
 
@@ -1776,8 +1677,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 			foreach (CoreUtilities::$db->get_rows() as $rRow) {
 				$rExists = file_exists(MAIN_HOME . 'bin/nginx/conf/codes/' . $rRow['code'] . '.conf');
 
-				if (!$rExists) {
-				} else {
+				if ($rExists) {
 					$Dc5a760abaff4c21++;
 				}
 
@@ -1835,7 +1735,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 			}
 		}
 
-		CoreUtilities::$db->query('UPDATE `servers` SET `xc_vm_version` = ?, `xc_vm_revision` = ? WHERE `id` = ?;', XC_VM_VERSION, XC_VM_REVISION, SERVER_ID);
+		CoreUtilities::$db->query('UPDATE `servers` SET `xc_vm_version` = ? WHERE `id` = ?;', XC_VM_VERSION, SERVER_ID);
 	} else {
 		exit(0);
 	}

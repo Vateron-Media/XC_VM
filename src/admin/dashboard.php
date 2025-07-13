@@ -273,7 +273,7 @@ include 'header.php';
 									<?php
 									}
 
-									if (empty(CoreUtilities::$rSettings['status_uuid']) || CoreUtilities::$rSettings['status_uuid'] != md5(XC_VM_VERSION . (XC_VM_REVISION ? 'R' . XC_VM_REVISION : ''))) {
+									if (empty(CoreUtilities::$rSettings['status_uuid']) || CoreUtilities::$rSettings['status_uuid'] != md5(XC_VM_VERSION)) {
 										$rHasError = true;
 									?>
 										<div class="timeline-item">

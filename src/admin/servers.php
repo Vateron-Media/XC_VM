@@ -143,8 +143,8 @@ include 'header.php';
                                             </td>
                                             <td class="text-center">
                                                 <button type="button"
-                                                    class="btn <?php echo ($rServer['xc_vm_version'] != $rServers[SERVER_ID]['xc_vm_version'] || $rServer['xc_vm_revision'] != $rServers[SERVER_ID]['xc_vm_revision']) ? 'btn-warning' : 'btn-light'; ?> btn-xs waves-effect waves-light">
-                                                    <?php echo $rServer['xc_vm_version'] ? $rServer['xc_vm_version'] . (isset($rServer['xc_vm_revision']) ? ' R' . $rServer['xc_vm_revision'] : '') : 'N/A'; ?>
+                                                    class="btn <?php echo ($rServer['xc_vm_version'] != $rServers[SERVER_ID]['xc_vm_version']) ? 'btn-warning' : 'btn-light'; ?> btn-xs waves-effect waves-light">
+                                                    <?php echo $rServer['xc_vm_version'] ? $rServer['xc_vm_version'] : 'N/A'; ?>
                                                 </button>
                                             </td>
                                             <td class="text-center">

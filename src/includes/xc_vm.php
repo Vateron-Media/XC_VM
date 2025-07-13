@@ -468,8 +468,7 @@ class CoreUtilities {
 		return '';
 	}
 	public static function saveLog($rType, $rMessage, $rExtra = '', $rLine = 0) {
-		if (!(stripos($rExtra, 'panel_logs') === false && stripos($rMessage, 'timeout exceeded') === false && stripos($rMessage, 'lock wait timeout') === false && stripos($rMessage, 'duplicate entry') === false)) {
-		} else {
+		if (stripos($rExtra, 'panel_logs') === false && stripos($rMessage, 'timeout exceeded') === false && stripos($rMessage, 'lock wait timeout') === false && stripos($rMessage, 'duplicate entry') === false) {
 			panelLog($rType, $rMessage, $rExtra, $rLine);
 		}
 	}
@@ -1092,7 +1091,7 @@ class CoreUtilities {
 							$rData = json_encode((object) $rOutput);
 						} else {
 							if (!empty($rDeviceInfo['device_header'])) {
-								$rAppend = ($rDeviceInfo['device_header'] == '#EXTM3U' ? "\n" . '#EXT-X-SESSION-DATA:DATA-ID="com.xc_vm.' . str_replace('.', '_', XC_VM_VERSION) . ((XC_VM_REVISION ? 'r' . XC_VM_REVISION : '')) . '"' : '');
+								$rAppend = ($rDeviceInfo['device_header'] == '#EXTM3U' ? "\n" . '#EXT-X-SESSION-DATA:DATA-ID="com.xc_vm.' . str_replace('.', '_', XC_VM_VERSION) . '"' : '');
 								$rData = str_replace(array('&lt;', '&gt;'), array('<', '>'), str_replace(array('{BOUQUET_NAME}', '{USERNAME}', '{PASSWORD}', '{SERVER_URL}', '{OUTPUT_KEY}'), array(self::$rSettings['server_name'], $rUserInfo['username'], $rUserInfo['password'], $rDomainName, $rOutputKey), $rDeviceInfo['device_header'] . $rAppend)) . "\n";
 								if ($rOutputFile) {
 									fwrite($rOutputFile, $rData);
@@ -4005,8 +4004,7 @@ class CoreUtilities {
 	public static function getNearest($arr, $search) {
 		$closest = null;
 		foreach ($arr as $item) {
-			if (!($closest === null || abs($item - $search) < abs($search - $closest))) {
-			} else {
+			if ($closest === null || abs($item - $search) < abs($search - $closest)) {
 				$closest = $item;
 			}
 		}
@@ -4016,7 +4014,7 @@ class CoreUtilities {
 		ini_set('default_socket_timeout', 60);
 		self::$db->query("SELECT `type`, `log_message`, `log_extra`, `line`, `date` FROM `panel_logs` WHERE `type` <> 'epg' GROUP BY CONCAT(`type`, `log_message`, `log_extra`) ORDER BY `date` DESC LIMIT 1000;");
 		$rAPI = 'https://xc_vm.com/report.php';
-		$rData = array('errors' => self::$db->get_rows(), 'version' => XC_VM_VERSION, 'revision' => XC_VM_REVISION);
+		$rData = array('errors' => self::$db->get_rows(), 'version' => XC_VM_VERSION);
 		$rPost = http_build_query($rData);
 		self::$db->query('TRUNCATE `panel_logs`;');
 		$ch = curl_init();
