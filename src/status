@@ -1362,8 +1362,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 
 			CoreUtilities::$db->query("SELECT * FROM `crontab` WHERE `filename` = 'redis_cache.php';");
 
-			if (CoreUtilities::$db->num_rows() != 1) {
-			} else {
+			if (CoreUtilities::$db->num_rows() == 1) {
 				CoreUtilities::$db->query("DELETE FROM `crontab` WHERE `filename` = 'redis_cache.php';");
 				unlink(MAIN_HOME . 'tmp/crontab');
 			}
@@ -1397,6 +1396,13 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 				CoreUtilities::$db->query("INSERT INTO `crontab` (`filename`, `time`, `enabled`) VALUES ('plex.php', '*/5 * * * *', 1);");
 				unlink(MAIN_HOME . 'tmp/crontab');
 			}
+
+			CoreUtilities::$db->query("SELECT * FROM `crontab` WHERE `filename` = 'license.php';");
+			if (CoreUtilities::$db->num_rows() == 1) {
+				CoreUtilities::$db->query("UPDATE `crontab` SET `filename`=' update.php' WHERE `filename`='license.php'");
+				unlink(MAIN_HOME . 'tmp/crontab');
+			}
+
 			CoreUtilities::$db->query("UPDATE `output_devices` SET `device_header` = REPLACE(`device_header`, ' reboot;', '') WHERE `device_filename` = 'iptv.sh' AND `device_header` LIKE '%reboot;';");
 			CoreUtilities::$db->query("CREATE TABLE IF NOT EXISTS `providers` (`id` INT(11) NOT NULL AUTO_INCREMENT, `name` VARCHAR(128) NULL DEFAULT NULL, `ip` VARCHAR(128) NULL DEFAULT NULL, `port` INT(5) NULL DEFAULT '80', `username` VARCHAR(128) NULL DEFAULT NULL, `password` VARCHAR(128) NULL DEFAULT NULL, `data` MEDIUMTEXT NULL DEFAULT NULL, `last_changed` INT(11) NULL DEFAULT NULL, `legacy` TINYINT(1) NULL DEFAULT '0', `enabled` TINYINT(1) NULL DEFAULT '1', `status` TINYINT(1) NULL DEFAULT '0', `ssl` TINYINT(1) NULL DEFAULT '0', `hls` TINYINT(1) NULL DEFAULT '0', PRIMARY KEY (`id`) USING BTREE) ENGINE=InnoDB AUTO_INCREMENT=1;");
 			CoreUtilities::$db->query('CREATE TABLE IF NOT EXISTS `providers_streams` (`id` INT(11) NOT NULL AUTO_INCREMENT, `type` VARCHAR(16) NULL DEFAULT NULL, `provider_id` INT(11) NULL DEFAULT NULL, `stream_id` INT(11) NULL DEFAULT NULL, `category_id` MEDIUMTEXT NULL DEFAULT NULL, `category_array` MEDIUMTEXT NULL DEFAULT NULL, `stream_display_name` MEDIUMTEXT NULL DEFAULT NULL, `stream_icon` MEDIUMTEXT NULL DEFAULT NULL, `channel_id` VARCHAR(255) NULL DEFAULT NULL, `added` INT(11) NULL DEFAULT NULL, `modified` INT(11) NULL DEFAULT NULL, PRIMARY KEY (`id`) USING BTREE, INDEX `channel_id` (`channel_id`) USING BTREE) ENGINE=InnoDB AUTO_INCREMENT=1;');

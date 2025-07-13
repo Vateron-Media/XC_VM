@@ -69050,7 +69050,7 @@ INSERT INTO `crontab` (`id`, `filename`, `time`, `enabled`) VALUES
 	(16, 'watch.php', '*/5 * * * *', 1),
 	(17, 'backups.php', '* * * * *', 1),
 	(18, 'streams_logs.php', '* * * * *', 1),
-	(19, 'license.php', '0 0 * * *', 1),
+	(19, 'update.php', '0 0 * * *', 1),
 	(20, 'cleanup.php', '0 * * * *', 1),
 	(22, 'certbot.php', '0 0 * * *', 1),
 	(24, 'cache_engine.php', '*/5 * * * *', 1),

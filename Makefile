@@ -45,7 +45,7 @@ LB_FILES_TO_REMOVE := \
 	www/admin/api.php \
 	config/rclone.conf \
 	crons/epg.php \
-	crons/license.php \
+	crons/update.php \
 	crons/providers.php \
 	crons/root_mysql.php \
 	crons/series.php \
