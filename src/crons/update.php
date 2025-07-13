@@ -9,6 +9,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
 
             require str_replace('\\', '/', dirname($argv[0])) . '/../www/init.php';
             $rUpdate = json_decode(str_replace('<', '&lt;', str_replace('>', '&gt;', file_get_contents('https://update.xc_vm.com/update.json', false, stream_context_create(array('http' => array('timeout' => 5)))))), true);
+            print_r($rUpdate);
             if (is_array($rUpdate) && $rUpdate['version'] && (0 < version_compare($rUpdate['version'], XC_VM_VERSION) || version_compare($rUpdate['version'], XC_VM_VERSION) == 0)) {
                 echo 'Update is available!' . "\n";
                 $updatedChanges = array();
@@ -20,7 +21,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                     }
                 }
                 $rUpdate['changelog'] = $updatedChanges;
-                // $db->query('UPDATE `settings` SET `update_data` = ?;', json_encode($rUpdate));
+                $db->query('UPDATE `settings` SET `update_data` = ?;', json_encode($rUpdate));
             } else {
                 $db->query('UPDATE `settings` SET `update_data` = NULL;');
             }
