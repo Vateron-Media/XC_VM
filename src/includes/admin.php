@@ -115,12 +115,10 @@ function getUserInfo($rUsername, $rPassword) {
 	global $db;
 	$db->query('SELECT `id`, `username`, `password`, `member_group_id`, `status` FROM `users` WHERE `username` = ? LIMIT 1;', $rUsername);
 
-	if ($db->num_rows() != 1) {
-	} else {
+	if ($db->num_rows() == 1) {
 		$rRow = $db->get_row();
 
-		if (cryptPassword($rPassword, $rRow['password']) != $rRow['password']) {
-		} else {
+		if (cryptPassword($rPassword, $rRow['password']) == $rRow['password']) {
 			return $rRow;
 		}
 	}
@@ -1978,7 +1976,7 @@ function getPermissions($rID) {
 		$rRow = $db->get_row();
 		$rRow['subresellers'] = json_decode($rRow['subresellers'], true);
 
-		if (count($rRow['subresellers']??[]) == 0) {
+		if (count($rRow['subresellers'] ?? []) == 0) {
 			$rRow['create_sub_resellers'] = 0;
 		}
 
@@ -2156,7 +2154,7 @@ function getPIDs($rServerID) {
 
 			$rTime = explode(':', $rTime);
 
-			if (count($rTime == 3)) {
+			if (count($rTime) == 3) {
 				$rSeconds = intval($rTime[0]) * 3600 + intval($rTime[1]) * 60 + intval($rTime[2]);
 			} else {
 				if (count($rTime) == 2) {
@@ -2180,7 +2178,7 @@ function getPIDs($rServerID) {
 
 			$rTime = explode(':', $rTime);
 
-			if (count($rTime == 3)) {
+			if (count($rTime) == 3) {
 				$rSeconds = intval($rTime[0]) * 3600 + intval($rTime[1]) * 60 + intval($rTime[2]);
 			} else {
 				if (count($rTime) == 2) {
@@ -2191,7 +2189,12 @@ function getPIDs($rServerID) {
 			}
 
 			$rUsage[1] = $rSeconds + $rDays * 86400;
-			$rUsage[2] = $rUsage[1] / $rUsage[0] * 100;
+			if ($rUsage[0] != 0) {
+				$rUsage[2] = $rUsage[1] / $rUsage[0] * 100;
+			} else {
+				$rUsage[2] = 0;
+			}
+
 			$rReturn[] = array('user' => $rSplit[0], 'pid' => $rSplit[1], 'cpu' => $rSplit[2], 'mem' => $rSplit[3], 'vsz' => $rSplit[4], 'rss' => $rSplit[5], 'tty' => $rSplit[6], 'stat' => $rSplit[7], 'time' => $rUsage[1], 'etime' => $rUsage[0], 'load_average' => $rUsage[2], 'command' => implode(' ', array_splice($rSplit, 10, count($rSplit) - 10)));
 		}
 	}
