@@ -4010,13 +4010,37 @@ class CoreUtilities {
 		}
 		return $closest;
 	}
+	/**
+	 * Submits the latest panel logs to the remote API server.
+	 *
+	 * - Fetches the latest 1000 unique non-EPG log records from the database.
+	 * - Sends them to the remote API endpoint `/logs` via POST request.
+	 * - If the response contains "status": "success", clears the local `panel_logs` table.
+	 *
+	 * @return string|false The API response if the request was sent, otherwise false.
+	 */
 	public static function submitPanelLogs() {
+		// Increase default socket timeout
 		ini_set('default_socket_timeout', 60);
+
+		// Get API IP address
+		$apiIP = self::getApiIP();
+		if ($apiIP === false) {
+			return false;
+		}
+
+		// Fetch logs from the database (excluding 'epg' type), limited to 1000 grouped by unique values
 		self::$db->query("SELECT `type`, `log_message`, `log_extra`, `line`, `date` FROM `panel_logs` WHERE `type` <> 'epg' GROUP BY CONCAT(`type`, `log_message`, `log_extra`) ORDER BY `date` DESC LIMIT 1000;");
-		$rAPI = 'https://xc_vm.com/report.php';
-		$rData = array('errors' => self::$db->get_rows(), 'version' => XC_VM_VERSION);
+
+		// Prepare API endpoint and payload
+		$rAPI = 'http://' . $apiIP . '/report';
+		$rData = array(
+			'errors'  => self::$db->get_rows(),
+			'version' => XC_VM_VERSION
+		);
 		$rPost = http_build_query($rData);
-		self::$db->query('TRUNCATE `panel_logs`;');
+
+		// Send POST request to the API
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, $rAPI);
 		curl_setopt($ch, CURLOPT_POST, true);
@@ -4024,8 +4048,20 @@ class CoreUtilities {
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
 		curl_setopt($ch, CURLOPT_TIMEOUT, 60);
-		return curl_exec($ch);
+		$response = curl_exec($ch);
+		curl_close($ch);
+
+		// If the API response is valid and contains "status": "success", clear the panel_logs table
+		if ($response !== false) {
+			$responseData = json_decode($response, true);
+			if (json_last_error() === JSON_ERROR_NONE && isset($responseData['status']) && $responseData['status'] === 'success') {
+				self::$db->query('TRUNCATE `panel_logs`;');
+			}
+		}
+
+		return $response;
 	}
+
 	public static function confirmIDs($rIDs) {
 		$rReturn = array();
 		foreach ($rIDs as $rID) {
@@ -4159,5 +4195,27 @@ class CoreUtilities {
 
 	public static function revokePrivileges($Host) {
 		self::$db->query("REVOKE ALL PRIVILEGES ON `" . self::$rConfig['database'] . "`.* FROM '" . self::$rConfig['username'] . "'@'" . $Host . "';");
+	}
+
+	/**
+	 * Retrieves the API IP address from a JSON source.
+	 *
+	 * @return string|false The API IP address if found, otherwise false.
+	 */
+	public static function getApiIP() {
+		$url = 'https://raw.githubusercontent.com/Vateron-Media/XC_VM_Update/refs/heads/main/api_server.json';
+
+		// Get the JSON content from the URL
+		$json = file_get_contents($url);
+		if ($json === false) {
+			return false;
+		}
+
+		// Decode the JSON into an associative array
+		$data = json_decode($json, true);
+		if (json_last_error() !== JSON_ERROR_NONE || empty($data['ip'])) {
+			return false;
+		}
+		return $data['ip'];
 	}
 }

@@ -55,17 +55,15 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 							<h5 class="card-title text-white">Update Available</h5>
 							<p>Official Release v
 								<?php
-								echo $rUpdate["version"] .
-									($rUpdate["revision"] ? " R" . intval($rUpdate["revision"]) : "");
+								echo $rUpdate["version"];
 								?> is now available to download. If you're interested, head over to the <a class="text-white"
 									href="<?= str_replace('" ', '"', $rUpdate["url"]) ?>"><strong>XC_VM Forum</strong></a>
 								for instructions on how to update.
-							</p>';
+							</p>
 							<?php
 							foreach ($rUpdate["changelog"] as $rItem) {
 								echo '<h5 class="card-title text-white mt-4">Changelog - v';
-								echo $rItem["version"] .
-									($rItem["revision"] ? " R" . intval($rItem["revision"]) : "");
+								echo $rItem["version"];
 								echo '</h5><ul>';
 
 								foreach ($rItem["changes"] as $rChange) {

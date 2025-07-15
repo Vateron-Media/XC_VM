@@ -9,8 +9,7 @@ if (!function_exists('getallheaders')) {
 		$rHeaders = array();
 
 		foreach ($_SERVER as $rName => $rValue) {
-			if (substr($rName, 0, 5) != 'HTTP_') {
-			} else {
+			if (substr($rName, 0, 5) == 'HTTP_') {
 				$rHeaders[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($rName, 5)))))] = $rValue;
 			}
 		}

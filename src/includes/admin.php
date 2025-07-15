@@ -85,6 +85,8 @@ $rServers = getStreamingServers();
 $rSettings = CoreUtilities::$rSettings;
 $rProxyServers = getProxyServers();
 
+$rUpdate = ['version' => "1.2.2"];
+
 uasort(
 	$rServers,
 	function ($a, $b) {
