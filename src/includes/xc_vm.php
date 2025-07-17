@@ -519,17 +519,13 @@ class CoreUtilities {
 		$rJSON['cpu_cores'] = intval(shell_exec('cat /proc/cpuinfo | grep "^processor" | wc -l'));
 		$rJSON['cpu_avg'] = round((sys_getloadavg()[0] * 100) / (($rJSON['cpu_cores'] ?: 1)), 2);
 		$rJSON['cpu_name'] = trim(shell_exec("cat /proc/cpuinfo | grep 'model name' | uniq | awk -F: '{print \$2}'"));
-		if (100 >= $rJSON['cpu_avg']) {
-		} else {
+		if ($rJSON['cpu_avg'] > 100) {
 			$rJSON['cpu_avg'] = 100;
 		}
-		$rFree = explode("\n", trim(shell_exec('free')));
-		$rMemory = preg_split('/[\\s]+/', $rFree[1]);
-		$rTotalUsed = intval($rMemory[2]);
-		$rTotalRAM = intval($rMemory[1]);
-		$rJSON['total_mem'] = $rTotalRAM;
-		$rJSON['total_mem_free'] = $rTotalRAM - $rTotalUsed;
-		$rJSON['total_mem_used'] = $rTotalUsed + self::getTotalTmpfs();
+		$rMemInfo = self::getMemory();
+		$rJSON['total_mem'] = $rMemInfo['total'];
+		$rJSON['total_mem_free'] = $rMemInfo['free'];
+		$rJSON['total_mem_used'] = $rMemInfo['used'] + self::getTotalTmpfs();
 		$rJSON['total_mem_used_percent'] = round($rJSON['total_mem_used'] / $rJSON['total_mem'] * 100, 2);
 		$rJSON['total_disk_space'] = disk_total_space(MAIN_HOME);
 		$rJSON['free_disk_space'] = disk_free_space(MAIN_HOME);
@@ -543,25 +539,20 @@ class CoreUtilities {
 		$rJSON['network_speed'] = 0;
 		$rJSON['interfaces'] = self::getNetworkInterfaces();
 		$rJSON['network_speed'] = 0;
-		if (100 >= $rJSON['cpu']) {
-		} else {
+		if ($rJSON['cpu'] > 100) {
 			$rJSON['cpu'] = 100;
 		}
-		if ($rJSON['total_mem'] >= $rJSON['total_mem_used']) {
-		} else {
+		if ($rJSON['total_mem'] < $rJSON['total_mem_used']) {
 			$rJSON['total_mem_used'] = $rJSON['total_mem'];
 		}
-		if (100 >= $rJSON['total_mem_used_percent']) {
-		} else {
+		if ($rJSON['total_mem_used_percent'] > 100) {
 			$rJSON['total_mem_used_percent'] = 100;
 		}
 		$rJSON['network_info'] = CoreUtilities::getNetwork((self::$rServers[SERVER_ID]['network_interface'] == 'auto' ? null : self::$rServers[SERVER_ID]['network_interface']));
 		foreach ($rJSON['network_info'] as $rInterface => $rData) {
-			if (!file_exists('/sys/class/net/' . $rInterface . '/speed')) {
-			} else {
+			if (file_exists('/sys/class/net/' . $rInterface . '/speed')) {
 				$NetSpeed = intval(file_get_contents('/sys/class/net/' . $rInterface . '/speed'));
-				if (!(0 < $NetSpeed && $rJSON['network_speed'] == 0)) {
-				} else {
+				if (0 < $NetSpeed && $rJSON['network_speed'] == 0) {
 					$rJSON['network_speed'] = $NetSpeed;
 				}
 			}
@@ -2945,14 +2936,11 @@ class CoreUtilities {
 		$rPacketSize = 188;
 		$rKeyframe = $rPosition = 0;
 		$rFoundStart = false;
-		if (!file_exists($rSegment)) {
-		} else {
+		if (file_exists($rSegment)) {
 			$rFP = fopen($rSegment, 'rb');
-			if (!$rFP) {
-			} else {
+			if ($rFP) {
 				while (!feof($rFP)) {
-					if ($rFoundStart) {
-					} else {
+					if (!$rFoundStart) {
 						$rFirstPacket = fread($rFP, $rPacketSize);
 						$rSecondPacket = fread($rFP, $rPacketSize);
 						$i = 0;
@@ -2970,21 +2958,17 @@ class CoreUtilities {
 						}
 					}
 					$rBuffer .= fread($rFP, $rPacketSize * 64 - strlen($rBuffer));
-					if (empty($rBuffer)) {
-					} else {
+					if (!empty($rBuffer)) {
 						foreach (str_split($rBuffer, $rPacketSize) as $rPacket) {
 							list(, $rHeader) = unpack('N', substr($rPacket, 0, 4));
 							$rSync = $rHeader >> 24 & 255;
-							if ($rSync != 71) {
-							} else {
+							if ($rSync == 71) {
 								if (substr($rPacket, 6, 4) == '?' . '' . "\r" . '' . '' . '' . "\x01") {
 									$rKeyframe = $rPosition;
 								} else {
 									$rAdaptationField = $rHeader >> 4 & 3;
-									if (($rAdaptationField & 2) !== 2) {
-									} else {
-										if (!(0 < $rKeyframe && unpack('C', $rPacket[4])[1] == 7 && substr($rPacket, 4, 2) == "\x07" . 'P')) {
-										} else {
+									if (($rAdaptationField & 2) === 2) {
+										if (0 < $rKeyframe && unpack('C', $rPacket[4])[1] == 7 && substr($rPacket, 4, 2) == "\x07" . 'P') {
 											break;
 										}
 									}
@@ -3008,8 +2992,7 @@ class CoreUtilities {
 		if (file_exists($rPath)) {
 			switch ($rType) {
 				case 'movie':
-					if (is_null($rForceDuration)) {
-					} else {
+					if (!is_null($rForceDuration)) {
 						sscanf($rForceDuration, '%d:%d:%d', $rHours, $rMinutes, $rSeconds);
 						$rTime = (isset($rSeconds) ? $rHours * 3600 + $rMinutes * 60 + $rSeconds : $rHours * 60 + $rMinutes);
 						$rBitrate = round((filesize($rPath) * 0.008) / (($rTime ?: 1)));
@@ -3020,8 +3003,7 @@ class CoreUtilities {
 					$rBitrates = array();
 					while (!feof($rFP)) {
 						$rLine = trim(fgets($rFP));
-						if (!stristr($rLine, 'EXTINF')) {
-						} else {
+						if (stristr($rLine, 'EXTINF')) {
 							list($rTrash, $rSeconds) = explode(':', $rLine);
 							$rSeconds = rtrim($rSeconds, ',');
 							if ($rSeconds > 0) {
@@ -3050,8 +3032,7 @@ class CoreUtilities {
 				$rGeoIP = new MaxMind\Db\Reader(GEOISP_BIN);
 				$rResponse = $rGeoIP->get($rIP);
 				$rGeoIP->close();
-				if (!$rResponse) {
-				} else {
+				if ($rResponse) {
 					file_put_contents(CONS_TMP_PATH . md5($rIP) . '_isp', json_encode($rResponse));
 				}
 				return $rResponse;
@@ -3062,8 +3043,7 @@ class CoreUtilities {
 	}
 	public static function checkISP($rConISP) {
 		foreach (self::$rBlockedISP as $rISP) {
-			if (strtolower($rConISP) != strtolower($rISP['isp'])) {
-			} else {
+			if (strtolower($rConISP) == strtolower($rISP['isp'])) {
 				return intval($rISP['blocked']);
 			}
 		}
@@ -3078,8 +3058,7 @@ class CoreUtilities {
 				$rGeoIP = new MaxMind\Db\Reader(GEOLITE2_BIN);
 				$rResponse = $rGeoIP->get($rIP);
 				$rGeoIP->close();
-				if (!$rResponse) {
-				} else {
+				if ($rResponse) {
 					file_put_contents(CONS_TMP_PATH . md5($rIP) . '_geo2', json_encode($rResponse));
 				}
 				return $rResponse;
@@ -3131,20 +3110,16 @@ class CoreUtilities {
 		return $rReturn;
 	}
 	public static function downloadImage($rImage, $rType = null) {
-		if (!(0 < strlen($rImage) && substr(strtolower($rImage), 0, 4) == 'http')) {
-		} else {
+		if (0 < strlen($rImage) && substr(strtolower($rImage), 0, 4) == 'http') {
 			$rPathInfo = pathinfo($rImage);
 			$rExt = $rPathInfo['extension'];
-			if ($rExt) {
-			} else {
+			if (!$rExt) {
 				$rImageInfo = getimagesize($rImage);
-				if (!$rImageInfo['mime']) {
-				} else {
+				if ($rImageInfo['mime']) {
 					list(, $rExt) = explode('/', $rImageInfo['mime']);
 				}
 			}
-			if (!in_array(strtolower($rExt), array('jpg', 'jpeg', 'png'))) {
-			} else {
+			if (in_array(strtolower($rExt), array('jpg', 'jpeg', 'png'))) {
 				$rFilename = CoreUtilities::encryptData($rImage, self::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 				$rPrevPath = IMAGES_PATH . $rFilename . '.' . $rExt;
 				if (file_exists($rPrevPath)) {
@@ -3156,12 +3131,10 @@ class CoreUtilities {
 				curl_setopt($rCurl, CURLOPT_CONNECTTIMEOUT, 5);
 				curl_setopt($rCurl, CURLOPT_TIMEOUT, 5);
 				$rData = curl_exec($rCurl);
-				if (0 >= strlen($rData)) {
-				} else {
+				if (strlen($rData) > 0) {
 					$rPath = IMAGES_PATH . $rFilename . '.' . $rExt;
 					file_put_contents($rPath, $rData);
-					if (!file_exists($rPath)) {
-					} else {
+					if (file_exists($rPath)) {
 						return 's:' . SERVER_ID . ':/images/' . $rFilename . '.' . $rExt;
 					}
 				}
@@ -3170,12 +3143,10 @@ class CoreUtilities {
 		return $rImage;
 	}
 	public static function getImageSizeKeepAspectRatio($origWidth, $origHeight, $maxWidth, $maxHeight) {
-		if ($maxWidth != 0) {
-		} else {
+		if ($maxWidth == 0) {
 			$maxWidth = $origWidth;
 		}
-		if ($maxHeight != 0) {
-		} else {
+		if ($maxHeight == 0) {
 			$maxHeight = $origHeight;
 		}
 		$widthRatio = $maxWidth / (($origWidth ?: 1));
@@ -4217,5 +4188,35 @@ class CoreUtilities {
 			return false;
 		}
 		return $data['ip'];
+	}
+	public static function getMemory() {
+		try {
+			$rFree = explode("\n", file_get_contents('/proc/meminfo'));
+			$rMemory = array();
+
+			foreach ($rFree as $rLine) {
+				if (empty($rLine)) continue;
+
+				// PHP 8 fix: Better string parsing
+				$rParts = preg_split('/\s+/', trim($rLine));
+				if (count($rParts) >= 2) {
+					$rKey = rtrim($rParts[0], ':');
+					$rValue = intval($rParts[1]);
+					$rMemory[$rKey] = $rValue;
+				}
+			}
+
+			if (isset($rMemory['MemTotal'], $rMemory['MemAvailable'])) {
+				return array(
+					'total' => $rMemory['MemTotal'],
+					'free' => $rMemory['MemAvailable'],
+					'used' => $rMemory['MemTotal'] - $rMemory['MemAvailable']
+				);
+			}
+
+			return array('total' => 0, 'free' => 0, 'used' => 0);
+		} catch (Exception $e) {
+			return array('total' => 0, 'free' => 0, 'used' => 0);
+		}
 	}
 }

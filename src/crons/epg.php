@@ -13,7 +13,12 @@ class EPG {
 		$rOutput = [];
 
 		while (($rNode = $this->rEPGSource->getNode())) {
-			$rData = simplexml_load_string($rNode);
+			// PHP 8 fix: Add proper error handling for XML parsing
+			try {
+				$rData = simplexml_load_string($rNode, 'SimpleXMLElement', LIBXML_NOCDATA | LIBXML_NOERROR | LIBXML_NOWARNING);
+			} catch (Exception $e) {
+				continue;
+			}
 
 			if ($rData) {
 				if ($rData->getName() == 'channel') {
@@ -33,10 +38,12 @@ class EPG {
 
 					if (array_key_exists($rChannelID, $rOutput)) {
 						$rTitles = $rData->title;
-						foreach ($rTitles as $rTitle) {
-							$rLang = (string) $rTitle->attributes()->lang;
-							if ((!in_array($rLang, $rOutput[$rChannelID]['langs']) && !empty($rLang))) {
-								$rOutput[$rChannelID]['langs'][] = $rLang;
+						if ($rTitles) {
+							foreach ($rTitles as $rTitle) {
+								$rLang = (string) $rTitle->attributes()->lang;
+								if ((!in_array($rLang, $rOutput[$rChannelID]['langs']) && !empty($rLang))) {
+									$rOutput[$rChannelID]['langs'][] = $rLang;
+								}
 							}
 						}
 					}
@@ -51,18 +58,27 @@ class EPG {
 		$rInsertQuery = array();
 
 		while ($rNode = $this->rEPGSource->getNode()) {
-			$rData = simplexml_load_string($rNode);
+			// PHP 8 fix: Add proper error handling for XML parsing
+			try {
+				$rData = simplexml_load_string($rNode, 'SimpleXMLElement', LIBXML_NOCDATA | LIBXML_NOERROR | LIBXML_NOWARNING);
+			} catch (Exception $e) {
+				continue;
+			}
 
-			if (!$rData) {
-			} else {
-				if ($rData->getName() != 'programme') {
-				} else {
+			if ($rData) {
+				if ($rData->getName() == 'programme') {
 					$rChannelID = (string) $rData->attributes()->channel;
 
 					if (array_key_exists($rChannelID, $rChannelInfo)) {
 						$rLangTitle = $rLangDesc = '';
-						$rStart = strtotime(strval($rData->attributes()->start)) + $rOffset * 60;
-						$rStop = strtotime(strval($rData->attributes()->stop)) + $rOffset * 60;
+
+						// PHP 8 fix: Improved datetime parsing
+						try {
+							$rStart = strtotime(strval($rData->attributes()->start)) + $rOffset * 60;
+							$rStop = strtotime(strval($rData->attributes()->stop)) + $rOffset * 60;
+						} catch (Exception $e) {
+							continue;
+						}
 
 						if (!empty($rData->title)) {
 							$rTitles = $rData->title;
@@ -71,51 +87,52 @@ class EPG {
 								$rFound = false;
 
 								foreach ($rTitles as $rTitle) {
-									if ($rTitle->attributes()->lang != $rChannelInfo[$rChannelID]['epg_lang']) {
-									} else {
+									if ($rTitle->attributes()->lang == $rChannelInfo[$rChannelID]['epg_lang']) {
 										$rFound = true;
 										$rLangTitle = $rTitle;
-
 										break;
 									}
 								}
 
-								if ($rFound) {
-								} else {
+								if (!$rFound && isset($rTitles[0])) {
 									$rLangTitle = $rTitles[0];
 								}
 							} else {
 								$rLangTitle = $rTitles;
 							}
-
-							if (empty($rData->desc)) {
-							} else {
-								$rDescriptions = $rData->desc;
-
-								if (is_object($rDescriptions)) {
-									$rFound = false;
-
-									foreach ($rDescriptions as $rDescription) {
-										if ($rDescription->attributes()->lang != $rChannelInfo[$rChannelID]['epg_lang']) {
-										} else {
-											$rFound = true;
-											$rLangDesc = $rDescription;
-
-											break;
-										}
-									}
-
-									if ($rFound) {
-									} else {
-										$rLangDesc = $rDescriptions[0];
-									}
-								} else {
-									$rLangDesc = $rData->desc;
-								}
-							}
-
-							$rInsertQuery[$rChannelID][] = array('epg_id' => $rEPGID, 'start' => $rStart, 'stop' => $rStop, 'lang' => $rChannelInfo[$rChannelID]['epg_lang'], 'title' => strval($rLangTitle), 'description' => strval($rLangDesc));
 						}
+
+						if (!empty($rData->desc)) {
+							$rDescriptions = $rData->desc;
+
+							// PHP 8 fix: Better object/array handling
+							if (is_object($rDescriptions)) {
+								$rFound = false;
+
+								foreach ($rDescriptions as $rDescription) {
+									if ($rDescription->attributes()->lang != $rChannelInfo[$rChannelID]['epg_lang']) {
+										$rFound = true;
+										$rLangDesc = $rDescription;
+										break;
+									}
+								}
+
+								if (!$rFound && isset($rDescriptions[0])) {
+									$rLangDesc = $rDescriptions[0];
+								}
+							} else {
+								$rLangDesc = $rData->desc;
+							}
+						}
+
+						$rInsertQuery[$rChannelID][] = array(
+							'epg_id' => $rEPGID,
+							'start' => $rStart,
+							'stop' => $rStop,
+							'lang' => $rChannelInfo[$rChannelID]['epg_lang'],
+							'title' => strval($rLangTitle),
+							'description' => strval($rLangDesc)
+						);
 					}
 				}
 			}
@@ -131,15 +148,17 @@ class EPG {
 		if ($rExtension == 'gz') {
 			$rDecompress = ' | gunzip -c';
 		} else {
-			if ($rExtension != 'xz') {
-			} else {
+			if ($rExtension == 'xz') {
 				$rDecompress = ' | unxz -c';
 			}
 		}
 
-		shell_exec('wget -U "Mozilla/5.0" -O - "' . $rSource . '"' . $rDecompress . ' > ' . $rFilename);
+		// PHP 8 fix: Improved command execution with better error handling
+		$rCommand = 'wget -U "Mozilla/5.0" --timeout=30 --tries=3 -O - ' . escapeshellarg($rSource) . $rDecompress . ' > ' . escapeshellarg($rFilename) . ' 2>&1';
 
-		if (!(file_exists($rFilename) && 0 < filesize($rFilename))) {
+		$rResult = shell_exec($rCommand);
+
+		if (!(file_exists($rFilename) && filesize($rFilename) > 0)) {
 			return false;
 		}
 
@@ -151,12 +170,22 @@ class EPG {
 			$this->rFilename = TMP_PATH . md5($rSource) . '.xml';
 
 			if (file_exists($this->rFilename) && $rCache) {
+				// Use cached file
 			} else {
-				$this->downloadFile($rSource, $this->rFilename);
+				if (!$this->downloadFile($rSource, $this->rFilename)) {
+					CoreUtilities::saveLog('epg', 'Failed to download EPG source: ' . $rSource);
+					return;
+				}
 			}
 
-			if ($this->rFilename) {
-				$rXML = XmlStringStreamer::createStringWalkerParser($this->rFilename);
+			if ($this->rFilename && file_exists($this->rFilename)) {
+				// PHP 8 fix: Better XML streaming with error handling
+				try {
+					$rXML = XmlStringStreamer::createStringWalkerParser($this->rFilename);
+				} catch (Exception $e) {
+					CoreUtilities::saveLog('epg', 'XML Parser error for: ' . $rSource . ' - ' . $e->getMessage());
+					return;
+				}
 
 				if ($rXML) {
 					$this->rEPGSource = $rXML;
@@ -168,7 +197,7 @@ class EPG {
 				CoreUtilities::saveLog('epg', 'No XML found at: ' . $rSource);
 			}
 		} catch (Exception $e) {
-			CoreUtilities::saveLog('epg', 'EPG failed to process: ' . $rSource);
+			CoreUtilities::saveLog('epg', 'EPG failed to process: ' . $rSource . ' - ' . $e->getMessage());
 		}
 	}
 }
