@@ -8,3 +8,7 @@
 ## Build
 
 - [Binaries](build_binaries.md)
+
+## Update
+
+- [Panel update](update.md)
