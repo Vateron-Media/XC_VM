@@ -58,10 +58,10 @@ include 'header.php'; ?>
                                                             <option <?php if (empty($rUserInfo['timezone'])) {
                                                                         echo 'selected ';
                                                                     } ?>value="">Server Default</option>
-                                                            <?php foreach ($rTimeZones as $rValue => $rText) { ?>
-                                                                <option <?php if ($rUserInfo['timezone'] == $rValue) {
+                                                            <?php foreach (TimeZoneList() as $rValue) { ?>
+                                                                <option <?php if ($rUserInfo['timezone'] == $rValue['zone']) {
                                                                             echo 'selected ';
-                                                                        } ?>value="<?php echo $rValue; ?>"><?php echo $rText; ?></option>
+                                                                        } ?>value="<?php echo $rValue['zone']; ?>"><?php echo $rValue['zone'] . " " . $rValue['diff_from_GMT']; ?></option>
                                                             <?php } ?>
                                                         </select>
                                                     </div>

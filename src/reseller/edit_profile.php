@@ -34,18 +34,17 @@ if (!empty($rUserInfo['timezone'])) {
 
 echo ' value="">Server Default</option>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
 
-foreach ($rTimeZones as $rValue => $rText) {
+foreach (TimeZoneList() as $rValue) {
 	echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<option ';
 
-	if ($rUserInfo['timezone'] != $rValue) {
-	} else {
+	if ($rUserInfo['timezone'] == $rValue['zone']) {
 		echo 'selected ';
 	}
 
 	echo 'value="';
-	echo $rValue;
+	echo $rValue['zone'];
 	echo '">';
-	echo $rText;
+	echo $rValue['zone'] . " " . $rValue['diff_from_GMT'];
 	echo '</option>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
 }
 echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</select>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n" . '                                                <div class="form-group row mb-4">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="theme">System Theme</label>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<select name="theme" id="theme" class="form-control" data-toggle="select2">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
