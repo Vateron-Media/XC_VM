@@ -154,17 +154,17 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 													<select name="default_timezone" id="default_timezone"
 														class="form-control" data-toggle="select2">
 														<?php
-														foreach ($rTimeZones as $rValue => $rText) {
+														foreach (TimeZoneList() as $rValue) {
 															echo '<option ';
 
-															if ($rSettings["default_timezone"] == $rValue) {
+															if ($rSettings["default_timezone"] == $rValue['zone']) {
 																echo ' selected ';
 															}
 
 															echo ' value="';
-															echo $rValue;
+															echo $rValue['zone'];
 															echo '">';
-															echo $rText;
+															echo $rValue['zone'] . " " . $rValue['diff_from_GMT'];
 															echo '</option>';
 														}
 														echo '</select></div>
