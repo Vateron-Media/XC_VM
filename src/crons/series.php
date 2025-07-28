@@ -21,22 +21,18 @@ function loadCron() {
     }
     $db->query('UPDATE `settings` SET `cc_time` = ?;', time());
     $db->query('SELECT `id`, `stream_display_name`, `series_no`, `stream_source` FROM `streams` WHERE `type` = 3 AND `series_no` <> 0;');
-    if (0 >= $db->num_rows()) {
-    } else {
+    if ($db->num_rows() > 0) {
         foreach ($db->get_rows() as $rRow) {
             $rPlaylist = generateSeriesPlaylist(intval($rRow['series_no']));
-            if (!$rPlaylist['success']) {
-            } else {
+            if ($rPlaylist['success']) {
                 $rSourceArray = json_decode($rRow['stream_source'], true);
-                $rUpdate = false;
+                $UpdateSeries = false;
                 foreach ($rPlaylist['sources'] as $rSource) {
-                    if (in_array($rSource, $rSourceArray)) {
-                    } else {
-                        $rUpdate = true;
+                    if (!in_array($rSource, $rSourceArray)) {
+                        $UpdateSeries = true;
                     }
                 }
-                if (!$rUpdate) {
-                } else {
+                if ($UpdateSeries) {
                     $db->query('UPDATE `streams` SET `stream_source` = ? WHERE `id` = ?;', json_encode($rPlaylist['sources'], JSON_UNESCAPED_UNICODE), $rRow['id']);
                     echo 'Updated: ' . $rRow['stream_display_name'] . "\n";
                 }
