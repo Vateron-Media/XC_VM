@@ -222,10 +222,10 @@ function preparecolumn($rValue) {
     return strtolower(preg_replace('/[^a-z0-9_]+/i', '', $rValue));
 }
 function prepareArray($rArray) {
-    $rUpdate = $rColumns = $rPlaceholder = $rData = array();
+    $UpdateData = $rColumns = $rPlaceholder = $rData = array();
     foreach (array_keys($rArray) as $rKey) {
         $rColumns[] = '`' . preparecolumn($rKey) . '`';
-        $rUpdate[] = '`' . preparecolumn($rKey) . '` = ?';
+        $UpdateData[] = '`' . preparecolumn($rKey) . '` = ?';
     }
     foreach (array_values($rArray) as $rValue) {
         if (!is_array($rValue)) {
@@ -235,7 +235,7 @@ function prepareArray($rArray) {
         $rPlaceholder[] = '?';
         $rData[] = $rValue;
     }
-    return array('placeholder' => implode(',', $rPlaceholder), 'columns' => implode(',', $rColumns), 'data' => $rData, 'update' => implode(',', $rUpdate));
+    return array('placeholder' => implode(',', $rPlaceholder), 'columns' => implode(',', $rColumns), 'data' => $rData, 'update' => implode(',', $UpdateData));
 }
 function verifyPostTable($rTable, $rData = array(), $rOnlyExisting = false) {
     global $db;

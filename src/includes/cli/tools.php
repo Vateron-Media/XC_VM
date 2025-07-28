@@ -142,32 +142,32 @@ function loadcli() {
             if (0 >= $db->num_rows()) {
             } else {
                 foreach ($db->get_rows() as $rBouquet) {
-                    $rUpdate = array(array(), array(), array(), array());
+                    $UpdateData = array(array(), array(), array(), array());
                     foreach (json_decode($rBouquet['bouquet_channels'], true) as $rID) {
                         if (!(0 < intval($rID) && in_array(intval($rID), $rStreamIDs[0]))) {
                         } else {
-                            $rUpdate[0][] = intval($rID);
+                            $UpdateData[0][] = intval($rID);
                         }
                     }
                     foreach (json_decode($rBouquet['bouquet_movies'], true) as $rID) {
                         if (!(0 < intval($rID) && in_array(intval($rID), $rStreamIDs[0]))) {
                         } else {
-                            $rUpdate[1][] = intval($rID);
+                            $UpdateData[1][] = intval($rID);
                         }
                     }
                     foreach (json_decode($rBouquet['bouquet_radios'], true) as $rID) {
                         if (!(0 < intval($rID) && in_array(intval($rID), $rStreamIDs[0]))) {
                         } else {
-                            $rUpdate[2][] = intval($rID);
+                            $UpdateData[2][] = intval($rID);
                         }
                     }
                     foreach (json_decode($rBouquet['bouquet_series'], true) as $rID) {
                         if (!(0 < intval($rID) && in_array(intval($rID), $rStreamIDs[1]))) {
                         } else {
-                            $rUpdate[3][] = intval($rID);
+                            $UpdateData[3][] = intval($rID);
                         }
                     }
-                    $db->query("UPDATE `bouquets` SET `bouquet_channels` = '[" . implode(',', array_map('intval', $rUpdate[0])) . "]', `bouquet_movies` = '[" . implode(',', array_map('intval', $rUpdate[1])) . "]', `bouquet_radios` = '[" . implode(',', array_map('intval', $rUpdate[2])) . "]', `bouquet_series` = '[" . implode(',', array_map('intval', $rUpdate[3])) . "]' WHERE `id` = ?;", $rBouquet['id']);
+                    $db->query("UPDATE `bouquets` SET `bouquet_channels` = '[" . implode(',', array_map('intval', $UpdateData[0])) . "]', `bouquet_movies` = '[" . implode(',', array_map('intval', $UpdateData[1])) . "]', `bouquet_radios` = '[" . implode(',', array_map('intval', $UpdateData[2])) . "]', `bouquet_series` = '[" . implode(',', array_map('intval', $UpdateData[3])) . "]' WHERE `id` = ?;", $rBouquet['id']);
                 }
             }
             break;

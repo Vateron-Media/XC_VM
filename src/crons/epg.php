@@ -473,9 +473,9 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
 						unset($rRow['id']);
 						$rChannels[$rRow['channel_id']] = $rRow;
 					}
-					$rUpdate = $rEPG->parseEPG($rData['epg_id'], $rChannels, (intval($rData['offset']) ?: 0));
+					$UpdateEPG = $rEPG->parseEPG($rData['epg_id'], $rChannels, (intval($rData['offset']) ?: 0));
 
-					foreach ($rUpdate as $rChannelID => $rResults) {
+					foreach ($UpdateEPG as $rChannelID => $rResults) {
 						$rStreamIDs = ($rStreamMap[$rChannelID] ?: array());
 
 						foreach ($rStreamIDs as $rStreamID) {

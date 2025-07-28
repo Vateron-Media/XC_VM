@@ -34,14 +34,11 @@ function loadcli() {
     $rPHPUpdated = $rUpdated = false;
     exec('sudo lsb_release -r -s', $osReleaseVersion);
     $rAPI = json_decode(file_get_contents(($rBaseURL . '?version=' . XC_VM_VERSION . '&ubv=' . floatval($osReleaseVersion[0]) ?: '')), true);
-    if (!is_array($rAPI)) {
-    } else {
+    if (is_array($rAPI)) {
         foreach ($rAPI['files'] as $rFile) {
-            if (file_exists($rFile['path']) && md5_file($rFile['path']) == $rFile['md5']) {
-            } else {
+            if (!(file_exists($rFile['path']) && md5_file($rFile['path']) == $rFile['md5'])) {
                 $rFolderPath = pathinfo($rFile['path'])['dirname'] . '/';
-                if (file_exists($rFolderPath)) {
-                } else {
+                if (!file_exists($rFolderPath)) {
                     shell_exec('sudo mkdir -p "' . $rFolderPath . '"');
                 }
                 $ch = curl_init();
@@ -51,28 +48,24 @@ function loadcli() {
                 curl_setopt($ch, CURLOPT_TIMEOUT, 300);
                 $rData = curl_exec($ch);
                 $rMD5 = md5($rData);
-                if ($rFile['md5'] != $rMD5) {
-                } else {
+                if ($rFile['md5'] == $rMD5) {
                     echo 'Updated binary: ' . $rFile['path'] . "\n";
                     shell_exec('sudo rm -rf "' . $rFile['path'] . '"');
                     file_put_contents($rFile['path'], $rData);
                     shell_exec('sudo chown xc_vm:xc_vm "' . $rFile['path'] . '"');
                     shell_exec('sudo chmod ' . $rPermissions . ' "' . $rFile['path'] . '"');
                     $rUpdated = true;
-                    if (substr(basename($rFile['path']), 0, 3) != 'php') {
-                    } else {
+                    if (substr(basename($rFile['path']), 0, 3) == 'php') {
                         $rPHPUpdated = true;
                     }
                 }
             }
         }
     }
-    if (!$rUpdated) {
-    } else {
+    if ($rUpdated) {
         shell_exec('sudo chown -R xc_vm:xc_vm "' . $rBaseDir . '"');
     }
-    if (!$rPHPUpdated) {
-    } else {
+    if ($rPHPUpdated) {
         $rVersion = (array(72 => '7.2', 74 => '7.4')[CoreUtilities::$rServers[SERVER_ID]['php_version']] ?: '7.4');
         shell_exec('sudo ln -sfn ' . PHP_BIN . '_' . $rVersion . ' ' . PHP_BIN);
         shell_exec('sudo ln -sfn ' . BIN_PATH . 'php/sbin/php-fpm_' . $rVersion . ' ' . BIN_PATH . 'php/sbin/php-fpm');
@@ -82,8 +75,7 @@ function loadcli() {
 }
 function shutdown() {
     global $db;
-    if (!is_object($db)) {
-    } else {
+    if (is_object($db)) {
         $db->close_mysql();
     }
 }

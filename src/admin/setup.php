@@ -222,10 +222,7 @@ if (!isset(CoreUtilities::$rRequest['update'])) {
                                                 as XC_VM will have access to it.<br /><br />The script will then loop through all of
                                                 your previously existing data and alter it to work with XC_VM. No logs will be
                                                 migrated and some clean up may need to be done post-migration but this tool should
-                                                help significantly in carrying over your data to your new panel.<br /><br />For
-                                                instructions visit the <a
-                                                    href="https://xc_vm.com/billing/index.php?rp=/knowledgebase/3">XC_VM FAQ
-                                                    here</a>.<br /><br />Once you're done, refresh the page.
+                                                help significantly in carrying over your data to your new panel.<br /><br /><br />Once you're done, refresh the page.
                                             </div>
                                             <?php if (!$rMigrateConnection) { ?>
                                                 <div class="alert alert-danger mb-4" role="alert">

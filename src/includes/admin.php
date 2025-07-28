@@ -822,20 +822,19 @@ function preparecolumn($rValue) {
 }
 
 function prepareArray($rArray) {
-	$rUpdate = $rColumns = $rPlaceholder = $rData = array();
+	$UpdateData = $rColumns = $rPlaceholder = $rData = array();
 
 
 	foreach (array_keys($rArray) as $rKey) {
 		$rColumns[] = '`' . preparecolumn($rKey) . '`';
-		$rUpdate[] = '`' . preparecolumn($rKey) . '` = ?';
+		$UpdateData[] = '`' . preparecolumn($rKey) . '` = ?';
 	}
 
 	foreach (array_values($rArray) as $rValue) {
 		if (is_array($rValue)) {
 			$rValue = json_encode($rValue, JSON_UNESCAPED_UNICODE);
 		} else {
-			if (!(is_null($rValue) || strtolower($rValue) == 'null')) {
-			} else {
+			if (is_null($rValue) || strtolower($rValue) == 'null') {
 				$rValue = null;
 			}
 		}
@@ -844,7 +843,7 @@ function prepareArray($rArray) {
 		$rData[] = $rValue;
 	}
 
-	return array('placeholder' => implode(',', $rPlaceholder), 'columns' => implode(',', $rColumns), 'data' => $rData, 'update' => implode(',', $rUpdate));
+	return array('placeholder' => implode(',', $rPlaceholder), 'columns' => implode(',', $rColumns), 'data' => $rData, 'update' => implode(',', $UpdateData));
 }
 
 function setArgs($rArgs, $rGet = true) {
@@ -4296,36 +4295,32 @@ function scanBouquet($rID) {
 			}
 		}
 
-		$rUpdate = array(array(), array(), array(), array());
+		$UpdateData = array(array(), array(), array(), array());
 
 		foreach (json_decode($rBouquet['bouquet_channels'], true) as $rID) {
-			if (!(0 < intval($rID) && in_array(intval($rID), $rStreamIDs[0]))) {
-			} else {
-				$rUpdate[0][] = intval($rID);
+			if (0 < intval($rID) && in_array(intval($rID), $rStreamIDs[0])) {
+				$UpdateData[0][] = intval($rID);
 			}
 		}
 
 		foreach (json_decode($rBouquet['bouquet_movies'], true) as $rID) {
-			if (!(0 < intval($rID) && in_array(intval($rID), $rStreamIDs[0]))) {
-			} else {
-				$rUpdate[1][] = intval($rID);
+			if (0 < intval($rID) && in_array(intval($rID), $rStreamIDs[0])) {
+				$UpdateData[1][] = intval($rID);
 			}
 		}
 
 		foreach (json_decode($rBouquet['bouquet_radios'], true) as $rID) {
-			if (!(0 < intval($rID) && in_array(intval($rID), $rStreamIDs[0]))) {
-			} else {
-				$rUpdate[2][] = intval($rID);
+			if (0 < intval($rID) && in_array(intval($rID), $rStreamIDs[0])) {
+				$UpdateData[2][] = intval($rID);
 			}
 		}
 
 		foreach (json_decode($rBouquet['bouquet_series'], true) as $rID) {
-			if (!in_array(intval($rID), $rStreamIDs[1])) {
-			} else {
-				$rUpdate[3][] = intval($rID);
+			if (in_array(intval($rID), $rStreamIDs[1])) {
+				$UpdateData[3][] = intval($rID);
 			}
 		}
-		$db->query("UPDATE `bouquets` SET `bouquet_channels` = '[" . implode(',', array_map('intval', $rUpdate[0])) . "]', `bouquet_movies` = '[" . implode(',', array_map('intval', $rUpdate[1])) . "]', `bouquet_radios` = '[" . implode(',', array_map('intval', $rUpdate[2])) . "]', `bouquet_series` = '[" . implode(',', array_map('intval', $rUpdate[3])) . "]' WHERE `id` = ?;", $rBouquet['id']);
+		$db->query("UPDATE `bouquets` SET `bouquet_channels` = '[" . implode(',', array_map('intval', $UpdateData[0])) . "]', `bouquet_movies` = '[" . implode(',', array_map('intval', $UpdateData[1])) . "]', `bouquet_radios` = '[" . implode(',', array_map('intval', $UpdateData[2])) . "]', `bouquet_series` = '[" . implode(',', array_map('intval', $UpdateData[3])) . "]' WHERE `id` = ?;", $rBouquet['id']);
 	}
 }
 
