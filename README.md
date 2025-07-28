@@ -1,4 +1,4 @@
-# **XtreamUI OpenSource / XC_VM Server**  
+# **XtreamUI OpenSource / XC_VM IPTV Panel**  
 [![Last version](https://img.shields.io/github/v/release/Vateron-Media/XC_VM?label=Main%20Release&color=green)](https://github.com/Vateron-Media/XC_VM/)
 [![License](https://img.shields.io/github/license/Vateron-Media/XC_VM)](LICENSE)
 [![Forks](https://img.shields.io/github/forks/Vateron-Media/XC_VM?style=flat)](https://github.com/Vateron-Media/XC_VM/fork)
@@ -21,7 +21,7 @@
 
 ## 📌 About the Project
 
-XtreamUI OpenSource is a **community-driven** project based on publicly available Xtream Codes source code.
+XC_VM is a **community-driven** project based on publicly available Xtream Codes source code.
 
 **XC_VM** is a powerful and scalable IPTV streaming server designed for efficient media content delivery. It supports various protocols and provides a modern, intuitive web panel.
 

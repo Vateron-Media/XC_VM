@@ -2347,9 +2347,8 @@ function deleteStreams($rIDs, $rDeleteFiles = false) {
 		$db->query('DELETE FROM `streams_servers` WHERE `parent_id` IS NOT NULL AND `parent_id` > 0 AND `parent_id` NOT IN (SELECT `id` FROM `servers` WHERE `server_type` = 0);');
 		$db->query('INSERT INTO `signals`(`server_id`, `cache`, `time`, `custom_data`) VALUES(?, 1, ?, ?);', SERVER_ID, time(), json_encode(array('type' => 'update_streams', 'id' => $rIDs)));
 
-		if (!$rDeleteFiles) {
-		} else {
-			foreach (array_keys(CoreUtilities::$rServers) as $rServerID) {
+		if ($rDeleteFiles) {
+				foreach (array_keys(CoreUtilities::$rServers) as $rServerID) {
 				$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`, `cache`) VALUES(?, ?, ?, 1);', $rServerID, time(), json_encode(array('type' => 'delete_vods', 'id' => $rIDs)));
 			}
 		}
