@@ -1025,123 +1025,121 @@ if (isset($_SESSION['hash'])) {
 					echo json_encode(array('result' => true));
 
 					exit();
-				} else {
-					if ($rSub == 'enable') {
-						$db->query('UPDATE `servers` SET `enabled` = 1 WHERE `id` = ?;', CoreUtilities::$rRequest['server_id']);
-						echo json_encode(array('result' => true));
-
-						exit();
-					}
-
-					if ($rSub == 'disable') {
-						$db->query('UPDATE `servers` SET `enabled` = 0 WHERE `id` = ? AND `is_main` = 0;', CoreUtilities::$rRequest['server_id']);
-						echo json_encode(array('result' => true));
-
-						exit();
-					}
-
-					if ($rSub == 'enable_proxy') {
-						$db->query('UPDATE `servers` SET `enable_proxy` = 1 WHERE `id` = ?;', CoreUtilities::$rRequest['server_id']);
-						echo json_encode(array('result' => true));
-
-						exit();
-					}
-
-					if ($rSub == 'disable_proxy') {
-						$db->query('UPDATE `servers` SET `enable_proxy` = 0 WHERE `id` = ?;', CoreUtilities::$rRequest['server_id']);
-						echo json_encode(array('result' => true));
-
-						exit();
-					}
-
-					if ($rSub == 'kill') {
-						if (CoreUtilities::$rSettings['redis_handler']) {
-							foreach (CoreUtilities::getRedisConnections(null, CoreUtilities::$rRequest['server_id'], null, true, false, false) as $rConnection) {
-								CoreUtilities::closeConnection($rConnection);
-							}
-						} else {
-							$db->query('SELECT * FROM `lines_live` WHERE `server_id` = ?;', CoreUtilities::$rRequest['server_id']);
-
-							foreach ($db->get_rows() as $rRow) {
-								CoreUtilities::closeConnection($rRow);
-							}
-						}
-
-						echo json_encode(array('result' => true));
-
-						exit();
-					} else {
-						if ($rSub == 'restart') {
-							$rStreamIDs = array();
-							$db->query('SELECT `stream_id` FROM `streams_servers` WHERE `server_id` = ? AND `on_demand` = 0 AND `monitor_pid` > 0 AND `pid` > 0 AND `stream_status` = 0;', CoreUtilities::$rRequest['server_id']);
-
-							if (0 >= $db->num_rows()) {
-							} else {
-								foreach ($db->get_rows() as $rRow) {
-									$rStreamIDs[] = intval($rRow['stream_id']);
-								}
-							}
-
-							if (0 >= count($rStreamIDs)) {
-							} else {
-								$rResult = APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => array_values($rStreamIDs), 'servers' => array(intval(CoreUtilities::$rRequest['server_id']))));
-							}
-
-							echo json_encode(array('result' => true));
-
-							exit();
-						}
-
-						if ($rSub == 'start') {
-							$rStreamIDs = array();
-							$db->query('SELECT `stream_id` FROM `streams_servers` WHERE `server_id` = ? AND `on_demand` = 0;', CoreUtilities::$rRequest['server_id']);
-
-							if (0 >= $db->num_rows()) {
-							} else {
-								foreach ($db->get_rows() as $rRow) {
-									$rStreamIDs[] = intval($rRow['stream_id']);
-								}
-							}
-
-							if (0 >= count($rStreamIDs)) {
-							} else {
-								$rResult = APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => array_values($rStreamIDs), 'servers' => array(intval(CoreUtilities::$rRequest['server_id']))));
-							}
-
-							echo json_encode(array('result' => true));
-
-							exit();
-						}
-
-						if ($rSub == 'stop') {
-							$rStreamIDs = array();
-							$db->query('SELECT `stream_id` FROM `streams_servers` WHERE `server_id` = ? AND `on_demand` = 0;', CoreUtilities::$rRequest['server_id']);
-
-							if (0 >= $db->num_rows()) {
-							} else {
-								foreach ($db->get_rows() as $rRow) {
-									$rStreamIDs[] = intval($rRow['stream_id']);
-								}
-							}
-
-							if (0 >= count($rStreamIDs)) {
-							} else {
-								$rResult = APIRequest(array('action' => 'stream', 'sub' => 'stop', 'stream_ids' => array_values($rStreamIDs), 'servers' => array(intval(CoreUtilities::$rRequest['server_id']))));
-							}
-
-							echo json_encode(array('result' => true));
-
-							exit();
-						}
-
-						echo json_encode(array('result' => false));
-
-						exit();
-					}
 				}
+
+				if ($rSub == 'enable') {
+					$db->query('UPDATE `servers` SET `enabled` = 1 WHERE `id` = ?;', CoreUtilities::$rRequest['server_id']);
+					echo json_encode(array('result' => true));
+
+					exit();
+				}
+
+				if ($rSub == 'disable') {
+					$db->query('UPDATE `servers` SET `enabled` = 0 WHERE `id` = ? AND `is_main` = 0;', CoreUtilities::$rRequest['server_id']);
+					echo json_encode(array('result' => true));
+
+					exit();
+				}
+
+				if ($rSub == 'enable_proxy') {
+					$db->query('UPDATE `servers` SET `enable_proxy` = 1 WHERE `id` = ?;', CoreUtilities::$rRequest['server_id']);
+					echo json_encode(array('result' => true));
+
+					exit();
+				}
+
+				if ($rSub == 'disable_proxy') {
+					$db->query('UPDATE `servers` SET `enable_proxy` = 0 WHERE `id` = ?;', CoreUtilities::$rRequest['server_id']);
+					echo json_encode(array('result' => true));
+
+					exit();
+				}
+
+				if ($rSub == 'kill') {
+					if (CoreUtilities::$rSettings['redis_handler']) {
+						foreach (CoreUtilities::getRedisConnections(null, CoreUtilities::$rRequest['server_id'], null, true, false, false) as $rConnection) {
+							CoreUtilities::closeConnection($rConnection);
+						}
+					} else {
+						$db->query('SELECT * FROM `lines_live` WHERE `server_id` = ?;', CoreUtilities::$rRequest['server_id']);
+
+						foreach ($db->get_rows() as $rRow) {
+							CoreUtilities::closeConnection($rRow);
+						}
+					}
+
+					echo json_encode(array('result' => true));
+
+					exit();
+				}
+
+				if ($rSub == 'restart') {
+					$rStreamIDs = array();
+					$db->query('SELECT `stream_id` FROM `streams_servers` WHERE `server_id` = ? AND `on_demand` = 0 AND `monitor_pid` > 0 AND `pid` > 0 AND `stream_status` = 0;', CoreUtilities::$rRequest['server_id']);
+
+					if (0 >= $db->num_rows()) {
+					} else {
+						foreach ($db->get_rows() as $rRow) {
+							$rStreamIDs[] = intval($rRow['stream_id']);
+						}
+					}
+
+					if (0 >= count($rStreamIDs)) {
+					} else {
+						$rResult = APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => array_values($rStreamIDs), 'servers' => array(intval(CoreUtilities::$rRequest['server_id']))));
+					}
+
+					echo json_encode(array('result' => true));
+
+					exit();
+				}
+
+				if ($rSub == 'start') {
+					$rStreamIDs = array();
+					$db->query('SELECT `stream_id` FROM `streams_servers` WHERE `server_id` = ? AND `on_demand` = 0;', CoreUtilities::$rRequest['server_id']);
+
+					if (0 >= $db->num_rows()) {
+					} else {
+						foreach ($db->get_rows() as $rRow) {
+							$rStreamIDs[] = intval($rRow['stream_id']);
+						}
+					}
+
+					if (0 >= count($rStreamIDs)) {
+					} else {
+						$rResult = APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => array_values($rStreamIDs), 'servers' => array(intval(CoreUtilities::$rRequest['server_id']))));
+					}
+
+					echo json_encode(array('result' => true));
+
+					exit();
+				}
+
+				if ($rSub == 'stop') {
+					$rStreamIDs = array();
+					$db->query('SELECT `stream_id` FROM `streams_servers` WHERE `server_id` = ? AND `on_demand` = 0;', CoreUtilities::$rRequest['server_id']);
+
+					if (0 >= $db->num_rows()) {
+					} else {
+						foreach ($db->get_rows() as $rRow) {
+							$rStreamIDs[] = intval($rRow['stream_id']);
+						}
+					}
+
+					if (0 >= count($rStreamIDs)) {
+					} else {
+						$rResult = APIRequest(array('action' => 'stream', 'sub' => 'stop', 'stream_ids' => array_values($rStreamIDs), 'servers' => array(intval(CoreUtilities::$rRequest['server_id']))));
+					}
+
+					echo json_encode(array('result' => true));
+
+					exit();
+				}
+
+				echo json_encode(array('result' => false));
+				exit();
 			} else {
 				echo json_encode(array('result' => false));
-
 				exit();
 			}
 		}
@@ -3322,8 +3320,7 @@ if (isset($_SESSION['hash'])) {
 		if (CoreUtilities::$rRequest['action'] == 'update_all_servers') {
 			if (hasPermissions('adv', 'servers')) {
 				foreach ($rServers as $rServer) {
-					if (!$rServer['server_online']) {
-					} else {
+					if ($rServer['server_online']) {
 						$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rServer['id'], time(), json_encode(array('action' => 'update')));
 					}
 				}
@@ -3580,16 +3577,14 @@ if (isset($_SESSION['hash'])) {
 
 							$rDecoded = base64_decode(strtr($rPiece, '-_', '+/'));
 
-							if (empty($rDecoded)) {
-							} else {
+							if (!empty($rDecoded)) {
 								try {
 									$rDecrypted = CoreUtilities::decryptData($rPiece, CoreUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 								} catch (Exception $e) {
 									$rDecrypted = null;
 								}
 
-								if (!$rDecrypted) {
-								} else {
+								if ($rDecrypted) {
 									$rDecryptedArray[] = utf8_decode($rDecrypted);
 								}
 							}
