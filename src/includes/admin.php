@@ -84,8 +84,7 @@ $rProtocol = getProtocol();
 $rServers = getStreamingServers();
 $rSettings = CoreUtilities::$rSettings;
 $rProxyServers = getProxyServers();
-
-$rUpdate = ['version' => "1.2.2"];
+$rUpdate = json_decode($rSettings['update_data'], true);
 
 uasort(
 	$rServers,
