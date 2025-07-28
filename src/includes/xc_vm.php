@@ -135,21 +135,17 @@ class CoreUtilities {
 		return $rDomains;
 	}
 	public static function getProxyIPs($rForce = false) {
-		if ($rForce) {
-		} else {
+		if (!$rForce) {
 			$rCache = self::getCache('proxy_servers', 20);
-			if ($rCache === false) {
-			} else {
+			if ($rCache === true) {
 				return $rCache;
 			}
 		}
 		$rOutput = array();
 		foreach (self::$rServers as $rServer) {
-			if ($rServer['server_type'] != 1) {
-			} else {
+			if ($rServer['server_type'] == 1) {
 				$rOutput[$rServer['server_ip']] = $rServer;
-				if (!$rServer['private_ip']) {
-				} else {
+				if ($rServer['private_ip']) {
 					$rOutput[$rServer['private_ip']] = $rServer;
 				}
 			}
@@ -4004,7 +4000,7 @@ class CoreUtilities {
 		self::$db->query("SELECT `type`, `log_message`, `log_extra`, `line`, `date` FROM `panel_logs` WHERE `type` <> 'epg' GROUP BY CONCAT(`type`, `log_message`, `log_extra`) ORDER BY `date` DESC LIMIT 1000;");
 
 		// Prepare API endpoint and payload
-		$rAPI = 'http://' . $apiIP . '/report';
+		$rAPI = 'http://' . $apiIP . '/api/v1/report';
 		$rData = array(
 			'errors'  => self::$db->get_rows(),
 			'version' => XC_VM_VERSION
