@@ -45,7 +45,7 @@ It enables:
 | Nginx      | 1.24    | Web server & reverse proxy      |
 | FFmpeg     | 4.4     | Media transcoding & processing  |
 | MariaDB    | 10.6+   | SQL database engine             |
-| Redis      | ?   | Cache & session storage         |
+| KeyDB      | 6.3.4   | Cache & session storage (Redis) |
 
 ---
 
