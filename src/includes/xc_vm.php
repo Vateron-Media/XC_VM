@@ -2341,19 +2341,16 @@ class CoreUtilities {
 	public static function parseStreamURL($rURL) {
 		$rProtocol = strtolower(substr($rURL, 0, 4));
 		if ($rProtocol == 'rtmp') {
-			if (!stristr($rURL, '$OPT')) {
-			} else {
+			if (stristr($rURL, '$OPT')) {
 				$rPattern = 'rtmp://$OPT:rtmp-raw=';
 				$rURL = trim(substr($rURL, stripos($rURL, $rPattern) + strlen($rPattern)));
 			}
 			$rURL .= ' live=1 timeout=10';
 		} else {
-			if ($rProtocol != 'http') {
-			} else {
+			if ($rProtocol == 'http') {
 				$rPlatforms = array('livestream.com', 'ustream.tv', 'twitch.tv', 'vimeo.com', 'facebook.com', 'dailymotion.com', 'cnn.com', 'edition.cnn.com', 'youtube.com', 'youtu.be');
 				$rHost = str_ireplace('www.', '', parse_url($rURL, PHP_URL_HOST));
-				if (!in_array($rHost, $rPlatforms)) {
-				} else {
+				if (in_array($rHost, $rPlatforms)) {
 					$rURLs = trim(shell_exec(YOUTUBE_BIN . ' ' . escapeshellarg($rURL) . ' -q --get-url --skip-download -f best'));
 					list($rURL) = explode("\n", $rURLs);
 				}
