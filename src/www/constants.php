@@ -29,7 +29,7 @@ define('WWW_PATH', MAIN_HOME . 'www/');
 define('CRON_PATH', MAIN_HOME . 'crons/');
 define('SIGNALS_PATH', MAIN_HOME . 'signals/');
 define('PHP_BIN', BIN_PATH . 'php/bin/php');
-define('YOUTUBE_BIN', BIN_PATH . 'youtube');
+define('YOUTUBE_BIN', BIN_PATH . 'yt-dlp');
 define('FFMPEG_FONT', BIN_PATH . 'free-sans.ttf');
 define('STREAMS_PATH', CONTENT_PATH . 'streams/');
 define('EPG_PATH', CONTENT_PATH . 'epg/');

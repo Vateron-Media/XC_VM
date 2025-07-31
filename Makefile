@@ -188,7 +188,7 @@ set-permissions:
 	chmod 0550 $(TEMP_DIR)/bin/blkid
 	chmod 0550 $(TEMP_DIR)/bin/free-sans.ttf
 	chmod 0550 $(TEMP_DIR)/bin/network
-	chmod 0550 $(TEMP_DIR)/bin/youtube
+	chmod 0755 $(TEMP_DIR)/bin/yt-dlp
 
 	chmod 0750 $(TEMP_DIR)/content
 	find $(TEMP_DIR)/content -exec chmod 750 {} \;

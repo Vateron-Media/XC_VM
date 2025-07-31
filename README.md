@@ -46,6 +46,7 @@ It enables:
 | FFmpeg     | 4.4     | Media transcoding & processing  |
 | MariaDB    | 10.6+   | SQL database engine             |
 | KeyDB      | 6.3.4   | Cache & session storage (Redis) |
+| yt-dlp     | 2025.07.21 | Audio/Video downloader       |
 
 ---
 
