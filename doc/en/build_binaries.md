@@ -11,6 +11,7 @@
 * [📺 Build NGINX with RTMP](#build-nginx-with-rtmp)
 * [🐘 Build PHP-FPM](#build-php-fpm)
 * [📦 Install PHP Extensions](#install-php-extensions)
+* [⚙️ Building the network binary](#building-the-network-binary)
 
 ---
 
@@ -252,6 +253,41 @@ Recommended: **yes** to `igbinary`, others — optional.
 
 ---
 
+## ⚙️ Building the `network` binary
+
+### 1. Install `PyInstaller` (once)
+
+```bash
+pip install -U pyinstaller
+```
+
+### 2. Build the binary file
+
+```bash
+cd /home/xc_vm/bin
+pyinstaller --onefile network.py
+```
+
+After building, the executable file will appear in the directory:
+
+```bash
+/home/xc_vm/bin/dist/network
+```
+
+### 3. Move the binary to the desired location
+
+```bash
+mv /home/xc_vm/bin/network /home/xc_vm/bin/network
+```
+
+### 4. Clear temporary directories
+
+```bash
+rm -rf build dist network.spec __pycache__
+```
+
+---
+
 ## ✅ Conclusion
 
 After completing all steps, you will have your own statically compiled binary files:
@@ -260,3 +296,4 @@ After completing all steps, you will have your own statically compiled binary fi
 * `nginx_rtmp`
 * `php-fpm`
 * `pecl` extensions
+* `network` (Python script binary)
