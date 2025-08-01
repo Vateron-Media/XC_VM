@@ -4070,8 +4070,7 @@ class CoreUtilities {
 	}
 	public static function getNetwork($rInterface = null) {
 		$rReturn = array();
-		if (!file_exists(LOGS_TMP_PATH . 'network')) {
-		} else {
+		if (file_exists(LOGS_TMP_PATH . 'network')) {
 			$rNetwork = json_decode(file_get_contents(LOGS_TMP_PATH . 'network'), true);
 			foreach ($rNetwork as $rLine) {
 				if (!($rInterface && $rLine[0] != $rInterface) && !($rLine[0] == 'lo' || !$rInterface && substr($rLine[0], 0, 4) == 'bond')) {
