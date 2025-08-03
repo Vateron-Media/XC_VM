@@ -57,12 +57,12 @@ function loadcli() {
                 }
             }
             $db->query('UPDATE `servers` SET `status` = 1, `xc_vm_version` = ? WHERE `id` = ?;', XC_VM_VERSION, SERVER_ID);
-            if (!CoreUtilities::$rServers[SERVER_ID]['is_main']) {
-                if (file_exists('/etc/init.d/xc_vm')) {
-                    unlink('/etc/init.d/xc_vm');
-                }
-                // Here we write the files that need to be deleted after the update
+            // if (!CoreUtilities::$rServers[SERVER_ID]['is_main']) {
+            // Here we write the files that need to be deleted after the update
+            if (file_exists(MAIN_HOME . 'bin/youtube')) {
+                unlink(MAIN_HOME . 'bin/youtube');
             }
+            // }
             foreach (array('http', 'https') as $rType) {
                 $rPortConfig = file_get_contents(MAIN_HOME . 'bin/nginx/ports/' . $rType . '.conf');
                 if (stripos($rPortConfig, ' reuseport') === false) {
