@@ -59,6 +59,7 @@ function loadcli() {
             $db->query('UPDATE `servers` SET `status` = 1, `xc_vm_version` = ? WHERE `id` = ?;', XC_VM_VERSION, SERVER_ID);
             // if (!CoreUtilities::$rServers[SERVER_ID]['is_main']) {
             // Here we write the files that need to be deleted after the update
+            // Update checkpoint
             if (file_exists(MAIN_HOME . 'bin/youtube')) {
                 unlink(MAIN_HOME . 'bin/youtube');
             }
