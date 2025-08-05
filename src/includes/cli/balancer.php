@@ -31,7 +31,6 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
             } elseif ($rType == 3) {
                 $rPackages = array('cpufrequtils');
                 $rInstallFiles = array($rFiles['lb_update']);
-                exit(); // заглушка чтобы процесс не продолжался
             } else {
                 $db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
                 echo 'Invalid type specified!' . "\n";
