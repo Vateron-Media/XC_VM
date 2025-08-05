@@ -62,7 +62,7 @@ LB_FILES_TO_REMOVE := \
 
 EXCLUDE_ARGS := $(addprefix --exclude=,$(EXCLUDES))
 
-.PHONY: all lb main main_update lb_update lb_copy_files lb_update_copy_files main_copy_files main_update_copy_files set_permissions create_archive lb_archive_move lb_update_archive_move main_archive_move main_update_archive_move main_install_archive clean delete_diles_list
+.PHONY: all lb main main_update lb_update lb_copy_files lb_update_copy_files main_copy_files main_update_copy_files set_permissions create_archive lb_archive_move lb_update_archive_move main_archive_move main_update_archive_move main_install_archive clean delete_files_list
 
 lb: lb_copy_files set_permissions create_archive lb_archive_move clean
 main: main_copy_files set_permissions create_archive main_archive_move main_install_archive clean
@@ -185,7 +185,7 @@ main_update_copy_files:
 		-delete
 	@echo "All files gitkeep deleted"
 
-delete_diles_list:
+delete_files_list:
 	@rm -f $(DELETED_LIST)
 
 	@echo "[INFO] Writing list of deleted files from 'src/' to $(DELETED_LIST)"
