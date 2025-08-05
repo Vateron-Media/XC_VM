@@ -351,6 +351,7 @@ lb_archive_move:
 	@echo "==> Moving LB archive to: ${DIST_DIR}/${LB_ARCHIVE_NAME}"
 	@rm -f ${DIST_DIR}/${LB_ARCHIVE_NAME}
 	@mv ${DIST_DIR}/${TEMP_ARCHIVE_NAME} ${DIST_DIR}/${LB_ARCHIVE_NAME}
+	md5sum "${DIST_DIR}/${LB_ARCHIVE_NAME}" | awk -v name="${LB_ARCHIVE_NAME}" '{print $$1, name}' >> "${DIST_DIR}/${HASH_FILE}"
 
 lb_update_archive_move:
 	@echo "==> Moving LB update archive to: ${DIST_DIR}/${LB_UPDATE_ARCHIVE_NAME}"
