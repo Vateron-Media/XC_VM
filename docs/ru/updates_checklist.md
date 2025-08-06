@@ -49,9 +49,9 @@
 * Убедиться, что созданы следующие файлы:
 
   * `dist/loadbalancer.tar.gz` — установочный архив LB
+  * `dist/loadbalancer_update.tar.gz` — архив обновления LB
   * `dist/XC_VM.zip` — установочный архив MAIN
   * `dist/update.tar.gz` — архив обновления MAIN
-  * `dist/loadbalancer_update.tar.gz` — архив обновления LB
   * `dist/hashes.md5` — файл с хеш-суммами
 
 ---
