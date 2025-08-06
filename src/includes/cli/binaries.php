@@ -65,13 +65,13 @@ function loadcli() {
     if ($rUpdated) {
         shell_exec('sudo chown -R xc_vm:xc_vm "' . $rBaseDir . '"');
     }
-    if ($rPHPUpdated) {
-        $rVersion = (array(72 => '7.2', 74 => '7.4')[CoreUtilities::$rServers[SERVER_ID]['php_version']] ?: '7.4');
-        shell_exec('sudo ln -sfn ' . PHP_BIN . '_' . $rVersion . ' ' . PHP_BIN);
-        shell_exec('sudo ln -sfn ' . BIN_PATH . 'php/sbin/php-fpm_' . $rVersion . ' ' . BIN_PATH . 'php/sbin/php-fpm');
-        shell_exec('sudo chown -R xc_vm:xc_vm ' . BIN_PATH . 'php');
-        shell_exec('sudo service xc_vm restart');
-    }
+    // if ($rPHPUpdated) {
+    //     $rVersion = (array(72 => '7.2', 74 => '7.4')[CoreUtilities::$rServers[SERVER_ID]['php_version']] ?: '7.4');
+    //     shell_exec('sudo ln -sfn ' . PHP_BIN . '_' . $rVersion . ' ' . PHP_BIN);
+    //     shell_exec('sudo ln -sfn ' . BIN_PATH . 'php/sbin/php-fpm_' . $rVersion . ' ' . BIN_PATH . 'php/sbin/php-fpm');
+    //     shell_exec('sudo chown -R xc_vm:xc_vm ' . BIN_PATH . 'php');
+    //     shell_exec('sudo service xc_vm restart');
+    // }
 }
 function shutdown() {
     global $db;
