@@ -457,20 +457,6 @@ include 'header.php'; ?>
                                         <div class="row">
                                             <div class="col-12">
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="php_version">PHP Version
-                                                        <i title="Which version of PHP 7 to use."
-                                                            class="tooltip text-secondary far fa-circle"></i></label>
-                                                    <div class="col-md-2">
-                                                        <select name="php_version_num" id="php_version"
-                                                            class="form-control select2" data-toggle="select2">
-                                                            <?php foreach (array(array('72', 'PHP 7.2.34'), array('74', 'PHP 7.4.10')) as $phpVersionSymbolicLink): ?>
-                                                                <option
-                                                                    <?php if ($rServerArr['php_version'] == $phpVersionSymbolicLink[0]) echo 'selected '; ?>value="<?php echo $phpVersionSymbolicLink[0]; ?>">
-                                                                    <?php echo $phpVersionSymbolicLink[1]; ?>
-                                                                </option>
-                                                            <?php endforeach; ?>
-                                                        </select>
-                                                    </div>
                                                     <label class="col-md-4 col-form-label" for="total_services">PHP
                                                         Services <i
                                                             title="How many PHP-FPM daemons to run on this server. You can use up to a maximum of one per core."
@@ -486,6 +472,17 @@ include 'header.php'; ?>
                                                             <?php endforeach; ?>
                                                         </select>
                                                     </div>
+                                                    <?php if ($rServerArr['is_main']): ?>
+                                                        <label class="col-md-4 col-form-label" for="enable_gzip">GZIP
+                                                            Compression <i
+                                                                title="Compressing server output on your main server will reduce network output significantly, but will increase CPU usage. If you have CPU to spare but your network usage is high, you should enable this."
+                                                                class="tooltip text-secondary far fa-circle"></i></label>
+                                                        <div class="col-md-2">
+                                                            <input name="enable_gzip" id="enable_gzip" type="checkbox"
+                                                                <?php if ($rServerArr['enable_gzip'] == 1) echo 'checked '; ?>data-plugin="switchery"
+                                                                class="js-switch" data-color="#039cfd" />
+                                                        </div>
+                                                    <?php endif; ?>
                                                 </div>
                                                 <div class="form-group row mb-4">
                                                     <label class="col-md-4 col-form-label" for="limit_requests">Rate
@@ -509,19 +506,6 @@ include 'header.php'; ?>
                                                             required data-parsley-trigger="change">
                                                     </div>
                                                 </div>
-                                                <?php if ($rServerArr['is_main']): ?>
-                                                    <div class="form-group row mb-4">
-                                                        <label class="col-md-4 col-form-label" for="enable_gzip">GZIP
-                                                            Compression <i
-                                                                title="Compressing server output on your main server will reduce network output significantly, but will increase CPU usage. If you have CPU to spare but your network usage is high, you should enable this."
-                                                                class="tooltip text-secondary far fa-circle"></i></label>
-                                                        <div class="col-md-2">
-                                                            <input name="enable_gzip" id="enable_gzip" type="checkbox"
-                                                                <?php if ($rServerArr['enable_gzip'] == 1) echo 'checked '; ?>data-plugin="switchery"
-                                                                class="js-switch" data-color="#039cfd" />
-                                                        </div>
-                                                    </div>
-                                                <?php endif; ?>
                                                 <?php if (count(json_decode($rServerArr['governors'], true)) > 0):
                                                     $rCurrentGovernor = json_decode($rServerArr['governor'], true);
                                                     $rCurrentGovernor[3] = '* ' . $rCurrentGovernor[2] . ' - Freq: ' . round($rCurrentGovernor[0] / 1000000, 1) . 'GHz - ' . round($rCurrentGovernor[1] / 1000000, 1) . 'GHz'; ?>
