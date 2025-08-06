@@ -428,7 +428,7 @@ function loadCron() {
                         break;
                     case 'set_governor':
                         $rNewGovernor = $rData['data'];
-                        if (!empty($rNewGovernor) || shell_exec('which cpufreq-info')) {
+                        if (!empty($rNewGovernor) && shell_exec('which cpufreq-info')) {
                             $rGovernors = array_filter(explode(' ', trim(shell_exec('cpufreq-info -g'))));
                             $rGovernor = explode(' ', trim(shell_exec('cpufreq-info -p')));
                             if ($rGovernor[2] != $rNewGovernor && in_array($rNewGovernor, $rGovernors)) {
