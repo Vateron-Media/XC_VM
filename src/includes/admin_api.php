@@ -4447,8 +4447,6 @@ class API {
 					if (strlen($rData['server_ip']) != 0 && filter_var($rData['server_ip'], FILTER_VALIDATE_IP)) {
 						if (0 >= strlen($rData['private_ip']) || filter_var($rData['private_ip'], FILTER_VALIDATE_IP)) {
 							$rArray['total_services'] = $rData['total_services'];
-							$previousPhpVersion = $rArray['php_version'];
-							$rArray['php_version'] = $rData['php_version_num'];
 							$rPrepare = prepareArray($rArray);
 							$rPrepare['data'][] = $rData['edit'];
 							$rQuery = 'UPDATE `servers` SET ' . $rPrepare['update'] . ' WHERE `id` = ?;';
@@ -4506,12 +4504,6 @@ class API {
 										self::$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rInsertID, time(), json_encode(array('action' => 'enable_ramdisk')));
 									}
 								}
-
-								if ($rServer['php_version'] == $rData['php_version_num']) {
-								} else {
-									self::$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rInsertID, time(), json_encode(array('action' => 'switch_php' . intval($rData['php_version_num']))));
-								}
-
 								return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
 							} else {
 								return array('status' => STATUS_FAILURE, 'data' => $rData);
