@@ -121,6 +121,7 @@ function loadcli() {
 
             // Mark server as updated and set current version
             $db->query('UPDATE `servers` SET `status` = 1, `xc_vm_version` = ? WHERE `id` = ?;', XC_VM_VERSION, SERVER_ID);
+            $db->query('UPDATE `settings` SET `update_data` = NULL;');
 
             // Delete obsolete binary
             if (file_exists(MAIN_HOME . 'bin/youtube')) {
