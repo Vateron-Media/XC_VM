@@ -363,19 +363,16 @@ if (1 < $rICount) { ?>
 		$rData = CoreUtilities::$rRequest;
 		unset($rData['action']);
 
-		if (count($rData) != 0) {
-		} else {
+		if (count($rData) == 0) {
 			$rData = json_decode(file_get_contents('php://input'), true);
 
-			if (is_array($rData)) {
-			} else {
+			if (!is_array($rData)) {
 				$rData = array(file_get_contents('php://input') => 1);
 			}
 		}
 
 		if (!$rData) {
 			echo json_encode(array('result' => false));
-
 			exit();
 		}
 
@@ -386,56 +383,48 @@ if (1 < $rICount) { ?>
 				if (isset($rData['cleanup_streams'])) {
 					$db->query('DELETE FROM `streams_servers` WHERE (`server_id` NOT IN (SELECT `id` FROM `servers`)) OR (`stream_id` NOT IN (SELECT `id` FROM `streams`));');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['remove_null_lines'])) {
 					$db->query('DELETE FROM `lines` WHERE `username` IS NULL AND `password` IS NULL;');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['remove_expired'])) {
 					$db->query('DELETE FROM `lines` WHERE `is_mag` = 0 AND `is_e2` = 0 AND (`exp_date` IS NOT NULL AND `exp_date` < UNIX_TIMESTAMP());');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['remove_trial'])) {
 					$db->query('DELETE FROM `lines` WHERE `is_mag` = 0 AND `is_e2` = 0 AND `is_trial` = 1;');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['remove_expired_trial'])) {
 					$db->query('DELETE FROM `lines` WHERE `is_mag` = 0 AND `is_e2` = 0 AND `is_trial` = 1 AND (`exp_date` IS NOT NULL AND `exp_date` < UNIX_TIMESTAMP());');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['flush_isp'])) {
 					$db->query("UPDATE `lines` SET `isp_desc` = '', `as_number` = NULL WHERE `is_mag` = 0 AND `is_e2` = 0;");
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['enable_isp'])) {
 					$db->query('UPDATE `lines` SET `is_isplock` = 1 WHERE `is_mag` = 0 AND `is_e2` = 0;');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['disable_isp'])) {
 					$db->query('UPDATE `lines` SET `is_isplock` = 0 WHERE `is_mag` = 0 AND `is_e2` = 0;');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
@@ -443,7 +432,6 @@ if (1 < $rICount) { ?>
 					$db->query('DELETE FROM `mag_devices` WHERE `user_id` IN (SELECT `id` FROM `lines` WHERE `is_mag` = 1 AND `is_e2` = 0 AND (`exp_date` IS NOT NULL AND `exp_date` < UNIX_TIMESTAMP()));');
 					$db->query('DELETE FROM `lines` WHERE `is_mag` = 1 AND `is_e2` = 0 AND (`exp_date` IS NOT NULL AND `exp_date` < UNIX_TIMESTAMP());');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
@@ -451,7 +439,6 @@ if (1 < $rICount) { ?>
 					$db->query('DELETE FROM `mag_devices` WHERE `user_id` IN (SELECT `id` FROM `lines` WHERE `is_mag` = 1 AND `is_e2` = 0 AND `is_trial` = 1);');
 					$db->query('DELETE FROM `lines` WHERE `is_mag` = 1 AND `is_e2` = 0 AND `is_trial` = 1;');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
@@ -459,49 +446,42 @@ if (1 < $rICount) { ?>
 					$db->query('DELETE FROM `mag_devices` WHERE `user_id` IN (SELECT `id` FROM `lines` WHERE `is_mag` = 1 AND `is_e2` = 0 AND `is_trial` = 1 AND (`exp_date` IS NOT NULL AND `exp_date` < UNIX_TIMESTAMP()));');
 					$db->query('DELETE FROM `lines` WHERE `is_mag` = 1 AND `is_e2` = 0 AND `is_trial` = 1 AND (`exp_date` IS NOT NULL AND `exp_date` < UNIX_TIMESTAMP());');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['flush_isp_mag'])) {
 					$db->query("UPDATE `lines` SET `isp_desc` = '', `as_number` = NULL WHERE `is_mag` = 1 AND `is_e2` = 0;");
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['enable_isp_mag'])) {
 					$db->query('UPDATE `lines` SET `is_isplock` = 1 WHERE `is_mag` = 1 AND `is_e2` = 0;');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['disable_isp_mag'])) {
 					$db->query('UPDATE `lines` SET `is_isplock` = 0 WHERE `is_mag` = 1 AND `is_e2` = 0;');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['enable_mag_lock'])) {
 					$db->query('UPDATE `mag_devices` SET `lock_device` = 1;');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['disable_mag_lock'])) {
 					$db->query('UPDATE `mag_devices` SET `lock_device` = 0;');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['clear_mag_lock'])) {
 					$db->query('UPDATE `mag_devices` SET `ip` = NULL, `ver` = NULL, `image_version` = NULL, `stb_type` = NULL, `sn` = NULL, `device_id` = NULL, `device_id2` = NULL, `hw_version` = NULL, `token` = NULL;');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
@@ -509,7 +489,6 @@ if (1 < $rICount) { ?>
 					$db->query('DELETE FROM `enigma2_devices` WHERE `user_id` IN (SELECT `id` FROM `lines` WHERE `is_mag` = 0 AND `is_e2` = 1 AND (`exp_date` IS NOT NULL AND `exp_date` < UNIX_TIMESTAMP()));');
 					$db->query('DELETE FROM `lines` WHERE `is_mag` = 0 AND `is_e2` = 1 AND (`exp_date` IS NOT NULL AND `exp_date` < UNIX_TIMESTAMP());');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
@@ -517,7 +496,6 @@ if (1 < $rICount) { ?>
 					$db->query('DELETE FROM `enigma2_devices` WHERE `user_id` IN (SELECT `id` FROM `lines` WHERE `is_mag` = 0 AND `is_e2` = 1 AND `is_trial` = 1);');
 					$db->query('DELETE FROM `lines` WHERE `is_mag` = 0 AND `is_e2` = 1 AND `is_trial` = 1;');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
@@ -525,161 +503,138 @@ if (1 < $rICount) { ?>
 					$db->query('DELETE FROM `enigma2_devices` WHERE `user_id` IN (SELECT `id` FROM `lines` WHERE `is_mag` = 0 AND `is_e2` = 1 AND `is_trial` = 1 AND (`exp_date` IS NOT NULL AND `exp_date` < UNIX_TIMESTAMP()));');
 					$db->query('DELETE FROM `lines` WHERE `is_mag` = 0 AND `is_e2` = 1 AND `is_trial` = 1 AND (`exp_date` IS NOT NULL AND `exp_date` < UNIX_TIMESTAMP());');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['flush_isp_e2'])) {
 					$db->query("UPDATE `lines` SET `isp_desc` = '', `as_number` = NULL WHERE `is_mag` = 0 AND `is_e2` = 1;");
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['enable_isp_e2'])) {
 					$db->query('UPDATE `lines` SET `is_isplock` = 1 WHERE `is_mag` = 0 AND `is_e2` = 1;');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['disable_isp_e2'])) {
 					$db->query('UPDATE `lines` SET `is_isplock` = 0 WHERE `is_mag` = 0 AND `is_e2` = 1;');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['clear_activity_logs'])) {
 					$db->query('TRUNCATE `lines_activity`;');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['clear_client_logs'])) {
 					$db->query('TRUNCATE `lines_logs`;');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['clear_credit_logs'])) {
 					$db->query('TRUNCATE `users_credits_logs`;');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['clear_login_flood'])) {
 					$db->query("DELETE FROM `login_logs` WHERE `status` = 'INVALID_LOGIN';");
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['clear_login_logs'])) {
 					$db->query('TRUNCATE `login_logs`;');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['clear_mag_events'])) {
 					$db->query('TRUNCATE `mag_events`;');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['clear_panel_logs'])) {
 					$db->query('TRUNCATE `panel_logs`;');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['clear_stream_errors'])) {
 					$db->query('TRUNCATE `streams_errors`;');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['clear_stream_logs'])) {
 					$db->query('TRUNCATE `streams_logs`;');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['clear_user_logs'])) {
 					$db->query('TRUNCATE `users_logs`;');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['clear_watch_logs'])) {
 					$db->query('TRUNCATE `watch_logs`;');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['block_trial_lines'])) {
 					$db->query('UPDATE `lines` SET `admin_enabled` = 0 WHERE `is_trial` = 1;');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['unblock_trial_lines'])) {
 					$db->query('UPDATE `lines` SET `admin_enabled` = 1 WHERE `is_trial` = 1;');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['flush_blocked_asns'])) {
 					$db->query('UPDATE `blocked_asns` SET `blocked` = 0;');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['flush_blocked_ips'])) {
 					flushIPs();
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['flush_blocked_isps'])) {
 					$db->query('TRUNCATE `blocked_isps`;');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['flush_blocked_uas'])) {
 					$db->query('TRUNCATE `blocked_uas`;');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['flush_country_lock'])) {
 					$db->query("UPDATE `lines` SET `forced_country` = '';");
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
 				if (isset($rData['force_epg_update'])) {
 					shell_exec(MAIN_HOME . '/php/bin/php ' . MAIN_HOME . '/crons/epg.php > /dev/null 2>/dev/null &');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
 				}
 
@@ -691,520 +646,483 @@ if (1 < $rICount) { ?>
 						$db->query('INSERT INTO `watch_refresh`(`type`, `stream_id`, `status`) VALUES(1, ?, 0);', $rRow['id']);
 					}
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
 					exit();
-				} else {
-					if (isset($rData['force_update_series'])) {
-						$db->query('DELETE FROM `watch_refresh` WHERE `type` = 2;');
-						$db->query('SELECT `id` FROM `streams_series`;');
+				}
 
-						foreach ($db->get_rows() as $rRow) {
-							$db->query('INSERT INTO `watch_refresh`(`type`, `stream_id`, `status`) VALUES(2, ?, 0);', $rRow['id']);
-						}
-						echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
+				if (isset($rData['force_update_series'])) {
+					$db->query('DELETE FROM `watch_refresh` WHERE `type` = 2;');
+					$db->query('SELECT `id` FROM `streams_series`;');
 
-						exit();
+					foreach ($db->get_rows() as $rRow) {
+						$db->query('INSERT INTO `watch_refresh`(`type`, `stream_id`, `status`) VALUES(2, ?, 0);', $rRow['id']);
+					}
+					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
+					exit();
+				}
+
+				if (isset($rData['force_update_episodes'])) {
+					$db->query('DELETE FROM `watch_refresh` WHERE `type` = 3;');
+					$db->query('SELECT `id` FROM `streams` WHERE `type` = 5;');
+
+					foreach ($db->get_rows() as $rRow) {
+						$db->query('INSERT INTO `watch_refresh`(`type`, `stream_id`, `status`) VALUES(3, ?, 0);', $rRow['id']);
+					}
+					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
+					exit();
+				}
+
+				if (isset($rData['reauthorise_mysql'])) {
+					fCf52F24c866C872();
+					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
+					exit();
+				}
+
+				if (isset($rData['restart_all_streams'])) {
+					$rServerIDs = $rStreamIDs = array();
+					$db->query('SELECT DISTINCT(`stream_id`) FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams`.`type` = 1;');
+
+					foreach ($db->get_rows() as $rRow) {
+						$rStreamIDs[] = intval($rRow['stream_id']);
+					}
+					$db->query('SELECT DISTINCT(`server_id`) FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams`.`type` = 1;');
+
+					foreach ($db->get_rows() as $rRow) {
+						$rServerIDs[] = intval($rRow['server_id']);
+					}
+
+					if (count($rStreamIDs) > 0) {
+						$rRet = APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs));
+					}
+
+					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
+					exit();
+				}
+
+				if (isset($rData['restart_online_streams'])) {
+					$rServerIDs = $rStreamIDs = array();
+					$db->query('SELECT DISTINCT(`stream_id`) FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams`.`type` = 1 AND `streams_servers`.`pid` IS NOT NULL AND `streams_servers`.`pid` > 0 AND `streams_servers`.`monitor_pid` IS NOT NULL AND `streams_servers`.`monitor_pid` > 0;');
+
+					foreach ($db->get_rows() as $rRow) {
+						$rStreamIDs[] = intval($rRow['stream_id']);
+					}
+					$db->query('SELECT DISTINCT(`server_id`) FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams`.`type` = 1 AND `streams_servers`.`pid` IS NOT NULL AND `streams_servers`.`pid` > 0 AND `streams_servers`.`monitor_pid` IS NOT NULL AND `streams_servers`.`monitor_pid` > 0;');
+
+					foreach ($db->get_rows() as $rRow) {
+						$rServerIDs[] = intval($rRow['server_id']);
+					}
+
+					if (count($rStreamIDs) > 0) {
+						$rRet = APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs));
+					}
+
+					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
+					exit();
+				}
+
+				if (isset($rData['restart_down_streams'])) {
+					$rServerIDs = $rStreamIDs = array();
+					$db->query('SELECT DISTINCT(`stream_id`) FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams`.`type` = 1 AND (`streams_servers`.`pid` IS NULL OR `streams_servers`.`pid` <= 0) AND `streams_servers`.`stream_status` <> 0 AND `streams_servers`.`monitor_pid` IS NOT NULL AND `streams_servers`.`monitor_pid` > 0;');
+
+					foreach ($db->get_rows() as $rRow) {
+						$rStreamIDs[] = intval($rRow['stream_id']);
+					}
+					$db->query('SELECT DISTINCT(`server_id`) FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams`.`type` = 1 AND (`streams_servers`.`pid` IS NULL OR `streams_servers`.`pid` <= 0) AND `streams_servers`.`stream_status` <> 0 AND `streams_servers`.`monitor_pid` IS NOT NULL AND `streams_servers`.`monitor_pid` > 0;');
+
+					foreach ($db->get_rows() as $rRow) {
+						$rServerIDs[] = intval($rRow['server_id']);
+					}
+
+					if (count($rStreamIDs) > 0) {
+						$rRet = APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs));
+					}
+
+					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
+					exit();
+				}
+
+				if (isset($rData['start_offline_streams'])) {
+					$rServerIDs = $rStreamIDs = array();
+					$db->query('SELECT DISTINCT(`stream_id`) FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams`.`type` = 1 AND (`streams`.`direct_source` = 0 AND (`streams_servers`.`monitor_pid` IS NULL OR `streams_servers`.`monitor_pid` <= 0) AND `streams_servers`.`on_demand` = 0);');
+
+					foreach ($db->get_rows() as $rRow) {
+						$rStreamIDs[] = intval($rRow['stream_id']);
+					}
+					$db->query('SELECT DISTINCT(`server_id`) FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams`.`type` = 1 AND (`streams`.`direct_source` = 0 AND (`streams_servers`.`monitor_pid` IS NULL OR `streams_servers`.`monitor_pid` <= 0) AND `streams_servers`.`on_demand` = 0);');
+
+					foreach ($db->get_rows() as $rRow) {
+						$rServerIDs[] = intval($rRow['server_id']);
+					}
+
+					if (count($rStreamIDs) > 0) {
+						$rRet = APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs));
+					}
+
+					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
+					exit();
+				}
+
+				if (isset($rData['stop_down_streams'])) {
+					$rServerIDs = $rStreamIDs = array();
+					$db->query('SELECT DISTINCT(`stream_id`) FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams`.`type` = 1 AND (`streams_servers`.`pid` IS NULL OR `streams_servers`.`pid` <= 0) AND `streams_servers`.`stream_status` <> 0 AND `streams_servers`.`monitor_pid` IS NOT NULL AND `streams_servers`.`monitor_pid` > 0;');
+
+					foreach ($db->get_rows() as $rRow) {
+						$rStreamIDs[] = intval($rRow['stream_id']);
+					}
+					$db->query('SELECT DISTINCT(`server_id`) FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams`.`type` = 1 AND (`streams_servers`.`pid` IS NULL OR `streams_servers`.`pid` <= 0) AND `streams_servers`.`stream_status` <> 0 AND `streams_servers`.`monitor_pid` IS NOT NULL AND `streams_servers`.`monitor_pid` > 0;');
+
+					foreach ($db->get_rows() as $rRow) {
+						$rServerIDs[] = intval($rRow['server_id']);
+					}
+
+					if (count($rStreamIDs) > 0) {
+						$rRet = APIRequest(array('action' => 'stream', 'sub' => 'stop', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs));
+					}
+
+					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
+					exit();
+				}
+
+				if (isset($rData['stop_online_streams'])) {
+					$rServerIDs = $rStreamIDs = array();
+					$db->query('SELECT DISTINCT(`stream_id`) FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams`.`type` = 1 AND `streams_servers`.`pid` IS NOT NULL AND `streams_servers`.`pid` > 0 AND `streams_servers`.`monitor_pid` IS NOT NULL AND `streams_servers`.`monitor_pid` > 0;');
+
+					foreach ($db->get_rows() as $rRow) {
+						$rStreamIDs[] = intval($rRow['stream_id']);
+					}
+					$db->query('SELECT DISTINCT(`server_id`) FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams`.`type` = 1 AND `streams_servers`.`pid` IS NOT NULL AND `streams_servers`.`pid` > 0 AND `streams_servers`.`monitor_pid` IS NOT NULL AND `streams_servers`.`monitor_pid` > 0;');
+
+					foreach ($db->get_rows() as $rRow) {
+						$rServerIDs[] = intval($rRow['server_id']);
+					}
+
+					if (count($rStreamIDs) > 0) {
+						$rRet = APIRequest(array('action' => 'stream', 'sub' => 'stop', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs));
+					}
+
+					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
+					exit();
+				}
+
+				if (isset($rData['block_all_isps'])) {
+					$db->query("UPDATE `blocked_asns` SET `blocked` = 1 WHERE `type` = 'isp';");
+					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
+					exit();
+				}
+
+				if (isset($rData['unblock_all_isps'])) {
+					$db->query("UPDATE `blocked_asns` SET `blocked` = 0 WHERE `type` = 'isp';");
+					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
+					exit();
+				}
+
+				if (isset($rData['block_all_servers'])) {
+					$db->query("UPDATE `blocked_asns` SET `blocked` = 1 WHERE `type` = 'hosting';");
+					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
+					exit();
+				}
+
+				if (isset($rData['unblock_all_servers'])) {
+					$db->query("UPDATE `blocked_asns` SET `blocked` = 0 WHERE `type` = 'hosting';");
+					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
+					exit();
+				}
+
+				if (isset($rData['block_all_education'])) {
+					$db->query("UPDATE `blocked_asns` SET `blocked` = 1 WHERE `type` = 'education';");
+					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
+					exit();
+				}
+
+				if (isset($rData['unblock_all_education'])) {
+					$db->query("UPDATE `blocked_asns` SET `blocked` = 0 WHERE `type` = 'education';");
+					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
+					exit();
+				}
+
+				if (isset($rData['block_all_businesses'])) {
+					$db->query("UPDATE `blocked_asns` SET `blocked` = 1 WHERE `type` = 'business';");
+					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
+					exit();
+				}
+
+				if (isset($rData['unblock_all_businesses'])) {
+					$db->query("UPDATE `blocked_asns` SET `blocked` = 0 WHERE `type` = 'business';");
+					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
+					exit();
+				}
+
+				if (isset($rData['purge_unlinked_lines_mag'])) {
+					$rIDs = array();
+					$db->query('SELECT `id` FROM `lines` WHERE `is_mag` = 1 AND `id` NOT IN (SELECT `user_id` FROM `mag_devices`);');
+
+					foreach ($db->get_rows() as $rRow) {
+						$rIDs[] = $rRow['id'];
+					}
+
+					if (0 >= count($rIDs)) {
 					} else {
-						if (isset($rData['force_update_episodes'])) {
-							$db->query('DELETE FROM `watch_refresh` WHERE `type` = 3;');
-							$db->query('SELECT `id` FROM `streams` WHERE `type` = 5;');
+						$db->query('DELETE FROM `lines` WHERE `id` IN (' . implode(',', array_map('intval', $rIDs)) . ');');
+					}
 
-							foreach ($db->get_rows() as $rRow) {
-								$db->query('INSERT INTO `watch_refresh`(`type`, `stream_id`, `status`) VALUES(3, ?, 0);', $rRow['id']);
-							}
-							echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
+					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
+					exit();
+				}
 
-							exit();
+				if (isset($rData['purge_unlinked_lines_e2'])) {
+					$rIDs = array();
+					$db->query('SELECT `id` FROM `lines` WHERE `is_e2` = 1 AND `id` NOT IN (SELECT `user_id` FROM `enigma2_devices`);');
+
+					foreach ($db->get_rows() as $rRow) {
+						$rIDs[] = $rRow['id'];
+					}
+
+					if (0 >= count($rIDs)) {
+					} else {
+						$db->query('DELETE FROM `lines` WHERE `id` IN (' . implode(',', array_map('intval', $rIDs)) . ');');
+					}
+
+					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
+					exit();
+				}
+
+				if (isset($rData['symlink_all_movies'])) {
+					$db->query('SELECT `streams`.`id`, `streams_servers`.`server_id` FROM `streams` LEFT JOIN `streams_servers` ON `streams_servers`.`stream_id` = `streams`.`id` WHERE `type` = 2 AND `movie_symlink` = 1;');
+					$rStreams = $db->get_rows();
+					$rStreamIDs = array();
+
+					foreach ($rStreams as $rStream) {
+						$rStreamIDs[] = $rStream['id'];
+					}
+
+					if (count($rStreamIDs) > 0) {
+						$db->query('UPDATE `streams_servers` SET `bitrate` = NULL, `current_source` = NULL, `to_analyze` = 0, `pid` = NULL, `stream_started` = NULL, `stream_info` = NULL, `stream_status` = 0, `monitor_pid` = NULL WHERE `stream_id` IN (' . implode(',', $rStreamIDs) . ');');
+					}
+
+					foreach ($rStreams as $rStream) {
+						CoreUtilities::queueMovie($rStream['id'], $rStream['server_id']);
+					}
+					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
+					exit();
+				}
+
+				if (isset($rData['symlink_all_episodes'])) {
+					$db->query('SELECT `streams`.`id`, `streams_servers`.`server_id` FROM `streams` LEFT JOIN `streams_servers` ON `streams_servers`.`stream_id` = `streams`.`id` WHERE `type` = 5 AND `movie_symlink` = 1;');
+					$rStreams = $db->get_rows();
+					$rStreamIDs = array();
+
+					foreach ($rStreams as $rStream) {
+						$rStreamIDs[] = $rStream['id'];
+					}
+
+					if (count($rStreamIDs) > 0) {
+						$db->query('UPDATE `streams_servers` SET `bitrate` = NULL, `current_source` = NULL, `to_analyze` = 0, `pid` = NULL, `stream_started` = NULL, `stream_info` = NULL, `stream_status` = 0, `monitor_pid` = NULL WHERE `stream_id` IN (' . implode(',', $rStreamIDs) . ');');
+					}
+
+					foreach ($rStreams as $rStream) {
+						CoreUtilities::queueMovie($rStream['id'], $rStream['server_id']);
+					}
+					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
+					exit();
+				}
+
+				if (isset($rData['recreate_channels'])) {
+					$db->query('SELECT `id` FROM `streams` WHERE `type` = 3;');
+					$rStreamIDs = array_map('intval', array_keys($db->get_rows(true, 'id')));
+
+					if (count($rStreamIDs) > 0) {
+						$db->query("UPDATE `streams_servers` SET `cchannel_rsources` = '[]', `pids_create_channel` = '[]', `bitrate` = NULL,`current_source` = NULL,`to_analyze` = 0,`pid` = NULL,`stream_started` = NULL,`stream_info` = NULL,`stream_status` = 0,`monitor_pid` = NULL WHERE `stream_id` IN (" . implode(',', $rStreamIDs) . ');');
+					}
+
+					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
+					exit();
+				}
+
+				if (isset($rData['delete_duplicates'])) {
+					shell_exec(PHP_BIN . ' ' . CLI_PATH . 'tools.php "duplicates" > /dev/null 2>/dev/null &');
+					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
+					exit();
+				}
+
+				if (isset($rData['restore_images'])) {
+					restoreImages();
+					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
+					exit();
+				}
+
+				if (isset($rData['replace_movie_years'])) {
+					$db->query('SELECT `id`, `year`, `movie_properties`, `stream_display_name` FROM `streams` WHERE `type` = 2 ORDER BY `id` DESC;');
+
+					foreach ($db->get_rows() as $rRow) {
+						$rOriginalRow = $rRow;
+
+						if (!empty($rRow['year'])) {
 						} else {
-							if (isset($rData['reauthorise_mysql'])) {
-								fCf52F24c866C872();
-								echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
+							$rRow['year'] = substr(json_decode($rRow['movie_properties'], true)['release_date'], 0, 4);
+						}
 
-								exit();
-							}
+						$rRegex = '/\\(([0-9)]+)\\)/';
+						preg_match($rRegex, $rRow['stream_display_name'], $rMatches, PREG_OFFSET_CAPTURE, 0);
+						$rTitleYear = null;
+						$rMatchType = 0;
 
-							if (isset($rData['restart_all_streams'])) {
-								$rServerIDs = $rStreamIDs = array();
-								$db->query('SELECT DISTINCT(`stream_id`) FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams`.`type` = 1;');
+						if (count($rMatches) == 2) {
+							$rTitleYear = intval($rMatches[1][0]);
+							$rMatchType = 1;
+						} else {
+							$rSplit = explode('-', $rRow['stream_display_name']);
 
-								foreach ($db->get_rows() as $rRow) {
-									$rStreamIDs[] = intval($rRow['stream_id']);
-								}
-								$db->query('SELECT DISTINCT(`server_id`) FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams`.`type` = 1;');
-
-								foreach ($db->get_rows() as $rRow) {
-									$rServerIDs[] = intval($rRow['server_id']);
-								}
-
-								if (0 >= count($rStreamIDs)) {
-								} else {
-									$rRet = APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs));
-								}
-
-								echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
-								exit();
+							if (!(1 < count($rSplit) && is_numeric(trim(end($rSplit))))) {
 							} else {
-								if (isset($rData['restart_online_streams'])) {
-									$rServerIDs = $rStreamIDs = array();
-									$db->query('SELECT DISTINCT(`stream_id`) FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams`.`type` = 1 AND `streams_servers`.`pid` IS NOT NULL AND `streams_servers`.`pid` > 0 AND `streams_servers`.`monitor_pid` IS NOT NULL AND `streams_servers`.`monitor_pid` > 0;');
+								$rTitleYear = intval(trim(end($rSplit)));
+								$rMatchType = 2;
+							}
+						}
 
-									foreach ($db->get_rows() as $rRow) {
-										$rStreamIDs[] = intval($rRow['stream_id']);
-									}
-									$db->query('SELECT DISTINCT(`server_id`) FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams`.`type` = 1 AND `streams_servers`.`pid` IS NOT NULL AND `streams_servers`.`pid` > 0 AND `streams_servers`.`monitor_pid` IS NOT NULL AND `streams_servers`.`monitor_pid` > 0;');
-
-									foreach ($db->get_rows() as $rRow) {
-										$rServerIDs[] = intval($rRow['server_id']);
-									}
-
-									if (0 >= count($rStreamIDs)) {
-									} else {
-										$rRet = APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs));
-									}
-
-									echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
-									exit();
+						if (0 >= $rMatchType) {
+						} else {
+							if (!(1900 <= $rTitleYear && $rTitleYear <= intval(date('Y') + 1))) {
+							} else {
+								if (!empty($rRow['year'])) {
 								} else {
-									if (isset($rData['restart_down_streams'])) {
-										$rServerIDs = $rStreamIDs = array();
-										$db->query('SELECT DISTINCT(`stream_id`) FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams`.`type` = 1 AND (`streams_servers`.`pid` IS NULL OR `streams_servers`.`pid` <= 0) AND `streams_servers`.`stream_status` <> 0 AND `streams_servers`.`monitor_pid` IS NOT NULL AND `streams_servers`.`monitor_pid` > 0;');
-
-										foreach ($db->get_rows() as $rRow) {
-											$rStreamIDs[] = intval($rRow['stream_id']);
-										}
-										$db->query('SELECT DISTINCT(`server_id`) FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams`.`type` = 1 AND (`streams_servers`.`pid` IS NULL OR `streams_servers`.`pid` <= 0) AND `streams_servers`.`stream_status` <> 0 AND `streams_servers`.`monitor_pid` IS NOT NULL AND `streams_servers`.`monitor_pid` > 0;');
-
-										foreach ($db->get_rows() as $rRow) {
-											$rServerIDs[] = intval($rRow['server_id']);
-										}
-
-										if (0 >= count($rStreamIDs)) {
-										} else {
-											$rRet = APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs));
-										}
-
-										echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
-										exit();
-									} else {
-										if (isset($rData['start_offline_streams'])) {
-											$rServerIDs = $rStreamIDs = array();
-											$db->query('SELECT DISTINCT(`stream_id`) FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams`.`type` = 1 AND (`streams`.`direct_source` = 0 AND (`streams_servers`.`monitor_pid` IS NULL OR `streams_servers`.`monitor_pid` <= 0) AND `streams_servers`.`on_demand` = 0);');
-
-											foreach ($db->get_rows() as $rRow) {
-												$rStreamIDs[] = intval($rRow['stream_id']);
-											}
-											$db->query('SELECT DISTINCT(`server_id`) FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams`.`type` = 1 AND (`streams`.`direct_source` = 0 AND (`streams_servers`.`monitor_pid` IS NULL OR `streams_servers`.`monitor_pid` <= 0) AND `streams_servers`.`on_demand` = 0);');
-
-											foreach ($db->get_rows() as $rRow) {
-												$rServerIDs[] = intval($rRow['server_id']);
-											}
-
-											if (0 >= count($rStreamIDs)) {
-											} else {
-												$rRet = APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs));
-											}
-
-											echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
-											exit();
-										} else {
-											if (isset($rData['stop_down_streams'])) {
-												$rServerIDs = $rStreamIDs = array();
-												$db->query('SELECT DISTINCT(`stream_id`) FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams`.`type` = 1 AND (`streams_servers`.`pid` IS NULL OR `streams_servers`.`pid` <= 0) AND `streams_servers`.`stream_status` <> 0 AND `streams_servers`.`monitor_pid` IS NOT NULL AND `streams_servers`.`monitor_pid` > 0;');
-
-												foreach ($db->get_rows() as $rRow) {
-													$rStreamIDs[] = intval($rRow['stream_id']);
-												}
-												$db->query('SELECT DISTINCT(`server_id`) FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams`.`type` = 1 AND (`streams_servers`.`pid` IS NULL OR `streams_servers`.`pid` <= 0) AND `streams_servers`.`stream_status` <> 0 AND `streams_servers`.`monitor_pid` IS NOT NULL AND `streams_servers`.`monitor_pid` > 0;');
-
-												foreach ($db->get_rows() as $rRow) {
-													$rServerIDs[] = intval($rRow['server_id']);
-												}
-
-												if (0 >= count($rStreamIDs)) {
-												} else {
-													$rRet = APIRequest(array('action' => 'stream', 'sub' => 'stop', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs));
-												}
-
-												echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
-												exit();
-											} else {
-												if (isset($rData['stop_online_streams'])) {
-													$rServerIDs = $rStreamIDs = array();
-													$db->query('SELECT DISTINCT(`stream_id`) FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams`.`type` = 1 AND `streams_servers`.`pid` IS NOT NULL AND `streams_servers`.`pid` > 0 AND `streams_servers`.`monitor_pid` IS NOT NULL AND `streams_servers`.`monitor_pid` > 0;');
-
-													foreach ($db->get_rows() as $rRow) {
-														$rStreamIDs[] = intval($rRow['stream_id']);
-													}
-													$db->query('SELECT DISTINCT(`server_id`) FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams`.`type` = 1 AND `streams_servers`.`pid` IS NOT NULL AND `streams_servers`.`pid` > 0 AND `streams_servers`.`monitor_pid` IS NOT NULL AND `streams_servers`.`monitor_pid` > 0;');
-
-													foreach ($db->get_rows() as $rRow) {
-														$rServerIDs[] = intval($rRow['server_id']);
-													}
-
-													if (0 >= count($rStreamIDs)) {
-													} else {
-														$rRet = APIRequest(array('action' => 'stream', 'sub' => 'stop', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs));
-													}
-
-													echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
-													exit();
-												} else {
-													if (isset($rData['block_all_isps'])) {
-														$db->query("UPDATE `blocked_asns` SET `blocked` = 1 WHERE `type` = 'isp';");
-														echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
-														exit();
-													}
-
-													if (isset($rData['unblock_all_isps'])) {
-														$db->query("UPDATE `blocked_asns` SET `blocked` = 0 WHERE `type` = 'isp';");
-														echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
-														exit();
-													}
-
-													if (isset($rData['block_all_servers'])) {
-														$db->query("UPDATE `blocked_asns` SET `blocked` = 1 WHERE `type` = 'hosting';");
-														echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
-														exit();
-													}
-
-													if (isset($rData['unblock_all_servers'])) {
-														$db->query("UPDATE `blocked_asns` SET `blocked` = 0 WHERE `type` = 'hosting';");
-														echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
-														exit();
-													}
-
-													if (isset($rData['block_all_education'])) {
-														$db->query("UPDATE `blocked_asns` SET `blocked` = 1 WHERE `type` = 'education';");
-														echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
-														exit();
-													}
-
-													if (isset($rData['unblock_all_education'])) {
-														$db->query("UPDATE `blocked_asns` SET `blocked` = 0 WHERE `type` = 'education';");
-														echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
-														exit();
-													}
-
-													if (isset($rData['block_all_businesses'])) {
-														$db->query("UPDATE `blocked_asns` SET `blocked` = 1 WHERE `type` = 'business';");
-														echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
-														exit();
-													}
-
-													if (isset($rData['unblock_all_businesses'])) {
-														$db->query("UPDATE `blocked_asns` SET `blocked` = 0 WHERE `type` = 'business';");
-														echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
-														exit();
-													}
-
-													if (isset($rData['purge_unlinked_lines_mag'])) {
-														$rIDs = array();
-														$db->query('SELECT `id` FROM `lines` WHERE `is_mag` = 1 AND `id` NOT IN (SELECT `user_id` FROM `mag_devices`);');
-
-														foreach ($db->get_rows() as $rRow) {
-															$rIDs[] = $rRow['id'];
-														}
-
-														if (0 >= count($rIDs)) {
-														} else {
-															$db->query('DELETE FROM `lines` WHERE `id` IN (' . implode(',', array_map('intval', $rIDs)) . ');');
-														}
-
-														echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
-														exit();
-													} else {
-														if (isset($rData['purge_unlinked_lines_e2'])) {
-															$rIDs = array();
-															$db->query('SELECT `id` FROM `lines` WHERE `is_e2` = 1 AND `id` NOT IN (SELECT `user_id` FROM `enigma2_devices`);');
-
-															foreach ($db->get_rows() as $rRow) {
-																$rIDs[] = $rRow['id'];
-															}
-
-															if (0 >= count($rIDs)) {
-															} else {
-																$db->query('DELETE FROM `lines` WHERE `id` IN (' . implode(',', array_map('intval', $rIDs)) . ');');
-															}
-
-															echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
-															exit();
-														} else {
-															if (isset($rData['symlink_all_movies'])) {
-																$db->query('SELECT `streams`.`id`, `streams_servers`.`server_id` FROM `streams` LEFT JOIN `streams_servers` ON `streams_servers`.`stream_id` = `streams`.`id` WHERE `type` = 2 AND `movie_symlink` = 1;');
-																$rStreams = $db->get_rows();
-																$rStreamIDs = array();
-
-																foreach ($rStreams as $rStream) {
-																	$rStreamIDs[] = $rStream['id'];
-																}
-
-																if (0 >= count($rStreamIDs)) {
-																} else {
-																	$db->query('UPDATE `streams_servers` SET `bitrate` = NULL, `current_source` = NULL, `to_analyze` = 0, `pid` = NULL, `stream_started` = NULL, `stream_info` = NULL, `stream_status` = 0, `monitor_pid` = NULL WHERE `stream_id` IN (' . implode(',', $rStreamIDs) . ');');
-																}
-
-																foreach ($rStreams as $rStream) {
-																	CoreUtilities::queueMovie($rStream['id'], $rStream['server_id']);
-																}
-																echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
-																exit();
-															} else {
-																if (isset($rData['symlink_all_episodes'])) {
-																	$db->query('SELECT `streams`.`id`, `streams_servers`.`server_id` FROM `streams` LEFT JOIN `streams_servers` ON `streams_servers`.`stream_id` = `streams`.`id` WHERE `type` = 5 AND `movie_symlink` = 1;');
-																	$rStreams = $db->get_rows();
-																	$rStreamIDs = array();
-
-																	foreach ($rStreams as $rStream) {
-																		$rStreamIDs[] = $rStream['id'];
-																	}
-
-																	if (0 >= count($rStreamIDs)) {
-																	} else {
-																		$db->query('UPDATE `streams_servers` SET `bitrate` = NULL, `current_source` = NULL, `to_analyze` = 0, `pid` = NULL, `stream_started` = NULL, `stream_info` = NULL, `stream_status` = 0, `monitor_pid` = NULL WHERE `stream_id` IN (' . implode(',', $rStreamIDs) . ');');
-																	}
-
-																	foreach ($rStreams as $rStream) {
-																		CoreUtilities::queueMovie($rStream['id'], $rStream['server_id']);
-																	}
-																	echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
-																	exit();
-																} else {
-																	if (isset($rData['recreate_channels'])) {
-																		$db->query('SELECT `id` FROM `streams` WHERE `type` = 3;');
-																		$rStreamIDs = array_map('intval', array_keys($db->get_rows(true, 'id')));
-
-																		if (0 >= count($rStreamIDs)) {
-																		} else {
-																			$db->query("UPDATE `streams_servers` SET `cchannel_rsources` = '[]', `pids_create_channel` = '[]', `bitrate` = NULL,`current_source` = NULL,`to_analyze` = 0,`pid` = NULL,`stream_started` = NULL,`stream_info` = NULL,`stream_status` = 0,`monitor_pid` = NULL WHERE `stream_id` IN (" . implode(',', $rStreamIDs) . ');');
-																		}
-
-																		echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
-																		exit();
-																	}
-
-																	if (isset($rData['delete_duplicates'])) {
-																		shell_exec(PHP_BIN . ' ' . CLI_PATH . 'tools.php "duplicates" > /dev/null 2>/dev/null &');
-																		echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
-																		exit();
-																	}
-
-																	if (isset($rData['restore_images'])) {
-																		restoreImages();
-																		echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-
-																		exit();
-																	}
-
-																	if (isset($rData['replace_movie_years'])) {
-																		$db->query('SELECT `id`, `year`, `movie_properties`, `stream_display_name` FROM `streams` WHERE `type` = 2 ORDER BY `id` DESC;');
-
-																		foreach ($db->get_rows() as $rRow) {
-																			$rOriginalRow = $rRow;
-
-																			if (!empty($rRow['year'])) {
-																			} else {
-																				$rRow['year'] = substr(json_decode($rRow['movie_properties'], true)['release_date'], 0, 4);
-																			}
-
-																			$rRegex = '/\\(([0-9)]+)\\)/';
-																			preg_match($rRegex, $rRow['stream_display_name'], $rMatches, PREG_OFFSET_CAPTURE, 0);
-																			$rTitleYear = null;
-																			$rMatchType = 0;
-
-																			if (count($rMatches) == 2) {
-																				$rTitleYear = intval($rMatches[1][0]);
-																				$rMatchType = 1;
-																			} else {
-																				$rSplit = explode('-', $rRow['stream_display_name']);
-
-																				if (!(1 < count($rSplit) && is_numeric(trim(end($rSplit))))) {
-																				} else {
-																					$rTitleYear = intval(trim(end($rSplit)));
-																					$rMatchType = 2;
-																				}
-																			}
-
-																			if (0 >= $rMatchType) {
-																			} else {
-																				if (!(1900 <= $rTitleYear && $rTitleYear <= intval(date('Y') + 1))) {
-																				} else {
-																					if (!empty($rRow['year'])) {
-																					} else {
-																						$rRow['year'] = $rTitleYear;
-																					}
-
-																					if ($rMatchType == 1) {
-																						$rRow['stream_display_name'] = trim(preg_replace('!\\s+!', ' ', str_replace($rMatches[0][0], '', $rRow['stream_display_name'])));
-																					} else {
-																						$rRow['stream_display_name'] = trim(implode('-', array_slice($rSplit, 0, -1)));
-																					}
-																				}
-																			}
-
-																			if (!($rRow['year'] != $rOriginalRow['year'] || $rRow['stream_display_name'] != $rOriginalRow['stream_display_name'])) {
-																			} else {
-																				$db->query('UPDATE `streams` SET `stream_display_name` = ?, `year` = ? WHERE `id` = ?;', $rRow['stream_display_name'], $rRow['year'], $rRow['id']);
-																			}
-																		}
-																	} else {
-																		if (isset($rData['replace_series_years'])) {
-																			$db->query('SELECT `id`, `year`, `release_date`, `title` FROM `streams_series`;');
-
-																			foreach ($db->get_rows() as $rRow) {
-																				$rOriginalRow = $rRow;
-
-																				if (!empty($rRow['year'])) {
-																				} else {
-																					$rRow['year'] = substr($rRow['release_date'], 0, 4);
-																				}
-
-																				$rRegex = '/\\(([0-9)]+)\\)/';
-																				preg_match($rRegex, $rRow['title'], $rMatches, PREG_OFFSET_CAPTURE, 0);
-																				$rTitleYear = null;
-																				$rMatchType = 0;
-
-																				if (count($rMatches) == 2) {
-																					$rTitleYear = intval($rMatches[1][0]);
-																					$rMatchType = 1;
-																				} else {
-																					$rSplit = explode('-', $rRow['title']);
-
-																					if (!(1 < count($rSplit) && is_numeric(trim(end($rSplit))))) {
-																					} else {
-																						$rTitleYear = intval(trim(end($rSplit)));
-																						$rMatchType = 2;
-																					}
-																				}
-
-																				if (0 >= $rMatchType) {
-																				} else {
-																					if (!(1900 <= $rTitleYear && $rTitleYear <= intval(date('Y') + 1))) {
-																					} else {
-																						if (!empty($rRow['year'])) {
-																						} else {
-																							$rRow['year'] = $rTitleYear;
-																						}
-
-																						if ($rMatchType == 1) {
-																							$rRow['title'] = trim(preg_replace('!\\s+!', ' ', str_replace($rMatches[0][0], '', $rRow['title'])));
-																						} else {
-																							$rRow['title'] = trim(implode('-', array_slice($rSplit, 0, -1)));
-																						}
-																					}
-																				}
-
-																				if (!($rRow['year'] != $rOriginalRow['year'] || $rRow['title'] != $rOriginalRow['title'])) {
-																				} else {
-																					$db->query('UPDATE `streams_series` SET `title` = ?, `year` = ? WHERE `id` = ?;', $rRow['title'], $rRow['year'], $rRow['id']);
-																				}
-																			}
-																		} else {
-																			if (isset($rData['check_compatibility'])) {
-																				$db->query('SELECT COUNT(*) AS `count` FROM `streams_servers` WHERE `stream_info` IS NOT NULL;');
-																				$rCount = $db->get_row()['count'];
-
-																				if (0 >= $rCount) {
-																				} else {
-																					$rSteps = range(0, $rCount, 1000);
-
-																					if ($rSteps) {
-																					} else {
-																						$rSteps = array(0);
-																					}
-
-																					foreach ($rSteps as $rStep) {
-																						$db->query('SELECT `server_stream_id`, `stream_info`, `compatible` FROM `streams_servers` WHERE `stream_info` IS NOT NULL LIMIT ' . $rStep . ', 1000;');
-
-																						foreach ($db->get_rows() as $rRow) {
-																							$rCompatible = CoreUtilities::checkCompatibility($rRow['stream_info']);
-
-																							if ($rCompatible == $rRow['compatible']) {
-																							} else {
-																								$db->query('UPDATE `streams_servers` SET `compatible` = ? WHERE `server_stream_id` = ?;', $rCompatible, $rRow['server_stream_id']);
-																							}
-																						}
-																					}
-																				}
-
-																				$db->query('UPDATE `streams_servers` SET `compatible` = 0 WHERE `stream_info` IS NULL;');
-																			} else {
-																				if (isset($rData['rescan_vod'])) {
-																					$db->query('UPDATE `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` SET `to_analyze` = 1, `pid` = IF(`pid`, `pid`, 1) WHERE `type` IN (2,5) AND `direct_source` = 0;');
-																				} else {
-																					if (isset($rData['update_ratings'])) {
-																						$db->query('SELECT `id`, `movie_properties`, `rating` FROM `streams` WHERE `type` = 2;');
-
-																						foreach ($db->get_rows() as $rRow) {
-																							$rProperties = json_decode($rRow['movie_properties'], true);
-																							$rRating = (floatval($rProperties['rating']) ?: 0);
-
-																							if ($rRow['rating'] == $rRating) {
-																							} else {
-																								$db->query('UPDATE `streams` SET `rating` = ? WHERE `id` = ?;', $rRating, $rRow['id']);
-																							}
-																						}
-																					} else {
-																						if (!isset($rData['add_tmdb_ids'])) {
-																						} else {
-																							$db->query('SELECT `id`, `movie_properties`, `tmdb_id` FROM `streams` WHERE `type` = 2 AND `tmdb_id` IS NULL;');
-
-																							foreach ($db->get_rows() as $rRow) {
-																								$rProperties = json_decode($rRow['movie_properties'], true);
-																								$rTMDBID = ($rProperties['tmdb_id'] ?: null);
-
-																								if ($rRow['tmdb_id'] == $rTMDBID) {
-																								} else {
-																									$db->query('UPDATE `streams` SET `tmdb_id` = ? WHERE `id` = ?;', $rTMDBID, $rRow['id']);
-																								}
-																							}
-																						}
-																					}
-																				}
-																			}
-																		}
-																	}
-
-																	break;
-																}
-															}
-														}
-													}
-												}
-											}
-										}
-									}
+									$rRow['year'] = $rTitleYear;
+								}
+
+								if ($rMatchType == 1) {
+									$rRow['stream_display_name'] = trim(preg_replace('!\\s+!', ' ', str_replace($rMatches[0][0], '', $rRow['stream_display_name'])));
+								} else {
+									$rRow['stream_display_name'] = trim(implode('-', array_slice($rSplit, 0, -1)));
 								}
 							}
+						}
+
+						if (!($rRow['year'] != $rOriginalRow['year'] || $rRow['stream_display_name'] != $rOriginalRow['stream_display_name'])) {
+						} else {
+							$db->query('UPDATE `streams` SET `stream_display_name` = ?, `year` = ? WHERE `id` = ?;', $rRow['stream_display_name'], $rRow['year'], $rRow['id']);
 						}
 					}
 				}
 
-				// no break
+				if (isset($rData['replace_series_years'])) {
+					$db->query('SELECT `id`, `year`, `release_date`, `title` FROM `streams_series`;');
+
+					foreach ($db->get_rows() as $rRow) {
+						$rOriginalRow = $rRow;
+
+						if (!empty($rRow['year'])) {
+						} else {
+							$rRow['year'] = substr($rRow['release_date'], 0, 4);
+						}
+
+						$rRegex = '/\\(([0-9)]+)\\)/';
+						preg_match($rRegex, $rRow['title'], $rMatches, PREG_OFFSET_CAPTURE, 0);
+						$rTitleYear = null;
+						$rMatchType = 0;
+
+						if (count($rMatches) == 2) {
+							$rTitleYear = intval($rMatches[1][0]);
+							$rMatchType = 1;
+						} else {
+							$rSplit = explode('-', $rRow['title']);
+
+							if (!(1 < count($rSplit) && is_numeric(trim(end($rSplit))))) {
+							} else {
+								$rTitleYear = intval(trim(end($rSplit)));
+								$rMatchType = 2;
+							}
+						}
+
+						if (0 >= $rMatchType) {
+						} else {
+							if (!(1900 <= $rTitleYear && $rTitleYear <= intval(date('Y') + 1))) {
+							} else {
+								if (!empty($rRow['year'])) {
+								} else {
+									$rRow['year'] = $rTitleYear;
+								}
+
+								if ($rMatchType == 1) {
+									$rRow['title'] = trim(preg_replace('!\\s+!', ' ', str_replace($rMatches[0][0], '', $rRow['title'])));
+								} else {
+									$rRow['title'] = trim(implode('-', array_slice($rSplit, 0, -1)));
+								}
+							}
+						}
+
+						if (!($rRow['year'] != $rOriginalRow['year'] || $rRow['title'] != $rOriginalRow['title'])) {
+						} else {
+							$db->query('UPDATE `streams_series` SET `title` = ?, `year` = ? WHERE `id` = ?;', $rRow['title'], $rRow['year'], $rRow['id']);
+						}
+					}
+				}
+
+				if (isset($rData['check_compatibility'])) {
+					$db->query('SELECT COUNT(*) AS `count` FROM `streams_servers` WHERE `stream_info` IS NOT NULL;');
+					$rCount = $db->get_row()['count'];
+
+					if (0 >= $rCount) {
+					} else {
+						$rSteps = range(0, $rCount, 1000);
+
+						if ($rSteps) {
+						} else {
+							$rSteps = array(0);
+						}
+
+						foreach ($rSteps as $rStep) {
+							$db->query('SELECT `server_stream_id`, `stream_info`, `compatible` FROM `streams_servers` WHERE `stream_info` IS NOT NULL LIMIT ' . $rStep . ', 1000;');
+
+							foreach ($db->get_rows() as $rRow) {
+								$rCompatible = CoreUtilities::checkCompatibility($rRow['stream_info']);
+
+								if ($rCompatible == $rRow['compatible']) {
+								} else {
+									$db->query('UPDATE `streams_servers` SET `compatible` = ? WHERE `server_stream_id` = ?;', $rCompatible, $rRow['server_stream_id']);
+								}
+							}
+						}
+					}
+
+					$db->query('UPDATE `streams_servers` SET `compatible` = 0 WHERE `stream_info` IS NULL;');
+				}
+
+				if (isset($rData['rescan_vod'])) {
+					$db->query('UPDATE `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` SET `to_analyze` = 1, `pid` = IF(`pid`, `pid`, 1) WHERE `type` IN (2,5) AND `direct_source` = 0;');
+				}
+
+				if (isset($rData['update_ratings'])) {
+					$db->query('SELECT `id`, `movie_properties`, `rating` FROM `streams` WHERE `type` = 2;');
+
+					foreach ($db->get_rows() as $rRow) {
+						$rProperties = json_decode($rRow['movie_properties'], true);
+						$rRating = (floatval($rProperties['rating']) ?: 0);
+
+						if ($rRow['rating'] == $rRating) {
+						} else {
+							$db->query('UPDATE `streams` SET `rating` = ? WHERE `id` = ?;', $rRating, $rRow['id']);
+						}
+					}
+				}
+
+				if (isset($rData['add_tmdb_ids'])) {
+					$db->query('SELECT `id`, `movie_properties`, `tmdb_id` FROM `streams` WHERE `type` = 2 AND `tmdb_id` IS NULL;');
+
+					foreach ($db->get_rows() as $rRow) {
+						$rProperties = json_decode($rRow['movie_properties'], true);
+						$rTMDBID = ($rProperties['tmdb_id'] ?: null);
+
+						if ($rRow['tmdb_id'] != $rTMDBID) {
+							$db->query('UPDATE `streams` SET `tmdb_id` = ? WHERE `id` = ?;', $rTMDBID, $rRow['id']);
+						}
+					}
+				}
+
+				break;
+
+			// no break
 			case 'stream_tools':
 				if (isset($rData['replace_dns'])) {
 					API::replaceDNS($rData);
 					echo json_encode(array('result' => true, 'location' => 'stream_tools?status=1', 'status' => 1));
-
 					exit();
 				}
 
@@ -1214,7 +1132,6 @@ if (1 < $rICount) { ?>
 
 				API::moveStreams($rData);
 				echo json_encode(array('result' => true, 'location' => 'stream_tools?status=2', 'status' => 2));
-
 				exit();
 
 
@@ -1245,19 +1162,16 @@ if (1 < $rICount) { ?>
 					}
 
 					echo json_encode(array('result' => true, 'location' => 'stream_view?id=' . intval($rReturn['data']['insert_id']) . '&status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'movie':
 				if (!empty($rData['import_folder']) || !empty($_FILES['m3u_file']['tmp_name'])) {
 					$rReturn = API::importMovies($rData);
 					echo json_encode(array('result' => true, 'location' => 'movies?status=2', 'status' => $rReturn['status']));
-
 					exit();
 				}
 
@@ -1277,12 +1191,10 @@ if (1 < $rICount) { ?>
 					}
 
 					echo json_encode(array('result' => true, 'location' => 'stream_view?id=' . intval($rReturn['data']['insert_id']) . '&status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'backups':
@@ -1290,12 +1202,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'backups?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'cache':
@@ -1303,12 +1213,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'cache?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'bouquet_order':
@@ -1316,18 +1224,15 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'bouquet_order?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				if ($rReturn['status'] == STATUS_SUCCESS_REPLACE) {
 					echo json_encode(array('result' => true, 'location' => 'bouquet_order?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'bouquet_sort':
@@ -1335,12 +1240,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'bouquet_sort?id=' . intval($rReturn['data']['insert_id']) . '&status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'channel_order':
@@ -1348,12 +1251,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'channel_order?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'code':
@@ -1367,12 +1268,10 @@ if (1 < $rICount) { ?>
 					}
 
 					echo json_encode(array('result' => true, 'location' => 'codes?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'hmac':
@@ -1380,12 +1279,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'hmacs?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'record':
@@ -1393,12 +1290,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'archive?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'created_channel':
@@ -1412,12 +1307,10 @@ if (1 < $rICount) { ?>
 					}
 
 					echo json_encode(array('result' => true, 'location' => 'stream_view?id=' . intval($rReturn['data']['insert_id']) . '&status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'edit_profile':
@@ -1427,12 +1320,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'edit_profile?status=' . intval($rReturn['status']), 'status' => $rReturn['status'], 'reload' => true));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'epg':
@@ -1440,12 +1331,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'epgs?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'provider':
@@ -1453,12 +1342,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'providers?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'episode':
@@ -1472,7 +1359,6 @@ if (1 < $rICount) { ?>
 					}
 
 					echo json_encode(array('result' => true, 'location' => 'stream_view?sid=' . intval($rReturn['data']['series_id']) . '&id=' . intval($rReturn['data']['insert_id']) . '&status=' . intval($rReturn['status'])));
-
 					exit();
 				}
 
@@ -1484,12 +1370,10 @@ if (1 < $rICount) { ?>
 					}
 
 					echo json_encode(array('result' => true, 'location' => 'episodes?series=' . intval($rReturn['data']['series_id']) . '&status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'episodes_mass':
@@ -1497,12 +1381,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'episodes_mass?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'line_mass':
@@ -1510,12 +1392,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'line_mass?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'user_mass':
@@ -1523,12 +1403,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'user_mass?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'mag_mass':
@@ -1536,12 +1414,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'mag_mass?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'enigma_mass':
@@ -1549,12 +1425,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'enigma_mass?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'stream_mass':
@@ -1562,12 +1436,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'stream_mass?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'created_channel_mass':
@@ -1575,12 +1447,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'created_channel_mass?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'movie_mass':
@@ -1588,12 +1458,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'movie_mass?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'radio_mass':
@@ -1601,12 +1469,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'radio_mass?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'series_mass':
@@ -1614,12 +1480,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'series_mass?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'group':
@@ -1627,12 +1491,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'groups?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'ip':
@@ -1640,12 +1502,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'ips?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'isp':
@@ -1653,12 +1513,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'isps?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'line':
@@ -1672,12 +1530,10 @@ if (1 < $rICount) { ?>
 					}
 
 					echo json_encode(array('result' => true, 'location' => 'lines?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'mag':
@@ -1691,12 +1547,10 @@ if (1 < $rICount) { ?>
 					}
 
 					echo json_encode(array('result' => true, 'location' => 'mags?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'enigma':
@@ -1710,12 +1564,10 @@ if (1 < $rICount) { ?>
 					}
 
 					echo json_encode(array('result' => true, 'location' => 'enigmas?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'mass_delete_streams':
@@ -1723,12 +1575,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'mass_delete?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'mass_delete_movies':
@@ -1736,12 +1586,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'mass_delete?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'mass_delete_lines':
@@ -1749,12 +1597,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'mass_delete?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'mass_delete_series':
@@ -1762,12 +1608,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'mass_delete?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'mass_delete_episodes':
@@ -1775,12 +1619,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'mass_delete?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'mass_delete_radios':
@@ -1788,12 +1630,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'mass_delete?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'mass_delete_users':
@@ -1801,12 +1641,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'mass_delete?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'mass_delete_mags':
@@ -1814,12 +1652,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'mass_delete?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'mass_delete_enigmas':
@@ -1827,12 +1663,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'mass_delete?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'package':
@@ -1840,12 +1674,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'packages?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'profile':
@@ -1853,12 +1685,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'profiles?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'radio':
@@ -1872,12 +1702,10 @@ if (1 < $rICount) { ?>
 					}
 
 					echo json_encode(array('result' => true, 'location' => 'stream_view?id=' . intval($rReturn['data']['insert_id']) . '&status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'rtmp_ip':
@@ -1885,19 +1713,16 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'rtmp_ips?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'serie':
 				if (!empty($rData['import_folder']) || !empty($_FILES['m3u_file']['tmp_name'])) {
 					$rReturn = API::importSeries($rData);
 					echo json_encode(array('result' => true, 'location' => 'series?status=2', 'status' => $rReturn['status']));
-
 					exit();
 				}
 
@@ -1911,12 +1736,10 @@ if (1 < $rICount) { ?>
 					}
 
 					echo json_encode(array('result' => true, 'location' => 'series?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'proxy':
@@ -1924,12 +1747,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'server_view?id=' . intval($rReturn['data']['insert_id']) . '&status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'server':
@@ -1968,7 +1789,6 @@ if (1 < $rICount) { ?>
 					}
 				} else {
 					echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 					exit();
 				}
 
@@ -1978,12 +1798,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'server_view?id=' . intval($rReturn['data']['insert_id']) . '&status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'settings':
@@ -1991,12 +1809,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'settings?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'settings_plex':
@@ -2004,12 +1820,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'settings_plex?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'settings_watch':
@@ -2017,12 +1831,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'settings_watch?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'server_order':
@@ -2030,12 +1842,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'server_order?status=' . STATUS_SUCCESS, 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'stream_categories':
@@ -2043,12 +1853,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'stream_categories?status=' . STATUS_SUCCESS_MULTI, 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'stream_category':
@@ -2056,12 +1864,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'stream_categories?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'ticket':
@@ -2069,12 +1875,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'ticket_view?id=' . intval($rReturn['data']['insert_id']) . '&status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'user':
@@ -2088,12 +1892,10 @@ if (1 < $rICount) { ?>
 					}
 
 					echo json_encode(array('result' => true, 'location' => 'users?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'useragent':
@@ -2101,12 +1903,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'useragents?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'watch_add':
@@ -2114,12 +1914,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'watch?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 
 			case 'plex_add':
@@ -2127,12 +1925,10 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'plex?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-
 					exit();
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-
 				exit();
 		}
 	} else {
