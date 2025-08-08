@@ -3389,9 +3389,7 @@ function getEPGs() {
 	$rReturn = array();
 	$db->query('SELECT * FROM `epg` ORDER BY `id` ASC;');
 
-	if (0 >= $db->num_rows()) {
-	} else {
-
+	if ($db->num_rows() > 0) {
 		foreach ($db->get_rows() as $rRow) {
 			$rReturn[intval($rRow['id'])] = $rRow;
 		}

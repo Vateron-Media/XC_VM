@@ -55,7 +55,7 @@ include 'header.php';
                                         <td><?php echo parse_url($rEPG['epg_file'])['host']; ?></td>
                                         <td class="text-center"><button type="button" class="btn btn-light btn-xs waves-effect waves-light btn-fixed-min"><?php echo $rEPG['days_keep']; ?></button></td>
                                         <td class="text-center"><?php echo $rEPG['last_updated'] ? date('Y-m-d H:i', $rEPG['last_updated']) : $_['never']; ?></td>
-                                        <td class="text-center"><button type="button" class="btn btn-light btn-xs waves-effect waves-light btn-fixed-min"><?php echo number_format(count(json_decode($rEPG['data'], true)), 0); ?></button></td>
+                                        <td class="text-center"><button type="button" class="btn btn-light btn-xs waves-effect waves-light btn-fixed-min"><?php echo number_format(count(json_decode($rEPG['data'] ?? '[]', true) ?? []), 0); ?></button></td>
                                         <td class="text-center">
                                             <?php if (hasPermissions('adv', 'epg_edit')) { ?>
                                                 <div class="btn-group">
