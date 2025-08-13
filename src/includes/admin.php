@@ -236,8 +236,7 @@ function getFreeSpace($rServerID) {
 	foreach ($rLines as $rLine) {
 		$rSplit = explode(' ', preg_replace('!\\s+!', ' ', trim($rLine)));
 
-		if (!(0 < strlen($rSplit[0]) && strpos($rSplit[5], 'xc_vm') !== false || $rSplit[5] == '/')) {
-		} else {
+		if (0 < strlen($rSplit[0]) && strpos($rSplit[5], 'xc_vm') !== false || $rSplit[5] == '/') {
 			$rReturn[] = array('filesystem' => $rSplit[0], 'size' => $rSplit[1], 'used' => $rSplit[2], 'avail' => $rSplit[3], 'percentage' => $rSplit[4], 'mount' => implode(' ', array_slice($rSplit, 5, count($rSplit) - 5)));
 		}
 	}

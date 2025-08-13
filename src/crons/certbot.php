@@ -20,14 +20,12 @@ function loadCron() {
             CoreUtilities::submitPanelLogs();
         }
         $rCertInfo = CoreUtilities::getCertificateInfo();
-        if (!(CoreUtilities::$rServers[SERVER_ID]['enable_https'] && $rCertInfo)) {
-        } else {
+        if (CoreUtilities::$rServers[SERVER_ID]['enable_https'] && $rCertInfo) {
             if ($rCertInfo['expiration'] - time() < 604800) {
                 echo 'Certificate due for renewal.' . "\n";
                 $rData = array('action' => 'certbot_generate', 'domain' => array());
                 foreach (explode(',', CoreUtilities::$rServers[SERVER_ID]['domain_name']) as $rDomain) {
-                    if (filter_var($rDomain, FILTER_VALIDATE_IP)) {
-                    } else {
+                    if (!filter_var($rDomain, FILTER_VALIDATE_IP)) {
                         $rData['domain'][] = $rDomain;
                     }
                 }

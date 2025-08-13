@@ -14,15 +14,12 @@ function loadcli() {
     global $db;
     global $argv;
     $rData = json_decode(base64_decode($argv[1]), true);
-    if ($rData['action'] != 'certbot_generate') {
-    } else {
-        if (!file_exists(BIN_PATH . 'certbot/logs/xc_vm.log')) {
-        } else {
+    if ($rData['action'] == 'certbot_generate') {
+        if (file_exists(BIN_PATH . 'certbot/logs/xc_vm.log')) {
             unlink(BIN_PATH . 'certbot/logs/xc_vm.log');
         }
         foreach (array('logs', 'config', 'work') as $rPath) {
-            if (!file_exists(BIN_PATH . 'certbot/' . $rPath . '/.certbot.lock')) {
-            } else {
+            if (file_exists(BIN_PATH . 'certbot/' . $rPath . '/.certbot.lock')) {
                 unlink(BIN_PATH . 'certbot/' . $rPath . '/.certbot.lock');
             }
         }
