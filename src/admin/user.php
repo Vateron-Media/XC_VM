@@ -82,6 +82,19 @@ include 'header.php';
 													</div>
 												</div>
 												<div class="form-group row mb-4">
+													<label class="col-md-4 col-form-label" for="member_group_id">Member Group</label>
+													<div class="col-md-8">
+														<select name="member_group_id" id="member_group_id" class="form-control select2" data-toggle="select2">
+															<?php foreach (getMemberGroups() as $rGroup): ?>
+																<option value="<?= intval($rGroup['group_id']) ?>"
+																	<?= isset($rUser) && intval($rUser['member_group_id']) === intval($rGroup['group_id']) ? 'selected' : '' ?>>
+																	<?= htmlspecialchars($rGroup['group_name']) ?>
+																</option>
+															<?php endforeach; ?>
+														</select>
+													</div>
+												</div>
+												<div class="form-group row mb-4">
 													<label class="col-md-4 col-form-label" for="email">Email Address</label>
 													<div class="col-md-8">
 														<input type="email" id="email" class="form-control" name="email" value="<?= $rUser ? htmlspecialchars($rUser['email']) : '' ?>">
