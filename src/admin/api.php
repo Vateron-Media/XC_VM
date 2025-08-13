@@ -4514,15 +4514,13 @@ if (isset($_SESSION['hash'])) {
 
 							$rHTML .= '<div>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<h3 class="text-white my-1 text-truncate">' . $rItem['username'] . '</h3>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<p class="text-lighter mb-1 text-truncate"><small>' . (($rGroups[$rItem['member_group_id']]['group_name'] ? '<span class="text-white">' . $rGroups[$rItem['member_group_id']]['group_name'] . '</span><br/>' : '')) . (($rOwnerName ? '<span class="text-white">owner:</span> ' . $rOwnerName : '')) . '</small></p>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>';
 
-							if (!$rGroups[$rItem['member_group_id']]['is_reseller']) {
-							} else {
+							if ($rGroups[$rItem['member_group_id']]['is_reseller']) {
 								$rHTML .= '<div class="col-3">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<div class="float-right text-center font-24 search-icon-xl">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<i class="mdi mdi-coin text-white"></i><br/>' . number_format($rItem['credits'], 0) . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</div>';
 							}
 
 							$rHTML .= '</div>' . "\n\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t" . '<div class="card-body action-block">' . "\n\t\t\t\t\t\t\t\t" . '<div class="media align-items-center align-center">' . "\n\t\t\t\t\t\t\t\t\t" . '<ul class="list-unstyled topnav-menu topnav-menu-left m-0" style="opacity: 80%; display: flex;">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<button type="button" class="btn bg-animate-warning btn-xs waves-effect waves-light no-border">USER</button>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<i class="fe-user-check text-white"></i> &nbsp; <button type="button" class="btn bg-animate-' . $rStatusColour . ' btn-xs waves-effect waves-light no-border">' . $rStatus . '</button>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<i class="fe-users text-white"></i> &nbsp; <button type="button" class="btn bg-animate-info btn-xs waves-effect waves-light no-border">' . number_format($rUserCount, 0) . '</button>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<i class="fe-tv text-white"></i> &nbsp; <button type="button" class="btn bg-animate-info btn-xs waves-effect waves-light no-border">' . number_format($rLineCount, 0) . '</button>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>';
 
-							if (!$rHasButtons) {
-							} else {
+							if ($rHasButtons) {
 								$rHTML .= '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<i class="fe-sliders text-white"></i> &nbsp; ' . $rButtons . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>';
 							}
 
@@ -4535,8 +4533,7 @@ if (isset($_SESSION['hash'])) {
 							$rHasButtons = false;
 							$rButtons = '<div class="btn-group bg-animate-info">';
 
-							if (!hasPermissions('adv', 'edit_user')) {
-							} else {
+							if (hasPermissions('adv', 'edit_user')) {
 								$rHasButtons = true;
 								$rButtons .= "<button title=\"Edit\" onClick=\"navigate('line?id=" . $rItem['id'] . "');\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\"><i class=\"mdi mdi-pencil\"></i></button>";
 								$rButtons .= "<button title=\"Kill Connections\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\" onClick=\"searchAPI('line', " . $rItem['id'] . ", 'kill');\"><i class=\"fas fa-hammer\"></i></button>";
