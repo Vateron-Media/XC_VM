@@ -3604,26 +3604,19 @@ class API {
 			}
 
 			if (!empty($rData['member_group_id'])) {
-
-
-				if (strlen($rData['username']) != 0) {
-				} else {
+				if (strlen($rData['username']) == 0) {
 					$rArray['username'] = generateString(10);
 				}
 
 				if (!checkExists('users', 'username', $rArray['username'], 'id', $rData['edit'])) {
-
-
-					if (0 >= strlen($rData['password'])) {
-					} else {
+					if (strlen($rData['password']) > 0) {
 						$rArray['password'] = cryptPassword($rData['password']);
 					}
 
 					$rOverride = array();
 
 					foreach ($rData as $rKey => $rCredits) {
-						if (substr($rKey, 0, 9) != 'override_') {
-						} else {
+						if (substr($rKey, 0, 9) == 'override_') {
 							$rID = intval(explode('override_', $rKey)[1]);
 
 							if (0 < strlen($rCredits)) {
@@ -3632,8 +3625,7 @@ class API {
 								$rCredits = null;
 							}
 
-							if (!$rCredits) {
-							} else {
+							if ($rCredits) {
 								$rOverride[$rID] = array('assign' => 1, 'official_credits' => $rCredits);
 							}
 						}
