@@ -388,8 +388,7 @@ class CoreUtilities {
 		$rInput = @self::parseIncomingRecursively($_GET, array());
 		self::$rRequest = @self::parseIncomingRecursively($_POST, $rInput);
 
-		if (!self::$db->connected) {
-		} else {
+		if (self::$db->connected) {
 			self::$rSettings = self::getSettings();
 			self::$rBlockedISP = self::getBlockedISP();
 			self::$rBouquets = self::getBouquets();
@@ -566,21 +565,18 @@ class CoreUtilities {
 			$rIPs = array('127.0.0.1', $_SERVER['SERVER_ADDR']);
 
 			foreach (self::$rServers as $rServerID => $rServerInfo) {
-				if (empty($rServerInfo['whitelist_ips'])) {
-				} else {
+				if (!empty($rServerInfo['whitelist_ips'])) {
 					$rIPs = array_merge($rIPs, json_decode($rServerInfo['whitelist_ips'], true));
 				}
 
 				$rIPs[] = $rServerInfo['server_ip'];
 
-				if (!$rServerInfo['private_ip']) {
-				} else {
+				if ($rServerInfo['private_ip']) {
 					$rIPs[] = $rServerInfo['private_ip'];
 				}
 			}
 
-			if (empty(self::$rSettings['allowed_ips_admin'])) {
-			} else {
+			if (!empty(self::$rSettings['allowed_ips_admin'])) {
 				$rIPs = array_merge($rIPs, explode(',', self::$rSettings['allowed_ips_admin']));
 			}
 

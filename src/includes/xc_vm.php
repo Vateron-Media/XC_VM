@@ -2385,8 +2385,7 @@ class CoreUtilities {
 		}
 		$rIPs = array('127.0.0.1', $_SERVER['SERVER_ADDR']);
 		foreach (self::$rServers as $rServerID => $rServerInfo) {
-			if (empty($rServerInfo['whitelist_ips'])) {
-			} else {
+			if (!empty($rServerInfo['whitelist_ips'])) {
 				$rIPs = array_merge($rIPs, json_decode($rServerInfo['whitelist_ips'], true));
 			}
 			$rIPs[] = $rServerInfo['server_ip'];

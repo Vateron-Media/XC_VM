@@ -6,8 +6,11 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
         require str_replace('\\', '/', dirname($argv[0])) . '/../www/init.php';
         $rIdentifier = CRONS_TMP_PATH . md5(CoreUtilities::generateUniqueCode() . __FILE__);
         CoreUtilities::checkCron($rIdentifier);
-        shell_exec("sudo kill -9 `ps -ef | grep 'XC_VMSignals' | grep -v grep | awk '{print \$2}'`;");
-        cli_set_process_title('XC_VMSignals');
+        $pids = shell_exec("pgrep -f 'XC_VM\[Signals\]'");
+        if (!empty($pids)) {
+            shell_exec("sudo kill -9 $pids");
+        }
+        cli_set_process_title('XC_VM[Signals]');
         file_put_contents(CONFIG_PATH . 'signals.last', time());
         $rSaveIPTables = false;
         loadCron();
@@ -106,8 +109,12 @@ function loadCron() {
     $rAllowedIPs = CoreUtilities::getAllowedIPs();
     $rXC_VMList = array();
     foreach ($rAllowedIPs as $rIP) {
-        if (!empty($rIP) || filter_var($rIP, FILTER_VALIDATE_IP) || !in_array('set_real_ip_from ' . $rIP . ';', $rXC_VMList)) {
-            $rXC_VMList[] = 'set_real_ip_from ' . $rIP . ';';
+        if (!empty($rIP) && filter_var($rIP, FILTER_VALIDATE_IP)) {
+            $newEntry = 'set_real_ip_from ' . $rIP . ';';
+
+            if (!in_array($newEntry, $rXC_VMList)) {
+                $rXC_VMList[] = $newEntry;
+            }
         }
     }
     $rXC_VMList = trim(implode("\n", array_unique($rXC_VMList)));

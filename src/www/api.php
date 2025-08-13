@@ -8,21 +8,13 @@ loadapi();
 function loadapi() {
 	global $rDeny;
 
-	// // я хз что должен вернуть ответ этого api он нигде не упоменается
-	// // и у меня просто нет набора данных для эмуляции этой функции
-	// if (!empty(CoreUtilities::$rRequest['status'])) {
-	// 	if ($rStatus = checkStatus(CoreUtilities::$rRequest['data'])) {
-	// 		exit($rStatus);
-	// 	}
-	// }
-
 	if (empty(CoreUtilities::$rRequest['password']) || CoreUtilities::$rRequest['password'] != CoreUtilities::$rSettings['live_streaming_pass']) {
 		generateError('INVALID_API_PASSWORD');
 	}
 
 	unset(CoreUtilities::$rRequest['password']);
 
-	if (!in_array($rIP, CoreUtilities::getAllowedIPs())) {
+	if (!in_array($_SERVER['REMOTE_ADDR'], CoreUtilities::getAllowedIPs())) {
 		generateError('API_IP_NOT_ALLOWED');
 	}
 
