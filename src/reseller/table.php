@@ -6,10 +6,8 @@ if (file_exists('../www/init.php')) {
 } else {
     require_once '../../../www/init.php';
 }
-if (PHP_ERRORS) {
-} else {
-    if (!(empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest')) {
-    } else {
+if (!PHP_ERRORS) {
+    if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
         exit();
     }
 }
@@ -48,8 +46,7 @@ if (isset($rUserInfo['reports'])) {
     $rType = CoreUtilities::$rRequest['id'];
     $rStart = intval(CoreUtilities::$rRequest['start']);
     $rLimit = intval(CoreUtilities::$rRequest['length']);
-    if (!(1000 < $rLimit || $rLimit <= 0)) {
-    } else {
+    if (1000 < $rLimit || $rLimit <= 0) {
         $rLimit = 1000;
     }
     if ($rType == 'lines') {
@@ -720,11 +717,9 @@ if (isset($rUserInfo['reports'])) {
                 } else {
                     $rQuery = 'SELECT `id`, `stream_icon`, `stream_display_name`, `tv_archive_duration`, `tv_archive_server_id`, `category_id`, (SELECT COUNT(*) FROM `lines_live` LEFT JOIN `lines` ON `lines`.`id` = `lines_live`.`user_id` WHERE `lines_live`.`stream_id` = `streams`.`id` AND `hls_end` = 0 AND `lines`.`member_id` IN (' . implode(',', $rUserInfo['reports']) . ')) AS `clients` FROM `streams` ' . $rWhereString . ' ' . $rOrderBy . ' LIMIT ' . $rStart . ', ' . $rLimit . ';';
                     $db->query($rQuery, ...$rWhereV);
-                    if (0 >= $db->num_rows()) {
-                    } else {
+                    if ($db->num_rows() > 0) {
                         $rRows = $db->get_rows();
-                        if (!CoreUtilities::$rSettings['redis_handler']) {
-                        } else {
+                        if (CoreUtilities::$rSettings['redis_handler']) {
                             $rConnectionCount = $rReports = array();
                             $db->query('SELECT `id` FROM `lines` WHERE `member_id` IN (' . implode(',', $rUserInfo['reports']) . ');');
                             foreach ($db->get_rows() as $rRow) {

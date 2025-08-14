@@ -24,11 +24,9 @@ if (count(get_included_files()) != 1) {
 	}
 	$rDropdownPage = array();
 
-	if (!isset($rDropdown[$rPage])) {
-	} else {
+	if (isset($rDropdown[$rPage])) {
 		foreach ($rDropdown[$rPage] as $rName => $rData) {
-			if (!($rName && (!$rData[1] || hasResellerPermissions($rData[1])))) {
-			} else {
+			if ($rName && (!$rData[1] || hasResellerPermissions($rData[1]))) {
 				if (count($rData) == 3) {
 					$rDropdownPage[$rName] = 'javascript: void(0);" ' . $rData[2];
 				} else {
@@ -53,20 +51,36 @@ if (count(get_included_files()) != 1) {
 		case 'episodes':
 			echo '<div class="btn-group">';
 
-			if (!(!$rMobile && (!$rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][1] || hasResellerPermissions($rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][1])) && 0 < strlen(array_keys($rDropdown[$rPage])[0]))) {
-			} else {
-				if ($rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][0]) {
-					echo "<button type=\"button\" onClick=\"navigate('" . $rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][0] . "');\" class=\"btn btn-sm btn-info waves-effect waves-light\">" . array_keys($rDropdown[$rPage])[0] . '</button>';
-				} else {
-					if (isset($rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][2])) {
-						echo '<button type="button" ' . $rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][2] . ' class="btn btn-sm btn-info waves-effect waves-light">' . array_keys($rDropdown[$rPage])[0] . '</button>';
-					} else {
-						echo '<button type="button" onClick="showModal();" class="btn btn-sm btn-info waves-effect waves-light">' . array_keys($rDropdown[$rPage])[0] . '</button>';
-					}
-				}
+			if (!$rMobile && isset($rDropdown[$rPage]) && is_array($rDropdown[$rPage])) {
+				$keys = array_keys($rDropdown[$rPage]);
+				$firstKey = $keys[0] ?? null;
 
-				echo '<span class="gap"></span>';
+				if ($firstKey !== null && (!$rDropdown[$rPage][$firstKey][1] || hasResellerPermissions($rDropdown[$rPage][$firstKey][1])) && strlen($firstKey) > 0) {
+					if ($rDropdown[$rPage][$firstKey][0]) {
+						echo "<button type=\"button\" onClick=\"navigate('" .
+							$rDropdown[$rPage][$firstKey][0] .
+							"');\" class=\"btn btn-sm btn-info waves-effect waves-light\">" .
+							$firstKey .
+							'</button>';
+					} else {
+						if (isset($rDropdown[$rPage][$firstKey][2])) {
+							echo '<button type="button" ' .
+								$rDropdown[$rPage][$firstKey][2] .
+								' class="btn btn-sm btn-info waves-effect waves-light">' .
+								$firstKey .
+								'</button>';
+						} else {
+							echo '<button type="button" onClick="showModal();" ' .
+								'class="btn btn-sm btn-info waves-effect waves-light">' .
+								$firstKey .
+								'</button>';
+						}
+					}
+
+					echo '<span class="gap"></span>';
+				}
 			}
+
 
 			if (!$rMobile) {
 			} else {
