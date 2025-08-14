@@ -62,6 +62,8 @@ if (isset(CoreUtilities::$rRequest['token'])) {
 		$rIsHMAC = $rTokenData['hmac_id'];
 		$rIdentifier = $rTokenData['identifier'];
 	} else {
+		$rIsHMAC = null;
+		$rIdentifier = null;
 		$rUsername = $rTokenData['username'];
 		$rPassword = $rTokenData['password'];
 	}
@@ -119,29 +121,27 @@ if ($rChannelInfo) {
 		if (0 < CoreUtilities::$db->num_rows()) {
 			$rConnection = CoreUtilities::$db->get_row();
 		} else {
-			if (empty($_SERVER['HTTP_RANGE'])) {
-			} else {
-				if (!$rIsHMAC) {
+			if (!empty($_SERVER['HTTP_RANGE'])) {
+				if (!isset($rIsHMAC) && is_null($rIsHMAC)) {
 					CoreUtilities::$db->query('SELECT `server_id`, `activity_id`, `pid`, `user_ip` FROM `lines_live` WHERE `user_id` = ? AND `container` = ? AND `user_agent` = ? AND `stream_id` = ?;', $rUserInfo['id'], 'VOD', $rUserAgent, $rStreamID);
 				} else {
 					CoreUtilities::$db->query('SELECT `server_id`, `activity_id`, `pid`, `user_ip` FROM `lines_live` WHERE `hmac_id` = ? AND `hmac_identifier` = ? AND `container` = ? AND `user_agent` = ? AND `stream_id` = ?;', $rIsHMAC, $rIdentifier, 'VOD', $rUserAgent, $rStreamID);
 				}
 
-				if (0 >= CoreUtilities::$db->num_rows()) {
-				} else {
+				if (CoreUtilities::$db->num_rows() > 0) {
 					$rConnection = CoreUtilities::$db->get_row();
 				}
 			}
 		}
 	}
 
-	if (!$rConnection) {
+	if (!isset($rConnection)) {
 		if (file_exists(CONS_TMP_PATH . $rTokenData['uuid']) || ($rActivityStart + $rCreateExpiration) - intval(CoreUtilities::$rServers[SERVER_ID]['time_offset']) >= time()) {
 		} else {
 			generateError('TOKEN_EXPIRED');
 		}
 
-		if (!$rIsHMAC) {
+		if (!isset($rIsHMAC) && is_null($rIsHMAC)) {
 			if (CoreUtilities::$rSettings['redis_handler']) {
 				$rConnectionData = array('user_id' => $rUserInfo['id'], 'stream_id' => $rStreamID, 'server_id' => $rServerID, 'proxy_id' => $rProxyID, 'user_agent' => $rUserAgent, 'user_ip' => $rIP, 'container' => 'VOD', 'pid' => $rPID, 'date_start' => $rActivityStart, 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo['con_isp_name'], 'external_device' => '', 'hls_end' => 0, 'hls_last_read' => time() - intval(CoreUtilities::$rServers[SERVER_ID]['time_offset']), 'on_demand' => 0, 'identity' => $rUserInfo['id'], 'uuid' => $rTokenData['uuid']);
 				$rResult = CoreUtilities::createConnection($rConnectionData);
@@ -165,8 +165,7 @@ if ($rChannelInfo) {
 			generateError('IP_MISMATCH');
 		}
 
-		if (!(CoreUtilities::isProcessRunning($rConnection['pid'], 'php-fpm') && $rPID != $rConnection['pid'] && is_numeric($rConnection['pid']) && 0 < $rConnection['pid'])) {
-		} else {
+		if (CoreUtilities::isProcessRunning($rConnection['pid'], 'php-fpm') && $rPID != $rConnection['pid'] && is_numeric($rConnection['pid']) && 0 < $rConnection['pid']) {
 			if ($rConnection['server_id'] == SERVER_ID) {
 				posix_kill(intval($rConnection['pid']), 9);
 			} else {
@@ -187,8 +186,7 @@ if ($rChannelInfo) {
 		}
 	}
 
-	if ($rResult) {
-	} else {
+	if (!$rResult) {
 		CoreUtilities::clientLog($rStreamID, $rUserInfo['id'], 'LINE_CREATE_FAIL', $rIP);
 		generateError('LINE_CREATE_FAIL');
 	}
@@ -203,8 +201,7 @@ if ($rChannelInfo) {
 
 	$rCloseCon = true;
 
-	if (!CoreUtilities::$rSettings['monitor_connection_status']) {
-	} else {
+	if (CoreUtilities::$rSettings['monitor_connection_status']) {
 		ob_implicit_flush(true);
 
 		while (ob_get_level()) {
