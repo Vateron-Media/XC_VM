@@ -51,11 +51,13 @@ function loadCron() {
     exec("ps ax | grep 'ffmpeg' | awk '{print \$1}'", $rPIDs);
     $db->query('SELECT COUNT(*) AS `count` FROM `streams_servers` WHERE `to_analyze` = 1 AND `server_id` = ?', SERVER_ID);
     $rCount = $db->get_row()['count'];
-    if (0 >= $rCount) {
-    } else {
-        $rSteps = range(0, $rCount, 1000);
-        if ($rSteps) {
+    if ($rCount > 0) {
+        if ($rCount <= 1000) {
+            $rSteps = [0, $rCount];
         } else {
+            $rSteps = range(0, $rCount, 1000);
+        }
+        if (!$rSteps) {
             $rSteps = array(0);
         }
         foreach ($rSteps as $rStep) {
