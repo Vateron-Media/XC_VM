@@ -3,16 +3,14 @@
 include 'session.php';
 include 'functions.php';
 
-if (checkPermissions()) {
-} else {
+if (!checkPermissions()) {
 	goHome();
 }
 
 $rCategories = getCategories('movie');
 $rTranscodeProfiles = getTranscodeProfiles();
 
-if (!isset(CoreUtilities::$rRequest['id'])) {
-} else {
+if (isset(CoreUtilities::$rRequest['id'])) {
 	$rMovie = getStream(CoreUtilities::$rRequest['id']);
 
 	if ($rMovie && $rMovie['type'] == 2) {
@@ -28,9 +26,22 @@ if (isset($rMovie)) {
 	$rMovie['properties'] = json_decode($rMovie['movie_properties'], true);
 	$rStreamSys = getStreamSys(CoreUtilities::$rRequest['id']);
 
+	// Getting and extracting the path to a movie
+	$streamSourceJson = $rMovie['stream_source'] ?? '';
+	$rMovieSource = json_decode($streamSourceJson, true);
+	if (!is_array($rMovieSource)) {
+		$rMovieSource = [''];
+	}
+	$rSource = $rMovieSource[0] ?? '';
+	if (str_starts_with($rSource, 's:')) {
+		$parts = explode(':', $rSource, 3);
+		$rPathSources = (count($parts) >= 3) ? urldecode($parts[2]) : '';
+	} else {
+		$rPathSources = $rSource;
+	}
+
 	foreach ($rServers as $rServer) {
-		if (!($rServer['direct_source'] == 0 && $rServer['stream_status'] == 1)) {
-		} else {
+		if ($rServer['direct_source'] == 0 && $rServer['stream_status'] == 1) {
 			$activeStreamingServers[] = intval($rServer['id']);
 		}
 
@@ -211,7 +222,7 @@ include 'header.php';
 													<div class="form-group row mb-4 stream-url">
 														<label class="col-md-4 col-form-label" for="stream_source"><?php echo $_['movie_path_or_url']; ?></label>
 														<div class="col-md-8 input-group">
-															<input type="text" id="stream_source" name="stream_source" class="form-control" value="<?php echo isset($rMovie) ? $rMovieSource : (isset(CoreUtilities::$rRequest['path']) ? htmlspecialchars(CoreUtilities::$rRequest['path']) : ''); ?>" required data-parsley-trigger="change">
+															<input type="text" id="stream_source" name="stream_source" class="form-control" value="<?php echo isset($rMovie) ? $rPathSources : (isset(CoreUtilities::$rRequest['path']) ? htmlspecialchars(CoreUtilities::$rRequest['path']) : ''); ?>" required data-parsley-trigger="change">
 															<div class="input-group-append">
 																<a href="#file-browser" id="filebrowser" class="btn btn-primary waves-effect waves-light"><i class="mdi mdi-folder-open-outline"></i></a>
 																<?php if (!$rMobile): ?>
@@ -251,7 +262,7 @@ include 'header.php';
 														<div class="form-group row mb-4">
 															<label class="col-md-4 col-form-label" for="import_folder"><?php echo $_['folder']; ?></label>
 															<div class="col-md-8 input-group">
-																<input type="text" id="import_folder" name="import_folder" class="form-control" value="<?php echo $rMovieSource; ?>">
+																<input type="text" id="import_folder" name="import_folder" class="form-control" value="<?php echo $rPathSources; ?>">
 																<div class="input-group-append">
 																	<a href="#file-browser" id="filebrowser" class="btn btn-primary waves-effect waves-light"><i class="mdi mdi-folder-open-outline"></i></a>
 																</div>
@@ -270,7 +281,7 @@ include 'header.php';
 																													echo 'Fallback ';
 																												} ?>Categories</label>
 													<div class="col-md-8">
-														<select name="category_id[]" id="category_id" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">
+														<select name="category_id[]" id="category_id" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="<?php echo $_['choose']; ?>...">
 															<?php foreach (getCategories('movie') as $rCategory): ?>
 																<option <?php if (isset($rMovie) && in_array(intval($rCategory['id']), json_decode($rMovie['category_id'], true))) {
 																			echo 'selected ';
@@ -283,11 +294,9 @@ include 'header.php';
 													</div>
 												</div>
 												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="bouquets"><?php if (CoreUtilities::$rRequest['import']) {
-																												echo 'Fallback ';
-																											} ?><?php echo $_['bouquets']; ?></label>
+													<label class="col-md-4 col-form-label" 
+														for="bouquets"><?php if (CoreUtilities::$rRequest['import']) {echo 'Fallback ';	} ?><?php echo $_['bouquets']; ?></label>
 													<div class="col-md-8">
-														<select name="bouquets[]" id="bouquets" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="<?php echo $_['choose']; ?>...">
 															<select name="bouquets[]" id="bouquets" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="<?php echo $_['choose']; ?>...">
 																<?php foreach (getBouquets() as $rBouquet): ?>
 																	<option <?php if (isset($rMovie) && in_array($rMovie['id'], json_decode($rBouquet['bouquet_movies'], true))): ?>selected<?php endif; ?> value="<?php echo $rBouquet['id']; ?>"><?php echo $rBouquet['bouquet_name']; ?></option>
@@ -410,100 +419,6 @@ include 'header.php';
 														<input type="text" class="form-control" id="country" name="country" value="<?php if (isset($rMovie)) {
 																																		echo htmlspecialchars($rMovie['properties']['country']);
 																																	} ?>">
-													</div>
-													<div class="col-md-2">
-														<input name="direct_source" id="direct_source" type="checkbox" <?php if (isset($rMovie) && $rMovie['direct_source'] == 1) {
-																															echo 'checked';
-																														} ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
-													</div>
-													<label class="col-md-4 col-form-label" for="direct_proxy">Direct Stream <i title="When using direct source, hide the original URL by proxying the movie through your servers. This will consume bandwidth but won't require the movie to be saved to your servers permanently. Make sure to set the correct target container." class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input name="direct_proxy" id="direct_proxy" type="checkbox" <?php if (isset($rMovie) && $rMovie['direct_proxy'] == 1) {
-																															echo 'checked';
-																														} ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
-													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="read_native"><?php echo $_['native_frames']; ?></label>
-													<div class="col-md-2">
-														<input name="read_native" id="read_native" type="checkbox" <?php if (isset($rMovie) && $rMovie['read_native'] == 1) {
-																														echo 'checked';
-																													} ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
-													</div>
-													<label class="col-md-4 col-form-label" for="movie_symlink"><?php echo $_['create_symlink']; ?> <i title="<?php echo $_['episode_tooltip_2']; ?>" class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input name="movie_symlink" id="movie_symlink" type="checkbox" <?php if (isset($rMovie) && $rMovie['movie_symlink'] == 1) {
-																															echo 'checked';
-																														} ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
-													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="remove_subtitles"><?php echo $_['remove_existing_subtitles']; ?> <i title="<?php echo $_['episode_tooltip_3']; ?>" class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input name="remove_subtitles" id="remove_subtitles" type="checkbox" <?php if (isset($rMovie) && $rMovie['remove_subtitles'] == 1) {
-																																	echo 'checked';
-																																} ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
-													</div>
-													<label class="col-md-4 col-form-label" for="movie_symlink"><?php echo $_['create_symlink']; ?> <i title="<?php echo $_['episode_tooltip_2']; ?>" class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input name="movie_symlink" id="movie_symlink" type="checkbox" <?php if (isset($rMovie) && $rMovie['movie_symlink'] == 1) {
-																															echo 'checked';
-																														} ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
-													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="remove_subtitles"><?php echo $_['remove_existing_subtitles']; ?> <i title="<?php echo $_['episode_tooltip_3']; ?>" class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input name="remove_subtitles" id="remove_subtitles" type="checkbox" <?php if (isset($rMovie) && $rMovie['remove_subtitles'] == 1) {
-																																	echo 'checked';
-																																} ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
-													</div>
-												</div>
-
-												<?php if (!isset(CoreUtilities::$rRequest['import'])): ?>
-													<?php $rSubFile = ''; ?>
-													<?php if (isset($rMovie)): ?>
-														<?php $rSubData = json_decode($rMovie['movie_subtitles'], true); ?>
-														<?php if (isset($rSubData['location'])): ?>
-															<?php $rSubFile = 's:' . $rSubData['location'] . ':' . $rSubData['files'][0]; ?>
-														<?php endif; ?>
-													<?php endif; ?>
-													<div class="form-group row mb-4 stream-url">
-														<label class="col-md-4 col-form-label" for="movie_subtitles"><?php echo $_['subtitle_location']; ?> <i title="<?php echo $_['episode_tooltip_6']; ?>" class="tooltip text-secondary far fa-circle"></i></label>
-														<div class="col-md-8 input-group">
-															<input type="text" id="movie_subtitles" name="movie_subtitles" class="form-control" value="<?php echo htmlspecialchars($rSubFile); ?>">
-															<div class="input-group-append">
-																<a href="#file-browser" id="filebrowser-sub" class="btn btn-primary waves-effect waves-light"><i class="mdi mdi-folder-open-outline"></i></a>
-															</div>
-														</div>
-													</div>
-												<?php endif; ?>
-
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="transcode_profile_id"><?php echo $_['transcoding_profile']; ?> <i title="<?php echo $_['episode_tooltip_7']; ?>" class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-8">
-														<select name="transcode_profile_id" id="transcode_profile_id" class="form-control" data-toggle="select2">
-															<option <?php if (!isset($rMovie) || (isset($rMovie) && intval($rMovie['transcode_profile_id']) == 0)) {
-																		echo 'selected';
-																	} ?> value="0"><?php echo $_['transcoding_disabled']; ?></option>
-															<?php foreach ($rTranscodeProfiles as $rProfile): ?>
-																<option <?php if (isset($rMovie) && intval($rMovie['transcode_profile_id']) == intval($rProfile['profile_id'])) {
-																			echo 'selected';
-																		} ?> value="<?php echo $rProfile['profile_id']; ?>"><?php echo $rProfile['profile_name']; ?></option>
-															<?php endforeach; ?>
-														</select>
-													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="target_container"><?php echo $_['target_container']; ?> <i title="<?php echo $_['episode_tooltip_4']; ?>" class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<select name="target_container" id="target_container" class="form-control" data-toggle="select2">
-															<?php foreach (array('mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts') as $rContainer): ?>
-																<option <?php if (isset($rMovie) && $rMovie['target_container'] == $rContainer) {
-																			echo 'selected';
-																		} ?> value="<?php echo $rContainer; ?>"><?php echo $rContainer; ?></option>
-															<?php endforeach; ?>
-														</select>
 													</div>
 												</div>
 											</div>

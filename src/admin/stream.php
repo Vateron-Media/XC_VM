@@ -217,10 +217,8 @@ include 'header.php';
 												foreach (getBouquets() as $rBouquet) {
 													echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<option ';
 
-													if (!isset($rStream)) {
-													} else {
-														if (!in_array($rStream['id'], json_decode($rBouquet['bouquet_channels'], true))) {
-														} else {
+													if (isset($rStream)) {
+														if (in_array($rStream['id'], json_decode($rBouquet['bouquet_channels'], true))) {
 															echo 'selected ';
 														}
 													}
@@ -254,8 +252,7 @@ include 'header.php';
 													if (isset($rStream)) {
 														$rStreamSources = json_decode($rStream['stream_source'], true);
 
-														if ($rStreamSources) {
-														} else {
+														if (!$rStreamSources) {
 															$rStreamSources = array('');
 														}
 													} else {
