@@ -207,7 +207,7 @@ set_permissions:
 	chmod 0750 $(TEMP_DIR)/backups 2>/dev/null || [ $$? -eq 1 ]
 
 	# /bin
-	chmod 0750 $(TEMP_DIR)/bin
+	chmod 0750 $(TEMP_DIR)/bin || [ $$? -eq 1 ]
 	chmod 0775 $(TEMP_DIR)/bin/certbot 2>/dev/null || [ $$? -eq 1 ]
 
 	chmod 0755 $(TEMP_DIR)/bin/ffmpeg_bin 2>/dev/null || [ $$? -eq 1 ]
