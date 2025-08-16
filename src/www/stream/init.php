@@ -35,7 +35,7 @@ if (!defined('TMP_PATH')) {
 	define('TMP_PATH', MAIN_HOME . 'tmp/');
 }
 
-define('XC_VM_VERSION', '1.0.2');
+define('XC_VM_VERSION', '1.0.3');
 define('CONFIG_PATH', MAIN_HOME . 'config/');
 define('BIN_PATH', MAIN_HOME . 'bin/');
 define('INCLUDES_PATH', MAIN_HOME . 'includes/');
