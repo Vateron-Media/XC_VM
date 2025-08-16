@@ -123,7 +123,7 @@ function loadcli() {
             $db->query('UPDATE `servers` SET `status` = 1, `xc_vm_version` = ? WHERE `id` = ?;', XC_VM_VERSION, SERVER_ID);
             $db->query('UPDATE `settings` SET `update_data` = NULL;');
 
-            // Delete obsolete binary
+            // Update checkpoint
             if (file_exists(MAIN_HOME . 'bin/youtube')) {
                 unlink(MAIN_HOME . 'bin/youtube');
             }
@@ -134,11 +134,6 @@ function loadcli() {
                 if (stripos($rPortConfig, ' reuseport') !== false) {
                     file_put_contents(MAIN_HOME . 'bin/nginx/ports/' . $rType . '.conf', str_replace(' reuseport', '', $rPortConfig));
                 }
-            }
-
-            // Remove Redis binary if exists
-            if (file_exists(MAIN_HOME . 'bin/redis')) {
-                exec('rm -rf ' . MAIN_HOME . 'bin/redis');
             }
 
             // Fix permissions and reload services
