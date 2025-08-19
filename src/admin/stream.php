@@ -3,8 +3,8 @@
 include 'session.php';
 include 'functions.php';
 
-if (checkPermissions()) {
-} else {
+
+if (!checkPermissions()) {
 	goHome();
 }
 
@@ -12,8 +12,7 @@ if (isset(CoreUtilities::$rRequest['id'])) {
 	if (!isset(CoreUtilities::$rRequest['import']) && hasPermissions('adv', 'edit_stream')) {
 		$rStream = getStream(CoreUtilities::$rRequest['id']);
 
-		if ($rStream && $rStream['type'] == 1) {
-		} else {
+		if (!$rStream && $rStream['type'] != 1) {
 			goHome();
 		}
 	} else {
@@ -72,8 +71,6 @@ if (isset($rStream)) {
 	}
 } else {
 	if (hasPermissions('adv', 'add_stream')) {
-
-
 		foreach ($rServers as $rServer) {
 			$rServerTree[] = array('id' => $rServer['id'], 'parent' => 'offline', 'text' => $rServer['server_name'], 'icon' => 'mdi mdi-server-network', 'state' => array('opened' => true));
 		}
@@ -148,11 +145,11 @@ include 'header.php';
 										echo ' <li class="nav-item"><a href="#stream-sources" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"><i class="mdi mdi-arrow-up-down-bold-outline mr-1"></i><span class="d-none d-sm-inline">Sources</span></a></li> ';
 									}
 
-									echo "\t\t\t\t\t\t\t\t\t" . '<li class="nav-item"><a href="#advanced-options" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"><i class="mdi mdi-folder-alert-outline mr-1"></i><span class="d-none d-sm-inline">Advanced</span></a></li>';
+									echo '<li class="nav-item"><a href="#advanced-options" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"><i class="mdi mdi-folder-alert-outline mr-1"></i><span class="d-none d-sm-inline">Advanced</span></a></li>';
 
 									if (isset(CoreUtilities::$rRequest['import'])) {
 									} else {
-										echo "\t\t\t\t\t\t\t\t\t" . '<li class="nav-item"><a href="#stream-map" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"><i class="mdi mdi-map mr-1"></i><span class="d-none d-sm-inline">Map</span></a></li>
+										echo '<li class="nav-item"><a href="#stream-map" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"><i class="mdi mdi-map mr-1"></i><span class="d-none d-sm-inline">Map</span></a></li>
 									<li class="nav-item"><a href="#epg-options" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"><i class="mdi mdi-television-guide mr-1"></i><span class="d-none d-sm-inline">EPG</span></a></li> ';
 
 										if (!$rMobile) {
@@ -304,7 +301,7 @@ include 'header.php';
 													echo "\t\t\t\t\t\t\t\t\t\t\t" . '</span><li class="list-inline-item float-right"><!--<a onClick="toggleCapture();" class="btn btn-info btn-pointer">Toggle Mode</a>--><a href="javascript: void(0);" class="btn btn-secondary nextb">Next</a></li></ul>                                    </div>                                    ';
 												}
 
-												echo "\t\t\t\t\t\t\t\t\t" . '<div class="tab-pane" id="advanced-options"><div class="row"><div class="col-12"><div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="gen_timestamps">Generate PTS <i title="Allow FFmpeg to generate presentation timestamps for you to achieve better synchronization with the stream codecs. In some streams this can cause de-sync." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-3"><input name="gen_timestamps" id="gen_timestamps" type="checkbox" ';
+												echo '<div class="tab-pane" id="advanced-options"><div class="row"><div class="col-12"><div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="gen_timestamps">Generate PTS <i title="Allow FFmpeg to generate presentation timestamps for you to achieve better synchronization with the stream codecs. In some streams this can cause de-sync." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-3"><input name="gen_timestamps" id="gen_timestamps" type="checkbox" ';
 
 												if (isset($rStream)) {
 													if ($rStream['gen_timestamps'] != 1) {
@@ -350,7 +347,7 @@ include 'header.php';
 
 												if (!isset($rStream)) {
 												} else {
-													if ($rStream[' direct_source'] != 1) {
+													if ($rStream['direct_source'] != 1) {
 													} else {
 														echo 'checked ';
 													}
@@ -471,7 +468,7 @@ include 'header.php';
 
 												if (!isset($rStream)) {
 												} else {
-													if (intval($rStream[' transcode_profile_id']) != 0) {
+													if (intval($rStream['transcode_profile_id']) != 0) {
 													} else {
 														echo 'selected ';
 													}
@@ -538,8 +535,7 @@ include 'header.php';
 												$rAdaptiveLink = (isset($rStream) ? (json_decode($rStream['adaptive_link'], true) ?: array()) : array());
 												$rAdaptiveNames = array();
 
-												if (0 >= count($rAdaptiveLink)) {
-												} else {
+												if (count($rAdaptiveLink) > 0) {
 													$db->query('SELECT `id`, `stream_display_name` FROM `streams` WHERE `id` IN (' . implode(',', array_map('intval', $rAdaptiveLink)) . ');');
 
 													foreach ($db->get_rows() as $rRow) {
@@ -584,9 +580,8 @@ include 'header.php';
 								</div>
 								<?php
 
-								if (isset(CoreUtilities::$rRequest['import'])) {
-								} else {
-									echo "\t\t\t\t\t\t\t\t\t" . '<div class="tab-pane" id="stream-map">
+								if (!isset(CoreUtilities::$rRequest['import'])) {
+									echo '<div class="tab-pane" id="stream-map">
 												<div class="row">
 													<div class="col-12">
 														<div class="alert bg-info text-white border-0" role="alert">Custom maps can only be applied to single source streams, if you have more than one and the active source changes, a custom map could prevent that source from working.</div>
@@ -600,8 +595,7 @@ include 'header.php';
 																<tr>
 																	<td class="input-group"> <input type="text" class="form-control" id="custom_map" name="custom_map" value="';
 
-									if (!isset($rStream)) {
-									} else {
+									if (isset($rStream)) {
 										echo htmlspecialchars($rStream['custom_map']);
 									}
 
@@ -629,24 +623,21 @@ include 'header.php';
 														<ul class="nav nav-pills navtab-bg nav-justified">
 															<li class="nav-item"> <a href="#quick-search" data-toggle="tab" aria-expanded="true" class="nav-link';
 
-									if (isset($rStream)) {
-									} else {
+									if (!isset($rStream)) {
 										echo ' active';
 									}
 
 									echo '"> Quick Search </a> </li>
 															<li class="nav-item"> <a href="#xc_vm-epg" id="tab-xc_vm-epg" data-toggle="tab" aria-expanded="true" class="nav-link';
 
-									if (!(isset($rStream) && $rStream['epg_api'])) {
-									} else {
+									if (isset($rStream) && $rStream['epg_api']) {
 										echo ' active';
 									}
 
 									echo '"> XC_VM EPG (not worked)</a> </li>
 															<li class="nav-item"> <a href="#xmltv-epg" id="tab-xml-epg" data-toggle="tab" aria-expanded="false" class="nav-link';
 
-									if (!isset($rStream) || $rStream['epg_api']) {
-									} else {
+									if (isset($rStream) || !$rStream['epg_api']) {
 										echo ' active';
 									}
 
@@ -667,8 +658,7 @@ include 'header.php';
 															</div>
 															<div class="tab-pane';
 
-									if (!(isset($rStream) && $rStream['epg_api'])) {
-									} else {
+									if (isset($rStream) && $rStream['epg_api']) {
 										echo ' active';
 									}
 
@@ -676,16 +666,14 @@ include 'header.php';
 																<div class="form-group row mb-4"> <label class="col-md-3 col-form-label" for="epg_api_name">Channel Name</label>
 																	<div class="col-md-5"> <input readonly id="epg_api_name" name="epg_api_name" type="text" class="form-control" value="';
 
-									if (!(isset($rStream) && $rStream['epg_api'])) {
-									} else {
+									if (isset($rStream) && $rStream['epg_api']) {
 										echo $rStream['epg_api_name'];
 									}
 
 									echo '"> </div>
 																	<div class="col-md-2"> <input readonly id="epg_api_id" name="epg_api_id" type="text" class="form-control text-center" value="';
 
-									if (!(isset($rStream) && $rStream['epg_api'])) {
-									} else {
+									if (isset($rStream) && $rStream['epg_api']) {
 										echo $rStream['channel_id'];
 									}
 
@@ -719,7 +707,7 @@ include 'header.php';
 
 									if (!isset($rStream)) {
 									} else {
-										if (intval($rStream[' epg_id']) != 0) {
+										if (intval($rStream['epg_id']) != 0) {
 										} else {
 											echo 'selected ';
 										}
@@ -746,16 +734,14 @@ include 'header.php';
 									}
 									echo '                                                                </select>                                                            </div>                                                        </div>                                                        <div class="form-group row mb-4">                                                            <label class="col-md-4 col-form-label" for="channel_id">EPG Channel ID</label>                                                            <div class="col-md-8">                                                                <select name="channel_id" id="channel_id" class="form-control" data-toggle="select2">                                                                ';
 
-									if (!isset($rStream)) {
-									} else {
+									if (isset($rStream)) {
 										foreach (json_decode($rEPGSources[intval($rStream['epg_id'])]['data'], true) as $rKey => $rEPGChannel) {
 											echo '
 																			<option value="';
 											echo $rKey;
 											echo '"';
 
-											if ($rStream[' channel_id'] != $rKey) {
-											} else {
+											if ($rStream['channel_id'] == $rKey) {
 												echo ' selected';
 											}
 
@@ -767,16 +753,14 @@ include 'header.php';
 
 									echo '                                                                </select>                                                            </div>                                                        </div>                                                        <div class="form-group row mb-4">                                                            <label class="col-md-4 col-form-label" for="epg_lang">EPG Language</label>                                                            <div class="col-md-4">                                                                <select name="epg_lang" id="epg_lang" class="form-control" data-toggle="select2">                                                                ';
 
-									if (!isset($rStream)) {
-									} else {
+									if (isset($rStream)) {
 										foreach (json_decode($rEPGSources[intval($rStream['epg_id'])]['data'], true)[$rStream['channel_id']]['langs'] as $rID => $rLang) {
 											echo '
 																			<option value="';
 											echo $rLang;
 											echo '"';
 
-											if ($rStream[' epg_lang'] != $rLang) {
-											} else {
+											if ($rStream['epg_lang'] == $rLang) {
 												echo ' selected';
 											}
 
@@ -831,7 +815,7 @@ include 'header.php';
 												echo $rServer['id'];
 												echo '"';
 
-												if (!(isset($rStream) && $rServerID == $rServer[' id'])) {
+												if (!(isset($rStream) && $rServerID == $rServer['id'])) {
 												} else {
 													echo ' selected';
 												}
@@ -849,7 +833,7 @@ include 'header.php';
 									echo '                                                    </tbody>                                                </table>                                            </div>                                        </div>                                        <ul class="list-inline wizard mb-0" style="padding-top: 30px;"><li class="prevb list-inline-item"><a href="javascript: void(0);" class="btn btn-secondary">Previous</a>                                            </li><li class="list-inline-item float-right">                                                <a onClick="addRTMP();" class="btn btn-info btn-pointer">Add RTMP URL</a><a href="javascript: void(0);" class="btn nextb btn-secondary">Next</a></li></ul>                                    </div>';
 								}
 
-								echo "\t\t\t\t\t\t\t\t\t" . '<div class="tab-pane" id="load-balancing"><div class="row"><div class="col-12"><div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="servers">Server Tree</label><div class="col-md-9"><div id="server_tree"></div></div></div><div class="form-group row mb-4">                                                    <label class="col-md-3 col-form-label" for="on_demand">On-Demand Servers</label><div class="col-md-3">                                                        <select name="on_demand[]" id="on_demand" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
+								echo '<div class="tab-pane" id="load-balancing"><div class="row"><div class="col-12"><div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="servers">Server Tree</label><div class="col-md-9"><div id="server_tree"></div></div></div><div class="form-group row mb-4">                                                    <label class="col-md-3 col-form-label" for="on_demand">On-Demand Servers</label><div class="col-md-3">                                                        <select name="on_demand[]" id="on_demand" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
 
 								foreach ($rServers as $rServer) {
 									echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<option value="';
@@ -872,7 +856,7 @@ include 'header.php';
 									echo $rValue;
 									echo '"';
 
-									if (!(isset($rStream) && $rStream[' llod'] == $rValue)) {
+									if (!(isset($rStream) && $rStream['llod'] == $rValue)) {
 									} else {
 										echo ' selected';
 									}
