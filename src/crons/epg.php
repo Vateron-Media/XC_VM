@@ -147,18 +147,14 @@ class EPG {
 
 		if ($rExtension == 'gz') {
 			$rDecompress = ' | gunzip -c';
-		} else {
-			if ($rExtension == 'xz') {
-				$rDecompress = ' | unxz -c';
-			}
+		} elseif ($rExtension == 'xz') {
+			$rDecompress = ' | unxz -c';
 		}
 
-		// PHP 8 fix: Improved command execution with better error handling
-		$rCommand = 'wget -U "Mozilla/5.0" --timeout=30 --tries=3 -O - ' . escapeshellarg($rSource) . $rDecompress . ' > ' . escapeshellarg($rFilename) . ' 2>&1';
-
+		$rCommand = 'wget -U "Mozilla/5.0" --timeout=30 --tries=3 -O - "' . $rSource . '"' . $rDecompress . ' > ' . $rFilename;
 		$rResult = shell_exec($rCommand);
 
-		if (!(file_exists($rFilename) && filesize($rFilename) > 0)) {
+		if (!(file_exists($rFilename) && (filesize($rFilename) > 0))) {
 			return false;
 		}
 
@@ -168,24 +164,14 @@ class EPG {
 	public function loadEPG($rSource, $rCache) {
 		try {
 			$this->rFilename = TMP_PATH . md5($rSource) . '.xml';
-
-			if (file_exists($this->rFilename) && $rCache) {
-				// Use cached file
-			} else {
+			if (!file_exists($this->rFilename) || $rCache) {
 				if (!$this->downloadFile($rSource, $this->rFilename)) {
 					CoreUtilities::saveLog('epg', 'Failed to download EPG source: ' . $rSource);
 					return;
 				}
 			}
-
 			if ($this->rFilename && file_exists($this->rFilename)) {
-				// PHP 8 fix: Better XML streaming with error handling
-				try {
-					$rXML = XmlStringStreamer::createStringWalkerParser($this->rFilename);
-				} catch (Exception $e) {
-					CoreUtilities::saveLog('epg', 'XML Parser error for: ' . $rSource . ' - ' . $e->getMessage());
-					return;
-				}
+				$rXML = XmlStringStreamer::createStringWalkerParser($this->rFilename);
 
 				if ($rXML) {
 					$this->rEPGSource = $rXML;
@@ -197,7 +183,7 @@ class EPG {
 				CoreUtilities::saveLog('epg', 'No XML found at: ' . $rSource);
 			}
 		} catch (Exception $e) {
-			CoreUtilities::saveLog('epg', 'EPG failed to process: ' . $rSource . ' - ' . $e->getMessage());
+			CoreUtilities::saveLog('epg', 'EPG failed to process: ' . $rSource);
 		}
 	}
 }
@@ -249,8 +235,7 @@ function truncateEPG($rData, $DataList = null, $rKeep = null) {
 	$rReturn = array();
 
 	foreach ($rData as $rItem) {
-		if (!((!$DataList || $rItem['start'] < $DataList) && (!$rKeep || time() - $rKeep * 86400 <= $rItem['start']))) {
-		} else {
+		if ((!$DataList || $rItem['start'] < $DataList) && (!$rKeep || time() - $rKeep * 86400 <= $rItem['start'])) {
 			$rReturn[] = $rItem;
 		}
 	}
@@ -261,8 +246,7 @@ function truncateEPG($rData, $DataList = null, $rKeep = null) {
 function shutdown() {
 	global $db;
 
-	if (!is_object($db)) {
-	} else {
+	if (is_object($db)) {
 		$db->close_mysql();
 	}
 }
@@ -271,8 +255,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
 	if ($argc) {
 		$rChannelID = $rStreamID = $rEPGID = null;
 
-		if (count($argv) != 2) {
-		} else {
+		if (count($argv) == 2) {
 			$rEPGID = intval($argv[1]);
 		}
 
@@ -295,8 +278,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
 			shell_exec("kill -9 `ps -ef | grep 'XC_VM\\[EPG\\]' | grep -v grep | awk '{print \$2}'`;");
 			cli_set_process_title('XC_VM[EPG]');
 
-			if (!CoreUtilities::$rSettings['force_epg_timezone']) {
-			} else {
+			if (CoreUtilities::$rSettings['force_epg_timezone']) {
 				date_default_timezone_set('UTC');
 			}
 
@@ -460,61 +442,88 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
 			$rEPGData = $db->get_rows();
 
 			foreach ($rEPGData as $rData) {
+				echo "Processing EPG data for EPG ID: " . $rData['epg_id'] . "\n";
 				$rEPG = new EPG($rData['epg_file'], true);
 
-				if (!$rEPG->rValid) {
-				} else {
+				if ($rEPG->rValid) {
+					echo "EPG file is valid, proceeding with parsing...\n";
 					$db->query('SELECT `id`, `channel_id`, `epg_lang`, `epg_offset` FROM `streams` WHERE `epg_id` = ?;', $rData['epg_id']);
 					$offsets = $rStreamMap = $rChannels = array();
 
 					foreach ($db->get_rows() as $rRow) {
+						echo "Found stream ID: " . $rRow['id'] . " for channel ID: " . $rRow['channel_id'] . "\n";
 						$rStreamMap[$rRow['channel_id']][] = $rRow['id'];
 						$offsets[$rRow['id']][] = (intval($rRow['epg_offset']) ?: 0);
 						unset($rRow['id']);
 						$rChannels[$rRow['channel_id']] = $rRow;
 					}
+
+					echo "Parsing EPG data with offset: " . (intval($rData['offest']) ?: 0) . "\n";
 					$UpdateEPG = $rEPG->parseEPG($rData['epg_id'], $rChannels, (intval($rData['offset']) ?: 0));
 
+					echo "Parsed " . count($UpdateEPG) . " channels from EPG\n";
 					foreach ($UpdateEPG as $rChannelID => $rResults) {
+						echo "Processing channel ID: " . $rChannelID . " with " . count($rResults) . " programs\n";
 						$rStreamIDs = ($rStreamMap[$rChannelID] ?: array());
 
 						foreach ($rStreamIDs as $rStreamID) {
+							echo "Updating stream ID: " . $rStreamID . "\n";
 							$rOffset = (isset($offsets[$rStreamID]) ? intval($offsets[$rStreamID]) : 0);
+							echo "Applying offset: " . $rOffset . " minutes to stream\n";
 							$timestamp_threshold = time() - 86400;
 
 							foreach ($rResults as $rResult) {
 								$rStart = strtotime($rResult['start']) + $rOffset * 60;
-
 								if ($rStart >= $timestamp_threshold) {
+									// Do nothing
 								} else {
 									$timestamp_threshold = $rStart;
 								}
 							}
+							echo "Timestamp threshold set to: " . date('Y-m-d H:i:s', $timestamp_threshold) . "\n";
 
 							if (isset($streamKeepDuration[$rStreamID]) && $rData['days_keep'] < $streamKeepDuration[$rStreamID]) {
 								$keep_duration = $streamKeepDuration[$rStreamID];
+								echo "Using custom keep duration: " . $keep_duration . " days for stream\n";
 							} else {
 								$keep_duration = $rData['days_keep'];
+								echo "Using default keep duration: " . $keep_duration . " days\n";
 							}
 
 							$rEPGData = truncateepg((getepg($rStreamID) ?: array()), $timestamp_threshold, $keep_duration);
+							echo "Truncated old EPG data, keeping " . count($rEPGData) . " existing programs\n";
 
 							foreach ($rResults as $rResult) {
-								$rEPGData[] = array('id' => $rResult['start'], 'epg_id' => $rResult['epg_id'], 'channel_id' => $rChannelID . ((0 < $rOffset ? '_' . $rOffset : '')), 'start' => $rResult['start'] + $rOffset, 'end' => $rResult['stop'] + $rOffset, 'lang' => substr($rResult['lang'], 0, 2), 'title' => $rResult['title'], 'description' => $rResult['description']);
+								$rEPGData[] = array(
+									'id' => $rResult['start'],
+									'epg_id' => $rResult['epg_id'],
+									'channel_id' => $rChannelID . ((0 < $rOffset ? '_' . $rOffset : '')),
+									'start' => $rResult['start'] + $rOffset,
+									'end' => $rResult['stop'] + $rOffset,
+									'lang' => substr($rResult['lang'], 0, 2),
+									'title' => $rResult['title'],
+									'description' => $rResult['description']
+								);
 							}
+							echo "Added " . count($rResults) . " new programs to EPG data\n";
+
 							file_put_contents(EPG_PATH . 'stream_' . $rStreamID, igbinary_serialize($rEPGData));
+							echo "Saved EPG data for stream ID: " . $rStreamID . " to file\n";
 							$rProcessed[] = $rStreamID;
 						}
 					}
 					$db->query('UPDATE `epg` SET `last_updated` = ? WHERE `id` = ?', time(), $rData['epg_id']);
+					echo "Updated last_updated timestamp for EPG ID: " . $rData['epg_id'] . "\n";
+				} else {
+					echo "EPG file is invalid, skipping\n";
 				}
 			}
+			echo "EPG processing complete. Total streams processed: " . (isset($rProcessed) ? count($rProcessed) : 0) . "\n";
 			shell_exec('rm -f ' . TMP_PATH . '*.xml');
 			$ApiDependencyIdentifier = getbouquetgroups();
 
 			foreach ($ApiDependencyIdentifier as $rBouquet => $BatchProcessId) {
-				if (!(0 < strlen($rBouquet) && (0 < count($BatchProcessId['streams']) || $rBouquet == 'all'))) {
-				} else {
+				if (0 < strlen($rBouquet) && (0 < count($BatchProcessId['streams']) || $rBouquet == 'all')) {
 					$errorHash = array();
 					$rOutput = '';
 					$rServerName = htmlspecialchars(CoreUtilities::$rSettings['server_name'], ENT_XML1 | ENT_QUOTES | ENT_DISALLOWED, 'UTF-8');
@@ -530,8 +539,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
 					$rRows = $db->get_rows();
 
 					foreach ($rRows as $rRow) {
-						if (in_array($rRow['channel_id'], $errorHash)) {
-						} else {
+						if (!in_array($rRow['channel_id'], $errorHash)) {
 							$errorHash[] = $rRow['channel_id'];
 							$rStreamName = htmlspecialchars($rRow['stream_display_name'], ENT_XML1 | ENT_QUOTES | ENT_DISALLOWED, 'UTF-8');
 							$rStreamIcon = htmlspecialchars(CoreUtilities::validateImage($rRow['stream_icon']), ENT_XML1 | ENT_QUOTES | ENT_DISALLOWED, 'UTF-8');
@@ -539,8 +547,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
 							$rOutput .= "\t" . '<channel id="' . $rChannelID . '">' . "\n";
 							$rOutput .= "\t\t" . '<display-name>' . $rStreamName . '</display-name>' . "\n";
 
-							if (empty($rRow['stream_icon'])) {
-							} else {
+							if (!empty($rRow['stream_icon'])) {
 								$rOutput .= "\t\t" . '<icon src="' . $rStreamIcon . '" />' . "\n";
 							}
 
@@ -549,8 +556,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
 							$processed_epg = array();
 
 							foreach ($rEPG as $rItem) {
-								if (in_array($rItem['start'], $processed_epg)) {
-								} else {
+								if (!in_array($rItem['start'], $processed_epg)) {
 									$processed_epg[] = $rItem['start'];
 									$rTitle = htmlspecialchars($rItem['title'], ENT_XML1 | ENT_QUOTES | ENT_DISALLOWED, 'UTF-8');
 									$rDescription = htmlspecialchars($rItem['description'], ENT_XML1 | ENT_QUOTES | ENT_DISALLOWED, 'UTF-8');
@@ -596,23 +602,20 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
 			}
 
 			foreach (scandir(EPG_PATH) as $rFile) {
-				if (in_array($rFile, array('.', '..'))) {
-				} else {
+				if (!in_array($rFile, array('.', '..'))) {
 					if (substr($rFile, 0, 7) == 'stream_') {
 						list($rVar, $rStreamID) = explode('_', $rFile);
 
 						if (!isset($rStreamIDs[$rStreamID])) {
 							unlink(EPG_PATH . $rFile);
 						} else {
-							if (in_array($rStreamID, $rProcessed)) {
-							} else {
+							if (!in_array($rStreamID, $rProcessed)) {
 								$rEPG = truncateepg((getepg($rStreamID) ?: array()), null, ($rStreamIDs[$rStreamID] ?: $rKeep));
 								file_put_contents(EPG_PATH . 'stream_' . $rStreamID, igbinary_serialize($rEPG));
 							}
 						}
 					} else {
-						if (filemtime(EPG_PATH . $rFile) >= $rStartTime - 10) {
-						} else {
+						if (!filemtime(EPG_PATH . $rFile) >= $rStartTime - 10) {
 							unlink(EPG_PATH . $rFile);
 						}
 					}
@@ -670,8 +673,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
 							$rStart = strtotime($rResult['startTime']);
 							$rEnd = strtotime($rResult['endTime']);
 
-							if (in_array($rStart, $processed_epg)) {
-							} else {
+							if (!in_array($rStart, $processed_epg)) {
 								$processed_epg[] = $rStart;
 								$rEPG[] = array('id' => $rStart, 'epg_id' => 0, 'channel_id' => $rChannelID, 'start' => $rStart, 'end' => $rEnd, 'lang' => substr($rResult['program']['titleLang'], 0, 2), 'title' => $rTitle, 'description' => $rDescription);
 							}
