@@ -350,13 +350,15 @@ include 'header.php';
                                                                 <input type="text" class="form-control"
                                                                     id="name_<?php echo $i; ?>"
                                                                     value="<?php echo htmlspecialchars($rStream['title']); ?>">
-                                                                <div class="input-group-append">
-                                                                    <a href="javascript:void(0);"
-                                                                        onClick="<?php echo $rType == 1 ? 'scanEPG(' . $i . ');' : 'scanTMDb(' . $i . ');'; ?>"
-                                                                        class="btn btn-primary waves-effect waves-light">
-                                                                        <i class="mdi mdi-magnify text-white"></i>
-                                                                    </a>
-                                                                </div>
+                                                                <? if ($rType != 1) { ?>
+                                                                    <div class="input-group-append">
+                                                                        <a href="javascript:void(0);"
+                                                                            onClick="<?php echo 'scanTMDb(' . $i . ');'; ?>"
+                                                                            class="btn btn-primary waves-effect waves-light">
+                                                                            <i class="mdi mdi-magnify text-white"></i>
+                                                                        </a>
+                                                                    </div>
+                                                                <?php } ?>
                                                             </div>
                                                         </td>
                                                         <td>
@@ -390,19 +392,11 @@ include 'header.php';
                                                                 <select id="epg_api_<?php echo $i; ?>" data-id="<?php echo $i; ?>"
                                                                     class="form-control epg_api" data-toggle="select2"></select>
                                                             </td>
-                                                            <td style="width: 80px;">
-                                                                <input type="text" class="form-control text-center"
-                                                                    id="epg_lang_<?php echo $i; ?>" readonly value=""></input>
-                                                            </td>
                                                             <td class="text-center">
                                                                 <button onClick="clearEPG(this);" id="clear_epg_<?php echo $i; ?>"
                                                                     data-id="<?php echo $i; ?>" type="button" title="Clear EPG"
                                                                     class="tooltip btn btn-secondary btn-xs waves-effect waves-light"><i
                                                                         class="text-white fas fa-times"></i></button>
-                                                                <button onClick="viewEPG(this);" id="view_epg_<?php echo $i; ?>"
-                                                                    data-id="<?php echo $i; ?>" type="button" title="View EPG API"
-                                                                    class="tooltip btn btn-secondary btn-xs waves-effect waves-light"><i
-                                                                        class="text-white far fa-circle"></i></button>
                                                                 <a href="javascript:void(0);"
                                                                     title="<?php echo htmlspecialchars($rStream['url']); ?>"
                                                                     class="tooltip-left btn btn-primary btn-xs waves-effect waves-light"><i
