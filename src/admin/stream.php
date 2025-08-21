@@ -59,16 +59,6 @@ if (isset($rStream)) {
 
 		$rServerTree[] = array('id' => $rServer['id'], 'parent' => $rParent, 'text' => $rServer['server_name'], 'icon' => 'mdi mdi-server-network', 'state' => array('opened' => true));
 	}
-
-	if ($rStream['epg_api'] && 0 < strlen($rStream['channel_id'])) {
-		$db->query('SELECT `name` FROM `epg_api` WHERE `callSign` = ?;', $rStream['channel_id']);
-
-		if (0 < $db->num_rows()) {
-			$rStream['epg_api_name'] = $db->get_row()['name'];
-		} else {
-			$rStream['epg_api_name'] = 'No longer available.';
-		}
-	}
 } else {
 	if (hasPermissions('adv', 'add_stream')) {
 		foreach ($rServers as $rServer) {
@@ -131,7 +121,6 @@ include 'header.php';
 
 							<input type="hidden" name="server_tree_data" id="server_tree_data" value="" />
 							<input type="hidden" name="od_tree_data" id="od_tree_data" value="" />
-							<input type="hidden" name="epg_api" id="epg_api" value="<?php echo (isset($rStream) ? $rStream['epg_api'] : 0); ?>" />
 							<input type="hidden" name="external_push" id="external_push" value="" />
 							<input type="hidden" name="bouquet_create_list" id="bouquet_create_list" value="" />
 
@@ -628,16 +617,9 @@ include 'header.php';
 									}
 
 									echo '"> Quick Search </a> </li>
-															<li class="nav-item"> <a href="#xc_vm-epg" id="tab-xc_vm-epg" data-toggle="tab" aria-expanded="true" class="nav-link';
-
-									if (isset($rStream) && $rStream['epg_api']) {
-										echo ' active';
-									}
-
-									echo '"> XC_VM EPG (not worked)</a> </li>
 															<li class="nav-item"> <a href="#xmltv-epg" id="tab-xml-epg" data-toggle="tab" aria-expanded="false" class="nav-link';
 
-									if (isset($rStream) || !$rStream['epg_api']) {
+									if (isset($rStream)) {
 										echo ' active';
 									}
 
@@ -646,8 +628,7 @@ include 'header.php';
 														<div class="tab-content" style="padding-top: 30px;">
 															<div class="tab-pane';
 
-									if (isset($rStream)) {
-									} else {
+									if (!isset($rStream)) {
 										echo ' active';
 									}
 
@@ -656,47 +637,10 @@ include 'header.php';
 																	<div class="col-md-9"> <select id="quick_search" class="form-control" data-toggle="select2"></select> </div>
 																</div>
 															</div>
+															
 															<div class="tab-pane';
 
-									if (isset($rStream) && $rStream['epg_api']) {
-										echo ' active';
-									}
-
-									echo '" id="xc_vm-epg">
-																<div class="form-group row mb-4"> <label class="col-md-3 col-form-label" for="epg_api_name">Channel Name</label>
-																	<div class="col-md-5"> <input readonly id="epg_api_name" name="epg_api_name" type="text" class="form-control" value="';
-
-									if (isset($rStream) && $rStream['epg_api']) {
-										echo $rStream['epg_api_name'];
-									}
-
-									echo '"> </div>
-																	<div class="col-md-2"> <input readonly id="epg_api_id" name="epg_api_id" type="text" class="form-control text-center" value="';
-
-									if (isset($rStream) && $rStream['epg_api']) {
-										echo $rStream['channel_id'];
-									}
-
-									echo '"> </div>
-																	<div class="col-md-2"> <button type="button" style="width: 100%" class="btn btn-info waves-effect waves-light btn-xl" id="epg-api"><i class="mdi mdi-magnify"></i></button> </div>
-																</div>
-																<div class="table-responsive" id="table-epg-data" style="display: none; padding-bottom: 30px;">
-																	<table class="table table-striped table-borderless mb-0">
-																		<thead>
-																			<tr>
-																				<th class="text-center">Time</th>
-																				<th>Title</th>
-																				<th>Description</th>
-																			</tr>
-																		</thead>
-																		<tbody></tbody>
-																	</table>
-																</div>
-															</div>
-															<div class="tab-pane';
-
-									if (!isset($rStream) || $rStream['epg_api']) {
-									} else {
+									if (isset($rStream)) {
 										echo ' active';
 									}
 

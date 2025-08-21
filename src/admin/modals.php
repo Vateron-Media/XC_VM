@@ -410,31 +410,6 @@
 			</div>
 		</div>
 	</div>
-	<div class="modal fade bs-xc_vmepg-modal-center" tabindex="-1" role="dialog" aria-labelledby="epgBrowserLabel" aria-hidden="true" style="display: none;" data-id="">
-		<div class="modal-dialog modal-dialog-scrollable modal-xl">
-			<div class="modal-content">
-				<div class="modal-header">
-					<h4 class="modal-title" id="epgBrowserLabel">XC_VM EPG Browser</h4>
-					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-				</div>
-				<div class="modal-body">
-					<table id="datatable-epg-api" class="table table-striped table-borderless dt-responsive">
-						<thead>
-							<tr>
-								<th class="text-center">Icon</th>
-								<th class="text-center">Call Sign</th>
-								<th>Name</th>
-								<th class="text-center">Language</th>
-								<th class="text-center">Type</th>
-								<th class="text-center">Actions</th>
-							</tr>
-						</thead>
-						<tbody></tbody>
-					</table>
-				</div>
-			</div>
-		</div>
-	</div>
 	<div class="modal fade bs-provider-streams-modal-center" tabindex="-1" role="dialog" aria-labelledby="providerStreamsLabel" aria-hidden="true" style="display: none;" data-id="">
 		<div class="modal-dialog modal-dialog-scrollable modal-lg">
 			<div class="modal-content">

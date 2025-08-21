@@ -5569,59 +5569,6 @@ if ($rType == "lines") {
     }
     echo json_encode($rReturn);
     exit;
-} elseif ($rType == "epg_api") {
-    $rOrder = ["`epg_api`.`callSign`", "`epg_api`.`name`", "`epg_api`.`bcastLangs`", "`epg_api`.`videoType`"];
-    if (isset(CoreUtilities::$rRequest["order"]) && 0 < strlen(CoreUtilities::$rRequest["order"][0]["column"])) {
-        $rOrderRow = (int) CoreUtilities::$rRequest["order"][0]["column"];
-    } else {
-        $rOrderRow = 0;
-    }
-    $rWhere = $rWhereV = [];
-    $rWhere[] = "`epg_api`.`callSign` <> ''";
-    if (0 < strlen(CoreUtilities::$rRequest["search"]["value"])) {
-        foreach (range(1, 5) as $rInt) {
-            $rWhereV[] = "%" . CoreUtilities::$rRequest["search"]["value"] . "%";
-        }
-        $rWhere[] = "(`epg_api`.`callSign` LIKE ? OR `epg_api`.`name` LIKE ? OR `epg_api`.`bcastLangs` LIKE ? OR `epg_api`.`videoType` LIKE ? OR `epg_api`.`affiliateCallSign` LIKE ?)";
-    }
-    if ($rOrder[$rOrderRow]) {
-        $rOrderDirection = strtolower(CoreUtilities::$rRequest["order"][0]["dir"]) === "desc" ? "desc" : "asc";
-        $rOrderBy = "ORDER BY " . $rOrder[$rOrderRow] . " " . $rOrderDirection;
-    }
-    if (0 < count($rWhere)) {
-        $rWhereString = "WHERE " . implode(" AND ", $rWhere);
-    } else {
-        $rWhereString = "";
-    }
-    $rCountQuery = "SELECT COUNT(*) AS `count` FROM `epg_api` " . $rWhereString . ";";
-    $db->query($rCountQuery, ...$rWhereV);
-    if ($db->num_rows() == 1) {
-        $rReturn["recordsTotal"] = $db->get_row()["count"];
-    } else {
-        $rReturn["recordsTotal"] = 0;
-    }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
-    if (0 < $rReturn["recordsTotal"]) {
-        $rQuery = "SELECT `epg_api`.`stationId`, `epg_api`.`callSign`, `epg_api`.`name`, `epg_api`.`bcastLangs`, `epg_api`.`videoType`, `epg_api`.`picon` FROM `epg_api` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
-        $db->query($rQuery, ...$rWhereV);
-        if (0 < $db->num_rows()) {
-            foreach ($db->get_rows() as $rRow) {
-                if ($rIsAPI) {
-                    $rReturn["data"][] = filterrow($rRow, CoreUtilities::$rRequest["show_columns"], CoreUtilities::$rRequest["hide_columns"]);
-                } else {
-                    $rButtons = "<a href=\"javascript: void(0);\" onClick=\"selectEPGAPI('" . $rRow["callSign"] . "', '" . $rRow["stationId"] . "', '" . str_replace("'", "\\'", $rRow["name"]) . "', '" . $rRow["picon"] . "')\"><button type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs\"><i class=\"mdi mdi-check\"></i></button></a>";
-                    if (0 < strlen($rRow["picon"])) {
-                        $rIcon = "<img loading='lazy' src='" . $rRow["picon"] . "' height='32px' />";
-                    } else {
-                        $rIcon = "";
-                    }
-                    $rReturn["data"][] = [$rIcon, $rRow["callSign"], $rRow["name"], json_decode($rRow["bcastLangs"], true)[0], $rRow["videoType"], $rButtons];
-                }
-            }
-        }
-    }
-    echo json_encode($rReturn);
-    exit;
 } elseif ($rType == "provider_streams") {
     $rOrder = ["`providers`.`name`", "`providers_streams`.`stream_icon`", "`providers_streams`.`stream_display_name`", false];
     if (isset(CoreUtilities::$rRequest["order"]) && 0 < strlen(CoreUtilities::$rRequest["order"][0]["column"])) {
