@@ -57,20 +57,14 @@ if (isset(CoreUtilities::$rRequest['save_changes'])) {
             }
         }
 
-        if (CoreUtilities::$rRequest['save_epg'] && !empty($rStream['channel_id']) && $rStream['epg_id'] == 0) {
-            $rEPGAPI = 1;
-        } else {
-            $rEPGAPI = 0;
-        }
-
         if (CoreUtilities::$rRequest['save_categories'] && CoreUtilities::$rRequest['save_epg']) {
-            $db->query('UPDATE `streams` SET `stream_display_name` = ?, `category_id` = ?, `channel_id` = ?, `epg_id` = ?, `epg_api` = ? WHERE `id` = ?;', $rStream['name'], '[' . implode(',', array_map('intval', $rStream['categories'])) . ']', ($rStream['channel_id'] ?: null), (is_null($rStream['epg_id']) ? null : $rStream['epg_id']), $rEPGAPI, $rID);
+            $db->query('UPDATE `streams` SET `stream_display_name` = ?, `category_id` = ?, `channel_id` = ?, `epg_id` = ? WHERE `id` = ?;', $rStream['name'], '[' . implode(',', array_map('intval', $rStream['categories'])) . ']', ($rStream['channel_id'] ?: null), (is_null($rStream['epg_id']) ? null : $rStream['epg_id']), $rID);
         } else {
             if (CoreUtilities::$rRequest['save_categories']) {
                 $db->query('UPDATE `streams` SET `stream_display_name` = ?, `category_id` = ? WHERE `id` = ?;', $rStream['name'], '[' . implode(',', array_map('intval', $rStream['categories'])) . ']', $rID);
             } else {
                 if (CoreUtilities::$rRequest['save_epg']) {
-                    $db->query('UPDATE `streams` SET `stream_display_name` = ?, `channel_id` = ?, `epg_id` = ?, `epg_api` = ? WHERE `id` = ?;', $rStream['name'], ($rStream['channel_id'] ?: null), (is_null($rStream['epg_id']) ? null : $rStream['epg_id']), $rEPGAPI, $rID);
+                    $db->query('UPDATE `streams` SET `stream_display_name` = ?, `channel_id` = ?, `epg_id` = ?, WHERE `id` = ?;', $rStream['name'], ($rStream['channel_id'] ?: null), (is_null($rStream['epg_id']) ? null : $rStream['epg_id']), $rID);
                 } else {
                     $db->query('UPDATE `streams` SET `stream_display_name` = ? WHERE `id` = ?;', $rStream['name'], $rID);
                 }

@@ -395,26 +395,6 @@ function encodeRow($rRow) {
 	return $rRow;
 }
 
-function getEPGNames($rName = null) {
-	global $db;
-	$rReturn = array();
-
-	if ($rName) {
-		$db->query('SELECT `callSign`, `bcastLangs`, `name`, `picon` FROM `epg_api` WHERE SOUNDEX(`name`) = SOUNDEX(?) ORDER BY `name` ASC, `eng` DESC;', $rName);
-	} else {
-		$db->query('SELECT `callSign`, `bcastLangs`, `name`, `picon` FROM `epg_api` ORDER BY `name` ASC, `eng` DESC;');
-	}
-
-	if (0 >= $db->num_rows()) {
-	} else {
-		foreach ($db->get_rows() as $rRow) {
-			$rReturn[] = $rRow;
-		}
-	}
-
-	return $rReturn;
-}
-
 function getArchiveFiles($rServerID, $rStreamID) {
 	return json_decode(systemapirequest($rServerID, array('action' => 'get_archive_files', 'stream_id' => $rStreamID)), true)['data'];
 }
@@ -4149,11 +4129,6 @@ function convertToCSV($rData) {
 
 
 	return $rFilename;
-}
-
-function processEPGAPI($rStreamID, $rChannelID) {
-	shell_exec(PHP_BIN . ' ' . CRON_PATH . 'epg.php ' . intval($rStreamID) . ' ' . escapeshellarg($rChannelID) . ' > /dev/null 2>/dev/null &');
-	return true;
 }
 
 function forceWatch($rServerID, $rWatchID) {

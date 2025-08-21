@@ -873,63 +873,6 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														data-color="#039cfd" />
 												</div>
 											</div>
-											<h5 class="card-title mb-4">EPG API</h5>
-											<div class="form-group row mb-4">
-												<label class="col-md-4 col-form-label" for="enable_epg_api">Enable EPG API (Not Worked)<i title="Enable EPG API in the Admin interface."
-														class="tooltip text-secondary far fa-circle"></i></label>
-												<div class="col-md-2">
-													<input name="enable_epg_api" id="enable_epg_api" type="checkbox"
-														<?php if ($rSettings["enable_epg_api"] == 1) {
-															echo ' checked ';
-														} ?> data-plugin="switchery" class="js-switch"
-														data-color="#039cfd" />
-												</div>
-												<label class="col-md-3 col-form-label" for="epg_api_extended">Append
-													Extra Data <i
-														title="Modify the incoming EPG data with extra data such as the name of the event."
-														class="tooltip text-secondary far fa-circle"></i></label>
-												<div class="col-md-3">
-													<select name="epg_api_extended" id="epg_api_extended"
-														class="form-control" data-toggle="select2">
-														<?php
-														foreach (["Default Format", "Extended Title", "Extended Description"] as $rValue => $rType) {
-															echo '<option';
-
-															if ($rSettings["epg_api_extended"] != $rValue) {
-															} else {
-																echo ' selected';
-															}
-
-															echo ' value="';
-															echo $rValue;
-															echo '">';
-															echo $rType;
-															echo '</option>';
-														}
-														?>
-													</select>
-												</div>
-											</div>
-											<div class="form-group row mb-4">
-												<label class="col-md-4 col-form-label" for="epg_api_days_fetch">Days
-													to
-													Fetch <i title="How many days to fetch when grabbing EPG data."
-														class="tooltip text-secondary far fa-circle"></i></label>
-												<div class="col-md-2">
-													<input type="text" class="form-control text-center"
-														id="epg_api_days_fetch" name="epg_api_days_fetch"
-														value="<?= intval($rSettings["epg_api_days_fetch"]) ?>">
-												</div>
-												<label class="col-md-4 col-form-label" for="epg_api_days_keep">Days
-													to
-													Keep <i title="How many days to keep when storing EPG data."
-														class="tooltip text-secondary far fa-circle"></i></label>
-												<div class="col-md-2">
-													<input type="text" class="form-control text-center"
-														id="epg_api_days_keep" name="epg_api_days_keep"
-														value="<?= intval($rSettings["epg_api_days_keep"]) ?>">
-												</div>
-											</div>
 											<h5 class="card-title mb-4">API Services</h5>
 											<div class="form-group row mb-4">
 												<label class="col-md-4 col-form-label" for="allowed_ips_admin">Admin
