@@ -156,3 +156,37 @@ include 'header.php'; ?>
     </div>
 </div>
 <?php include 'footer.php'; ?>
+<script id="scripts">
+	<?php
+		echo '        ' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'})" . "\r\n\t\t\t";
+
+		if (!isset($rCategoryArr)) {
+		} else {
+			echo "\t\t\t" . '$("#datatable").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n\t\t\t\t\t" . 'bindHref(); refreshTooltips();' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'bAutoWidth: false,' . "\r\n\t\t\t\t" . 'bInfo: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t";
+
+			if ($rCategoryArr['category_type'] == 'live') {
+				echo "\t\t\t\t\t\t" . 'd.id = "streams_short";' . "\r\n\t\t\t\t\t\t";
+			} else {
+				if ($rCategoryArr['category_type'] == 'movie') {
+					echo "\t\t\t\t\t\t" . 'd.id = "movies_short";' . "\r\n\t\t\t\t\t\t";
+				} else {
+					if ($rCategoryArr['category_type'] == 'radio') {
+						echo "\t\t\t\t\t\t" . 'd.id = "radios_short";' . "\r\n\t\t\t\t\t\t";
+					} else {
+						echo "\t\t\t\t\t\t" . 'd.id = "series_short";' . "\r\n\t\t\t\t\t\t";
+					}
+				}
+			}
+
+			echo "\t\t\t\t\t\t" . 'd.category_id = ';
+			echo $rCategoryArr['id'];
+			echo ';' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,2]}' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t";
+		}
+
+		echo '            $("form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n" . "                \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                submitForm(window.rCurrentPage, new FormData($("form")[0]));' . "\r\n" . '            });' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
+		?>
+</script>
+<script src="assets/js/listings.js"></script>
+</body>
+
+</html>

@@ -70,3 +70,12 @@ include 'header.php';
     </div>
 </div>
 <?php include 'footer.php'; ?>
+<script id="scripts">
+	<?php
+		echo '        ' . "\r\n" . '        $(document).ready(function() {' . "\r\n" . '            $("form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n" . "                \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                submitForm(window.rCurrentPage, new FormData($("form")[0]));' . "\r\n" . '            });' . "\r\n" . '        });' . "\r\n" . '        ' . "\r\n" . '        ';
+		?>
+</script>
+<script src="assets/js/listings.js"></script>
+</body>
+
+</html>

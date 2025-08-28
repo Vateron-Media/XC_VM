@@ -94,3 +94,12 @@ include 'header.php';
     </div>
 </div>
 <?php include 'footer.php'; ?>
+<script id="scripts">
+	<?php
+		echo "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . '$("#server_items").nestable({maxDepth: 1});' . "\r\n\t\t\t" . '$("#server_form").submit(function(e){' . "\r\n\t\t\t\t" . "\$(\"#server_order\").val(JSON.stringify(\$('#server_items.dd').nestable('serialize')));" . "\r\n" . '                e.preventDefault();' . "\r\n" . "                \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                submitForm(window.rCurrentPage, new FormData($("#server_form")[0]));' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
+		?>
+</script>
+<script src="assets/js/listings.js"></script>
+</body>
+
+</html>

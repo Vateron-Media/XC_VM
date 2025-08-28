@@ -533,3 +533,12 @@ include 'header.php';
     </div>
 </div>
 <?php include 'footer.php'; ?>
+<script id="scripts">
+	<?php
+		echo '        ' . "\r\n" . '        $(document).ready(function() {' . "\r\n" . "            \$(\"input[type='submit']\").click(function(event) {" . "\r\n" . '                event.preventDefault();' . "\r\n" . '                var _this = $(this);' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Run",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . "                    content: \"Are you sure you want to run this tool? This can't be undone.\"," . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        var rForm = [$(_this).attr("name")];' . "\r\n" . '                        submitForm(window.rCurrentPage, rForm);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            });' . "\r\n" . '            $("form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n" . '            });' . "\r\n" . '        });' . "\r\n" . '        ' . "\r\n\t\t";
+		?>
+</script>
+<script src="assets/js/listings.js"></script>
+</body>
+
+</html>
