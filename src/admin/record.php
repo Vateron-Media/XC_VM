@@ -258,3 +258,20 @@ include 'header.php'; ?>
     </div>
 </div>
 <?php include 'footer.php'; ?>
+<script id="scripts">
+	<?php
+		echo '        ' . "\r\n" . '        function openImage(elem) {' . "\r\n\t\t\t" . 'rPath = $(elem).parent().parent().find("input").val();' . "\r\n\t\t\t" . 'if (rPath) {' . "\r\n" . '                $.magnificPopup.open({' . "\r\n" . '                    items: {' . "\r\n" . "                        src: 'resize?maxw=512&maxh=512&url=' + encodeURIComponent(rPath)," . "\r\n" . "                        type: 'image'" . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n\t\t\t" . '}' . "\r\n\t\t" . '}' . "\r\n" . '        ' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n" . "            \$('select').select2({width: '100%'});" . "\r\n" . "            \$('#stream_id').select2({" . "\r\n\t\t\t" . '  ajax: {' . "\r\n\t\t\t\t" . "url: './api'," . "\r\n\t\t\t\t" . "dataType: 'json'," . "\r\n\t\t\t\t" . 'data: function (params) {' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'search: params.term,' . "\r\n\t\t\t\t\t" . "action: 'streamlist'," . "\r\n\t\t\t\t\t" . 'page: params.page' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processResults: function (data, params) {' . "\r\n\t\t\t\t" . '  params.page = params.page || 1;' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'results: data.items,' . "\r\n\t\t\t\t\t" . 'pagination: {' . "\r\n\t\t\t\t\t\t" . 'more: (params.page * 100) < data.total_count' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'cache: true,' . "\r\n\t\t\t\t" . 'width: "100%"' . "\r\n\t\t\t" . '  },' . "\r\n\t\t\t" . "  placeholder: 'Search for a stream...'" . "\r\n\t\t\t" . '});' . "\r\n" . "            \$('#start_date').daterangepicker({" . "\r\n\t\t\t\t" . 'singleDatePicker: true,' . "\r\n\t\t\t\t" . 'showDropdowns: true,' . "\r\n\t\t\t\t" . 'minDate: new Date(),' . "\r\n" . '                timePicker: true,' . "\r\n\t\t\t\t" . 'locale: {' . "\r\n\t\t\t\t\t" . "format: 'YYYY-MM-DD HH:mm'" . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n" . '            ';
+
+		if ($rStream) {
+			echo '            $("form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n" . "                \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                submitForm(window.rCurrentPage, new FormData($("form")[0]));' . "\r\n" . '            });' . "\r\n" . '            ';
+		} else {
+			echo '            $("form").submit(function(e){' . "\r\n" . '                if (!$("#stream_id").val()) {' . "\r\n" . '                    $.toast("Please select a stream.");' . "\r\n" . '                    e.preventDefault();' . "\r\n" . '                } else if ($("#duration").val() <= 0) {' . "\r\n" . '                    $.toast("Please enter a duration in minutes.");' . "\r\n" . '                    e.preventDefault();' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            ';
+		}
+
+		echo '            $("#duration").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
+		?>
+</script>
+<script src="assets/js/listings.js"></script>
+</body>
+
+</html>

@@ -219,7 +219,23 @@ if (!isset(CoreUtilities::$rRequest['id']) || ($rCode = getCode(CoreUtilities::$
             </div>
         </div>
     </div>
-<?php include 'footer.php';
+<?php include 'footer.php'; ?>
+<script id="scripts">
+	<?php
+		echo '        ' . "\r\n\t\t" . 'function generateCode() {' . "\r\n\t\t\t" . "var result           = '';" . "\r\n\t\t\t" . "var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';" . "\r\n\t\t\t" . 'var charactersLength = characters.length;' . "\r\n\t\t\t" . 'for ( var i = 0; i < 8; i++ ) {' . "\r\n\t\t\t\t" . 'result += characters.charAt(Math.floor(Math.random() * charactersLength));' . "\r\n\t\t\t" . '}' . "\r\n\t\t\t" . '$("#code").val(result);' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function selectAll() {' . "\r\n\t\t\t" . '$(".group-checkbox").each(function() {' . "\r\n\t\t\t\t" . "\$(this).prop('checked', true);" . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function selectNone() {' . "\r\n\t\t\t" . '$(".group-checkbox").each(function() {' . "\r\n\t\t\t\t" . "\$(this).prop('checked', false);" . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n" . "            \$('.select2').select2({width: '100%'});" . "\r\n\t\t\t" . "\$('#code').keydown(function (e) {" . "\r\n\t\t\t\t" . 'var k = e.which;' . "\r\n\t\t\t\t" . 'var ok = k >= 65 && k <= 90 || // A-Z' . "\r\n\t\t\t\t\t" . 'k >= 96 && k <= 105 || // a-z' . "\r\n\t\t\t\t\t" . 'k >= 35 && k <= 40 || // arrows' . "\r\n\t\t\t\t\t" . 'k == 8 || // Backspaces' . "\r\n\t\t\t\t\t" . '(!e.shiftKey && k >= 48 && k <= 57); // 0-9' . "\r\n\r\n\t\t\t\t" . 'if (!ok) {' . "\r\n\t\t\t\t\t" . 'e.preventDefault();' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n" . '            $("form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n" . "                \$(\"#whitelist option\").prop('selected', true);" . "\r\n" . "                \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                submitForm(window.rCurrentPage, new FormData($("form")[0]));' . "\r\n" . '            });' . "\r\n\t\t\t" . '$("#add_ip").click(function() {' . "\r\n\t\t\t\t" . 'if (($("#ip_field").val()) && (isValidIP($("#ip_field").val()))) {' . "\r\n\t\t\t\t\t" . 'var o = new Option($("#ip_field").val(), $("#ip_field").val());' . "\r\n\t\t\t\t\t" . '$("#whitelist").append(o);' . "\r\n\t\t\t\t\t" . '$("#ip_field").val("");' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . '$.toast("Please enter a valid IP address.");' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#remove_ip").click(function() {' . "\r\n\t\t\t\t" . "\$('#whitelist option:selected').remove();" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t";
+
+		if (!isset($rCode)) {
+			echo "\t\t\t" . 'generateCode();' . "\r\n\t\t\t";
+		}
+
+		echo "\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
+		?>
+</script>
+<script src="assets/js/listings.js"></script>
+</body>
+
+</html>
+<?php
 } else {
     exit();
 } ?>

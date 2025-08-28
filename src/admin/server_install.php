@@ -207,3 +207,26 @@ include 'header.php'; ?>
     </div>
 </div>
 <?php include 'footer.php'; ?>
+<script id="scripts">
+	<?php
+		echo "\t\t" . '$(document).ready(function() {' . "\r\n" . "            \$('select').select2({width: '100%'});" . "\r\n\t\t\t" . '$("#ssh_port").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#rtmp_port").inputFilter(function(value) { return /^\\d*$/.test(value) && (value === "" || parseInt(value) <= 65535); });' . "\r\n\t\t\t" . '$("#http_broadcast_port").inputFilter(function(value) { return /^\\d*$/.test(value) && (value === "" || parseInt(value) <= 65535); });' . "\r\n" . '            $("#https_broadcast_port").inputFilter(function(value) { return /^\\d*$/.test(value) && (value === "" || parseInt(value) <= 65535); });' . "\r\n" . '            $("form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n" . '                ';
+
+		if ($rType != 1) {
+		} else {
+			echo '                var rServers = [];' . "\r\n\t\t\t\t" . '$("#datatable tr.selected").each(function() {' . "\r\n\t\t\t\t\t" . 'rServers.push($(this).find("td:eq(0)").text());' . "\r\n\t\t\t\t" . '});' . "\r\n" . '                if (rServers.length == 0) {' . "\r\n" . '                    $.toast("Please select at least one server to apply the proxy to.");' . "\r\n" . '                    return;' . "\r\n" . '                }' . "\r\n\t\t\t\t" . '$("#parent_id").val("[" + rServers.join(",") + "]");' . "\r\n" . '                ';
+		}
+
+		echo "                \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                submitForm(window.rCurrentPage, new FormData($("form")[0]));' . "\r\n" . '            });' . "\r\n" . '            ';
+
+		if ($rType != 1) {
+		} else {
+			echo '            $("#datatable").DataTable({' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,2]}' . "\r\n\t\t\t\t" . '],' . "\r\n" . '                drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n" . '                },' . "\r\n\t\t\t\t" . 'paging: false,' . "\r\n\t\t\t\t" . 'bInfo: false,' . "\r\n\t\t\t\t" . 'searching: false' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable").selectable({' . "\r\n\t\t\t\t" . "filter: 'tr'," . "\r\n\t\t\t\t" . 'selected: function (event, ui) {' . "\r\n\t\t\t\t\t" . "if (\$(ui.selected).hasClass('selectedfilter')) {" . "\r\n\t\t\t\t\t\t" . "\$(ui.selected).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t" . '} else {            ' . "\r\n\t\t\t\t\t\t" . "\$(ui.selected).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n" . '            ';
+		}
+
+		echo "\t\t" . '});' . "\r\n" . '        ' . "\r\n" . '        ';
+		?>
+</script>
+<script src="assets/js/listings.js"></script>
+</body>
+
+</html>

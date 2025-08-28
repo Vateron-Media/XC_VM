@@ -207,3 +207,12 @@ include 'header.php';
     </div>
 </div>
 <?php include 'footer.php'; ?>
+<script id="scripts">
+	<?php
+		echo '        ' . "\r\n" . '        function decryptText() {' . "\r\n" . '            var rText = $("#encrypted_text").val();' . "\r\n" . '            $("#decrypted_text").val("");' . "\r\n" . '            if (rText.length > 0) {' . "\r\n" . '                $.getJSON("./api?action=decrypt_text&text=" + encodeURIComponent(rText), function(rData) {' . "\r\n" . '                    if ("data" in rData) {' . "\r\n" . '                        $("#decrypted_text").val(rData.data.join("\\n\\n"));' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("Text could not be decrypted...");' . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n" . '            } else {' . "\r\n" . '                $.toast("Please enter data in the encrypted text field.");' . "\r\n" . '            }' . "\r\n" . '        }' . "\r\n" . '        ' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n" . "            \$('select').select2({width: '100%'});" . "\r\n" . '            $("#dns_form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n" . "                \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                submitForm(window.rCurrentPage, new FormData($("#dns_form")[0]));' . "\r\n" . '            });' . "\r\n" . '            $("#move_form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n" . "                \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                submitForm(window.rCurrentPage, new FormData($("#move_form")[0]));' . "\r\n" . '            });' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
+		?>
+</script>
+<script src="assets/js/listings.js"></script>
+</body>
+
+</html>
