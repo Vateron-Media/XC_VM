@@ -3438,9 +3438,9 @@ if (isset($_SESSION['hash'])) {
 				exit();
 			}
 		}
-		if (CoreUtilities::$rRequest['action'] == 'send_panel_logs') {
-			CoreUtilities::submitPanelLogs();
-			echo json_encode(array('result' => true));
+		if (CoreUtilities::$rRequest['action'] == 'download_panel_logs') {
+			$errors = CoreUtilities::downloadPanelLogs();
+			echo json_encode(array('result' => true, 'data' => $errors));
 
 			exit();
 		}

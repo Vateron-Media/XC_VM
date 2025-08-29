@@ -3974,55 +3974,85 @@ class CoreUtilities {
 		return $closest;
 	}
 	/**
-	 * Submits the latest panel logs to the remote API server.
-	 *
-	 * - Fetches the latest 1000 unique non-EPG log records from the database.
-	 * - Sends them to the remote API endpoint `/logs` via POST request.
-	 * - If the response contains "status": "success", clears the local `panel_logs` table.
-	 *
-	 * @return string|false The API response if the request was sent, otherwise false.
+	 * Downloads panel logs from database, formats them and clears the logs table
+	 * 
+	 * Fetches error logs from database (excluding EPG type), formats them into a structured array,
+	 * converts timestamps to human-readable format, and truncates the logs table after successful processing.
+	 * Includes error handling and security measures.
+	 * 
+	 * @static
+	 * @return array Structured array containing error logs and system version
+	 * @throws Exception If database query fails or date conversion fails
 	 */
-	public static function submitPanelLogs() {
-		// Increase default socket timeout
+	public static function downloadPanelLogs(): array {
+		// Increase socket timeout for large log files
 		ini_set('default_socket_timeout', 60);
 
-		// Get API IP address
-		$apiIP = self::getApiIP();
-		if ($apiIP === false) {
-			return false;
-		}
+		// Initialize empty errors array as fallback
+		$errors = [];
 
-		// Fetch logs from the database (excluding 'epg' type), limited to 1000 grouped by unique values
-		self::$db->query("SELECT `type`, `log_message`, `log_extra`, `line`, `date` FROM `panel_logs` WHERE `type` <> 'epg' GROUP BY CONCAT(`type`, `log_message`, `log_extra`) ORDER BY `date` DESC LIMIT 1000;");
+		try {
+			// Use prepared statement to prevent SQL injection
+			$query = "SELECT `type`, `log_message`, `log_extra`, `line`, `date` 
+                  FROM `panel_logs` 
+                  WHERE `type` <> 'epg' 
+                  GROUP BY `type`, `log_message`, `log_extra` 
+                  ORDER BY `date` DESC 
+                  LIMIT 1000";
 
-		// Prepare API endpoint and payload
-		$rAPI = 'http://' . $apiIP . '/api/v1/report';
-		$rData = array(
-			'errors'  => self::$db->get_rows(),
-			'version' => XC_VM_VERSION
-		);
-		$rPost = http_build_query($rData);
-
-		// Send POST request to the API
-		$ch = curl_init();
-		curl_setopt($ch, CURLOPT_URL, $rAPI);
-		curl_setopt($ch, CURLOPT_POST, true);
-		curl_setopt($ch, CURLOPT_POSTFIELDS, $rPost);
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-		curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
-		curl_setopt($ch, CURLOPT_TIMEOUT, 60);
-		$response = curl_exec($ch);
-		curl_close($ch);
-
-		// If the API response is valid and contains "status": "success", clear the panel_logs table
-		if ($response !== false) {
-			$responseData = json_decode($response, true);
-			if (json_last_error() === JSON_ERROR_NONE && isset($responseData['status']) && $responseData['status'] === 'success') {
-				self::$db->query('TRUNCATE `panel_logs`;');
+			// Execute query with error handling
+			$result = self::$db->query($query);
+			if (!$result) {
+				throw new Exception('Failed to execute database query');
 			}
+
+			// Fetch all rows with type checking
+			$allErrors = self::$db->get_rows() ?: [];
+
+			// Process each error record
+			foreach ($allErrors as $error) {
+				// Validate and sanitize error data
+				$errorData = [
+					'type' => isset($error['type']) ? htmlspecialchars($error['type'], ENT_QUOTES, 'UTF-8') : 'unknown',
+					'message' => isset($error['log_message']) ? htmlspecialchars($error['log_message'], ENT_QUOTES, 'UTF-8') : '',
+					'file' => isset($error['log_extra']) ? htmlspecialchars($error['log_extra'], ENT_QUOTES, 'UTF-8') : '',
+					'line' => isset($error['line']) ? (int)$error['line'] : 0,
+					'date' => isset($error['date']) ? (int)$error['date'] : 0,
+				];
+
+				// Convert timestamp to human-readable format with error handling
+				try {
+					if ($errorData['date'] > 0) {
+						$dt = new DateTime('@' . $errorData['date']);
+						$dt->setTimezone(new DateTimeZone('UTC'));
+						$errorData['human_date'] = $dt->format('Y-m-d H:i:s');
+					} else {
+						$errorData['human_date'] = 'invalid_timestamp';
+					}
+				} catch (Exception $e) {
+					$errorData['human_date'] = 'conversion_error';
+				}
+
+				$errors[] = $errorData;
+			}
+
+			// Clear logs only if we successfully processed them
+			if (!empty($errors)) {
+				$truncateResult = self::$db->query('TRUNCATE `panel_logs`;');
+				if (!$truncateResult) {
+					throw new Exception('Failed to truncate panel logs table');
+				}
+			}
+		} catch (Exception $e) {
+			// Re-throw with generic message for client
+			throw new Exception('Failed to process panel logs');
 		}
 
-		return $response;
+		// Return structured data with version info
+		return [
+			'errors' => $errors,
+			'version' => defined('XC_VM_VERSION') ? XC_VM_VERSION : 'unknown'
+		];
 	}
 
 	public static function confirmIDs($rIDs) {
