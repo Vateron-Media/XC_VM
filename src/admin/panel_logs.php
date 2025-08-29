@@ -48,11 +48,84 @@ include 'header.php';
 </div>
 <?php include 'footer.php'; ?>
 <script id="scripts">
-	<?php
-		echo '        ' . "\r\n" . '        function sendErrors(rConfirm=false) {' . "\r\n" . '            if (!rConfirm) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Send",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Sending error logs will clear them from your system. Do you want to send them now?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        sendErrors(true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n\t\t\t" . '} else {' . "\r\n" . '                $.getJSON("./api?action=send_panel_logs", function(data) {' . "\r\n" . '                    if (data.result === true) {' . "\r\n" . '                        $.toast("Error logs have been sent for review.");' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("';
-		echo $_['error_occured'];
-		echo '");' . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n" . '        }' . "\r\n" . '        ' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . '$("#datatable").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n\t\t\t\t\t" . 'bindHref(); refreshTooltips();' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "panel_logs";' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,1,2]}' . "\r\n\t\t\t\t" . '],' . "\r\n" . '                order: [[ 0, "desc" ]]' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable").css("width", "100%");' . "\r\n" . '            $("#btn-send-xc_vm").click(function() {' . "\r\n" . '                sendErrors();' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n" . '        ';
-		?>
+    function sendErrors(rConfirm = false) {
+        if (!rConfirm) {
+            new jBox("Confirm", {
+                confirmButton: "Download",
+                cancelButton: "Cancel",
+                content: "Downloading error logs will remove them from your system. Do you want to download them now?",
+                confirm: function() {
+                    sendErrors(true);
+                }
+            }).open();
+        } else {
+            $.getJSON("./api?action=download_panel_logs", function(data) {
+                const dataToSave = data.data;
+
+                // Create a Blob object with data in JSON format
+                const blob = new Blob([JSON.stringify(dataToSave, null, 2)], {
+                    type: 'application/json'
+                });
+
+                // Create URL for Blob
+                const url = URL.createObjectURL(blob);
+
+                // Create temporary download link
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'panel_logs.json'; // File name
+                document.body.appendChild(a);
+
+                // Initiate download
+                a.click();
+
+                // Remove link and release URL
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                if (data.result === true) {
+                    $.toast("Error logs have been sent for review.");
+                } else {
+                    $.toast("<?php echo $_['error_occured']; ?>");
+                }
+            });
+        }
+    }
+
+    $(document).ready(function() {
+        $("#datatable").DataTable({
+            language: {
+                paginate: {
+                    previous: "<i class='mdi mdi-chevron-left'>",
+                    next: "<i class='mdi mdi-chevron-right'>"
+                }
+            },
+            drawCallback: function() {
+                bindHref();
+                refreshTooltips();
+            },
+            responsive: false,
+            processing: true,
+            serverSide: true,
+            ajax: {
+                url: "./table",
+                "data": function(d) {
+                    d.id = "panel_logs";
+                }
+            },
+            columnDefs: [{
+                "className": "dt-center",
+                "targets": [0, 1, 2]
+            }],
+            order: [
+                [0, "desc"]
+            ]
+        });
+        $("#datatable").css("width", "100%");
+        $("#btn-send-xc_vm").click(function() {
+            sendErrors();
+        });
+    });
 </script>
 <script src="assets/js/listings.js"></script>
 </body>
