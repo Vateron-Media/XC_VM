@@ -84,7 +84,7 @@ include 'header.php';
                 URL.revokeObjectURL(url);
 
                 if (data.result === true) {
-                    $.toast("Error logs have been sent for review.");
+                    $.toast("Error logs loaded.");
                 } else {
                     $.toast("<?php echo $_['error_occured']; ?>");
                 }
@@ -122,7 +122,7 @@ include 'header.php';
             ]
         });
         $("#datatable").css("width", "100%");
-        $("#btn-send-xc_vm").click(function() {
+        $("#btn-download-log").click(function() {
             sendErrors();
         });
     });
