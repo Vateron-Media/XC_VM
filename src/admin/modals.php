@@ -352,7 +352,7 @@
 							<input id="update_binaries" type="submit" class="btn btn-light" value="Update Binaries" style="width:100%" />
 						</div>
 						<div class="col-md-3">
-							<input id="update_server" type="submit" class="btn btn-light" value="Update Server(not worked)" style="width:100%" />
+							<input id="update_server" type="submit" class="btn btn-light" value="Update Server" style="width:100%" />
 						</div>
 					</div>
 				</div>
