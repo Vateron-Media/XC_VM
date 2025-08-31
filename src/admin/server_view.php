@@ -2,20 +2,17 @@
 include 'session.php';
 include 'functions.php';
 
-if (checkPermissions()) {
-} else {
+if (!checkPermissions()) {
     goHome();
 }
 
-if (isset(CoreUtilities::$rRequest['id'])) {
-    if (isset($rServers[CoreUtilities::$rRequest['id']])) {
-        $rServer = $rServers[CoreUtilities::$rRequest['id']];
+if (isset(CoreUtilities::$rRequest['id'])):
+    if (isset($allServers[CoreUtilities::$rRequest['id']])) {
+        $rServer = $allServers[CoreUtilities::$rRequest['id']];
+    } elseif (isset($rProxyServers[CoreUtilities::$rRequest['id']])) {
+        $rServer = $rProxyServers[CoreUtilities::$rRequest['id']];
     } else {
-        if (isset($rProxyServers[CoreUtilities::$rRequest['id']])) {
-            $rServer = $rProxyServers[CoreUtilities::$rRequest['id']];
-        } else {
-            exit();
-        }
+        exit();
     }
 
     $rWatchdog = json_decode($rServer['watchdog_data'], true);
@@ -64,8 +61,7 @@ if (isset(CoreUtilities::$rRequest['id'])) {
 
     include 'header.php'; ?>
     <div class="wrapper boxed-layout-ext"
-        <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
-        } else {
+        <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
             echo ' style="display: none;"';
         } ?>>
         <div class="container-fluid">
@@ -188,17 +184,16 @@ if (isset(CoreUtilities::$rRequest['id'])) {
                                 <?php } ?>
                             </div>
                             <div class="col-md-3">
-                                <?php if (hasPermissions('adv', 'streams')) { ?>
+                                <?php if (hasPermissions('adv', 'streams')): ?>
                                     <a href="./streams?filter=2&server=<?php echo $rServer['id']; ?>">
-                                    <?php } ?>
+                                    <?php endif; ?>
                                     <div
                                         class="card cta-box <?php echo $rSettings['dark_mode'] ? '' : 'bg-info'; ?> text-white">
                                         <div class="card-body active-connections">
                                             <div class="media align-items-center">
                                                 <div class="col-3">
                                                     <div class="avatar-sm bg-light">
-                                                        <i
-                                                            class="fe-pause avatar-title font-22 <?php echo $rSettings['dark_mode'] ? 'text-white' : 'text-info'; ?>"></i>
+                                                        <i class="fe-pause avatar-title font-22 <?php echo $rSettings['dark_mode'] ? 'text-white' : 'text-info'; ?>"></i>
                                                     </div>
                                                 </div>
                                                 <div class="col-9">
@@ -211,15 +206,15 @@ if (isset(CoreUtilities::$rRequest['id'])) {
                                             </div>
                                         </div>
                                     </div>
-                                    <?php if (hasPermissions('adv', 'streams')) { ?>
+                                    <?php if (hasPermissions('adv', 'streams')): ?>
                                     </a>
-                                <?php } ?>
+                                <?php endif; ?>
                             </div>
                         <?php } ?>
                     </div>
                     <div class="card-box">
                         <div class="col-md-12 align-self-center">
-                            <?php if ($rServer['server_online']) { ?>
+                            <?php if ($rServer['server_online']): ?>
                                 <h5 class="mb-1 mt-0">CPU Usage<small class="text-muted ml-2">of
                                         <?php echo $rWatchdog['cpu_cores']; ?> Cores</small></h5>
                                 <div class="progress-w-percent" id="watchdog_cpu">
@@ -238,7 +233,7 @@ if (isset(CoreUtilities::$rRequest['id'])) {
                                             aria-valuemin="0" aria-valuemax="100"></div>
                                     </div>
                                 </div>
-                                <?php if ($rServer['server_type'] == 0) { ?>
+                                <?php if ($rServer['server_type'] == 0): ?>
                                     <h5 class="mb-1 mt-0">Disk Usage<small class="text-muted ml-2"> of
                                             <?php echo (1099511627776 < $rWatchdog['total_disk_space'] ? number_format($rWatchdog['total_disk_space'] / 1024 / 1024 / 1024 / 1024, 0) . ' TB' : number_format($rWatchdog['total_disk_space'] / 1024 / 1024 / 1024, 0) . ' GB'); ?></small>
                                     </h5>
@@ -258,14 +253,13 @@ if (isset(CoreUtilities::$rRequest['id'])) {
                                                 aria-valuemin="0" aria-valuemax="100"></div>
                                         </div>
                                     </div>
-                                <?php } ?>
+                                <?php endif; ?>
                                 <h5 class="mb-1 mt-0">Network Input<small class="text-muted ml-2">of
                                         <?php echo number_format($rServer['network_guaranteed_speed'], 0); ?> Mbps</small></h5>
                                 <div class="progress-w-percent" id="watchdog_input">
                                     <span class="progress-value font-weight-bold">0 Mbps</span>
                                     <div class="progress progress-sm">
-                                        <div class="progress-bar
-" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                        <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                                     </div>
                                 </div>
                                 <h5 class="mb-1 mt-0">Network Output<small class="text-muted ml-2">of
@@ -277,17 +271,17 @@ if (isset(CoreUtilities::$rRequest['id'])) {
                                             aria-valuemin="0" aria-valuemax="100"></div>
                                     </div>
                                 </div>
-                            <?php } else { ?>
+                            <?php else: ?>
                                 <div class="text-center" style="padding-top: 15px;">
                                     <i class="fe-alert-triangle avatar-title font-24 text-danger"></i><br />
                                     <h4 class="header-title text-danger">Server Offline</h4>
                                 </div>
-                            <?php } ?>
+                            <?php endif; ?>
                         </div>
                     </div>
-                    <?php if (is_array($rServer['gpu_info'])) {
+                    <?php if (is_array($rServer['gpu_info'])):
                         $rGPUID = 0;
-                        foreach ($rServer['gpu_info']['gpus'] as $rGPU) {
+                        foreach ($rServer['gpu_info']['gpus'] as $rGPU):
                             $rMemUsage = number_format(intval(explode(' ', $rGPU['memory_usage']['used'])[0]) / intval(explode(' ', $rGPU['memory_usage']['total'])[0]) * 100, 0); ?>
                             <div class="card-box">
                                 <div class="col-md-12 align-self-center">
@@ -343,9 +337,9 @@ if (isset(CoreUtilities::$rRequest['id'])) {
                                 </div>
                             </div>
                         <?php $rGPUID++;
-                        }
-                    }
-                    if ($rHasCert) { ?>
+                        endforeach;
+                    endif;
+                    if ($rHasCert): ?>
                         <div class="card-box">
                             <div class="col-md-12 align-self-center">
                                 <div class="form-group row mb-4">
@@ -356,7 +350,7 @@ if (isset(CoreUtilities::$rRequest['id'])) {
                                             value="<?php echo $rExpiration; ?>" readonly>
                                     </div>
                                 </div>
-                                <?php if ($rCertValid) { ?>
+                                <?php if ($rCertValid): ?>
                                     <div class="form-group row mb-4">
                                         <label class="col-md-4 col-form-label" for="cert_serial">Certificate Serial</label>
                                         <div class="col-md-8">
@@ -371,59 +365,432 @@ if (isset(CoreUtilities::$rRequest['id'])) {
                                                 value="<?php echo $rCertificate['subject']; ?>" readonly>
                                         </div>
                                     </div>
-                                <?php } ?>
+                                <?php endif; ?>
                             </div>
                         </div>
-                    <?php } ?>
-                    <!-- Additional UI elements can be added here -->
-                    <?php include 'footer.php'; ?>
-<script id="scripts">
-	<?php
-		if (in_array($rServers[intval(CoreUtilities::$rRequest['id'])]['status'], array(3, 4)) || in_array($rProxyServers[intval(CoreUtilities::$rRequest['id'])]['status'], array(3, 4))) {
-			echo '        function getInstallStatus() {' . "\r\n" . '            $.getJSON("./api?action=install_status&server_id=';
-			echo intval(CoreUtilities::$rRequest['id']);
-			echo '", function(data) {' . "\r\n" . '                if (data.result === true) {' . "\r\n" . '                    $("#server_install").html(data.data);' . "\r\n" . '                    if (data.status == 3) {' . "\r\n" . '                        setTimeout(getInstallStatus, 1000);' . "\r\n" . '                    } else if (data.status == 1) {' . "\r\n" . "                        setTimeout(navigate, 3000, './server_view?id=";
-			echo intval(CoreUtilities::$rRequest['id']);
-			echo "');" . "\r\n" . '                    }' . "\r\n" . '                } else {' . "\r\n" . '                    $("#server_install").html("No status available...");' . "\r\n" . '                }' . "\r\n" . '                if ($("#server_install").length) {' . "\r\n" . '                   $("#server_install").scrollTop($("#server_install")[0].scrollHeight - $("#server_install").height());' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '        }' . "\r\n" . '        ';
-		}
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Additional UI elements can be added here -->
+    <?php include 'footer.php'; ?>
+    <script id="scripts">
+        <?php if (in_array($allServers[intval(CoreUtilities::$rRequest['id'])]['status'], array(3, 4)) || in_array($rProxyServers[intval(CoreUtilities::$rRequest['id'])]['status'], array(3, 4))): ?>
 
-		echo '        function viewLiveConnections(rStreamID, rServerID=-1) {' . "\r\n" . '            $("#datatable-live").DataTable({' . "\r\n" . '                destroy: true,' . "\r\n\t\t\t\t" . 'ordering: true,' . "\r\n\t\t\t\t" . 'paging: true,' . "\r\n\t\t\t\t" . 'searching: true,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'bInfo: true,' . "\r\n" . '                drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips(false);' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "live_connections";' . "\r\n\t\t\t\t\t\t" . 'd.stream_id = rStreamID;' . "\r\n" . '                        d.server_id = rServerID;' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [1,7,8,9,10,11]},' . "\r\n" . '                    {"visible": false, "targets": [0,3,5,6]}' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t" . '});' . "\r\n" . '            $(".bs-live-modal-center").modal("show");' . "\r\n" . '        }' . "\r\n" . '        function getBarColour(rInt) {' . "\r\n" . '            if (rInt >= 75) {' . "\r\n" . '                return "bg-danger";' . "\r\n" . '            } else if (rInt >= 50) {' . "\r\n" . '                return "bg-warning";' . "\r\n" . '            } else {' . "\r\n" . '                return "bg-success";' . "\r\n" . '            }' . "\r\n" . '        }' . "\r\n" . '        function getStats(auto=true) {' . "\r\n" . '            var rStart = Date.now();' . "\r\n" . '            rURL = "./api?action=server_view&server_id=';
-		echo intval(CoreUtilities::$rRequest['id']);
-		echo '";' . "\r\n" . '            $.getJSON(rURL, function(data) {' . "\r\n" . '                $("#open_connections").html(data.data.open_connections);' . "\r\n" . '                $("#total_running_streams").html(data.data.total_running_streams);' . "\r\n" . '                $("#online_users").html(data.data.online_users);' . "\r\n" . '                $("#offline_streams").html(data.data.offline_streams);' . "\r\n" . '                if (data.data.watchdog) {' . "\r\n" . '                    // CPU' . "\r\n" . '                    $("#watchdog_cpu span").html($.number(data.data.watchdog.cpu, 2) + "%");' . "\r\n" . '                    $("#watchdog_cpu .progress-bar").removeClass("bg-danger").removeClass("bg-warning").removeClass("bg-success").addClass(getBarColour(data.data.watchdog.cpu));' . "\r\n" . '                    $("#watchdog_cpu .progress-bar").css("width", $.number(data.data.watchdog.cpu, 0) + "%");' . "\r\n" . '                    $("#watchdog_cpu .progress-bar").data("aria-valuenow", $.number(data.data.watchdog.cpu, 0));' . "\r\n" . '                    // Memory' . "\r\n" . '                    $("#watchdog_mem span").html($.number(data.data.watchdog.total_mem_used_percent, 2) + "%");' . "\r\n" . '                    $("#watchdog_mem .progress-bar").removeClass("bg-danger").removeClass("bg-warning").removeClass("bg-success").addClass(getBarColour(data.data.watchdog.total_mem_used_percent));' . "\r\n" . '                    $("#watchdog_mem .progress-bar").css("width", $.number(data.data.watchdog.total_mem_used_percent, 0) + "%");' . "\r\n" . '                    $("#watchdog_mem .progress-bar").data("aria-valuenow", $.number(data.data.watchdog.total_mem_used_percent, 0));' . "\r\n" . '                    // Disk Space' . "\r\n" . '                    rDiskUsage = (data.data.watchdog.total_disk_space - data.data.watchdog.free_disk_space) / data.data.watchdog.total_disk_space * 100;' . "\r\n" . '                    $("#watchdog_disk span").html($.number(rDiskUsage, 2) + "%");' . "\r\n" . '                    $("#watchdog_disk .progress-bar").removeClass("bg-danger").removeClass("bg-warning").removeClass("bg-success").addClass(getBarColour(rDiskUsage));' . "\r\n" . '                    $("#watchdog_disk .progress-bar").css("width", $.number(rDiskUsage, 0) + "%");' . "\r\n" . '                    $("#watchdog_disk .progress-bar").data("aria-valuenow", $.number(rDiskUsage, 0));' . "\r\n" . '                    // IO Usage' . "\r\n" . '                    if (data.data.watchdog.iostat_info) {' . "\r\n" . '                        $("#watchdog_io span").html($.number(data.data.watchdog.iostat_info["avg-cpu"].iowait, 2) + "%");' . "\r\n" . '                        $("#watchdog_io .progress-bar").removeClass("bg-danger").removeClass("bg-warning").removeClass("bg-success").addClass(getBarColour(data.data.watchdog.iostat_info["avg-cpu"].iowait));' . "\r\n" . '                        $("#watchdog_io .progress-bar").css("width", $.number(data.data.watchdog.iostat_info["avg-cpu"].iowait, 0) + "%");' . "\r\n" . '                        $("#watchdog_io .progress-bar").data("aria-valuenow", $.number(data.data.watchdog.iostat_info["avg-cpu"].iowait, 0));' . "\r\n" . '                        $("#watchdog_idle").html(" " + $.number(data.data.watchdog.iostat_info["avg-cpu"].idle, 0) + "% Idle");' . "\r\n" . '                    }' . "\r\n" . '                    // Network Input' . "\r\n" . '                    rUsage = $.number(((data.data.watchdog.bytes_received / 125000) / data.netspeed) * 100, 0);' . "\r\n" . '                    $("#watchdog_input span").html($.number(data.data.watchdog.bytes_received / 125000, 0) + " Mbps");' . "\r\n" . '                    $("#watchdog_input .progress-bar").removeClass("bg-danger").removeClass("bg-warning").removeClass("bg-success").addClass(getBarColour(rUsage));' . "\r\n" . '                    $("#watchdog_input .progress-bar").css("width", $.number(rUsage, 0) + "%");' . "\r\n" . '                    $("#watchdog_input .progress-bar").data("aria-valuenow", $.number(rUsage, 0));' . "\r\n" . '                    // Network Output' . "\r\n" . '                    rUsage = $.number(((data.data.watchdog.bytes_sent / 125000) / data.netspeed) * 100, 0);' . "\r\n" . '                    $("#watchdog_output span").html($.number(data.data.watchdog.bytes_sent / 125000, 0) + " Mbps");' . "\r\n" . '                    $("#watchdog_output .progress-bar").removeClass("bg-danger").removeClass("bg-warning").removeClass("bg-success").addClass(getBarColour(rUsage));' . "\r\n" . '                    $("#watchdog_output .progress-bar").css("width", $.number(rUsage, 0) + "%");' . "\r\n" . '                    $("#watchdog_output .progress-bar").data("aria-valuenow", $.number(rUsage, 0));' . "\r\n" . '                }' . "\r\n" . '                if (auto) {' . "\r\n" . '                    if (Date.now() - rStart < 1000) {' . "\r\n" . '                        setTimeout(getStats, 1000 - (Date.now() - rStart));' . "\r\n" . '                    } else {' . "\r\n" . '                        getStats();' . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n" . '            }).fail(function() {' . "\r\n" . '                if (auto) {' . "\r\n" . '                    setTimeout(getStats, 1000);' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '        }' . "\r\n" . '        function getFPMStatus(rServerID) {' . "\r\n" . '            $.getJSON("./api?action=fpm_status&server_id=" + rServerID, function(data) {' . "\r\n" . '                if (data.result) {' . "\r\n" . "                    new jBox('Modal', {" . "\r\n" . "                        attach: '#fpmModal'," . "\r\n" . "                        title: 'PHP-FPM Status'," . "\r\n" . '                        content: data.data' . "\r\n" . '                    }).open();' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '        }' . "\r\n" . '        function api(rID, rServerID, rType, rConfirm=false) {' . "\r\n" . '            if ((rType == "purge") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Kill",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to kill all connections?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        api(rID, rServerID, rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else if ((rServerID == "kill") && (!rConfirm)) {' . "\r\n" . '                rConfirm = true;' . "\r\n" . '                rServerID = -1;' . "\r\n" . '                rType = "kill";' . "\r\n\t\t\t" . '} else {' . "\r\n" . '                rConfirm = true;' . "\r\n" . '            }' . "\r\n" . '            if (rConfirm) {' . "\r\n" . '                $.getJSON("./api?action=stream&sub=" + rType + "&stream_id=" + rID + "&server_id=" + rServerID, function(data) {' . "\r\n" . '                    if (data.result == true) {' . "\r\n" . '                        if (rType == "start") {' . "\r\n" . '                            $.toast("Stream successfully started.");' . "\r\n" . '                        } else if (rType == "stop") {' . "\r\n" . '                            $.toast("Stream successfully stopped.");' . "\r\n" . '                        } else if (rType == "restart") {' . "\r\n" . '                            $.toast("Stream successfully restarted.");' . "\r\n" . '                        } else if (rType == "kill") {' . "\r\n" . '                            $.toast("Connection has been killed.");' . "\r\n" . '                            if ($(".bs-live-modal-center").is(":visible")) {' . "\r\n" . '                                $("#datatable-live").DataTable().ajax.reload( null, false );' . "\r\n" . '                            }' . "\r\n" . '                        } else if (rType == "purge") {' . "\r\n" . '                            $.toast("Connections have been killed.");' . "\r\n" . '                        }' . "\r\n" . '                        $("#datatable_streams").DataTable().ajax.reload( null, false );' . "\r\n" . '                        $("#datatable_connections").DataTable().ajax.reload( null, false );' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("An error occured while processing your request.");' . "\r\n" . '                    }' . "\r\n" . '                }).fail(function() {' . "\r\n" . '                    $.toast("An error occured while processing your request.");' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n\t\t" . '}' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n" . '            ';
+            function getInstallStatus() {
+                $.getJSON("./api?action=install_status&server_id=<?php echo intval(CoreUtilities::$rRequest['id']); ?>", function(data) {
+                    if (data.result === true) {
+                        $("#server_install").html(data.data);
+                        if (data.status == 3) {
+                            setTimeout(getInstallStatus, 1000);
+                        } else if (data.status == 1) {
+                            setTimeout(navigate, 3000, './server_view?id=<?php echo intval(CoreUtilities::$rRequest['id']); ?>');
+                        }
+                    } else {
+                        $("#server_install").html("No status available...");
+                    }
+                    if ($("#server_install").length) {
+                        $("#server_install").scrollTop($("#server_install")[0].scrollHeight - $("#server_install").height());
+                    }
+                });
+            }
+        <?php endif; ?>
 
-		if (!(in_array($rServers[intval(CoreUtilities::$rRequest['id'])]['status'], array(3, 4)) || in_array($rProxyServers[intval(CoreUtilities::$rRequest['id'])]['status'], array(3, 4)))) {
-		} else {
-			echo '            getInstallStatus();' . "\r\n" . '            ';
-		}
+        function viewLiveConnections(rStreamID, rServerID = -1) {
+            $("#datatable-live").DataTable({
+                destroy: true,
+                ordering: true,
+                paging: true,
+                searching: true,
+                processing: true,
+                serverSide: true,
+                searchDelay: 250,
+                bInfo: true,
+                drawCallback: function() {
+                    bindHref();
+                    refreshTooltips(false);
+                },
+                ajax: {
+                    url: "./table",
+                    "data": function(d) {
+                        d.id = "live_connections";
+                        d.stream_id = rStreamID;
+                        d.server_id = rServerID;
+                    }
+                },
+                columnDefs: [{
+                        "className": "dt-center",
+                        "targets": [1, 7, 8, 9, 10, 11]
+                    },
+                    {
+                        "visible": false,
+                        "targets": [0, 3, 5, 6]
+                    }
+                ],
+            });
+            $(".bs-live-modal-center").modal("show");
+        }
 
-		echo '            getStats();' . "\r\n\t\t\t" . '$("#datatable_streams").DataTable({' . "\r\n\t\t\t\t" . 'ordering: true,' . "\r\n\t\t\t\t" . 'paging: true,' . "\r\n\t\t\t\t" . 'searching: true,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'bInfo: true,' . "\r\n\t\t\t\t" . 'bAutoWidth: false,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "streams";' . "\r\n\t\t\t\t\t\t" . 'd.server = ';
-		echo CoreUtilities::$rRequest['id'];
-		echo ';' . "\r\n" . '                        d.filter = 1;' . "\r\n" . '                        d.simple = true;' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,4,5,6]},' . "\r\n\t\t\t\t\t" . '{"visible": false, "targets": [1,3,7,8,9]}' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips(false);' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'pageLength: ';
-		echo (intval($rSettings['default_entries']) ?: 10);
-		echo "\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable_connections").DataTable({' . "\r\n\t\t\t\t" . 'ordering: true,' . "\r\n\t\t\t\t" . 'paging: true,' . "\r\n\t\t\t\t" . 'searching: true,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'bInfo: true,' . "\r\n\t\t\t\t" . 'bAutoWidth: false,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "live_connections";' . "\r\n\t\t\t\t\t\t" . 'd.server_id = ';
-		echo CoreUtilities::$rRequest['id'];
-		echo ';' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [7,8,9,11]},' . "\r\n\t\t\t\t\t" . '{"visible": false, "targets": [0,1,4,5,6,10]}' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n\r\n" . '                    bindHref(); refreshTooltips(false);' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'pageLength: ';
-		echo (intval($rSettings['default_entries']) ?: 10);
-		echo "\t\t\t" . '});' . "\r\n\t\t\t" . 'rDates = ';
-		echo json_encode($rStats['dates']);
-		echo ';' . "\r\n\t\t\t" . 'rCPUOptions = {' . "\r\n\t\t\t\t" . 'chart: {' . "\r\n\t\t\t\t\t" . 'height: 380,' . "\r\n\t\t\t\t\t" . 'type: "area",' . "\r\n\t\t\t\t\t" . 'stacked: false,' . "\r\n\t\t\t\t\t" . 'zoom: {' . "\r\n\t\t\t\t\t\t" . "type: 'x'," . "\r\n\t\t\t\t\t\t" . 'enabled: true,' . "\r\n\t\t\t\t\t\t" . 'autoScaleYaxis: true' . "\r\n\t\t\t\t\t" . '},' . "\r\n\t\t\t\t\t" . 'events: {' . "\r\n\t\t\t\t\t\t" . 'beforeZoom: function(ctx) {' . "\r\n\t\t\t\t\t\t\t" . 'ctx.w.config.xaxis.range = undefined' . "\r\n\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '},' . "\r\n" . '                    animations: {' . "\r\n" . '                        enabled: false' . "\r\n" . '                    }' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'colors: ["#5089de", "#56c2d6", "#51b089"],' . "\r\n\t\t\t\t" . 'dataLabels: {' . "\r\n\t\t\t\t\t" . 'enabled: false' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'stroke: {' . "\r\n\t\t\t\t\t" . 'width: [2],' . "\r\n\t\t\t\t\t" . 'curve: "smooth"' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'series: [{' . "\r\n\t\t\t\t\t" . 'name: "CPU Usage",' . "\r\n\t\t\t\t\t" . 'data: ';
-		echo json_encode($rStats['cpu']);
-		echo "\t\t\t\t" . '},' . "\r\n\t\t\t\t" . '{' . "\r\n\t\t\t\t\t" . 'name: "Memory Usage",' . "\r\n\t\t\t\t\t" . 'data: ';
-		echo json_encode($rStats['memory']);
-		echo "\t\t\t\t" . '},' . "\r\n" . '                {' . "\r\n\t\t\t\t\t" . 'name: "IO Usage",' . "\r\n\t\t\t\t\t" . 'data: ';
-		echo json_encode($rStats['io']);
-		echo "\t\t\t\t" . '}],' . "\r\n\t\t\t\t" . 'fill: {' . "\r\n\t\t\t\t\t" . 'type: "gradient", ' . "\r\n\t\t\t\t\t" . 'gradient: {' . "\r\n\t\t\t\t\t\t" . 'opacityFrom: .6,' . "\r\n\t\t\t\t\t\t" . 'opacityTo: .8' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'xaxis: {' . "\r\n\t\t\t\t\t" . 'type: "datetime",' . "\r\n\t\t\t\t\t" . 'min: rDates[0],' . "\r\n\t\t\t\t\t" . 'max: rDates[1],' . "\r\n\t\t\t\t\t" . 'range: 3600000,' . "\r\n" . '                    labels: {' . "\r\n" . '                        formatter: function(value, timestamp, opts) {' . "\r\n" . '                            var d = new Date(timestamp);' . "\r\n" . '                            return ("0"+d.getHours()).slice(-2) + ":" + ("0"+d.getMinutes()).slice(-2);' . "\r\n" . '                        }' . "\r\n" . '                    }' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'tooltip: {' . "\r\n\t\t\t\t" . '  y: {' . "\r\n\t\t\t\t\t" . 'formatter: function(value, { series, seriesIndex, dataPointIndex, w }) {' . "\r\n\t\t\t\t\t" . '  return value + "%";' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '  }' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '};' . "\r\n\t\t\t" . '(rCPUChart = new ApexCharts(document.querySelector("#cpu_chart"), rCPUOptions)).render();' . "\r\n\t\t\t" . 'rNetworkOptions = {' . "\r\n\t\t\t\t" . 'chart: {' . "\r\n\t\t\t\t\t" . 'height: 380,' . "\r\n\t\t\t\t\t" . 'type: "area",' . "\r\n\t\t\t\t\t" . 'stacked: false,' . "\r\n\t\t\t\t\t" . 'zoom: {' . "\r\n\t\t\t\t\t\t" . "type: 'x'," . "\r\n\t\t\t\t\t\t" . 'enabled: true,' . "\r\n\t\t\t\t\t\t" . 'autoScaleYaxis: true' . "\r\n\t\t\t\t\t" . '},' . "\r\n\t\t\t\t\t" . 'events: {' . "\r\n\t\t\t\t\t\t" . 'beforeZoom: function(ctx) {' . "\r\n\t\t\t\t\t\t\t" . 'ctx.w.config.xaxis.range = undefined' . "\r\n\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '},' . "\r\n" . '                    animations: {' . "\r\n" . '                        enabled: false' . "\r\n" . '                    }' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'colors: ["#03a9f4", "#81d4fa"],' . "\r\n\t\t\t\t" . 'dataLabels: {' . "\r\n\t\t\t\t\t" . 'enabled: false' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'stroke: {' . "\r\n\t\t\t\t\t" . 'width: [2],' . "\r\n\t\t\t\t\t" . 'curve: "smooth"' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'series: [{' . "\r\n\t\t\t\t\t" . 'name: "Input",' . "\r\n\t\t\t\t\t" . 'data: ';
-		echo json_encode($rStats['input']);
-		echo "\t\t\t\t" . '},' . "\r\n\t\t\t\t" . '{' . "\r\n\t\t\t\t\t" . 'name: "Output",' . "\r\n\t\t\t\t\t" . 'data: ';
-		echo json_encode($rStats['output']);
-		echo "\t\t\t\t" . '}],' . "\r\n\t\t\t\t" . 'fill: {' . "\r\n\t\t\t\t\t" . 'type: "gradient", ' . "\r\n\t\t\t\t\t" . 'gradient: {' . "\r\n\t\t\t\t\t\t" . 'opacityFrom: .6,' . "\r\n\t\t\t\t\t\t" . 'opacityTo: .8' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'xaxis: {' . "\r\n\t\t\t\t\t" . 'type: "datetime",' . "\r\n\t\t\t\t\t" . 'min: rDates[0],' . "\r\n\t\t\t\t\t" . 'max: rDates[1],' . "\r\n\t\t\t\t\t" . 'range: 3600000,' . "\r\n" . '                    labels: {' . "\r\n" . '                        formatter: function(value, timestamp, opts) {' . "\r\n" . '                            var d = new Date(timestamp);' . "\r\n" . '                            return ("0"+d.getHours()).slice(-2) + ":" + ("0"+d.getMinutes()).slice(-2);' . "\r\n" . '                        }' . "\r\n" . '                    }' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'tooltip: {' . "\r\n\t\t\t\t" . '  y: {' . "\r\n\t\t\t\t\t" . 'formatter: function(value, { series, seriesIndex, dataPointIndex, w }) {' . "\r\n\t\t\t\t\t" . '  return value + " Mbps";' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '  }' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '};' . "\r\n\t\t\t" . '(rNetworkChart = new ApexCharts(document.querySelector("#network_chart"), rNetworkOptions)).render();' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
-		?>
-</script>
-<script src="assets/js/listings.js"></script>
-</body>
+        function getBarColour(rInt) {
+            if (rInt >= 75) {
+                return "bg-danger";
+            } else if (rInt >= 50) {
+                return "bg-warning";
+            } else {
+                return "bg-success";
+            }
+        }
 
-</html>
+        function getStats(auto = true) {
+            var rStart = Date.now();
+            rURL = "./api?action=server_view&server_id=<?php echo intval(CoreUtilities::$rRequest['id']); ?>";
+            $.getJSON(rURL, function(data) {
+                $("#open_connections").html(data.data.open_connections);
+                $("#total_running_streams").html(data.data.total_running_streams);
+                $("#online_users").html(data.data.online_users);
+                $("#offline_streams").html(data.data.offline_streams);
+                if (data.data.watchdog) {
+                    // CPU
+                    $("#watchdog_cpu span").html($.number(data.data.watchdog.cpu, 2) + "%");
+                    $("#watchdog_cpu .progress-bar").removeClass("bg-danger").removeClass("bg-warning").removeClass("bg-success").addClass(getBarColour(data.data.watchdog.cpu));
+                    $("#watchdog_cpu .progress-bar").css("width", $.number(data.data.watchdog.cpu, 0) + "%");
+                    $("#watchdog_cpu .progress-bar").data("aria-valuenow", $.number(data.data.watchdog.cpu, 0));
+                    // Memory
+                    $("#watchdog_mem span").html($.number(data.data.watchdog.total_mem_used_percent, 2) + "%");
+                    $("#watchdog_mem .progress-bar").removeClass("bg-danger").removeClass("bg-warning").removeClass("bg-success").addClass(getBarColour(data.data.watchdog.total_mem_used_percent));
+                    $("#watchdog_mem .progress-bar").css("width", $.number(data.data.watchdog.total_mem_used_percent, 0) + "%");
+                    $("#watchdog_mem .progress-bar").data("aria-valuenow", $.number(data.data.watchdog.total_mem_used_percent, 0));
+                    // Disk Space
+                    rDiskUsage = (data.data.watchdog.total_disk_space - data.data.watchdog.free_disk_space) / data.data.watchdog.total_disk_space * 100;
+                    $("#watchdog_disk span").html($.number(rDiskUsage, 2) + "%");
+                    $("#watchdog_disk .progress-bar").removeClass("bg-danger").removeClass("bg-warning").removeClass("bg-success").addClass(getBarColour(rDiskUsage));
+                    $("#watchdog_disk .progress-bar").css("width", $.number(rDiskUsage, 0) + "%");
+                    $("#watchdog_disk .progress-bar").data("aria-valuenow", $.number(rDiskUsage, 0));
+                    // IO Usage
+                    if (data.data.watchdog.iostat_info) {
+                        $("#watchdog_io span").html($.number(data.data.watchdog.iostat_info["avg-cpu"].iowait, 2) + "%");
+                        $("#watchdog_io .progress-bar").removeClass("bg-danger").removeClass("bg-warning").removeClass("bg-success").addClass(getBarColour(data.data.watchdog.iostat_info["avg-cpu"].iowait));
+                        $("#watchdog_io .progress-bar").css("width", $.number(data.data.watchdog.iostat_info["avg-cpu"].iowait, 0) + "%");
+                        $("#watchdog_io .progress-bar").data("aria-valuenow", $.number(data.data.watchdog.iostat_info["avg-cpu"].iowait, 0));
+                        $("#watchdog_idle").html(" " + $.number(data.data.watchdog.iostat_info["avg-cpu"].idle, 0) + "% Idle");
+                    }
+                    // Network Input
+                    rUsage = $.number(((data.data.watchdog.bytes_received / 125000) / data.netspeed) * 100, 0);
+                    $("#watchdog_input span").html($.number(data.data.watchdog.bytes_received / 125000, 0) + " Mbps");
+                    $("#watchdog_input .progress-bar").removeClass("bg-danger").removeClass("bg-warning").removeClass("bg-success").addClass(getBarColour(rUsage));
+                    $("#watchdog_input .progress-bar").css("width", $.number(rUsage, 0) + "%");
+                    $("#watchdog_input .progress-bar").data("aria-valuenow", $.number(rUsage, 0));
+                    // Network Output
+                    rUsage = $.number(((data.data.watchdog.bytes_sent / 125000) / data.netspeed) * 100, 0);
+                    $("#watchdog_output span").html($.number(data.data.watchdog.bytes_sent / 125000, 0) + " Mbps");
+                    $("#watchdog_output .progress-bar").removeClass("bg-danger").removeClass("bg-warning").removeClass("bg-success").addClass(getBarColour(rUsage));
+                    $("#watchdog_output .progress-bar").css("width", $.number(rUsage, 0) + "%");
+                    $("#watchdog_output .progress-bar").data("aria-valuenow", $.number(rUsage, 0));
+                }
+                if (auto) {
+                    if (Date.now() - rStart < 1000) {
+                        setTimeout(getStats, 1000 - (Date.now() - rStart));
+                    } else {
+                        getStats();
+                    }
+                }
+            }).fail(function() {
+                if (auto) {
+                    setTimeout(getStats, 1000);
+                }
+            });
+        }
 
-                <?php } else {
-                exit();
-            } ?>
+        function getFPMStatus(rServerID) {
+            $.getJSON("./api?action=fpm_status&server_id=" + rServerID, function(data) {
+                if (data.result) {
+                    new jBox('Modal', {
+                        attach: '#fpmModal',
+                        title: 'PHP-FPM Status',
+                        content: data.data
+                    }).open();
+                }
+            });
+        }
+
+        function api(rID, rServerID, rType, rConfirm = false) {
+            if ((rType == "purge") && (!rConfirm)) {
+                new jBox("Confirm", {
+                    confirmButton: "Kill",
+                    cancelButton: "Cancel",
+                    content: "Are you sure you want to kill all connections?",
+                    confirm: function() {
+                        api(rID, rServerID, rType, true);
+                    }
+                }).open();
+            } else if ((rServerID == "kill") && (!rConfirm)) {
+                rConfirm = true;
+                rServerID = -1;
+                rType = "kill";
+            } else {
+                rConfirm = true;
+            }
+            if (rConfirm) {
+                $.getJSON("./api?action=stream&sub=" + rType + "&stream_id=" + rID + "&server_id=" + rServerID, function(data) {
+                    if (data.result == true) {
+                        if (rType == "start") {
+                            $.toast("Stream successfully started.");
+                        } else if (rType == "stop") {
+                            $.toast("Stream successfully stopped.");
+                        } else if (rType == "restart") {
+                            $.toast("Stream successfully restarted.");
+                        } else if (rType == "kill") {
+                            $.toast("Connection has been killed.");
+                            if ($(".bs-live-modal-center").is(":visible")) {
+                                $("#datatable-live").DataTable().ajax.reload(null, false);
+                            }
+                        } else if (rType == "purge") {
+                            $.toast("Connections have been killed.");
+                        }
+                        $("#datatable_streams").DataTable().ajax.reload(null, false);
+                        $("#datatable_connections").DataTable().ajax.reload(null, false);
+                    } else {
+                        $.toast("An error occured while processing your request.");
+                    }
+                }).fail(function() {
+                    $.toast("An error occured while processing your request.");
+                });
+            }
+        }
+        $(document).ready(function() {
+            <?php if (in_array($allServers[intval(CoreUtilities::$rRequest['id'])]['status'], array(3, 4)) || in_array($rProxyServers[intval(CoreUtilities::$rRequest['id'])]['status'], array(3, 4))): ?>
+                getInstallStatus();
+            <?php endif; ?>
+            getStats();
+            $("#datatable_streams").DataTable({
+                ordering: true,
+                paging: true,
+                searching: true,
+                processing: true,
+                serverSide: true,
+                searchDelay: 250,
+                bInfo: true,
+                bAutoWidth: false,
+                ajax: {
+                    url: "./table",
+                    "data": function(d) {
+                        d.id = "streams";
+                        d.server = <?php echo CoreUtilities::$rRequest['id']; ?>;
+                        d.filter = 1;
+                        d.simple = true;
+                    }
+                },
+                columnDefs: [{
+                        "className": "dt-center",
+                        "targets": [0, 4, 5, 6]
+                    },
+                    {
+                        "visible": false,
+                        "targets": [1, 3, 7, 8, 9]
+                    }
+                ],
+                language: {
+                    paginate: {
+                        previous: "<i class='mdi mdi-chevron-left'>",
+                        next: "<i class='mdi mdi-chevron-right'>"
+                    }
+                },
+                drawCallback: function() {
+                    bindHref();
+                    refreshTooltips(false);
+                },
+                pageLength: <?php echo (intval($rSettings['default_entries']) ?: 10); ?>
+            });
+            $("#datatable_connections").DataTable({
+                ordering: true,
+                paging: true,
+                searching: true,
+                processing: true,
+                serverSide: true,
+                searchDelay: 250,
+                bInfo: true,
+                bAutoWidth: false,
+                ajax: {
+                    url: "./table",
+                    "data": function(d) {
+                        d.id = "live_connections";
+                        d.server_id = <?php echo CoreUtilities::$rRequest['id']; ?>;
+                    }
+                },
+                columnDefs: [{
+                        "className": "dt-center",
+                        "targets": [7, 8, 9, 11]
+                    },
+                    {
+                        "visible": false,
+                        "targets": [0, 1, 4, 5, 6, 10]
+                    }
+                ],
+                language: {
+                    paginate: {
+                        previous: "<i class='mdi mdi-chevron-left'>",
+                        next: "<i class='mdi mdi-chevron-right'>"
+                    }
+                },
+                drawCallback: function() {
+
+                    bindHref();
+                    refreshTooltips(false);
+                },
+                pageLength: <?php echo (intval($rSettings['default_entries']) ?: 10); ?>
+            });
+            rDates = <?php echo json_encode($rStats['dates']); ?>;
+            rCPUOptions = {
+                chart: {
+                    height: 380,
+                    type: "area",
+                    stacked: false,
+                    zoom: {
+                        type: 'x',
+                        enabled: true,
+                        autoScaleYaxis: true
+                    },
+                    events: {
+                        beforeZoom: function(ctx) {
+                            ctx.w.config.xaxis.range = undefined
+                        }
+                    },
+                    animations: {
+                        enabled: false
+                    }
+                },
+                colors: ["#5089de", "#56c2d6", "#51b089"],
+                dataLabels: {
+                    enabled: false
+                },
+                stroke: {
+                    width: [2],
+                    curve: "smooth"
+                },
+                series: [{
+                        name: "CPU Usage",
+                        data: <?php echo json_encode($rStats['cpu']); ?>
+                    },
+                    {
+                        name: "Memory Usage",
+                        data: <?php echo json_encode($rStats['memory']); ?>
+                    },
+                    {
+                        name: "IO Usage",
+                        data: <?php echo json_encode($rStats['io']); ?>
+                    }
+                ],
+                fill: {
+                    type: "gradient",
+                    gradient: {
+                        opacityFrom: .6,
+                        opacityTo: .8
+                    }
+                },
+                xaxis: {
+                    type: "datetime",
+                    min: rDates[0],
+                    max: rDates[1],
+                    range: 3600000,
+                    labels: {
+                        formatter: function(value, timestamp, opts) {
+                            var d = new Date(timestamp);
+                            return ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+                        }
+                    }
+                },
+                tooltip: {
+                    y: {
+                        formatter: function(value, {
+                            series,
+                            seriesIndex,
+                            dataPointIndex,
+                            w
+                        }) {
+                            return value + "%";
+                        }
+                    }
+                }
+            };
+            (rCPUChart = new ApexCharts(document.querySelector("#cpu_chart"), rCPUOptions)).render();
+            rNetworkOptions = {
+                chart: {
+                    height: 380,
+                    type: "area",
+                    stacked: false,
+                    zoom: {
+                        type: 'x',
+                        enabled: true,
+                        autoScaleYaxis: true
+                    },
+                    events: {
+                        beforeZoom: function(ctx) {
+                            ctx.w.config.xaxis.range = undefined
+                        }
+                    },
+                    animations: {
+                        enabled: false
+                    }
+                },
+                colors: ["#03a9f4", "#81d4fa"],
+                dataLabels: {
+                    enabled: false
+                },
+                stroke: {
+                    width: [2],
+                    curve: "smooth"
+                },
+                series: [{
+                        name: "Input",
+                        data: <?php echo json_encode($rStats['input']); ?>
+                    },
+                    {
+                        name: "Output",
+                        data: <?php echo json_encode($rStats['output']); ?>
+                    }
+                ],
+                fill: {
+                    type: "gradient",
+                    gradient: {
+                        opacityFrom: .6,
+                        opacityTo: .8
+                    }
+                },
+                xaxis: {
+                    type: "datetime",
+                    min: rDates[0],
+                    max: rDates[1],
+                    range: 3600000,
+                    labels: {
+                        formatter: function(value, timestamp, opts) {
+                            var d = new Date(timestamp);
+                            return ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+                        }
+                    }
+                },
+                tooltip: {
+                    y: {
+                        formatter: function(value, {
+                            series,
+                            seriesIndex,
+                            dataPointIndex,
+                            w
+                        }) {
+                            return value + " Mbps";
+                        }
+                    }
+                }
+            };
+            (rNetworkChart = new ApexCharts(document.querySelector("#network_chart"), rNetworkOptions)).render();
+        });
+    </script>
+    <script src="assets/js/listings.js"></script>
+    </body>
+
+    </html>
+
+<?php
+else:
+    exit();
+endif; ?>

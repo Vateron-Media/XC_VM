@@ -81,6 +81,7 @@ ini_set('mysql.connect_timeout', $rSQLTimeout);
 ini_set('max_execution_time', $rTimeout);
 ini_set('default_socket_timeout', $rTimeout);
 $rProtocol = getProtocol();
+$allServers = getAllServers();
 $rServers = getStreamingServers();
 $rSettings = CoreUtilities::$rSettings;
 $rProxyServers = getProxyServers();
@@ -3758,8 +3759,7 @@ function getProxyServers($rOnline = false) {
 	if (0 >= $db->num_rows()) {
 	} else {
 		foreach ($db->get_rows() as $rRow) {
-			if (!$rPermissions['is_reseller']) {
-			} else {
+			if ($rPermissions['is_reseller']) {
 				$rRow['server_name'] = 'Proxy #' . $rRow['id'];
 			}
 
