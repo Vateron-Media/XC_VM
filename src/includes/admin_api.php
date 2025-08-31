@@ -4605,21 +4605,17 @@ class API {
 					$rPrivateIP = 0;
 				}
 
-				if ($rData['type'] != 1) {
-				} else {
+				if ($rData['type'] == 1) {
 					$rParentIDs = array();
-
 					foreach (json_decode($rData['parent_id'], true) as $rServerID) {
-						if (self::$rServers[$rServerID]['server_type'] != 0) {
-						} else {
+						if (self::$rServers[$rServerID]['server_type'] == 0) {
 							$rParentIDs[] = intval($rServerID);
 						}
 					}
 				}
 
 				if (isset($rData['edit'])) {
-					if (!isset($rData['update_only'])) {
-					} else {
+					if (isset($rData['update_only'])) {
 						$rData['type'] = 3;
 					}
 
@@ -4651,7 +4647,6 @@ class API {
 				unset($rArray['id']);
 
 				if (strlen($rArray['server_ip']) != 0 && filter_var($rArray['server_ip'], FILTER_VALIDATE_IP)) {
-
 
 					if ($rData['type'] == 1) {
 						$rArray['server_type'] = 1;

@@ -283,16 +283,13 @@ class CoreUtilities {
 		return false;
 	}
 	public static function getServers($rForce = false) {
-		if ($rForce) {
-		} else {
+		if (!$rForce) {
 			$rCache = self::getCache('servers', 10);
-			if (empty($rCache)) {
-			} else {
+			if (!empty($rCache)) {
 				return $rCache;
 			}
 		}
-		if (!empty($_SERVER['REQUEST_SCHEME'])) {
-		} else {
+		if (empty($_SERVER['REQUEST_SCHEME'])) {
 			$_SERVER['REQUEST_SCHEME'] = 'http';
 		}
 		self::$db->query('SELECT * FROM `servers`');
@@ -328,8 +325,10 @@ class CoreUtilities {
 			if (is_numeric($rRow['parent_id'])) {
 				$rRow['parent_id'] = array(intval($rRow['parent_id']));
 			} else {
-				$rRow['parent_id'] = array_map('intval', json_decode($rRow['parent_id'], true));
+				$decoded = json_decode($rRow['parent_id'] ?? '', true);
+				$rRow['parent_id'] = is_array($decoded) ? array_map('intval', $decoded) : [];
 			}
+
 			if ($rRow['enable_https'] == 2) {
 				$rRow['allow_http'] = false;
 			} else {
