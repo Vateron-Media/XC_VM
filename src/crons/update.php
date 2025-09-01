@@ -8,10 +8,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
             }
 
             require str_replace('\\', '/', dirname($argv[0])) . '/../www/init.php';
-
-            $ApiIP = json_decode(file_get_contents("https://raw.githubusercontent.com/Vateron-Media/XC_VM_Update/refs/heads/main/api_server.json"), true);
-            $ApiURL = 'http://' . $ApiIP['ip'] . '/api/v1/check_updates?version=' . XC_VM_VERSION;
-            $rUpdate = json_decode(file_get_contents($ApiURL), true);
+            $rUpdate = $gitRelease->getUpdate(XC_VM_VERSION);
 
             if (is_array($rUpdate) && $rUpdate['version'] && (0 < version_compare($rUpdate['version'], XC_VM_VERSION) || version_compare($rUpdate['version'], XC_VM_VERSION) == 0)) {
                 echo 'Update is available!' . "\n";

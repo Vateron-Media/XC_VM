@@ -4188,27 +4188,6 @@ class CoreUtilities {
 		self::$db->query("REVOKE ALL PRIVILEGES ON `" . self::$rConfig['database'] . "`.* FROM '" . self::$rConfig['username'] . "'@'" . $Host . "';");
 	}
 
-	/**
-	 * Retrieves the API IP address from a JSON source.
-	 *
-	 * @return string|false The API IP address if found, otherwise false.
-	 */
-	public static function getApiIP() {
-		$url = 'https://raw.githubusercontent.com/Vateron-Media/XC_VM_Update/refs/heads/main/api_server.json';
-
-		// Get the JSON content from the URL
-		$json = file_get_contents($url);
-		if ($json === false) {
-			return false;
-		}
-
-		// Decode the JSON into an associative array
-		$data = json_decode($json, true);
-		if (json_last_error() !== JSON_ERROR_NONE || empty($data['ip'])) {
-			return false;
-		}
-		return $data['ip'];
-	}
 	public static function getMemory() {
 		try {
 			$rFree = explode("\n", file_get_contents('/proc/meminfo'));
