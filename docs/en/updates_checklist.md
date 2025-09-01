@@ -58,17 +58,25 @@
 
 ## 📝 4. Changelog
 
-* Go to the link:
-  [https://github.com/Vateron-Media/XC\_VM\_Update/blob/main/changelog.json](https://github.com/Vateron-Media/XC_VM_Update/blob/main/changelog.json)
-* Add current release changes in JSON format:
+First, generate the changes file from git:
+```bash
+git log --pretty=format:"- %s (%h)" X.Y.Z..main > dist/changes.md
+```
+
+---
+
+*   **Go to the link and add the changes for the current release:**
+    [https://github.com/Vateron-Media/XC_VM_Update/blob/main/changelog.json](https://github.com/Vateron-Media/XC_VM_Update/blob/main/changelog.json)
+
+*   **Add the changes for the current release in JSON format:**
 
   ```json
   [
     {
         "version": "X.Y.Z",
         "changes": [
-          "Description of change 1",
-          "Description of change 2"
+          "Change description 1",
+          "Change description 2"
         ]
     }
   ]
