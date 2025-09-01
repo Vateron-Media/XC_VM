@@ -25,15 +25,13 @@ if ($argc && count($argv) == 2) {
 function loadcli() {
     global $db;
     global $rCommand;
+    global $gitRelease;
 
     switch ($rCommand) {
         case 'update':
             // Main server: fetch update info from GitHub API
             if (CoreUtilities::$rServers[SERVER_ID]['is_main']) {
-                $ApiIP = json_decode(file_get_contents("https://raw.githubusercontent.com/Vateron-Media/XC_VM_Update/refs/heads/main/api_server.json"), true);
-                $ApiBaseURL = 'http://' . $ApiIP['ip'] . '/api/v1/update';
-                $apiURL = $ApiBaseURL . '?file_type=main&version=' . XC_VM_VERSION;
-                $UpdateData = json_decode(file_get_contents($apiURL), true); // Expected to return ["url": "...", "md5": "..."]
+                $UpdateData = $gitRelease->getUpdateFile("main", XC_VM_VERSION);
             } else {
                 // Non-main server: request update from main server
                 $rURL = null;
@@ -53,37 +51,34 @@ function loadcli() {
 
             // Main server: download additional files for load balancer
             if (CoreUtilities::$rServers[SERVER_ID]['is_main']) {
-                if (isset($ApiBaseURL)) {
-                    foreach (['lb', 'lb_update'] as $type) {
-                        $apiURL = $ApiBaseURL . '?file_type=' . $type . '&version=' . XC_VM_VERSION;
-                        $data = json_decode(@file_get_contents($apiURL), true);
-                        if ($data && !empty($data['url']) && !empty($data['md5'])) {
-                            $archive_name = ($type == 'lb') ? 'loadbalancer.tar.gz' : 'loadbalancer_update.tar.gz';
-                            $fileName = BIN_PATH . 'install/' . $archive_name;
+                foreach (['lb', 'lb_update'] as $type) {
+                    $data = $gitRelease->getUpdateFile($type, XC_VM_VERSION);
+                    if ($data && !empty($data['url']) && !empty($data['md5'])) {
+                        $archive_name = ($type == 'lb') ? 'loadbalancer.tar.gz' : 'loadbalancer_update.tar.gz';
+                        $fileName = BIN_PATH . 'install/' . $archive_name;
 
-                            // Remove old file if exists
-                            if (file_exists($fileName)){
-                                echo "Remove old file\n";
-                                unlink($fileName);
+                        // Remove old file if exists
+                        if (file_exists($fileName)) {
+                            echo "Remove old file\n";
+                            unlink($fileName);
+                        }
+
+                        // Try downloading 3 times
+                        $attempts = 3;
+                        while ($attempts-- > 0) {
+                            echo "Download: " . $archive_name . "\n";
+                            if (download_file($data['url'], $fileName)) {
+                                // Validate MD5 checksum
+                                if (md5_file($fileName) === $data['md5']) {
+                                    echo "File downloaded\n";
+                                    shell_exec("chown -R xc_vm:xc_vm " . $fileName);
+                                    break;
+                                }
                             }
-
-                            // Try downloading 3 times
-                            $attempts = 3;
-                            while ($attempts-- > 0) {
-                                echo "Download: " . $archive_name . "\n";
-                                if (download_file($data['url'], $fileName)) {
-                                    // Validate MD5 checksum
-                                    if (md5_file($fileName) === $data['md5']) {
-                                        echo "File downloaded\n";
-                                        shell_exec("chown -R xc_vm:xc_vm " . $fileName);
-                                        break;
-                                    }
-                                }
-                                echo "Failed download\n";
-                                // Retry if failed
-                                if ($attempts > 0 && file_exists($fileName)) {
-                                    unlink($fileName);
-                                }
+                            echo "Failed download\n";
+                            // Retry if failed
+                            if ($attempts > 0 && file_exists($fileName)) {
+                                unlink($fileName);
                             }
                         }
                     }

@@ -3,6 +3,7 @@
 require_once 'constants.php';
 require_once INCLUDES_PATH . 'xc_vm.php';
 require_once INCLUDES_PATH . 'pdo.php';
+require_once INCLUDES_PATH . 'libs/GithubReleases.php';
 
 if (!function_exists('getallheaders')) {
 	function getallheaders() {
@@ -23,6 +24,7 @@ if (basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'])) {
 }
 
 $rFilename = strtolower(basename(get_included_files()[0], '.php'));
+$gitRelease = new GitHubReleases(GIT_OWNER, GIT_REPO);
 
 if (!in_array($rFilename, array('enigma2', 'epg', 'playlist', 'api', 'xplugin', 'live', 'proxy_api', 'thumb', 'timeshift', 'vod')) || isset($argc)) {
 	$db = new Database($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);;
