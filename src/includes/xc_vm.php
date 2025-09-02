@@ -54,6 +54,10 @@ class CoreUtilities {
 		}
 		self::$rSegmentSettings = array('seg_type' => self::$rSettings['segment_type'], 'seg_time' => intval(self::$rSettings['seg_time']), 'seg_list_size' => intval(self::$rSettings['seg_list_size']), 'seg_delete_threshold' => intval(self::$rSettings['seg_delete_threshold']));
 		switch (self::$rSettings['ffmpeg_cpu']) {
+			case '8.0':
+				self::$rFFMPEG_CPU = FFMPEG_BIN_80;
+				self::$rFFPROBE = FFPROBE_BIN_80;
+				break;
 			case '4.4':
 				self::$rFFMPEG_CPU = FFMPEG_BIN_44;
 				self::$rFFPROBE = FFPROBE_BIN_44;
@@ -67,7 +71,8 @@ class CoreUtilities {
 				self::$rFFPROBE = FFPROBE_BIN_40;
 				break;
 		}
-		self::$rFFMPEG_GPU = FFMPEG_BIN_40;
+		// self::$rFFMPEG_GPU = FFMPEG_BIN_40; //old
+		self::$rFFMPEG_GPU = FFMPEG_BIN_80;
 		self::$rCached = self::$rSettings['enable_cache'];
 		if ($rUseCache) {
 			self::$rServers = self::getCache('servers');
