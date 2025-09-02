@@ -8,6 +8,7 @@
 ## Сборка
 
 - [Бинарники](build_binaries.md)
+- [FFmpeg](build_ffmpeg.md)
 
 ## Обновление
 

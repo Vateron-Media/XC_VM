@@ -8,6 +8,7 @@
 ## Build
 
 - [Binaries](build_binaries.md)
+- [FFmpeg](build_ffmpeg.md)
 
 ## Update
 - [Panel update](update.md)
