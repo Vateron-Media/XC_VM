@@ -170,9 +170,7 @@ include 'header.php';
         <?php } ?>
     </div>
 </div>
-<?php include 'footer.php'; ?>
-<script id="scripts">
-	<?php
+<?php include 'footer.php';
 		echo "\t\t\r\n\t\t" . 'function selectChannel(rID) {' . "\r\n\t\t\t" . 'navigate("stream_view?id=" + rID);' . "\r\n\t\t" . '}' . "\r\n\t\t\r\n\t\t" . 'function clearForm() {' . "\r\n\t\t\t" . 'window.location.href = "epg_view";' . "\r\n\t\t" . '}' . "\r\n\t\t\r\n\t\t" . 'function showGuide(rID, rStreamID) {' . "\r\n\t\t\t" . '$("#programmeLabel").html("");' . "\r\n\t\t\t" . '$("#programmeDescription").html("");' . "\r\n\t\t\t" . '$("#programmeStart").html("");' . "\r\n" . '            $("#programmeRecord").unbind();' . "\r\n\t\t\t" . '$.getJSON("./api?action=get_programme&id=" + rID + "&stream_id=" + rStreamID + "&timezone=" + Intl.DateTimeFormat().resolvedOptions().timeZone, function(data) {' . "\r\n\t\t\t\t" . 'if (data.result == true) {' . "\r\n\t\t\t\t\t" . '$("#programmeLabel").html(data.data.title);' . "\r\n\t\t\t\t\t" . '$("#programmeDescription").html(data.data.description);' . "\r\n\t\t\t\t\t" . '$("#programmeStart").html(data.data.date)' . "\r\n\t\t\t\t\t" . '$(".bs-programme").modal("show");' . "\r\n" . '                    if (data.available) {' . "\r\n" . '                        $("#programmeRecord").click(function() {' . "\r\n" . '                            navigate("record?id=" + rStreamID + "&programme=" + rID);' . "\r\n" . '                        });' . "\r\n" . '                        $("#programmeRecord").show();' . "\r\n" . '                    } else {' . "\r\n" . '                        $("#programmeRecord").hide();' . "\r\n" . '                    }' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n\t\t\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'});" . "\r\n\t\t\t\r\n\t\t\t" . 'window.XC_VM.Listings.DefaultChannels = "';
 		echo implode(',', $rStreamIDs);
 		echo '";' . "\r\n\t\t\t";

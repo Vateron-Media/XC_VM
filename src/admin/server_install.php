@@ -206,9 +206,7 @@ include 'header.php'; ?>
         </div>
     </div>
 </div>
-<?php include 'footer.php'; ?>
-<script id="scripts">
-	<?php
+<?php include 'footer.php';
 		echo "\t\t" . '$(document).ready(function() {' . "\r\n" . "            \$('select').select2({width: '100%'});" . "\r\n\t\t\t" . '$("#ssh_port").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#rtmp_port").inputFilter(function(value) { return /^\\d*$/.test(value) && (value === "" || parseInt(value) <= 65535); });' . "\r\n\t\t\t" . '$("#http_broadcast_port").inputFilter(function(value) { return /^\\d*$/.test(value) && (value === "" || parseInt(value) <= 65535); });' . "\r\n" . '            $("#https_broadcast_port").inputFilter(function(value) { return /^\\d*$/.test(value) && (value === "" || parseInt(value) <= 65535); });' . "\r\n" . '            $("form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n" . '                ';
 
 		if ($rType != 1) {

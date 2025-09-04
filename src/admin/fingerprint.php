@@ -166,9 +166,7 @@ include 'header.php'; ?>
         </div>
     </div>
 </div>
-<?php include 'footer.php'; ?>
-<script id="scripts">
-	<?php
+<?php include 'footer.php';
 		echo '        ' . "\r\n\t\t" . 'var rStreamID = -1;' . "\r\n\r\n\t\t" . 'function getCategory() {' . "\r\n\t\t\t" . 'return $("#category_search").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getStreamID() {' . "\r\n\t\t\t" . 'return window.rStreamID;' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function selectFingerprint(rID) {' . "\r\n\t\t\t" . '$("#stream-activity-tab").attr("disabled", false);' . "\r\n\t\t\t" . "\$('[href=\"#stream-activity\"]').tab('show');" . "\r\n\t\t\t" . 'window.rStreamID = rID;' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function activateFingerprint() {' . "\r\n\t\t\t" . 'rArray = {"id": window.rStreamID, "font_size": $("#font_size").val(), "font_color": $("#font_color").val(), "message": "", "type": $("#fingerprint_type").val(), "xy_offset": ""};' . "\r\n\t\t\t" . 'if (rArray.type == 3) {' . "\r\n\t\t\t\t" . 'rArray["message"] = $("#custom_message").val();' . "\r\n\t\t\t" . '}' . "\r\n\t\t\t" . 'if (($("#position_x").val() >= 0) && ($("#position_y").val() >= 0)) {' . "\r\n\t\t\t\t" . 'rArray["xy_offset"] = $("#position_x").val() + "x" + $("#position_y").val();' . "\r\n\t\t\t" . '}' . "\r\n\t\t\t" . 'if ((rArray["font_size"] > 0) && (rArray["font_color"]) && ((rArray["message"]) || (rArray["type"] != 3))  && (rArray["font_size"] > 0) && (rArray["xy_offset"])) {' . "\r\n\t\t\t\t" . '$.getJSON("./api?action=fingerprint&data=" + encodeURIComponent(JSON.stringify(rArray)), function(data) {' . "\r\n\t\t\t\t\t" . 'if (data.result == true) {' . "\r\n\t\t\t\t\t\t" . '$.toast("';
 		echo $_['fingerprint_success'];
 		echo '");' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . '$.toast("';

@@ -883,9 +883,7 @@ include 'header.php';
 </div>
 
 <?php
-include 'footer.php'; ?>
-<script id="scripts">
-	<?php
+include 'footer.php';
 		echo '        ' . "\r\n\t\t" . 'var rEPG = ';
 		echo json_encode($rEPGJS);
 		echo ';' . "\r\n" . '        var rVideoDevices = ';

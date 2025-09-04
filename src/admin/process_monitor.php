@@ -289,9 +289,7 @@ if (!isset(CoreUtilities::$rRequest['clear'])) {
                 </div>
             </div>
         </div>
-        <?php include 'footer.php'; ?>
-<script id="scripts">
-	<?php
+        <?php include 'footer.php';
 		echo '        ' . "\r\n\t\t" . 'function kill(rServerID, rID) {' . "\r\n\t\t\t" . '$.getJSON("./api?action=process&pid=" + rID + "&server=" + rServerID, function(data) {' . "\r\n\t\t\t\t" . 'if (data.result === true) {' . "\r\n\t\t\t\t\t" . '$.toast("';
 		echo $_['process_has_been_killed_wait'];
 		echo '");' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . '$.toast("';

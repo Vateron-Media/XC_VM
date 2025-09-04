@@ -707,9 +707,7 @@ include 'header.php';
         </form>
     </div>
 </div>
-<?php include 'footer.php'; ?>
-<script id="scripts">
-	<?php
+<?php include 'footer.php';
 		echo '        ' . "\r\n" . '        var rBouquetSet = [];' . "\r\n" . '        var rCategorySet = [';
 		echo implode(',', array_map('intval', $rCategorySet));
 		echo '];' . "\r\n" . '        var rLogoSet = [';

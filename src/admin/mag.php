@@ -367,9 +367,7 @@ include 'header.php'; ?>
         </div>
     </div>
 </div>
-<?php include 'footer.php'; ?>
-<script id="scripts">
-	<?php
+<?php include 'footer.php';
 		echo '        ' . "\r\n\t\t";
 
 		if (isset($rDevice)) {

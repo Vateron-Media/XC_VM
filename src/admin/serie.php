@@ -464,7 +464,6 @@ include 'header.php';
 </div>
 <?php include 'footer.php'; ?>
 
-<script id="scripts">
 	var changeTitle = false;
 
 	function selectDirectory(elem) {

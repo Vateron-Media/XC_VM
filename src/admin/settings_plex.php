@@ -260,9 +260,7 @@ include 'header.php';
     </div>
 
 </div>
-<?php include 'footer.php'; ?>
-<script id="scripts">
-	<?php
+<?php include 'footer.php';
 		echo '        ' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n" . '            $("#scan_seconds").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#max_items").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#thread_count_movie").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#thread_count_show").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'});" . "\r\n" . '            $("form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n" . "                \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                submitForm(window.rCurrentPage, new FormData($("form")[0]));' . "\r\n" . '            });' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
 		?>
 </script>

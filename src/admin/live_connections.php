@@ -156,9 +156,7 @@ include 'header.php';
 		</div>
 	</div>
 </div>
-<?php include 'footer.php'; ?>
-<script id="scripts">
-	<?php
+<?php include 'footer.php';
 		echo '        ' . "\r\n\t\t" . 'var rClearing = false;' . "\r\n\r\n\t\t" . 'function api(rID, rType) {' . "\r\n\t\t\t" . '$.getJSON("./api?action=line_activity&sub=" + rType + "&pid=" + rID, function(data) {' . "\r\n\t\t\t\t" . 'if (data.result === true) {' . "\r\n\t\t\t\t\t" . 'if (rType == "kill") {' . "\r\n\t\t\t\t\t\t" . '$.toast("';
 		echo $_['connection_has_been_killed'];
 		echo '");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '$("#datatable-activity").DataTable().ajax.reload(null, false);' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . '$.toast("';
