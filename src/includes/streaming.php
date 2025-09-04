@@ -50,17 +50,27 @@ class CoreUtilities {
 			self::$rSettings['on_demand_wait_time'] = 15;
 		}
 		switch (self::$rSettings['ffmpeg_cpu']) {
+			case '8.0':
+				self::$rFFMPEG_CPU = FFMPEG_BIN_80;
+				self::$rFFMPEG_GPU = FFMPEG_BIN_80;
+				break;
+			case '7.1':
+				self::$rFFMPEG_CPU = FFMPEG_BIN_71;
+				self::$rFFMPEG_GPU = FFMPEG_BIN_71;
+				break;
 			case '4.4':
 				self::$rFFMPEG_CPU = FFMPEG_BIN_44;
+				self::$rFFMPEG_GPU = FFMPEG_BIN_40;
 				break;
 			case '4.3':
 				self::$rFFMPEG_CPU = FFMPEG_BIN_43;
+				self::$rFFMPEG_GPU = FFMPEG_BIN_40;
 				break;
 			default:
 				self::$rFFMPEG_CPU = FFMPEG_BIN_40;
+				self::$rFFMPEG_GPU = FFMPEG_BIN_40;
 				break;
-		}
-		self::$rFFMPEG_GPU = FFMPEG_BIN_40;
+		}		
 		self::$rCached = self::isCacheEnabledAndComplete();
 		self::$rServers = self::getCache(
 			'servers'
