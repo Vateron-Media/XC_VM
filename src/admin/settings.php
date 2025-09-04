@@ -1536,7 +1536,7 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 													<select name="ffmpeg_cpu" id="ffmpeg_cpu" class="form-control"
 														data-toggle="select2">
 														<?php
-														foreach (["8.0", "4.4", "4.3", "4.0"] as $rValue) {
+														foreach (["8.0", "7.1", "4.4", "4.3", "4.0"] as $rValue) {
 															echo '<option ';
 
 															if ($rSettings["ffmpeg_cpu"] == $rValue) {

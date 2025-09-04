@@ -1,6 +1,6 @@
-# 🚀 Building FFmpeg 8.0 with NVIDIA NVENC/CUVID Support
+# 🚀 Building FFmpeg with NVIDIA NVENC/CUVID Support
 
-This guide explains how to build **FFmpeg 8.0** on Ubuntu with NVIDIA hardware acceleration (NVENC/CUVID) and popular codecs enabled.
+This guide explains how to build **FFmpeg** on Ubuntu with NVIDIA hardware acceleration (NVENC/CUVID) and popular codecs enabled.
 The goal is to produce **static binaries** that can be easily transferred between systems.
 
 ---
@@ -11,6 +11,29 @@ The goal is to produce **static binaries** that can be easily transferred betwee
 * An NVIDIA GPU with **NVENC** support (optional, but recommended)
 * \~2 GB of free disk space
 * Internet connection
+
+---
+
+## 🔧 Configuration
+
+Set the following environment variables to customize your build:
+
+```bash
+# FFmpeg version to build (default: 8.0)
+export FFMPEG_VERSION="8.0"
+
+# Installation directory (default: /home/xc_vm/bin/ffmpeg_bin)
+export INSTALL_DIR="/home/xc_vm/bin/ffmpeg_bin"
+
+# Build directory (default: ~/ffmpeg_sources)
+export BUILD_DIR="$HOME/ffmpeg_sources"
+
+# CUDA version (default: 12-2)
+export CUDA_VERSION="12-2"
+
+# NVIDIA driver version (default: 535)
+export NVIDIA_DRIVER_VERSION="535"
+```
 
 ---
 
@@ -62,7 +85,7 @@ sudo apt-get install -y \
 ```bash
 sudo add-apt-repository -y ppa:graphics-drivers/ppa
 sudo apt update
-sudo apt install -y nvidia-driver-535
+sudo apt install -y nvidia-driver-${NVIDIA_DRIVER_VERSION:-535}
 ```
 
 > ℹ️ Choose the driver version that matches your GPU.
@@ -73,12 +96,13 @@ sudo apt install -y nvidia-driver-535
 wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.0-1_all.deb
 sudo dpkg -i cuda-keyring_1.0-1_all.deb
 sudo apt update
-sudo apt install -y cuda-toolkit-12-2
+sudo apt install -y cuda-toolkit-${CUDA_VERSION:-12-2}
 ```
 
 ### 3.3 Install NVENC Headers
 
 ```bash
+cd ${BUILD_DIR:-~/ffmpeg_sources}
 git clone https://git.videolan.org/git/ffmpeg/nv-codec-headers.git
 cd nv-codec-headers
 make
@@ -88,7 +112,7 @@ sudo make install
 In some cases, you may need to install with:
 
 ```bash
-make PREFIX="$HOME/ffmpeg_build" install
+make PREFIX="${INSTALL_DIR:-$HOME/ffmpeg_build}" install
 ```
 
 ### 3.4 Optional NVIDIA Tools
@@ -104,26 +128,26 @@ sudo apt install -y nvidia-cuda-toolkit nvidia-cuda-dev
 ### 4.1 Download Source
 
 ```bash
-mkdir -p ~/ffmpeg_sources && cd ~/ffmpeg_sources
-wget -O ffmpeg-snapshot.tar.bz2 https://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2
-tar xjvf ffmpeg-snapshot.tar.bz2
-cd ffmpeg
+mkdir -p ${BUILD_DIR:-~/ffmpeg_sources} && cd ${BUILD_DIR:-~/ffmpeg_sources}
+wget https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION:-8.0}.tar.bz2
+tar xjvf ffmpeg-${FFMPEG_VERSION:-8.0}.tar.bz2
+cd ffmpeg-${FFMPEG_VERSION:-8.0}
 ```
 
 ### 4.2 Configure
 
 ```bash
-export PATH="$HOME/bin:$PATH"
-export PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig"
+export PATH="${INSTALL_DIR:-$HOME/bin}:$PATH"
+export PKG_CONFIG_PATH="${INSTALL_DIR:-$HOME/ffmpeg_build}/lib/pkgconfig"
 
 ./configure \
-  --prefix="$HOME/ffmpeg_build" \
+  --prefix="${INSTALL_DIR:-$HOME/ffmpeg_build}" \
   --pkg-config-flags="--static" \
   --extra-cflags="-I/usr/local/cuda/include" \
-  --extra-ldflags="-L$HOME/ffmpeg_build/lib -Wl,-Bstatic -lcrypto -lssl -Wl,-Bdynamic" \
+  --extra-ldflags="-L${INSTALL_DIR:-$HOME/ffmpeg_build}/lib -Wl,-Bstatic -lcrypto -lssl -Wl,-Bdynamic" \
   --extra-version=XCVM \
   --extra-libs="-lsupc++ -lgmp -lz -lunistring -lpthread -lm -lrt -ldl" \
-  --bindir="$HOME/bin" \
+  --bindir="${INSTALL_DIR:-$HOME/bin}" \
   --enable-gpl \
   --enable-gnutls \
   --enable-libass \
@@ -157,6 +181,9 @@ export PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig"
   --disable-autodetect \
   --disable-shared \
   --enable-static \
+  --enable-muxer=hls \
+  --enable-muxer=dash \
+  --enable-demuxer=hls \
   --extra-cflags=--static
 ```
 
@@ -171,8 +198,8 @@ make -j$(nproc)
 ## 📦 5. Install
 
 ```bash
-mkdir -p /home/xc_vm/bin/ffmpeg_bin/8.0/
-cp ffmpeg ffprobe /home/xc_vm/bin/ffmpeg_bin/8.0/
+mkdir -p ${INSTALL_DIR:-/home/xc_vm/bin/ffmpeg_bin}/${FFMPEG_VERSION:-8.0}/
+cp ffmpeg ffprobe ${INSTALL_DIR:-/home/xc_vm/bin/ffmpeg_bin}/${FFMPEG_VERSION:-8.0}/
 ```
 
 ---
@@ -180,15 +207,15 @@ cp ffmpeg ffprobe /home/xc_vm/bin/ffmpeg_bin/8.0/
 ## ✅ Verification
 
 ```bash
-/home/xc_vm/bin/ffmpeg_bin/8.0/ffmpeg -version
-/home/xc_vm/bin/ffmpeg_bin/8.0/ffprobe -version
+${INSTALL_DIR:-/home/xc_vm/bin/ffmpeg_bin}/${FFMPEG_VERSION:-8.0}/ffmpeg -version
+${INSTALL_DIR:-/home/xc_vm/bin/ffmpeg_bin}/${FFMPEG_VERSION:-8.0}/ffprobe -version
 ```
 
 Check NVIDIA support:
 
 ```bash
-/home/xc_vm/bin/ffmpeg_bin/8.0/ffmpeg -encoders | grep nvenc
-/home/xc_vm/bin/ffmpeg_bin/8.0/ffmpeg -decoders | grep cuvid
+${INSTALL_DIR:-/home/xc_vm/bin/ffmpeg_bin}/${FFMPEG_VERSION:-8.0}/ffmpeg -encoders | grep nvenc
+${INSTALL_DIR:-/home/xc_vm/bin/ffmpeg_bin}/${FFMPEG_VERSION:-8.0}/ffmpeg -decoders | grep cuvid
 ```
 
 ---
@@ -199,5 +226,17 @@ Check NVIDIA support:
 2. A **reboot** may be required after installing drivers.
 3. Building FFmpeg consumes significant CPU and memory resources.
 4. Static builds → larger binaries, but fully portable.
+5. Adjust environment variables according to your system configuration.
+6. Different FFmpeg versions may require adjustments to the configure flags.
 
 ---
+
+## 🔄 Version Compatibility
+
+| FFmpeg Version | Recommended CUDA | Notes |
+|----------------|------------------|-------|
+| 7.x            | 12.2+            | Latest features |
+| 6.x            | 11.8+            | Stable |
+| 5.x            | 11.0+            | Legacy |
+
+Check the [FFmpeg documentation](https://ffmpeg.org/) for specific version requirements.
