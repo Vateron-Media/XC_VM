@@ -613,6 +613,6 @@
 			</div>
 		</div>
 	</div>
-<?php else: ?>
-	<?php exit(); ?>
+<?php else: 
+	exit(); ?>
 <?php endif; ?>

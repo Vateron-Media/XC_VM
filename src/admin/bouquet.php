@@ -308,9 +308,7 @@ if (!isset($rBouquetArr)) {
 }
 
 echo "\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t" . '</form>' . "\n\t\t\t\t\t" . '</div>' . "\n\t\t\t\t" . '</div>' . "\n\t\t\t" . '</div>' . "\n\t\t" . '</div>' . "\n\t" . '</div>' . "\n" . '</div>' . "\n";
-include 'footer.php'; ?>
-<script id="scripts">
-<?
+include 'footer.php';
 		if (isset($rBouquetArr)) {
 			if (is_array(json_decode($rBouquetArr['bouquet_series'], true))) {
 			} else {

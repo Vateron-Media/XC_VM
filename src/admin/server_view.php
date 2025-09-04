@@ -374,9 +374,8 @@ if (isset(CoreUtilities::$rRequest['id'])):
         </div>
     </div>
     <!-- Additional UI elements can be added here -->
-    <?php include 'footer.php'; ?>
-    <script id="scripts">
-        <?php if (in_array($allServers[intval(CoreUtilities::$rRequest['id'])]['status'], array(3, 4)) || in_array($rProxyServers[intval(CoreUtilities::$rRequest['id'])]['status'], array(3, 4))): ?>
+    <?php include 'footer.php';
+    if (in_array($allServers[intval(CoreUtilities::$rRequest['id'])]['status'], array(3, 4)) || in_array($rProxyServers[intval(CoreUtilities::$rRequest['id'])]['status'], array(3, 4))): ?>
 
             function getInstallStatus() {
                 $.getJSON("./api?action=install_status&server_id=<?php echo intval(CoreUtilities::$rRequest['id']); ?>", function(data) {

@@ -47,7 +47,6 @@ include 'header.php';
     </div>
 </div>
 <?php include 'footer.php'; ?>
-<script id="scripts">
     function sendErrors(rConfirm = false) {
         if (!rConfirm) {
             new jBox("Confirm", {

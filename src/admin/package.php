@@ -338,10 +338,8 @@ include 'header.php'; ?>
         </div>
     </div>
 </div>
-<?php include 'footer.php'; ?>
-<script id="scripts">
-	<?php
-		echo '        ' . "\r\n" . '        ';
+<?php include 'footer.php';
+echo '        ' . "\r\n" . '        ';
 
 		if (isset($rPackage)) {
 			echo "\t\t" . 'var rBouquets = [';
