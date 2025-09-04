@@ -68,6 +68,7 @@ define('OPENSSL_EXTRA', 'fNiu3XD448xTDa27xoY4');
 define('FFMPEG_BIN_40', BIN_PATH . 'ffmpeg_bin/4.0/ffmpeg');
 define('FFMPEG_BIN_43', BIN_PATH . 'ffmpeg_bin/4.3/ffmpeg');
 define('FFMPEG_BIN_44', BIN_PATH . 'ffmpeg_bin/4.4/ffmpeg');
+define('FFMPEG_BIN_71', BIN_PATH . 'ffmpeg_bin/7.1/ffmpeg');
 define('FFMPEG_BIN_80', BIN_PATH . 'ffmpeg_bin/8.0/ffmpeg');
 
 if (!$argc) {

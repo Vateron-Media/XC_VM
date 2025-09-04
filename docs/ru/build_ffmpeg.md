@@ -1,22 +1,45 @@
-# 🚀 Сборка FFmpeg 8.0 с поддержкой NVIDIA NVENC/CUVID
+# 🚀 Сборка FFmpeg с поддержкой NVIDIA NVENC/CUVID
 
-Это руководство описывает процесс сборки **FFmpeg 8.0** на Ubuntu с поддержкой аппаратного ускорения NVIDIA (NVENC/CUVID) и популярными кодеками.
-Цель — получить **статические бинарные файлы**, которые удобно переносить между системами.
+Это руководство объясняет, как собрать **FFmpeg** на Ubuntu с аппаратным ускорением NVIDIA (NVENC/CUVID) и поддержкой популярных кодеков.
+Цель — создание **статических бинарных файлов**, которые можно легко переносить между системами.
 
 ---
 
-## 📋 Что понадобится
+## 📋 Требования
 
 * **Ubuntu 22.04 или новее**
-* Видеокарта NVIDIA с поддержкой **NVENC** (но возможно и нет)
+* Видеокарта NVIDIA с поддержкой **NVENC** (опционально, но рекомендуется)
 * \~2 ГБ свободного места на диске
-* Интернет-доступ
+* Интернет-соединение
 
 ---
 
-## 🔧 1. Установка базовых инструментов
+## 🔧 Конфигурация
 
-Обновите систему и установите основные инструменты сборки:
+Установите следующие переменные окружения для настройки сборки:
+
+```bash
+# Версия FFmpeg для сборки (по умолчанию: 8.0)
+export FFMPEG_VERSION="8.0"
+
+# Директория для установки (по умолчанию: /home/xc_vm/bin/ffmpeg_bin)
+export INSTALL_DIR="/home/xc_vm/bin/ffmpeg_bin"
+
+# Директория для сборки (по умолчанию: ~/ffmpeg_sources)
+export BUILD_DIR="$HOME/ffmpeg_sources"
+
+# Версия CUDA (по умолчанию: 12-2)
+export CUDA_VERSION="12-2"
+
+# Версия драйвера NVIDIA (по умолчанию: 535)
+export NVIDIA_DRIVER_VERSION="535"
+```
+
+---
+
+## 🔧 1. Установка инструментов для сборки
+
+Обновите систему и установите основные пакеты для разработки:
 
 ```bash
 sudo apt-get update -qq && sudo apt-get -y install \
@@ -32,7 +55,7 @@ sudo apt-get update -qq && sudo apt-get -y install \
 
 ## 🎶 2. Установка кодеков
 
-Чтобы FFmpeg умел работать с популярными форматами, установим дополнительные библиотеки:
+Для включения поддержки распространенных форматов установите следующие библиотеки:
 
 ```bash
 # H.264/AVC
@@ -62,23 +85,24 @@ sudo apt-get install -y \
 ```bash
 sudo add-apt-repository -y ppa:graphics-drivers/ppa
 sudo apt update
-sudo apt install -y nvidia-driver-535
+sudo apt install -y nvidia-driver-${NVIDIA_DRIVER_VERSION:-535}
 ```
 
-> ℹ️ Версию драйвера выбирайте под своё GPU.
+> ℹ️ Выберите версию драйвера, совместимую с вашей видеокартой.
 
-### 3.2 CUDA Toolkit
+### 3.2 Установка CUDA Toolkit
 
 ```bash
 wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.0-1_all.deb
 sudo dpkg -i cuda-keyring_1.0-1_all.deb
 sudo apt update
-sudo apt install -y cuda-toolkit-12-2
+sudo apt install -y cuda-toolkit-${CUDA_VERSION:-12-2}
 ```
 
-### 3.3 Заголовки NVENC
+### 3.3 Установка заголовков NVENC
 
 ```bash
+cd ${BUILD_DIR:-~/ffmpeg_sources}
 git clone https://git.videolan.org/git/ffmpeg/nv-codec-headers.git
 cd nv-codec-headers
 make
@@ -88,10 +112,10 @@ sudo make install
 Возможно нужно устанавливать командой:
 
 ```bash
-make PREFIX="$HOME/ffmpeg_build" install
+make PREFIX="${INSTALL_DIR:-$HOME/ffmpeg_build}" install
 ```
 
-### 3.4 Доп. инструменты NVIDIA (опционально)
+### 3.4 Опциональные инструменты NVIDIA
 
 ```bash
 sudo apt install -y nvidia-cuda-toolkit nvidia-cuda-dev
@@ -101,29 +125,29 @@ sudo apt install -y nvidia-cuda-toolkit nvidia-cuda-dev
 
 ## 🔨 4. Сборка FFmpeg
 
-### 4.1 Скачивание исходников
+### 4.1 Загрузка исходного кода
 
 ```bash
-mkdir -p ~/ffmpeg_sources && cd ~/ffmpeg_sources
-wget -O ffmpeg-snapshot.tar.bz2 https://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2
-tar xjvf ffmpeg-snapshot.tar.bz2
-cd ffmpeg
+mkdir -p ${BUILD_DIR:-~/ffmpeg_sources} && cd ${BUILD_DIR:-~/ffmpeg_sources}
+wget https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION:-8.0}.tar.bz2
+tar xjvf ffmpeg-${FFMPEG_VERSION:-8.0}.tar.bz2
+cd ffmpeg-${FFMPEG_VERSION:-8.0}
 ```
 
 ### 4.2 Конфигурация
 
 ```bash
-export PATH="$HOME/bin:$PATH"
-export PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig"
+export PATH="${INSTALL_DIR:-$HOME/bin}:$PATH"
+export PKG_CONFIG_PATH="${INSTALL_DIR:-$HOME/ffmpeg_build}/lib/pkgconfig"
 
 ./configure \
-  --prefix="$HOME/ffmpeg_build" \
+  --prefix="${INSTALL_DIR:-$HOME/ffmpeg_build}" \
   --pkg-config-flags="--static" \
   --extra-cflags="-I/usr/local/cuda/include" \
-  --extra-ldflags="-L$HOME/ffmpeg_build/lib -Wl,-Bstatic -lcrypto -lssl -Wl,-Bdynamic" \
+  --extra-ldflags="-L${INSTALL_DIR:-$HOME/ffmpeg_build}/lib -Wl,-Bstatic -lcrypto -lssl -Wl,-Bdynamic" \
   --extra-version=XCVM \
   --extra-libs="-lsupc++ -lgmp -lz -lunistring -lpthread -lm -lrt -ldl" \
-  --bindir="$HOME/bin" \
+  --bindir="${INSTALL_DIR:-$HOME/bin}" \
   --enable-gpl \
   --enable-gnutls \
   --enable-libass \
@@ -157,10 +181,13 @@ export PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig"
   --disable-autodetect \
   --disable-shared \
   --enable-static \
+  --enable-muxer=hls \
+  --enable-muxer=dash \
+  --enable-demuxer=hls \
   --extra-cflags=--static
 ```
 
-### 4.3 Сборка
+### 4.3 Компиляция
 
 ```bash
 make -j$(nproc)
@@ -171,8 +198,8 @@ make -j$(nproc)
 ## 📦 5. Установка
 
 ```bash
-mkdir -p /home/xc_vm/bin/ffmpeg_bin/8.0/
-cp ffmpeg ffprobe /home/xc_vm/bin/ffmpeg_bin/8.0/
+mkdir -p ${INSTALL_DIR:-/home/xc_vm/bin/ffmpeg_bin}/${FFMPEG_VERSION:-8.0}/
+cp ffmpeg ffprobe ${INSTALL_DIR:-/home/xc_vm/bin/ffmpeg_bin}/${FFMPEG_VERSION:-8.0}/
 ```
 
 ---
@@ -180,22 +207,37 @@ cp ffmpeg ffprobe /home/xc_vm/bin/ffmpeg_bin/8.0/
 ## ✅ Проверка
 
 ```bash
-/home/xc_vm/bin/ffmpeg_bin/8.0/ffmpeg -version
-/home/xc_vm/bin/ffmpeg_bin/8.0/ffprobe -version
+${INSTALL_DIR:-/home/xc_vm/bin/ffmpeg_bin}/${FFMPEG_VERSION:-8.0}/ffmpeg -version
+${INSTALL_DIR:-/home/xc_vm/bin/ffmpeg_bin}/${FFMPEG_VERSION:-8.0}/ffprobe -version
 ```
 
 Проверка поддержки NVIDIA:
 
 ```bash
-/home/xc_vm/bin/ffmpeg_bin/8.0/ffmpeg -encoders | grep nvenc
-/home/xc_vm/bin/ffmpeg_bin/8.0/ffmpeg -decoders | grep cuvid
+${INSTALL_DIR:-/home/xc_vm/bin/ffmpeg_bin}/${FFMPEG_VERSION:-8.0}/ffmpeg -encoders | grep nvenc
+${INSTALL_DIR:-/home/xc_vm/bin/ffmpeg_bin}/${FFMPEG_VERSION:-8.0}/ffmpeg -decoders | grep cuvid
 ```
 
 ---
 
-## 📝 Заметки
+## 📝 Примечания
 
-1. Драйвер NVIDIA должен поддерживать ваше железо.
-2. После установки драйверов может понадобиться **перезагрузка**.
-3. Сборка требует много памяти и процессорного времени.
-4. Статическая сборка → большие бинарники, но полная переносимость.
+1. Драйвер NVIDIA должен быть совместим с вашей видеокартой.
+2. После установки драйверов может потребоваться **перезагрузка**.
+3. Сборка FFmpeg потребляет значительные ресурсы CPU и памяти.
+4. Статическая сборка → большие бинарные файлы, но полностью переносимые.
+5. Настройте переменные окружения в соответствии с конфигурацией вашей системы.
+6. Для разных версий FFmpeg могут потребоваться корректировки флагов конфигурации.
+
+---
+
+## 🔄 Совместимость версий
+
+| Версия FFmpeg | Рекомендуемая CUDA | Примечания |
+|---------------|--------------------|------------|
+| 7.x           | 12.2+              | Новейшие функции |
+| 6.x           | 11.8+              | Стабильная |
+| 5.x           | 11.0+              | Устаревшая |
+
+Проверяйте [документацию FFmpeg](https://ffmpeg.org/) для конкретных требований версий.
+```
