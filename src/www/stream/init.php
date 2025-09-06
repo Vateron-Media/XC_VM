@@ -50,7 +50,7 @@ define('ARCHIVE_PATH', CONTENT_PATH . 'archive/');
 define('VIDEO_PATH', CONTENT_PATH . 'video/');
 define('EPG_PATH', CONTENT_PATH . 'epg/');
 define('CLI_PATH', INCLUDES_PATH . 'cli/');
-define('GEOLITE2_BIN', BIN_PATH . 'maxmind/GeoLite2.mmdb');
+define('GEOLITE2_BIN', BIN_PATH . 'maxmind/GeoLite2-Country.mmdb');
 define('GEOISP_BIN', BIN_PATH . 'maxmind/GeoIP2-ISP.mmdb');
 define('CIDR_TMP_PATH', TMP_PATH . 'cidr/');
 define('CONS_TMP_PATH', TMP_PATH . 'opened_cons/');

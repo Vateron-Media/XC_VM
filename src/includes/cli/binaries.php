@@ -4,8 +4,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
         register_shutdown_function('shutdown');
         require str_replace('\\', '/', dirname($argv[0])) . '/../../www/init.php';
         $rBaseDir = '/home/xc_vm/bin/';
-        $rBaseURL = 'https://update.xc_vm.com/binaries/';
-        $rPermissions = '0755';
+        $geolitejsonFile = '/home/xc_vm/bin/maxmind/version.json';
         loadcli();
     } else {
         exit(0);
@@ -13,66 +12,86 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 } else {
     exit('Please run as root!' . "\n");
 }
+
 function loadcli() {
-    global $rBaseURL;
-    global $rPermissions;
     global $rBaseDir;
-    if (!shell_exec('which apparmor_status')) {
-    } else {
+    global $geolitejsonFile;
+
+    // Check if apparmor_status command exists
+    if (shell_exec('which apparmor_status')) {
         exec('sudo apparmor_status', $rAppArmor);
-        if (strtolower(trim($rAppArmor[0])) != 'apparmor module is loaded.') {
-        } else {
+
+        // If the first line indicates AppArmor is loaded
+        if (strtolower(trim($rAppArmor[0])) == 'apparmor module is loaded.') {
             exec('sudo systemctl is-active apparmor', $rStatus);
-            if (strtolower(trim($rStatus[0])) != 'active') {
-            } else {
+
+            // If AppArmor service is active, stop and disable it
+            if (strtolower(trim($rStatus[0])) == 'active') {
                 echo 'AppArmor is loaded! Disabling...' . "\n";
                 shell_exec('sudo systemctl stop apparmor');
                 shell_exec('sudo systemctl disable apparmor');
             }
         }
     }
-    $rPHPUpdated = $rUpdated = false;
-    exec('sudo lsb_release -r -s', $osReleaseVersion);
-    $rAPI = json_decode(file_get_contents(($rBaseURL . '?version=' . XC_VM_VERSION . '&ubv=' . floatval($osReleaseVersion[0]) ?: '')), true);
-    if (is_array($rAPI)) {
-        foreach ($rAPI['files'] as $rFile) {
-            if (!(file_exists($rFile['path']) && md5_file($rFile['path']) == $rFile['md5'])) {
+
+    $rUpdated = false;
+    $repo = new GitHubReleases(GIT_OWNER, GIT_REPO_UPDATE);
+
+    // Get GeoLite data files info from GitHub
+    $datageolite = $repo->getGeolite();
+    if (is_array($datageolite)) {
+        foreach ($datageolite['files'] as $rFile) {
+            // Check if file is missing OR checksum mismatch
+            if (!file_exists($rFile['path']) || md5_file($rFile['path']) != $rFile['md5']) {
                 $rFolderPath = pathinfo($rFile['path'])['dirname'] . '/';
+
+                // Ensure target folder exists
                 if (!file_exists($rFolderPath)) {
                     shell_exec('sudo mkdir -p "' . $rFolderPath . '"');
                 }
+
+                // Download file with cURL
                 $ch = curl_init();
-                curl_setopt($ch, CURLOPT_URL, $rBaseURL . $rFile['md5']);
+                curl_setopt($ch, CURLOPT_URL, $rFile['fileurl']);
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
                 curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 30);
                 curl_setopt($ch, CURLOPT_TIMEOUT, 300);
+                curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true); // Handle redirects
+                curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'); // Custom User-Agent
                 $rData = curl_exec($ch);
                 $rMD5 = md5($rData);
+
+                // Verify checksum before saving file
                 if ($rFile['md5'] == $rMD5) {
                     echo 'Updated binary: ' . $rFile['path'] . "\n";
-                    shell_exec('sudo rm -rf "' . $rFile['path'] . '"');
                     file_put_contents($rFile['path'], $rData);
+
+                    // Set correct owner and permissions
                     shell_exec('sudo chown xc_vm:xc_vm "' . $rFile['path'] . '"');
-                    shell_exec('sudo chmod ' . $rPermissions . ' "' . $rFile['path'] . '"');
+                    shell_exec('sudo chmod ' . $rFile["permision"] . ' "' . $rFile['path'] . '"');
                     $rUpdated = true;
-                    if (substr(basename($rFile['path']), 0, 3) == 'php') {
-                        $rPHPUpdated = true;
-                    }
                 }
             }
         }
+
+        // Update geolite version in JSON metadata file
+        $jsonData = file_get_contents($geolitejsonFile);
+        $data = json_decode($jsonData, true);
+
+        if (isset($data['geolite2_version'])) {
+            $data['geolite2_version'] = $datageolite["version"];
+
+            // Save updated JSON back to file
+            file_put_contents($geolitejsonFile, json_encode($data, JSON_PRETTY_PRINT));
+        }
     }
+
+    // If any file was updated → fix ownership for the whole base directory
     if ($rUpdated) {
         shell_exec('sudo chown -R xc_vm:xc_vm "' . $rBaseDir . '"');
     }
-    // if ($rPHPUpdated) {
-    //     $rVersion = (array(72 => '7.2', 74 => '7.4')[CoreUtilities::$rServers[SERVER_ID]['php_version']] ?: '7.4');
-    //     shell_exec('sudo ln -sfn ' . PHP_BIN . '_' . $rVersion . ' ' . PHP_BIN);
-    //     shell_exec('sudo ln -sfn ' . BIN_PATH . 'php/sbin/php-fpm_' . $rVersion . ' ' . BIN_PATH . 'php/sbin/php-fpm');
-    //     shell_exec('sudo chown -R xc_vm:xc_vm ' . BIN_PATH . 'php');
-    //     shell_exec('sudo service xc_vm restart');
-    // }
 }
+
 function shutdown() {
     global $db;
     if (is_object($db)) {
