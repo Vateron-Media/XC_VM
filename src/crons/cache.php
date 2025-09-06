@@ -23,8 +23,7 @@ function loadCron() {
     global $db;
     global $rStartup;
     if (defined('CACHE_TMP_PATH')) {
-        if (!($rStartup && file_exists(CACHE_TMP_PATH . 'settings'))) {
-        } else {
+        if ($rStartup && file_exists(CACHE_TMP_PATH . 'settings')) {
             echo 'Checking cache readability...' . "\n";
             $rSerialize = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'settings'));
             if (is_array($rSerialize) && isset($rSerialize['server_name'])) {
@@ -40,8 +39,7 @@ function loadCron() {
             }
         }
         foreach (array(EPG_PATH, VOD_PATH, ARCHIVE_PATH, CREATED_PATH, DELAY_PATH, VIDEO_PATH, PLAYLIST_PATH, CONS_TMP_PATH, CRONS_TMP_PATH, PLAYER_TMP_PATH, CACHE_TMP_PATH, DIVERGENCE_TMP_PATH, FLOOD_TMP_PATH, MINISTRA_TMP_PATH, SIGNALS_TMP_PATH, LOGS_TMP_PATH, WATCH_TMP_PATH, CIDR_TMP_PATH, STREAMS_TMP_PATH, LINES_TMP_PATH, SERIES_TMP_PATH) as $rPath) {
-            if (file_exists($rPath)) {
-            } else {
+            if (!file_exists($rPath)) {
                 mkdir($rPath);
             }
         }
@@ -57,8 +55,7 @@ function loadCron() {
         CoreUtilities::setCache('blocked_ips', CoreUtilities::getBlockedIPs(true));
         CoreUtilities::setCache('allowed_ips', CoreUtilities::getAllowedIPs(true));
         CoreUtilities::setCache('categories', CoreUtilities::getCategories(null, true));
-        if (!CoreUtilities::$rServers[SERVER_ID]['is_main']) {
-        } else {
+        if (CoreUtilities::$rServers[SERVER_ID]['is_main']) {
             $rOutputFormats = array();
             $db->query('SELECT `access_output_id`, `output_key` FROM `output_formats`;');
             foreach ($db->get_rows() as $rRow) {
@@ -77,11 +74,9 @@ function loadCron() {
                 $rRTMPIPs[gethostbyname($rRow['ip'])] = array('password' => $rRow['password'], 'push' => boolval($rRow['push']), 'pull' => boolval($rRow['pull']));
             }
             file_put_contents(CACHE_TMP_PATH . 'rtmp_ips', igbinary_serialize($rRTMPIPs));
-            if (!file_exists(BIN_PATH . 'maxmind/cidr.db')) {
-            } else {
+            if (file_exists(BIN_PATH . 'maxmind/cidr.db')) {
                 exec('ls ' . CIDR_TMP_PATH . ' | wc -l', $rOutput);
-                if (intval($rOutput[0]) != 0) {
-                } else {
+                if (intval($rOutput[0]) == 0) {
                     $rDatabase = json_decode(file_get_contents(BIN_PATH . 'maxmind/cidr.db'), true);
                     foreach ($rDatabase as $rASN => $rData) {
                         file_put_contents(CIDR_TMP_PATH . $rASN, json_encode($rData));
@@ -89,8 +84,7 @@ function loadCron() {
                 }
             }
             $rChannelOrder = array();
-            if (CoreUtilities::$rSettings['channel_number_type'] != 'manual') {
-            } else {
+            if (CoreUtilities::$rSettings['channel_number_type'] == 'manual') {
                 $db->query('SELECT `id`, `order` FROM `streams` ORDER BY `order` ASC;');
                 foreach ($db->get_rows() as $rRow) {
                     $rChannelOrder[] = intval($rRow['id']);

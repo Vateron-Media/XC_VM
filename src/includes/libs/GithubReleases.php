@@ -20,6 +20,7 @@ class GitHubReleases {
     public function __construct(string $owner, string $repo, ?string $token = null) {
         $this->owner = $owner;
         $this->repo = $repo;
+        $this->cache_file = "{$this->cache_file}_$repo";
         $this->api_url = "https://api.github.com/repos/{$owner}/{$repo}/releases";
         $this->headers = $token ? [
             "Authorization: Bearer {$token}",
@@ -392,15 +393,120 @@ class GitHubReleases {
             return null;
         }
     }
+
+    /**
+     * Retrieve the latest GeoLite database release information.
+     *
+     * This method fetches the latest release version from the repository,
+     * builds download URLs for GeoLite2 database files (ASN, City, Country),
+     * and prepares metadata including file paths, permissions, and MD5 hashes.
+     *
+     * @return array|null Returns an associative array with the latest version and file data,
+     *                    or null if no releases are available.
+     */
+    public function getGeolite(): ?array {
+        // Get all available releases from the repository
+        $releases = $this->getReleases();
+
+        // If there are no releases, return null
+        if (empty($releases)) {
+            return null;
+        }
+
+        // Take the latest release (the first in the list)
+        $latest_version = $releases[0];
+
+        // Prepare the list of data files
+        $data_files = array();
+
+        // Iterate over required GeoLite2 database files
+        foreach (["GeoLite2-City.mmdb", "GeoLite2-Country.mmdb"] as $file) {
+            // Construct the GitHub release download URL
+            $file_url = "https://github.com/{$this->owner}/{$this->repo}/releases/download/{$latest_version}/{$file}";
+
+            // Fetch the MD5 hash for file integrity verification
+            $hash_md5 = $this->getAssetHash($latest_version, $file);
+
+            // Add file information to the list
+            $data_files[] = [
+                "fileurl"   => $file_url,                                // Remote file URL
+                "path"      => "/home/xc_vm/bin/maxmind/{$file}",        // Local path where the file should be stored
+                "permission" => "0750",                                   // File permission
+                "md5"       => $hash_md5                                // File hash (MD5)
+            ];
+        }
+
+        // Prepare final data structure containing version and files metadata
+        $data = [
+            "version" => $latest_version,
+            "files"   => $data_files,
+        ];
+
+        // Return the release data
+        return $data;
+    }
 }
 
-// // Example usage
-// $current = '1.0.2';
-// $repo = new GitHubReleases('Vateron-Media', 'XC_VM');
-//     $next_version = $repo->getNextVersion($current);
-//     echo "🔁 Next version after {$current}: {$next_version}\n";
-
-//     $notes = $repo->getUpdate($current);
-//     print_r($notes);
-
-//     print_r($repo->getUpdateFile("main", $current));
+/**
+ * ------------------------------------------------------------
+ * 🔧 Инициализация:
+ *
+ *   $gh = new GitHubReleases("Vateron-Media", "XC_VM");
+ *   // Можно передать токен для увеличения лимита API:
+ *   // $gh = new GitHubReleases("owner", "repo", "ghp_XXXXXXX");
+ *
+ * ------------------------------------------------------------
+ *
+ * 1. Получить список релизов:
+ *
+ *   $releases = $gh->getReleases();
+ *   print_r($releases);
+ *
+ * ------------------------------------------------------------
+ * 2. Проверить следующую версию после текущей:
+ *
+ *   $next = $gh->getNextVersion("1.0.0");
+ *   echo $next;
+ *
+ * ------------------------------------------------------------
+ * 3. Проверить хэш файла из релиза:
+ *
+ *   $hash = $gh->getAssetHash("1.2.0", "update.tar.gz");
+ *   echo $hash;
+ *
+ * ------------------------------------------------------------
+ * 4. Загрузить changelog:
+ *
+ *   $changelog = $gh->getChangelog("https://raw.githubusercontent.com/Vateron-Media/XC_VM_Update/refs/heads/main/changelog.json");
+ *   print_r($changelog);
+ *
+ * ------------------------------------------------------------
+ * 5. Проверка корректности версии:
+ *
+ *   var_dump(GitHubReleases::isValidVersion("1.0.0")); // true
+ *   var_dump(GitHubReleases::isValidVersion("01.0.0")); // false
+ *
+ * ------------------------------------------------------------
+ * 6. Получение архива обновления:
+ *
+ *   $upd = $gh->getUpdateFile("main", "1.0.0");
+ *   print_r($upd);
+ *
+ * ------------------------------------------------------------
+ * 7. Проверить наличие обновления:
+ *
+ *   $update = $gh->getUpdate("1.0.0");
+ *   print_r($update);
+ *
+ * ------------------------------------------------------------
+ * 8. Получить информацию о GeoLite базах:
+ *
+ *   $gh = new GitHubReleases("Vateron-Media", "XC_VM_Update");
+ *   $geo = $gh->getGeolite();
+ *   print_r($geo);
+ *
+ * ------------------------------------------------------------
+ * ⚠️ Важно:
+ * - Кеш хранится в /home/xc_vm/tmp/gitapi_repo
+ * - TTL кеша: 30 минут (1800 сек)
+ */

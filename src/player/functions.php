@@ -56,7 +56,7 @@ if (isset($rSkipVerify) || php_sapi_name() != 'cli') {
 		define('LINES_TMP_PATH', MAIN_HOME . 'tmp/cache/lines/');
 		define('CONS_TMP_PATH', MAIN_HOME . 'tmp/opened_cons/');
 		define('SIGNALS_TMP_PATH', MAIN_HOME . 'tmp/signals/');
-		define('GEOLITE2_BIN', BIN_PATH . 'maxmind/GeoLite2.mmdb');
+		define('GEOLITE2_BIN', BIN_PATH . 'maxmind/GeoLite2-Country.mmdb');
 		define('GEOISP_BIN', BIN_PATH . 'maxmind/GeoIP2-ISP.mmdb');
 		define('CONTENT_PATH', MAIN_HOME . 'content/');
 	} else {
