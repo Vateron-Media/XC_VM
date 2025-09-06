@@ -236,7 +236,7 @@ set_permissions:
 	chmod 0750 $(TEMP_DIR)/bin/maxmind 2>/dev/null || [ $$? -eq 1 ]
 	chmod 0750 $(TEMP_DIR)/bin/maxmind/GeoIP2-ISP.mmdb 2>/dev/null || [ $$? -eq 1 ]
 	chmod 0750 $(TEMP_DIR)/bin/maxmind/GeoLite2-City.mmdb 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0750 $(TEMP_DIR)/bin/maxmind/GeoLite2.mmdb 2>/dev/null || [ $$? -eq 1 ]
+	chmod 0750 $(TEMP_DIR)/bin/maxmind/GeoLite2-Country.mmdb 2>/dev/null || [ $$? -eq 1 ]
 	chmod 0750 $(TEMP_DIR)/bin/maxmind/version.json 2>/dev/null || [ $$? -eq 1 ]
 	chmod 0550 $(TEMP_DIR)/bin/maxmind/cidr.db 2>/dev/null || [ $$? -eq 1 ]
 
