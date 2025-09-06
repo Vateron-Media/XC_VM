@@ -21,6 +21,7 @@ if (!defined('TMP_PATH')) {
 	define('TMP_PATH', MAIN_HOME . 'tmp/');
 }
 
+define('DEVELOPMENT', false);
 define('XC_VM_VERSION', '1.0.4');
 define('GIT_OWNER', 'Vateron-Media');
 define('GIT_REPO_MAIN', 'XC_VM');

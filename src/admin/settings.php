@@ -122,7 +122,7 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 											class="mdi mdi-file-document-outline mr-1"></i><span
 											class="d-none d-sm-inline">Logs</span></a>
 								</li>
-								<?php if (hasPermissions("adv", "database")) { ?>
+								<?php if (hasPermissions("adv", "database") && DEVELOPMENT) { ?>
 								<li class="nav-item">
 									<a href="#database" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"> <i
 											class="mdi mdi-file-document-outline mr-1"></i><span
@@ -2263,7 +2263,7 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 									</div>
 								</div>
 								<?php
-								if (hasPermissions("adv", "database")) { ?>
+								if (hasPermissions("adv", "database") && DEVELOPMENT) { ?>
                                         <div class="tab-pane" id="database">
                                             <div class="row">
                                                 <iframe width="100%" height="650px" src="./database.php"

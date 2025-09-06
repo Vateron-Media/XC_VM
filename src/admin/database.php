@@ -11,6 +11,10 @@
 
 include "functions.php";
 
+if (!DEVELOPMENT){
+    goHome();
+}
+
 if (!isset($_SESSION['hash'])) {
     header("Location: ./login.php");
     exit;
