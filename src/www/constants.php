@@ -23,7 +23,8 @@ if (!defined('TMP_PATH')) {
 
 define('XC_VM_VERSION', '1.0.4');
 define('GIT_OWNER', 'Vateron-Media');
-define('GIT_REPO', 'XC_VM');
+define('GIT_REPO_MAIN', 'XC_VM');
+define('GIT_REPO_UPDATE', 'XC_VM_Update');
 define('CONFIG_PATH', MAIN_HOME . 'config/');
 define('BIN_PATH', MAIN_HOME . 'bin/');
 define('INCLUDES_PATH', MAIN_HOME . 'includes/');
@@ -44,7 +45,7 @@ define('PLAYLIST_PATH', CONTENT_PATH . 'playlists/');
 define('CLI_PATH', INCLUDES_PATH . 'cli/');
 define('IMAGES_PATH', WWW_PATH . 'images/');
 define('E2_IMAGES_PATH', IMAGES_PATH . 'enigma2/');
-define('GEOLITE2_BIN', BIN_PATH . 'maxmind/GeoLite2.mmdb');
+define('GEOLITE2_BIN', BIN_PATH . 'maxmind/GeoLite2-Country.mmdb');
 define('GEOLITE2C_BIN', BIN_PATH . 'maxmind/GeoLite2-City.mmdb');
 define('GEOISP_BIN', BIN_PATH . 'maxmind/GeoIP2-ISP.mmdb');
 define('LOADBALANCER_UPDATE', BIN_PATH . 'install/loadbalancer_update.tar.gz');
