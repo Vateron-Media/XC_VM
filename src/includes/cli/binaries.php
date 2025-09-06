@@ -68,7 +68,7 @@ function loadcli() {
 
                     // Set correct owner and permissions
                     shell_exec('sudo chown xc_vm:xc_vm "' . $rFile['path'] . '"');
-                    shell_exec('sudo chmod ' . $rFile["permision"] . ' "' . $rFile['path'] . '"');
+                    shell_exec('sudo chmod ' . $rFile["permission"] . ' "' . $rFile['path'] . '"');
                     $rUpdated = true;
                 }
             }
