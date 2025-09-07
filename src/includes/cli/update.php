@@ -119,8 +119,8 @@ function loadcli() {
             $db->query('UPDATE `settings` SET `update_data` = NULL;');
 
             // Update checkpoint
-            if (file_exists(MAIN_HOME . 'bin/youtube')) {
-                unlink(MAIN_HOME . 'bin/youtube');
+            if (file_exists(MAIN_HOME . 'bin/maxmind/GeoLite2.mmdb')) {
+                unlink(MAIN_HOME . 'bin/maxmind/GeoLite2.mmdb');
             }
 
             // Remove 'reuseport' from nginx port configs
