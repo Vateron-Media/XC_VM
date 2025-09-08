@@ -116,7 +116,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rQuery = "SELECT `lines`.`id`, `lines`.`member_id`, `lines`.`last_activity`, `lines`.`last_activity_array`, `lines`.`username`, `lines`.`password`, `lines`.`exp_date`, `lines`.`admin_enabled`, `lines`.`is_restreamer`, `lines`.`enabled`, `lines`.`admin_notes`, `lines`.`reseller_notes`, `lines`.`max_connections`, `lines`.`is_trial`, (SELECT COUNT(*) AS `active_connections` FROM `lines_live` WHERE `user_id` = `lines`.`id` AND `hls_end` = 0) AS `active_connections` FROM `lines` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
@@ -381,7 +381,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rQuery = "SELECT `lines`.`id`, `lines`.`username`, `lines`.`member_id`, `lines`.`last_activity`, `lines`.`last_activity_array`, `mag_devices`.`mac`, `mag_devices`.`stb_type`, `mag_devices`.`mag_id`, `lines`.`exp_date`, `lines`.`admin_enabled`, `lines`.`enabled`, `lines`.`admin_notes`, `lines`.`reseller_notes`, `lines`.`max_connections`, `lines`.`is_trial`, (SELECT count(*) FROM `lines_live` WHERE `lines`.`id` = `lines_live`.`user_id` AND `hls_end` = 0) AS `active_connections` FROM `lines` RIGHT JOIN `mag_devices` ON `mag_devices`.`user_id` = `lines`.`id` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
@@ -639,7 +639,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rQuery = "SELECT `lines`.`id`, `lines`.`username`, `lines`.`member_id`, `lines`.`last_activity`, `lines`.`last_activity_array`, `enigma2_devices`.`mac`, `enigma2_devices`.`public_ip`, `enigma2_devices`.`device_id`, `lines`.`exp_date`, `lines`.`admin_enabled`, `lines`.`enabled`, `lines`.`admin_notes`, `lines`.`reseller_notes`, `lines`.`max_connections`, `lines`.`is_trial`, (SELECT count(*) FROM `lines_live` WHERE `lines`.`id` = `lines_live`.`user_id` AND `hls_end` = 0) AS `active_connections` FROM `lines` RIGHT JOIN `enigma2_devices` ON `enigma2_devices`.`user_id` = `lines`.`id` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
@@ -1471,7 +1471,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         if ($rSettings["streams_grouped"] == 1) {
             $rQuery = "SELECT `streams`.`id`, `streams`.`stream_icon`, `streams`.`movie_properties`, `streams_servers`.`to_analyze`, `streams`.`target_container`, `streams`.`stream_display_name`, `streams_servers`.`server_id`, `streams`.`notes`, `streams`.`direct_source`, `streams_servers`.`pid`, `streams_servers`.`monitor_pid`, `streams_servers`.`stream_status`, `streams_servers`.`stream_started`, `streams_servers`.`stream_info`, `streams_servers`.`current_source`, `streams_servers`.`bitrate`, `streams_servers`.`progress_info`, `streams_servers`.`on_demand`, `streams`.`category_id`, (SELECT `server_name` FROM `servers` WHERE `id` = `streams_servers`.`server_id`) AS `server_name`, (SELECT COUNT(*) FROM `lines_live` WHERE `lines_live`.`server_id` = `streams_servers`.`server_id` AND `lines_live`.`stream_id` = `streams`.`id` AND `hls_end` = 0) AS `clients` FROM `streams` LEFT JOIN `streams_servers` ON `streams_servers`.`stream_id` = `streams`.`id` AND `streams_servers`.`parent_id` IS NULL " . $rWhereString . " GROUP BY `streams`.`id` " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
@@ -1806,7 +1806,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         if ($rSettings["streams_grouped"] == 1) {
             $rQuery = "SELECT `streams`.`id`, MD5(`streams`.`stream_source`) AS `source`, `streams`.`movie_properties`, `streams`.`year`, `streams_servers`.`to_analyze`, `streams`.`target_container`, `streams`.`stream_display_name`, `streams_servers`.`server_id`, `streams`.`notes`, `streams`.`direct_source`, `streams`.`direct_proxy`, `streams_servers`.`pid`, `streams_servers`.`monitor_pid`, `streams_servers`.`stream_status`, `streams_servers`.`stream_started`, `streams_servers`.`stream_info`, `streams_servers`.`current_source`, `streams_servers`.`bitrate`, `streams_servers`.`progress_info`, `streams_servers`.`on_demand`, `streams`.`category_id`, (SELECT COUNT(*) FROM `lines_live` WHERE `lines_live`.`server_id` = `streams_servers`.`server_id` AND `lines_live`.`stream_id` = `streams`.`id` AND `hls_end` = 0) AS `clients`, (SELECT `server_name` FROM `servers` WHERE `id` = `streams_servers`.`server_id`) AS `server_name` FROM `streams` LEFT JOIN `streams_servers` ON `streams_servers`.`stream_id` = `streams`.`id` AND `streams_servers`.`parent_id` IS NULL " . $rWhereString . " GROUP BY `streams`.`id` " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
@@ -1856,7 +1856,7 @@ if ($rType == "lines") {
                     $rProperties = json_decode($rRow["movie_properties"], true);
                     $rRatingText = "";
                     if ($rProperties["rating"]) {
-                        $rStarRating = round($rProperties["rating"]) / 0;
+                        $rStarRating = round($rProperties["rating"]) / 2;
                         $rFullStars = floor($rStarRating);
                         $rHalfStar = 0 < $rStarRating - $rFullStars;
                         $rEmpty = 5 - ($rFullStars + ($rHalfStar ? 1 : 0));
@@ -2118,7 +2118,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rQuery = "SELECT `streams`.`id`, MD5(`streams`.`stream_source`) AS `source`, `streams_servers`.`to_analyze`, `streams`.`movie_properties`, `streams`.`target_container`, `streams`.`stream_display_name`, `streams_servers`.`server_id`, `streams`.`notes`, `streams`.`direct_source`, `streams`.`direct_proxy`, `streams_servers`.`pid`, `streams_servers`.`monitor_pid`, `streams_servers`.`stream_status`, `streams_servers`.`stream_started`, `streams_servers`.`stream_info`, `streams_servers`.`current_source`, `streams_servers`.`bitrate`, `streams_servers`.`progress_info`, `streams_servers`.`on_demand`, `streams`.`category_id`, (SELECT `server_name` FROM `servers` WHERE `id` = `streams_servers`.`server_id`) AS `server_name`, (SELECT COUNT(*) FROM `lines_live` WHERE `lines_live`.`server_id` = `streams_servers`.`server_id` AND `lines_live`.`stream_id` = `streams`.`id` AND `hls_end` = 0) AS `clients`, `streams_series`.`title`, `streams_series`.`seasons`, `streams_series`.`id` AS `sid`, `streams_episodes`.`season_num` FROM `streams` LEFT JOIN `streams_servers` ON `streams_servers`.`stream_id` = `streams`.`id` AND `streams_servers`.`parent_id` IS NULL LEFT JOIN `streams_episodes` ON `streams_episodes`.`stream_id` = `streams`.`id` LEFT JOIN `streams_series` ON `streams_series`.`id` = `streams_episodes`.`series_id` " . $rWhereString . " GROUP BY `streams`.`id` " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
@@ -2239,7 +2239,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rQuery = "SELECT `lines`.`username`, `lines`.`is_e2`, `lines`.`is_mag`, `lines_activity`.`activity_id`, `lines_activity`.`hmac_identifier`, `lines_activity`.`hmac_id`, `lines_activity`.`proxy_id`, `lines_activity`.`container`, `lines_activity`.`isp`, `lines_activity`.`user_id`, `lines_activity`.`stream_id`, `streams`.`series_no`, `lines_activity`.`server_id`, `lines_activity`.`user_agent`, `lines_activity`.`user_ip`, `lines_activity`.`container`, `lines_activity`.`date_start`, `lines_activity`.`date_end`, `lines_activity`.`geoip_country_code`, `streams`.`stream_display_name`, `streams`.`type`, (SELECT `server_name` FROM `servers` WHERE `id` = `lines_activity`.`server_id`) AS `server_name`, `lines`.`is_restreamer` FROM `lines_activity` LEFT JOIN `lines` ON `lines_activity`.`user_id` = `lines`.`id` LEFT JOIN `streams` ON `lines_activity`.`stream_id` = `streams`.`id` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
@@ -2509,7 +2509,7 @@ if ($rType == "lines") {
             $rRows[$i] = array_merge($rRows[$i], $rUserMap[$rRows[$i]["user_id"]] ?: []);
         }
         $rReturn["recordsTotal"] = $rKeyCount;
-        $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+        $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     } else {
         $rOrderDirection = strtolower(CoreUtilities::$rRequest["order"][0]["dir"]) === "desc" ? "desc" : "asc";
         $rOrder = ["`lines_live`.`activity_id`", "`lines_live`.`divergence`", "`username` " . $rOrderDirection . ", `lines_live`.`hmac_identifier`", "`streams`.`stream_display_name`", "`server_name`", "`lines_live`.`user_agent`", "`lines_live`.`isp`", "`lines_live`.`user_ip`", "UNIX_TIMESTAMP() - `lines_live`.`date_start`", "`lines_live`.`container`", "`lines`.`is_restreamer`", false];
@@ -2570,7 +2570,7 @@ if ($rType == "lines") {
         } else {
             $rReturn["recordsTotal"] = 0;
         }
-        $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+        $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
         if (0 < $rReturn["recordsTotal"]) {
             $rQuery = "SELECT `mag_devices`.`mag_id`, `mag_devices`.`mac`,`enigma2_devices`.`device_id`, `lines`.`is_e2`, `lines`.`is_mag`, `lines_live`.`activity_id`, `lines_live`.`hmac_id`, `lines_live`.`hmac_identifier`, `lines_live`.`proxy_id`, `lines_live`.`divergence`, `lines_live`.`user_id`, `lines_live`.`stream_id`, `streams`.`series_no`, `lines`.`is_restreamer`, `lines_live`.`isp`, `lines_live`.`server_id`, `lines_live`.`user_agent`, `lines_live`.`user_ip`, `lines_live`.`container`, `lines_live`.`pid`, `lines_live`.`uuid`, `lines_live`.`date_start`, `lines_live`.`geoip_country_code`, IF(`lines`.`is_mag`, `mag_devices`.`mac`, IF(`lines`.`is_e2`, `enigma2_devices`.`mac`, `lines`.`username`)) AS `username`, `streams`.`stream_display_name`, `streams`.`type`, (SELECT `server_name` FROM `servers` WHERE `id` = `lines_live`.`server_id`) AS `server_name` FROM `lines_live` LEFT JOIN `lines` ON `lines_live`.`user_id` = `lines`.`id` LEFT JOIN `streams` ON `lines_live`.`stream_id` = `streams`.`id` LEFT JOIN `mag_devices` ON `mag_devices`.`user_id` = `lines_live`.`user_id` LEFT JOIN `enigma2_devices` ON `enigma2_devices`.`user_id` = `lines_live`.`user_id` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
             $db->query($rQuery, ...$rWhereV);
@@ -2783,7 +2783,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rQuery = "SELECT `streams`.`id`, `streams_servers`.`stream_id`, `streams`.`type`, `streams`.`stream_icon`, `streams`.`adaptive_link`, `streams`.`title_sync`, `streams_servers`.`cchannel_rsources`, `streams`.`stream_source`, `streams`.`stream_display_name`, `streams`.`tv_archive_duration`, `streams`.`tv_archive_server_id`, `streams_servers`.`server_id`, `streams`.`notes`, `streams`.`direct_source`, `streams`.`direct_proxy`, `streams_servers`.`pid`, `streams_servers`.`monitor_pid`, `streams_servers`.`stream_status`, `streams_servers`.`stream_started`, `streams_servers`.`stream_info`, `streams_servers`.`current_source`, `streams_servers`.`bitrate`, `streams_servers`.`progress_info`, `streams_servers`.`cc_info`, `streams_servers`.`on_demand`, `streams`.`category_id`, (SELECT `server_name` FROM `servers` WHERE `id` = `streams_servers`.`server_id`) AS `server_name`, (SELECT COUNT(*) FROM `lines_live` WHERE `lines_live`.`stream_id` = `streams`.`id` AND `hls_end` = 0) AS `clients`, `streams`.`epg_id`, `streams`.`channel_id` FROM `streams` LEFT JOIN `streams_servers` ON `streams_servers`.`stream_id` = `streams`.`id` AND `streams_servers`.`parent_id` IS NULL " . $rWhereString . " GROUP BY `streams`.`id` " . $rOrderBy . ", -`stream_started` DESC LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
@@ -2931,7 +2931,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rQuery = "SELECT `streams`.`id`, MD5(`streams`.`stream_source`) AS `source`, `streams`.`movie_properties`, `streams`.`year`, `streams_servers`.`to_analyze`, `streams`.`target_container`, `streams`.`stream_display_name`, `streams_servers`.`server_id`, `streams`.`notes`, `streams`.`direct_source`, `streams`.`direct_proxy`, `streams_servers`.`pid`, `streams_servers`.`monitor_pid`, `streams_servers`.`stream_status`, `streams_servers`.`stream_started`, `streams_servers`.`stream_info`, `streams_servers`.`current_source`, `streams_servers`.`bitrate`, `streams_servers`.`progress_info`, `streams_servers`.`on_demand`, `streams`.`category_id`, (SELECT COUNT(*) FROM `lines_live` WHERE `lines_live`.`server_id` = `streams_servers`.`server_id` AND `lines_live`.`stream_id` = `streams`.`id` AND `hls_end` = 0) AS `clients`, (SELECT `server_name` FROM `servers` WHERE `id` = `streams_servers`.`server_id`) AS `server_name` FROM `streams` LEFT JOIN `streams_servers` ON `streams_servers`.`stream_id` = `streams`.`id` AND `streams_servers`.`parent_id` IS NULL " . $rWhereString . " GROUP BY `streams`.`id` " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
@@ -3088,7 +3088,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rQuery = "SELECT `streams`.`id`, `streams`.`stream_icon`, `streams`.`movie_properties`, `streams_servers`.`to_analyze`, `streams`.`target_container`, `streams`.`stream_display_name`, `streams_servers`.`server_id`, `streams`.`notes`, `streams`.`direct_source`, `streams_servers`.`pid`, `streams_servers`.`monitor_pid`, `streams_servers`.`stream_status`, `streams_servers`.`stream_started`, `streams_servers`.`stream_info`, `streams_servers`.`current_source`, `streams_servers`.`bitrate`, `streams_servers`.`progress_info`, `streams_servers`.`on_demand`, `streams`.`category_id`, (SELECT `server_name` FROM `servers` WHERE `id` = `streams_servers`.`server_id`) AS `server_name`, (SELECT COUNT(*) FROM `lines_live` WHERE `lines_live`.`server_id` = `streams_servers`.`server_id` AND `lines_live`.`stream_id` = `streams`.`id` AND `hls_end` = 0) AS `clients` FROM `streams` LEFT JOIN `streams_servers` ON `streams_servers`.`stream_id` = `streams`.`id` AND `streams_servers`.`parent_id` IS NULL " . $rWhereString . " GROUP BY `streams`.`id` " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
@@ -3207,7 +3207,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rQuery = "SELECT `streams_series`.`id`, `streams_series`.`year`, `streams_series`.`rating`, `streams_series`.`cover`, `streams_series`.`title`, `streams_series`.`category_id`, `streams_series`.`tmdb_id`, `streams_series`.`release_date`, `streams_series`.`last_modified`, (SELECT MAX(`season_num`) FROM `streams_episodes` WHERE `series_id` = `streams_series`.`id`) AS `latest_season`, (SELECT COUNT(*) FROM `streams_episodes` WHERE `series_id` = `streams_series`.`id`) AS `episode_count` FROM `streams_series` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
@@ -3335,7 +3335,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rQuery = "SELECT `users_credits_logs`.`id`, `users_credits_logs`.`target_id`, `users_credits_logs`.`admin_id`, `target`.`username` AS `target_username`, `owner`.`username` AS `owner_username`, `amount`, FROM_UNIXTIME(`date`) AS `date`, `users_credits_logs`.`reason` FROM `users_credits_logs` LEFT JOIN `users` AS `target` ON `target`.`id` = `users_credits_logs`.`target_id` LEFT JOIN `users` AS `owner` ON `owner`.`id` = `users_credits_logs`.`admin_id` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
@@ -3410,7 +3410,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rQuery = "SELECT `lines_logs`.`id`, `lines_logs`.`user_id`, `lines_logs`.`stream_id`, `streams`.`stream_display_name`, `streams`.`type`, `lines`.`username`, `lines_logs`.`client_status`, `lines_logs`.`query_string`, `lines_logs`.`user_agent`, `lines_logs`.`ip`, FROM_UNIXTIME(`lines_logs`.`date`) AS `date` FROM `lines_logs` LEFT JOIN `streams` ON `streams`.`id` = `lines_logs`.`stream_id` LEFT JOIN `lines` ON `lines`.`id` = `lines_logs`.`user_id` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
@@ -3500,7 +3500,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rPackages = getPackages();
         $rQuery = "SELECT `users`.`username`, `users_logs`.`id`, `users_logs`.`owner`, `users_logs`.`type`, `users_logs`.`action`, `users_logs`.`log_id`, `users_logs`.`package_id`, `users_logs`.`cost`, `users_logs`.`credits_after`, `users_logs`.`date`, `users_logs`.`deleted_info` FROM `users_logs` LEFT JOIN `users` ON `users`.`id` = `users_logs`.`owner` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
@@ -3657,7 +3657,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rQuery = "SELECT `streams_errors`.`id`, `streams_errors`.`stream_id`, `streams`.`type`, `streams_errors`.`server_id`, `streams`.`stream_display_name`, `servers`.`server_name`, `streams_errors`.`error`, FROM_UNIXTIME(`streams_errors`.`date`) AS `date` FROM `streams_errors` LEFT JOIN `streams` ON `streams`.`id` = `streams_errors`.`stream_id` LEFT JOIN `servers` ON `servers`.`id` = `streams_errors`.`server_id` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
@@ -3763,7 +3763,7 @@ if ($rType == "lines") {
             }
         }
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     echo json_encode($rReturn);
     exit;
 } elseif ($rType == "reg_users") {
@@ -3813,7 +3813,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rQuery = "SELECT `users`.`member_group_id`, `users`.`id`, `users`.`status`, `users`.`notes`, `users`.`owner_id`, `users`.`credits`, `users`.`username`, `users`.`email`, `users`.`ip`, FROM_UNIXTIME(`users`.`date_registered`) AS `date_registered`, FROM_UNIXTIME(`users`.`last_login`) AS `last_login`, `users`.`status` FROM `users` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
@@ -3995,7 +3995,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rQuery = "SELECT `blocked_asns`.`id`, `blocked_asns`.`asn`, `blocked_asns`.`isp`, `blocked_asns`.`domain`, `blocked_asns`.`country`, `blocked_asns`.`num_ips`, `blocked_asns`.`type`, `blocked_asns`.`blocked` FROM `blocked_asns` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
@@ -4068,7 +4068,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rQuery = "SELECT `streams_series`.`id`, `streams_series`.`year`, `streams_series`.`rating`, `streams_series`.`cover`, `streams_series`.`title`, `streams_series`.`category_id`, `streams_series`.`tmdb_id`, `streams_series`.`release_date`, `streams_series`.`last_modified`, (SELECT MAX(`season_num`) FROM `streams_episodes` WHERE `series_id` = `streams_series`.`id`) AS `latest_season`, (SELECT COUNT(*) FROM `streams_episodes` WHERE `series_id` = `streams_series`.`id`) AS `episode_count` FROM `streams_series` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
@@ -4152,7 +4152,7 @@ if ($rType == "lines") {
                     }
                     $rRatingText = "";
                     if ($rRow["rating"]) {
-                        $rStarRating = round($rRow["rating"]) / 0;
+                        $rStarRating = round($rRow["rating"]) / 2;
                         $rFullStars = floor($rStarRating);
                         $rHalfStar = 0 < $rStarRating - $rFullStars;
                         $rEmpty = 5 - ($rFullStars + ($rHalfStar ? 1 : 0));
@@ -4287,7 +4287,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         if ($rSettings["streams_grouped"] == 1) {
             $rQuery = "SELECT `streams`.`id`, MD5(`streams`.`stream_source`) AS `source`, `streams_servers`.`to_analyze`, `streams`.`movie_properties`,  `streams`.`updated`, `streams`.`target_container`, `streams`.`stream_display_name`, `streams_servers`.`server_id`, `streams`.`notes`, `streams`.`direct_source`, `streams`.`direct_proxy`, `streams_servers`.`pid`, `streams_servers`.`monitor_pid`, `streams_servers`.`stream_status`, `streams_servers`.`stream_started`, `streams_servers`.`stream_info`, `streams_servers`.`current_source`, `streams_servers`.`bitrate`, `streams_servers`.`progress_info`, `streams_servers`.`on_demand`, `streams`.`category_id`, (SELECT `server_name` FROM `servers` WHERE `id` = `streams_servers`.`server_id`) AS `server_name`, (SELECT COUNT(*) FROM `lines_live` WHERE `lines_live`.`server_id` = `streams_servers`.`server_id` AND `lines_live`.`stream_id` = `streams`.`id` AND `hls_end` = 0) AS `clients`, `streams_series`.`title`, `streams_series`.`seasons`, `streams_series`.`id` AS `sid`, `streams_episodes`.`season_num` FROM `streams` LEFT JOIN `streams_servers` ON `streams_servers`.`stream_id` = `streams`.`id` AND `streams_servers`.`parent_id` IS NULL LEFT JOIN `streams_episodes` ON `streams_episodes`.`stream_id` = `streams`.`id` LEFT JOIN `streams_series` ON `streams_series`.`id` = `streams_episodes`.`series_id` " . $rWhereString . " GROUP BY `streams`.`id` " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
@@ -4591,7 +4591,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rQuery = "SELECT `watch_logs`.`id`, `watch_logs`.`type`, `watch_logs`.`server_id`, `servers`.`server_name`, `watch_logs`.`filename`, `watch_logs`.`status`, `watch_logs`.`stream_id`, `watch_logs`.`dateadded` FROM `watch_logs` LEFT JOIN `servers` ON `servers`.`id` = `watch_logs`.`server_id` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
@@ -4660,7 +4660,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rBlocked = [];
         $db->query("SELECT `ip` FROM `blocked_ips`;");
@@ -4729,7 +4729,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rQuery = "SELECT `panel_logs`.`id`, `panel_logs`.`date`, `panel_logs`.`server_id`, `servers`.`server_name`, `panel_logs`.`type`, `panel_logs`.`log_message`, `panel_logs`.`log_extra`, `panel_logs`.`line` FROM `panel_logs` LEFT JOIN `servers` ON `servers`.`id` = `panel_logs`.`server_id` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
@@ -4778,7 +4778,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rBlocked = [];
         $db->query("SELECT `ip` FROM `blocked_ips`;");
@@ -4844,7 +4844,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rQuery = "SELECT `queue`.*, `servers`.`server_name`, `streams`.`type`, `streams`.`stream_display_name` FROM `queue` LEFT JOIN `servers` ON `servers`.`id` = `queue`.`server_id` LEFT JOIN `streams` ON `streams`.`id` = `queue`.`stream_id` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
@@ -4914,7 +4914,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rBlocked = [];
         $db->query("SELECT `ip` FROM `blocked_ips`;");
@@ -4996,7 +4996,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rQuery = "SELECT `mag_events`.`id`, `mag_events`.`send_time`, `mag_devices`.`mac`, `mag_events`.`event`, `mag_events`.`msg`, `mag_events`.`mag_device_id` FROM `mag_events` LEFT JOIN `mag_devices` ON `mag_devices`.`mag_id` = `mag_events`.`mag_device_id` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
@@ -5052,7 +5052,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rQuery = "SELECT `streams`.`id`, `streams`.`stream_display_name`, `streams`.`category_id` FROM `streams` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
@@ -5117,7 +5117,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rQuery = "SELECT `streams`.`id`, `streams`.`stream_display_name`, `streams`.`category_id` FROM `streams` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
@@ -5181,7 +5181,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rQuery = "SELECT `streams_series`.`id`, `streams_series`.`title`, `streams_series`.`category_id` FROM `streams_series` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
@@ -5246,7 +5246,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rQuery = "SELECT `streams`.`id`, `streams`.`stream_display_name`, `streams`.`category_id` FROM `streams` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
@@ -5310,7 +5310,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rQuery = "SELECT `streams`.`id`, `streams`.`stream_display_name` FROM `streams` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
@@ -5365,7 +5365,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rQuery = "SELECT `streams`.`id`, `streams`.`stream_display_name` FROM `streams` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
@@ -5420,7 +5420,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rQuery = "SELECT `streams`.`id`, `streams`.`stream_display_name` FROM `streams` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
@@ -5474,7 +5474,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rQuery = "SELECT `streams_series`.`id`, `streams_series`.`title` FROM `streams_series` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
@@ -5539,7 +5539,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rQuery = "SELECT `streams`.`id`, `streams`.`stream_display_name`, `streams`.`category_id`, `streams_series`.`title` FROM `streams` LEFT JOIN `streams_series` ON `streams_series`.`id` = `streams`.`series_no` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
@@ -5604,7 +5604,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rQuery = "SELECT `providers`.`id`,`providers_streams`.`type`,`providers`.`username`, `providers`.`password`, `providers`.`ssl`, `providers`.`legacy`, `providers`.`hls`, `providers`.`ip`, `providers`.`port`, `providers`.`name`, `providers`.`data`, `providers_streams`.`stream_id`, `providers_streams`.`category_array`, `providers_streams`.`stream_display_name`, `providers_streams`.`stream_icon`,`providers_streams`.`channel_id` FROM `providers_streams` LEFT JOIN `providers` ON `providers`.`id` = `providers_streams`.`provider_id` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
@@ -5675,7 +5675,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rQuery = "SELECT `id`, `server_name`, `server_ip` FROM `servers` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
@@ -5713,7 +5713,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rQuery = "SELECT `server_id`, `action`, `source`, `date` FROM `streams_logs` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
@@ -5740,7 +5740,7 @@ if ($rType == "lines") {
         $rEPG = array_slice($rEPG, 0, $rLimit);
     }
     $rReturn["recordsTotal"] = count($rEPG) ?: 0;
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         foreach ($rEPG as $rRow) {
             if ($rIsAPI) {
@@ -5772,7 +5772,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rQuery = "SELECT `date`, `action` FROM `streams_logs` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
@@ -5842,7 +5842,7 @@ if ($rType == "lines") {
     } else {
         $rReturn["recordsTotal"] = 0;
     }
-    $rReturn["recordsFiltered"] = $rIsAPI ? $rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit : $rReturn["recordsTotal"];
+    $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
         $rQuery = "SELECT `ondemand_check`.`status` AS `ondemand_status`, `ondemand_check`.`date` AS `ondemand_date`, `ondemand_check`.`errors`, `ondemand_check`.`response`, `ondemand_check`.`resolution`, `ondemand_check`.`fps`, `ondemand_check`.`video_codec`, `ondemand_check`.`audio_codec`, `streams`.`id`, `streams`.`type`, `streams`.`stream_icon`, `streams`.`stream_source`, `streams`.`stream_display_name`, `streams_servers`.`server_id`, `streams`.`llod`, `streams`.`category_id`, (SELECT `server_name` FROM `servers` WHERE `id` = `streams_servers`.`server_id`) AS `server_name` FROM `streams` LEFT JOIN `streams_servers` ON `streams_servers`.`stream_id` = `streams`.`id` LEFT JOIN `ondemand_check` ON `ondemand_check`.`id` = `streams_servers`.`ondemand_check` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
