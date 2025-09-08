@@ -201,8 +201,7 @@ class API {
 					}
 				}
 
-				if (0 >= count($rBouquetSeries)) {
-				} else {
+				if (count($rBouquetSeries) > 0) {
 					self::$db->query('SELECT `id` FROM `streams_series` WHERE `id` IN (' . implode(',', $rBouquetSeries) . ');');
 
 					foreach (self::$db->get_rows() as $rRow) {
@@ -210,19 +209,17 @@ class API {
 					}
 				}
 
-				$rArray['bouquet_channels'] = array_intersect(array_map('intval', array_values($rBouquetStreams)), $rStreams[1]);
-				$rArray['bouquet_movies'] = array_intersect(array_map('intval', array_values($rBouquetMovies)), $rStreams[2]);
-				$rArray['bouquet_radios'] = array_intersect(array_map('intval', array_values($rBouquetRadios)), $rStreams[4]);
-				$rArray['bouquet_series'] = array_intersect(array_map('intval', array_values($rBouquetSeries)), $rStreams[5]);
+				$rArray['bouquet_channels'] = array_intersect(array_map('intval', array_values($rBouquetStreams)), $rStreams[1] ?? []);
+				$rArray['bouquet_movies'] = array_intersect(array_map('intval', array_values($rBouquetMovies)),	$rStreams[2] ?? []);
+				$rArray['bouquet_radios'] = array_intersect(array_map('intval', array_values($rBouquetRadios)),	$rStreams[4] ?? []);
+				$rArray['bouquet_series'] = array_intersect(array_map('intval', array_values($rBouquetSeries)),	$rStreams[5] ?? []);
 			} else {
-				if (!isset($rData['edit'])) {
-				} else {
+				if (isset($rData['edit'])) {
 					return array('status' => STATUS_FAILURE, 'data' => $rData);
 				}
 			}
 
-			if (isset($rData['edit'])) {
-			} else {
+			if (!isset($rData['edit'])) {
 				self::$db->query('SELECT MAX(`bouquet_order`) AS `max` FROM `bouquets`;');
 				$rArray['bouquet_order'] = intval(self::$db->get_row()['max']) + 1;
 			}
