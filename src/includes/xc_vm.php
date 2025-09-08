@@ -1720,18 +1720,22 @@ class CoreUtilities {
 				} else {
 					$rSubtitles = json_decode($rStream['stream_info']['movie_subtitles'], true);
 					$rSubtitlesImport = '';
-					for ($i = 0; $i < count($rSubtitles['files']); $i++) {
-						$rSubtitleFile = escapeshellarg($rSubtitles['files'][$i]);
-						$rInputCharset = escapeshellarg($rSubtitles['charset'][$i]);
-						if ($rSubtitles['location'] == SERVER_ID) {
-							$rSubtitlesImport .= '-sub_charenc ' . $rInputCharset . ' -i ' . $rSubtitleFile . ' ';
-						} else {
-							$rSubtitlesImport .= '-sub_charenc ' . $rInputCharset . ' -i "' . self::$rServers[$rSubtitles['location']]['api_url'] . '&action=getFile&filename=' . urlencode($rSubtitleFile) . '" ';
+					if (!empty($rSubtitles) && !empty($rSubtitles['files']) && is_array($rSubtitles['files'])) {
+						for ($i = 0; $i < count($rSubtitles['files']); $i++) {
+							$rSubtitleFile = escapeshellarg($rSubtitles['files'][$i]);
+							$rInputCharset = escapeshellarg($rSubtitles['charset'][$i]);
+							if ($rSubtitles['location'] == SERVER_ID) {
+								$rSubtitlesImport .= '-sub_charenc ' . $rInputCharset . ' -i ' . $rSubtitleFile . ' ';
+							} else {
+								$rSubtitlesImport .= '-sub_charenc ' . $rInputCharset . ' -i "' . self::$rServers[$rSubtitles['location']]['api_url'] . '&action=getFile&filename=' . urlencode($rSubtitleFile) . '" ';
+							}
 						}
 					}
 					$rSubtitlesMetadata = '';
-					for ($i = 0; $i < count($rSubtitles['files']); $i++) {
-						$rSubtitlesMetadata .= '-map ' . ($i + 1) . ' -metadata:s:s:' . $i . ' title=' . escapeshellcmd($rSubtitles['names'][$i]) . ' -metadata:s:s:' . $i . ' language=' . escapeshellcmd($rSubtitles['names'][$i]) . ' ';
+					if (!empty($rSubtitles) && !empty($rSubtitles['files']) && is_array($rSubtitles['files'])) {
+						for ($i = 0; $i < count($rSubtitles['files']); $i++) {
+							$rSubtitlesMetadata .= '-map ' . ($i + 1) . ' -metadata:s:s:' . $i . ' title=' . escapeshellcmd($rSubtitles['names'][$i]) . ' -metadata:s:s:' . $i . ' language=' . escapeshellcmd($rSubtitles['names'][$i]) . ' ';
+						}
 					}
 					if ($rStream['stream_info']['read_native'] == 1) {
 						$rReadNative = '-re';
