@@ -265,20 +265,25 @@ function loadCron($rType, $rGroupStart, $rGroupMax) {
                             $cacheDataKey[] = PHP_BIN . ' ' . CRON_PATH . 'cache_engine.php "lines" ' . $rStart . ' ' . $rMax;
                         }
                     }
+                    // get the number of episodes in a TV series
                     $db->query('SELECT COUNT(*) AS `count` FROM `streams_episodes` WHERE `stream_id` IN (SELECT `id` FROM `streams` WHERE `type` = 5);');
-                    $cacheRetrieveMethod = $db->get_row()['count'];
-                    $cacheStoreMethod = range(0, $cacheRetrieveMethod, $rSplit);
-                    if ($cacheStoreMethod) {
-                    } else {
-                        $cacheStoreMethod = array(0);
-                    }
-                    foreach ($cacheStoreMethod as $rStart) {
-                        $rMax = $rSplit;
-                        if ($cacheRetrieveMethod >= $rStart + $rMax) {
-                        } else {
-                            $rMax = $cacheRetrieveMethod - $rStart;
+
+                    $cacheRetrieveMethod = (int) $db->get_row()['count'];
+                    $cacheStoreMethod = [];
+
+                    if ($cacheRetrieveMethod > 0) {
+                        // step: 0, 10000, 20000 ...
+                        for ($rStart = 0; $rStart < $cacheRetrieveMethod; $rStart += $rSplit) {
+                            // restriction for the current chunk
+                            $rMax = min($rSplit, $cacheRetrieveMethod - $rStart);
+                            // save the start of the current chunk for subsequent file processing
+                            $cacheStoreMethod[] = $rStart;
+
+                            $cacheDataKey[] = PHP_BIN . ' ' . CRON_PATH . 'cache_engine.php "series" ' . $rStart . ' ' . $rMax;
                         }
-                        $cacheDataKey[] = PHP_BIN . ' ' . CRON_PATH . 'cache_engine.php "series" ' . $rStart . ' ' . $rMax;
+                    } else {
+                        // if there are no records — at least one call
+                        $cacheDataKey[] = PHP_BIN . ' ' . CRON_PATH . 'cache_engine.php "series" 0 0';
                     }
                     if (CoreUtilities::$rSettings['cache_changes']) {
                         $rChanges = getchangedstreams();
