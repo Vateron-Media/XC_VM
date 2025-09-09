@@ -7,8 +7,13 @@ if (!checkPermissions()) {
 	goHome();
 }
 
-if (!isset(CoreUtilities::$rRequest['id']) && ($rSeriesArr = getSerie(CoreUtilities::$rRequest['id']))) {
-	goHome();
+if (!isset(CoreUtilities::$rRequest['id'])) {
+		goHome();
+}else{
+	$rSeriesArr = getSerie(CoreUtilities::$rRequest['id']);
+	if (!isset($rSeriesArr)){
+		goHome();
+	}
 }
 
 if (isset($rSeriesArr) && isset(CoreUtilities::$rRequest['import'])) {
@@ -464,437 +469,437 @@ include 'header.php';
 </div>
 <?php include 'footer.php'; ?>
 
-	var changeTitle = false;
+var changeTitle = false;
 
-	function selectDirectory(elem) {
-		window.currentDirectory += elem + "/";
-		$("#current_path").val(window.currentDirectory);
-		$("#changeDir").click();
+function selectDirectory(elem) {
+window.currentDirectory += elem + "/";
+$("#current_path").val(window.currentDirectory);
+$("#changeDir").click();
+}
+
+function selectParent() {
+$("#current_path").val(window.currentDirectory.split("/").slice(0, -2).join("/") + "/");
+$("#changeDir").click();
+}
+
+function clearSearch() {
+$("#search").val("");
+$("#doSearch").click();
+}
+
+function selectFile(rFile) {
+if ($('li.nav-item .active').attr('href') == "#stream-details") {
+$("#stream_source").val("s:" + $("#server_id").val() + ":" + window.currentDirectory + rFile);
+var rExtension = rFile.substr((rFile.lastIndexOf('.') + 1));
+if ($("#target_container option[value='" + rExtension + "']").length > 0) {
+$("#target_container").val(rExtension).trigger('change');
+}
+} else {
+$("#movie_subtitles").val("s:" + $("#server_id").val() + ":" + window.currentDirectory + rFile);
+}
+$.magnificPopup.close();
+}
+
+function openImage(elem) {
+rPath = $(elem).parent().parent().find("input").val();
+if (rPath) {
+$.magnificPopup.open({
+items: {
+src: 'resize?maxw=512&maxh=512&url=' + encodeURIComponent(rPath),
+type: 'image'
+}
+});
+}
+}
+$(document).ready(function() {
+$('select').select2({
+width: '100%'
+});
+$("#category_id").select2({
+width: '100%',
+tags: true
+}).on("change", function(e) {
+rData = $('#category_id').select2('data');
+rAdded = [];
+for (i = 0; i < rData.length; i++) {
+	if (!rData[i].selected) {
+	rAdded.push(rData[i].text);
 	}
-
-	function selectParent() {
-		$("#current_path").val(window.currentDirectory.split("/").slice(0, -2).join("/") + "/");
-		$("#changeDir").click();
 	}
-
-	function clearSearch() {
-		$("#search").val("");
-		$("#doSearch").click();
+	if (rAdded.length> 0) {
+	$("#category_create").show();
+	$("#category_new").html(rAdded.join(', '));
+	} else {
+	$("#category_create").hide();
 	}
-
-	function selectFile(rFile) {
-		if ($('li.nav-item .active').attr('href') == "#stream-details") {
-			$("#stream_source").val("s:" + $("#server_id").val() + ":" + window.currentDirectory + rFile);
-			var rExtension = rFile.substr((rFile.lastIndexOf('.') + 1));
-			if ($("#target_container option[value='" + rExtension + "']").length > 0) {
-				$("#target_container").val(rExtension).trigger('change');
-			}
+	$("#category_create_list").val(JSON.stringify(rAdded));
+	});
+	$("#bouquets").select2({
+	width: '100%',
+	tags: true
+	}).on("change", function(e) {
+	rData = $('#bouquets').select2('data');
+	rAdded = [];
+	for (i = 0; i < rData.length; i++) {
+		if (!rData[i].selected) {
+		rAdded.push(rData[i].text);
+		}
+		}
+		if (rAdded.length> 0) {
+		$("#bouquet_create").show();
+		$("#bouquet_new").html(rAdded.join(', '));
 		} else {
-			$("#movie_subtitles").val("s:" + $("#server_id").val() + ":" + window.currentDirectory + rFile);
+		$("#bouquet_create").hide();
 		}
-		$.magnificPopup.close();
-	}
-
-	function openImage(elem) {
-		rPath = $(elem).parent().parent().find("input").val();
-		if (rPath) {
-			$.magnificPopup.open({
-				items: {
-					src: 'resize?maxw=512&maxh=512&url=' + encodeURIComponent(rPath),
-					type: 'image'
-				}
-			});
-		}
-	}
-	$(document).ready(function() {
-		$('select').select2({
-			width: '100%'
-		});
-		$("#category_id").select2({
-			width: '100%',
-			tags: true
-		}).on("change", function(e) {
-			rData = $('#category_id').select2('data');
-			rAdded = [];
-			for (i = 0; i < rData.length; i++) {
-				if (!rData[i].selected) {
-					rAdded.push(rData[i].text);
-				}
-			}
-			if (rAdded.length > 0) {
-				$("#category_create").show();
-				$("#category_new").html(rAdded.join(', '));
-			} else {
-				$("#category_create").hide();
-			}
-			$("#category_create_list").val(JSON.stringify(rAdded));
-		});
-		$("#bouquets").select2({
-			width: '100%',
-			tags: true
-		}).on("change", function(e) {
-			rData = $('#bouquets').select2('data');
-			rAdded = [];
-			for (i = 0; i < rData.length; i++) {
-				if (!rData[i].selected) {
-					rAdded.push(rData[i].text);
-				}
-			}
-			if (rAdded.length > 0) {
-				$("#bouquet_create").show();
-				$("#bouquet_new").html(rAdded.join(', '));
-			} else {
-				$("#bouquet_create").hide();
-			}
-			$("#bouquet_create_list").val(JSON.stringify(rAdded));
+		$("#bouquet_create_list").val(JSON.stringify(rAdded));
 		});
 		$("#datatable").DataTable({
-			responsive: false,
-			paging: false,
-			bInfo: false,
-			searching: false,
-			scrollY: "250px",
-			columnDefs: [{
-				"className": "dt-center",
-				"targets": [0]
-			}, ],
-			drawCallback: function() {
-				bindHref();
-				refreshTooltips();
-			},
-			"language": {
-				"emptyTable": ""
-			}
+		responsive: false,
+		paging: false,
+		bInfo: false,
+		searching: false,
+		scrollY: "250px",
+		columnDefs: [{
+		"className": "dt-center",
+		"targets": [0]
+		}, ],
+		drawCallback: function() {
+		bindHref();
+		refreshTooltips();
+		},
+		"language": {
+		"emptyTable": ""
+		}
 		});
 		$("#datatable-files").DataTable({
-			responsive: false,
-			paging: false,
-			bInfo: false,
-			searching: true,
-			scrollY: "250px",
-			drawCallback: function() {
-				bindHref();
-				refreshTooltips();
-			},
-			columnDefs: [{
-				"className": "dt-center",
-				"targets": [0]
-			}, ],
-			"language": {
-				"emptyTable": "<?php echo $_['no_compatible_file']; ?>"
-			}
+		responsive: false,
+		paging: false,
+		bInfo: false,
+		searching: true,
+		scrollY: "250px",
+		drawCallback: function() {
+		bindHref();
+		refreshTooltips();
+		},
+		columnDefs: [{
+		"className": "dt-center",
+		"targets": [0]
+		}, ],
+		"language": {
+		"emptyTable": "<?php echo $_['no_compatible_file']; ?>"
+		}
 		});
 		$("#select_folder").click(function() {
-			$("#import_folder").val("s:" + $("#server_id").val() + ":" + window.currentDirectory);
-			$.magnificPopup.close();
+		$("#import_folder").val("s:" + $("#server_id").val() + ":" + window.currentDirectory);
+		$.magnificPopup.close();
 		});
 		$("#changeDir").click(function() {
-			$("#search").val("");
-			window.currentDirectory = $("#current_path").val();
-			if (window.currentDirectory.substr(-1) != "/") {
-				window.currentDirectory += "/";
-			}
-			$("#current_path").val(window.currentDirectory);
-			$("#datatable").DataTable().clear();
-			$("#datatable").DataTable().row.add(["", "<?php echo $_['loading']; ?>..."]);
-			$("#datatable").DataTable().draw(true);
-			$("#datatable-files").DataTable().clear();
-			$("#datatable-files").DataTable().row.add(["", "<?php echo $_['please_wait']; ?>..."]);
-			$("#datatable-files").DataTable().draw(true);
-			if ($('li.nav-item .active').attr('href') == "#stream-details") {
-				rFilter = "video";
-			} else {
-				rFilter = "subs";
-			}
-			$.getJSON("./api?action=listdir&dir=" + window.currentDirectory + "&server=" + $("#server_id").val() + "&filter=" + rFilter, function(data) {
-				$("#datatable").DataTable().clear();
-				$("#datatable-files").DataTable().clear();
-				if (window.currentDirectory != "/") {
-					$("#datatable").DataTable().row.add(["<i class='mdi mdi-subdirectory-arrow-left'></i>", "<?php echo $_['parent_directory']; ?>"]);
-				}
-				if (data.result == true) {
-					$(data.data.dirs).each(function(id, dir) {
-						$("#datatable").DataTable().row.add(["<i class='mdi mdi-folder-open-outline'></i>", dir]);
-					});
-					$("#datatable").DataTable().draw(true);
-					$(data.data.files).each(function(id, dir) {
-						$("#datatable-files").DataTable().row.add(["<i class='mdi mdi-file-video'></i>", dir]);
-					});
-					$("#datatable-files").DataTable().draw(true);
-				}
-			});
+		$("#search").val("");
+		window.currentDirectory = $("#current_path").val();
+		if (window.currentDirectory.substr(-1) != "/") {
+		window.currentDirectory += "/";
+		}
+		$("#current_path").val(window.currentDirectory);
+		$("#datatable").DataTable().clear();
+		$("#datatable").DataTable().row.add(["", "<?php echo $_['loading']; ?>..."]);
+		$("#datatable").DataTable().draw(true);
+		$("#datatable-files").DataTable().clear();
+		$("#datatable-files").DataTable().row.add(["", "<?php echo $_['please_wait']; ?>..."]);
+		$("#datatable-files").DataTable().draw(true);
+		if ($('li.nav-item .active').attr('href') == "#stream-details") {
+		rFilter = "video";
+		} else {
+		rFilter = "subs";
+		}
+		$.getJSON("./api?action=listdir&dir=" + window.currentDirectory + "&server=" + $("#server_id").val() + "&filter=" + rFilter, function(data) {
+		$("#datatable").DataTable().clear();
+		$("#datatable-files").DataTable().clear();
+		if (window.currentDirectory != "/") {
+		$("#datatable").DataTable().row.add(["<i class='mdi mdi-subdirectory-arrow-left'></i>", "<?php echo $_['parent_directory']; ?>"]);
+		}
+		if (data.result == true) {
+		$(data.data.dirs).each(function(id, dir) {
+		$("#datatable").DataTable().row.add(["<i class='mdi mdi-folder-open-outline'></i>", dir]);
+		});
+		$("#datatable").DataTable().draw(true);
+		$(data.data.files).each(function(id, dir) {
+		$("#datatable-files").DataTable().row.add(["<i class='mdi mdi-file-video'></i>", dir]);
+		});
+		$("#datatable-files").DataTable().draw(true);
+		}
+		});
 		});
 		$('#datatable').on('click', 'tbody > tr', function() {
-			if ($(this).find("td").eq(1).html() == "<?php echo $_['parent_directory']; ?>") {
-				selectParent();
-			} else if ($(this).find("td").eq(1).html() != "<?php echo $_['loading']; ?>...") {
-				selectDirectory($(this).find("td").eq(1).html());
-			}
+		if ($(this).find("td").eq(1).html() == "<?php echo $_['parent_directory']; ?>") {
+		selectParent();
+		} else if ($(this).find("td").eq(1).html() != "<?php echo $_['loading']; ?>...") {
+		selectDirectory($(this).find("td").eq(1).html());
+		}
 		});
 		$('#datatable-files').on('click', 'tbody > tr', function() {
-			selectFile($(this).find("td").eq(1).html());
+		selectFile($(this).find("td").eq(1).html());
 		});
 		$('#server_tree').on('select_node.jstree', function(e, data) {
-			if (data.node.parent == "offline") {
-				$('#server_tree').jstree("move_node", data.node.id, "#source", "last");
-			} else {
-				$('#server_tree').jstree("move_node", data.node.id, "#offline", "first");
-			}
+		if (data.node.parent == "offline") {
+		$('#server_tree').jstree("move_node", data.node.id, "#source", "last");
+		} else {
+		$('#server_tree').jstree("move_node", data.node.id, "#offline", "first");
+		}
 		}).jstree({
-			'core': {
-				'check_callback': function(op, node, parent, position, more) {
-					switch (op) {
-						case 'move_node':
-							if ((node.id == "offline") || (node.id == "source")) {
-								return false;
-							}
-							if (parent.id != "offline" && parent.id != "source") {
-								return false;
-							}
-							if (parent.id == "#") {
-								return false;
-							}
-							return true;
-					}
-				},
-				'data': <?php echo json_encode(($rServerTree ?: array())); ?>
-			},
-			"plugins": ["dnd"]
+		'core': {
+		'check_callback': function(op, node, parent, position, more) {
+		switch (op) {
+		case 'move_node':
+		if ((node.id == "offline") || (node.id == "source")) {
+		return false;
+		}
+		if (parent.id != "offline" && parent.id != "source") {
+		return false;
+		}
+		if (parent.id == "#") {
+		return false;
+		}
+		return true;
+		}
+		},
+		'data': <?php echo json_encode(($rServerTree ?: array())); ?>
+		},
+		"plugins": ["dnd"]
 		});
 		$("#filebrowser").magnificPopup({
-			type: 'inline',
-			preloader: false,
-			focus: '#server_id',
-			callbacks: {
-				beforeOpen: function() {
-					if ($(window).width() < 830) {
-						this.st.focus = false;
-					} else {
-						this.st.focus = '#server_id';
-					}
-				}
+		type: 'inline',
+		preloader: false,
+		focus: '#server_id',
+		callbacks: {
+		beforeOpen: function() {
+		if ($(window).width() < 830) {
+			this.st.focus=false;
+			} else {
+			this.st.focus='#server_id' ;
 			}
-		});
-		$("#filebrowser").on("mfpOpen", function() {
+			}
+			}
+			});
+			$("#filebrowser").on("mfpOpen", function() {
 			clearSearch();
-			$($.fn.dataTable.tables(true)).css('width', '100%');
+			$($.fn.dataTable.tables(true)).css('width', '100%' );
 			$($.fn.dataTable.tables(true)).DataTable().columns.adjust().draw();
-		});
-		$("#server_id").change(function() {
+			});
+			$("#server_id").change(function() {
 			$("#current_path").val("/");
 			$("#changeDir").click();
-		});
-		$("#direct_source").change(function() {
+			});
+			$("#direct_source").change(function() {
 			evaluateDirectSource();
-		});
-		$("#movie_symlink").change(function() {
+			});
+			$("#movie_symlink").change(function() {
 			evaluateSymlink();
-		});
-
-		function evaluateDirectSource() {
-			$(["movie_symlink", "read_native", "transcode_profile_id", "target_container", "remove_subtitles", "movie_subtitles"]).each(function(rID, rElement) {
-				if ($(rElement)) {
-					if ($("#direct_source").is(":checked")) {
-						if (window.rSwitches[rElement]) {
-							setSwitch(window.rSwitches[rElement], false);
-							window.rSwitches[rElement].disable();
-						} else {
-							$("#" + rElement).prop("disabled", true);
-						}
-					} else {
-						if (window.rSwitches[rElement]) {
-							window.rSwitches[rElement].enable();
-						} else {
-							$("#" + rElement).prop("disabled", false);
-						}
-					}
-				}
 			});
-		}
 
-		function evaluateSymlink() {
+			function evaluateDirectSource() {
+			$(["movie_symlink", "read_native" , "transcode_profile_id" , "target_container" , "remove_subtitles" , "movie_subtitles" ]).each(function(rID, rElement) {
+			if ($(rElement)) {
 			if ($("#direct_source").is(":checked")) {
-				return;
+			if (window.rSwitches[rElement]) {
+			setSwitch(window.rSwitches[rElement], false);
+			window.rSwitches[rElement].disable();
+			} else {
+			$("#" + rElement).prop("disabled", true);
 			}
-			$(["direct_source", "read_native", "transcode_profile_id", "target_container", "remove_subtitles", "movie_subtitles"]).each(function(rID, rElement) {
-				if ($(rElement)) {
-					if ($("#movie_symlink").is(":checked")) {
-						if (window.rSwitches[rElement]) {
-							setSwitch(window.rSwitches[rElement], false);
-							window.rSwitches[rElement].disable();
-						} else {
-							$("#" + rElement).prop("disabled", true);
-						}
-					} else {
-						if (window.rSwitches[rElement]) {
-							window.rSwitches[rElement].enable();
-						} else {
-							$("#" + rElement).prop("disabled", false);
-						}
-					}
-				}
+			} else {
+			if (window.rSwitches[rElement]) {
+			window.rSwitches[rElement].enable();
+			} else {
+			$("#" + rElement).prop("disabled", false);
+			}
+			}
+			}
 			});
-		}
-		$("#import_type_1").click(function() {
+			}
+
+			function evaluateSymlink() {
+			if ($("#direct_source").is(":checked")) {
+			return;
+			}
+			$(["direct_source", "read_native" , "transcode_profile_id" , "target_container" , "remove_subtitles" , "movie_subtitles" ]).each(function(rID, rElement) {
+			if ($(rElement)) {
+			if ($("#movie_symlink").is(":checked")) {
+			if (window.rSwitches[rElement]) {
+			setSwitch(window.rSwitches[rElement], false);
+			window.rSwitches[rElement].disable();
+			} else {
+			$("#" + rElement).prop("disabled", true);
+			}
+			} else {
+			if (window.rSwitches[rElement]) {
+			window.rSwitches[rElement].enable();
+			} else {
+			$("#" + rElement).prop("disabled", false);
+			}
+			}
+			}
+			});
+			}
+			$("#import_type_1").click(function() {
 			$("#import_m3uf_toggle").show();
 			$("#import_folder_toggle").hide();
-		});
-		$("#import_type_2").click(function() {
+			});
+			$("#import_type_2").click(function() {
 			$("#import_m3uf_toggle").hide();
 			$("#import_folder_toggle").show();
-		});
-		$("#title").change(function() {
+			});
+			$("#title").change(function() {
 			if (!window.changeTitle) {
-				$("#tmdb_search").empty().trigger('change');
-				if ($("#title").val()) {
-					$.getJSON("./api?action=tmdb_search&type=series&term=" + encodeURIComponent($("#title").val()) + "&language=" + encodeURIComponent($("#tmdb_language").val()), function(data) {
-						if (data.result == true) {
-							if (data.data.length > 0) {
-								newOption = new Option("Found " + data.data.length + " results", -1, true, true);
-							} else {
-								newOption = new Option("No results found", -1, true, true);
-							}
-							$("#tmdb_search").append(newOption).trigger('change');
-							$(data.data).each(function(id, item) {
-								if (item.first_air_date) {
-									<?php
-									switch ($rSettings['movie_year_append']) {
-										case 0:
-											echo 'rTitle = item.name + " (" + item.first_air_date.substring(0, 4) + ")";' . "\r\n";
-											break;
-										case 1:
-											echo 'rTitle = item.name + " - " + item.first_air_date.substring(0, 4);' . "\r\n";
-											break;
-										default:
-											echo 'rTitle = item.name;' . "\r\n";
-											break;
-									}
-									?>
-								} else {
-									rTitle = item.name;
-								}
-								newOption = new Option(rTitle, item.id, true, true);
-								$("#tmdb_search").append(newOption);
-							});
-						} else {
-							newOption = new Option("No results found", -1, true, true);
-						}
-						$("#tmdb_search").val(-1).trigger('change');
-					});
-				}
+			$("#tmdb_search").empty().trigger('change');
+			if ($("#title").val()) {
+			$.getJSON("./api?action=tmdb_search&type=series&term=" + encodeURIComponent($(" #title").val()) + "&language=" + encodeURIComponent($("#tmdb_language").val()), function(data) {
+			if (data.result==true) {
+			if (data.data.length> 0) {
+			newOption = new Option("Found " + data.data.length + " results", -1, true, true);
 			} else {
-				window.changeTitle = false;
+			newOption = new Option("No results found", -1, true, true);
 			}
-		});
-		$("#tmdb_search").change(function() {
+			$("#tmdb_search").append(newOption).trigger('change');
+			$(data.data).each(function(id, item) {
+			if (item.first_air_date) {
+			<?php
+			switch ($rSettings['movie_year_append']) {
+				case 0:
+					echo 'rTitle = item.name + " (" + item.first_air_date.substring(0, 4) + ")";' . "\r\n";
+					break;
+				case 1:
+					echo 'rTitle = item.name + " - " + item.first_air_date.substring(0, 4);' . "\r\n";
+					break;
+				default:
+					echo 'rTitle = item.name;' . "\r\n";
+					break;
+			}
+			?>
+			} else {
+			rTitle = item.name;
+			}
+			newOption = new Option(rTitle, item.id, true, true);
+			$("#tmdb_search").append(newOption);
+			});
+			} else {
+			newOption = new Option("No results found", -1, true, true);
+			}
+			$("#tmdb_search").val(-1).trigger('change');
+			});
+			}
+			} else {
+			window.changeTitle = false;
+			}
+			});
+			$("#tmdb_search").change(function() {
 			if (($("#tmdb_search").val()) && ($("#tmdb_search").val() > -1)) {
-				$.getJSON("./api?action=tmdb&type=series&id=" + encodeURIComponent($("#tmdb_search").val()) + "&language=" + encodeURIComponent($("#tmdb_language").val()), function(data) {
-					if (data.result == true) {
-						window.changeTitle = true;
-						$("#title").val(data.data.name);
-						if (data.data.first_air_date) {
-							$("#year").val(data.data.first_air_date.substr(0, 4));
-						} else {
-							$("#year").val("");
-						}
-						$("#cover").val("");
-						if (data.data.poster_path) {
-							$("#cover").val("https://image.tmdb.org/t/p/w600_and_h900_bestv2" + data.data.poster_path);
-						}
-						$("#backdrop_path").val("");
-						if (data.data.backdrop_path) {
-							$("#backdrop_path").val("https://image.tmdb.org/t/p/w1280" + data.data.backdrop_path);
-						}
-						$("#release_date").val(data.data.first_air_date);
-						$("#episode_run_time").val(data.data.episode_run_time[0]);
-						$("#youtube_trailer").val("");
-						if (data.data.trailer) {
-							$("#youtube_trailer").val(data.data.trailer);
-						}
-						rCast = "";
-						rMemberID = 0;
-						$(data.data.credits.cast).each(function(id, member) {
-							rMemberID += 1;
-							if (rMemberID <= 5) {
-								if (rCast) {
-									rCast += ", ";
-								}
-								rCast += member.name;
-							}
-						});
-						$("#cast").val(rCast);
-						rGenres = "";
-						rGenreID = 0;
-						$(data.data.genres).each(function(id, genre) {
-							rGenreID += 1;
-							if (rGenreID <= 3) {
-								if (rGenres) {
-									rGenres += ", ";
-								}
-								rGenres += genre.name;
-							}
-						});
-						$("#genre").val(rGenres);
-						rDirectors = "";
-						rDirectorID = 0;
-						$(data.data.credits.crew).each(function(id, member) {
-							if ((member.department == "Directing") || (member.known_for_department == "Directing")) {
-								rDirectorID += 1;
-								if (rDirectorID <= 3) {
-									if (rDirectors) {
-										rDirectors += ", ";
-									}
-									rDirectors += member.name;
-								}
-							}
-						});
-						$("#director").val(rDirectors);
-						$("#plot").val(data.data.overview);
-						$("#rating").val(data.data.vote_average);
-						$("#tmdb_id").val($("#tmdb_search").val());
-					}
-				});
+			$.getJSON("./api?action=tmdb&type=series&id=" + encodeURIComponent($("#tmdb_search").val()) + "&language=" + encodeURIComponent($("#tmdb_language").val()), function(data) {
+			if (data.result == true) {
+			window.changeTitle = true;
+			$("#title").val(data.data.name);
+			if (data.data.first_air_date) {
+			$("#year").val(data.data.first_air_date.substr(0, 4));
+			} else {
+			$("#year").val("");
 			}
-		});
-		$("#episode_run_time").inputFilter(function(value) {
-			return /^\d*$/.test(value);
-		});
-		$("#year").inputFilter(function(value) {
-			return /^\d*$/.test(value);
-		});
-
-		$("#changeDir").click();
-		evaluateDirectSource();
-		evaluateSymlink();
-		<?php if (isset($rSeriesArr)): ?>
-			$("#title").trigger("change");
-		<?php endif; ?>
-		$("form").submit(function(e) {
-			e.preventDefault();
-			<?php if (!isset(CoreUtilities::$rRequest['import'])): ?>
-				if ($("#title").val().length === 0) {
-					$.toast("Enter a series name.");
-				} else {
-					$(':input[type="submit"]').prop('disabled', true);
-					submitForm(window.rCurrentPage, new FormData($("form")[0]), window.rReferer);
+			$("#cover").val("");
+			if (data.data.poster_path) {
+			$("#cover").val("https://image.tmdb.org/t/p/w600_and_h900_bestv2" + data.data.poster_path);
+			}
+			$("#backdrop_path").val("");
+			if (data.data.backdrop_path) {
+			$("#backdrop_path").val("https://image.tmdb.org/t/p/w1280" + data.data.backdrop_path);
+			}
+			$("#release_date").val(data.data.first_air_date);
+			$("#episode_run_time").val(data.data.episode_run_time[0]);
+			$("#youtube_trailer").val("");
+			if (data.data.trailer) {
+			$("#youtube_trailer").val(data.data.trailer);
+			}
+			rCast = "";
+			rMemberID = 0;
+			$(data.data.credits.cast).each(function(id, member) {
+			rMemberID += 1;
+			if (rMemberID <= 5) {
+				if (rCast) {
+				rCast +=", " ;
 				}
-			<?php else: ?>
-				if (($("#m3u_file").val().length === 0) && ($("#import_folder").val().length === 0)) {
-					$.toast("<?php echo addslashes($_['select_m3u_file']); ?>");
-				} else {
-					$("#server_tree_data").val(
-						JSON.stringify($('#server_tree').jstree(true).get_json('source', {
-							flat: true
-						}))
-					);
-					$(':input[type="submit"]').prop('disabled', true);
-					submitForm(window.rCurrentPage, new FormData($("form")[0]), window.rReferer);
+				rCast +=member.name;
 				}
-			<?php endif; ?>
-		});
-	});
-</script>
-<script src="assets/js/listings.js"></script>
-</body>
+				});
+				$("#cast").val(rCast);
+				rGenres="" ;
+				rGenreID=0;
+				$(data.data.genres).each(function(id, genre) {
+				rGenreID +=1;
+				if (rGenreID <=3) {
+				if (rGenres) {
+				rGenres +=", " ;
+				}
+				rGenres +=genre.name;
+				}
+				});
+				$("#genre").val(rGenres);
+				rDirectors="" ;
+				rDirectorID=0;
+				$(data.data.credits.crew).each(function(id, member) {
+				if ((member.department=="Directing" ) || (member.known_for_department=="Directing" )) {
+				rDirectorID +=1;
+				if (rDirectorID <=3) {
+				if (rDirectors) {
+				rDirectors +=", " ;
+				}
+				rDirectors +=member.name;
+				}
+				}
+				});
+				$("#director").val(rDirectors);
+				$("#plot").val(data.data.overview);
+				$("#rating").val(data.data.vote_average);
+				$("#tmdb_id").val($("#tmdb_search").val());
+				}
+				});
+				}
+				});
+				$("#episode_run_time").inputFilter(function(value) {
+				return /^\d*$/.test(value);
+				});
+				$("#year").inputFilter(function(value) {
+				return /^\d*$/.test(value);
+				});
 
-</html>
+				$("#changeDir").click();
+				evaluateDirectSource();
+				evaluateSymlink();
+				<?php if (isset($rSeriesArr)): ?>
+				$("#title").trigger("change");
+				<?php endif; ?>
+				$("form").submit(function(e) {
+				e.preventDefault();
+				<?php if (!isset(CoreUtilities::$rRequest['import'])): ?>
+				if ($("#title").val().length===0) {
+				$.toast("Enter a series name.");
+				} else {
+				$(':input[type="submit" ]').prop('disabled', true);
+				submitForm(window.rCurrentPage, new FormData($("form")[0]), window.rReferer);
+				}
+				<?php else: ?>
+				if (($("#m3u_file").val().length===0) && ($("#import_folder").val().length===0)) {
+				$.toast("<?php echo addslashes($_['select_m3u_file']); ?>");
+				} else {
+				$("#server_tree_data").val(
+				JSON.stringify($('#server_tree').jstree(true).get_json('source', {
+				flat: true
+				}))
+				);
+				$(':input[type="submit" ]').prop('disabled', true);
+				submitForm(window.rCurrentPage, new FormData($("form")[0]), window.rReferer);
+				}
+				<?php endif; ?>
+				});
+				});
+				</script>
+				<script src="assets/js/listings.js"></script>
+				</body>
+
+				</html>
