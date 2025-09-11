@@ -2,7 +2,7 @@
 
 ## File location
 ```
-/home/xc_vm/wwwdir/get.php
+/home/xc_vm/wwwdir/playlist.php
 ```
 
 ## Overview
@@ -13,7 +13,7 @@ The API requires either a username and password or a token for authentication.
 
 ### Base URL
 ```
-http://<your-domain>:25461/get.php
+http://<your-domain>:80/playlist
 ```
 
 ## Endpoints
@@ -39,7 +39,9 @@ GET /
 
 **Example Request:**
 ```sh
-curl -X GET "http://<your-domain>:25461/get.php?username=test&password=test&type=m3u_plus&output=hls&key=live"
+curl -X GET "http://<your-domain>:80/playlist/username/password/type&output=hls&key=live"
+or
+curl -X GET "http://<your-domain>:80/playlist/token/type&output=hls&key=live"
 ```
 
 **Response:**
