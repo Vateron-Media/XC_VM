@@ -2,7 +2,7 @@
 
 ## Расположение файла
 ```
-/home/xc_vm/wwwdir/get.php
+/home/xc_vm/wwwdir/playlist.php
 ```
 
 ## Обзор
@@ -13,7 +13,7 @@
 
 ### Базовый URL
 ```
-http://<ваш домен>:25461/get.php
+http://<ваш домен>:80/playlist
 ```
 
 ## Конечные точки
@@ -30,16 +30,18 @@ GET /
 |------------|----------|----------|-------------|
 | username | string | Yes* | Имя пользователя для аутентификации (Обязательно, если не используется `token`). |
 | password | string | Yes* | Пароль для аутентификации (требуется, если `token` не используется). |
-| токен | строка | Да* | Токен аутентификации (требуется, если `имя пользователя` и `пароль` не используются). |
-| | type | string | No | Тип устройства (по умолчанию: `m3u_plus`). |
+| token | строка | Да* | Токен аутентификации (требуется, если `имя пользователя` и `пароль` не используются). |
+| type | string | No | Тип устройства (по умолчанию: `m3u_plus`). |
 | key | string | No | Тип контента (прямой эфир, фильмы, радио_потоки, сериалы)| |
 | output | string | No | Формат вывода (hls или m3u). |
-| | nocache | boolean | Нет | Если true, отключается кэширование. |
+| nocache | boolean | Нет | Если true, отключается кэширование. |
 
 
 **Пример запроса:**
 ``sh
-curl -X GET "http://<ваш-домен>:25461/get.php?username=test&password=test&type=m3u_plus&output=hls&key=live"
+curl -X GET "http://<your-domain>:80/playlist/username/password/type&output=hls&key=live"
+or
+curl -X GET "http://<your-domain>:80/playlist/token/type&output=hls&key=live"
 ```
 
 **Ответ:**

@@ -3,7 +3,7 @@
 ## API
 
 - [System API](api/system_api.md)
-- [Get playlist](api/get.md)
+- [Get playlist](api/playlist.md)
 - [Xtreamcodes](api/xtreamcodes_api.md)
 
 ## Build
