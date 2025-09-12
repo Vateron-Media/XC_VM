@@ -1,37 +1,36 @@
-# 🚀 Building FFmpeg with NVIDIA NVENC/CUVID Support
+# 🚀 Building FFmpeg with NVIDIA NVENC/CUVID Support and Statically Linked Libraries
 
-This guide explains how to build **FFmpeg** on Ubuntu with NVIDIA hardware acceleration (NVENC/CUVID) and popular codecs enabled.
-The goal is to produce **static binaries** that can be easily transferred between systems.
+This guide explains how to build **FFmpeg** on Ubuntu with NVIDIA hardware acceleration (NVENC/CUVID) and include all necessary libraries in the final binary for full portability. The goal is to create **static binaries** with integrated dependencies.
 
 ---
 
 ## 📋 Requirements
 
 * **Ubuntu 22.04 or newer**
-* An NVIDIA GPU with **NVENC** support (optional, but recommended)
-* \~2 GB of free disk space
+* NVIDIA GPU with **NVENC** support (optional but recommended)
+* ~15 GB of free disk space
 * Internet connection
 
 ---
 
 ## 🔧 Configuration
 
-Set the following environment variables to customize your build:
+Set the following environment variables to configure the build:
 
 ```bash
-# FFmpeg version to build (default: 8.0)
+# FFmpeg version to build
 export FFMPEG_VERSION="8.0"
 
-# Installation directory (default: /home/xc_vm/bin/ffmpeg_bin)
+# Installation directory
 export INSTALL_DIR="/home/xc_vm/bin/ffmpeg_bin"
 
-# Build directory (default: ~/ffmpeg_sources)
+# Build directory
 export BUILD_DIR="$HOME/ffmpeg_sources"
 
-# CUDA version (default: 12-2)
+# CUDA version
 export CUDA_VERSION="12-2"
 
-# NVIDIA driver version (default: 535)
+# NVIDIA driver version
 export NVIDIA_DRIVER_VERSION="535"
 ```
 
@@ -48,32 +47,160 @@ sudo apt-get update -qq && sudo apt-get -y install \
   libsdl2-dev libtool libva-dev libvdpau-dev libvorbis-dev \
   libxcb1-dev libxcb-shm0-dev libxcb-xfixes0-dev \
   meson ninja-build pkg-config texinfo wget yasm \
-  zlib1g-dev mercurial nasm
+  zlib1g-dev mercurial nasm libssl-dev software-properties-common
 ```
 
 ---
 
-## 🎶 2. Install Codecs
+## 🎶 2. Build and Enable Codecs
 
-To enable support for common formats, install the following libraries:
+To include support for popular formats in the binary, build the following libraries from source and link them statically into FFmpeg:
+
+### 2.1 Create Build Directory
 
 ```bash
-# H.264/AVC
-sudo apt-get install -y libx264-dev
+mkdir -p ${BUILD_DIR:-~/ffmpeg_sources} && cd ${BUILD_DIR:-~/ffmpeg_sources}
+```
 
-# H.265/HEVC
-sudo apt-get install -y libx265-dev libnuma-dev
+### 2.2 H.264 (libx264)
 
-# VP8/VP9
-sudo apt-get install -y libvpx-dev
+```bash
+git clone https://code.videolan.org/videolan/x264.git
+cd x264
+./configure --prefix="${INSTALL_DIR:-$HOME/ffmpeg_build}" --enable-static --disable-shared --enable-pic
+make -j$(nproc)
+sudo make install
+cd ..
+```
 
-# Opus Audio
-sudo apt-get install -y libopus-dev
+### 2.3 H.265 (libx265)
 
-# Additional libraries
-sudo apt-get install -y \
-  libbz2-dev libfontconfig1-dev libtheora-dev \
-  libxvidcore-dev librtmp-dev libunistring-dev libgmp-dev
+```bash
+git clone https://bitbucket.org/multicoreware/x265_git.git
+cd x265_git/build
+cmake ../source -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR:-$HOME/ffmpeg_build}" -DENABLE_SHARED=OFF
+make -j$(nproc)
+sudo make install
+cd ../..
+```
+
+### 2.4 VP8/VP9 (libvpx)
+
+```bash
+git clone https://chromium.googlesource.com/webm/libvpx
+cd libvpx
+./configure --prefix="${INSTALL_DIR:-$HOME/ffmpeg_build}" --enable-static --disable-shared --enable-pic
+make -j$(nproc)
+sudo make install
+cd ..
+```
+
+### 2.5 Opus Audio (libopus)
+
+```bash
+wget https://downloads.xiph.org/releases/opus/opus-1.5.2.tar.gz
+tar -xvzf opus-1.5.2.tar.gz
+cd opus-1.5.2
+./configure --prefix="${INSTALL_DIR:-$HOME/ffmpeg_build}" --enable-static --disable-shared
+make -j$(nproc)
+sudo make install
+cd ..
+```
+
+### 2.6 Additional Libraries
+
+- **libass** (subtitles):
+
+```bash
+git clone https://github.com/libass/libass.git
+cd libass
+./autogen.sh
+./configure --prefix="${INSTALL_DIR:-$HOME/ffmpeg_build}" --enable-static --disable-shared
+make -j$(nproc)
+sudo make install
+cd ..
+```
+
+- **libfreetype** (fonts):
+
+```bash
+wget https://download.savannah.gnu.org/releases/freetype/freetype-2.13.2.tar.gz
+tar -xvzf freetype-2.13.2.tar.gz
+cd freetype-2.13.2
+./configure --prefix="${INSTALL_DIR:-$HOME/ffmpeg_build}" --enable-static --disable-shared
+make -j$(nproc)
+sudo make install
+cd ..
+```
+
+- **libvorbis** (audio):
+
+```bash
+wget https://downloads.xiph.org/releases/vorbis/libvorbis-1.3.7.tar.xz
+tar -xvf libvorbis-1.3.7.tar.xz
+cd libvorbis-1.3.7
+./configure --prefix="${INSTALL_DIR:-$HOME/ffmpeg_build}" --enable-static --disable-shared
+make -j$(nproc)
+sudo make install
+cd ..
+```
+
+- **libmp3lame** (MP3):
+
+```bash
+wget https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz
+tar -xvzf lame-3.100.tar.gz
+cd lame-3.100
+./configure --prefix="${INSTALL_DIR:-$HOME/ffmpeg_build}" --enable-static --disable-shared
+make -j$(nproc)
+sudo make install
+cd ..
+```
+
+- **libtheora** (Theora):
+
+```bash
+git clone https://github.com/xiph/theora.git
+cd theora
+./autogen.sh
+./configure --prefix="${INSTALL_DIR:-$HOME/ffmpeg_build}" --enable-static --disable-shared
+make -j$(nproc)
+sudo make install
+cd ..
+```
+
+- **librtmp** (RTMP):
+
+```bash
+git clone git://git.ffmpeg.org/rtmpdump
+cd rtmpdump
+make SYS=posix -j$(nproc)
+sudo make prefix="${INSTALL_DIR:-$HOME/ffmpeg_build}" install
+cd ..
+```
+
+- **libunistring** (for gnutls and librtmp):
+
+```bash
+wget https://ftp.gnu.org/gnu/libunistring/libunistring-1.2.tar.gz
+tar -xvzf libunistring-1.2.tar.gz
+cd libunistring-1.2
+./configure --prefix="${INSTALL_DIR:-$HOME/ffmpeg_build}" --enable-static --disable-shared
+make -j$(nproc)
+sudo make install
+cd ..
+```
+
+- **bzip2**:
+
+```bash
+cd ${BUILD_DIR:-~/ffmpeg_sources}
+wget https://sourceware.org/pub/bzip2/bzip2-1.0.8.tar.gz
+tar -xvzf bzip2-1.0.8.tar.gz
+cd bzip2-1.0.8
+make -f Makefile-libbz2_so CFLAGS="-fPIC" -j$(nproc)
+make install PREFIX="${INSTALL_DIR:-$HOME/ffmpeg_build}"
+cd ..
 ```
 
 ---
@@ -88,7 +215,7 @@ sudo apt update
 sudo apt install -y nvidia-driver-${NVIDIA_DRIVER_VERSION:-535}
 ```
 
-> ℹ️ Choose the driver version that matches your GPU.
+> ℹ️ Ensure the driver version is compatible with your GPU.
 
 ### 3.2 Install CUDA Toolkit
 
@@ -106,13 +233,8 @@ cd ${BUILD_DIR:-~/ffmpeg_sources}
 git clone https://git.videolan.org/git/ffmpeg/nv-codec-headers.git
 cd nv-codec-headers
 make
-sudo make install
-```
-
-In some cases, you may need to install with:
-
-```bash
-make PREFIX="${INSTALL_DIR:-$HOME/ffmpeg_build}" install
+sudo make PREFIX="${INSTALL_DIR:-$HOME/ffmpeg_build}" install
+cd ..
 ```
 
 ### 3.4 Optional NVIDIA Tools
@@ -125,16 +247,16 @@ sudo apt install -y nvidia-cuda-toolkit nvidia-cuda-dev
 
 ## 🔨 4. Build FFmpeg
 
-### 4.1 Download Source
+### 4.1 Download Source Code
 
 ```bash
-mkdir -p ${BUILD_DIR:-~/ffmpeg_sources} && cd ${BUILD_DIR:-~/ffmpeg_sources}
+cd ${BUILD_DIR:-~/ffmpeg_sources}
 wget https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION:-8.0}.tar.bz2
 tar xjvf ffmpeg-${FFMPEG_VERSION:-8.0}.tar.bz2
 cd ffmpeg-${FFMPEG_VERSION:-8.0}
 ```
 
-### 4.2 Configure
+### 4.2 Configuration
 
 ```bash
 export PATH="${INSTALL_DIR:-$HOME/bin}:$PATH"
@@ -143,8 +265,8 @@ export PKG_CONFIG_PATH="${INSTALL_DIR:-$HOME/ffmpeg_build}/lib/pkgconfig"
 ./configure \
   --prefix="${INSTALL_DIR:-$HOME/ffmpeg_build}" \
   --pkg-config-flags="--static" \
-  --extra-cflags="-I/usr/local/cuda/include" \
-  --extra-ldflags="-L${INSTALL_DIR:-$HOME/ffmpeg_build}/lib -Wl,-Bstatic -lcrypto -lssl -Wl,-Bdynamic" \
+  --extra-cflags="-I${INSTALL_DIR:-$HOME/ffmpeg_build}/include -I/usr/local/cuda/include" \
+  --extra-ldflags="-L${INSTALL_DIR:-$HOME/ffmpeg_build}/lib -L/usr/local/cuda/lib64 -Wl,-Bstatic -lcrypto -lssl -Wl,-Bdynamic" \
   --extra-version=XCVM \
   --extra-libs="-lsupc++ -lgmp -lz -lunistring -lpthread -lm -lrt -ldl" \
   --bindir="${INSTALL_DIR:-$HOME/bin}" \
@@ -160,7 +282,6 @@ export PKG_CONFIG_PATH="${INSTALL_DIR:-$HOME/ffmpeg_build}/lib/pkgconfig"
   --enable-libx265 \
   --enable-librtmp \
   --enable-libtheora \
-  --enable-libxvid \
   --enable-bzlib \
   --enable-fontconfig \
   --enable-zlib \
@@ -179,15 +300,15 @@ export PKG_CONFIG_PATH="${INSTALL_DIR:-$HOME/ffmpeg_build}/lib/pkgconfig"
   --disable-doc \
   --disable-debug \
   --disable-autodetect \
-  --disable-shared \
   --enable-static \
   --enable-muxer=hls \
   --enable-muxer=dash \
   --enable-demuxer=hls \
-  --extra-cflags=--static
+  --extra-cflags=--static \
+  --target-os=linux
 ```
 
-### 4.3 Compile
+### 4.3 Compilation
 
 ```bash
 make -j$(nproc)
@@ -195,7 +316,7 @@ make -j$(nproc)
 
 ---
 
-## 📦 5. Install
+## 📦 5. Installation
 
 ```bash
 mkdir -p ${INSTALL_DIR:-/home/xc_vm/bin/ffmpeg_bin}/${FFMPEG_VERSION:-8.0}/
@@ -222,21 +343,22 @@ ${INSTALL_DIR:-/home/xc_vm/bin/ffmpeg_bin}/${FFMPEG_VERSION:-8.0}/ffmpeg -decode
 
 ## 📝 Notes
 
-1. The NVIDIA driver must be compatible with your GPU.
-2. A **reboot** may be required after installing drivers.
-3. Building FFmpeg consumes significant CPU and memory resources.
-4. Static builds → larger binaries, but fully portable.
-5. Adjust environment variables according to your system configuration.
-6. Different FFmpeg versions may require adjustments to the configure flags.
+1. All libraries are statically linked into the FFmpeg binary, ensuring full portability.
+2. The NVIDIA driver must be compatible with your GPU.
+3. A **reboot** may be required after installing drivers.
+4. Building FFmpeg is CPU- and memory-intensive.
+5. The resulting binary will be large due to included dependencies.
+6. Adjust environment variables to match your system.
+7. Configuration flags may need adjustments for different FFmpeg versions.
 
 ---
 
 ## 🔄 Version Compatibility
 
-| FFmpeg Version | Recommended CUDA | Notes |
-|----------------|------------------|-------|
-| 7.x            | 12.2+            | Latest features |
-| 6.x            | 11.8+            | Stable |
-| 5.x            | 11.0+            | Legacy |
+| FFmpeg Version | Recommended CUDA | Notes            |
+|----------------|------------------|------------------|
+| 8.x            | 12.2+            | Latest features  |
+| 7.x            | 12.0+            | Stable           |
+| 6.x            | 11.8+            | Outdated         |
 
 Check the [FFmpeg documentation](https://ffmpeg.org/) for specific version requirements.

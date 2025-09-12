@@ -1,7 +1,6 @@
-# 🚀 Сборка FFmpeg с поддержкой NVIDIA NVENC/CUVID
+# 🚀 Сборка FFmpeg с поддержкой NVIDIA NVENC/CUVID и статически включенными библиотеками
 
-Это руководство объясняет, как собрать **FFmpeg** на Ubuntu с аппаратным ускорением NVIDIA (NVENC/CUVID) и поддержкой популярных кодеков.
-Цель — создание **статических бинарных файлов**, которые можно легко переносить между системами.
+Это руководство объясняет, как собрать **FFmpeg** на Ubuntu с аппаратным ускорением NVIDIA (NVENC/CUVID) и включением всех необходимых библиотек в конечный бинарный файл для полной переносимости. Цель — создание **статических бинарных файлов** с интегрированными зависимостями.
 
 ---
 
@@ -9,7 +8,7 @@
 
 * **Ubuntu 22.04 или новее**
 * Видеокарта NVIDIA с поддержкой **NVENC** (опционально, но рекомендуется)
-* \~2 ГБ свободного места на диске
+* ~15 ГБ свободного места на диске
 * Интернет-соединение
 
 ---
@@ -19,19 +18,19 @@
 Установите следующие переменные окружения для настройки сборки:
 
 ```bash
-# Версия FFmpeg для сборки (по умолчанию: 8.0)
+# Версия FFmpeg для сборки
 export FFMPEG_VERSION="8.0"
 
-# Директория для установки (по умолчанию: /home/xc_vm/bin/ffmpeg_bin)
+# Директория для установки
 export INSTALL_DIR="/home/xc_vm/bin/ffmpeg_bin"
 
-# Директория для сборки (по умолчанию: ~/ffmpeg_sources)
+# Директория для сборки
 export BUILD_DIR="$HOME/ffmpeg_sources"
 
-# Версия CUDA (по умолчанию: 12-2)
+# Версия CUDA
 export CUDA_VERSION="12-2"
 
-# Версия драйвера NVIDIA (по умолчанию: 535)
+# Версия драйвера NVIDIA
 export NVIDIA_DRIVER_VERSION="535"
 ```
 
@@ -48,32 +47,159 @@ sudo apt-get update -qq && sudo apt-get -y install \
   libsdl2-dev libtool libva-dev libvdpau-dev libvorbis-dev \
   libxcb1-dev libxcb-shm0-dev libxcb-xfixes0-dev \
   meson ninja-build pkg-config texinfo wget yasm \
-  zlib1g-dev mercurial nasm
+  zlib1g-dev mercurial nasm libssl-dev software-properties-common
 ```
 
 ---
 
-## 🎶 2. Установка кодеков
+## 🎶 2. Сборка и включение кодеков
 
-Для включения поддержки распространенных форматов установите следующие библиотеки:
+Для включения поддержки популярных форматов в бинарный файл, соберите следующие библиотеки из исходников и включите их в FFmpeg:
+
+### 2.1 Создание директории для сборки
 
 ```bash
-# H.264/AVC
-sudo apt-get install -y libx264-dev
+mkdir -p ${BUILD_DIR:-~/ffmpeg_sources} && cd ${BUILD_DIR:-~/ffmpeg_sources}
+```
 
-# H.265/HEVC
-sudo apt-get install -y libx265-dev libnuma-dev
+### 2.2 H.264 (libx264)
 
-# VP8/VP9
-sudo apt-get install -y libvpx-dev
+```bash
+git clone https://code.videolan.org/videolan/x264.git
+cd x264
+./configure --prefix="${INSTALL_DIR:-$HOME/ffmpeg_build}" --enable-static --disable-shared --enable-pic
+make -j$(nproc)
+sudo make install
+cd ..
+```
 
-# Opus Audio
-sudo apt-get install -y libopus-dev
+### 2.3 H.265 (libx265)
 
-# Дополнительные библиотеки
-sudo apt-get install -y \
-  libbz2-dev libfontconfig1-dev libtheora-dev \
-  libxvidcore-dev librtmp-dev libunistring-dev libgmp-dev
+```bash
+git clone https://bitbucket.org/multicoreware/x265_git.git
+cd x265_git/build
+cmake ../source -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR:-$HOME/ffmpeg_build}" -DENABLE_SHARED=OFF
+make -j$(nproc)
+sudo make install
+cd ../..
+```
+
+### 2.4 VP8/VP9 (libvpx)
+
+```bash
+git clone https://chromium.googlesource.com/webm/libvpx
+cd libvpx
+./configure --prefix="${INSTALL_DIR:-$HOME/ffmpeg_build}" --enable-static --disable-shared --enable-pic
+make -j$(nproc)
+sudo make install
+cd ..
+```
+
+### 2.5 Opus Audio (libopus)
+
+```bash
+wget https://downloads.xiph.org/releases/opus/opus-1.5.2.tar.gz
+tar -xvzf opus-1.5.2.tar.gz
+cd opus-1.5.2
+./configure --prefix="${INSTALL_DIR:-$HOME/ffmpeg_build}" --enable-static --disable-shared
+make -j$(nproc)
+sudo make install
+cd ..
+```
+
+### 2.6 Дополнительные библиотеки
+
+- **libass** (субтитры):
+
+```bash
+git clone https://github.com/libass/libass.git
+cd libass
+./autogen.sh
+./configure --prefix="${INSTALL_DIR:-$HOME/ffmpeg_build}" --enable-static --disable-shared
+make -j$(nproc)
+sudo make install
+cd ..
+```
+
+- **libfreetype** (шрифты):
+
+```bash
+wget https://download.savannah.gnu.org/releases/freetype/freetype-2.13.2.tar.gz
+tar -xvzf freetype-2.13.2.tar.gz
+cd freetype-2.13.2
+./configure --prefix="${INSTALL_DIR:-$HOME/ffmpeg_build}" --enable-static --disable-shared
+make -j$(nproc)
+sudo make install
+cd ..
+```
+
+- **libvorbis** (аудио):
+
+```bash
+wget https://downloads.xiph.org/releases/vorbis/libvorbis-1.3.7.tar.xz
+tar -xvf libvorbis-1.3.7.tar.xz
+cd libvorbis-1.3.7
+./configure --prefix="${INSTALL_DIR:-$HOME/ffmpeg_build}" --enable-static --disable-shared
+make -j$(nproc)
+sudo make install
+cd ..
+```
+
+- **libmp3lame** (MP3):
+
+```bash
+wget https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz
+tar -xvzf lame-3.100.tar.gz
+cd lame-3.100
+./configure --prefix="${INSTALL_DIR:-$HOME/ffmpeg_build}" --enable-static --disable-shared
+make -j$(nproc)
+sudo make install
+cd ..
+```
+
+- **libtheora** (Theora):
+
+```bash
+git clone https://github.com/xiph/theora.git
+cd theora
+./autogen.sh
+./configure --prefix="${INSTALL_DIR:-$HOME/ffmpeg_build}" --enable-static --disable-shared
+make -j$(nproc)
+sudo make install
+cd ..
+```
+
+- **librtmp** (RTMP):
+
+```bash
+git clone git://git.ffmpeg.org/rtmpdump
+cd rtmpdump
+make SYS=posix -j$(nproc)
+sudo make prefix="${INSTALL_DIR:-$HOME/ffmpeg_build}" install
+cd ..
+```
+
+- **libunistring** (для gnutls и librtmp):
+
+```bash
+wget https://ftp.gnu.org/gnu/libunistring/libunistring-1.2.tar.gz
+tar -xvzf libunistring-1.2.tar.gz
+cd libunistring-1.2
+./configure --prefix="${INSTALL_DIR:-$HOME/ffmpeg_build}" --enable-static --disable-shared
+make -j$(nproc)
+sudo make install
+cd ..
+```
+
+- **bzip2**
+```bash
+cd ${BUILD_DIR:-~/ffmpeg_sources}
+wget https://sourceware.org/pub/bzip2/bzip2-1.0.8.tar.gz
+tar -xvzf bzip2-1.0.8.tar.gz
+cd bzip2-1.0.8
+make -f Makefile-libbz2_so CFLAGS="-fPIC" -j$(nproc)
+make install PREFIX="${INSTALL_DIR:-$HOME/ffmpeg_build}"
+cd ..
 ```
 
 ---
@@ -88,7 +214,7 @@ sudo apt update
 sudo apt install -y nvidia-driver-${NVIDIA_DRIVER_VERSION:-535}
 ```
 
-> ℹ️ Выберите версию драйвера, совместимую с вашей видеокартой.
+> ℹ️ Убедитесь, что версия драйвера совместима с вашей видеокартой.
 
 ### 3.2 Установка CUDA Toolkit
 
@@ -106,13 +232,8 @@ cd ${BUILD_DIR:-~/ffmpeg_sources}
 git clone https://git.videolan.org/git/ffmpeg/nv-codec-headers.git
 cd nv-codec-headers
 make
-sudo make install
-```
-
-Возможно нужно устанавливать командой:
-
-```bash
-make PREFIX="${INSTALL_DIR:-$HOME/ffmpeg_build}" install
+sudo make PREFIX="${INSTALL_DIR:-$HOME/ffmpeg_build}" install
+cd ..
 ```
 
 ### 3.4 Опциональные инструменты NVIDIA
@@ -128,7 +249,7 @@ sudo apt install -y nvidia-cuda-toolkit nvidia-cuda-dev
 ### 4.1 Загрузка исходного кода
 
 ```bash
-mkdir -p ${BUILD_DIR:-~/ffmpeg_sources} && cd ${BUILD_DIR:-~/ffmpeg_sources}
+cd ${BUILD_DIR:-~/ffmpeg_sources}
 wget https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION:-8.0}.tar.bz2
 tar xjvf ffmpeg-${FFMPEG_VERSION:-8.0}.tar.bz2
 cd ffmpeg-${FFMPEG_VERSION:-8.0}
@@ -143,8 +264,8 @@ export PKG_CONFIG_PATH="${INSTALL_DIR:-$HOME/ffmpeg_build}/lib/pkgconfig"
 ./configure \
   --prefix="${INSTALL_DIR:-$HOME/ffmpeg_build}" \
   --pkg-config-flags="--static" \
-  --extra-cflags="-I/usr/local/cuda/include" \
-  --extra-ldflags="-L${INSTALL_DIR:-$HOME/ffmpeg_build}/lib -Wl,-Bstatic -lcrypto -lssl -Wl,-Bdynamic" \
+  --extra-cflags="-I${INSTALL_DIR:-$HOME/ffmpeg_build}/include -I/usr/local/cuda/include" \
+  --extra-ldflags="-L${INSTALL_DIR:-$HOME/ffmpeg_build}/lib -L/usr/local/cuda/lib64 -Wl,-Bstatic -lcrypto -lssl -Wl,-Bdynamic" \
   --extra-version=XCVM \
   --extra-libs="-lsupc++ -lgmp -lz -lunistring -lpthread -lm -lrt -ldl" \
   --bindir="${INSTALL_DIR:-$HOME/bin}" \
@@ -160,7 +281,6 @@ export PKG_CONFIG_PATH="${INSTALL_DIR:-$HOME/ffmpeg_build}/lib/pkgconfig"
   --enable-libx265 \
   --enable-librtmp \
   --enable-libtheora \
-  --enable-libxvid \
   --enable-bzlib \
   --enable-fontconfig \
   --enable-zlib \
@@ -179,12 +299,12 @@ export PKG_CONFIG_PATH="${INSTALL_DIR:-$HOME/ffmpeg_build}/lib/pkgconfig"
   --disable-doc \
   --disable-debug \
   --disable-autodetect \
-  --disable-shared \
   --enable-static \
   --enable-muxer=hls \
   --enable-muxer=dash \
   --enable-demuxer=hls \
-  --extra-cflags=--static
+  --extra-cflags=--static \
+  --target-os=linux
 ```
 
 ### 4.3 Компиляция
@@ -222,12 +342,13 @@ ${INSTALL_DIR:-/home/xc_vm/bin/ffmpeg_bin}/${FFMPEG_VERSION:-8.0}/ffmpeg -decode
 
 ## 📝 Примечания
 
-1. Драйвер NVIDIA должен быть совместим с вашей видеокартой.
-2. После установки драйверов может потребоваться **перезагрузка**.
-3. Сборка FFmpeg потребляет значительные ресурсы CPU и памяти.
-4. Статическая сборка → большие бинарные файлы, но полностью переносимые.
-5. Настройте переменные окружения в соответствии с конфигурацией вашей системы.
-6. Для разных версий FFmpeg могут потребоваться корректировки флагов конфигурации.
+1. Все библиотеки собраны статически и включены в бинарный файл FFmpeg, что обеспечивает полную переносимость.
+2. Драйвер NVIDIA должен быть совместим с вашей видеокартой.
+3. После установки драйверов может потребоваться **перезагрузка**.
+4. Сборка FFmpeg потребляет значительные ресурсы CPU и памяти.
+5. Итоговый бинарный файл будет большим из-за включения всех зависимостей.
+6. Настройте переменные окружения в соответствии с вашей системой.
+7. Для разных версий FFmpeg могут потребоваться корректировки флагов конфигурации.
 
 ---
 
@@ -235,9 +356,8 @@ ${INSTALL_DIR:-/home/xc_vm/bin/ffmpeg_bin}/${FFMPEG_VERSION:-8.0}/ffmpeg -decode
 
 | Версия FFmpeg | Рекомендуемая CUDA | Примечания |
 |---------------|--------------------|------------|
-| 7.x           | 12.2+              | Новейшие функции |
-| 6.x           | 11.8+              | Стабильная |
-| 5.x           | 11.0+              | Устаревшая |
+| 8.x           | 12.2+              | Новейшие функции |
+| 7.x           | 12.0+              | Стабильная |
+| 6.x           | 11.8+              | Устаревшая |
 
 Проверяйте [документацию FFmpeg](https://ffmpeg.org/) для конкретных требований версий.
-```
