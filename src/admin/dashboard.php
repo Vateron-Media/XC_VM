@@ -248,6 +248,7 @@ include 'header.php';
 						</div>
 					</div>
 				</div>
+				<?php if ($rSettings['dashboard_status']): ?>
 				<div class="col-xl-6">
 					<div class="card" style="height: 390px; overflow:hidden;">
 						<div class="card-body">
@@ -320,6 +321,7 @@ include 'header.php';
 						</div>
 					</div>
 				</div>
+				<?php endif; ?>
 
 				<?php if (!$rMobile && $rSettings['dashboard_stats']): ?>
 					<div class="col-xl-6">
