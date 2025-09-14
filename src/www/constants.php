@@ -22,7 +22,7 @@ if (!defined('TMP_PATH')) {
 }
 
 define('DEVELOPMENT', false);
-define('XC_VM_VERSION', '1.1.0');
+define('XC_VM_VERSION', '1.1.1');
 define('GIT_OWNER', 'Vateron-Media');
 define('GIT_REPO_MAIN', 'XC_VM');
 define('GIT_REPO_UPDATE', 'XC_VM_Update');
