@@ -74,7 +74,7 @@ if ((posix_getpwuid(posix_geteuid())['name'] ?? null) === 'xc_vm') {
             );
             $rCount = (int)($db->get_row()['count'] ?? 0);
             if ($rCount > 0) {
-                $rSteps = range(0, $rCount, 1000) ?: [0];
+                $rSteps = $rCount >= 1000 ? range(0, $rCount, 1000) : [0];
                 foreach ($rSteps as $rStep) {
                     $db->query(
                         'SELECT `id`, `tmdb_id` FROM `streams`
@@ -105,7 +105,7 @@ if ((posix_getpwuid(posix_geteuid())['name'] ?? null) === 'xc_vm') {
             );
             $rCount = (int)($db->get_row()['count'] ?? 0);
             if ($rCount > 0) {
-                $rSteps = range(0, $rCount, 1000) ?: [0];
+                $rSteps = $rCount >= 1000 ? range(0, $rCount, 1000) : [0];
                 foreach ($rSteps as $rStep) {
                     $db->query(
                         'SELECT `id`, `tmdb_id` FROM `streams_series`
