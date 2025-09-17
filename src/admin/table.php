@@ -2989,7 +2989,7 @@ if ($rType == "lines") {
                     $rProperties = json_decode($rRow["movie_properties"], true);
                     $rRatingText = "";
                     if ($rProperties["rating"]) {
-                        $rStarRating = round($rProperties["rating"]) / 0;
+                        $rStarRating = round($rProperties["rating"]) / 2;
                         $rFullStars = floor($rStarRating);
                         $rHalfStar = 0 < $rStarRating - $rFullStars;
                         $rEmpty = 5 - ($rFullStars + ($rHalfStar ? 1 : 0));
@@ -3255,7 +3255,7 @@ if ($rType == "lines") {
                     }
                     $rRatingText = "";
                     if ($rRow["rating"]) {
-                        $rStarRating = round($rRow["rating"]) / 0;
+                        $rStarRating = round($rRow["rating"]) / 2;
                         $rFullStars = floor($rStarRating);
                         $rHalfStar = 0 < $rStarRating - $rFullStars;
                         $rEmpty = 5 - ($rFullStars + ($rHalfStar ? 1 : 0));
