@@ -4012,7 +4012,7 @@ class CoreUtilities {
 			$query = "SELECT `type`, `log_message`, `log_extra`, `line`, `date` 
                   FROM `panel_logs` 
                   WHERE `type` <> 'epg' 
-                  GROUP BY `type`, `log_message`, `log_extra` 
+                --   GROUP BY `type`, `log_message`, `log_extra` 
                   ORDER BY `date` DESC 
                   LIMIT 1000";
 
