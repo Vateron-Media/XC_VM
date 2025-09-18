@@ -62,7 +62,7 @@ LB_FILES_TO_REMOVE := \
 
 EXCLUDE_ARGS := $(addprefix --exclude=,$(EXCLUDES))
 
-.PHONY: all lb main main_update lb_update lb_copy_files lb_update_copy_files main_copy_files main_update_copy_files set_permissions create_archive lb_archive_move lb_update_archive_move main_archive_move main_update_archive_move main_install_archive clean delete_files_list
+.PHONY: all new lb main main_update lb_update lb_copy_files lb_update_copy_files main_copy_files main_update_copy_files set_permissions create_archive lb_archive_move lb_update_archive_move main_archive_move main_update_archive_move main_install_archive clean delete_files_list
 
 lb: lb_copy_files set_permissions create_archive lb_archive_move clean
 main: main_copy_files set_permissions create_archive main_archive_move main_install_archive clean
@@ -387,3 +387,9 @@ clean:
 	@echo "==> Cleaning up temporary directory: $(TEMP_DIR)"
 	@rm -rf $(TEMP_DIR)
 	@echo "✅ Project build complete"
+	
+new:
+	@echo "==> Cleaning up temporary directory: $(DIST_DIR)"
+	@rm -rf $(DIST_DIR)
+	@echo "==> [LB] Creating distribution directory: $(DIST_DIR)"
+	@mkdir -p ${DIST_DIR}
