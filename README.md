@@ -43,7 +43,7 @@ It enables:
 |------------|---------|---------------------------------|
 | PHP        | 8.2     | Backend runtime                 |
 | Nginx      | 1.24    | Web server & reverse proxy      |
-| FFmpeg     | 4.4     | Media transcoding & processing  |
+| FFmpeg     | 8.0     | Media transcoding & processing  |
 | MariaDB    | 10.6+   | SQL database engine             |
 | KeyDB      | 6.3.4   | Cache & session storage (Redis) |
 | yt-dlp     | 2025.07.21 | Audio/Video downloader       |
@@ -89,6 +89,17 @@ journalctl -u xc_vm -f         # Live logs
 
 * 🇬🇧 [English Guide](doc/en/main-page.md)
 * 🇷🇺 [Руководство на русском](doc/ru/main-page.md)
+
+---
+
+## 📂 Project Structure
+
+```text.
+
+├─ docs/        # 📚 Project documentation
+├─ lb_configs/  # ⚙️ Configurations for building Load Balancer (LB)
+└─ src/         # 💻 Main project code
+````
 
 ---
 
