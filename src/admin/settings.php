@@ -40,17 +40,17 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 			<div class="col-xl-12">
 				<?php
 				if (isset($_STATUS) && $_STATUS == STATUS_SUCCESS) {
-					?>
+				?>
 					<div class="alert alert-success alert-dismissible fade show" role="alert">
 						<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
 								aria-hidden="true">&times;</span></button>Settings have been updated.
 					</div>
-					<?php
+				<?php
 				} ?>
 				<div class="card bg-info text-white cta-box">
 					<?php
 					if (is_array($rUpdate) && $rUpdate["version"] && (0 < version_compare($rUpdate["version"], XC_VM_VERSION) || (version_compare($rUpdate["version"], XC_VM_VERSION) == 0))) {
-						?>
+					?>
 						<div class="card-body" style="max-height: 250px;">
 							<h5 class="card-title text-white">Update Available</h5>
 							<p>Official Release v
@@ -123,11 +123,11 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 											class="d-none d-sm-inline">Logs</span></a>
 								</li>
 								<?php if (hasPermissions("adv", "database") && DEVELOPMENT) { ?>
-								<li class="nav-item">
-									<a href="#database" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"> <i
-											class="mdi mdi-file-document-outline mr-1"></i><span
-											class="d-none d-sm-inline">Database</span></a>
-								</li>
+									<li class="nav-item">
+										<a href="#database" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"> <i
+												class="mdi mdi-file-document-outline mr-1"></i><span
+												class="d-none d-sm-inline">Database</span></a>
+									</li>
 								<?php } ?>
 							</ul>
 							<div class="tab-content b-0 mb-0 pt-0">
@@ -192,12 +192,13 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 													<div class="col-md-8"><input type="text" class="form-control"
 															id="message_of_day" name="message_of_day" value="';
 														echo htmlspecialchars($rSettings["message_of_day"]);
-														echo '"></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="default_entries">Show Entries <i title="Number of table entries to show by default in the Admin & Reseller Interface." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><select name="default_entries" id="default_entries" class="form-control" data-toggle="select2">'
-														;
+														echo '"></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="default_entries">Show Entries <i title="Number of table entries to show by default in the Admin & Reseller Interface." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><select name="default_entries" id="default_entries" class="form-control" data-toggle="select2">';
 														foreach ([10, 25, 50, 250, 500, 1000] as $rShow) {
 															echo '    <option';
-															if ($rSettings["default_entries"]
-																!= $rShow) {
+															if (
+																$rSettings["default_entries"]
+																!= $rShow
+															) {
 															} else {
 																echo ' selected';
 															}
@@ -207,11 +208,9 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 															echo $rShow;
 															echo '</option>';
 														}
-														echo '</select></div><label class="col-md-4 col-form-label" for="fails_per_time">Fails Per Time <i title="How long to track stream failures for on Streams view page. Fails per X seconds." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="fails_per_time" name="fails_per_time" value="'
-														;
+														echo '</select></div><label class="col-md-4 col-form-label" for="fails_per_time">Fails Per Time <i title="How long to track stream failures for on Streams view page. Fails per X seconds." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="fails_per_time" name="fails_per_time" value="';
 														echo intval($rSettings["fails_per_time"]);
-														echo '"></div><!--<label class="col-md-4 col-form-label" for="default_entries">Fingerprint Max <i title="Maximum number of concurrent fingerprint sessions. A higher limit will result in significant CPU usage during fingerprinting. Select 0 for no limit." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><select name="fingerprint_max" id="fingerprint_max" class="form-control" data-toggle="select2">'
-														;
+														echo '"></div><!--<label class="col-md-4 col-form-label" for="default_entries">Fingerprint Max <i title="Maximum number of concurrent fingerprint sessions. A higher limit will result in significant CPU usage during fingerprinting. Select 0 for no limit." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><select name="fingerprint_max" id="fingerprint_max" class="form-control" data-toggle="select2">';
 														foreach ([0, 5, 10, 25, 50, 100] as $rShow) {
 															echo '<option';
 															if ($rSettings["fingerprint_max"] != $rShow) {
@@ -220,140 +219,108 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 															}
 															echo ' value="';
 															echo
-																$rShow;
+															$rShow;
 															echo '">';
 															echo $rShow;
 															echo '</option>';
 														}
-														echo '</select></div>--></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="date_format">Date Format <i title="Default date format to use. Please look up PHP date formatting before changing this." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="date_format" name="date_format" value="'
-														;
+														echo '</select></div>--></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="date_format">Date Format <i title="Default date format to use. Please look up PHP date formatting before changing this." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="date_format" name="date_format" value="';
 														echo htmlspecialchars($rSettings["date_format"]);
-														echo '"></div><label class="col-md-4 col-form-label" for="datetime_format">Datetime Format <i title="Default datetime format to use. Please look up PHP date formatting before changing this." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="datetime_format" name="datetime_format" value="'
-														;
+														echo '"></div><label class="col-md-4 col-form-label" for="datetime_format">Datetime Format <i title="Default datetime format to use. Please look up PHP date formatting before changing this." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="datetime_format" name="datetime_format" value="';
 														echo htmlspecialchars($rSettings["datetime_format"]);
-														echo '"></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="streams_grouped">Group Streams Table <i title="Toggle to group multiple servers per stream into a single row, this will reduce the amount of rows to display." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="streams_grouped" id="streams_grouped" type="checkbox"'
-														;
+														echo '"></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="streams_grouped">Group Streams Table <i title="Toggle to group multiple servers per stream into a single row, this will reduce the amount of rows to display." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="streams_grouped" id="streams_grouped" type="checkbox"';
 														if ($rSettings["streams_grouped"] == 1) {
 															echo ' checked ';
 														}
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="js_navigate">Seamless Navigation <i title="Enable seamless navigation by utilising javascript to load pages. Turned off on mobile devices." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="js_navigate" id="js_navigate" type="checkbox"'
-														;
+														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="js_navigate">Seamless Navigation <i title="Enable seamless navigation by utilising javascript to load pages. Turned off on mobile devices." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="js_navigate" id="js_navigate" type="checkbox"';
 														if ($rSettings["js_navigate"] == 1) {
 															echo ' checked ';
 														}
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="show_tickets">Show Tickets Icon <i title="Show tickets icon in the top right of the navigation menu. Turning this off will move Tickets to the Management menu." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="show_tickets" id="show_tickets" type="checkbox"'
-														;
+														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="show_tickets">Show Tickets Icon <i title="Show tickets icon in the top right of the navigation menu. Turning this off will move Tickets to the Management menu." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="show_tickets" id="show_tickets" type="checkbox"';
 														if ($rSettings["show_tickets"] == 1) {
 															echo ' checked ';
 														}
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="hide_failures">Disable Restart Counter <i title="Removes the restart count next to stream uptime." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="hide_failures" id="hide_failures" type="checkbox"'
-														;
+														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="hide_failures">Disable Restart Counter <i title="Removes the restart count next to stream uptime." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="hide_failures" id="hide_failures" type="checkbox"';
 														if ($rSettings["hide_failures"] == 1) {
 															echo ' checked ';
 														}
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="cleanup">Auto-Cleanup Files <i title="Automatically clean up redundant files in the background. Recommended." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="cleanup" id="cleanup" type="checkbox"'
-														;
+														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="cleanup">Auto-Cleanup Files <i title="Automatically clean up redundant files in the background. Recommended." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="cleanup" id="cleanup" type="checkbox"';
 														if ($rSettings["cleanup"] == 1) {
 															echo ' checked ';
 														}
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="check_vod">Check VOD Cron <i title="Check that VOD exists periodically, if not set it to not-encoded. Not recommended if you have a lot of VOD." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="check_vod" id="check_vod" type="checkbox"'
-														;
+														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="check_vod">Check VOD Cron <i title="Check that VOD exists periodically, if not set it to not-encoded. Not recommended if you have a lot of VOD." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="check_vod" id="check_vod" type="checkbox"';
 														if ($rSettings["check_vod"] == 1) {
 															echo ' checked ';
 														}
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="show_images">Show Images & Picons <i title="Show channel logos and VOD images in the management pages." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="show_images" id="show_images" type="checkbox"'
-														;
+														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="show_images">Show Images & Picons <i title="Show channel logos and VOD images in the management pages." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="show_images" id="show_images" type="checkbox"';
 														if ($rSettings["show_images"] == 1) {
 															echo ' checked ';
 														}
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="group_buttons">Group Buttons <i title="Group action buttons into a drop-down list on compatible pages." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="group_buttons" id="group_buttons" type="checkbox"'
-														;
+														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="group_buttons">Group Buttons <i title="Group action buttons into a drop-down list on compatible pages." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="group_buttons" id="group_buttons" type="checkbox"';
 														if ($rSettings["group_buttons"] == 1) {
 															echo ' checked ';
 														}
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="modal_edit">Quick Edit Modal <i title="When clicking Edit, open in a modal without navigating away from the page." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="modal_edit" id="modal_edit" type="checkbox"'
-														;
+														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="modal_edit">Quick Edit Modal <i title="When clicking Edit, open in a modal without navigating away from the page." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="modal_edit" id="modal_edit" type="checkbox"';
 														if ($rSettings["modal_edit"] == 1) {
 															echo ' checked ';
 														}
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="mysql_sleep_kill">MySQL Sleep Timeout <i title="How long to allow mysql connections to remain in Sleep before killing them. Set to 0 to disable." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="mysql_sleep_kill" name="mysql_sleep_kill" value="'
-														;
+														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="mysql_sleep_kill">MySQL Sleep Timeout <i title="How long to allow mysql connections to remain in Sleep before killing them. Set to 0 to disable." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="mysql_sleep_kill" name="mysql_sleep_kill" value="';
 														echo intval($rSettings["mysql_sleep_kill"]);
-														echo '"></div></div>    <h5 class="card-title mb-4">Dashboard</h5>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="dashboard_stats">Show Graphs <i title="Enable dashboard statistic graphs for System Resources, Network and Connections." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="dashboard_stats" id="dashboard_stats" type="checkbox"'
-														;
+														echo '"></div></div>    <h5 class="card-title mb-4">Dashboard</h5>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="dashboard_stats">Show Graphs <i title="Enable dashboard statistic graphs for System Resources, Network and Connections." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="dashboard_stats" id="dashboard_stats" type="checkbox"';
 														if ($rSettings["dashboard_stats"] == 1) {
 															echo ' checked ';
 														}
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="dashboard_map">Show Connections Map <i title="Show connection map on the dashboard." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="dashboard_map" id="dashboard_map" type="checkbox"'
-														;
+														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="dashboard_map">Show Connections Map <i title="Show connection map on the dashboard." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="dashboard_map" id="dashboard_map" type="checkbox"';
 														if ($rSettings["dashboard_map"] == 1) {
 															echo ' checked ';
 														}
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div>    </div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="dashboard_display_alt">Alternate Server View <i title="Display servers on the dashboard with an alternate layout, wide vs square layout." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="dashboard_display_alt" id="dashboard_display_alt" type="checkbox"'
-														;
+														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div>    </div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="dashboard_display_alt">Alternate Server View <i title="Display servers on the dashboard with an alternate layout, wide vs square layout." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="dashboard_display_alt" id="dashboard_display_alt" type="checkbox"';
 														if ($rSettings["dashboard_display_alt"] == 1) {
 															echo ' checked ';
 														}
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="header_stats_sh">Show Header Stats <i title="Show server statistics in header menu." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="header_stats" id="header_stats_sh" type="checkbox"'
-														;
+														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="header_stats_sh">Show Header Stats <i title="Show server statistics in header menu." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="header_stats" id="header_stats_sh" type="checkbox"';
 														if ($rSettings["header_stats"] == 1) {
 															echo ' checked ';
 														}
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="dashboard_status">Show Service Status <i title="Show warning information based on server stats." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="dashboard_status" id="dashboard_status" type="checkbox"'
-														;
+														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="dashboard_status">Show Service Status <i title="Show warning information based on server stats." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="dashboard_status" id="dashboard_status" type="checkbox"';
 														if ($rSettings["dashboard_status"] == 1) {
-															echo ' checked '
-															;
+															echo ' checked ';
 														}
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="threshold_cpu">CPU Threshold % <i title="When CPU usage is above this percentage it will show as a warning in the service status box." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="threshold_cpu" name="threshold_cpu" value="'
-														;
+														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="threshold_cpu">CPU Threshold % <i title="When CPU usage is above this percentage it will show as a warning in the service status box." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="threshold_cpu" name="threshold_cpu" value="';
 														echo intval($rSettings["threshold_cpu"]);
-														echo '"></div>    </div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="threshold_mem">Memory Threshold % <i title="When memory usage is above this percentage it will show as a warning in the service status box." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="threshold_mem" name="threshold_mem" value="'
-														;
+														echo '"></div>    </div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="threshold_mem">Memory Threshold % <i title="When memory usage is above this percentage it will show as a warning in the service status box." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="threshold_mem" name="threshold_mem" value="';
 														echo intval($rSettings["threshold_mem"]);
-														echo '"></div><label class="col-md-4 col-form-label" for="threshold_disk">Disk Threshold % <i title="When disk usage is above this percentage it will show as a warning in the service status box." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="threshold_disk" name="threshold_disk" value="'
-														;
+														echo '"></div><label class="col-md-4 col-form-label" for="threshold_disk">Disk Threshold % <i title="When disk usage is above this percentage it will show as a warning in the service status box." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="threshold_disk" name="threshold_disk" value="';
 														echo intval($rSettings["threshold_disk"]);
-														echo '"></div>    </div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="threshold_network">Network Threshold % <i title="When network usage is above this percentage it will show as a warning in the service status box." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="threshold_network" name="threshold_network" value="'
-														;
+														echo '"></div>    </div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="threshold_network">Network Threshold % <i title="When network usage is above this percentage it will show as a warning in the service status box." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="threshold_network" name="threshold_network" value="';
 														echo intval($rSettings["threshold_network"]);
-														echo '"></div><label class="col-md-4 col-form-label" for="threshold_clients">Clients Threshold % <i title="When number of clients as a percent of max server clients is above this percentage it will show as a warning in the service status box." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="threshold_clients" name="threshold_clients" value="'
-														;
+														echo '"></div><label class="col-md-4 col-form-label" for="threshold_clients">Clients Threshold % <i title="When number of clients as a percent of max server clients is above this percentage it will show as a warning in the service status box." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="threshold_clients" name="threshold_clients" value="';
 														echo intval($rSettings["threshold_clients"]);
-														echo '"></div>    </div><h5 class="card-title mb-4">Search</h5>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="enable_search">Enable Search <i title="Toggle the search box in the top right of the header and allow the cache engine to write search queries to the database." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="enable_search" id="enable_search" type="checkbox"'
-														;
+														echo '"></div>    </div><h5 class="card-title mb-4">Search</h5>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="enable_search">Enable Search <i title="Toggle the search box in the top right of the header and allow the cache engine to write search queries to the database." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="enable_search" id="enable_search" type="checkbox"';
 														if ($rSettings["enable_search"] == 1) {
 															echo ' checked ';
 														}
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="search_items">Number of Items <i title="How many search results to display. Maximum of 100." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="search_items" name="search_items" value="'
-														;
+														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="search_items">Number of Items <i title="How many search results to display. Maximum of 100." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="search_items" name="search_items" value="';
 														echo intval($rSettings["search_items"]);
-														echo '"></div>    </div>    <h5 class="card-title mb-4">Reseller</h5>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="disable_trial">Disable Trials <i title="Use this option to temporarily disable generating trials for all lines." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="disable_trial" id="disable_trial" type="checkbox"'
-														;
+														echo '"></div>    </div>    <h5 class="card-title mb-4">Reseller</h5>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="disable_trial">Disable Trials <i title="Use this option to temporarily disable generating trials for all lines." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="disable_trial" id="disable_trial" type="checkbox"';
 														if ($rSettings["disable_trial"] == 1) {
 															echo ' checked ';
 														}
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="reseller_ssl_domain">SSL Custom DNS <i title="Use HTTPS in playlist downloads if the main server has SSL on and the reseller has a custom DNS." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="reseller_ssl_domain" id="reseller_ssl_domain" type="checkbox"'
-														;
+														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="reseller_ssl_domain">SSL Custom DNS <i title="Use HTTPS in playlist downloads if the main server has SSL on and the reseller has a custom DNS." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="reseller_ssl_domain" id="reseller_ssl_domain" type="checkbox"';
 														if ($rSettings["reseller_ssl_domain"] == 1) {
 															echo ' checked ';
 														}
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div>    <h5 class="card-title mb-4">Debug</h5>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="debug_show_errors">Debug Mode <i title="Automatically clean up redundant files in the background. Recommended." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="debug_show_errors" id="debug_show_errors" type="checkbox"'
-														;
+														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div>    <h5 class="card-title mb-4">Debug</h5>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="debug_show_errors">Debug Mode <i title="Automatically clean up redundant files in the background. Recommended." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="debug_show_errors" id="debug_show_errors" type="checkbox"';
 														if ($rSettings["debug_show_errors"] == 1) {
-															echo ' checked '
-															;
+															echo ' checked ';
 														}
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="auto_send_logs">Auto-Send Logs to XC_VM <i title="Sends panel error logs automatically to be parsed and verified by the XC_VM team." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="auto_send_logs" id="auto_send_logs" type="checkbox"'
-														;
+														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="auto_send_logs">Auto-Send Logs to XC_VM <i title="Sends panel error logs automatically to be parsed and verified by the XC_VM team." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="auto_send_logs" id="auto_send_logs" type="checkbox"';
 														if ($rSettings["auto_send_logs"] == 1) {
 															echo ' checked ';
 														}
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div>    </div>    <h5 class="card-title mb-4">reCAPTCHA</h5>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label">Enable reCAPTCHA <i title="Click here to show active domains for your servers and resellers that you should consider adding to reCAPTCHA." class="tooltip text-secondary far fa-circle" data-toggle="modal" data-target=".bs-domains"></i></label><div class="col-md-2"><input name="recaptcha_enable" id="recaptcha_enable" type="checkbox"'
-														;
+														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div>    </div>    <h5 class="card-title mb-4">reCAPTCHA</h5>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label">Enable reCAPTCHA <i title="Click here to show active domains for your servers and resellers that you should consider adding to reCAPTCHA." class="tooltip text-secondary far fa-circle" data-toggle="modal" data-target=".bs-domains"></i></label><div class="col-md-2"><input name="recaptcha_enable" id="recaptcha_enable" type="checkbox"';
 														if ($rSettings["recaptcha_enable"] == 1) {
-															echo ' checked '
-															;
+															echo ' checked ';
 														} ?> data-plugin=" switchery" class="js-switch" data-color="#039cfd">
 												</div>
 											</div>
@@ -491,9 +458,9 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 												</label>
 												<div class="col-md-2"><input name="restream_deny_unauthorised"
 														id="restream_deny_unauthorised" type="checkbox" <?php
-														if ($rSettings["restream_deny_unauthorised"] == 1) {
-															echo ' checked ';
-														} ?> data-plugin="switchery" class="js-switch"
+																										if ($rSettings["restream_deny_unauthorised"] == 1) {
+																											echo ' checked ';
+																										} ?> data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" /></div><label
 													class="col-md-4 col-form-label" for="detect_restream_block_user">XC_VM
 													Detect - Ban Lines <i
@@ -501,9 +468,9 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="detect_restream_block_user"
 														id="detect_restream_block_user" type="checkbox" <?php
-														if ($rSettings["detect_restream_block_user"] == 1) {
-															echo ' checked ';
-														} ?> data-plugin="switchery" class="js-switch"
+																										if ($rSettings["detect_restream_block_user"] == 1) {
+																											echo ' checked ';
+																										} ?> data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" />
 												</div>
 											</div>
@@ -515,8 +482,8 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 												<div class="col-md-2">
 													<input name="block_streaming_servers" id="block_streaming_servers"
 														type="checkbox" <?php if ($rSettings["block_streaming_servers"] == 1) {
-															echo ' checked ';
-														} ?> data-plugin="switchery" class="js-switch"
+																			echo ' checked ';
+																		} ?> data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" />
 												</div>
 												<label class="col-md-4 col-form-label" for="block_proxies">Block
@@ -526,8 +493,8 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2">
 													<input name="block_proxies" id="block_proxies" type="checkbox" <?php if ($rSettings["block_proxies"] == 1) {
-														echo ' checked ';
-													} ?>
+																														echo ' checked ';
+																													} ?>
 														data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" />
 												</div>
@@ -754,8 +721,8 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 												<div class="col-md-2">
 													<input name="playlist_from_mysql" id="playlist_from_mysql"
 														type="checkbox" <?php if ($rSettings["playlist_from_mysql"] == 1) {
-															echo ' checked ';
-														} ?> data-plugin="switchery"
+																			echo ' checked ';
+																		} ?> data-plugin="switchery"
 														class="js-switch" data-color="#039cfd" />
 												</div>
 											</div>
@@ -767,8 +734,8 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 												<div class="col-md-2">
 													<input name="force_epg_timezone" id="force_epg_timezone"
 														type="checkbox" <? if ($rSettings["force_epg_timezone"] == 1) {
-															echo ' checked ';
-														} ?> data-plugin="switchery" class="js-switch"
+																			echo ' checked ';
+																		} ?> data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" />
 												</div>
 												<label class="col-md-4 col-form-label" for="keep_protocol">Keep
@@ -778,8 +745,8 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2">
 													<input name="keep_protocol" id="keep_protocol" type="checkbox" <? if ($rSettings["keep_protocol"] == 1) {
-														echo ' checked ';
-													} ?>
+																														echo ' checked ';
+																													} ?>
 														data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" />
 												</div>
@@ -815,8 +782,8 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2">
 													<input name="cloudflare" id="cloudflare" type="checkbox" <?php if ($rSettings["cloudflare"] == 1) {
-														echo ' checked ';
-													} ?>
+																													echo ' checked ';
+																												} ?>
 														data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" />
 												</div>
@@ -832,9 +799,9 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="legacy_get" id="legacy_get"
 														type="checkbox" <?php
-														if ($rSettings["legacy_get"] == 1) {
-															echo ' checked ';
-														} ?> data-plugin="switchery" class="js-switch"
+																		if ($rSettings["legacy_get"] == 1) {
+																			echo ' checked ';
+																		} ?> data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" />
 												</div>
 												<label class="col-md-4 col-form-label" for="legacy_xmltv">Legacy
@@ -843,8 +810,8 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2">
 													<input name="legacy_xmltv" id="legacy_xmltv" type="checkbox" <?php if ($rSettings["legacy_xmltv"] == 1) {
-														echo ' checked ';
-													} ?>
+																														echo ' checked ';
+																													} ?>
 														data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" />
 												</div>
@@ -868,8 +835,8 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 												<div class="col-md-2">
 													<input name="show_category_duplicates" id="show_category_duplicates"
 														type="checkbox" <?php if ($rSettings["show_category_duplicates"] == 1) {
-															echo ' checked ';
-														} ?> data-plugin="switchery" class="js-switch"
+																			echo ' checked ';
+																		} ?> data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" />
 												</div>
 											</div>
@@ -912,8 +879,8 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2">
 													<input name="disable_xmltv" id="disable_xmltv" type="checkbox" <?php if ($rSettings["disable_xmltv"] == 1) {
-														echo ' checked ';
-													} ?>
+																														echo ' checked ';
+																													} ?>
 														data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" />
 												</div><label class="col-md-4 col-form-label"
@@ -922,17 +889,17 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="disable_xmltv_restreamer"
 														id="disable_xmltv_restreamer" type="checkbox" <?
-														if ($rSettings["disable_xmltv_restreamer"] == 1) {
-															echo ' checked ';
-														}
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div>    </div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="disable_playlist">Disable Playlist Download - Line <i title="Enable to remove the ability for lines to download their HLS / device playlists." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="disable_playlist" id="disable_playlist" type="checkbox"';
-														if ($rSettings["disable_playlist"] == 1) {
-															echo ' checked ';
-														}
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="disable_playlist_restreamer">Disable Playlist Download - Restreamer <i title="Enable to remove the ability for lines to download their HLS / device playlists." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="disable_playlist_restreamer" id="disable_playlist_restreamer" type="checkbox"';
-														if ($rSettings["disable_playlist_restreamer"] == 1) {
-															echo ' checked ';
-														} ?> data-plugin="switchery" class="js-switch"
+																										if ($rSettings["disable_xmltv_restreamer"] == 1) {
+																											echo ' checked ';
+																										}
+																										echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div>    </div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="disable_playlist">Disable Playlist Download - Line <i title="Enable to remove the ability for lines to download their HLS / device playlists." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="disable_playlist" id="disable_playlist" type="checkbox"';
+																										if ($rSettings["disable_playlist"] == 1) {
+																											echo ' checked ';
+																										}
+																										echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="disable_playlist_restreamer">Disable Playlist Download - Restreamer <i title="Enable to remove the ability for lines to download their HLS / device playlists." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="disable_playlist_restreamer" id="disable_playlist_restreamer" type="checkbox"';
+																										if ($rSettings["disable_playlist_restreamer"] == 1) {
+																											echo ' checked ';
+																										} ?> data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" />
 												</div>
 											</div>
@@ -944,8 +911,8 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 												<div class="col-md-2">
 													<input name="disable_player_api" id="disable_player_api"
 														type="checkbox" <?php if ($rSettings["disable_player_api"] == 1) {
-															echo ' checked ';
-														} ?> data-plugin="switchery" class="js-switch"
+																			echo ' checked ';
+																		} ?> data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" />
 												</div><label class="col-md-4 col-form-label"
 													for="disable_enigma2">Disable Enigma2 API <i
@@ -953,10 +920,10 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="disable_enigma2" id="disable_enigma2"
 														type="checkbox" <?php
-														if ($rSettings["disable_enigma2"] == 1) {
-															echo ' checked ';
-														}
-														?> data-plugin="switchery" class="js-switch"
+																		if ($rSettings["disable_enigma2"] == 1) {
+																			echo ' checked ';
+																		}
+																		?> data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" /></div>
 											</div>
 											<div class="form-group row mb-4">
@@ -965,9 +932,9 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="disable_ministra"
 														id="disable_ministra" type="checkbox" <?php
-														if ($rSettings["disable_ministra"] == 1) {
-															echo ' checked ';
-														} ?>
+																								if ($rSettings["disable_ministra"] == 1) {
+																									echo ' checked ';
+																								} ?>
 														data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" />
 												</div>
@@ -977,8 +944,8 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2">
 													<input name="verify_host" id="verify_host" type="checkbox" <?php if ($rSettings["verify_host"] == 1) {
-														echo ' checked ';
-													} ?>
+																													echo ' checked ';
+																												} ?>
 														data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" />
 												</div>
@@ -1004,19 +971,19 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="enable_isp_lock" id="enable_isp_lock"
 														type="checkbox" <?php
-														if ($rSettings["enable_isp_lock"] == 1) {
-															echo ' checked ';
-														}
-														echo ' data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div><label
+																		if ($rSettings["enable_isp_lock"] == 1) {
+																			echo ' checked ';
+																		}
+																		echo ' data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div><label
 													class="col-md-4 col-form-label" for="block_svp">Enable ASN Lock <i
 														title="Enable / Disable ASN lock globally."
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="block_svp" id="block_svp"
 														type="checkbox"';
-														if ($rSettings["block_svp"] == 1) {
-															echo ' checked ';
-														}
-														echo ' data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div>
+																		if ($rSettings["block_svp"] == 1) {
+																			echo ' checked ';
+																		}
+																		echo ' data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div>
 											</div>
 											<div class="form-group row mb-4"><label class="col-md-4 col-form-label"
 													for="disable_ts">Disable MPEG-TS Output <i
@@ -1024,20 +991,20 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="disable_ts" id="disable_ts"
 														type="checkbox"';
-														if ($rSettings["disable_ts"] == 1) {
-															echo ' checked ';
-														}
-														echo ' data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div><label
+																		if ($rSettings["disable_ts"] == 1) {
+																			echo ' checked ';
+																		}
+																		echo ' data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div><label
 													class="col-md-4 col-form-label"
 													for="disable_ts_allow_restream">Allow Restreamers - MPEG-TS <i
 														title="Override to allow restreamers to still use MPEG-TS while it is disabled."
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="disable_ts_allow_restream"
 														id="disable_ts_allow_restream" type="checkbox"';
-														if ($rSettings["disable_ts_allow_restream"] == 1) {
-															echo ' checked ';
-														}
-														echo ' data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div>
+																		if ($rSettings["disable_ts_allow_restream"] == 1) {
+																			echo ' checked ';
+																		}
+																		echo ' data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div>
 											</div>
 											<div class="form-group row mb-4"><label class="col-md-4 col-form-label"
 													for="disable_hls">Disable HLS Output <i
@@ -1045,20 +1012,20 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="disable_hls" id="disable_hls"
 														type="checkbox"';
-														if ($rSettings["disable_hls"] == 1) {
-															echo ' checked ';
-														}
-														echo ' data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div><label
+																		if ($rSettings["disable_hls"] == 1) {
+																			echo ' checked ';
+																		}
+																		echo ' data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div><label
 													class="col-md-4 col-form-label"
 													for="disable_hls_allow_restream">Allow Restreamers - HLS <i
 														title="Override to allow restreamers to still use HLS while it is disabled."
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="disable_hls_allow_restream"
 														id="disable_hls_allow_restream" type="checkbox"';
-														if ($rSettings["disable_hls_allow_restream"] == 1) {
-															echo ' checked ';
-														}
-														echo ' data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div>
+																		if ($rSettings["disable_hls_allow_restream"] == 1) {
+																			echo ' checked ';
+																		}
+																		echo ' data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div>
 											</div>
 											<div class="form-group row mb-4"><label class="col-md-4 col-form-label"
 													for="disable_rtmp">Disable RTMP Output <i
@@ -1066,20 +1033,20 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="disable_rtmp" id="disable_rtmp"
 														type="checkbox"';
-														if ($rSettings["disable_rtmp"] == 1) {
-															echo ' checked ';
-														}
-														echo ' data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div><label
+																		if ($rSettings["disable_rtmp"] == 1) {
+																			echo ' checked ';
+																		}
+																		echo ' data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div><label
 													class="col-md-4 col-form-label"
 													for="disable_rtmp_allow_restream">Allow Restreamers - RTMP <i
 														title="Override to allow restreamers to still use RTMP while it is disabled."
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="disable_rtmp_allow_restream"
 														id="disable_rtmp_allow_restream" type="checkbox"';
-														if ($rSettings["disable_rtmp_allow_restream"] == 1) {
-															echo ' checked ';
-														}
-														echo ' data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div>
+																		if ($rSettings["disable_rtmp_allow_restream"] == 1) {
+																			echo ' checked ';
+																		}
+																		echo ' data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div>
 											</div>
 											<div class="form-group row mb-4"><label class="col-md-4 col-form-label"
 													for="case_sensitive_line">Case Sensitive Lines <i
@@ -1087,19 +1054,19 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="case_sensitive_line"
 														id="case_sensitive_line" type="checkbox"';
-														if ($rSettings["case_sensitive_line"] == 1) {
-															echo ' checked ';
-														}
-														echo ' data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div><label
+																		if ($rSettings["case_sensitive_line"] == 1) {
+																			echo ' checked ';
+																		}
+																		echo ' data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div><label
 													class="col-md-4 col-form-label" for="county_override_1st">Override
 													Country with First <i title="Override country with first connected."
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="county_override_1st"
 														id="county_override_1st" type="checkbox"';
-														if ($rSettings["county_override_1st"] == 1) {
-															echo ' checked ';
-														}
-														echo ' data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div>
+																		if ($rSettings["county_override_1st"] == 1) {
+																			echo ' checked ';
+																		}
+																		echo ' data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div>
 											</div>
 											<div class="form-group row mb-4"><label class="col-md-4 col-form-label"
 													for="encrypt_hls">Encrypt HLS Segments <i
@@ -1107,9 +1074,9 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="encrypt_hls" id="encrypt_hls"
 														type="checkbox"';
-														if ($rSettings["encrypt_hls"] == 1) {
-															echo ' checked ';
-														} ?>
+																		if ($rSettings["encrypt_hls"] == 1) {
+																			echo ' checked ';
+																		} ?>
 														data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" />
 												</div>
@@ -1120,30 +1087,30 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 												<div class="col-md-2">
 													<input name="disallow_empty_user_agents"
 														id="disallow_empty_user_agents" type="checkbox" <?php if ($rSettings["disallow_empty_user_agents"] == 1) {
-															echo ' checked ';
-														}
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="vod_bitrate_plus">VOD Bitrate Buffer <i title="Additional buffer when streaming VOD." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="vod_bitrate_plus" name="vod_bitrate_plus" value="';
-														echo htmlspecialchars($rSettings["vod_bitrate_plus"]);
-														echo '"></div><label class="col-md-4 col-form-label" for="vod_limit_perc">VOD Limit At % <i title="Limit VOD after x% has streamed. Use 0 to limit immediately and 100 to turn off entirely." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="vod_limit_perc" name="vod_limit_perc" value="';
-														echo htmlspecialchars($rSettings["vod_limit_perc"]);
-														echo '"></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="user_auto_kick_hours">Auto-Kick Hours <i title="Automatically kick connections that are online for more than X hours." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="user_auto_kick_hours" name="user_auto_kick_hours" value="';
-														echo htmlspecialchars($rSettings["user_auto_kick_hours"]);
-														echo '"></div><label class="col-md-4 col-form-label" for="use_mdomain_in_lists">Use Domain Name in API <i title="Use domain name in lists." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="use_mdomain_in_lists" id="use_mdomain_in_lists" type="checkbox"';
-														if ($rSettings["use_mdomain_in_lists"] == 1) {
-															echo ' checked ';
-														}
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="encrypt_playlist">Encrypt Playlists <i title="Encrypt line credentials in playlist files." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="encrypt_playlist" id="encrypt_playlist" type="checkbox"';
-														if ($rSettings["encrypt_playlist"] == 1) {
-															echo ' checked ';
-														}
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="encrypt_playlist_restreamer">Encrypt Restreamer Playlists <i title="Encrypt line credentials in restreamer playlist files." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="encrypt_playlist_restreamer" id="encrypt_playlist_restreamer" type="checkbox"';
-														if ($rSettings["encrypt_playlist_restreamer"] == 1) {
-															echo ' checked ';
-														}
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="restrict_playlists">Restrictions on Playlists & EPG <i title="Verify user-agent, IP restrictions, ISP and country restrictions before allowing playlist / EPG download. If disabled the playlist can be downloaded from any IP but restrictions still apply to streams themselves." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="restrict_playlists" id="restrict_playlists" type="checkbox"';
-														if ($rSettings["restrict_playlists"] == 1) {
-															echo ' checked ';
-														} ?>
+																											echo ' checked ';
+																										}
+																										echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="vod_bitrate_plus">VOD Bitrate Buffer <i title="Additional buffer when streaming VOD." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="vod_bitrate_plus" name="vod_bitrate_plus" value="';
+																										echo htmlspecialchars($rSettings["vod_bitrate_plus"]);
+																										echo '"></div><label class="col-md-4 col-form-label" for="vod_limit_perc">VOD Limit At % <i title="Limit VOD after x% has streamed. Use 0 to limit immediately and 100 to turn off entirely." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="vod_limit_perc" name="vod_limit_perc" value="';
+																										echo htmlspecialchars($rSettings["vod_limit_perc"]);
+																										echo '"></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="user_auto_kick_hours">Auto-Kick Hours <i title="Automatically kick connections that are online for more than X hours." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="user_auto_kick_hours" name="user_auto_kick_hours" value="';
+																										echo htmlspecialchars($rSettings["user_auto_kick_hours"]);
+																										echo '"></div><label class="col-md-4 col-form-label" for="use_mdomain_in_lists">Use Domain Name in API <i title="Use domain name in lists." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="use_mdomain_in_lists" id="use_mdomain_in_lists" type="checkbox"';
+																										if ($rSettings["use_mdomain_in_lists"] == 1) {
+																											echo ' checked ';
+																										}
+																										echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="encrypt_playlist">Encrypt Playlists <i title="Encrypt line credentials in playlist files." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="encrypt_playlist" id="encrypt_playlist" type="checkbox"';
+																										if ($rSettings["encrypt_playlist"] == 1) {
+																											echo ' checked ';
+																										}
+																										echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="encrypt_playlist_restreamer">Encrypt Restreamer Playlists <i title="Encrypt line credentials in restreamer playlist files." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="encrypt_playlist_restreamer" id="encrypt_playlist_restreamer" type="checkbox"';
+																										if ($rSettings["encrypt_playlist_restreamer"] == 1) {
+																											echo ' checked ';
+																										}
+																										echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="restrict_playlists">Restrictions on Playlists & EPG <i title="Verify user-agent, IP restrictions, ISP and country restrictions before allowing playlist / EPG download. If disabled the playlist can be downloaded from any IP but restrictions still apply to streams themselves." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="restrict_playlists" id="restrict_playlists" type="checkbox"';
+																										if ($rSettings["restrict_playlists"] == 1) {
+																											echo ' checked ';
+																										} ?>
 														data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" />
 												</div>
@@ -1154,29 +1121,29 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 												<div class="col-md-2">
 													<input name="ignore_invalid_users" id="ignore_invalid_users"
 														type="checkbox" <?php if ($rSettings["ignore_invalid_users"] == 1) {
-															echo ' checked ';
-														}
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="client_prebuffer">Client Prebuffer <i title="How much data in seconds will be sent to the client when connecting to a stream. Larger values will create larger prebuffers." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="client_prebuffer" name="client_prebuffer" value="';
-														echo htmlspecialchars($rSettings["client_prebuffer"]);
-														echo '"></div><label class="col-md-4 col-form-label" for="restreamer_prebuffer">Restreamer Prebuffer <i title="How much data in seconds will be sent to the client when connecting to a stream. Larger values will create larger prebuffers." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="restreamer_prebuffer" name="restreamer_prebuffer" value="';
-														echo htmlspecialchars($rSettings["restreamer_prebuffer"]);
-														echo '"></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="split_by">Load Balancing <i title="Preferred method of load balancing connections." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><select name="split_by" id="split_by" class="form-control" data-toggle="select2"><option';
-														if ($rSettings["split_by"] == "conn") {
-															echo ' selected';
-														} ?>
+																			echo ' checked ';
+																		}
+																		echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="client_prebuffer">Client Prebuffer <i title="How much data in seconds will be sent to the client when connecting to a stream. Larger values will create larger prebuffers." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="client_prebuffer" name="client_prebuffer" value="';
+																		echo htmlspecialchars($rSettings["client_prebuffer"]);
+																		echo '"></div><label class="col-md-4 col-form-label" for="restreamer_prebuffer">Restreamer Prebuffer <i title="How much data in seconds will be sent to the client when connecting to a stream. Larger values will create larger prebuffers." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="restreamer_prebuffer" name="restreamer_prebuffer" value="';
+																		echo htmlspecialchars($rSettings["restreamer_prebuffer"]);
+																		echo '"></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="split_by">Load Balancing <i title="Preferred method of load balancing connections." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><select name="split_by" id="split_by" class="form-control" data-toggle="select2"><option';
+																		if ($rSettings["split_by"] == "conn") {
+																			echo ' selected';
+																		} ?>
 														value="conn">Connections</option>
 													<option <?php if ($rSettings["split_by"] == "maxclients") {
-														echo ' selected';
-													} ?> value="maxclients">Max Clients </option>
+																echo ' selected';
+															} ?> value="maxclients">Max Clients </option>
 													<option <?php if ($rSettings["split_by"] != "guar_band") {
-													} else {
-														echo ' selected';
-													} ?> value="guar_band"> Network Speed
+															} else {
+																echo ' selected';
+															} ?> value="guar_band"> Network Speed
 													</option>
 													<option <?php if ($rSettings["split_by"] != "band") {
-													} else {
-														echo ' selected';
-													} ?> value="band">Detected Network Speed
+															} else {
+																echo ' selected';
+															} ?> value="band">Detected Network Speed
 													</option>
 													</select>
 												</div>
@@ -1187,8 +1154,8 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 												<div class="col-md-2">
 													<input name="restreamer_bypass_proxy" id="restreamer_bypass_proxy"
 														type="checkbox" <?php if ($rSettings["restreamer_bypass_proxy"] == 1) {
-															echo ' checked ';
-														} ?> data-plugin="switchery" class="js-switch"
+																			echo ' checked ';
+																		} ?> data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" />
 												</div>
 											</div>
@@ -1201,27 +1168,27 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 													<select name="channel_number_type" id="channel_number_type"
 														class="form-control" data-toggle="select2">
 														<option <?php if ($rSettings["channel_number_type"] != "bouquet_new") {
-														} else {
-															echo ' selected';
-														} ?>
+																} else {
+																	echo ' selected';
+																} ?>
 															value="bouquet_new">Bouquet</option>
 														<option <?php if ($rSettings["channel_number_type"] != "bouquet") {
-														} else {
-															echo ' selected';
-														} ?> value="bouquet">Legacy
+																} else {
+																	echo ' selected';
+																} ?> value="bouquet">Legacy
 														</option>
 														<option <? if ($rSettings["channel_number_type"] != "manual") {
-														} else {
-															echo ' selected';
-														}
-														echo ' value="manual">Manual</option></select></div><label class="col-md-4 col-form-label" for="vod_sort_newest">Sort VOD by Date <i title="Change default sorting for VOD to be by date added descending, showing newest first. This only works as expected if Channel Sorting Type is set to Bouquet, otherwise VOD order will be overwritten." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="vod_sort_newest" id="vod_sort_newest" type="checkbox"';
-														if ($rSettings["vod_sort_newest"] == 1) {
-															echo ' checked ';
-														}
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="use_buffer">Use Nginx Buffer <i title="Sets the proxy buffering for this connection. Setting this to “no” will allow unbuffered responses suitable for Comet and HTTP streaming applications. Setting this to “yes” will allow the response to be cached." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="use_buffer" id="use_buffer" type="checkbox"';
-														if ($rSettings["use_buffer"] == 1) {
-															echo ' checked ';
-														} ?>
+																} else {
+																	echo ' selected';
+																}
+																echo ' value="manual">Manual</option></select></div><label class="col-md-4 col-form-label" for="vod_sort_newest">Sort VOD by Date <i title="Change default sorting for VOD to be by date added descending, showing newest first. This only works as expected if Channel Sorting Type is set to Bouquet, otherwise VOD order will be overwritten." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="vod_sort_newest" id="vod_sort_newest" type="checkbox"';
+																if ($rSettings["vod_sort_newest"] == 1) {
+																	echo ' checked ';
+																}
+																echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="use_buffer">Use Nginx Buffer <i title="Sets the proxy buffering for this connection. Setting this to “no” will allow unbuffered responses suitable for Comet and HTTP streaming applications. Setting this to “yes” will allow the response to be cached." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="use_buffer" id="use_buffer" type="checkbox"';
+																if ($rSettings["use_buffer"] == 1) {
+																	echo ' checked ';
+																} ?>
 															data-plugin="switchery" class="js-switch"
 															data-color="#039cfd" />
 												</div>
@@ -1231,8 +1198,8 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2">
 													<input name="show_isps" id="show_isps" type="checkbox" <?php if ($rSettings["show_isps"] == 1) {
-														echo ' checked ';
-													} ?>
+																												echo ' checked ';
+																											} ?>
 														data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" />
 												</div>
@@ -1254,8 +1221,8 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 												<div class="col-md-2">
 													<input name="monitor_connection_status"
 														id="monitor_connection_status" type="checkbox" <?php if ($rSettings["monitor_connection_status"] == 1) {
-															echo ' checked ';
-														} ?> data-plugin="switchery" class="js-switch"
+																											echo ' checked ';
+																										} ?> data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" />
 												</div>
 											</div>
@@ -1278,8 +1245,8 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 												<div class="col-md-2">
 													<input name="kill_rogue_ffmpeg" id="kill_rogue_ffmpeg"
 														type="checkbox" <?php if ($rSettings["kill_rogue_ffmpeg"] == 1) {
-															echo ' checked ';
-														} ?> data-plugin="switchery" class="js-switch"
+																			echo ' checked ';
+																		} ?> data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" />
 												</div>
 											</div>
@@ -1353,8 +1320,8 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 												<div class="col-md-2">
 													<input name="on_demand_failure_exit" id="on_demand_failure_exit"
 														type="checkbox" <?php if ($rSettings["on_demand_failure_exit"] == 1) {
-															echo ' checked ';
-														} ?> data-plugin="switchery" class="js-switch"
+																			echo ' checked ';
+																		} ?> data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" />
 												</div>
 											</div>
@@ -1375,8 +1342,8 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 												<div class="col-md-2">
 													<input name="request_prebuffer" id="request_prebuffer"
 														type="checkbox" <? if ($rSettings["request_prebuffer"] == 1) {
-															echo ' checked ';
-														} ?> data-plugin="switchery" class="js-switch"
+																			echo ' checked ';
+																		} ?> data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" />
 												</div>
 											</div>
@@ -1388,8 +1355,8 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 												<div class="col-md-2">
 													<input name="ondemand_balance_equal" id="ondemand_balance_equal"
 														type="checkbox" <?php if ($rSettings["ondemand_balance_equal"] == 1) {
-															echo ' checked ';
-														} ?> data-plugin="switchery" class="js-switch"
+																			echo ' checked ';
+																		} ?> data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" />
 												</div>
 											</div>
@@ -1402,8 +1369,8 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 												<div class="col-md-2">
 													<input name="on_demand_checker" id="on_demand_checker"
 														type="checkbox" <?php if ($rSettings["on_demand_checker"] == 1) {
-															echo ' checked ';
-														} ?> data-plugin="switchery" class="js-switch"
+																			echo ' checked ';
+																		} ?> data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" />
 												</div>
 												<label class="col-md-4 col-form-label" for="on_demand_scan_time">Scan
@@ -1559,26 +1526,26 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 																echo 'selected ';
 															}
 
-															?> value="<?= $rValue ?>"><?= $rText ?></option><?php
-														}
-														echo '</select></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="ffmpeg_warnings">FFMPEG Show Warnings <i title="Instruct FFMPEG to save warnings to stream errors table. Turning this off will save only errors instead." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="ffmpeg_warnings" id="ffmpeg_warnings" type="checkbox"';
+														?> value="<?= $rValue ?>"><?= $rText ?></option><?php
+																										}
+																										echo '</select></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="ffmpeg_warnings">FFMPEG Show Warnings <i title="Instruct FFMPEG to save warnings to stream errors table. Turning this off will save only errors instead." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="ffmpeg_warnings" id="ffmpeg_warnings" type="checkbox"';
 
-														if ($rSettings["ffmpeg_warnings"] == 1) {
-															echo ' checked ';
-														}
+																										if ($rSettings["ffmpeg_warnings"] == 1) {
+																											echo ' checked ';
+																										}
 
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="ignore_keyframes">Ignore Keyframes <i title="Allow segments to start on frames other than keyframes. This improves behavior on some players when the time between keyframes is inconsistent, but may make things worse on others, and can cause some oddities during startup with blank screen until video kicks in." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="ignore_keyframes" id="ignore_keyframes" type="checkbox"';
+																										echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="ignore_keyframes">Ignore Keyframes <i title="Allow segments to start on frames other than keyframes. This improves behavior on some players when the time between keyframes is inconsistent, but may make things worse on others, and can cause some oddities during startup with blank screen until video kicks in." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="ignore_keyframes" id="ignore_keyframes" type="checkbox"';
 
-														if ($rSettings["ignore_keyframes"] == 1) {
-															echo ' checked ';
-														}
+																										if ($rSettings["ignore_keyframes"] == 1) {
+																											echo ' checked ';
+																										}
 
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="dts_legacy_ffmpeg">DTS - Use FFMPEG v4.0 <i title="Automatically switch to legacy FFMPEG v4.0 for streams with DTS audio, in some cases this has been known to fix desynchronised audio. Generate PTS needs to be turned off for this to function." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="dts_legacy_ffmpeg" id="dts_legacy_ffmpeg" type="checkbox"';
+																										echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="dts_legacy_ffmpeg">DTS - Use FFMPEG v4.0 <i title="Automatically switch to legacy FFMPEG v4.0 for streams with DTS audio, in some cases this has been known to fix desynchronised audio. Generate PTS needs to be turned off for this to function." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="dts_legacy_ffmpeg" id="dts_legacy_ffmpeg" type="checkbox"';
 
-														if ($rSettings["dts_legacy_ffmpeg"] == 1) {
-															echo ' checked ';
-														}
-														?> data-plugin="switchery" class="js-switch" data-color="#039cfd"/>
+																										if ($rSettings["dts_legacy_ffmpeg"] == 1) {
+																											echo ' checked ';
+																										}
+																											?> data-plugin="switchery" class="js-switch" data-color="#039cfd"/>
 												</div>
 												<label class="col-md-4 col-form-label" for="php_loopback">Loopback
 													Streams via PHP <i
@@ -1586,8 +1553,8 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2">
 													<input name="php_loopback" id="php_loopback" type="checkbox" <?php if ($rSettings["php_loopback"] == 1) {
-														echo ' checked ';
-													} ?>
+																														echo ' checked ';
+																													} ?>
 														data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" />
 												</div>
@@ -1599,9 +1566,9 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="audio_restart_loss"
 														id="audio_restart_loss" type="checkbox" <?
-														if ($rSettings["audio_restart_loss"] == 1) {
-															echo ' checked ';
-														} ?>
+																								if ($rSettings["audio_restart_loss"] == 1) {
+																									echo ' checked ';
+																								} ?>
 														data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" /></div><label
 													class="col-md-4 col-form-label" for="priority_backup">Priority
@@ -1610,8 +1577,8 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="priority_backup" id="priority_backup"
 														type="checkbox" <? if ($rSettings["priority_backup"] == 1) {
-															echo ' checked ';
-														} ?> data-plugin="switchery" class="js-switch"
+																			echo ' checked ';
+																		} ?> data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" /></div>
 											</div>
 											<div class="form-group row mb-4"><label class="col-md-4 col-form-label"
@@ -1655,9 +1622,9 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 																echo 'selected ';
 															}
 
-															?> value="<?= $rValue ?>"><?= $rText ?></option><?php
-														}
-														?>
+														?> value="<?= $rValue ?>"><?= $rText ?></option><?php
+																										}
+																											?>
 													</select>
 												</div>
 											</div>
@@ -1667,10 +1634,10 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2">
 													<input name="api_probe" id="api_probe" type="checkbox" <?php
-													if ($rSettings["api_probe"] == 1) {
-														echo ' checked ';
-													}
-													?>
+																											if ($rSettings["api_probe"] == 1) {
+																												echo ' checked ';
+																											}
+																											?>
 														data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" />
 												</div>
@@ -1682,59 +1649,59 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="show_not_on_air_video"
 														id="show_not_on_air_video" type="checkbox" <?php
-														if ($rSettings["show_not_on_air_video"] == 1) {
-															echo ' checked ';
-														}
+																									if ($rSettings["show_not_on_air_video"] == 1) {
+																										echo ' checked ';
+																									}
 
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><div class="col-md-6"><input type="text" class="form-control" id="not_on_air_video_path" name="not_on_air_video_path" value=" ';
-														echo htmlspecialchars($rSettings["not_on_air_video_path"]);
-														echo '" placeholder="Leave blank to use default XC_VM video."></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="show_banned_video">Banned Video <i title="Show this video when a banned line accesses a stream." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="show_banned_video" id="show_banned_video" type="checkbox"';
+																									echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><div class="col-md-6"><input type="text" class="form-control" id="not_on_air_video_path" name="not_on_air_video_path" value=" ';
+																									echo htmlspecialchars($rSettings["not_on_air_video_path"]);
+																									echo '" placeholder="Leave blank to use default XC_VM video."></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="show_banned_video">Banned Video <i title="Show this video when a banned line accesses a stream." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="show_banned_video" id="show_banned_video" type="checkbox"';
 
-														if ($rSettings["show_banned_video"] == 1) {
-															echo ' checked ';
-														}
+																									if ($rSettings["show_banned_video"] == 1) {
+																										echo ' checked ';
+																									}
 
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><div class="col-md-6"><input type="text" class="form-control" id="banned_video_path" name="banned_video_path" value=" ';
-														echo htmlspecialchars($rSettings["banned_video_path"]);
-														echo '" placeholder="Leave blank to use default XC_VM video."></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="show_expired_video">Expired Video <i title="Show this video when an expired line accesses a stream." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="show_expired_video" id="show_expired_video" type="checkbox"';
+																									echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><div class="col-md-6"><input type="text" class="form-control" id="banned_video_path" name="banned_video_path" value=" ';
+																									echo htmlspecialchars($rSettings["banned_video_path"]);
+																									echo '" placeholder="Leave blank to use default XC_VM video."></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="show_expired_video">Expired Video <i title="Show this video when an expired line accesses a stream." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="show_expired_video" id="show_expired_video" type="checkbox"';
 
-														if ($rSettings["show_expired_video"] == 1) {
-															echo ' checked ';
-														}
+																									if ($rSettings["show_expired_video"] == 1) {
+																										echo ' checked ';
+																									}
 
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><div class="col-md-6"><input type="text" class="form-control" id="expired_video_path" name="expired_video_path" value=" ';
-														echo htmlspecialchars($rSettings["expired_video_path"]);
-														echo '" placeholder="Leave blank to use default XC_VM video."></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="show_expiring_video">Expiring Video <i title="Show this video once per day 7 days prior to a line expiring." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="show_expiring_video" id="show_expiring_video" type="checkbox"';
+																									echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><div class="col-md-6"><input type="text" class="form-control" id="expired_video_path" name="expired_video_path" value=" ';
+																									echo htmlspecialchars($rSettings["expired_video_path"]);
+																									echo '" placeholder="Leave blank to use default XC_VM video."></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="show_expiring_video">Expiring Video <i title="Show this video once per day 7 days prior to a line expiring." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="show_expiring_video" id="show_expiring_video" type="checkbox"';
 
-														if ($rSettings["show_expiring_video"] == 1) {
-															echo ' checked ';
-														}
+																									if ($rSettings["show_expiring_video"] == 1) {
+																										echo ' checked ';
+																									}
 
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><div class="col-md-6"><input type="text" class="form-control" id="expiring_video_path" name="expiring_video_path" value=" ';
-														echo htmlspecialchars($rSettings["expiring_video_path"]);
-														echo '" placeholder="Leave blank to use default XC_VM video."></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="show_connected_video">2nd IP Connected Video <i title="Show this video when a client connects but gets denied to already watching on another IP." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="show_connected_video" id="show_connected_video" type="checkbox"';
+																									echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><div class="col-md-6"><input type="text" class="form-control" id="expiring_video_path" name="expiring_video_path" value=" ';
+																									echo htmlspecialchars($rSettings["expiring_video_path"]);
+																									echo '" placeholder="Leave blank to use default XC_VM video."></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="show_connected_video">2nd IP Connected Video <i title="Show this video when a client connects but gets denied to already watching on another IP." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="show_connected_video" id="show_connected_video" type="checkbox"';
 
-														if ($rSettings["show_connected_video"] == 1) {
-															echo ' checked ';
-														}
+																									if ($rSettings["show_connected_video"] == 1) {
+																										echo ' checked ';
+																									}
 
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><div class="col-md-6"><input type="text" class="form-control" id="connected_video_path" name="connected_video_path" value=" ';
-														echo htmlspecialchars($rSettings["connected_video_path"]);
-														echo '" placeholder="Leave blank to use default XC_VM video."></div></div>    <h5 class="card-title mb-4">Allowed Countries <i title="Select individual countries to allow. This is a global geo-lock, selet All Countries to allow everyone." class="tooltip text-secondary far fa-circle"></i></h5>    <div class="form-group row mb-4"><div class="col-md-12">    <select name="allow_countries[]" id="allow_countries" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">';
+																									echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><div class="col-md-6"><input type="text" class="form-control" id="connected_video_path" name="connected_video_path" value=" ';
+																									echo htmlspecialchars($rSettings["connected_video_path"]);
+																									echo '" placeholder="Leave blank to use default XC_VM video."></div></div>    <h5 class="card-title mb-4">Allowed Countries <i title="Select individual countries to allow. This is a global geo-lock, selet All Countries to allow everyone." class="tooltip text-secondary far fa-circle"></i></h5>    <div class="form-group row mb-4"><div class="col-md-12">    <select name="allow_countries[]" id="allow_countries" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">';
 
-														foreach ($rGeoCountries as $rValue => $rText) {
-															echo '<option ';
+																									foreach ($rGeoCountries as $rValue => $rText) {
+																										echo '<option ';
 
-															if (in_array($rValue, json_decode($rSettings["allow_countries"], true))) {
-																echo 'selected ';
-															}
-															echo 'value=" ';
-															echo $rValue;
-															echo '">';
-															echo $rText;
-															echo '</option>';
-														}
-														?> </select></div>
+																										if (in_array($rValue, json_decode($rSettings["allow_countries"], true))) {
+																											echo 'selected ';
+																										}
+																										echo 'value=" ';
+																										echo $rValue;
+																										echo '">';
+																										echo $rText;
+																										echo '</option>';
+																									}
+																									?> </select></div>
 											</div>
 										</div>
 									</div>
@@ -1749,50 +1716,50 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="show_all_category_mag"
 														id="show_all_category_mag" type="checkbox" <?php
-														if ($rSettings["show_all_category_mag"] == 1) {
-															echo ' checked ';
-														}
+																									if ($rSettings["show_all_category_mag"] == 1) {
+																										echo ' checked ';
+																									}
 
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="mag_container">Default Container</label><div class="col-md-2"><select name="mag_container" id="mag_container" class="form-control" data-toggle="select2">';
+																									echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="mag_container">Default Container</label><div class="col-md-2"><select name="mag_container" id="mag_container" class="form-control" data-toggle="select2">';
 
-														foreach (["ts" => "TS", "m3u8" => "M3U8"] as $rValue => $rText) {
-															echo '<option ';
+																									foreach (["ts" => "TS", "m3u8" => "M3U8"] as $rValue => $rText) {
+																										echo '<option ';
 
-															if ($rSettings["mag_container"] != $rValue) {
-															} else {
-																echo 'selected ';
-															}
+																										if ($rSettings["mag_container"] != $rValue) {
+																										} else {
+																											echo 'selected ';
+																										}
 
-															echo 'value=" ';
-															echo $rValue;
-															echo '">';
-															echo $rText;
-															echo '</option>';
-														}
-														echo '</select></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="always_enabled_subtitles">Always Enabled Subtitles <i title="Force subtitles to be enabled at all times." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="always_enabled_subtitles" id="always_enabled_subtitles" type="checkbox"';
+																										echo 'value=" ';
+																										echo $rValue;
+																										echo '">';
+																										echo $rText;
+																										echo '</option>';
+																									}
+																									echo '</select></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="always_enabled_subtitles">Always Enabled Subtitles <i title="Force subtitles to be enabled at all times." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="always_enabled_subtitles" id="always_enabled_subtitles" type="checkbox"';
 
-														if ($rSettings["always_enabled_subtitles"] == 1) {
-															echo ' checked ';
-														}
+																									if ($rSettings["always_enabled_subtitles"] == 1) {
+																										echo ' checked ';
+																									}
 
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="enable_connection_problem_indication">Connection Problem Indiciation</label><div class="col-md-2"><input name="enable_connection_problem_indication" id="enable_connection_problem_indication" type="checkbox"';
+																									echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="enable_connection_problem_indication">Connection Problem Indiciation</label><div class="col-md-2"><input name="enable_connection_problem_indication" id="enable_connection_problem_indication" type="checkbox"';
 
-														if ($rSettings["enable_connection_problem_indication"] == 1) {
-															echo ' checked ';
-														}
+																									if ($rSettings["enable_connection_problem_indication"] == 1) {
+																										echo ' checked ';
+																									}
 
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="show_tv_channel_logo">Show Channel Logos</label><div class="col-md-2"><input name="show_tv_channel_logo" id="show_tv_channel_logo" type="checkbox"';
+																									echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="show_tv_channel_logo">Show Channel Logos</label><div class="col-md-2"><input name="show_tv_channel_logo" id="show_tv_channel_logo" type="checkbox"';
 
-														if ($rSettings["show_tv_channel_logo"] == 1) {
-															echo ' checked ';
-														}
+																									if ($rSettings["show_tv_channel_logo"] == 1) {
+																										echo ' checked ';
+																									}
 
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="show_channel_logo_in_preview">Show Preview Channel Logos</label><div class="col-md-2"><input name="show_channel_logo_in_preview" id="show_channel_logo_in_preview" type="checkbox"';
+																									echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="show_channel_logo_in_preview">Show Preview Channel Logos</label><div class="col-md-2"><input name="show_channel_logo_in_preview" id="show_channel_logo_in_preview" type="checkbox"';
 
-														if ($rSettings["show_channel_logo_in_preview"] == 1) {
-															echo ' checked ';
-														}
-														?> data-plugin="switchery" class="js-switch"
+																									if ($rSettings["show_channel_logo_in_preview"] == 1) {
+																										echo ' checked ';
+																									}
+																									?> data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" /></div>
 											</div>
 											<div class="form-group row mb-4">
@@ -1813,19 +1780,19 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 												<div class="col-md-2"><select name="tv_channel_default_aspect"
 														id="tv_channel_default_aspect" class="form-control"
 														data-toggle="select2"><?php
-														foreach (["fit", "big", "opt", "exp", "cmb"] as $rValue) {
-															echo '<option ';
-															if ($rSettings["tv_channel_default_aspect"] == $rValue) {
-																echo 'selected ';
-															}
+																				foreach (["fit", "big", "opt", "exp", "cmb"] as $rValue) {
+																					echo '<option ';
+																					if ($rSettings["tv_channel_default_aspect"] == $rValue) {
+																						echo 'selected ';
+																					}
 
-															echo 'value=" ';
-															echo $rValue;
-															echo '">';
-															echo $rValue;
-															echo '</option>';
-														}
-														?>
+																					echo 'value=" ';
+																					echo $rValue;
+																					echo '">';
+																					echo $rValue;
+																					echo '</option>';
+																				}
+																				?>
 													</select>
 												</div>
 											</div>
@@ -1882,10 +1849,10 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="mag_legacy_redirect"
 														id="mag_legacy_redirect" type="checkbox" <?php
-														if ($rSettings["mag_legacy_redirect"] == 1) {
-															echo ' checked ';
-														}
-														?>
+																									if ($rSettings["mag_legacy_redirect"] == 1) {
+																										echo ' checked ';
+																									}
+																									?>
 														data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" />
 												</div>
@@ -1895,10 +1862,10 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="mag_keep_extension"
 														id="mag_keep_extension" type="checkbox" <?php
-														if ($rSettings["mag_keep_extension"] == 1) {
-															echo ' checked ';
-														}
-														?>
+																								if ($rSettings["mag_keep_extension"] == 1) {
+																									echo ' checked ';
+																								}
+																								?>
 														data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" /></div>
 											</div>
@@ -1909,10 +1876,10 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="mag_disable_ssl" id="mag_disable_ssl"
 														type="checkbox" <?php
-														if ($rSettings["mag_disable_ssl"] == 1) {
-															echo ' checked ';
-														}
-														?> data-plugin="switchery" class="js-switch"
+																		if ($rSettings["mag_disable_ssl"] == 1) {
+																			echo ' checked ';
+																		}
+																		?> data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" /></div>
 												<label class="col-md-4 col-form-label" for="mag_load_all_channels">Load
 													Channels on Startup <i
@@ -1920,10 +1887,10 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="mag_load_all_channels"
 														id="mag_load_all_channels" type="checkbox" <?php
-														if ($rSettings["mag_load_all_channels"] == 1) {
-															echo ' checked ';
-														}
-														?> data-plugin="switchery" class="js-switch"
+																									if ($rSettings["mag_load_all_channels"] == 1) {
+																										echo ' checked ';
+																									}
+																									?> data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" /></div>
 											</div>
 											<div class="form-group row mb-4"><label class="col-md-4 col-form-label"
@@ -1933,10 +1900,10 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="disable_mag_token"
 														id="disable_mag_token" type="checkbox" <?php
-														if ($rSettings["disable_mag_token"] == 1) {
-															echo ' checked ';
-														}
-														?>
+																								if ($rSettings["disable_mag_token"] == 1) {
+																									echo ' checked ';
+																								}
+																								?>
 														data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" /></div>
 											</div>
@@ -2022,12 +1989,12 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 												<div class="col-md-2">
 													<input name="player_allow_playlist" id="player_allow_playlist"
 														type="checkbox" <?php if ($rSettings["player_allow_playlist"] == 1) {
-															echo ' checked ';
-														}
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="player_allow_bouquet">Allow Bouquet Ordering <i title="Allow clients to reorder their bouquets from the web player." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="player_allow_bouquet" id="player_allow_bouquet" type="checkbox"';
-														if ($rSettings["player_allow_bouquet"] == 1) {
-															echo ' checked ';
-														} ?> data-plugin="switchery" class="js-switch"
+																			echo ' checked ';
+																		}
+																		echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="player_allow_bouquet">Allow Bouquet Ordering <i title="Allow clients to reorder their bouquets from the web player." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="player_allow_bouquet" id="player_allow_bouquet" type="checkbox"';
+																		if ($rSettings["player_allow_bouquet"] == 1) {
+																			echo ' checked ';
+																		} ?> data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" />
 												</div>
 											</div>
@@ -2039,12 +2006,12 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 												<div class="col-md-2">
 													<input name="player_hide_incompatible" id="player_hide_incompatible"
 														type="checkbox" <?php if ($rSettings["player_hide_incompatible"] == 1) {
-															echo ' checked ';
-														}
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="player_allow_hevc">Mark HEVC as Compatible <i title="Mark HEVC as compatible, there are some browsers such as Edge and Safari that support HEVC, however most mainstream browsers such as Firefox and Chrome do not." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="player_allow_hevc" id="player_allow_hevc" type="checkbox"';
-														if ($rSettings["player_allow_hevc"] == 1) {
-															echo ' checked ';
-														} ?>
+																			echo ' checked ';
+																		}
+																		echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="player_allow_hevc">Mark HEVC as Compatible <i title="Mark HEVC as compatible, there are some browsers such as Edge and Safari that support HEVC, however most mainstream browsers such as Firefox and Chrome do not." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="player_allow_hevc" id="player_allow_hevc" type="checkbox"';
+																		if ($rSettings["player_allow_hevc"] == 1) {
+																			echo ' checked ';
+																		} ?>
 														data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" />
 												</div>
@@ -2076,9 +2043,9 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 												<div class="col-md-2">
 													<input name="extract_subtitles" id="extract_subtitles"
 														type="checkbox" <?php if ($rSettings["extract_subtitles"] == 1) {
-															echo ' checked ';
-														}
-														?> data-plugin="switchery" class="js-switch"
+																			echo ' checked ';
+																		}
+																		?> data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" />
 												</div>
 											</div>
@@ -2097,9 +2064,9 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 												</label>
 												<div class="col-md-3"><input name="save_closed_connection"
 														id="save_closed_connection" type="checkbox" <?php if ($rSettings["save_closed_connection"] == 1) {
-															echo ' checked ';
-														}
-														?> data-plugin="switchery" class="js-switch"
+																										echo ' checked ';
+																									}
+																									?> data-plugin="switchery" class="js-switch"
 														data-color="#039cfd" />
 												</div>
 												<label class="col-md-3 col-form-label" for="keep_activity">Keep Logs
@@ -2114,9 +2081,9 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 																echo 'selected ';
 															}
 
-															?> value="<?= $rValue ?>"><?= $rText ?>
+														?> value="<?= $rValue ?>"><?= $rText ?>
 															</option>
-															<?php
+														<?php
 														}
 														?>
 													</select>
@@ -2151,9 +2118,9 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 																echo 'selected ';
 															}
 
-															?> value="<?= $rValue ?>"><?= $rText ?>
+														?> value="<?= $rValue ?>"><?= $rText ?>
 															</option>
-															<?php
+														<?php
 														} ?>
 													</select>
 												</div>
@@ -2186,9 +2153,9 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 																echo 'selected ';
 															}
 
-															?> value="<?= $rValue ?>"><?= $rText ?>
+														?> value="<?= $rValue ?>"><?= $rText ?>
 															</option><?php
-														} ?>
+																	} ?>
 													</select>
 												</div>
 											</div>
@@ -2219,9 +2186,9 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 															if ($rSettings["keep_errors"] == $rValue) {
 																echo 'selected ';
 															}
-															?> value="<?= $rValue ?>"><?= $rText ?>
+														?> value="<?= $rValue ?>"><?= $rText ?>
 															</option>
-															<?php
+														<?php
 														} ?>
 													</select>
 												</div>
@@ -2234,8 +2201,8 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 												<div class="col-md-3">
 													<input name="save_restart_logs" id="save_restart_logs"
 														type="checkbox" <?php if ($rSettings["save_restart_logs"] == 1) {
-															echo ' checked ';
-														} ?> data-plugin="switchery"
+																			echo ' checked ';
+																		} ?> data-plugin="switchery"
 														class="js-switch" data-color="#039cfd" />
 												</div>
 												<label class="col-md-3 col-form-label" for="keep_restarts">Keep
@@ -2249,11 +2216,11 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 															if ($rSettings["keep_restarts"] == $rValue) {
 																echo 'selected ';
 															}
-															?> value="
+														?> value="
 															<?= $rValue; ?>">
 															<?= $rText ?>
 															</option>
-															<?php
+														<?php
 														}
 														?>
 													</select>
@@ -2264,14 +2231,14 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 								</div>
 								<?php
 								if (hasPermissions("adv", "database") && DEVELOPMENT) { ?>
-                                        <div class="tab-pane" id="database">
-                                            <div class="row">
-                                                <iframe width="100%" height="650px" src="./database.php"
-                                                    style="overflow-x:hidden;border:0px;"></iframe>
-                                            </div> <!-- end row -->
-                                        </div>
-                                        <?php
-                                    } ?>
+									<div class="tab-pane" id="database">
+										<div class="row">
+											<iframe width="100%" height="650px" src="./database.php"
+												style="overflow-x:hidden;border:0px;"></iframe>
+										</div> <!-- end row -->
+									</div>
+								<?php
+								} ?>
 							</div>
 						</div>
 					</div>
@@ -2282,9 +2249,321 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 </div>
 </div>
 <?php
-include 'footer.php';
-		echo '        ' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'});" . "\r\n\t\t\t" . '$("#datatable-backups").css("width", "100%");' . "\r\n" . "            \$(\"#allowed_stb_types\").select2({width: '100%', tags: true});" . "\r\n" . "            \$(\"#allowed_stb_types_for_local_recording\").select2({width: '100%', tags: true});" . "\r\n" . '            $("#log_clear").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#vod_bitrate_plus").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#vod_limit_perc").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#user_auto_kick_hours").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#flood_limit").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#flood_seconds").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#auth_flood_seconds").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#auth_flood_limit").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#auth_flood_sleep").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#bruteforce_mac_attempts").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#bruteforce_username_attempts").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#bruteforce_frequency").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#login_flood").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#client_prebuffer").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#restreamer_prebuffer").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#read_buffer_size").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#stream_max_analyze").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#probesize").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#stream_start_delay").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#online_capacity_interval").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#on_demand_wait_time").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#seg_time").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#stream_fail_sleep").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#probe_extra_wait").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#seg_list_size").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#cpu_limit").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#mem_limit").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#playback_limit").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#connection_loop_per").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#connection_loop_count").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#max_simultaneous_downloads").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#cache_playlists").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#seg_delete_threshold").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#fails_per_time").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#create_expiration").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#max_encode_movies").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#max_encode_cc").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#queue_loop").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#player_blur").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#player_opacity").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#disallow_2nd_ip_max").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#probesize_ondemand").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#connection_sync_timer").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#segment_wait_time").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#on_demand_scan_time").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#on_demand_max_probe").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#on_demand_scan_keep").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#stop_failures").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#mysql_sleep_kill").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#threshold_cpu").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#threshold_mem").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#threshold_disk").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#threshold_network").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#threshold_clients").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n" . "                \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                submitForm(window.rCurrentPage, new FormData($("form")[0]));' . "\r\n" . '            });' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n" . '        ';
-?>
+include 'footer.php'; ?>
+<script id="scripts">
+	var resizeObserver = new ResizeObserver(entries => $(window).scroll());
+	$(document).ready(function() {
+		resizeObserver.observe(document.body)
+		$("form").attr('autocomplete', 'off');
+		$(document).keypress(function(event) {
+			if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
+		});
+		$.fn.dataTable.ext.errMode = 'none';
+		var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
+		elems.forEach(function(html) {
+			var switchery = new Switchery(html, {
+				'color': '#414d5f'
+			});
+			window.rSwitches[$(html).attr("id")] = switchery;
+		});
+		setTimeout(pingSession, 30000);
+		<?php if (!$rMobile || $rSettings['header_stats']): ?>
+			headerStats();
+		<?php endif; ?>
+		bindHref();
+		refreshTooltips();
+		$(window).scroll(function() {
+			if ($(this).scrollTop() > 200) {
+				if ($(document).height() > $(window).height()) {
+					$('#scrollToBottom').fadeOut();
+				}
+				$('#scrollToTop').fadeIn();
+			} else {
+				$('#scrollToTop').fadeOut();
+				if ($(document).height() > $(window).height()) {
+					$('#scrollToBottom').fadeIn();
+				} else {
+					$('#scrollToBottom').hide();
+				}
+			}
+		});
+		$("#scrollToTop").unbind("click");
+		$('#scrollToTop').click(function() {
+			$('html, body').animate({
+				scrollTop: 0
+			}, 800);
+			return false;
+		});
+		$("#scrollToBottom").unbind("click");
+		$('#scrollToBottom').click(function() {
+			$('html, body').animate({
+				scrollTop: $(document).height()
+			}, 800);
+			return false;
+		});
+		$(window).scroll();
+		$(".nextb").unbind("click");
+		$(".nextb").click(function() {
+			var rPos = 0;
+			var rActive = null;
+			$(".nav .nav-item").each(function() {
+				if ($(this).find(".nav-link").hasClass("active")) {
+					rActive = rPos;
+				}
+				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
+					$(this).find(".nav-link").trigger("click");
+					return false;
+				}
+				rPos += 1;
+			});
+		});
+		$(".prevb").unbind("click");
+		$(".prevb").click(function() {
+			var rPos = 0;
+			var rActive = null;
+			$($(".nav .nav-item").get().reverse()).each(function() {
+				if ($(this).find(".nav-link").hasClass("active")) {
+					rActive = rPos;
+				}
+				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
+					$(this).find(".nav-link").trigger("click");
+					return false;
+				}
+				rPos += 1;
+			});
+		});
+		(function($) {
+			$.fn.inputFilter = function(inputFilter) {
+				return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
+					if (inputFilter(this.value)) {
+						this.oldValue = this.value;
+						this.oldSelectionStart = this.selectionStart;
+						this.oldSelectionEnd = this.selectionEnd;
+					} else if (this.hasOwnProperty("oldValue")) {
+						this.value = this.oldValue;
+						this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
+					}
+				});
+			};
+		}(jQuery));
+		<?php if ($rSettings['js_navigate']): ?>
+			$(".navigation-menu li").mouseenter(function() {
+				$(this).find(".submenu").show();
+			});
+			delParam("status");
+			$(window).on("popstate", function() {
+				if (window.rRealURL) {
+					if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
+						navigate(window.location.href.split("/").reverse()[0]);
+					}
+				}
+			});
+		<?php endif; ?>
+		$(document).keydown(function(e) {
+			if (e.keyCode == 16) {
+				window.rShiftHeld = true;
+			}
+		});
+		$(document).keyup(function(e) {
+			if (e.keyCode == 16) {
+				window.rShiftHeld = false;
+			}
+		});
+		document.onselectstart = function() {
+			if (window.rShiftHeld) {
+				return false;
+			}
+		}
+	});
+
+	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+		$(document).ready(function() {
+			initSearch();
+		});
+
+	<?php endif; ?>
+
+	$(document).ready(function() {
+		$('select').select2({
+			width: '100%'
+		});
+		$("#datatable-backups").css("width", "100%");
+		$("#allowed_stb_types").select2({
+			width: '100%',
+			tags: true
+		});
+		$("#allowed_stb_types_for_local_recording").select2({
+			width: '100%',
+			tags: true
+		});
+		$("#log_clear").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#vod_bitrate_plus").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#vod_limit_perc").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#user_auto_kick_hours").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#flood_limit").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#flood_seconds").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#auth_flood_seconds").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#auth_flood_limit").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#auth_flood_sleep").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#bruteforce_mac_attempts").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#bruteforce_username_attempts").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#bruteforce_frequency").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#login_flood").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#client_prebuffer").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#restreamer_prebuffer").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#read_buffer_size").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#stream_max_analyze").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#probesize").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#stream_start_delay").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#online_capacity_interval").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#on_demand_wait_time").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#seg_time").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#stream_fail_sleep").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#probe_extra_wait").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#seg_list_size").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#cpu_limit").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#mem_limit").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#playback_limit").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#connection_loop_per").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#connection_loop_count").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#max_simultaneous_downloads").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#cache_playlists").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#seg_delete_threshold").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#fails_per_time").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#create_expiration").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#max_encode_movies").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#max_encode_cc").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#queue_loop").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#player_blur").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#player_opacity").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#disallow_2nd_ip_max").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#probesize_ondemand").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#connection_sync_timer").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#segment_wait_time").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#on_demand_scan_time").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#on_demand_max_probe").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#on_demand_scan_keep").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#stop_failures").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#mysql_sleep_kill").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#threshold_cpu").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#threshold_mem").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#threshold_disk").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#threshold_network").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("#threshold_clients").inputFilter(function(value) {
+			return /^\d*$/.test(value);
+		});
+		$("form").submit(function(e) {
+			e.preventDefault();
+			$(':input[type="submit"]').prop('disabled', true);
+			submitForm(window.rCurrentPage, new FormData($("form")[0]));
+		});
+	});
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

@@ -267,9 +267,209 @@ include 'header.php';
     </div>
 </div>
 
-<?php include 'footer.php';
-		echo "\r\n" . '        function checkRegex(e) {' . "\r\n" . '            var rRegex = /^[0-9\\/*,-]+$/;' . "\r\n" . '            return rRegex.test(String.fromCharCode(e.which));' . "\r\n" . '        }' . "\r\n\r\n" . '        function api(rType, rConfirm=false) {' . "\r\n\t\t\t" . 'if ((rType == "clear_redis") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Clear",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to clear the Redis database? This will drop all connections.",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        api(rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n\t\t\t" . '} else {' . "\r\n" . '                rConfirm = true;' . "\r\n" . '            }' . "\r\n" . '            if (rConfirm) {' . "\r\n\t\t\t\t" . 'if (rType == "regenerate_cache") {' . "\r\n\t\t\t\t\t" . '$.toast("Regenerating cache in the background...");' . "\r\n\t\t\t\t\t" . '$("#regenerate_cache").attr("disabled", true);' . "\r\n\t\t\t\t" . '} else if (rType == "disable_cache") { ' . "\r\n\t\t\t\t\t" . '$.toast("Cache has been completely disabled!");' . "\r\n\t\t\t\t\t" . '$("#disable_cache").attr("disabled", true); $("#restart_cache").attr("disabled", true);' . "\r\n\t\t\t\t" . '} else if (rType == "enable_cache") {' . "\r\n\t\t\t\t\t" . '$.toast("Cache has been enabled!");' . "\r\n\t\t\t\t\t" . '$("#enable_cache").attr("disabled", true);' . "\r\n\t\t\t\t" . '} else if (rType == "disable_handler") { ' . "\r\n\t\t\t\t\t" . '$.toast("Handler has been completely disabled!");' . "\r\n\t\t\t\t\t" . '$("#disable_handler").attr("disabled", true);' . "\r\n\t\t\t\t" . '} else if (rType == "enable_handler") {' . "\r\n\t\t\t\t\t" . '$.toast("Handler has been enabled!");' . "\r\n\t\t\t\t\t" . '$("#enable_handler").attr("disabled", true);' . "\r\n\t\t\t\t" . '} else if (rType == "clear_redis") {' . "\r\n\t\t\t\t\t" . '$.toast("Redis database has been cleared!");' . "\r\n\t\t\t\t\t" . '$("#clear_redis").attr("disabled", true);' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '$.getJSON("./api?action=" + rType, function(data) {' . "\r\n\t\t\t\t\t" . 'if (data.result == true) {' . "\r\n\t\t\t\t\t\t" . 'window.location.reload();' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . '$.toast("An error occured while processing your request.");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}).fail(function() {' . "\r\n\t\t\t\t\t" . '$.toast("An error occured while processing your request.");' . "\r\n\t\t\t\t" . '});' . "\r\n\t\t\t" . '}' . "\r\n\t\t" . '}' . "\r\n\t\t\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'});" . "\r\n" . '            $("#minute").keypress(function(e) { return checkRegex(e); });' . "\r\n" . '            $("#hour").keypress(function(e) { return checkRegex(e); });' . "\r\n" . '            $("#cache_thread_count").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n" . "                \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                submitForm(window.rCurrentPage, new FormData($("form")[0]));' . "\r\n" . '            });' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
-		?>
+<?php include 'footer.php'; ?>
+<script id="scripts">
+    var resizeObserver = new ResizeObserver(entries => $(window).scroll());
+    $(document).ready(function() {
+        resizeObserver.observe(document.body)
+        $("form").attr('autocomplete', 'off');
+        $(document).keypress(function(event) {
+            if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
+        });
+        $.fn.dataTable.ext.errMode = 'none';
+        var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
+        elems.forEach(function(html) {
+            var switchery = new Switchery(html, {
+                'color': '#414d5f'
+            });
+            window.rSwitches[$(html).attr("id")] = switchery;
+        });
+        setTimeout(pingSession, 30000);
+        <?php if (!$rMobile || $rSettings['header_stats']): ?>
+            headerStats();
+        <?php endif; ?>
+        bindHref();
+        refreshTooltips();
+        $(window).scroll(function() {
+            if ($(this).scrollTop() > 200) {
+                if ($(document).height() > $(window).height()) {
+                    $('#scrollToBottom').fadeOut();
+                }
+                $('#scrollToTop').fadeIn();
+            } else {
+                $('#scrollToTop').fadeOut();
+                if ($(document).height() > $(window).height()) {
+                    $('#scrollToBottom').fadeIn();
+                } else {
+                    $('#scrollToBottom').hide();
+                }
+            }
+        });
+        $("#scrollToTop").unbind("click");
+        $('#scrollToTop').click(function() {
+            $('html, body').animate({
+                scrollTop: 0
+            }, 800);
+            return false;
+        });
+        $("#scrollToBottom").unbind("click");
+        $('#scrollToBottom').click(function() {
+            $('html, body').animate({
+                scrollTop: $(document).height()
+            }, 800);
+            return false;
+        });
+        $(window).scroll();
+        $(".nextb").unbind("click");
+        $(".nextb").click(function() {
+            var rPos = 0;
+            var rActive = null;
+            $(".nav .nav-item").each(function() {
+                if ($(this).find(".nav-link").hasClass("active")) {
+                    rActive = rPos;
+                }
+                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
+                    $(this).find(".nav-link").trigger("click");
+                    return false;
+                }
+                rPos += 1;
+            });
+        });
+        $(".prevb").unbind("click");
+        $(".prevb").click(function() {
+            var rPos = 0;
+            var rActive = null;
+            $($(".nav .nav-item").get().reverse()).each(function() {
+                if ($(this).find(".nav-link").hasClass("active")) {
+                    rActive = rPos;
+                }
+                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
+                    $(this).find(".nav-link").trigger("click");
+                    return false;
+                }
+                rPos += 1;
+            });
+        });
+        (function($) {
+            $.fn.inputFilter = function(inputFilter) {
+                return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
+                    if (inputFilter(this.value)) {
+                        this.oldValue = this.value;
+                        this.oldSelectionStart = this.selectionStart;
+                        this.oldSelectionEnd = this.selectionEnd;
+                    } else if (this.hasOwnProperty("oldValue")) {
+                        this.value = this.oldValue;
+                        this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
+                    }
+                });
+            };
+        }(jQuery));
+        <?php if ($rSettings['js_navigate']): ?>
+            $(".navigation-menu li").mouseenter(function() {
+                $(this).find(".submenu").show();
+            });
+            delParam("status");
+            $(window).on("popstate", function() {
+                if (window.rRealURL) {
+                    if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
+                        navigate(window.location.href.split("/").reverse()[0]);
+                    }
+                }
+            });
+        <?php endif; ?>
+        $(document).keydown(function(e) {
+            if (e.keyCode == 16) {
+                window.rShiftHeld = true;
+            }
+        });
+        $(document).keyup(function(e) {
+            if (e.keyCode == 16) {
+                window.rShiftHeld = false;
+            }
+        });
+        document.onselectstart = function() {
+            if (window.rShiftHeld) {
+                return false;
+            }
+        }
+    });
+
+    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+        $(document).ready(function() {
+            initSearch();
+        });
+    <?php endif; ?>
+
+    function checkRegex(e) {
+        var rRegex = /^[0-9\/*,-]+$/;
+        return rRegex.test(String.fromCharCode(e.which));
+    }
+
+    function api(rType, rConfirm = false) {
+        if ((rType == "clear_redis") && (!rConfirm)) {
+            new jBox("Confirm", {
+                confirmButton: "Clear",
+                cancelButton: "Cancel",
+                content: "Are you sure you want to clear the Redis database? This will drop all connections.",
+                confirm: function() {
+                    api(rType, true);
+                }
+            }).open();
+        } else {
+            rConfirm = true;
+        }
+        if (rConfirm) {
+            if (rType == "regenerate_cache") {
+                $.toast("Regenerating cache in the background...");
+                $("#regenerate_cache").attr("disabled", true);
+            } else if (rType == "disable_cache") {
+                $.toast("Cache has been completely disabled!");
+                $("#disable_cache").attr("disabled", true);
+                $("#restart_cache").attr("disabled", true);
+            } else if (rType == "enable_cache") {
+                $.toast("Cache has been enabled!");
+                $("#enable_cache").attr("disabled", true);
+            } else if (rType == "disable_handler") {
+                $.toast("Handler has been completely disabled!");
+                $("#disable_handler").attr("disabled", true);
+            } else if (rType == "enable_handler") {
+                $.toast("Handler has been enabled!");
+                $("#enable_handler").attr("disabled", true);
+            } else if (rType == "clear_redis") {
+                $.toast("Redis database has been cleared!");
+                $("#clear_redis").attr("disabled", true);
+            }
+            $.getJSON("./api?action=" + rType, function(data) {
+                if (data.result == true) {
+                    window.location.reload();
+                } else {
+                    $.toast("An error occured while processing your request.");
+                }
+            }).fail(function() {
+                $.toast("An error occured while processing your request.");
+            });
+        }
+    }
+
+    $(document).ready(function() {
+        $('select').select2({
+            width: '100%'
+        });
+        $("#minute").keypress(function(e) {
+            return checkRegex(e);
+        });
+        $("#hour").keypress(function(e) {
+            return checkRegex(e);
+        });
+        $("#cache_thread_count").inputFilter(function(value) {
+            return /^\d*$/.test(value);
+        });
+        $("form").submit(function(e) {
+            e.preventDefault();
+            $(':input[type="submit"]').prop('disabled', true);
+            submitForm(window.rCurrentPage, new FormData($("form")[0]));
+        });
+    });
 </script>
 <script src="assets/js/listings.js"></script>
 </body>
