@@ -58,12 +58,12 @@ include 'header.php';
 										<td class="text-center">
 											<div class="btn-group">
 												<a href="./hmac?id=<?php echo $rHMAC['id']; ?>">
-													<button type="button" data-toggle="tooltip" data-placement="top" title="Edit Key" class="btn btn-light waves-effect waves-light btn-xs">
+													<button type="button" data-toggle="tooltip" data-placement="top" title="" data-original-title="Edit Key" class="btn btn-light waves-effect waves-light btn-xs">
 														<i class="mdi mdi-pencil-outline"></i>
 													</button>
 												</a>
-												<button type="button" data-toggle="tooltip" data-placement="top" title="Delete Key" class="btn btn-light waves-effect waves-light btn-xs" onClick="api(<?php echo $rHMAC['id']; ?>, 'delete');">
-													<i class="mdi mdi-close"></i>
+												<button type="button" data-toggle="tooltip" data-placement="top" title="" data-original-title="Delete Key" class="btn btn-light waves-effect waves-light btn-xs" onClick="api(<?php echo $rHMAC['id']; ?>, 'delete');"">
+													<i class=" mdi mdi-close"></i>
 												</button>
 											</div>
 										</td>

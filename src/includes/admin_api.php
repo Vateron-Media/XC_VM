@@ -336,15 +336,10 @@ class API {
 			}
 
 			if (!($rData['keygen'] != 'HMAC KEY HIDDEN' && strlen($rData['keygen']) != 32)) {
-
-
 				if (strlen($rData['notes']) != 0) {
-
-
 					if (isset($rData['edit'])) {
-						if ($rData['keygen'] == 'HMAC KEY HIDDEN') {
-						} else {
-							self::$db->query('SELECT `id` FROM `hmac_keys` WHERE `key` = ? AND `id` <> ?;', CoreUtilities::encryptData($rData['keygen'], OPENSSL_EXTRA), $rData['edit']);
+						if ($rData['keygen'] != 'HMAC KEY HIDDEN') {
+							self::$db->query('SELECT `id` FROM `hmac_keys` WHERE `key` = ? AND `id` <> ?;', CoreUtilities::encryptData($rData['keygen'], CoreUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA), $rData['edit']);
 
 							if (0 >= self::$db->num_rows()) {
 							} else {
@@ -352,7 +347,7 @@ class API {
 							}
 						}
 					} else {
-						self::$db->query('SELECT `id` FROM `hmac_keys` WHERE `key` = ?;', CoreUtilities::encryptData($rData['keygen'], OPENSSL_EXTRA));
+						self::$db->query('SELECT `id` FROM `hmac_keys` WHERE `key` = ?;', CoreUtilities::encryptData($rData['keygen'], CoreUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA));
 
 						if (0 >= self::$db->num_rows()) {
 						} else {
@@ -360,9 +355,8 @@ class API {
 						}
 					}
 
-					if ($rData['keygen'] == 'HMAC KEY HIDDEN') {
-					} else {
-						$rArray['key'] = CoreUtilities::encryptData($rData['keygen'], OPENSSL_EXTRA);
+					if ($rData['keygen'] != 'HMAC KEY HIDDEN') {
+						$rArray['key'] = CoreUtilities::encryptData($rData['keygen'], CoreUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 					}
 
 					$rPrepare = prepareArray($rArray);
@@ -373,16 +367,12 @@ class API {
 
 						return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
 					}
-
 					return array('status' => STATUS_FAILURE, 'data' => $rData);
 				}
-
 				return array('status' => STATUS_NO_DESCRIPTION, 'data' => $rData);
 			}
-
 			return array('status' => STATUS_NO_KEY, 'data' => $rData);
 		}
-
 		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 	}
 
@@ -3358,11 +3348,11 @@ class API {
 							return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
 						} else {
 							foreach ($rBouquetCreate as $rBouquet => $rID) {
-								$db->query('DELETE FROM `bouquets` WHERE `id` = ?;', $rID);
+								self::$db->query('DELETE FROM `bouquets` WHERE `id` = ?;', $rID);
 							}
 
 							foreach ($rCategoryCreate as $rCategory => $rID) {
-								$db->query('DELETE FROM `streams_categories` WHERE `id` = ?;', $rID);
+								self::$db->query('DELETE FROM `streams_categories` WHERE `id` = ?;', $rID);
 							}
 
 							return array('status' => STATUS_FAILURE, 'data' => $rData);
@@ -4209,11 +4199,11 @@ class API {
 				return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
 			} else {
 				foreach ($rBouquetCreate as $rBouquet => $rID) {
-					$db->query('DELETE FROM `bouquets` WHERE `id` = ?;', $rID);
+					self::$db->query('DELETE FROM `bouquets` WHERE `id` = ?;', $rID);
 				}
 
 				foreach ($rCategoryCreate as $rCategory => $rID) {
-					$db->query('DELETE FROM `streams_categories` WHERE `id` = ?;', $rID);
+					self::$db->query('DELETE FROM `streams_categories` WHERE `id` = ?;', $rID);
 				}
 
 				return array('status' => STATUS_FAILURE, 'data' => $rData);
@@ -5905,11 +5895,11 @@ class API {
 							CoreUtilities::updateStream($rInsertID);
 						} else {
 							foreach ($rBouquetCreate as $rBouquet => $rID) {
-								$db->query('DELETE FROM `bouquets` WHERE `id` = ?;', $rID);
+								self::$db->query('DELETE FROM `bouquets` WHERE `id` = ?;', $rID);
 							}
 
 							foreach ($rCategoryCreate as $rCategory => $rID) {
-								$db->query('DELETE FROM `streams_categories` WHERE `id` = ?;', $rID);
+								self::$db->query('DELETE FROM `streams_categories` WHERE `id` = ?;', $rID);
 							}
 
 							return array('status' => STATUS_FAILURE, 'data' => $rData);
