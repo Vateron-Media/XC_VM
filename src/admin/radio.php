@@ -381,7 +381,139 @@ include 'header.php';
         </div>
     </div>
 </div>
-<?php include 'footer.php';
+<?php include 'footer.php'; ?>
+<script id="scripts">
+			var resizeObserver = new ResizeObserver(entries => $(window).scroll());
+			$(document).ready(function() {
+				resizeObserver.observe(document.body)
+				$("form").attr('autocomplete', 'off');
+				$(document).keypress(function(event) {
+					if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
+				});
+				$.fn.dataTable.ext.errMode = 'none';
+				var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
+				elems.forEach(function(html) {
+					var switchery = new Switchery(html, {
+						'color': '#414d5f'
+					});
+					window.rSwitches[$(html).attr("id")] = switchery;
+				});
+				setTimeout(pingSession, 30000);
+				<?php if (!$rMobile || $rSettings['header_stats']): ?>
+					headerStats();
+				<?php endif; ?>
+				bindHref();
+				refreshTooltips();
+				$(window).scroll(function() {
+					if ($(this).scrollTop() > 200) {
+						if ($(document).height() > $(window).height()) {
+							$('#scrollToBottom').fadeOut();
+						}
+						$('#scrollToTop').fadeIn();
+					} else {
+						$('#scrollToTop').fadeOut();
+						if ($(document).height() > $(window).height()) {
+							$('#scrollToBottom').fadeIn();
+						} else {
+							$('#scrollToBottom').hide();
+						}
+					}
+				});
+				$("#scrollToTop").unbind("click");
+				$('#scrollToTop').click(function() {
+					$('html, body').animate({
+						scrollTop: 0
+					}, 800);
+					return false;
+				});
+				$("#scrollToBottom").unbind("click");
+				$('#scrollToBottom').click(function() {
+					$('html, body').animate({
+						scrollTop: $(document).height()
+					}, 800);
+					return false;
+				});
+				$(window).scroll();
+				$(".nextb").unbind("click");
+				$(".nextb").click(function() {
+					var rPos = 0;
+					var rActive = null;
+					$(".nav .nav-item").each(function() {
+						if ($(this).find(".nav-link").hasClass("active")) {
+							rActive = rPos;
+						}
+						if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
+							$(this).find(".nav-link").trigger("click");
+							return false;
+						}
+						rPos += 1;
+					});
+				});
+				$(".prevb").unbind("click");
+				$(".prevb").click(function() {
+					var rPos = 0;
+					var rActive = null;
+					$($(".nav .nav-item").get().reverse()).each(function() {
+						if ($(this).find(".nav-link").hasClass("active")) {
+							rActive = rPos;
+						}
+						if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
+							$(this).find(".nav-link").trigger("click");
+							return false;
+						}
+						rPos += 1;
+					});
+				});
+				(function($) {
+					$.fn.inputFilter = function(inputFilter) {
+						return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
+							if (inputFilter(this.value)) {
+								this.oldValue = this.value;
+								this.oldSelectionStart = this.selectionStart;
+								this.oldSelectionEnd = this.selectionEnd;
+							} else if (this.hasOwnProperty("oldValue")) {
+								this.value = this.oldValue;
+								this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
+							}
+						});
+					};
+				}(jQuery));
+				<?php if ($rSettings['js_navigate']): ?>
+					$(".navigation-menu li").mouseenter(function() {
+						$(this).find(".submenu").show();
+					});
+					delParam("status");
+					$(window).on("popstate", function() {
+						if (window.rRealURL) {
+							if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
+								navigate(window.location.href.split("/").reverse()[0]);
+							}
+						}
+					});
+				<?php endif; ?>
+				$(document).keydown(function(e) {
+					if (e.keyCode == 16) {
+						window.rShiftHeld = true;
+					}
+				});
+				$(document).keyup(function(e) {
+					if (e.keyCode == 16) {
+						window.rShiftHeld = false;
+					}
+				});
+				document.onselectstart = function() {
+					if (window.rShiftHeld) {
+						return false;
+					}
+				}
+			});
+
+			<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+				$(document).ready(function() {
+					initSearch();
+				});
+
+			<?php endif; 
 		echo '        ' . "\r\n" . '        function openImage(elem) {' . "\r\n" . '            var rImage = $(elem).parent().parent().find("input").val();' . "\r\n" . '            if (rImage) {' . "\r\n" . '                $.magnificPopup.open({' . "\r\n" . '                    items: {' . "\r\n" . "                        src: 'resize?maxw=512&maxh=512&url=' + encodeURIComponent(rImage)," . "\r\n" . "                        type: 'image'" . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n" . '        }' . "\r\n" . '        function evaluateServers() {' . "\r\n" . '            var rOVal = $("#on_demand").val();' . "\r\n" . '            $("#on_demand").empty();' . "\r\n" . "            \$(\$('#server_tree').jstree(true).get_json('source', {flat:true})).each(function(index, value) {" . "\r\n" . '                if (value.parent != "#") {' . "\r\n" . '                    $("#on_demand").append(new Option(value.text, value.id));' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            $("#on_demand").val(rOVal).trigger("change");' . "\r\n" . '            if (!$("#on_demand").val()) {' . "\r\n" . '                $("#on_demand").val(0).trigger("change");' . "\r\n" . '            }' . "\r\n" . '        }' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'});" . "\r\n" . '            $("#category_id").select2({' . "\r\n" . "                width: '100%'," . "\r\n" . '                tags: true' . "\r\n" . '            }).on("change", function(e) {' . "\r\n" . "                rData = \$('#category_id').select2('data');" . "\r\n" . '                rAdded = [];' . "\r\n" . '                for (i = 0; i < rData.length; i++) {' . "\r\n" . '                    if (!rData[i].selected) {' . "\r\n" . '                        rAdded.push(rData[i].text);' . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n" . '                if (rAdded.length > 0) {' . "\r\n" . '                    $("#category_create").show();' . "\r\n" . "                    \$(\"#category_new\").html(rAdded.join(', '));" . "\r\n" . '                } else {' . "\r\n" . '                    $("#category_create").hide();' . "\r\n" . '                }' . "\r\n" . '                $("#category_create_list").val(JSON.stringify(rAdded));' . "\r\n" . '            });' . "\r\n" . '            $("#bouquets").select2({' . "\r\n" . "                width: '100%'," . "\r\n" . '                tags: true' . "\r\n" . '            }).on("change", function(e) {' . "\r\n" . "                rData = \$('#bouquets').select2('data');" . "\r\n" . '                rAdded = [];' . "\r\n" . '                for (i = 0; i < rData.length; i++) {' . "\r\n" . '                    if (!rData[i].selected) {' . "\r\n" . '                        rAdded.push(rData[i].text);' . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n" . '                if (rAdded.length > 0) {' . "\r\n" . '                    $("#bouquet_create").show();' . "\r\n" . "                    \$(\"#bouquet_new\").html(rAdded.join(', '));" . "\r\n" . '                } else {' . "\r\n" . '                    $("#bouquet_create").hide();' . "\r\n" . '                }' . "\r\n" . '                $("#bouquet_create_list").val(JSON.stringify(rAdded));' . "\r\n" . '            });' . "\r\n\t\t\t" . '$(".clockpicker").clockpicker();' . "\r\n\t\t\t" . "\$('#server_tree').on('redraw.jstree', function (e, data) {" . "\r\n" . '                evaluateServers();' . "\r\n" . "            }).on('select_node.jstree', function (e, data) {" . "\r\n" . '                if (data.node.parent == "offline") {' . "\r\n" . "                    \$('#server_tree').jstree(\"move_node\", data.node.id, \"#source\", \"last\");" . "\r\n" . '                } else {' . "\r\n" . "                    \$('#server_tree').jstree(\"move_node\", data.node.id, \"#offline\", \"first\");" . "\r\n" . '                }' . "\r\n" . "            }).jstree({ 'core' : {" . "\r\n\t\t\t\t" . "'check_callback': function (op, node, parent, position, more) {" . "\r\n\t\t\t\t\t" . 'switch (op) {' . "\r\n\t\t\t\t\t\t" . "case 'move_node':" . "\r\n\t\t\t\t\t\t\t" . 'if ((node.id == "offline") || (node.id == "source")) { return false; }' . "\r\n" . '                            if (parent.id == "#") { return false; }' . "\r\n\t\t\t\t\t\t\t" . 'return true;' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . "'data' : ";
 		echo json_encode(($rServerTree ?: array()));
 		echo "\t\t\t" . '}, "plugins" : [ "dnd" ]' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#direct_source").change(function() {' . "\r\n\t\t\t\t" . 'evaluateDirectSource();' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . 'function evaluateDirectSource() {' . "\r\n\t\t\t\t" . '$(["custom_ffmpeg", "probesize_ondemand", "user_agent", "http_proxy", "cookie", "headers", "days_to_restart", "time_to_restart", "on_demand", "restart_on_edit"]).each(function(rID, rElement) {' . "\r\n\t\t\t\t\t" . 'if ($(rElement)) {' . "\r\n\t\t\t\t\t\t" . 'if ($("#direct_source").is(":checked")) {' . "\r\n\t\t\t\t\t\t\t" . 'if (window.rSwitches[rElement]) {' . "\r\n\t\t\t\t\t\t\t\t" . 'setSwitch(window.rSwitches[rElement], false);' . "\r\n\t\t\t\t\t\t\t\t" . 'window.rSwitches[rElement].disable();' . "\r\n\t\t\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t\t\t" . '$("#" + rElement).prop("disabled", true);' . "\r\n\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t\t" . 'if (window.rSwitches[rElement]) {' . "\r\n\t\t\t\t\t\t\t\t" . 'window.rSwitches[rElement].enable();' . "\r\n\t\t\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t\t\t" . '$("#" + rElement).prop("disabled", false);' . "\r\n\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '});' . "\r\n\t\t\t" . '}' . "\r\n\t\t\t" . '$("#probesize_ondemand").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#delay_minutes").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#tv_archive_duration").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . 'evaluateDirectSource();' . "\r\n" . '            $("form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n" . "                \$(\"#server_tree_data\").val(JSON.stringify(\$('#server_tree').jstree(true).get_json('source', {flat:true})));" . "\r\n\t\t\t\t" . 'if ($("#stream_display_name").val().length == 0) {' . "\r\n\t\t\t\t\t" . '$.toast("';

@@ -276,20 +276,553 @@ include 'header.php';
         </div>
     </div>
 </div>
-<?php include 'footer.php';
-		echo '        var rSelected = [];' . "\r\n" . '        ' . "\r\n" . '        function updateAll(rConfirm=false) {' . "\r\n" . '            if (!rConfirm) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Update",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to update all running servers?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        updateAll(true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else {' . "\r\n" . '                $.getJSON("./api?action=update_all_servers", function(data) {' . "\r\n" . '                    $.toast("Servers are being updated in the background...");' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n" . '        }' . "\r\n\t\t" . 'function restartServices(rConfirm=false) {' . "\r\n\t\t\t" . 'if (!rConfirm) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Update",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to restart services on all running servers?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        restartServices(true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else {' . "\r\n" . '                $.getJSON("./api?action=restart_all_services", function(data) {' . "\r\n" . '                    $.toast("Services will be restarted shortly...");' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n\t\t" . '}' . "\r\n" . '        function updateBinaries(rConfirm=false) {' . "\r\n" . '            if (!rConfirm) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Update",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to update binaries on all running servers?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        updateBinaries(true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else {' . "\r\n" . '                $.getJSON("./api?action=update_all_binaries", function(data) {' . "\r\n" . '                    $.toast("Binaries are being updated in the background...");' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n" . '        }' . "\r\n\t\t" . 'function api(rID, rType, rConfirm=false) {' . "\r\n" . '            if ((window.rSelected) && (window.rSelected.length > 0)) {' . "\r\n" . '                $.toast("Individual actions disabled in multi-select mode.");' . "\r\n" . '                return;' . "\r\n" . '            }' . "\r\n" . '            if ((rType == "delete") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Delete",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . "                    content: \"Are you sure you want to delete this server and it's accompanying streams?\"," . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        api(rID, rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else if ((rType == "kill") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Kill",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to kill all connections to this server?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        api(rID, rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else if ((rType == "restart") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Restart",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to restart all running streams on this server?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        api(rID, rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else if ((rType == "start") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Start",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to start all streams on this server? This will start EVERYTHING.",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        api(rID, rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else if ((rType == "stop") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Stop",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to stop all streams on this server?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        api(rID, rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else if ((rType == "disable") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Disable",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to disable this server?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        api(rID, rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else if ((rType == "disable_proxy") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Disable",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to disable all proxies on this server? All traffic will be routed through the original IP address.",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        api(rID, rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else if ((rType == "enable_proxy") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Enable",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to enable all proxies on this server? All traffic will be routed through the proxy servers.",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        api(rID, rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else if ((rType == "update") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Update",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to update this server? It will go offline until the update is completed.",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        api(rID, rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n\t\t\t" . '} else {' . "\r\n" . '                rConfirm = true;' . "\r\n" . '            }' . "\r\n" . '            if (rConfirm) {' . "\r\n" . '                $.getJSON("./api?action=server&sub=" + rType + "&server_id=" + rID, function(data) {' . "\r\n" . '                    if (data.result === true) {' . "\r\n" . '                        if (rType == "delete") {' . "\r\n" . '                            if (rRow = findRowByID($("#datatable").DataTable(), 0, rID)) {' . "\r\n" . '                                $("#datatable").DataTable().rows(rRow).remove().draw(false);' . "\r\n" . '                            }' . "\r\n" . '                            $.toast("Server successfully deleted.");' . "\r\n" . '                        } else if (rType == "kill") {' . "\r\n" . '                            $.toast("All server connections have been killed.");' . "\r\n" . '                        } else if (rType == "restart") {' . "\r\n" . '                            $.toast("All streams on this server have been restarted.");' . "\r\n" . '                        } else if (rType == "start") {' . "\r\n" . '                            $.toast("All streams on this server have been started.");' . "\r\n" . '                        } else if (rType == "stop") {' . "\r\n" . '                            $.toast("All streams on this server have been stopped.");' . "\r\n" . '                        } else if (rType == "update") {' . "\r\n" . '                            $.toast("Updating server...");' . "\r\n" . '                        } else if (rType == "disable") {' . "\r\n" . '                            reloadPage();' . "\r\n" . '                        } else if (rType == "enable") {' . "\r\n" . '                            reloadPage();' . "\r\n" . '                        } else if (rType == "disable_proxy") {' . "\r\n" . '                            reloadPage();' . "\r\n" . '                        } else if (rType == "enable_proxy") {' . "\r\n" . '                            reloadPage();' . "\r\n" . '                        }' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("An error occured while processing your request.");' . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n\t\t" . '}' . "\r\n" . '        function multiAPI(rType, rConfirm=false) {' . "\r\n" . '            if (rType == "clear") {' . "\r\n" . '                if ("#header_stats") {' . "\r\n" . '                    $("#header_stats").show();' . "\r\n" . '                }' . "\r\n" . '                window.rSelected = [];' . "\r\n" . '                $(".multiselect").hide();' . "\r\n" . "                \$(\"#datatable tr\").removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n" . '                return;' . "\r\n" . '            }' . "\r\n" . '            if (rType == "tools") {' . "\r\n" . '                $(".bs-server-modal-center").data("id", "[" + window.rSelected.join(",") + "]");' . "\r\n" . '                $(".bs-server-modal-center").modal("show");' . "\r\n" . '                $("#reinstall_server").prop("disabled", true);' . "\r\n" . '                return;' . "\r\n" . '            }' . "\r\n" . '            if ((rType == "delete") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Delete",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to delete these servers?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        multiAPI(rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else if ((rType == "purge") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Kill",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to kill all connections?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        multiAPI(rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else if ((rType == "start") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Start",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to start all streams on these servers?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        multiAPI(rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else if ((rType == "stop") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Stop",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to stop all streams on these servers?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        multiAPI(rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else if ((rType == "restart") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Restart",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to restart all streams on these servers?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        multiAPI(rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else if ((rType == "enable_proxy") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Enable",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to enable Proxy on these servers?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        multiAPI(rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else if ((rType == "disable_proxy") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Disable",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to disable Proxy on these servers?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        multiAPI(rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else if ((rType == "enable") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Enable",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to enable these servers?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        multiAPI(rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else if ((rType == "disable") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Disable",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to disable these servers?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        multiAPI(rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n\t\t\t" . '} else {' . "\r\n" . '                rConfirm = true;' . "\r\n" . '            }' . "\r\n" . '            if (rConfirm) {' . "\r\n" . '                $.getJSON("./api?action=multi&type=server&sub=" + rType + "&ids=" + JSON.stringify(window.rSelected), function(data) {' . "\r\n" . '                    if (data.result == true) {' . "\r\n" . '                        if (rType == "restart") {' . "\r\n" . '                            $.toast("Streams have been restarted.");' . "\r\n" . '                        } else if (rType == "start") {' . "\r\n" . '                            $.toast("Streams have been started.");' . "\r\n" . '                        } else if (rType == "stop") {' . "\r\n" . '                            $.toast("Streams have been stopped.");' . "\r\n" . '                        } else if (rType == "purge") {' . "\r\n" . '                            $.toast("Connections have been killed.");' . "\r\n" . '                        } else if (rType == "delete") {' . "\r\n" . '                            $.toast("Servers have been deleted.");' . "\r\n" . '                        } else if (rType == "enable_proxy") {' . "\r\n" . '                            $.toast("Proxy has been enabled for selected servers.");' . "\r\n" . '                        } else if (rType == "disable_proxy") {' . "\r\n" . '                            $.toast("Proxy has been disabled for selected servers.");' . "\r\n" . '                        } else if (rType == "enable") {' . "\r\n" . '                            $.toast("Servers have been enabled.");' . "\r\n" . '                        } else if (rType == "disable") {' . "\r\n" . '                            $.toast("Servers have been disabled.");' . "\r\n" . '                        }' . "\r\n" . '                        reloadPage();' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("An error occured while processing your request.");' . "\r\n" . '                    }' . "\r\n" . '                }).fail(function() {' . "\r\n" . '                    $.toast("An error occured while processing your request.");' . "\r\n" . '                });' . "\r\n" . '                multiAPI("clear");' . "\r\n" . '            }' . "\r\n\t\t" . '}' . "\r\n" . '        function bindServers() {' . "\r\n" . '            $("#reinstall_server").unbind();' . "\r\n" . '            $("#reinstall_server").click(function() {' . "\r\n" . "                navigate('./server_install?id=' + \$(\".bs-server-modal-center\").data(\"id\"));" . "\r\n" . '            });' . "\r\n" . '            $("#restart_services_ssh").unbind();' . "\r\n" . '            $("#restart_services_ssh").click(function() {' . "\r\n" . '                $(".bs-server-modal-center").modal("hide");' . "\r\n" . '                $.getJSON("./api?action=restart_services&server_id=" + $(".bs-server-modal-center").data("id"), function(data) {' . "\r\n" . '                    if (data.result === true) {' . "\r\n" . '                        $.toast("XC_VM will be restarted shortly.");' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("An error occured while processing your request.");' . "\r\n" . '                    }' . "\r\n" . '                    $(".bs-server-modal-center").data("id", "");' . "\r\n" . '                });' . "\r\n" . '            });' . "\r\n" . '            $("#reboot_server_ssh").unbind();' . "\r\n" . '            $("#reboot_server_ssh").click(function() {' . "\r\n" . '                $(".bs-server-modal-center").modal("hide");' . "\r\n" . '                $.getJSON("./api?action=reboot_server&server_id=" + $(".bs-server-modal-center").data("id"), function(data) {' . "\r\n" . '                    if (data.result === true) {' . "\r\n" . '                        $.toast("Server will be rebooted shortly.");' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("An error occured while processing your request.");' . "\r\n" . '                    }' . "\r\n" . '                    $(".bs-server-modal-center").data("id", "");' . "\r\n" . '                });' . "\r\n" . '            });' . "\r\n" . '            $("#update_binaries").unbind();' . "\r\n" . '            $("#update_binaries").click(function() {' . "\r\n" . '                $(".bs-server-modal-center").modal("hide");' . "\r\n" . '                $.getJSON("./api?action=update_binaries&server_id=" + $(".bs-server-modal-center").data("id"), function(data) {' . "\r\n" . '                    if (data.result === true) {' . "\r\n" . '                        $.toast("Binaries are updating in the background...");' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("An error occured while processing your request.");' . "\r\n" . '                    }' . "\r\n" . '                    $(".bs-server-modal-center").data("id", "");' . "\r\n" . '                });' . "\r\n" . '            });' . "\r\n" . '            $("#update_server").unbind();' . "\r\n" . '            $("#update_server").click(function() {' . "\r\n" . '                $(".bs-server-modal-center").modal("hide");' . "\r\n" . '                $.getJSON("./api?action=server&sub=update&server_id=" + $(".bs-server-modal-center").data("id"), function(data) {' . "\r\n" . '                    if (data.result === true) {' . "\r\n" . '                        $.toast("Server is updating in the background...");' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("An error occured while processing your request.");' . "\r\n" . '                    }' . "\r\n" . '                    $(".bs-server-modal-center").data("id", "");' . "\r\n" . '                });' . "\r\n" . '            });' . "\r\n" . '            $(".btn-reboot-server").click(function() {' . "\r\n" . '                $(".bs-server-modal-center").data("id", $(this).data("id"));' . "\r\n" . '                $(".bs-server-modal-center").modal("show");' . "\r\n" . '                ';
+<?php include 'footer.php'; ?>
+<script id="scripts">
+    var resizeObserver = new ResizeObserver(entries => $(window).scroll());
+    $(document).ready(function() {
+        resizeObserver.observe(document.body)
+        $("form").attr('autocomplete', 'off');
+        $(document).keypress(function(event) {
+            if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
+        });
+        $.fn.dataTable.ext.errMode = 'none';
+        var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
+        elems.forEach(function(html) {
+            var switchery = new Switchery(html, {
+                'color': '#414d5f'
+            });
+            window.rSwitches[$(html).attr("id")] = switchery;
+        });
+        setTimeout(pingSession, 30000);
+        <?php if (!$rMobile || $rSettings['header_stats']): ?>
+            headerStats();
+        <?php endif; ?>
+        bindHref();
+        refreshTooltips();
+        $(window).scroll(function() {
+            if ($(this).scrollTop() > 200) {
+                if ($(document).height() > $(window).height()) {
+                    $('#scrollToBottom').fadeOut();
+                }
+                $('#scrollToTop').fadeIn();
+            } else {
+                $('#scrollToTop').fadeOut();
+                if ($(document).height() > $(window).height()) {
+                    $('#scrollToBottom').fadeIn();
+                } else {
+                    $('#scrollToBottom').hide();
+                }
+            }
+        });
+        $("#scrollToTop").unbind("click");
+        $('#scrollToTop').click(function() {
+            $('html, body').animate({
+                scrollTop: 0
+            }, 800);
+            return false;
+        });
+        $("#scrollToBottom").unbind("click");
+        $('#scrollToBottom').click(function() {
+            $('html, body').animate({
+                scrollTop: $(document).height()
+            }, 800);
+            return false;
+        });
+        $(window).scroll();
+        $(".nextb").unbind("click");
+        $(".nextb").click(function() {
+            var rPos = 0;
+            var rActive = null;
+            $(".nav .nav-item").each(function() {
+                if ($(this).find(".nav-link").hasClass("active")) {
+                    rActive = rPos;
+                }
+                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
+                    $(this).find(".nav-link").trigger("click");
+                    return false;
+                }
+                rPos += 1;
+            });
+        });
+        $(".prevb").unbind("click");
+        $(".prevb").click(function() {
+            var rPos = 0;
+            var rActive = null;
+            $($(".nav .nav-item").get().reverse()).each(function() {
+                if ($(this).find(".nav-link").hasClass("active")) {
+                    rActive = rPos;
+                }
+                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
+                    $(this).find(".nav-link").trigger("click");
+                    return false;
+                }
+                rPos += 1;
+            });
+        });
+        (function($) {
+            $.fn.inputFilter = function(inputFilter) {
+                return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
+                    if (inputFilter(this.value)) {
+                        this.oldValue = this.value;
+                        this.oldSelectionStart = this.selectionStart;
+                        this.oldSelectionEnd = this.selectionEnd;
+                    } else if (this.hasOwnProperty("oldValue")) {
+                        this.value = this.oldValue;
+                        this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
+                    }
+                });
+            };
+        }(jQuery));
+        <?php if ($rSettings['js_navigate']): ?>
+            $(".navigation-menu li").mouseenter(function() {
+                $(this).find(".submenu").show();
+            });
+            delParam("status");
+            $(window).on("popstate", function() {
+                if (window.rRealURL) {
+                    if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
+                        navigate(window.location.href.split("/").reverse()[0]);
+                    }
+                }
+            });
+        <?php endif; ?>
+        $(document).keydown(function(e) {
+            if (e.keyCode == 16) {
+                window.rShiftHeld = true;
+            }
+        });
+        $(document).keyup(function(e) {
+            if (e.keyCode == 16) {
+                window.rShiftHeld = false;
+            }
+        });
+        document.onselectstart = function() {
+            if (window.rShiftHeld) {
+                return false;
+            }
+        }
+    });
 
-		echo '                $("#reinstall_server").prop("disabled", false);' . "\r\n" . '                ';
+    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+        $(document).ready(function() {
+            initSearch();
+        });
 
-		echo '            });' . "\r\n" . '            $("#update_server").prop("disabled", false);' . "\r\n" . '            $("#update_binaries").prop("disabled", false);' . "\r\n" . '        }' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . '$("#datatable").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n" . '                    bindServers();' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n" . '                    ';
+    <?php endif; ?>
+    var rSelected = [];
 
-		if (!hasPermissions('adv', 'edit_server')) {
-		} else {
-			echo '                    // Multi Actions' . "\r\n" . '                    multiAPI("clear");' . "\r\n" . '                    $("#datatable tr").click(function() {' . "\r\n" . '                        if (window.rShiftHeld) {' . "\r\n" . "                            if (\$(this).hasClass('selectedfilter')) {" . "\r\n" . "                                \$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n" . '                                window.rSelected.splice($.inArray($($(this).find("td:eq(0)").html()).data("id"), window.rSelected), 1);' . "\r\n" . '                            } else {            ' . "\r\n" . "                                \$(this).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n" . '                                window.rSelected.push($($(this).find("td:eq(0)").html()).data("id"));' . "\r\n" . '                            }' . "\r\n" . '                        }' . "\r\n" . '                        $("#multi_servers_selected").html(window.rSelected.length + " servers");' . "\r\n" . '                        if (window.rSelected.length > 0) {' . "\r\n" . '                            if ("#header_stats") {' . "\r\n" . '                                $("#header_stats").hide();' . "\r\n" . '                            }' . "\r\n" . '                            $("#multiselect_servers").show();' . "\r\n" . '                        } else {' . "\r\n" . '                            if ("#header_stats") {' . "\r\n" . '                                $("#header_stats").show();' . "\r\n" . '                            }' . "\r\n" . '                            $("#multiselect_servers").hide();' . "\r\n" . '                        }' . "\r\n" . '                    });' . "\r\n" . '                    ';
-		}
+    function updateAll(rConfirm = false) {
+        if (!rConfirm) {
+            new jBox("Confirm", {
+                confirmButton: "Update",
+                cancelButton: "Cancel",
+                content: "Are you sure you want to update all running servers?",
+                confirm: function() {
+                    updateAll(true);
+                }
+            }).open();
+        } else {
+            $.getJSON("./api?action=update_all_servers", function(data) {
+                $.toast("Servers are being updated in the background...");
+            });
+        }
+    }
 
-		echo "\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable").css("width", "100%");' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n" . '        ';
-		?>
+    function restartServices(rConfirm = false) {
+        if (!rConfirm) {
+            new jBox("Confirm", {
+                confirmButton: "Update",
+                cancelButton: "Cancel",
+                content: "Are you sure you want to restart services on all running servers?",
+                confirm: function() {
+                    restartServices(true);
+                }
+            }).open();
+        } else {
+            $.getJSON("./api?action=restart_all_services", function(data) {
+                $.toast("Services will be restarted shortly...");
+            });
+        }
+    }
+
+    function updateBinaries(rConfirm = false) {
+        if (!rConfirm) {
+            new jBox("Confirm", {
+                confirmButton: "Update",
+                cancelButton: "Cancel",
+                content: "Are you sure you want to update binaries on all running servers?",
+                confirm: function() {
+                    updateBinaries(true);
+                }
+            }).open();
+        } else {
+            $.getJSON("./api?action=update_all_binaries", function(data) {
+                $.toast("Binaries are being updated in the background...");
+            });
+        }
+    }
+
+    function api(rID, rType, rConfirm = false) {
+        if ((window.rSelected) && (window.rSelected.length > 0)) {
+            $.toast("Individual actions disabled in multi-select mode.");
+            return;
+        }
+        if ((rType == "delete") && (!rConfirm)) {
+            new jBox("Confirm", {
+                confirmButton: "Delete",
+                cancelButton: "Cancel",
+                content: "Are you sure you want to delete this server and it's accompanying streams?",
+                confirm: function() {
+                    api(rID, rType, true);
+                }
+            }).open();
+        } else if ((rType == "kill") && (!rConfirm)) {
+            new jBox("Confirm", {
+                confirmButton: "Kill",
+                cancelButton: "Cancel",
+                content: "Are you sure you want to kill all connections to this server?",
+                confirm: function() {
+                    api(rID, rType, true);
+                }
+            }).open();
+        } else if ((rType == "restart") && (!rConfirm)) {
+            new jBox("Confirm", {
+                confirmButton: "Restart",
+                cancelButton: "Cancel",
+                content: "Are you sure you want to restart all running streams on this server?",
+                confirm: function() {
+                    api(rID, rType, true);
+                }
+            }).open();
+        } else if ((rType == "start") && (!rConfirm)) {
+            new jBox("Confirm", {
+                confirmButton: "Start",
+                cancelButton: "Cancel",
+                content: "Are you sure you want to start all streams on this server? This will start EVERYTHING.",
+                confirm: function() {
+                    api(rID, rType, true);
+                }
+            }).open();
+        } else if ((rType == "stop") && (!rConfirm)) {
+            new jBox("Confirm", {
+                confirmButton: "Stop",
+                cancelButton: "Cancel",
+                content: "Are you sure you want to stop all streams on this server?",
+                confirm: function() {
+                    api(rID, rType, true);
+                }
+            }).open();
+        } else if ((rType == "disable") && (!rConfirm)) {
+            new jBox("Confirm", {
+                confirmButton: "Disable",
+                cancelButton: "Cancel",
+                content: "Are you sure you want to disable this server?",
+                confirm: function() {
+                    api(rID, rType, true);
+                }
+            }).open();
+        } else if ((rType == "disable_proxy") && (!rConfirm)) {
+            new jBox("Confirm", {
+                confirmButton: "Disable",
+                cancelButton: "Cancel",
+                content: "Are you sure you want to disable all proxies on this server? All traffic will be routed through the original IP address.",
+                confirm: function() {
+                    api(rID, rType, true);
+                }
+            }).open();
+        } else if ((rType == "enable_proxy") && (!rConfirm)) {
+            new jBox("Confirm", {
+                confirmButton: "Enable",
+                cancelButton: "Cancel",
+                content: "Are you sure you want to enable all proxies on this server? All traffic will be routed through the proxy servers.",
+                confirm: function() {
+                    api(rID, rType, true);
+                }
+            }).open();
+        } else if ((rType == "update") && (!rConfirm)) {
+            new jBox("Confirm", {
+                confirmButton: "Update",
+                cancelButton: "Cancel",
+                content: "Are you sure you want to update this server? It will go offline until the update is completed.",
+                confirm: function() {
+                    api(rID, rType, true);
+                }
+            }).open();
+        } else {
+            rConfirm = true;
+        }
+        if (rConfirm) {
+            $.getJSON("./api?action=server&sub=" + rType + "&server_id=" + rID, function(data) {
+                if (data.result === true) {
+                    if (rType == "delete") {
+                        if (rRow = findRowByID($("#datatable").DataTable(), 0, rID)) {
+                            $("#datatable").DataTable().rows(rRow).remove().draw(false);
+                        }
+                        $.toast("Server successfully deleted.");
+                    } else if (rType == "kill") {
+                        $.toast("All server connections have been killed.");
+                    } else if (rType == "restart") {
+                        $.toast("All streams on this server have been restarted.");
+                    } else if (rType == "start") {
+                        $.toast("All streams on this server have been started.");
+                    } else if (rType == "stop") {
+                        $.toast("All streams on this server have been stopped.");
+                    } else if (rType == "update") {
+                        $.toast("Updating server...");
+                    } else if (rType == "disable") {
+                        reloadPage();
+                    } else if (rType == "enable") {
+                        reloadPage();
+                    } else if (rType == "disable_proxy") {
+                        reloadPage();
+                    } else if (rType == "enable_proxy") {
+                        reloadPage();
+                    }
+                } else {
+                    $.toast("An error occured while processing your request.");
+                }
+            });
+        }
+    }
+
+    function multiAPI(rType, rConfirm = false) {
+        if (rType == "clear") {
+            if ("#header_stats") {
+                $("#header_stats").show();
+            }
+            window.rSelected = [];
+            $(".multiselect").hide();
+            $("#datatable tr").removeClass('selectedfilter').removeClass('ui-selected').removeClass("selected");
+            return;
+        }
+        if (rType == "tools") {
+            $(".bs-server-modal-center").data("id", "[" + window.rSelected.join(",") + "]");
+            $(".bs-server-modal-center").modal("show");
+            $("#reinstall_server").prop("disabled", true);
+            return;
+        }
+        if ((rType == "delete") && (!rConfirm)) {
+            new jBox("Confirm", {
+                confirmButton: "Delete",
+                cancelButton: "Cancel",
+                content: "Are you sure you want to delete these servers?",
+                confirm: function() {
+                    multiAPI(rType, true);
+                }
+            }).open();
+        } else if ((rType == "purge") && (!rConfirm)) {
+            new jBox("Confirm", {
+                confirmButton: "Kill",
+                cancelButton: "Cancel",
+                content: "Are you sure you want to kill all connections?",
+                confirm: function() {
+                    multiAPI(rType, true);
+                }
+            }).open();
+        } else if ((rType == "start") && (!rConfirm)) {
+            new jBox("Confirm", {
+                confirmButton: "Start",
+                cancelButton: "Cancel",
+                content: "Are you sure you want to start all streams on these servers?",
+                confirm: function() {
+                    multiAPI(rType, true);
+                }
+            }).open();
+        } else if ((rType == "stop") && (!rConfirm)) {
+            new jBox("Confirm", {
+                confirmButton: "Stop",
+                cancelButton: "Cancel",
+                content: "Are you sure you want to stop all streams on these servers?",
+                confirm: function() {
+                    multiAPI(rType, true);
+                }
+            }).open();
+        } else if ((rType == "restart") && (!rConfirm)) {
+            new jBox("Confirm", {
+                confirmButton: "Restart",
+                cancelButton: "Cancel",
+                content: "Are you sure you want to restart all streams on these servers?",
+                confirm: function() {
+                    multiAPI(rType, true);
+                }
+            }).open();
+        } else if ((rType == "enable_proxy") && (!rConfirm)) {
+            new jBox("Confirm", {
+                confirmButton: "Enable",
+                cancelButton: "Cancel",
+                content: "Are you sure you want to enable Proxy on these servers?",
+                confirm: function() {
+                    multiAPI(rType, true);
+                }
+            }).open();
+        } else if ((rType == "disable_proxy") && (!rConfirm)) {
+            new jBox("Confirm", {
+                confirmButton: "Disable",
+                cancelButton: "Cancel",
+                content: "Are you sure you want to disable Proxy on these servers?",
+                confirm: function() {
+                    multiAPI(rType, true);
+                }
+            }).open();
+        } else if ((rType == "enable") && (!rConfirm)) {
+            new jBox("Confirm", {
+                confirmButton: "Enable",
+                cancelButton: "Cancel",
+                content: "Are you sure you want to enable these servers?",
+                confirm: function() {
+                    multiAPI(rType, true);
+                }
+            }).open();
+        } else if ((rType == "disable") && (!rConfirm)) {
+            new jBox("Confirm", {
+                confirmButton: "Disable",
+                cancelButton: "Cancel",
+                content: "Are you sure you want to disable these servers?",
+                confirm: function() {
+                    multiAPI(rType, true);
+                }
+            }).open();
+        } else {
+            rConfirm = true;
+        }
+        if (rConfirm) {
+            $.getJSON("./api?action=multi&type=server&sub=" + rType + "&ids=" + JSON.stringify(window.rSelected), function(data) {
+                if (data.result == true) {
+                    if (rType == "restart") {
+                        $.toast("Streams have been restarted.");
+                    } else if (rType == "start") {
+                        $.toast("Streams have been started.");
+                    } else if (rType == "stop") {
+                        $.toast("Streams have been stopped.");
+                    } else if (rType == "purge") {
+                        $.toast("Connections have been killed.");
+                    } else if (rType == "delete") {
+                        $.toast("Servers have been deleted.");
+                    } else if (rType == "enable_proxy") {
+                        $.toast("Proxy has been enabled for selected servers.");
+                    } else if (rType == "disable_proxy") {
+                        $.toast("Proxy has been disabled for selected servers.");
+                    } else if (rType == "enable") {
+                        $.toast("Servers have been enabled.");
+                    } else if (rType == "disable") {
+                        $.toast("Servers have been disabled.");
+                    }
+                    reloadPage();
+                } else {
+                    $.toast("An error occured while processing your request.");
+                }
+            }).fail(function() {
+                $.toast("An error occured while processing your request.");
+            });
+            multiAPI("clear");
+        }
+    }
+
+    function bindServers() {
+        $("#reinstall_server").unbind();
+        $("#reinstall_server").click(function() {
+            navigate('./server_install?id=' + $(".bs-server-modal-center").data("id"));
+        });
+        $("#restart_services_ssh").unbind();
+        $("#restart_services_ssh").click(function() {
+            $(".bs-server-modal-center").modal("hide");
+            $.getJSON("./api?action=restart_services&server_id=" + $(".bs-server-modal-center").data("id"), function(data) {
+                if (data.result === true) {
+                    $.toast("XC_VM will be restarted shortly.");
+                } else {
+                    $.toast("An error occured while processing your request.");
+                }
+                $(".bs-server-modal-center").data("id", "");
+            });
+        });
+        $("#reboot_server_ssh").unbind();
+        $("#reboot_server_ssh").click(function() {
+            $(".bs-server-modal-center").modal("hide");
+            $.getJSON("./api?action=reboot_server&server_id=" + $(".bs-server-modal-center").data("id"), function(data) {
+                if (data.result === true) {
+                    $.toast("Server will be rebooted shortly.");
+                } else {
+                    $.toast("An error occured while processing your request.");
+                }
+                $(".bs-server-modal-center").data("id", "");
+            });
+        });
+        $("#update_binaries").unbind();
+        $("#update_binaries").click(function() {
+            $(".bs-server-modal-center").modal("hide");
+            $.getJSON("./api?action=update_binaries&server_id=" + $(".bs-server-modal-center").data("id"), function(data) {
+                if (data.result === true) {
+                    $.toast("Binaries are updating in the background...");
+                } else {
+                    $.toast("An error occured while processing your request.");
+                }
+                $(".bs-server-modal-center").data("id", "");
+            });
+        });
+        $("#update_server").unbind();
+        $("#update_server").click(function() {
+            $(".bs-server-modal-center").modal("hide");
+            $.getJSON("./api?action=server&sub=update&server_id=" + $(".bs-server-modal-center").data("id"), function(data) {
+                if (data.result === true) {
+                    $.toast("Server is updating in the background...");
+                } else {
+                    $.toast("An error occured while processing your request.");
+                }
+                $(".bs-server-modal-center").data("id", "");
+            });
+        });
+        $(".btn-reboot-server").click(function() {
+            $(".bs-server-modal-center").data("id", $(this).data("id"));
+            $(".bs-server-modal-center").modal("show");
+            $("#reinstall_server").prop("disabled", false);
+        });
+        $("#update_server").prop("disabled", false);
+        $("#update_binaries").prop("disabled", false);
+    }
+    $(document).ready(function() {
+        $("#datatable").DataTable({
+            language: {
+                paginate: {
+                    previous: "<i class='mdi mdi-chevron-left'>",
+                    next: "<i class='mdi mdi-chevron-right'>"
+                }
+            },
+            drawCallback: function() {
+                bindServers();
+                bindHref();
+                refreshTooltips();
+                <?php if (hasPermissions('adv', 'edit_server')): ?>
+                    // Multi Actions
+                    multiAPI("clear");
+                    $("#datatable tr").click(function() {
+                        if (window.rShiftHeld) {
+                            if ($(this).hasClass('selectedfilter')) {
+                                $(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass("selected");
+                                window.rSelected.splice($.inArray($($(this).find("td:eq(0)").html()).data("id"), window.rSelected), 1);
+                            } else {
+                                $(this).addClass('selectedfilter').addClass('ui-selected').addClass("selected");
+                                window.rSelected.push($($(this).find("td:eq(0)").html()).data("id"));
+                            }
+                        }
+                        $("#multi_servers_selected").html(window.rSelected.length + " servers");
+                        if (window.rSelected.length > 0) {
+                            if ("#header_stats") {
+                                $("#header_stats").hide();
+                            }
+                            $("#multiselect_servers").show();
+                        } else {
+                            if ("#header_stats") {
+                                $("#header_stats").show();
+                            }
+                            $("#multiselect_servers").hide();
+                        }
+                    });
+                <?php endif; ?>
+            },
+            responsive: false
+        });
+        $("#datatable").css("width", "100%");
+    });
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

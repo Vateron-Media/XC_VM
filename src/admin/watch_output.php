@@ -63,7 +63,139 @@ foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) {
 	echo '</option>' . "\n\t\t\t\t\t\t\t\t\t\t";
 }
 echo "\t\t\t\t\t\t\t\t\t" . '</select>' . "\n\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t" . '</form>' . "\n\t\t\t\t\t\t" . '<table id="datatable-md1" class="table table-striped table-borderless dt-responsive nowrap font-normal">' . "\n\t\t\t\t\t\t\t" . '<thead>' . "\n\t\t\t\t\t\t\t\t" . '<tr>' . "\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">ID</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th>Type</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th>Server</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th>Filename</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">Status</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">Date Added</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">Actions</th>' . "\n\t\t\t\t\t\t\t\t" . '</tr>' . "\n\t\t\t\t\t\t\t" . '</thead>' . "\n\t\t\t\t\t\t\t" . '<tbody></tbody>' . "\n\t\t\t\t\t\t" . '</table>' . "\n\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t" . '</div> ' . "\n\t\t\t" . '</div>' . "\n\t\t" . '</div>' . "\n\t" . '</div>' . "\n" . '</div>' . "\n";
-include 'footer.php';
+include 'footer.php'; ?>
+<script id="scripts">
+			var resizeObserver = new ResizeObserver(entries => $(window).scroll());
+			$(document).ready(function() {
+				resizeObserver.observe(document.body)
+				$("form").attr('autocomplete', 'off');
+				$(document).keypress(function(event) {
+					if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
+				});
+				$.fn.dataTable.ext.errMode = 'none';
+				var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
+				elems.forEach(function(html) {
+					var switchery = new Switchery(html, {
+						'color': '#414d5f'
+					});
+					window.rSwitches[$(html).attr("id")] = switchery;
+				});
+				setTimeout(pingSession, 30000);
+				<?php if (!$rMobile || $rSettings['header_stats']): ?>
+					headerStats();
+				<?php endif; ?>
+				bindHref();
+				refreshTooltips();
+				$(window).scroll(function() {
+					if ($(this).scrollTop() > 200) {
+						if ($(document).height() > $(window).height()) {
+							$('#scrollToBottom').fadeOut();
+						}
+						$('#scrollToTop').fadeIn();
+					} else {
+						$('#scrollToTop').fadeOut();
+						if ($(document).height() > $(window).height()) {
+							$('#scrollToBottom').fadeIn();
+						} else {
+							$('#scrollToBottom').hide();
+						}
+					}
+				});
+				$("#scrollToTop").unbind("click");
+				$('#scrollToTop').click(function() {
+					$('html, body').animate({
+						scrollTop: 0
+					}, 800);
+					return false;
+				});
+				$("#scrollToBottom").unbind("click");
+				$('#scrollToBottom').click(function() {
+					$('html, body').animate({
+						scrollTop: $(document).height()
+					}, 800);
+					return false;
+				});
+				$(window).scroll();
+				$(".nextb").unbind("click");
+				$(".nextb").click(function() {
+					var rPos = 0;
+					var rActive = null;
+					$(".nav .nav-item").each(function() {
+						if ($(this).find(".nav-link").hasClass("active")) {
+							rActive = rPos;
+						}
+						if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
+							$(this).find(".nav-link").trigger("click");
+							return false;
+						}
+						rPos += 1;
+					});
+				});
+				$(".prevb").unbind("click");
+				$(".prevb").click(function() {
+					var rPos = 0;
+					var rActive = null;
+					$($(".nav .nav-item").get().reverse()).each(function() {
+						if ($(this).find(".nav-link").hasClass("active")) {
+							rActive = rPos;
+						}
+						if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
+							$(this).find(".nav-link").trigger("click");
+							return false;
+						}
+						rPos += 1;
+					});
+				});
+				(function($) {
+					$.fn.inputFilter = function(inputFilter) {
+						return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
+							if (inputFilter(this.value)) {
+								this.oldValue = this.value;
+								this.oldSelectionStart = this.selectionStart;
+								this.oldSelectionEnd = this.selectionEnd;
+							} else if (this.hasOwnProperty("oldValue")) {
+								this.value = this.oldValue;
+								this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
+							}
+						});
+					};
+				}(jQuery));
+				<?php if ($rSettings['js_navigate']): ?>
+					$(".navigation-menu li").mouseenter(function() {
+						$(this).find(".submenu").show();
+					});
+					delParam("status");
+					$(window).on("popstate", function() {
+						if (window.rRealURL) {
+							if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
+								navigate(window.location.href.split("/").reverse()[0]);
+							}
+						}
+					});
+				<?php endif; ?>
+				$(document).keydown(function(e) {
+					if (e.keyCode == 16) {
+						window.rShiftHeld = true;
+					}
+				});
+				$(document).keyup(function(e) {
+					if (e.keyCode == 16) {
+						window.rShiftHeld = false;
+					}
+				});
+				document.onselectstart = function() {
+					if (window.rShiftHeld) {
+						return false;
+					}
+				}
+			});
+
+			<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+				$(document).ready(function() {
+					initSearch();
+				});
+
+			<?php endif; 
 		echo '        ' . "\r\n\t\t" . 'var rClearing = false;' . "\r\n\r\n\t\t" . 'function api(rID, rType, rConfirm=false) {' . "\r\n" . '            if ((rType == "delete") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Delete",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to delete this record?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        api(rID, rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n\t\t\t" . '} else {' . "\r\n" . '                rConfirm = true;' . "\r\n" . '            }' . "\r\n" . '            if (rConfirm) {' . "\r\n" . '                $.getJSON("./api?action=watch_output&sub=" + rType + "&result_id=" + rID, function(data) {' . "\r\n" . '                    if (data.result == true) {' . "\r\n" . '                        if (rType == "delete") {' . "\r\n" . '                            $.toast("Record successfully deleted.");' . "\r\n" . '                        }' . "\r\n" . '                        $("#datatable-md1").DataTable().ajax.reload( null, false );' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("An error occured while processing your request.");' . "\r\n" . '                    }' . "\r\n" . '                }).fail(function() {' . "\r\n" . '                    $.toast("An error occured while processing your request.");' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getServer() {' . "\r\n\t\t\t" . 'return $("#result_server").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getType() {' . "\r\n\t\t\t" . 'return $("#result_type").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getStatus() {' . "\r\n\t\t\t" . 'return $("#result_status").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function clearFilters() {' . "\r\n\t\t\t" . 'window.rClearing = true;' . "\r\n\t\t\t" . "\$(\"#result_search\").val(\"\").trigger('change');" . "\r\n\t\t\t" . "\$('#result_server').val(\"\").trigger('change');" . "\r\n\t\t\t" . "\$('#result_type').val(\"\").trigger('change');" . "\r\n\t\t\t" . "\$('#result_status').val(\"\").trigger('change');" . "\r\n\t\t\t" . "\$('#result_show_entries').val(\"";
 		echo (intval($rSettings['default_entries']) ?: 10);
 		echo "\").trigger('change');" . "\r\n\t\t\t" . 'window.rClearing = false;' . "\r\n\t\t\t" . "\$('#datatable-md1').DataTable().search(\$(\"#result_search\").val());" . "\r\n\t\t\t" . "\$('#datatable-md1').DataTable().page.len(\$('#result_show_entries').val());" . "\r\n\t\t\t" . "\$(\"#datatable-md1\").DataTable().page(0).draw('page');" . "\r\n\t\t\t" . '$("#datatable-md1").DataTable().ajax.reload( null, false );' . "\r\n\t\t" . '}' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'});" . "\r\n\t\t\t" . '$("#datatable-md1").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n\t\t\t\t\t" . 'bindHref(); refreshTooltips();' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "watch_output";' . "\r\n\t\t\t\t\t\t" . 'd.server = getServer();' . "\r\n\t\t\t\t\t\t" . 'd.type = getType();' . "\r\n\t\t\t\t\t\t" . 'd.status = getStatus();' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,4,5,6]},' . "\r\n\t\t\t\t\t" . '{"orderable": false, "targets": [6]}' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t\t" . 'order: [[ 5, "desc" ]],' . "\r\n\t\t\t\t" . 'pageLength: ';
