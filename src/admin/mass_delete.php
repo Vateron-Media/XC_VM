@@ -699,7 +699,139 @@ include 'header.php'; ?>
         </div>
         </div>
 
-        <?php include 'footer.php';
+        <?php include 'footer.php'; ?>
+<script id="scripts">
+			var resizeObserver = new ResizeObserver(entries => $(window).scroll());
+			$(document).ready(function() {
+				resizeObserver.observe(document.body)
+				$("form").attr('autocomplete', 'off');
+				$(document).keypress(function(event) {
+					if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
+				});
+				$.fn.dataTable.ext.errMode = 'none';
+				var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
+				elems.forEach(function(html) {
+					var switchery = new Switchery(html, {
+						'color': '#414d5f'
+					});
+					window.rSwitches[$(html).attr("id")] = switchery;
+				});
+				setTimeout(pingSession, 30000);
+				<?php if (!$rMobile || $rSettings['header_stats']): ?>
+					headerStats();
+				<?php endif; ?>
+				bindHref();
+				refreshTooltips();
+				$(window).scroll(function() {
+					if ($(this).scrollTop() > 200) {
+						if ($(document).height() > $(window).height()) {
+							$('#scrollToBottom').fadeOut();
+						}
+						$('#scrollToTop').fadeIn();
+					} else {
+						$('#scrollToTop').fadeOut();
+						if ($(document).height() > $(window).height()) {
+							$('#scrollToBottom').fadeIn();
+						} else {
+							$('#scrollToBottom').hide();
+						}
+					}
+				});
+				$("#scrollToTop").unbind("click");
+				$('#scrollToTop').click(function() {
+					$('html, body').animate({
+						scrollTop: 0
+					}, 800);
+					return false;
+				});
+				$("#scrollToBottom").unbind("click");
+				$('#scrollToBottom').click(function() {
+					$('html, body').animate({
+						scrollTop: $(document).height()
+					}, 800);
+					return false;
+				});
+				$(window).scroll();
+				$(".nextb").unbind("click");
+				$(".nextb").click(function() {
+					var rPos = 0;
+					var rActive = null;
+					$(".nav .nav-item").each(function() {
+						if ($(this).find(".nav-link").hasClass("active")) {
+							rActive = rPos;
+						}
+						if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
+							$(this).find(".nav-link").trigger("click");
+							return false;
+						}
+						rPos += 1;
+					});
+				});
+				$(".prevb").unbind("click");
+				$(".prevb").click(function() {
+					var rPos = 0;
+					var rActive = null;
+					$($(".nav .nav-item").get().reverse()).each(function() {
+						if ($(this).find(".nav-link").hasClass("active")) {
+							rActive = rPos;
+						}
+						if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
+							$(this).find(".nav-link").trigger("click");
+							return false;
+						}
+						rPos += 1;
+					});
+				});
+				(function($) {
+					$.fn.inputFilter = function(inputFilter) {
+						return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
+							if (inputFilter(this.value)) {
+								this.oldValue = this.value;
+								this.oldSelectionStart = this.selectionStart;
+								this.oldSelectionEnd = this.selectionEnd;
+							} else if (this.hasOwnProperty("oldValue")) {
+								this.value = this.oldValue;
+								this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
+							}
+						});
+					};
+				}(jQuery));
+				<?php if ($rSettings['js_navigate']): ?>
+					$(".navigation-menu li").mouseenter(function() {
+						$(this).find(".submenu").show();
+					});
+					delParam("status");
+					$(window).on("popstate", function() {
+						if (window.rRealURL) {
+							if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
+								navigate(window.location.href.split("/").reverse()[0]);
+							}
+						}
+					});
+				<?php endif; ?>
+				$(document).keydown(function(e) {
+					if (e.keyCode == 16) {
+						window.rShiftHeld = true;
+					}
+				});
+				$(document).keyup(function(e) {
+					if (e.keyCode == 16) {
+						window.rShiftHeld = false;
+					}
+				});
+				document.onselectstart = function() {
+					if (window.rShiftHeld) {
+						return false;
+					}
+				}
+			});
+
+			<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+				$(document).ready(function() {
+					initSearch();
+				});
+
+			<?php endif; 
 		echo '        ' . "\r\n\t\t" . 'var rStreams = [];' . "\r\n\t\t" . 'var rMovies = [];' . "\r\n\t\t" . 'var rSeries = [];' . "\r\n\t\t" . 'var rEpisodes = [];' . "\r\n\t\t" . 'var rUsers = [];' . "\r\n" . '        var rLines = [];' . "\r\n" . '        var rRadios = [];' . "\r\n" . '        var rMAGs = [];' . "\r\n" . '        var rEnigmas = [];' . "\r\n\r\n\t\t" . 'function getStreamCategory() {' . "\r\n\t\t\t" . 'return $("#stream_category_search").val();' . "\r\n\t\t" . '}' . "\r\n" . '        function getStreamFilter() {' . "\r\n" . '            return $("#stream_filter").val();' . "\r\n" . '        }' . "\r\n" . '        function getRadioCategory() {' . "\r\n\t\t\t" . 'return $("#radio_category_search").val();' . "\r\n\t\t" . '}' . "\r\n" . '        function getRadioFilter() {' . "\r\n" . '            return $("#radio_filter").val();' . "\r\n" . '        }' . "\r\n\t\t" . 'function getMovieCategory() {' . "\r\n\t\t\t" . 'return $("#movie_category_search").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getSeriesCategory() {' . "\r\n\t\t\t" . 'return $("#series_category_search").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getMovieFilter() {' . "\r\n\t\t\t" . 'return $("#movie_filter").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getLineFilter() {' . "\r\n\t\t\t" . 'return $("#line_filter").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getEpisodeFilter() {' . "\r\n\t\t\t" . 'return $("#episode_filter").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getEpisodeSeries() {' . "\r\n\t\t\t" . 'return $("#episode_series").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getReseller() {' . "\r\n\t\t\t" . 'return $("#reseller_search").val();' . "\r\n\t\t" . '}' . "\r\n" . '        function getUserFilter() {' . "\r\n\t\t\t" . 'return $("#user_filter").val();' . "\r\n\t\t" . '}' . "\r\n" . '        function getUserReseller() {' . "\r\n\t\t\t" . 'return $("#user_reseller_search").val();' . "\r\n\t\t" . '}' . "\r\n" . '        function getMagFilter() {' . "\r\n\t\t\t" . 'return $("#mag_filter").val();' . "\r\n\t\t" . '}' . "\r\n" . '        function getMagReseller() {' . "\r\n\t\t\t" . 'return $("#mag_reseller_search").val();' . "\r\n\t\t" . '}' . "\r\n" . '        function getEnigmaFilter() {' . "\r\n\t\t\t" . 'return $("#enigma_filter").val();' . "\r\n\t\t" . '}' . "\r\n" . '        function getEnigmaReseller() {' . "\r\n\t\t\t" . 'return $("#enigma_reseller_search").val();' . "\r\n\t\t" . '}' . "\r\n" . '        function getStreamServer() {' . "\r\n" . '            return $("#stream_server_id").val();' . "\r\n" . '        }' . "\r\n" . '        function getMovieServer() {' . "\r\n" . '            return $("#movie_server_id").val();' . "\r\n" . '        }' . "\r\n" . '        function getEpisodeServer() {' . "\r\n" . '            return $("#episode_server_id").val();' . "\r\n" . '        }' . "\r\n" . '        function getRadioServer() {' . "\r\n" . '            return $("#station_server_id").val();' . "\r\n" . '        }' . "\r\n\t\t" . 'function toggleStreams() {' . "\r\n\t\t\t" . '$("#datatable-md1 tr").each(function() {' . "\r\n\t\t\t\t" . "if (\$(this).hasClass('selected')) {" . "\r\n\t\t\t\t\t" . "\$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rStreams.splice($.inArray($(this).find("td:eq(0)").text(), window.rStreams), 1);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '} else {            ' . "\r\n\t\t\t\t\t" . "\$(this).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rStreams.push($(this).find("td:eq(0)").text());' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n" . '        function toggleRadios() {' . "\r\n\t\t\t" . '$("#datatable-md6 tr").each(function() {' . "\r\n\t\t\t\t" . "if (\$(this).hasClass('selected')) {" . "\r\n\t\t\t\t\t" . "\$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rRadios.splice($.inArray($(this).find("td:eq(0)").text(), window.rRadios), 1);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '} else {            ' . "\r\n\t\t\t\t\t" . "\$(this).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rRadios.push($(this).find("td:eq(0)").text());' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function toggleMovies() {' . "\r\n\t\t\t" . '$("#datatable-md2 tr").each(function() {' . "\r\n\t\t\t\t" . "if (\$(this).hasClass('selected')) {" . "\r\n\t\t\t\t\t" . "\$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rMovies.splice($.inArray($(this).find("td:eq(0)").text(), window.rMovies), 1);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '} else {            ' . "\r\n\t\t\t\t\t" . "\$(this).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rMovies.push($(this).find("td:eq(0)").text());' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function toggleSeries() {' . "\r\n\t\t\t" . '$("#datatable-md4 tr").each(function() {' . "\r\n\t\t\t\t" . "if (\$(this).hasClass('selected')) {" . "\r\n\t\t\t\t\t" . "\$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rSeries.splice($.inArray($(this).find("td:eq(0)").text(), window.rSeries), 1);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '} else {            ' . "\r\n\t\t\t\t\t" . "\$(this).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rSeries.push($(this).find("td:eq(0)").text());' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function toggleEpisodes() {' . "\r\n\t\t\t" . '$("#datatable-md5 tr").each(function() {' . "\r\n\t\t\t\t" . "if (\$(this).hasClass('selected')) {" . "\r\n\t\t\t\t\t" . "\$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rEpisodes.splice($.inArray($(this).find("td:eq(0)").text(), window.rEpisodes), 1);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '} else {            ' . "\r\n\t\t\t\t\t" . "\$(this).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rEpisodes.push($(this).find("td:eq(0)").text());' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function toggleLines() {' . "\r\n\t\t\t" . '$("#datatable-md3 tr").each(function() {' . "\r\n\t\t\t\t" . "if (\$(this).hasClass('selected')) {" . "\r\n\t\t\t\t\t" . "\$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rLines.splice($.inArray($(this).find("td:eq(0)").text(), window.rLines), 1);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '} else {            ' . "\r\n\t\t\t\t\t" . "\$(this).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rLines.push($(this).find("td:eq(0)").text());' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n" . '        function toggleUsers() {' . "\r\n\t\t\t" . '$("#datatable-md7 tr").each(function() {' . "\r\n\t\t\t\t" . "if (\$(this).hasClass('selected')) {" . "\r\n\t\t\t\t\t" . "\$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rUsers.splice($.inArray($(this).find("td:eq(0)").text(), window.rUsers), 1);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '} else {            ' . "\r\n\t\t\t\t\t" . "\$(this).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rUsers.push($(this).find("td:eq(0)").text());' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n" . '        function toggleMags() {' . "\r\n\t\t\t" . '$("#datatable-md8 tr").each(function() {' . "\r\n\t\t\t\t" . "if (\$(this).hasClass('selected')) {" . "\r\n\t\t\t\t\t" . "\$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rMAGs.splice($.inArray($(this).find("td:eq(0)").text(), window.rMAGs), 1);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '} else {            ' . "\r\n\t\t\t\t\t" . "\$(this).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rMAGs.push($(this).find("td:eq(0)").text());' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n" . '        function toggleEnigmas() {' . "\r\n\t\t\t" . '$("#datatable-md9 tr").each(function() {' . "\r\n\t\t\t\t" . "if (\$(this).hasClass('selected')) {" . "\r\n\t\t\t\t\t" . "\$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rEnigmas.splice($.inArray($(this).find("td:eq(0)").text(), window.rEnigmas), 1);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '} else {            ' . "\r\n\t\t\t\t\t" . "\$(this).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rEnigmas.push($(this).find("td:eq(0)").text());' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function clearOwner() {' . "\r\n" . "            \$('#reseller_search').val(\"\").trigger('change');" . "\r\n" . '        }' . "\r\n" . '        function clearUserOwner() {' . "\r\n" . "            \$('#user_reseller_search').val(\"\").trigger('change');" . "\r\n" . '        }' . "\r\n" . '        function clearMagOwner() {' . "\r\n" . "            \$('#mag_reseller_search').val(\"\").trigger('change');" . "\r\n" . '        }' . "\r\n" . '        function clearE2Owner() {' . "\r\n" . "            \$('#enigma_reseller_search').val(\"\").trigger('change');" . "\r\n" . '        }' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'});" . "\r\n" . "            \$('#reseller_search').select2({" . "\r\n\t\t\t" . '  ajax: {' . "\r\n\t\t\t\t" . "url: './api'," . "\r\n\t\t\t\t" . "dataType: 'json'," . "\r\n\t\t\t\t" . 'data: function (params) {' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'search: params.term,' . "\r\n\t\t\t\t\t" . "action: 'reguserlist'," . "\r\n\t\t\t\t\t" . 'page: params.page' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processResults: function (data, params) {' . "\r\n\t\t\t\t" . '  params.page = params.page || 1;' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'results: data.items,' . "\r\n\t\t\t\t\t" . 'pagination: {' . "\r\n\t\t\t\t\t\t" . 'more: (params.page * 100) < data.total_count' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'cache: true,' . "\r\n\t\t\t\t" . 'width: "100%"' . "\r\n\t\t\t" . '  },' . "\r\n\t\t\t" . "  placeholder: 'Search for an owner...'" . "\r\n\t\t\t" . '});' . "\r\n" . "            \$('#user_reseller_search').select2({" . "\r\n\t\t\t" . '  ajax: {' . "\r\n\t\t\t\t" . "url: './api'," . "\r\n\t\t\t\t" . "dataType: 'json'," . "\r\n\t\t\t\t" . 'data: function (params) {' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'search: params.term,' . "\r\n\t\t\t\t\t" . "action: 'reguserlist'," . "\r\n\t\t\t\t\t" . 'page: params.page' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processResults: function (data, params) {' . "\r\n\t\t\t\t" . '  params.page = params.page || 1;' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'results: data.items,' . "\r\n\t\t\t\t\t" . 'pagination: {' . "\r\n\t\t\t\t\t\t" . 'more: (params.page * 100) < data.total_count' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'cache: true,' . "\r\n\t\t\t\t" . 'width: "100%"' . "\r\n\t\t\t" . '  },' . "\r\n\t\t\t" . "  placeholder: 'Search for an owner...'" . "\r\n\t\t\t" . '});' . "\r\n" . "            \$('#mag_reseller_search').select2({" . "\r\n\t\t\t" . '  ajax: {' . "\r\n\t\t\t\t" . "url: './api'," . "\r\n\t\t\t\t" . "dataType: 'json'," . "\r\n\t\t\t\t" . 'data: function (params) {' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'search: params.term,' . "\r\n\t\t\t\t\t" . "action: 'reguserlist'," . "\r\n\t\t\t\t\t" . 'page: params.page' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processResults: function (data, params) {' . "\r\n\t\t\t\t" . '  params.page = params.page || 1;' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'results: data.items,' . "\r\n\t\t\t\t\t" . 'pagination: {' . "\r\n\t\t\t\t\t\t" . 'more: (params.page * 100) < data.total_count' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'cache: true,' . "\r\n\t\t\t\t" . 'width: "100%"' . "\r\n\t\t\t" . '  },' . "\r\n\t\t\t" . "  placeholder: 'Search for an owner...'" . "\r\n\t\t\t" . '});' . "\r\n" . "            \$('#enigma_reseller_search').select2({" . "\r\n\t\t\t" . '  ajax: {' . "\r\n\t\t\t\t" . "url: './api'," . "\r\n\t\t\t\t" . "dataType: 'json'," . "\r\n\t\t\t\t" . 'data: function (params) {' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'search: params.term,' . "\r\n\t\t\t\t\t" . "action: 'reguserlist'," . "\r\n\t\t\t\t\t" . 'page: params.page' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processResults: function (data, params) {' . "\r\n\t\t\t\t" . '  params.page = params.page || 1;' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'results: data.items,' . "\r\n\t\t\t\t\t" . 'pagination: {' . "\r\n\t\t\t\t\t\t" . 'more: (params.page * 100) < data.total_count' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'cache: true,' . "\r\n\t\t\t\t" . 'width: "100%"' . "\r\n\t\t\t" . '  },' . "\r\n\t\t\t" . "  placeholder: 'Search for an owner...'" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#stream_form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n\t\t\t\t" . '$("#streams").val(JSON.stringify(window.rStreams));' . "\r\n\t\t\t\t" . 'if (window.rStreams.length == 0) {' . "\r\n\t\t\t\t\t" . '$.toast("';
 		echo $_['mass_delete_message_6'];
 		echo '");' . "\r\n\t\t\t\t" . '} else {' . "\r\n" . "                    \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                    submitForm("mass_delete_streams", new FormData($("#stream_form")[0]));' . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n" . '            $("#radio_form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n\t\t\t\t" . '$("#radios").val(JSON.stringify(window.rRadios));' . "\r\n\t\t\t\t" . 'if (window.rRadios.length == 0) {' . "\r\n\t\t\t\t\t" . '$.toast("';

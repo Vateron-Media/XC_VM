@@ -647,9 +647,232 @@ include 'header.php'; ?>
         </div>
     </div>
 </div>
-<?php include 'footer.php';
-		echo '        ' . "\r\n\t\t" . 'function MoveUp() {' . "\r\n\t\t\t" . "var rSelected = \$('#domain_name option:selected');" . "\r\n\t\t\t" . 'if (rSelected.length) {' . "\r\n\t\t\t\t" . 'var rPrevious = rSelected.first().prev()[0];' . "\r\n\t\t\t\t" . "if (\$(rPrevious).html() != '') {" . "\r\n\t\t\t\t\t" . 'rSelected.first().prev().before(rSelected);' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '}' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function MoveDown() {' . "\r\n\t\t\t" . "var rSelected = \$('#domain_name option:selected');" . "\r\n\t\t\t" . 'if (rSelected.length) {' . "\r\n\t\t\t\t" . 'rSelected.last().next().after(rSelected);' . "\r\n\t\t\t" . '}' . "\r\n\t\t" . '}' . "\r\n" . '        function setDefault() {' . "\r\n" . '            $("#sysctl").val("# XC_VM\\n\\nnet.ipv4.tcp_congestion_control = bbr\\nnet.core.default_qdisc = fq\\nnet.ipv4.tcp_rmem = 8192 87380 134217728\\nnet.ipv4.udp_rmem_min = 16384\\nnet.core.rmem_default = 262144\\nnet.core.rmem_max = 268435456\\nnet.ipv4.tcp_wmem = 8192 65536 134217728\\nnet.ipv4.udp_wmem_min = 16384\\nnet.core.wmem_default = 262144\\nnet.core.wmem_max = 268435456\\nnet.core.somaxconn = 1000000\\nnet.core.netdev_max_backlog = 250000\\nnet.core.optmem_max = 65535\\nnet.ipv4.tcp_max_tw_buckets = 1440000\\nnet.ipv4.tcp_max_orphans = 16384\\nnet.ipv4.ip_local_port_range = 2000 65000\\nnet.ipv4.tcp_no_metrics_save = 1\\nnet.ipv4.tcp_slow_start_after_idle = 0\\nnet.ipv4.tcp_fin_timeout = 15\\nnet.ipv4.tcp_keepalive_time = 300\\nnet.ipv4.tcp_keepalive_probes = 5\\nnet.ipv4.tcp_keepalive_intvl = 15\\nfs.file-max=20970800\\nfs.nr_open=20970800\\nfs.aio-max-nr=20970800\\nnet.ipv4.tcp_timestamps = 1\\nnet.ipv4.tcp_window_scaling = 1\\nnet.ipv4.tcp_mtu_probing = 1\\nnet.ipv4.route.flush = 1\\nnet.ipv6.route.flush = 1");' . "\r\n" . '        }' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('.select2').select2({width: '100%'})" . "\r\n" . '            $("#http_broadcast_ports").select2({' . "\r\n" . "                width: '100%'," . "\r\n" . '                tags: true,' . "\r\n" . '                createTag: function (params) {' . "\r\n" . '                    if (!$.isNumeric(params.term) || params.term < 80 || params.term > 65535) {' . "\r\n" . '                        return null;' . "\r\n" . '                    }' . "\r\n" . '                    return {' . "\r\n" . '                        id: params.term,' . "\r\n" . '                        text: params.term' . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            $("#https_broadcast_ports").select2({' . "\r\n" . "                width: '100%'," . "\r\n" . '                tags: true,' . "\r\n" . '                createTag: function (params) {' . "\r\n" . '                    if (!$.isNumeric(params.term) || params.term < 80 || params.term > 65535) {' . "\r\n" . '                        return null;' . "\r\n" . '                    }' . "\r\n" . '                    return {' . "\r\n" . '                        id: params.term,' . "\r\n" . '                        text: params.term' . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . "            \$(\"#isp_names\").select2({width: '100%', tags: true});" . "\r\n\t\t\t" . '$("#add_ip").click(function() {' . "\r\n\t\t\t\t" . 'if (($("#ip_field").val()) && ((isValidIP($("#ip_field").val())) || (isValidDomain($("#ip_field").val())))) {' . "\r\n\t\t\t\t\t" . 'var o = new Option($("#ip_field").val(), $("#ip_field").val());' . "\r\n\t\t\t\t\t" . '$("#domain_name").append(o);' . "\r\n\t\t\t\t\t" . '$("#ip_field").val("");' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . '$.toast("Please enter a valid IP address or domain name.");' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#remove_ip").click(function() {' . "\r\n\t\t\t\t" . "\$('#domain_name option:selected').remove();" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#total_clients").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#rtmp_port").inputFilter(function(value) { return /^\\d*$/.test(value) && (value === "" || parseInt(value) <= 65535); });' . "\r\n\t\t\t" . '$("#network_guaranteed_speed").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#limit_requests").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#limit_burst").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#submit_server_ssl").click(function() {' . "\r\n" . '                $("#regenerate_ssl").val(1);' . "\r\n" . '                $("#submit_button").click();' . "\r\n" . '            });' . "\r\n" . '            $("form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n\t\t\t\t" . "\$(\"#domain_name option\").prop('selected', true);" . "\r\n" . "                \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                submitForm(window.rCurrentPage, new FormData($("form")[0]));' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n" . '        ';
-		?>
+<?php include 'footer.php'; ?>
+<script id="scripts">
+    var resizeObserver = new ResizeObserver(entries => $(window).scroll());
+    $(document).ready(function() {
+        resizeObserver.observe(document.body)
+        $("form").attr('autocomplete', 'off');
+        $(document).keypress(function(event) {
+            if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
+        });
+        $.fn.dataTable.ext.errMode = 'none';
+        var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
+        elems.forEach(function(html) {
+            var switchery = new Switchery(html, {
+                'color': '#414d5f'
+            });
+            window.rSwitches[$(html).attr("id")] = switchery;
+        });
+        setTimeout(pingSession, 30000);
+        <?php if (!$rMobile || $rSettings['header_stats']): ?>
+            headerStats();
+        <?php endif; ?>
+        bindHref();
+        refreshTooltips();
+        $(window).scroll(function() {
+            if ($(this).scrollTop() > 200) {
+                if ($(document).height() > $(window).height()) {
+                    $('#scrollToBottom').fadeOut();
+                }
+                $('#scrollToTop').fadeIn();
+            } else {
+                $('#scrollToTop').fadeOut();
+                if ($(document).height() > $(window).height()) {
+                    $('#scrollToBottom').fadeIn();
+                } else {
+                    $('#scrollToBottom').hide();
+                }
+            }
+        });
+        $("#scrollToTop").unbind("click");
+        $('#scrollToTop').click(function() {
+            $('html, body').animate({
+                scrollTop: 0
+            }, 800);
+            return false;
+        });
+        $("#scrollToBottom").unbind("click");
+        $('#scrollToBottom').click(function() {
+            $('html, body').animate({
+                scrollTop: $(document).height()
+            }, 800);
+            return false;
+        });
+        $(window).scroll();
+        $(".nextb").unbind("click");
+        $(".nextb").click(function() {
+            var rPos = 0;
+            var rActive = null;
+            $(".nav .nav-item").each(function() {
+                if ($(this).find(".nav-link").hasClass("active")) {
+                    rActive = rPos;
+                }
+                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
+                    $(this).find(".nav-link").trigger("click");
+                    return false;
+                }
+                rPos += 1;
+            });
+        });
+        $(".prevb").unbind("click");
+        $(".prevb").click(function() {
+            var rPos = 0;
+            var rActive = null;
+            $($(".nav .nav-item").get().reverse()).each(function() {
+                if ($(this).find(".nav-link").hasClass("active")) {
+                    rActive = rPos;
+                }
+                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
+                    $(this).find(".nav-link").trigger("click");
+                    return false;
+                }
+                rPos += 1;
+            });
+        });
+        (function($) {
+            $.fn.inputFilter = function(inputFilter) {
+                return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
+                    if (inputFilter(this.value)) {
+                        this.oldValue = this.value;
+                        this.oldSelectionStart = this.selectionStart;
+                        this.oldSelectionEnd = this.selectionEnd;
+                    } else if (this.hasOwnProperty("oldValue")) {
+                        this.value = this.oldValue;
+                        this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
+                    }
+                });
+            };
+        }(jQuery));
+        <?php if ($rSettings['js_navigate']): ?>
+            $(".navigation-menu li").mouseenter(function() {
+                $(this).find(".submenu").show();
+            });
+            delParam("status");
+            $(window).on("popstate", function() {
+                if (window.rRealURL) {
+                    if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
+                        navigate(window.location.href.split("/").reverse()[0]);
+                    }
+                }
+            });
+        <?php endif; ?>
+        $(document).keydown(function(e) {
+            if (e.keyCode == 16) {
+                window.rShiftHeld = true;
+            }
+        });
+        $(document).keyup(function(e) {
+            if (e.keyCode == 16) {
+                window.rShiftHeld = false;
+            }
+        });
+        document.onselectstart = function() {
+            if (window.rShiftHeld) {
+                return false;
+            }
+        }
+    });
+
+    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+        $(document).ready(function() {
+            initSearch();
+        });
+
+    <?php endif; ?>
+
+    function MoveUp() {
+        var rSelected = $('#domain_name option:selected');
+        if (rSelected.length) {
+            var rPrevious = rSelected.first().prev()[0];
+            if ($(rPrevious).html() != '') {
+                rSelected.first().prev().before(rSelected);
+            }
+        }
+    }
+
+    function MoveDown() {
+        var rSelected = $('#domain_name option:selected');
+        if (rSelected.length) {
+            rSelected.last().next().after(rSelected);
+        }
+    }
+
+    function setDefault() {
+        $("#sysctl").val("# XC_VM\n\nnet.ipv4.tcp_congestion_control = bbr\nnet.core.default_qdisc = fq\nnet.ipv4.tcp_rmem = 8192 87380 134217728\nnet.ipv4.udp_rmem_min = 16384\nnet.core.rmem_default = 262144\nnet.core.rmem_max = 268435456\nnet.ipv4.tcp_wmem = 8192 65536 134217728\nnet.ipv4.udp_wmem_min = 16384\nnet.core.wmem_default = 262144\nnet.core.wmem_max = 268435456\nnet.core.somaxconn = 1000000\nnet.core.netdev_max_backlog = 250000\nnet.core.optmem_max = 65535\nnet.ipv4.tcp_max_tw_buckets = 1440000\nnet.ipv4.tcp_max_orphans = 16384\nnet.ipv4.ip_local_port_range = 2000 65000\nnet.ipv4.tcp_no_metrics_save = 1\nnet.ipv4.tcp_slow_start_after_idle = 0\nnet.ipv4.tcp_fin_timeout = 15\nnet.ipv4.tcp_keepalive_time = 300\nnet.ipv4.tcp_keepalive_probes = 5\nnet.ipv4.tcp_keepalive_intvl = 15\nfs.file-max=20970800\nfs.nr_open=20970800\nfs.aio-max-nr=20970800\nnet.ipv4.tcp_timestamps = 1\nnet.ipv4.tcp_window_scaling = 1\nnet.ipv4.tcp_mtu_probing = 1\nnet.ipv4.route.flush = 1\nnet.ipv6.route.flush = 1");
+    }
+    $(document).ready(function() {
+        $('.select2').select2({
+            width: '100%'
+        })
+        $("#http_broadcast_ports").select2({
+            width: '100%',
+            tags: true,
+            createTag: function(params) {
+                if (!$.isNumeric(params.term) || params.term < 80 || params.term > 65535) {
+                    return null;
+                }
+                return {
+                    id: params.term,
+                    text: params.term
+                }
+            }
+        });
+        $("#https_broadcast_ports").select2({
+            width: '100%',
+            tags: true,
+            createTag: function(params) {
+                if (!$.isNumeric(params.term) || params.term < 80 || params.term > 65535) {
+                    return null;
+                }
+                return {
+                    id: params.term,
+                    text: params.term
+                }
+            }
+        });
+        $("#isp_names").select2({
+            width: '100%',
+            tags: true
+        });
+        $("#add_ip").click(function() {
+            if (($("#ip_field").val()) && ((isValidIP($("#ip_field").val())) || (isValidDomain($("#ip_field").val())))) {
+                var o = new Option($("#ip_field").val(), $("#ip_field").val());
+                $("#domain_name").append(o);
+                $("#ip_field").val("");
+            } else {
+                $.toast("Please enter a valid IP address or domain name.");
+            }
+        });
+        $("#remove_ip").click(function() {
+            $('#domain_name option:selected').remove();
+        });
+        $("#total_clients").inputFilter(function(value) {
+            return /^\d*$/.test(value);
+        });
+        $("#rtmp_port").inputFilter(function(value) {
+            return /^\d*$/.test(value) && (value === "" || parseInt(value) <= 65535);
+        });
+        $("#network_guaranteed_speed").inputFilter(function(value) {
+            return /^\d*$/.test(value);
+        });
+        $("#limit_requests").inputFilter(function(value) {
+            return /^\d*$/.test(value);
+        });
+        $("#limit_burst").inputFilter(function(value) {
+            return /^\d*$/.test(value);
+        });
+        $("#submit_server_ssl").click(function() {
+            $("#regenerate_ssl").val(1);
+            $("#submit_button").click();
+        });
+        $("form").submit(function(e) {
+            e.preventDefault();
+            $("#domain_name option").prop('selected', true);
+            $(':input[type="submit"]').prop('disabled', true);
+            submitForm(window.rCurrentPage, new FormData($("form")[0]));
+        });
+    });
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

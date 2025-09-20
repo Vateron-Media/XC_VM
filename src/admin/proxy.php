@@ -228,9 +228,191 @@ include 'header.php'; ?>
         </div>
     </div>
 </div>
-<?php include 'footer.php';
-		echo '        ' . "\r\n\t\t" . 'function MoveUp() {' . "\r\n\t\t\t" . "var rSelected = \$('#domain_name option:selected');" . "\r\n\t\t\t" . 'if (rSelected.length) {' . "\r\n\t\t\t\t" . 'var rPrevious = rSelected.first().prev()[0];' . "\r\n\t\t\t\t" . "if (\$(rPrevious).html() != '') {" . "\r\n\t\t\t\t\t" . 'rSelected.first().prev().before(rSelected);' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '}' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function MoveDown() {' . "\r\n\t\t\t" . "var rSelected = \$('#domain_name option:selected');" . "\r\n\t\t\t" . 'if (rSelected.length) {' . "\r\n\t\t\t\t" . 'rSelected.last().next().after(rSelected);' . "\r\n\t\t\t" . '}' . "\r\n\t\t" . '}' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('.select2').select2({width: '100%'})" . "\r\n\t\t\t" . '$("#add_ip").click(function() {' . "\r\n\t\t\t\t" . 'if (($("#ip_field").val()) && ((isValidIP($("#ip_field").val())) || (isValidDomain($("#ip_field").val())))) {' . "\r\n\t\t\t\t\t" . 'var o = new Option($("#ip_field").val(), $("#ip_field").val());' . "\r\n\t\t\t\t\t" . '$("#domain_name").append(o);' . "\r\n\t\t\t\t\t" . '$("#ip_field").val("");' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . '$.toast("Please enter a valid IP address or domain name.");' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#remove_ip").click(function() {' . "\r\n\t\t\t\t" . "\$('#domain_name option:selected').remove();" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#total_clients").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#http_broadcast_port").inputFilter(function(value) { return /^\\d*$/.test(value) && (value === "" || parseInt(value) <= 65535); });' . "\r\n" . '            $("#https_broadcast_port").inputFilter(function(value) { return /^\\d*$/.test(value) && (value === "" || parseInt(value) <= 65535); });' . "\r\n" . '            $("#network_guaranteed_speed").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n\t\t\t\t" . "\$(\"#domain_name option\").prop('selected', true);" . "\r\n" . "                \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                submitForm(window.rCurrentPage, new FormData($("form")[0]));' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
-		?>
+<?php include 'footer.php'; ?>
+<script id="scripts">
+    var resizeObserver = new ResizeObserver(entries => $(window).scroll());
+    $(document).ready(function() {
+        resizeObserver.observe(document.body)
+        $("form").attr('autocomplete', 'off');
+        $(document).keypress(function(event) {
+            if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
+        });
+        $.fn.dataTable.ext.errMode = 'none';
+        var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
+        elems.forEach(function(html) {
+            var switchery = new Switchery(html, {
+                'color': '#414d5f'
+            });
+            window.rSwitches[$(html).attr("id")] = switchery;
+        });
+        setTimeout(pingSession, 30000);
+        <?php if (!$rMobile || $rSettings['header_stats']): ?>
+            headerStats();
+        <?php endif; ?>
+        bindHref();
+        refreshTooltips();
+        $(window).scroll(function() {
+            if ($(this).scrollTop() > 200) {
+                if ($(document).height() > $(window).height()) {
+                    $('#scrollToBottom').fadeOut();
+                }
+                $('#scrollToTop').fadeIn();
+            } else {
+                $('#scrollToTop').fadeOut();
+                if ($(document).height() > $(window).height()) {
+                    $('#scrollToBottom').fadeIn();
+                } else {
+                    $('#scrollToBottom').hide();
+                }
+            }
+        });
+        $("#scrollToTop").unbind("click");
+        $('#scrollToTop').click(function() {
+            $('html, body').animate({
+                scrollTop: 0
+            }, 800);
+            return false;
+        });
+        $("#scrollToBottom").unbind("click");
+        $('#scrollToBottom').click(function() {
+            $('html, body').animate({
+                scrollTop: $(document).height()
+            }, 800);
+            return false;
+        });
+        $(window).scroll();
+        $(".nextb").unbind("click");
+        $(".nextb").click(function() {
+            var rPos = 0;
+            var rActive = null;
+            $(".nav .nav-item").each(function() {
+                if ($(this).find(".nav-link").hasClass("active")) {
+                    rActive = rPos;
+                }
+                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
+                    $(this).find(".nav-link").trigger("click");
+                    return false;
+                }
+                rPos += 1;
+            });
+        });
+        $(".prevb").unbind("click");
+        $(".prevb").click(function() {
+            var rPos = 0;
+            var rActive = null;
+            $($(".nav .nav-item").get().reverse()).each(function() {
+                if ($(this).find(".nav-link").hasClass("active")) {
+                    rActive = rPos;
+                }
+                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
+                    $(this).find(".nav-link").trigger("click");
+                    return false;
+                }
+                rPos += 1;
+            });
+        });
+        (function($) {
+            $.fn.inputFilter = function(inputFilter) {
+                return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
+                    if (inputFilter(this.value)) {
+                        this.oldValue = this.value;
+                        this.oldSelectionStart = this.selectionStart;
+                        this.oldSelectionEnd = this.selectionEnd;
+                    } else if (this.hasOwnProperty("oldValue")) {
+                        this.value = this.oldValue;
+                        this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
+                    }
+                });
+            };
+        }(jQuery));
+        <?php if ($rSettings['js_navigate']): ?>
+            $(".navigation-menu li").mouseenter(function() {
+                $(this).find(".submenu").show();
+            });
+            delParam("status");
+            $(window).on("popstate", function() {
+                if (window.rRealURL) {
+                    if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
+                        navigate(window.location.href.split("/").reverse()[0]);
+                    }
+                }
+            });
+        <?php endif; ?>
+        $(document).keydown(function(e) {
+            if (e.keyCode == 16) {
+                window.rShiftHeld = true;
+            }
+        });
+        $(document).keyup(function(e) {
+            if (e.keyCode == 16) {
+                window.rShiftHeld = false;
+            }
+        });
+        document.onselectstart = function() {
+            if (window.rShiftHeld) {
+                return false;
+            }
+        }
+    });
+
+    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+        $(document).ready(function() {
+            initSearch();
+        });
+
+    <?php endif; ?>
+
+    function MoveUp() {
+        var rSelected = $('#domain_name option:selected');
+        if (rSelected.length) {
+            var rPrevious = rSelected.first().prev()[0];
+            if ($(rPrevious).html() != '') {
+                rSelected.first().prev().before(rSelected);
+            }
+        }
+    }
+
+    function MoveDown() {
+        var rSelected = $('#domain_name option:selected');
+        if (rSelected.length) {
+            rSelected.last().next().after(rSelected);
+        }
+    }
+    $(document).ready(function() {
+        $('.select2').select2({
+            width: '100%'
+        })
+        $("#add_ip").click(function() {
+            if (($("#ip_field").val()) && ((isValidIP($("#ip_field").val())) || (isValidDomain($("#ip_field").val())))) {
+                var o = new Option($("#ip_field").val(), $("#ip_field").val());
+                $("#domain_name").append(o);
+                $("#ip_field").val("");
+            } else {
+                $.toast("Please enter a valid IP address or domain name.");
+            }
+        });
+        $("#remove_ip").click(function() {
+            $('#domain_name option:selected').remove();
+        });
+        $("#total_clients").inputFilter(function(value) {
+            return /^\d*$/.test(value);
+        });
+        $("#http_broadcast_port").inputFilter(function(value) {
+            return /^\d*$/.test(value) && (value === "" || parseInt(value) <= 65535);
+        });
+        $("#https_broadcast_port").inputFilter(function(value) {
+            return /^\d*$/.test(value) && (value === "" || parseInt(value) <= 65535);
+        });
+        $("#network_guaranteed_speed").inputFilter(function(value) {
+            return /^\d*$/.test(value);
+        });
+        $("form").submit(function(e) {
+            e.preventDefault();
+            $("#domain_name option").prop('selected', true);
+            $(':input[type="submit"]').prop('disabled', true);
+            submitForm(window.rCurrentPage, new FormData($("form")[0]));
+        });
+    });
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

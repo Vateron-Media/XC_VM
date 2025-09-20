@@ -512,9 +512,256 @@ if (isset($rFolder)) {
 }
 
 echo '" />' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</ul>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t" . '</form>' . "\n\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t" . '</div> ' . "\n\t\t\t" . '</div> ' . "\n\t\t" . '</div>' . "\n\t" . '</div>' . "\n" . '</div>' . "\n";
-include 'footer.php';
-		echo '        ' . "\r\n\t\t" . 'function selectDirectory(elem) {' . "\r\n\t\t\t" . 'window.currentDirectory += elem + "/";' . "\r\n\t\t\t" . '$("#selected_path").val(window.currentDirectory);' . "\r\n\t\t\t" . '$("#changeDir").click();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function selectParent() {' . "\r\n\t\t\t" . '$("#selected_path").val(window.currentDirectory.split("/").slice(0,-2).join("/") + "/");' . "\r\n\t\t\t" . '$("#changeDir").click();' . "\r\n\t\t" . '}' . "\r\n\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'});" . "\r\n\t\t\t" . '$("#datatable").DataTable({' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'paging: false,' . "\r\n\t\t\t\t" . 'bInfo: false,' . "\r\n\t\t\t\t" . 'searching: false,' . "\r\n\t\t\t\t" . 'scrollY: "250px",' . "\r\n" . '                drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n" . '                },' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0]},' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t\t" . '"language": {' . "\r\n\t\t\t\t\t" . '"emptyTable": ""' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable-files").DataTable({' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'paging: false,' . "\r\n\t\t\t\t" . 'bInfo: false,' . "\r\n\t\t\t\t" . 'searching: true,' . "\r\n\t\t\t\t" . 'scrollY: "250px",' . "\r\n" . '                drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n" . '                },' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0]},' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t\t" . '"language": {' . "\r\n\t\t\t\t\t" . '"emptyTable": "No compatible files found"' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#select_folder").click(function() {' . "\r\n\t\t\t\t" . '$("#import_folder").val("s:" + $("#server_id").val() + ":" + window.currentDirectory);' . "\r\n\t\t\t\t" . '$.magnificPopup.close();' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#changeDir").click(function() {' . "\r\n\t\t\t\t" . 'window.currentDirectory = $("#selected_path").val();' . "\r\n\t\t\t\t" . 'if (window.currentDirectory.substr(-1) != "/") {' . "\r\n\t\t\t\t\t" . 'window.currentDirectory += "/";' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '$("#selected_path").val(window.currentDirectory);' . "\r\n\t\t\t\t" . '$("#datatable").DataTable().clear();' . "\r\n\t\t\t\t" . '$("#datatable").DataTable().row.add(["", "Loading..."]);' . "\r\n\t\t\t\t" . '$("#datatable").DataTable().draw(true);' . "\r\n\t\t\t\t" . '$("#datatable-files").DataTable().clear();' . "\r\n\t\t\t\t" . '$("#datatable-files").DataTable().row.add(["", "Please wait..."]);' . "\r\n\t\t\t\t" . '$("#datatable-files").DataTable().draw(true);' . "\r\n\t\t\t\t" . '$.getJSON("./api?action=listdir&dir=" + window.currentDirectory + "&server=" + $("#server_id").val() + "&filter=video", function(data) {' . "\r\n\t\t\t\t\t" . '$("#datatable").DataTable().clear();' . "\r\n\t\t\t\t\t" . '$("#datatable-files").DataTable().clear();' . "\r\n\t\t\t\t\t" . 'if (window.currentDirectory != "/") {' . "\r\n\t\t\t\t\t\t" . "\$(\"#datatable\").DataTable().row.add([\"<i class='mdi mdi-subdirectory-arrow-left'></i>\", \"Parent Directory\"]);" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'if (data.result == true) {' . "\r\n\t\t\t\t\t\t" . '$(data.data.dirs).each(function(id, dir) {' . "\r\n\t\t\t\t\t\t\t" . "\$(\"#datatable\").DataTable().row.add([\"<i class='mdi mdi-folder-open-outline'></i>\", dir]);" . "\r\n\t\t\t\t\t\t" . '});' . "\r\n\t\t\t\t\t\t" . '$("#datatable").DataTable().draw(true);' . "\r\n\t\t\t\t\t\t" . '$(data.data.files).each(function(id, dir) {' . "\r\n\t\t\t\t\t\t\t" . "\$(\"#datatable-files\").DataTable().row.add([\"<i class='mdi mdi-file-video'></i>\", dir]);" . "\r\n\t\t\t\t\t\t" . '});' . "\r\n\t\t\t\t\t\t" . '$("#datatable-files").DataTable().draw(true);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '});' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#datatable').on('click', 'tbody > tr', function() {" . "\r\n\t\t\t\t" . 'if ($(this).find("td").eq(1).html() == "Parent Directory") {' . "\r\n\t\t\t\t\t" . 'selectParent();' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . 'selectDirectory($(this).find("td").eq(1).html());' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#server_id").change(function() {' . "\r\n\t\t\t\t" . '$("#selected_path").val("/");' . "\r\n\t\t\t\t" . '$("#changeDir").click();' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#changeDir").click();' . "\r\n\t\t\t" . '$("#folder_type").change(function() {' . "\r\n\t\t\t\t" . 'if ($(this).val() == "movie") {' . "\r\n\t\t\t\t\t" . '$("#category_movie").show();' . "\r\n\t\t\t\t\t" . '$("#category_series").hide();' . "\r\n\t\t\t\t\t" . '$("#fb_category_movie").show();' . "\r\n\t\t\t\t\t" . '$("#fb_category_series").hide();' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . '$("#category_movie").hide();' . "\r\n\t\t\t\t\t" . '$("#category_series").show();' . "\r\n\t\t\t\t\t" . '$("#fb_category_movie").hide();' . "\r\n\t\t\t\t\t" . '$("#fb_category_series").show();' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n" . "                \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                submitForm(window.rCurrentPage, new FormData($("form")[0]));' . "\r\n" . '            });' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n" . '        ';
-		?>
+include 'footer.php'; ?>
+<script id="scripts">
+	var resizeObserver = new ResizeObserver(entries => $(window).scroll());
+	$(document).ready(function() {
+		resizeObserver.observe(document.body)
+		$("form").attr('autocomplete', 'off');
+		$(document).keypress(function(event) {
+			if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
+		});
+		$.fn.dataTable.ext.errMode = 'none';
+		var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
+		elems.forEach(function(html) {
+			var switchery = new Switchery(html, {
+				'color': '#414d5f'
+			});
+			window.rSwitches[$(html).attr("id")] = switchery;
+		});
+		setTimeout(pingSession, 30000);
+		<?php if (!$rMobile || $rSettings['header_stats']): ?>
+			headerStats();
+		<?php endif; ?>
+		bindHref();
+		refreshTooltips();
+		$(window).scroll(function() {
+			if ($(this).scrollTop() > 200) {
+				if ($(document).height() > $(window).height()) {
+					$('#scrollToBottom').fadeOut();
+				}
+				$('#scrollToTop').fadeIn();
+			} else {
+				$('#scrollToTop').fadeOut();
+				if ($(document).height() > $(window).height()) {
+					$('#scrollToBottom').fadeIn();
+				} else {
+					$('#scrollToBottom').hide();
+				}
+			}
+		});
+		$("#scrollToTop").unbind("click");
+		$('#scrollToTop').click(function() {
+			$('html, body').animate({
+				scrollTop: 0
+			}, 800);
+			return false;
+		});
+		$("#scrollToBottom").unbind("click");
+		$('#scrollToBottom').click(function() {
+			$('html, body').animate({
+				scrollTop: $(document).height()
+			}, 800);
+			return false;
+		});
+		$(window).scroll();
+		$(".nextb").unbind("click");
+		$(".nextb").click(function() {
+			var rPos = 0;
+			var rActive = null;
+			$(".nav .nav-item").each(function() {
+				if ($(this).find(".nav-link").hasClass("active")) {
+					rActive = rPos;
+				}
+				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
+					$(this).find(".nav-link").trigger("click");
+					return false;
+				}
+				rPos += 1;
+			});
+		});
+		$(".prevb").unbind("click");
+		$(".prevb").click(function() {
+			var rPos = 0;
+			var rActive = null;
+			$($(".nav .nav-item").get().reverse()).each(function() {
+				if ($(this).find(".nav-link").hasClass("active")) {
+					rActive = rPos;
+				}
+				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
+					$(this).find(".nav-link").trigger("click");
+					return false;
+				}
+				rPos += 1;
+			});
+		});
+		(function($) {
+			$.fn.inputFilter = function(inputFilter) {
+				return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
+					if (inputFilter(this.value)) {
+						this.oldValue = this.value;
+						this.oldSelectionStart = this.selectionStart;
+						this.oldSelectionEnd = this.selectionEnd;
+					} else if (this.hasOwnProperty("oldValue")) {
+						this.value = this.oldValue;
+						this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
+					}
+				});
+			};
+		}(jQuery));
+		<?php if ($rSettings['js_navigate']): ?>
+			$(".navigation-menu li").mouseenter(function() {
+				$(this).find(".submenu").show();
+			});
+			delParam("status");
+			$(window).on("popstate", function() {
+				if (window.rRealURL) {
+					if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
+						navigate(window.location.href.split("/").reverse()[0]);
+					}
+				}
+			});
+		<?php endif; ?>
+		$(document).keydown(function(e) {
+			if (e.keyCode == 16) {
+				window.rShiftHeld = true;
+			}
+		});
+		$(document).keyup(function(e) {
+			if (e.keyCode == 16) {
+				window.rShiftHeld = false;
+			}
+		});
+		document.onselectstart = function() {
+			if (window.rShiftHeld) {
+				return false;
+			}
+		}
+	});
+
+	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+		$(document).ready(function() {
+			initSearch();
+		});
+
+	<?php endif; ?>
+
+	function selectDirectory(elem) {
+		window.currentDirectory += elem + "/";
+		$("#selected_path").val(window.currentDirectory);
+		$("#changeDir").click();
+	}
+
+	function selectParent() {
+		$("#selected_path").val(window.currentDirectory.split("/").slice(0, -2).join("/") + "/");
+		$("#changeDir").click();
+	}
+
+	$(document).ready(function() {
+		$('select').select2({
+			width: '100%'
+		});
+		$("#datatable").DataTable({
+			responsive: false,
+			paging: false,
+			bInfo: false,
+			searching: false,
+			scrollY: "250px",
+			drawCallback: function() {
+				bindHref();
+				refreshTooltips();
+			},
+			columnDefs: [{
+				"className": "dt-center",
+				"targets": [0]
+			}, ],
+			"language": {
+				"emptyTable": ""
+			}
+		});
+		$("#datatable-files").DataTable({
+			responsive: false,
+			paging: false,
+			bInfo: false,
+			searching: true,
+			scrollY: "250px",
+			drawCallback: function() {
+				bindHref();
+				refreshTooltips();
+			},
+			columnDefs: [{
+				"className": "dt-center",
+				"targets": [0]
+			}, ],
+			"language": {
+				"emptyTable": "No compatible files found"
+			}
+		});
+		$("#select_folder").click(function() {
+			$("#import_folder").val("s:" + $("#server_id").val() + ":" + window.currentDirectory);
+			$.magnificPopup.close();
+		});
+		$("#changeDir").click(function() {
+			window.currentDirectory = $("#selected_path").val();
+			if (window.currentDirectory.substr(-1) != "/") {
+				window.currentDirectory += "/";
+			}
+			$("#selected_path").val(window.currentDirectory);
+			$("#datatable").DataTable().clear();
+			$("#datatable").DataTable().row.add(["", "Loading..."]);
+			$("#datatable").DataTable().draw(true);
+			$("#datatable-files").DataTable().clear();
+			$("#datatable-files").DataTable().row.add(["", "Please wait..."]);
+			$("#datatable-files").DataTable().draw(true);
+			$.getJSON("./api?action=listdir&dir=" + window.currentDirectory + "&server=" + $("#server_id").val() + "&filter=video", function(data) {
+				$("#datatable").DataTable().clear();
+				$("#datatable-files").DataTable().clear();
+				if (window.currentDirectory != "/") {
+					$("#datatable").DataTable().row.add(["<i class='mdi mdi-subdirectory-arrow-left'></i>", "Parent Directory"]);
+				}
+				if (data.result == true) {
+					$(data.data.dirs).each(function(id, dir) {
+						$("#datatable").DataTable().row.add(["<i class='mdi mdi-folder-open-outline'></i>", dir]);
+					});
+					$("#datatable").DataTable().draw(true);
+					$(data.data.files).each(function(id, dir) {
+						$("#datatable-files").DataTable().row.add(["<i class='mdi mdi-file-video'></i>", dir]);
+					});
+					$("#datatable-files").DataTable().draw(true);
+				}
+			});
+		});
+		$('#datatable').on('click', 'tbody > tr', function() {
+			if ($(this).find("td").eq(1).html() == "Parent Directory") {
+				selectParent();
+			} else {
+				selectDirectory($(this).find("td").eq(1).html());
+			}
+		});
+		$("#server_id").change(function() {
+			$("#selected_path").val("/");
+			$("#changeDir").click();
+		});
+		$("#changeDir").click();
+		$("#folder_type").change(function() {
+			if ($(this).val() == "movie") {
+				$("#category_movie").show();
+				$("#category_series").hide();
+				$("#fb_category_movie").show();
+				$("#fb_category_series").hide();
+			} else {
+				$("#category_movie").hide();
+				$("#category_series").show();
+				$("#fb_category_movie").hide();
+				$("#fb_category_series").show();
+			}
+		});
+		$("form").submit(function(e) {
+			e.preventDefault();
+			$(':input[type="submit"]').prop('disabled', true);
+			submitForm(window.rCurrentPage, new FormData($("form")[0]));
+		});
+	});
 </script>
 <script src="assets/js/listings.js"></script>
 </body>
