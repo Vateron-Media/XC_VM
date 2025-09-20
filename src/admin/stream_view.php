@@ -597,7 +597,139 @@ if ($rStream['type'] == 1) {
 
 
 echo "\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t" . '</div>' . "\r\n\t\t\t" . '</div> ' . "\r\n\t\t" . '</div>' . "\r\n\t" . '</div>' . "\r\n" . '</div>' . "\r\n";
-include 'footer.php';
+include 'footer.php'; ?>
+<script id="scripts">
+			var resizeObserver = new ResizeObserver(entries => $(window).scroll());
+			$(document).ready(function() {
+				resizeObserver.observe(document.body)
+				$("form").attr('autocomplete', 'off');
+				$(document).keypress(function(event) {
+					if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
+				});
+				$.fn.dataTable.ext.errMode = 'none';
+				var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
+				elems.forEach(function(html) {
+					var switchery = new Switchery(html, {
+						'color': '#414d5f'
+					});
+					window.rSwitches[$(html).attr("id")] = switchery;
+				});
+				setTimeout(pingSession, 30000);
+				<?php if (!$rMobile || $rSettings['header_stats']): ?>
+					headerStats();
+				<?php endif; ?>
+				bindHref();
+				refreshTooltips();
+				$(window).scroll(function() {
+					if ($(this).scrollTop() > 200) {
+						if ($(document).height() > $(window).height()) {
+							$('#scrollToBottom').fadeOut();
+						}
+						$('#scrollToTop').fadeIn();
+					} else {
+						$('#scrollToTop').fadeOut();
+						if ($(document).height() > $(window).height()) {
+							$('#scrollToBottom').fadeIn();
+						} else {
+							$('#scrollToBottom').hide();
+						}
+					}
+				});
+				$("#scrollToTop").unbind("click");
+				$('#scrollToTop').click(function() {
+					$('html, body').animate({
+						scrollTop: 0
+					}, 800);
+					return false;
+				});
+				$("#scrollToBottom").unbind("click");
+				$('#scrollToBottom').click(function() {
+					$('html, body').animate({
+						scrollTop: $(document).height()
+					}, 800);
+					return false;
+				});
+				$(window).scroll();
+				$(".nextb").unbind("click");
+				$(".nextb").click(function() {
+					var rPos = 0;
+					var rActive = null;
+					$(".nav .nav-item").each(function() {
+						if ($(this).find(".nav-link").hasClass("active")) {
+							rActive = rPos;
+						}
+						if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
+							$(this).find(".nav-link").trigger("click");
+							return false;
+						}
+						rPos += 1;
+					});
+				});
+				$(".prevb").unbind("click");
+				$(".prevb").click(function() {
+					var rPos = 0;
+					var rActive = null;
+					$($(".nav .nav-item").get().reverse()).each(function() {
+						if ($(this).find(".nav-link").hasClass("active")) {
+							rActive = rPos;
+						}
+						if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
+							$(this).find(".nav-link").trigger("click");
+							return false;
+						}
+						rPos += 1;
+					});
+				});
+				(function($) {
+					$.fn.inputFilter = function(inputFilter) {
+						return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
+							if (inputFilter(this.value)) {
+								this.oldValue = this.value;
+								this.oldSelectionStart = this.selectionStart;
+								this.oldSelectionEnd = this.selectionEnd;
+							} else if (this.hasOwnProperty("oldValue")) {
+								this.value = this.oldValue;
+								this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
+							}
+						});
+					};
+				}(jQuery));
+				<?php if ($rSettings['js_navigate']): ?>
+					$(".navigation-menu li").mouseenter(function() {
+						$(this).find(".submenu").show();
+					});
+					delParam("status");
+					$(window).on("popstate", function() {
+						if (window.rRealURL) {
+							if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
+								navigate(window.location.href.split("/").reverse()[0]);
+							}
+						}
+					});
+				<?php endif; ?>
+				$(document).keydown(function(e) {
+					if (e.keyCode == 16) {
+						window.rShiftHeld = true;
+					}
+				});
+				$(document).keyup(function(e) {
+					if (e.keyCode == 16) {
+						window.rShiftHeld = false;
+					}
+				});
+				document.onselectstart = function() {
+					if (window.rShiftHeld) {
+						return false;
+					}
+				}
+			});
+
+			<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+				$(document).ready(function() {
+					initSearch();
+				});
+
+			<?php endif; 
 		echo '        ' . "\r\n\t\t" . 'function reloadStream() {' . "\r\n" . '            if (!$(".dropdown-menu").is(":visible")) {' . "\r\n" . '                $("#datatable").DataTable().ajax.reload( null, false );' . "\r\n" . '            }' . "\r\n\t\t\t" . 'setTimeout(reloadStream, 5000);' . "\r\n\t\t" . '}' . "\r\n" . '        function overrideSource(rID, rSource) {' . "\r\n" . '            $.getJSON("./api?action=stream&sub=force&stream_id=" + rID + "&force_id=" + rSource, function(data) {' . "\r\n" . '                $.toast("Current source has been changed.");' . "\r\n" . '            });' . "\r\n" . '        }' . "\r\n" . '        function openYouTube(elem) {' . "\r\n" . '            rPath = $(elem).parent().parent().find("input").val();' . "\r\n" . '            if (rPath) {' . "\r\n" . '                $.magnificPopup.open({' . "\r\n" . '                    items: {' . "\r\n" . "                        src: 'http://www.youtube.com/watch?v=' + rPath," . "\r\n" . "                        type: 'iframe'" . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n" . '        }' . "\r\n" . '        function openImage(elem) {' . "\r\n" . '            var rImage = $(elem).data("src");' . "\r\n" . '            if (rImage) {' . "\r\n" . '                $.magnificPopup.open({' . "\r\n" . '                    items: {' . "\r\n" . '                        src: rImage,' . "\r\n" . "                        type: 'image'" . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n" . '        }' . "\r\n" . '        function viewLiveConnections(rStreamID, rServerID=-1) {' . "\r\n" . '            $("#datatable-live").DataTable({' . "\r\n" . '                destroy: true,' . "\r\n\t\t\t\t" . 'ordering: true,' . "\r\n\t\t\t\t" . 'paging: true,' . "\r\n\t\t\t\t" . 'searching: true,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'bInfo: true,' . "\r\n" . '                drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips(false);' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "live_connections";' . "\r\n\t\t\t\t\t\t" . 'd.stream_id = rStreamID;' . "\r\n" . '                        d.server_id = rServerID;' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [1,7,8,9,10,11]},' . "\r\n" . '                    {"visible": false, "targets": [0,3,5,6]}' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t" . '});' . "\r\n" . '            $(".bs-live-modal-center").modal("show");' . "\r\n" . '        }' . "\r\n\t\t" . 'function api(rID, rServerID, rType, rConfirm=false) {' . "\r\n" . '            if ((rType == "purge") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Kill",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to kill all connections?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        api(rID, rServerID, rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else if ((rServerID == "kill") && (!rConfirm)) {' . "\r\n" . '                rConfirm = true;' . "\r\n" . '                rServerID = -1;' . "\r\n" . '                rType = "kill";' . "\r\n\t\t\t" . '} else {' . "\r\n" . '                rConfirm = true;' . "\r\n" . '            }' . "\r\n" . '            if (rConfirm) {' . "\r\n" . '                ';
 
 		if ($rStream['type'] == 1 || $rStream['type'] == 3 || $rStream['type'] == 4) {

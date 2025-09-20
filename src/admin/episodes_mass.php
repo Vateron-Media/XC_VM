@@ -321,7 +321,139 @@ include 'header.php';
         </div>
     </div>
 </div>
-<?php include 'footer.php';
+<?php include 'footer.php'; ?>
+<script id="scripts">
+			var resizeObserver = new ResizeObserver(entries => $(window).scroll());
+			$(document).ready(function() {
+				resizeObserver.observe(document.body)
+				$("form").attr('autocomplete', 'off');
+				$(document).keypress(function(event) {
+					if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
+				});
+				$.fn.dataTable.ext.errMode = 'none';
+				var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
+				elems.forEach(function(html) {
+					var switchery = new Switchery(html, {
+						'color': '#414d5f'
+					});
+					window.rSwitches[$(html).attr("id")] = switchery;
+				});
+				setTimeout(pingSession, 30000);
+				<?php if (!$rMobile || $rSettings['header_stats']): ?>
+					headerStats();
+				<?php endif; ?>
+				bindHref();
+				refreshTooltips();
+				$(window).scroll(function() {
+					if ($(this).scrollTop() > 200) {
+						if ($(document).height() > $(window).height()) {
+							$('#scrollToBottom').fadeOut();
+						}
+						$('#scrollToTop').fadeIn();
+					} else {
+						$('#scrollToTop').fadeOut();
+						if ($(document).height() > $(window).height()) {
+							$('#scrollToBottom').fadeIn();
+						} else {
+							$('#scrollToBottom').hide();
+						}
+					}
+				});
+				$("#scrollToTop").unbind("click");
+				$('#scrollToTop').click(function() {
+					$('html, body').animate({
+						scrollTop: 0
+					}, 800);
+					return false;
+				});
+				$("#scrollToBottom").unbind("click");
+				$('#scrollToBottom').click(function() {
+					$('html, body').animate({
+						scrollTop: $(document).height()
+					}, 800);
+					return false;
+				});
+				$(window).scroll();
+				$(".nextb").unbind("click");
+				$(".nextb").click(function() {
+					var rPos = 0;
+					var rActive = null;
+					$(".nav .nav-item").each(function() {
+						if ($(this).find(".nav-link").hasClass("active")) {
+							rActive = rPos;
+						}
+						if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
+							$(this).find(".nav-link").trigger("click");
+							return false;
+						}
+						rPos += 1;
+					});
+				});
+				$(".prevb").unbind("click");
+				$(".prevb").click(function() {
+					var rPos = 0;
+					var rActive = null;
+					$($(".nav .nav-item").get().reverse()).each(function() {
+						if ($(this).find(".nav-link").hasClass("active")) {
+							rActive = rPos;
+						}
+						if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
+							$(this).find(".nav-link").trigger("click");
+							return false;
+						}
+						rPos += 1;
+					});
+				});
+				(function($) {
+					$.fn.inputFilter = function(inputFilter) {
+						return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
+							if (inputFilter(this.value)) {
+								this.oldValue = this.value;
+								this.oldSelectionStart = this.selectionStart;
+								this.oldSelectionEnd = this.selectionEnd;
+							} else if (this.hasOwnProperty("oldValue")) {
+								this.value = this.oldValue;
+								this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
+							}
+						});
+					};
+				}(jQuery));
+				<?php if ($rSettings['js_navigate']): ?>
+					$(".navigation-menu li").mouseenter(function() {
+						$(this).find(".submenu").show();
+					});
+					delParam("status");
+					$(window).on("popstate", function() {
+						if (window.rRealURL) {
+							if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
+								navigate(window.location.href.split("/").reverse()[0]);
+							}
+						}
+					});
+				<?php endif; ?>
+				$(document).keydown(function(e) {
+					if (e.keyCode == 16) {
+						window.rShiftHeld = true;
+					}
+				});
+				$(document).keyup(function(e) {
+					if (e.keyCode == 16) {
+						window.rShiftHeld = false;
+					}
+				});
+				document.onselectstart = function() {
+					if (window.rShiftHeld) {
+						return false;
+					}
+				}
+			});
+
+			<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+				$(document).ready(function() {
+					initSearch();
+				});
+
+			<?php endif; 
 		echo '        ' . "\r\n" . '        var rSelected = [];' . "\r\n\r\n" . '        function getSeries() {' . "\r\n" . '            return $("#series_id").val();' . "\r\n" . '        }' . "\r\n" . '        function getServer() {' . "\r\n" . '            return $("#episode_server_id").val();' . "\r\n" . '        }' . "\r\n" . '        function getFilter() {' . "\r\n" . '            return $("#filter").val();' . "\r\n" . '        }' . "\r\n" . '        function toggleStreams() {' . "\r\n" . '            $("#datatable-mass tr").each(function() {' . "\r\n" . "                if (\$(this).hasClass('selected')) {" . "\r\n" . "                    \$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n" . '                    if ($(this).find("td:eq(0)").text()) {' . "\r\n" . '                        window.rSelected.splice($.inArray($(this).find("td:eq(0)").text(), window.rSelected), 1);' . "\r\n" . '                    }' . "\r\n" . '                } else {            ' . "\r\n" . "                    \$(this).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n" . '                    if ($(this).find("td:eq(0)").text()) {' . "\r\n" . '                        window.rSelected.push($(this).find("td:eq(0)").text());' . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            $("#selected_count").html(" - " + window.rSelected.length + " selected")' . "\r\n" . '        }' . "\r\n" . '        $(document).ready(function() {' . "\r\n" . "            \$('select').select2({width: '100%'})" . "\r\n" . "            var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));" . "\r\n" . '            elems.forEach(function(html) {' . "\r\n" . '                if (($(html).attr("id") != "reencode_on_edit") && ($(html).attr("id") != "reprocess_tmdb")) {' . "\r\n" . '                    window.rSwitches[$(html).attr("id")].disable();' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . "            \$('#server_tree').on('select_node.jstree', function (e, data) {" . "\r\n" . '                $("#c_server_tree").prop("checked", true);' . "\r\n" . '                if (data.node.parent == "offline") {' . "\r\n" . "                    \$('#server_tree').jstree(\"move_node\", data.node.id, \"#source\", \"last\");" . "\r\n" . '                } else {' . "\r\n" . "                    \$('#server_tree').jstree(\"move_node\", data.node.id, \"#offline\", \"first\");" . "\r\n" . '                }' . "\r\n" . "            }).jstree({ 'core' : {" . "\r\n" . "                'check_callback': function (op, node, parent, position, more) {" . "\r\n" . '                    switch (op) {' . "\r\n" . "                        case 'move_node':" . "\r\n" . '                            if ((node.id == "offline") || (node.id == "source")) { return false; }' . "\r\n" . '                            if (parent.id != "offline" && parent.id != "source") { return false; }' . "\r\n" . '                            if (parent.id == "#") { return false; }' . "\r\n" . '                            return true;' . "\r\n" . '                    }' . "\r\n" . '                },' . "\r\n" . "                'data' : ";
 		echo json_encode(($rServerTree ?: array()));
 		echo '            }, "plugins" : [ "dnd" ]' . "\r\n" . '            });' . "\r\n" . '            $("input[type=checkbox].activate").change(function() {' . "\r\n" . '                if ($(this).is(":checked")) {' . "\r\n" . '                    if ($(this).data("type") == "switch") {' . "\r\n" . '                        window.rSwitches[$(this).data("name")].enable();' . "\r\n" . '                    } else {' . "\r\n" . '                        $("#" + $(this).data("name")).prop("disabled", false);' . "\r\n" . '                        if ($(this).data("name") == "days_to_restart") {' . "\r\n" . '                            $("#time_to_restart").prop("disabled", false);' . "\r\n" . '                        }' . "\r\n" . '                        if ($(this).data("name") == "server_tree") {' . "\r\n" . '                            $("#server_type").prop("disabled", false);' . "\r\n" . '                        }' . "\r\n" . '                    }' . "\r\n" . '                } else {' . "\r\n" . '                    if ($(this).data("type") == "switch") {' . "\r\n" . '                        window.rSwitches[$(this).data("name")].disable();' . "\r\n" . '                    } else {' . "\r\n" . '                        $("#" + $(this).data("name")).prop("disabled", true);' . "\r\n" . '                        if ($(this).data("name") == "days_to_restart") {' . "\r\n" . '                            $("#time_to_restart").prop("disabled", true);' . "\r\n" . '                        }' . "\r\n" . '                        if ($(this).data("name") == "server_tree") {' . "\r\n" . '                            $("#server_type").prop("disabled", true);' . "\r\n" . '                        }' . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            $(".clockpicker").clockpicker();' . "\r\n" . '            $("#probesize_ondemand").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#delay_minutes").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#tv_archive_duration").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            rTable = $("#datatable-mass").DataTable({' . "\r\n" . '                language: {' . "\r\n" . '                    paginate: {' . "\r\n" . "                        previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n" . "                        next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n" . '                    }' . "\r\n" . '                },' . "\r\n" . '                drawCallback: function() {' . "\r\n" . '                    $("#datatable-mass a").removeAttr("href");' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n" . '                },' . "\r\n" . '                processing: true,' . "\r\n" . '                serverSide: true,' . "\r\n" . '                ajax: {' . "\r\n" . '                    url: "./table",' . "\r\n" . '                    "data": function(d) {' . "\r\n" . '                        d.id = "episode_list",' . "\r\n" . '                        d.series = getSeries(),' . "\r\n" . '                        d.filter = getFilter(),' . "\r\n" . '                        d.server = getServer()' . "\r\n" . '                    }' . "\r\n" . '                },' . "\r\n" . '                columnDefs: [' . "\r\n" . '                    {"className": "dt-center", "targets": [0,1,4]},' . "\r\n" . '                    {"orderable": false, "targets": [1]}' . "\r\n" . '                ],' . "\r\n" . '                "rowCallback": function(row, data) {' . "\r\n" . '                    if ($.inArray(data[0], window.rSelected) !== -1) {' . "\r\n" . "                        \$(row).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n" . '                    }' . "\r\n" . '                },' . "\r\n" . '                pageLength: ';

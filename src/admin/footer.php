@@ -1,89 +1,781 @@
 <?php
 
-echo '        ';
-
-if (count(get_included_files()) != 1) {
-	$_PAGE = getPageName();
-	include 'modals.php';
-
-	if (!isset($rModal) || !$rModal) {
-		echo '        <footer class="footer">' . "\r\n" . '            ';
-
-		if ($rMobile) {
-		} else {
-			echo '            <a href="#" class="scrollToTop" id="scrollToBottom"><button type="button" class="btn btn-info waves-effect waves-light"><i class="fas fa-caret-down"></i></button></a>' . "\r\n" . '            <a href="#" class="scrollToTop" id="scrollToTop"><button type="button" class="btn btn-success waves-effect waves-light"><i class="fas fa-caret-up"></i></button></a>' . "\r\n" . '            ';
-		}
-
-		echo '            <div class="container-fluid">' . "\r\n" . '                <div class="row">' . "\r\n" . '                    <div class="col-md-12 copyright text-center">';
-		echo getFooter();
-		echo '</div>' . "\r\n" . '                </div>' . "\r\n" . '            </div>' . "\r\n" . '        </footer>' . "\r\n\t\t";
-	}
-
-	echo '        <script src="assets/js/vendor.min.js"></script>' . "\r\n" . '        <script src="assets/libs/jquery-toast/jquery.toast.min.js"></script>' . "\r\n" . '        <script src="assets/libs/jquery-nice-select/jquery.nice-select.min.js"></script>' . "\r\n" . '        <script src="assets/libs/switchery/switchery.min.js"></script>' . "\r\n" . '        <script src="assets/libs/select2/select2.min.js"></script>' . "\r\n" . '        <script src="assets/libs/nestable2/jquery.nestable.min.js"></script>' . "\r\n" . '        <script src="assets/libs/bootstrap-touchspin/jquery.bootstrap-touchspin.min.js"></script>' . "\r\n" . '        <script src="assets/libs/bootstrap-maxlength/bootstrap-maxlength.min.js"></script>' . "\r\n" . '        <script src="assets/libs/clockpicker/bootstrap-clockpicker.min.js"></script>' . "\r\n" . '        <script src="assets/libs/moment/moment.min.js"></script>' . "\r\n" . '        <script src="assets/libs/daterangepicker/daterangepicker.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/jquery.dataTables.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/dataTables.bootstrap4.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/dataTables.responsive.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/responsive.bootstrap4.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/dataTables.buttons.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/buttons.bootstrap4.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/buttons.html5.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/buttons.flash.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/buttons.print.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/dataTables.keyTable.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/dataTables.select.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/dataTables.rowReorder.js"></script>' . "\r\n" . '        <script src="assets/libs/twitter-bootstrap-wizard/jquery.bootstrap.wizard.min.js"></script>' . "\r\n" . '        <script src="assets/libs/treeview/jstree.min.js"></script>' . "\r\n" . '        <script src="assets/libs/quill/quill.min.js"></script>' . "\r\n" . '        <script src="assets/libs/magnific-popup/jquery.magnific-popup.min.js"></script>' . "\r\n" . '        <script src="assets/libs/jbox/jBox.all.min.js"></script>' . "\r\n" . '        <script src="assets/libs/jquery-knob/jquery.knob.min.js"></script>' . "\r\n" . '        <script src="assets/libs/apexcharts/apexcharts.min.js"></script>' . "\r\n" . '        <script src="assets/libs/jquery-number/jquery.number.js"></script>' . "\r\n" . '        <script src="assets/libs/jquery-vectormap/jquery-jvectormap-1.2.2.min.js"></script>' . "\r\n" . '        <script src="assets/libs/jquery-vectormap/jquery-jvectormap-world-mill-en.js"></script>' . "\r\n" . '        <script src="assets/libs/jquery-ui/jquery-ui.min.js"></script>' . "\r\n" . '        <script src="assets/libs/peity/jquery.peity.min.js"></script>' . "\r\n\t\t" . '<script src="assets/libs/emodal/emodal.js"></script>' . "\r\n" . '        <script src="assets/libs/bootstrap-colorpicker/bootstrap-colorpicker.min.js"></script>' . "\r\n" . '        <script src="assets/libs/lazyload/lazyload.min.js"></script>' . "\r\n" . '        <script src="assets/libs/parsleyjs/parsley.min.js"></script>' . "\r\n" . '        <script src="assets/js/app.min.js"></script>' . "\r\n" . '        ';
-
-	if (isset($_SETUP)) {
-		echo '        <script>' . "\r\n" . '        ';
-
-		if ($rMigrating) {
-			echo '        function getMigrationStatus() {' . "\r\n" . '            $.getJSON("./setup?update=1", function(data) {' . "\r\n" . '                if (data.result === true) {' . "\r\n" . '                    $("#migration_progress").html(data.data);' . "\r\n" . '                    if (data.status == 1) {' . "\r\n" . '                        setTimeout(getMigrationStatus, 1000);' . "\r\n" . '                    } else if (data.status == 2) {' . "\r\n" . "                        window.location.href = 'dashboard';" . "\r\n" . '                    } else if (data.status == 3) {' . "\r\n" . '                        $("#migrate_button").prop("disabled", false);' . "\r\n" . '                    }' . "\r\n" . '                } else {' . "\r\n" . '                    $("#migration_progress").html("No progress available...");' . "\r\n" . '                    setTimeout(getMigrationStatus, 1000);' . "\r\n" . '                }' . "\r\n" . '                if ($("#migration_progress").length) {' . "\r\n" . '                   $("#migration_progress").scrollTop($("#migration_progress")[0].scrollHeight - $("#migration_progress").height());' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '        }' . "\r\n" . '        function migrateServer() {' . "\r\n" . "            window.location.href = 'setup?migrate=1';" . "\r\n" . '        }' . "\r\n" . '        ';
-		}
-
-		echo '        $(document).ready(function() {' . "\r\n\t\t\t" . '$(window).keypress(function(event){' . "\r\n\t\t\t\t" . 'if(event.which == 13 && event.target.nodeName != "TEXTAREA") return false;' . "\r\n\t\t\t" . '});' . "\r\n" . '            ';
-
-		if ($rMigrating) {
-			echo '            getMigrationStatus();' . "\r\n" . '            ';
-		}
-
-		echo '        });' . "\r\n" . '        ';
-	} else {
-		include 'post.php';
-		echo '        <script>' . "\r\n" . '        var rRealURL = undefined;' . "\r\n" . '        var jBoxes = [];' . "\r\n" . '        var rOptions = [];' . "\r\n" . '        var rSwitches = [];' . "\r\n" . '        var rRefresh = null;' . "\r\n" . '        var rProcessing = false;' . "\r\n\t\t" . 'var rSearchTop = 0;' . "\r\n" . '        var rShiftHeld = false;' . "\r\n\t\t\r\n\t\t" . 'window.XC_VM = window.XC_VM || {};' . "\r\n\t\t" . 'window.XC_VM.Listings = window.XC_VM.Listings || {};' . "\r\n" . '        ' . "\r\n" . '        function hideModal(rName, rDispose = false) {' . "\r\n\t\t\t" . '$(rName).modal("hide");' . "\r\n\t\t\t" . 'if (rDispose) {' . "\r\n\t\t\t\t" . '$(rName).modal("dispose");' . "\r\n\t\t\t" . '}' . "\r\n\t\t\t" . '$(rName).css("display", "none");' . "\r\n" . '        }' . "\r\n" . '        function showError(rText) {' . "\r\n" . '            $.toast({' . "\r\n" . '                text: rText,' . "\r\n" . "                icon: 'warning'," . "\r\n" . '                loader: true,' . "\r\n" . "                loaderBg: '#c62828'," . "\r\n" . '                hideAfter: 8000' . "\r\n" . '            })' . "\r\n" . '        }' . "\r\n" . '        function showSuccess(rText) {' . "\r\n" . '            $.toast({' . "\r\n" . '                text: rText,' . "\r\n" . "                icon: 'success'," . "\r\n" . '                loader: true,' . "\r\n" . '                hideAfter: 5000' . "\r\n" . '            })' . "\r\n" . '        }' . "\r\n" . '        function findRowByID(rTable, rColumn, rID) {' . "\r\n" . '            for (rRow in rTable.rows()[0]) {' . "\r\n" . '                if ($(rTable.row(rRow).data()[rColumn]).data("id") == rID) {' . "\r\n" . '                    return rRow;' . "\r\n" . '                } else if ((rTable.row(rRow).data()[rColumn] == rID) || ($(rTable.row(rRow).data()[rColumn]).text() == rID)) {' . "\r\n" . '                    return rRow;' . "\r\n" . '                }' . "\r\n" . '            }' . "\r\n" . '            return null;' . "\r\n" . '        }' . "\r\n" . '        function isValidDomain(domain) { ' . "\r\n\t\t\t" . 'var re = new RegExp(/^((?:(?:(?:\\w[\\.\\-\\+]?)*)\\w)+)((?:(?:(?:\\w[\\.\\-\\+]?){0,62})\\w)+)\\.(\\w{2,16})$/);' . "\r\n\t\t\t" . 'return domain.match(re);' . "\r\n\t\t" . '} ' . "\r\n" . '        function isValidIP(rIP) {' . "\r\n\t\t\t" . 'if (/^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(rIP)) {' . "\r\n\t\t\t\t" . 'return true;' . "\r\n\t\t\t" . '} else {' . "\r\n\t\t\t\t" . 'return false;' . "\r\n\t\t\t" . '}' . "\r\n\t\t" . '}' . "\r\n" . '        function isValidDate(dateString) {' . "\r\n\t\t\t" . '  var regEx = /^\\d{4}-\\d{2}-\\d{2}$/;' . "\r\n\t\t\t" . '  if(!dateString.match(regEx)) return false;  // Invalid format' . "\r\n\t\t\t" . '  var d = new Date(dateString);' . "\r\n\t\t\t" . '  var dNum = d.getTime();' . "\r\n\t\t\t" . '  if(!dNum && dNum !== 0) return false; // NaN value, Invalid date' . "\r\n\t\t\t" . '  return d.toISOString().slice(0,10) === dateString;' . "\r\n\t\t" . '}' . "\r\n" . '        function isNumberKey(evt) {' . "\r\n\t\t\t" . 'var charCode = (evt.which) ? evt.which : evt.keyCode;' . "\r\n\t\t\t" . 'if (charCode != 46 && charCode != 45 && charCode > 31 && (charCode < 48 || charCode > 57)) {' . "\r\n\t\t\t\t" . 'return false;' . "\r\n\t\t\t" . '} else {' . "\r\n\t\t\t\t" . 'return true;' . "\r\n\t\t\t" . '}' . "\r\n\t\t" . '}' . "\r\n" . '        function pingSession() {' . "\r\n" . '            $.getJSON("./session", function(data) {' . "\r\n" . '                if (!data.result) {' . "\r\n" . "                    window.location.href = './login?referrer=' + encodeURIComponent(location.href.split(\"/\").slice(-1)[0]);" . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            setTimeout(pingSession, 30000);' . "\r\n" . '        }' . "\r\n\t\t" . 'function modalFingerprint(rID, rType = "stream") {' . "\r\n\t\t\t" . '$(".quick_search").select2("close");' . "\r\n\t\t\t" . '$("#topnav-search").removeClass("active");' . "\r\n\t\t\t" . 'refreshTooltips();' . "\r\n\t\t\t" . "\$('#mod_fingerprint_type').select2();" . "\r\n\t\t\t" . '$("#mod_custom_message_div").hide();' . "\r\n\t\t\t" . '$("#mod_fingerprint_type").val(1); $("#mod_font_size").val(36); $("#mod_font_color").val("#ffffff"); $("#mod_position_x").val(10); $("#mod_position_y").val(10); $("#mod_custom_message").val("");' . "\r\n\t\t\t" . '$(".fingerprintModal").data("id", rID);' . "\r\n\t\t\t" . '$(".fingerprintModal").data("type", rType)' . "\r\n\t\t\t" . "\$('.fingerprintModal').modal('show');" . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function setModalFingerprint() {' . "\r\n\t\t\t" . 'rArray = {"id": $(".fingerprintModal").data("id"), "font_size": $("#mod_font_size").val(), "font_color": $("#mod_font_color").val(), "message": "", "type": $("#mod_fingerprint_type").val(), "xy_offset": ""};' . "\r\n\t\t\t" . 'if ($(".fingerprintModal").data("type") == "user") {' . "\r\n\t\t\t\t" . 'rArray["user"] = true;' . "\r\n\t\t\t" . '}' . "\r\n\t\t\t" . 'if (rArray.type == 3) {' . "\r\n\t\t\t\t" . 'rArray["message"] = $("#mod_custom_message").val();' . "\r\n\t\t\t" . '}' . "\r\n\t\t\t" . 'if (($("#mod_position_x").val() >= 0) && ($("#mod_position_y").val() >= 0)) {' . "\r\n\t\t\t\t" . 'rArray["xy_offset"] = $("#mod_position_x").val() + "x" + $("#mod_position_y").val();' . "\r\n\t\t\t" . '}' . "\r\n\t\t\t" . 'if ((rArray["font_size"] > 0) && (rArray["font_color"]) && ((rArray["message"]) || (rArray["type"] != 3)) && (rArray["font_size"] > 0) && (rArray["xy_offset"])) {' . "\r\n\t\t\t\t" . '$.getJSON("./api?action=fingerprint&data=" + encodeURIComponent(JSON.stringify(rArray)), function(data) {' . "\r\n\t\t\t\t\t" . 'if (data.result == true) {' . "\r\n\t\t\t\t\t\t" . '$.toast("Fingerprint signal has been sent.");' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . '$.toast("';
-		echo $_['error_occured'];
-		echo '");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '});' . "\r\n\t\t\t" . '} else {' . "\r\n\t\t\t\t" . '$.toast("';
-		echo $_['fingerprint_fail'];
-		echo '");' . "\r\n\t\t\t" . '}' . "\r\n\t\t\t" . '$(".fingerprintModal").modal("hide");' . "\r\n\t\t" . '}' . "\r\n" . '        function setSwitch(switchElement, checkedBool) {' . "\r\n\t\t\t" . 'if((checkedBool && !switchElement.isChecked()) || (!checkedBool && switchElement.isChecked())) {' . "\r\n\t\t\t\t" . 'switchElement.setPosition(true);' . "\r\n\t\t\t\t" . 'switchElement.handleOnchange(true);' . "\r\n\t\t\t" . '}' . "\r\n\t\t" . '}' . "\r\n" . '        ';
-
-		if ($rSettings['js_navigate']) {
-			echo '        function reloadMenu() {' . "\r\n" . '            $(".navigation-menu a").each(function() {' . "\r\n" . '                ($(this).removeClass("active"), $(this).parent().removeClass("active"), $(this).parent().parent().removeClass("in"), $(this).parent().parent().prev().removeClass("active"), $(this).parent().parent().parent().removeClass("active"), $(this).parent().parent().parent().parent().removeClass("in"), $(this).parent().parent().parent().parent().parent().removeClass("active"));' . "\r\n" . '            });' . "\r\n" . '            $(".navigation-menu a").each(function() {' . "\r\n" . '                var rURL = window.location.href.split(/[?#]/)[0];' . "\r\n" . '                if (this.href == rURL) {' . "\r\n" . '                    ($(this).addClass("active"), $(this).parent().addClass("active"), $(this).parent().parent().addClass("in"), $(this).parent().parent().prev().addClass("active"), $(this).parent().parent().parent().addClass("active"), $(this).parent().parent().parent().parent().addClass("in"), $(this).parent().parent().parent().parent().parent().addClass("active"));' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            setTimeout(fadeRipple, 350);' . "\r\n" . '        }' . "\r\n" . '        function fadeRipple() {' . "\r\n" . '            $(".waves-ripple").attr("style", "");' . "\r\n" . '        }' . "\r\n" . '        function resetKnobs() {' . "\r\n" . "            \$('[data-plugin=\"knob\"]').each(function(t, i) {" . "\r\n" . '                $(this).knob({' . "\r\n" . "                    'format' : function (value) {" . "\r\n" . "                        return value + '%';" . "\r\n" . '                    }' . "\r\n" . '                })' . "\r\n" . '            });' . "\r\n" . "            \$('[data-plugin=\"peity-line\"]').each(function(t, i) {" . "\r\n" . '                $(this).peity("line", $(this).data());' . "\r\n" . '            });' . "\r\n" . '        }' . "\r\n" . '        function killTimeouts() {' . "\r\n" . '            var highestTimeoutId = setTimeout(";");' . "\r\n" . '            for (var i = 0 ; i < highestTimeoutId ; i++) {' . "\r\n" . '                clearTimeout(i); ' . "\r\n" . '            }' . "\r\n" . '        }' . "\r\n" . '        function deleteSwitches() {' . "\r\n" . '            $(window.rSwitches).each(function() {' . "\r\n" . '                $(this).destroy();' . "\r\n" . '            });' . "\r\n" . '            $(".switchery").remove();' . "\r\n" . '        }' . "\r\n" . '        function deleteSelect2() {' . "\r\n" . '            $("select").each(function() {' . "\r\n" . "                if (\$(this).data('select2')) {" . "\r\n" . "                    \$(this).select2('destroy');" . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '        }' . "\r\n" . '        function navigate(rURL, rNewTab = false) {' . "\r\n" . '            if ((window.rCurrentPage) && (rURL == window.rCurrentPage + "#")) {' . "\r\n" . '                return false;' . "\r\n" . '            }' . "\r\n\t\t\t" . 'if (rURL.split("#")[0].split("?")[0] == "epg_view") {' . "\r\n\t\t\t\t" . 'window.location.href = rURL;' . "\r\n\t\t\t\t" . 'window.location.reload();' . "\r\n\t\t\t\t" . 'return;' . "\r\n\t\t\t" . '}' . "\r\n" . '            if (window.rShiftHeld) {' . "\r\n" . '                return;' . "\r\n" . '            }' . "\r\n" . '            if (rNewTab) {' . "\r\n" . "                window.open(rURL, '_blank');" . "\r\n" . '                return;' . "\r\n" . '            }' . "\r\n" . '            $(".wrapper").off().find("*").off();' . "\r\n" . '            $(".modal").off().find("*").off();' . "\r\n" . '            $(".submenu").hide();' . "\r\n" . "            hideModal('.modal', true);" . "\r\n" . '            $(".modal-backdrop").hide();' . "\r\n" . '            $(".wrapper").fadeOut();' . "\r\n" . '            $(".jBox-wrapper").hide();' . "\r\n" . '            $(window.jBoxes).each(function() {' . "\r\n" . '                this.close();' . "\r\n" . '            });' . "\r\n" . '            window.rReferer = window.location.href.split("/").reverse()[0];' . "\r\n" . '            window.rCurrentPage = rURL.split("/").reverse()[0].split("?")[0].split(".")[0];' . "\r\n" . '            setURL(rURL, false);' . "\r\n" . '            killTimeouts();' . "\r\n" . '            clearTimeout(window.rRefresh);' . "\r\n" . '            deleteSwitches();' . "\r\n" . '            deleteSelect2();' . "\r\n" . '            reloadMenu();' . "\r\n" . '            $.magnificPopup.close();' . "\r\n" . '            $("#status").fadeIn();' . "\r\n" . '            $(".jq-toast-single").remove();' . "\r\n" . "            \$('html, body').animate({scrollTop : 0},400);" . "\r\n\t\t\t" . '$("#header_stats").show();' . "\r\n\t\t\t" . '$(".app-search").width(150);' . "\r\n\t\t\t" . '$("#topnav-search").removeClass("active");' . "\r\n" . '            $(".multiselect").hide();' . "\r\n" . '            $.get(rURL, function(rData) {' . "\r\n" . '                if ($(rData).filter("title").data("id") == "login") {' . "\r\n" . "                    window.location.href = './login?referrer=' + encodeURIComponent(location.href.split(\"/\").slice(-1)[0]);" . "\r\n" . '                }' . "\r\n" . '                var rTables = $.fn.dataTable.fnTables(true);' . "\r\n" . '                $(rTables).each(function () {' . "\r\n" . '                    $(this).DataTable().destroy(true);' . "\r\n" . '                });' . "\r\n" . '                document.title = $(rData).filter("title").text();' . "\r\n" . '                $(".wrapper").replaceWith($(rData).filter(".wrapper"));' . "\r\n" . '                $("#scripts").replaceWith($(rData).filter("#scripts"));' . "\r\n" . '                $("#topnav-custom").replaceWith($(rData).filter("#topnav").find("#topnav-custom"));' . "\r\n" . '                jQuery.ready();' . "\r\n" . '                resetKnobs();' . "\r\n" . '                bindHref();' . "\r\n" . '                refreshTooltips();' . "\r\n" . '                if ($(".nav")) {' . "\r\n" . '                    $(".nav:first").find(".nav-link:first").trigger("click");' . "\r\n" . '                }' . "\r\n" . '                $(".wrapper").fadeIn();' . "\r\n" . '                $("#status").fadeOut();' . "\r\n" . "                \$(':input[type=\"submit\"]').prop('disabled', false);" . "\r\n" . '            }).fail(function() {' . "\r\n" . '                window.location.href = rURL;' . "\r\n" . '            });' . "\r\n" . '        }' . "\r\n" . '        ';
-		} else {
-			echo '        function navigate(rURL) {' . "\r\n" . '            window.location.href = rURL;' . "\r\n" . '        }' . "\r\n" . '        ';
-		}
-
-		echo '        function reloadPage() {' . "\r\n" . '            navigate(window.location.href);' . "\r\n" . '        }' . "\r\n" . '        function refreshTooltips(rModals = true) {' . "\r\n" . '            if (rModals) {' . "\r\n" . '                $(".jBox-wrapper").hide();' . "\r\n" . '            }' . "\r\n" . '            $(window.jBoxes).each(function() {' . "\r\n" . '                this.close();' . "\r\n" . '                this.destroy();' . "\r\n" . '            });' . "\r\n" . '            window.jBoxes = [];' . "\r\n" . "            \$('.tooltip-left').each(function() {" . "\r\n" . "                window.jBoxes.push(new \$(this).jBox('Tooltip', {theme: 'TooltipDark', position: {x: 'left', y: 'center'}, outside: 'x'}));" . "\r\n" . '            });' . "\r\n" . "            \$('.tooltip-right').each(function() {" . "\r\n" . "                window.jBoxes.push(new \$(this).jBox('Tooltip', {theme: 'TooltipDark', position: {x: 'right', y: 'center'}, outside: 'x'}));" . "\r\n" . '            });' . "\r\n" . "            \$('.tooltip').each(function() {" . "\r\n" . "                window.jBoxes.push(new \$(this).jBox('Tooltip', {theme: 'TooltipDark'}));" . "\r\n" . '            });' . "\r\n" . '        }' . "\r\n" . '        function setURL(rURL, rReplace=true) {' . "\r\n" . '            if (rReplace) {' . "\r\n" . "                window.history.replaceState({}, '', rURL);" . "\r\n" . '            } else {' . "\r\n" . '                if (window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0] != rURL.split("/").reverse()[0].split("?")[0].split(".")[0]) {' . "\r\n" . "                    window.history.pushState({}, '', rURL);" . "\r\n" . '                }' . "\r\n" . '                window.rRealURL = rURL;' . "\r\n" . '            }' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function delParams(rParams) {' . "\r\n\t\t\t" . '$.each(rParams, function(rIndex, rParam) {' . "\r\n\t\t\t\t" . 'delParam(rParam);' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function delParam(rParam) {' . "\r\n\t\t\t" . 'var rURL = new URL(document.location);' . "\r\n\t\t\t" . 'rURL.searchParams.delete(rParam);' . "\r\n\t\t\t" . 'setURL(rURL);' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function setParam(rParam, rValue) {' . "\r\n\t\t\t" . 'var rURL = new URL(document.location);' . "\r\n\t\t\t" . 'rURL.searchParams.set(rParam, rValue);' . "\r\n\t\t\t" . 'setURL(rURL);' . "\r\n\t\t" . '}' . "\r\n" . '        function getParam(rParam) {' . "\r\n\t\t\t" . 'var rURL = new URL(document.location);' . "\r\n\t\t\t" . 'return rURL.searchParams.get(rParam);' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function hasParam(rParam) {' . "\r\n\t\t\t" . 'var rURL = new URL(document.location);' . "\r\n\t\t\t" . 'return rURL.searchParams.has(rParam);' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function hasParams(rParams, rAll=false) {' . "\r\n\t\t\t" . 'var rURL = new URL(document.location);' . "\r\n\t\t\t" . 'var rCount = 0;' . "\r\n\t\t\t" . '$.each(rParams, function(rIndex, rParam) {' . "\r\n\t\t\t\t" . 'if (rURL.searchParams.has(rParam)) {' . "\r\n\t\t\t\t\t" . 'rCount += 1;' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . 'if (((rCount > 0) && (!rAll)) || (rCount == rParams.length)) {' . "\r\n\t\t\t\t" . 'return true;' . "\r\n\t\t\t" . '} else {' . "\r\n\t\t\t\t" . 'return false;' . "\r\n\t\t\t" . '}' . "\r\n\t\t" . '}' . "\r\n" . '        function bindHref() {' . "\r\n" . '            ';
-
-		if ($rSettings['js_navigate']) {
-			echo '            $("a").each(function() {' . "\r\n" . '                if (($(this).attr("href")) && ($(this).data("modal") === undefined) && ($(this).attr("href").slice(0,1) != "#") && ($(this).attr("href").slice(0,11) != "javascript:") && ($(this).attr("href").slice(0,8) != "epg_view")) {' . "\r\n" . '                    $(this).unbind("click");' . "\r\n" . '                    $(this).click(function(e) {' . "\r\n" . '                        navigate($(this).attr("href"), e.ctrlKey);' . "\r\n" . '                        e.preventDefault();' . "\r\n" . '                    });' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            ';
-		}
-
-		echo '        }' . "\r\n" . '        function whois(rIP) {' . "\r\n\t\t\t" . '$("#whoisLabel").html(rIP);' . "\r\n\t\t\t" . 'var rRows = $("#whois-table tr");' . "\r\n\t\t\t" . '$(rRows).each(function() {' . "\r\n\t\t\t\t" . '$(this).find("td").html("");' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$.getJSON("./api?action=ip_whois&isp=1&ip=" + encodeURIComponent(rIP), function(rData) {' . "\r\n\t\t\t\t" . 'if ("data" in rData) {' . "\r\n\t\t\t\t\t" . 'if (("continent" in rData.data) && ("names" in rData.data.continent) && ("en" in rData.data.continent.names)) {' . "\r\n\t\t\t\t\t\t" . '$(rRows[1]).find("td").html(rData.data.continent.names.en);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'if (("country" in rData.data) && ("names" in rData.data.country) && ("en" in rData.data.country.names)) {' . "\r\n\t\t\t\t\t\t" . '$(rRows[2]).find("td").html(rData.data.country.names.en);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'if (("city" in rData.data) && ("names" in rData.data.city) && ("en" in rData.data.city.names)) {' . "\r\n\t\t\t\t\t\t" . '$(rRows[3]).find("td").html(rData.data.city.names.en);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'if (("postal" in rData.data) && ("code" in rData.data.postal)) {' . "\r\n\t\t\t\t\t\t" . '$(rRows[4]).find("td").html(rData.data.postal.code);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'if (("location" in rData.data) && ("latitude" in rData.data.location) && ("longitude" in rData.data.location)) {' . "\r\n\t\t\t\t\t\t" . '$(rRows[5]).find("td").html(rData.data.location.latitude + ", " + rData.data.location.longitude);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'if (("isp" in rData.data) && (rData.data.isp)) {' . "\r\n\t\t\t\t\t\t" . 'if ("isp" in rData.data.isp) {' . "\r\n\t\t\t\t\t\t\t" . '$(rRows[7]).find("td").html(rData.data.isp.isp);' . "\r\n\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t" . 'if ("organization" in rData.data.isp) {' . "\r\n\t\t\t\t\t\t\t" . '$(rRows[8]).find("td").html(rData.data.isp.organization);' . "\r\n\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t" . 'if (("autonomous_system_number" in rData.data.isp) && ("autonomous_system_organization" in rData.data.isp)) {' . "\r\n\t\t\t\t\t\t\t" . '$(rRows[9]).find("td").html("AS" + rData.data.isp.autonomous_system_number.toString() + " - " + rData.data.isp.autonomous_system_organization);' . "\r\n\t\t\t\t\t\t" . '}' . "\r\n" . '                        if (rData.data.type) {' . "\r\n\t\t\t\t\t\t\t" . '$(rRows[10]).find("td").html(rData.data.type.toUpperCase());' . "\r\n\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'if (("location" in rData.data) && ("time_zone" in rData.data.location)) {' . "\r\n\t\t\t\t\t\t" . '$(rRows[12]).find("td").html(rData.data.location.time_zone);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'if (("location" in rData.data) && ("time" in rData.data.location)) {' . "\r\n\t\t\t\t\t\t" . '$(rRows[13]).find("td").html(rData.data.location.time);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$(".bs-whois-modal-center").modal("show");' . "\r\n\t\t" . '}' . "\r\n" . '        function headerStats() {' . "\r\n" . '            rURL = "./api?action=header_stats";' . "\r\n" . '            $.getJSON(rURL, function(data) {' . "\r\n" . '                $("#header_connections").html($.number(data.total_connections, 0));' . "\r\n" . '                $("#header_users").html($.number(data.total_users, 0));' . "\r\n" . '                $("#header_network_up").html($.number(Math.floor(data.bytes_sent / 125000), 0));' . "\r\n" . '                $("#header_network_down").html($.number(Math.floor(data.bytes_received / 125000), 0));' . "\r\n" . '                $("#header_streams_up").html($.number(data.total_running_streams, 0));' . "\r\n" . '                $("#header_streams_down").html($.number(data.offline_streams, 0));' . "\r\n" . '                setTimeout(headerStats, 1000);' . "\r\n" . '            }).fail(function() {' . "\r\n" . '                setTimeout(headerStats, 1000);' . "\r\n" . '            });' . "\r\n" . '        }' . "\r\n\t\t" . 'function addCredits(rID) {' . "\r\n\t\t\t" . "\$('.creditsModal').data('id', rID);" . "\r\n" . '            $("#credits_reason").val("");' . "\r\n" . '            $("#credits").val(0);' . "\r\n" . "            \$('.creditsModal').modal('show');" . "\r\n\t\t\t" . '$(".quick_search").select2("close");' . "\r\n\t\t\t" . '$("#topnav-search").removeClass("active");' . "\r\n\t\t\t" . 'refreshTooltips();' . "\r\n" . '        }' . "\r\n" . '        function submitCredits() {' . "\r\n" . "            var rID = \$('.creditsModal').data('id');" . "\r\n" . '            var rReason = $("#credits_reason").val();' . "\r\n" . '            var rCredits = $("#credits").val();' . "\r\n" . '            $.getJSON("./api?action=adjust_credits&id=" + encodeURIComponent(rID) + "&reason=" + encodeURIComponent(rReason) + "&credits=" + encodeURIComponent(rCredits), function(data) {' . "\r\n" . '                if (data.result === true) {' . "\r\n" . '                    $.toast("Credits have been adjusted.");' . "\r\n" . '                    refreshTable();' . "\r\n" . '                } else {' . "\r\n" . '                    $.toast("Credits could not be adjusted.");' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . "            hideModal('.creditsModal');" . "\r\n" . '        }' . "\r\n\t\t" . 'function searchAPI(rType, rID, rAction, rConfirm = false) {' . "\r\n\t\t\t" . 'if (rType == "stream") {' . "\r\n\t\t\t\t" . 'if ((rAction == "purge") && (!rConfirm)) {' . "\r\n\t\t\t\t\t" . 'new jBox("Confirm", {' . "\r\n\t\t\t\t\t\t" . 'confirmButton: "Kill",' . "\r\n\t\t\t\t\t\t" . 'cancelButton: "Cancel",' . "\r\n\t\t\t\t\t\t" . 'content: "Are you sure you want to kill all connections?",' . "\r\n\t\t\t\t\t\t" . 'confirm: function () {' . "\r\n\t\t\t\t\t\t\t" . 'searchAPI(rType, rID, rAction, true);' . "\r\n\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '}).open();' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . 'rConfirm = true;' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t\t" . 'if (rConfirm) {' . "\r\n\t\t\t\t\t" . '$.getJSON("./api?action=stream&sub=" + rAction + "&stream_id=" + rID + "&server_id=-1", function(data) {' . "\r\n\t\t\t\t\t\t" . 'if (data.result == true) {' . "\r\n\t\t\t\t\t\t\t" . 'if (rAction == "start") {' . "\r\n\t\t\t\t\t\t\t\t" . '$.toast("Stream successfully started.");' . "\r\n\t\t\t\t\t\t\t" . '} else if (rAction == "stop") {' . "\r\n\t\t\t\t\t\t\t\t" . '$.toast("Stream successfully stopped.");' . "\r\n\t\t\t\t\t\t\t" . '} else if (rAction == "restart") {' . "\r\n\t\t\t\t\t\t\t\t" . '$.toast("Stream successfully restarted.");' . "\r\n\t\t\t\t\t\t\t" . '} else if (rAction == "purge") {' . "\r\n\t\t\t\t\t\t\t\t" . '$.toast("Connections have been killed.");' . "\r\n\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t\t" . '$(".bigdrop .select2-search__field").trigger("input");' . "\r\n\t\t\t\t\t\t\t" . 'window.rSearchTop = $(".bigdrop .select2-results__options").scrollTop();' . "\r\n\t\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t\t" . '$.toast("An error occured while processing your request.");' . "\r\n\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '}).fail(function() {' . "\r\n\t\t\t\t\t\t" . '$.toast("An error occured while processing your request.");' . "\r\n\t\t\t\t\t" . '});' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '} else if (rType == "movie") {' . "\r\n\t\t\t\t" . 'if ((rAction == "purge") && (!rConfirm)) {' . "\r\n\t\t\t\t\t" . 'new jBox("Confirm", {' . "\r\n\t\t\t\t\t\t" . 'confirmButton: "Kill",' . "\r\n\t\t\t\t\t\t" . 'cancelButton: "Cancel",' . "\r\n\t\t\t\t\t\t" . 'content: "Are you sure you want to kill all connections?",' . "\r\n\t\t\t\t\t\t" . 'confirm: function () {' . "\r\n\t\t\t\t\t\t\t" . 'searchAPI(rType, rID, rAction, true);' . "\r\n\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '}).open();' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . 'rConfirm = true;' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t\t" . 'if (rConfirm) {' . "\r\n\t\t\t\t\t" . '$.getJSON("./api?action=movie&sub=" + rAction + "&stream_id=" + rID + "&server_id=-1", function(data) {' . "\r\n\t\t\t\t\t\t" . 'if (data.result == true) {' . "\r\n\t\t\t\t\t\t\t" . 'if (rAction == "start") {' . "\r\n\t\t\t\t\t\t\t\t" . '$.toast("';
-		echo $_['movie_encode_started'];
-		echo '");' . "\r\n\t\t\t\t\t\t\t" . '} else if (rAction == "stop") {' . "\r\n\t\t\t\t\t\t\t\t" . '$.toast("';
-		echo $_['movie_encode_stopped'];
-		echo '");' . "\r\n\t\t\t\t\t\t\t\t" . 'refreshTable();' . "\r\n\t\t\t\t\t\t\t" . '} else if (rAction == "purge") {' . "\r\n\t\t\t\t\t\t\t\t" . '$.toast("Connections have been killed.");' . "\r\n\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t\t" . '$(".bigdrop .select2-search__field").trigger("input");' . "\r\n\t\t\t\t\t\t\t" . 'window.rSearchTop = $(".bigdrop .select2-results__options").scrollTop();' . "\r\n\t\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t\t" . '$.toast("An error occured while processing your request.");' . "\r\n\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '}).fail(function() {' . "\r\n\t\t\t\t\t\t" . '$.toast("An error occured while processing your request.");' . "\r\n\t\t\t\t\t" . '});' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '} else if (rType == "episode") {' . "\r\n\t\t\t\t" . 'if ((rAction == "purge") && (!rConfirm)) {' . "\r\n\t\t\t\t\t" . 'new jBox("Confirm", {' . "\r\n\t\t\t\t\t\t" . 'confirmButton: "Kill",' . "\r\n\t\t\t\t\t\t" . 'cancelButton: "Cancel",' . "\r\n\t\t\t\t\t\t" . 'content: "Are you sure you want to kill all connections?",' . "\r\n\t\t\t\t\t\t" . 'confirm: function () {' . "\r\n\t\t\t\t\t\t\t" . 'searchAPI(rType, rID, rAction, true);' . "\r\n\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '}).open();' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . 'rConfirm = true;' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t\t" . 'if (rConfirm) {' . "\r\n\t\t\t\t\t" . '$.getJSON("./api?action=episode&sub=" + rAction + "&stream_id=" + rID + "&server_id=-1", function(data) {' . "\r\n\t\t\t\t\t\t" . 'if (data.result == true) {' . "\r\n\t\t\t\t\t\t\t" . 'if (rAction == "start") {' . "\r\n\t\t\t\t\t\t\t\t" . '$.toast("';
-		echo $_['episode_encoding_start'];
-		echo '");' . "\r\n\t\t\t\t\t\t\t" . '} else if (rAction == "stop") {' . "\r\n\t\t\t\t\t\t\t\t" . '$.toast("';
-		echo $_['episode_encoding_stop'];
-		echo '");' . "\r\n\t\t\t\t\t\t\t" . '} else if (rAction == "purge") {' . "\r\n\t\t\t\t\t\t\t\t" . '$.toast("Connections have been killed.");' . "\r\n\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t\t" . '$(".bigdrop .select2-search__field").trigger("input");' . "\r\n\t\t\t\t\t\t\t" . 'window.rSearchTop = $(".bigdrop .select2-results__options").scrollTop();' . "\r\n\t\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t\t" . '$.toast("An error occured while processing your request.");' . "\r\n\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '}).fail(function() {' . "\r\n\t\t\t\t\t\t" . '$.toast("An error occured while processing your request.");' . "\r\n\t\t\t\t\t" . '});' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '} else if (rType == "user") {' . "\r\n\t\t\t\t" . '$.getJSON("./api?action=reg_user&sub=" + rAction + "&user_id=" + rID, function(data) {' . "\r\n" . '                    if (data.result === true) {' . "\r\n" . '                        if (rAction == "enable") {' . "\r\n" . '                            $.toast("User has been enabled.");' . "\r\n" . '                        } else if (rAction == "disable") {' . "\r\n" . '                            $.toast("User has been disabled.");' . "\r\n" . '                        }' . "\r\n\t\t\t\t\t\t" . '$(".bigdrop .select2-search__field").trigger("input");' . "\r\n\t\t\t\t\t\t" . 'window.rSearchTop = $(".bigdrop .select2-results__options").scrollTop();' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("An error occured while processing your request.");' . "\r\n" . '                    }' . "\r\n\t\t\t\t" . '}).fail(function() {' . "\r\n\t\t\t\t\t" . '$.toast("An error occured while processing your request.");' . "\r\n\t\t\t\t" . '});' . "\r\n\t\t\t" . '} else if (rType == "line") {' . "\r\n\t\t\t\t" . 'if ((rAction == "kill") && (!rConfirm)) {' . "\r\n\t\t\t\t\t" . 'new jBox("Confirm", {' . "\r\n\t\t\t\t\t\t" . 'confirmButton: "Kill",' . "\r\n\t\t\t\t\t\t" . 'cancelButton: "Cancel",' . "\r\n\t\t\t\t\t\t" . 'content: "Are you sure you want to kill all connections for this line?",' . "\r\n\t\t\t\t\t\t" . 'confirm: function () {' . "\r\n\t\t\t\t\t\t\t" . 'searchAPI(rType, rID, rAction, true);' . "\r\n\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '}).open();' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . 'rConfirm = true;' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t\t" . 'if (rConfirm) {' . "\r\n\t\t\t\t\t" . '$.getJSON("./api?action=line&sub=" + rAction + "&user_id=" + rID, function(data) {' . "\r\n\t\t\t\t\t\t" . 'if (data.result === true) {' . "\r\n\t\t\t\t\t\t\t" . 'if (rAction == "enable") {' . "\r\n\t\t\t\t\t\t\t\t" . '$.toast("Line has been enabled.");' . "\r\n\t\t\t\t\t\t\t" . '} else if (rAction == "disable") {' . "\r\n\t\t\t\t\t\t\t\t" . '$.toast("Line has been disabled.");' . "\r\n\t\t\t\t\t\t\t" . '} else if (rAction == "unban") {' . "\r\n\t\t\t\t\t\t\t\t" . '$.toast("Line has been unbanned.");' . "\r\n\t\t\t\t\t\t\t" . '} else if (rAction == "ban") {' . "\r\n\t\t\t\t\t\t\t\t" . '$.toast("Line has been banned.");' . "\r\n\t\t\t\t\t\t\t" . '} else if (rAction == "kill") {' . "\r\n\t\t\t\t\t\t\t\t" . '$.toast("All connections for this line have been killed.");' . "\r\n\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t\t" . '$(".bigdrop .select2-search__field").trigger("input");' . "\r\n\t\t\t\t\t\t\t" . 'window.rSearchTop = $(".bigdrop .select2-results__options").scrollTop();' . "\r\n\t\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t\t" . '$.toast("An error occured while processing your request.");' . "\r\n\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '}).fail(function() {' . "\r\n\t\t\t\t\t\t" . '$.toast("An error occured while processing your request.");' . "\r\n\t\t\t\t\t" . '});' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '}' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function editModal(rEvent, rType, rID, rTitle) {' . "\r\n\t\t\t" . 'if (rEvent) {' . "\r\n\t\t\t\t" . 'rEvent.preventDefault();' . "\r\n\t\t\t" . '}' . "\r\n\t\t\t" . "eModal.iframe(rType + '?id=' + rID + '&modal=1', rTitle);" . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function closeEditModal(){' . "\r\n\t\t\t" . "\$('.modal').modal('hide');" . "\r\n\t\t\t" . 'if ($("#datatable-users").length) {' . "\r\n\t\t\t\t" . '$("#datatable-users").DataTable().ajax.reload(null, false);' . "\r\n\t\t\t" . '}' . "\r\n\t\t\t" . 'if ($("#datatable-streampage").length) {' . "\r\n\t\t\t\t" . '$("#datatable-streampage").DataTable().ajax.reload(null, false);' . "\r\n\t\t\t" . '}' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function initSearch() {' . "\r\n\t\t\t" . '$(".dropdown").unbind("click");' . "\r\n\t\t\t" . '$(".dropdown").click(function() {' . "\r\n\t\t\t\t" . 'if ($(this).attr("id") == "search-mobile") {' . "\r\n\t\t\t\t\t" . 'if ($("#topnav-search").hasClass("active")) {' . "\r\n\t\t\t\t\t\t" . '$(".quick_search").select2("close");' . "\r\n\t\t\t\t\t\t" . '$("#topnav-search").removeClass("active");' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . '$("#topnav-search").addClass("active");' . "\r\n\t\t\t\t\t\t" . '$(".quick_search").select2("open");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . 'if ($("#topnav-search").hasClass("active")) {' . "\r\n\t\t\t\t\t\t" . '$(".quick_search").select2("close");' . "\r\n\t\t\t\t\t\t" . '$("#topnav-search").removeClass("active");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$(".quick_search").unbind("select2:opening");' . "\r\n\t\t\t" . '$(".quick_search").unbind("select2:closing");' . "\r\n\t\t\t" . '$(".quick_search").unbind("select2:selecting");' . "\r\n\t\t\t" . '$(".quick_search").unbind("select2:draw");' . "\r\n\t\t\t" . '$(".quick_search").select2({' . "\r\n\t\t\t" . '  ajax: {' . "\r\n\t\t\t\t" . "url: './api'," . "\r\n\t\t\t\t" . "dataType: 'json'," . "\r\n\t\t\t\t" . 'data: function (params) {' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'search: params.term,' . "\r\n\t\t\t\t\t" . "action: 'search'" . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processResults: function (data, params) {' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'results: data.items' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'cache: true' . "\r\n\t\t\t" . '  },' . "\r\n\t\t\t" . '  minimumInputLength: 3,' . "\r\n\t\t\t" . '  templateResult: function(data) { return data.html },' . "\r\n\t\t\t" . '  escapeMarkup: function(m) { return m; },' . "\r\n\t\t\t" . "  placeholder: 'Search...'," . "\r\n\t\t\t" . "  dropdownCssClass: 'bigdrop'" . "\r\n\t\t\t" . '}).on("select2:opening", function(e) {' . "\r\n\t\t\t\t" . 'if ($("#header_stats").is(":visible")) {' . "\r\n\t\t\t\t\t" . 'var rMaxWidth = parseInt($(".app-search-box").position()["left"] - ($("#header_stats li:last").position()["left"] + $("#header_stats li:last").width()));' . "\r\n\t\t\t\t\t" . 'if (rMaxWidth < 600) {' . "\r\n\t\t\t\t\t\t" . '$("#header_stats").hide();' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '$(".app-search").width(600);' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t\t" . 'window.rSearchTop = 0;' . "\r\n\t\t\t" . '}).on("select2:closing", function(e) {' . "\r\n\t\t\t\t" . '$(".bigdrop .select2-results__options li").remove();' . "\r\n\t\t\t\t" . '$("#header_stats").show();' . "\r\n\t\t\t\t" . '$(".app-search").width(150);' . "\r\n\t\t\t\t" . 'window.rSearchTop = 0;' . "\r\n\t\t\t" . '}).on("select2:selecting", function (e) {' . "\r\n\t\t\t\t" . ' e.preventDefault();' . "\r\n\t\t\t\t" . ' return false;' . "\r\n\t\t\t" . '}).on("select2:draw", function (e) {' . "\r\n\t\t\t\t" . 'refreshTooltips();' . "\r\n\t\t\t\t" . 'if (window.rSearchTop > 0) {' . "\r\n\t\t\t\t\t" . '$(".bigdrop .select2-results__options").scrollTop(window.rSearchTop);' . "\r\n\t\t\t\t\t" . 'window.rSearchTop = 0;' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$(".app-search-box .select2-selection").addClass($(".app-search").data("theme")).addClass("header-search");' . "\r\n\t\t\t" . '$("#mod_fingerprint_type").unbind("change");' . "\r\n\t\t\t" . '$("#mod_fingerprint_type").change(function() {' . "\r\n\t\t\t\t" . 'if ($(this).val() == 3) {' . "\r\n\t\t\t\t\t" . '$("#mod_custom_message_div").show();' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . '$("#mod_custom_message_div").hide();' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#mod_font_size").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#mod_position_x").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#mod_position_y").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t" . '}' . "\r\n" . '        </script>' . "\r\n" . '        <script id="scripts">' . "\r\n" . '        var resizeObserver = new ResizeObserver(entries => $(window).scroll());' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n" . '            resizeObserver.observe(document.body)' . "\r\n" . "            \$(\"form\").attr('autocomplete', 'off');" . "\r\n\t\t\t" . '$(document).keypress(function(event){' . "\r\n\t\t\t\t" . 'if(event.which == 13 && event.target.nodeName != "TEXTAREA") return false;' . "\r\n\t\t\t" . '});' . "\r\n" . "            \$.fn.dataTable.ext.errMode = 'none';" . "\r\n" . "            var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));" . "\r\n\t\t\t" . 'elems.forEach(function(html) {' . "\r\n\t\t\t" . "  var switchery = new Switchery(html, {'color': '#414d5f'});" . "\r\n\t\t\t" . '  window.rSwitches[$(html).attr("id")] = switchery;' . "\r\n\t\t\t" . '});' . "\r\n" . '            setTimeout(pingSession, 30000);' . "\r\n" . '            ';
-
-		if ($rMobile || !$rSettings['header_stats']) {
-		} else {
-			echo '            headerStats();' . "\r\n" . '            ';
-		}
-
-		echo '            bindHref(); refreshTooltips();' . "\r\n" . '            $(window).scroll(function(){' . "\r\n" . '                if ($(this).scrollTop() > 200) {' . "\r\n" . '                    if ($(document).height() > $(window).height()) {' . "\r\n" . "                        \$('#scrollToBottom').fadeOut();" . "\r\n" . '                    }' . "\r\n" . "                    \$('#scrollToTop').fadeIn();" . "\r\n" . '                } else {' . "\r\n" . "                    \$('#scrollToTop').fadeOut();" . "\r\n" . '                    if ($(document).height() > $(window).height()) {' . "\r\n" . "                        \$('#scrollToBottom').fadeIn();" . "\r\n" . '                    } else {' . "\r\n" . "                        \$('#scrollToBottom').hide();" . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            $("#scrollToTop").unbind("click");' . "\r\n" . "            \$('#scrollToTop').click(function(){" . "\r\n" . "                \$('html, body').animate({scrollTop : 0}, 800);" . "\r\n" . '                return false;' . "\r\n" . '            });' . "\r\n" . '            $("#scrollToBottom").unbind("click");' . "\r\n" . "            \$('#scrollToBottom').click(function(){" . "\r\n" . "                \$('html, body').animate({scrollTop : \$(document).height()}, 800);" . "\r\n" . '                return false;' . "\r\n" . '            });' . "\r\n" . '            $(window).scroll();' . "\r\n" . '            $(".nextb").unbind("click");' . "\r\n" . '            $(".nextb").click(function() {' . "\r\n" . '                var rPos = 0; var rActive = null;' . "\r\n" . '                $(".nav .nav-item").each(function() {' . "\r\n" . '                    if ($(this).find(".nav-link").hasClass("active")) {' . "\r\n" . '                        rActive = rPos;' . "\r\n" . '                    }' . "\r\n" . '                    if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {' . "\r\n" . '                        $(this).find(".nav-link").trigger("click");' . "\r\n" . '                        return false;' . "\r\n" . '                    }' . "\r\n" . '                    rPos += 1;' . "\r\n" . '                });' . "\r\n" . '            });' . "\r\n" . '            $(".prevb").unbind("click");' . "\r\n" . '            $(".prevb").click(function() {' . "\r\n" . '                var rPos = 0; var rActive = null;' . "\r\n" . '                $($(".nav .nav-item").get().reverse()).each(function() {' . "\r\n" . '                    if ($(this).find(".nav-link").hasClass("active")) {' . "\r\n" . '                        rActive = rPos;' . "\r\n" . '                    }' . "\r\n" . '                    if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {' . "\r\n" . '                        $(this).find(".nav-link").trigger("click");' . "\r\n" . '                        return false;' . "\r\n" . '                    }' . "\r\n" . '                    rPos += 1;' . "\r\n" . '                });' . "\r\n" . '            });' . "\r\n" . '            (function($) {' . "\r\n" . '                $.fn.inputFilter = function(inputFilter) {' . "\r\n" . '                    return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {' . "\r\n" . '                        if (inputFilter(this.value)) {' . "\r\n" . '                            this.oldValue = this.value;' . "\r\n" . '                            this.oldSelectionStart = this.selectionStart;' . "\r\n" . '                            this.oldSelectionEnd = this.selectionEnd;' . "\r\n" . '                        } else if (this.hasOwnProperty("oldValue")) {' . "\r\n" . '                            this.value = this.oldValue;' . "\r\n" . '                            this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);' . "\r\n" . '                        }' . "\r\n" . '                    });' . "\r\n" . '                };' . "\r\n" . '            }(jQuery));' . "\r\n" . '            ';
-
-		if (!$rSettings['js_navigate']) {
-		} else {
-			echo "\t\t\t" . '$(".navigation-menu li").mouseenter(function() {' . "\r\n" . '                $(this).find(".submenu").show();' . "\r\n" . '            });' . "\r\n" . '            delParam("status");' . "\r\n" . '            $(window).on("popstate", function () {' . "\r\n" . '                if (window.rRealURL) {' . "\r\n" . '                    if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {' . "\r\n" . '                        navigate(window.location.href.split("/").reverse()[0]);' . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            ';
-		}
-
-		echo '            $(document).keydown(function (e) {' . "\r\n" . '                if (e.keyCode == 16) {' . "\r\n" . '                    window.rShiftHeld = true;' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            $(document).keyup(function (e) {' . "\r\n" . '                if (e.keyCode == 16) {' . "\r\n" . '                    window.rShiftHeld = false;' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            document.onselectstart = function() {' . "\r\n" . '                if (window.rShiftHeld) {' . "\r\n" . '                    return false;' . "\r\n" . '                }' . "\r\n" . '            }' . "\r\n\t\t" . '});' . "\r\n" . '        ';
-	}
-
-	if (CoreUtilities::$rSettings['enable_search']) {
-		echo "\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . 'initSearch();' . "\r\n\t\t" . '});' . "\r\n\t\t";
-	}
-
-} else {
+if (count(get_included_files()) == 1) {
 	exit();
 }
+
+$_PAGE = getPageName();
+include 'modals.php';
+
+if (!isset($rModal) || !$rModal) {
+	echo '        <footer class="footer">' . "\r\n" . '            ';
+
+	if (!$rMobile) {
+		echo '            <a href="#" class="scrollToTop" id="scrollToBottom"><button type="button" class="btn btn-info waves-effect waves-light"><i class="fas fa-caret-down"></i></button></a>' . "\r\n" . '            <a href="#" class="scrollToTop" id="scrollToTop"><button type="button" class="btn btn-success waves-effect waves-light"><i class="fas fa-caret-up"></i></button></a>' . "\r\n" . '            ';
+	}
+
+	echo '            <div class="container-fluid">' . "\r\n" . '                <div class="row">' . "\r\n" . '                    <div class="col-md-12 copyright text-center">';
+	echo getFooter();
+	echo '</div>' . "\r\n" . '                </div>' . "\r\n" . '            </div>' . "\r\n" . '        </footer>' . "\r\n\t\t";
+}
+
+echo '        <script src="assets/js/vendor.min.js"></script>' . "\r\n" . '        <script src="assets/libs/jquery-toast/jquery.toast.min.js"></script>' . "\r\n" . '        <script src="assets/libs/jquery-nice-select/jquery.nice-select.min.js"></script>' . "\r\n" . '        <script src="assets/libs/switchery/switchery.min.js"></script>' . "\r\n" . '        <script src="assets/libs/select2/select2.min.js"></script>' . "\r\n" . '        <script src="assets/libs/nestable2/jquery.nestable.min.js"></script>' . "\r\n" . '        <script src="assets/libs/bootstrap-touchspin/jquery.bootstrap-touchspin.min.js"></script>' . "\r\n" . '        <script src="assets/libs/bootstrap-maxlength/bootstrap-maxlength.min.js"></script>' . "\r\n" . '        <script src="assets/libs/clockpicker/bootstrap-clockpicker.min.js"></script>' . "\r\n" . '        <script src="assets/libs/moment/moment.min.js"></script>' . "\r\n" . '        <script src="assets/libs/daterangepicker/daterangepicker.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/jquery.dataTables.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/dataTables.bootstrap4.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/dataTables.responsive.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/responsive.bootstrap4.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/dataTables.buttons.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/buttons.bootstrap4.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/buttons.html5.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/buttons.flash.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/buttons.print.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/dataTables.keyTable.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/dataTables.select.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/dataTables.rowReorder.js"></script>' . "\r\n" . '        <script src="assets/libs/twitter-bootstrap-wizard/jquery.bootstrap.wizard.min.js"></script>' . "\r\n" . '        <script src="assets/libs/treeview/jstree.min.js"></script>' . "\r\n" . '        <script src="assets/libs/quill/quill.min.js"></script>' . "\r\n" . '        <script src="assets/libs/magnific-popup/jquery.magnific-popup.min.js"></script>' . "\r\n" . '        <script src="assets/libs/jbox/jBox.all.min.js"></script>' . "\r\n" . '        <script src="assets/libs/jquery-knob/jquery.knob.min.js"></script>' . "\r\n" . '        <script src="assets/libs/apexcharts/apexcharts.min.js"></script>' . "\r\n" . '        <script src="assets/libs/jquery-number/jquery.number.js"></script>' . "\r\n" . '        <script src="assets/libs/jquery-vectormap/jquery-jvectormap-1.2.2.min.js"></script>' . "\r\n" . '        <script src="assets/libs/jquery-vectormap/jquery-jvectormap-world-mill-en.js"></script>' . "\r\n" . '        <script src="assets/libs/jquery-ui/jquery-ui.min.js"></script>' . "\r\n" . '        <script src="assets/libs/peity/jquery.peity.min.js"></script>' . "\r\n\t\t" . '<script src="assets/libs/emodal/emodal.js"></script>' . "\r\n" . '        <script src="assets/libs/bootstrap-colorpicker/bootstrap-colorpicker.min.js"></script>' . "\r\n" . '        <script src="assets/libs/lazyload/lazyload.min.js"></script>' . "\r\n" . '        <script src="assets/libs/parsleyjs/parsley.min.js"></script>' . "\r\n" . '        <script src="assets/js/app.min.js"></script>' . "\r\n" . '        ';
+
+if (isset($_SETUP)):
+	echo '        <script>' . "\r\n" . '        ';
+
+	if ($rMigrating) {
+		echo '        function getMigrationStatus() {' . "\r\n" . '            $.getJSON("./setup?update=1", function(data) {' . "\r\n" . '                if (data.result === true) {' . "\r\n" . '                    $("#migration_progress").html(data.data);' . "\r\n" . '                    if (data.status == 1) {' . "\r\n" . '                        setTimeout(getMigrationStatus, 1000);' . "\r\n" . '                    } else if (data.status == 2) {' . "\r\n" . "                        window.location.href = 'dashboard';" . "\r\n" . '                    } else if (data.status == 3) {' . "\r\n" . '                        $("#migrate_button").prop("disabled", false);' . "\r\n" . '                    }' . "\r\n" . '                } else {' . "\r\n" . '                    $("#migration_progress").html("No progress available...");' . "\r\n" . '                    setTimeout(getMigrationStatus, 1000);' . "\r\n" . '                }' . "\r\n" . '                if ($("#migration_progress").length) {' . "\r\n" . '                   $("#migration_progress").scrollTop($("#migration_progress")[0].scrollHeight - $("#migration_progress").height());' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '        }' . "\r\n" . '        function migrateServer() {' . "\r\n" . "            window.location.href = 'setup?migrate=1';" . "\r\n" . '        }' . "\r\n" . '        ';
+	}
+
+	echo '        $(document).ready(function() {' . "\r\n\t\t\t" . '$(window).keypress(function(event){' . "\r\n\t\t\t\t" . 'if(event.which == 13 && event.target.nodeName != "TEXTAREA") return false;' . "\r\n\t\t\t" . '});' . "\r\n" . '            ';
+
+	if ($rMigrating) {
+		echo '            getMigrationStatus();' . "\r\n" . '            ';
+	}
+
+	echo '        });' . "\r\n" . '        ';
+else:
+	include 'post.php';
+?>
+
+	<script>
+		var rRealURL = undefined;
+		var jBoxes = [];
+		var rOptions = [];
+		var rSwitches = [];
+		var rRefresh = null;
+		var rProcessing = false;
+		var rSearchTop = 0;
+		var rShiftHeld = false;
+
+		window.XC_VM = window.XC_VM || {};
+		window.XC_VM.Listings = window.XC_VM.Listings || {};
+
+		function hideModal(rName, rDispose = false) {
+			$(rName).modal("hide");
+			if (rDispose) {
+				$(rName).modal("dispose");
+			}
+			$(rName).css("display", "none");
+		}
+
+		function showError(rText) {
+			$.toast({
+				text: rText,
+				icon: 'warning',
+				loader: true,
+				loaderBg: '#c62828',
+				hideAfter: 8000
+			})
+		}
+
+		function showSuccess(rText) {
+			$.toast({
+				text: rText,
+				icon: 'success',
+				loader: true,
+				hideAfter: 5000
+			})
+		}
+
+		function findRowByID(rTable, rColumn, rID) {
+			for (rRow in rTable.rows()[0]) {
+				if ($(rTable.row(rRow).data()[rColumn]).data("id") == rID) {
+					return rRow;
+				} else if ((rTable.row(rRow).data()[rColumn] == rID) || ($(rTable.row(rRow).data()[rColumn]).text() == rID)) {
+					return rRow;
+				}
+			}
+			return null;
+		}
+
+		function isValidDomain(domain) {
+			var re = new RegExp(/^((?:(?:(?:\w[\.\-\+]?)*)\w)+)((?:(?:(?:\w[\.\-\+]?){0,62})\w)+)\.(\w{2,16})$/);
+			return domain.match(re);
+		}
+
+		function isValidIP(rIP) {
+			if (/^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(rIP)) {
+				return true;
+			} else {
+				return false;
+			}
+		}
+
+		function isValidDate(dateString) {
+			var regEx = /^\d{4}-\d{2}-\d{2}$/;
+			if (!dateString.match(regEx)) return false; // Invalid format
+			var d = new Date(dateString);
+			var dNum = d.getTime();
+			if (!dNum && dNum !== 0) return false; // NaN value, Invalid date
+			return d.toISOString().slice(0, 10) === dateString;
+		}
+
+		function isNumberKey(evt) {
+			var charCode = (evt.which) ? evt.which : evt.keyCode;
+			if (charCode != 46 && charCode != 45 && charCode > 31 && (charCode < 48 || charCode > 57)) {
+				return false;
+			} else {
+				return true;
+			}
+		}
+
+		function pingSession() {
+			$.getJSON("./session", function(data) {
+				if (!data.result) {
+					window.location.href = './login?referrer=' + encodeURIComponent(location.href.split("/").slice(-1)[0]);
+				}
+			});
+			setTimeout(pingSession, 30000);
+		}
+
+		function modalFingerprint(rID, rType = "stream") {
+			$(".quick_search").select2("close");
+			$("#topnav-search").removeClass("active");
+			refreshTooltips();
+			$('#mod_fingerprint_type').select2();
+			$("#mod_custom_message_div").hide();
+			$("#mod_fingerprint_type").val(1);
+			$("#mod_font_size").val(36);
+			$("#mod_font_color").val("#ffffff");
+			$("#mod_position_x").val(10);
+			$("#mod_position_y").val(10);
+			$("#mod_custom_message").val("");
+			$(".fingerprintModal").data("id", rID);
+			$(".fingerprintModal").data("type", rType)
+			$('.fingerprintModal').modal('show');
+		}
+
+		function setModalFingerprint() {
+			rArray = {
+				"id": $(".fingerprintModal").data("id"),
+				"font_size": $("#mod_font_size").val(),
+				"font_color": $("#mod_font_color").val(),
+				"message": "",
+				"type": $("#mod_fingerprint_type").val(),
+				"xy_offset": ""
+			};
+			if ($(".fingerprintModal").data("type") == "user") {
+				rArray["user"] = true;
+			}
+			if (rArray.type == 3) {
+				rArray["message"] = $("#mod_custom_message").val();
+			}
+			if (($("#mod_position_x").val() >= 0) && ($("#mod_position_y").val() >= 0)) {
+				rArray["xy_offset"] = $("#mod_position_x").val() + "x" + $("#mod_position_y").val();
+			}
+			if ((rArray["font_size"] > 0) && (rArray["font_color"]) && ((rArray["message"]) || (rArray["type"] != 3)) && (rArray["font_size"] > 0) && (rArray["xy_offset"])) {
+				$.getJSON("./api?action=fingerprint&data=" + encodeURIComponent(JSON.stringify(rArray)), function(data) {
+					if (data.result == true) {
+						$.toast("Fingerprint signal has been sent.");
+					} else {
+						$.toast("<?php echo $_['error_occured']; ?>");
+					}
+				});
+			} else {
+				$.toast("<?php echo $_['fingerprint_fail']; ?>");
+			}
+			$(".fingerprintModal").modal("hide");
+		}
+
+		function setSwitch(switchElement, checkedBool) {
+			if ((checkedBool && !switchElement.isChecked()) || (!checkedBool && switchElement.isChecked())) {
+				switchElement.setPosition(true);
+				switchElement.handleOnchange(true);
+			}
+		}
+		<?php if ($rSettings['js_navigate']): ?>
+
+			function reloadMenu() {
+				$(".navigation-menu a").each(function() {
+					($(this).removeClass("active"), $(this).parent().removeClass("active"), $(this).parent().parent().removeClass("in"), $(this).parent().parent().prev().removeClass("active"), $(this).parent().parent().parent().removeClass("active"), $(this).parent().parent().parent().parent().removeClass("in"), $(this).parent().parent().parent().parent().parent().removeClass("active"));
+				});
+				$(".navigation-menu a").each(function() {
+					var rURL = window.location.href.split(/[?#]/)[0];
+					if (this.href == rURL) {
+						($(this).addClass("active"), $(this).parent().addClass("active"), $(this).parent().parent().addClass("in"), $(this).parent().parent().prev().addClass("active"), $(this).parent().parent().parent().addClass("active"), $(this).parent().parent().parent().parent().addClass("in"), $(this).parent().parent().parent().parent().parent().addClass("active"));
+					}
+				});
+				setTimeout(fadeRipple, 350);
+			}
+
+			function fadeRipple() {
+				$(".waves-ripple").attr("style", "");
+			}
+
+			function resetKnobs() {
+				$('[data-plugin="knob"]').each(function(t, i) {
+					$(this).knob({
+						'format': function(value) {
+							return value + '%';
+						}
+					})
+				});
+				$('[data-plugin="peity-line"]').each(function(t, i) {
+					$(this).peity("line", $(this).data());
+				});
+			}
+
+			function killTimeouts() {
+				var highestTimeoutId = setTimeout(";");
+				for (var i = 0; i < highestTimeoutId; i++) {
+					clearTimeout(i);
+				}
+			}
+
+			function deleteSwitches() {
+				$(window.rSwitches).each(function() {
+					$(this).destroy();
+				});
+				$(".switchery").remove();
+			}
+
+			function deleteSelect2() {
+				$("select").each(function() {
+					if ($(this).data('select2')) {
+						$(this).select2('destroy');
+					}
+				});
+			}
+
+			function navigate(rURL, rNewTab = false) {
+				if ((window.rCurrentPage) && (rURL == window.rCurrentPage + "#")) {
+					return false;
+				}
+				if (rURL.split("#")[0].split("?")[0] == "epg_view") {
+					window.location.href = rURL;
+					window.location.reload();
+					return;
+				}
+				if (window.rShiftHeld) {
+					return;
+				}
+				if (rNewTab) {
+					window.open(rURL, '_blank');
+					return;
+				}
+				$(".wrapper").off().find("*").off();
+				$(".modal").off().find("*").off();
+				$(".submenu").hide();
+				hideModal('.modal', true);
+				$(".modal-backdrop").hide();
+				$(".wrapper").fadeOut();
+				$(".jBox-wrapper").hide();
+				$(window.jBoxes).each(function() {
+					this.close();
+				});
+				window.rReferer = window.location.href.split("/").reverse()[0];
+				window.rCurrentPage = rURL.split("/").reverse()[0].split("?")[0].split(".")[0];
+				setURL(rURL, false);
+				killTimeouts();
+				clearTimeout(window.rRefresh);
+				deleteSwitches();
+				deleteSelect2();
+				reloadMenu();
+				$.magnificPopup.close();
+				$("#status").fadeIn();
+				$(".jq-toast-single").remove();
+				$('html, body').animate({
+					scrollTop: 0
+				}, 400);
+				$("#header_stats").show();
+				$(".app-search").width(150);
+				$("#topnav-search").removeClass("active");
+				$(".multiselect").hide();
+				$.get(rURL, function(rData) {
+					if ($(rData).filter("title").data("id") == "login") {
+						window.location.href = './login?referrer=' + encodeURIComponent(location.href.split("/").slice(-1)[0]);
+					}
+					var rTables = $.fn.dataTable.fnTables(true);
+					$(rTables).each(function() {
+						$(this).DataTable().destroy(true);
+					});
+					document.title = $(rData).filter("title").text();
+					$(".wrapper").replaceWith($(rData).filter(".wrapper"));
+					$("#scripts").replaceWith($(rData).filter("#scripts"));
+					$("#topnav-custom").replaceWith($(rData).filter("#topnav").find("#topnav-custom"));
+					jQuery.ready();
+					resetKnobs();
+					bindHref();
+					refreshTooltips();
+					if ($(".nav")) {
+						$(".nav:first").find(".nav-link:first").trigger("click");
+					}
+					$(".wrapper").fadeIn();
+					$("#status").fadeOut();
+					$(':input[type="submit"]').prop('disabled', false);
+				}).fail(function() {
+					window.location.href = rURL;
+				});
+			}
+		<?php else: ?>
+
+			function navigate(rURL) {
+				window.location.href = rURL;
+			}
+		<?php endif; ?>
+
+		function reloadPage() {
+			navigate(window.location.href);
+		}
+
+		function refreshTooltips(rModals = true) {
+			if (rModals) {
+				$(".jBox-wrapper").hide();
+			}
+			$(window.jBoxes).each(function() {
+				this.close();
+				this.destroy();
+			});
+			window.jBoxes = [];
+			$('.tooltip-left').each(function() {
+				window.jBoxes.push(new $(this).jBox('Tooltip', {
+					theme: 'TooltipDark',
+					position: {
+						x: 'left',
+						y: 'center'
+					},
+					outside: 'x'
+				}));
+			});
+			$('.tooltip-right').each(function() {
+				window.jBoxes.push(new $(this).jBox('Tooltip', {
+					theme: 'TooltipDark',
+					position: {
+						x: 'right',
+						y: 'center'
+					},
+					outside: 'x'
+				}));
+			});
+			$('.tooltip').each(function() {
+				window.jBoxes.push(new $(this).jBox('Tooltip', {
+					theme: 'TooltipDark'
+				}));
+			});
+		}
+
+		function setURL(rURL, rReplace = true) {
+			if (rReplace) {
+				window.history.replaceState({}, '', rURL);
+			} else {
+				if (window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0] != rURL.split("/").reverse()[0].split("?")[0].split(".")[0]) {
+					window.history.pushState({}, '', rURL);
+				}
+				window.rRealURL = rURL;
+			}
+		}
+
+		function delParams(rParams) {
+			$.each(rParams, function(rIndex, rParam) {
+				delParam(rParam);
+			});
+		}
+
+		function delParam(rParam) {
+			var rURL = new URL(document.location);
+			rURL.searchParams.delete(rParam);
+			setURL(rURL);
+		}
+
+		function setParam(rParam, rValue) {
+			var rURL = new URL(document.location);
+			rURL.searchParams.set(rParam, rValue);
+			setURL(rURL);
+		}
+
+		function getParam(rParam) {
+			var rURL = new URL(document.location);
+			return rURL.searchParams.get(rParam);
+		}
+
+		function hasParam(rParam) {
+			var rURL = new URL(document.location);
+			return rURL.searchParams.has(rParam);
+		}
+
+		function hasParams(rParams, rAll = false) {
+			var rURL = new URL(document.location);
+			var rCount = 0;
+			$.each(rParams, function(rIndex, rParam) {
+				if (rURL.searchParams.has(rParam)) {
+					rCount += 1;
+				}
+			});
+			if (((rCount > 0) && (!rAll)) || (rCount == rParams.length)) {
+				return true;
+			} else {
+				return false;
+			}
+		}
+
+		function bindHref() {
+			<?php if ($rSettings['js_navigate']): ?>
+				$("a").each(function() {
+					if (($(this).attr("href")) && ($(this).data("modal") === undefined) && ($(this).attr("href").slice(0, 1) != "#") && ($(this).attr("href").slice(0, 11) != "javascript:") && ($(this).attr("href").slice(0, 8) != "epg_view")) {
+						$(this).unbind("click");
+						$(this).click(function(e) {
+							navigate($(this).attr("href"), e.ctrlKey);
+							e.preventDefault();
+						});
+					}
+				});
+			<?php endif; ?>
+		}
+
+		function whois(rIP) {
+			$("#whoisLabel").html(rIP);
+			var rRows = $("#whois-table tr");
+			$(rRows).each(function() {
+				$(this).find("td").html("");
+			});
+			$.getJSON("./api?action=ip_whois&isp=1&ip=" + encodeURIComponent(rIP), function(rData) {
+				if ("data" in rData) {
+					if (("continent" in rData.data) && ("names" in rData.data.continent) && ("en" in rData.data.continent.names)) {
+						$(rRows[1]).find("td").html(rData.data.continent.names.en);
+					}
+					if (("country" in rData.data) && ("names" in rData.data.country) && ("en" in rData.data.country.names)) {
+						$(rRows[2]).find("td").html(rData.data.country.names.en);
+					}
+					if (("city" in rData.data) && ("names" in rData.data.city) && ("en" in rData.data.city.names)) {
+						$(rRows[3]).find("td").html(rData.data.city.names.en);
+					}
+					if (("postal" in rData.data) && ("code" in rData.data.postal)) {
+						$(rRows[4]).find("td").html(rData.data.postal.code);
+					}
+					if (("location" in rData.data) && ("latitude" in rData.data.location) && ("longitude" in rData.data.location)) {
+						$(rRows[5]).find("td").html(rData.data.location.latitude + ", " + rData.data.location.longitude);
+					}
+					if (("isp" in rData.data) && (rData.data.isp)) {
+						if ("isp" in rData.data.isp) {
+							$(rRows[7]).find("td").html(rData.data.isp.isp);
+						}
+						if ("organization" in rData.data.isp) {
+							$(rRows[8]).find("td").html(rData.data.isp.organization);
+						}
+						if (("autonomous_system_number" in rData.data.isp) && ("autonomous_system_organization" in rData.data.isp)) {
+							$(rRows[9]).find("td").html("AS" + rData.data.isp.autonomous_system_number.toString() + " - " + rData.data.isp.autonomous_system_organization);
+						}
+						if (rData.data.type) {
+							$(rRows[10]).find("td").html(rData.data.type.toUpperCase());
+						}
+					}
+					if (("location" in rData.data) && ("time_zone" in rData.data.location)) {
+						$(rRows[12]).find("td").html(rData.data.location.time_zone);
+					}
+					if (("location" in rData.data) && ("time" in rData.data.location)) {
+						$(rRows[13]).find("td").html(rData.data.location.time);
+					}
+				}
+			});
+			$(".bs-whois-modal-center").modal("show");
+		}
+
+		function headerStats() {
+			rURL = "./api?action=header_stats";
+			$.getJSON(rURL, function(data) {
+				$("#header_connections").html($.number(data.total_connections, 0));
+				$("#header_users").html($.number(data.total_users, 0));
+				$("#header_network_up").html($.number(Math.floor(data.bytes_sent / 125000), 0));
+				$("#header_network_down").html($.number(Math.floor(data.bytes_received / 125000), 0));
+				$("#header_streams_up").html($.number(data.total_running_streams, 0));
+				$("#header_streams_down").html($.number(data.offline_streams, 0));
+				setTimeout(headerStats, 1000);
+			}).fail(function() {
+				setTimeout(headerStats, 1000);
+			});
+		}
+
+		function addCredits(rID) {
+			$('.creditsModal').data('id', rID);
+			$("#credits_reason").val("");
+			$("#credits").val(0);
+			$('.creditsModal').modal('show');
+			$(".quick_search").select2("close");
+			$("#topnav-search").removeClass("active");
+			refreshTooltips();
+		}
+
+		function submitCredits() {
+			var rID = $('.creditsModal').data('id');
+			var rReason = $("#credits_reason").val();
+			var rCredits = $("#credits").val();
+			$.getJSON("./api?action=adjust_credits&id=" + encodeURIComponent(rID) + "&reason=" + encodeURIComponent(rReason) + "&credits=" + encodeURIComponent(rCredits), function(data) {
+				if (data.result === true) {
+					$.toast("Credits have been adjusted.");
+					refreshTable();
+				} else {
+					$.toast("Credits could not be adjusted.");
+				}
+			});
+			hideModal('.creditsModal');
+		}
+
+		function searchAPI(rType, rID, rAction, rConfirm = false) {
+			if (rType == "stream") {
+				if ((rAction == "purge") && (!rConfirm)) {
+					new jBox("Confirm", {
+						confirmButton: "Kill",
+						cancelButton: "Cancel",
+						content: "Are you sure you want to kill all connections?",
+						confirm: function() {
+							searchAPI(rType, rID, rAction, true);
+						}
+					}).open();
+				} else {
+					rConfirm = true;
+				}
+				if (rConfirm) {
+					$.getJSON("./api?action=stream&sub=" + rAction + "&stream_id=" + rID + "&server_id=-1", function(data) {
+						if (data.result == true) {
+							if (rAction == "start") {
+								$.toast("Stream successfully started.");
+							} else if (rAction == "stop") {
+								$.toast("Stream successfully stopped.");
+							} else if (rAction == "restart") {
+								$.toast("Stream successfully restarted.");
+							} else if (rAction == "purge") {
+								$.toast("Connections have been killed.");
+							}
+							$(".bigdrop .select2-search__field").trigger("input");
+							window.rSearchTop = $(".bigdrop .select2-results__options").scrollTop();
+						} else {
+							$.toast("An error occured while processing your request.");
+						}
+					}).fail(function() {
+						$.toast("An error occured while processing your request.");
+					});
+				}
+			} else if (rType == "movie") {
+				if ((rAction == "purge") && (!rConfirm)) {
+					new jBox("Confirm", {
+						confirmButton: "Kill",
+						cancelButton: "Cancel",
+						content: "Are you sure you want to kill all connections?",
+						confirm: function() {
+							searchAPI(rType, rID, rAction, true);
+						}
+					}).open();
+				} else {
+					rConfirm = true;
+				}
+				if (rConfirm) {
+					$.getJSON("./api?action=movie&sub=" + rAction + "&stream_id=" + rID + "&server_id=-1", function(data) {
+						if (data.result == true) {
+							if (rAction == "start") {
+								$.toast("<?php echo $_['movie_encode_started']; ?>");
+							} else if (rAction == "stop") {
+								$.toast("<?php echo $_['movie_encode_stopped']; ?>");
+								refreshTable();
+							} else if (rAction == "purge") {
+								$.toast("Connections have been killed.");
+							}
+							$(".bigdrop .select2-search__field").trigger("input");
+							window.rSearchTop = $(".bigdrop .select2-results__options").scrollTop();
+						} else {
+							$.toast("An error occured while processing your request.");
+						}
+					}).fail(function() {
+						$.toast("An error occured while processing your request.");
+					});
+				}
+			} else if (rType == "episode") {
+				if ((rAction == "purge") && (!rConfirm)) {
+					new jBox("Confirm", {
+						confirmButton: "Kill",
+						cancelButton: "Cancel",
+						content: "Are you sure you want to kill all connections?",
+						confirm: function() {
+							searchAPI(rType, rID, rAction, true);
+						}
+					}).open();
+				} else {
+					rConfirm = true;
+				}
+				if (rConfirm) {
+					$.getJSON("./api?action=episode&sub=" + rAction + "&stream_id=" + rID + "&server_id=-1", function(data) {
+						if (data.result == true) {
+							if (rAction == "start") {
+								$.toast("<?php echo $_['episode_encoding_start']; ?>");
+							} else if (rAction == "stop") {
+								$.toast("<?php echo $_['episode_encoding_stop']; ?>");
+							} else if (rAction == "purge") {
+								$.toast("Connections have been killed.");
+							}
+							$(".bigdrop .select2-search__field").trigger("input");
+							window.rSearchTop = $(".bigdrop .select2-results__options").scrollTop();
+						} else {
+							$.toast("An error occured while processing your request.");
+						}
+					}).fail(function() {
+						$.toast("An error occured while processing your request.");
+					});
+				}
+			} else if (rType == "user") {
+				$.getJSON("./api?action=reg_user&sub=" + rAction + "&user_id=" + rID, function(data) {
+					if (data.result === true) {
+						if (rAction == "enable") {
+							$.toast("User has been enabled.");
+						} else if (rAction == "disable") {
+							$.toast("User has been disabled.");
+						}
+						$(".bigdrop .select2-search__field").trigger("input");
+						window.rSearchTop = $(".bigdrop .select2-results__options").scrollTop();
+					} else {
+						$.toast("An error occured while processing your request.");
+					}
+				}).fail(function() {
+					$.toast("An error occured while processing your request.");
+				});
+			} else if (rType == "line") {
+				if ((rAction == "kill") && (!rConfirm)) {
+					new jBox("Confirm", {
+						confirmButton: "Kill",
+						cancelButton: "Cancel",
+						content: "Are you sure you want to kill all connections for this line?",
+						confirm: function() {
+							searchAPI(rType, rID, rAction, true);
+						}
+					}).open();
+				} else {
+					rConfirm = true;
+				}
+				if (rConfirm) {
+					$.getJSON("./api?action=line&sub=" + rAction + "&user_id=" + rID, function(data) {
+						if (data.result === true) {
+							if (rAction == "enable") {
+								$.toast("Line has been enabled.");
+							} else if (rAction == "disable") {
+								$.toast("Line has been disabled.");
+							} else if (rAction == "unban") {
+								$.toast("Line has been unbanned.");
+							} else if (rAction == "ban") {
+								$.toast("Line has been banned.");
+							} else if (rAction == "kill") {
+								$.toast("All connections for this line have been killed.");
+							}
+							$(".bigdrop .select2-search__field").trigger("input");
+							window.rSearchTop = $(".bigdrop .select2-results__options").scrollTop();
+						} else {
+							$.toast("An error occured while processing your request.");
+						}
+					}).fail(function() {
+						$.toast("An error occured while processing your request.");
+					});
+				}
+			}
+		}
+
+		function editModal(rEvent, rType, rID, rTitle) {
+			if (rEvent) {
+				rEvent.preventDefault();
+			}
+			eModal.iframe(rType + '?id=' + rID + '&modal=1', rTitle);
+		}
+
+		function closeEditModal() {
+			$('.modal').modal('hide');
+			if ($("#datatable-users").length) {
+				$("#datatable-users").DataTable().ajax.reload(null, false);
+			}
+			if ($("#datatable-streampage").length) {
+				$("#datatable-streampage").DataTable().ajax.reload(null, false);
+			}
+		}
+
+		function initSearch() {
+			$(".dropdown").unbind("click");
+			$(".dropdown").click(function() {
+				if ($(this).attr("id") == "search-mobile") {
+					if ($("#topnav-search").hasClass("active")) {
+						$(".quick_search").select2("close");
+						$("#topnav-search").removeClass("active");
+					} else {
+						$("#topnav-search").addClass("active");
+						$(".quick_search").select2("open");
+					}
+				} else {
+					if ($("#topnav-search").hasClass("active")) {
+						$(".quick_search").select2("close");
+						$("#topnav-search").removeClass("active");
+					}
+				}
+			});
+			$(".quick_search").unbind("select2:opening");
+			$(".quick_search").unbind("select2:closing");
+			$(".quick_search").unbind("select2:selecting");
+			$(".quick_search").unbind("select2:draw");
+			$(".quick_search").select2({
+				ajax: {
+					url: './api',
+					dataType: 'json',
+					data: function(params) {
+						return {
+							search: params.term,
+							action: 'search'
+						};
+					},
+					processResults: function(data, params) {
+						return {
+							results: data.items
+						};
+					},
+					cache: true
+				},
+				minimumInputLength: 3,
+				templateResult: function(data) {
+					return data.html
+				},
+				escapeMarkup: function(m) {
+					return m;
+				},
+				placeholder: 'Search...',
+				dropdownCssClass: 'bigdrop'
+			}).on("select2:opening", function(e) {
+				if ($("#header_stats").is(":visible")) {
+					var rMaxWidth = parseInt($(".app-search-box").position()["left"] - ($("#header_stats li:last").position()["left"] + $("#header_stats li:last").width()));
+					if (rMaxWidth < 600) {
+						$("#header_stats").hide();
+					}
+					$(".app-search").width(600);
+				}
+				window.rSearchTop = 0;
+			}).on("select2:closing", function(e) {
+				$(".bigdrop .select2-results__options li").remove();
+				$("#header_stats").show();
+				$(".app-search").width(150);
+				window.rSearchTop = 0;
+			}).on("select2:selecting", function(e) {
+				e.preventDefault();
+				return false;
+			}).on("select2:draw", function(e) {
+				refreshTooltips();
+				if (window.rSearchTop > 0) {
+					$(".bigdrop .select2-results__options").scrollTop(window.rSearchTop);
+					window.rSearchTop = 0;
+				}
+			});
+			$(".app-search-box .select2-selection").addClass($(".app-search").data("theme")).addClass("header-search");
+			$("#mod_fingerprint_type").unbind("change");
+			$("#mod_fingerprint_type").change(function() {
+				if ($(this).val() == 3) {
+					$("#mod_custom_message_div").show();
+				} else {
+					$("#mod_custom_message_div").hide();
+				}
+			});
+			$("#mod_font_size").inputFilter(function(value) {
+				return /^\d*$/.test(value);
+			});
+			$("#mod_position_x").inputFilter(function(value) {
+				return /^\d*$/.test(value);
+			});
+			$("#mod_position_y").inputFilter(function(value) {
+				return /^\d*$/.test(value);
+			});
+		}
+	</script>
+
+<?php
+endif;
