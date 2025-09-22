@@ -314,11 +314,7 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														if ($rSettings["debug_show_errors"] == 1) {
 															echo ' checked ';
 														}
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="auto_send_logs">Auto-Send Logs to XC_VM <i title="Sends panel error logs automatically to be parsed and verified by the XC_VM team." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="auto_send_logs" id="auto_send_logs" type="checkbox"';
-														if ($rSettings["auto_send_logs"] == 1) {
-															echo ' checked ';
-														}
-														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div>    </div>    <h5 class="card-title mb-4">reCAPTCHA</h5>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label">Enable reCAPTCHA <i title="Click here to show active domains for your servers and resellers that you should consider adding to reCAPTCHA." class="tooltip text-secondary far fa-circle" data-toggle="modal" data-target=".bs-domains"></i></label><div class="col-md-2"><input name="recaptcha_enable" id="recaptcha_enable" type="checkbox"';
+														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div> <h5 class="card-title mb-4">reCAPTCHA</h5>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label">Enable reCAPTCHA <i title="Click here to show active domains for your servers and resellers that you should consider adding to reCAPTCHA." class="tooltip text-secondary far fa-circle" data-toggle="modal" data-target=".bs-domains"></i></label><div class="col-md-2"><input name="recaptcha_enable" id="recaptcha_enable" type="checkbox"';
 														if ($rSettings["recaptcha_enable"] == 1) {
 															echo ' checked ';
 														} ?> data-plugin=" switchery" class="js-switch" data-color="#039cfd">
@@ -342,8 +338,7 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-8">
 													<input type="text" class="form-control" id="recaptcha_v2_secret_key"
-														name="recaptcha_v2_secret_key" value="
-	<?= htmlspecialchars($rSettings["recaptcha_v2_secret_key"]) ?>">
+														name="recaptcha_v2_secret_key" value="<?= htmlspecialchars($rSettings["recaptcha_v2_secret_key"]) ?>">
 												</div>
 											</div>
 											<h5 class="card-title mb-4">Default Arguments</h5>
@@ -1527,25 +1522,25 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 															}
 
 														?> value="<?= $rValue ?>"><?= $rText ?></option><?php
-																										}
-																										echo '</select></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="ffmpeg_warnings">FFMPEG Show Warnings <i title="Instruct FFMPEG to save warnings to stream errors table. Turning this off will save only errors instead." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="ffmpeg_warnings" id="ffmpeg_warnings" type="checkbox"';
+																									}
+																									echo '</select></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="ffmpeg_warnings">FFMPEG Show Warnings <i title="Instruct FFMPEG to save warnings to stream errors table. Turning this off will save only errors instead." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="ffmpeg_warnings" id="ffmpeg_warnings" type="checkbox"';
 
-																										if ($rSettings["ffmpeg_warnings"] == 1) {
-																											echo ' checked ';
-																										}
+																									if ($rSettings["ffmpeg_warnings"] == 1) {
+																										echo ' checked ';
+																									}
 
-																										echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="ignore_keyframes">Ignore Keyframes <i title="Allow segments to start on frames other than keyframes. This improves behavior on some players when the time between keyframes is inconsistent, but may make things worse on others, and can cause some oddities during startup with blank screen until video kicks in." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="ignore_keyframes" id="ignore_keyframes" type="checkbox"';
+																									echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="ignore_keyframes">Ignore Keyframes <i title="Allow segments to start on frames other than keyframes. This improves behavior on some players when the time between keyframes is inconsistent, but may make things worse on others, and can cause some oddities during startup with blank screen until video kicks in." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="ignore_keyframes" id="ignore_keyframes" type="checkbox"';
 
-																										if ($rSettings["ignore_keyframes"] == 1) {
-																											echo ' checked ';
-																										}
+																									if ($rSettings["ignore_keyframes"] == 1) {
+																										echo ' checked ';
+																									}
 
-																										echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="dts_legacy_ffmpeg">DTS - Use FFMPEG v4.0 <i title="Automatically switch to legacy FFMPEG v4.0 for streams with DTS audio, in some cases this has been known to fix desynchronised audio. Generate PTS needs to be turned off for this to function." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="dts_legacy_ffmpeg" id="dts_legacy_ffmpeg" type="checkbox"';
+																									echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="dts_legacy_ffmpeg">DTS - Use FFMPEG v4.0 <i title="Automatically switch to legacy FFMPEG v4.0 for streams with DTS audio, in some cases this has been known to fix desynchronised audio. Generate PTS needs to be turned off for this to function." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="dts_legacy_ffmpeg" id="dts_legacy_ffmpeg" type="checkbox"';
 
-																										if ($rSettings["dts_legacy_ffmpeg"] == 1) {
-																											echo ' checked ';
-																										}
-																											?> data-plugin="switchery" class="js-switch" data-color="#039cfd"/>
+																									if ($rSettings["dts_legacy_ffmpeg"] == 1) {
+																										echo ' checked ';
+																									}
+																										?> data-plugin="switchery" class="js-switch" data-color="#039cfd"/>
 												</div>
 												<label class="col-md-4 col-form-label" for="php_loopback">Loopback
 													Streams via PHP <i
@@ -1623,8 +1618,8 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 															}
 
 														?> value="<?= $rValue ?>"><?= $rText ?></option><?php
-																										}
-																											?>
+																									}
+																										?>
 													</select>
 												</div>
 											</div>
