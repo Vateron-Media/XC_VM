@@ -75,7 +75,7 @@
 					window.rSwitches[$(html).attr("id")] = switchery;
 				});
 				setTimeout(pingSession, 30000);
-				<?php if (!$rMobile || $rSettings['header_stats']): ?>
+				<?php if (!$rMobile && $rSettings['header_stats']): ?>
 					headerStats();
 				<?php endif; ?>
 				bindHref();
