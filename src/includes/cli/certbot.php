@@ -25,8 +25,7 @@ function loadcli() {
         }
         $rActiveDomains = array();
         foreach ($rData['domain'] as $rDomain) {
-            if (filter_var($rDomain, FILTER_VALIDATE_IP)) {
-            } else {
+            if (!empty($rDomain) && !filter_var($rDomain, FILTER_VALIDATE_IP)) {
                 $rActiveDomains[] = $rDomain;
             }
         }
@@ -46,10 +45,22 @@ function loadcli() {
                 $rCommand .= ' 2>&1';
                 $rOutput = array();
                 exec($rCommand, $rOutput, $rReturn);
+
+                //************* Debug generate SSL */
+                $log = date('Y-m-d H:i:s') . ' ' . print_r($rOutput, true);
+                file_put_contents(__DIR__ . '/certbot.txt', $log . PHP_EOL, FILE_APPEND);
+                //************* Debug generate SSL */
+
                 if (empty($rDry)) {
                     if (stripos(implode("\n", $rOutput), 'certificate and chain have been saved at') !== false) {
                         $rDirectory = null;
                         foreach ($rOutput as $rLine) {
+                            
+                            //************* Debug generate SSL */
+                            $log = date('Y-m-d H:i:s') . ' ' . print_r(pathinfo($rLine), true);
+                            file_put_contents(__DIR__ . '/certbot.txt', $log . PHP_EOL, FILE_APPEND);
+                            //************* Debug generate SSL */
+
                             $rDirectory = pathinfo($rLine)['dirname'];
                             break;
                         }
@@ -62,8 +73,7 @@ function loadcli() {
                                 file_put_contents(BIN_PATH . 'nginx/conf/ssl.conf', $rSSLConfig);
                                 shell_exec('chown xc_vm:xc_vm ' . BIN_PATH . 'nginx/conf/ssl.conf');
                                 $rInfo = CoreUtilities::getCertificateInfo();
-                                if (!$rInfo['serial']) {
-                                } else {
+                                if ($rInfo['serial']) {
                                     $db->query('UPDATE `servers` SET `certbot_ssl` = ? WHERE `id` = ?;', json_encode($rInfo), SERVER_ID);
                                 }
                                 $rResult = true;
@@ -97,12 +107,10 @@ function loadcli() {
         } else {
             $rError = 3;
         }
-        if (!in_array($rError, array(0, 1))) {
-        } else {
+        if (in_array($rError, array(0, 1))) {
             $db->query('SELECT `certbot_ssl` FROM `servers` WHERE `id` = ?;', SERVER_ID);
             $rCertInfo = json_decode($db->get_row()['certbot_ssl'], true);
-            if ($rCertInfo) {
-            } else {
+            if (!$rCertInfo) {
                 $rSelectedDomain = array(null, null);
                 foreach (scandir(BIN_PATH . 'certbot/config/live/') as $rDir) {
                     if (!($rDir != '.' && $rDir != '..')) {
@@ -113,24 +121,20 @@ function loadcli() {
                         } else {
                             $rDomain = $rDir;
                         }
-                        if (!in_array(strtolower($rDomain), array_map('strtolower', $rActiveDomains))) {
-                        } else {
+                        if (in_array(strtolower($rDomain), array_map('strtolower', $rActiveDomains))) {
                             $rInfo = CoreUtilities::getCertificateInfo(BIN_PATH . 'certbot/config/live/' . $rDir . '/fullchain.pem');
-                            if (!($rInfo['serial'] && $rSelectedDomain[0] < $rInfo['expiration']) && $rSelectedDomain[0]) {
-                            } else {
+                            if (($rInfo['serial'] && $rSelectedDomain[0] < $rInfo['expiration']) && !$rSelectedDomain[0]) {
                                 $rSelectedDomain = array($rInfo['expiration'], $rInfo);
                             }
                         }
                     }
                 }
-                if (!$rSelectedDomain[0]) {
-                } else {
+                if ($rSelectedDomain[0]) {
                     $rDirectory = $rSelectedDomain[1]['path'];
                     $rCertificate = $rDirectory . '/fullchain.pem';
                     $rChain = $rDirectory . '/chain.pem';
                     $rPrivateKey = $rDirectory . '/privkey.pem';
-                    if (!(file_exists($rCertificate) && file_exists($rChain) && file_exists($rPrivateKey))) {
-                    } else {
+                    if (file_exists($rCertificate) && file_exists($rChain) && file_exists($rPrivateKey)) {
                         $rSSLConfig = 'ssl_certificate ' . $rCertificate . ';' . "\n" . 'ssl_certificate_key ' . $rPrivateKey . ';' . "\n" . 'ssl_trusted_certificate ' . $rChain . ';' . "\n" . 'ssl_protocols TLSv1.2 TLSv1.3;' . "\n" . 'ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;' . "\n" . 'ssl_prefer_server_ciphers off;' . "\n" . 'ssl_ecdh_curve auto;' . "\n" . 'ssl_session_timeout 10m;' . "\n" . 'ssl_session_cache shared:MozSSL:10m;' . "\n" . 'ssl_session_tickets off;';
                         file_put_contents(BIN_PATH . 'nginx/conf/ssl.conf', $rSSLConfig);
                         shell_exec('chown xc_vm:xc_vm ' . BIN_PATH . 'nginx/conf/ssl.conf');
@@ -143,8 +147,7 @@ function loadcli() {
         $rReturn = array('status' => $rResult, 'error' => $rError, 'output' => $rOutput);
         shell_exec('chown -R xc_vm:xc_vm ' . BIN_PATH . 'certbot/');
         file_put_contents(BIN_PATH . 'certbot/logs/xc_vm.log', json_encode($rReturn));
-        if (!$rResult) {
-        } else {
+        if ($rResult) {
             shell_exec(MAIN_HOME . 'service reload');
         }
         shell_exec(PHP_BIN . ' ' . CRON_PATH . 'certbot.php 1 > /dev/null 2>/dev/null &');
@@ -152,8 +155,7 @@ function loadcli() {
 }
 function shutdown() {
     global $db;
-    if (!is_object($db)) {
-    } else {
+    if (is_object($db)) {
         $db->close_mysql();
     }
 }

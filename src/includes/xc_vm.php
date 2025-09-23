@@ -3091,27 +3091,22 @@ class CoreUtilities {
 		if (!$rCertificate) {
 			$rConfig = explode("\n", file_get_contents(BIN_PATH . 'nginx/conf/ssl.conf'));
 			foreach ($rConfig as $rLine) {
-				if (stripos($rLine, 'ssl_certificate ') === true) {
+				if (stripos($rLine, 'ssl_certificate ') !== false) {
 					$rCertificate = rtrim(trim(explode('ssl_certificate ', $rLine)[1]), ';');
 					break;
 				}
 			}
 		}
-		if (!$rCertificate) {
-		} else {
+		if ($rCertificate) {
 			$rReturn['path'] = pathinfo($rCertificate)['dirname'];
 			exec('openssl x509 -serial -enddate -subject -noout -in ' . escapeshellarg($rCertificate), $rOutput, $rReturnVar);
 			foreach ($rOutput as $rLine) {
 				if (stripos($rLine, 'serial=') !== false) {
 					$rReturn['serial'] = trim(explode('serial=', $rLine)[1]);
-				} else {
-					if (stripos($rLine, 'subject=') !== false) {
-						$rReturn['subject'] = trim(explode('subject=', $rLine)[1]);
-					} else {
-						if (stripos($rLine, 'notAfter=') === true) {
-							$rReturn['expiration'] = strtotime(trim(explode('notAfter=', $rLine)[1]));
-						}
-					}
+				} elseif (stripos($rLine, 'subject=') !== false) {
+					$rReturn['subject'] = trim(explode('subject=', $rLine)[1]);
+				} elseif (stripos($rLine, 'notAfter=') !== false) {
+					$rReturn['expiration'] = strtotime(trim(explode('notAfter=', $rLine)[1]));
 				}
 			}
 		}
