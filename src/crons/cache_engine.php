@@ -251,7 +251,7 @@ function loadCron($rType, $rGroupStart, $rGroupMax) {
                     } else {
                         $db->query('SELECT COUNT(*) AS `count` FROM `lines`;');
                         $rLinesCount = $db->get_row()['count'];
-                        $cacheValidityCheck = range(0, $rLinesCount, $rSplit);
+                        $cacheValidityCheck = $rSplit > $rLinesCount ? [0, $rLinesCount] : range(0, $rLinesCount, $rSplit);
                         if ($cacheValidityCheck) {
                         } else {
                             $cacheValidityCheck = array(0);
