@@ -1,42 +1,22 @@
 <?php
-
-
-
-
-
-
-
 include 'functions.php';
 
 if (($rStream = CoreUtilities::getStream(CoreUtilities::$rRequest['id'])) && in_array(CoreUtilities::$rRequest['id'], $rUserInfo['vod_ids'])) {
-
-
-
-	if (PLATFORM == 'xc_vm') {
-		$rProperties = json_decode($rStream['movie_properties'], true);
-		$rSubtitles = array(CoreUtilities::getSubtitles($rStream['id'], $rProperties['subtitle']));
-	} else {
-		$rStream['target_container'] = (json_decode($rStream['target_container'], true)[0] ?: 'mp4');
-		$rProperties = json_decode($rStream['movie_propeties'], true);
-		$rSubtitles = array();
-	}
-
+	$rProperties = json_decode($rStream['movie_properties'], true);
+	$rSubtitles = array(CoreUtilities::getSubtitles($rStream['id'], $rProperties['subtitle']));
 	$rDomainName = CoreUtilities::getDomainName(!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443);
 	$rURLs = array($rDomainName . 'movie/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rStream['id'] . '.' . $rStream['target_container']);
 	$rLegacy = false;
 
-	if ($rStream['target_container'] == 'mp4') {
-	} else {
+	if ($rStream['target_container'] != 'mp4') {
 		$rLegacy = true;
 	}
 
-	if (!$rProperties['tmdb_id']) {
-	} else {
+	if ($rProperties['tmdb_id']) {
 		if (!file_exists(TMP_PATH . 'tmdb_' . $rProperties['tmdb_id'])) {
 			$rTMDB = json_decode(json_encode(CoreUtilities::getMovieTMDB($rProperties['tmdb_id'])), true);
 
-			if (!$rTMDB) {
-			} else {
+			if ($rTMDB) {
 				file_put_contents(TMP_PATH . 'tmdb_' . $rProperties['tmdb_id'], CoreUtilities::serialize($rTMDB));
 			}
 		} else {
@@ -44,15 +24,8 @@ if (($rStream = CoreUtilities::getStream(CoreUtilities::$rRequest['id'])) && in_
 		}
 	}
 
-	if ($rTMDB) {
-		$rBackdrop = array_rand($rTMDB['_data']['images']['backdrops']);
-		$rCover = (($rTMDB['_data']['images']['backdrops'][$rBackdrop] ? 'https://image.tmdb.org/t/p/w1280' . $rTMDB['_data']['images']['backdrops'][$rBackdrop]['file_path'] : CoreUtilities::validateImage($rProperties['backdrop_path'][0])) ?: '');
-		$rThumb = array_rand($rTMDB['_data']['images']['posters']);
-		$rPoster = (($rTMDB['_data']['images']['posters'][$rThumb] ? 'https://image.tmdb.org/t/p/w600_and_h900_bestv2' . $rTMDB['_data']['images']['posters'][$rThumb]['file_path'] : CoreUtilities::validateImage($rProperties['cover'])) ?: '');
-	} else {
-		$rCover = (CoreUtilities::validateImage($rProperties['backdrop_path'][0]) ?: '');
-		$rPoster = (CoreUtilities::validateImage($rProperties['cover']) ?: '');
-	}
+	$rCover = (CoreUtilities::validateImage($rProperties['backdrop_path'][0]) ?: '');
+	$rPoster = (CoreUtilities::validateImage($rProperties['cover_big']) ?: '');
 
 	$rSimilarIDs = array($rStream['id']);
 	$rSimilar = array();
@@ -63,15 +36,11 @@ if (($rStream = CoreUtilities::getStream(CoreUtilities::$rRequest['id'])) && in_
 		if (CoreUtilities::$rSettings['player_hide_incompatible']) {
 			$db->query('SELECT * FROM `streams` WHERE `tmdb_id` IN (' . implode(',', $rSimilarArray) . ') AND (SELECT MAX(`compatible`) FROM `streams_servers` WHERE `streams_servers`.`stream_id` = `streams`.`id` LIMIT 1) = 1 LIMIT 6;');
 		} else {
-			if (PLATFORM == 'xc_vm') {
-				$db->query('SELECT * FROM `streams` WHERE `tmdb_id` IN (' . implode(',', $rSimilarArray) . ') LIMIT 6;');
-			} else {
-				$db->query('SELECT * FROM `streams` LEFT JOIN `webplayer_data` ON `webplayer_data`.`stream_id` = `streams`.`id` WHERE `tmdb_id` IN (' . implode(',', $rSimilarArray) . ') LIMIT 6;');
-			}
+			$db->query('SELECT * FROM `streams` WHERE `tmdb_id` IN (' . implode(',', $rSimilarArray) . ') LIMIT 6;');
 		}
 
 		foreach ($db->get_rows() as $rRow) {
-			$rSimilarProperties = json_decode((PLATFORM == 'xc_vm' ? $rRow['movie_properties'] : $rRow['movie_propeties']), true);
+			$rSimilarProperties = json_decode($rRow['movie_properties'], true);
 			$rSimilar[] = array('type' => 'movie', 'id' => $rRow['id'], 'title' => ($rRow['title'] ?: $rRow['stream_display_name']), 'year' => ($rRow['year'] ?: null), 'rating' => $rSimilarProperties['rating'], 'cover' => (CoreUtilities::validateImage($rSimilarProperties['movie_image']) ?: ''), 'backdrop' => (CoreUtilities::validateImage($rSimilarProperties['backdrop_path'][0]) ?: ''));
 			$rSimilarIDs[] = $rRow['id'];
 		}
@@ -88,17 +57,13 @@ if (($rStream = CoreUtilities::getStream(CoreUtilities::$rRequest['id'])) && in_
 		if (CoreUtilities::$rSettings['player_hide_incompatible']) {
 			$db->query('SELECT `streams`.*, COUNT(`user_id`) AS `count` FROM `lines_activity` LEFT JOIN `streams` ON `streams`.`id` = `lines_activity`.`stream_id` WHERE `user_id` IN (SELECT DISTINCT(`user_id`) FROM `lines_activity` WHERE `stream_id` = ? AND (`date_end` - `date_start` > 60)) AND `type` = 2 AND ' . $rPrevious . ' `stream_id` IN (' . implode(',', $rUserInfo['vod_ids']) . ') AND (SELECT MAX(`compatible`) FROM `streams_servers` WHERE `streams_servers`.`stream_id` = `streams`.`id` LIMIT 1) = 1 GROUP BY `stream_id` ORDER BY `count` DESC LIMIT ' . (6 - count($rSimilar)) . ';', $rStream['id']);
 		} else {
-			if (PLATFORM == 'xc_vm') {
-				$db->query('SELECT `streams`.*, COUNT(`user_id`) AS `count` FROM `lines_activity` LEFT JOIN `streams` ON `streams`.`id` = `lines_activity`.`stream_id` WHERE `user_id` IN (SELECT DISTINCT(`user_id`) FROM `lines_activity` WHERE `stream_id` = ? AND (`date_end` - `date_start` > 60)) AND `type` = 2 AND ' . $rPrevious . ' `stream_id` IN (' . implode(',', $rUserInfo['vod_ids']) . ') GROUP BY `stream_id` ORDER BY `count` DESC LIMIT ' . (6 - count($rSimilar)) . ';', $rStream['id']);
-			} else {
-				$db->query('SELECT `streams`.*, COUNT(`user_id`) AS `count` FROM `user_activity` LEFT JOIN `streams` ON `streams`.`id` = `user_activity`.`stream_id` LEFT JOIN `webplayer_data` ON `webplayer_data`.`stream_id` = `streams`.`id` WHERE `user_id` IN (SELECT DISTINCT(`user_id`) FROM `user_activity` WHERE `stream_id` = ? AND (`date_end` - `date_start` > 60)) AND `type` = 2 AND ' . $rPrevious . ' `stream_id` IN (' . implode(',', $rUserInfo['vod_ids']) . ') GROUP BY `stream_id` ORDER BY `count` DESC LIMIT ' . (6 - count($rSimilar)) . ';', $rStream['id']);
-			}
+			$db->query('SELECT `streams`.*, COUNT(`user_id`) AS `count` FROM `lines_activity` LEFT JOIN `streams` ON `streams`.`id` = `lines_activity`.`stream_id` WHERE `user_id` IN (SELECT DISTINCT(`user_id`) FROM `lines_activity` WHERE `stream_id` = ? AND (`date_end` - `date_start` > 60)) AND `type` = 2 AND ' . $rPrevious . ' `stream_id` IN (' . implode(',', $rUserInfo['vod_ids']) . ') GROUP BY `stream_id` ORDER BY `count` DESC LIMIT ' . (6 - count($rSimilar)) . ';', $rStream['id']);
 		}
 
 		foreach ($db->get_rows() as $rRow) {
 			if (!$rRow['id']) {
 			} else {
-				$rSimilarProperties = json_decode((PLATFORM == 'xc_vm' ? $rRow['movie_properties'] : $rRow['movie_propeties']), true);
+				$rSimilarProperties = json_decode($rRow['movie_properties'], true);
 				$rSimilar[] = array('type' => 'movie', 'id' => $rRow['id'], 'title' => ($rRow['title'] ?: $rRow['stream_display_name']), 'year' => ($rRow['year'] ?: null), 'rating' => $rSimilarProperties['rating'], 'cover' => (CoreUtilities::validateImage($rSimilarProperties['movie_image']) ?: ''), 'backdrop' => (CoreUtilities::validateImage($rSimilarProperties['backdrop_path'][0]) ?: ''));
 				$rSimilarIDs[] = $rRow['id'];
 			}
@@ -113,7 +78,7 @@ if (($rStream = CoreUtilities::getStream(CoreUtilities::$rRequest['id'])) && in_
 	echo $rStream['stream_display_name'];
 	echo '<br/>' . "\n" . '                        <ul class="card__list">' . "\n" . '                            ';
 
-	foreach ((PLATFORM == 'xc_vm' ? json_decode($rStream['category_id'], true) : array($rStream['category_id'])) as $rCategoryID) {
+	foreach (json_decode($rStream['category_id'], true) as $rCategoryID) {
 		echo '                            <li>';
 		echo CoreUtilities::$rCategories[$rCategoryID]['category_name'];
 		echo '</li>' . "\n" . '                            ';
