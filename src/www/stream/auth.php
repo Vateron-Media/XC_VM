@@ -100,7 +100,7 @@ if ($rExtension) {
 		$rAvailableServers = array();
 
 		if ($rType == 'archive') {
-			if ((0 < $rStream['info']['tv_archive_duration'] && 0 < $rStream['info']['tv_archive_server_id'] && array_key_exists($rStream['info']['tv_archive_server_id'], $rServers) && $rServers[rStream['info']['tv_archive_server_id']]['server_online'])) {
+			if ((0 < $rStream['info']['tv_archive_duration'] && 0 < $rStream['info']['tv_archive_server_id'] && array_key_exists($rStream['info']['tv_archive_server_id'], $rServers) && $rServers[$rStream['info']['tv_archive_server_id']]['server_online'])) {
 				$rAvailableServers[] = array($rStream['info']['tv_archive_server_id']);
 			}
 		} else {
