@@ -22,7 +22,7 @@ $rErrors = array('Invalid username or password.', 'Enigma lines are not permitte
 if (empty(CoreUtilities::$rRequest['username']) && empty(CoreUtilities::$rRequest['password'])) {
 } else {
 	$rIP = CoreUtilities::getUserIP();
-	$rCountryCode = (PLATFORM == 'xc_vm' ? CoreUtilities::getIPInfo($rIP)['country']['iso_code'] : null);
+	$rCountryCode = CoreUtilities::getIPInfo($rIP)['country']['iso_code'];
 	$rUserInfo = CoreUtilities::getUserInfo(null, CoreUtilities::$rRequest['username'], CoreUtilities::$rRequest['password'], true);
 	$rDeny = true;
 	$rUserAgent = (empty($_SERVER['HTTP_USER_AGENT']) ? '' : htmlentities(trim($_SERVER['HTTP_USER_AGENT'])));

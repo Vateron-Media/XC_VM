@@ -25,7 +25,7 @@ if ($_PAGE != 'index') {
 
 echo '">Home</a>' . "\r\n\t\t\t\t\t\t\t\t" . '</li>' . "\r\n" . '                                ';
 
-if (!(PLATFORM != 'xc_vm' || in_array(1, $rUserInfo['allowed_outputs']) && !CoreUtilities::$rSettings['disable_hls'])) {
+if (!(in_array(1, $rUserInfo['allowed_outputs']) && !CoreUtilities::$rSettings['disable_hls'])) {
 } else {
 	echo "\t\t\t\t\t\t\t\t" . '<li class="header__nav-item">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<a href="./live.php" class="header__nav-link';
 

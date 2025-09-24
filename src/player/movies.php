@@ -13,11 +13,7 @@ if (isset(CoreUtilities::$rRequest['sort']) && CoreUtilities::$rRequest['sort'] 
 	$rPopular = (CoreUtilities::unserialize(file_get_contents(CONTENT_PATH . 'tmdb_popular'))['movies'] ?: array());
 
 	if (0 < count($rPopular) && 0 < count($rUserInfo['vod_ids'])) {
-		if (PLATFORM == 'xc_vm') {
 			$db->query('SELECT `id`, `stream_display_name`, `year`, `rating`, `movie_properties` FROM `streams` WHERE `id` IN (' . implode(',', $rPopular) . ') AND `id` IN (' . implode(',', $rUserInfo['vod_ids']) . ') ORDER BY FIELD(id, ' . implode(',', $rPopular) . ') ASC LIMIT 100;');
-		} else {
-			$db->query('SELECT `id`, `title`, `stream_display_name`, `year`, `rating`, `movie_propeties` FROM `streams` LEFT JOIN `webplayer_data` ON `webplayer_data`.`stream_id` = `streams`.`id` WHERE `id` IN (' . implode(',', $rPopular) . ') AND `id` IN (' . implode(',', $rUserInfo['vod_ids']) . ') ORDER BY FIELD(id, ' . implode(',', $rPopular) . ') ASC LIMIT 100;');
-		}
 
 		$rStreams = array('count' => $db->num_rows(), 'streams' => $db->get_rows());
 	} else {
@@ -83,18 +79,10 @@ $rShuffle = $rStreams['streams'];
 shuffle($rShuffle);
 
 foreach ($rShuffle as $rStream) {
-	$rProperties = json_decode((PLATFORM == 'xc_vm' ? $rStream['movie_properties'] : $rStream['movie_propeties']), true);
+	$rProperties = json_decode($rStream['movie_properties'], true);
 
 	if (empty($rProperties['backdrop_path'][0])) {
 	} else {
-
-
-
-
-
-
-
-
 		$rCover = CoreUtilities::validateImage($rProperties['backdrop_path'][0]);
 
 		break;
@@ -163,7 +151,7 @@ if (!($rPopular || $rSearchBy)) {
 echo '">' . "\n\t\t" . '<div class="container">' . "\n\t\t\t" . '<div class="row">' . "\n" . '                ';
 
 foreach ($rStreams['streams'] as $rStreamID => $rStream) {
-	$rProperties = json_decode((PLATFORM == 'xc_vm' ? $rStream['movie_properties'] : $rStream['movie_propeties']), true);
+	$rProperties = json_decode($rStream['movie_properties'], true);
 	echo '                    <div class="col-6 col-sm-4 col-lg-3 col-xl-3">' . "\n" . '                        <div class="card">' . "\n" . '                            <div class="card__cover">' . "\n" . '                                <img loading="lazy" src="resize.php?url=';
 	echo urlencode((CoreUtilities::validateImage($rProperties['movie_image']) ?: ''));
 	echo '&w=267&h=400" alt="">' . "\n" . '                                <a href="movie.php?id=';
@@ -228,18 +216,14 @@ if ($rPopular) {
 
 	if (!(0 < count($rPopular) && 0 < count($rUserInfo['vod_ids']))) {
 	} else {
-		if (PLATFORM == 'xc_vm') {
 			$db->query('SELECT `id`, `stream_display_name`, `year`, `rating`, `movie_properties` FROM `streams` WHERE `id` IN (' . implode(',', $rPopular) . ') AND `id` IN (' . implode(',', $rUserInfo['vod_ids']) . ') ORDER BY FIELD(id, ' . implode(',', $rPopular) . ') ASC LIMIT 6;');
-		} else {
-			$db->query('SELECT `id`, `stream_display_name`, `title`, `year`, `rating`, `movie_propeties` FROM `streams` LEFT JOIN `webplayer_data` ON `webplayer_data`.`stream_id` = `streams`.`id` WHERE `id` IN (' . implode(',', $rPopular) . ') AND `id` IN (' . implode(',', $rUserInfo['vod_ids']) . ') ORDER BY FIELD(id, ' . implode(',', $rPopular) . ') ASC LIMIT 6;');
-		}
 
 		$rStreams = $db->get_rows();
 		$rShuffle = $rStreams;
 		shuffle($rShuffle);
 
 		foreach ($rShuffle as $rStream) {
-			$rProperties = json_decode((PLATFORM == 'xc_vm' ? $rStream['movie_properties'] : $rStream['movie_propeties']), true);
+			$rProperties = json_decode($rStream['movie_properties'], true);
 
 			if (empty($rProperties['backdrop_path'][0])) {
 			} else {
@@ -253,7 +237,7 @@ if ($rPopular) {
 		echo '"></div>' . "\n" . '                <div class="container">' . "\n" . '                    <div class="row">' . "\n" . '                        <div class="col-12">' . "\n" . '                            <h1 class="home__title bottom-margin-sml">POPULAR <b>THIS WEEK</b></h1>' . "\n" . '                        </div>' . "\n" . '                        ';
 
 		foreach ($rStreams as $rStream) {
-			$rProperties = json_decode((PLATFORM == 'xc_vm' ? $rStream['movie_properties'] : $rStream['movie_propeties']), true);
+			$rProperties = json_decode($rStream['movie_properties'], true);
 			echo '                            <div class="col-6 col-sm-4 col-lg-3 col-xl-2">' . "\n" . '                                <div class="card">' . "\n" . '                                    <div class="card__cover">' . "\n" . '                                        <img loading="lazy" src="resize.php?url=';
 			echo urlencode((CoreUtilities::validateImage($rProperties['movie_image']) ?: ''));
 			echo '&w=267&h=400" alt="">' . "\n" . '                                        <a href="movie.php?id=';
