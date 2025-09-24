@@ -2,8 +2,6 @@
 
 if (isset($rSkipVerify) || php_sapi_name() != 'cli') {
 	session_start();
-	list($licensePath) = get_included_files();
-	$licensePath = pathinfo($licensePath)['dirname'] . '/';
 
 	if (file_exists('config.php')) {
 		require_once 'config.php';
@@ -15,29 +13,21 @@ if (isset($rSkipVerify) || php_sapi_name() != 'cli') {
 		define('HOST', trim(explode(':', $_SERVER['HTTP_HOST'])[0]));
 	}
 
-	if (isset($rConfig)) {
-		define('PLATFORM', $rConfig['platform']);
-		define('TMP_PATH', $rConfig['tmp_path']);
-		define('CACHE_TMP_PATH', TMP_PATH);
-
-		if (!TMP_PATH || file_exists(TMP_PATH)) {
-		} else {
-			mkdir(TMP_PATH);
-		}
-	} else {
-		if (extension_loaded('xc_vm')) {
-			define('MAIN_HOME', '/home/xc_vm/');
-			define('BIN_PATH', MAIN_HOME . 'bin/');
-			define('PLATFORM', 'xc_vm');
-			define('TMP_PATH', MAIN_HOME . 'tmp/player/');
-			define('CACHE_TMP_PATH', MAIN_HOME . 'tmp/cache/');
-			define('EPG_PATH', MAIN_HOME . 'content/epg/');
-		} else {
-			echo 'No platform found.';
-
-			exit();
-		}
-	}
+	define('XC_VM_VERSION', '1.1.2');
+	define('MAIN_HOME', '/home/xc_vm/');
+	define('BIN_PATH', MAIN_HOME . 'bin/');
+	define('TMP_PATH', MAIN_HOME . 'tmp/player/');
+	define('CACHE_TMP_PATH', MAIN_HOME . 'tmp/cache/');
+	define('STREAMS_TMP_PATH', MAIN_HOME . 'tmp/cache/streams/');
+	define('SERIES_TMP_PATH', MAIN_HOME . 'tmp/cache/series/');
+	define('LINES_TMP_PATH', MAIN_HOME . 'tmp/cache/lines/');
+	define('CONS_TMP_PATH', MAIN_HOME . 'tmp/opened_cons/');
+	define('SIGNALS_TMP_PATH', MAIN_HOME . 'tmp/signals/');
+	define('CONTENT_PATH', MAIN_HOME . 'content/');
+	define('EPG_PATH', MAIN_HOME . 'content/epg/');
+	define('CONFIG_PATH', MAIN_HOME . 'config/');
+	define('GEOLITE2_BIN', BIN_PATH . 'maxmind/GeoLite2-Country.mmdb');
+	define('GEOISP_BIN', BIN_PATH . 'maxmind/GeoIP2-ISP.mmdb');
 
 	$_INFO = array();
 
@@ -48,55 +38,15 @@ if (isset($rSkipVerify) || php_sapi_name() != 'cli') {
 	}
 
 	$db = new Database($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
-
-	if (extension_loaded('xc_vm') && PLATFORM == 'xc_vm') {
-		$db->db_connect();
-		define('STREAMS_TMP_PATH', MAIN_HOME . 'tmp/cache/streams/');
-		define('SERIES_TMP_PATH', MAIN_HOME . 'tmp/cache/series/');
-		define('LINES_TMP_PATH', MAIN_HOME . 'tmp/cache/lines/');
-		define('CONS_TMP_PATH', MAIN_HOME . 'tmp/opened_cons/');
-		define('SIGNALS_TMP_PATH', MAIN_HOME . 'tmp/signals/');
-		define('GEOLITE2_BIN', BIN_PATH . 'maxmind/GeoLite2-Country.mmdb');
-		define('GEOISP_BIN', BIN_PATH . 'maxmind/GeoIP2-ISP.mmdb');
-		define('CONTENT_PATH', MAIN_HOME . 'content/');
-	} else {
-		if (PLATFORM) {
-			$db->db_explicit_connect($rConfig['db_host'], $rConfig['db_port'], $rConfig['db_name'], $rConfig['db_user'], $rConfig['db_pass']);
-			define('STREAMS_TMP_PATH', TMP_PATH);
-			define('SERIES_TMP_PATH', TMP_PATH);
-			define('LINES_TMP_PATH', TMP_PATH);
-			define('CONS_TMP_PATH', TMP_PATH);
-			define('CONTENT_PATH', TMP_PATH);
-		}
-	}
-
 	CoreUtilities::$db = &$db;
 	CoreUtilities::init();
+
 	define('SERVER_ID', CoreUtilities::getMainID());
 
-	if (PLATFORM == 'xc_vm') {
-	} else {
-		foreach (array('player_allow_bouquet', 'player_allow_playlist', 'player_opacity', 'player_blur', 'tmdb_language') as $rKey) {
-			CoreUtilities::$rSettings[$rKey] = $rConfig[$rKey];
-		}
-
-		foreach (array('server_name', 'tmdb_api_key') as $rKey) {
-			if (!empty($rConfig[$rKey])) {
-				CoreUtilities::$rSettings[$rKey] = $rConfig[$rKey];
-			}
-		}
-		CoreUtilities::$rSettings['player_hide_incompatible'] = false;
-		CoreUtilities::$rSettings['disable_hls'] = false;
-		CoreUtilities::$rSettings['cloudflare'] = true;
-		CoreUtilities::$rSettings['custom_ip_header'] = null;
-	}
-
-	$_VERSION = '1.1.6';
 	$_PAGE = CoreUtilities::getIncludedFileNameWithoutExtension();
 	CoreUtilities::$rSettings['live_streaming_pass'] = md5(sha1(CoreUtilities::$rServers[SERVER_ID]['server_name'] . CoreUtilities::$rServers[SERVER_ID]['server_ip']) . '5f13a731fb85944e5c69ce863b0c990d');
 
-	if (isset($rSkipVerify)) {
-	} else {
+	if (!isset($rSkipVerify)) {
 		if (!(isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') || CoreUtilities::$rServers[SERVER_ID]['enable_https']) {
 			if (isset($_SESSION['phash'])) {
 				$rUserInfo = CoreUtilities::getUserInfo($_SESSION['phash'], null, null, true);
@@ -182,7 +132,7 @@ class Database {
 
 	public function db_connect() {
 		try {
-			$this->dbh = new PDO('mysql:host=' . $this->dbhost . ';port=' . $this->dbport . ';dbname=' . $this->dbname. ';charset=utf8mb4', $this->dbuser, $this->dbpassword);
+			$this->dbh = new PDO('mysql:host=' . $this->dbhost . ';port=' . $this->dbport . ';dbname=' . $this->dbname . ';charset=utf8mb4', $this->dbuser, $this->dbpassword);
 
 			if (!$this->dbh) {
 				exit(json_encode(array('error' => 'MySQL: Cannot connect to database! Please check credentials.')));
@@ -394,12 +344,7 @@ class CoreUtilities {
 			self::$rBouquets = self::getBouquets();
 			self::$rCategories = self::getCategories();
 			self::$rAllowedIPs = self::getAllowedIPs();
-
-			if (PLATFORM == 'xc_vm') {
-				self::$rCached = (self::$rSettings['enable_cache'] ?: false);
-			} else {
-				self::$rCached = false;
-			}
+			self::$rCached = (self::$rSettings['enable_cache'] ?: false);
 
 			if (empty(self::$rSettings['default_timezone'])) {
 			} else {
@@ -411,7 +356,7 @@ class CoreUtilities {
 	}
 
 	public static function serialize($rData) {
-		if (function_exists('igbinary_serialize') || PLATFORM == 'xc_vm') {
+		if (function_exists('igbinary_serialize')) {
 			return igbinary_serialize($rData);
 		}
 
@@ -419,7 +364,7 @@ class CoreUtilities {
 	}
 
 	public static function unserialize($rData) {
-		if (function_exists('igbinary_unserialize') || PLATFORM == 'xc_vm') {
+		if (function_exists('igbinary_unserialize')) {
 			return igbinary_unserialize($rData);
 		}
 
@@ -450,58 +395,17 @@ class CoreUtilities {
 
 		if (empty($rCache)) {
 			$rOutput = array();
-
-			if (PLATFORM == 'xc_vm') {
-			} else {
-				$rStreamMap = array();
-				self::$db->query('SELECT `id`, `type` FROM streams WHERE `type` IN (1,2,3,4);');
-
-				foreach (self::$db->get_rows() as $rStream) {
-					switch ($rStream['type']) {
-						case '1':
-						case '3':
-							$rStreamMap[intval($rStream['id'])] = 'channels';
-
-							break;
-
-						case '2':
-							$rStreamMap[intval($rStream['id'])] = 'movies';
-
-							break;
-
-						case '4':
-							$rStreamMap[intval($rStream['id'])] = 'radios';
-
-							break;
-					}
-				}
-			}
-
 			self::$db->query('SELECT *, IF(`bouquet_order` > 0, `bouquet_order`, 999) AS `order` FROM `bouquets` ORDER BY `order` ASC;');
 
 			foreach (self::$db->get_rows(true, 'id') as $rID => $rChannels) {
 				$rOutput[$rID]['id'] = $rID;
 				$rOutput[$rID]['bouquet_name'] = $rChannels['bouquet_name'];
 				$rOutput[$rID]['order'] = $rChannels['order'];
-
-				if (PLATFORM == 'xc_vm') {
-					$rOutput[$rID]['streams'] = array_merge(json_decode($rChannels['bouquet_channels'], true), json_decode($rChannels['bouquet_movies'], true), json_decode($rChannels['bouquet_radios'], true));
-					$rOutput[$rID]['series'] = json_decode($rChannels['bouquet_series'], true);
-					$rOutput[$rID]['channels'] = json_decode($rChannels['bouquet_channels'], true);
-					$rOutput[$rID]['movies'] = json_decode($rChannels['bouquet_movies'], true);
-					$rOutput[$rID]['radios'] = json_decode($rChannels['bouquet_radios'], true);
-				} else {
-					$rOutput[$rID]['streams'] = json_decode($rChannels['bouquet_channels'], true);
-					$rOutput[$rID]['series'] = json_decode($rChannels['bouquet_series'], true);
-					$rOutput[$rID]['channels'] = array();
-					$rOutput[$rID]['movies'] = array();
-					$rOutput[$rID]['radios'] = array();
-
-					foreach ($rOutput[$rID]['streams'] as $rStreamID) {
-						$rType = ($rStreamMap[intval($rStreamID)] ?: 'channels');
-						$rOutput[$rID][$rType][] = intval($rStreamID);
-					}
-				}
+				$rOutput[$rID]['streams'] = array_merge(json_decode($rChannels['bouquet_channels'], true), json_decode($rChannels['bouquet_movies'], true), json_decode($rChannels['bouquet_radios'], true));
+				$rOutput[$rID]['series'] = json_decode($rChannels['bouquet_series'], true);
+				$rOutput[$rID]['channels'] = json_decode($rChannels['bouquet_channels'], true);
+				$rOutput[$rID]['movies'] = json_decode($rChannels['bouquet_movies'], true);
+				$rOutput[$rID]['radios'] = json_decode($rChannels['bouquet_radios'], true);
 			}
 			self::setCache('bouquets', $rOutput);
 
@@ -512,18 +416,12 @@ class CoreUtilities {
 	}
 
 	public static function getStream($rID) {
-		if (PLATFORM == 'xc_vm') {
-			self::$db->query('SELECT * FROM `streams` WHERE `id` = ?;', $rID);
-		} else {
-			self::$db->query('SELECT * FROM `streams` LEFT JOIN `webplayer_data` ON `webplayer_data`.`stream_id` = `streams`.`id` WHERE `streams`.`id` = ?;', $rID);
-		}
-
+		self::$db->query('SELECT * FROM `streams` WHERE `id` = ?;', $rID);
 		if (self::$db->num_rows() != 1) {
 		} else {
 			$rRow = self::$db->get_row();
 
-			if (!(PLATFORM != 'xc_vm' && $rRow['title'])) {
-			} else {
+			if ($rRow['title']) {
 				$rRow['stream_display_name'] = $rRow['title'];
 			}
 
@@ -533,11 +431,7 @@ class CoreUtilities {
 
 	public static function getCategories($rType = null) {
 		if (is_string($rType)) {
-			if (PLATFORM == 'xc_vm') {
-				self::$db->query('SELECT t1.* FROM `streams_categories` t1 WHERE t1.category_type = ? GROUP BY t1.id ORDER BY t1.cat_order ASC', $rType);
-			} else {
-				self::$db->query('SELECT t1.* FROM `stream_categories` t1 WHERE t1.category_type = ? GROUP BY t1.id ORDER BY t1.cat_order ASC', $rType);
-			}
+			self::$db->query('SELECT t1.* FROM `streams_categories` t1 WHERE t1.category_type = ? GROUP BY t1.id ORDER BY t1.cat_order ASC', $rType);
 
 			return (0 < self::$db->num_rows() ? self::$db->get_rows(true, 'id') : array());
 		}
@@ -545,11 +439,7 @@ class CoreUtilities {
 		$rCache = self::getCache('categories', 20);
 
 		if (empty($rCache)) {
-			if (PLATFORM == 'xc_vm') {
-				self::$db->query('SELECT t1.* FROM `streams_categories` t1 ORDER BY t1.cat_order ASC');
-			} else {
-				self::$db->query('SELECT t1.* FROM `stream_categories` t1 ORDER BY t1.cat_order ASC');
-			}
+			self::$db->query('SELECT t1.* FROM `streams_categories` t1 ORDER BY t1.cat_order ASC');
 
 			$rCategories = (0 < self::$db->num_rows() ? self::$db->get_rows(true, 'id') : array());
 			self::setCache('categories', $rCategories);
@@ -611,12 +501,7 @@ class CoreUtilities {
 		$rCache = self::getCache('blocked_isp', 20);
 
 		if ($rCache === false) {
-			if (PLATFORM == 'xc_vm') {
-				self::$db->query('SELECT id, isp, blocked FROM `blocked_isps`');
-			} else {
-				self::$db->query('SELECT id, isp, blocked FROM `isp_addon`');
-			}
-
+			self::$db->query('SELECT id, isp, blocked FROM `blocked_isps`');
 			$rOutput = self::$db->get_rows();
 			self::setCache('blocked_isp', $rOutput);
 
@@ -635,12 +520,7 @@ class CoreUtilities {
 				$_SERVER['REQUEST_SCHEME'] = 'http';
 			}
 
-			if (PLATFORM == 'xc_vm') {
-				self::$db->query('SELECT * FROM `servers`');
-			} else {
-				self::$db->query('SELECT * FROM `streaming_servers`');
-				$httpsEnabledServers = (json_decode(self::$rSettings['use_https'], true) ?: array());
-			}
+			self::$db->query('SELECT * FROM `servers`');
 
 			$rServers = array();
 			$rOnlineStatus = array(1);
@@ -652,21 +532,12 @@ class CoreUtilities {
 					$rURL = str_replace(array('http://', '/', 'https://'), '', escapeshellcmd(explode(',', $rRow['domain_name'])[0]));
 				}
 
-				if (PLATFORM == 'xc_vm') {
-					if ($rRow['enable_https'] == 1) {
-						$rProtocol = 'https';
-					} else {
-						$rProtocol = 'http';
-					}
+				if ($rRow['enable_https'] == 1) {
+					$rProtocol = 'https';
 				} else {
-					if (in_array($rRow['id'], $httpsEnabledServers)) {
-						$rProtocol = 'https';
-					} else {
-						$rProtocol = 'http';
-					}
-
-					$rRow['enable_https'] = in_array($rRow['id'], $httpsEnabledServers);
+					$rProtocol = 'http';
 				}
+
 
 				$rPort = ($rProtocol == 'http' ? intval($rRow['http_broadcast_port']) : intval($rRow['https_broadcast_port']));
 				$rRow['server_protocol'] = $rProtocol;
@@ -807,7 +678,7 @@ class CoreUtilities {
 		$rKey = ($rForceSSL ? 'https_url' : 'site_url');
 
 		if (self::$rSettings['use_mdomain_in_lists'] == 1) {
-			if (PLATFORM == 'xc_vm' && self::$rServers[SERVER_ID]['enable_proxy']) {
+			if (self::$rServers[SERVER_ID]['enable_proxy']) {
 				$rProxyID = self::getProxyFor(SERVER_ID);
 
 				if (!$rProxyID) {
@@ -820,7 +691,7 @@ class CoreUtilities {
 		} else {
 			list($serverIPAddress, $serverPort) = explode(':', $_SERVER['HTTP_HOST']);
 
-			if (PLATFORM == 'xc_vm' && $serverIPAddress == self::$rServers[SERVER_ID]['server_ip'] && self::$rServers[SERVER_ID]['enable_proxy']) {
+			if ($serverIPAddress == self::$rServers[SERVER_ID]['server_ip'] && self::$rServers[SERVER_ID]['enable_proxy']) {
 				$rProxyID = self::getProxyFor(SERVER_ID);
 
 				if (!$rProxyID) {
@@ -840,47 +711,43 @@ class CoreUtilities {
 	}
 
 	public static function getSubtitles($rStreamID, $rSubtitles) {
-		if (PLATFORM == 'xc_vm') {
-			global $rUserInfo;
-			$rDomainName = self::getDomainName(!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443);
-			$rReturn = array();
+		global $rUserInfo;
+		$rDomainName = self::getDomainName(!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443);
+		$rReturn = array();
 
-			if (!is_array($rSubtitles)) {
-			} else {
-				$i = 0;
+		if (!is_array($rSubtitles)) {
+		} else {
+			$i = 0;
 
-				foreach ($rSubtitles as $rSubtitle) {
-					$rLanguage = null;
+			foreach ($rSubtitles as $rSubtitle) {
+				$rLanguage = null;
 
-					foreach (array_keys($rSubtitle['tags']) as $rKey) {
-						if (!in_array(strtoupper(explode('-', $rKey)[0]), array('BPS', 'DURATION', 'NUMBER_OF_FRAMES', 'NUMBER_OF_BYTES'))) {
-							if ($rKey != 'language') {
-							} else {
-								$rLanguage = $rSubtitle['tags'][$rKey];
-
-								break;
-							}
+				foreach (array_keys($rSubtitle['tags']) as $rKey) {
+					if (!in_array(strtoupper(explode('-', $rKey)[0]), array('BPS', 'DURATION', 'NUMBER_OF_FRAMES', 'NUMBER_OF_BYTES'))) {
+						if ($rKey != 'language') {
 						} else {
-							list(, $rLanguage) = explode('-', $rKey, 2);
+							$rLanguage = $rSubtitle['tags'][$rKey];
 
 							break;
 						}
-					}
-
-					if ($rLanguage) {
 					} else {
-						$rLanguage = 'Subtitle #' . ($i + 1);
+						list(, $rLanguage) = explode('-', $rKey, 2);
+
+						break;
 					}
-
-					$rReturn[] = array('label' => $rLanguage, 'file' => $rDomainName . 'subtitle/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rStreamID . '?sub_id=' . $i . '&webvtt=1', 'kind' => 'subtitles');
-					$i++;
 				}
-			}
 
-			return $rReturn;
+				if ($rLanguage) {
+				} else {
+					$rLanguage = 'Subtitle #' . ($i + 1);
+				}
+
+				$rReturn[] = array('label' => $rLanguage, 'file' => $rDomainName . 'subtitle/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rStreamID . '?sub_id=' . $i . '&webvtt=1', 'kind' => 'subtitles');
+				$i++;
+			}
 		}
 
-		return array();
+		return $rReturn;
 	}
 
 	public static function mapContentTypesToNumbers($rTypes) {
@@ -916,27 +783,23 @@ class CoreUtilities {
 	}
 
 	public static function sortChannels($rChannels) {
-		if (PLATFORM == 'xc_vm') {
-			if (!(0 < count($rChannels) && file_exists(CACHE_TMP_PATH . 'channel_order') && self::$rSettings['channel_number_type'] != 'bouquet')) {
-			} else {
-				$rOrder = self::unserialize(file_get_contents(CACHE_TMP_PATH . 'channel_order'));
-				$rChannels = array_flip($rChannels);
-				$rNewOrder = array();
+		if (!(0 < count($rChannels) && file_exists(CACHE_TMP_PATH . 'channel_order') && self::$rSettings['channel_number_type'] != 'bouquet')) {
+		} else {
+			$rOrder = self::unserialize(file_get_contents(CACHE_TMP_PATH . 'channel_order'));
+			$rChannels = array_flip($rChannels);
+			$rNewOrder = array();
 
-				foreach ($rOrder as $rID) {
-					if (!isset($rChannels[$rID])) {
-					} else {
-						$rNewOrder[] = $rID;
-					}
-				}
-
-				if (0 >= count($rNewOrder)) {
+			foreach ($rOrder as $rID) {
+				if (!isset($rChannels[$rID])) {
 				} else {
-					return $rNewOrder;
+					$rNewOrder[] = $rID;
 				}
 			}
 
-			return $rChannels;
+			if (0 >= count($rNewOrder)) {
+			} else {
+				return $rNewOrder;
+			}
 		}
 
 		return $rChannels;
@@ -967,25 +830,20 @@ class CoreUtilities {
 					if (!$rAdded) {
 						$rChannels = array_merge($rChannels, $rUserInfo['live_ids']);
 						$rAdded = true;
-
 						break;
 					}
-
 					break;
 
 				case 'movie':
 					$rChannels = array_merge($rChannels, $rUserInfo['vod_ids']);
-
 					break;
 
 				case 'radio_streams':
 					$rChannels = array_merge($rChannels, $rUserInfo['radio_ids']);
-
 					break;
 
 				case 'series':
 					$rChannels = array_merge($rChannels, $rUserInfo['episode_ids']);
-
 					break;
 			}
 		}
@@ -993,51 +851,39 @@ class CoreUtilities {
 		$rKey = $rStart + 1;
 		$rWhereV = $rWhere = array();
 
-		if (!self::$rSettings['player_hide_incompatible']) {
-		} else {
+		if (self::$rSettings['player_hide_incompatible']) {
 			$rWhere[] = '(SELECT MAX(`compatible`) FROM `streams_servers` WHERE `streams_servers`.`stream_id` = `streams`.`id` LIMIT 1) = 1';
 		}
 
-		if (0 >= count($rTypes)) {
-		} else {
+		if (count($rTypes) > 0) {
 			$rWhere[] = '`type` IN (' . implode(',', self::mapContentTypesToNumbers($rTypes)) . ')';
 		}
 
 		if (!empty($rCategoryID)) {
-			if (PLATFORM == 'xc_vm') {
-				$rWhere[] = "JSON_CONTAINS(`category_id`, ?, '\$')";
-			} else {
-				$rWhere[] = '`category_id` = ?';
-			}
-
+			$rWhere[] = "JSON_CONTAINS(`category_id`, ?, '\$')";
 			$rWhereV[] = $rCategoryID;
 		} else {
-			if (!(in_array('live', $rTypes) && empty($rSearchBy))) {
-			} else {
+			if (in_array('live', $rTypes) && empty($rSearchBy)) {
 				$rStart = 0;
 				$rLimit = 200;
 				$rLiveIDs = self::unserialize(file_get_contents(CONTENT_PATH . 'live_popular'));
 
-				if (!($rLiveIDs && 0 < count($rLiveIDs))) {
-				} else {
+				if ($rLiveIDs && 0 < count($rLiveIDs)) {
 					$rWhere[] = '`id` IN (' . implode(',', array_map('intval', $rLiveIDs)) . ')';
 				}
 			}
 		}
 
-		if (!$rPicking['filter']) {
-		} else {
+		if ($rPicking['filter']) {
 			switch ($rPicking['filter']) {
 				case 'all':
 					break;
 
 				case 'timeshift':
 					$rWhere[] = '`tv_archive_duration` > 0 AND `tv_archive_server_id` > 0';
-
 					break;
 			}
 		}
-
 		$rChannels = self::sortChannels($rChannels);
 
 		if (empty($rFav)) {
@@ -1113,41 +959,21 @@ class CoreUtilities {
 			}
 
 			if (0 < count($rChannels)) {
-				if (PLATFORM == 'xc_vm') {
-					$db->query('SELECT COUNT(`id`) AS `count` FROM `streams` ' . $rWhereString . ';', ...$rWhereV);
-				} else {
-					$db->query('SELECT COUNT(`id`) AS `count` FROM `streams` LEFT JOIN `webplayer_data` ON `webplayer_data`.`stream_id` = `streams`.`id` ' . $rWhereString . ';', ...$rWhereV);
-				}
+				$db->query('SELECT COUNT(`id`) AS `count` FROM `streams` ' . $rWhereString . ';', ...$rWhereV);
 
 				$rStreams['count'] = $db->get_row()['count'];
 
 				if ($rLimit) {
 					if ($rIDs) {
-						if (PLATFORM == 'xc_vm') {
-							$rQuery = 'SELECT `id` FROM `streams` ' . $rWhereString . ' ORDER BY ' . $rOrder . ' LIMIT ' . $rStart . ', ' . $rLimit . ';';
-						} else {
-							$rQuery = 'SELECT `id` FROM `streams` LEFT JOIN `webplayer_data` ON `webplayer_data`.`stream_id` = `streams`.`id` ' . $rWhereString . ' ORDER BY ' . $rOrder . ' LIMIT ' . $rStart . ', ' . $rLimit . ';';
-						}
+						$rQuery = 'SELECT `id` FROM `streams` ' . $rWhereString . ' ORDER BY ' . $rOrder . ' LIMIT ' . $rStart . ', ' . $rLimit . ';';
 					} else {
-						if (PLATFORM == 'xc_vm') {
-							$rQuery = 'SELECT (SELECT `stream_info` FROM `streams_servers` WHERE `streams_servers`.`pid` IS NOT NULL AND `streams_servers`.`stream_id` = `streams`.`id` LIMIT 1) AS `stream_info`, `id`, `stream_display_name`, `movie_properties`, `target_container`, `added`, `year`, `category_id`, `channel_id`, `epg_id`, `tv_archive_duration`, `stream_icon`, `allow_record`, `type` FROM `streams` ' . $rWhereString . ' ORDER BY ' . $rOrder . ' LIMIT ' . $rStart . ', ' . $rLimit . ';';
-						} else {
-							$rQuery = 'SELECT (SELECT `stream_info` FROM `streams_sys` WHERE `streams_sys`.`pid` IS NOT NULL AND `streams_sys`.`stream_id` = `streams`.`id` LIMIT 1) AS `stream_info`, `id`, `stream_display_name`, `title`, `movie_propeties`, `target_container`, `added`, `year`, `category_id`, `channel_id`, `epg_id`, `tv_archive_duration`, `stream_icon`, `allow_record`, `type` FROM `streams` LEFT JOIN `webplayer_data` ON `webplayer_data`.`stream_id` = `streams`.`id` ' . $rWhereString . ' ORDER BY ' . $rOrder . ' LIMIT ' . $rStart . ', ' . $rLimit . ';';
-						}
+						$rQuery = 'SELECT (SELECT `stream_info` FROM `streams_servers` WHERE `streams_servers`.`pid` IS NOT NULL AND `streams_servers`.`stream_id` = `streams`.`id` LIMIT 1) AS `stream_info`, `id`, `stream_display_name`, `movie_properties`, `target_container`, `added`, `year`, `category_id`, `channel_id`, `epg_id`, `tv_archive_duration`, `stream_icon`, `allow_record`, `type` FROM `streams` ' . $rWhereString . ' ORDER BY ' . $rOrder . ' LIMIT ' . $rStart . ', ' . $rLimit . ';';
 					}
 				} else {
 					if ($rIDs) {
-						if (PLATFORM == 'xc_vm') {
-							$rQuery = 'SELECT `id` FROM `streams` ' . $rWhereString . ' ORDER BY ' . $rOrder . ';';
-						} else {
-							$rQuery = 'SELECT `id` FROM `streams` LEFT JOIN `webplayer_data` ON `webplayer_data`.`stream_id` = `streams`.`id` ' . $rWhereString . ' ORDER BY ' . $rOrder . ';';
-						}
+						$rQuery = 'SELECT `id` FROM `streams` ' . $rWhereString . ' ORDER BY ' . $rOrder . ';';
 					} else {
-						if (PLATFORM == 'xc_vm') {
-							$rQuery = 'SELECT (SELECT `stream_info` FROM `streams_servers` WHERE `streams_servers`.`pid` IS NOT NULL AND `streams_servers`.`stream_id` = `streams`.`id` LIMIT 1) AS `stream_info`, `id`, `stream_display_name`, `movie_properties`, `target_container`, `added`, `year`, `category_id`, `channel_id`, `epg_id`, `tv_archive_duration`, `stream_icon`, `allow_record`, `type` FROM `streams` ' . $rWhereString . ' ORDER BY ' . $rOrder . ';';
-						} else {
-							$rQuery = 'SELECT (SELECT `stream_info` FROM `streams_sys` WHERE `streams_sys`.`pid` IS NOT NULL AND `streams_sys`.`stream_id` = `streams`.`id` LIMIT 1) AS `stream_info`, `id`, `stream_display_name`, `title`, `movie_propeties`, `target_container`, `added`, `year`, `category_id`, `channel_id`, `epg_id`, `tv_archive_duration`, `stream_icon`, `allow_record`, `type` FROM `streams` LEFT JOIN `webplayer_data` ON `webplayer_data`.`stream_id` = `streams`.`id` ' . $rWhereString . ' ORDER BY ' . $rOrder . ';';
-						}
+						$rQuery = 'SELECT (SELECT `stream_info` FROM `streams_servers` WHERE `streams_servers`.`pid` IS NOT NULL AND `streams_servers`.`stream_id` = `streams`.`id` LIMIT 1) AS `stream_info`, `id`, `stream_display_name`, `movie_properties`, `target_container`, `added`, `year`, `category_id`, `channel_id`, `epg_id`, `tv_archive_duration`, `stream_icon`, `allow_record`, `type` FROM `streams` ' . $rWhereString . ' ORDER BY ' . $rOrder . ';';
 					}
 				}
 
@@ -1164,13 +990,10 @@ class CoreUtilities {
 			foreach ($rRows as $rStream) {
 				$rStream['number'] = $rKey;
 
-				if (PLATFORM != 'xc_vm') {
+				if (in_array($rCategoryID, json_decode($rStream['category_id'], true))) {
+					$rStream['category_id'] = $rCategoryID;
 				} else {
-					if (in_array($rCategoryID, json_decode($rStream['category_id'], true))) {
-						$rStream['category_id'] = $rCategoryID;
-					} else {
-						list($rStream['category_id']) = json_decode($rStream['category_id'], true);
-					}
+					list($rStream['category_id']) = json_decode($rStream['category_id'], true);
 				}
 
 				$rStream['stream_info'] = json_decode($rStream['stream_info'], true);
@@ -1198,22 +1021,14 @@ class CoreUtilities {
 
 		if (empty($rCategoryID)) {
 		} else {
-			if (PLATFORM == 'xc_vm') {
-				$rWhere[] = "JSON_CONTAINS(`category_id`, ?, '\$')";
-			} else {
-				$rWhere[] = '`category_id` = ?';
-			}
+			$rWhere[] = "JSON_CONTAINS(`category_id`, ?, '\$')";
 
 			$rWhereV[] = $rCategoryID;
 		}
 
 		if (!is_array($rPicking['year_range'])) {
 		} else {
-			if (PLATFORM == 'xc_vm') {
-				$rWhere[] = '(`year` >= ? AND `year` <= ?)';
-			} else {
-				$rWhere[] = '(LEFT(`releaseDate`, 4) >= ? AND LEFT(`releaseDate`, 4) <= ?)';
-			}
+			$rWhere[] = '(`year` >= ? AND `year` <= ?)';
 
 			$rWhereV[] = $rPicking['year_range'][0];
 			$rWhereV[] = $rPicking['year_range'][1];
@@ -1252,26 +1067,16 @@ class CoreUtilities {
 					break;
 
 				case 'added':
-					if (PLATFORM == 'xc_vm') {
-						$rOrder = '`last_modified` DESC';
-					} else {
-						$rOrder = '`id` DESC';
-					}
-
+					$rOrder = '`last_modified` DESC';
 					break;
 
 				case 'release':
-					if (PLATFORM == 'xc_vm') {
-						$rOrder = '`release_date` DESC';
-					} else {
-						$rOrder = '`releaseDate` DESC';
-					}
-
+					$rOrder = '`release_date` DESC';
 					break;
 
 				case 'number':
 				default:
-					if (PLATFORM == 'xc_vm' && CoreUtilities::$rSettings['vod_sort_newest']) {
+					if (CoreUtilities::$rSettings['vod_sort_newest']) {
 						$rOrder = '`last_modified` DESC';
 					} else {
 						$rOrder = 'FIELD(id,' . implode(',', $rSeries) . ')';
@@ -1281,26 +1086,14 @@ class CoreUtilities {
 			}
 
 			if (0 < count($rSeries)) {
-				if (PLATFORM == 'xc_vm') {
-					$db->query('SELECT COUNT(`id`) AS `count` FROM `streams_series` ' . $rWhereString . ';', ...$rWhereV);
-				} else {
-					$db->query('SELECT COUNT(`id`) AS `count` FROM `series` ' . $rWhereString . ';', ...$rWhereV);
-				}
+				$db->query('SELECT COUNT(`id`) AS `count` FROM `streams_series` ' . $rWhereString . ';', ...$rWhereV);
 
 				$rStreams['count'] = $db->get_row()['count'];
 
 				if ($rLimit) {
-					if (PLATFORM == 'xc_vm') {
-						$rQuery = 'SELECT `id`, `title`, `category_id`, `cover`, `rating`, `release_date`, `last_modified`, `tmdb_id`, `seasons`, `backdrop_path`, `year` FROM `streams_series` ' . $rWhereString . ' ORDER BY ' . $rOrder . ' LIMIT ' . $rStart . ', ' . $rLimit . ';';
-					} else {
-						$rQuery = 'SELECT `id`, `title`, `category_id`, `cover`, `rating`, `releaseDate`, `tmdb_id`, `seasons`, `backdrop_path` FROM `series` ' . $rWhereString . ' ORDER BY ' . $rOrder . ' LIMIT ' . $rStart . ', ' . $rLimit . ';';
-					}
+					$rQuery = 'SELECT `id`, `title`, `category_id`, `cover`, `rating`, `release_date`, `last_modified`, `tmdb_id`, `seasons`, `backdrop_path`, `year` FROM `streams_series` ' . $rWhereString . ' ORDER BY ' . $rOrder . ' LIMIT ' . $rStart . ', ' . $rLimit . ';';
 				} else {
-					if (PLATFORM == 'xc_vm') {
-						$rQuery = 'SELECT `id`, `title`, `category_id`, `cover`, `rating`, `release_date`, `last_modified`, `tmdb_id`, `seasons`, `backdrop_path`, `year` FROM `streams_series` ' . $rWhereString . ' ORDER BY ' . $rOrder . ';';
-					} else {
-						$rQuery = 'SELECT `id`, `title`, `category_id`, `cover`, `rating`, `releaseDate`, `tmdb_id`, `seasons`, `backdrop_path` FROM `series` ' . $rWhereString . ' ORDER BY ' . $rOrder . ';';
-					}
+					$rQuery = 'SELECT `id`, `title`, `category_id`, `cover`, `rating`, `release_date`, `last_modified`, `tmdb_id`, `seasons`, `backdrop_path`, `year` FROM `streams_series` ' . $rWhereString . ' ORDER BY ' . $rOrder . ';';
 				}
 
 				$db->query($rQuery, ...$rWhereV);
@@ -1316,13 +1109,10 @@ class CoreUtilities {
 			foreach ($rRows as $rStream) {
 				$rStream['number'] = $rKey;
 
-				if (PLATFORM != 'xc_vm') {
+				if (in_array($rCategoryID, json_decode($rStream['category_id'], true))) {
+					$rStream['category_id'] = $rCategoryID;
 				} else {
-					if (in_array($rCategoryID, json_decode($rStream['category_id'], true))) {
-						$rStream['category_id'] = $rCategoryID;
-					} else {
-						list($rStream['category_id']) = json_decode($rStream['category_id'], true);
-					}
+					list($rStream['category_id']) = json_decode($rStream['category_id'], true);
 				}
 
 				$rStreams['streams'][$rStream['id']] = $rStream;
@@ -1336,11 +1126,7 @@ class CoreUtilities {
 	}
 
 	public static function getSerie($rID) {
-		if (PLATFORM == 'xc_vm') {
-			self::$db->query('SELECT * FROM `streams_series` WHERE `id` = ?;', $rID);
-		} else {
-			self::$db->query('SELECT `series`.*, `webplayer_data`.`similar` FROM `series` LEFT JOIN `webplayer_data` ON `webplayer_data`.`series_id` = `series`.`id` WHERE `id` = ?;', $rID);
-		}
+		self::$db->query('SELECT * FROM `streams_series` WHERE `id` = ?;', $rID);
 
 		if (self::$db->num_rows() != 1) {
 		} else {
@@ -1349,68 +1135,56 @@ class CoreUtilities {
 	}
 
 	public static function getIPInfo($rIP) {
-		if (PLATFORM == 'xc_vm') {
-			if (!empty($rIP)) {
-				if (!file_exists(CONS_TMP_PATH . md5($rIP) . '_geo2')) {
-					$rGeoIP = new MaxMind\Db\Reader(GEOLITE2_BIN);
-					$rResponse = $rGeoIP->get($rIP);
-					$rGeoIP->close();
+		if (!empty($rIP)) {
+			if (!file_exists(CONS_TMP_PATH . md5($rIP) . '_geo2')) {
+				$rGeoIP = new MaxMind\Db\Reader(GEOLITE2_BIN);
+				$rResponse = $rGeoIP->get($rIP);
+				$rGeoIP->close();
 
-					if (!$rResponse) {
-					} else {
-						file_put_contents(CONS_TMP_PATH . md5($rIP) . '_geo2', json_encode($rResponse));
-					}
-
-					return $rResponse;
+				if (!$rResponse) {
+				} else {
+					file_put_contents(CONS_TMP_PATH . md5($rIP) . '_geo2', json_encode($rResponse));
 				}
 
-				return json_decode(file_get_contents(CONS_TMP_PATH . md5($rIP) . '_geo2'), true);
+				return $rResponse;
 			}
 
-			return false;
+			return json_decode(file_get_contents(CONS_TMP_PATH . md5($rIP) . '_geo2'), true);
 		}
 
 		return false;
 	}
 
 	public static function getISP($rIP) {
-		if (PLATFORM == 'xc_vm') {
-			if (!empty($rIP)) {
-				if (!file_exists(CONS_TMP_PATH . md5($rIP) . '_isp')) {
-					$rGeoIP = new MaxMind\Db\Reader(GEOISP_BIN);
-					$rResponse = $rGeoIP->get($rIP);
-					$rGeoIP->close();
+		if (!empty($rIP)) {
+			if (!file_exists(CONS_TMP_PATH . md5($rIP) . '_isp')) {
+				$rGeoIP = new MaxMind\Db\Reader(GEOISP_BIN);
+				$rResponse = $rGeoIP->get($rIP);
+				$rGeoIP->close();
 
-					if (!$rResponse) {
-					} else {
-						file_put_contents(CONS_TMP_PATH . md5($rIP) . '_isp', json_encode($rResponse));
-					}
-
-					return $rResponse;
+				if (!$rResponse) {
+				} else {
+					file_put_contents(CONS_TMP_PATH . md5($rIP) . '_isp', json_encode($rResponse));
 				}
 
-				return json_decode(file_get_contents(CONS_TMP_PATH . md5($rIP) . '_isp'), true);
+				return $rResponse;
 			}
 
-			return false;
+			return json_decode(file_get_contents(CONS_TMP_PATH . md5($rIP) . '_isp'), true);
 		}
 
 		return false;
 	}
 
 	public static function checkISP($rConISP) {
-		if (PLATFORM == 'xc_vm') {
-			foreach (self::$rBlockedISP as $rISP) {
-				if (strtolower($rConISP) != strtolower($rISP['isp'])) {
-				} else {
-					return intval($rISP['blocked']);
-				}
+		foreach (self::$rBlockedISP as $rISP) {
+			if (strtolower($rConISP) != strtolower($rISP['isp'])) {
+			} else {
+				return intval($rISP['blocked']);
 			}
-
-			return 0;
-		} else {
-			return false;
 		}
+
+		return 0;
 	}
 
 	public static function getUserInfo($rUserID = null, $rUsername = null, $rPassword = null, $rGetChannelIDs = false, $rGetConnections = false, $rIP = '') {
@@ -1444,25 +1218,13 @@ class CoreUtilities {
 			}
 		} else {
 			if (empty($rPassword) && empty($rUserID) && strlen($rUsername) == 32) {
-				if (PLATFORM == 'xc_vm') {
-					self::$db->query('SELECT * FROM `lines` WHERE `is_mag` = 0 AND `is_e2` = 0 AND `access_token` = ? AND LENGTH(`access_token`) = 32', $rUsername);
-				} else {
-					return false;
-				}
+				self::$db->query('SELECT * FROM `lines` WHERE `is_mag` = 0 AND `is_e2` = 0 AND `access_token` = ? AND LENGTH(`access_token`) = 32', $rUsername);
 			} else {
 				if (!empty($rUsername) && !empty($rPassword)) {
-					if (PLATFORM == 'xc_vm') {
-						self::$db->query('SELECT * FROM `lines` WHERE `username` = ? AND `password` = ? LIMIT 1', $rUsername, $rPassword);
-					} else {
-						self::$db->query('SELECT * FROM `users` WHERE `username` = ? AND `password` = ? LIMIT 1', $rUsername, $rPassword);
-					}
+					self::$db->query('SELECT * FROM `lines` WHERE `username` = ? AND `password` = ? LIMIT 1', $rUsername, $rPassword);
 				} else {
 					if (!empty($rUserID)) {
-						if (PLATFORM == 'xc_vm') {
-							self::$db->query('SELECT * FROM `lines` WHERE `id` = ?', $rUserID);
-						} else {
-							self::$db->query('SELECT * FROM `users` WHERE `id` = ?', $rUserID);
-						}
+						self::$db->query('SELECT * FROM `lines` WHERE `id` = ?', $rUserID);
 					} else {
 						return false;
 					}
@@ -1479,31 +1241,20 @@ class CoreUtilities {
 			return false;
 		}
 
-		if (!(PLATFORM == 'xc_vm' && self::$rSettings['county_override_1st'] == 1 && empty($rUserInfo['forced_country']) && !empty($rIP) && $rUserInfo['max_connections'] == 1)) {
-		} else {
+		if (self::$rSettings['county_override_1st'] == 1 && empty($rUserInfo['forced_country']) && !empty($rIP) && $rUserInfo['max_connections'] == 1) {
 			$rUserInfo['forced_country'] = self::getIPInfo($rIP)['registered_country']['iso_code'];
 
 			if (self::$rCached) {
 				self::setSignal('forced_country/' . $rUserInfo['id'], $rUserInfo['forced_country']);
 			} else {
-				if (PLATFORM == 'xc_vm') {
-					self::$db->query('UPDATE `lines` SET `forced_country` = ? WHERE `id` = ?', $rUserInfo['forced_country'], $rUserInfo['id']);
-				} else {
-					self::$db->query('UPDATE `users` SET `forced_country` = ? WHERE `id` = ?', $rUserInfo['forced_country'], $rUserInfo['id']);
-				}
+				self::$db->query('UPDATE `lines` SET `forced_country` = ? WHERE `id` = ?', $rUserInfo['forced_country'], $rUserInfo['id']);
 			}
 		}
 
 		$rUserInfo['bouquet'] = json_decode($rUserInfo['bouquet'], true);
 		$rUserInfo['allowed_ips'] = @array_filter(@array_map('trim', @json_decode($rUserInfo['allowed_ips'], true)));
 		$rUserInfo['allowed_ua'] = @array_filter(@array_map('trim', @json_decode($rUserInfo['allowed_ua'], true)));
-
-		if (PLATFORM == 'xc_vm') {
-			$rUserInfo['allowed_outputs'] = array_map('intval', json_decode($rUserInfo['allowed_outputs'], true));
-		} else {
-			$rUserInfo['allowed_outputs'] = array();
-		}
-
+		$rUserInfo['allowed_outputs'] = array_map('intval', json_decode($rUserInfo['allowed_outputs'], true));
 		$rUserInfo['output_formats'] = array();
 
 		if (self::$rCached) {
@@ -1514,20 +1265,11 @@ class CoreUtilities {
 				}
 			}
 		} else {
-			if (PLATFORM == 'xc_vm') {
-				self::$db->query('SELECT `access_output_id`, `output_key` FROM `output_formats`;');
+			self::$db->query('SELECT `access_output_id`, `output_key` FROM `output_formats`;');
 
-				foreach (self::$db->get_rows() as $rRow) {
-					if (!in_array(intval($rRow['access_output_id']), $rUserInfo['allowed_outputs'])) {
-					} else {
-						$rUserInfo['output_formats'][] = $rRow['output_key'];
-					}
-				}
-			} else {
-				self::$db->query('SELECT `user_output`.`access_output_id`, `access_output`.`output_key` FROM `user_output` LEFT JOIN `access_output` ON `user_output`.`access_output_id` = `access_output`.`access_output_id` WHERE `user_output`.`user_id` = ?;', $rUserInfo['id']);
-
-				foreach (self::$db->get_rows() as $rRow) {
-					$rUserInfo['allowed_outputs'][] = $rRow['access_output_id'];
+			foreach (self::$db->get_rows() as $rRow) {
+				if (!in_array(intval($rRow['access_output_id']), $rUserInfo['allowed_outputs'])) {
+				} else {
 					$rUserInfo['output_formats'][] = $rRow['output_key'];
 				}
 			}
@@ -1537,8 +1279,7 @@ class CoreUtilities {
 		$rUserInfo['isp_violate'] = 0;
 		$rUserInfo['isp_is_server'] = 0;
 
-		if (!(PLATFORM == 'xc_vm' && self::$rSettings['show_isps'] == 1) || empty($rIP)) {
-		} else {
+		if (self::$rSettings['show_isps'] == 1 && !empty($rIP)) {
 			$rISPLock = self::getISP($rIP);
 
 			if (!is_array($rISPLock)) {
@@ -1561,11 +1302,7 @@ class CoreUtilities {
 				if (self::$rCached) {
 					self::setSignal('isp/' . $rUserInfo['id'], json_encode(array($rUserInfo['con_isp_name'], $rUserInfo['isp_asn'])));
 				} else {
-					if (PLATFORM == 'xc_vm') {
-						self::$db->query('UPDATE `lines` SET `isp_desc` = ?, `as_number` = ? WHERE `id` = ?', $rUserInfo['con_isp_name'], $rUserInfo['isp_asn'], $rUserInfo['id']);
-					} else {
-						self::$db->query('UPDATE `users` SET `isp_desc` = ? WHERE `id` = ?', $rUserInfo['con_isp_name'], $rUserInfo['id']);
-					}
+					self::$db->query('UPDATE `lines` SET `isp_desc` = ?, `as_number` = ? WHERE `id` = ?', $rUserInfo['con_isp_name'], $rUserInfo['isp_asn'], $rUserInfo['id']);
 				}
 			}
 		}
@@ -1645,37 +1382,25 @@ class CoreUtilities {
 					self::$db->query('SELECT DISTINCT(`category_id`) FROM `streams` WHERE `id` IN (' . implode(',', array_map('intval', $rUserInfo['channel_ids'])) . ');');
 
 					foreach (self::$db->get_rows(true, 'category_id') as $rGroup) {
-						if (PLATFORM == 'xc_vm') {
-							foreach (json_decode($rGroup['category_id'], true) as $rCategoryID) {
-								if (in_array($rCategoryID, $rCategoryIDs)) {
-								} else {
-									$rCategoryIDs[] = $rCategoryID;
-								}
+						foreach (json_decode($rGroup['category_id'], true) as $rCategoryID) {
+							if (in_array($rCategoryID, $rCategoryIDs)) {
+							} else {
+								$rCategoryIDs[] = $rCategoryID;
 							}
-						} else {
-							$rCategoryIDs[] = $rGroup['category_id'];
 						}
 					}
 				}
 
 				if (0 >= count($rUserInfo['series_ids'])) {
 				} else {
-					if (PLATFORM == 'xc_vm') {
-						self::$db->query('SELECT DISTINCT(`category_id`) FROM `streams_series` WHERE `id` IN (' . implode(',', array_map('intval', $rUserInfo['series_ids'])) . ');');
-					} else {
-						self::$db->query('SELECT DISTINCT(`category_id`) FROM `series` WHERE `id` IN (' . implode(',', array_map('intval', $rUserInfo['series_ids'])) . ');');
-					}
+					self::$db->query('SELECT DISTINCT(`category_id`) FROM `streams_series` WHERE `id` IN (' . implode(',', array_map('intval', $rUserInfo['series_ids'])) . ');');
 
 					foreach (self::$db->get_rows(true, 'category_id') as $rGroup) {
-						if (PLATFORM == 'xc_vm') {
-							foreach (json_decode($rGroup['category_id'], true) as $rCategoryID) {
-								if (in_array($rCategoryID, $rCategoryIDs)) {
-								} else {
-									$rCategoryIDs[] = $rCategoryID;
-								}
+						foreach (json_decode($rGroup['category_id'], true) as $rCategoryID) {
+							if (in_array($rCategoryID, $rCategoryIDs)) {
+							} else {
+								$rCategoryIDs[] = $rCategoryID;
 							}
-						} else {
-							$rCategoryIDs[] = $rGroup['category_id'];
 						}
 					}
 				}
@@ -1688,11 +1413,7 @@ class CoreUtilities {
 	}
 
 	public static function setSignal($rKey, $rData) {
-		if (PLATFORM == 'xc_vm') {
-			file_put_contents(SIGNALS_TMP_PATH . 'cache_' . md5($rKey), json_encode(array($rKey, $rData)));
-		} else {
-			return false;
-		}
+		file_put_contents(SIGNALS_TMP_PATH . 'cache_' . md5($rKey), json_encode(array($rKey, $rData)));
 	}
 
 	public static function getMainID() {
@@ -1757,19 +1478,15 @@ class CoreUtilities {
 	}
 
 	public static function validateImage($rURL, $rForceProtocol = null) {
-		if (PLATFORM == 'xc_vm') {
-			if (substr($rURL, 0, 2) == 's:') {
-				$rSplit = explode(':', $rURL, 3);
-				$rServerURL = self::getPublicURL(intval($rSplit[1]), $rForceProtocol);
+		if (substr($rURL, 0, 2) == 's:') {
+			$rSplit = explode(':', $rURL, 3);
+			$rServerURL = self::getPublicURL(intval($rSplit[1]), $rForceProtocol);
 
-				if ($rServerURL) {
-					return $rServerURL . 'images/' . basename($rURL);
-				}
-
-				return '';
+			if ($rServerURL) {
+				return $rServerURL . 'images/' . basename($rURL);
 			}
 
-			return $rURL;
+			return '';
 		}
 
 		return $rURL;

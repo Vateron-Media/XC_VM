@@ -20,16 +20,11 @@ if (!CoreUtilities::$rSettings['player_allow_bouquet']) {
 	} else {
 		$rBouquetOrder = json_decode(CoreUtilities::$rRequest['bouquet_order'], true);
 		$rUserInfo['bouquet'] = array_map('intval', sortArrayByArray($rUserInfo['bouquet'], $rBouquetOrder));
+		$db->query('UPDATE `lines` SET `bouquet` = ? WHERE `id` = ?;', '[' . implode(',', $rUserInfo['bouquet']) . ']', $rUserInfo['id']);
 
-		if (PLATFORM == 'xc_vm') {
-			$db->query('UPDATE `lines` SET `bouquet` = ? WHERE `id` = ?;', '[' . implode(',', $rUserInfo['bouquet']) . ']', $rUserInfo['id']);
-
-			if (!CoreUtilities::$rCached) {
-			} else {
-				CoreUtilities::updateLine($rUserInfo['id']);
-			}
+		if (!CoreUtilities::$rCached) {
 		} else {
-			$db->query('UPDATE `users` SET `bouquet` = ? WHERE `id` = ?;', '[' . implode(',', $rUserInfo['bouquet']) . ']', $rUserInfo['id']);
+			CoreUtilities::updateLine($rUserInfo['id']);
 		}
 	}
 }
@@ -71,26 +66,13 @@ if (!CoreUtilities::$rSettings['player_allow_playlist']) {
 } else {
 	echo "\t\t\t\t\t\t" . '<div class="col-12 col-lg-6">' . "\r\n\t\t\t\t\t\t\t" . '<form action="#" class="profile__form">' . "\r\n\t\t\t\t\t\t\t\t" . '<div class="row">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<div class="col-12">' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<h4 class="profile__title">Playlist</h4>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<div class="col-12 col-md-12 col-lg-12 col-xl-12">' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<div class="profile__group">' . "\r\n" . '                                            <label class="profile__label" for="download_type">Format</label>' . "\r\n" . '                                            <select id="download_type" class="profile__input" data-toggle="select2">' . "\r\n" . '                                                ';
 
-	if (PLATFORM == 'xc_vm') {
-		$db->query('SELECT * FROM `output_devices` WHERE `copy_text` IS NULL ORDER BY `device_id` ASC;');
-	} else {
-		$db->query('SELECT * FROM `devices` WHERE `copy_text` IS NULL ORDER BY `device_id` ASC;');
-	}
+	$db->query('SELECT * FROM `output_devices` WHERE `copy_text` IS NULL ORDER BY `device_id` ASC;');
 
 	foreach ($db->get_rows() as $rRow) {
-		if (PLATFORM == 'xc_vm') {
-			echo '<optgroup label="' . $rRow['device_name'] . '"><option value="' . $rRow['device_key'] . '?output=hls">' . $rRow['device_name'] . ' - HLS </option><option value="' . $rRow['device_key'] . '">' . $rRow['device_name'] . ' - MPEGTS</option></optgroup>';
-		} else {
-			echo '<optgroup label="' . $rRow['device_name'] . '"><option value="' . $rRow['device_key'] . '&output=hls">' . $rRow['device_name'] . ' - HLS </option><option value="' . $rRow['device_key'] . '">' . $rRow['device_name'] . ' - MPEGTS</option></optgroup>';
-		}
+		echo '<optgroup label="' . $rRow['device_name'] . '"><option value="' . $rRow['device_key'] . '?output=hls">' . $rRow['device_name'] . ' - HLS </option><option value="' . $rRow['device_key'] . '">' . $rRow['device_name'] . ' - MPEGTS</option></optgroup>';
 	}
 	echo '                                            </select>' . "\r\n" . '                                        </div>' . "\r\n" . '                                    </div>' . "\r\n" . '                                    ';
-
-	if (PLATFORM != 'xc_vm') {
-	} else {
-		echo '                                    <div class="col-12 col-md-12 col-lg-12 col-xl-12">' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<div class="profile__group">' . "\r\n" . '                                            <label class="profile__label" for="output_type">Output</label>' . "\r\n" . '                                            <select id="output_type" class="profile__input" data-toggle="select2">' . "\r\n" . '                                                <option value="" selected>Everything</option>' . "\r\n" . '                                                <option value="live">Live Streams</option>' . "\r\n" . '                                                <option value="movie">Movies</option>' . "\r\n" . '                                                <option value="created_live">Created Channels</option>' . "\r\n" . '                                                <option value="radio_streams">Radio Stations</option>' . "\r\n" . '                                                <option value="series">TV Series</option>' . "\r\n" . '                                            </select>' . "\r\n" . '                                        </div>' . "\r\n" . '                                    </div>' . "\r\n" . '                                    ';
-	}
-
+	echo '                                    <div class="col-12 col-md-12 col-lg-12 col-xl-12">' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<div class="profile__group">' . "\r\n" . '                                            <label class="profile__label" for="output_type">Output</label>' . "\r\n" . '                                            <select id="output_type" class="profile__input" data-toggle="select2">' . "\r\n" . '                                                <option value="" selected>Everything</option>' . "\r\n" . '                                                <option value="live">Live Streams</option>' . "\r\n" . '                                                <option value="movie">Movies</option>' . "\r\n" . '                                                <option value="created_live">Created Channels</option>' . "\r\n" . '                                                <option value="radio_streams">Radio Stations</option>' . "\r\n" . '                                                <option value="series">TV Series</option>' . "\r\n" . '                                            </select>' . "\r\n" . '                                        </div>' . "\r\n" . '                                    </div>' . "\r\n" . '                                    ';
 	echo '                                </div>' . "\r\n" . '                            </form>' . "\r\n" . '                        </div>' . "\r\n" . '                        <div class="col-12 col-lg-12">' . "\r\n" . '                            <form action="#" class="profile__form">' . "\r\n\t\t\t\t\t\t\t\t" . '<div class="row">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<div class="col-12">' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<h4 class="profile__title">Download URL</h4>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<div class="col-12 col-md-12 col-lg-12 col-xl-12">' . "\r\n" . '                                        <div class="profile__group">' . "\r\n" . '                                            <input type="text" class="profile__input" id="download_url" value="" readonly>' . "\r\n" . '                                        </div>' . "\r\n" . '                                    </div>' . "\r\n" . '                                </div>' . "\r\n" . '                            </form>' . "\r\n" . '                        </div>' . "\r\n" . '                        ';
 }
 

@@ -1,15 +1,8 @@
 <?php
 
-
-
-
-
-
-
 include 'functions.php';
 
-if (!(PLATFORM == 'xc_vm' && (!in_array(1, $rUserInfo['allowed_outputs']) || CoreUtilities::$rSettings['disable_hls']))) {
-} else {
+if (!in_array(1, $rUserInfo['allowed_outputs']) || CoreUtilities::$rSettings['disable_hls']) {
 	header('Location: index.php');
 }
 
@@ -28,19 +21,13 @@ foreach ($rStreams as $rStream) {
 	$rStreamIDs[] = $rStream['id'];
 }
 
-if (PLATFORM == 'xc_vm') {
-	$db->query('SELECT `movie_properties` FROM `streams` WHERE `movie_properties` IS NOT NULL AND `type` = 2 ORDER BY RAND() LIMIT 5;');
-} else {
-	$db->query('SELECT `movie_propeties` AS `movie_properties` FROM `streams` WHERE `movie_propeties` IS NOT NULL AND `type` = 2 ORDER BY RAND() LIMIT 5;');
-}
-
+$db->query('SELECT `movie_properties` FROM `streams` WHERE `movie_properties` IS NOT NULL AND `type` = 2 ORDER BY RAND() LIMIT 5;');
 $rCover = '';
 
 foreach ($db->get_rows() as $rStream) {
 	$rProperties = json_decode($rStream['movie_properties'], true);
 
-	if (empty($rProperties['backdrop_path'][0])) {
-	} else {
+	if (!empty($rProperties['backdrop_path'][0])) {
 		$rCover = CoreUtilities::validateImage($rProperties['backdrop_path'][0]);
 
 		break;
@@ -54,8 +41,7 @@ echo '"></div>' . "\n\t\t" . '<div class="container">' . "\n\t\t\t" . '<div clas
 echo (strtoupper(htmlspecialchars($rSearchBy)) ?: 'LIVE TV');
 echo '</h2>' . "\n" . '                        <button onClick="closeChannel();" class="close__btn" type="button" style="display: none;">CLOSE</button>' . "\n\t\t\t\t\t" . '</div>' . "\n" . '                    <span id="now__playing__box" style="display: none;">' . "\n" . '                        <h3 class="card__title" id="now__playing__epg"></h3>' . "\n" . '                        <span class="card__rate" id="now__playing__text"></span>' . "\n" . '                        <div id="now__playing__player"></div>' . "\n" . '                    </span>' . "\n\t\t\t\t" . '</div>' . "\n\t\t\t" . '</div>' . "\n\t\t" . '</div>' . "\n\t" . '</section>' . "\n" . '    ';
 
-if ($rSearchBy) {
-} else {
+if (!$rSearchBy) {
 	echo "\t" . '<div class="filter">' . "\n\t\t" . '<div class="container">' . "\n\t\t\t" . '<div class="row">' . "\n\t\t\t\t" . '<div class="col-12">' . "\n\t\t\t\t\t" . '<div class="filter__content">' . "\n\t\t\t\t\t\t" . '<div class="filter__items">' . "\n\t\t\t\t\t\t\t" . '<div class="filter__item" id="filter__genre">' . "\n\t\t\t\t\t\t\t\t" . '<span class="filter__item-label">CATEGORY:</span>' . "\n\t\t\t\t\t\t\t\t" . '<div class="filter__item-btn dropdown-toggle" role="navigation" id="filter-genre" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">' . "\n\t\t\t\t\t\t\t\t\t" . '<input type="button" value="';
 	echo (!empty($rCategoryID) ? CoreUtilities::$rCategories[$rCategoryID]['category_name'] : $rCategories[0]['title']);
 	echo '">' . "\n\t\t\t\t\t\t\t\t\t" . '<span></span>' . "\n\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '<ul class="filter__item-menu dropdown-menu scrollbar-dropdown" aria-labelledby="filter-genre">' . "\n" . '                                    ';
@@ -88,8 +74,7 @@ if ($rSearchBy) {
 
 echo "\t" . '<div class="catalog details';
 
-if (!$rSearchBy) {
-} else {
+if ($rSearchBy) {
 	echo ' top-margin-med';
 }
 

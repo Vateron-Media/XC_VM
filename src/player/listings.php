@@ -1,11 +1,5 @@
 <?php
 
-
-
-
-
-
-
 include 'functions.php';
 $rFlip = array_flip($rUserInfo['channel_ids']);
 $rTimezone = (CoreUtilities::$rRequest['timezone'] ?: 'Europe/London');
@@ -16,8 +10,8 @@ if (isset(CoreUtilities::$rRequest['id'])) {
 
 	if (!isset($rFlip[CoreUtilities::$rRequest['id']])) {
 	} else {
-		$rStart = (intval(CoreUtilities::$rRequest['start']) ?: time());
-		$rDuration = (intval(CoreUtilities::$rRequest['duration']) ?: '');
+		$rStart = intval(CoreUtilities::$rRequest['start'] ?: time());
+		$rDuration = intval(CoreUtilities::$rRequest['duration'] ?: '');
 		$db->query('SELECT `id`, `stream_display_name`, `channel_id`, `epg_id` FROM `streams` WHERE `id` = ?;', CoreUtilities::$rRequest['id']);
 
 		if ($db->num_rows() != 1) {
@@ -36,18 +30,9 @@ if (isset(CoreUtilities::$rRequest['id'])) {
 		$rDomainName = CoreUtilities::getDomainName(!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443);
 
 		if ($rStart + $rDuration * 60 < time() && 0 < $rDuration) {
-			if (PLATFORM == 'xc_vm') {
-				$rReturn['url'] = $rDomainName . 'timeshift/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rDuration . '/' . $rStart . '/' . intval(CoreUtilities::$rRequest['id']) . '.m3u8';
-			} else {
-				$rProgramStart = date('Y-m-d:H-i', $rStart);
-				$rReturn['url'] = $rDomainName . 'timeshift/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rDuration . '/' . $rProgramStart . '/' . intval(CoreUtilities::$rRequest['id']) . '.m3u8';
-			}
+			$rReturn['url'] = $rDomainName . 'timeshift/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rDuration . '/' . $rStart . '/' . intval(CoreUtilities::$rRequest['id']) . '.m3u8';
 		} else {
-			if (PLATFORM == 'xc_vm') {
-				$rReturn['url'] = $rDomainName . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . intval(CoreUtilities::$rRequest['id']) . '.m3u8';
-			} else {
-				$rReturn['url'] = $rDomainName . 'live/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . intval(CoreUtilities::$rRequest['id']) . '.m3u8';
-			}
+			$rReturn['url'] = $rDomainName . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . intval(CoreUtilities::$rRequest['id']) . '.m3u8';
 		}
 	}
 
@@ -65,9 +50,6 @@ if (isset(CoreUtilities::$rRequest['id'])) {
 	}
 
 	if (count($rChannels) != 0) {
-
-
-
 		$rHours = (intval(CoreUtilities::$rRequest['hours']) ?: 3);
 		$rStartDate = (intval(strtotime(CoreUtilities::$rRequest['startdate'])) ?: time());
 		$rFinishDate = $rStartDate + $rHours * 3600;

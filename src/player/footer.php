@@ -7,7 +7,7 @@
 
 
 echo '    <footer class="footer">' . "\r\n\t\t" . '<div class="container">' . "\r\n\t\t\t" . '<div class="row">' . "\r\n\t\t\t\t" . '<div class="col-12">' . "\r\n\t\t\t\t\t" . '<div class="footer__copyright">' . "\r\n" . '                        &copy; 2025 <img height="20px" style="padding-left: 10px; padding-right: 10px; margin-top: -2px;" src="img/logo.png"> v';
-echo $_VERSION;
+echo XC_VM_VERSION;
 echo "\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t" . '</div>' . "\r\n\t\t\t" . '</div>' . "\r\n\t\t" . '</div>' . "\r\n\t" . '</footer>' . "\r\n\t" . '<script src="./js/jquery-3.5.1.min.js"></script>' . "\r\n\t" . '<script src="./js/bootstrap.bundle.min.js"></script>' . "\r\n\t" . '<script src="./js/owl.carousel.min.js"></script>' . "\r\n\t" . '<script src="./js/jquery.mousewheel.min.js"></script>' . "\r\n\t" . '<script src="./js/jquery.mcustomscrollbar.min.js"></script>' . "\r\n\t" . '<script src="./js/wnumb.js"></script>' . "\r\n\t" . '<script src="./js/nouislider.min.js"></script>' . "\r\n\t" . '<script src="./js/jquery.morelines.min.js"></script>' . "\r\n\t" . '<script src="./js/photoswipe.min.js"></script>' . "\r\n\t" . '<script src="./js/photoswipe-ui-default.min.js"></script>' . "\r\n" . '    <script src="./js/glightbox.min.js"></script>' . "\r\n" . '    <script src="./js/jBox.all.min.js"></script>' . "\r\n" . '    <script src="./js/select2.min.js"></script>' . "\r\n" . '    <script src="./js/jwplayer.js"></script>' . "\r\n" . '    <script src="./js/jwplayer.core.controls.js"></script>' . "\r\n" . '    <script src="./js/provider.hlsjs.js"></script>' . "\r\n\t" . '<script src="./js/main.js"></script>' . "\r\n" . '    <script>' . "\r\n" . '    $(document).ready(function () {' . "\r\n" . '        ';
 
 if ($_PAGE != 'profile') {
@@ -22,29 +22,14 @@ if ($_PAGE == 'profile') {
 	echo '    function AtoZ() {' . "\r\n" . '        $("#sort_bouquet").append($("#sort_bouquet option").remove().sort(function(a, b) {' . "\r\n" . '            var at = $(a).text().toUpperCase(), bt = $(b).text().toUpperCase();' . "\r\n" . '            return (at > bt) ? 1 : ((at < bt) ? -1 : 0);' . "\r\n" . '        }));' . "\r\n" . '    }' . "\r\n" . '    function MoveUp() {' . "\r\n" . "        var rSelected = \$('#sort_bouquet option:selected');" . "\r\n" . '        if (rSelected.length) {' . "\r\n" . '            var rPrevious = rSelected.first().prev()[0];' . "\r\n" . "            if (\$(rPrevious).html() != '') {" . "\r\n" . '                rSelected.first().prev().before(rSelected);' . "\r\n" . '            }' . "\r\n" . '        }' . "\r\n" . '    }' . "\r\n" . '    function MoveDown() {' . "\r\n" . "        var rSelected = \$('#sort_bouquet option:selected');" . "\r\n" . '        if (rSelected.length) {' . "\r\n" . '            rSelected.last().next().after(rSelected);' . "\r\n" . '        }' . "\r\n" . '    }' . "\r\n" . '    function doLogout() {' . "\r\n" . '        window.location.href = "logout";' . "\r\n" . '    }' . "\r\n" . '    ' . "\r\n" . '    $(document).ready(function () {' . "\r\n" . '        $("#output_type").change(function() {' . "\r\n" . '            $("#download_type").trigger("change");' . "\r\n" . '        });' . "\r\n" . '        $("#download_type").change(function() {' . "\r\n" . '            if ($("#download_type").val()) {' . "\r\n" . '                ';
 	$rURL = rtrim(CoreUtilities::getDomainName(), '/');
 
-	if (PLATFORM == 'xc_vm') {
-		echo '                rText = "';
-		echo $rURL;
-		echo '/playlist/';
-		echo htmlentities($rUserInfo['username']);
-		echo '/';
-		echo htmlentities($rUserInfo['password']);
-		echo "/\" + decodeURIComponent(\$('#download_type').val());" . "\r\n" . '                ';
-	} else {
-		echo '                rText = "';
-		echo $rURL;
-		echo '/get.php?username=';
-		echo htmlentities($rUserInfo['username']);
-		echo '&password=';
-		echo htmlentities($rUserInfo['password']);
-		echo "&type=\" + decodeURIComponent(\$('#download_type').val());" . "\r\n" . '                ';
-	}
-
-	if (PLATFORM != 'xc_vm') {
-	} else {
-		echo '                if ($("#output_type").val()) {' . "\r\n" . "                    if (rText.indexOf('?output=') != -1) {" . "\r\n" . '                        rText = rText + "&key=" + encodeURIComponent($("#output_type").val());' . "\r\n" . '                    } else {' . "\r\n" . '                        rText = rText + "?key=" + encodeURIComponent($("#output_type").val());' . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n" . '                ';
-	}
-
+	echo '                rText = "';
+	echo $rURL;
+	echo '/playlist/';
+	echo htmlentities($rUserInfo['username']);
+	echo '/';
+	echo htmlentities($rUserInfo['password']);
+	echo "/\" + decodeURIComponent(\$('#download_type').val());" . "\r\n" . '                ';
+	echo '                if ($("#output_type").val()) {' . "\r\n" . "                    if (rText.indexOf('?output=') != -1) {" . "\r\n" . '                        rText = rText + "&key=" + encodeURIComponent($("#output_type").val());' . "\r\n" . '                    } else {' . "\r\n" . '                        rText = rText + "?key=" + encodeURIComponent($("#output_type").val());' . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n" . '                ';
 	echo '                $("#download_url").val(rText);' . "\r\n" . '            } else {' . "\r\n" . '                $("#download_url").val("");' . "\r\n" . '            }' . "\r\n" . '        });' . "\r\n" . '        $("#download_type").trigger("change");' . "\r\n" . '        $("#bouquet__form").submit(function(e){' . "\r\n" . '            rOrder = [];' . "\r\n" . "            \$('#sort_bouquet option').each(function() {" . "\r\n" . '                rOrder.push($(this).val());' . "\r\n" . '            });' . "\r\n" . '            $("#bouquet_order_array").val(JSON.stringify(rOrder));' . "\r\n" . '        });' . "\r\n" . '    });' . "\r\n" . '    ';
 } else {
 	if ($_PAGE == 'live') {
