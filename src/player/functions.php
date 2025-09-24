@@ -1759,14 +1759,3 @@ function sortArrayByArray($rArray, $rSort) {
 		return array();
 	}
 }
-
-define('PHP_ERRORS', true);
-
-if (PHP_ERRORS) {
-	error_reporting(5);
-	ini_set('display_errors', true);
-	ini_set('display_startup_errors', true);
-} else {
-	error_reporting(0);
-	ini_set('display_errors', 0);
-}
