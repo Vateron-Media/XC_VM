@@ -10,6 +10,7 @@
 
   * `src/www/constants.php`
   * `src/www/stream/init.php`
+  * `src/player/functions.php`
 * Commit the changes with the message:
 
   ```
