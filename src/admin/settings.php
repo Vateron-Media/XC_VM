@@ -3,13 +3,17 @@
 include "session.php";
 include "functions.php";
 
-if (checkPermissions()) {
-} else {
+if (!checkPermissions()) {
 	goHome();
 }
 
 $rSettings = getSettings();
 $rStreamArguments = getStreamArguments();
+
+$GeoLite2 = json_decode(file_get_contents(BIN_PATH . "maxmind/version.json"), true)["geolite2_version"];
+$GeoISP = json_decode(file_get_contents(BIN_PATH . "maxmind/version.json"), true)["geoisp_version"];
+$Nginx = trim(shell_exec(BIN_PATH . "nginx/sbin/nginx -v 2>&1 | cut -d'/' -f2"));
+
 $_TITLE = "Settings";
 include "header.php";
 echo '<div class="wrapper boxed-layout-ext"';
@@ -121,6 +125,11 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 									<a href="#logs" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"> <i
 											class="mdi mdi-file-document-outline mr-1"></i><span
 											class="d-none d-sm-inline">Logs</span></a>
+								</li>
+								<li class="nav-item">
+									<a href="#info" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"> <i
+											class="mdi mdi-file-document-outline mr-1"></i><span
+											class="d-none d-sm-inline">Info</span></a>
 								</li>
 								<?php if (hasPermissions("adv", "database") && DEVELOPMENT) { ?>
 									<li class="nav-item">
@@ -965,115 +974,70 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														title="Enable / Disable ISP lock globally."
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="enable_isp_lock" id="enable_isp_lock"
-														type="checkbox" <?php
-																		if ($rSettings["enable_isp_lock"] == 1) {
-																			echo ' checked ';
-																		}
-																		echo ' data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div><label
+														type="checkbox" <?php if ($rSettings["enable_isp_lock"] == 1) echo ' checked'; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div><label
 													class="col-md-4 col-form-label" for="block_svp">Enable ASN Lock <i
 														title="Enable / Disable ASN lock globally."
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="block_svp" id="block_svp"
-														type="checkbox"';
-																		if ($rSettings["block_svp"] == 1) {
-																			echo ' checked ';
-																		}
-																		echo ' data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div>
+														type="checkbox" <?php if ($rSettings["block_svp"] == 1) echo ' checked'; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div>
 											</div>
 											<div class="form-group row mb-4"><label class="col-md-4 col-form-label"
 													for="disable_ts">Disable MPEG-TS Output <i
 														title="Disable MPEG-TS for all clients and devices."
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="disable_ts" id="disable_ts"
-														type="checkbox"';
-																		if ($rSettings["disable_ts"] == 1) {
-																			echo ' checked ';
-																		}
-																		echo ' data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div><label
+														type="checkbox" <?php if ($rSettings["disable_ts"] == 1) echo ' checked'; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div><label
 													class="col-md-4 col-form-label"
 													for="disable_ts_allow_restream">Allow Restreamers - MPEG-TS <i
 														title="Override to allow restreamers to still use MPEG-TS while it is disabled."
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="disable_ts_allow_restream"
-														id="disable_ts_allow_restream" type="checkbox"';
-																		if ($rSettings["disable_ts_allow_restream"] == 1) {
-																			echo ' checked ';
-																		}
-																		echo ' data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div>
+														id="disable_ts_allow_restream" type="checkbox" <?php if ($rSettings["disable_ts_allow_restream"] == 1) echo ' checked'; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div>
 											</div>
 											<div class="form-group row mb-4"><label class="col-md-4 col-form-label"
 													for="disable_hls">Disable HLS Output <i
 														title="Disable HLS for all clients and devices."
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="disable_hls" id="disable_hls"
-														type="checkbox"';
-																		if ($rSettings["disable_hls"] == 1) {
-																			echo ' checked ';
-																		}
-																		echo ' data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div><label
+														type="checkbox" <?php if ($rSettings["disable_hls"] == 1) echo ' checked'; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div><label
 													class="col-md-4 col-form-label"
 													for="disable_hls_allow_restream">Allow Restreamers - HLS <i
 														title="Override to allow restreamers to still use HLS while it is disabled."
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="disable_hls_allow_restream"
-														id="disable_hls_allow_restream" type="checkbox"';
-																		if ($rSettings["disable_hls_allow_restream"] == 1) {
-																			echo ' checked ';
-																		}
-																		echo ' data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div>
+														id="disable_hls_allow_restream" type="checkbox" <?php if ($rSettings["disable_hls_allow_restream"] == 1) echo ' checked'; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div>
 											</div>
 											<div class="form-group row mb-4"><label class="col-md-4 col-form-label"
 													for="disable_rtmp">Disable RTMP Output <i
 														title="Disable RTMP for all clients and devices."
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="disable_rtmp" id="disable_rtmp"
-														type="checkbox"';
-																		if ($rSettings["disable_rtmp"] == 1) {
-																			echo ' checked ';
-																		}
-																		echo ' data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div><label
+														type="checkbox" <?php if ($rSettings["disable_rtmp"] == 1) echo ' checked'; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div><label
 													class="col-md-4 col-form-label"
 													for="disable_rtmp_allow_restream">Allow Restreamers - RTMP <i
 														title="Override to allow restreamers to still use RTMP while it is disabled."
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="disable_rtmp_allow_restream"
-														id="disable_rtmp_allow_restream" type="checkbox"';
-																		if ($rSettings["disable_rtmp_allow_restream"] == 1) {
-																			echo ' checked ';
-																		}
-																		echo ' data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div>
+														id="disable_rtmp_allow_restream" type="checkbox" <?php if ($rSettings["disable_rtmp_allow_restream"] == 1) echo ' checked'; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div>
 											</div>
 											<div class="form-group row mb-4"><label class="col-md-4 col-form-label"
 													for="case_sensitive_line">Case Sensitive Lines <i
 														title="Case sensitive username and password."
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="case_sensitive_line"
-														id="case_sensitive_line" type="checkbox"';
-																		if ($rSettings["case_sensitive_line"] == 1) {
-																			echo ' checked ';
-																		}
-																		echo ' data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div><label
+														id="case_sensitive_line" type="checkbox" <?php if ($rSettings["case_sensitive_line"] == 1) echo ' checked'; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div><label
 													class="col-md-4 col-form-label" for="county_override_1st">Override
 													Country with First <i title="Override country with first connected."
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="county_override_1st"
-														id="county_override_1st" type="checkbox"';
-																		if ($rSettings["county_override_1st"] == 1) {
-																			echo ' checked ';
-																		}
-																		echo ' data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div>
+														id="county_override_1st" type="checkbox" <?php if ($rSettings["county_override_1st"] == 1) echo ' checked'; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div>
 											</div>
 											<div class="form-group row mb-4"><label class="col-md-4 col-form-label"
 													for="encrypt_hls">Encrypt HLS Segments <i
 														title="Encrypt all HLS streams with AES-256 while they are being watched. This will increase CPU usage but is more secure and packets cannot be analysed."
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2"><input name="encrypt_hls" id="encrypt_hls"
-														type="checkbox"';
-																		if ($rSettings["encrypt_hls"] == 1) {
-																			echo ' checked ';
-																		} ?>
-														data-plugin="switchery" class="js-switch"
-														data-color="#039cfd" />
+														type="checkbox" <?php if ($rSettings["encrypt_hls"] == 1)  echo ' checked '; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 												</div>
 												<label class="col-md-4 col-form-label"
 													for="disallow_empty_user_agents">Disallow Empty UA <i
@@ -1081,33 +1045,23 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2">
 													<input name="disallow_empty_user_agents"
-														id="disallow_empty_user_agents" type="checkbox" <?php if ($rSettings["disallow_empty_user_agents"] == 1) {
-																											echo ' checked ';
-																										}
-																										echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="vod_bitrate_plus">VOD Bitrate Buffer <i title="Additional buffer when streaming VOD." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="vod_bitrate_plus" name="vod_bitrate_plus" value="';
-																										echo htmlspecialchars($rSettings["vod_bitrate_plus"]);
-																										echo '"></div><label class="col-md-4 col-form-label" for="vod_limit_perc">VOD Limit At % <i title="Limit VOD after x% has streamed. Use 0 to limit immediately and 100 to turn off entirely." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="vod_limit_perc" name="vod_limit_perc" value="';
-																										echo htmlspecialchars($rSettings["vod_limit_perc"]);
-																										echo '"></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="user_auto_kick_hours">Auto-Kick Hours <i title="Automatically kick connections that are online for more than X hours." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="user_auto_kick_hours" name="user_auto_kick_hours" value="';
-																										echo htmlspecialchars($rSettings["user_auto_kick_hours"]);
-																										echo '"></div><label class="col-md-4 col-form-label" for="use_mdomain_in_lists">Use Domain Name in API <i title="Use domain name in lists." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="use_mdomain_in_lists" id="use_mdomain_in_lists" type="checkbox"';
-																										if ($rSettings["use_mdomain_in_lists"] == 1) {
-																											echo ' checked ';
-																										}
-																										echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="encrypt_playlist">Encrypt Playlists <i title="Encrypt line credentials in playlist files." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="encrypt_playlist" id="encrypt_playlist" type="checkbox"';
-																										if ($rSettings["encrypt_playlist"] == 1) {
-																											echo ' checked ';
-																										}
-																										echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="encrypt_playlist_restreamer">Encrypt Restreamer Playlists <i title="Encrypt line credentials in restreamer playlist files." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="encrypt_playlist_restreamer" id="encrypt_playlist_restreamer" type="checkbox"';
-																										if ($rSettings["encrypt_playlist_restreamer"] == 1) {
-																											echo ' checked ';
-																										}
-																										echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="restrict_playlists">Restrictions on Playlists & EPG <i title="Verify user-agent, IP restrictions, ISP and country restrictions before allowing playlist / EPG download. If disabled the playlist can be downloaded from any IP but restrictions still apply to streams themselves." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="restrict_playlists" id="restrict_playlists" type="checkbox"';
-																										if ($rSettings["restrict_playlists"] == 1) {
-																											echo ' checked ';
-																										} ?>
-														data-plugin="switchery" class="js-switch"
-														data-color="#039cfd" />
+														id="disallow_empty_user_agents" type="checkbox" <?php if ($rSettings["disallow_empty_user_agents"] == 1) echo ' checked'; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
+												</div>
+											</div>
+											<div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="vod_bitrate_plus">VOD Bitrate Buffer <i title="Additional buffer when streaming VOD." class="tooltip text-secondary far fa-circle"></i></label>
+												<div class="col-md-2"><input type="text" class="form-control text-center" id="vod_bitrate_plus" name="vod_bitrate_plus" value="<?php echo htmlspecialchars($rSettings["vod_bitrate_plus"]); ?>"></div><label class="col-md-4 col-form-label" for="vod_limit_perc">VOD Limit At % <i title="Limit VOD after x% has streamed. Use 0 to limit immediately and 100 to turn off entirely." class="tooltip text-secondary far fa-circle"></i></label>
+												<div class="col-md-2"><input type="text" class="form-control text-center" id="vod_limit_perc" name="vod_limit_perc" value="<?php echo htmlspecialchars($rSettings["vod_limit_perc"]); ?>"></div>
+											</div>
+											<div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="user_auto_kick_hours">Auto-Kick Hours <i title="Automatically kick connections that are online for more than X hours." class="tooltip text-secondary far fa-circle"></i></label>
+												<div class="col-md-2"><input type="text" class="form-control text-center" id="user_auto_kick_hours" name="user_auto_kick_hours" value="<?php echo htmlspecialchars($rSettings["user_auto_kick_hours"]); ?>"></div><label class="col-md-4 col-form-label" for="use_mdomain_in_lists">Use Domain Name in API <i title="Use domain name in lists." class="tooltip text-secondary far fa-circle"></i></label>
+												<div class="col-md-2"><input name="use_mdomain_in_lists" id="use_mdomain_in_lists" type="checkbox" <?php if ($rSettings["use_mdomain_in_lists"] == 1) echo ' checked'; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div>
+											</div>
+											<div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="encrypt_playlist">Encrypt Playlists <i title="Encrypt line credentials in playlist files." class="tooltip text-secondary far fa-circle"></i></label>
+												<div class="col-md-2"><input name="encrypt_playlist" id="encrypt_playlist" type="checkbox" <?php if ($rSettings["encrypt_playlist"] == 1) echo ' checked'; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div><label class="col-md-4 col-form-label" for="encrypt_playlist_restreamer">Encrypt Restreamer Playlists <i title="Encrypt line credentials in restreamer playlist files." class="tooltip text-secondary far fa-circle"></i></label>
+												<div class="col-md-2"><input name="encrypt_playlist_restreamer" id="encrypt_playlist_restreamer" type="checkbox" <?php if ($rSettings["encrypt_playlist_restreamer"] == 1) echo ' checked'; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div>
+											</div>
+											<div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="restrict_playlists">Restrictions on Playlists & EPG <i title="Verify user-agent, IP restrictions, ISP and country restrictions before allowing playlist / EPG download. If disabled the playlist can be downloaded from any IP but restrictions still apply to streams themselves." class="tooltip text-secondary far fa-circle"></i></label>
+												<div class="col-md-2"><input name="restrict_playlists" id="restrict_playlists" type="checkbox" <?php if ($rSettings["restrict_playlists"] == 1) echo ' checked'; ?> data-plugin=" switchery" class="js-switch" data-color="#039cfd" />
 												</div>
 												<label class="col-md-4 col-form-label" for="ignore_invalid_users">Ignore
 													Invalid Credentials <i
@@ -1269,8 +1223,7 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 												</div>
 											</div>
 											<div class="form-group row mb-4">
-												<label class="col-md-4 col-form-label" for="read_buffer_size">Read
-													Buffer Size <i
+												<label class="col-md-4 col-form-label" for="read_buffer_size">Read Buffer Size <i
 														title="Amount of buffer to use when reading files in chunks."
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2">
@@ -1278,21 +1231,16 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														id="read_buffer_size" name="read_buffer_size"
 														value="<?= htmlspecialchars($rSettings["read_buffer_size"]); ?>">
 												</div>
-												<label class="col-md-4 col-form-label" for="connection_sync_timer">Redis
-													Connection Sync Timer <i
+												<label class="col-md-4 col-form-label" for="connection_sync_timer">Redis Connection Sync Timer <i
 														title="Time between runs of the Redis Connection Sync script."
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2">
 													<input type="text" class="form-control text-center"
-														id="connection_sync_timer" name="connection_sync_timer" value="<?= htmlspecialchars($rSettings["connection_sync_timer"]); ?>
-
-">
+														id="connection_sync_timer" name="connection_sync_timer" value="<?= htmlspecialchars($rSettings["connection_sync_timer"]); ?>">
 												</div>
 											</div>
 											<div class="form-group row mb-4">
-												<label class="col-md-4 col-form-label" for="allow_cdn_access">Allow
-													CDN
-													/ Forwarding <i
+												<label class="col-md-4 col-form-label" for="allow_cdn_access">Allow CDN / Forwarding <i
 														title="Allow X-Forwarded-For to forward the correct IP to XC_VM and turn off path encryption in favour of token based encryption when streaming.<br/>To set up allowed IP's for forwarding, follow the CDN setup tutorial on the Billing Panel. Advanced usage only."
 														class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-2">
@@ -2224,6 +2172,121 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 										</div>
 									</div>
 								</div>
+								<div class="tab-pane" id="info">
+									<div class="row">
+										<div class="col-12">
+											<h4 class="card-title mb-4">Versions</h4>
+											<table class="table table-striped table-bordered">
+												<tbody>
+													<tr>
+														<td class="text-center" style="font-size: 0.85rem;">Geolite2 Version</td>
+														<td class="text-center">
+															<button type="button" class="btn btn-pink btn-sm" style="font-size: 0.85rem;"><?= $GeoLite2 ?></button>
+														</td>
+														<td class="text-center" style="font-size: 0.85rem;">GeoIP2-ISP Version</td>
+														<td class="text-center">
+															<button type="button" class="btn btn-warning btn-sm" style="font-size: 0.85rem;"><?= $GeoISP ?></button>
+														</td>
+													</tr>
+													<tr>
+														<td class="text-center" style="font-size: 0.85rem;">PHP</td>
+														<td class="text-center">
+															<button type="button" class="btn btn-info btn-sm" style="font-size: 0.85rem;"><?= phpversion() ?></button>
+														</td>
+														<td class="text-center" style="font-size: 0.85rem;">Nginx</td>
+														<td class="text-center">
+															<button type="button" class="btn btn-danger btn-sm" style="font-size: 0.85rem;"><?= $Nginx ?></button>
+														</td>
+													</tr>
+												</tbody>
+											</table>
+
+											<h4 class="card-title mb-4">Support project</h4>
+											<table class="table table-striped table-bordered text-center">
+												<thead class="thead-light">
+													<tr>
+														<th>Name</th>
+														<th>Address</th>
+														<th style="width:90px;">QR</th>
+														<th style="width:90px;">Copy</th>
+													</tr>
+												</thead>
+												<tbody>
+													<tr>
+														<td><i class="fab fa-bitcoin text-warning"></i> Bitcoin (BTC)</td>
+														<td class="text-monospace small">1EP3XFHVk1fF3kV6zSg7whZzQdUpVMcAQz</td>
+														<td>
+															<button type="button" class="btn btn-sm btn-outline-primary"
+																data-toggle="modal"
+																data-target="#qrModal"
+																onclick="showQR(this)">
+																<i class="fas fa-qrcode"></i>
+															</button>
+														</td>
+														<td>
+															<button type="button" class="btn btn-sm btn-outline-success"
+																onclick="copyAddr(this)">
+																<i class="fas fa-copy"></i>
+															</button>
+														</td>
+													</tr>
+
+													<tr>
+														<td><i class="fab fa-ethereum text-info"></i> Ethereum (ETH)</td>
+														<td class="text-monospace small">0x613411dB8cFbaeaCC3A075EF39F41DFaaab4E1B8</td>
+														<td>
+															<button type="button" class="btn btn-sm btn-outline-primary"
+																onclick="showQR(this)">
+																<i class="fas fa-qrcode"></i>
+															</button>
+														</td>
+														<td>
+															<button type="button" class="btn btn-sm btn-outline-success"
+																onclick="copyAddr(this)">
+																<i class="fas fa-copy"></i>
+															</button>
+														</td>
+													</tr>
+
+													<tr>
+														<td><i class="fas fa-coins text-secondary"></i> Litecoin (LTC)</td>
+														<td class="text-monospace small">MFmn43WF2k2bsAQJe8rRmq2sKke95JmqC4</td>
+														<td>
+															<button type="button" class="btn btn-sm btn-outline-primary"
+																onclick="showQR(this)">
+																<i class="fas fa-qrcode"></i>
+															</button>
+														</td>
+														<td>
+															<button type="button" class="btn btn-sm btn-outline-success"
+																onclick="copyAddr(this)">
+																<i class="fas fa-copy"></i>
+															</button>
+														</td>
+													</tr>
+
+													<tr>
+														<td><i class="fas fa-dollar-sign text-success"></i> USDT (ERC-20)</td>
+														<td class="text-monospace small">0x034a2263a15Ade8606cC60181f12E5c2f0Ac59C6</td>
+														<td>
+															<button type="button" class="btn btn-sm btn-outline-primary"
+																onclick="showQR(this)">
+																<i class="fas fa-qrcode"></i>
+															</button>
+														</td>
+														<td>
+															<button type="button" class="btn btn-sm btn-outline-success"
+																onclick="copyAddr(this)">
+																<i class="fas fa-copy"></i>
+															</button>
+														</td>
+													</tr>
+												</tbody>
+
+											</table>
+										</div>
+									</div>
+								</div>
 								<?php
 								if (hasPermissions("adv", "database") && DEVELOPMENT) { ?>
 									<div class="tab-pane" id="database">
@@ -2241,7 +2304,6 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 			</div>
 		</div>
 	</form>
-</div>
 </div>
 <?php
 include 'footer.php'; ?>
@@ -2559,6 +2621,58 @@ include 'footer.php'; ?>
 			submitForm(window.rCurrentPage, new FormData($("form")[0]));
 		});
 	});
+
+	function showQR(btnEl) {
+		// Find the table row
+		const row = btnEl.closest('tr');
+		// Get the address text from the cell with class text-monospace
+		const addrCell = row.querySelector('td.text-monospace');
+		if (!addrCell) return;
+
+		const text = addrCell.textContent.trim();
+
+		// Set the address as the QR code image source
+		const img = document.getElementById('qrImage');
+		img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' +
+			encodeURIComponent(text);
+
+		$(".bs-addr-qr-modal-center").modal("show");
+	}
+
+	function copyAddr(btnEl) {
+		// Find the table row
+		const row = btnEl.closest('tr');
+		// Find the cell containing the address
+		const addrCell = row.querySelector('td.text-monospace');
+		if (!addrCell) return;
+
+		const text = addrCell.textContent.trim();
+
+		// Create a temporary input field to copy the text
+		const tempInput = document.createElement('input');
+		tempInput.value = text;
+		document.body.appendChild(tempInput);
+		tempInput.select();
+
+		try {
+			document.execCommand('copy');
+
+			// Change the icon to a checkmark
+			const icon = btnEl.querySelector('i');
+			icon.classList.remove('fa-copy');
+			icon.classList.add('fa-check', 'text-success');
+
+			// Revert the icon back after 1 second
+			setTimeout(() => {
+				icon.classList.remove('fa-check', 'text-success');
+				icon.classList.add('fa-copy');
+			}, 1000);
+		} catch (err) {
+			console.error('Copy failed:', err);
+		}
+
+		document.body.removeChild(tempInput);
+	}
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

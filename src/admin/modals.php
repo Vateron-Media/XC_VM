@@ -613,6 +613,19 @@
 			</div>
 		</div>
 	</div>
-<?php else: 
+	<div class="modal fade bs-addr-qr-modal-center" tabindex="-1" role="dialog" aria-labelledby="qrModal" aria-hidden="true" style="display: none;" data-id="">
+		<div class="modal-dialog modal-dialog-centered modal-sm">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h4 class="modal-title">QR Code</h4>
+					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+				</div>
+				<div class="modal-body p-0"> <!-- Added p-0 to remove padding -->
+					<img id="qrImage" src="" alt="QR Code" class="img-fluid w-100"> <!-- Added w-100 for full width -->
+				</div>
+			</div>
+		</div>
+	</div>
+<?php else:
 	exit(); ?>
 <?php endif; ?>
