@@ -902,7 +902,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 
 			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'auto_send_logs';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
+			if (CoreUtilities::$db->num_rows() != 0) {
 				CoreUtilities::$db->query("ALTER TABLE `settings` DROP COLUMN `auto_send_logs`;");
 			}
 
