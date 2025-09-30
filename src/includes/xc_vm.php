@@ -354,6 +354,9 @@ class CoreUtilities {
 			}
 			$rRow['watchdog'] = json_decode($rRow['watchdog_data'], true);
 			$rRow['server_online'] = $rRow['enabled'] && in_array($rRow['status'], $rOnlineStatus) && time() - $rRow['last_check_ago'] <= $rLastCheckTime || SERVER_ID == $rRow['id'];
+			if (!isset($rRow['order'])) {
+				$rRow['order'] = 0;
+			}
 			$rServers[intval($rRow['id'])] = $rRow;
 		}
 		self::setCache('servers', $rServers);
