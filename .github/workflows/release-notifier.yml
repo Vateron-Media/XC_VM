@@ -24,11 +24,9 @@ jobs:
           MESSAGE=$(cat <<EOF
           🔔 *${RELEASE_TYPE} Published* 🔔
 
+          🔗 *Release:*[${{ github.event.release.name }}](https://github.com/${{ github.repository }}/releases/tag/${RELEASE_TAG})
           📦 *Repository:* [${{ github.repository }}](https://github.com/${{ github.repository }})
           🏷 *Version:* \`${RELEASE_TAG}\`
-          📛 *Title:* ${{ github.event.release.name }}
-
-          🔗 [View Release](https://github.com/${{ github.repository }}/releases/tag/${RELEASE_TAG})
           EOF
           )
 
