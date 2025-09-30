@@ -385,6 +385,7 @@ if __name__ == "__main__":
     os.system("sudo mount -a  >/dev/null 2>&1")
     os.system("sudo chown xc_vm:xc_vm -R /home/xc_vm  >/dev/null 2>&1")
     os.system("sudo systemctl daemon-reload")
+    os.system("sudo setcap 'cap_net_bind_service=+ep' /home/xc_vm/bin/nginx/sbin/nginx")
     os.system("sudo systemctl start xc_vm")
 
     time.sleep(10)
