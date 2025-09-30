@@ -13,7 +13,7 @@ if (isset($rSkipVerify) || php_sapi_name() != 'cli') {
 		define('HOST', trim(explode(':', $_SERVER['HTTP_HOST'])[0]));
 	}
 
-	define('XC_VM_VERSION', '1.1.3');
+	define('XC_VM_VERSION', '1.1.4');
 	define('MAIN_HOME', '/home/xc_vm/');
 	define('BIN_PATH', MAIN_HOME . 'bin/');
 	define('TMP_PATH', MAIN_HOME . 'tmp/player/');
