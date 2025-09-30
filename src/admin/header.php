@@ -1,4 +1,8 @@
-<?php if (count(get_included_files()) != 1 || TRUE): ?>
+<?php if (count(get_included_files()) != 1 || TRUE):
+    $rModal = isset(CoreUtilities::$rRequest['modal']);
+    $rUpdate = (json_decode(CoreUtilities::$rSettings['update_data'], true) ?: array());
+?>
+
     <!DOCTYPE html>
     <html lang="en">
 
@@ -168,7 +172,7 @@
                                                 <span>Watch Settings</span>
                                             </a>
                                         <?php endif; ?>
-                                        
+
                                         <div class="dropdown-divider"></div>
                                         <a href="logout" class="dropdown-item notify-item">
                                             <span>Logout</span>
