@@ -553,6 +553,10 @@ class CoreUtilities {
 					$rRow['parent_id'] = array_map('intval', json_decode($rRow['parent_id'], true));
 				}
 
+				if (!isset($rRow['order'])) {
+					$rRow['order'] = 0;
+				}
+
 				$rServers[intval($rRow['id'])] = $rRow;
 			}
 			self::setCache('servers', $rServers);

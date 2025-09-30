@@ -3727,6 +3727,9 @@ function getStreamingServers() {
 			}
 
 			$rRow['server_online'] = in_array($rRow['status'], array(1, 3)) && time() - $rRow['last_check_ago'] <= 90 || $rRow['is_main'];
+			if (!isset($rRow['order'])) {
+				$rRow['order'] = 0;
+			}
 			if ($rRow['server_online']) {
 				$rReturn[$rRow['id']] = $rRow;
 			}

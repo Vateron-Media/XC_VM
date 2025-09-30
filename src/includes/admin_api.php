@@ -5936,8 +5936,7 @@ class API {
 		if (self::checkMinimumRequirements($rData)) {
 			$rPostServers = json_decode($rData['server_order'], true);
 
-			if (0 >= count($rPostServers)) {
-			} else {
+			if (count($rPostServers) > 0) {
 				foreach ($rPostServers as $rOrder => $rPostServer) {
 					self::$db->query('UPDATE `servers` SET `order` = ? WHERE `id` = ?;', intval($rOrder) + 1, $rPostServer['id']);
 				}
