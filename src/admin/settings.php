@@ -57,13 +57,7 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 					?>
 						<div class="card-body" style="max-height: 250px;">
 							<h5 class="card-title text-white">Update Available</h5>
-							<p>Official Release v
-								<?php
-								echo $rUpdate["version"];
-								?> is now available to download. If you're interested, head over to the <a class="text-white"
-									href="https://github.com/Vateron-Media/XC_VM/blob/main/doc/en/update.md"><strong>XC_VM Doc</strong></a>
-								for instructions on how to update.
-							</p>
+							<p>Official Release v <?= $rUpdate["version"]; ?> is now available to download.</p>
 							<?php
 							foreach ($rUpdate["changelog"] as $rItem) {
 								echo '<h5 class="card-title text-white mt-4">Changelog - v';
@@ -78,12 +72,11 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 								echo '</ul>';
 							}
 							?>
-							<br /><a href="
-							<?= str_replace('" ', '"', $rUpdate["url"]) ?> " class="text-white font-weight-semibold text-uppercase">Go
-								to
-								Release
-								Thread
-								<i class="mdi mdi-arrow-right"></i></a>
+							<br />
+							<a href="<?= str_replace('" ', '"', $rUpdate["url"]) ?> " class="text-white font-weight-semibold text-uppercase">Go to Release Thread <i class="mdi mdi-arrow-right"></i></a>
+							<br />
+							<br />
+							<button type="button" class="btn btn-light" onclick="UpdateServer()">Update Server</button>
 						</div>
 					<?php } ?>
 				</div>
@@ -2673,6 +2666,16 @@ include 'footer.php'; ?>
 
 		document.body.removeChild(tempInput);
 	}
+
+	function UpdateServer() {
+		$.getJSON("./api?action=server&sub=update&server_id=" + $(".bs-server-modal-center").data("id"), function(data) {
+			if (data.result === true) {
+				$.toast("Server is updating in the background...");
+			} else {
+				$.toast("An error occured while processing your request.");
+			}
+		});
+	};
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

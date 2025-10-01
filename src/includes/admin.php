@@ -85,7 +85,6 @@ $allServers = getAllServers();
 $rServers = getStreamingServers();
 $rSettings = CoreUtilities::$rSettings;
 $rProxyServers = getProxyServers();
-$rUpdate = json_decode($rSettings['update_data'], true);
 
 uasort(
 	$rServers,
