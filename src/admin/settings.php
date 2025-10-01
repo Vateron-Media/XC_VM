@@ -2668,7 +2668,7 @@ include 'footer.php'; ?>
 	}
 
 	function UpdateServer() {
-		$.getJSON("./api?action=server&sub=update&server_id=" + $(".bs-server-modal-center").data("id"), function(data) {
+		$.getJSON("./api?action=server&sub=update&server_id=<?= SERVER_ID ?>", function(data) {
 			if (data.result === true) {
 				$.toast("Server is updating in the background...");
 			} else {
