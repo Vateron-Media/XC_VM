@@ -1511,8 +1511,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 		shell_exec("sudo echo 'net.ipv4.ip_unprivileged_port_start=0' > /etc/sysctl.d/50-allports-nonroot.conf && sudo sysctl --system 2> /dev/null");
 		$rSSLConfig = file_get_contents(MAIN_HOME . 'bin/nginx/conf/ssl.conf');
 
-		if (!(stripos($rSSLConfig, "\n" . 'ssl_stapling on;' . "\n" . 'ssl_stapling_verify on;') !== false || stripos($rSSLConfig, "\r\n" . 'ssl_stapling on;' . "\r\n" . 'ssl_stapling_verify on;') !== false)) {
-		} else {
+		if (stripos($rSSLConfig, "\n" . 'ssl_stapling on;' . "\n" . 'ssl_stapling_verify on;') !== false || stripos($rSSLConfig, "\r\n" . 'ssl_stapling on;' . "\r\n" . 'ssl_stapling_verify on;') !== false) {
 			file_put_contents(MAIN_HOME . 'bin/nginx/conf/ssl.conf', str_replace("\r\n" . 'ssl_stapling on;' . "\r\n" . 'ssl_stapling_verify on;', '', str_replace("\n" . 'ssl_stapling on;' . "\n" . 'ssl_stapling_verify on;', '', $rSSLConfig)));
 			$rReload = true;
 		}
