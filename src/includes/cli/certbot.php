@@ -46,23 +46,20 @@ function loadcli() {
                 $rOutput = array();
                 exec($rCommand, $rOutput, $rReturn);
 
-                //************* Debug generate SSL */
-                $log = date('Y-m-d H:i:s') . ' ' . print_r($rOutput, true);
-                file_put_contents(__DIR__ . '/certbot.txt', $log . PHP_EOL, FILE_APPEND);
-                //************* Debug generate SSL */
+                // //************* Debug generate SSL */
+                // $log = date('Y-m-d H:i:s') . ' ' . print_r($rOutput, true);
+                // file_put_contents(__DIR__ . '/certbot.txt', $log . PHP_EOL, FILE_APPEND);
+                // //************* Debug generate SSL */
 
                 if (empty($rDry)) {
-                    if (stripos(implode("\n", $rOutput), 'certificate and chain have been saved at') !== false) {
+                    if (stripos(implode("\n", $rOutput), 'certificate is saved at') !== false) {
                         $rDirectory = null;
                         foreach ($rOutput as $rLine) {
-                            
-                            //************* Debug generate SSL */
-                            $log = date('Y-m-d H:i:s') . ' ' . print_r(pathinfo($rLine), true);
-                            file_put_contents(__DIR__ . '/certbot.txt', $log . PHP_EOL, FILE_APPEND);
-                            //************* Debug generate SSL */
-
-                            $rDirectory = pathinfo($rLine)['dirname'];
-                            break;
+                            // Search for strings with paths to certificates (case-insensitive)
+                            if (preg_match('/(certificate is saved at:|key is saved at:)\s*(\S+)/i', $rLine, $matches)) {
+                                $rDirectory = pathinfo($matches[2], PATHINFO_DIRNAME);
+                                break;
+                            }
                         }
                         if ($rDirectory) {
                             $rCertificate = $rDirectory . '/fullchain.pem';
