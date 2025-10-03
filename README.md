@@ -79,7 +79,7 @@ sudo systemctl start xc_vm     # Start
 sudo systemctl stop xc_vm      # Stop
 sudo systemctl restart xc_vm   # Restart
 sudo systemctl status xc_vm    # Status
-sudo systemctl reload nginx    # Reload Nginx config
+sudo /home/xc_vm/bin/nginx/sbin/nginx -s reload    # Reload Nginx config
 journalctl -u xc_vm -f         # Live logs
 ```
 
