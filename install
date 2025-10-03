@@ -136,6 +136,9 @@ if __name__ == "__main__":
                 break
         if rAnswer == "N":
             sys.exit(1)
+    
+    with io.open(rPath + "/credentials.txt", "w", encoding="utf-8") as rFile:
+        rFile.write("MySQL Username: {}\nMySQL Password: {}".format(rUsername, rPassword))
 
     ##################################################
     # UPGRADE                                        #
@@ -303,6 +306,39 @@ if __name__ == "__main__":
             "\ntmpfs /home/xc_vm/content/streams tmpfs defaults,noatime,nosuid,nodev,noexec,mode=1777,size=90% 0 0\ntmpfs /home/xc_vm/tmp tmpfs defaults,noatime,nosuid,nodev,noexec,mode=1777,size=6G 0 0"
         )
         rFile.close()
+
+    printc("If you want to change the ports, enter new values, or leave empty to use the default ports")
+    
+    while True:
+        http_port = input("HTTP port (default 80): ").strip()
+        if not http_port:
+            http_port = "80"
+            break
+        if http_port.isdigit() and 1 <= int(http_port) <= 65535:
+            break
+        printc("Error: port must be a number between 1 and 65535")
+
+    while True:
+        https_port = input("HTTPS port (default 443): ").strip()
+        if not https_port:
+            https_port = "443"
+            break
+        if https_port.isdigit() and 1 <= int(https_port) <= 65535:
+            break
+        printc("Error: port must be a number between 1 and 65535")
+
+    # Write HTTP ports configuration
+    http_conf_path = "/home/xc_vm/bin/nginx/conf/ports/http.conf"
+    with io.open(http_conf_path, "w", encoding="utf-8") as rFile:
+        rFile.write(f"listen {http_port};")
+
+    # Write HTTPS ports configuration
+    https_conf_path = "/home/xc_vm/bin/nginx/conf/ports/https.conf"
+    with io.open(https_conf_path, "w", encoding="utf-8") as rFile:
+        rFile.write(f"listen {https_port} ssl;")
+
+    print(f"Ports configured: HTTP - {http_port}, HTTPS - {https_port}")
+
     if os.path.exists("/etc/init.d/xc_vm"):
         os.remove("/etc/init.d/xc_vm")
     if os.path.exists("/etc/systemd/system/xc_vm.service"):
@@ -396,15 +432,11 @@ if __name__ == "__main__":
         "sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/includes/cli/startup.php >/dev/null 2>&1"
     )
 
-    rFile = io.open(rPath + "/credentials.txt", "w", encoding="utf-8")
-    rFile.write("MySQL Username: %s\nMySQL Password: %s" % (rUsername, rPassword))
-    rFile.close()
-
     time.sleep(3)
     os.system("service xc_vm restart")
 
     printc("Installation completed!", col.OKGREEN, 2)
-    printc("Continue Setup: http://%s/%s" % (getIP(), rCode))
+    printc("Continue Setup: http://%s:%s/%s" % (getIP(),http_port, rCode))
     print(" ")
     printc("Your mysql credentials have been saved to:")
     printc(rPath + "/credentials.txt")
