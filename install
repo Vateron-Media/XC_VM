@@ -52,6 +52,8 @@ rConfigPath = "/home/xc_vm/config/config.ini"
 rVersions = {
     "22.04": "jammy",
     "22.10": "kinetic",
+    "24.04": "noble",
+    "24.10": "oracular",
 }
 
 
