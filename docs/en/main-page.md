@@ -21,8 +21,8 @@
 
 | Section | Description |
 |:---------|:-------------|
-| [Binaries](build/build_binaries.md) | Instructions for building core binary components. |
-| [FFmpeg](build/build_ffmpeg.md) | Guide to building and configuring FFmpeg for XC_VM. |
+| [Binaries](builds/build_binaries.md) | Instructions for building core binary components. |
+| [FFmpeg](builds/build_ffmpeg.md) | Guide to building and configuring FFmpeg for XC_VM. |
 
 ---
 
