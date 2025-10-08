@@ -3224,7 +3224,7 @@ function getFPMStatus($rServerID) {
 	return systemapirequest($rServerID, array('action' => 'fpm_status'));
 }
 
-function fCf52f24c866C872() {
+function grantPrivilegesToAllServers() {
 	global $rServers;
 
 	foreach ($rServers as $rServerID => $rServerArray) {

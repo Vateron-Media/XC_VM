@@ -1,29 +1,29 @@
 <?php
 
 include 'functions.php';
-$rFirstRun = true;
-$db->query('SELECT COUNT(`id`) AS `count` FROM `users` LEFT JOIN `users_groups` ON `users_groups`.`group_id` = `users`.`member_group_id` WHERE `users_groups`.`is_admin` = 1;');
+if (!isset(CoreUtilities::$rRequest['update'])):
+    $rFirstRun = true;
+    $db->query('SELECT COUNT(`id`) AS `count` FROM `users` LEFT JOIN `users_groups` ON `users_groups`.`group_id` = `users`.`member_group_id` WHERE `users_groups`.`is_admin` = 1;');
 
-if ($db->get_row()['count'] > 0) {
-    $rFirstRun = false;
-    include 'session.php';
+    if ($db->get_row()['count'] > 0) {
+        $rFirstRun = false;
+        include 'session.php';
 
-    if (!checkPermissions()) {
-        goHome();
+        if (!checkPermissions()) {
+            goHome();
+        }
     }
-}
 
-$rMigrating = false;
+    $rMigrating = false;
 
-if (file_exists(TMP_PATH . '.migration.status') && file_exists(TMP_PATH . '.migration.pid')) {
-    $rPID = file_get_contents(TMP_PATH . '.migration.pid');
+    if (file_exists(TMP_PATH . '.migration.status') && file_exists(TMP_PATH . '.migration.pid')) {
+        $rPID = file_get_contents(TMP_PATH . '.migration.pid');
 
-    if (file_exists('/proc/' . $rPID)) {
-        $rMigrating = true;
+        if (file_exists('/proc/' . $rPID)) {
+            $rMigrating = true;
+        }
     }
-}
 
-if (!isset(CoreUtilities::$rRequest['update'])) {
     if (isset(CoreUtilities::$rRequest['migrate'])) {
         $rMigrateOptions = array();
 
@@ -94,7 +94,7 @@ if (!isset(CoreUtilities::$rRequest['update'])) {
     if (!$rMigrating) {
         $rMigrateConnection = false;
         $rMigrateXC_VM = false;
-        $odb = new Database($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port'], true);
+        $odb = new Database($_INFO['username'], $_INFO['password'], "xc_vm_migrate", $_INFO['hostname'], $_INFO['port'], true);
 
         if ($odb->connected) {
             $rMigrateConnection = true;
@@ -308,9 +308,44 @@ if (!isset(CoreUtilities::$rRequest['update'])) {
             </div>
         </div>
     </div>
+    <?php include 'footer.php'; ?>
+    <?php if ($rMigrating): ?>
+        <script>
+            function getMigrationStatus() {
+                $.getJSON("./setup?update=1", function(data) {
+                    if (data.result === true) {
+                        $("#migration_progress").html(data.data);
+                        if (data.status == 1) {
+                            setTimeout(getMigrationStatus, 1000);
+                        } else if (data.status == 2) {
+                            window.location.href = 'dashboard';
+                        } else if (data.status == 3) {
+                            $("#migrate_button").prop("disabled", false);
+                        }
+                    } else {
+                        $("#migration_progress").html("No progress available...");
+                        setTimeout(getMigrationStatus, 1000);
+                    }
+                    if ($("#migration_progress").length) {
+                        $("#migration_progress").scrollTop($("#migration_progress")[0].scrollHeight - $("#migration_progress").height());
+                    }
+                });
+            }
+
+            function migrateServer() {
+                window.location.href = 'setup?migrate=1';
+            }
+
+            $(document).ready(function() {
+                $(window).keypress(function(event) {
+                    if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
+                });
+                getMigrationStatus();
+            });
+        </script>
+    <?php endif; ?>
 <?php
-    include 'footer.php';
-} else {
+else:
     if (file_exists(TMP_PATH . '.migration.log')) {
         $rLog = file_get_contents(TMP_PATH . '.migration.log');
         $rStatus = intval(file_get_contents(TMP_PATH . '.migration.status'));
@@ -333,5 +368,5 @@ if (!isset(CoreUtilities::$rRequest['update'])) {
     }
 
     exit();
-}
+endif;
 ?>

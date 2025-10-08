@@ -105,7 +105,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 			break;
 
 		case 'mysql':
-			Fcf52f24C866c872();
+			grantPrivilegesToAllServers();
 			echo 'Load balancers have been granted access to MySQL in the system.' . "\n\n";
 
 			break;
@@ -116,7 +116,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 				$db->query('CREATE DATABASE IF NOT EXISTS `xc_vm`;');
 				shell_exec('sudo mysql xc_vm < "' . MAIN_HOME . 'bin/install/database.sql"');
 				shell_exec('sudo ' . PHP_BIN . ' ' . INCLUDES_PATH . 'startup.php');
-				Fcf52f24C866C872();
+				grantPrivilegesToAllServers();
 				$db = new Database($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
 				CoreUtilities::$db = &$db;
 				CoreUtilities::init();
@@ -167,18 +167,26 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 			$db->query('DROP DATABASE IF EXISTS `xc_vm_migrate`;');
 			$db->query('CREATE DATABASE IF NOT EXISTS `xc_vm_migrate`;');
 			echo 'Migration database has been cleared.' . "\n";
-			$de57b163e9d85b49 = (count($argv) == 3 ? $argv[2] : null);
 
-			if ($de57b163e9d85b49 && file_exists($de57b163e9d85b49) && pathinfo($de57b163e9d85b49['extension'] == 'sql')) {
-				echo 'Restoring: ' . $de57b163e9d85b49 . "\n";
-				shell_exec('sudo mysql xc_vm_migrate < ' . escapeshellarg($de57b163e9d85b49));
-				echo 'If no errors were shown above, restore was completed.' . "\n\n";
+			$database = (count($argv) == 3 ? $argv[2] : null);
+
+			if ($database && file_exists($database)) {
+				$pathInfo = pathinfo($database);
+				$extension = strtolower($pathInfo['extension'] ?? '');
+
+				if ($extension === 'sql') {
+					echo 'Restoring: ' . $database . "\n";
+					shell_exec('sudo mysql xc_vm_migrate < ' . escapeshellarg($database));
+					echo 'If no errors were shown above, restore was completed.' . "\n\n";
+				} else {
+					echo 'Error: File must have .sql extension' . "\n";
+				}
 			} else {
 				echo 'You can restore a database to it using:' . "\n";
 				echo 'sudo mysql xc_vm_migrate < backup.sql' . "\n\n";
 			}
 
-			fCf52F24C866c872();
+			grantPrivilegesToAllServers();
 
 			break;
 

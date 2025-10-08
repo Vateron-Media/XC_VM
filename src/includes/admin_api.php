@@ -4708,13 +4708,11 @@ class API {
 			}
 
 			if ($rArray['mag_legacy_redirect']) {
-				if (file_exists(MAIN_HOME . 'www/c/')) {
-				} else {
+				if (!file_exists(MAIN_HOME . 'www/c/')) {
 					self::$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', SERVER_ID, time(), json_encode(array('action' => 'enable_ministra')));
 				}
 			} else {
-				if (!file_exists(MAIN_HOME . 'www/c/')) {
-				} else {
+				if (file_exists(MAIN_HOME . 'www/c/')) {
 					self::$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', SERVER_ID, time(), json_encode(array('action' => 'disable_ministra')));
 				}
 			}

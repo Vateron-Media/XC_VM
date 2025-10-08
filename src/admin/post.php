@@ -672,7 +672,7 @@ if (1 < $rICount) { ?>
 				}
 
 				if (isset($rData['reauthorise_mysql'])) {
-					fCf52F24c866C872();
+					grantPrivilegesToAllServers();
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 					exit();
 				}
