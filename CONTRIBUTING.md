@@ -10,21 +10,34 @@ Thank you for considering contributing to this project! Follow these guidelines 
 - Keep pull requests focused on a single change.
 - If you are refactoring and are not sure if the code is unused elsewhere, comment it out. It will be removed after the release.
 
-<!-- ## 🛠️ Customizing the development environment
-Unfortunately you will have to install the panel on the server completely. It does not have a developer mode
-1. Clone the repository:
+
+## 🛠️ Installation
+
+To install the panel, follow these steps:
+
+1. **Update system**
    ```sh
    sudo apt update && sudo apt full-upgrade -y
-   sudo apt install python3-pip
-   sudo apt install git
-   git clone https://github.com/Vateron-Media/Xtream_install
-   cd Xtream_install/
-   pip3 install -r requirements.txt
    ```
-2. Start the installation:
+
+2. **Install dependencies**
    ```sh
-   sudo python3 install.py
-   ``` -->
+   sudo apt install -y python3-pip unzip
+   ```
+
+3. **Download latest release**
+   ```sh
+   latest_version=$(curl -s https://api.github.com/repos/Vateron-Media/XC_VM/releases/latest | grep '"tag_name":' | cut -d '"' -f 4)
+   wget "https://github.com/Vateron-Media/XC_VM/releases/download/${latest_version}/XC_VM.zip"
+   ```
+
+4. **Unpack and install**
+   ```sh
+   unzip XC_VM.zip
+   sudo python3 install
+   ```
+
+---
 
 ## ✨ Code Standards
 - Use **K&R** coding style for PHP.
