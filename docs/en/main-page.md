@@ -1,32 +1,53 @@
-# 📚 Project Documentation
+<h1 align="center">📚 XC_VM Documentation</h1>
 
-Welcome to the documentation!  
-Here you will find all the materials you need to work with the project, from the API to instructions for building and updating.
-
----
-
-## 🔌 API
-
-| Section | Description |
-|--------|---------|
-| [System API](api/system_api.md) | System API. |
-| [Get playlist](api/playlist.md) | Generating and loading playlists. |
-| [XtreamCodes API](api/xtreamcodes_api.md) | Integration and working with XtreamCodes. |
+<p align="center">
+  Welcome to the official XC_VM documentation!<br>
+  Here you’ll find everything you need to work with the project — from API guides to build and update instructions.
+</p>
 
 ---
 
-## 🛠 Building
+## 🔌 API Reference
+
 | Section | Description |
-|--------|-------- -|
-| [Binaries](build_binaries.md) | Instructions for building core binaries. |
-| [FFmpeg](build_ffmpeg.md) | Building and configuring FFmpeg for the project. |
+|:---------|:-------------|
+| [System API](api/system_api.md) | Core system endpoints and utilities. |
+| [Get Playlist](api/playlist.md) | Generate and download user playlists. |
+| [XtreamCodes API](api/xtreamcodes_api.md) | Integration with XtreamCodes-compatible systems. |
 
 ---
 
-## 🔄 Updating
+## 🛠 Build & Compilation
+
 | Section | Description |
-|------- -|---------|
-| [Updating the dashboard](update.md) | Step-by-step guide to updating the dashboard. |
-| [Pre-release checklist](updates_checklist.md) | List of tasks for preparing a release. |
+|:---------|:-------------|
+| [Binaries](build/build_binaries.md) | Instructions for building core binary components. |
+| [FFmpeg](build/build_ffmpeg.md) | Guide to building and configuring FFmpeg for XC_VM. |
+
+---
+
+## 🔄 Update & Release
+
+| Section | Description |
+|:---------|:-------------|
+| [Panel Update](update.md) | Step-by-step guide for upgrading XC_VM to the latest version. |
+| [Pre-Release Checklist](updates_checklist.md) | A checklist to follow before publishing a new release. |
+
+---
+
+## 📦 Additional Resources
+
+| Section | Description |
+|:---------|:-------------|
+| [Migration Guide](migration_guide.md) | Step-by-step guide for migrating from XUI, Xtream Codes, and similar panels. |
+<!-- | [FAQ](faq.md) | Frequently asked questions and troubleshooting. | -->
+
+---
+
+<p align="center">
+  <a href="https://github.com/Vateron-Media/XC_VM">
+    🔗 Back to Repository
+  </a>
+</p>
 
 ---

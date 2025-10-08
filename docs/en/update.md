@@ -1,43 +1,73 @@
-# Control Panel Update Documentation
+<h1 align="center">🧩 Control Panel Update Guide</h1>
 
-This documentation describes the process of updating XC_VM. Follow the instructions below to successfully update the server via the control panel.
-
-## Prerequisites
-- Access to the control panel with appropriate administrator rights.
-- Stable internet connection.
-- Backup of server data (recommended before updating).
-
-## Step-by-step instructions
-
-1. **Go to the “Servers” section**
-- Log in to the control panel.
-- Select the **Servers** section in the main menu.
-   - ![Servers](../img/update1.png)
-
-2. **Select “Manage Servers”**
-   - In the “Servers” section, find and click on **Manage Servers** to view the list of available servers.
-   - ![Servers](../img/update2.png)
-
-3. **Open the “Actions” menu**
-   - Find the server you want to update in the list.
-   - Click on the **Actions** button (usually represented as a drop-down menu or icon next to the server).
-   - ![Servers](../img/update3.png)
-
-4. **Go to “Server Tools”**
-   - In the “Actions” menu, select **Server Tools** to open the available tools for managing the server.
-   - ![Servers](../img/update4.png)
-
-5. **Run “Update Server”**
-   - In the “Server Tools” section, select the **Update Server** option.
-   - Confirm the action if prompted (you may need to enter a password or confirm the update).
-   - Wait for the update process to complete. Do not interrupt the process to avoid errors.
-   - ![Servers](../img/update5.png)
-
-## Notes
-- **Update time**: The time required for the update depends on the size of the server and the speed of your Internet connection.
-- **Update verification**: After the update is complete, check the server status to ensure that it is working correctly.
-- **Errors**: If the update ended with an error, check the server logs or contact technical support.
+<p align="center">
+  This document explains how to update <b>XC_VM</b> via the web control panel.<br>
+  Follow these steps carefully to perform a clean and safe update.
+</p>
 
 ---
 
-**Note**: Please attach images for each step so that they can be included in the documentation. If the images have not yet been provided, indicate where they should be inserted, as shown above.
+## ⚙️ Prerequisites
+
+Before you begin, make sure you have:
+
+- 🔑 **Administrator access** to the control panel.  
+- 🌐 **Stable internet connection** during the update.  
+- 💾 **Backup** of all server data *(strongly recommended)*.
+
+---
+
+## 🪜 Step-by-Step Instructions
+
+### 1️⃣ Go to the **“Servers”** section
+- Log in to the control panel.
+- Select **Servers** from the main menu.  
+  ![Servers](../img/update1.png)
+
+---
+
+### 2️⃣ Select **“Manage Servers”**
+- Inside the **Servers** section, click on **Manage Servers** to view your server list.  
+  ![Manage Servers](../img/update2.png)
+
+---
+
+### 3️⃣ Open the **“Actions”** menu
+- Locate the server you want to update.  
+- Click the **Actions** button — usually shown as a drop-down menu or icon next to the server.  
+  ![Actions Menu](../img/update3.png)
+
+---
+
+### 4️⃣ Go to **“Server Tools”**
+- In the **Actions** menu, choose **Server Tools** to access available management tools.  
+  ![Server Tools](../img/update4.png)
+
+---
+
+### 5️⃣ Run **“Update Server”**
+- Inside **Server Tools**, click **Update Server**.  
+- Confirm the action if prompted (you might need to re-enter your password).  
+- Wait for the update to finish — **do not interrupt** the process.  
+  ![Update Server](../img/update5.png)
+
+---
+
+## 🧠 Notes & Recommendations
+
+> 🕒 **Update Duration**  
+> Depends on your server size and network speed.
+
+> ✅ **Post-Update Check**  
+> After completion, verify that all services are running properly.
+
+> ⚠️ **In Case of Errors**  
+> Review server logs for details or contact technical support if the issue persists.
+
+---
+
+<!-- <p align="center">
+  <a href="../"><b>⬅️ Back to Wiki</b></a>
+</p>
+
+--- -->
