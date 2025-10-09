@@ -8,14 +8,27 @@
 
 * Установить **новое значение `XC_VM_VERSION`** в следующих файлах:
 
-  * `src/www/constants.php`
-  * `src/www/stream/init.php`
-  * `src/player/functions.php`
-* Закоммитить изменения с сообщением:
+**Файлы для редактирования:**
 
-  ```
-  Bump version to X.Y.Z
-  ```
+```
+src/www/constants.php  
+src/www/stream/init.php  
+src/player/functions.php
+```
+
+**Auto-update команда:**
+
+```bash
+find -type f -name "*.php" -exec sed -i \
+"s/define('XC_VM_VERSION', '[0-9]\+\.[0-9]\+\.[0-9]\+');/define('XC_VM_VERSION', 'X.Y.Z');/g" {} \;
+```
+
+**Закоммитить изменения с сообщением:**
+
+```bash
+git add .
+git commit -m "Bump version to X.Y.Z"
+```
 
 ---
 
