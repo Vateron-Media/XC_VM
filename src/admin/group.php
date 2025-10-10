@@ -602,12 +602,6 @@ include 'footer.php'; ?>
 		}
 	});
 
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
-		$(document).ready(function() {
-			initSearch();
-		});
-
-	<?php endif; ?>
 	function togglePackages() {
 		$("#datatable-packages tr").each(function() {
 			if ($(this).hasClass('selected')) {
@@ -816,6 +810,11 @@ include 'footer.php'; ?>
 			submitForm(window.rCurrentPage, new FormData($("form")[0]));
 		});
 	});
+    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+        $(document).ready(function() {
+            initSearch();
+        });
+    <?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

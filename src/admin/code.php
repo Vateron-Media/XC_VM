@@ -348,13 +348,6 @@ include 'header.php'; ?>
         }
     });
 
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-
-    <?php endif; ?>
-
     function generateCode() {
         var result = '';
         var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
@@ -413,6 +406,11 @@ include 'header.php'; ?>
 
         <?php if (!isset($rCode)) echo 'generateCode();'; ?>
     });
+    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+        $(document).ready(function() {
+            initSearch();
+        });
+    <?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

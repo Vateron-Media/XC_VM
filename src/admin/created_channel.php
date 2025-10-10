@@ -698,12 +698,7 @@ include 'header.php';
 				}
 			});
 
-			<?php if (CoreUtilities::$rSettings['enable_search']): ?>
-				$(document).ready(function() {
-					initSearch();
-				});
-
-			<?php endif; 
+			<?php
 echo '        ' . "\r\n\t\t" . 'var changeTitle = false;' . "\r\n\t\t" . 'var rChannels = {};' . "\r\n\t\t\t\t\r\n\t\t";
 
 if (isset($rChannel) && $rProperties['type'] == 2) {
@@ -743,6 +738,11 @@ if (!isset($rChannel)) {
 
 echo "\t\t\t" . '$("#changeDir").click();' . "\r\n\t\t\t" . "\$(\"#channel_type\").trigger('change');" . "\r\n" . '            $("form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n" . '                rSubmit = true;' . "\r\n\t\t\t\t" . 'var rVideoFiles = [];' . "\r\n\t\t\t\t" . 'if ($("#channel_type").val() == 0) {' . "\r\n\t\t\t\t\t" . 'if ($("#series_no").val() == 0) {' . "\r\n\t\t\t\t\t\t" . '$.toast("Please select a series to map.");' . "\r\n" . '                        rSubmit = false;' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '} else if ($("#channel_type").val() == 1) {' . "\r\n\t\t\t\t\t" . 'if ($("#videos_sort option").length == 0) {' . "\r\n\t\t\t\t\t\t" . '$.toast("Please add at least one video to the channel.");' . "\r\n" . '                        rSubmit = false;' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '$("#videos_sort option").each(function() {' . "\r\n\t\t\t\t\t\t" . 'rVideoFiles.push($(this).val());' . "\r\n\t\t\t\t\t" . '});' . "\r\n\t\t\t\t" . '} else if ($("#channel_type").val() == 2) {' . "\r\n\t\t\t\t\t" . 'if ($("#review_sort option").length == 0) {' . "\r\n\t\t\t\t\t\t" . '$.toast("Please add at least one video to the channel.");' . "\r\n" . '                        rSubmit = false;' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '$("#review_sort option").each(function() {' . "\r\n\t\t\t\t\t\t" . 'rVideoFiles.push($(this).val());' . "\r\n\t\t\t\t\t" . '});' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t\t" . 'if (!$("#transcode_profile_id").val()) {' . "\r\n\t\t\t\t\t" . '$.toast("Please select a trancoding profile.");' . "\r\n\t\t\t\t\t" . 'rSubmit = false;' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t\t" . "\$(\"#server_tree_data\").val(JSON.stringify(\$('#server_tree').jstree(true).get_json('source', {flat:true})));" . "\r\n\t\t\t\t" . '$("#video_files").val(JSON.stringify(rVideoFiles));' . "\r\n" . '                var rRTMPPush = {};' . "\r\n" . '                $(".rtmp_info").each(function() {' . "\r\n" . '                    rServerID = $(this).find("select").val();' . "\r\n" . '                    rSource = $(this).find("input").val();' . "\r\n" . '                    if (rServerID > 0 && rSource.length > 0) {' . "\r\n" . '                        if (!rRTMPPush[rServerID]) {' . "\r\n" . '                            rRTMPPush[rServerID] = [];' . "\r\n" . '                        }' . "\r\n" . '                        rRTMPPush[rServerID].push(rSource);' . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n" . '                $("#external_push").val(JSON.stringify(rRTMPPush));' . "\r\n" . '                if (rSubmit) {' . "\r\n" . "                    \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                    submitForm(window.rCurrentPage, new FormData($("form")[0]), window.rReferer);' . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
 ?>
+    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+        $(document).ready(function() {
+            initSearch();
+        });
+    <?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

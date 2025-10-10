@@ -274,13 +274,6 @@ include 'header.php';
         }
     });
 
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-
-    <?php endif; ?>
-
     function player(rID, rStart = null, rDuration = null) {
         if (rStart) {
             rURL = "./player?type=timeshift&id=" + rID + "&start=" + rStart + "&duration=" + rDuration;
@@ -342,6 +335,11 @@ include 'header.php';
         });
         $("#datatable").css("width", "100%");
     });
+    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+        $(document).ready(function() {
+            initSearch();
+        });
+    <?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

@@ -861,25 +861,6 @@ include 'header.php';
 				}
 			});
 
-			<?php if (CoreUtilities::$rSettings['enable_search']): ?>
-				$(document).ready(function() {
-					initSearch();
-				});
-
-			<?php endif; ?>
-
-
-
-
-
-
-
-
-
-
-
-
-
 <?php 
 echo '        ' . "\r\n\t\t" . 'rChart = null; rDates = null; rOptions = null;' . "\r\n\r\n" . '        ';
 
@@ -932,6 +913,11 @@ if (!$rMobile || $rSettings['dashboard_stats']) {
 
 echo '            $("#server_id").change(function() {' . "\r\n" . '                if ($(this).val().length > 0) {' . "\r\n" . '                    navigate("./dashboard?server_id=" + $(this).val());' . "\r\n" . '                } else {' . "\r\n" . '                    navigate("./dashboard");' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '        });' . "\r\n" . '        ' . "\r\n\t\t";
 ?>
+    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+        $(document).ready(function() {
+            initSearch();
+        });
+    <?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

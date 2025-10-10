@@ -209,13 +209,6 @@ include 'header.php';
 		}
 	});
 
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
-		$(document).ready(function() {
-			initSearch();
-		});
-
-	<?php endif; ?>
-
 	function getServer() {
 		return $("#server").val();
 	}
@@ -339,6 +332,11 @@ include 'header.php';
 			window.location.href = "api?action=report&params=" + encodeURIComponent(JSON.stringify($("#datatable-activity").DataTable().ajax.params()));
 		});
 	});
+    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+        $(document).ready(function() {
+            initSearch();
+        });
+    <?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

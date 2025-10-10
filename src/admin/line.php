@@ -509,12 +509,7 @@ include 'header.php';
 				}
 			});
 
-			<?php if (CoreUtilities::$rSettings['enable_search']): ?>
-				$(document).ready(function() {
-					initSearch();
-				});
-
-			<?php endif; 
+<?php 
 		echo '        ' . "\r\n\t\t";
 		if (isset($rUser)) {
 			echo "\t\t" . 'var rBouquets = ';
@@ -533,6 +528,11 @@ include 'header.php';
 
 		echo '            $("form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n\t\t\t\t" . 'var rBouquets = [];' . "\r\n\t\t\t\t" . '$("#datatable-bouquets tr.selected").each(function() {' . "\r\n\t\t\t\t\t" . 'rBouquets.push($(this).find("td:eq(0)").text());' . "\r\n\t\t\t\t" . '});' . "\r\n\t\t\t\t" . '$("#bouquets_selected").val(JSON.stringify(rBouquets));' . "\r\n\t\t\t\t" . "\$(\"#allowed_ua option\").prop('selected', true);" . "\r\n\t\t\t\t" . "\$(\"#allowed_ips option\").prop('selected', true);" . "\r\n" . "                \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                submitForm(window.rCurrentPage, new FormData($("form")[0]), window.rReferer);' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
 		?>
+    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+        $(document).ready(function() {
+            initSearch();
+        });
+    <?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

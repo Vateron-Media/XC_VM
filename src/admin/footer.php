@@ -18,9 +18,49 @@ if (!isset($rModal) || !$rModal) {
 	echo getFooter();
 	echo '</div>' . "\r\n" . '                </div>' . "\r\n" . '            </div>' . "\r\n" . '        </footer>' . "\r\n\t\t";
 }
+?>
+<script src="assets/js/vendor.min.js"></script>
+<script src="assets/libs/jquery-toast/jquery.toast.min.js"></script>
+<script src="assets/libs/jquery-nice-select/jquery.nice-select.min.js"></script>
+<script src="assets/libs/switchery/switchery.min.js"></script>
+<script src="assets/libs/select2/select2.min.js"></script>
+<script src="assets/libs/nestable2/jquery.nestable.min.js"></script>
+<script src="assets/libs/bootstrap-touchspin/jquery.bootstrap-touchspin.min.js"></script>
+<script src="assets/libs/bootstrap-maxlength/bootstrap-maxlength.min.js"></script>
+<script src="assets/libs/clockpicker/bootstrap-clockpicker.min.js"></script>
+<script src="assets/libs/moment/moment.min.js"></script>
+<script src="assets/libs/daterangepicker/daterangepicker.js"></script>
+<script src="assets/libs/datatables/jquery.dataTables.min.js"></script>
+<script src="assets/libs/datatables/dataTables.bootstrap4.js"></script>
+<script src="assets/libs/datatables/dataTables.responsive.min.js"></script>
+<script src="assets/libs/datatables/responsive.bootstrap4.min.js"></script>
+<script src="assets/libs/datatables/dataTables.buttons.min.js"></script>
+<script src="assets/libs/datatables/buttons.bootstrap4.min.js"></script>
+<script src="assets/libs/datatables/buttons.html5.min.js"></script>
+<script src="assets/libs/datatables/buttons.flash.min.js"></script>
+<script src="assets/libs/datatables/buttons.print.min.js"></script>
+<script src="assets/libs/datatables/dataTables.keyTable.min.js"></script>
+<script src="assets/libs/datatables/dataTables.select.min.js"></script>
+<script src="assets/libs/datatables/dataTables.rowReorder.js"></script>
+<script src="assets/libs/twitter-bootstrap-wizard/jquery.bootstrap.wizard.min.js"></script>
+<script src="assets/libs/treeview/jstree.min.js"></script>
+<script src="assets/libs/quill/quill.min.js"></script>
+<script src="assets/libs/magnific-popup/jquery.magnific-popup.min.js"></script>
+<script src="assets/libs/jbox/jBox.all.min.js"></script>
+<script src="assets/libs/jquery-knob/jquery.knob.min.js"></script>
+<script src="assets/libs/apexcharts/apexcharts.min.js"></script>
+<script src="assets/libs/jquery-number/jquery.number.js"></script>
+<script src="assets/libs/jquery-vectormap/jquery-jvectormap-1.2.2.min.js"></script>
+<script src="assets/libs/jquery-vectormap/jquery-jvectormap-world-mill-en.js"></script>
+<script src="assets/libs/jquery-ui/jquery-ui.min.js"></script>
+<script src="assets/libs/peity/jquery.peity.min.js"></script>
+<script src="assets/libs/emodal/emodal.js"></script>
+<script src="assets/libs/bootstrap-colorpicker/bootstrap-colorpicker.min.js"></script>
+<script src="assets/libs/lazyload/lazyload.min.js"></script>
+<script src="assets/libs/parsleyjs/parsley.min.js"></script>
+<script src="assets/js/app.min.js"></script>
 
-echo '        <script src="assets/js/vendor.min.js"></script>' . "\r\n" . '        <script src="assets/libs/jquery-toast/jquery.toast.min.js"></script>' . "\r\n" . '        <script src="assets/libs/jquery-nice-select/jquery.nice-select.min.js"></script>' . "\r\n" . '        <script src="assets/libs/switchery/switchery.min.js"></script>' . "\r\n" . '        <script src="assets/libs/select2/select2.min.js"></script>' . "\r\n" . '        <script src="assets/libs/nestable2/jquery.nestable.min.js"></script>' . "\r\n" . '        <script src="assets/libs/bootstrap-touchspin/jquery.bootstrap-touchspin.min.js"></script>' . "\r\n" . '        <script src="assets/libs/bootstrap-maxlength/bootstrap-maxlength.min.js"></script>' . "\r\n" . '        <script src="assets/libs/clockpicker/bootstrap-clockpicker.min.js"></script>' . "\r\n" . '        <script src="assets/libs/moment/moment.min.js"></script>' . "\r\n" . '        <script src="assets/libs/daterangepicker/daterangepicker.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/jquery.dataTables.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/dataTables.bootstrap4.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/dataTables.responsive.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/responsive.bootstrap4.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/dataTables.buttons.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/buttons.bootstrap4.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/buttons.html5.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/buttons.flash.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/buttons.print.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/dataTables.keyTable.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/dataTables.select.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/dataTables.rowReorder.js"></script>' . "\r\n" . '        <script src="assets/libs/twitter-bootstrap-wizard/jquery.bootstrap.wizard.min.js"></script>' . "\r\n" . '        <script src="assets/libs/treeview/jstree.min.js"></script>' . "\r\n" . '        <script src="assets/libs/quill/quill.min.js"></script>' . "\r\n" . '        <script src="assets/libs/magnific-popup/jquery.magnific-popup.min.js"></script>' . "\r\n" . '        <script src="assets/libs/jbox/jBox.all.min.js"></script>' . "\r\n" . '        <script src="assets/libs/jquery-knob/jquery.knob.min.js"></script>' . "\r\n" . '        <script src="assets/libs/apexcharts/apexcharts.min.js"></script>' . "\r\n" . '        <script src="assets/libs/jquery-number/jquery.number.js"></script>' . "\r\n" . '        <script src="assets/libs/jquery-vectormap/jquery-jvectormap-1.2.2.min.js"></script>' . "\r\n" . '        <script src="assets/libs/jquery-vectormap/jquery-jvectormap-world-mill-en.js"></script>' . "\r\n" . '        <script src="assets/libs/jquery-ui/jquery-ui.min.js"></script>' . "\r\n" . '        <script src="assets/libs/peity/jquery.peity.min.js"></script>' . "\r\n\t\t" . '<script src="assets/libs/emodal/emodal.js"></script>' . "\r\n" . '        <script src="assets/libs/bootstrap-colorpicker/bootstrap-colorpicker.min.js"></script>' . "\r\n" . '        <script src="assets/libs/lazyload/lazyload.min.js"></script>' . "\r\n" . '        <script src="assets/libs/parsleyjs/parsley.min.js"></script>' . "\r\n" . '        <script src="assets/js/app.min.js"></script>' . "\r\n" . '        ';
-if (!isset($_SETUP)):
+<?php if (!isset($_SETUP)):
 	include 'post.php';
 ?>
 
@@ -670,8 +710,7 @@ if (!isset($_SETUP)):
 		}
 
 		function initSearch() {
-			$(".dropdown").unbind("click");
-			$(".dropdown").click(function() {
+			$(".dropdown").unbind("click").click(function() {
 				if ($(this).attr("id") == "search-mobile") {
 					if ($("#topnav-search").hasClass("active")) {
 						$(".quick_search").select2("close");
@@ -687,10 +726,9 @@ if (!isset($_SETUP)):
 					}
 				}
 			});
-			$(".quick_search").unbind("select2:opening");
-			$(".quick_search").unbind("select2:closing");
-			$(".quick_search").unbind("select2:selecting");
-			$(".quick_search").unbind("select2:draw");
+
+			// Инициализация Select2 с AJAX
+			$(".quick_search").unbind("select2:opening select2:closing select2:selecting select2:draw");
 			$(".quick_search").select2({
 				ajax: {
 					url: './api',
@@ -723,8 +761,8 @@ if (!isset($_SETUP)):
 					if (rMaxWidth < 600) {
 						$("#header_stats").hide();
 					}
-					$(".app-search").width(600);
 				}
+				$(".app-search").width(600);
 				window.rSearchTop = 0;
 			}).on("select2:closing", function(e) {
 				$(".bigdrop .select2-results__options li").remove();
