@@ -194,13 +194,6 @@ orderListings($rChannels, $rMovies, $rRadios, $rSeries, $rListings, $rOrdered);
         }
     });
 
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-
-    <?php endif; ?>
-
     function AtoZ(rType) {
         $("#sort_" + rType + "_l").append($("#sort_" + rType + "_l option").remove().sort(function(a, b) {
             var at = $(a).text().toUpperCase(),
@@ -352,6 +345,11 @@ orderListings($rChannels, $rMovies, $rRadios, $rSeries, $rListings, $rOrdered);
             submitForm(window.rCurrentPage, new FormData($("form")[0]));
         });
     });
+    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+        $(document).ready(function() {
+            initSearch();
+        });
+    <?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

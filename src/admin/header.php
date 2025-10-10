@@ -236,10 +236,20 @@
                                             </div>
                                             <div class="slimscroll noti-scroll">
                                                 <?php foreach ($rTickets as $rTicket): ?>
-                                                    <?php $timeAgo = time() - intval($rTicket['date']); ?>
+                                                    <?php $timeAgo = time() - intval($rTicket['date']);
+                                                    if ($timeAgo < 60) {
+                                                        $timeAgo = $timeAgo . ' seconds ago';
+                                                    } elseif ($timeAgo < 3600) {
+                                                        $timeAgo = ceil($timeAgo / 60) . ' minutes ago';
+                                                    } else if ($timeAgo < 86400) {
+                                                        $timeAgo = ceil($timeAgo / 3600) . ' hours ago';
+                                                    } else {
+                                                        $timeAgo = ceil($timeAgo / 86400) . ' days ago';
+                                                    }
+                                                    ?>
                                                     <a href="ticket_view?id=<?php echo $rTicket['id']; ?>" class="dropdown-item notify-item">
                                                         <div class="notify-icon bg-info"><i class="mdi mdi-comment"></i></div>
-                                                        <p class="notify-details"><?php echo htmlspecialchars($rTicket['title']); ?><small class="text-muted"><?php echo human_readable_time_diff($timeAgo); ?></small></p>
+                                                        <p class="notify-details"><?php echo htmlspecialchars($rTicket['title']); ?><small class="text-muted"><?php echo $timeAgo; ?></small></p>
                                                     </a>
                                                 <?php endforeach; ?>
                                             </div>

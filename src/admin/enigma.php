@@ -418,12 +418,7 @@ include 'footer.php'; ?>
 				}
 			});
 
-			<?php if (CoreUtilities::$rSettings['enable_search']): ?>
-				$(document).ready(function() {
-					initSearch();
-				});
-
-			<?php endif; 
+			<?php
 		echo '        ' . "\r\n\t\t";
 
 		if (isset($rDevice)) {
@@ -438,6 +433,11 @@ include 'footer.php'; ?>
 		echo $_['search_user'];
 		echo "'" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t\r\n\t\t\t" . '$("#datatable-bouquets").DataTable({' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,2,3]}' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t\t" . '"rowCallback": function(row, data) {' . "\r\n\t\t\t\t\t" . 'if ($.inArray(data[0], window.rBouquets) !== -1) {' . "\r\n\t\t\t\t\t\t" . '$(row).addClass("selected");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n" . '                drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n" . '                },' . "\r\n\t\t\t\t" . 'paging: false,' . "\r\n\t\t\t\t" . 'bInfo: false,' . "\r\n\t\t\t\t" . 'searching: false' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable-bouquets").selectable({' . "\r\n\t\t\t\t" . "filter: 'tr'," . "\r\n\t\t\t\t" . 'selected: function (event, ui) {' . "\r\n" . '                    if (!$("#pair_id").val()) {' . "\r\n" . "                        if (\$(ui.selected).hasClass('selectedfilter')) {" . "\r\n" . "                            \$(ui.selected).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n" . '                            window.rBouquets.splice(parseInt($.inArray($(ui.selected).find("td:eq(0)").text()), window.rBouquets), 1);' . "\r\n" . '                        } else {            ' . "\r\n" . "                            \$(ui.selected).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n" . '                            window.rBouquets.push(parseInt($(ui.selected).find("td:eq(0)").text()));' . "\r\n" . '                        }' . "\r\n" . '                    }' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#no_expire").change(function() {' . "\r\n\t\t\t\t" . 'if ($(this).prop("checked")) {' . "\r\n\t\t\t\t\t" . '$("#exp_date").prop("disabled", true);' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . '$("#exp_date").removeAttr("disabled");' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#add_ip").click(function() {' . "\r\n" . '                if (!$("#pair_id").val()) {' . "\r\n" . '                    if (($("#ip_field").val()) && (isValidIP($("#ip_field").val()))) {' . "\r\n" . '                        var o = new Option($("#ip_field").val(), $("#ip_field").val());' . "\r\n" . '                        $("#allowed_ips").append(o);' . "\r\n" . '                        $("#ip_field").val("");' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("Please enter a valid IP address.");' . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#remove_ip").click(function() {' . "\r\n" . '                if (!$("#pair_id").val()) {' . "\r\n" . "                    \$('#allowed_ips option:selected').remove();" . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n" . '            $("#pair_id").change(function() {' . "\r\n" . '                evaluatePair();' . "\r\n" . '            });' . "\r\n" . '            $("#mac").on("input", function(e) {' . "\r\n" . '                var rRegex = /([a-f0-9]{2})([a-f0-9]{2})/i, rString = e.target.value.replace(/[^a-f0-9]/ig, "");' . "\r\n" . '                while (rRegex.test(rString)) {' . "\r\n" . "                    rString = rString.replace(rRegex, '\$1' + ':' + '\$2');" . "\r\n" . '                }' . "\r\n" . '                e.target.value = rString.slice(0, 17).toUpperCase();' . "\r\n" . '            });' . "\r\n" . '            evaluatePair();' . "\r\n" . '            $("#no_expire").trigger("change");' . "\r\n" . '            $("form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n\t\t\t\t" . 'var rBouquets = [];' . "\r\n\t\t\t\t" . '$("#datatable-bouquets tr.selected").each(function() {' . "\r\n\t\t\t\t\t" . 'rBouquets.push($(this).find("td:eq(0)").text());' . "\r\n\t\t\t\t" . '});' . "\r\n\t\t\t\t" . '$("#bouquets_selected").val(JSON.stringify(rBouquets));' . "\r\n\t\t\t\t" . "\$(\"#allowed_ips option\").prop('selected', true);" . "\r\n" . "                \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                submitForm(window.rCurrentPage, new FormData($("form")[0]), window.rReferer);' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
 		?>
+    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+        $(document).ready(function() {
+            initSearch();
+        });
+    <?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

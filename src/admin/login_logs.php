@@ -175,12 +175,7 @@
 		}
 	});
 
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
-		$(document).ready(function() {
-			initSearch();
-		});
 
-	<?php endif; ?>
 
 	function api(rID, rType, rConfirm = false) {
 		if ((rType == "block") && (!rConfirm)) {
@@ -244,6 +239,11 @@
 			window.location.href = "api?action=report&params=" + encodeURIComponent(JSON.stringify($("#datatable").DataTable().ajax.params()));
 		});
 	});
+    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+        $(document).ready(function() {
+            initSearch();
+        });
+    <?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

@@ -659,13 +659,6 @@ include 'header.php';
         }
     });
 
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-
-    <?php endif; ?>
-
     $(document).ready(function() {
         $("input[type='submit']").click(function(event) {
             event.preventDefault();
@@ -684,6 +677,11 @@ include 'header.php';
             e.preventDefault();
         });
     });
+    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+        $(document).ready(function() {
+            initSearch();
+        });
+    <?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>
