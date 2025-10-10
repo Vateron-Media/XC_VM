@@ -209,13 +209,6 @@ include 'header.php';
         }
     });
 
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-
-    <?php endif; ?>
-
     function api(rID, rType) {
         $.getJSON("./api?action=asn&sub=" + rType + "&id=" + rID, function(data) {
             if (data.result === true) {
@@ -302,6 +295,11 @@ include 'header.php';
             $('#datatable-users').DataTable().search($('#asn_search_box').val()).draw();
         }
     });
+    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+        $(document).ready(function() {
+            initSearch();
+        });
+    <?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

@@ -504,12 +504,7 @@ include 'header.php'; ?>
         }
     });
 
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-
-    <?php endif;
+    <?php
     if (in_array($allServers[intval(CoreUtilities::$rRequest['id'])]['status'], array(3, 4)) || in_array($rProxyServers[intval(CoreUtilities::$rRequest['id'])]['status'], array(3, 4))): ?>
 
         function getInstallStatus() {
@@ -918,6 +913,11 @@ include 'header.php'; ?>
         };
         (rNetworkChart = new ApexCharts(document.querySelector("#network_chart"), rNetworkOptions)).render();
     });
+    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+        $(document).ready(function() {
+            initSearch();
+        });
+    <?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

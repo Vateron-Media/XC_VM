@@ -1010,12 +1010,7 @@ include 'footer.php'; ?>
 				}
 			});
 
-			<?php if (CoreUtilities::$rSettings['enable_search']): ?>
-				$(document).ready(function() {
-					initSearch();
-				});
-
-			<?php endif; 
+			<?php
 		echo '        ' . "\r\n\t\t" . 'var rEPG = ';
 		echo json_encode($rEPGJS);
 		echo ';' . "\r\n" . '        var rVideoDevices = ';
@@ -1059,6 +1054,11 @@ include 'footer.php'; ?>
 
 		echo '                if (rSubmit) {' . "\r\n" . "                    \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                    submitForm(window.rCurrentPage, new FormData($("form")[0]), window.rReferer);' . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
 		?>
+    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+        $(document).ready(function() {
+            initSearch();
+        });
+    <?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

@@ -465,14 +465,7 @@ include 'header.php'; ?>
             }
         }
     });
-
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-
-    <?php endif;
-
+    
     if (isset($rPackage)): ?>
         var rBouquets = [<?php echo implode(',', array_map('intval', is_array($addons = json_decode($rPackage['bouquets'] ?? '[]', true)) ? $addons : [])); ?>];
         var rGroups = [<?php echo implode(',', array_map('intval', is_array($addons = json_decode($rPackage['groups'] ?? '[]', true)) ? $addons : [])); ?>];
@@ -660,6 +653,11 @@ include 'header.php'; ?>
             submitForm(window.rCurrentPage, new FormData($("form")[0]));
         });
     });
+    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+        $(document).ready(function() {
+            initSearch();
+        });
+    <?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

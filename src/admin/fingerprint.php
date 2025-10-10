@@ -293,12 +293,7 @@ include 'header.php'; ?>
 				}
 			});
 
-			<?php if (CoreUtilities::$rSettings['enable_search']): ?>
-				$(document).ready(function() {
-					initSearch();
-				});
-
-			<?php endif; 
+			<?php
 		echo '        ' . "\r\n\t\t" . 'var rStreamID = -1;' . "\r\n\r\n\t\t" . 'function getCategory() {' . "\r\n\t\t\t" . 'return $("#category_search").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getStreamID() {' . "\r\n\t\t\t" . 'return window.rStreamID;' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function selectFingerprint(rID) {' . "\r\n\t\t\t" . '$("#stream-activity-tab").attr("disabled", false);' . "\r\n\t\t\t" . "\$('[href=\"#stream-activity\"]').tab('show');" . "\r\n\t\t\t" . 'window.rStreamID = rID;' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function activateFingerprint() {' . "\r\n\t\t\t" . 'rArray = {"id": window.rStreamID, "font_size": $("#font_size").val(), "font_color": $("#font_color").val(), "message": "", "type": $("#fingerprint_type").val(), "xy_offset": ""};' . "\r\n\t\t\t" . 'if (rArray.type == 3) {' . "\r\n\t\t\t\t" . 'rArray["message"] = $("#custom_message").val();' . "\r\n\t\t\t" . '}' . "\r\n\t\t\t" . 'if (($("#position_x").val() >= 0) && ($("#position_y").val() >= 0)) {' . "\r\n\t\t\t\t" . 'rArray["xy_offset"] = $("#position_x").val() + "x" + $("#position_y").val();' . "\r\n\t\t\t" . '}' . "\r\n\t\t\t" . 'if ((rArray["font_size"] > 0) && (rArray["font_color"]) && ((rArray["message"]) || (rArray["type"] != 3))  && (rArray["font_size"] > 0) && (rArray["xy_offset"])) {' . "\r\n\t\t\t\t" . '$.getJSON("./api?action=fingerprint&data=" + encodeURIComponent(JSON.stringify(rArray)), function(data) {' . "\r\n\t\t\t\t\t" . 'if (data.result == true) {' . "\r\n\t\t\t\t\t\t" . '$.toast("';
 		echo $_['fingerprint_success'];
 		echo '");' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . '$.toast("';
@@ -323,6 +318,11 @@ include 'header.php'; ?>
 		echo (intval($rSettings['default_entries']) ?: 10);
 		echo ',' . "\r\n\t\t\t\t" . 'lengthMenu: [10, 25, 50, 250, 500, 1000],' . "\r\n\t\t\t\t" . 'order: [[ 0, "desc" ]]' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#fingerprint_type").change(function() {' . "\r\n\t\t\t\t" . 'if ($(this).val() == 3) {' . "\r\n\t\t\t\t\t" . '$("#custom_message_div").show();' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . '$("#custom_message_div").hide();' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#font_size").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#position_x").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#position_y").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . "\$('#datatable-md2').parents('div.dataTables_wrapper').first().hide();" . "\r\n\t\t\t" . '$(".nav li.disabled a").click(function() {' . "\r\n\t\t\t\t" . 'return false;' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#stream-selection-nav").click(function() {' . "\r\n\t\t\t\t" . '$("#stream-activity-tab").attr("disabled", true);' . "\r\n\t\t\t\t" . 'window.rStreamID = -1;' . "\r\n\t\t\t\t" . '$("#filter_selection").show();' . "\r\n\t\t\t\t" . "\$('#datatable-md2').parents('div.dataTables_wrapper').first().hide();" . "\r\n\t\t\t\t" . '$("#datatable-md1").DataTable().ajax.reload( null, false );' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
 		?>
+    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+        $(document).ready(function() {
+            initSearch();
+        });
+    <?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

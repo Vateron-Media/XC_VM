@@ -394,12 +394,6 @@ include 'header.php';
         }
     });
 
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-    <?php endif; ?>
-
     function checkRegex(e) {
         var rRegex = /^[0-9\/*,-]+$/;
         return rRegex.test(String.fromCharCode(e.which));
@@ -470,6 +464,11 @@ include 'header.php';
             submitForm(window.rCurrentPage, new FormData($("form")[0]));
         });
     });
+    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+        $(document).ready(function() {
+            initSearch();
+        });
+    <?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

@@ -204,13 +204,6 @@
 		}
 	});
 
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
-		$(document).ready(function() {
-			initSearch();
-		});
-
-	<?php endif; ?>
-
 	function api(rID, rType, rConfirm = false) {
 		if ((rType == "delete") && (!rConfirm)) {
 			new jBox("Confirm", {
@@ -262,6 +255,11 @@
 		});
 		$("#datatable").css("width", "100%");
 	});
+    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+        $(document).ready(function() {
+            initSearch();
+        });
+    <?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

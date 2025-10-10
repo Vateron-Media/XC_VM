@@ -435,13 +435,7 @@ include 'footer.php'; ?>
 				}
 			});
 
-			<?php if (CoreUtilities::$rSettings['enable_search']): ?>
-				$(document).ready(function() {
-					initSearch();
-				});
-
-			<?php endif; 
-		if (isset($rBouquetArr)) {
+			<?php if (isset($rBouquetArr)) {
 			if (is_array(json_decode($rBouquetArr['bouquet_series'], true))) {
 			} else {
 				$rBouquetArr['bouquet_series'] = '[]';
@@ -487,7 +481,12 @@ include 'footer.php'; ?>
 		echo $_['enter_a_bouquet_name'];
 		echo '");' . "\r\n" . '                } else {' . "\r\n" . "                    \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                    submitForm(window.rCurrentPage, new FormData($("form")[0]));' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '        });' . "\r\n" . '        ' . "\r\n\t\t";
 	?>
-	</script>
+	    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+        $(document).ready(function() {
+            initSearch();
+        });
+    <?php endif; ?>
+</script>
 <script src="assets/js/listings.js"></script>
 </body>
 
