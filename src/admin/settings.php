@@ -2426,13 +2426,6 @@ include 'footer.php'; ?>
 		}
 	});
 
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
-		$(document).ready(function() {
-			initSearch();
-		});
-
-	<?php endif; ?>
-
 	$(document).ready(function() {
 		$('select').select2({
 			width: '100%'
@@ -2676,6 +2669,11 @@ include 'footer.php'; ?>
 			}
 		});
 	};
+    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+        $(document).ready(function() {
+            initSearch();
+        });
+    <?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

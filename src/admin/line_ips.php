@@ -217,12 +217,7 @@ include 'header.php';
 		}
 	});
 
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
-		$(document).ready(function() {
-			initSearch();
-		});
 
-	<?php endif; ?>
 	$(document).ready(function() {
 		$('select').select2({
 			width: '100%'
@@ -258,6 +253,11 @@ include 'header.php';
 			rTable.search($(this).val()).draw();
 		});
 	});
+    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+        $(document).ready(function() {
+            initSearch();
+        });
+    <?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

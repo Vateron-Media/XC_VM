@@ -3641,8 +3641,7 @@ if (isset($_SESSION['hash'])) {
 			$rTerm = strtolower(preg_replace('/[^[:alnum:][:space:]]/u', '', CoreUtilities::$rRequest['search']));
 			$rTermSP = strtolower(preg_replace('/[^[:alnum:][:space:]]/u', ' ', CoreUtilities::$rRequest['search']));
 
-			if (empty($rTermSP)) {
-			} else {
+			if (!empty($rTermSP)) {
 				$rItems = array();
 
 				foreach ($rTables as $rTable => $rTableInfo) {
@@ -3770,7 +3769,7 @@ if (isset($_SESSION['hash'])) {
 					}
 
 					foreach (array_keys($rServerItems) as $rStreamID) {
-						array_multisort(array_column($rServerItem[$rStreamID], 'priority'), SORT_DESC, $rServerItem[$rStreamID]);
+						array_multisort(array_column($rServerItems[$rStreamID], 'priority'), SORT_DESC, $rServerItems[$rStreamID]);
 					}
 
 					if (CoreUtilities::$rSettings['redis_handler']) {

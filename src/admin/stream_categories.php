@@ -268,13 +268,6 @@ include 'header.php';
 		}
 	});
 
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
-		$(document).ready(function() {
-			initSearch();
-		});
-
-	<?php endif; ?>
-
 	function deleteCategory(rID) {
 		new jBox("Confirm", {
 			confirmButton: "Delete",
@@ -330,6 +323,11 @@ include 'header.php';
 			submitForm(window.rCurrentPage, new FormData($("#stream_categories_form-4")[0]));
 		});
 	});
+    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+        $(document).ready(function() {
+            initSearch();
+        });
+    <?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

@@ -833,13 +833,8 @@ include 'header.php';
 					}
 				}
 			});
-
-			<?php if (CoreUtilities::$rSettings['enable_search']): ?>
-				$(document).ready(function() {
-					initSearch();
-				});
-
-			<?php endif; 
+            
+			<?php
 		echo '        ' . "\r\n" . '        var rBouquetSet = [];' . "\r\n" . '        var rCategorySet = [';
 		echo implode(',', array_map('intval', $rCategorySet));
 		echo '];' . "\r\n" . '        var rLogoSet = [';
@@ -928,6 +923,11 @@ include 'header.php';
 
 		echo "\t\t" . '});' . "\r\n" . '        ' . "\r\n" . '        ';
 		?>
+    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+        $(document).ready(function() {
+            initSearch();
+        });
+    <?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

@@ -173,12 +173,7 @@ include 'header.php';
         }
     });
 
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
 
-    <?php endif; ?>
     function sendErrors(rConfirm = false) {
         if (!rConfirm) {
             new jBox("Confirm", {
@@ -257,6 +252,11 @@ include 'header.php';
             sendErrors();
         });
     });
+    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+        $(document).ready(function() {
+            initSearch();
+        });
+    <?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

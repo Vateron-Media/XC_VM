@@ -436,12 +436,7 @@ include 'header.php';
         }
     });
 
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
 
-    <?php endif; ?>
 
     function evaluateDirectSource() {
         $(["read_native", "movie_symlink", "auto_encode", "auto_upgrade", "remove_subtitles", "target_container", "transcode_profile_id"]).each(function(rID, rElement) {
@@ -504,6 +499,11 @@ include 'header.php';
             return /^\d*$/.test(value);
         });
     });
+    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+        $(document).ready(function() {
+            initSearch();
+        });
+    <?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

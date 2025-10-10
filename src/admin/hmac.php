@@ -216,13 +216,6 @@ include 'footer.php'; ?>
 		}
 	});
 
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
-		$(document).ready(function() {
-			initSearch();
-		});
-
-	<?php endif; ?>
-
 	function generateCode() {
 		var result = '';
 		var characters = 'ABCDEF0123456789';
@@ -242,6 +235,11 @@ include 'footer.php'; ?>
 			generateCode();
 		<?php endif; ?>
 	});
+    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+        $(document).ready(function() {
+            initSearch();
+        });
+    <?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

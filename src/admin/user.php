@@ -288,14 +288,7 @@ include 'header.php';
 			}
 		}
 	});
-
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
-		$(document).ready(function() {
-			initSearch();
-		});
-
-	<?php endif; ?>
-
+	
 	function clearOwner() {
 		$('#owner_id').val("").trigger('change');
 	}
@@ -341,6 +334,11 @@ include 'header.php';
 			submitForm(window.rCurrentPage, new FormData($("form")[0]), window.rReferer);
 		});
 	});
+    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+        $(document).ready(function() {
+            initSearch();
+        });
+    <?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>
