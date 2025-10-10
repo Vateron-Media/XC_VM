@@ -7,13 +7,8 @@ if (!checkPermissions()) {
 	goHome();
 }
 
-if (!isset(CoreUtilities::$rRequest['id'])) {
+if (isset(CoreUtilities::$rRequest['id']) && ($rSeriesArr = getSerie(CoreUtilities::$rRequest['id']))) {
 	goHome();
-} else {
-	$rSeriesArr = getSerie(CoreUtilities::$rRequest['id']);
-	if (!isset($rSeriesArr)) {
-		goHome();
-	}
 }
 
 if (isset($rSeriesArr) && isset(CoreUtilities::$rRequest['import'])) {
