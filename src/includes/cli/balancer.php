@@ -26,7 +26,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                 $rInstallFiles = array($rFiles['proxy']);
                 exit(); // заглушка чтобы процесс не продолжался
             } elseif ($rType == 2) {
-                $rPackages = array('cpufrequtils', 'iproute2', 'python', 'net-tools', 'dirmngr', 'gpg-agent', 'software-properties-common', 'libmaxminddb0', 'libmaxminddb-dev', 'mmdb-bin', 'libcurl4', 'libgeoip-dev', 'libxslt1-dev', 'libonig-dev', 'e2fsprogs', 'wget', 'sysstat', 'alsa-utils', 'v4l-utils', 'mcrypt', 'python3', 'certbot', 'iptables-persistent', 'libjpeg-dev', 'libpng-dev', 'php-ssh2', 'xz-utils', 'zip', 'unzip');
+                $rPackages = array('cpufrequtils', 'iproute2', 'python', 'net-tools', 'dirmngr', 'gpg-agent', 'software-properties-common', 'libmaxminddb0', 'libmaxminddb-dev', 'mmdb-bin', 'libcurl4', 'libgeoip-dev', 'libxslt1-dev', 'libonig-dev', 'e2fsprogs', 'wget', 'sysstat', 'alsa-utils', 'v4l-utils', 'mcrypt', 'python3', 'certbot', 'iptables-persistent', 'libjpeg-dev', 'libpng-dev', 'php-ssh2', 'xz-utils', 'zip', 'unzip', 'cron');
                 $rInstallFiles = array($rFiles['lb']);
             } elseif ($rType == 3) {
                 $rPackages = array('cpufrequtils');
