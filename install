@@ -32,6 +32,7 @@ rPackages = [
     "libjpeg-dev",
     "libpng-dev",
     "libharfbuzz-dev",
+    "libfribidi-dev",
     "libogg0",
     "xz-utils",
     "zip",
