@@ -1,16 +1,9 @@
 <?php
 
-
-
-
-
-
-
 include 'session.php';
 include 'functions.php';
 
-if (checkPermissions()) {
-} else {
+if (!checkPermissions()) {
 	goHome();
 }
 
@@ -52,8 +45,7 @@ foreach ($rTickets as $rTicket) {
 	echo intval($rTicket['id']);
 	echo '"><i class="mdi mdi-eye mr-2 text-muted font-18 vertical-middle"></i>View Ticket</a>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t";
 
-	if (!hasPermissions('adv', 'ticket')) {
-	} else {
+	if (hasPermissions('adv', 'ticket')) {
 		if (0 < $rTicket['status']) {
 			echo "\t\t\t\t\t\t\t\t\t\t\t" . '<a class="dropdown-item" href="javascript:void(0);" onClick="api(';
 			echo intval($rTicket['id']);
@@ -72,7 +64,9 @@ foreach ($rTickets as $rTicket) {
 	echo "\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t" . '</td>' . "\r\n\t\t\t\t\t\t\t" . '</tr>' . "\r\n\t\t\t\t\t\t\t";
 }
 echo "\t\t\t\t\t\t" . '</tbody>' . "\r\n\t\t\t\t\t" . '</table>' . "\r\n\t\t\t\t" . '</div>' . "\r\n\t\t\t" . '</div>' . "\r\n\t\t" . '</div>' . "\r\n\t" . '</div>' . "\r\n" . '</div>' . "\r\n";
-include 'footer.php'; ?>
+include 'footer.php';
+?>
+
 <script id="scripts">
 	var resizeObserver = new ResizeObserver(entries => $(window).scroll());
 	$(document).ready(function() {

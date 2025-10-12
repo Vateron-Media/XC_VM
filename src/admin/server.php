@@ -418,7 +418,7 @@ include 'header.php'; ?>
                                                             class="form-control select2 select2-multiple"
                                                             data-toggle="select2" multiple="multiple"
                                                             data-placeholder="Choose...">
-                                                            <?php $rSelected = json_decode($rServerArr['geoip_countries'], true); ?>
+                                                            <?php $rSelected = json_decode($rServerArr['geoip_countries'], true) ?? []; ?>
                                                             <?php foreach ($rCountries as $rCountry): ?>
                                                                 <option
                                                                     <?= in_array($rCountry['id'], $rSelected) ? 'selected' : ''; ?>

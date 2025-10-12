@@ -281,15 +281,24 @@ switch ($rPage) {
 	default:
 		echo '<div class="btn-group">';
 
-		if (!(!$rMobile && hasPermissions('adv', $rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][1]) && 0 < strlen(array_keys($rDropdown[$rPage])[0]))) {
-		} else {
-			if ($rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][0]) {
-				echo "<button type=\"button\" onClick=\"navigate('" . $rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][0] . "');\" class=\"btn btn-sm btn-info waves-effect waves-light\">" . array_keys($rDropdown[$rPage])[0] . '</button>';
-			} else {
-				if (isset($rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][2])) {
-					echo '<button type="button" ' . $rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][2] . ' class="btn btn-sm btn-info waves-effect waves-light">' . array_keys($rDropdown[$rPage])[0] . '</button>';
+		// Check if the array exists and has elements
+		if (isset($rDropdown[$rPage]) && is_array($rDropdown[$rPage]) && !empty($rDropdown[$rPage])) {
+			$firstKey = array_keys($rDropdown[$rPage])[0];
+			$firstItem = $rDropdown[$rPage][$firstKey];
+
+			$shouldShowButton = !$rMobile &&
+				hasPermissions('adv', $firstItem[1]) &&
+				strlen($firstKey) > 0;
+
+			if ($shouldShowButton) {
+				if (!empty($firstItem[0])) {
+					echo "<button type=\"button\" onClick=\"navigate('" . $firstItem[0] . "');\" class=\"btn btn-sm btn-info waves-effect waves-light\">" . $firstKey . '</button>';
 				} else {
-					echo '<button type="button" onClick="showModal();" class="btn btn-sm btn-info waves-effect waves-light">' . array_keys($rDropdown[$rPage])[0] . '</button>';
+					if (isset($firstItem[2])) {
+						echo '<button type="button" ' . $firstItem[2] . ' class="btn btn-sm btn-info waves-effect waves-light">' . $firstKey . '</button>';
+					} else {
+						echo '<button type="button" onClick="showModal();" class="btn btn-sm btn-info waves-effect waves-light">' . $firstKey . '</button>';
+					}
 				}
 			}
 		}
