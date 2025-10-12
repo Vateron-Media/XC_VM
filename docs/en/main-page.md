@@ -40,7 +40,7 @@
 | Section | Description |
 |:---------|:-------------|
 | [Migration Guide](migration_guide.md) | Step-by-step guide for migrating from XUI, Xtream Codes, and similar panels. |
-<!-- | [FAQ](faq.md) | Frequently asked questions and troubleshooting. | -->
+| [FAQ](faq.md) | Frequently asked questions and troubleshooting. |
 
 ---
 
