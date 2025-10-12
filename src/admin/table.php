@@ -1012,7 +1012,7 @@ if ($rType == "lines") {
                 $rTime = time();
 
                 if (count($rStreamIDs) > 0) {
-                    $rQuery = "SELECT `stream_id`, `server_id`, COUNT(*) AS `fails`, MAX(`date`) AS `last` FROM `streams_logs` WHERE `action` IN ('STREAM_FAILED', 'STREAM_START_FAIL') AND `date` >= (UNIX_TIMESTAMP()-" . intval(($F2d4d8f7981ac574['fails_per_time'] ?: 86400)) . ') AND `stream_id` IN (' . implode(',', array_map('intval', $rStreamIDs)) . ') GROUP BY `stream_id`, `server_id`;';
+                    $rQuery = "SELECT `stream_id`, `server_id`, COUNT(*) AS `fails`, MAX(`date`) AS `last` FROM `streams_logs` WHERE `action` IN ('STREAM_FAILED', 'STREAM_START_FAIL') AND `date` >= (UNIX_TIMESTAMP()-" . intval(($eSettings['fails_per_time'] ?: 86400)) . ') AND `stream_id` IN (' . implode(',', array_map('intval', $rStreamIDs)) . ') GROUP BY `stream_id`, `server_id`;';
                     $db->query($rQuery);
 
                     if ($db->num_rows() > 0) {
