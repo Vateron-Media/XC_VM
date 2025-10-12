@@ -133,7 +133,7 @@ include 'header.php'; ?>
                                     <?php if (hasPermissions('adv', 'live_connections')): ?>
                                         <a href="./live_connections?server_id=<?php echo $rServer['id']; ?>">
                                         <?php endif; ?>
-                                        <div class="card cta-box <?php if ($rSettings['dark_mode']) echo 'bg-success'; ?> text-white">
+                                        <div class="card cta-box <?php if (!$rSettings['dark_mode']) echo 'bg-success'; ?> text-white">
                                             <div class="card-body active-connections">
                                                 <div class="media align-items-center">
                                                     <div class="col-3">
@@ -159,7 +159,7 @@ include 'header.php'; ?>
                                             <?php if (hasPermissions('adv', 'streams')): ?>
                                                 <a href="./streams?filter=1&server=<?php echo $rServer['id']; ?>">
                                                 <?php endif; ?>
-                                                <div class="card cta-box <?php if (!$rSettings['dark_mode']) echo 'bg-pink'; ?>text-white">
+                                                <div class="card cta-box <?php if (!$rSettings['dark_mode']) echo 'bg-pink'; ?> text-white">
                                                     <div class="card-body active-connections">
                                                         <div class="media align-items-center">
                                                             <div class="col-3">
