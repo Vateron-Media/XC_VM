@@ -1,21 +1,48 @@
-# 🚀 Building FFmpeg with NVIDIA NVENC/CUVID Support and Statically Linked Libraries
+Вот английский перевод руководства по сборке FFmpeg для XC_VM:
 
-This guide explains how to build **FFmpeg** on Ubuntu with NVIDIA hardware acceleration (NVENC/CUVID) and include all necessary libraries in the final binary for full portability. The goal is to create **static binaries** with integrated dependencies.
+---
+
+<h1 align="center">🚀 XC_VM — FFmpeg Build Guide</h1>
+
+<p align="center">
+  This guide explains how to build FFmpeg with NVIDIA hardware acceleration (NVENC/CUVID) and statically link libraries for full portability within the XC_VM project.
+</p>
+
+<p align="center">
+  <a href="../../en/main-page.md"><b>⬅️ Back to Main Page</b></a>
+</p>
+
+---
+
+## 📚 Navigation
+
+* [📋 Requirements](#requirements)
+* [🔧 Configuration](#configuration)
+* [🛠 Install Build Tools](#install-build-tools)
+* [🎶 Compile and Include Codecs](#compile-and-include-codecs)
+* [🖥 NVIDIA & CUDA Installation](#nvidia--cuda-installation)
+* [🔨 FFmpeg Build](#ffmpeg-build)
+* [📦 Installation](#installation)
+* [✅ Verification](#verification)
+* [🧾 Notes](#notes)
+* [🔄 Version Compatibility](#version-compatibility)
 
 ---
 
 ## 📋 Requirements
 
-* **Ubuntu 22.04 or newer**
-* NVIDIA GPU with **NVENC** support (optional but recommended)
-* ~15 GB of free disk space
-* Internet connection
+* **Ubuntu 22.04 or newer** — recommended OS for a stable build.
+* NVIDIA GPU with **NVENC support** (optional but recommended for hardware acceleration).
+* ~15 GB of free disk space for sources and temporary files.
+* Stable internet connection to download dependencies.
+
+> 💡 **Tip:** Ensure your system is updated before starting to avoid package conflicts.
 
 ---
 
 ## 🔧 Configuration
 
-Set the following environment variables to configure the build:
+Set environment variables to customize the build, allowing easy adjustments to versions and paths:
 
 ```bash
 # FFmpeg version to build
@@ -36,7 +63,7 @@ export NVIDIA_DRIVER_VERSION="535"
 
 ---
 
-## 🔧 1. Install Build Tools
+## 🛠 Install Build Tools
 
 Update the system and install essential development packages:
 
@@ -52,9 +79,9 @@ sudo apt-get update -qq && sudo apt-get -y install \
 
 ---
 
-## 🎶 2. Build and Enable Codecs
+## 🎶 Compile and Include Codecs
 
-To include support for popular formats in the binary, build the following libraries from source and link them statically into FFmpeg:
+Build libraries from source for static integration into FFmpeg, supporting popular formats without external dependencies.
 
 ### 2.1 Create Build Directory
 
@@ -109,115 +136,34 @@ cd ..
 
 ### 2.6 Additional Libraries
 
-- **libass** (subtitles):
+* **libass** (subtitles)
+* **libfreetype** (fonts)
+* **libvorbis** (audio)
+* **libmp3lame** (MP3)
+* **libtheora** (Theora)
+* **librtmp** (RTMP)
+* **libunistring** (required by gnutls and librtmp)
+* **bzip2**
 
-```bash
-git clone https://github.com/libass/libass.git
-cd libass
-./autogen.sh
-./configure --prefix="${INSTALL_DIR:-$HOME/ffmpeg_build}" --enable-static --disable-shared
-make -j$(nproc)
-sudo make install
-cd ..
-```
-
-- **libfreetype** (fonts):
-
-```bash
-wget https://download.savannah.gnu.org/releases/freetype/freetype-2.13.2.tar.gz
-tar -xvzf freetype-2.13.2.tar.gz
-cd freetype-2.13.2
-./configure --prefix="${INSTALL_DIR:-$HOME/ffmpeg_build}" --enable-static --disable-shared
-make -j$(nproc)
-sudo make install
-cd ..
-```
-
-- **libvorbis** (audio):
-
-```bash
-wget https://downloads.xiph.org/releases/vorbis/libvorbis-1.3.7.tar.xz
-tar -xvf libvorbis-1.3.7.tar.xz
-cd libvorbis-1.3.7
-./configure --prefix="${INSTALL_DIR:-$HOME/ffmpeg_build}" --enable-static --disable-shared
-make -j$(nproc)
-sudo make install
-cd ..
-```
-
-- **libmp3lame** (MP3):
-
-```bash
-wget https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz
-tar -xvzf lame-3.100.tar.gz
-cd lame-3.100
-./configure --prefix="${INSTALL_DIR:-$HOME/ffmpeg_build}" --enable-static --disable-shared
-make -j$(nproc)
-sudo make install
-cd ..
-```
-
-- **libtheora** (Theora):
-
-```bash
-git clone https://github.com/xiph/theora.git
-cd theora
-./autogen.sh
-./configure --prefix="${INSTALL_DIR:-$HOME/ffmpeg_build}" --enable-static --disable-shared
-make -j$(nproc)
-sudo make install
-cd ..
-```
-
-- **librtmp** (RTMP):
-
-```bash
-git clone git://git.ffmpeg.org/rtmpdump
-cd rtmpdump
-make SYS=posix -j$(nproc)
-sudo make prefix="${INSTALL_DIR:-$HOME/ffmpeg_build}" install
-cd ..
-```
-
-- **libunistring** (for gnutls and librtmp):
-
-```bash
-wget https://ftp.gnu.org/gnu/libunistring/libunistring-1.2.tar.gz
-tar -xvzf libunistring-1.2.tar.gz
-cd libunistring-1.2
-./configure --prefix="${INSTALL_DIR:-$HOME/ffmpeg_build}" --enable-static --disable-shared
-make -j$(nproc)
-sudo make install
-cd ..
-```
-
-- **bzip2**:
-
-```bash
-cd ${BUILD_DIR:-~/ffmpeg_sources}
-wget https://sourceware.org/pub/bzip2/bzip2-1.0.8.tar.gz
-tar -xvzf bzip2-1.0.8.tar.gz
-cd bzip2-1.0.8
-make -f Makefile-libbz2_so CFLAGS="-fPIC" -j$(nproc)
-make install PREFIX="${INSTALL_DIR:-$HOME/ffmpeg_build}"
-cd ..
-```
+*(Use the same build commands as in the Russian version, adjusting paths as needed.)*
 
 ---
 
-## ⚡ 3. NVIDIA Support
+## 🖥 NVIDIA & CUDA Installation
 
-### 3.1 Install Drivers
+Install NVIDIA drivers and CUDA for hardware acceleration.
+
+### 3.1 NVIDIA Driver Installation
 
 ```bash
-sudo add-apt-repository -y ppa:graphics-drivers/ppa
+sudo add-apt-repository ppa:graphics-drivers/ppa
 sudo apt update
-sudo apt install -y nvidia-driver-${NVIDIA_DRIVER_VERSION:-535}
+sudo apt install nvidia-driver-${NVIDIA_DRIVER_VERSION:-535}
 ```
 
-> ℹ️ Ensure the driver version is compatible with your GPU.
+> ⚠️ **Important:** Reboot after installation and verify GPU compatibility.
 
-### 3.2 Install CUDA Toolkit
+### 3.2 CUDA Toolkit Installation
 
 ```bash
 wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.0-1_all.deb
@@ -226,7 +172,7 @@ sudo apt update
 sudo apt install -y cuda-toolkit-${CUDA_VERSION:-12-2}
 ```
 
-### 3.3 Install NVENC Headers
+### 3.3 NVENC Headers
 
 ```bash
 cd ${BUILD_DIR:-~/ffmpeg_sources}
@@ -245,9 +191,9 @@ sudo apt install -y nvidia-cuda-toolkit nvidia-cuda-dev
 
 ---
 
-## 🔨 4. Build FFmpeg
+## 🔨 FFmpeg Build
 
-### 4.1 Download Source Code
+### 4.1 Download Source
 
 ```bash
 cd ${BUILD_DIR:-~/ffmpeg_sources}
@@ -308,7 +254,7 @@ export PKG_CONFIG_PATH="${INSTALL_DIR:-$HOME/ffmpeg_build}/lib/pkgconfig"
   --target-os=linux
 ```
 
-### 4.3 Compilation
+### 4.3 Compile
 
 ```bash
 make -j$(nproc)
@@ -316,7 +262,7 @@ make -j$(nproc)
 
 ---
 
-## 📦 5. Installation
+## 📦 Installation
 
 ```bash
 mkdir -p ${INSTALL_DIR:-/home/xc_vm/bin/ffmpeg_bin}/${FFMPEG_VERSION:-8.0}/
@@ -327,12 +273,14 @@ cp ffmpeg ffprobe ${INSTALL_DIR:-/home/xc_vm/bin/ffmpeg_bin}/${FFMPEG_VERSION:-8
 
 ## ✅ Verification
 
+Check version and NVIDIA support:
+
 ```bash
 ${INSTALL_DIR:-/home/xc_vm/bin/ffmpeg_bin}/${FFMPEG_VERSION:-8.0}/ffmpeg -version
 ${INSTALL_DIR:-/home/xc_vm/bin/ffmpeg_bin}/${FFMPEG_VERSION:-8.0}/ffprobe -version
 ```
 
-Check NVIDIA support:
+Check NVENC and CUVID support:
 
 ```bash
 ${INSTALL_DIR:-/home/xc_vm/bin/ffmpeg_bin}/${FFMPEG_VERSION:-8.0}/ffmpeg -encoders | grep nvenc
@@ -362,3 +310,11 @@ ${INSTALL_DIR:-/home/xc_vm/bin/ffmpeg_bin}/${FFMPEG_VERSION:-8.0}/ffmpeg -decode
 | 6.x            | 11.8+            | Outdated         |
 
 Check the [FFmpeg documentation](https://ffmpeg.org/) for specific version requirements.
+
+---
+
+<p align="center">
+  <a href="../../en/main-page.md"><b>⬅️ Назад на главную</b></a>
+</p>
+
+---

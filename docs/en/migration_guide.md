@@ -1,47 +1,61 @@
 <h1 align="center">🧭 XC_VM Migration Guide</h1>
+
 <p align="center">
-  Migrate from compatible IPTV systems with ease using the built-in XC_VM migration tool.
+  Easily migrate from compatible IPTV systems using the built-in XC_VM migration tool.
 </p>
 
-<!-- <p align="center">
-  <a href="../../wiki"><b>⬅️ Back to Wiki</b></a>
-</p> -->
+<p align="center">
+  <a href="../en/main-page.md"><b>⬅️ Back to Main Page</b></a>
+</p>
 
 ---
 
-## ⚙️ Before You Begin
+## 📚 Navigation
 
-> 💡 **Recommendation:**  
-> It’s best to perform the migration on a **clean XC_VM installation**.
+* [⚙️ Before You Start](#before-you-start)
+* [🚀 Migration Steps](#migration-steps)
+* [🔑 Restoring Access After Migration](#restoring-access-after-migration)
+* [🧩 Post-Migration](#post-migration)
+* [🖥️ Load Balancer Preparation](#load-balancer-preparation)
 
-If you decide to use an **existing installation**, note that:
-- XC_VM will **wipe any tables** in your main database that match data found in your migration database.
-- Always **create backups** before performing any migration.
+---
+
+## ⚙️ Before You Start
+
+> 💡 **Recommendation:**
+> It’s best to perform migration on a **fresh XC_VM installation**.
+
+If you decide to use an **existing installation**, note the following:
+
+* XC_VM **will delete all tables** in your main database that match the data found in your migration database.
+* Always **create backups** before performing migration.
 
 ---
 
 ## 🚀 Migration Steps
 
-### 1. Upload Your Backup
-Upload your existing backup database to your XC_VM server via **SFTP**.  
-For this example, we’ll assume it’s located at:
+### 1. Upload Backup
+
+Upload your existing database backup to the XC_VM server via **SFTP**.
+In this example, it is located at:
+
+```
+/tmp/backup.sql
 ```
 
-/tmp/backup.sql
+### 2. Restore Backup to Migration Database
 
-````
+Use the tools script to clear the existing migration database and restore the backup:
 
-### 2. Restore the Backup to the Migration Database
-Use the tools script to clear the existing migration database and restore your backup:
 ```bash
 /home/xc_vm/tools migration "/tmp/backup.sql"
-````
+```
 
-### 3. Start the Migration
+### 3. Start Migration
 
-Assuming no errors occurred during restoration, you can begin the migration in one of two ways:
+If the restoration completed without errors, you can start the migration using one of two methods:
 
-#### 🧩 Option 1 — Command Line (recommended)
+#### 🧩 Option 1 — Command Line (Recommended)
 
 Run the migration manually:
 
@@ -51,57 +65,54 @@ Run the migration manually:
 
 #### 🌐 Option 2 — Web Installer
 
-If you prefer not to use command line tools, you can also return to the **web installer** interface via the link provided by the script when installing the panel.
-There, select the **“Migration”** option and follow the instructions on the screen to complete the process interactively.
+If you prefer not to use the command line, you can return to the **web installer** via the link provided during panel setup.
+Select the **“Migration”** option and follow the on-screen instructions to complete the process interactively.
 
 You will see real-time progress updates while XC_VM migrates your data.
 Once complete, you will be able to log in to your system.
 
 ---
 
-## 🔑 Post-Migration Access Recovery
+## 🔑 Restoring Access After Migration
 
-If you cannot log in (e.g., missing username/password or invalid access code), you can use the **rescue tools**:
+If you cannot log in (e.g., due to missing username/password or invalid access code), you can use **rescue tools**:
 
-### Generate a Rescue Access Code
+### Create a Rescue Access Code
 
 ```bash
 /home/xc_vm/tools access
 ```
 
-### Generate a Rescue Admin User
+### Create an Administrator to Restore Access
 
 ```bash
 /home/xc_vm/tools user
 ```
 
-> ⚠️ Once logged in, make sure to **change your access code and admin credentials** immediately.
+> ⚠️ After logging in, immediately **change the access code and administrator credentials**.
 
 ---
 
-## 🧩 After Migration
+## 🧩 Post-Migration
 
-* Load balancers will initially appear **offline**.
-* All streams are **stopped automatically** for safety.
+* Load balancers will initially appear **disabled**.
+* All streams will **automatically stop** for safety.
 
 ### Next Steps
 
-1. Reinstall your load balancers and **manually start your streams** once migration is verified.
-2. Review and update your **default XC_VM settings**.
-3. Check **Main Server** details — domain names, SSL configuration, etc.
-4. Ensure everything matches your environment and preferences.
+1. Reinstall load balancers and **manually start streams** after confirming migration.
+2. Review and update **XC_VM default settings**.
+3. Check main server data — domains, SSL configuration, etc.
+4. Ensure everything matches your environment and settings.
 
 ---
 
-## 🖥️ Preparing the load balancer
+## 🖥️ Load Balancer Preparation
 
 You will need to reinstall the OS on the load balancers.
 
-
 ---
 
-<!-- <p align="center">
-  <a href="../../wiki"><b>⬅️ Back to Wiki</b></a>
+<p align="center">
+  <a href="../en/main-page.md"><b>⬅️ Back to Main Page</b></a>
 </p>
-
---- -->

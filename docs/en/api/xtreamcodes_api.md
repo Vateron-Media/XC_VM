@@ -1,30 +1,50 @@
-# 📡 XtreamCodes API
+<h1 align="center">📡 XtreamCodes API</h1>
 
-## File Location
+<p align="center">
+  The API provides access to IPTV streams (Live TV, Radio), VOD (Movies), Series, and EPG (TV guide) for applications compatible with XtreamCodes.  
+  It is a core component for integration with <b>XC_VM</b>.
+</p>
+
+<p align="center">
+  <a href="../../en/main-page.md"><b>⬅️ Back to Main Page</b></a>
+</p>
+
+---
+
+## 📚 Navigation
+
+* [📂 File Location](#file-location)
+* [📑 Overview](#overview)
+* [🔑 Authorization](#authorization)
+* [📺 Live TV (TV & Radio)](#live-tv-tv--radio)
+* [🎬 VOD (Movies)](#vod-movies)
+* [📽 Series](#series)
+* [🎞 Media Access](#media-access)
+* [🧾 Notes](#notes)
+
+---
+
+## 📂 File Location
+
+The main API file is located at:
 
 ```
 /home/xc_vm/wwwdir/player_api.php
 ```
 
-## Overview
-
-The API provides access to IPTV streams (**Live TV, Radio**), **VOD (movies)**, **TV series**, and **EPG (electronic program guide)** for applications that support XtreamCodes.
-
 ---
 
-## 📑 Table of Contents
+## 📑 Overview
 
-* [Authorization](#-authorization)
-* [Live TV (TV & Radio)](#-live-tv-tv--radio)
-* [VOD (Movies)](#-vod-movies)
-* [Series](#-series)
-* [EPG (Program Guide)](#-epg-program-guide)
-* [Media Content Access](#-media-content-access)
-* [Usage Examples](#-usage-examples)
+The API is divided into key sections for easier integration.
+Each endpoint includes example requests and responses.
 
 ---
 
 ## 🔑 Authorization
+
+Authorization is the first step to access content.
+It validates user credentials and returns server information.
 
 ### Request
 
@@ -67,9 +87,13 @@ GET /player_api?username={username}&password={password}
 }
 ```
 
+> 💡 **Tip:** Use the obtained data for subsequent requests to avoid repeated authentication.
+
 ---
 
 ## 📺 Live TV (TV & Radio)
+
+Endpoints for working with live streams, including categories, streams, and EPG.
 
 ### Get All Live Categories
 
@@ -93,8 +117,6 @@ GET /player_api?username={username}&password={password}&action=get_live_categori
   }
 ]
 ```
-
----
 
 ### Get All Live Streams
 
@@ -123,17 +145,13 @@ GET /player_api?username={username}&password={password}&action=get_live_streams
 ]
 ```
 
----
-
 ### Get Streams by Category
 
 ```http
 GET /player_api?username={username}&password={password}&action=get_live_streams&category_id={id}
 ```
 
----
-
-### Get Channel EPG (Short Program)
+### Get Channel Short EPG
 
 ```http
 GET /player_api?username={username}&password={password}&action=get_short_epg&stream_id={id}&limit={N}
@@ -155,17 +173,13 @@ GET /player_api?username={username}&password={password}&action=get_short_epg&str
 }
 ```
 
----
-
-### Get Full Channel Program
+### Get Full Channel Schedule
 
 ```http
 GET /player_api?username={username}&password={password}&action=get_simple_data_table&stream_id={id}
 ```
 
----
-
-### EPG for All Channels (XMLTV)
+### Get EPG for All Channels (XMLTV)
 
 ```http
 GET /xmltv.php?username={username}&password={password}
@@ -189,7 +203,9 @@ GET /xmltv.php?username={username}&password={password}
 
 ## 🎬 VOD (Movies)
 
-### Movie Categories
+Endpoints for Video on Demand, including categories and movie details.
+
+### Get Movie Categories
 
 ```http
 GET /player_api?username={username}&password={password}&action=get_vod_categories
@@ -203,13 +219,18 @@ GET /player_api?username={username}&password={password}&action=get_vod_categorie
     "category_id": "10",
     "category_name": "Action",
     "parent_id": 0
+  },
+  {
+    "category_id": "11",
+    "category_name": "Drama",
+    "parent_id": 0
   }
 ]
 ```
 
----
+> ⚠️ **Note:** The full list of categories may be large; only fragments are shown in examples.
 
-### All Movies
+### Get All VOD Streams
 
 ```http
 GET /player_api?username={username}&password={password}&action=get_vod_streams
@@ -226,11 +247,11 @@ GET /player_api?username={username}&password={password}&action=get_vod_streams
     "year": 2008,
     "stream_type": "movie",
     "stream_id": 1,
-    "stream_icon": "http://176.124.192.118:80/images/7pQr8EhEi05VXRmZc5QfCLaoCzC2XshRjzbEF-0-ISX3OBAKZPN21ASjMFFF_OljuWhs_Jbsg3Nu1tBcV0ErgPL_v9ei3c1fI0mNI7C5eos.jpg",
+    "stream_icon": "http://176.124.192.118:80/images/...jpg",
     "rating": 8.5,
     "rating_5based": 4.3,
     "added": 1757343129,
-    "plot": "Batman raises the stakes in his war on crime. With the help of Lt. Jim Gordon and District Attorney Harvey Dent, Batman sets out to dismantle the remaining criminal organizations that plague the streets. The partnership proves to be effective, but they soon find themselves prey to a reign of chaos unleashed by a rising criminal mastermind known to the terrified citizens of Gotham as the Joker.",
+    "plot": "Batman raises the stakes in his war on crime. With the ...",
     "cast": "Christian Bale, Heath Ledger, Aaron Eckhart, Michael Caine, Maggie Gyllenhaal",
     "director": "Christopher Nolan, Christopher Nolan, Steve Gehrke",
     "genre": "Drama, Action, Crime",
@@ -246,96 +267,31 @@ GET /player_api?username={username}&password={password}&action=get_vod_streams
 ]
 ```
 
----
-
-### Movies by Category
+### Get Movies by Category
 
 ```http
 GET /player_api?username={username}&password={password}&action=get_vod_streams&category_id={id}
 ```
 
----
-
-### Movie Info
+### Get Movie Info
 
 ```http
 GET /player_api?username={username}&password={password}&action=get_vod_info&vod_id={id}
 ```
 
-**Example Response**
-
-```json
-{
-  "info": {
-    "kinopoisk_url": "https://www.themoviedb.org/movie/155",
-    "tmdb_id": 155,
-    "name": "The Dark Knight",
-    "o_name": "The Dark Knight",
-    "cover_big": "http://176.124.192.118:80/images/7pQr8EhEi05VXRmZc5QfCLaoCzC2XshRjzbEF-0-ISX3OBAKZPN21ASjMFFF_OljuWhs_Jbsg3Nu1tBcV0ErgPL_v9ei3c1fI0mNI7C5eos.jpg",
-    "movie_image": "http://176.124.192.118:80/images/7pQr8EhEi05VXRmZc5QfCLaoCzC2XshRjzbEF-0-ISX3OBAKZPN21ASjMFFF_OljuWhs_Jbsg3Nu1tBcV0ErgPL_v9ei3c1fI0mNI7C5eos.jpg",
-    "release_date": "2008-07-16",
-    "episode_run_time": 152,
-    "youtube_trailer": "kmJLuwP3MbY",
-    "director": "Christopher Nolan, Christopher Nolan, Steve Gehrke",
-    "actors": "Christian Bale, Heath Ledger, Aaron Eckhart, Michael Caine, Maggie Gyllenhaal",
-    "cast": "Christian Bale, Heath Ledger, Aaron Eckhart, Michael Caine, Maggie Gyllenhaal",
-    "description": "Batman raises the stakes in his war on crime. With the help of Lt. Jim Gordon and District Attorney Harvey Dent, Batman sets out to dismantle the remaining criminal organizations that plague the streets. The partnership proves to be effective, but they soon find themselves prey to a reign of chaos unleashed by a rising criminal mastermind known to the terrified citizens of Gotham as the Joker.",
-    "plot": "Batman raises the stakes in his war on crime. With the help of Lt. Jim Gordon and District Attorney Harvey Dent, Batman sets out to dismantle the remaining criminal organizations that plague the streets. The partnership proves to be effective, but they soon find themselves prey to a reign of chaos unleashed by a rising criminal mastermind known to the terrified citizens of Gotham as the Joker.",
-    "age": "",
-    "mpaa_rating": "",
-    "rating_count_kinopoisk": 0,
-    "country": "United Kingdom",
-    "genre": "Drama, Action, Crime",
-    "backdrop_path": [
-      "http://176.124.192.118:80/images/7pQr8EhEi05VXRmZc5QfCADBzwKB171qpiTTqrZdeATVLqPvNOO1tw6QZZproFAJRjrtA4EzIxoMJZlI2R3OlQ.jpg"
-    ],
-    "duration_secs": 9120,
-    "duration": "02:32:00",
-    "bitrate": 0,
-    "rating": 8.52,
-    "releasedate": "2008-07-16",
-    "subtitles": []
-  },
-  "movie_data": {
-    "stream_id": 1,
-    "name": "The Dark Knight (2008)",
-    "title": "The Dark Knight",
-    "year": 2008,
-    "added": 1757343129,
-    "category_id": "1",
-    "category_ids": [1, 2],
-    "container_extension": "mp4",
-    "custom_sid": "",
-    "direct_source": ""
-  }
-}
-```
-
 ---
 
-## 📺 Series
+## 📽 Series
 
-### Series Categories
+Endpoints for managing TV shows, including categories, seasons, and episodes.
+
+### Get Series Categories
 
 ```http
 GET /player_api?username={username}&password={password}&action=get_series_categories
 ```
 
-**Example Response**
-
-```json
-[
-  {
-    "category_id": "20",
-    "category_name": "Drama",
-    "parent_id": 0
-  }
-]
-```
-
----
-
-### All Series
+### Get All Series
 
 ```http
 GET /player_api?username={username}&password={password}&action=get_series
@@ -381,9 +337,7 @@ GET /player_api?username={username}&password={password}&action=get_series
 GET /player_api?username={username}&password={password}&action=get_series&category_id={id}
 ```
 
----
-
-### Series Info
+### Get Series Info
 
 ```http
 GET /player_api?username={username}&password={password}&action=get_series_info&series_id={id}
@@ -460,7 +414,9 @@ GET /player_api?username={username}&password={password}&action=get_series_info&s
 
 ---
 
-## 🎞 Media Content Access
+## 🎞 Media Access
+
+After authorization, you can access direct links to media files.
 
 * **Live TV (channel):**
 
@@ -469,13 +425,32 @@ http://176.124.192.118/live/{username}/{password}/{stream_id}.ts
 ```
 
 * **Movie (VOD):**
+
 ```http
 http://176.124.192.118/movie/{username}/{password}/{vod_id}.mp4
 ```
-* **Series:**
+
+* **Episode:**
+
 ```http
 http://176.124.192.118/series/{username}/{password}/{episode_id}.mp4
 ```
-> ⚠️ The first request returns a redirect to `/auth/...`, where authorization is performed and media content is returned.
+
+> ⚠️ **Important:** On the first request, a redirect occurs to `/auth/...` for authentication before content is served.
+
 ---
 
+## 🧾 Notes
+
+* **Output Formats:** Supported formats — `m3u8`, `ts`, `rtmp`. Choose based on your device.
+* **Security:** All requests require valid authorization; monitor logs for access errors.
+* **Integration:** Use tools like Postman for testing.
+  Implement response caching in your application for better performance.
+
+> 💬 If you have integration issues, please open an issue in the [repository](https://github.com/Vateron-Media/XC_VM/issues).
+
+---
+
+<p align="center">
+  <a href="../../en/main-page.md"><b>⬅️ Back to Main Page</b></a>
+</p>

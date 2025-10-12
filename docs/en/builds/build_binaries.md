@@ -1,23 +1,35 @@
-# 🧱 XC_VM — Binary File Compilation
+<h1 align="center">🧱 XC_VM — Building Binary Files</h1>
 
-> ⚠️ **Notice:** All actions should be performed **on the server** where `xc_vm` is installed.
+<p align="center">
+  This guide explains how to build binary files for XC_VM.  
+  It is intended for developers and system administrators who want to customize the system.
+</p>
 
----
-
-## 📚 Index
-
-* [🔧 Preassembly](#preassembly)
-* [🌐 Build NGINX](#build-nginx)
-* [📺 Build NGINX with RTMP](#build-nginx-with-rtmp)
-* [🐘 Build PHP-FPM](#build-php-fpm)
-* [📦 Install PHP Extensions](#install-php-extensions)
-* [⚙️ Building the network binary](#building-the-network-binary)
+<p align="center">
+  <a href="../../en/main-page.md"><b>⬅️ Back to Main Page</b></a>
+</p>
 
 ---
 
-## 🔧 Preassembly
+## 📚 Navigation
 
-### 1. Install dependencies
+* [🔧 Prerequisites](#prerequisites)
+* [🌐 Building NGINX](#building-nginx)
+* [📺 Building NGINX with RTMP](#building-nginx-with-rtmp)
+* [🐘 Building PHP-FPM](#building-php-fpm)
+* [📦 Installing PHP Extensions](#installing-php-extensions)
+* [⚙️ Building the `network` Binary](#building-the-network-binary)
+* [✅ Conclusion](#conclusion)
+
+---
+
+## 🔧 Prerequisites
+
+> ⚠️ **Warning:** All steps should be performed **on the server** where `xc_vm` is installed.
+
+### 1. Install Dependencies
+
+Install the necessary packages for building. This ensures all required tools and libraries are available.
 
 ```bash
 sudo apt-get install -y \
@@ -28,9 +40,9 @@ sudo apt-get install -y \
 
 ---
 
-## 🌐 Build NGINX
+## 🌐 Building NGINX
 
-### 1. Download sources
+### 1. Download Source Files
 
 #### OpenSSL
 
@@ -68,7 +80,9 @@ tar -zxvf nginx-1.28.0.tar.gz
 cd nginx-1.28.0
 ```
 
-### 2. Configure the build
+### 2. Configure Build
+
+Configure a static build with required modules:
 
 ```bash
 ./configure \
@@ -96,7 +110,7 @@ cd nginx-1.28.0
   --with-openssl-opt=no-nextprotoneg
 ```
 
-### 3. Build and install
+### 3. Build and Install
 
 ```bash
 make
@@ -105,16 +119,16 @@ make install
 
 ---
 
-## 📺 Build NGINX with RTMP
+## 📺 Building NGINX with RTMP
 
-### 1. Download RTMP module
+### 1. Download RTMP Module
 
 ```bash
 wget https://github.com/arut/nginx-rtmp-module/archive/refs/tags/v1.2.2.tar.gz
 tar -xzvf v1.2.2.tar.gz
 ```
 
-### 2. Configure the build
+### 2. Configure Build
 
 ```bash
 cd nginx-1.28.0
@@ -139,14 +153,14 @@ cd nginx-1.28.0
   --with-ld-opt='-static -Wl,-z,relro -Wl,-z,now -pie'
 ```
 
-### 3. Build and install
+### 3. Build and Install
 
 ```bash
 make
 make install
 ```
 
-### 4. Rename the binary
+### 4. Rename Executable
 
 ```bash
 mv /home/xc_vm/bin/nginx_rtmp/sbin/nginx /home/xc_vm/bin/nginx_rtmp/sbin/nginx_rtmp
@@ -154,9 +168,9 @@ mv /home/xc_vm/bin/nginx_rtmp/sbin/nginx /home/xc_vm/bin/nginx_rtmp/sbin/nginx_r
 
 ---
 
-## 🐘 Build PHP-FPM
+## 🐘 Building PHP-FPM
 
-### 1. Install dependencies
+### 1. Install Dependencies
 
 ```bash
 sudo apt-get install -y \
@@ -164,7 +178,7 @@ sudo apt-get install -y \
   libtool m4 gcc make pkg-config libmaxminddb-dev libssh2-1-dev
 ```
 
-### 2. Download sources
+### 2. Download PHP Source
 
 ```bash
 wget -O php-8.1.33.tar.gz http://php.net/get/php-8.1.33.tar.gz/from/this/mirror
@@ -172,7 +186,7 @@ tar -xzvf php-8.1.33.tar.gz
 cd php-8.1.33
 ```
 
-### 3. Configure the build
+### 3. Configure Build
 
 ```bash
 ./configure \
@@ -216,7 +230,7 @@ cd php-8.1.33
   --with-pear
 ```
 
-### 4. Build and install
+### 4. Build and Install
 
 ```bash
 make
@@ -225,9 +239,9 @@ make install
 
 ---
 
-## 📦 Install PHP Extensions
+## 📦 Installing PHP Extensions
 
-Use `pecl` from your PHP build:
+Use the built-in `pecl` to install extensions:
 
 ```bash
 /home/xc_vm/bin/php/bin/pecl install maxminddb
@@ -236,9 +250,9 @@ Use `pecl` from your PHP build:
 /home/xc_vm/bin/php/bin/pecl install redis
 ```
 
-### Redis configuration during installation
+### Configuring Redis Extension
 
-You'll be prompted during `redis` installation:
+During PECL installation, you will be prompted:
 
 ```
 enable igbinary serializer support? [no] : yes
@@ -249,38 +263,38 @@ enable lz4 compression? [no] :
 use system liblz4? [yes] :
 ```
 
-Recommended: **yes** to `igbinary`, others — optional.
+Recommended answers: `yes` for igbinary, others optional.
 
 ---
 
-## ⚙️ Building the `network` binary
+## ⚙️ Building the `network` Binary
 
-### 1. Install `PyInstaller` (once)
+### 1. Install `PyInstaller` (one-time)
 
 ```bash
 pip install -U pyinstaller
 ```
 
-### 2. Build the binary file
+### 2. Build Binary
 
 ```bash
 cd /home/xc_vm/bin
 pyinstaller --onefile network.py
 ```
 
-After building, the executable file will appear in the directory:
+The executable will be located in:
 
 ```bash
 /home/xc_vm/bin/dist/network
 ```
 
-### 3. Move the binary to the desired location
+### 3. Move Binary to Final Location
 
 ```bash
 mv /home/xc_vm/bin/network /home/xc_vm/bin/network
 ```
 
-### 4. Clear temporary directories
+### 4. Clean Temporary Directories
 
 ```bash
 rm -rf build dist network.spec __pycache__
@@ -290,10 +304,18 @@ rm -rf build dist network.spec __pycache__
 
 ## ✅ Conclusion
 
-After completing all steps, you will have your own statically compiled binary files:
+After completing all steps, you will have your own statically built binaries:
 
 * `nginx`
 * `nginx_rtmp`
 * `php-fpm`
 * `pecl` extensions
 * `network` (Python script binary)
+
+> 💡 **Tip:** If issues occur, check build logs or open an [issue](https://github.com/Vateron-Media/XC_VM/issues).
+
+<p align="center">
+  <a href="../../en/main-page.md"><b>⬅️ Back to Main Page</b></a>
+</p>
+
+---
