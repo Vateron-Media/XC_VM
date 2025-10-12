@@ -4196,7 +4196,6 @@ class CoreUtilities {
 
 	public static function grantPrivileges($Host) {
 		self::$db->query("GRANT SELECT, INSERT, UPDATE, DELETE, DROP, ALTER ON `" . self::$rConfig['database'] . "`.* TO '" . self::$rConfig['username'] . "'@'" . $Host . "' IDENTIFIED BY '" . self::$rConfig['password'] . "';");
-		self::$db->query("FLUSH PRIVILEGES;");
 	}
 
 	public static function revokePrivileges($Host) {

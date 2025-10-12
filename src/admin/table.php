@@ -1010,17 +1010,16 @@ if ($rType == "lines") {
             }
             if (!$rCreated) {
                 $rTime = time();
-                if (0 < count($rStreamIDs)) {
-                    $rQuery = "SELECT `stream_id`, `server_id`, COUNT(*) AS `fails`, MAX(`date`) AS `last` FROM `streams_logs` WHERE `action` IN ('STREAM_FAILED', 'STREAM_START_FAIL') AND `date` >= (UNIX_TIMESTAMP()-" . (int) ($rSettings["fails_per_time"] ?: 86400) . ") AND `stream_id` IN (" . implode(",", array_map("intval", $rStreamIDs)) . ") GROUP BY `stream_id`, `server_id`;";
+
+                if (count($rStreamIDs) > 0) {
+                    $rQuery = "SELECT `stream_id`, `server_id`, COUNT(*) AS `fails`, MAX(`date`) AS `last` FROM `streams_logs` WHERE `action` IN ('STREAM_FAILED', 'STREAM_START_FAIL') AND `date` >= (UNIX_TIMESTAMP()-" . intval(($F2d4d8f7981ac574['fails_per_time'] ?: 86400)) . ') AND `stream_id` IN (' . implode(',', array_map('intval', $rStreamIDs)) . ') GROUP BY `stream_id`, `server_id`;';
                     $db->query($rQuery);
-                    if (0 < $db->num_rows()) {
+
+                    if ($db->num_rows() > 0) {
                         foreach ($db->get_rows() as $rRow) {
-                            $rFailsPS[$rRow["stream_id"]][(int) $rRow["server_id"]] = [$rRow["fails"], $rTime - $rRow["last"]];
-                            $rRow["fails"];
-                            $rFails[$rRow["stream_id"]] >>= 0;
-                            if (!isset($rFails[$rRow["stream_id"]]) || !is_array($rFails[$rRow["stream_id"]])) {
-                                $rFails[$rRow["stream_id"]] = [];
-                            }
+                            $rFailsPS[$rRow["stream_id"]][intval($rRow["server_id"])] = array($rRow["fails"], $rTime - $rRow["last"]);
+                            $rFails[$rRow["stream_id"]][0] += $rRow["fails"];
+
                             if ($rFails[$rRow["stream_id"]]["last"] < $rTime - $rRow["last"]) {
                                 $rFails[$rRow["stream_id"]][1] = $rTime - $rRow["last"];
                             }
