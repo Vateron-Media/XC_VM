@@ -1526,21 +1526,18 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 			}
 		}
 
-		if (!$rReload) {
-		} else {
+		if ($rReload) {
 			exec('sudo -u xc_vm ' . MAIN_HOME . 'bin/nginx/sbin/nginx -s reload');
 			exec('sudo service xc_vm restart');
 		}
 
 		$rCrons = array();
 
-		if (!file_exists(CRON_PATH . 'root_signals.php')) {
-		} else {
+		if (file_exists(CRON_PATH . 'root_signals.php')) {
 			$rCrons[] = '* * * * * ' . PHP_BIN . ' ' . CRON_PATH . 'root_signals.php # XC_VM';
 		}
 
-		if (!file_exists(CRON_PATH . 'root_mysql.php')) {
-		} else {
+		if (file_exists(CRON_PATH . 'root_mysql.php')) {
 			$rCrons[] = '* * * * * ' . PHP_BIN . ' ' . CRON_PATH . 'root_mysql.php # XC_VM';
 		}
 
@@ -1642,16 +1639,14 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 
 			$rPassword = trim(explode("\n", explode("\n" . 'requirepass ', $rConfig)[1])[0]);
 
-			if ($rPassword != '#PASSWORD#') {
-			} else {
+			if ($rPassword == '#PASSWORD#') {
 				$rWrite = true;
 				$rPassword = generateString(512);
 				$rConfig = str_replace('#PASSWORD#', $rPassword, $rConfig);
 				echo 'Generating a new Redis password' . "\n\n";
 			}
 
-			if (!$rWrite) {
-			} else {
+			if ($rWrite) {
 				file_put_contents(MAIN_HOME . 'bin/redis/redis.conf', $rConfig);
 			}
 
@@ -1664,7 +1659,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 			}
 		}
 
-		if (!$rFirstRun || $rServers[SERVER_ID]['is_main']) {
+		if (!$rFirstRun && $rServers[SERVER_ID]['is_main']) {
 			CoreUtilities::$db->query('UPDATE `servers` SET `is_main` = 0 WHERE `id` <> ?;', SERVER_ID);
 			CoreUtilities::$db->query('UPDATE `servers` SET `is_main` = 1 WHERE `id` = ?;', SERVER_ID);
 			CoreUtilities::$db->query('UPDATE `settings` SET `status_uuid` = ?;', md5(XC_VM_VERSION));
