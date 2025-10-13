@@ -102,8 +102,8 @@ journalctl -u xc_vm -f         # Live logs
 
 ## 📚 Documentation
 
-* 🇬🇧 [English Guide](doc/en/main-page.md)
-* 🇷🇺 [Руководство на русском](doc/ru/main-page.md)
+* 🇬🇧 [English Guide](docs/en/main-page.md)
+* 🇷🇺 [Руководство на русском](docs/ru/main-page.md)
 
 ---
 
