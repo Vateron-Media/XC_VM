@@ -77,7 +77,7 @@ $_TITLE = 'Bouquet Sort';
 include 'header.php';
 
 ?>
-<div class="wrapper boxed-layout-xl" <?php echo empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest' ? '' : ' style="display: none;"'; ?>>
+<div class="wrapper boxed-layout-xl" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') echo 'style="display: none;"' ?>>
     <div class="container-fluid">
         <div class="row">
             <div class="col-12">
@@ -85,7 +85,7 @@ include 'header.php';
                     <div class="page-title-right">
                         <?php include 'topbar.php'; ?>
                     </div>
-                    <h4 class="page-title"><?php echo htmlspecialchars($rBouquet['bouquet_name']); ?></h4>
+                    <h4 class="page-title"><?= htmlspecialchars($rBouquet['bouquet_name']); ?></h4>
                 </div>
             </div>
         </div>
@@ -96,38 +96,38 @@ include 'header.php';
                         <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                             <span aria-hidden="true">&times;</span>
                         </button>
-                        <?php echo $_['bouquet_order_success']; ?>
+                        <?= $_['bouquet_order_success']; ?>
                     </div>
                 <?php endif; ?>
                 <div class="card">
                     <div class="card-body">
                         <form action="#" method="POST">
                             <input type="hidden" id="stream_order_array" name="stream_order_array" value="" />
-                            <input type="hidden" name="reorder" value="<?php echo intval(CoreUtilities::$rRequest['id']); ?>" />
+                            <input type="hidden" name="reorder" value="<?= intval(CoreUtilities::$rRequest['id']); ?>" />
                             <div id="basicwizard">
                                 <ul class="nav nav-pills bg-light nav-justified form-wizard-header mb-4">
                                     <li class="nav-item">
                                         <a href="#bouquet-stream" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="la la-play-circle-o mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?php echo $_['streams']; ?></span>
+                                            <span class="d-none d-sm-inline"><?= $_['streams']; ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
                                         <a href="#bouquet-movie" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="la la-video-camera mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?php echo $_['movies']; ?></span>
+                                            <span class="d-none d-sm-inline"><?= $_['movies']; ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
                                         <a href="#bouquet-series" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="la la-tv mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?php echo $_['series']; ?></span>
+                                            <span class="d-none d-sm-inline"><?= $_['series']; ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
                                         <a href="#bouquet-stations" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-radio-tower mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?php echo $_['stations']; ?></span>
+                                            <span class="d-none d-sm-inline"><?= $_['stations']; ?></span>
                                         </a>
                                     </li>
                                 </ul>
@@ -163,10 +163,10 @@ include 'header.php';
                                                 <a href="javascript: void(0);" onClick="MoveDown('stream')" class="btn btn-purple"><i class="mdi mdi-chevron-down"></i></a>
                                                 <a href="javascript: void(0);" onClick="MoveTop('stream')" class="btn btn-pink"><i class="mdi mdi-chevron-triple-up"></i></a>
                                                 <a href="javascript: void(0);" onClick="MoveBottom('stream')" class="btn btn-pink"><i class="mdi mdi-chevron-triple-down"></i></a>
-                                                <a href="javascript: void(0);" onClick="AtoZ('stream')" class="btn btn-info"><?php echo $_['a_to_z']; ?></a>
+                                                <a href="javascript: void(0);" onClick="AtoZ('stream')" class="btn btn-info"><?= $_['a_to_z']; ?></a>
                                             </li>
                                             <li class="list-inline-item float-right">
-                                                <button type="submit" class="btn btn-primary waves-effect waves-light"><?php echo $_['save_changes']; ?></button>
+                                                <button type="submit" class="btn btn-primary waves-effect waves-light"><?= $_['save_changes']; ?></button>
                                             </li>
                                         </ul>
                                     </div>
@@ -201,10 +201,10 @@ include 'header.php';
                                                 <a href="javascript: void(0);" onClick="MoveDown('movie')" class="btn btn-purple"><i class="mdi mdi-chevron-down"></i></a>
                                                 <a href="javascript: void(0);" onClick="MoveTop('movie')" class="btn btn-pink"><i class="mdi mdi-chevron-triple-up"></i></a>
                                                 <a href="javascript: void(0);" onClick="MoveBottom('movie')" class="btn btn-pink"><i class="mdi mdi-chevron-triple-down"></i></a>
-                                                <a href="javascript: void(0);" onClick="AtoZ('movie')" class="btn btn-info"><?php echo $_['a_to_z']; ?></a>
+                                                <a href="javascript: void(0);" onClick="AtoZ('movie')" class="btn btn-info"><?= $_['a_to_z']; ?></a>
                                             </li>
                                             <li class="list-inline-item float-right">
-                                                <button type="submit" class="btn btn-primary waves-effect waves-light"><?php echo $_['save_changes']; ?></button>
+                                                <button type="submit" class="btn btn-primary waves-effect waves-light"><?= $_['save_changes']; ?></button>
                                             </li>
                                         </ul>
                                     </div>
@@ -239,10 +239,10 @@ include 'header.php';
                                                 <a href="javascript: void(0);" onClick="MoveDown('series')" class="btn btn-purple"><i class="mdi mdi-chevron-down"></i></a>
                                                 <a href="javascript: void(0);" onClick="MoveTop('series')" class="btn btn-pink"><i class="mdi mdi-chevron-triple-up"></i></a>
                                                 <a href="javascript: void(0);" onClick="MoveBottom('series')" class="btn btn-pink"><i class="mdi mdi-chevron-triple-down"></i></a>
-                                                <a href="javascript: void(0);" onClick="AtoZ('series')" class="btn btn-info"><?php echo $_['a_to_z']; ?></a>
+                                                <a href="javascript: void(0);" onClick="AtoZ('series')" class="btn btn-info"><?= $_['a_to_z']; ?></a>
                                             </li>
                                             <li class="list-inline-item float-right">
-                                                <button type="submit" class="btn btn-primary waves-effect waves-light"><?php echo $_['save_changes']; ?>
+                                                <button type="submit" class="btn btn-primary waves-effect waves-light"><?= $_['save_changes']; ?>
                                                 </button>
                                             </li>
                                         </ul>
@@ -278,10 +278,10 @@ include 'header.php';
                                                 <a href="javascript: void(0);" onClick="MoveDown('radio')" class="btn btn-purple"><i class="mdi mdi-chevron-down"></i></a>
                                                 <a href="javascript: void(0);" onClick="MoveTop('radio')" class="btn btn-pink"><i class="mdi mdi-chevron-triple-up"></i></a>
                                                 <a href="javascript: void(0);" onClick="MoveBottom('radio')" class="btn btn-pink"><i class="mdi mdi-chevron-triple-down"></i></a>
-                                                <a href="javascript: void(0);" onClick="AtoZ('radio')" class="btn btn-info"><?php echo $_['a_to_z']; ?> </a>
+                                                <a href="javascript: void(0);" onClick="AtoZ('radio')" class="btn btn-info"><?= $_['a_to_z']; ?> </a>
                                             </li>
                                             <li class="list-inline-item float-right">
-                                                <button type="submit" class="btn btn-primary waves-effect waves-light"><?php echo $_['save_changes']; ?></button>
+                                                <button type="submit" class="btn btn-primary waves-effect waves-light"><?= $_['save_changes']; ?></button>
                                             </li>
                                         </ul>
                                     </div>

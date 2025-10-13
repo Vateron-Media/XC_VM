@@ -54,11 +54,11 @@ include 'header.php';
 						<form<?php if (isset(CoreUtilities::$rRequest['import'])) echo ' enctype="multipart/form-data"'; ?> action="#" method="POST" data-parsley-validate="">
 							<?php if (!isset(CoreUtilities::$rRequest['import'])): ?>
 								<?php if (isset($rSeriesArr)): ?>
-									<input type="hidden" name="edit" value="<?php echo $rSeriesArr['id']; ?>" />
+									<input type="hidden" name="edit" value="<?= $rSeriesArr['id']; ?>" />
 								<?php endif; ?>
 
 								<input type="hidden" id="tmdb_id" name="tmdb_id"
-									value="<?php echo isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['tmdb_id']) : ''; ?>" />
+									value="<?= isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['tmdb_id']) : ''; ?>" />
 							<?php else: ?>
 								<input type="hidden" name="server_tree_data" id="server_tree_data" value="" />
 							<?php endif; ?>
@@ -84,7 +84,7 @@ include 'header.php';
 											<a href="#advanced-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
 												<i class="mdi mdi-folder-alert-outline mr-1"></i>
 												<span class="d-none d-sm-inline">
-													<?php echo $_['advanced']; ?>
+													<?= $_['advanced']; ?>
 												</span>
 											</a>
 										</li>
@@ -92,7 +92,7 @@ include 'header.php';
 											<a href="#load-balancing" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
 												<i class="mdi mdi-server-network mr-1"></i>
 												<span class="d-none d-sm-inline">
-													<?php echo $_['server']; ?>
+													<?= $_['server']; ?>
 												</span>
 											</a>
 										</li>
@@ -106,10 +106,10 @@ include 'header.php';
 													<div class="form-group row mb-4">
 														<label class="col-md-4 col-form-label" for="title">Series Name</label>
 														<div class="col-md-5">
-															<input type="text" class="form-control" id="title" name="title" value="<?php echo isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['title']) : ''; ?>" required data-parsley-trigger="change">
+															<input type="text" class="form-control" id="title" name="title" value="<?= isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['title']) : ''; ?>" required data-parsley-trigger="change">
 														</div>
 														<div class="col-md-3">
-															<input type="text" class="form-control text-center" placeholder="Year" id="year" name="year" value="<?php echo isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['year']) : ''; ?>">
+															<input type="text" class="form-control text-center" placeholder="Year" id="year" name="year" value="<?= isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['year']) : ''; ?>">
 														</div>
 													</div>
 													<?php if (strlen(CoreUtilities::$rSettings['tmdb_api_key']) > 0): ?>
@@ -127,9 +127,9 @@ include 'header.php';
 																	?>
 
 																	<?php foreach ($rTMDBLanguages as $langCode => $langName): ?>
-																		<option value="<?php echo htmlspecialchars($langCode); ?>"
-																			<?php echo ($langCode == $selectedLang) ? 'selected' : ''; ?>>
-																			<?php echo htmlspecialchars($langName); ?>
+																		<option value="<?= htmlspecialchars($langCode); ?>"
+																			<?= ($langCode == $selectedLang) ? 'selected' : ''; ?>>
+																			<?= htmlspecialchars($langName); ?>
 																		</option>
 																	<?php endforeach; ?>
 																</select>
@@ -141,23 +141,23 @@ include 'header.php';
 														Importing Series using this method will parse your M3U or folder and push the individual episodes through Watch Folder. If you have category and bouquet allocation set up in Watch Folder Settings then they will be used here too.
 													</p>
 													<div class="form-group row mb-4">
-														<label class="col-md-4 col-form-label" for="import_type"><?php echo $_['type']; ?></label>
+														<label class="col-md-4 col-form-label" for="import_type"><?= $_['type']; ?></label>
 														<div class="col-md-8">
 															<div class="custom-control custom-radio mt-1">
 																<span>
 																	<input type="radio" id="import_type_1" name="import_type" class="custom-control-input" checked>
-																	<label class="custom-control-label" for="import_type_1"><?php echo $_['m3u']; ?></label>
+																	<label class="custom-control-label" for="import_type_1"><?= $_['m3u']; ?></label>
 																</span>
 																<span style="padding-left:50px;">
 																	<input type="radio" id="import_type_2" name="import_type" class="custom-control-input">
-																	<label class="custom-control-label" for="import_type_2"><?php echo $_['folder']; ?></label>
+																	<label class="custom-control-label" for="import_type_2"><?= $_['folder']; ?></label>
 																</span>
 															</div>
 														</div>
 													</div>
 													<div id="import_m3uf_toggle">
 														<div class="form-group row mb-4">
-															<label class="col-md-4 col-form-label" for="m3u_file"><?php echo $_['m3u_file']; ?></label>
+															<label class="col-md-4 col-form-label" for="m3u_file"><?= $_['m3u_file']; ?></label>
 															<div class="col-md-8">
 																<input type="file" id="m3u_file" name="m3u_file" />
 															</div>
@@ -165,16 +165,16 @@ include 'header.php';
 													</div>
 													<div id="import_folder_toggle" style="display:none;">
 														<div class="form-group row mb-4">
-															<label class="col-md-4 col-form-label" for="import_folder"><?php echo $_['folder']; ?></label>
+															<label class="col-md-4 col-form-label" for="import_folder"><?= $_['folder']; ?></label>
 															<div class="col-md-8 input-group">
-																<input type="text" id="import_folder" name="import_folder" class="form-control" value="<?php echo $A54349e51a0595df; ?>">
+																<input type="text" id="import_folder" name="import_folder" class="form-control" value="<?= $A54349e51a0595df; ?>">
 																<div class="input-group-append">
 																	<a href="#file-browser" id="filebrowser" class="btn btn-primary waves-effect waves-light"><i class="mdi mdi-folder-open-outline"></i></a>
 																</div>
 															</div>
 														</div>
 														<div class="form-group row mb-4">
-															<label class="col-md-4 col-form-label" for="scan_recursive"><?php echo $_['scan_recursively']; ?></label>
+															<label class="col-md-4 col-form-label" for="scan_recursive"><?= $_['scan_recursively']; ?></label>
 															<div class="col-md-2">
 																<input name="scan_recursive" id="scan_recursive" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 															</div>
@@ -182,7 +182,7 @@ include 'header.php';
 													</div>
 												<?php endif; ?>
 												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="category_id"><?php echo (isset(CoreUtilities::$rRequest['import']) ? 'Fallback ' : ''); ?>Categories</label>
+													<label class="col-md-4 col-form-label" for="category_id"><?= (isset(CoreUtilities::$rRequest['import']) ? 'Fallback ' : ''); ?>Categories</label>
 													<div class="col-md-8">
 														<select name="category_id[]" id="category_id" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">
 															<?php foreach (getCategories('series') as $category): ?>
@@ -195,8 +195,8 @@ include 'header.php';
 																	}
 																}
 																?>
-																<option value="<?php echo htmlspecialchars($category['id']); ?>" <?php echo $selected; ?>>
-																	<?php echo htmlspecialchars($category['category_name']); ?>
+																<option value="<?= htmlspecialchars($category['id']); ?>" <?= $selected; ?>>
+																	<?= htmlspecialchars($category['category_name']); ?>
 																</option>
 															<?php endforeach; ?>
 														</select>
@@ -206,7 +206,7 @@ include 'header.php';
 													</div>
 												</div>
 												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="bouquets"><?php echo (isset(CoreUtilities::$rRequest['import']) ? 'Fallback ' : ''); ?>Bouquets</label>
+													<label class="col-md-4 col-form-label" for="bouquets"><?= (isset(CoreUtilities::$rRequest['import']) ? 'Fallback ' : ''); ?>Bouquets</label>
 													<div class="col-md-8">
 														<select name="bouquets[]" id="bouquets" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">
 															<?php foreach (getBouquets() as $bouquet): ?>
@@ -219,8 +219,8 @@ include 'header.php';
 																	}
 																}
 																?>
-																<option value="<?php echo htmlspecialchars($bouquet['id']); ?>" <?php echo $selected; ?>>
-																	<?php echo htmlspecialchars($bouquet['bouquet_name']); ?>
+																<option value="<?= htmlspecialchars($bouquet['id']); ?>" <?= $selected; ?>>
+																	<?= htmlspecialchars($bouquet['bouquet_name']); ?>
 																</option>
 															<?php endforeach; ?>
 														</select>
@@ -244,7 +244,7 @@ include 'header.php';
 													<div class="form-group row mb-4">
 														<label class="col-md-4 col-form-label" for="cover">Poster URL</label>
 														<div class="col-md-8 input-group">
-															<input type="text" class="form-control" id="cover" name="cover" value="<?php echo isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['cover']) : ''; ?>">
+															<input type="text" class="form-control" id="cover" name="cover" value="<?= isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['cover']) : ''; ?>">
 															<div class="input-group-append">
 																<a href="javascript:void(0)" onClick="openImage(this)" class="btn btn-primary waves-effect waves-light"><i class="mdi mdi-eye"></i></a>
 															</div>
@@ -253,7 +253,7 @@ include 'header.php';
 													<div class="form-group row mb-4">
 														<label class="col-md-4 col-form-label" for="backdrop_path">Backdrop URL</label>
 														<div class="col-md-8 input-group">
-															<input type="text" class="form-control" id="backdrop_path" name="backdrop_path" value="<?php echo isset($rSeriesArr) ? htmlspecialchars(json_decode($rSeriesArr['backdrop_path'], true)[0] ?? '') : ''; ?>">
+															<input type="text" class="form-control" id="backdrop_path" name="backdrop_path" value="<?= isset($rSeriesArr) ? htmlspecialchars(json_decode($rSeriesArr['backdrop_path'], true)[0] ?? '') : ''; ?>">
 															<div class="input-group-append">
 																<a href="javascript:void(0)" onClick="openImage(this)" class="btn btn-primary waves-effect waves-light"><i class="mdi mdi-eye"></i></a>
 															</div>
@@ -262,43 +262,43 @@ include 'header.php';
 													<div class="form-group row mb-4">
 														<label class="col-md-4 col-form-label" for="plot">Plot</label>
 														<div class="col-md-8">
-															<textarea rows="6" class="form-control" id="plot" name="plot"><?php echo isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['plot']) : ''; ?></textarea>
+															<textarea rows="6" class="form-control" id="plot" name="plot"><?= isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['plot']) : ''; ?></textarea>
 														</div>
 													</div>
 													<div class="form-group row mb-4">
 														<label class="col-md-4 col-form-label" for="cast">Cast</label>
 														<div class="col-md-8">
-															<input type="text" class="form-control" id="cast" name="cast" value="<?php echo isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['cast']) : ''; ?>">
+															<input type="text" class="form-control" id="cast" name="cast" value="<?= isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['cast']) : ''; ?>">
 														</div>
 													</div>
 													<div class="form-group row mb-4">
 														<label class="col-md-4 col-form-label" for="director">Director</label>
 														<div class="col-md-3">
-															<input type="text" class="form-control text-center" id="director" name="director" value="<?php echo isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['director']) : ''; ?>">
+															<input type="text" class="form-control text-center" id="director" name="director" value="<?= isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['director']) : ''; ?>">
 														</div>
 														<label class="col-md-2 col-form-label" for="genre">Genres</label>
 														<div class="col-md-3">
-															<input type="text" class="form-control text-center" id="genre" name="genre" value="<?php echo isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['genre']) : ''; ?>">
+															<input type="text" class="form-control text-center" id="genre" name="genre" value="<?= isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['genre']) : ''; ?>">
 														</div>
 													</div>
 													<div class="form-group row mb-4">
 														<label class="col-md-4 col-form-label" for="release_date">Release Date</label>
 														<div class="col-md-3">
-															<input type="text" class="form-control text-center" id="release_date" name="release_date" value="<?php echo isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['release_date']) : ''; ?>">
+															<input type="text" class="form-control text-center" id="release_date" name="release_date" value="<?= isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['release_date']) : ''; ?>">
 														</div>
 														<label class="col-md-2 col-form-label" for="episode_run_time">Runtime</label>
 														<div class="col-md-3">
-															<input type="text" class="form-control text-center" id="episode_run_time" name="episode_run_time" value="<?php echo isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['episode_run_time']) : ''; ?>">
+															<input type="text" class="form-control text-center" id="episode_run_time" name="episode_run_time" value="<?= isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['episode_run_time']) : ''; ?>">
 														</div>
 													</div>
 													<div class="form-group row mb-4">
 														<label class="col-md-4 col-form-label" for="youtube_trailer">Youtube Trailer</label>
 														<div class="col-md-3">
-															<input type="text" class="form-control text-center" id="youtube_trailer" name="youtube_trailer" value="<?php echo isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['youtube_trailer']) : ''; ?>">
+															<input type="text" class="form-control text-center" id="youtube_trailer" name="youtube_trailer" value="<?= isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['youtube_trailer']) : ''; ?>">
 														</div>
 														<label class="col-md-2 col-form-label" for="rating">Rating</label>
 														<div class="col-md-3">
-															<input type="text" class="form-control text-center" id="rating" name="rating" value="<?php echo isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['rating']) : ''; ?>">
+															<input type="text" class="form-control text-center" id="rating" name="rating" value="<?= isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['rating']) : ''; ?>">
 														</div>
 													</div>
 												</div>
@@ -308,7 +308,7 @@ include 'header.php';
 													<a href="javascript: void(0);" class="btn btn-secondary">Previous</a>
 												</li>
 												<li class="list-inline-item float-right">
-													<input name="submit_series" type="submit" class="btn btn-primary" value="<?php echo isset($rSeriesArr) ? 'Edit' : 'Add'; ?>" />
+													<input name="submit_series" type="submit" class="btn btn-primary" value="<?= isset($rSeriesArr) ? 'Edit' : 'Add'; ?>" />
 												</li>
 											</ul>
 										</div>
@@ -317,47 +317,47 @@ include 'header.php';
 											<div class="row">
 												<div class="col-12">
 													<div class="form-group row mb-4">
-														<label class="col-md-4 col-form-label" for="direct_source"><?php echo $_['direct_source']; ?>
-															<i title="<?php echo $_['episode_tooltip_1']; ?>" class="tooltip text-secondary far fa-circle"></i></label>
+														<label class="col-md-4 col-form-label" for="direct_source"><?= $_['direct_source']; ?>
+															<i title="<?= $_['episode_tooltip_1']; ?>" class="tooltip text-secondary far fa-circle"></i></label>
 														<div class="col-md-2">
 															<input name="direct_source" id="direct_source" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 														</div>
-														<label class="col-md-4 col-form-label" for="read_native"><?php echo $_['native_frames']; ?></label>
+														<label class="col-md-4 col-form-label" for="read_native"><?= $_['native_frames']; ?></label>
 														<div class="col-md-2">
 															<input name="read_native" id="read_native" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 														</div>
 													</div>
 													<div class="form-group row mb-4">
-														<label class="col-md-4 col-form-label" for="movie_symlink"><?php echo $_['create_symlink']; ?>
-															<i title="<?php echo $_['episode_tooltip_2']; ?>" class="tooltip text-secondary far fa-circle"></i></label>
+														<label class="col-md-4 col-form-label" for="movie_symlink"><?= $_['create_symlink']; ?>
+															<i title="<?= $_['episode_tooltip_2']; ?>" class="tooltip text-secondary far fa-circle"></i></label>
 														<div class="col-md-2">
 															<input name="movie_symlink" id="movie_symlink" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 														</div>
-														<label class="col-md-4 col-form-label" for="remove_subtitles"><?php echo $_['remove_existing_subtitles']; ?> <i title="<?php echo $_['episode_tooltip_3']; ?>" class="tooltip text-secondary far fa-circle"></i></label>
+														<label class="col-md-4 col-form-label" for="remove_subtitles"><?= $_['remove_existing_subtitles']; ?> <i title="<?= $_['episode_tooltip_3']; ?>" class="tooltip text-secondary far fa-circle"></i></label>
 														<div class="col-md-2">
 															<input name="remove_subtitles" id="remove_subtitles" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 														</div>
 													</div>
 													<div class="form-group row mb-4">
-														<label class="col-md-4 col-form-label" for="transcode_profile_id"><?php echo $_['transcoding_profile']; ?><i title="<?php echo $_['episode_tooltip_7']; ?>" class="tooltip text-secondary far fa-circle"></i></label>
+														<label class="col-md-4 col-form-label" for="transcode_profile_id"><?= $_['transcoding_profile']; ?><i title="<?= $_['episode_tooltip_7']; ?>" class="tooltip text-secondary far fa-circle"></i></label>
 														<div class="col-md-8">
 															<select name="transcode_profile_id" id="transcode_profile_id" class="form-control" data-toggle="select2">
-																<option value="0"><?php echo $_['transcoding_disabled']; ?></option>
+																<option value="0"><?= $_['transcoding_disabled']; ?></option>
 																<?php foreach ($rTranscodeProfiles as $profile): ?>
-																	<option value="<?php echo htmlspecialchars($profile['profile_id']); ?>">
-																		<?php echo htmlspecialchars($profile['profile_name']); ?>
+																	<option value="<?= htmlspecialchars($profile['profile_id']); ?>">
+																		<?= htmlspecialchars($profile['profile_name']); ?>
 																	</option>
 																<?php endforeach; ?>
 															</select>
 														</div>
 													</div>
 													<div class="form-group row mb-4">
-														<label class="col-md-4 col-form-label" for="target_container"><?php echo $_['target_container']; ?><i title="<?php echo $_['episode_tooltip_4']; ?>" class="tooltip text-secondary far fa-circle"></i></label>
+														<label class="col-md-4 col-form-label" for="target_container"><?= $_['target_container']; ?><i title="<?= $_['episode_tooltip_4']; ?>" class="tooltip text-secondary far fa-circle"></i></label>
 														<div class="col-md-2">
 															<select name="target_container" id="target_container" class="form-control" data-toggle="select2">
 																<?php foreach (['mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts'] as $format): ?>
-																	<option value="<?php echo htmlspecialchars($format); ?>">
-																		<?php echo htmlspecialchars($format); ?>
+																	<option value="<?= htmlspecialchars($format); ?>">
+																		<?= htmlspecialchars($format); ?>
 																	</option>
 																<?php endforeach; ?>
 															</select>
@@ -367,10 +367,10 @@ include 'header.php';
 											</div>
 											<ul class="list-inline wizard mb-0">
 												<li class="prevb list-inline-item">
-													<a href="javascript: void(0);" class="btn btn-secondary"><?php echo $_['prev']; ?></a>
+													<a href="javascript: void(0);" class="btn btn-secondary"><?= $_['prev']; ?></a>
 												</li>
 												<li class="nextb list-inline-item float-right">
-													<a href="javascript: void(0);" class="btn btn-secondary"><?php echo $_['next']; ?></a>
+													<a href="javascript: void(0);" class="btn btn-secondary"><?= $_['next']; ?></a>
 												</li>
 											</ul>
 										</div>
@@ -378,7 +378,7 @@ include 'header.php';
 											<div class="row">
 												<div class="col-12">
 													<div class="form-group row mb-4">
-														<label class="col-md-4 col-form-label" for="servers"><?php echo $_['server_tree']; ?></label>
+														<label class="col-md-4 col-form-label" for="servers"><?= $_['server_tree']; ?></label>
 														<div class="col-md-8">
 															<div id="server_tree"></div>
 														</div>
@@ -407,19 +407,19 @@ include 'header.php';
 							<div id="file-browser" class="mfp-hide white-popup-block">
 								<div class="col-12">
 									<div class="form-group row mb-4">
-										<label class="col-md-4 col-form-label" for="server_id"><?php echo $_['server_name']; ?></label>
+										<label class="col-md-4 col-form-label" for="server_id"><?= $_['server_name']; ?></label>
 										<div class="col-md-8">
 											<select id="server_id" class="form-control" data-toggle="select2">
 												<?php foreach (getStreamingServers() as $server): ?>
-													<option value="<?php echo htmlspecialchars($server['id']); ?>">
-														<?php echo htmlspecialchars($server['server_name']); ?>
+													<option value="<?= htmlspecialchars($server['id']); ?>">
+														<?= htmlspecialchars($server['server_name']); ?>
 													</option>
 												<?php endforeach; ?>
 											</select>
 										</div>
 									</div>
 									<div class="form-group row mb-4">
-										<label class="col-md-4 col-form-label" for="current_path"><?php echo $_['current_path']; ?></label>
+										<label class="col-md-4 col-form-label" for="current_path"><?= $_['current_path']; ?></label>
 										<div class="col-md-8 input-group">
 											<input type="text" id="current_path" name="current_path" class="form-control" value="/">
 											<div class="input-group-append">
@@ -433,7 +433,7 @@ include 'header.php';
 												<thead>
 													<tr>
 														<th width="20px"></th>
-														<th><?php echo $_['directory']; ?></th>
+														<th><?= $_['directory']; ?></th>
 													</tr>
 												</thead>
 												<tbody></tbody>
@@ -444,7 +444,7 @@ include 'header.php';
 												<thead>
 													<tr>
 														<th width="20px"></th>
-														<th><?php echo $_['filename']; ?></th>
+														<th><?= $_['filename']; ?></th>
 													</tr>
 												</thead>
 												<tbody></tbody>
@@ -706,7 +706,7 @@ include 'header.php';
 				"targets": [0]
 			}, ],
 			"language": {
-				"emptyTable": "<?php echo $_['no_compatible_file']; ?>"
+				"emptyTable": "<?= $_['no_compatible_file']; ?>"
 			}
 		});
 		$("#select_folder").click(function() {
@@ -721,10 +721,10 @@ include 'header.php';
 			}
 			$("#current_path").val(window.currentDirectory);
 			$("#datatable").DataTable().clear();
-			$("#datatable").DataTable().row.add(["", "<?php echo $_['loading']; ?>..."]);
+			$("#datatable").DataTable().row.add(["", "<?= $_['loading']; ?>..."]);
 			$("#datatable").DataTable().draw(true);
 			$("#datatable-files").DataTable().clear();
-			$("#datatable-files").DataTable().row.add(["", "<?php echo $_['please_wait']; ?>..."]);
+			$("#datatable-files").DataTable().row.add(["", "<?= $_['please_wait']; ?>..."]);
 			$("#datatable-files").DataTable().draw(true);
 			if ($('li.nav-item .active').attr('href') == "#stream-details") {
 				rFilter = "video";
@@ -735,7 +735,7 @@ include 'header.php';
 				$("#datatable").DataTable().clear();
 				$("#datatable-files").DataTable().clear();
 				if (window.currentDirectory != "/") {
-					$("#datatable").DataTable().row.add(["<i class='mdi mdi-subdirectory-arrow-left'></i>", "<?php echo $_['parent_directory']; ?>"]);
+					$("#datatable").DataTable().row.add(["<i class='mdi mdi-subdirectory-arrow-left'></i>", "<?= $_['parent_directory']; ?>"]);
 				}
 				if (data.result == true) {
 					$(data.data.dirs).each(function(id, dir) {
@@ -750,9 +750,9 @@ include 'header.php';
 			});
 		});
 		$('#datatable').on('click', 'tbody > tr', function() {
-			if ($(this).find("td").eq(1).html() == "<?php echo $_['parent_directory']; ?>") {
+			if ($(this).find("td").eq(1).html() == "<?= $_['parent_directory']; ?>") {
 				selectParent();
-			} else if ($(this).find("td").eq(1).html() != "<?php echo $_['loading']; ?>...") {
+			} else if ($(this).find("td").eq(1).html() != "<?= $_['loading']; ?>...") {
 				selectDirectory($(this).find("td").eq(1).html());
 			}
 		});
@@ -782,7 +782,7 @@ include 'header.php';
 							return true;
 					}
 				},
-				'data': <?php echo json_encode(($rServerTree ?: array())); ?>
+				'data': <?= json_encode(($rServerTree ?: array())); ?>
 			},
 			"plugins": ["dnd"]
 		});
@@ -1005,7 +1005,7 @@ include 'header.php';
 				}
 			<?php else: ?>
 				if (($("#m3u_file").val().length === 0) && ($("#import_folder").val().length === 0)) {
-					$.toast("<?php echo addslashes($_['select_m3u_file']); ?>");
+					$.toast("<?= addslashes($_['select_m3u_file']); ?>");
 				} else {
 					$("#server_tree_data").val(
 						JSON.stringify($('#server_tree').jstree(true).get_json('source', {

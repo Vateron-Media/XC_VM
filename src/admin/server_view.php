@@ -72,8 +72,8 @@ include 'header.php'; ?>
                     <div class="page-title-right">
                         <?php include 'topbar.php'; ?>
                     </div>
-                    <h4 class="page-title"><?php echo $rServer['server_name']; ?>
-                        <small style="margin-left: 5px;"><?php echo $rServer['server_ip']; ?></small>
+                    <h4 class="page-title"><?= $rServer['server_name']; ?>
+                        <small style="margin-left: 5px;"><?= $rServer['server_ip']; ?></small>
                     </h4>
                 </div>
             </div>
@@ -102,14 +102,14 @@ include 'header.php'; ?>
                             <div class="col-md-6">
                             <?php endif; ?>
                             <?php if (hasPermissions('adv', 'live_connections')): ?>
-                                <a href="./live_connections?server_id=<?php echo $rServer['id']; ?>">
+                                <a href="./live_connections?server_id=<?= $rServer['id']; ?>">
                                 <?php endif; ?>
                                 <div class="card cta-box <?php if (!$rSettings['dark_mode']) echo 'bg-purple'; ?> text-white">
                                     <div class="card-body active-connections">
                                         <div class="media align-items-center">
                                             <div class="col-3">
                                                 <div class="avatar-sm bg-light">
-                                                    <i class="fe-zap avatar-title font-22 <?php echo $rSettings['dark_mode'] ? 'text-white' : 'text-purple'; ?>"></i>
+                                                    <i class="fe-zap avatar-title font-22 <?= $rSettings['dark_mode'] ? 'text-white' : 'text-purple'; ?>"></i>
                                                 </div>
                                             </div>
                                             <div class="col-9">
@@ -131,14 +131,14 @@ include 'header.php'; ?>
                                     <div class="col-md-6">
                                     <?php endif; ?>
                                     <?php if (hasPermissions('adv', 'live_connections')): ?>
-                                        <a href="./live_connections?server_id=<?php echo $rServer['id']; ?>">
+                                        <a href="./live_connections?server_id=<?= $rServer['id']; ?>">
                                         <?php endif; ?>
                                         <div class="card cta-box <?php if (!$rSettings['dark_mode']) echo 'bg-success'; ?> text-white">
                                             <div class="card-body active-connections">
                                                 <div class="media align-items-center">
                                                     <div class="col-3">
                                                         <div class="avatar-sm bg-light">
-                                                            <i class="fe-users avatar-title font-22 <?php echo $rSettings['dark_mode'] ? 'text-white' : 'text-success'; ?>"></i>
+                                                            <i class="fe-users avatar-title font-22 <?= $rSettings['dark_mode'] ? 'text-white' : 'text-success'; ?>"></i>
                                                         </div>
                                                     </div>
                                                     <div class="col-9">
@@ -157,14 +157,14 @@ include 'header.php'; ?>
                                     <?php if ($rServer['server_type'] == 0): ?>
                                         <div class="col-md-3">
                                             <?php if (hasPermissions('adv', 'streams')): ?>
-                                                <a href="./streams?filter=1&server=<?php echo $rServer['id']; ?>">
+                                                <a href="./streams?filter=1&server=<?= $rServer['id']; ?>">
                                                 <?php endif; ?>
                                                 <div class="card cta-box <?php if (!$rSettings['dark_mode']) echo 'bg-pink'; ?> text-white">
                                                     <div class="card-body active-connections">
                                                         <div class="media align-items-center">
                                                             <div class="col-3">
                                                                 <div class="avatar-sm bg-light">
-                                                                    <i class="fe-play avatar-title font-22 <?php echo $rSettings['dark_mode'] ? 'text-white' : 'text-pink'; ?>"></i>
+                                                                    <i class="fe-play avatar-title font-22 <?= $rSettings['dark_mode'] ? 'text-white' : 'text-pink'; ?>"></i>
                                                                 </div>
                                                             </div>
                                                             <div class="col-9">
@@ -182,14 +182,14 @@ include 'header.php'; ?>
                                         </div>
                                         <div class="col-md-3">
                                             <?php if (hasPermissions('adv', 'streams')): ?>
-                                                <a href="./streams?filter=2&server=<?php echo $rServer['id']; ?>">
+                                                <a href="./streams?filter=2&server=<?= $rServer['id']; ?>">
                                                 <?php endif; ?>
                                                 <div class="card cta-box <?php if (!$rSettings['dark_mode']) echo 'bg-info'; ?> text-white">
                                                     <div class="card-body active-connections">
                                                         <div class="media align-items-center">
                                                             <div class="col-3">
                                                                 <div class="avatar-sm bg-light">
-                                                                    <i class="fe-pause avatar-title font-22 <?php echo $rSettings['dark_mode'] ? 'text-white' : 'text-info'; ?>"></i>
+                                                                    <i class="fe-pause avatar-title font-22 <?= $rSettings['dark_mode'] ? 'text-white' : 'text-info'; ?>"></i>
                                                                 </div>
                                                             </div>
                                                             <div class="col-9">
@@ -217,14 +217,14 @@ include 'header.php'; ?>
                                             </div>
                                         <?php else: ?>
                                             <?php if ($rServer['server_online']): ?>
-                                                <h5 class="mb-1 mt-0">CPU Usage<small class="text-muted ml-2">of <?php echo $rWatchdog['cpu_cores']; ?> Cores</small></h5>
+                                                <h5 class="mb-1 mt-0">CPU Usage<small class="text-muted ml-2">of <?= $rWatchdog['cpu_cores']; ?> Cores</small></h5>
                                                 <div class="progress-w-percent" id="watchdog_cpu">
                                                     <span class="progress-value font-weight-bold">0%</span>
                                                     <div class="progress progress-sm">
                                                         <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                                                     </div>
                                                 </div>
-                                                <h5 class="mb-1 mt-0">Memory Usage<small class="text-muted ml-2">of <?php echo round($rWatchdog['total_mem'] / 1024 / 1024, 0); ?> GB</small></h5>
+                                                <h5 class="mb-1 mt-0">Memory Usage<small class="text-muted ml-2">of <?= round($rWatchdog['total_mem'] / 1024 / 1024, 0); ?> GB</small></h5>
                                                 <div class="progress-w-percent" id="watchdog_mem">
                                                     <span class="progress-value font-weight-bold">0%</span>
                                                     <div class="progress progress-sm">
@@ -232,7 +232,7 @@ include 'header.php'; ?>
                                                     </div>
                                                 </div>
                                                 <?php if ($rServer['server_type'] == 0): ?>
-                                                    <h5 class="mb-1 mt-0">Disk Usage<small class="text-muted ml-2"> of <?php echo (1099511627776 < $rWatchdog['total_disk_space'] ? number_format($rWatchdog['total_disk_space'] / 1024 / 1024 / 1024 / 1024, 0) . ' TB' : number_format($rWatchdog['total_disk_space'] / 1024 / 1024 / 1024, 0) . ' GB'); ?>
+                                                    <h5 class="mb-1 mt-0">Disk Usage<small class="text-muted ml-2"> of <?= (1099511627776 < $rWatchdog['total_disk_space'] ? number_format($rWatchdog['total_disk_space'] / 1024 / 1024 / 1024 / 1024, 0) . ' TB' : number_format($rWatchdog['total_disk_space'] / 1024 / 1024 / 1024, 0) . ' GB'); ?>
                                                         </small></h5>
                                                     <div class="progress-w-percent" id="watchdog_disk">
                                                         <span class="progress-value font-weight-bold">0%</span>
@@ -248,14 +248,14 @@ include 'header.php'; ?>
                                                         </div>
                                                     </div>
                                                 <?php endif; ?>
-                                                <h5 class="mb-1 mt-0">Network Input<small class="text-muted ml-2">of <?php echo number_format($rServer['network_guaranteed_speed'], 0); ?> Mbps</small></h5>
+                                                <h5 class="mb-1 mt-0">Network Input<small class="text-muted ml-2">of <?= number_format($rServer['network_guaranteed_speed'], 0); ?> Mbps</small></h5>
                                                 <div class="progress-w-percent" id="watchdog_input">
                                                     <span class="progress-value font-weight-bold">0 Mbps</span>
                                                     <div class="progress progress-sm">
                                                         <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                                                     </div>
                                                 </div>
-                                                <h5 class="mb-1 mt-0">Network Output<small class="text-muted ml-2">of <?php echo number_format($rServer['network_guaranteed_speed'], 0); ?> Mbps</small></h5>
+                                                <h5 class="mb-1 mt-0">Network Output<small class="text-muted ml-2">of <?= number_format($rServer['network_guaranteed_speed'], 0); ?> Mbps</small></h5>
                                                 <div class="progress-w-percent" id="watchdog_output">
                                                     <span class="progress-value font-weight-bold">0 Mbps</span>
                                                     <div class="progress progress-sm">
@@ -273,45 +273,45 @@ include 'header.php'; ?>
                                 </div>
                                 <?php
                                 if (is_array($rServer['gpu_info'])):
-                                    $cd0f3566b68f221f = 0;
-                                    foreach ($rServer['gpu_info']['gpus'] as $d5aa7e5e1de00526):
-                                        $D325c5780b273117 = number_format(intval(explode(' ', $d5aa7e5e1de00526['memory_usage']['used'])[0]) / intval(explode(' ', $d5aa7e5e1de00526['memory_usage']['total'])[0]) * 100, 0);
+                                    $rGPUNumber = 0;
+                                    foreach ($rServer['gpu_info']['gpus'] as $rGPU):
+                                        $D325c5780b273117 = number_format(intval(explode(' ', $rGPU['memory_usage']['used'])[0]) / intval(explode(' ', $rGPU['memory_usage']['total'])[0]) * 100, 0);
                                 ?>
 
                                         <div class=" card-box">
                                             <div class="col-md-12 align-self-center">
-                                                <h5 class="mb-1 mt-0">GPU<?php echo $cd0f3566b68f221f; ?> Usage<small class="text-muted ml-2"> <?php echo $d5aa7e5e1de00526['name']; ?></small></h5>
+                                                <h5 class="mb-1 mt-0">GPU<?= $rGPUNumber; ?> Usage<small class="text-muted ml-2"> <?= $rGPU['name']; ?></small></h5>
                                                 <div class="progress-w-percent">
-                                                    <span class="progress-value font-weight-bold"><?php echo intval(explode(' ', $d5aa7e5e1de00526['utilisation']['gpu_util'])[0]); ?>% </span>
+                                                    <span class="progress-value font-weight-bold"><?= intval(explode(' ', $rGPU['utilisation']['gpu_util'])[0]); ?>% </span>
                                                     <div class="progress progress-sm">
-                                                        <div class="progress-bar <?php echo getBarColour(intval(explode(' ', $d5aa7e5e1de00526['utilisation']['gpu_util'])[0])); ?>" role="progressbar" style="width: <?php echo intval(explode(' ', $d5aa7e5e1de00526['utilisation']['gpu_util'])[0]); ?>%;" aria-valuenow="<?php echo intval(explode(' ', $d5aa7e5e1de00526['utilisation']['gpu_util'])[0]); ?>" aria-valuemin="0" aria-valuemax="100"></div>
+                                                        <div class="progress-bar <?= getBarColour(intval(explode(' ', $rGPU['utilisation']['gpu_util'])[0])); ?>" role="progressbar" style="width: <?= intval(explode(' ', $rGPU['utilisation']['gpu_util'])[0]); ?>%;" aria-valuenow="<?= intval(explode(' ', $rGPU['utilisation']['gpu_util'])[0]); ?>" aria-valuemin="0" aria-valuemax="100"></div>
                                                     </div>
                                                 </div>
-                                                <h5 class="mb-1 mt-0">GPU<?php echo $cd0f3566b68f221f; ?> Memory Usage<small class="text-muted ml-2"> <?php echo number_format(explode(' ', $d5aa7e5e1de00526['memory_usage']['used'])[0], 0); ?>MB / <?php echo number_format(explode(' ', $d5aa7e5e1de00526['memory_usage']['total'])[0], 0); ?>MB</small></h5>
+                                                <h5 class="mb-1 mt-0">GPU<?= $rGPUNumber; ?> Memory Usage<small class="text-muted ml-2"> <?= number_format(explode(' ', $rGPU['memory_usage']['used'])[0], 0); ?>MB / <?= number_format(explode(' ', $rGPU['memory_usage']['total'])[0], 0); ?>MB</small></h5>
                                                 <div class="progress-w-percent">
-                                                    <span class="progress-value font-weight-bold"><?php echo $D325c5780b273117; ?>% </span>
+                                                    <span class="progress-value font-weight-bold"><?= $D325c5780b273117; ?>% </span>
                                                     <div class="progress progress-sm">
-                                                        <div class="progress-bar <?php echo getBarColour($D325c5780b273117); ?>" role="progressbar" style="width: <?php echo $D325c5780b273117; ?>%;" aria-valuenow="<?php echo $D325c5780b273117; ?>" aria-valuemin="0" aria-valuemax="100"></div>
+                                                        <div class="progress-bar <?= getBarColour($D325c5780b273117); ?>" role="progressbar" style="width: <?= $D325c5780b273117; ?>%;" aria-valuenow="<?= $D325c5780b273117; ?>" aria-valuemin="0" aria-valuemax="100"></div>
                                                     </div>
                                                 </div>
-                                                <h5 class="mb-1 mt-0">GPU<?php echo $cd0f3566b68f221f; ?> Encoder Usage</h5>
+                                                <h5 class="mb-1 mt-0">GPU<?= $rGPUNumber; ?> Encoder Usage</h5>
                                                 <div class="progress-w-percent">
-                                                    <span class="progress-value font-weight-bold"> <?php echo intval(explode(' ', $d5aa7e5e1de00526['utilisation']['encoder_util'])[0]); ?>% </span>
+                                                    <span class="progress-value font-weight-bold"> <?= intval(explode(' ', $rGPU['utilisation']['encoder_util'])[0]); ?>% </span>
                                                     <div class="progress progress-sm">
-                                                        <div class="progress-bar <?php echo getBarColour(intval(explode(' ', $d5aa7e5e1de00526['utilisation']['encoder_util'])[0])); ?>" role="progressbar" style="width: <?php echo intval(explode(' ', $d5aa7e5e1de00526['utilisation']['encoder_util'])[0]); ?>%;" aria-valuenow="<?php echo intval(explode(' ', $d5aa7e5e1de00526['utilisation']['encoder_util'])[0]); ?>" aria-valuemin="0" aria-valuemax="100"></div>
+                                                        <div class="progress-bar <?= getBarColour(intval(explode(' ', $rGPU['utilisation']['encoder_util'])[0])); ?>" role="progressbar" style="width: <?= intval(explode(' ', $rGPU['utilisation']['encoder_util'])[0]); ?>%;" aria-valuenow="<?= intval(explode(' ', $rGPU['utilisation']['encoder_util'])[0]); ?>" aria-valuemin="0" aria-valuemax="100"></div>
                                                     </div>
                                                 </div>
-                                                <h5 class="mb-1 mt-0">GPU<?php echo $cd0f3566b68f221f; ?> Decoder Usage</h5>
+                                                <h5 class="mb-1 mt-0">GPU<?= $rGPUNumber; ?> Decoder Usage</h5>
                                                 <div class="progress-w-percent">
-                                                    <span class="progress-value font-weight-bold"><?php echo intval(explode(' ', $d5aa7e5e1de00526['utilisation']['decoder_util'])[0]); ?>% </span>
+                                                    <span class="progress-value font-weight-bold"><?= intval(explode(' ', $rGPU['utilisation']['decoder_util'])[0]); ?>% </span>
                                                     <div class="progress progress-sm">
-                                                        <div class="progress-bar <?php echo getBarColour(intval(explode(' ', $d5aa7e5e1de00526['utilisation']['decoder_util'])[0])); ?>" role="progressbar" style="width: <?php echo intval(explode(' ', $d5aa7e5e1de00526['utilisation']['decoder_util'])[0]); ?>%;" aria-valuenow="<?php echo intval(explode(' ', $d5aa7e5e1de00526['utilisation']['decoder_util'])[0]); ?>" aria-valuemin="0" aria-valuemax="100"></div>
+                                                        <div class="progress-bar <?= getBarColour(intval(explode(' ', $rGPU['utilisation']['decoder_util'])[0])); ?>" role="progressbar" style="width: <?= intval(explode(' ', $rGPU['utilisation']['decoder_util'])[0]); ?>%;" aria-valuenow="<?= intval(explode(' ', $rGPU['utilisation']['decoder_util'])[0]); ?>" aria-valuemin="0" aria-valuemax="100"></div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                     <?php
-                                        $cd0f3566b68f221f++;
+                                        $rGPUNumber++;
                                     endforeach;
                                     if ($rHasCert): ?>
                                         <div class="card-box">
@@ -319,20 +319,20 @@ include 'header.php'; ?>
                                                 <div class="form-group row mb-4">
                                                     <label class="col-md-4 col-form-label" for="expiration_date">Certificate Expiration Date</label>
                                                     <div class="col-md-8">
-                                                        <input type="text" class="form-control" id="expiration_date" value="<?php echo $rExpiration; ?>" readonly>
+                                                        <input type="text" class="form-control" id="expiration_date" value="<?= $rExpiration; ?>" readonly>
                                                     </div>
                                                 </div>
                                                 <?php if ($rCertValid): ?>
                                                     <div class="form-group row mb-4">
                                                         <label class="col-md-4 col-form-label" for="cert_serial">Certificate Serial</label>
                                                         <div class="col-md-8">
-                                                            <input type="text" class="form-control" id="cert_serial" value="<?php echo $rCertificate['serial']; ?>" readonly>
+                                                            <input type="text" class="form-control" id="cert_serial" value="<?= $rCertificate['serial']; ?>" readonly>
                                                         </div>
                                                     </div>
                                                     <div class="form-group row">
                                                         <label class="col-md-4 col-form-label" for="cert_subject">Certificate Subject</label>
                                                         <div class="col-md-8">
-                                                            <input type="text" class="form-control" id="cert_subject" value="<?php echo $rCertificate['subject']; ?>" readonly>
+                                                            <input type="text" class="form-control" id="cert_subject" value="<?= $rCertificate['subject']; ?>" readonly>
                                                         </div>
                                                     </div>
                                                 <?php endif; ?>
@@ -431,7 +431,7 @@ include 'header.php'; ?>
                                                             <th class="text-center">Duration</th>
                                                             <th class="text-center">Output</th>
                                                             <th class="text-center">Restreamer</th>
-                                                            <th class="text-center"><?php echo $_['actions']; ?></th>
+                                                            <th class="text-center"><?= $_['actions']; ?></th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -581,13 +581,13 @@ include 'header.php'; ?>
             if (in_array($allServers[intval(CoreUtilities::$rRequest['id'])]['status'], array(3, 4)) || in_array($rProxyServers[intval(CoreUtilities::$rRequest['id'])]['status'], array(3, 4))): ?>
 
                 function getInstallStatus() {
-                    $.getJSON("./api?action=install_status&server_id=<?php echo intval(CoreUtilities::$rRequest['id']); ?>", function(data) {
+                    $.getJSON("./api?action=install_status&server_id=<?= intval(CoreUtilities::$rRequest['id']); ?>", function(data) {
                         if (data.result === true) {
                             $("#server_install").html(data.data);
                             if (data.status == 3) {
                                 setTimeout(getInstallStatus, 1000);
                             } else if (data.status == 1) {
-                                setTimeout(navigate, 3000, './server_view?id=<?php echo intval(CoreUtilities::$rRequest['id']); ?>');
+                                setTimeout(navigate, 3000, './server_view?id=<?= intval(CoreUtilities::$rRequest['id']); ?>');
                             }
                         } else {
                             $("#server_install").html("No status available...");
@@ -646,7 +646,7 @@ include 'header.php'; ?>
 
             function getStats(auto = true) {
                 var rStart = Date.now();
-                rURL = "./api?action=server_view&server_id=<?php echo intval(CoreUtilities::$rRequest['id']); ?>";
+                rURL = "./api?action=server_view&server_id=<?= intval(CoreUtilities::$rRequest['id']); ?>";
                 $.getJSON(rURL, function(data) {
                     $("#open_connections").html(data.data.open_connections);
                     $("#total_running_streams").html(data.data.total_running_streams);
@@ -778,7 +778,7 @@ include 'header.php'; ?>
                         url: "./table",
                         "data": function(d) {
                             d.id = "streams";
-                            d.server = <?php echo CoreUtilities::$rRequest['id']; ?>;
+                            d.server = <?= CoreUtilities::$rRequest['id']; ?>;
                             d.filter = 1;
                             d.simple = true;
                         }
@@ -802,7 +802,7 @@ include 'header.php'; ?>
                         bindHref();
                         refreshTooltips(false);
                     },
-                    pageLength: <?php echo (intval($rSettings['default_entries']) ?: 10); ?>
+                    pageLength: <?= (intval($rSettings['default_entries']) ?: 10); ?>
                 });
                 $("#datatable_connections").DataTable({
                     ordering: true,
@@ -817,7 +817,7 @@ include 'header.php'; ?>
                         url: "./table",
                         "data": function(d) {
                             d.id = "live_connections";
-                            d.server_id = <?php echo CoreUtilities::$rRequest['id']; ?>;
+                            d.server_id = <?= CoreUtilities::$rRequest['id']; ?>;
                         }
                     },
                     columnDefs: [{
@@ -840,9 +840,9 @@ include 'header.php'; ?>
                         bindHref();
                         refreshTooltips(false);
                     },
-                    pageLength: <?php echo (intval($rSettings['default_entries']) ?: 10); ?>
+                    pageLength: <?= (intval($rSettings['default_entries']) ?: 10); ?>
                 });
-                rDates = <?php echo json_encode($rStats['dates']); ?>;
+                rDates = <?= json_encode($rStats['dates']); ?>;
                 rCPUOptions = {
                     chart: {
                         height: 380,
@@ -872,15 +872,15 @@ include 'header.php'; ?>
                     },
                     series: [{
                             name: "CPU Usage",
-                            data: <?php echo json_encode($rStats['cpu']); ?>
+                            data: <?= json_encode($rStats['cpu']); ?>
                         },
                         {
                             name: "Memory Usage",
-                            data: <?php echo json_encode($rStats['memory']); ?>
+                            data: <?= json_encode($rStats['memory']); ?>
                         },
                         {
                             name: "IO Usage",
-                            data: <?php echo json_encode($rStats['io']); ?>
+                            data: <?= json_encode($rStats['io']); ?>
                         }
                     ],
                     fill: {
@@ -945,11 +945,11 @@ include 'header.php'; ?>
                     },
                     series: [{
                             name: "Input",
-                            data: <?php echo json_encode($rStats['input']); ?>
+                            data: <?= json_encode($rStats['input']); ?>
                         },
                         {
                             name: "Output",
-                            data: <?php echo json_encode($rStats['output']); ?>
+                            data: <?= json_encode($rStats['output']); ?>
                         }
                     ],
                     fill: {

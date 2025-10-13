@@ -37,17 +37,17 @@ include 'header.php';
 						<table id="datatable" class="table table-striped table-borderless dt-responsive nowrap">
 							<thead>
 								<tr>
-									<th class="text-center"><?php echo $_['id']; ?></th>
+									<th class="text-center"><?= $_['id']; ?></th>
 									<th>Description</th>
 									<th class="text-center">Enabled</th>
-									<th class="text-center"><?php echo $_['actions']; ?></th>
+									<th class="text-center"><?= $_['actions']; ?></th>
 								</tr>
 							</thead>
 							<tbody>
 								<?php foreach (getHMACTokens() as $rHMAC): ?>
-									<tr id="hmac-<?php echo $rHMAC['id']; ?>">
-										<td class="text-center"><?php echo $rHMAC['id']; ?></td>
-										<td><?php echo $rHMAC['notes']; ?></td>
+									<tr id="hmac-<?= $rHMAC['id']; ?>">
+										<td class="text-center"><?= $rHMAC['id']; ?></td>
+										<td><?= $rHMAC['notes']; ?></td>
 										<td class="text-center">
 											<?php if ($rHMAC['enabled']): ?>
 												<i class="text-success fas fa-square"></i>
@@ -57,12 +57,12 @@ include 'header.php';
 										</td>
 										<td class="text-center">
 											<div class="btn-group">
-												<a href="./hmac?id=<?php echo $rHMAC['id']; ?>">
+												<a href="./hmac?id=<?= $rHMAC['id']; ?>">
 													<button type="button" data-toggle="tooltip" data-placement="top" title="" data-original-title="Edit Key" class="btn btn-light waves-effect waves-light btn-xs">
 														<i class="mdi mdi-pencil-outline"></i>
 													</button>
 												</a>
-												<button type="button" data-toggle="tooltip" data-placement="top" title="" data-original-title="Delete Key" class="btn btn-light waves-effect waves-light btn-xs" onClick="api(<?php echo $rHMAC['id']; ?>, 'delete');"">
+												<button type="button" data-toggle="tooltip" data-placement="top" title="" data-original-title="Delete Key" class="btn btn-light waves-effect waves-light btn-xs" onClick="api(<?= $rHMAC['id']; ?>, 'delete');"">
 													<i class=" mdi mdi-close"></i>
 												</button>
 											</div>
@@ -229,7 +229,7 @@ include 'header.php';
 						$.toast("HMAC Key has been deleted.");
 					}
 				} else {
-					$.toast("<?php echo $_['error_occured']; ?>");
+					$.toast("<?= $_['error_occured']; ?>");
 				}
 			});
 		}
