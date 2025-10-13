@@ -39,7 +39,7 @@ foreach ($rServers as $rServer) {
 $_TITLE = 'Mass Edit Episodes';
 include 'header.php';
 ?>
-<div class="wrapper boxed-layout-xl" <?php echo empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest' ? '' : ' style="display: none;"'; ?>>
+<div class="wrapper boxed-layout-xl" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') echo 'style="display: none;"' ?>>
     <div class="container-fluid">
         <div class="row">
             <div class="col-12">

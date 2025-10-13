@@ -36,7 +36,7 @@ include 'header.php';
 					<div class="page-title-right">
 						<?php include 'topbar.php'; ?>
 					</div>
-					<h4 class="page-title"><?php echo $_['mass_edit_movies']; ?><small id="selected_count"></small></h4>
+					<h4 class="page-title"><?= $_['mass_edit_movies']; ?><small id="selected_count"></small></h4>
 				</div>
 			</div>
 		</div>
@@ -46,7 +46,7 @@ include 'header.php';
 					<div class="alert alert-success alert-dismissible fade show" role="alert">
 						<button type="button" class="close" data-dismiss="alert" aria-label="Close">
 							<span aria-hidden="true">&times;</span>
-						</button><?php echo $_['mass_edit_movies_success']; ?>
+						</button><?= $_['mass_edit_movies_success']; ?>
 					</div>
 				<?php endif; ?>
 				<div class="card">
@@ -60,19 +60,19 @@ include 'header.php';
 									<li class="nav-item">
 										<a href="#stream-selection" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
 											<i class="mdi mdi-play mr-1"></i>
-											<span class="d-none d-sm-inline"><?php echo $_['movies']; ?></span>
+											<span class="d-none d-sm-inline"><?= $_['movies']; ?></span>
 										</a>
 									</li>
 									<li class="nav-item">
 										<a href="#stream-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
 											<i class="mdi mdi-account-card-details-outline mr-1"></i>
-											<span class="d-none d-sm-inline"><?php echo $_['details']; ?></span>
+											<span class="d-none d-sm-inline"><?= $_['details']; ?></span>
 										</a>
 									</li>
 									<li class="nav-item">
 										<a href="#load-balancing" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
 											<i class="mdi mdi-server-network mr-1"></i>
-											<span class="d-none d-sm-inline"><?php echo $_['servers']; ?></span>
+											<span class="d-none d-sm-inline"><?= $_['servers']; ?></span>
 										</a>
 									</li>
 								</ul>
@@ -94,7 +94,7 @@ include 'header.php';
 											</div>
 											<div class="col-md-3 col-6">
 												<select id="category_search" class="form-control" data-toggle="select2">
-													<option value="" selected><?php echo $_['all_categories']; ?></option>
+													<option value="" selected><?= $_['all_categories']; ?></option>
 													<option value="-1">No Categories</option>
 													<?php foreach ($rCategories as $cat):
 														echo '<option value="' . $cat['id'] . '"' .
@@ -105,13 +105,13 @@ include 'header.php';
 											</div>
 											<div class="col-md-2 col-6">
 												<select id="filter" class="form-control" data-toggle="select2">
-													<option value="" selected><?php echo $_['no_filter']; ?></option>
-													<option value="1"><?php echo $_['encoded']; ?></option>
-													<option value="2"><?php echo $_['encoding']; ?></option>
-													<option value="3"><?php echo $_['down']; ?></option>
-													<option value="4"><?php echo $_['ready']; ?></option>
-													<option value="5"><?php echo $_['direct']; ?></option>
-													<option value="6"><?php echo $_['no_tmdb_match']; ?></option>
+													<option value="" selected><?= $_['no_filter']; ?></option>
+													<option value="1"><?= $_['encoded']; ?></option>
+													<option value="2"><?= $_['encoding']; ?></option>
+													<option value="3"><?= $_['down']; ?></option>
+													<option value="4"><?= $_['ready']; ?></option>
+													<option value="5"><?= $_['direct']; ?></option>
+													<option value="6"><?= $_['no_tmdb_match']; ?></option>
 													<option value="8">Transcoding</option>
 												</select>
 											</div>
@@ -130,12 +130,12 @@ include 'header.php';
 											<table id="datatable-mass" class="table table-borderless mb-0">
 												<thead class="bg-light">
 													<tr>
-														<th class="text-center"><?php echo $_['id']; ?></th>
+														<th class="text-center"><?= $_['id']; ?></th>
 														<th class="text-center">Image</th>
-														<th><?php echo $_['name']; ?></th>
-														<th><?php echo $_['category']; ?></th>
-														<th><?php echo $_['servers']; ?></th>
-														<th class="text-center"><?php echo $_['status']; ?></th>
+														<th><?= $_['name']; ?></th>
+														<th><?= $_['category']; ?></th>
+														<th><?= $_['servers']; ?></th>
+														<th class="text-center"><?= $_['status']; ?></th>
 														<th class="text-center">TMDb</th>
 													</tr>
 												</thead>
@@ -146,7 +146,7 @@ include 'header.php';
 									<div class="tab-pane" id="stream-details">
 										<div class="row">
 											<div class="col-12">
-												<p class="sub-header"><?php echo $_['mass_edit_info']; ?> </p>
+												<p class="sub-header"><?= $_['mass_edit_info']; ?> </p>
 												<div class="form-group row mb-4">
 													<div class="checkbox checkbox-single col-md-1 checkbox-offset checkbox-primary text-center">
 														<input type="checkbox" class="activate" data-name="category_id" name="c_category_id">
@@ -169,7 +169,7 @@ include 'header.php';
 														<input type="checkbox" class="activate" data-name="bouquets" name="c_bouquets">
 														<label></label>
 													</div>
-													<label class="col-md-3 col-form-label" for="bouquets"><?php echo $_['select_bouquets']; ?></label>
+													<label class="col-md-3 col-form-label" for="bouquets"><?= $_['select_bouquets']; ?></label>
 													<div class="col-md-6">
 														<select disabled name="bouquets[]" id="bouquets" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">
 															<?php foreach (getBouquets() as $bouquet) echo '<option value="' . $bouquet['id'] . '">' . $bouquet['bouquet_name'] . '</option>' . "\n"; ?>
@@ -186,7 +186,7 @@ include 'header.php';
 														<input type="checkbox" class="activate" data-name="direct_source" data-type="switch" name="c_direct_source">
 														<label></label>
 													</div>
-													<label class="col-md-3 col-form-label" for="direct_source"><?php echo $_['direct_source']; ?></label>
+													<label class="col-md-3 col-form-label" for="direct_source"><?= $_['direct_source']; ?></label>
 													<div class="col-md-2">
 														<input name="direct_source" id="direct_source" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 													</div>
@@ -204,11 +204,11 @@ include 'header.php';
 														<input type="checkbox" class="activate" data-name="movie_symlink" data-type="switch" name="c_movie_symlink">
 														<label></label>
 													</div>
-													<label class="col-md-3 col-form-label" for="movie_symlink"><?php echo $_['create_symlink']; ?></label>
+													<label class="col-md-3 col-form-label" for="movie_symlink"><?= $_['create_symlink']; ?></label>
 													<div class="col-md-2">
 														<input name="movie_symlink" id="movie_symlink" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 													</div>
-													<label class="col-md-3 col-form-label" for="read_native"><?php echo $_['native_frames']; ?></label>
+													<label class="col-md-3 col-form-label" for="read_native"><?= $_['native_frames']; ?></label>
 													<div class="col-md-2">
 														<input name="read_native" id="read_native" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 													</div>
@@ -222,13 +222,13 @@ include 'header.php';
 														<input type="checkbox" class="activate" data-name="target_container" name="c_target_container">
 														<label></label>
 													</div>
-													<label class="col-md-3 col-form-label" for="target_container"><?php echo $_['target_container']; ?></label>
+													<label class="col-md-3 col-form-label" for="target_container"><?= $_['target_container']; ?></label>
 													<div class="col-md-2">
 														<select disabled name="target_container" id="target_container" class="form-control" data-toggle="select2">
 															<?php foreach (['mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts'] as $format) echo '<option value="' . $format . '">' . $format . '</option>' . "\n"; ?>
 														</select>
 													</div>
-													<label class="col-md-3 col-form-label" for="remove_subtitles"><?php echo $_['remove_subtitles']; ?></label>
+													<label class="col-md-3 col-form-label" for="remove_subtitles"><?= $_['remove_subtitles']; ?></label>
 													<div class="col-md-2">
 														<input name="remove_subtitles" id="remove_subtitles" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 													</div>
@@ -242,10 +242,10 @@ include 'header.php';
 														<input type="checkbox" class="activate" data-name="transcode_profile_id" name="c_transcode_profile_id">
 														<label></label>
 													</div>
-													<label class="col-md-3 col-form-label" for="transcode_profile_id"><?php echo $_['transcoding_profile']; ?></label>
+													<label class="col-md-3 col-form-label" for="transcode_profile_id"><?= $_['transcoding_profile']; ?></label>
 													<div class="col-md-8">
 														<select name="transcode_profile_id" disabled id="transcode_profile_id" class="form-control" data-toggle="select2">
-															<option selected value="0"><?php echo $_['transcoding_disabled']; ?></option>
+															<option selected value="0"><?= $_['transcoding_disabled']; ?></option>
 															<?php foreach ($rTranscodeProfiles as $profile) echo '<option value="' . $profile['profile_id'] . '">' . $profile['profile_name'] . '</option>' . "\n"; ?>
 														</select>
 													</div>
@@ -254,10 +254,10 @@ include 'header.php';
 										</div>
 										<ul class="list-inline wizard mb-0">
 											<li class="prevb list-inline-item">
-												<a href="javascript: void(0);" class="btn btn-secondary"><?php echo $_['prev']; ?></a>
+												<a href="javascript: void(0);" class="btn btn-secondary"><?= $_['prev']; ?></a>
 											</li>
 											<li class="nextb list-inline-item float-right">
-												<a href="javascript: void(0);" class="btn btn-secondary"><?php echo $_['next']; ?></a>
+												<a href="javascript: void(0);" class="btn btn-secondary"><?= $_['next']; ?></a>
 											</li>
 										</ul>
 									</div>
@@ -269,7 +269,7 @@ include 'header.php';
 														<input type="checkbox" data-name="server_tree" class="activate" name="c_server_tree" id="c_server_tree">
 														<label></label>
 													</div>
-													<label class="col-md-3 col-form-label" for="server_tree"><?php echo $_['server_tree']; ?></label>
+													<label class="col-md-3 col-form-label" for="server_tree"><?= $_['server_tree']; ?></label>
 													<div class="col-md-8">
 														<div id="server_tree"></div>
 													</div>
@@ -285,12 +285,12 @@ include 'header.php';
 												</div>
 												<div class="form-group row mb-4">
 													<div class="col-md-1"></div>
-													<label class="col-md-3 col-form-label" for="reencode_on_edit"><?php echo $_['reencode_on_edit']; ?></label>
+													<label class="col-md-3 col-form-label" for="reencode_on_edit"><?= $_['reencode_on_edit']; ?></label>
 													<div class="col-md-2">
 														<input name="reencode_on_edit" id="reencode_on_edit" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 													</div>
 													<div class="col-md-1"></div>
-													<label class="col-md-3 col-form-label" for="reprocess_tmdb"><?php echo $_['reprocess_tmdb_data']; ?></label>
+													<label class="col-md-3 col-form-label" for="reprocess_tmdb"><?= $_['reprocess_tmdb_data']; ?></label>
 													<div class="col-md-2">
 														<input name="reprocess_tmdb" id="reprocess_tmdb" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 													</div>
@@ -299,10 +299,10 @@ include 'header.php';
 										</div>
 										<ul class="list-inline wizard mb-0">
 											<li class="prevb list-inline-item">
-												<a href="javascript: void(0);" class="btn btn-secondary"><?php echo $_['prev']; ?></a>
+												<a href="javascript: void(0);" class="btn btn-secondary"><?= $_['prev']; ?></a>
 											</li>
 											<li class="nextb list-inline-item float-right">
-												<input name="submit_stream" type="submit" class="btn btn-primary" value="<?php echo $_['edit_movies']; ?>" />
+												<input name="submit_stream" type="submit" class="btn btn-primary" value="<?= $_['edit_movies']; ?>" />
 											</li>
 										</ul>
 									</div>
