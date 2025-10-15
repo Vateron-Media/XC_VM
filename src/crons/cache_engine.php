@@ -542,11 +542,14 @@ function generateSeries($rStart, $rCount) {
     global $rSplit;
     $rSeriesMap = array();
     $rSeriesEpisodes = array();
-    if (0 >= $rCount) {
-    } else {
-        $rSteps = range($rStart, ($rStart + $rCount) - 1, $rSplit);
-        if ($rSteps) {
+    if ($rCount > 0) {
+        if ($rSplit < $rCount) {
+            $rSteps = range($rStart, ($rStart + $rCount) - 1, $rSplit);
         } else {
+            $rSteps = array($rStart);
+        }
+        
+        if (!$rSteps) {
             $rSteps = array($rStart);
         }
         foreach ($rSteps as $rStep) {

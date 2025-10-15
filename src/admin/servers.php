@@ -77,7 +77,7 @@ include 'header.php';
                                                     <?php endif; ?>
                                                 <?php else: ?>
                                                     <?php
-                                                    $rPing = $rServer['last_check_ago'] > 0 ? date($F2d4d8f7981ac574['datetime_format'], $rServer['last_check_ago']) : 'Never';
+                                                    $rPing = $rServer['last_check_ago'] > 0 ? date($rSettings['datetime_format'], $rServer['last_check_ago']) : 'Never';
                                                     ?>
                                                     <?php if ($rServer['status'] == 3): ?>
                                                         <i class="text-info fas fa-square tooltip" title="Installing..."></i>
