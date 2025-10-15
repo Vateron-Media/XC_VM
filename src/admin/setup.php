@@ -93,7 +93,6 @@ if (!isset(CoreUtilities::$rRequest['update'])):
 
     if (!$rMigrating) {
         $rMigrateConnection = false;
-        $rMigrateXC_VM = false;
         $odb = new Database($_INFO['username'], $_INFO['password'], "xc_vm_migrate", $_INFO['hostname'], $_INFO['port'], true);
 
         if ($odb->connected) {
@@ -103,9 +102,10 @@ if (!isset(CoreUtilities::$rRequest['update'])):
         $odb->query("SHOW TABLES LIKE 'access_codes';");
 
         if ($odb->num_rows() > 0) {
-            $rMigrateXC_VM = true;
+            $rCount = array('users' => array('Users & Resellers', 0), 'blocked_ips' => array('Blocked IP Addresses', 0), 'blocked_uas' => array('Blocked User-Agents', 0), 'blocked_isps' => array("Blocked ISP's", 0), 'bouquets' => array('Bouquets', 0), 'enigma2_devices' => array('Device Info - Engima2', 0), 'mag_devices' => array('Device Info - MAG', 0), 'epg' => array('EPG Providers ', 0), 'users_groups' => array('User Groups', 0), 'users_packages' => array('User Packages', 0), 'rtmp_ips' => array("RTMP IP's", 0), 'streams_series' => array('TV Series', 0), 'streams_episodes' => array('TV Episodes', 0), 'servers' => array('Servers - Load Balancers', 0), 'streams' => array('Streams - Live, Radio, Created & VOD', 0), 'streams_options' => array('Stream Options', 0), 'streams_servers' => array('Stream Servers', 0), 'streams_categories' => array('Stream Categories', 0), 'tickets' => array('Tickets', 0), 'tickets_replies' => array('Ticket Replies', 0), 'profiles' => array('Transcoding Profile', 0), 'lines' => array('Lines - Standard, MAG & Enigma2 Devices', 0), 'watch_folders' => array('Watch Folders', 0));
+        } else {
+            $rCount = array('reg_users' => array('Users & Resellers', 0), 'users' => array('Lines - Standard, MAG & Enigma2 Devices', 0), 'enigma2_devices' => array('Device Info - Engima2', 0), 'mag_devices' => array('Device Info - MAG', 0), 'user_output' => array('Line Output - HLS, MPEG-TS & RTMP', 0), 'streaming_servers' => array('Servers - Load Balancers', 0), 'series' => array('TV Series', 0), 'series_episodes' => array('TV Episodes', 0), 'streams' => array('Streams - Live, Radio, Created & VOD', 0), 'streams_sys' => array('Stream Servers', 0), 'streams_options' => array('Stream Options', 0), 'stream_categories' => array('Stream Categories', 0), 'bouquets' => array('Bouquets', 0), 'member_groups' => array('Member Groups', 0), 'packages' => array('Reseller Packages', 0), 'rtmp_ips' => array("RTMP IP's", 0), 'epg' => array('EPG Providers ', 0), 'blocked_ips' => array('Blocked IP Addresses', 0), 'blocked_user_agents' => array('Blocked User-Agents', 0), 'isp_addon' => array("Blocked ISP's", 0), 'tickets' => array('Tickets', 0), 'tickets_replies' => array('Ticket Replies', 0), 'transcoding_profiles' => array('Transcoding Profile', 0), 'watch_folders' => array('Watch Folders', 0), 'members' => array('Users & Resellers', 0), 'epg_sources' => array('EPG Providers', 0), 'blocked_isps' => array("Blocked ISP's", 0), 'categories' => array('Stream Categories', 0), 'groups' => array('Member Groups', 0), 'servers' => array('Servers - Load Balancers', 0), 'stream_servers' => array('Stream Servers', 0));
         }
-        $rCount = array('reg_users' => array('Users & Resellers', 0), 'users' => array('Lines - Standard, MAG & Enigma2 Devices', 0), 'enigma2_devices' => array('Device Info - Engima2', 0), 'mag_devices' => array('Device Info - MAG', 0), 'user_output' => array('Line Output - HLS, MPEG-TS & RTMP', 0), 'streaming_servers' => array('Servers - Load Balancers', 0), 'series' => array('TV Series', 0), 'series_episodes' => array('TV Episodes', 0), 'streams' => array('Streams - Live, Radio, Created & VOD', 0), 'streams_sys' => array('Stream Servers', 0), 'streams_options' => array('Stream Options', 0), 'stream_categories' => array('Stream Categories', 0), 'bouquets' => array('Bouquets', 0), 'member_groups' => array('Member Groups', 0), 'packages' => array('Reseller Packages', 0), 'rtmp_ips' => array("RTMP IP's", 0), 'epg' => array('EPG Providers ', 0), 'blocked_ips' => array('Blocked IP Addresses', 0), 'blocked_user_agents' => array('Blocked User-Agents', 0), 'isp_addon' => array("Blocked ISP's", 0), 'tickets' => array('Tickets', 0), 'tickets_replies' => array('Ticket Replies', 0), 'transcoding_profiles' => array('Transcoding Profile', 0), 'watch_folders' => array('Watch Folders', 0), 'members' => array('Users & Resellers', 0), 'epg_sources' => array('EPG Providers', 0), 'blocked_isps' => array("Blocked ISP's", 0), 'categories' => array('Stream Categories', 0), 'groups' => array('Member Groups', 0), 'servers' => array('Servers - Load Balancers', 0), 'stream_servers' => array('Stream Servers', 0));
 
         foreach (array_keys($rCount) as $rTable) {
             try {
@@ -216,7 +216,7 @@ if (!isset(CoreUtilities::$rRequest['update'])):
                                     <div class="row">
                                         <div class="col-12">
                                             <div class="alert alert-secondary mb-4" role="alert">
-                                                In order to migrate your database from a previous installation of Xtream UI, ZapX
+                                                In order to migrate your database from a previous installation of Xtream UI, XUI, ZapX
                                                 (original and NXT), StreamCreed or generic Xtream Codes v2 installation, you will
                                                 need to restore your migration database to the <strong>xc_vm_migrate</strong> database
                                                 as XC_VM will have access to it.<br /><br />The script will then loop through all of
@@ -224,24 +224,16 @@ if (!isset(CoreUtilities::$rRequest['update'])):
                                                 migrated and some clean up may need to be done post-migration but this tool should
                                                 help significantly in carrying over your data to your new panel.<br /><br /><br />Once you're done, refresh the page.
                                             </div>
-                                            <?php if (!$rMigrateConnection) { ?>
+                                            <?php if (!$rMigrateConnection): ?>
                                                 <div class="alert alert-danger mb-4" role="alert">
                                                     A connection to the xc_vm_migrate database could not be made. Please ensure the
                                                     database exists, if it does not, create it.
                                                 </div>
-                                            <?php }
-                                            if ($rMigrateXC_VM) { ?>
-                                                <div class="alert alert-danger mb-4" role="alert">
-                                                    The data restored to the xc_vm_migrate database seems to contain tables attributed
-                                                    with XC_VM. You cannot migrate using this data, you need to restore it via the
-                                                    Databases section in the admin panel.
-                                                </div>
-                                            <?php }
-                                            ?>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
                                     <?php
-                                    if ($rMigrateConnection && !$rMigrateXC_VM && $rTotalCount > 0) { ?>
+                                    if ($rMigrateConnection && $rTotalCount > 0): ?>
                                         <div class="row">
                                             <div class="col-12">
                                                 <div class="alert alert-secondary mb-4" role="alert">
@@ -282,7 +274,7 @@ if (!isset(CoreUtilities::$rRequest['update'])):
                                                 </table>
                                             </div>
                                         </div>
-                                    <?php } ?>
+                                    <?php endif; ?>
                                     <div class="row">
                                         <div class="col-12">
                                             <ul class="list-inline wizard">
@@ -292,7 +284,7 @@ if (!isset(CoreUtilities::$rRequest['update'])):
                                                                 type="button">Don't Migrate</button></a>
                                                     </li>
                                                 <?php }
-                                                if ($rMigrateConnection && !$rMigrateXC_VM && $rTotalCount > 0) { ?>
+                                                if ($rMigrateConnection && $rTotalCount > 0) { ?>
                                                     <li class="list-inline-item float-right">
                                                         <input name="migrate" type="submit" class="btn btn-primary" value="Migrate" />
                                                     </li>
