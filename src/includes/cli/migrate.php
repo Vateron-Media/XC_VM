@@ -5,7 +5,7 @@ ini_set('memory_limit', -1);
 if (!$argc) {
     exit(0);
 }
-$rXUITableList = array('users', 'blocked_ips', 'blocked_uas', 'blocked_isps', 'bouquets', 'enigma2_devices', 'mag_devices', 'epg', 'users_groups', 'users_packages', 'rtmp_ips', 'streams_series', 'streams_episodes', 'servers', 'streams', 'streams_options', 'streams_servers', 'streams_categories', 'tickets', 'tickets_replies', 'profiles', 'lines', 'watch_folders');
+$rXUITableList = array('access_codes', 'users', 'blocked_ips', 'blocked_uas', 'blocked_isps', 'bouquets', 'enigma2_devices', 'mag_devices', 'epg', 'users_groups', 'users_packages', 'rtmp_ips', 'streams_series', 'streams_episodes', 'servers', 'streams', 'streams_options', 'streams_servers', 'streams_categories', 'tickets', 'tickets_replies', 'profiles', 'lines', 'watch_folders');
 $rTableList = array('reg_users', 'users', 'enigma2_devices', 'mag_devices', 'user_output', 'streaming_servers', 'series', 'series_episodes', 'streams', 'streams_sys', 'streams_options', 'stream_categories', 'bouquets', 'member_groups', 'packages', 'rtmp_ips', 'epg', 'blocked_ips', 'blocked_user_agents', 'isp_addon', 'tickets', 'tickets_replies', 'transcoding_profiles', 'watch_folders', 'categories', 'epg_sources', 'members', 'blocked_isps', 'groups', 'servers', 'stream_servers');
 $rMigrateOptions = (json_decode(file_get_contents(TMP_PATH . '.migration.options'), true) ?: array());
 
@@ -20,6 +20,7 @@ if (!$odb->connected) {
 echo 'Connected to migration database.' . "\n";
 $odb->query("SHOW TABLES LIKE 'access_codes';");
 if ($odb->num_rows() > 0) {
+    $AdminAccesCode = '';
     if (count($rMigrateOptions) == 0) {
         $rMigrateOptions = $rXUITableList;
     }
@@ -37,6 +38,28 @@ if ($odb->num_rows() > 0) {
     }
     echo "\n" . 'Migrating database to XC_VM...' . "\n\n";
 
+    if (in_array('access_codes', $rMigrateOptions)) {
+        $odb->query('SELECT * FROM `access_codes`;');
+        $rResults = $odb->get_rows();
+        if (count($rResults) > 0) {
+            $db->query('TRUNCATE `access_codes`;');
+            echo 'Add ' . number_format(count($rResults), 0) . ' access codes.' . "\n";
+            foreach ($rResults as $rResult) {
+                try {
+                    if ($rResult['type'] == 0) {
+                        $AdminAccesCode = $rResult['code'];
+                    }
+                    $rResult = verifyPostTable('access_codes', $rResult);
+                    $rPrepare = prepareArray($rResult);
+                    $rQuery = 'INSERT INTO `access_codes`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
+                    $db->query($rQuery, ...$rPrepare['data']);
+                    updateCodes();
+                } catch (Exception $e) {
+                    echo 'Error: ' . $e . "\n";
+                }
+            }
+        }
+    }
     if (in_array('users', $rMigrateOptions)) {
         $odb->query('SELECT COUNT(*) AS `count` FROM `users`;');
         $rCount = $odb->get_row()['count'];
@@ -1537,7 +1560,11 @@ try {
 } catch (Exception $e) {
     echo 'Error: ' . $e . "\n";
 }
+if (in_array('access_codes', $rMigrateOptions)) {
+    echo "\n".'Admin acces code: ' . $AdminAccesCode;
+}
 echo "\n" . 'Migration has been completed!' . "\n\n" . 'Your settings have been reset to the XC_VM default, please take some time to review the settings page and make the desired changes.' . "\n";
+
 file_put_contents(TMP_PATH . '.migration.status', 2);
 if (is_object($odb)) {
     $odb->close_mysql();
