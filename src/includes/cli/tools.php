@@ -20,8 +20,7 @@ function loadcli() {
             $rImages = array();
             $db->query('SELECT COUNT(*) AS `count` FROM `streams`;');
             $rCount = $db->get_row()['count'];
-            if (0 >= $rCount) {
-            } else {
+        if ($rCount > 0) {
                 $rSteps = range(0, $rCount, 1000);
                 if ($rSteps) {
                 } else {
@@ -57,8 +56,7 @@ function loadcli() {
             }
             $db->query('SELECT COUNT(*) AS `count` FROM `streams_series`;');
             $rCount = $db->get_row()['count'];
-            if (0 >= $rCount) {
-            } else {
+        if ($rCount > 0) {
                 $rSteps = range(0, $rCount, 1000);
                 if ($rSteps) {
                 } else {
