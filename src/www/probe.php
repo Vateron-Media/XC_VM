@@ -3,58 +3,49 @@
 register_shutdown_function('shutdown');
 include './stream/init.php';
 
-if (!isset(CoreUtilities::$rRequest['data'])) {
-} else {
-	$rIP = CoreUtilities::getUserIP();
-	$rPath = base64_decode(CoreUtilities::$rRequest['data']);
+if (isset(StreamingUtilities::$rRequest['data'])) {
+	$rIP = StreamingUtilities::getUserIP();
+	$rPath = base64_decode(StreamingUtilities::$rRequest['data']);
 	$rPathSize = count(explode('/', $rPath));
 	$rUserInfo = $rStreamID = null;
 
 	if ($rPathSize == 3) {
-		if ($rStreamID) {
-		} else {
+		if (!$rStreamID) {
 			$rQuery = '/\\/auth\\/(.*)$/m';
 			preg_match($rQuery, $rPath, $rMatches);
 
-			if (count($rMatches) != 2) {
-			} else {
-				$rData = json_decode(CoreUtilities::decryptData($rMatches[1], CoreUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA), true);
+			if (count($rMatches) == 2) {
+				$rData = json_decode(StreamingUtilities::decryptData($rMatches[1], StreamingUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA), true);
 				$rStreamID = intval($rData['stream_id']);
-				$rUserInfo = CoreUtilities::getUserInfo(null, $rData['username'], $rData['password'], true);
+				$rUserInfo = StreamingUtilities::getUserInfo(null, $rData['username'], $rData['password'], true);
 			}
 		}
 
-		if ($rStreamID) {
-		} else {
+		if (!$rStreamID) {
 			$rQuery = '/\\/play\\/(.*)$/m';
 			preg_match($rQuery, $rPath, $rMatches);
 
-			if (count($rMatches) != 2) {
-			} else {
-				$rData = explode('/', CoreUtilities::decryptData($rMatches[1], CoreUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA));
+			if (count($rMatches) == 2) {
+				$rData = explode('/', StreamingUtilities::decryptData($rMatches[1], StreamingUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA));
 
-				if ($rData[0] != 'live') {
-				} else {
+				if ($rData[0] == 'live') {
 					$rStreamID = intval($rData[3]);
-					$rUserInfo = CoreUtilities::getUserInfo(null, $rData[1], $rData[2], true);
+					$rUserInfo = StreamingUtilities::getUserInfo(null, $rData[1], $rData[2], true);
 				}
 			}
 		}
 	} else {
 		if ($rPathSize == 4) {
-			if ($rStreamID) {
-			} else {
+			if (!$rStreamID) {
 				$rQuery = '/\\/play\\/(.*)\\/(.*)$/m';
 				preg_match($rQuery, $rPath, $rMatches);
 
-				if (count($rMatches) != 3) {
-				} else {
-					$rData = explode('/', CoreUtilities::decryptData($rMatches[1], CoreUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA));
+				if (count($rMatches) == 3) {
+					$rData = explode('/', StreamingUtilities::decryptData($rMatches[1], StreamingUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA));
 
-					if ($rData[0] != 'live') {
-					} else {
+					if ($rData[0] == 'live') {
 						$rStreamID = intval($rData[3]);
-						$rUserInfo = CoreUtilities::getUserInfo(null, $rData[1], $rData[2], true);
+						$rUserInfo = StreamingUtilities::getUserInfo(null, $rData[1], $rData[2], true);
 					}
 				}
 			}
@@ -67,7 +58,7 @@ if (!isset(CoreUtilities::$rRequest['data'])) {
 				if (count($rMatches) != 3) {
 				} else {
 					$rStreamID = intval($rMatches[2]);
-					$rUserInfo = CoreUtilities::getUserInfo(null, $rMatches[1], null, true);
+					$rUserInfo = StreamingUtilities::getUserInfo(null, $rMatches[1], null, true);
 				}
 			}
 
@@ -79,7 +70,7 @@ if (!isset(CoreUtilities::$rRequest['data'])) {
 				if (count($rMatches) != 4) {
 				} else {
 					$rStreamID = intval($rMatches[2]);
-					$rUserInfo = CoreUtilities::getUserInfo(null, $rMatches[1], null, true);
+					$rUserInfo = StreamingUtilities::getUserInfo(null, $rMatches[1], null, true);
 				}
 			}
 
@@ -91,7 +82,7 @@ if (!isset(CoreUtilities::$rRequest['data'])) {
 				if (count($rMatches) != 5) {
 				} else {
 					$rStreamID = intval($rMatches[3]);
-					$rUserInfo = CoreUtilities::getUserInfo(null, $rMatches[1], $rMatches[2], true);
+					$rUserInfo = StreamingUtilities::getUserInfo(null, $rMatches[1], $rMatches[2], true);
 				}
 			}
 
@@ -103,7 +94,7 @@ if (!isset(CoreUtilities::$rRequest['data'])) {
 				if (count($rMatches) != 4) {
 				} else {
 					$rStreamID = intval($rMatches[3]);
-					$rUserInfo = CoreUtilities::getUserInfo(null, $rMatches[1], $rMatches[2], true);
+					$rUserInfo = StreamingUtilities::getUserInfo(null, $rMatches[1], $rMatches[2], true);
 				}
 			}
 		} else {
@@ -117,7 +108,7 @@ if (!isset(CoreUtilities::$rRequest['data'])) {
 					if (count($rMatches) != 5) {
 					} else {
 						$rStreamID = intval($rMatches[3]);
-						$rUserInfo = CoreUtilities::getUserInfo(null, $rMatches[1], $rMatches[2], true);
+						$rUserInfo = StreamingUtilities::getUserInfo(null, $rMatches[1], $rMatches[2], true);
 					}
 				}
 
@@ -129,7 +120,7 @@ if (!isset(CoreUtilities::$rRequest['data'])) {
 					if (count($rMatches) != 4) {
 					} else {
 						$rStreamID = intval($rMatches[3]);
-						$rUserInfo = CoreUtilities::getUserInfo(null, $rMatches[1], $rMatches[2], true);
+						$rUserInfo = StreamingUtilities::getUserInfo(null, $rMatches[1], $rMatches[2], true);
 					}
 				}
 			}
@@ -158,7 +149,7 @@ if (!isset(CoreUtilities::$rRequest['data'])) {
 			generate404();
 		}
 
-		$rChannelInfo = CoreUtilities::redirectStream($rStreamID, 'ts', $rUserInfo, null, '', 'live');
+		$rChannelInfo = StreamingUtilities::redirectStream($rStreamID, 'ts', $rUserInfo, null, '', 'live');
 
 		if (isset($rChannelInfo['redirect_id']) && $rChannelInfo['redirect_id'] != SERVER_ID) {
 			$rServerID = $rChannelInfo['redirect_id'];
@@ -166,7 +157,7 @@ if (!isset(CoreUtilities::$rRequest['data'])) {
 			$rServerID = SERVER_ID;
 		}
 
-		if (!(0 < $rChannelInfo['monitor_pid'] && 0 < $rChannelInfo['pid'] && CoreUtilities::$rServers[$rServerID]['last_status'] == 1)) {
+		if (!(0 < $rChannelInfo['monitor_pid'] && 0 < $rChannelInfo['pid'] && StreamingUtilities::$rServers[$rServerID]['last_status'] == 1)) {
 		} else {
 			if (file_exists(STREAMS_PATH . $rStreamID . '_.stream_info')) {
 				$rInfo = file_get_contents(STREAMS_PATH . $rStreamID . '_.stream_info');
@@ -184,8 +175,8 @@ if (!isset(CoreUtilities::$rRequest['data'])) {
 
 generate404();
 function shutdown() {
-	if (!is_object(CoreUtilities::$db)) {
+	if (!is_object(StreamingUtilities::$db)) {
 	} else {
-		CoreUtilities::$db->close_mysql();
+		StreamingUtilities::$db->close_mysql();
 	}
 }

@@ -1,5 +1,5 @@
 <?php
-class CoreUtilities {
+class StreamingUtilities {
 	public static $db = null;
 	public static $redis = null;
 	public static $rRequest = array();
@@ -70,7 +70,7 @@ class CoreUtilities {
 				self::$rFFMPEG_CPU = FFMPEG_BIN_40;
 				self::$rFFMPEG_GPU = FFMPEG_BIN_40;
 				break;
-		}		
+		}
 		self::$rCached = self::isCacheEnabledAndComplete();
 		self::$rServers = self::getCache(
 			'servers'
@@ -600,7 +600,7 @@ class CoreUtilities {
 				$rURL .= '/' . md5($rServerID . '_' . $rOriginatorID . '_' . OPENSSL_EXTRA);
 			}
 			$rTokenData = array('expires' => time() + 10, 'video_path' => $Fd50c63671da34f8);
-			$rToken = CoreUtilities::encryptData(json_encode($rTokenData), self::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+			$rToken = StreamingUtilities::encryptData(json_encode($rTokenData), self::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 			if ($rExtension == 'm3u8') {
 				$rM3U8 = "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-MEDIA-SEQUENCE:0\n#EXT-X-ALLOW-CACHE:YES\n#EXT-X-TARGETDURATION:10\n#EXTINF:10.0,\n" . $rURL . '/auth/' . $rToken . "\n#EXT-X-ENDLIST";
 				header('Content-Type: application/x-mpegurl');
@@ -1130,10 +1130,8 @@ class CoreUtilities {
 		file_put_contents(SIGNALS_TMP_PATH . 'cache_' . md5($rKey), json_encode(array($rKey, $rData)));
 	}
 	public static function validateHMAC($rHMAC, $rExpiry, $rStreamID, $rExtension, $rIP = '', $rMACIP = '', $rIdentifier = '', $rMaxConnections = 0) {
-		if (!(0 < strlen($rIP) && 0 < strlen($rMACIP))) {
-		} else {
-			if ($rIP == $rMACIP) {
-			} else {
+		if (0 < strlen($rIP) && 0 < strlen($rMACIP)) {
+			if ($rIP != $rMACIP) {
 				return null;
 			}
 		}
@@ -1148,9 +1146,9 @@ class CoreUtilities {
 			}
 		}
 		foreach ($rKeys as $rKey) {
-			$rResult = hash_hmac('sha256', (string) $rStreamID . '##' . $rExtension . '##' . $rExpiry . '##' . $rMACIP . '##' . $rIdentifier . '##' . $rMaxConnections, CoreUtilities::decryptData($rKey['key'], OPENSSL_EXTRA));
-			if (md5($rResult) != md5($rHMAC)) {
-			} else {
+			$rResult = hash_hmac('sha256', (string) $rStreamID . '##' . $rExtension . '##' . $rExpiry . '##' . $rMACIP . '##' . $rIdentifier . '##' . $rMaxConnections, StreamingUtilities::decryptData($rKey['key'], StreamingUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA));
+			
+			if (md5($rResult) == md5($rHMAC)) {
 				$rKeyID = $rKey['id'];
 				break;
 			}
@@ -1451,15 +1449,15 @@ class CoreUtilities {
 		if (file_exists($rM3U8)) {
 			$rSource = file_get_contents($rM3U8);
 			if (self::$rSettings['encrypt_hls'] || $rOnDemand) {
-				$rKeyToken = CoreUtilities::encryptData($rIP . '/' . $rStreamID, self::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+				$rKeyToken = StreamingUtilities::encryptData($rIP . '/' . $rStreamID, self::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 				$rSource = "#EXTM3U\n#EXT-X-KEY:METHOD=AES-128,URI=\"" . (($rProxyID ? '/' . md5($rProxyID . '_' . $rServerID . '_' . OPENSSL_EXTRA) : '')) . '/key/' . $rKeyToken . '",IV=0x' . bin2hex(file_get_contents(STREAMS_PATH . $rStreamID . '_.iv')) . "\n" . substr($rSource, 8, strlen($rSource) - 8);
 			}
 			if (preg_match_all('/(.*?)\\.ts/', $rSource, $rMatches)) {
 				foreach ($rMatches[0] as $rMatch) {
 					if ($rIsHMAC) {
-						$rToken = CoreUtilities::encryptData('HMAC#' . $rIsHMAC . '/' . $rIdentifier . '/' . $rIP . '/' . $rStreamID . '/' . $rMatch . '/' . $rUUID . '/' . SERVER_ID . '/' . $rVideoCodec . '/' . $rOnDemand, self::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+						$rToken = StreamingUtilities::encryptData('HMAC#' . $rIsHMAC . '/' . $rIdentifier . '/' . $rIP . '/' . $rStreamID . '/' . $rMatch . '/' . $rUUID . '/' . SERVER_ID . '/' . $rVideoCodec . '/' . $rOnDemand, self::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 					} else {
-						$rToken = CoreUtilities::encryptData($rUsername . '/' . $rPassword . '/' . $rIP . '/' . $rStreamID . '/' . $rMatch . '/' . $rUUID . '/' . SERVER_ID . '/' . $rVideoCodec . '/' . $rOnDemand, self::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+						$rToken = StreamingUtilities::encryptData($rUsername . '/' . $rPassword . '/' . $rIP . '/' . $rStreamID . '/' . $rMatch . '/' . $rUUID . '/' . SERVER_ID . '/' . $rVideoCodec . '/' . $rOnDemand, self::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 					}
 					if (self::$rSettings['allow_cdn_access']) {
 						$rSource = str_replace($rMatch, (($rProxyID ? '/' . md5($rProxyID . '_' . $rServerID . '_' . OPENSSL_EXTRA) : '')) . '/hls/' . $rMatch . '?token=' . $rToken, $rSource);

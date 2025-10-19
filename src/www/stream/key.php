@@ -13,7 +13,7 @@ if (empty($rSettings['live_streaming_pass'])) {
 
 if (isset($_GET['token'])) {
 	$rIP = getuserip();
-	$rTokenArray = explode('/', CoreUtilities::decryptData($_GET['token'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA));
+	$rTokenArray = explode('/', StreamingUtilities::decryptData($_GET['token'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA));
 	$rIPMatch = ($rSettings['ip_subnet_match'] ? implode('.', array_slice(explode('.', $rTokenArray[0]), 0, -1)) == implode('.', array_slice(explode('.', $rIP), 0, -1)) : $rTokenArray[0] == $rIP);
 
 	if (is_array($rTokenArray) && ($rIPMatch || !$rSettings['restrict_same_ip'])) {
