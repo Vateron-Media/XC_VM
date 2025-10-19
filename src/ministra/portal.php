@@ -125,21 +125,21 @@ if ($rReqType && $rReqAction) {
 register_shutdown_function('shutdown');
 require '/home/xc_vm/www/stream/init.php';
 
-if (!CoreUtilities::$rSettings['disable_ministra']) {
+if (!StreamingUtilities::$rSettings['disable_ministra']) {
 	if (!in_array($rReqAction, array('get_categories', 'get_genres', 'get_ordered_list', 'get_all_channels', 'get_all_fav_channels', 'get_all_fav_radio'))) {
 	} else {
-		CoreUtilities::$rCategories = CoreUtilities::getCache('categories');
+		StreamingUtilities::$rCategories = StreamingUtilities::getCache('categories');
 	}
 
-	$rIP = CoreUtilities::getUserIP();
-	$rCountryCode = CoreUtilities::getIPInfo($rIP)['country']['iso_code'];
-	$rMAC = (!empty(CoreUtilities::$rRequest['mac']) ? CoreUtilities::$rRequest['mac'] : $_COOKIE['mac']);
+	$rIP = StreamingUtilities::getUserIP();
+	$rCountryCode = StreamingUtilities::getIPInfo($rIP)['country']['iso_code'];
+	$rMAC = (!empty(StreamingUtilities::$rRequest['mac']) ? StreamingUtilities::$rRequest['mac'] : $_COOKIE['mac']);
 	$rUserAgent = (!empty($_SERVER['HTTP_X_USER_AGENT']) ? $_SERVER['HTTP_X_USER_AGENT'] : null);
-	$rGMode = (!empty(CoreUtilities::$rRequest['gmode']) ? intval(CoreUtilities::$rRequest['gmode']) : null);
-	$rDebug = CoreUtilities::$rSettings['enable_debug_stalker'];
+	$rGMode = (!empty(StreamingUtilities::$rRequest['gmode']) ? intval(StreamingUtilities::$rRequest['gmode']) : null);
+	$rDebug = StreamingUtilities::$rSettings['enable_debug_stalker'];
 	$rDevice = array();
 	$rTypes = array('live', 'created_live');
-	$rForceProtocol = (CoreUtilities::$rSettings['mag_disable_ssl'] ? 'http' : null);
+	$rForceProtocol = (StreamingUtilities::$rSettings['mag_disable_ssl'] ? 'http' : null);
 	$rUpdateCache = false;
 
 	if (!($rReqType == 'stb' && $rReqAction == 'handshake')) {
@@ -161,7 +161,7 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 
 		if (!$rAuthToken) {
 		} else {
-			$rVerify = igbinary_unserialize(CoreUtilities::decryptData($rAuthToken, CoreUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA));
+			$rVerify = igbinary_unserialize(StreamingUtilities::decryptData($rAuthToken, StreamingUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA));
 			$rDevice = (isset($rVerify['id']) ? getdevice($rVerify['id']) : array());
 
 			if ($rDevice['token'] != $rVerify['token']) {
@@ -174,16 +174,16 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 
 		if (!($rDevice && $rReqType == 'stb' && $rReqAction == 'get_profile')) {
 		} else {
-			$rSerialNumber = (!empty(CoreUtilities::$rRequest['sn']) ? CoreUtilities::$rRequest['sn'] : null);
-			$rSTBType = (!empty(CoreUtilities::$rRequest['stb_type']) ? CoreUtilities::$rRequest['stb_type'] : null);
-			$rVersion = (!empty(CoreUtilities::$rRequest['ver']) ? CoreUtilities::$rRequest['ver'] : null);
-			$rImageVersion = (!empty(CoreUtilities::$rRequest['image_version']) ? CoreUtilities::$rRequest['image_version'] : null);
-			$rDeviceID = (!empty(CoreUtilities::$rRequest['device_id']) ? CoreUtilities::$rRequest['device_id'] : null);
-			$rDeviceID2 = (!empty(CoreUtilities::$rRequest['device_id2']) ? CoreUtilities::$rRequest['device_id2'] : null);
-			$rHWVersion = (!empty(CoreUtilities::$rRequest['hw_version']) ? CoreUtilities::$rRequest['hw_version'] : null);
+			$rSerialNumber = (!empty(StreamingUtilities::$rRequest['sn']) ? StreamingUtilities::$rRequest['sn'] : null);
+			$rSTBType = (!empty(StreamingUtilities::$rRequest['stb_type']) ? StreamingUtilities::$rRequest['stb_type'] : null);
+			$rVersion = (!empty(StreamingUtilities::$rRequest['ver']) ? StreamingUtilities::$rRequest['ver'] : null);
+			$rImageVersion = (!empty(StreamingUtilities::$rRequest['image_version']) ? StreamingUtilities::$rRequest['image_version'] : null);
+			$rDeviceID = (!empty(StreamingUtilities::$rRequest['device_id']) ? StreamingUtilities::$rRequest['device_id'] : null);
+			$rDeviceID2 = (!empty(StreamingUtilities::$rRequest['device_id2']) ? StreamingUtilities::$rRequest['device_id2'] : null);
+			$rHWVersion = (!empty(StreamingUtilities::$rRequest['hw_version']) ? StreamingUtilities::$rRequest['hw_version'] : null);
 			$rVerified = true;
 
-			if (empty(CoreUtilities::$rSettings['allowed_stb_types']) || in_array(strtolower($rSTBType), CoreUtilities::$rSettings['allowed_stb_types'])) {
+			if (empty(StreamingUtilities::$rSettings['allowed_stb_types']) || in_array(strtolower($rSTBType), StreamingUtilities::$rSettings['allowed_stb_types'])) {
 			} else {
 				$rVerified = false;
 			}
@@ -230,7 +230,7 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 				}
 			}
 
-			if (empty(CoreUtilities::$rSettings['stalker_lock_images']) || in_array($rVersion, CoreUtilities::$rSettings['stalker_lock_images'])) {
+			if (empty(StreamingUtilities::$rSettings['stalker_lock_images']) || in_array($rVersion, StreamingUtilities::$rSettings['stalker_lock_images'])) {
 			} else {
 				$rVerified = false;
 			}
@@ -271,7 +271,7 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 		}
 
 		$rMagData = array();
-		$rProfile = array('id' => $rDevice['mag_id'], 'name' => $rDevice['mag_id'], 'sname' => '', 'pass' => '', 'use_embedded_settings' => '', 'parent_password' => '0000', 'bright' => '200', 'contrast' => '127', 'saturation' => '127', 'video_out' => '', 'volume' => '70', 'playback_buffer_bytes' => '0', 'playback_buffer_size' => '0', 'audio_out' => '1', 'mac' => $rMAC, 'ip' => '127.0.0.1', 'ls' => '', 'version' => '', 'lang' => '', 'locale' => $rDevice['locale'], 'city_id' => '0', 'hd' => '1', 'main_notify' => '1', 'fav_itv_on' => '0', 'now_playing_start' => '2018-02-18 17:33:43', 'now_playing_type' => '1', 'now_playing_content' => 'Test channel', 'additional_services_on' => '1', 'time_last_play_tv' => '0000-00-00 00:00:00', 'time_last_play_video' => '0000-00-00 00:00:00', 'operator_id' => '0', 'storage_name' => '', 'hd_content' => '0', 'image_version' => 'undefined', 'last_change_status' => '0000-00-00 00:00:00', 'last_start' => '2018-02-18 17:33:38', 'last_active' => '2018-02-18 17:33:43', 'keep_alive' => '2018-02-18 17:33:43', 'screensaver_delay' => '10', 'phone' => '', 'fname' => '', 'login' => '', 'password' => '', 'stb_type' => '', 'num_banks' => '0', 'tariff_plan_id' => '0', 'comment' => null, 'now_playing_link_id' => '0', 'now_playing_streamer_id' => '0', 'just_started' => '1', 'last_watchdog' => '2018-02-18 17:33:39', 'created' => '2018-02-18 14:40:12', 'plasma_saving' => '0', 'ts_enabled' => '0', 'ts_enable_icon' => '1', 'ts_path' => '', 'ts_max_length' => '3600', 'ts_buffer_use' => 'cyclic', 'ts_action_on_exit' => 'no_save', 'ts_delay' => 'on_pause', 'video_clock' => 'Off', 'verified' => '0', 'hdmi_event_reaction' => 1, 'pri_audio_lang' => '', 'sec_audio_lang' => '', 'pri_subtitle_lang' => '', 'sec_subtitle_lang' => '', 'subtitle_color' => '16777215', 'subtitle_size' => '20', 'show_after_loading' => '', 'play_in_preview_by_ok' => null, 'hw_version' => 'undefined', 'openweathermap_city_id' => '0', 'theme' => '', 'settings_password' => '0000', 'expire_billing_date' => '0000-00-00 00:00:00', 'reseller_id' => null, 'account_balance' => '', 'client_type' => 'STB', 'hw_version_2' => '62', 'blocked' => '0', 'units' => 'metric', 'tariff_expired_date' => null, 'tariff_id_instead_expired' => null, 'activation_code_auto_issue' => '1', 'last_itv_id' => 0, 'updated' => array('id' => '1', 'uid' => '1', 'anec' => '0', 'vclub' => '0'), 'rtsp_type' => '4', 'rtsp_flags' => '0', 'stb_lang' => 'en', 'display_menu_after_loading' => '', 'record_max_length' => 180, 'web_proxy_host' => '', 'web_proxy_port' => '', 'web_proxy_user' => '', 'web_proxy_pass' => '', 'web_proxy_exclude_list' => '', 'demo_video_url' => '', 'tv_quality' => 'high', 'tv_quality_filter' => '', 'is_moderator' => false, 'timeslot_ratio' => 0.33333333333333, 'timeslot' => 40, 'kinopoisk_rating' => '1', 'enable_tariff_plans' => '', 'strict_stb_type_check' => '', 'cas_type' => 0, 'cas_params' => null, 'cas_web_params' => null, 'cas_additional_params' => array(), 'cas_hw_descrambling' => 0, 'cas_ini_file' => '', 'logarithm_volume_control' => '', 'allow_subscription_from_stb' => '1', 'deny_720p_gmode_on_mag200' => '1', 'enable_arrow_keys_setpos' => '1', 'show_purchased_filter' => '', 'timezone_diff' => 0, 'enable_connection_problem_indication' => '1', 'invert_channel_switch_direction' => '', 'play_in_preview_only_by_ok' => false, 'enable_stream_error_logging' => '', 'always_enabled_subtitles' => (CoreUtilities::$rSettings['always_enabled_subtitles'] == 1 ? '1' : ''), 'enable_service_button' => '', 'enable_setting_access_by_pass' => '', 'tv_archive_continued' => '', 'plasma_saving_timeout' => '600', 'show_tv_only_hd_filter_option' => '', 'tv_playback_retry_limit' => '0', 'fading_tv_retry_timeout' => '1', 'epg_update_time_range' => 0.6, 'store_auth_data_on_stb' => false, 'account_page_by_password' => '', 'tester' => false, 'enable_stream_losses_logging' => '', 'external_payment_page_url' => '', 'max_local_recordings' => '10', 'tv_channel_default_aspect' => 'fit', 'default_led_level' => '10', 'standby_led_level' => '90', 'show_version_in_main_menu' => '1', 'disable_youtube_for_mag200' => '1', 'auth_access' => false, 'epg_data_block_period_for_stb' => '5', 'standby_on_hdmi_off' => '1', 'force_ch_link_check' => '', 'stb_ntp_server' => 'pool.ntp.org', 'overwrite_stb_ntp_server' => '', 'hide_tv_genres_in_fullscreen' => null, 'advert' => null);
+		$rProfile = array('id' => $rDevice['mag_id'], 'name' => $rDevice['mag_id'], 'sname' => '', 'pass' => '', 'use_embedded_settings' => '', 'parent_password' => '0000', 'bright' => '200', 'contrast' => '127', 'saturation' => '127', 'video_out' => '', 'volume' => '70', 'playback_buffer_bytes' => '0', 'playback_buffer_size' => '0', 'audio_out' => '1', 'mac' => $rMAC, 'ip' => '127.0.0.1', 'ls' => '', 'version' => '', 'lang' => '', 'locale' => $rDevice['locale'], 'city_id' => '0', 'hd' => '1', 'main_notify' => '1', 'fav_itv_on' => '0', 'now_playing_start' => '2018-02-18 17:33:43', 'now_playing_type' => '1', 'now_playing_content' => 'Test channel', 'additional_services_on' => '1', 'time_last_play_tv' => '0000-00-00 00:00:00', 'time_last_play_video' => '0000-00-00 00:00:00', 'operator_id' => '0', 'storage_name' => '', 'hd_content' => '0', 'image_version' => 'undefined', 'last_change_status' => '0000-00-00 00:00:00', 'last_start' => '2018-02-18 17:33:38', 'last_active' => '2018-02-18 17:33:43', 'keep_alive' => '2018-02-18 17:33:43', 'screensaver_delay' => '10', 'phone' => '', 'fname' => '', 'login' => '', 'password' => '', 'stb_type' => '', 'num_banks' => '0', 'tariff_plan_id' => '0', 'comment' => null, 'now_playing_link_id' => '0', 'now_playing_streamer_id' => '0', 'just_started' => '1', 'last_watchdog' => '2018-02-18 17:33:39', 'created' => '2018-02-18 14:40:12', 'plasma_saving' => '0', 'ts_enabled' => '0', 'ts_enable_icon' => '1', 'ts_path' => '', 'ts_max_length' => '3600', 'ts_buffer_use' => 'cyclic', 'ts_action_on_exit' => 'no_save', 'ts_delay' => 'on_pause', 'video_clock' => 'Off', 'verified' => '0', 'hdmi_event_reaction' => 1, 'pri_audio_lang' => '', 'sec_audio_lang' => '', 'pri_subtitle_lang' => '', 'sec_subtitle_lang' => '', 'subtitle_color' => '16777215', 'subtitle_size' => '20', 'show_after_loading' => '', 'play_in_preview_by_ok' => null, 'hw_version' => 'undefined', 'openweathermap_city_id' => '0', 'theme' => '', 'settings_password' => '0000', 'expire_billing_date' => '0000-00-00 00:00:00', 'reseller_id' => null, 'account_balance' => '', 'client_type' => 'STB', 'hw_version_2' => '62', 'blocked' => '0', 'units' => 'metric', 'tariff_expired_date' => null, 'tariff_id_instead_expired' => null, 'activation_code_auto_issue' => '1', 'last_itv_id' => 0, 'updated' => array('id' => '1', 'uid' => '1', 'anec' => '0', 'vclub' => '0'), 'rtsp_type' => '4', 'rtsp_flags' => '0', 'stb_lang' => 'en', 'display_menu_after_loading' => '', 'record_max_length' => 180, 'web_proxy_host' => '', 'web_proxy_port' => '', 'web_proxy_user' => '', 'web_proxy_pass' => '', 'web_proxy_exclude_list' => '', 'demo_video_url' => '', 'tv_quality' => 'high', 'tv_quality_filter' => '', 'is_moderator' => false, 'timeslot_ratio' => 0.33333333333333, 'timeslot' => 40, 'kinopoisk_rating' => '1', 'enable_tariff_plans' => '', 'strict_stb_type_check' => '', 'cas_type' => 0, 'cas_params' => null, 'cas_web_params' => null, 'cas_additional_params' => array(), 'cas_hw_descrambling' => 0, 'cas_ini_file' => '', 'logarithm_volume_control' => '', 'allow_subscription_from_stb' => '1', 'deny_720p_gmode_on_mag200' => '1', 'enable_arrow_keys_setpos' => '1', 'show_purchased_filter' => '', 'timezone_diff' => 0, 'enable_connection_problem_indication' => '1', 'invert_channel_switch_direction' => '', 'play_in_preview_only_by_ok' => false, 'enable_stream_error_logging' => '', 'always_enabled_subtitles' => (StreamingUtilities::$rSettings['always_enabled_subtitles'] == 1 ? '1' : ''), 'enable_service_button' => '', 'enable_setting_access_by_pass' => '', 'tv_archive_continued' => '', 'plasma_saving_timeout' => '600', 'show_tv_only_hd_filter_option' => '', 'tv_playback_retry_limit' => '0', 'fading_tv_retry_timeout' => '1', 'epg_update_time_range' => 0.6, 'store_auth_data_on_stb' => false, 'account_page_by_password' => '', 'tester' => false, 'enable_stream_losses_logging' => '', 'external_payment_page_url' => '', 'max_local_recordings' => '10', 'tv_channel_default_aspect' => 'fit', 'default_led_level' => '10', 'standby_led_level' => '90', 'show_version_in_main_menu' => '1', 'disable_youtube_for_mag200' => '1', 'auth_access' => false, 'epg_data_block_period_for_stb' => '5', 'standby_on_hdmi_off' => '1', 'force_ch_link_check' => '', 'stb_ntp_server' => 'pool.ntp.org', 'overwrite_stb_ntp_server' => '', 'hide_tv_genres_in_fullscreen' => null, 'advert' => null);
 		$rLocales['get_locales']['English'] = 'en_GB.utf8';
 		$rLocales['get_locales']['Ελληνικά'] = 'el_GR.utf8';
 		$rMagData['get_years'] = array('js' => array(array('id' => '*', 'title' => '*')));
@@ -280,21 +280,21 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 			$rMagData['get_years']['js'][] = array('id' => $rYear, 'title' => $rYear);
 		}
 		$rMagData['get_abc'] = array('js' => array(array('id' => '*', 'title' => '*'), array('id' => 'A', 'title' => 'A'), array('id' => 'B', 'title' => 'B'), array('id' => 'C', 'title' => 'C'), array('id' => 'D', 'title' => 'D'), array('id' => 'E', 'title' => 'E'), array('id' => 'F', 'title' => 'F'), array('id' => 'G', 'title' => 'G'), array('id' => 'H', 'title' => 'H'), array('id' => 'I', 'title' => 'I'), array('id' => 'G', 'title' => 'G'), array('id' => 'K', 'title' => 'K'), array('id' => 'L', 'title' => 'L'), array('id' => 'M', 'title' => 'M'), array('id' => 'N', 'title' => 'N'), array('id' => 'O', 'title' => 'O'), array('id' => 'P', 'title' => 'P'), array('id' => 'Q', 'title' => 'Q'), array('id' => 'R', 'title' => 'R'), array('id' => 'S', 'title' => 'S'), array('id' => 'T', 'title' => 'T'), array('id' => 'U', 'title' => 'U'), array('id' => 'V', 'title' => 'V'), array('id' => 'W', 'title' => 'W'), array('id' => 'X', 'title' => 'X'), array('id' => 'W', 'title' => 'W'), array('id' => 'Z', 'title' => 'Z')));
-		$rTimezone = (empty($_COOKIE['timezone']) || $_COOKIE['timezone'] == 'undefined' ? CoreUtilities::$rSettings['default_timezone'] : $_COOKIE['timezone']);
+		$rTimezone = (empty($_COOKIE['timezone']) || $_COOKIE['timezone'] == 'undefined' ? StreamingUtilities::$rSettings['default_timezone'] : $_COOKIE['timezone']);
 
 		if (in_array($rTimezone, DateTimeZone::listIdentifiers())) {
 		} else {
-			$rTimezone = CoreUtilities::$rSettings['default_timezone'];
+			$rTimezone = StreamingUtilities::$rSettings['default_timezone'];
 		}
 
 		if (!$rAuthenticated) {
-			$rDevice['theme_type'] = CoreUtilities::$rSettings['mag_default_type'];
+			$rDevice['theme_type'] = StreamingUtilities::$rSettings['mag_default_type'];
 		}
 
 		if ($rDevice['theme_type'] == 0) {
 			$rTheme = 'xc_vm';
 		} else {
-			$rTheme = (empty(CoreUtilities::$rSettings['stalker_theme']) ? 'default' : CoreUtilities::$rSettings['stalker_theme']);
+			$rTheme = (empty(StreamingUtilities::$rSettings['stalker_theme']) ? 'default' : StreamingUtilities::$rSettings['stalker_theme']);
 		}
 
 		$rLanguage = array('en_GB.utf8' => array('weather_comfort' => 'Comfort', 'weather_pressure' => 'Pressure', 'weather_mmhg' => 'mm Hg', 'weather_wind' => 'Wind', 'weather_speed' => 'm/s', 'weather_humidity' => 'Humidity', 'current_weather_unavailable' => 'Current weather unavailable', 'current_weather_not_configured' => 'The weather is not configured', 'karaoke_view' => 'VIEW', 'karaoke_sort' => 'SORT', 'karaoke_search' => 'SEARCH', 'karaoke_sampling' => 'PICKING', 'karaoke_by_letter' => 'BY LETTER', 'karaoke_by_performer' => 'BY NAME', 'karaoke_by_title' => 'BY TITLE', 'karaoke_title' => 'KARAOKE', 'layer_page' => 'Page', 'layer_from' => 'of', 'layer_found' => 'Total', 'layer_records' => 'items', 'layer_loading' => 'LOADING...', 'Loading...' => 'Loading...', 'mbrowser_title' => 'Media Browser', 'mbrowser_connected' => 'connected', 'mbrowser_disconnected' => 'disconnected', 'mbrowser_not_found' => 'not found', 'usb_drive' => 'USB drive', 'player_limit_notice' => 'The number of connections is limited.<br>Try again later', 'player_file_missing' => 'File missing', 'player_server_error' => 'Server error', 'player_access_denied' => 'Access denied', 'player_server_unavailable' => 'Server unavailable', 'player_series' => 'part', 'player_season' => 'Season', 'player_track' => 'Track', 'player_off' => 'Off', 'player_subtitle' => 'Subtitles', 'player_claim' => 'Complain', 'player_on_sound' => 'on sound', 'player_on_video' => 'on video', 'player_audio' => 'Audio', 'player_ty' => 'Thank you, your opinion will be taken into account', 'series_by_one_play' => 'play one ⇅', 'series_continuously_play' => 'play continuously ⇅', 'aspect_fit' => 'fit on', 'aspect_big' => 'zoom', 'aspect_opt' => 'optimal', 'aspect_exp' => 'stretch', 'aspect_cmb' => 'combined', 'radio_title' => 'Radio Stations', 'radio_sort' => 'SORT', 'radio_favorite' => 'FAVOURITE', 'radio_search' => 'SEARCH', 'radio_by_number' => 'By Number', 'radio_by_title' => 'By Title', 'radio_only_favorite' => 'Only Favourites', 'radio_fav_add' => 'add', 'radio_fav_del' => 'del', 'radio_search_box' => 'SEARCH', 'tv_view' => 'VIEW', 'tv_sort' => 'SORT', 'favorite' => 'FAVOURITE', 'tv_favorite' => 'FAVOURITE', 'tv_move' => 'MOVE', 'tv_by_number' => 'By Number', 'tv_by_title' => 'By Title', 'tv_only_favorite' => 'Only Favourites', 'tv_only_hd' => 'HD Only', 'tv_list' => 'Standard List', 'tv_list_w_info' => 'List With Player', 'tv_title' => 'Live TV', 'vclub_info' => 'information', 'sclub_info' => 'information', 'vclub_year' => 'Year', 'vclub_country' => 'Country', 'vclub_genre' => 'Genre', 'vclub_length' => 'Length', 'vclub_minutes' => 'min', 'vclub_director' => 'Director', 'vclub_cast' => 'Cast', 'vclub_rating' => 'Rating', 'vclub_age' => 'Age', 'vclub_rating_mpaa' => 'Rating MPAA', 'vclub_view' => 'VIEW', 'vclub_sort' => 'SORT', 'vclub_search' => 'SEARCH', 'vclub_fav' => 'FAVOURITE', 'vclub_other' => 'OTHER', 'vclub_find' => 'FIND', 'vclub_by_letter' => 'Alphabetical', 'vclub_by_genre' => 'Genre', 'vclub_by_year' => 'Year', 'vclub_by_rating' => 'Rating', 'vclub_search_box' => 'Search', 'vclub_query_box' => 'Filter', 'vclub_by_title' => 'Alphabetical', 'vclub_by_addtime' => 'Date Added', 'vclub_top' => 'Rating', 'vclub_only_hd' => 'HD Only', 'vclub_only_favorite' => 'Favourites', 'vclub_only_purchased' => 'purchased', 'vclub_not_ended' => 'not ended', 'vclub_list' => 'Standard List', 'vclub_list_w_info' => 'List With Poster', 'vclub_title' => 'Movies', 'sclub_title' => 'TV Series', 'vclub_purchased' => 'Purchased', 'vclub_rent_expires_in' => 'rent expires in', 'cut_off_msg' => 'your device is not active<br>', 'month_arr' => array('JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'), 'week_arr' => array('SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'), 'year' => '', 'records_title' => 'RECORDS', 'ears_back' => 'BACK', 'ears_about_movie' => 'ABOUT', 'ears_tv_guide' => 'GUIDE', 'ears_about_package' => 'INFO', 'settings_title' => 'Settings', 'parent_settings_cancel' => 'CANCEL', 'parent_settings_save' => 'SAVE', 'parent_settings_old_pass' => 'Current password', 'parent_settings_title' => 'PARENTAL SETTINGS', 'parent_settings_title_short' => 'PARENTAL', 'parent_settings_new_pass' => 'New password', 'parent_settings_repeat_new_pass' => 'Repeat new password', 'settings_saved' => 'Settings saved', 'settings_saved_reboot' => 'Settings saved.<br>The STB will be rebooted. Press OK.', 'settings_check_error' => 'Error filling fields', 'settings_saving_error' => 'Saving error', 'localization_settings_title' => 'LOCALIZATION', 'localization_label' => 'Language of the interface', 'country_label' => 'Country', 'city_label' => 'City', 'localization_page_button_info' => 'Use PAGE-/+ buttons to move through several menu items', 'settings_software_update' => 'SOFTWARE UPDATE', 'update_settings_cancel' => 'CANCEL', 'update_settings_start_update' => 'START UPDATE', 'update_from_http' => 'From HTTP', 'update_from_usb' => 'From USB', 'update_source' => 'Source', 'update_method_select' => 'Method select', 'empty' => 'EMPTY', 'course_title' => 'Exchange rate on', 'course_title_nbu' => 'NBU exchange rate on', 'course_title_cbr' => 'CBR exchange rate on', 'dayweather_title' => 'WEATHER', 'dayweather_pressure' => 'pres.:', 'dayweather_mmhg' => 'mm Hg', 'dayweather_wind' => 'wind:', 'dayweather_speed' => 'm/s', 'infoportal_title' => 'INFOPORTAL', 'cityinfo_title' => 'CITY INFO', 'cityinfo_main' => 'emergency', 'cityinfo_help' => 'help', 'cityinfo_other' => 'other', 'cityinfo_sort' => 'VIEW', 'horoscope_title' => 'HOROSCOPE', 'anecdote_title' => 'JOKES', 'anecdote_goto' => 'GOTO', 'anecdote_like' => 'LIKE', 'anecdote_bookmark' => 'BOOKMARK', 'anecdote_to_bookmark' => 'TO BOOKMARK', 'anecdote_pagebar_title' => 'JOKE', 'mastermind_title' => 'MASTERMIND', 'mastermind_rules' => 'RULES', 'mastermind_rating' => 'RATING', 'mastermind_bull' => 'B', 'mastermind_cow' => 'C', 'mastermind_rules_text' => 'Your task is to guess the number of unduplicated four digits, the first of them - not zero. Every your guess will be compared with the number put forth a STB. If you guessed a digit, but it is not in place, then it is a COW (C). If you guessed, and a number, and its location, this BULL (B).', 'mastermind_move_cursor' => 'Moving the cursor', 'mastermind_cell_numbers' => 'Enter numbers into cells', 'mastermind_step_confirmation' => 'Confirmation of the step', 'mastermind_page' => 'Page', 'mastermind_history_moves' => 'Moving through the pages of history moves', 'msg_service_off' => 'Service is disabled', 'msg_channel_not_available' => 'Channel is not available', 'epg_title' => 'TV Guide', 'epg_record' => 'RECORD', 'epg_remind' => 'REMIND', 'epg_memo' => 'Memo', 'epg_goto_ch' => 'Goto channel', 'epg_close_msg' => 'Close', 'epg_on_ch' => 'on channel', 'epg_now_begins' => 'now begins', 'epg_on_time' => 'in', 'epg_started' => 'started', 'epg_more' => 'MORE', 'epg_category' => 'Category', 'epg_director' => 'Director', 'epg_actors' => 'Stars', 'epg_desc' => 'Description', 'search_box_languages' => array('en'), 'date_format' => '{0}, {2} {1}, {3}', 'time_format' => '{0}:{1}', 'timezone_label' => 'Timezone', 'ntp_server' => 'NTP Server', 'remote_pvr_del' => 'DELETE', 'remote_pvr_stop' => 'STOP', 'remote_pvr_del_confirm' => 'Do you really want to delete this record?', 'remote_pvr_stop_confirm' => 'Do you really want to stop this record?', 'alert_confirm' => 'Confirm', 'alert_cancel' => 'Cancel', 'recorder_server_error' => 'Server error. Try again later.', 'record_duration' => 'RECORDING DURATION', 'rest_length_title' => 'FREE on the server, h', 'channel_recording_restricted' => 'Recording this channel is forbidden', 'recording_disabled' => "Recording isn't available on this device", 'playback_settings_buffer_size' => 'Buffer size', 'playback_settings_time' => 'Time, sec', 'playback_settings_title' => 'PLAYBACK', 'cancel_btn' => 'CANCEL', 'settings_cancel' => 'CANCEL', 'playback_settings_cancel' => 'CANCEL', 'exit_btn' => 'EXIT', 'yes_btn' => 'YES', 'close_btn' => 'CLOSE', 'ok_btn' => 'OK', 'pay_btn' => 'PAY', 'play_btn' => 'PLAY', 'start_btn' => 'START', 'add_btn' => 'ADD', 'settings_save' => 'SAVE', 'playback_settings_save' => 'SAVE', 'audio_out' => 'Audio out', 'audio_out_analog' => 'Analog only', 'audio_out_analog_spdif' => 'Analog and S/PDIF 2-channel PCM', 'audio_out_spdif' => 'S/PDIF raw or 2-channel PCM', 'game' => 'GAME', 'downloads_title' => 'DOWNLOADS', 'not_found_mounted_devices' => 'Not found mounted devices', 'downloads_add_download' => 'Add download', 'downloads_device' => 'Device', 'downloads_file_name' => 'File name', 'downloads_ok' => 'Ok', 'downloads_cancel' => 'Cancel', 'downloads_create' => 'CREATE', 'downloads_move_up' => 'MOVE UP', 'downloads_move_down' => 'MOVE DOWN', 'downloads_delete' => 'DELETE', 'downloads_record' => 'RECORDING', 'downloads_download' => 'DOWNLOAD', 'downloads_record_and_file' => 'RECORDING AND FILE', 'playback_limit_title' => 'Duration of continuous playback', 'playback_limit_off' => 'Without limit', 'playback_hours' => 'hours', 'playback_limit_reached' => 'Reached limit the duration of continuous playback. To continue playback, press the OK or EXIT.', 'common_settings_title' => 'GENERAL SETTINGS', 'screensaver_delay_title' => 'Screensaver interval', 'screensaver_off' => 'Disabled', 'screensaver_minutes' => 'min', 'demo_video_title' => 'DEMO VIDEO', 'account_info_title' => 'My Account', 'coming_soon' => 'Coming soon', 'account_info' => 'INFORMATION', 'account_payment' => 'MODERN PORTAL', 'account_pay' => 'PAY', 'account_agreement' => 'LEGACY PORTAL', 'account_terms' => '', 'demo_video' => 'Video instruction', 'tv_quality' => 'QUALITY', 'tv_quality_low' => 'low', 'tv_quality_medium' => 'medium', 'tv_quality_high' => 'high', 'tv_fav_add' => 'add', 'tv_fav_del' => 'del', 'internet' => 'Internet', 'network_status_title' => 'NETWORK STATUS', 'network_status_refresh' => 'REFRESH', 'test_speed' => 'Speed test', 'speedtest_testing' => 'testing...', 'speedtest_error' => 'error', 'speedtest_waiting' => 'waiting...', 'lan_up' => 'UP', 'lan_down' => 'DOWN', 'download_stopped' => 'stopped', 'download_waiting_queue' => 'waiting queue', 'download_running' => 'running', 'download_completed' => 'completed', 'download_temporary_error' => 'temporary error', 'download_permanent_error' => 'permanent error', 'auth_title' => 'Authentication', 'auth_login' => 'Login', 'auth_password' => 'Password', 'auth_error' => 'Error', 'play_or_download' => 'Play this url or start download?', 'player_play' => 'Play', 'player_download' => 'Download', 'play_all' => 'PLAY ALL', 'on' => 'ON', 'off' => 'OFF', 'smb_auth' => 'Network authentication', 'smb_username' => 'Login', 'smb_password' => 'Password', 'exit_title' => 'Do you really want to exit?', 'identical_download_exist' => 'There is an active downloads from this server', 'alert_form_title' => 'Alert', 'confirm_form_title' => 'Confirm', 'notice_form_title' => 'Notice', 'select_form_title' => 'Select', 'media_favorites' => 'Favourites', 'stb_type_not_supported' => 'your set-top box is not supported', 'Phone' => 'Subscription Expire Date', 'Tariff plan' => 'Tariff plan', 'User' => 'User', 'SERVICES MANAGEMENT' => 'SERVICES MANAGEMENT', 'SUBSCRIBE' => 'SUBSCRIBE', 'UNSUBSCRIBE' => 'UNSUBSCRIBE', 'package_info_title' => 'PACKAGE INFO', 'package_type' => 'Type', 'package_content' => 'Content', 'package_description' => 'Description', 'confirm_service_subscribe_text' => 'Are you really want to subscribe to this service?', 'confirm_service_unsubscribe_text' => 'Are you really want to unsubscribe from this service?', 'confirm_service_price_text' => 'The service costs {0}', 'service_subscribe_success' => 'You have successfully subscribed to the service.', 'service_unsubscribe_success' => 'You have successfully unsubscribed from the service.', 'service_subscribe_success_reboot' => 'You have successfully subscribed to the service. STB will be rebooted.', 'service_unsubscribe_success_reboot' => 'You have successfully unsubscribed from the service. STB will be rebooted.', 'service_subscribe_fail' => 'An error in the management of subscriptions.', 'service_subscribe_server_error' => 'Server error. Try again later.', 'package_price_measurement' => 'package_price_measurement', 'rent_movie_text' => 'Do you really want to rent this movie?', 'rent_movie_price_text' => 'The movie costs {0}', 'rent_duration_text' => 'Rent duration: {0}h', 'Account number' => 'Account number', 'Password' => 'Password', 'End date' => 'End date', '3D mode' => '3D mode', 'mode {0}' => 'mode {0}', 'no epg' => 'no epg', 'wrong epg' => 'wrong epg', 'iso_title' => 'Part', 'error_channel_nothing_to_play' => 'Channel not available', 'error_channel_limit' => 'Channel temporary unavailable', 'error_channel_not_available_for_zone' => 'Channel not available for this region', 'error_channel_link_fault' => 'Channel not available. Server error.', 'error_channel_access_denied' => 'Access denied', 'blocking_account_info' => 'Account Info', 'blocking_account_payment' => 'Payment', 'blocking_account_reboot' => 'Reboot', 'archive_continue_playing_text' => 'Continue playing?', 'archive_yes' => 'YES', 'archive_no' => 'NO', 'time_shift_exit_confirm_text' => 'Do you want to quit the Time Shift mode?', 'mbrowser_sort_by_name' => 'by name', 'mbrowser_sort_by_date' => 'by date', 'Connection problem' => 'Connection problem', 'Authentication problem' => 'Authentication problem', 'Account balance' => 'Account balance', 'remote_pvr_confirm_text' => 'Start recording on the server?', 'remote_deferred_pvr_confirm_text' => 'Do you really want to schedule a recording on the server?', 'pvr_target_select_text' => 'Select where to save the record', 'usb_target_btn' => 'USB Storage', 'server_target_btn' => 'Server', 'save_path' => 'Path', 'file_name' => 'Filename', 'usb_device' => 'USB Device', 'rec_stop_msg' => 'rec_stop_msg', 'rec_file_missing' => 'The recorded file is missing', 'rec_not_ended' => 'Recording is not finished yet', 'rec_channel_has_scheduled_recording' => 'The channel already has a scheduled recording', 'pvr_error_wrong_param' => 'PVR Error: Wrong parameter', 'pvr_error_memory' => 'PVR Error: Not enough memory to complete the operation', 'pvr_error_duration' => 'PVR Error: Incorrect recording range', 'pvr_error_not_found' => 'PVR Error: Task not found', 'pvr_error_wrong_filename' => 'PVR Error: Wrong filename', 'pvr_error_record_exist' => 'PVR Error: Record file already exists', 'pvr_error_url_open_error' => 'PVR Error: Error opening channel URL', 'pvr_error_file_open_error' => 'PVR Error: Error opening file', 'pvr_error_rec_limit' => 'PVR Error: Exceeded the maximum number simultaneous recordings', 'pvr_error_end_of_stream' => 'PVR Error: End of stream', 'pvr_error_file_write_error' => 'PVR Error: Error writing to file', 'pvr_start_time' => 'Start time', 'pvr_end_time' => 'End time', 'pvr_duration' => 'Duration', 'rec_options_form_title' => 'Recording', 'local_pvr_interrupted' => 'Recording on USB device interrupted', 'parent_password_error' => 'Wrong', 'parent_password_title' => 'Parent control', 'settings_password_title' => 'Access control', 'password_label' => 'Password', 'encoding_label' => 'Encoding', 'network_folder' => 'Network folder', 'server_ip' => 'IP address', 'server_path' => 'Path', 'local_folder' => 'Local folder', 'server_type' => 'Type', 'server_login' => 'Login', 'server_password' => 'Password', 'add_folder' => 'ADD', 'server_ip_placeholder' => 'Server address', 'server_path_placeholder' => 'Path to the folder', 'local_folder_placeholder' => 'Folder name in favourites', 'error' => 'error', 'mount_failed' => 'Mount failed', 'ad_skip' => 'SKIP', 'commercial' => 'COMMERCIAL', 'videoClockTitle' => 'Clock', 'videoClock_off' => 'Hidden', 'videoClock_upRight' => 'Top Right', 'videoClock_upLeft' => 'Top Left', 'videoClock_downRight' => 'Bottom Right', 'videoClock_downLeft' => 'Bottom Left', 'settings_unavailable' => 'Settings section is currently unavailable', 'no_dvb_channels_title' => 'No channels available', 'go_to_dvb_settings' => 'You can configure DVB channels in the settings menu', 'apps_title' => 'Applications', 'coming_soon_video' => 'Video will be available soon', 'app_install_confirm' => 'Install application?', 'audioclub_title' => 'AUDIO CLUB', 'track_search' => 'TRACK SEARCH', 'album_search' => 'ALBUM SEARCH', 'add_to_playlist' => 'ADD TO PLAYLIST', 'remove_from_playlist' => 'DEL FROM PLAYLIST', 'playlist' => 'PLAYLIST', 'audioclub_year' => 'Year', 'audioclub_country' => 'Country', 'audioclub_languages' => 'Language', 'audioclub_language' => 'Language', 'audioclub_performer' => 'Artist', 'audioclub_album' => 'Album', 'audioclub_albums' => 'Albums', 'audioclub_tracks' => 'Compositions', 'audioclub_select_playlist' => 'Playlist select', 'audioclub_playlist' => 'Playlist', 'new_btn' => 'NEW', 'playlist_name' => 'Name', 'audioclub_new_playlist' => 'New Playlist', 'audioclub_saving_error' => 'Error while saving', 'audioclub_create_new' => 'CREATE NEW', 'remove_from_playlist_confirm' => 'Do you really want to delete this track from playlist?', 'delete_playlist_confirm' => 'Do you really want to delete this playlist?', 'audioclub_remove_playlist' => 'DELETE', 'vk_music_title' => 'VK MUSIC', 'all_title' => 'All', 'outdated_firmware' => 'Firmware of your STB is outdated.<br>Please update it.', 'LOGOUT' => 'LOGOUT', 'confirm_logout_title' => 'Confirm', 'confirm_logout' => 'Do you really want to log out?'));
@@ -347,30 +347,30 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 					case 'get_profile':
 						$rTotal = ($rAuthenticated ? array_merge($rProfile, $rDevice['get_profile_vars']) : $rProfile);
 						$rTotal['status'] = intval(!$rAuthenticated);
-						$rTotal['update_url'] = (empty(CoreUtilities::$rSettings['update_url']) ? '' : CoreUtilities::$rSettings['update_url']);
-						$rTotal['test_download_url'] = (empty(CoreUtilities::$rSettings['test_download_url']) ? '' : CoreUtilities::$rSettings['test_download_url']);
-						$rTotal['default_timezone'] = CoreUtilities::$rSettings['default_timezone'];
+						$rTotal['update_url'] = (empty(StreamingUtilities::$rSettings['update_url']) ? '' : StreamingUtilities::$rSettings['update_url']);
+						$rTotal['test_download_url'] = (empty(StreamingUtilities::$rSettings['test_download_url']) ? '' : StreamingUtilities::$rSettings['test_download_url']);
+						$rTotal['default_timezone'] = StreamingUtilities::$rSettings['default_timezone'];
 						$rTotal['default_locale'] = $rDevice['locale'];
-						$rTotal['allowed_stb_types'] = CoreUtilities::$rSettings['allowed_stb_types'];
-						$rTotal['allowed_stb_types_for_local_recording'] = CoreUtilities::$rSettings['allowed_stb_types'];
+						$rTotal['allowed_stb_types'] = StreamingUtilities::$rSettings['allowed_stb_types'];
+						$rTotal['allowed_stb_types_for_local_recording'] = StreamingUtilities::$rSettings['allowed_stb_types'];
 						$rTotal['storages'] = array();
-						$rTotal['tv_channel_default_aspect'] = (empty(CoreUtilities::$rSettings['tv_channel_default_aspect']) ? 'fit' : CoreUtilities::$rSettings['tv_channel_default_aspect']);
-						$rTotal['playback_limit'] = (empty(CoreUtilities::$rSettings['playback_limit']) ? false : intval(CoreUtilities::$rSettings['playback_limit']));
+						$rTotal['tv_channel_default_aspect'] = (empty(StreamingUtilities::$rSettings['tv_channel_default_aspect']) ? 'fit' : StreamingUtilities::$rSettings['tv_channel_default_aspect']);
+						$rTotal['playback_limit'] = (empty(StreamingUtilities::$rSettings['playback_limit']) ? false : intval(StreamingUtilities::$rSettings['playback_limit']));
 
 						if (!empty($rTotal['playback_limit'])) {
 						} else {
 							$rTotal['enable_playback_limit'] = false;
 						}
 
-						$rTotal['show_tv_channel_logo'] = !empty(CoreUtilities::$rSettings['show_tv_channel_logo']);
-						$rTotal['show_channel_logo_in_preview'] = !empty(CoreUtilities::$rSettings['show_channel_logo_in_preview']);
-						$rTotal['enable_connection_problem_indication'] = !empty(CoreUtilities::$rSettings['enable_connection_problem_indication']);
+						$rTotal['show_tv_channel_logo'] = !empty(StreamingUtilities::$rSettings['show_tv_channel_logo']);
+						$rTotal['show_channel_logo_in_preview'] = !empty(StreamingUtilities::$rSettings['show_channel_logo_in_preview']);
+						$rTotal['enable_connection_problem_indication'] = !empty(StreamingUtilities::$rSettings['enable_connection_problem_indication']);
 						$rTotal['hls_fast_start'] = '1';
 						$rTotal['check_ssl_certificate'] = 0;
 						$rTotal['enable_buffering_indication'] = 1;
 						$rTotal['watchdog_timeout'] = mt_rand(80, 120);
 
-						if (!(empty($rTotal['aspect']) && CoreUtilities::$rServers[SERVER_ID]['server_protocol'] == 'https')) {
+						if (!(empty($rTotal['aspect']) && StreamingUtilities::$rServers[SERVER_ID]['server_protocol'] == 'https')) {
 						} else {
 							$rTotal['aspect'] = '16';
 						}
@@ -424,8 +424,8 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 									$rInfo = $db->get_row();
 									$rSettings = array('js' => array('modules' => array(array('name' => 'lock'), array('name' => 'lang'), array('name' => 'update'), array('name' => 'net_info', 'sub' => array(array('name' => 'wired'), array('name' => 'pppoe', 'sub' => array(array('name' => 'dhcp'), array('name' => 'dhcp_manual'), array('name' => 'disable'))), array('name' => 'wireless'), array('name' => 'speed'))), array('name' => 'video'), array('name' => 'audio'), array('name' => 'net', 'sub' => array(array('name' => 'ethernet', 'sub' => array(array('name' => 'dhcp'), array('name' => 'dhcp_manual'), array('name' => 'manual'), array('name' => 'no_ip'))), array('name' => 'pppoe', 'sub' => array(array('name' => 'dhcp'), array('name' => 'dhcp_manual'), array('name' => 'disable'))), array('name' => 'wifi', 'sub' => array(array('name' => 'dhcp'), array('name' => 'dhcp_manual'), array('name' => 'manual'))), array('name' => 'speed'))), array('name' => 'advanced'), array('name' => 'dev_info'), array('name' => 'reload'), array('name' => 'internal_portal'), array('name' => 'reboot'))));
 									$rSettings['js']['parent_password'] = $rInfo['parent_password'];
-									$rSettings['js']['update_url'] = CoreUtilities::$rSettings['update_url'];
-									$rSettings['js']['test_download_url'] = CoreUtilities::$rSettings['test_download_url'];
+									$rSettings['js']['update_url'] = StreamingUtilities::$rSettings['update_url'];
+									$rSettings['js']['test_download_url'] = StreamingUtilities::$rSettings['test_download_url'];
 									$rSettings['js']['playback_buffer_size'] = $rInfo['playback_buffer_size'];
 									$rSettings['js']['screensaver_delay'] = $rInfo['screensaver_delay'];
 									$rSettings['js']['plasma_saving'] = $rInfo['plasma_saving'];
@@ -442,7 +442,7 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 									$rSettings['js']['show_after_loading'] = $rInfo['show_after_loading'];
 									$rSettings['js']['sec_audio_lang'] = $rProfile['sec_audio_lang'];
 
-									if (CoreUtilities::$rSettings['always_enabled_subtitles'] == 1) {
+									if (StreamingUtilities::$rSettings['always_enabled_subtitles'] == 1) {
 										$rSettings['js']['pri_subtitle_lang'] = $rProfile['pri_subtitle_lang'];
 										$rSettings['js']['sec_subtitle_lang'] = $rProfile['sec_subtitle_lang'];
 									} else {
@@ -472,7 +472,7 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 									exit(json_encode($rDevice['aspect']));
 
 								case 'set_volume':
-									$rVolume = CoreUtilities::$rRequest['vol'];
+									$rVolume = StreamingUtilities::$rRequest['vol'];
 
 									if (empty($rVolume)) {
 										break;
@@ -485,8 +485,8 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 									exit(json_encode(array('data' => true)));
 
 								case 'set_aspect':
-									$rChannelID = CoreUtilities::$rRequest['ch_id'];
-									$rAspect = CoreUtilities::$rRequest['aspect'];
+									$rChannelID = StreamingUtilities::$rRequest['ch_id'];
+									$rAspect = StreamingUtilities::$rRequest['aspect'];
 									$rDeviceAspect = $rDevice['aspect'];
 
 									if (empty($rDeviceAspect)) {
@@ -509,7 +509,7 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 								case 'set_screensaver_delay':
 									if (empty($_SERVER['HTTP_COOKIE'])) {
 									} else {
-										$rDelay = intval(CoreUtilities::$rRequest['screensaver_delay']);
+										$rDelay = intval(StreamingUtilities::$rRequest['screensaver_delay']);
 										$rDevice['screensaver_delay'] = $rDelay;
 										$db->query('UPDATE `mag_devices` SET `screensaver_delay` = ? WHERE `mag_id` = ?', $rDelay, $rDevice['mag_id']);
 										updatecache();
@@ -520,8 +520,8 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 								case 'set_playback_buffer':
 									if (empty($_SERVER['HTTP_COOKIE'])) {
 									} else {
-										$rBufferBytes = intval(CoreUtilities::$rRequest['playback_buffer_bytes']);
-										$rBufferSize = intval(CoreUtilities::$rRequest['playback_buffer_size']);
+										$rBufferBytes = intval(StreamingUtilities::$rRequest['playback_buffer_bytes']);
+										$rBufferSize = intval(StreamingUtilities::$rRequest['playback_buffer_size']);
 										$rDevice['playback_buffer_bytes'] = $rBufferBytes;
 										$rDevice['playback_buffer_size'] = $rBufferSize;
 										$db->query('UPDATE `mag_devices` SET `playback_buffer_bytes` = ? , `playback_buffer_size` = ? WHERE `mag_id` = ?', $rBufferBytes, $rBufferSize, $rDevice['mag_id']);
@@ -531,7 +531,7 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 									exit(json_encode(array('js' => true)));
 
 								case 'set_plasma_saving':
-									$rPlasmaSaving = intval(CoreUtilities::$rRequest['plasma_saving']);
+									$rPlasmaSaving = intval(StreamingUtilities::$rRequest['plasma_saving']);
 									$rDevice['plasma_saving'] = $rPlasmaSaving;
 									$db->query('UPDATE `mag_devices` SET `plasma_saving` = ? WHERE `mag_id` = ?', $rPlasmaSaving, $rDevice['mag_id']);
 									updatecache();
@@ -539,9 +539,9 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 									exit(json_encode(array('js' => true)));
 
 								case 'set_parent_password':
-									if (isset(CoreUtilities::$rRequest['parent_password']) && isset(CoreUtilities::$rRequest['pass']) && isset(CoreUtilities::$rRequest['repeat_pass']) && CoreUtilities::$rRequest['pass'] == CoreUtilities::$rRequest['repeat_pass']) {
-										$rDevice['parent_password'] = CoreUtilities::$rRequest['pass'];
-										$db->query('UPDATE `mag_devices` SET `parent_password` = ? WHERE `mag_id` = ?', CoreUtilities::$rRequest['pass'], $rDevice['mag_id']);
+									if (isset(StreamingUtilities::$rRequest['parent_password']) && isset(StreamingUtilities::$rRequest['pass']) && isset(StreamingUtilities::$rRequest['repeat_pass']) && StreamingUtilities::$rRequest['pass'] == StreamingUtilities::$rRequest['repeat_pass']) {
+										$rDevice['parent_password'] = StreamingUtilities::$rRequest['pass'];
+										$db->query('UPDATE `mag_devices` SET `parent_password` = ? WHERE `mag_id` = ?', StreamingUtilities::$rRequest['pass'], $rDevice['mag_id']);
 										updatecache();
 
 										exit(json_encode(array('js' => true)));
@@ -550,19 +550,19 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 									exit(json_encode(array('js' => true)));
 
 								case 'set_locale':
-									if (empty(CoreUtilities::$rRequest['locale'])) {
+									if (empty(StreamingUtilities::$rRequest['locale'])) {
 									} else {
-										$rDevice['locale'] = CoreUtilities::$rRequest['locale'];
-										$db->query('UPDATE `mag_devices` SET `locale` = ? WHERE `mag_id` = ?', CoreUtilities::$rRequest['locale'], $rDevice['mag_id']);
+										$rDevice['locale'] = StreamingUtilities::$rRequest['locale'];
+										$db->query('UPDATE `mag_devices` SET `locale` = ? WHERE `mag_id` = ?', StreamingUtilities::$rRequest['locale'], $rDevice['mag_id']);
 										updatecache();
 									}
 
 									exit(json_encode(array('js' => array())));
 
 								case 'set_hdmi_reaction':
-									if (empty($_SERVER['HTTP_COOKIE']) || !isset(CoreUtilities::$rRequest['data'])) {
+									if (empty($_SERVER['HTTP_COOKIE']) || !isset(StreamingUtilities::$rRequest['data'])) {
 									} else {
-										$rReaction = CoreUtilities::$rRequest['data'];
+										$rReaction = StreamingUtilities::$rRequest['data'];
 										$rDevice['hdmi_event_reaction'] = $rReaction;
 										$db->query('UPDATE `mag_devices` SET `hdmi_event_reaction` = ? WHERE `mag_id` = ?', $rReaction, $rDevice['mag_id']);
 										updatecache();
@@ -600,11 +600,11 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 									exit(json_encode(array('js' => $rData), JSON_PARTIAL_OUTPUT_ON_ERROR));
 
 								case 'confirm_event':
-									if (empty(CoreUtilities::$rRequest['event_active_id'])) {
+									if (empty(StreamingUtilities::$rRequest['event_active_id'])) {
 										break;
 									}
 
-									$rActiveID = CoreUtilities::$rRequest['event_active_id'];
+									$rActiveID = StreamingUtilities::$rRequest['event_active_id'];
 									$db->query('UPDATE `mag_events` SET `status` = 1 WHERE `id` = ?', $rActiveID);
 
 									exit(json_encode(array('js' => array('data' => 'ok'))));
@@ -618,12 +618,12 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 									$rOutput = array();
 									$rOutput['js'] = array();
 
-									if (CoreUtilities::$rSettings['show_all_category_mag'] != 1) {
+									if (StreamingUtilities::$rSettings['show_all_category_mag'] != 1) {
 									} else {
 										$rOutput['js'][] = array('id' => '*', 'title' => 'All', 'alias' => '*', 'censored' => 0);
 									}
 
-									foreach (CoreUtilities::$rCategories as $rCategoryID => $rCategory) {
+									foreach (StreamingUtilities::$rCategories as $rCategoryID => $rCategory) {
 										if ($rCategory['category_type'] == 'movie' && in_array($rCategory['id'], $rDevice['category_ids'])) {
 											$rOutput['js'][] = array('id' => $rCategory['id'], 'title' => $rCategory['category_name'], 'alias' => $rCategory['category_name'], 'censored' => intval($rCategory['is_adult']));
 										}
@@ -637,18 +637,18 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 						case 'itv':
 							switch ($rReqAction) {
 								case 'create_link':
-									$rCommand = CoreUtilities::$rRequest['cmd'];
+									$rCommand = StreamingUtilities::$rRequest['cmd'];
 									$rValue = 'http://localhost/ch/';
 									list($rStreamID, $rStreamValue) = explode('_', substr($rCommand, strpos($rCommand, $rValue) + strlen($rValue)));
 
 									if (empty($rStreamValue)) {
-										$rEncData = 'ministra::live/' . $rDevice['username'] . '/' . $rDevice['password'] . '/' . $rStreamID . '/' . CoreUtilities::$rSettings['mag_container'] . '/' . $rDevice['token'];
-										$rToken = CoreUtilities::encryptData($rEncData, CoreUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
-										$rURL = $rPlayer . ((CoreUtilities::$rSettings['mag_disable_ssl'] ? CoreUtilities::$rServers[SERVER_ID]['http_url'] : CoreUtilities::$rServers[SERVER_ID]['site_url'])) . 'play/' . $rToken;
+										$rEncData = 'ministra::live/' . $rDevice['username'] . '/' . $rDevice['password'] . '/' . $rStreamID . '/' . StreamingUtilities::$rSettings['mag_container'] . '/' . $rDevice['token'];
+										$rToken = StreamingUtilities::encryptData($rEncData, StreamingUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+										$rURL = $rPlayer . ((StreamingUtilities::$rSettings['mag_disable_ssl'] ? StreamingUtilities::$rServers[SERVER_ID]['http_url'] : StreamingUtilities::$rServers[SERVER_ID]['site_url'])) . 'play/' . $rToken;
 
-										if (!CoreUtilities::$rSettings['mag_keep_extension']) {
+										if (!StreamingUtilities::$rSettings['mag_keep_extension']) {
 										} else {
-											$rURL .= '?ext=.' . CoreUtilities::$rSettings['mag_container'];
+											$rURL .= '?ext=.' . StreamingUtilities::$rSettings['mag_container'];
 										}
 									} else {
 										$rURL = $rPlayer . $rStreamValue;
@@ -657,10 +657,10 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 									exit(json_encode(array('js' => array('id' => $rStreamID, 'cmd' => $rURL), 'streamer_id' => 0, 'link_id' => 0, 'load' => 0, 'error' => '')));
 
 								case 'set_claim':
-									if (empty(CoreUtilities::$rRequest['id']) || empty(CoreUtilities::$rRequest['real_type'])) {
+									if (empty(StreamingUtilities::$rRequest['id']) || empty(StreamingUtilities::$rRequest['real_type'])) {
 									} else {
-										$rID = intval(CoreUtilities::$rRequest['id']);
-										$rRealType = CoreUtilities::$rRequest['real_type'];
+										$rID = intval(StreamingUtilities::$rRequest['id']);
+										$rRealType = StreamingUtilities::$rRequest['real_type'];
 										$rDate = date('Y-m-d H:i:s');
 										$db->query('INSERT INTO `mag_claims` (`stream_id`,`mag_id`,`real_type`,`date`) VALUES(?,?,?,?)', $rID, $rDevice['mag_id'], $rRealType, $rDate);
 									}
@@ -668,7 +668,7 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 									exit(json_encode(array('js' => true)));
 
 								case 'set_fav':
-									$rChannels = (empty(CoreUtilities::$rRequest['fav_ch']) ? '' : CoreUtilities::$rRequest['fav_ch']);
+									$rChannels = (empty(StreamingUtilities::$rRequest['fav_ch']) ? '' : StreamingUtilities::$rRequest['fav_ch']);
 									$rChannels = array_filter(array_map('intval', explode(',', $rChannels)));
 									$rDevice['fav_channels']['live'] = $rChannels;
 									$db->query('UPDATE `mag_devices` SET `fav_channels` = ? WHERE `mag_id` = ?', json_encode($rDevice['fav_channels']), $rDevice['mag_id']);
@@ -680,20 +680,20 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 									exit(json_encode(array('js' => $rDevice['fav_channels']['live'])));
 
 								case 'get_all_channels':
-									$rGenre = (empty(CoreUtilities::$rRequest['genre']) || !is_numeric(CoreUtilities::$rRequest['genre']) ? null : intval(CoreUtilities::$rRequest['genre']));
+									$rGenre = (empty(StreamingUtilities::$rRequest['genre']) || !is_numeric(StreamingUtilities::$rRequest['genre']) ? null : intval(StreamingUtilities::$rRequest['genre']));
 
 									exit(getStreams($rGenre, true));
 
 								case 'get_ordered_list':
-									$rFav = (!empty(CoreUtilities::$rRequest['fav']) ? 1 : null);
-									$rSortBy = (!empty(CoreUtilities::$rRequest['sortby']) ? CoreUtilities::$rRequest['sortby'] : null);
-									$rGenre = (empty(CoreUtilities::$rRequest['genre']) || !is_numeric(CoreUtilities::$rRequest['genre']) ? null : intval(CoreUtilities::$rRequest['genre']));
-									$rSearch = (!empty(CoreUtilities::$rRequest['search']) ? CoreUtilities::$rRequest['search'] : null);
+									$rFav = (!empty(StreamingUtilities::$rRequest['fav']) ? 1 : null);
+									$rSortBy = (!empty(StreamingUtilities::$rRequest['sortby']) ? StreamingUtilities::$rRequest['sortby'] : null);
+									$rGenre = (empty(StreamingUtilities::$rRequest['genre']) || !is_numeric(StreamingUtilities::$rRequest['genre']) ? null : intval(StreamingUtilities::$rRequest['genre']));
+									$rSearch = (!empty(StreamingUtilities::$rRequest['search']) ? StreamingUtilities::$rRequest['search'] : null);
 
 									exit(getStreams($rGenre, false, $rFav, $rSortBy, $rSearch));
 
 								case 'get_all_fav_channels':
-									$rGenre = (empty(CoreUtilities::$rRequest['genre']) || !is_numeric(CoreUtilities::$rRequest['genre']) ? null : intval(CoreUtilities::$rRequest['genre']));
+									$rGenre = (empty(StreamingUtilities::$rRequest['genre']) || !is_numeric(StreamingUtilities::$rRequest['genre']) ? null : intval(StreamingUtilities::$rRequest['genre']));
 
 									exit(getStreams($rGenre, true, 1));
 
@@ -701,9 +701,9 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 									exit(json_encode(array('js' => array('data' => array())), JSON_PARTIAL_OUTPUT_ON_ERROR));
 
 								case 'get_short_epg':
-									if (empty(CoreUtilities::$rRequest['ch_id'])) {
+									if (empty(StreamingUtilities::$rRequest['ch_id'])) {
 									} else {
-										$rChannelID = CoreUtilities::$rRequest['ch_id'];
+										$rChannelID = StreamingUtilities::$rRequest['ch_id'];
 										$rEPG = array('js' => array());
 										$rTime = time();
 										$rEPGData = array();
@@ -724,7 +724,7 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 
 										if (empty($rEPGData)) {
 										} else {
-											$rTimeDifference = (CoreUtilities::getDiffTimezone($rTimezone) ?: 0);
+											$rTimeDifference = (StreamingUtilities::getDiffTimezone($rTimezone) ?: 0);
 											$i = 0;
 
 											for ($n = 0; $n < count($rEPGData); $n++) {
@@ -754,7 +754,7 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 													$rEPG['js'][$i]['mark_memo'] = 0;
 													$rEPG['js'][$i]['mark_archive'] = 0;
 
-													if (count($rEPG['js']) != ((intval(CoreUtilities::$rRequest['size']) ?: 4))) {
+													if (count($rEPG['js']) != ((intval(StreamingUtilities::$rRequest['size']) ?: 4))) {
 														$i++;
 													}
 												}
@@ -765,7 +765,7 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 									exit(json_encode($rEPG, JSON_PARTIAL_OUTPUT_ON_ERROR));
 
 								case 'set_last_id':
-									$rChannelID = intval(CoreUtilities::$rRequest['id']);
+									$rChannelID = intval(StreamingUtilities::$rRequest['id']);
 
 									if (0 >= $rChannelID) {
 									} else {
@@ -780,12 +780,12 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 									$rOutput = array();
 									$rNumber = 1;
 
-									if (CoreUtilities::$rSettings['show_all_category_mag'] != 1) {
+									if (StreamingUtilities::$rSettings['show_all_category_mag'] != 1) {
 									} else {
 										$rOutput['js'][] = array('id' => '*', 'title' => 'All', 'alias' => 'All', 'active_sub' => true, 'censored' => 0);
 									}
 
-									foreach (CoreUtilities::$rCategories as $rCategoryID => $rCategory) {
+									foreach (StreamingUtilities::$rCategories as $rCategoryID => $rCategory) {
 										if ($rCategory['category_type'] == 'live' && in_array($rCategory['id'], $rDevice['category_ids'])) {
 											$rOutput['js'][] = array('id' => $rCategory['id'], 'title' => $rCategory['category_name'], 'modified' => '', 'number' => $rNumber++, 'alias' => strtolower($rCategory['category_name']), 'censored' => intval($rCategory['is_adult']));
 										}
@@ -799,10 +799,10 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 						case 'vod':
 							switch ($rReqAction) {
 								case 'set_claim':
-									if (empty(CoreUtilities::$rRequest['id']) || empty(CoreUtilities::$rRequest['real_type'])) {
+									if (empty(StreamingUtilities::$rRequest['id']) || empty(StreamingUtilities::$rRequest['real_type'])) {
 									} else {
-										$rID = intval(CoreUtilities::$rRequest['id']);
-										$rRealType = CoreUtilities::$rRequest['real_type'];
+										$rID = intval(StreamingUtilities::$rRequest['id']);
+										$rRealType = StreamingUtilities::$rRequest['real_type'];
 										$rDate = date('Y-m-d H:i:s');
 										$db->query('INSERT INTO `mag_claims` (`stream_id`,`mag_id`,`real_type`,`date`) VALUES(?,?,?,?)', $rID, $rDevice['mag_id'], $rRealType, $rDate);
 									}
@@ -810,9 +810,9 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 									exit(json_encode(array('js' => true)));
 
 								case 'set_fav':
-									if (empty(CoreUtilities::$rRequest['video_id'])) {
+									if (empty(StreamingUtilities::$rRequest['video_id'])) {
 									} else {
-										$rVideoID = intval(CoreUtilities::$rRequest['video_id']);
+										$rVideoID = intval(StreamingUtilities::$rRequest['video_id']);
 
 										if (in_array($rVideoID, $rDevice['fav_channels']['movie'])) {
 										} else {
@@ -826,9 +826,9 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 									exit(json_encode(array('js' => true)));
 
 								case 'del_fav':
-									if (empty(CoreUtilities::$rRequest['video_id'])) {
+									if (empty(StreamingUtilities::$rRequest['video_id'])) {
 									} else {
-										$rVideoID = intval(CoreUtilities::$rRequest['video_id']);
+										$rVideoID = intval(StreamingUtilities::$rRequest['video_id']);
 
 										foreach ($rDevice['fav_channels']['movie'] as $rKey => $rValue) {
 											if ($rValue != $rVideoID) {
@@ -849,12 +849,12 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 									$rOutput = array();
 									$rOutput['js'] = array();
 
-									if (CoreUtilities::$rSettings['show_all_category_mag'] != 1) {
+									if (StreamingUtilities::$rSettings['show_all_category_mag'] != 1) {
 									} else {
 										$rOutput['js'][] = array('id' => '*', 'title' => 'All', 'alias' => '*', 'censored' => 0);
 									}
 
-									foreach (CoreUtilities::$rCategories as $rCategoryID => $rCategory) {
+									foreach (StreamingUtilities::$rCategories as $rCategoryID => $rCategory) {
 										if ($rCategory['category_type'] == 'movie' && in_array($rCategory['id'], $rDevice['category_ids'])) {
 											$rOutput['js'][] = array('id' => $rCategory['id'], 'title' => $rCategory['category_name'], 'alias' => $rCategory['category_name'], 'censored' => intval($rCategory['is_adult']));
 										}
@@ -866,7 +866,7 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 									$rOutput = array();
 									$rOutput['js'][] = array('id' => '*', 'title' => '*');
 
-									foreach (CoreUtilities::$rCategories as $rCategoryID => $rCategory) {
+									foreach (StreamingUtilities::$rCategories as $rCategoryID => $rCategory) {
 										if ($rCategory['category_type'] == 'movie' && in_array($rCategory['id'], $rDevice['category_ids'])) {
 											$rOutput['js'][] = array('id' => $rCategory['id'], 'title' => $rCategory['category_name']);
 										}
@@ -878,20 +878,20 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 									exit(json_encode($rMagData['get_years']));
 
 								case 'get_ordered_list':
-									$rCategory = (!empty(CoreUtilities::$rRequest['category']) && is_numeric(CoreUtilities::$rRequest['category']) ? CoreUtilities::$rRequest['category'] : null);
-									$rFav = (!empty(CoreUtilities::$rRequest['fav']) ? 1 : null);
-									$rSortBy = (!empty(CoreUtilities::$rRequest['sortby']) ? CoreUtilities::$rRequest['sortby'] : 'added');
-									$rSearch = (!empty(CoreUtilities::$rRequest['search']) ? CoreUtilities::$rRequest['search'] : null);
+									$rCategory = (!empty(StreamingUtilities::$rRequest['category']) && is_numeric(StreamingUtilities::$rRequest['category']) ? StreamingUtilities::$rRequest['category'] : null);
+									$rFav = (!empty(StreamingUtilities::$rRequest['fav']) ? 1 : null);
+									$rSortBy = (!empty(StreamingUtilities::$rRequest['sortby']) ? StreamingUtilities::$rRequest['sortby'] : 'added');
+									$rSearch = (!empty(StreamingUtilities::$rRequest['search']) ? StreamingUtilities::$rRequest['search'] : null);
 									$rPicking = array();
-									$rPicking['abc'] = (!empty(CoreUtilities::$rRequest['abc']) ? CoreUtilities::$rRequest['abc'] : '*');
-									$rPicking['genre'] = (!empty(CoreUtilities::$rRequest['genre']) ? CoreUtilities::$rRequest['genre'] : '*');
-									$rPicking['years'] = (!empty(CoreUtilities::$rRequest['years']) ? CoreUtilities::$rRequest['years'] : '*');
+									$rPicking['abc'] = (!empty(StreamingUtilities::$rRequest['abc']) ? StreamingUtilities::$rRequest['abc'] : '*');
+									$rPicking['genre'] = (!empty(StreamingUtilities::$rRequest['genre']) ? StreamingUtilities::$rRequest['genre'] : '*');
+									$rPicking['years'] = (!empty(StreamingUtilities::$rRequest['years']) ? StreamingUtilities::$rRequest['years'] : '*');
 
 									exit(getMovies($rCategory, $rFav, $rSortBy, $rSearch, $rPicking));
 
 								case 'create_link':
-									$rCommand = CoreUtilities::$rRequest['cmd'];
-									$rSeries = (!empty(CoreUtilities::$rRequest['series']) ? (int) CoreUtilities::$rRequest['series'] : 0);
+									$rCommand = StreamingUtilities::$rRequest['cmd'];
+									$rSeries = (!empty(StreamingUtilities::$rRequest['series']) ? (int) StreamingUtilities::$rRequest['series'] : 0);
 									$rError = '';
 
 									if (!stristr($rCommand, '/media/')) {
@@ -931,10 +931,10 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 											}
 									}
 									$rEncData = 'ministra::' . $rCommand['type'] . '/' . $rDevice['username'] . '/' . $rDevice['password'] . '/' . $rCommand['stream_id'] . '/' . $rCommand['target_container'] . '/' . $rDevice['token'];
-									$rToken = CoreUtilities::encryptData($rEncData, CoreUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
-									$rURL = ((CoreUtilities::$rSettings['mag_disable_ssl'] ? CoreUtilities::$rServers[SERVER_ID]['http_url'] : CoreUtilities::$rServers[SERVER_ID]['site_url'])) . 'play/' . $rToken;
+									$rToken = StreamingUtilities::encryptData($rEncData, StreamingUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+									$rURL = ((StreamingUtilities::$rSettings['mag_disable_ssl'] ? StreamingUtilities::$rServers[SERVER_ID]['http_url'] : StreamingUtilities::$rServers[SERVER_ID]['site_url'])) . 'play/' . $rToken;
 
-									if (!CoreUtilities::$rSettings['mag_keep_extension']) {
+									if (!StreamingUtilities::$rSettings['mag_keep_extension']) {
 									} else {
 										$rURL .= '?ext=.' . $rCommand['target_container'];
 									}
@@ -952,10 +952,10 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 						case 'series':
 							switch ($rReqAction) {
 								case 'set_claim':
-									if (empty(CoreUtilities::$rRequest['id']) || empty(CoreUtilities::$rRequest['real_type'])) {
+									if (empty(StreamingUtilities::$rRequest['id']) || empty(StreamingUtilities::$rRequest['real_type'])) {
 									} else {
-										$rID = intval(CoreUtilities::$rRequest['id']);
-										$rRealType = CoreUtilities::$rRequest['real_type'];
+										$rID = intval(StreamingUtilities::$rRequest['id']);
+										$rRealType = StreamingUtilities::$rRequest['real_type'];
 										$rDate = date('Y-m-d H:i:s');
 										$db->query('INSERT INTO `mag_claims` (`stream_id`,`mag_id`,`real_type`,`date`) VALUES(?,?,?,?)', $rID, $rDevice['mag_id'], $rRealType, $rDate);
 									}
@@ -963,9 +963,9 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 									exit(json_encode(array('js' => true)));
 
 								case 'set_fav':
-									if (empty(CoreUtilities::$rRequest['video_id'])) {
+									if (empty(StreamingUtilities::$rRequest['video_id'])) {
 									} else {
-										$rVideoID = intval(CoreUtilities::$rRequest['video_id']);
+										$rVideoID = intval(StreamingUtilities::$rRequest['video_id']);
 
 										if (in_array($rVideoID, $rDevice['fav_channels']['series'])) {
 										} else {
@@ -979,9 +979,9 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 									exit(json_encode(array('js' => true)));
 
 								case 'del_fav':
-									if (empty(CoreUtilities::$rRequest['video_id'])) {
+									if (empty(StreamingUtilities::$rRequest['video_id'])) {
 									} else {
-										$rVideoID = intval(CoreUtilities::$rRequest['video_id']);
+										$rVideoID = intval(StreamingUtilities::$rRequest['video_id']);
 
 										foreach ($rDevice['fav_channels']['series'] as $rKey => $rValue) {
 											if ($rValue != $rVideoID) {
@@ -1002,12 +1002,12 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 									$rOutput = array();
 									$rOutput['js'] = array();
 
-									if (CoreUtilities::$rSettings['show_all_category_mag'] != 1) {
+									if (StreamingUtilities::$rSettings['show_all_category_mag'] != 1) {
 									} else {
 										$rOutput['js'][] = array('id' => '*', 'title' => 'All', 'alias' => '*', 'censored' => 0);
 									}
 
-									foreach (CoreUtilities::$rCategories as $rCategoryID => $rCategory) {
+									foreach (StreamingUtilities::$rCategories as $rCategoryID => $rCategory) {
 										if ($rCategory['category_type'] == 'series' && in_array($rCategory['id'], $rDevice['category_ids'])) {
 											$rOutput['js'][] = array('id' => $rCategory['id'], 'title' => $rCategory['category_name'], 'alias' => $rCategory['category_name'], 'censored' => intval($rCategory['is_adult']));
 										}
@@ -1019,7 +1019,7 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 									$rOutput = array();
 									$rOutput['js'][] = array('id' => '*', 'title' => '*');
 
-									foreach (CoreUtilities::$rCategories as $rCategoryID => $rCategory) {
+									foreach (StreamingUtilities::$rCategories as $rCategoryID => $rCategory) {
 										if ($rCategory['category_type'] == 'series' && in_array($rCategory['id'], $rDevice['category_ids'])) {
 											$rOutput['js'][] = array('id' => $rCategory['id'], 'title' => $rCategory['category_name']);
 										}
@@ -1031,15 +1031,15 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 									exit(json_encode($rMagData['get_years']));
 
 								case 'get_ordered_list':
-									$rCategory = (!empty(CoreUtilities::$rRequest['category']) && is_numeric(CoreUtilities::$rRequest['category']) ? CoreUtilities::$rRequest['category'] : null);
-									$rFav = (!empty(CoreUtilities::$rRequest['fav']) ? 1 : null);
-									$rSortBy = (!empty(CoreUtilities::$rRequest['sortby']) ? CoreUtilities::$rRequest['sortby'] : 'added');
-									$rSearch = (!empty(CoreUtilities::$rRequest['search']) ? CoreUtilities::$rRequest['search'] : null);
-									$rMovieID = (!empty(CoreUtilities::$rRequest['movie_id']) ? (int) CoreUtilities::$rRequest['movie_id'] : null);
+									$rCategory = (!empty(StreamingUtilities::$rRequest['category']) && is_numeric(StreamingUtilities::$rRequest['category']) ? StreamingUtilities::$rRequest['category'] : null);
+									$rFav = (!empty(StreamingUtilities::$rRequest['fav']) ? 1 : null);
+									$rSortBy = (!empty(StreamingUtilities::$rRequest['sortby']) ? StreamingUtilities::$rRequest['sortby'] : 'added');
+									$rSearch = (!empty(StreamingUtilities::$rRequest['search']) ? StreamingUtilities::$rRequest['search'] : null);
+									$rMovieID = (!empty(StreamingUtilities::$rRequest['movie_id']) ? (int) StreamingUtilities::$rRequest['movie_id'] : null);
 									$rPicking = array();
-									$rPicking['abc'] = (!empty(CoreUtilities::$rRequest['abc']) ? CoreUtilities::$rRequest['abc'] : '*');
-									$rPicking['genre'] = (!empty(CoreUtilities::$rRequest['genre']) ? CoreUtilities::$rRequest['genre'] : '*');
-									$rPicking['years'] = (!empty(CoreUtilities::$rRequest['years']) ? CoreUtilities::$rRequest['years'] : '*');
+									$rPicking['abc'] = (!empty(StreamingUtilities::$rRequest['abc']) ? StreamingUtilities::$rRequest['abc'] : '*');
+									$rPicking['genre'] = (!empty(StreamingUtilities::$rRequest['genre']) ? StreamingUtilities::$rRequest['genre'] : '*');
+									$rPicking['years'] = (!empty(StreamingUtilities::$rRequest['years']) ? StreamingUtilities::$rRequest['years'] : '*');
 
 									exit(getSeries($rMovieID, $rCategory, $rFav, $rSortBy, $rSearch, $rPicking));
 
@@ -1058,7 +1058,7 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 										$rExpiry = date('F j, Y, g:i a', $rDevice['exp_date']);
 									}
 
-									exit(json_encode(array('js' => array('mac' => $rMAC, 'phone' => $rExpiry, 'message' => htmlspecialchars_decode(str_replace("\n", '<br/>', CoreUtilities::$rSettings['mag_message']))))));
+									exit(json_encode(array('js' => array('mac' => $rMAC, 'phone' => $rExpiry, 'message' => htmlspecialchars_decode(str_replace("\n", '<br/>', StreamingUtilities::$rSettings['mag_message']))))));
 							}
 
 							break;
@@ -1066,8 +1066,8 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 						case 'radio':
 							switch ($rReqAction) {
 								case 'get_ordered_list':
-									$rFav = (!empty(CoreUtilities::$rRequest['fav']) ? 1 : null);
-									$rSortBy = (!empty(CoreUtilities::$rRequest['sortby']) ? CoreUtilities::$rRequest['sortby'] : 'added');
+									$rFav = (!empty(StreamingUtilities::$rRequest['fav']) ? 1 : null);
+									$rSortBy = (!empty(StreamingUtilities::$rRequest['sortby']) ? StreamingUtilities::$rRequest['sortby'] : 'added');
 
 									exit(getStations(null, $rFav, $rSortBy));
 
@@ -1075,7 +1075,7 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 									exit(getStations(null, 1, null));
 
 								case 'set_fav':
-									$f3f9f9fa3c58c22b = (empty(CoreUtilities::$rRequest['fav_radio']) ? '' : CoreUtilities::$rRequest['fav_radio']);
+									$f3f9f9fa3c58c22b = (empty(StreamingUtilities::$rRequest['fav_radio']) ? '' : StreamingUtilities::$rRequest['fav_radio']);
 									$f3f9f9fa3c58c22b = array_filter(array_map('intval', explode(',', $f3f9f9fa3c58c22b)));
 									$rDevice['fav_channels']['radio_streams'] = $f3f9f9fa3c58c22b;
 									$db->query('UPDATE `mag_devices` SET `fav_channels` = ? WHERE `mag_id` = ?', json_encode($rDevice['fav_channels']), $rDevice['mag_id']);
@@ -1092,9 +1092,9 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 						case 'tv_archive':
 							switch ($rReqAction) {
 								case 'get_next_part_url':
-									if (empty(CoreUtilities::$rRequest['id'])) {
+									if (empty(StreamingUtilities::$rRequest['id'])) {
 									} else {
-										$rID = CoreUtilities::$rRequest['id'];
+										$rID = StreamingUtilities::$rRequest['id'];
 										$rStreamID = substr($rID, 0, strpos($rID, '_'));
 										$rDate = strtotime(substr($rID, strpos($rID, '_') + 1));
 										$rRow = (getepg($rStreamID, $rDate, $rDate + 86400)[0] ?: null);
@@ -1106,10 +1106,10 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 											$rDuration = intval(($rRow['end'] - $rRow['start']) / 60);
 											$rTitle = $rRow['title'];
 											$rEncData = 'ministra::timeshift/' . $rDevice['username'] . '/' . $rDevice['password'] . '/' . $rDuration . '/' . $rProgramStart . '/' . $rStreamID . '/' . $rDevice['token'];
-											$rToken = CoreUtilities::encryptData($rEncData, CoreUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
-											$rURL = ((CoreUtilities::$rSettings['mag_disable_ssl'] ? CoreUtilities::$rServers[SERVER_ID]['http_url'] : CoreUtilities::$rServers[SERVER_ID]['site_url'])) . 'play/' . $rToken . '?&osd_title=' . $rTitle;
+											$rToken = StreamingUtilities::encryptData($rEncData, StreamingUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+											$rURL = ((StreamingUtilities::$rSettings['mag_disable_ssl'] ? StreamingUtilities::$rServers[SERVER_ID]['http_url'] : StreamingUtilities::$rServers[SERVER_ID]['site_url'])) . 'play/' . $rToken . '?&osd_title=' . $rTitle;
 
-											if (!CoreUtilities::$rSettings['mag_keep_extension']) {
+											if (!StreamingUtilities::$rSettings['mag_keep_extension']) {
 											} else {
 												$rURL .= '&ext=.ts';
 											}
@@ -1121,7 +1121,7 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 									exit(json_encode(array('js' => false)));
 
 								case 'create_link':
-									$rCommand = (empty(CoreUtilities::$rRequest['cmd']) ? '' : CoreUtilities::$rRequest['cmd']);
+									$rCommand = (empty(StreamingUtilities::$rRequest['cmd']) ? '' : StreamingUtilities::$rRequest['cmd']);
 									list($rEPGDataID, $rStreamID) = explode('_', pathinfo($rCommand)['filename']);
 									$rRow = (getprogramme($rStreamID, $rEPGDataID) ?: null);
 
@@ -1132,10 +1132,10 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 									$rStart = $rRow['start'];
 									$rDuration = intval(($rRow['end'] - $rRow['start']) / 60);
 									$rEncData = 'ministra::timeshift/' . $rDevice['username'] . '/' . $rDevice['password'] . '/' . $rDuration . '/' . $rStart . '/' . $rStreamID . '/' . $rDevice['token'];
-									$rToken = CoreUtilities::encryptData($rEncData, CoreUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
-									$rURL = ((CoreUtilities::$rSettings['mag_disable_ssl'] ? CoreUtilities::$rServers[SERVER_ID]['http_url'] : CoreUtilities::$rServers[SERVER_ID]['site_url'])) . 'play/' . $rToken;
+									$rToken = StreamingUtilities::encryptData($rEncData, StreamingUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+									$rURL = ((StreamingUtilities::$rSettings['mag_disable_ssl'] ? StreamingUtilities::$rServers[SERVER_ID]['http_url'] : StreamingUtilities::$rServers[SERVER_ID]['site_url'])) . 'play/' . $rToken;
 
-									if (!CoreUtilities::$rSettings['mag_keep_extension']) {
+									if (!StreamingUtilities::$rSettings['mag_keep_extension']) {
 									} else {
 										$rURL .= '?ext=.ts';
 									}
@@ -1146,11 +1146,11 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 
 								case 'get_link_for_channel':
 									$rOutput = array();
-									$rChannelID = (!empty(CoreUtilities::$rRequest['ch_id']) ? intval(CoreUtilities::$rRequest['ch_id']) : 0);
+									$rChannelID = (!empty(StreamingUtilities::$rRequest['ch_id']) ? intval(StreamingUtilities::$rRequest['ch_id']) : 0);
 									$rStart = strtotime(date('Ymd-H'));
 									$rEncData = 'ministra::timeshift/' . $rDevice['username'] . '/' . $rDevice['password'] . '/60/' . $rStart . '/' . $rChannelID . '/' . $rDevice['token'];
-									$rToken = CoreUtilities::encryptData($rEncData, CoreUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
-									$rURL = ((CoreUtilities::$rSettings['mag_disable_ssl'] ? CoreUtilities::$rServers[SERVER_ID]['http_url'] : CoreUtilities::$rServers[SERVER_ID]['site_url'])) . 'play/' . $rToken . ((CoreUtilities::$rSettings['mag_keep_extension'] ? '?ext=.ts' : '')) . ' position:' . (intval(date('i')) * 60 + intval(date('s'))) . ' media_len:' . (intval(date('H')) * 3600 + intval(date('i')) * 60 + intval(date('s')));
+									$rToken = StreamingUtilities::encryptData($rEncData, StreamingUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+									$rURL = ((StreamingUtilities::$rSettings['mag_disable_ssl'] ? StreamingUtilities::$rServers[SERVER_ID]['http_url'] : StreamingUtilities::$rServers[SERVER_ID]['site_url'])) . 'play/' . $rToken . ((StreamingUtilities::$rSettings['mag_keep_extension'] ? '?ext=.ts' : '')) . ' position:' . (intval(date('i')) * 60 + intval(date('s'))) . ' media_len:' . (intval(date('H')) * 3600 + intval(date('i')) * 60 + intval(date('s')));
 									$rOutput['js'] = array('id' => 0, 'cmd' => $rPlayer . $rURL, 'storage_id' => '', 'load' => 0, 'error' => '');
 
 									exit(json_encode($rOutput, JSON_PARTIAL_OUTPUT_ON_ERROR));
@@ -1181,13 +1181,13 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 									exit(json_encode(array('js' => array()), JSON_PARTIAL_OUTPUT_ON_ERROR));
 
 								case 'get_simple_data_table':
-									if (empty(CoreUtilities::$rRequest['ch_id']) || empty(CoreUtilities::$rRequest['date'])) {
+									if (empty(StreamingUtilities::$rRequest['ch_id']) || empty(StreamingUtilities::$rRequest['date'])) {
 										exit();
 									}
 
-									$rChannelID = CoreUtilities::$rRequest['ch_id'];
-									$rReqDate = CoreUtilities::$rRequest['date'];
-									$rPage = intval(CoreUtilities::$rRequest['p']);
+									$rChannelID = StreamingUtilities::$rRequest['ch_id'];
+									$rReqDate = StreamingUtilities::$rRequest['date'];
+									$rPage = intval(StreamingUtilities::$rRequest['p']);
 									$rPageItems = ($rTheme == 'xc_vm' ? 7 : 10);
 									$rDefaultPage = false;
 									$rEPGDatas = array();
@@ -1211,7 +1211,7 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 									if (file_exists(STREAMS_TMP_PATH . 'stream_' . intval($rChannelID))) {
 										$rStreamRow = igbinary_unserialize(file_get_contents(STREAMS_TMP_PATH . 'stream_' . intval($rChannelID)))['info'];
 									} else {
-										$db->query('SELECT `tv_archive_duration` FROM `streams` WHERE `id` = ?;', CoreUtilities::$rRequest['ch_id']);
+										$db->query('SELECT `tv_archive_duration` FROM `streams` WHERE `id` = ?;', StreamingUtilities::$rRequest['ch_id']);
 
 										if (0 >= $db->num_rows()) {
 										} else {
@@ -1249,7 +1249,7 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 
 									$rProgram = array_slice($rEPGDatas, ($rPage - 1) * $rPageItems, $rPageItems);
 									$rData = array();
-									$rTimeDifference = CoreUtilities::getDiffTimezone($rTimezone);
+									$rTimeDifference = StreamingUtilities::getDiffTimezone($rTimezone);
 
 									for ($i = 0; $i < count($rProgram); $i++) {
 										$open = 0;
@@ -1306,13 +1306,13 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 								case 'get_all_program_for_ch':
 									$rOutput = array();
 									$rOutput['js'] = array();
-									$rChannelID = (empty(CoreUtilities::$rRequest['ch_id']) ? 0 : intval(CoreUtilities::$rRequest['ch_id']));
-									$rTimeDifference = CoreUtilities::getDiffTimezone($rTimezone);
+									$rChannelID = (empty(StreamingUtilities::$rRequest['ch_id']) ? 0 : intval(StreamingUtilities::$rRequest['ch_id']));
+									$rTimeDifference = StreamingUtilities::getDiffTimezone($rTimezone);
 
 									if (file_exists(STREAMS_TMP_PATH . 'stream_' . intval($rChannelID))) {
 										$rStreamRow = igbinary_unserialize(file_get_contents(STREAMS_TMP_PATH . 'stream_' . intval($rChannelID)))['info'];
 									} else {
-										$db->query('SELECT `tv_archive_duration` FROM `streams` WHERE `id` = ?;', CoreUtilities::$rRequest['ch_id']);
+										$db->query('SELECT `tv_archive_duration` FROM `streams` WHERE `id` = ?;', StreamingUtilities::$rRequest['ch_id']);
 
 										if (0 >= $db->num_rows()) {
 										} else {
@@ -1350,8 +1350,8 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 				} else {
 					if (!($rReqType == 'stb' && $rReqAction == 'get_profile')) {
 					} else {
-						CoreUtilities::checkBruteforce($rIP, $rMAC);
-						CoreUtilities::checkFlood();
+						StreamingUtilities::checkBruteforce($rIP, $rMAC);
+						StreamingUtilities::checkFlood();
 					}
 
 					exit();
@@ -1363,7 +1363,7 @@ if (!CoreUtilities::$rSettings['disable_ministra']) {
 
 		if ($rDevice) {
 			$rDevice['token'] = strtoupper(md5(uniqid(rand(), true)));
-			$rVerifyToken = CoreUtilities::encryptData(igbinary_serialize(array('id' => $rDevice['mag_id'], 'token' => $rDevice['token'])), CoreUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+			$rVerifyToken = StreamingUtilities::encryptData(igbinary_serialize(array('id' => $rDevice['mag_id'], 'token' => $rDevice['token'])), StreamingUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 			$rDevice['authenticated'] = false;
 			$db->query('UPDATE `mag_devices` SET `token` = ? WHERE `mag_id` = ?', $rDevice['token'], $rDevice['mag_id']);
 			$db->query('INSERT INTO `signals`(`server_id`, `cache`, `time`, `custom_data`) VALUES(?, 1, ?, ?);', SERVER_ID, time(), json_encode(array('type' => 'update_line', 'id' => $rDevice['user_id'])));
@@ -1487,7 +1487,7 @@ function getItems($rTypes = array(), $rCategoryID = null, $rFav = null, $rOrderB
 		}
 	}
 	$rStreams = array('count' => 0, 'streams' => array());
-	$rAdultCategories = CoreUtilities::getAdultCategories();
+	$rAdultCategories = StreamingUtilities::getAdultCategories();
 	$rKey = $rStart + 1;
 	$rWhereV = $rWhere = array();
 
@@ -1508,7 +1508,7 @@ function getItems($rTypes = array(), $rCategoryID = null, $rFav = null, $rOrderB
 		$rWhereV[] = $rPicking['genre'];
 	}
 
-	$rChannels = CoreUtilities::sortChannels($rChannels);
+	$rChannels = StreamingUtilities::sortChannels($rChannels);
 
 	if (empty($rFav)) {
 	} else {
@@ -1563,7 +1563,7 @@ function getItems($rTypes = array(), $rCategoryID = null, $rFav = null, $rOrderB
 
 		case 'number':
 		default:
-			if (CoreUtilities::$rSettings['channel_number_type'] != 'manual') {
+			if (StreamingUtilities::$rSettings['channel_number_type'] != 'manual') {
 				$rOrder = 'FIELD(id,' . implode(',', $rChannels) . ')';
 			} else {
 				$rOrder = '`order` ASC';
@@ -1668,7 +1668,7 @@ function sortArrayStreamAdded($a, $b) {
 function getDevice($rID = null, $rMAC = null) {
 	global $db;
 	global $rIP;
-	CoreUtilities::$rBouquets = CoreUtilities::getCache('bouquets');
+	StreamingUtilities::$rBouquets = StreamingUtilities::getCache('bouquets');
 	$rDevice = ($rID && file_exists(MINISTRA_TMP_PATH . 'ministra_' . $rID) ? ($rDevice = igbinary_unserialize(file_get_contents(MINISTRA_TMP_PATH . 'ministra_' . $rID))) : null);
 
 	if (!$rDevice && $rMAC || $rDevice && 600 < time() - $rDevice['generated']) {
@@ -1683,7 +1683,7 @@ function getDevice($rID = null, $rMAC = null) {
 		if (0 >= $db->num_rows()) {
 		} else {
 			$rDevice = $db->get_row();
-			$rUserInfo = CoreUtilities::getUserInfo($rDevice['user_id'], null, null, true, false, $rIP);
+			$rUserInfo = StreamingUtilities::getUserInfo($rDevice['user_id'], null, null, true, false, $rIP);
 			$rDevice = array_merge($rDevice, $rUserInfo);
 			$rDevice['allowed_ips'] = json_decode($rDevice['allowed_ips'], true);
 			$rDevice['fav_channels'] = (!empty($rDevice['fav_channels']) ? json_decode($rDevice['fav_channels'], true) : array());
@@ -1715,29 +1715,29 @@ function getDevice($rID = null, $rMAC = null) {
 			$rLiveIDs = $rVODIDs = $rRadioIDs = $rCategoryIDs = $rChannelIDs = $rSeriesIDs = array();
 
 			foreach ($rDevice['bouquet'] as $rID) {
-				if (!isset(CoreUtilities::$rBouquets[$rID]['streams'])) {
+				if (!isset(StreamingUtilities::$rBouquets[$rID]['streams'])) {
 				} else {
-					$rChannelIDs = array_merge($rChannelIDs, CoreUtilities::$rBouquets[$rID]['streams']);
+					$rChannelIDs = array_merge($rChannelIDs, StreamingUtilities::$rBouquets[$rID]['streams']);
 				}
 
-				if (!isset(CoreUtilities::$rBouquets[$rID]['series'])) {
+				if (!isset(StreamingUtilities::$rBouquets[$rID]['series'])) {
 				} else {
-					$rSeriesIDs = array_merge($rSeriesIDs, CoreUtilities::$rBouquets[$rID]['series']);
+					$rSeriesIDs = array_merge($rSeriesIDs, StreamingUtilities::$rBouquets[$rID]['series']);
 				}
 
-				if (!isset(CoreUtilities::$rBouquets[$rID]['channels'])) {
+				if (!isset(StreamingUtilities::$rBouquets[$rID]['channels'])) {
 				} else {
-					$rLiveIDs = array_merge($rLiveIDs, CoreUtilities::$rBouquets[$rID]['channels']);
+					$rLiveIDs = array_merge($rLiveIDs, StreamingUtilities::$rBouquets[$rID]['channels']);
 				}
 
-				if (!isset(CoreUtilities::$rBouquets[$rID]['movies'])) {
+				if (!isset(StreamingUtilities::$rBouquets[$rID]['movies'])) {
 				} else {
-					$rVODIDs = array_merge($rVODIDs, CoreUtilities::$rBouquets[$rID]['movies']);
+					$rVODIDs = array_merge($rVODIDs, StreamingUtilities::$rBouquets[$rID]['movies']);
 				}
 
-				if (!isset(CoreUtilities::$rBouquets[$rID]['radios'])) {
+				if (!isset(StreamingUtilities::$rBouquets[$rID]['radios'])) {
 				} else {
-					$rRadioIDs = array_merge($rRadioIDs, CoreUtilities::$rBouquets[$rID]['radios']);
+					$rRadioIDs = array_merge($rRadioIDs, StreamingUtilities::$rBouquets[$rID]['radios']);
 				}
 			}
 			$rDevice['channel_ids'] = array_map('intval', array_unique($rChannelIDs));
@@ -1798,7 +1798,7 @@ function getMovies($rCategoryID = null, $rFav = null, $rOrderBy = null, $rSearch
 	global $rPageItems;
 	global $rForceProtocol;
 	$rDefaultPage = false;
-	$rPage = (!empty(CoreUtilities::$rRequest['p']) ? CoreUtilities::$rRequest['p'] : 0);
+	$rPage = (!empty(StreamingUtilities::$rRequest['p']) ? StreamingUtilities::$rRequest['p'] : 0);
 
 	if ($rPage != 0) {
 	} else {
@@ -1845,7 +1845,7 @@ function getMovies($rCategoryID = null, $rFav = null, $rOrderBy = null, $rSearch
 		}
 
 		$rDuration = (isset($rProperties['duration_secs']) ? $rProperties['duration_secs'] : 60);
-		$rDatas[] = array('id' => $rMovie['id'], 'owner' => '', 'name' => $rMovie['stream_display_name'], 'tmdb_id' => $rProperties['tmdb_id'], 'old_name' => '', 'o_name' => $rMovie['stream_display_name'], 'fname' => '', 'description' => (empty($rProperties['plot']) ? 'N/A' : $rProperties['plot']), 'pic' => '', 'cost' => 0, 'time' => intval($rDuration / 60), 'file' => '', 'path' => str_replace(' ', '_', $rMovie['stream_display_name']), 'protocol' => '', 'rtsp_url' => '', 'censored' => intval($rMovie['is_adult']), 'series' => array(), 'volume_correction' => 0, 'category_id' => $rMovie['category_id'], 'genre_id' => 0, 'genre_id_1' => 0, 'genre_id_2' => 0, 'genre_id_3' => 0, 'hd' => $rHD, 'genre_id_4' => 0, 'cat_genre_id_1' => $rMovie['category_id'], 'cat_genre_id_2' => 0, 'cat_genre_id_3' => 0, 'cat_genre_id_4' => 0, 'director' => (empty($rProperties['director']) ? 'N/A' : $rProperties['director']), 'actors' => (empty($rProperties['cast']) ? 'N/A' : $rProperties['cast']), 'year' => $rMovie['year'], 'accessed' => 1, 'status' => 1, 'disable_for_hd_devices' => 0, 'added' => date('Y-m-d H:i:s', $rMovie['added']), 'count' => 0, 'count_first_0_5' => 0, 'count_second_0_5' => 0, 'vote_sound_good' => 0, 'vote_sound_bad' => 0, 'vote_video_good' => 0, 'vote_video_bad' => 0, 'rate' => '', 'last_rate_update' => '', 'last_played' => '', 'for_sd_stb' => 0, 'rating_im' => (empty($rProperties['rating']) ? 'N/A' : $rProperties['rating']), 'rating_count_im' => '', 'rating_last_update' => '0000-00-00 00:00:00', 'age' => '12+', 'high_quality' => 0, 'rating_kinopoisk' => (empty($rProperties['rating']) ? 'N/A' : $rProperties['rating']), 'comments' => '', 'low_quality' => 0, 'is_series' => 0, 'year_end' => 0, 'autocomplete_provider' => 'im', 'screenshots' => '', 'is_movie' => 1, 'lock' => $rMovie['is_adult'], 'fav' => (in_array($rMovie['id'], $rDevice['fav_channels']['movie']) ? 1 : 0), 'for_rent' => 0, 'screenshot_uri' => (empty($rProperties['movie_image']) ? '' : CoreUtilities::validateImage($rProperties['movie_image'], $rForceProtocol)), 'genres_str' => (empty($rProperties['genre']) ? 'N/A' : $rProperties['genre']), 'cmd' => base64_encode(json_encode($rPostData, JSON_PARTIAL_OUTPUT_ON_ERROR)), $rAddedKey => $rAddedVal, 'has_files' => 0);
+		$rDatas[] = array('id' => $rMovie['id'], 'owner' => '', 'name' => $rMovie['stream_display_name'], 'tmdb_id' => $rProperties['tmdb_id'], 'old_name' => '', 'o_name' => $rMovie['stream_display_name'], 'fname' => '', 'description' => (empty($rProperties['plot']) ? 'N/A' : $rProperties['plot']), 'pic' => '', 'cost' => 0, 'time' => intval($rDuration / 60), 'file' => '', 'path' => str_replace(' ', '_', $rMovie['stream_display_name']), 'protocol' => '', 'rtsp_url' => '', 'censored' => intval($rMovie['is_adult']), 'series' => array(), 'volume_correction' => 0, 'category_id' => $rMovie['category_id'], 'genre_id' => 0, 'genre_id_1' => 0, 'genre_id_2' => 0, 'genre_id_3' => 0, 'hd' => $rHD, 'genre_id_4' => 0, 'cat_genre_id_1' => $rMovie['category_id'], 'cat_genre_id_2' => 0, 'cat_genre_id_3' => 0, 'cat_genre_id_4' => 0, 'director' => (empty($rProperties['director']) ? 'N/A' : $rProperties['director']), 'actors' => (empty($rProperties['cast']) ? 'N/A' : $rProperties['cast']), 'year' => $rMovie['year'], 'accessed' => 1, 'status' => 1, 'disable_for_hd_devices' => 0, 'added' => date('Y-m-d H:i:s', $rMovie['added']), 'count' => 0, 'count_first_0_5' => 0, 'count_second_0_5' => 0, 'vote_sound_good' => 0, 'vote_sound_bad' => 0, 'vote_video_good' => 0, 'vote_video_bad' => 0, 'rate' => '', 'last_rate_update' => '', 'last_played' => '', 'for_sd_stb' => 0, 'rating_im' => (empty($rProperties['rating']) ? 'N/A' : $rProperties['rating']), 'rating_count_im' => '', 'rating_last_update' => '0000-00-00 00:00:00', 'age' => '12+', 'high_quality' => 0, 'rating_kinopoisk' => (empty($rProperties['rating']) ? 'N/A' : $rProperties['rating']), 'comments' => '', 'low_quality' => 0, 'is_series' => 0, 'year_end' => 0, 'autocomplete_provider' => 'im', 'screenshots' => '', 'is_movie' => 1, 'lock' => $rMovie['is_adult'], 'fav' => (in_array($rMovie['id'], $rDevice['fav_channels']['movie']) ? 1 : 0), 'for_rent' => 0, 'screenshot_uri' => (empty($rProperties['movie_image']) ? '' : StreamingUtilities::validateImage($rProperties['movie_image'], $rForceProtocol)), 'genres_str' => (empty($rProperties['genre']) ? 'N/A' : $rProperties['genre']), 'cmd' => base64_encode(json_encode($rPostData, JSON_PARTIAL_OUTPUT_ON_ERROR)), $rAddedKey => $rAddedVal, 'has_files' => 0);
 	}
 
 	if ($rDefaultPage) {
@@ -1870,7 +1870,7 @@ function getSeries($rMovieID = null, $rCategoryID = null, $rFav = null, $rOrderB
 	global $db;
 	global $rPageItems;
 	global $rForceProtocol;
-	$rPage = (!empty(CoreUtilities::$rRequest['p']) ? CoreUtilities::$rRequest['p'] : 0);
+	$rPage = (!empty(StreamingUtilities::$rRequest['p']) ? StreamingUtilities::$rRequest['p'] : 0);
 	$rDefaultPage = false;
 
 	if (empty($rMovieID)) {
@@ -1960,7 +1960,7 @@ function getSeries($rMovieID = null, $rCategoryID = null, $rFav = null, $rOrderB
 			$rTitle = $rMovie['title'];
 		}
 
-		$rDatas[] = array('id' => $rProperties['id'], 'owner' => '', 'name' => $rTitle, 'tmdb_id' => $rProperties['tmdb_id'], 'old_name' => '', 'o_name' => $rTitle, 'fname' => '', 'description' => (empty($rProperties['plot']) ? 'N/A' : $rProperties['plot']), 'pic' => '', 'cost' => 0, 'time' => 'N/a', 'file' => '', 'path' => str_replace(' ', '_', $rProperties['title']), 'protocol' => '', 'rtsp_url' => '', 'censored' => 0, 'series' => (!empty($rSeriesInfo) ? range(1, count($rMovie)) : array()), 'volume_correction' => 0, 'category_id' => $rProperties['category_id'], 'genre_id' => 0, 'genre_id_1' => 0, 'genre_id_2' => 0, 'genre_id_3' => 0, 'hd' => 1, 'genre_id_4' => 0, 'cat_genre_id_1' => $rProperties['category_id'], 'cat_genre_id_2' => 0, 'cat_genre_id_3' => 0, 'cat_genre_id_4' => 0, 'director' => (empty($rProperties['director']) ? 'N/A' : $rProperties['director']), 'actors' => (empty($rProperties['cast']) ? 'N/A' : $rProperties['cast']), 'year' => (empty($rProperties['release_date']) ? 'N/A' : $rProperties['release_date']), 'accessed' => 1, 'status' => 1, 'disable_for_hd_devices' => 0, 'added' => date('Y-m-d H:i:s', $rMaxAdded), 'count' => 0, 'count_first_0_5' => 0, 'count_second_0_5' => 0, 'vote_sound_good' => 0, 'vote_sound_bad' => 0, 'vote_video_good' => 0, 'vote_video_bad' => 0, 'rate' => '', 'last_rate_update' => '', 'last_played' => '', 'for_sd_stb' => 0, 'rating_im' => (empty($rProperties['rating']) ? 'N/A' : $rProperties['rating']), 'rating_count_im' => '', 'rating_last_update' => '0000-00-00 00:00:00', 'age' => '12+', 'high_quality' => 0, 'rating_kinopoisk' => (empty($rProperties['rating']) ? 'N/A' : $rProperties['rating']), 'comments' => '', 'low_quality' => 0, 'is_series' => 1, 'year_end' => 0, 'autocomplete_provider' => 'im', 'screenshots' => '', 'is_movie' => 1, 'lock' => 0, 'fav' => (in_array($rProperties['id'], $rDevice['fav_channels']['series']) ? 1 : 0), 'for_rent' => 0, 'screenshot_uri' => (empty($rProperties['cover']) ? '' : CoreUtilities::validateImage($rProperties['cover'], $rForceProtocol)), 'genres_str' => (empty($rProperties['genre']) ? 'N/A' : $rProperties['genre']), 'cmd' => (!empty($rSeriesInfo) ? base64_encode(json_encode($rPostData, JSON_PARTIAL_OUTPUT_ON_ERROR)) : ''), $rAddedKey => $rAddedVal, 'has_files' => (empty($rMovieID) ? 1 : 0));
+		$rDatas[] = array('id' => $rProperties['id'], 'owner' => '', 'name' => $rTitle, 'tmdb_id' => $rProperties['tmdb_id'], 'old_name' => '', 'o_name' => $rTitle, 'fname' => '', 'description' => (empty($rProperties['plot']) ? 'N/A' : $rProperties['plot']), 'pic' => '', 'cost' => 0, 'time' => 'N/a', 'file' => '', 'path' => str_replace(' ', '_', $rProperties['title']), 'protocol' => '', 'rtsp_url' => '', 'censored' => 0, 'series' => (!empty($rSeriesInfo) ? range(1, count($rMovie)) : array()), 'volume_correction' => 0, 'category_id' => $rProperties['category_id'], 'genre_id' => 0, 'genre_id_1' => 0, 'genre_id_2' => 0, 'genre_id_3' => 0, 'hd' => 1, 'genre_id_4' => 0, 'cat_genre_id_1' => $rProperties['category_id'], 'cat_genre_id_2' => 0, 'cat_genre_id_3' => 0, 'cat_genre_id_4' => 0, 'director' => (empty($rProperties['director']) ? 'N/A' : $rProperties['director']), 'actors' => (empty($rProperties['cast']) ? 'N/A' : $rProperties['cast']), 'year' => (empty($rProperties['release_date']) ? 'N/A' : $rProperties['release_date']), 'accessed' => 1, 'status' => 1, 'disable_for_hd_devices' => 0, 'added' => date('Y-m-d H:i:s', $rMaxAdded), 'count' => 0, 'count_first_0_5' => 0, 'count_second_0_5' => 0, 'vote_sound_good' => 0, 'vote_sound_bad' => 0, 'vote_video_good' => 0, 'vote_video_bad' => 0, 'rate' => '', 'last_rate_update' => '', 'last_played' => '', 'for_sd_stb' => 0, 'rating_im' => (empty($rProperties['rating']) ? 'N/A' : $rProperties['rating']), 'rating_count_im' => '', 'rating_last_update' => '0000-00-00 00:00:00', 'age' => '12+', 'high_quality' => 0, 'rating_kinopoisk' => (empty($rProperties['rating']) ? 'N/A' : $rProperties['rating']), 'comments' => '', 'low_quality' => 0, 'is_series' => 1, 'year_end' => 0, 'autocomplete_provider' => 'im', 'screenshots' => '', 'is_movie' => 1, 'lock' => 0, 'fav' => (in_array($rProperties['id'], $rDevice['fav_channels']['series']) ? 1 : 0), 'for_rent' => 0, 'screenshot_uri' => (empty($rProperties['cover']) ? '' : StreamingUtilities::validateImage($rProperties['cover'], $rForceProtocol)), 'genres_str' => (empty($rProperties['genre']) ? 'N/A' : $rProperties['genre']), 'cmd' => (!empty($rSeriesInfo) ? base64_encode(json_encode($rPostData, JSON_PARTIAL_OUTPUT_ON_ERROR)) : ''), $rAddedKey => $rAddedVal, 'has_files' => (empty($rMovieID) ? 1 : 0));
 	}
 
 	if ($rDefaultPage) {
@@ -1995,7 +1995,7 @@ function getStations($rCategoryID = null, $rFav = null, $rOrderBy = null) {
 	global $rPlayer;
 	global $rPageItems;
 	$rDefaultPage = false;
-	$rPage = (!empty(CoreUtilities::$rRequest['p']) ? CoreUtilities::$rRequest['p'] : 0);
+	$rPage = (!empty(StreamingUtilities::$rRequest['p']) ? StreamingUtilities::$rRequest['p'] : 0);
 
 	if ($rPage != 0) {
 	} else {
@@ -2008,14 +2008,14 @@ function getStations($rCategoryID = null, $rFav = null, $rOrderBy = null) {
 	$rDatas = array();
 
 	foreach ($rStreams['streams'] as $rStream) {
-		if (CoreUtilities::$rSettings['mag_security'] == 0) {
-			$rEncData = 'ministra::live/' . $rDevice['username'] . '/' . $rDevice['password'] . '/' . $rStream['id'] . '/' . CoreUtilities::$rSettings['mag_container'] . '/' . $rDevice['token'];
-			$rToken = CoreUtilities::encryptData($rEncData, CoreUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
-			$rStreamURL = ((CoreUtilities::$rSettings['mag_disable_ssl'] ? CoreUtilities::$rServers[SERVER_ID]['http_url'] : CoreUtilities::$rServers[SERVER_ID]['site_url'])) . 'play/' . $rToken;
+		if (StreamingUtilities::$rSettings['mag_security'] == 0) {
+			$rEncData = 'ministra::live/' . $rDevice['username'] . '/' . $rDevice['password'] . '/' . $rStream['id'] . '/' . StreamingUtilities::$rSettings['mag_container'] . '/' . $rDevice['token'];
+			$rToken = StreamingUtilities::encryptData($rEncData, StreamingUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+			$rStreamURL = ((StreamingUtilities::$rSettings['mag_disable_ssl'] ? StreamingUtilities::$rServers[SERVER_ID]['http_url'] : StreamingUtilities::$rServers[SERVER_ID]['site_url'])) . 'play/' . $rToken;
 
-			if (!CoreUtilities::$rSettings['mag_keep_extension']) {
+			if (!StreamingUtilities::$rSettings['mag_keep_extension']) {
 			} else {
-				$rStreamURL .= '?ext=.' . CoreUtilities::$rSettings['mag_container'];
+				$rStreamURL .= '?ext=.' . StreamingUtilities::$rSettings['mag_container'];
 			}
 
 			$rStreamSourceSt = 0;
@@ -2044,13 +2044,13 @@ function getStreams($rCategoryID = null, $rAll = false, $rFav = null, $rOrderBy 
 	global $rTimezone;
 	global $rForceProtocol;
 	$rDefaultPage = false;
-	$rPage = (isset(CoreUtilities::$rRequest['p']) ? intval(CoreUtilities::$rRequest['p']) : 0);
+	$rPage = (isset(StreamingUtilities::$rRequest['p']) ? intval(StreamingUtilities::$rRequest['p']) : 0);
 
 	if (!($rPage == 0 && $rCategoryID != -1)) {
 	} else {
 		$rDefaultPage = true;
 
-		if (CoreUtilities::$rRequest['p'] != 0 || empty($rDevice['last_itv_id'])) {
+		if (StreamingUtilities::$rRequest['p'] != 0 || empty($rDevice['last_itv_id'])) {
 		} else {
 			$rPosition = getitems(array('live', 'created_live'), $rCategoryID, $rFav, $rOrderBy, $rSearchBy, null, 0, 0, $rDevice['last_itv_id']);
 
@@ -2071,7 +2071,7 @@ function getStreams($rCategoryID = null, $rAll = false, $rFav = null, $rOrderBy 
 	$rStart = ($rPage - 1) * $rPageItems;
 
 	if ($rCategoryID == -1) {
-		if (CoreUtilities::$rSettings['mag_load_all_channels']) {
+		if (StreamingUtilities::$rSettings['mag_load_all_channels']) {
 			$rStreams = getitems(array('live', 'created_live'), (0 < $rCategoryID ? $rCategoryID : null), $rFav, $rOrderBy, $rSearchBy, null, 0, 0);
 		} else {
 			return '{"js":{"total_items":0,"max_page_items":14,"selected_item":0,"cur_page":0,"data":[]}}';
@@ -2085,19 +2085,19 @@ function getStreams($rCategoryID = null, $rAll = false, $rFav = null, $rOrderBy 
 	}
 
 	$rDatas = array();
-	$rTimeDifference = CoreUtilities::getDiffTimezone($rTimezone);
+	$rTimeDifference = StreamingUtilities::getDiffTimezone($rTimezone);
 
 	foreach ($rStreams['streams'] as $rStream) {
 		$rHD = intval(1200 < $rStream['stream_info']['codecs']['video']['width']);
 
-		if (CoreUtilities::$rSettings['mag_security'] == 0) {
-			$rEncData = 'ministra::live/' . $rDevice['username'] . '/' . $rDevice['password'] . '/' . $rStream['id'] . '/' . CoreUtilities::$rSettings['mag_container'] . '/' . $rDevice['token'];
-			$rToken = CoreUtilities::encryptData($rEncData, CoreUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
-			$rStreamURL = ((CoreUtilities::$rSettings['mag_disable_ssl'] ? CoreUtilities::$rServers[SERVER_ID]['http_url'] : CoreUtilities::$rServers[SERVER_ID]['site_url'])) . 'play/' . $rToken;
+		if (StreamingUtilities::$rSettings['mag_security'] == 0) {
+			$rEncData = 'ministra::live/' . $rDevice['username'] . '/' . $rDevice['password'] . '/' . $rStream['id'] . '/' . StreamingUtilities::$rSettings['mag_container'] . '/' . $rDevice['token'];
+			$rToken = StreamingUtilities::encryptData($rEncData, StreamingUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+			$rStreamURL = ((StreamingUtilities::$rSettings['mag_disable_ssl'] ? StreamingUtilities::$rServers[SERVER_ID]['http_url'] : StreamingUtilities::$rServers[SERVER_ID]['site_url'])) . 'play/' . $rToken;
 
-			if (!CoreUtilities::$rSettings['mag_keep_extension']) {
+			if (!StreamingUtilities::$rSettings['mag_keep_extension']) {
 			} else {
-				$rStreamURL .= '?ext=.' . CoreUtilities::$rSettings['mag_container'];
+				$rStreamURL .= '?ext=.' . StreamingUtilities::$rSettings['mag_container'];
 			}
 
 			$rStreamSourceSt = 0;
@@ -2118,7 +2118,7 @@ function getStreams($rCategoryID = null, $rAll = false, $rFav = null, $rOrderBy 
 			$rNowPlaying = 'No channel information is available...';
 		}
 
-		$rDatas[] = array('id' => intval($rStream['id']), 'name' => $rStream['stream_display_name'], 'number' => (string) $rStream['number'], 'snumber' => (string) $rStream['number'], 'censored' => ($rStream['is_adult'] == 1 ? 1 : 0), 'cmd' => $rPlayer . $rStreamURL, 'cost' => '0', 'count' => '0', 'status' => 1, 'tv_genre_id' => $rStream['category_id'], 'base_ch' => '1', 'hd' => $rHD, 'xmltv_id' => (!empty($rStream['channel_id']) ? $rStream['channel_id'] : ''), 'service_id' => '', 'bonus_ch' => '0', 'volume_correction' => '0', 'use_http_tmp_link' => $rStreamSourceSt, 'mc_cmd' => '', 'enable_tv_archive' => (0 < $rStream['tv_archive_duration'] ? 1 : 0), 'wowza_tmp_link' => '0', 'wowza_dvr' => '0', 'monitoring_status' => '1', 'enable_monitoring' => '0', 'enable_wowza_load_balancing' => '0', 'cmd_1' => '', 'cmd_2' => '', 'cmd_3' => '', 'logo' => CoreUtilities::validateImage($rStream['stream_icon'], $rForceProtocol), 'correct_time' => '0', 'nimble_dvr' => '0', 'allow_pvr' => (int) $rStream['allow_record'], 'allow_local_pvr' => (int) $rStream['allow_record'], 'allow_remote_pvr' => 0, 'modified' => '', 'allow_local_timeshift' => '1', 'nginx_secure_link' => $rStreamSourceSt, 'tv_archive_duration' => (0 < $rStream['tv_archive_duration'] ? $rStream['tv_archive_duration'] * 24 : 0), 'locked' => 0, 'lock' => $rStream['is_adult'], 'fav' => (in_array($rStream['id'], $rDevice['fav_channels']['live']) ? 1 : 0), 'archive' => (0 < $rStream['tv_archive_duration'] ? 1 : 0), 'genres_str' => '', 'cur_playing' => $rNowPlaying, 'epg' => array(), 'open' => 1, 'cmds' => array(array('id' => (string) $rStream['id'], 'ch_id' => (string) $rStream['id'], 'priority' => '0', 'url' => $rPlayer . $rStreamURL, 'status' => '1', 'use_http_tmp_link' => $rStreamSourceSt, 'wowza_tmp_link' => '0', 'user_agent_filter' => '', 'use_load_balancing' => '0', 'changed' => '', 'enable_monitoring' => '0', 'enable_balancer_monitoring' => '0', 'nginx_secure_link' => $rStreamSourceSt, 'flussonic_tmp_link' => '0')), 'use_load_balancing' => 0, 'pvr' => (int) $rStream['allow_record']);
+		$rDatas[] = array('id' => intval($rStream['id']), 'name' => $rStream['stream_display_name'], 'number' => (string) $rStream['number'], 'snumber' => (string) $rStream['number'], 'censored' => ($rStream['is_adult'] == 1 ? 1 : 0), 'cmd' => $rPlayer . $rStreamURL, 'cost' => '0', 'count' => '0', 'status' => 1, 'tv_genre_id' => $rStream['category_id'], 'base_ch' => '1', 'hd' => $rHD, 'xmltv_id' => (!empty($rStream['channel_id']) ? $rStream['channel_id'] : ''), 'service_id' => '', 'bonus_ch' => '0', 'volume_correction' => '0', 'use_http_tmp_link' => $rStreamSourceSt, 'mc_cmd' => '', 'enable_tv_archive' => (0 < $rStream['tv_archive_duration'] ? 1 : 0), 'wowza_tmp_link' => '0', 'wowza_dvr' => '0', 'monitoring_status' => '1', 'enable_monitoring' => '0', 'enable_wowza_load_balancing' => '0', 'cmd_1' => '', 'cmd_2' => '', 'cmd_3' => '', 'logo' => StreamingUtilities::validateImage($rStream['stream_icon'], $rForceProtocol), 'correct_time' => '0', 'nimble_dvr' => '0', 'allow_pvr' => (int) $rStream['allow_record'], 'allow_local_pvr' => (int) $rStream['allow_record'], 'allow_remote_pvr' => 0, 'modified' => '', 'allow_local_timeshift' => '1', 'nginx_secure_link' => $rStreamSourceSt, 'tv_archive_duration' => (0 < $rStream['tv_archive_duration'] ? $rStream['tv_archive_duration'] * 24 : 0), 'locked' => 0, 'lock' => $rStream['is_adult'], 'fav' => (in_array($rStream['id'], $rDevice['fav_channels']['live']) ? 1 : 0), 'archive' => (0 < $rStream['tv_archive_duration'] ? 1 : 0), 'genres_str' => '', 'cur_playing' => $rNowPlaying, 'epg' => array(), 'open' => 1, 'cmds' => array(array('id' => (string) $rStream['id'], 'ch_id' => (string) $rStream['id'], 'priority' => '0', 'url' => $rPlayer . $rStreamURL, 'status' => '1', 'use_http_tmp_link' => $rStreamSourceSt, 'wowza_tmp_link' => '0', 'user_agent_filter' => '', 'use_load_balancing' => '0', 'changed' => '', 'enable_monitoring' => '0', 'enable_balancer_monitoring' => '0', 'nginx_secure_link' => $rStreamSourceSt, 'flussonic_tmp_link' => '0')), 'use_load_balancing' => 0, 'pvr' => (int) $rStream['allow_record']);
 	}
 
 	if ($rDefaultPage) {
