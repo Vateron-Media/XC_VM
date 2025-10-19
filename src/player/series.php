@@ -4,7 +4,7 @@ include 'functions.php';
 
 if (isset(CoreUtilities::$rRequest['sort']) && CoreUtilities::$rRequest['sort'] == 'popular') {
 	$rPopular = true;
-	$rPopular = (CoreUtilities::unserialize(file_get_contents(CONTENT_PATH . 'tmdb_popular'))['series'] ?: array());
+	$rPopular = (igbinary_unserialize(file_get_contents(CONTENT_PATH . 'tmdb_popular'))['series'] ?: array());
 
 	if (0 < count($rPopular) && 0 < count($rUserInfo['series_ids'])) {
 		$db->query('SELECT `id`, `title`, `year`, `rating`, `cover`, `backdrop_path` FROM `streams_series` WHERE `id` IN (' . implode(',', $rPopular) . ') AND `id` IN (' . implode(',', $rUserInfo['series_ids']) . ') ORDER BY FIELD(id, ' . implode(',', $rPopular) . ') ASC LIMIT 100;');
@@ -65,7 +65,7 @@ if (isset(CoreUtilities::$rRequest['sort']) && CoreUtilities::$rRequest['sort'] 
 		$rLimit = 100;
 	}
 
-	$rSeries = CoreUtilities::getUserSeries($rUserInfo, $rCategoryID, null, $rSortBy, $rSearchBy, $rPicking, ($rPage - 1) * $rLimit, $rLimit);
+	$rSeries = getUserSeries($rUserInfo, $rCategoryID, null, $rSortBy, $rSearchBy, $rPicking, ($rPage - 1) * $rLimit, $rLimit);
 }
 
 $rCover = '';
@@ -118,7 +118,7 @@ if ($rPopular || $rSearchBy) {
 	echo (isset($rCategoryID) ? CoreUtilities::$rCategories[$rCategoryID]['category_name'] : 'All Genres');
 	echo '">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<span></span>' . "\r\n\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t" . '<ul class="filter__item-menu dropdown-menu scrollbar-dropdown" aria-labelledby="filter-genre">' . "\r\n" . '                                    ';
 
-	foreach (CoreUtilities::getOrderedCategories($rUserInfo['category_ids'], 'series') as $rCategory) {
+	foreach (getOrderedCategories($rUserInfo['category_ids'], 'series') as $rCategory) {
 		echo "\t\t\t\t\t\t\t\t\t" . '<li>';
 		echo $rCategory['title'];
 		echo '</li>' . "\r\n" . '                                    ';
@@ -205,7 +205,7 @@ echo "\t\t\t" . '</div>' . "\r\n\t\t" . '</div>' . "\r\n\t" . '</div>' . "\r\n" 
 
 if ($rPopular) {
 } else {
-	$rPopular = (CoreUtilities::unserialize(file_get_contents(CONTENT_PATH . 'tmdb_popular'))['series'] ?: array());
+	$rPopular = (igbinary_unserialize(file_get_contents(CONTENT_PATH . 'tmdb_popular'))['series'] ?: array());
 
 	if (!(0 < count($rPopular) && 0 < count($rUserInfo['series_ids']))) {
 	} else {

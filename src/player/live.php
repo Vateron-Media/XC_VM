@@ -6,7 +6,7 @@ if (!in_array(1, $rUserInfo['allowed_outputs']) || CoreUtilities::$rSettings['di
 	header('Location: index.php');
 }
 
-$rCategories = CoreUtilities::getOrderedCategories($rUserInfo['category_ids'], 'live');
+$rCategories = getOrderedCategories($rUserInfo['category_ids'], 'live');
 $rFilterArray = array('all' => 'All Channels', 'timeshift' => 'Timeshift Only', 'epg' => 'Has EPG Only');
 $rFilterBy = (isset($rFilterArray[CoreUtilities::$rRequest['filter']]) ? CoreUtilities::$rRequest['filter'] : 'all');
 $rPicking = array('filter' => $rFilterBy);
@@ -15,7 +15,7 @@ $rSortBy = (isset($rSortArray[CoreUtilities::$rRequest['sort']]) ? CoreUtilities
 $rCategoryID = (intval(CoreUtilities::$rRequest['category']) ?: $rCategories[0]['id']);
 $rSearchBy = (CoreUtilities::$rRequest['search'] ?: null);
 $rStreamIDs = array();
-$rStreams = CoreUtilities::getUserStreams($rUserInfo, array('live', 'created_live'), $rCategoryID, null, $rSortBy, $rSearchBy, $rPicking, null, null, true);
+$rStreams = getUserStreams($rUserInfo, array('live', 'created_live'), $rCategoryID, null, $rSortBy, $rSearchBy, $rPicking, null, null, true);
 
 foreach ($rStreams as $rStream) {
 	$rStreamIDs[] = $rStream['id'];
