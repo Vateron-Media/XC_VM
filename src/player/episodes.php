@@ -1,31 +1,19 @@
 <?php
-
-
-
-
-
-
-
 include 'functions.php';
 
-if (($rSeries = CoreUtilities::getSerie(CoreUtilities::$rRequest['id'])) && in_array(CoreUtilities::$rRequest['id'], $rUserInfo['series_ids'])) {
-
-
-
+if (($rSeries = getSerie(CoreUtilities::$rRequest['id'])) && in_array(CoreUtilities::$rRequest['id'], $rUserInfo['series_ids'])) {
 	$rDomainName = CoreUtilities::getDomainName(!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443);
 	$rTMDB = null;
 
-	if (!$rSeries['tmdb_id']) {
-	} else {
+	if ($rSeries['tmdb_id']) {
 		if (!file_exists(TMP_PATH . 'tmdb_' . $rSeries['tmdb_id'])) {
-			$rTMDB = CoreUtilities::getSeriesTMDB($rSeries['tmdb_id']);
+			$rTMDB = getSeriesTMDB($rSeries['tmdb_id']);
 
-			if (!$rTMDB) {
-			} else {
-				file_put_contents(TMP_PATH . 'tmdb_' . $rSeries['tmdb_id'], CoreUtilities::serialize($rTMDB));
+			if ($rTMDB) {
+				file_put_contents(TMP_PATH . 'tmdb_' . $rSeries['tmdb_id'], igbinary_serialize($rTMDB));
 			}
 		} else {
-			$rTMDB = CoreUtilities::unserialize(file_get_contents(TMP_PATH . 'tmdb_' . $rSeries['tmdb_id']));
+			$rTMDB = igbinary_unserialize(file_get_contents(TMP_PATH . 'tmdb_' . $rSeries['tmdb_id']));
 		}
 	}
 
@@ -64,14 +52,14 @@ if (($rSeries = CoreUtilities::getSerie(CoreUtilities::$rRequest['id'])) && in_a
 	for ($i = 0; $i < count($rEpisodes); $i++) {
 		$rURLs[$rEpisodes[$i]['id']] = $rDomainName . 'series/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rEpisodes[$i]['id'] . '.' . $rEpisodes[$i]['target_container'];
 		$rProperties = json_decode($rEpisodes[$i]['movie_properties'], true);
-		$rSubtitles[$rEpisodes[$i]['id']] = CoreUtilities::getSubtitles($rEpisodes[$i]['id'], $rProperties['subtitle']);
+		$rSubtitles[$rEpisodes[$i]['id']] = getSubtitles($rEpisodes[$i]['id'], $rProperties['subtitle']);
 
 		if ($rEpisodes[$i]['target_container'] == 'mp4') {
 		} else {
 			$rProxySubtitles = array();
 
 			foreach ($rSubtitles[$rEpisodes[$i]['id']] as $rSubtitle) {
-				$rSubtitle['file'] = 'proxy.php?url=' . CoreUtilities::encrypt($rSubtitle['file'], CoreUtilities::$rSettings['live_streaming_pass'], 'd8de497ebccf4f4697a1da20219c7c33');
+				$rSubtitle['file'] = 'proxy.php?url=' . CoreUtilities::encryptData($rSubtitle['file'], CoreUtilities::$rSettings['live_streaming_pass'], 'd8de497ebccf4f4697a1da20219c7c33');
 				$rProxySubtitles[] = $rSubtitle;
 			}
 			$rSubtitles[$rEpisodes[$i]['id']] = $rProxySubtitles;
@@ -83,14 +71,14 @@ if (($rSeries = CoreUtilities::getSerie(CoreUtilities::$rRequest['id'])) && in_a
 	if (!$rSeries['tmdb_id']) {
 	} else {
 		if (!file_exists(TMP_PATH . 'tmdb_' . $rSeries['tmdb_id'] . '_' . $rSeasonNo)) {
-			$rSeason = CoreUtilities::getSeasonTMDB($rSeries['tmdb_id'], $rSeasonNo);
+			$rSeason = getSeasonTMDB($rSeries['tmdb_id'], $rSeasonNo);
 
 			if (!$rSeason) {
 			} else {
-				file_put_contents(TMP_PATH . 'tmdb_' . $rSeries['tmdb_id'] . '_' . $rSeasonNo, CoreUtilities::serialize($rSeason));
+				file_put_contents(TMP_PATH . 'tmdb_' . $rSeries['tmdb_id'] . '_' . $rSeasonNo, igbinary_serialize($rSeason));
 			}
 		} else {
-			$rSeason = CoreUtilities::unserialize(file_get_contents(TMP_PATH . 'tmdb_' . $rSeries['tmdb_id'] . '_' . $rSeasonNo));
+			$rSeason = igbinary_unserialize(file_get_contents(TMP_PATH . 'tmdb_' . $rSeries['tmdb_id'] . '_' . $rSeasonNo));
 		}
 	}
 
