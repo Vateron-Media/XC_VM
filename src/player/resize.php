@@ -17,7 +17,7 @@ if (isset($_SESSION['phash'])) {
 	if (extension_loaded('xc_vm') && $rConfig['platform'] == 'xc_vm') {
 		$rServers = igbinary_unserialize(file_get_contents('/home/xc_vm/tmp/cache/servers'));
 	} else {
-		$rServers = (function_exists('igbinary_unserialize') ? igbinary_unserialize(file_get_contents($rConfig['tmp_path'] . 'servers')) : unserialize(file_get_contents($rConfig['tmp_path'] . 'servers')));
+		$rServers = (function_exists('igbinary_unserialize') ? igbinary_unserialize(file_get_contents($rConfig['tmp_path'] . 'servers')) : igbinary_unserialize(file_get_contents($rConfig['tmp_path'] . 'servers')));
 	}
 
 	if ($rServers) {

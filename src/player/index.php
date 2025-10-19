@@ -10,7 +10,7 @@ if (isset(CoreUtilities::$rRequest['search']) && isset(CoreUtilities::$rRequest[
 }
 
 $rPopularNow = array();
-$rPopular = CoreUtilities::unserialize(file_get_contents(CONTENT_PATH . 'tmdb_popular'));
+$rPopular = igbinary_unserialize(file_get_contents(CONTENT_PATH . 'tmdb_popular'));
 
 if (!(0 < count($rPopular['movies']) && 0 < count($rUserInfo['vod_ids']))) {
 } else {
@@ -46,8 +46,8 @@ if (!(0 < count($rPopular['series']) && 0 < count($rUserInfo['series_ids']))) {
 
 shuffle($rPopularNow);
 $rPopularNow = array_slice($rPopularNow, 0, 20);
-$rMovies = CoreUtilities::getUserStreams($rUserInfo, array('movie'), null, null, 'added', null, null, 0, 20);
-$rSeries = CoreUtilities::getUserSeries($rUserInfo, null, null, 'added', $rSearchBy, null, 0, 20);
+$rMovies = getUserStreams($rUserInfo, array('movie'), null, null, 'added', null, null, 0, 20);
+$rSeries = getUserSeries($rUserInfo, null, null, 'added', $rSearchBy, null, 0, 20);
 $_TITLE = 'Home';
 include 'header.php';
 

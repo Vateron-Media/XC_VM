@@ -59,7 +59,7 @@ if ($_PAGE == 'profile') {
 		echo "');" . "\r\n" . '            ';
 		$rCategories = array();
 
-		foreach (CoreUtilities::getOrderedCategories($rUserInfo['category_ids'], $_PAGE) as $rCategory) {
+		foreach (getOrderedCategories($rUserInfo['category_ids'], $_PAGE) as $rCategory) {
 			$rCategories[$rCategory['title']] = $rCategory['id'];
 		}
 		echo "            var rFilter = JSON.parse('";
@@ -143,7 +143,7 @@ if ($_PAGE == 'profile') {
 				echo "');" . "\r\n" . '            ';
 				$rCategories = array();
 
-				foreach (CoreUtilities::getOrderedCategories($rUserInfo['category_ids'], ($_PAGE == 'movies' ? 'movie' : 'series')) as $rCategory) {
+				foreach (getOrderedCategories($rUserInfo['category_ids'], ($_PAGE == 'movies' ? 'movie' : 'series')) as $rCategory) {
 					$rCategories[$rCategory['title']] = $rCategory['id'];
 				}
 				echo "            var rCategories = JSON.parse('";
