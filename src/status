@@ -30,9 +30,9 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 		}
 
 		echo 'Database' . "\n" . '------------------------------' . "\n";
-		CoreUtilities::connectDatabase();
+		StreamingUtilities::connectDatabase();
 
-		if (!CoreUtilities::$db->connected) {
+		if (!StreamingUtilities::$db->connected) {
 			echo "Couldn't connect to database. Please add them to config.ini." . "\n\n";
 
 			exit();
@@ -42,1162 +42,1162 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 		$rServers = abc6134f1458b898();
 
 		if ($rServers[SERVER_ID]['is_main']) {
-			CoreUtilities::$db->query("SHOW INDEXES IN `servers` WHERE `key_name` = 'private_ip';");
+			StreamingUtilities::$db->query("SHOW INDEXES IN `servers` WHERE `key_name` = 'private_ip';");
 
-			if (0 >= CoreUtilities::$db->num_rows()) {
+			if (0 >= StreamingUtilities::$db->num_rows()) {
 			} else {
-				CoreUtilities::$db->query('ALTER TABLE `servers` DROP INDEX `private_ip`;');
+				StreamingUtilities::$db->query('ALTER TABLE `servers` DROP INDEX `private_ip`;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'hide_failures';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'hide_failures';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `hide_failures` TINYINT(4) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `hide_failures` TINYINT(4) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'legacy_panel_api';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'legacy_panel_api';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `legacy_panel_api` TINYINT(4) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `legacy_panel_api` TINYINT(4) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `lines` LIKE 'allowed_outputs';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `lines` LIKE 'allowed_outputs';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `lines` ADD COLUMN `allowed_outputs` MEDIUMTEXT NULL DEFAULT NULL AFTER `bouquet`;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `lines` ADD COLUMN `allowed_outputs` MEDIUMTEXT NULL DEFAULT NULL AFTER `bouquet`;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'check_connections';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'check_connections';");
 
-			if (0 >= CoreUtilities::$db->num_rows()) {
+			if (0 >= StreamingUtilities::$db->num_rows()) {
 			} else {
-				CoreUtilities::$db->query('ALTER TABLE `settings` DROP COLUMN `check_connections`;');
+				StreamingUtilities::$db->query('ALTER TABLE `settings` DROP COLUMN `check_connections`;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `users` LIKE 'api_key';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `users` LIKE 'api_key';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `users` ADD COLUMN `api_key` VARCHAR(64) NULL DEFAULT '';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `users` ADD COLUMN `api_key` VARCHAR(64) NULL DEFAULT '';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'api_probe';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'api_probe';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `api_probe` TINYINT(4) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `api_probe` TINYINT(4) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'last_status';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'last_status';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `servers` ADD COLUMN `last_status` TINYINT(4) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `servers` ADD COLUMN `last_status` TINYINT(4) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'max_simultaneous_downloads';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'max_simultaneous_downloads';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `max_simultaneous_downloads` TINYINT(4) NULL DEFAULT '2';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `max_simultaneous_downloads` TINYINT(4) NULL DEFAULT '2';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'restart_php_fpm';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'restart_php_fpm';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `restart_php_fpm` TINYINT(4) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `restart_php_fpm` TINYINT(4) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `mysql_syslog` LIKE 'server_id';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `mysql_syslog` LIKE 'server_id';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `mysql_syslog` ADD COLUMN `server_id` TINYINT(4) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `mysql_syslog` ADD COLUMN `server_id` TINYINT(4) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'cache_playlists';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'cache_playlists';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `cache_playlists` INT(11) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `cache_playlists` INT(11) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'send_xc_vm_header';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'send_xc_vm_header';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `send_xc_vm_header` INT(11) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `send_xc_vm_header` INT(11) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'request_prebuffer';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'request_prebuffer';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `request_prebuffer` INT(11) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `request_prebuffer` INT(11) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'debug_show_errors';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'debug_show_errors';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `debug_show_errors` TINYINT(4) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `debug_show_errors` TINYINT(4) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'block_streaming_servers';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'block_streaming_servers';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `block_streaming_servers` TINYINT(4) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `block_streaming_servers` TINYINT(4) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'block_proxies';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'block_proxies';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `block_proxies` TINYINT(4) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `block_proxies` TINYINT(4) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'ip_subnet_match';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'ip_subnet_match';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `ip_subnet_match` TINYINT(4) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `ip_subnet_match` TINYINT(4) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'last_cache';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'last_cache';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `last_cache` INT(11) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `last_cache` INT(11) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'last_cache_taken';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'last_cache_taken';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `last_cache_taken` INT(11) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `last_cache_taken` INT(11) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'ministra_allow_blank';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'ministra_allow_blank';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `ministra_allow_blank` INT(11) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `ministra_allow_blank` INT(11) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'enable_redis';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'enable_redis';");
 
-			if (CoreUtilities::$db->num_rows() != 1) {
+			if (StreamingUtilities::$db->num_rows() != 1) {
 			} else {
-				CoreUtilities::$db->query('ALTER TABLE `settings` DROP COLUMN `enable_redis`;');
+				StreamingUtilities::$db->query('ALTER TABLE `settings` DROP COLUMN `enable_redis`;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'enable_cache';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'enable_cache';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `enable_cache` TINYINT(4) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `enable_cache` TINYINT(4) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'legacy_mag_auth';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'legacy_mag_auth';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `legacy_mag_auth` TINYINT(4) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `legacy_mag_auth` TINYINT(4) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'ignore_invalid_users';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'ignore_invalid_users';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `ignore_invalid_users` TINYINT(4) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `ignore_invalid_users` TINYINT(4) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'on_demand_instant_off';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'on_demand_instant_off';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `on_demand_instant_off` TINYINT(4) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `on_demand_instant_off` TINYINT(4) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'on_demand_failure_exit';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'on_demand_failure_exit';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `on_demand_failure_exit` TINYINT(4) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `on_demand_failure_exit` TINYINT(4) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'on_demand_wait_time';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'on_demand_wait_time';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `on_demand_wait_time` TINYINT(4) NULL DEFAULT '20';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `on_demand_wait_time` TINYINT(4) NULL DEFAULT '20';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'playlist_from_mysql';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'playlist_from_mysql';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `playlist_from_mysql` TINYINT(4) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `playlist_from_mysql` TINYINT(4) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'show_images';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'show_images';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `show_images` TINYINT(4) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `show_images` TINYINT(4) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'kill_rogue_ffmpeg';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'kill_rogue_ffmpeg';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `kill_rogue_ffmpeg` TINYINT(4) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `kill_rogue_ffmpeg` TINYINT(4) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'monitor_connection_status';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'monitor_connection_status';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `monitor_connection_status` TINYINT(4) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `monitor_connection_status` TINYINT(4) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'stream_fail_sleep';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'stream_fail_sleep';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `stream_fail_sleep` TINYINT(4) NULL DEFAULT '10';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `stream_fail_sleep` TINYINT(4) NULL DEFAULT '10';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'confirm_source';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'confirm_source';");
 
-			if (CoreUtilities::$db->num_rows() != 1) {
+			if (StreamingUtilities::$db->num_rows() != 1) {
 			} else {
-				CoreUtilities::$db->query('ALTER TABLE `settings` DROP COLUMN `confirm_source`;');
+				StreamingUtilities::$db->query('ALTER TABLE `settings` DROP COLUMN `confirm_source`;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'custom_ip_header';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'custom_ip_header';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `custom_ip_header` VARCHAR(256) NULL DEFAULT '';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `custom_ip_header` VARCHAR(256) NULL DEFAULT '';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'send_protection_headers';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'send_protection_headers';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `send_protection_headers` TINYINT(4) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `send_protection_headers` TINYINT(4) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'send_altsvc_header';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'send_altsvc_header';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `send_altsvc_header` TINYINT(4) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `send_altsvc_header` TINYINT(4) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'send_server_header';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'send_server_header';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `send_server_header` VARCHAR(256) NULL DEFAULT '';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `send_server_header` VARCHAR(256) NULL DEFAULT '';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'send_unique_header';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'send_unique_header';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `send_unique_header` VARCHAR(256) NULL DEFAULT '';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `send_unique_header` VARCHAR(256) NULL DEFAULT '';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'send_unique_header_domain';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'send_unique_header_domain';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `send_unique_header_domain` VARCHAR(256) NULL DEFAULT '';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `send_unique_header_domain` VARCHAR(256) NULL DEFAULT '';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'max_items';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'max_items';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `max_items` INT(11) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `max_items` INT(11) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'restrict_playlists';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'restrict_playlists';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `restrict_playlists` TINYINT(4) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `restrict_playlists` TINYINT(4) NULL DEFAULT '1';");
 			}
 
 			if (file_exists(MAIN_HOME . 'bin/nginx/conf/codes/c.conf')) {
-				CoreUtilities::$db->query("DELETE FROM `access_codes` WHERE `code` = 'c';");
+				StreamingUtilities::$db->query("DELETE FROM `access_codes` WHERE `code` = 'c';");
 				unlink(MAIN_HOME . 'bin/nginx/conf/codes/c.conf');
 				$rReload = true;
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'mag_legacy_access';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'mag_legacy_access';");
 
-			if (CoreUtilities::$db->num_rows() != 1) {
+			if (StreamingUtilities::$db->num_rows() != 1) {
 			} else {
-				CoreUtilities::$db->query('ALTER TABLE `settings` DROP COLUMN `mag_legacy_access`;');
+				StreamingUtilities::$db->query('ALTER TABLE `settings` DROP COLUMN `mag_legacy_access`;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'mag_legacy_redirect';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'mag_legacy_redirect';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `mag_legacy_redirect` TINYINT(4) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `mag_legacy_redirect` TINYINT(4) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'save_login_logs';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'save_login_logs';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `save_login_logs` TINYINT(4) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `save_login_logs` TINYINT(4) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'save_restart_logs';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'save_restart_logs';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `save_restart_logs` TINYINT(4) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `save_restart_logs` TINYINT(4) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'keep_activity';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'keep_activity';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `keep_activity` INT(11) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `keep_activity` INT(11) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'keep_client';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'keep_client';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `keep_client` INT(11) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `keep_client` INT(11) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'keep_login';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'keep_login';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `keep_login` INT(11) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `keep_login` INT(11) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'keep_errors';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'keep_errors';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `keep_errors` INT(11) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `keep_errors` INT(11) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'keep_restarts';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'keep_restarts';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `keep_restarts` INT(11) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `keep_restarts` INT(11) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'time_offset';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'time_offset';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `servers` ADD COLUMN `time_offset` INT(11) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `servers` ADD COLUMN `time_offset` INT(11) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'ping';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'ping';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `servers` ADD COLUMN `ping` INT(11) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `servers` ADD COLUMN `ping` INT(11) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'requests_per_second';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'requests_per_second';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `servers` ADD COLUMN `requests_per_second` INT(11) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `servers` ADD COLUMN `requests_per_second` INT(11) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `signals` LIKE 'cache';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `signals` LIKE 'cache';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `signals` ADD COLUMN `cache` TINYINT(4) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `signals` ADD COLUMN `cache` TINYINT(4) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `servers_stats` LIKE 'total_users';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `servers_stats` LIKE 'total_users';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `servers_stats` ADD COLUMN `total_users` INT(11) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `servers_stats` ADD COLUMN `total_users` INT(11) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `lines` LIKE 'last_activity';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `lines` LIKE 'last_activity';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `lines` ADD COLUMN `last_activity` INT(11) NULL DEFAULT NULL;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `lines` ADD COLUMN `last_activity` INT(11) NULL DEFAULT NULL;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `streams` LIKE 'year';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `streams` LIKE 'year';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `streams` ADD COLUMN `year` INT(4) NULL DEFAULT NULL;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `streams` ADD COLUMN `year` INT(4) NULL DEFAULT NULL;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `streams` LIKE 'rating';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `streams` LIKE 'rating';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `streams` ADD COLUMN `rating` FLOAT(8) NOT NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `streams` ADD COLUMN `rating` FLOAT(8) NOT NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `streams_series` LIKE 'year';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `streams_series` LIKE 'year';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `streams_series` ADD COLUMN `year` INT(4) NULL DEFAULT NULL;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `streams_series` ADD COLUMN `year` INT(4) NULL DEFAULT NULL;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `watch_folders` LIKE 'auto_upgrade';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `watch_folders` LIKE 'auto_upgrade';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `watch_folders` ADD COLUMN `auto_upgrade` TINYINT(4) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `watch_folders` ADD COLUMN `auto_upgrade` TINYINT(4) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `watch_folders` LIKE 'fallback_title';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `watch_folders` LIKE 'fallback_title';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `watch_folders` ADD COLUMN `fallback_title` TINYINT(4) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `watch_folders` ADD COLUMN `fallback_title` TINYINT(4) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'ignore_keyframes';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'ignore_keyframes';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `ignore_keyframes` INT(11) NULL DEFAULT '0';");
-				CoreUtilities::$db->query("ALTER TABLE `users_packages` CHANGE COLUMN `is_addon` `is_addon` TINYINT(4) NULL DEFAULT '0', CHANGE COLUMN `is_trial` `is_trial` TINYINT(4) NULL DEFAULT '0', CHANGE COLUMN `is_official` `is_official` TINYINT(4) NULL DEFAULT '0', CHANGE COLUMN `trial_credits` `trial_credits` FLOAT NULL DEFAULT '0', CHANGE COLUMN `official_credits` `official_credits` FLOAT NULL DEFAULT '0', CHANGE COLUMN `trial_duration` `trial_duration` INT(11) NULL DEFAULT '0', CHANGE COLUMN `official_duration` `official_duration` INT(11) NULL DEFAULT '0';");
-				CoreUtilities::$db->query("ALTER TABLE `access_codes` CHANGE COLUMN `type` `type` TINYINT(4) NULL DEFAULT '0', CHANGE COLUMN `enabled` `enabled` TINYINT(4) NULL DEFAULT '0';");
-				CoreUtilities::$db->query('ALTER TABLE `blocked_asns` CHANGE COLUMN `isp` `isp` VARCHAR(256) NULL DEFAULT NULL, CHANGE COLUMN `domain` `domain` VARCHAR(256) NULL DEFAULT NULL, CHANGE COLUMN `country` `country` VARCHAR(16) NULL DEFAULT NULL, CHANGE COLUMN `type` `type` VARCHAR(64) NULL DEFAULT NULL;');
-				CoreUtilities::$db->query('ALTER TABLE `epg_channels` CHANGE COLUMN `epg_id` `epg_id` INT(8) NULL DEFAULT NULL, CHANGE COLUMN `channel_id` `channel_id` VARCHAR(64) NULL DEFAULT NULL, CHANGE COLUMN `name` `name` VARCHAR(256) NULL DEFAULT NULL;');
-				CoreUtilities::$db->query('ALTER TABLE `panel_stats` CHANGE COLUMN `type` `type` VARCHAR(16) NULL DEFAULT NULL;');
-				CoreUtilities::$db->query('ALTER TABLE `streams_stats` CHANGE COLUMN `type` `type` VARCHAR(16) NULL DEFAULT NULL;');
-				CoreUtilities::$db->query('ALTER TABLE `users` CHANGE COLUMN `api_key` `api_key` VARCHAR(64) NULL DEFAULT NULL;');
-				CoreUtilities::$db->query('ALTER TABLE `watch_categories` CHANGE COLUMN `genre` `genre` VARCHAR(64) NULL DEFAULT NULL;');
-				CoreUtilities::$db->query('ALTER TABLE `watch_folders` CHANGE COLUMN `type` `type` VARCHAR(32) NULL DEFAULT NULL, CHANGE COLUMN `directory` `directory` VARCHAR(2048) NULL DEFAULT NULL, CHANGE COLUMN `rclone_dir` `rclone_dir` VARCHAR(2048) NULL DEFAULT NULL;');
-				CoreUtilities::$db->query('ALTER TABLE `watch_logs` CHANGE COLUMN `filename` `filename` VARCHAR(4096) NULL DEFAULT NULL;');
-				CoreUtilities::$db->query('ALTER TABLE `mag_devices` CHANGE COLUMN `token` `token` VARCHAR(32) NULL DEFAULT NULL;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `ignore_keyframes` INT(11) NULL DEFAULT '0';");
+				StreamingUtilities::$db->query("ALTER TABLE `users_packages` CHANGE COLUMN `is_addon` `is_addon` TINYINT(4) NULL DEFAULT '0', CHANGE COLUMN `is_trial` `is_trial` TINYINT(4) NULL DEFAULT '0', CHANGE COLUMN `is_official` `is_official` TINYINT(4) NULL DEFAULT '0', CHANGE COLUMN `trial_credits` `trial_credits` FLOAT NULL DEFAULT '0', CHANGE COLUMN `official_credits` `official_credits` FLOAT NULL DEFAULT '0', CHANGE COLUMN `trial_duration` `trial_duration` INT(11) NULL DEFAULT '0', CHANGE COLUMN `official_duration` `official_duration` INT(11) NULL DEFAULT '0';");
+				StreamingUtilities::$db->query("ALTER TABLE `access_codes` CHANGE COLUMN `type` `type` TINYINT(4) NULL DEFAULT '0', CHANGE COLUMN `enabled` `enabled` TINYINT(4) NULL DEFAULT '0';");
+				StreamingUtilities::$db->query('ALTER TABLE `blocked_asns` CHANGE COLUMN `isp` `isp` VARCHAR(256) NULL DEFAULT NULL, CHANGE COLUMN `domain` `domain` VARCHAR(256) NULL DEFAULT NULL, CHANGE COLUMN `country` `country` VARCHAR(16) NULL DEFAULT NULL, CHANGE COLUMN `type` `type` VARCHAR(64) NULL DEFAULT NULL;');
+				StreamingUtilities::$db->query('ALTER TABLE `epg_channels` CHANGE COLUMN `epg_id` `epg_id` INT(8) NULL DEFAULT NULL, CHANGE COLUMN `channel_id` `channel_id` VARCHAR(64) NULL DEFAULT NULL, CHANGE COLUMN `name` `name` VARCHAR(256) NULL DEFAULT NULL;');
+				StreamingUtilities::$db->query('ALTER TABLE `panel_stats` CHANGE COLUMN `type` `type` VARCHAR(16) NULL DEFAULT NULL;');
+				StreamingUtilities::$db->query('ALTER TABLE `streams_stats` CHANGE COLUMN `type` `type` VARCHAR(16) NULL DEFAULT NULL;');
+				StreamingUtilities::$db->query('ALTER TABLE `users` CHANGE COLUMN `api_key` `api_key` VARCHAR(64) NULL DEFAULT NULL;');
+				StreamingUtilities::$db->query('ALTER TABLE `watch_categories` CHANGE COLUMN `genre` `genre` VARCHAR(64) NULL DEFAULT NULL;');
+				StreamingUtilities::$db->query('ALTER TABLE `watch_folders` CHANGE COLUMN `type` `type` VARCHAR(32) NULL DEFAULT NULL, CHANGE COLUMN `directory` `directory` VARCHAR(2048) NULL DEFAULT NULL, CHANGE COLUMN `rclone_dir` `rclone_dir` VARCHAR(2048) NULL DEFAULT NULL;');
+				StreamingUtilities::$db->query('ALTER TABLE `watch_logs` CHANGE COLUMN `filename` `filename` VARCHAR(4096) NULL DEFAULT NULL;');
+				StreamingUtilities::$db->query('ALTER TABLE `mag_devices` CHANGE COLUMN `token` `token` VARCHAR(32) NULL DEFAULT NULL;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'seg_delete_threshold';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'seg_delete_threshold';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `seg_delete_threshold` INT(11) NULL DEFAULT '4';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `seg_delete_threshold` INT(11) NULL DEFAULT '4';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'fails_per_time';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'fails_per_time';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `fails_per_time` INT(11) NULL DEFAULT '86400';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `fails_per_time` INT(11) NULL DEFAULT '86400';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `streams` LIKE 'plex_uuid';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `streams` LIKE 'plex_uuid';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `streams` ADD COLUMN `plex_uuid` VARCHAR(256) NULL DEFAULT '';");
-				CoreUtilities::$db->query("ALTER TABLE `streams_series` ADD COLUMN `plex_uuid` VARCHAR(256) NULL DEFAULT '';");
-				CoreUtilities::$db->query('ALTER TABLE `watch_folders` ADD COLUMN `plex_ip` VARCHAR(128) NULL DEFAULT NULL;');
-				CoreUtilities::$db->query("ALTER TABLE `watch_folders` ADD COLUMN `plex_port` INT(5) NULL DEFAULT '0';");
-				CoreUtilities::$db->query('ALTER TABLE `watch_folders` ADD COLUMN `plex_username` VARCHAR(256) NULL DEFAULT NULL;');
-				CoreUtilities::$db->query('ALTER TABLE `watch_folders` ADD COLUMN `plex_password` VARCHAR(256) NULL DEFAULT NULL;');
-				CoreUtilities::$db->query('ALTER TABLE `watch_folders` ADD COLUMN `plex_libraries` MEDIUMTEXT NULL DEFAULT NULL;');
-				CoreUtilities::$db->query("ALTER TABLE `watch_folders` ADD COLUMN `scan_missing` TINYINT(4) NULL DEFAULT '0';");
-				CoreUtilities::$db->query("ALTER TABLE `watch_folders` ADD COLUMN `extract_metadata` TINYINT(4) NULL DEFAULT '0';");
-				CoreUtilities::$db->query("INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 1, 'Action', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 2, 'Action / Adventure', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 3, 'Adventure', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 4, 'Animation', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 5, 'Anime', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 6, 'Biography', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 7, 'Children', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 8, 'Comedy', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 9, 'Crime', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 10, 'Documentary', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 11, 'Drama', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 12, 'Family', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 13, 'Fantasy', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 14, 'History', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 15, 'Horror', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 16, 'Martial Arts', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 17, 'Music', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 18, 'Musical', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 19, 'Mystery', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 20, 'News', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 21, 'Non-Fiction', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 22, 'Reality', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 23, 'Romance', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 24, 'Science Fiction', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 25, 'Short', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 26, 'Sport', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 27, 'Talk Show', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 28, 'Thriller', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 29, 'TV Movie', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 30, 'War', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 31, 'Western', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 1, 'Action', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 2, 'Action & Adventure', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 3, 'Adventure', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 4, 'Animation', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 5, 'Anime', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 6, 'Biography', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 7, 'Children', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 8, 'Comedy', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 9, 'Crime', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 10, 'Documentary', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 11, 'Drama', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 12, 'Family', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 13, 'Fantasy', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 14, 'Food', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 15, 'Game Show', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 16, 'History', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 17, 'Home and Garden', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 18, 'Horror', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 19, 'Indie', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 20, 'Martial Arts', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 21, 'Mini-Series', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 22, 'Musical', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 23, 'Mystery', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 24, 'News', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 25, 'Reality', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 26, 'Romance', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 27, 'Science Fiction', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 28, 'Sci-Fi & Fantasy', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 29, 'Soap', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 30, 'Special Interest', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 31, 'Sport', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 32, 'Suspense', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 33, 'Talk', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 34, 'Talk Show', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 35, 'Thriller', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 36, 'Thriller', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 37, 'Travel', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 38, 'War', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 39, 'War & Politics', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 40, 'Western', 0, '[]');");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `streams` ADD COLUMN `plex_uuid` VARCHAR(256) NULL DEFAULT '';");
+				StreamingUtilities::$db->query("ALTER TABLE `streams_series` ADD COLUMN `plex_uuid` VARCHAR(256) NULL DEFAULT '';");
+				StreamingUtilities::$db->query('ALTER TABLE `watch_folders` ADD COLUMN `plex_ip` VARCHAR(128) NULL DEFAULT NULL;');
+				StreamingUtilities::$db->query("ALTER TABLE `watch_folders` ADD COLUMN `plex_port` INT(5) NULL DEFAULT '0';");
+				StreamingUtilities::$db->query('ALTER TABLE `watch_folders` ADD COLUMN `plex_username` VARCHAR(256) NULL DEFAULT NULL;');
+				StreamingUtilities::$db->query('ALTER TABLE `watch_folders` ADD COLUMN `plex_password` VARCHAR(256) NULL DEFAULT NULL;');
+				StreamingUtilities::$db->query('ALTER TABLE `watch_folders` ADD COLUMN `plex_libraries` MEDIUMTEXT NULL DEFAULT NULL;');
+				StreamingUtilities::$db->query("ALTER TABLE `watch_folders` ADD COLUMN `scan_missing` TINYINT(4) NULL DEFAULT '0';");
+				StreamingUtilities::$db->query("ALTER TABLE `watch_folders` ADD COLUMN `extract_metadata` TINYINT(4) NULL DEFAULT '0';");
+				StreamingUtilities::$db->query("INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 1, 'Action', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 2, 'Action / Adventure', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 3, 'Adventure', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 4, 'Animation', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 5, 'Anime', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 6, 'Biography', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 7, 'Children', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 8, 'Comedy', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 9, 'Crime', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 10, 'Documentary', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 11, 'Drama', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 12, 'Family', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 13, 'Fantasy', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 14, 'History', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 15, 'Horror', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 16, 'Martial Arts', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 17, 'Music', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 18, 'Musical', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 19, 'Mystery', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 20, 'News', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 21, 'Non-Fiction', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 22, 'Reality', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 23, 'Romance', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 24, 'Science Fiction', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 25, 'Short', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 26, 'Sport', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 27, 'Talk Show', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 28, 'Thriller', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 29, 'TV Movie', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 30, 'War', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (3, 31, 'Western', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 1, 'Action', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 2, 'Action & Adventure', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 3, 'Adventure', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 4, 'Animation', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 5, 'Anime', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 6, 'Biography', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 7, 'Children', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 8, 'Comedy', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 9, 'Crime', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 10, 'Documentary', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 11, 'Drama', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 12, 'Family', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 13, 'Fantasy', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 14, 'Food', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 15, 'Game Show', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 16, 'History', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 17, 'Home and Garden', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 18, 'Horror', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 19, 'Indie', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 20, 'Martial Arts', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 21, 'Mini-Series', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 22, 'Musical', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 23, 'Mystery', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 24, 'News', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 25, 'Reality', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 26, 'Romance', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 27, 'Science Fiction', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 28, 'Sci-Fi & Fantasy', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 29, 'Soap', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 30, 'Special Interest', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 31, 'Sport', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 32, 'Suspense', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 33, 'Talk', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 34, 'Talk Show', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 35, 'Thriller', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 36, 'Thriller', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 37, 'Travel', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 38, 'War', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 39, 'War & Politics', 0, '[]'); INSERT INTO `watch_categories` (`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES (4, 40, 'Western', 0, '[]');");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'segment_type';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'segment_type';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `segment_type` TINYINT(1) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `segment_type` TINYINT(1) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `watch_folders` LIKE 'store_categories';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `watch_folders` LIKE 'store_categories';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `watch_folders` ADD COLUMN `store_categories` TINYINT(1) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `watch_folders` ADD COLUMN `store_categories` TINYINT(1) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'thread_count_movie';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'thread_count_movie';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `thread_count_movie` TINYINT(3) NULL DEFAULT '5';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `thread_count_movie` TINYINT(3) NULL DEFAULT '5';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'thread_count_show';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'thread_count_show';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `thread_count_show` TINYINT(3) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `thread_count_show` TINYINT(3) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `watch_folders` LIKE 'duplicate_tmdb';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `watch_folders` LIKE 'duplicate_tmdb';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `watch_folders` ADD COLUMN `duplicate_tmdb` TINYINT(1) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `watch_folders` ADD COLUMN `duplicate_tmdb` TINYINT(1) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'redirect_timeout';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'redirect_timeout';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `redirect_timeout` TINYINT(1) NULL DEFAULT '5';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `redirect_timeout` TINYINT(1) NULL DEFAULT '5';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'create_expiration';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'create_expiration';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `create_expiration` TINYINT(3) NULL DEFAULT '5';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `create_expiration` TINYINT(3) NULL DEFAULT '5';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'redis_handler';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'redis_handler';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `redis_handler` TINYINT(1) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `redis_handler` TINYINT(1) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'redis_password';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'redis_password';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `redis_password` VARCHAR(512) NULL DEFAULT '';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `redis_password` VARCHAR(512) NULL DEFAULT '';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `lines_live` LIKE 'uuid';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `lines_live` LIKE 'uuid';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `lines_live` ADD COLUMN `uuid` VARCHAR(32) NULL DEFAULT NULL, ADD INDEX `uuid` (`uuid`);');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `lines_live` ADD COLUMN `uuid` VARCHAR(32) NULL DEFAULT NULL, ADD INDEX `uuid` (`uuid`);');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `streams` LIKE 'uuid';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `streams` LIKE 'uuid';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `streams` ADD COLUMN `uuid` VARCHAR(32) NULL DEFAULT NULL, ADD INDEX `uuid` (`uuid`);');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `streams` ADD COLUMN `uuid` VARCHAR(32) NULL DEFAULT NULL, ADD INDEX `uuid` (`uuid`);');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `watch_folders` LIKE 'fallback_movie';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `watch_folders` LIKE 'fallback_movie';");
 
-			if (CoreUtilities::$db->num_rows() != 1) {
+			if (StreamingUtilities::$db->num_rows() != 1) {
 			} else {
-				CoreUtilities::$db->query('ALTER TABLE `watch_folders` DROP COLUMN `fallback_movie`;');
+				StreamingUtilities::$db->query('ALTER TABLE `watch_folders` DROP COLUMN `fallback_movie`;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `watch_folders` LIKE 'fallback_show';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `watch_folders` LIKE 'fallback_show';");
 
-			if (CoreUtilities::$db->num_rows() != 1) {
+			if (StreamingUtilities::$db->num_rows() != 1) {
 			} else {
-				CoreUtilities::$db->query('ALTER TABLE `watch_folders` DROP COLUMN `fallback_show`;');
+				StreamingUtilities::$db->query('ALTER TABLE `watch_folders` DROP COLUMN `fallback_show`;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'force_epg_timezone';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'force_epg_timezone';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `force_epg_timezone` TINYINT(1) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `force_epg_timezone` TINYINT(1) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'check_vod';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'check_vod';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `check_vod` TINYINT(1) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `check_vod` TINYINT(1) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `epg` LIKE 'offset';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `epg` LIKE 'offset';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `epg` ADD COLUMN `offset` INT(11) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `epg` ADD COLUMN `offset` INT(11) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `streams` LIKE 'epg_offset';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `streams` LIKE 'epg_offset';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `streams` ADD COLUMN `epg_offset` INT(11) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `streams` ADD COLUMN `epg_offset` INT(11) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'max_encode_movies';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'max_encode_movies';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `max_encode_movies` INT(11) NULL DEFAULT '10';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `max_encode_movies` INT(11) NULL DEFAULT '10';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'max_encode_cc';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'max_encode_cc';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `max_encode_cc` INT(11) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `max_encode_cc` INT(11) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'queue_loop';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'queue_loop';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `queue_loop` INT(11) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `queue_loop` INT(11) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `watch_folders` LIKE 'check_tmdb';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `watch_folders` LIKE 'check_tmdb';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `watch_folders` ADD COLUMN `check_tmdb` TINYINT(1) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `watch_folders` ADD COLUMN `check_tmdb` TINYINT(1) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'cache_thread_count';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'cache_thread_count';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `cache_thread_count` INT(4) NULL DEFAULT '4';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `cache_thread_count` INT(4) NULL DEFAULT '4';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'cache_changes';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'cache_changes';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `cache_changes` TINYINT(1) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `cache_changes` TINYINT(1) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `streams` LIKE 'updated';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `streams` LIKE 'updated';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `streams` ADD COLUMN `updated` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;');
-				CoreUtilities::$db->query('UPDATE `streams` SET `updated` = CURRENT_TIMESTAMP;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `streams` ADD COLUMN `updated` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;');
+				StreamingUtilities::$db->query('UPDATE `streams` SET `updated` = CURRENT_TIMESTAMP;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `streams_servers` LIKE 'updated';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `streams_servers` LIKE 'updated';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `streams_servers` ADD COLUMN `updated` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;');
-				CoreUtilities::$db->query('UPDATE `streams_servers` SET `updated` = CURRENT_TIMESTAMP;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `streams_servers` ADD COLUMN `updated` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;');
+				StreamingUtilities::$db->query('UPDATE `streams_servers` SET `updated` = CURRENT_TIMESTAMP;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `lines` LIKE 'updated';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `lines` LIKE 'updated';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `lines` ADD COLUMN `updated` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;');
-				CoreUtilities::$db->query('UPDATE `lines` SET `updated` = CURRENT_TIMESTAMP;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `lines` ADD COLUMN `updated` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;');
+				StreamingUtilities::$db->query('UPDATE `lines` SET `updated` = CURRENT_TIMESTAMP;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'player_blur';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'player_blur';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `player_blur` TINYINT(1) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `player_blur` TINYINT(1) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'player_opacity';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'player_opacity';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `player_opacity` TINYINT(1) NULL DEFAULT '10';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `player_opacity` TINYINT(1) NULL DEFAULT '10';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'player_allow_playlist';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'player_allow_playlist';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `player_allow_playlist` TINYINT(1) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `player_allow_playlist` TINYINT(1) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'player_allow_bouquet';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'player_allow_bouquet';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `player_allow_bouquet` TINYINT(1) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `player_allow_bouquet` TINYINT(1) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'player_hide_incompatible';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'player_hide_incompatible';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `player_hide_incompatible` TINYINT(1) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `player_hide_incompatible` TINYINT(1) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'player_allow_hevc';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'player_allow_hevc';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `player_allow_hevc` TINYINT(1) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `player_allow_hevc` TINYINT(1) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `streams_servers` LIKE 'compatible';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `streams_servers` LIKE 'compatible';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `streams_servers` ADD COLUMN `compatible` TINYINT(1) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `streams_servers` ADD COLUMN `compatible` TINYINT(1) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'read_native_hls';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'read_native_hls';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `read_native_hls` TINYINT(1) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `read_native_hls` TINYINT(1) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'keep_protocol';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'keep_protocol';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `keep_protocol` TINYINT(1) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `keep_protocol` TINYINT(1) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `streams` LIKE 'similar';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `streams` LIKE 'similar';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `streams` ADD COLUMN `similar` MEDIUMTEXT NULL DEFAULT NULL;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `streams` ADD COLUMN `similar` MEDIUMTEXT NULL DEFAULT NULL;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `streams` LIKE 'tmdb_id';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `streams` LIKE 'tmdb_id';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `streams` ADD COLUMN `tmdb_id` INT(11) NULL DEFAULT NULL;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `streams` ADD COLUMN `tmdb_id` INT(11) NULL DEFAULT NULL;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `streams_series` LIKE 'similar';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `streams_series` LIKE 'similar';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `streams_series` ADD COLUMN `similar` MEDIUMTEXT NULL DEFAULT NULL;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `streams_series` ADD COLUMN `similar` MEDIUMTEXT NULL DEFAULT NULL;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'ffmpeg_cpu';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'ffmpeg_cpu';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `ffmpeg_cpu` VARCHAR(8) NULL DEFAULT '4.0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `ffmpeg_cpu` VARCHAR(8) NULL DEFAULT '4.0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'ffmpeg_gpu';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'ffmpeg_gpu';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `ffmpeg_gpu` VARCHAR(8) NULL DEFAULT '4.0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `ffmpeg_gpu` VARCHAR(8) NULL DEFAULT '4.0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'php_version';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'php_version';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `servers` ADD COLUMN `php_version` INT(2) NULL DEFAULT '74';");
-				CoreUtilities::$db->query("UPDATE `servers` SET `network_interface` = 'auto';");
-				CoreUtilities::$db->query('SELECT `id`, `movie_properties`, `rating`, `tmdb_id` FROM `streams` WHERE `type` = 2;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `servers` ADD COLUMN `php_version` INT(2) NULL DEFAULT '74';");
+				StreamingUtilities::$db->query("UPDATE `servers` SET `network_interface` = 'auto';");
+				StreamingUtilities::$db->query('SELECT `id`, `movie_properties`, `rating`, `tmdb_id` FROM `streams` WHERE `type` = 2;');
 
-				foreach (CoreUtilities::$db->get_rows() as $rRow) {
+				foreach (StreamingUtilities::$db->get_rows() as $rRow) {
 					$rProperties = json_decode($rRow['movie_properties'], true);
 					$rRating = (floatval($rProperties['rating']) ?: 0);
 					$rTMDBID = ($rProperties['tmdb_id'] ?: null);
 
 					if (!($rRow['rating'] != $rRating || $rRow['tmdb_id'] != $rTMDBID)) {
 					} else {
-						CoreUtilities::$db->query('UPDATE `streams` SET `rating` = ?, `tmdb_id` = ? WHERE `id` = ?;', $rRating, $rTMDBID, $rRow['id']);
+						StreamingUtilities::$db->query('UPDATE `streams` SET `rating` = ?, `tmdb_id` = ? WHERE `id` = ?;', $rRating, $rTMDBID, $rRow['id']);
 					}
 				}
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'header_stats';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'header_stats';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `header_stats` TINYINT(1) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `header_stats` TINYINT(1) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'mag_keep_extension';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'mag_keep_extension';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `mag_keep_extension` TINYINT(1) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `mag_keep_extension` TINYINT(1) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'show_connected_video';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'show_connected_video';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `show_connected_video` TINYINT(1) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `show_connected_video` TINYINT(1) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'connected_video_path';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'connected_video_path';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `settings` ADD COLUMN `connected_video_path` MEDIUMTEXT NULL DEFAULT NULL;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `settings` ADD COLUMN `connected_video_path` MEDIUMTEXT NULL DEFAULT NULL;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `watch_folders` LIKE 'remove_subtitles';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `watch_folders` LIKE 'remove_subtitles';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `watch_folders` ADD COLUMN `remove_subtitles` TINYINT(1) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `watch_folders` ADD COLUMN `remove_subtitles` TINYINT(1) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'disallow_2nd_ip_max';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'disallow_2nd_ip_max';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `disallow_2nd_ip_max` INT(11) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `disallow_2nd_ip_max` INT(11) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'probesize_ondemand';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'probesize_ondemand';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `probesize_ondemand` INT(11) NULL DEFAULT '256000';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `probesize_ondemand` INT(11) NULL DEFAULT '256000';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'ffmpeg_warnings';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'ffmpeg_warnings';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `ffmpeg_warnings` INT(11) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `ffmpeg_warnings` INT(11) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `mag_devices` LIKE 'theme_type';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `mag_devices` LIKE 'theme_type';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `mag_devices` ADD COLUMN `theme_type` TINYINT(1) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `mag_devices` ADD COLUMN `theme_type` TINYINT(1) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'vod_sort_newest';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'vod_sort_newest';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `vod_sort_newest` TINYINT(1) NULL DEFAULT '0';");
-				CoreUtilities::$db->query('ALTER TABLE `servers` CHANGE COLUMN `domain_name` `domain_name` MEDIUMTEXT NULL DEFAULT NULL;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `vod_sort_newest` TINYINT(1) NULL DEFAULT '0';");
+				StreamingUtilities::$db->query('ALTER TABLE `servers` CHANGE COLUMN `domain_name` `domain_name` MEDIUMTEXT NULL DEFAULT NULL;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `streams` LIKE 'adaptive_link';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `streams` LIKE 'adaptive_link';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `streams` ADD COLUMN `adaptive_link` MEDIUMTEXT NULL DEFAULT NULL;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `streams` ADD COLUMN `adaptive_link` MEDIUMTEXT NULL DEFAULT NULL;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `streams` LIKE 'title_sync';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `streams` LIKE 'title_sync';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `streams` ADD COLUMN `title_sync` VARCHAR(64) NULL DEFAULT NULL;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `streams` ADD COLUMN `title_sync` VARCHAR(64) NULL DEFAULT NULL;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'mag_message';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'mag_message';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `mag_message` MEDIUMTEXT NULL DEFAULT '';");
-				CoreUtilities::$db->query("UPDATE `settings` SET `mag_message` = 'You can switch between the modern and legacy themes by using the <span class=\"label\">Green</span> and <span class=\"label\">Yellow</span> buttons on your remote control. Doing so will restart your device.';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `mag_message` MEDIUMTEXT NULL DEFAULT '';");
+				StreamingUtilities::$db->query("UPDATE `settings` SET `mag_message` = 'You can switch between the modern and legacy themes by using the <span class=\"label\">Green</span> and <span class=\"label\">Yellow</span> buttons on your remote control. Doing so will restart your device.';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'mag_default_type';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'mag_default_type';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `mag_default_type` TINYINT(1) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `mag_default_type` TINYINT(1) NULL DEFAULT '0';");
 
-				if (CoreUtilities::$rSettings['stalker_theme'] == 'xc_vm') {
-					CoreUtilities::$db->query("UPDATE `settings` SET `stalker_theme` = 'default';");
-					CoreUtilities::$db->query('UPDATE `mag_devices` SET `theme_type` = 0;');
+				if (StreamingUtilities::$rSettings['stalker_theme'] == 'xc_vm') {
+					StreamingUtilities::$db->query("UPDATE `settings` SET `stalker_theme` = 'default';");
+					StreamingUtilities::$db->query('UPDATE `mag_devices` SET `theme_type` = 0;');
 				} else {
-					CoreUtilities::$db->query('UPDATE `settings` SET `mag_default_type` = 1;');
-					CoreUtilities::$db->query('UPDATE `mag_devices` SET `theme_type` = 1;');
+					StreamingUtilities::$db->query('UPDATE `settings` SET `mag_default_type` = 1;');
+					StreamingUtilities::$db->query('UPDATE `mag_devices` SET `theme_type` = 1;');
 				}
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `streams` LIKE 'fps_restart';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `streams` LIKE 'fps_restart';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `streams` ADD COLUMN `fps_restart` TINYINT(1) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `streams` ADD COLUMN `fps_restart` TINYINT(1) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `streams` LIKE 'fps_threshold';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `streams` LIKE 'fps_threshold';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `streams` ADD COLUMN `fps_threshold` INT(11) NULL DEFAULT '90';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `streams` ADD COLUMN `fps_threshold` INT(11) NULL DEFAULT '90';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'fps_delay';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'fps_delay';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `fps_delay` INT(11) NULL DEFAULT '600';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `fps_delay` INT(11) NULL DEFAULT '600';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'fps_check_type';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'fps_check_type';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `fps_check_type` TINYINT(1) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `fps_check_type` TINYINT(1) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'show_category_duplicates';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'show_category_duplicates';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `show_category_duplicates` TINYINT(1) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `show_category_duplicates` TINYINT(1) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'probe_extra_wait';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'probe_extra_wait';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `probe_extra_wait` INT(11) NULL DEFAULT '10';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `probe_extra_wait` INT(11) NULL DEFAULT '10';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'restream_deny_unauthorised';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'restream_deny_unauthorised';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `restream_deny_unauthorised` TINYINT(1) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `restream_deny_unauthorised` TINYINT(1) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `lines` LIKE 'last_activity_array';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `lines` LIKE 'last_activity_array';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `lines` ADD COLUMN `last_activity_array` MEDIUMTEXT NULL DEFAULT NULL;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `lines` ADD COLUMN `last_activity_array` MEDIUMTEXT NULL DEFAULT NULL;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'extract_subtitles';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'extract_subtitles';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `extract_subtitles` TINYINT(1) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `extract_subtitles` TINYINT(1) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `users_groups` LIKE 'allow_change_bouquets';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `users_groups` LIKE 'allow_change_bouquets';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `users_groups` ADD COLUMN `allow_change_bouquets` TINYINT(1) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `users_groups` ADD COLUMN `allow_change_bouquets` TINYINT(1) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'reseller_ssl_domain';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'reseller_ssl_domain';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `reseller_ssl_domain` TINYINT(1) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `reseller_ssl_domain` TINYINT(1) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `panel_logs` LIKE 'server_id';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `panel_logs` LIKE 'server_id';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('TRUNCATE `panel_logs`;');
-				CoreUtilities::$db->query('ALTER TABLE `panel_logs` ADD COLUMN `server_id` INT(11) NULL DEFAULT NULL;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('TRUNCATE `panel_logs`;');
+				StreamingUtilities::$db->query('ALTER TABLE `panel_logs` ADD COLUMN `server_id` INT(11) NULL DEFAULT NULL;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'auto_send_logs';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'auto_send_logs';");
 
-			if (CoreUtilities::$db->num_rows() != 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` DROP COLUMN `auto_send_logs`;");
+			if (StreamingUtilities::$db->num_rows() != 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` DROP COLUMN `auto_send_logs`;");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `streams_servers` LIKE 'audio_codec';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `streams_servers` LIKE 'audio_codec';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `streams_servers` ADD COLUMN `audio_codec` VARCHAR(64) NULL DEFAULT NULL;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `streams_servers` ADD COLUMN `audio_codec` VARCHAR(64) NULL DEFAULT NULL;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `streams_servers` LIKE 'video_codec';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `streams_servers` LIKE 'video_codec';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `streams_servers` ADD COLUMN `video_codec` VARCHAR(64) NULL DEFAULT NULL;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `streams_servers` ADD COLUMN `video_codec` VARCHAR(64) NULL DEFAULT NULL;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `streams_servers` LIKE 'resolution';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `streams_servers` LIKE 'resolution';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `streams_servers` ADD COLUMN `resolution` INT(5) NULL DEFAULT NULL;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `streams_servers` ADD COLUMN `resolution` INT(5) NULL DEFAULT NULL;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `providers_streams` LIKE 'type';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `providers_streams` LIKE 'type';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `providers_streams` ADD COLUMN `type` VARCHAR(16) NULL DEFAULT 'live';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `providers_streams` ADD COLUMN `type` VARCHAR(16) NULL DEFAULT 'live';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'disable_xmltv_restreamer';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'disable_xmltv_restreamer';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `disable_xmltv_restreamer` TINYINT(1) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `disable_xmltv_restreamer` TINYINT(1) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'disable_playlist_restreamer';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'disable_playlist_restreamer';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `disable_playlist_restreamer` TINYINT(1) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `disable_playlist_restreamer` TINYINT(1) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'mag_load_all_channels';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'mag_load_all_channels';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `mag_load_all_channels` TINYINT(1) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `mag_load_all_channels` TINYINT(1) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'php_pids';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'php_pids';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `servers` ADD COLUMN `php_pids` LONGTEXT NULL DEFAULT NULL;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `servers` ADD COLUMN `php_pids` LONGTEXT NULL DEFAULT NULL;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'connection_sync_timer';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'connection_sync_timer';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `connection_sync_timer` INT(11) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `connection_sync_timer` INT(11) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'connections';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'connections';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `servers` ADD COLUMN `connections` INT(16) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `servers` ADD COLUMN `connections` INT(16) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'users';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'users';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `servers` ADD COLUMN `users` INT(16) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `servers` ADD COLUMN `users` INT(16) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'segment_wait_time';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'segment_wait_time';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `segment_wait_time` INT(11) NULL DEFAULT '20';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `segment_wait_time` INT(11) NULL DEFAULT '20';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `watch_folders` LIKE 'target_container';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `watch_folders` LIKE 'target_container';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `watch_folders` ADD COLUMN `target_container` VARCHAR(64) NULL DEFAULT NULL;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `watch_folders` ADD COLUMN `target_container` VARCHAR(64) NULL DEFAULT NULL;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'total_users';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'total_users';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `total_users` INT(11) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `total_users` INT(11) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'dts_legacy_ffmpeg';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'dts_legacy_ffmpeg';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `dts_legacy_ffmpeg` TINYINT(1) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `dts_legacy_ffmpeg` TINYINT(1) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'allow_cdn_access';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'allow_cdn_access';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `allow_cdn_access` TINYINT(1) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `allow_cdn_access` TINYINT(1) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'disable_mag_token';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'disable_mag_token';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `disable_mag_token` TINYINT(1) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `disable_mag_token` TINYINT(1) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'ondemand_balance_equal';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'ondemand_balance_equal';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `ondemand_balance_equal` TINYINT(1) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `ondemand_balance_equal` TINYINT(1) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'update_data';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'update_data';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `settings` ADD COLUMN `update_data` MEDIUMTEXT NULL DEFAULT NULL;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `settings` ADD COLUMN `update_data` MEDIUMTEXT NULL DEFAULT NULL;');
 			}
 
-			CoreUtilities::$db->query("SHOW INDEXES IN `streams_series` WHERE `key_name` = 'tmdb_id';");
+			StreamingUtilities::$db->query("SHOW INDEXES IN `streams_series` WHERE `key_name` = 'tmdb_id';");
 
-			if (0 >= CoreUtilities::$db->num_rows()) {
+			if (0 >= StreamingUtilities::$db->num_rows()) {
 			} else {
-				CoreUtilities::$db->query('ALTER TABLE `streams_series` DROP INDEX `tmdb_id`;');
+				StreamingUtilities::$db->query('ALTER TABLE `streams_series` DROP INDEX `tmdb_id`;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'dashboard_status';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'dashboard_status';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `dashboard_status` TINYINT(1) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `dashboard_status` TINYINT(1) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `streams_servers` LIKE 'ondemand_check';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `streams_servers` LIKE 'ondemand_check';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `streams_servers` ADD COLUMN `ondemand_check` INT(16) NULL DEFAULT NULL;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `streams_servers` ADD COLUMN `ondemand_check` INT(16) NULL DEFAULT NULL;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'on_demand_checker';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'on_demand_checker';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `on_demand_checker` TINYINT(1) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `on_demand_checker` TINYINT(1) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'on_demand_scan_time';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'on_demand_scan_time';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `on_demand_scan_time` INT(16) NULL DEFAULT '3600';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `on_demand_scan_time` INT(16) NULL DEFAULT '3600';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'on_demand_max_probe';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'on_demand_max_probe';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `on_demand_max_probe` INT(16) NULL DEFAULT '5';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `on_demand_max_probe` INT(16) NULL DEFAULT '5';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'on_demand_scan_keep';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'on_demand_scan_keep';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `on_demand_scan_keep` INT(16) NULL DEFAULT '604800';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `on_demand_scan_keep` INT(16) NULL DEFAULT '604800';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'parse_type';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'parse_type';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `parse_type` VARCHAR(12) NULL DEFAULT 'ptn';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `parse_type` VARCHAR(12) NULL DEFAULT 'ptn';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'fallback_parser';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'fallback_parser';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `fallback_parser` TINYINT(1) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `fallback_parser` TINYINT(1) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'alternative_titles';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'alternative_titles';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `alternative_titles` TINYINT(1) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `alternative_titles` TINYINT(1) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'search_items';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'search_items';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `search_items` INT(3) NULL DEFAULT '20';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `search_items` INT(3) NULL DEFAULT '20';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `mag_devices` LIKE 'mac_filter';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `mag_devices` LIKE 'mac_filter';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `mag_devices` ADD COLUMN `mac_filter` VARCHAR(50) NULL DEFAULT NULL;');
-				CoreUtilities::$db->query("UPDATE `mag_devices` SET `mac_filter` = REPLACE(`mac`, ':', '');");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `mag_devices` ADD COLUMN `mac_filter` VARCHAR(50) NULL DEFAULT NULL;');
+				StreamingUtilities::$db->query("UPDATE `mag_devices` SET `mac_filter` = REPLACE(`mac`, ':', '');");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `enigma2_devices` LIKE 'mac_filter';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `enigma2_devices` LIKE 'mac_filter';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `enigma2_devices` ADD COLUMN `mac_filter` VARCHAR(50) NULL DEFAULT NULL;');
-				CoreUtilities::$db->query("UPDATE `enigma2_devices` SET `mac_filter` = REPLACE(`mac`, ':', '');");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `enigma2_devices` ADD COLUMN `mac_filter` VARCHAR(50) NULL DEFAULT NULL;');
+				StreamingUtilities::$db->query("UPDATE `enigma2_devices` SET `mac_filter` = REPLACE(`mac`, ':', '');");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'enable_search';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'enable_search';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `enable_search` TINYINT(4) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `enable_search` TINYINT(4) NULL DEFAULT '1';");
 				echo "\n" . 'Building search indexes...' . "\n";
-				CoreUtilities::$db->query("ALTER TABLE `enigma2_devices` CHANGE COLUMN `public_ip` `public_ip` VARCHAR(255) NULL DEFAULT NULL COLLATE 'utf8_general_ci';");
-				CoreUtilities::$db->query('ALTER TABLE `lines` ADD FULLTEXT INDEX `search` (`username`, `admin_notes`, `reseller_notes`, `last_ip`, `contact`);');
-				CoreUtilities::$db->query('ALTER TABLE `streams` ADD FULLTEXT INDEX `search` (`stream_display_name`, `stream_source`, `notes`, `channel_id`);');
-				CoreUtilities::$db->query('ALTER TABLE `streams_series` ADD FULLTEXT INDEX `search` (`title`, `plot`, `cast`, `director`);');
-				CoreUtilities::$db->query('ALTER TABLE `mag_devices` ADD FULLTEXT INDEX `search` (`mac_filter`, `ip`);');
-				CoreUtilities::$db->query('ALTER TABLE `enigma2_devices` ADD FULLTEXT INDEX `search` (`mac_filter`, `public_ip`);');
-				CoreUtilities::$db->query('ALTER TABLE `users` ADD FULLTEXT INDEX `search` (`username`, `email`, `ip`, `notes`, `reseller_dns`);');
-				CoreUtilities::$db->query('ALTER TABLE `lines_divergence` CHANGE COLUMN `divergence` `divergence` INT NULL DEFAULT NULL;');
+				StreamingUtilities::$db->query("ALTER TABLE `enigma2_devices` CHANGE COLUMN `public_ip` `public_ip` VARCHAR(255) NULL DEFAULT NULL COLLATE 'utf8_general_ci';");
+				StreamingUtilities::$db->query('ALTER TABLE `lines` ADD FULLTEXT INDEX `search` (`username`, `admin_notes`, `reseller_notes`, `last_ip`, `contact`);');
+				StreamingUtilities::$db->query('ALTER TABLE `streams` ADD FULLTEXT INDEX `search` (`stream_display_name`, `stream_source`, `notes`, `channel_id`);');
+				StreamingUtilities::$db->query('ALTER TABLE `streams_series` ADD FULLTEXT INDEX `search` (`title`, `plot`, `cast`, `director`);');
+				StreamingUtilities::$db->query('ALTER TABLE `mag_devices` ADD FULLTEXT INDEX `search` (`mac_filter`, `ip`);');
+				StreamingUtilities::$db->query('ALTER TABLE `enigma2_devices` ADD FULLTEXT INDEX `search` (`mac_filter`, `public_ip`);');
+				StreamingUtilities::$db->query('ALTER TABLE `users` ADD FULLTEXT INDEX `search` (`username`, `email`, `ip`, `notes`, `reseller_dns`);');
+				StreamingUtilities::$db->query('ALTER TABLE `lines_divergence` CHANGE COLUMN `divergence` `divergence` INT NULL DEFAULT NULL;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `panel_logs` LIKE 'unique';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `panel_logs` LIKE 'unique';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `panel_logs` ADD COLUMN `unique` VARCHAR(32) NULL DEFAULT NULL;');
-				CoreUtilities::$db->query('UPDATE IGNORE `panel_logs` SET `unique` = MD5(CONCAT(`type`, `log_message`, `log_extra`, `line`));');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `panel_logs` ADD COLUMN `unique` VARCHAR(32) NULL DEFAULT NULL;');
+				StreamingUtilities::$db->query('UPDATE IGNORE `panel_logs` SET `unique` = MD5(CONCAT(`type`, `log_message`, `log_extra`, `line`));');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'remote_status';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'remote_status';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `servers` ADD COLUMN `remote_status` TINYINT(1) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `servers` ADD COLUMN `remote_status` TINYINT(1) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'modal_edit';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'modal_edit';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `modal_edit` TINYINT(1) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `modal_edit` TINYINT(1) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'group_buttons';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'group_buttons';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `group_buttons` TINYINT(1) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `group_buttons` TINYINT(1) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'stop_failures';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'stop_failures';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `stop_failures` TINYINT(3) NULL DEFAULT '3';");
-				CoreUtilities::$db->query('UPDATE `settings` SET `request_prebuffer` = 1 WHERE `request_prebuffer` = 2;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `stop_failures` TINYINT(3) NULL DEFAULT '3';");
+				StreamingUtilities::$db->query('UPDATE `settings` SET `request_prebuffer` = 1 WHERE `request_prebuffer` = 2;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'restreamer_bypass_proxy';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'restreamer_bypass_proxy';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `restreamer_bypass_proxy` TINYINT(1) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `restreamer_bypass_proxy` TINYINT(1) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'mysql_sleep_kill';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'mysql_sleep_kill';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `mysql_sleep_kill` INT(11) NULL DEFAULT '21600';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `mysql_sleep_kill` INT(11) NULL DEFAULT '21600';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'reissues';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'reissues';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `settings` ADD COLUMN `reissues` MEDIUMTEXT NULL DEFAULT NULL;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `settings` ADD COLUMN `reissues` MEDIUMTEXT NULL DEFAULT NULL;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `streams` LIKE 'direct_proxy';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `streams` LIKE 'direct_proxy';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `streams` ADD COLUMN `direct_proxy` TINYINT(1) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `streams` ADD COLUMN `direct_proxy` TINYINT(1) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `watch_folders` LIKE 'server_add';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `watch_folders` LIKE 'server_add';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `watch_folders` ADD COLUMN `server_add` VARCHAR(512) NULL DEFAULT NULL;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `watch_folders` ADD COLUMN `server_add` VARCHAR(512) NULL DEFAULT NULL;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `watch_folders` LIKE 'direct_proxy';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `watch_folders` LIKE 'direct_proxy';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `watch_folders` ADD COLUMN `direct_proxy` TINYINT(1) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `watch_folders` ADD COLUMN `direct_proxy` TINYINT(1) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `watch_folders` LIKE 'plex_token';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `watch_folders` LIKE 'plex_token';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `watch_folders` ADD COLUMN `plex_token` VARCHAR(512) NULL DEFAULT NULL;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `watch_folders` ADD COLUMN `plex_token` VARCHAR(512) NULL DEFAULT NULL;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'status_uuid';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'status_uuid';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `settings` ADD COLUMN `status_uuid` VARCHAR(512) NULL DEFAULT NULL;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `settings` ADD COLUMN `status_uuid` VARCHAR(512) NULL DEFAULT NULL;');
 
-				if (empty(CoreUtilities::$rSettings['allowed_stb_types'])) {
+				if (empty(StreamingUtilities::$rSettings['allowed_stb_types'])) {
 				} else {
-					$f883ea05d3c12657 = json_decode(CoreUtilities::$rSettings['allowed_stb_types'], true);
+					$f883ea05d3c12657 = json_decode(StreamingUtilities::$rSettings['allowed_stb_types'], true);
 
 					if (0 >= count($f883ea05d3c12657)) {
 					} else {
@@ -1211,215 +1211,215 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 							$f883ea05d3c12657[] = 'TH200';
 						}
 
-						CoreUtilities::$db->query('UPDATE `settings` SET `allowed_stb_types` = ?;', json_encode($f883ea05d3c12657));
+						StreamingUtilities::$db->query('UPDATE `settings` SET `allowed_stb_types` = ?;', json_encode($f883ea05d3c12657));
 					}
 				}
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'governors';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'governors';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `servers` ADD COLUMN `governors` MEDIUMTEXT NULL DEFAULT NULL;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `servers` ADD COLUMN `governors` MEDIUMTEXT NULL DEFAULT NULL;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'governor';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'governor';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `servers` ADD COLUMN `governor` VARCHAR(512) NULL DEFAULT NULL;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `servers` ADD COLUMN `governor` VARCHAR(512) NULL DEFAULT NULL;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'sysctl';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'sysctl';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `servers` ADD COLUMN `sysctl` MEDIUMTEXT NULL DEFAULT NULL;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `servers` ADD COLUMN `sysctl` MEDIUMTEXT NULL DEFAULT NULL;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'order';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'order';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `servers` ADD COLUMN `order` INT(11) NULL DEFAULT NULL;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `servers` ADD COLUMN `order` INT(11) NULL DEFAULT NULL;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `users_groups` LIKE 'notice_html';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `users_groups` LIKE 'notice_html';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `users_groups` ADD COLUMN `notice_html` MEDIUMTEXT NULL DEFAULT NULL;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `users_groups` ADD COLUMN `notice_html` MEDIUMTEXT NULL DEFAULT NULL;');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'threshold_cpu';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'threshold_cpu';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `threshold_cpu` TINYINT(3) NULL DEFAULT '67';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `threshold_cpu` TINYINT(3) NULL DEFAULT '67';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'threshold_mem';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'threshold_mem';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `threshold_mem` TINYINT(3) NULL DEFAULT '67';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `threshold_mem` TINYINT(3) NULL DEFAULT '67';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'threshold_disk';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'threshold_disk';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `threshold_disk` TINYINT(3) NULL DEFAULT '67';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `threshold_disk` TINYINT(3) NULL DEFAULT '67';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'threshold_network';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'threshold_network';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `threshold_network` TINYINT(3) NULL DEFAULT '67';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `threshold_network` TINYINT(3) NULL DEFAULT '67';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'threshold_clients';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'threshold_clients';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `threshold_clients` TINYINT(3) NULL DEFAULT '67';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `threshold_clients` TINYINT(3) NULL DEFAULT '67';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'auth_flood_seconds';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'auth_flood_seconds';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `auth_flood_seconds` INT(11) NULL DEFAULT '10';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `auth_flood_seconds` INT(11) NULL DEFAULT '10';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'auth_flood_limit';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'auth_flood_limit';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `auth_flood_limit` INT(11) NULL DEFAULT '30';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `auth_flood_limit` INT(11) NULL DEFAULT '30';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'auth_flood_sleep';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'auth_flood_sleep';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `auth_flood_sleep` INT(11) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `auth_flood_sleep` INT(11) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'php_loopback';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'php_loopback';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `php_loopback` TINYINT(1) NULL DEFAULT '1';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `php_loopback` TINYINT(1) NULL DEFAULT '1';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `users_groups` LIKE 'subresellers';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `users_groups` LIKE 'subresellers';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('ALTER TABLE `users_groups` ADD COLUMN `subresellers` MEDIUMTEXT NULL DEFAULT NULL;');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `users_groups` ADD COLUMN `subresellers` MEDIUMTEXT NULL DEFAULT NULL;');
 				$rGroups = array();
-				CoreUtilities::$db->query('SELECT `reseller`, `subreseller` FROM `users_subreseller`;');
+				StreamingUtilities::$db->query('SELECT `reseller`, `subreseller` FROM `users_subreseller`;');
 
-				foreach (CoreUtilities::$db->get_rows() as $rRow) {
+				foreach (StreamingUtilities::$db->get_rows() as $rRow) {
 					$rGroups[$rRow['reseller']][] = intval($rRow['subreseller']);
 				}
 
 				foreach ($rGroups as $B5e902e9a043ac6b => $B37da4dc716ff8e6) {
-					CoreUtilities::$db->query('UPDATE `users_groups` SET `subresellers` = ? WHERE `group_id` = ?;', '[' . implode(',', array_unique($B37da4dc716ff8e6)) . ']', $B5e902e9a043ac6b);
+					StreamingUtilities::$db->query('UPDATE `users_groups` SET `subresellers` = ? WHERE `group_id` = ?;', '[' . implode(',', array_unique($B37da4dc716ff8e6)) . ']', $B5e902e9a043ac6b);
 				}
-				CoreUtilities::$db->query('DROP TABLE `users_subreseller`;');
+				StreamingUtilities::$db->query('DROP TABLE `users_subreseller`;');
 			}
 
-			CoreUtilities::$db->query("SHOW INDEXES IN `lines` WHERE `Key_name` = 'order_default';");
+			StreamingUtilities::$db->query("SHOW INDEXES IN `lines` WHERE `Key_name` = 'order_default';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query('CREATE INDEX `order_default` ON `lines` (`id`, `is_mag`, `is_e2`);');
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('CREATE INDEX `order_default` ON `lines` (`id`, `is_mag`, `is_e2`);');
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'enable_gzip';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'enable_gzip';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `servers` ADD COLUMN `enable_gzip` TINYINT(1) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `servers` ADD COLUMN `enable_gzip` TINYINT(1) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'limit_requests';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'limit_requests';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `servers` ADD COLUMN `limit_requests` INT(11) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `servers` ADD COLUMN `limit_requests` INT(11) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'limit_burst';");
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'limit_burst';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("ALTER TABLE `servers` ADD COLUMN `limit_burst` INT(11) NULL DEFAULT '0';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `servers` ADD COLUMN `limit_burst` INT(11) NULL DEFAULT '0';");
 			}
 
-			CoreUtilities::$db->query("SELECT `DATA_TYPE` FROM INFORMATION_SCHEMA.COLUMNS WHERE `TABLE_SCHEMA` = 'xc_vm' AND `TABLE_NAME` = 'servers' AND `COLUMN_NAME` = 'parent_id';");
+			StreamingUtilities::$db->query("SELECT `DATA_TYPE` FROM INFORMATION_SCHEMA.COLUMNS WHERE `TABLE_SCHEMA` = 'xc_vm' AND `TABLE_NAME` = 'servers' AND `COLUMN_NAME` = 'parent_id';");
 
-			if (0 >= CoreUtilities::$db->num_rows()) {
+			if (0 >= StreamingUtilities::$db->num_rows()) {
 			} else {
-				if (CoreUtilities::$db->get_row()['DATA_TYPE'] == 'varchar') {
+				if (StreamingUtilities::$db->get_row()['DATA_TYPE'] == 'varchar') {
 				} else {
-					CoreUtilities::$db->query('ALTER TABLE `servers` CHANGE COLUMN `parent_id` `parent_id` TEXT NULL DEFAULT NULL;');
+					StreamingUtilities::$db->query('ALTER TABLE `servers` CHANGE COLUMN `parent_id` `parent_id` TEXT NULL DEFAULT NULL;');
 				}
 			}
 
-			CoreUtilities::$db->query("SELECT * FROM `crontab` WHERE `filename` = 'providers.php';");
+			StreamingUtilities::$db->query("SELECT * FROM `crontab` WHERE `filename` = 'providers.php';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("INSERT INTO `crontab` (`filename`, `time`, `enabled`) VALUES ('providers.php', '0 * * * *', 1);");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("INSERT INTO `crontab` (`filename`, `time`, `enabled`) VALUES ('providers.php', '0 * * * *', 1);");
 				unlink(MAIN_HOME . 'tmp/crontab');
 			}
 
-			CoreUtilities::$db->query("SELECT * FROM `crontab` WHERE `filename` = 'redis_cache.php';");
+			StreamingUtilities::$db->query("SELECT * FROM `crontab` WHERE `filename` = 'redis_cache.php';");
 
-			if (CoreUtilities::$db->num_rows() == 1) {
-				CoreUtilities::$db->query("DELETE FROM `crontab` WHERE `filename` = 'redis_cache.php';");
+			if (StreamingUtilities::$db->num_rows() == 1) {
+				StreamingUtilities::$db->query("DELETE FROM `crontab` WHERE `filename` = 'redis_cache.php';");
 				unlink(MAIN_HOME . 'tmp/crontab');
 			}
 
-			CoreUtilities::$db->query("SELECT * FROM `crontab` WHERE `filename` = 'detect_restream.php';");
+			StreamingUtilities::$db->query("SELECT * FROM `crontab` WHERE `filename` = 'detect_restream.php';");
 
-			if (CoreUtilities::$db->num_rows() != 1) {
+			if (StreamingUtilities::$db->num_rows() != 1) {
 			} else {
-				CoreUtilities::$db->query("DELETE FROM `crontab` WHERE `filename` = 'detect_restream.php';");
+				StreamingUtilities::$db->query("DELETE FROM `crontab` WHERE `filename` = 'detect_restream.php';");
 				unlink(MAIN_HOME . 'tmp/crontab');
 			}
 
-			CoreUtilities::$db->query("SELECT * FROM `crontab` WHERE `filename` = 'cache_engine.php';");
+			StreamingUtilities::$db->query("SELECT * FROM `crontab` WHERE `filename` = 'cache_engine.php';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("INSERT INTO `crontab` (`filename`, `time`, `enabled`) VALUES ('cache_engine.php', '*/5 * * * *', 1);");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("INSERT INTO `crontab` (`filename`, `time`, `enabled`) VALUES ('cache_engine.php', '*/5 * * * *', 1);");
 				unlink(MAIN_HOME . 'tmp/crontab');
 			}
 
-			CoreUtilities::$db->query("SELECT * FROM `crontab` WHERE `filename` = 'tmdb_popular.php';");
+			StreamingUtilities::$db->query("SELECT * FROM `crontab` WHERE `filename` = 'tmdb_popular.php';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("INSERT INTO `crontab` (`filename`, `time`, `enabled`) VALUES ('tmdb_popular.php', '0 * * * *', 1);");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("INSERT INTO `crontab` (`filename`, `time`, `enabled`) VALUES ('tmdb_popular.php', '0 * * * *', 1);");
 				exec('sudo -u xc_vm ' . MAIN_HOME . 'bin/php/bin/php ' . MAIN_HOME . 'crons/tmdb_popular.php > /dev/null 2>&1 &');
 				unlink(MAIN_HOME . 'tmp/crontab');
 			}
 
-			CoreUtilities::$db->query("SELECT * FROM `crontab` WHERE `filename` = 'plex.php';");
+			StreamingUtilities::$db->query("SELECT * FROM `crontab` WHERE `filename` = 'plex.php';");
 
-			if (CoreUtilities::$db->num_rows() == 0) {
-				CoreUtilities::$db->query("INSERT INTO `crontab` (`filename`, `time`, `enabled`) VALUES ('plex.php', '*/5 * * * *', 1);");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("INSERT INTO `crontab` (`filename`, `time`, `enabled`) VALUES ('plex.php', '*/5 * * * *', 1);");
 				unlink(MAIN_HOME . 'tmp/crontab');
 			}
 
-			CoreUtilities::$db->query("SELECT * FROM `crontab` WHERE `filename` = 'license.php';");
-			if (CoreUtilities::$db->num_rows() == 1) {
-				CoreUtilities::$db->query("UPDATE `crontab` SET `filename`=' update.php' WHERE `filename`='license.php'");
+			StreamingUtilities::$db->query("SELECT * FROM `crontab` WHERE `filename` = 'license.php';");
+			if (StreamingUtilities::$db->num_rows() == 1) {
+				StreamingUtilities::$db->query("UPDATE `crontab` SET `filename`=' update.php' WHERE `filename`='license.php'");
 				unlink(MAIN_HOME . 'tmp/crontab');
 			}
 
-			CoreUtilities::$db->query("UPDATE `output_devices` SET `device_header` = REPLACE(`device_header`, ' reboot;', '') WHERE `device_filename` = 'iptv.sh' AND `device_header` LIKE '%reboot;';");
-			CoreUtilities::$db->query("CREATE TABLE IF NOT EXISTS `providers` (`id` INT(11) NOT NULL AUTO_INCREMENT, `name` VARCHAR(128) NULL DEFAULT NULL, `ip` VARCHAR(128) NULL DEFAULT NULL, `port` INT(5) NULL DEFAULT '80', `username` VARCHAR(128) NULL DEFAULT NULL, `password` VARCHAR(128) NULL DEFAULT NULL, `data` MEDIUMTEXT NULL DEFAULT NULL, `last_changed` INT(11) NULL DEFAULT NULL, `legacy` TINYINT(1) NULL DEFAULT '0', `enabled` TINYINT(1) NULL DEFAULT '1', `status` TINYINT(1) NULL DEFAULT '0', `ssl` TINYINT(1) NULL DEFAULT '0', `hls` TINYINT(1) NULL DEFAULT '0', PRIMARY KEY (`id`) USING BTREE) ENGINE=InnoDB AUTO_INCREMENT=1;");
-			CoreUtilities::$db->query('CREATE TABLE IF NOT EXISTS `providers_streams` (`id` INT(11) NOT NULL AUTO_INCREMENT, `type` VARCHAR(16) NULL DEFAULT NULL, `provider_id` INT(11) NULL DEFAULT NULL, `stream_id` INT(11) NULL DEFAULT NULL, `category_id` MEDIUMTEXT NULL DEFAULT NULL, `category_array` MEDIUMTEXT NULL DEFAULT NULL, `stream_display_name` MEDIUMTEXT NULL DEFAULT NULL, `stream_icon` MEDIUMTEXT NULL DEFAULT NULL, `channel_id` VARCHAR(255) NULL DEFAULT NULL, `added` INT(11) NULL DEFAULT NULL, `modified` INT(11) NULL DEFAULT NULL, PRIMARY KEY (`id`) USING BTREE, INDEX `channel_id` (`channel_id`) USING BTREE) ENGINE=InnoDB AUTO_INCREMENT=1;');
-			CoreUtilities::$db->query('CREATE TABLE IF NOT EXISTS `queue` (`id` INT(11) NOT NULL AUTO_INCREMENT, `type` VARCHAR(32) NULL DEFAULT NULL, `server_id` INT(11) NULL DEFAULT NULL, `stream_id` INT(11) NULL DEFAULT NULL, `pid` INT(11) NULL DEFAULT NULL, `added` INT(11) NULL DEFAULT NULL, PRIMARY KEY (`id`) USING BTREE) ENGINE=InnoDB AUTO_INCREMENT=1;');
-			CoreUtilities::$db->query('CREATE TABLE IF NOT EXISTS `lines_divergence` (`id` INT(11) NOT NULL AUTO_INCREMENT, `uuid` VARCHAR(32) NULL DEFAULT NULL, `divergence` FLOAT NULL DEFAULT NULL, PRIMARY KEY (`id`) USING BTREE, UNIQUE INDEX `uuid` (`uuid`) USING BTREE) ENGINE=InnoDB;');
-			CoreUtilities::$db->query('CREATE TABLE IF NOT EXISTS `ondemand_check` (`id` INT(11) NOT NULL AUTO_INCREMENT, `stream_id` INT(11) NULL DEFAULT NULL, `server_id` INT(11) NULL DEFAULT NULL, `status` INT(1) NULL DEFAULT NULL, `source_id` INT(4) NULL DEFAULT NULL, `source_url` VARCHAR(1024) NULL DEFAULT NULL, `video_codec` VARCHAR(50) NULL DEFAULT NULL, `audio_codec` VARCHAR(50) NULL DEFAULT NULL, `resolution` VARCHAR(50) NULL DEFAULT NULL, `response` INT(11) NULL DEFAULT NULL, `fps` INT(11) NULL DEFAULT NULL, `errors` MEDIUMTEXT NULL DEFAULT NULL, `date` INT(11) NULL DEFAULT NULL, PRIMARY KEY (`id`) USING BTREE) ENGINE=InnoDB AUTO_INCREMENT=1;');
-			CoreUtilities::$db->query("CREATE TABLE IF NOT EXISTS `recordings` (`id` INT(11) NOT NULL AUTO_INCREMENT, `stream_id` INT(11) NULL DEFAULT NULL, `created_id` INT(11) NULL DEFAULT NULL, `category_id` LONGTEXT NULL DEFAULT NULL, `bouquets` LONGTEXT NULL DEFAULT NULL, `title` MEDIUMTEXT NULL DEFAULT NULL, `description` MEDIUMTEXT NULL DEFAULT NULL, `stream_icon` MEDIUMTEXT NULL DEFAULT NULL, `start` INT(11) NULL DEFAULT NULL, `end` INT(11) NULL DEFAULT NULL, `source_id` INT(11) NULL DEFAULT NULL, `archive` INT(11) NULL DEFAULT NULL, `status` TINYINT(1) NULL DEFAULT '0', PRIMARY KEY (`id`) USING BTREE) ENGINE=InnoDB AUTO_INCREMENT=1;");
-			CoreUtilities::$db->query('UPDATE `streams_servers` SET `parent_id` = NULL WHERE `parent_id` = 0;');
-			CoreUtilities::$db->query("UPDATE `bouquets` SET `bouquet_channels` = '[]' WHERE `bouquet_channels` IS NULL;");
-			CoreUtilities::$db->query("UPDATE `bouquets` SET `bouquet_movies` = '[]' WHERE `bouquet_movies` IS NULL;");
-			CoreUtilities::$db->query("UPDATE `bouquets` SET `bouquet_radios` = '[]' WHERE `bouquet_radios` IS NULL;");
-			CoreUtilities::$db->query("UPDATE `bouquets` SET `bouquet_series` = '[]' WHERE `bouquet_series` IS NULL;");
-			CoreUtilities::$db->query("SHOW TABLES LIKE 'lines_output';");
+			StreamingUtilities::$db->query("UPDATE `output_devices` SET `device_header` = REPLACE(`device_header`, ' reboot;', '') WHERE `device_filename` = 'iptv.sh' AND `device_header` LIKE '%reboot;';");
+			StreamingUtilities::$db->query("CREATE TABLE IF NOT EXISTS `providers` (`id` INT(11) NOT NULL AUTO_INCREMENT, `name` VARCHAR(128) NULL DEFAULT NULL, `ip` VARCHAR(128) NULL DEFAULT NULL, `port` INT(5) NULL DEFAULT '80', `username` VARCHAR(128) NULL DEFAULT NULL, `password` VARCHAR(128) NULL DEFAULT NULL, `data` MEDIUMTEXT NULL DEFAULT NULL, `last_changed` INT(11) NULL DEFAULT NULL, `legacy` TINYINT(1) NULL DEFAULT '0', `enabled` TINYINT(1) NULL DEFAULT '1', `status` TINYINT(1) NULL DEFAULT '0', `ssl` TINYINT(1) NULL DEFAULT '0', `hls` TINYINT(1) NULL DEFAULT '0', PRIMARY KEY (`id`) USING BTREE) ENGINE=InnoDB AUTO_INCREMENT=1;");
+			StreamingUtilities::$db->query('CREATE TABLE IF NOT EXISTS `providers_streams` (`id` INT(11) NOT NULL AUTO_INCREMENT, `type` VARCHAR(16) NULL DEFAULT NULL, `provider_id` INT(11) NULL DEFAULT NULL, `stream_id` INT(11) NULL DEFAULT NULL, `category_id` MEDIUMTEXT NULL DEFAULT NULL, `category_array` MEDIUMTEXT NULL DEFAULT NULL, `stream_display_name` MEDIUMTEXT NULL DEFAULT NULL, `stream_icon` MEDIUMTEXT NULL DEFAULT NULL, `channel_id` VARCHAR(255) NULL DEFAULT NULL, `added` INT(11) NULL DEFAULT NULL, `modified` INT(11) NULL DEFAULT NULL, PRIMARY KEY (`id`) USING BTREE, INDEX `channel_id` (`channel_id`) USING BTREE) ENGINE=InnoDB AUTO_INCREMENT=1;');
+			StreamingUtilities::$db->query('CREATE TABLE IF NOT EXISTS `queue` (`id` INT(11) NOT NULL AUTO_INCREMENT, `type` VARCHAR(32) NULL DEFAULT NULL, `server_id` INT(11) NULL DEFAULT NULL, `stream_id` INT(11) NULL DEFAULT NULL, `pid` INT(11) NULL DEFAULT NULL, `added` INT(11) NULL DEFAULT NULL, PRIMARY KEY (`id`) USING BTREE) ENGINE=InnoDB AUTO_INCREMENT=1;');
+			StreamingUtilities::$db->query('CREATE TABLE IF NOT EXISTS `lines_divergence` (`id` INT(11) NOT NULL AUTO_INCREMENT, `uuid` VARCHAR(32) NULL DEFAULT NULL, `divergence` FLOAT NULL DEFAULT NULL, PRIMARY KEY (`id`) USING BTREE, UNIQUE INDEX `uuid` (`uuid`) USING BTREE) ENGINE=InnoDB;');
+			StreamingUtilities::$db->query('CREATE TABLE IF NOT EXISTS `ondemand_check` (`id` INT(11) NOT NULL AUTO_INCREMENT, `stream_id` INT(11) NULL DEFAULT NULL, `server_id` INT(11) NULL DEFAULT NULL, `status` INT(1) NULL DEFAULT NULL, `source_id` INT(4) NULL DEFAULT NULL, `source_url` VARCHAR(1024) NULL DEFAULT NULL, `video_codec` VARCHAR(50) NULL DEFAULT NULL, `audio_codec` VARCHAR(50) NULL DEFAULT NULL, `resolution` VARCHAR(50) NULL DEFAULT NULL, `response` INT(11) NULL DEFAULT NULL, `fps` INT(11) NULL DEFAULT NULL, `errors` MEDIUMTEXT NULL DEFAULT NULL, `date` INT(11) NULL DEFAULT NULL, PRIMARY KEY (`id`) USING BTREE) ENGINE=InnoDB AUTO_INCREMENT=1;');
+			StreamingUtilities::$db->query("CREATE TABLE IF NOT EXISTS `recordings` (`id` INT(11) NOT NULL AUTO_INCREMENT, `stream_id` INT(11) NULL DEFAULT NULL, `created_id` INT(11) NULL DEFAULT NULL, `category_id` LONGTEXT NULL DEFAULT NULL, `bouquets` LONGTEXT NULL DEFAULT NULL, `title` MEDIUMTEXT NULL DEFAULT NULL, `description` MEDIUMTEXT NULL DEFAULT NULL, `stream_icon` MEDIUMTEXT NULL DEFAULT NULL, `start` INT(11) NULL DEFAULT NULL, `end` INT(11) NULL DEFAULT NULL, `source_id` INT(11) NULL DEFAULT NULL, `archive` INT(11) NULL DEFAULT NULL, `status` TINYINT(1) NULL DEFAULT '0', PRIMARY KEY (`id`) USING BTREE) ENGINE=InnoDB AUTO_INCREMENT=1;");
+			StreamingUtilities::$db->query('UPDATE `streams_servers` SET `parent_id` = NULL WHERE `parent_id` = 0;');
+			StreamingUtilities::$db->query("UPDATE `bouquets` SET `bouquet_channels` = '[]' WHERE `bouquet_channels` IS NULL;");
+			StreamingUtilities::$db->query("UPDATE `bouquets` SET `bouquet_movies` = '[]' WHERE `bouquet_movies` IS NULL;");
+			StreamingUtilities::$db->query("UPDATE `bouquets` SET `bouquet_radios` = '[]' WHERE `bouquet_radios` IS NULL;");
+			StreamingUtilities::$db->query("UPDATE `bouquets` SET `bouquet_series` = '[]' WHERE `bouquet_series` IS NULL;");
+			StreamingUtilities::$db->query("SHOW TABLES LIKE 'lines_output';");
 
-			if (0 >= CoreUtilities::$db->num_rows()) {
+			if (0 >= StreamingUtilities::$db->num_rows()) {
 			} else {
 				$rOutput = array();
-				CoreUtilities::$db->query('SELECT COUNT(*) AS `count` FROM `lines_output`;');
-				$rCount = CoreUtilities::$db->get_row()['count'];
+				StreamingUtilities::$db->query('SELECT COUNT(*) AS `count` FROM `lines_output`;');
+				$rCount = StreamingUtilities::$db->get_row()['count'];
 
 				if (0 >= $rCount) {
 				} else {
@@ -1432,8 +1432,8 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 
 					foreach ($rSteps as $rStep) {
 						try {
-							CoreUtilities::$db->query('SELECT * FROM `lines_output` LIMIT ' . $rStep . ', 1000;');
-							$rResults = CoreUtilities::$db->get_rows();
+							StreamingUtilities::$db->query('SELECT * FROM `lines_output` LIMIT ' . $rStep . ', 1000;');
+							$rResults = StreamingUtilities::$db->get_rows();
 
 							foreach ($rResults as $rResult) {
 								$rOutput[$rResult['user_id']][] = $rResult['access_output_id'];
@@ -1444,9 +1444,9 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 				}
 
 				foreach ($rOutput as $rUserID => $rOutputs) {
-					CoreUtilities::$db->query('UPDATE `lines` SET `allowed_outputs` = ? WHERE `id` = ?;', '[' . implode(',', array_map('intval', $rOutputs)) . ']', $rUserID);
+					StreamingUtilities::$db->query('UPDATE `lines` SET `allowed_outputs` = ? WHERE `id` = ?;', '[' . implode(',', array_map('intval', $rOutputs)) . ']', $rUserID);
 				}
-				CoreUtilities::$db->query('DROP TABLE `lines_output`;');
+				StreamingUtilities::$db->query('DROP TABLE `lines_output`;');
 			}
 
 			if (file_exists(MAIN_HOME . 'admin/assets/css/custom.css')) {
@@ -1603,8 +1603,8 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 
 		if ($rServers[SERVER_ID]['is_main']) {
 			foreach ($rServers as $rServerID => $rServerArray) {
-				CoreUtilities::$db->query('DELETE FROM `signals` WHERE `custom_data` = ?;', json_encode(array('action' => 'update_binaries')));
-				CoreUtilities::$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rServerID, time(), json_encode(array('action' => 'update_binaries')));
+				StreamingUtilities::$db->query('DELETE FROM `signals` WHERE `custom_data` = ?;', json_encode(array('action' => 'update_binaries')));
+				StreamingUtilities::$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rServerID, time(), json_encode(array('action' => 'update_binaries')));
 			}
 			$rConfig = file_get_contents(MAIN_HOME . 'bin/redis/redis.conf');
 
@@ -1650,29 +1650,29 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 				file_put_contents(MAIN_HOME . 'bin/redis/redis.conf', $rConfig);
 			}
 
-			CoreUtilities::$db->query('SELECT `redis_password` FROM `settings`;');
+			StreamingUtilities::$db->query('SELECT `redis_password` FROM `settings`;');
 
-			if (CoreUtilities::$db->get_row()['redis_password'] == $rPassword) {
+			if (StreamingUtilities::$db->get_row()['redis_password'] == $rPassword) {
 			} else {
 				echo 'Updating Redis password in database' . "\n";
-				CoreUtilities::$db->query('UPDATE `settings` SET `redis_password` = ?;', $rPassword);
+				StreamingUtilities::$db->query('UPDATE `settings` SET `redis_password` = ?;', $rPassword);
 			}
 		}
 
 		if (!$rFirstRun && $rServers[SERVER_ID]['is_main']) {
-			CoreUtilities::$db->query('UPDATE `servers` SET `is_main` = 0 WHERE `id` <> ?;', SERVER_ID);
-			CoreUtilities::$db->query('UPDATE `servers` SET `is_main` = 1 WHERE `id` = ?;', SERVER_ID);
-			CoreUtilities::$db->query('UPDATE `settings` SET `status_uuid` = ?;', md5(XC_VM_VERSION));
+			StreamingUtilities::$db->query('UPDATE `servers` SET `is_main` = 0 WHERE `id` <> ?;', SERVER_ID);
+			StreamingUtilities::$db->query('UPDATE `servers` SET `is_main` = 1 WHERE `id` = ?;', SERVER_ID);
+			StreamingUtilities::$db->query('UPDATE `settings` SET `status_uuid` = ?;', md5(XC_VM_VERSION));
 
-			if (stripos(CoreUtilities::$rSettings['server_name'], 'xtream') !== false || stripos(CoreUtilities::$rSettings['server_name'], 'zapx') !== false || stripos(CoreUtilities::$rSettings['server_name'], 'streamcreed') !== false) {
-				CoreUtilities::$db->query("UPDATE `settings` SET `server_name` = 'XC_VM';");
+			if (stripos(StreamingUtilities::$rSettings['server_name'], 'xtream') !== false || stripos(StreamingUtilities::$rSettings['server_name'], 'zapx') !== false || stripos(StreamingUtilities::$rSettings['server_name'], 'streamcreed') !== false) {
+				StreamingUtilities::$db->query("UPDATE `settings` SET `server_name` = 'XC_VM';");
 			}
 
-			CoreUtilities::$db->query('SELECT * FROM `access_codes` WHERE `enabled` = 1 AND `type` = 0;');
+			StreamingUtilities::$db->query('SELECT * FROM `access_codes` WHERE `enabled` = 1 AND `type` = 0;');
 			$Dc5a760abaff4c21 = 0;
 			echo 'Access Codes' . "\n" . '------------------------------' . "\n";
 
-			foreach (CoreUtilities::$db->get_rows() as $rRow) {
+			foreach (StreamingUtilities::$db->get_rows() as $rRow) {
 				$rExists = file_exists(MAIN_HOME . 'bin/nginx/conf/codes/' . $rRow['code'] . '.conf');
 
 				if ($rExists) {
@@ -1688,9 +1688,9 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 				echo "\n";
 			}
 
-			CoreUtilities::$db->query('SELECT COUNT(`id`) AS `count` FROM `users` LEFT JOIN `users_groups` ON `users_groups`.`group_id` = `users`.`member_group_id` WHERE `status` = 1 AND `users_groups`.`is_admin` = 1;');
+			StreamingUtilities::$db->query('SELECT COUNT(`id`) AS `count` FROM `users` LEFT JOIN `users_groups` ON `users_groups`.`group_id` = `users`.`member_group_id` WHERE `status` = 1 AND `users_groups`.`is_admin` = 1;');
 
-			if (CoreUtilities::$db->get_row()['count'] == 0) {
+			if (StreamingUtilities::$db->get_row()['count'] == 0) {
 				echo 'No administrator users are available on the system.' . "\n" . 'Generate a rescue user with tools' . "\n\n";
 			}
 
@@ -1733,7 +1733,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 			}
 		}
 
-		CoreUtilities::$db->query('UPDATE `servers` SET `xc_vm_version` = ? WHERE `id` = ?;', XC_VM_VERSION, SERVER_ID);
+		StreamingUtilities::$db->query('UPDATE `servers` SET `xc_vm_version` = ? WHERE `id` = ?;', XC_VM_VERSION, SERVER_ID);
 	} else {
 		exit(0);
 	}
@@ -1758,11 +1758,11 @@ function isrunning() {
 }
 
 function ABc6134F1458b898() {
-	CoreUtilities::$db->query('SELECT * FROM `servers`');
+	StreamingUtilities::$db->query('SELECT * FROM `servers`');
 	$rServers = array();
 	$rOnlineStatus = array(1);
 
-	foreach (CoreUtilities::$db->get_rows() as $rRow) {
+	foreach (StreamingUtilities::$db->get_rows() as $rRow) {
 		if (empty($rRow['domain_name'])) {
 			$rURL = escapeshellcmd($rRow['server_ip']);
 		} else {

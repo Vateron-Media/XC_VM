@@ -6,7 +6,7 @@ if (!($_GET['addr'] == '127.0.0.1' && $_GET['call'] == 'publish')) {
 	require_once 'init.php';
 	error_reporting(0);
 	ini_set('display_errors', 0);
-	$rAllowed = CoreUtilities::getAllowedRTMP();
+	$rAllowed = StreamingUtilities::getAllowedRTMP();
 	$rDeny = true;
 
 	if ($_SERVER['REMOTE_ADDR'] == '127.0.0.1') {
@@ -14,8 +14,8 @@ if (!($_GET['addr'] == '127.0.0.1' && $_GET['call'] == 'publish')) {
 		generate404();
 	}
 
-	$rIP = CoreUtilities::$rRequest['addr'];
-	$rStreamID = intval(CoreUtilities::$rRequest['name']);
+	$rIP = StreamingUtilities::$rRequest['addr'];
+	$rStreamID = intval(StreamingUtilities::$rRequest['name']);
 	$rRestreamDetect = false;
 
 	foreach (getallheaders() as $rKey => $rValue) {
@@ -25,23 +25,23 @@ if (!($_GET['addr'] == '127.0.0.1' && $_GET['call'] == 'publish')) {
 		}
 	}
 
-	if (CoreUtilities::$rRequest['call'] != 'publish') {
-		if (CoreUtilities::$rRequest['call'] != 'play_done') {
-			if (!(CoreUtilities::$rRequest['password'] == CoreUtilities::$rSettings['live_streaming_pass'] || isset($rAllowed[$rIP]) && $rAllowed[$rIP]['pull'] && ($rAllowed[$rIP]['password'] == CoreUtilities::$rRequest['password'] || !$rAllowed[$rIP]['password']))) {
-				if (isset(CoreUtilities::$rRequest['tcurl']) && isset(CoreUtilities::$rRequest['app'])) {
-					if (isset(CoreUtilities::$rRequest['token'])) {
-						if (!ctype_xdigit(CoreUtilities::$rRequest['token'])) {
-							$rTokenData = explode('/', CoreUtilities::decryptData(CoreUtilities::$rRequest['token'], CoreUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA));
+	if (StreamingUtilities::$rRequest['call'] != 'publish') {
+		if (StreamingUtilities::$rRequest['call'] != 'play_done') {
+			if (!(StreamingUtilities::$rRequest['password'] == StreamingUtilities::$rSettings['live_streaming_pass'] || isset($rAllowed[$rIP]) && $rAllowed[$rIP]['pull'] && ($rAllowed[$rIP]['password'] == StreamingUtilities::$rRequest['password'] || !$rAllowed[$rIP]['password']))) {
+				if (isset(StreamingUtilities::$rRequest['tcurl']) && isset(StreamingUtilities::$rRequest['app'])) {
+					if (isset(StreamingUtilities::$rRequest['token'])) {
+						if (!ctype_xdigit(StreamingUtilities::$rRequest['token'])) {
+							$rTokenData = explode('/', StreamingUtilities::decryptData(StreamingUtilities::$rRequest['token'], StreamingUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA));
 							list($rUsername, $rPassword) = $rTokenData;
-							$rUserInfo = CoreUtilities::getUserInfo(null, $rUsername, $rPassword, true, false, $rIP);
+							$rUserInfo = StreamingUtilities::getUserInfo(null, $rUsername, $rPassword, true, false, $rIP);
 						} else {
-							$rAccessToken = CoreUtilities::$rRequest['token'];
-							$rUserInfo = CoreUtilities::getUserInfo(null, $rAccessToken, null, true, false, $rIP);
+							$rAccessToken = StreamingUtilities::$rRequest['token'];
+							$rUserInfo = StreamingUtilities::getUserInfo(null, $rAccessToken, null, true, false, $rIP);
 						}
 					} else {
-						$rUsername = CoreUtilities::$rRequest['username'];
-						$rPassword = CoreUtilities::$rRequest['password'];
-						$rUserInfo = CoreUtilities::getUserInfo(null, $rUsername, $rPassword, true, false, $rIP);
+						$rUsername = StreamingUtilities::$rRequest['username'];
+						$rPassword = StreamingUtilities::$rRequest['password'];
+						$rUserInfo = StreamingUtilities::getUserInfo(null, $rUsername, $rPassword, true, false, $rIP);
 					}
 
 					$rExtension = 'rtmp';
@@ -54,22 +54,22 @@ if (!($_GET['addr'] == '127.0.0.1' && $_GET['call'] == 'publish')) {
 							if ($rUserInfo['admin_enabled'] != 0) {
 								if ($rUserInfo['enabled'] != 0) {
 									if (empty($rUserInfo['allowed_ips']) || in_array($rIP, array_map('gethostbyname', $rUserInfo['allowed_ips']))) {
-										$rCountryCode = CoreUtilities::getIPInfo($rIP)['country']['iso_code'];
+										$rCountryCode = StreamingUtilities::getIPInfo($rIP)['country']['iso_code'];
 
 										if (empty($rCountryCode)) {
 										} else {
 											$rForceCountry = !empty($rUserInfo['forced_country']);
 
 											if (!($rForceCountry && $rUserInfo['forced_country'] != 'ALL' && $rCountryCode != $rUserInfo['forced_country'])) {
-												if ($rForceCountry || in_array('ALL', CoreUtilities::$rSettings['allow_countries']) || in_array($rCountryCode, CoreUtilities::$rSettings['allow_countries'])) {
+												if ($rForceCountry || in_array('ALL', StreamingUtilities::$rSettings['allow_countries']) || in_array($rCountryCode, StreamingUtilities::$rSettings['allow_countries'])) {
 												} else {
-													CoreUtilities::clientLog($rStreamID, $rUserInfo['id'], 'COUNTRY_DISALLOW', $rIP);
+													StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'COUNTRY_DISALLOW', $rIP);
 													http_response_code(404);
 
 													exit();
 												}
 											} else {
-												CoreUtilities::clientLog($rStreamID, $rUserInfo['id'], 'COUNTRY_DISALLOW', $rIP);
+												StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'COUNTRY_DISALLOW', $rIP);
 												http_response_code(404);
 
 												exit();
@@ -82,15 +82,15 @@ if (!($_GET['addr'] == '127.0.0.1' && $_GET['call'] == 'publish')) {
 													if ($rUserInfo['isp_violate'] != 1) {
 														if ($rUserInfo['isp_is_server'] != 1 || $rUserInfo['is_restreamer']) {
 															if (!$rRestreamDetect || $rUserInfo['is_restreamer']) {
-																if (!($rChannelInfo = CoreUtilities::redirectStream($rStreamID, $rExtension, $rUserInfo, $rCountryCode, $rUserInfo['con_isp_name'], 'live'))) {
+																if (!($rChannelInfo = StreamingUtilities::redirectStream($rStreamID, $rExtension, $rUserInfo, $rCountryCode, $rUserInfo['con_isp_name'], 'live'))) {
 																} else {
 																	if (!$rChannelInfo['redirect_id'] || $rChannelInfo['redirect_id'] == SERVER_ID) {
-																		if (CoreUtilities::isStreamRunning($rChannelInfo['pid'], $rStreamID)) {
+																		if (StreamingUtilities::isStreamRunning($rChannelInfo['pid'], $rStreamID)) {
 																		} else {
 																			if ($rChannelInfo['on_demand'] == 1) {
-																				if (CoreUtilities::isMonitorRunning($rChannelInfo['monitor_pid'], $rStreamID)) {
+																				if (StreamingUtilities::isMonitorRunning($rChannelInfo['monitor_pid'], $rStreamID)) {
 																				} else {
-																					CoreUtilities::startMonitor($rStreamID);
+																					StreamingUtilities::startMonitor($rStreamID);
 																					sleep(5);
 																				}
 																			} else {
@@ -100,22 +100,22 @@ if (!($_GET['addr'] == '127.0.0.1' && $_GET['call'] == 'publish')) {
 																			}
 																		}
 
-																		if (CoreUtilities::$rSettings['redis_handler']) {
-																			CoreUtilities::connectRedis();
-																			$rConnectionData = array('user_id' => $rUserInfo['id'], 'stream_id' => $rStreamID, 'server_id' => SERVER_ID, 'proxy_id' => 0, 'user_agent' => '', 'user_ip' => $rIP, 'container' => $rExtension, 'pid' => CoreUtilities::$rRequest['clientid'], 'date_start' => time() - intval(CoreUtilities::$rServers[SERVER_ID]['time_offset']), 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo['con_isp_name'], 'external_device' => $rExternalDevice, 'hls_end' => 0, 'hls_last_read' => time() - intval(CoreUtilities::$rServers[SERVER_ID]['time_offset']), 'on_demand' => $rChannelInfo['on_demand'], 'identity' => $rUserInfo['id'], 'uuid' => md5(CoreUtilities::$rRequest['clientid']));
-																			$rResult = CoreUtilities::createConnection($rConnectionData);
+																		if (StreamingUtilities::$rSettings['redis_handler']) {
+																			StreamingUtilities::connectRedis();
+																			$rConnectionData = array('user_id' => $rUserInfo['id'], 'stream_id' => $rStreamID, 'server_id' => SERVER_ID, 'proxy_id' => 0, 'user_agent' => '', 'user_ip' => $rIP, 'container' => $rExtension, 'pid' => StreamingUtilities::$rRequest['clientid'], 'date_start' => time() - intval(StreamingUtilities::$rServers[SERVER_ID]['time_offset']), 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo['con_isp_name'], 'external_device' => $rExternalDevice, 'hls_end' => 0, 'hls_last_read' => time() - intval(StreamingUtilities::$rServers[SERVER_ID]['time_offset']), 'on_demand' => $rChannelInfo['on_demand'], 'identity' => $rUserInfo['id'], 'uuid' => md5(StreamingUtilities::$rRequest['clientid']));
+																			$rResult = StreamingUtilities::createConnection($rConnectionData);
 																		} else {
-																			$rResult = $db->query('INSERT INTO `lines_live` (`user_id`,`stream_id`,`server_id`,`proxy_id`,`user_agent`,`user_ip`,`container`,`pid`,`uuid`,`date_start`,`geoip_country_code`,`isp`,`external_device`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)', $rUserInfo['id'], $rStreamID, SERVER_ID, 0, '', $rIP, $rExtension, CoreUtilities::$rRequest['clientid'], md5(CoreUtilities::$rRequest['clientid']), time(), $rCountryCode, $rUserInfo['con_isp_name'], $rExternalDevice);
+																			$rResult = $db->query('INSERT INTO `lines_live` (`user_id`,`stream_id`,`server_id`,`proxy_id`,`user_agent`,`user_ip`,`container`,`pid`,`uuid`,`date_start`,`geoip_country_code`,`isp`,`external_device`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)', $rUserInfo['id'], $rStreamID, SERVER_ID, 0, '', $rIP, $rExtension, StreamingUtilities::$rRequest['clientid'], md5(StreamingUtilities::$rRequest['clientid']), time(), $rCountryCode, $rUserInfo['con_isp_name'], $rExternalDevice);
 																		}
 
 																		if ($rResult) {
-																			CoreUtilities::validateConnections($rUserInfo, false, '', $rIP, null);
+																			StreamingUtilities::validateConnections($rUserInfo, false, '', $rIP, null);
 																			http_response_code(200);
 
 																			exit();
 																		}
 
-																		CoreUtilities::clientLog($rStreamID, $rUserInfo['id'], 'LINE_CREATE_FAIL', $rIP);
+																		StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'LINE_CREATE_FAIL', $rIP);
 																		http_response_code(404);
 
 																		exit();
@@ -126,66 +126,66 @@ if (!($_GET['addr'] == '127.0.0.1' && $_GET['call'] == 'publish')) {
 																	exit();
 																}
 															} else {
-																if (!CoreUtilities::$rSettings['detect_restream_block_user']) {
+																if (!StreamingUtilities::$rSettings['detect_restream_block_user']) {
 																} else {
 																	$db->query('UPDATE `lines` SET `admin_enabled` = 0 WHERE `id` = ?;', $rUserInfo['id']);
 																}
 
-																CoreUtilities::clientLog($rStreamID, $rUserInfo['id'], 'RESTREAM_DETECT', $rIP);
+																StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'RESTREAM_DETECT', $rIP);
 																http_response_code(404);
 
 																exit();
 															}
 														} else {
-															CoreUtilities::clientLog($rStreamID, $rUserInfo['id'], 'BLOCKED_ASN', $rIP, json_encode(array('user_agent' => '', 'isp' => $rUserInfo['con_isp_name'], 'asn' => $rUserInfo['isp_asn'])), true);
+															StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'BLOCKED_ASN', $rIP, json_encode(array('user_agent' => '', 'isp' => $rUserInfo['con_isp_name'], 'asn' => $rUserInfo['isp_asn'])), true);
 															http_response_code(404);
 
 															exit();
 														}
 													} else {
-														CoreUtilities::clientLog($rStreamID, $rUserInfo['id'], 'ISP_LOCK_FAILED', $rIP, json_encode(array('old' => $rUserInfo['isp_desc'], 'new' => $rUserInfo['con_isp_name'])));
+														StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'ISP_LOCK_FAILED', $rIP, json_encode(array('old' => $rUserInfo['isp_desc'], 'new' => $rUserInfo['con_isp_name'])));
 														http_response_code(404);
 
 														exit();
 													}
 												} else {
-													CoreUtilities::clientLog($rStreamID, $rUserInfo['id'], 'NOT_IN_BOUQUET', $rIP);
+													StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'NOT_IN_BOUQUET', $rIP);
 													http_response_code(404);
 
 													exit();
 												}
 											} else {
-												CoreUtilities::clientLog($rStreamID, $rUserInfo['id'], 'USER_DISALLOW_EXT', $rIP);
+												StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'USER_DISALLOW_EXT', $rIP);
 												http_response_code(404);
 
 												exit();
 											}
 										} else {
-											CoreUtilities::clientLog($rStreamID, $rUserInfo['id'], 'USER_ALREADY_CONNECTED', $rIP);
+											StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'USER_ALREADY_CONNECTED', $rIP);
 											http_response_code(404);
 
 											exit();
 										}
 									} else {
-										CoreUtilities::clientLog($rStreamID, $rUserInfo['id'], 'IP_BAN', $rIP);
+										StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'IP_BAN', $rIP);
 										http_response_code(404);
 
 										exit();
 									}
 								} else {
-									CoreUtilities::clientLog($rStreamID, $rUserInfo['id'], 'USER_DISABLED', $rIP);
+									StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'USER_DISABLED', $rIP);
 									http_response_code(404);
 
 									exit();
 								}
 							} else {
-								CoreUtilities::clientLog($rStreamID, $rUserInfo['id'], 'USER_BAN', $rIP);
+								StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'USER_BAN', $rIP);
 								http_response_code(404);
 
 								exit();
 							}
 						} else {
-							CoreUtilities::clientLog($rStreamID, $rUserInfo['id'], 'USER_EXPIRED', $rIP);
+							StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'USER_EXPIRED', $rIP);
 							http_response_code(404);
 
 							exit();
@@ -193,10 +193,10 @@ if (!($_GET['addr'] == '127.0.0.1' && $_GET['call'] == 'publish')) {
 					} else {
 						if (!isset($rUsername)) {
 						} else {
-							CoreUtilities::checkBruteforce($rIP, null, $rUsername);
+							StreamingUtilities::checkBruteforce($rIP, null, $rUsername);
 						}
 
-						CoreUtilities::clientLog($rStreamID, 0, 'AUTH_FAILED', $rIP);
+						StreamingUtilities::clientLog($rStreamID, 0, 'AUTH_FAILED', $rIP);
 					}
 
 					http_response_code(404);
@@ -214,12 +214,12 @@ if (!($_GET['addr'] == '127.0.0.1' && $_GET['call'] == 'publish')) {
 			$rChannelInfo = $db->get_row();
 
 			if ($rChannelInfo) {
-				if (CoreUtilities::isStreamRunning($rChannelInfo['pid'], $rStreamID)) {
+				if (StreamingUtilities::isStreamRunning($rChannelInfo['pid'], $rStreamID)) {
 				} else {
 					if ($rChannelInfo['on_demand'] == 1) {
-						if (CoreUtilities::isMonitorRunning($rChannelInfo['monitor_pid'], $rStreamID)) {
+						if (StreamingUtilities::isMonitorRunning($rChannelInfo['monitor_pid'], $rStreamID)) {
 						} else {
-							CoreUtilities::startMonitor($rStreamID);
+							StreamingUtilities::startMonitor($rStreamID);
 							sleep(5);
 						}
 					} else {
@@ -241,10 +241,10 @@ if (!($_GET['addr'] == '127.0.0.1' && $_GET['call'] == 'publish')) {
 
 		$rDeny = false;
 
-		if (CoreUtilities::$rSettings['redis_handler']) {
-			CoreUtilities::closeConnection(md5(CoreUtilities::$rRequest['clientid']));
+		if (StreamingUtilities::$rSettings['redis_handler']) {
+			StreamingUtilities::closeConnection(md5(StreamingUtilities::$rRequest['clientid']));
 		} else {
-			CoreUtilities::closeRTMP(CoreUtilities::$rRequest['clientid']);
+			StreamingUtilities::closeRTMP(StreamingUtilities::$rRequest['clientid']);
 		}
 
 		http_response_code(200);
@@ -252,7 +252,7 @@ if (!($_GET['addr'] == '127.0.0.1' && $_GET['call'] == 'publish')) {
 		exit();
 	}
 
-	if (CoreUtilities::$rRequest['password'] == CoreUtilities::$rSettings['live_streaming_pass'] || isset($rAllowed[$rIP]) && $rAllowed[$rIP]['push'] && ($rAllowed[$rIP]['password'] == CoreUtilities::$rRequest['password'] || !$rAllowed[$rIP]['password'])) {
+	if (StreamingUtilities::$rRequest['password'] == StreamingUtilities::$rSettings['live_streaming_pass'] || isset($rAllowed[$rIP]) && $rAllowed[$rIP]['push'] && ($rAllowed[$rIP]['password'] == StreamingUtilities::$rRequest['password'] || !$rAllowed[$rIP]['password'])) {
 		$rDeny = false;
 		http_response_code(200);
 
@@ -274,7 +274,7 @@ function shutdown() {
 
 	if (!$rDeny) {
 	} else {
-		CoreUtilities::checkFlood($rIP);
+		StreamingUtilities::checkFlood($rIP);
 	}
 
 	if (!is_object($db)) {
