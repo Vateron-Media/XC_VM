@@ -128,7 +128,7 @@ journalctl -u xc_vm -f         # Live logs
 | RAM       | 16–32 GB                      |
 | Disk      | SSD/NVMe, 480+ GB             |
 | Network   | Dedicated 1 Gbps port         |
-| OS        | Ubuntu 20.04+ (clean install) |
+| OS        | Ubuntu 22.04+ (clean install) |
 
 ---
 
