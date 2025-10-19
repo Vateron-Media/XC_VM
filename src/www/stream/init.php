@@ -132,15 +132,15 @@ switch ($rFilename) {
 	case 'probe':
 	case 'player_api':
 		require_once INCLUDES_PATH . 'streaming.php';
-		CoreUtilities::$rSettings = $rSettings;
-		CoreUtilities::$rAccess = $rFilename;
-		CoreUtilities::init(false);
-		$db = &CoreUtilities::$db;
+		StreamingUtilities::$rSettings = $rSettings;
+		StreamingUtilities::$rAccess = $rFilename;
+		StreamingUtilities::init(false);
+		$db = &StreamingUtilities::$db;
 
 		if ($rSettings['enable_cache']) {
 		} else {
-			CoreUtilities::connectDatabase();
-			$db = &CoreUtilities::$db;
+			StreamingUtilities::connectDatabase();
+			$db = &StreamingUtilities::$db;
 		}
 
 		break;
@@ -152,20 +152,20 @@ switch ($rFilename) {
 	case 'vod':
 	case 'status':
 		require_once INCLUDES_PATH . 'streaming.php';
-		CoreUtilities::$rSettings = $rSettings;
-		CoreUtilities::$rAccess = $rFilename;
-		CoreUtilities::init(false);
-		$db = &CoreUtilities::$db;
+		StreamingUtilities::$rSettings = $rSettings;
+		StreamingUtilities::$rAccess = $rFilename;
+		StreamingUtilities::init(false);
+		$db = &StreamingUtilities::$db;
 
 		break;
 
 	case 'rtmp':
 	case 'portal':
 		require_once INCLUDES_PATH . 'streaming.php';
-		CoreUtilities::$rSettings = $rSettings;
-		CoreUtilities::$rAccess = $rFilename;
-		CoreUtilities::init();
-		$db = &CoreUtilities::$db;
+		StreamingUtilities::$rSettings = $rSettings;
+		StreamingUtilities::$rAccess = $rFilename;
+		StreamingUtilities::init();
+		$db = &StreamingUtilities::$db;
 
 		break;
 }

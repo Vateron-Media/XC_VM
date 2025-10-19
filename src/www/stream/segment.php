@@ -40,7 +40,7 @@ $rIsHMAC = null;
 
 if (isset($_GET['token'])) {
 	$rOffset = 0;
-	$rTokenArray = explode('/', CoreUtilities::decryptData($_GET['token'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA));
+	$rTokenArray = explode('/', StreamingUtilities::decryptData($_GET['token'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA));
 
 	if (6 > count($rTokenArray)) {
 	} else {
@@ -112,15 +112,15 @@ if (isset($_GET['token'])) {
 					$rSignalData = json_decode(file_get_contents(SIGNALS_PATH . $rUUID), true);
 
 					if ($rSignalData['type'] == 'signal') {
-						CoreUtilities::init(false);
+						StreamingUtilities::init(false);
 
 						if ($rSettings['encrypt_hls']) {
 							$rKey = file_get_contents(STREAMS_PATH . $rStreamID . '_.key');
 							$rIV = file_get_contents(STREAMS_PATH . $rStreamID . '_.iv');
-							$rData = CoreUtilities::sendSignal($rSignalData, basename($rSegment), $rVideoCodec, true);
+							$rData = StreamingUtilities::sendSignal($rSignalData, basename($rSegment), $rVideoCodec, true);
 							echo openssl_encrypt($rData, 'aes-128-cbc', $rKey, OPENSSL_RAW_DATA, $rIV);
 						} else {
-							CoreUtilities::sendSignal($rSignalData, basename($rSegment), $rVideoCodec);
+							StreamingUtilities::sendSignal($rSignalData, basename($rSegment), $rVideoCodec);
 						}
 
 						unlink(SIGNALS_PATH . $rUUID);
