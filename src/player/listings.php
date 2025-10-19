@@ -139,9 +139,9 @@ if (isset(CoreUtilities::$rRequest['id'])) {
 					$rReturn['Channels'][] = array('Id' => $rStream['id'], 'DisplayName' => $rStream['stream_display_name'], 'CategoryName' => $rCategory, 'Archive' => $rArchive, 'Image' => (CoreUtilities::validateImage($rStream['stream_icon']) ?: ''), 'TvListings' => ($rListings[$rStream['id']] ?: array($rDefaultArray)));
 				}
 			}
-			file_put_contents(TMP_PATH . 'cache_' . $rCacheID, CoreUtilities::serialize($rReturn));
+			file_put_contents(TMP_PATH . 'cache_' . $rCacheID, igbinary_serialize($rReturn));
 		} else {
-			$rReturn = CoreUtilities::unserialize(file_get_contents(TMP_PATH . 'cache_' . $rCacheID));
+			$rReturn = igbinary_unserialize(file_get_contents(TMP_PATH . 'cache_' . $rCacheID));
 		}
 
 		echo json_encode($rReturn);

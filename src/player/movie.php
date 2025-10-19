@@ -1,9 +1,9 @@
 <?php
 include 'functions.php';
 
-if (($rStream = CoreUtilities::getStream(CoreUtilities::$rRequest['id'])) && in_array(CoreUtilities::$rRequest['id'], $rUserInfo['vod_ids'])) {
+if (($rStream = getStream(CoreUtilities::$rRequest['id'])) && in_array(CoreUtilities::$rRequest['id'], $rUserInfo['vod_ids'])) {
 	$rProperties = json_decode($rStream['movie_properties'], true);
-	$rSubtitles = array(CoreUtilities::getSubtitles($rStream['id'], $rProperties['subtitle']));
+	$rSubtitles = array(getSubtitles($rStream['id'], $rProperties['subtitle']));
 	$rDomainName = CoreUtilities::getDomainName(!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443);
 	$rURLs = array($rDomainName . 'movie/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rStream['id'] . '.' . $rStream['target_container']);
 	$rLegacy = false;
@@ -14,13 +14,13 @@ if (($rStream = CoreUtilities::getStream(CoreUtilities::$rRequest['id'])) && in_
 
 	if ($rProperties['tmdb_id']) {
 		if (!file_exists(TMP_PATH . 'tmdb_' . $rProperties['tmdb_id'])) {
-			$rTMDB = json_decode(json_encode(CoreUtilities::getMovieTMDB($rProperties['tmdb_id'])), true);
+			$rTMDB = json_decode(json_encode(getMovieTMDB($rProperties['tmdb_id'])), true);
 
 			if ($rTMDB) {
-				file_put_contents(TMP_PATH . 'tmdb_' . $rProperties['tmdb_id'], CoreUtilities::serialize($rTMDB));
+				file_put_contents(TMP_PATH . 'tmdb_' . $rProperties['tmdb_id'], igbinary_serialize($rTMDB));
 			}
 		} else {
-			$rTMDB = CoreUtilities::unserialize(file_get_contents(TMP_PATH . 'tmdb_' . $rProperties['tmdb_id']));
+			$rTMDB = igbinary_unserialize(file_get_contents(TMP_PATH . 'tmdb_' . $rProperties['tmdb_id']));
 		}
 	}
 
@@ -108,7 +108,7 @@ if (($rStream = CoreUtilities::getStream(CoreUtilities::$rRequest['id'])) && in_
 			echo '                                        <track label="';
 			echo $rSubtitle['label'];
 			echo '" kind="subtitles" src="proxy.php?url=';
-			echo CoreUtilities::encrypt($rSubtitle['file'], CoreUtilities::$rSettings['live_streaming_pass'], 'd8de497ebccf4f4697a1da20219c7c33');
+			echo CoreUtilities::encryptData($rSubtitle['file'], CoreUtilities::$rSettings['live_streaming_pass'], 'd8de497ebccf4f4697a1da20219c7c33');
 			echo '">' . "\n" . '                                        ';
 		}
 		echo '                                    </video>' . "\n" . '                                    ';

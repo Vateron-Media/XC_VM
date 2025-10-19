@@ -10,7 +10,7 @@ include 'functions.php';
 
 if (isset(CoreUtilities::$rRequest['sort']) && CoreUtilities::$rRequest['sort'] == 'popular') {
 	$rPopular = true;
-	$rPopular = (CoreUtilities::unserialize(file_get_contents(CONTENT_PATH . 'tmdb_popular'))['movies'] ?: array());
+	$rPopular = (igbinary_unserialize(file_get_contents(CONTENT_PATH . 'tmdb_popular'))['movies'] ?: array());
 
 	if (0 < count($rPopular) && 0 < count($rUserInfo['vod_ids'])) {
 			$db->query('SELECT `id`, `stream_display_name`, `year`, `rating`, `movie_properties` FROM `streams` WHERE `id` IN (' . implode(',', $rPopular) . ') AND `id` IN (' . implode(',', $rUserInfo['vod_ids']) . ') ORDER BY FIELD(id, ' . implode(',', $rPopular) . ') ASC LIMIT 100;');
@@ -71,7 +71,7 @@ if (isset(CoreUtilities::$rRequest['sort']) && CoreUtilities::$rRequest['sort'] 
 		$rLimit = 100;
 	}
 
-	$rStreams = CoreUtilities::getUserStreams($rUserInfo, array('movie'), $rCategoryID, null, $rSortBy, $rSearchBy, $rPicking, ($rPage - 1) * $rLimit, $rLimit);
+	$rStreams = getUserStreams($rUserInfo, array('movie'), $rCategoryID, null, $rSortBy, $rSearchBy, $rPicking, ($rPage - 1) * $rLimit, $rLimit);
 }
 
 $rCover = '';
@@ -124,7 +124,7 @@ if ($rPopular || $rSearchBy) {
 	echo (isset($rCategoryID) ? CoreUtilities::$rCategories[$rCategoryID]['category_name'] : 'All Genres');
 	echo '">' . "\n\t\t\t\t\t\t\t\t\t" . '<span></span>' . "\n\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '<ul class="filter__item-menu dropdown-menu scrollbar-dropdown" aria-labelledby="filter-genre">' . "\n" . '                                    ';
 
-	foreach (CoreUtilities::getOrderedCategories($rUserInfo['category_ids']) as $rCategory) {
+	foreach (getOrderedCategories($rUserInfo['category_ids']) as $rCategory) {
 		echo "\t\t\t\t\t\t\t\t\t" . '<li>';
 		echo $rCategory['title'];
 		echo '</li>' . "\n" . '                                    ';
@@ -212,7 +212,7 @@ echo "\t\t\t" . '</div>' . "\n\t\t" . '</div>' . "\n\t" . '</div>' . "\n" . '   
 
 if ($rPopular) {
 } else {
-	$rPopular = (CoreUtilities::unserialize(file_get_contents(CONTENT_PATH . 'tmdb_popular'))['movies'] ?: array());
+	$rPopular = (igbinary_unserialize(file_get_contents(CONTENT_PATH . 'tmdb_popular'))['movies'] ?: array());
 
 	if (!(0 < count($rPopular) && 0 < count($rUserInfo['vod_ids']))) {
 	} else {
