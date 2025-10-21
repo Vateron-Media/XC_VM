@@ -41,12 +41,6 @@ if ($argc && $argc >= 6) {
 
         $rInstallFiles = $UpdateData['url'];
         $hash = $UpdateData['md5'];
-
-        // } elseif ($rType == 3) {
-        // I don't see anywhere where the update function is called through this script
-        // All updates are triggered through signals without the involvement of main
-        //     $rPackages = array('cpufrequtils');
-        //     $rInstallFiles = "loadbalancer_update.tar.gz"
     } else {
         $db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
         echo 'Invalid type specified!' . "\n";
@@ -80,10 +74,10 @@ if ($argc && $argc >= 6) {
             runCommand($rConn, 'sudo add-apt-repository -y ppa:maxmind/ppa');
         }
         runCommand($rConn, 'sudo apt-get update');
-        // foreach ($rPackages as $rPackage) {
-        //     echo 'Installing package: ' . $rPackage . "\n";
-        //     runCommand($rConn, 'sudo DEBIAN_FRONTEND=noninteractive apt-get -yq install ' . $rPackage);
-        // }
+        foreach ($rPackages as $rPackage) {
+            echo 'Installing package: ' . $rPackage . "\n";
+            runCommand($rConn, 'sudo DEBIAN_FRONTEND=noninteractive apt-get -yq install ' . $rPackage);
+        }
         if (in_array($rType, array(1, 2))) {
             echo 'Creating XC_VM system user' . "\n";
             runCommand($rConn, 'sudo adduser --system --shell /bin/false --group --disabled-login xc_vm');
@@ -111,7 +105,7 @@ if ($argc && $argc >= 6) {
             exit();
         }
 
-        if (in_array($rType, array(2, 3))) {
+         if ($rType == 2) {
             if (stripos(runCommand($rConn, 'sudo cat /etc/fstab')['output'], STREAMS_PATH) !== true) {
                 echo 'Adding ramdisk mounts' . "\n";
                 runCommand($rConn, 'sudo echo "tmpfs ' . STREAMS_PATH . ' tmpfs defaults,noatime,nosuid,nodev,noexec,mode=1777,size=90% 0 0" >> /etc/fstab');
@@ -234,11 +228,6 @@ if ($argc && $argc >= 6) {
         echo 'Installation complete! Starting XC_VM' . "\n";
         runCommand($rConn, 'sudo service xc_vm restart');
         if ($rType == 2) {
-            runCommand($rConn, 'sudo ' . MAIN_HOME . 'status 1');
-            runCommand($rConn, 'sudo -u xc_vm ' . PHP_BIN . ' ' . CLI_PATH . 'startup.php');
-            runCommand($rConn, 'sudo -u xc_vm ' . PHP_BIN . ' ' . CRON_PATH . 'servers.php');
-        } elseif ($rType == 3) {
-            runCommand($rConn, 'sudo ' . PHP_BIN . ' ' . CLI_PATH . 'update.php "post-update"');
             runCommand($rConn, 'sudo ' . MAIN_HOME . 'status 1');
             runCommand($rConn, 'sudo -u xc_vm ' . PHP_BIN . ' ' . CLI_PATH . 'startup.php');
             runCommand($rConn, 'sudo -u xc_vm ' . PHP_BIN . ' ' . CRON_PATH . 'servers.php');
