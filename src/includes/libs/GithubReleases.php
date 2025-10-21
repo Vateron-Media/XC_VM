@@ -350,12 +350,18 @@ class GitHubReleases {
             case "lb_update":
                 $update_file = "loadbalancer_update.tar.gz";
                 break;
+            case "proxy":
+                $update_file = "proxy.tar.gz";
+                break;
+            case "proxy_update":
+                $update_file = "proxy_update.tar.gz";
+                break;
             default:
                 throw new Exception("Not valid file type");
         }
         $next_version = $this->getNextVersion($version);
         if (is_null($next_version)) {
-            return null;
+            $next_version = $version;
         }
         $upd_archive_url = "https://github.com/{$this->owner}/{$this->repo}/releases/download/{$next_version}/{$update_file}";
         $hash_md5 = $this->getAssetHash($next_version, $update_file);
