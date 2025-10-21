@@ -4602,10 +4602,6 @@ class API {
 				}
 
 				if (isset($rData['edit'])) {
-					if (isset($rData['update_only'])) {
-						$rData['type'] = 3;
-					}
-
 					if ($rData['type'] == 1) {
 						$rServer = self::$rProxyServers[$rData['edit']];
 					} else {

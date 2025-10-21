@@ -404,19 +404,6 @@ function loadapi() {
 
 			exit();
 
-		case 'request_update':
-			if (CoreUtilities::$rRequest['type'] != 0) {
-				$rFile = PROXY_UPDATE;
-				if (!file_exists($rFile)) {
-					exit(json_encode(array('result' => false)));
-				}
-
-				$rMD5 = md5_file($rFile);
-				$rURL = 'http://' . CoreUtilities::$rServers[SERVER_ID]['server_ip'] . ':' . CoreUtilities::$rServers[SERVER_ID]['http_broadcast_port'] . '/api?password=' . CoreUtilities::$rSettings['live_streaming_pass'] . '&action=getFile&filename=' . urlencode($rFile);
-			}
-
-			exit(json_encode(array('result' => true, 'md5' => $rMD5, 'url' => $rURL, 'version' => CoreUtilities::$rServers[SERVER_ID]['xc_vm_version'])));
-
 		case 'kill_watch':
 			if (file_exists(CACHE_TMP_PATH . 'watch_pid')) {
 				$rPrevPID = intval(file_get_contents(CACHE_TMP_PATH . 'watch_pid'));
