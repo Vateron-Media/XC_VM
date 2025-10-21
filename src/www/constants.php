@@ -49,8 +49,6 @@ define('E2_IMAGES_PATH', IMAGES_PATH . 'enigma2/');
 define('GEOLITE2_BIN', BIN_PATH . 'maxmind/GeoLite2-Country.mmdb');
 define('GEOLITE2C_BIN', BIN_PATH . 'maxmind/GeoLite2-City.mmdb');
 define('GEOISP_BIN', BIN_PATH . 'maxmind/GeoIP2-ISP.mmdb');
-define('LOADBALANCER_UPDATE', BIN_PATH . 'install/loadbalancer_update.tar.gz');
-define('PROXY_UPDATE', BIN_PATH . 'install/proxy_update.tar.gz');
 define('CONS_TMP_PATH', TMP_PATH . 'opened_cons/');
 define('CRONS_TMP_PATH', TMP_PATH . 'crons/');
 define('CIDR_TMP_PATH', TMP_PATH . 'cidr/');
