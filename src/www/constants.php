@@ -149,8 +149,36 @@ function log_fatal() {
 }
 
 function panelLog($rType, $rMessage, $rExtra = '', $rLine = 0) {
-	$rData = array('type' => $rType, 'message' => $rMessage, 'extra' => $rExtra, 'line' => $rLine, 'time' => time());
-	file_put_contents(LOGS_TMP_PATH . 'error_log.log', base64_encode(json_encode($rData)) . "\n", FILE_APPEND);
+    $rData = array('type' => $rType, 'message' => $rMessage, 'extra' => $rExtra, 'line' => $rLine, 'time' => time());
+    file_put_contents(LOGS_TMP_PATH . 'error_log.log', base64_encode(json_encode($rData)) . "\n", FILE_APPEND);
+    
+    // Displays an error in a frame in development mode
+    if (defined('DEVELOPMENT') && DEVELOPMENT === true) {
+        echo "<div style='
+            border: 2px solid #ff0000;
+            background: #fff0f0;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        '>";
+        echo "<strong style='color: #ff0000;'>DEBUG ERROR:</strong><br>";
+        echo "<strong>Type:</strong> " . htmlspecialchars($rType) . "<br>";
+        echo "<strong>Message:</strong> " . htmlspecialchars($rMessage) . "<br>";
+        
+        if (!empty($rExtra)) {
+            echo "<strong>Extra:</strong> " . htmlspecialchars($rExtra) . "<br>";
+        }
+        
+        if ($rLine > 0) {
+            echo "<strong>Line:</strong> " . htmlspecialchars($rLine) . "<br>";
+        }
+        
+        echo "<strong>Time:</strong> " . date('Y-m-d H:i:s', $rData['time']);
+        echo "</div>";
+    }
 }
 
 function generateError($rError, $rKill = true) {
