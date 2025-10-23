@@ -1339,13 +1339,10 @@ class StreamingUtilities {
 				$rProtocol = self::$rServers[$rServerID]['server_protocol'];
 			}
 		}
-		if (!self::$rServers[$rServerID]) {
-		} else {
-			if (!self::$rServers[$rServerID]['enable_proxy']) {
-			} else {
+		if (self::$rServers[$rServerID]) {
+			if (self::$rServers[$rServerID]['enable_proxy']) {
 				$rProxyIDs = array_keys(self::getProxies($rServerID));
-				if (count($rProxyIDs) != 0) {
-				} else {
+				if (count($rProxyIDs) == 0) {
 					$rProxyIDs = array_keys(self::getProxies($rServerID, false));
 				}
 				if (count($rProxyIDs) != 0) {
@@ -1362,8 +1359,7 @@ class StreamingUtilities {
 				$rDomain = (empty(self::$rServers[$rServerID]['domain_name']) ? self::$rServers[$rServerID]['server_ip'] : explode(',', self::$rServers[$rServerID]['domain_name'])[0]);
 			}
 			$rServerURL = $rProtocol . '://' . $rDomain . ':' . self::$rServers[$rServerID][$rProtocol . '_broadcast_port'] . '/';
-			if (!(self::$rServers[$rServerID]['server_type'] == 1 && $rOriginatorID && self::$rServers[$rOriginatorID]['is_main'] == 0)) {
-			} else {
+			if (self::$rServers[$rServerID]['server_type'] == 1 && $rOriginatorID && self::$rServers[$rOriginatorID]['is_main'] == 0) {
 				$rServerURL .= md5($rServerID . '_' . $rOriginatorID . '_' . OPENSSL_EXTRA) . '/';
 			}
 			return $rServerURL;

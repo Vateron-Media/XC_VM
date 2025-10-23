@@ -3930,11 +3930,9 @@ class CoreUtilities {
 			}
 		}
 		$rProxied = self::$rServers[$rServerID]['enable_proxy'];
-		if (!$rProxied) {
-		} else {
+		if ($rProxied) {
 			$rProxyIDs = array_keys(self::getProxies($rServerID));
-			if (count($rProxyIDs) != 0) {
-			} else {
+			if (count($rProxyIDs) == 0) {
 				$rProxyIDs = array_keys(self::getProxies($rServerID, false));
 			}
 			if (count($rProxyIDs) != 0) {
@@ -4126,8 +4124,7 @@ class CoreUtilities {
 	public static function getProxies($rServerID, $rOnline = true) {
 		$rReturn = array();
 		foreach (self::$rServers as $rProxyID => $rServerInfo) {
-			if (!($rServerInfo['server_type'] == 1 && in_array($rServerID, $rServerInfo['parent_id']) && ($rServerInfo['server_online'] || !$rOnline))) {
-			} else {
+			if ($rServerInfo['server_type'] == 1 && in_array($rServerID, $rServerInfo['parent_id']) && ($rServerInfo['server_online'] || !$rOnline)) {
 				$rReturn[$rProxyID] = $rServerInfo;
 			}
 		}

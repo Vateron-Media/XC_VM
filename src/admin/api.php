@@ -4715,8 +4715,7 @@ if (isset($_SESSION['hash'])) {
 										if ($rType == 'proxy') {
 											foreach (CoreUtilities::$rServers[$rServerID]['parent_id'] as $rParentID) {
 												foreach (CoreUtilities::getRedisConnections(null, $rParentID, null, true, false, false) as $rConnection) {
-													if ($rConnection['proxy_id'] != $rServerID) {
-													} else {
+													if ($rConnection['proxy_id'] == $rServerID) {
 														CoreUtilities::closeConnection($rConnection);
 													}
 												}
