@@ -28,13 +28,8 @@ if ($argc && $argc >= 6) {
     $rInstallDir = BIN_PATH . 'install/';
 
     if ($rType == 1) {
-        $rPackages = array('iproute2', 'net-tools', 'libcurl4', 'libxslt1-dev', 'libonig-dev', 'e2fsprogs', 'wget', 'sysstat', 'mcrypt', 'python3', 'certbot', 'iptables-persistent', 'libjpeg-dev', 'libpng-dev', 'php-ssh2', 'xz-utils', 'zip', 'unzip');
-        $UpdateData = $gitRelease->getUpdateFile("proxy", XC_VM_VERSION);
-
-        $rInstallFiles = $UpdateData['url'];
-        $hash = $UpdateData['md5'];
-
-        exit(); // заглушка чтобы процесс не продолжался
+        $rPackages = array('iproute2', 'net-tools', 'libcurl4', 'libxslt1-dev', 'libonig-dev', 'e2fsprogs', 'wget', 'sysstat', 'mcrypt', 'python3', 'certbot', 'iptables-persistent', 'libjpeg-dev', 'libpng-dev', 'php-ssh2', 'xz-utils', 'zip', 'unzip', 'cron');
+        $rInstallFiles = 'proxy.tar.gz';
     } elseif ($rType == 2) {
         $rPackages = array('cpufrequtils', 'iproute2', 'python', 'net-tools', 'dirmngr', 'gpg-agent', 'software-properties-common', 'libmaxminddb0', 'libmaxminddb-dev', 'mmdb-bin', 'libcurl4', 'libgeoip-dev', 'libxslt1-dev', 'libonig-dev', 'e2fsprogs', 'wget', 'sysstat', 'alsa-utils', 'v4l-utils', 'mcrypt', 'python3', 'certbot', 'iptables-persistent', 'libjpeg-dev', 'libpng-dev', 'php-ssh2', 'xz-utils', 'zip', 'unzip', 'cron', 'libfribidi-dev', 'libharfbuzz-dev', 'libogg0');
         $UpdateData = $gitRelease->getUpdateFile("lb", XC_VM_VERSION);
@@ -85,27 +80,46 @@ if ($argc && $argc >= 6) {
             runCommand($rConn, 'sudo rm -rf ' . BIN_PATH);
         }
 
-        echo 'Download archive' . "\n";
-        runCommand($rConn, 'wget --timeout=2 -O /tmp/XC_VM.tar.gz -o /dev/null "' . $rInstallFiles . '"');
-        $fileHash = runCommand($rConn, 'md5=($(md5sum /tmp/XC_VM.tar.gz)); echo $md5;');
-        if (!empty($fileHash['output']) && $hash == trim($fileHash['output'])) {
-            echo 'Extracting to directory' . "\n";
-            $rRet = runCommand($rConn, 'sudo rm -rf ' . MAIN_HOME . 'status');
-            $rRet = runCommand($rConn, 'sudo tar -zxvf "/tmp/XC_VM.tar.gz" -C "' . MAIN_HOME . '"');
-            if (file_exists(MAIN_HOME . 'status')) {
-                runCommand($rConn, 'sudo rm -f "/tmp/XC_VM.tar.gz"');
+        if ($rType == 1) {
+            if (sendfile($rConn, $rInstallDir . $rInstallFiles, '/tmp/' . $rInstallFiles, true)) {
+                echo 'Extracting to directory' . "\n";
+                $rRet = runCommand($rConn, 'sudo rm -rf ' . MAIN_HOME . 'status');
+                $rRet = runCommand($rConn, 'sudo tar -zxvf "/tmp/' . $rInstallFiles . '" -C "' . MAIN_HOME . '"');
+                if (file_exists(MAIN_HOME . 'status')) {
+                    // runCommand($rConn, 'sudo rm -f "/tmp/' . $rInstallFiles . '.tar.gz"');
+                } else {
+                    $db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
+                    echo 'Failed to extract files! Exiting' . "\n";
+                    exit();
+                }
             } else {
                 $db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
-                echo 'Failed to extract files! Exiting' . "\n";
+                echo 'Invalid MD5 checksum! Exiting' . "\n";
                 exit();
             }
         } else {
-            $db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
-            echo 'Invalid MD5 checksum! Exiting' . "\n";
-            exit();
+            echo 'Download archive' . "\n";
+            runCommand($rConn, 'wget --timeout=2 -O /tmp/XC_VM.tar.gz -o /dev/null "' . $rInstallFiles . '"');
+            $fileHash = runCommand($rConn, 'md5=($(md5sum /tmp/XC_VM.tar.gz)); echo $md5;');
+            if (!empty($fileHash['output']) && $hash == trim($fileHash['output'])) {
+                echo 'Extracting to directory' . "\n";
+                $rRet = runCommand($rConn, 'sudo rm -rf ' . MAIN_HOME . 'status');
+                $rRet = runCommand($rConn, 'sudo tar -zxvf "/tmp/XC_VM.tar.gz" -C "' . MAIN_HOME . '"');
+                if (file_exists(MAIN_HOME . 'status')) {
+                    runCommand($rConn, 'sudo rm -f "/tmp/XC_VM.tar.gz"');
+                } else {
+                    $db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
+                    echo 'Failed to extract files! Exiting' . "\n";
+                    exit();
+                }
+            } else {
+                $db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
+                echo 'Invalid MD5 checksum! Exiting' . "\n";
+                exit();
+            }
         }
 
-         if ($rType == 2) {
+        if ($rType == 2) {
             if (stripos(runCommand($rConn, 'sudo cat /etc/fstab')['output'], STREAMS_PATH) !== true) {
                 echo 'Adding ramdisk mounts' . "\n";
                 runCommand($rConn, 'sudo echo "tmpfs ' . STREAMS_PATH . ' tmpfs defaults,noatime,nosuid,nodev,noexec,mode=1777,size=90% 0 0" >> /etc/fstab');
@@ -154,12 +168,14 @@ if ($argc && $argc >= 6) {
         runCommand($rConn, 'sudo systemctl enable xc_vm');
         if ($rType == 1) {
             runCommand($rConn, 'sudo rm /home/xc_vm/bin/nginx/conf/servers/*.conf');
+            $rServices = 1;
             foreach ($rParentIDs as $rParentID) {
                 if ($rPrivateIP) {
                     $rIP = CoreUtilities::$rServers[$rParentID]['private_ip'] . ':' . CoreUtilities::$rServers[$rParentID]['http_broadcast_port'];
                 } else {
                     $rIP = CoreUtilities::$rServers[$rParentID]['server_ip'] . ':' . CoreUtilities::$rServers[$rParentID]['http_broadcast_port'];
                 }
+                $rKey = '';
                 if (CoreUtilities::$rServers[$rParentID]['is_main']) {
                     $rConfigText = 'location / {' . "\n" . '    include options.conf;' . "\n" . '    proxy_pass http://' . $rIP . '$1;' . "\n" . '}';
                 } else {
@@ -180,30 +196,28 @@ if ($argc && $argc >= 6) {
             sendfile($rConn, MAIN_HOME . 'bin/nginx/conf/realip_xc_vm.conf', MAIN_HOME . 'bin/nginx/conf/realip_xc_vm.conf');
             runCommand($rConn, 'sudo echo "" > "/home/xc_vm/bin/nginx/conf/limit.conf"');
             runCommand($rConn, 'sudo echo "" > "/home/xc_vm/bin/nginx/conf/limit_queue.conf"');
-            if ($rType == 2) {
-                $rIP = '127.0.0.1:' . CoreUtilities::$rServers[$rServerID]['http_broadcast_port'];
-                runCommand($rConn, 'sudo echo "on_play http://' . $rIP . '/stream/rtmp; on_publish http://' . $rIP . '/stream/rtmp; on_play_done http://' . $rIP . '/stream/rtmp;" > "/home/xc_vm/bin/nginx_rtmp/conf/live.conf"');
-                $rServices = (intval(runCommand($rConn, 'sudo cat /proc/cpuinfo | grep "^processor" | wc -l')['output']) ?: 4);
-                runCommand($rConn, 'sudo rm ' . MAIN_HOME . 'bin/php/etc/*.conf');
-                $rNewScript = '#! /bin/bash' . "\n";
-                $rNewBalance = 'upstream php {' . "\n" . '    least_conn;' . "\n";
-                $rTemplate = file_get_contents(MAIN_HOME . 'bin/php/etc/template');
-                foreach (range(1, $rServices) as $i) {
-                    $rNewScript .= 'start-stop-daemon --start --quiet --pidfile ' . MAIN_HOME . 'bin/php/sockets/' . $i . '.pid --exec ' . MAIN_HOME . 'bin/php/sbin/php-fpm -- --daemonize --fpm-config ' . MAIN_HOME . 'bin/php/etc/' . $i . '.conf' . "\n";
-                    $rNewBalance .= '    server unix:' . MAIN_HOME . 'bin/php/sockets/' . $i . '.sock;' . "\n";
-                    $rTmpPath = TMP_PATH . md5(time() . $i . '.conf');
-                    file_put_contents($rTmpPath, str_replace('#PATH#', MAIN_HOME, str_replace('#ID#', $i, $rTemplate)));
-                    sendfile($rConn, $rTmpPath, MAIN_HOME . 'bin/php/etc/' . $i . '.conf');
-                }
-                $rNewBalance .= '}';
-                $rTmpPath = TMP_PATH . md5(time() . 'daemons.sh');
-                file_put_contents($rTmpPath, $rNewScript);
-                sendfile($rConn, $rTmpPath, MAIN_HOME . 'bin/daemons.sh');
-                $rTmpPath = TMP_PATH . md5(time() . 'balance.conf');
-                file_put_contents($rTmpPath, $rNewBalance);
-                sendfile($rConn, $rTmpPath, MAIN_HOME . 'bin/nginx/conf/balance.conf');
-                runCommand($rConn, 'sudo chmod +x ' . MAIN_HOME . 'bin/daemons.sh');
+            $rIP = '127.0.0.1:' . CoreUtilities::$rServers[$rServerID]['http_broadcast_port'];
+            runCommand($rConn, 'sudo echo "on_play http://' . $rIP . '/stream/rtmp; on_publish http://' . $rIP . '/stream/rtmp; on_play_done http://' . $rIP . '/stream/rtmp;" > "/home/xc_vm/bin/nginx_rtmp/conf/live.conf"');
+            $rServices = (intval(runCommand($rConn, 'sudo cat /proc/cpuinfo | grep "^processor" | wc -l')['output']) ?: 4);
+            runCommand($rConn, 'sudo rm ' . MAIN_HOME . 'bin/php/etc/*.conf');
+            $rNewScript = '#! /bin/bash' . "\n";
+            $rNewBalance = 'upstream php {' . "\n" . '    least_conn;' . "\n";
+            $rTemplate = file_get_contents(MAIN_HOME . 'bin/php/etc/template');
+            foreach (range(1, $rServices) as $i) {
+                $rNewScript .= 'start-stop-daemon --start --quiet --pidfile ' . MAIN_HOME . 'bin/php/sockets/' . $i . '.pid --exec ' . MAIN_HOME . 'bin/php/sbin/php-fpm -- --daemonize --fpm-config ' . MAIN_HOME . 'bin/php/etc/' . $i . '.conf' . "\n";
+                $rNewBalance .= '    server unix:' . MAIN_HOME . 'bin/php/sockets/' . $i . '.sock;' . "\n";
+                $rTmpPath = TMP_PATH . md5(time() . $i . '.conf');
+                file_put_contents($rTmpPath, str_replace('#PATH#', MAIN_HOME, str_replace('#ID#', $i, $rTemplate)));
+                sendfile($rConn, $rTmpPath, MAIN_HOME . 'bin/php/etc/' . $i . '.conf');
             }
+            $rNewBalance .= '}';
+            $rTmpPath = TMP_PATH . md5(time() . 'daemons.sh');
+            file_put_contents($rTmpPath, $rNewScript);
+            sendfile($rConn, $rTmpPath, MAIN_HOME . 'bin/daemons.sh');
+            $rTmpPath = TMP_PATH . md5(time() . 'balance.conf');
+            file_put_contents($rTmpPath, $rNewBalance);
+            sendfile($rConn, $rTmpPath, MAIN_HOME . 'bin/nginx/conf/balance.conf');
+            runCommand($rConn, 'sudo chmod +x ' . MAIN_HOME . 'bin/daemons.sh');
         }
         $rSystemConf = runCommand($rConn, 'sudo cat "/etc/systemd/system.conf"')['output'];
         if (strpos($rSystemConf, 'DefaultLimitNOFILE=1048576') !== false) {

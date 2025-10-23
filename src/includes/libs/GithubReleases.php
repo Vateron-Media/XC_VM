@@ -365,12 +365,6 @@ class GitHubReleases {
             case "lb_update":
                 $update_file = "loadbalancer_update.tar.gz";
                 break;
-            case "proxy":
-                $update_file = "proxy.tar.gz";
-                break;
-            case "proxy_update":
-                $update_file = "proxy_update.tar.gz";
-                break;
             default:
                 throw new Exception("Not valid file type");
         }

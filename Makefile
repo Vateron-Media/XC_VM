@@ -239,6 +239,7 @@ set_permissions:
 
 	chmod 0775 $(TEMP_DIR)/bin/install 2>/dev/null || [ $$? -eq 1 ]
 	chmod 0644 $(TEMP_DIR)/bin/install/database.sql 2>/dev/null || [ $$? -eq 1 ]
+	chmod 0644 $(TEMP_DIR)/bin/install/proxy.tar.gz 2>/dev/null || [ $$? -eq 1 ]
 
 	chmod 0750 $(TEMP_DIR)/bin/maxmind 2>/dev/null || [ $$? -eq 1 ]
 	chmod 0750 $(TEMP_DIR)/bin/maxmind/GeoIP2-ISP.mmdb 2>/dev/null || [ $$? -eq 1 ]
