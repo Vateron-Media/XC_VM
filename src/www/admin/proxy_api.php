@@ -7,6 +7,7 @@ $rSignals = array();
 if (CoreUtilities::isProxy($_SERVER['REMOTE_ADDR'])) {
 	$db = new Database($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
 	CoreUtilities::$db = &$db;
+	$rServers = CoreUtilities::$rServers;
 	$rServerID = intval($_POST['server_id']);
 	$rStats = $_POST['stats'];
 	$db->query('SELECT `bytes_sent_total`, `bytes_received_total`, `time` FROM `servers_stats` WHERE `server_id` = ? ORDER BY `id` DESC LIMIT 1;', $rServerID);
