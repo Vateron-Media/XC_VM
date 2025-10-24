@@ -1908,15 +1908,13 @@ class API {
 							unset($rImportArray['movie_properties']['backdrop_path']);
 						}
 
-						if (!($rData['movie_symlink'] || $rData['direct_proxy'])) {
-						} else {
+						if ($rData['movie_symlink'] || $rData['direct_proxy']) {
 							$rExtension = pathinfo(explode('?', $rData['stream_source'])[0])['extension'];
 
 							if ($rExtension) {
 								$rImportArray['target_container'] = $rExtension;
 							} else {
-								if ($rImportArray['target_container']) {
-								} else {
+								if (!$rImportArray['target_container']) {
 									$rImportArray['target_container'] = 'mp4';
 								}
 							}
@@ -6214,15 +6212,15 @@ class API {
 				}
 
 				if (0 >= self::$db->get_row()['count']) {
-
-
+					$bouquets = is_array($rData['bouquets'] ?? null) ? $rData['bouquets'] : [];
+					$fbBouquets = is_array($rData['fb_bouquets'] ?? null) ? $rData['fb_bouquets'] : [];
 
 					$rArray['type'] = $rData['folder_type'];
 					$rArray['directory'] = $rPath;
-					$rArray['bouquets'] = '[' . implode(',', array_map('intval', $rData['bouquets'])) . ']';
-					$rArray['fb_bouquets'] = '[' . implode(',', array_map('intval', $rData['fb_bouquets'])) . ']';
+					$rArray['bouquets'] = '[' . implode(',', array_map('intval', $bouquets)) . ']';
+					$rArray['fb_bouquets'] = '[' . implode(',', array_map('intval', $fbBouquets)) . ']';
 
-					if (0 < count($rData['allowed_extensions'])) {
+					if (is_array($rData['allowed_extensions'] ?? null) && count($rData['allowed_extensions']) > 0) {
 						$rArray['allowed_extensions'] = json_encode($rData['allowed_extensions']);
 					} else {
 						$rArray['allowed_extensions'] = '[]';

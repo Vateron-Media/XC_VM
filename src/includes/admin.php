@@ -231,7 +231,11 @@ function validateCIDR($rCIDR) {
 function getFreeSpace($rServerID) {
 	$rReturn = array();
 	$rLines = json_decode(systemapirequest($rServerID, array('action' => 'get_free_space')), true);
-	array_shift($rLines);
+	
+	// Check if array has elements before shifting
+    if (!empty($rLines)) {
+        array_shift($rLines);
+    }
 
 	foreach ($rLines as $rLine) {
 		$rSplit = explode(' ', preg_replace('!\\s+!', ' ', trim($rLine)));
