@@ -43,7 +43,7 @@ function loadCron() {
                 if ($rCertInfo['serial'] != $rCertInfoFile['serial'] || !CoreUtilities::$rServers[SERVER_ID]['certbot_ssl'] || $rDBCertInfo['serial'] != $rCertInfoFile['serial']) {
                     $db->query('UPDATE `servers` SET `certbot_ssl` = ? WHERE `id` = ?;', json_encode($rCertInfoFile), SERVER_ID);
                     echo 'Updated ssl configuration in database' . "\n";
-                    $db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rServer['id'], time(), json_encode(array('action' => 'reload_nginx')));
+                    $db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', SERVER_ID, time(), json_encode(array('action' => 'reload_nginx')));
                 }
             } else {
                 if (CoreUtilities::$rServers[SERVER_ID]['certbot_ssl']) {
