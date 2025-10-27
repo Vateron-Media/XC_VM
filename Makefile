@@ -199,9 +199,14 @@ delete_files_list:
 	@rm -f $(DELETED_LIST)
 
 	@echo "[INFO] Writing list of deleted files from 'src/' to $(DELETED_LIST)"
-	@git diff --name-status $(LAST_TAG)..HEAD | grep '^D' | cut -f2 | grep '^src/' | sed 's|^src/||' > $(DELETED_LIST)
+	@git diff --name-status $(LAST_TAG)..HEAD | grep '^D' | cut -f2 | grep '^src/' | sed 's|^src/||' | \
+	while read file; do \
+		echo "if (file_exists(MAIN_HOME . '$$file')) {"; \
+		echo "    unlink(MAIN_HOME . '$$file');"; \
+		echo "}"; \
+	done > $(DELETED_LIST)
 
-	@echo "[INFO] Deleted files:"
+	@echo "[INFO] Deleted files cleanup code:"
 	@cat $(DELETED_LIST)
 
 set_permissions:
