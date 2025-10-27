@@ -28,8 +28,7 @@
 
 ```
 src/www/constants.php  
-src/www/stream/init.php  
-src/player/functions.php
+src/www/stream/init.php
 ```
 
 **Auto-update command:**
@@ -59,13 +58,7 @@ make delete_files_list
 ```
 
 * Open the file `dist/deleted_files.txt`.
-* For each path in the list, add the following block **after the comment** `// Update checkpoint` in `src/includes/cli/update.php`:
-
-```php
-if (file_exists(MAIN_HOME . 'file_path')) {
-    unlink(MAIN_HOME . 'file_path');
-}
-```
+* Copy the contents to `src/includes/cli/update.php` **after the comment** `// Update checkpoint`
 
 > ⚠️ **Important:** Ensure paths are correct to avoid deleting critical files.
 

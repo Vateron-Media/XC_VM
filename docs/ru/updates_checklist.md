@@ -28,8 +28,7 @@
 
 ```
 src/www/constants.php  
-src/www/stream/init.php  
-src/player/functions.php
+src/www/stream/init.php
 ```
 
 **Auto-update команда:**
@@ -59,13 +58,7 @@ git commit -m "Bump version to X.Y.Z"
   ```
 
 * Открыть файл `dist/deleted_files.txt`.
-* Для каждого пути из списка добавить в `src/includes/cli/update.php` **после комментария** `// Update checkpoint` следующий блок:
-
-  ```php
-  if (file_exists(MAIN_HOME . 'file_path')) {
-      unlink(MAIN_HOME . 'file_path');
-  }
-  ```
+* Скопировать содержимое в `src/includes/cli/update.php` **после комментария** `// Update checkpoint`
 
 > ⚠️ **Важно:** Убедитесь, что пути указаны корректно, чтобы избежать удаления важных файлов.
 
