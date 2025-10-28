@@ -62,13 +62,13 @@ section {
 
 body {
 	margin: 0;
-	font-family: "Poppins", sans-serif;
+	font-family: "Barlow", sans-serif;
 	font-size: 0.8125rem;
 	font-weight: 400;
 	line-height: 1.5;
 	color: #6c757d;
 	text-align: left;
-	background-color: #f5f6f8;
+	background-color: #f2f3f5;
 }
 
 [tabindex="-1"]:focus {
@@ -1913,7 +1913,7 @@ pre code {
 .table {
 	width: 100%;
 	margin-bottom: 1.5rem;
-	color: #6c757d;
+	color: #030303;
 }
 
 .table th,
@@ -3048,8 +3048,8 @@ fieldset:disabled a.btn {
 
 .btn-info {
 	color: #fff;
-	background-color: #56c2d6;
-	border-color: #56c2d6;
+	background-color: #162445;
+	border-color: #162445;
 }
 
 .btn-info:hover {
@@ -5384,8 +5384,7 @@ input[type="button"].btn-block {
 	word-wrap: break-word;
 	background-color: #fff;
 	background-clip: border-box;
-	border: 0 solid #f7f7f7;
-	border-radius: 30px;
+	border: 1px solid #f7f7f7;
 }
 
 .card>hr {
@@ -5435,7 +5434,7 @@ input[type="button"].btn-block {
 	padding: 1rem 1.5rem;
 	margin-bottom: 0;
 	background-color: #edeff1;
-	border-bottom: 0 solid #f7f7f7;
+	border-bottom: 1px solid #f7f7f7;
 }
 
 .card-header:first-child {}
@@ -7744,6 +7743,10 @@ button.bg-purple:focus {
 
 .rounded-0 {
 	border-radius: 0 !important;
+}
+
+.rounded-2 {
+	border-radius: 21px !important;
 }
 
 .clearfix::after {
@@ -12910,8 +12913,7 @@ table.dataTable tr.dtrg-group td {
 }
 
 .bg-animate {
-	background: linear-gradient(315deg, #131313, #202020bd);
-	background-size: 400% 400%;
+	background: linear-gradient(315deg, #003373, #348E9F);
 	animation: gradient 10s ease infinite;
 }
 

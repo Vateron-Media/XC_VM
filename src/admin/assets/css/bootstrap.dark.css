@@ -66,9 +66,9 @@ body {
     font-size: .8125rem;
     font-weight: 400;
     line-height: 1.5;
-    color: #ffffff;
+    color: #adb5bd;
     text-align: left;
-    background-color: #1f1e2d
+    background-color: #323a46
 }
 
 [tabindex="-1"]:focus {
@@ -1959,7 +1959,7 @@ pre code {
 }
 
 .table-striped tbody tr:nth-of-type(odd) {
-    background-color: #1e1d2a
+    background-color: #434b56
 }
 
 .table-data tr {
@@ -5265,10 +5265,9 @@ input[type=submit].btn-block {
     flex-direction: column;
     min-width: 0;
     word-wrap: break-word;
-    background-color: #1b1a27;
+    background-color: #3b434e;
     background-clip: border-box;
     border: 0 solid #3b434e;
-    border-radius: 20px;
 }
 
 .card>hr {
@@ -5918,8 +5917,8 @@ a.badge-purple:focus {
 
 .alert-success {
     color: #fff;
-    background-color: #191925;
-    border-radius: 30px;
+    background-color: #434b56;
+    border-color: #434b56;
 }
 
 .alert-success hr {
@@ -7570,6 +7569,10 @@ button.bg-purple:hover {
 
 .rounded-0 {
     border-radius: 0 !important
+}
+
+.rounded-2 {
+	border-radius: 21px !important;
 }
 
 .clearfix::after {
@@ -12366,7 +12369,7 @@ table.dataTable tr.dtrg-group td {
 }
 
 .bg-animate {
-    background: linear-gradient(315deg, #232132, #171520);
+    background: linear-gradient(315deg, #003373, #348E9F);
     background-size: 400% 400%;
     animation: gradient 10s ease infinite;
 }
@@ -12425,7 +12428,8 @@ tr:nth-of-type(odd) .btn-secondary:hover {
 
 .btn-success {
     color: #fff;
-    background-color: #444b56;
+    background-color: #1F7523;
+    border-color: #1F7523
 }
 
 .btn-success:hover {
