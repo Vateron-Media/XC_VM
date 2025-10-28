@@ -40,7 +40,7 @@ if ($rUserInfo['theme'] != 0) {
 	echo 'bg-purple';
 }
 
-echo ' text-white">' . "\n" . '                        <div class="card-body active-connections">' . "\n" . '                            <div class="media align-items-center">' . "\n" . '                                <div class="col-3">' . "\n" . '                                    <div class="avatar-sm bg-light">' . "\n" . '                                        <i class="fe-zap avatar-title font-22 ';
+echo ' text-white rounded-2">' . "\n" . '                        <div class="card-body active-connections">' . "\n" . '                            <div class="media align-items-center">' . "\n" . '                                <div class="col-3">' . "\n" . '                                    <div class="avatar-sm bg-light">' . "\n" . '                                        <i class="fe-zap avatar-title font-22 ';
 
 if ($rUserInfo['theme'] == 1) {
 	echo 'text-white';
@@ -57,7 +57,7 @@ if ($rUserInfo['theme'] != 0) {
 	echo 'bg-success';
 }
 
-echo ' text-white">' . "\n" . '                        <div class="card-body online-users">' . "\n" . '                            <div class="media align-items-center">' . "\n" . '                                <div class="col-3">' . "\n" . '                                    <div class="avatar-sm bg-light">' . "\n" . '                                        <i class="fe-users avatar-title font-22 ';
+echo ' text-white rounded-2">' . "\n" . '                        <div class="card-body online-users">' . "\n" . '                            <div class="media align-items-center">' . "\n" . '                                <div class="col-3">' . "\n" . '                                    <div class="avatar-sm bg-light">' . "\n" . '                                        <i class="fe-users avatar-title font-22 ';
 
 if ($rUserInfo['theme'] == 1) {
 	echo 'text-white';
@@ -72,7 +72,7 @@ if ($rUserInfo['theme'] != 0) {
 	echo 'bg-pink';
 }
 
-echo ' text-white">' . "\n" . '                        <div class="card-body active-accounts">' . "\n" . '                            <div class="media align-items-center">' . "\n" . '                                <div class="col-3">' . "\n" . '                                    <div class="avatar-sm bg-light">' . "\n" . '                                        <i class="fe-check-circle avatar-title font-22 ';
+echo ' text-white rounded-2">' . "\n" . '                        <div class="card-body active-accounts">' . "\n" . '                            <div class="media align-items-center">' . "\n" . '                                <div class="col-3">' . "\n" . '                                    <div class="avatar-sm bg-light">' . "\n" . '                                        <i class="fe-check-circle avatar-title font-22 ';
 
 if ($rUserInfo['theme'] == 1) {
 	echo 'text-white';
@@ -89,7 +89,7 @@ if ($rUserInfo['theme'] != 0) {
 	echo 'bg-info';
 }
 
-echo ' text-white">' . "\n" . '                        <div class="card-body credits">' . "\n" . '                            <div class="media align-items-center">' . "\n" . '                                <div class="col-3">' . "\n" . '                                    <div class="avatar-sm bg-light">' . "\n" . '                                        <i class="fe-dollar-sign avatar-title font-22 ';
+echo ' text-white rounded-2">' . "\n" . '                        <div class="card-body credits">' . "\n" . '                            <div class="media align-items-center">' . "\n" . '                                <div class="col-3">' . "\n" . '                                    <div class="avatar-sm bg-light">' . "\n" . '                                        <i class="fe-dollar-sign avatar-title font-22 ';
 
 if ($rUserInfo['theme'] == 1) {
 	echo 'text-white';
