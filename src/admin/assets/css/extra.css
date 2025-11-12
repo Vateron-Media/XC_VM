@@ -1,7 +1,6 @@
 .footer {
-    background: linear-gradient(315deg, #1b1a27, #22212f);
+    background-color: #162445;
     background-size: 400% 400%;
-    animation: ftgradient 10s ease infinite;
 }
 
 @keyframes ftgradient {
@@ -281,10 +280,9 @@ li.parsley-required {
 }
 
 .bg-animate-info {
-    background: linear-gradient(315deg, #ab0000, #ff5c5c);
+    background: linear-gradient(315deg, #007fbf, #80daeb);
     background-size: 400% 400%;
     animation: gradient 10s ease infinite;
-    border-radius: 20px;
 }
 
 .bg-animate-danger {
@@ -317,10 +315,7 @@ li.parsley-required {
     animation: gradient 10s ease infinite;
 }
 
-.navbar-custom {
-    background-image: url(../images/pattern.png);
-    background-size: cover;
-}
+.navbar-custom {}
 
 .body-full {
     padding: 0 !important;
@@ -380,7 +375,6 @@ li.parsley-required {
 
 .no-border {
     border: 0 !important;
-    border-radius: 10px;
 }
 
 .big_checkbox {
@@ -398,11 +392,11 @@ li.parsley-required {
 }
 
 .header-search span {
-    color: #fff !important;
+    color: #ccd2e0 !important;
 }
 
 .header-search b {
-    border-color: #fff transparent transparent !important;
+    border-color: #ccd2e0 transparent transparent !important;
 }
 
 .bigdrop {

@@ -129,7 +129,7 @@ if (count(get_included_files()) != 1) {
 		echo ' whiteout';
 	}
 
-	echo '">' . "\r\n" . '                                <img src="assets/images/logo-topbar.png" alt="" height="26">' . "\r\n" . '                            </span>' . "\r\n" . '                            <span class="logo-sm';
+	echo '">' . "\r\n" . '                                <img src="assets/images/logo-topbar.png" alt="" height="50">' . "\r\n" . '                            </span>' . "\r\n" . '                            <span class="logo-sm';
 
 	if (0 >= strlen($rUserInfo['hue'])) {
 	} else {
