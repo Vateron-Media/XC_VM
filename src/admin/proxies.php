@@ -142,7 +142,7 @@ include 'header.php'; ?>
 
 										echo '                                        <input data-plugin="knob" data-width="48" data-height="48" data-bgColor="';
 
-										if ($D4253f9520627819['theme'] == 1) {
+										if ($rUserInfo['theme'] == 1) {
 											echo '#7e8e9d';
 										} else {
 											echo '#ebeff2';
@@ -164,7 +164,7 @@ include 'header.php'; ?>
 
 										echo '                                        <input data-plugin="knob" data-width="48" data-height="48" data-bgColor="';
 
-										if ($D4253f9520627819['theme'] == 1) {
+										if ($rUserInfo['theme'] == 1) {
 											echo '#7e8e9d';
 										} else {
 											echo '#ebeff2';
