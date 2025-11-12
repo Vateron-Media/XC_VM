@@ -109,7 +109,7 @@ include 'header.php';
 			<div class="row mb-4">
 				<div class="col-md-4">
 					<?php if (hasPermissions('adv', 'live_connections')): ?><a href="./live_connections"><?php endif; ?>
-						<div class="card cta-box <?php echo $rUserInfo['theme'] != 0 ? '' : 'bg-purple'; ?> text-white">
+						<div class="card cta-box <?php echo $rUserInfo['theme'] != 0 ? '' : 'bg-purple'; ?> text-white rounded-2">
 							<div class="card-body active-connections">
 								<div class="media align-items-center">
 									<div class="col-3">
@@ -134,7 +134,7 @@ include 'header.php';
 						<a href="./live_connections">
 						<?php endif; ?>
 
-						<div class="card cta-box <?php echo $rUserInfo['theme'] != 0 ? '' : 'bg-success'; ?> text-white">
+						<div class="card cta-box <?php echo $rUserInfo['theme'] != 0 ? '' : 'bg-success'; ?> text-white rounded-2">
 							<div class="card-body online-users">
 								<div class="media align-items-center">
 									<div class="col-3">
@@ -161,7 +161,7 @@ include 'header.php';
 						<a href="./streams?filter=1">
 						<?php endif; ?>
 
-						<div class="card cta-box <?php echo $rUserInfo['theme'] == 0 ? 'bg-info' : ''; ?> text-white">
+						<div class="card cta-box <?php echo $rUserInfo['theme'] == 0 ? 'bg-info' : ''; ?> text-white rounded-2">
 							<div class="card-body active-streams">
 								<div class="media align-items-center">
 									<div class="col-3">
@@ -188,7 +188,7 @@ include 'header.php';
 						<a href="./streams?filter=2">
 						<?php endif; ?>
 
-						<div class="card cta-box <?php echo $rUserInfo['theme'] == 0 ? 'bg-pink' : ''; ?> text-white">
+						<div class="card cta-box <?php echo $rUserInfo['theme'] == 0 ? 'bg-pink' : ''; ?> text-white rounded-2">
 							<div class="card-body offline-streams">
 								<div class="media align-items-center">
 									<div class="col-3">
@@ -211,7 +211,7 @@ include 'header.php';
 					<?php endif; ?>
 				</div>
 				<div class="col-md-4">
-					<div class="card cta-box <?php echo $rUserInfo['theme'] == 0 ? 'bg-primary' : ''; ?> text-white">
+					<div class="card cta-box <?php echo $rUserInfo['theme'] == 0 ? 'bg-primary' : ''; ?> text-white rounded-2">
 						<div class="card-body output-flow">
 							<div class="media align-items-center">
 								<div class="col-3">
@@ -230,7 +230,7 @@ include 'header.php';
 					</div>
 				</div>
 				<div class="col-md-4">
-					<div class="card cta-box <?php echo $rUserInfo['theme'] == 0 ? 'bg-danger' : ''; ?> text-white">
+					<div class="card cta-box <?php echo $rUserInfo['theme'] == 0 ? 'bg-danger' : ''; ?> text-white rounded-2">
 						<div class="card-body input-flow">
 							<div class="media align-items-center">
 								<div class="col-3">

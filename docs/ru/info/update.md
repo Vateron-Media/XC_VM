@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <a href="../ru/main-page.md"><b>⬅️ Назад на главную</b></a>
+  <a href="../../ru/main-page.md"><b>⬅️ Назад на главную</b></a>
 </p>
 
 ---
@@ -84,7 +84,7 @@
 ---
 
 <p align="center">
-  <a href="../ru/main-page.md"><b>⬅️ Назад на главную</b></a>
+  <a href="../../ru/main-page.md"><b>⬅️ Назад на главную</b></a>
 </p>
 
 ---
