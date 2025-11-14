@@ -4067,6 +4067,75 @@ class CoreUtilities {
 		];
 	}
 
+	public static function submitPanelLogs() {
+		// Increase default socket timeout
+		ini_set('default_socket_timeout', 60);
+
+		// Get API IP address
+		$apiIP = self::getApiIP();
+		if ($apiIP === false) {
+			return false;
+		}
+
+		// Fetch logs from the database (excluding 'epg' type), limited to 1000 grouped by unique values
+		self::$db->query("SELECT `type`, `log_message`, `log_extra`, `line`, `date` FROM `panel_logs` WHERE `type` <> 'epg' GROUP BY CONCAT(`type`, `log_message`, `log_extra`) ORDER BY `date` DESC LIMIT 1000;");
+
+		// Prepare API endpoint and payload
+		$rAPI = 'http://' . $apiIP . '/api/v1/report';
+		$rData = array(
+			'errors'  => self::$db->get_rows(),
+			'version' => XC_VM_VERSION
+		);
+
+		$payload = json_encode($rData, JSON_UNESCAPED_UNICODE);
+
+		$ch = curl_init();
+		curl_setopt($ch, CURLOPT_URL, $rAPI);
+		curl_setopt($ch, CURLOPT_POST, true);
+		curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+		curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+
+		// ВАЖНО: указываем, что отправляется JSON
+		curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+			'Content-Type: application/json',
+			'Content-Length: ' . strlen($payload)
+		));
+
+		$response = curl_exec($ch);
+		curl_close($ch);
+
+		print($response . "\n");
+
+		// If the API response is valid and contains "status": "success", clear the panel_logs table
+		if ($response !== false) {
+			$responseData = json_decode($response, true);
+			if (json_last_error() === JSON_ERROR_NONE && isset($responseData['status']) && $responseData['status'] === 'success') {
+				self::$db->query('TRUNCATE `panel_logs`;');
+			}
+		}
+
+		return $response;
+	}
+
+	public static function getApiIP() {
+		$url = 'https://raw.githubusercontent.com/Vateron-Media/XC_VM_Update/refs/heads/main/api_server.json';
+
+		// Get the JSON content from the URL
+		$json = file_get_contents($url);
+		if ($json === false) {
+			return false;
+		}
+
+		// Decode the JSON into an associative array
+		$data = json_decode($json, true);
+		if (json_last_error() !== JSON_ERROR_NONE || empty($data['ip'])) {
+			return false;
+		}
+		return $data['ip'];
+	}
+
 	public static function confirmIDs($rIDs) {
 		$rReturn = array();
 		foreach ($rIDs as $rID) {

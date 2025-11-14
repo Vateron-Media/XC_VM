@@ -60,7 +60,7 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 							<p>Official Release v <?= $rUpdate["version"]; ?> is now available to download.</p>
 							<?php
 							foreach ($rUpdate["changelog"] as $rItem) {
-								echo '<h5 class="card-title text-white mt-4">Changelog - v';
+								echo '<h5 class="card-title text-white mt-1">Changelog - v';
 								echo $rItem["version"];
 								echo '</h5><ul>';
 
