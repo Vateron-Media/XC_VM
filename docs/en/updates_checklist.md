@@ -43,6 +43,7 @@ find -type f -name "*.php" -exec sed -i \
 ```bash
 git add .
 git commit -m "Bump version to X.Y.Z"
+git push
 ```
 
 > 💡 **Tip:** Replace `X.Y.Z` with the actual version, e.g., `1.2.3`.

@@ -43,6 +43,7 @@ find -type f -name "*.php" -exec sed -i \
 ```bash
 git add .
 git commit -m "Bump version to X.Y.Z"
+git push
 ```
 
 > 💡 **Совет:** Замените `X.Y.Z` на актуальную версию, например, `1.2.3`.
@@ -68,12 +69,12 @@ git commit -m "Bump version to X.Y.Z"
 
 * Последовательно выполнить команды для сборки:
 
-  ```bash
-  make lb
-  make main
-  make main_update
-  make lb_update
-  ```
+```bash
+make lb
+make main
+make main_update
+make lb_update
+```
 
 * Убедиться, что созданы следующие файлы в директории `dist/`:
 
