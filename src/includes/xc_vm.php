@@ -4070,22 +4070,25 @@ class CoreUtilities {
 	public static function submitPanelLogs() {
 		// Increase default socket timeout
 		ini_set('default_socket_timeout', 60);
-
 		// Get API IP address
 		$apiIP = self::getApiIP();
+
 		if ($apiIP === false) {
+			print("[ERR] Failed to get API IP\n");
 			return false;
 		}
 
-		// Fetch logs from the database (excluding 'epg' type), limited to 1000 grouped by unique values
+		// Fetch logs from DB
 		self::$db->query("SELECT `type`, `log_message`, `log_extra`, `line`, `date` FROM `panel_logs` WHERE `type` <> 'epg' GROUP BY CONCAT(`type`, `log_message`, `log_extra`) ORDER BY `date` DESC LIMIT 1000;");
 
 		// Prepare API endpoint and payload
 		$rAPI = 'http://' . $apiIP . '/api/v1/report';
-		$rData = array(
+		print("[1] API endpoint: $rAPI\n");
+
+		$rData = [
 			'errors'  => self::$db->get_rows(),
 			'version' => XC_VM_VERSION
-		);
+		];
 
 		$payload = json_encode($rData, JSON_UNESCAPED_UNICODE);
 
@@ -4097,21 +4100,31 @@ class CoreUtilities {
 		curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
 		curl_setopt($ch, CURLOPT_TIMEOUT, 60);
 
-		// ВАЖНО: указываем, что отправляется JSON
-		curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+		// JSON headers
+		curl_setopt($ch, CURLOPT_HTTPHEADER, [
 			'Content-Type: application/json',
 			'Content-Length: ' . strlen($payload)
-		));
+		]);
+
+		print("[2] Sending request...\n");
 
 		$response = curl_exec($ch);
+
+		// Catch curl errors
+		if ($response === false) {
+			$err = curl_error($ch);
+			print("[ERR] cURL error: $err\n");
+		}
+
+		print("[3] Raw response: " . var_export($response, true) . "\n");
+
 		curl_close($ch);
-
-		print($response . "\n");
-
-		// If the API response is valid and contains "status": "success", clear the panel_logs table
+		// Processing JSON response
 		if ($response !== false) {
 			$responseData = json_decode($response, true);
-			if (json_last_error() === JSON_ERROR_NONE && isset($responseData['status']) && $responseData['status'] === 'success') {
+
+			// Clear table on success
+			if (isset($responseData['status']) && $responseData['status'] === 'success') {
 				self::$db->query('TRUNCATE `panel_logs`;');
 			}
 		}
