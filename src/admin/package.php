@@ -466,7 +466,7 @@ include 'header.php'; ?>
         }
     });
     
-    if (isset($rPackage)): ?>
+    <?php if (isset($rPackage)): ?>
         var rBouquets = [<?php echo implode(',', array_map('intval', is_array($addons = json_decode($rPackage['bouquets'] ?? '[]', true)) ? $addons : [])); ?>];
         var rGroups = [<?php echo implode(',', array_map('intval', is_array($addons = json_decode($rPackage['groups'] ?? '[]', true)) ? $addons : [])); ?>];
         var rAddons = [<?php echo implode(',', array_map('intval', is_array($addons = json_decode($rPackage['addon_packages'] ?? '[]', true)) ? $addons : [])); ?>];
