@@ -268,7 +268,33 @@ if (!empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || !strtolower($_SERVER["HTTP_X_RE
 														}
 														echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="mysql_sleep_kill">MySQL Sleep Timeout <i title="How long to allow mysql connections to remain in Sleep before killing them. Set to 0 to disable." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="mysql_sleep_kill" name="mysql_sleep_kill" value="';
 														echo intval($rSettings["mysql_sleep_kill"]);
-														echo '"></div></div>    <h5 class="card-title mb-4">Dashboard</h5>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="dashboard_stats">Show Graphs <i title="Enable dashboard statistic graphs for System Resources, Network and Connections." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="dashboard_stats" id="dashboard_stats" type="checkbox"';
+														echo '"></div></div>'; ?>
+
+														<div class="form-group row mb-4">
+															<label class="col-md-4 col-form-label" for="update_channel">Update Channel</label>
+															<div class="col-md-2">
+																<select name="update_channel" id="update_channel" class="form-control"
+																	data-toggle="select2">
+																	<?
+																	foreach (["stable" => "Stable", "unstable" => "Unstable"] as $rKey => $rValue) {
+																		echo '<option';
+
+																		if ($rSettings["update_channel"] == $rKey) {
+																			echo ' selected';
+																		}
+
+																		echo ' value="';
+																		echo $rKey;
+																		echo '">';
+																		echo $rValue;
+																		echo '</option>';
+																	}
+																	?>
+																</select>
+															</div>
+														</div>
+
+														<?php echo '<h5 class="card-title mb-4">Dashboard</h5>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="dashboard_stats">Show Graphs <i title="Enable dashboard statistic graphs for System Resources, Network and Connections." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="dashboard_stats" id="dashboard_stats" type="checkbox"';
 														if ($rSettings["dashboard_stats"] == 1) {
 															echo ' checked ';
 														}
@@ -2669,11 +2695,11 @@ include 'footer.php'; ?>
 			}
 		});
 	};
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-    <?php endif; ?>
+	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+		$(document).ready(function() {
+			initSearch();
+		});
+	<?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

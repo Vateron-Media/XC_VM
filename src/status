@@ -1300,6 +1300,12 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `php_loopback` TINYINT(1) NULL DEFAULT '1';");
 			}
 
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'update_channel';");
+
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `update_channel` varchar(12) COLLATE utf8_unicode_ci DEFAULT 'stable';");
+			}
+
 			StreamingUtilities::$db->query("SHOW COLUMNS FROM `users_groups` LIKE 'subresellers';");
 
 			if (StreamingUtilities::$db->num_rows() == 0) {

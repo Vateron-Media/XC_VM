@@ -24,7 +24,6 @@ if (basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'])) {
 }
 
 $rFilename = strtolower(basename(get_included_files()[0], '.php'));
-$gitRelease = new GitHubReleases(GIT_OWNER, GIT_REPO_MAIN);
 
 if (!in_array($rFilename, array('enigma2', 'epg', 'playlist', 'api', 'xplugin', 'live', 'proxy_api', 'thumb', 'timeshift', 'vod')) || isset($argc)) {
 	$db = new Database($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);;
@@ -40,3 +39,5 @@ if (!in_array($rFilename, array('enigma2', 'epg', 'playlist', 'api', 'xplugin', 
 		CoreUtilities::$db = &$db;
 	}
 }
+
+$gitRelease = new GitHubReleases(GIT_OWNER, GIT_REPO_MAIN, CoreUtilities::$rSettings['update_channel']);
