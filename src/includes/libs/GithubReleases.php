@@ -22,20 +22,23 @@ class GitHubReleases {
     private $headers;
     private $timeout = 5; // Request timeout in seconds
     private $cache_file = '/home/xc_vm/tmp/gitapi'; // Cache file path
+    private string $channel = 'stable'; // 'stable' или 'unstable'
     private $hash_file = 'hashes.md5';
     private $cache_ttl = 1800; // Cache TTL in seconds (30 minutes)
 
     /**
-     * Initialize a GitHubReleases instance for accessing release data of a GitHub repository.
+     * Initialize a GitHubReleases instance.
      *
-     * @param string $owner Repository owner (e.g., "Vateron-Media").
-     * @param string $repo Repository name (e.g., "XC_VM").
-     * @param string|null $token GitHub API token for authentication (optional).
+     * @param string $owner Repository owner
+     * @param string $repo Repository name
+     * @param string $channel Update channel: 'stable' or 'unstable'
+     * @param string|null $token GitHub API token
      */
-    public function __construct(string $owner, string $repo, ?string $token = null) {
+    public function __construct(string $owner, string $repo, string $channel = 'stable', ?string $token = null) {
         $this->owner = $owner;
         $this->repo = $repo;
-        $this->cache_file = "{$this->cache_file}_$repo";
+        $this->channel = in_array($channel, ['stable', 'unstable']) ? $channel : 'stable';
+        $this->cache_file = "{$this->cache_file}_{$repo}_{$this->channel}"; // Уникальный кэш для канала
         $this->api_url = "https://api.github.com/repos/{$owner}/{$repo}/releases";
         $this->headers = $token ? [
             "Authorization: Bearer {$token}",
@@ -131,31 +134,27 @@ class GitHubReleases {
      */
     public function getReleases(): array {
         if ($this->isCacheValid()) {
-            error_log("Using cached releases from {$this->cache_file} for {$this->owner}/{$this->repo}");
+            error_log("Using cached releases (channel: {$this->channel}) from {$this->cache_file}");
             $cache = $this->loadCache();
-            if ($cache === null) {
-                error_log("Invalid cache, fetching new data");
-            } else {
-                $releases = array_filter(array_map(function ($release) {
-                    return $release['tag_name'] ?? '';
-                }, $cache));
-                return array_values($releases);
+            if ($cache !== null) {
+                $releases = $this->filterReleasesByChannel($cache);
+                return array_values(array_map(fn($r) => $r['tag_name'], $releases));
             }
         }
 
         try {
-            error_log("Fetching releases for {$this->owner}/{$this->repo}");
+            error_log("Fetching releases for {$this->owner}/{$this->repo} (channel: {$this->channel})");
             $response = $this->makeRequest($this->api_url);
             $data = json_decode($response, true);
             if ($data === null) {
                 throw new Exception("Failed to parse API response: " . json_last_error_msg());
             }
-            $this->saveCache($data);
-            $releases = array_filter(array_map(function ($release) {
-                return $release['tag_name'] ?? '';
-            }, $data));
-            $releases = array_values($releases);
-            error_log("Retrieved and cached " . count($releases) . " releases from {$this->owner}/{$this->repo}");
+
+            $filtered = $this->filterReleasesByChannel($data);
+            $this->saveCache($data); // Сохраняем полные данные, фильтруем при использовании
+
+            $releases = array_values(array_map(fn($r) => $r['tag_name'], $filtered));
+            error_log("Retrieved " . count($releases) . " releases for channel '{$this->channel}'");
             return $releases;
         } catch (Exception $e) {
             error_log("Failed to fetch releases: " . $e->getMessage());
@@ -171,9 +170,10 @@ class GitHubReleases {
      */
     public function getNextVersion(string $current_version): ?string {
         $releases = $this->getReleases();
+
         $index = array_search($current_version, $releases);
         if ($index === false) {
-            error_log("Version {$current_version} not found in releases");
+            error_log("Version {$current_version} not found in channel '{$this->channel}'");
             return null;
         }
         return $index > 0 ? $releases[$index - 1] : null;
@@ -388,14 +388,15 @@ class GitHubReleases {
      */
     public function getUpdate(string $version): ?array {
         try {
-            // Get the next version
             $next_version = $this->getNextVersion($version);
+            if ($next_version === null) {
+                error_log("No update available for version {$version} on channel '{$this->channel}'");
+                return null;
+            }
 
-            // Form the URL for changelog
             $changelogUrl = "https://raw.githubusercontent.com/{$this->owner}/{$this->repo}_Update/refs/heads/main/changelog.json";
             $changelog = $this->getChangelog($changelogUrl);
 
-            // Form the release URL
             $url = "https://github.com/{$this->owner}/{$this->repo}/releases/tag/{$next_version}";
 
             return [
@@ -404,11 +405,10 @@ class GitHubReleases {
                 "url" => $url
             ];
         } catch (Exception $e) {
-            error_log("Error while fetching update information: " . $e->getMessage());
+            error_log("Error while fetching update: " . $e->getMessage());
             return null;
         }
     }
-
     /**
      * Retrieve the latest GeoLite database release information.
      *
@@ -460,13 +460,66 @@ class GitHubReleases {
         // Return the release data
         return $data;
     }
+
+    /**
+     * Filter releases based on the selected channel.
+     *
+     * @param array $releases Raw releases from GitHub API
+     * @return array Filtered releases
+     */
+    private function filterReleasesByChannel(array $releases): array {
+        if ($this->channel === 'unstable') {
+            return $releases; // Все релизы
+        }
+
+        // stable: только не pre-release
+        return array_filter($releases, function ($release) {
+            return empty($release['prerelease']);
+        });
+    }
+
+    /**
+     * Check if a version tag is a prerelease.
+     *
+     * @param string $version
+     * @return bool
+     */
+    private function isPrerelease(string $version): bool {
+        $cache = $this->loadCache();
+        if ($cache === null) {
+            return false;
+        }
+        foreach ($cache as $release) {
+            if (($release['tag_name'] ?? '') === $version) {
+                return !empty($release['prerelease']);
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * Change the update channel and clear cache.
+     *
+     * @param string $channel 'stable' or 'unstable'
+     */
+    public function setChannel(string $channel): void {
+        if (!in_array($channel, ['stable', 'unstable'])) {
+            throw new InvalidArgumentException("Channel must be 'stable' or 'unstable'");
+        }
+        if ($this->channel !== $channel) {
+            $this->channel = $channel;
+            $this->cache_file = str_replace("_{$this->channel}", '', $this->cache_file) . "_{$channel}";
+            $this->clearCache();
+            error_log("Update channel changed to '{$channel}' and cache cleared");
+        }
+    }
 }
 
 /**
  * ------------------------------------------------------------
  * 🔧 Инициализация:
  *
- *   $gh = new GitHubReleases("Vateron-Media", "XC_VM");
+ *   $gh = new GitHubReleases("Vateron-Media", "XC_VM", 'stable');
  *   // Можно передать токен для увеличения лимита API:
  *   // $gh = new GitHubReleases("owner", "repo", "ghp_XXXXXXX");
  *

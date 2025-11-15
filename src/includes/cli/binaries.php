@@ -35,7 +35,7 @@ function loadcli() {
     }
 
     $rUpdated = false;
-    $repo = new GitHubReleases(GIT_OWNER, GIT_REPO_UPDATE);
+    $repo = new GitHubReleases(GIT_OWNER, GIT_REPO_UPDATE, CoreUtilities::$rSettings['update_channel']);
 
     // Get GeoLite data files info from GitHub
     $datageolite = $repo->getGeolite();

@@ -2334,28 +2334,21 @@ if (isset($_SESSION['hash'])) {
 						$rRows = $db->get_rows();
 					}
 
-					if (0 >= count($rRows)) {
-					} else {
+					if (count($rRows) > 0) {
 						set_time_limit(360);
 						ini_set('max_execution_time', 360);
 						ini_set('default_socket_timeout', 15);
 
 						foreach ($rRows as $rRow) {
-							if (!in_array($rRow['server_id'], $rActiveServers)) {
-							} else {
+							if (in_array($rRow['server_id'], $rActiveServers)) {
 								$rArray = array('font_size' => $rData['font_size'], 'font_color' => $rData['font_color'], 'xy_offset' => $rData['xy_offset'], 'message' => '', 'uuid' => $rRow['uuid']);
 
 								if ($rData['type'] == 1) {
 									$rArray['message'] = $rRow['uuid'];
-								} else {
-									if ($rData['type'] == 2) {
-										$rArray['message'] = (CoreUtilities::$rSettings['redis_handler'] ? $rUserMap[$rRow['user_id']] : $rRow['username']);
-									} else {
-										if ($rData['type'] != 3) {
-										} else {
-											$rArray['message'] = $rData['message'];
-										}
-									}
+								} elseif ($rData['type'] == 2) {
+									$rArray['message'] = (CoreUtilities::$rSettings['redis_handler'] ? $rUserMap[$rRow['user_id']] : $rRow['username']);
+								} elseif ($rData['type'] == 3) {
+									$rArray['message'] = $rData['message'];
 								}
 
 								$rArray['action'] = 'signal_send';
