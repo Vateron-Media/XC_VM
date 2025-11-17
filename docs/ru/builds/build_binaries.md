@@ -290,7 +290,7 @@ pyinstaller --onefile network.py
 ### 3. Переместите бинарник в нужное место
 
 ```bash
-mv /home/xc_vm/bin/network /home/xc_vm/bin/network
+mv /home/xc_vm/bin/dist/network /home/xc_vm/bin/network
 ```
 
 ### 4. Очистите временные директории

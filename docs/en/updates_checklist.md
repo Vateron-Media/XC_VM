@@ -70,6 +70,7 @@ make delete_files_list
 * Run the following commands sequentially:
 
 ```bash
+make new
 make lb
 make main
 make main_update

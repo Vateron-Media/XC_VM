@@ -70,6 +70,7 @@ git push
 * Последовательно выполнить команды для сборки:
 
 ```bash
+make new
 make lb
 make main
 make main_update
