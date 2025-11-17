@@ -291,7 +291,7 @@ The executable will be located in:
 ### 3. Move Binary to Final Location
 
 ```bash
-mv /home/xc_vm/bin/network /home/xc_vm/bin/network
+mv /home/xc_vm/bin/dist/network /home/xc_vm/bin/network
 ```
 
 ### 4. Clean Temporary Directories
