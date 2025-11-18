@@ -231,8 +231,7 @@ function loadCron() {
         } else {
             $rExtensions = array();
         }
-        if (count($rExtensions) != 0) {
-        } else {
+        if (count($rExtensions) == 0) {
             $rExtensions = array('mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'flv', 'wmv', 'mov', 'ts');
         }
         $rSubtitles = $rFiles = array();
@@ -301,8 +300,7 @@ function loadCron() {
                 }
             }
         }
-        if (0 >= count($rThreadData)) {
-        } else {
+        if (count($rThreadData) > 0) {
             echo 'Scan complete! Adding ' . count($rThreadData) . ' files...' . "\n";
         }
         $cacheDataKey = array();

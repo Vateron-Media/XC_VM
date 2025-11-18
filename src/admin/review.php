@@ -201,8 +201,7 @@ include 'header.php';
                     </div>
                 </div>
             </div>
-            <?php if (!isset($rImport)) {
-            } else { ?>
+            <?php if (isset($rImport)) { ?>
                 <div class="row">
                     <div class="col-12">
                         <div class="card">
@@ -275,8 +274,7 @@ include 'header.php';
                             </button>
                             No results were found in the playlist.
                         </div>
-                    <?php } elseif ($rImport) {
-                    } else { ?>
+                    <?php } elseif (!isset($rImport)) { ?>
                         <div class="alert alert-info" role="alert">
                             The Review page is for playlists of less than 500 items, you should use the normal M3U Import
                             function for larger playlists or reduce the playlist. The review page will cut off at 500
