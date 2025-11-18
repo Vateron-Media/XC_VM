@@ -64,6 +64,11 @@ class CoreUtilities {
 				self::$rFFPROBE = FFPROBE_BIN_71;
 				self::$rFFMPEG_GPU = FFMPEG_BIN_71;
 				break;
+			case '5.1':
+				self::$rFFMPEG_CPU = FFMPEG_BIN_51;
+				self::$rFFPROBE = FFPROBE_BIN_51;
+				self::$rFFMPEG_GPU = FFMPEG_BIN_40;
+				break;
 			case '4.4':
 				self::$rFFMPEG_CPU = FFMPEG_BIN_44;
 				self::$rFFPROBE = FFPROBE_BIN_44;

@@ -58,6 +58,10 @@ class StreamingUtilities {
 				self::$rFFMPEG_CPU = FFMPEG_BIN_71;
 				self::$rFFMPEG_GPU = FFMPEG_BIN_71;
 				break;
+			case '5.1':
+				self::$rFFMPEG_CPU = FFMPEG_BIN_51;
+				self::$rFFMPEG_GPU = FFMPEG_BIN_40;
+				break;
 			case '4.4':
 				self::$rFFMPEG_CPU = FFMPEG_BIN_44;
 				self::$rFFMPEG_GPU = FFMPEG_BIN_40;
@@ -1147,7 +1151,7 @@ class StreamingUtilities {
 		}
 		foreach ($rKeys as $rKey) {
 			$rResult = hash_hmac('sha256', (string) $rStreamID . '##' . $rExtension . '##' . $rExpiry . '##' . $rMACIP . '##' . $rIdentifier . '##' . $rMaxConnections, StreamingUtilities::decryptData($rKey['key'], StreamingUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA));
-			
+
 			if (md5($rResult) == md5($rHMAC)) {
 				$rKeyID = $rKey['id'];
 				break;
