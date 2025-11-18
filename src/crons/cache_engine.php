@@ -296,10 +296,9 @@ function loadCron($rType, $rGroupStart, $rGroupMax) {
                         }
                     } else {
                         $db->query('SELECT COUNT(*) AS `count` FROM `streams`;');
-                        $cacheDeleteMethod = $db->get_row()['count'];
+                        $cacheDeleteMethod = (int)$db->get_row()['count'];
                         $cacheCleanupTrigger = range(0, $cacheDeleteMethod, $rSplit);
-                        if ($cacheCleanupTrigger) {
-                        } else {
+                        if (!$cacheCleanupTrigger) {
                             $cacheCleanupTrigger = array(0);
                         }
                         foreach ($cacheCleanupTrigger as $rStart) {

@@ -3473,8 +3473,7 @@ class CoreUtilities {
 					}
 				}
 			}
-			if (0 >= count($rKeys)) {
-			} else {
+			if (count($rKeys) > 0) {
 				return array($rKeys, array_map('igbinary_unserialize', self::$redis->mGet($rKeys)));
 			}
 		} else {
