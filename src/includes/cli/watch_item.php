@@ -40,8 +40,7 @@ function loadcli() {
                 $rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key']);
             }
         }
-        if ($rThreadData['type'] == 'movie') {
-        } else {
+        if ($rThreadData['type'] != 'movie') {
             $rThreadData['extract_metadata'] = false;
         }
         $rImportArray = verifyPostTable('streams');
@@ -53,33 +52,29 @@ function loadcli() {
                 $rImportArray['stream_source'] = json_encode(array($rFile), JSON_UNESCAPED_UNICODE);
             } else {
                 $rImportArray['stream_source'] = json_encode(array('s:' . SERVER_ID . ':' . $rFile), JSON_UNESCAPED_UNICODE);
-                $db->query('DELETE FROM `watch_logs` WHERE `filename` = ? AND `type` = ? AND `server_id` = ?;', utf8_decode($rFile), $rThreadType, SERVER_ID);
+                $db->query('DELETE FROM `watch_logs` WHERE `filename` = ? AND `type` = ? AND `server_id` = ?;', htmlspecialchars($rFile, ENT_QUOTES, 'UTF-8'), $rThreadType, SERVER_ID);
             }
             if ($rThreadData['target_container'] != 'auto' && $rThreadData['target_container']) {
                 $rImportArray['target_container'] = $rThreadData['target_container'];
             } else {
                 $rImportArray['target_container'] = pathinfo(explode('?', $rFile)[0])['extension'];
             }
-            if (!empty($rImportArray['target_container'])) {
-            } else {
+            if (empty($rImportArray['target_container'])) {
                 $rImportArray['target_container'] = 'mp4';
             }
             $rSourceData = null;
-            if (!($rThreadData['ffprobe_input'] || $rThreadData['extract_metadata'])) {
-            } else {
+            if ($rThreadData['ffprobe_input'] || $rThreadData['extract_metadata']) {
                 $rSourceData = checksource($rFile);
             }
             if (!$rThreadData['ffprobe_input'] || isset($rSourceData['streams'])) {
                 $rMatch = $rYear = $rPaths = null;
                 $rMetaMatch = false;
-                if (!($rThreadData['extract_metadata'] && isset($rSourceData['format']) && $rSourceData['tags']['title'])) {
-                } else {
+                if ($rThreadData['extract_metadata'] && isset($rSourceData['format']) && $rSourceData['tags']['title']) {
                     $rYear = (intval(explode('-', $rSourceData['tags']['date'])[0]) ?: null);
                     $rPaths = array($rSourceData['tags']['title']);
                     $rMetaMatch = true;
                 }
-                if ($rPaths) {
-                } else {
+                if (!$rPaths) {
                     if ($rThreadData['fallback_title']) {
                         $rPaths = array(pathinfo($rFile)['filename'], basename(pathinfo($rFile)['dirname']));
                     } else {
@@ -91,8 +86,7 @@ function loadcli() {
                     echo 'Scanning: ' . $rFilename . "\n";
                     $rTitle = null;
                     $rAltTitle = null;
-                    if (!$rThreadData['import']) {
-                    } else {
+                    if ($rThreadData['import']) {
                         $rFilename = $rThreadData['title'];
                     }
                     if ($rThreadData['fallback_parser'] && !$rThreadData['disable_tmdb'] && !$rMetaMatch) {
@@ -105,15 +99,13 @@ function loadcli() {
                         } else {
                             $rRelease = parserelease($rFilename, $rParseType);
                             $rTitle = $rRelease['title'];
-                            if (!isset($rRelease['excess'])) {
-                            } else {
+                            if (isset($rRelease['excess'])) {
                                 $rTitle = trim($rTitle, (is_array($rRelease['excess']) ? $rRelease['excess'][0] : $rRelease['excess']));
                             }
                             if (isset($rRelease['group'])) {
                                 $rAltTitle = $rTitle . '-' . $rRelease['group'];
                             } else {
-                                if (!isset($rRelease['alternative_title'])) {
-                                } else {
+                                if (isset($rRelease['alternative_title'])) {
                                     $rAltTitle = $rTitle . ' - ' . $rRelease['alternative_title'];
                                 }
                             }
@@ -125,25 +117,17 @@ function loadcli() {
                                 } else {
                                     $rReleaseEpisode = $rRelease['episode'];
                                 }
-                            } else {
-                                if (!isset($rRelease['season'])) {
-                                } else {
-                                    $rTitle .= $rRelease['season'];
-                                }
                             }
                         }
                         if (!($rThreadData['type'] == 'series' && (!$rReleaseSeason || !$rReleaseEpisode))) {
-                            if ($rTitle) {
-                            } else {
+                            if (!$rTitle) {
                                 $rTitle = $rFilename;
                             }
                             echo 'Title: ' . $rTitle . "\n";
-                            if ($rThreadData['disable_tmdb']) {
-                            } else {
+                            if (!$rThreadData['disable_tmdb']) {
                                 $rMatches = array();
                                 foreach (range(0, 1) as $rIgnoreYear) {
-                                    if (!$rIgnoreYear) {
-                                    } else {
+                                    if ($rIgnoreYear) {
                                         if ($rYear) {
                                             $rYear = null;
                                         } else {
@@ -151,15 +135,16 @@ function loadcli() {
                                         }
                                     }
                                     if ($rThreadData['type'] == 'movie') {
+                                        print_r('Searching Movie: ' . $rTitle . ' Year: ' . $rYear . "\n");
                                         $rResults = $rTMDB->searchMovie($rTitle, $rYear);
                                     } else {
+                                        print_r('Searching TV Show: ' . $rTitle . ' Year: ' . $rYear . "\n");
                                         $rResults = $rTMDB->searchTVShow($rTitle, $rYear);
                                     }
                                     foreach ($rResults as $rResultArr) {
                                         similar_text(parseTitle($rTitle), parseTitle(($rResultArr->get('title') ?: $rResultArr->get('name'))), $rPercentage);
                                         $rPercentageAlt = 0;
-                                        if (!$rAltTitle) {
-                                        } else {
+                                        if ($rAltTitle) {
                                             similar_text(parseTitle($rAltTitle), parseTitle(($rResultArr->get('title') ?: $rResultArr->get('name'))), $rPercentageAlt);
                                         }
                                         if (CoreUtilities::$rSettings['percentage_match'] <= $rPercentage || CoreUtilities::$rSettings['percentage_match'] <= $rPercentageAlt) {
@@ -176,19 +161,16 @@ function loadcli() {
                                                 $rMatches[] = array('percentage' => $rPercentage, 'data' => $rResultArr);
                                             }
                                         } else {
-                                            if (!($rThreadData['alternative_titles'] && in_array(intval(substr(($rResultArr->get('release_date') ?: $rResultArr->get('first_air_date')), 0, 4)), range(intval($rYear) - 1, intval($rYear) + 1)))) {
-                                            } else {
+                                            if ($rThreadData['alternative_titles'] && in_array(intval(substr(($rResultArr->get('release_date') ?: $rResultArr->get('first_air_date')), 0, 4)), range(intval($rYear) - 1, intval($rYear) + 1))) {
                                                 $rPartialMatch = false;
                                                 if (strpos(parseTitle($rTitle), parseTitle(($rResultArr->get('title') ?: $rResultArr->get('name')))) === 0) {
                                                     $rPartialMatch = true;
                                                 } else {
-                                                    if (!($rAltTitle && strpos(parseTitle($rAltTitle), parseTitle(($rResultArr->get('title') ?: $rResultArr->get('name')))) === 0)) {
-                                                    } else {
+                                                    if ($rAltTitle && strpos(parseTitle($rAltTitle), parseTitle(($rResultArr->get('title') ?: $rResultArr->get('name')))) === 0) {
                                                         $rPartialMatch = true;
                                                     }
                                                 }
-                                                if (!$rPartialMatch) {
-                                                } else {
+                                                if ($rPartialMatch) {
                                                     if ($rThreadData['type'] == 'movie') {
                                                         $rAlternativeTitles = $rTMDB->getMovieTitles($rResultArr->get('id'))['titles'];
                                                     } else {
@@ -209,13 +191,11 @@ function loadcli() {
                                             }
                                         }
                                     }
-                                    if (0 >= count($rMatches)) {
-                                    } else {
+                                    if (count($rMatches) > 0) {
                                         break;
                                     }
                                 }
-                                if (0 >= count($rMatches)) {
-                                } else {
+                                if (count($rMatches) > 0) {
                                     $rMax = max(array_column($rMatches, 'percentage'));
                                     $rKeys = array_filter(array_map(function ($rMatches) use ($rMax) {
                                         return ($rMatches['percentage'] == $rMax ? $rMatches['data'] : null);
@@ -223,12 +203,11 @@ function loadcli() {
                                     list($rMatch) = array_values($rKeys);
                                 }
                             }
-                            if (!$rMatch) {
-                            } else {
+                            if ($rMatch) {
                                 break;
                             }
                         } else {
-                            $db->query('INSERT INTO `watch_logs`(`type`, `server_id`, `filename`, `status`, `stream_id`) VALUES(?, ?, ?, 4, 0);', $rThreadType, SERVER_ID, utf8_decode($rFile));
+                            $db->query('INSERT INTO `watch_logs`(`type`, `server_id`, `filename`, `status`, `stream_id`) VALUES(?, ?, ?, 4, 0);', $rThreadType, SERVER_ID, htmlspecialchars($rFile, ENT_QUOTES, 'UTF-8'));
                             exit();
                         }
                     }
@@ -236,16 +215,14 @@ function loadcli() {
                 if ($rMatch || $rThreadData['ignore_no_match']) {
                     $rBouquetIDs = array();
                     $rCategoryIDs = array();
-                    if (empty($rThreadData['category_id'])) {
-                    } else {
+                    if (!empty($rThreadData['category_id'])) {
                         if (is_array($rThreadData['category_id'])) {
                             $rCategoryIDs = array_map('intval', $rThreadData['category_id']);
                         } else {
                             $rCategoryIDs = array(intval($rThreadData['category_id']));
                         }
                     }
-                    if (empty($rThreadData['bouquets'])) {
-                    } else {
+                    if (!empty($rThreadData['bouquets'])) {
                         if (is_array($rThreadData['bouquets'])) {
                             $rBouquetIDs = array_map('intval', $rThreadData['bouquets']);
                         } else {
@@ -270,11 +247,10 @@ function loadcli() {
                                         echo 'Upgrade movie!' . "\n";
                                         $db->query('UPDATE `streams` SET `stream_source` = ?, `target_container` = ? WHERE `id` = ?;', $rImportArray['stream_source'], $rImportArray['target_container'], $rUpgradeData['id']);
                                         $db->query('UPDATE `streams_servers` SET `bitrate` = NULL, `current_source` = NULL, `to_analyze` = 0, `pid` = NULL, `stream_started` = NULL, `stream_info` = NULL, `compatible` = 0, `video_codec` = NULL, `audio_codec` = NULL, `resolution` = NULL, `stream_status` = 0 WHERE `stream_id` = ? AND `server_id` = ?', $rUpgradeData['id'], SERVER_ID);
-                                        if (!$rThreadData['auto_encode']) {
-                                        } else {
+                                        if ($rThreadData['auto_encode']) {
                                             CoreUtilities::queueMovie($rUpgradeData['id']);
                                         }
-                                        $db->query('INSERT INTO `watch_logs`(`type`, `server_id`, `filename`, `status`, `stream_id`) VALUES(?, ?, ?, 6, 0);', $rThreadType, SERVER_ID, utf8_decode($rFile));
+                                        $db->query('INSERT INTO `watch_logs`(`type`, `server_id`, `filename`, `status`, `stream_id`) VALUES(?, ?, ?, 6, 0);', $rThreadType, SERVER_ID, htmlspecialchars($rFile, ENT_QUOTES, 'UTF-8'));
                                         file_put_contents(WATCH_TMP_PATH . 'movie_' . $rMatch->get('id') . '.cache', json_encode(array('id' => $rUpgradeData['id'], 'source' => 's:' . SERVER_ID . ':' . $rFile)));
                                         exit();
                                     }
@@ -289,8 +265,7 @@ function loadcli() {
                             $rMovieData['trailer'] = $rMovie->getTrailer();
                             $rThumb = 'https://image.tmdb.org/t/p/w600_and_h900_bestv2' . $rMovieData['poster_path'];
                             $rBG = 'https://image.tmdb.org/t/p/w1280' . $rMovieData['backdrop_path'];
-                            if (!CoreUtilities::$rSettings['download_images']) {
-                            } else {
+                            if (CoreUtilities::$rSettings['download_images']) {
                                 $rThumb = CoreUtilities::downloadImage($rThumb);
                                 $rBG = CoreUtilities::downloadImage($rBG);
                             }
@@ -309,8 +284,7 @@ function loadcli() {
                                 }
                             }
                             $rCountry = '';
-                            if (!isset($rMovieData['production_countries'][0]['name'])) {
-                            } else {
+                            if (isset($rMovieData['production_countries'][0]['name'])) {
                                 $rCountry = $rMovieData['production_countries'][0]['name'];
                             }
                             $rGenres = array();
@@ -322,8 +296,7 @@ function loadcli() {
                             }
                             $rSeconds = intval($rMovieData['runtime']) * 60;
                             $rImportArray['stream_display_name'] = $rMovieData['title'];
-                            if (0 >= strlen($rMovieData['release_date'])) {
-                            } else {
+                            if (strlen($rMovieData['release_date']) > 0) {
                                 $rImportArray['year'] = intval(substr($rMovieData['release_date'], 0, 4));
                             }
                             $rImportArray['tmdb_id'] = ($rMovieData['id'] ?: null);
@@ -333,15 +306,13 @@ function loadcli() {
                             $rImportArray['movie_symlink'] = $rThreadData['movie_symlink'];
                             $rImportArray['remove_subtitles'] = $rThreadData['remove_subtitles'];
                             $rImportArray['transcode_profile_id'] = $rThreadData['transcode_profile_id'];
-                            if (!$rThreadData['import']) {
-                            } else {
+                            if ($rThreadData['import']) {
                                 $rImportArray['direct_source'] = $rThreadData['direct_source'];
                                 $rImportArray['direct_proxy'] = $rThreadData['direct_proxy'];
                             }
                             $rImportArray['order'] = getNextOrder();
                             $rImportArray['tmdb_language'] = $rLanguage;
-                            if (count($rCategoryIDs) != 0) {
-                            } else {
+                            if (count($rCategoryIDs) == 0) {
                                 if (0 < $rThreadData['max_genres']) {
                                     $rParsed = array_slice($rMovieData['genres'], 0, $rThreadData['max_genres']);
                                 } else {
@@ -349,17 +320,14 @@ function loadcli() {
                                 }
                                 foreach ($rParsed as $rGenre) {
                                     $rCategoryID = intval($rWatchCategories[1][intval($rGenre['id'])]['category_id']);
-                                    if (0 >= $rCategoryID) {
-                                    } else {
-                                        if (in_array($rCategoryID, $rCategoryIDs)) {
-                                        } else {
+                                    if ($rCategoryID > 0) {
+                                        if (!in_array($rCategoryID, $rCategoryIDs)) {
                                             $rCategoryIDs[] = $rCategoryID;
                                         }
                                     }
                                 }
                             }
-                            if (count($rBouquetIDs) != 0) {
-                            } else {
+                            if (count($rBouquetIDs) == 0) {
                                 if (0 < $rThreadData['max_genres']) {
                                     $rParsed = array_slice($rMovieData['genres'], 0, $rThreadData['max_genres']);
                                 } else {
@@ -368,8 +336,7 @@ function loadcli() {
                                 foreach ($rParsed as $rGenre) {
                                     $rBouquets = json_decode($rWatchCategories[1][intval($rGenre['id'])]['bouquets'], true);
                                     foreach ($rBouquets as $rBouquetID) {
-                                        if (in_array($rBouquetID, $rBouquetIDs)) {
-                                        } else {
+                                        if (!in_array($rBouquetID, $rBouquetIDs)) {
                                             $rBouquetIDs[] = $rBouquetID;
                                         }
                                     }
@@ -393,11 +360,10 @@ function loadcli() {
                                         echo 'Upgrade episode!' . "\n";
                                         $db->query('UPDATE `streams` SET `stream_source` = ?, `target_container` = ? WHERE `id` = ?;', $rImportArray['stream_source'], $rImportArray['target_container'], $rUpgradeData['id']);
                                         $db->query('UPDATE `streams_servers` SET `bitrate` = NULL, `current_source` = NULL, `to_analyze` = 0, `pid` = NULL, `stream_started` = NULL, `stream_info` = NULL, `compatible` = 0, `video_codec` = NULL, `audio_codec` = NULL, `resolution` = NULL, `stream_status` = 0 WHERE `stream_id` = ? AND `server_id` = ?', $rUpgradeData['id'], SERVER_ID);
-                                        if (!$rThreadData['auto_encode']) {
-                                        } else {
+                                        if ($rThreadData['auto_encode']) {
                                             CoreUtilities::queueMovie($rUpgradeData['id']);
                                         }
-                                        $db->query('INSERT INTO `watch_logs`(`type`, `server_id`, `filename`, `status`, `stream_id`) VALUES(?, ?, ?, 6, 0);', $rThreadType, SERVER_ID, utf8_decode($rFile));
+                                        $db->query('INSERT INTO `watch_logs`(`type`, `server_id`, `filename`, `status`, `stream_id`) VALUES(?, ?, ?, 6, 0);', $rThreadType, SERVER_ID, htmlspecialchars($rFile, ENT_QUOTES, 'UTF-8'));
                                         $rCacheData = json_decode(file_get_contents(WATCH_TMP_PATH . 'series_' . $rMatch->get('id') . '.cache'), true);
                                         $rCacheData[$rReleaseSeason . '_' . $rReleaseEpisode] = array('id' => $rUpgradeData['id'], 'source' => 's:' . SERVER_ID . ':' . $rFile);
                                         file_put_contents(WATCH_TMP_PATH . 'series_' . $rMatch->get('id') . '.cache', json_encode($rCacheData));
@@ -410,8 +376,7 @@ function loadcli() {
                                 exit();
                             }
                             $rShowData = json_decode($rShow->getJSON(), true);
-                            if (!$rShowData['id']) {
-                            } else {
+                            if ($rShowData['id']) {
                                 while (file_exists(WATCH_TMP_PATH . 'lock_' . intval($rShowData['id']))) {
                                     if ($rTimeout >= time() - filemtime(WATCH_TMP_PATH . 'lock_' . intval($rShowData['id']))) {
                                     } else {
@@ -427,8 +392,7 @@ function loadcli() {
                                 $rSeasonData = array();
                                 foreach ($rShowData['seasons'] as $rSeason) {
                                     $rSeason['cover'] = 'https://image.tmdb.org/t/p/w600_and_h900_bestv2' . $rSeason['poster_path'];
-                                    if (!CoreUtilities::$rSettings['download_images']) {
-                                    } else {
+                                    if (CoreUtilities::$rSettings['download_images']) {
                                         $rSeason['cover'] = CoreUtilities::downloadImage($rSeason['cover'], 2);
                                     }
                                     $rSeason['cover_big'] = $rSeason['cover'];
@@ -442,8 +406,7 @@ function loadcli() {
                                     $rSeriesArray['cover'] = 'https://image.tmdb.org/t/p/w600_and_h900_bestv2' . $rShowData['poster_path'];
                                     $rSeriesArray['cover_big'] = $rSeriesArray['cover'];
                                     $rSeriesArray['backdrop_path'] = array('https://image.tmdb.org/t/p/w1280' . $rShowData['backdrop_path']);
-                                    if (!CoreUtilities::$rSettings['download_images']) {
-                                    } else {
+                                    if (CoreUtilities::$rSettings['download_images']) {
                                         $rSeriesArray['cover'] = CoreUtilities::downloadImage($rSeriesArray['cover'], 2);
                                         $rSeriesArray['backdrop_path'] = array(CoreUtilities::downloadImage($rSeriesArray['backdrop_path'][0]));
                                     }
@@ -470,14 +433,12 @@ function loadcli() {
                                             $rGenres[] = $rGenre['name'];
                                         }
                                     }
-                                    if (!$rShowData['first_air_date']) {
-                                    } else {
+                                    if ($rShowData['first_air_date']) {
                                         $rSeriesArray['year'] = intval(substr($rShowData['first_air_date'], 0, 4));
                                     }
                                     $rSeriesArray['genre'] = implode(', ', $rGenres);
                                     $rSeriesArray['episode_run_time'] = intval($rShowData['episode_run_time'][0]);
-                                    if (count($rCategoryIDs) != 0) {
-                                    } else {
+                                    if (count($rCategoryIDs) == 0) {
                                         if (0 < $rThreadData['max_genres']) {
                                             $rParsed = array_slice($rShowData['genres'], 0, $rThreadData['max_genres']);
                                         } else {
@@ -485,17 +446,21 @@ function loadcli() {
                                         }
                                         foreach ($rParsed as $rGenre) {
                                             $rCategoryID = intval($rWatchCategories[2][intval($rGenre['id'])]['category_id']);
-                                            if (0 >= $rCategoryID) {
-                                            } else {
-                                                if (in_array($rCategoryID, $rCategoryIDs)) {
-                                                } else {
+                                            if ($rCategoryID > 0) {
+                                                if (!in_array($rCategoryID, $rCategoryIDs)) {
                                                     $rCategoryIDs[] = $rCategoryID;
                                                 }
                                             }
                                         }
                                     }
-                                    if (count($rBouquetIDs) != 0) {
-                                    } else {
+                                    if (count($rCategoryIDs) == 0 && !empty($rThreadData['fb_category_id'])) {
+                                        if (is_array($rThreadData['fb_category_id'])) {
+                                            $rCategoryIDs = array_map('intval', $rThreadData['fb_category_id']);
+                                        } else {
+                                            $rCategoryIDs = array(intval($rThreadData['fb_category_id']));
+                                        }
+                                    }
+                                    if (count($rBouquetIDs) == 0) {
                                         if (0 < $rThreadData['max_genres']) {
                                             $rParsed = array_slice($rShowData['genres'], 0, $rThreadData['max_genres']);
                                         } else {
@@ -504,23 +469,13 @@ function loadcli() {
                                         foreach ($rParsed as $rGenre) {
                                             $rBouquets = json_decode($rWatchCategories[2][intval($rGenre['id'])]['bouquets'], true);
                                             foreach ($rBouquets as $rBouquetID) {
-                                                if (in_array($rBouquetID, $rBouquetIDs)) {
-                                                } else {
+                                                if (!in_array($rBouquetID, $rBouquetIDs)) {
                                                     $rBouquetIDs[] = $rBouquetID;
                                                 }
                                             }
                                         }
                                     }
-                                    if (count($rCategoryIDs) != 0 || empty($rThreadData['fb_category_id'])) {
-                                    } else {
-                                        if (is_array($rThreadData['fb_category_id'])) {
-                                            $rCategoryIDs = array_map('intval', $rThreadData['fb_category_id']);
-                                        } else {
-                                            $rCategoryIDs = array(intval($rThreadData['fb_category_id']));
-                                        }
-                                    }
-                                    if (count($rBouquetIDs) != 0 || empty($rThreadData['fb_bouquets'])) {
-                                    } else {
+                                    if (count($rBouquetIDs) == 0 && !empty($rThreadData['fb_bouquets'])) {
                                         if (is_array($rThreadData['fb_bouquets'])) {
                                             $rBouquetIDs = array_map('intval', $rThreadData['fb_bouquets']);
                                         } else {
@@ -543,7 +498,7 @@ function loadcli() {
                                             $rSeries = null;
                                         }
                                     } else {
-                                        $db->query('INSERT INTO `watch_logs`(`type`, `server_id`, `filename`, `status`, `stream_id`) VALUES(?, ?, ?, 3, 0);', $rThreadType, SERVER_ID, utf8_decode($rFile));
+                                        $db->query('INSERT INTO `watch_logs`(`type`, `server_id`, `filename`, `status`, `stream_id`) VALUES(?, ?, ?, 3, 0);', $rThreadType, SERVER_ID, htmlspecialchars($rFile, ENT_QUOTES, 'UTF-8'));
                                         exit();
                                     }
                                 } else {
@@ -559,14 +514,12 @@ function loadcli() {
                                 $rImportArray['movie_symlink'] = $rThreadData['movie_symlink'];
                                 $rImportArray['remove_subtitles'] = $rThreadData['remove_subtitles'];
                                 $rImportArray['transcode_profile_id'] = $rThreadData['transcode_profile_id'];
-                                if (!$rThreadData['import']) {
-                                } else {
+                                if ($rThreadData['import']) {
                                     $rImportArray['direct_source'] = $rThreadData['direct_source'];
                                     $rImportArray['direct_proxy'] = $rThreadData['direct_proxy'];
                                 }
                                 $rImportArray['order'] = getNextOrder();
-                                if (!($rReleaseSeason && $rReleaseEpisode)) {
-                                } else {
+                                if ($rReleaseSeason && $rReleaseEpisode) {
                                     if (is_array($rRelease['episode']) && count($rRelease['episode']) == 2) {
                                         $rImportArray['stream_display_name'] = $rShowData['name'] . ' - S' . sprintf('%02d', intval($rReleaseSeason)) . 'E' . sprintf('%02d', $rRelease['episode'][0]) . '-' . sprintf('%02d', $rRelease['episode'][1]);
                                     } else {
@@ -574,30 +527,24 @@ function loadcli() {
                                     }
                                     $rEpisodes = json_decode($rTMDB->getSeason($rShowData['id'], intval($rReleaseSeason))->getJSON(), true);
                                     foreach ($rEpisodes['episodes'] as $rEpisode) {
-                                        if (intval($rEpisode['episode_number']) != $rReleaseEpisode) {
-                                        } else {
-                                            if (0 >= strlen($rEpisode['still_path'])) {
-                                            } else {
+                                        if (intval($rEpisode['episode_number']) == $rReleaseEpisode) {
+                                            if (strlen($rEpisode['still_path']) > 0) {
                                                 $rImage = 'https://image.tmdb.org/t/p/w1280' . $rEpisode['still_path'];
-                                                if (!CoreUtilities::$rSettings['download_images']) {
-                                                } else {
+                                                if (CoreUtilities::$rSettings['download_images']) {
                                                     $rImage = CoreUtilities::downloadImage($rImage, 5);
                                                 }
                                             }
-                                            if (0 >= strlen($rEpisode['name'])) {
-                                            } else {
+                                            if (strlen($rEpisode['name']) > 0) {
                                                 $rImportArray['stream_display_name'] .= ' - ' . $rEpisode['name'];
                                             }
                                             $rSeconds = intval($rShowData['episode_run_time'][0]) * 60;
                                             $rImportArray['movie_properties'] = array('tmdb_id' => $rEpisode['id'], 'release_date' => $rEpisode['air_date'], 'plot' => $rEpisode['overview'], 'duration_secs' => $rSeconds, 'duration' => sprintf('%02d:%02d:%02d', $rSeconds / 3600, ($rSeconds / 60) % 60, $rSeconds % 60), 'movie_image' => $rImage, 'video' => array(), 'audio' => array(), 'bitrate' => 0, 'rating' => $rEpisode['vote_average'], 'season' => $rReleaseSeason);
-                                            if (strlen($rImportArray['movie_properties']['movie_image'][0]) != 0) {
-                                            } else {
+                                            if (strlen($rImportArray['movie_properties']['movie_image'][0]) == 0) {
                                                 unset($rImportArray['movie_properties']['movie_image']);
                                             }
                                         }
                                     }
-                                    if (strlen($rImportArray['stream_display_name']) != 0) {
-                                    } else {
+                                    if (strlen($rImportArray['stream_display_name']) == 0) {
                                         $rImportArray['stream_display_name'] = 'No Episode Title';
                                     }
                                 }
@@ -606,13 +553,11 @@ function loadcli() {
                     } else {
                         if ($rThreadData['type'] == 'movie') {
                             $rImportArray['stream_display_name'] = $rTitle;
-                            if (!$rYear) {
-                            } else {
+                            if ($rYear) {
                                 $rImportArray['year'] = $rYear;
                             }
                         } else {
-                            if (!($rReleaseSeason && $rReleaseEpisode)) {
-                            } else {
+                            if ($rReleaseSeason && $rReleaseEpisode) {
                                 $rImportArray['stream_display_name'] = $rTitle . ' - S' . sprintf('%02d', intval($rReleaseSeason)) . 'E' . sprintf('%02d', $rReleaseEpisode) . ' - ';
                             }
                         }
@@ -620,8 +565,7 @@ function loadcli() {
                         $rImportArray['movie_symlink'] = $rThreadData['movie_symlink'];
                         $rImportArray['remove_subtitles'] = $rThreadData['remove_subtitles'];
                         $rImportArray['transcode_profile_id'] = $rThreadData['transcode_profile_id'];
-                        if (!$rThreadData['import']) {
-                        } else {
+                        if ($rThreadData['import']) {
                             $rImportArray['direct_source'] = $rThreadData['direct_source'];
                             $rImportArray['direct_proxy'] = $rThreadData['direct_proxy'];
                         }
@@ -629,16 +573,14 @@ function loadcli() {
                         $rImportArray['tmdb_language'] = $rLanguage;
                     }
                     if ($rThreadData['type'] == 'movie') {
-                        if (count($rCategoryIDs) != 0 || empty($rThreadData['fb_category_id'])) {
-                        } else {
+                        if (count($rCategoryIDs) == 0 && !empty($rThreadData['fb_category_id'])) {
                             if (is_array($rThreadData['fb_category_id'])) {
                                 $rCategoryIDs = array_map('intval', $rThreadData['fb_category_id']);
                             } else {
                                 $rCategoryIDs = array(intval($rThreadData['fb_category_id']));
                             }
                         }
-                        if (count($rBouquetIDs) != 0 || empty($rThreadData['fb_bouquets'])) {
-                        } else {
+                        if (count($rBouquetIDs) == 0 && !empty($rThreadData['fb_bouquets'])) {
                             if (is_array($rThreadData['fb_bouquets'])) {
                                 $rBouquetIDs = array_map('intval', $rThreadData['fb_bouquets']);
                             } else {
@@ -646,21 +588,19 @@ function loadcli() {
                             }
                         }
                         $rImportArray['category_id'] = '[' . implode(',', array_map('intval', $rCategoryIDs)) . ']';
-                        if (count($rCategoryIDs) != 0) {
-                        } else {
-                            $db->query('INSERT INTO `watch_logs`(`type`, `server_id`, `filename`, `status`, `stream_id`) VALUES(?, ?, ?, 3, 0);', $rThreadType, SERVER_ID, utf8_decode($rFile));
+                        if (count($rCategoryIDs) == 0) {
+                            $db->query('INSERT INTO `watch_logs`(`type`, `server_id`, `filename`, `status`, `stream_id`) VALUES(?, ?, ?, 3, 0);', $rThreadType, SERVER_ID, htmlspecialchars($rFile, ENT_QUOTES, 'UTF-8'));
                             exit();
                         }
                     } else {
                         if ($rSeries) {
                             $rImportArray['series_no'] = $rSeries['id'];
                         } else {
-                            $db->query('INSERT INTO `watch_logs`(`type`, `server_id`, `filename`, `status`, `stream_id`) VALUES(?, ?, ?, 4, 0);', $rThreadType, SERVER_ID, utf8_decode($rFile));
+                            $db->query('INSERT INTO `watch_logs`(`type`, `server_id`, `filename`, `status`, `stream_id`) VALUES(?, ?, ?, 4, 0);', $rThreadType, SERVER_ID, htmlspecialchars($rFile, ENT_QUOTES, 'UTF-8'));
                             exit();
                         }
                     }
-                    if (!$rThreadData['subtitles']) {
-                    } else {
+                    if ($rThreadData['subtitles']) {
                         $rImportArray['movie_subtitles'] = $rThreadData['subtitles'];
                     }
                     $rImportArray['added'] = time();
@@ -686,8 +626,7 @@ function loadcli() {
                         } else {
                             $db->query('INSERT INTO `streams_episodes`(`season_num`, `series_id`, `stream_id`, `episode_num`) VALUES(?, ?, ?, ?);', $rReleaseSeason, $rSeries['id'], $rInsertID, $rReleaseEpisode);
                         }
-                        if (!$rThreadData['auto_encode']) {
-                        } else {
+                        if ($rThreadData['auto_encode']) {
                             if ($rThreadData['import']) {
                                 foreach ($rThreadData['servers'] as $rServerID) {
                                     CoreUtilities::queueMovie($rInsertID, $rServerID);
@@ -697,21 +636,21 @@ function loadcli() {
                             }
                         }
                         echo 'Success!' . "\n";
-                        $db->query('INSERT INTO `watch_logs`(`type`, `server_id`, `filename`, `status`, `stream_id`) VALUES(?, ?, ?, 1, ?);', $rThreadType, SERVER_ID, utf8_decode($rFile), $rInsertID);
+                        $db->query('INSERT INTO `watch_logs`(`type`, `server_id`, `filename`, `status`, `stream_id`) VALUES(?, ?, ?, 1, ?);', $rThreadType, SERVER_ID, htmlspecialchars($rFile, ENT_QUOTES, 'UTF-8'), $rInsertID);
                         exit();
                     } else {
                         echo 'Insert failed!' . "\n";
-                        $db->query('INSERT INTO `watch_logs`(`type`, `server_id`, `filename`, `status`, `stream_id`) VALUES(?, ?, ?, 2, 0);', $rThreadType, SERVER_ID, utf8_decode($rFile));
+                        $db->query('INSERT INTO `watch_logs`(`type`, `server_id`, `filename`, `status`, `stream_id`) VALUES(?, ?, ?, 2, 0);', $rThreadType, SERVER_ID, htmlspecialchars($rFile, ENT_QUOTES, 'UTF-8'));
                         exit();
                     }
                 } else {
                     echo 'No match!' . "\n";
-                    $db->query('INSERT INTO `watch_logs`(`type`, `server_id`, `filename`, `status`, `stream_id`) VALUES(?, ?, ?, 4, 0);', $rThreadType, SERVER_ID, utf8_decode($rFile));
+                    $db->query('INSERT INTO `watch_logs`(`type`, `server_id`, `filename`, `status`, `stream_id`) VALUES(?, ?, ?, 4, 0);', $rThreadType, SERVER_ID, htmlspecialchars($rFile, ENT_QUOTES, 'UTF-8'));
                     exit();
                 }
             } else {
                 echo 'File is broken!' . "\n";
-                $db->query('INSERT INTO `watch_logs`(`type`, `server_id`, `filename`, `status`, `stream_id`) VALUES(?, ?, ?, 5, 0);', $rThreadType, SERVER_ID, utf8_decode($rFile));
+                $db->query('INSERT INTO `watch_logs`(`type`, `server_id`, `filename`, `status`, `stream_id`) VALUES(?, ?, ?, 5, 0);', $rThreadType, SERVER_ID, htmlspecialchars($rFile, ENT_QUOTES, 'UTF-8'));
                 exit();
             }
         } else {
@@ -722,32 +661,27 @@ function loadcli() {
         exit();
     }
 }
+
 function addToBouquet($rType, $rBouquetID, $rID) {
     global $db;
     global $rThreadData;
     if ($rThreadData['import']) {
         $rBouquet = getBouquet($rBouquetID);
-        if (!$rBouquet) {
-        } else {
+        if ($rBouquet) {
             if ($rType == 'stream') {
                 $rColumn = 'bouquet_channels';
+            } elseif ($rType == 'movie') {
+                $rColumn = 'bouquet_movies';
+            } elseif ($rType == 'radio') {
+                $rColumn = 'bouquet_radios';
             } else {
-                if ($rType == 'movie') {
-                    $rColumn = 'bouquet_movies';
-                } else {
-                    if ($rType == 'radio') {
-                        $rColumn = 'bouquet_radios';
-                    } else {
-                        $rColumn = 'bouquet_series';
-                    }
-                }
+                $rColumn = 'bouquet_series';
             }
             $rChannels = confirmIDs(json_decode($rBouquet[$rColumn], true));
             if (0 >= intval($rID) || in_array($rID, $rChannels)) {
             } else {
                 $rChannels[] = $rID;
-                if (0 >= count($rChannels)) {
-                } else {
+                if (count($rChannels) > 0) {
                     $db->query('UPDATE `bouquets` SET `' . $rColumn . '` = ? WHERE `id` = ?;', '[' . implode(',', array_map('intval', $rChannels)) . ']', $rBouquetID);
                 }
             }
@@ -756,6 +690,7 @@ function addToBouquet($rType, $rBouquetID, $rID) {
         file_put_contents(WATCH_TMP_PATH . md5($rThreadData['file'] . '_' . $rType . '_' . $rBouquetID . '_' . $rID) . '.bouquet', json_encode(array('type' => $rType, 'bouquet_id' => $rBouquetID, 'id' => $rID)));
     }
 }
+
 function parserelease($rRelease, $rType = 'guessit') {
     if ($rType == 'guessit') {
         $rCommand = MAIN_HOME . 'bin/guess ' . escapeshellarg($rRelease . '.mkv');
@@ -764,32 +699,35 @@ function parserelease($rRelease, $rType = 'guessit') {
     }
     return json_decode(shell_exec($rCommand), true);
 }
+
 function getMovie($rTMDBID) {
-    if (!file_exists(WATCH_TMP_PATH . 'movie_' . $rTMDBID . '.cache')) {
-    } else {
+    if (file_exists(WATCH_TMP_PATH . 'movie_' . $rTMDBID . '.cache')) {
         return json_decode(file_get_contents(WATCH_TMP_PATH . 'movie_' . $rTMDBID . '.cache'), true);
     }
 }
+
 function getEpisode($rTMDBID, $rSeason, $rEpisode) {
-    if (!file_exists(WATCH_TMP_PATH . 'series_' . $rTMDBID . '.cache')) {
-    } else {
+    if (file_exists(WATCH_TMP_PATH . 'series_' . $rTMDBID . '.cache')) {
         $rData = json_decode(file_get_contents(WATCH_TMP_PATH . 'series_' . $rTMDBID . '.cache'), true);
-        if (!isset($rData[$rSeason . '_' . $rEpisode])) {
-        } else {
+        if (isset($rData[$rSeason . '_' . $rEpisode])) {
             return $rData[$rSeason . '_' . $rEpisode];
         }
     }
 }
+
 function parseTitle($rTitle) {
     return strtolower(preg_replace("/(?![.=\$'€%-])\\p{P}/u", '', $rTitle));
 }
+
 function checksource($rFilename) {
     $rCommand = 'timeout 10 ' . CoreUtilities::$rFFPROBE . ' -show_streams -show_format -v quiet ' . escapeshellarg($rFilename) . ' -of json';
     return json_decode(shell_exec($rCommand), true);
 }
+
 function preparecolumn($rValue) {
     return strtolower(preg_replace('/[^a-z0-9_]+/i', '', $rValue));
 }
+
 function prepareArray($rArray) {
     $UpdateData = $rColumns = $rPlaceholder = $rData = array();
     foreach (array_keys($rArray) as $rKey) {
@@ -797,8 +735,7 @@ function prepareArray($rArray) {
         $UpdateData[] = '`' . preparecolumn($rKey) . '` = ?';
     }
     foreach (array_values($rArray) as $rValue) {
-        if (!is_array($rValue)) {
-        } else {
+        if (is_array($rValue)) {
             $rValue = json_encode($rValue, JSON_UNESCAPED_UNICODE);
         }
         $rPlaceholder[] = '?';
@@ -806,13 +743,13 @@ function prepareArray($rArray) {
     }
     return array('placeholder' => implode(',', $rPlaceholder), 'columns' => implode(',', $rColumns), 'data' => $rData, 'update' => implode(',', $UpdateData));
 }
+
 function verifyPostTable($rTable, $rData = array(), $rOnlyExisting = false) {
     global $db;
     $rReturn = array();
     $db->query('SELECT `column_name`, `column_default`, `is_nullable`, `data_type` FROM `information_schema`.`columns` WHERE `table_schema` = (SELECT DATABASE()) AND `table_name` = ? ORDER BY `ordinal_position`;', $rTable);
     foreach ($db->get_rows() as $rRow) {
-        if ($rRow['column_default'] != 'NULL') {
-        } else {
+        if ($rRow['column_default'] == 'NULL') {
             $rRow['column_default'] = null;
         }
         $rForceDefault = false;
@@ -832,53 +769,52 @@ function verifyPostTable($rTable, $rData = array(), $rOnlyExisting = false) {
                 $rReturn[$rRow['column_name']] = $rData[$rRow['column_name']];
             }
         } else {
-            if ($rOnlyExisting) {
-            } else {
+            if (!$rOnlyExisting) {
                 $rReturn[$rRow['column_name']] = $rRow['column_default'];
             }
         }
     }
     return $rReturn;
 }
+
 function getSeriesByTMDB($rID) {
     global $db;
     if (!(file_exists(WATCH_TMP_PATH . 'series_' . intval($rID) . '.data') && time() - filemtime(WATCH_TMP_PATH . 'series_' . intval($rID) . '.data') < 360)) {
         $db->query('SELECT * FROM `streams_series` WHERE `tmdb_id` = ?;', $rID);
-        if ($db->num_rows() != 1) {
-        } else {
+        if ($db->num_rows() == 1) {
             return $db->get_row();
         }
     } else {
         return json_decode(file_get_contents(WATCH_TMP_PATH . 'series_' . intval($rID) . '.data'), true);
     }
 }
+
 function getSeriesTrailer($rTMDBID, $rLanguage = null) {
     $rURL = 'https://api.themoviedb.org/3/tv/' . intval($rTMDBID) . '/videos?api_key=' . urlencode(CoreUtilities::$rSettings['tmdb_api_key']);
     if ($rLanguage) {
         $rURL .= '&language=' . urlencode($rLanguage);
     } else {
-        if (0 >= strlen(CoreUtilities::$rSettings['tmdb_language'])) {
-        } else {
+        if (strlen(CoreUtilities::$rSettings['tmdb_language']) > 0) {
             $rURL .= '&language=' . urlencode(CoreUtilities::$rSettings['tmdb_language']);
         }
     }
     $rJSON = json_decode(file_get_contents($rURL), true);
     foreach ($rJSON['results'] as $rVideo) {
-        if (!(strtolower($rVideo['type']) == 'trailer' && strtolower($rVideo['site']) == 'youtube')) {
-        } else {
+        if (strtolower($rVideo['type']) == 'trailer' && strtolower($rVideo['site']) == 'youtube') {
             return $rVideo['key'];
         }
     }
     return '';
 }
+
 function getSerie($rID) {
     global $db;
     $db->query('SELECT * FROM `streams_series` WHERE `id` = ?;', $rID);
-    if ($db->num_rows() != 1) {
-    } else {
+    if ($db->num_rows() == 1) {
         return $db->get_row();
     }
 }
+
 function getNextOrder() {
     global $db;
     $db->query('SELECT MAX(`order`) AS `order` FROM `streams`;');
@@ -887,33 +823,32 @@ function getNextOrder() {
     }
     return intval($db->get_row()['order']) + 1;
 }
+
 function confirmIDs($rIDs) {
     $rReturn = array();
     foreach ($rIDs as $rID) {
-        if (0 >= intval($rID)) {
-        } else {
+        if (intval($rID) > 0) {
             $rReturn[] = $rID;
         }
     }
     return $rReturn;
 }
+
 function getBouquet($rID) {
     global $db;
     $db->query('SELECT * FROM `bouquets` WHERE `id` = ?;', $rID);
-    if ($db->num_rows() != 1) {
-    } else {
+    if ($db->num_rows() == 1) {
         return $db->get_row();
     }
 }
+
 function shutdown() {
     global $db;
     global $rShowData;
-    if (!(is_array($rShowData) && $rShowData['id'] && file_exists(WATCH_TMP_PATH . 'lock_' . intval($rShowData['id'])))) {
-    } else {
+    if (is_array($rShowData) && $rShowData['id'] && file_exists(WATCH_TMP_PATH . 'lock_' . intval($rShowData['id']))) {
         unlink(WATCH_TMP_PATH . 'lock_' . intval($rShowData['id']));
     }
-    if (!is_object($db)) {
-    } else {
+    if (is_object($db)) {
         $db->close_mysql();
     }
     @unlink(WATCH_TMP_PATH . @getmypid() . '.wpid');

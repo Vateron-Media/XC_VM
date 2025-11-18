@@ -231,11 +231,11 @@ function validateCIDR($rCIDR) {
 function getFreeSpace($rServerID) {
 	$rReturn = array();
 	$rLines = json_decode(systemapirequest($rServerID, array('action' => 'get_free_space')), true);
-	
+
 	// Check if array has elements before shifting
-    if (!empty($rLines)) {
-        array_shift($rLines);
-    }
+	if (!empty($rLines)) {
+		array_shift($rLines);
+	}
 
 	foreach ($rLines as $rLine) {
 		$rSplit = explode(' ', preg_replace('!\\s+!', ' ', trim($rLine)));
@@ -2330,7 +2330,7 @@ function deleteStreams($rIDs, $rDeleteFiles = false) {
 		$db->query('INSERT INTO `signals`(`server_id`, `cache`, `time`, `custom_data`) VALUES(?, 1, ?, ?);', SERVER_ID, time(), json_encode(array('type' => 'update_streams', 'id' => $rIDs)));
 
 		if ($rDeleteFiles) {
-				foreach (array_keys(CoreUtilities::$rServers) as $rServerID) {
+			foreach (array_keys(CoreUtilities::$rServers) as $rServerID) {
 				$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`, `cache`) VALUES(?, ?, ?, 1);', $rServerID, time(), json_encode(array('type' => 'delete_vods', 'id' => $rIDs)));
 			}
 		}
@@ -4353,43 +4353,42 @@ function shutdown_admin() {
  *               - 'diff_from_GMT': The UTC offset (e.g., 'UTC/GMT +00:00')
  * @throws RuntimeException If setting a timezone fails or if timezone_identifiers_list() is unavailable.
  */
-function TimeZoneList(): array
-{
-    // Check if timezone_identifiers_list is available
-    if (!function_exists('timezone_identifiers_list')) {
-        throw new RuntimeException('Timezone identifiers list function is not available.');
-    }
+function TimeZoneList(): array {
+	// Check if timezone_identifiers_list is available
+	if (!function_exists('timezone_identifiers_list')) {
+		throw new RuntimeException('Timezone identifiers list function is not available.');
+	}
 
-    $zones_array = [];
-    $timestamp = time();
-    $original_timezone = date_default_timezone_get(); // Store original timezone
+	$zones_array = [];
+	$timestamp = time();
+	$original_timezone = date_default_timezone_get(); // Store original timezone
 
-    try {
-        foreach (timezone_identifiers_list() as $key => $zone) {
-            // Validate timezone identifier
-            if (empty($zone) || !is_string($zone)) {
-                continue; // Skip invalid timezone identifiers
-            }
+	try {
+		foreach (timezone_identifiers_list() as $key => $zone) {
+			// Validate timezone identifier
+			if (empty($zone) || !is_string($zone)) {
+				continue; // Skip invalid timezone identifiers
+			}
 
-            // Attempt to set the timezone
-            if (date_default_timezone_set($zone) === false) {
-                continue; // Skip if timezone setting fails
-            }
+			// Attempt to set the timezone
+			if (date_default_timezone_set($zone) === false) {
+				continue; // Skip if timezone setting fails
+			}
 
-            // Store timezone data
-            $zones_array[$key] = [
-                'zone' => $zone,
-                'diff_from_GMT' => '[UTC/GMT ' . date('P', $timestamp) . ']'
-            ];
-        }
-    } catch (Exception $e) {
-        // Restore original timezone before throwing exception
-        date_default_timezone_set($original_timezone);
-        throw new RuntimeException('Error processing timezone list: ' . $e->getMessage());
-    }
+			// Store timezone data
+			$zones_array[$key] = [
+				'zone' => $zone,
+				'diff_from_GMT' => '[UTC/GMT ' . date('P', $timestamp) . ']'
+			];
+		}
+	} catch (Exception $e) {
+		// Restore original timezone before throwing exception
+		date_default_timezone_set($original_timezone);
+		throw new RuntimeException('Error processing timezone list: ' . $e->getMessage());
+	}
 
-    // Restore original timezone
-    date_default_timezone_set($original_timezone);
+	// Restore original timezone
+	date_default_timezone_set($original_timezone);
 
-    return $zones_array;
+	return $zones_array;
 }
