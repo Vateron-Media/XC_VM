@@ -1,0 +1,71 @@
+name: Create Pre-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Pre-release version (e.g., 1.2.3-beta.1)'
+        required: true
+        type: string
+      changelog:
+        description: 'Changelog for pre-release'
+        required: true
+        type: string
+
+jobs:
+  pre-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.1'
+        
+    - name: Update version in PHP files
+      run: |
+        find . -type f -name "*.php" -exec sed -i \
+        "s/define('XC_VM_VERSION', '[0-9]\+\.[0-9]\+\.[0-9]\+.*');/define('XC_VM_VERSION', '${{ github.event.inputs.version }}');/g" {} \;
+        
+    - name: Commit version update
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add .
+        git commit -m "Bump version to ${{ github.event.inputs.version }}"
+        git push
+        
+    - name: Build update archives
+      run: |
+        make main_update
+        make lb_update
+        
+    - name: Generate MD5 hashes
+      run: |
+        cd dist
+        md5sum update.tar.gz loadbalancer_update.tar.gz > hashes.md5
+        
+    - name: Create Pre-release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ github.event.inputs.version }}
+        name: XC_VM ${{ github.event.inputs.version }}
+        body: |
+          # Pre-release ${{ github.event.inputs.version }}
+          
+          ${{ github.event.inputs.changelog }}
+          
+          ## Downloads
+          - `update.tar.gz` - Main update archive
+          - `loadbalancer_update.tar.gz` - LoadBalancer update archive
+        draft: false
+        prerelease: true
+        files: |
+          dist/update.tar.gz
+          dist/loadbalancer_update.tar.gz
+          dist/hashes.md5
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
