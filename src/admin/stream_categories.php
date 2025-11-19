@@ -48,6 +48,13 @@ include 'header.php';
 						</button>
 						Categories have been re-ordered.
 					</div>
+				<?php } elseif (isset($_STATUS) && $_STATUS == STATUS_SUCCESS_REPLACE) { ?>
+					<div class="alert alert-success alert-dismissible fade show" role="alert">
+						<button type="button" class="close" data-dismiss="alert" aria-label="Close">
+							<span aria-hidden="true">&times;</span>
+						</button>
+						Categories will be added automatically.
+					</div>
 				<?php } ?>
 				<div class="card">
 					<div class="card-body">
@@ -268,6 +275,37 @@ include 'header.php';
 		}
 	});
 
+	function importTmdbCategories() {
+		$(".wrapper").fadeOut();
+		$("#status").fadeIn();
+
+		$.ajax({
+			type: "POST",
+			url: "post.php?action=import_tmdb_categories",
+			data: "", // или FormData если нужно передать файлы/данные
+			processData: false,
+			contentType: false,
+			success: function(rReturn) {
+				try {
+					var rJSON = $.parseJSON(rReturn);
+				} catch (e) {
+					var rJSON = {
+						"status": 0,
+						"result": false
+					};
+				}
+				// Вызываем callback и перезагружаем страницу
+				callbackForm(rJSON);
+				window.location.reload();
+			},
+			error: function(xhr, status, error) {
+				// Обработка ошибок с перезагрузкой
+				console.error('Ошибка:', error);
+				window.location.reload();
+			}
+		});
+	}
+
 	function deleteCategory(rID) {
 		new jBox("Confirm", {
 			confirmButton: "Delete",
@@ -323,11 +361,11 @@ include 'header.php';
 			submitForm(window.rCurrentPage, new FormData($("#stream_categories_form-4")[0]));
 		});
 	});
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-    <?php endif; ?>
+	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+		$(document).ready(function() {
+			initSearch();
+		});
+	<?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

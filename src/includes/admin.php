@@ -2379,6 +2379,47 @@ function flushIPs() {
 	return true;
 }
 
+function addTMDbCategories() {
+	global $db;
+	require_once MAIN_HOME . 'includes/libs/tmdb.php';
+
+	if (0 < strlen(CoreUtilities::$rSettings['tmdb_language'])) {
+		$rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key'], CoreUtilities::$rSettings['tmdb_language']);
+	} else {
+		$rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key']);
+	}
+
+	$rCurrentCats = array('movie' => array(), 'series' => array());
+
+	$db->query('SELECT `id`, `category_type`, `category_name` FROM `streams_categories`;');
+
+	if ($db->num_rows() > 0) {
+		foreach ($db->get_rows() as $rRow) {
+			if (array_key_exists($rRow['category_type'], $rCurrentCats)) {
+				$rCurrentCats[$rRow['category_type']][] = $rRow['category_name'];
+			}
+		}
+	}
+
+	$rMovieGenres = $rTMDB->getMovieGenres();
+	foreach ($rMovieGenres as $rMovieGenre) {
+		$movieGenreName = $rMovieGenre->getName();
+		if (!in_array($movieGenreName, $rCurrentCats['movie'])) {
+			$db->query("INSERT INTO `streams_categories`(`category_type`, `category_name`) VALUES('movie', ?);", $movieGenreName);
+		}
+	}
+
+	$rTVGenres = $rTMDB->getTVGenres();
+	foreach ($rTVGenres as $rTVGenre) {
+		$seriesGenreName = $rTVGenre->getName();
+		if (!in_array($seriesGenreName, $rCurrentCats['series'])) {
+			$db->query("INSERT INTO `streams_categories`(`category_type`, `category_name`) VALUES('series', ?);", $seriesGenreName);
+		}
+	}
+
+	return true;
+}
+
 function updateTMDbCategories() {
 	global $db;
 	require_once MAIN_HOME . 'includes/libs/tmdb.php';
@@ -2389,37 +2430,29 @@ function updateTMDbCategories() {
 		$rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key']);
 	}
 
-
-
-
 	$rCurrentCats = array(1 => array(), 2 => array());
-
-
-
 	$db->query('SELECT `id`, `type`, `genre_id` FROM `watch_categories`;');
 
-	if (0 >= $db->num_rows()) {
-	} else {
+	if ($db->num_rows() > 0) {
 		foreach ($db->get_rows() as $rRow) {
-			if (!in_array($rRow['genre_id'], $rCurrentCats[$rRow['type']])) {
-			} else {
-				$db->query('DELETE FROM `watch_categories` WHERE `id` = ?;', $rRow['id']);
-			}
+			if (array_key_exists($rRow['type'], $rCurrentCats)) {
 
-			$rCurrentCats[$rRow['type']][] = $rRow['genre_id'];
+				if (in_array($rRow['genre_id'], $rCurrentCats[$rRow['type']])) {
+					$db->query('DELETE FROM `watch_categories` WHERE `id` = ?;', $rRow['id']);
+				}
+				$rCurrentCats[$rRow['type']][] = $rRow['genre_id'];
+			}
 		}
 	}
 
 	$rMovieGenres = $rTMDB->getMovieGenres();
 
 	foreach ($rMovieGenres as $rMovieGenre) {
-		if (in_array($rMovieGenre->getID(), $rCurrentCats[1])) {
-		} else {
+		if (!in_array($rMovieGenre->getID(), $rCurrentCats[1])) {
 			$db->query("INSERT INTO `watch_categories`(`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES(1, ?, ?, 0, '[]');", $rMovieGenre->getID(), $rMovieGenre->getName());
 		}
 
-		if (in_array($rMovieGenre->getID(), $rCurrentCats[2])) {
-		} else {
+		if (!in_array($rMovieGenre->getID(), $rCurrentCats[2])) {
 			$db->query("INSERT INTO `watch_categories`(`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES(2, ?, ?, 0, '[]');", $rMovieGenre->getID(), $rMovieGenre->getName());
 		}
 	}
@@ -2427,13 +2460,11 @@ function updateTMDbCategories() {
 	$rTVGenres = $rTMDB->getTVGenres();
 
 	foreach ($rTVGenres as $rTVGenre) {
-		if (in_array($rTVGenre->getID(), $rCurrentCats[1])) {
-		} else {
+		if (!in_array($rTVGenre->getID(), $rCurrentCats[1])) {
 			$db->query("INSERT INTO `watch_categories`(`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES(1, ?, ?, 0, '[]');", $rTVGenre->getID(), $rTVGenre->getName());
 		}
 
-		if (in_array($rTVGenre->getID(), $rCurrentCats[2])) {
-		} else {
+		if (!in_array($rTVGenre->getID(), $rCurrentCats[2])) {
 			$db->query("INSERT INTO `watch_categories`(`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES(2, ?, ?, 0, '[]');", $rTVGenre->getID(), $rTVGenre->getName());
 		}
 	}
@@ -3717,6 +3748,21 @@ function generateString($strength = 10) {
 	return $random_string;
 }
 
+function getAllServers() {
+	global $db;
+	$rReturn = array();
+	$db->query('SELECT * FROM `servers` ORDER BY `id` ASC;');
+
+	if ($db->num_rows() > 0) {
+		foreach ($db->get_rows() as $rRow) {
+			$rRow['server_online'] = in_array($rRow['status'], array(1, 3)) && time() - $rRow['last_check_ago'] <= 90 || $rRow['is_main'];
+			$rReturn[$rRow['id']] = $rRow;
+		}
+	}
+
+	return $rReturn;
+}
+
 function getStreamingServers() {
 	global $db;
 	global $rPermissions;
@@ -3738,21 +3784,6 @@ function getStreamingServers() {
 			}
 		}
 	}
-	return $rReturn;
-}
-
-function getAllServers() {
-	global $db;
-	$rReturn = array();
-	$db->query('SELECT * FROM `servers` ORDER BY `id` ASC;');
-
-	if ($db->num_rows() > 0) {
-		foreach ($db->get_rows() as $rRow) {
-			$rRow['server_online'] = in_array($rRow['status'], array(1, 3)) && time() - $rRow['last_check_ago'] <= 90 || $rRow['is_main'];
-			$rReturn[$rRow['id']] = $rRow;
-		}
-	}
-
 	return $rReturn;
 }
 
