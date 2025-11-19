@@ -225,7 +225,9 @@ function loadapi() {
 				break;
 			}
 
-			$rFilename = CoreUtilities::$rRequest['filename'];
+			$rFilename = urldecode(CoreUtilities::$rRequest['filename']);
+			$rFilename = trim($rFilename, "'\"\\"); // Cut quote/backslash struck
+
 
 			if (in_array(strtolower(pathinfo($rFilename)['extension']), array('log', 'tar.gz', 'gz', 'zip', 'm3u8', 'mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts', 'srt', 'sub', 'sbv', 'jpg', 'png', 'bmp', 'jpeg', 'gif', 'tif'))) {
 
@@ -233,14 +235,15 @@ function loadapi() {
 				} else {
 					header('Content-Type: application/octet-stream');
 					$rFP = @fopen($rFilename, 'rb');
+					clearstatcache();
 					$rSize = filesize($rFilename);
 					$rLength = $rSize;
 					$rStart = 0;
 					$rEnd = $rSize - 1;
-					header('Accept-Ranges: 0-' . $rLength);
+					header('Accept-Ranges: bytes');
 
-					if (!isset($_SERVER['HTTP_RANGE'])) {
-					} else {
+
+					if (isset($_SERVER['HTTP_RANGE'])) {
 						$rRangeEnd = $rEnd;
 						list(, $rRange) = explode('=', $_SERVER['HTTP_RANGE'], 2);
 
@@ -282,9 +285,14 @@ function loadapi() {
 					header('Content-Range: bytes ' . $rStart . '-' . $rEnd . '/' . $rSize);
 					header('Content-Length: ' . $rLength);
 
-					while (!feof($rFP) && ftell($rFP) <= $rEnd) {
-						echo stream_get_line($rFP, (intval(CoreUtilities::$rSettings['read_buffer_size']) ?: 8192));
+					$sent = 0;
+					while ($sent < $rLength && !feof($rFP)) {
+						$buffer = fread($rFP, (intval(CoreUtilities::$rSettings['read_buffer_size']) ?: 8192));
+						$sent += strlen($buffer);
+						echo $buffer;
+						flush();
 					}
+
 					fclose($rFP);
 				}
 
