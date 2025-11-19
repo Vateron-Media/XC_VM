@@ -3763,7 +3763,7 @@ function getAllServers() {
 	return $rReturn;
 }
 
-function getStreamingServers() {
+function getStreamingServers(string $type = 'online') {
 	global $db;
 	global $rPermissions;
 	$rReturn = array();
@@ -3779,7 +3779,7 @@ function getStreamingServers() {
 			if (!isset($rRow['order'])) {
 				$rRow['order'] = 0;
 			}
-			if ($rRow['server_online']) {
+			if ($rRow['server_online'] || $type == 'all') {
 				$rReturn[$rRow['id']] = $rRow;
 			}
 		}

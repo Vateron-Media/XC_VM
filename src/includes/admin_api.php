@@ -9,7 +9,7 @@ class API {
 
 	public static function init($rUserID = null) {
 		self::$rSettings = getSettings();
-		self::$rServers = getStreamingServers();
+		self::$rServers = getStreamingServers('all');
 		self::$rProxyServers = getProxyServers();
 
 		if ($rUserID || !isset($_SESSION['hash'])) {
@@ -4576,7 +4576,7 @@ class API {
 	public static function installServer($rData) {
 		if (self::checkMinimumRequirements($rData)) {
 			if (hasPermissions('adv', 'add_server')) {
-
+				$rParentIDs = array();
 
 				if (isset($rData['update_sysctl'])) {
 					$rUpdateSysctl = 1;
@@ -4591,7 +4591,6 @@ class API {
 				}
 
 				if ($rData['type'] == 1) {
-					$rParentIDs = array();
 					foreach (json_decode($rData['parent_id'], true) as $rServerID) {
 						if (self::$rServers[$rServerID]['server_type'] == 0) {
 							$rParentIDs[] = intval($rServerID);
