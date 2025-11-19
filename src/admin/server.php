@@ -7,21 +7,20 @@ if (!checkPermissions()) {
     goHome();
 }
 
-if (isset(CoreUtilities::$rRequest['id']) && ($rServerArr = $rServers[CoreUtilities::$rRequest['id']])) {
+if (isset(CoreUtilities::$rRequest['id']) && ($rServerArr = $allServers[CoreUtilities::$rRequest['id']])) {
 } else {
     goHome();
 }
 
-$rInterfaces = array();
-$rWatchdog = json_decode($rServerArr['watchdog_data'], true);
+$rWatchdog = !empty($rServerArr['watchdog_data']) ? json_decode($rServerArr['watchdog_data'], true) : [];
 $rServiceMax = (0 < intval($rWatchdog['cpu_cores']) ? $rWatchdog['cpu_cores'] : 16);
 
 if ($rServiceMax < 4) {
     $rServiceMax = 4;
 }
 
-$rInterfaces = json_decode($rServerArr['interfaces'], true);
-$rCertificate = json_decode($rServerArr['certbot_ssl'], true);
+$rInterfaces = !empty($rServerArr['interfaces']) ? json_decode($rServerArr['interfaces'], true) : [];
+$rCertificate = !empty($rServerArr['certbot_ssl']) ? json_decode($rServerArr['certbot_ssl'], true) : [];
 $rCertValid = false;
 
 if ($rCertificate['expiration']) {
@@ -506,7 +505,7 @@ include 'header.php'; ?>
                                                             required data-parsley-trigger="change">
                                                     </div>
                                                 </div>
-                                                <?php if (count(json_decode($rServerArr['governors'], true)) > 0):
+                                                <?php if (!empty($rServerArr['governors']) && count(json_decode($rServerArr['governors'], true) ?: []) > 0):
                                                     $rCurrentGovernor = json_decode($rServerArr['governor'], true);
                                                     $rCurrentGovernor[3] = '* ' . $rCurrentGovernor[2] . ' - Freq: ' . round($rCurrentGovernor[0] / 1000000, 1) . 'GHz - ' . round($rCurrentGovernor[1] / 1000000, 1) . 'GHz'; ?>
                                                     <div class="form-group row mb-4">
