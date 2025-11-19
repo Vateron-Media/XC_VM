@@ -1847,6 +1847,12 @@ if (1 < $rICount) { ?>
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
 				exit();
+			
+			case 'import_tmdb_categories':
+				if (addTMDbCategories()){
+					echo json_encode(array('result' => true, 'location' => 'stream_categories?status=' . STATUS_SUCCESS_REPLACE, 'status' => STATUS_SUCCESS));
+					exit();
+				}
 
 			case 'stream_categories':
 				$rReturn = API::orderCategories($rData);
