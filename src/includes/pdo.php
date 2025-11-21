@@ -200,8 +200,6 @@ class Database {
 
 		$row = array();
 
-
-
 		if (0 >= $this->result->rowCount()) {
 		} else {
 			$row = $this->result->fetch(PDO::FETCH_ASSOC);
@@ -219,9 +217,6 @@ class Database {
 
 		$row = false;
 
-
-
-
 		if (0 >= $this->result->rowCount()) {
 		} else {
 			$row = $this->result->fetch();
@@ -232,6 +227,18 @@ class Database {
 
 		return $row;
 	}
+
+	public function get_column() {
+    $col = [];
+    if ($this->result) {
+        while ($val = $this->result->fetchColumn(0)) {
+            $col[] = $val;
+        }
+        $this->result->closeCursor();
+        $this->result = null;
+    }
+    return $col;
+}
 
 	public function escape($string) {
 		if ($this->dbh) {
