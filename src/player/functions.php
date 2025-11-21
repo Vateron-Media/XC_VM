@@ -4,7 +4,7 @@ if (isset($rSkipVerify) || php_sapi_name() != 'cli') {
 	session_start();
 
 	require_once '/home/xc_vm/www/constants.php';
-	require_once INCLUDES_PATH . 'pdo.php';
+	require_once INCLUDES_PATH . 'Database.php';
 	require_once INCLUDES_PATH . 'CoreUtilities.php';
 	require_once INCLUDES_PATH . 'libs/tmdb.php';
 

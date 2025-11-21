@@ -127,7 +127,7 @@ if (isset($rSettings['exit']) && $rFilename != 'status') {
 	generate404();
 }
 
-require_once INCLUDES_PATH . 'pdo.php';
+require_once INCLUDES_PATH . 'Database.php';
 
 switch ($rFilename) {
 	case 'probe':
