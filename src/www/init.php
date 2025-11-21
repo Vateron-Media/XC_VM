@@ -2,7 +2,7 @@
 
 require_once 'constants.php';
 require_once INCLUDES_PATH . 'CoreUtilities.php';
-require_once INCLUDES_PATH . 'pdo.php';
+require_once INCLUDES_PATH . 'Database.php';
 require_once INCLUDES_PATH . 'libs/GithubReleases.php';
 
 if (!function_exists('getallheaders')) {

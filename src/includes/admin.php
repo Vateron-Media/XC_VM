@@ -57,7 +57,7 @@ define('STATUS_RESERVED_CODE', 46);
 define('STATUS_NO_TITLE', 47);
 define('STATUS_NO_SOURCE', 48);
 require_once '/home/xc_vm/www/constants.php';
-require_once INCLUDES_PATH . 'pdo.php';
+require_once INCLUDES_PATH . 'Database.php';
 require_once INCLUDES_PATH . 'CoreUtilities.php';
 require_once INCLUDES_PATH . 'libs/mobiledetect.php';
 require_once INCLUDES_PATH . 'admin_api.php';
