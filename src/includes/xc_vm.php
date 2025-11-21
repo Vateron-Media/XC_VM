@@ -1702,6 +1702,7 @@ class CoreUtilities {
 				$rStream['server_info'] = self::$db->get_row();
 				self::$db->query('SELECT t1.*, t2.* FROM `streams_options` t1, `streams_arguments` t2 WHERE t1.stream_id = ? AND t1.argument_id = t2.id', $rStreamID);
 				$rStream['stream_arguments'] = self::$db->get_rows();
+
 				list($rStreamSource) = json_decode($rStream['stream_info']['stream_source'], true);
 				if (substr($rStreamSource, 0, 2) == 's:') {
 					$rMovieSource = explode(':', $rStreamSource, 3);
@@ -1723,11 +1724,15 @@ class CoreUtilities {
 						$rFetchOptions = implode(' ', self::getArguments($rStream['stream_arguments'], $rProtocol, 'fetch'));
 					}
 				}
+
+				// If symlink movie
 				if ((isset($rMovieServerID) && $rMovieServerID == SERVER_ID || file_exists($rMoviePath)) && $rStream['stream_info']['movie_symlink'] == 1) {
 					$rFFMPEG = 'ln -sfn ' . escapeshellarg($rMoviePath) . ' ' . VOD_PATH . intval($rStreamID) . '.' . escapeshellcmd(pathinfo($rMoviePath)['extension']) . ' >/dev/null 2>/dev/null & echo $! > ' . VOD_PATH . intval($rStreamID) . '_.pid';
 				} else {
+					// subtitle import + metadata (คงไว้)
 					$rSubtitles = json_decode($rStream['stream_info']['movie_subtitles'], true);
 					$rSubtitlesImport = '';
+					$rSubtitlesMetadata = '';
 					if (!empty($rSubtitles) && !empty($rSubtitles['files']) && is_array($rSubtitles['files'])) {
 						for ($i = 0; $i < count($rSubtitles['files']); $i++) {
 							$rSubtitleFile = escapeshellarg($rSubtitles['files'][$i]);
@@ -1737,19 +1742,13 @@ class CoreUtilities {
 							} else {
 								$rSubtitlesImport .= '-sub_charenc ' . $rInputCharset . ' -i "' . self::$rServers[$rSubtitles['location']]['api_url'] . '&action=getFile&filename=' . urlencode($rSubtitleFile) . '" ';
 							}
+							for ($i = 0; $i < count($rSubtitles['files']); $i++) {
+								$rSubtitlesMetadata .= '-map ' . ($i + 1) . ' -metadata:s:s:' . $i . ' title=' . escapeshellcmd($rSubtitles['names'][$i]) . ' -metadata:s:s:' . $i . ' language=' . escapeshellcmd($rSubtitles['names'][$i]) . ' ';
+							}
 						}
 					}
-					$rSubtitlesMetadata = '';
-					if (!empty($rSubtitles) && !empty($rSubtitles['files']) && is_array($rSubtitles['files'])) {
-						for ($i = 0; $i < count($rSubtitles['files']); $i++) {
-							$rSubtitlesMetadata .= '-map ' . ($i + 1) . ' -metadata:s:s:' . $i . ' title=' . escapeshellcmd($rSubtitles['names'][$i]) . ' -metadata:s:s:' . $i . ' language=' . escapeshellcmd($rSubtitles['names'][$i]) . ' ';
-						}
-					}
-					if ($rStream['stream_info']['read_native'] == 1) {
-						$rReadNative = '-re';
-					} else {
-						$rReadNative = '';
-					}
+
+					$rReadNative = ($rStream['stream_info']['read_native'] == 1 ? '-re' : '');
 					if ($rStream['stream_info']['enable_transcode'] == 1) {
 						if ($rStream['stream_info']['transcode_profile_id'] == -1) {
 							$rStream['stream_info']['transcode_attributes'] = array_merge(self::getArguments($rStream['stream_arguments'], $rProtocol, 'transcode'), json_decode($rStream['stream_info']['transcode_attributes'], true));
@@ -1762,11 +1761,9 @@ class CoreUtilities {
 					$rLogoOptions = (isset($rStream['stream_info']['transcode_attributes'][16]) && !$rLoopback ? $rStream['stream_info']['transcode_attributes'][16]['cmd'] : '');
 					$rGPUOptions = (isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rStream['stream_info']['transcode_attributes']['gpu']['cmd'] : '');
 					$rInputCodec = '';
-					if (empty($rGPUOptions)) {
-					} else {
+					if (!empty($rGPUOptions)) {
 						$rFFProbeOutput = self::probeStream($rMoviePath);
-						if (!in_array($rFFProbeOutput['codecs']['video']['codec_name'], array('h264', 'hevc', 'mjpeg', 'mpeg1', 'mpeg2', 'mpeg4', 'vc1', 'vp8', 'vp9'))) {
-						} else {
+						if (in_array($rFFProbeOutput['codecs']['video']['codec_name'], array('h264', 'hevc', 'mjpeg', 'mpeg1', 'mpeg2', 'mpeg4', 'vc1', 'vp8', 'vp9'))) {
 							$rInputCodec = '-c:v ' . $rFFProbeOutput['codecs']['video']['codec_name'] . '_cuvid';
 						}
 					}
@@ -1775,31 +1772,26 @@ class CoreUtilities {
 					if (!empty($rStream['stream_info']['custom_map'])) {
 						$rMap = escapeshellcmd($rStream['stream_info']['custom_map']) . ' -copy_unknown ';
 					} else {
-						if ($rStream['stream_info']['remove_subtitles'] != 1) {
-						} else {
+						if ($rStream['stream_info']['remove_subtitles'] == 1) {
 							$rMap = '-map 0:a -map 0:v';
 						}
 					}
-					if (array_key_exists('-acodec', $rStream['stream_info']['transcode_attributes'])) {
-					} else {
+					if (!array_key_exists('-acodec', $rStream['stream_info']['transcode_attributes'])) {
 						$rStream['stream_info']['transcode_attributes']['-acodec'] = 'copy';
 					}
-					if (array_key_exists('-vcodec', $rStream['stream_info']['transcode_attributes'])) {
-					} else {
+					if (!array_key_exists('-vcodec', $rStream['stream_info']['transcode_attributes'])) {
 						$rStream['stream_info']['transcode_attributes']['-vcodec'] = 'copy';
 					}
 					if ($rStream['stream_info']['target_container'] == 'mp4') {
 						$rStream['stream_info']['transcode_attributes']['-scodec'] = 'mov_text';
+					} elseif ($rStream['stream_info']['target_container'] == 'mkv') {
+						$rStream['stream_info']['transcode_attributes']['-scodec'] = 'srt';
 					} else {
-						if ($rStream['stream_info']['target_container'] == 'mkv') {
-							$rStream['stream_info']['transcode_attributes']['-scodec'] = 'srt';
-						} else {
-							$rStream['stream_info']['transcode_attributes']['-scodec'] = 'copy';
-						}
+						$rStream['stream_info']['transcode_attributes']['-scodec'] = 'copy';
 					}
 					$rOutputs = array();
 					$rOutputs[$rStream['stream_info']['target_container']] = '-movflags +faststart -dn ' . $rMap . ' -ignore_unknown ' . $rSubtitlesMetadata . ' ' . VOD_PATH . intval($rStreamID) . '.' . escapeshellcmd($rStream['stream_info']['target_container']);
-					foreach ($rOutputs as $rOutputKey => $rOutputCommand) {
+					foreach ($rOutputs as $rOutputCommand) {
 						$rFFMPEG .= implode(' ', self::parseTranscode($rStream['stream_info']['transcode_attributes'])) . ' ';
 						$rFFMPEG .= $rOutputCommand;
 					}

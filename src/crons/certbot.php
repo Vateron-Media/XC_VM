@@ -13,6 +13,8 @@ if ($argc) {
 function loadCron() {
     global $db;
     global $rCheck;
+
+    $rCertInfo = null;
     if (!$rCheck) {
         CoreUtilities::submitPanelLogs(); // Submit panel logs to the central server
         $rCertInfo = CoreUtilities::getCertificateInfo();

@@ -11,7 +11,7 @@ MAIN_ARCHIVE_INSTALLER := XC_VM.zip
 LB_ARCHIVE_NAME := loadbalancer.tar.gz
 LB_UPDATE_ARCHIVE_NAME := loadbalancer_update.tar.gz
 DELETED_LIST := ${DIST_DIR}/deleted_files.txt
-LAST_TAG := $(shell git describe --tags --abbrev=0)
+LAST_TAG := $(shell curl -s https://api.github.com/repos/Vateron-Media/XC_VM/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
 HASH_FILE := hashes.md5
 
 # Directories and files to exclude (can be easily edited)
@@ -148,7 +148,6 @@ lb_update_copy_files:
 		-not -path "*/.git/*" \
 		-delete
 	@echo "All files gitkeep deleted"
-
 
 main_copy_files:
 	@echo "==> [MAIN] Creating distribution directory: $(DIST_DIR)"

@@ -404,18 +404,17 @@ function generateLines($rStart = null, $rCount = null, $cacheLockMechanism = arr
     } else {
         $rCount = count($cacheLockMechanism);
     }
-    if (0 >= $rCount) {
-    } else {
+    if ($rCount > 0) {
         if (!is_null($rStart)) {
-            $rSteps = range($rStart, ($rStart + $rCount) - 1, $rSplit);
-            if ($rSteps) {
-            } else {
-                $rSteps = array($rStart);
+            $rEnd = $rStart + $rCount - 1;
+            // If the step is greater than or equal to the range size, return only the initial value
+            if ($rSplit >= ($rEnd - $rStart + 1)) {
+                $rSteps = [$rStart];
             }
         } else {
-            $rSteps = array(null);
+            $rSteps = [null];
         }
-        $rExists = array();
+        $rExists = [];
         foreach ($rSteps as $rStep) {
             if (!is_null($rStep)) {
                 if ($rStart + $rCount < $rStep + $rSplit) {
@@ -427,17 +426,14 @@ function generateLines($rStart = null, $rCount = null, $cacheLockMechanism = arr
             } else {
                 $db->query('SELECT `id`, `username`, `password`, `exp_date`, `created_at`, `admin_enabled`, `enabled`, `bouquet`, `allowed_outputs`, `max_connections`, `is_trial`, `is_restreamer`, `is_stalker`, `is_mag`, `is_e2`, `is_isplock`, `allowed_ips`, `allowed_ua`, `pair_id`, `force_server_id`, `isp_desc`, `forced_country`, `bypass_ua`, `last_expiration_video`, `access_token`, `mag_devices`.`token` AS `mag_token`, `admin_notes`, `reseller_notes` FROM `lines` LEFT JOIN `mag_devices` ON `mag_devices`.`user_id` = `lines`.`id` WHERE `id` IN (' . implode(',', $cacheLockMechanism) . ');');
             }
-            if (!$db->result) {
-            } else {
-                if (0 >= $db->result->rowCount()) {
-                } else {
+            if ($db->result) {
+                if ($db->result->rowCount() > 0) {
                     foreach ($db->result->fetchAll(PDO::FETCH_ASSOC) as $rUserInfo) {
                         $rExists[] = $rUserInfo['id'];
                         file_put_contents(LINES_TMP_PATH . 'line_i_' . $rUserInfo['id'], igbinary_serialize($rUserInfo));
                         $rKey = (CoreUtilities::$rSettings['case_sensitive_line'] ? $rUserInfo['username'] . '_' . $rUserInfo['password'] : strtolower($rUserInfo['username'] . '_' . $rUserInfo['password']));
                         file_put_contents(LINES_TMP_PATH . 'line_c_' . $rKey, $rUserInfo['id']);
-                        if (empty($rUserInfo['access_token'])) {
-                        } else {
+                        if (!empty($rUserInfo['access_token'])) {
                             file_put_contents(LINES_TMP_PATH . 'line_t_' . $rUserInfo['access_token'], $rUserInfo['id']);
                         }
                     }
@@ -468,15 +464,15 @@ function generateStreams($rStart = null, $rCount = null, $cacheLockMechanism = a
     } else {
         $rBouquetMap = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'bouquet_map'));
         if (!is_null($rStart)) {
-            $rSteps = range($rStart, ($rStart + $rCount) - 1, $rSplit);
-            if ($rSteps) {
-            } else {
-                $rSteps = array($rStart);
+            $rEnd = $rStart + $rCount - 1;
+            // If the step is greater than or equal to the range size, return only the initial value
+            if ($rSplit >= ($rEnd - $rStart + 1)) {
+                $rSteps = [$rStart];
             }
         } else {
-            $rSteps = array(null);
+            $rSteps = [null];
         }
-        $rExists = array();
+        $rExists = [];
         foreach ($rSteps as $rStep) {
             if (!is_null($rStep)) {
                 if ($rStart + $rCount < $rStep + $rSplit) {
@@ -542,14 +538,18 @@ function generateSeries($rStart, $rCount) {
     $rSeriesMap = array();
     $rSeriesEpisodes = array();
     if ($rCount > 0) {
-        if ($rSplit < $rCount) {
-            $rSteps = range($rStart, ($rStart + $rCount) - 1, $rSplit);
+        if (is_null($rStart)) {
+            $rSteps = [null];
         } else {
-            $rSteps = array($rStart);
-        }
-        
-        if (!$rSteps) {
-            $rSteps = array($rStart);
+            $rEnd = $rStart + $rCount - 1;
+            $rangeLength = $rEnd - $rStart + 1;
+
+            // If the step is >= the range length, we return only the initial value.
+            if ($rSplit >= $rangeLength) {
+                $rSteps = [$rStart];
+            } else {
+                $rSteps = range($rStart, $rEnd, $rSplit);
+            }
         }
         foreach ($rSteps as $rStep) {
             if ($rStart + $rCount < $rStep + $rSplit) {
