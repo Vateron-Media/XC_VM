@@ -58,7 +58,7 @@ define('STATUS_NO_TITLE', 47);
 define('STATUS_NO_SOURCE', 48);
 require_once '/home/xc_vm/www/constants.php';
 require_once INCLUDES_PATH . 'pdo.php';
-require_once INCLUDES_PATH . 'xc_vm.php';
+require_once INCLUDES_PATH . 'CoreUtilities.php';
 require_once INCLUDES_PATH . 'libs/mobiledetect.php';
 require_once INCLUDES_PATH . 'admin_api.php';
 require_once INCLUDES_PATH . 'reseller_api.php';

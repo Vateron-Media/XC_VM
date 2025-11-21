@@ -5,7 +5,7 @@ if (isset($rSkipVerify) || php_sapi_name() != 'cli') {
 
 	require_once '/home/xc_vm/www/constants.php';
 	require_once INCLUDES_PATH . 'pdo.php';
-	require_once INCLUDES_PATH . 'xc_vm.php';
+	require_once INCLUDES_PATH . 'CoreUtilities.php';
 	require_once INCLUDES_PATH . 'libs/tmdb.php';
 
 	$db = new Database($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);

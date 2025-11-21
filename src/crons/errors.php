@@ -19,16 +19,14 @@ function parseLog($rLog) {
     global $db;
     $errorHashes = array();
     $rQuery = '';
-    if (!file_exists($rLog)) {
-    } else {
+    if (file_exists($rLog)) {
         $rFP = fopen($rLog, 'r');
         while (!feof($rFP)) {
             $rLine = trim(fgets($rFP));
             if (!empty($rLine)) {
                 $rLine = json_decode(base64_decode($rLine), true);
                 $errorHash = md5($rLine['type'] . $rLine['message'] . $rLine['extra'] . $rLine['line']);
-                if (in_array($errorHash, $errorHashes)) {
-                } else {
+                if (!in_array($errorHash, $errorHashes)) {
                     if (!(stripos($rLine['message'], 'server has gone away') !== false && stripos($rLine['message'], 'socket error on read socket') !== false && stripos($rLine['message'], 'connection lost') !== false)) {
                         $rLine = array_map(array($db, 'escape'), $rLine);
                         $rQuery .= '(' . SERVER_ID . ',' . $rLine['type'] . ',' . $rLine['message'] . ',' . $rLine['extra'] . ',' . $rLine['line'] . ',' . $rLine['time'] . ",'" . $errorHash . "'),";
@@ -44,8 +42,7 @@ function parseLog($rLog) {
 }
 function inArray($needles, $haystack) {
     foreach ($needles as $needle) {
-        if (!stristr($haystack, $needle)) {
-        } else {
+        if (stristr($haystack, $needle)) {
             return true;
         }
     }
@@ -56,20 +53,16 @@ function loadCron() {
     global $db;
     $rQuery = '';
     foreach (array(STREAMS_PATH) as $rPath) {
-        if (!($rHandle = opendir($rPath))) {
-        } else {
+        if ($rHandle = opendir($rPath)) {
             while (false !== ($fileEntry = readdir($rHandle))) {
-                if (!($fileEntry != '.' && $fileEntry != '..' && is_file($rPath . $fileEntry))) {
-                } else {
+                if ($fileEntry != '.' && $fileEntry != '..' && is_file($rPath . $fileEntry)) {
                     $rFile = $rPath . $fileEntry;
                     list($rStreamID, $rExtension) = explode('.', $fileEntry);
-                    if ($rExtension != 'errors') {
-                    } else {
+                    if ($rExtension == 'errors') {
                         $rErrors = array_values(array_unique(array_map('trim', explode("\n", file_get_contents($rFile)))));
                         foreach ($rErrors as $rError) {
                             if (!(empty($rError) || inArray($rIgnoreErrors, $rError))) {
-                                if (!CoreUtilities::$rSettings['stream_logs_save']) {
-                                } else {
+                                if (CoreUtilities::$rSettings['stream_logs_save']) {
                                     $rQuery .= '(' . $rStreamID . ',' . SERVER_ID . ',' . time() . ',' . $db->escape($rError) . '),';
                                 }
                             }
@@ -81,14 +74,12 @@ function loadCron() {
             closedir($rHandle);
         }
     }
-    if (!CoreUtilities::$rSettings['stream_logs_save'] || empty($rQuery)) {
-    } else {
+    if (CoreUtilities::$rSettings['stream_logs_save'] || empty($rQuery)) {
         $rQuery = rtrim($rQuery, ',');
         $db->query('INSERT INTO `streams_errors` (`stream_id`,`server_id`,`date`,`error`) VALUES ' . $rQuery . ';');
     }
     $rLog = LOGS_TMP_PATH . 'error_log.log';
-    if (!file_exists($rLog)) {
-    } else {
+    if (file_exists($rLog)) {
         $rQuery = rtrim(parseLog($rLog), ',');
         $db->query('INSERT IGNORE INTO `panel_logs` (`server_id`,`type`,`log_message`,`log_extra`,`line`,`date`,`unique`) VALUES ' . $rQuery . ';');
         unlink($rLog);
@@ -97,8 +88,7 @@ function loadCron() {
 function shutdown() {
     global $db;
     global $rIdentifier;
-    if (!is_object($db)) {
-    } else {
+    if (is_object($db)) {
         $db->close_mysql();
     }
     @unlink($rIdentifier);

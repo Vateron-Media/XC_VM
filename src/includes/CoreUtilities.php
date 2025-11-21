@@ -1838,8 +1838,6 @@ class CoreUtilities {
 		}
 		return $rCookie;
 	}
-	public static function startCapture($rStreamID) {
-	}
 	public static function startLLOD($rStreamID, $rStreamInfo, $rStreamArguments, $rForceSource = null) {
 		shell_exec('rm -f ' . STREAMS_PATH . intval($rStreamID) . '_*.ts');
 		if (!file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {

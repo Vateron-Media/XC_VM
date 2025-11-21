@@ -1,7 +1,7 @@
 <?php
 
 require_once 'constants.php';
-require_once INCLUDES_PATH . 'xc_vm.php';
+require_once INCLUDES_PATH . 'CoreUtilities.php';
 require_once INCLUDES_PATH . 'pdo.php';
 require_once INCLUDES_PATH . 'libs/GithubReleases.php';
 
