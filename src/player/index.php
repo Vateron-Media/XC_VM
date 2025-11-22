@@ -45,9 +45,10 @@ if (!(0 < count($rPopular['series']) && 0 < count($rUserInfo['series_ids']))) {
 }
 
 shuffle($rPopularNow);
+$searchParam = isset($rSearchBy) ? $rSearchBy : null;
 $rPopularNow = array_slice($rPopularNow, 0, 20);
 $rMovies = getUserStreams($rUserInfo, array('movie'), null, null, 'added', null, null, 0, 20);
-$rSeries = getUserSeries($rUserInfo, null, null, 'added', $rSearchBy, null, 0, 20);
+$rSeries = getUserSeries($rUserInfo, null, null, 'added', $searchParam, null, 0, 20);
 $_TITLE = 'Home';
 include 'header.php';
 
