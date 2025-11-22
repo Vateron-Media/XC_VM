@@ -1340,7 +1340,8 @@ if ($rType == "lines") {
                         } else {
                             $rFPS = "--";
                         }
-                        $rStreamInfoText = "<table class='table-data nowrap' align='center'><tbody><tr><td class='double'>" . number_format($rRow["bitrate"], 0) . " Kbps</td><td class='text-success'><i class='mdi mdi-video' data-name='mdi-video'></i></td><td class='text-success'><i class='mdi mdi-volume-high' data-name='mdi-volume-high'></i></td>";
+                        $bitrate = is_numeric($rRow["bitrate"]) ? $rRow["bitrate"] : 0;
+                        $rStreamInfoText = "<table class='table-data nowrap' align='center'><tbody><tr><td class='double'>" . number_format($bitrate, 0) . " Kbps</td><td class='text-success'><i class='mdi mdi-video' data-name='mdi-video'></i></td><td class='text-success'><i class='mdi mdi-volume-high' data-name='mdi-volume-high'></i></td>";
                         if (!$rCreated) {
                             $rStreamInfoText .= "<td class='text-success'><i class='mdi mdi-play-speed' data-name='mdi-play-speed'></i></td>";
                         }
