@@ -74,7 +74,7 @@ function loadCron() {
             closedir($rHandle);
         }
     }
-    if (CoreUtilities::$rSettings['stream_logs_save'] || empty($rQuery)) {
+    if (CoreUtilities::$rSettings['stream_logs_save'] && !empty($rQuery)) {
         $rQuery = rtrim($rQuery, ',');
         $db->query('INSERT INTO `streams_errors` (`stream_id`,`server_id`,`date`,`error`) VALUES ' . $rQuery . ';');
     }
