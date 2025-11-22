@@ -70812,6 +70812,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `theme` int(1) DEFAULT '0',
   `timezone` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
   `api_key` varchar(64) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `lang` varchar(50) COLLATE utf8_unicode_ci DEFAULT 'en',
   PRIMARY KEY (`id`),
   KEY `member_group_id` (`member_group_id`),
   KEY `username` (`username`),

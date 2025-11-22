@@ -12,19 +12,20 @@ if ($rMobile) {
 if (isset($_SESSION['hash'])) {
 	$rUserInfo = getRegisteredUser($_SESSION['hash']);
 
-	if (0 >= strlen($rUserInfo['timezone'])) {
-	} else {
+	if (strlen($rUserInfo['timezone']) > 0) {
 		date_default_timezone_set($rUserInfo['timezone']);
 	}
 
-	if (isset($_COOKIE['hue']) && $_COOKIE['hue'] == $rUserInfo['hue']) {
-	} else {
+	if (!isset($_COOKIE['hue']) || $_COOKIE['hue'] != $rUserInfo['hue']) {
 		setcookie('hue', $rUserInfo['hue'], time() + 604800);
 	}
 
-	if (isset($_COOKIE['theme']) && $_COOKIE['theme'] == $rUserInfo['theme']) {
-	} else {
+	if (!isset($_COOKIE['theme']) || $_COOKIE['theme'] != $rUserInfo['theme']) {
 		setcookie('theme', $rUserInfo['theme'], time() + 604800);
+	}
+
+	if (!isset($_COOKIE['lang']) || $_COOKIE['lang'] != $rUserInfo['lang']) {
+		setcookie('lang', $rUserInfo['lang'], time() + 604800);
 	}
 
 	$rPermissions = getPermissions($rUserInfo['member_group_id']);

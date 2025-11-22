@@ -1317,6 +1317,7 @@ if (1 < $rICount) { ?>
 				$rReturn = API::editAdminProfile($rData);
 				setcookie('hue', $rData['hue'], time() + 315360000);
 				setcookie('theme', $rData['theme'], time() + 315360000);
+				setcookie('lang', $rData['lang'], time() + 315360000);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'edit_profile?status=' . intval($rReturn['status']), 'status' => $rReturn['status'], 'reload' => true));
@@ -1847,9 +1848,9 @@ if (1 < $rICount) { ?>
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
 				exit();
-			
+
 			case 'import_tmdb_categories':
-				if (addTMDbCategories()){
+				if (addTMDbCategories()) {
 					echo json_encode(array('result' => true, 'location' => 'stream_categories?status=' . STATUS_SUCCESS_REPLACE, 'status' => STATUS_SUCCESS));
 					exit();
 				}
