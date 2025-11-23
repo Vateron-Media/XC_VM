@@ -69,50 +69,41 @@ function loadcli() {
             $db->query('UPDATE `settings` SET `update_data` = NULL;');
 
             // Update checkpoint
-            if (file_exists(MAIN_HOME . 'player/libs/TMDb/Collection.php')) {
-                unlink(MAIN_HOME . 'player/libs/TMDb/Collection.php');
+            if (file_exists(MAIN_HOME . 'includes/python/__pycache__/guess.cpython-36.pyc')) {
+                unlink(MAIN_HOME . 'includes/python/__pycache__/guess.cpython-36.pyc');
             }
-            if (file_exists(MAIN_HOME . 'player/libs/TMDb/Company.php')) {
-                unlink(MAIN_HOME . 'player/libs/TMDb/Company.php');
+            if (file_exists(MAIN_HOME . 'includes/python/build/guess/Analysis-00.toc')) {
+                unlink(MAIN_HOME . 'includes/python/build/guess/Analysis-00.toc');
             }
-            if (file_exists(MAIN_HOME . 'player/libs/TMDb/Episode.php')) {
-                unlink(MAIN_HOME . 'player/libs/TMDb/Episode.php');
+            if (file_exists(MAIN_HOME . 'includes/python/build/guess/EXE-00.toc')) {
+                unlink(MAIN_HOME . 'includes/python/build/guess/EXE-00.toc');
             }
-            if (file_exists(MAIN_HOME . 'player/libs/TMDb/Genre.php')) {
-                unlink(MAIN_HOME . 'player/libs/TMDb/Genre.php');
+            if (file_exists(MAIN_HOME . 'includes/python/build/guess/PKG-00.pkg')) {
+                unlink(MAIN_HOME . 'includes/python/build/guess/PKG-00.pkg');
             }
-            if (file_exists(MAIN_HOME . 'player/libs/TMDb/Movie.php')) {
-                unlink(MAIN_HOME . 'player/libs/TMDb/Movie.php');
+            if (file_exists(MAIN_HOME . 'includes/python/build/guess/PKG-00.toc')) {
+                unlink(MAIN_HOME . 'includes/python/build/guess/PKG-00.toc');
             }
-            if (file_exists(MAIN_HOME . 'player/libs/TMDb/Person.php')) {
-                unlink(MAIN_HOME . 'player/libs/TMDb/Person.php');
+            if (file_exists(MAIN_HOME . 'includes/python/build/guess/PYZ-00.pyz')) {
+                unlink(MAIN_HOME . 'includes/python/build/guess/PYZ-00.pyz');
             }
-            if (file_exists(MAIN_HOME . 'player/libs/TMDb/Review.php')) {
-                unlink(MAIN_HOME . 'player/libs/TMDb/Review.php');
+            if (file_exists(MAIN_HOME . 'includes/python/build/guess/PYZ-00.toc')) {
+                unlink(MAIN_HOME . 'includes/python/build/guess/PYZ-00.toc');
             }
-            if (file_exists(MAIN_HOME . 'player/libs/TMDb/Role.php')) {
-                unlink(MAIN_HOME . 'player/libs/TMDb/Role.php');
+            if (file_exists(MAIN_HOME . 'includes/python/build/guess/base_library.zip')) {
+                unlink(MAIN_HOME . 'includes/python/build/guess/base_library.zip');
             }
-            if (file_exists(MAIN_HOME . 'player/libs/TMDb/Season.php')) {
-                unlink(MAIN_HOME . 'player/libs/TMDb/Season.php');
+            if (file_exists(MAIN_HOME . 'includes/python/build/guess/warn-guess.txt')) {
+                unlink(MAIN_HOME . 'includes/python/build/guess/warn-guess.txt');
             }
-            if (file_exists(MAIN_HOME . 'player/libs/TMDb/TVShow.php')) {
-                unlink(MAIN_HOME . 'player/libs/TMDb/TVShow.php');
+            if (file_exists(MAIN_HOME . 'includes/python/build/guess/xref-guess.html')) {
+                unlink(MAIN_HOME . 'includes/python/build/guess/xref-guess.html');
             }
-            if (file_exists(MAIN_HOME . 'player/libs/TMDb/config/APIConfiguration.php')) {
-                unlink(MAIN_HOME . 'player/libs/TMDb/config/APIConfiguration.php');
+            if (file_exists(MAIN_HOME . 'includes/python/guess.py')) {
+                unlink(MAIN_HOME . 'includes/python/guess.py');
             }
-            if (file_exists(MAIN_HOME . 'player/libs/TMDb/config/config.php')) {
-                unlink(MAIN_HOME . 'player/libs/TMDb/config/config.php');
-            }
-            if (file_exists(MAIN_HOME . 'player/libs/TMDb/roles/MovieRole.php')) {
-                unlink(MAIN_HOME . 'player/libs/TMDb/roles/MovieRole.php');
-            }
-            if (file_exists(MAIN_HOME . 'player/libs/TMDb/roles/TVShowRole.php')) {
-                unlink(MAIN_HOME . 'player/libs/TMDb/roles/TVShowRole.php');
-            }
-            if (file_exists(MAIN_HOME . 'player/libs/tmdb.php')) {
-                unlink(MAIN_HOME . 'player/libs/tmdb.php');
+            if (file_exists(MAIN_HOME . 'includes/python/guess.spec')) {
+                unlink(MAIN_HOME . 'includes/python/guess.spec');
             }
 
             // Remove 'reuseport' from nginx port configs
