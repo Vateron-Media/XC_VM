@@ -90,6 +90,18 @@ include 'header.php'; ?>
                                                         </select>
                                                     </div>
                                                 </div>
+                                                <div class="form-group row mb-4">
+                                                    <label class="col-md-4 col-form-label" for="lang">Language</label>
+                                                    <div class="col-md-8">
+                                                        <select name="lang" id="lang" class="form-control" data-toggle="select2">
+                                                            <?php foreach ($allowedLangs as $rText) { ?>
+                                                                <option <?php if ($rUserInfo['lang'] == $rText) {
+                                                                            echo 'selected ';
+                                                                        } ?>value="<?php echo $rText; ?>"><?php echo $rText; ?></option>
+                                                            <?php } ?>
+                                                        </select>
+                                                    </div>
+                                                </div>
                                                 <?php foreach (getcodes() as $rCode) {
                                                     if ($rCode['type'] == 3 && in_array($rUserInfo['member_group_id'], json_decode($rCode['groups'], true))) { ?>
                                                         <div class="form-group row mb-4">

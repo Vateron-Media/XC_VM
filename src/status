@@ -80,6 +80,12 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 				StreamingUtilities::$db->query("ALTER TABLE `users` ADD COLUMN `api_key` VARCHAR(64) NULL DEFAULT '';");
 			}
 
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `users` LIKE 'lang';");
+
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `users` ADD COLUMN `lang` varchar(50) COLLATE utf8_unicode_ci DEFAULT 'en';");
+			}
+
 			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'api_probe';");
 
 			if (StreamingUtilities::$db->num_rows() == 0) {

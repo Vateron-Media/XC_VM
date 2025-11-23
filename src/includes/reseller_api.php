@@ -40,6 +40,7 @@ class ResellerAPI {
 
 	public static function editResellerProfile($rData) {
 		global $rHues;
+		global $allowedLangs;
 		$rData = self::processData('profile', $rData);
 
 		if (0 >= strlen($rData['email']) || filter_var($rData['email'], FILTER_VALIDATE_EMAIL)) {
@@ -60,17 +61,19 @@ class ResellerAPI {
 				$rData['api_key'] = '';
 			}
 
-			if (in_array($rData['hue'], $rHues)) {
-			} else {
+			if (!in_array($rData['hue'], $rHues)) {
 				$rData['hue'] = '';
 			}
 
-			if (in_array($rData['theme'], array(0, 1))) {
-			} else {
+			if (!in_array($rData['theme'], array(0, 1))) {
 				$rData['theme'] = 0;
 			}
 
-			self::$db->query('UPDATE `users` SET `password` = ?, `email` = ?, `reseller_dns` = ?, `theme` = ?, `hue` = ?, `timezone` = ?, `api_key` = ? WHERE `id` = ?;', $rPassword, $rData['email'], $rData['reseller_dns'], $rData['theme'], $rData['hue'], $rData['timezone'], $rData['api_key'], self::$rUserInfo['id']);
+			if (!in_array($rData['lang'], $allowedLangs)) {
+				$rData['lang'] = 'en';
+			}
+
+			self::$db->query('UPDATE `users` SET `password` = ?, `email` = ?, `reseller_dns` = ?, `theme` = ?, `hue` = ?, `timezone` = ?, `api_key` = ?, `lang` = ? WHERE `id` = ?;', $rPassword, $rData['email'], $rData['reseller_dns'], $rData['theme'], $rData['hue'], $rData['timezone'], $rData['api_key'], $rData['lang'], self::$rUserInfo['id']);
 
 			return array('status' => STATUS_SUCCESS);
 		}

@@ -394,6 +394,7 @@ class API {
 	}
 
 	public static function editAdminProfile($rData) {
+		global $allowedLangs;
 		if (self::checkMinimumRequirements($rData)) {
 			if (0 >= strlen($rData['email']) || filter_var($rData['email'], FILTER_VALIDATE_EMAIL)) {
 
@@ -409,7 +410,11 @@ class API {
 					$rData['api_key'] = '';
 				}
 
-				self::$db->query('UPDATE `users` SET `password` = ?, `email` = ?, `theme` = ?, `hue` = ?, `timezone` = ?, `api_key` = ? WHERE `id` = ?;', $rPassword, $rData['email'], $rData['theme'], $rData['hue'], $rData['timezone'], $rData['api_key'], self::$rUserInfo['id']);
+				if (!in_array($rData['lang'], $allowedLangs)) {
+					$rData['lang'] = 'en';
+				}
+
+				self::$db->query('UPDATE `users` SET `password` = ?, `email` = ?, `theme` = ?, `hue` = ?, `timezone` = ?, `api_key` = ?, `lang` = ? WHERE `id` = ?;', $rPassword, $rData['email'], $rData['theme'], $rData['hue'], $rData['timezone'], $rData['api_key'], $rData['lang'], self::$rUserInfo['id']);
 
 				return array('status' => STATUS_SUCCESS);
 			}
