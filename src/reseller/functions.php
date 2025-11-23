@@ -23,6 +23,8 @@ if (!isset($_SESSION['reseller'])) {
 
 	setcookie('hue', $rUserInfo['hue'], time() + 604800);
 	setcookie('theme', $rUserInfo['theme'], time() + 604800);
+	setcookie('lang', $rData['lang'], time() + 604800);
+
 	$rPermissions = array_merge(getPermissions($rUserInfo['member_group_id']), getGroupPermissions($rUserInfo['id']));
 	$rUserInfo['reports'] = array_map('intval', array_merge(array($rUserInfo['id']), $rPermissions['all_reports']));
 	$rIP = getIP();
