@@ -4277,58 +4277,87 @@ function scanBouquets() {
 	shell_exec(PHP_BIN . ' ' . CLI_PATH . 'tools.php "bouquets" > /dev/null 2>/dev/null &');
 }
 
+/**
+ * Scan and update bouquet with valid stream IDs
+ * Removes invalid or non-existent streams from bouquet
+ * 
+ * @param int $rID Bouquet ID to scan
+ */
 function scanBouquet($rID) {
-	global $db;
-	$rBouquet = getBouquet($rID);
+    global $db;
+    
+    $rBouquet = getBouquet($rID);
+    if (!$rBouquet) {
+        return; // Bouquet not found, exit early
+    }
 
-	if (!$rBouquet) {
-	} else {
-		$rStreamIDs = array(array(), array());
-		$db->query('SELECT `id` FROM `streams`;');
+    // Get all available stream IDs
+    $availableStreams = [];
+    $db->query('SELECT `id` FROM `streams`;');
+    if ($db->num_rows() > 0) {
+        foreach ($db->get_rows() as $rRow) {
+            $availableStreams[] = (int)$rRow['id'];
+        }
+    }
 
-		if (0 >= $db->num_rows()) {
-		} else {
-			foreach ($db->get_rows() as $rRow) {
-				$rStreamIDs[0][] = intval($rRow['id']);
-			}
-		}
+    // Get all available series IDs
+    $availableSeries = [];
+    $db->query('SELECT `id` FROM `streams_series`;');
+    if ($db->num_rows() > 0) {
+        foreach ($db->get_rows() as $rRow) {
+            $availableSeries[] = (int)$rRow['id'];
+        }
+    }
 
-		$db->query('SELECT `id` FROM `streams_series`;');
+    // Filter bouquet data against available IDs
+    $updateData = [
+        'channels' => filterIDs(json_decode($rBouquet['bouquet_channels'] ?? '[]', true), $availableStreams, true),
+        'movies' => filterIDs(json_decode($rBouquet['bouquet_movies'] ?? '[]', true), $availableStreams, true),
+        'radios' => filterIDs(json_decode($rBouquet['bouquet_radios'] ?? '[]', true), $availableStreams, true),
+        'series' => filterIDs(json_decode($rBouquet['bouquet_series'] ?? '[]', true), $availableSeries, false)
+    ];
 
-		if (0 >= $db->num_rows()) {
-		} else {
-			foreach ($db->get_rows() as $rRow) {
-				$rStreamIDs[1][] = intval($rRow['id']);
-			}
-		}
+    // Update bouquet with filtered data using prepared statements
+    $db->query(
+        "UPDATE `bouquets` SET 
+            `bouquet_channels` = ?, 
+            `bouquet_movies` = ?, 
+            `bouquet_radios` = ?, 
+            `bouquet_series` = ? 
+         WHERE `id` = ?", 
+        json_encode($updateData['channels']),
+        json_encode($updateData['movies']),
+        json_encode($updateData['radios']),
+        json_encode($updateData['series']),
+        $rBouquet['id']
+    );
+}
 
-		$UpdateData = array(array(), array(), array(), array());
+/**
+ * Filter and validate array of IDs
+ * 
+ * @param array $ids Array of IDs to filter
+ * @param array $availableIDs Array of valid available IDs
+ * @param bool $checkPositive Whether to check for positive integers
+ * @return array Filtered array of valid IDs
+ */
+function filterIDs($ids, $availableIDs, $checkPositive = true) {
+    $filtered = [];
+    
+    if (!is_array($ids)) {
+        return $filtered;
+    }
 
-		foreach (json_decode($rBouquet['bouquet_channels'], true) as $rID) {
-			if (0 < intval($rID) && in_array(intval($rID), $rStreamIDs[0])) {
-				$UpdateData[0][] = intval($rID);
-			}
-		}
-
-		foreach (json_decode($rBouquet['bouquet_movies'], true) as $rID) {
-			if (0 < intval($rID) && in_array(intval($rID), $rStreamIDs[0])) {
-				$UpdateData[1][] = intval($rID);
-			}
-		}
-
-		foreach (json_decode($rBouquet['bouquet_radios'], true) as $rID) {
-			if (0 < intval($rID) && in_array(intval($rID), $rStreamIDs[0])) {
-				$UpdateData[2][] = intval($rID);
-			}
-		}
-
-		foreach (json_decode($rBouquet['bouquet_series'], true) as $rID) {
-			if (in_array(intval($rID), $rStreamIDs[1])) {
-				$UpdateData[3][] = intval($rID);
-			}
-		}
-		$db->query("UPDATE `bouquets` SET `bouquet_channels` = '[" . implode(',', array_map('intval', $UpdateData[0])) . "]', `bouquet_movies` = '[" . implode(',', array_map('intval', $UpdateData[1])) . "]', `bouquet_radios` = '[" . implode(',', array_map('intval', $UpdateData[2])) . "]', `bouquet_series` = '[" . implode(',', array_map('intval', $UpdateData[3])) . "]' WHERE `id` = ?;", $rBouquet['id']);
-	}
+    foreach ($ids as $id) {
+        $intID = (int)$id;
+        $isValid = (!$checkPositive || $intID > 0) && in_array($intID, $availableIDs);
+        
+        if ($isValid) {
+            $filtered[] = $intID;
+        }
+    }
+    
+    return $filtered;
 }
 
 function getNextOrder() {
