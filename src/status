@@ -1166,12 +1166,6 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `mysql_sleep_kill` INT(11) NULL DEFAULT '21600';");
 			}
 
-			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'xc_vm_version';");
-
-			if (StreamingUtilities::$db->num_rows() == 0) {
-				StreamingUtilities::$db->query('ALTER TABLE `settings` ADD COLUMN `xc_vm_version` varchar(50) COLLATE utf8_unicode_ci DEFAULT NULL;');
-			}
-
 			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'reissues';");
 
 			if (StreamingUtilities::$db->num_rows() == 0) {
@@ -1357,6 +1351,12 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 
 			if (StreamingUtilities::$db->num_rows() == 0) {
 				StreamingUtilities::$db->query("ALTER TABLE `servers` ADD COLUMN `limit_burst` INT(11) NULL DEFAULT '0';");
+			}
+
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `servers` LIKE 'xc_vm_version';");
+
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `servers` ADD COLUMN `xc_vm_version` varchar(50) COLLATE utf8_unicode_ci DEFAULT NULL;");
 			}
 
 			StreamingUtilities::$db->query("SELECT `DATA_TYPE` FROM INFORMATION_SCHEMA.COLUMNS WHERE `TABLE_SCHEMA` = 'xc_vm' AND `TABLE_NAME` = 'servers' AND `COLUMN_NAME` = 'parent_id';");
