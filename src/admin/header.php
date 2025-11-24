@@ -302,7 +302,7 @@
                                     <?php endif; ?>
                                     <?php if (hasPermissions('adv', 'add_user') || hasPermissions('adv', 'users') || hasPermissions('adv', 'add_mag') || hasPermissions('adv', 'manage_mag') || hasPermissions('adv', 'add_e2') || hasPermissions('adv', 'manage_e2')): ?>
                                         <li class="has-submenu">
-                                            <a href="#"> <i class="fas fa-desktop"></i>Users <div class="arrow-down">
+                                            <a href="#"> <i class="fas fa-desktop"></i><?= $_['users']; ?> <div class="arrow-down">
                                                 </div></a>
                                             <ul class="submenu">
                                                 <?php if (hasPermissions('adv', 'add_user') || hasPermissions('adv', 'users')): ?>
