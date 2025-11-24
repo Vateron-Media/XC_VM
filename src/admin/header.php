@@ -289,10 +289,10 @@
                                                 </div></a>
                                             <ul class="submenu">
                                                 <?php if (hasPermissions('adv', 'servers')): ?>
-                                                    <li><a href="server_install">Install Load Balancer</a></li>
+                                                    <li><a href="server_install"><?= $_['install_load_balancer']; ?></a></li>
                                                     <li><a href="servers"><?= $_['manage_servers']; ?></a></li>
                                                     <li><a href="proxies"><?= $_['manage_proxies']; ?></a></li>
-                                                    <li><a href="server_order">Server Order</a></li>
+                                                    <li><a href="server_order"><?= $_['server_order']; ?></a></li>
                                                 <?php endif; ?>
                                                 <?php if (hasPermissions('adv', 'process_monitor')): ?>
                                                     <li><a href="process_monitor"><?= $_['process_monitor']; ?></a></li>
