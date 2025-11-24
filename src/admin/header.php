@@ -475,8 +475,7 @@
 
                                                 <?php if (hasPermissions('adv', 'movies')): ?><li><a href="archive">Recordings</a></li>
                                                 <?php endif; ?>
-                                                <?php if (!$rMobile && hasPermissions('adv', 'streams')): ?><li><a href="epg_view">TV
-                                                            Guide</a></li><?php endif; ?>
+                                                <?php if (!$rMobile && hasPermissions('adv', 'streams')): ?><li><a href="epg_view"><?= $_['tv_guide']; ?></a></li><?php endif; ?>
                                             </ul>
                                         </li>
                                     <?php endif; ?>
