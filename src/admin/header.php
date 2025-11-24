@@ -391,7 +391,7 @@
                                                                         href="streams"><?= $_['manage_streams']; ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'streams')): ?><li><a
-                                                                        href="stream_mass">Mass Edit Streams</a></li>
+                                                                        href="stream_mass"><?= $_['mass_edit_streams']; ?></a></li>
                                                             <?php endif; ?>
                                                         </ul>
                                                     </li>
