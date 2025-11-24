@@ -310,13 +310,13 @@
                                                         <a href="#"><?= $_['user_lines']; ?> <div class="arrow-down"></div></a>
                                                         <ul class="submenu">
                                                             <?php if (hasPermissions('adv', 'add_user')): ?>
-                                                                <li><a href="line">Add User</a></li>
+                                                                <li><a href="line"><?= $_['add_users']; ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'users')): ?>
-                                                                <li><a href="lines">Manage Users</a></li>
+                                                                <li><a href="lines"><?= $_['manage_users']; ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'mass_edit_lines')): ?>
-                                                                <li><a href="line_mass">Mass Edit Users</a></li>
+                                                                <li><a href="line_mass"><?= $_['mass_edit_users']; ?></a></li>
                                                             <?php endif; ?>
                                                         </ul>
                                                     </li>
