@@ -409,7 +409,7 @@
                                                                         href="created_channels"><?= $_['manage_created_channels']; ?></a>
                                                                 </li><?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'streams')): ?><li><a
-                                                                        href="created_channel_mass">Mass Edit Created Channels</a>
+                                                                        href="created_channel_mass"><?= $_['mass_edit_created_channels']; ?></a>
                                                                 </li><?php endif; ?>
                                                         </ul>
                                                     </li>
