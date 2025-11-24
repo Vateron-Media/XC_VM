@@ -422,14 +422,14 @@
                                                             <?php if (hasPermissions('adv', 'add_movie')): ?><li><a
                                                                         href="movie"><?= $_['add_movie']; ?></a></li><?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'import_movies') && !$rMobile): ?>
-                                                                <li><a href="movie?import=1">Import Multiple</a></li>
-                                                                <li><a href="review?type=2">Import & Review</a></li>
+                                                                <li><a href="movie?import=1"><?= $_['import_multiple_movies']; ?></a></li>
+                                                                <li><a href="review?type=2"><?= $_['import_review_movies']; ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'movies')): ?><li><a
                                                                         href="movies"><?= $_['manage_movies']; ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'mass_sedits_vod')): ?>
-                                                                <li><a href="movie_mass">Mass Edit Movies</a></li>
+                                                                <li><a href="movie_mass"><?= $_['mass_edit_movies']; ?></a></li>
                                                             <?php endif; ?>
                                                         </ul>
                                                     </li>
@@ -473,7 +473,7 @@
                                                     </li>
                                                 <?php endif; ?>
 
-                                                <?php if (hasPermissions('adv', 'movies')): ?><li><a href="archive">Recordings</a></li>
+                                                <?php if (hasPermissions('adv', 'movies')): ?><li><a href="archive"><?= $_['recordings']; ?></a></li>
                                                 <?php endif; ?>
                                                 <?php if (!$rMobile && hasPermissions('adv', 'streams')): ?><li><a href="epg_view"><?= $_['tv_guide']; ?></a></li><?php endif; ?>
                                             </ul>
