@@ -112,7 +112,7 @@ lb_update_copy_files:
 	@mkdir -p $(TEMP_DIR)
 
 	@echo "[INFO] Copying modified or added files from 'src/' that are in LB_FILES..."
-	@for file in $$(git diff --name-status $(LAST_TAG)..HEAD | grep -E '^[AM]' | cut -f2 | grep '^src/'); do \
+	@for file in $$(git diff --name-only --diff-filter=AMR $(LAST_TAG)..HEAD | grep '^src/'); do \
 		rel_path=$$(echo "$$file" | sed 's|^src/||'); \
 		# Check if the file belongs to one of the allowed directories LB_FILES \
 		allowed=0; \
@@ -179,11 +179,11 @@ main_update_copy_files:
 	@mkdir -p $(TEMP_DIR)
 
 	@echo "[INFO] Copying modified or added files from 'src/'..."
-	@for file in $$(git diff --name-status $(LAST_TAG)..HEAD | grep -E '^[AM]' | cut -f2 | grep '^src/'); do \
+	@for file in $$(git diff --name-only --diff-filter=AMR $(LAST_TAG)..HEAD | grep '^src/'); do \
 		rel_path=$$(echo "$$file" | sed 's|^src/||'); \
 		if [ -f "$$file" ]; then \
 			echo "[COPY] $$file -> $(TEMP_DIR)/$$rel_path"; \
-			mkdir -p "$(TEMP_DIR)/$$(dirname $$rel_path)"; \
+			mkdir -p "$(TEMP_DIR)/$$(dirname "$$rel_path")"; \
 			cp "$$file" "$(TEMP_DIR)/$$rel_path"; \
 		fi \
 	done
