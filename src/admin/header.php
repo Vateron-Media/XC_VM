@@ -147,35 +147,35 @@
                                     </a>
                                     <div class="dropdown-menu dropdown-menu-right profile-dropdown">
                                         <a href="edit_profile" class="dropdown-item notify-item">
-                                            <span>User Profile</span>
+                                            <span><?= $_['user_profile']; ?></span>
                                         </a>
                                         <?php if (hasPermissions('adv', 'settings')): ?>
                                             <a href="settings" class="dropdown-item notify-item">
-                                                <span>General Settings</span>
+                                                <span><?= $_['general_settings']; ?></span>
                                             </a>
                                         <?php endif; ?>
                                         <?php if (hasPermissions('adv', 'database')): ?>
                                             <a href="backups" class="dropdown-item notify-item">
-                                                <span>Backup Settings</span>
+                                                <span><?= $_['backup_settings']; ?></span>
                                             </a>
                                             <a href="cache" class="dropdown-item notify-item">
-                                                <span>Cache & Redis</span>
+                                                <span><?= $_['cache_redis']; ?></span>
                                             </a>
                                         <?php endif; ?>
 
                                         <?php if (hasPermissions('adv', 'folder_watch_settings')): ?>
                                             <div class="dropdown-divider"></div>
                                             <a href="settings_plex" class="dropdown-item notify-item">
-                                                <span>Plex Settings</span>
+                                                <span><?= $_['plex_settings']; ?></span>
                                             </a>
                                             <a href="settings_watch" class="dropdown-item notify-item">
-                                                <span>Watch Settings</span>
+                                                <span><?= $_['watch_settings']; ?></span>
                                             </a>
                                         <?php endif; ?>
 
                                         <div class="dropdown-divider"></div>
                                         <a href="logout" class="dropdown-item notify-item">
-                                            <span>Logout</span>
+                                            <span><?= $_['logout']; ?></span>
                                         </a>
                                     </div>
                                 </li>
@@ -289,10 +289,10 @@
                                                 </div></a>
                                             <ul class="submenu">
                                                 <?php if (hasPermissions('adv', 'servers')): ?>
-                                                    <li><a href="server_install">Install Load Balancer</a></li>
+                                                    <li><a href="server_install"><?= $_['install_load_balancer']; ?></a></li>
                                                     <li><a href="servers"><?= $_['manage_servers']; ?></a></li>
                                                     <li><a href="proxies"><?= $_['manage_proxies']; ?></a></li>
-                                                    <li><a href="server_order">Server Order</a></li>
+                                                    <li><a href="server_order"><?= $_['server_order']; ?></a></li>
                                                 <?php endif; ?>
                                                 <?php if (hasPermissions('adv', 'process_monitor')): ?>
                                                     <li><a href="process_monitor"><?= $_['process_monitor']; ?></a></li>
@@ -302,7 +302,7 @@
                                     <?php endif; ?>
                                     <?php if (hasPermissions('adv', 'add_user') || hasPermissions('adv', 'users') || hasPermissions('adv', 'add_mag') || hasPermissions('adv', 'manage_mag') || hasPermissions('adv', 'add_e2') || hasPermissions('adv', 'manage_e2')): ?>
                                         <li class="has-submenu">
-                                            <a href="#"> <i class="fas fa-desktop"></i>Users <div class="arrow-down">
+                                            <a href="#"> <i class="fas fa-desktop"></i><?= $_['users']; ?> <div class="arrow-down">
                                                 </div></a>
                                             <ul class="submenu">
                                                 <?php if (hasPermissions('adv', 'add_user') || hasPermissions('adv', 'users')): ?>
@@ -310,13 +310,13 @@
                                                         <a href="#"><?= $_['user_lines']; ?> <div class="arrow-down"></div></a>
                                                         <ul class="submenu">
                                                             <?php if (hasPermissions('adv', 'add_user')): ?>
-                                                                <li><a href="line">Add User</a></li>
+                                                                <li><a href="line"><?= $_['add_users']; ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'users')): ?>
-                                                                <li><a href="lines">Manage Users</a></li>
+                                                                <li><a href="lines"><?= $_['manage_users']; ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'mass_edit_lines')): ?>
-                                                                <li><a href="line_mass">Mass Edit Users</a></li>
+                                                                <li><a href="line_mass"><?= $_['mass_edit_users']; ?></a></li>
                                                             <?php endif; ?>
                                                         </ul>
                                                     </li>
@@ -355,16 +355,16 @@
                                                 <?php endif; ?>
                                                 <?php if (hasPermissions('adv', 'add_reguser') || hasPermissions('adv', 'mng_regusers')): ?>
                                                     <li class="has-submenu">
-                                                        <a href="#">Reseller <div class="arrow-down"></div></a>
+                                                        <a href="#"><?= $_['reseller']; ?> <div class="arrow-down"></div></a>
                                                         <ul class="submenu">
                                                             <?php if (hasPermissions('adv', 'add_reguser')): ?>
-                                                                <li><a href="user">Add Registered User</a></li>
+                                                                <li><a href="user"><?= $_['add_registered_user']; ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'mng_regusers')): ?>
-                                                                <li><a href="users">Manage Registered User</a></li>
+                                                                <li><a href="users"><?= $_['manage_registered_user']; ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'mass_edit_users')): ?>
-                                                                <li><a href="user_mass">Mass Edit Resellers</a></li>
+                                                                <li><a href="user_mass"><?= $_['mass_edit_resellers']; ?></a></li>
                                                             <?php endif; ?>
                                                         </ul>
                                                     </li>
@@ -384,14 +384,14 @@
                                                             <?php if (hasPermissions('adv', 'add_stream')): ?><li><a
                                                                         href="stream"><?= $_['add_stream']; ?></a></li><?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'import_streams') && !$rMobile): ?>
-                                                                <li><a href="stream?import=1">Import Multiple</a></li>
-                                                                <li><a href="review?type=1">Import & Review</a></li>
+                                                                <li><a href="stream?import=1"><?= $_['import_multiple_stream']; ?></a></li>
+                                                                <li><a href="review?type=1"><?= $_['import_review_stream']; ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'streams')): ?><li><a
                                                                         href="streams"><?= $_['manage_streams']; ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'streams')): ?><li><a
-                                                                        href="stream_mass">Mass Edit Streams</a></li>
+                                                                        href="stream_mass"><?= $_['mass_edit_streams']; ?></a></li>
                                                             <?php endif; ?>
                                                         </ul>
                                                     </li>
@@ -409,7 +409,7 @@
                                                                         href="created_channels"><?= $_['manage_created_channels']; ?></a>
                                                                 </li><?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'streams')): ?><li><a
-                                                                        href="created_channel_mass">Mass Edit Created Channels</a>
+                                                                        href="created_channel_mass"><?= $_['mass_edit_created_channels']; ?></a>
                                                                 </li><?php endif; ?>
                                                         </ul>
                                                     </li>
@@ -422,14 +422,14 @@
                                                             <?php if (hasPermissions('adv', 'add_movie')): ?><li><a
                                                                         href="movie"><?= $_['add_movie']; ?></a></li><?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'import_movies') && !$rMobile): ?>
-                                                                <li><a href="movie?import=1">Import Multiple</a></li>
-                                                                <li><a href="review?type=2">Import & Review</a></li>
+                                                                <li><a href="movie?import=1"><?= $_['import_multiple_movies']; ?></a></li>
+                                                                <li><a href="review?type=2"><?= $_['import_review_movies']; ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'movies')): ?><li><a
                                                                         href="movies"><?= $_['manage_movies']; ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'mass_sedits_vod')): ?>
-                                                                <li><a href="movie_mass">Mass Edit Movies</a></li>
+                                                                <li><a href="movie_mass"><?= $_['mass_edit_movies']; ?></a></li>
                                                             <?php endif; ?>
                                                         </ul>
                                                     </li>
@@ -467,16 +467,15 @@
                                                                         href="radios"><?= $_['manage_stations']; ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'mass_edit_radio')): ?>
-                                                                <li><a href="radio_mass">Mass Edit Stations</a></li>
+                                                                <li><a href="radio_mass"><?= $_['mass_edit_stations']; ?></a></li>
                                                             <?php endif; ?>
                                                         </ul>
                                                     </li>
                                                 <?php endif; ?>
 
-                                                <?php if (hasPermissions('adv', 'movies')): ?><li><a href="archive">Recordings</a></li>
+                                                <?php if (hasPermissions('adv', 'movies')): ?><li><a href="archive"><?= $_['recordings']; ?></a></li>
                                                 <?php endif; ?>
-                                                <?php if (!$rMobile && hasPermissions('adv', 'streams')): ?><li><a href="epg_view">TV
-                                                            Guide</a></li><?php endif; ?>
+                                                <?php if (!$rMobile && hasPermissions('adv', 'streams')): ?><li><a href="epg_view"><?= $_['tv_guide']; ?></a></li><?php endif; ?>
                                             </ul>
                                         </li>
                                     <?php endif; ?>
@@ -504,7 +503,7 @@
                                             <ul class="submenu">
                                                 <?php if (hasPermissions('adv', 'categories') || hasPermissions('adv', 'epg') || hasPermissions('adv', 'mng_groups') || hasPermissions('adv', 'mng_packages') || hasPermissions('adv', 'tprofiles') || hasPermissions('adv', 'folder_watch')): ?>
                                                     <li class="has-submenu">
-                                                        <a href="#">Service Setup <div class="arrow-down"></div></a>
+                                                        <a href="#"><?= $_['service_setup']; ?> <div class="arrow-down"></div></a>
                                                         <ul class="submenu">
                                                             <?php if (hasPermissions('adv', 'mng_packages')): ?>
                                                                 <li><a href="packages"><?= $_['packages']; ?></a></li>
@@ -533,10 +532,10 @@
                                                         <a href="#">Access Codes <div class="arrow-down"></div></a>
                                                         <ul class="submenu">
                                                             <?php if (hasPermissions('adv', 'add_code')): ?>
-                                                                <li><a href="code">Add Access Codes</a></li>
+                                                                <li><a href="code"><?= $_['add_access_codes']; ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'add_code')): ?>
-                                                                <li><a href="codes">Menage Access Codes</a></li>
+                                                                <li><a href="codes"><?= $_['menage_access_codes']; ?></a></li>
                                                             <?php endif; ?>
                                                         </ul>
                                                     </li>
@@ -546,7 +545,7 @@
                                                         <a href="#">Security <div class="arrow-down"></div></a>
                                                         <ul class="submenu">
                                                             <?php if (hasPermissions('adv', 'block_asns')): ?>
-                                                                <li><a href="asns">Blocked ASN's</a></li>
+                                                                <li><a href="asns"><?= $_['blocked_asns']; ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'block_ips')): ?>
                                                                 <li><a href="ips"><?= $_['blocked_ips']; ?></a></li>
@@ -558,7 +557,7 @@
                                                                 <li><a href="useragents"><?= $_['blocked_uas']; ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'add_hmac')): ?>
-                                                                <li><a href="hmacs">HMAC Keys</a></li>
+                                                                <li><a href="hmacs"><?= $_['hmac_keys']; ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'rtmp')): ?>
                                                                 <li><a href="rtmp_ips"><?= $_['rtmp_ips']; ?></a></li>
@@ -645,14 +644,14 @@
                                     <?php endif; ?>
                                     <?php if (hasPermissions('adv', 'add_bouquet') || hasPermissions('adv', 'streams') || hasPermissions('adv', 'categories')): ?>
                                         <li class="has-submenu">
-                                            <a href="#"> <i class="fas fa-users"></i>Supplirs <div class="arrow-down"></div>
+                                            <a href="#"> <i class="fas fa-users"></i><?= $_['supplirs']; ?> <div class="arrow-down"></div>
                                             </a>
                                             <ul class="submenu">
                                                 <?php if (hasPermissions('adv', 'streams')): ?>
-                                                    <li><a href="provider">Add Providers</a></li>
+                                                    <li><a href="provider"><?= $_['add_providers']; ?></a></li>
                                                 <?php endif; ?>
                                                 <?php if (hasPermissions('adv', 'streams')): ?>
-                                                    <li><a href="providers">Stream Providers</a></li>
+                                                    <li><a href="providers"><?= $_['stream_providers']; ?></a></li>
                                                 <?php endif; ?>
                                             </ul>
                                         </li>
