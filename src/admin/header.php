@@ -648,7 +648,7 @@
                                             </a>
                                             <ul class="submenu">
                                                 <?php if (hasPermissions('adv', 'streams')): ?>
-                                                    <li><a href="provider"<?= $_['add_providers']; ?></a></li>
+                                                    <li><a href="provider"><?= $_['add_providers']; ?></a></li>
                                                 <?php endif; ?>
                                                 <?php if (hasPermissions('adv', 'streams')): ?>
                                                     <li><a href="providers"><?= $_['stream_providers']; ?></a></li>
