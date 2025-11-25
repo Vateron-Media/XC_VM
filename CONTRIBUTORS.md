@@ -1,7 +1,7 @@
 ## ✨ Contributors
 
 Thanks to these amazing people for contributing to the project!
-Want to see your name here? [Open a PR](https://github.com/Vateron-Media/XC_VM/pulls) or [report an issue](https://github.com/Vateron-Media/XC_VM/issues) — and you’ll be listed 🎉
+Want to see your name here? [Open a PR](https://github.com/Vateron-Media/XC_VM/pulls) or [report an issue](https://github.com/Vateron-Media/XC_VM/issues) — and you'll be listed 🎉
 
 ---
 
@@ -38,6 +38,14 @@ Want to see your name here? [Open a PR](https://github.com/Vateron-Media/XC_VM/p
 ### 🎨 Design
 
 * [@Stefan2512](https://github.com/Stefan2512) — Logo and intro
+
+---
+
+## 🌐 Translations
+
+### 🇪🇸 Spanish Translation
+
+* [@IPTVEX](https://github.com/IPTVEX) — Spanish language support and localization
 
 ---
 
