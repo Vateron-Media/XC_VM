@@ -1,3 +1,13 @@
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+START TRANSACTION;
+SET time_zone = "+00:00";
+
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
+
 -- --------------------------------------------------------
 
 --
@@ -69452,7 +69462,8 @@ CREATE TABLE IF NOT EXISTS `lines` (
   KEY `is_mag` (`is_mag`),
   KEY `username` (`username`),
   KEY `password` (`password`),
-  KEY `is_e2` (`is_e2`)
+  KEY `is_e2` (`is_e2`),
+  KEY `order_default` (`id`,`is_mag`,`is_e2`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------
@@ -70018,7 +70029,7 @@ CREATE TABLE IF NOT EXISTS `servers` (
   `private_ip` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
   `is_main` int(16) DEFAULT '0',
   `enabled` int(16) DEFAULT '1',
-  `parent_id` int(16) DEFAULT '0',
+  `parent_id` text COLLATE utf8_unicode_ci,
   `http_broadcast_port` int(11) DEFAULT '80',
   `https_broadcast_port` int(11) DEFAULT '443',
   `http_ports_add` mediumtext COLLATE utf8_unicode_ci,
@@ -70056,7 +70067,6 @@ CREATE TABLE IF NOT EXISTS `servers` (
   `time_offset` int(11) DEFAULT '0',
   `ping` int(11) DEFAULT '0',
   `requests_per_second` int(11) DEFAULT '0',
-  `php_version` int(2) DEFAULT '74',
   `php_pids` longtext COLLATE utf8_unicode_ci,
   `connections` int(16) DEFAULT '0',
   `users` int(16) DEFAULT '0',
@@ -70064,6 +70074,10 @@ CREATE TABLE IF NOT EXISTS `servers` (
   `governors` mediumtext COLLATE utf8_unicode_ci,
   `governor` varchar(512) COLLATE utf8_unicode_ci DEFAULT NULL,
   `sysctl` mediumtext COLLATE utf8_unicode_ci,
+  `order` int(11) DEFAULT NULL,
+  `enable_gzip` tinyint(1) DEFAULT '0',
+  `limit_requests` int(11) DEFAULT '0',
+  `limit_burst` int(11) DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `total_clients` (`total_clients`),
   KEY `status` (`status`)
@@ -70073,8 +70087,8 @@ CREATE TABLE IF NOT EXISTS `servers` (
 -- Dumping data for table `servers`
 --
 
-INSERT INTO `servers` (`id`, `server_type`, `xc_vm_version`, `server_name`, `domain_name`, `server_ip`, `private_ip`, `is_main`, `enabled`, `parent_id`, `http_broadcast_port`, `https_broadcast_port`, `http_ports_add`, `https_ports_add`, `total_clients`, `network_interface`, `status`, `enable_geoip`, `geoip_countries`, `last_check_ago`, `server_hardware`, `total_services`, `persistent_connections`, `rtmp_port`, `geoip_type`, `isp_names`, `isp_type`, `enable_isp`, `network_guaranteed_speed`, `timeshift_only`, `whitelist_ips`, `watchdog_data`, `video_devices`, `audio_devices`, `gpu_info`, `interfaces`, `random_ip`, `enable_proxy`, `enable_https`, `certbot_renew`, `certbot_ssl`, `uuid`, `use_disk`, `last_status`, `time_offset`, `ping`, `requests_per_second`, `php_version`, `php_pids`, `connections`, `users`, `remote_status`, `governors`, `governor`, `sysctl`) VALUES
-(1, 0, '1.5.8', 'Main Server', '', '127.0.0.1', '', 1, 1, 0, 80, 443, NULL, NULL, 1000, 'auto', 1, 0, '[]', 0, NULL, 4, 0, 8880, 'low_priority', '', 'low_priority', 0, 1000, 0, '[\"127.0.0.1\"]', NULL, '[]', '[]', '[]', '[\"eth0\"]', 0, 0, 0, 0, NULL, NULL, 0, 0, 0, 0, 0, 74, NULL, 0, 0, 1, NULL, NULL, NULL);
+INSERT INTO `servers` (`id`, `server_type`, `xc_vm_version`, `server_name`, `domain_name`, `server_ip`, `private_ip`, `is_main`, `enabled`, `parent_id`, `http_broadcast_port`, `https_broadcast_port`, `http_ports_add`, `https_ports_add`, `total_clients`, `network_interface`, `status`, `enable_geoip`, `geoip_countries`, `last_check_ago`, `server_hardware`, `total_services`, `persistent_connections`, `rtmp_port`, `geoip_type`, `isp_names`, `isp_type`, `enable_isp`, `network_guaranteed_speed`, `timeshift_only`, `whitelist_ips`, `watchdog_data`, `video_devices`, `audio_devices`, `gpu_info`, `interfaces`, `random_ip`, `enable_proxy`, `enable_https`, `certbot_renew`, `certbot_ssl`, `uuid`, `use_disk`, `last_status`, `time_offset`, `ping`, `requests_per_second`, `php_pids`, `connections`, `users`, `remote_status`, `governors`, `governor`, `sysctl`, `order`, `enable_gzip`, `limit_requests`, `limit_burst`) VALUES
+(1, 0, '1.5.8', 'Main Server', '', '127.0.0.1', '', 1, 1, '0', 80, 443, NULL, NULL, 1000, 'auto', 1, 0, '[]', 0, NULL, 4, 0, 8880, 'low_priority', '', 'low_priority', 0, 1000, 0, '[\"127.0.0.1\"]', NULL, '[]', '[]', '[]', '[\"eth0\"]', 0, 0, 0, 0, NULL, NULL, 0, 0, 0, 0, 0, NULL, 0, 0, 1, NULL, NULL, NULL, NULL, 0, 0, 0);
 
 -- --------------------------------------------------------
 
@@ -70373,15 +70387,24 @@ CREATE TABLE IF NOT EXISTS `settings` (
   `reissues` mediumtext COLLATE utf8_unicode_ci,
   `status_uuid` varchar(512) COLLATE utf8_unicode_ci DEFAULT NULL,
   `live_streaming_pass` varchar(512) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `update_channel` varchar(12) COLLATE utf8_unicode_ci DEFAULT 'stable'
+  `update_channel` varchar(12) COLLATE utf8_unicode_ci DEFAULT 'stable',
+  `threshold_cpu` tinyint(3) DEFAULT '67',
+  `threshold_mem` tinyint(3) DEFAULT '67',
+  `threshold_disk` tinyint(3) DEFAULT '67',
+  `threshold_network` tinyint(3) DEFAULT '67',
+  `threshold_clients` tinyint(3) DEFAULT '67',
+  `auth_flood_seconds` int(11) DEFAULT '10',
+  `auth_flood_limit` int(11) DEFAULT '30',
+  `auth_flood_sleep` int(11) DEFAULT '1',
+  `php_loopback` tinyint(1) DEFAULT '1'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 --
 -- Dumping data for table `settings`
 --
 
-INSERT INTO `settings` (`id`, `server_name`, `default_timezone`, `allowed_stb_types`, `client_prebuffer`, `split_clients`, `stream_max_analyze`, `show_not_on_air_video`, `not_on_air_video_path`, `show_banned_video`, `banned_video_path`, `show_expired_video`, `expired_video_path`, `show_expiring_video`, `expiring_video_path`, `mag_container`, `api_container`, `probesize`, `allowed_ips_admin`, `block_svp`, `allow_countries`, `user_auto_kick_hours`, `disallow_empty_user_agents`, `show_all_category_mag`, `flood_limit`, `flood_ips_exclude`, `flood_seconds`, `vod_bitrate_plus`, `read_buffer_size`, `seg_time`, `seg_list_size`, `tv_channel_default_aspect`, `playback_limit`, `show_tv_channel_logo`, `show_channel_logo_in_preview`, `enable_connection_problem_indication`, `vod_limit_perc`, `allowed_stb_types_for_local_recording`, `stalker_theme`, `rtmp_random`, `api_ips`, `use_buffer`, `restreamer_prebuffer`, `audio_restart_loss`, `stalker_lock_images`, `channel_number_type`, `stb_change_pass`, `enable_debug_stalker`, `online_capacity_interval`, `always_enabled_subtitles`, `test_download_url`, `api_pass`, `message_of_day`, `enable_isp_lock`, `show_isps`, `save_closed_connection`, `client_logs_save`, `case_sensitive_line`, `county_override_1st`, `disallow_2nd_ip_con`, `split_by`, `use_mdomain_in_lists`, `priority_backup`, `tmdb_api_key`, `mag_security`, `hls_accelerator`, `backups_pid`, `backups_to_keep`, `cc_time`, `dashboard_stats`, `default_entries`, `disable_trial`, `download_images`, `dropbox_keep`, `dropbox_remote`, `ip_logout`, `last_backup`, `login_flood`, `recaptcha_enable`, `reseller_restrictions`, `stats_pid`, `tmdb_pid`, `watch_pid`, `automatic_backups`, `dropbox_token`, `recaptcha_v2_secret_key`, `recaptcha_v2_site_key`, `tmdb_language`, `release_parser`, `language`, `encrypt_hls`, `disable_ts`, `disable_ts_allow_restream`, `disable_hls`, `disable_hls_allow_restream`, `disable_rtmp`, `disable_rtmp_allow_restream`, `date_format`, `datetime_format`, `streams_grouped`, `disable_player_api`, `disable_playlist`, `disable_xmltv`, `disable_enigma2`, `disable_ministra`, `api_redirect`, `movie_year_append`, `log_clear`, `cleanup`, `fingerprint_max`, `bruteforce_mac_attempts`, `bruteforce_username_attempts`, `bruteforce_frequency`, `auto_update_lbs`, `update_version`, `dashboard_display_alt`, `dashboard_map`, `cpu_limit`, `mem_limit`, `detect_restream_servers`, `detect_restream_block_user`, `detect_restream_block_ip`, `detect_restream_ports`, `cloudflare`, `js_navigate`, `encrypt_playlist`, `encrypt_playlist_restreamer`, `stream_logs_save`, `restrict_same_ip`, `show_tickets`, `percentage_match`, `thread_count`, `scan_seconds`, `verify_host`, `max_genres`, `legacy_get`, `legacy_xmltv`, `mag_disable_ssl`, `hide_failures`, `legacy_panel_api`, `connection_loop_per`, `connection_loop_count`, `api_probe`, `max_simultaneous_downloads`, `restart_php_fpm`, `cache_playlists`, `send_xc_vm_header`, `request_prebuffer`, `debug_show_errors`, `block_streaming_servers`, `block_proxies`, `ip_subnet_match`, `last_cache`, `last_cache_taken`, `ministra_allow_blank`, `enable_cache`, `legacy_mag_auth`, `ignore_invalid_users`, `on_demand_instant_off`, `on_demand_failure_exit`, `on_demand_wait_time`, `playlist_from_mysql`, `show_images`, `kill_rogue_ffmpeg`, `monitor_connection_status`, `stream_fail_sleep`, `custom_ip_header`, `send_protection_headers`, `send_altsvc_header`, `send_server_header`, `send_unique_header`, `send_unique_header_domain`, `max_items`, `restrict_playlists`, `mag_legacy_redirect`, `save_login_logs`, `save_restart_logs`, `keep_activity`, `keep_client`, `keep_login`, `keep_errors`, `keep_restarts`, `ignore_keyframes`, `seg_delete_threshold`, `fails_per_time`, `segment_type`, `thread_count_movie`, `thread_count_show`, `redirect_timeout`, `create_expiration`, `redis_handler`, `redis_password`, `force_epg_timezone`, `check_vod`, `max_encode_movies`, `max_encode_cc`, `queue_loop`, `cache_thread_count`, `cache_changes`, `player_blur`, `player_opacity`, `player_allow_playlist`, `player_allow_bouquet`, `player_hide_incompatible`, `player_allow_hevc`, `read_native_hls`, `keep_protocol`, `ffmpeg_cpu`, `ffmpeg_gpu`, `header_stats`, `mag_keep_extension`, `show_connected_video`, `connected_video_path`, `disallow_2nd_ip_max`, `probesize_ondemand`, `ffmpeg_warnings`, `vod_sort_newest`, `mag_message`, `mag_default_type`, `fps_delay`, `fps_check_type`, `show_category_duplicates`, `probe_extra_wait`, `restream_deny_unauthorised`, `extract_subtitles`, `reseller_ssl_domain`, `disable_xmltv_restreamer`, `disable_playlist_restreamer`, `mag_load_all_channels`, `connection_sync_timer`, `segment_wait_time`, `total_users`, `dts_legacy_ffmpeg`, `allow_cdn_access`, `disable_mag_token`, `ondemand_balance_equal`, `update_data`, `dashboard_status`, `on_demand_checker`, `on_demand_scan_time`, `on_demand_max_probe`, `on_demand_scan_keep`, `parse_type`, `fallback_parser`, `alternative_titles`, `search_items`, `enable_search`, `modal_edit`, `group_buttons`, `license`, `stop_failures`, `restreamer_bypass_proxy`, `mysql_sleep_kill`, `reissues`, `status_uuid`, `live_streaming_pass`, `update_channel`) VALUES
-(1, 'XC_VM', 'Europe/London', '[]', 10, 'equal', 5000000, 1, '', 1, '', 1, '', 1, '', 'ts', 'ts', 5000000, '', 1, '[\"ALL\"]', 3, 1, 1, 40, '', 2, 400, 8192, 10, 6, 'fit', 3, 1, 1, 1, 10, '[]', 'default', 1, '', 0, 0, 0, '', 'bouquet', 1, 0, 10, 0, 'https://speed.hetzner.de/100MB.bin', '', 'Welcome to XC_VM', 1, 1, 1, 1, 1, 0, 0, 'conn', 1, 1, '', 1, 1, 0, 0, 0, 1, 50, 0, 1, 10, 0, 1, 0, 20, 0, 1, 0, 0, 0, 'daily', '', '', '', '', 'python', 'en', 0, 0, 0, 0, 0, 0, 0, 'Y-m-d', 'Y-m-d H:i:s', 1, 0, 0, 0, 0, 0, 0, 0, 31, 1, 25, 10, 10, 300, 1, '1.1.0', 1, 0, 0, 0, 1, 0, 0, '[25461,25550,31210]', 0, 1, 1, 0, 1, 1, 0, 80, 50, 86400, 0, 3, 1, 1, 0, 0, 1, 0, 0, 1, 2, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 20, 0, 1, 1, 1, 10, '', 0, 0, '', '', '', 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 4, 86400, 1, 5, 1, 5, 5, 0, '', 0, 0, 10, 1, 1, 10, 1, 0, 10, 1, 1, 0, 0, 1, 0, '4.0', '4.0', 1, 1, 1, NULL, 1, 256000, 1, 0, 'You can switch between the modern and legacy themes by using the <span class=\"label\">Green</span> and <span class=\"label\">Yellow</span> buttons on your remote control. Doing so will restart your device.', 0, 600, 1, 0, 10, 1, 0, 1, 0, 0, 0, 1, 20, 0, 0, 0, 0, 0, NULL, 1, 0, 3600, 5, 604800, 'ptn', 0, 0, 20, 1, 1, 1, NULL, 3, 0, 21600, NULL, NULL, NULL, 'stable');
+INSERT INTO `settings` (`id`, `server_name`, `default_timezone`, `allowed_stb_types`, `client_prebuffer`, `split_clients`, `stream_max_analyze`, `show_not_on_air_video`, `not_on_air_video_path`, `show_banned_video`, `banned_video_path`, `show_expired_video`, `expired_video_path`, `show_expiring_video`, `expiring_video_path`, `mag_container`, `api_container`, `probesize`, `allowed_ips_admin`, `block_svp`, `allow_countries`, `user_auto_kick_hours`, `disallow_empty_user_agents`, `show_all_category_mag`, `flood_limit`, `flood_ips_exclude`, `flood_seconds`, `vod_bitrate_plus`, `read_buffer_size`, `seg_time`, `seg_list_size`, `tv_channel_default_aspect`, `playback_limit`, `show_tv_channel_logo`, `show_channel_logo_in_preview`, `enable_connection_problem_indication`, `vod_limit_perc`, `allowed_stb_types_for_local_recording`, `stalker_theme`, `rtmp_random`, `api_ips`, `use_buffer`, `restreamer_prebuffer`, `audio_restart_loss`, `stalker_lock_images`, `channel_number_type`, `stb_change_pass`, `enable_debug_stalker`, `online_capacity_interval`, `always_enabled_subtitles`, `test_download_url`, `api_pass`, `message_of_day`, `enable_isp_lock`, `show_isps`, `save_closed_connection`, `client_logs_save`, `case_sensitive_line`, `county_override_1st`, `disallow_2nd_ip_con`, `split_by`, `use_mdomain_in_lists`, `priority_backup`, `tmdb_api_key`, `mag_security`, `hls_accelerator`, `backups_pid`, `backups_to_keep`, `cc_time`, `dashboard_stats`, `default_entries`, `disable_trial`, `download_images`, `dropbox_keep`, `dropbox_remote`, `ip_logout`, `last_backup`, `login_flood`, `recaptcha_enable`, `reseller_restrictions`, `stats_pid`, `tmdb_pid`, `watch_pid`, `automatic_backups`, `dropbox_token`, `recaptcha_v2_secret_key`, `recaptcha_v2_site_key`, `tmdb_language`, `release_parser`, `language`, `encrypt_hls`, `disable_ts`, `disable_ts_allow_restream`, `disable_hls`, `disable_hls_allow_restream`, `disable_rtmp`, `disable_rtmp_allow_restream`, `date_format`, `datetime_format`, `streams_grouped`, `disable_player_api`, `disable_playlist`, `disable_xmltv`, `disable_enigma2`, `disable_ministra`, `api_redirect`, `movie_year_append`, `log_clear`, `cleanup`, `fingerprint_max`, `bruteforce_mac_attempts`, `bruteforce_username_attempts`, `bruteforce_frequency`, `auto_update_lbs`, `update_version`, `dashboard_display_alt`, `dashboard_map`, `cpu_limit`, `mem_limit`, `detect_restream_servers`, `detect_restream_block_user`, `detect_restream_block_ip`, `detect_restream_ports`, `cloudflare`, `js_navigate`, `encrypt_playlist`, `encrypt_playlist_restreamer`, `stream_logs_save`, `restrict_same_ip`, `show_tickets`, `percentage_match`, `thread_count`, `scan_seconds`, `verify_host`, `max_genres`, `legacy_get`, `legacy_xmltv`, `mag_disable_ssl`, `hide_failures`, `legacy_panel_api`, `connection_loop_per`, `connection_loop_count`, `api_probe`, `max_simultaneous_downloads`, `restart_php_fpm`, `cache_playlists`, `send_xc_vm_header`, `request_prebuffer`, `debug_show_errors`, `block_streaming_servers`, `block_proxies`, `ip_subnet_match`, `last_cache`, `last_cache_taken`, `ministra_allow_blank`, `enable_cache`, `legacy_mag_auth`, `ignore_invalid_users`, `on_demand_instant_off`, `on_demand_failure_exit`, `on_demand_wait_time`, `playlist_from_mysql`, `show_images`, `kill_rogue_ffmpeg`, `monitor_connection_status`, `stream_fail_sleep`, `custom_ip_header`, `send_protection_headers`, `send_altsvc_header`, `send_server_header`, `send_unique_header`, `send_unique_header_domain`, `max_items`, `restrict_playlists`, `mag_legacy_redirect`, `save_login_logs`, `save_restart_logs`, `keep_activity`, `keep_client`, `keep_login`, `keep_errors`, `keep_restarts`, `ignore_keyframes`, `seg_delete_threshold`, `fails_per_time`, `segment_type`, `thread_count_movie`, `thread_count_show`, `redirect_timeout`, `create_expiration`, `redis_handler`, `redis_password`, `force_epg_timezone`, `check_vod`, `max_encode_movies`, `max_encode_cc`, `queue_loop`, `cache_thread_count`, `cache_changes`, `player_blur`, `player_opacity`, `player_allow_playlist`, `player_allow_bouquet`, `player_hide_incompatible`, `player_allow_hevc`, `read_native_hls`, `keep_protocol`, `ffmpeg_cpu`, `ffmpeg_gpu`, `header_stats`, `mag_keep_extension`, `show_connected_video`, `connected_video_path`, `disallow_2nd_ip_max`, `probesize_ondemand`, `ffmpeg_warnings`, `vod_sort_newest`, `mag_message`, `mag_default_type`, `fps_delay`, `fps_check_type`, `show_category_duplicates`, `probe_extra_wait`, `restream_deny_unauthorised`, `extract_subtitles`, `reseller_ssl_domain`, `disable_xmltv_restreamer`, `disable_playlist_restreamer`, `mag_load_all_channels`, `connection_sync_timer`, `segment_wait_time`, `total_users`, `dts_legacy_ffmpeg`, `allow_cdn_access`, `disable_mag_token`, `ondemand_balance_equal`, `update_data`, `dashboard_status`, `on_demand_checker`, `on_demand_scan_time`, `on_demand_max_probe`, `on_demand_scan_keep`, `parse_type`, `fallback_parser`, `alternative_titles`, `search_items`, `enable_search`, `modal_edit`, `group_buttons`, `license`, `stop_failures`, `restreamer_bypass_proxy`, `mysql_sleep_kill`, `reissues`, `status_uuid`, `live_streaming_pass`, `update_channel`, `threshold_cpu`, `threshold_mem`, `threshold_disk`, `threshold_network`, `threshold_clients`, `auth_flood_seconds`, `auth_flood_limit`, `auth_flood_sleep`, `php_loopback`) VALUES
+(1, 'XC_VM', 'Europe/London', '[]', 10, 'equal', 5000000, 1, '', 1, '', 1, '', 1, '', 'ts', 'ts', 5000000, '', 1, '[\"ALL\"]', 3, 1, 1, 40, '', 2, 400, 8192, 10, 6, 'fit', 3, 1, 1, 1, 10, '[]', 'default', 1, '', 0, 0, 0, '', 'bouquet', 1, 0, 10, 0, 'https://speed.hetzner.de/100MB.bin', '', 'Welcome to XC_VM', 1, 1, 1, 1, 1, 0, 0, 'conn', 1, 1, '', 1, 1, 0, 0, 0, 1, 50, 0, 1, 10, 0, 1, 0, 20, 0, 1, 0, 0, 0, 'daily', '', '', '', '', 'python', 'en', 0, 0, 0, 0, 0, 0, 0, 'Y-m-d', 'Y-m-d H:i:s', 1, 0, 0, 0, 0, 0, 0, 0, 31, 1, 25, 10, 10, 300, 1, '1.1.0', 1, 0, 0, 0, 1, 0, 0, '[25461,25550,31210]', 0, 1, 1, 0, 1, 1, 0, 80, 50, 86400, 0, 3, 1, 1, 0, 0, 1, 0, 0, 1, 2, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 20, 0, 1, 1, 1, 10, '', 0, 0, '', '', '', 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 4, 86400, 1, 5, 1, 5, 5, 0, '', 0, 0, 10, 1, 1, 10, 1, 0, 10, 1, 1, 0, 0, 1, 0, '4.0', '4.0', 1, 1, 1, NULL, 1, 256000, 1, 0, 'You can switch between the modern and legacy themes by using the <span class=\"label\">Green</span> and <span class=\"label\">Yellow</span> buttons on your remote control. Doing so will restart your device.', 1, 600, 1, 0, 10, 1, 0, 1, 0, 0, 0, 1, 20, 0, 0, 0, 0, 0, NULL, 1, 0, 3600, 5, 604800, 'ptn', 0, 0, 20, 1, 1, 1, NULL, 3, 0, 21600, NULL, NULL, NULL, 'stable', 67, 67, 67, 67, 67, 10, 30, 1, 1);
 
 -- --------------------------------------------------------
 
@@ -70865,6 +70888,8 @@ CREATE TABLE IF NOT EXISTS `users_groups` (
   `minimum_username_length` int(16) DEFAULT '8',
   `minimum_password_length` int(16) DEFAULT '8',
   `allow_change_bouquets` tinyint(1) DEFAULT '0',
+  `notice_html` mediumtext COLLATE utf8_unicode_ci,
+  `subresellers` mediumtext COLLATE utf8_unicode_ci,
   PRIMARY KEY (`group_id`),
   KEY `is_admin` (`is_admin`),
   KEY `is_reseller` (`is_reseller`),
@@ -70875,9 +70900,9 @@ CREATE TABLE IF NOT EXISTS `users_groups` (
 -- Dumping data for table `users_groups`
 --
 
-INSERT INTO `users_groups` (`group_id`, `group_name`, `is_admin`, `is_reseller`, `total_allowed_gen_trials`, `total_allowed_gen_in`, `delete_users`, `allowed_pages`, `can_delete`, `create_sub_resellers`, `create_sub_resellers_price`, `reseller_client_connection_logs`, `can_view_vod`, `allow_download`, `minimum_trial_credits`, `allow_restrictions`, `allow_change_username`, `allow_change_password`, `minimum_username_length`, `minimum_password_length`, `allow_change_bouquets`) VALUES
-(1, 'Administrators', 1, 0, 0, 'day', 0, '[]', 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 8, 8, 0),
-(2, 'Resellers', 0, 1, 100000, 'month', 1, '[]', 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 8, 8, 0);
+INSERT INTO `users_groups` (`group_id`, `group_name`, `is_admin`, `is_reseller`, `total_allowed_gen_trials`, `total_allowed_gen_in`, `delete_users`, `allowed_pages`, `can_delete`, `create_sub_resellers`, `create_sub_resellers_price`, `reseller_client_connection_logs`, `can_view_vod`, `allow_download`, `minimum_trial_credits`, `allow_restrictions`, `allow_change_username`, `allow_change_password`, `minimum_username_length`, `minimum_password_length`, `allow_change_bouquets`, `notice_html`, `subresellers`) VALUES
+(1, 'Administrators', 1, 0, 0, 'day', 0, '[]', 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 8, 8, 0, NULL, NULL),
+(2, 'Resellers', 0, 1, 100000, 'month', 1, '[]', 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 8, 8, 0, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -70937,21 +70962,6 @@ CREATE TABLE IF NOT EXISTS `users_packages` (
   KEY `can_gen_mag` (`is_mag`) USING BTREE,
   KEY `can_gen_e2` (`is_e2`) USING BTREE,
   KEY `is_line` (`is_line`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `users_subreseller`
---
-
-CREATE TABLE IF NOT EXISTS `users_subreseller` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `reseller` int(8) DEFAULT '0',
-  `subreseller` int(8) DEFAULT '0',
-  `status` int(1) DEFAULT '1',
-  `dateadded` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------
