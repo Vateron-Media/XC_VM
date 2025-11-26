@@ -16,16 +16,41 @@
 
 ---
 
+# 📑 Table of Contents
+
+<details open>
+<summary><strong>📘 Contents</strong></summary>
+
+* 🏁 [Overview](#-overview)
+* ⚠️ [Status](#️-status)
+* 📚 [Documentation](#-documentation)
+* 🧱 [Technology Stack](#-technology-stack)
+* 🧩 [Ubuntu Support](#-supported-ubuntu-versions)
+* 📥 [Quick Install](#-quick-install)
+* 🧰 [Service Management](#-service-management)
+* 📂 [Project Structure](#-project-structure)
+* 🧮 [Server Requirements & Sizing](#-server-requirements--sizing)
+* ⭐ [Features](#-features)
+* 🐞 [Known Limitations](#-known-limitations)
+* 🤝 [Contributing](#-contributing)
+* 📜 [License](#-license)
+* ⚖️ [Legal Disclaimer](#-legal-disclaimer)
+
+</details>
+
+
+---
+
 ## 🚀 Overview
 
-**XC_VM** is an open-source IPTV platform based on Xtream Codes.  
+**XC_VM** is an open-source IPTV platform based on Xtream Codes.
 It enables:
 
-- 📺 Live & VOD streaming
-- 🔀 Load balancing
-- 📊 Full user/reseller control
-- 🎚️ Transcoding & EPG
-- 🔐 Hardened security fixes
+* 📺 Live & VOD streaming
+* 🔀 Load balancing
+* 📊 Full user/reseller control
+* 🎚️ Transcoding & EPG
+* 🔐 Hardened security fixes
 
 > ✅ 100% free. No license checks. No server locks.
 
@@ -33,20 +58,30 @@ It enables:
 
 ## ⚠️ Status
 
-> **BETA SOFTWARE** — actively developed 
+> **BETA SOFTWARE** — actively developed
+
+---
+
+## 📚 Documentation
+
+* 🇬🇧 **English Guide**
+  [https://vateron-media.github.io/XC_VM_Docs/#/en-us/](https://vateron-media.github.io/XC_VM_Docs/#/en-us/)
+
+* 🇷🇺 **Руководство на русском**
+  [https://vateron-media.github.io/XC_VM_Docs/#/ru-ru/](https://vateron-media.github.io/XC_VM_Docs/#/ru-ru/)
 
 ---
 
 ## 🧱 Technology Stack
 
-| Component  | Version | Description                     |
-|------------|---------|---------------------------------|
-| PHP        | 8.2     | Backend runtime                 |
-| Nginx      | 1.24    | Web server & reverse proxy      |
-| FFmpeg     | 8.0     | Media transcoding & processing  |
-| MariaDB    | 10.6+   | SQL database engine             |
-| KeyDB      | 6.3.4   | Cache & session storage (Redis) |
-| yt-dlp     | 2025.07.21 | Audio/Video downloader       |
+| Component | Version    | Description                     |
+| --------- | ---------- | ------------------------------- |
+| PHP       | 8.2        | Backend runtime                 |
+| Nginx     | 1.24       | Web server & reverse proxy      |
+| FFmpeg    | 8.0        | Media transcoding & processing  |
+| MariaDB   | 10.6+      | SQL database engine             |
+| KeyDB     | 6.3.4      | Cache & session storage (Redis) |
+| yt-dlp    | 2025.07.21 | Audio/Video downloader          |
 
 ---
 
@@ -83,7 +118,7 @@ wget "https://github.com/Vateron-Media/XC_VM/releases/download/${latest_version}
 # 4. Unpack and install
 unzip XC_VM.zip
 sudo python3 install
-````
+```
 
 ---
 
@@ -100,21 +135,13 @@ journalctl -u xc_vm -f         # Live logs
 
 ---
 
-## 📚 Documentation
-
-* 🇬🇧 [English Guide](docs/en/main-page.md)
-* 🇷🇺 [Руководство на русском](docs/ru/main-page.md)
-
----
-
 ## 📂 Project Structure
 
 ```text.
-
 ├─ docs/        # 📚 Project documentation
 ├─ lb_configs/  # ⚙️ Configurations for building Load Balancer (LB)
 └─ src/         # 💻 Main project code
-````
+```
 
 ---
 
@@ -155,18 +182,18 @@ HD bitrate = 4 Mbps
 | Resource         | Load per Stream |
 | ---------------- | --------------- |
 | RAM              | 50–100 MB       |
-| CPU (transcoded) | \~1 core        |
+| CPU (transcoded) | ~1 core         |
 
 ---
 
 ## ✅ Features
 
-* ✅ **No server restrictions**
-* ✅ **EPG importer**
-* ✅ **VOD management**
-* ✅ **User/reseller panel**
-* ✅ **Security patches**
-* ✅ **Clean UI**
+* ✅ No server restrictions
+* ✅ EPG importer
+* ✅ VOD management
+* ✅ User/reseller panel
+* ✅ Security patches
+* ✅ Clean UI
 
 ---
 
