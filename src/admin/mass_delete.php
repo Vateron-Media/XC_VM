@@ -23,7 +23,7 @@ include 'header.php'; ?>
                         <div class="page-title-right">
                             <?php include 'topbar.php'; ?>
                         </div>
-                        <h4 class="page-title"><?php echo $_['mass_delete']; ?></h4>
+                        <h4 class="page-title"><?php echo $language::get('mass_delete'); ?></h4>
                     </div>
                 </div>
             </div>
@@ -44,37 +44,37 @@ include 'header.php'; ?>
                                     <li class="nav-item">
                                         <a href="#stream-selection" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-play mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?php echo $_['streams']; ?></span>
+                                            <span class="d-none d-sm-inline"><?php echo $language::get('streams'); ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
                                         <a href="#movie-selection" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-account-card-details-outline mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?php echo $_['movies']; ?></span>
+                                            <span class="d-none d-sm-inline"><?php echo $language::get('movies'); ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
                                         <a href="#radio-selection" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-radio mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?php echo $_['stations']; ?></span>
+                                            <span class="d-none d-sm-inline"><?php echo $language::get('stations'); ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
                                         <a href="#episodes-selection" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-folder-open-outline mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?php echo $_['episodes']; ?></span>
+                                            <span class="d-none d-sm-inline"><?php echo $language::get('episodes'); ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
                                         <a href="#series-selection" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-youtube-tv mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?php echo $_['series']; ?></span>
+                                            <span class="d-none d-sm-inline"><?php echo $language::get('series'); ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
                                         <a href="#line-selection" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-wallet-membership mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?php echo $_['lines']; ?></span>
+                                            <span class="d-none d-sm-inline"><?php echo $language::get('lines'); ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
@@ -102,7 +102,7 @@ include 'header.php'; ?>
                                             <input type="hidden" name="streams" id="streams" value="" />
                                             <div class="row">
                                                 <div class="col-md-2 col-6">
-                                                    <input type="text" class="form-control" id="stream_search" placeholder="<?php echo $_['search_streams']; ?>...">
+                                                    <input type="text" class="form-control" id="stream_search" placeholder="<?php echo $language::get('search_streams'); ?>...">
                                                 </div>
                                                 <div class="col-md-3 col-6">
                                                     <select id="stream_server_id" class="form-control" data-toggle="select2">
@@ -115,7 +115,7 @@ include 'header.php'; ?>
                                                 </div>
                                                 <div class="col-md-3 col-6">
                                                     <select id="stream_category_search" class="form-control" data-toggle="select2">
-                                                        <option value="" selected><?php echo $_['all_categories']; ?></option>
+                                                        <option value="" selected><?php echo $language::get('all_categories'); ?></option>
                                                         <option value="-1">No Categories</option>
                                                         <?php foreach (getCategories('live') as $rCategory) : ?>
                                                             <option value="<?php echo $rCategory['id']; ?>"><?php echo $rCategory['category_name']; ?></option>
@@ -167,7 +167,7 @@ include 'header.php'; ?>
                                                 </table>
                                                 <ul class="list-inline wizard mb-0" style="margin-top:20px;">
                                                     <li class="list-inline-item float-right">
-                                                        <input name="submit_streams" type="submit" class="btn btn-primary" value="<?php echo $_['delete_streams']; ?>" />
+                                                        <input name="submit_streams" type="submit" class="btn btn-primary" value="<?php echo $language::get('delete_streams'); ?>" />
                                                     </li>
                                                 </ul>
                                             </div>
@@ -178,7 +178,7 @@ include 'header.php'; ?>
                                             <input type="hidden" name="movies" id="movies" value="" />
                                             <div class="row">
                                                 <div class="col-md-2 col-6">
-                                                    <input type="text" class="form-control" id="movie_search" placeholder="<?php echo $_['search_movies']; ?>...">
+                                                    <input type="text" class="form-control" id="movie_search" placeholder="<?php echo $language::get('search_movies'); ?>...">
                                                 </div>
                                                 <div class="col-md-3 col-6">
                                                     <select id="movie_server_id" class="form-control" data-toggle="select2">
@@ -191,7 +191,7 @@ include 'header.php'; ?>
                                                 </div>
                                                 <div class="col-md-3 col-6">
                                                     <select id="movie_category_search" class="form-control" data-toggle="select2">
-                                                        <option value="" selected><?php echo $_['all_categories']; ?></option>
+                                                        <option value="" selected><?php echo $language::get('all_categories'); ?></option>
                                                         <option value="-1">No Categories</option>
                                                         <?php foreach (getCategories('movie') as $rCategory) : ?>
                                                             <option value="<?php echo $rCategory['id']; ?>"><?php echo $rCategory['category_name']; ?></option>
@@ -200,13 +200,13 @@ include 'header.php'; ?>
                                                 </div>
                                                 <div class="col-md-2 col-6">
                                                     <select id="movie_filter" class="form-control" data-toggle="select2">
-                                                        <option value="" selected><?php echo $_['no_filter']; ?></option>
-                                                        <option value="1"><?php echo $_['encoded']; ?></option>
-                                                        <option value="2"><?php echo $_['encoding']; ?></option>
-                                                        <option value="3"><?php echo $_['down']; ?></option>
-                                                        <option value="4"><?php echo $_['ready']; ?></option>
-                                                        <option value="5"><?php echo $_['direct']; ?></option>
-                                                        <option value="6"><?php echo $_['no_tmdb_match']; ?></option>
+                                                        <option value="" selected><?php echo $language::get('no_filter'); ?></option>
+                                                        <option value="1"><?php echo $language::get('encoded'); ?></option>
+                                                        <option value="2"><?php echo $language::get('encoding'); ?></option>
+                                                        <option value="3"><?php echo $language::get('down'); ?></option>
+                                                        <option value="4"><?php echo $language::get('ready'); ?></option>
+                                                        <option value="5"><?php echo $language::get('direct'); ?></option>
+                                                        <option value="6"><?php echo $language::get('no_tmdb_match'); ?></option>
                                                     </select>
                                                 </div>
                                                 <div class="col-md-1 col-6">
@@ -224,12 +224,12 @@ include 'header.php'; ?>
                                                 <table id="datatable-md2" class="table table-borderless mb-0">
                                                     <thead class="bg-light">
                                                         <tr>
-                                                            <th class="text-center"><?php echo $_['id']; ?></th>
+                                                            <th class="text-center"><?php echo $language::get('id'); ?></th>
                                                             <th class="text-center">Image</th>
-                                                            <th><?php echo $_['name']; ?></th>
-                                                            <th><?php echo $_['category']; ?></th>
-                                                            <th><?php echo $_['servers']; ?></th>
-                                                            <th class="text-center"><?php echo $_['status']; ?></th>
+                                                            <th><?php echo $language::get('name'); ?></th>
+                                                            <th><?php echo $language::get('category'); ?></th>
+                                                            <th><?php echo $language::get('servers'); ?></th>
+                                                            <th class="text-center"><?php echo $language::get('status'); ?></th>
                                                             <th class="text-center">TMDb</th>
                                                         </tr>
                                                     </thead>
@@ -237,7 +237,7 @@ include 'header.php'; ?>
                                                 </table>
                                                 <ul class="list-inline wizard mb-0" style="margin-top:20px;">
                                                     <li class="list-inline-item float-right">
-                                                        <input name="submit_movies" type="submit" class="btn btn-primary" value="<?php echo $_['delete_movies']; ?>" />
+                                                        <input name="submit_movies" type="submit" class="btn btn-primary" value="<?php echo $language::get('delete_movies'); ?>" />
                                                     </li>
                                                 </ul>
                                             </div>
@@ -261,7 +261,7 @@ include 'header.php'; ?>
                                                 </div>
                                                 <div class="col-md-3 col-6">
                                                     <select id="radio_category_search" class="form-control" data-toggle="select2">
-                                                        <option value="" selected><?php echo $_['all_categories']; ?></option>
+                                                        <option value="" selected><?php echo $language::get('all_categories'); ?></option>
                                                         <option value="-1">No Categories</option>
                                                         <?php foreach (getCategories('radio') as $rCategory) : ?>
                                                             <option value="<?php echo $rCategory['id']; ?>"><?php echo $rCategory['category_name']; ?></option>
@@ -298,7 +298,7 @@ include 'header.php'; ?>
                                                             <th class="text-center">Icon</th>
                                                             <th>Station Name</th>
                                                             <th>Category</th>
-                                                            <th><?php echo $_['servers']; ?></th>
+                                                            <th><?php echo $language::get('servers'); ?></th>
                                                             <th class="text-center">Status</th>
                                                         </tr>
                                                     </thead>
@@ -317,12 +317,12 @@ include 'header.php'; ?>
                                             <input type="hidden" name="series" id="series" value="" />
                                             <div class="row">
                                                 <div class="col-md-6 col-6">
-                                                    <input type="text" class="form-control" id="series_search" value="" placeholder="<?php echo $_['search_series']; ?>...">
+                                                    <input type="text" class="form-control" id="series_search" value="" placeholder="<?php echo $language::get('search_series'); ?>...">
                                                 </div>
                                                 <div class="col-md-3 col-6">
                                                     <select id="series_category_search" class="form-control" data-toggle="select2">
-                                                        <option value="" selected><?php echo $_['all_categories']; ?></option>
-                                                        <option value="-1"><?php echo $_['no_tmdb_match']; ?></option>
+                                                        <option value="" selected><?php echo $language::get('all_categories'); ?></option>
+                                                        <option value="-1"><?php echo $language::get('no_tmdb_match'); ?></option>
                                                         <option value="-2">No Categories</option>
                                                         <?php foreach (getCategories('series') as $rCategory): ?>
                                                             <option value="<?php echo $rCategory['id']; ?>"><?php echo $rCategory['category_name']; ?></option>
@@ -360,7 +360,7 @@ include 'header.php'; ?>
                                             </div>
                                             <ul class="list-inline wizard mb-0" style="margin-top:20px;">
                                                 <li class="list-inline-item float-right">
-                                                    <input name="submit_series" type="submit" class="btn btn-primary" value="<?php echo $_['delete_series']; ?>" />
+                                                    <input name="submit_series" type="submit" class="btn btn-primary" value="<?php echo $language::get('delete_series'); ?>" />
                                                 </li>
                                             </ul>
                                         </form>
@@ -370,11 +370,11 @@ include 'header.php'; ?>
                                             <input type="hidden" name="episodes" id="episodes" value="" />
                                             <div class="row">
                                                 <div class="col-md-2 col-6">
-                                                    <input type="text" class="form-control" id="episode_search" value="" placeholder="<?php echo $_['search_episodes']; ?>...">
+                                                    <input type="text" class="form-control" id="episode_search" value="" placeholder="<?php echo $language::get('search_episodes'); ?>...">
                                                 </div>
                                                 <div class="col-md-3 col-6">
                                                     <select id="episode_series" class="form-control" data-toggle="select2">
-                                                        <option value=""><?php echo $_['all_series']; ?></option>
+                                                        <option value=""><?php echo $language::get('all_series'); ?></option>
                                                         <?php foreach (getSeries() as $rSerie): ?>
                                                             <option value="<?php echo $rSerie['id']; ?>"><?php echo $rSerie['title']; ?></option>
                                                         <?php endforeach; ?>
@@ -391,12 +391,12 @@ include 'header.php'; ?>
                                                 </div>
                                                 <div class="col-md-2 col-6">
                                                     <select id="episode_filter" class="form-control" data-toggle="select2">
-                                                        <option value="" selected><?php echo $_['no_filter']; ?></option>
-                                                        <option value="1"><?php echo $_['encoded']; ?></option>
-                                                        <option value="2"><?php echo $_['encoding']; ?></option>
-                                                        <option value="3"><?php echo $_['down']; ?></option>
-                                                        <option value="4"><?php echo $_['ready']; ?></option>
-                                                        <option value="5"><?php echo $_['direct']; ?></option>
+                                                        <option value="" selected><?php echo $language::get('no_filter'); ?></option>
+                                                        <option value="1"><?php echo $language::get('encoded'); ?></option>
+                                                        <option value="2"><?php echo $language::get('encoding'); ?></option>
+                                                        <option value="3"><?php echo $language::get('down'); ?></option>
+                                                        <option value="4"><?php echo $language::get('ready'); ?></option>
+                                                        <option value="5"><?php echo $language::get('direct'); ?></option>
                                                         <option value="7">Transcoding</option>
                                                     </select>
                                                 </div>
@@ -415,11 +415,11 @@ include 'header.php'; ?>
                                                 <table id="datatable-md5" class="table table-borderless mb-0">
                                                     <thead class="bg-light">
                                                         <tr>
-                                                            <th class="text-center"><?php echo $_['id']; ?></th>
+                                                            <th class="text-center"><?php echo $language::get('id'); ?></th>
                                                             <th class="text-center">Image</th>
-                                                            <th><?php echo $_['name']; ?></th>
-                                                            <th><?php echo $_['server']; ?></th>
-                                                            <th class="text-center"><?php echo $_['status']; ?></th>
+                                                            <th><?php echo $language::get('name'); ?></th>
+                                                            <th><?php echo $language::get('server'); ?></th>
+                                                            <th class="text-center"><?php echo $language::get('status'); ?></th>
                                                         </tr>
                                                     </thead>
                                                     <tbody></tbody>
@@ -427,7 +427,7 @@ include 'header.php'; ?>
                                             </div>
                                             <ul class="list-inline wizard mb-0" style="margin-top:20px;">
                                                 <li class="list-inline-item float-right">
-                                                    <input name="submit_episodes" type="submit" class="btn btn-primary" value="<?php echo $_['delete_episodes']; ?>" />
+                                                    <input name="submit_episodes" type="submit" class="btn btn-primary" value="<?php echo $language::get('delete_episodes'); ?>" />
                                                 </li>
                                             </ul>
                                         </form>
@@ -828,23 +828,23 @@ include 'header.php'; ?>
 
 <?php 
 		echo '        ' . "\r\n\t\t" . 'var rStreams = [];' . "\r\n\t\t" . 'var rMovies = [];' . "\r\n\t\t" . 'var rSeries = [];' . "\r\n\t\t" . 'var rEpisodes = [];' . "\r\n\t\t" . 'var rUsers = [];' . "\r\n" . '        var rLines = [];' . "\r\n" . '        var rRadios = [];' . "\r\n" . '        var rMAGs = [];' . "\r\n" . '        var rEnigmas = [];' . "\r\n\r\n\t\t" . 'function getStreamCategory() {' . "\r\n\t\t\t" . 'return $("#stream_category_search").val();' . "\r\n\t\t" . '}' . "\r\n" . '        function getStreamFilter() {' . "\r\n" . '            return $("#stream_filter").val();' . "\r\n" . '        }' . "\r\n" . '        function getRadioCategory() {' . "\r\n\t\t\t" . 'return $("#radio_category_search").val();' . "\r\n\t\t" . '}' . "\r\n" . '        function getRadioFilter() {' . "\r\n" . '            return $("#radio_filter").val();' . "\r\n" . '        }' . "\r\n\t\t" . 'function getMovieCategory() {' . "\r\n\t\t\t" . 'return $("#movie_category_search").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getSeriesCategory() {' . "\r\n\t\t\t" . 'return $("#series_category_search").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getMovieFilter() {' . "\r\n\t\t\t" . 'return $("#movie_filter").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getLineFilter() {' . "\r\n\t\t\t" . 'return $("#line_filter").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getEpisodeFilter() {' . "\r\n\t\t\t" . 'return $("#episode_filter").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getEpisodeSeries() {' . "\r\n\t\t\t" . 'return $("#episode_series").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getReseller() {' . "\r\n\t\t\t" . 'return $("#reseller_search").val();' . "\r\n\t\t" . '}' . "\r\n" . '        function getUserFilter() {' . "\r\n\t\t\t" . 'return $("#user_filter").val();' . "\r\n\t\t" . '}' . "\r\n" . '        function getUserReseller() {' . "\r\n\t\t\t" . 'return $("#user_reseller_search").val();' . "\r\n\t\t" . '}' . "\r\n" . '        function getMagFilter() {' . "\r\n\t\t\t" . 'return $("#mag_filter").val();' . "\r\n\t\t" . '}' . "\r\n" . '        function getMagReseller() {' . "\r\n\t\t\t" . 'return $("#mag_reseller_search").val();' . "\r\n\t\t" . '}' . "\r\n" . '        function getEnigmaFilter() {' . "\r\n\t\t\t" . 'return $("#enigma_filter").val();' . "\r\n\t\t" . '}' . "\r\n" . '        function getEnigmaReseller() {' . "\r\n\t\t\t" . 'return $("#enigma_reseller_search").val();' . "\r\n\t\t" . '}' . "\r\n" . '        function getStreamServer() {' . "\r\n" . '            return $("#stream_server_id").val();' . "\r\n" . '        }' . "\r\n" . '        function getMovieServer() {' . "\r\n" . '            return $("#movie_server_id").val();' . "\r\n" . '        }' . "\r\n" . '        function getEpisodeServer() {' . "\r\n" . '            return $("#episode_server_id").val();' . "\r\n" . '        }' . "\r\n" . '        function getRadioServer() {' . "\r\n" . '            return $("#station_server_id").val();' . "\r\n" . '        }' . "\r\n\t\t" . 'function toggleStreams() {' . "\r\n\t\t\t" . '$("#datatable-md1 tr").each(function() {' . "\r\n\t\t\t\t" . "if (\$(this).hasClass('selected')) {" . "\r\n\t\t\t\t\t" . "\$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rStreams.splice($.inArray($(this).find("td:eq(0)").text(), window.rStreams), 1);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '} else {            ' . "\r\n\t\t\t\t\t" . "\$(this).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rStreams.push($(this).find("td:eq(0)").text());' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n" . '        function toggleRadios() {' . "\r\n\t\t\t" . '$("#datatable-md6 tr").each(function() {' . "\r\n\t\t\t\t" . "if (\$(this).hasClass('selected')) {" . "\r\n\t\t\t\t\t" . "\$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rRadios.splice($.inArray($(this).find("td:eq(0)").text(), window.rRadios), 1);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '} else {            ' . "\r\n\t\t\t\t\t" . "\$(this).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rRadios.push($(this).find("td:eq(0)").text());' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function toggleMovies() {' . "\r\n\t\t\t" . '$("#datatable-md2 tr").each(function() {' . "\r\n\t\t\t\t" . "if (\$(this).hasClass('selected')) {" . "\r\n\t\t\t\t\t" . "\$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rMovies.splice($.inArray($(this).find("td:eq(0)").text(), window.rMovies), 1);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '} else {            ' . "\r\n\t\t\t\t\t" . "\$(this).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rMovies.push($(this).find("td:eq(0)").text());' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function toggleSeries() {' . "\r\n\t\t\t" . '$("#datatable-md4 tr").each(function() {' . "\r\n\t\t\t\t" . "if (\$(this).hasClass('selected')) {" . "\r\n\t\t\t\t\t" . "\$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rSeries.splice($.inArray($(this).find("td:eq(0)").text(), window.rSeries), 1);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '} else {            ' . "\r\n\t\t\t\t\t" . "\$(this).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rSeries.push($(this).find("td:eq(0)").text());' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function toggleEpisodes() {' . "\r\n\t\t\t" . '$("#datatable-md5 tr").each(function() {' . "\r\n\t\t\t\t" . "if (\$(this).hasClass('selected')) {" . "\r\n\t\t\t\t\t" . "\$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rEpisodes.splice($.inArray($(this).find("td:eq(0)").text(), window.rEpisodes), 1);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '} else {            ' . "\r\n\t\t\t\t\t" . "\$(this).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rEpisodes.push($(this).find("td:eq(0)").text());' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function toggleLines() {' . "\r\n\t\t\t" . '$("#datatable-md3 tr").each(function() {' . "\r\n\t\t\t\t" . "if (\$(this).hasClass('selected')) {" . "\r\n\t\t\t\t\t" . "\$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rLines.splice($.inArray($(this).find("td:eq(0)").text(), window.rLines), 1);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '} else {            ' . "\r\n\t\t\t\t\t" . "\$(this).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rLines.push($(this).find("td:eq(0)").text());' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n" . '        function toggleUsers() {' . "\r\n\t\t\t" . '$("#datatable-md7 tr").each(function() {' . "\r\n\t\t\t\t" . "if (\$(this).hasClass('selected')) {" . "\r\n\t\t\t\t\t" . "\$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rUsers.splice($.inArray($(this).find("td:eq(0)").text(), window.rUsers), 1);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '} else {            ' . "\r\n\t\t\t\t\t" . "\$(this).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rUsers.push($(this).find("td:eq(0)").text());' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n" . '        function toggleMags() {' . "\r\n\t\t\t" . '$("#datatable-md8 tr").each(function() {' . "\r\n\t\t\t\t" . "if (\$(this).hasClass('selected')) {" . "\r\n\t\t\t\t\t" . "\$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rMAGs.splice($.inArray($(this).find("td:eq(0)").text(), window.rMAGs), 1);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '} else {            ' . "\r\n\t\t\t\t\t" . "\$(this).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rMAGs.push($(this).find("td:eq(0)").text());' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n" . '        function toggleEnigmas() {' . "\r\n\t\t\t" . '$("#datatable-md9 tr").each(function() {' . "\r\n\t\t\t\t" . "if (\$(this).hasClass('selected')) {" . "\r\n\t\t\t\t\t" . "\$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rEnigmas.splice($.inArray($(this).find("td:eq(0)").text(), window.rEnigmas), 1);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '} else {            ' . "\r\n\t\t\t\t\t" . "\$(this).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rEnigmas.push($(this).find("td:eq(0)").text());' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function clearOwner() {' . "\r\n" . "            \$('#reseller_search').val(\"\").trigger('change');" . "\r\n" . '        }' . "\r\n" . '        function clearUserOwner() {' . "\r\n" . "            \$('#user_reseller_search').val(\"\").trigger('change');" . "\r\n" . '        }' . "\r\n" . '        function clearMagOwner() {' . "\r\n" . "            \$('#mag_reseller_search').val(\"\").trigger('change');" . "\r\n" . '        }' . "\r\n" . '        function clearE2Owner() {' . "\r\n" . "            \$('#enigma_reseller_search').val(\"\").trigger('change');" . "\r\n" . '        }' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'});" . "\r\n" . "            \$('#reseller_search').select2({" . "\r\n\t\t\t" . '  ajax: {' . "\r\n\t\t\t\t" . "url: './api'," . "\r\n\t\t\t\t" . "dataType: 'json'," . "\r\n\t\t\t\t" . 'data: function (params) {' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'search: params.term,' . "\r\n\t\t\t\t\t" . "action: 'reguserlist'," . "\r\n\t\t\t\t\t" . 'page: params.page' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processResults: function (data, params) {' . "\r\n\t\t\t\t" . '  params.page = params.page || 1;' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'results: data.items,' . "\r\n\t\t\t\t\t" . 'pagination: {' . "\r\n\t\t\t\t\t\t" . 'more: (params.page * 100) < data.total_count' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'cache: true,' . "\r\n\t\t\t\t" . 'width: "100%"' . "\r\n\t\t\t" . '  },' . "\r\n\t\t\t" . "  placeholder: 'Search for an owner...'" . "\r\n\t\t\t" . '});' . "\r\n" . "            \$('#user_reseller_search').select2({" . "\r\n\t\t\t" . '  ajax: {' . "\r\n\t\t\t\t" . "url: './api'," . "\r\n\t\t\t\t" . "dataType: 'json'," . "\r\n\t\t\t\t" . 'data: function (params) {' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'search: params.term,' . "\r\n\t\t\t\t\t" . "action: 'reguserlist'," . "\r\n\t\t\t\t\t" . 'page: params.page' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processResults: function (data, params) {' . "\r\n\t\t\t\t" . '  params.page = params.page || 1;' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'results: data.items,' . "\r\n\t\t\t\t\t" . 'pagination: {' . "\r\n\t\t\t\t\t\t" . 'more: (params.page * 100) < data.total_count' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'cache: true,' . "\r\n\t\t\t\t" . 'width: "100%"' . "\r\n\t\t\t" . '  },' . "\r\n\t\t\t" . "  placeholder: 'Search for an owner...'" . "\r\n\t\t\t" . '});' . "\r\n" . "            \$('#mag_reseller_search').select2({" . "\r\n\t\t\t" . '  ajax: {' . "\r\n\t\t\t\t" . "url: './api'," . "\r\n\t\t\t\t" . "dataType: 'json'," . "\r\n\t\t\t\t" . 'data: function (params) {' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'search: params.term,' . "\r\n\t\t\t\t\t" . "action: 'reguserlist'," . "\r\n\t\t\t\t\t" . 'page: params.page' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processResults: function (data, params) {' . "\r\n\t\t\t\t" . '  params.page = params.page || 1;' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'results: data.items,' . "\r\n\t\t\t\t\t" . 'pagination: {' . "\r\n\t\t\t\t\t\t" . 'more: (params.page * 100) < data.total_count' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'cache: true,' . "\r\n\t\t\t\t" . 'width: "100%"' . "\r\n\t\t\t" . '  },' . "\r\n\t\t\t" . "  placeholder: 'Search for an owner...'" . "\r\n\t\t\t" . '});' . "\r\n" . "            \$('#enigma_reseller_search').select2({" . "\r\n\t\t\t" . '  ajax: {' . "\r\n\t\t\t\t" . "url: './api'," . "\r\n\t\t\t\t" . "dataType: 'json'," . "\r\n\t\t\t\t" . 'data: function (params) {' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'search: params.term,' . "\r\n\t\t\t\t\t" . "action: 'reguserlist'," . "\r\n\t\t\t\t\t" . 'page: params.page' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processResults: function (data, params) {' . "\r\n\t\t\t\t" . '  params.page = params.page || 1;' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'results: data.items,' . "\r\n\t\t\t\t\t" . 'pagination: {' . "\r\n\t\t\t\t\t\t" . 'more: (params.page * 100) < data.total_count' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'cache: true,' . "\r\n\t\t\t\t" . 'width: "100%"' . "\r\n\t\t\t" . '  },' . "\r\n\t\t\t" . "  placeholder: 'Search for an owner...'" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#stream_form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n\t\t\t\t" . '$("#streams").val(JSON.stringify(window.rStreams));' . "\r\n\t\t\t\t" . 'if (window.rStreams.length == 0) {' . "\r\n\t\t\t\t\t" . '$.toast("';
-		echo $_['mass_delete_message_6'];
+		echo $language::get('mass_delete_message_6');
 		echo '");' . "\r\n\t\t\t\t" . '} else {' . "\r\n" . "                    \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                    submitForm("mass_delete_streams", new FormData($("#stream_form")[0]));' . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n" . '            $("#radio_form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n\t\t\t\t" . '$("#radios").val(JSON.stringify(window.rRadios));' . "\r\n\t\t\t\t" . 'if (window.rRadios.length == 0) {' . "\r\n\t\t\t\t\t" . '$.toast("';
-		echo $_['mass_delete_message_11'];
+		echo $language::get('mass_delete_message_11');
 		echo '");' . "\r\n\t\t\t\t" . '} else {' . "\r\n" . "                    \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                    submitForm("mass_delete_radios", new FormData($("#radio_form")[0]));' . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n" . '            $("#user_form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n\t\t\t\t" . '$("#users").val(JSON.stringify(window.rUsers));' . "\r\n\t\t\t\t" . 'if (window.rUsers.length == 0) {' . "\r\n\t\t\t\t\t" . '$.toast("';
-		echo $_['mass_delete_message_13'];
+		echo $language::get('mass_delete_message_13');
 		echo '");' . "\r\n\t\t\t\t" . '} else {' . "\r\n" . "                    \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                    submitForm("mass_delete_users", new FormData($("#user_form")[0]));' . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#movie_form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n\t\t\t\t" . '$("#movies").val(JSON.stringify(window.rMovies));' . "\r\n\t\t\t\t" . 'if (window.rMovies.length == 0) {' . "\r\n\t\t\t\t\t" . '$.toast("';
-		echo $_['mass_delete_message_7'];
+		echo $language::get('mass_delete_message_7');
 		echo '");' . "\r\n\t\t\t\t" . '} else {' . "\r\n" . "                    \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                    submitForm("mass_delete_movies", new FormData($("#movie_form")[0]));' . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#series_form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n\t\t\t\t" . '$("#series").val(JSON.stringify(window.rSeries));' . "\r\n\t\t\t\t" . 'if (window.rSeries.length == 0) {' . "\r\n\t\t\t\t\t" . '$.toast("';
-		echo $_['mass_delete_message_8'];
+		echo $language::get('mass_delete_message_8');
 		echo '");' . "\r\n\t\t\t\t" . '} else {' . "\r\n" . "                    \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                    submitForm("mass_delete_series", new FormData($("#series_form")[0]));' . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#episodes_form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n\t\t\t\t" . '$("#episodes").val(JSON.stringify(window.rEpisodes));' . "\r\n\t\t\t\t" . 'if (window.rEpisodes.length == 0) {' . "\r\n\t\t\t\t\t" . '$.toast("';
-		echo $_['mass_delete_message_9'];
+		echo $language::get('mass_delete_message_9');
 		echo '");' . "\r\n\t\t\t\t" . '} else {' . "\r\n" . "                    \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                    submitForm("mass_delete_episodes", new FormData($("#episodes_form")[0]));' . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#line_form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n\t\t\t\t" . '$("#lines").val(JSON.stringify(window.rLines));' . "\r\n\t\t\t\t" . 'if (window.rLines.length == 0) {' . "\r\n\t\t\t\t\t" . '$.toast("';
-		echo $_['mass_delete_message_10'];
+		echo $language::get('mass_delete_message_10');
 		echo '");' . "\r\n\t\t\t\t" . '} else {' . "\r\n" . "                    \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                    submitForm("mass_delete_lines", new FormData($("#line_form")[0]));' . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n" . '            $("#mag_form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n\t\t\t\t" . '$("#mags").val(JSON.stringify(window.rMAGs));' . "\r\n\t\t\t\t" . 'if (window.rMAGs.length == 0) {' . "\r\n\t\t\t\t\t" . '$.toast("';
-		echo $_['mass_delete_message_12'];
+		echo $language::get('mass_delete_message_12');
 		echo '");' . "\r\n\t\t\t\t" . '} else {' . "\r\n" . "                    \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                    submitForm("mass_delete_mags", new FormData($("#mag_form")[0]));' . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n" . '            $("#enigma_form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n\t\t\t\t" . '$("#enigmas").val(JSON.stringify(window.rEnigmas));' . "\r\n\t\t\t\t" . 'if (window.rEnigmas.length == 0) {' . "\r\n\t\t\t\t\t" . '$.toast("';
-		echo $_['mass_delete_message_12'];
+		echo $language::get('mass_delete_message_12');
 		echo '");' . "\r\n\t\t\t\t" . '} else {' . "\r\n" . "                    \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                    submitForm("mass_delete_enigmas", new FormData($("#enigma_form")[0]));' . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . 'sTable = $("#datatable-md1").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "stream_list",' . "\r\n\t\t\t\t\t\t" . 'd.category = getStreamCategory(),' . "\r\n" . '                        d.filter = getStreamFilter(),' . "\r\n" . '                        d.server = getStreamServer(),' . "\r\n\t\t\t\t\t\t" . 'd.include_channels = true' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,1,5]}' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t\t" . '"rowCallback": function(row, data) {' . "\r\n\t\t\t\t\t" . 'if ($.inArray(data[0], window.rStreams) !== -1) {' . "\r\n\t\t\t\t\t\t" . "\$(row).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'pageLength: ';
 		echo (intval($rSettings['default_entries']) ?: 10);
 		echo ',' . "\r\n" . '                order: [[ 0, "desc" ]]' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#stream_search').keyup(function(){" . "\r\n\t\t\t\t" . 'sTable.search($(this).val()).draw();' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#show_entries').change(function(){" . "\r\n\t\t\t\t" . 'sTable.page.len($(this).val()).draw();' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#stream_category_search').change(function(){" . "\r\n\t\t\t\t" . 'sTable.ajax.reload(null, false);' . "\r\n\t\t\t" . '})' . "\r\n" . "            \$('#stream_server_id').change(function(){" . "\r\n\t\t\t\t" . 'sTable.ajax.reload(null, false);' . "\r\n\t\t\t" . '})' . "\r\n" . "            \$('#stream_filter').change(function(){" . "\r\n\t\t\t\t" . 'sTable.ajax.reload(null, false);' . "\r\n\t\t\t" . '})' . "\r\n" . '            cTable = $("#datatable-md6").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "radio_list",' . "\r\n\t\t\t\t\t\t" . 'd.category = getRadioCategory(),' . "\r\n" . '                        d.filter = getRadioFilter(),' . "\r\n" . '                        d.server = getRadioServer()' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,1,5]}' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t\t" . '"rowCallback": function(row, data) {' . "\r\n\t\t\t\t\t" . 'if ($.inArray(data[0], window.rRadios) !== -1) {' . "\r\n\t\t\t\t\t\t" . "\$(row).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'pageLength: ';

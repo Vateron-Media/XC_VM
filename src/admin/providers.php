@@ -39,7 +39,7 @@ include 'header.php';
 						<table id="datatable" class="table table-striped table-borderless dt-responsive nowrap">
 							<thead>
 								<tr>
-									<th class="text-center"><?php echo $_['id']; ?></th>
+									<th class="text-center"><?php echo $language::get('id'); ?></th>
 									<th class="text-center">Status</th>
 									<th>Provider</th>
 									<th class="text-center">Username</th>

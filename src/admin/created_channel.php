@@ -328,7 +328,7 @@ include 'header.php';
                                         </div>
                                         <ul class="list-inline wizard mb-0">
                                             <li class="prevb list-inline-item">
-                                                <a href="javascript: void(0);" class="btn btn-secondary"><?php echo $_['prev']; ?></a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?php echo $language::get('prev'); ?></a>
                                             </li>
                                             <span class="float-right">
                                                 <li class="nextb list-inline-item">
@@ -356,7 +356,7 @@ include 'header.php';
                                         </div>
                                         <ul class="list-inline wizard mb-0">
                                             <li class="list-inline-item">
-                                                <a href="javascript: void(0);" class="prevb btn btn-secondary"><?php echo $_['prev']; ?></a>
+                                                <a href="javascript: void(0);" class="prevb btn btn-secondary"><?php echo $language::get('prev'); ?></a>
                                                 <a href="javascript: void(0);" onClick="MoveUp('review')" class="btn btn-purple"><i class="mdi mdi-chevron-up"></i></a>
                                                 <a href="javascript: void(0);" onClick="MoveDown('review')" class="btn btn-purple"><i class="mdi mdi-chevron-down"></i></a>
                                                 <a href="javascript: void(0);" onClick="AtoZ('review')" class="btn btn-info">A to Z</a>
@@ -392,7 +392,7 @@ include 'header.php';
                                         </div>
                                         <ul class="list-inline wizard mb-0">
                                             <li class="list-inline-item">
-                                                <a href="javascript: void(0);" class="prevb btn btn-secondary"><?php echo $_['prev']; ?></a>
+                                                <a href="javascript: void(0);" class="prevb btn btn-secondary"><?php echo $language::get('prev'); ?></a>
                                                 <a href="javascript: void(0);" onClick="MoveUp('videos')" class="btn btn-purple"><i class="mdi mdi-chevron-up"></i></a>
                                                 <a href="javascript: void(0);" onClick="MoveDown('videos')" class="btn btn-purple"><i class="mdi mdi-chevron-down"></i></a>
                                                 <a href="javascript: void(0);" onClick="Remove('videos')" class="btn btn-warning"><i class="mdi mdi-close"></i></a>
@@ -456,7 +456,7 @@ include 'header.php';
                                         </div>
                                         <ul class="list-inline wizard mb-0" style="padding-top: 30px;">
                                             <li class="prevb list-inline-item">
-                                                <a href="javascript: void(0);" class="btn btn-secondary"><?php echo $_['prev']; ?></a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?php echo $language::get('prev'); ?></a>
                                             </li>
                                             <li class="list-inline-item float-right">
                                                 <a onClick="addRTMP();" class="btn btn-info btn-pointer">Add RTMP URL</a>
@@ -503,7 +503,7 @@ include 'header.php';
                                         </div>
                                         <ul class="list-inline wizard mb-0">
                                             <li class="prevb list-inline-item">
-                                                <a href="javascript: void(0);" class="btn btn-secondary"><?php echo $_['prev']; ?></a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?php echo $language::get('prev'); ?></a>
                                             </li>
                                             <li class="list-inline-item float-right">
                                                 <input name="submit_stream" type="submit" class="btn btn-primary" value="<?php echo isset($rChannel) ? 'Edit' : 'Create'; ?>" />

@@ -37,7 +37,7 @@
                             </div>
                             <div class="col-md-3">
                                 <select id="station_server_id" class="form-control" data-toggle="select2">
-                                    <option value="" selected><?php echo $_['all_servers']; ?></option>
+                                    <option value="" selected><?php echo $language::get('all_servers'); ?></option>
                                     <option value="-1" <?php if (isset(CoreUtilities::$rRequest['server']) && CoreUtilities::$rRequest['server'] == -1) {
                                                             echo ' selected';
                                                         } ?>>No Servers</option>
@@ -50,7 +50,7 @@
                             </div>
                             <div class="col-md-3">
                                 <select id="station_category_id" class="form-control" data-toggle="select2">
-                                    <option value="" selected><?php echo $_['all_categories']; ?></option>
+                                    <option value="" selected><?php echo $language::get('all_categories'); ?></option>
                                     <option value="-1" <?php if (isset(CoreUtilities::$rRequest['category']) && CoreUtilities::$rRequest['category'] == -1) {
                                                             echo ' selected';
                                                         } ?>>No Categories</option>
@@ -65,7 +65,7 @@
                                 <select id="station_filter" class="form-control" data-toggle="select2">
                                     <option value="" <?php if (!isset(CoreUtilities::$rRequest['filter'])) {
                                                             echo ' selected';
-                                                        } ?>><?php echo $_['no_filter']; ?></option>
+                                                        } ?>><?php echo $language::get('no_filter'); ?></option>
                                     <option value="1" <?php if (isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 1) {
                                                             echo ' selected';
                                                         } ?>>Online</option>
@@ -104,9 +104,9 @@
                                     <th class="text-center">Icon</th>
                                     <th>Name</th>
                                     <?php if ($rSettings['streams_grouped'] == 1) { ?>
-                                        <th><?php echo $_['servers']; ?></th>
+                                        <th><?php echo $language::get('servers'); ?></th>
                                     <?php } else { ?>
-                                        <th><?php echo $_['server']; ?></th>
+                                        <th><?php echo $language::get('server'); ?></th>
                                     <?php } ?>
                                     <th class="text-center">Clients</th>
                                     <th class="text-center">Uptime</th>

@@ -13,7 +13,7 @@ include 'header.php';
 echo '<div class="wrapper boxed-layout-ext">' . "\n" . '    <div class="container-fluid">' . "\n" . '        <div class="row">' . "\n" . '            <div class="col-12">' . "\n" . '                <div class="page-title-box">' . "\n" . '                    <div class="page-title-right">' . "\n" . '                        ';
 include 'topbar.php';
 echo "\t\t\t\t\t" . '</div>' . "\n" . '                    <h4 class="page-title">';
-echo $_['episodes'];
+echo $language::get('episodes');
 echo '</h4>' . "\n" . '                </div>' . "\n" . '            </div>' . "\n" . '        </div>     ' . "\n" . '        <div class="row">' . "\n" . '            <div class="col-12">' . "\n" . '                <div class="card">' . "\n" . '                    <div class="card-body" style="overflow-x:auto;">' . "\n" . '                        <div id="collapse_filters" class="';
 
 if (!$rMobile) {
@@ -29,7 +29,7 @@ if (!isset(CoreUtilities::$rRequest['search'])) {
 }
 
 echo '" placeholder="';
-echo $_['search_episodes'];
+echo $language::get('search_episodes');
 echo '...">' . "\n" . '                            </div>' . "\n" . '                            <div class="col-md-3">' . "\n" . '                                <select id="episodes_series" class="form-control" data-toggle="select2">' . "\n" . '                                    <option value=""';
 
 if (isset(CoreUtilities::$rRequest['series'])) {
@@ -38,7 +38,7 @@ if (isset(CoreUtilities::$rRequest['series'])) {
 }
 
 echo '>';
-echo $_['all_series'];
+echo $language::get('all_series');
 echo '</option>' . "\n" . '                                    ';
 
 foreach (getSeriesList() as $rSeriesArr) {
@@ -66,7 +66,7 @@ if (isset(CoreUtilities::$rRequest['category'])) {
 }
 
 echo '>';
-echo $_['all_categories'];
+echo $language::get('all_categories');
 echo '</option>' . "\n" . '                                    ';
 
 foreach (getCategories('series') as $rCategory) {
@@ -87,7 +87,7 @@ foreach (getCategories('series') as $rCategory) {
 	}
 }
 echo '                                </select>' . "\n" . '                            </div>' . "\n" . '                            <label class="col-md-1 col-form-label text-center" for="episodes_show_entries">';
-echo $_['show'];
+echo $language::get('show');
 echo '</label>' . "\n" . '                            <div class="col-md-2">' . "\n" . '                                <select id="episodes_show_entries" class="form-control" data-toggle="select2">' . "\n" . '                                    ';
 
 foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) {

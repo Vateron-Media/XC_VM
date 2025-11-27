@@ -147,35 +147,35 @@
                                     </a>
                                     <div class="dropdown-menu dropdown-menu-right profile-dropdown">
                                         <a href="edit_profile" class="dropdown-item notify-item">
-                                            <span><?= $_['user_profile']; ?></span>
+                                            <span><?= $language::get('user_profile'); ?></span>
                                         </a>
                                         <?php if (hasPermissions('adv', 'settings')): ?>
                                             <a href="settings" class="dropdown-item notify-item">
-                                                <span><?= $_['general_settings']; ?></span>
+                                                <span><?= $language::get('general_settings'); ?></span>
                                             </a>
                                         <?php endif; ?>
                                         <?php if (hasPermissions('adv', 'database')): ?>
                                             <a href="backups" class="dropdown-item notify-item">
-                                                <span><?= $_['backup_settings']; ?></span>
+                                                <span><?= $language::get('backup_settings'); ?></span>
                                             </a>
                                             <a href="cache" class="dropdown-item notify-item">
-                                                <span><?= $_['cache_redis']; ?></span>
+                                                <span><?= $language::get('cache_redis'); ?></span>
                                             </a>
                                         <?php endif; ?>
 
                                         <?php if (hasPermissions('adv', 'folder_watch_settings')): ?>
                                             <div class="dropdown-divider"></div>
                                             <a href="settings_plex" class="dropdown-item notify-item">
-                                                <span><?= $_['plex_settings']; ?></span>
+                                                <span><?= $language::get('plex_settings'); ?></span>
                                             </a>
                                             <a href="settings_watch" class="dropdown-item notify-item">
-                                                <span><?= $_['watch_settings']; ?></span>
+                                                <span><?= $language::get('watch_settings'); ?></span>
                                             </a>
                                         <?php endif; ?>
 
                                         <div class="dropdown-divider"></div>
                                         <a href="logout" class="dropdown-item notify-item">
-                                            <span><?= $_['logout']; ?></span>
+                                            <span><?= $language::get('logout'); ?></span>
                                         </a>
                                     </div>
                                 </li>
@@ -270,13 +270,13 @@
                             <div id="navigation">
                                 <ul class="navigation-menu">
                                     <li class="has-submenu">
-                                        <a href="index"><i class="fe-activity"></i><?= $_['dashboard']; ?>
+                                        <a href="index"><i class="fe-activity"></i><?= $language::get('dashboard'); ?>
                                             <?php if (!$rMobile): ?>
                                                 <div class="arrow-down"></div>
                                         </a>
                                         <ul class="submenu">
                                             <?php if (hasPermissions('adv', 'live_connections')): ?>
-                                                <li><a href="live_connections"><?= $_['live_connections']; ?></a></li>
+                                                <li><a href="live_connections"><?= $language::get('live_connections'); ?></a></li>
                                             <?php endif; ?>
                                         </ul>
                                     <?php else: ?>
@@ -285,51 +285,51 @@
                                     </li>
                                     <?php if (hasPermissions('adv', 'servers') || hasPermissions('adv', 'process_monitor')): ?>
                                         <li class="has-submenu">
-                                            <a href="#"><i class="fas fa-server"></i><?= $_['servers']; ?> <div class="arrow-down">
+                                            <a href="#"><i class="fas fa-server"></i><?= $language::get('servers'); ?> <div class="arrow-down">
                                                 </div></a>
                                             <ul class="submenu">
                                                 <?php if (hasPermissions('adv', 'servers')): ?>
-                                                    <li><a href="server_install"><?= $_['install_load_balancer']; ?></a></li>
-                                                    <li><a href="servers"><?= $_['manage_servers']; ?></a></li>
-                                                    <li><a href="proxies"><?= $_['manage_proxies']; ?></a></li>
-                                                    <li><a href="server_order"><?= $_['server_order']; ?></a></li>
+                                                    <li><a href="server_install"><?= $language::get('install_load_balancer'); ?></a></li>
+                                                    <li><a href="servers"><?= $language::get('manage_servers'); ?></a></li>
+                                                    <li><a href="proxies"><?= $language::get('manage_proxies'); ?></a></li>
+                                                    <li><a href="server_order"><?= $language::get('server_order'); ?></a></li>
                                                 <?php endif; ?>
                                                 <?php if (hasPermissions('adv', 'process_monitor')): ?>
-                                                    <li><a href="process_monitor"><?= $_['process_monitor']; ?></a></li>
+                                                    <li><a href="process_monitor"><?= $language::get('process_monitor'); ?></a></li>
                                                 <?php endif; ?>
                                             </ul>
                                         </li>
                                     <?php endif; ?>
                                     <?php if (hasPermissions('adv', 'add_user') || hasPermissions('adv', 'users') || hasPermissions('adv', 'add_mag') || hasPermissions('adv', 'manage_mag') || hasPermissions('adv', 'add_e2') || hasPermissions('adv', 'manage_e2')): ?>
                                         <li class="has-submenu">
-                                            <a href="#"> <i class="fas fa-desktop"></i><?= $_['users']; ?> <div class="arrow-down">
+                                            <a href="#"> <i class="fas fa-desktop"></i><?= $language::get('users'); ?> <div class="arrow-down">
                                                 </div></a>
                                             <ul class="submenu">
                                                 <?php if (hasPermissions('adv', 'add_user') || hasPermissions('adv', 'users')): ?>
                                                     <li class="has-submenu">
-                                                        <a href="#"><?= $_['user_lines']; ?> <div class="arrow-down"></div></a>
+                                                        <a href="#"><?= $language::get('user_lines'); ?> <div class="arrow-down"></div></a>
                                                         <ul class="submenu">
                                                             <?php if (hasPermissions('adv', 'add_user')): ?>
-                                                                <li><a href="line"><?= $_['add_users']; ?></a></li>
+                                                                <li><a href="line"><?= $language::get('add_users'); ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'users')): ?>
-                                                                <li><a href="lines"><?= $_['manage_users']; ?></a></li>
+                                                                <li><a href="lines"><?= $language::get('manage_users'); ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'mass_edit_lines')): ?>
-                                                                <li><a href="line_mass"><?= $_['mass_edit_users']; ?></a></li>
+                                                                <li><a href="line_mass"><?= $language::get('mass_edit_users'); ?></a></li>
                                                             <?php endif; ?>
                                                         </ul>
                                                     </li>
                                                 <?php endif; ?>
                                                 <?php if (hasPermissions('adv', 'add_mag') || hasPermissions('adv', 'manage_mag')): ?>
                                                     <li class="has-submenu">
-                                                        <a href="#"><?= $_['mag_devices']; ?> <div class="arrow-down"></div></a>
+                                                        <a href="#"><?= $language::get('mag_devices'); ?> <div class="arrow-down"></div></a>
                                                         <ul class="submenu">
                                                             <?php if (hasPermissions('adv', 'add_mag')): ?>
-                                                                <li><a href="mag"><?= $_['add_mag']; ?></a></li>
+                                                                <li><a href="mag"><?= $language::get('add_mag'); ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'manage_mag')): ?>
-                                                                <li><a href="mags"><?= $_['manage_mag_devices']; ?></a></li>
+                                                                <li><a href="mags"><?= $language::get('manage_mag_devices'); ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'mass_edit_mags')): ?>
                                                                 <li><a href="mag_mass">Mass Edit Mags</a></li>
@@ -339,13 +339,13 @@
                                                 <?php endif; ?>
                                                 <?php if (hasPermissions('adv', 'add_e2') || hasPermissions('adv', 'manage_e2')): ?>
                                                     <li class="has-submenu">
-                                                        <a href="#"><?= $_['enigma_devices']; ?> <div class="arrow-down"></div></a>
+                                                        <a href="#"><?= $language::get('enigma_devices'); ?> <div class="arrow-down"></div></a>
                                                         <ul class="submenu">
                                                             <?php if (hasPermissions('adv', 'add_e2')): ?>
-                                                                <li><a href="enigma"><?= $_['add_enigma']; ?></a></li>
+                                                                <li><a href="enigma"><?= $language::get('add_enigma'); ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'manage_e2')): ?>
-                                                                <li><a href="enigmas"><?= $_['manage_enigma_devices']; ?></a></li>
+                                                                <li><a href="enigmas"><?= $language::get('manage_enigma_devices'); ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'mass_edit_enigmas')): ?>
                                                                 <li><a href="enigma_mass">Mass Edit Enigmas</a></li>
@@ -355,16 +355,16 @@
                                                 <?php endif; ?>
                                                 <?php if (hasPermissions('adv', 'add_reguser') || hasPermissions('adv', 'mng_regusers')): ?>
                                                     <li class="has-submenu">
-                                                        <a href="#"><?= $_['reseller']; ?> <div class="arrow-down"></div></a>
+                                                        <a href="#"><?= $language::get('reseller'); ?> <div class="arrow-down"></div></a>
                                                         <ul class="submenu">
                                                             <?php if (hasPermissions('adv', 'add_reguser')): ?>
-                                                                <li><a href="user"><?= $_['add_registered_user']; ?></a></li>
+                                                                <li><a href="user"><?= $language::get('add_registered_user'); ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'mng_regusers')): ?>
-                                                                <li><a href="users"><?= $_['manage_registered_user']; ?></a></li>
+                                                                <li><a href="users"><?= $language::get('manage_registered_user'); ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'mass_edit_users')): ?>
-                                                                <li><a href="user_mass"><?= $_['mass_edit_resellers']; ?></a></li>
+                                                                <li><a href="user_mass"><?= $language::get('mass_edit_resellers'); ?></a></li>
                                                             <?php endif; ?>
                                                         </ul>
                                                     </li>
@@ -374,24 +374,24 @@
                                     <?php endif; ?>
                                     <?php if (hasPermissions('adv', 'add_stream') || hasPermissions('adv', 'create_channel') || hasPermissions('adv', 'import_streams') || hasPermissions('adv', 'streams') || hasPermissions('adv', 'add_movie') || hasPermissions('adv', 'import_movies') || hasPermissions('adv', 'movies') || hasPermissions('adv', 'series') || hasPermissions('adv', 'episodes') || hasPermissions('adv', 'add_series') || hasPermissions('adv', 'radio') || hasPermissions('adv', 'add_radio')): ?>
                                         <li class="has-submenu">
-                                            <a href="#"> <i class="fas fa-play"></i><?= $_['content']; ?> <div class="arrow-down"></div>
+                                            <a href="#"> <i class="fas fa-play"></i><?= $language::get('content'); ?> <div class="arrow-down"></div>
                                             </a>
                                             <ul class="submenu">
                                                 <?php if (hasPermissions('adv', 'add_stream') || hasPermissions('adv', 'import_streams') || hasPermissions('adv', 'streams')): ?>
                                                     <li class="has-submenu">
-                                                        <a href="#"><?= $_['streams']; ?> <div class="arrow-down"></div></a>
+                                                        <a href="#"><?= $language::get('streams'); ?> <div class="arrow-down"></div></a>
                                                         <ul class="submenu">
                                                             <?php if (hasPermissions('adv', 'add_stream')): ?><li><a
-                                                                        href="stream"><?= $_['add_stream']; ?></a></li><?php endif; ?>
+                                                                        href="stream"><?= $language::get('add_stream'); ?></a></li><?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'import_streams') && !$rMobile): ?>
-                                                                <li><a href="stream?import=1"><?= $_['import_multiple_stream']; ?></a></li>
-                                                                <li><a href="review?type=1"><?= $_['import_review_stream']; ?></a></li>
+                                                                <li><a href="stream?import=1"><?= $language::get('import_multiple_stream'); ?></a></li>
+                                                                <li><a href="review?type=1"><?= $language::get('import_review_stream'); ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'streams')): ?><li><a
-                                                                        href="streams"><?= $_['manage_streams']; ?></a></li>
+                                                                        href="streams"><?= $language::get('manage_streams'); ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'streams')): ?><li><a
-                                                                        href="stream_mass"><?= $_['mass_edit_streams']; ?></a></li>
+                                                                        href="stream_mass"><?= $language::get('mass_edit_streams'); ?></a></li>
                                                             <?php endif; ?>
                                                         </ul>
                                                     </li>
@@ -399,17 +399,17 @@
 
                                                 <?php if (hasPermissions('adv', 'create_channel') || hasPermissions('adv', 'streams')): ?>
                                                     <li class="has-submenu">
-                                                        <a href="#"><?= $_['created_channels']; ?> <div class="arrow-down"></div>
+                                                        <a href="#"><?= $language::get('created_channels'); ?> <div class="arrow-down"></div>
                                                         </a>
                                                         <ul class="submenu">
                                                             <?php if (hasPermissions('adv', 'create_channel')): ?><li><a
-                                                                        href="created_channel"><?= $_['create_channel']; ?></a></li>
+                                                                        href="created_channel"><?= $language::get('create_channel'); ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'streams')): ?><li><a
-                                                                        href="created_channels"><?= $_['manage_created_channels']; ?></a>
+                                                                        href="created_channels"><?= $language::get('manage_created_channels'); ?></a>
                                                                 </li><?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'streams')): ?><li><a
-                                                                        href="created_channel_mass"><?= $_['mass_edit_created_channels']; ?></a>
+                                                                        href="created_channel_mass"><?= $language::get('mass_edit_created_channels'); ?></a>
                                                                 </li><?php endif; ?>
                                                         </ul>
                                                     </li>
@@ -417,19 +417,19 @@
 
                                                 <?php if (hasPermissions('adv', 'add_movie') || hasPermissions('adv', 'import_movies') || hasPermissions('adv', 'movies')): ?>
                                                     <li class="has-submenu">
-                                                        <a href="#"><?= $_['movies']; ?> <div class="arrow-down"></div></a>
+                                                        <a href="#"><?= $language::get('movies'); ?> <div class="arrow-down"></div></a>
                                                         <ul class="submenu">
                                                             <?php if (hasPermissions('adv', 'add_movie')): ?><li><a
-                                                                        href="movie"><?= $_['add_movie']; ?></a></li><?php endif; ?>
+                                                                        href="movie"><?= $language::get('add_movie'); ?></a></li><?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'import_movies') && !$rMobile): ?>
-                                                                <li><a href="movie?import=1"><?= $_['import_multiple_movies']; ?></a></li>
-                                                                <li><a href="review?type=2"><?= $_['import_review_movies']; ?></a></li>
+                                                                <li><a href="movie?import=1"><?= $language::get('import_multiple_movies'); ?></a></li>
+                                                                <li><a href="review?type=2"><?= $language::get('import_review_movies'); ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'movies')): ?><li><a
-                                                                        href="movies"><?= $_['manage_movies']; ?></a></li>
+                                                                        href="movies"><?= $language::get('manage_movies'); ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'mass_sedits_vod')): ?>
-                                                                <li><a href="movie_mass"><?= $_['mass_edit_movies']; ?></a></li>
+                                                                <li><a href="movie_mass"><?= $language::get('mass_edit_movies'); ?></a></li>
                                                             <?php endif; ?>
                                                         </ul>
                                                     </li>
@@ -437,15 +437,15 @@
 
                                                 <?php if (hasPermissions('adv', 'add_series') || hasPermissions('adv', 'series') || hasPermissions('adv', 'episodes')): ?>
                                                     <li class="has-submenu">
-                                                        <a href="#"><?= $_['series']; ?> <div class="arrow-down"></div></a>
+                                                        <a href="#"><?= $language::get('series'); ?> <div class="arrow-down"></div></a>
                                                         <ul class="submenu">
                                                             <?php if (hasPermissions('adv', 'add_series')): ?><li><a
-                                                                        href="serie"><?= $_['add_series']; ?></a></li><?php endif; ?>
+                                                                        href="serie"><?= $language::get('add_series'); ?></a></li><?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'series')): ?><li><a
-                                                                        href="series"><?= $_['manage_series']; ?></a></li>
+                                                                        href="series"><?= $language::get('manage_series'); ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'episodes')): ?><li><a
-                                                                        href="episodes"><?= $_['manage_episodes']; ?></a></li>
+                                                                        href="episodes"><?= $language::get('manage_episodes'); ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'mass_sedits')): ?>
                                                                 <li><a href="series_mass">Mass Edit Series</a></li>
@@ -459,70 +459,70 @@
 
                                                 <?php if (hasPermissions('adv', 'add_radio') || hasPermissions('adv', 'radio')): ?>
                                                     <li class="has-submenu">
-                                                        <a href="#"><?= $_['stations']; ?> <div class="arrow-down"></div></a>
+                                                        <a href="#"><?= $language::get('stations'); ?> <div class="arrow-down"></div></a>
                                                         <ul class="submenu">
                                                             <?php if (hasPermissions('adv', 'add_radio')): ?><li><a
-                                                                        href="radio"><?= $_['add_station']; ?></a></li><?php endif; ?>
+                                                                        href="radio"><?= $language::get('add_station'); ?></a></li><?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'radio')): ?><li><a
-                                                                        href="radios"><?= $_['manage_stations']; ?></a></li>
+                                                                        href="radios"><?= $language::get('manage_stations'); ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'mass_edit_radio')): ?>
-                                                                <li><a href="radio_mass"><?= $_['mass_edit_stations']; ?></a></li>
+                                                                <li><a href="radio_mass"><?= $language::get('mass_edit_stations'); ?></a></li>
                                                             <?php endif; ?>
                                                         </ul>
                                                     </li>
                                                 <?php endif; ?>
 
-                                                <?php if (hasPermissions('adv', 'movies')): ?><li><a href="archive"><?= $_['recordings']; ?></a></li>
+                                                <?php if (hasPermissions('adv', 'movies')): ?><li><a href="archive"><?= $language::get('recordings'); ?></a></li>
                                                 <?php endif; ?>
-                                                <?php if (!$rMobile && hasPermissions('adv', 'streams')): ?><li><a href="epg_view"><?= $_['tv_guide']; ?></a></li><?php endif; ?>
+                                                <?php if (!$rMobile && hasPermissions('adv', 'streams')): ?><li><a href="epg_view"><?= $language::get('tv_guide'); ?></a></li><?php endif; ?>
                                             </ul>
                                         </li>
                                     <?php endif; ?>
                                     <?php if (hasPermissions('adv', 'add_bouquet') || hasPermissions('adv', 'bouquets') || hasPermissions('adv', 'edit_bouquet')): ?>
                                         <li class="has-submenu">
-                                            <a href="#"> <i class="fas fa-spa"></i><?= $_['bouquets']; ?> <div class="arrow-down"></div>
+                                            <a href="#"> <i class="fas fa-spa"></i><?= $language::get('bouquets'); ?> <div class="arrow-down"></div>
                                             </a>
                                             <ul class="submenu">
                                                 <?php if (hasPermissions('adv', 'add_bouquet')): ?>
-                                                    <li><a href="bouquet"><?= $_['add_bouquet']; ?></a></li>
+                                                    <li><a href="bouquet"><?= $language::get('add_bouquet'); ?></a></li>
                                                 <?php endif; ?>
                                                 <?php if (hasPermissions('adv', 'bouquets')): ?>
-                                                    <li><a href="bouquets"><?= $_['manage_bouquets']; ?></a></li>
+                                                    <li><a href="bouquets"><?= $language::get('manage_bouquets'); ?></a></li>
                                                 <?php endif; ?>
                                                 <?php if (hasPermissions('adv', 'edit_bouquet') && !$rMobile): ?>
-                                                    <li><a href="bouquet_order"><?= $_['order_bouquets']; ?></a></li>
+                                                    <li><a href="bouquet_order"><?= $language::get('order_bouquets'); ?></a></li>
                                                 <?php endif; ?>
                                             </ul>
                                         </li>
                                     <?php endif; ?>
                                     <?php if (hasPermissions('adv', 'streams') || hasPermissions('adv', 'episodes') || hasPermissions('adv', 'series') || hasPermissions('adv', 'categories') || hasPermissions('adv', 'epg') || hasPermissions('adv', 'mng_groups') || hasPermissions('adv', 'mng_packages') || hasPermissions('adv', 'tprofiles') || hasPermissions('adv', 'folder_watch') || hasPermissions('adv', 'add_code') || hasPermissions('adv', 'block_asns') || hasPermissions('adv', 'block_ips') || hasPermissions('adv', 'block_isps') || hasPermissions('adv', 'block_uas') || hasPermissions('adv', 'rtmp') || hasPermissions('adv', 'channel_order') || hasPermissions('adv', 'fingerprint') || hasPermissions('adv', 'mass_delete') || hasPermissions('adv', 'stream_tools') || hasPermissions('adv', 'mass_edit_enigmas') || hasPermissions('adv', 'mass_edit_lines') || hasPermissions('adv', 'mass_edit_mags') || hasPermissions('adv', 'mass_sedits_vod') || hasPermissions('adv', 'mass_sedits') || hasPermissions('adv', 'mass_edit_radio') || hasPermissions('adv', 'mass_edit_streams') || hasPermissions('adv', 'mass_edit_users') || hasPermissions('adv', 'connection_logs') || hasPermissions('adv', 'client_request_log') || hasPermissions('adv', 'login_logs') || hasPermissions('adv', 'panel_logs') || hasPermissions('adv', 'credits_log') || hasPermissions('adv', 'live_connections') || hasPermissions('adv', 'manage_events') || hasPermissions('adv', 'reg_userlog') || hasPermissions('adv', 'stream_errors') || hasPermissions('adv', 'folder_watch') || hasPermissions('adv', 'add_hmac') || hasPermissions('adv', 'quick_tools') || hasPermissions('adv', 'manage_tickets')): ?>
                                         <li class="has-submenu">
-                                            <a href="#"> <i class="fas fa-wrench"></i><?= $_['management']; ?> <div class="arrow-down">
+                                            <a href="#"> <i class="fas fa-wrench"></i><?= $language::get('management'); ?> <div class="arrow-down">
                                                 </div></a>
                                             <ul class="submenu">
                                                 <?php if (hasPermissions('adv', 'categories') || hasPermissions('adv', 'epg') || hasPermissions('adv', 'mng_groups') || hasPermissions('adv', 'mng_packages') || hasPermissions('adv', 'tprofiles') || hasPermissions('adv', 'folder_watch')): ?>
                                                     <li class="has-submenu">
-                                                        <a href="#"><?= $_['service_setup']; ?> <div class="arrow-down"></div></a>
+                                                        <a href="#"><?= $language::get('service_setup'); ?> <div class="arrow-down"></div></a>
                                                         <ul class="submenu">
                                                             <?php if (hasPermissions('adv', 'mng_packages')): ?>
-                                                                <li><a href="packages"><?= $_['packages']; ?></a></li>
+                                                                <li><a href="packages"><?= $language::get('packages'); ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'categories')): ?>
-                                                                <li><a href="stream_categories"><?= $_['categories']; ?></a></li>
+                                                                <li><a href="stream_categories"><?= $language::get('categories'); ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'mng_groups')): ?>
-                                                                <li><a href="groups"><?= $_['groups']; ?></a></li>
+                                                                <li><a href="groups"><?= $language::get('groups'); ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'epg')): ?>
-                                                                <li><a href="epgs"><?= $_['epgs']; ?></a></li>
+                                                                <li><a href="epgs"><?= $language::get('epgs'); ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'tprofiles')): ?>
-                                                                <li><a href="profiles"><?= $_['transcode_profiles']; ?></a></li>
+                                                                <li><a href="profiles"><?= $language::get('transcode_profiles'); ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'folder_watch')): ?>
                                                                 <li><a href="plex">Plex Sync</a></li>
-                                                                <li><a href="watch"><?= $_['folder_watch']; ?></a></li>
+                                                                <li><a href="watch"><?= $language::get('folder_watch'); ?></a></li>
                                                             <?php endif; ?>
                                                         </ul>
                                                     </li>
@@ -532,10 +532,10 @@
                                                         <a href="#">Access Codes <div class="arrow-down"></div></a>
                                                         <ul class="submenu">
                                                             <?php if (hasPermissions('adv', 'add_code')): ?>
-                                                                <li><a href="code"><?= $_['add_access_codes']; ?></a></li>
+                                                                <li><a href="code"><?= $language::get('add_access_codes'); ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'add_code')): ?>
-                                                                <li><a href="codes"><?= $_['menage_access_codes']; ?></a></li>
+                                                                <li><a href="codes"><?= $language::get('menage_access_codes'); ?></a></li>
                                                             <?php endif; ?>
                                                         </ul>
                                                     </li>
@@ -545,76 +545,76 @@
                                                         <a href="#">Security <div class="arrow-down"></div></a>
                                                         <ul class="submenu">
                                                             <?php if (hasPermissions('adv', 'block_asns')): ?>
-                                                                <li><a href="asns"><?= $_['blocked_asns']; ?></a></li>
+                                                                <li><a href="asns"><?= $language::get('blocked_asns'); ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'block_ips')): ?>
-                                                                <li><a href="ips"><?= $_['blocked_ips']; ?></a></li>
+                                                                <li><a href="ips"><?= $language::get('blocked_ips'); ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'block_isps')): ?>
-                                                                <li><a href="isps"><?= $_['blocked_isps']; ?></a></li>
+                                                                <li><a href="isps"><?= $language::get('blocked_isps'); ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'block_uas')): ?>
-                                                                <li><a href="useragents"><?= $_['blocked_uas']; ?></a></li>
+                                                                <li><a href="useragents"><?= $language::get('blocked_uas'); ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'add_hmac')): ?>
-                                                                <li><a href="hmacs"><?= $_['hmac_keys']; ?></a></li>
+                                                                <li><a href="hmacs"><?= $language::get('hmac_keys'); ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'rtmp')): ?>
-                                                                <li><a href="rtmp_ips"><?= $_['rtmp_ips']; ?></a></li>
+                                                                <li><a href="rtmp_ips"><?= $language::get('rtmp_ips'); ?></a></li>
                                                             <?php endif; ?>
                                                         </ul>
                                                     </li>
                                                 <?php endif; ?>
                                                 <?php if (hasPermissions('adv', 'channel_order') || hasPermissions('adv', 'rtmp') || hasPermissions('adv', 'fingerprint') || hasPermissions('adv', 'mass_delete') || hasPermissions('adv', 'stream_tools') || hasPermissions('adv', 'quick_tools')): ?>
                                                     <li class="has-submenu">
-                                                        <a href="#"><?= $_['tools']; ?> <div class="arrow-down"></div></a>
+                                                        <a href="#"><?= $language::get('tools'); ?> <div class="arrow-down"></div></a>
                                                         <ul class="submenu">
                                                             <?php if (hasPermissions('adv', 'channel_order') && !$rMobile): ?>
-                                                                <li><a href="channel_order"><?= $_['channel_order']; ?></a></li>
+                                                                <li><a href="channel_order"><?= $language::get('channel_order'); ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'fingerprint')): ?>
-                                                                <li><a href="fingerprint"><?= $_['fingerprint']; ?></a></li>
+                                                                <li><a href="fingerprint"><?= $language::get('fingerprint'); ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'mass_delete')): ?>
-                                                                <li><a href="mass_delete"><?= $_['mass_delete']; ?></a></li>
+                                                                <li><a href="mass_delete"><?= $language::get('mass_delete'); ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'quick_tools')): ?>
-                                                                <li><a href="quick_tools"><?= $_['quick_tools']; ?></a></li>
+                                                                <li><a href="quick_tools"><?= $language::get('quick_tools'); ?></a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'rtmp')): ?>
                                                                 <li><a href="rtmp_monitor">RTMP Monitor</a></li>
                                                             <?php endif; ?>
                                                             <?php if (hasPermissions('adv', 'stream_tools')): ?>
-                                                                <li><a href="stream_tools"><?= $_['stream_tools']; ?></a></li>
+                                                                <li><a href="stream_tools"><?= $language::get('stream_tools'); ?></a></li>
                                                             <?php endif; ?>
                                                         </ul>
                                                     </li>
                                                 <?php endif; ?>
                                                 <?php if (hasPermissions('adv', 'movies') || hasPermissions('adv', 'streams') || hasPermissions('adv', 'connection_logs') || hasPermissions('adv', 'client_request_log') || hasPermissions('adv', 'login_logs') || hasPermissions('adv', 'panel_logs') || hasPermissions('adv', 'credits_log') || hasPermissions('adv', 'live_connections') || hasPermissions('adv', 'manage_events') || hasPermissions('adv', 'reg_userlog') || hasPermissions('adv', 'streams') || hasPermissions('adv', 'episodes') || hasPermissions('adv', 'series') || hasPermissions('adv', 'stream_errors') || hasPermissions('adv', 'folder_watch')): ?>
                                                     <li class="has-submenu">
-                                                        <a href="#"><?= $_['logs']; ?> <div class="arrow-down"></div></a>
+                                                        <a href="#"><?= $language::get('logs'); ?> <div class="arrow-down"></div></a>
                                                         <ul class="submenu megamenu">
                                                             <li>
                                                                 <ul>
                                                                     <?php
                                                                     $logs = [
-                                                                        ['url' => 'line_activity', 'title' => $_['activity_logs'], 'permissions' => ['connection_logs']],
-                                                                        ['url' => 'client_logs', 'title' => $_['client_logs'], 'permissions' => ['client_request_log']],
-                                                                        ['url' => 'credit_logs', 'title' => $_['credit_logs'], 'permissions' => ['credits_log']],
+                                                                        ['url' => 'line_activity', 'title' => $language::get('activity_logs'), 'permissions' => ['connection_logs']],
+                                                                        ['url' => 'client_logs', 'title' => $language::get('client_logs'), 'permissions' => ['client_request_log']],
+                                                                        ['url' => 'credit_logs', 'title' => $language::get('credit_logs'), 'permissions' => ['credits_log']],
                                                                         ['url' => 'queue', 'title' => 'Encoding Queue', 'permissions' => ['streams', 'episodes', 'series']],
-                                                                        ['url' => 'line_ips', 'title' => $_['ips_per_line'], 'permissions' => ['connection_logs']],
-                                                                        ['url' => 'live_connections', 'title' => $_['live_connections'], 'permissions' => ['live_connections']],
+                                                                        ['url' => 'line_ips', 'title' => $language::get('ips_per_line'), 'permissions' => ['connection_logs']],
+                                                                        ['url' => 'live_connections', 'title' => $language::get('live_connections'), 'permissions' => ['live_connections']],
                                                                         ['url' => 'login_logs', 'title' => 'Login Logs', 'permissions' => ['login_logs']],
-                                                                        ['url' => 'mag_events', 'title' => $_['mag_event_logs'], 'permissions' => ['manage_events']],
+                                                                        ['url' => 'mag_events', 'title' => $language::get('mag_event_logs'), 'permissions' => ['manage_events']],
                                                                         ['url' => 'ondemand', 'title' => 'On-Demand Scanner', 'permissions' => ['streams']],
                                                                         ['url' => 'panel_logs', 'title' => 'Panel Errors', 'permissions' => ['panel_logs']],
-                                                                        ['url' => 'user_logs', 'title' => $_['reseller_logs'], 'permissions' => ['reg_userlog']],
+                                                                        ['url' => 'user_logs', 'title' => $language::get('reseller_logs'), 'permissions' => ['reg_userlog']],
                                                                         ['url' => 'restream_logs', 'title' => 'Restream Detection', 'permissions' => ['restream_logs']],
-                                                                        ['url' => 'stream_errors', 'title' => $_['stream_errors'], 'permissions' => ['stream_errors']],
+                                                                        ['url' => 'stream_errors', 'title' => $language::get('stream_errors'), 'permissions' => ['stream_errors']],
                                                                         ['url' => 'stream_rank', 'title' => 'Stream Rank', 'permissions' => ['streams']],
                                                                         ['url' => 'mysql_syslog', 'title' => 'System Logs', 'permissions' => ['panel_logs']],
                                                                         ['url' => 'theft_detection', 'title' => 'VOD Theft Detection', 'permissions' => ['movies']],
-                                                                        ['url' => 'watch_output', 'title' => $_['watch_folder_logs'], 'permissions' => ['folder_watch']]
+                                                                        ['url' => 'watch_output', 'title' => $language::get('watch_folder_logs'), 'permissions' => ['folder_watch']]
                                                                     ];
                                                                     $filteredLogs = array_filter($logs, function ($log) {
                                                                         return array_reduce($log['permissions'], function ($carry, $permission) {
@@ -637,21 +637,21 @@
                                                     </li>
                                                 <?php endif; ?>
                                                 <?php if (!$rSettings['show_tickets'] && hasPermissions('adv', 'manage_tickets')): ?>
-                                                    <li><a href="tickets"><?= $_['tickets']; ?></a></li>
+                                                    <li><a href="tickets"><?= $language::get('tickets'); ?></a></li>
                                                 <?php endif; ?>
                                             </ul>
                                         </li>
                                     <?php endif; ?>
                                     <?php if (hasPermissions('adv', 'add_bouquet') || hasPermissions('adv', 'streams') || hasPermissions('adv', 'categories')): ?>
                                         <li class="has-submenu">
-                                            <a href="#"> <i class="fas fa-users"></i><?= $_['supplirs']; ?> <div class="arrow-down"></div>
+                                            <a href="#"> <i class="fas fa-users"></i><?= $language::get('supplirs'); ?> <div class="arrow-down"></div>
                                             </a>
                                             <ul class="submenu">
                                                 <?php if (hasPermissions('adv', 'streams')): ?>
-                                                    <li><a href="provider"><?= $_['add_providers']; ?></a></li>
+                                                    <li><a href="provider"><?= $language::get('add_providers'); ?></a></li>
                                                 <?php endif; ?>
                                                 <?php if (hasPermissions('adv', 'streams')): ?>
-                                                    <li><a href="providers"><?= $_['stream_providers']; ?></a></li>
+                                                    <li><a href="providers"><?= $language::get('stream_providers'); ?></a></li>
                                                 <?php endif; ?>
                                             </ul>
                                         </li>

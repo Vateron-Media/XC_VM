@@ -49,7 +49,7 @@ if (!isset(CoreUtilities::$rRequest['search'])) {
 }
 
 echo '" placeholder="';
-echo $_['search_logs'];
+echo $language::get('search_logs');
 echo '...">' . "\r\n" . '                            </div>' . "\r\n" . '                            <div class="col-md-2">' . "\r\n" . '                                <select id="act_stream" class="form-control" data-toggle="select2">' . "\r\n" . '                                    ';
 
 if (!isset($rSearchStream)) {
@@ -145,7 +145,7 @@ if (!isset(CoreUtilities::$rRequest['range'])) {
 }
 
 echo '" data-toggle="date-picker" data-single-date-picker="true" placeholder="All Dates">' . "\r\n" . '                            </div>' . "\r\n" . '                            <label class="col-md-1 col-form-label text-center" for="act_show_entries">';
-echo $_['show'];
+echo $language::get('show');
 echo '</label>' . "\r\n" . '                            <div class="col-md-1">' . "\r\n" . '                                <select id="act_show_entries" class="form-control" data-toggle="select2">' . "\r\n" . '                                    ';
 
 foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) {

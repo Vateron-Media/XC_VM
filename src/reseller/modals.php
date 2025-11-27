@@ -26,36 +26,36 @@ if (count(get_included_files()) != 1) {
 	if (!$rPermissions['create_mag']) {
 	} else {
 		echo '<div class="modal fade messageModal" role="dialog" aria-labelledby="messageModal" aria-hidden="true" style="display: none;" data-id="">' . "\r\n" . '    <div class="modal-dialog modal-dialog-centered modal-md">' . "\r\n" . '        <div class="modal-content">' . "\r\n" . '            <div class="modal-header">' . "\r\n" . '                <h4 class="modal-title" id="messageModal">';
-		echo $_['mag_event'];
+		echo $language::get('mag_event');
 		echo '</h4>' . "\r\n" . '                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>' . "\r\n" . '            </div>' . "\r\n" . '            <div class="modal-body">' . "\r\n" . '                <div class="col-12">' . "\r\n" . '                    <select id="message_type" class="form-control" data-toggle="select2" >' . "\r\n" . '                        <option value="" selected>';
-		echo $_['select_an_event'];
+		echo $language::get('select_an_event');
 		echo ':</option>' . "\r\n" . '                        <optgroup label="">' . "\r\n" . '                            ';
 
 		if (!$rPermissions['can_view_vod']) {
 		} else {
 			echo '                            <option value="play_channel">';
-			echo $_['play_channel'];
+			echo $language::get('play_channel');
 			echo '</option>' . "\r\n" . '                            ';
 		}
 
 		echo '                            <option value="reload_portal">';
-		echo $_['reload_portal'];
+		echo $language::get('reload_portal');
 		echo '</option>' . "\r\n" . '                            <option value="reboot">';
-		echo $_['reboot_device'];
+		echo $language::get('reboot_device');
 		echo '</option>' . "\r\n" . '                            <option value="send_msg">';
-		echo $_['send_message'];
+		echo $language::get('send_message');
 		echo '</option>' . "\r\n" . '                            <option value="cut_off">';
-		echo $_['close_portal'];
+		echo $language::get('close_portal');
 		echo '</option>' . "\r\n" . '                            <option value="reset_stb_lock">';
-		echo $_['reset_stb_lock'];
+		echo $language::get('reset_stb_lock');
 		echo '</option>' . "\r\n" . '                        </optgroup>' . "\r\n" . '                    </select>' . "\r\n" . '                </div>' . "\r\n" . '                <div class="col-12" style="margin-top:20px;display:none;" id="send_msg_form">' . "\r\n" . '                    <div class="form-group row mb-4">' . "\r\n" . '                        <div class="col-md-12">' . "\r\n" . '                            <textarea id="message" name="message" class="form-control" rows="3" placeholder="';
-		echo $_['enter_a_custom_message'];
+		echo $language::get('enter_a_custom_message');
 		echo '..."></textarea>' . "\r\n" . '                        </div>' . "\r\n" . '                    </div>' . "\r\n" . '                    <div class="form-group row mb-4">' . "\r\n" . '                        <label class="col-md-9 col-form-label" for="reboot_portal">';
-		echo $_['reboot_on_confirmation'];
+		echo $language::get('reboot_on_confirmation');
 		echo '</label>' . "\r\n" . '                        <div class="col-md-3">' . "\r\n" . '                            <input name="reboot_portal" id="reboot_portal" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd"/>' . "\r\n" . '                        </div>' . "\r\n" . '                    </div>' . "\r\n" . '                </div>' . "\r\n" . '                <div class="col-12" style="margin-top:20px;display:none;" id="play_channel_form">' . "\r\n" . '                    <div class="form-group row mb-4">' . "\r\n" . '                        <label class="col-md-3 col-form-label" for="selected_channel">';
-		echo $_['channel'];
+		echo $language::get('channel');
 		echo '</label>' . "\r\n" . '                        <div class="col-md-9">' . "\r\n" . '                            <select id="selected_channel" name="selected_channel" class="form-control" data-toggle="select2" style="width:100%;"></select>' . "\r\n" . '                        </div>' . "\r\n" . '                    </div>' . "\r\n" . '                </div>' . "\r\n" . '            </div>' . "\r\n" . '            <div class="modal-footer">' . "\r\n" . '                <button disabled id="message_submit" type="button" class="btn btn-primary waves-effect">';
-		echo $_['send_event'];
+		echo $language::get('send_event');
 		echo '</button>' . "\r\n" . '            </div>' . "\r\n" . '        </div>' . "\r\n" . '    </div>' . "\r\n" . '</div>' . "\r\n";
 	}
 

@@ -431,7 +431,7 @@ include 'header.php'; ?>
                                                             <th class="text-center">Duration</th>
                                                             <th class="text-center">Output</th>
                                                             <th class="text-center">Restreamer</th>
-                                                            <th class="text-center"><?= $_['actions']; ?></th>
+                                                            <th class="text-center"><?= $language::get('actions'); ?></th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>

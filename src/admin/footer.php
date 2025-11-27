@@ -195,11 +195,11 @@ if (!isset($rModal) || !$rModal) {
 					if (data.result == true) {
 						$.toast("Fingerprint signal has been sent.");
 					} else {
-						$.toast("<?php echo $_['error_occured']; ?>");
+						$.toast("<?php echo $language::get('error_occured'); ?>");
 					}
 				});
 			} else {
-				$.toast("<?php echo $_['fingerprint_fail']; ?>");
+				$.toast("<?php echo $language::get('fingerprint_fail'); ?>");
 			}
 			$(".fingerprintModal").modal("hide");
 		}
@@ -589,9 +589,9 @@ if (!isset($rModal) || !$rModal) {
 					$.getJSON("./api?action=movie&sub=" + rAction + "&stream_id=" + rID + "&server_id=-1", function(data) {
 						if (data.result == true) {
 							if (rAction == "start") {
-								$.toast("<?php echo $_['movie_encode_started']; ?>");
+								$.toast("<?php echo $language::get('movie_encode_started'); ?>");
 							} else if (rAction == "stop") {
-								$.toast("<?php echo $_['movie_encode_stopped']; ?>");
+								$.toast("<?php echo $language::get('movie_encode_stopped'); ?>");
 								refreshTable();
 							} else if (rAction == "purge") {
 								$.toast("Connections have been killed.");
@@ -622,9 +622,9 @@ if (!isset($rModal) || !$rModal) {
 					$.getJSON("./api?action=episode&sub=" + rAction + "&stream_id=" + rID + "&server_id=-1", function(data) {
 						if (data.result == true) {
 							if (rAction == "start") {
-								$.toast("<?php echo $_['episode_encoding_start']; ?>");
+								$.toast("<?php echo $language::get('episode_encoding_start'); ?>");
 							} else if (rAction == "stop") {
-								$.toast("<?php echo $_['episode_encoding_stop']; ?>");
+								$.toast("<?php echo $language::get('episode_encoding_stop'); ?>");
 							} else if (rAction == "purge") {
 								$.toast("Connections have been killed.");
 							}

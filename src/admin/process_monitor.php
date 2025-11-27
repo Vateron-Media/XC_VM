@@ -40,13 +40,13 @@ include 'header.php'; ?>
                             <li>
                                 <a href="process_monitor?server=<?= intval(CoreUtilities::$rRequest['server']) ?>" style="margin-right:10px;">
                                     <button type="button" class="btn btn-dark waves-effect waves-light btn-sm">
-                                        <i class="mdi mdi-refresh"></i> <?= $_['refresh'] ?>
+                                        <i class="mdi mdi-refresh"></i> <?= $language::get('refresh') ?>
                                     </button>
                                 </a>
                             </li>
                         </ol>
                     </div>
-                    <h4 class="page-title"><?= $_['process_monitor'] ?></h4>
+                    <h4 class="page-title"><?= $language::get('process_monitor') ?></h4>
                 </div>
             </div>
         </div>
@@ -59,12 +59,12 @@ include 'header.php'; ?>
                                 <table class="table table-borderless mb-0">
                                     <thead class="thead-light">
                                         <tr>
-                                            <th><?= $_['mount_point'] ?></th>
-                                            <th class="text-center"><?= $_['size'] ?></th>
-                                            <th class="text-center"><?= $_['used'] ?></th>
-                                            <th class="text-center"><?= $_['available'] ?></th>
-                                            <th class="text-center"><?= $_['used'] ?> %</th>
-                                            <th class="text-center"><?= $_['actions'] ?></th>
+                                            <th><?= $language::get('mount_point') ?></th>
+                                            <th class="text-center"><?= $language::get('size') ?></th>
+                                            <th class="text-center"><?= $language::get('used') ?></th>
+                                            <th class="text-center"><?= $language::get('available') ?></th>
+                                            <th class="text-center"><?= $language::get('used') ?> %</th>
+                                            <th class="text-center"><?= $language::get('actions') ?></th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -88,13 +88,13 @@ include 'header.php'; ?>
                                                     <div class="btn-group">
                                                         <?php if (substr($fs['mount'], -3) == 'tmp') { ?>
                                                             <a href="./process_monitor?server=<?= intval(CoreUtilities::$rRequest['server']) ?>&clear">
-                                                                <button data-toggle="tooltip" data-placement="top" title="<?= $_['clear_temp'] ?>" type="button" class="btn btn-light waves-effect waves-light btn-xs">
+                                                                <button data-toggle="tooltip" data-placement="top" title="<?= $language::get('clear_temp') ?>" type="button" class="btn btn-light waves-effect waves-light btn-xs">
                                                                     <i class="mdi mdi-close"></i>
                                                                 </button>
                                                             </a>
                                                         <?php } elseif (substr($fs['mount'], -7) == 'streams') { ?>
                                                             <a href="./process_monitor?server=<?= intval(CoreUtilities::$rRequest['server']) ?>&clear_s">
-                                                                <button data-toggle="tooltip" data-placement="top" title="<?= $_['clear_streams'] ?>" type="button" class="btn btn-light waves-effect waves-light btn-xs">
+                                                                <button data-toggle="tooltip" data-placement="top" title="<?= $language::get('clear_streams') ?>" type="button" class="btn btn-light waves-effect waves-light btn-xs">
                                                                     <i class="mdi mdi-close"></i>
                                                                 </button>
                                                             </a>
@@ -186,9 +186,9 @@ include 'header.php'; ?>
                                 <form id="line_activity_search">
                                     <div class="form-group row mb-4">
                                         <div class="col-md-6">
-                                            <input type="text" class="form-control" id="live_search" value="" placeholder="<?= $_['search_processes'] ?>...">
+                                            <input type="text" class="form-control" id="live_search" value="" placeholder="<?= $language::get('search_processes') ?>...">
                                         </div>
-                                        <label class="col-md-1 col-form-label text-center" for="live_filter"><?= $_['server'] ?></label>
+                                        <label class="col-md-1 col-form-label text-center" for="live_filter"><?= $language::get('server') ?></label>
                                         <div class="col-md-3">
                                             <select id="live_filter" class="form-control" data-toggle="select2">
                                                 <?php foreach ($rServers as $rServer) { ?>
@@ -196,7 +196,7 @@ include 'header.php'; ?>
                                                 <?php } ?>
                                             </select>
                                         </div>
-                                        <label class="col-md-1 col-form-label text-center" for="live_show_entries"><?= $_['show'] ?></label>
+                                        <label class="col-md-1 col-form-label text-center" for="live_show_entries"><?= $language::get('show') ?></label>
                                         <div class="col-md-1">
                                             <select id="live_show_entries" class="form-control" data-toggle="select2">
                                                 <?php foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) { ?>
@@ -209,14 +209,14 @@ include 'header.php'; ?>
                                 <table id="datatable-activity" class="table table-striped table-borderless dt-responsive nowrap">
                                     <thead>
                                         <tr>
-                                            <th><?= $_['pid'] ?></th>
-                                            <th><?= $_['type'] ?></th>
-                                            <th style="max-width: 100px !important;"><?= $_['process'] ?></th>
-                                            <th><?= $_['cpu_%'] ?></th>
-                                            <th><?= $_['mem_mb'] ?></th>
+                                            <th><?= $language::get('pid') ?></th>
+                                            <th><?= $language::get('type') ?></th>
+                                            <th style="max-width: 100px !important;"><?= $language::get('process') ?></th>
+                                            <th><?= $language::get('cpu_%') ?></th>
+                                            <th><?= $language::get('mem_mb') ?></th>
                                             <th>Runtime</th>
                                             <th>CPU Time</th>
-                                            <th><?= $_['actions'] ?></th>
+                                            <th><?= $language::get('actions') ?></th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -258,7 +258,7 @@ include 'header.php'; ?>
                                                                         $rType = 'Redis';
                                                                     } else {
                                                                         $rProcess['command'] = 'Command: ' . $rProcess['command'];
-                                                                        $rType = array('pid' => $_['main'] . ' - ', 'vframes' => $_['thumbnail'] . ' - ', 'monitor_pid' => $_['monitor'] . ' - ', 'delay_pid' => $_['delayed'] . ' - ', 'activity' => $_['line_activity'] . ' - ', 'timeshift' => $_['timeshift'] . ' - ', null => '')[$rStreams[$rProcess['pid']]['pid_type']] . array(1 => $_['stream'], 2 => $_['movie'], 3 => $_['created_channel'], 4 => $_['radio'], 5 => $_['episode'], null => $_['system'])[$rStreams[$rProcess['pid']]['type']];
+                                                                        $rType = array('pid' => $language::get('main') . ' - ', 'vframes' => $language::get('thumbnail') . ' - ', 'monitor_pid' => $language::get('monitor') . ' - ', 'delay_pid' => $language::get('delayed') . ' - ', 'activity' => $language::get('line_activity') . ' - ', 'timeshift' => $language::get('timeshift') . ' - ', null => '')[$rStreams[$rProcess['pid']]['pid_type']] . array(1 => $language::get('stream'), 2 => $language::get('movie'), 3 => $language::get('created_channel'), 4 => $language::get('radio'), 5 => $language::get('episode'), null => $language::get('system'))[$rStreams[$rProcess['pid']]['type']];
                                                                     }
                                                                 }
                                                             }
@@ -280,12 +280,12 @@ include 'header.php'; ?>
                                                     <div class="btn-group">
                                                         <?php if (isset($rStreams[$rProcess['pid']])) { ?>
                                                             <a href="<?= array(1 => 'stream_view', 2 => 'stream_view', 3 => 'stream_view', 4 => 'stream_view', 5 => 'stream_view')[$rStreams[$rProcess['pid']]['type']] . '?id=' . $rStreams[$rProcess['pid']]['id'] ?>">
-                                                                <button data-toggle="tooltip" data-placement="top" title="<?= $_['view'] ?>" type="button" class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-eye"></i></button>
+                                                                <button data-toggle="tooltip" data-placement="top" title="<?= $language::get('view') ?>" type="button" class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-eye"></i></button>
                                                             </a>
                                                         <?php } else { ?>
                                                             <button disabled type="button" class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-eye"></i></button>
                                                         <?php } ?>
-                                                        <button data-toggle="tooltip" data-placement="top" title="<?= $_['kill_process_info'] ?>" type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="kill(<?= intval(CoreUtilities::$rRequest['server']) ?>, <?= $rProcess['pid'] ?>);"><i class="mdi mdi-close"></i></button>
+                                                        <button data-toggle="tooltip" data-placement="top" title="<?= $language::get('kill_process_info') ?>" type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="kill(<?= intval(CoreUtilities::$rRequest['server']) ?>, <?= $rProcess['pid'] ?>);"><i class="mdi mdi-close"></i></button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -429,9 +429,9 @@ include 'header.php'; ?>
 
     <?php
     echo '        ' . "\r\n\t\t" . 'function kill(rServerID, rID) {' . "\r\n\t\t\t" . '$.getJSON("./api?action=process&pid=" + rID + "&server=" + rServerID, function(data) {' . "\r\n\t\t\t\t" . 'if (data.result === true) {' . "\r\n\t\t\t\t\t" . '$.toast("';
-    echo $_['process_has_been_killed_wait'];
+    echo $language::get('process_has_been_killed_wait');
     echo '");' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . '$.toast("';
-    echo $_['error_occured'];
+    echo $language::get('error_occured');
     echo '");' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'});" . "\r\n\t\t\t" . '$("#datatable-activity").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '},' . "\r\n\t\t\t\t\t" . 'infoFiltered: ""' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n\t\t\t\t\t" . 'bindHref(); refreshTooltips();' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,3,4,5,6]}' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t\t\r\n\t\t\t\t";
 
     if (isset(CoreUtilities::$rRequest['mem'])) {

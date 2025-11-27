@@ -158,32 +158,32 @@ if (count(get_included_files()) != 1) {
 	}
 
 	echo '                    <div class="clearfix"></div>' . "\r\n" . '                </div>' . "\r\n" . '            </div>' . "\r\n" . '            <div class="topbar-menu">' . "\r\n" . '                <div class="container-fluid">' . "\r\n" . '                    <div id="navigation">' . "\r\n" . '                        <ul class="navigation-menu">' . "\r\n" . '                            <li class="has-submenu">' . "\r\n" . '                                <a href="dashboard"><i class="fe-activity"></i>';
-	echo $_['dashboard'];
+	echo $language::get('dashboard');
 	echo '</a>' . "\r\n" . '                            </li>' . "\r\n" . '                            ';
 
 	if (!$rPermissions['create_sub_resellers']) {
 	} else {
 		echo '                            <li class="has-submenu">' . "\r\n" . '                                <a href="#"> <i class="fas fa-users"></i>';
-		echo $_['users'];
+		echo $language::get('users');
 		echo ' <div class="arrow-down"></div></a>' . "\r\n" . '                                <ul class="submenu">' . "\r\n" . '                                    <li><a href="user">';
-		echo $_['add_user'];
+		echo $language::get('add_user');
 		echo '</a></li>' . "\r\n" . '                                    <li><a href="users">';
-		echo $_['manage_users'];
+		echo $language::get('manage_users');
 		echo '</a></li>' . "\r\n" . '                                </ul>' . "\r\n" . '                            </li>' . "\r\n" . '                            ';
 	}
 
 	if (!($rPermissions['create_line'] || $rPermissions['create_mag'] || $rPermissions['create_enigma'])) {
 	} else {
 		echo "\t\t\t\t\t\t\t" . '<li class="has-submenu">' . "\r\n" . '                                <a href="#"> <i class="fas fa-desktop"></i>';
-		echo $_['lines'];
+		echo $language::get('lines');
 		echo ' <div class="arrow-down"></div></a>' . "\r\n" . '                                <ul class="submenu">' . "\r\n" . '                                    ';
 
 		if (!$rPermissions['create_line']) {
 		} else {
 			echo '                                    <li class="has-submenu">' . "\r\n" . '                                        <a href="#">';
-			echo $_['user_lines'];
+			echo $language::get('user_lines');
 			echo ' <div class="arrow-down"></div></a>' . "\r\n" . '                                        <ul class="submenu">' . "\r\n" . '                                            <li><a href="line">';
-			echo $_['add_line'];
+			echo $language::get('add_line');
 			echo '</a></li>' . "\r\n" . '                                            ';
 
 			if (!$rGenTrials) {
@@ -192,16 +192,16 @@ if (count(get_included_files()) != 1) {
 			}
 
 			echo '                                            <li><a href="lines">';
-			echo $_['manage_lines'];
+			echo $language::get('manage_lines');
 			echo '</a></li>' . "\r\n" . '                                        </ul>' . "\r\n" . '                                    </li>' . "\r\n" . '                                    ';
 		}
 
 		if (!$rPermissions['create_mag']) {
 		} else {
 			echo '                                    <li class="has-submenu">' . "\r\n" . '                                        <a href="#">';
-			echo $_['mag_devices'];
+			echo $language::get('mag_devices');
 			echo ' <div class="arrow-down"></div></a>' . "\r\n" . '                                        <ul class="submenu">' . "\r\n" . '                                            <li><a href="mag">';
-			echo $_['add_mag'];
+			echo $language::get('add_mag');
 			echo '</a></li>' . "\r\n" . '                                            ';
 
 			if (!$rGenTrials) {
@@ -210,16 +210,16 @@ if (count(get_included_files()) != 1) {
 			}
 
 			echo '                                            <li><a href="mags">';
-			echo $_['manage_mag_devices'];
+			echo $language::get('manage_mag_devices');
 			echo '</a></li>' . "\r\n" . '                                        </ul>' . "\r\n" . '                                    </li>' . "\r\n" . '                                    ';
 		}
 
 		if (!$rPermissions['create_enigma']) {
 		} else {
 			echo '                                    <li class="has-submenu">' . "\r\n" . '                                        <a href="#">';
-			echo $_['enigma_devices'];
+			echo $language::get('enigma_devices');
 			echo ' <div class="arrow-down"></div></a>' . "\r\n" . '                                        <ul class="submenu">' . "\r\n" . '                                            <li><a href="enigma">';
-			echo $_['add_enigma'];
+			echo $language::get('add_enigma');
 			echo '</a></li>' . "\r\n" . '                                            ';
 
 			if (!$rGenTrials) {
@@ -228,7 +228,7 @@ if (count(get_included_files()) != 1) {
 			}
 
 			echo '                                            <li><a href="enigmas">';
-			echo $_['manage_enigma_devices'];
+			echo $language::get('manage_enigma_devices');
 			echo '</a></li>' . "\r\n" . '                                        </ul>' . "\r\n" . '                                    </li>' . "\r\n" . '                                    ';
 		}
 
@@ -238,17 +238,17 @@ if (count(get_included_files()) != 1) {
 	if (!$rPermissions['can_view_vod']) {
 	} else {
 		echo '                            <li class="has-submenu">' . "\r\n" . '                                <a href="#"> <i class="fas fa-play"></i>';
-		echo $_['content'];
+		echo $language::get('content');
 		echo ' <div class="arrow-down"></div></a>' . "\r\n" . '                                <ul class="submenu">' . "\r\n" . '                                    <li><a href="streams">';
-		echo $_['streams'];
+		echo $language::get('streams');
 		echo '</a></li>' . "\r\n" . '                                    <li><a href="created_channels">';
-		echo $_['created_channels'];
+		echo $language::get('created_channels');
 		echo '</a></li>' . "\r\n" . '                                    <li><a href="movies">';
-		echo $_['movies'];
+		echo $language::get('movies');
 		echo '</a></li>' . "\r\n" . '                                    <li><a href="episodes">';
-		echo $_['episodes'];
+		echo $language::get('episodes');
 		echo '</a></li>' . "\r\n" . '                                    <li><a href="radios">';
-		echo $_['stations'];
+		echo $language::get('stations');
 		echo '</a></li>' . "\r\n\t\t\t\t\t\t\t\t\t";
 
 		if ($rMobile) {
@@ -260,15 +260,15 @@ if (count(get_included_files()) != 1) {
 	}
 
 	echo '                            <li class="has-submenu">' . "\r\n" . '                                <a href="#"> <i class="fas fa-wrench"></i>';
-	echo $_['logs'];
+	echo $language::get('logs');
 	echo ' <div class="arrow-down"></div></a>' . "\r\n" . '                                <ul class="submenu">' . "\r\n" . '                                    ';
 
 	if (!$rPermissions['reseller_client_connection_logs']) {
 	} else {
 		echo '                                    <li><a href="live_connections">';
-		echo $_['live_connections'];
+		echo $language::get('live_connections');
 		echo '</a></li>' . "\r\n" . '                                    <li><a href="line_activity">';
-		echo $_['activity_logs'];
+		echo $language::get('activity_logs');
 		echo '</a></li>' . "\r\n" . '                                    ';
 	}
 

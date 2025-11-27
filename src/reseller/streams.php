@@ -42,7 +42,7 @@ include 'header.php';
                             <div class="col-md-4">
                                 <select id="stream_category_id" class="form-control" data-toggle="select2">
                                     <option value="" <?php echo !isset(CoreUtilities::$rRequest['category']) ? 'selected' : ''; ?>>
-                                        <?php echo $_['all_categories']; ?>
+                                        <?php echo $language::get('all_categories'); ?>
                                     </option>
                                     <?php foreach (getCategories('live') as $rCategory): ?>
                                         <?php if (in_array($rCategory['id'], $rPermissions['category_ids'])): ?>

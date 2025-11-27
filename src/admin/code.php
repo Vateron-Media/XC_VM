@@ -50,13 +50,13 @@ include 'header.php'; ?>
                                     <li class="nav-item">
                                         <a href="#code-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-account-card-details-outline mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?php echo $_['details']; ?></span>
+                                            <span class="d-none d-sm-inline"><?php echo $language::get('details'); ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
                                         <a href="#groups" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-account-group mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?php echo $_['groups']; ?></span>
+                                            <span class="d-none d-sm-inline"><?php echo $language::get('groups'); ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
@@ -123,7 +123,7 @@ include 'header.php'; ?>
                                         <ul class="list-inline wizard mb-0">
                                             <li class="nextb list-inline-item float-right">
                                                 <a href="javascript: void(0);"
-                                                    class="btn btn-secondary"><?php echo $_['next']; ?></a>
+                                                    class="btn btn-secondary"><?php echo $language::get('next'); ?></a>
                                             </li>
                                         </ul>
                                     </div>
@@ -154,13 +154,13 @@ include 'header.php'; ?>
                                         <ul class="list-inline wizard mb-0">
                                             <li class="prevb list-inline-item">
                                                 <a href="javascript: void(0);"
-                                                    class="btn btn-secondary"><?php echo $_['prev']; ?></a>
+                                                    class="btn btn-secondary"><?php echo $language::get('prev'); ?></a>
                                             </li>
                                             <li class="list-inline-item">
                                                 <a href="javascript: void(0);" onClick="selectAll()"
-                                                    class="btn btn-secondary"><?php echo $_['select_all']; ?></a>
+                                                    class="btn btn-secondary"><?php echo $language::get('select_all'); ?></a>
                                                 <a href="javascript: void(0);" onClick="selectNone()"
-                                                    class="btn btn-secondary"><?php echo $_['deselect_all']; ?></a>
+                                                    class="btn btn-secondary"><?php echo $language::get('deselect_all'); ?></a>
                                             </li>
                                             <li class="nextb list-inline-item float-right">
                                                 <a href="javascript: void(0);" class="btn btn-secondary">Next</a>

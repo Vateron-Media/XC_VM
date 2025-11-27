@@ -264,7 +264,7 @@ include 'header.php'; ?>
                                                 </div>
                                                 <div class="form-group row mb-4">
                                                     <div class="col-md-1"></div>
-                                                    <label class="col-md-3 col-form-label" for="reencode_on_edit"><?php echo $_['reencode_on_edit']; ?></label>
+                                                    <label class="col-md-3 col-form-label" for="reencode_on_edit"><?php echo $language::get('reencode_on_edit'); ?></label>
                                                     <div class="col-md-2">
                                                         <input name="reencode_on_edit" id="reencode_on_edit" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                     </div>

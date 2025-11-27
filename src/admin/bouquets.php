@@ -17,7 +17,7 @@
                     <div class="page-title-right">
                         <?php include 'topbar.php'; ?>
                     </div>
-                    <h4 class="page-title"><?php echo $_['bouquets']; ?></h4>
+                    <h4 class="page-title"><?php echo $language::get('bouquets'); ?></h4>
                 </div>
             </div>
         </div>
@@ -37,13 +37,13 @@
                         <table id="datatable" class="table table-striped table-borderless dt-responsive nowrap">
                             <thead>
                                 <tr>
-                                    <th class="text-center"><?php echo $_['id']; ?></th>
-                                    <th><?php echo $_['bouquet_name']; ?></th>
-                                    <th class="text-center"><?php echo $_['streams']; ?></th>
-                                    <th class="text-center"><?php echo $_['movies']; ?></th>
-                                    <th class="text-center"><?php echo $_['series']; ?></th>
-                                    <th class="text-center"><?php echo $_['stations']; ?></th>
-                                    <th class="text-center"><?php echo $_['actions']; ?></th>
+                                    <th class="text-center"><?php echo $language::get('id'); ?></th>
+                                    <th><?php echo $language::get('bouquet_name'); ?></th>
+                                    <th class="text-center"><?php echo $language::get('streams'); ?></th>
+                                    <th class="text-center"><?php echo $language::get('movies'); ?></th>
+                                    <th class="text-center"><?php echo $language::get('series'); ?></th>
+                                    <th class="text-center"><?php echo $language::get('stations'); ?></th>
+                                    <th class="text-center"><?php echo $language::get('actions'); ?></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -58,10 +58,10 @@
                                         <td class="text-center">
                                             <?php if (hasPermissions('adv', 'edit_bouquet')): ?>
                                                 <div class="btn-group">
-                                                    <a href="./bouquet_sort?id=<?php echo intval($rBouquet['id']); ?>"><button type="button" title="<?php echo $_['reorder_bouquet']; ?>" class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-format-line-spacing"></i></button></a>
-                                                    <a href="./bouquet?id=<?php echo intval($rBouquet['id']); ?>"><button type="button" title="<?php echo $_['edit_bouquet']; ?>" class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-pencil-outline"></i></button></a>
+                                                    <a href="./bouquet_sort?id=<?php echo intval($rBouquet['id']); ?>"><button type="button" title="<?php echo $language::get('reorder_bouquet'); ?>" class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-format-line-spacing"></i></button></a>
+                                                    <a href="./bouquet?id=<?php echo intval($rBouquet['id']); ?>"><button type="button" title="<?php echo $language::get('edit_bouquet'); ?>" class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-pencil-outline"></i></button></a>
                                                     <a href="./bouquet?duplicate=<?php echo intval($rBouquet['id']); ?>"><button type="button" title="Duuplicate Bouquet" class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-content-copy"></i></button></a>
-                                                    <button type="button" title="<?php echo $_['delete_bouquet']; ?>" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(<?php echo intval($rBouquet['id']); ?>, 'delete');"><i class="mdi mdi-close"></i></button>
+                                                    <button type="button" title="<?php echo $language::get('delete_bouquet'); ?>" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(<?php echo intval($rBouquet['id']); ?>, 'delete');"><i class="mdi mdi-close"></i></button>
                                                 </div>
                                                 <?php else: ?>--
                                             <?php endif; ?>
@@ -205,11 +205,11 @@
 
 			<?php
 		echo '        ' . "\r\n\t\t" . 'function api(rID, rType, rConfirm=false) {' . "\r\n\t\t\t" . 'if ((rType == "delete") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Delete",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "';
-		echo $_['delete_confirm'];
+		echo $language::get('delete_confirm');
 		echo '",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        api(rID, rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n\t\t\t" . '} else {' . "\r\n" . '                rConfirm = true;' . "\r\n" . '            }' . "\r\n" . '            if (rConfirm) {' . "\r\n" . '                $.getJSON("./api?action=bouquet&sub=" + rType + "&bouquet_id=" + rID, function(data) {' . "\r\n" . '                    if (data.result === true) {' . "\r\n" . '                        if (rType == "delete") {' . "\r\n" . '                            if (rRow = findRowByID($("#datatable").DataTable(), 0, rID)) {' . "\r\n" . '                                $("#datatable").DataTable().rows(rRow).remove().draw(false);' . "\r\n" . '                            }' . "\r\n" . '                            $.toast("';
-		echo $_['deleted_bouquet'];
+		echo $language::get('deleted_bouquet');
 		echo '");' . "\r\n" . '                        }' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("';
-		echo $_['error_occured'];
+		echo $language::get('error_occured');
 		echo '");' . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n\t\t" . '}' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . '$("#datatable").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable").css("width", "100%");' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
 		?>
     <?php if (CoreUtilities::$rSettings['enable_search']): ?>

@@ -25,7 +25,7 @@ if (isset($_SESSION['hash'])) {
 	}
 
 	if (!isset($_COOKIE['lang']) || $_COOKIE['lang'] != $rUserInfo['lang']) {
-		setcookie('lang', $rUserInfo['lang'], time() + 604800);
+		$language::setLanguage($rUserInfo['lang']);
 	}
 
 	$rPermissions = getPermissions($rUserInfo['member_group_id']);

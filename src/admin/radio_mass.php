@@ -94,7 +94,7 @@ include 'header.php';
                                             </div>
                                             <div class="col-md-2 col-6">
                                                 <select id="station_filter" class="form-control" data-toggle="select2">
-                                                    <option value=""><?php echo $_['no_filter']; ?></option>
+                                                    <option value=""><?php echo $language::get('no_filter'); ?></option>
                                                     <option value="1">Online</option>
                                                     <option value="2">Down</option>
                                                     <option value="3">Stopped</option>
@@ -123,7 +123,7 @@ include 'header.php';
                                                         <th class="text-center">Icon</th>
                                                         <th>Station Name</th>
                                                         <th>Category</th>
-                                                        <th><?php echo $_['servers']; ?></th>
+                                                        <th><?php echo $language::get('servers'); ?></th>
                                                         <th class="text-center">Status</th>
                                                     </tr>
                                                 </thead>

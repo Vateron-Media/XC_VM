@@ -20,7 +20,7 @@ include 'header.php'; ?>
                     <div class="page-title-right">
                         <?php include 'topbar.php'; ?>
                     </div>
-                    <h4 class="page-title"><?php if (isset($rProvider)) : ?><?php echo $_['edit']; ?><?php else : ?><?php echo $_['add']; ?><?php endif; ?> Provider</h4>
+                    <h4 class="page-title"><?php if (isset($rProvider)) : ?><?php echo $language::get('edit'); ?><?php else : ?><?php echo $language::get('add'); ?><?php endif; ?> Provider</h4>
                 </div>
             </div>
         </div>
@@ -38,7 +38,7 @@ include 'header.php'; ?>
                                 <li class="nav-item">
                                     <a href="#category-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                         <i class="mdi mdi-account-card-details-outline mr-1"></i>
-                                        <span class="d-none d-sm-inline"><?php echo $_['details']; ?></span>
+                                        <span class="d-none d-sm-inline"><?php echo $language::get('details'); ?></span>
                                     </a>
                                 </li>
                                 <?php if (!isset($rProvider)) : ?><?php else : ?>
@@ -108,7 +108,7 @@ include 'header.php'; ?>
                                             </div>
                                             <ul class="list-inline wizard mb-0">
                                                 <li class="list-inline-item float-right">
-                                                    <input name="submit_provider" type="submit" class="btn btn-primary" value="<?php if (isset($rProvider)) : ?><?php echo $_['edit']; ?><?php else : ?><?php echo $_['add']; ?><?php endif; ?>" />
+                                                    <input name="submit_provider" type="submit" class="btn btn-primary" value="<?php if (isset($rProvider)) : ?><?php echo $language::get('edit'); ?><?php else : ?><?php echo $language::get('add'); ?><?php endif; ?>" />
                                                 </li>
                                             </ul>
                                         </div>

@@ -37,10 +37,10 @@ include 'header.php';
 						<table id="datatable" class="table table-striped table-borderless dt-responsive nowrap">
 							<thead>
 								<tr>
-									<th class="text-center"><?= $_['id']; ?></th>
+									<th class="text-center"><?= $language::get('id'); ?></th>
 									<th>Description</th>
 									<th class="text-center">Enabled</th>
-									<th class="text-center"><?= $_['actions']; ?></th>
+									<th class="text-center"><?= $language::get('actions'); ?></th>
 								</tr>
 							</thead>
 							<tbody>
@@ -229,7 +229,7 @@ include 'header.php';
 						$.toast("HMAC Key has been deleted.");
 					}
 				} else {
-					$.toast("<?= $_['error_occured']; ?>");
+					$.toast("<?= $language::get('error_occured'); ?>");
 				}
 			});
 		}

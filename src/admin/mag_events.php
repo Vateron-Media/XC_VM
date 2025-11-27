@@ -20,7 +20,7 @@ include 'header.php';
                     <div class="page-title-right">
                         <?php include 'topbar.php'; ?>
                     </div>
-                    <h4 class="page-title"><?php echo $_['mag_events']; ?></h4>
+                    <h4 class="page-title"><?php echo $language::get('mag_events'); ?></h4>
                 </div>
             </div>
         </div>
@@ -31,11 +31,11 @@ include 'header.php';
                         <table id="datatable" class="table table-striped table-borderless dt-responsive nowrap">
                             <thead>
                                 <tr>
-                                    <th class="text-center"><?php echo $_['date']; ?></th>
-                                    <th class="text-center"><?php echo $_['mac_address']; ?></th>
-                                    <th><?php echo $_['event']; ?></th>
-                                    <th><?php echo $_['message']; ?></th>
-                                    <th class="text-center"><?php echo $_['actions']; ?></th>
+                                    <th class="text-center"><?php echo $language::get('date'); ?></th>
+                                    <th class="text-center"><?php echo $language::get('mac_address'); ?></th>
+                                    <th><?php echo $language::get('event'); ?></th>
+                                    <th><?php echo $language::get('message'); ?></th>
+                                    <th class="text-center"><?php echo $language::get('actions'); ?></th>
                                 </tr>
                             </thead>
                             <tbody></tbody>
@@ -175,11 +175,11 @@ include 'header.php';
 
 <?php 
 		echo '        ' . "\r\n" . '        function api(rID, rType, rConfirm=false) {' . "\r\n" . '            if ((rType == "delete") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Delete",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "';
-		echo $_['device_delete_confirm'];
+		echo $language::get('device_delete_confirm');
 		echo '",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        api(rID, rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n\t\t\t" . '} else {' . "\r\n" . '                rConfirm = true;' . "\r\n" . '            }' . "\r\n" . '            if (rConfirm) {' . "\r\n" . '                $.getJSON("./api?action=mag_event&sub=" + rType + "&mag_id=" + rID, function(data) {' . "\r\n" . '                    if (data.result === true) {' . "\r\n" . '                        if (rType == "delete") {' . "\r\n" . '                            $.toast("';
-		echo $_['event_confirmed'];
+		echo $language::get('event_confirmed');
 		echo '");' . "\r\n" . '                        }' . "\r\n" . '                        $("#datatable").DataTable().ajax.reload(null, false);' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("';
-		echo $_['error_occured'];
+		echo $language::get('error_occured');
 		echo '");' . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n\t\t" . '}' . "\r\n\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . '$("#datatable").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n\r\n\t\t\t\t\t" . 'bindHref(); refreshTooltips();' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "mag_events";' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,1,4]}' . "\r\n\t\t\t\t" . ']' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable").css("width", "100%");' . "\r\n" . '            $("#btn-export-csv").click(function() {' . "\r\n" . '                $.toast("Generating CSV report...");' . "\r\n" . '                window.location.href = "api?action=report&params=" + encodeURIComponent(JSON.stringify($("#datatable").DataTable().ajax.params()));' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n" . '        ';
 		?>
     <?php if (CoreUtilities::$rSettings['enable_search']): ?>

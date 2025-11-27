@@ -18,7 +18,7 @@ include 'header.php';
 					<div class="page-title-right">
 						<?php include 'topbar.php'; ?>
 					</div>
-					<h4 class="page-title"><?php echo $_['block_ip']; ?></h4>
+					<h4 class="page-title"><?php echo $language::get('block_ip'); ?></h4>
 				</div>
 			</div>
 		</div>
@@ -32,7 +32,7 @@ include 'header.php';
 									<li class="nav-item">
 										<a href="#ip-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
 											<i class="mdi mdi-account-card-details-outline mr-1"></i>
-											<span class="d-none d-sm-inline"><?php echo $_['details']; ?></span>
+											<span class="d-none d-sm-inline"><?php echo $language::get('details'); ?></span>
 										</a>
 									</li>
 								</ul>
@@ -41,13 +41,13 @@ include 'header.php';
 										<div class="row">
 											<div class="col-12">
 												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="ip"><?php echo $_['ip_address']; ?></label>
+													<label class="col-md-4 col-form-label" for="ip"><?php echo $language::get('ip_address'); ?></label>
 													<div class="col-md-8">
 														<input type="text" class="form-control" id="ip" name="ip" value="" required data-parsley-trigger="change">
 													</div>
 												</div>
 												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="notes"><?php echo $_['notes']; ?></label>
+													<label class="col-md-4 col-form-label" for="notes"><?php echo $language::get('notes'); ?></label>
 													<div class="col-md-8">
 														<textarea class="form-control" id="notes" name="notes" required data-parsley-trigger="change"></textarea>
 													</div>
@@ -56,7 +56,7 @@ include 'header.php';
 										</div>
 										<ul class="list-inline wizard mb-0">
 											<li class="list-inline-item float-right">
-												<input name="submit_ip" type="submit" class="btn btn-primary" value="<?php echo $_['block']; ?>" />
+												<input name="submit_ip" type="submit" class="btn btn-primary" value="<?php echo $language::get('block'); ?>" />
 											</li>
 										</ul>
 									</div>

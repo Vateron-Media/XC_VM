@@ -27,7 +27,7 @@ if (!isset(CoreUtilities::$rRequest['search'])) {
 }
 
 echo '" placeholder="Search Stations...">' . "\n" . '                            </div>' . "\n" . '                            <div class="col-md-4">' . "\n" . '                                <select id="station_category_id" class="form-control" data-toggle="select2">' . "\n" . '                                    <option value="" selected>';
-echo $_['all_categories'];
+echo $language::get('all_categories');
 echo '</option>' . "\n" . '                                    ';
 
 foreach (getCategories('radio') as $rCategory) {

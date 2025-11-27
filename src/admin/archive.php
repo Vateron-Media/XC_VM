@@ -307,7 +307,7 @@ include 'header.php';
                     }
                     $.toast("Recording has been deleted.");
                 } else {
-                    $.toast("<?php echo $_['error_occured']; ?>");
+                    $.toast("<?php echo $language::get('error_occured'); ?>");
                 }
             });
         }

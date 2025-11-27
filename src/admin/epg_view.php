@@ -76,7 +76,7 @@ include 'header.php';
                                     <select id="category" name="category" class="form-control" data-toggle="select2">
                                         <option value="" <?php if (!isset(CoreUtilities::$rRequest['category'])) {
                                                                 echo ' selected';
-                                                            } ?>><?php echo $_['all_categories']; ?></option>
+                                                            } ?>><?php echo $language::get('all_categories'); ?></option>
                                         <?php foreach (getCategories('live') as $rCategory) { ?>
                                             <option value="<?php echo intval($rCategory['id']); ?>" <?php if (isset(CoreUtilities::$rRequest['category']) && CoreUtilities::$rRequest['category'] == $rCategory['id']) {
                                                                                                         echo ' selected';

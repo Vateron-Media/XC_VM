@@ -28,7 +28,7 @@ include 'header.php';
 					<div class="page-title-right">
 						<?php include 'topbar.php'; ?>
 					</div>
-					<h4 class="page-title"><?php echo $_['live_connections']; ?></h4>
+					<h4 class="page-title"><?php echo $language::get('live_connections'); ?></h4>
 				</div>
 			</div>
 		</div>
@@ -43,7 +43,7 @@ include 'header.php';
 								<div class="col-md-3">
 									<select id="live_server" class="form-control" data-toggle="select2">
 										<option value="" <?php if (!isset(CoreUtilities::$rRequest['server'])): ?> selected<?php endif; ?>>
-											<?php echo $_['all_servers']; ?>
+											<?php echo $language::get('all_servers'); ?>
 										</option>
 										<?php foreach (CoreUtilities::$rServers as $rServer): ?>
 											<?php if ($rServer['enabled']): ?>
@@ -72,7 +72,7 @@ include 'header.php';
 										<?php endif; ?>
 									</select>
 								</div>
-								<label class="col-md-1 col-form-label text-center" for="live_show_entries"><?php echo $_['show']; ?></label>
+								<label class="col-md-1 col-form-label text-center" for="live_show_entries"><?php echo $language::get('show'); ?></label>
 								<div class="col-md-1">
 									<select id="live_show_entries" class="form-control" data-toggle="select2">
 										<?php foreach (array(10, 25, 50, 250, 500, 1000) as $rShow): ?>
@@ -84,11 +84,11 @@ include 'header.php';
 								</div>
 							<?php else: ?>
 								<div class="col-md-2">
-									<input type="text" class="form-control" id="live_search" value="<?php echo isset(CoreUtilities::$rRequest['search']) ? htmlspecialchars(CoreUtilities::$rRequest['search']) : ''; ?>" placeholder="<?php echo $_['search_logs']; ?>...">
+									<input type="text" class="form-control" id="live_search" value="<?php echo isset(CoreUtilities::$rRequest['search']) ? htmlspecialchars(CoreUtilities::$rRequest['search']) : ''; ?>" placeholder="<?php echo $language::get('search_logs'); ?>...">
 								</div>
 								<div class="col-md-2">
 									<select id="live_server" class="form-control" data-toggle="select2">
-										<option value="" <?php if (!isset(CoreUtilities::$rRequest['server'])) echo ' selected'; ?>><?php echo $_['all_servers']; ?></option>
+										<option value="" <?php if (!isset(CoreUtilities::$rRequest['server'])) echo ' selected'; ?>><?php echo $language::get('all_servers'); ?></option>
 										<?php foreach (CoreUtilities::$rServers as $rServer): ?>
 											<?php if ($rServer['enabled']): ?>
 												<option value="<?php echo $rServer['id']; ?>" <?php if (isset(CoreUtilities::$rRequest['server']) && CoreUtilities::$rRequest['server'] == $rServer['id']) echo ' selected'; ?>><?php echo $rServer['server_name']; ?></option>
@@ -121,7 +121,7 @@ include 'header.php';
 										<option value="6" <?php if (isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 6) echo ' selected'; ?>>Ministra Lines</option>
 									</select>
 								</div>
-								<label class="col-md-1 col-form-label text-center" for="live_show_entries"><?php echo $_['show']; ?></label>
+								<label class="col-md-1 col-form-label text-center" for="live_show_entries"><?php echo $language::get('show'); ?></label>
 								<div class="col-md-1">
 									<select id="live_show_entries" class="form-control" data-toggle="select2">
 										<?php foreach (array(10, 25, 50, 250, 500, 1000) as $rShow): ?>
@@ -145,7 +145,7 @@ include 'header.php';
 									<th class="text-center">Duration</th>
 									<th class="text-center">Output</th>
 									<th class="text-center">Restreamer</th>
-									<th class="text-center"><?php echo $_['actions']; ?></th>
+									<th class="text-center"><?php echo $language::get('actions'); ?></th>
 								</tr>
 							</thead>
 							<tbody></tbody>
@@ -285,9 +285,9 @@ include 'header.php';
 
 <?php 
 		echo '        ' . "\r\n\t\t" . 'var rClearing = false;' . "\r\n\r\n\t\t" . 'function api(rID, rType) {' . "\r\n\t\t\t" . '$.getJSON("./api?action=line_activity&sub=" + rType + "&pid=" + rID, function(data) {' . "\r\n\t\t\t\t" . 'if (data.result === true) {' . "\r\n\t\t\t\t\t" . 'if (rType == "kill") {' . "\r\n\t\t\t\t\t\t" . '$.toast("';
-		echo $_['connection_has_been_killed'];
+		echo $language::get('connection_has_been_killed');
 		echo '");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '$("#datatable-activity").DataTable().ajax.reload(null, false);' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . '$.toast("';
-		echo $_['error_occured'];
+		echo $language::get('error_occured');
 		echo '");' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function refreshTable() {' . "\r\n\t\t\t" . '$("#datatable-activity").DataTable().ajax.reload( null, false );' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getStream() {' . "\r\n\t\t\t" . 'return $("#live_stream").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getLine() {' . "\r\n\t\t\t" . 'return $("#live_line").val();' . "\r\n\t\t" . '}' . "\r\n" . '        function getFilter() {' . "\r\n\t\t\t" . 'return $("#live_filter").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getServer() {' . "\r\n\t\t\t" . 'return $("#live_server").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function clearFilters() {' . "\r\n\t\t\t" . 'window.rClearing = true;' . "\r\n" . "            \$(\"#live_search\").val(\"\").trigger('change');" . "\r\n\t\t\t" . "\$(\"#live_stream\").val(\"\").trigger('change');" . "\r\n\t\t\t" . "\$('#live_line').val(\"\").trigger('change');" . "\r\n" . "            \$('#live_server').val(\"\").trigger('change');" . "\r\n" . "            \$('#live_filter').val(\"\").trigger('change');" . "\r\n\t\t\t" . "\$('#live_show_entries').val(\"";
 		echo (intval($rSettings['default_entries']) ?: 10);
 		echo "\").trigger('change');" . "\r\n\t\t\t" . 'window.rClearing = false;' . "\r\n\t\t\t" . "\$('#datatable-activity').DataTable().search(\$(\"#live_search\").val());" . "\r\n\t\t\t" . "\$('#datatable-activity').DataTable().page.len(\$('#live_show_entries').val());" . "\r\n\t\t\t" . "\$(\"#datatable-activity\").DataTable().page(0).draw('page');" . "\r\n\t\t\t" . '$("#datatable-activity").DataTable().ajax.reload( null, false );' . "\r\n" . '            delParams(["search", "stream_id", "server", "user_id", "page", "entries", "filter"]);' . "\r\n\t\t\t" . 'checkClear();' . "\r\n\t\t" . '}' . "\r\n" . '        function checkClear() {' . "\r\n\t\t\t" . 'if (!hasParams(["search", "stream_id", "server", "user_id", "filter"])) {' . "\r\n\t\t\t\t" . '$("#clearFilters").prop("disabled", true);' . "\r\n\t\t\t" . '} else {' . "\r\n\t\t\t\t" . '$("#clearFilters").prop("disabled", false);' . "\r\n\t\t\t" . '}' . "\r\n\t\t" . '}' . "\r\n" . '        function getRowIDs() {' . "\r\n" . '            var rRowIDs = [];' . "\r\n" . '            var rIndexes = [];' . "\r\n" . '            $("#datatable-activity").DataTable().rows().every(function (rowIdx, tableLoop, rowLoop) {' . "\r\n" . '                if ($($("#datatable-activity").DataTable().row(rowIdx).data()[8]).text() != "CLOSED") {' . "\r\n" . '                    rRowIDs.push($("#datatable-activity").DataTable().row(rowIdx).data()[0]);' . "\r\n" . '                    rIndexes.push(rowIdx);' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            return [rRowIDs, rIndexes];' . "\r\n" . '        }' . "\r\n" . '        function refreshInformation() {' . "\r\n" . '            if (!window.rProcessing) {' . "\r\n" . '                var rRowIDs = getRowIDs();' . "\r\n" . '                if (rRowIDs[0].length > 0) {' . "\r\n" . '                    $.getJSON("./table?" + $.param($("#datatable-activity").DataTable().ajax.params()) + "&refresh=" + rRowIDs[0].join(","), function(rTable) {' . "\r\n" . '                        if (!window.rProcessing) {' . "\r\n" . '                            var rActive = [];' . "\r\n" . '                            $(rTable.data).each(function(rIndex, rItem) {' . "\r\n" . '                                var rIndex = rRowIDs[0].indexOf(rItem[0]);' . "\r\n" . '                                if (rIndex >= 0) {' . "\r\n" . "                                    if (\$('#datatable-activity').DataTable().row(rRowIDs[1][rIndex]).data() != rItem) {" . "\r\n" . "                                        \$('#datatable-activity').DataTable().row(rRowIDs[1][rIndex]).data(rItem);" . "\r\n" . '                                    }' . "\r\n" . '                                }' . "\r\n" . '                                rActive.push(rIndex);' . "\r\n" . '                            });' . "\r\n" . '                            $(rRowIDs[1]).each(function(rIndex) {' . "\r\n" . '                                if (rActive.indexOf(rIndex) == -1) {' . "\r\n" . "                                    \$('#datatable-activity').DataTable().cell(rIndex, 8).data(\"<button type='button' class='btn btn-secondary btn-xs waves-effect waves-light btn-fixed'>CLOSED</button>\");" . "\r\n" . '                                }' . "\r\n" . '                            });' . "\r\n" . '                            bindHref(); refreshTooltips(false);' . "\r\n" . '                        }' . "\r\n" . '                    });' . "\r\n" . '                }' . "\r\n" . '            }' . "\r\n" . '            clearTimeout(window.rRefresh);' . "\r\n" . '            window.rRefresh = setTimeout(refreshInformation, 5000);' . "\r\n" . '        }' . "\r\n" . '        var rSearch;' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'});" . "\r\n" . "            \$('#live_line').select2({" . "\r\n\t\t\t" . '  ajax: {' . "\r\n\t\t\t\t" . "url: './api'," . "\r\n\t\t\t\t" . "dataType: 'json'," . "\r\n\t\t\t\t" . 'data: function (params) {' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'search: params.term,' . "\r\n\t\t\t\t\t" . "action: 'userlist'," . "\r\n\t\t\t\t\t" . 'page: params.page' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processResults: function (data, params) {' . "\r\n\t\t\t\t" . '  params.page = params.page || 1;' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'results: data.items,' . "\r\n\t\t\t\t\t" . 'pagination: {' . "\r\n\t\t\t\t\t\t" . 'more: (params.page * 100) < data.total_count' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'cache: true,' . "\r\n\t\t\t\t" . 'width: "100%"' . "\r\n\t\t\t" . '  },' . "\r\n\t\t\t" . "  placeholder: 'All Lines'" . "\r\n\t\t\t" . '});' . "\r\n" . "            \$('#live_stream').select2({" . "\r\n\t\t\t" . '  ajax: {' . "\r\n\t\t\t\t" . "url: './api'," . "\r\n\t\t\t\t" . "dataType: 'json'," . "\r\n\t\t\t\t" . 'data: function (params) {' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'search: params.term,' . "\r\n\t\t\t\t\t" . "action: 'streamlist'," . "\r\n\t\t\t\t\t" . 'page: params.page' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processResults: function (data, params) {' . "\r\n\t\t\t\t" . '  params.page = params.page || 1;' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'results: data.items,' . "\r\n\t\t\t\t\t" . 'pagination: {' . "\r\n\t\t\t\t\t\t" . 'more: (params.page * 100) < data.total_count' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'cache: true,' . "\r\n\t\t\t\t" . 'width: "100%"' . "\r\n\t\t\t" . '  },' . "\r\n\t\t\t" . "  placeholder: 'All Streams'" . "\r\n\t\t\t" . '});' . "\r\n" . '            var rPage = getParam("page");' . "\r\n" . '            if (!rPage) { rPage = 1; }' . "\r\n" . '            var rEntries = getParam("entries");' . "\r\n" . '            if (!rEntries) { rEntries = ';

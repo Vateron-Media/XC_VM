@@ -67,7 +67,7 @@ if (!isset($_SESSION['hash'])) {
 
     <head>
         <meta charset="utf-8">
-        <title data-id="login">XC_VM | <?= $_['login'] ?></title>
+        <title data-id="login">XC_VM | <?= $language::get('login') ?></title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <link rel="shortcut icon" href="assets/images/favicon.ico">
@@ -307,7 +307,7 @@ if (!isset($_SESSION['hash'])) {
                                         <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                                             <span aria-hidden="true">&times;</span>
                                         </button>
-                                        <?= $_['login_message_1'] ?>
+                                        <?= $language::get('login_message_1') ?>
                                     </div>
                                     <?php break; ?>
                                 <?php
@@ -316,7 +316,7 @@ if (!isset($_SESSION['hash'])) {
                                         <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                                             <span aria-hidden="true">&times;</span>
                                         </button>
-                                        <?= $_['login_message_2'] ?>
+                                        <?= $language::get('login_message_2') ?>
                                     </div>
                                     <?php break; ?>
                                 <?php
@@ -325,7 +325,7 @@ if (!isset($_SESSION['hash'])) {
                                         <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                                             <span aria-hidden="true">&times;</span>
                                         </button>
-                                        <?= $_['login_message_3'] ?>
+                                        <?= $language::get('login_message_3') ?>
                                     </div>
                                     <?php break; ?>
                                 <?php
@@ -334,7 +334,7 @@ if (!isset($_SESSION['hash'])) {
                                         <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                                             <span aria-hidden="true">&times;</span>
                                         </button>
-                                        <?= $_['login_message_4'] ?>
+                                        <?= $language::get('login_message_4') ?>
                                     </div>
                                     <?php break; ?>
                                 <?php
@@ -343,7 +343,7 @@ if (!isset($_SESSION['hash'])) {
                                         <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                                             <span aria-hidden="true">&times;</span>
                                         </button>
-                                        <?= $_['login_message_5'] ?>
+                                        <?= $language::get('login_message_5') ?>
                                     </div>
                             <?php endswitch; ?>
                         <?php endif; ?>
@@ -353,13 +353,13 @@ if (!isset($_SESSION['hash'])) {
                                     <input type="hidden" name="referrer" value="<?= htmlspecialchars(CoreUtilities::$rRequest['referrer'] ?? '') ?>">
 
                                     <div class="form-group mb-3" id="username_group">
-                                        <label for="username"><?= $_['username'] ?></label>
+                                        <label for="username"><?= $language::get('username') ?></label>
                                         <input class="form-control" autocomplete="off" type="text" id="username" name="username" required
                                             data-parsley-trigger="change" placeholder="Enter your username">
                                     </div>
 
                                     <div class="form-group mb-3">
-                                        <label for="password"><?= $_['password'] ?></label>
+                                        <label for="password"><?= $language::get('password') ?></label>
                                         <input class="form-control" autocomplete="off" type="password" required
                                             data-parsley-trigger="change" id="password" name="password"
                                             placeholder="Enter your password">
@@ -375,7 +375,7 @@ if (!isset($_SESSION['hash'])) {
                                     <div class="form-group mb-0 mt-4">
                                         <button class="login-btn" type="submit" id="login_button" name="login"
                                             <?= ($rSettings['recaptcha_enable'] ?? false) ? 'disabled' : '' ?>>
-                                            <?= $_['login'] ?>
+                                            <?= $language::get('login') ?>
                                         </button>
                                     </div>
                                 </div>
