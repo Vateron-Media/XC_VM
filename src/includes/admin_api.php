@@ -523,16 +523,12 @@ class API {
 		if (self::checkMinimumRequirements($rData)) {
 			if (isset($rData['edit'])) {
 				if (hasPermissions('adv', 'edit_cchannel')) {
-
-
 					$rArray = overwriteData(getStream($rData['edit']), $rData);
 				} else {
 					exit();
 				}
 			} else {
 				if (hasPermissions('adv', 'create_channel')) {
-
-
 					$rArray = verifyPostTable('streams', $rData);
 					$rArray['type'] = 3;
 					$rArray['added'] = time();
