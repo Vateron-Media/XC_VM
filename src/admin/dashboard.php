@@ -429,7 +429,7 @@ include 'header.php';
 									<div class="card-header no-margin-bottom py-3 text-white<?php if ($rUserInfo['theme'] == 0) echo ' bg-white'; ?>">
 										<div class="row">
 											<div class="col-md-2 col-2">
-												<h4 class="header-title"><?php echo $_['connections']; ?></h4>
+												<h4 class="header-title"><?php echo $language::get('connections'); ?></h4>
 											</div>
 											<div class="col-md-2 col-2 text-center">
 												<a href="live_connections?server=<?php echo $rServer['id']; ?>">
@@ -437,7 +437,7 @@ include 'header.php';
 												</a>
 											</div>
 											<div class="col-md-2 col-2">
-												<h4 class="header-title"><?php echo $_['users']; ?></h4>
+												<h4 class="header-title"><?php echo $language::get('users'); ?></h4>
 											</div>
 											<div class="col-md-2 col-2 text-center">
 												<a href="live_connections?server=<?php echo $rServer['id']; ?>">
@@ -487,7 +487,7 @@ include 'header.php';
 												<button id="s_<?php echo $rServer['id']; ?>_requests" type="button" class="btn btn-light btn-xs waves-effect waves-light btn-fixed-min">0</button>
 											</div>
 											<div class="col-md-2 col-2">
-												<h4 class="header-title"><?php echo $_['uptime']; ?></h4>
+												<h4 class="header-title"><?php echo $language::get('uptime'); ?></h4>
 											</div>
 											<div class="col-md-2 col-2 text-center">
 												<button id="s_<?php echo $rServer['id']; ?>_uptime" type="button" class="btn btn-light btn-xs waves-effect waves-light btn-fixed-min">0d 0h</button>
@@ -503,13 +503,13 @@ include 'header.php';
 										</div>
 										<div class="row">
 											<div class="col-md-2 col-2">
-												<h4 class="header-title"><?php echo $_['input']; ?><small>&nbsp;(Mbps)</small></h4>
+												<h4 class="header-title"><?php echo $language::get('input'); ?><small>&nbsp;(Mbps)</small></h4>
 											</div>
 											<div class="col-md-2 col-2 text-center">
 												<button id="s_<?php echo $rServer['id']; ?>_input" type="button" class="btn btn-light btn-xs waves-effect waves-light btn-fixed-min">0</button>
 											</div>
 											<div class="col-md-2 col-2">
-												<h4 class="header-title"><?php echo $_['output']; ?><small>&nbsp;(Mbps)</small></h4>
+												<h4 class="header-title"><?php echo $language::get('output'); ?><small>&nbsp;(Mbps)</small></h4>
 											</div>
 											<div class="col-md-2 col-2 text-center">
 												<button id="s_<?php echo $rServer['id']; ?>_output" type="button" class="btn btn-light btn-xs waves-effect waves-light btn-fixed-min">0</button>
@@ -542,27 +542,27 @@ include 'header.php';
 																				} ?>">
 											<div class="row" style="margin-bottom:-20px;">
 												<div class="col-md-4 col-6" align="center">
-													<h4 class="header-title"><?php echo $_['conns']; ?></h4>
+													<h4 class="header-title"><?php echo $language::get('conns'); ?></h4>
 													<p class="sub-header" id="s_<?php echo $rServer['id']; ?>_conns">0</p>
 												</div>
 												<div class="col-md-4 col-6" align="center">
-													<h4 class="header-title"><?php echo $_['users']; ?></h4>
+													<h4 class="header-title"><?php echo $language::get('users'); ?></h4>
 													<p class="sub-header" id="s_<?php echo $rServer['id']; ?>_users">0</p>
 												</div>
 												<div class="col-md-4 col-6" align="center">
-													<h4 class="header-title"><?php echo $_['online']; ?></h4>
+													<h4 class="header-title"><?php echo $language::get('online'); ?></h4>
 													<p class="sub-header" id="s_<?php echo $rServer['id']; ?>_online">0</p>
 												</div>
 												<div class="col-md-4 col-6" align="center">
-													<h4 class="header-title"><?php echo $_['input']; ?></h4>
+													<h4 class="header-title"><?php echo $language::get('input'); ?></h4>
 													<p class="sub-header" id="s_<?php echo $rServer['id']; ?>_input">0 Mbps</p>
 												</div>
 												<div class="col-md-4 col-6" align="center">
-													<h4 class="header-title"><?php echo $_['output']; ?></h4>
+													<h4 class="header-title"><?php echo $language::get('output'); ?></h4>
 													<p class="sub-header" id="s_<?php echo $rServer['id']; ?>_output">0 Mbps</p>
 												</div>
 												<div class="col-md-4 col-6" align="center">
-													<h4 class="header-title"><?php echo $_['uptime']; ?></h4>
+													<h4 class="header-title"><?php echo $language::get('uptime'); ?></h4>
 													<p class="sub-header" id="s_<?php echo $rServer['id']; ?>_uptime">0d 0h</p>
 												</div>
 											</div>
@@ -668,27 +668,27 @@ include 'header.php';
 																				} ?>">
 											<div class="row" style="margin-bottom:-20px;">
 												<div class="col-md-4 col-6" align="center">
-													<h4 class="header-title"><?php echo $_['conns']; ?></h4>
+													<h4 class="header-title"><?php echo $language::get('conns'); ?></h4>
 													<p class="sub-header" id="s_<?php echo $rServer['id']; ?>_conns">0</p>
 												</div>
 												<div class="col-md-4 col-6" align="center">
-													<h4 class="header-title"><?php echo $_['users']; ?></h4>
+													<h4 class="header-title"><?php echo $language::get('users'); ?></h4>
 													<p class="sub-header" id="s_<?php echo $rServer['id']; ?>_users">0</p>
 												</div>
 												<div class="col-md-4 col-6" align="center">
-													<h4 class="header-title"><?php echo $_['online']; ?></h4>
+													<h4 class="header-title"><?php echo $language::get('online'); ?></h4>
 													<p class="sub-header" id="s_<?php echo $rServer['id']; ?>_online">0</p>
 												</div>
 												<div class="col-md-4 col-6" align="center">
-													<h4 class="header-title"><?php echo $_['input']; ?></h4>
+													<h4 class="header-title"><?php echo $language::get('input'); ?></h4>
 													<p class="sub-header" id="s_<?php echo $rServer['id']; ?>_input">0 Mbps</p>
 												</div>
 												<div class="col-md-4 col-6" align="center">
-													<h4 class="header-title"><?php echo $_['output']; ?></h4>
+													<h4 class="header-title"><?php echo $language::get('output'); ?></h4>
 													<p class="sub-header" id="s_<?php echo $rServer['id']; ?>_output">0 Mbps</p>
 												</div>
 												<div class="col-md-4 col-6" align="center">
-													<h4 class="header-title"><?php echo $_['uptime']; ?></h4>
+													<h4 class="header-title"><?php echo $language::get('uptime'); ?></h4>
 													<p class="sub-header" id="s_<?php echo $rServer['id']; ?>_uptime">0d 0h</p>
 												</div>
 											</div>
@@ -727,8 +727,8 @@ include 'header.php';
 			</div>
 		<?php else: ?>
 			<div class="alert alert-danger show text-center" role="alert" style="margin-top:20px;">
-				<?php echo $_['dashboard_no_permissions']; ?><br />
-				<?php echo $_['dashboard_nav_top']; ?>
+				<?php echo $language::get('dashboard_no_permissions'); ?><br />
+				<?php echo $language::get('dashboard_nav_top'); ?>
 			</div>
 		<?php endif; ?>
 	</div>

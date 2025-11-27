@@ -44,7 +44,7 @@ include 'header.php';
 									<li class="nav-item">
 										<a href="#hmac-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
 											<i class="mdi mdi-account-card-details-outline mr-1"></i>
-											<span class="d-none d-sm-inline"><?php echo $_['details']; ?></span>
+											<span class="d-none d-sm-inline"><?php echo $language::get('details'); ?></span>
 										</a>
 									</li>
 								</ul>
@@ -75,7 +75,7 @@ include 'header.php';
 										</div>
 										<ul class="list-inline wizard mb-0">
 											<li class="list-inline-item float-right">
-												<input name="submit_key" type="submit" class="btn btn-primary" value="<?php echo isset($rHMAC) ? $_['edit'] : $_['add']; ?>" />
+												<input name="submit_key" type="submit" class="btn btn-primary" value="<?php echo isset($rHMAC) ? $language::get('edit') : $language::get('add'); ?>" />
 											</li>
 										</ul>
 									</div>

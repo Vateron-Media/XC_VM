@@ -19,7 +19,7 @@ include 'header.php';
                     <div class="page-title-right">
                         <?php include 'topbar.php'; ?>
                     </div>
-                    <h4 class="page-title"><?php echo $_['movies']; ?></h4>
+                    <h4 class="page-title"><?php echo $language::get('movies'); ?></h4>
                 </div>
             </div>
         </div>
@@ -37,14 +37,14 @@ include 'header.php';
                                        class="form-control"
                                        id="movies_search"
                                        value="<?php echo isset(CoreUtilities::$rRequest['search']) ? htmlspecialchars(CoreUtilities::$rRequest['search']) : ''; ?>"
-                                       placeholder="<?php echo $_['search_movies']; ?>...">
+                                       placeholder="<?php echo $language::get('search_movies'); ?>...">
                             </div>
 
                             <div class="col-md-4">
                                 <select id="movies_category_id" class="form-control" data-toggle="select2">
                                     <option value=""
                                         <?php echo !isset(CoreUtilities::$rRequest['category']) ? 'selected' : ''; ?>>
-                                        <?php echo $_['all_categories']; ?>
+                                        <?php echo $language::get('all_categories'); ?>
                                     </option>
                                     <?php foreach (getCategories('movie') as $rCategory): ?>
                                         <?php if (in_array($rCategory['id'], $rPermissions['category_ids'])): ?>
@@ -58,7 +58,7 @@ include 'header.php';
                             </div>
 
                             <label class="col-md-1 col-form-label text-center" for="movies_show_entries">
-                                <?php echo $_['show']; ?>
+                                <?php echo $language::get('show'); ?>
                             </label>
 
                             <div class="col-md-2">

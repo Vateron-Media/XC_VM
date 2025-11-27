@@ -20,7 +20,7 @@ include 'header.php';
 					<div class="page-title-right">
 						<?php include 'topbar.php'; ?>
 					</div>
-					<h4 class="page-title"><?php echo $_['packages']; ?></h4>
+					<h4 class="page-title"><?php echo $language::get('packages'); ?></h4>
 				</div>
 			</div>
 		</div>
@@ -31,7 +31,7 @@ include 'header.php';
 						<button type="button" class="close" data-dismiss="alert" aria-label="Close">
 							<span aria-hidden="true">&times;</span>
 						</button>
-						<?php echo $_['package_success']; ?>
+						<?php echo $language::get('package_success'); ?>
 					</div>
 				<?php endif; ?>
 				<div class="card">
@@ -39,11 +39,11 @@ include 'header.php';
 						<table id="datatable" class="table table-striped table-borderless dt-responsive nowrap">
 							<thead>
 								<tr>
-									<th class="text-center"><?php echo $_['id']; ?></th>
-									<th><?php echo $_['package_name']; ?></th>
-									<th class="text-center"><?php echo $_['trial']; ?></th>
-									<th class="text-center"><?php echo $_['official']; ?></th>
-									<th class="text-center"><?php echo $_['actions']; ?></th>
+									<th class="text-center"><?php echo $language::get('id'); ?></th>
+									<th><?php echo $language::get('package_name'); ?></th>
+									<th class="text-center"><?php echo $language::get('trial'); ?></th>
+									<th class="text-center"><?php echo $language::get('official'); ?></th>
+									<th class="text-center"><?php echo $language::get('actions'); ?></th>
 								</tr>
 							</thead>
 							<tbody>
@@ -69,8 +69,8 @@ include 'header.php';
 											<td class="text-center">
 												<?php if (hasPermissions('adv', 'edit_package')): ?>
 													<div class="btn-group">
-														<a href="./package?id=<?php echo $rPackage['id']; ?>"><button type="button" data-toggle="tooltip" data-placement="top" title="<?php echo $_['edit_package']; ?>" class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-pencil-outline"></i></button></a>
-														<button type="button" data-toggle="tooltip" data-placement="top" title="<?php echo $_['delete_package']; ?>" class="btn btn-light waves-effect waves-light btn-xs" onClick="api(<?php echo $rPackage['id']; ?>, 'delete');"><i class="mdi mdi-close"></i></button>
+														<a href="./package?id=<?php echo $rPackage['id']; ?>"><button type="button" data-toggle="tooltip" data-placement="top" title="<?php echo $language::get('edit_package'); ?>" class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-pencil-outline"></i></button></a>
+														<button type="button" data-toggle="tooltip" data-placement="top" title="<?php echo $language::get('delete_package'); ?>" class="btn btn-light waves-effect waves-light btn-xs" onClick="api(<?php echo $rPackage['id']; ?>, 'delete');"><i class="mdi mdi-close"></i></button>
 													</div>
 												<?php else: ?>
 													--
@@ -216,11 +216,11 @@ include 'header.php';
 
 	<?php
 	echo '        ' . "\r\n\t\t" . 'function api(rID, rType, rConfirm=false) {' . "\r\n" . '            if ((rType == "delete") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Delete",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "';
-	echo $_['package_delete_confirm'];
+	echo $language::get('package_delete_confirm');
 	echo '",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        api(rID, rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n\t\t\t" . '} else {' . "\r\n" . '                rConfirm = true;' . "\r\n" . '            }' . "\r\n" . '            if (rConfirm) {' . "\r\n" . '                $.getJSON("./api?action=package&sub=" + rType + "&package_id=" + rID, function(data) {' . "\r\n" . '                    if (data.result === true) {' . "\r\n" . '                        if (rType == "delete") {' . "\r\n" . '                            if (rRow = findRowByID($("#datatable").DataTable(), 0, rID)) {' . "\r\n" . '                                $("#datatable").DataTable().rows(rRow).remove().draw(false);' . "\r\n" . '                            }' . "\r\n" . '                            $.toast("';
-	echo $_['package_deleted'];
+	echo $language::get('package_deleted');
 	echo '");' . "\r\n" . '                        }' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("';
-	echo $_['error_occured'];
+	echo $language::get('error_occured');
 	echo '");' . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n\t\t" . '}' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . '$("#datatable").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n\t\t\t\t" . '},' . "\r\n" . '                order: [[ 1, "asc" ]],' . "\r\n" . '                columnDefs: [' . "\r\n\t\t\t\t\t" . '{"visible": false, "targets": [0]}' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t\t" . 'responsive: false' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable").css("width", "100%");' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n" . '        ';
 	?>
     <?php if (CoreUtilities::$rSettings['enable_search']): ?>

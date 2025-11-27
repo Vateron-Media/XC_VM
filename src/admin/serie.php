@@ -84,7 +84,7 @@ include 'header.php';
 											<a href="#advanced-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
 												<i class="mdi mdi-folder-alert-outline mr-1"></i>
 												<span class="d-none d-sm-inline">
-													<?= $_['advanced']; ?>
+													<?= $language::get('advanced'); ?>
 												</span>
 											</a>
 										</li>
@@ -92,7 +92,7 @@ include 'header.php';
 											<a href="#load-balancing" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
 												<i class="mdi mdi-server-network mr-1"></i>
 												<span class="d-none d-sm-inline">
-													<?= $_['server']; ?>
+													<?= $language::get('server'); ?>
 												</span>
 											</a>
 										</li>
@@ -141,23 +141,23 @@ include 'header.php';
 														Importing Series using this method will parse your M3U or folder and push the individual episodes through Watch Folder. If you have category and bouquet allocation set up in Watch Folder Settings then they will be used here too.
 													</p>
 													<div class="form-group row mb-4">
-														<label class="col-md-4 col-form-label" for="import_type"><?= $_['type']; ?></label>
+														<label class="col-md-4 col-form-label" for="import_type"><?= $language::get('type'); ?></label>
 														<div class="col-md-8">
 															<div class="custom-control custom-radio mt-1">
 																<span>
 																	<input type="radio" id="import_type_1" name="import_type" class="custom-control-input" checked>
-																	<label class="custom-control-label" for="import_type_1"><?= $_['m3u']; ?></label>
+																	<label class="custom-control-label" for="import_type_1"><?= $language::get('m3u'); ?></label>
 																</span>
 																<span style="padding-left:50px;">
 																	<input type="radio" id="import_type_2" name="import_type" class="custom-control-input">
-																	<label class="custom-control-label" for="import_type_2"><?= $_['folder']; ?></label>
+																	<label class="custom-control-label" for="import_type_2"><?= $language::get('folder'); ?></label>
 																</span>
 															</div>
 														</div>
 													</div>
 													<div id="import_m3uf_toggle">
 														<div class="form-group row mb-4">
-															<label class="col-md-4 col-form-label" for="m3u_file"><?= $_['m3u_file']; ?></label>
+															<label class="col-md-4 col-form-label" for="m3u_file"><?= $language::get('m3u_file'); ?></label>
 															<div class="col-md-8">
 																<input type="file" id="m3u_file" name="m3u_file" />
 															</div>
@@ -165,7 +165,7 @@ include 'header.php';
 													</div>
 													<div id="import_folder_toggle" style="display:none;">
 														<div class="form-group row mb-4">
-															<label class="col-md-4 col-form-label" for="import_folder"><?= $_['folder']; ?></label>
+															<label class="col-md-4 col-form-label" for="import_folder"><?= $language::get('folder'); ?></label>
 															<div class="col-md-8 input-group">
 																<input type="text" id="import_folder" name="import_folder" class="form-control" value="<?= $A54349e51a0595df; ?>">
 																<div class="input-group-append">
@@ -174,7 +174,7 @@ include 'header.php';
 															</div>
 														</div>
 														<div class="form-group row mb-4">
-															<label class="col-md-4 col-form-label" for="scan_recursive"><?= $_['scan_recursively']; ?></label>
+															<label class="col-md-4 col-form-label" for="scan_recursive"><?= $language::get('scan_recursively'); ?></label>
 															<div class="col-md-2">
 																<input name="scan_recursive" id="scan_recursive" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 															</div>
@@ -317,32 +317,32 @@ include 'header.php';
 											<div class="row">
 												<div class="col-12">
 													<div class="form-group row mb-4">
-														<label class="col-md-4 col-form-label" for="direct_source"><?= $_['direct_source']; ?>
-															<i title="<?= $_['episode_tooltip_1']; ?>" class="tooltip text-secondary far fa-circle"></i></label>
+														<label class="col-md-4 col-form-label" for="direct_source"><?= $language::get('direct_source'); ?>
+															<i title="<?= $language::get('episode_tooltip_1'); ?>" class="tooltip text-secondary far fa-circle"></i></label>
 														<div class="col-md-2">
 															<input name="direct_source" id="direct_source" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 														</div>
-														<label class="col-md-4 col-form-label" for="read_native"><?= $_['native_frames']; ?></label>
+														<label class="col-md-4 col-form-label" for="read_native"><?= $language::get('native_frames'); ?></label>
 														<div class="col-md-2">
 															<input name="read_native" id="read_native" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 														</div>
 													</div>
 													<div class="form-group row mb-4">
-														<label class="col-md-4 col-form-label" for="movie_symlink"><?= $_['create_symlink']; ?>
-															<i title="<?= $_['episode_tooltip_2']; ?>" class="tooltip text-secondary far fa-circle"></i></label>
+														<label class="col-md-4 col-form-label" for="movie_symlink"><?= $language::get('create_symlink'); ?>
+															<i title="<?= $language::get('episode_tooltip_2'); ?>" class="tooltip text-secondary far fa-circle"></i></label>
 														<div class="col-md-2">
 															<input name="movie_symlink" id="movie_symlink" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 														</div>
-														<label class="col-md-4 col-form-label" for="remove_subtitles"><?= $_['remove_existing_subtitles']; ?> <i title="<?= $_['episode_tooltip_3']; ?>" class="tooltip text-secondary far fa-circle"></i></label>
+														<label class="col-md-4 col-form-label" for="remove_subtitles"><?= $language::get('remove_existing_subtitles'); ?> <i title="<?= $language::get('episode_tooltip_3'); ?>" class="tooltip text-secondary far fa-circle"></i></label>
 														<div class="col-md-2">
 															<input name="remove_subtitles" id="remove_subtitles" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 														</div>
 													</div>
 													<div class="form-group row mb-4">
-														<label class="col-md-4 col-form-label" for="transcode_profile_id"><?= $_['transcoding_profile']; ?><i title="<?= $_['episode_tooltip_7']; ?>" class="tooltip text-secondary far fa-circle"></i></label>
+														<label class="col-md-4 col-form-label" for="transcode_profile_id"><?= $language::get('transcoding_profile'); ?><i title="<?= $language::get('episode_tooltip_7'); ?>" class="tooltip text-secondary far fa-circle"></i></label>
 														<div class="col-md-8">
 															<select name="transcode_profile_id" id="transcode_profile_id" class="form-control" data-toggle="select2">
-																<option value="0"><?= $_['transcoding_disabled']; ?></option>
+																<option value="0"><?= $language::get('transcoding_disabled'); ?></option>
 																<?php foreach ($rTranscodeProfiles as $profile): ?>
 																	<option value="<?= htmlspecialchars($profile['profile_id']); ?>">
 																		<?= htmlspecialchars($profile['profile_name']); ?>
@@ -352,7 +352,7 @@ include 'header.php';
 														</div>
 													</div>
 													<div class="form-group row mb-4">
-														<label class="col-md-4 col-form-label" for="target_container"><?= $_['target_container']; ?><i title="<?= $_['episode_tooltip_4']; ?>" class="tooltip text-secondary far fa-circle"></i></label>
+														<label class="col-md-4 col-form-label" for="target_container"><?= $language::get('target_container'); ?><i title="<?= $language::get('episode_tooltip_4'); ?>" class="tooltip text-secondary far fa-circle"></i></label>
 														<div class="col-md-2">
 															<select name="target_container" id="target_container" class="form-control" data-toggle="select2">
 																<?php foreach (['mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts'] as $format): ?>
@@ -367,10 +367,10 @@ include 'header.php';
 											</div>
 											<ul class="list-inline wizard mb-0">
 												<li class="prevb list-inline-item">
-													<a href="javascript: void(0);" class="btn btn-secondary"><?= $_['prev']; ?></a>
+													<a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('prev'); ?></a>
 												</li>
 												<li class="nextb list-inline-item float-right">
-													<a href="javascript: void(0);" class="btn btn-secondary"><?= $_['next']; ?></a>
+													<a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('next'); ?></a>
 												</li>
 											</ul>
 										</div>
@@ -378,7 +378,7 @@ include 'header.php';
 											<div class="row">
 												<div class="col-12">
 													<div class="form-group row mb-4">
-														<label class="col-md-4 col-form-label" for="servers"><?= $_['server_tree']; ?></label>
+														<label class="col-md-4 col-form-label" for="servers"><?= $language::get('server_tree'); ?></label>
 														<div class="col-md-8">
 															<div id="server_tree"></div>
 														</div>
@@ -407,7 +407,7 @@ include 'header.php';
 							<div id="file-browser" class="mfp-hide white-popup-block">
 								<div class="col-12">
 									<div class="form-group row mb-4">
-										<label class="col-md-4 col-form-label" for="server_id"><?= $_['server_name']; ?></label>
+										<label class="col-md-4 col-form-label" for="server_id"><?= $language::get('server_name'); ?></label>
 										<div class="col-md-8">
 											<select id="server_id" class="form-control" data-toggle="select2">
 												<?php foreach (getStreamingServers() as $server): ?>
@@ -419,7 +419,7 @@ include 'header.php';
 										</div>
 									</div>
 									<div class="form-group row mb-4">
-										<label class="col-md-4 col-form-label" for="current_path"><?= $_['current_path']; ?></label>
+										<label class="col-md-4 col-form-label" for="current_path"><?= $language::get('current_path'); ?></label>
 										<div class="col-md-8 input-group">
 											<input type="text" id="current_path" name="current_path" class="form-control" value="/">
 											<div class="input-group-append">
@@ -433,7 +433,7 @@ include 'header.php';
 												<thead>
 													<tr>
 														<th width="20px"></th>
-														<th><?= $_['directory']; ?></th>
+														<th><?= $language::get('directory'); ?></th>
 													</tr>
 												</thead>
 												<tbody></tbody>
@@ -444,7 +444,7 @@ include 'header.php';
 												<thead>
 													<tr>
 														<th width="20px"></th>
-														<th><?= $_['filename']; ?></th>
+														<th><?= $language::get('filename'); ?></th>
 													</tr>
 												</thead>
 												<tbody></tbody>
@@ -706,7 +706,7 @@ include 'header.php';
 				"targets": [0]
 			}, ],
 			"language": {
-				"emptyTable": "<?= $_['no_compatible_file']; ?>"
+				"emptyTable": "<?= $language::get('no_compatible_file'); ?>"
 			}
 		});
 		$("#select_folder").click(function() {
@@ -721,10 +721,10 @@ include 'header.php';
 			}
 			$("#current_path").val(window.currentDirectory);
 			$("#datatable").DataTable().clear();
-			$("#datatable").DataTable().row.add(["", "<?= $_['loading']; ?>..."]);
+			$("#datatable").DataTable().row.add(["", "<?= $language::get('loading'); ?>..."]);
 			$("#datatable").DataTable().draw(true);
 			$("#datatable-files").DataTable().clear();
-			$("#datatable-files").DataTable().row.add(["", "<?= $_['please_wait']; ?>..."]);
+			$("#datatable-files").DataTable().row.add(["", "<?= $language::get('please_wait'); ?>..."]);
 			$("#datatable-files").DataTable().draw(true);
 			if ($('li.nav-item .active').attr('href') == "#stream-details") {
 				rFilter = "video";
@@ -735,7 +735,7 @@ include 'header.php';
 				$("#datatable").DataTable().clear();
 				$("#datatable-files").DataTable().clear();
 				if (window.currentDirectory != "/") {
-					$("#datatable").DataTable().row.add(["<i class='mdi mdi-subdirectory-arrow-left'></i>", "<?= $_['parent_directory']; ?>"]);
+					$("#datatable").DataTable().row.add(["<i class='mdi mdi-subdirectory-arrow-left'></i>", "<?= $language::get('parent_directory'); ?>"]);
 				}
 				if (data.result == true) {
 					$(data.data.dirs).each(function(id, dir) {
@@ -750,9 +750,9 @@ include 'header.php';
 			});
 		});
 		$('#datatable').on('click', 'tbody > tr', function() {
-			if ($(this).find("td").eq(1).html() == "<?= $_['parent_directory']; ?>") {
+			if ($(this).find("td").eq(1).html() == "<?= $language::get('parent_directory'); ?>") {
 				selectParent();
-			} else if ($(this).find("td").eq(1).html() != "<?= $_['loading']; ?>...") {
+			} else if ($(this).find("td").eq(1).html() != "<?= $language::get('loading'); ?>...") {
 				selectDirectory($(this).find("td").eq(1).html());
 			}
 		});
@@ -1005,7 +1005,7 @@ include 'header.php';
 				}
 			<?php else: ?>
 				if (($("#m3u_file").val().length === 0) && ($("#import_folder").val().length === 0)) {
-					$.toast("<?= addslashes($_['select_m3u_file']); ?>");
+					$.toast("<?= addslashes($language::get('select_m3u_file')); ?>");
 				} else {
 					$("#server_tree_data").val(
 						JSON.stringify($('#server_tree').jstree(true).get_json('source', {

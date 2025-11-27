@@ -13,7 +13,7 @@ include 'header.php';
 echo '<div class="wrapper">' . "\r\n" . '    <div class="container-fluid">' . "\r\n\t\t" . '<div class="row">' . "\r\n\t\t\t" . '<div class="col-12">' . "\r\n\t\t\t\t" . '<div class="page-title-box">' . "\r\n\t\t\t\t\t" . '<div class="page-title-right">' . "\r\n" . '                        ';
 include 'topbar.php';
 echo "\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t" . '<h4 class="page-title">';
-echo $_['enigma_devices'];
+echo $language::get('enigma_devices');
 echo '</h4>' . "\r\n\t\t\t\t" . '</div>' . "\r\n\t\t\t" . '</div>' . "\r\n\t\t" . '</div>     ' . "\r\n\t\t" . '<div class="row">' . "\r\n\t\t\t" . '<div class="col-12">' . "\r\n" . '                ';
 
 if (!(isset($_STATUS) && $_STATUS == STATUS_SUCCESS)) {
@@ -36,9 +36,9 @@ if (!isset(CoreUtilities::$rRequest['search'])) {
 }
 
 echo '" placeholder="';
-echo $_['search_devices'];
+echo $language::get('search_devices');
 echo '...">' . "\r\n" . '                            </div>' . "\r\n" . '                            <label class="col-md-2 col-form-label text-center" for="e2_reseller">';
-echo $_['filter_results'];
+echo $language::get('filter_results');
 echo '</label>' . "\r\n" . '                            <div class="col-md-3">' . "\r\n" . '                                <select id="e2_reseller" class="form-control" data-toggle="select2">' . "\r\n" . '                                    <optgroup label="Global">' . "\r\n" . '                                        <option value=""';
 
 if (isset(CoreUtilities::$rRequest['owner'])) {
@@ -112,7 +112,7 @@ if (isset(CoreUtilities::$rRequest['filter'])) {
 }
 
 echo '>';
-echo $_['no_filter'];
+echo $language::get('no_filter');
 echo '</option>' . "\r\n" . '                                    <option value="1"';
 
 if (!(isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 1)) {
@@ -121,7 +121,7 @@ if (!(isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['fil
 }
 
 echo '>';
-echo $_['active'];
+echo $language::get('active');
 echo '</option>' . "\r\n" . '                                    <option value="2"';
 
 if (!(isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 2)) {
@@ -130,7 +130,7 @@ if (!(isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['fil
 }
 
 echo '>';
-echo $_['disabled'];
+echo $language::get('disabled');
 echo '</option>' . "\r\n" . '                                    <option value="4"';
 
 if (!(isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 3)) {
@@ -139,7 +139,7 @@ if (!(isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['fil
 }
 
 echo '>';
-echo $_['expired'];
+echo $language::get('expired');
 echo '</option>' . "\r\n" . '                                    <option value="5"';
 
 if (!(isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 4)) {
@@ -148,9 +148,9 @@ if (!(isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['fil
 }
 
 echo '>';
-echo $_['trial'];
+echo $language::get('trial');
 echo '</option>' . "\r\n" . '                                </select>' . "\r\n" . '                            </div>' . "\r\n" . '                            <label class="col-md-1 col-form-label text-center" for="e2_show_entries">';
-echo $_['show'];
+echo $language::get('show');
 echo '</label>' . "\r\n" . '                            <div class="col-md-1">' . "\r\n" . '                                <select id="e2_show_entries" class="form-control" data-toggle="select2">' . "\r\n" . '                                    ';
 
 foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) {
@@ -175,22 +175,22 @@ foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) {
 	echo '</option>' . "\r\n" . '                                    ';
 }
 echo '                                </select>' . "\r\n" . '                            </div>' . "\r\n" . '                        </div>' . "\r\n\t\t\t\t\t\t" . '<table id="datatable-users" class="table table-striped table-borderless dt-responsive nowrap font-normal">' . "\r\n\t\t\t\t\t\t\t" . '<thead>' . "\r\n\t\t\t\t\t\t\t\t" . '<tr>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">';
-echo $_['id'];
+echo $language::get('id');
 echo '</th>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<th>';
-echo $_['username'];
+echo $language::get('username');
 echo '</th>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">';
-echo $_['mac_address'];
+echo $language::get('mac_address');
 echo '</th>' . "\r\n" . '                                    <th class="text-center">Public IP</th>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<th>';
-echo $_['owner'];
+echo $language::get('owner');
 echo '</th>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">';
-echo $_['status'];
+echo $language::get('status');
 echo '</th>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">';
-echo $_['online'];
+echo $language::get('online');
 echo '</th>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">';
-echo $_['trial'];
+echo $language::get('trial');
 echo '</th>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">';
-echo $_['expiration'];
+echo $language::get('expiration');
 echo '</th>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">';
-echo $_['actions'];
+echo $language::get('actions');
 echo '</th>' . "\r\n\t\t\t\t\t\t\t\t" . '</tr>' . "\r\n\t\t\t\t\t\t\t" . '</thead>' . "\r\n\t\t\t\t\t\t\t" . '<tbody></tbody>' . "\r\n\t\t\t\t\t\t" . '</table>' . "\r\n\r\n\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t" . '</div> ' . "\r\n\t\t\t" . '</div>' . "\r\n\t\t" . '</div>' . "\r\n\t" . '</div>' . "\r\n" . '</div>' . "\r\n";
 include 'footer.php';

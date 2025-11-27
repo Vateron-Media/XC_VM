@@ -275,7 +275,7 @@ include 'header.php';
 			new jBox("Confirm", {
 				confirmButton: "Delete",
 				cancelButton: "Cancel",
-				content: "<?php echo $_['clear_confirm']; ?>",
+				content: "<?php echo $language::get('clear_confirm'); ?>",
 				confirm: function() {
 					$(".bs-logs-modal-center").modal("hide");
 					$.getJSON("./api?action=clear_logs&type=streams_errors&from=" + encodeURIComponent($("#range_clear_from").val()) + "&to=" + encodeURIComponent($("#range_clear_to").val()), function(data) {

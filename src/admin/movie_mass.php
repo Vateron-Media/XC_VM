@@ -36,7 +36,7 @@ include 'header.php';
 					<div class="page-title-right">
 						<?php include 'topbar.php'; ?>
 					</div>
-					<h4 class="page-title"><?= $_['mass_edit_movies']; ?><small id="selected_count"></small></h4>
+					<h4 class="page-title"><?= $language::get('mass_edit_movies'); ?><small id="selected_count"></small></h4>
 				</div>
 			</div>
 		</div>
@@ -46,7 +46,7 @@ include 'header.php';
 					<div class="alert alert-success alert-dismissible fade show" role="alert">
 						<button type="button" class="close" data-dismiss="alert" aria-label="Close">
 							<span aria-hidden="true">&times;</span>
-						</button><?= $_['mass_edit_movies_success']; ?>
+						</button><?= $language::get('mass_edit_movies_success'); ?>
 					</div>
 				<?php endif; ?>
 				<div class="card">
@@ -60,19 +60,19 @@ include 'header.php';
 									<li class="nav-item">
 										<a href="#stream-selection" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
 											<i class="mdi mdi-play mr-1"></i>
-											<span class="d-none d-sm-inline"><?= $_['movies']; ?></span>
+											<span class="d-none d-sm-inline"><?= $language::get('movies'); ?></span>
 										</a>
 									</li>
 									<li class="nav-item">
 										<a href="#stream-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
 											<i class="mdi mdi-account-card-details-outline mr-1"></i>
-											<span class="d-none d-sm-inline"><?= $_['details']; ?></span>
+											<span class="d-none d-sm-inline"><?= $language::get('details'); ?></span>
 										</a>
 									</li>
 									<li class="nav-item">
 										<a href="#load-balancing" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
 											<i class="mdi mdi-server-network mr-1"></i>
-											<span class="d-none d-sm-inline"><?= $_['servers']; ?></span>
+											<span class="d-none d-sm-inline"><?= $language::get('servers'); ?></span>
 										</a>
 									</li>
 								</ul>
@@ -94,7 +94,7 @@ include 'header.php';
 											</div>
 											<div class="col-md-3 col-6">
 												<select id="category_search" class="form-control" data-toggle="select2">
-													<option value="" selected><?= $_['all_categories']; ?></option>
+													<option value="" selected><?= $language::get('all_categories'); ?></option>
 													<option value="-1">No Categories</option>
 													<?php foreach ($rCategories as $cat):
 														echo '<option value="' . $cat['id'] . '"' .
@@ -105,13 +105,13 @@ include 'header.php';
 											</div>
 											<div class="col-md-2 col-6">
 												<select id="filter" class="form-control" data-toggle="select2">
-													<option value="" selected><?= $_['no_filter']; ?></option>
-													<option value="1"><?= $_['encoded']; ?></option>
-													<option value="2"><?= $_['encoding']; ?></option>
-													<option value="3"><?= $_['down']; ?></option>
-													<option value="4"><?= $_['ready']; ?></option>
-													<option value="5"><?= $_['direct']; ?></option>
-													<option value="6"><?= $_['no_tmdb_match']; ?></option>
+													<option value="" selected><?= $language::get('no_filter'); ?></option>
+													<option value="1"><?= $language::get('encoded'); ?></option>
+													<option value="2"><?= $language::get('encoding'); ?></option>
+													<option value="3"><?= $language::get('down'); ?></option>
+													<option value="4"><?= $language::get('ready'); ?></option>
+													<option value="5"><?= $language::get('direct'); ?></option>
+													<option value="6"><?= $language::get('no_tmdb_match'); ?></option>
 													<option value="8">Transcoding</option>
 												</select>
 											</div>
@@ -130,12 +130,12 @@ include 'header.php';
 											<table id="datatable-mass" class="table table-borderless mb-0">
 												<thead class="bg-light">
 													<tr>
-														<th class="text-center"><?= $_['id']; ?></th>
+														<th class="text-center"><?= $language::get('id'); ?></th>
 														<th class="text-center">Image</th>
-														<th><?= $_['name']; ?></th>
-														<th><?= $_['category']; ?></th>
-														<th><?= $_['servers']; ?></th>
-														<th class="text-center"><?= $_['status']; ?></th>
+														<th><?= $language::get('name'); ?></th>
+														<th><?= $language::get('category'); ?></th>
+														<th><?= $language::get('servers'); ?></th>
+														<th class="text-center"><?= $language::get('status'); ?></th>
 														<th class="text-center">TMDb</th>
 													</tr>
 												</thead>
@@ -146,7 +146,7 @@ include 'header.php';
 									<div class="tab-pane" id="stream-details">
 										<div class="row">
 											<div class="col-12">
-												<p class="sub-header"><?= $_['mass_edit_info']; ?> </p>
+												<p class="sub-header"><?= $language::get('mass_edit_info'); ?> </p>
 												<div class="form-group row mb-4">
 													<div class="checkbox checkbox-single col-md-1 checkbox-offset checkbox-primary text-center">
 														<input type="checkbox" class="activate" data-name="category_id" name="c_category_id">
@@ -169,7 +169,7 @@ include 'header.php';
 														<input type="checkbox" class="activate" data-name="bouquets" name="c_bouquets">
 														<label></label>
 													</div>
-													<label class="col-md-3 col-form-label" for="bouquets"><?= $_['select_bouquets']; ?></label>
+													<label class="col-md-3 col-form-label" for="bouquets"><?= $language::get('select_bouquets'); ?></label>
 													<div class="col-md-6">
 														<select disabled name="bouquets[]" id="bouquets" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">
 															<?php foreach (getBouquets() as $bouquet) echo '<option value="' . $bouquet['id'] . '">' . $bouquet['bouquet_name'] . '</option>' . "\n"; ?>
@@ -186,7 +186,7 @@ include 'header.php';
 														<input type="checkbox" class="activate" data-name="direct_source" data-type="switch" name="c_direct_source">
 														<label></label>
 													</div>
-													<label class="col-md-3 col-form-label" for="direct_source"><?= $_['direct_source']; ?></label>
+													<label class="col-md-3 col-form-label" for="direct_source"><?= $language::get('direct_source'); ?></label>
 													<div class="col-md-2">
 														<input name="direct_source" id="direct_source" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 													</div>
@@ -204,11 +204,11 @@ include 'header.php';
 														<input type="checkbox" class="activate" data-name="movie_symlink" data-type="switch" name="c_movie_symlink">
 														<label></label>
 													</div>
-													<label class="col-md-3 col-form-label" for="movie_symlink"><?= $_['create_symlink']; ?></label>
+													<label class="col-md-3 col-form-label" for="movie_symlink"><?= $language::get('create_symlink'); ?></label>
 													<div class="col-md-2">
 														<input name="movie_symlink" id="movie_symlink" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 													</div>
-													<label class="col-md-3 col-form-label" for="read_native"><?= $_['native_frames']; ?></label>
+													<label class="col-md-3 col-form-label" for="read_native"><?= $language::get('native_frames'); ?></label>
 													<div class="col-md-2">
 														<input name="read_native" id="read_native" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 													</div>
@@ -222,13 +222,13 @@ include 'header.php';
 														<input type="checkbox" class="activate" data-name="target_container" name="c_target_container">
 														<label></label>
 													</div>
-													<label class="col-md-3 col-form-label" for="target_container"><?= $_['target_container']; ?></label>
+													<label class="col-md-3 col-form-label" for="target_container"><?= $language::get('target_container'); ?></label>
 													<div class="col-md-2">
 														<select disabled name="target_container" id="target_container" class="form-control" data-toggle="select2">
 															<?php foreach (['mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts'] as $format) echo '<option value="' . $format . '">' . $format . '</option>' . "\n"; ?>
 														</select>
 													</div>
-													<label class="col-md-3 col-form-label" for="remove_subtitles"><?= $_['remove_subtitles']; ?></label>
+													<label class="col-md-3 col-form-label" for="remove_subtitles"><?= $language::get('remove_subtitles'); ?></label>
 													<div class="col-md-2">
 														<input name="remove_subtitles" id="remove_subtitles" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 													</div>
@@ -242,10 +242,10 @@ include 'header.php';
 														<input type="checkbox" class="activate" data-name="transcode_profile_id" name="c_transcode_profile_id">
 														<label></label>
 													</div>
-													<label class="col-md-3 col-form-label" for="transcode_profile_id"><?= $_['transcoding_profile']; ?></label>
+													<label class="col-md-3 col-form-label" for="transcode_profile_id"><?= $language::get('transcoding_profile'); ?></label>
 													<div class="col-md-8">
 														<select name="transcode_profile_id" disabled id="transcode_profile_id" class="form-control" data-toggle="select2">
-															<option selected value="0"><?= $_['transcoding_disabled']; ?></option>
+															<option selected value="0"><?= $language::get('transcoding_disabled'); ?></option>
 															<?php foreach ($rTranscodeProfiles as $profile) echo '<option value="' . $profile['profile_id'] . '">' . $profile['profile_name'] . '</option>' . "\n"; ?>
 														</select>
 													</div>
@@ -254,10 +254,10 @@ include 'header.php';
 										</div>
 										<ul class="list-inline wizard mb-0">
 											<li class="prevb list-inline-item">
-												<a href="javascript: void(0);" class="btn btn-secondary"><?= $_['prev']; ?></a>
+												<a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('prev'); ?></a>
 											</li>
 											<li class="nextb list-inline-item float-right">
-												<a href="javascript: void(0);" class="btn btn-secondary"><?= $_['next']; ?></a>
+												<a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('next'); ?></a>
 											</li>
 										</ul>
 									</div>
@@ -269,7 +269,7 @@ include 'header.php';
 														<input type="checkbox" data-name="server_tree" class="activate" name="c_server_tree" id="c_server_tree">
 														<label></label>
 													</div>
-													<label class="col-md-3 col-form-label" for="server_tree"><?= $_['server_tree']; ?></label>
+													<label class="col-md-3 col-form-label" for="server_tree"><?= $language::get('server_tree'); ?></label>
 													<div class="col-md-8">
 														<div id="server_tree"></div>
 													</div>
@@ -285,12 +285,12 @@ include 'header.php';
 												</div>
 												<div class="form-group row mb-4">
 													<div class="col-md-1"></div>
-													<label class="col-md-3 col-form-label" for="reencode_on_edit"><?= $_['reencode_on_edit']; ?></label>
+													<label class="col-md-3 col-form-label" for="reencode_on_edit"><?= $language::get('reencode_on_edit'); ?></label>
 													<div class="col-md-2">
 														<input name="reencode_on_edit" id="reencode_on_edit" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 													</div>
 													<div class="col-md-1"></div>
-													<label class="col-md-3 col-form-label" for="reprocess_tmdb"><?= $_['reprocess_tmdb_data']; ?></label>
+													<label class="col-md-3 col-form-label" for="reprocess_tmdb"><?= $language::get('reprocess_tmdb_data'); ?></label>
 													<div class="col-md-2">
 														<input name="reprocess_tmdb" id="reprocess_tmdb" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 													</div>
@@ -299,10 +299,10 @@ include 'header.php';
 										</div>
 										<ul class="list-inline wizard mb-0">
 											<li class="prevb list-inline-item">
-												<a href="javascript: void(0);" class="btn btn-secondary"><?= $_['prev']; ?></a>
+												<a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('prev'); ?></a>
 											</li>
 											<li class="nextb list-inline-item float-right">
-												<input name="submit_stream" type="submit" class="btn btn-primary" value="<?= $_['edit_movies']; ?>" />
+												<input name="submit_stream" type="submit" class="btn btn-primary" value="<?= $language::get('edit_movies'); ?>" />
 											</li>
 										</ul>
 									</div>
@@ -448,9 +448,9 @@ echo json_encode(($rServerTree ?: array()));
 echo "\t\t\t" . '}, "plugins" : [ "dnd" ]' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("input[type=checkbox].activate").change(function() {' . "\r\n\t\t\t\t" . 'if ($(this).is(":checked")) {' . "\r\n\t\t\t\t\t" . 'if ($(this).data("type") == "switch") {' . "\r\n\t\t\t\t\t\t" . 'window.rSwitches[$(this).data("name")].enable();' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . '$("#" + $(this).data("name")).prop("disabled", false);' . "\r\n\t\t\t\t\t\t" . 'if ($(this).data("name") == "days_to_restart") {' . "\r\n\t\t\t\t\t\t\t" . '$("#time_to_restart").prop("disabled", false);' . "\r\n\t\t\t\t\t\t" . '}' . "\r\n" . '                        if ($(this).data("name") == "server_tree") {' . "\r\n" . '                            $("#server_type").prop("disabled", false);' . "\r\n" . '                        }' . "\r\n" . '                        if ($(this).data("name") == "category_id") {' . "\r\n" . '                            $("#category_id_type").prop("disabled", false);' . "\r\n" . '                        }' . "\r\n" . '                        if ($(this).data("name") == "bouquets") {' . "\r\n" . '                            $("#bouquets_type").prop("disabled", false);' . "\r\n" . '                        }' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . 'if ($(this).data("type") == "switch") {' . "\r\n\t\t\t\t\t\t" . 'window.rSwitches[$(this).data("name")].disable();' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . '$("#" + $(this).data("name")).prop("disabled", true);' . "\r\n\t\t\t\t\t\t" . 'if ($(this).data("name") == "days_to_restart") {' . "\r\n\t\t\t\t\t\t\t" . '$("#time_to_restart").prop("disabled", true);' . "\r\n\t\t\t\t\t\t" . '}' . "\r\n" . '                        if ($(this).data("name") == "server_tree") {' . "\r\n" . '                            $("#server_type").prop("disabled", true);' . "\r\n" . '                        }' . "\r\n" . '                        if ($(this).data("name") == "category_id") {' . "\r\n" . '                            $("#category_id_type").prop("disabled", true);' . "\r\n" . '                        }' . "\r\n" . '                        if ($(this).data("name") == "bouquets") {' . "\r\n" . '                            $("#bouquets_type").prop("disabled", true);' . "\r\n" . '                        }' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$(".clockpicker").clockpicker();' . "\r\n\t\t\t" . '$("#probesize_ondemand").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#delay_minutes").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#tv_archive_duration").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . 'rTable = $("#datatable-mass").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n" . '                    $("#datatable-mass a").removeAttr("href");' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "movie_list",' . "\r\n\t\t\t\t\t\t" . 'd.category = getCategory(),' . "\r\n\t\t\t\t\t\t" . 'd.filter = getFilter(),' . "\r\n" . '                        d.server = getServer()' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,1,5,6]},' . "\r\n" . '                    {"orderable": false, "targets": [1,6]}' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t\t" . '"rowCallback": function(row, data) {' . "\r\n\t\t\t\t\t" . 'if ($.inArray(data[0], window.rSelected) !== -1) {' . "\r\n\t\t\t\t\t\t" . "\$(row).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'pageLength: ';
 echo (intval($rSettings['default_entries']) ?: 10);
 echo ',' . "\r\n" . '                order: [[ 0, "desc" ]]' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#stream_search').keyup(function(){" . "\r\n\t\t\t\t" . 'rTable.search($(this).val()).draw();' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#show_entries').change(function(){" . "\r\n\t\t\t\t" . 'rTable.page.len($(this).val()).draw();' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#category_search').change(function(){" . "\r\n\t\t\t\t" . 'rTable.ajax.reload(null, false);' . "\r\n\t\t\t" . '})' . "\r\n" . "            \$('#movie_server_id').change(function(){" . "\r\n\t\t\t\t" . 'rTable.ajax.reload(null, false);' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#filter').change(function(){" . "\r\n\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . '$("#datatable-mass").selectable({' . "\r\n\t\t\t\t" . "filter: 'tr'," . "\r\n\t\t\t\t" . 'selected: function (event, ui) {' . "\r\n\t\t\t\t\t" . "if (\$(ui.selected).hasClass('selectedfilter')) {" . "\r\n\t\t\t\t\t\t" . "\$(ui.selected).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t\t" . 'window.rSelected.splice($.inArray($(ui.selected).find("td:eq(0)").text(), window.rSelected), 1);' . "\r\n\t\t\t\t\t" . '} else {            ' . "\r\n\t\t\t\t\t\t" . "\$(ui.selected).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t\t" . 'window.rSelected.push($(ui.selected).find("td:eq(0)").text());' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '$("#selected_count").html(" - " + window.rSelected.length + " ';
-echo $_['selected'];
+echo $language::get('selected');
 echo '")' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n" . '            $("form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n\t\t\t\t" . "\$(\"#server_tree_data\").val(JSON.stringify(\$('#server_tree').jstree(true).get_json('source', {flat:true})));" . "\r\n\t\t\t\t" . 'rPass = false;' . "\r\n" . '                rSubmit = true;' . "\r\n\t\t\t\t" . "\$.each(\$('#server_tree').jstree(true).get_json('#', {flat:true}), function(k,v) {" . "\r\n\t\t\t\t\t" . 'if (v.parent == "source") {' . "\r\n\t\t\t\t\t\t" . 'rPass = true;' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '});' . "\r\n\t\t\t\t" . '$("#streams").val(JSON.stringify(window.rSelected));' . "\r\n\t\t\t\t" . 'if (window.rSelected.length == 0) {' . "\r\n\t\t\t\t\t" . '$.toast("';
-echo $_['select_at_least_one_movie'];
+echo $language::get('select_at_least_one_movie');
 echo '");' . "\r\n" . '                    rSubmit = false;' . "\r\n\t\t\t\t" . '}' . "\r\n" . '                if (rSubmit) {' . "\r\n" . "                    \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                    submitForm(window.rCurrentPage, new FormData($("form")[0]));' . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
 ?>
     <?php if (CoreUtilities::$rSettings['enable_search']): ?>

@@ -20,7 +20,7 @@ include 'header.php';
                     <div class="page-title-right">
                         <?php include 'topbar.php'; ?>
                     </div>
-                    <h4 class="page-title"><?php echo $_['bouquet_order']; ?></h4>
+                    <h4 class="page-title"><?php echo $language::get('bouquet_order'); ?></h4>
                 </div>
             </div>
         </div>
@@ -44,7 +44,7 @@ include 'header.php';
                                     <li class="nav-item">
                                         <a href="#order-stream" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-flower-tulip-outline mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?php echo $_['bouquet_order']; ?></span>
+                                            <span class="d-none d-sm-inline"><?php echo $language::get('bouquet_order'); ?></span>
                                         </a>
                                     </li>
                                 </ul>
@@ -52,7 +52,7 @@ include 'header.php';
                                     <div class="tab-pane" id="order-stream">
                                         <div class="row">
                                             <div class="col-12">
-                                                <p class="sub-header"><?php echo $_['bouquet_sort_text']; ?></p>
+                                                <p class="sub-header"><?php echo $language::get('bouquet_sort_text'); ?></p>
                                                 <select multiple id="sort_bouquet" class="form-control" style="min-height:400px;">
                                                     <?php foreach (getBouquets() as $rBouquet) : ?>
                                                         <option value="<?php echo $rBouquet['id']; ?>"><?php echo $rBouquet['bouquet_name']; ?></option>
@@ -70,10 +70,10 @@ include 'header.php';
                                                 <a href="javascript: void(0);" onClick="MoveDown()" class="btn btn-purple"><i class="mdi mdi-chevron-down"></i></a>
                                                 <a href="javascript: void(0);" onClick="MoveTop()" class="btn btn-pink"><i class="mdi mdi-chevron-triple-up"></i></a>
                                                 <a href="javascript: void(0);" onClick="MoveBottom()" class="btn btn-pink"><i class="mdi mdi-chevron-triple-down"></i></a>
-                                                <a href="javascript: void(0);" onClick="AtoZ()" class="btn btn-info"><?php echo $_['a_to_z']; ?></a>
+                                                <a href="javascript: void(0);" onClick="AtoZ()" class="btn btn-info"><?php echo $language::get('a_to_z'); ?></a>
                                             </li>
                                             <li class="list-inline-item float-right">
-                                                <button type="submit" class="btn btn-primary waves-effect waves-light"><?php echo $_['save_changes']; ?></button>
+                                                <button type="submit" class="btn btn-primary waves-effect waves-light"><?php echo $language::get('save_changes'); ?></button>
                                             </li>
                                         </ul>
                                     </div>

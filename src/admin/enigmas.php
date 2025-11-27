@@ -15,7 +15,7 @@ include 'header.php'; ?>
                     <div class="page-title-right">
                         <?php include 'topbar.php'; ?>
                     </div>
-                    <h4 class="page-title"><?php echo $_['enigma_devices']; ?></h4>
+                    <h4 class="page-title"><?php echo $language::get('enigma_devices'); ?></h4>
                 </div>
             </div>
         </div>
@@ -33,7 +33,7 @@ include 'header.php'; ?>
                     <div class="card-body" style="overflow-x:auto;">
                         <div id="collapse_filters" class="form-group row mb-4 <?php echo $rMobile ? 'collapse' : ''; ?>">
                             <div class="col-md-3">
-                                <input type="text" class="form-control" id="e2_search" value="<?php echo isset(CoreUtilities::$rRequest['search']) ? htmlspecialchars(CoreUtilities::$rRequest['search']) : ''; ?>" placeholder="<?php echo $_['search_devices']; ?>...">
+                                <input type="text" class="form-control" id="e2_search" value="<?php echo isset(CoreUtilities::$rRequest['search']) ? htmlspecialchars(CoreUtilities::$rRequest['search']) : ''; ?>" placeholder="<?php echo $language::get('search_devices'); ?>...">
                             </div>
                             <label class="col-md-2 col-form-label text-center" for="e2_reseller">Filter Results &nbsp; <button type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="clearOwner();"><i class="mdi mdi-close"></i></button></label>
                             <div class="col-md-3">
@@ -47,25 +47,25 @@ include 'header.php'; ?>
                                 <select id="e2_filter" class="form-control" data-toggle="select2">
                                     <option value="" <?php if (!isset(CoreUtilities::$rRequest['filter'])) {
                                                             echo 'selected';
-                                                        } ?>><?php echo $_['no_filter']; ?></option>
+                                                        } ?>><?php echo $language::get('no_filter'); ?></option>
                                     <option value="1" <?php if (isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 1) {
                                                             echo 'selected';
-                                                        } ?>><?php echo $_['active']; ?></option>
+                                                        } ?>><?php echo $language::get('active'); ?></option>
                                     <option value="2" <?php if (isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 2) {
                                                             echo 'selected';
-                                                        } ?>><?php echo $_['disabled']; ?></option>
+                                                        } ?>><?php echo $language::get('disabled'); ?></option>
                                     <option value="3" <?php if (isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 3) {
                                                             echo 'selected';
-                                                        } ?>><?php echo $_['banned']; ?></option>
+                                                        } ?>><?php echo $language::get('banned'); ?></option>
                                     <option value="4" <?php if (isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 4) {
                                                             echo 'selected';
-                                                        } ?>><?php echo $_['expired']; ?></option>
+                                                        } ?>><?php echo $language::get('expired'); ?></option>
                                     <option value="5" <?php if (isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 5) {
                                                             echo 'selected';
-                                                        } ?>><?php echo $_['trial']; ?></option>
+                                                        } ?>><?php echo $language::get('trial'); ?></option>
                                 </select>
                             </div>
-                            <label class="col-md-1 col-form-label text-center" for="e2_show_entries"><?php echo $_['show']; ?></label>
+                            <label class="col-md-1 col-form-label text-center" for="e2_show_entries"><?php echo $language::get('show'); ?></label>
                             <div class="col-md-1">
                                 <select id="e2_show_entries" class="form-control" data-toggle="select2">
                                     <?php foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) { ?>
@@ -79,17 +79,17 @@ include 'header.php'; ?>
                         <table id="datatable-users" class="table table-striped table-borderless dt-responsive nowrap font-normal">
                             <thead>
                                 <tr>
-                                    <th class="text-center"><?php echo $_['id']; ?></th>
-                                    <th><?php echo $_['username']; ?></th>
-                                    <th class="text-center"><?php echo $_['mac_address']; ?></th>
+                                    <th class="text-center"><?php echo $language::get('id'); ?></th>
+                                    <th><?php echo $language::get('username'); ?></th>
+                                    <th class="text-center"><?php echo $language::get('mac_address'); ?></th>
                                     <th class="text-center">Public IP</th>
-                                    <th><?php echo $_['owner']; ?></th>
-                                    <th class="text-center"><?php echo $_['status']; ?></th>
-                                    <th class="text-center"><?php echo $_['online']; ?></th>
-                                    <th class="text-center"><?php echo $_['trial']; ?></th>
-                                    <th class="text-center"><?php echo $_['expiration']; ?></th>
+                                    <th><?php echo $language::get('owner'); ?></th>
+                                    <th class="text-center"><?php echo $language::get('status'); ?></th>
+                                    <th class="text-center"><?php echo $language::get('online'); ?></th>
+                                    <th class="text-center"><?php echo $language::get('trial'); ?></th>
+                                    <th class="text-center"><?php echo $language::get('expiration'); ?></th>
                                     <th class="text-center">Last Connection</th>
-                                    <th class="text-center"><?php echo $_['actions']; ?></th>
+                                    <th class="text-center"><?php echo $language::get('actions'); ?></th>
                                 </tr>
                             </thead>
                             <tbody></tbody>
@@ -229,19 +229,19 @@ include 'header.php'; ?>
 
 			<?php 
 		echo '        var rClearing = false;' . "\r\n" . '        var rSelected = [];' . "\r\n\r\n\t\t" . 'function api(rID, rType, rConfirm=false) {' . "\r\n" . '            if ((window.rSelected) && (window.rSelected.length > 0)) {' . "\r\n" . '                $.toast("Individual actions disabled in multi-select mode.");' . "\r\n" . '                return;' . "\r\n" . '            }' . "\r\n" . '            if ((rType == "delete") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Delete",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "';
-		echo $_['device_delete_confirm'];
+		echo $language::get('device_delete_confirm');
 		echo '",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        api(rID, rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else if ((rType == "convert") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Convert",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to conver this Device to a User Line?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        api(rID, rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n\t\t\t" . '} else {' . "\r\n" . '                rConfirm = true;' . "\r\n" . '            }' . "\r\n" . '            if (rConfirm) {' . "\r\n" . '                $.getJSON("./api?action=enigma&sub=" + rType + "&e2_id=" + rID, function(data) {' . "\r\n" . '                    if (data.result === true) {' . "\r\n" . '                        if (rType == "delete") {' . "\r\n" . '                            $.toast("';
-		echo $_['device_confirmed_1'];
+		echo $language::get('device_confirmed_1');
 		echo '");' . "\r\n" . '                        } else if (rType == "enable") {' . "\r\n" . '                            $.toast("';
-		echo $_['device_confirmed_2'];
+		echo $language::get('device_confirmed_2');
 		echo '");' . "\r\n" . '                        } else if (rType == "disable") {' . "\r\n" . '                            $.toast("';
-		echo $_['device_confirmed_3'];
+		echo $language::get('device_confirmed_3');
 		echo '");' . "\r\n" . '                        } else if (rType == "unban") {' . "\r\n" . '                            $.toast("';
-		echo $_['device_confirmed_4'];
+		echo $language::get('device_confirmed_4');
 		echo '");' . "\r\n" . '                        } else if (rType == "ban") {' . "\r\n" . '                            $.toast("';
-		echo $_['device_confirmed_5'];
+		echo $language::get('device_confirmed_5');
 		echo '");' . "\r\n" . '                        } else if (rType == "convert") {' . "\r\n" . '                            if (data.line_id) {' . "\r\n" . '                                navigate("line?id=" + data.line_id);' . "\r\n" . '                            } else {' . "\r\n" . '                                $.toast("Failed to convert to user line.");' . "\r\n" . '                            }' . "\r\n" . '                        }' . "\r\n" . '                        $("#datatable-users").DataTable().ajax.reload(null, false);' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("';
-		echo $_['error_occured'];
+		echo $language::get('error_occured');
 		echo '");' . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n\t\t" . '}' . "\r\n" . '        function multiAPI(rType, rConfirm=false) {' . "\r\n" . '            if (rType == "clear") {' . "\r\n" . '                if ("#header_stats") {' . "\r\n" . '                    $("#header_stats").show();' . "\r\n" . '                }' . "\r\n" . '                window.rSelected = [];' . "\r\n" . '                $(".multiselect").hide();' . "\r\n" . "                \$(\"#datatable-users tr\").removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n" . '                return;' . "\r\n" . '            }' . "\r\n" . '            if ((rType == "delete") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Delete",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to delete these devices?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        multiAPI(rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else if ((rType == "purge") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Kill",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to kill all connections?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        multiAPI(rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else if ((rType == "convert") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Convert",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to convert these devices to normal lines?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        multiAPI(rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n\t\t\t" . '} else {' . "\r\n" . '                rConfirm = true;' . "\r\n" . '            }' . "\r\n" . '            if (rConfirm) {' . "\r\n" . '                $.getJSON("./api?action=multi&type=enigma&sub=" + rType + "&ids=" + JSON.stringify(window.rSelected), function(data) {' . "\r\n" . '                    if (data.result == true) {' . "\r\n" . '                        if (rType == "convert") {' . "\r\n" . '                            $.toast("Devices have been converted to normal lines.");' . "\r\n" . '                        } else if (rType == "purge") {' . "\r\n" . '                            $.toast("Connections have been killed.");' . "\r\n" . '                        } else if (rType == "delete") {' . "\r\n" . '                            $.toast("Devices have been deleted.");' . "\r\n" . '                            refreshTable();' . "\r\n" . '                        } else if (rType == "ban") {' . "\r\n" . '                            $.toast("Devices have been banned.");' . "\r\n" . '                        } else if (rType == "unban") {' . "\r\n" . '                            $.toast("Devices have been unbanned.");' . "\r\n" . '                        } else if (rType == "enable") {' . "\r\n" . '                            $.toast("Devices have been enabled.");' . "\r\n" . '                        } else if (rType == "disable") {' . "\r\n" . '                            $.toast("Devices have been disabled.");' . "\r\n" . '                        }' . "\r\n" . '                        $("#datatable-users").DataTable().ajax.reload(null, false);' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("An error occured while processing your request.");' . "\r\n" . '                    }' . "\r\n" . '                }).fail(function() {' . "\r\n" . '                    $.toast("An error occured while processing your request.");' . "\r\n" . '                });' . "\r\n" . '                multiAPI("clear");' . "\r\n" . '            }' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getFilter() {' . "\r\n\t\t\t" . 'return $("#e2_filter").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getReseller() {' . "\r\n\t\t\t" . 'return $("#e2_reseller").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function clearFilters() {' . "\r\n\t\t\t" . 'window.rClearing = true;' . "\r\n\t\t\t" . "\$(\"#e2_search\").val(\"\").trigger('change');" . "\r\n\t\t\t" . "\$('#e2_filter').val(\"\").trigger('change');" . "\r\n\t\t\t" . "\$('#e2_reseller').val(\"\").trigger('change');" . "\r\n\t\t\t" . "\$('#e2_show_entries').val(\"";
 		echo (intval($rSettings['default_entries']) ?: 10);
 		echo "\").trigger('change');" . "\r\n\t\t\t" . 'window.rClearing = false;' . "\r\n\t\t\t" . "\$('#datatable-users').DataTable().search(\$(\"#e2_search\").val());" . "\r\n\t\t\t" . "\$('#datatable-users').DataTable().page.len(\$('#e2_show_entries').val());" . "\r\n\t\t\t" . "\$(\"#datatable-users\").DataTable().page(0).draw('page');" . "\r\n\t\t\t" . '$("#datatable-users").DataTable().ajax.reload( null, false );' . "\r\n" . '            delParams(["search", "filter", "owner", "page", "entries"]);' . "\r\n\t\t\t" . 'checkClear();' . "\r\n\t\t" . '}' . "\r\n" . '        function checkClear() {' . "\r\n\t\t\t" . 'if (!hasParams(["search", "filter", "owner"])) {' . "\r\n\t\t\t\t" . '$("#clearFilters").prop("disabled", true);' . "\r\n\t\t\t" . '} else {' . "\r\n\t\t\t\t" . '$("#clearFilters").prop("disabled", false);' . "\r\n\t\t\t" . '}' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function refreshTable() {' . "\r\n\t\t\t" . '$("#datatable-users").DataTable().ajax.reload( null, false );' . "\r\n\t\t" . '}' . "\r\n" . '        function clearOwner() {' . "\r\n" . "            \$('#e2_reseller').val(\"\").trigger('change');" . "\r\n" . '        }' . "\r\n" . '        var rSearch;' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'});" . "\r\n" . "            \$('#e2_reseller').select2({" . "\r\n\t\t\t" . '  ajax: {' . "\r\n\t\t\t\t" . "url: './api'," . "\r\n\t\t\t\t" . "dataType: 'json'," . "\r\n\t\t\t\t" . 'data: function (params) {' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'search: params.term,' . "\r\n\t\t\t\t\t" . "action: 'reguserlist'," . "\r\n\t\t\t\t\t" . 'page: params.page' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processResults: function (data, params) {' . "\r\n\t\t\t\t" . '  params.page = params.page || 1;' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'results: data.items,' . "\r\n\t\t\t\t\t" . 'pagination: {' . "\r\n\t\t\t\t\t\t" . 'more: (params.page * 100) < data.total_count' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'cache: true,' . "\r\n\t\t\t\t" . 'width: "100%"' . "\r\n\t\t\t" . '  },' . "\r\n\t\t\t" . "  placeholder: 'Search for an owner...'" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . 'var rPage = getParam("page");' . "\r\n" . '            if (!rPage) { rPage = 1; }' . "\r\n" . '            var rEntries = getParam("entries");' . "\r\n" . '            if (!rEntries) { rEntries = ';

@@ -27,9 +27,9 @@ include 'header.php'; ?>
                         <?php include 'topbar.php'; ?>
                     </div>
                     <h4 class="page-title"><?php if (isset($rPackage)) {
-                                                echo $_['edit_package'];
+                                                echo $language::get('edit_package');
                                             } else {
-                                                echo $_['add_package'];
+                                                echo $language::get('add_package');
                                             } ?>
                     </h4>
                 </div>
@@ -51,7 +51,7 @@ include 'header.php'; ?>
                                     <li class="nav-item">
                                         <a href="#package-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-account-card-details-outline mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?= $_['details']; ?></span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('details'); ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
@@ -63,13 +63,13 @@ include 'header.php'; ?>
                                     <li class="nav-item">
                                         <a href="#groups" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-account-group mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?= $_['groups']; ?></span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('groups'); ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
                                         <a href="#bouquets" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-flower-tulip mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?= $_['bouquets']; ?></span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('bouquets'); ?></span>
                                         </a>
                                     </li>
                                 </ul>
@@ -78,7 +78,7 @@ include 'header.php'; ?>
                                         <div class="row">
                                             <div class="col-12">
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="package_name"><?php echo $_['package_name']; ?></label>
+                                                    <label class="col-md-4 col-form-label" for="package_name"><?php echo $language::get('package_name'); ?></label>
                                                     <div class="col-md-8">
                                                         <input type="text" class="form-control" id="package_name" name="package_name" value="<?php echo isset($rPackage) ? htmlspecialchars($rPackage['package_name']) : ''; ?>">
                                                     </div>
@@ -103,7 +103,7 @@ include 'header.php'; ?>
                                                     </div>
                                                     <div class="col-md-6">
                                                         <select name="trial_duration_in" id="trial_duration_in" class="form-control select2" data-toggle="select2">
-                                                            <?php foreach (array($_['hours'] => 'hours', $_['days'] => 'days') as $rText => $rOption) { ?>
+                                                            <?php foreach (array($language::get('hours') => 'hours', $language::get('days') => 'days') as $rText => $rOption) { ?>
                                                                 <option <?php if (isset($rPackage) && $rPackage['trial_duration_in'] == $rOption) {
                                                                             echo 'selected ';
                                                                         } ?>value="<?php echo $rOption; ?>"><?php echo $rText; ?></option>
@@ -131,7 +131,7 @@ include 'header.php'; ?>
                                                     </div>
                                                     <div class="col-md-6">
                                                         <select name="official_duration_in" id="official_duration_in" class="form-control select2" data-toggle="select2">
-                                                            <?php foreach (array($_['hours'] => 'hours', $_['days'] => 'days', $_['months'] => 'months', $_['years'] => 'years') as $rText => $rOption) { ?>
+                                                            <?php foreach (array($language::get('hours') => 'hours', $language::get('days') => 'days', $language::get('months') => 'months', $language::get('years') => 'years') as $rText => $rOption) { ?>
                                                                 <option <?php if (isset($rPackage) && $rPackage['official_duration_in'] == $rOption) {
                                                                             echo 'selected ';
                                                                         } ?>value="<?php echo $rOption; ?>"><?php echo $rText; ?></option>
@@ -143,7 +143,7 @@ include 'header.php'; ?>
                                         </div>
                                         <ul class="list-inline wizard mb-0">
                                             <li class="nextb list-inline-item float-right">
-                                                <a href="javascript: void(0);" class="btn btn-secondary"><?php echo $_['next']; ?></a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?php echo $language::get('next'); ?></a>
                                             </li>
                                         </ul>
                                     </div>
@@ -208,13 +208,13 @@ include 'header.php'; ?>
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="max_connections"><?php echo $_['max_connections']; ?></label>
+                                                    <label class="col-md-4 col-form-label" for="max_connections"><?php echo $language::get('max_connections'); ?></label>
                                                     <div class="col-md-2">
                                                         <input type="text" class="form-control text-center" id="max_connections" name="max_connections" value="<?php echo isset($rPackage) ? htmlspecialchars($rPackage['max_connections']) : '1'; ?>">
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="output_formats"><?php echo $_['access_output']; ?></label>
+                                                    <label class="col-md-4 col-form-label" for="output_formats"><?php echo $language::get('access_output'); ?></label>
                                                     <div class="col-md-8">
                                                         <?php foreach (getOutputs() as $rOutput) { ?>
                                                             <div class="checkbox form-check-inline">
@@ -243,10 +243,10 @@ include 'header.php'; ?>
                                         </div>
                                         <ul class="list-inline wizard mb-0">
                                             <li class="prevb list-inline-item">
-                                                <a href="javascript: void(0);" class="btn btn-secondary"><?php echo $_['prev']; ?></a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?php echo $language::get('prev'); ?></a>
                                             </li>
                                             <li class="nextb list-inline-item float-right">
-                                                <a href="javascript: void(0);" class="btn btn-secondary"><?php echo $_['next']; ?></a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?php echo $language::get('next'); ?></a>
                                             </li>
                                         </ul>
                                     </div>
@@ -257,8 +257,8 @@ include 'header.php'; ?>
                                                     <table id="datatable-groups" class="table table-striped table-borderless mb-0">
                                                         <thead>
                                                             <tr>
-                                                                <th class="text-center"><?php echo $_['id']; ?></th>
-                                                                <th><?php echo $_['group_name']; ?></th>
+                                                                <th class="text-center"><?php echo $language::get('id'); ?></th>
+                                                                <th><?php echo $language::get('group_name'); ?></th>
                                                             </tr>
                                                         </thead>
                                                         <tbody>
@@ -279,11 +279,11 @@ include 'header.php'; ?>
                                         </div>
                                         <ul class="list-inline wizard mb-0">
                                             <li class="prevb list-inline-item">
-                                                <a href="javascript: void(0);" class="btn btn-secondary"><?php echo $_['prev']; ?></a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?php echo $language::get('prev'); ?></a>
                                             </li>
                                             <li class="list-inline-item float-right">
-                                                <a href="javascript: void(0);" onClick="toggleGroups()" class="btn btn-info"><?php echo $_['toggle_groups']; ?></a>
-                                                <a href="javascript: void(0);" class="btn btn-secondary nextb"><?php echo $_['next']; ?></a>
+                                                <a href="javascript: void(0);" onClick="toggleGroups()" class="btn btn-info"><?php echo $language::get('toggle_groups'); ?></a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary nextb"><?php echo $language::get('next'); ?></a>
                                             </li>
                                         </ul>
                                     </div>
@@ -294,12 +294,12 @@ include 'header.php'; ?>
                                                     <table id="datatable-bouquets" class="table table-striped table-borderless mb-0">
                                                         <thead>
                                                             <tr>
-                                                                <th class="text-center"><?php echo $_['id']; ?></th>
-                                                                <th><?php echo $_['bouquet_name']; ?></th>
-                                                                <th class="text-center"><?php echo $_['streams']; ?></th>
-                                                                <th class="text-center"><?php echo $_['movies']; ?></th>
-                                                                <th class="text-center"><?php echo $_['series']; ?></th>
-                                                                <th class="text-center"><?php echo $_['stations']; ?></th>
+                                                                <th class="text-center"><?php echo $language::get('id'); ?></th>
+                                                                <th><?php echo $language::get('bouquet_name'); ?></th>
+                                                                <th class="text-center"><?php echo $language::get('streams'); ?></th>
+                                                                <th class="text-center"><?php echo $language::get('movies'); ?></th>
+                                                                <th class="text-center"><?php echo $language::get('series'); ?></th>
+                                                                <th class="text-center"><?php echo $language::get('stations'); ?></th>
                                                             </tr>
                                                         </thead>
                                                         <tbody>
@@ -322,11 +322,11 @@ include 'header.php'; ?>
                                         </div>
                                         <ul class="list-inline wizard mb-0">
                                             <li class="prevb list-inline-item">
-                                                <a href="javascript: void(0);" class="btn btn-secondary"><?php echo $_['prev']; ?></a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?php echo $language::get('prev'); ?></a>
                                             </li>
                                             <li class="list-inline-item float-right">
-                                                <a href="javascript: void(0);" onClick="toggleBouquets()" class="btn btn-info"><?php echo $_['toggle_bouquets']; ?></a>
-                                                <input name="submit_package" type="submit" class="btn btn-primary" value="<?php echo isset($rPackage) ? $_['edit'] : $_['add']; ?>" />
+                                                <a href="javascript: void(0);" onClick="toggleBouquets()" class="btn btn-info"><?php echo $language::get('toggle_bouquets'); ?></a>
+                                                <input name="submit_package" type="submit" class="btn btn-primary" value="<?php echo isset($rPackage) ? $language::get('edit') : $language::get('add'); ?>" />
                                             </li>
                                         </ul>
                                     </div>

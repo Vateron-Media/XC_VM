@@ -31,7 +31,7 @@ include 'header.php';
 						<button type="button" class="close" data-dismiss="alert" aria-label="Close">
 							<span aria-hidden="true">&times;</span>
 						</button>
-						<?php echo $_['rtmp_success']; ?>
+						<?php echo $language::get('rtmp_success'); ?>
 					</div>
 				<?php endif; ?>
 				<div class="card">

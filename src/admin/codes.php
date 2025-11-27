@@ -40,11 +40,11 @@
 						<table id="datatable" class="table table-striped table-borderless dt-responsive nowrap">
 							<thead>
 								<tr>
-									<th class="text-center"><?= $_['id']; ?></th>
+									<th class="text-center"><?= $language::get('id'); ?></th>
 									<th>Access Code</th>
 									<th class="text-center">Type</th>
 									<th class="text-center">Enabled</th>
-									<th class="text-center"><?= $_['actions']; ?></th>
+									<th class="text-center"><?= $language::get('actions'); ?></th>
 								</tr>
 							</thead>
 							<tbody>
@@ -209,7 +209,7 @@
 			new jBox("Confirm", {
 				confirmButton: "Delete",
 				cancelButton: "Cancel",
-				content: "<?php echo $_['code_delete_confirm']; ?>",
+				content: "<?php echo $language::get('code_delete_confirm'); ?>",
 				confirm: function() {
 					api(rID, rType, true);
 				}
@@ -224,10 +224,10 @@
 						if (rRow = findRowByID($("#datatable").DataTable(), 0, rID)) {
 							$("#datatable").DataTable().rows(rRow).remove().draw(false);
 						}
-						$.toast("<?php echo $_['code_deleted']; ?>");
+						$.toast("<?php echo $language::get('code_deleted'); ?>");
 					}
 				} else {
-					$.toast("<?php echo $_['error_occured']; ?>");
+					$.toast("<?php echo $language::get('error_occured'); ?>");
 				}
 			});
 		}

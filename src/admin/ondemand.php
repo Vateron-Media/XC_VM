@@ -49,7 +49,7 @@
                             </div>
                             <div class="col-md-2">
                                 <select id="filter" class="form-control" data-toggle="select2">
-                                    <option value="" <?php if (!isset(CoreUtilities::$rRequest['filter'])): ?> selected<?php endif; ?>><?php echo $_['no_filter']; ?></option>
+                                    <option value="" <?php if (!isset(CoreUtilities::$rRequest['filter'])): ?> selected<?php endif; ?>><?php echo $language::get('no_filter'); ?></option>
                                     <option value="1" <?php if (isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 1): ?> selected<?php endif; ?>>Ready</option>
                                     <option value="2" <?php if (isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 2): ?> selected<?php endif; ?>>Down</option>
                                     <option value="3" <?php if (isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 3): ?> selected<?php endif; ?>>Not Scanned</option>

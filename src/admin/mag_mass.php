@@ -108,16 +108,16 @@ include 'header.php'; ?>
                                             <table id="datatable-mass" class="table table-borderless mb-0" style="overflow-x:auto;">
                                                 <thead class="bg-light">
                                                     <tr>
-                                                        <th class="text-center"><?php echo $_['id']; ?></th>
-                                                        <th><?php echo $_['username']; ?></th>
-                                                        <th class="text-center"><?php echo $_['mac_address']; ?></th>
+                                                        <th class="text-center"><?php echo $language::get('id'); ?></th>
+                                                        <th><?php echo $language::get('username'); ?></th>
+                                                        <th class="text-center"><?php echo $language::get('mac_address'); ?></th>
                                                         <th class="text-center">Device</th>
-                                                        <th><?php echo $_['owner']; ?></th>
-                                                        <th class="text-center"><?php echo $_['status']; ?></th>
-                                                        <th class="text-center"><?php echo $_['online']; ?></th>
-                                                        <th class="text-center"><?php echo $_['trial']; ?></th>
-                                                        <th class="text-center"><?php echo $_['expiration']; ?></th>
-                                                        <th class="text-center"><?php echo $_['actions']; ?></th>
+                                                        <th><?php echo $language::get('owner'); ?></th>
+                                                        <th class="text-center"><?php echo $language::get('status'); ?></th>
+                                                        <th class="text-center"><?php echo $language::get('online'); ?></th>
+                                                        <th class="text-center"><?php echo $language::get('trial'); ?></th>
+                                                        <th class="text-center"><?php echo $language::get('expiration'); ?></th>
+                                                        <th class="text-center"><?php echo $language::get('actions'); ?></th>
                                                     </tr>
                                                 </thead>
                                                 <tbody></tbody>
@@ -283,13 +283,13 @@ include 'header.php'; ?>
                                                     <label class="col-md-3 col-form-label" for="m_message_type">Event Type</label>
                                                     <div class="col-9">
                                                         <select id="m_message_type" name="message_type" class="form-control" data-toggle="select2">
-                                                            <option value="" selected><?php echo $_['select_an_event']; ?>:</option>
+                                                            <option value="" selected><?php echo $language::get('select_an_event'); ?>:</option>
                                                             <optgroup label="">
-                                                                <option value="play_channel"><?php echo $_['play_channel']; ?></option>
-                                                                <option value="reload_portal"><?php echo $_['reload_portal']; ?></option>
-                                                                <option value="reboot"><?php echo $_['reboot_device']; ?></option>
-                                                                <option value="send_msg"><?php echo $_['send_message']; ?></option>
-                                                                <option value="cut_off"><?php echo $_['close_portal']; ?></option>
+                                                                <option value="play_channel"><?php echo $language::get('play_channel'); ?></option>
+                                                                <option value="reload_portal"><?php echo $language::get('reload_portal'); ?></option>
+                                                                <option value="reboot"><?php echo $language::get('reboot_device'); ?></option>
+                                                                <option value="send_msg"><?php echo $language::get('send_message'); ?></option>
+                                                                <option value="cut_off"><?php echo $language::get('close_portal'); ?></option>
                                                             </optgroup>
                                                         </select>
                                                     </div>
@@ -297,17 +297,17 @@ include 'header.php'; ?>
                                                 <div class="form-group row mb-4" id="m_send_msg_form">
                                                     <label class="col-md-3 col-form-label" for="m_message">Message</label>
                                                     <div class="col-md-9">
-                                                        <textarea id="m_message" name="message" class="form-control" rows="3" placeholder="<?php echo $_['enter_a_custom_message']; ?>..."></textarea>
+                                                        <textarea id="m_message" name="message" class="form-control" rows="3" placeholder="<?php echo $language::get('enter_a_custom_message'); ?>..."></textarea>
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4" id="m_play_channel_form">
-                                                    <label class="col-md-3 col-form-label" for="m_selected_channel"><?php echo $_['channel']; ?></label>
+                                                    <label class="col-md-3 col-form-label" for="m_selected_channel"><?php echo $language::get('channel'); ?></label>
                                                     <div class="col-md-9">
                                                         <select id="m_selected_channel" name="selected_channel" class="form-control select2" data-toggle="select2" style="width:100%;"></select>
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4" id="m_reboot_portal_form">
-                                                    <label class="col-md-9 col-form-label" for="m_reboot_portal"><?php echo $_['reboot_on_confirmation']; ?></label>
+                                                    <label class="col-md-9 col-form-label" for="m_reboot_portal"><?php echo $language::get('reboot_on_confirmation'); ?></label>
                                                     <div class="col-md-3">
                                                         <input name="reboot_portal" id="m_reboot_portal" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                     </div>
@@ -510,7 +510,7 @@ include 'header.php'; ?>
     echo "\t\t\t\t\t\t" . 'd.filter = getFilter(),' . "\r\n\t\t\t\t\t\t" . 'd.reseller = getReseller()' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,2,5,7,8]},' . "\r\n\t\t\t\t\t" . '{"visible": false, "targets": [1,3,6,9]}' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t\t" . '"rowCallback": function(row, data) {' . "\r\n\t\t\t\t\t" . 'if ($.inArray(data[0], window.rSelected) !== -1) {' . "\r\n\t\t\t\t\t\t" . '$(row).addClass("selected");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'pageLength: ';
     echo (intval($rSettings['default_entries']) ?: 10);
     echo "\t\t\t" . '});' . "\r\n\t\t\t" . 'bTable = $("#datatable-bouquets").DataTable({' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,2,3]}' . "\r\n\t\t\t\t" . '],' . "\r\n" . '                drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n" . '                },' . "\r\n\t\t\t\t" . '"rowCallback": function(row, data) {' . "\r\n\t\t\t\t\t" . 'if ($.inArray(data[0], window.rBouquets) !== -1) {' . "\r\n\t\t\t\t\t\t" . "\$(row).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'paging: false,' . "\r\n\t\t\t\t" . 'bInfo: false,' . "\r\n\t\t\t\t" . 'searching: false' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#user_search').keyup(function(){" . "\r\n\t\t\t\t" . 'rTable.search($(this).val()).draw();' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#show_entries').change(function(){" . "\r\n\t\t\t\t" . 'rTable.page.len($(this).val()).draw();' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#reseller_search').change(function(){" . "\r\n\t\t\t\t" . 'rTable.ajax.reload(null, false);' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#filter').change(function(){" . "\r\n\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . '$("#datatable-mass").selectable({' . "\r\n\t\t\t\t" . "filter: 'tr'," . "\r\n\t\t\t\t" . 'selected: function (event, ui) {' . "\r\n\t\t\t\t\t" . "if (\$(ui.selected).hasClass('selectedfilter')) {" . "\r\n\t\t\t\t\t\t" . "\$(ui.selected).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t\t" . 'window.rSelected.splice($.inArray($(ui.selected).find("td:eq(0)").text(), window.rSelected), 1);' . "\r\n\t\t\t\t\t" . '} else {            ' . "\r\n\t\t\t\t\t\t" . "\$(ui.selected).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t\t" . 'window.rSelected.push($(ui.selected).find("td:eq(0)").text());' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '$("#selected_count").html(" - " + window.rSelected.length + " selected")' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable-bouquets").selectable({' . "\r\n\t\t\t\t" . "filter: 'tr'," . "\r\n\t\t\t\t" . 'selected: function (event, ui) {' . "\r\n\t\t\t\t\t" . "if (\$(ui.selected).hasClass('selectedfilter')) {" . "\r\n\t\t\t\t\t\t" . "\$(ui.selected).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t\t" . 'window.rBouquets.splice($.inArray($(ui.selected).find("td:eq(0)").text(), window.rBouquets), 1);' . "\r\n\t\t\t\t\t" . '} else {            ' . "\r\n\t\t\t\t\t\t" . "\$(ui.selected).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t\t" . 'window.rBouquets.push($(ui.selected).find("td:eq(0)").text());' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'if (!$("#c_bouquets").is(":checked")) {' . "\r\n\t\t\t\t\t\t" . "\$(\"#c_bouquets\").prop('checked', true);" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n" . '            $("#m_message_type").change(function(){' . "\r\n\t\t\t\t" . 'if ($(this).val() == "send_msg") {' . "\r\n\t\t\t\t\t" . '$("#m_send_msg_form").show();' . "\r\n\t\t\t\t\t" . '$("#m_play_channel_form").hide();' . "\r\n" . '                    $("#m_reboot_portal_form").show();' . "\r\n\t\t\t\t" . '} else if ($(this).val() == "play_channel") {' . "\r\n\t\t\t\t\t" . '$("#m_send_msg_form").hide();' . "\r\n\t\t\t\t\t" . '$("#m_play_channel_form").show();' . "\r\n" . '                    $("#m_reboot_portal_form").hide();' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . '$("#m_send_msg_form").hide();' . "\r\n\t\t\t\t\t" . '$("#m_play_channel_form").hide();' . "\r\n" . '                    $("#m_reboot_portal_form").hide();' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#m_selected_channel').select2({" . "\r\n\t\t\t" . '  ajax: {' . "\r\n\t\t\t\t" . "url: './api'," . "\r\n\t\t\t\t" . "dataType: 'json'," . "\r\n\t\t\t\t" . 'data: function (params) {' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'search: params.term,' . "\r\n\t\t\t\t\t" . "action: 'streamlist'," . "\r\n\t\t\t\t\t" . 'page: params.page' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processResults: function (data, params) {' . "\r\n\t\t\t\t" . '  params.page = params.page || 1;' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'results: data.items,' . "\r\n\t\t\t\t\t" . 'pagination: {' . "\r\n\t\t\t\t\t\t" . 'more: (params.page * 100) < data.total_count' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'cache: true' . "\r\n\t\t\t" . '  },' . "\r\n\t\t\t" . "  placeholder: '";
-    echo $_['start_typing'];
+    echo $language::get('start_typing');
     echo "...'," . "\r\n\t\t\t" . '  width: "100%"' . "\r\n\t\t\t" . '});' . "\r\n" . '            $("#m_message_type").trigger("change");' . "\r\n" . '            $("form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n\t\t\t\t" . 'var rBouquets = [];' . "\r\n\t\t\t\t" . '$("#datatable-bouquets tr.selected").each(function() {' . "\r\n\t\t\t\t\t" . 'rBouquets.push($(this).find("td:eq(0)").text());' . "\r\n\t\t\t\t" . '});' . "\r\n\t\t\t\t" . '$("#bouquets_selected").val(JSON.stringify(rBouquets));' . "\r\n\t\t\t\t" . '$("#devices_selected").val(JSON.stringify(window.rSelected));' . "\r\n\t\t\t\t" . 'if (window.rSelected.length == 0) {' . "\r\n\t\t\t\t\t" . '$.toast("Select at least one device to edit.");' . "\r\n\t\t\t\t" . '} else {' . "\r\n" . "                    \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                    submitForm(window.rCurrentPage, new FormData($("form")[0]));' . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n" . '        ';
 
     ?>

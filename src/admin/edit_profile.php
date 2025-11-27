@@ -20,7 +20,7 @@ include 'header.php'; ?>
                         <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                             <span aria-hidden="true">&times;</span>
                         </button>
-                        <?php echo $_['profile_success']; ?>
+                        <?php echo $language::get('profile_success'); ?>
                     </div>
                 <?php } ?>
                 <div class="card">
@@ -31,7 +31,7 @@ include 'header.php'; ?>
                                     <li class="nav-item">
                                         <a href="#user-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-account-card-details-outline mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?php echo $_['details']; ?></span>
+                                            <span class="d-none d-sm-inline"><?php echo $language::get('details'); ?></span>
                                         </a>
                                     </li>
                                 </ul>
@@ -40,13 +40,13 @@ include 'header.php'; ?>
                                         <div class="row">
                                             <div class="col-12">
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="password"><?php echo $_['change_password']; ?></label>
+                                                    <label class="col-md-4 col-form-label" for="password"><?php echo $language::get('change_password'); ?></label>
                                                     <div class="col-md-8">
                                                         <input type="text" class="form-control" id="password" name="password" value="">
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="email"><?php echo $_['email_address']; ?></label>
+                                                    <label class="col-md-4 col-form-label" for="email"><?php echo $language::get('email_address'); ?></label>
                                                     <div class="col-md-8">
                                                         <input type="email" id="email" class="form-control" name="email" value="<?php echo htmlspecialchars($rUserInfo['email']); ?>">
                                                     </div>
@@ -121,7 +121,7 @@ include 'header.php'; ?>
                                         </div>
                                         <ul class="list-inline wizard mb-0">
                                             <li class="list-inline-item float-right">
-                                                <input name="submit_profile" type="submit" class="btn btn-primary" value="<?php echo $_['save_profile']; ?>" />
+                                                <input name="submit_profile" type="submit" class="btn btn-primary" value="<?php echo $language::get('save_profile'); ?>" />
                                             </li>
                                         </ul>
                                     </div>

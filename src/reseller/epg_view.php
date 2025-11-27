@@ -104,7 +104,7 @@ if (isset(CoreUtilities::$rRequest['category'])) {
 }
 
 echo '>';
-echo $_['all_categories'];
+echo $language::get('all_categories');
 echo '</option>' . "\n\t\t\t\t\t\t\t\t\t\t";
 
 foreach (getCategories('live') as $rCategory) {

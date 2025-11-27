@@ -30,7 +30,7 @@ include 'header.php';
                                 <a href="javascript:void(0);" onClick="navigate('rtmp_monitor');"
                                     style="margin-right:10px;">
                                     <button type="button" class="btn btn-dark waves-effect waves-light btn-sm">
-                                        <i class="mdi mdi-refresh"></i> <?php echo $_['refresh']; ?>
+                                        <i class="mdi mdi-refresh"></i> <?php echo $language::get('refresh'); ?>
                                     </button>
                                 </a>
                             </li>
@@ -89,7 +89,7 @@ include 'header.php';
                                         placeholder="Search Streams...">
                                 </div>
                                 <label class="col-md-1 col-form-label text-center"
-                                    for="live_filter"><?php echo $_['server']; ?></label>
+                                    for="live_filter"><?php echo $language::get('server'); ?></label>
                                 <div class="col-md-4">
                                     <select id="live_filter" class="form-control" data-toggle="select2">
                                         <?php foreach ($rServers as $rServer) { ?>
@@ -103,7 +103,7 @@ include 'header.php';
                                     </select>
                                 </div>
                                 <label class="col-md-1 col-form-label text-center"
-                                    for="live_show_entries"><?php echo $_['show']; ?></label>
+                                    for="live_show_entries"><?php echo $language::get('show'); ?></label>
                                 <div class="col-md-2">
                                     <select id="live_show_entries" class="form-control" data-toggle="select2">
                                         <?php foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) { ?>
@@ -323,7 +323,7 @@ include 'header.php';
 
 			<?php
 		echo '        ' . "\r\n\t\t" . 'function kill(rServerID, rID) {' . "\r\n\t\t\t" . '$.getJSON("./api?action=rtmp_kill&name=" + rID + "&server=" + rServerID, function(data) {' . "\r\n\t\t\t\t" . 'if (data.result === true) {' . "\r\n\t\t\t\t\t" . '$.toast("Stream has been killed. Unless you revoke authentication to this user, it will reconnect.");' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . '$.toast("';
-		echo $_['error_occured'];
+		echo $language::get('error_occured');
 		echo '");' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'});" . "\r\n\t\t\t" . '$("#datatable-activity").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '},' . "\r\n\t\t\t\t\t" . 'infoFiltered: ""' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n\t\t\t\t\t" . 'bindHref(); refreshTooltips();' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'order: [[ 0, "asc" ]],' . "\r\n\t\t\t\t" . 'pageLength: ';
 		echo (intval($rSettings['default_entries']) ?: 10);
 		echo ',' . "\r\n\t\t\t\t" . 'lengthMenu: [10, 25, 50, 250, 500, 1000]' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable-activity").css("width", "100%");' . "\r\n\t\t\t" . "\$('#live_search').keyup(function(){" . "\r\n\t\t\t\t" . "\$('#datatable-activity').DataTable().search(\$(this).val()).draw();" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#live_show_entries').change(function(){" . "\r\n\t\t\t\t" . "\$('#datatable-activity').DataTable().page.len(\$(this).val()).draw();" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#live_filter').change(function(){" . "\r\n\t\t\t\t" . 'navigate("./rtmp_monitor?server=" + $(this).val());' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#datatable-activity').DataTable().search(\$('#live_search').val()).draw();" . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";

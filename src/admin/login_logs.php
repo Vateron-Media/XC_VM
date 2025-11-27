@@ -30,13 +30,13 @@
 						<table id="datatable" class="table table-striped table-borderless dt-responsive nowrap">
 							<thead>
 								<tr>
-									<th class="text-center"><?php echo $_['date']; ?></th>
-									<th class="text-center"><?php echo $_['type']; ?></th>
-									<th class="text-center"><?php echo $_['status']; ?></th>
-									<th class="text-center"><?php echo $_['username']; ?></th>
-									<th class="text-center"><?php echo $_['access_code']; ?></th>
-									<th class="text-center"><?php echo $_['ip']; ?></th>
-									<th class="text-center"><?php echo $_['actions']; ?></th>
+									<th class="text-center"><?php echo $language::get('date'); ?></th>
+									<th class="text-center"><?php echo $language::get('type'); ?></th>
+									<th class="text-center"><?php echo $language::get('status'); ?></th>
+									<th class="text-center"><?php echo $language::get('username'); ?></th>
+									<th class="text-center"><?php echo $language::get('access_code'); ?></th>
+									<th class="text-center"><?php echo $language::get('ip'); ?></th>
+									<th class="text-center"><?php echo $language::get('actions'); ?></th>
 								</tr>
 							</thead>
 							<tbody></tbody>
@@ -198,7 +198,7 @@
 					}
 					$("#datatable").DataTable().ajax.reload(null, false);
 				} else {
-					$.toast("<?php echo $_['error_occured']; ?>");
+					$.toast("<?php echo $language::get('error_occured'); ?>");
 				}
 			});
 		}

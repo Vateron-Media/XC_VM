@@ -292,15 +292,15 @@ if (!$rGenTrials && !isset($rLine) && isset(CoreUtilities::$rRequest['trial'])) 
 	echo '</td>' . "\r\n" . '                                                                <td class="text-center" id="cost_credits">0</td>' . "\r\n" . '                                                                <td class="text-center" id="remaining_credits">';
 	echo number_format($rUserInfo['credits'], 0);
 	echo '</td>' . "\r\n" . '                                                            </tr>' . "\r\n" . '                                                        </tbody>' . "\r\n" . '                                                    </table>' . "\r\n" . '                                                    <table id="datatable-review" class="table table-striped table-borderless dt-responsive nowrap" style="margin-top:30px;">' . "\r\n" . '                                                        <thead>' . "\r\n" . '                                                            <tr>' . "\r\n" . '                                                                <th class="text-center"></th>' . "\r\n" . '                                                                <th>';
-	echo $_['bouquet_name'];
+	echo $language::get('bouquet_name');
 	echo '</th>' . "\r\n" . '                                                                <th class="text-center">';
-	echo $_['streams'];
+	echo $language::get('streams');
 	echo '</th>' . "\r\n" . '                                                                <th class="text-center">';
-	echo $_['movies'];
+	echo $language::get('movies');
 	echo '</th>' . "\r\n" . '                                                                <th class="text-center">';
-	echo $_['series'];
+	echo $language::get('series');
 	echo '</th>' . "\r\n" . '                                                                <th class="text-center">';
-	echo $_['stations'];
+	echo $language::get('stations');
 	echo '</th>' . "\r\n" . '                                                            </tr>' . "\r\n" . '                                                        </thead>' . "\r\n" . '                                                        <tbody></tbody>' . "\r\n" . '                                                    </table>' . "\r\n" . '                                                </div>' . "\r\n" . '                                            </div> <!-- end col -->' . "\r\n" . '                                        </div> <!-- end row -->' . "\r\n" . '                                        <ul class="list-inline wizard mb-0">' . "\r\n" . '                                            <li class="prevb list-inline-item">' . "\r\n" . '                                                <a href="javascript: void(0);" class="btn btn-secondary">Previous</a>' . "\r\n" . '                                            </li>' . "\r\n" . '                                            <li class="next list-inline-item float-right">' . "\r\n" . '                                                <input name="submit_line" id="submit_button" type="submit" class="btn btn-primary purchase" value="Purchase" />' . "\r\n" . '                                            </li>' . "\r\n" . '                                        </ul>' . "\r\n" . '                                    </div>' . "\r\n\t\t\t\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t\t\t" . '</form>' . "\r\n\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t" . '</div>' . "\r\n" . '                ';
 }
 

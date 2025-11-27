@@ -24,7 +24,7 @@ echo "\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t" . '<h4 class="page-title">Blocked 
 if (!(isset($_STATUS) && $_STATUS == STATUS_SUCCESS)) {
 } else {
 	echo '                <div class="alert alert-success alert-dismissible fade show" role="alert">' . "\n" . '                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">' . "\n" . '                        <span aria-hidden="true">&times;</span>' . "\n" . '                    </button>' . "\n" . '                    ';
-	echo $_['useragent_success'];
+	echo $language::get('useragent_success');
 	echo '                </div>' . "\n" . '                ';
 }
 

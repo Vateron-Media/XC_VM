@@ -16,7 +16,7 @@ include 'header.php'; ?>
                     <div class="page-title-right">
                         <?php include 'topbar.php'; ?>
                     </div>
-                    <h4 class="page-title"><?php echo $_['fingerprint_stream']; ?></h4>
+                    <h4 class="page-title"><?php echo $language::get('fingerprint_stream'); ?></h4>
                 </div>
             </div>
         </div>
@@ -29,13 +29,13 @@ include 'header.php'; ?>
                                 <li class="nav-item" id="stream-selection-tab">
                                     <a href="#stream-selection" id="stream-selection-nav" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                         <i class="mdi mdi-play mr-1"></i>
-                                        <span class="d-none d-sm-inline"><?php echo $_['stream']; ?></span>
+                                        <span class="d-none d-sm-inline"><?php echo $language::get('stream'); ?></span>
                                     </a>
                                 </li>
                                 <li class="nav-item disabled" id="stream-activity-tab">
                                     <a href="#stream-activity" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                         <i class="mdi mdi-account-group mr-1"></i>
-                                        <span class="d-none d-sm-inline"><?php echo $_['activity']; ?></span>
+                                        <span class="d-none d-sm-inline"><?php echo $language::get('activity'); ?></span>
                                     </a>
                                 </li>
                             </ul>
@@ -44,11 +44,11 @@ include 'header.php'; ?>
                                     <div class="row">
                                         <?php if (CoreUtilities::$rSettings['redis_handler']) { ?>
                                             <div class="col-md-6 col-6">
-                                                <input type="text" class="form-control" id="stream_search" value="" placeholder="<?php echo $_['search_streams']; ?>">
+                                                <input type="text" class="form-control" id="stream_search" value="" placeholder="<?php echo $language::get('search_streams'); ?>">
                                             </div>
                                             <div class="col-md-6 col-6">
                                                 <select id="category_search" class="form-control" data-toggle="select2">
-                                                    <option value="" selected><?php echo $_['all_categories']; ?></option>
+                                                    <option value="" selected><?php echo $language::get('all_categories'); ?></option>
                                                     <?php foreach (getCategories('live') as $rCategory) { ?>
                                                         <option value="<?php echo $rCategory['id']; ?>" <?php if (isset(CoreUtilities::$rRequest['category']) && CoreUtilities::$rRequest['category'] == $rCategory['id']) {
                                                                                                             echo ' selected';
@@ -60,11 +60,11 @@ include 'header.php'; ?>
                                             </div>
                                         <?php } else { ?>
                                             <div class="col-md-5 col-6">
-                                                <input type="text" class="form-control" id="stream_search" value="" placeholder="<?php echo $_['search_streams']; ?>">
+                                                <input type="text" class="form-control" id="stream_search" value="" placeholder="<?php echo $language::get('search_streams'); ?>">
                                             </div>
                                             <div class="col-md-4 col-6">
                                                 <select id="category_search" class="form-control" data-toggle="select2">
-                                                    <option value="" selected><?php echo $_['all_categories']; ?></option>
+                                                    <option value="" selected><?php echo $language::get('all_categories'); ?></option>
                                                     <?php foreach (getCategories('live') as $rCategory) { ?>
                                                         <option value="<?php echo $rCategory['id']; ?>" <?php if (isset(CoreUtilities::$rRequest['category']) && CoreUtilities::$rRequest['category'] == $rCategory['id']) {
                                                                                                             echo ' selected';
@@ -72,7 +72,7 @@ include 'header.php'; ?>
                                                     <?php } ?>
                                                 </select>
                                             </div>
-                                            <label class="col-md-1 col-2 col-form-label text-center" for="show_entries"><?php echo $_['show']; ?></label>
+                                            <label class="col-md-1 col-2 col-form-label text-center" for="show_entries"><?php echo $language::get('show'); ?></label>
                                             <div class="col-md-2 col-8">
                                                 <select id="show_entries" class="form-control" data-toggle="select2">
                                                     <?php foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) { ?>
@@ -86,10 +86,10 @@ include 'header.php'; ?>
                                         <table id="datatable-md1" class="table table-striped table-borderless mb-0">
                                             <thead>
                                                 <tr>
-                                                    <th class="text-center"><?php echo $_['id']; ?></th>
-                                                    <th><?php echo $_['stream_name']; ?></th>
-                                                    <th><?php echo $_['category']; ?></th>
-                                                    <th class="text-center"><?php echo $_['clients']; ?></th>
+                                                    <th class="text-center"><?php echo $language::get('id'); ?></th>
+                                                    <th><?php echo $language::get('stream_name'); ?></th>
+                                                    <th><?php echo $language::get('category'); ?></th>
+                                                    <th class="text-center"><?php echo $language::get('clients'); ?></th>
                                                     <th class="text-center"></th>
                                                 </tr>
                                             </thead>
@@ -100,27 +100,27 @@ include 'header.php'; ?>
                                 <div class="tab-pane" id="stream-activity">
                                     <div class="row">
                                         <div class="alert alert-warning alert-dismissible fade show col-md-12 col-12 text-center" role="alert">
-                                            <?php echo $_['warning_fingerprint']; ?>
+                                            <?php echo $language::get('warning_fingerprint'); ?>
                                         </div>
                                     </div>
                                     <div class="row" id="filter_selection">
-                                        <label class="col-md-1 col-2 col-form-label text-center" for="fingerprint_type"><?php echo $_['type']; ?></label>
+                                        <label class="col-md-1 col-2 col-form-label text-center" for="fingerprint_type"><?php echo $language::get('type'); ?></label>
                                         <div class="col-md-2 col-6">
                                             <select id="fingerprint_type" class="form-control text-center" data-toggle="select2">
-                                                <option value="1"><?php echo $_['activity_id']; ?></option>
-                                                <option value="2"><?php echo $_['username']; ?></option>
-                                                <option value="3"><?php echo $_['message']; ?></option>
+                                                <option value="1"><?php echo $language::get('activity_id'); ?></option>
+                                                <option value="2"><?php echo $language::get('username'); ?></option>
+                                                <option value="3"><?php echo $language::get('message'); ?></option>
                                             </select>
                                         </div>
-                                        <label class="col-md-1 col-2 col-form-label text-center" for="font_size"><?php echo $_['size']; ?></label>
+                                        <label class="col-md-1 col-2 col-form-label text-center" for="font_size"><?php echo $language::get('size'); ?></label>
                                         <div class="col-md-1 col-2">
                                             <input type="text" class="form-control text-center" id="font_size" value="36" placeholder="">
                                         </div>
-                                        <label class="col-md-1 col-2 col-form-label text-center" for="font_color"><?php echo $_['colour']; ?></label>
+                                        <label class="col-md-1 col-2 col-form-label text-center" for="font_color"><?php echo $language::get('colour'); ?></label>
                                         <div class="col-md-2 col-2">
                                             <input type="text" id="font_color" class="form-control text-center" value="#ffffff">
                                         </div>
-                                        <label class="col-md-1 col-2 col-form-label text-center" for="position"><?php echo $_['position']; ?></label>
+                                        <label class="col-md-1 col-2 col-form-label text-center" for="position"><?php echo $language::get('position'); ?></label>
                                         <div class="col-md-1 col-2">
                                             <input type="text" class="form-control text-center" id="position_x" value="10" placeholder="X">
                                         </div>
@@ -133,7 +133,7 @@ include 'header.php'; ?>
                                             </button>
                                         </div>
                                         <div class="col-md-12 col-2" style="margin-top:10px;display:none;" id="custom_message_div">
-                                            <input type="text" class="form-control" id="custom_message" value="" placeholder="<?php echo $_['custom_message']; ?>">
+                                            <input type="text" class="form-control" id="custom_message" value="" placeholder="<?php echo $language::get('custom_message'); ?>">
                                         </div>
                                     </div>
                                     <div class="row">
@@ -151,7 +151,7 @@ include 'header.php'; ?>
                                                     <th class="text-center">Duration</th>
                                                     <th></th>
                                                     <th></th>
-                                                    <th class="text-center"><?php echo $_['actions']; ?></th>
+                                                    <th class="text-center"><?php echo $language::get('actions'); ?></th>
                                                 </tr>
                                             </thead>
                                             <tbody></tbody>
@@ -295,15 +295,15 @@ include 'header.php'; ?>
 
 			<?php
 		echo '        ' . "\r\n\t\t" . 'var rStreamID = -1;' . "\r\n\r\n\t\t" . 'function getCategory() {' . "\r\n\t\t\t" . 'return $("#category_search").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getStreamID() {' . "\r\n\t\t\t" . 'return window.rStreamID;' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function selectFingerprint(rID) {' . "\r\n\t\t\t" . '$("#stream-activity-tab").attr("disabled", false);' . "\r\n\t\t\t" . "\$('[href=\"#stream-activity\"]').tab('show');" . "\r\n\t\t\t" . 'window.rStreamID = rID;' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function activateFingerprint() {' . "\r\n\t\t\t" . 'rArray = {"id": window.rStreamID, "font_size": $("#font_size").val(), "font_color": $("#font_color").val(), "message": "", "type": $("#fingerprint_type").val(), "xy_offset": ""};' . "\r\n\t\t\t" . 'if (rArray.type == 3) {' . "\r\n\t\t\t\t" . 'rArray["message"] = $("#custom_message").val();' . "\r\n\t\t\t" . '}' . "\r\n\t\t\t" . 'if (($("#position_x").val() >= 0) && ($("#position_y").val() >= 0)) {' . "\r\n\t\t\t\t" . 'rArray["xy_offset"] = $("#position_x").val() + "x" + $("#position_y").val();' . "\r\n\t\t\t" . '}' . "\r\n\t\t\t" . 'if ((rArray["font_size"] > 0) && (rArray["font_color"]) && ((rArray["message"]) || (rArray["type"] != 3))  && (rArray["font_size"] > 0) && (rArray["xy_offset"])) {' . "\r\n\t\t\t\t" . '$.getJSON("./api?action=fingerprint&data=" + encodeURIComponent(JSON.stringify(rArray)), function(data) {' . "\r\n\t\t\t\t\t" . 'if (data.result == true) {' . "\r\n\t\t\t\t\t\t" . '$.toast("';
-		echo $_['fingerprint_success'];
+		echo $language::get('fingerprint_success');
 		echo '");' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . '$.toast("';
-		echo $_['error_occured'];
+		echo $language::get('error_occured');
 		echo '");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '});' . "\r\n\t\t\t\t" . '$("#datatable-md2").DataTable().ajax.reload( null, false );' . "\r\n\t\t\t\t" . '$("#filter_selection").fadeOut(500, function() {' . "\r\n\t\t\t\t\t" . "\$('#datatable-md2').parents('div.dataTables_wrapper').first().fadeIn(500);" . "\r\n\t\t\t\t" . '});' . "\r\n\t\t\t" . '} else {' . "\r\n\t\t\t\t" . '$.toast("';
-		echo $_['fingerprint_fail'];
+		echo $language::get('fingerprint_fail');
 		echo '");' . "\r\n\t\t\t" . '}' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function api(rID, rType, rAID) {' . "\r\n\t\t\t" . '$.getJSON("./api?action=line_activity&sub=" + rType + "&pid=" + rID, function(data) {' . "\r\n\t\t\t\t" . 'if (data.result === true) {' . "\r\n" . '                    if (rType == "kill") {' . "\r\n\t\t\t\t\t\t" . '$.toast("';
-		echo $_['connection_has_been_killed'];
+		echo $language::get('connection_has_been_killed');
 		echo '");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '$("#datatable-md2").DataTable().ajax.reload(null, false);' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . '$.toast("';
-		echo $_['error_occured'];
+		echo $language::get('error_occured');
 		echo '");' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'})" . "\r\n\t\t\t" . '$("#font_color").colorpicker({format:"auto"});' . "\r\n\t\t\t" . '$("#probesize_ondemand").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#delay_minutes").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#tv_archive_duration").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#datatable-md1").DataTable({' . "\r\n\t\t\t\t";
 
 		if (CoreUtilities::$rSettings['redis_handler']) {

@@ -19,7 +19,7 @@ include 'header.php';
                     <div class="page-title-right">
                         <?php include 'topbar.php'; ?>
                     </div>
-                    <h4 class="page-title"><?php echo $_['epgs']; ?></h4>
+                    <h4 class="page-title"><?php echo $language::get('epgs'); ?></h4>
                 </div>
             </div>
         </div>
@@ -38,13 +38,13 @@ include 'header.php';
                         <table id="datatable" class="table table-striped table-borderless dt-responsive nowrap">
                             <thead>
                                 <tr>
-                                    <th class="text-center"><?php echo $_['id']; ?></th>
-                                    <th><?php echo $_['epg_name']; ?></th>
-                                    <th><?php echo $_['source']; ?></th>
-                                    <th class="text-center"><?php echo $_['days_to_keep']; ?></th>
-                                    <th class="text-center"><?php echo $_['last_updated']; ?></th>
+                                    <th class="text-center"><?php echo $language::get('id'); ?></th>
+                                    <th><?php echo $language::get('epg_name'); ?></th>
+                                    <th><?php echo $language::get('source'); ?></th>
+                                    <th class="text-center"><?php echo $language::get('days_to_keep'); ?></th>
+                                    <th class="text-center"><?php echo $language::get('last_updated'); ?></th>
                                     <th class="text-center">Channels</th>
-                                    <th class="text-center"><?php echo $_['actions']; ?></th>
+                                    <th class="text-center"><?php echo $language::get('actions'); ?></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -54,14 +54,14 @@ include 'header.php';
                                         <td><?php echo $rEPG['epg_name']; ?></td>
                                         <td><?php echo parse_url($rEPG['epg_file'])['host']; ?></td>
                                         <td class="text-center"><button type="button" class="btn btn-light btn-xs waves-effect waves-light btn-fixed-min"><?php echo $rEPG['days_keep']; ?></button></td>
-                                        <td class="text-center"><?php echo $rEPG['last_updated'] ? date('Y-m-d H:i', $rEPG['last_updated']) : $_['never']; ?></td>
+                                        <td class="text-center"><?php echo $rEPG['last_updated'] ? date('Y-m-d H:i', $rEPG['last_updated']) : $language::get('never'); ?></td>
                                         <td class="text-center"><button type="button" class="btn btn-light btn-xs waves-effect waves-light btn-fixed-min"><?php echo number_format(count(json_decode($rEPG['data'] ?? '[]', true) ?? []), 0); ?></button></td>
                                         <td class="text-center">
                                             <?php if (hasPermissions('adv', 'epg_edit')) { ?>
                                                 <div class="btn-group">
-                                                    <a href="./epg?id=<?php echo $rEPG['id']; ?>"><button type="button" title="<?php echo $_['edit_epg']; ?>" class="tooltip btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-pencil-outline"></i></button></a>
+                                                    <a href="./epg?id=<?php echo $rEPG['id']; ?>"><button type="button" title="<?php echo $language::get('edit_epg'); ?>" class="tooltip btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-pencil-outline"></i></button></a>
                                                     <button type="button" title="Force Reload" class="tooltip btn btn-light waves-effect waves-light btn-xs" onClick="api(<?php echo $rEPG['id']; ?>, 'reload');"><i class="mdi mdi-refresh"></i></button>
-                                                    <button type="button" title="<?php echo $_['delete_epg']; ?>" class="tooltip btn btn-light waves-effect waves-light btn-xs" onClick="api(<?php echo $rEPG['id']; ?>, 'delete');"><i class="mdi mdi-close"></i></button>
+                                                    <button type="button" title="<?php echo $language::get('delete_epg'); ?>" class="tooltip btn btn-light waves-effect waves-light btn-xs" onClick="api(<?php echo $rEPG['id']; ?>, 'delete');"><i class="mdi mdi-close"></i></button>
                                                 </div>
                                             <?php } else {
                                                 echo '--';
@@ -206,15 +206,15 @@ include 'header.php';
 
 			<?php 
 		echo '        ' . "\r\n\t\t" . 'function api(rID, rType, rConfirm=false) {' . "\r\n" . '            if ((rType == "delete") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Delete",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "';
-		echo $_['epg_confirm'];
+		echo $language::get('epg_confirm');
 		echo '",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        api(rID, rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n\t\t\t" . '} else {' . "\r\n" . '                rConfirm = true;' . "\r\n" . '            }' . "\r\n" . '            if (rConfirm) {' . "\r\n" . '                $.getJSON("./api?action=epg&sub=" + rType + "&epg_id=" + rID, function(data) {' . "\r\n" . '                    if (data.result === true) {' . "\r\n" . '                        if (rType == "delete") {' . "\r\n" . '                            if (rRow = findRowByID($("#datatable").DataTable(), 0, rID)) {' . "\r\n" . '                                $("#datatable").DataTable().rows(rRow).remove().draw(false);' . "\r\n" . '                            }' . "\r\n" . '                            $.toast("';
-		echo $_['epg_deleted'];
+		echo $language::get('epg_deleted');
 		echo '");' . "\r\n" . '                        } else if (rType == "reload") {' . "\r\n" . '                            $.toast("';
-		echo $_['updating_epg'];
+		echo $language::get('updating_epg');
 		echo '");' . "\r\n" . '                        }' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("';
-		echo $_['error_occured'];
+		echo $language::get('error_occured');
 		echo '");' . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function forceUpdate() {' . "\r\n\t\t\t" . '$("#force_update").attr("disabled", true);' . "\r\n\t\t\t" . '$.toast("';
-		echo $_['updating_epg'];
+		echo $language::get('updating_epg');
 		echo '");' . "\r\n\t\t\t" . '$.getJSON("./api?action=force_epg", function(data) {' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . '$("#datatable").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n\t\t\t\t" . '},' . "\r\n" . '                order: [[ 4, "desc" ]],' . "\r\n" . '                columnDefs: [' . "\r\n\t\t\t\t\t" . '{"visible": false, "targets": [0]}' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t\t" . 'responsive: false' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable").css("width", "100%");' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'});" . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
 		?>
     <?php if (CoreUtilities::$rSettings['enable_search']): ?>

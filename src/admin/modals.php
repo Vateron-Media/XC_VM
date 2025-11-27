@@ -79,7 +79,7 @@
 								<th class="text-center">Duration</th>
 								<th class="text-center">Output</th>
 								<th class="text-center">Restreamer</th>
-								<th class="text-center"><?php echo $_['actions']; ?></th>
+								<th class="text-center"><?php echo $language::get('actions'); ?></th>
 							</tr>
 						</thead>
 						<tbody>
@@ -176,21 +176,21 @@
 		<div class="modal-dialog modal-dialog-centered modal-md">
 			<div class="modal-content">
 				<div class="modal-header">
-					<h4 class="modal-title" id="clearLogsLabel"><?php echo $_['clear_logs']; ?></h4>
+					<h4 class="modal-title" id="clearLogsLabel"><?php echo $language::get('clear_logs'); ?></h4>
 					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
 				</div>
 				<div class="modal-body">
 					<div class="form-group row mb-4">
-						<label class="col-md-4 col-form-label" for="range_clear"><?php echo $_['date_range']; ?></label>
+						<label class="col-md-4 col-form-label" for="range_clear"><?php echo $language::get('date_range'); ?></label>
 						<div class="col-md-4">
-							<input type="text" class="form-control text-center date" id="range_clear_from" name="range_clear_from" data-toggle="date-picker" data-single-date-picker="true" autocomplete="off" placeholder="<?php echo $_['from']; ?>">
+							<input type="text" class="form-control text-center date" id="range_clear_from" name="range_clear_from" data-toggle="date-picker" data-single-date-picker="true" autocomplete="off" placeholder="<?php echo $language::get('from'); ?>">
 						</div>
 						<div class="col-md-4">
-							<input type="text" class="form-control text-center date" id="range_clear_to" name="range_clear_to" data-toggle="date-picker" data-single-date-picker="true" autocomplete="off" placeholder="<?php echo $_['to']; ?>">
+							<input type="text" class="form-control text-center date" id="range_clear_to" name="range_clear_to" data-toggle="date-picker" data-single-date-picker="true" autocomplete="off" placeholder="<?php echo $language::get('to'); ?>">
 						</div>
 					</div>
 					<div class="text-center">
-						<input id="clear_logs" type="submit" class="btn btn-primary" value="<?php echo $_['clear']; ?>" style="width:100%" />
+						<input id="clear_logs" type="submit" class="btn btn-primary" value="<?php echo $language::get('clear'); ?>" style="width:100%" />
 					</div>
 				</div>
 			</div>
@@ -200,7 +200,7 @@
 		<div class="modal-dialog modal-dialog-centered modal-md">
 			<div class="modal-content">
 				<div class="modal-header">
-					<h4 class="modal-title" id="addModal"><?php echo $_['select_series']; ?>:</h4>
+					<h4 class="modal-title" id="addModal"><?php echo $language::get('select_series'); ?>:</h4>
 					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
 				</div>
 				<div class="modal-body">
@@ -210,8 +210,8 @@
 					<div class="col-12 add-margin-top-20">
 						<div class="input-group">
 							<div class="input-group-append" style="width:100%">
-								<button style="width:50%" class="btn btn-success waves-effect waves-light" type="button" onClick="addEpisode();"><i class="mdi mdi-plus-circle-outline"></i> <?php echo $_['add_episode']; ?></button>
-								<button style="width:50%" class="btn btn-info waves-effect waves-light" type="button" onClick="addEpisodes();"><i class="mdi mdi-plus-circle-multiple-outline"></i> <?php echo $_['multiple_episodes']; ?></button>
+								<button style="width:50%" class="btn btn-success waves-effect waves-light" type="button" onClick="addEpisode();"><i class="mdi mdi-plus-circle-outline"></i> <?php echo $language::get('add_episode'); ?></button>
+								<button style="width:50%" class="btn btn-info waves-effect waves-light" type="button" onClick="addEpisodes();"><i class="mdi mdi-plus-circle-multiple-outline"></i> <?php echo $language::get('multiple_episodes'); ?></button>
 							</div>
 						</div>
 					</div>
@@ -285,31 +285,31 @@
 		<div class="modal-dialog modal-dialog-centered modal-md">
 			<div class="modal-content">
 				<div class="modal-header">
-					<h4 class="modal-title" id="messageModalLabel"><?php echo $_['mag_event']; ?></h4>
+					<h4 class="modal-title" id="messageModalLabel"><?php echo $language::get('mag_event'); ?></h4>
 					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
 				</div>
 				<div class="modal-body">
 					<div class="col-12">
 						<select id="message_type" class="form-control" data-toggle="select2">
-							<option value="" selected><?php echo $_['select_an_event']; ?>:</option>
+							<option value="" selected><?php echo $language::get('select_an_event'); ?>:</option>
 							<optgroup label="">
-								<option value="play_channel"><?php echo $_['play_channel']; ?></option>
-								<option value="reload_portal"><?php echo $_['reload_portal']; ?></option>
-								<option value="reboot"><?php echo $_['reboot_device']; ?></option>
-								<option value="send_msg"><?php echo $_['send_message']; ?></option>
-								<option value="cut_off"><?php echo $_['close_portal']; ?></option>
-								<option value="reset_stb_lock"><?php echo $_['reset_stb_lock']; ?></option>
+								<option value="play_channel"><?php echo $language::get('play_channel'); ?></option>
+								<option value="reload_portal"><?php echo $language::get('reload_portal'); ?></option>
+								<option value="reboot"><?php echo $language::get('reboot_device'); ?></option>
+								<option value="send_msg"><?php echo $language::get('send_message'); ?></option>
+								<option value="cut_off"><?php echo $language::get('close_portal'); ?></option>
+								<option value="reset_stb_lock"><?php echo $language::get('reset_stb_lock'); ?></option>
 							</optgroup>
 						</select>
 					</div>
 					<div class="col-12" style="margin-top:20px;display:none;" id="send_msg_form">
 						<div class="form-group row mb-4">
 							<div class="col-md-12">
-								<textarea id="message" name="message" class="form-control" rows="3" placeholder="<?php echo $_['enter_a_custom_message']; ?>..."></textarea>
+								<textarea id="message" name="message" class="form-control" rows="3" placeholder="<?php echo $language::get('enter_a_custom_message'); ?>..."></textarea>
 							</div>
 						</div>
 						<div class="form-group row mb-4">
-							<label class="col-md-9 col-form-label" for="reboot_portal"><?php echo $_['reboot_on_confirmation']; ?></label>
+							<label class="col-md-9 col-form-label" for="reboot_portal"><?php echo $language::get('reboot_on_confirmation'); ?></label>
 							<div class="col-md-3">
 								<input name="reboot_portal" id="reboot_portal" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 							</div>
@@ -317,7 +317,7 @@
 					</div>
 					<div class="col-12" style="margin-top:20px;display:none;" id="play_channel_form">
 						<div class="form-group row mb-4">
-							<label class="col-md-3 col-form-label" for="selected_channel"><?php echo $_['channel']; ?></label>
+							<label class="col-md-3 col-form-label" for="selected_channel"><?php echo $language::get('channel'); ?></label>
 							<div class="col-md-9">
 								<select id="selected_channel" name="selected_channel" class="form-control" data-toggle="select2" style="width:100%;"></select>
 							</div>
@@ -325,7 +325,7 @@
 					</div>
 				</div>
 				<div class="modal-footer">
-					<button disabled id="message_submit" type="button" class="btn btn-primary waves-effect"><?php echo $_['send_event']; ?></button>
+					<button disabled id="message_submit" type="button" class="btn btn-primary waves-effect"><?php echo $language::get('send_event'); ?></button>
 				</div>
 			</div>
 		</div>
@@ -523,23 +523,23 @@
 				</div>
 				<div class="modal-body">
 					<div class="form-group row">
-						<label class="col-md-1 col-2 col-form-label text-center" for="mod_fingerprint_type"><?php echo $_['type']; ?></label>
+						<label class="col-md-1 col-2 col-form-label text-center" for="mod_fingerprint_type"><?php echo $language::get('type'); ?></label>
 						<div class="col-md-2 col-6">
 							<select id="mod_fingerprint_type" class="form-control text-center" data-toggle="select2">
-								<option value="1"><?php echo $_['activity_id']; ?></option>
-								<option value="2"><?php echo $_['username']; ?></option>
-								<option value="3"><?php echo $_['message']; ?></option>
+								<option value="1"><?php echo $language::get('activity_id'); ?></option>
+								<option value="2"><?php echo $language::get('username'); ?></option>
+								<option value="3"><?php echo $language::get('message'); ?></option>
 							</select>
 						</div>
-						<label class="col-md-1 col-2 col-form-label text-center" for="mod_font_size"><?php echo $_['size']; ?></label>
+						<label class="col-md-1 col-2 col-form-label text-center" for="mod_font_size"><?php echo $language::get('size'); ?></label>
 						<div class="col-md-1 col-2">
 							<input type="text" class="form-control text-center" id="mod_font_size" value="36" placeholder="">
 						</div>
-						<label class="col-md-1 col-2 col-form-label text-center" for="mod_font_color"><?php echo $_['colour']; ?></label>
+						<label class="col-md-1 col-2 col-form-label text-center" for="mod_font_color"><?php echo $language::get('colour'); ?></label>
 						<div class="col-md-2 col-2">
 							<input type="text" id="mod_font_color" class="form-control text-center" value="#ffffff">
 						</div>
-						<label class="col-md-1 col-2 col-form-label text-center" for="mod_position_x"><?php echo $_['position']; ?></label>
+						<label class="col-md-1 col-2 col-form-label text-center" for="mod_position_x"><?php echo $language::get('position'); ?></label>
 						<div class="col-md-1 col-2">
 							<input type="text" class="form-control text-center" id="mod_position_x" value="10" placeholder="X">
 						</div>
@@ -552,7 +552,7 @@
 							</button>
 						</div>
 						<div class="col-md-12 col-2" style="margin-top:10px;display:none;" id="mod_custom_message_div">
-							<input type="text" class="form-control" id="mod_custom_message" value="" placeholder="<?php echo $_['custom_message']; ?>">
+							<input type="text" class="form-control" id="mod_custom_message" value="" placeholder="<?php echo $language::get('custom_message'); ?>">
 						</div>
 					</div>
 				</div>

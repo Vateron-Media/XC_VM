@@ -48,7 +48,7 @@ if (!isset($_SESSION['reseller'])) {
 	}
 
 	echo '<!DOCTYPE html>' . "\n" . '<html lang="en">' . "\n" . '    <head>' . "\n" . '        <meta charset="utf-8" />' . "\n" . '        <title data-id="login">XC_VM | ';
-	echo $_['login'];
+	echo $language::get('login');
 	echo '</title>' . "\n" . '        <meta name="viewport" content="width=device-width, initial-scale=1.0">' . "\n" . '        <meta http-equiv="X-UA-Compatible" content="IE=edge" />' . "\n" . '        <link rel="shortcut icon" href="assets/images/favicon.ico">' . "\n\t\t" . '<link href="assets/css/icons.css" rel="stylesheet" type="text/css" />' . "\n" . '        ';
 
 	if (isset($_COOKIE['theme']) && $_COOKIE['theme'] == 1) {
@@ -68,28 +68,28 @@ if (!isset($_SESSION['reseller'])) {
 
 	if (isset($_STATUS) && $_STATUS == STATUS_FAILURE) {
 		echo '                            <div class="alert alert-danger alert-dismissible bg-danger text-white border-0 fade show" role="alert">' . "\n" . '                                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>' . "\n" . '                                ';
-		echo $_['login_message_1'];
+		echo $language::get('login_message_1');
 		echo '                            </div>' . "\n" . '                            ';
 	} else {
 		if (isset($_STATUS) && $_STATUS == STATUS_INVALID_CODE) {
 			echo '                            <div class="alert alert-danger alert-dismissible bg-danger text-white border-0 fade show" role="alert">' . "\n" . '                                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>' . "\n" . '                                ';
-			echo $_['login_message_2'];
+			echo $language::get('login_message_2');
 			echo '                            </div>' . "\n" . '                            ';
 		} else {
 			if (isset($_STATUS) && $_STATUS == STATUS_NOT_RESELLER) {
 				echo '                            <div class="alert alert-danger alert-dismissible bg-danger text-white border-0 fade show" role="alert">' . "\n" . '                                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>' . "\n" . '                                ';
-				echo $_['login_message_3'];
+				echo $language::get('login_message_3');
 				echo '                            </div>' . "\n" . '                            ';
 			} else {
 				if (isset($_STATUS) && $_STATUS == STATUS_DISABLED) {
 					echo '                            <div class="alert alert-danger alert-dismissible bg-danger text-white border-0 fade show" role="alert">' . "\n" . '                                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>' . "\n" . '                                ';
-					echo $_['login_message_4'];
+					echo $language::get('login_message_4');
 					echo '                            </div>' . "\n" . '                            ';
 				} else {
 					if (!(isset($_STATUS) && $_STATUS == STATUS_INVALID_CAPTCHA)) {
 					} else {
 						echo '                            <div class="alert alert-danger alert-dismissible bg-danger text-white border-0 fade show" role="alert">' . "\n" . '                                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>' . "\n" . '                                ';
-						echo $_['login_message_5'];
+						echo $language::get('login_message_5');
 						echo '                            </div>' . "\n" . '                            ';
 					}
 				}
@@ -100,9 +100,9 @@ if (!isset($_SESSION['reseller'])) {
 	echo '                            <form action="./login" method="POST" data-parsley-validate="">' . "\n" . '                                <div class="card">' . "\n" . '                                    <div class="card-body p-4">' . "\n" . '                                        <input type="hidden" name="referrer" value="';
 	echo htmlspecialchars(CoreUtilities::$rRequest['referrer']);
 	echo '" />' . "\n" . '                                        <div class="form-group mb-3" id="username_group">' . "\n" . '                                            <label for="username">';
-	echo $_['username'];
+	echo $language::get('username');
 	echo '</label>' . "\n" . '                                            <input class="form-control" autocomplete="off" type="text" id="username" name="username" required data-parsley-trigger="change" placeholder="">' . "\n" . '                                        </div>' . "\n" . '                                        <div class="form-group mb-3">' . "\n" . '                                            <label for="password">';
-	echo $_['password'];
+	echo $language::get('password');
 	echo '</label>' . "\n" . '                                            <input class="form-control" autocomplete="off" type="password" required data-parsley-trigger="change" id="password" name="password" placeholder="">' . "\n" . '                                        </div>' . "\n" . '                                        ';
 
 	if (!$rSettings['recaptcha_enable']) {
@@ -128,7 +128,7 @@ if (!isset($_SESSION['reseller'])) {
 	}
 
 	echo '>';
-	echo $_['login'];
+	echo $language::get('login');
 	echo '</button>' . "\n" . '                                </div>' . "\n" . '                            </form>' . "\n" . '                        </div>' . "\n" . '                    </div>' . "\n" . '                </div>' . "\n" . '            </div>' . "\n" . '        </div>' . "\n" . '        <script src="assets/js/vendor.min.js"></script>' . "\n" . '        <script src="assets/libs/parsleyjs/parsley.min.js"></script>' . "\n" . '        <script src="assets/js/app.min.js"></script>' . "\n\t\t";
 
 	if (!$rSettings['recaptcha_enable']) {

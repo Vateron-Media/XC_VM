@@ -53,7 +53,7 @@ include 'header.php'; ?>
                     <div class="page-title-right">
                         <?php include 'topbar.php'; ?>
                     </div>
-                    <h4 class="page-title"><?php echo $_['channel_order']; ?></h4>
+                    <h4 class="page-title"><?php echo $language::get('channel_order'); ?></h4>
                 </div>
             </div>
         </div>
@@ -82,7 +82,7 @@ include 'header.php'; ?>
                             <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                                 <span aria-hidden="true">&times;</span>
                             </button>
-                            <?php echo $_['channel_order_info']; ?>
+                            <?php echo $language::get('channel_order_info'); ?>
                         </div>
                     <?php } ?>
                     <div class="card">
@@ -94,25 +94,25 @@ include 'header.php'; ?>
                                         <li class="nav-item">
                                             <a href="#order-stream" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                                 <i class="mdi mdi-play mr-1"></i>
-                                                <span class="d-none d-sm-inline"><?php echo $_['streams']; ?></span>
+                                                <span class="d-none d-sm-inline"><?php echo $language::get('streams'); ?></span>
                                             </a>
                                         </li>
                                         <li class="nav-item">
                                             <a href="#order-movie" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                                 <i class="mdi mdi-movie mr-1"></i>
-                                                <span class="d-none d-sm-inline"><?php echo $_['movies']; ?></span>
+                                                <span class="d-none d-sm-inline"><?php echo $language::get('movies'); ?></span>
                                             </a>
                                         </li>
                                         <li class="nav-item">
                                             <a href="#order-series" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                                 <i class="mdi mdi-youtube-tv mr-1"></i>
-                                                <span class="d-none d-sm-inline"><?php echo $_['episodes']; ?></span>
+                                                <span class="d-none d-sm-inline"><?php echo $language::get('episodes'); ?></span>
                                             </a>
                                         </li>
                                         <li class="nav-item">
                                             <a href="#order-radio" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                                 <i class="mdi mdi-radio mr-1"></i>
-                                                <span class="d-none d-sm-inline"><?php echo $_['stations']; ?></span>
+                                                <span class="d-none d-sm-inline"><?php echo $language::get('stations'); ?></span>
                                             </a>
                                         </li>
                                     </ul>
@@ -148,10 +148,10 @@ include 'header.php'; ?>
                                                     <a href="javascript: void(0);" onClick="MoveDown('stream')" class="btn btn-purple"><i class="mdi mdi-chevron-down"></i></a>
                                                     <a href="javascript: void(0);" onClick="MoveTop('stream')" class="btn btn-pink"><i class="mdi mdi-chevron-triple-up"></i></a>
                                                     <a href="javascript: void(0);" onClick="MoveBottom('stream')" class="btn btn-pink"><i class="mdi mdi-chevron-triple-down"></i></a>
-                                                    <a href="javascript: void(0);" onClick="AtoZ('stream')" class="btn btn-info"><?php echo $_['a_to_z']; ?></a>
+                                                    <a href="javascript: void(0);" onClick="AtoZ('stream')" class="btn btn-info"><?php echo $language::get('a_to_z'); ?></a>
                                                 </li>
                                                 <li class="list-inline-item float-right">
-                                                    <button type="submit" class="btn btn-primary waves-effect waves-light"><?php echo $_['save_changes']; ?></button>
+                                                    <button type="submit" class="btn btn-primary waves-effect waves-light"><?php echo $language::get('save_changes'); ?></button>
                                                 </li>
                                             </ul>
                                         </div>
@@ -186,10 +186,10 @@ include 'header.php'; ?>
                                                     <a href="javascript: void(0);" onClick="MoveDown('movie')" class="btn btn-purple"><i class="mdi mdi-chevron-down"></i></a>
                                                     <a href="javascript: void(0);" onClick="MoveTop('movie')" class="btn btn-pink"><i class="mdi mdi-chevron-triple-up"></i></a>
                                                     <a href="javascript: void(0);" onClick="MoveBottom('movie')" class="btn btn-pink"><i class="mdi mdi-chevron-triple-down"></i></a>
-                                                    <a href="javascript: void(0);" onClick="AtoZ('movie')" class="btn btn-info"><?php echo $_['a_to_z']; ?></a>
+                                                    <a href="javascript: void(0);" onClick="AtoZ('movie')" class="btn btn-info"><?php echo $language::get('a_to_z'); ?></a>
                                                 </li>
                                                 <li class="list-inline-item float-right">
-                                                    <button type="submit" class="btn btn-primary waves-effect waves-light"><?php echo $_['save_changes']; ?></button>
+                                                    <button type="submit" class="btn btn-primary waves-effect waves-light"><?php echo $language::get('save_changes'); ?></button>
                                                 </li>
                                             </ul>
                                         </div>
@@ -224,10 +224,10 @@ include 'header.php'; ?>
                                                     <a href="javascript: void(0);" onClick="MoveDown('series')" class="btn btn-purple"><i class="mdi mdi-chevron-down"></i></a>
                                                     <a href="javascript: void(0);" onClick="MoveTop('series')" class="btn btn-pink"><i class="mdi mdi-chevron-triple-up"></i></a>
                                                     <a href="javascript: void(0);" onClick="MoveBottom('series')" class="btn btn-pink"><i class="mdi mdi-chevron-triple-down"></i></a>
-                                                    <a href="javascript: void(0);" onClick="AtoZ('series')" class="btn btn-info"><?php echo $_['a_to_z']; ?></a>
+                                                    <a href="javascript: void(0);" onClick="AtoZ('series')" class="btn btn-info"><?php echo $language::get('a_to_z'); ?></a>
                                                 </li>
                                                 <li class="list-inline-item float-right">
-                                                    <button type="submit" class="btn btn-primary waves-effect waves-light"><?php echo $_['save_changes']; ?></button>
+                                                    <button type="submit" class="btn btn-primary waves-effect waves-light"><?php echo $language::get('save_changes'); ?></button>
                                                 </li>
                                             </ul>
                                         </div>
@@ -262,10 +262,10 @@ include 'header.php'; ?>
                                                     <a href="javascript: void(0);" onClick="MoveDown('radio')" class="btn btn-purple"><i class="mdi mdi-chevron-down"></i></a>
                                                     <a href="javascript: void(0);" onClick="MoveTop('radio')" class="btn btn-pink"><i class="mdi mdi-chevron-triple-up"></i></a>
                                                     <a href="javascript: void(0);" onClick="MoveBottom('radio')" class="btn btn-pink"><i class="mdi mdi-chevron-triple-down"></i></a>
-                                                    <a href="javascript: void(0);" onClick="AtoZ('radio')" class="btn btn-info"><?php echo $_['a_to_z']; ?></a>
+                                                    <a href="javascript: void(0);" onClick="AtoZ('radio')" class="btn btn-info"><?php echo $language::get('a_to_z'); ?></a>
                                                 </li>
                                                 <li class="list-inline-item float-right">
-                                                    <button type="submit" class="btn btn-primary waves-effect waves-light"><?php echo $_['save_changes']; ?></button>
+                                                    <button type="submit" class="btn btn-primary waves-effect waves-light"><?php echo $language::get('save_changes'); ?></button>
                                                 </li>
                                             </ul>
                                         </div>

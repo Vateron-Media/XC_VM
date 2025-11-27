@@ -432,39 +432,39 @@ if ($rStream['type'] == 1) {
 } else {
 	if ($rStream['type'] == 2) {
 		echo '                        <div class="tab-pane" id="information">' . "\r\n" . '                            <div class="col-12 input-view">' . "\r\n" . '                                <div class="form-group row mb-4">' . "\r\n" . '                                    <label class="col-md-2 col-form-label" for="plot">';
-		echo $_['plot'];
+		echo $language::get('plot');
 		echo '</label>' . "\r\n" . '                                    <div class="col-md-10">' . "\r\n" . '                                        <textarea readonly rows="6" class="form-control" id="plot" name="plot">';
 		echo htmlspecialchars($rProperties['plot']);
 		echo '</textarea>' . "\r\n" . '                                    </div>' . "\r\n" . '                                </div>' . "\r\n" . '                                <div class="form-group row mb-4">' . "\r\n" . '                                    <label class="col-md-2 col-form-label" for="cast">';
-		echo $_['cast'];
+		echo $language::get('cast');
 		echo '</label>' . "\r\n" . '                                    <div class="col-md-10">' . "\r\n" . '                                        <input readonly type="text" class="form-control" id="cast" name="cast" value="';
 		echo htmlspecialchars($rProperties['cast']);
 		echo '">' . "\r\n" . '                                    </div>' . "\r\n" . '                                </div>' . "\r\n" . '                                <div class="form-group row mb-4">' . "\r\n" . '                                    <label class="col-md-2 col-form-label" for="director">';
-		echo $_['director'];
+		echo $language::get('director');
 		echo '</label>' . "\r\n" . '                                    <div class="col-md-4">' . "\r\n" . '                                        <input readonly type="text" class="form-control" id="director" name="director" value="';
 		echo htmlspecialchars($rProperties['director']);
 		echo '">' . "\r\n" . '                                    </div>' . "\r\n" . '                                    <label class="col-md-2 col-form-label" for="genre">';
-		echo $_['genres'];
+		echo $language::get('genres');
 		echo '</label>' . "\r\n" . '                                    <div class="col-md-4">' . "\r\n" . '                                        <input readonly type="text" class="form-control" id="genre" name="genre" value="';
 		echo htmlspecialchars($rProperties['genre']);
 		echo '">' . "\r\n" . '                                    </div>' . "\r\n" . '                                </div>' . "\r\n" . '                                <div class="form-group row mb-4">' . "\r\n" . '                                    <label class="col-md-2 col-form-label" for="release_date">';
-		echo $_['release_date'];
+		echo $language::get('release_date');
 		echo '</label>' . "\r\n" . '                                    <div class="col-md-4">' . "\r\n" . '                                        <input readonly type="text" class="form-control text-center" id="release_date" name="release_date" value="';
 		echo htmlspecialchars($rProperties['release_date']);
 		echo '">' . "\r\n" . '                                    </div>' . "\r\n" . '                                    <label class="col-md-2 col-form-label" for="episode_run_time">';
-		echo $_['runtime'];
+		echo $language::get('runtime');
 		echo '</label>' . "\r\n" . '                                    <div class="col-md-4">' . "\r\n" . '                                        <input readonly type="text" class="form-control text-center" id="episode_run_time" name="episode_run_time" value="';
 		echo CoreUtilities::secondsToTime(intval($rProperties['episode_run_time']) * 60, false);
 		echo '">' . "\r\n" . '                                    </div>' . "\r\n" . '                                </div>' . "\r\n" . '                                <div class="form-group row mb-4">' . "\r\n" . '                                    <label class="col-md-2 col-form-label" for="youtube_trailer">';
-		echo $_['youtube_trailer'];
+		echo $language::get('youtube_trailer');
 		echo '</label>' . "\r\n" . '                                    <div class="col-md-4 input-group">' . "\r\n" . '                                        <input readonly type="text" class="form-control text-center" id="youtube_trailer" name="youtube_trailer" value="';
 		echo htmlspecialchars($rProperties['youtube_trailer']);
 		echo '">' . "\r\n" . '                                        <div class="input-group-append">' . "\r\n" . '                                            <a href="javascript:void(0)" onClick="openYouTube(this)" class="btn btn-primary waves-effect waves-light"><i class="mdi mdi-eye"></i></a>' . "\r\n" . '                                        </div>' . "\r\n" . '                                    </div>' . "\r\n" . '                                    <label class="col-md-2 col-form-label" for="rating">';
-		echo $_['rating'];
+		echo $language::get('rating');
 		echo '</label>' . "\r\n" . '                                    <div class="col-md-4">' . "\r\n" . '                                        <input readonly type="text" class="form-control text-center" id="rating" name="rating" value="';
 		echo htmlspecialchars($rProperties['rating']);
 		echo '">' . "\r\n" . '                                    </div>' . "\r\n" . '                                </div>' . "\r\n" . '                                <div class="form-group row mb-4">' . "\r\n" . '                                    <label class="col-md-2 col-form-label" for="country">';
-		echo $_['country'];
+		echo $language::get('country');
 		echo '</label>' . "\r\n" . '                                    <div class="col-md-10">' . "\r\n" . '                                        <input readonly type="text" class="form-control" id="country" name="country" value="';
 		echo htmlspecialchars($rProperties['country']);
 		echo '">' . "\r\n" . '                                    </div>' . "\r\n" . '                                </div>' . "\r\n" . '                            </div> ' . "\r\n" . '                        </div>' . "\r\n" . '                        ';
@@ -492,19 +492,19 @@ if ($rStream['type'] == 1) {
 			}
 
 			echo '                        <div class="tab-pane" id="information">' . "\r\n" . '                            <div class="row">' . "\r\n" . '                                <div class="col-12 input-view">' . "\r\n" . '                                    <div class="form-group row mb-4">' . "\r\n" . '                                        <label class="col-md-2 col-form-label" for="plot">';
-			echo $_['plot'];
+			echo $language::get('plot');
 			echo '</label>' . "\r\n" . '                                        <div class="col-md-10">' . "\r\n" . '                                            <textarea readonly rows="6" class="form-control" id="plot" name="plot">';
 			echo htmlspecialchars($rProperties['plot']);
 			echo '</textarea>' . "\r\n" . '                                        </div>' . "\r\n" . '                                    </div>' . "\r\n" . '                                    <div class="form-group row mb-4">' . "\r\n" . '                                        <label class="col-md-2 col-form-label" for="release_date">';
-			echo $_['release_date'];
+			echo $language::get('release_date');
 			echo '</label>' . "\r\n" . '                                        <div class="col-md-4">' . "\r\n" . '                                            <input readonly type="text" class="form-control text-center" id="release_date" name="release_date" value="';
 			echo htmlspecialchars($rProperties['release_date']);
 			echo '">' . "\r\n" . '                                        </div>' . "\r\n" . '                                        <label class="col-md-2 col-form-label" for="episode_run_time">';
-			echo $_['runtime'];
+			echo $language::get('runtime');
 			echo '</label>' . "\r\n" . '                                        <div class="col-md-4">' . "\r\n" . '                                            <input readonly type="text" class="form-control text-center" id="episode_run_time" name="episode_run_time" value="';
 			echo CoreUtilities::secondsToTime(intval($rProperties['duration_secs']), false);
 			echo '">' . "\r\n" . '                                        </div>' . "\r\n" . '                                    </div>' . "\r\n" . '                                    <div class="form-group row mb-4">' . "\r\n" . '                                        <label class="col-md-2 col-form-label" for="rating">';
-			echo $_['rating'];
+			echo $language::get('rating');
 			echo '</label>' . "\r\n" . '                                        <div class="col-md-4">' . "\r\n" . '                                            <input readonly type="text" class="form-control text-center" id="rating" name="rating" value="';
 			echo htmlspecialchars($rProperties['rating']);
 			echo '">' . "\r\n" . '                                        </div>' . "\r\n" . '                                    </div>' . "\r\n" . '                                </div> ' . "\r\n" . '                            </div>' . "\r\n" . '                        </div>' . "\r\n" . '                        ';
@@ -732,21 +732,21 @@ include 'footer.php'; ?>
 		} else {
 			if ($rStream['type'] == 2) {
 				echo '                $.getJSON("./api?action=movie&sub=" + rType + "&stream_id=" + rID + "&server_id=" + rServerID, function(data) {' . "\r\n" . '                    if (data.result == true) {' . "\r\n" . '                        if (rType == "start") {' . "\r\n" . '                            $.toast("';
-				echo $_['movie_encode_started'];
+				echo $language::get('movie_encode_started');
 				echo '");' . "\r\n" . '                        } else if (rType == "stop") {' . "\r\n" . '                            $.toast("';
-				echo $_['movie_encode_stopped'];
+				echo $language::get('movie_encode_stopped');
 				echo '");' . "\r\n" . '                        } else if (rType == "delete") {' . "\r\n" . '                            $.toast("';
-				echo $_['movie_delete_confirmed'];
+				echo $language::get('movie_delete_confirmed');
 				echo '");' . "\r\n" . '                        } else if (rType == "kill") {' . "\r\n" . '                            $.toast("Connection has been killed.");' . "\r\n" . '                            if ($(".bs-live-modal-center").is(":visible")) {' . "\r\n" . '                                $("#datatable-live").DataTable().ajax.reload( null, false );' . "\r\n" . '                            }' . "\r\n" . '                        } else if (rType == "purge") {' . "\r\n" . '                            $.toast("Connections have been killed.");' . "\r\n" . '                        }' . "\r\n" . '                        $("#datatable").DataTable().ajax.reload( null, false );' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("An error occured while processing your request.");' . "\r\n" . '                    }' . "\r\n" . '                }).fail(function() {' . "\r\n" . '                    $.toast("An error occured while processing your request.");' . "\r\n" . '                });' . "\r\n" . '                ';
 			} else {
 				if ($rStream['type'] != 5) {
 				} else {
 					echo '                $.getJSON("./api?action=episode&sub=" + rType + "&stream_id=" + rID + "&server_id=" + rServerID, function(data) {' . "\r\n" . '                    if (data.result == true) {' . "\r\n" . '                        if (rType == "start") {' . "\r\n" . '                            $.toast("';
-					echo $_['episode_encoding_start'];
+					echo $language::get('episode_encoding_start');
 					echo '");' . "\r\n" . '                        } else if (rType == "stop") {' . "\r\n" . '                            $.toast("';
-					echo $_['episode_encoding_stop'];
+					echo $language::get('episode_encoding_stop');
 					echo '");' . "\r\n" . '                        } else if (rType == "delete") {' . "\r\n" . '                            $.toast("';
-					echo $_['episode_deleted'];
+					echo $language::get('episode_deleted');
 					echo '");' . "\r\n" . '                        } else if (rType == "kill") {' . "\r\n" . '                            $.toast("Connection has been killed.");' . "\r\n" . '                            if ($(".bs-live-modal-center").is(":visible")) {' . "\r\n" . '                                $("#datatable-live").DataTable().ajax.reload( null, false );' . "\r\n" . '                            }' . "\r\n" . '                        } else if (rType == "purge") {' . "\r\n" . '                            $.toast("Connections have been killed.");' . "\r\n" . '                        }' . "\r\n" . '                        $("#datatable").DataTable().ajax.reload( null, false );' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("An error occured while processing your request.");' . "\r\n" . '                    }' . "\r\n" . '                }).fail(function() {' . "\r\n" . '                    $.toast("An error occured while processing your request.");' . "\r\n" . '                });' . "\r\n" . '                ';
 				}
 			}

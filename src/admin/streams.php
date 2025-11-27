@@ -35,7 +35,7 @@ echo "\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t" . '<h4 class="page-title">Streams<
 if (!(isset($_STATUS) && $_STATUS == STATUS_SUCCESS)) {
 } else {
 	echo '                <div class="alert alert-success alert-dismissible fade show" role="alert">' . "\n" . '                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">' . "\n" . '                        <span aria-hidden="true">&times;</span>' . "\n" . '                    </button>' . "\n" . '                    ';
-	echo $_['stream_success'];
+	echo $language::get('stream_success');
 	echo '                </div>' . "\n" . '                ';
 }
 
@@ -61,7 +61,7 @@ if (isset(CoreUtilities::$rRequest['server'])) {
 }
 
 echo '>';
-echo $_['all_servers'];
+echo $language::get('all_servers');
 echo '</option>' . "\n" . '                                    <option value="-1"';
 
 if (!(isset(CoreUtilities::$rRequest['server']) && CoreUtilities::$rRequest['server'] == -1)) {
@@ -93,7 +93,7 @@ if (isset(CoreUtilities::$rRequest['category'])) {
 }
 
 echo '>';
-echo $_['all_categories'];
+echo $language::get('all_categories');
 echo '</option>' . "\n" . '                                    <option value="-1"';
 
 if (!(isset(CoreUtilities::$rRequest['category']) && CoreUtilities::$rRequest['category'] == -1)) {
