@@ -827,9 +827,26 @@ class CoreUtilities {
 		exec('ps -Ao pid,pcpu', $processes);
 		foreach ($processes as $process) {
 			$cols = explode(' ', preg_replace('!\\s+!', ' ', trim($process)));
-			$rTotalLoad += floatval($cols[1]);
+			if (count($cols) >= 2 && is_numeric($cols[1])) {
+				$rTotalLoad += floatval($cols[1]);
+			}
 		}
-		return $rTotalLoad / intval(shell_exec("grep -P '^processor' /proc/cpuinfo|wc -l"));
+
+		// Get CPU core count with fallback
+		$cpuCores = 1; // Default fallback
+
+		// Method 1: Try /proc/cpuinfo
+		$coreCount = intval(shell_exec("grep -P '^processor' /proc/cpuinfo|wc -l"));
+		if ($coreCount > 0) {
+			$cpuCores = $coreCount;
+		}
+
+		// Avoid division by zero
+		if ($cpuCores <= 0) {
+			$cpuCores = 1;
+		}
+
+		return $rTotalLoad / $cpuCores;
 	}
 	public static function getCategories($rType = null, $rForce = false) {
 		if (is_string($rType)) {
