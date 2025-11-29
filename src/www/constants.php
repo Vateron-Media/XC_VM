@@ -151,35 +151,69 @@ function log_fatal() {
 }
 
 function panelLog($rType, $rMessage, $rExtra = '', $rLine = 0) {
-    $rData = array('type' => $rType, 'message' => $rMessage, 'extra' => $rExtra, 'line' => $rLine, 'time' => time());
-    file_put_contents(LOGS_TMP_PATH . 'error_log.log', base64_encode(json_encode($rData)) . "\n", FILE_APPEND);
-    
-    // Displays an error in a frame in development mode
+    $rData = [
+        'type'    => $rType,
+        'message' => $rMessage,
+        'extra'   => $rExtra,
+        'line'    => $rLine,
+        'time'    => time(),
+        'env'     => php_sapi_name() // добавляем информацию об окружении
+    ];
+
+    // Записываем в лог (base64 + json — как было)
+    $logLine = base64_encode(json_encode($rData)) . "\n";
+    file_put_contents(LOGS_TMP_PATH . 'error_log.log', $logLine, FILE_APPEND | LOCK_EX);
+
+    // Выводим отладочную информацию только в режиме разработки
     if (defined('DEVELOPMENT') && DEVELOPMENT === true) {
-        echo "<div style='
-            border: 2px solid #ff0000;
-            background: #fff0f0;
-            padding: 10px;
-            margin: 10px 0;
-            font-family: Arial, sans-serif;
-            font-size: 14px;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        '>";
-        echo "<strong style='color: #ff0000;'>DEBUG ERROR:</strong><br>";
-        echo "<strong>Type:</strong> " . htmlspecialchars($rType) . "<br>";
-        echo "<strong>Message:</strong> " . htmlspecialchars($rMessage) . "<br>";
-        
-        if (!empty($rExtra)) {
-            echo "<strong>Extra:</strong> " . htmlspecialchars($rExtra) . "<br>";
+        $isCli = php_sapi_name() === 'cli';
+
+        if ($isCli) {
+            // === CLI вывод (цветной, читаемый) ===
+            $typeColor = match ($rType) {
+                'ERROR', 'FATAL' => "\033[41m\033[97m", // красный фон + белый текст
+                'WARNING'        => "\033[43m\033[30m", // жёлтый фон + чёрный текст
+                'NOTICE', 'INFO' => "\033[44m\033[97m", // синий фон + белый текст
+                default          => "\033[45m\033[97m", // фиолетовый для остальных
+            };
+
+            echo "\n{$typeColor} DEBUG {$rType} \033[0m ";
+            echo date('Y-m-d H:i:s', $rData['time']) . "\n";
+            echo str_repeat("=", 60) . "\n";
+            echo "Message: " . $rMessage . "\n";
+
+            if (!empty($rExtra)) {
+                echo "Extra:   " . $rExtra . "\n";
+            }
+            if ($rLine > 0) {
+                echo "Line:    {$rLine}\n";
+            }
+            echo str_repeat("=", 60) . "\n\n";
+        } else {
+            // === Веб-вывод (как было, но чуть красивее и безопаснее) ===
+            echo "<div style=\"
+                border: 2px solid #ff0000;
+                background: #fff0f0;
+                padding: 12px;
+                margin: 15px 0;
+                font-family: 'Courier New', Consolas, monospace;
+                font-size: 14px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                overflow-x: auto;
+            \">";
+            echo "<strong style='color: #d00; font-size: 16px;'>DEBUG {$rType}</strong> ";
+            echo "<small style='color: #666;'>" . date('Y-m-d H:i:s', $rData['time']) . "</small><hr style='border:0; border-top:1px solid #fcc;'>";
+            echo "<strong>Message:</strong> " . htmlspecialchars($rMessage, ENT_SUBSTITUTE) . "<br>";
+
+            if (!empty($rExtra)) {
+                echo "<strong>Extra:</strong> " . htmlspecialchars($rExtra, ENT_SUBSTITUTE) . "<br>";
+            }
+            if ($rLine > 0) {
+                echo "<strong>Line:</strong> {$rLine}<br>";
+            }
+            echo "</div>";
         }
-        
-        if ($rLine > 0) {
-            echo "<strong>Line:</strong> " . htmlspecialchars($rLine) . "<br>";
-        }
-        
-        echo "<strong>Time:</strong> " . date('Y-m-d H:i:s', $rData['time']);
-        echo "</div>";
     }
 }
 
