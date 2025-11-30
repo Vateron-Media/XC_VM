@@ -3178,28 +3178,19 @@ if (isset($_SESSION['hash'])) {
 		}
 		if (CoreUtilities::$rRequest['action'] == 'plex_sections') {
 			if (hasPermissions('adv', 'folder_watch_settings')) {
-				$rData = getPlexLogin(CoreUtilities::$rRequest['username'], CoreUtilities::$rRequest['password']);
+				$rToken = CoreUtilities::getPlexToken(CoreUtilities::$rRequest['ip'], CoreUtilities::$rRequest['port'], CoreUtilities::$rRequest['username'], CoreUtilities::$rRequest['password']);
+				$rSections = getPlexSections(CoreUtilities::$rRequest['ip'], CoreUtilities::$rRequest['port'], $rToken);
 
-				if (!isset($rData['user']['authToken'])) {
-				} else {
-					$rToken = $rData['user']['authToken'];
-					$rSections = getPlexSections(CoreUtilities::$rRequest['ip'], CoreUtilities::$rRequest['port'], $rToken);
-
-					if (!($rSections && 0 < count($rSections))) {
-					} else {
-						echo json_encode(array('result' => true, 'data' => $rSections));
-
-						exit();
-					}
+				if ($rSections && 0 < count($rSections)) {
+					echo json_encode(array('result' => true, 'data' => $rSections));
+					exit();
 				}
 
 				echo json_encode(array('result' => false));
-
 				exit();
 			}
 
 			echo json_encode(array('result' => false));
-
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'enable_handler') {

@@ -10,19 +10,16 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
         ini_set('display_startup_errors', 1);
         error_reporting(30711);
         $rForce = null;
-        if (count($argv) != 2) {
-        } else {
+        if (count($argv) == 2) {
             $rForce = intval($argv[1]);
         }
-        if ($rForce) {
-        } else {
+        if (!$rForce) {
             if (file_exists(CACHE_TMP_PATH . 'plex_pid')) {
                 $rPrevPID = intval(file_get_contents(CACHE_TMP_PATH . 'plex_pid'));
             } else {
                 $rPrevPID = null;
             }
-            if (!($rPrevPID && CoreUtilities::isProcessRunning($rPrevPID, 'php'))) {
-            } else {
+            if ($rPrevPID && CoreUtilities::isProcessRunning($rPrevPID, 'php')) {
                 echo 'Plex Sync is already running. Please wait until it finishes.' . "\n";
                 exit();
             }
@@ -168,19 +165,6 @@ function getPlexCategories($rType = null) {
     }
     return $rReturn;
 }
-function getPlexLogin($rUsername, $rPassword) {
-    $rHeaders = array('Content-Type: application/xml; charset=utf-8', 'X-Plex-Client-Identifier: 526e163c-8dbd-11eb-8dcd-0242ac130003', 'X-Plex-Product: XC_VM', 'X-Plex-Version: v' . XC_VM_VERSION);
-    $rCurl = curl_init('https://plex.tv/users/sign_in.json');
-    curl_setopt($rCurl, CURLOPT_HTTPHEADER, $rHeaders);
-    curl_setopt($rCurl, CURLOPT_HEADER, 0);
-    curl_setopt($rCurl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
-    curl_setopt($rCurl, CURLOPT_USERPWD, $rUsername . ':' . $rPassword);
-    curl_setopt($rCurl, CURLOPT_TIMEOUT, 30);
-    curl_setopt($rCurl, CURLOPT_SSL_VERIFYPEER, 0);
-    curl_setopt($rCurl, CURLOPT_POST, 1);
-    curl_setopt($rCurl, CURLOPT_RETURNTRANSFER, true);
-    return json_decode(curl_exec($rCurl), true);
-}
 function readURL($rURL) {
     $rCurl = curl_init($rURL);
     curl_setopt($rCurl, CURLOPT_RETURNTRANSFER, true);
@@ -188,11 +172,7 @@ function readURL($rURL) {
     curl_setopt($rCurl, CURLOPT_TIMEOUT, 10);
     return curl_exec($rCurl);
 }
-function checkToken($rIP, $rPort, $rToken) {
-    $rCheckURL = 'http://' . $rIP . ':' . $rPort . '/myplex/account?X-Plex-Token=' . $rToken;
-    $rResponse = json_decode(json_encode(simplexml_load_string(readurl($rCheckURL))), true);
-    return ($rResponse['@attributes']['signInState'] == 'ok' ? $rToken : '');
-}
+
 function loadCron() {
     global $db;
     global $rScanOffset;
@@ -206,8 +186,7 @@ function loadCron() {
         $db->query("SELECT * FROM `watch_folders` WHERE `type` = 'plex' AND `server_id` = ? AND `id` = ?;", SERVER_ID, $rForce);
     }
     $rRows = $db->get_rows();
-    if (0 >= count($rRows)) {
-    } else {
+    if (count($rRows) > 0) {
         shell_exec('rm -f ' . WATCH_TMP_PATH . '*.ppid');
         $rLeafCount = $rUUIDs = $rSeriesTMDB = $rStreamDatabase = array();
         $rTMDBDatabase = array('movie' => array(), 'series' => array());
@@ -216,8 +195,7 @@ function loadCron() {
         $db->query('SELECT `id`, `tmdb_id`, `plex_uuid` FROM `streams_series` WHERE `tmdb_id` IS NOT NULL AND `tmdb_id` > 0;');
         foreach ($db->get_rows() as $rRow) {
             $rSeriesTMDB[$rRow['id']] = $rRow['tmdb_id'];
-            if (empty($rRow['plex_uuid'])) {
-            } else {
+            if (!empty($rRow['plex_uuid'])) {
                 $rUUIDs[] = $rRow['plex_uuid'];
             }
         }
@@ -226,12 +204,10 @@ function loadCron() {
             $rStreamDatabase[] = $rRow['stream_source'];
             $rTMDBID = ($rSeriesTMDB[$rRow['series_id']] ?: null);
             list($rSource) = json_decode($rRow['stream_source'], true);
-            if (!$rTMDBID) {
-            } else {
+            if ($rTMDBID) {
                 $rTMDBDatabase['series'][$rTMDBID][$rRow['season_num'] . '_' . $rRow['episode_num']] = array('id' => $rRow['id'], 'source' => $rSource);
             }
-            if (empty($rRow['plex_uuid'])) {
-            } else {
+            if (!empty($rRow['plex_uuid'])) {
                 $rPlexDatabase['series'][$rRow['plex_uuid']][$rRow['season_num'] . '_' . $rRow['episode_num']] = array('id' => $rRow['id'], 'source' => $rSource);
                 $rLeafCount[$rRow['plex_uuid']]++;
             }
@@ -241,12 +217,10 @@ function loadCron() {
             $rStreamDatabase[] = $rRow['stream_source'];
             $rTMDBID = (json_decode($rRow['movie_properties'], true)['tmdb_id'] ?: null);
             list($rSource) = json_decode($rRow['stream_source'], true);
-            if (!$rTMDBID) {
-            } else {
+            if ($rTMDBID) {
                 $rTMDBDatabase['movie'][$rTMDBID] = array('id' => $rRow['id'], 'source' => $rSource);
             }
-            if (empty($rRow['plex_uuid'])) {
-            } else {
+            if (!empty($rRow['plex_uuid'])) {
                 $rPlexDatabase['movie'][$rRow['plex_uuid']] = array('id' => $rRow['id'], 'source' => $rSource);
                 $rUUIDs[] = $rRow['plex_uuid'];
             }
@@ -271,81 +245,126 @@ function loadCron() {
     foreach ($rRows as $rRow) {
         $rLimit = 100;
         $rThreadData = array();
-        $rToken = null;
-        if (empty($rRow['plex_token'])) {
-        } else {
-            $rToken = checktoken($rRow['plex_ip'], $rRow['plex_port'], $rRow['plex_token']);
-        }
-        if ($rToken) {
-        } else {
-            $rData = getplexlogin($rRow['plex_username'], $rRow['plex_password']);
-            if (isset($rData['user']['authToken'])) {
-                $rToken = checktoken($rRow['plex_ip'], $rRow['plex_port'], $rData['user']['authToken']);
+
+        // Get a Plex token (with caching)
+        $rToken = CoreUtilities::getPlexToken($rRow['plex_ip'], $rRow['plex_port'], $rRow['plex_username'], $rRow['plex_password']);
+
+        $db->query('UPDATE `watch_folders` SET `last_run` = UNIX_TIMESTAMP() WHERE `id` = ?;', $rRow['id']);
+
+        $rSectionURL = 'http://' . $rRow['plex_ip'] . ':' . $rRow['plex_port'] . '/library/sections?X-Plex-Token=' . $rToken;
+        $rSections = json_decode(json_encode(simplexml_load_string(readurl($rSectionURL))), true);
+        $rThreadCount = 1;
+        foreach (makeArray($rSections['Directory']) as $F24f1be2729b363d) {
+            if ($F24f1be2729b363d['@attributes']['type'] == 'movie') {
+                $rThreadCount = (intval(CoreUtilities::$rSettings['thread_count_movie']) ?: 25);
             } else {
-                echo 'Failed to login to plex!' . "\n";
+                $rThreadCount = (intval(CoreUtilities::$rSettings['thread_count_show']) ?: 5);
             }
-        }
-        $db->query('UPDATE `watch_folders` SET `last_run` = UNIX_TIMESTAMP(), `plex_token` = ? WHERE `id` = ?;', $rToken, $rRow['id']);
-        if ($rToken) {
-            $rSectionURL = 'http://' . $rRow['plex_ip'] . ':' . $rRow['plex_port'] . '/library/sections?X-Plex-Token=' . $rToken;
-            $rSections = json_decode(json_encode(simplexml_load_string(readurl($rSectionURL))), true);
-            $rThreadCount = 1;
-            foreach (makeArray($rSections['Directory']) as $F24f1be2729b363d) {
-                if ($F24f1be2729b363d['@attributes']['type'] == 'movie') {
-                    $rThreadCount = (intval(CoreUtilities::$rSettings['thread_count_movie']) ?: 25);
-                } else {
-                    $rThreadCount = (intval(CoreUtilities::$rSettings['thread_count_show']) ?: 5);
-                }
-                $rKey = $F24f1be2729b363d['@attributes']['key'];
-                if ($rKey != $rRow['directory']) {
-                } else {
-                    $B9690335cedc4164 = 'http://' . $rRow['plex_ip'] . ':' . $rRow['plex_port'] . '/library/sections/' . $rKey . '/all?X-Plex-Token=' . $rToken . '&X-Plex-Container-Start=0&X-Plex-Container-Size=1';
-                    $rCount = (intval(json_decode(json_encode(simplexml_load_string(readurl($B9690335cedc4164))), true)['@attributes']['totalSize']) ?: 0);
-                    echo 'Count: ' . $rCount . "\n";
-                    if (0 >= $rCount) {
-                    } else {
-                        $rSteps = range(0, $rCount, $rLimit);
-                        if ($rSteps) {
-                        } else {
-                            $rSteps = array(0);
+            $rKey = $F24f1be2729b363d['@attributes']['key'];
+            if ($rKey == $rRow['directory']) {
+                $B9690335cedc4164 = 'http://' . $rRow['plex_ip'] . ':' . $rRow['plex_port'] . '/library/sections/' . $rKey . '/all?X-Plex-Token=' . $rToken . '&X-Plex-Container-Start=0&X-Plex-Container-Size=1';
+                $rCount = (intval(json_decode(json_encode(simplexml_load_string(readurl($B9690335cedc4164))), true)['@attributes']['totalSize']) ?: 0);
+                echo 'Count: ' . $rCount . "\n";
+                if ($rCount > 0) {
+                    $rSteps = [];
+                    for ($i = 0; $i <= $rCount; $i += $rLimit) {
+                        $rSteps[] = $i;
+                    }
+
+                    if (!$rSteps) {
+                        $rSteps = [0];
+                    }
+                    foreach ($rSteps as $rStart) {
+                        $d7bd8e11c885f937 = 'http://' . $rRow['plex_ip'] . ':' . $rRow['plex_port'] . '/library/sections/' . $rKey . '/all?X-Plex-Token=' . $rToken . '&X-Plex-Container-Start=' . $rStart . '&X-Plex-Container-Size=' . $rLimit . '&sort=updatedAt%3Adesc';
+                        $rContent = json_decode(json_encode(simplexml_load_string(readurl($d7bd8e11c885f937))), true);
+                        if (!isset($rContent['Video'])) {
+                            $rContent['Video'] = $rContent['Directory'];
                         }
-                        foreach ($rSteps as $rStart) {
-                            $d7bd8e11c885f937 = 'http://' . $rRow['plex_ip'] . ':' . $rRow['plex_port'] . '/library/sections/' . $rKey . '/all?X-Plex-Token=' . $rToken . '&X-Plex-Container-Start=' . $rStart . '&X-Plex-Container-Size=' . $rLimit . '&sort=updatedAt%3Adesc';
-                            $rContent = json_decode(json_encode(simplexml_load_string(readurl($d7bd8e11c885f937))), true);
-                            if (isset($rContent['Video'])) {
+                        foreach (makeArray($rContent['Video']) as $rItem) {
+                            $rUUID = $rKey . '_' . $rItem['@attributes']['ratingKey'];
+                            $rUpdatedAt = intval($rItem['@attributes']['updatedAt'] ?? 0);
+                            $lastRun = intval($rRow['last_run'] ?? 0);
+                            $rIsNewOrUpdated = !$lastRun || $rUpdatedAt === 0 || $lastRun < $rUpdatedAt;
+
+                            if ($F24f1be2729b363d['@attributes']['type'] == 'movie') {
+                                // Movies
+                                $rIsMissing = $rRow['scan_missing'] && !in_array($rUUID, $rUUIDs, true);
+                                if ($rIsNewOrUpdated || $rIsMissing || $rForce) {
+                                    $rThreadData[] = [
+                                        'folder_id' => $rRow['id'],
+                                        'type' => 'movie',
+                                        'key' => $rItem['@attributes']['ratingKey'],
+                                        'uuid' => $rUUID,
+                                        'plex_categories' => $rPlexCategories,
+                                        'read_native' => $rRow['read_native'],
+                                        'movie_symlink' => $rRow['movie_symlink'],
+                                        'remove_subtitles' => $rRow['remove_subtitles'],
+                                        'auto_encode' => $rRow['auto_encode'],
+                                        'auto_upgrade' => $rRow['auto_upgrade'],
+                                        'transcode_profile_id' => $rRow['transcode_profile_id'],
+                                        'max_genres' => intval(CoreUtilities::$rSettings['max_genres'] ?? 5),
+                                        'plex' => true,
+                                        'ip' => $rRow['plex_ip'],
+                                        'port' => $rRow['plex_port'],
+                                        'token' => $rToken,
+                                        'fb_bouquets' => $rRow['fb_bouquets'],
+                                        'store_categories' => $rRow['store_categories'],
+                                        'category_id' => $rRow['category_id'],
+                                        'bouquets' => $rRow['bouquets'],
+                                        'fb_category_id' => $rRow['fb_category_id'],
+                                        'check_tmdb' => $rRow['check_tmdb'],
+                                        'target_container' => $rRow['target_container'],
+                                        'server_add' => $rRow['server_add'],
+                                        'direct_proxy' => $rRow['direct_proxy']
+                                    ];
+                                }
                             } else {
-                                $rContent['Video'] = $rContent['Directory'];
-                            }
-                            foreach (makeArray($rContent['Video']) as $rItem) {
-                                $rUUID = $rKey . '_' . $rItem['@attributes']['ratingKey'];
-                                if ($F24f1be2729b363d['@attributes']['type'] == 'movie') {
-                                    if (!$rRow['last_run'] || !$rItem['@attributes']['updatedAt'] || $rRow['last_run'] < intval($rItem['@attributes']['updatedAt']) || !in_array($rUUID, $rUUIDs) && $rRow['scan_missing']) {
-                                        $rThreadData[] = array('folder_id' => $rRow['id'], 'type' => $F24f1be2729b363d['@attributes']['type'], 'key' => $rItem['@attributes']['ratingKey'], 'uuid' => $rUUID, 'plex_categories' => $rPlexCategories, 'read_native' => $rRow['read_native'], 'movie_symlink' => $rRow['movie_symlink'], 'remove_subtitles' => $rRow['remove_subtitles'], 'auto_encode' => $rRow['auto_encode'], 'auto_upgrade' => $rRow['auto_upgrade'], 'transcode_profile_id' => $rRow['transcode_profile_id'], 'max_genres' => intval(CoreUtilities::$rSettings['max_genres']), 'plex' => true, 'ip' => $rRow['plex_ip'], 'port' => $rRow['plex_port'], 'token' => $rToken, 'fb_bouquets' => $rRow['fb_bouquets'], 'store_categories' => $rRow['store_categories'], 'category_id' => $rRow['category_id'], 'bouquets' => $rRow['bouquets'], 'fb_category_id' => $rRow['fb_category_id'], 'check_tmdb' => $rRow['check_tmdb'], 'target_container' => $rRow['target_container'], 'server_add' => $rRow['server_add'], 'direct_proxy' => $rRow['direct_proxy']);
-                                    } else {
-                                        if (!($rRow['last_run'] && $rItem['@attributes']['updatedAt'] && intval($rItem['@attributes']['updatedAt']) <= $rRow['last_run']) || $rRow['scan_missing']) {
-                                        } else {
-                                            break;
-                                        }
-                                    }
-                                } else {
-                                    if (!(!$rRow['last_run'] || !$rItem['@attributes']['updatedAt'] || $rRow['last_run'] < intval($rItem['@attributes']['updatedAt']) || isset($rLeafCount[$rUUID]) && $rLeafCount[$rUUID] != $rItem['@attributes']['leafCount'] || $rRow['scan_missing'])) {
-                                    } else {
-                                        $rThreadData[] = array('folder_id' => $rRow['id'], 'type' => $F24f1be2729b363d['@attributes']['type'], 'key' => $rItem['@attributes']['ratingKey'], 'uuid' => $rUUID, 'plex_categories' => $rPlexCategories, 'read_native' => $rRow['read_native'], 'movie_symlink' => $rRow['movie_symlink'], 'remove_subtitles' => $rRow['remove_subtitles'], 'auto_encode' => $rRow['auto_encode'], 'auto_upgrade' => $rRow['auto_upgrade'], 'transcode_profile_id' => $rRow['transcode_profile_id'], 'max_genres' => intval(CoreUtilities::$rSettings['max_genres']), 'plex' => true, 'ip' => $rRow['plex_ip'], 'port' => $rRow['plex_port'], 'token' => $rToken, 'fb_bouquets' => $rRow['fb_bouquets'], 'store_categories' => $rRow['store_categories'], 'category_id' => $rRow['category_id'], 'bouquets' => $rRow['bouquets'], 'fb_category_id' => $rRow['fb_category_id'], 'check_tmdb' => $rRow['check_tmdb'], 'target_container' => $rRow['target_container'], 'server_add' => $rRow['server_add'], 'direct_proxy' => $rRow['direct_proxy']);
-                                    }
+                                // TV series
+                                $rCurrentLeafCount = intval($rItem['@attributes']['leafCount'] ?? 0);
+                                $rPreviousLeafCount = $rLeafCount[$rUUID] ?? 0;
+                                $rLeafCountChanged = $rCurrentLeafCount != $rPreviousLeafCount;
+                                $rIsMissing = $rRow['scan_missing'] && empty($rLeafCount[$rUUID]);
+
+                                if ($rIsNewOrUpdated || $rLeafCountChanged || $rIsMissing) {
+                                    $rThreadData[] = [
+                                        'folder_id' => $rRow['id'],
+                                        'type' => $F24f1be2729b363d['@attributes']['type'],
+                                        'key' => $rItem['@attributes']['ratingKey'],
+                                        'uuid' => $rUUID,
+                                        'plex_categories' => $rPlexCategories,
+                                        'read_native' => $rRow['read_native'],
+                                        'movie_symlink' => $rRow['movie_symlink'],
+                                        'remove_subtitles' => $rRow['remove_subtitles'],
+                                        'auto_encode' => $rRow['auto_encode'],
+                                        'auto_upgrade' => $rRow['auto_upgrade'],
+                                        'transcode_profile_id' => $rRow['transcode_profile_id'],
+                                        'max_genres' => intval(CoreUtilities::$rSettings['max_genres'] ?? 5),
+                                        'plex' => true,
+                                        'ip' => $rRow['plex_ip'],
+                                        'port' => $rRow['plex_port'],
+                                        'token' => $rToken,
+                                        'fb_bouquets' => $rRow['fb_bouquets'],
+                                        'store_categories' => $rRow['store_categories'],
+                                        'category_id' => $rRow['category_id'],
+                                        'bouquets' => $rRow['bouquets'],
+                                        'fb_category_id' => $rRow['fb_category_id'],
+                                        'check_tmdb' => $rRow['check_tmdb'],
+                                        'target_container' => $rRow['target_container'],
+                                        'server_add' => $rRow['server_add'],
+                                        'direct_proxy' => $rRow['direct_proxy']
+                                    ];
                                 }
                             }
                         }
                     }
-                    break;
                 }
+                break;
             }
-            if (0 >= count($rThreadData)) {
-            } else {
-                echo 'Scan complete! Adding ' . count($rThreadData) . ' files...' . "\n";
-            }
-        } else {
-            echo 'Could not connect to Plex server and obtain a valid token.';
         }
+        if (count($rThreadData) > 0) {
+            echo 'Scan complete! Adding ' . count($rThreadData) . ' files...' . "\n";
+        }
+
         $cacheDataKey = array();
         foreach ($rThreadData as $rData) {
             if ($rData['type'] == 'movie') {
@@ -370,21 +389,22 @@ function loadCron() {
         checkCategories();
     }
 }
+
 function makeArray($rArray) {
-    if (!isset($rArray['@attributes'])) {
-    } else {
+    if (isset($rArray['@attributes'])) {
         $rArray = array($rArray);
     }
     return $rArray;
 }
+
 function getBouquet($rID) {
     global $db;
     $db->query('SELECT * FROM `bouquets` WHERE `id` = ?;', $rID);
-    if ($db->num_rows() != 1) {
-    } else {
+    if ($db->num_rows() == 1) {
         return $db->get_row();
     }
 }
+
 function checkCategories() {
     global $db;
     $rPlexCategories = array('movie' => getplexcategories(3), 'show' => getplexcategories(4));
@@ -404,6 +424,7 @@ function checkCategories() {
         unlink($a539efc67de58f76);
     }
 }
+
 function checkBouquets() {
     global $db;
     $a39a336ad3894348 = array();
@@ -419,8 +440,7 @@ function checkBouquets() {
     }
     foreach ($a39a336ad3894348 as $rBouquetID => $rBouquetData) {
         $rBouquet = getBouquet($rBouquetID);
-        if (!$rBouquet) {
-        } else {
+        if ($rBouquet) {
             foreach (array_keys($rBouquetData) as $rType) {
                 if ($rType == 'movie') {
                     $rColumn = 'bouquet_movies';
@@ -439,11 +459,11 @@ function checkBouquets() {
         }
     }
 }
+
 function shutdown() {
     global $db;
     global $rIdentifier;
-    if (!is_object($db)) {
-    } else {
+    if (is_object($db)) {
         $db->close_mysql();
     }
     @unlink($rIdentifier);

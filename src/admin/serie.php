@@ -7,7 +7,7 @@ if (!checkPermissions()) {
 	goHome();
 }
 
-if (isset(CoreUtilities::$rRequest['id']) && ($rSeriesArr = getSerie(CoreUtilities::$rRequest['id']))) {
+if (isset(CoreUtilities::$rRequest['id']) && !($rSeriesArr = getSerie(CoreUtilities::$rRequest['id']))) {
 	goHome();
 }
 
