@@ -51,6 +51,8 @@ rChoice = "23456789abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ"
 rConfigPath = "/home/xc_vm/config/config.ini"
 
 rVersions = {
+    "20.04": "focal",
+    "20.10": "groovy",
     "22.04": "jammy",
     "22.10": "kinetic",
     "24.04": "noble",
@@ -147,12 +149,21 @@ if __name__ == "__main__":
     # UPGRADE                                        #
     ##################################################
 
-    printc("Patching OpenSSL")
-    os.system(
-        "wget -O /tmp/libssl1.1_1.1.1f-1ubuntu2_amd64.deb http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2_amd64.deb"
-    )
-    os.system("sudo dpkg -i /tmp/libssl1.1_1.1.1f-1ubuntu2_amd64.deb")
-    os.remove("/tmp/libssl1.1_1.1.1f-1ubuntu2_amd64.deb")
+    # printc("Patching OpenSSL")
+    # os.system(
+    #     "wget -O /tmp/libssl1.1_1.1.1f-1ubuntu2_amd64.deb http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2_amd64.deb"
+    # )
+    # os.system("sudo dpkg -i /tmp/libssl1.1_1.1.1f-1ubuntu2_amd64.deb")
+    # os.remove("/tmp/libssl1.1_1.1.1f-1ubuntu2_amd64.deb")
+
+    if rVersion.startswith("20."):
+        printc("Installing OpenSSL 3 for compatibility with PHP binaries (Ubuntu 20.x)")
+        os.system(
+            "wget -O /tmp/libssl3_3.0.2-0ubuntu1_amd64.deb "
+            "http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl3_3.0.2-0ubuntu1_amd64.deb"
+        )
+        os.system("sudo dpkg -i /tmp/libssl3_3.0.2-0ubuntu1_amd64.deb || true")
+        os.remove("/tmp/libssl3_3.0.2-0ubuntu1_amd64.deb")
 
     ##################################################
     # UPGRADE                                        #

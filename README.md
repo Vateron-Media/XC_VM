@@ -89,12 +89,15 @@ It enables:
 
 XC_VM officially supports the following Ubuntu LTS and interim releases:
 
-| Ubuntu Version | Codename        | Status            |
-| -------------- | --------------- | ----------------- |
-| **22.04**      | Jammy Jellyfish | ✅ Fully Supported |
-| **22.10**      | Kinetic Kudu    | ⚙️ Compatible     |
-| **24.04**      | Noble Numbat    | ⚠️ Under testing  |
-| **24.10**      | Oracular Oriole | ⚠️ Under testing  |
+| Ubuntu Version | Codename        | Status              |
+| -------------- | --------------- | ------------------- |
+| **20.04**      | Focal Fossa     | ⚠️ Outdated         |
+| **20.10**      | Groovy Gorilla  | ⚠️ Outdated         |
+| **22.04**      | Jammy Jellyfish | ✅ Fully Supported  |
+| **22.10**      | Kinetic Kudu    | ⚙️ Compatible       |
+| **24.04**      | Noble Numbat    | ⚠️ Under testing    |
+| **24.10**      | Oracular Oriole | ⚠️ Under testing    |
+
 
 > 🧠 Recommended: Ubuntu **22.04 LTS** or **24.04 LTS** for production environments.
 
