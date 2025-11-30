@@ -71155,7 +71155,6 @@ CREATE TABLE IF NOT EXISTS `watch_folders` (
   `target_container` varchar(64) COLLATE utf8_unicode_ci DEFAULT NULL,
   `server_add` varchar(512) COLLATE utf8_unicode_ci DEFAULT NULL,
   `direct_proxy` tinyint(1) DEFAULT '0',
-  `plex_token` varchar(512) COLLATE utf8_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 

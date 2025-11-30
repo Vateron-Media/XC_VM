@@ -472,30 +472,15 @@ function getArchive($rStreamID) {
 	return $rReturn;
 }
 
-function getPlexLogin($rUsername, $rPassword) {
-	$rHeaders = array('Content-Type: application/xml; charset=utf-8', 'X-Plex-Client-Identifier: 526e163c-8dbd-11eb-8dcd-0242ac130003', 'X-Plex-Product: XC_VM', 'X-Plex-Version: v' . XC_VM_VERSION);
-	$rCurl = curl_init('https://plex.tv/users/sign_in.json');
-	curl_setopt($rCurl, CURLOPT_HTTPHEADER, $rHeaders);
-	curl_setopt($rCurl, CURLOPT_HEADER, 0);
-	curl_setopt($rCurl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
-	curl_setopt($rCurl, CURLOPT_USERPWD, $rUsername . ':' . $rPassword);
-	curl_setopt($rCurl, CURLOPT_TIMEOUT, 30);
-	curl_setopt($rCurl, CURLOPT_SSL_VERIFYPEER, 0);
-	curl_setopt($rCurl, CURLOPT_POST, 1);
-	curl_setopt($rCurl, CURLOPT_RETURNTRANSFER, true);
-
-	return json_decode(curl_exec($rCurl), true);
-}
-
 function getPlexSections($rIP, $rPort, $rToken) {
-	$rSections = json_decode(json_encode(simplexml_load_string(file_get_contents('http://' . $rIP . ':' . $rPort . '/library/sections?X-Plex-Token=' . $rToken))), true);
+	$URL = 'http://' . $rIP . ':' . $rPort . '/library/sections?X-Plex-Token=' . $rToken;
+	$rSections = json_decode(json_encode(simplexml_load_string(file_get_contents($URL))), true);
 
 	if (!isset($rSections['Directory'])) {
 		return array();
 	}
 
-	if (!isset($rSections['Directory']['@attributes'])) {
-	} else {
+	if (isset($rSections['Directory']['@attributes'])) {
 		$rSections['Directory'] = array($rSections['Directory']);
 	}
 

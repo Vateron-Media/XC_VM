@@ -367,7 +367,7 @@ switch ($rPage) {
 		}
 
 		if (!$rMobile && strlen($rSettings["tmdb_api_key"]) > 0){
-			echo "<span class=\"gap\"></span><button type=\"button\" onclick=\"importTmdbCategories();\" class=\"btn btn-sm btn-info waves-effect waves-light\">Import TMDB Category</button>";
+			echo "<span class=\"gap\"></span><button type=\"button\" onclick=\"importTmdbCategories();\" class=\"btn btn-sm btn-info waves-effect waves-light\">Import TMDB Genres</button>";
 		}
 
 		if (0 >= count(array_slice($rDropdownPage, ($rMobile ? 0 : 1), count($rDropdownPage)))) {
@@ -383,7 +383,7 @@ switch ($rPage) {
 					}
 				}
 			}
-						echo "<a class=\"dropdown-item\" href=\"javascript: void(0);\" onClick=\"importTmdbCategories();\">Import TMDB Category</a>";
+						echo "<a class=\"dropdown-item\" href=\"javascript: void(0);\" onClick=\"importTmdbCategories();\">Import TMDB Genres</a>";
 
 			echo '</div>';
 		}
