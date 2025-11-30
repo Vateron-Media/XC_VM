@@ -691,10 +691,11 @@ if ($rUserInfo) {
 				'message' => StreamingUtilities::$rSettings['message_of_day'],
 				'auth' => 1,
 				'status' => 'Active',
-				'exp_date' => $rUserInfo['exp_date'],
-				'is_trial' => $rUserInfo['is_trial'],
-				'created_at' => $rUserInfo['created_at'],
-				'max_connections' => $rUserInfo['max_connections'],
+				'exp_date' => $rUserInfo['exp_date'] !== null ? strval($rUserInfo['exp_date']) : null,
+				'is_trial' => strval($rUserInfo['is_trial'] ?? '0'),
+				'active_cons' => strval($rUserInfo['active_cons'] ?? '0'),
+				'created_at' => strval($rUserInfo['created_at'] ?? ''),
+				'max_connections' => strval($rUserInfo['max_connections'] ?? '1'),
 				'allowed_output_formats' => getOutputFormats($rUserInfo['allowed_outputs'])
 			];
 
@@ -703,16 +704,15 @@ if ($rUserInfo) {
 			}
 
 			$output['server_info'] = [
-				'xui' => true,
-				'version' => XC_VM_VERSION,
 				'url' => $rDomain,
-				'port' => StreamingUtilities::$rServers[SERVER_ID]['http_broadcast_port'],
-				'https_port' => StreamingUtilities::$rServers[SERVER_ID]['https_broadcast_port'],
+				'port' => strval(StreamingUtilities::$rServers[SERVER_ID]['http_broadcast_port']),
+				'https_port' => strval(StreamingUtilities::$rServers[SERVER_ID]['https_broadcast_port']),
 				'server_protocol' => StreamingUtilities::$rServers[SERVER_ID]['server_protocol'],
-				'rtmp_port' => StreamingUtilities::$rServers[SERVER_ID]['rtmp_port'],
+				'rtmp_port' => strval(StreamingUtilities::$rServers[SERVER_ID]['rtmp_port']),
 				'timestamp_now' => time(),
 				'time_now' => date('Y-m-d H:i:s'),
-				'timezone' => StreamingUtilities::$rSettings['force_epg_timezone'] ? 'UTC' : StreamingUtilities::$rSettings['default_timezone']
+				'timezone' => '',
+				'process' => true
 			];
 			break;
 	}
