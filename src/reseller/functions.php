@@ -1,29 +1,25 @@
 <?php
 
-if (defined('MAIN_HOME')) {
-} else {
+if (!defined('MAIN_HOME')) {
 	define('MAIN_HOME', '/home/xc_vm/');
 }
 
 require_once MAIN_HOME . 'includes/admin.php';
 
-if (!$rMobile) {
-} else {
+if ($rMobile) {
 	$rSettings['js_navigate'] = 0;
 }
 
-if (!isset($_SESSION['reseller'])) {
-} else {
+if (isset($_SESSION['reseller'])) {
 	$rUserInfo = getRegisteredUser($_SESSION['reseller']);
 
-	if (0 >= strlen($rUserInfo['timezone'])) {
-	} else {
+	if (strlen($rUserInfo['timezone']) > 0) {
 		date_default_timezone_set($rUserInfo['timezone']);
 	}
 
 	setcookie('hue', $rUserInfo['hue'], time() + 604800);
 	setcookie('theme', $rUserInfo['theme'], time() + 604800);
-	$language::setLanguage($rData['lang']);
+	$language::setLanguage($rUserInfo['lang']);
 
 	$rPermissions = array_merge(getPermissions($rUserInfo['member_group_id']), getGroupPermissions($rUserInfo['id']));
 	$rUserInfo['reports'] = array_map('intval', array_merge(array($rUserInfo['id']), $rPermissions['all_reports']));
@@ -38,15 +34,12 @@ if (!isset($_SESSION['reseller'])) {
 
 		exit();
 	}
-
-	if ($_SESSION['rip'] == $rIP || $rSettings['ip_logout']) {
-	} else {
+	if ($_SESSION['rip'] != $rIP && !$rSettings['ip_logout']) {
 		$_SESSION['rip'] = $rIP;
 	}
 }
 
-if (!isset(CoreUtilities::$rRequest['status'])) {
-} else {
+if (isset(CoreUtilities::$rRequest['status'])) {
 	$_STATUS = intval(CoreUtilities::$rRequest['status']);
 	$rArgs = CoreUtilities::$rRequest;
 	unset($rArgs['status']);
