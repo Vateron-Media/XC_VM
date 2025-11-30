@@ -60,6 +60,13 @@ if ($argc && $argc >= 6) {
             echo 'Failed to authenticate using config.ini. Exiting' . "\n";
             exit();
         }
+
+        // 1. Find out the version of the remote server
+        echo "Detecting remote OS version...\n";
+        $rOS = runCommand($rConn, 'lsb_release -rs');
+        $rVersion = trim($rOS['output']);
+        echo "\n" . 'Remote OS version: $rVersion' . "\n";
+
         echo "\n" . 'Stopping any previous version of XC_VM' . "\n";
         runCommand($rConn, 'sudo systemctl stop xc_vm');
         runCommand($rConn, 'sudo killall -9 -u xc_vm');
@@ -73,6 +80,25 @@ if ($argc && $argc >= 6) {
             echo 'Installing package: ' . $rPackage . "\n";
             runCommand($rConn, 'sudo DEBIAN_FRONTEND=noninteractive apt-get -yq install ' . $rPackage);
         }
+
+        // 2. If Ubuntu 20.x — install libssl3
+        if (preg_match('/^20\./', $rVersion)) {
+            echo "Ubuntu 20.x detected — installing libssl3 for PHP compatibility...\n";
+
+            // Download OpenSSL 3
+            runCommand(
+                $rConn,
+                "wget -O /tmp/libssl3_3.0.2-0ubuntu1_amd64.deb " .
+                    "http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl3_3.0.2-0ubuntu1_amd64.deb"
+            );
+
+            runCommand($rConn, "sudo dpkg -i /tmp/libssl3_3.0.2-0ubuntu1_amd64.deb || true");
+            runCommand($rConn, "rm -f /tmp/libssl3_3.0.2-0ubuntu1_amd64.deb");
+
+            echo "libssl3 installed successfully.\n";
+        }
+
+
         if (in_array($rType, array(1, 2))) {
             echo 'Creating XC_VM system user' . "\n";
             runCommand($rConn, 'sudo adduser --system --shell /bin/false --group --disabled-login xc_vm');
