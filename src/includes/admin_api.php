@@ -6125,28 +6125,24 @@ class API {
 				unset($rArray['id']);
 			}
 
-			if (isset($rData['edit'])) {
-				self::$db->query('SELECT COUNT(*) AS `count` FROM `watch_folders` WHERE `directory` = ? AND `server_id` = ? AND `plex_ip` = ? AND `id` <> ?;', $rData['library_id'], $rData['server_id'], $rData['plex_ip'], $rArray['id']);
+			if (is_array($rData['server_id'])) {
+				$rServers = $rData['server_id'];
+				$rArray['server_id'] = intval(array_shift($rServers));
+				$rArray['server_add'] = '[' . implode(',', array_map('intval', $rServers)) . ']';
 			} else {
-				self::$db->query('SELECT COUNT(*) AS `count` FROM `watch_folders` WHERE `directory` = ? AND `server_id` = ? AND `plex_ip` = ?;', $rData['library_id'], $rData['server_id'], $rData['plex_ip']);
+				$rArray['server_id'] = intval($rData['server_id']);
+				$rArray['server_add'] = null;
+			}
+
+			if (isset($rData['edit'])) {
+				self::$db->query('SELECT COUNT(*) AS `count` FROM `watch_folders` WHERE `directory` = ? AND `server_id` = ? AND `plex_ip` = ? AND `id` <> ?;', $rData['library_id'], $rArray['server_id'], $rData['plex_ip'], $rArray['id']);
+			} else {
+				self::$db->query('SELECT COUNT(*) AS `count` FROM `watch_folders` WHERE `directory` = ? AND `server_id` = ? AND `plex_ip` = ?;', $rData['library_id'], $rArray['server_id'], $rData['plex_ip']);
 			}
 
 			if (0 >= self::$db->get_row()['count']) {
-
-
-
 				$rArray['type'] = 'plex';
 				$rArray['directory'] = $rData['library_id'];
-
-				if (is_array($rData['server_id'])) {
-					$rServers = $rData['server_id'];
-					$rArray['server_id'] = intval(array_shift($rServers));
-					$rArray['server_add'] = '[' . implode(',', array_map('intval', $rServers)) . ']';
-				} else {
-					$rArray['server_id'] = intval($rData['server_id']);
-					$rArray['server_add'] = null;
-				}
-
 				$rArray['plex_ip'] = $rData['plex_ip'];
 				$rArray['plex_port'] = $rData['plex_port'];
 				$rArray['plex_libraries'] = $rData['libraries'];
@@ -6170,10 +6166,13 @@ class API {
 						$rArray[$rKey] = 0;
 					}
 				}
+				$overrideBouquets = $rData['override_bouquets'] ?? [];
+				$fallbackBouquets = $rData['fallback_bouquets'] ?? [];
+
 				$rArray['category_id'] = intval($rData['override_category']);
 				$rArray['fb_category_id'] = intval($rData['fallback_category']);
-				$rArray['bouquets'] = '[' . implode(',', array_map('intval', $rData['override_bouquets'])) . ']';
-				$rArray['fb_bouquets'] = '[' . implode(',', array_map('intval', $rData['fallback_bouquets'])) . ']';
+				$rArray['bouquets'] = '[' . implode(',', array_map('intval', $overrideBouquets)) . ']';
+				$rArray['fb_bouquets'] = '[' . implode(',', array_map('intval', $fallbackBouquets)) . ']';
 				$rArray['target_container'] = ($rData['target_container'] == 'auto' ? null : $rData['target_container']);
 				$rPrepare = prepareArray($rArray);
 				$rQuery = 'REPLACE INTO `watch_folders`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';

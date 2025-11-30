@@ -48,6 +48,8 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 			// 	StreamingUtilities::$db->query('ALTER TABLE `lines` ADD COLUMN `allowed_outputs` MEDIUMTEXT NULL DEFAULT NULL AFTER `bouquet`;');
 			// }
 
+			StreamingUtilities::$db->query('ALTER TABLE `watch_folders` DROP COLUMN IF EXISTS `plex_token`;');
+
 			shell_exec('sudo chmod 0775 ' . MAIN_HOME . 'bin/install');
 		}
 
