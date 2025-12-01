@@ -452,6 +452,26 @@ include 'header.php';
 
 												echo '"></div>
 													</div>
+													<div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="skip_ffprobe">Skip FFProbe <i title="Skip codec detection via ffprobe. Assumes h264 video and AAC audio. Use for streams with corrupted PMT where ffprobe misdetects codecs." class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-9"><input name="skip_ffprobe" id="skip_ffprobe" type="checkbox" ';
+
+												if (isset($rStreamOptions[21])) {
+													if ($rStreamOptions[21]['value'] == 1) {
+														echo 'checked ';
+													}
+												}
+
+												echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div>
+													</div>
+													<div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="force_input_acodec">Force Input Audio Codec <i title="Force FFmpeg to interpret the input audio stream as a specific codec (e.g., aac, ac3). Useful for streams with corrupted PMT metadata." class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-9"><input name="force_input_acodec" id="force_input_acodec" type="text" class="form-control" placeholder="e.g., aac, ac3" value="';
+
+												if (isset($rStreamOptions[20])) {
+													echo htmlspecialchars($rStreamOptions[20]['value']);
+												}
+
+												echo '" /></div>
+													</div>
 													<div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="transcode_profile_id">Transcoding Profile <i title="Sometimes, in order to make a stream compatible with most devices, it must be transcoded. Please note that the transcode will only be applied to the server(s) that take the stream directly from the source, all other servers attached to the transcoding server will not transcode the stream." class="tooltip text-secondary far fa-circle"></i></label>
 														<div class="col-md-9"><select name="transcode_profile_id" id="transcode_profile_id" class="form-control" data-toggle="select2"><option ';
 
