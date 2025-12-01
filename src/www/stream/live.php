@@ -137,7 +137,7 @@ if ($rChannelInfo) {
             }
         }
     }
-    if (!$rChannelInfo["proxy"]) {
+    if (!isset($rChannelInfo["proxy"]) || !$rChannelInfo["proxy"]) {
         $rRetries = 0;
         $rPlaylist = STREAMS_PATH . $rStreamID . "_.m3u8";
         if ($rExtension == "ts") {

@@ -50,6 +50,10 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 
 			StreamingUtilities::$db->query('ALTER TABLE `watch_folders` DROP COLUMN IF EXISTS `plex_token`;');
 
+			StreamingUtilities::$db->query("INSERT INTO streams_arguments (argument_cat, argument_name, argument_description, argument_wprotocol, argument_key, argument_cmd, argument_type, argument_default_value) SELECT 'fetch', 'Force Input Audio Codec', 'Force FFmpeg to interpret the input audio stream as a specific codec (e.g., aac, ac3). Useful for streams with corrupted PMT metadata.', NULL, 'force_input_acodec', '-acodec %s', 'text', NULL FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM streams_arguments WHERE argument_key = 'force_input_acodec');");
+
+			StreamingUtilities::$db->query("INSERT INTO streams_arguments (argument_cat, argument_name, argument_description, argument_wprotocol, argument_key, argument_cmd, argument_type, argument_default_value) SELECT 'fetch', 'Skip FFProbe', 'Skip codec detection via ffprobe. Assumes h264 video and aac audio. Use for streams with corrupted PMT where ffprobe misdetects codecs.', NULL, 'skip_ffprobe', '', 'radio', '0' FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM streams_arguments WHERE argument_key = 'skip_ffprobe');");
+
 			shell_exec('sudo chmod 0775 ' . MAIN_HOME . 'bin/install');
 		}
 
