@@ -2110,6 +2110,36 @@ class CoreUtilities {
 					$rProbeOptions = implode(' ', self::getArguments($rProbeArguments, $rProtocol, 'fetch'));
 					$rFetchOptions = implode(' ', self::getArguments($rStream['stream_arguments'], $rProtocol, 'fetch'));
 
+					// === SKIP FFPROBE FEATURE ===
+					// Feature for streams with corrupted PMT where ffprobe reports incorrect codecs
+					// (e.g., AC3 with sample_rate=0, channels=0 when actual audio is AAC ADTS)
+					$rSkipFFProbe = false;
+					foreach ($rStream['stream_arguments'] as $rArg) {
+						if ($rArg['argument_key'] == 'skip_ffprobe' && $rArg['value'] == 1) {
+							$rSkipFFProbe = true;
+							break;
+						}
+					}
+
+					if ($rSkipFFProbe) {
+						$rFFProbeOutput = array(
+							'codecs' => array(
+								'video' => array('codec_name' => 'h264', 'codec_type' => 'video', 'height' => 1080),
+								'audio' => array('codec_name' => 'aac', 'codec_type' => 'audio')
+							),
+							'container' => 'mpegts'
+						);
+						error_log('[XC_VM] Stream ' . $rStreamID . ': FFProbe skipped');
+						echo 'Got stream information via skip_ffprobe (assumed h264/aac)' . "\n";
+
+						// Ensure $rSource is defined for cache after the loop
+						if (empty($rSource)) {
+							$rSource = is_array($rSources) && count($rSources) > 0 ? $rSources[0] : $rStreamSource;
+						}
+						break;
+					}
+					// === END SKIP FFPROBE FEATURE ===
+
 					if ($rFromCache && file_exists(CACHE_TMP_PATH . md5($rSource)) && time() - filemtime(CACHE_TMP_PATH . md5($rSource)) <= 300) {
 						$rFFProbeOutput = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . md5($rStreamSource)));
 
