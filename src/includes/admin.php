@@ -415,8 +415,7 @@ function getArchive($rStreamID) {
 	$rEPG = getchannelepg($rStreamID, true);
 	$rFiles = getArchiveFiles($rStream['tv_archive_server_id'], $rStreamID);
 
-	if (!(0 < count($rFiles) && 0 < count($rEPG))) {
-	} else {
+	if (!empty($rFiles) && !empty($rEPG)) {
 		foreach ($rFiles as $rFile) {
 			$rFilename = pathinfo($rFile)['filename'];
 			$rTimestamp = strtotime(explode(':', $rFilename)[0] . 'T' . implode(':', explode('-', explode(':', $rFilename)[1])) . ':00Z ' . str_replace(':', '', gmdate('P')));
@@ -433,10 +432,8 @@ function getArchive($rStreamID) {
 				}
 			}
 
-			if (!$rEPGID) {
-			} else {
-				if (isset($rReturn[$rEPGID])) {
-				} else {
+			if ($rEPGID) {
+				if (!isset($rReturn[$rEPGID])) {
 					$rReturn[$rEPGID] = $rEPG[$rEPGID];
 					$rReturn[$rEPGID]['archive_stop'] = null;
 					$rReturn[$rEPGID]['archive_start'] = $rReturn[$rEPGID]['archive_stop'];

@@ -378,8 +378,7 @@ if ($rStream['type'] == 1) {
 		echo "\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t" . '</div>' . "\r\n" . '                        ';
 	}
 
-	if (!(0 < $rStream['tv_archive_server_id'] && 0 < $rStream['tv_archive_duration'])) {
-	} else {
+	if (0 < $rStream['tv_archive_server_id'] && 0 < $rStream['tv_archive_duration']) {
 		$rArchive = getArchive($rStream['id']);
 		echo '                        <div class="tab-pane" id="archive">' . "\r\n\t\t\t\t\t\t\t" . '<div class="table">' . "\r\n\t\t\t\t\t\t\t\t" . '<table id="datatable-archive" class="table table-striped table-borderless mb-0">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<thead>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<tr>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th class="text-center">Date</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th>Title</th>' . "\r\n" . '                                            <th class="text-center">Status</th>' . "\r\n" . '                                            <th class="text-center">Player</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</thead>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<tbody>' . "\r\n" . '                                        ';
 
