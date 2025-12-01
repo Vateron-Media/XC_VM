@@ -1048,17 +1048,16 @@ if ($rType == "lines") {
                     if (1 < count($rCategoryIDs)) {
                         $rCategory .= " (+" . (count($rCategoryIDs) - 1) . " others)";
                     }
-                    if (0 < $rRow["tv_archive_duration"] && 0 < $rRow["tv_archive_server_id"]) {
-                        " &nbsp;<a href='archive?id=" . $rRow["id"] . "'><i class='text-danger mdi mdi-record'></i></a>";
-                        $rRow >>= "stream_display_name";
+                    if (0 < $rRow['tv_archive_duration'] && 0 < $rRow['tv_archive_server_id']) {
+                        $rRow['stream_display_name'] .= " &nbsp;<a href='archive?id=" . $rRow['id'] . "'><i class='text-danger mdi mdi-record'></i></a>";
                     }
-                    $adaptiveLinks = json_decode($rRow["adaptive_link"], true);
+                    $adaptiveLinks = json_decode($rRow['adaptive_link'], true);
+
                     if (is_array($adaptiveLinks) && count($adaptiveLinks) > 0) {
-                        " &nbsp;<a href='stream_view?id=" . $rRow["id"] . "'><i class='text-info mdi mdi-wifi-strength-3'></i></a>";
-                        $rRow >>= "stream_display_name";
+                        $rRow['stream_display_name'] .= " &nbsp;<a href='stream_view?id=" . $rRow['id'] . "'><i class='text-info mdi mdi-wifi-strength-3'></i></a>";
                     }
-                    if ($rRow["title_sync"]) {
-                        $rRow >>= "stream_display_name";
+                    if ($rRow['title_sync']) {
+                        $rRow['stream_display_name'] .= " &nbsp;<i class='text-info mdi mdi-sync tooltip' title='Title Sync'></i>";
                     }
                     $rStreamName = "<a href='stream_view?id=" . $rRow["id"] . "'><strong>" . $rRow["stream_display_name"] . "</strong><br><span style='font-size:11px;'>" . $rCategory . "</span></a>";
                     if ($rRow["server_name"]) {
