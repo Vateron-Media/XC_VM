@@ -34,7 +34,7 @@ class GitHubReleases {
      * @param string $channel Update channel: 'stable' or 'unstable'
      * @param string|null $token GitHub API token
      */
-    public function __construct(string $owner, string $repo, string $channel = 'stable', ?string $token = null) {
+    public function __construct(string $owner, string $repo, ?string $channel = 'stable', ?string $token = null) {
         $this->owner = $owner;
         $this->repo = $repo;
         $this->channel = in_array($channel, ['stable', 'unstable']) ? $channel : 'stable';

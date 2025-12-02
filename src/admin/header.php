@@ -57,7 +57,7 @@
             <!-- Header and other content -->
             <header id="topnav">
                 <div
-                    class="navbar-overlay bg-animate<?= (0 < strlen($rUserInfo['hue']) && in_array($rUserInfo['hue'], array_keys($rHues))) ? '-' . $rUserInfo['hue'] : ''; ?>">
+                    class="navbar-overlay bg-animate<?= (!empty($rUserInfo['hue']) && isset($rHues[$rUserInfo['hue']])) ? '-' . $rUserInfo['hue'] : '' ?>">
                 </div>
                 <div class="navbar-custom">
                     <div class="container-fluid">

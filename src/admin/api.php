@@ -2487,12 +2487,10 @@ if (isset($_SESSION['hash'])) {
 
 				if (isset(CoreUtilities::$rRequest['map'])) {
 					echo json_encode($rStreamInfo);
-
 					exit();
 				}
 
-				if (0 >= count($rStreamInfo['streams'])) {
-				} else {
+				if (!empty($rStreamInfo['streams']) && is_array($rStreamInfo['streams'])) {
 					$rInfo = array();
 
 					foreach ($rStreamInfo['streams'] as $rCodec) {
@@ -2503,13 +2501,11 @@ if (isset($_SESSION['hash'])) {
 							$rInfo['vcodec'] = $rCodec['codec_name'];
 							$rInfo['fps'] = intval(explode('/', $rCodec['r_frame_rate'])[0]);
 
-							if ($rInfo['fps']) {
-							} else {
+							if (!$rInfo['fps']) {
 								$rInfo['fps'] = intval(explode('/', $rCodec['avg_frame_rate'])[0]);
 							}
 						} else {
-							if ($rCodec['codec_type'] != 'audio') {
-							} else {
+							if ($rCodec['codec_type'] == 'audio') {
 								$rInfo['abitrate'] = intval($rCodec['bit_rate']);
 								$rInfo['acodec'] = $rCodec['codec_name'];
 							}
