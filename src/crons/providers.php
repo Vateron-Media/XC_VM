@@ -76,12 +76,15 @@ function loadCron() {
         }
         $rStreamsURL = $rURL . '&action=get_live_streams';
         $rStreams = readurl($rStreamsURL);
+        if (!is_array($rStreams)) $rStreams = [];
         $rArray['streams'] = count($rStreams);
         $rVODURL = $rURL . '&action=get_vod_streams';
         $rVOD = readurl($rVODURL);
+        if (!is_array($rVOD)) $rVOD = [];
         $rArray['movies'] = count($rVOD);
         $rSeriesURL = $rURL . '&action=get_series';
         $rSeries = readurl($rSeriesURL);
+        if (!is_array($rSeries)) $rSeries = [];
         $rArray['series'] = count($rSeries);
         $rLastChanged = time();
         $db->query('UPDATE `providers` SET `data` = ?, `last_changed` = ?, `status` = ? WHERE `id` = ?;', json_encode($rArray), $rLastChanged, $rStatus, $rRow['id']);

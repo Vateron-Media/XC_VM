@@ -2319,27 +2319,40 @@ class CoreUtilities {
 					}
 				} else {
 					$rSegmentStart = 0;
+					$m3u8File = DELAY_PATH . $rStreamID . '_.m3u8';
+					$oldM3u8File = DELAY_PATH . intval($rStreamID) . '_.m3u8_old';
 
-					if (file_exists(DELAY_PATH . $rStreamID . '_.m3u8')) {
-						$rFile = file(DELAY_PATH . $rStreamID . '_.m3u8');
 
-						if (stristr($rFile[count($rFile) - 1], $rStreamID . '_')) {
-							if (preg_match('/\\_(.*?)\\.ts/', $rFile[count($rFile) - 1], $rMatches)) {
+					if (file_exists($m3u8File)) {
+						$rFile = file($m3u8File, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+
+						if (!is_array($rFile) || count($rFile) < 2) {
+							// The file is empty or unreadable — safe exit
+							return;
+						}
+
+						$lastLine = $rFile[count($rFile) - 1];
+						$prevLine = $rFile[count($rFile) - 2];
+
+						if (stristr($lastLine, $rStreamID . '_')) {
+							if (preg_match('/_(.*?)\.ts/', $lastLine, $rMatches)) {
 								$rSegmentStart = intval($rMatches[1]) + 1;
 							}
 						} else {
-							if (preg_match('/\\_(.*?)\\.ts/', $rFile[count($rFile) - 2], $rMatches)) {
+							if (preg_match('/_(.*?)\.ts/', $prevLine, $rMatches)) {
 								$rSegmentStart = intval($rMatches[1]) + 1;
 							}
 						}
 
-						if (file_exists(DELAY_PATH . $rStreamID . '_.m3u8_old')) {
-							file_put_contents(DELAY_PATH . $rStreamID . '_.m3u8_old', file_get_contents(DELAY_PATH . $rStreamID . '_.m3u8_old') . file_get_contents(DELAY_PATH . $rStreamID . '_.m3u8'));
-							shell_exec("sed -i '/EXTINF\\|.ts/!d' " . DELAY_PATH . intval($rStreamID) . '_.m3u8_old');
+
+						if (file_exists($oldM3u8File)) {
+							file_put_contents($oldM3u8File, file_get_contents($oldM3u8File) . file_get_contents($m3u8File));
+							shell_exec("sed -i '/EXTINF\\|.ts/!d' " . escapeshellarg($oldM3u8File));
 						} else {
-							copy(DELAY_PATH . $rStreamID . '_.m3u8', DELAY_PATH . intval($rStreamID) . '_.m3u8_old');
+							copy($m3u8File, $oldM3u8File);
 						}
 					}
+
 
 					$rFFMPEG .= implode(' ', self::parseTranscode($rStream['stream_info']['transcode_attributes'])) . ' ';
 
