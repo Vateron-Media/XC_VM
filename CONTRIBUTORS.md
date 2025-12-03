@@ -15,9 +15,11 @@ Want to see your name here? [Open a PR](https://github.com/Vateron-Media/XC_VM/p
 
 ## 🌟 Community Stars *(Top Contributors)*
 
+<!-- STARS_TABLE_START -->
 | Contributor | PRs Merged | Highlights           |
 | ----------- | ---------- | -------------------- |
 | *None yet*  | —          | Waiting for your PR! |
+<!-- STARS_TABLE_END -->
 
 ---
 
@@ -25,7 +27,7 @@ Want to see your name here? [Open a PR](https://github.com/Vateron-Media/XC_VM/p
 
 ### 💻 Code
 
-* *No code contributions yet*
+* [@gpechieu](https://github.com/gpechieu) — Fixing bugs and adding features
 
 ### 📖 Documentation
 
