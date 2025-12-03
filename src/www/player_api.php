@@ -704,6 +704,7 @@ if ($rUserInfo) {
 			}
 
 			$output['server_info'] = [
+				'version' => XC_VM_VERSION,
 				'url' => $rDomain,
 				'port' => strval(StreamingUtilities::$rServers[SERVER_ID]['http_broadcast_port']),
 				'https_port' => strval(StreamingUtilities::$rServers[SERVER_ID]['https_broadcast_port']),
@@ -711,7 +712,7 @@ if ($rUserInfo) {
 				'rtmp_port' => strval(StreamingUtilities::$rServers[SERVER_ID]['rtmp_port']),
 				'timestamp_now' => time(),
 				'time_now' => date('Y-m-d H:i:s'),
-				'timezone' => '',
+				'timezone' => StreamingUtilities::$rSettings['force_epg_timezone'] ? 'UTC' : StreamingUtilities::$rSettings['default_timezone'],
 				'process' => true
 			];
 			break;
