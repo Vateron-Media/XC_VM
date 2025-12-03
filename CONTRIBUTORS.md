@@ -16,9 +16,11 @@ Want to see your name here? [Open a PR](https://github.com/Vateron-Media/XC_VM/p
 ## 🌟 Community Stars *(Top Contributors)*
 
 <!-- STARS_TABLE_START -->
-| Contributor | PRs Merged | Highlights           |
-| ----------- | ---------- | -------------------- |
-| *None yet*  | —          | Waiting for your PR! |
+| Contributor | PRs Merged |
+| ----------- | ---------- |
+| @Divarion-D | 20 |
+| @IPTVEX | 12 |
+| @gpechieu | 2 |
 <!-- STARS_TABLE_END -->
 
 ---
