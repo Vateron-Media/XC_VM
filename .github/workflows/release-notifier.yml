@@ -31,7 +31,7 @@ jobs:
           ${RELEASE_EMOJI} *${RELEASE_TYPE} Published* ${RELEASE_EMOJI}
           📍 *Status:* \`${RELEASE_BADGE}\`
 
-          🔗 *Release:*[${{ github.event.release.name }}](https://github.com/${{ github.repository }}/releases/tag/${RELEASE_TAG})
+          🔗 *Release:* [${{ github.event.release.name }}](https://github.com/${{ github.repository }}/releases/tag/${RELEASE_TAG})
           📦 *Repository:* [${{ github.repository }}](https://github.com/${{ github.repository }})
           🏷 *Version:* \`${RELEASE_TAG}\`
           EOF
