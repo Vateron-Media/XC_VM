@@ -70316,7 +70316,7 @@ CREATE TABLE IF NOT EXISTS `settings` (
   `ignore_keyframes` int(11) DEFAULT '0',
   `seg_delete_threshold` int(11) DEFAULT '4',
   `fails_per_time` int(11) DEFAULT '86400',
-  `segment_type` tinyint(1) DEFAULT '1',
+  `segment_type` tinyint(1) DEFAULT '0',
   `thread_count_movie` tinyint(3) DEFAULT '5',
   `thread_count_show` tinyint(3) DEFAULT '1',
   `redirect_timeout` tinyint(1) DEFAULT '5',
