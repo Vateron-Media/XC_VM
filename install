@@ -191,10 +191,7 @@ if __name__ == "__main__":
         os.system(
             "sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xF1656F24C74CD1D8"
         )
-        os.system(
-            "sudo add-apt-repository -y 'deb [arch=amd64,arm64,ppc64el] http://ams2.mirrors.digitalocean.com/mariadb/repo/10.6/ubuntu %s main'"
-            % rVersions[rVersion]
-        )
+        os.system('curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup | sudo bash -s -- --mariadb-server-version="mariadb-11.4"')
     else:
         print("Installing system version of MariaDB")
     os.system("sudo add-apt-repository -y ppa:maxmind/ppa")
