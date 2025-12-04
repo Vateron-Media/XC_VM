@@ -78,28 +78,46 @@ It enables:
 | --------- | ---------- | ------------------------------- |
 | PHP       | 8.2        | Backend runtime                 |
 | Nginx     | 1.24       | Web server & reverse proxy      |
-| FFmpeg    | 8.0        | Media transcoding & processing  |
+| FFmpeg    | 8.0, 7.1, 5.1, 4.4, 4.3, 4.0        | Media transcoding & processing  |
 | MariaDB   | 10.6+      | SQL database engine             |
 | KeyDB     | 6.3.4      | Cache & session storage (Redis) |
 | yt-dlp    | 2025.07.21 | Audio/Video downloader          |
 
 ---
 
-## 🧩 Supported Ubuntu Versions
+## 🐧 Supported Ubuntu Versions
 
-XC_VM officially supports the following Ubuntu LTS and interim releases:
+XC_VM **officially supports** the following Ubuntu LTS and interim releases:
 
-| Ubuntu Version | Codename        | Status              |
-| -------------- | --------------- | ------------------- |
-| **20.04**      | Focal Fossa     | ⚠️ Outdated         |
-| **20.10**      | Groovy Gorilla  | ⚠️ Outdated         |
-| **22.04**      | Jammy Jellyfish | ✅ Fully Supported  |
-| **22.10**      | Kinetic Kudu    | ⚙️ Compatible       |
-| **24.04**      | Noble Numbat    | ⚠️ Under testing    |
-| **24.10**      | Oracular Oriole | ⚠️ Under testing    |
+| Ubuntu Version | Codename        | Status                |
+| -------------- | --------------- | --------------------- |
+| **20.04**      | Focal Fossa     | ⚠️ *Outdated*         |
+| **20.10**      | Groovy Gorilla  | ⚠️ *Outdated*         |
+| **22.04**      | Jammy Jellyfish | ✅ **Fully Supported** |
+| **22.10**      | Kinetic Kudu    | ⚙️ *Compatible*       |
+| **24.04**      | Noble Numbat    | ✅ **Fully Supported** |
+| **24.10**      | Oracular Oriole | 🧪 *Under Testing*    |
 
+---
 
-> 🧠 Recommended: Ubuntu **22.04 LTS** or **24.04 LTS** for production environments.
+### 💡 Recommendations
+
+For new installations, the **strongly recommended** Ubuntu versions are:
+
+* 🟢 **Ubuntu 22.04 LTS**
+* 🟢 **Ubuntu 24.04 LTS**
+
+These versions receive full support, active security updates, and provide the stability required for XC_VM.
+
+---
+
+### ⚠️ Important Note About Ubuntu 20.x
+
+Ubuntu 20.04 and 20.10 are **outdated** and no longer receive updates for most essential system packages.
+Using these versions is still *possible*, but:
+
+* 🛠️ **Official support is discontinued** — any issues must be resolved by the user.
+* 🚫 Bugs caused by outdated dependencies or libraries **will not be addressed** by the XC_VM project.
 
 ---
 
