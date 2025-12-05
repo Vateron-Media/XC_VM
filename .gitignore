@@ -2,3 +2,4 @@
 .vscode/settings.json
 CLAUDE.md
 dist/
+.DS_Store
