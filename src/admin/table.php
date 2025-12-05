@@ -7,9 +7,12 @@ if (file_exists("../www/init.php")) {
     require_once "../../../www/init.php";
 }
 
-// if (!PHP_ERRORS && (empty($_SERVER["HTTP_X_REQUESTED_WITH"]) || strtolower($_SERVER["HTTP_X_REQUESTED_WITH"]) != "xmlhttprequest")) {
-//     exit;
-// }
+if (!PHP_ERRORS) {
+	if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
+		exit();
+	}
+}
+
 $rReturn = ["draw" => (int) CoreUtilities::$rRequest["draw"], "recordsTotal" => 0, "recordsFiltered" => 0, "data" => []];
 $rIsAPI = false;
 if (isset(CoreUtilities::$rRequest["api_key"])) {
