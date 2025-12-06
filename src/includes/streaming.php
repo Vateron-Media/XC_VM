@@ -523,7 +523,7 @@ class StreamingUtilities {
 			return false;
 		}
 	}
-	public static function B97D7ACBCf7c7A5e($Fd50c63671da34f8) {
+	public static function getOffAirVideo($Fd50c63671da34f8) {
 		if (!(isset(self::$rSettings[$Fd50c63671da34f8]) && 0 < strlen(self::$rSettings[$Fd50c63671da34f8]))) {
 			switch ($Fd50c63671da34f8) {
 				case 'connected_video_path':
@@ -557,7 +557,7 @@ class StreamingUtilities {
 		}
 	}
 	public static function showVideoServer($Fca476d6a870416e, $Fd50c63671da34f8, $rExtension, $rUserInfo, $rIP, $rCountryCode, $rISP, $rServerID = null, $rProxyID = null) {
-		$Fd50c63671da34f8 = self::B97D7AcBCF7C7A5e($Fd50c63671da34f8);
+		$Fd50c63671da34f8 = self::getOffAirVideo($Fd50c63671da34f8);
 		if (!(!$rUserInfo['is_restreamer'] && self::$rSettings[$Fca476d6a870416e] && 0 < strlen($Fd50c63671da34f8))) {
 			switch ($Fca476d6a870416e) {
 				case 'show_expired_video':
@@ -574,21 +574,17 @@ class StreamingUtilities {
 					break;
 			}
 		} else {
-			if ($rServerID) {
-			} else {
+			if (!$rServerID) {
 				$rServerID = self::F4221e28760b623E($rUserInfo, $rIP, $rCountryCode, $rISP);
 			}
-			if ($rServerID) {
-			} else {
+			if (!$rServerID) {
 				$rServerID = SERVER_ID;
 			}
 			$rOriginatorID = null;
-			if (!(self::isProxied($rServerID) && (!$rUserInfo['is_restreamer'] || !self::$rSettings['restreamer_bypass_proxy']))) {
-			} else {
+			if (self::isProxied($rServerID) && (!$rUserInfo['is_restreamer'] || !self::$rSettings['restreamer_bypass_proxy'])) {
 				$rProxies = self::getProxies($rServerID);
 				$rProxyID = self::availableProxy(array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name']);
-				if ($rProxyID) {
-				} else {
+				if (!$rProxyID) {
 					generate404();
 				}
 				$rOriginatorID = $rServerID;
@@ -606,7 +602,15 @@ class StreamingUtilities {
 			$rTokenData = array('expires' => time() + 10, 'video_path' => $Fd50c63671da34f8);
 			$rToken = StreamingUtilities::encryptData(json_encode($rTokenData), self::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 			if ($rExtension == 'm3u8') {
-				$rM3U8 = "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-MEDIA-SEQUENCE:0\n#EXT-X-ALLOW-CACHE:YES\n#EXT-X-TARGETDURATION:10\n#EXTINF:10.0,\n" . $rURL . '/auth/' . $rToken . "\n#EXT-X-ENDLIST";
+				$segmentDuration = 10;
+				$sequence = intval(time() / $segmentDuration);
+				$rM3U8 = "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-MEDIA-SEQUENCE:{$sequence}\n#EXT-X-ALLOW-CACHE:NO\n#EXT-X-TARGETDURATION:{$segmentDuration}\n#EXT-X-PLAYLIST-TYPE:EVENT\n";
+
+				// Create 3 segments
+				for ($i = 0; $i < 3; $i++) {
+					$rM3U8 .= "#EXTINF:{$segmentDuration}.0,\n" . $rURL . '/auth/' . $rToken  . "\n";
+				}
+
 				header('Content-Type: application/x-mpegurl');
 				header('Content-Length: ' . strlen($rM3U8));
 				echo $rM3U8;
