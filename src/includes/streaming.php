@@ -1445,13 +1445,17 @@ class StreamingUtilities {
 			}
 		}
 	}
+
+	// Checked
 	public static function generateHLS($rM3U8, $rUsername, $rPassword, $rStreamID, $rUUID, $rIP, $rIsHMAC = null, $rIdentifier = '', $rVideoCodec = 'h264', $rOnDemand = 0, $rServerID = null, $rProxyID = null) {
 		if (file_exists($rM3U8)) {
 			$rSource = file_get_contents($rM3U8);
-			if (self::$rSettings['encrypt_hls'] || $rOnDemand) {
+
+			if (self::$rSettings['encrypt_hls'] && $rOnDemand) {
 				$rKeyToken = StreamingUtilities::encryptData($rIP . '/' . $rStreamID, self::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 				$rSource = "#EXTM3U\n#EXT-X-KEY:METHOD=AES-128,URI=\"" . (($rProxyID ? '/' . md5($rProxyID . '_' . $rServerID . '_' . OPENSSL_EXTRA) : '')) . '/key/' . $rKeyToken . '",IV=0x' . bin2hex(file_get_contents(STREAMS_PATH . $rStreamID . '_.iv')) . "\n" . substr($rSource, 8, strlen($rSource) - 8);
 			}
+
 			if (preg_match_all('/(.*?)\\.ts/', $rSource, $rMatches)) {
 				foreach ($rMatches[0] as $rMatch) {
 					if ($rIsHMAC) {
@@ -1459,15 +1463,18 @@ class StreamingUtilities {
 					} else {
 						$rToken = StreamingUtilities::encryptData($rUsername . '/' . $rPassword . '/' . $rIP . '/' . $rStreamID . '/' . $rMatch . '/' . $rUUID . '/' . SERVER_ID . '/' . $rVideoCodec . '/' . $rOnDemand, self::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 					}
+
 					if (self::$rSettings['allow_cdn_access']) {
 						$rSource = str_replace($rMatch, (($rProxyID ? '/' . md5($rProxyID . '_' . $rServerID . '_' . OPENSSL_EXTRA) : '')) . '/hls/' . $rMatch . '?token=' . $rToken, $rSource);
 					} else {
 						$rSource = str_replace($rMatch, (($rProxyID ? '/' . md5($rProxyID . '_' . $rServerID . '_' . OPENSSL_EXTRA) : '')) . '/hls/' . $rToken, $rSource);
 					}
 				}
+
 				return $rSource;
 			}
 		}
+
 		return false;
 	}
 	public static function validateConnections($rUserInfo, $rIsHMAC = false, $rIdentifier = '', $rIP = null, $rUserAgent = null) {
