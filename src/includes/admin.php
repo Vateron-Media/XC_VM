@@ -1379,6 +1379,9 @@ function APIRequest($rData, $rTimeout = 5) {
 
 function systemapirequest($rServerID, $rData, $rTimeout = 5) {
 	ini_set('default_socket_timeout', $rTimeout);
+	if (!is_array(CoreUtilities::$rServers) || !isset(CoreUtilities::$rServers[$rServerID])) {
+		return null;
+	}
 	if (CoreUtilities::$rServers[$rServerID]['server_online']) {
 		$rAPI = 'http://' . CoreUtilities::$rServers[intval($rServerID)]['server_ip'] . ':' . CoreUtilities::$rServers[intval($rServerID)]['http_broadcast_port'] . '/api';
 		$rData['password'] = CoreUtilities::$rSettings['live_streaming_pass'];
@@ -2105,6 +2108,9 @@ function killPlexSync() {
 function getPIDs($rServerID) {
 	$rReturn = array();
 	$rProcesses = json_decode(systemapirequest($rServerID, array('action' => 'get_pids')), true);
+	if (!is_array($rProcesses)) {
+		return $rReturn;
+	}
 	array_shift($rProcesses);
 
 	foreach ($rProcesses as $rProcess) {
