@@ -1474,36 +1474,24 @@ include "header.php";
 																echo $rValue;
 																echo '</option>';
 															}
-															echo '</select></div><label class="col-md-4 col-form-label" for="segment_type">FFMPEG Segment Type <i title="Whether to use -f segment or -f hls when processing streams. -f hls is designed to be used with HLS streaming so should perform better. Using segment will disable delete threshold option. Segment will be used by default for on-demand streams to increase speed." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><select name="segment_type" id="segment_type" class="form-control" data-toggle="select2">';
+															echo '</select></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="ffmpeg_warnings">FFMPEG Show Warnings <i title="Instruct FFMPEG to save warnings to stream errors table. Turning this off will save only errors instead." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="ffmpeg_warnings" id="ffmpeg_warnings" type="checkbox"';
 
-															foreach (["-f hls", "-f segment"] as $rValue => $rText) {
-																echo '<option ';
+															if ($rSettings["ffmpeg_warnings"] == 1) {
+																echo ' checked ';
+															}
 
-																if ($rSettings["segment_type"] != $rValue) {
-																} else {
-																	echo 'selected ';
-																}
+															echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="ignore_keyframes">Ignore Keyframes <i title="Allow segments to start on frames other than keyframes. This improves behavior on some players when the time between keyframes is inconsistent, but may make things worse on others, and can cause some oddities during startup with blank screen until video kicks in." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="ignore_keyframes" id="ignore_keyframes" type="checkbox"';
 
-															?> value="<?= $rValue ?>"><?= $rText ?></option><?php
-																									}
-																									echo '</select></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="ffmpeg_warnings">FFMPEG Show Warnings <i title="Instruct FFMPEG to save warnings to stream errors table. Turning this off will save only errors instead." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="ffmpeg_warnings" id="ffmpeg_warnings" type="checkbox"';
+															if ($rSettings["ignore_keyframes"] == 1) {
+																echo ' checked ';
+															}
 
-																									if ($rSettings["ffmpeg_warnings"] == 1) {
-																										echo ' checked ';
-																									}
+															echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="dts_legacy_ffmpeg">DTS - Use FFMPEG v4.0 <i title="Automatically switch to legacy FFMPEG v4.0 for streams with DTS audio, in some cases this has been known to fix desynchronised audio. Generate PTS needs to be turned off for this to function." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="dts_legacy_ffmpeg" id="dts_legacy_ffmpeg" type="checkbox"';
 
-																									echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="ignore_keyframes">Ignore Keyframes <i title="Allow segments to start on frames other than keyframes. This improves behavior on some players when the time between keyframes is inconsistent, but may make things worse on others, and can cause some oddities during startup with blank screen until video kicks in." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="ignore_keyframes" id="ignore_keyframes" type="checkbox"';
-
-																									if ($rSettings["ignore_keyframes"] == 1) {
-																										echo ' checked ';
-																									}
-
-																									echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="dts_legacy_ffmpeg">DTS - Use FFMPEG v4.0 <i title="Automatically switch to legacy FFMPEG v4.0 for streams with DTS audio, in some cases this has been known to fix desynchronised audio. Generate PTS needs to be turned off for this to function." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="dts_legacy_ffmpeg" id="dts_legacy_ffmpeg" type="checkbox"';
-
-																									if ($rSettings["dts_legacy_ffmpeg"] == 1) {
-																										echo ' checked ';
-																									}
-																										?> data-plugin="switchery" class="js-switch" data-color="#039cfd"/>
+															if ($rSettings["dts_legacy_ffmpeg"] == 1) {
+																echo ' checked ';
+															}
+															?> data-plugin="switchery" class="js-switch" data-color="#039cfd"/>
 													</div>
 													<label class="col-md-4 col-form-label" for="php_loopback">Loopback
 														Streams via PHP <i
@@ -1581,8 +1569,8 @@ include "header.php";
 																}
 
 															?> value="<?= $rValue ?>"><?= $rText ?></option><?php
-																									}
-																										?>
+																										}
+																											?>
 														</select>
 													</div>
 												</div>
