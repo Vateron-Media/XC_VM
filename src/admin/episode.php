@@ -858,7 +858,7 @@ include 'footer.php'; ?>
 				}
 				rID++;
 			});
-			$.post("./api?action=get_episode_ids",JSON.stringify({data: rNames}),
+			$.post("./api?action=get_episode_ids",{"data": JSON.stringify(rNames)},
 				function(data) {
 					$(data.data).each(function(id, item) {
 						$("#episode_" + item[0] + "_num").val(item[1]);
@@ -866,7 +866,7 @@ include 'footer.php'; ?>
 
 					var nextEpisode = 1;
 					$("[id^=episode_][id$=_num]").each(function() {
-						if (!$(this).val()) {
+						if (!$(this).val()) { //If empty episode value
 							$(this).val(nextEpisode);
 						}
 						nextEpisode++;
@@ -874,12 +874,6 @@ include 'footer.php'; ?>
 				},
 				"json"
 			);
-
-
-
-
-
-
 			$.magnificPopup.close();
 		});
 		$("#changeDir").click(function() {
