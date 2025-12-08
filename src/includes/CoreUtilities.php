@@ -52,7 +52,7 @@ class CoreUtilities {
 		} else {
 			self::$rSettings['on_demand_wait_time'] = 15;
 		}
-		self::$rSegmentSettings = array('seg_type' => self::$rSettings['segment_type'], 'seg_time' => intval(self::$rSettings['seg_time']), 'seg_list_size' => intval(self::$rSettings['seg_list_size']), 'seg_delete_threshold' => intval(self::$rSettings['seg_delete_threshold']));
+		self::$rSegmentSettings = array('seg_time' => intval(self::$rSettings['seg_time']), 'seg_list_size' => intval(self::$rSettings['seg_list_size']), 'seg_delete_threshold' => intval(self::$rSettings['seg_delete_threshold']));
 		switch (self::$rSettings['ffmpeg_cpu']) {
 			case '8.0':
 				self::$rFFMPEG_CPU = FFMPEG_BIN_80;
@@ -2055,10 +2055,6 @@ class CoreUtilities {
 					$rSources = array($rLoopURL . 'admin/live?stream=' . intval($rStreamID) . '&password=' . urlencode(self::$rSettings['live_streaming_pass']) . '&extension=ts');
 				}
 
-				if ($rStream['server_info']['on_demand']) {
-					self::$rSegmentSettings['seg_type'] = 1;
-				}
-
 				if ($rStream['stream_info']['type_key'] == 'created_live' && file_exists(CREATED_PATH . $rStreamID . '_.info')) {
 					self::$db->query('UPDATE `streams_servers` SET `cc_info` = ? WHERE `server_id` = ? AND `stream_id` = ?;', file_get_contents(CREATED_PATH . $rStreamID . '_.info'), SERVER_ID, $rStreamID);
 				}
@@ -2262,11 +2258,7 @@ class CoreUtilities {
 					}
 
 					if (!array_key_exists('-scodec', $rStream['stream_info']['transcode_attributes'])) {
-						if (self::$rSegmentSettings['seg_type'] == 0) {
-							$rStream['stream_info']['transcode_attributes']['-sn'] = '';
-						} else {
-							$rStream['stream_info']['transcode_attributes']['-scodec'] = 'copy';
-						}
+						$rStream['stream_info']['transcode_attributes']['-sn'] = '';
 					}
 				} else {
 					$rStream['stream_info']['transcode_attributes'] = array();
@@ -2285,13 +2277,8 @@ class CoreUtilities {
 					$rFLVOptions = '{MAP} {AAC_FILTER}';
 				}
 
-				if (self::$rSegmentSettings['seg_type'] == 0) {
-					$rKeyFrames = (self::$rSettings['ignore_keyframes'] ? '+split_by_time' : '');
-					$rOutputs['mpegts'][] = $rOptions . ' -individual_header_trailer 0 -f hls -hls_time ' . intval(self::$rSegmentSettings['seg_time']) . ' -hls_list_size ' . intval(self::$rSegmentSettings['seg_list_size']) . ' -hls_delete_threshold ' . intval(self::$rSegmentSettings['seg_delete_threshold']) . ' -hls_flags delete_segments+discont_start+omit_endlist' . $rKeyFrames . ' -hls_segment_type mpegts -hls_segment_filename "' . STREAMS_PATH . intval($rStreamID) . '_%d.ts" "' . STREAMS_PATH . intval($rStreamID) . '_.m3u8" ';
-				} else {
-					$rKeyFrames = (self::$rSettings['ignore_keyframes'] ? ' -break_non_keyframes 1' : '');
-					$rOutputs['mpegts'][] = $rOptions . ' -individual_header_trailer 0 -f segment -segment_format mpegts -segment_time ' . intval(self::$rSegmentSettings['seg_time']) . ' -segment_list_size ' . intval(self::$rSegmentSettings['seg_list_size']) . ' -segment_format_options "mpegts_flags=+initial_discontinuity:mpegts_copyts=1" -segment_list_type m3u8 -segment_list_flags +live+delete' . $rKeyFrames . ' -segment_list "' . STREAMS_PATH . intval($rStreamID) . '_.m3u8" "' . STREAMS_PATH . intval($rStreamID) . '_%d.ts" ';
-				}
+				$rKeyFrames = (self::$rSettings['ignore_keyframes'] ? '+split_by_time' : '');
+				$rOutputs['mpegts'][] = $rOptions . ' -individual_header_trailer 0 -f hls -hls_time ' . intval(self::$rSegmentSettings['seg_time']) . ' -hls_list_size ' . intval(self::$rSegmentSettings['seg_list_size']) . ' -hls_delete_threshold ' . intval(self::$rSegmentSettings['seg_delete_threshold']) . ' -hls_flags delete_segments+discont_start+omit_endlist' . $rKeyFrames . ' -hls_segment_type mpegts -hls_segment_filename "' . STREAMS_PATH . intval($rStreamID) . '_%d.ts" "' . STREAMS_PATH . intval($rStreamID) . '_.m3u8" ';
 
 				if ($rStream['stream_info']['rtmp_output'] == 1) {
 					$rOutputs['flv'][] = $rFLVOptions . ' -f flv -flvflags no_duration_filesize rtmp://127.0.0.1:' . intval(self::$rServers[$rStream['server_info']['server_id']]['rtmp_port']) . '/live/' . intval($rStreamID) . '?password=' . urlencode(self::$rSettings['live_streaming_pass']) . ' ';
@@ -2361,14 +2348,8 @@ class CoreUtilities {
 						}
 					}
 
-
 					$rFFMPEG .= implode(' ', self::parseTranscode($rStream['stream_info']['transcode_attributes'])) . ' ';
-
-					if (self::$rSegmentSettings['seg_type'] == 0) {
-						$rFFMPEG .= '{MAP} -individual_header_trailer 0 -f hls -hls_time ' . intval(self::$rSegmentSettings['seg_time']) . ' -hls_list_size ' . intval($rStream['stream_info']['delay_minutes']) * 6 . ' -hls_delete_threshold 4 -start_number ' . $rSegmentStart . ' -hls_flags delete_segments+discont_start+omit_endlist -hls_segment_type mpegts -hls_segment_filename "' . DELAY_PATH . intval($rStreamID) . '_%d.ts" "' . DELAY_PATH . intval($rStreamID) . '_.m3u8" ';
-					} else {
-						$rFFMPEG .= '{MAP} -individual_header_trailer 0 -f segment -segment_format mpegts -segment_time ' . intval(self::$rSegmentSettings['seg_time']) . ' -segment_list_size ' . intval($rStream['stream_info']['delay_minutes']) * 6 . ' -segment_start_number ' . $rSegmentStart . ' -segment_format_options "mpegts_flags=+initial_discontinuity:mpegts_copyts=1" -segment_list_type m3u8 -segment_list_flags +live+delete -segment_list "' . DELAY_PATH . intval($rStreamID) . '_.m3u8" "' . DELAY_PATH . intval($rStreamID) . '_%d.ts" ';
-					}
+					$rFFMPEG .= '{MAP} -individual_header_trailer 0 -f hls -hls_time ' . intval(self::$rSegmentSettings['seg_time']) . ' -hls_list_size ' . intval($rStream['stream_info']['delay_minutes']) * 6 . ' -hls_delete_threshold 4 -start_number ' . $rSegmentStart . ' -hls_flags delete_segments+discont_start+omit_endlist -hls_segment_type mpegts -hls_segment_filename "' . DELAY_PATH . intval($rStreamID) . '_%d.ts" "' . DELAY_PATH . intval($rStreamID) . '_.m3u8" ';
 
 					$rSleepTime = $rStream['stream_info']['delay_minutes'] * 60;
 
