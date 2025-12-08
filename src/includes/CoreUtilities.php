@@ -1372,10 +1372,15 @@ class CoreUtilities {
 		$rPIDs = array_map('intval', $rPIDs);
 		$rOutput = array();
 		foreach ($rServerIDS as $rServerID) {
-			if (array_key_exists($rServerID, self::$rServers)) {
+			if (is_array(self::$rServers) && array_key_exists($rServerID, self::$rServers)) {
 				$rResponse = self::serverRequest($rServerID, self::$rServers[$rServerID]['api_url_ip'] . '&action=pidsAreRunning', array('program' => $rEXE, 'pids' => $rPIDs));
 				if ($rResponse) {
-					$rOutput[$rServerID] = array_map('trim', json_decode($rResponse, true));
+					$rDecoded = json_decode($rResponse, true);
+					if (is_array($rDecoded)) {
+						$rOutput[$rServerID] = array_map('trim', $rDecoded);
+					} else {
+						$rOutput[$rServerID] = false;
+					}
 				} else {
 					$rOutput[$rServerID] = false;
 				}
@@ -1384,7 +1389,7 @@ class CoreUtilities {
 		return $rOutput;
 	}
 	public static function isPIDRunning($rServerID, $rPID, $rEXE) {
-		if (!is_null($rPID) && is_numeric($rPID) && array_key_exists($rServerID, self::$rServers)) {
+		if (!is_null($rPID) && is_numeric($rPID) && is_array(self::$rServers) && array_key_exists($rServerID, self::$rServers)) {
 			if (!($rOutput = self::isPIDsRunning($rServerID, array($rPID), $rEXE))) {
 				return false;
 			}
@@ -1393,7 +1398,7 @@ class CoreUtilities {
 		return false;
 	}
 	public static function serverRequest($rServerID, $rURL, $rPostData = array()) {
-		if (self::$rServers[$rServerID]['server_online']) {
+		if (is_array(self::$rServers) && isset(self::$rServers[$rServerID]) && self::$rServers[$rServerID]['server_online']) {
 			$rOutput = false;
 			$i = 1;
 			while ($i <= 2) {
@@ -1537,6 +1542,9 @@ class CoreUtilities {
 		$rAnalyseDuration = abs(intval(self::$rSettings['stream_max_analyze']));
 		$rProbesize = abs(intval(self::$rSettings['probesize']));
 		$rTimeout = intval($rAnalyseDuration / 1000000) + self::$rSettings['probe_extra_wait'];
+		if (!is_array($rFetchArguments)) {
+			$rFetchArguments = !empty($rFetchArguments) ? [$rFetchArguments] : [];
+		}
 		$rCommand = $rPrepend . 'timeout ' . $rTimeout . ' ' . self::$rFFPROBE . ' -probesize ' . $rProbesize . ' -analyzeduration ' . $rAnalyseDuration . ' ' . implode(' ', $rFetchArguments) . ' -i "' . $rSourceURL . '" -v quiet -print_format json -show_streams -show_format';
 		exec($rCommand, $rReturn);
 		$result = implode("\n", $rReturn);
