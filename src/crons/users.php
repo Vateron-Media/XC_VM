@@ -1,6 +1,6 @@
 <?php
 
-//Checed
+// Checked
 
 if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
     set_time_limit(0);

@@ -63,10 +63,10 @@
                     <div class="container-fluid">
                         <div class="logo-box">
                             <a href="index" class="logo text-center">
-                                <span class="logo-lg<?= (0 >= strlen($rUserInfo['hue'])) ? '' : ' whiteout'; ?>">
+                                <span class="logo-lg<?= (isset($rUserInfo['hue']) && strlen($rUserInfo['hue']) > 0) ? ' whiteout' : ''; ?>">
                                     <img src="assets/images/logo-topbar.png" alt="" height="60">
                                 </span>
-                                <span class="logo-sm<?= (0 >= strlen($rUserInfo['hue'])) ? '' : ' whiteout'; ?>">
+                                <span class="logo-sm<?= (isset($rUserInfo['hue']) && strlen($rUserInfo['hue']) > 0) ? ' whiteout' : ''; ?>">
                                     <img src="assets/images/logo-topbar.png" alt="" height="50">
                                 </span>
                             </a>
