@@ -562,7 +562,7 @@ if ($rStream['type'] == 1) {
 							$rFPS = '--';
 						}
 
-						$rStreamInfoText = "<table class='table-data nowrap' align='center'><tbody><tr><td class='double'>" . number_format($rTrack['stream_info']['bitrate'] / 1024, 0) . " Kbps</td><td style='color: #20a009;'><i class='mdi mdi-video' data-name='mdi-video'></i></td><td style='color: #20a009;'><i class='mdi mdi-volume-high' data-name='mdi-volume-high'></i></td>";
+						$rStreamInfoText = "<table class='table-data nowrap' align='center'><tbody><tr><td class='double'>" . number_format(intval($rTrack['stream_info']['bitrate']) / 1024, 0) . " Kbps</td><td style='color: #20a009;'><i class='mdi mdi-video' data-name='mdi-video'></i></td><td style='color: #20a009;'><i class='mdi mdi-volume-high' data-name='mdi-volume-high'></i></td>";
 						$rStreamInfoText .= "<td style='color: #20a009;'><i class='mdi mdi-layers' data-name='mdi-layers'></i></td></tr><tr><td class='double'>" . $rTrack['stream_info']['codecs']['video']['width'] . ' x ' . $rTrack['stream_info']['codecs']['video']['height'] . '</td><td>' . $rTrack['stream_info']['codecs']['video']['codec_name'] . '</td><td>' . $rTrack['stream_info']['codecs']['audio']['codec_name'] . '</td>';
 						$rStreamInfoText .= '<td>' . $rFPS . '</td></tr></tbody></table>';
 
