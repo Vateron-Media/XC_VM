@@ -65,7 +65,7 @@ class API {
 				return !empty($rData['stream_display_name']) || isset($rData['review']) || isset($_FILES['m3u_file']);
 
 			case 'processEpisode':
-				return !empty($rData['series']) && is_numeric($rData['season_num']) && is_numeric($rData['episode']);
+				return !empty($rData['series']) && is_numeric($rData['season_num']) && (isset($rData['multi']) || is_numeric($rData['episode']));
 
 			case 'processSeries':
 				return !empty($rData['title']);
@@ -564,7 +564,12 @@ class API {
 				$rArray['stream_source'] = $rPlaylist;
 				$rArray['series_no'] = intval($rData['series_no']);
 			} else {
-				$rArray['stream_source'] = $rData['video_files'];
+				// video_files comes as a JSON string from the form, it needs to be decoded
+				$rVideoFiles = $rData['video_files'];
+				if (is_string($rVideoFiles)) {
+					$rVideoFiles = json_decode($rVideoFiles, true);
+				}
+				$rArray['stream_source'] = is_array($rVideoFiles) ? $rVideoFiles : [];
 				$rArray['series_no'] = 0;
 			}
 
@@ -681,15 +686,13 @@ class API {
 						}
 					}
 
-					if (!$rReencode) {
-					} else {
+					if ($rReencode) {
 						APIRequest(array('action' => 'stream', 'sub' => 'stop', 'stream_ids' => array($rInsertID)));
 						self::$db->query("UPDATE `streams_servers` SET `pids_create_channel` = '[]', `cchannel_rsources` = '[]' WHERE `stream_id` = ?;", $rInsertID);
 						CoreUtilities::queueChannel($rInsertID);
 					}
 
-					if (!$rRestart) {
-					} else {
+					if ($rRestart) {
 						APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => array($rInsertID)));
 					}
 

@@ -36,56 +36,46 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                                 exec('kill -9 ' . $rCurrentPID);
                             }
                         }
-
                         echo 'Processing source: ' . $rSource . '...' . "\n";
 
                         $rItemPID = CoreUtilities::createChannelItem($rStreamID, $rSource);
-
                         $db->close_mysql();
-
-                        while (CoreUtilities::isPIDRunning(SERVER_ID, $rItemPID, CoreUtilities::$rFFMPEG_CPU)) {
-                            sleep(1);
+                        // Only wait if a transcoding process is running.
+                        if ($rItemPID > 0) {
+                            while (CoreUtilities::isPIDRunning(SERVER_ID, $rItemPID, CoreUtilities::$rFFMPEG_CPU)) {
+                                sleep(1);
+                            }
                         }
+                        $db->db_connect();
+                        @unlink(CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.pid');
+                        @unlink(CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.errors');
 
                         $rServerInfo['cchannel_rsources'][] = $rSource;
-
-                        $db->db_connect();
-                        $db->query(
-                            'UPDATE `streams_servers` SET `cchannel_rsources` = ? WHERE `server_stream_id` = ?',
-                            json_encode($rServerInfo['cchannel_rsources']),
-                            $rServerInfo['server_stream_id']
-                        );
-
-                        if (file_exists(CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.pid')) {
-                            unlink(CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.pid');
-                        }
-
-                        if (file_exists(CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.errors')) {
-                            unlink(CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.errors');
-                        }
+                        $db->query('UPDATE `streams_servers` SET `cchannel_rsources` = ? WHERE `server_stream_id` = ?', json_encode($rServerInfo['cchannel_rsources']), $rServerInfo['server_stream_id']);
                     }
-
                     $rOutputList = '';
-
                     foreach ($rStreamInfo['stream_source'] as $rSource) {
+                        // Extract server and path from source.
                         if (substr($rSource, 0, 2) == 's:') {
                             $rSplit = explode(':', $rSource, 3);
                             $rServerID = intval($rSplit[1]);
+                            $rSourcePath = $rSplit[2];
                         } else {
                             $rServerID = SERVER_ID;
+                            $rSourcePath = $rSource;
                         }
 
-                        if ($rServerID == SERVER_ID && $rStreamInfo['movie_symlink'] == 1) {
-                            $rExtension = pathinfo($rSource)['extension'];
-                            if (strlen($rExtension) == 0) {
-                                $rExtension = 'mp4';
+                        // If movie_symlink == 1 and the file is local, use the direct original path.
+                        if ($rServerID == SERVER_ID && intval($rStreamInfo['movie_symlink']) == 1) {
+                            if (file_exists($rSourcePath)) {
+                                $rOutputList .= "file '" . $rSourcePath . "'" . "\n";
                             }
                         } else {
-                            $rExtension = 'ts';
-                        }
-
-                        if (file_exists(CREATED_PATH . $rStreamID . '_' . md5($rSource) . '.' . $rExtension)) {
-                            $rOutputList .= "file '" . CREATED_PATH . $rStreamID . '_' . md5($rSource) . '.' . $rExtension . "'" . "\n";
+                            // Uses transcoded file in CREATED_PATH
+                            $rCreatedFile = CREATED_PATH . $rStreamID . '_' . md5($rSource) . '.ts';
+                            if (file_exists($rCreatedFile)) {
+                                $rOutputList .= "file '" . $rCreatedFile . "'" . "\n";
+                            }
                         }
                     }
 
@@ -125,14 +115,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                     file_put_contents(CREATED_PATH . $rStreamID . '_.info', json_encode($rReturn, JSON_UNESCAPED_UNICODE));
 
                     echo 'Completed!' . "\n";
-
-                    $createFile = CREATED_PATH . $rStreamID . '_.create';
-                    if (file_exists($createFile)) {
-                        $savedPID = intval(file_get_contents($createFile));
-                        if ($savedPID === getmypid()) {
-                            unlink($createFile);
-                        }
-                    }
+                    @unlink(CREATED_PATH . $rStreamID . '_.create', getmypid());
                 }
             } else {
                 echo "Channel doesn't exist on this server." . "\n";

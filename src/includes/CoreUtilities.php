@@ -1471,24 +1471,32 @@ class CoreUtilities {
 				if (substr($rSource, 0, 2) == 's:') {
 					$rSplit = explode(':', $rSource, 3);
 					$rServerID = intval($rSplit[1]);
+					$rSourcePath = $rSplit[2]; // File path
 					if ($rServerID != SERVER_ID) {
-						$rSourcePath = self::$rServers[$rServerID]['api_url'] . '&action=getFile&filename=' . urlencode($rSplit[2]);
-					} else {
-						$rSourcePath = $rSplit[2];
+						// File on another server - needs to be retrieved via API.
+						if (is_array(self::$rServers) && isset(self::$rServers[$rServerID])) {
+							$rSourcePath = self::$rServers[$rServerID]['api_url'] . '&action=getFile&filename=' . urlencode($rSplit[2]);
+						} else {
+							// Server not found, use local path.
+							$rSourcePath = $rSplit[2];
+						}
 					}
 				} else {
 					$rServerID = SERVER_ID;
 					$rSourcePath = $rSource;
 				}
-				if ($rServerID == SERVER_ID && $rStream['stream_info']['movie_symlink'] == 1) {
+				if ($rServerID == SERVER_ID && intval($rStream['stream_info']['movie_symlink']) == 1) {
 					$rExtension = pathinfo($rSource)['extension'];
-					if (strlen($rExtension) != 0) {
-					} else {
+					if (strlen($rExtension) == 0) {
 						$rExtension = 'mp4';
 					}
+					// Create symlink
 					$rCommand = 'ln -sfn ' . escapeshellarg($rSourcePath) . ' "' . CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.' . escapeshellcmd($rExtension) . '" >/dev/null 2>/dev/null & echo $! > "' . CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.pid"';
 				} else {
 					$rStream['stream_info']['transcode_attributes'] = json_decode($rStream['stream_info']['profile_options'], true);
+					if (!is_array($rStream['stream_info']['transcode_attributes'])) {
+						$rStream['stream_info']['transcode_attributes'] = array();
+					}
 					$rLogoOptions = (isset($rStream['stream_info']['transcode_attributes'][16]) && !$rLoopback ? $rStream['stream_info']['transcode_attributes'][16]['cmd'] : '');
 					$rGPUOptions = (isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rStream['stream_info']['transcode_attributes']['gpu']['cmd'] : '');
 					$rInputCodec = '';
@@ -1501,16 +1509,14 @@ class CoreUtilities {
 						}
 					}
 					$rCommand = ((isset($rStream['stream_info']['transcode_attributes']['gpu']) ? self::$rFFMPEG_GPU : self::$rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . ((self::$rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err {GPU} -fflags +genpts -async 1 -i {STREAM_SOURCE} {LOGO} ';
-					if (array_key_exists('-acodec', $rStream['stream_info']['transcode_attributes'])) {
-					} else {
+					
+					if (!array_key_exists('-acodec', $rStream['stream_info']['transcode_attributes'])) {
 						$rStream['stream_info']['transcode_attributes']['-acodec'] = 'copy';
 					}
-					if (array_key_exists('-vcodec', $rStream['stream_info']['transcode_attributes'])) {
-					} else {
+					if (!array_key_exists('-vcodec', $rStream['stream_info']['transcode_attributes'])) {
 						$rStream['stream_info']['transcode_attributes']['-vcodec'] = 'copy';
 					}
-					if (!isset($rStream['stream_info']['transcode_attributes']['gpu'])) {
-					} else {
+					if (isset($rStream['stream_info']['transcode_attributes']['gpu'])) {
 						$rCommand .= '-gpu ' . intval($rStream['stream_info']['transcode_attributes']['gpu']['device']) . ' ';
 					}
 					$rCommand .= implode(' ', self::parseTranscode($rStream['stream_info']['transcode_attributes'])) . ' ';
