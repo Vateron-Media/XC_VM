@@ -81,6 +81,7 @@ if (isset($_GET['token'])) {
 				$rSegment = STREAMS_PATH . $rSegmentID;
 				$rSegmentData = explode('_', $rSegmentID);
 
+
 				if (file_exists($rSegment) && $rSegmentData[0] == $rStreamID) {
 				} else {
 					generate404();
@@ -101,7 +102,12 @@ if (isset($_GET['token'])) {
 			}
 
 			header('Access-Control-Allow-Origin: *');
-			header('Content-Type: video/mp2t');
+			$rExtension = pathinfo($rSegment, PATHINFO_EXTENSION);
+			if ($rExtension === 'm4s' || $rExtension === 'mp4') {
+				header('Content-Type: video/iso.segment');
+			} else {
+				header('Content-Type: video/mp2t');
+			}
 
 			if ($rType == 'LIVE') {
 				if ($rOnDemand) {
@@ -131,8 +137,9 @@ if (isset($_GET['token'])) {
 
 				if ($rSettings['encrypt_hls']) {
 					$rSegmentData = explode('_', pathinfo($rSegmentID)['filename']);
+					$rSegmentExtension = pathinfo($rSegmentID, PATHINFO_EXTENSION);
 
-					if (file_exists(STREAMS_PATH . $rStreamID . '_' . $rSegmentData[1] . '.ts')) {
+					if (file_exists(STREAMS_PATH . $rStreamID . '_' . $rSegmentData[1] . '.' . $rSegmentExtension)) {
 					} else {
 						generate404();
 					}
@@ -208,6 +215,7 @@ if (isset($_GET['token'])) {
 }
 
 generate404();
-function getuserip() {
+function getuserip()
+{
 	return $_SERVER['REMOTE_ADDR'];
 }

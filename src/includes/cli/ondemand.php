@@ -30,11 +30,11 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
             if (!$rLastCheck || time() - $rLastCheck > $rInterval || md5_file(__FILE__) !== $rMD5) {
                 CoreUtilities::$rSettings = CoreUtilities::getSettings(true);
                 $rLastCheck = time();
-                $rMD5       = md5_file(__FILE__);
+                $rMD5 = md5_file(__FILE__);
             }
 
             $rRows = [];
-            
+
             // === Getting active on-demand streams ===
             if (CoreUtilities::$rSettings['redis_handler'] && CoreUtilities::$redis) {
                 // Redis mode
@@ -47,7 +47,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                     $db->query("SELECT stream_id, COUNT(*) AS cnt FROM streams_servers WHERE parent_id = ? AND pid > 0 AND monitor_pid > 0 AND stream_id IN ($placeholders) GROUP BY stream_id", SERVER_ID, ...$rStreamIDs);
                     $rAttachedRows = $db->get_rows(true, 'stream_id');
                     foreach ($rAttachedRows as $id => $row) {
-                        $rAttached[$id] = (int)$row['cnt'];
+                        $rAttached[$id] = (int) $row['cnt'];
                     }
                 }
 
@@ -55,9 +55,9 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
 
                 foreach ($rStreamIDs as $rStreamID) {
                     $rRows[] = [
-                        'stream_id'      => $rStreamID,
+                        'stream_id' => $rStreamID,
                         'online_clients' => count($rConnections[$rStreamID][SERVER_ID] ?? []),
-                        'attached'       => $rAttached[$rStreamID] ?? 0
+                        'attached' => $rAttached[$rStreamID] ?? 0
                     ];
                 }
             } else {
@@ -77,7 +77,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                 $db->query("SELECT stream_id, COUNT(*) AS cnt FROM lines_live WHERE server_id = ? AND hls_end = 0 AND stream_id IN ($placeholders) GROUP BY stream_id", SERVER_ID, ...$rActive);
                 $onlineRows = $db->get_rows(true, 'stream_id');
                 foreach ($onlineRows as $id => $row) {
-                    $online[$id] = (int)$row['cnt'];
+                    $online[$id] = (int) $row['cnt'];
                 }
 
                 // Attached servers
@@ -85,30 +85,32 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                 $db->query("SELECT stream_id, COUNT(*) AS cnt FROM streams_servers WHERE parent_id = ? AND pid > 0 AND monitor_pid > 0 AND stream_id IN ($placeholders) GROUP BY stream_id", SERVER_ID, ...$rActive);
                 $attachedRows = $db->get_rows(true, 'stream_id');
                 foreach ($attachedRows as $id => $row) {
-                    $attached[$id] = (int)$row['cnt'];
+                    $attached[$id] = (int) $row['cnt'];
                 }
 
                 foreach ($rActive as $stream_id) {
                     $rRows[] = [
-                        'stream_id'      => $stream_id,
+                        'stream_id' => $stream_id,
                         'online_clients' => $online[$stream_id] ?? 0,
-                        'attached'       => $attached[$stream_id] ?? 0
+                        'attached' => $attached[$stream_id] ?? 0
                     ];
                 }
             }
 
             // === Killing unused streams ===
             foreach ($rRows as $rRow) {
-                if ($rRow['online_clients'] > 0 || $rRow['attached'] > 0) continue;
+                if ($rRow['online_clients'] > 0 || $rRow['attached'] > 0)
+                    continue;
 
                 $rStreamID = $rRow['stream_id'];
-                $pidFile     = STREAMS_PATH . $rStreamID . '_.pid';
+                $pidFile = STREAMS_PATH . $rStreamID . '_.pid';
                 $monitorFile = STREAMS_PATH . $rStreamID . '_.monitor';
 
-                if (!file_exists($pidFile)) continue;
+                if (!file_exists($pidFile))
+                    continue;
 
-                $rPID        = (int)@file_get_contents($pidFile);
-                $rMonitorPID = file_exists($monitorFile) ? (int)@file_get_contents($monitorFile) : 0;
+                $rPID = (int) @file_get_contents($pidFile);
+                $rMonitorPID = file_exists($monitorFile) ? (int) @file_get_contents($monitorFile) : 0;
 
                 // Queue
                 $rQueue = 0;
@@ -116,20 +118,29 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                 if (file_exists($queueFile)) {
                     $queue = @igbinary_unserialize(@file_get_contents($queueFile)) ?: [];
                     foreach ($queue as $pid) {
-                        if (CoreUtilities::isProcessRunning($pid, 'php-fpm')) $rQueue++;
+                        if (CoreUtilities::isProcessRunning($pid, 'php-fpm'))
+                            $rQueue++;
                     }
                 }
 
                 $rAdminQueue = (file_exists(SIGNALS_TMP_PATH . 'admin_' . $rStreamID) && time() - @filemtime(SIGNALS_TMP_PATH . 'admin_' . $rStreamID) <= 30) ? 1 : 0;
 
-                if ($rQueue > 0 || $rAdminQueue > 0 || ($rMonitorPID > 0 && CoreUtilities::isMonitorRunning($rMonitorPID, $rStreamID))) {
+                // Add grace period: don't kill stream if it started less than 30 seconds ago
+                $rStreamAge = 0;
+                if (file_exists($pidFile)) {
+                    $rStreamAge = time() - @filemtime($pidFile);
+                }
+
+                if ($rQueue > 0 || $rAdminQueue > 0 || $rStreamAge < 30) {
                     continue;
                 }
 
                 echo "Killing a stream without viewers: ID $rStreamID\n";
 
-                if ($rMonitorPID > 0) @posix_kill($rMonitorPID, 9);
-                if ($rPID > 0) @posix_kill($rPID, 9);
+                if ($rMonitorPID > 0)
+                    @posix_kill($rMonitorPID, 9);
+                if ($rPID > 0)
+                    @posix_kill($rPID, 9);
 
                 @shell_exec('rm -f ' . STREAMS_PATH . $rStreamID . '_*');
                 @unlink($queueFile);
@@ -145,7 +156,8 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
             usleep(800000);
         }
 
-        if (is_object($db)) $db->close_mysql();
+        if (is_object($db))
+            $db->close_mysql();
         shell_exec('(sleep 2; ' . PHP_BIN . ' ' . __FILE__ . ' ) > /dev/null 2>&1 &');
     }
 } else {
