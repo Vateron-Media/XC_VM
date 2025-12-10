@@ -207,6 +207,7 @@
                                     <?php
                                     $rTickets = array();
                                     $rIDs = array();
+                                    $unreadTicketCount = 0;
                                     // Assuming $db is your database connection variable
                                     $db->query('SELECT `id` FROM `users` WHERE `owner_id` = ?;', $rUserInfo['id']);
 
