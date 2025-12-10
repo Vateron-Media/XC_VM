@@ -1,5 +1,6 @@
 <?php
-function checkRunning($rStreamID) {
+function checkRunning($rStreamID)
+{
     clearstatcache(true);
     if (!file_exists(STREAMS_PATH . $rStreamID . '_.monitor')) {
     } else {
@@ -461,7 +462,11 @@ if (!$rStreamInfo['stream_info']) {
     goto label430;
 }
 $rStreamJSON = json_decode($rStreamInfo['stream_info'], true);
-$rCompatible = intval(CoreUtilities::checkCompatibility($rStreamJSON));
+if (is_array($rStreamJSON)) {
+    $rCompatible = intval(CoreUtilities::checkCompatibility($rStreamJSON));
+} else {
+    $rCompatible = 0;
+}
 $rAudioCodec = $rStreamJSON['codecs']['audio']['codec_name'] ?: null;
 $rVideoCodec = $rStreamJSON['codecs']['video']['codec_name'] ?: null;
 $rResolution = $rStreamJSON['codecs']['video']['height'] ?: null;
@@ -548,4 +553,5 @@ if (!empty($rSegment)) {
     goto label496;
 }
 goto label1186;
-label1880:;
+label1880:
+;

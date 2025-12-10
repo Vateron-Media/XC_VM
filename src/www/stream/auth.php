@@ -1,6 +1,8 @@
 <?php
 
+
 header('Cache-Control: no-store, no-cache, must-revalidate');
+ini_set('display_errors', 0);
 require_once 'init.php';
 require_once INCLUDES_PATH . 'streaming.php';
 
@@ -62,11 +64,16 @@ if (isset($_GET['utc'])) {
 $rType = (isset($_GET['type']) ? $_GET['type'] : 'live');
 $rStreamID = intval($_GET['stream']);
 $rExtension = (isset($_GET['extension']) ? strtolower(preg_replace('/[^A-Za-z0-9 ]/', '', trim($_GET['extension']))) : null);
-
 if (!$rExtension && in_array($rType, array('movie', 'series', 'subtitle'))) {
-	$rStream = pathinfo($_GET['stream']);
-	$rStreamID = intval($rStream['filename']);
-	$rExtension = strtolower(preg_replace('/[^A-Za-z0-9 ]/', '', trim($rStream['extension'])));
+	if (preg_match('/^(\d+)\/(?:segment_|seg_)(\d+)\.(ts|m4s)$/', $_GET['stream'], $matches)) {
+		$rStreamID = intval($matches[1]);
+		$_GET['segment'] = intval($matches[2]);
+		$rExtension = $matches[3];
+	} else {
+		$rStream = pathinfo($_GET['stream']);
+		$rStreamID = intval($rStream['filename']);
+		$rExtension = strtolower(preg_replace('/[^A-Za-z0-9 ]/', '', trim($rStream['extension'])));
+	}
 }
 
 if ($rExtension) {
@@ -112,7 +119,7 @@ if ($rExtension) {
 				if (!(!array_key_exists($rServerID, $rStream['servers']) || !$rServerInfo['server_online'] || $rServerInfo['server_type'] != 0)) {
 					if (isset($rStream['servers'][$rServerID])) {
 						if ($rType == 'movie') {
-							if (((!empty($rStream['servers'][$rServerID]['pid']) && $rStream['servers'][$rServerID]['to_analyze'] == 0 && $rStream['servers'][$rServerID]['stream_status'] == 0 || $rStream['info']['direct_source'] == 1 && $rStream['info']['direct_proxy'] == 1) && ($rStream['info']['target_container'] == $rExtension || ($rExtension = 'srt')) && $rServerInfo['timeshift_only'] == 0)) {
+							if (((!empty($rStream['servers'][$rServerID]['pid']) && $rStream['servers'][$rServerID]['to_analyze'] == 0 && $rStream['servers'][$rServerID]['stream_status'] == 0 || $rStream['info']['direct_source'] == 1 && $rStream['info']['direct_proxy'] == 1) && ($rStream['info']['target_container'] == $rExtension || $rExtension == 'srt' || $rExtension == 'm3u8' || $rExtension == 'ts') && $rServerInfo['timeshift_only'] == 0)) {
 								$rAvailableServers[] = $rServerID;
 							}
 						} else {
@@ -543,7 +550,7 @@ if ($rExtension) {
 							exit();
 						}
 
-						// no break
+					// no break
 					case 'ts':
 						if ((StreamingUtilities::$rSettings['disable_ts'] && (!$rUserInfo['is_restreamer'] || !StreamingUtilities::$rSettings['disable_ts_allow_restream']))) {
 							generateError('TS_DISABLED');
@@ -600,6 +607,10 @@ if ($rExtension) {
 					$rTokenData = array('stream_id' => $rStreamID, 'username' => $rUserInfo['username'], 'password' => $rUserInfo['password'], 'extension' => $rExtension, 'type' => $rType, 'pid' => $rPID, 'channel_info' => array('stream_id' => $rChannelInfo['stream_id'], 'bitrate' => $rChannelInfo['bitrate'], 'target_container' => $rChannelInfo['target_container'], 'redirect_id' => $rChannelInfo['redirect_id'], 'originator_id' => ($rChannelInfo['originator_id'] ?: null), 'pid' => $rChannelInfo['pid'], 'proxy' => ($rChannelInfo['direct_proxy'] ? json_decode($rChannelInfo['stream_source'], true)[0] : null)), 'user_info' => array('id' => $rUserInfo['id'], 'max_connections' => $rUserInfo['max_connections'], 'pair_id' => $rUserInfo['pair_id'], 'con_isp_name' => $rUserInfo['con_isp_name'], 'is_restreamer' => $rUserInfo['is_restreamer']), 'country_code' => $rCountryCode, 'activity_start' => $rActivityStart, 'is_mag' => $rIsMag, 'uuid' => $rUUID, 'http_range' => (isset($_SERVER['HTTP_RANGE']) ? $_SERVER['HTTP_RANGE'] : null));
 				} else {
 					$rTokenData = array('stream_id' => $rStreamID, 'hmac_hash' => StreamingUtilities::$rRequest['hmac'], 'hmac_id' => $rIsHMAC, 'identifier' => $rIdentifier, 'extension' => $rExtension, 'type' => $rType, 'pid' => $rPID, 'channel_info' => array('stream_id' => $rChannelInfo['stream_id'], 'bitrate' => $rChannelInfo['bitrate'], 'target_container' => $rChannelInfo['target_container'], 'redirect_id' => $rChannelInfo['redirect_id'], 'originator_id' => ($rChannelInfo['originator_id'] ?: null), 'pid' => $rChannelInfo['pid'], 'proxy_source' => ($rChannelInfo['direct_proxy'] ? json_decode($rChannelInfo['stream_source'], true)[0] : null)), 'user_info' => $rUserInfo, 'country_code' => $rCountryCode, 'activity_start' => $rActivityStart, 'is_mag' => $rIsMag, 'uuid' => $rUUID, 'http_range' => (isset($_SERVER['HTTP_RANGE']) ? $_SERVER['HTTP_RANGE'] : null));
+				}
+
+				if (isset($_GET['segment'])) {
+					$rTokenData['segment'] = intval($_GET['segment']);
 				}
 
 				$rToken = StreamingUtilities::encryptData(json_encode($rTokenData), StreamingUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
@@ -683,7 +694,7 @@ if ($rExtension) {
 
 					exit();
 			}
-			// no break
+		// no break
 		case 'thumb':
 			$rStreamInfo = null;
 
@@ -770,7 +781,8 @@ if ($rExtension) {
 	}
 }
 
-function shutdown() {
+function shutdown()
+{
 	global $rDeny;
 	global $db;
 
