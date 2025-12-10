@@ -1603,8 +1603,7 @@ if (isset($_SESSION['hash'])) {
 				} else {
 					$rUptime = 0;
 
-					if (CoreUtilities::$rSettings['redis_handler']) {
-					} else {
+					if (!CoreUtilities::$rSettings['redis_handler']) {
 						$db->query('SELECT COUNT(*) AS `count` FROM `lines_live` WHERE `hls_end` = 0;');
 
 						if (0 < $db->num_rows()) {
@@ -1667,6 +1666,7 @@ if (isset($_SESSION['hash'])) {
 							} else {
 								$rArray['open_connections'] = ($rOpenConnections[$rServerID] ?: 0);
 								$rArray['online_users'] = ($rOnlineUsers[$rServerID] ?: 0);
+								$rArray['total_connections'] = $rTotalConnections;
 							}
 
 							$rArray['requests_per_second'] = $rServers[$rServerID]['requests_per_second'];
@@ -1676,19 +1676,16 @@ if (isset($_SESSION['hash'])) {
 							$rArray['network_guaranteed_speed'] = $rServers[$rServerID]['network_guaranteed_speed'];
 							$rWatchDog = json_decode($rServers[$rServerID]['watchdog_data'], true);
 
-							if (!is_array($rWatchDog)) {
-							} else {
+							if (is_array($rWatchDog)) {
 								$rArray['uptime'] = $rWatchDog['uptime'];
 								$rArray['mem'] = round($rWatchDog['total_mem_used_percent'], 0);
 								$rArray['cpu'] = round($rWatchDog['cpu'], 0);
 
-								if (!isset($rWatchDog['iostat_info'])) {
-								} else {
+								if (isset($rWatchDog['iostat_info'])) {
 									$rArray['io'] = round($rWatchDog['iostat_info']['avg-cpu']['iowait'], 0);
 								}
 
-								if (!isset($rWatchDog['total_disk_space'])) {
-								} else {
+								if (isset($rWatchDog['total_disk_space'])) {
 									$rArray['fs'] = intval(($rWatchDog['total_disk_space'] - $rWatchDog['free_disk_space']) / $rWatchDog['total_disk_space'] * 100);
 								}
 
@@ -1698,7 +1695,6 @@ if (isset($_SESSION['hash'])) {
 								$rReturn['bytes_sent'] += intval($rWatchDog['bytes_sent']);
 							}
 
-							$rArray['total_connections'] = $rTotalConnections;
 							$rArray['server_id'] = $rServerID;
 							$rArray['server_type'] = $rServers[$rServerID]['server_type'];
 							$rReturn['servers'][] = $rArray;

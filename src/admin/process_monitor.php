@@ -24,9 +24,9 @@ if (isset(CoreUtilities::$rRequest['clear_s'])) {
 }
 
 
-$rStreams = getStreamPIDs(CoreUtilities::$rRequest['server']);
-$rFS = getFreeSpace(CoreUtilities::$rRequest['server']);
-$rProcesses = getPIDs(CoreUtilities::$rRequest['server']);
+$rStreams = getStreamPIDs(CoreUtilities::$rRequest['server']) ?: array();
+$rFS = getFreeSpace(CoreUtilities::$rRequest['server']) ?: array();
+$rProcesses = getPIDs(CoreUtilities::$rRequest['server']) ?: array();
 $rStatus = array('D' => 'Uninterruptible Sleep', 'I' => 'Idle', 'R' => 'Running', 'S' => 'Interruptible Sleep', 'T' => 'Stopped', 'W' => 'Paging', 'X' => 'Dead', 'Z' => 'Zombie');
 $_TITLE = 'Process Monitor';
 include 'header.php'; ?>
@@ -52,8 +52,8 @@ include 'header.php'; ?>
         </div>
         <div class="row">
             <div class="col-12">
-                <?php if (!$rMobile) {
-                    if (count($rFS) > 0) { ?>
+                <?php if (!$rMobile) { ?>
+                    <?php if (count($rFS) > 0) { ?>
                         <div class="card">
                             <div class="card-body" style="overflow-x:auto;">
                                 <table class="table table-borderless mb-0">
@@ -181,120 +181,126 @@ include 'header.php'; ?>
                                 </div>
                             </div>
                         <?php } ?>
-                        <div class="card">
-                            <div class="card-body" style="overflow-x:auto;">
-                                <form id="line_activity_search">
-                                    <div class="form-group row mb-4">
-                                        <div class="col-md-6">
-                                            <input type="text" class="form-control" id="live_search" value="" placeholder="<?= $language::get('search_processes') ?>...">
-                                        </div>
-                                        <label class="col-md-1 col-form-label text-center" for="live_filter"><?= $language::get('server') ?></label>
-                                        <div class="col-md-3">
-                                            <select id="live_filter" class="form-control" data-toggle="select2">
-                                                <?php foreach ($rServers as $rServer) { ?>
-                                                    <option value="<?= $rServer['id'] ?>" <?= CoreUtilities::$rRequest['server'] == $rServer['id'] ? ' selected' : '' ?>><?= $rServer['server_name'] ?></option>
-                                                <?php } ?>
-                                            </select>
-                                        </div>
-                                        <label class="col-md-1 col-form-label text-center" for="live_show_entries"><?= $language::get('show') ?></label>
-                                        <div class="col-md-1">
-                                            <select id="live_show_entries" class="form-control" data-toggle="select2">
-                                                <?php foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) { ?>
-                                                    <option value="<?= $rShow ?>" <?= $rSettings['default_entries'] == $rShow ? ' selected' : '' ?>><?= $rShow ?></option>
-                                                <?php } ?>
-                                            </select>
-                                        </div>
+                    <?php } ?>
+                    <!-- Tabela de processos - sempre exibida -->
+                    <div class="card">
+                        <div class="card-body" style="overflow-x:auto;">
+                            <form id="line_activity_search">
+                                <div class="form-group row mb-4">
+                                    <div class="col-md-6">
+                                        <input type="text" class="form-control" id="live_search" value="" placeholder="<?= $language::get('search_processes') ?>...">
                                     </div>
-                                </form>
-                                <table id="datatable-activity" class="table table-striped table-borderless dt-responsive nowrap">
-                                    <thead>
-                                        <tr>
-                                            <th><?= $language::get('pid') ?></th>
-                                            <th><?= $language::get('type') ?></th>
-                                            <th style="max-width: 100px !important;"><?= $language::get('process') ?></th>
-                                            <th><?= $language::get('cpu_%') ?></th>
-                                            <th><?= $language::get('mem_mb') ?></th>
-                                            <th>Runtime</th>
-                                            <th>CPU Time</th>
-                                            <th><?= $language::get('actions') ?></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php foreach ($rProcesses as $rProcess) {
-                                            $uptime = $rProcess['etime'];
-                                            $uptime = $uptime >= 86400 ? sprintf('%02dd %02dh %02dm', $uptime / 86400, ($uptime / 3600) % 24, ($uptime / 60) % 60) : sprintf('%02dh %02dm %02ds', $uptime / 3600, ($uptime / 60) % 60, $uptime % 60);
-                                            $cpuTime = $rProcess['time'];
-                                            $cpuTime = $cpuTime >= 86400 ? sprintf('%02dd %02dh %02dm', $cpuTime / 86400, ($cpuTime / 3600) % 24, ($cpuTime / 60) % 60) : sprintf('%02dh %02dm %02ds', $cpuTime / 3600, ($cpuTime / 60) % 60, $cpuTime % 60);
+                                    <label class="col-md-1 col-form-label text-center" for="live_filter"><?= $language::get('server') ?></label>
+                                    <div class="col-md-3">
+                                        <select id="live_filter" class="form-control" data-toggle="select2">
+                                            <?php foreach ($rServers as $rServer) { ?>
+                                                <option value="<?= $rServer['id'] ?>" <?= CoreUtilities::$rRequest['server'] == $rServer['id'] ? ' selected' : '' ?>><?= $rServer['server_name'] ?></option>
+                                            <?php } ?>
+                                        </select>
+                                    </div>
+                                    <label class="col-md-1 col-form-label text-center" for="live_show_entries"><?= $language::get('show') ?></label>
+                                    <div class="col-md-1">
+                                        <select id="live_show_entries" class="form-control" data-toggle="select2">
+                                            <?php foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) { ?>
+                                                <option value="<?= $rShow ?>" <?= $rSettings['default_entries'] == $rShow ? ' selected' : '' ?>><?= $rShow ?></option>
+                                            <?php } ?>
+                                        </select>
+                                    </div>
+                                </div>
+                            </form>
+                            <?php if (empty($rProcesses)): ?>
+                                <div class="alert alert-warning text-center">
+                                    <i class="mdi mdi-alert-circle-outline"></i> Unable to retrieve process list. The server API may be temporarily unavailable. Please try refreshing the page.
+                                </div>
+                            <?php endif; ?>
+                            <table id="datatable-activity" class="table table-striped table-borderless dt-responsive nowrap">
+                                <thead>
+                                    <tr>
+                                        <th><?= $language::get('pid') ?></th>
+                                        <th><?= $language::get('type') ?></th>
+                                        <th style="max-width: 100px !important;"><?= $language::get('process') ?></th>
+                                        <th><?= $language::get('cpu_%') ?></th>
+                                        <th><?= $language::get('mem_mb') ?></th>
+                                        <th>Runtime</th>
+                                        <th>CPU Time</th>
+                                        <th><?= $language::get('actions') ?></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($rProcesses as $rProcess) {
+                                        $uptime = $rProcess['etime'];
+                                        $uptime = $uptime >= 86400 ? sprintf('%02dd %02dh %02dm', $uptime / 86400, ($uptime / 3600) % 24, ($uptime / 60) % 60) : sprintf('%02dh %02dm %02ds', $uptime / 3600, ($uptime / 60) % 60, $uptime % 60);
+                                        $cpuTime = $rProcess['time'];
+                                        $cpuTime = $cpuTime >= 86400 ? sprintf('%02dd %02dh %02dm', $cpuTime / 86400, ($cpuTime / 3600) % 24, ($cpuTime / 60) % 60) : sprintf('%02dh %02dm %02ds', $cpuTime / 3600, ($cpuTime / 60) % 60, $cpuTime % 60);
 
-                                            $A134afcd6d59abf6 = array('proxy' => 'Live Proxy', 'llod' => 'LLOD', 'loopback' => 'Loopback', 'queue' => 'VOD Queue', 'ondemand' => 'On-Demand Instant Off', 'plex_item' => 'Plex Item Scan', 'watch_item' => 'Watch Item Scan', 'cache_handler' => 'Cache Handler', 'certbot' => 'Certbot SSL Automation', 'closed_cons' => 'Closed Connection Handler', 'signals' => 'Signal Handler', 'watchdog' => 'Server Watchdog');
-                                            $rCrons = array('plex' => 'Plex Sync', 'cache_engine' => 'Cache Generator', 'activity' => 'Activity Cron', 'backups' => 'Backup Cron', 'cache' => 'Cache Cron', 'epg' => 'EPG Cron', 'lines_logs' => 'Line Logging Cron', 'root_signals' => 'Root Signal Cron', 'series' => 'Series Cron', 'servers' => 'Servers Cron', 'stats' => 'Stats Cron', 'streams' => 'Streams Cron', 'streams_logs' => 'Stream Logging Cron', 'tmdb' => 'TMDb Refresh Cron', 'tmp' => 'Temp Cron', 'users' => 'Users Cron', 'vod' => 'VOD Cron', 'watch' => 'Watch Folder Cron');
+                                        $A134afcd6d59abf6 = array('proxy' => 'Live Proxy', 'llod' => 'LLOD', 'loopback' => 'Loopback', 'queue' => 'VOD Queue', 'ondemand' => 'On-Demand Instant Off', 'plex_item' => 'Plex Item Scan', 'watch_item' => 'Watch Item Scan', 'cache_handler' => 'Cache Handler', 'certbot' => 'Certbot SSL Automation', 'closed_cons' => 'Closed Connection Handler', 'signals' => 'Signal Handler', 'watchdog' => 'Server Watchdog');
+                                        $rCrons = array('plex' => 'Plex Sync', 'cache_engine' => 'Cache Generator', 'activity' => 'Activity Cron', 'backups' => 'Backup Cron', 'cache' => 'Cache Cron', 'epg' => 'EPG Cron', 'lines_logs' => 'Line Logging Cron', 'root_signals' => 'Root Signal Cron', 'series' => 'Series Cron', 'servers' => 'Servers Cron', 'stats' => 'Stats Cron', 'streams' => 'Streams Cron', 'streams_logs' => 'Stream Logging Cron', 'tmdb' => 'TMDb Refresh Cron', 'tmp' => 'Temp Cron', 'users' => 'Users Cron', 'vod' => 'VOD Cron', 'watch' => 'Watch Folder Cron');
 
-                                            if (isset($A134afcd6d59abf6[basename(explode(' ', trim(explode('#', $rProcess['command'])[0]))[0], '.php')])) {
-                                                $rProcess['command'] = $A134afcd6d59abf6[basename(explode(' ', trim(explode('#', $rProcess['command'])[0]))[0], '.php')];
+                                        if (isset($A134afcd6d59abf6[basename(explode(' ', trim(explode('#', $rProcess['command'])[0]))[0], '.php')])) {
+                                            $rProcess['command'] = $A134afcd6d59abf6[basename(explode(' ', trim(explode('#', $rProcess['command'])[0]))[0], '.php')];
+                                            $rType = 'XC_VM CLI';
+                                        } else {
+                                            if (isset($A134afcd6d59abf6[basename(trim(explode('#', $rProcess['command'])[0]), '.php')])) {
+                                                $rProcess['command'] = $A134afcd6d59abf6[basename(trim(explode('#', $rProcess['command'])[0]), '.php')];
                                                 $rType = 'XC_VM CLI';
                                             } else {
-                                                if (isset($A134afcd6d59abf6[basename(trim(explode('#', $rProcess['command'])[0]), '.php')])) {
-                                                    $rProcess['command'] = $A134afcd6d59abf6[basename(trim(explode('#', $rProcess['command'])[0]), '.php')];
-                                                    $rType = 'XC_VM CLI';
+                                                if (isset($rCrons[basename(explode(' ', trim(explode('#', $rProcess['command'])[0]))[0], '.php')])) {
+                                                    $rProcess['command'] = $rCrons[basename(explode(' ', trim(explode('#', $rProcess['command'])[0]))[0], '.php')];
+                                                    $rType = 'XC_VM Cron';
                                                 } else {
-                                                    if (isset($rCrons[basename(explode(' ', trim(explode('#', $rProcess['command'])[0]))[0], '.php')])) {
-                                                        $rProcess['command'] = $rCrons[basename(explode(' ', trim(explode('#', $rProcess['command'])[0]))[0], '.php')];
-                                                        $rType = 'XC_VM Cron';
+                                                    if (stripos($rProcess['command'], 'nginx: master process') !== false) {
+                                                        $rProcess['command'] = 'NGINX Master Process';
+                                                        $rType = 'NGINX Master';
                                                     } else {
-                                                        if (stripos($rProcess['command'], 'nginx: master process') !== false) {
-                                                            $rProcess['command'] = 'NGINX Master Process';
-                                                            $rType = 'NGINX Master';
+                                                        if (stripos($rProcess['command'], 'nginx: worker process') !== false) {
+                                                            $rProcess['command'] = 'NGINX Worker Process';
+                                                            $rType = 'NGINX Pool';
                                                         } else {
-                                                            if (stripos($rProcess['command'], 'nginx: worker process') !== false) {
-                                                                $rProcess['command'] = 'NGINX Worker Process';
-                                                                $rType = 'NGINX Pool';
+                                                            if (stripos($rProcess['command'], 'php-fpm: master process') !== false) {
+                                                                $rProcess['command'] = 'PHP Master Process';
+                                                                $rType = 'PHP Master';
                                                             } else {
-                                                                if (stripos($rProcess['command'], 'php-fpm: master process') !== false) {
-                                                                    $rProcess['command'] = 'PHP Master Process';
-                                                                    $rType = 'PHP Master';
+                                                                if (stripos($rProcess['command'], 'redis-server') !== false) {
+                                                                    $rProcess['command'] = 'Redis Server';
+                                                                    $rType = 'Redis';
                                                                 } else {
-                                                                    if (stripos($rProcess['command'], 'redis-server') !== false) {
-                                                                        $rProcess['command'] = 'Redis Server';
-                                                                        $rType = 'Redis';
-                                                                    } else {
-                                                                        $rProcess['command'] = 'Command: ' . $rProcess['command'];
-                                                                        $rType = array('pid' => $language::get('main') . ' - ', 'vframes' => $language::get('thumbnail') . ' - ', 'monitor_pid' => $language::get('monitor') . ' - ', 'delay_pid' => $language::get('delayed') . ' - ', 'activity' => $language::get('line_activity') . ' - ', 'timeshift' => $language::get('timeshift') . ' - ', null => '')[$rStreams[$rProcess['pid']]['pid_type']] . array(1 => $language::get('stream'), 2 => $language::get('movie'), 3 => $language::get('created_channel'), 4 => $language::get('radio'), 5 => $language::get('episode'), null => $language::get('system'))[$rStreams[$rProcess['pid']]['type']];
-                                                                    }
+                                                                    $rProcess['command'] = 'Command: ' . $rProcess['command'];
+                                                                    $rType = array('pid' => $language::get('main') . ' - ', 'vframes' => $language::get('thumbnail') . ' - ', 'monitor_pid' => $language::get('monitor') . ' - ', 'delay_pid' => $language::get('delayed') . ' - ', 'activity' => $language::get('line_activity') . ' - ', 'timeshift' => $language::get('timeshift') . ' - ', null => '')[$rStreams[$rProcess['pid']]['pid_type'] ?? null] . array(1 => $language::get('stream'), 2 => $language::get('movie'), 3 => $language::get('created_channel'), 4 => $language::get('radio'), 5 => $language::get('episode'), null => $language::get('system'))[$rStreams[$rProcess['pid']]['type'] ?? null];
                                                                 }
                                                             }
                                                         }
                                                     }
                                                 }
                                             }
-                                        ?>
+                                        }
+                                    ?>
 
-                                            <tr>
-                                                <td><?= $rProcess['pid'] ?></td>
-                                                <td><?= $rType ?></td>
-                                                <td style="max-width: 700px !important; overflow: hidden;"><?= $rProcess['command'] ?></td>
-                                                <td><button type="button" class="btn btn-light btn-xs waves-effect waves-light"><?= number_format($rProcess['cpu'], 2) ?>%</button><br /><small>avg: <?= number_format($rProcess['load_average'], 2) ?>%</small></td>
-                                                <td><button type="button" class="btn btn-light btn-xs waves-effect waves-light"><?= number_format($rProcess['rss'] / 1024, 0) ?></button></td>
-                                                <td><button type="button" class="btn btn-light btn-xs waves-effect waves-light btn-fixed"><?= $uptime ?></button></td>
-                                                <td><button type="button" class="btn btn-light btn-xs waves-effect waves-light btn-fixed"><?= $cpuTime ?></button></td>
-                                                <td>
-                                                    <div class="btn-group">
-                                                        <?php if (isset($rStreams[$rProcess['pid']])) { ?>
-                                                            <a href="<?= array(1 => 'stream_view', 2 => 'stream_view', 3 => 'stream_view', 4 => 'stream_view', 5 => 'stream_view')[$rStreams[$rProcess['pid']]['type']] . '?id=' . $rStreams[$rProcess['pid']]['id'] ?>">
-                                                                <button data-toggle="tooltip" data-placement="top" title="<?= $language::get('view') ?>" type="button" class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-eye"></i></button>
-                                                            </a>
-                                                        <?php } else { ?>
-                                                            <button disabled type="button" class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-eye"></i></button>
-                                                        <?php } ?>
-                                                        <button data-toggle="tooltip" data-placement="top" title="<?= $language::get('kill_process_info') ?>" type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="kill(<?= intval(CoreUtilities::$rRequest['server']) ?>, <?= $rProcess['pid'] ?>);"><i class="mdi mdi-close"></i></button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        <?php } ?>
-                                    </tbody>
-                                </table>
-                            </div>
+                                        <tr>
+                                            <td><?= $rProcess['pid'] ?></td>
+                                            <td><?= $rType ?></td>
+                                            <td style="max-width: 700px !important; overflow: hidden;"><?= $rProcess['command'] ?></td>
+                                            <td><button type="button" class="btn btn-light btn-xs waves-effect waves-light"><?= number_format($rProcess['cpu'], 2) ?>%</button><br /><small>avg: <?= number_format($rProcess['load_average'], 2) ?>%</small></td>
+                                            <td><button type="button" class="btn btn-light btn-xs waves-effect waves-light"><?= number_format($rProcess['rss'] / 1024, 0) ?></button></td>
+                                            <td><button type="button" class="btn btn-light btn-xs waves-effect waves-light btn-fixed"><?= $uptime ?></button></td>
+                                            <td><button type="button" class="btn btn-light btn-xs waves-effect waves-light btn-fixed"><?= $cpuTime ?></button></td>
+                                            <td>
+                                                <div class="btn-group">
+                                                    <?php if (isset($rStreams[$rProcess['pid']])) { ?>
+                                                        <a href="<?= array(1 => 'stream_view', 2 => 'stream_view', 3 => 'stream_view', 4 => 'stream_view', 5 => 'stream_view')[$rStreams[$rProcess['pid']]['type']] . '?id=' . $rStreams[$rProcess['pid']]['id'] ?>">
+                                                            <button data-toggle="tooltip" data-placement="top" title="<?= $language::get('view') ?>" type="button" class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-eye"></i></button>
+                                                        </a>
+                                                    <?php } else { ?>
+                                                        <button disabled type="button" class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-eye"></i></button>
+                                                    <?php } ?>
+                                                    <button data-toggle="tooltip" data-placement="top" title="<?= $language::get('kill_process_info') ?>" type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="kill(<?= intval(CoreUtilities::$rRequest['server']) ?>, <?= $rProcess['pid'] ?>);"><i class="mdi mdi-close"></i></button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <?php } ?>
+                                </tbody>
+                            </table>
                         </div>
-                    <?php } ?>
+                    </div>
                 <?php } ?>
             </div>
         </div>
@@ -432,17 +438,17 @@ include 'header.php'; ?>
     echo $language::get('process_has_been_killed_wait');
     echo '");' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . '$.toast("';
     echo $language::get('error_occured');
-    echo '");' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'});" . "\r\n\t\t\t" . '$("#datatable-activity").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '},' . "\r\n\t\t\t\t\t" . 'infoFiltered: ""' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n\t\t\t\t\t" . 'bindHref(); refreshTooltips();' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,3,4,5,6]}' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t\t\r\n\t\t\t\t";
+    echo '");' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'});" . "\r\n\t\t\t" . 'if ($("#datatable-activity").length) {' . "\r\n\t\t\t\t" . '$("#datatable-activity").DataTable({' . "\r\n\t\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t\t" . '},' . "\r\n\t\t\t\t\t\t" . 'infoFiltered: ""' . "\r\n\t\t\t\t\t" . '},' . "\r\n\t\t\t\t\t" . 'drawCallback: function() {' . "\r\n\t\t\t\t\t\t" . 'bindHref(); refreshTooltips();' . "\r\n\t\t\t\t\t" . '},' . "\r\n\t\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,3,4,5,6]}' . "\r\n\t\t\t\t\t" . '],' . "\r\n\t\t\t\t\t";
 
     if (isset(CoreUtilities::$rRequest['mem'])) {
-        echo "\t\t\t\t" . 'order: [[ 4, "desc" ]],' . "\r\n\t\t\t\t";
+        echo 'order: [[ 4, "desc" ]],' . "\r\n\t\t\t\t\t";
     } else {
-        echo "\t\t\t\t" . 'order: [[ 3, "desc" ]],' . "\r\n\t\t\t\t";
+        echo 'order: [[ 3, "desc" ]],' . "\r\n\t\t\t\t\t";
     }
 
-    echo "\t\t\t\t" . 'pageLength: ';
+    echo 'pageLength: ';
     echo (intval($rSettings['default_entries']) ?: 10);
-    echo ',' . "\r\n\t\t\t\t" . 'lengthMenu: [10, 25, 50, 250, 500, 1000]' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable-activity").css("width", "100%");' . "\r\n\t\t\t" . "\$('#live_search').keyup(function(){" . "\r\n\t\t\t\t" . "\$('#datatable-activity').DataTable().search(\$(this).val()).draw();" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#live_show_entries').change(function(){" . "\r\n\t\t\t\t" . "\$('#datatable-activity').DataTable().page.len(\$(this).val()).draw();" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#live_filter').change(function(){" . "\r\n\t\t\t\t" . 'navigate("./process_monitor?server=" + $(this).val());' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#datatable-activity').DataTable().search(\$('#live_search').val()).draw();" . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n" . '        ';
+    echo ',' . "\r\n\t\t\t\t\t" . 'lengthMenu: [10, 25, 50, 250, 500, 1000]' . "\r\n\t\t\t\t" . '});' . "\r\n\t\t\t\t" . '$("#datatable-activity").css("width", "100%");' . "\r\n\t\t\t\t" . "\$('#live_search').keyup(function(){" . "\r\n\t\t\t\t\t" . "\$('#datatable-activity').DataTable().search(\$(this).val()).draw();" . "\r\n\t\t\t\t" . '});' . "\r\n\t\t\t\t" . "\$('#live_show_entries').change(function(){" . "\r\n\t\t\t\t\t" . "\$('#datatable-activity').DataTable().page.len(\$(this).val()).draw();" . "\r\n\t\t\t\t" . '});' . "\r\n\t\t\t\t" . "\$('#live_filter').change(function(){" . "\r\n\t\t\t\t\t" . 'navigate("./process_monitor?server=" + $(this).val());' . "\r\n\t\t\t\t" . '});' . "\r\n\t\t\t\t" . "\$('#datatable-activity').DataTable().search(\$('#live_search').val()).draw();" . "\r\n\t\t\t" . '}' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n" . '        ';
     ?>
     <?php if (CoreUtilities::$rSettings['enable_search']): ?>
         $(document).ready(function() {
