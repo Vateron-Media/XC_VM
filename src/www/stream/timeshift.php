@@ -479,7 +479,8 @@ if ($rUserInfo) {
 	generateError('TOKEN_ERROR');
 }
 
-function getLength($rQueue) {
+function getLength($rQueue)
+{
 	$rLength = 0;
 
 	foreach ($rQueue as $rItem) {
@@ -489,7 +490,8 @@ function getLength($rQueue) {
 	return $rLength;
 }
 
-function shutdown() {
+function shutdown()
+{
 	global $rCloseCon;
 	global $rTokenData;
 	global $rPID;

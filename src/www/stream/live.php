@@ -387,7 +387,7 @@ if ($rChannelInfo) {
                         }
                         // Рассчитываем скорость в КБ/с (байты -> килобайты)
                         if ($rBytes > 0 && $rTotalTime > 0) {
-                            $rDivergence = (int)($rBytes / $rTotalTime / 1024);
+                            $rDivergence = (int) ($rBytes / $rTotalTime / 1024);
                             file_put_contents($rConSpeedFile, $rDivergence);
                         } else {
                             // Записываем 0 при отсутствии данных
