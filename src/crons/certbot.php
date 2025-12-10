@@ -16,7 +16,9 @@ function loadCron() {
 
     $rCertInfo = null;
     if (!$rCheck) {
-        CoreUtilities::submitPanelLogs(); // Submit panel logs to the central server
+        if (!DEVELOPMENT) {
+            CoreUtilities::submitPanelLogs(); // Submit panel logs to the central server
+        }
         $rCertInfo = CoreUtilities::getCertificateInfo();
         if (CoreUtilities::$rServers[SERVER_ID]['enable_https'] && $rCertInfo) {
             if ($rCertInfo['expiration'] - time() < 604800) {
