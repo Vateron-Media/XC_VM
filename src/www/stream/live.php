@@ -61,6 +61,7 @@ if (isset(StreamingUtilities::$rRequest["token"])) {
         $rExternalDevice = $rTokenData["external_device"];
         $rVideoCodec = $rTokenData["video_codec"];
         $rCountryCode = $rTokenData["country_code"];
+        $rPlaylist = "";
     } else {
         header("Content-Type: video/mp2t");
         readfile($rTokenData["video_path"]);
