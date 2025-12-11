@@ -52,7 +52,7 @@ class CoreUtilities {
 		} else {
 			self::$rSettings['on_demand_wait_time'] = 15;
 		}
-		self::$rSegmentSettings = array('seg_type' => self::$rSettings['segment_type'], 'seg_time' => intval(self::$rSettings['seg_time']), 'seg_list_size' => intval(self::$rSettings['seg_list_size']), 'seg_delete_threshold' => intval(self::$rSettings['seg_delete_threshold']));
+		self::$rSegmentSettings = array('seg_time' => intval(self::$rSettings['seg_time']), 'seg_list_size' => intval(self::$rSettings['seg_list_size']), 'seg_delete_threshold' => intval(self::$rSettings['seg_delete_threshold']));
 		switch (self::$rSettings['ffmpeg_cpu']) {
 			case '8.0':
 				self::$rFFMPEG_CPU = FFMPEG_BIN_80;
@@ -636,7 +636,6 @@ class CoreUtilities {
 	public static function getIO() {
 		exec('iostat -o JSON -m', $rOutput, $rReturnVar);
 		$rOutput = implode('', $rOutput);
-
 		$rJSON = json_decode($rOutput, true);
 		if (isset($rJSON['sysstat'])) {
 			return $rJSON['sysstat']['hosts'][0]['statistics'][0];
@@ -1056,8 +1055,7 @@ class CoreUtilities {
 										if (strlen($rUserInfo['access_token']) == 32) {
 											$rURL = $rDomainName . $rChannelInfo['type_output'] . '/' . $rUserInfo['access_token'] . '/';
 											if ($rChannelInfo['live'] == 0) {
-												$rExtension = ($rOutputExt == 'm3u8') ? 'm3u8' : $rChannelInfo['target_container'];
-												$rURL .= $rChannelInfo['id'] . '.' . $rExtension;
+												$rURL .= $rChannelInfo['id'] . '.' . $rChannelInfo['target_container'];
 											} else {
 												if (self::$rSettings['cloudflare'] && $rOutputExt == 'ts') {
 													$rURL .= $rChannelInfo['id'];
@@ -1069,8 +1067,7 @@ class CoreUtilities {
 											if ($rEncryptPlaylist) {
 												$rEncData = $rChannelInfo['type_output'] . '/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/';
 												if ($rChannelInfo['live'] == 0) {
-													$rExtension = ($rOutputExt == 'm3u8') ? 'm3u8' : $rChannelInfo['target_container'];
-													$rEncData .= $rChannelInfo['id'] . '/' . $rExtension;
+													$rEncData .= $rChannelInfo['id'] . '/' . $rChannelInfo['target_container'];
 												} else {
 													if (self::$rSettings['cloudflare'] && $rOutputExt == 'ts') {
 														$rEncData .= $rChannelInfo['id'];
@@ -1082,13 +1079,12 @@ class CoreUtilities {
 												$rURL = $rDomainName . 'play/' . $rToken;
 												if ($rChannelInfo['live'] != 0) {
 												} else {
-													$rURL .= '#.' . $rExtension;
+													$rURL .= '#.' . $rChannelInfo['target_container'];
 												}
 											} else {
 												$rURL = $rDomainName . $rChannelInfo['type_output'] . '/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/';
 												if ($rChannelInfo['live'] == 0) {
-													$rExtension = ($rOutputExt == 'm3u8') ? 'm3u8' : $rChannelInfo['target_container'];
-													$rURL .= $rChannelInfo['id'] . '.' . $rExtension;
+													$rURL .= $rChannelInfo['id'] . '.' . $rChannelInfo['target_container'];
 												} else {
 													if (self::$rSettings['cloudflare'] && $rOutputExt == 'ts') {
 														$rURL .= $rChannelInfo['id'];
@@ -1177,16 +1173,15 @@ class CoreUtilities {
 											}
 
 											if ($rChannel['live'] == 0) {
-												$rExtension = ($rOutputExt == 'm3u8') ? 'm3u8' : $rChannel['target_container'];
 												if (strlen($rUserInfo['access_token']) == 32) {
-													$rURL = $rDomainName . $rChannel['type_output'] . '/' . $rUserInfo['access_token'] . '/' . $rChannel['id'] . '.' . $rExtension;
+													$rURL = $rDomainName . $rChannel['type_output'] . '/' . $rUserInfo['access_token'] . '/' . $rChannel['id'] . '.' . $rChannel['target_container'];
 												} else {
 													if ($rEncryptPlaylist) {
-														$rEncData = $rChannel['type_output'] . '/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rChannel['id'] . '/' . $rExtension;
+														$rEncData = $rChannel['type_output'] . '/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rChannel['id'] . '/' . $rChannel['target_container'];
 														$rToken = CoreUtilities::encryptData($rEncData, self::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
-														$rURL = $rDomainName . 'play/' . $rToken . '#.' . $rExtension;
+														$rURL = $rDomainName . 'play/' . $rToken . '#.' . $rChannel['target_container'];
 													} else {
-														$rURL = $rDomainName . $rChannel['type_output'] . '/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rChannel['id'] . '.' . $rExtension;
+														$rURL = $rDomainName . $rChannel['type_output'] . '/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rChannel['id'] . '.' . $rChannel['target_container'];
 													}
 												}
 												if (!empty($rProperties['movie_image'])) {
@@ -1377,10 +1372,15 @@ class CoreUtilities {
 		$rPIDs = array_map('intval', $rPIDs);
 		$rOutput = array();
 		foreach ($rServerIDS as $rServerID) {
-			if (array_key_exists($rServerID, self::$rServers)) {
+			if (is_array(self::$rServers) && array_key_exists($rServerID, self::$rServers)) {
 				$rResponse = self::serverRequest($rServerID, self::$rServers[$rServerID]['api_url_ip'] . '&action=pidsAreRunning', array('program' => $rEXE, 'pids' => $rPIDs));
 				if ($rResponse) {
-					$rOutput[$rServerID] = array_map('trim', json_decode($rResponse, true));
+					$rDecoded = json_decode($rResponse, true);
+					if (is_array($rDecoded)) {
+						$rOutput[$rServerID] = array_map('trim', $rDecoded);
+					} else {
+						$rOutput[$rServerID] = false;
+					}
 				} else {
 					$rOutput[$rServerID] = false;
 				}
@@ -1389,7 +1389,7 @@ class CoreUtilities {
 		return $rOutput;
 	}
 	public static function isPIDRunning($rServerID, $rPID, $rEXE) {
-		if (!is_null($rPID) && is_numeric($rPID) && array_key_exists($rServerID, self::$rServers)) {
+		if (!is_null($rPID) && is_numeric($rPID) && is_array(self::$rServers) && array_key_exists($rServerID, self::$rServers)) {
 			if (!($rOutput = self::isPIDsRunning($rServerID, array($rPID), $rEXE))) {
 				return false;
 			}
@@ -1398,7 +1398,7 @@ class CoreUtilities {
 		return false;
 	}
 	public static function serverRequest($rServerID, $rURL, $rPostData = array()) {
-		if (self::$rServers[$rServerID]['server_online']) {
+		if (is_array(self::$rServers) && isset(self::$rServers[$rServerID]) && self::$rServers[$rServerID]['server_online']) {
 			$rOutput = false;
 			$i = 1;
 			while ($i <= 2) {
@@ -1471,24 +1471,32 @@ class CoreUtilities {
 				if (substr($rSource, 0, 2) == 's:') {
 					$rSplit = explode(':', $rSource, 3);
 					$rServerID = intval($rSplit[1]);
+					$rSourcePath = $rSplit[2]; // File path
 					if ($rServerID != SERVER_ID) {
-						$rSourcePath = self::$rServers[$rServerID]['api_url'] . '&action=getFile&filename=' . urlencode($rSplit[2]);
-					} else {
-						$rSourcePath = $rSplit[2];
+						// File on another server - needs to be retrieved via API.
+						if (is_array(self::$rServers) && isset(self::$rServers[$rServerID])) {
+							$rSourcePath = self::$rServers[$rServerID]['api_url'] . '&action=getFile&filename=' . urlencode($rSplit[2]);
+						} else {
+							// Server not found, use local path.
+							$rSourcePath = $rSplit[2];
+						}
 					}
 				} else {
 					$rServerID = SERVER_ID;
 					$rSourcePath = $rSource;
 				}
-				if ($rServerID == SERVER_ID && $rStream['stream_info']['movie_symlink'] == 1) {
+				if ($rServerID == SERVER_ID && intval($rStream['stream_info']['movie_symlink']) == 1) {
 					$rExtension = pathinfo($rSource)['extension'];
-					if (strlen($rExtension) != 0) {
-					} else {
+					if (strlen($rExtension) == 0) {
 						$rExtension = 'mp4';
 					}
+					// Create symlink
 					$rCommand = 'ln -sfn ' . escapeshellarg($rSourcePath) . ' "' . CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.' . escapeshellcmd($rExtension) . '" >/dev/null 2>/dev/null & echo $! > "' . CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.pid"';
 				} else {
 					$rStream['stream_info']['transcode_attributes'] = json_decode($rStream['stream_info']['profile_options'], true);
+					if (!is_array($rStream['stream_info']['transcode_attributes'])) {
+						$rStream['stream_info']['transcode_attributes'] = array();
+					}
 					$rLogoOptions = (isset($rStream['stream_info']['transcode_attributes'][16]) && !$rLoopback ? $rStream['stream_info']['transcode_attributes'][16]['cmd'] : '');
 					$rGPUOptions = (isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rStream['stream_info']['transcode_attributes']['gpu']['cmd'] : '');
 					$rInputCodec = '';
@@ -1501,16 +1509,14 @@ class CoreUtilities {
 						}
 					}
 					$rCommand = ((isset($rStream['stream_info']['transcode_attributes']['gpu']) ? self::$rFFMPEG_GPU : self::$rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . ((self::$rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err {GPU} -fflags +genpts -async 1 -i {STREAM_SOURCE} {LOGO} ';
-					if (array_key_exists('-acodec', $rStream['stream_info']['transcode_attributes'])) {
-					} else {
+
+					if (!array_key_exists('-acodec', $rStream['stream_info']['transcode_attributes'])) {
 						$rStream['stream_info']['transcode_attributes']['-acodec'] = 'copy';
 					}
-					if (array_key_exists('-vcodec', $rStream['stream_info']['transcode_attributes'])) {
-					} else {
+					if (!array_key_exists('-vcodec', $rStream['stream_info']['transcode_attributes'])) {
 						$rStream['stream_info']['transcode_attributes']['-vcodec'] = 'copy';
 					}
-					if (!isset($rStream['stream_info']['transcode_attributes']['gpu'])) {
-					} else {
+					if (isset($rStream['stream_info']['transcode_attributes']['gpu'])) {
 						$rCommand .= '-gpu ' . intval($rStream['stream_info']['transcode_attributes']['gpu']['device']) . ' ';
 					}
 					$rCommand .= implode(' ', self::parseTranscode($rStream['stream_info']['transcode_attributes'])) . ' ';
@@ -1542,8 +1548,10 @@ class CoreUtilities {
 		$rAnalyseDuration = abs(intval(self::$rSettings['stream_max_analyze']));
 		$rProbesize = abs(intval(self::$rSettings['probesize']));
 		$rTimeout = intval($rAnalyseDuration / 1000000) + self::$rSettings['probe_extra_wait'];
+		if (!is_array($rFetchArguments)) {
+			$rFetchArguments = !empty($rFetchArguments) ? [$rFetchArguments] : [];
+		}
 		$rCommand = $rPrepend . 'timeout ' . $rTimeout . ' ' . self::$rFFPROBE . ' -probesize ' . $rProbesize . ' -analyzeduration ' . $rAnalyseDuration . ' ' . implode(' ', $rFetchArguments) . ' -i "' . $rSourceURL . '" -v quiet -print_format json -show_streams -show_format';
-
 		exec($rCommand, $rReturn);
 		$result = implode("\n", $rReturn);
 		if ($rParse) {
@@ -1957,16 +1965,10 @@ class CoreUtilities {
 
 				if ($rStream['server_info']['on_demand'] == 1) {
 					$rProbesize = intval($rStream['stream_info']['probesize_ondemand']);
-					if ($rProbesize < 10000000) {
-						$rProbesize = 10000000;
-					}
 					$rAnalyseDuration = '10000000';
 				} else {
 					$rAnalyseDuration = abs(intval(self::$rSettings['stream_max_analyze']));
 					$rProbesize = abs(intval(self::$rSettings['probesize']));
-					if ($rProbesize < 10000000) {
-						$rProbesize = 10000000;
-					}
 				}
 
 				$rTimeout = intval($rAnalyseDuration / 1000000) + self::$rSettings['probe_extra_wait'];
@@ -2059,10 +2061,6 @@ class CoreUtilities {
 
 					$rLoopURL = (!is_null(self::$rServers[SERVER_ID]['private_url_ip']) && !is_null(self::$rServers[$rStream['server_info']['parent_id']]['private_url_ip']) ? self::$rServers[$rStream['server_info']['parent_id']]['private_url_ip'] : self::$rServers[$rStream['server_info']['parent_id']]['public_url_ip']);
 					$rSources = array($rLoopURL . 'admin/live?stream=' . intval($rStreamID) . '&password=' . urlencode(self::$rSettings['live_streaming_pass']) . '&extension=ts');
-				}
-
-				if ($rStream['server_info']['on_demand']) {
-					self::$rSegmentSettings['seg_type'] = 1;
 				}
 
 				if ($rStream['stream_info']['type_key'] == 'created_live' && file_exists(CREATED_PATH . $rStreamID . '_.info')) {
@@ -2271,11 +2269,7 @@ class CoreUtilities {
 					}
 
 					if (!array_key_exists('-scodec', $rStream['stream_info']['transcode_attributes'])) {
-						if (self::$rSegmentSettings['seg_type'] == 0) {
-							$rStream['stream_info']['transcode_attributes']['-sn'] = '';
-						} else {
-							$rStream['stream_info']['transcode_attributes']['-scodec'] = 'copy';
-						}
+						$rStream['stream_info']['transcode_attributes']['-sn'] = '';
 					}
 				} else {
 					$rStream['stream_info']['transcode_attributes'] = array();
@@ -2294,31 +2288,8 @@ class CoreUtilities {
 					$rFLVOptions = '{MAP} {AAC_FILTER}';
 				}
 
-				if (self::$rSegmentSettings['seg_type'] == 0) {
-					// fMP4: Removed automatic AAC transcoding
-					// Users should configure transcode profiles if transcoding is needed
-					// This prevents unexpected high CPU usage
-					/*
-					if (
-						isset($rFFProbeOutput['codecs']['audio']['codec_name']) &&
-						!in_array($rFFProbeOutput['codecs']['audio']['codec_name'], ['aac', 'ac3', 'eac3'])
-					) {
-						$rStream['stream_info']['transcode_attributes']['-acodec'] = 'aac';
-						$rStream['stream_info']['transcode_attributes']['-b:a'] = '128k';
-						$rStream['stream_info']['transcode_attributes']['-ac'] = '2';
-					}
-					*/
-
-					$rKeyFrames = (self::$rSettings['ignore_keyframes'] ? '+split_by_time' : '');
-					// Increased list_size and delete_threshold to prevent premature segment deletion
-					$rOutputs['mpegts'][] = $rOptions . ' -individual_header_trailer 0 -f hls -hls_time ' . intval(self::$rSegmentSettings['seg_time']) . ' -hls_list_size 10 -hls_delete_threshold 8 -hls_flags delete_segments+discont_start+omit_endlist' . $rKeyFrames . ' -hls_segment_type fmp4 -hls_fmp4_init_filename "' . intval($rStreamID) . '_init.mp4" -hls_segment_filename "' . intval($rStreamID) . '_%d.m4s" "' . STREAMS_PATH . intval($rStreamID) . '_.m3u8" ';
-				} else {
-					$rKeyFrames = (self::$rSettings['ignore_keyframes'] ? ' -break_non_keyframes 1' : '');
-					// Optimized flags for VLC compatibility
-					$rSegmentFlags = (self::$rFFMPEG_CPU == FFMPEG_BIN_40 || self::$rFFMPEG_CPU == FFMPEG_BIN_43 || self::$rFFMPEG_CPU == FFMPEG_BIN_44) ? '+live+delete' : '+live';
-					// Removed initial_discontinuity as it can confuse players on fresh start
-					$rOutputs['mpegts'][] = $rOptions . ' -individual_header_trailer 0 -f segment -segment_format mpegts -segment_time ' . intval(self::$rSegmentSettings['seg_time']) . ' -segment_list_size ' . intval(self::$rSegmentSettings['seg_list_size']) . ' -segment_format_options "mpegts_copyts=1" -segment_list_type m3u8 -segment_list_flags ' . $rSegmentFlags . $rKeyFrames . ' -segment_list "' . STREAMS_PATH . intval($rStreamID) . '_.m3u8" "' . STREAMS_PATH . intval($rStreamID) . '_%d.ts" ';
-				}
+				$rKeyFrames = (self::$rSettings['ignore_keyframes'] ? '+split_by_time' : '');
+				$rOutputs['mpegts'][] = $rOptions . ' -individual_header_trailer 0 -f hls -hls_time ' . intval(self::$rSegmentSettings['seg_time']) . ' -hls_list_size ' . intval(self::$rSegmentSettings['seg_list_size']) . ' -hls_delete_threshold ' . intval(self::$rSegmentSettings['seg_delete_threshold']) . ' -hls_flags delete_segments+discont_start+omit_endlist' . $rKeyFrames . ' -hls_segment_type mpegts -hls_segment_filename "' . STREAMS_PATH . intval($rStreamID) . '_%d.ts" "' . STREAMS_PATH . intval($rStreamID) . '_.m3u8" ';
 
 				if ($rStream['stream_info']['rtmp_output'] == 1) {
 					$rOutputs['flv'][] = $rFLVOptions . ' -f flv -flvflags no_duration_filesize rtmp://127.0.0.1:' . intval(self::$rServers[$rStream['server_info']['server_id']]['rtmp_port']) . '/live/' . intval($rStreamID) . '?password=' . urlencode(self::$rSettings['live_streaming_pass']) . ' ';
@@ -2388,16 +2359,8 @@ class CoreUtilities {
 						}
 					}
 
-
 					$rFFMPEG .= implode(' ', self::parseTranscode($rStream['stream_info']['transcode_attributes'])) . ' ';
-
-					if (self::$rSegmentSettings['seg_type'] == 0) {
-						$rFFMPEG .= '{MAP} -individual_header_trailer 0 -f hls -hls_time ' . intval(self::$rSegmentSettings['seg_time']) . ' -hls_list_size ' . intval($rStream['stream_info']['delay_minutes']) * 6 . ' -hls_delete_threshold 4 -start_number ' . $rSegmentStart . ' -hls_flags delete_segments+discont_start+omit_endlist -hls_segment_type fmp4 -hls_fmp4_init_filename "' . DELAY_PATH . intval($rStreamID) . '_init.mp4" -hls_segment_filename "' . DELAY_PATH . intval($rStreamID) . '_%d.m4s" "' . DELAY_PATH . intval($rStreamID) . '_.m3u8" ';
-					} else {
-						// FFmpeg 5.0+ removed the 'delete' flag from segment_list_flags
-						$rSegmentFlags = (self::$rFFMPEG_CPU == FFMPEG_BIN_40 || self::$rFFMPEG_CPU == FFMPEG_BIN_43 || self::$rFFMPEG_CPU == FFMPEG_BIN_44) ? '+live+delete' : '+live';
-						$rFFMPEG .= '{MAP} -individual_header_trailer 0 -f segment -segment_format mpegts -segment_time ' . intval(self::$rSegmentSettings['seg_time']) . ' -segment_list_size ' . intval($rStream['stream_info']['delay_minutes']) * 6 . ' -segment_start_number ' . $rSegmentStart . ' -segment_format_options "mpegts_flags=+initial_discontinuity:mpegts_copyts=1" -segment_list_type m3u8 -segment_list_flags ' . $rSegmentFlags . ' -segment_list "' . DELAY_PATH . intval($rStreamID) . '_.m3u8" "' . DELAY_PATH . intval($rStreamID) . '_%d.ts" ';
-					}
+					$rFFMPEG .= '{MAP} -individual_header_trailer 0 -f hls -hls_time ' . intval(self::$rSegmentSettings['seg_time']) . ' -hls_list_size ' . intval($rStream['stream_info']['delay_minutes']) * 6 . ' -hls_delete_threshold 4 -start_number ' . $rSegmentStart . ' -hls_flags delete_segments+discont_start+omit_endlist -hls_segment_type mpegts -hls_segment_filename "' . DELAY_PATH . intval($rStreamID) . '_%d.ts" "' . DELAY_PATH . intval($rStreamID) . '_.m3u8" ';
 
 					$rSleepTime = $rStream['stream_info']['delay_minutes'] * 60;
 
@@ -2412,10 +2375,8 @@ class CoreUtilities {
 				}
 
 				$rFFMPEG .= ' >/dev/null 2>>' . STREAMS_PATH . intval($rStreamID) . '.errors & echo $! > ' . STREAMS_PATH . intval($rStreamID) . '_.pid';
-				$rAACFilter = (!stristr($rFFProbeOutput['container'], 'flv') && $rFFProbeOutput['codecs']['audio']['codec_name'] == 'aac' && $rStream['stream_info']['transcode_attributes']['-acodec'] == 'copy' ? '-bsf:a aac_adtstoasc' : '');
-				$rFFMPEG = str_replace(array('{FETCH_OPTIONS}', '{GEN_PTS}', '{STREAM_SOURCE}', '{MAP}', '{READ_NATIVE}', '{CONCAT}', '{AAC_FILTER}', '{GPU}', '{INPUT_CODEC}', '{LOGO}', '{LLOD}'), array((empty($rStream['stream_info']['custom_ffmpeg']) ? $rFetchOptions : ''), (empty($rStream['stream_info']['custom_ffmpeg']) ? $rGenPTS : ''), escapeshellarg($rStreamSource), (empty($rStream['stream_info']['custom_ffmpeg']) ? $rMap : ''), (empty($rStream['stream_info']['custom_ffmpeg']) ? $rReadNative : ''), ($rStream['stream_info']['type_key'] == 'created_live' && !$rStream['server_info']['parent_id'] ? '-safe 0 -f concat' : ''), $rAACFilter, $rGPUOptions, $rInputCodec, $rLogoOptions, $rLLODOptions), $rFFMPEG);
+				$rFFMPEG = str_replace(array('{FETCH_OPTIONS}', '{GEN_PTS}', '{STREAM_SOURCE}', '{MAP}', '{READ_NATIVE}', '{CONCAT}', '{AAC_FILTER}', '{GPU}', '{INPUT_CODEC}', '{LOGO}', '{LLOD}'), array((empty($rStream['stream_info']['custom_ffmpeg']) ? $rFetchOptions : ''), (empty($rStream['stream_info']['custom_ffmpeg']) ? $rGenPTS : ''), escapeshellarg($rStreamSource), (empty($rStream['stream_info']['custom_ffmpeg']) ? $rMap : ''), (empty($rStream['stream_info']['custom_ffmpeg']) ? $rReadNative : ''), ($rStream['stream_info']['type_key'] == 'created_live' && !$rStream['server_info']['parent_id'] ? '-safe 0 -f concat' : ''), (!stristr($rFFProbeOutput['container'], 'flv') && $rFFProbeOutput['codecs']['audio']['codec_name'] == 'aac' && $rStream['stream_info']['transcode_attributes']['-acodec'] == 'copy' ? '-bsf:a aac_adtstoasc' : ''), $rGPUOptions, $rInputCodec, $rLogoOptions, $rLLODOptions), $rFFMPEG);
 				shell_exec($rFFMPEG);
-				$rPID = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.pid'));
 				file_put_contents(STREAMS_PATH . $rStreamID . '_.ffmpeg', $rFFMPEG);
 				$rKey = openssl_random_pseudo_bytes(16);
 				file_put_contents(STREAMS_PATH . $rStreamID . '_.key', $rKey);
@@ -3700,7 +3661,6 @@ class CoreUtilities {
 		}
 		return false;
 	}
-
 	public static function deleteLine($rUserID, $rForce = false) {
 		self::updateLine($rUserID, $rForce);
 	}
@@ -4193,8 +4153,8 @@ class CoreUtilities {
 					'type' => isset($error['type']) ? htmlspecialchars($error['type'], ENT_QUOTES, 'UTF-8') : 'unknown',
 					'message' => isset($error['log_message']) ? htmlspecialchars($error['log_message'], ENT_QUOTES, 'UTF-8') : '',
 					'file' => isset($error['log_extra']) ? htmlspecialchars($error['log_extra'], ENT_QUOTES, 'UTF-8') : '',
-					'line' => isset($error['line']) ? (int) $error['line'] : 0,
-					'date' => isset($error['date']) ? (int) $error['date'] : 0,
+					'line' => isset($error['line']) ? (int)$error['line'] : 0,
+					'date' => isset($error['date']) ? (int)$error['date'] : 0,
 				];
 
 				// Convert timestamp to human-readable format with error handling
@@ -4239,7 +4199,7 @@ class CoreUtilities {
 		$apiIP = self::getApiIP();
 
 		if ($apiIP === false) {
-			print ("[ERR] Failed to get API IP\n");
+			print("[ERR] Failed to get API IP\n");
 			return false;
 		}
 
@@ -4248,10 +4208,10 @@ class CoreUtilities {
 
 		// Prepare API endpoint and payload
 		$rAPI = 'http://' . $apiIP . '/api/v1/report';
-		print ("[1] API endpoint: $rAPI\n");
+		print("[1] API endpoint: $rAPI\n");
 
 		$rData = [
-			'errors' => self::$db->get_rows(),
+			'errors'  => self::$db->get_rows(),
 			'version' => XC_VM_VERSION
 		];
 
@@ -4271,17 +4231,17 @@ class CoreUtilities {
 			'Content-Length: ' . strlen($payload)
 		]);
 
-		print ("[2] Sending request...\n");
+		print("[2] Sending request...\n");
 
 		$response = curl_exec($ch);
 
 		// Catch curl errors
 		if ($response === false) {
 			$err = curl_error($ch);
-			print ("[ERR] cURL error: $err\n");
+			print("[ERR] cURL error: $err\n");
 		}
 
-		print ("[3] Raw response: " . var_export($response, true) . "\n");
+		print("[3] Raw response: " . var_export($response, true) . "\n");
 
 		curl_close($ch);
 		// Processing JSON response
@@ -4452,8 +4412,7 @@ class CoreUtilities {
 			$rMemory = array();
 
 			foreach ($rFree as $rLine) {
-				if (empty($rLine))
-					continue;
+				if (empty($rLine)) continue;
 
 				// PHP 8 fix: Better string parsing
 				$rParts = preg_split('/\s+/', trim($rLine));
@@ -4595,13 +4554,13 @@ class CoreUtilities {
 
 		$ch = curl_init('https://plex.tv/users/sign_in.json');
 		curl_setopt_array($ch, [
-			CURLOPT_HTTPHEADER => $headers,
-			CURLOPT_HEADER => false,
-			CURLOPT_HTTPAUTH => CURLAUTH_BASIC,
-			CURLOPT_USERPWD => $rUsername . ':' . $rPassword,
-			CURLOPT_TIMEOUT => 30,
+			CURLOPT_HTTPHEADER     => $headers,
+			CURLOPT_HEADER         => false,
+			CURLOPT_HTTPAUTH       => CURLAUTH_BASIC,
+			CURLOPT_USERPWD        => $rUsername . ':' . $rPassword,
+			CURLOPT_TIMEOUT        => 30,
 			CURLOPT_SSL_VERIFYPEER => false, // Note: consider enabling in production
-			CURLOPT_POST => true,
+			CURLOPT_POST           => true,
 			CURLOPT_RETURNTRANSFER => true,
 		]);
 
@@ -4627,7 +4586,7 @@ class CoreUtilities {
 		curl_setopt_array($ch, [
 			CURLOPT_RETURNTRANSFER => true,
 			CURLOPT_CONNECTTIMEOUT => 10,
-			CURLOPT_TIMEOUT => 10,
+			CURLOPT_TIMEOUT        => 10,
 			CURLOPT_SSL_VERIFYPEER => false, // Consider enabling with proper certs
 		]);
 
@@ -4659,10 +4618,10 @@ class CoreUtilities {
 		$cacheFile = CONFIG_PATH . 'plex/plex_token_' . $serverKey . '.json';
 
 		$data = [
-			'token' => $token,
+			'token'     => $token,
 			'cached_at' => time(),
 			// Plex tokens are generally valid for months; 30 days is a safe conservative value
-			'expires' => time() + 30 * 86400
+			'expires'   => time() + 30 * 86400
 		];
 
 		// Ensure the directory exists

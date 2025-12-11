@@ -215,7 +215,6 @@ if (isset($_GET['token'])) {
 }
 
 generate404();
-function getuserip()
-{
+function getuserip() {
 	return $_SERVER['REMOTE_ADDR'];
 }
