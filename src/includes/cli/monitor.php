@@ -461,7 +461,11 @@ if (!$rStreamInfo['stream_info']) {
     goto label430;
 }
 $rStreamJSON = json_decode($rStreamInfo['stream_info'], true);
-$rCompatible = intval(CoreUtilities::checkCompatibility($rStreamJSON));
+if (is_array($rStreamJSON)) {
+    $rCompatible = intval(CoreUtilities::checkCompatibility($rStreamJSON));
+} else {
+    $rCompatible = 0;
+}
 $rAudioCodec = $rStreamJSON['codecs']['audio']['codec_name'] ?: null;
 $rVideoCodec = $rStreamJSON['codecs']['video']['codec_name'] ?: null;
 $rResolution = $rStreamJSON['codecs']['video']['height'] ?: null;
