@@ -1,6 +1,6 @@
 <?php
 
-//Checed
+// Checked
 
 if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
     set_time_limit(0);
@@ -29,7 +29,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                         $rStreamIDs = array();
 
                         foreach ($rRows as $rRow) {
-                            $streamId = (int) $rRow['stream_id'];
+                            $streamId = (int)$rRow['stream_id'];
 
                             if ($streamId > 0 && !in_array($streamId, $rStreamIDs)) {
                                 $rStreamIDs[] = $streamId;
@@ -265,7 +265,6 @@ function loadCron() {
 
                         if (!($rAutoKick != 0 && $rAutoKick <= $rTotalTime) || $rIsRestreamer) {
                             if ($rConnection['container'] == 'hls') {
-                                // Reduced timeout to 30s to handle fast Zapping and connection limits
                                 if (30 <= $rStartTime - $rConnection['hls_last_read'] || $rConnection['hls_end'] == 1) {
                                     echo 'Close connection: ' . $rConnection['uuid'] . "\n";
                                     CoreUtilities::closeConnection($rConnection, false, false);
