@@ -13,8 +13,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
 } else {
     exit('Please run as XC_VM!' . "\n");
 }
-function loadCron()
-{
+function loadCron() {
     global $db;
     $db->query('SELECT * FROM `streams` t1 INNER JOIN `streams_servers` t3 ON t3.stream_id = t1.id LEFT JOIN `profiles` t2 ON t2.profile_id = t1.transcode_profile_id WHERE t1.type = 3 AND t3.server_id = ? AND t3.parent_id IS NULL;', SERVER_ID);
     if (0 >= $db->num_rows()) {
@@ -135,34 +134,6 @@ function loadCron()
                             $db->query('UPDATE `streams` SET `movie_properties` = ? WHERE `id` = ?', json_encode($rMovieProperties, JSON_UNESCAPED_UNICODE), $rRow['stream_id']);
                             $db->query('UPDATE `streams_servers` SET `bitrate` = ?,`to_analyze` = 0,`stream_status` = 0,`stream_info` = ?,`audio_codec` = ?,`video_codec` = ?,`resolution` = ?,`compatible` = ? WHERE `server_stream_id` = ?', $rBitrate, json_encode($rFFProbee, JSON_UNESCAPED_UNICODE), $rAudioCodec, $rVideoCodec, $rResolution, $rCompatible, $rRow['server_stream_id']);
 
-                            // Generate fMP4 HLS playlist for instant VOD playback
-                            /* 
-                            $rHLSDir = '/home/xc_vm/streams/vod_hls/' . intval($rRow['stream_id']) . '/';
-                            if (!is_dir($rHLSDir)) {
-                                mkdir($rHLSDir, 0755, true);
-                            }
-
-                            $rHLSPlaylist = $rHLSDir . 'playlist.m3u8';
-                            if (!file_exists($rHLSPlaylist)) {
-                                echo "\t" . 'Generating fMP4 HLS...' . "\n";
-                                $rFFmpeg = (CoreUtilities::$rFFMPEG_CPU ?: FFMPEG_BIN_44);
-                                $rCmd = 'nice -n 19 ' . $rFFmpeg . ' -y -i ' . escapeshellarg($rMoviePath) .
-                                    ' -c copy' .
-                                    ' -f hls' .
-                                    ' -hls_segment_type fmp4' .
-                                    ' -hls_time 4' .
-                                    ' -hls_list_size 0' .
-                                    ' -hls_playlist_type vod' .
-                                    ' -hls_fmp4_init_filename init.mp4' .
-                                    ' -hls_segment_filename ' . escapeshellarg($rHLSDir . 'seg_%d.m4s') .
-                                    ' -threads 1' .
-                                    ' -max_muxing_queue_size 256' .
-                                    ' ' . escapeshellarg($rHLSPlaylist) .
-                                    ' >/dev/null 2>&1 &';
-                                shell_exec($rCmd);
-                            }
-                            */
-
                             echo 'VALID' . "\n";
                         } else {
                             $db->query('UPDATE `streams_servers` SET `to_analyze` = 0,`stream_status` = 1 WHERE `server_stream_id` = ?', $rRow['server_stream_id']);
@@ -175,8 +146,7 @@ function loadCron()
         }
     }
 }
-function shutdown()
-{
+function shutdown() {
     global $db;
     global $rIdentifier;
     if (!is_object($db)) {
