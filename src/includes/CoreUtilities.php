@@ -1509,7 +1509,7 @@ class CoreUtilities {
 						}
 					}
 					$rCommand = ((isset($rStream['stream_info']['transcode_attributes']['gpu']) ? self::$rFFMPEG_GPU : self::$rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . ((self::$rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err {GPU} -fflags +genpts -async 1 -i {STREAM_SOURCE} {LOGO} ';
-					
+
 					if (!array_key_exists('-acodec', $rStream['stream_info']['transcode_attributes'])) {
 						$rStream['stream_info']['transcode_attributes']['-acodec'] = 'copy';
 					}
@@ -1782,9 +1782,11 @@ class CoreUtilities {
 					$rReadNative = ($rStream['stream_info']['read_native'] == 1 ? '-re' : '');
 					if ($rStream['stream_info']['enable_transcode'] == 1) {
 						if ($rStream['stream_info']['transcode_profile_id'] == -1) {
-							$rStream['stream_info']['transcode_attributes'] = array_merge(self::getArguments($rStream['stream_arguments'], $rProtocol, 'transcode'), json_decode($rStream['stream_info']['transcode_attributes'], true));
+							$rDecoded = json_decode($rStream['stream_info']['transcode_attributes'], true);
+							$rStream['stream_info']['transcode_attributes'] = array_merge(self::getArguments($rStream['stream_arguments'], $rProtocol, 'transcode'), (is_array($rDecoded) ? $rDecoded : array()));
 						} else {
-							$rStream['stream_info']['transcode_attributes'] = json_decode($rStream['stream_info']['profile_options'], true);
+							$rDecoded = json_decode($rStream['stream_info']['profile_options'], true);
+							$rStream['stream_info']['transcode_attributes'] = (is_array($rDecoded) ? $rDecoded : array());
 						}
 					} else {
 						$rStream['stream_info']['transcode_attributes'] = array();
@@ -2176,7 +2178,8 @@ class CoreUtilities {
 							}
 						}
 
-						$rFFProbeOutput = json_decode(shell_exec(str_replace(array('{FETCH_OPTIONS}', '{CONCAT}', '{STREAM_SOURCE}'), array($rProbeOptions, ($rStream['stream_info']['type_key'] == 'created_live' && !$rStream['server_info']['parent_id'] ? '-safe 0 -f concat' : ''), escapeshellarg($rStreamSource)), $rFFProbee)), true);
+						$rProbeCmd = str_replace(array('{FETCH_OPTIONS}', '{CONCAT}', '{STREAM_SOURCE}'), array($rProbeOptions, ($rStream['stream_info']['type_key'] == 'created_live' && !$rStream['server_info']['parent_id'] ? '-safe 0 -f concat' : ''), escapeshellarg($rStreamSource)), $rFFProbee);
+						$rFFProbeOutput = json_decode(shell_exec($rProbeCmd), true);
 
 						if ($rFFProbeOutput && isset($rFFProbeOutput['streams'])) {
 							echo 'Got stream information via ffprobe' . "\n";
@@ -2233,7 +2236,9 @@ class CoreUtilities {
 							self::$rFFPROBE = FFPROBE_BIN_40;
 						}
 
+						// Use -nofix_dts only for FFmpeg 4.0, newer versions don't support it
 						$rNoFix = (self::$rFFMPEG_CPU == FFMPEG_BIN_40 ? '-nofix_dts' : '');
+						// For newer FFmpeg versions, use equivalent timestamp handling
 						$rGenPTS = $rNoFix . ' -start_at_zero -copyts -vsync 0 -correct_ts_overflow 0 -avoid_negative_ts disabled -max_interleave_delta 0';
 					}
 

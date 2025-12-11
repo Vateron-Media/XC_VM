@@ -3,7 +3,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
     if ($argc) {
         set_time_limit(0);
         require str_replace('\\', '/', dirname($argv[0])) . '/../../www/init.php';
-        shell_exec('kill -9 $(ps aux | grep queue | grep -v grep | grep -v ' . getmypid() . " | awk '{print \$2}')");
+        shell_exec('kill -9 $(ps aux | grep queue.php | grep -v grep | grep -v ' . getmypid() . " | awk '{print \$2}') > /dev/null 2>&1");
         $rLastCheck = null;
         $rInterval = 60;
         $rMD5 = md5_file(__FILE__);
@@ -94,14 +94,14 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                     }
                     sleep((0 < CoreUtilities::$rSettings['queue_loop'] ? intval(CoreUtilities::$rSettings['queue_loop']) : 5));
                 }
-                break;
+                // break; // REMOVED BREAK TO ALLOW LOOPING
             }
         }
         if (!is_object($db)) {
         } else {
             $db->close_mysql();
         }
-        shell_exec('(sleep 1; ' . PHP_BIN . ' ' . __FILE__ . ' ) > /dev/null 2>/dev/null &');
+        // shell_exec('(sleep 1; ' . PHP_BIN . ' ' . __FILE__ . ' ) > /home/xc_vm/tmp/queue_restart.log 2>&1 &'); // REMOVED RESTART
     } else {
         exit(0);
     }
