@@ -1,6 +1,5 @@
 <?php
-function checkRunning($rStreamID)
-{
+function checkRunning($rStreamID) {
     clearstatcache(true);
     if (!file_exists(STREAMS_PATH . $rStreamID . '_.monitor')) {
     } else {
@@ -553,5 +552,4 @@ if (!empty($rSegment)) {
     goto label496;
 }
 goto label1186;
-label1880:
-;
+label1880:;
