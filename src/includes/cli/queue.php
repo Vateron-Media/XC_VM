@@ -94,14 +94,14 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                     }
                     sleep((0 < CoreUtilities::$rSettings['queue_loop'] ? intval(CoreUtilities::$rSettings['queue_loop']) : 5));
                 }
-                // break; // REMOVED BREAK TO ALLOW LOOPING
+                break;
             }
         }
         if (!is_object($db)) {
         } else {
             $db->close_mysql();
         }
-        // shell_exec('(sleep 1; ' . PHP_BIN . ' ' . __FILE__ . ' ) > /home/xc_vm/tmp/queue_restart.log 2>&1 &'); // REMOVED RESTART
+        shell_exec('(sleep 1; ' . PHP_BIN . ' ' . __FILE__ . ' ) > /dev/null 2>/dev/null &');
     } else {
         exit(0);
     }
