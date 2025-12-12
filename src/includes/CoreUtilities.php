@@ -3580,48 +3580,78 @@ class CoreUtilities {
 		file_put_contents(CACHE_TMP_PATH . $rFile, json_encode($rRows), LOCK_EX);
 		return $rRows;
 	}
+
+	/**
+	 * Retrieve active connection data either from Redis or MySQL fallback.
+	 *
+	 * This method returns an array with two elements:
+	 *   [0] => array of UUID keys
+	 *   [1] => array of connection data arrays (unserialized Redis objects or MySQL rows)
+	 *
+	 * Behavior:
+	 * - If Redis handler is enabled, connections are fetched from sorted sets:
+	 *     SERVER#{server_id}, LINE#{user_id}, STREAM#{stream_id}, or LIVE
+	 * - If no keys exist in Redis, it returns [[] , []] to avoid null results.
+	 * - If Redis handler is disabled, a MySQL query is executed to obtain live connections.
+	 *
+	 * @param int|null $rServerID Optional server ID to filter connections (Redis ZSET: SERVER#{id})
+	 * @param int|null $rUserID   Optional user/line ID to filter connections (Redis ZSET: LINE#{id})
+	 * @param int|null $rStreamID Optional stream ID to filter connections (Redis ZSET: STREAM#{id})
+	 *
+	 * @return array{
+	 *     0: array, // List of UUID keys
+	 *     1: array  // List of connection data arrays
+	 * }
+	 *
+	 */
+
 	public static function getConnections($rServerID = null, $rUserID = null, $rStreamID = null) {
-		if (!self::$rSettings['redis_handler'] || is_object(self::$redis)) {
-		} else {
+		if (self::$rSettings['redis_handler'] && !is_object(self::$redis)) {
 			self::connectRedis();
 		}
+
 		if (self::$rSettings['redis_handler']) {
 			if ($rServerID) {
 				$rKeys = self::$redis->zRangeByScore('SERVER#' . $rServerID, '-inf', '+inf');
+			} elseif ($rUserID) {
+				$rKeys = self::$redis->zRangeByScore('LINE#' . $rUserID, '-inf', '+inf');
+			} elseif ($rStreamID) {
+				$rKeys = self::$redis->zRangeByScore('STREAM#' . $rStreamID, '-inf', '+inf');
 			} else {
-				if ($rUserID) {
-					$rKeys = self::$redis->zRangeByScore('LINE#' . $rUserID, '-inf', '+inf');
-				} else {
-					if ($rStreamID) {
-						$rKeys = self::$redis->zRangeByScore('STREAM#' . $rStreamID, '-inf', '+inf');
-					} else {
-						$rKeys = self::$redis->zRangeByScore('LIVE', '-inf', '+inf');
-					}
-				}
+				$rKeys = self::$redis->zRangeByScore('LIVE', '-inf', '+inf');
 			}
+
 			if (count($rKeys) > 0) {
 				return array($rKeys, array_map('igbinary_unserialize', self::$redis->mGet($rKeys)));
+			} else {
+				// We always return empty arrays
+				return array([], []);
 			}
 		} else {
+			// MYSQL fallback
 			$rWhere = array();
-			if (empty($rServerID)) {
-			} else {
+			if (!empty($rServerID)) {
 				$rWhere[] = 't1.server_id = ' . intval($rServerID);
 			}
-			if (empty($rUserID)) {
-			} else {
+			if (!empty($rUserID)) {
 				$rWhere[] = 't1.user_id = ' . intval($rUserID);
 			}
-			$rExtra = '';
-			if (0 >= count($rWhere)) {
-			} else {
-				$rExtra = 'WHERE ' . implode(' AND ', $rWhere);
-			}
-			$rQuery = 'SELECT t2.*,t3.*,t5.bitrate,t1.*,t1.uuid AS `uuid` FROM `lines_live` t1 LEFT JOIN `lines` t2 ON t2.id = t1.user_id LEFT JOIN `streams` t3 ON t3.id = t1.stream_id LEFT JOIN `streams_servers` t5 ON t5.stream_id = t1.stream_id AND t5.server_id = t1.server_id ' . $rExtra . ' ORDER BY t1.activity_id ASC';
+
+			$rExtra = count($rWhere) ? 'WHERE ' . implode(' AND ', $rWhere) : '';
+
+			$rQuery = 'SELECT t2.*,t3.*,t5.bitrate,t1.*,t1.uuid AS `uuid` 
+               FROM `lines_live` t1 
+               LEFT JOIN `lines` t2 ON t2.id = t1.user_id 
+               LEFT JOIN `streams` t3 ON t3.id = t1.stream_id 
+               LEFT JOIN `streams_servers` t5 ON t5.stream_id = t1.stream_id AND t5.server_id = t1.server_id 
+               ' . $rExtra . ' 
+               ORDER BY t1.activity_id ASC';
+
 			self::$db->query($rQuery);
 			return self::$db->get_rows(true, 'user_id', false);
 		}
 	}
+
 	public static function getEnded() {
 		if (is_object(self::$redis)) {
 		} else {
