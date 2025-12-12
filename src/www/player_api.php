@@ -524,6 +524,11 @@ if ($rUserInfo) {
 				if (in_array($rChannel['type_key'], array('live', 'created_live', 'radio_streams'))) {
 					$rCategoryIDs = json_decode($rChannel['category_id'], true);
 
+					// If there are no categories, set the category to 0
+					if (empty($rCategoryIDs)) {
+						$rCategoryIDs = [0];
+					}
+
 					foreach ($rCategoryIDs as $rCategoryID) {
 						if (!$rCategoryIDSearch || $rCategoryIDSearch == $rCategoryID) {
 							$rStreamIcon = (StreamingUtilities::validateImage($rChannel['stream_icon']) ?: '');
@@ -583,7 +588,7 @@ if ($rUserInfo) {
 					} else {
 						$rURL = '';
 					}
-					
+
 					$rating = is_numeric($output['info']['rating']) ? floatval($output['info']['rating']) : 0.0;
 
 					$output['info'] = json_decode($rRow['movie_properties'], true);

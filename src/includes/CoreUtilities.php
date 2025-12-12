@@ -1240,44 +1240,43 @@ class CoreUtilities {
 											$rESRID = ($rChannel['live'] == 1 ? 1 : 4097);
 											$rSID = (!empty($rChannel['custom_sid']) ? $rChannel['custom_sid'] : ':0:1:0:0:0:0:0:0:0:');
 											$rCategoryIDs = json_decode($rChannel['category_id'], true);
-											if (count($rCategoryIDs) > 0) {
-												foreach ($rCategoryIDs as $rCategoryID) {
-													if (isset(self::$rCategories[$rCategoryID])) {
-														$rData = str_replace(array('&lt;', '&gt;'), array('<', '>'), str_replace(array($rPattern, '{ESR_ID}', '{SID}', '{CHANNEL_NAME}', '{CHANNEL_ID}', '{XC_VM_ID}', '{CATEGORY}', '{CHANNEL_ICON}'), array(str_replace($rCharts, array_map('urlencode', $rCharts), $rURL), $rESRID, $rSID, $rChannel['stream_display_name'], $rChannel['channel_id'], $rChannel['id'], self::$rCategories[$rCategoryID]['category_name'], self::validateImage($rIcon)), $rConfig)) . "\r\n";
-														if ($rOutputFile) {
-															fwrite($rOutputFile, $rData);
-														}
-														echo $rData;
-														unset($rData);
-														if (stripos($rDeviceInfo['device_conf'], '{CATEGORY}') !== true) {
-															break;
-														}
-													}
+
+											// If there are no categories, set the category to 0
+											if (empty($rCategoryIDs)) {
+												$rCategoryIDs = [0];
+											}
+
+											foreach ($rCategoryIDs as $rCategoryID) {
+												if (isset(self::$rCategories[$rCategoryID])) {
+													$rData = str_replace(array('&lt;', '&gt;'), array('<', '>'), str_replace(array($rPattern, '{ESR_ID}', '{SID}', '{CHANNEL_NAME}', '{CHANNEL_ID}', '{XC_VM_ID}', '{CATEGORY}', '{CHANNEL_ICON}'), array(str_replace($rCharts, array_map('urlencode', $rCharts), $rURL), $rESRID, $rSID, $rChannel['stream_display_name'], $rChannel['channel_id'], $rChannel['id'], self::$rCategories[$rCategoryID]['category_name'], self::validateImage($rIcon)), $rConfig)) . "\r\n";
+												} else {
+													$rData = str_replace(array('&lt;', '&gt;'), array('<', '>'), str_replace(array($rPattern, '{ESR_ID}', '{SID}', '{CHANNEL_NAME}', '{CHANNEL_ID}', '{XC_VM_ID}', '{CHANNEL_ICON}'), array(str_replace($rCharts, array_map('urlencode', $rCharts), $rURL), $rESRID, $rSID, $rChannel['stream_display_name'], $rChannel['channel_id'], $rChannel['id'], $rIcon), $rConfig)) . "\r\n";
+													$rData = str_replace(' group-title="{CATEGORY}"', "", $rData);
 												}
-											} else {
-												$rData = str_replace(array('&lt;', '&gt;'), array('<', '>'), str_replace(array($rPattern, '{ESR_ID}', '{SID}', '{CHANNEL_NAME}', '{CHANNEL_ID}', '{XC_VM_ID}', '{CHANNEL_ICON}'), array(str_replace($rCharts, array_map('urlencode', $rCharts), $rURL), $rESRID, $rSID, $rChannel['stream_display_name'], $rChannel['channel_id'], $rChannel['id'], $rIcon), $rConfig)) . "\r\n";
-												$rData = str_replace(' group-title="{CATEGORY}"', "", $rData);
 												if ($rOutputFile) {
 													fwrite($rOutputFile, $rData);
 												}
 												echo $rData;
 												unset($rData);
+
+												// Break the loop if the playlist does not support categories
+												if (stripos($rDeviceInfo['device_conf'], '{CATEGORY}') === false) {
+													break;
+												}
 											}
 										}
 									}
 									unset($rRows);
 								}
 								$rData = trim(str_replace(array('&lt;', '&gt;'), array('<', '>'), $rDeviceInfo['device_footer']));
-								if (!$rOutputFile) {
-								} else {
+								if ($rOutputFile) {
 									fwrite($rOutputFile, $rData);
 								}
 								echo $rData;
 								unset($rData);
 							}
 						}
-						if (!$rOutputFile) {
-						} else {
+						if ($rOutputFile) {
 							fclose($rOutputFile);
 							rename(PLAYLIST_PATH . md5($rCacheName) . '.write', PLAYLIST_PATH . md5($rCacheName));
 						}
