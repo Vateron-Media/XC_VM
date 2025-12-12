@@ -433,40 +433,67 @@ function loadCron() {
     $rConnectionSpeeds = glob(DIVERGENCE_TMP_PATH . '*');
 
     if (count($rConnectionSpeeds) > 0) {
+        $rBitrates = [];
+        // Redis is enabled
         if (CoreUtilities::$rSettings['redis_handler']) {
-            $rStreamMap = $rBitrates = array();
+            $rStreamMap = [];
+
+            // Getting stream bitrates
             $db->query('SELECT `stream_id`, `bitrate` FROM `streams_servers` WHERE `server_id` = ? AND `bitrate` IS NOT NULL;', SERVER_ID);
 
             foreach ($db->get_rows() as $rRow) {
-                $rStreamMap[intval($rRow['stream_id'])] = intval($rRow['bitrate'] / 8 * 0.92);
-            }
-            $rUUIDs = array();
+                $bitrate = intval($rRow['bitrate']);
 
+                // Protection: bitrate <= 0 → skip
+                if ($bitrate > 0) {
+                    // conversion to bytes and a factor of 0.92
+                    $rStreamMap[intval($rRow['stream_id'])] = intval($bitrate / 8 * 0.92);
+                }
+            }
+
+            // Collecting the UUIDs of active connections
+            $rUUIDs = [];
             foreach ($rConnectionSpeeds as $rConnectionSpeed) {
                 if (!empty($rConnectionSpeed)) {
                     $rUUIDs[] = basename($rConnectionSpeed);
                 }
             }
 
+            // Getting active connections from Redis
             if (count($rUUIDs) > 0) {
                 $rConnections = array_map('igbinary_unserialize', CoreUtilities::$redis->mGet($rUUIDs));
 
                 foreach ($rConnections as $rConnection) {
-                    if (is_array($rConnection)) {
-                        $rBitrates[$rConnection['uuid']] = $rStreamMap[intval($rConnection['stream_id'])];
+                    if (!is_array($rConnection)) {
+                        continue;
                     }
+
+                    $uuid     = $rConnection['uuid'];
+                    $streamId = intval($rConnection['stream_id']);
+
+                    // stream_id is not in the database → skip
+                    if (!isset($rStreamMap[$streamId])) {
+                        continue;
+                    }
+
+                    $rBitrates[$uuid] = $rStreamMap[$streamId];
                 }
             }
 
             unset($rStreamMap);
         } else {
-            $rBitrates = array();
-            $db->query('SELECT `lines_live`.`uuid`, `streams_servers`.`bitrate` FROM `lines_live` LEFT JOIN `streams_servers` ON `lines_live`.`stream_id` = `streams_servers`.`stream_id` AND `lines_live`.`server_id` = `streams_servers`.`server_id` WHERE `lines_live`.`server_id` = ?;', SERVER_ID);
+            // Redis is disabled
+            $db->query('SELECT `lines_live`.`uuid`, `streams_servers`.`bitrate` FROM `lines_live` LEFT JOIN `streams_servers` ON `lines_live`.`stream_id` = `streams_servers`.`stream_id` AND `lines_live`.`server_id` = `streams_servers`.`server_id`  WHERE `lines_live`.`server_id` = ?;', SERVER_ID);
 
             foreach ($db->get_rows() as $rRow) {
-                $rBitrates[$rRow['uuid']] = intval($rRow['bitrate'] / 8 * 0.92);
+                $bitrate = intval($rRow['bitrate']);
+
+                if ($bitrate > 0) {
+                    $rBitrates[$rRow['uuid']] = intval($bitrate / 8 * 0.92);
+                }
             }
         }
+
 
         if (!CoreUtilities::$rSettings['redis_handler']) {
             $rUUIDMap = array();
@@ -477,23 +504,43 @@ function loadCron() {
             }
         }
 
-        $rLiveQuery = $rDivergenceUpdate = array();
+        $rLiveQuery = $rDivergenceUpdate = [];
 
         foreach ($rConnectionSpeeds as $rConnectionSpeed) {
-            if (!empty($rConnectionSpeed)) {
-                $rUUID = basename($rConnectionSpeed);
-                $rAverageSpeed = intval(file_get_contents($rConnectionSpeed));
-                $rDivergence = intval(($rAverageSpeed - $rBitrates[$rUUID]) / $rBitrates[$rUUID] * 100);
+            if (empty($rConnectionSpeed)) {
+                continue;
+            }
 
-                if ($rDivergence > 0) {
-                    $rDivergence = 0;
-                }
+            $rUUID = basename($rConnectionSpeed);
+            $rAverageSpeed = intval(file_get_contents($rConnectionSpeed));
 
-                $rDivergenceUpdate[] = "('" . $rUUID . "', " . abs($rDivergence) . ')';
+            // Protection: no bitrate for the connection
+            if (!isset($rBitrates[$rUUID]) || $rBitrates[$rUUID] <= 0) {
+
+                // устанавливаем 0 дивергенции
+                $rDivergenceUpdate[] = "('$rUUID', 0)";
 
                 if (!CoreUtilities::$rSettings['redis_handler'] && isset($rUUIDMap[$rUUID])) {
-                    $rLiveQuery[] = '(' . $rUUIDMap[$rUUID] . ', ' . abs($rDivergence) . ')';
+                    $rLiveQuery[] = '(' . $rUUIDMap[$rUUID] . ', 0)';
                 }
+
+                continue;
+            }
+
+            $realBitrate = $rBitrates[$rUUID];
+            // Calculate the divergence as a percentage
+            $rDivergence = intval(($rAverageSpeed - $realBitrate) / $realBitrate * 100);
+
+            // Positive divergence doesn't make sense — set it to zero
+            if ($rDivergence > 0) {
+                $rDivergence = 0;
+            }
+
+            // Preparing the queries
+            $rDivergenceUpdate[] = "('" . $rUUID . "', " . abs($rDivergence) . ')';
+
+            if (!CoreUtilities::$rSettings['redis_handler'] && isset($rUUIDMap[$rUUID])) {
+                $rLiveQuery[] = '(' . $rUUIDMap[$rUUID] . ', ' . abs($rDivergence) . ')';
             }
         }
 
