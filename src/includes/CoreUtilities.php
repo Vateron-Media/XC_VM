@@ -1872,8 +1872,7 @@ class CoreUtilities {
 	}
 	public static function startLLOD($rStreamID, $rStreamInfo, $rStreamArguments, $rForceSource = null) {
 		shell_exec('rm -f ' . STREAMS_PATH . intval($rStreamID) . '_*.ts');
-		if (!file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
-		} else {
+		if (file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
 			unlink(STREAMS_PATH . $rStreamID . '_.pid');
 		}
 		$rSources = ($rForceSource ? array($rForceSource) : json_decode($rStreamInfo['stream_source'], true));
