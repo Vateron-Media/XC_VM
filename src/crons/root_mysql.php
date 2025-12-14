@@ -2,6 +2,11 @@
 if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
     set_time_limit(0);
     if ($argc) {
+        if (!checkMariaDB()) {
+            // if we reach here, restart failed
+            exit("[MYSQL] Critical error, aborting\n");
+        }
+
         require str_replace('\\', '/', dirname($argv[0])) . '/../includes/admin.php';
         cli_set_process_title('XC_VM[MysqlErrors]');
         $rIdentifier = CRONS_TMP_PATH . md5(CoreUtilities::generateUniqueCode() . __FILE__);
@@ -90,4 +95,47 @@ function inArray($needles, $haystack) {
         }
     }
     return false;
+}
+
+/**
+ * Checks MariaDB service health and attempts to restart it if needed.
+ *
+ * The function performs two independent checks:
+ *  - Verifies MariaDB systemd service state (`systemctl is-active mariadb`)
+ *  - Ensures that at least one `mysqld` process is running
+ *
+ * If either check fails, the function tries to restart the MariaDB service
+ * using systemd and re-checks its status after a short delay.
+ *
+ * @return bool
+ *         Returns TRUE if MariaDB is running or was successfully restarted,
+ *         FALSE if the restart attempt failed.
+ */
+function checkMariaDB() {
+    // Check systemd status
+    exec('systemctl is-active mariadb 2>/dev/null', $out, $code);
+    $isActive = isset($out[0]) && trim($out[0]) === 'active';
+
+    // Check mysqld process
+    exec('pgrep mysqld', $pids, $pidCode);
+    $hasProcess = !empty($pids);
+
+    if (!$isActive || !$hasProcess) {
+        echo "[MYSQL] MariaDB is DOWN, restarting...\n";
+
+        exec('systemctl restart mariadb 2>&1', $restartOut, $restartCode);
+
+        sleep(3); // wait a bit for the service to restart
+
+        exec('systemctl is-active mariadb 2>/dev/null', $checkOut);
+        if (isset($checkOut[0]) && trim($checkOut[0]) === 'active') {
+            echo "[MYSQL] MariaDB successfully restarted\n";
+            return true;
+        } else {
+            echo "[MYSQL] FAILED to restart MariaDB\n";
+            return false;
+        }
+    }
+
+    return true;
 }
