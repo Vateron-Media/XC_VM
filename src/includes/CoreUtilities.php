@@ -517,18 +517,6 @@ class CoreUtilities {
 			return $rArray;
 		}
 	}
-	public static function getTotalTmpfs() {
-		$rTotal = 0;
-		exec('df | grep tmpfs', $rOutput);
-		foreach ($rOutput as $rLine) {
-			$rSplit = explode(' ', preg_replace('!\\s+!', ' ', $rLine));
-			if ($rSplit[0] != 'tmpfs') {
-			} else {
-				$rTotal += intval($rSplit[2]);
-			}
-		}
-		return $rTotal;
-	}
 	public static function getStats() {
 		$rJSON = array();
 		$rJSON['cpu'] = round(self::getTotalCPU(), 2);
@@ -541,8 +529,8 @@ class CoreUtilities {
 		$rMemInfo = self::getMemory();
 		$rJSON['total_mem'] = $rMemInfo['total'];
 		$rJSON['total_mem_free'] = $rMemInfo['free'];
-		$rJSON['total_mem_used'] = $rMemInfo['used'] + self::getTotalTmpfs();
-		$rJSON['total_mem_used_percent'] = round($rJSON['total_mem_used'] / $rJSON['total_mem'] * 100, 2);
+		$rJSON['total_mem_used'] = $rMemInfo['used'];
+		$rJSON['total_mem_used_percent'] = round(($rJSON['total_mem_used'] / $rJSON['total_mem']) * 100, 2);
 		$rJSON['total_disk_space'] = disk_total_space(MAIN_HOME);
 		$rJSON['free_disk_space'] = disk_free_space(MAIN_HOME);
 		$rJSON['kernel'] = trim(shell_exec('uname -r'));
