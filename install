@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-import subprocess, os, random, string, sys, shutil, socket, time, io
+import subprocess, os, random, string, sys, shutil, socket, time, io, math
 
 if sys.version_info.major != 3:
     print("Please run with python3.")
@@ -23,6 +23,7 @@ rPackages = [
     "e2fsprogs",
     "wget",
     "mariadb-server",
+    "mariadb-client",
     "sysstat",
     "alsa-utils",
     "v4l-utils",
@@ -42,9 +43,9 @@ rPackages = [
     "cron"
 ]
 rRemove = ["mysql-server"]
-rMySQLCnf = '# XC_VM\n[client]\nport                            = 3306\n\n[mysqld_safe]\nnice                            = 0\n\n[mysqld]\nuser                            = mysql\nport                            = 3306\nbasedir                         = /usr\ndatadir                         = /var/lib/mysql\ntmpdir                          = /tmp\nlc-messages-dir                 = /usr/share/mysql\nskip-external-locking\nskip-name-resolve\nbind-address                    = *\n\n# MyISAM\nkey_buffer_size                 = 32M\nmyisam_sort_buffer_size         = 4M\nmyisam-recover-options          = BACKUP\nmax_length_for_sort_data        = 4096\n\n# Connections\nmax_connections                 = 200\nback_log                        = 256\nmax_connect_errors              = 1000\n\n# Packet and cache\nmax_allowed_packet              = 16M\nopen_files_limit                = 2048\ninnodb_open_files               = 1024\ntable_open_cache                = 1024\ntable_definition_cache          = 1024\n\n# Temp tables\ntmp_table_size                  = 64M\nmax_heap_table_size             = 64M\n\n# InnoDB\ninnodb_buffer_pool_size         = 2G\ninnodb_read_io_threads          = 4\ninnodb_write_io_threads         = 4\ninnodb_flush_log_at_trx_commit  = 1\ninnodb_flush_method             = O_DIRECT\ninnodb_file_per_table           = 1\ninnodb_io_capacity              = 1000\ninnodb_table_locks              = 1\ninnodb_lock_wait_timeout        = 30\n\n# Logging\nexpire_logs_days                = 7\nmax_binlog_size                 = 64M\n\n# Query cache – still disabled\nquery_cache_limit               = 0\nquery_cache_size                = 0\nquery_cache_type                = 0\n\nperformance_schema              = 0\n\nsql_mode                        = "NO_ENGINE_SUBSTITUTION"\n\n[mariadb]\nthread_cache_size               = 64\nthread_handling                 = pool-of-threads\nthread_pool_size                = 4\nthread_pool_idle_timeout        = 20\nthread_pool_max_threads         = 256\n\n[mysqldump]\nquick\nquote-names\nmax_allowed_packet              = 16M\n\n[mysql]\n\n[isamchk]\nkey_buffer_size                 = 8M'
+rMySQLCnfTemplate = """# XC_VM\n[client]\nport                            = 3306\n\n[mysqld_safe]\nnice                            = 0\n\n[mysqld]\nuser                            = mysql\nport                            = 3306\nbasedir                         = /usr\ndatadir                         = /var/lib/mysql\ntmpdir                          = /tmp\nlc-messages-dir                 = /usr/share/mysql\nskip-external-locking\nskip-name-resolve\nbind-address                    = *\n\n# MyISAM\nkey_buffer_size                 = {{KEY_BUFFER}}M\nmyisam_sort_buffer_size         = 4M\nmyisam-recover-options          = BACKUP\nmax_length_for_sort_data        = 4096\n\n# Connections\nmax_connections                 = {{MAX_CONNECTIONS}}\nback_log                        = {{BACK_LOG}}\nmax_connect_errors              = 1000\n\n# Packet and cache\nmax_allowed_packet              = 16M\nopen_files_limit                = 2048\ninnodb_open_files               = 1024\ntable_open_cache                = 1024\ntable_definition_cache          = 1024\n\n# Temp tables\ntmp_table_size                  = {{TMP_TABLE_SIZE}}M\nmax_heap_table_size             = {{TMP_TABLE_SIZE}}M\n\n# InnoDB\ninnodb_buffer_pool_size         = {{BUFFER_POOL_SIZE}}\ninnodb_buffer_pool_instances    = {{BUFFER_POOL_INSTANCES}}\ninnodb_read_io_threads          = 4\ninnodb_write_io_threads         = 4\ninnodb_flush_log_at_trx_commit  = 1\ninnodb_flush_method             = O_DIRECT\ninnodb_file_per_table           = 1\ninnodb_io_capacity              = 1000\ninnodb_table_locks              = 1\ninnodb_lock_wait_timeout        = 30\n\n# Logging\nexpire_logs_days                = 7\nmax_binlog_size                 = 64M\n\n# Query cache – disabled\nquery_cache_limit               = 0\nquery_cache_size                = 0\nquery_cache_type                = 0\n\nperformance_schema              = 0\n\nsql_mode                        = "NO_ENGINE_SUBSTITUTION"\n\n[mariadb]\nthread_cache_size               = {{THREAD_CACHE}}\nthread_handling                 = pool-of-threads\nthread_pool_size                = 4\nthread_pool_idle_timeout        = 20\nthread_pool_max_threads         = 256\n\n[mysqldump]\nquick\nquote-names\nmax_allowed_packet              = 16M\n\n[mysql]\n\n[isamchk]\nkey_buffer_size                 = 8M"""
 rConfig = '; XC_VM Configuration\n; -----------------\n; To change your username or password, modify BOTH\n; below and XC_VM will read and re-encrypt them.\n\n[XC_VM]\nhostname    =   "127.0.0.1"\ndatabase    =   "xc_vm"\nport        =   3306\nserver_id   =   1\n\n[Encrypted]\nusername    =   "%s"\npassword    =   "%s"'
-rRedisConfig = 'bind *\nprotected-mode yes\nport 6379\ntcp-backlog 511\ntimeout 0\ntcp-keepalive 300\ndaemonize yes\nsupervised no\npidfile /home/xc_vm/bin/redis/redis-server.pid\nloglevel warning\nlogfile /home/xc_vm/bin/redis/redis-server.log\ndatabases 1\nalways-show-logo yes\nstop-writes-on-bgsave-error no\nrdbcompression no\nrdbchecksum no\ndbfilename dump.rdb\ndir /home/xc_vm/bin/redis/\nslave-serve-stale-data yes\nslave-read-only yes\nrepl-diskless-sync no\nrepl-diskless-sync-delay 5\nrepl-disable-tcp-nodelay no\nslave-priority 100\nrequirepass #PASSWORD#\nmaxclients 655350\nlazyfree-lazy-eviction no\nlazyfree-lazy-expire no\nlazyfree-lazy-server-del no\nslave-lazy-flush no\nappendonly no\nappendfilename "appendonly.aof"\nappendfsync everysec\nno-appendfsync-on-rewrite no\nauto-aof-rewrite-percentage 100\nauto-aof-rewrite-min-size 64mb\naof-load-truncated yes\naof-use-rdb-preamble no\nlua-time-limit 5000\nslowlog-log-slower-than 10000\nslowlog-max-len 128\nlatency-monitor-threshold 0\nnotify-keyspace-events ""\nhash-max-ziplist-entries 512\nhash-max-ziplist-value 64\nlist-max-ziplist-size -2\nlist-compress-depth 0\nset-max-intset-entries 512\nzset-max-ziplist-entries 128\nzset-max-ziplist-value 64\nhll-sparse-max-bytes 3000\nactiverehashing yes\nclient-output-buffer-limit normal 0 0 0\nclient-output-buffer-limit slave 256mb 64mb 60\nclient-output-buffer-limit pubsub 32mb 8mb 60\nhz 10\naof-rewrite-incremental-fsync yes\nsave 60 1000\nserver-threads 4\nserver-thread-affinity true'
+rRedisConfig = 'bind *\nprotected-mode yes\nport 6379\ntcp-backlog 511\ntimeout 0\ntcp-keepalive 300\ndaemonize yes\nsupervised no\npidfile /home/xc_vm/bin/redis/redis-server.pid\nloglevel warning\nlogfile /home/xc_vm/bin/redis/redis-server.log\ndatabases 1\nalways-show-logo yes\nstop-writes-on-bgsave-error no\nrdbcompression no\nrdbchecksum no\ndbfilename dump.rdb\ndir /home/xc_vm/bin/redis/\nslave-serve-stale-data yes\nslave-read-only yes\nrepl-diskless-sync no\nrepl-diskless-sync-delay 5\nrepl-disable-tcp-nodelay no\nslave-priority 100\nrequirepass #PASSWORD#\nmaxclients 655350\nlazyfree-lazy-eviction no\nlazyfree-lazy-expire no\nlazyfree-lazy-server-delay no\nslave-lazy-flush no\nappendonly no\nappendfilename "appendonly.aof"\nappendfsync everysec\nno-appendfsync-on-rewrite no\nauto-aof-rewrite-percentage 100\nauto-aof-rewrite-min-size 64mb\naof-load-truncated yes\naof-use-rdb-preamble no\nlua-time-limit 5000\nslowlog-log-slower-than 10000\nslowlog-max-len 128\nlatency-monitor-threshold 0\nnotify-keyspace-events ""\nhash-max-ziplist-entries 512\nhash-max-ziplist-value 64\nlist-max-ziplist-size -2\nlist-compress-depth 0\nset-max-intset-entries 512\nzset-max-ziplist-entries 128\nzset-max-ziplist-value 64\nhll-sparse-max-bytes 3000\nactiverehashing yes\nclient-output-buffer-limit normal 0 0 0\nclient-output-buffer-limit slave 256mb 64mb 60\nclient-output-buffer-limit pubsub 32mb 8mb 60\nhz 10\naof-rewrite-incremental-fsync yes\nsave 60 1000\nserver-threads 4\nserver-thread-affinity true'
 rSysCtl = "# XC_VM\n\nnet.ipv4.tcp_congestion_control = bbr\nnet.core.default_qdisc = fq\nnet.ipv4.tcp_rmem = 8192 87380 134217728\nnet.ipv4.udp_rmem_min = 16384\nnet.core.rmem_default = 262144\nnet.core.rmem_max = 268435456\nnet.ipv4.tcp_wmem = 8192 65536 134217728\nnet.ipv4.udp_wmem_min = 16384\nnet.core.wmem_default = 262144\nnet.core.wmem_max = 268435456\nnet.core.somaxconn = 1000000\nnet.core.netdev_max_backlog = 250000\nnet.core.optmem_max = 65535\nnet.ipv4.tcp_max_tw_buckets = 1440000\nnet.ipv4.tcp_max_orphans = 16384\nnet.ipv4.ip_local_port_range = 2000 65000\nnet.ipv4.tcp_no_metrics_save = 1\nnet.ipv4.tcp_slow_start_after_idle = 0\nnet.ipv4.tcp_fin_timeout = 15\nnet.ipv4.tcp_keepalive_time = 300\nnet.ipv4.tcp_keepalive_probes = 5\nnet.ipv4.tcp_keepalive_intvl = 15\nfs.file-max=20970800\nfs.nr_open=20970800\nfs.aio-max-nr=20970800\nnet.ipv4.tcp_timestamps = 1\nnet.ipv4.tcp_window_scaling = 1\nnet.ipv4.tcp_mtu_probing = 1\nnet.ipv4.route.flush = 1\nnet.ipv6.route.flush = 1"
 rSystemd = "[Unit]\nSourcePath=/home/xc_vm/service\nDescription=XC_VM Service\nAfter=network.target\nStartLimitIntervalSec=0\n\n[Service]\nType=simple\nUser=root\nRestart=always\nRestartSec=1\nExecStart=/bin/bash /home/xc_vm/service start\nExecRestart=/bin/bash /home/xc_vm/service restart\nExecStop=/bin/bash /home/xc_vm/service stop\n\n[Install]\nWantedBy=multi-user.target"
 rChoice = "23456789abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ"
@@ -58,6 +59,74 @@ rVersions = {
     "24.04": "noble",
     "24.10": "oracular",
 }
+
+
+def get_system_ram_mb():
+    """Get total system RAM in MB"""
+    try:
+        with open('/proc/meminfo', 'r') as f:
+            for line in f:
+                if line.startswith('MemTotal:'):
+                    mem_kb = int(line.split()[1])
+                    return mem_kb // 1024  # Convert to MB
+    except:
+        pass
+    return 1024  # Value by default if unable to determine
+
+
+def generate_mysql_config(total_ram_mb):
+    """Generate MySQL configuration based on total RAM"""
+
+    buffer_pool_mb = int(total_ram_mb * 0.25)
+
+    if total_ram_mb < 512:
+        buffer_pool_mb = 64
+        max_connections = 30
+    elif total_ram_mb < 1024:
+        buffer_pool_mb = min(buffer_pool_mb, 128)
+        max_connections = 50
+    elif total_ram_mb < 2048:
+        buffer_pool_mb = min(buffer_pool_mb, 256)
+        max_connections = 80
+    elif total_ram_mb < 4096:
+        buffer_pool_mb = min(buffer_pool_mb, 512)
+        max_connections = 120
+    elif total_ram_mb < 8192:
+        buffer_pool_mb = min(buffer_pool_mb, 1024)
+        max_connections = 150
+    else:
+        buffer_pool_mb = min(buffer_pool_mb, 2048)
+        max_connections = 200
+
+    buffer_pool_size = (
+        f"{buffer_pool_mb // 1024}G"
+        if buffer_pool_mb >= 1024 else f"{buffer_pool_mb}M"
+    )
+
+    key_buffer = min(buffer_pool_mb // 8, 32)
+    tmp_table_size = min(buffer_pool_mb // 4, 64)
+
+    config = rMySQLCnfTemplate
+    config = config.replace("{{TOTAL_RAM}}", str(total_ram_mb))
+    config = config.replace("{{KEY_BUFFER}}", str(key_buffer))
+    config = config.replace("{{MAX_CONNECTIONS}}", str(max_connections))
+    config = config.replace("{{BACK_LOG}}", str(min(max_connections // 2, 256)))
+    config = config.replace("{{TMP_TABLE_SIZE}}", str(tmp_table_size))
+    config = config.replace("{{BUFFER_POOL_SIZE}}", buffer_pool_size)
+    config = config.replace(
+        "{{BUFFER_POOL_INSTANCES}}",
+        "1" if buffer_pool_mb < 1024 else "2"
+    )
+    config = config.replace(
+        "{{THREAD_CACHE}}",
+        str(min(max_connections // 4, 64))
+    )
+
+    printc(f"RAM detected: {total_ram_mb}MB", col.OKGREEN)
+    printc(f"Buffer pool configured: {buffer_pool_size} ({buffer_pool_mb}MB)", col.OKGREEN)
+    printc(f"Max connections: {max_connections}", col.OKGREEN)
+
+    return config
 
 
 class col:
@@ -143,7 +212,7 @@ if __name__ == "__main__":
             sys.exit(1)
     
     with io.open(rPath + "/credentials.txt", "w", encoding="utf-8") as rFile:
-        rFile.write("MySQL Username: {}\nMySQL Password: {}".format(rUsername, rPassword))
+        rFile.write("MariaDB Username: {}\nMariaDB Password: {}".format(rUsername, rPassword))
 
     ##################################################
     # UPGRADE                                        #
@@ -226,81 +295,89 @@ if __name__ == "__main__":
             sys.exit(1)
 
     ##################################################
-    # MYSQL                                          #
+    # MariaDB                                          #
     ##################################################
 
-    printc("Configuring MySQL")
+    printc("Configuring MariaDB")
+    
+    # Get total system RAM
+    total_ram_mb = get_system_ram_mb()
+    rMySQLCnf = generate_mysql_config(total_ram_mb)
+    
     rCreate = True
     if os.path.exists("/etc/mysql/my.cnf"):
         if open("/etc/mysql/my.cnf", "r").read(5) == "# XC_VM":
             rCreate = False
+    
     if rCreate:
         rFile = io.open("/etc/mysql/my.cnf", "w", encoding="utf-8")
         rFile.write(rMySQLCnf)
         rFile.close()
-        os.system("sudo service mariadb restart")
+        os.system("sudo systemctl restart mariadb || sudo service mariadb restart")
+    
     rExtra = ""
-    rRet = os.system('mysql -u root -e "SELECT VERSION();"')
+    rRet = os.system('mariadb -u root -e "SELECT VERSION();"')
     if rRet != 0:
         while True:
-            rExtra = " -p%s" % input("Root MySQL Password: ")
-            rRet = os.system('mysql -u root%s -e "SELECT VERSION();"' % rExtra)
+            rExtra = " -p%s" % input("Root MariaDB Password: ")
+            rRet = os.system('mariadb -u root%s -e "SELECT VERSION();"' % rExtra)
             if rRet == 0:
                 break
             else:
                 printc("Invalid password! Please try again.")
+    
     os.system(
-        'sudo mysql -u root%s -e "DROP DATABASE IF EXISTS xc_vm; CREATE DATABASE IF NOT EXISTS xc_vm;"'
+        'sudo mariadb -u root%s -e "DROP DATABASE IF EXISTS xc_vm; CREATE DATABASE IF NOT EXISTS xc_vm;"'
         % rExtra
     )
     os.system(
-        'sudo mysql -u root%s -e "DROP DATABASE IF EXISTS xc_vm_migrate; CREATE DATABASE IF NOT EXISTS xc_vm_migrate;"'
+        'sudo mariadb -u root%s -e "DROP DATABASE IF EXISTS xc_vm_migrate; CREATE DATABASE IF NOT EXISTS xc_vm_migrate;"'
         % rExtra
     )
     os.system(
-        'sudo mysql -u root%s xc_vm < "/home/xc_vm/bin/install/database.sql"' % rExtra
+        'sudo mariadb -u root%s xc_vm < "/home/xc_vm/bin/install/database.sql"' % rExtra
     )
     os.system(
-        "sudo mysql -u root%s -e \"CREATE USER '%s'@'localhost' IDENTIFIED BY '%s';\""
+        "sudo mariadb -u root%s -e \"CREATE USER '%s'@'localhost' IDENTIFIED BY '%s';\""
         % (rExtra, rUsername, rPassword)
     )
     os.system(
-        "sudo mysql -u root%s -e \"GRANT ALL PRIVILEGES ON xc_vm.* TO '%s'@'localhost';\""
+        "sudo mariadb -u root%s -e \"GRANT ALL PRIVILEGES ON xc_vm.* TO '%s'@'localhost';\""
         % (rExtra, rUsername)
     )
     os.system(
-        "sudo mysql -u root%s -e \"GRANT ALL PRIVILEGES ON xc_vm_migrate.* TO '%s'@'localhost';\""
+        "sudo mariadb -u root%s -e \"GRANT ALL PRIVILEGES ON xc_vm_migrate.* TO '%s'@'localhost';\""
         % (rExtra, rUsername)
     )
     os.system(
-        "sudo mysql -u root%s -e \"GRANT ALL PRIVILEGES ON mysql.* TO '%s'@'localhost';\""
+        "sudo mariadb -u root%s -e \"GRANT ALL PRIVILEGES ON mysql.* TO '%s'@'localhost';\""
         % (rExtra, rUsername)
     )
     os.system(
-        "sudo mysql -u root%s -e \"GRANT GRANT OPTION ON xc_vm.* TO '%s'@'localhost';\""
+        "sudo mariadb -u root%s -e \"GRANT GRANT OPTION ON xc_vm.* TO '%s'@'localhost';\""
         % (rExtra, rUsername)
     )
     os.system(
-        "sudo mysql -u root%s -e \"CREATE USER '%s'@'127.0.0.1' IDENTIFIED BY '%s';\""
+        "sudo mariadb -u root%s -e \"CREATE USER '%s'@'127.0.0.1' IDENTIFIED BY '%s';\""
         % (rExtra, rUsername, rPassword)
     )
     os.system(
-        "sudo mysql -u root%s -e \"GRANT ALL PRIVILEGES ON xc_vm.* TO '%s'@'127.0.0.1';\""
+        "sudo mariadb -u root%s -e \"GRANT ALL PRIVILEGES ON xc_vm.* TO '%s'@'127.0.0.1';\""
         % (rExtra, rUsername)
     )
     os.system(
-        "sudo mysql -u root%s -e \"GRANT ALL PRIVILEGES ON xc_vm_migrate.* TO '%s'@'127.0.0.1';\""
+        "sudo mariadb -u root%s -e \"GRANT ALL PRIVILEGES ON xc_vm_migrate.* TO '%s'@'127.0.0.1';\""
         % (rExtra, rUsername)
     )
     os.system(
-        "sudo mysql -u root%s -e \"GRANT ALL PRIVILEGES ON mysql.* TO '%s'@'127.0.0.1';\""
+        "sudo mariadb -u root%s -e \"GRANT ALL PRIVILEGES ON mysql.* TO '%s'@'127.0.0.1';\""
         % (rExtra, rUsername)
     )
     os.system(
-        "sudo mysql -u root%s -e \"GRANT GRANT OPTION ON xc_vm.* TO '%s'@'127.0.0.1';\""
+        "sudo mariadb -u root%s -e \"GRANT GRANT OPTION ON xc_vm.* TO '%s'@'127.0.0.1';\""
         % (rExtra, rUsername)
     )
-    os.system('sudo mysql -u root%s -e "FLUSH PRIVILEGES;"' % rExtra)
+    os.system('sudo mariadb -u root%s -e "FLUSH PRIVILEGES;"' % rExtra)
     rConfigData = rConfig % (rUsername, rPassword)
     rFile = io.open(rConfigPath, "w", encoding="utf-8")
     rFile.write(rConfigData)
@@ -361,6 +438,7 @@ if __name__ == "__main__":
         os.system("sudo chmod +x /etc/systemd/system/xc_vm.service")
         os.system("sudo systemctl daemon-reload")
         os.system("sudo systemctl enable xc_vm")
+    
     print(
         "Custom sysctl.conf - If you have your own custom sysctl.conf, type N or it will be overwritten. If you don't know what a sysctl configuration is, type Y as it will correctly set your TCP settings and open file limits."
     )
@@ -369,6 +447,7 @@ if __name__ == "__main__":
         rAnswer = input("Overwrite sysctl configuration? Recommended! (Y / N): ")
         if rAnswer.upper() in ["Y", "N"]:
             break
+    
     if rAnswer.upper() == "Y":
         try:
             os.system("sudo modprobe ip_conntrack")
@@ -386,11 +465,13 @@ if __name__ == "__main__":
     else:
         if os.path.exists("/home/xc_vm/config/sysctl.on"):
             os.remove("/home/xc_vm/config/sysctl.on")
+    
     if not "DefaultLimitNOFILE=655350" in open("/etc/systemd/system.conf").read():
         os.system(
             'sudo echo "\nDefaultLimitNOFILE=655350" >> "/etc/systemd/system.conf"'
         )
         os.system('sudo echo "\nDefaultLimitNOFILE=655350" >> "/etc/systemd/user.conf"')
+    
     if not os.path.exists("/home/xc_vm/bin/redis/redis.conf"):
         rFile = io.open("/home/xc_vm/bin/redis/redis.conf", "w", encoding="utf-8")
         rFile.write(rRedisConfig)
@@ -408,10 +489,11 @@ if __name__ == "__main__":
                 os.remove(rCodeDir + "setup.conf")
             elif "/home/xc_vm/admin" in open(rCodeDir + rCode, "r").read():
                 rHasAdmin = rCode
+    
     if not rHasAdmin:
         rCode = generate(8)
         os.system(
-            "sudo mysql -u root%s -e \"USE xc_vm; INSERT INTO access_codes(code, type, enabled, groups) VALUES('%s', 0, 1, '[1]');\""
+            "sudo mariadb -u root%s -e \"USE xc_vm; INSERT INTO access_codes(code, type, enabled, groups) VALUES('%s', 0, 1, '[1]');\""
             % (rExtra, rCode)
         )
         rTemplate = open(rCodeDir + "template").read()
@@ -449,7 +531,11 @@ if __name__ == "__main__":
     printc("Installation completed!", col.OKGREEN, 2)
     printc("Continue Setup: http://%s:%s/%s" % (getIP(),http_port, rCode))
     print(" ")
-    printc("Your mysql credentials have been saved to:")
+    printc("Your MariaDB credentials have been saved to:")
     printc(rPath + "/credentials.txt")
+    print(" ")
+    printc("MariaDB Configuration Summary:")
+    printc(f"  Total RAM: {total_ram_mb}MB")
+
     print(" ")
     printc("Please move this file somewhere safe!")
