@@ -1103,7 +1103,15 @@ class CoreUtilities {
 							$rData = json_encode((object) $rOutput);
 						} else {
 							if (!empty($rDeviceInfo['device_header'])) {
-								$rAppend = ($rDeviceInfo['device_header'] == '#EXTM3U' ? "\n" . '#EXT-X-SESSION-DATA:DATA-ID="com.xc_vm.' . str_replace('.', '_', XC_VM_VERSION) . '"' : '');
+								$epgUrl = $rDomainName . 'epg/' . $rUserInfo['username'] . '/' . $rUserInfo['password'];
+								$isM3UFormat = (strpos($rDeviceInfo['device_header'], '#EXTM3U') !== false);
+
+								// If M3U format and no existing x-tvg-url, add it
+								if ($isM3UFormat && strpos($rDeviceInfo['device_header'], 'x-tvg-url') === false) {
+									$rDeviceInfo['device_header'] = str_replace('#EXTM3U', '#EXTM3U x-tvg-url="' . $epgUrl . '"', $rDeviceInfo['device_header']);
+								}
+
+								$rAppend = ($isM3UFormat ? "\n" . '#EXT-X-SESSION-DATA:DATA-ID="com.xc_vm.' . str_replace('.', '_', XC_VM_VERSION) . '"' : '');
 								$rData = str_replace(array('&lt;', '&gt;'), array('<', '>'), str_replace(array('{BOUQUET_NAME}', '{USERNAME}', '{PASSWORD}', '{SERVER_URL}', '{OUTPUT_KEY}'), array(self::$rSettings['server_name'], $rUserInfo['username'], $rUserInfo['password'], $rDomainName, $rOutputKey), $rDeviceInfo['device_header'] . $rAppend)) . "\n";
 								if ($rOutputFile) {
 									fwrite($rOutputFile, $rData);
