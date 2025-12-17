@@ -11,185 +11,244 @@ class EPG {
 
 	public function getData() {
 		$rOutput = [];
+		$channelCount = 0;
 
-		while (($rNode = $this->rEPGSource->getNode())) {
-			// PHP 8 fix: Add proper error handling for XML parsing
-			try {
-				$rData = simplexml_load_string($rNode, 'SimpleXMLElement', LIBXML_NOCDATA | LIBXML_NOERROR | LIBXML_NOWARNING);
-			} catch (Exception $e) {
+		print_log("[EPG] Starting getData() - parsing channels and languages...");
+
+		while ($rNode = $this->rEPGSource->getNode()) {
+			$rData = simplexml_load_string($rNode);
+			if (!$rData) continue;
+
+			$rNodeName = $rData->getName();
+
+			if ($rNodeName === 'channel') {
+				$rChannelID = trim((string) $rData->attributes()->id);
+				$displayName = !empty($rData->{'display-name'}) ? trim((string) $rData->{'display-name'}) : 'Unknown';
+
+				if (!array_key_exists($rChannelID, $rOutput)) {
+					$rOutput[$rChannelID] = [
+						'display_name' => $displayName,
+						'langs'        => []
+					];
+					$channelCount++;
+				}
 				continue;
 			}
 
-			if ($rData) {
-				if ($rData->getName() == 'channel') {
-					$rChannelID = trim((string) $rData->attributes()->id);
-					$rDisplayName = (!empty($rData->{'display-name'}) ? trim((string) $rData->{'display-name'}) : '');
+			// ---------- PROGRAMME ----------
+			if ($rNodeName !== 'programme') {
+				continue;
+			}
 
-					if (!array_key_exists($rChannelID, $rOutput)) {
-						$rOutput[$rChannelID] = [];
-						$rOutput[$rChannelID]['display_name'] = $rDisplayName;
-						$rOutput[$rChannelID]['langs'] = [];
-					}
-					continue;
-				}
+			$rChannelID = trim((string) $rData->attributes()->channel);
 
-				if (($rData->getName() == 'programme')) {
-					$rChannelID = trim((string) $rData->attributes()->channel);
+			if (!array_key_exists($rChannelID, $rOutput)) {
+				continue;
+			}
 
-					if (array_key_exists($rChannelID, $rOutput)) {
-						$rTitles = $rData->title;
-						if ($rTitles) {
-							foreach ($rTitles as $rTitle) {
-								$rLang = (string) $rTitle->attributes()->lang;
-								if ((!in_array($rLang, $rOutput[$rChannelID]['langs']) && !empty($rLang))) {
-									$rOutput[$rChannelID]['langs'][] = $rLang;
-								}
-							}
-						}
-					}
+			if (empty($rData->title)) {
+				continue;
+			}
+
+			foreach ($rData->title as $rTitle) {
+				$lang = (string) $rTitle->attributes()->lang;
+				if (!empty($lang) && !in_array($lang, $rOutput[$rChannelID]['langs'], true)) {
+					$rOutput[$rChannelID]['langs'][] = $lang;
 				}
 			}
 		}
+
+		print_log("[EPG] Finished getData() - found $channelCount channels");
 		return $rOutput;
 	}
 
 	public function parseEPG($rEPGID, $rChannelInfo, $rOffset = 0) {
 		global $db;
-		$rInsertQuery = array();
+
+		$rInsertQuery = [];
+		$programCount = 0;
+
+		print_log("[EPG] Starting parseEPG() for EPG ID: $rEPGID (offset: {$rOffset}min)");
 
 		while ($rNode = $this->rEPGSource->getNode()) {
-			// PHP 8 fix: Add proper error handling for XML parsing
-			try {
-				$rData = simplexml_load_string($rNode, 'SimpleXMLElement', LIBXML_NOCDATA | LIBXML_NOERROR | LIBXML_NOWARNING);
-			} catch (Exception $e) {
+			$rData = simplexml_load_string($rNode);
+			if (!$rData) {
 				continue;
 			}
 
-			if ($rData) {
-				if ($rData->getName() == 'programme') {
-					$rChannelID = (string) $rData->attributes()->channel;
+			if ($rData->getName() !== 'programme') {
+				continue;
+			}
 
-					if (array_key_exists($rChannelID, $rChannelInfo)) {
-						$rLangTitle = $rLangDesc = '';
+			$rChannelID = (string) $rData->attributes()->channel;
 
-						// PHP 8 fix: Improved datetime parsing
-						try {
-							$rStart = strtotime(strval($rData->attributes()->start)) + $rOffset * 60;
-							$rStop = strtotime(strval($rData->attributes()->stop)) + $rOffset * 60;
-						} catch (Exception $e) {
-							continue;
+			if (!array_key_exists($rChannelID, $rChannelInfo)) {
+				continue;
+			}
+
+			// --- timestamps ---
+			$rStart = strtotime((string) $rData->attributes()->start) + ($rOffset * 60);
+			$rStop  = strtotime((string) $rData->attributes()->stop)  + ($rOffset * 60);
+
+			if ($rStart === false || $rStop === false) {
+				print_log("[EPG] Warning: Invalid timestamp for channel $rChannelID");
+				continue;
+			}
+
+			$rLangTitle = '';
+			$rLangDesc  = '';
+
+			// Title
+			if (!empty($rData->title)) {
+				$rTitles = $rData->title;
+				$preferredLang = $rChannelInfo[$rChannelID]['epg_lang'];
+
+				if (is_object($rTitles)) {
+					$rFound = false;
+					foreach ($rTitles as $rTitle) {
+						if ((string) $rTitle->attributes()->lang === $preferredLang) {
+							$rLangTitle = (string) $rTitle;
+							$rFound = true;
+							break;
 						}
-
-						if (!empty($rData->title)) {
-							$rTitles = $rData->title;
-
-							if (is_object($rTitles)) {
-								$rFound = false;
-
-								foreach ($rTitles as $rTitle) {
-									if ($rTitle->attributes()->lang == $rChannelInfo[$rChannelID]['epg_lang']) {
-										$rFound = true;
-										$rLangTitle = $rTitle;
-										break;
-									}
-								}
-
-								if (!$rFound && isset($rTitles[0])) {
-									$rLangTitle = $rTitles[0];
-								}
-							} else {
-								$rLangTitle = $rTitles;
-							}
-						}
-
-						if (!empty($rData->desc)) {
-							$rDescriptions = $rData->desc;
-
-							// PHP 8 fix: Better object/array handling
-							if (is_object($rDescriptions)) {
-								$rFound = false;
-
-								foreach ($rDescriptions as $rDescription) {
-									if ($rDescription->attributes()->lang != $rChannelInfo[$rChannelID]['epg_lang']) {
-										$rFound = true;
-										$rLangDesc = $rDescription;
-										break;
-									}
-								}
-
-								if (!$rFound && isset($rDescriptions[0])) {
-									$rLangDesc = $rDescriptions[0];
-								}
-							} else {
-								$rLangDesc = $rData->desc;
-							}
-						}
-
-						$rInsertQuery[$rChannelID][] = array(
-							'epg_id' => $rEPGID,
-							'start' => $rStart,
-							'stop' => $rStop,
-							'lang' => $rChannelInfo[$rChannelID]['epg_lang'],
-							'title' => strval($rLangTitle),
-							'description' => strval($rLangDesc)
-						);
 					}
+					if (!$rFound && count($rTitles) > 0) {
+						$rLangTitle = (string) $rTitles[0];
+					}
+				} else {
+					$rLangTitle = (string) $rTitles;
 				}
+			} else {
+				continue;
+			}
+
+			// Description
+			if (!empty($rData->desc)) {
+				$rDescriptions = $rData->desc;
+				$preferredLang = $rChannelInfo[$rChannelID]['epg_lang'];
+
+				if (is_object($rDescriptions)) {
+					$rFound = false;
+					foreach ($rDescriptions as $rDescription) {
+						if ((string) $rDescription->attributes()->lang === $preferredLang) {
+							$rLangDesc = (string) $rDescription;
+							$rFound = true;
+							$rLangDesc = $rDescription;
+							break;
+						}
+					}
+					if (!$rFound && count($rDescriptions) > 0) {
+						$rLangDesc = (string) $rDescriptions[0];
+					}
+				} else {
+					$rLangDesc = (string) $rDescriptions;
+				}
+			}
+
+			$rInsertQuery[] = '(' .
+				$db->escape($rEPGID) . ', ' .
+				$db->escape($rChannelID) . ', ' .
+				intval($rStart) . ', ' .
+				intval($rStop) . ', ' .
+				$db->escape($rChannelInfo[$rChannelID]['epg_lang']) . ', ' .
+				$db->escape($rLangTitle) . ', ' .
+				$db->escape($rLangDesc ?? '') .
+				')';
+
+			$programCount++;
+			if ($programCount % 1000 === 0) {
+				print_log("[EPG] Parsed $programCount programmes so far...");
 			}
 		}
 
-		return $rInsertQuery;
+		print_log("[EPG] Finished parseEPG() - collected $programCount programmes");
+		return !empty($rInsertQuery) ? $rInsertQuery : false;
 	}
 
 	public function downloadFile($rSource, $rFilename) {
+		print_log("[EPG] Downloading EPG file: $rSource");
+
 		$rExtension = pathinfo($rSource, PATHINFO_EXTENSION);
 		$rDecompress = '';
 
-		if ($rExtension == 'gz') {
+		if ($rExtension === 'gz') {
 			$rDecompress = ' | gunzip -c';
-		} elseif ($rExtension == 'xz') {
+		} elseif ($rExtension === 'xz') {
 			$rDecompress = ' | unxz -c';
 		}
 
 		$rCommand = 'wget -U "Mozilla/5.0" --timeout=30 --tries=3 -O - "' . $rSource . '"' . $rDecompress . ' > ' . $rFilename;
 		$rResult = shell_exec($rCommand);
 
-		if (!(file_exists($rFilename) && (filesize($rFilename) > 0))) {
+		if (file_exists($rFilename) && filesize($rFilename) > 0) {
+			print_log("[EPG] Download successful: " . filesize($rFilename) . " bytes");
+			return true;
+		} else {
+			print_log("[EPG] Download failed or file is empty: $rSource");
 			return false;
 		}
-
-		return true;
 	}
 
 	public function loadEPG($rSource, $rCache) {
 		try {
 			$this->rFilename = TMP_PATH . md5($rSource) . '.xml';
-			if (!file_exists($this->rFilename) || $rCache) {
+
+			// If caching is enabled, check for existing file
+			if (!file_exists($this->rFilename) || !$rCache) {
 				if (!$this->downloadFile($rSource, $this->rFilename)) {
-					CoreUtilities::saveLog('epg', 'Failed to download EPG source: ' . $rSource);
+					print_log("[EPG] Failed to load EPG source: $rSource");
 					return;
 				}
-			}
-			if ($this->rFilename && file_exists($this->rFilename)) {
-				$rXML = XmlStringStreamer::createStringWalkerParser($this->rFilename);
-
-				if ($rXML) {
-					$this->rEPGSource = $rXML;
-					$this->rValid = true;
-				} else {
-					CoreUtilities::saveLog('epg', 'Not a valid EPG source: ' . $rSource);
-				}
 			} else {
-				CoreUtilities::saveLog('epg', 'No XML found at: ' . $rSource);
+				print_log("[EPG] Using cached EPG file: " . basename($this->rFilename));
 			}
+
+			if (!$this->rFilename) {
+				CoreUtilities::saveLog('epg', 'No XML found at: ' . $rSource);
+				return;
+			}
+
+			$rXML = XmlStringStreamer::createStringWalkerParser($this->rFilename);
+
+			if (!$rXML) {
+				CoreUtilities::saveLog('epg', 'Not a valid EPG source: ' . $rSource);
+				print_log("[EPG] Failed to create XML parser for: $rSource");
+				return;
+			}
+
+			$this->rEPGSource = $rXML;
+			$this->rValid     = true;
+			print_log("[EPG] EPG source loaded successfully: $rSource");
 		} catch (Exception $e) {
 			CoreUtilities::saveLog('epg', 'EPG failed to process: ' . $rSource);
+			print_log("[EPG] Exception while loading EPG: " . $e->getMessage() . " | Source: $rSource");
+		}
+	}
+}
+
+function print_log($message) {
+	echo "[" . date('Y-m-d H:i:s') . "] " . $message . "\n";
+}
+
+function reconect_db() {
+	global $db;
+	if ($db->ping()) {
+		print_log("[EPG] Database connection is alive.");
+	} else {
+		print_log("[EPG] Database connection lost. Attempting to reconnect...");
+		$db->db_connect();
+		if ($db->ping()) {
+			print_log("[EPG] Reconnected to the database successfully.");
+		} else {
+			print_log("[EPG] Failed to reconnect to the database. Exiting.");
+			exit(1);
 		}
 	}
 }
 
 function getBouquetGroups() {
 	global $db;
+	print_log("[XMLTV] Building bouquet groups...");
 	$db->query('SELECT DISTINCT(`bouquet`) AS `bouquet` FROM `lines`;');
 	$ApiDependencyIdentifier = [
 		'all' => [
@@ -206,6 +265,8 @@ function getBouquetGroups() {
 			'bouquets' => $rBouquets
 		];
 	}
+	$count = count($ApiDependencyIdentifier ?? []);
+	print_log("[XMLTV] Found $count bouquet groups (including 'all')");
 
 	foreach ($ApiDependencyIdentifier as $rGroup => $CacheFlushInterval) {
 		$FileReference = [];
@@ -231,81 +292,79 @@ function getEPG($rStreamID) {
 	return file_exists(EPG_PATH . 'stream_' . $rStreamID) ? igbinary_unserialize(file_get_contents(EPG_PATH . 'stream_' . $rStreamID)) : [];
 }
 
-function truncateEPG($rData, $DataList = null, $rKeep = null) {
-	$rReturn = array();
-
-	foreach ($rData as $rItem) {
-		if ((!$DataList || $rItem['start'] < $DataList) && (!$rKeep || time() - $rKeep * 86400 <= $rItem['start'])) {
-			$rReturn[] = $rItem;
-		}
-	}
-
-	return $rReturn;
-}
-
 function shutdown() {
 	global $db;
-
 	if (is_object($db)) {
 		$db->close_mysql();
 	}
+	print_log("[EPG] Script finished and database connection closed.");
 }
+
 
 if (posix_getpwuid(posix_geteuid())['name'] != 'xc_vm') {
 	exit('Please run as XC_VM!' . "\n");
 }
 
-if (!$argc) {
+if (!@$argc) {
 	exit(0);
 }
 
-$rChannelID = $rStreamID = $rEPGID = null;
-
+$rEPGID = null;
 if (count($argv) == 2) {
 	$rEPGID = intval($argv[1]);
 }
+
+print_log("=== XC_VM[EPG] Process started ===");
+print_log("Mode: " . ($rEPGID ? "Single EPG ID: $rEPGID" : "Full update"));
 
 set_time_limit(0);
 ini_set('memory_limit', -1);
 register_shutdown_function('shutdown');
 require str_replace('\\', '/', dirname($argv[0])) . '/../www/init.php';
 require INCLUDES_PATH . 'libs/XmlStringStreamer.php';
-$rStartTime = time();
-$rProcessed = array();
-$streamKeepDuration = array();
-$db->query('SELECT `id`, `tv_archive_duration` FROM `streams` WHERE `tv_archive_duration` > 0 AND `type` = 1;');
 
-foreach ($db->get_rows() as $rRow) {
-	$streamKeepDuration[intval($rRow['id'])] = intval($rRow['tv_archive_duration']);
-}
-
-shell_exec("kill -9 `ps -ef | grep 'XC_VM\\[EPG\\]' | grep -v grep | awk '{print \$2}'`;");
+shell_exec('kill -9 `ps -ef | grep \'XC_VM\\[EPG\\]\' | grep -v grep | awk \'{print $2}\'`;');
 cli_set_process_title('XC_VM[EPG]');
 
 if (CoreUtilities::$rSettings['force_epg_timezone']) {
 	date_default_timezone_set('UTC');
+	print_log("[SYSTEM] Forced timezone to UTC");
 }
 
+print_log("[EPG] Clearing old channel mappings...");
 if ($rEPGID) {
 	$db->query('DELETE FROM `epg_channels` WHERE `epg_id` = ?;', $rEPGID);
 	$db->query('SELECT * FROM `epg` WHERE `id` = ?;', $rEPGID);
 } else {
 	$db->query('TRUNCATE `epg_channels`;');
-	$db->query('SELECT * FROM `epg`');
+	$db->query('SELECT * FROM `epg`;');
 }
 
-foreach ($db->get_rows() as $rRow) {
+$epgSources = $db->get_rows();
+print_log("[EPG] Found " . count($epgSources) . " EPG sources to process");
+
+foreach ($epgSources as $rRow) {
+	print_log("[EPG] Processing source ID: {$rRow['id']} | File: {$rRow['epg_file']}");
 	$rEPG = new EPG($rRow['epg_file']);
 
 	if ($rEPG->rValid) {
 		$rData = $rEPG->getData();
+
+		reconect_db();
+
 		$db->query('UPDATE `epg` SET `data` = ?, `last_updated` = ? WHERE `id` = ?', json_encode($rData, JSON_UNESCAPED_UNICODE), time(), $rRow['id']);
+
+		print_log("[EPG] Updated metadata for EPG ID {$rRow['id']}, found " . count($rData) . " channels");
 
 		foreach ($rData as $rID => $rArray) {
 			$db->query('INSERT INTO `epg_channels`(`epg_id`, `channel_id`, `name`, `langs`) VALUES(?, ?, ?, ?);', $rRow['id'], $rID, $rArray['display_name'], json_encode($rArray['langs']));
 		}
+	} else {
+		print_log("[EPG] Failed to load EPG source ID {$rRow['id']}");
 	}
 }
+
+print_log("[EPG] Starting full programme data import...");
 
 if ($rEPGID) {
 	$db->query('SELECT DISTINCT(t1.`epg_id`), t2.* FROM `streams` t1 INNER JOIN `epg` t2 ON t2.id = t1.epg_id WHERE t1.`epg_id` IS NOT NULL AND t2.id = ?;', $rEPGID);
@@ -313,185 +372,189 @@ if ($rEPGID) {
 	$db->query('SELECT DISTINCT(t1.`epg_id`), t2.* FROM `streams` t1 INNER JOIN `epg` t2 ON t2.id = t1.epg_id WHERE t1.`epg_id` IS NOT NULL;');
 }
 
-$rEPGData = $db->get_rows();
+foreach ($db->get_rows() as $rData) {
+	print_log("[EPG] === Processing EPG ID: {$rData['epg_id']} ===");
 
-foreach ($rEPGData as $rData) {
-	echo "Processing EPG data for EPG ID: " . $rData['epg_id'] . "\n";
+	if ($rData['days_keep'] == 0) {
+		print_log("[EPG] Clearing all existing data for EPG ID {$rData['epg_id']}");
+		$db->query('DELETE FROM `epg_data` WHERE `epg_id` = ?', $rData['epg_id']);
+	}
+
 	$rEPG = new EPG($rData['epg_file'], true);
-
 	if ($rEPG->rValid) {
-		echo "EPG file is valid, proceeding with parsing...\n";
-		$db->query('SELECT `id`, `channel_id`, `epg_lang`, `epg_offset` FROM `streams` WHERE `epg_id` = ?;', $rData['epg_id']);
-		$offsets = $rStreamMap = $rChannels = array();
+		$db->query('SELECT t1.`channel_id`, t1.`epg_lang`, t1.`epg_offset`, last_row.start 
+                    FROM `streams` t1 
+                    LEFT JOIN (SELECT channel_id, MAX(`start`) as start FROM epg_data WHERE epg_id = ? GROUP BY channel_id) last_row 
+                    ON last_row.channel_id = t1.channel_id 
+                    WHERE `epg_id` = ?;', $rData['epg_id'], $rData['epg_id']);
+		$channelMap = $db->get_rows(true, 'channel_id');
 
-		foreach ($db->get_rows() as $rRow) {
-			echo "Found stream ID: " . $rRow['id'] . " for channel ID: " . $rRow['channel_id'] . "\n";
-			$rStreamMap[$rRow['channel_id']][] = $rRow['id'];
-			$offsets[$rRow['id']][] = (intval($rRow['epg_offset']) ?: 0);
-			unset($rRow['id']);
-			$rChannels[$rRow['channel_id']] = $rRow;
-		}
+		$batches = $rEPG->parseEPG($rData['epg_id'], $channelMap, intval($rData['offset']) ?: 0);
 
-		echo "Parsing EPG data with offset: " . (intval($rData['offest']) ?: 0) . "\n";
-		$UpdateEPG = $rEPG->parseEPG($rData['epg_id'], $rChannels, (intval($rData['offset']) ?: 0));
+		reconect_db();
 
-		echo "Parsed " . count($UpdateEPG) . " channels from EPG\n";
-		foreach ($UpdateEPG as $rChannelID => $rResults) {
-			echo "Processing channel ID: " . $rChannelID . " with " . count($rResults) . " programs\n";
-			$rStreamIDs = ($rStreamMap[$rChannelID] ?: array());
-
-			foreach ($rStreamIDs as $rStreamID) {
-				echo "Updating stream ID: " . $rStreamID . "\n";
-				$rOffset = (isset($offsets[$rStreamID]) ? intval($offsets[$rStreamID]) : 0);
-				echo "Applying offset: " . $rOffset . " minutes to stream\n";
-				$timestamp_threshold = time() - 86400;
-
-				foreach ($rResults as $rResult) {
-					$rStart = strtotime($rResult['start']) + $rOffset * 60;
-					if ($rStart >= $timestamp_threshold) {
-						// Do nothing
-					} else {
-						$timestamp_threshold = $rStart;
-					}
+		if ($batches) {
+			$totalInserted = 0;
+			foreach ($batches as $insertBatch) {
+				if (!empty($insertBatch)) {
+					$db->simple_query('INSERT INTO `epg_data` (`epg_id`,`channel_id`,`start`,`end`,`lang`,`title`,`description`) VALUES ' . $insertBatch);
+					$totalInserted += substr_count($insertBatch, '),(') + 1;
 				}
-				echo "Timestamp threshold set to: " . date('Y-m-d H:i:s', $timestamp_threshold) . "\n";
-
-				if (isset($streamKeepDuration[$rStreamID]) && $rData['days_keep'] < $streamKeepDuration[$rStreamID]) {
-					$keep_duration = $streamKeepDuration[$rStreamID];
-					echo "Using custom keep duration: " . $keep_duration . " days for stream\n";
-				} else {
-					$keep_duration = $rData['days_keep'];
-					echo "Using default keep duration: " . $keep_duration . " days\n";
-				}
-
-				$rEPGData = truncateepg((getepg($rStreamID) ?: array()), $timestamp_threshold, $keep_duration);
-				echo "Truncated old EPG data, keeping " . count($rEPGData) . " existing programs\n";
-
-				foreach ($rResults as $rResult) {
-					$rEPGData[] = array(
-						'id' => $rResult['start'],
-						'epg_id' => $rResult['epg_id'],
-						'channel_id' => $rChannelID . ((0 < $rOffset ? '_' . $rOffset : '')),
-						'start' => $rResult['start'] + $rOffset,
-						'end' => $rResult['stop'] + $rOffset,
-						'lang' => substr($rResult['lang'], 0, 2),
-						'title' => $rResult['title'],
-						'description' => $rResult['description']
-					);
-				}
-				echo "Added " . count($rResults) . " new programs to EPG data\n";
-
-				file_put_contents(EPG_PATH . 'stream_' . $rStreamID, igbinary_serialize($rEPGData));
-				echo "Saved EPG data for stream ID: " . $rStreamID . " to file\n";
-				$rProcessed[] = $rStreamID;
 			}
+			print_log("[EPG] Inserted $totalInserted programmes for EPG ID {$rData['epg_id']}");
+		} else {
+			print_log("[EPG] No new programmes found for EPG ID {$rData['epg_id']}");
 		}
+
 		$db->query('UPDATE `epg` SET `last_updated` = ? WHERE `id` = ?', time(), $rData['epg_id']);
-		echo "Updated last_updated timestamp for EPG ID: " . $rData['epg_id'] . "\n";
 	} else {
-		echo "EPG file is invalid, skipping\n";
+		print_log("[EPG] Failed to parse EPG file for ID {$rData['epg_id']}");
+	}
+
+	if ($rData['days_keep'] > 0) {
+		$cleanupTime = strtotime('-' . (int)$rData['days_keep'] . ' days');
+		if ($cleanupTime !== false) {
+			$db->query('DELETE FROM `epg_data` WHERE `epg_id` = ? AND `start` < ?', $rData['epg_id'], $cleanupTime);
+			echo "[EPG] Cleaned up old data (older than {$rData['days_keep']} days)\n";
+		} else {
+			echo "[EPG] Invalid days_keep value, skipping cleanup\n";
+		}
 	}
 }
-echo "EPG processing complete. Total streams processed: " . (isset($rProcessed) ? count($rProcessed) : 0) . "\n";
+
+print_log("[EPG] Removing duplicate EPG entries...");
+$db->query('DELETE n1 FROM `epg_data` n1, `epg_data` n2 WHERE n1.id < n2.id AND n1.epg_id = n2.epg_id AND n1.channel_id = n2.channel_id AND n1.start = n2.start;');
+
+print_log("[EPG] Cleaning temporary XML files...");
 shell_exec('rm -f ' . TMP_PATH . '*.xml');
-$ApiDependencyIdentifier = getbouquetgroups();
+
+print_log("[XMLTV] Starting XMLTV generation...");
+$ApiDependencyIdentifier = getBouquetGroups();
+
+$totalBouquets = count($ApiDependencyIdentifier);
+print_log("[XMLTV] Generating XMLTV for $totalBouquets bouquet(s)");
 
 foreach ($ApiDependencyIdentifier as $rBouquet => $BatchProcessId) {
-	if (0 < strlen($rBouquet) && (0 < count($BatchProcessId['streams']) || $rBouquet == 'all')) {
-		$errorHash = array();
-		$rOutput = '';
-		$rServerName = htmlspecialchars(CoreUtilities::$rSettings['server_name'], ENT_XML1 | ENT_QUOTES | ENT_DISALLOWED, 'UTF-8');
-		$rOutput .= '<?xml version="1.0" encoding="utf-8" ?><!DOCTYPE tv SYSTEM "xmltv.dtd">' . "\n";
-		$rOutput .= '<tv generator-info-name="' . $rServerName . '">' . "\n";
-
-		if ($rBouquet == 'all') {
-			$db->query('SELECT `id`, `stream_display_name`,`stream_icon`,`channel_id`,`epg_id`,`tv_archive_duration` FROM `streams` WHERE `epg_id` IS NOT NULL AND `channel_id` IS NOT NULL;');
-		} else {
-			$db->query('SELECT `id`, `stream_display_name`,`stream_icon`,`channel_id`,`epg_id`,`tv_archive_duration` FROM `streams` WHERE `epg_id` IS NOT NULL AND `channel_id` IS NOT NULL AND `id` IN (' . implode(',', array_map('intval', $BatchProcessId['streams'])) . ');');
-		}
-
-		$rRows = $db->get_rows();
-
-		foreach ($rRows as $rRow) {
-			if (!in_array($rRow['channel_id'], $errorHash)) {
-				$errorHash[] = $rRow['channel_id'];
-				$rStreamName = htmlspecialchars($rRow['stream_display_name'], ENT_XML1 | ENT_QUOTES | ENT_DISALLOWED, 'UTF-8');
-				$rStreamIcon = htmlspecialchars(CoreUtilities::validateImage($rRow['stream_icon']), ENT_XML1 | ENT_QUOTES | ENT_DISALLOWED, 'UTF-8');
-				$rChannelID = htmlspecialchars($rRow['channel_id'], ENT_XML1 | ENT_QUOTES | ENT_DISALLOWED, 'UTF-8');
-				$rOutput .= "\t" . '<channel id="' . $rChannelID . '">' . "\n";
-				$rOutput .= "\t\t" . '<display-name>' . $rStreamName . '</display-name>' . "\n";
-
-				if (!empty($rRow['stream_icon'])) {
-					$rOutput .= "\t\t" . '<icon src="' . $rStreamIcon . '" />' . "\n";
-				}
-
-				$rOutput .= "\t" . '</channel>' . "\n";
-				$rEPG = getepg($rRow['id']);
-				$processed_epg = array();
-
-				foreach ($rEPG as $rItem) {
-					if (!in_array($rItem['start'], $processed_epg)) {
-						$processed_epg[] = $rItem['start'];
-						$rTitle = htmlspecialchars($rItem['title'], ENT_XML1 | ENT_QUOTES | ENT_DISALLOWED, 'UTF-8');
-						$rDescription = htmlspecialchars($rItem['description'], ENT_XML1 | ENT_QUOTES | ENT_DISALLOWED, 'UTF-8');
-						$rChannelID = htmlspecialchars($rRow['channel_id'], ENT_XML1 | ENT_QUOTES | ENT_DISALLOWED, 'UTF-8');
-						$rStart = date('YmdHis', $rItem['start']) . ' ' . str_replace(':', '', date('P'));
-						$rEnd = date('YmdHis', $rItem['end']) . ' ' . str_replace(':', '', date('P'));
-						$rOutput .= "\t" . '<programme start="' . $rStart . '" stop="' . $rEnd . '" start_timestamp="' . $rItem['start'] . '" stop_timestamp="' . $rItem['end'] . '" channel="' . $rChannelID . '" >' . "\n";
-						$rOutput .= "\t\t" . '<title>' . $rTitle . '</title>' . "\n";
-						$rOutput .= "\t\t" . '<desc>' . $rDescription . '</desc>' . "\n";
-						$rOutput .= "\t" . '</programme>' . "\n";
-					}
-				}
-			}
-		}
-		$rOutput .= '</tv>';
-		$ConfigurationSettings = ($rBouquet == 'all' ? 'all' : md5($rBouquet));
-		file_put_contents(EPG_PATH . 'epg_' . $ConfigurationSettings . '.xml', $rOutput);
-		$rFile = gzopen(EPG_PATH . 'epg_' . $ConfigurationSettings . '.xml.gz', 'w9');
-		gzwrite($rFile, $rOutput);
-		gzclose($rFile);
-
-		break;
+	if (!(strlen($rBouquet) > 0 && (count($BatchProcessId['streams']) > 0 || $rBouquet == 'all'))) {
+		continue;
 	}
-}
-$AuthenticationToken = array();
-$db->query('SELECT `id`, `days_keep` FROM `epg`;');
 
-foreach ($db->get_rows() as $rRow) {
-	$AuthenticationToken[$rRow['id']] = (intval($rRow['days_keep']) ?: 7);
-}
-$rStreamIDs = array();
-$db->query('SELECT `id`, `tv_archive_duration` FROM `streams` WHERE `epg_id` IS NOT NULL AND `channel_id` IS NOT NULL;');
+	print_log("[XMLTV] Generating EPG for bouquet: " . ($rBouquet === 'all' ? 'ALL' : $rBouquet));
 
-foreach ($db->get_rows() as $rRow) {
-	$keep_duration = ($AuthenticationToken[$rRow['epg_id']] ?: 7);
+	$rOutput = '';
+	$rServerName = htmlspecialchars(CoreUtilities::$rSettings['server_name'], ENT_XML1 | ENT_QUOTES | ENT_DISALLOWED, 'UTF-8');
+	$rOutput .= '<?xml version="1.0" encoding="utf-8" ?><!DOCTYPE tv SYSTEM "xmltv.dtd">' . "\n";
+	$rOutput .= '<tv generator-info-name="' . $rServerName . '">' . "\n";
 
-	if ($keep_duration >= intval($rRow['tv_archive_duration'])) {
+	if ($rBouquet == 'all') {
+		$db->query('SELECT `stream_display_name`,`stream_icon`,`channel_id`,`epg_id`,`tv_archive_duration` FROM `streams` WHERE `epg_id` IS NOT NULL AND `channel_id` IS NOT NULL;');
 	} else {
-		$keep_duration = intval($rRow['tv_archive_duration']);
+		$db->query('SELECT `stream_display_name`,`stream_icon`,`channel_id`,`epg_id`,`tv_archive_duration` FROM `streams` WHERE `epg_id` IS NOT NULL AND `channel_id` IS NOT NULL AND `id` IN (' . implode(',', array_map('intval', $BatchProcessId['streams'])) . ');');
 	}
 
-	$rStreamIDs[$rRow['id']] = $keep_duration;
-}
+	$channels = $db->get_rows();
+	$channelCount = count($channels);
+	print_log("[XMLTV] Found $channelCount channels in this bouquet");
 
-foreach (scandir(EPG_PATH) as $rFile) {
-	if (!in_array($rFile, array('.', '..'))) {
-		if (substr($rFile, 0, 7) == 'stream_') {
-			list($rVar, $rStreamID) = explode('_', $rFile);
+	$fa4629d757fa3640 = [];
+	$hasArchive = 0;
 
-			if (!isset($rStreamIDs[$rStreamID])) {
-				unlink(EPG_PATH . $rFile);
-			} else {
-				if (!in_array($rStreamID, $rProcessed)) {
-					$rEPG = truncateepg((getepg($rStreamID) ?: array()), null, ($rStreamIDs[$rStreamID] ?: 7));
-					file_put_contents(EPG_PATH . 'stream_' . $rStreamID, igbinary_serialize($rEPG));
-				}
-			}
+	foreach ($channels as $rRow) {
+		if ($rRow['tv_archive_duration'] > 0) $hasArchive++;
+
+		$displayName = htmlspecialchars($rRow['stream_display_name'], ENT_XML1 | ENT_QUOTES | ENT_DISALLOWED, 'UTF-8');
+		$icon = htmlspecialchars(CoreUtilities::validateImage($rRow['stream_icon']), ENT_XML1 | ENT_QUOTES | ENT_DISALLOWED, 'UTF-8');
+		$channelID = htmlspecialchars($rRow['channel_id'], ENT_XML1 | ENT_QUOTES | ENT_DISALLOWED, 'UTF-8');
+
+		$rOutput .= "\t<channel id=\"$channelID\">";
+		$rOutput .= "\t\t<display-name>$displayName</display-name>";
+		if (!empty($rRow['stream_icon'])) {
+			$rOutput .= "\t\t<icon src=\"$icon\" />";
+		}
+		$rOutput .= "\t</channel>";
+
+		$fa4629d757fa3640[] = $rRow['epg_id'];
+	}
+
+	$fa4629d757fa3640 = array_unique($fa4629d757fa3640);
+
+	if (count($fa4629d757fa3640) > 0) {
+		if ($hasArchive > 0) {
+			print_log("[XMLTV] Archive channels detected ($hasArchive), including all historical programmes");
+			$db->query('SELECT * FROM `epg_data` WHERE `epg_id` IN (' . implode(',', array_map('intval', $fa4629d757fa3640)) . ');');
 		} else {
-			if (!filemtime(EPG_PATH . $rFile) >= $rStartTime - 10) {
-				unlink(EPG_PATH . $rFile);
-			}
+			print_log("[XMLTV] No archive channels, filtering only current/future programmes");
+			$db->query('SELECT * FROM `epg_data` WHERE `epg_id` IN (' . implode(',', array_map('intval', $fa4629d757fa3640)) . ') AND `end` >= UNIX_TIMESTAMP();');
+		}
+
+		$programmes = $db->get_rows();
+		$progCount = count($programmes);
+		print_log("[XMLTV] Adding $progCount programmes to XML");
+
+		$seen = [];
+		foreach ($programmes as $rRow) {
+			$key = $rRow['channel_id'] . '|' . $rRow['start'];
+			if (isset($seen[$key])) continue;
+			$seen[$key] = true;
+
+			$rTitle = htmlspecialchars($rRow['title'] ?? '', ENT_XML1 | ENT_QUOTES | ENT_DISALLOWED, 'UTF-8');
+			$rDescription = htmlspecialchars($rRow['description'] ?? '', ENT_XML1 | ENT_QUOTES | ENT_DISALLOWED, 'UTF-8');
+			$rChannelID = htmlspecialchars($rRow['channel_id'], ENT_XML1 | ENT_QUOTES | ENT_DISALLOWED, 'UTF-8');
+			$rStart = date('YmdHis', $rRow['start']) . ' ' . str_replace(':', '', date('P', $rRow['start']));
+			$rEnd = date('YmdHis', $rRow['end']) . ' ' . str_replace(':', '', date('P', $rRow['end']));
+
+			$rOutput .= "\t<programme start=\"$rStart\" stop=\"$rEnd\" channel=\"$rChannelID\">";
+			$rOutput .= "\t\t<title>$rTitle</title>";
+			$rOutput .= "\t\t<desc>$rDescription</desc>";
+			$rOutput .= "\t</programme>";
 		}
 	}
+
+	$rOutput .= '</tv>';
+	$fileName = ($rBouquet == 'all' ? 'all' : md5($rBouquet));
+	$xmlPath = EPG_PATH . 'epg_' . $fileName . '.xml';
+	$gzPath  = EPG_PATH . 'epg_' . $fileName . '.xml.gz';
+
+	file_put_contents($xmlPath, $rOutput);
+	$gz = gzopen($gzPath, 'w9');
+	gzwrite($gz, $rOutput);
+	gzclose($gz);
+
+	print_log("[XMLTV] Saved epg_$fileName.xml.gz (" . number_format(strlen($rOutput)) . " bytes)");
 }
+
+print_log("[CACHE] Building per-stream EPG cache...");
+$db->query('SELECT `id`, `epg_id`, `channel_id` FROM `streams` WHERE `type` = 1 AND `epg_id` IS NOT NULL AND `channel_id` IS NOT NULL;');
+$streams = $db->get_rows();
+print_log("[CACHE] Caching EPG for " . count($streams) . " live streams");
+
+foreach ($streams as $rRow) {
+	$rEPG = [];
+	$seen = [];
+
+	$db->query('SELECT * FROM `epg_data` WHERE `epg_id` = ? AND `channel_id` = ? ORDER BY `start` ASC;', $rRow['epg_id'], $rRow['channel_id']);
+	foreach ($db->get_rows() as $prog) {
+		if (!in_array($prog['start'], $seen)) {
+			$seen[] = $prog['start'];
+			$rEPG[] = $prog;
+		}
+	}
+
+	if (count($rEPG) > 0) {
+		file_put_contents(EPG_PATH . 'stream_' . $rRow['id'], igbinary_serialize($rEPG));
+	}
+}
+
+print_log("[CLEANUP] Removing old cache files...");
+$deleted = 0;
+foreach (scandir(EPG_PATH) as $rFile) {
+	if ($rFile === '.' || $rFile === '..') continue;
+	$fullPath = EPG_PATH . $rFile;
+	if (filemtime($fullPath) < (time() - 10)) {
+		unlink($fullPath);
+		$deleted++;
+	}
+}
+print_log("[CLEANUP] Deleted $deleted old cache files");
+
+print_log("=== EPG processing completed successfully! ===");
