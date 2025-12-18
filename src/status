@@ -53,6 +53,16 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 				StreamingUtilities::$db->query('ALTER TABLE `watch_folders` DROP COLUMN `plex_token`;');
 			}
 
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `panel_logs` LIKE 'file';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query('ALTER TABLE `panel_logs` ADD COLUMN `file` VARCHAR(255) NULL;');
+			}
+
+			StreamingUtilities::$db->query("SHOW COLUMNS FROM `panel_logs` LIKE 'env';");
+			if (StreamingUtilities::$db->num_rows() == 0) {
+				StreamingUtilities::$db->query("ALTER TABLE `panel_logs` ADD COLUMN `env` VARCHAR(32) NOT NULL DEFAULT 'cli';");
+			}
+
 			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'segment_type';");
 			if (StreamingUtilities::$db->num_rows() != 0) {
 				StreamingUtilities::$db->query('ALTER TABLE `settings` DROP COLUMN IF EXISTS `segment_type`;');
