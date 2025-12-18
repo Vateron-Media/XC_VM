@@ -3,22 +3,22 @@
 $rErrorCodes = array('API_IP_NOT_ALLOWED' => 'IP is not allowed to access the API.', 'ARCHIVE_DOESNT_EXIST' => 'Archive files are missing for this stream ID.', 'ASN_BLOCKED' => 'ASN has been blocked.', 'BANNED' => 'Line has been banned.', 'BLOCKED_USER_AGENT' => 'User-agent has been blocked.', 'DEVICE_NOT_ALLOWED' => 'MAG & Enigma devices are not allowed to access this.', 'DISABLED' => 'Line has been disabled.', 'DOWNLOAD_LIMIT_REACHED' => 'Reached the simultaneous download limit.', 'E2_DEVICE_LOCK_FAILED' => 'Device lock checks failed.', 'E2_DISABLED' => 'Device has been disabled.', 'E2_NO_TOKEN' => 'No token has been specified.', 'E2_TOKEN_DOESNT_MATCH' => "Token doesn't match records.", 'E2_WATCHDOG_TIMEOUT' => 'Time limit reached.', 'EMPTY_USER_AGENT' => 'Empty user-agents are disallowed.', 'EPG_DISABLED' => 'EPG has been disabled.', 'EPG_FILE_MISSING' => 'Cached EPG files are missing.', 'EXPIRED' => 'Line has expired.', 'FORCED_COUNTRY_INVALID' => 'Country does not match forced country.', 'GENERATE_PLAYLIST_FAILED' => 'Playlist failed to generate.', 'HLS_DISABLED' => 'HLS has been disabled.', 'HOSTING_DETECT' => 'Hosting server has been detected.', 'INVALID_API_PASSWORD' => 'API password is invalid.', 'INVALID_CREDENTIALS' => 'Username or password is invalid.', 'INVALID_HOST' => 'Domain name not recognised.', 'INVALID_STREAM_ID' => "Stream ID doesn't exist.", 'INVALID_TYPE_TOKEN' => "Tokens can't be used for this stream type.", 'IP_BLOCKED' => 'IP has been blocked.', 'IP_MISMATCH' => 'Current IP doesn’t match initial connection IP.', 'ISP_BLOCKED' => 'ISP has been blocked.', 'LB_TOKEN_INVALID' => 'AES Token cannot be decrypted.', 'LEGACY_EPG_DISABLED' => 'Legacy epg.php access has been disabled.', 'LEGACY_GET_DISABLED' => 'Legacy get.php access has been disabled.', 'LEGACY_PANEL_API_DISABLED' => 'Legacy panel_api.php access has been disabled.', 'LINE_CREATE_FAIL' => 'Line failed to insert into database.', 'NO_CREDENTIALS' => 'No credentials have been specified.', 'NO_TIMESTAMP' => 'No archive timestamp has been specified.', 'NO_TOKEN_SPECIFIED' => 'No AES encrypted token has been specified.', 'NOT_ENIGMA_DEVICE' => "Line isn't an enigma device.", 'NOT_IN_ALLOWED_COUNTRY' => 'Not in allowed country list.', 'NOT_IN_ALLOWED_IPS' => 'Not in allowed IP list.', 'NOT_IN_ALLOWED_UAS' => 'Not in allowed user-agent list.', 'NOT_IN_BOUQUET' => 'Line doesn’t have access to this stream ID.', 'PLAYER_API_DISABLED' => 'Player API has been disabled.', 'PROXY_DETECT' => 'Proxy has been detected.', 'PROXY_NO_API_ACCESS' => "Can't access API's via proxy.", 'RESTREAM_DETECT' => 'Restreaming has been detected.', 'STALKER_CHANNEL_MISMATCH' => "Stream ID doesn't match stalker token.", 'STALKER_DECRYPT_FAILED' => 'Failed to decrypt stalker token.', 'STALKER_INVALID_KEY' => 'Invalid stalker key.', 'STALKER_IP_MISMATCH' => "IP doesn't match stalker token.", 'STALKER_KEY_EXPIRED' => 'Stalker token has expired.', 'STREAM_OFFLINE' => 'Stream is currently offline.', 'THUMBNAIL_DOESNT_EXIST' => 'Thumbnail file doesn’t exist.', 'THUMBNAILS_NOT_ENABLED' => 'Thumbnail not enabled for this stream.', 'TOKEN_ERROR' => 'AES token has incomplete data.', 'TOKEN_EXPIRED' => 'AES token has expired.', 'TS_DISABLED' => 'MPEG-TS has been disabled.', 'USER_ALREADY_CONNECTED' => 'Line already connected on a different IP.', 'USER_DISALLOW_EXT' => 'Extension is not in allowed list.', 'VOD_DOESNT_EXIST' => "VOD file doesn't exist.", 'WAIT_TIME_EXPIRED' => 'Stream start has timed out, failed to start.');
 
 if (basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'])) {
-	generate404();
+    generate404();
 }
 
 @ini_set('user_agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.61 Safari/537.36');
 @ini_set('default_socket_timeout', 5);
 
 if (!defined('MAIN_HOME')) {
-	define('MAIN_HOME', '/home/xc_vm/');
+    define('MAIN_HOME', '/home/xc_vm/');
 }
 
 if (!defined('CONTENT_PATH')) {
-	define('CONTENT_PATH', MAIN_HOME . 'content/');
+    define('CONTENT_PATH', MAIN_HOME . 'content/');
 }
 
 if (!defined('TMP_PATH')) {
-	define('TMP_PATH', MAIN_HOME . 'tmp/');
+    define('TMP_PATH', MAIN_HOME . 'tmp/');
 }
 
 define('DEVELOPMENT', false);
@@ -89,158 +89,65 @@ if (file_exists(MAIN_HOME . 'config')) {
 $rShowErrors = false;
 
 if (!isset($_SERVER['argc'])) {
-	$rIP = $_SERVER['REMOTE_ADDR'];
-	if (empty($rIP) || !file_exists(FLOOD_TMP_PATH . 'block_' . $rIP)) {
-		define('HOST', trim(explode(':', $_SERVER['HTTP_HOST'])[0]));
+    $rIP = $_SERVER['REMOTE_ADDR'];
+    if (empty($rIP) || !file_exists(FLOOD_TMP_PATH . 'block_' . $rIP)) {
+        define('HOST', trim(explode(':', $_SERVER['HTTP_HOST'])[0]));
 
-		if (file_exists(CACHE_TMP_PATH . 'settings')) {
-			$rData = file_get_contents(CACHE_TMP_PATH . 'settings');
-			$rSettings = igbinary_unserialize($rData);
+        if (file_exists(CACHE_TMP_PATH . 'settings')) {
+            $rData = file_get_contents(CACHE_TMP_PATH . 'settings');
+            $rSettings = igbinary_unserialize($rData);
 
-			if (is_array($rSettings) && file_exists(CACHE_TMP_PATH . 'allowed_domains') && $rSettings['verify_host']) {
-				$rData = file_get_contents(CACHE_TMP_PATH . 'allowed_domains');
-				$rAllowedDomains = igbinary_unserialize($rData);
+            if (is_array($rSettings) && file_exists(CACHE_TMP_PATH . 'allowed_domains') && $rSettings['verify_host']) {
+                $rData = file_get_contents(CACHE_TMP_PATH . 'allowed_domains');
+                $rAllowedDomains = igbinary_unserialize($rData);
 
-				if (!(is_array($rAllowedDomains) && !in_array(HOST, $rAllowedDomains) && HOST != 'xc_vm') || filter_var(HOST, FILTER_VALIDATE_IP)) {
-				} else {
-					generateerror('INVALID_HOST');
-				}
-			}
+                if (!(is_array($rAllowedDomains) && !in_array(HOST, $rAllowedDomains) && HOST != 'xc_vm') || filter_var(HOST, FILTER_VALIDATE_IP)) {
+                } else {
+                    generateerror('INVALID_HOST');
+                }
+            }
 
-			$rShowErrors = (isset($rSettings['debug_show_errors']) ? $rSettings['debug_show_errors'] : false);
-		}
-	} else {
-		http_response_code(403);
+            $rShowErrors = (isset($rSettings['debug_show_errors']) ? $rSettings['debug_show_errors'] : false);
+        }
+    } else {
+        http_response_code(403);
 
-		exit();
-	}
+        exit();
+    }
 }
 
 define('PHP_ERRORS', $rShowErrors);
-set_error_handler('log_error');
-set_exception_handler('log_exception');
-register_shutdown_function('log_fatal');
 
-if (PHP_ERRORS) {
-	error_reporting(5);
-	ini_set('display_errors', true);
-	ini_set('display_startup_errors', true);
-} else {
-	error_reporting(0);
-	ini_set('display_errors', 0);
-}
+require_once INCLUDES_PATH . 'libs/Logger.php';
+Logger::init(
+    PHP_ERRORS,
+    LOGS_TMP_PATH . 'error_log.log'
+);
 
-function log_error($rErrNo, $rMessage, $rFile, $rLine, $rContext = null) {
-	if (in_array($rErrNo, array(1, 2, 4))) {
-		if ($rErrNo != 2 || stripos($rMessage, 'undefined variable') !== false || stripos($rMessage, 'undefined constant') !== false) {
-			panelLog(array(1 => 'error', 2 => 'warning', 4 => 'parse')[$rErrNo], $rMessage, $rFile, $rLine);
-		}
-	}
-}
+function generateError($rError, $rKill = true) {
+    global $rErrorCodes;
+    global $rSettings;
 
-function log_exception($e) {
-	panelLog('exception', $e->getMessage(), $e->getTraceAsString(), $e->getLine());
-}
+    if ($rSettings['debug_show_errors']) {
+        $rErrorDescription = ($rErrorCodes[$rError] ?: '');
+        $rStyle = '*{-webkit-box-sizing:border-box;box-sizing:border-box}body{padding:0;margin:0}#notfound{position:relative;height:100vh}#notfound .notfound{position:absolute;left:50%;top:50%;-webkit-transform:translate(-50%,-50%);-ms-transform:translate(-50%,-50%);transform:translate(-50%,-50%)}.notfound{max-width:520px;width:100%;line-height:1.4;text-align:center}.notfound .notfound-404{position:relative;height:200px;margin:0 auto 20px;z-index:-1}.notfound .notfound-404 h1{font-family:Montserrat,sans-serif;font-size:236px;font-weight:200;margin:0;color:#211b19;text-transform:uppercase;position:absolute;left:50%;top:50%;-webkit-transform:translate(-50%,-50%);-ms-transform:translate(-50%,-50%);transform:translate(-50%,-50%)}.notfound .notfound-404 h2{font-family:Montserrat,sans-serif;font-size:28px;font-weight:400;text-transform:uppercase;color:#211b19;background:#fff;padding:10px 5px;margin:auto;display:inline-block;position:absolute;bottom:0;left:0;right:0}.notfound p{font-family:Montserrat,sans-serif;font-size:14px;font-weight:300;text-transform:uppercase}@media only screen and (max-width:767px){.notfound .notfound-404 h1{font-size:148px}}@media only screen and (max-width:480px){.notfound .notfound-404{height:148px;margin:0 auto 10px}.notfound .notfound-404 h1{font-size:86px}.notfound .notfound-404 h2{font-size:16px}}';
+        echo '<html><head><title>XC_VM - Debug Mode</title><link href="https://fonts.googleapis.com/css?family=Montserrat:200,400,700" rel="stylesheet"><style>' . $rStyle . '</style></head><body><div id="notfound"><div class="notfound"><div class="notfound-404"><h1>XC_VM</h1><h2>' . $rError . '</h2><br/></div><p>' . $rErrorDescription . '</p></div></div></body></html>';
 
-function log_fatal() {
-	$rError = error_get_last();
-
-	if ($rError !== null && $rError['type'] == 1) {
-		panelLog('error', $rError['message'], $rError['file'], $rError['line']);
-	}
-}
-
-function panelLog($rType, $rMessage, $rExtra = '', $rLine = 0) {
-    $rData = [
-        'type'    => $rType,
-        'message' => $rMessage,
-        'extra'   => $rExtra,
-        'line'    => $rLine,
-        'time'    => time(),
-        'env'     => php_sapi_name() // добавляем информацию об окружении
-    ];
-
-    // Записываем в лог (base64 + json — как было)
-    $logLine = base64_encode(json_encode($rData)) . "\n";
-    file_put_contents(LOGS_TMP_PATH . 'error_log.log', $logLine, FILE_APPEND | LOCK_EX);
-
-    // Выводим отладочную информацию только в режиме разработки
-    if (defined('DEVELOPMENT') && DEVELOPMENT === true) {
-        $isCli = php_sapi_name() === 'cli';
-
-        if ($isCli) {
-            // === CLI вывод (цветной, читаемый) ===
-            $typeColor = match ($rType) {
-                'ERROR', 'FATAL' => "\033[41m\033[97m", // красный фон + белый текст
-                'WARNING'        => "\033[43m\033[30m", // жёлтый фон + чёрный текст
-                'NOTICE', 'INFO' => "\033[44m\033[97m", // синий фон + белый текст
-                default          => "\033[45m\033[97m", // фиолетовый для остальных
-            };
-
-            echo "\n{$typeColor} DEBUG {$rType} \033[0m ";
-            echo date('Y-m-d H:i:s', $rData['time']) . "\n";
-            echo str_repeat("=", 60) . "\n";
-            echo "Message: " . $rMessage . "\n";
-
-            if (!empty($rExtra)) {
-                echo "Extra:   " . $rExtra . "\n";
-            }
-            if ($rLine > 0) {
-                echo "Line:    {$rLine}\n";
-            }
-            echo str_repeat("=", 60) . "\n\n";
-        } else {
-            // === Веб-вывод (как было, но чуть красивее и безопаснее) ===
-            echo "<div style=\"
-                border: 2px solid #ff0000;
-                background: #fff0f0;
-                padding: 12px;
-                margin: 15px 0;
-                font-family: 'Courier New', Consolas, monospace;
-                font-size: 14px;
-                border-radius: 8px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                overflow-x: auto;
-            \">";
-            echo "<strong style='color: #d00; font-size: 16px;'>DEBUG {$rType}</strong> ";
-            echo "<small style='color: #666;'>" . date('Y-m-d H:i:s', $rData['time']) . "</small><hr style='border:0; border-top:1px solid #fcc;'>";
-            echo "<strong>Message:</strong> " . htmlspecialchars($rMessage, ENT_SUBSTITUTE) . "<br>";
-
-            if (!empty($rExtra)) {
-                echo "<strong>Extra:</strong> " . htmlspecialchars($rExtra, ENT_SUBSTITUTE) . "<br>";
-            }
-            if ($rLine > 0) {
-                echo "<strong>Line:</strong> {$rLine}<br>";
-            }
-            echo "</div>";
+        if ($rKill) {
+            exit();
+        }
+    } else {
+        if ($rKill) {
+            generate404();
         }
     }
 }
 
-function generateError($rError, $rKill = true) {
-	global $rErrorCodes;
-	global $rSettings;
-
-	if ($rSettings['debug_show_errors']) {
-		$rErrorDescription = ($rErrorCodes[$rError] ?: '');
-		$rStyle = '*{-webkit-box-sizing:border-box;box-sizing:border-box}body{padding:0;margin:0}#notfound{position:relative;height:100vh}#notfound .notfound{position:absolute;left:50%;top:50%;-webkit-transform:translate(-50%,-50%);-ms-transform:translate(-50%,-50%);transform:translate(-50%,-50%)}.notfound{max-width:520px;width:100%;line-height:1.4;text-align:center}.notfound .notfound-404{position:relative;height:200px;margin:0 auto 20px;z-index:-1}.notfound .notfound-404 h1{font-family:Montserrat,sans-serif;font-size:236px;font-weight:200;margin:0;color:#211b19;text-transform:uppercase;position:absolute;left:50%;top:50%;-webkit-transform:translate(-50%,-50%);-ms-transform:translate(-50%,-50%);transform:translate(-50%,-50%)}.notfound .notfound-404 h2{font-family:Montserrat,sans-serif;font-size:28px;font-weight:400;text-transform:uppercase;color:#211b19;background:#fff;padding:10px 5px;margin:auto;display:inline-block;position:absolute;bottom:0;left:0;right:0}.notfound p{font-family:Montserrat,sans-serif;font-size:14px;font-weight:300;text-transform:uppercase}@media only screen and (max-width:767px){.notfound .notfound-404 h1{font-size:148px}}@media only screen and (max-width:480px){.notfound .notfound-404{height:148px;margin:0 auto 10px}.notfound .notfound-404 h1{font-size:86px}.notfound .notfound-404 h2{font-size:16px}}';
-		echo '<html><head><title>XC_VM - Debug Mode</title><link href="https://fonts.googleapis.com/css?family=Montserrat:200,400,700" rel="stylesheet"><style>' . $rStyle . '</style></head><body><div id="notfound"><div class="notfound"><div class="notfound-404"><h1>XC_VM</h1><h2>' . $rError . '</h2><br/></div><p>' . $rErrorDescription . '</p></div></div></body></html>';
-
-		if ($rKill) {
-			exit();
-		}
-	} else {
-		if ($rKill) {
-			generate404();
-		}
-	}
-}
-
 function generate404($rKill = true) {
-	echo '<html>' . "\r\n" . '<head><title>404 Not Found</title></head>' . "\r\n" . '<body>' . "\r\n" . '<center><h1>404 Not Found</h1></center>' . "\r\n" . '<hr><center>nginx</center>' . "\r\n" . '</body>' . "\r\n" . '</html>' . "\r\n" . '<!-- a padding to disable MSIE and Chrome friendly error page -->' . "\r\n" . '<!-- a padding to disable MSIE and Chrome friendly error page -->' . "\r\n" . '<!-- a padding to disable MSIE and Chrome friendly error page -->' . "\r\n" . '<!-- a padding to disable MSIE and Chrome friendly error page -->' . "\r\n" . '<!-- a padding to disable MSIE and Chrome friendly error page -->' . "\r\n" . '<!-- a padding to disable MSIE and Chrome friendly error page -->';
-	http_response_code(404);
+    echo '<html>' . "\r\n" . '<head><title>404 Not Found</title></head>' . "\r\n" . '<body>' . "\r\n" . '<center><h1>404 Not Found</h1></center>' . "\r\n" . '<hr><center>nginx</center>' . "\r\n" . '</body>' . "\r\n" . '</html>' . "\r\n" . '<!-- a padding to disable MSIE and Chrome friendly error page -->' . "\r\n" . '<!-- a padding to disable MSIE and Chrome friendly error page -->' . "\r\n" . '<!-- a padding to disable MSIE and Chrome friendly error page -->' . "\r\n" . '<!-- a padding to disable MSIE and Chrome friendly error page -->' . "\r\n" . '<!-- a padding to disable MSIE and Chrome friendly error page -->' . "\r\n" . '<!-- a padding to disable MSIE and Chrome friendly error page -->';
+    http_response_code(404);
 
-	if ($rKill) {
-		exit();
-	}
+    if ($rKill) {
+        exit();
+    }
 }

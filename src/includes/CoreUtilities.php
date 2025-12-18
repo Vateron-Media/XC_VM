@@ -282,7 +282,7 @@ class CoreUtilities {
 		} else {
 			$rOutput['bouquet_name'] = str_replace(' ', '_', $rOutput['bouquet_name']);
 		}
-		$rOutput['api_ips'] = explode(',', $rOutput['api_ips']);
+		$rOutput['api_ips'] = !empty($rOutput['api_ips']) ? explode(',', $rOutput['api_ips']) : [];
 		self::setCache('settings', $rOutput);
 		return $rOutput;
 	}
@@ -485,7 +485,18 @@ class CoreUtilities {
 	}
 	public static function saveLog($rType, $rMessage, $rExtra = '', $rLine = 0) {
 		if (stripos($rExtra, 'panel_logs') === false && stripos($rMessage, 'timeout exceeded') === false && stripos($rMessage, 'lock wait timeout') === false && stripos($rMessage, 'duplicate entry') === false) {
-			panelLog($rType, $rMessage, $rExtra, $rLine);
+			$rData = [
+				'type'    => $rType,
+				'message' => $rMessage,
+				'extra'   => $rExtra,
+				'line'    => $rLine,
+				'time'    => time(),
+				'env'     => php_sapi_name() // Add environment info
+			];
+
+			// Write log line
+			$logLine = base64_encode(json_encode($rData)) . "\n";
+			file_put_contents(LOGS_TMP_PATH . 'error_log.log', $logLine, FILE_APPEND | LOCK_EX);
 		}
 	}
 	public static function generateString($rLength = 10) {
@@ -1304,8 +1315,7 @@ class CoreUtilities {
 			self::$db->query('SELECT * FROM `crontab` WHERE `enabled` = 1;');
 			foreach (self::$db->get_rows() as $rRow) {
 				$rFullPath = CRON_PATH . $rRow['filename'];
-				if (!(pathinfo($rFullPath, PATHINFO_EXTENSION) == 'php' && file_exists($rFullPath))) {
-				} else {
+				if (pathinfo($rFullPath, PATHINFO_EXTENSION) == 'php' && file_exists($rFullPath)) {
 					$rJobs[] = $rRow['time'] . ' ' . PHP_BIN . ' ' . $rFullPath . ' # XC_VM';
 				}
 			}

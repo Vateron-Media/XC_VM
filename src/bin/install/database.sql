@@ -69874,15 +69874,17 @@ INSERT INTO `output_formats` (`access_output_id`, `output_name`, `output_key`, `
 
 CREATE TABLE IF NOT EXISTS `panel_logs` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `type` varchar(50) COLLATE utf8_unicode_ci NOT NULL DEFAULT 'pdo',
-  `log_message` longtext COLLATE utf8_unicode_ci,
-  `log_extra` longtext COLLATE utf8_unicode_ci,
+  `type` varchar(50) NOT NULL DEFAULT 'pdo',
+  `log_message` longtext DEFAULT NULL,
+  `log_extra` longtext DEFAULT NULL,
   `line` int(11) DEFAULT NULL,
   `date` int(11) DEFAULT NULL,
   `server_id` int(11) DEFAULT NULL,
-  `unique` varchar(32) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `unique` varchar(32) DEFAULT NULL,
+  `file` varchar(255) DEFAULT NULL,
+  `env` varchar(32) NOT NULL DEFAULT 'cli',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
 
 -- --------------------------------------------------------
 

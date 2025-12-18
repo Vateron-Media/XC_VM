@@ -108,18 +108,12 @@ if (!$argc) {
 }
 
 define('PHP_ERRORS', $rShowErrors);
-set_error_handler('log_error');
-set_exception_handler('log_exception');
-register_shutdown_function('log_fatal');
 
-if (PHP_ERRORS) {
-	error_reporting(1 | 4);
-	ini_set('display_errors', true);
-	ini_set('display_startup_errors', true);
-} else {
-	error_reporting(0);
-	ini_set('display_errors', 0);
-}
+require_once INCLUDES_PATH . 'libs/Logger.php';
+Logger::init(
+	PHP_ERRORS,
+	LOGS_TMP_PATH . 'error_log.log'
+);
 
 $rFilename = strtolower(basename(get_included_files()[0], '.php'));
 
@@ -170,10 +164,6 @@ switch ($rFilename) {
 
 		break;
 }
-function panelLog($rType, $rMessage, $rExtra = '', $rLine = 0) {
-	$rData = array('type' => $rType, 'message' => $rMessage, 'extra' => $rExtra, 'line' => $rLine, 'time' => time());
-	file_put_contents(LOGS_TMP_PATH . 'error_log.log', base64_encode(json_encode($rData)) . "\n", FILE_APPEND);
-}
 
 function generate404($rKill = true) {
 	echo "<html>\r\n<head><title>404 Not Found</title></head>\r\n<body>\r\n<center><h1>404 Not Found</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n<!-- a padding to disable MSIE and Chrome friendly error page -->\r\n<!-- a padding to disable MSIE and Chrome friendly error page -->\r\n<!-- a padding to disable MSIE and Chrome friendly error page -->\r\n<!-- a padding to disable MSIE and Chrome friendly error page -->\r\n<!-- a padding to disable MSIE and Chrome friendly error page -->\r\n<!-- a padding to disable MSIE and Chrome friendly error page -->";
@@ -205,25 +195,5 @@ function generateError($rError, $rKill = true, $rCode = null) {
 				exit();
 			}
 		}
-	}
-}
-
-function log_error($rErrNo, $rMessage, $rFile, $rLine, $rContext = null) {
-	if (in_array($rErrNo, array(1, 2, 4))) {
-		if ($rErrNo != 2 || stripos($rMessage, 'undefined variable') !== false || stripos($rMessage, 'undefined constant') !== false) {
-			panellog(array(1 => 'error', 2 => 'warning', 4 => 'parse')[$rErrNo], $rMessage, $rFile, $rLine);
-		}
-	}
-}
-
-function log_exception($e) {
-	panellog('exception', $e->getMessage(), $e->getTraceAsString(), $e->getLine());
-}
-
-function log_fatal() {
-	$rError = error_get_last();
-
-	if ($rError !== null && $rError['type'] == 1) {
-		panellog('error', $rError['message'], $rError['file'], $rError['line']);
 	}
 }
