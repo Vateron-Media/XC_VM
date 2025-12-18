@@ -305,6 +305,7 @@ function loadCron() {
             }
         }
         if (file_exists(TMP_PATH . 'crontab')) {
+            echo 'Checking crontab...' . "\n";
             exec('crontab -u xc_vm -l', $rCrons);
             $rCurrentCron = trim(implode("\n", $rCrons));
             $db->query('SELECT * FROM `crontab` WHERE `enabled` = 1;');
@@ -318,6 +319,8 @@ function loadCron() {
             if ($rCurrentCron != $rActualCron) {
                 echo 'Updating Crons...' . "\n";
                 unlink(TMP_PATH . 'crontab');
+            }else{
+                echo "Crons valid.\n";
             }
         }
         if (file_exists(CONFIG_PATH . 'sysctl.on')) {
