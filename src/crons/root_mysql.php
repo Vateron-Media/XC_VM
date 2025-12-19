@@ -117,7 +117,7 @@ function checkMariaDB() {
     $isActive = isset($out[0]) && trim($out[0]) === 'active';
 
     // Check mysqld process
-    exec('pgrep mysqld', $pids, $pidCode);
+    exec('pgrep -x mariadbd', $pids, $pidCode);
     $hasProcess = !empty($pids);
 
     if (!$isActive || !$hasProcess) {
