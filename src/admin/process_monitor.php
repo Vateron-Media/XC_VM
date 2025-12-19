@@ -228,10 +228,25 @@ include 'header.php'; ?>
                                 </thead>
                                 <tbody>
                                     <?php foreach ($rProcesses as $rProcess) {
-                                        $uptime = $rProcess['etime'];
-                                        $uptime = $uptime >= 86400 ? sprintf('%02dd %02dh %02dm', $uptime / 86400, ($uptime / 3600) % 24, ($uptime / 60) % 60) : sprintf('%02dh %02dm %02ds', $uptime / 3600, ($uptime / 60) % 60, $uptime % 60);
-                                        $cpuTime = $rProcess['time'];
-                                        $cpuTime = $cpuTime >= 86400 ? sprintf('%02dd %02dh %02dm', $cpuTime / 86400, ($cpuTime / 3600) % 24, ($cpuTime / 60) % 60) : sprintf('%02dh %02dm %02ds', $cpuTime / 3600, ($cpuTime / 60) % 60, $cpuTime % 60);
+                                        // Calculate Uptime
+                                        $uptime = (int) $rProcess['etime'];
+
+                                        $days    = intdiv($uptime, 86400);
+                                        $hours   = intdiv($uptime, 3600) % 24;
+                                        $minutes = intdiv($uptime, 60) % 60;
+                                        $seconds = $uptime % 60;
+
+                                        $uptime = $uptime >= 86400 ? sprintf('%02dd %02dh %02dm', $days, $hours, $minutes) : sprintf('%02dh %02dm %02ds', $hours, $minutes, $seconds);
+
+                                        // Calculate CPU Time
+                                        $cpuTime = (int) $rProcess['time'];
+
+                                        $days    = intdiv($cpuTime, 86400);
+                                        $hours   = intdiv($cpuTime, 3600) % 24;
+                                        $minutes = intdiv($cpuTime, 60) % 60;
+                                        $seconds = $cpuTime % 60;
+
+                                        $cpuTime = $cpuTime >= 86400 ? sprintf('%02dd %02dh %02dm', $days, $hours, $minutes) : sprintf('%02dh %02dm %02ds', $hours, $minutes, $seconds);
 
                                         $A134afcd6d59abf6 = array('proxy' => 'Live Proxy', 'llod' => 'LLOD', 'loopback' => 'Loopback', 'queue' => 'VOD Queue', 'ondemand' => 'On-Demand Instant Off', 'plex_item' => 'Plex Item Scan', 'watch_item' => 'Watch Item Scan', 'cache_handler' => 'Cache Handler', 'certbot' => 'Certbot SSL Automation', 'closed_cons' => 'Closed Connection Handler', 'signals' => 'Signal Handler', 'watchdog' => 'Server Watchdog');
                                         $rCrons = array('plex' => 'Plex Sync', 'cache_engine' => 'Cache Generator', 'activity' => 'Activity Cron', 'backups' => 'Backup Cron', 'cache' => 'Cache Cron', 'epg' => 'EPG Cron', 'lines_logs' => 'Line Logging Cron', 'root_signals' => 'Root Signal Cron', 'series' => 'Series Cron', 'servers' => 'Servers Cron', 'stats' => 'Stats Cron', 'streams' => 'Streams Cron', 'streams_logs' => 'Stream Logging Cron', 'tmdb' => 'TMDb Refresh Cron', 'tmp' => 'Temp Cron', 'users' => 'Users Cron', 'vod' => 'VOD Cron', 'watch' => 'Watch Folder Cron');

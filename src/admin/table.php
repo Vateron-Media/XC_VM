@@ -8,9 +8,9 @@ if (file_exists("../www/init.php")) {
 }
 
 if (!PHP_ERRORS) {
-	if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
-		exit();
-	}
+    if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
+        exit();
+    }
 }
 
 $rReturn = ["draw" => (int) CoreUtilities::$rRequest["draw"], "recordsTotal" => 0, "recordsFiltered" => 0, "data" => []];
@@ -130,11 +130,21 @@ if ($rType == "lines") {
             foreach ($rRows as $rRow) {
                 $rLineIDs[] = (int) $rRow["id"];
                 $rLineInfo[(int) $rRow["id"]] = ["owner_name" => NULL, "stream_display_name" => NULL, "stream_id" => NULL, "last_active" => NULL];
-                if ($rLastInfo = json_decode($rRow["last_activity_array"], true)) {
-                    $rLineInfo[(int) $rRow["id"]]["stream_id"] = $rLastInfo["stream_id"];
-                    $rLineInfo[(int) $rRow["id"]]["last_active"] = $rLastInfo["date_end"];
-                } elseif ($rRow["last_activity"]) {
-                    $rActivityIDs[] = (int) $rRow["last_activity"];
+                $rLastInfo = [];
+
+                if (!empty($rRow['last_activity_array'])) {
+                    $decoded = json_decode($rRow['last_activity_array'], true);
+                    if (is_array($decoded)) {
+                        $rLastInfo = $decoded;
+                    }
+                }
+
+                if ($rLastInfo) {
+                    $id = (int) $rRow['id'];
+                    $rLineInfo[$id]['stream_id']   = $rLastInfo['stream_id'] ?? null;
+                    $rLineInfo[$id]['last_active'] = $rLastInfo['date_end'] ?? null;
+                } elseif (!empty($rRow['last_activity'])) {
+                    $rActivityIDs[] = (int) $rRow['last_activity'];
                 }
             }
 
@@ -240,15 +250,16 @@ if ($rType == "lines") {
                         $rMaxConnections = "<button type='button' class='btn btn-secondary btn-xs waves-effect waves-light'>" . $rRow["max_connections"] . "</button>";
                     }
                     $rNotes = "";
-                    if (0 < strlen($rRow["admin_notes"])) {
-                        $rNotes .= $rRow["admin_notes"];
+                    if (!empty($rRow['admin_notes'])) {
+                        $rNotes .= $rRow['admin_notes'];
                     }
-                    if (0 < strlen($rRow["reseller_notes"])) {
-                        if (strlen($rNotes) != 0) {
+                    if (!empty($rRow['reseller_notes'])) {
+                        if ($rNotes !== '') {
                             $rNotes .= "\n";
                         }
-                        $rNotes .= $rRow["reseller_notes"];
+                        $rNotes .= $rRow['reseller_notes'];
                     }
+
                     if (CoreUtilities::$rSettings["group_buttons"]) {
                         $rButtons = "";
                         if (0 < strlen($rNotes)) {
@@ -313,7 +324,7 @@ if ($rType == "lines") {
                     }
                     if ($rRow["active_connections"] && $rRow["last_active"]) {
                         $rLastActive = "<a href='stream_view?id=" . $rRow["stream_id"] . "'>" . $rRow["stream_display_name"] . "</a><br/><small class='text-secondary'>Online: " . CoreUtilities::secondsToTime(time() - $rRow["last_active"]) . "</small>";
-                    } elseif ($rRow["last_active"]) {
+                    } elseif (!empty($rRow['last_active'])) {
                         $rLastActive = date($rSettings["date_format"], $rRow["last_active"]) . "<br/><small class='text-secondary'>" . date("H:i:s", $rRow["last_active"]) . "</small>";
                     } else {
                         $rLastActive = "Never";
@@ -321,7 +332,7 @@ if ($rType == "lines") {
                     if (0 < $rRow["member_id"]) {
                         $rOwner = "<a href='user?id=" . $rRow["member_id"] . "'>" . $rRow["owner_name"] . "</a>";
                     } else {
-                        $rOwner = $rRow["owner_name"];
+                        $rOwner = $rRow['owner_name'] ?? '';
                     }
                     if (!isset(CoreUtilities::$rRequest["no_url"])) {
                         $rReturn["data"][] = ["<a href='line?id=" . $rRow["id"] . "'>" . $rRow["id"] . "</a>", "<a href='line?id=" . $rRow["id"] . "'>" . $rRow["username"] . "</a>", $rRow["password"], $rOwner, $rStatus, $rActive, $rTrial, $rRestreamer, $rActiveConnections, $rMaxConnections, $rExpDate, $rLastActive, $rButtons];
@@ -396,7 +407,16 @@ if ($rType == "lines") {
                     $rLineIDs[] = (int) $rRow["id"];
                     $rLineInfo[(int) $rRow["id"]] = ["owner_name" => NULL, "stream_display_name" => NULL, "stream_id" => NULL, "last_active" => NULL];
                 }
-                if ($rLastInfo = json_decode($rRow["last_activity_array"], true)) {
+                $rLastInfo = [];
+
+                if (!empty($rRow['last_activity_array'])) {
+                    $decoded = json_decode($rRow['last_activity_array'], true);
+                    if (is_array($decoded)) {
+                        $rLastInfo = $decoded;
+                    }
+                }
+
+                if ($rLastInfo) {
                     $rLineInfo[(int) $rRow["id"]]["stream_id"] = $rLastInfo["stream_id"];
                     $rLineInfo[(int) $rRow["id"]]["last_active"] = $rLastInfo["date_end"];
                 } elseif ($rRow["last_activity"]) {
@@ -494,10 +514,10 @@ if ($rType == "lines") {
                         $rActiveConnections = $rRow["active_connections"];
                     }
                     $rNotes = "";
-                    if (0 < strlen($rRow["admin_notes"])) {
+                    if (!empty($rRow["admin_notes"])) {
                         $rNotes .= $rRow["admin_notes"];
                     }
-                    if (0 < strlen($rRow["reseller_notes"])) {
+                    if (!empty($rRow["reseller_notes"])) {
                         if (strlen($rNotes) != 0) {
                             $rNotes .= "\n";
                         }
@@ -515,11 +535,12 @@ if ($rType == "lines") {
                         if (hasPermissions("adv", "edit_user")) {
                             $rButtons .= "<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"api(" . $rRow["mag_id"] . ", 'convert');\">Convert to Line</a>";
                         }
-                        if (hasPermissions("adv", "fingerprint") && $rRow["user_id"] && 0 < $rRow["active_connections"]) {
+                        if (hasPermissions("adv", "fingerprint") && !empty($rRow["user_id"]) && 0 < $rRow["active_connections"]) {
                             $rButtons .= "<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"modalFingerprint(" . $rRow["user_id"] . ", 'user');\">Fingerprint</a>";
                         }
                         if (hasPermissions("adv", "edit_mag")) {
-                            $rButtons .= "<a class=\"dropdown-item\" href=\"mag?id=" . $rRow["id"] . "\" " . (CoreUtilities::$rSettings["modal_edit"] ? "onClick=\"editModal(event, 'mag', " . (int) $rRow["mag_id"] . ", '" . str_replace("\"", "&quot;", str_replace("'", "\\'", $rRow["username"])) . "')\" data-modal=\"true\"" : "") . ">Edit Device</a>";
+                            $username = str_replace('"', '&quot;', str_replace("'", "\\'", $rRow['username'] ?? ''));
+                            $rButtons .= "<a class=\"dropdown-item\" href=\"mag?id=" . $rRow['id'] . "\" " . (CoreUtilities::$rSettings['modal_edit'] ? "onClick=\"editModal(event, 'mag', " . (int) ($rRow['mag_id'] ?? 0) . ", '$username')\" data-modal=\"true\"" : "") . ">Edit Device</a>";
                             if ($rRow["admin_enabled"]) {
                                 $rButtons .= "<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"api(" . $rRow["mag_id"] . ", 'ban');\">Ban Device</a>";
                             } else {
@@ -572,11 +593,11 @@ if ($rType == "lines") {
                     if (0 < $rRow["member_id"]) {
                         $rOwner = "<a href='user?id=" . $rRow["member_id"] . "'>" . $rRow["owner_name"] . "</a>";
                     } else {
-                        $rOwner = $rRow["owner_name"];
+                        $rOwner = $rRow['owner_name'] ?? '';
                     }
                     if ($rRow["active_connections"] && $rRow["last_active"]) {
                         $rLastActive = "<a href='stream_view?id=" . $rRow["stream_id"] . "'>" . $rRow["stream_display_name"] . "</a><br/><small class='text-secondary'>Online: " . CoreUtilities::secondsToTime(time() - $rRow["last_active"]) . "</small>";
-                    } elseif ($rRow["last_active"]) {
+                    } elseif (!empty($rRow['last_active'])) {
                         $rLastActive = date($rSettings["date_format"], $rRow["last_active"]) . "<br/><small class='text-secondary'>" . date("H:i:s", $rRow["last_active"]) . "</small>";
                     } else {
                         $rLastActive = "Never";
@@ -654,7 +675,16 @@ if ($rType == "lines") {
                     $rLineIDs[] = (int) $rRow["id"];
                     $rLineInfo[(int) $rRow["id"]] = ["owner_name" => NULL, "stream_display_name" => NULL, "stream_id" => NULL, "last_active" => NULL];
                 }
-                if ($rLastInfo = json_decode($rRow["last_activity_array"], true)) {
+                $rLastInfo = [];
+
+                if (!empty($rRow['last_activity_array'])) {
+                    $decoded = json_decode($rRow['last_activity_array'], true);
+                    if (is_array($decoded)) {
+                        $rLastInfo = $decoded;
+                    }
+                }
+
+                if ($rLastInfo) {
                     $rLineInfo[(int) $rRow["id"]]["stream_id"] = $rLastInfo["stream_id"];
                     $rLineInfo[(int) $rRow["id"]]["last_active"] = $rLastInfo["date_end"];
                 } elseif ($rRow["last_activity"]) {
@@ -752,10 +782,10 @@ if ($rType == "lines") {
                         $rActiveConnections = $rRow["active_connections"];
                     }
                     $rNotes = "";
-                    if (0 < strlen($rRow["admin_notes"])) {
+                    if (!empty($rRow["admin_notes"])) {
                         $rNotes .= $rRow["admin_notes"];
                     }
-                    if (0 < strlen($rRow["reseller_notes"])) {
+                    if (!empty($rRow["reseller_notes"])) {
                         if (strlen($rNotes) != 0) {
                             $rNotes .= "\n";
                         }
@@ -824,11 +854,11 @@ if ($rType == "lines") {
                     if (0 < $rRow["member_id"]) {
                         $rOwner = "<a href='user?id=" . $rRow["member_id"] . "'>" . $rRow["owner_name"] . "</a>";
                     } else {
-                        $rOwner = $rRow["owner_name"];
+                        $rOwner = $rRow['owner_name'] ?? '';
                     }
                     if ($rRow["active_connections"] && $rRow["last_active"]) {
                         $rLastActive = "<a href='stream_view?id=" . $rRow["stream_id"] . "'>" . $rRow["stream_display_name"] . "</a><br/><small class='text-secondary'>Online: " . CoreUtilities::secondsToTime(time() - $rRow["last_active"]) . "</small>";
-                    } elseif ($rRow["last_active"]) {
+                    } elseif (!empty($rRow['last_active'])) {
                         $rLastActive = date($rSettings["date_format"], $rRow["last_active"]) . "<br/><small class='text-secondary'>" . date("H:i:s", $rRow["last_active"]) . "</small>";
                     } else {
                         $rLastActive = "Never";
@@ -1046,7 +1076,8 @@ if ($rType == "lines") {
                     if (0 < strlen(CoreUtilities::$rRequest["category"])) {
                         $rCategory = $rCategories[(int) CoreUtilities::$rRequest["category"]]["category_name"] ?: "No Category";
                     } else {
-                        $rCategory = $rCategories[$rCategoryIDs[0]]["category_name"] ?: "No Category";
+                        $rCategory = $rCategoryIDs[0] ?? null;
+                        $rCategory = $rCategories[$rCategory]['category_name'] ?? "No Category";
                     }
                     if (1 < count($rCategoryIDs)) {
                         $rCategory .= " (+" . (count($rCategoryIDs) - 1) . " others)";
@@ -1054,7 +1085,7 @@ if ($rType == "lines") {
                     if (0 < $rRow['tv_archive_duration'] && 0 < $rRow['tv_archive_server_id']) {
                         $rRow['stream_display_name'] .= " &nbsp;<a href='archive?id=" . $rRow['id'] . "'><i class='text-danger mdi mdi-record'></i></a>";
                     }
-                    $adaptiveLinks = json_decode($rRow['adaptive_link'], true);
+                    $adaptiveLinks = json_decode($rRow['adaptive_link'] ?? '', true) ?: [];
 
                     if (is_array($adaptiveLinks) && count($adaptiveLinks) > 0) {
                         $rRow['stream_display_name'] .= " &nbsp;<a href='stream_view?id=" . $rRow['id'] . "'><i class='text-info mdi mdi-wifi-strength-3'></i></a>";
@@ -1078,10 +1109,10 @@ if ($rType == "lines") {
                     } else {
                         $rServerName = "No Server Selected";
                     }
-                    if (0 < (int) $rRow["parent_id"]) {
+                    if (isset($rRow['parent_id']) && (int)$rRow['parent_id'] > 0) {
                         $rStreamSource = "<br/><span style='font-size:11px;'>loop: " . strtolower(CoreUtilities::$rServers[$rRow["parent_id"]]["server_name"]) . "</span>";
                     } else {
-                        $rStreamSource = "<br/><span style='font-size:11px;'>" . strtolower(parse_url($rRow["current_source"])["host"]) . "</span>";
+                        $rStreamSource = "<br/><span style='font-size:11px;'>" . strtolower(parse_url($rRow['current_source'] ?? '')['host'] ?? '') . "</span>";
                     }
                     $rServerName .= $rStreamSource;
                     if (0 < (int) $rRow["stream_started"]) {
@@ -1166,9 +1197,9 @@ if ($rType == "lines") {
                     }
                     if ($rActualStatus == 1) {
                         if (86400 <= $rUptime) {
-                            $rUptime = sprintf("%02dd %02dh %02dm", $rUptime / 86400, $rUptime / 3600 % 24, $rUptime / 60 % 60);
+                            $rUptime = sprintf("%02dd %02dh %02dm", intdiv((int)$rUptime, 86400), intdiv((int)$rUptime, 3600) % 24, intdiv((int)$rUptime, 60) % 60);
                         } else {
-                            $rUptime = sprintf("%02dh %02dm %02ds", $rUptime / 3600, $rUptime / 60 % 60, $rUptime % 60);
+                            $rUptime = sprintf("%02dh %02dm %02ds", intdiv((int)$rUptime, 3600), intdiv((int)$rUptime, 60) % 60, (int)$rUptime % 60);
                         }
                         $rUptime = "<button type='button' class='btn btn-success btn-xs waves-effect waves-light " . $rBtnLength . "'>" . $rUptime . "</button>";
                     } elseif ($rActualStatus == 3) {
@@ -1206,7 +1237,7 @@ if ($rType == "lines") {
                                 $rUptime = str_replace("btn-fixed", "btn-fixed-xl", $rUptime);
                             }
                             if ($rSettings["streams_grouped"] == 1) {
-                                $rFailRow = $rFails[$rRow["id"]];
+                                $rFailRow = $rFails[$rRow['id']] ?? [];
                             } else {
                                 $rFailRow = $rFailsPS[$rRow["id"]][$rRow["server_id"]];
                             }
@@ -1228,7 +1259,7 @@ if ($rType == "lines") {
                     }
                     if (CoreUtilities::$rSettings["group_buttons"]) {
                         $rButtons = "";
-                        if (0 < strlen($rRow["notes"])) {
+                        if (!empty($rRow['notes'])) {
                             $rButtons .= "<button type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" title=\"" . $rRow["notes"] . "\"><i class=\"mdi mdi-note\"></i></button>";
                         }
                         $rButtons .= "<div class=\"btn-group dropdown\"><a href=\"javascript: void(0);\" class=\"table-action-btn dropdown-toggle arrow-none btn btn-light btn-sm\" data-toggle=\"dropdown\" aria-expanded=\"false\"><i class=\"mdi mdi-menu\"></i></a><div class=\"dropdown-menu dropdown-menu-right\">";
@@ -1277,7 +1308,7 @@ if ($rType == "lines") {
                                 $rButtons .= "<button title=\"Delete\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"api(" . $rRow["id"] . ", " . $rRow["server_id"] . ", 'delete');\"><i class=\"mdi mdi-close\"></i></button>";
                             }
                         } else {
-                            if (0 < strlen($rRow["notes"])) {
+                            if (!empty($rRow['notes'])) {
                                 $rButtons .= "<button type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" title=\"" . $rRow["notes"] . "\"><i class=\"mdi mdi-note\"></i></button>";
                             } else {
                                 $rButtons .= "<button disabled type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs\"><i class=\"mdi mdi-note\"></i></button>";
@@ -1311,8 +1342,8 @@ if ($rType == "lines") {
                         $rButtons .= "</div>";
                     }
                     $rStreamInfoText = "<table style='font-size: 10px;' class='table-data nowrap' align='center'><tbody><tr><td colspan='5'>No information available</td></tr></tbody></table>";
-                    $rStreamInfo = json_decode($rRow["stream_info"], true);
-                    $rProgressInfo = json_decode($rRow["progress_info"], true);
+                    $rStreamInfo   = json_decode($rRow['stream_info'] ?? '', true) ?: [];
+                    $rProgressInfo = json_decode($rRow['progress_info'] ?? '', true) ?: [];
                     if ($rActualStatus == 1) {
                         if (!isset($rStreamInfo["codecs"]["video"])) {
                             $rStreamInfo["codecs"]["video"] = ["width" => "?", "height" => "?", "codec_name" => "N/A", "r_frame_rate" => "--"];
@@ -1516,7 +1547,8 @@ if ($rType == "lines") {
                     if (0 < strlen(CoreUtilities::$rRequest["category"])) {
                         $rCategory = $rCategories[(int) CoreUtilities::$rRequest["category"]]["category_name"] ?: "No Category";
                     } else {
-                        $rCategory = $rCategories[$rCategoryIDs[0]]["category_name"] ?: "No Category";
+                        $rCategory = $rCategoryIDs[0] ?? null;
+                        $rCategory = $rCategories[$rCategory]['category_name'] ?? "No Category";
                     }
                     if (1 < count($rCategoryIDs)) {
                         $rCategory .= " (+" . (count($rCategoryIDs) - 1) . " others)";
@@ -1538,10 +1570,10 @@ if ($rType == "lines") {
                         $rServerName = "No Server Selected";
                     }
                     if (!$rSettings["streams_grouped"]) {
-                        if (0 < (int) $rRow["parent_id"]) {
+                        if (isset($rRow['parent_id']) && (int)$rRow['parent_id'] > 0) {
                             $rStreamSource = "<br/><span style='font-size:11px;'>loop: " . strtolower(CoreUtilities::$rServers[$rRow["parent_id"]]["server_name"]) . "</span>";
                         } else {
-                            $rStreamSource = "<br/><span style='font-size:11px;'>" . strtolower(parse_url($rRow["current_source"])["host"]) . "</span>";
+                            $rStreamSource = "<br/><span style='font-size:11px;'>" . strtolower(parse_url($rRow['current_source'] ?? '')['host'] ?? '') . "</span>";
                         }
                         $rServerName .= $rStreamSource;
                     }
@@ -1592,9 +1624,9 @@ if ($rType == "lines") {
                     }
                     if ($rActualStatus == 1) {
                         if (86400 <= $rUptime) {
-                            $rUptime = sprintf("%02dd %02dh %02dm", $rUptime / 86400, $rUptime / 3600 % 24, $rUptime / 60 % 60);
+                            $rUptime = sprintf("%02dd %02dh %02dm", intdiv((int)$rUptime, 86400), intdiv((int)$rUptime, 3600) % 24, intdiv((int)$rUptime, 60) % 60);
                         } else {
-                            $rUptime = sprintf("%02dh %02dm %02ds", $rUptime / 3600, $rUptime / 60 % 60, $rUptime % 60);
+                            $rUptime = sprintf("%02dh %02dm %02ds", intdiv((int)$rUptime, 3600), intdiv((int)$rUptime, 60) % 60, (int)$rUptime % 60);
                         }
                         $rUptime = "<button type='button' class='btn btn-success btn-xs waves-effect waves-light btn-fixed-xl'>" . $rUptime . "</button>";
                     } elseif ($rActualStatus == 3) {
@@ -1605,7 +1637,7 @@ if ($rType == "lines") {
                     $rUptime = str_replace("btn-fixed'", "btn-fixed-xl'", $rUptime);
                     if (CoreUtilities::$rSettings["group_buttons"]) {
                         $rButtons = "";
-                        if (0 < strlen($rRow["notes"])) {
+                        if (!empty($rRow['notes'])) {
                             $rButtons .= "<button type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" title=\"" . $rRow["notes"] . "\"><i class=\"mdi mdi-note\"></i></button>";
                         }
                         $rButtons .= "<div class=\"btn-group dropdown\"><a href=\"javascript: void(0);\" class=\"table-action-btn dropdown-toggle arrow-none btn btn-light btn-sm\" data-toggle=\"dropdown\" aria-expanded=\"false\"><i class=\"mdi mdi-menu\"></i></a><div class=\"dropdown-menu dropdown-menu-right\">";
@@ -1642,7 +1674,7 @@ if ($rType == "lines") {
                                 $rButtons .= "<button title=\"Delete\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"api(" . $rRow["id"] . ", " . $rRow["server_id"] . ", 'delete');\"><i class=\"mdi mdi-close\"></i></button>";
                             }
                         } else {
-                            if (0 < strlen($rRow["notes"])) {
+                            if (!empty($rRow['notes'])) {
                                 $rButtons .= "<button type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" title=\"" . $rRow["notes"] . "\"><i class=\"mdi mdi-note\"></i></button>";
                             } else {
                                 $rButtons .= "<button disabled type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs\"><i class=\"mdi mdi-note\"></i></button>";
@@ -1661,8 +1693,8 @@ if ($rType == "lines") {
                         $rButtons .= "</div>";
                     }
                     $rStreamInfoText = "<table style='font-size: 10px;' class='table-data nowrap' align='center'><tbody><tr><td colspan='5'>No information available</td></tr></tbody></table>";
-                    $rStreamInfo = json_decode($rRow["stream_info"], true);
-                    $rProgressInfo = json_decode($rRow["progress_info"], true);
+                    $rStreamInfo   = json_decode($rRow['stream_info'] ?? '', true) ?: [];
+                    $rProgressInfo = json_decode($rRow['progress_info'] ?? '', true) ?: [];
                     if ($rActualStatus == 1) {
                         if (!isset($rStreamInfo["codecs"]["video"])) {
                             $rStreamInfo["codecs"]["video"] = ["width" => "?", "height" => "?", "codec_name" => "N/A", "r_frame_rate" => "--"];
@@ -1879,7 +1911,8 @@ if ($rType == "lines") {
                     if (0 < strlen(CoreUtilities::$rRequest["category"])) {
                         $rCategory = $rCategories[(int) CoreUtilities::$rRequest["category"]]["category_name"] ?: "No Category";
                     } else {
-                        $rCategory = $rCategories[$rCategoryIDs[0]]["category_name"] ?: "No Category";
+                        $rCategory = $rCategoryIDs[0] ?? null;
+                        $rCategory = $rCategories[$rCategory]['category_name'] ?? "No Category";
                     }
                     if (1 < count($rCategoryIDs)) {
                         $rCategory .= " (+" . (count($rCategoryIDs) - 1) . " others)";
@@ -1943,7 +1976,7 @@ if ($rType == "lines") {
                     }
                     if (CoreUtilities::$rSettings["group_buttons"]) {
                         $rButtons = "";
-                        if (0 < strlen($rRow["notes"])) {
+                        if (!empty($rRow['notes'])) {
                             $rButtons .= "<button type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" title=\"" . $rRow["notes"] . "\"><i class=\"mdi mdi-note\"></i></button>";
                         }
                         $rButtons .= "<div class=\"btn-group dropdown\"><a href=\"javascript: void(0);\" class=\"table-action-btn dropdown-toggle arrow-none btn btn-light btn-sm\" data-toggle=\"dropdown\" aria-expanded=\"false\"><i class=\"mdi mdi-menu\"></i></a><div class=\"dropdown-menu dropdown-menu-right\">";
@@ -1987,7 +2020,7 @@ if ($rType == "lines") {
                                 $rButtons .= "<button title=\"Delete\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"api(" . $rRow["id"] . ", " . $rRow["server_id"] . ", 'delete');\"><i class=\"mdi mdi-close\"></i></button>";
                             }
                         } else {
-                            if (0 < strlen($rRow["notes"])) {
+                            if (!empty($rRow['notes'])) {
                                 $rButtons .= "<button type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" title=\"" . $rRow["notes"] . "\"><i class=\"mdi mdi-note\"></i></button>";
                             } else {
                                 $rButtons .= "<button disabled type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs\"><i class=\"mdi mdi-note\"></i></button>";
@@ -2012,7 +2045,7 @@ if ($rType == "lines") {
                         $rStreamInfoText = "<a href='javascript: void(0);' onClick=\"viewDuplicates('" . str_replace("'", "\\'", $rRow["stream_display_name"]) . "', '" . $rRow["source"] . "');\">Duplicate of <strong>" . $rDupeCount . "</strong> other movie" . ($rDupeCount == 1 ? "" : "s") . "</a>";
                     } else {
                         $rStreamInfoText = "<table style='font-size: 10px;' class='table-data nowrap' align='center'><tbody><tr><td colspan='3'>No information available</td></tr></tbody></table>";
-                        $rStreamInfo = json_decode($rRow["stream_info"], true);
+                        $rStreamInfo   = json_decode($rRow['stream_info'] ?? '', true) ?: [];
                         if ($rActualStatus == 1) {
                             if (!isset($rStreamInfo["codecs"]["video"])) {
                                 $rStreamInfo["codecs"]["video"] = ["width" => "?", "height" => "?", "codec_name" => "N/A", "r_frame_rate" => "--"];
@@ -2810,7 +2843,8 @@ if ($rType == "lines") {
                     if (0 < strlen(CoreUtilities::$rRequest["category"])) {
                         $rCategory = $rCategories[(int) CoreUtilities::$rRequest["category"]]["category_name"] ?: "No Category";
                     } else {
-                        $rCategory = $rCategories[$rCategoryIDs[0]]["category_name"] ?: "No Category";
+                        $rCategory = $rCategoryIDs[0] ?? null;
+                        $rCategory = $rCategories[$rCategory]['category_name'] ?? "No Category";
                     }
                     if (1 < count($rCategoryIDs)) {
                         $rCategory .= " (+" . (count($rCategoryIDs) - 1) . " others)";
@@ -2983,7 +3017,8 @@ if ($rType == "lines") {
                     if (0 < strlen(CoreUtilities::$rRequest["category"])) {
                         $rCategory = $rCategories[(int) CoreUtilities::$rRequest["category"]]["category_name"] ?: "No Category";
                     } else {
-                        $rCategory = $rCategories[$rCategoryIDs[0]]["category_name"] ?: "No Category";
+                        $rCategory = $rCategoryIDs[0] ?? null;
+                        $rCategory = $rCategories[$rCategory]['category_name'] ?? "No Category";
                     }
                     if (1 < count($rCategoryIDs)) {
                         $rCategory .= " (+" . (count($rCategoryIDs) - 1) . " others)";
@@ -3114,7 +3149,8 @@ if ($rType == "lines") {
                     if (0 < strlen(CoreUtilities::$rRequest["category"])) {
                         $rCategory = $rCategories[(int) CoreUtilities::$rRequest["category"]]["category_name"] ?: "No Category";
                     } else {
-                        $rCategory = $rCategories[$rCategoryIDs[0]]["category_name"] ?: "No Category";
+                        $rCategory = $rCategoryIDs[0] ?? null;
+                        $rCategory = $rCategories[$rCategory]['category_name'] ?? "No Category";
                     }
                     if (1 < count($rCategoryIDs)) {
                         $rCategory .= " (+" . (count($rCategoryIDs) - 1) . " others)";
@@ -3222,7 +3258,8 @@ if ($rType == "lines") {
                     if (0 < strlen(CoreUtilities::$rRequest["category"])) {
                         $rCategory = $rCategories[(int) CoreUtilities::$rRequest["category"]]["category_name"] ?: "No Category";
                     } else {
-                        $rCategory = $rCategories[$rCategoryIDs[0]]["category_name"] ?: "No Category";
+                        $rCategory = $rCategoryIDs[0] ?? null;
+                        $rCategory = $rCategories[$rCategory]['category_name'] ?? "No Category";
                     }
                     if (1 < count($rCategoryIDs)) {
                         $rCategory .= " (+" . (count($rCategoryIDs) - 1) . " others)";
@@ -3755,7 +3792,8 @@ if ($rType == "lines") {
                     if (0 < strlen(CoreUtilities::$rRequest["category"])) {
                         $rCategory = $rCategories[(int) CoreUtilities::$rRequest["category"]]["category_name"] ?: "No Category";
                     } else {
-                        $rCategory = $rCategories[$rCategoryIDs[0]]["category_name"] ?: "No Category";
+                        $rCategory = $rCategoryIDs[0] ?? null;
+                        $rCategory = $rCategories[$rCategory]['category_name'] ?? "No Category";
                     }
                     if (1 < count($rCategoryIDs)) {
                         $rCategory .= " (+" . (count($rCategoryIDs) - 1) . " others)";
@@ -3874,7 +3912,7 @@ if ($rType == "lines") {
                     }
                     if (CoreUtilities::$rSettings["group_buttons"]) {
                         $rButtons = "";
-                        if (0 < strlen($rRow["notes"])) {
+                        if (!empty($rRow['notes'])) {
                             $rButtons .= "<button type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" title=\"" . $rRow["notes"] . "\"><i class=\"mdi mdi-note\"></i></button>";
                         }
                         $rButtons .= "<div class=\"btn-group dropdown\"><a href=\"javascript: void(0);\" class=\"table-action-btn dropdown-toggle arrow-none btn btn-light btn-sm\" data-toggle=\"dropdown\" aria-expanded=\"false\"><i class=\"mdi mdi-menu\"></i></a><div class=\"dropdown-menu dropdown-menu-right\">";
@@ -3893,7 +3931,7 @@ if ($rType == "lines") {
                         $rButtons .= "</div></div>";
                     } else {
                         $rButtons = "<div class=\"btn-group\">";
-                        if (0 < strlen($rRow["notes"])) {
+                        if (!empty($rRow['notes'])) {
                             $rButtons .= "<button type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" title=\"" . $rRow["notes"] . "\"><i class=\"mdi mdi-note\"></i></button>";
                         } else {
                             $rButtons .= "<button disabled type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs\"><i class=\"mdi mdi-note\"></i></button>";
@@ -4083,7 +4121,8 @@ if ($rType == "lines") {
                     if (0 < strlen(CoreUtilities::$rRequest["category"])) {
                         $rCategory = $rCategories[(int) CoreUtilities::$rRequest["category"]]["category_name"] ?: "No Category";
                     } else {
-                        $rCategory = $rCategories[$rCategoryIDs[0]]["category_name"] ?: "No Category";
+                        $rCategory = $rCategoryIDs[0] ?? null;
+                        $rCategory = $rCategories[$rCategory]['category_name'] ?? "No Category";
                     }
                     if (1 < count($rCategoryIDs)) {
                         $rCategory .= " (+" . (count($rCategoryIDs) - 1) . " others)";
@@ -4394,7 +4433,7 @@ if ($rType == "lines") {
                     }
                     if (CoreUtilities::$rSettings["group_buttons"]) {
                         $rButtons = "";
-                        if (0 < strlen($rRow["notes"])) {
+                        if (!empty($rRow['notes'])) {
                             $rButtons .= "<button type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" title=\"" . $rRow["notes"] . "\"><i class=\"mdi mdi-note\"></i></button>";
                         }
                         $rButtons .= "<div class=\"btn-group dropdown\"><a href=\"javascript: void(0);\" class=\"table-action-btn dropdown-toggle arrow-none btn btn-light btn-sm\" data-toggle=\"dropdown\" aria-expanded=\"false\"><i class=\"mdi mdi-menu\"></i></a><div class=\"dropdown-menu dropdown-menu-right\">";
@@ -4438,7 +4477,7 @@ if ($rType == "lines") {
                                 $rButtons .= "<button title=\"Delete\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"api(" . $rRow["id"] . ", " . $rRow["server_id"] . ", 'delete');\"><i class=\"mdi mdi-close\"></i></button>";
                             }
                         } else {
-                            if (0 < strlen($rRow["notes"])) {
+                            if (!empty($rRow['notes'])) {
                                 $rButtons .= "<button type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" title=\"" . $rRow["notes"] . "\"><i class=\"mdi mdi-note\"></i></button>";
                             } else {
                                 $rButtons .= "<button disabled type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs\"><i class=\"mdi mdi-note\"></i></button>";
@@ -4463,7 +4502,7 @@ if ($rType == "lines") {
                         $rStreamInfoText = "<a href='javascript: void(0);' onClick=\"viewDuplicates('" . str_replace("'", "\\'", $rRow["stream_display_name"]) . "', '" . $rRow["source"] . "');\">Duplicate of <strong>" . $rDupeCount . "</strong> other episode" . ($rDupeCount == 1 ? "" : "s") . "</a>";
                     } else {
                         $rStreamInfoText = "<table style='font-size: 10px;' class='table-data nowrap' align='center'><tbody><tr><td colspan='3'>No information available</td></tr></tbody></table>";
-                        $rStreamInfo = json_decode($rRow["stream_info"], true);
+                        $rStreamInfo   = json_decode($rRow['stream_info'] ?? '', true) ?: [];
                         if ($rActualStatus == 1) {
                             if (!isset($rStreamInfo["codecs"]["video"])) {
                                 $rStreamInfo["codecs"]["video"] = ["width" => "?", "height" => "?", "codec_name" => "N/A", "r_frame_rate" => "--"];
@@ -5067,7 +5106,8 @@ if ($rType == "lines") {
                     if (0 < strlen(CoreUtilities::$rRequest["category_id"])) {
                         $rCategory = $rCategories[(int) CoreUtilities::$rRequest["category_id"]]["category_name"] ?: "No Category";
                     } else {
-                        $rCategory = $rCategories[$rCategoryIDs[0]]["category_name"] ?: "No Category";
+                        $rCategory = $rCategoryIDs[0] ?? null;
+                        $rCategory = $rCategories[$rCategory]['category_name'] ?? "No Category";
                     }
                     if (1 < count($rCategoryIDs)) {
                         $rCategory .= " (+" . (count($rCategoryIDs) - 1) . " others)";
@@ -5132,7 +5172,8 @@ if ($rType == "lines") {
                     if (0 < strlen(CoreUtilities::$rRequest["category_id"])) {
                         $rCategory = $rCategories[(int) CoreUtilities::$rRequest["category_id"]]["category_name"] ?: "No Category";
                     } else {
-                        $rCategory = $rCategories[$rCategoryIDs[0]]["category_name"] ?: "No Category";
+                        $rCategory = $rCategoryIDs[0] ?? null;
+                        $rCategory = $rCategories[$rCategory]['category_name'] ?? "No Category";
                     }
                     if (1 < count($rCategoryIDs)) {
                         $rCategory .= " (+" . (count($rCategoryIDs) - 1) . " others)";
@@ -5196,7 +5237,8 @@ if ($rType == "lines") {
                     if (0 < strlen(CoreUtilities::$rRequest["category_id"])) {
                         $rCategory = $rCategories[(int) CoreUtilities::$rRequest["category_id"]]["category_name"] ?: "No Category";
                     } else {
-                        $rCategory = $rCategories[$rCategoryIDs[0]]["category_name"] ?: "No Category";
+                        $rCategory = $rCategoryIDs[0] ?? null;
+                        $rCategory = $rCategories[$rCategory]['category_name'] ?? "No Category";
                     }
                     if (1 < count($rCategoryIDs)) {
                         $rCategory .= " (+" . (count($rCategoryIDs) - 1) . " others)";
@@ -5261,7 +5303,8 @@ if ($rType == "lines") {
                     if (0 < strlen(CoreUtilities::$rRequest["category_id"])) {
                         $rCategory = $rCategories[(int) CoreUtilities::$rRequest["category_id"]]["category_name"] ?: "No Category";
                     } else {
-                        $rCategory = $rCategories[$rCategoryIDs[0]]["category_name"] ?: "No Category";
+                        $rCategory = $rCategoryIDs[0] ?? null;
+                        $rCategory = $rCategories[$rCategory]['category_name'] ?? "No Category";
                     }
                     if (1 < count($rCategoryIDs)) {
                         $rCategory .= " (+" . (count($rCategoryIDs) - 1) . " others)";
@@ -5558,7 +5601,8 @@ if ($rType == "lines") {
                         if (0 < strlen($rSplit[1])) {
                             $rCategory = $rCategories[(int) $rSplit[1]]["category_name"] ?: "No Category";
                         } else {
-                            $rCategory = $rCategories[$rCategoryIDs[0]]["category_name"] ?: "No Category";
+                            $rCategory = $rCategoryIDs[0] ?? null;
+                            $rCategory = $rCategories[$rCategory]['category_name'] ?? "No Category";
                         }
                         if (1 < count($rCategoryIDs)) {
                             $rCategory .= " (+" . (count($rCategoryIDs) - 1) . " others)";
@@ -5874,7 +5918,8 @@ if ($rType == "lines") {
                     if (0 < strlen(CoreUtilities::$rRequest["category"])) {
                         $rCategory = $rCategories[(int) CoreUtilities::$rRequest["category"]]["category_name"] ?: "No Category";
                     } else {
-                        $rCategory = $rCategories[$rCategoryIDs[0]]["category_name"] ?: "No Category";
+                        $rCategory = $rCategoryIDs[0] ?? null;
+                        $rCategory = $rCategories[$rCategory]['category_name'] ?? "No Category";
                     }
                     if (1 < count($rCategoryIDs)) {
                         $rCategory .= " (+" . (count($rCategoryIDs) - 1) . " others)";

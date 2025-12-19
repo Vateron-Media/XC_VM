@@ -111,7 +111,7 @@ include 'header.php';
                                                 <a onClick="whois('<?= $rServer['server_ip'] ?>');" href="javascript: void(0);">
                                                     <?= $rServer['server_ip'] ?>
                                                 </a>
-                                                <?php if (strlen($rServer['private_ip']) > 0): ?>
+                                                <?php if (!empty($rServer['private_ip'])): ?>
                                                     <br /><small style="font-size: 8pt;">private:
                                                         <a onClick="whois('<?= $rServer['private_ip'] ?>');" href="javascript: void(0);">
                                                             <?= $rServer['private_ip'] ?>
