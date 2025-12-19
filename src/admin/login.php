@@ -7,7 +7,9 @@ if (file_exists(TMP_PATH . '.migration.first')) {
 }
 
 if (!isset($_SESSION['hash'])) {
-    session_start();
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
 
     if (!($rBypassRecaptcha = in_array(getCurrentCode(), array('setup', 'rescue')))) {
         $rSettings['recaptcha_enable'] = false;

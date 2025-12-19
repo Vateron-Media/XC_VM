@@ -1,6 +1,7 @@
 <?php if (count(get_included_files()) != 1 || TRUE):
     $rModal = isset(CoreUtilities::$rRequest['modal']);
-    $rUpdate = (json_decode(CoreUtilities::$rSettings['update_data'], true) ?: array());
+    $rUpdate = (json_decode((string) CoreUtilities::$rSettings['update_data'], true) ?: array());
+
 ?>
 
     <!DOCTYPE html>
@@ -195,7 +196,7 @@
                                     </li>
                                 <?php endif; ?>
 
-                                <?php if (!$rMobile && isset($rUpdate) && is_array($rUpdate) && $rUpdate['version'] && (0 < version_compare($rUpdate['version'], XC_VM_VERSION) || version_compare($rUpdate['version'], XC_VM_VERSION) == 0)): ?>
+                                <?php if (!$rMobile && isset($rUpdate) && is_array($rUpdate) && isset($rUpdate['version']) && ( version_compare($rUpdate['version'], XC_VM_VERSION) >= 0)): ?>
                                     <li class="notification-list">
                                         <a href="settings" class="nav-link right-bar-toggle waves-effect <?php echo $rUserInfo['theme'] == 1 ? 'text-white' : 'text-warning'; ?>" title="Official Release v<?php echo $rUpdate['version']; ?> is available to download.">
                                             <i class="mdi mdi-update noti-icon"></i>

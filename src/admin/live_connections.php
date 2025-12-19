@@ -317,13 +317,13 @@ include 'header.php';
 
 		if (CoreUtilities::$rSettings['redis_handler']) {
 			echo "\t\t\t\t" . 'order: [[ 8, "';
-			echo (in_array(strtolower(CoreUtilities::$rRequest['dir']), array('asc', 'desc')) ? strtolower(CoreUtilities::$rRequest['dir']) : 'desc');
+			echo (in_array(strtolower(CoreUtilities::$rRequest['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(CoreUtilities::$rRequest['dir']) : 'desc');
 			echo '" ]],' . "\r\n\t\t\t\t";
 		} else {
 			echo "\t\t\t\t" . 'order: [[ ';
 			echo (isset(CoreUtilities::$rRequest['order']) ? intval(CoreUtilities::$rRequest['order']) : 8);
 			echo ', "';
-			echo (in_array(strtolower(CoreUtilities::$rRequest['dir']), array('asc', 'desc')) ? strtolower(CoreUtilities::$rRequest['dir']) : 'desc');
+			echo (in_array(strtolower(CoreUtilities::$rRequest['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(CoreUtilities::$rRequest['dir']) : 'desc');
 			echo '" ]],' . "\r\n\t\t\t\t";
 		}
 

@@ -72,7 +72,9 @@ API::init();
 ResellerAPI::$db = &$db;
 ResellerAPI::init();
 CoreUtilities::connectRedis();
-define('SERVER_ID', intval(CoreUtilities::$rConfig['server_id']));
+if (defined('SERVER_ID') === false) {
+	define('SERVER_ID', intval(CoreUtilities::$rConfig['server_id']));
+}
 $rDetect = new Mobile_Detect();
 $rMobile = $rDetect->isMobile();
 $rTimeout = 15;
@@ -255,14 +257,20 @@ function getFreeSpace($rServerID) {
 }
 
 function getStreamsRamdisk($rServerID) {
-	$rReturn = json_decode(systemapirequest($rServerID, array('action' => 'streams_ramdisk')), true);
+    $response = systemapirequest($rServerID, ['action' => 'streams_ramdisk']);
 
-	if (!$rReturn['result']) {
-		return array();
-	}
+    $rReturn = json_decode($response, true);
+    if (!is_array($rReturn)) {
+        return [];
+    }
 
-	return $rReturn['streams'];
+    if (empty($rReturn['result'])) {
+        return [];
+    }
+
+    return $rReturn['streams'] ?? [];
 }
+
 
 function killPID($rServerID, $rPID) {
 
@@ -1947,7 +1955,7 @@ function getPermissions($rID) {
 
 	if ($db->num_rows() == 1) {
 		$rRow = $db->get_row();
-		$rRow['subresellers'] = json_decode($rRow['subresellers'], true);
+		$rRow['subresellers'] = !empty($rRow['subresellers'])? json_decode($rRow['subresellers'], true): [];
 
 		if (count($rRow['subresellers'] ?? []) == 0) {
 			$rRow['create_sub_resellers'] = 0;
@@ -3571,8 +3579,6 @@ function deletePackage($rID) {
 	$rPackage = getPackage($rID);
 
 	if (!$rPackage) {
-
-
 		return false;
 	}
 
@@ -3587,8 +3593,6 @@ function deleteProvider($rID) {
 	$rProvider = getstreamprovider($rID);
 
 	if (!$rProvider) {
-
-
 		return false;
 	}
 
@@ -3603,9 +3607,6 @@ function deleteEPG($rID) {
 	$rEPG = getEPG($rID);
 
 	if (!$rEPG) {
-
-
-
 		return false;
 	}
 
@@ -3633,12 +3634,9 @@ function deleteServer($rID, $rReplaceWith = null) {
 			$db->query('UPDATE `lines_live` SET `server_id` = ? WHERE `server_id` = ?;', $rReplaceWith, $rID);
 		}
 
-
-
 		$db->query('UPDATE `lines_activity` SET `server_id` = ? WHERE `server_id` = ?;', $rReplaceWith, $rID);
 	} else {
 		$db->query('DELETE FROM `streams_servers` WHERE `server_id` = ?;', $rID);
-
 
 		if (CoreUtilities::$rSettings['redis_handler']) {
 		} else {
@@ -3647,7 +3645,6 @@ function deleteServer($rID, $rReplaceWith = null) {
 
 		$db->query('UPDATE `lines_activity` SET `server_id` = 0 WHERE `server_id` = ?;', $rID);
 	}
-
 
 	$db->query('UPDATE `servers` SET `parent_id` = NULL, `enabled` = 0 WHERE `server_type` = 1 AND `parent_id` = ?;', $rID);
 	$db->query('DELETE FROM `servers_stats` WHERE `server_id` = ?;', $rID);
@@ -3703,7 +3700,10 @@ function getRecordings() {
 }
 
 function issecure() {
-	return !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443;
+    $https = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+    $port443 = isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443;
+
+    return $https || $port443;
 }
 
 function getProtocol() {
@@ -3765,8 +3765,8 @@ function getStreamingServers(string $type = 'online') {
 
 	if ($db->num_rows() > 0) {
 		foreach ($db->get_rows() as $rRow) {
-			if ($rPermissions['is_reseller']) {
-				$rRow['server_name'] = 'Server #' . $rRow['id'];
+			if (isset($rPermissions['is_reseller']) && $rPermissions['is_reseller']) {
+				$rRow['server_name'] = 'Server #' . ($rRow['id'] ?? 'unknown');
 			}
 
 			$rRow['server_online'] = in_array($rRow['status'], array(1, 3)) && time() - $rRow['last_check_ago'] <= 90 || $rRow['is_main'];
@@ -4277,53 +4277,53 @@ function scanBouquets() {
  * @param int $rID Bouquet ID to scan
  */
 function scanBouquet($rID) {
-    global $db;
-    
-    $rBouquet = getBouquet($rID);
-    if (!$rBouquet) {
-        return; // Bouquet not found, exit early
-    }
+	global $db;
 
-    // Get all available stream IDs
-    $availableStreams = [];
-    $db->query('SELECT `id` FROM `streams`;');
-    if ($db->num_rows() > 0) {
-        foreach ($db->get_rows() as $rRow) {
-            $availableStreams[] = (int)$rRow['id'];
-        }
-    }
+	$rBouquet = getBouquet($rID);
+	if (!$rBouquet) {
+		return; // Bouquet not found, exit early
+	}
 
-    // Get all available series IDs
-    $availableSeries = [];
-    $db->query('SELECT `id` FROM `streams_series`;');
-    if ($db->num_rows() > 0) {
-        foreach ($db->get_rows() as $rRow) {
-            $availableSeries[] = (int)$rRow['id'];
-        }
-    }
+	// Get all available stream IDs
+	$availableStreams = [];
+	$db->query('SELECT `id` FROM `streams`;');
+	if ($db->num_rows() > 0) {
+		foreach ($db->get_rows() as $rRow) {
+			$availableStreams[] = (int)$rRow['id'];
+		}
+	}
 
-    // Filter bouquet data against available IDs
-    $updateData = [
-        'channels' => filterIDs(json_decode($rBouquet['bouquet_channels'] ?? '[]', true), $availableStreams, true),
-        'movies' => filterIDs(json_decode($rBouquet['bouquet_movies'] ?? '[]', true), $availableStreams, true),
-        'radios' => filterIDs(json_decode($rBouquet['bouquet_radios'] ?? '[]', true), $availableStreams, true),
-        'series' => filterIDs(json_decode($rBouquet['bouquet_series'] ?? '[]', true), $availableSeries, false)
-    ];
+	// Get all available series IDs
+	$availableSeries = [];
+	$db->query('SELECT `id` FROM `streams_series`;');
+	if ($db->num_rows() > 0) {
+		foreach ($db->get_rows() as $rRow) {
+			$availableSeries[] = (int)$rRow['id'];
+		}
+	}
 
-    // Update bouquet with filtered data using prepared statements
-    $db->query(
-        "UPDATE `bouquets` SET 
+	// Filter bouquet data against available IDs
+	$updateData = [
+		'channels' => filterIDs(json_decode($rBouquet['bouquet_channels'] ?? '[]', true), $availableStreams, true),
+		'movies' => filterIDs(json_decode($rBouquet['bouquet_movies'] ?? '[]', true), $availableStreams, true),
+		'radios' => filterIDs(json_decode($rBouquet['bouquet_radios'] ?? '[]', true), $availableStreams, true),
+		'series' => filterIDs(json_decode($rBouquet['bouquet_series'] ?? '[]', true), $availableSeries, false)
+	];
+
+	// Update bouquet with filtered data using prepared statements
+	$db->query(
+		"UPDATE `bouquets` SET 
             `bouquet_channels` = ?, 
             `bouquet_movies` = ?, 
             `bouquet_radios` = ?, 
             `bouquet_series` = ? 
-         WHERE `id` = ?", 
-        json_encode($updateData['channels']),
-        json_encode($updateData['movies']),
-        json_encode($updateData['radios']),
-        json_encode($updateData['series']),
-        $rBouquet['id']
-    );
+         WHERE `id` = ?",
+		json_encode($updateData['channels']),
+		json_encode($updateData['movies']),
+		json_encode($updateData['radios']),
+		json_encode($updateData['series']),
+		$rBouquet['id']
+	);
 }
 
 /**
@@ -4335,22 +4335,22 @@ function scanBouquet($rID) {
  * @return array Filtered array of valid IDs
  */
 function filterIDs($ids, $availableIDs, $checkPositive = true) {
-    $filtered = [];
-    
-    if (!is_array($ids)) {
-        return $filtered;
-    }
+	$filtered = [];
 
-    foreach ($ids as $id) {
-        $intID = (int)$id;
-        $isValid = (!$checkPositive || $intID > 0) && in_array($intID, $availableIDs);
-        
-        if ($isValid) {
-            $filtered[] = $intID;
-        }
-    }
-    
-    return $filtered;
+	if (!is_array($ids)) {
+		return $filtered;
+	}
+
+	foreach ($ids as $id) {
+		$intID = (int)$id;
+		$isValid = (!$checkPositive || $intID > 0) && in_array($intID, $availableIDs);
+
+		if ($isValid) {
+			$filtered[] = $intID;
+		}
+	}
+
+	return $filtered;
 }
 
 function getNextOrder() {

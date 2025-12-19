@@ -140,7 +140,7 @@ include "header.php";
 													<div class="col-md-8">
 														<input type="text" class="form-control" id="server_name"
 															name="server_name"
-															value="<?= htmlspecialchars($rSettings["server_name"]) ?>">
+															value="<?= htmlspecialchars($rSettings["server_name"] ?? '') ?>">
 													</div>
 												</div>
 												<div class="form-group row mb-4">
@@ -189,7 +189,7 @@ include "header.php";
 															class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-8"><input type="text" class="form-control"
 															id="message_of_day" name="message_of_day" value="';
-															echo htmlspecialchars($rSettings["message_of_day"]);
+															echo htmlspecialchars($rSettings["message_of_day"] ?? '');
 															echo '"></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="default_entries">Show Entries <i title="Number of table entries to show by default in the Admin & Reseller Interface." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><select name="default_entries" id="default_entries" class="form-control" data-toggle="select2">';
 															foreach ([10, 25, 50, 250, 500, 1000] as $rShow) {
 																echo '    <option';
@@ -223,9 +223,9 @@ include "header.php";
 																echo '</option>';
 															}
 															echo '</select></div>--></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="date_format">Date Format <i title="Default date format to use. Please look up PHP date formatting before changing this." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="date_format" name="date_format" value="';
-															echo htmlspecialchars($rSettings["date_format"]);
+															echo htmlspecialchars($rSettings["date_format"] ?? '');
 															echo '"></div><label class="col-md-4 col-form-label" for="datetime_format">Datetime Format <i title="Default datetime format to use. Please look up PHP date formatting before changing this." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="datetime_format" name="datetime_format" value="';
-															echo htmlspecialchars($rSettings["datetime_format"]);
+															echo htmlspecialchars($rSettings["datetime_format"] ?? '');
 															echo '"></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="streams_grouped">Group Streams Table <i title="Toggle to group multiple servers per stream into a single row, this will reduce the amount of rows to display." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="streams_grouped" id="streams_grouped" type="checkbox"';
 															if ($rSettings["streams_grouped"] == 1) {
 																echo ' checked ';
@@ -352,7 +352,7 @@ include "header.php";
 													<div class="col-md-8">
 														<input type="text" class="form-control" id="recaptcha_v2_site_key"
 															name="recaptcha_v2_site_key"
-															value="<?= htmlspecialchars($rSettings["recaptcha_v2_site_key"]) ?>">
+															value="<?= htmlspecialchars($rSettings["recaptcha_v2_site_key"] ?? '') ?>">
 													</div>
 												</div>
 												<div class="form-group row mb-4">
@@ -362,7 +362,7 @@ include "header.php";
 															class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-8">
 														<input type="text" class="form-control" id="recaptcha_v2_secret_key"
-															name="recaptcha_v2_secret_key" value="<?= htmlspecialchars($rSettings["recaptcha_v2_secret_key"]) ?>">
+															name="recaptcha_v2_secret_key" value="<?= htmlspecialchars($rSettings["recaptcha_v2_secret_key"] ?? '') ?>">
 													</div>
 												</div>
 												<h5 class="card-title mb-4">Default Arguments</h5>
@@ -372,7 +372,7 @@ include "header.php";
 													<div class="col-md-9">
 														<input type="text" class="form-control" id="user_agent"
 															name="user_agent"
-															value="<?= htmlspecialchars($rStreamArguments["user_agent"]["argument_default_value"]) ?>">
+															value="<?= htmlspecialchars($rStreamArguments["user_agent"]["argument_default_value"] ?? '') ?>">
 													</div>
 												</div>
 												<div class="form-group row mb-4">
@@ -382,7 +382,7 @@ include "header.php";
 													<div class="col-md-9">
 														<input type="text" class="form-control" id="http_proxy"
 															name="http_proxy"
-															value="<?= htmlspecialchars($rStreamArguments["proxy"]["argument_default_value"]) ?>">
+															value="<?= htmlspecialchars($rStreamArguments["proxy"]["argument_default_value"] ?? '') ?>">
 													</div>
 												</div>
 												<div class="form-group row mb-4">
@@ -391,7 +391,7 @@ include "header.php";
 															class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-9">
 														<input type="text" class="form-control" id="cookie" name="cookie"
-															value="<?= htmlspecialchars($rStreamArguments["cookie"]["argument_default_value"]) ?>">
+															value="<?= htmlspecialchars($rStreamArguments["cookie"]["argument_default_value"] ?? '') ?>">
 													</div>
 												</div>
 												<div class="form-group row mb-4">
@@ -400,7 +400,7 @@ include "header.php";
 															class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-9">
 														<input type="text" class="form-control" id="headers" name="headers"
-															value="<?= htmlspecialchars($rStreamArguments["headers"]["argument_default_value"]) ?>">
+															value="<?= htmlspecialchars($rStreamArguments["headers"]["argument_default_value"] ?? '') ?>">
 													</div>
 												</div>
 												<div class="form-group row mb-4">
@@ -526,7 +526,7 @@ include "header.php";
 													<div class="col-md-2">
 														<input type="text" class="form-control text-center" id="flood_limit"
 															name="flood_limit"
-															value="<?= htmlspecialchars($rSettings["flood_limit"]) ?>">
+															value="<?= htmlspecialchars($rSettings["flood_limit"] ?? '') ?>">
 													</div>
 													<label class="col-md-4 col-form-label" for="flood_seconds">Per
 														Seconds
@@ -535,7 +535,7 @@ include "header.php";
 													<div class="col-md-2">
 														<input type="text" class="form-control text-center"
 															id="flood_seconds" name="flood_seconds"
-															value="<?= htmlspecialchars($rSettings["flood_seconds"]) ?>">
+															value="<?= htmlspecialchars($rSettings["flood_seconds"] ?? '') ?>">
 													</div>
 												</div>
 												<div class="form-group row mb-4">
@@ -547,7 +547,7 @@ include "header.php";
 													<div class="col-md-2">
 														<input type="text" class="form-control text-center"
 															id="auth_flood_limit" name="auth_flood_limit"
-															value="<?= htmlspecialchars($rSettings["auth_flood_limit"]) ?>">
+															value="<?= htmlspecialchars($rSettings["auth_flood_limit"] ?? '') ?>">
 													</div>
 													<label class="col-md-4 col-form-label" for="auth_flood_seconds">Auth
 														Flood Seconds <i
@@ -556,7 +556,7 @@ include "header.php";
 													<div class="col-md-2">
 														<input type="text" class="form-control text-center"
 															id="auth_flood_seconds" name="auth_flood_seconds"
-															value="<?= htmlspecialchars($rSettings["auth_flood_seconds"]) ?>">
+															value="<?= htmlspecialchars($rSettings["auth_flood_seconds"] ?? '') ?>">
 													</div>
 												</div>
 												<div class="form-group row mb-4">
@@ -568,7 +568,7 @@ include "header.php";
 													<div class="col-md-2">
 														<input type="text" class="form-control text-center"
 															id="auth_flood_sleep" name="auth_flood_sleep"
-															value="<?= htmlspecialchars($rSettings["auth_flood_sleep"]) ?>">
+															value="<?= htmlspecialchars($rSettings["auth_flood_sleep"] ?? '') ?>">
 													</div>
 													<label class="col-md-4 col-form-label" for="flood_ips_exclude">Flood
 														IP
@@ -577,7 +577,7 @@ include "header.php";
 													<div class="col-md-2">
 														<input type="text" class="form-control" id="flood_ips_exclude"
 															name="flood_ips_exclude"
-															value="<?= htmlspecialchars($rSettings["flood_ips_exclude"]) ?>">
+															value="<?= htmlspecialchars($rSettings["flood_ips_exclude"] ?? '') ?>">
 													</div>
 												</div>
 												<div class="form-group row mb-4">
@@ -588,7 +588,7 @@ include "header.php";
 													<div class="col-md-2">
 														<input type="text" class="form-control text-center"
 															id="bruteforce_mac_attempts" name="bruteforce_mac_attempts"
-															value="<?= htmlspecialchars($rSettings["bruteforce_mac_attempts"]) ?: 0 ?>">
+															value="<?= htmlspecialchars($rSettings["bruteforce_mac_attempts"] ?? '') ?: 0 ?>">
 													</div>
 													<label class="col-md-4 col-form-label"
 														for="bruteforce_username_attempts">Detect Username Bruteforce <i
@@ -598,7 +598,7 @@ include "header.php";
 														<input type="text" class="form-control text-center"
 															id="bruteforce_username_attempts"
 															name="bruteforce_username_attempts"
-															value="<?= htmlspecialchars($rSettings["bruteforce_username_attempts"]) ?: 0 ?>">
+															value="<?= htmlspecialchars($rSettings["bruteforce_username_attempts"] ?? '') ?: 0 ?>">
 													</div>
 												</div>
 												<div class="form-group row mb-4">
@@ -609,7 +609,7 @@ include "header.php";
 													<div class="col-md-2">
 														<input type="text" class="form-control text-center"
 															id="bruteforce_frequency" name="bruteforce_frequency"
-															value="<?= htmlspecialchars($rSettings["bruteforce_frequency"]) ?: 0 ?>">
+															value="<?= htmlspecialchars($rSettings["bruteforce_frequency"] ?? '') ?: 0 ?>">
 													</div>
 													<label class="col-md-4 col-form-label" for="login_flood">Maximum
 														Login
@@ -619,7 +619,7 @@ include "header.php";
 													<div class="col-md-2">
 														<input type="text" class="form-control text-center" id="login_flood"
 															name="login_flood"
-															value="<?= htmlspecialchars($rSettings["login_flood"]) ?: 0 ?>">
+															value="<?= htmlspecialchars($rSettings["login_flood"] ?? '') ?: 0 ?>">
 													</div>
 												</div>
 												<div class=" form-group row
@@ -632,7 +632,7 @@ include "header.php";
 														<input type="text" class="form-control text-center"
 															id="max_simultaneous_downloads"
 															name="max_simultaneous_downloads"
-															value="<?= htmlspecialchars($rSettings["max_simultaneous_downloads"]) ?>">
+															value="<?= htmlspecialchars($rSettings["max_simultaneous_downloads"] ?? '') ?>">
 													</div>
 												</div>
 											</div>
@@ -649,7 +649,7 @@ include "header.php";
 													<div class="col-md-8">
 														<input type="text" class="form-control" id="tmdb_api_key"
 															name="tmdb_api_key"
-															value="<?= htmlspecialchars($rSettings["tmdb_api_key"]) ?>">
+															value="<?= htmlspecialchars($rSettings["tmdb_api_key"] ?? '') ?>">
 													</div>
 												</div>
 												<div class="form-group row mb-4">
@@ -868,7 +868,7 @@ include "header.php";
 													<div class="col-md-8">
 														<input type="text" class="form-control" id="allowed_ips_admin"
 															name="allowed_ips_admin"
-															value="<?= htmlspecialchars($rSettings["allowed_ips_admin"]) ?>">
+															value="<?= htmlspecialchars($rSettings["allowed_ips_admin"] ?? '') ?>">
 													</div>
 												</div>
 												<div class="form-group row mb-4">
@@ -877,7 +877,7 @@ include "header.php";
 															class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-8">
 														<input type="text" class="form-control" id="api_ips" name="api_ips"
-															value="<?= htmlspecialchars($rSettings["api_ips"]) ?>">
+															value="<?= htmlspecialchars($rSettings["api_ips"] ?? '') ?>">
 													</div>
 												</div>
 												<div class="form-group row mb-4">
@@ -887,7 +887,7 @@ include "header.php";
 													<div class="col-md-8">
 														<input type="password" class="form-control" id="api_pass"
 															name="api_pass"
-															value="<?= htmlspecialchars($rSettings["api_pass"]) ?>">
+															value="<?= htmlspecialchars($rSettings["api_pass"] ?? '') ?>">
 													</div>
 												</div>
 												<div class="form-group row mb-4">
@@ -974,7 +974,7 @@ include "header.php";
 														for="live_streaming_pass">Streaming Password</label>
 													<div class="col-md-8"><input type="text" class="form-control"
 															id="live_streaming_pass" name="live_streaming_pass"
-															value="<?= htmlspecialchars(CoreUtilities::$rSettings["live_streaming_pass"]) ?>">
+															value="<?= htmlspecialchars(CoreUtilities::$rSettings["live_streaming_pass"] ?? '') ?>">
 													</div>
 												</div>
 											</div>
@@ -1064,11 +1064,11 @@ include "header.php";
 													</div>
 												</div>
 												<div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="vod_bitrate_plus">VOD Bitrate Buffer <i title="Additional buffer when streaming VOD." class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2"><input type="text" class="form-control text-center" id="vod_bitrate_plus" name="vod_bitrate_plus" value="<?php echo htmlspecialchars($rSettings["vod_bitrate_plus"]); ?>"></div><label class="col-md-4 col-form-label" for="vod_limit_perc">VOD Limit At % <i title="Limit VOD after x% has streamed. Use 0 to limit immediately and 100 to turn off entirely." class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2"><input type="text" class="form-control text-center" id="vod_limit_perc" name="vod_limit_perc" value="<?php echo htmlspecialchars($rSettings["vod_limit_perc"]); ?>"></div>
+													<div class="col-md-2"><input type="text" class="form-control text-center" id="vod_bitrate_plus" name="vod_bitrate_plus" value="<?php echo htmlspecialchars($rSettings["vod_bitrate_plus"] ?? ''); ?>"></div><label class="col-md-4 col-form-label" for="vod_limit_perc">VOD Limit At % <i title="Limit VOD after x% has streamed. Use 0 to limit immediately and 100 to turn off entirely." class="tooltip text-secondary far fa-circle"></i></label>
+													<div class="col-md-2"><input type="text" class="form-control text-center" id="vod_limit_perc" name="vod_limit_perc" value="<?php echo htmlspecialchars($rSettings["vod_limit_perc"] ?? ''); ?>"></div>
 												</div>
 												<div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="user_auto_kick_hours">Auto-Kick Hours <i title="Automatically kick connections that are online for more than X hours." class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2"><input type="text" class="form-control text-center" id="user_auto_kick_hours" name="user_auto_kick_hours" value="<?php echo htmlspecialchars($rSettings["user_auto_kick_hours"]); ?>"></div><label class="col-md-4 col-form-label" for="use_mdomain_in_lists">Use Domain Name in API <i title="Use domain name in lists." class="tooltip text-secondary far fa-circle"></i></label>
+													<div class="col-md-2"><input type="text" class="form-control text-center" id="user_auto_kick_hours" name="user_auto_kick_hours" value="<?php echo htmlspecialchars($rSettings["user_auto_kick_hours"] ?? ''); ?>"></div><label class="col-md-4 col-form-label" for="use_mdomain_in_lists">Use Domain Name in API <i title="Use domain name in lists." class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-2"><input name="use_mdomain_in_lists" id="use_mdomain_in_lists" type="checkbox" <?php if ($rSettings["use_mdomain_in_lists"] == 1) echo ' checked'; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div>
 												</div>
 												<div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="encrypt_playlist">Encrypt Playlists <i title="Encrypt line credentials in playlist files." class="tooltip text-secondary far fa-circle"></i></label>
@@ -1088,9 +1088,9 @@ include "header.php";
 																				echo ' checked ';
 																			}
 																			echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="client_prebuffer">Client Prebuffer <i title="How much data in seconds will be sent to the client when connecting to a stream. Larger values will create larger prebuffers." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="client_prebuffer" name="client_prebuffer" value="';
-																			echo htmlspecialchars($rSettings["client_prebuffer"]);
+																			echo htmlspecialchars($rSettings["client_prebuffer"] ?? '');
 																			echo '"></div><label class="col-md-4 col-form-label" for="restreamer_prebuffer">Restreamer Prebuffer <i title="How much data in seconds will be sent to the client when connecting to a stream. Larger values will create larger prebuffers." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="restreamer_prebuffer" name="restreamer_prebuffer" value="';
-																			echo htmlspecialchars($rSettings["restreamer_prebuffer"]);
+																			echo htmlspecialchars($rSettings["restreamer_prebuffer"] ?? '');
 																			echo '"></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="split_by">Load Balancing <i title="Preferred method of load balancing connections." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><select name="split_by" id="split_by" class="form-control" data-toggle="select2"><option';
 																			if ($rSettings["split_by"] == "conn") {
 																				echo ' selected';
@@ -1176,7 +1176,7 @@ include "header.php";
 													<div class="col-md-2">
 														<input type="text" class="form-control text-center"
 															id="online_capacity_interval" name="online_capacity_interval"
-															value="<?= htmlspecialchars($rSettings["online_capacity_interval"]) ?>">
+															value="<?= htmlspecialchars($rSettings["online_capacity_interval"] ?? '') ?>">
 													</div>
 													<label class="col-md-4 col-form-label"
 														for="monitor_connection_status">Monitor Connection Status <i
@@ -1222,7 +1222,7 @@ include "header.php";
 													<div class="col-md-2">
 														<input type="text" class="form-control text-center"
 															id="create_expiration" name="create_expiration"
-															value="<?= htmlspecialchars($rSettings["create_expiration"]) ?>">
+															value="<?= htmlspecialchars($rSettings["create_expiration"] ?? '') ?>">
 													</div>
 													<label class="col-md-4 col-form-label" for="read_native_hls">HLS
 														Read
@@ -1244,14 +1244,14 @@ include "header.php";
 													<div class="col-md-2">
 														<input type="text" class="form-control text-center"
 															id="read_buffer_size" name="read_buffer_size"
-															value="<?= htmlspecialchars($rSettings["read_buffer_size"]); ?>">
+															value="<?= htmlspecialchars($rSettings["read_buffer_size"] ?? ''); ?>">
 													</div>
 													<label class="col-md-4 col-form-label" for="connection_sync_timer">Redis Connection Sync Timer <i
 															title="Time between runs of the Redis Connection Sync script."
 															class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-2">
 														<input type="text" class="form-control text-center"
-															id="connection_sync_timer" name="connection_sync_timer" value="<?= htmlspecialchars($rSettings["connection_sync_timer"]); ?>">
+															id="connection_sync_timer" name="connection_sync_timer" value="<?= htmlspecialchars($rSettings["connection_sync_timer"] ?? ''); ?>">
 													</div>
 												</div>
 												<div class="form-group row mb-4">
@@ -1264,7 +1264,7 @@ include "header.php";
 																echo ' checked ';
 															}
 															echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="stop_failures">Max Failures <i title="How many failures before exiting stream monitor. For example, if set to 3 then the stream monitor will allow 3 failures, break, then the monitor will be restarted by the streams Cron at the next minute marker. If set to 0 streams will continue to restart forever." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="stop_failures" name="stop_failures" value="';
-															echo htmlspecialchars($rSettings["stop_failures"]);
+															echo htmlspecialchars($rSettings["stop_failures"] ?? '');
 															echo '"></div>    </div>    <h5 class="card-title mb-4">On-Demand Settings</h5>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="on_demand_instant_off">Instant Off <i title="When a client disconnects from an on-demand stream, check the current total connections for that stream and turn it off if nobody is watching." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="on_demand_instant_off" id="on_demand_instant_off" type="checkbox"';
 															if ($rSettings["on_demand_instant_off"] == 1) {
 																echo ' checked ';
@@ -1291,7 +1291,7 @@ include "header.php";
 													<div class="col-md-2">
 														<input type="text" class="form-control text-center"
 															id="on_demand_wait_time" name="on_demand_wait_time"
-															value="<?= htmlspecialchars($rSettings["on_demand_wait_time"]) ?>">
+															value="<?= htmlspecialchars($rSettings["on_demand_wait_time"] ?? '') ?>">
 													</div>
 													<label class="col-md-4 col-form-label" for="request_prebuffer">Request
 														Prebuffer <i
@@ -1337,7 +1337,7 @@ include "header.php";
 													<div class="col-md-2">
 														<input type="text" class="form-control text-center"
 															id="on_demand_scan_time" name="on_demand_scan_time"
-															value="<?= htmlspecialchars($rSettings["on_demand_scan_time"]) ?>">
+															value="<?= htmlspecialchars($rSettings["on_demand_scan_time"] ?? '') ?>">
 													</div>
 												</div>
 												<div class="form-group row mb-4">
@@ -1348,7 +1348,7 @@ include "header.php";
 													<div class="col-md-2">
 														<input type="text" class="form-control text-center"
 															id="on_demand_max_probe" name="on_demand_max_probe"
-															value="<?= htmlspecialchars($rSettings["on_demand_max_probe"]) ?>">
+															value="<?= htmlspecialchars($rSettings["on_demand_max_probe"] ?? '') ?>">
 													</div>
 													<label class="col-md-4 col-form-label" for="on_demand_scan_keep">Keep
 														Logs For <i
@@ -1357,7 +1357,7 @@ include "header.php";
 													<div class="col-md-2">
 														<input type="text" class="form-control text-center"
 															id="on_demand_scan_keep" name="on_demand_scan_keep"
-															value="<?= htmlspecialchars($rSettings["on_demand_scan_keep"]) ?>">
+															value="<?= htmlspecialchars($rSettings["on_demand_scan_keep"] ?? '') ?>">
 													</div>
 												</div>
 												<h5 class="card-title mb-4">Encoding Queue Settings</h5>
@@ -1370,7 +1370,7 @@ include "header.php";
 													<div class="col-md-2">
 														<input type="text" class="form-control text-center"
 															id="max_encode_movies" name="max_encode_movies"
-															value="<?= htmlspecialchars($rSettings["max_encode_movies"]) ?>">
+															value="<?= htmlspecialchars($rSettings["max_encode_movies"] ?? '') ?>">
 													</div>
 													<label class="col-md-4 col-form-label" for="max_encode_cc">Max
 														Channel
@@ -1380,7 +1380,7 @@ include "header.php";
 													<div class="col-md-2">
 														<input type="text" class="form-control text-center"
 															id="max_encode_cc" name="max_encode_cc"
-															value="<?= htmlspecialchars($rSettings["max_encode_cc"]) ?>">
+															value="<?= htmlspecialchars($rSettings["max_encode_cc"] ?? '') ?>">
 													</div>
 												</div>
 												<div class="form-group row mb-4">
@@ -1391,7 +1391,7 @@ include "header.php";
 													<div class="col-md-2">
 														<input type="text" class="form-control text-center" id="queue_loop"
 															name="queue_loop"
-															value="<?= htmlspecialchars($rSettings["queue_loop"]) ?>">
+															value="<?= htmlspecialchars($rSettings["queue_loop"] ?? '') ?>">
 													</div>
 												</div>
 												<h5 class="card-title mb-4">Segment Settings</h5>
@@ -1403,7 +1403,7 @@ include "header.php";
 													<div class="col-md-2">
 														<input type="text" class="form-control text-center" id="seg_time"
 															name="seg_time"
-															value="<?= htmlspecialchars($rSettings["seg_time"]) ?>">
+															value="<?= htmlspecialchars($rSettings["seg_time"] ?? '') ?>">
 													</div>
 													<label class="col-md-4 col-form-label" for="seg_list_size">List Size
 														<i title="Number of segments in the HLS playlist."
@@ -1411,7 +1411,7 @@ include "header.php";
 													<div class="col-md-2">
 														<input type="text" class="form-control text-center"
 															id="seg_list_size" name="seg_list_size"
-															value="<?= htmlspecialchars($rSettings["seg_list_size"]) ?>">
+															value="<?= htmlspecialchars($rSettings["seg_list_size"] ?? '') ?>">
 													</div>
 												</div>
 												<div class="form-group row mb-4">
@@ -1422,7 +1422,7 @@ include "header.php";
 													<div class="col-md-2">
 														<input type="text" class="form-control text-center"
 															id="seg_delete_threshold" name="seg_delete_threshold"
-															value="<?= htmlspecialchars($rSettings["seg_delete_threshold"]) ?>">
+															value="<?= htmlspecialchars($rSettings["seg_delete_threshold"] ?? '') ?>">
 													</div>
 													<label class="col-md-4 col-form-label" for="segment_wait_time">Max
 														Segment Wait Time <i
@@ -1430,7 +1430,7 @@ include "header.php";
 															class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-2">
 														<input type="text" class="form-control text-center"
-															id="segment_wait_time" name="segment_wait_time" value="<?= htmlspecialchars($rSettings["segment_wait_time"]) ?>">
+															id="segment_wait_time" name="segment_wait_time" value="<?= htmlspecialchars($rSettings["segment_wait_time"] ?? '') ?>">
 													</div>
 												</div>
 												<div class="form-group row mb-4">
@@ -1441,7 +1441,7 @@ include "header.php";
 													<div class="col-md-2">
 														<input type="text" class="form-control text-center"
 															id="stream_max_analyze" name="stream_max_analyze"
-															value="<?= htmlspecialchars($rSettings["stream_max_analyze"]) ?>">
+															value="<?= htmlspecialchars($rSettings["stream_max_analyze"] ?? '') ?>">
 													</div>
 													<label class="col-md-4 col-form-label" for="probesize">Probe Size <i
 															title="Amount of data to be probed in bytes."
@@ -1449,7 +1449,7 @@ include "header.php";
 													<div class="col-md-2">
 														<input type="text" class="form-control text-center" id="probesize"
 															name="probesize"
-															value="<?= htmlspecialchars($rSettings["probesize"]) ?>">
+															value="<?= htmlspecialchars($rSettings["probesize"] ?? '') ?>">
 													</div>
 												</div>
 												<div class="form-group row mb-4">
@@ -1534,7 +1534,7 @@ include "header.php";
 													<div class="col-md-2"><input type="text"
 															class="form-control text-center" id="probe_extra_wait"
 															name="probe_extra_wait"
-															value="<?= htmlspecialchars($rSettings["probe_extra_wait"]); ?>">
+															value="<?= htmlspecialchars($rSettings["probe_extra_wait"] ?? ''); ?>">
 													</div><label class=" col-md-4 col-form-label"
 														for="stream_fail_sleep">Stream Failure Sleep <i
 															title="How long to wait in seconds after a stream start failure before starting again."
@@ -1542,7 +1542,7 @@ include "header.php";
 													<div class="col-md-2"><input type="text"
 															class="form-control text-center" id="stream_fail_sleep"
 															name="stream_fail_sleep" value="
-														<?= htmlspecialchars($rSettings["stream_fail_sleep"]) ?>"></div>
+														<?= htmlspecialchars($rSettings["stream_fail_sleep"] ?? '') ?>"></div>
 												</div>
 												<div class=" form-group row
 														mb-4"><label class="col-md-4 col-form-label" for="fps_delay">FPS
@@ -1552,7 +1552,7 @@ include "header.php";
 													<div class="col-md-2"><input type="text"
 															class="form-control text-center" id="fps_delay" name="fps_delay"
 															value="
-														<?= htmlspecialchars($rSettings["fps_delay"]) ?>"></div><label class=" col-md-4 col-form-label"
+														<?= htmlspecialchars($rSettings["fps_delay"] ?? '') ?>"></div><label class=" col-md-4 col-form-label"
 														for="fps_check_type">FPS Check Type <i
 															title="Whether to use progress info after the start delay to determine real FPS or probe the segment to return avg_frame_rate."
 															class="tooltip text-secondary far fa-circle"></i></label>
@@ -1600,7 +1600,7 @@ include "header.php";
 																										}
 
 																										echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><div class="col-md-6"><input type="text" class="form-control" id="not_on_air_video_path" name="not_on_air_video_path" value=" ';
-																										echo htmlspecialchars($rSettings["not_on_air_video_path"]);
+																										echo htmlspecialchars($rSettings["not_on_air_video_path"] ?? '');
 																										echo '" placeholder="Leave blank to use default XC_VM video."></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="show_banned_video">Banned Video <i title="Show this video when a banned line accesses a stream." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="show_banned_video" id="show_banned_video" type="checkbox"';
 
 																										if ($rSettings["show_banned_video"] == 1) {
@@ -1608,7 +1608,7 @@ include "header.php";
 																										}
 
 																										echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><div class="col-md-6"><input type="text" class="form-control" id="banned_video_path" name="banned_video_path" value=" ';
-																										echo htmlspecialchars($rSettings["banned_video_path"]);
+																										echo htmlspecialchars($rSettings["banned_video_path"] ?? '');
 																										echo '" placeholder="Leave blank to use default XC_VM video."></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="show_expired_video">Expired Video <i title="Show this video when an expired line accesses a stream." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="show_expired_video" id="show_expired_video" type="checkbox"';
 
 																										if ($rSettings["show_expired_video"] == 1) {
@@ -1616,7 +1616,7 @@ include "header.php";
 																										}
 
 																										echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><div class="col-md-6"><input type="text" class="form-control" id="expired_video_path" name="expired_video_path" value=" ';
-																										echo htmlspecialchars($rSettings["expired_video_path"]);
+																										echo htmlspecialchars($rSettings["expired_video_path"] ?? '');
 																										echo '" placeholder="Leave blank to use default XC_VM video."></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="show_expiring_video">Expiring Video <i title="Show this video once per day 7 days prior to a line expiring." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="show_expiring_video" id="show_expiring_video" type="checkbox"';
 
 																										if ($rSettings["show_expiring_video"] == 1) {
@@ -1624,7 +1624,7 @@ include "header.php";
 																										}
 
 																										echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><div class="col-md-6"><input type="text" class="form-control" id="expiring_video_path" name="expiring_video_path" value=" ';
-																										echo htmlspecialchars($rSettings["expiring_video_path"]);
+																										echo htmlspecialchars($rSettings["expiring_video_path"] ?? '');
 																										echo '" placeholder="Leave blank to use default XC_VM video."></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="show_connected_video">2nd IP Connected Video <i title="Show this video when a client connects but gets denied to already watching on another IP." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="show_connected_video" id="show_connected_video" type="checkbox"';
 
 																										if ($rSettings["show_connected_video"] == 1) {
@@ -1632,7 +1632,7 @@ include "header.php";
 																										}
 
 																										echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><div class="col-md-6"><input type="text" class="form-control" id="connected_video_path" name="connected_video_path" value=" ';
-																										echo htmlspecialchars($rSettings["connected_video_path"]);
+																										echo htmlspecialchars($rSettings["connected_video_path"] ?? '');
 																										echo '" placeholder="Leave blank to use default XC_VM video."></div></div>    <h5 class="card-title mb-4">Allowed Countries <i title="Select individual countries to allow. This is a global geo-lock, selet All Countries to allow everyone." class="tooltip text-secondary far fa-circle"></i></h5>    <div class="form-group row mb-4"><div class="col-md-12">    <select name="allow_countries[]" id="allow_countries" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">';
 
 																										foreach ($rGeoCountries as $rValue => $rText) {
@@ -1716,7 +1716,7 @@ include "header.php";
 													<div class="col-md-2"><input type="text"
 															class="form-control text-center" id="playback_limit"
 															name="playback_limit"
-															value="<?= htmlspecialchars($rSettings["playback_limit"]) ?>">
+															value="<?= htmlspecialchars($rSettings["playback_limit"] ?? '') ?>">
 													</div>
 													<label class="col-md-4 col-form-label"
 														for="tv_channel_default_aspect">Default Aspect Ratio <i
@@ -1904,7 +1904,7 @@ include "header.php";
 													</label>
 													<div class="col-md-8"><input type="text" class="form-control"
 															id="test_download_url" name="test_download_url"
-															value="<?= htmlspecialchars($rSettings["test_download_url"]) ?>">
+															value="<?= htmlspecialchars($rSettings["test_download_url"] ?? '') ?>">
 													</div>
 												</div>
 												<div class="form-group row mb-4">
