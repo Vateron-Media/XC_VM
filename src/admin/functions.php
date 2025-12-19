@@ -12,11 +12,11 @@ if ($rMobile) {
 if (isset($_SESSION['hash'])) {
 	$rUserInfo = getRegisteredUser($_SESSION['hash']);
 
-	if (strlen($rUserInfo['timezone']) > 0) {
+	if (!empty($rUserInfo['timezone'])) {
 		date_default_timezone_set($rUserInfo['timezone']);
 	}
 
-	if (!isset($_COOKIE['hue']) || $_COOKIE['hue'] != $rUserInfo['hue']) {
+	if (!empty($rUserInfo['hue']) && (!isset($_COOKIE['hue']) || $_COOKIE['hue'] != $rUserInfo['hue'])) {
 		setcookie('hue', $rUserInfo['hue'], time() + 604800);
 	}
 

@@ -35,6 +35,7 @@ if (!defined('TMP_PATH')) {
 	define('TMP_PATH', MAIN_HOME . 'tmp/');
 }
 
+define('DEVELOPMENT', false); // It will be deleted in the future.
 define('XC_VM_VERSION', '1.2.10');
 define('CONFIG_PATH', MAIN_HOME . 'config/');
 define('BIN_PATH', MAIN_HOME . 'bin/');
@@ -109,9 +110,10 @@ if (!$argc) {
 
 define('PHP_ERRORS', $rShowErrors);
 
+// After fixing all the warnings, replace DEVELOPMENT with PHP_ERRORS
 require_once INCLUDES_PATH . 'libs/Logger.php';
 Logger::init(
-	PHP_ERRORS,
+	DEVELOPMENT,
 	LOGS_TMP_PATH . 'error_log.log'
 );
 
