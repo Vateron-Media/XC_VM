@@ -21,7 +21,8 @@ if (!defined('TMP_PATH')) {
     define('TMP_PATH', MAIN_HOME . 'tmp/');
 }
 
-define('DEVELOPMENT', true); // It will be deleted in the future.
+define('AUTO_RESTART_MARIADB', true); // Test function
+define('DEVELOPMENT', false); // It will be deleted in the future.
 define('XC_VM_VERSION', '1.2.10');
 define('GIT_OWNER', 'Vateron-Media');
 define('GIT_REPO_MAIN', 'XC_VM');
