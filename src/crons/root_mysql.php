@@ -2,12 +2,13 @@
 if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
     set_time_limit(0);
     if ($argc) {
-        if (!checkMariaDB()) {
+        require str_replace('\\', '/', dirname($argv[0])) . '/../includes/admin.php';
+
+        if (!checkMariaDB() && AUTO_RESTART_MARIADB) {
             // if we reach here, restart failed
             exit("[MYSQL] Critical error, aborting\n");
         }
 
-        require str_replace('\\', '/', dirname($argv[0])) . '/../includes/admin.php';
         cli_set_process_title('XC_VM[MysqlErrors]');
         $rIdentifier = CRONS_TMP_PATH . md5(CoreUtilities::generateUniqueCode() . __FILE__);
         CoreUtilities::checkCron($rIdentifier);
