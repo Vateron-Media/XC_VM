@@ -30,6 +30,9 @@ function loadcli() {
     if (strpos($rThreadData['file'], $rThreadData['directory']) === 0 || $rThreadData['import']) {
         $rWatchCategories = $rThreadData['watch_categories'];
         $rLanguage = null;
+        $rReleaseSeason = NULL;
+        $rReleaseEpisode = NULL;
+
         if (!empty($rThreadData['language'])) {
             $rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key'], $rThreadData['language']);
             $rLanguage = $rThreadData['language'];
@@ -111,11 +114,15 @@ function loadcli() {
                             }
                             $rYear = (isset($rRelease['year']) ? $rRelease['year'] : null);
                             if ($rThreadData['type'] != 'movie') {
-                                $rReleaseSeason = $rRelease['season'];
-                                if (is_array($rRelease['episode'])) {
-                                    $rReleaseEpisode = $rRelease['episode'][0];
-                                } else {
-                                    $rReleaseEpisode = $rRelease['episode'];
+                                if ($rReleaseSeason == null && isset($rRelease['season'])) {
+                                    $rReleaseSeason = $rRelease['season'];
+                                }
+                                if ($rReleaseEpisode == null && isset($rRelease['episode'])) {
+                                    if (is_array($rRelease['episode'])) {
+                                        $rReleaseEpisode = $rRelease['episode'][0];
+                                    } else {
+                                        $rReleaseEpisode = $rRelease['episode'];
+                                    }
                                 }
                             }
                         }
