@@ -2208,7 +2208,8 @@ class CoreUtilities {
 					}
 				}
 
-				$rExternalPush = json_decode($rStream['stream_info']['external_push'], true);
+				$externalPushJson = $rStream['stream_info']['external_push'] ?? '[]';
+				$rExternalPush = json_decode($externalPushJson, true);
 				$rProgressURL = 'http://127.0.0.1:' . intval(self::$rServers[SERVER_ID]['http_broadcast_port']) . '/progress?stream_id=' . intval($rStreamID);
 
 				if (empty($rStream['stream_info']['custom_ffmpeg'])) {
