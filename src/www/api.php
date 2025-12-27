@@ -471,7 +471,7 @@ function loadapi() {
 				exit(json_encode(array('result' => false)));
 			}
 
-			$rURL = escapeshellcmd(CoreUtilities::$rRequest['url']);
+			$rURL = CoreUtilities::$rRequest['url'];
 			$rFetchArguments = array();
 
 			if (!CoreUtilities::$rRequest['user_agent']) {
