@@ -1386,7 +1386,7 @@ if ($rType == "lines") {
                     }
                     if (hasPermissions("adv", "player")) {
                         if (((int) $rActualStatus == 1 || $rActualStatus == 4) && !$rRow["direct_proxy"]) {
-                            if (empty($rStreamInfo["codecs"]["video"]["codec_name"]) || strtoupper($rStreamInfo["codecs"]["video"]["codec_name"]) == "H264" || strtoupper($rStreamInfo["codecs"]["video"]["codec_name"]) == "N/A") {
+                            if (empty($rStreamInfo["codecs"]["video"]["codec_name"]) || strtoupper($rStreamInfo["codecs"]["video"]["codec_name"]) == "H264" || strtoupper($rStreamInfo["codecs"]["video"]["codec_name"]) == "N/A" || strtoupper($rStreamInfo["codecs"]["video"]["codec_name"]) == "HEVC" || strtoupper($rStreamInfo["codecs"]["video"]["codec_name"]) == "H265") {
                                 $rPlayer = "<button title=\"Play\" type=\"button\" class=\"btn btn-info waves-effect waves-light btn-xs tooltip\" onClick=\"player(" . $rRow["id"] . ");\"><i class=\"mdi mdi-play\"></i></button>";
                             } else {
                                 $rPlayer = "<button type=\"button\" class=\"btn btn-dark waves-effect waves-light btn-xs tooltip\" title=\"Incompatible Video Codec\"><i class=\"mdi mdi-play\"></i></button>";
@@ -2062,11 +2062,7 @@ if ($rType == "lines") {
                     }
                     if (hasPermissions("adv", "player")) {
                         if ((int) $rActualStatus == 1 || $rActualStatus == 3) {
-                            if (empty($rStreamInfo["codecs"]["video"]["codec_name"]) || strtoupper($rStreamInfo["codecs"]["video"]["codec_name"]) == "H264" || strtoupper($rStreamInfo["codecs"]["video"]["codec_name"]) == "N/A") {
-                                $rPlayer = "<button title=\"Play\" type=\"button\" class=\"btn btn-info waves-effect waves-light btn-xs tooltip\" onClick=\"player(" . $rRow["id"] . ", '" . $rRow["target_container"] . "');\"><i class=\"mdi mdi-play\"></i></button>";
-                            } else {
-                                $rPlayer = "<button type=\"button\" class=\"btn btn-dark waves-effect waves-light btn-xs tooltip\" title=\"Incompatible Video Codec\"><i class=\"mdi mdi-play\"></i></button>";
-                            }
+                            $rPlayer = "<button title=\"Play\" type=\"button\" class=\"btn btn-info waves-effect waves-light btn-xs tooltip\" onClick=\"player(" . $rRow["id"] . ", '" . $rRow["target_container"] . "');\"><i class=\"mdi mdi-play\"></i></button>";
                         } else {
                             $rPlayer = "<button type=\"button\" disabled class=\"btn btn-light waves-effect waves-light btn-xs\"><i class=\"mdi mdi-play\"></i></button>";
                         }
@@ -4518,7 +4514,7 @@ if ($rType == "lines") {
                     }
                     if (hasPermissions("adv", "player")) {
                         if ((int) $rActualStatus == 1 || $rActualStatus == 3) {
-                            if (empty($rStreamInfo["codecs"]["video"]["codec_name"]) || strtoupper($rStreamInfo["codecs"]["video"]["codec_name"]) == "H264" || strtoupper($rStreamInfo["codecs"]["video"]["codec_name"]) == "N/A") {
+                            if (empty($rStreamInfo["codecs"]["video"]["codec_name"]) || strtoupper($rStreamInfo["codecs"]["video"]["codec_name"]) == "H264" || strtoupper($rStreamInfo["codecs"]["video"]["codec_name"]) == "N/A" || strtoupper($rStreamInfo["codecs"]["video"]["codec_name"]) == "HEVC" || strtoupper($rStreamInfo["codecs"]["video"]["codec_name"]) == "H265") {
                                 $rPlayer = "<button title=\"Play\" type=\"button\" class=\"btn btn-info waves-effect waves-light btn-xs tooltip\" onClick=\"player(" . $rRow["id"] . ", '" . $rRow["target_container"] . "');\"><i class=\"mdi mdi-play\"></i></button>";
                             } else {
                                 $rPlayer = "<button type=\"button\" class=\"btn btn-dark waves-effect waves-light btn-xs tooltip\" title=\"Incompatible Video Codec\"><i class=\"mdi mdi-play\"></i></button>";
