@@ -1664,8 +1664,8 @@ if (isset($_SESSION['hash'])) {
 								$rReturn['online_users'] += $rServers[$rServerID]['users'];
 								$rReturn['total_users'] += $rServers[$rServerID]['users'];
 							} else {
-								$rArray['open_connections'] = ($rOpenConnections[$rServerID] ?: 0);
-								$rArray['online_users'] = ($rOnlineUsers[$rServerID] ?: 0);
+								$rArray['open_connections'] = $rOpenConnections[$rServerID] ?? 0;
+								$rArray['online_users']     = $rOnlineUsers[$rServerID] ?? 0;
 								$rArray['total_connections'] = $rTotalConnections;
 							}
 
