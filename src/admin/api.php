@@ -2682,7 +2682,7 @@ if (isset($_SESSION['hash'])) {
 					}
 				}
 
-				if (in_array(CoreUtilities::$rRequest['type'], array('lines_logs', 'streams_errors', 'lines_activity', 'users_credits_logs', 'users_logs'))) {
+				if (in_array(CoreUtilities::$rRequest['type'], array('lines_logs', 'streams_errors', 'lines_activity', 'users_credits_logs', 'users_logs', 'panel_logs'))) {
 					if (CoreUtilities::$rRequest['type'] == 'lines_activity') {
 						$rColumn = 'date_start';
 					} else {

@@ -9,7 +9,7 @@ if (count(get_included_files()) != 1) {
 		'streams' => array('Add Stream' => array('stream', 'add_stream'), 'Import & Review' => ($rMobile ? array() : array('review?type=1', 'import_streams')), 'Categories' => array('stream_categories', 'categories'), 'Channel Order' => ($rMobile ? array() : array('channel_order', 'channel_order')), "EPG's" => array('epgs', 'epg'), 'Fingerprint' => array('fingerprint', 'fingerprint'), 'On-Demand Scanner' => array('ondemand', 'streams'), 'Mass Delete' => array('mass_delete', 'mass_delete'), 'Mass Edit' => array('stream_mass', 'mass_edit_streams'), 'Quick Tools' => array('quick_tools', 'quick_tools'), 'Stream Tools' => array('stream_tools', 'stream_tools'), 'Stream Error Logs' => array('stream_errors', 'stream_errors'), 'Export as CSV' => array(null, null, 'id="btn-export-csv"')),
 		'created_channels' => array('Create Channel' => array('created_channel', 'create_channel'), 'Categories' => array('stream_categories', 'categories'), 'Channel Order' => ($rMobile ? array() : array('channel_order', 'channel_order')), 'Mass Delete' => array('mass_delete', 'mass_delete'), 'Mass Edit' => array('created_channel_mass', null), 'Export as CSV' => array(null, null, 'id="btn-export-csv"')),
 		'stream_review' => array((isset($rImport) ? 'Save Changes' : 'Review Streams') => array(null, null, 'id="btn-submit"')),
-		'panel_logs' => array('Download log' => array(null, null, 'id="btn-download-log"')),
+		'panel_logs' => array('Download log' => array(null, null, 'id="btn-download-log"'), 'Clear Logs' => array(null, null, 'id="btn-clear-logs"')),
 		'movies' => array('Add Movie' => array('movie', 'add_movie'), 'Import & Review' => ($rMobile ? array() : array('review?type=2', 'import_movies')), 'Categories' => array('stream_categories', 'categories'), 'Channel Order' => ($rMobile ? array() : array('channel_order', 'channel_order')), 'Mass Delete' => array('mass_delete', 'mass_delete'), 'Mass Edit' => array('movie_mass', 'mass_sedits_vod'), 'Watch Folder' => array('watch', 'folder_watch'), 'Watch Output Logs' => array('watch_output', 'folder_watch_output'), 'Export as CSV' => array(null, null, 'id="btn-export-csv"')),
 		'series' => array('Add Series' => array('serie', 'add_series'), 'Episodes' => array('episodes', 'episodes'), 'Categories' => array('stream_categories', 'categories'), 'Channel Order' => ($rMobile ? array() : array('channel_order', 'channel_order')), 'Mass Delete' => array('mass_delete', 'mass_delete'), 'Mass Edit' => array('series_mass', 'mass_sedits'), 'Watch Folder' => array('watch', 'folder_watch'), 'Watch Output Logs' => array('watch_output', 'folder_watch_output'), 'Export as CSV' => array(null, null, 'id="btn-export-csv"')),
 		'episodes' => array('Add Episode' => array(null, 'add_episode'), 'TV Series' => array('series', 'series'), 'Categories' => array('stream_categories', 'categories'), 'Channel Order' => ($rMobile ? array() : array('channel_order', 'channel_order')), 'Mass Delete' => array('mass_delete', 'mass_delete'), 'Mass Edit' => array('episodes_mass', 'mass_sedits'), 'Export as CSV' => array(null, null, 'id="btn-export-csv"')),
@@ -366,7 +366,7 @@ switch ($rPage) {
 			echo "<button type=\"button\" onClick=\"navigate('" . $rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][0] . "');\" class=\"btn btn-sm btn-info waves-effect waves-light\">" . array_keys($rDropdown[$rPage])[0] . '</button>';
 		}
 
-		if (!$rMobile && strlen($rSettings["tmdb_api_key"]) > 0){
+		if (!$rMobile && strlen($rSettings["tmdb_api_key"]) > 0) {
 			echo "<span class=\"gap\"></span><button type=\"button\" onclick=\"importTmdbCategories();\" class=\"btn btn-sm btn-info waves-effect waves-light\">Import TMDB Genres</button>";
 		}
 
@@ -383,7 +383,7 @@ switch ($rPage) {
 					}
 				}
 			}
-						echo "<a class=\"dropdown-item\" href=\"javascript: void(0);\" onClick=\"importTmdbCategories();\">Import TMDB Genres</a>";
+			echo "<a class=\"dropdown-item\" href=\"javascript: void(0);\" onClick=\"importTmdbCategories();\">Import TMDB Genres</a>";
 
 			echo '</div>';
 		}
