@@ -35,6 +35,7 @@ rPackages = [
     "libharfbuzz-dev",
     "libfribidi-dev",
     "libogg0",
+    "libnuma1",
     "xz-utils",
     "zip",
     "unzip",
