@@ -129,6 +129,23 @@ include 'header.php';
                 rPos += 1;
             });
         });
+        $("#btn-clear-logs").click(function() {
+            $(".bs-logs-modal-center").modal("show");
+        });
+        $("#clear_logs").click(function() {
+            new jBox("Confirm", {
+                confirmButton: "Delete",
+                cancelButton: "Cancel",
+                content: "<?php echo $language::get('clear_confirm'); ?>",
+                confirm: function() {
+                    $(".bs-logs-modal-center").modal("hide");
+                    $.getJSON("./api?action=clear_logs&type=panel_logs&from=" + encodeURIComponent($("#range_clear_from").val()) + "&to=" + encodeURIComponent($("#range_clear_to").val()), function(data) {
+                        $.toast("Logs have been cleared.");
+                        $("#datatable-activity").DataTable().ajax.reload(null, false);
+                    });
+                }
+            }).open();
+        });
         (function($) {
             $.fn.inputFilter = function(inputFilter) {
                 return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
