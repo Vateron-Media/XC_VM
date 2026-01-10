@@ -334,14 +334,25 @@ include "header.php";
 															if ($rSettings["reseller_ssl_domain"] == 1) {
 																echo ' checked ';
 															}
-															echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div>    <h5 class="card-title mb-4">Debug</h5>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="debug_show_errors">Debug Mode <i title="Automatically clean up redundant files in the background. Recommended." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="debug_show_errors" id="debug_show_errors" type="checkbox"';
-															if ($rSettings["debug_show_errors"] == 1) {
-																echo ' checked ';
-															}
-															echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div> <h5 class="card-title mb-4">reCAPTCHA</h5>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label">Enable reCAPTCHA <i title="Click here to show active domains for your servers and resellers that you should consider adding to reCAPTCHA." class="tooltip text-secondary far fa-circle" data-toggle="modal" data-target=".bs-domains"></i></label><div class="col-md-2"><input name="recaptcha_enable" id="recaptcha_enable" type="checkbox"';
-															if ($rSettings["recaptcha_enable"] == 1) {
-																echo ' checked ';
-															} ?> data-plugin=" switchery" class="js-switch" data-color="#039cfd">
+
+
+															?>
+
+
+
+															data-plugin="switchery" class="js-switch" data-color="#039cfd"/>
+													</div>
+												</div>
+												<h5 class="card-title mb-4">Debug</h5>
+												<div class="form-group row mb-4">
+													<label class="col-md-4 col-form-label" for="debug_show_errors">Debug Mode <i title="Automatically clean up redundant files in the background. Recommended." class="tooltip text-secondary far fa-circle"></i></label>
+													<div class="col-md-2"><input name="debug_show_errors" id="debug_show_errors" type="checkbox" <?= $rSettings["debug_show_errors"] == 1 ? 'checked' : '' ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div>
+													<label class="col-md-4 col-form-label" for="enable_debug_stalker">Stalker Debug Mode <i title="Enable debug mode ministra portal." class="tooltip text-secondary far fa-circle"></i></label>
+													<div class="col-md-2"><input name="enable_debug_stalker" id="enable_debug_stalker" type="checkbox" <?= $rSettings["enable_debug_stalker"] == 1 ? 'checked' : '' ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div>
+												</div>
+												<h5 class="card-title mb-4">reCAPTCHA</h5>
+												<div class="form-group row mb-4"><label class="col-md-4 col-form-label">Enable reCAPTCHA <i title="Click here to show active domains for your servers and resellers that you should consider adding to reCAPTCHA." class="tooltip text-secondary far fa-circle" data-toggle="modal" data-target=".bs-domains"></i></label>
+													<div class="col-md-2"><input name="recaptcha_enable" id="recaptcha_enable" type="checkbox" <?= $rSettings["recaptcha_enable"] == 1  ? 'checked' : '' ?> data-plugin=" switchery" class="js-switch" data-color="#039cfd">
 													</div>
 												</div>
 												<div class="form-group row mb-4">
