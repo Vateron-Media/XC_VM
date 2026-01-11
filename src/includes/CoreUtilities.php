@@ -2632,9 +2632,12 @@ class CoreUtilities {
 				self::$db->query('UPDATE `lines` SET `forced_country` = ? WHERE `id` = ?', $rUserInfo['forced_country'], $rUserInfo['id']);
 			}
 		}
+
+		$allowedIPS = json_decode($rUserInfo['allowed_ips'], true);
+		$allowedUa = json_decode($rUserInfo['allowed_ua'], true);
 		$rUserInfo['bouquet'] = json_decode($rUserInfo['bouquet'], true);
-		$rUserInfo['allowed_ips'] = @array_filter(@array_map('trim', @json_decode($rUserInfo['allowed_ips'], true)));
-		$rUserInfo['allowed_ua'] = @array_filter(@array_map('trim', @json_decode($rUserInfo['allowed_ua'], true)));
+		$rUserInfo['allowed_ips'] = array_filter(array_map('trim', is_array($allowedIPS) ? $allowedIPS : []));
+		$rUserInfo['allowed_ua'] = array_filter(array_map('trim', is_array($allowedUa) ? $allowedUa : []));
 		$rUserInfo['allowed_outputs'] = array_map('intval', json_decode($rUserInfo['allowed_outputs'], true));
 		$rUserInfo['output_formats'] = array();
 		if (self::$rCached) {

@@ -172,8 +172,7 @@ if (!StreamingUtilities::$rSettings['disable_ministra']) {
 			}
 		}
 
-		if (!($rDevice && $rReqType == 'stb' && $rReqAction == 'get_profile')) {
-		} else {
+		if ($rDevice && $rReqType == 'stb' && $rReqAction == 'get_profile') {
 			$rSerialNumber = (!empty(StreamingUtilities::$rRequest['sn']) ? StreamingUtilities::$rRequest['sn'] : null);
 			$rSTBType = (!empty(StreamingUtilities::$rRequest['stb_type']) ? StreamingUtilities::$rRequest['stb_type'] : null);
 			$rVersion = (!empty(StreamingUtilities::$rRequest['ver']) ? StreamingUtilities::$rRequest['ver'] : null);
@@ -235,8 +234,7 @@ if (!StreamingUtilities::$rSettings['disable_ministra']) {
 				$rVerified = false;
 			}
 
-			if (!$rDebug) {
-			} else {
+			if ($rDebug) {
 				$rVerified = true;
 			}
 
