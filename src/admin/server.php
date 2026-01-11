@@ -23,7 +23,7 @@ $rInterfaces = !empty($rServerArr['interfaces']) ? json_decode($rServerArr['inte
 $rCertificate = !empty($rServerArr['certbot_ssl']) ? json_decode($rServerArr['certbot_ssl'], true) : [];
 $rCertValid = false;
 
-if ($rCertificate['expiration']) {
+if (isset($rCertificate['expiration'])) {
     $rHasCert = true;
 
     if (time() < $rCertificate['expiration']) {
@@ -146,7 +146,7 @@ include 'header.php'; ?>
                                                     <div class="col-md-8">
                                                         <input type="text" class="form-control" id="private_ip"
                                                             name="private_ip"
-                                                            value="<?php echo htmlspecialchars($rServerArr['private_ip']); ?>">
+                                                            value="<?php echo htmlspecialchars($rServerArr['private_ip'] ?? ''); ?>">
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
