@@ -1670,9 +1670,9 @@ if (isset($_SESSION['hash'])) {
 							}
 
 							$rArray['requests_per_second'] = $rServers[$rServerID]['requests_per_second'];
-							$rArray['total_streams'] = ($rTotalStreams[$rServerID] ?: 0);
-							$rArray['total_running_streams'] = ($rOnlineStreams[$rServerID] ?: 0);
-							$rArray['offline_streams'] = ($rOfflineStreams[$rServerID] ?: 0);
+							$rArray['total_streams'] = ($rTotalStreams[$rServerID] ?? 0);
+							$rArray['total_running_streams'] = ($rOnlineStreams[$rServerID] ?? 0);
+							$rArray['offline_streams'] = ($rOfflineStreams[$rServerID] ?? 0);
 							$rArray['network_guaranteed_speed'] = $rServers[$rServerID]['network_guaranteed_speed'];
 							$rWatchDog = json_decode($rServers[$rServerID]['watchdog_data'], true);
 
@@ -1760,8 +1760,8 @@ if (isset($_SESSION['hash'])) {
 							$rReturn['total_connections'] += $rServers[$rServerID]['connections'];
 						}
 
-						$rReturn['total_running_streams'] += ($rOnlineCount[$rServerID] ?: 0);
-						$rReturn['offline_streams'] += ($rOfflineCount[$rServerID] ?: 0);
+						$rReturn['total_running_streams'] += ($rOnlineCount[$rServerID] ?? 0);
+						$rReturn['offline_streams'] += ($rOfflineCount[$rServerID] ?? 0);
 						$rWatchDog = json_decode($rServers[$rServerID]['watchdog_data'], true);
 
 						if (!is_array($rWatchDog)) {
