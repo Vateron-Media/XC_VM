@@ -2305,8 +2305,14 @@ class CoreUtilities {
 						$rOutputs['flv'][] = $rFLVOptions . ' -f flv -flvflags no_duration_filesize ' . escapeshellarg($rPushURL) . ' ';
 					}
 				}
+				
+				// Logo overlay
+				$rLogoOptions = '';
+				if (isset($rStream['stream_info']['transcode_attributes'][16]) && !$rLoopback) {
+					$rLogoOptions = $rStream['stream_info']['transcode_attributes'][16]['cmd'];
+					unset($rStream['stream_info']['transcode_attributes'][16]);
+				}
 
-				$rLogoOptions = (isset($rStream['stream_info']['transcode_attributes'][16]) && !$rLoopback ? $rStream['stream_info']['transcode_attributes'][16]['cmd'] : '');
 				$rGPUOptions = (isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rStream['stream_info']['transcode_attributes']['gpu']['cmd'] : '');
 				$rInputCodec = '';
 
@@ -2434,12 +2440,10 @@ class CoreUtilities {
 
 	public static function getArguments($rArguments, $rProtocol, $rType) {
 		$rReturn = array();
-		if (empty($rArguments)) {
-		} else {
+		if (!empty($rArguments)) {
 			foreach ($rArguments as $rArgument_id => $rArgument) {
 				if ($rArgument['argument_cat'] == $rType && (is_null($rArgument['argument_wprotocol']) || stristr($rProtocol, $rArgument['argument_wprotocol']) || is_null($rProtocol))) {
-					if ($rArgument['argument_key'] != 'cookie') {
-					} else {
+					if ($rArgument['argument_key'] == 'cookie') {
 						$rArgument['value'] = self::fixCookie($rArgument['value']);
 					}
 					if ($rArgument['argument_type'] == 'text') {
