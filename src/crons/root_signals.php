@@ -1,4 +1,7 @@
 <?php
+
+$AutoUpdateServerIP = true; // Enable automatic server IP detection and update
+
 if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
     set_time_limit(0);
     if ($argc) {
@@ -20,6 +23,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 } else {
     exit('Please run as root!' . "\n");
 }
+
 function blockip($rIP) {
     if (filter_var($rIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
         exec('sudo iptables -I INPUT -s ' . escapeshellcmd($rIP) . ' -j DROP');
@@ -30,6 +34,7 @@ function blockip($rIP) {
     }
     touch(FLOOD_TMP_PATH . 'block_' . $rIP);
 }
+
 function unblockip($rIP) {
     if (filter_var($rIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
         exec('sudo iptables -D INPUT -s ' . escapeshellcmd($rIP) . ' -j DROP');
@@ -42,16 +47,91 @@ function unblockip($rIP) {
         unlink(FLOOD_TMP_PATH . 'block_' . $rIP);
     }
 }
+
 function flushIPs() {
     exec('sudo iptables -F && sudo ip6tables -F');
     shell_exec('sudo rm ' . FLOOD_TMP_PATH . 'block_*');
 }
+
 function saveiptables() {
     exec('sudo iptables-save && sudo ip6tables-save');
 }
+
+function getBlockedIPs() {
+    $rReturn = array();
+    exec('sudo iptables -nL --line-numbers -t filter', $rLines);
+    foreach ($rLines as $rLine) {
+        $rLine = explode(' ', preg_replace('!\\s+!', ' ', $rLine));
+        if ($rLine[1] == 'DROP') {
+            $rReturn[] = $rLine[4];
+        }
+    }
+    $rLines = '';
+    exec('sudo ip6tables -nL --line-numbers -t filter', $rLines);
+    foreach ($rLines as $rLine) {
+        $rLine = explode(' ', preg_replace('!\\s+!', ' ', $rLine));
+        if ($rLine[1] == 'DROP') {
+            $rReturn[] = $rLine[3];
+        }
+    }
+    return $rReturn;
+}
+
+/**
+ * Get server IPv4 address.
+ *
+ * If a network interface name is provided, the function returns the IPv4
+ * address assigned to that interface.
+ * If no interface is provided, the function automatically determines the
+ * default network interface (used for outbound traffic) and returns its IP.
+ *
+ * @param string|null $interface
+ *     Network interface name (e.g. "eth0", "ens18").
+ *     If NULL, the default interface will be detected automatically.
+ *
+ * @return string|null
+ *     Returns the IPv4 address if found, or NULL if it cannot be determined.
+ */
+function getServerIP(?string $interface = null): ?string
+{
+    // If interface not provided, detect default one
+    if ($interface === null) {
+        $route = shell_exec('ip route show default 2>/dev/null');
+
+        if ($route && preg_match('/dev\s+([^\s]+)/', $route, $m)) {
+            $interface = $m[1];
+        } else {
+            return null;
+        }
+    }
+
+    // Get interface IP
+    $output = shell_exec(
+        'ip -j addr show ' . escapeshellarg($interface) . ' 2>/dev/null'
+    );
+
+    if (!$output) {
+        return null;
+    }
+
+    $data = json_decode($output, true);
+    if (empty($data[0]['addr_info'])) {
+        return null;
+    }
+
+    foreach ($data[0]['addr_info'] as $addr) {
+        if (($addr['family'] ?? null) === 'inet') {
+            return $addr['local'] ?? null;
+        }
+    }
+
+    return null;
+}
+
 function loadCron() {
     global $db;
     global $rSaveIPTables;
+    global $AutoUpdateServerIP;
     CoreUtilities::$rServers = CoreUtilities::getServers(true);
     $db->query("SELECT `signal_id` FROM `signals` WHERE `server_id` = ? AND `custom_data` = '{\"action\":\"flush\"}' AND `cache` = 0;", SERVER_ID);
     if (0 < $db->num_rows()) {
@@ -152,6 +232,14 @@ function loadCron() {
                 file_put_contents(BIN_PATH . 'nginx/conf/gzip.conf', 'gzip off;');
                 $rReload = true;
             }
+        }
+
+        //Check curent server IP and update if needed
+        $rServerIP = getServerIP((CoreUtilities::$rServers[SERVER_ID]['network_interface'] == 'auto' ? null : CoreUtilities::$rServers[SERVER_ID]['network_interface']));
+        if ($rServerIP && $rServerIP != CoreUtilities::$rServers[SERVER_ID]['server_ip'] && $AutoUpdateServerIP) {
+            echo 'Updating server IP from ' . CoreUtilities::$rServers[SERVER_ID]['server_ip'] . ' to ' . $rServerIP . '...' . "\n";
+            $db->query('UPDATE `servers` SET `server_ip` = ? WHERE `id` = ?;', $rServerIP, SERVER_ID);
+            CoreUtilities::$rServers[SERVER_ID]['server_ip'] = $rServerIP;
         }
     }
     if (0 < CoreUtilities::$rServers[SERVER_ID]['limit_requests']) {
@@ -319,7 +407,7 @@ function loadCron() {
             if ($rCurrentCron != $rActualCron) {
                 echo 'Updating Crons...' . "\n";
                 unlink(TMP_PATH . 'crontab');
-            }else{
+            } else {
                 echo "Crons valid.\n";
             }
         }
@@ -508,25 +596,7 @@ function loadCron() {
         exit();
     }
 }
-function getBlockedIPs() {
-    $rReturn = array();
-    exec('sudo iptables -nL --line-numbers -t filter', $rLines);
-    foreach ($rLines as $rLine) {
-        $rLine = explode(' ', preg_replace('!\\s+!', ' ', $rLine));
-        if ($rLine[1] == 'DROP') {
-            $rReturn[] = $rLine[4];
-        }
-    }
-    $rLines = '';
-    exec('sudo ip6tables -nL --line-numbers -t filter', $rLines);
-    foreach ($rLines as $rLine) {
-        $rLine = explode(' ', preg_replace('!\\s+!', ' ', $rLine));
-        if ($rLine[1] == 'DROP') {
-            $rReturn[] = $rLine[3];
-        }
-    }
-    return $rReturn;
-}
+
 function shutdown() {
     global $db;
     global $rIdentifier;
