@@ -6,7 +6,7 @@ set_time_limit(0);
 header('Access-Control-Allow-Origin: *');
 $rDeny = true;
 
-if (strtolower(explode('.', ltrim(parse_url($_SERVER['REQUEST_URI'])['path'], '/'))[0]) == 'get' || !CoreUtilities::$rSettings['legacy_get']) {
+if (strtolower(explode('.', ltrim(parse_url($_SERVER['REQUEST_URI'])['path'], '/'))[0]) == 'get' && !CoreUtilities::$rSettings['legacy_get']) {
 	$rDeny = false;
 	generateError('LEGACY_GET_DISABLED');
 }
