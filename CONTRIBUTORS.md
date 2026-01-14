@@ -16,11 +16,17 @@ Want to see your name here? [Open a PR](https://github.com/Vateron-Media/XC_VM/p
 ## 🌟 Community Stars *(Top Contributors)*
 
 <!-- STARS_TABLE_START -->
+
 | Contributor | PRs Merged |
 | ----------- | ---------- |
-| @Divarion-D | 20 |
-| @IPTVEX | 12 |
-| @gpechieu | 2 |
+| @Divarion-D | 21         |
+| @IPTVEX     | 12         |
+| @DRM-Lab    | 2          |
+| @gpechieu   | 2          |
+| @PerXBit    | 1          |
+| @dixtinn    | 1          |
+| @locka-hd   | 1          |
+
 <!-- STARS_TABLE_END -->
 
 ---
@@ -30,6 +36,7 @@ Want to see your name here? [Open a PR](https://github.com/Vateron-Media/XC_VM/p
 ### 💻 Code
 
 * [@gpechieu](https://github.com/gpechieu) — Fixing bugs and adding features
+* [@locka-hd](https://github.com/locka-hd) — Added new functionality to the panel
 
 ### 📖 Documentation
 
@@ -37,7 +44,7 @@ Want to see your name here? [Open a PR](https://github.com/Vateron-Media/XC_VM/p
 
 ### 🐛 Bug Hunters
 
-* *No reported bugs yet*
+* [@PerXBit](https://github.com/PerXBit) — Identified and reported a bug in the codebase
 
 ### 🎨 Design
 
@@ -50,6 +57,12 @@ Want to see your name here? [Open a PR](https://github.com/Vateron-Media/XC_VM/p
 ### 🇪🇸 Spanish Translation
 
 * [@IPTVEX](https://github.com/IPTVEX) — Spanish language support and localization
+
+### 🇩🇪 German Translation
+
+### 🇧🇬 Bulgarian Translation
+
+* [@DRM-Lab](https://github.com/DRM-Lab) — German and Bulgarian language support
 
 ---
 
