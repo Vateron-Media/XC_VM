@@ -108,9 +108,9 @@ function loadcli() {
 
             // Remove 'reuseport' from nginx port configs
             foreach (array('http', 'https') as $rType) {
-                $rPortConfig = file_get_contents(MAIN_HOME . 'bin/nginx/ports/' . $rType . '.conf');
+                $rPortConfig = file_get_contents(MAIN_HOME . 'bin/nginx/conf/ports/' . $rType . '.conf');
                 if (stripos($rPortConfig, ' reuseport') !== false) {
-                    file_put_contents(MAIN_HOME . 'bin/nginx/ports/' . $rType . '.conf', str_replace(' reuseport', '', $rPortConfig));
+                    file_put_contents(MAIN_HOME . 'bin/nginx/conf/ports/' . $rType . '.conf', str_replace(' reuseport', '', $rPortConfig));
                 }
             }
 
