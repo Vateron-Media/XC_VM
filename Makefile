@@ -282,7 +282,6 @@ set_permissions:
 
 	chmod 0771 $(TEMP_DIR)/bin/daemons.sh 2>/dev/null || [ $$? -eq 1 ]
 	chmod 0755 $(TEMP_DIR)/bin/guess 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0550 $(TEMP_DIR)/bin/blkid 2>/dev/null || [ $$? -eq 1 ]
 	chmod 0550 $(TEMP_DIR)/bin/free-sans.ttf 2>/dev/null || [ $$? -eq 1 ]
 	chmod 0550 $(TEMP_DIR)/bin/network 2>/dev/null || [ $$? -eq 1 ]
 	chmod 0550 $(TEMP_DIR)/bin/network.py 2>/dev/null || [ $$? -eq 1 ]
