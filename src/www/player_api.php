@@ -254,9 +254,9 @@ if ($rUserInfo) {
 						$rSeriesItem = igbinary_unserialize(file_get_contents(SERIES_TMP_PATH . 'series_' . $rSeriesID));
 						$rBackdrops = json_decode($rSeriesItem['backdrop_path'], true);
 
-						if (count($rBackdrops) > 0) {
-							foreach (range(0, count($rBackdrops) - 1) as $i) {
-								$rBackdrops[$i] = StreamingUtilities::validateImage($rBackdrops[$i]);
+						if (is_array($rBackdrops)) {
+							foreach ($rBackdrops as $i => $path) {
+								$rBackdrops[$i] = StreamingUtilities::validateImage($path);
 							}
 						}
 
@@ -599,9 +599,9 @@ if ($rUserInfo) {
 					$output['info']['movie_image'] = StreamingUtilities::validateImage($output['info']['movie_image']);
 					$output['info']['rating'] = number_format($rating, 2) + 0;
 
-					if (count($output['info']['backdrop_path']) > 0) {
-						foreach (range(0, count($output['info']['backdrop_path']) - 1) as $i) {
-							$output['info']['backdrop_path'][$i] = StreamingUtilities::validateImage($output['info']['backdrop_path'][$i]);
+					if (!empty($output['info']['backdrop_path']) && is_array($output['info']['backdrop_path'])) {
+						foreach ($output['info']['backdrop_path'] as $i => $path) {
+							$output['info']['backdrop_path'][$i] = StreamingUtilities::validateImage($path);
 						}
 					}
 
@@ -684,7 +684,7 @@ if ($rUserInfo) {
 							}
 
 							$rating = is_numeric($rProperties['rating']) ? floatval($rProperties['rating']) : 0.0;
-							$output[] = array('num' => ++$rMovieNum, 'name' => StreamingUtilities::formatTitle($rChannel['stream_display_name'], $rChannel['year']), 'title' => $rChannel['stream_display_name'], 'year' => $rChannel['year'], 'stream_type' => $rChannel['type_key'], 'stream_id' => (int) $rChannel['id'], 'stream_icon' => (StreamingUtilities::validateImage($rProperties['movie_image']) ?: ''), 'rating' => number_format($rating, 1) + 0, 'rating_5based' => number_format($rating * 0.5, 1) + 0, 'added' => ($rChannel['added'] ?: ''), 'plot' => $rProperties['plot'], 'cast' => $rProperties['cast'], 'director' => $rProperties['director'], 'genre' => $rProperties['genre'], 'release_date' => $rProperties['release_date'], 'youtube_trailer' => $rProperties['youtube_trailer'], 'episode_run_time' => $rProperties['episode_run_time'], 'category_id' => strval($rCategoryID), 'category_ids' => $rCategoryIDs, 'container_extension' => $rChannel['target_container'], 'custom_sid' => strval($rChannel['custom_sid']), 'direct_source' => $rURL);
+							$output[] = array('num' => ++$rMovieNum, 'name' => StreamingUtilities::formatTitle($rChannel['stream_display_name'], $rChannel['year']), 'title' => $rChannel['stream_display_name'], 'year' => strval($rChannel['year']), 'stream_type' => $rChannel['type_key'], 'stream_id' => (int) $rChannel['id'], 'stream_icon' => (StreamingUtilities::validateImage($rProperties['movie_image']) ?: ''), 'rating' => number_format($rating, 1) + 0, 'rating_5based' => number_format($rating * 0.5, 1) + 0, 'added' => strval(($rChannel['added'] ?: '')), 'plot' => $rProperties['plot'], 'cast' => $rProperties['cast'], 'director' => $rProperties['director'], 'genre' => $rProperties['genre'], 'release_date' => $rProperties['release_date'], 'youtube_trailer' => $rProperties['youtube_trailer'], 'episode_run_time' => $rProperties['episode_run_time'], 'category_id' => strval($rCategoryID), 'category_ids' => $rCategoryIDs, 'container_extension' => $rChannel['target_container'], 'custom_sid' => strval($rChannel['custom_sid']), 'direct_source' => $rURL);
 						}
 
 						if (!($rCategoryIDSearch || StreamingUtilities::$rSettings['show_category_duplicates'])) {
