@@ -452,12 +452,12 @@ if ($rUserInfo) {
 								} else {
 									$rRow['start_timestamp'] = $rRow['start'];
 									$rRow['stop_timestamp'] = $rRow['end'];
+									$rRow['end_timestamp'] = $rRow['end'];
 									$rRow['title'] = base64_encode($rRow['title']);
 									$rRow['description'] = base64_encode($rRow['description']);
 									$rRow['start'] = date('Y-m-d H:i:s', $rRow['start']);
-
-
 									$rRow['stop'] = date('Y-m-d H:i:s', $rRow['end']);
+									$rRow['end'] = date('Y-m-d H:i:s', $rRow['end']);
 
 									if ($rMulti) {
 										$output['epg_listings'][$rStreamID][] = $rRow;
@@ -475,7 +475,6 @@ if ($rUserInfo) {
 					}
 				}
 			}
-
 			break;
 
 		case 'get_live_streams':
