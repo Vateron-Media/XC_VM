@@ -1,5 +1,4 @@
-.vscode/sftp.json
-.vscode/settings.json
+.vscode/
 CLAUDE.md
 dist/
 .DS_Store
