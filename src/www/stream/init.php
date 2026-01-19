@@ -36,7 +36,7 @@ if (!defined('TMP_PATH')) {
 }
 
 define('DEVELOPMENT', false); // It will be deleted in the future.
-define('XC_VM_VERSION', '1.2.11');
+define('XC_VM_VERSION', '1.2.12');
 define('CONFIG_PATH', MAIN_HOME . 'config/');
 define('BIN_PATH', MAIN_HOME . 'bin/');
 define('INCLUDES_PATH', MAIN_HOME . 'includes/');
