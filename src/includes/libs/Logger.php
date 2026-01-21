@@ -150,7 +150,14 @@ final class Logger {
             FILE_APPEND | LOCK_EX
         );
 
-        // In development mode, display a readable message
+        // Set log file permissions if running as root (common in containers)
+        if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
+            @chown(self::$logFile, 'xc_vm');
+            @chgrp(self::$logFile, 'xc_vm');
+            @chmod(self::$logFile, 0664);
+        }
+
+        // In development mode, display a readable message on screen
         if (self::$development) {
             self::output($data);
         }
