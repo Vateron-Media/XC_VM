@@ -2247,11 +2247,13 @@ class CoreUtilities {
 						$rGenPTS = $rNoFix . ' -start_at_zero -copyts -vsync 0 -correct_ts_overflow 0 -avoid_negative_ts disabled -max_interleave_delta 0';
 					}
 
-					if (!$rStream['server_info']['parent_id'] && ($rStream['stream_info']['read_native'] == 1 || stristr($rFFProbeOutput['container'], 'hls') && self::$rSettings['read_native_hls'] || empty($rProtocol) || stristr($rFFProbeOutput['container'], 'mp4') || stristr($rFFProbeOutput['container'], 'matroska'))) {
+					$container = (isset($rFFProbeOutput) && is_array($rFFProbeOutput)) ? ($rFFProbeOutput['container'] ?? null) : null;
+					if (empty($rStream['server_info']['parent_id']) && (($rStream['stream_info']['read_native'] == 1) ||   ($container && stristr($container, 'hls') && self::$rSettings['read_native_hls']) || empty($rProtocol) || ($container && stristr($container, 'mp4')) ||				($container && stristr($container, 'matroska')))) {
 						$rReadNative = '-re';
 					} else {
 						$rReadNative = '';
 					}
+
 
 					if (!$rStream['server_info']['parent_id'] && $rStream['stream_info']['enable_transcode'] == 1 && $rStream['stream_info']['type_key'] != 'created_live') {
 						if ($rStream['stream_info']['transcode_profile_id'] == -1) {
@@ -2305,7 +2307,7 @@ class CoreUtilities {
 						$rOutputs['flv'][] = $rFLVOptions . ' -f flv -flvflags no_duration_filesize ' . escapeshellarg($rPushURL) . ' ';
 					}
 				}
-				
+
 				// Logo overlay
 				$rLogoOptions = '';
 				if (isset($rStream['stream_info']['transcode_attributes'][16]) && !$rLoopback) {
@@ -2317,7 +2319,10 @@ class CoreUtilities {
 				$rInputCodec = '';
 
 				$supportedCodecs = ['h264', 'hevc', 'mjpeg', 'mpeg1', 'mpeg2', 'mpeg4', 'vc1', 'vp8', 'vp9'];
-				$videoCodec = $rFFProbeOutput['codecs']['video']['codec_name'];
+				$videoCodec = null;
+				if (isset($rFFProbeOutput) && is_array($rFFProbeOutput)) {
+					$videoCodec = $rFFProbeOutput['codecs']['video']['codec_name'] ?? null;
+				}
 
 				if (!empty($rGPUOptions) && in_array($videoCodec, $supportedCodecs)) {
 					$rInputCodec = '-c:v ' . $rFFProbeOutput['codecs']['video']['codec_name'] . '_cuvid';
@@ -2386,7 +2391,30 @@ class CoreUtilities {
 				}
 
 				$rFFMPEG .= ' >/dev/null 2>>' . STREAMS_PATH . intval($rStreamID) . '.errors & echo $! > ' . STREAMS_PATH . intval($rStreamID) . '_.pid';
-				$rFFMPEG = str_replace(array('{FETCH_OPTIONS}', '{GEN_PTS}', '{STREAM_SOURCE}', '{MAP}', '{READ_NATIVE}', '{CONCAT}', '{AAC_FILTER}', '{GPU}', '{INPUT_CODEC}', '{LOGO}', '{LLOD}'), array((empty($rStream['stream_info']['custom_ffmpeg']) ? $rFetchOptions : ''), (empty($rStream['stream_info']['custom_ffmpeg']) ? $rGenPTS : ''), escapeshellarg($rStreamSource), (empty($rStream['stream_info']['custom_ffmpeg']) ? $rMap : ''), (empty($rStream['stream_info']['custom_ffmpeg']) ? $rReadNative : ''), ($rStream['stream_info']['type_key'] == 'created_live' && !$rStream['server_info']['parent_id'] ? '-safe 0 -f concat' : ''), (!stristr($rFFProbeOutput['container'], 'flv') && $rFFProbeOutput['codecs']['audio']['codec_name'] == 'aac' && $rStream['stream_info']['transcode_attributes']['-acodec'] == 'copy' ? '-bsf:a aac_adtstoasc' : ''), $rGPUOptions, $rInputCodec, $rLogoOptions, $rLLODOptions), $rFFMPEG);
+
+				$ffprobeContainer = (isset($rFFProbeOutput['container']) && is_string($rFFProbeOutput['container'])) ? $rFFProbeOutput['container'] : '';
+
+				$audioCodec = (isset($rFFProbeOutput['codecs']['audio']['codec_name']) && is_array($rFFProbeOutput['codecs']['audio'])) ? $rFFProbeOutput['codecs']['audio']['codec_name'] : '';
+
+				$rFFMPEG = str_replace(
+					['{FETCH_OPTIONS}', '{GEN_PTS}', '{STREAM_SOURCE}', '{MAP}', '{READ_NATIVE}', '{CONCAT}', '{AAC_FILTER}', '{GPU}', '{INPUT_CODEC}', '{LOGO}', '{LLOD}'],
+					[
+						empty($rStream['stream_info']['custom_ffmpeg']) ? $rFetchOptions : '',
+						empty($rStream['stream_info']['custom_ffmpeg']) ? $rGenPTS : '',
+						escapeshellarg($rStreamSource),
+						empty($rStream['stream_info']['custom_ffmpeg']) ? $rMap : '',
+						empty($rStream['stream_info']['custom_ffmpeg']) ? $rReadNative : '',
+						($rStream['stream_info']['type_key'] == 'created_live' && empty($rStream['server_info']['parent_id']) ? '-safe 0 -f concat' : ''),
+						(!stristr($ffprobeContainer, 'flv') && $audioCodec === 'aac' && ($rStream['stream_info']['transcode_attributes']['-acodec'] ?? '') === 'copy' ? '-bsf:a aac_adtstoasc' : ''),
+						$rGPUOptions,
+						$rInputCodec,
+						$rLogoOptions,
+						$rLLODOptions
+					],
+					$rFFMPEG
+				);
+
+
 				shell_exec($rFFMPEG);
 				file_put_contents(STREAMS_PATH . $rStreamID . '_.ffmpeg', $rFFMPEG);
 				$rKey = openssl_random_pseudo_bytes(16);
@@ -2414,7 +2442,7 @@ class CoreUtilities {
 				$rCompatible = 0;
 				$rAudioCodec = $rVideoCodec = $rResolution = null;
 
-				if ($rFFProbeOutput) {
+				if (isset($rFFProbeOutput) && is_array($rFFProbeOutput) && isset($rFFProbeOutput['codecs']) && is_array($rFFProbeOutput['codecs'])) {
 					$rCompatible = intval(self::checkCompatibility($rFFProbeOutput));
 					$rAudioCodec = ($rFFProbeOutput['codecs']['audio']['codec_name'] ?: null);
 					$rVideoCodec = ($rFFProbeOutput['codecs']['video']['codec_name'] ?: null);
@@ -2425,7 +2453,8 @@ class CoreUtilities {
 					}
 				}
 
-				self::$db->query('UPDATE `streams_servers` SET `delay_available_at` = ?,`to_analyze` = 0,`stream_started` = ?,`stream_info` = ?,`audio_codec` = ?, `video_codec` = ?, `resolution` = ?,`compatible` = ?,`stream_status` = 2,`pid` = ?,`progress_info` = ?,`current_source` = ? WHERE `stream_id` = ? AND `server_id` = ?', $rDelayStartAt, time(), json_encode($rFFProbeOutput), $rAudioCodec, $rVideoCodec, $rResolution, $rCompatible, $rPID, json_encode(array()), $rSource, $rStreamID, SERVER_ID);
+				$rFFProbeOutputSafe = isset($rFFProbeOutput) && is_array($rFFProbeOutput) ? $rFFProbeOutput : [];
+				self::$db->query('UPDATE `streams_servers` SET `delay_available_at` = ?,`to_analyze` = 0,`stream_started` = ?,`stream_info` = ?,`audio_codec` = ?, `video_codec` = ?, `resolution` = ?,`compatible` = ?,`stream_status` = 2,`pid` = ?,`progress_info` = ?,`current_source` = ? WHERE `stream_id` = ? AND `server_id` = ?', $rDelayStartAt, time(), json_encode($rFFProbeOutputSafe), $rAudioCodec, $rVideoCodec, $rResolution, $rCompatible, $rPID, json_encode(array()), $rSource, $rStreamID, SERVER_ID);
 				self::updateStream($rStreamID);
 				$rPlaylist = (!$rDelayEnabled ? STREAMS_PATH . $rStreamID . '_.m3u8' : DELAY_PATH . $rStreamID . '_.m3u8');
 
@@ -3751,11 +3780,11 @@ class CoreUtilities {
 				$rActivePIDs[] = $rPID;
 			}
 		}
-		if (in_array($rActivePIDs, $rAddPID)) {
+		if (in_array($rAddPID, $rActivePIDs, true)) {
 		} else {
 			$rActivePIDs[] = $rAddPID;
 		}
-		file_put_contents(SIGNALS_TMP_PATH . 'queue_' . intval($rStreamID), igbinary_serialize($rActivePIDs));
+		file_put_contents(SIGNALS_TMP_PATH . 'queue_' . intval($rStreamID), igbinary_serialize($rActivePIDs), LOCK_EX);
 	}
 	public static function removeFromQueue($rStreamID, $rPID) {
 		$rActivePIDs = array();
@@ -3766,7 +3795,7 @@ class CoreUtilities {
 			}
 		}
 		if (0 < count($rActivePIDs)) {
-			file_put_contents(SIGNALS_TMP_PATH . 'queue_' . intval($rStreamID), igbinary_serialize($rActivePIDs));
+			file_put_contents(SIGNALS_TMP_PATH . 'queue_' . intval($rStreamID), igbinary_serialize($rActivePIDs), LOCK_EX);
 		} else {
 			unlink(SIGNALS_TMP_PATH . 'queue_' . intval($rStreamID));
 		}
@@ -4129,20 +4158,41 @@ class CoreUtilities {
 		return $rServerURL;
 	}
 	public static function checkCompatibility($rData) {
-		if (is_array($rData)) {
-		} else {
+		if (!is_array($rData)) {
 			$rData = json_decode($rData, true);
 		}
-		$rAudioCodecs = array('aac', 'libfdk_aac', 'opus', 'vorbis', 'pcm_s16le', 'mp2', 'mp3', 'flac', null);
-		$rVideoCodecs = array('h264', 'vp8', 'vp9', 'ogg', 'av1', null);
-		if (!self::$rSettings['player_allow_hevc']) {
-		} else {
+
+		if (!is_array($rData) || !isset($rData['codecs']) || !is_array($rData['codecs'])) {
+			return false;
+		}
+
+		$audioCodec = $rData['codecs']['audio']['codec_name'] ?? null;
+		$videoCodec = $rData['codecs']['video']['codec_name'] ?? null;
+
+		$rAudioCodecs = ['aac', 'libfdk_aac', 'opus', 'vorbis', 'pcm_s16le', 'mp2', 'mp3', 'flac'];
+		$rVideoCodecs = ['h264', 'vp8', 'vp9', 'ogg', 'av1'];
+
+		if (self::$rSettings['player_allow_hevc']) {
 			$rVideoCodecs[] = 'hevc';
 			$rVideoCodecs[] = 'h265';
 			$rAudioCodecs[] = 'ac3';
 		}
-		return ($rData['codecs']['audio']['codec_name'] || $rData['codecs']['video']['codec_name']) && in_array(strtolower($rData['codecs']['audio']['codec_name']), $rAudioCodecs) && in_array(strtolower($rData['codecs']['video']['codec_name']), $rVideoCodecs);
+
+		if (!$videoCodec) {
+			return false;
+		}
+
+		if (!in_array(strtolower($videoCodec), $rVideoCodecs, true)) {
+			return false;
+		}
+
+		if ($audioCodec && !in_array(strtolower($audioCodec), $rAudioCodecs, true)) {
+			return false;
+		}
+
+		return true;
 	}
+
 	public static function getNearest($arr, $search) {
 		$closest = null;
 		foreach ($arr as $item) {

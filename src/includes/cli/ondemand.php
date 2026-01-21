@@ -27,10 +27,11 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                 break;
             }
 
-            if (!$rLastCheck || time() - $rLastCheck > $rInterval || md5_file(__FILE__) !== $rMD5) {
+            $rCurentMD5Hash = md5_file(__FILE__);
+            if (!$rLastCheck || time() - $rLastCheck > $rInterval || $rCurentMD5Hash !== $rMD5) {
                 CoreUtilities::$rSettings = CoreUtilities::getSettings(true);
                 $rLastCheck = time();
-                $rMD5 = md5_file(__FILE__);
+                $rMD5 = $rCurentMD5Hash;
             }
 
             $rRows = [];

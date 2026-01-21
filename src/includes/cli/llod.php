@@ -42,7 +42,7 @@ if (posix_getpwuid(posix_geteuid())['name'] === 'xc_vm') {
             $rSegmentStatus = array();
 
             $rSettings = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'settings'));
-            
+
             if ($rSettings === false || !is_array($rSettings)) {
                 echo "Failed to unserialize settings\n";
                 exit(1);
@@ -87,11 +87,11 @@ function deleteOldSegments($rStreamID, $rKeep, $rThreshold, &$rSegmentStatus) {
     echo "Delete threshold: $rThreshold\n";
 
     $rReturn = array();
-    
+
     if (empty($rSegmentStatus)) {
         return $rReturn;
     }
-    
+
     $rCurrentSegment = max(array_keys($rSegmentStatus));
 
     echo "Current segment: $rCurrentSegment\n";
@@ -104,6 +104,7 @@ function deleteOldSegments($rStreamID, $rKeep, $rThreshold, &$rSegmentStatus) {
 
                 $rSegmentStatus[$rSegmentID] = false;
                 $deleted = @unlink(STREAMS_PATH . $rStreamID . '_' . $rSegmentID . '.ts');
+                @unlink(STREAMS_PATH . $rStreamID . '_' . $rSegmentID . '.m4s');
                 echo "Unlink result for segment $rSegmentID: " . ($deleted ? "success" : "failed") . "\n";
             } else {
                 if ($rSegmentID !== $rCurrentSegment) {
@@ -197,13 +198,13 @@ function startllod($rStreamID, $rStreamSources, $rStreamArguments, $rRequestPreb
 
     $segment = 0;
     $rSegmentFile = fopen(STREAMS_PATH . $rStreamID . "_{$segment}.ts", 'wb');
-    
+
     if (!$rSegmentFile) {
         writeError($rStreamID, '[LLOD] Failed to create initial segment file');
         fclose($rFP);
         return;
     }
-    
+
     $rSegmentStatus[$segment] = true;
 
     echo "Segment #{$segment} opened\n";
@@ -241,13 +242,13 @@ function startllod($rStreamID, $rStreamSources, $rStreamArguments, $rRequestPreb
             $segmentStart = microtime(true);
 
             $rSegmentFile = fopen(STREAMS_PATH . $rStreamID . "_{$segment}.ts", 'wb');
-            
+
             if (!$rSegmentFile) {
                 writeError($rStreamID, '[LLOD] Failed to create segment file #' . $segment);
                 fclose($rFP);
                 return;
             }
-            
+
             $rSegmentStatus[$segment] = true;
 
             echo "Segment #{$segment} opened\n";

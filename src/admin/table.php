@@ -1050,11 +1050,25 @@ if ($rType == "lines") {
 
                     if ($db->num_rows() > 0) {
                         foreach ($db->get_rows() as $rRow) {
-                            $rFailsPS[$rRow["stream_id"]][intval($rRow["server_id"])] = array($rRow["fails"], $rTime - $rRow["last"]);
-                            $rFails[$rRow["stream_id"]][0] += $rRow["fails"];
+                            $streamId = $rRow["stream_id"];
+                            $serverId = intval($rRow["server_id"]);
+                            $fails = intval($rRow["fails"]);
+                            $lastDelta = $rTime - intval($rRow["last"]);
 
-                            if ($rFails[$rRow["stream_id"]]["last"] < $rTime - $rRow["last"]) {
-                                $rFails[$rRow["stream_id"]][1] = $rTime - $rRow["last"];
+                            // Init arrays if not set
+                            if (!isset($rFailsPS[$streamId])) {
+                                $rFailsPS[$streamId] = [];
+                            }
+                            $rFailsPS[$streamId][$serverId] = [$fails, $lastDelta];
+
+                            if (!isset($rFails[$streamId])) {
+                                $rFails[$streamId] = [0, 0]; // [totalFails, maxLastDelta]
+                            }
+
+                            $rFails[$streamId][0] += $fails; // sum up fails
+
+                            if ($rFails[$streamId][1] < $lastDelta) {
+                                $rFails[$streamId][1] = $lastDelta; // save max lastDelta
                             }
                         }
                     }
