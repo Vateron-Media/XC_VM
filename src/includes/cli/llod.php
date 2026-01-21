@@ -288,12 +288,18 @@ function getActiveStream($rStreamID, $rURLs, $rContext) {
 
             $rHeaders = array();
 
-            foreach ($rMetadata['wrapper_data'] as $rLine) {
-                if (strpos($rLine, 'HTTP') !== 0) {
-                    list($rKey, $rValue) = explode(': ', $rLine);
-                    $rHeaders[$rKey] = $rValue;
-                } else {
-                    $rHeaders[0] = $rLine;
+            if (!empty($rMetadata['wrapper_data']) && is_array($rMetadata['wrapper_data'])) {
+                foreach ($rMetadata['wrapper_data'] as $rLine) {
+                    if (strpos($rLine, 'HTTP') !== 0) {
+                        $pos = strpos($rLine, ':');
+                        if ($pos !== false) {
+                            $rKey = substr($rLine, 0, $pos);
+                            $rValue = trim(substr($rLine, $pos + 1));
+                            $rHeaders[$rKey] = $rValue;
+                        }
+                    } else {
+                        $rHeaders[0] = $rLine;
+                    }
                 }
             }
 
@@ -305,7 +311,7 @@ function getActiveStream($rStreamID, $rURLs, $rContext) {
             $rContentType = $rHeaders['Content-Type'] ?? '';
             echo "Content-Type: $rContentType\n";
 
-            if (strtolower($rContentType) === 'video/mp2t') {
+            if (stripos($rContentType, 'video/mp2t') !== false) {
                 echo "Content-Type is valid MPEG-TS\n";
                 echo "=== getActiveStream() successful ===\n\n";
                 return $rFP;
