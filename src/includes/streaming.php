@@ -1217,14 +1217,11 @@ class StreamingUtilities {
 			return false;
 		}
 
-		// Опционально — проверяем, что это исполняемый файл (ffmpeg или php)
+		// Optional check: verify that the exe link exists
 		$exeLink = $procDir . '/exe';
 		if (!is_link($exeLink)) {
 			return false;
 		}
-
-		// Если очень важно — можно оставить проверку cmdline, но реже
-		// (например, кэшировать результат на 3–5 секунд)
 
 		static $cache = [];
 		$cacheKey = $pid . '|' . $streamID;
@@ -1237,7 +1234,7 @@ class StreamingUtilities {
 			$alive = false;
 		} else {
 			$cmd = str_replace("\0", ' ', $cmd);
-			$alive = stripos($cmd, $streamID) !== false;  // упростил — обычно достаточно
+			$alive = stripos($cmd, $streamID) !== false;
 		}
 
 		$cache[$cacheKey] = ['alive' => $alive, 'time' => time()];
