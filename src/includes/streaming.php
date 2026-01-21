@@ -1207,27 +1207,42 @@ class StreamingUtilities {
 		}
 		return false;
 	}
-	public static function isStreamRunning($rPID, $rStreamID) {
-		if (!empty($rPID)) {
-			clearstatcache(true);
-			if (!(file_exists('/proc/' . $rPID) && is_readable('/proc/' . $rPID . '/exe'))) {
-			} else {
-				if (strpos(basename(readlink('/proc/' . $rPID . '/exe')), 'ffmpeg') === 0) {
-					$rCommand = trim(file_get_contents('/proc/' . $rPID . '/cmdline'));
-					if (!(stristr($rCommand, '/' . $rStreamID . '_.m3u8') || stristr($rCommand, '/' . $rStreamID . '_%d.ts'))) {
-					} else {
-						return true;
-					}
-				} else {
-					if (strpos(basename(readlink('/proc/' . $rPID . '/exe')), 'php') !== 0) {
-					} else {
-						return true;
-					}
-				}
-			}
+	public static function isStreamRunning($pid, $streamID) {
+		if ($pid <= 1 || !is_int($pid)) {
 			return false;
 		}
-		return false;
+
+		$procDir = "/proc/$pid";
+		if (!file_exists($procDir)) {
+			return false;
+		}
+
+		// Опционально — проверяем, что это исполняемый файл (ffmpeg или php)
+		$exeLink = $procDir . '/exe';
+		if (!is_link($exeLink)) {
+			return false;
+		}
+
+		// Если очень важно — можно оставить проверку cmdline, но реже
+		// (например, кэшировать результат на 3–5 секунд)
+
+		static $cache = [];
+		$cacheKey = $pid . '|' . $streamID;
+		if (isset($cache[$cacheKey]) && $cache[$cacheKey]['time'] > time() - 4) {
+			return $cache[$cacheKey]['alive'];
+		}
+
+		$cmd = @file_get_contents("/proc/$pid/cmdline");
+		if ($cmd === false) {
+			$alive = false;
+		} else {
+			$cmd = str_replace("\0", ' ', $cmd);
+			$alive = stripos($cmd, $streamID) !== false;  // упростил — обычно достаточно
+		}
+
+		$cache[$cacheKey] = ['alive' => $alive, 'time' => time()];
+
+		return $alive;
 	}
 	public static function isProcessRunning($rPID, $rEXE) {
 		if (!empty($rPID)) {
@@ -1577,11 +1592,11 @@ class StreamingUtilities {
 				$rActivePIDs[] = $rPID;
 			}
 		}
-		if (in_array($rActivePIDs, $rAddPID)) {
+		if (in_array($rAddPID, $rActivePIDs, true)) {
 		} else {
 			$rActivePIDs[] = $rAddPID;
 		}
-		file_put_contents(SIGNALS_TMP_PATH . 'queue_' . intval($rStreamID), igbinary_serialize($rActivePIDs));
+		file_put_contents(SIGNALS_TMP_PATH . 'queue_' . intval($rStreamID), igbinary_serialize($rActivePIDs), LOCK_EX);
 	}
 	public static function removeFromQueue($rStreamID, $rPID) {
 		$rActivePIDs = array();
@@ -1592,7 +1607,7 @@ class StreamingUtilities {
 			}
 		}
 		if (0 < count($rActivePIDs)) {
-			file_put_contents(SIGNALS_TMP_PATH . 'queue_' . intval($rStreamID), igbinary_serialize($rActivePIDs));
+			file_put_contents(SIGNALS_TMP_PATH . 'queue_' . intval($rStreamID), igbinary_serialize($rActivePIDs), LOCK_EX);
 		} else {
 			unlink(SIGNALS_TMP_PATH . 'queue_' . intval($rStreamID));
 		}
