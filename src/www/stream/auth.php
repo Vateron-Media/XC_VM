@@ -115,18 +115,22 @@ if ($rExtension) {
 				$rAvailableServers[] = $rServerID;
 			}
 
+			$servers = $rStream['servers'] ?? [];
+
 			foreach ($rServers as $rServerID => $rServerInfo) {
-				if (!(!array_key_exists($rServerID, $rStream['servers']) || !$rServerInfo['server_online'] || $rServerInfo['server_type'] != 0)) {
-					if (isset($rStream['servers'][$rServerID])) {
-						if ($rType == 'movie') {
-							if (((!empty($rStream['servers'][$rServerID]['pid']) && $rStream['servers'][$rServerID]['to_analyze'] == 0 && $rStream['servers'][$rServerID]['stream_status'] == 0 || $rStream['info']['direct_source'] == 1 && $rStream['info']['direct_proxy'] == 1) && ($rStream['info']['target_container'] == $rExtension || $rExtension == 'srt' || $rExtension == 'm3u8' || $rExtension == 'ts') && $rServerInfo['timeshift_only'] == 0)) {
-								$rAvailableServers[] = $rServerID;
-							}
-						} else {
-							if ((($rStream['servers'][$rServerID]['on_demand'] == 1 && $rStream['servers'][$rServerID]['stream_status'] != 1 || 0 < $rStream['servers'][$rServerID]['pid'] && $rStream['servers'][$rServerID]['stream_status'] == 0) && $rStream['servers'][$rServerID]['to_analyze'] == 0 && (int) $rStream['servers'][$rServerID]['delay_available_at'] <= time() && $rServerInfo['timeshift_only'] == 0 || $rStream['info']['direct_source'] == 1 && $rStream['info']['direct_proxy'] == 1)) {
-								$rAvailableServers[] = $rServerID;
-							}
-						}
+				if (!isset($servers[$rServerID]) || !$rServerInfo['server_online'] || $rServerInfo['server_type'] != 0) {
+					continue;
+				}
+
+				$serverStream = $servers[$rServerID];
+
+				if ($rType === 'movie') {
+					if (((!empty($serverStream['pid']) && $serverStream['to_analyze'] == 0 && $serverStream['stream_status'] == 0) || ($rStream['info']['direct_source'] == 1 && $rStream['info']['direct_proxy'] == 1)) && ($rStream['info']['target_container'] == $rExtension || in_array($rExtension, ['srt', 'm3u8', 'ts'], true)) && $rServerInfo['timeshift_only'] == 0) {
+						$rAvailableServers[] = $rServerID;
+					}
+				} else {
+					if ((($serverStream['on_demand'] == 1 && $serverStream['stream_status'] != 1) || ((int)$serverStream['pid'] > 0 && $serverStream['stream_status'] == 0)) && $serverStream['to_analyze'] == 0 && (int)$serverStream['delay_available_at'] <= time() && $rServerInfo['timeshift_only'] == 0 || ($rStream['info']['direct_source'] == 1 && $rStream['info']['direct_proxy'] == 1)) {
+						$rAvailableServers[] = $rServerID;
 					}
 				}
 			}
@@ -550,7 +554,7 @@ if ($rExtension) {
 							exit();
 						}
 
-					// no break
+						// no break
 					case 'ts':
 						if ((StreamingUtilities::$rSettings['disable_ts'] && (!$rUserInfo['is_restreamer'] || !StreamingUtilities::$rSettings['disable_ts_allow_restream']))) {
 							generateError('TS_DISABLED');
@@ -694,7 +698,7 @@ if ($rExtension) {
 
 					exit();
 			}
-		// no break
+			// no break
 		case 'thumb':
 			$rStreamInfo = null;
 
@@ -781,8 +785,7 @@ if ($rExtension) {
 	}
 }
 
-function shutdown()
-{
+function shutdown() {
 	global $rDeny;
 	global $db;
 
