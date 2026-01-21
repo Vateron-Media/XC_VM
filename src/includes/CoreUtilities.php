@@ -261,11 +261,9 @@ class CoreUtilities {
 		return $rOutput;
 	}
 	public static function getSettings($rForce = false) {
-		if ($rForce) {
-		} else {
+		if (!$rForce) {
 			$rCache = self::getCache('settings', 20);
-			if (empty($rCache)) {
-			} else {
+			if (!empty($rCache)) {
 				return $rCache;
 			}
 		}
@@ -276,10 +274,15 @@ class CoreUtilities {
 			$rOutput[$rKey] = $rValue;
 		}
 		$rOutput['allow_countries'] = json_decode($rOutput['allow_countries'], true);
-		$rOutput['allowed_stb_types'] = array_map('strtolower', json_decode($rOutput['allowed_stb_types'], true));
+
+		$decodedAllowedSTB = json_decode($rOutput['allowed_stb_types'], true);
+		$rOutput['allowed_stb_types'] = array();
+		if (is_array($decodedAllowedSTB)) {
+			$rOutput['allowed_stb_types'] = array_map('strtolower', $decodedAllowedSTB);
+		}
+
 		$rOutput['stalker_lock_images'] = json_decode($rOutput['stalker_lock_images'], true);
-		if (!array_key_exists('bouquet_name', $rOutput)) {
-		} else {
+		if (array_key_exists('bouquet_name', $rOutput)) {
 			$rOutput['bouquet_name'] = str_replace(' ', '_', $rOutput['bouquet_name']);
 		}
 		$rOutput['api_ips'] = !empty($rOutput['api_ips']) ? explode(',', $rOutput['api_ips']) : [];
