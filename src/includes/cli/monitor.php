@@ -1,45 +1,56 @@
 <?php
+
 function checkRunning($rStreamID) {
     clearstatcache(true);
-    if (!file_exists(STREAMS_PATH . $rStreamID . '_.monitor')) {
-    } else {
-        $rPID = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.monitor'));
+    $rPID = 0;
+    $monitorFile = STREAMS_PATH . $rStreamID . '_.monitor';
+
+    if (file_exists($monitorFile)) {
+        $rPID = intval(file_get_contents($monitorFile));
     }
+
     if (empty($rPID)) {
         shell_exec("kill -9 `ps -ef | grep 'XC_VM\\[" . intval($rStreamID) . "\\]' | grep -v grep | awk '{print \$2}'`;");
     } else {
-        if (!file_exists('/proc/' . $rPID)) {
-        } else {
+        if (file_exists('/proc/' . $rPID)) {
             $rCommand = trim(file_get_contents('/proc/' . $rPID . '/cmdline'));
-            if (!($rCommand == 'XC_VM[' . $rStreamID . ']' && is_numeric($rPID) && 0 < $rPID)) {
-            } else {
+            if ($rCommand == 'XC_VM[' . $rStreamID . ']' && is_numeric($rPID) && $rPID > 0) {
                 posix_kill($rPID, 9);
             }
         }
     }
 }
-if ((posix_getpwuid(posix_geteuid())['name'] != 'xc_vm')) {
+
+if (posix_getpwuid(posix_geteuid())['name'] != 'xc_vm') {
     exit('Please run as XC_VM!' . "\n");
 }
-if ((!@$argc || ($argc <= 1))) {
+
+if (!@$argc || $argc <= 1) {
     exit(0);
 }
+
 $rStreamID = intval($argv[1]);
 $rRestart = !empty($argv[2]);
+
 require str_replace('\\', '/', dirname($argv[0])) . '/../../www/init.php';
+
 checkRunning($rStreamID);
 set_time_limit(0);
 cli_set_process_title('XC_VM[' . $rStreamID . ']');
+
 $db->query('SELECT * FROM `streams` t1 INNER JOIN `streams_servers` t2 ON t2.stream_id = t1.id AND t2.server_id = ? WHERE t1.id = ?', SERVER_ID, $rStreamID);
-if (($db->num_rows() <= 0)) {
+if ($db->num_rows() <= 0) {
     CoreUtilities::stopStream($rStreamID);
     exit();
 }
+
 $rStreamInfo = $db->get_row();
 $db->query('UPDATE `streams_servers` SET `monitor_pid` = ? WHERE `server_stream_id` = ?', getmypid(), $rStreamInfo['server_stream_id']);
+
 if (CoreUtilities::$rSettings['enable_cache']) {
     CoreUtilities::updateStream($rStreamID);
 }
+
 $rPID = (file_exists(STREAMS_PATH . $rStreamID . '_.pid') ? intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.pid')) : $rStreamInfo['pid']);
 $rAutoRestart = json_decode($rStreamInfo['auto_restart'], true);
 $rPlaylist = STREAMS_PATH . $rStreamID . '_.m3u8';
@@ -50,18 +61,17 @@ $rSources = array();
 $rSegmentTime = CoreUtilities::$rSegmentSettings['seg_time'];
 $rPrioritySwitch = false;
 $rMaxFails = 0;
-if (($rParentID == 0)) {
+
+if ($rParentID == 0) {
     $rSources = json_decode($rStreamInfo['stream_source'], true);
-    //////////////////////////
 }
-if (0 >= $rParentID) {
-    $rCurrentSource = $rStreamInfo['current_source'];
-} else {
-    $rCurrentSource = 'Loopback: #' . $rParentID;
-}
+
+$rCurrentSource = ($rParentID <= 0) ? $rStreamInfo['current_source'] : 'Loopback: #' . $rParentID;
 $rLastSegment = $rForceSource = null;
+
 $db->query('SELECT t1.*, t2.* FROM `streams_options` t1, `streams_arguments` t2 WHERE t1.stream_id = ? AND t1.argument_id = t2.id', $rStreamID);
 $rStreamArguments = $db->get_rows();
+
 if (!(0 < $rStreamInfo['delay_minutes']) && ($rStreamInfo['parent_id'] == 0)) {
     $rDelay = false;
     $rFolder = STREAMS_PATH;
@@ -70,18 +80,21 @@ if (!(0 < $rStreamInfo['delay_minutes']) && ($rStreamInfo['parent_id'] == 0)) {
     $rPlaylist = DELAY_PATH . $rStreamID . '_.m3u8';
     $rDelay = true;
 }
+
 $rFirstRun = true;
 $rTotalCalls = 0;
+
+// Initial check if stream is running
 if (CoreUtilities::isStreamRunning($rPID, $rStreamID)) {
     echo 'Stream is running.' . "\n";
     if ($rRestart) {
         $rTotalCalls = MONITOR_CALLS;
-        if ((is_numeric($rPID) && (0 < $rPID))) {
+        if (is_numeric($rPID) && $rPID > 0) {
             shell_exec('kill -9 ' . intval($rPID));
         }
         shell_exec('rm -f ' . STREAMS_PATH . intval($rStreamID) . '_*');
         file_put_contents(STREAMS_PATH . $rStreamID . '_.monitor', getmypid());
-        if (($rDelay && CoreUtilities::isDelayRunning($rDelayPID, $rStreamID) && is_numeric($rDelayPID) && (0 < $rDelayPID))) {
+        if ($rDelay && CoreUtilities::isDelayRunning($rDelayPID, $rStreamID) && is_numeric($rDelayPID) && $rDelayPID > 0) {
             shell_exec('kill -9 ' . intval($rDelayPID));
         }
         usleep(50000);
@@ -90,10 +103,11 @@ if (CoreUtilities::isStreamRunning($rPID, $rStreamID)) {
 } else {
     file_put_contents(STREAMS_PATH . $rStreamID . '_.monitor', getmypid());
 }
+
 if (CoreUtilities::$rSettings['kill_rogue_ffmpeg']) {
     exec('ps aux | grep -v grep | grep \'/' . $rStreamID . '_.m3u8\' | awk \'{print $2}\'', $rFFMPEG);
     foreach ($rFFMPEG as $rRoguePID) {
-        if ((is_numeric($rRoguePID) && (0 < intval($rRoguePID)) && (intval($rRoguePID) != intval($rPID)))) {
+        if (is_numeric($rRoguePID) && intval($rRoguePID) > 0 && intval($rRoguePID) != intval($rPID)) {
             shell_exec('kill -9 ' . $rRoguePID . ';');
         }
     }
@@ -311,7 +325,60 @@ goto label562;
 label562:
 CoreUtilities::$rSettings = CoreUtilities::getSettings();
 if (CoreUtilities::isStreamRunning($rPID, $rStreamID) && !$E9d347a502b13abd) {
-    goto label1267;
+    echo 'Started! Probe Stream' . "\n";
+    if ($rFirstRun) {
+        $rFirstRun = false;
+        CoreUtilities::streamLog($rStreamID, SERVER_ID, 'STREAM_START', $rCurrentSource);
+    } else {
+        CoreUtilities::streamLog($rStreamID, SERVER_ID, 'STREAM_RESTART', $rCurrentSource);
+    }
+    $rSegment = $rFolder . CoreUtilities::getPlaylistSegments($rPlaylist, 10)[0];
+    $rStreamInfo['stream_info'] = null;
+    if (file_exists($rSegment)) {
+        $E02429d2ee600884 = CoreUtilities::probeStream($rSegment);
+        if ((10 < intval($E02429d2ee600884['of_duration']))) {
+            $E02429d2ee600884['of_duration'] = 10;
+        }
+        file_put_contents(STREAMS_PATH . $rStreamID . '_.dur', intval($E02429d2ee600884['of_duration']));
+        if (($rSegmentTime < intval($E02429d2ee600884['of_duration']))) {
+            $rSegmentTime = intval($E02429d2ee600884['of_duration']);
+        }
+        if ($E02429d2ee600884) {
+            $rStreamInfo['stream_info'] = json_encode($E02429d2ee600884, JSON_UNESCAPED_UNICODE);
+            $rBitrate = CoreUtilities::getStreamBitrate('live', STREAMS_PATH . $rStreamID . '_.m3u8');
+            $rStreamProbe = false;
+            $rDurationChecked = time();
+        }
+    }
+
+    // Defining video/Audio parameters
+    $rCompatible = 0;
+    $rAudioCodec = $rVideoCodec = $rResolution = null;
+    if ($rStreamInfo['stream_info']) {
+        $rStreamJSON = json_decode($rStreamInfo['stream_info'], true);
+        $rCompatible = is_array($rStreamJSON) ? intval(CoreUtilities::checkCompatibility($rStreamJSON)) : 0;
+        $rAudioCodec = $rStreamJSON['codecs']['audio']['codec_name'] ?: null;
+        $rVideoCodec = $rStreamJSON['codecs']['video']['codec_name'] ?: null;
+        $rResolution = $rStreamJSON['codecs']['video']['height'] ?: null;
+        if ($rResolution) {
+            $rResolution = CoreUtilities::getNearest(array(240, 360, 480, 576, 720, 1080, 1440, 2160), $rResolution);
+        }
+    }
+
+    if (!$ea6de21e70c530a9 && $rStreamInfo['stream_info'] && $rStreamInfo['on_demand']) {
+        if ($rStreamInfo['stream_info']) {
+            $db->query('UPDATE `streams_servers` SET `stream_info` = ?, `compatible` = ?, `audio_codec` = ?, `video_codec` = ?, `resolution` = ?, `bitrate` = ?, `stream_status` = 0, `stream_started` = ? WHERE `server_stream_id` = ?', $rStreamInfo['stream_info'], $rCompatible, $rAudioCodec, $rVideoCodec, $rResolution, intval($rBitrate), time() - $rOffset, $rStreamInfo['server_stream_id']);
+        } else {
+            $db->query('UPDATE `streams_servers` SET `stream_status` = 0, `stream_info` = NULL, `compatible` = 0, `audio_codec` = NULL, `video_codec` = NULL, `resolution` = NULL, `stream_started` = ? WHERE `server_stream_id` = ?', time() - $rOffset, $rStreamInfo['server_stream_id']);
+        }
+    } else {
+        $db->query('UPDATE `streams_servers` SET `stream_info` = ?, `compatible` = ?, `audio_codec` = ?, `video_codec` = ?, `resolution` = ?, `bitrate` = ?, `stream_status` = 0 WHERE `server_stream_id` = ?', $rStreamInfo['stream_info'], $rCompatible, $rAudioCodec, $rVideoCodec, $rResolution, intval($rBitrate), $rStreamInfo['server_stream_id']);
+    }
+    if (CoreUtilities::$rSettings['enable_cache']) {
+        CoreUtilities::updateStream($rStreamID);
+    }
+    echo 'End start process' . "\n";
+    goto label554;
 }
 echo 'Stream start failed...' . "\n";
 if (($rParentID == 0)) {
@@ -429,65 +496,7 @@ if (!(0 < $d75674a646265e7b)) {
 $b4015d24aedaf0db = $d75674a646265e7b;
 label1057:
 goto label1847;
-label1267:
-echo 'Started! Probe Stream' . "\n";
-if ($rFirstRun) {
-    $rFirstRun = false;
-    CoreUtilities::streamLog($rStreamID, SERVER_ID, 'STREAM_START', $rCurrentSource);
-} else {
-    CoreUtilities::streamLog($rStreamID, SERVER_ID, 'STREAM_RESTART', $rCurrentSource);
-}
-$rSegment = $rFolder . CoreUtilities::getPlaylistSegments($rPlaylist, 10)[0];
-$rStreamInfo['stream_info'] = null;
-if (file_exists($rSegment)) {
-    $E02429d2ee600884 = CoreUtilities::probeStream($rSegment);
-    if ((10 < intval($E02429d2ee600884['of_duration']))) {
-        $E02429d2ee600884['of_duration'] = 10;
-    }
-    file_put_contents(STREAMS_PATH . $rStreamID . '_.dur', intval($E02429d2ee600884['of_duration']));
-    if (($rSegmentTime < intval($E02429d2ee600884['of_duration']))) {
-        $rSegmentTime = intval($E02429d2ee600884['of_duration']);
-    }
-    if ($E02429d2ee600884) {
-        $rStreamInfo['stream_info'] = json_encode($E02429d2ee600884, JSON_UNESCAPED_UNICODE);
-        $rBitrate = CoreUtilities::getStreamBitrate('live', STREAMS_PATH . $rStreamID . '_.m3u8');
-        $rStreamProbe = false;
-        $rDurationChecked = time();
-    }
-}
-$rCompatible = 0;
-$rAudioCodec = $rVideoCodec = $rResolution = null;
-if (!$rStreamInfo['stream_info']) {
-    goto label430;
-}
-$rStreamJSON = json_decode($rStreamInfo['stream_info'], true);
-if (is_array($rStreamJSON)) {
-    $rCompatible = intval(CoreUtilities::checkCompatibility($rStreamJSON));
-} else {
-    $rCompatible = 0;
-}
-$rAudioCodec = $rStreamJSON['codecs']['audio']['codec_name'] ?: null;
-$rVideoCodec = $rStreamJSON['codecs']['video']['codec_name'] ?: null;
-$rResolution = $rStreamJSON['codecs']['video']['height'] ?: null;
-if (!$rResolution) {
-    goto label430;
-}
-$rResolution = CoreUtilities::getNearest(array(240, 360, 480, 576, 720, 1080, 1440, 2160), $rResolution);
-label430:
-if (!$ea6de21e70c530a9 && $rStreamInfo['stream_info'] && $rStreamInfo['on_demand']) {
-    if ($rStreamInfo['stream_info']) {
-        $db->query('UPDATE `streams_servers` SET `stream_info` = ?, `compatible` = ?, `audio_codec` = ?, `video_codec` = ?, `resolution` = ?, `bitrate` = ?, `stream_status` = 0, `stream_started` = ? WHERE `server_stream_id` = ?', $rStreamInfo['stream_info'], $rCompatible, $rAudioCodec, $rVideoCodec, $rResolution, intval($rBitrate), time() - $rOffset, $rStreamInfo['server_stream_id']);
-    } else {
-        $db->query('UPDATE `streams_servers` SET `stream_status` = 0, `stream_info` = NULL, `compatible` = 0, `audio_codec` = NULL, `video_codec` = NULL, `resolution` = NULL, `stream_started` = ? WHERE `server_stream_id` = ?', time() - $rOffset, $rStreamInfo['server_stream_id']);
-    }
-} else {
-    $db->query('UPDATE `streams_servers` SET `stream_info` = ?, `compatible` = ?, `audio_codec` = ?, `video_codec` = ?, `resolution` = ?, `bitrate` = ?, `stream_status` = 0 WHERE `server_stream_id` = ?', $rStreamInfo['stream_info'], $rCompatible, $rAudioCodec, $rVideoCodec, $rResolution, intval($rBitrate), $rStreamInfo['server_stream_id']);
-}
-if (CoreUtilities::$rSettings['enable_cache']) {
-    CoreUtilities::updateStream($rStreamID);
-}
-echo 'End start process' . "\n";
-goto label554;
+
 label1847:
 unlink(STREAMS_PATH . $rStreamID . '_.progress_check');
 label298:
@@ -543,7 +552,7 @@ if (!empty($rSegment)) {
                         $rForceSource = $rSource;
                         $rPrioritySwitch = true;
                         $D97a4f098a8d1bf8 = false;
-                        goto label1186;
+                        goto label1186; // Выход из while и переход к перезапуску
                     }
                 }
             }
