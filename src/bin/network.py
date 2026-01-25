@@ -1,6 +1,8 @@
 import json
 import time
+import argparse
 
+VERSION = "1.0.0"
 
 def parse_line(line):
     """Parse a line from /proc/net/dev into a dictionary of interface statistics."""
@@ -82,15 +84,27 @@ def stats_display(prev_stats, current_stats):
 
 
 def main():
-    """Main function to monitor network statistics continuously."""
+    parser = argparse.ArgumentParser(description="Network statistics monitor")
+    parser.add_argument(
+        "--version",
+        "-v",
+        action="store_true",
+        help="Show program version and exit"
+    )
+    args = parser.parse_args()
+
+    if args.version:
+        print(f"Network statistics monitor {VERSION}")
+        return
+
     # Initial reading
     prev_stats = stats_read()
-    # Continuous monitoring loop
+
     try:
         while True:
-            time.sleep(2)  # Sleep for 2 seconds as per the original code
+            time.sleep(2)
             current_stats = stats_read()
-            if current_stats:  # Only proceed if reading was successful
+            if current_stats:
                 stats_display(prev_stats, current_stats)
                 prev_stats = current_stats
     except KeyboardInterrupt:
