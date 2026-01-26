@@ -1683,7 +1683,9 @@ function getDevice($rID = null, $rMAC = null) {
 			$rDevice = $db->get_row();
 			$rUserInfo = StreamingUtilities::getUserInfo($rDevice['user_id'], null, null, true, false, $rIP);
 			$rDevice = array_merge($rDevice, $rUserInfo);
-			$rDevice['allowed_ips'] = json_decode($rDevice['allowed_ips'], true);
+			if (is_string($rDevice['allowed_ips'])) {
+				$rDevice['allowed_ips'] = json_decode($rDevice['allowed_ips'], true);
+			}
 			$rDevice['fav_channels'] = (!empty($rDevice['fav_channels']) ? json_decode($rDevice['fav_channels'], true) : array());
 
 			if (!empty($rDevice['fav_channels']['live'])) {
