@@ -1505,7 +1505,40 @@ class CoreUtilities {
 					if (!is_array($rStream['stream_info']['transcode_attributes'])) {
 						$rStream['stream_info']['transcode_attributes'] = array();
 					}
-					$rLogoOptions = (isset($rStream['stream_info']['transcode_attributes'][16]) && !$rLoopback ? $rStream['stream_info']['transcode_attributes'][16]['cmd'] : '');
+					// Logo overlay
+					$rLogoOptions = '';
+					if (isset($rStream['stream_info']['transcode_attributes'][16]) && !$rLoopback) {
+						$rAttr = $rStream['stream_info']['transcode_attributes'];
+						$rLogoPath = $rAttr[16]['val'];
+						$rPos = (isset($rAttr[16]['pos']) && $rAttr[16]['pos'] !== '10:10') ? $rAttr[16]['pos'] : '10:main_h-overlay_h-10';
+
+						// Reconstruct filter chain to ensure fixed logo size
+						$rChain = array();
+						$rBase = '[0:v]';
+
+						// Handle Yadif (ID 17) and Video Scaling (ID 9)
+						$rVideoFilters = array();
+						if (isset($rAttr[17])) {
+							$rVideoFilters[] = 'yadif';
+						}
+						if (isset($rAttr[9]['val']) && strlen($rAttr[9]['val']) > 0) {
+							$rVideoFilters[] = 'scale=' . $rAttr[9]['val'];
+						}
+
+						if (!empty($rVideoFilters)) {
+							$rChain[] = $rBase . implode(',', $rVideoFilters) . '[bg]';
+							$rBase = '[bg]';
+						}
+
+						// Scale logo to fixed width 250px (keep aspect ratio)
+						$rChain[] = '[1:v]scale=250:-1[logo]';
+
+						// Overlay
+						$rChain[] = $rBase . '[logo]overlay=' . $rPos;
+
+						$rLogoOptions = '-i ' . escapeshellarg($rLogoPath) . ' -filter_complex "' . implode('; ', $rChain) . '"';
+						unset($rStream['stream_info']['transcode_attributes'][16]);
+					}
 					$rGPUOptions = (isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rStream['stream_info']['transcode_attributes']['gpu']['cmd'] : '');
 					$rInputCodec = '';
 					if (empty($rGPUOptions)) {
@@ -1799,7 +1832,40 @@ class CoreUtilities {
 					} else {
 						$rStream['stream_info']['transcode_attributes'] = array();
 					}
-					$rLogoOptions = (isset($rStream['stream_info']['transcode_attributes'][16]) && !$rLoopback ? $rStream['stream_info']['transcode_attributes'][16]['cmd'] : '');
+					// Logo overlay
+					$rLogoOptions = '';
+					if (isset($rStream['stream_info']['transcode_attributes'][16]) && !$rLoopback) {
+						$rAttr = $rStream['stream_info']['transcode_attributes'];
+						$rLogoPath = $rAttr[16]['val'];
+						$rPos = (isset($rAttr[16]['pos']) && $rAttr[16]['pos'] !== '10:10') ? $rAttr[16]['pos'] : '10:main_h-overlay_h-10';
+
+						// Reconstruct filter chain to ensure fixed logo size
+						$rChain = array();
+						$rBase = '[0:v]';
+
+						// Handle Yadif (ID 17) and Video Scaling (ID 9)
+						$rVideoFilters = array();
+						if (isset($rAttr[17])) {
+							$rVideoFilters[] = 'yadif';
+						}
+						if (isset($rAttr[9]['val']) && strlen($rAttr[9]['val']) > 0) {
+							$rVideoFilters[] = 'scale=' . $rAttr[9]['val'];
+						}
+
+						if (!empty($rVideoFilters)) {
+							$rChain[] = $rBase . implode(',', $rVideoFilters) . '[bg]';
+							$rBase = '[bg]';
+						}
+
+						// Scale logo to fixed width 250px (keep aspect ratio)
+						$rChain[] = '[1:v]scale=250:-1[logo]';
+
+						// Overlay
+						$rChain[] = $rBase . '[logo]overlay=' . $rPos;
+
+						$rLogoOptions = '-i ' . escapeshellarg($rLogoPath) . ' -filter_complex "' . implode('; ', $rChain) . '"';
+						unset($rStream['stream_info']['transcode_attributes'][16]);
+					}
 					$rGPUOptions = (isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rStream['stream_info']['transcode_attributes']['gpu']['cmd'] : '');
 					$rInputCodec = '';
 					if (!empty($rGPUOptions)) {
@@ -2314,7 +2380,35 @@ class CoreUtilities {
 				// Logo overlay
 				$rLogoOptions = '';
 				if (isset($rStream['stream_info']['transcode_attributes'][16]) && !$rLoopback) {
-					$rLogoOptions = $rStream['stream_info']['transcode_attributes'][16]['cmd'];
+					$rAttr = $rStream['stream_info']['transcode_attributes'];
+					$rLogoPath = $rAttr[16]['val'];
+					$rPos = (isset($rAttr[16]['pos']) && $rAttr[16]['pos'] !== '10:10') ? $rAttr[16]['pos'] : '10:main_h-overlay_h-10';
+
+					// Reconstruct filter chain to ensure fixed logo size
+					$rChain = array();
+					$rBase = '[0:v]';
+
+					// Handle Yadif (ID 17) and Video Scaling (ID 9)
+					$rVideoFilters = array();
+					if (isset($rAttr[17])) {
+						$rVideoFilters[] = 'yadif';
+					}
+					if (isset($rAttr[9]['val']) && strlen($rAttr[9]['val']) > 0) {
+						$rVideoFilters[] = 'scale=' . $rAttr[9]['val'];
+					}
+
+					if (!empty($rVideoFilters)) {
+						$rChain[] = $rBase . implode(',', $rVideoFilters) . '[bg]';
+						$rBase = '[bg]';
+					}
+
+					// Scale logo to fixed width 250px (keep aspect ratio)
+					$rChain[] = '[1:v]scale=250:-1[logo]';
+
+					// Overlay
+					$rChain[] = $rBase . '[logo]overlay=' . $rPos;
+
+					$rLogoOptions = '-i ' . escapeshellarg($rLogoPath) . ' -filter_complex "' . implode('; ', $rChain) . '"';
 					unset($rStream['stream_info']['transcode_attributes'][16]);
 				}
 
