@@ -241,7 +241,7 @@ if (!$rGenTrials && !isset($rLine) && isset(CoreUtilities::$rRequest['trial'])) 
 		}
 	}
 
-	echo '">' . "\n" . '                                                    </div>' . "\n" . '                                                </div>' . "\n" . '                                                <div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="contact">Contact Email</label>' . "\n" . '                                                    <div class="col-md-8">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control" id="contact" name="contact" value="';
+	echo '">' . "\n" . '                                                    </div>' . "\n" . '                                                </div>' . "\n" . '                                                <div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="contact">WhatsApp <i class="mdi mdi-whatsapp text-success"></i></label>' . "\n" . '                                                    <div class="col-md-8">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control" id="contact" name="contact" placeholder="+491234567890" value="';
 
 	if (!isset($rLine)) {
 	} else {
@@ -319,7 +319,7 @@ if (!$rGenTrials && !isset($rLine) && isset(CoreUtilities::$rRequest['trial'])) 
 	echo number_format($rUserInfo['credits'], 0);
 	echo '</td>' . "\n" . '                                                                <td class="text-center" id="cost_credits">0</td>' . "\n" . '                                                                <td class="text-center" id="remaining_credits">';
 	echo number_format($rUserInfo['credits'], 0);
-	echo '</td>' . "\n" . '                                                            </tr>' . "\n" . '                                                        </tbody>' . "\n" . '                                                    </table>' . "\n" . '                                                    <table id="datatable-review" class="table table-striped table-borderless dt-responsive nowrap" style="margin-top:30px;">' . "\n" . '                                                        <thead>' . "\n" . '                                                            <tr>' . "\n" . '                                                                <th class="text-center"></th>' . "\n" . '                                                                <th>';
+	echo '</td>' . "\n" . '                                                            </tr>' . "\n" . '                                                        </tbody>' . "\n" . '                                                    </table>' . "\n" . '                                                    <table id="datatable-review" class="table table-striped table-borderless dt-responsive nowrap" style="margin-top:30px;">' . "\n" . '                                                        <thead>' . "\n" . '                                                            <tr>' . "\n" . '                                                                <th class="text-center">ID</th>' . "\n" . '                                                                <th>';
 	echo $language::get('bouquet_name');
 	echo '</th>' . "\n" . '                                                                <th class="text-center">';
 	echo $language::get('streams');
