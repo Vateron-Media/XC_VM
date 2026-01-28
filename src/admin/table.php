@@ -121,7 +121,7 @@ if ($rType == "lines") {
     }
     $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
-        $rQuery = "SELECT `lines`.`id`, `lines`.`member_id`, `lines`.`last_activity`, `lines`.`last_activity_array`, `lines`.`username`, `lines`.`password`, `lines`.`exp_date`, `lines`.`admin_enabled`, `lines`.`is_restreamer`, `lines`.`enabled`, `lines`.`admin_notes`, `lines`.`reseller_notes`, `lines`.`max_connections`, `lines`.`is_trial`, (SELECT COUNT(*) AS `active_connections` FROM `lines_live` WHERE `user_id` = `lines`.`id` AND `hls_end` = 0) AS `active_connections` FROM `lines` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
+        $rQuery = "SELECT `lines`.`id`, `lines`.`member_id`, `lines`.`last_activity`, `lines`.`last_activity_array`, `lines`.`username`, `lines`.`password`, `lines`.`exp_date`, `lines`.`admin_enabled`, `lines`.`is_restreamer`, `lines`.`enabled`, `lines`.`admin_notes`, `lines`.`reseller_notes`, `lines`.`max_connections`, `lines`.`is_trial`, `lines`.`contact`, (SELECT COUNT(*) AS `active_connections` FROM `lines_live` WHERE `user_id` = `lines`.`id` AND `hls_end` = 0) AS `active_connections` FROM `lines` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
         if (0 < $db->num_rows()) {
             $rRows = $db->get_rows();
@@ -273,6 +273,9 @@ if ($rType == "lines") {
                             $rButtons .= "<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"modalFingerprint(" . $rRow["id"] . ", 'user');\">Fingerprint</a>";
                         }
                         $rButtons .= "<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"openDownload('" . $rRow["username"] . "', '" . $rRow["password"] . "');\">Download Playlist</a>";
+                        $rWhatsAppContact = !empty($rRow["contact"]) ? addslashes($rRow["contact"]) : '';
+                        $rWhatsAppExp = $rRow["exp_date"] ? $rRow["exp_date"] : 'null';
+                        $rButtons .= "<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"openWhatsApp('" . addslashes($rRow["username"]) . "', '" . $rWhatsAppContact . "', " . $rWhatsAppExp . ");\"><i class=\"mdi mdi-whatsapp text-success\"></i> WhatsApp Renewal</a>";
                         if (hasPermissions("adv", "edit_user")) {
                             $rButtons .= "<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"api(" . $rRow["id"] . ", 'kill');\">Kill Connections</a>";
                             if ($rRow["admin_enabled"]) {
@@ -306,6 +309,9 @@ if ($rType == "lines") {
                             }
                         }
                         $rButtons .= "<button type=\"button\" title=\"Download Playlist\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"openDownload('" . $rRow["username"] . "', '" . $rRow["password"] . "');\"><i class=\"mdi mdi-download\"></i></button>";
+                        $rWhatsAppContact = !empty($rRow["contact"]) ? addslashes($rRow["contact"]) : '';
+                        $rWhatsAppExp = $rRow["exp_date"] ? $rRow["exp_date"] : 'null';
+                        $rButtons .= "<button type=\"button\" title=\"WhatsApp Renewal\" class=\"btn btn-success waves-effect waves-light btn-xs tooltip\" onClick=\"openWhatsApp('" . addslashes($rRow["username"]) . "', '" . $rWhatsAppContact . "', " . $rWhatsAppExp . ");\"><i class=\"mdi mdi-whatsapp\"></i></button>";
                         if (hasPermissions("adv", "edit_user")) {
                             $rButtons .= "<button title=\"Kill Connections\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"api(" . $rRow["id"] . ", 'kill');\"><i class=\"fas fa-hammer\"></i></button>";
                             if ($rRow["admin_enabled"]) {
