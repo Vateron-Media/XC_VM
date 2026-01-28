@@ -1544,16 +1544,14 @@ include "header.php";
 															class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-2"><input type="text"
 															class="form-control text-center" id="probe_extra_wait"
-															name="probe_extra_wait"
-															value="<?= htmlspecialchars($rSettings["probe_extra_wait"] ?? ''); ?>">
+															name="probe_extra_wait" value="<?= htmlspecialchars($rSettings["probe_extra_wait"] ?? ''); ?>">
 													</div><label class=" col-md-4 col-form-label"
 														for="stream_fail_sleep">Stream Failure Sleep <i
 															title="How long to wait in seconds after a stream start failure before starting again."
 															class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-2"><input type="text"
 															class="form-control text-center" id="stream_fail_sleep"
-															name="stream_fail_sleep" value="
-														<?= htmlspecialchars($rSettings["stream_fail_sleep"] ?? '') ?>"></div>
+															name="stream_fail_sleep" value="<?= htmlspecialchars($rSettings["stream_fail_sleep"] ?? '') ?>"></div>
 												</div>
 												<div class=" form-group row
 														mb-4"><label class="col-md-4 col-form-label" for="fps_delay">FPS
@@ -1562,8 +1560,7 @@ include "header.php";
 															class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-2"><input type="text"
 															class="form-control text-center" id="fps_delay" name="fps_delay"
-															value="
-														<?= htmlspecialchars($rSettings["fps_delay"] ?? '') ?>"></div><label class=" col-md-4 col-form-label"
+															value="<?= htmlspecialchars($rSettings["fps_delay"] ?? '') ?>"></div><label class=" col-md-4 col-form-label"
 														for="fps_check_type">FPS Check Type <i
 															title="Whether to use progress info after the start delay to determine real FPS or probe the segment to return avg_frame_rate."
 															class="tooltip text-secondary far fa-circle"></i></label>
@@ -2173,10 +2170,7 @@ include "header.php";
 																if ($rSettings["keep_restarts"] == $rValue) {
 																	echo 'selected ';
 																}
-															?> value="
-																<?= $rValue; ?>">
-																<?= $rText ?>
-																</option>
+															?> value="<?= $rValue; ?>"><?= $rText ?></option>
 															<?php
 															}
 															?>
