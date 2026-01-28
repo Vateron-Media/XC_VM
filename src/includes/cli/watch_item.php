@@ -368,16 +368,18 @@ function loadcli() {
                         }
                         $rImportArray['order'] = getNextOrder();
                         $rImportArray['tmdb_language'] = $rLanguage;
-                        if (count($rCategoryIDs) == 0) {
+                        if (count($rCategoryIDs) == 0 && !empty($rMovieData['genres']) && is_array($rMovieData['genres'])) {
                             if (0 < $rThreadData['max_genres']) {
-                                $rParsed = array_slice($rMovieData['genres'], 0, $rThreadData['max_genres']);
+                                $rParsed = array_slice($rMovieData['genres'], 0, (int) $rThreadData['max_genres']);
                             } else {
                                 $rParsed = $rMovieData['genres'];
                             }
+
                             foreach ($rParsed as $rGenre) {
-                                $rCategoryID = intval($rWatchCategories[1][intval($rGenre['id'])]['category_id']);
-                                if ($rCategoryID > 0) {
-                                    if (!in_array($rCategoryID, $rCategoryIDs)) {
+                                $rGenreId = (int) ($rGenre['id'] ?? 0);
+                                if ($rGenreId > 0 && isset($rWatchCategories[1][$rGenreId]['category_id'])) {
+                                    $rCategoryID = (int) $rWatchCategories[1][$rGenreId]['category_id'];
+                                    if ($rCategoryID > 0 && !in_array($rCategoryID, $rCategoryIDs, true)) {
                                         $rCategoryIDs[] = $rCategoryID;
                                     }
                                 }
