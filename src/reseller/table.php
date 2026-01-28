@@ -115,7 +115,7 @@ if (isset($rUserInfo['reports'])) {
             $rReturn['recordsFiltered'] = $rReturn['recordsTotal'];
             if (0 >= $rReturn['recordsTotal']) {
             } else {
-                $rQuery = 'SELECT `lines`.`id`, `lines`.`member_id`, `lines`.`last_activity`, `lines`.`last_activity_array`, `lines`.`username`, `lines`.`password`, `lines`.`exp_date`, `lines`.`admin_enabled`, `lines`.`is_restreamer`, `lines`.`enabled`, `lines`.`admin_notes`, `lines`.`reseller_notes`, `lines`.`max_connections`, `lines`.`is_trial`, (SELECT COUNT(*) AS `active_connections` FROM `lines_live` WHERE `user_id` = `lines`.`id` AND `hls_end` = 0) AS `active_connections` FROM `lines` LEFT JOIN `users` ON `users`.`id` = `lines`.`member_id` ' . $rWhereString . ' ' . $rOrderBy . ' LIMIT ' . $rStart . ', ' . $rLimit . ';';
+                $rQuery = 'SELECT `lines`.`id`, `lines`.`member_id`, `lines`.`last_activity`, `lines`.`last_activity_array`, `lines`.`username`, `lines`.`password`, `lines`.`exp_date`, `lines`.`admin_enabled`, `lines`.`is_restreamer`, `lines`.`enabled`, `lines`.`admin_notes`, `lines`.`reseller_notes`, `lines`.`max_connections`, `lines`.`is_trial`, `lines`.`contact`, `lines`.`is_isplock`, (SELECT COUNT(*) AS `active_connections` FROM `lines_live` WHERE `user_id` = `lines`.`id` AND `hls_end` = 0) AS `active_connections` FROM `lines` LEFT JOIN `users` ON `users`.`id` = `lines`.`member_id` ' . $rWhereString . ' ' . $rOrderBy . ' LIMIT ' . $rStart . ', ' . $rLimit . ';';
                 $db->query($rQuery, ...$rWhereV);
                 if (0 >= $db->num_rows()) {
                 } else {
@@ -261,6 +261,9 @@ if (isset($rUserInfo['reports'])) {
                             } else {
                                 $rButtons .= "<button type=\"button\" title=\"Download Playlist\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"download('" . $rRow['username'] . "', '" . $rRow['password'] . "');\"><i class=\"mdi mdi-download\"></i></button>";
                             }
+                            $rWhatsAppContact = !empty($rRow['contact']) ? addslashes($rRow['contact']) : '';
+                            $rWhatsAppExp = $rRow['exp_date'] ? $rRow['exp_date'] : 'null';
+                            $rButtons .= "<button type=\"button\" title=\"WhatsApp Renewal\" class=\"btn btn-success waves-effect waves-light btn-xs tooltip\" onClick=\"openWhatsApp('" . addslashes($rRow['username']) . "', '" . $rWhatsAppContact . "', " . $rWhatsAppExp . ");\"><i class=\"mdi mdi-whatsapp\"></i></button>";
                             if (!$rPermissions['reseller_client_connection_logs']) {
                             } else {
                                 if (0 < $rRow['active_connections']) {
