@@ -154,9 +154,9 @@ include 'header.php';
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="contact">Contact Email</label>
+                                                    <label class="col-md-4 col-form-label" for="contact">WhatsApp <i title="Enter WhatsApp number with country code (e.g. +491234567890)" class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-8">
-                                                        <input type="text" class="form-control" id="contact" name="contact" value="<?php echo isset($rLine) ? htmlspecialchars($rLine['contact']) : ''; ?>">
+                                                        <input type="text" class="form-control" id="contact" name="contact" placeholder="+491234567890" value="<?php echo isset($rLine) ? htmlspecialchars($rLine['contact']) : ''; ?>">
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
