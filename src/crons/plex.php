@@ -28,7 +28,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
         cli_set_process_title('XC_VM[Plex Sync]');
         $rScanOffset = (intval(CoreUtilities::$rSettings['scan_seconds']) ?: 3600);
         set_time_limit(0);
-        if (strlen(CoreUtilities::$rSettings['tmdb_api_key']) != 0) {
+        if (!empty(CoreUtilities::$rSettings['tmdb_api_key'])) {
             loadCron();
         } else {
             exit('No TMDb API key.');

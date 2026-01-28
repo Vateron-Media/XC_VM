@@ -175,9 +175,9 @@ if ($rUserInfo) {
 			}
 			$rBackdrops = json_decode($rSeriesInfo['backdrop_path'], true);
 
-			if (count($rBackdrops) > 0) {
-				foreach (range(0, count($rBackdrops) - 1) as $i) {
-					$rBackdrops[$i] = StreamingUtilities::validateImage($rBackdrops[$i]);
+			if (!empty($rBackdrops) && is_array($rBackdrops)) {
+				foreach ($rBackdrops as $i => $rBackdrop) {
+					$rBackdrops[$i] = StreamingUtilities::validateImage($rBackdrop);
 				}
 			}
 			$rating = is_numeric($rSeriesInfo['rating']) ? floatval($rSeriesInfo['rating']) : 0.0;
