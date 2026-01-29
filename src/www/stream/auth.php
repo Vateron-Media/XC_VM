@@ -4,7 +4,7 @@
 header('Cache-Control: no-store, no-cache, must-revalidate');
 ini_set('display_errors', 0);
 require_once 'init.php';
-require_once INCLUDES_PATH . 'streaming.php';
+require_once INCLUDES_PATH . 'StreamingUtilities.php';
 
 if (($rSettings['enable_cache'] && !file_exists(CACHE_TMP_PATH . 'cache_complete') || empty($rSettings['live_streaming_pass']))) {
 	generateError('CACHE_INCOMPLETE');
