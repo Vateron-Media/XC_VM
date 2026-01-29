@@ -128,7 +128,7 @@ require_once INCLUDES_PATH . 'Database.php';
 switch ($rFilename) {
 	case 'probe':
 	case 'player_api':
-		require_once INCLUDES_PATH . 'streaming.php';
+		require_once INCLUDES_PATH . 'StreamingUtilities.php';
 		StreamingUtilities::$rSettings = $rSettings;
 		StreamingUtilities::$rAccess = $rFilename;
 		StreamingUtilities::init(false);
@@ -148,7 +148,7 @@ switch ($rFilename) {
 	case 'timeshift':
 	case 'vod':
 	case 'status':
-		require_once INCLUDES_PATH . 'streaming.php';
+		require_once INCLUDES_PATH . 'StreamingUtilities.php';
 		StreamingUtilities::$rSettings = $rSettings;
 		StreamingUtilities::$rAccess = $rFilename;
 		StreamingUtilities::init(false);
@@ -158,7 +158,7 @@ switch ($rFilename) {
 
 	case 'rtmp':
 	case 'portal':
-		require_once INCLUDES_PATH . 'streaming.php';
+		require_once INCLUDES_PATH . 'StreamingUtilities.php';
 		StreamingUtilities::$rSettings = $rSettings;
 		StreamingUtilities::$rAccess = $rFilename;
 		StreamingUtilities::init();
