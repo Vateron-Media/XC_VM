@@ -92,8 +92,7 @@ function getBlockedIPs() {
  * @return string|null
  *     Returns the IPv4 address if found, or NULL if it cannot be determined.
  */
-function getServerIP(?string $interface = null): ?string
-{
+function getServerIP(?string $interface = null): ?string {
     // If interface not provided, detect default one
     if ($interface === null) {
         $route = shell_exec('ip route show default 2>/dev/null');
@@ -234,12 +233,17 @@ function loadCron() {
             }
         }
 
-        //Check curent server IP and update if needed
+        // Check curent server IP and update if needed
         $rServerIP = getServerIP((CoreUtilities::$rServers[SERVER_ID]['network_interface'] == 'auto' ? null : CoreUtilities::$rServers[SERVER_ID]['network_interface']));
         if ($rServerIP && $rServerIP != CoreUtilities::$rServers[SERVER_ID]['server_ip'] && $AutoUpdateServerIP) {
             echo 'Updating server IP from ' . CoreUtilities::$rServers[SERVER_ID]['server_ip'] . ' to ' . $rServerIP . '...' . "\n";
             $db->query('UPDATE `servers` SET `server_ip` = ? WHERE `id` = ?;', $rServerIP, SERVER_ID);
             CoreUtilities::$rServers[SERVER_ID]['server_ip'] = $rServerIP;
+        }
+
+        // Auto generation of live_streaming_pass if it is empty
+        if (empty(CoreUtilities::$rSettings['live_streaming_pass']) || CoreUtilities::$rSettings['live_streaming_pass'] === null) {
+            $db->query('UPDATE `settings` SET `live_streaming_pass` = ?', CoreUtilities::generateString(40));
         }
     }
     if (0 < CoreUtilities::$rServers[SERVER_ID]['limit_requests']) {
