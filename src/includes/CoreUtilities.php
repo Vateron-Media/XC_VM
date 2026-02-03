@@ -2305,7 +2305,7 @@ class CoreUtilities {
 					if (($rStream['stream_info']['gen_timestamps'] == 1 || empty($rProtocol)) && $rStream['stream_info']['type_key'] != 'created_live') {
 						$rGenPTS = '-fflags +genpts -async 1';
 					} else {
-						if (in_array($rFFProbeOutput['codecs']['audio']['codec_name'], array('ac3', 'eac3')) && self::$rSettings['dts_legacy_ffmpeg']) {
+						if (is_array($rFFProbeOutput) && isset($rFFProbeOutput['codecs']['audio']['codec_name']) && in_array($rFFProbeOutput['codecs']['audio']['codec_name'], array('ac3', 'eac3')) && self::$rSettings['dts_legacy_ffmpeg']) {
 							self::$rFFMPEG_CPU = FFMPEG_BIN_40;
 							self::$rFFPROBE = FFPROBE_BIN_40;
 						}
