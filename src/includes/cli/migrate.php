@@ -541,6 +541,24 @@ if ($odb->num_rows() > 0) {
             }
         }
     }
+    if (in_array('providers', $rMigrateOptions)) {
+        $odb->query('SELECT * FROM `providers`;');
+        $rResults = $odb->get_rows();
+        if (count($rResults) > 0) {
+            $db->query('TRUNCATE `providers`;');
+            echo 'Generating ' . number_format(count($rResults), 0) . ' providers.' . "\n";
+            foreach ($rResults as $rResult) {
+                try {
+                    $rResult = verifyPostTable('providers', $rResult);
+                    $rPrepare = prepareArray($rResult);
+                    $rQuery = 'INSERT INTO `providers`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
+                    $db->query($rQuery, ...$rPrepare['data']);
+                } catch (Exception $e) {
+                    echo 'Error: ' . $e . "\n";
+                }
+            }
+        }
+    }
     if (in_array('lines', $rMigrateOptions)) {
         $odb->query('SELECT COUNT(*) AS `count` FROM `lines`;');
         $rCount = $odb->get_row()['count'];
@@ -1561,7 +1579,7 @@ try {
     echo 'Error: ' . $e . "\n";
 }
 if (in_array('access_codes', $rMigrateOptions)) {
-    echo "\n".'Admin acces code: ' . $AdminAccesCode;
+    echo "\n" . 'Admin acces code: ' . $AdminAccesCode;
 }
 echo "\n" . 'Migration has been completed!' . "\n\n" . 'Your settings have been reset to the XC_VM default, please take some time to review the settings page and make the desired changes.' . "\n";
 
