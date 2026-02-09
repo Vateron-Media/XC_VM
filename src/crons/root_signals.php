@@ -25,14 +25,48 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 }
 
 function blockip($rIP) {
+    // Проверяем, является ли IP внутренним (частным)
+    $isPrivate = false;
+
     if (filter_var($rIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-        exec('sudo iptables -I INPUT -s ' . escapeshellcmd($rIP) . ' -j DROP');
-    } else {
-        if (filter_var($rIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+        // Проверка на частные IPv4 диапазоны
+        $isPrivate = filter_var($rIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
+        $isPrivate = !$isPrivate; // Инвертируем, так как фильтр возвращает false для частных IP
+
+        // Дополнительная проверка для loopback
+        if (!$isPrivate) {
+            $isPrivate = (strpos($rIP, '127.') === 0) || ($rIP === '0.0.0.0');
+        }
+
+        if (!$isPrivate) {
+            exec('sudo iptables -I INPUT -s ' . escapeshellcmd($rIP) . ' -j DROP');
+        }
+    } elseif (filter_var($rIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+        // Для IPv6 проверяем основные частные диапазоны
+        $isPrivate = (
+            strpos($rIP, 'fc') === 0 || // fc00::/7 - Unique Local Address
+            strpos($rIP, 'fd') === 0 || // часть fc00::/7
+            strpos($rIP, 'fe80') === 0 || // fe80::/10 - Link-local
+            $rIP === '::1' || // localhost IPv6
+            strpos($rIP, '2001:db8') === 0 // 2001:db8::/32 - документация
+        );
+
+        if (!$isPrivate) {
             exec('sudo ip6tables -I INPUT -s ' . escapeshellcmd($rIP) . ' -j DROP');
         }
     }
-    touch(FLOOD_TMP_PATH . 'block_' . $rIP);
+
+    // Создаем файл блокировки только если IP не является внутренним
+    if (!$isPrivate && $rIP) {
+        touch(FLOOD_TMP_PATH . 'block_' . $rIP);
+        return true; // Успешная блокировка
+    } elseif ($isPrivate) {
+        // Логируем попытку блокировки внутреннего IP
+        error_log("Block attempt denied for private IP: " . $rIP);
+        return false; // Блокировка не выполнена
+    }
+
+    return false; // Невалидный IP
 }
 
 function unblockip($rIP) {
@@ -273,7 +307,8 @@ function loadCron() {
     }
     if (CoreUtilities::$rSettings['restart_php_fpm']) {
         $rPHP = $rNginx = 0;
-        exec('ps -fp $(pgrep -u xc_vm)', $rOutput, $rReturnVar);
+        // exec('ps -fp $(pgrep -u xc_vm)', $rOutput, $rReturnVar);
+        exec('ps -fp ' . trim(shell_exec('pgrep -u xc_vm | tr "\n" "," | sed "s/,$//"')), $rOutput, $rReturnVar);
         foreach ($rOutput as $rProcess) {
             $rSplit = explode(' ', preg_replace('!\\s+!', ' ', trim($rProcess)));
             if ($rSplit[8] == 'php-fpm:' && $rSplit[9] == 'master') {
