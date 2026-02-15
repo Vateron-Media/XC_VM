@@ -106,11 +106,11 @@ if ($rChannelInfo) {
     }
 
     if (file_exists(STREAMS_PATH . $rStreamID . "_.pid")) {
-        $rChannelInfo["pid"] = intval(file_get_contents(STREAMS_PATH . $rStreamID . "_.pid"));
+        $rChannelInfo["pid"] = intval(AsyncFileOperations::readFile(STREAMS_PATH . $rStreamID . "_.pid"));
     }
 
     if (file_exists(STREAMS_PATH . $rStreamID . "_.monitor")) {
-        $rChannelInfo["monitor_pid"] = intval(file_get_contents(STREAMS_PATH . $rStreamID . "_.monitor"));
+        $rChannelInfo["monitor_pid"] = intval(AsyncFileOperations::readFile(STREAMS_PATH . $rStreamID . "_.monitor"));
     }
 
     if (StreamingUtilities::$rSettings["on_demand_instant_off"] && $rChannelInfo["on_demand"] == 1) {
@@ -127,13 +127,10 @@ if ($rChannelInfo) {
                 }
 
                 StreamingUtilities::startMonitor($rStreamID);
-                $rRetries = 0;
 
-                while (!file_exists(STREAMS_PATH . intval($rStreamID) . "_.monitor") && $rRetries < 300) {
-                    usleep(10000);
-                    $rRetries++;
+                if (AsyncFileOperations::awaitFileExists(STREAMS_PATH . $rStreamID . "_.monitor", 300, 10)) {
+                    $rChannelInfo["monitor_pid"] = (intval(AsyncFileOperations::readFile(STREAMS_PATH . $rStreamID . "_.monitor")) ?: NULL);
                 }
-                $rChannelInfo["monitor_pid"] = (intval(file_get_contents(STREAMS_PATH . $rStreamID . "_.monitor")) ?: NULL);
             }
 
             if (!$rChannelInfo["monitor_pid"]) {
@@ -141,10 +138,10 @@ if ($rChannelInfo) {
                 StreamingUtilities::showVideoServer("show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
             }
 
-            for ($rRetries = 0; !file_exists(STREAMS_PATH . intval($rStreamID) . "_.pid") && $rRetries < 300; $rRetries++) {
-                usleep(10000);
+            for ($rRetries = 0; !AsyncFileOperations::awaitFileExists(STREAMS_PATH . intval($rStreamID) . "_.pid", 1, 10) && $rRetries < 300; $rRetries++) {
+                AsyncFileOperations::efficientSleep(10000);
             }
-            $rChannelInfo["pid"] = (intval(file_get_contents(STREAMS_PATH . $rStreamID . "_.pid")) ?: NULL);
+            $rChannelInfo["pid"] = (intval(AsyncFileOperations::readFile(STREAMS_PATH . $rStreamID . "_.pid")) ?: NULL);
 
             if (!$rChannelInfo["pid"]) {
                 // print('show_not_on_air_video_2');
@@ -156,10 +153,9 @@ if ($rChannelInfo) {
                     @unlink(STREAMS_PATH . $rStreamID . "_.pid");
                     StreamingUtilities::startProxy($rStreamID);
 
-                    for ($rRetries = 0; !file_exists(STREAMS_PATH . intval($rStreamID) . "_.monitor") && $rRetries < 300; $rRetries++) {
-                        usleep(10000);
+                    if (AsyncFileOperations::awaitFileExists(STREAMS_PATH . $rStreamID . "_.monitor", 300, 10)) {
+                        $rChannelInfo["monitor_pid"] = intval(AsyncFileOperations::readFile(STREAMS_PATH . $rStreamID . "_.monitor"));
                     }
-                    $rChannelInfo["monitor_pid"] = intval(file_get_contents(STREAMS_PATH . $rStreamID . "_.monitor"));
                 }
 
                 if (!$rChannelInfo["monitor_pid"]) {
@@ -176,47 +172,38 @@ if ($rChannelInfo) {
     }
 
     if (!isset($rChannelInfo["proxy"]) || !$rChannelInfo["proxy"]) {
-        $rRetries = 0;
         $rPlaylist = STREAMS_PATH . $rStreamID . "_.m3u8";
 
         if ($rExtension == "ts") {
             if (!file_exists($rPlaylist)) {
                 $rFirstTS = STREAMS_PATH . $rStreamID . "_0.ts";
                 $rFirstAlt = STREAMS_PATH . $rStreamID . "_0.m4s";
-                $rRetries = 0;
                 $maxRetries = intval(StreamingUtilities::$rSettings["on_demand_wait_time"]) * 10;
 
-                while ($rRetries < $maxRetries) {
-                    if (file_exists($rFirstTS) || file_exists($rFirstAlt)) {
-                        break; // file found, exit loop
-                    }
-
-                    usleep(100000); // 0.10 sec
-
+                // Use async file monitoring instead of busy-wait loop
+                $foundFile = AsyncFileOperations::awaitAnyFileExists([$rFirstTS, $rFirstAlt], $maxRetries, 100);
+                
+                if (!$foundFile) {
+                    generateError("WAIT_TIME_EXPIRED");
+                } else {
+                    // Verify stream is still running
                     if (!(StreamingUtilities::isMonitorRunning($rChannelInfo["monitor_pid"], $rStreamID) && StreamingUtilities::isStreamRunning($rChannelInfo["pid"], $rStreamID))) {
-                        // print('show_not_on_air_video_5');
                         StreamingUtilities::showVideoServer("show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
                     }
-
-                    $rRetries++;
-                }
-
-                if ($rRetries == $maxRetries) {
-                    generateError("WAIT_TIME_EXPIRED");
                 }
             }
         } else {
-            for ($rFirstTS = STREAMS_PATH . $rStreamID . "_.m3u8"; !file_exists($rPlaylist) && !file_exists($rFirstTS) && $rRetries < intval(StreamingUtilities::$rSettings["on_demand_wait_time"]) * 10; $rRetries++) {
-                usleep(100000);
+            $maxRetries = intval(StreamingUtilities::$rSettings["on_demand_wait_time"]) * 10;
+            $foundFile = AsyncFileOperations::awaitAnyFileExists([$rPlaylist, STREAMS_PATH . $rStreamID . "_.m3u8"], $maxRetries, 100);
+            
+            if (!$foundFile) {
+                generateError("WAIT_TIME_EXPIRED");
             }
         }
 
-        if ($rRetries == intval(StreamingUtilities::$rSettings["on_demand_wait_time"]) * 10) {
-            generateError("WAIT_TIME_EXPIRED");
-        }
-
         if (!$rChannelInfo["pid"]) {
-            $rChannelInfo["pid"] = (intval(file_get_contents(STREAMS_PATH . $rStreamID . "_.pid")) ?: NULL);
+            $pidContent = AsyncFileOperations::readFile(STREAMS_PATH . $rStreamID . "_.pid");
+            $rChannelInfo["pid"] = $pidContent ? (intval($pidContent) ?: NULL) : NULL;
         }
     }
 
@@ -419,212 +406,15 @@ if ($rChannelInfo) {
 
             if (StreamingUtilities::$rSettings["monitor_connection_status"]) {
                 ob_implicit_flush(true);
-
-                while (ob_get_level()) {
-                    ob_end_clean();
-                }
+                while (ob_get_level()) ob_end_clean();
             }
 
             touch(CONS_TMP_PATH . $rTokenData["uuid"]);
 
-            if (!$rChannelInfo["proxy"]) {
-                // Set the header for the HLS/TS stream
-                header("Content-Type: video/mp2t");
-
-                // File for storing the current transfer rate
-                $rConSpeedFile = DIVERGENCE_TMP_PATH . $rTokenData["uuid"];
-
-                // Checking if the playlist exists
-                if (file_exists($rPlaylist)) {
-                    // Define the prebuffer based on the user type
-                    if ($rUserInfo["is_restreamer"]) {
-                        if ($rTokenData["prebuffer"]) {
-                            $rPrebuffer = StreamingUtilities::$rSegmentSettings["seg_time"];
-                        } else {
-                            $rPrebuffer = StreamingUtilities::$rSettings["restreamer_prebuffer"];
-                        }
-                    } else {
-                        $rPrebuffer = StreamingUtilities::$rSettings["client_prebuffer"];
-                    }
-
-                    // Get stream duration if available
-                    if (file_exists(STREAMS_PATH . $rStreamID . "_.dur")) {
-                        $rDuration = intval(file_get_contents(STREAMS_PATH . $rStreamID . "_.dur"));
-
-                        // If duration is greater than segment time, adjust segment time
-                        if (StreamingUtilities::$rSegmentSettings["seg_time"] < $rDuration) {
-                            StreamingUtilities::$rSegmentSettings["seg_time"] = $rDuration;
-                        }
-                    }
-
-                    // Get list of segments for current prebuffer
-                    $rSegments = StreamingUtilities::getPlaylistSegments($rPlaylist, $rPrebuffer, StreamingUtilities::$rSegmentSettings["seg_time"]);
-                } else {
-                    $rSegments = NULL;
-                }
-
-                // if segments exist, send them to the client
-                if (!is_null($rSegments)) {
-                    if (is_array($rSegments)) {
-                        $rBytes = 0;
-                        $rStartTime = time();
-
-                        // Send segments to the client
-                        foreach ($rSegments as $rSegment) {
-                            $segmentPath = STREAMS_PATH . $rSegment;
-                            if (file_exists($segmentPath)) {
-                                $rBytes += readfile($segmentPath); // Read and output the segment
-                            } else {
-                                exit(); // Segment not found, exit
-                            }
-                        }
-
-                        // Calculating the transfer rate
-                        $rTotalTime = max(0.1, time() - $rStartTime);
-                        $rDivergence = intval($rBytes / $rTotalTime / 1024);
-                        file_put_contents($rConSpeedFile, $rDivergence);
-
-                        // Defining the current segment
-                        preg_match('/_(.*)\\./', array_pop($rSegments), $rCurrentSegment);
-                        $rCurrent = $rCurrentSegment[1];
-                    } else {
-                        $rCurrent = $rSegments; // If segments are not an array
-                    }
-                } else {
-                    if (!file_exists($rPlaylist)) {
-                        $rCurrent = -1; // Playlist does not exist
-                    } else {
-                        exit();
-                    }
-                }
-
-                // Settings for waiting for the next segment
-                $rFails = 0;
-                $rTotalFails = max(
-                    StreamingUtilities::$rSegmentSettings["seg_time"] * 2,
-                    intval(StreamingUtilities::$rSettings["segment_wait_time"]) ?: 20
-                );
-
-                $rMonitorCheck = $rLastCheck = time();
-
-                while (true) {
-                    $rSegmentFile = sprintf("%d_%d.ts", $rChannelInfo["stream_id"], $rCurrent + 1);
-                    $rNextSegment = sprintf("%d_%d.ts", $rChannelInfo["stream_id"], $rCurrent + 2);
-
-                    // Wait for the next segment to appear
-                    for ($rChecks = 0; !file_exists(STREAMS_PATH . $rSegmentFile) && $rChecks <= $rTotalFails; $rChecks++) {
-                        sleep(1); // <-- here is the biggest delay!
-                    }
-
-                    if (file_exists(STREAMS_PATH . $rSegmentFile)) {
-                        // We process signals if there are any
-                        if (file_exists(SIGNALS_PATH . $rTokenData["uuid"])) {
-                            $rSignalData = json_decode(file_get_contents(SIGNALS_PATH . $rTokenData["uuid"]), true);
-
-                            if ($rSignalData["type"] == "signal") {
-                                // Wait for the next segment
-                                for ($rChecks = 0; !file_exists(STREAMS_PATH . $rNextSegment) && $rChecks <= $rTotalFails; $rChecks++) {
-                                    sleep(1); // <-- delay
-                                }
-                                StreamingUtilities::sendSignal($rSignalData, $rSegmentFile, ($rVideoCodec ?: "h264"));
-                                unlink(SIGNALS_PATH . $rTokenData["uuid"]);
-                                $rCurrent++;
-                            }
-                        }
-
-                        // Clear fail counter and open segment file
-                        $rFails = 0;
-                        $rTimeStart = time();
-                        $rFP = fopen(STREAMS_PATH . $rSegmentFile, "r");
-
-                        // Send segment data to the client
-                        while ($rFails <= $rTotalFails && !file_exists(STREAMS_PATH . $rNextSegment)) {
-                            $rData = stream_get_line($rFP, StreamingUtilities::$rSettings["read_buffer_size"]);
-                            if (!empty($rData)) {
-                                echo $rData;
-                                $rData = "";
-                                $rFails = 0;
-                            }
-
-                            if (StreamingUtilities::isStreamRunning($rChannelInfo["pid"], $rStreamID)) {
-                                sleep(1); // <-- delay
-                                $rFails++;
-                            }
-                        }
-
-                        // If the segment is not fully read, send the remaining data
-                        if (StreamingUtilities::isStreamRunning($rChannelInfo["pid"], $rStreamID) && $rFails <= $rTotalFails && file_exists(STREAMS_PATH . $rSegmentFile) && is_resource($rFP)) {
-                            $rSegmentSize = filesize(STREAMS_PATH . $rSegmentFile);
-                            $rRestSize = $rSegmentSize - ftell($rFP);
-                            if ($rRestSize > 0) {
-                                echo stream_get_line($rFP, $rRestSize);
-                            }
-
-                            $rTotalTime = max(0.1, time() - $rTimeStart);
-                            file_put_contents($rConSpeedFile, intval($rSegmentSize / 1024 / $rTotalTime));
-                        } else {
-                            if (!($rUserInfo["is_restreamer"] == 1 || $rTotalFails < $rFails)) {
-                                for ($rChecks = 0; $rChecks <= StreamingUtilities::$rSegmentSettings["seg_time"] && !StreamingUtilities::isStreamRunning($rChannelInfo["pid"], $rStreamID); $rChecks++) {
-                                    if (file_exists(STREAMS_PATH . $rStreamID . "_.pid")) {
-                                        $rChannelInfo["pid"] = intval(file_get_contents(STREAMS_PATH . $rStreamID . "_.pid"));
-                                    }
-                                }
-                                sleep(1);
-
-                                if (StreamingUtilities::$rSegmentSettings["seg_time"] >= $rChecks && StreamingUtilities::isStreamRunning($rChannelInfo["pid"], $rStreamID)) {
-                                    if (!file_exists(STREAMS_PATH . $rNextSegment)) {
-                                        $rCurrent = -2;
-                                    }
-                                } else {
-                                    exit();
-                                }
-                            } else {
-                                exit();
-                            }
-                        }
-
-                        fclose($rFP);
-                        $rFails = 0;
-                        $rCurrent++;
-
-                        // Monitor connection status every 5 seconds
-                        if (StreamingUtilities::$rSettings["monitor_connection_status"] && 5 <= time() - $rMonitorCheck) {
-                            if (connection_status() != CONNECTION_NORMAL) {
-                                exit();
-                            }
-                            $rMonitorCheck = time();
-                        }
-
-                        // Every 5 minutes check settings
-                        if (time() - $rLastCheck > 300) {
-                            $rLastCheck = time();
-                            $rConnection = NULL;
-                            StreamingUtilities::$rSettings = StreamingUtilities::getCache('settings');
-
-                            if (StreamingUtilities::$rSettings["redis_handler"]) {
-                                StreamingUtilities::connectRedis();
-                                $rConnection = StreamingUtilities::getConnection($rTokenData["uuid"]);
-                                StreamingUtilities::closeRedis();
-                            } else {
-                                StreamingUtilities::connectDatabase();
-                                StreamingUtilities::$db->query('SELECT `pid`, `hls_end` FROM `lines_live` WHERE `uuid` = ?', $rTokenData["uuid"]);
-
-                                if (StreamingUtilities::$db->num_rows() == 1) {
-                                    $rConnection = StreamingUtilities::$db->get_row();
-                                }
-
-                                StreamingUtilities::closeDatabase();
-                            }
-
-                            if (!is_array($rConnection) || $rConnection["hls_end"] != 0 || $rConnection["pid"] != $rPID) {
-                                exit();
-                            }
-                        }
-                    } else {
-                        exit(); // Segment file does not exist, exit
-                    }
-                }
-            } else {
+            if ($rChannelInfo["proxy"]) {
+                // ────────────────────────────────────────────────────────────────
+                // Proxy-режим — оставляем почти как было (usleep 100 мс терпимо)
+                // ────────────────────────────────────────────────────────────────
                 header("Content-type: video/mp2t");
 
                 if (!file_exists(CONS_TMP_PATH . $rStreamID . "/")) {
@@ -646,16 +436,224 @@ if ($rChannelInfo) {
                     // 188 * 64 = 12032 bytes (~12 KB)
                     $rBuffer = socket_read($rSocket, 188 * 64);
 
-                    if (!empty($rBuffer)) {
+                    if ($rBuffer !== false && $rBuffer !== '') {
                         $rFails = 0;
                         echo $rBuffer;
+                        flush();
                     } else {
                         $rFails++;
-                        usleep(100000);
+                        usleep(80000);          // 80 мс вместо 100 мс
                     }
                 }
+                // cleanup
                 socket_close($rSocket);
                 @unlink($rSocketFile);
+                exit;
+            }
+
+            // ────────────────────────────────────────────────────────────────
+            // Основной TS-поток (не proxy)
+            // ────────────────────────────────────────────────────────────────
+            header("Content-Type: video/mp2t");
+
+            // File for storing the current transfer rate
+            $rConSpeedFile = DIVERGENCE_TMP_PATH . $rTokenData["uuid"];
+
+            // Checking if the playlist exists
+            if (file_exists($rPlaylist)) {
+                // Define the prebuffer based on the user type
+                if ($rUserInfo["is_restreamer"]) {
+                    if ($rTokenData["prebuffer"]) {
+                        $rPrebuffer = StreamingUtilities::$rSegmentSettings["seg_time"];
+                    } else {
+                        $rPrebuffer = StreamingUtilities::$rSettings["restreamer_prebuffer"];
+                    }
+                } else {
+                    $rPrebuffer = StreamingUtilities::$rSettings["client_prebuffer"];
+                }
+
+                // Get stream duration if available
+                if (file_exists(STREAMS_PATH . $rStreamID . "_.dur")) {
+                    $rDuration = intval(file_get_contents(STREAMS_PATH . $rStreamID . "_.dur"));
+
+                    // If duration is greater than segment time, adjust segment time
+                    if (StreamingUtilities::$rSegmentSettings["seg_time"] < $rDuration) {
+                        StreamingUtilities::$rSegmentSettings["seg_time"] = $rDuration;
+                    }
+                }
+
+                // Get list of segments for current prebuffer
+                $rSegments = StreamingUtilities::getPlaylistSegments($rPlaylist, $rPrebuffer, StreamingUtilities::$rSegmentSettings["seg_time"]);
+            } else {
+                $rSegments = NULL;
+            }
+
+            // if segments exist, send them to the client
+            if (!is_null($rSegments)) {
+                if (is_array($rSegments)) {
+                    $rBytes = 0;
+                    $rStartTime = time();
+
+                    // Send segments to the client
+                    foreach ($rSegments as $rSegment) {
+                        $segmentPath = STREAMS_PATH . $rSegment;
+                        if (file_exists($segmentPath)) {
+                            $rBytes += readfile($segmentPath); // Read and output the segment
+                        } else {
+                            exit(); // Segment not found, exit
+                        }
+                    }
+
+                    // Calculating the transfer rate
+                    $rTotalTime = max(0.1, time() - $rStartTime);
+                    $rDivergence = intval($rBytes / $rTotalTime / 1024);
+                    file_put_contents($rConSpeedFile, $rDivergence);
+
+                    // Defining the current segment
+                    preg_match('/_(.*)\\./', array_pop($rSegments), $rCurrentSegment);
+                    $rCurrent = $rCurrentSegment[1];
+                } else {
+                    $rCurrent = $rSegments; // If segments are not an array
+                }
+            } else {
+                if (!file_exists($rPlaylist)) {
+                    $rCurrent = -1; // Playlist does not exist
+                } else {
+                    exit();
+                }
+            }
+
+            // Settings for waiting for the next segment
+            $rFails = 0;
+            $rTotalFails = max(
+                StreamingUtilities::$rSegmentSettings["seg_time"] * 2,
+                intval(StreamingUtilities::$rSettings["segment_wait_time"]) ?: 20
+            );
+
+            $rMonitorCheck = $rLastCheck = time();
+
+            while (true) {
+                $rSegmentFile = sprintf("%d_%d.ts", $rChannelInfo["stream_id"], $rCurrent + 1);
+                $rNextSegment = sprintf("%d_%d.ts", $rChannelInfo["stream_id"], $rCurrent + 2);
+
+                // Wait for the next segment to appear - using non-blocking async check
+                $segmentFound = AsyncFileOperations::awaitFileExists(STREAMS_PATH . $rSegmentFile, max(1, $rTotalFails), 1000);
+
+                if ($segmentFound && file_exists(STREAMS_PATH . $rSegmentFile)) {
+                    // We process signals if there are any
+                    if (file_exists(SIGNALS_PATH . $rTokenData["uuid"])) {
+                        $rSignalData = json_decode(file_get_contents(SIGNALS_PATH . $rTokenData["uuid"]), true);
+
+                        if ($rSignalData["type"] == "signal") {
+                            // Wait for the next segment - using non-blocking check
+                            AsyncFileOperations::awaitFileExists(STREAMS_PATH . $rNextSegment, max(1, $rTotalFails), 1000);
+                            StreamingUtilities::sendSignal($rSignalData, $rSegmentFile, ($rVideoCodec ?: "h264"));
+                            unlink(SIGNALS_PATH . $rTokenData["uuid"]);
+                            $rCurrent++;
+                        }
+                    }
+
+                    // Clear fail counter and open segment file
+                    $rFails = 0;
+                    $rTimeStart = time();
+                    $rFP = fopen(STREAMS_PATH . $rSegmentFile, "r");
+
+                    // Send segment data to the client with adaptive delays
+                    while ($rFails <= $rTotalFails && !file_exists(STREAMS_PATH . $rNextSegment)) {
+                        $rData = stream_get_line($rFP, StreamingUtilities::$rSettings["read_buffer_size"]);
+                        if (!empty($rData)) {
+                            echo $rData;
+                            $rData = "";
+                            $rFails = 0;
+                        } else {
+                            // No data read (EOF or blocking) - avoid tight-loop, add small delay
+                            AsyncFileOperations::efficientSleep(100000); // 100ms to reduce CPU spinning
+                        }
+
+                        if (StreamingUtilities::isStreamRunning($rChannelInfo["pid"], $rStreamID)) {
+                            AsyncFileOperations::efficientSleep(1000000); // 1 second with better CPU usage
+                            $rFails++;
+                        } else {
+                            // Stream process died - don't spin, add small backoff delay
+                            AsyncFileOperations::efficientSleep(100000); // 100ms to reduce CPU when process is dead
+                        }
+                    }
+
+                    // If the segment is not fully read, send the remaining data
+                    if (StreamingUtilities::isStreamRunning($rChannelInfo["pid"], $rStreamID) && $rFails <= $rTotalFails && file_exists(STREAMS_PATH . $rSegmentFile) && is_resource($rFP)) {
+                        $rSegmentSize = filesize(STREAMS_PATH . $rSegmentFile);
+                        $rRestSize = $rSegmentSize - ftell($rFP);
+                        if ($rRestSize > 0) {
+                            echo stream_get_line($rFP, $rRestSize);
+                        }
+
+                        $rTotalTime = max(0.1, time() - $rTimeStart);
+                        file_put_contents($rConSpeedFile, intval($rSegmentSize / 1024 / $rTotalTime));
+                    } else {
+                        if (!($rUserInfo["is_restreamer"] == 1 || $rTotalFails < $rFails)) {
+                            // Wait for segment recovery with non-blocking checks
+                            for ($rChecks = 0; $rChecks <= StreamingUtilities::$rSegmentSettings["seg_time"] && !StreamingUtilities::isStreamRunning($rChannelInfo["pid"], $rStreamID); $rChecks++) {
+                                if (file_exists(STREAMS_PATH . $rStreamID . "_.pid")) {
+                                    $pidContent = AsyncFileOperations::readFile(STREAMS_PATH . $rStreamID . "_.pid");
+                                    if ($pidContent) {
+                                        $rChannelInfo["pid"] = intval($pidContent);
+                                    }
+                                }
+                                AsyncFileOperations::efficientSleep(1000000); // 1 second
+                            }
+
+                            if (StreamingUtilities::$rSegmentSettings["seg_time"] >= $rChecks && StreamingUtilities::isStreamRunning($rChannelInfo["pid"], $rStreamID)) {
+                                if (!file_exists(STREAMS_PATH . $rNextSegment)) {
+                                    $rCurrent = -2;
+                                }
+                            } else {
+                                exit();
+                            }
+                        } else {
+                            exit();
+                        }
+                    }
+
+                    fclose($rFP);
+                    $rFails = 0;
+                    $rCurrent++;
+
+                    // Monitor connection status every 5 seconds
+                    if (StreamingUtilities::$rSettings["monitor_connection_status"] && 5 <= time() - $rMonitorCheck) {
+                        if (connection_status() != CONNECTION_NORMAL) {
+                            exit();
+                        }
+                        $rMonitorCheck = time();
+                    }
+
+                    // Every 5 minutes check settings
+                    if (time() - $rLastCheck > 300) {
+                        $rLastCheck = time();
+                        $rConnection = NULL;
+                        StreamingUtilities::$rSettings = StreamingUtilities::getCache('settings');
+
+                        if (StreamingUtilities::$rSettings["redis_handler"]) {
+                            StreamingUtilities::connectRedis();
+                            $rConnection = StreamingUtilities::getConnection($rTokenData["uuid"]);
+                            StreamingUtilities::closeRedis();
+                        } else {
+                            StreamingUtilities::connectDatabase();
+                            StreamingUtilities::$db->query('SELECT `pid`, `hls_end` FROM `lines_live` WHERE `uuid` = ?', $rTokenData["uuid"]);
+
+                            if (StreamingUtilities::$db->num_rows() == 1) {
+                                $rConnection = StreamingUtilities::$db->get_row();
+                            }
+
+                            StreamingUtilities::closeDatabase();
+                        }
+
+                        if (!is_array($rConnection) || $rConnection["hls_end"] != 0 || $rConnection["pid"] != $rPID) {
+                            exit();
+                        }
+                    }
+                } else {
+                    exit(); // Segment file does not exist, exit
+                }
             }
     }
 } else {

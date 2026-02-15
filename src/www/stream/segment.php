@@ -145,17 +145,23 @@ if (isset($_GET['token'])) {
 					}
 
 					if (file_exists($rSegment . '.enc_write')) {
-						$rChecks = 0;
-
 						if (file_exists(STREAMS_PATH . $rStreamID . '_.dur')) {
 							$b73e9a5cd67eae9b = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.dur')) * 2;
 						} else {
 							$b73e9a5cd67eae9b = $rSettings['seg_time'] * 2;
 						}
 
-						while (file_exists($rSegment . '.enc_write') && !file_exists($rSegment . '.enc') && $rChecks <= $b73e9a5cd67eae9b * 10) {
-							usleep(100000);
-							$rChecks++;
+						// Wait for encryption to complete using async file monitoring
+						$maxWaitTime = max(1, $b73e9a5cd67eae9b * 10);
+						$encWaitFile = $rSegment . '.enc_write';
+						$encCompleteFile = $rSegment . '.enc';
+						
+						// Monitor for completion - use inotify if available
+						$startTime = microtime(true);
+						$timeout = $maxWaitTime / 10; // Convert to seconds
+						
+						while (file_exists($encWaitFile) && !file_exists($encCompleteFile) && (microtime(true) - $startTime) < $timeout) {
+							AsyncFileOperations::efficientSleep(100000); // 0.1 seconds
 						}
 					} else {
 						ignore_user_abort(true);
