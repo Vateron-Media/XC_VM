@@ -355,9 +355,9 @@ if ($rChannelInfo) {
 					$rBytesRead = 0;
 				}
 
-				if (!(0 < $rDownloadBytes && $rApplyLimit && ceil($rDownloadBytes / $rBuffer) <= $i)) {
-				} else {
-					sleep(1);
+				if (0 < $rDownloadBytes && $rApplyLimit && ceil($rDownloadBytes / $rBuffer) <= $i) {
+					// Use efficient sleep instead of blocking sleep
+					AsyncFileOperations::efficientSleep(1000000); // 1 second with better CPU usage
 					$i = 0;
 				}
 

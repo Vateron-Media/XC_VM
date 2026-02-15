@@ -123,6 +123,7 @@ if (isset($rSettings['exit']) && $rFilename != 'status') {
 	generate404();
 }
 
+require_once INCLUDES_PATH . 'AsyncFileOperations.php';
 require_once INCLUDES_PATH . 'Database.php';
 
 switch ($rFilename) {
