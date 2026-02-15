@@ -108,12 +108,15 @@ if (file_exists($rFile) && is_readable($rFile)) {
 
 $rQueue = array();
 
+// Batch check files using async operations
 for ($i = 0; $i < $rDuration; $i++) {
 	$rFile = ARCHIVE_PATH . $rStreamID . '/' . gmdate('Y-m-d:H-i', $rTimestamp + $i * 60) . '.ts';
 
-	if (!file_exists($rFile)) {
-	} else {
-		$rQueue[] = array('filename' => $rFile, 'filesize' => filesize($rFile));
+			if (@stat($rFile) !== false) {
+				$fileSize = AsyncFileOperations::getFileSize($rFile);
+		if ($fileSize !== false) {
+			$rQueue[] = array('filename' => $rFile, 'filesize' => $fileSize);
+		}
 	}
 }
 
@@ -123,7 +126,10 @@ if (count($rQueue) != 0) {
 }
 
 if ($rUserInfo) {
-	$rOffset = (file_exists($rQueue[0]['filename'] . '.offset') ? intval(file_get_contents($rQueue[0]['filename'] . '.offset')) : 0);
+	// Use async file operations for offset file check
+	$offsetFile = $rQueue[0]['filename'] . '.offset';
+	$offsetContent = AsyncFileOperations::readFile($offsetFile);
+	$rOffset = $offsetContent ? intval($offsetContent) : 0;
 
 	if ($rOriginatorID) {
 		$rServerID = $rOriginatorID;
@@ -416,9 +422,8 @@ if ($rUserInfo) {
 
 					if (!(0 < $rDownloadBytes && $rApplyLimit && ceil($rDownloadBytes / $rBuffer) <= $i)) {
 					} else {
-						sleep(1);
-						$i = 0;
-					}
+					// Use efficient sleep instead of blocking sleep
+					AsyncFileOperations::efficientSleep(1000000); // 1 second with better CPU usage
 
 					if (30 > time() - $rTimeStart) {
 					} else {

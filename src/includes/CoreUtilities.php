@@ -3159,12 +3159,19 @@ class CoreUtilities {
 	}
 	public static function isDelayRunning($rPID, $rStreamID) {
 		if (!empty($rPID)) {
-			clearstatcache(true);
-			if (!(file_exists('/proc/' . $rPID) && is_readable('/proc/' . $rPID . '/exe'))) {
+			static $procCache = [];
+			$now = microtime(true);
+			$key = (int)$rPID;
+			if (isset($procCache[$key]) && $now - $procCache[$key]['time'] < 1.0) {
+				$procExists = $procCache[$key]['exists'];
 			} else {
-				$rCommand = trim(file_get_contents('/proc/' . $rPID . '/cmdline'));
-				if ($rCommand != 'XC_VMDelay[' . $rStreamID . ']') {
-				} else {
+				$procExists = file_exists('/proc/' . $rPID);
+				$procCache[$key] = ['exists' => $procExists, 'time' => $now];
+			}
+
+			if ($procExists && is_readable('/proc/' . $rPID . '/exe')) {
+				$rCommand = trim(@file_get_contents('/proc/' . $rPID . '/cmdline'));
+				if ($rCommand == 'XC_VMDelay[' . $rStreamID . ']') {
 					return true;
 				}
 			}
@@ -3174,18 +3181,25 @@ class CoreUtilities {
 	}
 	public static function isStreamRunning($rPID, $rStreamID) {
 		if (!empty($rPID)) {
-			clearstatcache(true);
-			if (!(file_exists('/proc/' . $rPID) && is_readable('/proc/' . $rPID . '/exe'))) {
+			static $procCache = [];
+			$now = microtime(true);
+			$key = (int)$rPID;
+			if (isset($procCache[$key]) && $now - $procCache[$key]['time'] < 1.0) {
+				$procExists = $procCache[$key]['exists'];
 			} else {
-				if (strpos(basename(readlink('/proc/' . $rPID . '/exe')), 'ffmpeg') === 0) {
-					$rCommand = trim(file_get_contents('/proc/' . $rPID . '/cmdline'));
-					if (!(stristr($rCommand, '/' . $rStreamID . '_.m3u8') || stristr($rCommand, '/' . $rStreamID . '_%d.ts'))) {
-					} else {
+				$procExists = file_exists('/proc/' . $rPID);
+				$procCache[$key] = ['exists' => $procExists, 'time' => $now];
+			}
+
+			if ($procExists && is_readable('/proc/' . $rPID . '/exe')) {
+				$exe = @basename(@readlink('/proc/' . $rPID . '/exe'));
+				if (strpos($exe, 'ffmpeg') === 0) {
+					$rCommand = trim(@file_get_contents('/proc/' . $rPID . '/cmdline'));
+					if (stristr($rCommand, '/' . $rStreamID . '_.m3u8') || stristr($rCommand, '/' . $rStreamID . '_%d.ts')) {
 						return true;
 					}
 				} else {
-					if (strpos(basename(readlink('/proc/' . $rPID . '/exe')), 'php') !== 0) {
-					} else {
+					if (strpos($exe, 'php') === 0) {
 						return true;
 					}
 				}
@@ -3196,8 +3210,17 @@ class CoreUtilities {
 	}
 	public static function isProcessRunning($rPID, $rEXE = null) {
 		if (!empty($rPID)) {
-			clearstatcache(true);
-			if (!(file_exists('/proc/' . $rPID) && is_readable('/proc/' . $rPID . '/exe') && strpos(basename(readlink('/proc/' . $rPID . '/exe')), basename($rEXE)) === 0) && $rEXE) {
+			static $procCache = [];
+			$now = microtime(true);
+			$key = (int)$rPID;
+			if (isset($procCache[$key]) && $now - $procCache[$key]['time'] < 1.0) {
+				$procExists = $procCache[$key]['exists'];
+			} else {
+				$procExists = file_exists('/proc/' . $rPID);
+				$procCache[$key] = ['exists' => $procExists, 'time' => $now];
+			}
+
+			if ($rEXE && !($procExists && is_readable('/proc/' . $rPID . '/exe') && strpos(@basename(@readlink('/proc/' . $rPID . '/exe')), basename($rEXE)) === 0)) {
 				return false;
 			}
 			return true;

@@ -1194,9 +1194,17 @@ class StreamingUtilities {
 	}
 	public static function isMonitorRunning($rPID, $rStreamID, $rEXE = PHP_BIN) {
 		if (!empty($rPID)) {
-			clearstatcache(true);
-			if (!(file_exists('/proc/' . $rPID) && is_readable('/proc/' . $rPID . '/exe') && strpos(basename(readlink('/proc/' . $rPID . '/exe')), basename($rEXE)) === 0)) {
+			static $procCache = [];
+			$now = microtime(true);
+			$cacheKey = (int)$rPID;
+			if (isset($procCache[$cacheKey]) && $now - $procCache[$cacheKey]['time'] < 1.0) {
+				$procExists = $procCache[$cacheKey]['exists'];
 			} else {
+				$procExists = file_exists('/proc/' . $rPID);
+				$procCache[$cacheKey] = ['exists' => $procExists, 'time' => $now];
+			}
+
+			if ($procExists && is_readable('/proc/' . $rPID . '/exe') && strpos(basename(@readlink('/proc/' . $rPID . '/exe')), basename($rEXE)) === 0) {
 				$rCommand = trim(file_get_contents('/proc/' . $rPID . '/cmdline'));
 				if (!($rCommand == 'XC_VM[' . $rStreamID . ']' || $rCommand == 'XC_VMProxy[' . $rStreamID . ']')) {
 				} else {
@@ -1213,8 +1221,19 @@ class StreamingUtilities {
 		}
 
 		$procDir = "/proc/$pid";
-		if (!file_exists($procDir)) {
-			return false;
+		static $procCache = [];
+		$now = microtime(true);
+		$cacheKey = (int)$pid;
+		if (isset($procCache[$cacheKey]) && $now - $procCache[$cacheKey]['time'] < 1.0) {
+			if (!$procCache[$cacheKey]['exists']) {
+				return false;
+			}
+		} else {
+			$exists = file_exists($procDir);
+			$procCache[$cacheKey] = ['exists' => $exists, 'time' => $now];
+			if (!$exists) {
+				return false;
+			}
 		}
 
 		// Optional check: verify that the exe link exists
@@ -1243,8 +1262,17 @@ class StreamingUtilities {
 	}
 	public static function isProcessRunning($rPID, $rEXE) {
 		if (!empty($rPID)) {
-			clearstatcache(true);
-			if (!(file_exists('/proc/' . $rPID) && is_readable('/proc/' . $rPID . '/exe') && strpos(basename(readlink('/proc/' . $rPID . '/exe')), basename($rEXE)) === 0)) {
+			static $procCache = [];
+			$now = microtime(true);
+			$key = (int)$rPID;
+			if (isset($procCache[$key]) && $now - $procCache[$key]['time'] < 1.0) {
+				$procExists = $procCache[$key]['exists'];
+			} else {
+				$procExists = file_exists('/proc/' . $rPID);
+				$procCache[$key] = ['exists' => $procExists, 'time' => $now];
+			}
+
+			if (!($procExists && is_readable('/proc/' . $rPID . '/exe') && strpos(basename(@readlink('/proc/' . $rPID . '/exe')), basename($rEXE)) === 0)) {
 				return false;
 			}
 			return true;
