@@ -112,8 +112,8 @@ $rQueue = array();
 for ($i = 0; $i < $rDuration; $i++) {
 	$rFile = ARCHIVE_PATH . $rStreamID . '/' . gmdate('Y-m-d:H-i', $rTimestamp + $i * 60) . '.ts';
 
-			if (@stat($rFile) !== false) {
-				$fileSize = AsyncFileOperations::getFileSize($rFile);
+	if (@stat($rFile) !== false) {
+		$fileSize = AsyncFileOperations::getFileSize($rFile);
 		if ($fileSize !== false) {
 			$rQueue[] = array('filename' => $rFile, 'filesize' => $fileSize);
 		}
@@ -420,11 +420,10 @@ if ($rUserInfo) {
 						$o++;
 					}
 
-					if (!(0 < $rDownloadBytes && $rApplyLimit && ceil($rDownloadBytes / $rBuffer) <= $i)) {
-					} else {
-					// Use efficient sleep instead of blocking sleep
-					AsyncFileOperations::efficientSleep(1000000); // 1 second with better CPU usage
-
+					if (0 < $rDownloadBytes && $rApplyLimit && ceil($rDownloadBytes / $rBuffer) <= $i) {
+						// Use efficient sleep instead of blocking sleep
+						AsyncFileOperations::efficientSleep(1000000); // 1 second with better CPU usage
+					}
 					if (30 > time() - $rTimeStart) {
 					} else {
 						file_put_contents($rConSpeedFile, intval($rBytesRead / 1024 / 30));
