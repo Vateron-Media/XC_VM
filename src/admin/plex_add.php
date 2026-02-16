@@ -161,7 +161,7 @@ include 'header.php';
                                                     <div class="col-md-2">
                                                         <input name="auto_encode" id="auto_encode" type="checkbox" <? if (!isset($rFolder) || (isset($rFolder) && $rFolder['auto_encode'])) echo 'checked '; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                     </div>
-                                                    <label class="col-md-4 col-form-label" for="scan_missing">Scan Missing ID's <i title="Check all Plex ID's in the XUI database against Plex database and scan missing items too. If this is off, XUI will only request items modified after the last scan date. Turning this on will increase time taken to scan as the entire library needs to be scanned instead of the recent items." class="tooltip text-secondary far fa-circle"></i></label>
+                                                    <label class="col-md-4 col-form-label" for="scan_missing">Scan Missing ID's <i title="Check all Plex ID's in the XC_VM database against Plex database and scan missing items too. If this is off, XC_VM will only request items modified after the last scan date. Turning this on will increase time taken to scan as the entire library needs to be scanned instead of the recent items." class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-2">
                                                         <input name="scan_missing" id="scan_missing" type="checkbox" <? if (isset($rFolder) && $rFolder['scan_missing']) echo 'checked '; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                     </div>
@@ -177,7 +177,7 @@ include 'header.php';
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="check_tmdb">Check Against TMDb <i title="If the item has a TMDb ID, check it against the database to ensure duplicates aren't created due to previous content in the XUI system." class="tooltip text-secondary far fa-circle"></i></label>
+                                                    <label class="col-md-4 col-form-label" for="check_tmdb">Check Against TMDb <i title="If the item has a TMDb ID, check it against the database to ensure duplicates aren't created due to previous content in the XC_VM system." class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-2">
                                                         <input name="check_tmdb" id="check_tmdb" type="checkbox" <? if (!isset($rFolder) || (isset($rFolder) && $rFolder['check_tmdb'])) echo 'checked '; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                     </div>

@@ -1222,10 +1222,10 @@ class API {
 							$rQueueMovies[$rServerID][] = $rStreamID;
 						}
 					}
+				}
 
-					foreach ($rDeleteServers as $rServerID => $rDeleteIDs) {
-						deleteStreamsByServer($rDeleteIDs, $rServerID, true);
-					}
+				foreach ($rDeleteServers as $rServerID => $rDeleteIDs) {
+					deleteStreamsByServer($rDeleteIDs, $rServerID, true);
 				}
 
 				if (empty($rAddQuery)) {
@@ -2324,10 +2324,10 @@ class API {
 							$rQueueMovies[$rServerID][] = $rStreamID;
 						}
 					}
+				}
 
-					foreach ($rDeleteServers as $rServerID => $rDeleteIDs) {
-						deleteStreamsByServer($rDeleteIDs, $rServerID, true);
-					}
+				foreach ($rDeleteServers as $rServerID => $rDeleteIDs) {
+					deleteStreamsByServer($rDeleteIDs, $rServerID, true);
 				}
 
 				foreach ($rAddBouquet as $rBouquetID => $rAddIDs) {
@@ -3542,10 +3542,10 @@ class API {
 							}
 						}
 					}
+				}
 
-					foreach ($rDeleteServers as $rServerID => $rDeleteIDs) {
-						deleteStreamsByServer($rDeleteIDs, $rServerID, false);
-					}
+				foreach ($rDeleteServers as $rServerID => $rDeleteIDs) {
+					deleteStreamsByServer($rDeleteIDs, $rServerID, false);
 				}
 
 				foreach ($rAddBouquet as $rBouquetID => $rAddIDs) {
@@ -5184,14 +5184,18 @@ class API {
 							}
 						}
 					}
+				}
 
-					foreach ($rDeleteServers as $rServerID => $rDeleteIDs) {
-						deleteStreamsByServer($rDeleteIDs, $rServerID, false);
-					}
+				foreach ($rDeleteServers as $rServerID => $rDeleteIDs) {
+					deleteStreamsByServer($rDeleteIDs, $rServerID, false);
 				}
 
 				foreach ($rDelOptions as $rOptionID => $rDelIDs) {
-					self::$db->query('DELETE FROM `streams_options` WHERE `stream_id` IN (' . implode(',', array_map('intval', $rStreamIDs)) . ') AND `argument_id` = 1;', $rStreamID);
+					$rDelIDs = array_unique(array_map('intval', $rDelIDs));
+					if (0 >= count($rDelIDs)) {
+					} else {
+						self::$db->query('DELETE FROM `streams_options` WHERE `stream_id` IN (' . implode(',', $rDelIDs) . ') AND `argument_id` = ?;', intval($rOptionID));
+					}
 				}
 
 				if (empty($rOptQuery)) {
@@ -5412,10 +5416,10 @@ class API {
 							$rEncQuery .= "('channel', " . intval($rStreamID) . ', ' . intval($rServerID) . ', ' . time() . '),';
 						}
 					}
+				}
 
-					foreach ($rDeleteServers as $rServerID => $rDeleteIDs) {
-						deleteStreamsByServer($rDeleteIDs, $rServerID, false);
-					}
+				foreach ($rDeleteServers as $rServerID => $rDeleteIDs) {
+					deleteStreamsByServer($rDeleteIDs, $rServerID, false);
 				}
 
 				foreach ($rAddBouquet as $rBouquetID => $rAddIDs) {
