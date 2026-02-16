@@ -2352,12 +2352,12 @@ function deleteStreamsByServer($rIDs, $rServerID, $rDeleteFiles = false) {
 		$db->query('DELETE FROM `streams_servers` WHERE `server_id` = ? AND `stream_id` IN (' . implode(',', $rIDs) . ');', $rServerID);
 		$db->query('UPDATE `streams_servers` SET `parent_id` = NULL WHERE `parent_id` = ? AND `stream_id` IN (' . implode(',', $rIDs) . ');', $rServerID);
 
-		if (!$rDeleteFiles) {
-		} else {
+		if ($rDeleteFiles) {
 			$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`, `cache`) VALUES(?, ?, ?, 1);', $rServerID, time(), json_encode(array('type' => 'delete_vods', 'id' => $rIDs)));
 		}
 
-		scanBouquets();
+		// The panel will rescan itself within a minute.
+		// scanBouquets();
 	}
 
 	return true;
