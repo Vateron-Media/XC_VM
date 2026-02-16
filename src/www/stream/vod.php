@@ -405,14 +405,31 @@ if ($rChannelInfo) {
 			exit();
 		}
 	} else {
-		$rHeaders = get_headers($rDirectProxy, 1);
+
+		$opts = array(
+			'http'=> array(
+			'max_redirects' => '20',
+			'method'=>   "GET",
+			'timeout' => 122,
+			'user_agent'=> 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.16; rv:101.0) Gecko/20100101 Firefox/101.0'
+			)
+		);
+		$context = stream_context_create($opts);
+		$rHeaders = get_headers($rDirectProxy, 1, $context);
 		$rContentType = (is_array($rHeaders['Content-Type']) ? $rHeaders['Content-Type'][count($rHeaders['Content-Type']) - 1] : $rHeaders['Content-Type']);
 		$rSize = $rLength = $rHeaders['Content-Length'];
 
 		if (0 < $rLength && in_array($rContentType, array('video/mp4', 'video/x-matroska', 'video/x-msvideo', 'video/3gpp', 'video/x-flv', 'video/x-ms-wmv', 'video/quicktime', 'video/mp2t', 'video/mpeg', 'application/octet-stream'))) {
 			if (!$rHeaders['Location']) {
 			} else {
-				$rDirectProxy = $rHeaders['Location'];
+			if(is_array($rHeaders['Location'])){
+					$tmp = array_reverse($rHeaders['Location']);
+					$rDirectProxy = $tmp[0];
+				}
+				else {
+					$rDirectProxy = $rHeaders['Location'];
+				}
+				unset($rHeaders['Location']);
 			}
 
 			header('Content-Type: ' . $rContentType);
