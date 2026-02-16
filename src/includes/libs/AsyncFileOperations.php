@@ -1,12 +1,28 @@
 <?php
 
 /**
- * AsyncFileOperations - Non-blocking file operations helper
- * Provides async file checks, inotify monitoring, and efficient file polling
- * 
- * This class reduces CPU usage by replacing blocking sleep() calls with
- * efficient file system event monitoring where available
+ * AsyncFileOperations PHP class – non-blocking filesystem utilities
+ *
+ * @package VateronMedia_AsyncFileOperations
+ * @author Divarion_D <https://github.com/Divarion-D>
+ * @copyright 2026 Vateron Media
+ * @link https://github.com/Vateron-Media/XC_VM
+ * @version 0.1.0
+ * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
+ *
+ * A PHP class created specifically for the XC_VM project to perform
+ * efficient non-blocking file system operations.
+ *
+ * The class replaces CPU-heavy polling and blocking sleep() calls with
+ * optimized mechanisms such as inotify-based monitoring (when available)
+ * and adaptive file state polling as a fallback.
+ *
+ * Primary goals:
+ *  - Reduce CPU usage in long-running PHP processes
+ *  - Provide asynchronous-style file existence and modification checks
+ *  - Enable scalable filesystem monitoring without busy-wait loops
  */
+
 class AsyncFileOperations {
     /**
      * File existence cache with TTL
