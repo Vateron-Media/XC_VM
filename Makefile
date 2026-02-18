@@ -303,7 +303,7 @@ set_permissions:
 		chmod 0755 $(TEMP_DIR)/ministra;  \
 		find $(TEMP_DIR)/ministra -type d -exec chmod 755 {} +; \
 		find $(TEMP_DIR)/ministra -type f -exec chmod 644 {} +; \
-		chmod 0777 $(TEMP_DIR)/ministra/portal.php; \
+		chmod 0777 $(TEMP_DIR)/ministra/portal.php 2>/dev/null || [ $$? -eq 1 ]; \
 	fi
 
 	@if [ -d "$(TEMP_DIR)/player" ]; then \
