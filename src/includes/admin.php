@@ -117,7 +117,11 @@ $rWatchStatusArray = array(1 => "<button type='button' class='btn btn-success bt
 $rFailureStatusArray = array('STREAM_STOP' => "<button type='button' class='btn btn-secondary btn-xs waves-effect waves-light btn-fixed-xl'>STOPPED</button>", 'STREAM_START_FAIL' => "<button type='button' class='btn btn-danger btn-xs waves-effect waves-light btn-fixed-xl'>START FAILED</button>", 'STREAM_START' => "<button type='button' class='btn btn-success btn-xs waves-effect waves-light btn-fixed-xl'>STARTED</button>", 'STREAM_RESTART' => "<button type='button' class='btn btn-info btn-xs waves-effect waves-light btn-fixed-xl'>RESTARTED</button>", 'STREAM_FAILED' => "<button type='button' class='btn btn-danger btn-xs waves-effect waves-light btn-fixed-xl'>STREAM FAILED</button>");
 $rStreamLogsArray = array('STREAM_FAILED' => 'Stream Failed', 'STREAM_START' => 'Stream Started', 'STREAM_RESTART' => 'Stream Restarted', 'STREAM_STOP' => 'Stream Stopped', 'FORCE_SOURCE' => 'Force Change Source', 'AUTO_RESTART' => 'Timed Auto Restart', 'AUDIO_LOSS' => 'Audio Lost', 'PRIORITY_SWITCH' => 'Priority Switch', 'DELAY_START' => 'Delay Started', 'FFMPEG_ERROR' => 'FFMPEG Error');
 $rThemes = array(array('name' => 'Light', 'dark' => false, 'image' => null), array('name' => 'Dark', 'dark' => true, 'image' => null));
-$rAdvPermissions = array(array('add_rtmp', $language::get('permission_add_rtmp'), $language::get('permission_add_rtmp_text')), array('add_bouquet', $language::get('permission_add_bouquet'), $language::get('permission_add_bouquet_text')), array('add_cat', $language::get('permission_add_cat'), $language::get('permission_add_cat_text')), array('add_e2', $language::get('permission_add_e2'), $language::get('permission_add_e2_text')), array('add_epg', $language::get('permission_add_epg'), $language::get('permission_add_epg_text')), array('add_episode', $language::get('permission_add_episode'), $language::get('permission_add_episode_text')), array('add_group', $language::get('permission_add_group'), $language::get('permission_add_group_text')), array('add_mag', $language::get('permission_add_mag'), $language::get('permission_add_mag_text')), array('add_movie', $language::get('permission_add_movie'), $language::get('permission_add_movie_text')), array('add_packages', $language::get('permission_add_packages'), $language::get('permission_add_packages_text')), array('add_radio', $language::get('permission_add_radio'), $language::get('permission_add_radio_text')), array('add_reguser', $language::get('permission_add_reguser'), $language::get('permission_add_reguser_text')), array('add_server', $language::get('permission_add_server'), $language::get('permission_add_server_text')), array('add_stream', $language::get('permission_add_stream'), $language::get('permission_add_stream_text')), array('tprofile', $language::get('permission_tprofile'), $language::get('permission_tprofile_text')), array('add_series', $language::get('permission_add_series'), $language::get('permission_add_series_text')), array('add_user', $language::get('permission_add_user'), $language::get('permission_add_user_text')), array('block_ips', $language::get('permission_block_ips'), $language::get('permission_block_ips_text')), array('block_isps', $language::get('permission_block_isps'), $language::get('permission_block_isps_text')), array('block_uas', $language::get('permission_block_uas'), $language::get('permission_block_uas_text')), array('create_channel', $language::get('permission_create_channel'), $language::get('permission_create_channel_text')), array('edit_bouquet', $language::get('permission_edit_bouquet'), $language::get('permission_edit_bouquet_text')), array('edit_cat', $language::get('permission_edit_cat'), $language::get('permission_edit_cat_text')), array('channel_order', $language::get('permission_channel_order'), $language::get('permission_channel_order_text')), array('edit_cchannel', $language::get('permission_edit_cchannel'), $language::get('permission_edit_cchannel_text')), array('edit_e2', $language::get('permission_edit_e2'), $language::get('permission_edit_e2_text')), array('epg_edit', $language::get('permission_epg_edit'), $language::get('permission_epg_edit_text')), array('edit_episode', $language::get('permission_edit_episode'), $language::get('permission_edit_episode_text')), array('folder_watch_settings', $language::get('permission_folder_watch_settings'), $language::get('permission_folder_watch_settings_text')), array('settings', $language::get('permission_settings'), $language::get('permission_settings_text')), array('edit_group', $language::get('permission_edit_group'), $language::get('permission_edit_group_text')), array('edit_mag', $language::get('permission_edit_mag'), $language::get('permission_edit_mag_text')), array('edit_movie', $language::get('permission_edit_movie'), $language::get('permission_edit_movie_text')), array('edit_package', $language::get('permission_edit_package'), $language::get('permission_edit_package_text')), array('edit_radio', $language::get('permission_edit_radio'), $language::get('permission_edit_radio_text')), array('edit_reguser', $language::get('permission_edit_reguser'), $language::get('permission_edit_reguser_text')), array('edit_server', $language::get('permission_edit_server'), $language::get('permission_edit_server_text')), array('edit_stream', $language::get('permission_edit_stream'), $language::get('permission_edit_stream_text')), array('edit_series', $language::get('permission_edit_series'), $language::get('permission_edit_series_text')), array('edit_user', $language::get('permission_edit_user'), $language::get('permission_edit_user_text')), array('fingerprint', $language::get('permission_fingerprint'), $language::get('permission_fingerprint_text')), array('import_episodes', $language::get('permission_import_episodes'), $language::get('permission_import_episodes_text')), array('import_movies', $language::get('permission_import_movies'), $language::get('permission_import_movies_text')), array('import_streams', $language::get('permission_import_streams'), $language::get('permission_import_streams_text')), array('database', $language::get('permission_database'), $language::get('permission_database_text')), array('mass_delete', $language::get('permission_mass_delete'), $language::get('permission_mass_delete_text')), array('mass_sedits_vod', $language::get('permission_mass_sedits_vod'), $language::get('permission_mass_sedits_vod_text')), array('mass_sedits', $language::get('permission_mass_sedits'), $language::get('permission_mass_sedits_text')), array('mass_edit_users', $language::get('permission_mass_edit_users'), $language::get('permission_mass_edit_users_text')), array('mass_edit_lines', $language::get('permission_mass_edit_lines'), $language::get('permission_mass_edit_lines_text')), array('mass_edit_mags', $language::get('permission_mass_edit_mags'), $language::get('permission_mass_edit_mags_text')), array('mass_edit_enigmas', $language::get('permission_mass_edit_enigmas'), $language::get('permission_mass_edit_enigmas_text')), array('mass_edit_streams', $language::get('permission_mass_edit_streams'), $language::get('permission_mass_edit_streams_text')), array('mass_edit_radio', $language::get('permission_mass_edit_radio'), $language::get('permission_mass_edit_radio_text')), array('mass_edit_reguser', $language::get('permission_mass_edit_reguser'), $language::get('permission_mass_edit_reguser_text')), array('ticket', $language::get('permission_ticket'), $language::get('permission_ticket_text')), array('subreseller', $language::get('permission_subreseller'), $language::get('permission_subreseller_text')), array('stream_tools', $language::get('permission_stream_tools'), $language::get('permission_stream_tools_text')), array('bouquets', $language::get('permission_bouquets'), $language::get('permission_bouquets_text')), array('categories', $language::get('permission_categories'), $language::get('permission_categories_text')), array('client_request_log', $language::get('permission_client_request_log'), $language::get('permission_client_request_log_text')), array('connection_logs', $language::get('permission_connection_logs'), $language::get('permission_connection_logs_text')), array('manage_cchannels', $language::get('permission_manage_cchannels'), $language::get('permission_manage_cchannels_text')), array('credits_log', $language::get('permission_credits_log'), $language::get('permission_credits_log_text')), array('index', $language::get('permission_index'), $language::get('permission_index_text')), array('manage_e2', $language::get('permission_manage_e2'), $language::get('permission_manage_e2_text')), array('epg', $language::get('permission_epg'), $language::get('permission_epg_text')), array('folder_watch', $language::get('permission_folder_watch'), $language::get('permission_folder_watch_text')), array('folder_watch_output', $language::get('permission_folder_watch_output'), $language::get('permission_folder_watch_output_text')), array('mng_groups', $language::get('permission_mng_groups'), $language::get('permission_mng_groups_text')), array('live_connections', $language::get('permission_live_connections'), $language::get('permission_live_connections_text')), array('login_logs', $language::get('permission_login_logs'), $language::get('permission_login_logs_text')), array('manage_mag', $language::get('permission_manage_mag'), $language::get('permission_manage_mag_text')), array('manage_events', $language::get('permission_manage_events'), $language::get('permission_manage_events_text')), array('movies', $language::get('permission_movies'), $language::get('permission_movies_text')), array('mng_packages', $language::get('permission_mng_packages'), $language::get('permission_mng_packages_text')), array('player', $language::get('permission_player'), $language::get('permission_player_text')), array('process_monitor', $language::get('permission_process_monitor'), $language::get('permission_process_monitor_text')), array('radio', $language::get('permission_radio'), $language::get('permission_radio_text')), array('mng_regusers', $language::get('permission_mng_regusers'), $language::get('permission_mng_regusers_text')), array('reg_userlog', $language::get('permission_reg_userlog'), $language::get('permission_reg_userlog_text')), array('rtmp', $language::get('permission_rtmp'), $language::get('permission_rtmp_text')), array('servers', $language::get('permission_servers'), $language::get('permission_servers_text')), array('stream_errors', $language::get('permission_stream_errors'), $language::get('permission_stream_errors_text')), array('streams', $language::get('permission_streams'), $language::get('permission_streams_text')), array('subresellers', $language::get('permission_subresellers'), $language::get('permission_subresellers_text')), array('manage_tickets', $language::get('permission_manage_tickets'), $language::get('permission_manage_tickets_text')), array('tprofiles', $language::get('permission_tprofiles'), $language::get('permission_tprofiles_text')), array('series', $language::get('permission_series'), $language::get('permission_series_text')), array('users', $language::get('permission_users'), $language::get('permission_users_text')), array('episodes', $language::get('permission_episodes'), $language::get('permission_episodes_text')), array('edit_tprofile', $language::get('permission_edit_tprofile'), $language::get('permission_edit_tprofile_text')), array('folder_watch_add', $language::get('permission_folder_watch_add'), $language::get('permission_folder_watch_add_text')), array('add_code', $language::get('permission_add_code'), $language::get('permission_add_code_text')), array('add_hmac', $language::get('permission_add_hmac'), $language::get('permission_add_hmac_text')), array('block_asns', $language::get('permission_block_asns'), $language::get('permission_block_asns_text')), array('panel_logs', $language::get('permission_panel_logs'), $language::get('permission_panel_logs_text')), array('quick_tools', $language::get('permission_quick_tools'), $language::get('permission_quick_tools_text')), array('restream_logs', $language::get('permission_restream_logs'), $language::get('permission_restream_logs_text')));
+$rPermissionsFile = MAIN_HOME . 'resources/data/permissions.php';
+if (!file_exists($rPermissionsFile)) {
+	$rPermissionsFile = INCLUDES_PATH . 'data/permissions.php';
+}
+$rAdvPermissions = require $rPermissionsFile;
 
 function getUserInfo($rUsername, $rPassword) {
 	global $db;
@@ -574,8 +578,7 @@ function getDirectReports($rIncludeSelf = true) {
 
 function hasResellerPermissions($rType) {
 	global $rPermissions;
-
-	return $rPermissions[$rType];
+	return Authorization::hasResellerPermissions($rPermissions, $rType);
 }
 
 
@@ -583,38 +586,7 @@ function hasPermissions($rType, $rID) {
 	global $rUserInfo;
 	global $db;
 	global $rPermissions;
-
-	if (isset($rUserInfo) && isset($rPermissions)) {
-		if ($rType == 'user') {
-			$rReports = array_map('intval', array_merge(array($rUserInfo['id']), $rPermissions['all_reports']));
-
-			if (0 < count($rReports)) {
-				$db->query('SELECT `id` FROM `users` WHERE `id` = ? AND (`owner_id` IN (' . implode(',', $rReports) . ') OR `id` = ?);', $rID, $rUserInfo['id']);
-				return 0 < $db->num_rows();
-			}
-
-			return false;
-		}
-
-		if ($rType == 'line') {
-			$rReports = array_map('intval', array_merge(array($rUserInfo['id']), $rPermissions['all_reports']));
-			if (0 < count($rReports)) {
-				$db->query('SELECT `id` FROM `lines` WHERE `id` = ? AND `member_id` IN (' . implode(',', $rReports) . ');', $rID);
-				return 0 < $db->num_rows();
-			}
-			return false;
-		}
-
-		if (!($rType == 'adv' && $rPermissions['is_admin'])) {
-			return false;
-		}
-
-		if (0 < count($rPermissions['advanced']) && $rUserInfo['member_group_id'] != 1) {
-			return in_array($rID, ($rPermissions['advanced'] ?: array()));
-		}
-		return true;
-	}
-	return false;
+	return Authorization::check($rType, $rID, $rUserInfo, $rPermissions, $db);
 }
 
 function getMemberGroups() {
@@ -869,16 +841,7 @@ function getSubUsers($rUser) {
 }
 
 function getAdminImage($rURL, $rMaxW, $rMaxH) {
-	list($rExtension) = explode('.', strtolower(pathinfo($rURL)['extension']));
-	$rImagePath = IMAGES_PATH . 'admin/' . md5($rURL) . '_' . $rMaxW . '_' . $rMaxH . '.' . $rExtension;
-
-	if (file_exists($rImagePath)) {
-		$rDomain = (empty(CoreUtilities::$rServers[SERVER_ID]['domain_name']) ? CoreUtilities::$rServers[SERVER_ID]['server_ip'] : explode(',', CoreUtilities::$rServers[SERVER_ID]['domain_name'])[0]);
-
-		return CoreUtilities::$rServers[SERVER_ID]['server_protocol'] . '://' . $rDomain . ':' . CoreUtilities::$rServers[SERVER_ID]['request_port'] . '/images/admin/' . md5($rURL) . '_' . $rMaxW . '_' . $rMaxH . '.' . $rExtension;
-	}
-
-	return CoreUtilities::validateImage($rURL);
+	return ImageUtils::resize($rURL, $rMaxW, $rMaxH);
 }
 
 function getStreamErrors($rStreamID, $rAmount = 250) {

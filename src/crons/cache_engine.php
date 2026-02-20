@@ -120,6 +120,17 @@ class Multithread {
     public function run() {
         while (0 < count($this->commands)) {
             foreach ($this->commands as $key => $command) {
+                if (!isset($this->thread[$key])) {
+                    unset($this->commands[$key]);
+                    self::launchNextInQueue();
+                    continue;
+                }
+                if (!isset($this->output[$key])) {
+                    $this->output[$key] = '';
+                }
+                if (!isset($this->error[$key])) {
+                    $this->error[$key] = '';
+                }
                 $this->output[$key] .= @$this->thread[$key]->listen();
                 $this->error[$key] .= @$this->thread[$key]->getError();
                 if ($this->thread[$key]->isActive()) {

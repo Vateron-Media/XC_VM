@@ -96,7 +96,7 @@ function getBlockedIPs() {
     exec('sudo iptables -nL --line-numbers -t filter', $rLines);
     foreach ($rLines as $rLine) {
         $rLine = explode(' ', preg_replace('!\\s+!', ' ', $rLine));
-        if ($rLine[1] == 'DROP') {
+        if (isset($rLine[1], $rLine[4]) && $rLine[1] == 'DROP') {
             $rReturn[] = $rLine[4];
         }
     }
@@ -104,7 +104,7 @@ function getBlockedIPs() {
     exec('sudo ip6tables -nL --line-numbers -t filter', $rLines);
     foreach ($rLines as $rLine) {
         $rLine = explode(' ', preg_replace('!\\s+!', ' ', $rLine));
-        if ($rLine[1] == 'DROP') {
+        if (isset($rLine[1], $rLine[3]) && $rLine[1] == 'DROP') {
             $rReturn[] = $rLine[3];
         }
     }
@@ -311,10 +311,10 @@ function loadCron() {
         exec('ps -fp ' . trim(shell_exec('pgrep -u xc_vm | tr "\n" "," | sed "s/,$//"')), $rOutput, $rReturnVar);
         foreach ($rOutput as $rProcess) {
             $rSplit = explode(' ', preg_replace('!\\s+!', ' ', trim($rProcess)));
-            if ($rSplit[8] == 'php-fpm:' && $rSplit[9] == 'master') {
+            if (isset($rSplit[8], $rSplit[9]) && $rSplit[8] == 'php-fpm:' && $rSplit[9] == 'master') {
                 $rPHP++;
             }
-            if ($rSplit[8] == 'nginx:' && $rSplit[9] == 'master') {
+            if (isset($rSplit[8], $rSplit[9]) && $rSplit[8] == 'nginx:' && $rSplit[9] == 'master') {
                 $rNginx++;
             }
         }

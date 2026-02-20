@@ -24,11 +24,14 @@ function sqlValue($value, $isNumeric = false) {
     }
 
     if ($isNumeric) {
-        return (int)$value;  // unquoted integer
+        if (!is_numeric($value)) {
+            return 'NULL';
+        }
+
+        return (string) ((int) $value);
     }
 
-    // Proper escaping using database method + normal single quotes
-    return "'" . $value . "'";
+    return $db->escape($value);
 }
 
 function parseLog(string $logFile): string {
@@ -80,14 +83,14 @@ function parseLog(string $logFile): string {
         $query .= sprintf(
             "(%d,%s,%s,%s,%s,%s,%s,%s,%s),",
             SERVER_ID,
-            sqlValue($row['type'] ?? null),           // string
-            sqlValue($row['log_message'] ?? null),    // string
-            sqlValue("'" . $db->escape($row['log_extra']) . "'" ?? null),      // string (can be long)
-            sqlValue($row['line'] ?? null, true),     // numeric → unquoted
-            sqlValue($row['time'] ?? null, true),     // numeric → unquoted
-            sqlValue($row['file'] ?? null),           // string
-            sqlValue($row['env'] ?? null),            // string
-            sqlValue($hash)                           // string (hash)
+            sqlValue($row['type'] ?? null),
+            sqlValue($row['log_message'] ?? null),
+            sqlValue($row['log_extra'] ?? null),
+            sqlValue($row['line'] ?? null, true),
+            sqlValue($row['time'] ?? null, true),
+            sqlValue($row['file'] ?? null),
+            sqlValue($row['env'] ?? null),
+            sqlValue($hash)
         );
     }
 
@@ -138,8 +141,10 @@ function loadCron() {
     if (file_exists($rLog)) {
         $rQuery = parseLog(LOGS_TMP_PATH . 'error_log.log');
         if ($rQuery !== '') {
-            $db->query("INSERT IGNORE INTO panel_logs(server_id, type, log_message, log_extra, line, date, file, env, `unique`) VALUES {$rQuery};");
-            unlink($rLog);
+            $rInserted = $db->query("INSERT IGNORE INTO panel_logs(server_id, type, log_message, log_extra, line, date, file, env, `unique`) VALUES {$rQuery};");
+            if ($rInserted) {
+                unlink($rLog);
+            }
         }
     }
 }
