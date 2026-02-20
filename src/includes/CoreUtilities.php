@@ -486,22 +486,6 @@ class CoreUtilities {
 		}
 		return '';
 	}
-	public static function saveLog($rType, $rMessage, $rExtra = '', $rLine = 0) {
-		if (stripos($rExtra, 'panel_logs') === false && stripos($rMessage, 'timeout exceeded') === false && stripos($rMessage, 'lock wait timeout') === false && stripos($rMessage, 'duplicate entry') === false) {
-			$rData = [
-				'type'    => $rType,
-				'message' => $rMessage,
-				'extra'   => $rExtra,
-				'line'    => $rLine,
-				'time'    => time(),
-				'env'     => php_sapi_name() // Add environment info
-			];
-
-			// Write log line
-			$logLine = base64_encode(json_encode($rData)) . "\n";
-			file_put_contents(LOGS_TMP_PATH . 'error_log.log', $logLine, FILE_APPEND | LOCK_EX);
-		}
-	}
 	public static function generateString($rLength = 10) {
 		$rCharacters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789qwertyuiopasdfghjklzxcvbnm';
 		$rString = '';
@@ -530,144 +514,6 @@ class CoreUtilities {
 		} else {
 			return $rArray;
 		}
-	}
-	public static function getStats() {
-		$rJSON = array();
-		$rJSON['cpu'] = round(self::getTotalCPU(), 2);
-		$rJSON['cpu_cores'] = intval(shell_exec('cat /proc/cpuinfo | grep "^processor" | wc -l'));
-		$rJSON['cpu_avg'] = round((sys_getloadavg()[0] * 100) / (($rJSON['cpu_cores'] ?: 1)), 2);
-		$rJSON['cpu_name'] = trim(shell_exec("cat /proc/cpuinfo | grep 'model name' | uniq | awk -F: '{print \$2}'"));
-		if ($rJSON['cpu_avg'] > 100) {
-			$rJSON['cpu_avg'] = 100;
-		}
-		$rMemInfo = self::getMemory();
-		$rJSON['total_mem'] = $rMemInfo['total'];
-		$rJSON['total_mem_free'] = $rMemInfo['free'];
-		$rJSON['total_mem_used'] = $rMemInfo['used'];
-		$rJSON['total_mem_used_percent'] = round(($rJSON['total_mem_used'] / $rJSON['total_mem']) * 100, 2);
-		$rJSON['total_disk_space'] = disk_total_space(MAIN_HOME);
-		$rJSON['free_disk_space'] = disk_free_space(MAIN_HOME);
-		$rJSON['kernel'] = trim(shell_exec('uname -r'));
-		$rJSON['uptime'] = self::getUptime();
-		$rJSON['total_running_streams'] = (int) trim(shell_exec('ps ax | grep -v grep | grep -c ffmpeg'));
-		$rJSON['bytes_sent'] = 0;
-		$rJSON['bytes_sent_total'] = 0;
-		$rJSON['bytes_received'] = 0;
-		$rJSON['bytes_received_total'] = 0;
-		$rJSON['network_speed'] = 0;
-		$rJSON['interfaces'] = self::getNetworkInterfaces();
-		$rJSON['network_speed'] = 0;
-		if ($rJSON['cpu'] > 100) {
-			$rJSON['cpu'] = 100;
-		}
-		if ($rJSON['total_mem'] < $rJSON['total_mem_used']) {
-			$rJSON['total_mem_used'] = $rJSON['total_mem'];
-		}
-		if ($rJSON['total_mem_used_percent'] > 100) {
-			$rJSON['total_mem_used_percent'] = 100;
-		}
-		$rJSON['network_info'] = CoreUtilities::getNetwork((self::$rServers[SERVER_ID]['network_interface'] == 'auto' ? null : self::$rServers[SERVER_ID]['network_interface']));
-		foreach ($rJSON['network_info'] as $rInterface => $rData) {
-			if (file_exists('/sys/class/net/' . $rInterface . '/speed')) {
-				$NetSpeed = intval(file_get_contents('/sys/class/net/' . $rInterface . '/speed'));
-				if (0 < $NetSpeed && $rJSON['network_speed'] == 0) {
-					$rJSON['network_speed'] = $NetSpeed;
-				}
-			}
-			$rJSON['bytes_sent_total'] = (intval(trim(file_get_contents('/sys/class/net/' . $rInterface . '/statistics/tx_bytes'))) ?: 0);
-			$rJSON['bytes_received_total'] = (intval(trim(file_get_contents('/sys/class/net/' . $rInterface . '/statistics/tx_bytes'))) ?: 0);
-			$rJSON['bytes_sent'] += $rData['out_bytes'];
-			$rJSON['bytes_received'] += $rData['in_bytes'];
-		}
-		$rJSON['audio_devices'] = array();
-		$rJSON['video_devices'] = $rJSON['audio_devices'];
-		$rJSON['gpu_info'] = $rJSON['video_devices'];
-		$rJSON['iostat_info'] = $rJSON['gpu_info'];
-		if (shell_exec('which iostat')) {
-			$rJSON['iostat_info'] = self::getIO();
-		}
-		if (shell_exec('which nvidia-smi')) {
-			$rJSON['gpu_info'] = self::getGPUInfo();
-		}
-		if (shell_exec('which v4l2-ctl')) {
-			$rJSON['video_devices'] = self::getVideoDevices();
-		}
-		if (shell_exec('which arecord')) {
-			$rJSON['audio_devices'] = self::getAudioDevices();
-		}
-		list($rJSON['cpu_load_average']) = sys_getloadavg();
-		return $rJSON;
-	}
-	public static function getNetworkInterfaces() {
-		$rReturn = array();
-		exec('ls /sys/class/net/', $rOutput, $rReturnVar);
-		foreach ($rOutput as $rInterface) {
-			$rInterface = trim(rtrim($rInterface, ':'));
-			if (!($rInterface != 'lo' && substr($rInterface, 0, 4) != 'bond')) {
-			} else {
-				$rReturn[] = $rInterface;
-			}
-		}
-		return $rReturn;
-	}
-	public static function getVideoDevices() {
-		$rReturn = array();
-		$rID = 0;
-		try {
-			$rDevices = array_values(array_filter(explode("\n", shell_exec('v4l2-ctl --list-devices'))));
-			if (is_array($rDevices)) {
-				foreach ($rDevices as $rKey => $rValue) {
-					if ($rKey % 2 == 0) {
-						$rReturn[$rID]['name'] = $rValue;
-						list(, $rReturn[$rID]['video_device']) = explode('/dev/', $rDevices[$rKey + 1]);
-						$rID++;
-					}
-				}
-			}
-		} catch (Exception $e) {
-		}
-		return $rReturn;
-	}
-	public static function getAudioDevices() {
-		try {
-			return array_filter(explode("\n", shell_exec('arecord -L | grep "hw:CARD="')));
-		} catch (Exception $e) {
-			return array();
-		}
-	}
-	public static function getIO() {
-		exec('iostat -o JSON -m', $rOutput, $rReturnVar);
-		$rOutput = implode('', $rOutput);
-		$rJSON = json_decode($rOutput, true);
-		if (isset($rJSON['sysstat'])) {
-			return $rJSON['sysstat']['hosts'][0]['statistics'][0];
-		}
-		return array();
-	}
-	public static function getGPUInfo() {
-		exec('nvidia-smi -x -q', $rOutput, $rReturnVar);
-		$rOutput = implode('', $rOutput);
-		if (stripos($rOutput, '<?xml') === false) {
-		} else {
-			$rJSON = json_decode(json_encode(simplexml_load_string($rOutput)), true);
-			if (!isset($rJSON['driver_version'])) {
-			} else {
-				$rGPU = array('attached_gpus' => $rJSON['attached_gpus'], 'driver_version' => $rJSON['driver_version'], 'cuda_version' => $rJSON['cuda_version'], 'gpus' => array());
-				if (!isset($rJSON['gpu']['board_id'])) {
-				} else {
-					$rJSON['gpu'] = array($rJSON['gpu']);
-				}
-				foreach ($rJSON['gpu'] as $rInstance) {
-					$rArray = array('name' => $rInstance['product_name'], 'power_readings' => $rInstance['power_readings'], 'utilisation' => $rInstance['utilization'], 'memory_usage' => $rInstance['fb_memory_usage'], 'fan_speed' => $rInstance['fan_speed'], 'temperature' => $rInstance['temperature'], 'clocks' => $rInstance['clocks'], 'uuid' => $rInstance['uuid'], 'id' => intval($rInstance['pci']['pci_device']), 'processes' => array());
-					foreach ($rInstance['processes']['process_info'] as $rProcess) {
-						$rArray['processes'][] = array('pid' => intval($rProcess['pid']), 'memory' => $rProcess['used_memory']);
-					}
-					$rGPU['gpus'][] = $rArray;
-				}
-				return $rGPU;
-			}
-		}
-		return array();
 	}
 	public static function searchEPG($rArray, $rKey, $rValue) {
 		$rResults = array();
@@ -706,149 +552,17 @@ class CoreUtilities {
 		file_put_contents($rFilename, getmypid());
 		return false;
 	}
+	/** @deprecated Use BruteforceGuard::checkFlood() */
 	public static function checkFlood($rIP = null) {
-		if (self::$rSettings['flood_limit'] != 0) {
-			if ($rIP) {
-			} else {
-				$rIP = self::getUserIP();
-			}
-			if (!(empty($rIP) || in_array($rIP, self::$rAllowedIPs))) {
-				$rFloodExclude = array_filter(array_unique(explode(',', self::$rSettings['flood_ips_exclude'])));
-				if (!in_array($rIP, $rFloodExclude)) {
-					$rIPFile = FLOOD_TMP_PATH . $rIP;
-					if (file_exists($rIPFile)) {
-						$rFloodRow = json_decode(file_get_contents($rIPFile), true);
-						$rFloodSeconds = self::$rSettings['flood_seconds'];
-						$rFloodLimit = self::$rSettings['flood_limit'];
-						if (time() - $rFloodRow['last_request'] <= $rFloodSeconds) {
-							$rFloodRow['requests']++;
-							if ($rFloodLimit > $rFloodRow['requests']) {
-								$rFloodRow['last_request'] = time();
-								file_put_contents($rIPFile, json_encode($rFloodRow), LOCK_EX);
-							} else {
-								if (in_array($rIP, self::$rBlockedIPs)) {
-								} else {
-									self::$db->query('INSERT INTO `blocked_ips` (`ip`,`notes`,`date`) VALUES(?,?,?)', $rIP, 'FLOOD ATTACK', time());
-									self::$rBlockedIPs = self::getBlockedIPs();
-								}
-								touch(FLOOD_TMP_PATH . 'block_' . $rIP);
-								unlink($rIPFile);
-								return null;
-							}
-						} else {
-							$rFloodRow['requests'] = 0;
-							$rFloodRow['last_request'] = time();
-							file_put_contents($rIPFile, json_encode($rFloodRow), LOCK_EX);
-						}
-					} else {
-						file_put_contents($rIPFile, json_encode(array('requests' => 0, 'last_request' => time())), LOCK_EX);
-					}
-				} else {
-					return null;
-				}
-			} else {
-				return null;
-			}
-		} else {
-			return null;
-		}
+		return BruteforceGuard::checkFlood($rIP);
 	}
+	/** @deprecated Use BruteforceGuard::checkBruteforce() */
 	public static function checkBruteforce($rIP = null, $rMAC = null, $rUsername = null) {
-		if ($rMAC || $rUsername) {
-			if (!($rMAC && self::$rSettings['bruteforce_mac_attempts'] == 0)) {
-				if (!($rUsername && self::$rSettings['bruteforce_username_attempts'] == 0)) {
-					if ($rIP) {
-					} else {
-						$rIP = self::getUserIP();
-					}
-					if (!(empty($rIP) || in_array($rIP, self::$rAllowedIPs))) {
-						$rFloodExclude = array_filter(array_unique(explode(',', self::$rSettings['flood_ips_exclude'])));
-						if (!in_array($rIP, $rFloodExclude)) {
-							$rFloodType = (!is_null($rMAC) ? 'mac' : 'user');
-							$rTerm = (!is_null($rMAC) ? $rMAC : $rUsername);
-							$rIPFile = FLOOD_TMP_PATH . $rIP . '_' . $rFloodType;
-							if (file_exists($rIPFile)) {
-								$rFloodRow = json_decode(file_get_contents($rIPFile), true);
-								$rFloodSeconds = intval(self::$rSettings['bruteforce_frequency']);
-								$rFloodLimit = intval(self::$rSettings[array('mac' => 'bruteforce_mac_attempts', 'user' => 'bruteforce_username_attempts')[$rFloodType]]);
-								$rFloodRow['attempts'] = self::truncateAttempts($rFloodRow['attempts'], $rFloodSeconds);
-								if (in_array($rTerm, array_keys($rFloodRow['attempts']))) {
-								} else {
-									$rFloodRow['attempts'][$rTerm] = time();
-									if ($rFloodLimit > count($rFloodRow['attempts'])) {
-										file_put_contents($rIPFile, json_encode($rFloodRow), LOCK_EX);
-									} else {
-										self::$db->query('INSERT INTO `blocked_ips` (`ip`,`notes`,`date`) VALUES(?,?,?)', $rIP, 'BRUTEFORCE ' . strtoupper($rFloodType) . ' ATTACK', time());
-										touch(FLOOD_TMP_PATH . 'block_' . $rIP);
-										unlink($rIPFile);
-										return null;
-									}
-								}
-							} else {
-								$rFloodRow = array('attempts' => array($rTerm => time()));
-								file_put_contents($rIPFile, json_encode($rFloodRow), LOCK_EX);
-							}
-						} else {
-							return null;
-						}
-					} else {
-						return null;
-					}
-				} else {
-					return null;
-				}
-			} else {
-				return null;
-			}
-		} else {
-			return null;
-		}
+		return BruteforceGuard::checkBruteforce($rIP, $rMAC, $rUsername);
 	}
+	/** @deprecated Use BruteforceGuard::truncateAttempts() */
 	public static function truncateAttempts($rAttempts, $rFrequency, $rList = false) {
-		$rAllowedAttempts = array();
-		$rTime = time();
-		if ($rList) {
-			foreach ($rAttempts as $rAttemptTime) {
-				if ($rTime - $rAttemptTime > $rFrequency) {
-				} else {
-					$rAllowedAttempts[] = $rAttemptTime;
-				}
-			}
-		} else {
-			foreach ($rAttempts as $rAttempt => $rAttemptTime) {
-				if ($rTime - $rAttemptTime > $rFrequency) {
-				} else {
-					$rAllowedAttempts[$rAttempt] = $rAttemptTime;
-				}
-			}
-		}
-		return $rAllowedAttempts;
-	}
-	public static function getTotalCPU() {
-		$rTotalLoad = 0;
-		exec('ps -Ao pid,pcpu', $processes);
-		foreach ($processes as $process) {
-			$cols = explode(' ', preg_replace('!\\s+!', ' ', trim($process)));
-			if (count($cols) >= 2 && is_numeric($cols[1])) {
-				$rTotalLoad += floatval($cols[1]);
-			}
-		}
-
-		// Get CPU core count with fallback
-		$cpuCores = 1; // Default fallback
-
-		// Method 1: Try /proc/cpuinfo
-		$coreCount = intval(shell_exec("grep -P '^processor' /proc/cpuinfo|wc -l"));
-		if ($coreCount > 0) {
-			$cpuCores = $coreCount;
-		}
-
-		// Avoid division by zero
-		if ($cpuCores <= 0) {
-			$cpuCores = 1;
-		}
-
-		return $rTotalLoad / $cpuCores;
+		return BruteforceGuard::truncateAttempts($rAttempts, $rFrequency, $rList);
 	}
 	public static function getCategories($rType = null, $rForce = false) {
 		if (is_string($rType)) {
@@ -1334,13 +1048,6 @@ class CoreUtilities {
 		} else {
 			return false;
 		}
-	}
-	public static function getUptime() {
-		if (!(file_exists('/proc/uptime') && is_readable('/proc/uptime'))) {
-			return '';
-		}
-		$tmp = explode(' ', file_get_contents('/proc/uptime'));
-		return self::secondsToTime(intval($tmp[0]));
 	}
 	public static function secondsToTime($rInputSeconds, $rInclSecs = true) {
 		$rSecondsInAMinute = 60;
@@ -3630,47 +3337,9 @@ class CoreUtilities {
 			return null;
 		}
 	}
+	/** @deprecated Use BruteforceGuard::checkAuthFlood() */
 	public static function checkAuthFlood($rUser, $rIP = null) {
-		if (self::$rSettings['auth_flood_limit'] != 0) {
-			if (!$rUser['is_restreamer']) {
-				if ($rIP) {
-				} else {
-					$rIP = self::getUserIP();
-				}
-				if (!(empty($rIP) || in_array($rIP, self::$rAllowedIPs))) {
-					$rFloodExclude = array_filter(array_unique(explode(',', self::$rSettings['flood_ips_exclude'])));
-					if (!in_array($rIP, $rFloodExclude)) {
-						$rUserFile = FLOOD_TMP_PATH . intval($rUser['id']) . '_' . $rIP;
-						if (file_exists($rUserFile)) {
-							$rFloodRow = json_decode(file_get_contents($rUserFile), true);
-							if (!(isset($rFloodRow['block_until']) && time() < $rFloodRow['block_until'])) {
-							} else {
-								sleep(intval(self::$rSettings['auth_flood_sleep']));
-							}
-							$rFloodSeconds = self::$rSettings['auth_flood_seconds'];
-							$rFloodLimit = self::$rSettings['auth_flood_limit'];
-							$rFloodRow['attempts'] = self::truncateAttempts($rFloodRow['attempts'], $rFloodSeconds, true);
-							if ($rFloodLimit > count($rFloodRow['attempts'])) {
-							} else {
-								$rFloodRow['block_until'] = time() + intval(self::$rSettings['auth_flood_seconds']);
-							}
-							$rFloodRow['attempts'][] = time();
-							file_put_contents($rUserFile, json_encode($rFloodRow), LOCK_EX);
-						} else {
-							file_put_contents($rUserFile, json_encode(array('attempts' => array(time()))), LOCK_EX);
-						}
-					} else {
-						return null;
-					}
-				} else {
-					return null;
-				}
-			} else {
-				return null;
-			}
-		} else {
-			return null;
-		}
+		return BruteforceGuard::checkAuthFlood($rUser, $rIP);
 	}
 	public static function getCapacity($rProxy = false) {
 		$rFile = ($rProxy ? 'proxy_capacity' : 'servers_capacity');
@@ -4528,18 +4197,6 @@ class CoreUtilities {
 			return $rData[$rProgrammeID];
 		}
 	}
-	public static function getNetwork($rInterface = null) {
-		$rReturn = array();
-		if (file_exists(LOGS_TMP_PATH . 'network')) {
-			$rNetwork = json_decode(file_get_contents(LOGS_TMP_PATH . 'network'), true);
-			foreach ($rNetwork as $rLine) {
-				if (!($rInterface && $rLine[0] != $rInterface) && !($rLine[0] == 'lo' || !$rInterface && substr($rLine[0], 0, 4) == 'bond')) {
-					$rReturn[$rLine[0]] = array('in_bytes' => intval($rLine[1] / 2), 'in_packets' => $rLine[2], 'in_errors' => $rLine[3], 'out_bytes' => intval($rLine[4] / 2), 'out_packets' => $rLine[5], 'out_errors' => $rLine[6]);
-				}
-			}
-		}
-		return $rReturn;
-	}
 	public static function getProxies($rServerID, $rOnline = true) {
 		$rReturn = array();
 		foreach (self::$rServers as $rProxyID => $rServerInfo) {
@@ -4618,36 +4275,6 @@ class CoreUtilities {
 		self::$db->query("REVOKE ALL PRIVILEGES ON `" . self::$rConfig['database'] . "`.* FROM '" . self::$rConfig['username'] . "'@'" . $Host . "';");
 	}
 
-	public static function getMemory() {
-		try {
-			$rFree = explode("\n", file_get_contents('/proc/meminfo'));
-			$rMemory = array();
-
-			foreach ($rFree as $rLine) {
-				if (empty($rLine)) continue;
-
-				// PHP 8 fix: Better string parsing
-				$rParts = preg_split('/\s+/', trim($rLine));
-				if (count($rParts) >= 2) {
-					$rKey = rtrim($rParts[0], ':');
-					$rValue = intval($rParts[1]);
-					$rMemory[$rKey] = $rValue;
-				}
-			}
-
-			if (isset($rMemory['MemTotal'], $rMemory['MemAvailable'])) {
-				return array(
-					'total' => $rMemory['MemTotal'],
-					'free' => $rMemory['MemAvailable'],
-					'used' => $rMemory['MemTotal'] - $rMemory['MemAvailable']
-				);
-			}
-
-			return array('total' => 0, 'free' => 0, 'used' => 0);
-		} catch (Exception $e) {
-			return array('total' => 0, 'free' => 0, 'used' => 0);
-		}
-	}
 
 	/**
 	 * Retrieves a valid Plex authentication token for a given server.

@@ -204,14 +204,14 @@ class EPG {
 			}
 
 			if (!$this->rFilename) {
-				CoreUtilities::saveLog('epg', 'No XML found at: ' . $rSource);
+				FileLogger::log('epg', 'No XML found at: ' . $rSource);
 				return;
 			}
 
 			$rXML = XmlStringStreamer::createStringWalkerParser($this->rFilename);
 
 			if (!$rXML) {
-				CoreUtilities::saveLog('epg', 'Not a valid EPG source: ' . $rSource);
+				FileLogger::log('epg', 'Not a valid EPG source: ' . $rSource);
 				print_log("[EPG] Failed to create XML parser for: $rSource");
 				return;
 			}
@@ -220,7 +220,7 @@ class EPG {
 			$this->rValid     = true;
 			print_log("[EPG] EPG source loaded successfully: $rSource");
 		} catch (Exception $e) {
-			CoreUtilities::saveLog('epg', 'EPG failed to process: ' . $rSource);
+			FileLogger::log('epg', 'EPG failed to process: ' . $rSource);
 			print_log("[EPG] Exception while loading EPG: " . $e->getMessage() . " | Source: $rSource");
 		}
 	}

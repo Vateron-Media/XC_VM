@@ -117,7 +117,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 				shell_exec('sudo mysql xc_vm < "' . MAIN_HOME . 'bin/install/database.sql"');
 				shell_exec('sudo ' . PHP_BIN . ' ' . INCLUDES_PATH . 'startup.php');
 				grantPrivilegesToAllServers();
-				$db = new Database($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
+				$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
 				CoreUtilities::$db = &$db;
 				CoreUtilities::init();
 				API::$db = &$db;

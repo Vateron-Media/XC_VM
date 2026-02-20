@@ -5,7 +5,7 @@ require '../init.php';
 $rSignals = array();
 
 if (CoreUtilities::isProxy($_SERVER['REMOTE_ADDR'])) {
-	$db = new Database($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
+	$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
 	CoreUtilities::$db = &$db;
 	$rServers = CoreUtilities::$rServers;
 	$rServerID = intval($_POST['server_id']);

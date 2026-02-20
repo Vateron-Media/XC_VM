@@ -1348,8 +1348,8 @@ if (!StreamingUtilities::$rSettings['disable_ministra']) {
 				} else {
 					if (!($rReqType == 'stb' && $rReqAction == 'get_profile')) {
 					} else {
-						StreamingUtilities::checkBruteforce($rIP, $rMAC);
-						StreamingUtilities::checkFlood();
+						BruteforceGuard::checkBruteforce($rIP, $rMAC);
+						BruteforceGuard::checkFlood();
 					}
 
 					exit();

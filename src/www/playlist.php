@@ -128,7 +128,7 @@ if ($rUserInfo) {
 	$rDownloading = true;
 
 	if (CoreUtilities::startDownload('playlist', $rUserInfo, getmypid())) {
-		$db = new Database($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
+		$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
 		CoreUtilities::$db = &$db;
 
 		if (!CoreUtilities::generatePlaylist($rUserInfo, $rDeviceKey, $rOutputKey, $rTypeKey, $rNoCache, CoreUtilities::isProxy($_SERVER['HTTP_X_IP']))) {
@@ -141,7 +141,7 @@ if ($rUserInfo) {
 		exit();
 	}
 } else {
-	CoreUtilities::checkBruteforce(null, null, $rUsername);
+	BruteforceGuard::checkBruteforce(null, null, $rUsername);
 	generateError('INVALID_CREDENTIALS');
 }
 
@@ -153,7 +153,7 @@ function shutdown() {
 
 	if (!$rDeny) {
 	} else {
-		CoreUtilities::checkFlood();
+		BruteforceGuard::checkFlood();
 	}
 
 	if (!is_object($db)) {

@@ -43,7 +43,7 @@ if (!empty(CoreUtilities::$rRequest['uitoken'])) {
 	}
 }
 
-$db = new Database($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
+$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
 CoreUtilities::$db = &$db;
 $rPassword = CoreUtilities::$rSettings['live_streaming_pass'];
 $rStreamID = intval(CoreUtilities::$rRequest['stream']);

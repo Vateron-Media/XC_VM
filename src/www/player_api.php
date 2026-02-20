@@ -94,7 +94,7 @@ if ($rUserInfo) {
 		generateError('EXPIRED');
 	}
 
-	StreamingUtilities::checkAuthFlood($rUserInfo);
+	BruteforceGuard::checkAuthFlood($rUserInfo);
 	header('Content-Type: application/json');
 
 	if (isset($_SERVER['HTTP_ORIGIN'])) {
@@ -730,7 +730,7 @@ if ($rUserInfo) {
 	echo json_encode($output);
 	exit();
 } else {
-	StreamingUtilities::checkBruteforce(null, null, $rUsername);
+	BruteforceGuard::checkBruteforce(null, null, $rUsername);
 	generateError('INVALID_CREDENTIALS');
 }
 
@@ -749,7 +749,7 @@ function shutdown() {
 	global $rDeny;
 
 	if ($rDeny) {
-		StreamingUtilities::checkFlood();
+		BruteforceGuard::checkFlood();
 	}
 
 	if (is_object(StreamingUtilities::$db)) {

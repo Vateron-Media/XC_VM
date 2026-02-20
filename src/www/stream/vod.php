@@ -49,7 +49,7 @@ if (isset(StreamingUtilities::$rRequest['token'])) {
 
 	if (is_array($rTokenData)) {
 	} else {
-		StreamingUtilities::clientLog(0, 0, 'LB_TOKEN_INVALID', $rIP);
+		DatabaseLogger::clientLog(0, 0, 'LB_TOKEN_INVALID', $rIP);
 		generateError('LB_TOKEN_INVALID');
 	}
 
@@ -161,7 +161,7 @@ if ($rChannelInfo) {
 
 		if ($rIPMatch || !StreamingUtilities::$rSettings['restrict_same_ip']) {
 		} else {
-			StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'IP_MISMATCH', $rIP);
+			DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'IP_MISMATCH', $rIP);
 			generateError('IP_MISMATCH');
 		}
 
@@ -187,7 +187,7 @@ if ($rChannelInfo) {
 	}
 
 	if (!$rResult) {
-		StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'LINE_CREATE_FAIL', $rIP);
+		DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'LINE_CREATE_FAIL', $rIP);
 		generateError('LINE_CREATE_FAIL');
 	}
 

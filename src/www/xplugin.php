@@ -14,7 +14,7 @@ $rIP = $_SERVER['REMOTE_ADDR'];
 $rUserAgent = trim($_SERVER['HTTP_USER_AGENT']);
 
 if (empty(CoreUtilities::$rRequest['action']) || CoreUtilities::$rRequest['action'] != 'gen_mac' || empty(CoreUtilities::$rRequest['pversion'])) {
-	$db = new Database($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
+	$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
 	CoreUtilities::$db = &$db;
 
 	if (empty(CoreUtilities::$rRequest['action']) || CoreUtilities::$rRequest['action'] != 'auth') {
@@ -37,7 +37,7 @@ if (empty(CoreUtilities::$rRequest['action']) || CoreUtilities::$rRequest['actio
 			} else {
 				if (empty($rDevice['enigma2']['modem_mac']) || $rDevice['enigma2']['modem_mac'] === $rModemMAC) {
 				} else {
-					CoreUtilities::checkBruteforce(null, strtoupper($rMAC));
+					BruteforceGuard::checkBruteforce(null, strtoupper($rMAC));
 					generateError('E2_DEVICE_LOCK_FAILED');
 				}
 			}
@@ -56,7 +56,7 @@ if (empty(CoreUtilities::$rRequest['action']) || CoreUtilities::$rRequest['actio
 			exit();
 		}
 
-		CoreUtilities::checkBruteforce(null, strtoupper($rMAC));
+		BruteforceGuard::checkBruteforce(null, strtoupper($rMAC));
 		generateError('INVALID_CREDENTIALS');
 	}
 
@@ -187,7 +187,7 @@ function shutdown() {
 
 	if (!$rDeny) {
 	} else {
-		CoreUtilities::checkFlood();
+		BruteforceGuard::checkFlood();
 	}
 
 	if (!is_object($db)) {
