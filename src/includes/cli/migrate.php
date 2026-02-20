@@ -11,7 +11,7 @@ $rMigrateOptions = (json_decode(file_get_contents(TMP_PATH . '.migration.options
 
 file_put_contents(TMP_PATH . '.migration.pid', getmypid());
 file_put_contents(TMP_PATH . '.migration.status', 1);
-$odb = new Database($_INFO['username'], $_INFO['password'], "xc_vm_migrate", $_INFO['hostname'], $_INFO['port'], true);
+$odb = new DatabaseHandler($_INFO['username'], $_INFO['password'], "xc_vm_migrate", $_INFO['hostname'], $_INFO['port'], true);
 if (!$odb->connected) {
     echo 'Failed to connect to migration database, or database is empty!' . "\n";
     file_put_contents(TMP_PATH . '.migration.status', 3);

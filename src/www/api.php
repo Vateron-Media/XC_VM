@@ -178,7 +178,7 @@ function loadapi() {
 
 			// no break
 		case 'stats':
-			echo json_encode(CoreUtilities::getStats());
+			echo json_encode(SystemInfo::getStats());
 
 			exit();
 
@@ -507,7 +507,7 @@ function shutdown() {
 	global $rDeny;
 
 	if ($rDeny) {
-		CoreUtilities::checkFlood();
+		BruteforceGuard::checkFlood();
 	}
 
 	if (is_object($db)) {

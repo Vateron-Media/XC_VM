@@ -4,11 +4,11 @@ if (isset($rSkipVerify) || php_sapi_name() != 'cli') {
 	session_start();
 
 	require_once '/home/xc_vm/www/constants.php';
-	require_once INCLUDES_PATH . 'Database.php';
+	require_once MAIN_HOME . 'core/Database/DatabaseHandler.php';
 	require_once INCLUDES_PATH . 'CoreUtilities.php';
 	require_once INCLUDES_PATH . 'libs/tmdb.php';
 
-	$db = new Database($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
+	$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
 	CoreUtilities::$db = &$db;
 	CoreUtilities::init();
 

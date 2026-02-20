@@ -15,7 +15,7 @@ if (empty(CoreUtilities::$rSettings['api_pass']) || CoreUtilities::$rRequest['ap
 	generate404();
 }
 
-$db = new Database($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
+$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
 CoreUtilities::$db = &$db;
 $rAction = (!empty(CoreUtilities::$rRequest['action']) ? CoreUtilities::$rRequest['action'] : '');
 $rSubAction = (!empty(CoreUtilities::$rRequest['sub']) ? CoreUtilities::$rRequest['sub'] : '');

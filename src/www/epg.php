@@ -159,7 +159,7 @@ if ($rUserInfo) {
 
 	exit();
 } else {
-	CoreUtilities::checkBruteforce(null, null, $rUsername);
+	BruteforceGuard::checkBruteforce(null, null, $rUsername);
 	generateError('INVALID_CREDENTIALS');
 }
 
@@ -186,7 +186,7 @@ function shutdown() {
 	global $rDownloading;
 
 	if ($rDeny) {
-		CoreUtilities::checkFlood();
+		BruteforceGuard::checkFlood();
 	}
 
 	if (is_object($db)) {

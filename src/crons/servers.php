@@ -103,7 +103,7 @@ function loadCron() {
                 }
             }
         }
-        $rStats = CoreUtilities::getStats();
+        $rStats = SystemInfo::getStats();
         $rWatchdog = json_decode($rServers[SERVER_ID]['watchdog_data'], true);
         $rCPUAverage = ($rWatchdog['cpu_average_array'] ?: array());
         if (0 >= count($rCPUAverage)) {

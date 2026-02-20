@@ -223,7 +223,7 @@ if ($rExtension) {
 
 	if ($rUserInfo || $rIsHMAC) {
 		$rDeny = false;
-		StreamingUtilities::checkAuthFlood($rUserInfo, $rIP);
+		BruteforceGuard::checkAuthFlood($rUserInfo, $rIP);
 
 		if ((StreamingUtilities::$rServers[SERVER_ID]['enable_proxy'] && !StreamingUtilities::isProxy($_SERVER['HTTP_X_IP']) && (!$rUserInfo['is_restreamer'] || !StreamingUtilities::$rSettings['restreamer_bypass_proxy']))) {
 			generateError('PROXY_ACCESS_DENIED');
@@ -240,7 +240,7 @@ if ($rExtension) {
 
 		if (!$rIsHMAC) {
 			if (!(is_null($rUserInfo['exp_date']) || $rUserInfo['exp_date'] > time())) {
-				StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'USER_EXPIRED', $rIP);
+				DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'USER_EXPIRED', $rIP);
 
 				if (in_array($rType, array('live', 'timeshift'))) {
 					StreamingUtilities::showVideoServer('show_expired_video', 'expired_video_path', $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo['con_isp_name'], SERVER_ID);
@@ -254,7 +254,7 @@ if ($rExtension) {
 			}
 
 			if ($rUserInfo['admin_enabled'] == 0) {
-				StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'USER_BAN', $rIP);
+				DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'USER_BAN', $rIP);
 
 				if (in_array($rType, array('live', 'timeshift'))) {
 					StreamingUtilities::showVideoServer('show_banned_video', 'banned_video_path', $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo['con_isp_name'], SERVER_ID);
@@ -268,7 +268,7 @@ if ($rExtension) {
 			}
 
 			if ($rUserInfo['enabled'] == 0) {
-				StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'USER_DISABLED', $rIP);
+				DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'USER_DISABLED', $rIP);
 
 				if (in_array($rType, array('live', 'timeshift'))) {
 					StreamingUtilities::showVideoServer('show_banned_video', 'banned_video_path', $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo['con_isp_name'], SERVER_ID);
@@ -289,12 +289,12 @@ if ($rExtension) {
 				}
 
 				if ((empty($rUserAgent) && StreamingUtilities::$rSettings['disallow_empty_user_agents'])) {
-					StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'EMPTY_UA', $rIP);
+					DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'EMPTY_UA', $rIP);
 					generateError('EMPTY_USER_AGENT');
 				}
 
 				if (!(empty($rUserInfo['allowed_ips']) || in_array($rIP, array_map('gethostbyname', $rUserInfo['allowed_ips'])))) {
-					StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'IP_BAN', $rIP);
+					DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'IP_BAN', $rIP);
 					generateError('NOT_IN_ALLOWED_IPS');
 				}
 
@@ -302,28 +302,28 @@ if ($rExtension) {
 					$rForceCountry = !empty($rUserInfo['forced_country']);
 
 					if (($rForceCountry && $rUserInfo['forced_country'] != 'ALL' && $rCountryCode != $rUserInfo['forced_country'])) {
-						StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'COUNTRY_DISALLOW', $rIP);
+						DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'COUNTRY_DISALLOW', $rIP);
 						generateError('FORCED_COUNTRY_INVALID');
 					}
 
 					if (!($rForceCountry || in_array('ALL', StreamingUtilities::$rSettings['allow_countries']) || in_array($rCountryCode, StreamingUtilities::$rSettings['allow_countries']))) {
-						StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'COUNTRY_DISALLOW', $rIP);
+						DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'COUNTRY_DISALLOW', $rIP);
 						generateError('NOT_IN_ALLOWED_COUNTRY');
 					}
 				}
 
 				if (!(empty($rUserInfo['allowed_ua']) || in_array($rUserAgent, $rUserInfo['allowed_ua']))) {
-					StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'USER_AGENT_BAN', $rIP);
+					DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'USER_AGENT_BAN', $rIP);
 					generateError('NOT_IN_ALLOWED_UAS');
 				}
 
 				if ($rUserInfo['isp_violate']) {
-					StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'ISP_LOCK_FAILED', $rIP, json_encode(array('old' => $rUserInfo['isp_desc'], 'new' => $rUserInfo['con_isp_name'])));
+					DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'ISP_LOCK_FAILED', $rIP, json_encode(array('old' => $rUserInfo['isp_desc'], 'new' => $rUserInfo['con_isp_name'])));
 					generateError('ISP_BLOCKED');
 				}
 
 				if ($rUserInfo['isp_is_server'] && !$rUserInfo['is_restreamer']) {
-					StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'BLOCKED_ASN', $rIP, json_encode(array('user_agent' => $rUserAgent, 'isp' => $rUserInfo['con_isp_name'], 'asn' => $rUserInfo['isp_asn'])), true);
+					DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'BLOCKED_ASN', $rIP, json_encode(array('user_agent' => $rUserAgent, 'isp' => $rUserInfo['con_isp_name'], 'asn' => $rUserInfo['isp_asn'])), true);
 					generateError('ASN_BLOCKED');
 				}
 
@@ -334,7 +334,7 @@ if ($rExtension) {
 						generateError('TOKEN_EXPIRED');
 					} else {
 						if (($rExpiry && $rExpiry < time())) {
-							StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'TOKEN_EXPIRED', $rIP);
+							DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'TOKEN_EXPIRED', $rIP);
 							generateError('TOKEN_EXPIRED');
 						}
 					}
@@ -352,27 +352,27 @@ if ($rExtension) {
 			// 		$rStalkerData = explode('=', $rDecryptKey);
 
 			// 		if ($rStalkerData[2] != $rStreamID) {
-			// 			StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'STALKER_CHANNEL_MISMATCH', $rIP);
+			// 			DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'STALKER_CHANNEL_MISMATCH', $rIP);
 			// 			generateError('STALKER_CHANNEL_MISMATCH');
 			// 		}
 
 			// 		$rIPMatch = (StreamingUtilities::$rSettings['ip_subnet_match'] ? implode('.', array_slice(explode('.', $rStalkerData[1]), 0, -1)) == implode('.', array_slice(explode('.', $rIP), 0, -1)) : $rStalkerData[1] == $rIP);
 
 			// 		if (!$rIPMatch && StreamingUtilities::$rSettings['restrict_same_ip']) {
-			// 			StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'STALKER_IP_MISMATCH', $rIP);
+			// 			DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'STALKER_IP_MISMATCH', $rIP);
 			// 			generateError('STALKER_IP_MISMATCH');
 			// 		}
 
 			// 		$rCreateExpiration = (StreamingUtilities::$rSettings['create_expiration'] ?: 5);
 
 			// 		if ($rStalkerData[3] < time() - $rCreateExpiration) {
-			// 			StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'STALKER_KEY_EXPIRED', $rIP);
+			// 			DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'STALKER_KEY_EXPIRED', $rIP);
 			// 			generateError('STALKER_KEY_EXPIRED');
 			// 		}
 
 			// 		$rExternalDevice = $rStalkerData[0];
 			// 	} else {
-			// 		StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'STALKER_DECRYPT_FAILED', $rIP);
+			// 		DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'STALKER_DECRYPT_FAILED', $rIP);
 			// 		generateError('STALKER_DECRYPT_FAILED');
 			// 	}
 			// }
@@ -384,12 +384,12 @@ if ($rExtension) {
 
 						if ($rCIDR) {
 							if ((StreamingUtilities::$rSettings['block_streaming_servers'] && $rCIDR[3]) && !$rCIDR[4]) {
-								StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'HOSTING_DETECT', $rIP, json_encode(array('user_agent' => $rUserAgent, 'isp' => $rUserInfo['con_isp_name'], 'asn' => $rUserInfo['isp_asn'])), true);
+								DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'HOSTING_DETECT', $rIP, json_encode(array('user_agent' => $rUserAgent, 'isp' => $rUserInfo['con_isp_name'], 'asn' => $rUserInfo['isp_asn'])), true);
 								generateError('HOSTING_DETECT');
 							}
 
 							if ((StreamingUtilities::$rSettings['block_proxies'] && $rCIDR[4])) {
-								StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'PROXY_DETECT', $rIP, json_encode(array('user_agent' => $rUserAgent, 'isp' => $rUserInfo['con_isp_name'], 'asn' => $rUserInfo['isp_asn'])), true);
+								DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'PROXY_DETECT', $rIP, json_encode(array('user_agent' => $rUserAgent, 'isp' => $rUserInfo['con_isp_name'], 'asn' => $rUserInfo['isp_asn'])), true);
 								generateError('PROXY_DETECT');
 							}
 						}
@@ -405,7 +405,7 @@ if ($rExtension) {
 						}
 
 						if ((StreamingUtilities::$rSettings['restream_deny_unauthorised'] || StreamingUtilities::$rSettings['detect_restream_block_user'])) {
-							StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'RESTREAM_DETECT', $rIP, json_encode(array('user_agent' => $rUserAgent, 'isp' => $rUserInfo['con_isp_name'], 'asn' => $rUserInfo['isp_asn'])), true);
+							DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'RESTREAM_DETECT', $rIP, json_encode(array('user_agent' => $rUserAgent, 'isp' => $rUserInfo['con_isp_name'], 'asn' => $rUserInfo['isp_asn'])), true);
 							generateError('RESTREAM_DETECT');
 						}
 					}
@@ -414,7 +414,7 @@ if ($rExtension) {
 
 			if ($rType == 'live') {
 				if (!in_array($rExtension, $rUserInfo['output_formats'])) {
-					StreamingUtilities::clientLog($rStreamID, $rUserInfo['id'], 'USER_DISALLOW_EXT', $rIP);
+					DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'USER_DISALLOW_EXT', $rIP);
 					generateError('USER_DISALLOW_EXT');
 				}
 			}
@@ -430,8 +430,8 @@ if ($rExtension) {
 			}
 		}
 	} else {
-		StreamingUtilities::checkBruteforce($rIP, null, $rUsername);
-		StreamingUtilities::clientLog($rStreamID, 0, 'AUTH_FAILED', $rIP);
+		BruteforceGuard::checkBruteforce($rIP, null, $rUsername);
+		DatabaseLogger::clientLog($rStreamID, 0, 'AUTH_FAILED', $rIP);
 		generateError('INVALID_CREDENTIALS');
 	}
 
@@ -790,7 +790,7 @@ function shutdown() {
 	global $db;
 
 	if ($rDeny) {
-		StreamingUtilities::checkFlood();
+		BruteforceGuard::checkFlood();
 	}
 
 	if (is_object($db)) {

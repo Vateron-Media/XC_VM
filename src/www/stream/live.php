@@ -44,7 +44,7 @@ if (isset(StreamingUtilities::$rRequest["token"])) {
     $rTokenData = json_decode(StreamingUtilities::decryptData(StreamingUtilities::$rRequest["token"], StreamingUtilities::$rSettings["live_streaming_pass"], OPENSSL_EXTRA), true);
 
     if (!is_array($rTokenData)) {
-        StreamingUtilities::clientLog(0, 0, "LB_TOKEN_INVALID", $rIP);
+        DatabaseLogger::clientLog(0, 0, "LB_TOKEN_INVALID", $rIP);
         generateError("LB_TOKEN_INVALID");
     }
 
@@ -238,7 +238,7 @@ if ($rChannelInfo) {
         $rIPMatch = (StreamingUtilities::$rSettings["ip_subnet_match"] ? implode(".", array_slice(explode(".", $rAcceptIP), 0, -1)) == implode(".", array_slice(explode(".", $rIP), 0, -1)) : $rAcceptIP == $rIP);
 
         if ($rAcceptIP && !$rIPMatch) {
-            StreamingUtilities::clientLog($rStreamID, $rUserInfo["id"], "USER_ALREADY_CONNECTED", $rIP);
+            DatabaseLogger::clientLog($rStreamID, $rUserInfo["id"], "USER_ALREADY_CONNECTED", $rIP);
             StreamingUtilities::showVideoServer("show_connected_video", "connected_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
         }
     }
@@ -285,7 +285,7 @@ if ($rChannelInfo) {
                 $rIPMatch = (StreamingUtilities::$rSettings["ip_subnet_match"] ? implode(".", array_slice(explode(".", $rConnection["user_ip"]), 0, -1)) == implode(".", array_slice(explode(".", $rIP), 0, -1)) : $rConnection["user_ip"] == $rIP);
 
                 if (!$rIPMatch && StreamingUtilities::$rSettings["restrict_same_ip"]) {
-                    StreamingUtilities::clientLog($rStreamID, $rUserInfo["id"], "IP_MISMATCH", $rIP);
+                    DatabaseLogger::clientLog($rStreamID, $rUserInfo["id"], "IP_MISMATCH", $rIP);
                     generateError("IP_MISMATCH");
                 }
 
@@ -303,7 +303,7 @@ if ($rChannelInfo) {
             }
 
             if (!$rResult) {
-                StreamingUtilities::clientLog($rStreamID, $rUserInfo["id"], "LINE_CREATE_FAIL", $rIP);
+                DatabaseLogger::clientLog($rStreamID, $rUserInfo["id"], "LINE_CREATE_FAIL", $rIP);
                 generateError("LINE_CREATE_FAIL");
             }
 
@@ -368,7 +368,7 @@ if ($rChannelInfo) {
                 $rIPMatch = (StreamingUtilities::$rSettings["ip_subnet_match"] ? implode(".", array_slice(explode(".", $rConnection["user_ip"]), 0, -1)) == implode(".", array_slice(explode(".", $rIP), 0, -1)) : $rConnection["user_ip"] == $rIP);
 
                 if (!$rIPMatch && StreamingUtilities::$rSettings["restrict_same_ip"]) {
-                    StreamingUtilities::clientLog($rStreamID, $rUserInfo["id"], "IP_MISMATCH", $rIP);
+                    DatabaseLogger::clientLog($rStreamID, $rUserInfo["id"], "IP_MISMATCH", $rIP);
                     generateError("IP_MISMATCH");
                 }
 
@@ -390,7 +390,7 @@ if ($rChannelInfo) {
             }
 
             if (!$rResult) {
-                StreamingUtilities::clientLog($rStreamID, $rUserInfo["id"], "LINE_CREATE_FAIL", $rIP);
+                DatabaseLogger::clientLog($rStreamID, $rUserInfo["id"], "LINE_CREATE_FAIL", $rIP);
                 generateError("LINE_CREATE_FAIL");
             }
 

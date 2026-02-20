@@ -115,7 +115,7 @@ if (empty(CoreUtilities::$rRequest['username']) && empty(CoreUtilities::$rReques
 
 	if (!$rDeny) {
 	} else {
-		CoreUtilities::checkFlood();
+		BruteforceGuard::checkFlood();
 	}
 }
 
