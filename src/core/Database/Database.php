@@ -135,9 +135,7 @@ class Database {
 				$actual_query = $query;
 			}
 
-			if (class_exists('CoreUtilities')) {
-				CoreUtilities::saveLog('pdo', $e->getMessage(), $actual_query);
-			}
+			FileLogger::log('pdo', $e->getMessage(), $actual_query);
 
 			return false;
 		}
@@ -149,9 +147,7 @@ class Database {
 		try {
 			$this->result = $this->dbh->query($query);
 		} catch (Exception $e) {
-			if (class_exists('CoreUtilities')) {
-				CoreUtilities::saveLog('pdo', $e->getMessage(), $query);
-			}
+			FileLogger::log('pdo', $e->getMessage(), $query);
 			return false;
 		}
 

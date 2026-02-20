@@ -19,7 +19,7 @@ if (!empty(CoreUtilities::$rRequest['uitoken'])) {
 	generate404();
 }
 
-$db = new Database($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
+$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
 CoreUtilities::$db = &$db;
 $rStreamID = intval(CoreUtilities::$rRequest['stream']);
 $rStream = array();

@@ -75,10 +75,15 @@ lb_copy_files:
 	@echo "==> [LB] Creating temporary directory: $(TEMP_DIR)"
 	@mkdir -p ${TEMP_DIR}
 
-	@echo "==> [LB] Copying files from MAIN_DIR"
-	@for item in $(LB_FILES); do \
-		echo "   → Copying: $$item"; \
-		cp -r "$(MAIN_DIR)/$$item" "$(TEMP_DIR)"; \
+	@echo "==> [LB] Copying tracked files from $(MAIN_DIR)"
+	@for lb_item in $(LB_FILES); do \
+		printf "   → Scanning: %s\n" "$$lb_item"; \
+		git ls-files | grep "^src/$$lb_item/" | while read -r file; do \
+			rel=$${file#src/}; \
+			printf "      → Copying: %s\n" "$$file"; \
+			mkdir -p "$(TEMP_DIR)/$$(dirname $$rel)"; \
+			cp "$$file" "$(TEMP_DIR)/$$rel"; \
+		done; \
 	done
 
 	@echo "==> [LB] Removing excluded directories"
@@ -155,14 +160,14 @@ main_copy_files:
 	@echo "==> [MAIN] Creating temporary directory: $(TEMP_DIR)"
 	mkdir -p $(TEMP_DIR)
 
-	@echo "==> [MAIN] Copying files from $(MAIN_DIR)"
-	@if command -v rsync >/dev/null 2>&1; then \
-		echo "   → Using rsync..."; \
-		rsync -a $(EXCLUDE_ARGS) $(MAIN_DIR)/ $(TEMP_DIR)/; \
-	else \
-		echo "⚠️  rsync not found, falling back to tar..."; \
-		tar cf - $(EXCLUDE_ARGS) -C $(MAIN_DIR) . | tar xf - -C $(TEMP_DIR); \
-	fi
+	@echo "==> [MAIN] Copying tracked files from $(MAIN_DIR)"
+	@# Copy only files tracked by git under src/
+	@git ls-files src | while read -r file; do \
+		rel=$${file#src/}; \
+		printf "   → Copying: %s\n" "$$file"; \
+		mkdir -p "$(TEMP_DIR)/$$(dirname $$rel)"; \
+		cp "$$file" "$(TEMP_DIR)/$$rel"; \
+	done
 
 	@echo "Remove all .gitkeep files..."
 	@find $(TEMP_DIR) -name .gitkeep \

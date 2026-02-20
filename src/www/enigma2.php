@@ -27,9 +27,9 @@ if (empty($rUsername) || empty($rPassword)) {
 
 if ($rUserInfo = CoreUtilities::getUserInfo(null, $rUsername, $rPassword, true, false)) {
 	$rDeny = false;
-	$db = new Database($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
+	$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
 	CoreUtilities::$db = &$db;
-	CoreUtilities::checkAuthFlood($rUserInfo);
+	BruteforceGuard::checkAuthFlood($rUserInfo);
 	$rLiveCategories = CoreUtilities::getCategories('live');
 	$rVODCategories = CoreUtilities::getCategories('movie');
 	$rSeriesCategories = CoreUtilities::getCategories('series');
@@ -431,7 +431,7 @@ if ($rUserInfo = CoreUtilities::getUserInfo(null, $rUsername, $rPassword, true, 
 	header('Content-Type: application/xml; charset=utf-8');
 	echo $rXML->asXML();
 } else {
-	CoreUtilities::checkBruteforce(null, null, $rUsername);
+	BruteforceGuard::checkBruteforce(null, null, $rUsername);
 	generateError('INVALID_CREDENTIALS');
 }
 
@@ -441,7 +441,7 @@ function shutdown() {
 
 	if (!$rDeny) {
 	} else {
-		CoreUtilities::checkFlood();
+		BruteforceGuard::checkFlood();
 	}
 
 	if (!is_object($db)) {

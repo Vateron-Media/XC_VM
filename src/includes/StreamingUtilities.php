@@ -122,7 +122,7 @@ class StreamingUtilities {
 			die('no config found');
 		}
 
-		self::$db = new Database($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
+		self::$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
 	}
 	public static function closeDatabase() {
 		if (self::$db) {
@@ -212,155 +212,17 @@ class StreamingUtilities {
 		}
 		return '';
 	}
+	/** @deprecated Use BruteforceGuard::checkFlood() */
 	public static function checkFlood($rIP = null) {
-		if (self::$rSettings['flood_limit'] != 0) {
-			if ($rIP) {
-			} else {
-				$rIP = self::getUserIP();
-			}
-			if (!(empty($rIP) || in_array($rIP, self::$rAllowedIPs))) {
-				$rFloodExclude = array_filter(array_unique(explode(',', self::$rSettings['flood_ips_exclude'])));
-				if (!in_array($rIP, $rFloodExclude)) {
-					$rIPFile = FLOOD_TMP_PATH . $rIP;
-					if (file_exists($rIPFile)) {
-						$rFloodRow = json_decode(file_get_contents($rIPFile), true);
-						$rFloodSeconds = self::$rSettings['flood_seconds'];
-						$rFloodLimit = self::$rSettings['flood_limit'];
-						if (time() - $rFloodRow['last_request'] <= $rFloodSeconds) {
-							$rFloodRow['requests']++;
-							if ($rFloodLimit > $rFloodRow['requests']) {
-								$rFloodRow['last_request'] = time();
-								file_put_contents($rIPFile, json_encode($rFloodRow), LOCK_EX);
-							} else {
-								if (in_array($rIP, self::$rBlockedIPs)) {
-								} else {
-									if (self::$rCached) {
-										self::setSignal('flood_attack/' . $rIP, 1);
-									} else {
-										self::$db->query('INSERT INTO `blocked_ips` (`ip`,`notes`,`date`) VALUES(?,?,?)', $rIP, 'FLOOD ATTACK', time());
-									}
-									touch(FLOOD_TMP_PATH . 'block_' . $rIP);
-								}
-								unlink($rIPFile);
-								return null;
-							}
-						} else {
-							$rFloodRow['requests'] = 0;
-							$rFloodRow['last_request'] = time();
-							file_put_contents($rIPFile, json_encode($rFloodRow), LOCK_EX);
-						}
-					} else {
-						file_put_contents($rIPFile, json_encode(array('requests' => 0, 'last_request' => time())), LOCK_EX);
-					}
-				} else {
-					return null;
-				}
-			} else {
-				return null;
-			}
-		} else {
-			return null;
-		}
+		return BruteforceGuard::checkFlood($rIP, !empty(self::$rCached));
 	}
+	/** @deprecated Use BruteforceGuard::checkBruteforce() */
 	public static function checkBruteforce($rIP = null, $rMAC = null, $rUsername = null) {
-		if ($rMAC || $rUsername) {
-			if (!($rMAC && self::$rSettings['bruteforce_mac_attempts'] == 0)) {
-				if (!($rUsername && self::$rSettings['bruteforce_username_attempts'] == 0)) {
-					if ($rIP) {
-					} else {
-						$rIP = self::getUserIP();
-					}
-					if (!(empty($rIP) || in_array($rIP, self::$rAllowedIPs))) {
-						$rFloodExclude = array_filter(array_unique(explode(',', self::$rSettings['flood_ips_exclude'])));
-						if (!in_array($rIP, $rFloodExclude)) {
-							$rFloodType = (!is_null($rMAC) ? 'mac' : 'user');
-							$rTerm = (!is_null($rMAC) ? $rMAC : $rUsername);
-							$rIPFile = FLOOD_TMP_PATH . $rIP . '_' . $rFloodType;
-							if (file_exists($rIPFile)) {
-								$rFloodRow = json_decode(file_get_contents($rIPFile), true);
-								$rFloodSeconds = intval(self::$rSettings['bruteforce_frequency']);
-								$rFloodLimit = intval(self::$rSettings[array('mac' => 'bruteforce_mac_attempts', 'user' => 'bruteforce_username_attempts')[$rFloodType]]);
-								$rFloodRow['attempts'] = self::truncateAttempts($rFloodRow['attempts'], $rFloodSeconds);
-								if (in_array($rTerm, array_keys($rFloodRow['attempts']))) {
-								} else {
-									$rFloodRow['attempts'][$rTerm] = time();
-									if ($rFloodLimit > count($rFloodRow['attempts'])) {
-										file_put_contents($rIPFile, json_encode($rFloodRow), LOCK_EX);
-									} else {
-										if (in_array($rIP, self::$rBlockedIPs)) {
-										} else {
-											if (self::$rCached) {
-												self::setSignal('bruteforce_attack/' . $rIP, 1);
-											} else {
-												self::$db->query('INSERT INTO `blocked_ips` (`ip`,`notes`,`date`) VALUES(?,?,?)', $rIP, 'BRUTEFORCE ' . strtoupper($rFloodType) . ' ATTACK', time());
-											}
-											touch(FLOOD_TMP_PATH . 'block_' . $rIP);
-										}
-										unlink($rIPFile);
-										return null;
-									}
-								}
-							} else {
-								$rFloodRow = array('attempts' => array($rTerm => time()));
-								file_put_contents($rIPFile, json_encode($rFloodRow), LOCK_EX);
-							}
-						} else {
-							return null;
-						}
-					} else {
-						return null;
-					}
-				} else {
-					return null;
-				}
-			} else {
-				return null;
-			}
-		} else {
-			return null;
-		}
+		return BruteforceGuard::checkBruteforce($rIP, $rMAC, $rUsername, !empty(self::$rCached));
 	}
+	/** @deprecated Use BruteforceGuard::checkAuthFlood() */
 	public static function checkAuthFlood($rUser, $rIP = null) {
-		if (self::$rSettings['auth_flood_limit'] != 0) {
-			if (!$rUser['is_restreamer']) {
-				if ($rIP) {
-				} else {
-					$rIP = self::getUserIP();
-				}
-				if (!(empty($rIP) || in_array($rIP, self::$rAllowedIPs))) {
-					$rFloodExclude = array_filter(array_unique(explode(',', self::$rSettings['flood_ips_exclude'])));
-					if (!in_array($rIP, $rFloodExclude)) {
-						$rUserFile = FLOOD_TMP_PATH . intval($rUser['id']) . '_' . $rIP;
-						if (file_exists($rUserFile)) {
-							$rFloodRow = json_decode(file_get_contents($rUserFile), true);
-							if (!(isset($rFloodRow['block_until']) && time() < $rFloodRow['block_until'])) {
-							} else {
-								sleep(intval(self::$rSettings['auth_flood_sleep']));
-							}
-							$rFloodSeconds = self::$rSettings['auth_flood_seconds'];
-							$rFloodLimit = self::$rSettings['auth_flood_limit'];
-							$rFloodRow['attempts'] = self::truncateAttempts($rFloodRow['attempts'], $rFloodSeconds, true);
-							if ($rFloodLimit > count($rFloodRow['attempts'])) {
-							} else {
-								$rFloodRow['block_until'] = time() + intval(self::$rSettings['auth_flood_seconds']);
-							}
-							$rFloodRow['attempts'][] = time();
-							file_put_contents($rUserFile, json_encode($rFloodRow), LOCK_EX);
-						} else {
-							file_put_contents($rUserFile, json_encode(array('attempts' => array(time()))), LOCK_EX);
-						}
-					} else {
-						return null;
-					}
-				} else {
-					return null;
-				}
-			} else {
-				return null;
-			}
-		} else {
-			return null;
-		}
+		return BruteforceGuard::checkAuthFlood($rUser, $rIP);
 	}
 	public static function isProxied($rServerID) {
 		return self::$rServers[$rServerID]['enable_proxy'];
@@ -371,25 +233,9 @@ class StreamingUtilities {
 			return self::$rProxies[$rIP];
 		}
 	}
+	/** @deprecated Use BruteforceGuard::truncateAttempts() */
 	public static function truncateAttempts($rAttempts, $rFrequency, $rList = false) {
-		$rAllowedAttempts = array();
-		$rTime = time();
-		if ($rList) {
-			foreach ($rAttempts as $rAttemptTime) {
-				if ($rTime - $rAttemptTime > $rFrequency) {
-				} else {
-					$rAllowedAttempts[] = $rAttemptTime;
-				}
-			}
-		} else {
-			foreach ($rAttempts as $rAttempt => $rAttemptTime) {
-				if ($rTime - $rAttemptTime > $rFrequency) {
-				} else {
-					$rAllowedAttempts[$rAttempt] = $rAttemptTime;
-				}
-			}
-		}
-		return $rAllowedAttempts;
+		return BruteforceGuard::truncateAttempts($rAttempts, $rFrequency, $rList);
 	}
 	public static function getCapacity($rProxy = false) {
 		return json_decode(file_get_contents(CACHE_TMP_PATH . (($rProxy ? 'proxy_capacity' : 'servers_capacity'))), true);
@@ -1165,15 +1011,6 @@ class StreamingUtilities {
 			}
 		}
 		return $rKeyID;
-	}
-	public static function clientLog($rStreamID, $rUserID, $rAction, $rIP, $rData = '', $bypass = false) {
-		if (self::$rSettings['client_logs_save'] != 0 || $bypass) {
-			$rUserAgent = (!empty($_SERVER['HTTP_USER_AGENT']) ? htmlentities($_SERVER['HTTP_USER_AGENT']) : '');
-			$rData = array('user_id' => $rUserID, 'stream_id' => $rStreamID, 'action' => $rAction, 'query_string' => htmlentities($_SERVER['QUERY_STRING']), 'user_agent' => $rUserAgent, 'user_ip' => $rIP, 'time' => time(), 'extra_data' => $rData);
-			file_put_contents(LOGS_TMP_PATH . 'client_request.log', base64_encode(json_encode($rData)) . "\n", FILE_APPEND);
-		} else {
-			return null;
-		}
 	}
 	public static function checkBlockedUAs($rUserAgent, $rReturn = false) {
 		$rUserAgent = strtolower($rUserAgent);
