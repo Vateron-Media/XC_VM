@@ -21,96 +21,7 @@ class CoreUtilities {
 	public static $rFFPROBE = null;
 	public static $rCached = null;
 	public static function init($rUseCache = false) {
-		if (!empty($_GET)) {
-			self::cleanGlobals($_GET);
-		}
-		if (!empty($_POST)) {
-			self::cleanGlobals($_POST);
-		}
-		if (!empty($_SESSION)) {
-			self::cleanGlobals($_SESSION);
-		}
-		if (!empty($_COOKIE)) {
-			self::cleanGlobals($_COOKIE);
-		}
-		$rInput = @self::parseIncomingRecursively($_GET, array());
-		self::$rRequest = @self::parseIncomingRecursively($_POST, $rInput);
-		self::$rConfig = parse_ini_file(CONFIG_PATH . 'config.ini');
-		if (!defined('SERVER_ID')) {
-			define('SERVER_ID', intval(self::$rConfig['server_id']));
-		}
-		if ($rUseCache) {
-			self::$rSettings = self::getCache('settings');
-		} else {
-			self::$rSettings = self::getSettings();
-		}
-		if (empty(self::$rSettings['default_timezone'])) {
-		} else {
-			date_default_timezone_set(self::$rSettings['default_timezone']);
-		}
-		if (self::$rSettings['on_demand_wait_time'] != 0) {
-		} else {
-			self::$rSettings['on_demand_wait_time'] = 15;
-		}
-		self::$rSegmentSettings = array('seg_time' => intval(self::$rSettings['seg_time']), 'seg_list_size' => intval(self::$rSettings['seg_list_size']), 'seg_delete_threshold' => intval(self::$rSettings['seg_delete_threshold']));
-		switch (self::$rSettings['ffmpeg_cpu']) {
-			case '8.0':
-				self::$rFFMPEG_CPU = FFMPEG_BIN_80;
-				self::$rFFPROBE = FFPROBE_BIN_80;
-				self::$rFFMPEG_GPU = FFMPEG_BIN_80;
-				break;
-			case '7.1':
-				self::$rFFMPEG_CPU = FFMPEG_BIN_71;
-				self::$rFFPROBE = FFPROBE_BIN_71;
-				self::$rFFMPEG_GPU = FFMPEG_BIN_71;
-				break;
-			case '5.1':
-				self::$rFFMPEG_CPU = FFMPEG_BIN_51;
-				self::$rFFPROBE = FFPROBE_BIN_51;
-				self::$rFFMPEG_GPU = FFMPEG_BIN_40;
-				break;
-			case '4.4':
-				self::$rFFMPEG_CPU = FFMPEG_BIN_44;
-				self::$rFFPROBE = FFPROBE_BIN_44;
-				self::$rFFMPEG_GPU = FFMPEG_BIN_40;
-				break;
-			case '4.3':
-				self::$rFFMPEG_CPU = FFMPEG_BIN_43;
-				self::$rFFPROBE = FFPROBE_BIN_43;
-				self::$rFFMPEG_GPU = FFMPEG_BIN_40;
-				break;
-			default:
-				self::$rFFMPEG_CPU = FFMPEG_BIN_40;
-				self::$rFFPROBE = FFPROBE_BIN_40;
-				self::$rFFMPEG_GPU = FFMPEG_BIN_40;
-				break;
-		}
-
-		self::$rCached = self::$rSettings['enable_cache'];
-		if ($rUseCache) {
-			self::$rServers = self::getCache('servers');
-			self::$rBouquets = self::getCache('bouquets');
-			self::$rBlockedUA = self::getCache('blocked_ua');
-			self::$rBlockedISP = self::getCache('blocked_isp');
-			self::$rBlockedIPs = self::getCache('blocked_ips');
-			self::$rProxies = self::getCache('proxy_servers');
-			self::$rBlockedServers = self::getCache('blocked_servers');
-			self::$rAllowedDomains = self::getCache('allowed_domains');
-			self::$rAllowedIPs = self::getCache('allowed_ips');
-			self::$rCategories = self::getCache('categories');
-		} else {
-			self::$rServers = self::getServers();
-			self::$rBouquets = self::getBouquets();
-			self::$rBlockedUA = self::getBlockedUA();
-			self::$rBlockedISP = self::getBlockedISP();
-			self::$rBlockedIPs = self::getBlockedIPs();
-			self::$rProxies = self::getProxyIPs();
-			self::$rBlockedServers = self::getBlockedServers();
-			self::$rAllowedDomains = self::getAllowedDomains();
-			self::$rAllowedIPs = self::getAllowedIPs();
-			self::$rCategories = self::getCategories();
-			self::generateCron();
-		}
+		LegacyInitializer::initCore($rUseCache);
 	}
 	public static function getDiffTimezone($rTimezone) {
 		$rServerTZ = new DateTime('UTC', new DateTimeZone(date_default_timezone_get()));
@@ -240,54 +151,10 @@ class CoreUtilities {
 		return $rOutput;
 	}
 	public static function getBouquets($rForce = false) {
-		if ($rForce) {
-		} else {
-			$rCache = self::getCache('bouquets', 60);
-			if (empty($rCache)) {
-			} else {
-				return $rCache;
-			}
-		}
-		$rOutput = array();
-		self::$db->query('SELECT *, IF(`bouquet_order` > 0, `bouquet_order`, 999) AS `order` FROM `bouquets` ORDER BY `order` ASC;');
-		foreach (self::$db->get_rows(true, 'id') as $rID => $rChannels) {
-			$rOutput[$rID]['streams'] = array_merge(json_decode($rChannels['bouquet_channels'], true), json_decode($rChannels['bouquet_movies'], true), json_decode($rChannels['bouquet_radios'], true));
-			$rOutput[$rID]['series'] = json_decode($rChannels['bouquet_series'], true);
-			$rOutput[$rID]['channels'] = json_decode($rChannels['bouquet_channels'], true);
-			$rOutput[$rID]['movies'] = json_decode($rChannels['bouquet_movies'], true);
-			$rOutput[$rID]['radios'] = json_decode($rChannels['bouquet_radios'], true);
-		}
-		self::setCache('bouquets', $rOutput);
-		return $rOutput;
+		return BouquetRepository::getAll(self::$db, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
 	}
 	public static function getSettings($rForce = false) {
-		if (!$rForce) {
-			$rCache = self::getCache('settings', 20);
-			if (!empty($rCache)) {
-				return $rCache;
-			}
-		}
-		$rOutput = array();
-		self::$db->query('SELECT * FROM `settings`');
-		$rRows = self::$db->get_row();
-		foreach ($rRows as $rKey => $rValue) {
-			$rOutput[$rKey] = $rValue;
-		}
-		$rOutput['allow_countries'] = json_decode($rOutput['allow_countries'], true);
-
-		$decodedAllowedSTB = json_decode($rOutput['allowed_stb_types'], true);
-		$rOutput['allowed_stb_types'] = array();
-		if (is_array($decodedAllowedSTB)) {
-			$rOutput['allowed_stb_types'] = array_map('strtolower', $decodedAllowedSTB);
-		}
-
-		$rOutput['stalker_lock_images'] = json_decode($rOutput['stalker_lock_images'], true);
-		if (array_key_exists('bouquet_name', $rOutput)) {
-			$rOutput['bouquet_name'] = str_replace(' ', '_', $rOutput['bouquet_name']);
-		}
-		$rOutput['api_ips'] = !empty($rOutput['api_ips']) ? explode(',', $rOutput['api_ips']) : [];
-		self::setCache('settings', $rOutput);
-		return $rOutput;
+		return SettingsRepository::getAll(self::$db, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
 	}
 	public static function setCache($rCache, $rData) {
 		$rData = igbinary_serialize($rData);
@@ -304,127 +171,10 @@ class CoreUtilities {
 		return false;
 	}
 	public static function getServers($rForce = false) {
-		if (!$rForce) {
-			$rCache = self::getCache('servers', 10);
-			if (!empty($rCache)) {
-				return $rCache;
-			}
-		}
-		if (empty($_SERVER['REQUEST_SCHEME'])) {
-			$_SERVER['REQUEST_SCHEME'] = 'http';
-		}
-		self::$db->query('SELECT * FROM `servers`');
-		$rServers = array();
-		$rOnlineStatus = array(1);
-		foreach (self::$db->get_rows() as $rRow) {
-			if (empty($rRow['domain_name'])) {
-				$rURL = escapeshellcmd($rRow['server_ip']);
-			} else {
-				$rURL = str_replace(array('http://', '/', 'https://'), '', escapeshellcmd(explode(',', $rRow['domain_name'])[0]));
-			}
-			if ($rRow['enable_https'] == 1) {
-				$rProtocol = 'https';
-			} else {
-				$rProtocol = 'http';
-			}
-			$rPort = ($rProtocol == 'http' ? intval($rRow['http_broadcast_port']) : intval($rRow['https_broadcast_port']));
-			$rRow['server_protocol'] = $rProtocol;
-			$rRow['request_port'] = $rPort;
-			$rRow['site_url'] = $rProtocol . '://' . $rURL . ':' . $rPort . '/';
-			$rRow['http_url'] = 'http://' . $rURL . ':' . intval($rRow['http_broadcast_port']) . '/';
-			$rRow['https_url'] = 'https://' . $rURL . ':' . intval($rRow['https_broadcast_port']) . '/';
-			$rRow['rtmp_server'] = 'rtmp://' . $rURL . ':' . intval($rRow['rtmp_port']) . '/live/';
-			$rRow['domains'] = array('protocol' => $rProtocol, 'port' => $rPort, 'urls' => array_filter(array_map('escapeshellcmd', explode(',', $rRow['domain_name']))));
-			$rRow['rtmp_mport_url'] = 'http://127.0.0.1:31210/';
-			$rRow['api_url_ip'] = 'http://' . escapeshellcmd($rRow['server_ip']) . ':' . intval($rRow['http_broadcast_port']) . '/api?password=' . urlencode(self::$rSettings['live_streaming_pass']);
-			$rRow['api_url'] = $rRow['api_url_ip'];
-			$rRow['site_url_ip'] = $rProtocol . '://' . escapeshellcmd($rRow['server_ip']) . ':' . $rPort . '/';
-			$rRow['private_url_ip'] = (!empty($rRow['private_ip']) ? 'http://' . escapeshellcmd($rRow['private_ip']) . ':' . intval($rRow['http_broadcast_port']) . '/' : null);
-			$rRow['public_url_ip'] = 'http://' . escapeshellcmd($rRow['server_ip']) . ':' . intval($rRow['http_broadcast_port']) . '/';
-			$rRow['geoip_countries'] = (empty($rRow['geoip_countries']) ? array() : json_decode($rRow['geoip_countries'], true));
-			$rRow['isp_names'] = (empty($rRow['isp_names']) ? array() : json_decode($rRow['isp_names'], true));
-			if (is_numeric($rRow['parent_id'])) {
-				$rRow['parent_id'] = array(intval($rRow['parent_id']));
-			} else {
-				$decoded = json_decode($rRow['parent_id'] ?? '', true);
-				$rRow['parent_id'] = is_array($decoded) ? array_map('intval', $decoded) : [];
-			}
-
-			if ($rRow['enable_https'] == 2) {
-				$rRow['allow_http'] = false;
-			} else {
-				$rRow['allow_http'] = true;
-			}
-			if ($rRow['server_type'] == 1) {
-				$rLastCheckTime = 180;
-			} else {
-				$rLastCheckTime = 90;
-			}
-			$rRow['watchdog'] = json_decode($rRow['watchdog_data'], true);
-			$rRow['server_online'] = $rRow['enabled'] && in_array($rRow['status'], $rOnlineStatus) && time() - $rRow['last_check_ago'] <= $rLastCheckTime || SERVER_ID == $rRow['id'];
-			if (!isset($rRow['order'])) {
-				$rRow['order'] = 0;
-			}
-			$rServers[intval($rRow['id'])] = $rRow;
-		}
-		self::setCache('servers', $rServers);
-		return $rServers;
+		return ServerRepository::getAll(self::$db, self::$rSettings, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
 	}
 	public static function getMultiCURL($rURLs, $callback = null, $rTimeout = 5) {
-		if (!empty($rURLs)) {
-			$rOffline = array();
-			$rCurl = array();
-			$rResults = array();
-			$rMulti = curl_multi_init();
-			foreach ($rURLs as $rKey => $rValue) {
-				if (self::$rServers[$rKey]['server_online']) {
-					$rCurl[$rKey] = curl_init();
-					curl_setopt($rCurl[$rKey], CURLOPT_URL, $rValue['url']);
-					curl_setopt($rCurl[$rKey], CURLOPT_RETURNTRANSFER, true);
-					curl_setopt($rCurl[$rKey], CURLOPT_FOLLOWLOCATION, true);
-					curl_setopt($rCurl[$rKey], CURLOPT_CONNECTTIMEOUT, 5);
-					curl_setopt($rCurl[$rKey], CURLOPT_TIMEOUT, $rTimeout);
-					curl_setopt($rCurl[$rKey], CURLOPT_SSL_VERIFYHOST, 0);
-					curl_setopt($rCurl[$rKey], CURLOPT_SSL_VERIFYPEER, 0);
-					if ($rValue['postdata'] == null) {
-					} else {
-						curl_setopt($rCurl[$rKey], CURLOPT_POST, true);
-						curl_setopt($rCurl[$rKey], CURLOPT_POSTFIELDS, http_build_query($rValue['postdata']));
-					}
-					curl_multi_add_handle($rMulti, $rCurl[$rKey]);
-				} else {
-					$rOffline[] = $rKey;
-				}
-			}
-			$rActive = null;
-			do {
-				$rMultiExec = curl_multi_exec($rMulti, $rActive);
-			} while ($rMultiExec == CURLM_CALL_MULTI_PERFORM);
-			while ($rActive && $rMultiExec == CURLM_OK) {
-				if (curl_multi_select($rMulti) != -1) {
-				} else {
-					usleep(50000);
-				}
-				do {
-					$rMultiExec = curl_multi_exec($rMulti, $rActive);
-				} while ($rMultiExec == CURLM_CALL_MULTI_PERFORM);
-			}
-			foreach ($rCurl as $rKey => $rValue) {
-				$rResults[$rKey] = curl_multi_getcontent($rValue);
-				if ($callback == null) {
-				} else {
-					$rResults[$rKey] = call_user_func($callback, $rResults[$rKey], true);
-				}
-				curl_multi_remove_handle($rMulti, $rValue);
-			}
-			foreach ($rOffline as $rKey) {
-				$rResults[$rKey] = false;
-			}
-			curl_multi_close($rMulti);
-			return $rResults;
-		} else {
-			return array();
-		}
+		return CurlClient::getMultiCURL(self::$rServers, $rURLs, $callback, $rTimeout);
 	}
 	public static function cleanGlobals(&$rData, $rIteration = 0) {
 		if (10 > $rIteration) {
@@ -565,22 +315,7 @@ class CoreUtilities {
 		return BruteforceGuard::truncateAttempts($rAttempts, $rFrequency, $rList);
 	}
 	public static function getCategories($rType = null, $rForce = false) {
-		if (is_string($rType)) {
-			self::$db->query('SELECT t1.* FROM `streams_categories` t1 WHERE t1.category_type = ? GROUP BY t1.id ORDER BY t1.cat_order ASC', $rType);
-			return (0 < self::$db->num_rows() ? self::$db->get_rows(true, 'id') : array());
-		}
-		if ($rForce) {
-		} else {
-			$rCache = self::getCache('categories', 20);
-			if (empty($rCache)) {
-			} else {
-				return $rCache;
-			}
-		}
-		self::$db->query('SELECT t1.* FROM `streams_categories` t1 ORDER BY t1.cat_order ASC');
-		$rCategories = (0 < self::$db->num_rows() ? self::$db->get_rows(true, 'id') : array());
-		self::setCache('categories', $rCategories);
-		return $rCategories;
+		return CategoryRepository::getFromDatabase(self::$db, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rType, $rForce);
 	}
 	public static function generateUniqueCode() {
 		return substr(md5(self::$rSettings['live_streaming_pass']), 0, 15);
@@ -1113,39 +848,7 @@ class CoreUtilities {
 		return false;
 	}
 	public static function serverRequest($rServerID, $rURL, $rPostData = array()) {
-		if (is_array(self::$rServers) && isset(self::$rServers[$rServerID]) && self::$rServers[$rServerID]['server_online']) {
-			$rOutput = false;
-			$i = 1;
-			while ($i <= 2) {
-				$rCurl = curl_init();
-				curl_setopt($rCurl, CURLOPT_URL, $rURL);
-				curl_setopt($rCurl, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:9.0) Gecko/20100101 Firefox/9.0');
-				curl_setopt($rCurl, CURLOPT_HEADER, 0);
-				curl_setopt($rCurl, CURLOPT_RETURNTRANSFER, true);
-				curl_setopt($rCurl, CURLOPT_CONNECTTIMEOUT, 10);
-				curl_setopt($rCurl, CURLOPT_TIMEOUT, 10);
-				curl_setopt($rCurl, CURLOPT_FOLLOWLOCATION, true);
-				curl_setopt($rCurl, CURLOPT_FRESH_CONNECT, true);
-				curl_setopt($rCurl, CURLOPT_FORBID_REUSE, true);
-				curl_setopt($rCurl, CURLOPT_SSL_VERIFYHOST, 0);
-				curl_setopt($rCurl, CURLOPT_SSL_VERIFYPEER, 0);
-				if (empty($rPostData)) {
-				} else {
-					curl_setopt($rCurl, CURLOPT_POST, true);
-					curl_setopt($rCurl, CURLOPT_POSTFIELDS, http_build_query($rPostData));
-				}
-				$rOutput = curl_exec($rCurl);
-				$rResponseCode = curl_getinfo($rCurl, CURLINFO_HTTP_CODE);
-				$rError = curl_errno($rCurl);
-				@curl_close($rCurl);
-				if ($rError != 0 || $rResponseCode != 200) {
-					$i++;
-					break;
-				}
-			}
-			return $rOutput;
-		}
-		return false;
+		return CurlClient::serverRequest(self::$rServers, $rServerID, $rURL, $rPostData);
 	}
 	public static function deleteCache($rSources) {
 		if (!empty($rSources)) {
@@ -1176,6 +879,7 @@ class CoreUtilities {
 	}
 	public static function createChannelItem($rStreamID, $rSource) {
 		$rStream = array();
+		$rLoopback = false;
 		self::$db->query('SELECT * FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.type_id = t1.type AND t1.type = 3 LEFT JOIN `profiles` t4 ON t1.transcode_profile_id = t4.profile_id WHERE t1.direct_source = 0 AND t1.id = ?', $rStreamID);
 		if (self::$db->num_rows() > 0) {
 			$rStream['stream_info'] = self::$db->get_row();
@@ -1473,6 +1177,7 @@ class CoreUtilities {
 	}
 	public static function startMovie($rStreamID) {
 		$rStream = array();
+		$rLoopback = false;
 		self::$db->query('SELECT * FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.type_id = t1.type AND t2.live = 0 LEFT JOIN `profiles` t4 ON t1.transcode_profile_id = t4.profile_id WHERE t1.direct_source = 0 AND t1.id = ?', $rStreamID);
 		if (self::$db->num_rows() > 0) {
 			$rStream['stream_info'] = self::$db->get_row();
@@ -2370,7 +2075,13 @@ class CoreUtilities {
 				return $rCache;
 			}
 		}
-		$rIPs = array('127.0.0.1', $_SERVER['SERVER_ADDR']);
+		$rIPs = array('127.0.0.1');
+		$rServerAddr = ($_SERVER['SERVER_ADDR'] ?? null);
+		if (!empty($rServerAddr)) {
+			$rIPs[] = $rServerAddr;
+		} elseif (isset(self::$rServers[SERVER_ID]['server_ip']) && !empty(self::$rServers[SERVER_ID]['server_ip'])) {
+			$rIPs[] = self::$rServers[SERVER_ID]['server_ip'];
+		}
 		foreach (self::$rServers as $rServerID => $rServerInfo) {
 			if (!empty($rServerInfo['whitelist_ips'])) {
 				$rIPs = array_merge($rIPs, json_decode($rServerInfo['whitelist_ips'], true));
@@ -3166,66 +2877,10 @@ class CoreUtilities {
 		return (bool) preg_match($rPattern, $rURL);
 	}
 	public static function generateThumbnail($rImage, $rType) {
-		if ($rType == 1 || $rType == 5 || $rType == 4) {
-			$rMaxW = 96;
-			$rMaxH = 32;
-		} else {
-			if ($rType == 2) {
-				$rMaxW = 58;
-				$rMaxH = 32;
-			} else {
-				if ($rType == 5) {
-					$rMaxW = 32;
-					$rMaxH = 64;
-				} else {
-					return false;
-				}
-			}
-		}
-		list($rExtension) = explode('.', strtolower(pathinfo($rImage)['extension']));
-		if (!in_array($rExtension, array('png', 'jpg', 'jpeg'))) {
-		} else {
-			$rImagePath = IMAGES_PATH . 'admin/' . md5($rImage) . '_' . $rMaxW . '_' . $rMaxH . '.' . $rExtension;
-			if (file_exists($rImagePath)) {
-			} else {
-				if (self::isAbsoluteUrl($rImage)) {
-					$rActURL = $rImage;
-				} else {
-					$rActURL = IMAGES_PATH . basename($rImage);
-				}
-				list($rWidth, $rHeight) = getimagesize($rActURL);
-				$rImageSize = self::getImageSizeKeepAspectRatio($rWidth, $rHeight, $rMaxW, $rMaxH);
-				if (!($rImageSize['width'] && $rImageSize['height'])) {
-				} else {
-					$rImageP = imagecreatetruecolor($rImageSize['width'], $rImageSize['height']);
-					if ($rExtension == 'png') {
-						$rImage = imagecreatefrompng($rActURL);
-					} else {
-						$rImage = imagecreatefromjpeg($rActURL);
-					}
-					imagealphablending($rImageP, false);
-					imagesavealpha($rImageP, true);
-					imagecopyresampled($rImageP, $rImage, 0, 0, 0, 0, $rImageSize['width'], $rImageSize['height'], $rWidth, $rHeight);
-					imagepng($rImageP, $rImagePath);
-				}
-			}
-			if (!file_exists($rImagePath)) {
-			} else {
-				return true;
-			}
-		}
-		return false;
+		return ImageUtils::generateThumbnail($rImage, $rType);
 	}
 	public static function validateImage($rURL, $rForceProtocol = null) {
-		if (substr($rURL, 0, 2) == 's:') {
-			$rSplit = explode(':', $rURL, 3);
-			$rServerURL = self::getPublicURL(intval($rSplit[1]), $rForceProtocol);
-			if ($rServerURL) {
-				return $rServerURL . 'images/' . basename($rURL);
-			}
-			return '';
-		}
-		return $rURL;
+		return ImageUtils::validateURL($rURL, $rForceProtocol, array('CoreUtilities', 'getPublicURL'));
 	}
 	public static function getPublicURL($rServerID = null, $rForceProtocol = null) {
 		$rOriginatorID = null;
@@ -3273,15 +2928,7 @@ class CoreUtilities {
 		}
 	}
 	public static function getURL($rURL, $rWait = true) {
-		$ch = curl_init();
-		curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
-		curl_setopt($ch, CURLOPT_TIMEOUT, 3);
-		curl_setopt($ch, CURLOPT_URL, $rURL);
-		curl_setopt($ch, CURLOPT_USERAGENT, 'XC_VM/' . XC_VM_VERSION);
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, $rWait);
-		$rReturn = curl_exec($ch);
-		curl_close($ch);
-		return $rReturn;
+		return CurlClient::getURL($rURL, $rWait);
 	}
 	public static function startDownload($rType, $rUser, $rDownloadPID) {
 		$rFloodLimit = intval(self::$rSettings['max_simultaneous_downloads']);
@@ -3342,73 +2989,10 @@ class CoreUtilities {
 		return BruteforceGuard::checkAuthFlood($rUser, $rIP);
 	}
 	public static function getCapacity($rProxy = false) {
-		$rFile = ($rProxy ? 'proxy_capacity' : 'servers_capacity');
-		if (self::$rSettings['redis_handler'] && $rProxy && self::$rSettings['split_by'] == 'maxclients') {
-			self::$rSettings['split_by'] == 'guar_band';
+		if (self::$rSettings['redis_handler'] && !is_object(self::$redis)) {
+			self::connectRedis();
 		}
-		if (self::$rSettings['redis_handler']) {
-			$rRows = array();
-			$rMulti = self::$redis->multi();
-			foreach (array_keys(self::$rServers) as $rServerID) {
-				if (self::$rServers[$rServerID]['server_online']) {
-					$rMulti->zCard((($rProxy ? 'PROXY#' : 'SERVER#')) . $rServerID);
-				}
-			}
-			$rResults = $rMulti->exec();
-			$i = 0;
-			foreach (array_keys(self::$rServers) as $rServerID) {
-				if (self::$rServers[$rServerID]['server_online']) {
-					$rRows[$rServerID] = array('online_clients' => ($rResults[$i] ?: 0));
-					$i++;
-				}
-			}
-		} else {
-			if ($rProxy) {
-				self::$db->query('SELECT `proxy_id`, COUNT(*) AS `online_clients` FROM `lines_live` WHERE `proxy_id` <> 0 AND `hls_end` = 0 GROUP BY `proxy_id`;');
-				$rRows = self::$db->get_rows(true, 'proxy_id');
-			} else {
-				self::$db->query('SELECT `server_id`, COUNT(*) AS `online_clients` FROM `lines_live` WHERE `server_id` <> 0 AND `hls_end` = 0 GROUP BY `server_id`;');
-				$rRows = self::$db->get_rows(true, 'server_id');
-			}
-		}
-		if (self::$rSettings['split_by'] == 'band') {
-			$rServerSpeed = array();
-			foreach (array_keys(self::$rServers) as $rServerID) {
-				$rServerHardware = json_decode(self::$rServers[$rServerID]['server_hardware'], true);
-				if (!empty($rServerHardware['network_speed'])) {
-					$rServerSpeed[$rServerID] = (float) $rServerHardware['network_speed'];
-				} else {
-					if (0 < self::$rServers[$rServerID]['network_guaranteed_speed']) {
-						$rServerSpeed[$rServerID] = self::$rServers[$rServerID]['network_guaranteed_speed'];
-					} else {
-						$rServerSpeed[$rServerID] = 1000;
-					}
-				}
-			}
-			foreach ($rRows as $rServerID => $rRow) {
-				$rCurrentOutput = intval(self::$rServers[$rServerID]['watchdog']['bytes_sent'] / 125000);
-				$rRows[$rServerID]['capacity'] = (float) ($rCurrentOutput / (($rServerSpeed[$rServerID] ?: 1000)));
-			}
-		} else {
-			if (self::$rSettings['split_by'] == 'maxclients') {
-				foreach ($rRows as $rServerID => $rRow) {
-					$rRows[$rServerID]['capacity'] = (float) ($rRow['online_clients'] / ((self::$rServers[$rServerID]['total_clients'] ?: 1)));
-				}
-			} else {
-				if (self::$rSettings['split_by'] == 'guar_band') {
-					foreach ($rRows as $rServerID => $rRow) {
-						$rCurrentOutput = intval(self::$rServers[$rServerID]['watchdog']['bytes_sent'] / 125000);
-						$rRows[$rServerID]['capacity'] = (float) ($rCurrentOutput / ((self::$rServers[$rServerID]['network_guaranteed_speed'] ?: 1)));
-					}
-				} else {
-					foreach ($rRows as $rServerID => $rRow) {
-						$rRows[$rServerID]['capacity'] = $rRow['online_clients'];
-					}
-				}
-			}
-		}
-		file_put_contents(CACHE_TMP_PATH . $rFile, json_encode($rRows), LOCK_EX);
-		return $rRows;
+		return ConnectionTracker::getCapacity(self::$rSettings, self::$rServers, self::$redis, self::$db, $rProxy);
 	}
 
 	/**
@@ -3439,47 +3023,7 @@ class CoreUtilities {
 		if (self::$rSettings['redis_handler'] && !is_object(self::$redis)) {
 			self::connectRedis();
 		}
-
-		if (self::$rSettings['redis_handler']) {
-			if ($rServerID) {
-				$rKeys = self::$redis->zRangeByScore('SERVER#' . $rServerID, '-inf', '+inf');
-			} elseif ($rUserID) {
-				$rKeys = self::$redis->zRangeByScore('LINE#' . $rUserID, '-inf', '+inf');
-			} elseif ($rStreamID) {
-				$rKeys = self::$redis->zRangeByScore('STREAM#' . $rStreamID, '-inf', '+inf');
-			} else {
-				$rKeys = self::$redis->zRangeByScore('LIVE', '-inf', '+inf');
-			}
-
-			if (count($rKeys) > 0) {
-				return array($rKeys, array_map('igbinary_unserialize', self::$redis->mGet($rKeys)));
-			} else {
-				// We always return empty arrays
-				return array([], []);
-			}
-		} else {
-			// MYSQL fallback
-			$rWhere = array();
-			if (!empty($rServerID)) {
-				$rWhere[] = 't1.server_id = ' . intval($rServerID);
-			}
-			if (!empty($rUserID)) {
-				$rWhere[] = 't1.user_id = ' . intval($rUserID);
-			}
-
-			$rExtra = count($rWhere) ? 'WHERE ' . implode(' AND ', $rWhere) : '';
-
-			$rQuery = 'SELECT t2.*,t3.*,t5.bitrate,t1.*,t1.uuid AS `uuid` 
-               FROM `lines_live` t1 
-               LEFT JOIN `lines` t2 ON t2.id = t1.user_id 
-               LEFT JOIN `streams` t3 ON t3.id = t1.stream_id 
-               LEFT JOIN `streams_servers` t5 ON t5.stream_id = t1.stream_id AND t5.server_id = t1.server_id 
-               ' . $rExtra . ' 
-               ORDER BY t1.activity_id ASC';
-
-			self::$db->query($rQuery);
-			return self::$db->get_rows(true, 'user_id', false);
-		}
+		return ConnectionTracker::getConnections(self::$rSettings, self::$redis, self::$db, $rServerID, $rUserID, $rStreamID);
 	}
 
 	public static function getEnded() {
@@ -3494,10 +3038,7 @@ class CoreUtilities {
 		}
 	}
 	public static function getBouquetMap($rStreamID) {
-		$rBouquetMap = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'bouquet_map'));
-		$rReturn = ($rBouquetMap[$rStreamID] ?: array());
-		unset($rBouquetMap);
-		return $rReturn;
+		return BouquetMapper::getMapEntry($rStreamID);
 	}
 	public static function updateStream($rStreamID, $rForce = false) {
 		if (self::$rCached) {
@@ -3550,401 +3091,84 @@ class CoreUtilities {
 		return false;
 	}
 	public static function getMainID() {
-		foreach (self::$rServers as $rServerID => $rServer) {
-			if (!$rServer['is_main']) {
-			} else {
-				return $rServerID;
-			}
-		}
+		return ConnectionTracker::getMainID(self::$rServers);
 	}
 	public static function addToQueue($rStreamID, $rAddPID) {
-		$rActivePIDs = $rPIDs = array();
-		if (!file_exists(SIGNALS_TMP_PATH . 'queue_' . intval($rStreamID))) {
-		} else {
-			$rPIDs = igbinary_unserialize(file_get_contents(SIGNALS_TMP_PATH . 'queue_' . intval($rStreamID)));
-		}
-		foreach ($rPIDs as $rPID) {
-			if (!self::isProcessRunning($rPID, 'php-fpm')) {
-			} else {
-				$rActivePIDs[] = $rPID;
-			}
-		}
-		if (in_array($rAddPID, $rActivePIDs, true)) {
-		} else {
-			$rActivePIDs[] = $rAddPID;
-		}
-		file_put_contents(SIGNALS_TMP_PATH . 'queue_' . intval($rStreamID), igbinary_serialize($rActivePIDs), LOCK_EX);
+		ConnectionTracker::addToQueue($rStreamID, $rAddPID, array('CoreUtilities', 'isProcessRunning'));
 	}
 	public static function removeFromQueue($rStreamID, $rPID) {
-		$rActivePIDs = array();
-		foreach ((igbinary_unserialize(file_get_contents(SIGNALS_TMP_PATH . 'queue_' . intval($rStreamID))) ?: array()) as $rActivePID) {
-			if (!(self::isProcessRunning($rActivePID, 'php-fpm') && $rPID != $rActivePID)) {
-			} else {
-				$rActivePIDs[] = $rActivePID;
-			}
-		}
-		if (0 < count($rActivePIDs)) {
-			file_put_contents(SIGNALS_TMP_PATH . 'queue_' . intval($rStreamID), igbinary_serialize($rActivePIDs), LOCK_EX);
-		} else {
-			unlink(SIGNALS_TMP_PATH . 'queue_' . intval($rStreamID));
-		}
+		ConnectionTracker::removeFromQueue($rStreamID, $rPID, array('CoreUtilities', 'isProcessRunning'));
 	}
 	public static function getProxyFor($rServerID) {
 		return (array_rand(array_keys(self::getProxies($rServerID, false))) ?: null);
 	}
 	public static function formatTitle($rTitle, $rYear) {
-		if (!(is_numeric($rYear) && 1900 <= $rYear && $rYear <= intval(date('Y') + 1))) {
-		} else {
-			if (self::$rSettings['movie_year_append'] == 0) {
-				return trim($rTitle) . ' (' . $rYear . ')';
-			}
-			if (self::$rSettings['movie_year_append'] != 0) {
-			} else {
-				return trim($rTitle) . ' - ' . $rYear;
-			}
-		}
-		return $rTitle;
+		return StreamSorter::formatTitle(self::$rSettings, $rTitle, $rYear);
 	}
 	public static function sortChannels($rChannels) {
-		if (!(0 < count($rChannels) && file_exists(CACHE_TMP_PATH . 'channel_order') && self::$rSettings['channel_number_type'] != 'bouquet')) {
-		} else {
-			$rOrder = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'channel_order'));
-			$rChannels = array_flip($rChannels);
-			$rNewOrder = array();
-			foreach ($rOrder as $rID) {
-				if (!isset($rChannels[$rID])) {
-				} else {
-					$rNewOrder[] = $rID;
-				}
-			}
-			if (0 >= count($rNewOrder)) {
-			} else {
-				return $rNewOrder;
-			}
-		}
-		return $rChannels;
+		return StreamSorter::sortChannels(self::$rSettings, $rChannels);
 	}
 	public static function sortSeries($rSeries) {
-		if (!(0 < count($rSeries) && file_exists(CACHE_TMP_PATH . 'series_order'))) {
-		} else {
-			$rOrder = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'series_order'));
-			$rSeries = array_flip($rSeries);
-			$rNewOrder = array();
-			foreach ($rOrder as $rID) {
-				if (!isset($rSeries[$rID])) {
-				} else {
-					$rNewOrder[] = $rID;
-				}
-			}
-			if (0 >= count($rNewOrder)) {
-			} else {
-				return $rNewOrder;
-			}
-		}
-		return $rSeries;
+		return StreamSorter::sortSeries($rSeries);
 	}
 	public static function setSignal($rKey, $rData) {
-		file_put_contents(SIGNALS_TMP_PATH . 'cache_' . md5($rKey), json_encode(array($rKey, $rData)));
+		RedisManager::setSignal($rKey, $rData);
 	}
 	public static function connectRedis() {
-		if (is_object(self::$redis)) {
-		} else {
-			try {
-				self::$redis = new Redis();
-				self::$redis->connect(self::$rConfig['hostname'], 6379);
-				self::$redis->auth(self::$rSettings['redis_password']);
-			} catch (Exception $e) {
-				self::$redis = null;
-				return false;
-			}
-		}
-		return true;
+		self::$redis = RedisManager::connect(self::$redis, self::$rConfig, self::$rSettings);
+		return is_object(self::$redis);
 	}
 	public static function updateConnection($rData, $rChanges = array(), $rOption = null) {
 		if (is_object(self::$redis)) {
 		} else {
 			self::connectRedis();
 		}
-		$rOrigData = $rData;
-		foreach ($rChanges as $rKey => $rValue) {
-			$rData[$rKey] = $rValue;
-		}
-		$rRedis = self::$redis->multi();
-		if ($rOption == 'open') {
-			$rRedis->sRem('ENDED', $rData['uuid']);
-			$rRedis->zAdd('LIVE', $rData['date_start'], $rData['uuid']);
-			$rRedis->zAdd('LINE#' . $rData['identity'], $rData['date_start'], $rData['uuid']);
-			$rRedis->zAdd('STREAM#' . $rData['stream_id'], $rData['date_start'], $rData['uuid']);
-			$rRedis->zAdd('SERVER#' . $rData['server_id'], $rData['date_start'], $rData['uuid']);
-			if (!$rData['proxy_id']) {
-			} else {
-				$rRedis->zAdd('PROXY#' . $rData['proxy_id'], $rData['date_start'], $rData['uuid']);
-			}
-			if ($rData['hls_end'] != 1) {
-			} else {
-				$rData['hls_end'] = 0;
-				if (!$rData['user_id']) {
-				} else {
-					$rRedis->zAdd('SERVER_LINES#' . $rData['server_id'], $rData['user_id'], $rData['uuid']);
-				}
-			}
-		} else {
-			if ($rOption != 'close') {
-			} else {
-				$rRedis->sAdd('ENDED', $rData['uuid']);
-				$rRedis->zRem('LIVE', $rData['uuid']);
-				$rRedis->zRem('LINE#' . $rOrigData['identity'], $rData['uuid']);
-				$rRedis->zRem('STREAM#' . $rOrigData['stream_id'], $rData['uuid']);
-				$rRedis->zRem('SERVER#' . $rOrigData['server_id'], $rData['uuid']);
-				if (!$rData['proxy_id']) {
-				} else {
-					$rRedis->zRem('PROXY#' . $rOrigData['proxy_id'], $rData['uuid']);
-				}
-				if ($rData['hls_end'] != 0) {
-				} else {
-					$rData['hls_end'] = 1;
-					if (!$rData['user_id']) {
-					} else {
-						$rRedis->zRem('SERVER_LINES#' . $rOrigData['server_id'], $rData['uuid']);
-					}
-				}
-			}
-		}
-		$rRedis->set($rData['uuid'], igbinary_serialize($rData));
-		if ($rRedis->exec()) {
-			return $rData;
-		}
-		return null;
+		return ConnectionTracker::updateConnection(self::$redis, $rData, $rChanges, $rOption);
 	}
 	public static function redisSignal($rPID, $rServerID, $rRTMP, $rCustomData = null) {
 		if (is_object(self::$redis)) {
 		} else {
 			self::connectRedis();
 		}
-		$rKey = 'SIGNAL#' . md5($rServerID . '#' . $rPID . '#' . $rRTMP);
-		$rData = array('pid' => $rPID, 'server_id' => $rServerID, 'rtmp' => $rRTMP, 'time' => time(), 'custom_data' => $rCustomData, 'key' => $rKey);
-		return self::$redis->multi()->sAdd('SIGNALS#' . $rServerID, $rKey)->set($rKey, igbinary_serialize($rData))->exec();
+		return ConnectionTracker::redisSignal(self::$redis, $rPID, $rServerID, $rRTMP, $rCustomData);
 	}
 	public static function getUserConnections($rUserIDs, $rCount = false, $rKeysOnly = false) {
 		if (is_object(self::$redis)) {
 		} else {
 			self::connectRedis();
 		}
-		$rRedis = self::$redis->multi();
-		foreach ($rUserIDs as $rUserID) {
-			$rRedis->zRevRangeByScore('LINE#' . $rUserID, '+inf', '-inf');
-		}
-		$rGroups = $rRedis->exec();
-		$rConnectionMap = $rRedisKeys = array();
-		foreach ($rGroups as $rGroupID => $rKeys) {
-			if ($rCount) {
-				$rConnectionMap[$rUserIDs[$rGroupID]] = count($rKeys);
-			} else {
-				if (0 >= count($rKeys)) {
-				} else {
-					$rRedisKeys = array_merge($rRedisKeys, $rKeys);
-				}
-			}
-		}
-		$rRedisKeys = array_unique($rRedisKeys);
-		if (!$rKeysOnly) {
-			if ($rCount) {
-			} else {
-				foreach (self::$redis->mGet($rRedisKeys) as $rRow) {
-					$rRow = igbinary_unserialize($rRow);
-					$rConnectionMap[$rRow['user_id']][] = $rRow;
-				}
-			}
-			return $rConnectionMap;
-		}
-		return $rRedisKeys;
+		return ConnectionTracker::getUserConnections(self::$redis, $rUserIDs, $rCount, $rKeysOnly);
 	}
 	public static function getServerConnections($rServerIDs, $rProxy = false, $rCount = false, $rKeysOnly = false) {
 		if (is_object(self::$redis)) {
 		} else {
 			self::connectRedis();
 		}
-		$rRedis = self::$redis->multi();
-		foreach ($rServerIDs as $rServerID) {
-			$rRedis->zRevRangeByScore(($rProxy ? 'PROXY#' . $rServerID : 'SERVER#' . $rServerID), '+inf', '-inf');
-		}
-		$rGroups = $rRedis->exec();
-		$rConnectionMap = $rRedisKeys = array();
-		foreach ($rGroups as $rGroupID => $rKeys) {
-			if ($rCount) {
-				$rConnectionMap[$rServerIDs[$rGroupID]] = count($rKeys);
-			} else {
-				if (0 >= count($rKeys)) {
-				} else {
-					$rRedisKeys = array_merge($rRedisKeys, $rKeys);
-				}
-			}
-		}
-		$rRedisKeys = array_unique($rRedisKeys);
-		if (!$rKeysOnly) {
-			if ($rCount) {
-			} else {
-				foreach (self::$redis->mGet($rRedisKeys) as $rRow) {
-					$rRow = igbinary_unserialize($rRow);
-					$rConnectionMap[$rRow['server_id']][] = $rRow;
-				}
-			}
-			return $rConnectionMap;
-		}
-		return $rRedisKeys;
+		return ConnectionTracker::getServerConnections(self::$redis, $rServerIDs, $rProxy, $rCount, $rKeysOnly);
 	}
 	public static function getFirstConnection($rUserIDs) {
 		if (is_object(self::$redis)) {
 		} else {
 			self::connectRedis();
 		}
-		$rRedis = self::$redis->multi();
-		foreach ($rUserIDs as $rUserID) {
-			$rRedis->zRevRangeByScore('LINE#' . $rUserID, '+inf', '-inf', array('limit' => array(0, 1)));
-		}
-		$rGroups = $rRedis->exec();
-		$rConnectionMap = $rRedisKeys = array();
-		foreach ($rGroups as $rGroupID => $rKeys) {
-			if (0 >= count($rKeys)) {
-			} else {
-				$rRedisKeys[] = $rKeys[0];
-			}
-		}
-		foreach (self::$redis->mGet(array_unique($rRedisKeys)) as $rRow) {
-			$rRow = igbinary_unserialize($rRow);
-			$rConnectionMap[$rRow['user_id']] = $rRow;
-		}
-		return $rConnectionMap;
+		return ConnectionTracker::getFirstConnection(self::$redis, $rUserIDs);
 	}
 	public static function getStreamConnections($rStreamIDs, $rGroup = true, $rCount = false) {
 		if (is_object(self::$redis)) {
 		} else {
 			self::connectRedis();
 		}
-		$rRedis = self::$redis->multi();
-		foreach ($rStreamIDs as $rStreamID) {
-			$rRedis->zRevRangeByScore('STREAM#' . $rStreamID, '+inf', '-inf');
-		}
-		$rGroups = $rRedis->exec();
-		$rConnectionMap = $rRedisKeys = array();
-		foreach ($rGroups as $rGroupID => $rKeys) {
-			if ($rCount) {
-				$rConnectionMap[$rStreamIDs[$rGroupID]] = count($rKeys);
-			} else {
-				if (0 >= count($rKeys)) {
-				} else {
-					$rRedisKeys = array_merge($rRedisKeys, $rKeys);
-				}
-			}
-		}
-		if ($rCount) {
-		} else {
-			foreach (self::$redis->mGet(array_unique($rRedisKeys)) as $rRow) {
-				$rRow = igbinary_unserialize($rRow);
-				if ($rGroup) {
-					$rConnectionMap[$rRow['stream_id']][] = $rRow;
-				} else {
-					$rConnectionMap[$rRow['stream_id']][$rRow['server_id']][] = $rRow;
-				}
-			}
-		}
-		return $rConnectionMap;
+		return ConnectionTracker::getStreamConnections(self::$redis, $rStreamIDs, $rGroup, $rCount);
 	}
 	public static function getRedisConnections($rUserID = null, $rServerID = null, $rStreamID = null, $rOpenOnly = false, $rCountOnly = false, $rGroup = true, $rHLSOnly = false) {
-		$rReturn = ($rCountOnly ? array(0, 0) : array());
 		if (is_object(self::$redis)) {
 		} else {
 			self::connectRedis();
 		}
-		$rUniqueUsers = array();
-		$rUserID = (0 < intval($rUserID) ? intval($rUserID) : null);
-		$rServerID = (0 < intval($rServerID) ? intval($rServerID) : null);
-		$rStreamID = (0 < intval($rStreamID) ? intval($rStreamID) : null);
-		if ($rUserID) {
-			$rKeys = self::$redis->zRangeByScore('LINE#' . $rUserID, '-inf', '+inf');
-		} else {
-			if ($rStreamID) {
-				$rKeys = self::$redis->zRangeByScore('STREAM#' . $rStreamID, '-inf', '+inf');
-			} else {
-				if ($rServerID) {
-					$rKeys = self::$redis->zRangeByScore('SERVER#' . $rServerID, '-inf', '+inf');
-				} else {
-					$rKeys = self::$redis->zRangeByScore('LIVE', '-inf', '+inf');
-				}
-			}
-		}
-		if (0 >= count($rKeys)) {
-		} else {
-			foreach (self::$redis->mGet(array_unique($rKeys)) as $rRow) {
-				$rRow = igbinary_unserialize($rRow);
-				if (!($rServerID && $rServerID != $rRow['server_id']) && !($rStreamID && $rStreamID != $rRow['stream_id']) && !($rUserID && $rUserID != $rRow['user_id']) && !($rHLSOnly && $rRow['container'] == 'hls')) {
-					$rUUID = ($rRow['user_id'] ?: $rRow['hmac_id'] . '_' . $rRow['hmac_identifier']);
-					if ($rCountOnly) {
-						$rReturn[0]++;
-						$rUniqueUsers[] = $rUUID;
-					} else {
-						if ($rGroup) {
-							if (isset($rReturn[$rUUID])) {
-							} else {
-								$rReturn[$rUUID] = array();
-							}
-							$rReturn[$rUUID][] = $rRow;
-						} else {
-							$rReturn[] = $rRow;
-						}
-					}
-				}
-			}
-		}
-		if (!$rCountOnly) {
-		} else {
-			$rReturn[1] = count(array_unique($rUniqueUsers));
-		}
-		return $rReturn;
+		return ConnectionTracker::getRedisConnections(self::$redis, $rUserID, $rServerID, $rStreamID, $rOpenOnly, $rCountOnly, $rGroup, $rHLSOnly);
 	}
 	public static function getDomainName($rForceSSL = false) {
-		$rOriginatorID = null;
-		$rServerID = SERVER_ID;
-		if ($rForceSSL) {
-			$rProtocol = 'https';
-		} else {
-			if (isset($_SERVER['SERVER_PORT']) && self::$rSettings['keep_protocol']) {
-				$rProtocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443 ? 'https' : 'http');
-			} else {
-				$rProtocol = self::$rServers[$rServerID]['server_protocol'];
-			}
-		}
-		$rProxied = self::$rServers[$rServerID]['enable_proxy'];
-		if ($rProxied) {
-			$rProxyIDs = array_keys(self::getProxies($rServerID));
-			if (count($rProxyIDs) == 0) {
-				$rProxyIDs = array_keys(self::getProxies($rServerID, false));
-			}
-			if (count($rProxyIDs) != 0) {
-				$rOriginatorID = $rServerID;
-				$rServerID = $rProxyIDs[array_rand($rProxyIDs)];
-			} else {
-				return '';
-			}
-		}
-		list($rDomain, $rAccessPort) = explode(':', $_SERVER['HTTP_HOST']);
-		if (!($rProxied || self::$rSettings['use_mdomain_in_lists'] == 1)) {
-		} else {
-			if (in_array(strtolower($rDomain), (self::getCache('reseller_domains') ?: array()))) {
-			} else {
-				if (empty(self::$rServers[$rServerID]['domain_name'])) {
-					$rDomain = escapeshellcmd(self::$rServers[$rServerID]['server_ip']);
-				} else {
-					$rDomain = str_replace(array('http://', '/', 'https://'), '', escapeshellcmd(explode(',', self::$rServers[$rServerID]['domain_name'])[0]));
-				}
-			}
-		}
-		$rServerURL = $rProtocol . '://' . $rDomain . ':' . self::$rServers[$rServerID][$rProtocol . '_broadcast_port'] . '/';
-		if (!(self::$rServers[$rServerID]['server_type'] == 1 && $rOriginatorID && self::$rServers[$rOriginatorID]['is_main'] == 0)) {
-		} else {
-			$rServerURL .= md5($rServerID . '_' . $rOriginatorID . '_' . OPENSSL_EXTRA) . '/';
-		}
-		return $rServerURL;
+		return DomainResolver::resolve(self::$rServers, self::$rSettings, SERVER_ID, $rForceSSL, array('CoreUtilities', 'getProxies'), array('CoreUtilities', 'getCache'));
 	}
 	public static function checkCompatibility($rData) {
 		if (!is_array($rData)) {
@@ -3983,13 +3207,7 @@ class CoreUtilities {
 	}
 
 	public static function getNearest($arr, $search) {
-		$closest = null;
-		foreach ($arr as $item) {
-			if ($closest === null || abs($item - $search) < abs($search - $closest)) {
-				$closest = $item;
-			}
-		}
-		return $closest;
+		return StreamSorter::getNearest($arr, $search);
 	}
 	/**
 	 * Downloads panel logs from database, formats them and clears the logs table
@@ -4198,13 +3416,7 @@ class CoreUtilities {
 		}
 	}
 	public static function getProxies($rServerID, $rOnline = true) {
-		$rReturn = array();
-		foreach (self::$rServers as $rProxyID => $rServerInfo) {
-			if ($rServerInfo['server_type'] == 1 && in_array($rServerID, $rServerInfo['parent_id']) && ($rServerInfo['server_online'] || !$rOnline)) {
-				$rReturn[$rProxyID] = $rServerInfo;
-			}
-		}
-		return $rReturn;
+		return ConnectionTracker::getProxies(self::$rServers, $rServerID, $rOnline);
 	}
 
 	/**

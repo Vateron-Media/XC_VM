@@ -19,7 +19,7 @@ cli_set_process_title('XC_VM[Backups]');
 $rIdentifier = CRONS_TMP_PATH . md5(CoreUtilities::generateUniqueCode() . __FILE__);
 CoreUtilities::checkCron($rIdentifier);
 $rForce = false;
-if (count($argv) > 0) {
+if (count($argv) > 1) {
     if (intval($argv[1]) == 1) {
         $rForce = true;
     }
