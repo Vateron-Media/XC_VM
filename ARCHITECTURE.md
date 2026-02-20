@@ -908,49 +908,49 @@ StreamingUtilities::truncateAttempts() →
 - ✅ 4 дублированных метода в StreamingUtilities (стр. 215–394) → proxy на тот же `BruteforceGuard`
 - ✅ Первая дедупликация CoreUtilities ↔ StreamingUtilities
 
-#### Шаг 1.7.4 — HTTP-клиент (cURL)
+#### Шаг 1.7.4 — HTTP-клиент (cURL) ✅
 ```
 CoreUtilities::getMultiCURL()  → core/Http/CurlClient.php
 CoreUtilities::getURL()        →
 CoreUtilities::serverRequest() →
 ```
-- Извлечь 3 метода (стр. 373–428, 1408–1442, 3568–3578) → `CurlClient`
+- ✅ Извлечь 3 метода (стр. 373–428, 1408–1442, 3568–3578) → `CurlClient`
 
-#### Шаг 1.7.5 — Событийная система
+#### Шаг 1.7.5 — Событийная система ✅
 ```
 Новый файл → core/Events/EventDispatcher.php
 Новый файл → core/Events/EventInterface.php
 ```
-- Написать простой EventDispatcher (publish/subscribe)
-- Пока без подписчиков — подготовка к модульной системе
+- ✅ Написать простой EventDispatcher (publish/subscribe)
+- ✅ Пока без подписчиков — подготовка к модульной системе
 
-#### Шаг 1.7.6 — RBAC / Авторизация
+#### Шаг 1.7.6 — RBAC / Авторизация ✅
 ```
 admin.php::hasPermissions()         → core/Auth/Authorization.php
 admin.php::hasResellerPermissions() →
-$rPermissions (из admin.php)        → resources/data/permissions.php
+$rAdvPermissions (из admin.php)     → resources/data/permissions.php
 ```
-- Извлечь `hasPermissions()` (стр. 582–619) и `hasResellerPermissions()` (стр. 575–581)
-- Массив `$rPermissions` → `resources/data/permissions.php`
-- Proxy: глобальные функции в `admin.php` → `Authorization::check()`
+- ✅ Извлечь `hasPermissions()` (стр. 582–619) и `hasResellerPermissions()` (стр. 575–581)
+- ✅ Массив `$rAdvPermissions` → `resources/data/permissions.php`
+- ✅ Proxy: глобальные функции в `admin.php` → `Authorization::check()`
 
-#### Шаг 1.7.7 — Аутентификация
+#### Шаг 1.7.7 — Аутентификация ✅
 ```
 API::processLogin()            → core/Auth/Authenticator.php
 ResellerAPI::processLogin()    →
 ```
-- Извлечь `processLogin()` из `admin_api.php` (стр. 1399–1478) → `Authenticator::login()`
-- Извлечь `processLogin()` из `reseller_api.php` → `Authenticator::resellerLogin()`
-- Proxy: `API::processLogin()` → `Authenticator::login()`
+- ✅ Извлечь `processLogin()` из `admin_api.php` (стр. 1399–1478) → `Authenticator::login()`
+- ✅ Извлечь `processLogin()` из `reseller_api.php` → `Authenticator::resellerLogin()`
+- ✅ Proxy: `API::processLogin()` → `Authenticator::login()`
 
-#### Шаг 1.7.8 — Утилиты изображений
+#### Шаг 1.7.8 — Утилиты изображений ✅
 ```
 CoreUtilities → core/Util/ImageUtils.php
 admin.php::getAdminImage() →
 ```
-- Извлечь методы работы с изображениями (resize, thumbnail, URL-валидация)
-- `StreamingUtilities::validateImage()` (стр. 1355) → `ImageUtils::validateURL()`
-- `admin.php::getAdminImage()` (стр. 871–883) → `ImageUtils::resize()`
+- ✅ Извлечь методы работы с изображениями (resize, thumbnail, URL-валидация)
+- ✅ `StreamingUtilities::validateImage()` (стр. 1355) → `ImageUtils::validateURL()`
+- ✅ `admin.php::getAdminImage()` (стр. 871–883) → `ImageUtils::resize()`
 
 ---
 
@@ -960,52 +960,76 @@ admin.php::getAdminImage() →
 
 #### Шаг 2.1 — Инвентаризация дубликатов
 
-Таблица идентичных методов (≈30 методов):
+Актуальная инвентаризация (20.02.2026): **53 общих метода**.
 
-| Метод | CoreUtilities (стр.) | StreamingUtilities (стр.) | Целевой класс |
-|-------|---------------------|--------------------------|---------------|
-| `cleanGlobals()` | 429 | 155 | ✅ `core/Http/Request` |
-| `parseIncomingRecursively()` | 447 | 173 | ✅ `core/Http/Request` |
-| `parseCleanKey()` | 467 | 193 | ✅ `core/Http/Request` |
-| `parseCleanValue()` | 476 | 203 | ✅ `core/Http/Request` |
-| `checkFlood()` | 709 | 215 | → `BruteforceGuard` (1.7.3) |
-| `checkBruteforce()` | 756 | 265 | → `BruteforceGuard` (1.7.3) |
-| `checkAuthFlood()` | 3633 | 323 | → `BruteforceGuard` (1.7.3) |
-| `truncateAttempts()` | 807 | 374 | → `BruteforceGuard` (1.7.3) |
-| `isProxy()` | 174 | 368 | ✅ `core/Util/NetworkUtils` |
-| `setSignal()` | 3977 | 1140 | → шаг 2.2 |
-| `connectRedis()` | 3980 | 1717 | → шаг 2.2 |
-| `updateConnection()` | 3994 | 1766 | → шаг 2.3 |
-| `redisSignal()` | 4050 | 1835 | → шаг 2.3 |
-| `getMainID()` | 3883 | 1600 | → шаг 2.3 |
-| `addToQueue()` | 3891 | 1608 | → шаг 2.3 |
-| `removeFromQueue()` | 3909 | 1626 | → шаг 2.3 |
-| `generateString()` | 505 | 1640 | ✅ `core/Util/Encryption` |
-| `formatTitle()` | 3926 | 1651 | → шаг 2.4 |
-| `sortChannels()` | 3939 | 1664 | → шаг 2.4 |
-| `sortSeries()` | 3958 | 1683 | → шаг 2.4 |
-| `getDiffTimezone()` | 115 | 1702 | ✅ `core/Util/TimeUtils` |
-| `getBouquetMap()` | 3827 | 1573 | → шаг 2.4 |
-| `getDomainName()` | 4236 | 1854 | → шаг 2.2 |
-| `getNearest()` | 4316 | 1844 | → шаг 2.4 |
-| `getProxies()` | 4543 | 1900 | → шаг 2.3 |
-| `base64url_encode()` | 4561 | 1953 | ✅ `core/Util/Encryption` |
-| `base64url_decode()` | 4573 | 1965 | ✅ `core/Util/Encryption` |
-| `encryptData()` | 4585 | 1977 | ✅ `core/Util/Encryption` |
-| `decryptData()` | 4597 | 1989 | ✅ `core/Util/Encryption` |
+| Метод | CoreUtilities (стр.) | StreamingUtilities (стр.) | Целевой шаг |
+|-------|---------------------|--------------------------|-------------|
+| `addToQueue()` | 3419 | 1437 | 2.3 |
+| `base64url_decode()` | 4089 | 1794 | 2.4 |
+| `base64url_encode()` | 4077 | 1782 | 2.4 |
+| `checkAuthFlood()` | 3200 | 224 | 2.4 |
+| `checkBlockedUAs()` | 2718 | 1015 | 2.4 |
+| `checkBruteforce()` | 507 | 220 | 2.4 |
+| `checkFlood()` | 503 | 216 | 2.4 |
+| `checkISP()` | 2972 | 1164 | 2.4 |
+| `checkServer()` | 2980 | 1173 | 2.4 |
+| `cleanGlobals()` | 376 | 155 | 2.4 |
+| `closeConnection()` | 2567 | 711 | 2.3 |
+| `connectRedis()` | 3508 | 1546 | 2.2 |
+| `decryptData()` | 4113 | 1818 | 2.4 |
+| `encryptData()` | 4101 | 1806 | 2.4 |
+| `formatTitle()` | 3454 | 1480 | 2.4 |
+| `generateString()` | 436 | 1469 | 2.4 |
+| `getAdultCategories()` | 2490 | 1536 | 2.4 |
+| `getBouquetMap()` | 3355 | 1402 | 2.4 |
+| `getCache()` | 296 | 133 | 2.5 |
+| `getCapacity()` | 3203 | 240 | 2.3 |
+| `getCategories()` | 514 | 1248 | 2.4 |
+| `getConnections()` | 3297 | 1650 | 2.3 |
+| `getDiffTimezone()` | 115 | 1531 | 2.4 |
+| `getDomainName()` | 3764 | 1683 | 2.2 |
+| `getIPInfo()` | 2983 | 1176 | 2.4 |
+| `getISP()` | 2957 | 1147 | 2.4 |
+| `getMainID()` | 3411 | 1429 | 2.3 |
+| `getNearest()` | 3844 | 1673 | 2.4 |
+| `getPlaylistSegments()` | 2682 | 1305 | 2.4 |
+| `getProxies()` | 4059 | 1729 | 2.3 |
+| `getPublicURL()` | 3097 | 1207 | 2.2 |
+| `getUserIP()` | 2915 | 1144 | 2.4 |
+| `getUserInfo()` | 2320 | 816 | 2.4 |
+| `init()` | 23 | 22 | 2.5 |
+| `isMonitorRunning()` | 2745 | 1032 | 2.4 |
+| `isProcessRunning()` | 2841 | 1100 | 2.4 |
+| `isProxy()` | 174 | 230 | 2.4 |
+| `isRunning()` | 2998 | 1195 | 2.4 |
+| `isStreamRunning()` | 2812 | 1055 | 2.4 |
+| `parseCleanKey()` | 414 | 193 | 2.4 |
+| `parseCleanValue()` | 423 | 203 | 2.4 |
+| `parseIncomingRecursively()` | 394 | 173 | 2.4 |
+| `redisSignal()` | 3578 | 1664 | 2.3 |
+| `removeFromQueue()` | 3437 | 1455 | 2.3 |
+| `setSignal()` | 3505 | 986 | 2.2 |
+| `sortChannels()` | 3467 | 1493 | 2.4 |
+| `sortSeries()` | 3486 | 1512 | 2.4 |
+| `startMonitor()` | 1320 | 1119 | 2.4 |
+| `startProxy()` | 1324 | 1123 | 2.4 |
+| `truncateAttempts()` | 511 | 237 | 2.4 |
+| `updateConnection()` | 3522 | 1595 | 2.3 |
+| `validateImage()` | 3094 | 1192 | 2.4 |
+| `writeOfflineActivity()` | 2663 | 779 | 2.4 |
 
-✅ = уже извлечено ранее. → = будет извлечено в указанном шаге.
+Инвентаризация выше — рабочий baseline для декомпозиции в шагах 2.2–2.5.
 
-#### Шаг 2.2 — Redis и сигналы
+#### Шаг 2.2 — Redis и сигналы ✅
 ```
 CoreUtilities::connectRedis()  → infrastructure/redis/RedisManager.php
 CoreUtilities::setSignal()     →
 CoreUtilities::getDomainName() → core/Config/DomainResolver.php
 StreamingUtilities::closeRedis() →
 ```
-- Извлечь Redis-подключение в `RedisManager` (единый для обоих)
-- Proxy: оба класса вызывают `RedisManager::connect()`
-- `getDomainName()` → `DomainResolver::resolve()` (чистая утилита конфигурации)
+- ✅ Извлечь Redis-подключение в `RedisManager` (единый для обоих)
+- ✅ Proxy: оба класса вызывают `RedisManager::connect()`
+- ✅ `getDomainName()` → `DomainResolver::resolve()` (чистая утилита конфигурации)
 
 #### Шаг 2.3 — Трекинг подключений (Redis)
 ```
@@ -1027,8 +1051,8 @@ StreamingUtilities::createConnection() →
 StreamingUtilities::updateConnection() →
 StreamingUtilities::getConnections()   →
 ```
-- ~17 методов в один `ConnectionTracker` (работа с Redis-ключами подключений)
-- Proxy: оба god-объекта делегируют в `ConnectionTracker`
+- ✅ ~17 методов вынесены в `ConnectionTracker` (работа с Redis-ключами подключений)
+- ✅ Proxy: оба god-объекта делегируют в `ConnectionTracker`
 
 #### Шаг 2.4 — Справочные данные и сортировки
 ```
@@ -1042,17 +1066,17 @@ CoreUtilities::getBouquets()     → domain/Bouquet/BouquetRepository.php
 CoreUtilities::getServers()      → domain/Server/ServerRepository.php
 CoreUtilities::getSettings()     → вынести кэширование настроек
 ```
-- Сортировки и форматирование → `StreamSorter`
-- Данные-справочники → соответствующие Repository
+- ✅ Сортировки и форматирование вынесены в `StreamSorter`
+- ✅ Данные-справочники вынесены в `BouquetMapper` / `CategoryRepository` / `BouquetRepository` / `ServerRepository` / `SettingsRepository`
 
 #### Шаг 2.5 — Дедупликация init()
 ```
 CoreUtilities::init()            → упрощение, делегирование в ServiceContainer
 StreamingUtilities::init()       → упрощение, делегирование в ServiceContainer
 ```
-- Оба `init()` загружают настройки/серверы/домены из кэша или БД
-- Логика загрузки → `ServiceContainer` (уже частично есть)
-- `init()` → тонкие обёртки, вызывающие контейнер
+- ✅ Оба `init()` стали тонкими обёртками
+- ✅ Общая логика вынесена в `core/Init/LegacyInitializer.php`
+- ✅ Состояние init синхронизируется через `ServiceContainer`
 
 ---
 
