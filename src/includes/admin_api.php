@@ -154,612 +154,84 @@ class API {
 	}
 
 	public static function processBouquet($rData) {
-		global $_;
-
-		if (self::checkMinimumRequirements($rData)) {
-
-
-			if (isset($rData['edit'])) {
-				if (hasPermissions('adv', 'edit_bouquet')) {
-
-
-					$rArray = overwriteData(getBouquet($rData['edit']), $rData);
-				} else {
-					exit();
-				}
-			} else {
-				if (hasPermissions('adv', 'add_bouquet')) {
-
-
-					$rArray = verifyPostTable('bouquets', $rData);
-					unset($rArray['id']);
-				} else {
-					exit();
-				}
-			}
-
-			if (is_array(json_decode($rData['bouquet_data'], true))) {
-				$rBouquetData = json_decode($rData['bouquet_data'], true);
-				$rBouquetStreams = $rBouquetData['stream'];
-				$rBouquetMovies = $rBouquetData['movies'];
-				$rBouquetRadios = $rBouquetData['radios'];
-				$rBouquetSeries = $rBouquetData['series'];
-				$rRequiredIDs = confirmIDs(array_merge($rBouquetStreams, $rBouquetMovies, $rBouquetRadios));
-				$rStreams = array();
-
-				if (0 >= count($rRequiredIDs)) {
-				} else {
-					self::$db->query('SELECT `id`, `type` FROM `streams` WHERE `id` IN (' . implode(',', $rRequiredIDs) . ');');
-
-					foreach (self::$db->get_rows() as $rRow) {
-						if (intval($rRow['type']) != 3) {
-						} else {
-							$rRow['type'] = 1;
-						}
-
-						$rStreams[intval($rRow['type'])][] = intval($rRow['id']);
-					}
-				}
-
-				if (count($rBouquetSeries) > 0) {
-					self::$db->query('SELECT `id` FROM `streams_series` WHERE `id` IN (' . implode(',', $rBouquetSeries) . ');');
-
-					foreach (self::$db->get_rows() as $rRow) {
-						$rStreams[5][] = intval($rRow['id']);
-					}
-				}
-
-				$rArray['bouquet_channels'] = array_intersect(array_map('intval', array_values($rBouquetStreams)), $rStreams[1] ?? []);
-				$rArray['bouquet_movies'] = array_intersect(array_map('intval', array_values($rBouquetMovies)),	$rStreams[2] ?? []);
-				$rArray['bouquet_radios'] = array_intersect(array_map('intval', array_values($rBouquetRadios)),	$rStreams[4] ?? []);
-				$rArray['bouquet_series'] = array_intersect(array_map('intval', array_values($rBouquetSeries)),	$rStreams[5] ?? []);
-			} else {
-				if (isset($rData['edit'])) {
-					return array('status' => STATUS_FAILURE, 'data' => $rData);
-				}
-			}
-
-			if (!isset($rData['edit'])) {
-				self::$db->query('SELECT MAX(`bouquet_order`) AS `max` FROM `bouquets`;');
-				$rArray['bouquet_order'] = intval(self::$db->get_row()['max']) + 1;
-			}
-
-			$rPrepare = prepareArray($rArray);
-			$rQuery = 'REPLACE INTO `bouquets`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-
-			if (self::$db->query($rQuery, ...$rPrepare['data'])) {
-				$rInsertID = self::$db->last_insert_id();
-				scanBouquet($rInsertID);
-
-				return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
-			}
-
-			return array('status' => STATUS_FAILURE, 'data' => $rData);
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-
-
-		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		return BouquetService::process($rData, self::$db, 'getBouquet', 'scanBouquet');
 	}
 
 	public static function processCode($rData) {
-		if (self::checkMinimumRequirements($rData)) {
-			if (isset($rData['edit'])) {
-				$rArray = overwriteData(getCode($rData['edit']), $rData);
-				$rOrigCode = $rArray['code'];
-			} else {
-				$rArray = verifyPostTable('access_codes', $rData);
-				$rOrigCode = null;
-				unset($rArray['id']);
-			}
-
-			if (isset($rData['enabled'])) {
-				$rArray['enabled'] = 1;
-			} else {
-				$rArray['enabled'] = 0;
-			}
-
-			if (!isset($rData['groups'])) {
-			} else {
-				$rArray['groups'] = array();
-
-				foreach ($rData['groups'] as $rGroupID) {
-					$rArray['groups'][] = intval($rGroupID);
-				}
-			}
-
-			if (in_array($rData['type'], array(0, 1, 3, 4))) {
-				$rArray['groups'] = '[' . implode(',', array_map('intval', $rArray['groups'])) . ']';
-			} else {
-				$rArray['groups'] = '[]';
-			}
-
-			if (isset($rData['whitelist'])) {
-			} else {
-				$rArray['whitelist'] = '[]';
-			}
-
-			if ($rData['type'] != 2 && strlen($rData['code']) < 8) {
-				return array('status' => STATUS_CODE_LENGTH, 'data' => $rData);
-			}
-
-			if ($rData['type'] == 2 && empty($rData['code'])) {
-
-				return array('status' => STATUS_INVALID_CODE, 'data' => $rData);
-			}
-
-			if (in_array($rData['code'], array('admin', 'stream', 'images', 'player_api', 'player', 'playlist', 'epg', 'live', 'movie', 'series', 'status', 'nginx_status', 'get', 'panel_api', 'xmltv', 'probe', 'thumb', 'timeshift', 'auth', 'vauth', 'tsauth', 'hls', 'play', 'key', 'api', 'c'))) {
-				return array('status' => STATUS_RESERVED_CODE, 'data' => $rData);
-			}
-
-			if (isset($rData['edit'])) {
-				self::$db->query('SELECT `id` FROM `access_codes` WHERE `code` = ? AND `id` <> ?;', $rData['code'], $rData['edit']);
-			} else {
-				self::$db->query('SELECT `id` FROM `access_codes` WHERE `code` = ?;', $rData['code']);
-			}
-
-			if (0 >= self::$db->num_rows()) {
-				$rPrepare = prepareArray($rArray);
-
-
-				$rQuery = 'REPLACE INTO `access_codes`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-
-				if (self::$db->query($rQuery, ...$rPrepare['data'])) {
-					$rInsertID = self::$db->last_insert_id();
-					updateCodes();
-
-					return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID, 'orig_code' => $rOrigCode, 'new_code' => $rData['code']));
-				}
-
-				return array('status' => STATUS_FAILURE, 'data' => $rData);
-			}
-
-			return array('status' => STATUS_EXISTS_CODE, 'data' => $rData);
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		return CodeService::process(self::$db, $rData, 'getCode', 'updateCodes');
 	}
 
 	public static function processHMAC($rData) {
-		if (self::checkMinimumRequirements($rData)) {
-			if (isset($rData['edit'])) {
-				$rArray = overwriteData(getHMACToken($rData['edit']), $rData);
-			} else {
-				$rArray = verifyPostTable('hmac_keys', $rData);
-				unset($rArray['id']);
-			}
-
-			if (isset($rData['enabled'])) {
-				$rArray['enabled'] = 1;
-			} else {
-				$rArray['enabled'] = 0;
-			}
-
-			if (!($rData['keygen'] != 'HMAC KEY HIDDEN' && strlen($rData['keygen']) != 32)) {
-				if (strlen($rData['notes']) != 0) {
-					if (isset($rData['edit'])) {
-						if ($rData['keygen'] != 'HMAC KEY HIDDEN') {
-							self::$db->query('SELECT `id` FROM `hmac_keys` WHERE `key` = ? AND `id` <> ?;', CoreUtilities::encryptData($rData['keygen'], CoreUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA), $rData['edit']);
-
-							if (0 >= self::$db->num_rows()) {
-							} else {
-								return array('status' => STATUS_EXISTS_HMAC, 'data' => $rData);
-							}
-						}
-					} else {
-						self::$db->query('SELECT `id` FROM `hmac_keys` WHERE `key` = ?;', CoreUtilities::encryptData($rData['keygen'], CoreUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA));
-
-						if (0 >= self::$db->num_rows()) {
-						} else {
-							return array('status' => STATUS_EXISTS_HMAC, 'data' => $rData);
-						}
-					}
-
-					if ($rData['keygen'] != 'HMAC KEY HIDDEN') {
-						$rArray['key'] = CoreUtilities::encryptData($rData['keygen'], CoreUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
-					}
-
-					$rPrepare = prepareArray($rArray);
-					$rQuery = 'REPLACE INTO `hmac_keys`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-
-					if (self::$db->query($rQuery, ...$rPrepare['data'])) {
-						$rInsertID = self::$db->last_insert_id();
-
-						return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
-					}
-					return array('status' => STATUS_FAILURE, 'data' => $rData);
-				}
-				return array('status' => STATUS_NO_DESCRIPTION, 'data' => $rData);
-			}
-			return array('status' => STATUS_NO_KEY, 'data' => $rData);
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
-		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+
+		return HMACService::process(self::$db, $rData, self::$rSettings, 'getHMACToken');
 	}
 
 	public static function reorderBouquet($rData) {
-		if (self::checkMinimumRequirements($rData)) {
-			$rOrder = json_decode($rData['stream_order_array'], true);
-			$rOrder['stream'] = confirmIDs($rOrder['stream']);
-			$rOrder['series'] = confirmIDs($rOrder['series']);
-			$rOrder['movie'] = confirmIDs($rOrder['movie']);
-			$rOrder['radio'] = confirmIDs($rOrder['radio']);
-			self::$db->query('UPDATE `bouquets` SET `bouquet_channels` = ?, `bouquet_series` = ?, `bouquet_movies` = ?, `bouquet_radios` = ? WHERE `id` = ?;', '[' . implode(',', array_map('intval', $rOrder['stream'])) . ']', '[' . implode(',', array_map('intval', $rOrder['series'])) . ']', '[' . implode(',', array_map('intval', $rOrder['movie'])) . ']', '[' . implode(',', array_map('intval', $rOrder['radio'])) . ']', $rData['reorder']);
-
-			return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rData['reorder']));
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-
-
-		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		return BouquetService::reorder($rData, self::$db);
 	}
 
 	public static function editAdminProfile($rData) {
 		global $allowedLangs;
-		if (self::checkMinimumRequirements($rData)) {
-			if (0 >= strlen($rData['email']) || filter_var($rData['email'], FILTER_VALIDATE_EMAIL)) {
-
-
-				if (0 < strlen($rData['password'])) {
-					$rPassword = cryptPassword($rData['password']);
-				} else {
-					$rPassword = self::$rUserInfo['password'];
-				}
-
-				if (ctype_xdigit($rData['api_key']) && strlen($rData['api_key']) == 32) {
-				} else {
-					$rData['api_key'] = '';
-				}
-
-				if (!in_array($rData['lang'], $allowedLangs)) {
-					$rData['lang'] = 'en';
-				}
-
-				self::$db->query('UPDATE `users` SET `password` = ?, `email` = ?, `theme` = ?, `hue` = ?, `timezone` = ?, `api_key` = ?, `lang` = ? WHERE `id` = ?;', $rPassword, $rData['email'], $rData['theme'], $rData['hue'], $rData['timezone'], $rData['api_key'], $rData['lang'], self::$rUserInfo['id']);
-
-				return array('status' => STATUS_SUCCESS);
-			}
-
-			return array('status' => STATUS_INVALID_EMAIL);
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		return ProfileService::editAdminProfile(self::$db, $rData, self::$rUserInfo, $allowedLangs);
 	}
 
 	public static function blockIP($rData) {
-		if (self::checkMinimumRequirements($rData)) {
-			if (validateCIDR($rData['ip'])) {
-				$rArray = array('ip' => $rData['ip'], 'notes' => $rData['notes'], 'date' => time());
-				touch(FLOOD_TMP_PATH . 'block_' . $rData['ip']);
-				$rPrepare = prepareArray($rArray);
-				$rQuery = 'REPLACE INTO `blocked_ips`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-
-				if (!self::$db->query($rQuery, ...$rPrepare['data'])) {
-				} else {
-					$rInsertID = self::$db->last_insert_id();
-				}
-
-				if (isset($rInsertID)) {
-					return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
-				}
-
-				return array('status' => STATUS_FAILURE, 'data' => $rData);
-			}
-
-			return array('status' => STATUS_INVALID_IP, 'data' => $rData);
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-
-
-		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		return BlocklistService::blockIP(self::$db, $rData);
 	}
 
 	public static function sortBouquets($rData) {
-		if (self::checkMinimumRequirements($rData)) {
-			set_time_limit(0);
-			ini_set('mysql.connect_timeout', 0);
-			ini_set('max_execution_time', 0);
-			ini_set('default_socket_timeout', 0);
-			$rOrder = json_decode($rData['bouquet_order_array'], true);
-			$rSort = 1;
-
-			foreach ($rOrder as $rBouquetID) {
-				self::$db->query('UPDATE `bouquets` SET `bouquet_order` = ? WHERE `id` = ?;', $rSort, $rBouquetID);
-				$rSort++;
-			}
-
-			if (isset($rData['confirmReplace'])) {
-				$rUsers = getUserBouquets();
-
-				foreach ($rUsers as $rUser) {
-					$rBouquet = json_decode($rUser['bouquet'], true);
-					$rBouquet = array_map('intval', sortArrayByArray($rBouquet, $rOrder));
-					self::$db->query('UPDATE `lines` SET `bouquet` = ? WHERE `id` = ?;', '[' . implode(',', $rBouquet) . ']', $rUser['id']);
-					CoreUtilities::updateLine($rUser['id']);
-				}
-				$rPackages = getPackages();
-
-				foreach ($rPackages as $rPackage) {
-					$rBouquet = json_decode($rPackage['bouquets'], true);
-					$rBouquet = array_map('intval', sortArrayByArray($rBouquet, $rOrder));
-					self::$db->query('UPDATE `users_packages` SET `bouquets` = ? WHERE `id` = ?;', '[' . implode(',', $rBouquet) . ']', $rPackage['id']);
-				}
-
-				return array('status' => STATUS_SUCCESS_REPLACE);
-			} else {
-				return array('status' => STATUS_SUCCESS);
-			}
-		} else {
-
-
-
+		if (!self::checkMinimumRequirements($rData)) {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
+
+		return BouquetService::sort($rData, self::$db, 'getUserBouquets', 'getPackages', 'sortArrayByArray', array('CoreUtilities', 'updateLine'));
 	}
 
 	public static function setChannelOrder($rData) {
-		if (self::checkMinimumRequirements($rData)) {
-			set_time_limit(0);
-			ini_set('mysql.connect_timeout', 0);
-			ini_set('max_execution_time', 0);
-			ini_set('default_socket_timeout', 0);
-			$rOrder = json_decode($rData['stream_order_array'], true);
-			$rSort = 0;
-
-			foreach ($rOrder as $rStream) {
-				self::$db->query('UPDATE `streams` SET `order` = ? WHERE `id` = ?;', $rSort, $rStream);
-				$rSort++;
-			}
-
-			return array('status' => STATUS_SUCCESS);
-		} else {
-
-
-
+		if (!self::checkMinimumRequirements($rData)) {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
+
+		return ChannelService::setOrder($rData, self::$db);
 	}
 
 	public static function processChannel($rData) {
-		if (self::checkMinimumRequirements($rData)) {
-			if (isset($rData['edit'])) {
-				if (hasPermissions('adv', 'edit_cchannel')) {
-					$rArray = overwriteData(getStream($rData['edit']), $rData);
-				} else {
-					exit();
-				}
-			} else {
-				if (hasPermissions('adv', 'create_channel')) {
-					$rArray = verifyPostTable('streams', $rData);
-					$rArray['type'] = 3;
-					$rArray['added'] = time();
-					unset($rArray['id']);
-				} else {
-					exit();
-				}
-			}
-
-			if (isset($rData['restart_on_edit'])) {
-				$rRestart = true;
-			} else {
-				$rRestart = false;
-			}
-
-			if (isset($rData['reencode_on_edit'])) {
-				$rReencode = true;
-			} else {
-				$rReencode = false;
-			}
-
-			foreach (array('allow_record', 'rtmp_output') as $rKey) {
-				if (isset($rData[$rKey])) {
-					$rArray[$rKey] = 1;
-				} else {
-					$rArray[$rKey] = 0;
-				}
-			}
-			$rArray['movie_properties'] = array('type' => intval($rData['channel_type']));
-
-			if (intval($rData['channel_type']) == 0) {
-				$rPlaylist = generateSeriesPlaylist($rData['series_no']);
-				$rArray['stream_source'] = $rPlaylist;
-				$rArray['series_no'] = intval($rData['series_no']);
-			} else {
-				// video_files comes as a JSON string from the form, it needs to be decoded
-				$rVideoFiles = $rData['video_files'];
-				if (is_string($rVideoFiles)) {
-					$rVideoFiles = json_decode($rVideoFiles, true);
-				}
-				$rArray['stream_source'] = is_array($rVideoFiles) ? $rVideoFiles : [];
-				$rArray['series_no'] = 0;
-			}
-
-			if ($rData['transcode_profile_id'] == -1) {
-				$rArray['movie_symlink'] = 1;
-			} else {
-				$rArray['movie_symlink'] = 0;
-			}
-
-			if (0 < count($rArray['stream_source'])) {
-				$rBouquetCreate = array();
-
-				foreach (json_decode($rData['bouquet_create_list'], true) as $rBouquet) {
-					$rPrepare = prepareArray(array('bouquet_name' => $rBouquet, 'bouquet_channels' => array(), 'bouquet_movies' => array(), 'bouquet_series' => array(), 'bouquet_radios' => array()));
-					$rQuery = 'INSERT INTO `bouquets`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-
-					if (!self::$db->query($rQuery, ...$rPrepare['data'])) {
-					} else {
-						$rBouquetID = self::$db->last_insert_id();
-						$rBouquetCreate[$rBouquet] = $rBouquetID;
-					}
-				}
-				$rCategoryCreate = array();
-
-				foreach (json_decode($rData['category_create_list'], true) as $rCategory) {
-					$rPrepare = prepareArray(array('category_type' => 'live', 'category_name' => $rCategory, 'parent_id' => 0, 'cat_order' => 99, 'is_adult' => 0));
-					$rQuery = 'INSERT INTO `streams_categories`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-
-					if (!self::$db->query($rQuery, ...$rPrepare['data'])) {
-					} else {
-						$rCategoryID = self::$db->last_insert_id();
-						$rCategoryCreate[$rCategory] = $rCategoryID;
-					}
-				}
-				$rBouquets = array();
-
-				foreach ($rData['bouquets'] as $rBouquet) {
-					if (isset($rBouquetCreate[$rBouquet])) {
-						$rBouquets[] = $rBouquetCreate[$rBouquet];
-					} else {
-						if (!is_numeric($rBouquet)) {
-						} else {
-							$rBouquets[] = intval($rBouquet);
-						}
-					}
-				}
-				$rCategories = array();
-
-				foreach ($rData['category_id'] as $rCategory) {
-					if (isset($rCategoryCreate[$rCategory])) {
-						$rCategories[] = $rCategoryCreate[$rCategory];
-					} else {
-						if (is_numeric($rCategory)) {
-							$rCategories[] = intval($rCategory);
-						}
-					}
-				}
-				$rArray['category_id'] = '[' . implode(',', array_map('intval', $rCategories)) . ']';
-
-				if (!self::$rSettings['download_images']) {
-				} else {
-					$rArray['stream_icon'] = CoreUtilities::downloadImage($rArray['stream_icon'], 3);
-				}
-
-				if (isset($rData['edit'])) {
-				} else {
-					$rArray['order'] = getNextOrder();
-				}
-
-				$rPrepare = prepareArray($rArray);
-				$rQuery = 'REPLACE INTO `streams`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-
-				if (self::$db->query($rQuery, ...$rPrepare['data'])) {
-					$rInsertID = self::$db->last_insert_id();
-					$rStreamExists = array();
-
-					if (!isset($rData['edit'])) {
-					} else {
-						self::$db->query('SELECT `server_stream_id`, `server_id` FROM `streams_servers` WHERE `stream_id` = ?;', $rInsertID);
-
-						foreach (self::$db->get_rows() as $rRow) {
-							$rStreamExists[intval($rRow['server_id'])] = intval($rRow['server_stream_id']);
-						}
-					}
-
-					$rStreamsAdded = array();
-					$rServerTree = json_decode($rData['server_tree_data'], true);
-
-					foreach ($rServerTree as $rServer) {
-						if ($rServer['parent'] == '#') {
-						} else {
-							$rServerID = intval($rServer['id']);
-							$rStreamsAdded[] = $rServerID;
-							$rOD = intval(in_array($rServerID, ($rData['on_demand'] ?: array())));
-
-							if ($rServer['parent'] == 'source') {
-								$rParent = null;
-							} else {
-								$rParent = intval($rServer['parent']);
-							}
-
-							if (isset($rStreamExists[$rServerID])) {
-								self::$db->query('UPDATE `streams_servers` SET `parent_id` = ?, `on_demand` = ? WHERE `server_stream_id` = ?;', $rParent, $rOD, $rStreamExists[$rServerID]);
-							} else {
-								self::$db->query("INSERT INTO `streams_servers`(`stream_id`, `server_id`, `parent_id`, `on_demand`, `pids_create_channel`, `cchannel_rsources`) VALUES(?, ?, ?, ?, '[]', '[]');", $rInsertID, $rServerID, $rParent, $rOD);
-							}
-						}
-					}
-
-					foreach ($rStreamExists as $rServerID => $rDBID) {
-						if (in_array($rServerID, $rStreamsAdded)) {
-						} else {
-							deleteStream($rInsertID, $rServerID, false, false);
-						}
-					}
-
-					if ($rReencode) {
-						APIRequest(array('action' => 'stream', 'sub' => 'stop', 'stream_ids' => array($rInsertID)));
-						self::$db->query("UPDATE `streams_servers` SET `pids_create_channel` = '[]', `cchannel_rsources` = '[]' WHERE `stream_id` = ?;", $rInsertID);
-						CoreUtilities::queueChannel($rInsertID);
-					}
-
-					if ($rRestart) {
-						APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => array($rInsertID)));
-					}
-
-					foreach ($rBouquets as $rBouquet) {
-						addToBouquet('stream', $rBouquet, $rInsertID);
-					}
-
-					if (!isset($rData['edit'])) {
-					} else {
-
-						foreach (getBouquets() as $rBouquet) {
-							if (in_array($rBouquet['id'], $rBouquets)) {
-							} else {
-								removeFromBouquet('stream', $rBouquet['id'], $rInsertID);
-							}
-						}
-					}
-
-					CoreUtilities::updateStream($rInsertID);
-
-					return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
-				} else {
-					return array('status' => STATUS_FAILURE, 'data' => $rData);
-				}
-			} else {
-				return array('status' => STATUS_NO_SOURCES, 'data' => $rData);
-			}
-		} else {
-
-
-
+		if (!self::checkMinimumRequirements($rData)) {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
+
+		return ChannelService::process($rData, self::$db, self::$rSettings);
 	}
 
 	public static function processEPG($rData) {
-		if (self::checkMinimumRequirements($rData)) {
-			if (isset($rData['edit'])) {
-				if (hasPermissions('adv', 'epg_edit')) {
-					$rArray = overwriteData(getEPG($rData['edit']), $rData);
-				} else {
-					exit();
-				}
-			} else {
-				if (hasPermissions('adv', 'add_epg')) {
-					$rArray = verifyPostTable('epg', $rData);
-					unset($rArray['id']);
-				} else {
-					exit();
-				}
-			}
-
-			$rPrepare = prepareArray($rArray);
-			$rQuery = 'REPLACE INTO `epg`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-
-			if (self::$db->query($rQuery, ...$rPrepare['data'])) {
-				$rInsertID = self::$db->last_insert_id();
-
-				return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
-			}
-
-			return array('status' => STATUS_FAILURE, 'data' => $rData);
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-
-
-		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		return EpgService::process($rData, self::$db, 'getEPG');
 	}
 
 	public static function processProvider($rData) {
@@ -819,445 +291,30 @@ class API {
 	}
 
 	public static function processEpisode($rData) {
-		if (self::checkMinimumRequirements($rData)) {
-			if (isset($rData['edit'])) {
-				if (hasPermissions('adv', 'edit_episode')) {
-
-
-					$rArray = overwriteData(getStream($rData['edit']), $rData);
-				} else {
-					exit();
-				}
-			} else {
-				if (hasPermissions('adv', 'add_episode')) {
-
-
-					$rArray = verifyPostTable('streams', $rData);
-					$rArray['type'] = 5;
-					$rArray['added'] = time();
-					$rArray['series_no'] = intval($rData['series']);
-					unset($rArray['id']);
-				} else {
-					exit();
-				}
-			}
-
-			$rArray['stream_source'] = array($rData['stream_source']);
-
-			if (0 < strlen($rData['movie_subtitles'])) {
-				$rSplit = explode(':', $rData['movie_subtitles']);
-				$rArray['movie_subtitles'] = array('files' => array($rSplit[2]), 'names' => array('Subtitles'), 'charset' => array('UTF-8'), 'location' => intval($rSplit[1]));
-			} else {
-				$rArray['movie_subtitles'] = null;
-			}
-
-			if (0 >= $rArray['transcode_profile_id']) {
-			} else {
-				$rArray['enable_transcode'] = 1;
-			}
-
-			foreach (array('read_native', 'movie_symlink', 'direct_source', 'direct_proxy', 'remove_subtitles') as $rKey) {
-				if (isset($rData[$rKey])) {
-					$rArray[$rKey] = 1;
-				} else {
-					$rArray[$rKey] = 0;
-				}
-			}
-
-			if (isset($rData['restart_on_edit'])) {
-				$rRestart = true;
-			} else {
-				$rRestart = false;
-			}
-
-			$rProcessArray = array();
-
-			if (isset($rData['multi'])) {
-				if (hasPermissions('adv', 'import_episodes')) {
-
-
-					set_time_limit(0);
-					include INCLUDES_PATH . 'libs/tmdb.php';
-					$rSeries = getSerie(intval($rData['series']));
-
-					if (0 < strlen(self::$rSettings['tmdb_language'])) {
-						$rTMDB = new TMDB(self::$rSettings['tmdb_api_key'], self::$rSettings['tmdb_language']);
-					} else {
-						$rTMDB = new TMDB(self::$rSettings['tmdb_api_key']);
-					}
-
-					$rJSON = json_decode($rTMDB->getSeason($rData['tmdb_id'], intval($rData['season_num']))->getJSON(), true);
-
-					foreach ($rData as $rKey => $rFilename) {
-						$rSplit = explode('_', $rKey);
-
-						if (!($rSplit[0] == 'episode' && $rSplit[2] == 'name')) {
-						} else {
-							if (0 >= strlen($rData['episode_' . $rSplit[1] . '_num'])) {
-							} else {
-								$rImportArray = array('filename' => '', 'properties' => array(), 'name' => '', 'episode' => 0, 'target_container' => '');
-								$rEpisodeNum = intval($rData['episode_' . $rSplit[1] . '_num']);
-								$rImportArray['filename'] = 's:' . $rData['server'] . ':' . $rData['season_folder'] . $rFilename;
-								$rImage = '';
-
-								if (isset($rData['addName1']) && isset($rData['addName2'])) {
-									$rImportArray['name'] = $rSeries['title'] . ' - S' . sprintf('%02d', intval($rData['season_num'])) . 'E' . sprintf('%02d', $rEpisodeNum) . ' - ';
-								} else {
-									if (isset($rData['addName1'])) {
-										$rImportArray['name'] = $rSeries['title'] . ' - ';
-									} else {
-										if (!isset($rData['addName2'])) {
-										} else {
-											$rImportArray['name'] = 'S' . sprintf('%02d', intval($rData['season_num'])) . 'E' . sprintf('%02d', $rEpisodeNum) . ' - ';
-										}
-									}
-								}
-
-								$rImportArray['episode'] = $rEpisodeNum;
-
-								foreach ($rJSON['episodes'] as $rEpisode) {
-									if (intval($rEpisode['episode_number']) != $rEpisodeNum) {
-									} else {
-										if (0 >= strlen($rEpisode['still_path'])) {
-										} else {
-											$rImage = 'https://image.tmdb.org/t/p/w600_and_h900_bestv2' . $rEpisode['still_path'];
-
-											if (!self::$rSettings['download_images']) {
-											} else {
-												$rImage = CoreUtilities::downloadImage($rImage, 5);
-											}
-										}
-
-										$rImportArray['name'] .= $rEpisode['name'];
-										$rSeconds = intval($rSeries['episode_run_time']) * 60;
-										$rImportArray['properties'] = array('tmdb_id' => $rEpisode['id'], 'release_date' => $rEpisode['air_date'], 'plot' => $rEpisode['overview'], 'duration_secs' => $rSeconds, 'duration' => sprintf('%02d:%02d:%02d', $rSeconds / 3600, ($rSeconds / 60) % 60, $rSeconds % 60), 'movie_image' => $rImage, 'video' => array(), 'audio' => array(), 'bitrate' => 0, 'rating' => $rEpisode['vote_average'], 'season' => $rData['season_num']);
-
-										if (strlen($rImportArray['properties']['movie_image'][0]) != 0) {
-										} else {
-											unset($rImportArray['properties']['movie_image']);
-										}
-									}
-								}
-
-								if (strlen($rImportArray['name']) != 0) {
-								} else {
-									$rImportArray['name'] = 'No Episode Title';
-								}
-
-								$rPathInfo = pathinfo(explode('?', $rFilename)[0]);
-								$rImportArray['target_container'] = $rPathInfo['extension'];
-								$rProcessArray[] = $rImportArray;
-							}
-						}
-					}
-				} else {
-					exit();
-				}
-			} else {
-				$rImportArray = array('filename' => $rArray['stream_source'][0], 'properties' => array(), 'name' => $rArray['stream_display_name'], 'episode' => $rData['episode'], 'target_container' => $rData['target_container']);
-
-				if (!self::$rSettings['download_images']) {
-				} else {
-					$rData['movie_image'] = CoreUtilities::downloadImage($rData['movie_image'], 5);
-				}
-
-				$rSeconds = intval($rData['episode_run_time']) * 60;
-				$rImportArray['properties'] = array('release_date' => $rData['release_date'], 'plot' => $rData['plot'], 'duration_secs' => $rSeconds, 'duration' => sprintf('%02d:%02d:%02d', $rSeconds / 3600, ($rSeconds / 60) % 60, $rSeconds % 60), 'movie_image' => $rData['movie_image'], 'video' => array(), 'audio' => array(), 'bitrate' => 0, 'rating' => $rData['rating'], 'season' => $rData['season_num'], 'tmdb_id' => $rData['tmdb_id']);
-
-				if (strlen($rImportArray['properties']['movie_image'][0]) != 0) {
-				} else {
-					unset($rImportArray['properties']['movie_image']);
-				}
-
-				if (!$rData['direct_proxy']) {
-				} else {
-					$rExtension = pathinfo(explode('?', $rData['stream_source'])[0])['extension'];
-
-					if ($rExtension) {
-						$rImportArray['target_container'] = $rExtension;
-					} else {
-						if ($rImportArray['target_container']) {
-						} else {
-							$rImportArray['target_container'] = 'mp4';
-						}
-					}
-				}
-
-				$rProcessArray[] = $rImportArray;
-			}
-
-			$rRestartIDs = array();
-
-			foreach ($rProcessArray as $rImportArray) {
-				$rArray['stream_source'] = array($rImportArray['filename']);
-				$rArray['movie_properties'] = $rImportArray['properties'];
-				$rArray['stream_display_name'] = $rImportArray['name'];
-
-				if (!empty($rImportArray['target_container'])) {
-					$rArray['target_container'] = $rImportArray['target_container'];
-				} else {
-					if (empty($rData['target_container'])) {
-						$rArray['target_container'] = pathinfo(explode('?', $rImportArray['filename'])[0])['extension'];
-					} else {
-						$rArray['target_container'] = $rData['target_container'];
-					}
-				}
-
-				$rPrepare = prepareArray($rArray);
-				$rQuery = 'REPLACE INTO `streams`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-
-				if (self::$db->query($rQuery, ...$rPrepare['data'])) {
-					$rInsertID = self::$db->last_insert_id();
-					self::$db->query('DELETE FROM `streams_episodes` WHERE `stream_id` = ?;', $rInsertID);
-					self::$db->query('INSERT INTO `streams_episodes`(`season_num`, `series_id`, `stream_id`, `episode_num`) VALUES(?, ?, ?, ?);', $rData['season_num'], $rData['series'], $rInsertID, $rImportArray['episode']);
-					updateSeriesAsync(intval($rData['series']));
-					$rStreamExists = array();
-
-					if (!isset($rData['edit'])) {
-					} else {
-						self::$db->query('SELECT `server_stream_id`, `server_id` FROM `streams_servers` WHERE `stream_id` = ?;', $rInsertID);
-
-						foreach (self::$db->get_rows() as $rRow) {
-							$rStreamExists[intval($rRow['server_id'])] = intval($rRow['server_stream_id']);
-						}
-					}
-
-					$rStreamsAdded = array();
-					$rServerTree = json_decode($rData['server_tree_data'], true);
-
-					foreach ($rServerTree as $rServer) {
-						if ($rServer['parent'] == '#') {
-						} else {
-							$rServerID = intval($rServer['id']);
-							$rStreamsAdded[] = $rServerID;
-
-							if (isset($rStreamExists[$rServerID])) {
-							} else {
-								self::$db->query('INSERT INTO `streams_servers`(`stream_id`, `server_id`, `on_demand`) VALUES(?, ?, 0);', $rInsertID, $rServerID);
-							}
-						}
-					}
-
-					foreach ($rStreamExists as $rServerID => $rDBID) {
-						if (in_array($rServerID, $rStreamsAdded)) {
-						} else {
-							deleteStream($rInsertID, $rServerID, true, false);
-						}
-					}
-
-					if (!$rRestart) {
-					} else {
-						$rRestartIDs[] = $rInsertID;
-					}
-
-					self::$db->query('UPDATE `streams_series` SET `last_modified` = ? WHERE `id` = ?;', time(), $rData['streams_series']);
-					CoreUtilities::updateStream($rInsertID);
-				} else {
-					return array('status' => STATUS_FAILURE);
-				}
-			}
-
-			if (!$rRestart) {
-			} else {
-				APIRequest(array('action' => 'vod', 'sub' => 'start', 'stream_ids' => $rRestartIDs));
-			}
-
-			if (isset($rData['multi'])) {
-				return array('status' => STATUS_SUCCESS_MULTI, 0 => array('series_id' => $rData['series']));
-			}
-
-			return array('status' => STATUS_SUCCESS, 'data' => array('series_id' => $rData['series'], 'insert_id' => $rInsertID));
-		} else {
+		if (!self::checkMinimumRequirements($rData)) {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
+
+		return EpisodeService::process(self::$db, self::$rSettings, $rData);
 	}
 
 	public static function massEditEpisodes($rData) {
-		set_time_limit(0);
-		ini_set('mysql.connect_timeout', 0);
-		ini_set('max_execution_time', 0);
-		ini_set('default_socket_timeout', 0);
-
-		if (self::checkMinimumRequirements($rData)) {
-			$rArray = array();
-
-
-			if (!isset($rData['c_movie_symlink'])) {
-			} else {
-				if (isset($rData['movie_symlink'])) {
-					$rArray['movie_symlink'] = 1;
-				} else {
-					$rArray['movie_symlink'] = 0;
-				}
-			}
-
-			if (!isset($rData['c_direct_source'])) {
-			} else {
-				if (isset($rData['direct_source'])) {
-					$rArray['direct_source'] = 1;
-				} else {
-					$rArray['direct_source'] = 0;
-					$rArray['direct_proxy'] = 0;
-				}
-			}
-
-			if (!isset($rData['c_direct_proxy'])) {
-			} else {
-				if (isset($rData['direct_proxy'])) {
-					$rArray['direct_proxy'] = 1;
-					$rArray['direct_source'] = 1;
-				} else {
-					$rArray['direct_proxy'] = 0;
-				}
-			}
-
-			if (!isset($rData['c_read_native'])) {
-			} else {
-				if (isset($rData['read_native'])) {
-					$rArray['read_native'] = 1;
-				} else {
-					$rArray['read_native'] = 0;
-				}
-			}
-
-			if (!isset($rData['c_remove_subtitles'])) {
-			} else {
-				if (isset($rData['remove_subtitles'])) {
-					$rArray['remove_subtitles'] = 1;
-				} else {
-					$rArray['remove_subtitles'] = 0;
-				}
-			}
-
-			if (!isset($rData['c_target_container'])) {
-			} else {
-				$rArray['target_container'] = $rData['target_container'];
-			}
-
-			if (!isset($rData['c_transcode_profile_id'])) {
-			} else {
-				$rArray['transcode_profile_id'] = $rData['transcode_profile_id'];
-
-				if (0 < $rArray['transcode_profile_id']) {
-					$rArray['enable_transcode'] = 1;
-				} else {
-					$rArray['enable_transcode'] = 0;
-				}
-			}
-
-			$rStreamIDs = confirmIDs(json_decode($rData['streams'], true));
-
-			if (0 >= count($rStreamIDs)) {
-			} else {
-				if (!isset($rData['c_serie_name'])) {
-				} else {
-					self::$db->query('UPDATE `streams_episodes` SET `series_id` = ? WHERE `stream_id` IN (' . implode(',', array_map('intval', $rStreamIDs)) . ');', $rData['serie_name']);
-					self::$db->query('UPDATE `streams` SET `series_no` = ? WHERE `id` IN (' . implode(',', array_map('intval', $rStreamIDs)) . ');', $rData['serie_name']);
-				}
-
-				$rPrepare = prepareArray($rArray);
-
-				if (0 >= count($rPrepare['data'])) {
-				} else {
-					$rQuery = 'UPDATE `streams` SET ' . $rPrepare['update'] . ' WHERE `id` IN (' . implode(',', array_map('intval', $rStreamIDs)) . ');';
-					self::$db->query($rQuery, ...$rPrepare['data']);
-				}
-
-				$rDeleteServers = $rQueueMovies = $rProcessServers = $rStreamExists = array();
-				self::$db->query('SELECT `stream_id`, `server_stream_id`, `server_id` FROM `streams_servers` WHERE `stream_id` IN (' . implode(',', array_map('intval', $rStreamIDs)) . ');');
-
-				foreach (self::$db->get_rows() as $rRow) {
-					$rStreamExists[intval($rRow['stream_id'])][intval($rRow['server_id'])] = intval($rRow['server_stream_id']);
-					$rProcessServers[intval($rRow['stream_id'])][] = intval($rRow['server_id']);
-				}
-				$rAddQuery = '';
-
-				foreach ($rStreamIDs as $rStreamID) {
-					if (!isset($rData['c_server_tree'])) {
-					} else {
-						$rStreamsAdded = array();
-						$rServerTree = json_decode($rData['server_tree_data'], true);
-
-						foreach ($rServerTree as $rServer) {
-							if ($rServer['parent'] == '#') {
-							} else {
-								$rServerID = intval($rServer['id']);
-
-								if (in_array($rData['server_type'], array('ADD', 'SET'))) {
-									$rStreamsAdded[] = $rServerID;
-
-									if (isset($rStreamExists[$rStreamID][$rServerID])) {
-									} else {
-										$rAddQuery .= '(' . intval($rStreamID) . ', ' . intval($rServerID) . '),';
-										$rProcessServers[$rStreamID][] = $rServerID;
-									}
-								} else {
-									if (!isset($rStreamExists[$rStreamID][$rServerID])) {
-									} else {
-										$rDeleteServers[$rServerID][] = $rStreamID;
-									}
-								}
-							}
-						}
-
-						if ($rData['server_type'] != 'SET') {
-						} else {
-							foreach ($rStreamExists[$rStreamID] as $rServerID => $rDBID) {
-								if (in_array($rServerID, $rStreamsAdded)) {
-								} else {
-									$rDeleteServers[$rServerID][] = $rStreamID;
-
-									if (($rKey = array_search($rServerID, $rProcessServers[$rStreamID])) === false) {
-									} else {
-										unset($rProcessServers[$rStreamID][$rKey]);
-									}
-								}
-							}
-						}
-					}
-
-					if (!isset($rData['reencode_on_edit'])) {
-					} else {
-						foreach ($rProcessServers[$rStreamID] as $rServerID) {
-							$rQueueMovies[$rServerID][] = $rStreamID;
-						}
-					}
-				}
-
-				foreach ($rDeleteServers as $rServerID => $rDeleteIDs) {
-					deleteStreamsByServer($rDeleteIDs, $rServerID, true);
-				}
-
-				if (empty($rAddQuery)) {
-				} else {
-					$rAddQuery = rtrim($rAddQuery, ',');
-					self::$db->query('INSERT INTO `streams_servers`(`stream_id`, `server_id`) VALUES ' . $rAddQuery . ';');
-				}
-
-				CoreUtilities::updateStreams($rStreamIDs);
-
-				if (!isset($rData['reencode_on_edit'])) {
-				} else {
-					foreach ($rQueueMovies as $rServerID => $rQueueIDs) {
-						CoreUtilities::queueMovies($rQueueIDs, $rServerID);
-					}
-				}
-
-				if (!isset($rData['reprocess_tmdb'])) {
-				} else {
-					CoreUtilities::refreshMovies($rStreamIDs, 3);
-				}
-			}
-
-			return array('status' => STATUS_SUCCESS);
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-
-
-		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		return EpisodeService::massEdit(self::$db, $rData);
 	}
 
 	public static function processGroup($rData) {
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		}
+
+		return GroupService::process($rData);
+	}
+
+	public static function processGroupLegacy($rData) {
 		if (self::checkMinimumRequirements($rData)) {
 			if (isset($rData['edit'])) {
 				if (hasPermissions('adv', 'edit_group')) {
@@ -1349,51 +406,11 @@ class API {
 	}
 
 	public static function processISP($rData) {
-		if (self::checkMinimumRequirements($rData)) {
-			if (isset($rData['edit'])) {
-				if (hasPermissions('adv', 'block_isps')) {
-
-
-					$rArray = overwriteData(getISP($rData['edit']), $rData);
-				} else {
-					exit();
-				}
-			} else {
-				if (hasPermissions('adv', 'block_isps')) {
-
-
-					$rArray = verifyPostTable('blocked_isps', $rData);
-					unset($rArray['id']);
-				} else {
-					exit();
-				}
-			}
-
-			if (isset($rData['blocked'])) {
-				$rArray['blocked'] = 1;
-			} else {
-				$rArray['blocked'] = 0;
-			}
-
-			if (strlen($rArray['isp']) != 0) {
-				$rPrepare = prepareArray($rArray);
-
-
-				$rQuery = 'REPLACE INTO `blocked_isps`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-
-				if (self::$db->query($rQuery, ...$rPrepare['data'])) {
-					$rInsertID = self::$db->last_insert_id();
-
-					return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
-				}
-
-				return array('status' => STATUS_FAILURE, 'data' => $rData);
-			}
-
-			return array('status' => STATUS_INVALID_NAME, 'data' => $rData);
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		return BlocklistService::processISP(self::$db, $rData, 'getISP');
 	}
 
 	public static function processLogin($rData, $rBypassRecaptcha = false) {
@@ -1401,75 +418,35 @@ class API {
 	}
 
 	public static function massDeleteStreams($rData) {
-		set_time_limit(0);
-		ini_set('mysql.connect_timeout', 0);
-		ini_set('max_execution_time', 0);
-		ini_set('default_socket_timeout', 0);
-
-		if (self::checkMinimumRequirements($rData)) {
-
-
-			$rStreams = json_decode($rData['streams'], true);
-			deleteStreams($rStreams, false);
-
-			return array('status' => STATUS_SUCCESS);
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		return StreamService::massDelete($rData);
 	}
 
 	public static function massDeleteMovies($rData) {
-		set_time_limit(0);
-		ini_set('mysql.connect_timeout', 0);
-		ini_set('max_execution_time', 0);
-		ini_set('default_socket_timeout', 0);
-
-		if (self::checkMinimumRequirements($rData)) {
-
-
-			$rMovies = json_decode($rData['movies'], true);
-			deleteStreams($rMovies, true);
-
-			return array('status' => STATUS_SUCCESS);
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		return MovieService::massDelete($rData);
 	}
 
 	public static function massDeleteLines($rData) {
-		set_time_limit(0);
-		ini_set('mysql.connect_timeout', 0);
-		ini_set('max_execution_time', 0);
-		ini_set('default_socket_timeout', 0);
-
-		if (self::checkMinimumRequirements($rData)) {
-
-
-			$rLines = json_decode($rData['lines'], true);
-			deleteLines($rLines);
-
-			return array('status' => STATUS_SUCCESS);
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		return LineService::massDelete($rData);
 	}
 
 	public static function massDeleteUsers($rData) {
-		set_time_limit(0);
-		ini_set('mysql.connect_timeout', 0);
-		ini_set('max_execution_time', 0);
-		ini_set('default_socket_timeout', 0);
-
-		if (self::checkMinimumRequirements($rData)) {
-
-
-			$rUsers = json_decode($rData['users'], true);
-			deleteUser($rUsers);
-
-			return array('status' => STATUS_SUCCESS);
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		return UserService::massDelete($rData);
 	}
 
 	public static function massDeleteStations($rData) {
@@ -1491,80 +468,46 @@ class API {
 	}
 
 	public static function massDeleteMags($rData) {
-		set_time_limit(0);
-		ini_set('mysql.connect_timeout', 0);
-		ini_set('max_execution_time', 0);
-		ini_set('default_socket_timeout', 0);
-
-		if (self::checkMinimumRequirements($rData)) {
-
-
-			$rMags = json_decode($rData['mags'], true);
-			deleteMAGs($rMags);
-
-			return array('status' => STATUS_SUCCESS);
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		return MagService::massDelete($rData);
 	}
 
 	public static function massDeleteEnigmas($rData) {
-		set_time_limit(0);
-		ini_set('mysql.connect_timeout', 0);
-		ini_set('max_execution_time', 0);
-		ini_set('default_socket_timeout', 0);
-
-		if (self::checkMinimumRequirements($rData)) {
-
-
-			$rEnigmas = json_decode($rData['enigmas'], true);
-			deleteEnigmas($rEnigmas);
-
-			return array('status' => STATUS_SUCCESS);
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		return EnigmaService::massDelete($rData);
 	}
 
 	public static function massDeleteSeries($rData) {
-		set_time_limit(0);
-		ini_set('mysql.connect_timeout', 0);
-		ini_set('max_execution_time', 0);
-		ini_set('default_socket_timeout', 0);
-
-		if (self::checkMinimumRequirements($rData)) {
-
-
-			$rSeries = json_decode($rData['series'], true);
-			deleteSeriesMass($rSeries);
-
-			return array('status' => STATUS_SUCCESS);
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		return SeriesService::massDelete($rData);
 	}
 
 	public static function massDeleteEpisodes($rData) {
-		set_time_limit(0);
-		ini_set('mysql.connect_timeout', 0);
-		ini_set('max_execution_time', 0);
-		ini_set('default_socket_timeout', 0);
-
-		if (self::checkMinimumRequirements($rData)) {
-
-
-			$rEpisodes = json_decode($rData['episodes'], true);
-			deleteStreams($rEpisodes, true);
-
-			return array('status' => STATUS_SUCCESS);
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-
-
-		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		return EpisodeService::massDelete($rData);
 	}
 
 	public static function processMovie($rData) {
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		}
+
+		return MovieService::process(self::$db, self::$rSettings, $rData);
+	}
+
+	public static function processMovieLegacy($rData) {
 		if (self::checkMinimumRequirements($rData)) {
 			set_time_limit(0);
 			ini_set('mysql.connect_timeout', 0);
@@ -2033,328 +976,30 @@ class API {
 	}
 
 	public static function massEditMovies($rData) {
-		set_time_limit(0);
-		ini_set('mysql.connect_timeout', 0);
-		ini_set('max_execution_time', 0);
-		ini_set('default_socket_timeout', 0);
-
-		if (self::checkMinimumRequirements($rData)) {
-			$rArray = array();
-
-
-			if (!isset($rData['c_movie_symlink'])) {
-			} else {
-				if (isset($rData['movie_symlink'])) {
-					$rArray['movie_symlink'] = 1;
-				} else {
-					$rArray['movie_symlink'] = 0;
-				}
-			}
-
-			if (!isset($rData['c_direct_source'])) {
-			} else {
-				if (isset($rData['direct_source'])) {
-					$rArray['direct_source'] = 1;
-				} else {
-					$rArray['direct_source'] = 0;
-					$rArray['direct_proxy'] = 0;
-				}
-			}
-
-			if (!isset($rData['c_direct_proxy'])) {
-			} else {
-				if (isset($rData['direct_proxy'])) {
-					$rArray['direct_proxy'] = 1;
-					$rArray['direct_source'] = 1;
-				} else {
-					$rArray['direct_proxy'] = 0;
-				}
-			}
-
-			if (!isset($rData['c_read_native'])) {
-			} else {
-				if (isset($rData['read_native'])) {
-					$rArray['read_native'] = 1;
-				} else {
-					$rArray['read_native'] = 0;
-				}
-			}
-
-			if (!isset($rData['c_remove_subtitles'])) {
-			} else {
-				if (isset($rData['remove_subtitles'])) {
-					$rArray['remove_subtitles'] = 1;
-				} else {
-					$rArray['remove_subtitles'] = 0;
-				}
-			}
-
-			if (!isset($rData['c_target_container'])) {
-			} else {
-				$rArray['target_container'] = $rData['target_container'];
-			}
-
-			if (!isset($rData['c_transcode_profile_id'])) {
-			} else {
-				$rArray['transcode_profile_id'] = $rData['transcode_profile_id'];
-
-				if (0 < $rArray['transcode_profile_id']) {
-					$rArray['enable_transcode'] = 1;
-				} else {
-					$rArray['enable_transcode'] = 0;
-				}
-			}
-
-			$rStreamIDs = json_decode($rData['streams'], true);
-
-			if (0 >= count($rStreamIDs)) {
-			} else {
-				$rCategoryMap = array();
-
-				if (!(isset($rData['c_category_id']) && in_array($rData['category_id_type'], array('ADD', 'DEL')))) {
-				} else {
-					self::$db->query('SELECT `id`, `category_id` FROM `streams` WHERE `id` IN (' . implode(',', array_map('intval', $rStreamIDs)) . ');');
-
-					foreach (self::$db->get_rows() as $rRow) {
-						$rCategoryMap[$rRow['id']] = (json_decode($rRow['category_id'], true) ?: array());
-					}
-				}
-
-				$rDeleteServers = $rQueueMovies = $rProcessServers = $rStreamExists = array();
-				self::$db->query('SELECT `stream_id`, `server_stream_id`, `server_id` FROM `streams_servers` WHERE `stream_id` IN (' . implode(',', array_map('intval', $rStreamIDs)) . ');');
-
-				foreach (self::$db->get_rows() as $rRow) {
-					$rStreamExists[intval($rRow['stream_id'])][intval($rRow['server_id'])] = intval($rRow['server_stream_id']);
-					$rProcessServers[intval($rRow['stream_id'])][] = intval($rRow['server_id']);
-				}
-				$rBouquets = getBouquets();
-				$rAddBouquet = $rDelBouquet = array();
-				$rAddQuery = '';
-
-				foreach ($rStreamIDs as $rStreamID) {
-					if (!isset($rData['c_category_id'])) {
-					} else {
-						$rCategories = array_map('intval', $rData['category_id']);
-
-						if ($rData['category_id_type'] == 'ADD') {
-							foreach (($rCategoryMap[$rStreamID] ?: array()) as $rCategoryID) {
-								if (in_array($rCategoryID, $rCategories)) {
-								} else {
-									$rCategories[] = $rCategoryID;
-								}
-							}
-						} else {
-							if ($rData['category_id_type'] != 'DEL') {
-							} else {
-								$rNewCategories = $rCategoryMap[$rStreamID];
-
-								foreach ($rCategories as $rCategoryID) {
-									if (($rKey = array_search($rCategoryID, $rNewCategories)) === false) {
-									} else {
-										unset($rNewCategories[$rKey]);
-									}
-								}
-								$rCategories = $rNewCategories;
-							}
-						}
-
-						$rArray['category_id'] = '[' . implode(',', $rCategories) . ']';
-					}
-
-					$rPrepare = prepareArray($rArray);
-
-					if (0 >= count($rPrepare['data'])) {
-					} else {
-						$rPrepare['data'][] = $rStreamID;
-						$rQuery = 'UPDATE `streams` SET ' . $rPrepare['update'] . ' WHERE `id` = ?;';
-						self::$db->query($rQuery, ...$rPrepare['data']);
-					}
-
-					if (!isset($rData['c_server_tree'])) {
-					} else {
-						$rStreamsAdded = array();
-						$rServerTree = json_decode($rData['server_tree_data'], true);
-
-						foreach ($rServerTree as $rServer) {
-							if ($rServer['parent'] == '#') {
-							} else {
-								$rServerID = intval($rServer['id']);
-
-								if (in_array($rData['server_type'], array('ADD', 'SET'))) {
-									$rStreamsAdded[] = $rServerID;
-
-									if (isset($rStreamExists[$rStreamID][$rServerID])) {
-									} else {
-										$rAddQuery .= '(' . intval($rStreamID) . ', ' . intval($rServerID) . '),';
-										$rProcessServers[$rStreamID][] = $rServerID;
-									}
-								} else {
-									if (!isset($rStreamExists[$rStreamID][$rServerID])) {
-									} else {
-										$rDeleteServers[$rServerID][] = $rStreamID;
-									}
-								}
-							}
-						}
-
-						if ($rData['server_type'] != 'SET') {
-						} else {
-							foreach ($rStreamExists[$rStreamID] as $rServerID => $rDBID) {
-								if (in_array($rServerID, $rStreamsAdded)) {
-								} else {
-									$rDeleteServers[$rServerID][] = $rStreamID;
-
-									if (($rKey = array_search($rServerID, $rProcessServers[$rStreamID])) === false) {
-									} else {
-										unset($rProcessServers[$rStreamID][$rKey]);
-									}
-								}
-							}
-						}
-					}
-
-					if (!isset($rData['c_bouquets'])) {
-					} else {
-						if ($rData['bouquets_type'] == 'SET') {
-							foreach ($rData['bouquets'] as $rBouquet) {
-								$rAddBouquet[$rBouquet][] = $rStreamID;
-							}
-
-							foreach ($rBouquets as $rBouquet) {
-								if (in_array($rBouquet['id'], $rData['bouquets'])) {
-								} else {
-									$rDelBouquet[$rBouquet['id']][] = $rStreamID;
-								}
-							}
-						} else {
-							if ($rData['bouquets_type'] == 'ADD') {
-								foreach ($rData['bouquets'] as $rBouquet) {
-									$rAddBouquet[$rBouquet][] = $rStreamID;
-								}
-							} else {
-								if ($rData['bouquets_type'] != 'DEL') {
-								} else {
-									foreach ($rData['bouquets'] as $rBouquet) {
-										$rDelBouquet[$rBouquet][] = $rStreamID;
-									}
-								}
-							}
-						}
-					}
-
-					if (!isset($rData['reencode_on_edit'])) {
-					} else {
-						foreach ($rProcessServers[$rStreamID] as $rServerID) {
-							$rQueueMovies[$rServerID][] = $rStreamID;
-						}
-					}
-				}
-
-				foreach ($rDeleteServers as $rServerID => $rDeleteIDs) {
-					deleteStreamsByServer($rDeleteIDs, $rServerID, true);
-				}
-
-				foreach ($rAddBouquet as $rBouquetID => $rAddIDs) {
-					addToBouquet('movie', $rBouquetID, $rAddIDs);
-				}
-
-				foreach ($rDelBouquet as $rBouquetID => $rRemIDs) {
-					removeFromBouquet('movie', $rBouquetID, $rRemIDs);
-				}
-
-				if (empty($rAddQuery)) {
-				} else {
-					$rAddQuery = rtrim($rAddQuery, ',');
-					self::$db->query('INSERT INTO `streams_servers`(`stream_id`, `server_id`) VALUES ' . $rAddQuery . ';');
-				}
-
-				CoreUtilities::updateStreams($rStreamIDs);
-
-				if (!isset($rData['reencode_on_edit'])) {
-				} else {
-					foreach ($rQueueMovies as $rServerID => $rQueueIDs) {
-						CoreUtilities::queueMovies($rQueueIDs, $rServerID);
-					}
-				}
-
-				if (!isset($rData['reprocess_tmdb'])) {
-				} else {
-					CoreUtilities::refreshMovies($rStreamIDs, 1);
-				}
-			}
-
-			return array('status' => STATUS_SUCCESS);
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-
-
-		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		return MovieService::massEdit(self::$db, $rData);
 	}
 
 	public static function processPackage($rData) {
-		if (self::checkMinimumRequirements($rData)) {
-			if (isset($rData['edit'])) {
-				if (hasPermissions('adv', 'edit_package')) {
-
-
-					$rArray = overwriteData(getPackage($rData['edit']), $rData);
-				} else {
-					exit();
-				}
-			} else {
-				if (hasPermissions('adv', 'add_packages')) {
-
-
-					$rArray = verifyPostTable('users_packages', $rData);
-					unset($rArray['id']);
-				} else {
-					exit();
-				}
-			}
-
-			if (strlen($rData['package_name']) != 0) {
-
-
-				foreach (array('is_trial', 'is_official', 'is_mag', 'is_e2', 'is_line', 'lock_device', 'is_restreamer', 'is_isplock', 'check_compatible') as $rSelection) {
-					if (isset($rData[$rSelection])) {
-						$rArray[$rSelection] = 1;
-					} else {
-						$rArray[$rSelection] = 0;
-					}
-				}
-				$rArray['groups'] = '[' . implode(',', array_map('intval', json_decode($rData['groups_selected'], true))) . ']';
-				$rArray['bouquets'] = sortArrayByArray(array_values(json_decode($rData['bouquets_selected'], true)), array_keys(getBouquetOrder()));
-				$rArray['bouquets'] = '[' . implode(',', array_map('intval', $rArray['bouquets'])) . ']';
-
-				if (!isset($rData['output_formats'])) {
-				} else {
-					$rArray['output_formats'] = array();
-
-					foreach ($rData['output_formats'] as $rOutput) {
-						$rArray['output_formats'][] = $rOutput;
-					}
-					$rArray['output_formats'] = '[' . implode(',', array_map('intval', $rArray['output_formats'])) . ']';
-				}
-
-				$rPrepare = prepareArray($rArray);
-				$rQuery = 'REPLACE INTO `users_packages`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-
-				if (self::$db->query($rQuery, ...$rPrepare['data'])) {
-					$rInsertID = self::$db->last_insert_id();
-
-					return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
-				}
-
-				return array('status' => STATUS_FAILURE, 'data' => $rData);
-			} else {
-				return array('status' => STATUS_INVALID_NAME, 'data' => $rData);
-			}
-		} else {
+		if (!self::checkMinimumRequirements($rData)) {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
+
+		return PackageService::process(self::$db, $rData, 'getPackage', 'getBouquetOrder', 'sortArrayByArray');
 	}
 
 	public static function processMAG($rData) {
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		}
+
+		return MagService::process($rData);
+	}
+
+	public static function processMAGLegacy($rData) {
 		if (self::checkMinimumRequirements($rData)) {
 			if (isset($rData['edit'])) {
 				if (hasPermissions('adv', 'edit_mag')) {
@@ -2547,6 +1192,14 @@ class API {
 	}
 
 	public static function processEnigma($rData) {
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		}
+
+		return EnigmaService::process($rData);
+	}
+
+	public static function processEnigmaLegacy($rData) {
 		if (self::checkMinimumRequirements($rData)) {
 			if (isset($rData['edit'])) {
 				if (hasPermissions('adv', 'edit_e2')) {
@@ -3501,6 +2154,14 @@ class API {
 	}
 
 	public static function processUser($rData, $rBypassAuth = false) {
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		}
+
+		return UserService::process($rData, $rBypassAuth);
+	}
+
+	public static function processUserLegacy($rData, $rBypassAuth = false) {
 		if (self::checkMinimumRequirements($rData)) {
 
 
@@ -3592,55 +2253,25 @@ class API {
 	}
 
 	public static function processRTMPIP($rData) {
-		if (self::checkMinimumRequirements($rData)) {
-			if (isset($rData['edit'])) {
-				$rArray = overwriteData(getRTMPIP($rData['edit']), $rData);
-			} else {
-				$rArray = verifyPostTable('rtmp_ips', $rData);
-				unset($rArray['id']);
-			}
-
-			foreach (array('push', 'pull') as $rSelection) {
-				if (isset($rData[$rSelection])) {
-					$rArray[$rSelection] = 1;
-				} else {
-					$rArray[$rSelection] = 0;
-				}
-			}
-
-			if (filter_var($rData['ip'], FILTER_VALIDATE_IP)) {
-
-
-				if (!checkExists('rtmp_ips', 'ip', $rData['ip'], 'id', $rArray['id'])) {
-
-
-					if (strlen($rData['password']) != 0) {
-					} else {
-						$rArray['password'] = generateString(16);
-					}
-
-					$rPrepare = prepareArray($rArray);
-					$rQuery = 'REPLACE INTO `rtmp_ips`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-
-					if (self::$db->query($rQuery, ...$rPrepare['data'])) {
-						$rInsertID = self::$db->last_insert_id();
-
-						return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
-					}
-
-					return array('status' => STATUS_FAILURE, 'data' => $rData);
-				}
-
-				return array('status' => STATUS_EXISTS_IP, 'data' => $rData);
-			}
-
-			return array('status' => STATUS_INVALID_IP, 'data' => $rData);
-		} else {
+		if (!self::checkMinimumRequirements($rData)) {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
+
+		return BlocklistService::processRTMPIP(self::$db, $rData, 'getRTMPIP');
 	}
 
 	public static function importSeries($rData) {
+		if (!hasPermissions('adv', 'import_movies')) {
+			exit();
+		}
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		}
+
+		return SeriesService::import($rData);
+	}
+
+	public static function importSeriesLegacy($rData) {
 		if (hasPermissions('adv', 'import_movies')) {
 			if (self::checkMinimumRequirements($rData)) {
 				$rPostData = $rData;
@@ -3825,6 +2456,17 @@ class API {
 	}
 
 	public static function importMovies($rData) {
+		if (!hasPermissions('adv', 'import_movies')) {
+			exit();
+		}
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		}
+
+		return MovieService::import($rData);
+	}
+
+	public static function importMoviesLegacy($rData) {
 		if (hasPermissions('adv', 'import_movies')) {
 
 
@@ -4028,6 +2670,14 @@ class API {
 	}
 
 	public static function processSeries($rData) {
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		}
+
+		return SeriesService::process(self::$db, self::$rSettings, $rData);
+	}
+
+	public static function processSeriesLegacy($rData) {
 		if (self::checkMinimumRequirements($rData)) {
 			if (isset($rData['edit'])) {
 				if (hasPermissions('adv', 'edit_series')) {
@@ -4148,616 +2798,59 @@ class API {
 	}
 
 	public static function massEditSeries($rData) {
-		set_time_limit(0);
-		ini_set('mysql.connect_timeout', 0);
-		ini_set('max_execution_time', 0);
-		ini_set('default_socket_timeout', 0);
-
-		if (self::checkMinimumRequirements($rData)) {
-			$rArray = array();
-
-
-			$rSeriesIDs = json_decode($rData['series'], true);
-
-			if (0 >= count($rSeriesIDs)) {
-			} else {
-				$rCategoryMap = array();
-
-				if (!(isset($rData['c_category_id']) && in_array($rData['category_id_type'], array('ADD', 'DEL')))) {
-				} else {
-					self::$db->query('SELECT `id`, `category_id` FROM `streams_series` WHERE `id` IN (' . implode(',', array_map('intval', $rSeriesIDs)) . ');');
-
-					foreach (self::$db->get_rows() as $rRow) {
-						$rCategoryMap[$rRow['id']] = (json_decode($rRow['category_id'], true) ?: array());
-					}
-				}
-
-				$rBouquets = getBouquets();
-				$rAddBouquet = $rDelBouquet = array();
-
-				foreach ($rSeriesIDs as $rSeriesID) {
-					if (!isset($rData['c_category_id'])) {
-					} else {
-						$rCategories = array_map('intval', $rData['category_id']);
-
-						if ($rData['category_id_type'] == 'ADD') {
-							foreach (($rCategoryMap[$rSeriesID] ?: array()) as $rCategoryID) {
-								if (in_array($rCategoryID, $rCategories)) {
-								} else {
-									$rCategories[] = $rCategoryID;
-								}
-							}
-						} else {
-							if ($rData['category_id_type'] != 'DEL') {
-							} else {
-								$rNewCategories = $rCategoryMap[$rSeriesID];
-
-								foreach ($rCategories as $rCategoryID) {
-									if (($rKey = array_search($rCategoryID, $rNewCategories)) === false) {
-									} else {
-										unset($rNewCategories[$rKey]);
-									}
-								}
-								$rCategories = $rNewCategories;
-							}
-						}
-
-						$rArray['category_id'] = '[' . implode(',', $rCategories) . ']';
-					}
-
-					$rPrepare = prepareArray($rArray);
-
-					if (0 >= count($rPrepare['data'])) {
-					} else {
-						$rPrepare['data'][] = $rSeriesID;
-						$rQuery = 'UPDATE `streams_series` SET ' . $rPrepare['update'] . ' WHERE `id` = ?;';
-						self::$db->query($rQuery, ...$rPrepare['data']);
-					}
-
-					if (!isset($rData['c_bouquets'])) {
-					} else {
-						if ($rData['bouquets_type'] == 'SET') {
-							foreach ($rData['bouquets'] as $rBouquet) {
-								$rAddBouquet[$rBouquet][] = $rSeriesID;
-							}
-
-							foreach ($rBouquets as $rBouquet) {
-								if (in_array($rBouquet['id'], $rData['bouquets'])) {
-								} else {
-									$rDelBouquet[$rBouquet['id']][] = $rSeriesID;
-								}
-							}
-						} else {
-							if ($rData['bouquets_type'] == 'ADD') {
-								foreach ($rData['bouquets'] as $rBouquet) {
-									$rAddBouquet[$rBouquet][] = $rSeriesID;
-								}
-							} else {
-								if ($rData['bouquets_type'] != 'DEL') {
-								} else {
-									foreach ($rData['bouquets'] as $rBouquet) {
-										$rDelBouquet[$rBouquet][] = $rSeriesID;
-									}
-								}
-							}
-						}
-					}
-				}
-
-				foreach ($rAddBouquet as $rBouquetID => $rAddIDs) {
-					addToBouquet('series', $rBouquetID, $rAddIDs);
-				}
-
-				foreach ($rDelBouquet as $rBouquetID => $rRemIDs) {
-					removeFromBouquet('series', $rBouquetID, $rRemIDs);
-				}
-
-				if (!isset($rData['reprocess_tmdb'])) {
-				} else {
-					foreach ($rSeriesIDs as $rSeriesID) {
-						if (0 >= intval($rSeriesID)) {
-						} else {
-							self::$db->query('INSERT INTO `watch_refresh`(`type`, `stream_id`, `status`) VALUES(2, ?, 0);', $rSeriesID);
-						}
-					}
-				}
-			}
-
-			return array('status' => STATUS_SUCCESS);
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		return SeriesService::massEdit(self::$db, $rData);
 	}
 
 	public static function processServer($rData) {
-		if (hasPermissions('adv', 'edit_server')) {
-			if (self::checkMinimumRequirements($rData)) {
-				$rServer = getStreamingServersByID($rData['edit']);
-				if ($rServer) {
-					$rArray = verifyPostTable('servers', $rData, true);
-					$rPorts = array('http' => array(), 'https' => array());
-
-					foreach ($rData['http_broadcast_ports'] as $rPort) {
-						if (!(is_numeric($rPort) && 80 <= $rPort && $rPort <= 65535 && !in_array($rPort, ($rPorts['http'] ?: array())) && $rPort != $rData['rtmp_port'])) {
-						} else {
-							$rPorts['http'][] = $rPort;
-						}
-					}
-					$rPorts['http'] = array_unique($rPorts['http']);
-					unset($rData['http_broadcast_ports']);
-
-					foreach ($rData['https_broadcast_ports'] as $rPort) {
-						if (!(is_numeric($rPort) && 80 <= $rPort && $rPort <= 65535 && !in_array($rPort, ($rPorts['http'] ?: array())) && !in_array($rPort, ($rPorts['https'] ?: array())) && $rPort != $rData['rtmp_port'])) {
-						} else {
-							$rPorts['https'][] = $rPort;
-						}
-					}
-					$rPorts['https'] = array_unique($rPorts['https']);
-					unset($rData['https_broadcast_ports']);
-					$rArray['http_broadcast_port'] = null;
-					$rArray['http_ports_add'] = null;
-
-					if (count($rPorts['http']) > 0) {
-						$rArray['http_broadcast_port'] = $rPorts['http'][0];
-
-						if (1 >= count($rPorts['http'])) {
-						} else {
-							$rArray['http_ports_add'] = implode(',', array_slice($rPorts['http'], 1, count($rPorts['http']) - 1));
-						}
-					}
-
-					$rArray['https_broadcast_port'] = null;
-					$rArray['https_ports_add'] = null;
-
-					if (0 >= count($rPorts['https'])) {
-					} else {
-						$rArray['https_broadcast_port'] = $rPorts['https'][0];
-
-						if (1 >= count($rPorts['https'])) {
-						} else {
-							$rArray['https_ports_add'] = implode(',', array_slice($rPorts['https'], 1, count($rPorts['https']) - 1));
-						}
-					}
-
-					foreach (array('enable_gzip', 'timeshift_only', 'enable_https', 'random_ip', 'enable_geoip', 'enable_isp', 'enabled', 'enable_proxy') as $rKey) {
-						if (isset($rData[$rKey])) {
-							$rArray[$rKey] = 1;
-						} else {
-							$rArray[$rKey] = 0;
-						}
-					}
-
-					if ($rServer['is_main']) {
-						$rArray['enabled'] = 1;
-					}
-
-					if (isset($rData['geoip_countries'])) {
-						$rArray['geoip_countries'] = array();
-
-						foreach ($rData['geoip_countries'] as $rCountry) {
-							$rArray['geoip_countries'][] = $rCountry;
-						}
-					} else {
-						$rArray['geoip_countries'] = array();
-					}
-
-					if (isset($rData['isp_names'])) {
-						$rArray['isp_names'] = array();
-
-						foreach ($rData['isp_names'] as $rISP) {
-							$rArray['isp_names'][] = strtolower(trim(preg_replace('/[^A-Za-z0-9 ]/', '', $rISP)));
-						}
-					} else {
-						$rArray['isp_names'] = array();
-					}
-
-					if (isset($rData['domain_name'])) {
-						$rArray['domain_name'] = implode(',', $rData['domain_name']);
-					} else {
-						$rArray['domain_name'] = '';
-					}
-
-					if (strlen($rData['server_ip']) != 0 && filter_var($rData['server_ip'], FILTER_VALIDATE_IP)) {
-						if (0 >= strlen($rData['private_ip']) || filter_var($rData['private_ip'], FILTER_VALIDATE_IP)) {
-							$rArray['total_services'] = $rData['total_services'];
-							$rPrepare = prepareArray($rArray);
-							$rPrepare['data'][] = $rData['edit'];
-							$rQuery = 'UPDATE `servers` SET ' . $rPrepare['update'] . ' WHERE `id` = ?;';
-
-							if (self::$db->query($rQuery, ...$rPrepare['data'])) {
-								$rInsertID = $rData['edit'];
-								$rPorts = array('http' => array(), 'https' => array());
-
-								foreach (array_merge(array(intval($rArray['http_broadcast_port'])), explode(',', $rArray['http_ports_add'])) as $rPort) {
-									if (is_numeric($rPort) && 0 < $rPort && $rPort <= 65535) {
-										$rPorts['http'][] = intval($rPort);
-									}
-								}
-
-								foreach (array_merge(array(intval($rArray['https_broadcast_port'])), explode(',', $rArray['https_ports_add'])) as $rPort) {
-									if (is_numeric($rPort) && 0 < $rPort && $rPort <= 65535) {
-										$rPorts['https'][] = intval($rPort);
-									}
-								}
-								changePort($rInsertID, 0, $rPorts['http'], false);
-								changePort($rInsertID, 1, $rPorts['https'], false);
-								changePort($rInsertID, 2, array($rArray['rtmp_port']), false);
-								setServices($rInsertID, intval($rArray['total_services']), true);
-
-								if (empty($rArray['governor'])) {
-								} else {
-									setGovernor($rInsertID, $rArray['governor']);
-								}
-
-								if (!empty($rArray['sysctl'])) {
-									setSysctl($rInsertID, $rArray['sysctl']);
-								}
-
-								if (file_exists(CACHE_TMP_PATH . 'servers')) {
-									unlink(CACHE_TMP_PATH . 'servers');
-								}
-
-								$rFS = getFreeSpace($rInsertID);
-								$rMounted = false;
-
-								foreach ($rFS as $rMount) {
-									if ($rMount['mount'] != rtrim(STREAMS_PATH, '/')) {
-									} else {
-										$rMounted = true;
-
-										break;
-									}
-								}
-
-								if ($rData['disable_ramdisk'] && $rMounted) {
-									self::$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rInsertID, time(), json_encode(array('action' => 'disable_ramdisk')));
-								} else {
-									if ($rData['disable_ramdisk'] || $rMounted) {
-									} else {
-										self::$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rInsertID, time(), json_encode(array('action' => 'enable_ramdisk')));
-									}
-								}
-								return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
-							} else {
-								return array('status' => STATUS_FAILURE, 'data' => $rData);
-							}
-						} else {
-							return array('status' => STATUS_INVALID_IP, 'data' => $rData);
-						}
-					} else {
-						return array('status' => STATUS_INVALID_IP, 'data' => $rData);
-					}
-				} else {
-					return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
-				}
-			} else {
-				return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
-			}
-		} else {
-			exit();
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
+
+		return ServerService::process($rData, self::$db);
 	}
 
 	public static function processProxy($rData) {
-		if (self::checkMinimumRequirements($rData)) {
-			if (hasPermissions('adv', 'edit_server')) {
-				$rArray = overwriteData(getStreamingServersByID($rData['edit']), $rData);
-
-
-				foreach (array('enable_https', 'random_ip', 'enable_geoip', 'enabled') as $rKey) {
-					if (isset($rData[$rKey])) {
-						$rArray[$rKey] = true;
-					} else {
-						$rArray[$rKey] = false;
-					}
-				}
-
-				if (isset($rData['geoip_countries'])) {
-					$rArray['geoip_countries'] = array();
-
-					foreach ($rData['geoip_countries'] as $rCountry) {
-						$rArray['geoip_countries'][] = $rCountry;
-					}
-				} else {
-					$rArray['geoip_countries'] = array();
-				}
-
-				if (isset($rData['domain_name'])) {
-					$rArray['domain_name'] = implode(',', $rData['domain_name']);
-				} else {
-					$rArray['domain_name'] = '';
-				}
-
-				if (strlen($rData['server_ip']) != 0 && filter_var($rData['server_ip'], FILTER_VALIDATE_IP)) {
-
-
-					if (!checkExists('servers', 'server_ip', $rData['server_ip'], 'id', $rArray['id'])) {
-
-
-						$rArray['server_type'] = 1;
-						$rPrepare = prepareArray($rArray);
-						$rQuery = 'REPLACE INTO `servers`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-
-						if (self::$db->query($rQuery, ...$rPrepare['data'])) {
-							$rInsertID = self::$db->last_insert_id();
-
-							if (!file_exists(CACHE_TMP_PATH . 'servers')) {
-							} else {
-								unlink(CACHE_TMP_PATH . 'servers');
-							}
-
-							if (!file_exists(CACHE_TMP_PATH . 'proxy_servers')) {
-							} else {
-								unlink(CACHE_TMP_PATH . 'proxy_servers');
-							}
-
-							return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
-						}
-
-						return array('status' => STATUS_FAILURE, 'data' => $rData);
-					}
-
-					return array('status' => STATUS_EXISTS_IP, 'data' => $rData);
-				}
-
-				return array('status' => STATUS_INVALID_IP, 'data' => $rData);
-			} else {
-				exit();
-			}
-		} else {
+		if (!self::checkMinimumRequirements($rData)) {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
+
+		return ServerService::processProxy($rData, self::$db);
 	}
 
 	public static function installServer($rData) {
-		if (self::checkMinimumRequirements($rData)) {
-			if (hasPermissions('adv', 'add_server')) {
-				$rParentIDs = array();
-
-				if (isset($rData['update_sysctl'])) {
-					$rUpdateSysctl = 1;
-				} else {
-					$rUpdateSysctl = 0;
-				}
-
-				if (isset($rData['use_private_ip'])) {
-					$rPrivateIP = 1;
-				} else {
-					$rPrivateIP = 0;
-				}
-
-				if ($rData['type'] == 1) {
-					foreach (json_decode($rData['parent_id'], true) as $rServerID) {
-						if (self::$rServers[$rServerID]['server_type'] == 0) {
-							$rParentIDs[] = intval($rServerID);
-						}
-					}
-				}
-
-				if (isset($rData['edit'])) {
-					if ($rData['type'] == 1) {
-						$rServer = self::$rProxyServers[$rData['edit']];
-					} else {
-						$rServer = self::$rServers[$rData['edit']];
-					}
-
-					if (!$rServer) {
-						return array('status' => STATUS_FAILURE, 'data' => $rData);
-					}
-
-					self::$db->query('UPDATE `servers` SET `status` = 3, `parent_id` = ? WHERE `id` = ?;', '[' . implode(',', $rParentIDs) . ']', $rServer['id']);
-
-					if ($rData['type'] == 1) {
-						$rCommand = PHP_BIN . ' ' . CLI_PATH . 'balancer.php ' . intval($rData['type']) . ' ' . intval($rServer['id']) . ' ' . intval($rData['ssh_port']) . ' ' . escapeshellarg($rData['root_username']) . ' ' . escapeshellarg($rData['root_password']) . ' ' . intval($rData['http_broadcast_port']) . ' ' . intval($rData['https_broadcast_port']) . ' ' . intval($rUpdateSysctl) . ' ' . intval($rPrivateIP) . ' "' . json_encode($rParentIDs) . '" > "' . BIN_PATH . 'install/' . intval($rServer['id']) . '.install" 2>/dev/null &';
-					} else {
-						$rCommand = PHP_BIN . ' ' . CLI_PATH . 'balancer.php ' . intval($rData['type']) . ' ' . intval($rServer['id']) . ' ' . intval($rData['ssh_port']) . ' ' . escapeshellarg($rData['root_username']) . ' ' . escapeshellarg($rData['root_password']) . ' 80 443 ' . intval($rUpdateSysctl) . ' > "' . BIN_PATH . 'install/' . intval($rServer['id']) . '.install" 2>/dev/null &';
-					}
-
-					shell_exec($rCommand);
-
-					return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rServer['id']));
-				}
-
-				$rArray = verifyPostTable('servers', $rData);
-				$rArray['status'] = 3;
-				unset($rArray['id']);
-
-				if (strlen($rArray['server_ip']) != 0 && filter_var($rArray['server_ip'], FILTER_VALIDATE_IP)) {
-
-					if ($rData['type'] == 1) {
-						$rArray['server_type'] = 1;
-						$rArray['parent_id'] = '[' . implode(',', $rParentIDs) . ']';
-					} else {
-						$rArray['server_type'] = 0;
-					}
-
-					$rArray['network_interface'] = 'auto';
-					$rPrepare = prepareArray($rArray);
-					$rQuery = 'INSERT INTO `servers`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-
-					if (self::$db->query($rQuery, ...$rPrepare['data'])) {
-						$rInsertID = self::$db->last_insert_id();
-
-						if ($rArray['server_type'] == 0) {
-							CoreUtilities::grantPrivileges($rArray['server_ip']);
-						}
-
-						if ($rData['type'] == 1) {
-							$rCommand = PHP_BIN . ' ' . CLI_PATH . 'balancer.php ' . intval($rData['type']) . ' ' . intval($rInsertID) . ' ' . intval($rData['ssh_port']) . ' ' . escapeshellarg($rData['root_username']) . ' ' . escapeshellarg($rData['root_password']) . ' ' . intval($rData['http_broadcast_port']) . ' ' . intval($rData['https_broadcast_port']) . ' ' . intval($rUpdateSysctl) . ' ' . intval($rPrivateIP) . ' "' . json_encode($rParentIDs) . '" > "' . BIN_PATH . 'install/' . intval($rInsertID) . '.install" 2>/dev/null &';
-						} else {
-							$rCommand = PHP_BIN . ' ' . CLI_PATH . 'balancer.php ' . intval($rData['type']) . ' ' . intval($rInsertID) . ' ' . intval($rData['ssh_port']) . ' ' . escapeshellarg($rData['root_username']) . ' ' . escapeshellarg($rData['root_password']) . ' 80 443 ' . intval($rUpdateSysctl) . ' > "' . BIN_PATH . 'install/' . intval($rInsertID) . '.install" 2>/dev/null &';
-						}
-
-						shell_exec($rCommand);
-
-						return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
-					}
-
-					return array('status' => STATUS_FAILURE, 'data' => $rData);
-				}
-
-				return array('status' => STATUS_INVALID_IP, 'data' => $rData);
-			}
-
-			exit();
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		return ServerService::install($rData, self::$db, self::$rServers, self::$rProxyServers);
 	}
 
 	public static function editSettings($rData) {
-		if (self::checkMinimumRequirements($rData)) {
-			foreach (array('user_agent', 'http_proxy', 'cookie', 'headers') as $rKey) {
-				self::$db->query('UPDATE `streams_arguments` SET `argument_default_value` = ? WHERE `argument_key` = ?;', ($rData[$rKey] ?: null), $rKey);
-				unset($rData[$rKey]);
-			}
-			$rArray = verifyPostTable('settings', $rData, true);
-
-			foreach (array('php_loopback', 'restreamer_bypass_proxy', 'request_prebuffer', 'modal_edit', 'group_buttons', 'enable_search', 'on_demand_checker', 'ondemand_balance_equal', 'disable_mag_token', 'allow_cdn_access', 'dts_legacy_ffmpeg', 'mag_load_all_channels', 'disable_xmltv_restreamer', 'disable_playlist_restreamer', 'ffmpeg_warnings', 'reseller_ssl_domain', 'extract_subtitles', 'show_category_duplicates', 'vod_sort_newest', 'header_stats', 'mag_keep_extension', 'keep_protocol', 'read_native_hls', 'player_allow_playlist', 'player_allow_bouquet', 'player_hide_incompatible', 'player_allow_hevc', 'force_epg_timezone', 'check_vod', 'ignore_keyframes', 'save_login_logs', 'save_restart_logs', 'mag_legacy_redirect', 'restrict_playlists', 'monitor_connection_status', 'kill_rogue_ffmpeg', 'show_images', 'on_demand_instant_off', 'on_demand_failure_exit', 'playlist_from_mysql', 'ignore_invalid_users', 'legacy_mag_auth', 'ministra_allow_blank', 'block_proxies', 'block_streaming_servers', 'ip_subnet_match', 'debug_show_errors', 'enable_debug_stalker', 'restart_php_fpm', 'restream_deny_unauthorised', 'api_probe', 'legacy_panel_api', 'hide_failures', 'verify_host', 'encrypt_playlist', 'encrypt_playlist_restreamer', 'mag_disable_ssl', 'legacy_get', 'legacy_xmltv', 'save_closed_connection', 'show_tickets', 'stream_logs_save', 'client_logs_save', 'streams_grouped', 'cloudflare', 'cleanup', 'dashboard_stats', 'dashboard_status', 'dashboard_map', 'dashboard_display_alt', 'recaptcha_enable', 'ip_logout', 'disable_player_api', 'disable_playlist', 'disable_xmltv', 'disable_enigma2', 'disable_ministra', 'enable_isp_lock', 'block_svp', 'disable_ts', 'disable_ts_allow_restream', 'disable_hls', 'disable_hls_allow_restream', 'disable_rtmp', 'disable_rtmp_allow_restream', 'case_sensitive_line', 'county_override_1st', 'disallow_2nd_ip_con', 'use_mdomain_in_lists', 'encrypt_hls', 'disallow_empty_user_agents', 'detect_restream_block_user', 'download_images', 'api_redirect', 'use_buffer', 'audio_restart_loss', 'show_isps', 'priority_backup', 'rtmp_random', 'show_connected_video', 'show_not_on_air_video', 'show_banned_video', 'show_expired_video', 'show_expiring_video', 'show_all_category_mag', 'always_enabled_subtitles', 'enable_connection_problem_indication', 'show_tv_channel_logo', 'show_channel_logo_in_preview', 'disable_trial', 'restrict_same_ip', 'js_navigate') as $rSetting) {
-				if (isset($rData[$rSetting])) {
-					$rArray[$rSetting] = 1;
-				} else {
-					$rArray[$rSetting] = 0;
-				}
-			}
-
-			if (isset($rData['allowed_stb_types_for_local_recording'])) {
-			} else {
-				$rArray['allowed_stb_types_for_local_recording'] = array();
-			}
-
-			if (isset($rData['allowed_stb_types'])) {
-			} else {
-				$rArray['allowed_stb_types'] = array();
-			}
-
-			if (isset($rData['allow_countries'])) {
-			} else {
-				$rArray['allow_countries'] = array('ALL');
-			}
-
-			if ($rArray['mag_legacy_redirect']) {
-				if (!file_exists(MAIN_HOME . 'www/c/')) {
-					self::$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', SERVER_ID, time(), json_encode(array('action' => 'enable_ministra')));
-				}
-			} else {
-				if (file_exists(MAIN_HOME . 'www/c/')) {
-					self::$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', SERVER_ID, time(), json_encode(array('action' => 'disable_ministra')));
-				}
-			}
-
-			if (100 >= $rArray['search_items']) {
-			} else {
-				$rArray['search_items'] = 100;
-			}
-
-			if ($rArray['search_items'] > 0) {
-			} else {
-				$rArray['search_items'] = 1;
-			}
-
-			$rPrepare = prepareArray($rArray);
-
-			if (0 >= count($rPrepare['data'])) {
-			} else {
-				$rQuery = 'UPDATE `settings` SET ' . $rPrepare['update'] . ';';
-
-				if (self::$db->query($rQuery, ...$rPrepare['data'])) {
-					clearSettingsCache();
-
-					return array('status' => STATUS_SUCCESS);
-				}
-
-				return array('status' => STATUS_FAILURE);
-			}
-		} else {
+		if (!self::checkMinimumRequirements($rData)) {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
+
+		return SettingsService::edit(self::$db, $rData, 'clearSettingsCache');
 	}
 
 	public static function editBackupSettings($rData) {
-		if (self::checkMinimumRequirements($rData)) {
-			$rArray = verifyPostTable('settings', $rData, true);
-
-			foreach (array('dropbox_remote') as $rSetting) {
-				if (isset($rData[$rSetting])) {
-					$rArray[$rSetting] = 1;
-				} else {
-					$rArray[$rSetting] = 0;
-				}
-			}
-
-			if (isset($rData['allowed_stb_types_for_local_recording'])) {
-			} else {
-				$rArray['allowed_stb_types_for_local_recording'] = array();
-			}
-
-			if (isset($rData['allowed_stb_types'])) {
-			} else {
-				$rArray['allowed_stb_types'] = array();
-			}
-
-			$rPrepare = prepareArray($rArray);
-
-			if (0 >= count($rPrepare['data'])) {
-			} else {
-				$rQuery = 'UPDATE `settings` SET ' . $rPrepare['update'] . ';';
-
-				if (self::$db->query($rQuery, ...$rPrepare['data'])) {
-					clearSettingsCache();
-
-					return array('status' => STATUS_SUCCESS);
-				}
-
-				return array('status' => STATUS_FAILURE);
-			}
-		} else {
-
-
-
+		if (!self::checkMinimumRequirements($rData)) {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
+
+		return SettingsService::editBackup(self::$db, $rData, 'clearSettingsCache');
 	}
 
 	public static function editCacheCron($rData) {
-		if (self::checkMinimumRequirements($rData)) {
-			$rCheck = array(false, false);
-			$rCron = array('*', '*', '*', '*', '*');
-			$rPattern = '/^[0-9\\/*,-]+$/';
-			$rCron[0] = $rData['minute'];
-			preg_match($rPattern, $rCron[0], $rMatches);
-			$rCheck[0] = 0 < count($rMatches);
-			$rCron[1] = $rData['hour'];
-			preg_match($rPattern, $rCron[1], $rMatches);
-			$rCheck[1] = 0 < count($rMatches);
-			$rCronOutput = implode(' ', $rCron);
-
-			if (isset($rData['cache_changes'])) {
-				$rCacheChanges = true;
-			} else {
-				$rCacheChanges = false;
-			}
-
-			if ($rCheck[0] && $rCheck[1]) {
-				self::$db->query("UPDATE `crontab` SET `time` = ? WHERE `filename` = 'cache_engine.php';", $rCronOutput);
-				self::$db->query('UPDATE `settings` SET `cache_thread_count` = ?, `cache_changes` = ?;', $rData['cache_thread_count'], $rCacheChanges);
-
-				if (!file_exists(TMP_PATH . 'crontab')) {
-				} else {
-					unlink(TMP_PATH . 'crontab');
-				}
-
-				clearSettingsCache();
-
-				return array('status' => STATUS_SUCCESS);
-			}
-
-			return array('status' => STATUS_FAILURE);
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-
-
-		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		return SettingsService::editCacheCron(self::$db, $rData, 'clearSettingsCache');
 	}
 
 	public static function editPlexSettings($rData) {
@@ -4857,1210 +2950,83 @@ class API {
 	}
 
 	public static function massEditStreams($rData) {
-		set_time_limit(0);
-		ini_set('mysql.connect_timeout', 0);
-		ini_set('max_execution_time', 0);
-		ini_set('default_socket_timeout', 0);
-
-		if (self::checkMinimumRequirements($rData)) {
-			$rArray = array();
-
-
-			if (!isset($rData['c_days_to_restart'])) {
-			} else {
-				if (isset($rData['days_to_restart']) && preg_match('/^(?:2[0-3]|[01][0-9]):[0-5][0-9]$/', $rData['time_to_restart'])) {
-					$rTimeArray = array('days' => array(), 'at' => $rData['time_to_restart']);
-
-					foreach ($rData['days_to_restart'] as $rID => $rDay) {
-						$rTimeArray['days'][] = $rDay;
-					}
-					$rArray['auto_restart'] = json_encode($rTimeArray);
-				} else {
-					$rArray['auto_restart'] = '';
-				}
-			}
-
-			foreach (array('gen_timestamps', 'allow_record', 'rtmp_output', 'fps_restart', 'stream_all', 'read_native') as $rKey) {
-				if (!isset($rData['c_' . $rKey])) {
-				} else {
-					if (isset($rData[$rKey])) {
-						$rArray[$rKey] = 1;
-					} else {
-						$rArray[$rKey] = 0;
-					}
-				}
-			}
-
-			if (!isset($rData['c_direct_source'])) {
-			} else {
-				if (isset($rData['direct_source'])) {
-					$rArray['direct_source'] = 1;
-				} else {
-					$rArray['direct_source'] = 0;
-					$rArray['direct_proxy'] = 0;
-				}
-			}
-
-			if (!isset($rData['c_direct_proxy'])) {
-			} else {
-				if (isset($rData['direct_proxy'])) {
-					$rArray['direct_proxy'] = 1;
-					$rArray['direct_source'] = 1;
-				} else {
-					$rArray['direct_proxy'] = 0;
-				}
-			}
-
-			foreach (array('tv_archive_server_id', 'vframes_server_id', 'tv_archive_duration', 'delay_minutes', 'probesize_ondemand', 'fps_threshold', 'llod') as $rKey) {
-				if (!isset($rData['c_' . $rKey])) {
-				} else {
-					$rArray[$rKey] = intval($rData[$rKey]);
-				}
-			}
-
-			if (!isset($rData['c_custom_sid'])) {
-			} else {
-				$rArray['custom_sid'] = $rData['custom_sid'];
-			}
-
-			if (!isset($rData['c_transcode_profile_id'])) {
-			} else {
-				$rArray['transcode_profile_id'] = $rData['transcode_profile_id'];
-
-				if (0 < $rArray['transcode_profile_id']) {
-					$rArray['enable_transcode'] = 1;
-				} else {
-					$rArray['enable_transcode'] = 0;
-				}
-			}
-
-			$rStreamIDs = json_decode($rData['streams'], true);
-
-			if (0 >= count($rStreamIDs)) {
-			} else {
-				$rCategoryMap = array();
-
-				if (!(isset($rData['c_category_id']) && in_array($rData['category_id_type'], array('ADD', 'DEL')))) {
-				} else {
-					self::$db->query('SELECT `id`, `category_id` FROM `streams` WHERE `id` IN (' . implode(',', array_map('intval', $rStreamIDs)) . ');');
-
-					foreach (self::$db->get_rows() as $rRow) {
-						$rCategoryMap[$rRow['id']] = (json_decode($rRow['category_id'], true) ?: array());
-					}
-				}
-
-				$rDeleteServers = $rStreamExists = array();
-				self::$db->query('SELECT `stream_id`, `server_stream_id`, `server_id` FROM `streams_servers` WHERE `stream_id` IN (' . implode(',', array_map('intval', $rStreamIDs)) . ');');
-
-				foreach (self::$db->get_rows() as $rRow) {
-					$rStreamExists[intval($rRow['stream_id'])][intval($rRow['server_id'])] = intval($rRow['server_stream_id']);
-				}
-				$rBouquets = getBouquets();
-				$rDelOptions = $rAddBouquet = $rDelBouquet = array();
-				$rOptQuery = $rAddQuery = '';
-
-				foreach ($rStreamIDs as $rStreamID) {
-					if (!isset($rData['c_category_id'])) {
-					} else {
-						$rCategories = array_map('intval', $rData['category_id']);
-
-						if ($rData['category_id_type'] == 'ADD') {
-							foreach (($rCategoryMap[$rStreamID] ?: array()) as $rCategoryID) {
-								if (in_array($rCategoryID, $rCategories)) {
-								} else {
-									$rCategories[] = $rCategoryID;
-								}
-							}
-						} else {
-							if ($rData['category_id_type'] != 'DEL') {
-							} else {
-								$rNewCategories = $rCategoryMap[$rStreamID];
-
-								foreach ($rCategories as $rCategoryID) {
-									if (($rKey = array_search($rCategoryID, $rNewCategories)) === false) {
-									} else {
-										unset($rNewCategories[$rKey]);
-									}
-								}
-								$rCategories = $rNewCategories;
-							}
-						}
-
-						$rArray['category_id'] = '[' . implode(',', $rCategories) . ']';
-					}
-
-					$rPrepare = prepareArray($rArray);
-
-					if (0 >= count($rPrepare['data'])) {
-					} else {
-						$rPrepare['data'][] = $rStreamID;
-						$rQuery = 'UPDATE `streams` SET ' . $rPrepare['update'] . ' WHERE `id` = ?;';
-						self::$db->query($rQuery, ...$rPrepare['data']);
-					}
-
-					if (!isset($rData['c_server_tree'])) {
-					} else {
-						$rStreamsAdded = array();
-						$rServerTree = json_decode($rData['server_tree_data'], true);
-
-						foreach ($rServerTree as $rServer) {
-							if ($rServer['parent'] == '#') {
-							} else {
-								$rServerID = intval($rServer['id']);
-
-								if (in_array($rData['server_type'], array('ADD', 'SET'))) {
-									$rOD = intval(in_array($rServerID, ($rData['on_demand'] ?: array())));
-
-									if ($rServer['parent'] == 'source') {
-										$rParent = null;
-									} else {
-										$rParent = intval($rServer['parent']);
-									}
-
-									$rStreamsAdded[] = $rServerID;
-
-									if (isset($rStreamExists[$rStreamID][$rServerID])) {
-										self::$db->query('UPDATE `streams_servers` SET `parent_id` = ?, `on_demand` = ? WHERE `server_stream_id` = ?;', $rParent, $rOD, $rStreamExists[$rStreamID][$rServerID]);
-									} else {
-										$rAddQuery .= '(' . intval($rStreamID) . ', ' . intval($rServerID) . ', ' . (($rParent ?: 'NULL')) . ', ' . $rOD . '),';
-									}
-								} else {
-									if (!isset($rStreamExists[$rStreamID][$rServerID])) {
-									} else {
-										$rDeleteServers[$rServerID][] = $rStreamID;
-									}
-								}
-							}
-						}
-
-						if ($rData['server_type'] != 'SET') {
-						} else {
-							foreach ($rStreamExists[$rStreamID] as $rServerID => $rDBID) {
-								if (in_array($rServerID, $rStreamsAdded)) {
-								} else {
-									$rDeleteServers[$rServerID][] = $rStreamID;
-								}
-							}
-						}
-					}
-
-					if (!isset($rData['c_user_agent'])) {
-					} else {
-						if (!(isset($rData['user_agent']) && 0 < strlen($rData['user_agent']))) {
-						} else {
-							$rDelOptions[1][] = $rStreamID;
-							$rOptQuery .= '(' . intval($rStreamID) . ', 1, ' . self::$db->escape($rData['user_agent']) . '),';
-						}
-					}
-
-					if (!isset($rData['c_http_proxy'])) {
-					} else {
-						if (!(isset($rData['http_proxy']) && 0 < strlen($rData['http_proxy']))) {
-						} else {
-							$rDelOptions[2][] = $rStreamID;
-							$rOptQuery .= '(' . intval($rStreamID) . ', 2, ' . self::$db->escape($rData['http_proxy']) . '),';
-						}
-					}
-
-					if (!isset($rData['c_cookie'])) {
-					} else {
-						if (!(isset($rData['cookie']) && 0 < strlen($rData['cookie']))) {
-						} else {
-							$rDelOptions[17][] = $rStreamID;
-							$rOptQuery .= '(' . intval($rStreamID) . ', 17, ' . self::$db->escape($rData['cookie']) . '),';
-						}
-					}
-
-					if (!isset($rData['c_headers'])) {
-					} else {
-						if (!(isset($rData['headers']) && 0 < strlen($rData['headers']))) {
-						} else {
-							$rDelOptions[19][] = $rStreamID;
-							$rOptQuery .= '(' . intval($rStreamID) . ', 19, ' . self::$db->escape($rData['headers']) . '),';
-						}
-					}
-
-					if (!isset($rData['c_bouquets'])) {
-					} else {
-						if ($rData['bouquets_type'] == 'SET') {
-							foreach ($rData['bouquets'] as $rBouquet) {
-								$rAddBouquet[$rBouquet][] = $rStreamID;
-							}
-
-							foreach ($rBouquets as $rBouquet) {
-								if (in_array($rBouquet['id'], $rData['bouquets'])) {
-								} else {
-									$rDelBouquet[$rBouquet['id']][] = $rStreamID;
-								}
-							}
-						} else {
-							if ($rData['bouquets_type'] == 'ADD') {
-								foreach ($rData['bouquets'] as $rBouquet) {
-									$rAddBouquet[$rBouquet][] = $rStreamID;
-								}
-							} else {
-								if ($rData['bouquets_type'] != 'DEL') {
-								} else {
-									foreach ($rData['bouquets'] as $rBouquet) {
-										$rDelBouquet[$rBouquet][] = $rStreamID;
-									}
-								}
-							}
-						}
-					}
-				}
-
-				foreach ($rDeleteServers as $rServerID => $rDeleteIDs) {
-					deleteStreamsByServer($rDeleteIDs, $rServerID, false);
-				}
-
-				foreach ($rDelOptions as $rOptionID => $rDelIDs) {
-					$rDelIDs = array_unique(array_map('intval', $rDelIDs));
-					if (0 >= count($rDelIDs)) {
-					} else {
-						self::$db->query('DELETE FROM `streams_options` WHERE `stream_id` IN (' . implode(',', $rDelIDs) . ') AND `argument_id` = ?;', intval($rOptionID));
-					}
-				}
-
-				if (empty($rOptQuery)) {
-				} else {
-					$rOptQuery = rtrim($rOptQuery, ',');
-					self::$db->query('INSERT INTO `streams_options`(`stream_id`, `argument_id`, `value`) VALUES ' . $rOptQuery . ';');
-				}
-
-				foreach ($rAddBouquet as $rBouquetID => $rAddIDs) {
-					addToBouquet('stream', $rBouquetID, $rAddIDs);
-				}
-
-				foreach ($rDelBouquet as $rBouquetID => $rRemIDs) {
-					removeFromBouquet('stream', $rBouquetID, $rRemIDs);
-				}
-
-				if (empty($rAddQuery)) {
-				} else {
-					$rAddQuery = rtrim($rAddQuery, ',');
-					self::$db->query('INSERT INTO `streams_servers`(`stream_id`, `server_id`, `parent_id`, `on_demand`) VALUES ' . $rAddQuery . ';');
-				}
-
-				CoreUtilities::updateStreams($rStreamIDs);
-
-				if (!isset($rData['restart_on_edit'])) {
-				} else {
-					APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => array_values($rStreamIDs)));
-				}
-			}
-
-			return array('status' => STATUS_SUCCESS);
-		} else {
+		if (!self::checkMinimumRequirements($rData)) {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
+
+		return StreamService::massEdit($rData, self::$db);
 	}
 
 	public static function massEditChannels($rData) {
-		set_time_limit(0);
-		ini_set('mysql.connect_timeout', 0);
-		ini_set('max_execution_time', 0);
-		ini_set('default_socket_timeout', 0);
-
-		if (self::checkMinimumRequirements($rData)) {
-			$rArray = array();
-
-
-			foreach (array('allow_record', 'rtmp_output') as $rKey) {
-				if (!isset($rData['c_' . $rKey])) {
-				} else {
-					if (isset($rData[$rKey])) {
-						$rArray[$rKey] = 1;
-					} else {
-						$rArray[$rKey] = 0;
-					}
-				}
-			}
-
-			if (!isset($rData['c_transcode_profile_id'])) {
-			} else {
-				$rArray['transcode_profile_id'] = $rData['transcode_profile_id'];
-
-				if (0 < $rArray['transcode_profile_id']) {
-					$rArray['enable_transcode'] = 1;
-				} else {
-					$rArray['enable_transcode'] = 0;
-				}
-			}
-
-			$rStreamIDs = json_decode($rData['streams'], true);
-
-			if (0 >= count($rStreamIDs)) {
-			} else {
-				$rCategoryMap = array();
-
-				if (!(isset($rData['c_category_id']) && in_array($rData['category_id_type'], array('ADD', 'DEL')))) {
-				} else {
-					self::$db->query('SELECT `id`, `category_id` FROM `streams` WHERE `id` IN (' . implode(',', array_map('intval', $rStreamIDs)) . ');');
-
-					foreach (self::$db->get_rows() as $rRow) {
-						$rCategoryMap[$rRow['id']] = (json_decode($rRow['category_id'], true) ?: array());
-					}
-				}
-
-				$rDeleteServers = $rProcessServers = $rStreamExists = array();
-				self::$db->query('SELECT `stream_id`, `server_stream_id`, `server_id` FROM `streams_servers` WHERE `stream_id` IN (' . implode(',', array_map('intval', $rStreamIDs)) . ');');
-
-				foreach (self::$db->get_rows() as $rRow) {
-					$rStreamExists[intval($rRow['stream_id'])][intval($rRow['server_id'])] = intval($rRow['server_stream_id']);
-					$rProcessServers[intval($rRow['stream_id'])][] = intval($rRow['server_id']);
-				}
-				$rBouquets = getBouquets();
-				$rDelOptions = $rAddBouquet = $rDelBouquet = array();
-				$rEncQuery = $rAddQuery = '';
-
-				foreach ($rStreamIDs as $rStreamID) {
-					if (!isset($rData['c_category_id'])) {
-					} else {
-						$rCategories = array_map('intval', $rData['category_id']);
-
-						if ($rData['category_id_type'] == 'ADD') {
-							foreach (($rCategoryMap[$rStreamID] ?: array()) as $rCategoryID) {
-								if (in_array($rCategoryID, $rCategories)) {
-								} else {
-									$rCategories[] = $rCategoryID;
-								}
-							}
-						} else {
-							if ($rData['category_id_type'] != 'DEL') {
-							} else {
-								$rNewCategories = $rCategoryMap[$rStreamID];
-
-								foreach ($rCategories as $rCategoryID) {
-									if (($rKey = array_search($rCategoryID, $rNewCategories)) === false) {
-									} else {
-										unset($rNewCategories[$rKey]);
-									}
-								}
-								$rCategories = $rNewCategories;
-							}
-						}
-
-						$rArray['category_id'] = '[' . implode(',', $rCategories) . ']';
-					}
-
-					$rPrepare = prepareArray($rArray);
-
-					if (0 >= count($rPrepare['data'])) {
-					} else {
-						$rPrepare['data'][] = $rStreamID;
-						$rQuery = 'UPDATE `streams` SET ' . $rPrepare['update'] . ' WHERE `id` = ?;';
-						self::$db->query($rQuery, ...$rPrepare['data']);
-					}
-
-					if (!isset($rData['c_server_tree'])) {
-					} else {
-						$rStreamsAdded = array();
-						$rServerTree = json_decode($rData['server_tree_data'], true);
-
-						foreach ($rServerTree as $rServer) {
-							if ($rServer['parent'] == '#') {
-							} else {
-								$rServerID = intval($rServer['id']);
-
-								if (in_array($rData['server_type'], array('ADD', 'SET'))) {
-									$rStreamsAdded[] = $rServerID;
-									$rOD = intval(in_array($rServerID, ($rData['on_demand'] ?: array())));
-
-									if ($rServer['parent'] == 'source') {
-										$rParent = null;
-									} else {
-										$rParent = intval($rServer['parent']);
-									}
-
-									if (isset($rStreamExists[$rServerID])) {
-										self::$db->query('UPDATE `streams_servers` SET `parent_id` = ?, `on_demand` = ? WHERE `server_stream_id` = ?;', $rParent, $rOD, $rStreamExists[$rServerID]);
-									} else {
-										$rAddQuery .= '(' . intval($rStreamID) . ', ' . intval($rServerID) . ', ' . (($rParent ?: 'NULL')) . ', ' . $rOD . '),';
-									}
-
-									$rProcessServers[$rStreamID][] = $rServerID;
-								} else {
-									if (!isset($rStreamExists[$rStreamID][$rServerID])) {
-									} else {
-										$rDeleteServers[$rServerID][] = $rStreamID;
-									}
-								}
-							}
-						}
-
-						if ($rData['server_type'] != 'SET') {
-						} else {
-							foreach ($rStreamExists as $rServerID => $rDBID) {
-								if (in_array($rServerID, $rStreamsAdded)) {
-								} else {
-									$rDeleteServers[$rServerID][] = $rStreamID;
-
-									if (($rKey = array_search($rServerID, $rProcessServers[$rStreamID])) === false) {
-									} else {
-										unset($rProcessServers[$rStreamID][$rKey]);
-									}
-								}
-							}
-						}
-					}
-
-					if (!isset($rData['c_bouquets'])) {
-					} else {
-						if ($rData['bouquets_type'] == 'SET') {
-							foreach ($rData['bouquets'] as $rBouquet) {
-								$rAddBouquet[$rBouquet][] = $rStreamID;
-							}
-
-							foreach ($rBouquets as $rBouquet) {
-								if (in_array($rBouquet['id'], $rData['bouquets'])) {
-								} else {
-									$rDelBouquet[$rBouquet['id']][] = $rStreamID;
-								}
-							}
-						} else {
-							if ($rData['bouquets_type'] == 'ADD') {
-								foreach ($rData['bouquets'] as $rBouquet) {
-									$rAddBouquet[$rBouquet][] = $rStreamID;
-								}
-							} else {
-								if ($rData['bouquets_type'] != 'DEL') {
-								} else {
-									foreach ($rData['bouquets'] as $rBouquet) {
-										$rDelBouquet[$rBouquet][] = $rStreamID;
-									}
-								}
-							}
-						}
-					}
-
-					if (!isset($rData['reencode_on_edit'])) {
-					} else {
-						foreach ($rProcessServers[$rStreamID] as $rServerID) {
-							$rEncQuery .= "('channel', " . intval($rStreamID) . ', ' . intval($rServerID) . ', ' . time() . '),';
-						}
-					}
-				}
-
-				foreach ($rDeleteServers as $rServerID => $rDeleteIDs) {
-					deleteStreamsByServer($rDeleteIDs, $rServerID, false);
-				}
-
-				foreach ($rAddBouquet as $rBouquetID => $rAddIDs) {
-					addToBouquet('stream', $rBouquetID, $rAddIDs);
-				}
-
-				foreach ($rDelBouquet as $rBouquetID => $rRemIDs) {
-					removeFromBouquet('stream', $rBouquetID, $rRemIDs);
-				}
-
-				if (empty($rAddQuery)) {
-				} else {
-					$rAddQuery = rtrim($rAddQuery, ',');
-					self::$db->query('INSERT INTO `streams_servers`(`stream_id`, `server_id`, `parent_id`, `on_demand`) VALUES ' . $rAddQuery . ';');
-				}
-
-				CoreUtilities::updateStreams($rStreamIDs);
-
-				if (isset($rData['reencode_on_edit'])) {
-					self::$db->query("UPDATE `streams_servers` SET `pids_create_channel` = '[]', `cchannel_rsources` = '[]' WHERE `stream_id` IN (" . implode(',', array_map('intval', $rStreamIDs)) . ');');
-
-					if (empty($rEncQuery)) {
-					} else {
-						$rEncQuery = rtrim($rEncQuery, ',');
-						self::$db->query('INSERT INTO `queue`(`type`, `stream_id`, `server_id`, `added`) VALUES ' . $rEncQuery . ';');
-					}
-
-					APIRequest(array('action' => 'stream', 'sub' => 'stop', 'stream_ids' => array_values($rStreamIDs)));
-				} else {
-					if (!isset($rData['restart_on_edit'])) {
-					} else {
-						APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => array_values($rStreamIDs)));
-					}
-				}
-			}
-
-			return array('status' => STATUS_SUCCESS);
-		} else {
-
-
-
+		if (!self::checkMinimumRequirements($rData)) {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
+
+		return ChannelService::massEdit($rData, self::$db);
 	}
 
 	public static function processStream($rData) {
-		if (self::checkMinimumRequirements($rData)) {
-			set_time_limit(0);
-			ini_set('mysql.connect_timeout', 0);
-			ini_set('max_execution_time', 0);
-			ini_set('default_socket_timeout', 0);
-
-			if (isset($rData['edit'])) {
-				if (hasPermissions('adv', 'edit_stream')) {
-					$rArray = overwriteData(getStream($rData['edit']), $rData);
-				} else {
-					exit();
-				}
-			} else {
-				if (hasPermissions('adv', 'add_stream')) {
-					$rArray = verifyPostTable('streams', $rData);
-					$rArray['type'] = 1;
-					$rArray['added'] = time();
-					unset($rArray['id']);
-				} else {
-					exit();
-				}
-			}
-
-			if (isset($rData['days_to_restart']) && preg_match('/^(?:2[0-3]|[01][0-9]):[0-5][0-9]$/', $rData['time_to_restart'])) {
-				$rTimeArray = array('days' => array(), 'at' => $rData['time_to_restart']);
-
-				foreach ($rData['days_to_restart'] as $rID => $rDay) {
-					$rTimeArray['days'][] = $rDay;
-				}
-				$rArray['auto_restart'] = $rTimeArray;
-			} else {
-				$rArray['auto_restart'] = '';
-			}
-
-			foreach (array('fps_restart', 'gen_timestamps', 'allow_record', 'rtmp_output', 'stream_all', 'direct_source', 'direct_proxy', 'read_native') as $rKey) {
-				if (isset($rData[$rKey])) {
-					$rArray[$rKey] = 1;
-				} else {
-					$rArray[$rKey] = 0;
-				}
-			}
-
-			if (!$rArray['transcode_profile_id']) {
-				$rArray['transcode_profile_id'] = 0;
-			}
-
-			if ($rArray['transcode_profile_id'] > 0) {
-				$rArray['enable_transcode'] = 1;
-			}
-
-			if (isset($rData['restart_on_edit'])) {
-				$rRestart = true;
-			} else {
-				$rRestart = false;
-			}
-
-			$rReview = false;
-			$rImportStreams = array();
-
-			if (isset($rData['review'])) {
-				$rReview = true;
-
-				foreach ($rData['review'] as $rImportStream) {
-					if ($rImportStream['channel_id'] || !$rImportStream['tvg_id']) {
-					} else {
-						$rEPG = findEPG($rImportStream['tvg_id']);
-
-						if (!isset($rEPG)) {
-						} else {
-							$rImportStream['epg_id'] = $rEPG['epg_id'];
-							$rImportStream['channel_id'] = $rEPG['channel_id'];
-
-							if (empty($rEPG['epg_lang'])) {
-							} else {
-								$rImportStream['epg_lang'] = $rEPG['epg_lang'];
-							}
-						}
-					}
-
-					$rImportStreams[] = $rImportStream;
-				}
-			} else {
-				if (isset($_FILES['m3u_file'])) {
-					if (hasPermissions('adv', 'import_streams')) {
-
-
-						if (!(empty($_FILES['m3u_file']['tmp_name']) || strtolower(pathinfo(explode('?', $_FILES['m3u_file']['name'])[0], PATHINFO_EXTENSION)) != 'm3u')) {
-
-
-							$rResults = parseM3U($_FILES['m3u_file']['tmp_name']);
-
-							if (0 >= count($rResults)) {
-							} else {
-								$rEPGDatabase = $rSourceDatabase = $rStreamDatabase = array();
-								self::$db->query('SELECT `id`, `stream_display_name`, `stream_source`, `channel_id` FROM `streams` WHERE `type` = 1;');
-
-								foreach (self::$db->get_rows() as $rRow) {
-									$rName = preg_replace('/[^A-Za-z0-9 ]/', '', strtolower($rRow['stream_display_name']));
-
-									if (empty($rName)) {
-									} else {
-										$rStreamDatabase[$rName] = $rRow['id'];
-									}
-
-									$rEPGDatabase[$rRow['channel_id']] = $rRow['id'];
-
-									foreach (json_decode($rRow['stream_source'], true) as $rSource) {
-										if (empty($rSource)) {
-										} else {
-											$rSourceDatabase[md5(preg_replace('(^https?://)', '', str_replace(' ', '%20', $rSource)))] = $rRow['id'];
-										}
-									}
-								}
-								$rEPGMatch = $rEPGScan = array();
-								$i = 0;
-
-								foreach ($rResults as $rResult) {
-									list($rTag) = $rResult->getExtTags();
-
-									if (!$rTag) {
-									} else {
-										if (!$rTag->getAttribute('tvg-id')) {
-										} else {
-											$rID = $rTag->getAttribute('tvg-id');
-											$rEPGScan[$rID][] = $i;
-										}
-									}
-
-									$i++;
-								}
-
-								if (0 >= count($rEPGScan)) {
-								} else {
-									self::$db->query('SELECT `id`, `data` FROM `epg`;');
-
-									if (0 >= self::$db->num_rows()) {
-									} else {
-										foreach (self::$db->get_rows() as $rRow) {
-											foreach (json_decode($rRow['data'], true) as $rChannelID => $rChannelData) {
-												if (!isset($rEPGScan[$rChannelID])) {
-												} else {
-													if (0 < count($rChannelData['langs'])) {
-														$rEPGLang = $rChannelData['langs'][0];
-													} else {
-														$rEPGLang = '';
-													}
-
-													foreach ($rEPGScan[$rChannelID] as $i) {
-														$rEPGMatch[$i] = array('channel_id' => $rChannelID, 'epg_lang' => $rEPGLang, 'epg_id' => intval($rRow['id']));
-													}
-												}
-											}
-										}
-									}
-								}
-
-								$i = 0;
-
-								foreach ($rResults as $rResult) {
-									list($rTag) = $rResult->getExtTags();
-
-									if (!$rTag) {
-									} else {
-										$rURL = $rResult->getPath();
-										$rImportArray = array('stream_source' => array($rURL), 'stream_icon' => ($rTag->getAttribute('tvg-logo') ?: ''), 'stream_display_name' => ($rTag->getTitle() ?: ''), 'epg_id' => null, 'epg_lang' => null, 'channel_id' => null);
-
-										if (!$rTag->getAttribute('tvg-id')) {
-										} else {
-											$rEPG = ($rEPGMatch[$i] ?: null);
-
-											if (!isset($rEPG)) {
-											} else {
-												$rImportArray['epg_id'] = $rEPG['epg_id'];
-												$rImportArray['channel_id'] = $rEPG['channel_id'];
-
-												if (empty($rEPG['epg_lang'])) {
-												} else {
-													$rImportArray['epg_lang'] = $rEPG['epg_lang'];
-												}
-											}
-										}
-
-										$rBackupID = $rExistsID = null;
-										$rSourceID = md5(preg_replace('(^https?://)', '', str_replace(' ', '%20', $rURL)));
-
-										if (!isset($rSourceDatabase[$rSourceID])) {
-										} else {
-											$rExistsID = $rSourceDatabase[$rSourceID];
-										}
-
-										$rName = preg_replace('/[^A-Za-z0-9 ]/', '', strtolower($rTag->getTitle()));
-
-										if (!empty($rName) && isset($rStreamDatabase[$rName])) {
-											$rBackupID = $rStreamDatabase[$rName];
-										} else {
-											if (empty($rImportArray['channel_id']) || !isset($rEPGDatabase[$rImportArray['channel_id']])) {
-											} else {
-												$rBackupID = $rEPGDatabase[$rImportArray['channel_id']];
-											}
-										}
-
-										if ($rBackupID && !$rExistsID && isset($rData['add_source_as_backup'])) {
-											self::$db->query('SELECT `stream_source` FROM `streams` WHERE `id` = ?;', $rBackupID);
-
-											if (0 >= self::$db->num_rows()) {
-											} else {
-												$rSources = (json_decode(self::$db->get_row()['stream_source'], true) ?: array());
-												$rSources[] = $rURL;
-												self::$db->query('UPDATE `streams` SET `stream_source` = ? WHERE `id` = ?;', json_encode($rSources), $rBackupID);
-												$rImportStreams[] = array('update' => true, 'id' => $rBackupID);
-											}
-										} else {
-											if ($rExistsID && isset($rData['update_existing'])) {
-												$rImportArray['id'] = $rExistsID;
-												$rImportStreams[] = $rImportArray;
-											} else {
-												if ($rExistsID) {
-												} else {
-													$rImportStreams[] = $rImportArray;
-												}
-											}
-										}
-									}
-
-									$i++;
-								}
-							}
-						} else {
-							return array('status' => STATUS_INVALID_FILE, 'data' => $rData);
-						}
-					} else {
-						exit();
-					}
-				} else {
-					$rImportArray = array('stream_source' => array(), 'stream_icon' => $rArray['stream_icon'], 'stream_display_name' => $rArray['stream_display_name'], 'epg_id' => $rArray['epg_id'], 'epg_lang' => $rArray['epg_lang'], 'channel_id' => $rArray['channel_id']);
-
-					if (isset($rData['stream_source'])) {
-						foreach ($rData['stream_source'] as $rID => $rURL) {
-							if (0 >= strlen($rURL)) {
-							} else {
-								$rImportArray['stream_source'][] = $rURL;
-							}
-						}
-					}
-
-					$rImportStreams[] = $rImportArray;
-				}
-			}
-
-			if (0 < count($rImportStreams)) {
-				$rBouquetCreate = array();
-				$rCategoryCreate = array();
-
-				if ($rReview) {
-				} else {
-					foreach (json_decode($rData['bouquet_create_list'], true) as $rBouquet) {
-						$rPrepare = prepareArray(array('bouquet_name' => $rBouquet, 'bouquet_channels' => array(), 'bouquet_movies' => array(), 'bouquet_series' => array(), 'bouquet_radios' => array()));
-						$rQuery = 'INSERT INTO `bouquets`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-
-						if (!self::$db->query($rQuery, ...$rPrepare['data'])) {
-						} else {
-							$rBouquetID = self::$db->last_insert_id();
-							$rBouquetCreate[$rBouquet] = $rBouquetID;
-						}
-					}
-
-					foreach (json_decode($rData['category_create_list'], true) as $rCategory) {
-						$rPrepare = prepareArray(array('category_type' => 'live', 'category_name' => $rCategory, 'parent_id' => 0, 'cat_order' => 99, 'is_adult' => 0));
-						$rQuery = 'INSERT INTO `streams_categories`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-
-						if (!self::$db->query($rQuery, ...$rPrepare['data'])) {
-						} else {
-							$rCategoryID = self::$db->last_insert_id();
-							$rCategoryCreate[$rCategory] = $rCategoryID;
-						}
-					}
-				}
-
-				foreach ($rImportStreams as $rImportStream) {
-					if (!$rImportStream['update']) {
-						$rImportArray = $rArray;
-
-						if (!self::$rSettings['download_images']) {
-						} else {
-							$rImportStream['stream_icon'] = CoreUtilities::downloadImage($rImportStream['stream_icon'], 1);
-						}
-
-						if ($rReview) {
-							$rImportArray['category_id'] = '[' . implode(',', array_map('intval', $rImportStream['category_id'])) . ']';
-							$rBouquets = array_map('intval', $rImportStream['bouquets']);
-							unset($rImportStream['bouquets']);
-						} else {
-							$rBouquets = array();
-
-							foreach ($rData['bouquets'] as $rBouquet) {
-								if (isset($rBouquetCreate[$rBouquet])) {
-									$rBouquets[] = $rBouquetCreate[$rBouquet];
-								} else {
-									if (!is_numeric($rBouquet)) {
-									} else {
-										$rBouquets[] = intval($rBouquet);
-									}
-								}
-							}
-							$rCategories = array();
-
-							foreach ($rData['category_id'] as $rCategory) {
-								if (isset($rCategoryCreate[$rCategory])) {
-									$rCategories[] = $rCategoryCreate[$rCategory];
-								} else {
-									if (!is_numeric($rCategory)) {
-									} else {
-										$rCategories[] = intval($rCategory);
-									}
-								}
-							}
-							$rImportArray['category_id'] = '[' . implode(',', array_map('intval', $rCategories)) . ']';
-
-							if (isset($rData['adaptive_link']) && 0 < count($rData['adaptive_link'])) {
-								$rImportArray['adaptive_link'] = '[' . implode(',', array_map('intval', $rData['adaptive_link'])) . ']';
-							} else {
-								$rImportArray['adaptive_link'] = null;
-							}
-						}
-
-						foreach (array_keys($rImportStream) as $rKey) {
-							$rImportArray[$rKey] = $rImportStream[$rKey];
-						}
-
-						if (isset($rData['edit']) || isset($rImportStream['id'])) {
-						} else {
-							$rImportArray['order'] = getNextOrder();
-						}
-
-						$rImportArray['title_sync'] = ($rData['title_sync'] ?: null);
-
-						if (!$rImportArray['title_sync']) {
-						} else {
-							list($rSyncID, $rSyncStream) = array_map('intval', explode('_', $rImportArray['title_sync']));
-							self::$db->query('SELECT `stream_display_name` FROM `providers_streams` WHERE `provider_id` = ? AND `stream_id` = ?;', $rSyncID, $rSyncStream);
-
-							if (self::$db->num_rows() != 1) {
-							} else {
-								$rImportArray['stream_display_name'] = self::$db->get_row()['stream_display_name'];
-							}
-						}
-
-						$rPrepare = prepareArray($rImportArray);
-						$rQuery = 'REPLACE INTO `streams`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-
-						if (self::$db->query($rQuery, ...$rPrepare['data'])) {
-							$rInsertID = self::$db->last_insert_id();
-							$rStreamExists = array();
-
-							if (!(isset($rData['edit']) || isset($rImportStream['id']))) {
-							} else {
-								self::$db->query('SELECT `server_stream_id`, `server_id` FROM `streams_servers` WHERE `stream_id` = ?;', $rInsertID);
-
-								foreach (self::$db->get_rows() as $rRow) {
-									$rStreamExists[intval($rRow['server_id'])] = intval($rRow['server_stream_id']);
-								}
-							}
-
-							$rStreamsAdded = array();
-							$rServerTree = json_decode($rData['server_tree_data'], true);
-
-							foreach ($rServerTree as $rServer) {
-								if ($rServer['parent'] != '#') {
-									$rServerID = intval($rServer['id']);
-									$rStreamsAdded[] = $rServerID;
-									$rOD = intval(in_array($rServerID, ($rData['on_demand'] ?: array())));
-
-									if ($rServer['parent'] == 'source') {
-										$rParent = null;
-									} else {
-										$rParent = intval($rServer['parent']);
-									}
-
-									if (isset($rStreamExists[$rServerID])) {
-										self::$db->query('UPDATE `streams_servers` SET `parent_id` = ?, `on_demand` = ? WHERE `server_stream_id` = ?;', $rParent, $rOD, $rStreamExists[$rServerID]);
-									} else {
-										self::$db->query('INSERT INTO `streams_servers`(`stream_id`, `server_id`, `parent_id`, `on_demand`) VALUES(?, ?, ?, ?);', $rInsertID, $rServerID, $rParent, $rOD);
-									}
-								}
-							}
-
-							foreach ($rStreamExists as $rServerID => $rDBID) {
-								if (in_array($rServerID, $rStreamsAdded)) {
-								} else {
-									deleteStream($rInsertID, $rServerID, false, false);
-								}
-							}
-							self::$db->query('DELETE FROM `streams_options` WHERE `stream_id` = ?;', $rInsertID);
-
-							if (!(isset($rData['user_agent']) && 0 < strlen($rData['user_agent']))) {
-							} else {
-								self::$db->query('INSERT INTO `streams_options`(`stream_id`, `argument_id`, `value`) VALUES(?, 1, ?);', $rInsertID, $rData['user_agent']);
-							}
-
-							if (!(isset($rData['http_proxy']) && 0 < strlen($rData['http_proxy']))) {
-							} else {
-								self::$db->query('INSERT INTO `streams_options`(`stream_id`, `argument_id`, `value`) VALUES(?, 2, ?);', $rInsertID, $rData['http_proxy']);
-							}
-
-							if (!(isset($rData['cookie']) && 0 < strlen($rData['cookie']))) {
-							} else {
-								self::$db->query('INSERT INTO `streams_options`(`stream_id`, `argument_id`, `value`) VALUES(?, 17, ?);', $rInsertID, $rData['cookie']);
-							}
-
-							if (!(isset($rData['headers']) && 0 < strlen($rData['headers']))) {
-							} else {
-								self::$db->query('INSERT INTO `streams_options`(`stream_id`, `argument_id`, `value`) VALUES(?, 19, ?);', $rInsertID, $rData['headers']);
-							}
-
-							if (isset($rData['skip_ffprobe']) && ($rData['skip_ffprobe'] == 'on' || $rData['skip_ffprobe'] == 1)) {
-								self::$db->query('INSERT INTO `streams_options`(`stream_id`, `argument_id`, `value`) VALUES(?, 21, ?);', $rInsertID, '1');
-							}
-
-							if (isset($rData['force_input_acodec']) && strlen(trim($rData['force_input_acodec'])) > 0) {
-								self::$db->query('INSERT INTO `streams_options`(`stream_id`, `argument_id`, `value`) VALUES(?, 20, ?);', $rInsertID, trim($rData['force_input_acodec']));
-							}
-
-							if (!$rRestart) {
-							} else {
-								APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => array($rInsertID)));
-							}
-
-							foreach ($rBouquets as $rBouquet) {
-								addToBouquet('stream', $rBouquet, $rInsertID);
-							}
-
-							if (!(isset($rData['edit']) || isset($rImportStream['id']))) {
-							} else {
-								foreach (getBouquets() as $rBouquet) {
-									if (in_array($rBouquet['id'], $rBouquets)) {
-									} else {
-										removeFromBouquet('stream', $rBouquet['id'], $rInsertID);
-									}
-								}
-							}
-
-							CoreUtilities::updateStream($rInsertID);
-						} else {
-							foreach ($rBouquetCreate as $rBouquet => $rID) {
-								self::$db->query('DELETE FROM `bouquets` WHERE `id` = ?;', $rID);
-							}
-
-							foreach ($rCategoryCreate as $rCategory => $rID) {
-								self::$db->query('DELETE FROM `streams_categories` WHERE `id` = ?;', $rID);
-							}
-
-							return array('status' => STATUS_FAILURE, 'data' => $rData);
-						}
-					}
-				}
-
-				return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
-			} else {
-				return array('status' => STATUS_NO_SOURCES, 'data' => $rData);
-			}
-		} else {
+		if (!self::checkMinimumRequirements($rData)) {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
+
+		return StreamService::process($rData, self::$db, self::$rSettings);
 	}
 
 	public static function orderCategories($rData) {
-		if (self::checkMinimumRequirements($rData)) {
-			$rPostCategories = json_decode($rData['categories'], true);
-
-			if (0 >= count($rPostCategories)) {
-			} else {
-				foreach ($rPostCategories as $rOrder => $rPostCategory) {
-					self::$db->query('UPDATE `streams_categories` SET `cat_order` = ?, `parent_id` = 0 WHERE `id` = ?;', intval($rOrder) + 1, $rPostCategory['id']);
-				}
-			}
-
-			return array('status' => STATUS_SUCCESS);
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
-		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+
+		return CategoryService::reorder($rData, self::$db);
 	}
 
 	public static function orderServers($rData) {
-		if (self::checkMinimumRequirements($rData)) {
-			$rPostServers = json_decode($rData['server_order'], true);
-
-			if (count($rPostServers) > 0) {
-				foreach ($rPostServers as $rOrder => $rPostServer) {
-					self::$db->query('UPDATE `servers` SET `order` = ? WHERE `id` = ?;', intval($rOrder) + 1, $rPostServer['id']);
-				}
-			}
-
-			return array('status' => STATUS_SUCCESS);
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
-		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+
+		return ServerService::reorder($rData, self::$db);
 	}
 
 	public static function processCategory($rData) {
-		if (self::checkMinimumRequirements($rData)) {
-			if (isset($rData['edit'])) {
-				$rArray = overwriteData(getCategory($rData['edit']), $rData);
-			} else {
-				$rArray = verifyPostTable('streams_categories', $rData);
-				$rArray['cat_order'] = 99;
-				unset($rArray['id']);
-			}
-
-			if (isset($rData['is_adult'])) {
-				$rArray['is_adult'] = 1;
-			} else {
-				$rArray['is_adult'] = 0;
-			}
-
-			$rPrepare = prepareArray($rArray);
-			$rQuery = 'REPLACE INTO `streams_categories`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-
-			if (self::$db->query($rQuery, ...$rPrepare['data'])) {
-				$rInsertID = self::$db->last_insert_id();
-
-				return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
-			}
-
-			return array('status' => STATUS_FAILURE, 'data' => $rData);
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-
-
-		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		return CategoryService::process($rData, self::$db);
 	}
 
 	public static function moveStreams($rData) {
-		if (self::checkMinimumRequirements($rData)) {
-			$rType = intval($rData['content_type']);
-			$rSource = intval($rData['source_server']);
-			$rReplacement = intval($rData['replacement_server']);
-
-			if (!(0 < $rSource && 0 < $rReplacement && $rSource != $rReplacement)) {
-			} else {
-				$rExisting = array();
-
-				if ($rType == 0) {
-					self::$db->query('SELECT `stream_id` FROM `streams_servers` WHERE `server_id` = ?;', $rReplacement);
-
-					foreach (self::$db->get_rows() as $rRow) {
-						$rExisting[] = intval($rRow['stream_id']);
-					}
-				} else {
-					self::$db->query('SELECT `streams_servers`.`stream_id` FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams_servers`.`server_id` = ? AND `streams`.`type` = ?;', $rReplacement, $rType);
-
-					foreach (self::$db->get_rows() as $rRow) {
-						$rExisting[] = intval($rRow['stream_id']);
-					}
-				}
-
-				self::$db->query('SELECT `stream_id` FROM `streams_servers` WHERE `server_id` = ?;', $rSource);
-
-				foreach (self::$db->get_rows() as $rRow) {
-					if (!in_array(intval($rRow['stream_id']), $rExisting)) {
-					} else {
-						self::$db->query('DELETE FROM `streams_servers` WHERE `stream_id` = ? AND `server_id` = ?;', $rRow['stream_id'], $rSource);
-					}
-				}
-
-				if ($rType == 0) {
-					self::$db->query('UPDATE `streams_servers` SET `server_id` = ? WHERE `server_id` = ?;', $rReplacement, $rSource);
-				} else {
-					self::$db->query('UPDATE `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` SET `streams_servers`.`server_id` = ? WHERE `streams_servers`.`server_id` = ? AND `streams`.`type` = ?;', $rReplacement, $rSource, $rType);
-				}
-			}
-
-			return array('status' => STATUS_SUCCESS);
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-
-
-		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		return StreamService::move($rData, self::$db);
 	}
 
 	public static function replaceDNS($rData) {
-		if (self::checkMinimumRequirements($rData)) {
-			$rOldDNS = str_replace('/', '\\/', $rData['old_dns']);
-			$rNewDNS = str_replace('/', '\\/', $rData['new_dns']);
-			self::$db->query('UPDATE `streams` SET `stream_source` = REPLACE(`stream_source`, ?, ?);', $rOldDNS, $rNewDNS);
-
-			return array('status' => STATUS_SUCCESS);
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-
-
-		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		return StreamService::replaceDNS($rData, self::$db);
 	}
 
 	public static function submitTicket($rData) {
-		if (self::checkMinimumRequirements($rData)) {
-			if (isset($rData['edit'])) {
-				$rArray = overwriteData(getTicket($rData['edit']), $rData);
-			} else {
-				$rArray = verifyPostTable('tickets', $rData);
-				unset($rArray['id']);
-			}
-
-			if (!(strlen($rData['title']) == 0 && !isset($rData['respond']) || strlen($rData['message']) == 0)) {
-
-
-
-				if (!isset($rData['respond'])) {
-					$rPrepare = prepareArray($rArray);
-					$rQuery = 'REPLACE INTO `tickets`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-
-					if (self::$db->query($rQuery, ...$rPrepare['data'])) {
-						$rInsertID = self::$db->last_insert_id();
-						self::$db->query('INSERT INTO `tickets_replies`(`ticket_id`, `admin_reply`, `message`, `date`) VALUES(?, 0, ?, ?);', $rInsertID, $rData['message'], time());
-
-						return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
-					}
-
-					return array('status' => STATUS_FAILURE, 'data' => $rData);
-				}
-
-				$rTicket = getTicket($rData['respond']);
-
-				if ($rTicket) {
-					if (intval(self::$rUserInfo['id']) == intval($rTicket['member_id'])) {
-						self::$db->query('UPDATE `tickets` SET `admin_read` = 0, `user_read` = 1 WHERE `id` = ?;', $rData['respond']);
-						self::$db->query('INSERT INTO `tickets_replies`(`ticket_id`, `admin_reply`, `message`, `date`) VALUES(?, 0, ?, ?);', $rData['respond'], $rData['message'], time());
-					} else {
-						self::$db->query('UPDATE `tickets` SET `admin_read` = 0, `user_read` = 0 WHERE `id` = ?;', $rData['respond']);
-						self::$db->query('INSERT INTO `tickets_replies`(`ticket_id`, `admin_reply`, `message`, `date`) VALUES(?, 1, ?, ?);', $rData['respond'], $rData['message'], time());
-					}
-
-					return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rData['respond']));
-				}
-
-				return array('status' => STATUS_FAILURE, 'data' => $rData);
-			}
-
-			return array('status' => STATUS_INVALID_DATA, 'data' => $rData);
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		return TicketService::submit(self::$db, $rData, self::$rUserInfo, 'getTicket');
 	}
 
 	public static function processUA($rData) {
-		if (self::checkMinimumRequirements($rData)) {
-			if (isset($rData['edit'])) {
-				$rArray = overwriteData(getUserAgent($rData['edit']), $rData);
-			} else {
-				$rArray = verifyPostTable('blocked_uas', $rData);
-				unset($rArray['id']);
-			}
-
-			if (isset($rData['exact_match'])) {
-				$rArray['exact_match'] = true;
-			} else {
-				$rArray['exact_match'] = false;
-			}
-
-			$rPrepare = prepareArray($rArray);
-			$rQuery = 'REPLACE INTO `blocked_uas`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-
-			if (self::$db->query($rQuery, ...$rPrepare['data'])) {
-				$rInsertID = self::$db->last_insert_id();
-
-				return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
-			}
-
-			return array('status' => STATUS_FAILURE, 'data' => $rData);
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-
-
-		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		return BlocklistService::processUA(self::$db, $rData, 'getUserAgent');
 	}
 
 	public static function processPlexSync($rData) {
@@ -6205,6 +3171,14 @@ class API {
 	}
 
 	public static function massEditLines($rData) {
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		}
+
+		return LineService::massEdit($rData);
+	}
+
+	public static function massEditLinesLegacy($rData) {
 		if (self::checkMinimumRequirements($rData)) {
 			$rArray = array();
 
@@ -6322,6 +3296,14 @@ class API {
 	}
 
 	public static function massEditMags($rData) {
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		}
+
+		return MagService::massEdit($rData);
+	}
+
+	public static function massEditMagsLegacy($rData) {
 		if (self::checkMinimumRequirements($rData)) {
 			$rArray = array();
 			$rUserArray = array();
@@ -6512,6 +3494,14 @@ class API {
 	}
 
 	public static function massEditEnigmas($rData) {
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		}
+
+		return EnigmaService::massEdit($rData);
+	}
+
+	public static function massEditEnigmasLegacy($rData) {
 		if (self::checkMinimumRequirements($rData)) {
 			$rArray = array();
 			$rUserArray = array();
@@ -6653,6 +3643,14 @@ class API {
 	}
 
 	public static function massEditUsers($rData) {
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		}
+
+		return UserService::massEdit($rData);
+	}
+
+	public static function massEditUsersLegacy($rData) {
 		if (self::checkMinimumRequirements($rData)) {
 			$rArray = array();
 
@@ -6734,6 +3732,14 @@ class API {
 	}
 
 	public static function processLine($rData) {
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		}
+
+		return LineService::process($rData);
+	}
+
+	public static function processLineLegacy($rData) {
 		if (self::checkMinimumRequirements($rData)) {
 			if (isset($rData['edit'])) {
 				if (hasPermissions('adv', 'edit_user')) {
