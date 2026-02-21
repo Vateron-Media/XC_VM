@@ -80,4 +80,158 @@ class ServerRepository {
 
 		return $rServers;
 	}
+
+	public static function getAllSimple($db) {
+		$rReturn = array();
+		$db->query('SELECT * FROM `servers` ORDER BY `id` ASC;');
+
+		if ($db->num_rows() > 0) {
+			foreach ($db->get_rows() as $rRow) {
+				$rRow['server_online'] = in_array($rRow['status'], array(1, 3)) && time() - $rRow['last_check_ago'] <= 90 || $rRow['is_main'];
+				$rReturn[$rRow['id']] = $rRow;
+			}
+		}
+
+		return $rReturn;
+	}
+
+	public static function getStreamingSimple($db, $rPermissions, $type = 'online') {
+		$rReturn = array();
+		$db->query('SELECT * FROM `servers` WHERE `server_type` = 0 ORDER BY `id` ASC;');
+
+		if ($db->num_rows() > 0) {
+			foreach ($db->get_rows() as $rRow) {
+				if (isset($rPermissions['is_reseller']) && $rPermissions['is_reseller']) {
+					$rRow['server_name'] = 'Server #' . ($rRow['id'] ?? 'unknown');
+				}
+
+				$rRow['server_online'] = in_array($rRow['status'], array(1, 3)) && time() - $rRow['last_check_ago'] <= 90 || $rRow['is_main'];
+				if (!isset($rRow['order'])) {
+					$rRow['order'] = 0;
+				}
+				if ($rRow['server_online'] || $type == 'all') {
+					$rReturn[$rRow['id']] = $rRow;
+				}
+			}
+		}
+
+		return $rReturn;
+	}
+
+	public static function getProxySimple($db, $rPermissions, $rOnline = false) {
+		$rReturn = array();
+		$db->query('SELECT * FROM `servers` WHERE `server_type` = 1 ORDER BY `id` ASC;');
+
+		if (0 >= $db->num_rows()) {
+		} else {
+			foreach ($db->get_rows() as $rRow) {
+				if ($rPermissions['is_reseller']) {
+					$rRow['server_name'] = 'Proxy #' . $rRow['id'];
+				}
+
+				$rRow['server_online'] = in_array($rRow['status'], array(1, 3)) && time() - $rRow['last_check_ago'] <= 90 || $rRow['is_main'];
+				if (!($rRow['server_online'] == 0 && $rOnline)) {
+					$rReturn[$rRow['id']] = $rRow;
+				}
+			}
+		}
+
+		return $rReturn;
+	}
+
+	public static function getFreeSpace($rSystemApiRequest, $rServerID) {
+		$rReturn = array();
+		$rLines = json_decode(call_user_func($rSystemApiRequest, $rServerID, array('action' => 'get_free_space')), true);
+
+		if (!empty($rLines)) {
+			array_shift($rLines);
+		}
+
+		foreach ($rLines as $rLine) {
+			$rSplit = explode(' ', preg_replace('!\s+!', ' ', trim($rLine)));
+			if (0 < strlen($rSplit[0]) && strpos($rSplit[5], 'xc_vm') !== false || $rSplit[5] == '/') {
+				$rReturn[] = array('filesystem' => $rSplit[0], 'size' => $rSplit[1], 'used' => $rSplit[2], 'avail' => $rSplit[3], 'percentage' => $rSplit[4], 'mount' => implode(' ', array_slice($rSplit, 5, count($rSplit) - 5)));
+			}
+		}
+
+		return $rReturn;
+	}
+
+	public static function getStreamsRamdisk($rSystemApiRequest, $rServerID) {
+		$response = call_user_func($rSystemApiRequest, $rServerID, array('action' => 'streams_ramdisk'));
+		$rReturn = json_decode($response, true);
+
+		if (!is_array($rReturn)) {
+			return array();
+		}
+
+		if (empty($rReturn['result'])) {
+			return array();
+		}
+
+		return ($rReturn['streams'] ?? array());
+	}
+
+	public static function killPID($rSystemApiRequest, $rServerID, $rPID) {
+		call_user_func($rSystemApiRequest, $rServerID, array('action' => 'kill_pid', 'pid' => $rPID));
+	}
+
+	public static function getRTMPStats($rSystemApiRequest, $rServerID) {
+		return json_decode(call_user_func($rSystemApiRequest, $rServerID, array('action' => 'rtmp_stats')), true);
+	}
+
+	public static function checkSource($rServers, $rFFProbe, $rServerID, $rFilename) {
+		$rAPI = $rServers[intval($rServerID)]['api_url_ip'] . '&action=getFile&filename=' . urlencode($rFilename);
+		$rCommand = 'timeout 10 ' . $rFFProbe . ' -user_agent "Mozilla/5.0" -show_streams -v quiet "' . $rAPI . '" -of json';
+		return json_decode(shell_exec($rCommand), true);
+	}
+
+	public static function getSSLLog($rServers, $rServerID) {
+		$rAPI = $rServers[intval($rServerID)]['api_url_ip'] . '&action=getFile&filename=' . urlencode(BIN_PATH . 'certbot/logs/xc_vm.log');
+		return json_decode(file_get_contents($rAPI), true);
+	}
+
+	public static function freeTemp($rSystemApiRequest, $rServerID) {
+		call_user_func($rSystemApiRequest, $rServerID, array('action' => 'free_temp'));
+	}
+
+	public static function freeStreams($rSystemApiRequest, $rServerID) {
+		call_user_func($rSystemApiRequest, $rServerID, array('action' => 'free_streams'));
+	}
+
+	public static function probeSource($rSystemApiRequest, $rServerID, $rURL, $rUserAgent = null, $rProxy = null, $rCookies = null, $rHeaders = null) {
+		return json_decode(call_user_func($rSystemApiRequest, $rServerID, array('action' => 'probe', 'url' => $rURL, 'user_agent' => $rUserAgent, 'http_proxy' => $rProxy, 'cookies' => $rCookies, 'headers' => $rHeaders), 30), true);
+	}
+
+	public static function deleteById($db, $rSettings, $rGetServerById, $rID, $rReplaceWith = null) {
+		$rServer = call_user_func($rGetServerById, $rID);
+
+		if (!$rServer || $rServer['is_main']) {
+			return false;
+		}
+
+		if ($rReplaceWith) {
+			$db->query('UPDATE `streams_servers` SET `server_id` = ? WHERE `server_id` = ?;', $rReplaceWith, $rID);
+			if (!$rSettings['redis_handler']) {
+				$db->query('UPDATE `lines_live` SET `server_id` = ? WHERE `server_id` = ?;', $rReplaceWith, $rID);
+			}
+			$db->query('UPDATE `lines_activity` SET `server_id` = ? WHERE `server_id` = ?;', $rReplaceWith, $rID);
+		} else {
+			$db->query('DELETE FROM `streams_servers` WHERE `server_id` = ?;', $rID);
+			if (!$rSettings['redis_handler']) {
+				$db->query('DELETE FROM `lines_live` WHERE `server_id` = ?;', $rID);
+			}
+			$db->query('UPDATE `lines_activity` SET `server_id` = 0 WHERE `server_id` = ?;', $rID);
+		}
+
+		$db->query('UPDATE `servers` SET `parent_id` = NULL, `enabled` = 0 WHERE `server_type` = 1 AND `parent_id` = ?;', $rID);
+		$db->query('DELETE FROM `servers_stats` WHERE `server_id` = ?;', $rID);
+		$db->query('DELETE FROM `servers` WHERE `id` = ?;', $rID);
+
+		if ($rServer['server_type'] == 0) {
+			CoreUtilities::revokePrivileges($rServer['server_ip']);
+		}
+
+		return true;
+	}
 }

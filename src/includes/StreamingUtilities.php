@@ -735,220 +735,16 @@ class StreamingUtilities {
 		return false;
 	}
 	public static function getUserInfo($rUserID = null, $rUsername = null, $rPassword = null, $rGetChannelIDs = false, $rGetConnections = false, $rIP = '') {
-		$rUserInfo = null;
-		if (self::$rCached) {
-			if (empty($rPassword) && empty($rUserID) && strlen($rUsername) == 32) {
-				if (self::$rSettings['case_sensitive_line']) {
-					$rUserID = intval(file_get_contents(LINES_TMP_PATH . 'line_t_' . $rUsername));
-				} else {
-					$rUserID = intval(file_get_contents(LINES_TMP_PATH . 'line_t_' . strtolower($rUsername)));
-				}
-			} else {
-				if (!empty($rUsername) && !empty($rPassword)) {
-					if (self::$rSettings['case_sensitive_line']) {
-						$rUserID = intval(file_get_contents(LINES_TMP_PATH . 'line_c_' . $rUsername . '_' . $rPassword));
-					} else {
-						$rUserID = intval(file_get_contents(LINES_TMP_PATH . 'line_c_' . strtolower($rUsername) . '_' . strtolower($rPassword)));
-					}
-				} else {
-					if (!empty($rUserID)) {
-					} else {
-						return false;
-					}
-				}
-			}
-			if (!$rUserID) {
-			} else {
-				$rUserInfo = igbinary_unserialize(file_get_contents(LINES_TMP_PATH . 'line_i_' . $rUserID));
-			}
-		} else {
-			if (empty($rPassword) && empty($rUserID) && strlen($rUsername) == 32) {
-				self::$db->query('SELECT * FROM `lines` WHERE `is_mag` = 0 AND `is_e2` = 0 AND `access_token` = ? AND LENGTH(`access_token`) = 32', $rUsername);
-			} else {
-				if (!empty($rUsername) && !empty($rPassword)) {
-					self::$db->query('SELECT `lines`.*, `mag_devices`.`token` AS `mag_token` FROM `lines` LEFT JOIN `mag_devices` ON `mag_devices`.`user_id` = `lines`.`id` WHERE `username` = ? AND `password` = ? LIMIT 1', $rUsername, $rPassword);
-				} else {
-					if (!empty($rUserID)) {
-						self::$db->query('SELECT `lines`.*, `mag_devices`.`token` AS `mag_token` FROM `lines` LEFT JOIN `mag_devices` ON `mag_devices`.`user_id` = `lines`.`id` WHERE `id` = ?', $rUserID);
-					} else {
-						return false;
-					}
-				}
-			}
-			if (0 >= self::$db->num_rows()) {
-			} else {
-				$rUserInfo = self::$db->get_row();
-			}
-		}
-		if (!$rUserInfo) {
-			return false;
-		}
-		if (!self::$rCached) {
-		} else {
-			if (empty($rPassword) && empty($rUserID) && strlen($rUsername) == 32) {
-				if ($rUsername == $rUserInfo['access_token']) {
-				} else {
-					return false;
-				}
-			} else {
-				if (empty($rUsername) || empty($rPassword)) {
-				} else {
-					if (!($rUsername != $rUserInfo['username'] || $rPassword != $rUserInfo['password'])) {
-					} else {
-						return false;
-					}
-				}
-			}
-		}
-		if (!(self::$rSettings['county_override_1st'] == 1 && empty($rUserInfo['forced_country']) && !empty($rIP) && $rUserInfo['max_connections'] == 1)) {
-		} else {
-			$rUserInfo['forced_country'] = self::getIPInfo($rIP)['registered_country']['iso_code'];
-			if (self::$rCached) {
-				self::setSignal('forced_country/' . $rUserInfo['id'], $rUserInfo['forced_country']);
-			} else {
-				self::$db->query('UPDATE `lines` SET `forced_country` = ? WHERE `id` = ?', $rUserInfo['forced_country'], $rUserInfo['id']);
-			}
-		}
-
-		$allowedIPS = json_decode($rUserInfo['allowed_ips'], true);
-		$allowedUa = json_decode($rUserInfo['allowed_ua'], true);
-		$rUserInfo['bouquet'] = json_decode($rUserInfo['bouquet'], true);
-		$rUserInfo['allowed_ips'] = array_filter(array_map('trim', is_array($allowedIPS) ? $allowedIPS : []));
-		$rUserInfo['allowed_ua'] = array_filter(array_map('trim', is_array($allowedUa) ? $allowedUa : []));
-		$rUserInfo['allowed_outputs'] = array_map('intval', json_decode($rUserInfo['allowed_outputs'], true));
-		$rUserInfo['output_formats'] = array();
-		if (self::$rCached) {
-			foreach (igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'output_formats')) as $rRow) {
-				if (!in_array(intval($rRow['access_output_id']), $rUserInfo['allowed_outputs'])) {
-				} else {
-					$rUserInfo['output_formats'][] = $rRow['output_key'];
-				}
-			}
-		} else {
-			self::$db->query('SELECT `access_output_id`, `output_key` FROM `output_formats`;');
-			foreach (self::$db->get_rows() as $rRow) {
-				if (!in_array(intval($rRow['access_output_id']), $rUserInfo['allowed_outputs'])) {
-				} else {
-					$rUserInfo['output_formats'][] = $rRow['output_key'];
-				}
-			}
-		}
-		$rUserInfo['con_isp_name'] = null;
-		$rUserInfo['isp_violate'] = 0;
-		$rUserInfo['isp_is_server'] = 0;
-		if (self::$rSettings['show_isps'] != 1 || empty($rIP)) {
-		} else {
-			$rISPLock = self::getISP($rIP);
-			if (!is_array($rISPLock)) {
-			} else {
-				if (empty($rISPLock['isp'])) {
-				} else {
-					$rUserInfo['con_isp_name'] = $rISPLock['isp'];
-					$rUserInfo['isp_asn'] = $rISPLock['autonomous_system_number'];
-					$rUserInfo['isp_violate'] = self::checkISP($rUserInfo['con_isp_name']);
-					if (self::$rSettings['block_svp'] != 1) {
-					} else {
-						$rUserInfo['isp_is_server'] = intval(self::checkServer($rUserInfo['isp_asn']));
-					}
-				}
-			}
-			if (!(!empty($rUserInfo['con_isp_name']) && self::$rSettings['enable_isp_lock'] == 1 && $rUserInfo['is_stalker'] == 0 && $rUserInfo['is_isplock'] == 1 && !empty($rUserInfo['isp_desc']) && strtolower($rUserInfo['con_isp_name']) != strtolower($rUserInfo['isp_desc']))) {
-			} else {
-				$rUserInfo['isp_violate'] = 1;
-			}
-			if (!($rUserInfo['isp_violate'] == 0 && strtolower($rUserInfo['con_isp_name']) != strtolower($rUserInfo['isp_desc']))) {
-			} else {
-				if (self::$rCached) {
-					self::setSignal('isp/' . $rUserInfo['id'], json_encode(array($rUserInfo['con_isp_name'], $rUserInfo['isp_asn'])));
-				} else {
-					self::$db->query('UPDATE `lines` SET `isp_desc` = ?, `as_number` = ? WHERE `id` = ?', $rUserInfo['con_isp_name'], $rUserInfo['isp_asn'], $rUserInfo['id']);
-				}
-			}
-		}
-		if (!$rGetChannelIDs) {
-		} else {
-			$rLiveIDs = $rVODIDs = $rRadioIDs = $rCategoryIDs = $rChannelIDs = $rSeriesIDs = array();
-			foreach ($rUserInfo['bouquet'] as $rID) {
-				if (!isset(self::$rBouquets[$rID]['streams'])) {
-				} else {
-					$rChannelIDs = array_merge($rChannelIDs, self::$rBouquets[$rID]['streams']);
-				}
-				if (!isset(self::$rBouquets[$rID]['series'])) {
-				} else {
-					$rSeriesIDs = array_merge($rSeriesIDs, self::$rBouquets[$rID]['series']);
-				}
-				if (!isset(self::$rBouquets[$rID]['channels'])) {
-				} else {
-					$rLiveIDs = array_merge($rLiveIDs, self::$rBouquets[$rID]['channels']);
-				}
-				if (!isset(self::$rBouquets[$rID]['movies'])) {
-				} else {
-					$rVODIDs = array_merge($rVODIDs, self::$rBouquets[$rID]['movies']);
-				}
-				if (!isset(self::$rBouquets[$rID]['radios'])) {
-				} else {
-					$rRadioIDs = array_merge($rRadioIDs, self::$rBouquets[$rID]['radios']);
-				}
-			}
-			$rUserInfo['channel_ids'] = array_map('intval', array_unique($rChannelIDs));
-			$rUserInfo['series_ids'] = array_map('intval', array_unique($rSeriesIDs));
-			$rUserInfo['vod_ids'] = array_map('intval', array_unique($rVODIDs));
-			$rUserInfo['live_ids'] = array_map('intval', array_unique($rLiveIDs));
-			$rUserInfo['radio_ids'] = array_map('intval', array_unique($rRadioIDs));
-		}
-		$rAllowedCategories = array();
-		$rCategoryMap = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'category_map'));
-		foreach ($rUserInfo['bouquet'] as $rID) {
-			$rAllowedCategories = array_merge($rAllowedCategories, ($rCategoryMap[$rID] ?: array()));
-		}
-		$rUserInfo['category_ids'] = array_values(array_unique($rAllowedCategories));
-		return $rUserInfo;
+		return UserRepository::getStreamingUserInfo(self::$db, self::$rSettings, self::$rCached, self::$rBouquets, $rUserID, $rUsername, $rPassword, $rGetChannelIDs, $rGetConnections, $rIP, array('getIPInfo' => array(self::class, 'getIPInfo'), 'setSignal' => array(self::class, 'setSignal'), 'getISP' => array(self::class, 'getISP'), 'checkISP' => array(self::class, 'checkISP'), 'checkServer' => array(self::class, 'checkServer')));
 	}
 	public static function setSignal($rKey, $rData) {
 		file_put_contents(SIGNALS_TMP_PATH . 'cache_' . md5($rKey), json_encode(array($rKey, $rData)));
 	}
 	public static function validateHMAC($rHMAC, $rExpiry, $rStreamID, $rExtension, $rIP = '', $rMACIP = '', $rIdentifier = '', $rMaxConnections = 0) {
-		if (0 < strlen($rIP) && 0 < strlen($rMACIP)) {
-			if ($rIP != $rMACIP) {
-				return null;
-			}
-		}
-		$rKeyID = null;
-		if (self::$rCached) {
-			$rKeys = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'hmac_keys'));
-		} else {
-			$rKeys = array();
-			self::$db->query('SELECT `id`, `key` FROM `hmac_keys` WHERE `enabled` = 1;');
-			foreach (self::$db->get_rows() as $rKey) {
-				$rKeys[] = $rKey;
-			}
-		}
-		foreach ($rKeys as $rKey) {
-			$rResult = hash_hmac('sha256', (string) $rStreamID . '##' . $rExtension . '##' . $rExpiry . '##' . $rMACIP . '##' . $rIdentifier . '##' . $rMaxConnections, StreamingUtilities::decryptData($rKey['key'], StreamingUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA));
-
-			if (md5($rResult) == md5($rHMAC)) {
-				$rKeyID = $rKey['id'];
-				break;
-			}
-		}
-		return $rKeyID;
+		return HMACValidator::validate(self::$db, self::$rSettings, self::$rCached, $rHMAC, $rExpiry, $rStreamID, $rExtension, $rIP, $rMACIP, $rIdentifier, $rMaxConnections, array('StreamingUtilities', 'decryptData'));
 	}
 	public static function checkBlockedUAs($rUserAgent, $rReturn = false) {
-		$rUserAgent = strtolower($rUserAgent);
-		foreach (self::$rBlockedUA as $rKey => $rBlocked) {
-			if ($rBlocked['exact_match'] == 1) {
-				if ($rBlocked['blocked_ua'] != $rUserAgent) {
-				} else {
-					return true;
-				}
-			} else {
-				if (!stristr($rUserAgent, $rBlocked['blocked_ua'])) {
-				} else {
-					return true;
-				}
-			}
-		}
-		return false;
+		return BlocklistService::checkBlockedUAs(self::$rBlockedUA, $rUserAgent, $rReturn);
 	}
 	public static function isMonitorRunning($rPID, $rStreamID, $rEXE = PHP_BIN) {
 		if (!empty($rPID)) {
@@ -1083,16 +879,10 @@ class StreamingUtilities {
 		return false;
 	}
 	public static function checkISP($rConISP) {
-		foreach (self::$rBlockedISP as $rISP) {
-			if (strtolower($rConISP) != strtolower($rISP['isp'])) {
-			} else {
-				return intval($rISP['blocked']);
-			}
-		}
-		return 0;
+		return BlocklistService::checkISP(self::$rBlockedISP, $rConISP);
 	}
 	public static function checkServer($rASN) {
-		return in_array($rASN, self::$rBlockedServers);
+		return BlocklistService::checkServer(self::$rBlockedServers, $rASN);
 	}
 	public static function getIPInfo($rIP) {
 		if (!empty($rIP)) {

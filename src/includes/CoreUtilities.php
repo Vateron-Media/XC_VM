@@ -20,20 +20,21 @@ class CoreUtilities {
 	public static $rFFMPEG_GPU = null;
 	public static $rFFPROBE = null;
 	public static $rCached = null;
+
 	public static function init($rUseCache = false) {
 		LegacyInitializer::initCore($rUseCache);
 	}
+
 	public static function getDiffTimezone($rTimezone) {
 		$rServerTZ = new DateTime('UTC', new DateTimeZone(date_default_timezone_get()));
 		$rUserTZ = new DateTime('UTC', new DateTimeZone($rTimezone));
 		return $rUserTZ->getTimestamp() - $rServerTZ->getTimestamp();
 	}
+
 	public static function getAllowedDomains($rForce = false) {
-		if ($rForce) {
-		} else {
+		if (!$rForce) {
 			$rCache = self::getCache('allowed_domains', 20);
-			if ($rCache === false) {
-			} else {
+			if ($rCache !== false) {
 				return $rCache;
 			}
 		}
@@ -43,19 +44,16 @@ class CoreUtilities {
 			foreach (explode(',', $rRow['domain_name']) as $rDomain) {
 				$rDomains[] = $rDomain;
 			}
-			if (!$rRow['server_ip']) {
-			} else {
+			if (!empty($rRow['server_ip'])) {
 				$rDomains[] = $rRow['server_ip'];
 			}
-			if (!$rRow['private_ip']) {
-			} else {
+			if (!empty($rRow['private_ip'])) {
 				$rDomains[] = $rRow['private_ip'];
 			}
 		}
 		self::$db->query('SELECT `reseller_dns` FROM `users` WHERE `status` = 1;');
 		foreach (self::$db->get_rows() as $rRow) {
-			if (!$rRow['reseller_dns']) {
-			} else {
+			if (!empty($rRow['reseller_dns'])) {
 				$rDomains[] = $rRow['reseller_dns'];
 			}
 		}
@@ -63,461 +61,210 @@ class CoreUtilities {
 		self::setCache('allowed_domains', $rDomains);
 		return $rDomains;
 	}
+
 	public static function getProxyIPs($rForce = false) {
-		if (!$rForce) {
-			$rCache = self::getCache('proxy_servers', 20);
-			if ($rCache === true) {
-				return $rCache;
-			}
-		}
-		$rOutput = array();
-		foreach (self::$rServers as $rServer) {
-			if ($rServer['server_type'] == 1) {
-				$rOutput[$rServer['server_ip']] = $rServer;
-				if ($rServer['private_ip']) {
-					$rOutput[$rServer['private_ip']] = $rServer;
-				}
-			}
-		}
-		self::setCache('proxy_servers', $rOutput);
-		return $rOutput;
+		return BlocklistRepository::getProxyIPs(self::$rServers, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
 	}
+
 	public static function isProxy($rIP) {
-		if (!isset(self::$rProxies[$rIP])) {
-		} else {
+		if (isset(self::$rProxies[$rIP])) {
 			return self::$rProxies[$rIP];
 		}
 	}
+
 	public static function getBlockedUA($rForce = false) {
-		if ($rForce) {
-		} else {
-			$rCache = self::getCache('blocked_ua', 20);
-			if ($rCache === false) {
-			} else {
-				return $rCache;
-			}
-		}
-		self::$db->query('SELECT id,exact_match,LOWER(user_agent) as blocked_ua FROM `blocked_uas`');
-		$rOutput = self::$db->get_rows(true, 'id');
-		self::setCache('blocked_ua', $rOutput);
-		return $rOutput;
+		return BlocklistRepository::getBlockedUA(self::$db, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
 	}
+
 	public static function getBlockedIPs($rForce = false) {
-		if ($rForce) {
-		} else {
-			$rCache = self::getCache('blocked_ips', 20);
-			if ($rCache === false) {
-			} else {
-				return $rCache;
-			}
-		}
-		$rOutput = array();
-		self::$db->query('SELECT `ip` FROM `blocked_ips`');
-		foreach (self::$db->get_rows() as $rRow) {
-			$rOutput[] = $rRow['ip'];
-		}
-		self::setCache('blocked_ips', $rOutput);
-		return $rOutput;
+		return BlocklistRepository::getBlockedIPs(self::$db, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
 	}
+
 	public static function getBlockedISP($rForce = false) {
-		if ($rForce) {
-		} else {
-			$rCache = self::getCache('blocked_isp', 20);
-			if ($rCache === false) {
-			} else {
-				return $rCache;
-			}
-		}
-		self::$db->query('SELECT id,isp,blocked FROM `blocked_isps`');
-		$rOutput = self::$db->get_rows();
-		self::setCache('blocked_isp', $rOutput);
-		return $rOutput;
+		return BlocklistRepository::getBlockedISP(self::$db, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
 	}
+
 	public static function getBlockedServers($rForce = false) {
-		if ($rForce) {
-		} else {
-			$rCache = self::getCache('blocked_servers', 20);
-			if ($rCache === false) {
-			} else {
-				return $rCache;
-			}
-		}
-		$rOutput = array();
-		self::$db->query('SELECT `asn` FROM `blocked_asns` WHERE `blocked` = 1;');
-		foreach (self::$db->get_rows() as $rRow) {
-			$rOutput[] = $rRow['asn'];
-		}
-		self::setCache('blocked_servers', $rOutput);
-		return $rOutput;
+		return BlocklistRepository::getBlockedServers(self::$db, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
 	}
+
 	public static function getBouquets($rForce = false) {
 		return BouquetRepository::getAll(self::$db, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
 	}
+
 	public static function getSettings($rForce = false) {
 		return SettingsRepository::getAll(self::$db, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
 	}
+
 	public static function setCache($rCache, $rData) {
-		$rData = igbinary_serialize($rData);
-		file_put_contents(CACHE_TMP_PATH . $rCache, $rData, LOCK_EX);
+		file_put_contents(CACHE_TMP_PATH . $rCache, igbinary_serialize($rData), LOCK_EX);
 	}
+
 	public static function getCache($rCache, $rSeconds = null) {
 		if (file_exists(CACHE_TMP_PATH . $rCache)) {
-			if ($rSeconds && time() - filemtime(CACHE_TMP_PATH . $rCache) >= $rSeconds) {
-			} else {
-				$rData = file_get_contents(CACHE_TMP_PATH . $rCache);
-				return igbinary_unserialize($rData);
+			if (!$rSeconds || time() - filemtime(CACHE_TMP_PATH . $rCache) < $rSeconds) {
+				return igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . $rCache));
 			}
 		}
 		return false;
 	}
+
 	public static function getServers($rForce = false) {
 		return ServerRepository::getAll(self::$db, self::$rSettings, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
 	}
+
 	public static function getMultiCURL($rURLs, $callback = null, $rTimeout = 5) {
 		return CurlClient::getMultiCURL(self::$rServers, $rURLs, $callback, $rTimeout);
 	}
+
 	public static function cleanGlobals(&$rData, $rIteration = 0) {
-		if (10 > $rIteration) {
-			foreach ($rData as $rKey => $rValue) {
-				if (is_array($rValue)) {
-					self::cleanGlobals($rData[$rKey], ++$rIteration);
-				} else {
-					$rValue = str_replace(chr('0'), '', $rValue);
-					$rValue = str_replace('', '', $rValue);
-					$rValue = str_replace('', '', $rValue);
-					$rValue = str_replace('../', '&#46;&#46;/', $rValue);
-					$rValue = str_replace('&#8238;', '', $rValue);
-					$rData[$rKey] = $rValue;
-				}
+		if ($rIteration >= 10) {
+			return;
+		}
+		foreach ($rData as $rKey => $rValue) {
+			if (is_array($rValue)) {
+				self::cleanGlobals($rData[$rKey], $rIteration + 1);
+			} else {
+				$rValue = str_replace(chr(0), '', $rValue);
+				$rValue = str_replace('../', '&#46;&#46;/', $rValue);
+				$rValue = str_replace('&#8238;', '', $rValue);
+				$rData[$rKey] = $rValue;
 			}
-		} else {
-			return null;
 		}
 	}
+
 	public static function parseIncomingRecursively(&$rData, $rInput = array(), $rIteration = 0) {
-		if (20 > $rIteration) {
-			if (is_array($rData)) {
-				foreach ($rData as $rKey => $rValue) {
-					if (is_array($rValue)) {
-						$rInput[$rKey] = self::parseIncomingRecursively($rData[$rKey], array(), $rIteration + 1);
-					} else {
-						$rKey = self::parseCleanKey($rKey);
-						$rValue = self::parseCleanValue($rValue);
-						$rInput[$rKey] = $rValue;
-					}
-				}
-				return $rInput;
-			} else {
-				return $rInput;
-			}
-		} else {
+		if ($rIteration >= 20 || !is_array($rData)) {
 			return $rInput;
 		}
+		foreach ($rData as $rKey => $rValue) {
+			if (is_array($rValue)) {
+				$rInput[$rKey] = self::parseIncomingRecursively($rData[$rKey], array(), $rIteration + 1);
+			} else {
+				$rInput[self::parseCleanKey($rKey)] = self::parseCleanValue($rValue);
+			}
+		}
+		return $rInput;
 	}
+
 	public static function parseCleanKey($rKey) {
-		if ($rKey !== '') {
-			$rKey = htmlspecialchars(urldecode($rKey));
-			$rKey = str_replace('..', '', $rKey);
-			$rKey = preg_replace('/\\_\\_(.+?)\\_\\_/', '', $rKey);
-			return preg_replace('/^([\\w\\.\\-\\_]+)$/', '$1', $rKey);
+		if ($rKey === '') {
+			return '';
 		}
-		return '';
+		$rKey = htmlspecialchars(urldecode($rKey));
+		$rKey = str_replace('..', '', $rKey);
+		$rKey = preg_replace('/\_\_(.+?)\_\_/', '', $rKey);
+		return preg_replace('/^([\w\.\-\_]+)$/', '$1', $rKey);
 	}
+
 	public static function parseCleanValue($rValue) {
-		if ($rValue != '') {
-			$rValue = str_replace('&#032;', ' ', stripslashes($rValue));
-			$rValue = str_replace(array("\r\n", "\n\r", "\r"), "\n", $rValue);
-			$rValue = str_replace('<!--', '&#60;&#33;--', $rValue);
-			$rValue = str_replace('-->', '--&#62;', $rValue);
-			$rValue = str_ireplace('<script', '&#60;script', $rValue);
-			$rValue = preg_replace('/&amp;#([0-9]+);/s', '&#\\1;', $rValue);
-			$rValue = preg_replace('/&#(\\d+?)([^\\d;])/i', '&#\\1;\\2', $rValue);
-			return trim($rValue);
+		if ($rValue == '') {
+			return '';
 		}
-		return '';
+		$rValue = str_replace('&#032;', ' ', stripslashes($rValue));
+		$rValue = str_replace(array("\r\n", "\n\r", "\r"), "\n", $rValue);
+		$rValue = str_replace('<!--', '&#60;&#33;--', $rValue);
+		$rValue = str_replace('-->', '--&#62;', $rValue);
+		$rValue = str_ireplace('<script', '&#60;script', $rValue);
+		$rValue = preg_replace('/&amp;#([0-9]+);/s', '&#\\1;', $rValue);
+		$rValue = preg_replace('/&#(\d+?)([^\d;])/i', '&#\\1;\\2', $rValue);
+		return trim($rValue);
 	}
+
 	public static function generateString($rLength = 10) {
 		$rCharacters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789qwertyuiopasdfghjklzxcvbnm';
 		$rString = '';
 		$rMax = strlen($rCharacters) - 1;
-		$i = 0;
-		while ($i < $rLength) {
+		for ($index = 0; $index < $rLength; $index++) {
 			$rString .= $rCharacters[rand(0, $rMax)];
-			$i++;
 		}
 		return $rString;
 	}
+
 	public static function mergeRecursive($rArray) {
-		if (is_array($rArray)) {
-			$rArrayValues = array();
-			foreach ($rArray as $rValue) {
-				if (is_scalar($rValue) || is_resource($rValue)) {
-					$rArrayValues[] = $rValue;
-				} else {
-					if (!is_array($rValue)) {
-					} else {
-						$rArrayValues = array_merge($rArrayValues, self::mergeRecursive($rValue));
-					}
-				}
-			}
-			return $rArrayValues;
-		} else {
+		if (!is_array($rArray)) {
 			return $rArray;
 		}
+		$rArrayValues = array();
+		foreach ($rArray as $rValue) {
+			if (is_scalar($rValue) || is_resource($rValue)) {
+				$rArrayValues[] = $rValue;
+			} else if (is_array($rValue)) {
+				$rArrayValues = array_merge($rArrayValues, self::mergeRecursive($rValue));
+			}
+		}
+		return $rArrayValues;
 	}
+
 	public static function searchEPG($rArray, $rKey, $rValue) {
-		$rResults = array();
-		self::searchRecursive($rArray, $rKey, $rValue, $rResults);
-		return $rResults;
+		return EpgRepository::search($rArray, $rKey, $rValue);
 	}
+
 	public static function searchRecursive($rArray, $rKey, $rValue, &$rResults) {
-		if (is_array($rArray)) {
-			if (!(isset($rArray[$rKey]) && $rArray[$rKey] == $rValue)) {
-			} else {
-				$rResults[] = $rArray;
-			}
-			foreach ($rArray as $subarray) {
-				self::searchRecursive($subarray, $rKey, $rValue, $rResults);
-			}
-		} else {
-			return null;
+		foreach (EpgRepository::search($rArray, $rKey, $rValue) as $rMatch) {
+			$rResults[] = $rMatch;
 		}
 	}
+
 	public static function checkCron($rFilename, $rTime = 1800) {
-		if (!file_exists($rFilename)) {
-		} else {
+		if (file_exists($rFilename)) {
 			$rPID = trim(file_get_contents($rFilename));
-			if (!file_exists('/proc/' . $rPID)) {
-			} else {
-				if (time() - filemtime($rFilename) >= $rTime) {
-					if (!(is_numeric($rPID) && 0 < $rPID)) {
-					} else {
-						posix_kill($rPID, 9);
-					}
-				} else {
-					exit('Running...');
-				}
+			if (file_exists('/proc/' . $rPID) && time() - filemtime($rFilename) < $rTime) {
+				exit('Running...');
+			}
+			if (time() - filemtime($rFilename) >= $rTime && is_numeric($rPID) && 0 < $rPID) {
+				posix_kill($rPID, 9);
 			}
 		}
 		file_put_contents($rFilename, getmypid());
-		return false;
 	}
-	/** @deprecated Use BruteforceGuard::checkFlood() */
+
 	public static function checkFlood($rIP = null) {
 		return BruteforceGuard::checkFlood($rIP);
 	}
-	/** @deprecated Use BruteforceGuard::checkBruteforce() */
+
 	public static function checkBruteforce($rIP = null, $rMAC = null, $rUsername = null) {
 		return BruteforceGuard::checkBruteforce($rIP, $rMAC, $rUsername);
 	}
-	/** @deprecated Use BruteforceGuard::truncateAttempts() */
+
 	public static function truncateAttempts($rAttempts, $rFrequency, $rList = false) {
 		return BruteforceGuard::truncateAttempts($rAttempts, $rFrequency, $rList);
 	}
+
 	public static function getCategories($rType = null, $rForce = false) {
 		return CategoryRepository::getFromDatabase(self::$db, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rType, $rForce);
 	}
+
 	public static function generateUniqueCode() {
 		return substr(md5(self::$rSettings['live_streaming_pass']), 0, 15);
 	}
+
 	public static function unserialize_php($rSessionData) {
 		$rReturn = array();
 		$rOffset = 0;
 		while ($rOffset < strlen($rSessionData)) {
-			if (strstr(substr($rSessionData, $rOffset), '|')) {
-				$rPos = strpos($rSessionData, '|', $rOffset);
-				$rNum = $rPos - $rOffset;
-				$rVarName = substr($rSessionData, $rOffset, $rNum);
-				$rOffset += $rNum + 1;
-				$rData = igbinary_unserialize(substr($rSessionData, $rOffset));
-				$rReturn[$rVarName] = $rData;
-				$rOffset += strlen(igbinary_serialize($rData));
-			} else {
+			if (!strstr(substr($rSessionData, $rOffset), '|')) {
 				return array();
 			}
+			$rPos = strpos($rSessionData, '|', $rOffset);
+			$rVarName = substr($rSessionData, $rOffset, $rPos - $rOffset);
+			$rOffset += ($rPos - $rOffset) + 1;
+			$rData = igbinary_unserialize(substr($rSessionData, $rOffset));
+			$rReturn[$rVarName] = $rData;
+			$rOffset += strlen(igbinary_serialize($rData));
 		}
 		return $rReturn;
 	}
+
 	public static function generatePlaylist($rUserInfo, $rDeviceKey, $rOutputKey = 'ts', $rTypeKey = null, $rNoCache = false, $rProxy = false) {
-		if (!empty($rDeviceKey)) {
-			if ($rOutputKey == 'mpegts') {
-				$rOutputKey = 'ts';
-			}
-			if ($rOutputKey == 'hls') {
-				$rOutputKey = 'm3u8';
-			}
-			if (empty($rOutputKey)) {
-				self::$db->query('SELECT t1.output_ext FROM `output_formats` t1 INNER JOIN `output_devices` t2 ON t2.default_output = t1.access_output_id AND `device_key` = ?', $rDeviceKey);
-			} else {
-				self::$db->query('SELECT t1.output_ext FROM `output_formats` t1 WHERE `output_key` = ?', $rOutputKey);
-			}
-			if (self::$db->num_rows() > 0) {
-				$rCacheName = $rUserInfo['id'] . '_' . $rDeviceKey . '_' . $rOutputKey . '_' . implode('_', ($rTypeKey ?: array()));
-				$rOutputExt = self::$db->get_col();
-				$rEncryptPlaylist = ($rUserInfo['is_restreamer'] ? self::$rSettings['encrypt_playlist_restreamer'] : self::$rSettings['encrypt_playlist']);
-				if ($rUserInfo['is_stalker']) {
-					$rEncryptPlaylist = false;
-				}
-				$rDomainName = self::getDomainName();
-				if ($rDomainName) {
-					if (!$rProxy) {
-						$rRTMPRows = array();
-						if ($rOutputKey == 'rtmp') {
-							self::$db->query('SELECT t1.id,t2.server_id FROM `streams` t1 INNER JOIN `streams_servers` t2 ON t2.stream_id = t1.id WHERE t1.rtmp_output = 1');
-							$rRTMPRows = self::$db->get_rows(true, 'id', false, 'server_id');
-						}
-					} else {
-						if ($rOutputKey == 'rtmp') {
-							$rOutputKey = 'ts';
-						}
-					}
-					if (empty($rOutputExt)) {
-						$rOutputExt = 'ts';
-					}
-					self::$db->query('SELECT t1.*,t2.* FROM `output_devices` t1 LEFT JOIN `output_formats` t2 ON t2.access_output_id = t1.default_output WHERE t1.device_key = ? LIMIT 1', $rDeviceKey);
-					if (0 >= self::$db->num_rows()) {
-						return false;
-					}
-					$rDeviceInfo = self::$db->get_row();
-					if (strlen($rUserInfo['access_token']) == 32) {
-						$rFilename = str_replace('{USERNAME}', $rUserInfo['access_token'], $rDeviceInfo['device_filename']);
-					} else {
-						$rFilename = str_replace('{USERNAME}', $rUserInfo['username'], $rDeviceInfo['device_filename']);
-					}
-					if (!(0 < self::$rSettings['cache_playlists'] && !$rNoCache && file_exists(PLAYLIST_PATH . md5($rCacheName)))) {
-						$rData = '';
-						$rSeriesAllocation = $rSeriesEpisodes = $rSeriesInfo = array();
-						$rUserInfo['episode_ids'] = array();
-						if (0 >= count($rUserInfo['series_ids'])) {
-						} else {
-							if (self::$rCached) {
-								foreach ($rUserInfo['series_ids'] as $rSeriesID) {
-									$rSeriesInfo[$rSeriesID] = igbinary_unserialize(file_get_contents(SERIES_TMP_PATH . 'series_' . intval($rSeriesID)));
-									$rSeriesData = igbinary_unserialize(file_get_contents(SERIES_TMP_PATH . 'episodes_' . intval($rSeriesID)));
-									foreach ($rSeriesData as $rSeasonID => $rEpisodes) {
-										foreach ($rEpisodes as $rEpisode) {
-											$rSeriesEpisodes[$rEpisode['stream_id']] = array($rSeasonID, $rEpisode['episode_num']);
-											$rSeriesAllocation[$rEpisode['stream_id']] = $rSeriesID;
-											$rUserInfo['episode_ids'][] = $rEpisode['stream_id'];
-										}
-									}
-								}
-							} else {
-								self::$db->query('SELECT * FROM `streams_series` WHERE `id` IN (' . implode(',', $rUserInfo['series_ids']) . ')');
-								$rSeriesInfo = self::$db->get_rows(true, 'id');
-								if (0 >= count($rUserInfo['series_ids'])) {
-								} else {
-									self::$db->query('SELECT stream_id, series_id, season_num, episode_num FROM `streams_episodes` WHERE series_id IN (' . implode(',', $rUserInfo['series_ids']) . ') ORDER BY FIELD(series_id,' . implode(',', $rUserInfo['series_ids']) . '), season_num ASC, episode_num ASC');
-									foreach (self::$db->get_rows(true, 'series_id', false) as $rSeriesID => $rEpisodes) {
-										foreach ($rEpisodes as $rEpisode) {
-											$rSeriesEpisodes[$rEpisode['stream_id']] = array($rEpisode['season_num'], $rEpisode['episode_num']);
-											$rSeriesAllocation[$rEpisode['stream_id']] = $rSeriesID;
-											$rUserInfo['episode_ids'][] = $rEpisode['stream_id'];
-										}
-									}
-								}
-							}
-						}
-						if (0 >= count($rUserInfo['episode_ids'])) {
-						} else {
-							$rUserInfo['channel_ids'] = array_merge($rUserInfo['channel_ids'], $rUserInfo['episode_ids']);
-						}
-						$rChannelIDs = array();
-						$rAdded = false;
-						if ($rTypeKey) {
-							foreach ($rTypeKey as $rType) {
-								switch ($rType) {
-									case 'live':
-									case 'created_live':
-										if (!$rAdded) {
-											$rChannelIDs = array_merge($rChannelIDs, $rUserInfo['live_ids']);
-											$rAdded = true;
-											break;
-										}
-										break;
-									case 'movie':
-										$rChannelIDs = array_merge($rChannelIDs, $rUserInfo['vod_ids']);
-										break;
-									case 'radio_streams':
-										$rChannelIDs = array_merge($rChannelIDs, $rUserInfo['radio_ids']);
-										break;
-									case 'series':
-										$rChannelIDs = array_merge($rChannelIDs, $rUserInfo['episode_ids']);
-										break;
-								}
-							}
-						} else {
-							$rChannelIDs = $rUserInfo['channel_ids'];
-						}
-						if (in_array(self::$rSettings['channel_number_type'], array('bouquet_new', 'manual'))) {
-							$rChannelIDs = self::sortChannels($rChannelIDs);
-						}
-						unset($rUserInfo['live_ids'], $rUserInfo['vod_ids'], $rUserInfo['radio_ids'], $rUserInfo['episode_ids'], $rUserInfo['channel_ids']);
-						$rOutputFile = null;
-						header('Content-Description: File Transfer');
-						header('Content-Type: application/octet-stream');
-						header('Expires: 0');
-						header('Cache-Control: must-revalidate');
-						header('Pragma: public');
-						if (strlen($rUserInfo['access_token']) == 32) {
-							header('Content-Disposition: attachment; filename="' . str_replace('{USERNAME}', $rUserInfo['access_token'], $rDeviceInfo['device_filename']) . '"');
-						} else {
-							header('Content-Disposition: attachment; filename="' . str_replace('{USERNAME}', $rUserInfo['username'], $rDeviceInfo['device_filename']) . '"');
-						}
-						if (self::$rSettings['cache_playlists'] == 1) {
-							$rOutputPath = PLAYLIST_PATH . md5($rCacheName) . '.write';
-							$rOutputFile = fopen($rOutputPath, 'w');
-						}
-						if ($rDeviceKey == 'starlivev5') {
-							$rOutput = array();
-							$rOutput['iptvstreams_list'] = array();
-							$rOutput['iptvstreams_list']['@version'] = 1;
-							$rOutput['iptvstreams_list']['group'] = array();
-							$rOutput['iptvstreams_list']['group']['name'] = 'IPTV';
-							$rOutput['iptvstreams_list']['group']['channel'] = array();
-							foreach (array_chunk($rChannelIDs, 1000) as $rBlockIDs) {
-								if (self::$rSettings['playlist_from_mysql'] || !self::$rCached) {
-									$rOrder = 'FIELD(`t1`.`id`,' . implode(',', $rBlockIDs) . ')';
-									self::$db->query('SELECT t1.id,t1.channel_id,t1.year,t1.movie_properties,t1.stream_icon,t1.custom_sid,t1.category_id,t1.stream_display_name,t2.type_output,t2.type_key,t1.target_container,t2.live FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.type_id = t1.type WHERE `t1`.`id` IN (' . implode(',', array_map('intval', $rBlockIDs)) . ') ORDER BY ' . $rOrder . ';');
-									$rRows = self::$db->get_rows();
-								} else {
-									$rRows = array();
-									foreach ($rBlockIDs as $rID) {
-										$rRows[] = igbinary_unserialize(file_get_contents(STREAMS_TMP_PATH . 'stream_' . intval($rID)))['info'];
-									}
-								}
-								foreach ($rRows as $rChannelInfo) {
-									if (!$rTypeKey || in_array($rChannelInfo['type_output'], $rTypeKey)) {
-										if ($rChannelInfo['target_container']) {
-										} else {
-											$rChannelInfo['target_container'] = 'mp4';
-										}
-										$rProperties = (!is_array($rChannelInfo['movie_properties']) ? json_decode($rChannelInfo['movie_properties'], true) : $rChannelInfo['movie_properties']);
-										if ($rChannelInfo['type_key'] == 'series') {
-											$rSeriesID = $rSeriesAllocation[$rChannelInfo['id']];
-											$rChannelInfo['live'] = 0;
-											$rChannelInfo['stream_display_name'] = $rSeriesInfo[$rSeriesID]['title'] . ' S' . sprintf('%02d', $rSeriesEpisodes[$rChannelInfo['id']][0]) . 'E' . sprintf('%02d', $rSeriesEpisodes[$rChannelInfo['id']][1]);
-											$rChannelInfo['movie_properties'] = array('movie_image' => (!empty($rProperties['movie_image']) ? $rProperties['movie_image'] : $rSeriesInfo['cover']));
-											$rChannelInfo['type_output'] = 'series';
-											$rChannelInfo['category_id'] = $rSeriesInfo[$rSeriesID]['category_id'];
-										} else {
-											$rChannelInfo['stream_display_name'] = self::formatTitle($rChannelInfo['stream_display_name'], $rChannelInfo['year']);
-										}
-										if (strlen($rUserInfo['access_token']) == 32) {
-											$rURL = $rDomainName . $rChannelInfo['type_output'] . '/' . $rUserInfo['access_token'] . '/';
-											if ($rChannelInfo['live'] == 0) {
-												$rURL .= $rChannelInfo['id'] . '.' . $rChannelInfo['target_container'];
-											} else {
-												if (self::$rSettings['cloudflare'] && $rOutputExt == 'ts') {
-													$rURL .= $rChannelInfo['id'];
-												} else {
-													$rURL .= $rChannelInfo['id'] . '.' . $rOutputExt;
-												}
-											}
-										} else {
-											if ($rEncryptPlaylist) {
-												$rEncData = $rChannelInfo['type_output'] . '/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/';
-												if ($rChannelInfo['live'] == 0) {
+		return PlaylistGenerator::generate(self::$db, self::$rSettings, self::$rServers, self::$rCategories, self::$rCached, $rUserInfo, $rDeviceKey, $rOutputKey, $rTypeKey, $rNoCache, $rProxy);
+	}
+
+	public static function generateCron() {
+		return CronGenerator::generate(self::$db);
+	}
+
+	/*
 													$rEncData .= $rChannelInfo['id'] . '/' . $rChannelInfo['target_container'];
 												} else {
 													if (self::$rSettings['cloudflare'] && $rOutputExt == 'ts') {
@@ -784,6 +531,7 @@ class CoreUtilities {
 			return false;
 		}
 	}
+	*/
 	public static function secondsToTime($rInputSeconds, $rInclSecs = true) {
 		$rSecondsInAMinute = 60;
 		$rSecondsInAnHour = 60 * $rSecondsInAMinute;
@@ -851,137 +599,16 @@ class CoreUtilities {
 		return CurlClient::serverRequest(self::$rServers, $rServerID, $rURL, $rPostData);
 	}
 	public static function deleteCache($rSources) {
-		if (!empty($rSources)) {
-			foreach ($rSources as $rSource) {
-				if (!file_exists(CACHE_TMP_PATH . md5($rSource))) {
-				} else {
-					unlink(CACHE_TMP_PATH . md5($rSource));
-				}
-			}
-		} else {
-			return null;
-		}
+		return StreamProcess::deleteCache($rSources);
 	}
 	public static function queueChannel($rStreamID, $rServerID = null) {
-		if ($rServerID) {
-		} else {
-			$rServerID = SERVER_ID;
-		}
-		self::$db->query('SELECT `id` FROM `queue` WHERE `stream_id` = ? AND `server_id` = ?;', $rStreamID, $rServerID);
-		if (self::$db->num_rows() != 0) {
-		} else {
-			self::$db->query("INSERT INTO `queue`(`type`, `stream_id`, `server_id`, `added`) VALUES('channel', ?, ?, ?);", $rStreamID, $rServerID, time());
-		}
+		StreamProcess::queueChannel(self::$db, $rStreamID, $rServerID);
 	}
 	public static function createChannel($rStreamID) {
-		shell_exec(PHP_BIN . ' ' . CLI_PATH . 'created.php ' . intval($rStreamID) . ' >/dev/null 2>/dev/null &');
-		return true;
+		return StreamProcess::createChannel($rStreamID);
 	}
 	public static function createChannelItem($rStreamID, $rSource) {
-		$rStream = array();
-		$rLoopback = false;
-		self::$db->query('SELECT * FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.type_id = t1.type AND t1.type = 3 LEFT JOIN `profiles` t4 ON t1.transcode_profile_id = t4.profile_id WHERE t1.direct_source = 0 AND t1.id = ?', $rStreamID);
-		if (self::$db->num_rows() > 0) {
-			$rStream['stream_info'] = self::$db->get_row();
-			self::$db->query('SELECT * FROM `streams_servers` WHERE stream_id  = ? AND `server_id` = ?', $rStreamID, SERVER_ID);
-			if (self::$db->num_rows() > 0) {
-				$rStream['server_info'] = self::$db->get_row();
-				$rMD5 = md5($rSource);
-				if (substr($rSource, 0, 2) == 's:') {
-					$rSplit = explode(':', $rSource, 3);
-					$rServerID = intval($rSplit[1]);
-					$rSourcePath = $rSplit[2]; // File path
-					if ($rServerID != SERVER_ID) {
-						// File on another server - needs to be retrieved via API.
-						if (is_array(self::$rServers) && isset(self::$rServers[$rServerID])) {
-							$rSourcePath = self::$rServers[$rServerID]['api_url'] . '&action=getFile&filename=' . urlencode($rSplit[2]);
-						} else {
-							// Server not found, use local path.
-							$rSourcePath = $rSplit[2];
-						}
-					}
-				} else {
-					$rServerID = SERVER_ID;
-					$rSourcePath = $rSource;
-				}
-				if ($rServerID == SERVER_ID && intval($rStream['stream_info']['movie_symlink']) == 1) {
-					$rExtension = pathinfo($rSource)['extension'];
-					if (strlen($rExtension) == 0) {
-						$rExtension = 'mp4';
-					}
-					// Create symlink
-					$rCommand = 'ln -sfn ' . escapeshellarg($rSourcePath) . ' "' . CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.' . escapeshellcmd($rExtension) . '" >/dev/null 2>/dev/null & echo $! > "' . CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.pid"';
-				} else {
-					$rStream['stream_info']['transcode_attributes'] = json_decode($rStream['stream_info']['profile_options'], true);
-					if (!is_array($rStream['stream_info']['transcode_attributes'])) {
-						$rStream['stream_info']['transcode_attributes'] = array();
-					}
-					// Logo overlay
-					$rLogoOptions = '';
-					if (isset($rStream['stream_info']['transcode_attributes'][16]) && !$rLoopback) {
-						$rAttr = $rStream['stream_info']['transcode_attributes'];
-						$rLogoPath = $rAttr[16]['val'];
-						$rPos = (isset($rAttr[16]['pos']) && $rAttr[16]['pos'] !== '10:10') ? $rAttr[16]['pos'] : '10:main_h-overlay_h-10';
-
-						// Reconstruct filter chain to ensure fixed logo size
-						$rChain = array();
-						$rBase = '[0:v]';
-
-						// Handle Yadif (ID 17) and Video Scaling (ID 9)
-						$rVideoFilters = array();
-						if (isset($rAttr[17])) {
-							$rVideoFilters[] = 'yadif';
-						}
-						if (isset($rAttr[9]['val']) && strlen($rAttr[9]['val']) > 0) {
-							$rVideoFilters[] = 'scale=' . $rAttr[9]['val'];
-						}
-
-						if (!empty($rVideoFilters)) {
-							$rChain[] = $rBase . implode(',', $rVideoFilters) . '[bg]';
-							$rBase = '[bg]';
-						}
-
-						// Scale logo to fixed width 250px (keep aspect ratio)
-						$rChain[] = '[1:v]scale=250:-1[logo]';
-
-						// Overlay
-						$rChain[] = $rBase . '[logo]overlay=' . $rPos;
-
-						$rLogoOptions = '-i ' . escapeshellarg($rLogoPath) . ' -filter_complex "' . implode('; ', $rChain) . '"';
-						unset($rStream['stream_info']['transcode_attributes'][16]);
-					}
-					$rGPUOptions = (isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rStream['stream_info']['transcode_attributes']['gpu']['cmd'] : '');
-					$rInputCodec = '';
-					if (empty($rGPUOptions)) {
-					} else {
-						$rFFProbeOutput = self::probeStream($rSourcePath);
-						if (!in_array($rFFProbeOutput['codecs']['video']['codec_name'], array('h264', 'hevc', 'mjpeg', 'mpeg1', 'mpeg2', 'mpeg4', 'vc1', 'vp8', 'vp9'))) {
-						} else {
-							$rInputCodec = '-c:v ' . $rFFProbeOutput['codecs']['video']['codec_name'] . '_cuvid';
-						}
-					}
-					$rCommand = ((isset($rStream['stream_info']['transcode_attributes']['gpu']) ? self::$rFFMPEG_GPU : self::$rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . ((self::$rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err {GPU} -fflags +genpts -async 1 -i {STREAM_SOURCE} {LOGO} ';
-
-					if (!array_key_exists('-acodec', $rStream['stream_info']['transcode_attributes'])) {
-						$rStream['stream_info']['transcode_attributes']['-acodec'] = 'copy';
-					}
-					if (!array_key_exists('-vcodec', $rStream['stream_info']['transcode_attributes'])) {
-						$rStream['stream_info']['transcode_attributes']['-vcodec'] = 'copy';
-					}
-					if (isset($rStream['stream_info']['transcode_attributes']['gpu'])) {
-						$rCommand .= '-gpu ' . intval($rStream['stream_info']['transcode_attributes']['gpu']['device']) . ' ';
-					}
-					$rCommand .= implode(' ', self::parseTranscode($rStream['stream_info']['transcode_attributes'])) . ' ';
-					$rCommand .= '-strict -2 -mpegts_flags +initial_discontinuity -f mpegts "' . CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.ts"';
-					$rCommand .= ' >/dev/null 2>"' . CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.errors" & echo $! > "' . CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.pid"';
-					$rCommand = str_replace(array('{GPU}', '{INPUT_CODEC}', '{LOGO}', '{STREAM_SOURCE}'), array($rGPUOptions, $rInputCodec, $rLogoOptions, escapeshellarg($rSourcePath)), $rCommand);
-				}
-				shell_exec($rCommand);
-				return intval(file_get_contents(CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.pid'));
-			}
-			return false;
-		}
-		return false;
+		return StreamProcess::createChannelItem(self::$db, self::$rSettings, self::$rServers, self::$rFFMPEG_CPU, self::$rFFMPEG_GPU, $rStreamID, $rSource);
 	}
 	public static function extractSubtitle($rStreamID, $rSourceURL, $rIndex) {
 		$rTimeout = 10;
@@ -1049,44 +676,7 @@ class CoreUtilities {
 		}
 	}
 	public static function stopStream($rStreamID, $rStop = false) {
-		if (file_exists(STREAMS_PATH . $rStreamID . '_.monitor')) {
-			$rMonitor = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.monitor'));
-		} else {
-			self::$db->query('SELECT `monitor_pid` FROM `streams_servers` WHERE `server_id` = ? AND `stream_id` = ? LIMIT 1;', SERVER_ID, $rStreamID);
-			$rMonitor = intval(self::$db->get_row()['monitor_pid']);
-		}
-		if (0 >= $rMonitor) {
-		} else {
-			if (!(self::checkPID($rMonitor, array('XC_VM[' . $rStreamID . ']', 'XC_VMProxy[' . $rStreamID . ']')) && is_numeric($rMonitor) && 0 < $rMonitor)) {
-			} else {
-				posix_kill($rMonitor, 9);
-			}
-		}
-		if (file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
-			$rPID = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.pid'));
-		} else {
-			self::$db->query('SELECT `pid` FROM `streams_servers` WHERE `server_id` = ? AND `stream_id` = ? LIMIT 1;', SERVER_ID, $rStreamID);
-			$rPID = intval(self::$db->get_row()['pid']);
-		}
-		if (0 >= $rPID) {
-		} else {
-			if (!(self::checkPID($rPID, array($rStreamID . '_.m3u8', $rStreamID . '_%d.ts', 'LLOD[' . $rStreamID . ']', 'XC_VMProxy[' . $rStreamID . ']', 'Loopback[' . $rStreamID . ']')) && is_numeric($rPID) && 0 < $rPID)) {
-			} else {
-				posix_kill($rPID, 9);
-			}
-		}
-		if (!file_exists(SIGNALS_TMP_PATH . 'queue_' . intval($rStreamID))) {
-		} else {
-			unlink(SIGNALS_TMP_PATH . 'queue_' . intval($rStreamID));
-		}
-		self::streamLog($rStreamID, SERVER_ID, 'STREAM_STOP');
-		shell_exec('rm -f ' . STREAMS_PATH . intval($rStreamID) . '_*');
-		if (!$rStop) {
-		} else {
-			shell_exec('rm -f ' . DELAY_PATH . intval($rStreamID) . '_*');
-			self::$db->query('UPDATE `streams_servers` SET `bitrate` = NULL,`current_source` = NULL,`to_analyze` = 0,`pid` = NULL,`stream_started` = NULL,`stream_info` = NULL,`audio_codec` = NULL,`video_codec` = NULL,`resolution` = NULL,`compatible` = 0,`stream_status` = 0,`monitor_pid` = NULL WHERE `stream_id` = ? AND `server_id` = ?', $rStreamID, SERVER_ID);
-			self::updateStream($rStreamID);
-		}
+		StreamProcess::stopStream(self::$db, $rStreamID, $rStop);
 	}
 	public static function checkPID($rPID, $rSearch) {
 		if (is_array($rSearch)) {
@@ -1106,227 +696,28 @@ class CoreUtilities {
 		return false;
 	}
 	public static function startMonitor($rStreamID, $rRestart = 0) {
-		shell_exec(PHP_BIN . ' ' . CLI_PATH . 'monitor.php ' . intval($rStreamID) . ' ' . intval($rRestart) . ' >/dev/null 2>/dev/null &');
-		return true;
+		return StreamProcess::startMonitor($rStreamID, $rRestart);
 	}
 	public static function startProxy($rStreamID) {
-		shell_exec(PHP_BIN . ' ' . CLI_PATH . 'proxy.php ' . intval($rStreamID) . ' >/dev/null 2>/dev/null &');
-		return true;
+		return StreamProcess::startProxy($rStreamID);
 	}
 	public static function startThumbnail($rStreamID) {
-		shell_exec(PHP_BIN . ' ' . CLI_PATH . 'thumbnail.php ' . intval($rStreamID) . ' >/dev/null 2>/dev/null &');
-		return true;
+		return StreamProcess::startThumbnail($rStreamID);
 	}
 	public static function stopMovie($rStreamID, $rForce = false) {
-		shell_exec("kill -9 `ps -ef | grep '/" . intval($rStreamID) . ".' | grep -v grep | awk '{print \$2}'`;");
-		if ($rForce) {
-			exec('rm ' . MAIN_HOME . 'content/vod/' . intval($rStreamID) . '.*');
-		} else {
-			self::$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`, `cache`) VALUES(?, ?, ?, 1);', SERVER_ID, time(), json_encode(array('type' => 'delete_vod', 'id' => $rStreamID)));
-		}
-		self::$db->query('UPDATE `streams_servers` SET `bitrate` = NULL,`current_source` = NULL,`to_analyze` = 0,`pid` = NULL,`stream_started` = NULL,`stream_info` = NULL,`audio_codec` = NULL,`video_codec` = NULL,`resolution` = NULL,`compatible` = 0,`stream_status` = 0 WHERE `stream_id` = ? AND `server_id` = ?', $rStreamID, SERVER_ID);
-		self::updateStream($rStreamID);
+		StreamProcess::stopMovie(self::$db, $rStreamID, $rForce);
 	}
 	public static function queueMovie($rStreamID, $rServerID = null) {
-		if ($rServerID) {
-		} else {
-			$rServerID = SERVER_ID;
-		}
-		self::$db->query('DELETE FROM `queue` WHERE `stream_id` = ? AND `server_id` = ?;', $rStreamID, $rServerID);
-		self::$db->query("INSERT INTO `queue`(`type`, `stream_id`, `server_id`, `added`) VALUES('movie', ?, ?, ?);", $rStreamID, $rServerID, time());
+		StreamProcess::queueMovie(self::$db, $rStreamID, $rServerID);
 	}
 	public static function queueMovies($rStreamIDs, $rServerID = null) {
-		if ($rServerID) {
-		} else {
-			$rServerID = SERVER_ID;
-		}
-		if (0 >= count($rStreamIDs)) {
-		} else {
-			self::$db->query('DELETE FROM `queue` WHERE `stream_id` IN (' . implode(',', array_map('intval', $rStreamIDs)) . ') AND `server_id` = ?;', $rServerID);
-			$rQuery = '';
-			foreach ($rStreamIDs as $rStreamID) {
-				if (0 >= $rStreamID) {
-				} else {
-					$rQuery .= "('movie', " . intval($rStreamID) . ', ' . intval($rServerID) . ', ' . time() . '),';
-				}
-			}
-			if (empty($rQuery)) {
-			} else {
-				$rQuery = rtrim($rQuery, ',');
-				self::$db->query('INSERT INTO `queue`(`type`, `stream_id`, `server_id`, `added`) VALUES ' . $rQuery . ';');
-			}
-		}
+		StreamProcess::queueMovies(self::$db, $rStreamIDs, $rServerID);
 	}
 	public static function refreshMovies($rIDs, $rType = 1) {
-		if (0 >= count($rIDs)) {
-		} else {
-			self::$db->query('DELETE FROM `watch_refresh` WHERE `type` = ? AND `stream_id` IN (' . implode(',', array_map('intval', $rIDs)) . ');', $rType);
-			$rQuery = '';
-			foreach ($rIDs as $rID) {
-				if (0 >= $rID) {
-				} else {
-					$rQuery .= '(' . intval($rType) . ', ' . intval($rID) . ', 0),';
-				}
-			}
-			if (empty($rQuery)) {
-			} else {
-				$rQuery = rtrim($rQuery, ',');
-				self::$db->query('INSERT INTO `watch_refresh`(`type`, `stream_id`, `status`) VALUES ' . $rQuery . ';');
-			}
-		}
+		StreamProcess::refreshMovies(self::$db, $rIDs, $rType);
 	}
 	public static function startMovie($rStreamID) {
-		$rStream = array();
-		$rLoopback = false;
-		self::$db->query('SELECT * FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.type_id = t1.type AND t2.live = 0 LEFT JOIN `profiles` t4 ON t1.transcode_profile_id = t4.profile_id WHERE t1.direct_source = 0 AND t1.id = ?', $rStreamID);
-		if (self::$db->num_rows() > 0) {
-			$rStream['stream_info'] = self::$db->get_row();
-			self::$db->query('SELECT * FROM `streams_servers` WHERE stream_id  = ? AND `server_id` = ?', $rStreamID, SERVER_ID);
-			if (self::$db->num_rows() > 0) {
-				$rStream['server_info'] = self::$db->get_row();
-				self::$db->query('SELECT t1.*, t2.* FROM `streams_options` t1, `streams_arguments` t2 WHERE t1.stream_id = ? AND t1.argument_id = t2.id', $rStreamID);
-				$rStream['stream_arguments'] = self::$db->get_rows();
-
-				list($rStreamSource) = json_decode($rStream['stream_info']['stream_source'], true);
-				if (substr($rStreamSource, 0, 2) == 's:') {
-					$rMovieSource = explode(':', $rStreamSource, 3);
-					$rMovieServerID = $rMovieSource[1];
-					if ($rMovieServerID != SERVER_ID) {
-						$rMoviePath = self::$rServers[$rMovieServerID]['api_url'] . '&action=getFile&filename=' . urlencode($rMovieSource[2]);
-					} else {
-						$rMoviePath = $rMovieSource[2];
-					}
-					$rProtocol = null;
-				} else {
-					if (substr($rStreamSource, 0, 1) == '/') {
-						$rMovieServerID = SERVER_ID;
-						$rMoviePath = $rStreamSource;
-						$rProtocol = null;
-					} else {
-						$rProtocol = substr($rStreamSource, 0, strpos($rStreamSource, '://'));
-						$rMoviePath = str_replace(' ', '%20', $rStreamSource);
-						$rFetchOptions = implode(' ', self::getArguments($rStream['stream_arguments'], $rProtocol, 'fetch'));
-					}
-				}
-
-				// If symlink movie
-				if ((isset($rMovieServerID) && $rMovieServerID == SERVER_ID || file_exists($rMoviePath)) && $rStream['stream_info']['movie_symlink'] == 1) {
-					$rFFMPEG = 'ln -sfn ' . escapeshellarg($rMoviePath) . ' ' . VOD_PATH . intval($rStreamID) . '.' . escapeshellcmd(pathinfo($rMoviePath)['extension']) . ' >/dev/null 2>/dev/null & echo $! > ' . VOD_PATH . intval($rStreamID) . '_.pid';
-				} else {
-					// subtitle import + metadata (คงไว้)
-					$rSubtitles = json_decode($rStream['stream_info']['movie_subtitles'], true);
-					$rSubtitlesImport = '';
-					$rSubtitlesMetadata = '';
-					if (!empty($rSubtitles) && !empty($rSubtitles['files']) && is_array($rSubtitles['files'])) {
-						for ($i = 0; $i < count($rSubtitles['files']); $i++) {
-							$rSubtitleFile = escapeshellarg($rSubtitles['files'][$i]);
-							$rInputCharset = escapeshellarg($rSubtitles['charset'][$i]);
-							if ($rSubtitles['location'] == SERVER_ID) {
-								$rSubtitlesImport .= '-sub_charenc ' . $rInputCharset . ' -i ' . $rSubtitleFile . ' ';
-							} else {
-								$rSubtitlesImport .= '-sub_charenc ' . $rInputCharset . ' -i "' . self::$rServers[$rSubtitles['location']]['api_url'] . '&action=getFile&filename=' . urlencode($rSubtitleFile) . '" ';
-							}
-							for ($i = 0; $i < count($rSubtitles['files']); $i++) {
-								$rSubtitlesMetadata .= '-map ' . ($i + 1) . ' -metadata:s:s:' . $i . ' title=' . escapeshellcmd($rSubtitles['names'][$i]) . ' -metadata:s:s:' . $i . ' language=' . escapeshellcmd($rSubtitles['names'][$i]) . ' ';
-							}
-						}
-					}
-
-					$rReadNative = ($rStream['stream_info']['read_native'] == 1 ? '-re' : '');
-					if ($rStream['stream_info']['enable_transcode'] == 1) {
-						if ($rStream['stream_info']['transcode_profile_id'] == -1) {
-							$rDecoded = json_decode($rStream['stream_info']['transcode_attributes'], true);
-							$rStream['stream_info']['transcode_attributes'] = array_merge(self::getArguments($rStream['stream_arguments'], $rProtocol, 'transcode'), (is_array($rDecoded) ? $rDecoded : array()));
-						} else {
-							$rDecoded = json_decode($rStream['stream_info']['profile_options'], true);
-							$rStream['stream_info']['transcode_attributes'] = (is_array($rDecoded) ? $rDecoded : array());
-						}
-					} else {
-						$rStream['stream_info']['transcode_attributes'] = array();
-					}
-					// Logo overlay
-					$rLogoOptions = '';
-					if (isset($rStream['stream_info']['transcode_attributes'][16]) && !$rLoopback) {
-						$rAttr = $rStream['stream_info']['transcode_attributes'];
-						$rLogoPath = $rAttr[16]['val'];
-						$rPos = (isset($rAttr[16]['pos']) && $rAttr[16]['pos'] !== '10:10') ? $rAttr[16]['pos'] : '10:main_h-overlay_h-10';
-
-						// Reconstruct filter chain to ensure fixed logo size
-						$rChain = array();
-						$rBase = '[0:v]';
-
-						// Handle Yadif (ID 17) and Video Scaling (ID 9)
-						$rVideoFilters = array();
-						if (isset($rAttr[17])) {
-							$rVideoFilters[] = 'yadif';
-						}
-						if (isset($rAttr[9]['val']) && strlen($rAttr[9]['val']) > 0) {
-							$rVideoFilters[] = 'scale=' . $rAttr[9]['val'];
-						}
-
-						if (!empty($rVideoFilters)) {
-							$rChain[] = $rBase . implode(',', $rVideoFilters) . '[bg]';
-							$rBase = '[bg]';
-						}
-
-						// Scale logo to fixed width 250px (keep aspect ratio)
-						$rChain[] = '[1:v]scale=250:-1[logo]';
-
-						// Overlay
-						$rChain[] = $rBase . '[logo]overlay=' . $rPos;
-
-						$rLogoOptions = '-i ' . escapeshellarg($rLogoPath) . ' -filter_complex "' . implode('; ', $rChain) . '"';
-						unset($rStream['stream_info']['transcode_attributes'][16]);
-					}
-					$rGPUOptions = (isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rStream['stream_info']['transcode_attributes']['gpu']['cmd'] : '');
-					$rInputCodec = '';
-					if (!empty($rGPUOptions)) {
-						$rFFProbeOutput = self::probeStream($rMoviePath);
-						if (in_array($rFFProbeOutput['codecs']['video']['codec_name'], array('h264', 'hevc', 'mjpeg', 'mpeg1', 'mpeg2', 'mpeg4', 'vc1', 'vp8', 'vp9'))) {
-							$rInputCodec = '-c:v ' . $rFFProbeOutput['codecs']['video']['codec_name'] . '_cuvid';
-						}
-					}
-					$rFFMPEG = ((isset($rStream['stream_info']['transcode_attributes']['gpu']) ? self::$rFFMPEG_GPU : self::$rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . ((self::$rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err {GPU} {FETCH_OPTIONS} -fflags +genpts -async 1 {READ_NATIVE} -i {STREAM_SOURCE} {LOGO} ' . $rSubtitlesImport;
-					$rMap = '-map 0 -copy_unknown ';
-					if (!empty($rStream['stream_info']['custom_map'])) {
-						$rMap = escapeshellcmd($rStream['stream_info']['custom_map']) . ' -copy_unknown ';
-					} else {
-						if ($rStream['stream_info']['remove_subtitles'] == 1) {
-							$rMap = '-map 0:a -map 0:v';
-						}
-					}
-					if (!array_key_exists('-acodec', $rStream['stream_info']['transcode_attributes'])) {
-						$rStream['stream_info']['transcode_attributes']['-acodec'] = 'copy';
-					}
-					if (!array_key_exists('-vcodec', $rStream['stream_info']['transcode_attributes'])) {
-						$rStream['stream_info']['transcode_attributes']['-vcodec'] = 'copy';
-					}
-					if ($rStream['stream_info']['target_container'] == 'mp4') {
-						$rStream['stream_info']['transcode_attributes']['-scodec'] = 'mov_text';
-					} elseif ($rStream['stream_info']['target_container'] == 'mkv') {
-						$rStream['stream_info']['transcode_attributes']['-scodec'] = 'srt';
-					} else {
-						$rStream['stream_info']['transcode_attributes']['-scodec'] = 'copy';
-					}
-					$rOutputs = array();
-					$rOutputs[$rStream['stream_info']['target_container']] = '-movflags +faststart -dn ' . $rMap . ' -ignore_unknown ' . $rSubtitlesMetadata . ' ' . VOD_PATH . intval($rStreamID) . '.' . escapeshellcmd($rStream['stream_info']['target_container']);
-					foreach ($rOutputs as $rOutputCommand) {
-						$rFFMPEG .= implode(' ', self::parseTranscode($rStream['stream_info']['transcode_attributes'])) . ' ';
-						$rFFMPEG .= $rOutputCommand;
-					}
-					$rFFMPEG .= ' >/dev/null 2>' . VOD_PATH . intval($rStreamID) . '.errors & echo $! > ' . VOD_PATH . intval($rStreamID) . '_.pid';
-					$rFFMPEG = str_replace(array('{GPU}', '{INPUT_CODEC}', '{LOGO}', '{FETCH_OPTIONS}', '{STREAM_SOURCE}', '{READ_NATIVE}'), array($rGPUOptions, $rInputCodec, $rLogoOptions, (empty($rFetchOptions) ? '' : $rFetchOptions), escapeshellarg($rMoviePath), (empty($rStream['stream_info']['custom_ffmpeg']) ? $rReadNative : '')), $rFFMPEG);
-				}
-				shell_exec($rFFMPEG);
-				file_put_contents(VOD_PATH . $rStreamID . '_.ffmpeg', $rFFMPEG);
-				$rPID = intval(file_get_contents(VOD_PATH . $rStreamID . '_.pid'));
-				self::$db->query('UPDATE `streams_servers` SET `to_analyze` = 1,`stream_started` = ?,`stream_status` = 0,`pid` = ? WHERE `stream_id` = ? AND `server_id` = ?', time(), $rPID, $rStreamID, SERVER_ID);
-				self::updateStream($rStreamID);
-				return $rPID;
-			}
-			return false;
-		}
-		return false;
+		return StreamProcess::startMovie(self::$db, self::$rSettings, self::$rServers, self::$rFFMPEG_CPU, self::$rFFMPEG_GPU, $rStreamID);
 	}
 	public static function fixCookie($rCookie) {
 		$rPath = false;
@@ -1358,57 +749,10 @@ class CoreUtilities {
 		return $rCookie;
 	}
 	public static function startLLOD($rStreamID, $rStreamInfo, $rStreamArguments, $rForceSource = null) {
-		shell_exec('rm -f ' . STREAMS_PATH . intval($rStreamID) . '_*.ts');
-		if (file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
-			unlink(STREAMS_PATH . $rStreamID . '_.pid');
-		}
-		$rSources = ($rForceSource ? array($rForceSource) : json_decode($rStreamInfo['stream_source'], true));
-		$rArgumentMap = array();
-		foreach ($rStreamArguments as $rStreamArgument) {
-			$rArgumentMap[$rStreamArgument['argument_key']] = array('value' => $rStreamArgument['value'], 'argument_default_value' => $rStreamArgument['argument_default_value']);
-		}
-		shell_exec(PHP_BIN . ' ' . CLI_PATH . 'llod.php ' . intval($rStreamID) . ' "' . base64_encode(json_encode($rSources)) . '" "' . base64_encode(json_encode($rArgumentMap)) . '" >/dev/null 2>/dev/null & echo $! > ' . STREAMS_PATH . intval($rStreamID) . '_.pid');
-		$rPID = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.pid'));
-		$rKey = openssl_random_pseudo_bytes(16);
-		file_put_contents(STREAMS_PATH . $rStreamID . '_.key', $rKey);
-		$rIVSize = openssl_cipher_iv_length('AES-128-CBC');
-		$rIV = openssl_random_pseudo_bytes($rIVSize);
-		file_put_contents(STREAMS_PATH . $rStreamID . '_.iv', $rIV);
-		self::$db->query('UPDATE `streams_servers` SET `delay_available_at` = ?,`to_analyze` = 0,`stream_started` = ?,`stream_info` = ?,`stream_status` = 2,`pid` = ?,`progress_info` = ?,`current_source` = ? WHERE `stream_id` = ? AND `server_id` = ?', null, time(), null, $rPID, json_encode(array()), $rSources[0], $rStreamID, SERVER_ID);
-		self::updateStream($rStreamID);
-		return array('main_pid' => $rPID, 'stream_source' => $rSources[0], 'delay_enabled' => false, 'parent_id' => 0, 'delay_start_at' => null, 'playlist' => STREAMS_PATH . $rStreamID . '_.m3u8', 'transcode' => false, 'offset' => 0);
+		return StreamProcess::startLLOD(self::$db, $rStreamID, $rStreamInfo, $rStreamArguments, $rForceSource);
 	}
 	public static function startLoopback($rStreamID) {
-		shell_exec('rm -f ' . STREAMS_PATH . intval($rStreamID) . '_*.ts');
-		if (!file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
-		} else {
-			unlink(STREAMS_PATH . $rStreamID . '_.pid');
-		}
-		$rStream = array();
-		self::$db->query('SELECT * FROM `streams` WHERE direct_source = 0 AND id = ?', $rStreamID);
-		if (self::$db->num_rows() > 0) {
-			$rStream['stream_info'] = self::$db->get_row();
-			self::$db->query('SELECT * FROM `streams_servers` WHERE stream_id  = ? AND `server_id` = ?', $rStreamID, SERVER_ID);
-			if (self::$db->num_rows() > 0) {
-				$rStream['server_info'] = self::$db->get_row();
-				if ($rStream['server_info']['parent_id'] != 0) {
-					shell_exec(PHP_BIN . ' ' . CLI_PATH . 'loopback.php ' . intval($rStreamID) . ' ' . intval($rStream['server_info']['parent_id']) . ' >/dev/null 2>/dev/null & echo $! > ' . STREAMS_PATH . intval($rStreamID) . '_.pid');
-					$rPID = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.pid'));
-					$rKey = openssl_random_pseudo_bytes(16);
-					file_put_contents(STREAMS_PATH . $rStreamID . '_.key', $rKey);
-					$rIVSize = openssl_cipher_iv_length('AES-128-CBC');
-					$rIV = openssl_random_pseudo_bytes($rIVSize);
-					file_put_contents(STREAMS_PATH . $rStreamID . '_.iv', $rIV);
-					self::$db->query('UPDATE `streams_servers` SET `delay_available_at` = ?,`to_analyze` = 0,`stream_started` = ?,`stream_info` = ?,`stream_status` = 2,`pid` = ?,`progress_info` = ?,`current_source` = ? WHERE `stream_id` = ? AND `server_id` = ?', null, time(), null, $rPID, json_encode(array()), $rSources[0], $rStreamID, SERVER_ID);
-					self::updateStream($rStreamID);
-					$rLoopURL = (!is_null(self::$rServers[SERVER_ID]['private_url_ip']) && !is_null(self::$rServers[$rStream['server_info']['parent_id']]['private_url_ip']) ? self::$rServers[$rStream['server_info']['parent_id']]['private_url_ip'] : self::$rServers[$rStream['server_info']['parent_id']]['public_url_ip']);
-					return array('main_pid' => $rPID, 'stream_source' => $rLoopURL . 'admin/live?stream=' . intval($rStreamID) . '&password=' . urlencode(self::$rSettings['live_streaming_pass']) . '&extension=ts', 'delay_enabled' => false, 'parent_id' => 0, 'delay_start_at' => null, 'playlist' => STREAMS_PATH . $rStreamID . '_.m3u8', 'transcode' => false, 'offset' => 0);
-				}
-				return 0;
-			}
-			return false;
-		}
-		return false;
+		return StreamProcess::startLoopback(self::$db, self::$rSettings, self::$rServers, $rStreamID);
 	}
 
 	/**
@@ -1432,548 +776,7 @@ class CoreUtilities {
 	 * @return array|false|int Returns array with stream details on success, false on failure, or 0 when stream is empty/invalid
 	 */
 	public static function startStream($rStreamID, $rFromCache = false, $rForceSource = null, $rLLOD = false, $rStartPos = 0) {
-		if (file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
-			unlink(STREAMS_PATH . $rStreamID . '_.pid');
-		}
-
-		$rStream = array();
-		self::$db->query('SELECT * FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.type_id = t1.type AND t2.live = 1 LEFT JOIN `profiles` t4 ON t1.transcode_profile_id = t4.profile_id WHERE t1.direct_source = 0 AND t1.id = ?', $rStreamID);
-
-		if (self::$db->num_rows() > 0) {
-			$rStream['stream_info'] = self::$db->get_row();
-			self::$db->query('SELECT * FROM `streams_servers` WHERE stream_id  = ? AND `server_id` = ?', $rStreamID, SERVER_ID);
-
-			if (self::$db->num_rows() > 0) {
-				$rStream['server_info'] = self::$db->get_row();
-				self::$db->query('SELECT t1.*, t2.* FROM `streams_options` t1, `streams_arguments` t2 WHERE t1.stream_id = ? AND t1.argument_id = t2.id', $rStreamID);
-				$rStream['stream_arguments'] = self::$db->get_rows();
-
-				if ($rStream['server_info']['on_demand'] == 1) {
-					$rProbesize = intval($rStream['stream_info']['probesize_ondemand']);
-					$rAnalyseDuration = '10000000';
-				} else {
-					$rAnalyseDuration = abs(intval(self::$rSettings['stream_max_analyze']));
-					$rProbesize = abs(intval(self::$rSettings['probesize']));
-				}
-
-				$rTimeout = intval($rAnalyseDuration / 1000000) + self::$rSettings['probe_extra_wait'];
-				$rFFProbee = 'timeout ' . $rTimeout . ' ' . self::$rFFPROBE . ' {FETCH_OPTIONS} -probesize ' . $rProbesize . ' -analyzeduration ' . $rAnalyseDuration . ' {CONCAT} -i {STREAM_SOURCE} -v quiet -print_format json -show_streams -show_format';
-				$rFetchOptions = array();
-				$rLoopback = false;
-				$rOffset = 0;
-
-				if (!$rStream['server_info']['parent_id']) {
-					if ($rStream['stream_info']['type_key'] == 'created_live') {
-						$rSources = array(CREATED_PATH . $rStreamID . '_.list');
-
-						if ($rStartPos > 0) {
-							$rCCOutput = array();
-							$rCCDuration = array();
-							$rCCInfo = json_decode($rStream['server_info']['cc_info'], true);
-
-							foreach ($rCCInfo as $rItem) {
-								$rCCDuration[$rItem['path']] = intval(explode('.', $rItem['seconds'])[0]);
-							}
-							$rTimer = 0;
-							$rValid = true;
-
-							foreach (explode("\n", file_get_contents(CREATED_PATH . $rStreamID . '_.list')) as $rItem) {
-								list($rPath) = explode("'", explode("file '", $rItem)[1]);
-
-								if ($rPath) {
-									if ($rCCDuration[$rPath]) {
-										$rDuration = $rCCDuration[$rPath];
-
-										if ($rTimer <= $rStartPos && $rStartPos < $rTimer + $rDuration) {
-											$rOffset = $rTimer;
-											$rCCOutput[] = $rPath;
-										} else {
-											if ($rStartPos < $rTimer + $rDuration) {
-												$rCCOutput[] = $rPath;
-											}
-										}
-
-										$rTimer += $rDuration;
-									} else {
-										$rValid = false;
-									}
-								}
-							}
-
-							if ($rValid) {
-								$rSources = array(CREATED_PATH . $rStreamID . '_.tlist');
-								$rTList = '';
-
-								foreach ($rCCOutput as $rItem) {
-									$rTList .= "file '" . $rItem . "'" . "\n";
-								}
-								file_put_contents(CREATED_PATH . $rStreamID . '_.tlist', $rTList);
-							}
-						}
-					} else {
-						$rSources = json_decode($rStream['stream_info']['stream_source'], true);
-					}
-
-					if (count($rSources) > 0) {
-						if (!empty($rForceSource)) {
-							$rSources = array($rForceSource);
-						} else {
-							if (self::$rSettings['priority_backup'] != 1) {
-								if (!empty($rStream['server_info']['current_source'])) {
-									$k = array_search($rStream['server_info']['current_source'], $rSources);
-
-									if ($k !== false) {
-										$i = 0;
-
-										while ($i <= $k) {
-											$rTemp = $rSources[$i];
-											unset($rSources[$i]);
-											array_push($rSources, $rTemp);
-											$i++;
-										}
-										$rSources = array_values($rSources);
-									}
-								}
-							}
-						}
-					}
-				} else {
-					$rLoopback = true;
-
-					if ($rStream['server_info']['on_demand']) {
-						$rLLOD = true;
-					}
-
-					$rLoopURL = (!is_null(self::$rServers[SERVER_ID]['private_url_ip']) && !is_null(self::$rServers[$rStream['server_info']['parent_id']]['private_url_ip']) ? self::$rServers[$rStream['server_info']['parent_id']]['private_url_ip'] : self::$rServers[$rStream['server_info']['parent_id']]['public_url_ip']);
-					$rSources = array($rLoopURL . 'admin/live?stream=' . intval($rStreamID) . '&password=' . urlencode(self::$rSettings['live_streaming_pass']) . '&extension=ts');
-				}
-
-				if ($rStream['stream_info']['type_key'] == 'created_live' && file_exists(CREATED_PATH . $rStreamID . '_.info')) {
-					self::$db->query('UPDATE `streams_servers` SET `cc_info` = ? WHERE `server_id` = ? AND `stream_id` = ?;', file_get_contents(CREATED_PATH . $rStreamID . '_.info'), SERVER_ID, $rStreamID);
-				}
-
-				if (!$rFromCache) {
-					self::deleteCache($rSources);
-				}
-
-				foreach ($rSources as $rSource) {
-					$rProcessed = false;
-					$rRealSource = $rSource;
-					$rStreamSource = self::parseStreamURL($rSource);
-					echo 'Checking source: ' . $rSource . "\n";
-					$rURLInfo = parse_url($rStreamSource);
-					$rIsXC_VM = ($rLoopback ? true : self::detectXC_VM($rStreamSource));
-
-					if ($rIsXC_VM && !$rLoopback && self::$rSettings['send_xc_vm_header']) {
-						foreach (array_keys($rStream['stream_arguments']) as $rID) {
-							if ($rStream['stream_arguments'][$rID]['argument_key'] == 'headers') {
-								$rStream['stream_arguments'][$rID]['value'] .= "\r\n" . 'X-XC_VM-Detect:1';
-								$rProcessed = true;
-							}
-						}
-
-						if (!$rProcessed) {
-							$rStream['stream_arguments'][] = array('value' => 'X-XC_VM-Detect:1', 'argument_key' => 'headers', 'argument_cat' => 'fetch', 'argument_wprotocol' => 'http', 'argument_type' => 'text', 'argument_cmd' => "-headers '%s" . "\r\n" . "'");
-						}
-					}
-
-					$rProbeArguments = $rStream['stream_arguments'];
-
-					if ($rIsXC_VM && $rStream['server_info']['on_demand'] == 1 && self::$rSettings['request_prebuffer'] == 1) {
-						foreach (array_keys($rStream['stream_arguments']) as $rID) {
-							if ($rStream['stream_arguments'][$rID]['argument_key'] == 'headers') {
-								$rStream['stream_arguments'][$rID]['value'] .= "\r\n" . 'X-XC_VM-Prebuffer:1';
-								$rProcessed = true;
-							}
-						}
-
-						if (!$rProcessed) {
-							$rStream['stream_arguments'][] = array('value' => 'X-XC_VM-Prebuffer:1', 'argument_key' => 'headers', 'argument_cat' => 'fetch', 'argument_wprotocol' => 'http', 'argument_type' => 'text', 'argument_cmd' => "-headers '%s" . "\r\n" . "'");
-						}
-					}
-
-					foreach (array_keys($rProbeArguments) as $rID) {
-						if ($rProbeArguments[$rID]['argument_key'] == 'headers') {
-							$rProbeArguments[$rID]['value'] .= "\r\n" . 'X-XC_VM-Prebuffer:1';
-							$rProcessed = true;
-						}
-					}
-
-					if (!$rProcessed) {
-						$rProbeArguments[] = array('value' => 'X-XC_VM-Prebuffer:1', 'argument_key' => 'headers', 'argument_cat' => 'fetch', 'argument_wprotocol' => 'http', 'argument_type' => 'text', 'argument_cmd' => "-headers '%s" . "\r\n" . "'");
-					}
-
-					$rProtocol = strtolower(substr($rStreamSource, 0, strpos($rStreamSource, '://')));
-					$rProbeOptions = implode(' ', self::getArguments($rProbeArguments, $rProtocol, 'fetch'));
-					$rFetchOptions = implode(' ', self::getArguments($rStream['stream_arguments'], $rProtocol, 'fetch'));
-
-					// === SKIP FFPROBE FEATURE ===
-					// Feature for streams with corrupted PMT where ffprobe reports incorrect codecs
-					// (e.g., AC3 with sample_rate=0, channels=0 when actual audio is AAC ADTS)
-					$rSkipFFProbe = false;
-					foreach ($rStream['stream_arguments'] as $rArg) {
-						if ($rArg['argument_key'] == 'skip_ffprobe' && $rArg['value'] == 1) {
-							$rSkipFFProbe = true;
-							break;
-						}
-					}
-
-					if ($rSkipFFProbe) {
-						$rFFProbeOutput = array(
-							'codecs' => array(
-								'video' => array('codec_name' => 'h264', 'codec_type' => 'video', 'height' => 1080),
-								'audio' => array('codec_name' => 'aac', 'codec_type' => 'audio')
-							),
-							'container' => 'mpegts'
-						);
-						error_log('[XC_VM] Stream ' . $rStreamID . ': FFProbe skipped');
-						echo 'Got stream information via skip_ffprobe (assumed h264/aac)' . "\n";
-
-						// Ensure $rSource is defined for cache after the loop
-						if (empty($rSource)) {
-							$rSource = is_array($rSources) && count($rSources) > 0 ? $rSources[0] : $rStreamSource;
-						}
-						break;
-					}
-					// === END SKIP FFPROBE FEATURE ===
-
-					if ($rFromCache && file_exists(CACHE_TMP_PATH . md5($rSource)) && time() - filemtime(CACHE_TMP_PATH . md5($rSource)) <= 300) {
-						$rFFProbeOutput = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . md5($rStreamSource)));
-
-						if ($rFFProbeOutput && (isset($rFFProbeOutput['streams']) || isset($rFFProbeOutput['codecs']))) {
-							echo 'Got stream information via cache' . "\n";
-
-							break;
-						}
-					} else {
-						if ($rFromCache && file_exists(CACHE_TMP_PATH . md5($rSource))) {
-							$rFromCache = false;
-						}
-					}
-
-					if (!($rStream['server_info']['on_demand'] && $rLLOD)) {
-						if ($rIsXC_VM && self::$rSettings['api_probe']) {
-							$rProbeURL = $rURLInfo['scheme'] . '://' . $rURLInfo['host'] . ':' . $rURLInfo['port'] . '/probe/' . base64_encode($rURLInfo['path']);
-							$rFFProbeOutput = json_decode(self::getURL($rProbeURL), true);
-
-							if ($rFFProbeOutput && isset($rFFProbeOutput['codecs'])) {
-								echo 'Got stream information via API' . "\n";
-
-								break;
-							}
-						}
-
-						$rProbeCmd = str_replace(array('{FETCH_OPTIONS}', '{CONCAT}', '{STREAM_SOURCE}'), array($rProbeOptions, ($rStream['stream_info']['type_key'] == 'created_live' && !$rStream['server_info']['parent_id'] ? '-safe 0 -f concat' : ''), escapeshellarg($rStreamSource)), $rFFProbee);
-						$rFFProbeOutput = json_decode(shell_exec($rProbeCmd), true);
-
-						if ($rFFProbeOutput && isset($rFFProbeOutput['streams'])) {
-							echo 'Got stream information via ffprobe' . "\n";
-
-							break;
-						}
-					}
-				}
-				if (!($rStream['server_info']['on_demand'] && $rLLOD)) {
-					if (!isset($rFFProbeOutput['codecs'])) {
-						$rFFProbeOutput = self::parseFFProbe($rFFProbeOutput);
-					}
-
-					if (empty($rFFProbeOutput)) {
-						self::$db->query("UPDATE `streams_servers` SET `progress_info` = '',`to_analyze` = 0,`pid` = -1,`stream_status` = 1 WHERE `server_id` = ? AND `stream_id` = ?", SERVER_ID, $rStreamID);
-
-						return 0;
-					}
-
-					if (!$rFromCache) {
-						file_put_contents(CACHE_TMP_PATH . md5($rSource), igbinary_serialize($rFFProbeOutput));
-					}
-				}
-
-				$externalPushJson = $rStream['stream_info']['external_push'] ?? '[]';
-				$rExternalPush = json_decode($externalPushJson, true);
-				$rProgressURL = 'http://127.0.0.1:' . intval(self::$rServers[SERVER_ID]['http_broadcast_port']) . '/progress?stream_id=' . intval($rStreamID);
-
-				if (empty($rStream['stream_info']['custom_ffmpeg'])) {
-					if ($rLoopback) {
-						$rOptions = '{FETCH_OPTIONS}';
-					} else {
-						$rOptions = '{GPU} {FETCH_OPTIONS}';
-					}
-
-					if ($rStream['stream_info']['stream_all'] == 1) {
-						$rMap = '-map 0 -copy_unknown ';
-					} else {
-						if (!empty($rStream['stream_info']['custom_map'])) {
-							$rMap = escapeshellcmd($rStream['stream_info']['custom_map']) . ' -copy_unknown ';
-						} else {
-							if ($rStream['stream_info']['type_key'] == 'radio_streams') {
-								$rMap = '-map 0:a? ';
-							} else {
-								$rMap = '';
-							}
-						}
-					}
-
-					if (($rStream['stream_info']['gen_timestamps'] == 1 || empty($rProtocol)) && $rStream['stream_info']['type_key'] != 'created_live') {
-						$rGenPTS = '-fflags +genpts -async 1';
-					} else {
-						if (is_array($rFFProbeOutput) && isset($rFFProbeOutput['codecs']['audio']['codec_name']) && in_array($rFFProbeOutput['codecs']['audio']['codec_name'], array('ac3', 'eac3')) && self::$rSettings['dts_legacy_ffmpeg']) {
-							self::$rFFMPEG_CPU = FFMPEG_BIN_40;
-							self::$rFFPROBE = FFPROBE_BIN_40;
-						}
-
-						// Use -nofix_dts only for FFmpeg 4.0, newer versions don't support it
-						$rNoFix = (self::$rFFMPEG_CPU == FFMPEG_BIN_40 ? '-nofix_dts' : '');
-						// For newer FFmpeg versions, use equivalent timestamp handling
-						$rGenPTS = $rNoFix . ' -start_at_zero -copyts -vsync 0 -correct_ts_overflow 0 -avoid_negative_ts disabled -max_interleave_delta 0';
-					}
-
-					$container = (isset($rFFProbeOutput) && is_array($rFFProbeOutput)) ? ($rFFProbeOutput['container'] ?? null) : null;
-					if (empty($rStream['server_info']['parent_id']) && (($rStream['stream_info']['read_native'] == 1) ||   ($container && stristr($container, 'hls') && self::$rSettings['read_native_hls']) || empty($rProtocol) || ($container && stristr($container, 'mp4')) ||				($container && stristr($container, 'matroska')))) {
-						$rReadNative = '-re';
-					} else {
-						$rReadNative = '';
-					}
-
-
-					if (!$rStream['server_info']['parent_id'] && $rStream['stream_info']['enable_transcode'] == 1 && $rStream['stream_info']['type_key'] != 'created_live') {
-						if ($rStream['stream_info']['transcode_profile_id'] == -1) {
-							$rStream['stream_info']['transcode_attributes'] = array_merge(self::getArguments($rStream['stream_arguments'], $rProtocol, 'transcode'), json_decode($rStream['stream_info']['transcode_attributes'], true));
-						} else {
-							$rStream['stream_info']['transcode_attributes'] = json_decode($rStream['stream_info']['profile_options'], true);
-						}
-					} else {
-						$rStream['stream_info']['transcode_attributes'] = array();
-					}
-
-					$rFFMPEG = ((isset($rStream['stream_info']['transcode_attributes']['gpu']) ? self::$rFFMPEG_GPU : self::$rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . ((self::$rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err ' . $rOptions . ' {GEN_PTS} {READ_NATIVE} -probesize ' . $rProbesize . ' -analyzeduration ' . $rAnalyseDuration . ' -progress "' . $rProgressURL . '" {CONCAT} -i {STREAM_SOURCE} {LOGO} ';
-
-					if (!array_key_exists('-acodec', $rStream['stream_info']['transcode_attributes'])) {
-						$rStream['stream_info']['transcode_attributes']['-acodec'] = 'copy';
-					}
-
-					if (!array_key_exists('-vcodec', $rStream['stream_info']['transcode_attributes'])) {
-						$rStream['stream_info']['transcode_attributes']['-vcodec'] = 'copy';
-					}
-
-					if (!array_key_exists('-scodec', $rStream['stream_info']['transcode_attributes'])) {
-						$rStream['stream_info']['transcode_attributes']['-sn'] = '';
-					}
-				} else {
-					$rStream['stream_info']['transcode_attributes'] = array();
-					$rFFMPEG = ((stripos($rStream['stream_info']['custom_ffmpeg'], 'nvenc') !== false ? self::$rFFMPEG_GPU : self::$rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . ((self::$rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -progress "' . $rProgressURL . '" ' . $rStream['stream_info']['custom_ffmpeg'];
-				}
-
-				$rLLODOptions = ($rLLOD && !$rLoopback ? '-fflags nobuffer -flags low_delay -strict experimental' : '');
-				$rOutputs = array();
-
-				if ($rLoopback) {
-					$rOptions = '{MAP}';
-					$rFLVOptions = '{MAP}';
-					$rMap = '-map 0 -copy_unknown ';
-				} else {
-					$rOptions = '{MAP} {LLOD}';
-					$rFLVOptions = '{MAP} {AAC_FILTER}';
-				}
-
-				$rKeyFrames = (self::$rSettings['ignore_keyframes'] ? '+split_by_time' : '');
-				$rOutputs['mpegts'][] = $rOptions . ' -individual_header_trailer 0 -f hls -hls_time ' . intval(self::$rSegmentSettings['seg_time']) . ' -hls_list_size ' . intval(self::$rSegmentSettings['seg_list_size']) . ' -hls_delete_threshold ' . intval(self::$rSegmentSettings['seg_delete_threshold']) . ' -hls_flags delete_segments+discont_start+omit_endlist' . $rKeyFrames . ' -hls_segment_type mpegts -hls_segment_filename "' . STREAMS_PATH . intval($rStreamID) . '_%d.ts" "' . STREAMS_PATH . intval($rStreamID) . '_.m3u8" ';
-
-				if ($rStream['stream_info']['rtmp_output'] == 1) {
-					$rOutputs['flv'][] = $rFLVOptions . ' -f flv -flvflags no_duration_filesize rtmp://127.0.0.1:' . intval(self::$rServers[$rStream['server_info']['server_id']]['rtmp_port']) . '/live/' . intval($rStreamID) . '?password=' . urlencode(self::$rSettings['live_streaming_pass']) . ' ';
-				}
-
-				if (!empty($rExternalPush[SERVER_ID])) {
-					foreach ($rExternalPush[SERVER_ID] as $rPushURL) {
-						$rOutputs['flv'][] = $rFLVOptions . ' -f flv -flvflags no_duration_filesize ' . escapeshellarg($rPushURL) . ' ';
-					}
-				}
-
-				// Logo overlay
-				$rLogoOptions = '';
-				if (isset($rStream['stream_info']['transcode_attributes'][16]) && !$rLoopback) {
-					$rAttr = $rStream['stream_info']['transcode_attributes'];
-					$rLogoPath = $rAttr[16]['val'];
-					$rPos = (isset($rAttr[16]['pos']) && $rAttr[16]['pos'] !== '10:10') ? $rAttr[16]['pos'] : '10:main_h-overlay_h-10';
-
-					// Reconstruct filter chain to ensure fixed logo size
-					$rChain = array();
-					$rBase = '[0:v]';
-
-					// Handle Yadif (ID 17) and Video Scaling (ID 9)
-					$rVideoFilters = array();
-					if (isset($rAttr[17])) {
-						$rVideoFilters[] = 'yadif';
-					}
-					if (isset($rAttr[9]['val']) && strlen($rAttr[9]['val']) > 0) {
-						$rVideoFilters[] = 'scale=' . $rAttr[9]['val'];
-					}
-
-					if (!empty($rVideoFilters)) {
-						$rChain[] = $rBase . implode(',', $rVideoFilters) . '[bg]';
-						$rBase = '[bg]';
-					}
-
-					// Scale logo to fixed width 250px (keep aspect ratio)
-					$rChain[] = '[1:v]scale=250:-1[logo]';
-
-					// Overlay
-					$rChain[] = $rBase . '[logo]overlay=' . $rPos;
-
-					$rLogoOptions = '-i ' . escapeshellarg($rLogoPath) . ' -filter_complex "' . implode('; ', $rChain) . '"';
-					unset($rStream['stream_info']['transcode_attributes'][16]);
-				}
-
-				$rGPUOptions = (isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rStream['stream_info']['transcode_attributes']['gpu']['cmd'] : '');
-				$rInputCodec = '';
-
-				$supportedCodecs = ['h264', 'hevc', 'mjpeg', 'mpeg1', 'mpeg2', 'mpeg4', 'vc1', 'vp8', 'vp9'];
-				$videoCodec = null;
-				if (isset($rFFProbeOutput) && is_array($rFFProbeOutput)) {
-					$videoCodec = $rFFProbeOutput['codecs']['video']['codec_name'] ?? null;
-				}
-
-				if (!empty($rGPUOptions) && in_array($videoCodec, $supportedCodecs)) {
-					$rInputCodec = '-c:v ' . $rFFProbeOutput['codecs']['video']['codec_name'] . '_cuvid';
-				}
-
-				if (0 >= $rStream['stream_info']['delay_minutes'] || $rStream['server_info']['parent_id']) {
-					foreach ($rOutputs as $rOutputCommands) {
-						foreach ($rOutputCommands as $rOutputCommand) {
-							if (isset($rStream['stream_info']['transcode_attributes']['gpu'])) {
-								$rFFMPEG .= '-gpu ' . intval($rStream['stream_info']['transcode_attributes']['gpu']['device']) . ' ';
-							}
-
-							$rFFMPEG .= implode(' ', self::parseTranscode($rStream['stream_info']['transcode_attributes'])) . ' ';
-							$rFFMPEG .= $rOutputCommand;
-						}
-					}
-				} else {
-					$rSegmentStart = 0;
-					$m3u8File = DELAY_PATH . $rStreamID . '_.m3u8';
-					$oldM3u8File = DELAY_PATH . intval($rStreamID) . '_.m3u8_old';
-
-
-					if (file_exists($m3u8File)) {
-						$rFile = file($m3u8File, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-
-						if (!is_array($rFile) || count($rFile) < 2) {
-							// The file is empty or unreadable — safe exit
-							return;
-						}
-
-						$lastLine = $rFile[count($rFile) - 1];
-						$prevLine = $rFile[count($rFile) - 2];
-
-						if (stristr($lastLine, $rStreamID . '_')) {
-							if (preg_match('/_(.*?)\.ts/', $lastLine, $rMatches)) {
-								$rSegmentStart = intval($rMatches[1]) + 1;
-							}
-						} else {
-							if (preg_match('/_(.*?)\.ts/', $prevLine, $rMatches)) {
-								$rSegmentStart = intval($rMatches[1]) + 1;
-							}
-						}
-
-
-						if (file_exists($oldM3u8File)) {
-							file_put_contents($oldM3u8File, file_get_contents($oldM3u8File) . file_get_contents($m3u8File));
-							shell_exec("sed -i '/EXTINF\\|.ts/!d' " . escapeshellarg($oldM3u8File));
-						} else {
-							copy($m3u8File, $oldM3u8File);
-						}
-					}
-
-					$rFFMPEG .= implode(' ', self::parseTranscode($rStream['stream_info']['transcode_attributes'])) . ' ';
-					$rFFMPEG .= '{MAP} -individual_header_trailer 0 -f hls -hls_time ' . intval(self::$rSegmentSettings['seg_time']) . ' -hls_list_size ' . intval($rStream['stream_info']['delay_minutes']) * 6 . ' -hls_delete_threshold 4 -start_number ' . $rSegmentStart . ' -hls_flags delete_segments+discont_start+omit_endlist -hls_segment_type mpegts -hls_segment_filename "' . DELAY_PATH . intval($rStreamID) . '_%d.ts" "' . DELAY_PATH . intval($rStreamID) . '_.m3u8" ';
-
-					$rSleepTime = $rStream['stream_info']['delay_minutes'] * 60;
-
-					if ($rSegmentStart > 0) {
-						$rSleepTime -= ($rSegmentStart - 1) * 10;
-
-						if ($rSleepTime > 0) {
-						} else {
-							$rSleepTime = 0;
-						}
-					}
-				}
-
-				$rFFMPEG .= ' >/dev/null 2>>' . STREAMS_PATH . intval($rStreamID) . '.errors & echo $! > ' . STREAMS_PATH . intval($rStreamID) . '_.pid';
-
-				$ffprobeContainer = (isset($rFFProbeOutput['container']) && is_string($rFFProbeOutput['container'])) ? $rFFProbeOutput['container'] : '';
-
-				$audioCodec = (isset($rFFProbeOutput['codecs']['audio']['codec_name']) && is_array($rFFProbeOutput['codecs']['audio'])) ? $rFFProbeOutput['codecs']['audio']['codec_name'] : '';
-
-				$rFFMPEG = str_replace(
-					['{FETCH_OPTIONS}', '{GEN_PTS}', '{STREAM_SOURCE}', '{MAP}', '{READ_NATIVE}', '{CONCAT}', '{AAC_FILTER}', '{GPU}', '{INPUT_CODEC}', '{LOGO}', '{LLOD}'],
-					[
-						empty($rStream['stream_info']['custom_ffmpeg']) ? $rFetchOptions : '',
-						empty($rStream['stream_info']['custom_ffmpeg']) ? $rGenPTS : '',
-						escapeshellarg($rStreamSource),
-						empty($rStream['stream_info']['custom_ffmpeg']) ? $rMap : '',
-						empty($rStream['stream_info']['custom_ffmpeg']) ? $rReadNative : '',
-						($rStream['stream_info']['type_key'] == 'created_live' && empty($rStream['server_info']['parent_id']) ? '-safe 0 -f concat' : ''),
-						(!stristr($ffprobeContainer, 'flv') && $audioCodec === 'aac' && ($rStream['stream_info']['transcode_attributes']['-acodec'] ?? '') === 'copy' ? '-bsf:a aac_adtstoasc' : ''),
-						$rGPUOptions,
-						$rInputCodec,
-						$rLogoOptions,
-						$rLLODOptions
-					],
-					$rFFMPEG
-				);
-
-
-				shell_exec($rFFMPEG);
-				file_put_contents(STREAMS_PATH . $rStreamID . '_.ffmpeg', $rFFMPEG);
-				$rKey = openssl_random_pseudo_bytes(16);
-				file_put_contents(STREAMS_PATH . $rStreamID . '_.key', $rKey);
-				$rIVSize = openssl_cipher_iv_length('AES-128-CBC');
-				$rIV = openssl_random_pseudo_bytes($rIVSize);
-				file_put_contents(STREAMS_PATH . $rStreamID . '_.iv', $rIV);
-				$rPID = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.pid'));
-
-				if ($rStream['stream_info']['tv_archive_server_id'] == SERVER_ID) {
-					shell_exec(PHP_BIN . ' ' . CLI_PATH . 'archive.php ' . intval($rStreamID) . ' >/dev/null 2>/dev/null & echo $!');
-				}
-
-				if ($rStream['stream_info']['vframes_server_id'] == SERVER_ID) {
-					self::startThumbnail($rStreamID);
-				}
-
-				$rDelayEnabled = 0 < $rStream['stream_info']['delay_minutes'] && !$rStream['server_info']['parent_id'];
-				$rDelayStartAt = ($rDelayEnabled ? time() + $rSleepTime : 0);
-
-				if ($rStream['stream_info']['enable_transcode']) {
-					$rFFProbeOutput = array();
-				}
-
-				$rCompatible = 0;
-				$rAudioCodec = $rVideoCodec = $rResolution = null;
-
-				if (isset($rFFProbeOutput) && is_array($rFFProbeOutput) && isset($rFFProbeOutput['codecs']) && is_array($rFFProbeOutput['codecs'])) {
-					$rCompatible = intval(self::checkCompatibility($rFFProbeOutput));
-					$rAudioCodec = ($rFFProbeOutput['codecs']['audio']['codec_name'] ?: null);
-					$rVideoCodec = ($rFFProbeOutput['codecs']['video']['codec_name'] ?: null);
-					$rResolution = ($rFFProbeOutput['codecs']['video']['height'] ?: null);
-
-					if ($rResolution) {
-						$rResolution = self::getNearest(array(240, 360, 480, 576, 720, 1080, 1440, 2160), $rResolution);
-					}
-				}
-
-				$rFFProbeOutputSafe = isset($rFFProbeOutput) && is_array($rFFProbeOutput) ? $rFFProbeOutput : [];
-				self::$db->query('UPDATE `streams_servers` SET `delay_available_at` = ?,`to_analyze` = 0,`stream_started` = ?,`stream_info` = ?,`audio_codec` = ?, `video_codec` = ?, `resolution` = ?,`compatible` = ?,`stream_status` = 2,`pid` = ?,`progress_info` = ?,`current_source` = ? WHERE `stream_id` = ? AND `server_id` = ?', $rDelayStartAt, time(), json_encode($rFFProbeOutputSafe), $rAudioCodec, $rVideoCodec, $rResolution, $rCompatible, $rPID, json_encode(array()), $rSource, $rStreamID, SERVER_ID);
-				self::updateStream($rStreamID);
-				$rPlaylist = (!$rDelayEnabled ? STREAMS_PATH . $rStreamID . '_.m3u8' : DELAY_PATH . $rStreamID . '_.m3u8');
-
-				return array('main_pid' => $rPID, 'stream_source' => $rRealSource, 'delay_enabled' => $rDelayEnabled, 'parent_id' => $rStream['server_info']['parent_id'], 'delay_start_at' => $rDelayStartAt, 'playlist' => $rPlaylist, 'transcode' => $rStream['stream_info']['enable_transcode'], 'offset' => $rOffset);
-			} else {
-				return false;
-			}
-		} else {
-			return false;
-		}
+		return StreamProcess::startStream(self::$db, self::$rSettings, self::$rServers, self::$rSegmentSettings, self::$rFFMPEG_CPU, self::$rFFMPEG_GPU, self::$rFFPROBE, $rStreamID, $rFromCache, $rForceSource, $rLLOD, $rStartPos);
 	}
 
 	public static function getArguments($rArguments, $rProtocol, $rType) {
@@ -3041,54 +1844,22 @@ class CoreUtilities {
 		return BouquetMapper::getMapEntry($rStreamID);
 	}
 	public static function updateStream($rStreamID, $rForce = false) {
-		if (self::$rCached) {
-			self::$db->query('SELECT COUNT(*) AS `count` FROM `signals` WHERE `server_id` = ? AND `cache` = 1 AND `custom_data` = ?;', self::getMainID(), json_encode(array('type' => 'update_stream', 'id' => $rStreamID)));
-			if (self::$db->get_row()['count'] != 0) {
-			} else {
-				self::$db->query('INSERT INTO `signals`(`server_id`, `cache`, `time`, `custom_data`) VALUES(?, 1, ?, ?);', self::getMainID(), time(), json_encode(array('type' => 'update_stream', 'id' => $rStreamID)));
-			}
-			return true;
-		}
-		return false;
+		return StreamProcess::updateStream(self::$db, self::$rCached, self::getMainID(), $rStreamID, $rForce);
 	}
 	public static function updateStreams($rStreamIDs) {
-		if (self::$rCached) {
-			self::$db->query('SELECT COUNT(*) AS `count` FROM `signals` WHERE `server_id` = ? AND `cache` = 1 AND `custom_data` = ?;', self::getMainID(), json_encode(array('type' => 'update_streams', 'id' => $rStreamIDs)));
-			if (self::$db->get_row()['count'] != 0) {
-			} else {
-				self::$db->query('INSERT INTO `signals`(`server_id`, `cache`, `time`, `custom_data`) VALUES(?, 1, ?, ?);', self::getMainID(), time(), json_encode(array('type' => 'update_streams', 'id' => $rStreamIDs)));
-			}
-			return true;
-		}
-		return false;
+		return StreamProcess::updateStreams(self::$db, self::$rCached, self::getMainID(), $rStreamIDs);
 	}
 	public static function deleteLine($rUserID, $rForce = false) {
-		self::updateLine($rUserID, $rForce);
+		LineService::deleteLineSignal(self::$db, self::$rCached, self::getMainID(), $rUserID, $rForce);
 	}
 	public static function deleteLines($rUserIDs, $rForce = false) {
-		self::updateLines($rUserIDs);
+		LineService::deleteLinesSignal(self::$db, self::$rCached, self::getMainID(), $rUserIDs, $rForce);
 	}
 	public static function updateLine($rUserID, $rForce = false) {
-		if (self::$rCached) {
-			self::$db->query('SELECT COUNT(*) AS `count` FROM `signals` WHERE `server_id` = ? AND `cache` = 1 AND `custom_data` = ?;', self::getMainID(), json_encode(array('type' => 'update_line', 'id' => $rUserID)));
-			if (self::$db->get_row()['count'] != 0) {
-			} else {
-				self::$db->query('INSERT INTO `signals`(`server_id`, `cache`, `time`, `custom_data`) VALUES(?, 1, ?, ?);', self::getMainID(), time(), json_encode(array('type' => 'update_line', 'id' => $rUserID)));
-			}
-			return true;
-		}
-		return false;
+		return LineService::updateLineSignal(self::$db, self::$rCached, self::getMainID(), $rUserID, $rForce);
 	}
 	public static function updateLines($rUserIDs) {
-		if (self::$rCached) {
-			self::$db->query('SELECT COUNT(*) AS `count` FROM `signals` WHERE `server_id` = ? AND `cache` = 1 AND `custom_data` = ?;', self::getMainID(), json_encode(array('type' => 'update_lines', 'id' => $rUserIDs)));
-			if (self::$db->get_row()['count'] != 0) {
-			} else {
-				self::$db->query('INSERT INTO `signals`(`server_id`, `cache`, `time`, `custom_data`) VALUES(?, 1, ?, ?);', self::getMainID(), time(), json_encode(array('type' => 'update_lines', 'id' => $rUserIDs)));
-			}
-			return true;
-		}
-		return false;
+		return LineService::updateLinesSignal(self::$db, self::$rCached, self::getMainID(), $rUserIDs);
 	}
 	public static function getMainID() {
 		return ConnectionTracker::getMainID(self::$rServers);
@@ -3387,33 +2158,13 @@ class CoreUtilities {
 		return json_decode(shell_exec(BIN_PATH . 'tsinfo ' . escapeshellarg($rFilename)), true);
 	}
 	public static function getEPG($rStreamID, $rStartDate = null, $rFinishDate = null, $rByID = false) {
-		$rReturn = array();
-		$rData = (file_exists(EPG_PATH . 'stream_' . $rStreamID) ? igbinary_unserialize(file_get_contents(EPG_PATH . 'stream_' . $rStreamID)) : array());
-		foreach ($rData as $rItem) {
-			if ($rStartDate && !($rStartDate < $rItem['end'] && $rItem['start'] < $rFinishDate)) {
-			} else {
-				if ($rByID) {
-					$rReturn[$rItem['id']] = $rItem;
-				} else {
-					$rReturn[] = $rItem;
-				}
-			}
-		}
-		return $rReturn;
+		return EpgRepository::getStreamEpg($rStreamID, $rStartDate, $rFinishDate, $rByID);
 	}
 	public static function getEPGs($rStreamIDs, $rStartDate = null, $rFinishDate = null) {
-		$rReturn = array();
-		foreach ($rStreamIDs as $rStreamID) {
-			$rReturn[$rStreamID] = self::getEPG($rStreamID, $rStartDate, $rFinishDate);
-		}
-		return $rReturn;
+		return EpgRepository::getStreamsEpg($rStreamIDs, $rStartDate, $rFinishDate);
 	}
 	public static function getProgramme($rStreamID, $rProgrammeID) {
-		$rData = self::getEPG($rStreamID, null, null, true);
-		if (!isset($rData[$rProgrammeID])) {
-		} else {
-			return $rData[$rProgrammeID];
-		}
+		return EpgRepository::getProgramme($rStreamID, $rProgrammeID);
 	}
 	public static function getProxies($rServerID, $rOnline = true) {
 		return ConnectionTracker::getProxies(self::$rServers, $rServerID, $rOnline);
