@@ -125,29 +125,12 @@ $rAdvPermissions = require $rPermissionsFile;
 
 function getUserInfo($rUsername, $rPassword) {
 	global $db;
-	$db->query('SELECT `id`, `username`, `password`, `member_group_id`, `status` FROM `users` WHERE `username` = ? LIMIT 1;', $rUsername);
-
-	if ($db->num_rows() == 1) {
-		$rRow = $db->get_row();
-
-		if (cryptPassword($rPassword, $rRow['password']) == $rRow['password']) {
-			return $rRow;
-		}
-	}
+	return UserRepository::getAuthUserByCredentials($db, $rUsername, $rPassword);
 }
 
 function getSeriesList() {
 	global $db;
-	$rReturn = array();
-	$db->query('SELECT `id`, `title` FROM `streams_series` ORDER BY `title` ASC;');
-
-	if (0 >= $db->num_rows()) {
-	} else {
-		foreach ($db->get_rows() as $rRow) {
-			$rReturn[intval($rRow['id'])] = $rRow;
-		}
-	}
-	return $rReturn;
+	return SeriesRepository::getList($db);
 }
 
 function secondsToTime($inputSeconds) {
@@ -167,50 +150,12 @@ function secondsToTime($inputSeconds) {
 
 function updateSeries($rID) {
 	global $db;
-	require_once MAIN_HOME . 'includes/libs/tmdb.php';
-	$db->query('SELECT `tmdb_id`, `tmdb_language` FROM `streams_series` WHERE `id` = ?;', $rID);
-
-	if ($db->num_rows() != 1) {
-	} else {
-		$rRow = $db->get_row();
-		$rTMDBID = $rRow['tmdb_id'];
-
-		if (0 >= strlen($rTMDBID)) {
-		} else {
-			if (0 < strlen($rRow['tmdb_language'])) {
-				$rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key'], $rRow['tmdb_language']);
-			} else {
-				if (0 < strlen(CoreUtilities::$rSettings['tmdb_language'])) {
-					$rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key'], CoreUtilities::$rSettings['tmdb_language']);
-				} else {
-					$rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key']);
-				}
-			}
-
-			$rReturn = array();
-			$rSeasons = json_decode($rTMDB->getTVShow($rTMDBID)->getJSON(), true)['seasons'];
-
-			foreach ($rSeasons as $rSeason) {
-				$rSeason['cover'] = 'https://image.tmdb.org/t/p/w600_and_h900_bestv2' . $rSeason['poster_path'];
-
-				if (!CoreUtilities::$rSettings['download_images']) {
-				} else {
-					$rSeason['cover'] = CoreUtilities::downloadImage($rSeason['cover']);
-				}
-
-				$rSeason['cover_big'] = $rSeason['cover'];
-				unset($rSeason['poster_path']);
-				$rReturn[] = $rSeason;
-			}
-
-			$db->query('UPDATE `streams_series` SET `seasons` = ? WHERE `id` = ?;', json_encode($rReturn, JSON_UNESCAPED_UNICODE), $rID);
-		}
-	}
+	SeriesRepository::updateFromTMDB($db, $rID);
 }
 
 function updateSeriesAsync($rID) {
 	global $db;
-	$db->query('INSERT INTO `watch_refresh`(`type`, `stream_id`, `status`) VALUES(4, ?, 0);', $rID);
+	SeriesRepository::queueRefresh($db, $rID);
 }
 
 function validateCIDR($rCIDR) {
@@ -241,49 +186,21 @@ function validateCIDR($rCIDR) {
 }
 
 function getFreeSpace($rServerID) {
-	$rReturn = array();
-	$rLines = json_decode(systemapirequest($rServerID, array('action' => 'get_free_space')), true);
-
-	// Check if array has elements before shifting
-	if (!empty($rLines)) {
-		array_shift($rLines);
-	}
-
-	foreach ($rLines as $rLine) {
-		$rSplit = explode(' ', preg_replace('!\\s+!', ' ', trim($rLine)));
-
-		if (0 < strlen($rSplit[0]) && strpos($rSplit[5], 'xc_vm') !== false || $rSplit[5] == '/') {
-			$rReturn[] = array('filesystem' => $rSplit[0], 'size' => $rSplit[1], 'used' => $rSplit[2], 'avail' => $rSplit[3], 'percentage' => $rSplit[4], 'mount' => implode(' ', array_slice($rSplit, 5, count($rSplit) - 5)));
-		}
-	}
-
-	return $rReturn;
+	return ServerRepository::getFreeSpace('systemapirequest', $rServerID);
 }
 
 function getStreamsRamdisk($rServerID) {
-    $response = systemapirequest($rServerID, ['action' => 'streams_ramdisk']);
-
-    $rReturn = json_decode($response, true);
-    if (!is_array($rReturn)) {
-        return [];
-    }
-
-    if (empty($rReturn['result'])) {
-        return [];
-    }
-
-    return $rReturn['streams'] ?? [];
+	return ServerRepository::getStreamsRamdisk('systemapirequest', $rServerID);
 }
 
 
 function killPID($rServerID, $rPID) {
-
-	systemapirequest($rServerID, array('action' => 'kill_pid', 'pid' => $rPID));
+	ServerRepository::killPID('systemapirequest', $rServerID, $rPID);
 }
 
 
 function getRTMPStats($rServerID) {
-	return json_decode(systemapirequest($rServerID, array('action' => 'rtmp_stats')), true);
+	return ServerRepository::getRTMPStats('systemapirequest', $rServerID);
 }
 
 function getStreamArguments() {
@@ -374,36 +291,7 @@ function getWatchCategories($rType = null) {
 
 function syncDevices($rUserID, $rDeviceID = null) {
 	global $db;
-	$rUser = getUser($rUserID);
-
-	if (!$rUser) {
-	} else {
-		unset($rUser['id']);
-
-		if ($rDeviceID) {
-			$db->query('SELECT * FROM `lines` WHERE `id` = (SELECT `user_id` FROM `mag_devices` WHERE `mag_id` = ?);', $rDeviceID);
-		} else {
-			$db->query('SELECT * FROM `lines` WHERE `pair_id` = ?;', $rUserID);
-		}
-
-		foreach ($db->get_rows() as $rDevice) {
-			$rUpdateDevice = $rUser;
-			$rUpdateDevice['pair_id'] = intval($rUserID);
-			$rUpdateDevice['play_token'] = '';
-
-			foreach (array('id', 'is_mag', 'is_e2', 'is_restreamer', 'max_connections', 'created_at', 'username', 'password', 'admin_notes', 'reseller_notes') as $rKey) {
-				$rUpdateDevice[$rKey] = $rDevice[$rKey];
-			}
-
-			if (!isset($rUpdateDevice['id'])) {
-			} else {
-				$rPrepare = prepareArray($rUpdateDevice);
-				$rQuery = 'REPLACE INTO `lines`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-				$db->query($rQuery, ...$rPrepare['data']);
-				CoreUtilities::updateLine($rUpdateDevice['id']);
-			}
-		}
-	}
+	DeviceSync::syncLineDevices($db, $rUserID, $rDeviceID);
 }
 
 function encodeRow($rRow) {
@@ -535,45 +423,14 @@ function getSeasonTMDB($rID, $rSeason) {
 
 function getResellers($rOwner, $rIncludeSelf = true) {
 	global $db;
-	$rReturn = array();
-
-	if ($rIncludeSelf) {
-		$db->query('SELECT `id`, `username` FROM `users` WHERE `owner_id` = ? OR `id` = ? ORDER BY `username` ASC;', $rOwner, $rOwner);
-	} else {
-		$db->query('SELECT `id`, `username` FROM `users` WHERE `owner_id` = ? ORDER BY `username` ASC;', $rOwner);
-	}
-
-	return $db->get_rows(true, 'id');
+	return UserRepository::getResellers($db, $rOwner, $rIncludeSelf);
 }
 
 function getDirectReports($rIncludeSelf = true) {
 	global $db;
 	global $rPermissions;
 	global $rUserInfo;
-	$rUserIDs = $rPermissions['direct_reports'];
-
-	if (!$rIncludeSelf) {
-	} else {
-		$rUserIDs[] = $rUserInfo['id'];
-	}
-
-	$rReturn = array();
-
-	if (0 >= count($rUserIDs)) {
-	} else {
-		$db->query('SELECT * FROM `users` WHERE `owner_id` IN (' . implode(',', array_map('intval', $rUserIDs)) . ') ORDER BY `username` ASC;');
-
-		if (0 >= $db->num_rows()) {
-		} else {
-			foreach ($db->get_rows() as $rRow) {
-
-
-				$rReturn[intval($rRow['id'])] = $rRow;
-			}
-		}
-	}
-
-	return $rReturn;
+	return UserRepository::getDirectReports($db, $rPermissions, $rUserInfo, $rIncludeSelf);
 }
 
 function hasResellerPermissions($rType) {
@@ -591,122 +448,31 @@ function hasPermissions($rType, $rID) {
 
 function getMemberGroups() {
 	global $db;
-	$rReturn = array();
-	$db->query('SELECT * FROM `users_groups` ORDER BY `group_id` ASC;');
-
-	if (0 >= $db->num_rows()) {
-	} else {
-		foreach ($db->get_rows() as $rRow) {
-			$rReturn[intval($rRow['group_id'])] = $rRow;
-		}
-	}
-
-	return $rReturn;
+	return GroupRepository::getAll($db);
 }
 
 function getHMACTokens() {
 	global $db;
-	$rReturn = array();
-	$db->query('SELECT * FROM `hmac_keys` ORDER BY `id` ASC;');
-
-	if (0 >= $db->num_rows()) {
-	} else {
-		foreach ($db->get_rows() as $rRow) {
-			$rReturn[intval($rRow['id'])] = $rRow;
-		}
-	}
-
-	return $rReturn;
+	return HMACRepository::getAll($db);
 }
 
 function getHMACToken($rID) {
 	global $db;
-	$db->query('SELECT * FROM `hmac_keys` WHERE `id` = ?;', $rID);
-
-
-
-
-	if ($db->num_rows() != 1) {
-	} else {
-		return $db->get_row();
-	}
+	return HMACRepository::getById($db, $rID);
 }
 
 function getActiveCodes() {
-	$rCodes = array();
-	$rFiles = scandir(MAIN_HOME . 'bin/nginx/conf/codes/');
-
-	foreach ($rFiles as $rFile) {
-		$rPathInfo = pathinfo($rFile);
-		$rExt = $rPathInfo['extension'];
-
-		if (!($rExt == 'conf' && $rPathInfo['filename'] != 'default')) {
-		} else {
-			$rCodes[] = $rPathInfo['filename'];
-		}
-	}
-
-	return $rCodes;
+	return CodeRepository::getActiveCodes(MAIN_HOME);
 }
 
 function updateCodes() {
-	$rTemplate = file_get_contents(MAIN_HOME . 'bin/nginx/conf/codes/template');
-	shell_exec('rm -f ' . MAIN_HOME . 'bin/nginx/conf/codes/*.conf');
-
-	foreach (getcodes() as $rCode) {
-		if ($rCode['enabled']) {
-			$rWhitelist = array();
-
-			foreach (json_decode($rCode['whitelist'], true) as $rIP) {
-				if (filter_var($rIP, FILTER_VALIDATE_IP)) {
-					$rWhitelist[] = 'allow ' . $rIP . ';';
-				}
-			}
-
-			if (0 >= count($rWhitelist)) {
-			} else {
-				$rWhitelist[] = 'deny all;';
-			}
-
-			$rType = array('admin', 'reseller', 'ministra', 'includes/api/admin', 'includes/api/reseller', 'ministra/new', 'player')[$rCode['type']];
-			$rBurst = array(500, 50, 50, 1000, 1000, 50, 500)[$rCode['type']];
-
-			if (4 <= strlen($rCode['code'])) {
-				file_put_contents(MAIN_HOME . 'bin/nginx/conf/codes/' . $rCode['code'] . '.conf', str_replace(array('#WHITELIST#', '#CODE#', '#TYPE#', '#BURST#'), array(implode(' ', $rWhitelist), $rCode['code'], $rType, $rBurst), $rTemplate));
-			} else {
-				file_put_contents(MAIN_HOME . 'bin/nginx/conf/codes/' . $rCode['code'] . '.conf', str_replace(array('#WHITELIST#', '#CODE#', '#TYPE#', '#BURST#'), array(implode(' ', $rWhitelist), $rCode['code'] . '/', $rType . '/', $rBurst), $rTemplate));
-			}
-		}
-	}
-
-	if (count(getActiveCodes()) == 0) {
-		if (file_exists(MAIN_HOME . 'bin/nginx/conf/codes/default.conf')) {
-		} else {
-			file_put_contents(MAIN_HOME . 'bin/nginx/conf/codes/default.conf', str_replace(array('alias ', '#WHITELIST#', '#CODE#', '#TYPE#'), array('root ', '', '', 'admin'), $rTemplate));
-		}
-	} else {
-		if (!file_exists(MAIN_HOME . 'bin/nginx/conf/codes/default.conf')) {
-		} else {
-			unlink(MAIN_HOME . 'bin/nginx/conf/codes/default.conf');
-		}
-	}
-
-	reloadNginx(SERVER_ID);
+	global $db;
+	CodeRepository::updateCodes($db, MAIN_HOME, SERVER_ID, 'getcodes', 'reloadNginx');
 }
 
 function getCurrentCode($rInfo = false) {
-	if ($rInfo) {
-		global $db;
-		$db->query('SELECT * FROM `access_codes` WHERE `code` = ?;', basename(dirname($_SERVER['PHP_SELF'])));
-
-		if ($db->num_rows() == 1) {
-			return $db->get_row();
-		}
-		return null;
-	}
-
-
-	return basename(dirname($_SERVER['PHP_SELF']));
+	global $db;
+	return CodeRepository::getCurrentCode($db, $rInfo);
 }
 
 function overwriteData($rData, $rOverwrite, $rSkip = array()) {
@@ -814,30 +580,12 @@ function setArgs($rArgs, $rGet = true) {
 function getParent($rID) {
 	global $rPermissions;
 	global $rUserInfo;
-
-
-	if (!isset($rPermissions['users'][$rID]['parent']) || $rPermissions['users'][$rID]['parent'] == 0 || $rPermissions['users'][$rID]['parent'] == $rUserInfo['id']) {
-		return $rID;
-	}
-
-	return getParent($rPermissions['users'][$rID]['parent']);
+	return UserRepository::getParent($rPermissions, $rUserInfo, $rID);
 }
 
 function getSubUsers($rUser) {
 	global $db;
-
-	$rReturn = array();
-	$db->query('SELECT `id`, `username` FROM `users` WHERE `owner_id` = ?;', $rUser);
-
-	foreach ($db->get_rows() as $rRow) {
-		$rReturn[$rRow['id']] = array('username' => $rRow['username'], 'parent' => $rUser);
-
-		foreach (getSubUsers($rRow['id']) as $rUserID => $rUserData) {
-			$rReturn[$rUserID] = $rUserData;
-		}
-	}
-
-	return $rReturn;
+	return UserRepository::getSubUsers($db, $rUser);
 }
 
 function getAdminImage($rURL, $rMaxW, $rMaxH) {
@@ -846,15 +594,7 @@ function getAdminImage($rURL, $rMaxW, $rMaxH) {
 
 function getStreamErrors($rStreamID, $rAmount = 250) {
 	global $db;
-
-	$rReturn = array();
-	$db->query('SELECT * FROM (SELECT MAX(`date`) AS `date`, `error` FROM `streams_errors` WHERE `stream_id` = ? GROUP BY `error`) AS `output` ORDER BY `date` DESC LIMIT ' . intval($rAmount) . ';', $rStreamID);
-
-	foreach ($db->get_rows() as $rRow) {
-		$rReturn[] = $rRow;
-	}
-
-	return $rReturn;
+	return StreamRepository::getErrors($db, $rStreamID, $rAmount);
 }
 
 function getPageFromURL($rURL) {
@@ -929,47 +669,12 @@ function checkExists($rTable, $rColumn, $rValue, $rExcludeColumn = null, $rExclu
 }
 
 function parseM3U($rData, $rFile = true) {
-	require_once INCLUDES_PATH . 'libs/m3u.php';
-	$rParser = new M3uParser();
-	$rParser->addDefaultTags();
-
-	if ($rFile) {
-		return $rParser->parseFile($rData);
-	}
-
-	return $rParser->parse($rData);
+	return M3UParser::parse($rData, $rFile);
 }
 
 function deleteLines($rIDs) {
 	global $db;
-	$rIDs = confirmIDs($rIDs);
-
-
-	if (0 >= count($rIDs)) {
-		return false;
-	}
-
-	CoreUtilities::deleteLines($rIDs);
-	$db->query('DELETE FROM `lines` WHERE `id` IN (' . implode(',', $rIDs) . ');');
-	$db->query('DELETE FROM `lines_logs` WHERE `user_id` IN (' . implode(',', $rIDs) . ');');
-	$db->query('UPDATE `lines_activity` SET `user_id` = 0 WHERE `user_id` IN (' . implode(',', $rIDs) . ');');
-	$rPairIDs = array();
-	$db->query('SELECT `id` FROM `lines` WHERE `pair_id` IN (' . implode(',', $rIDs) . ');');
-
-	foreach ($db->get_rows() as $rRow) {
-		if (0 >= $rRow['id'] || in_array($rRow['id'], $rPairIDs)) {
-		} else {
-			$rPairIDs[] = $rRow['id'];
-		}
-	}
-
-	if (0 >= count($rPairIDs)) {
-	} else {
-		$db->query('UPDATE `lines` SET `pair_id` = null WHERE `id` = (' . implode(',', $rPairIDs) . ');');
-		CoreUtilities::updateLines($rPairIDs);
-	}
-
-	return true;
+	return LineRepository::deleteMany($db, $rIDs);
 }
 
 function deleteMAG($rID, $rDeletePaired = false, $rCloseCons = true, $rConvert = false) {
@@ -3467,88 +3172,27 @@ function getEPGSources() {
 
 function getCategories($rType = 'live') {
 	global $db;
+	$rCategories = CategoryRepository::getFromDatabase($db, null, null, ($rType ?: null), true);
 	$rReturn = array();
-
-	if ($rType) {
-		$db->query('SELECT * FROM `streams_categories` WHERE `category_type` = ? ORDER BY `cat_order` ASC;', $rType);
-	} else {
-		$db->query('SELECT * FROM `streams_categories` ORDER BY `cat_order` ASC;');
+	foreach ($rCategories as $rID => $rRow) {
+		$rReturn[intval($rID)] = $rRow;
 	}
-
-	if (0 >= $db->num_rows()) {
-	} else {
-		foreach ($db->get_rows() as $rRow) {
-			$rReturn[intval($rRow['id'])] = $rRow;
-		}
-	}
-
 	return $rReturn;
 }
 
 function findEPG($rEPGName) {
 	global $db;
-	$db->query('SELECT `id`, `data` FROM `epg`;');
-
-	if (0 >= $db->num_rows()) {
-	} else {
-		foreach ($db->get_rows() as $rRow) {
-			foreach (json_decode($rRow['data'], true) as $rChannelID => $rChannelData) {
-				if ($rChannelID != $rEPGName) {
-				} else {
-					if (0 < count($rChannelData['langs'])) {
-						$rEPGLang = $rChannelData['langs'][0];
-					} else {
-						$rEPGLang = '';
-					}
-
-					return array('channel_id' => $rChannelID, 'epg_lang' => $rEPGLang, 'epg_id' => intval($rRow['id']));
-				}
-			}
-		}
-	}
+	return EpgRepository::findByName($db, $rEPGName);
 }
 
 function deleteGroup($rID) {
 	global $db;
-	$rGroup = getMemberGroup($rID);
-
-	if (!($rGroup && $rGroup['can_delete'])) {
-		return false;
-	}
-
-	$db->query("SELECT `id`, `groups` FROM `users_packages` WHERE JSON_CONTAINS(`groups`, ?, '\$');", $rID);
-
-
-	foreach ($db->get_rows() as $rRow) {
-		$rRow['groups'] = json_decode($rRow['groups'], true);
-
-
-		if ($rKey = array_search($rID, $rRow['groups']) !== false) {
-			unset($rRow['groups'][$rKey]);
-		}
-
-		$groups = array_map('intval', $rRow['groups']);
-
-		$db->query("UPDATE `users_packages` SET `groups` = '[" . implode(',', $groups) . "]' WHERE `id` = ?;", $rRow['id']);
-	}
-	$db->query('UPDATE `users` SET `member_group_id` = 0 WHERE `member_group_id` = ?;', $rID);
-	$db->query('DELETE FROM `users_groups` WHERE `group_id` = ?;', $rID);
-
-	return true;
+	return GroupRepository::deleteById($db, $rID);
 }
 
 function deletePackage($rID) {
 	global $db;
-	$rPackage = getPackage($rID);
-
-	if (!$rPackage) {
-		return false;
-	}
-
-	$db->query('UPDATE `lines` SET `package_id` = null WHERE `package_id` = ?;', $rID);
-	$db->query('DELETE FROM `users_packages` WHERE `id` = ?;', $rID);
-
-	return true;
+	return PackageRepository::deleteById($db, 'getPackage', $rID);
 }
 
 function deleteProvider($rID) {
@@ -3582,42 +3226,7 @@ function deleteEPG($rID) {
 
 function deleteServer($rID, $rReplaceWith = null) {
 	global $db;
-	$rServer = getStreamingServersByID($rID);
-
-	if (!$rServer || $rServer['is_main']) {
-		return false;
-	}
-
-	if ($rReplaceWith) {
-		$db->query('UPDATE `streams_servers` SET `server_id` = ? WHERE `server_id` = ?;', $rReplaceWith, $rID);
-
-
-		if (CoreUtilities::$rSettings['redis_handler']) {
-		} else {
-			$db->query('UPDATE `lines_live` SET `server_id` = ? WHERE `server_id` = ?;', $rReplaceWith, $rID);
-		}
-
-		$db->query('UPDATE `lines_activity` SET `server_id` = ? WHERE `server_id` = ?;', $rReplaceWith, $rID);
-	} else {
-		$db->query('DELETE FROM `streams_servers` WHERE `server_id` = ?;', $rID);
-
-		if (CoreUtilities::$rSettings['redis_handler']) {
-		} else {
-			$db->query('DELETE FROM `lines_live` WHERE `server_id` = ?;', $rID);
-		}
-
-		$db->query('UPDATE `lines_activity` SET `server_id` = 0 WHERE `server_id` = ?;', $rID);
-	}
-
-	$db->query('UPDATE `servers` SET `parent_id` = NULL, `enabled` = 0 WHERE `server_type` = 1 AND `parent_id` = ?;', $rID);
-	$db->query('DELETE FROM `servers_stats` WHERE `server_id` = ?;', $rID);
-	$db->query('DELETE FROM `servers` WHERE `id` = ?;', $rID);
-
-	if ($rServer['server_type'] == 0) {
-		CoreUtilities::revokePrivileges($rServer['server_ip']);
-	}
-
-	return true;
+	return ServerRepository::deleteById($db, CoreUtilities::$rSettings, 'getStreamingServersByID', $rID, $rReplaceWith);
 }
 
 function getEncodeErrors($rID) {
@@ -3679,17 +3288,7 @@ function getProtocol() {
 
 function deleteMovieFile($rServerIDs, $rID) {
 	global $db;
-
-	if (is_array($rServerIDs)) {
-	} else {
-		$rServerIDs = array($rServerIDs);
-	}
-
-	foreach ($rServerIDs as $rServerID) {
-		$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`, `cache`) VALUES(?, ?, ?, 1);', $rServerID, time(), json_encode(array('type' => 'delete_vod', 'id' => $rID)));
-	}
-
-	return true;
+	return MovieRepository::deleteFile($db, $rServerIDs, $rID);
 }
 
 function generateString($strength = 10) {
@@ -3707,139 +3306,24 @@ function generateString($strength = 10) {
 
 function getAllServers() {
 	global $db;
-	$rReturn = array();
-	$db->query('SELECT * FROM `servers` ORDER BY `id` ASC;');
-
-	if ($db->num_rows() > 0) {
-		foreach ($db->get_rows() as $rRow) {
-			$rRow['server_online'] = in_array($rRow['status'], array(1, 3)) && time() - $rRow['last_check_ago'] <= 90 || $rRow['is_main'];
-			$rReturn[$rRow['id']] = $rRow;
-		}
-	}
-
-	return $rReturn;
+	return ServerRepository::getAllSimple($db);
 }
 
 function getStreamingServers(string $type = 'online') {
 	global $db;
 	global $rPermissions;
-	$rReturn = array();
-	$db->query('SELECT * FROM `servers` WHERE `server_type` = 0 ORDER BY `id` ASC;');
-
-	if ($db->num_rows() > 0) {
-		foreach ($db->get_rows() as $rRow) {
-			if (isset($rPermissions['is_reseller']) && $rPermissions['is_reseller']) {
-				$rRow['server_name'] = 'Server #' . ($rRow['id'] ?? 'unknown');
-			}
-
-			$rRow['server_online'] = in_array($rRow['status'], array(1, 3)) && time() - $rRow['last_check_ago'] <= 90 || $rRow['is_main'];
-			if (!isset($rRow['order'])) {
-				$rRow['order'] = 0;
-			}
-			if ($rRow['server_online'] || $type == 'all') {
-				$rReturn[$rRow['id']] = $rRow;
-			}
-		}
-	}
-	return $rReturn;
+	return ServerRepository::getStreamingSimple($db, $rPermissions, $type);
 }
 
 function getProxyServers($rOnline = false) {
 	global $db;
 	global $rPermissions;
-	$rReturn = array();
-	$db->query('SELECT * FROM `servers` WHERE `server_type` = 1 ORDER BY `id` ASC;');
-
-	if (0 >= $db->num_rows()) {
-	} else {
-		foreach ($db->get_rows() as $rRow) {
-			if ($rPermissions['is_reseller']) {
-				$rRow['server_name'] = 'Proxy #' . $rRow['id'];
-			}
-
-			$rRow['server_online'] = in_array($rRow['status'], array(1, 3)) && time() - $rRow['last_check_ago'] <= 90 || $rRow['is_main'];
-
-
-			if (!$rRow['server_online'] && $rOnline) {
-			} else {
-				$rReturn[$rRow['id']] = $rRow;
-			}
-		}
-	}
-
-	return $rReturn;
+	return ServerRepository::getProxySimple($db, $rPermissions, $rOnline);
 }
 
 function getStreamPIDs($rServerID) {
 	global $db;
-	$rReturn = array();
-	$db->query('SELECT `streams`.`id`, `streams`.`stream_display_name`, `streams`.`type`, `streams_servers`.`pid`, `streams_servers`.`monitor_pid`, `streams_servers`.`delay_pid` FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams_servers`.`server_id` = ?;', $rServerID);
-
-	if (0 >= $db->num_rows()) {
-	} else {
-		foreach ($db->get_rows() as $rRow) {
-			foreach (array('pid', 'monitor_pid', 'delay_pid') as $rPIDType) {
-				if (!$rRow[$rPIDType]) {
-				} else {
-					$rReturn[$rRow[$rPIDType]] = array('id' => $rRow['id'], 'title' => $rRow['stream_display_name'], 'type' => $rRow['type'], 'pid_type' => $rPIDType);
-				}
-			}
-		}
-	}
-
-	$db->query('SELECT `id`, `stream_display_name`, `type`, `tv_archive_pid` FROM `streams` WHERE `tv_archive_server_id` = ?;', $rServerID);
-
-	if (0 >= $db->num_rows()) {
-	} else {
-		foreach ($db->get_rows() as $rRow) {
-			$rReturn[$rRow['tv_archive_pid']] = array('id' => $rRow['id'], 'title' => $rRow['stream_display_name'], 'type' => $rRow['type'], 'pid_type' => 'timeshift');
-		}
-	}
-
-	$db->query('SELECT `id`, `stream_display_name`, `type`, `vframes_pid` FROM `streams` WHERE `vframes_server_id` = ?;', $rServerID);
-
-	if (0 >= $db->num_rows()) {
-	} else {
-		foreach ($db->get_rows() as $rRow) {
-			$rReturn[$rRow['vframes_pid']] = array('id' => $rRow['id'], 'title' => $rRow['stream_display_name'], 'type' => $rRow['type'], 'pid_type' => 'vframes');
-		}
-	}
-
-	if (CoreUtilities::$rSettings['redis_handler']) {
-		$rStreamIDs = $rStreamMap = array();
-		$rConnections = CoreUtilities::getRedisConnections(null, $rServerID, null, true, false, false);
-
-		foreach ($rConnections as $rConnection) {
-			if (in_array($rConnection['stream_id'], $rStreamIDs)) {
-			} else {
-				$rStreamIDs[] = intval($rConnection['stream_id']);
-			}
-		}
-
-		if (0 >= count($rStreamIDs)) {
-		} else {
-			$db->query('SELECT `id`, `type`, `stream_display_name` FROM `streams` WHERE `id` IN (' . implode(',', $rStreamIDs) . ');');
-
-			foreach ($db->get_rows() as $rRow) {
-				$rStreamMap[$rRow['id']] = array($rRow['stream_display_name'], $rRow['type']);
-			}
-		}
-
-		foreach ($rConnections as $rRow) {
-			$rReturn[$rRow['pid']] = array('id' => $rRow['stream_id'], 'title' => $rStreamMap[$rRow['stream_id']][0], 'type' => $rStreamMap[$rRow['stream_id']][1], 'pid_type' => 'activity');
-		}
-	} else {
-		$db->query('SELECT `streams`.`id`, `streams`.`stream_display_name`, `streams`.`type`, `lines_live`.`pid` FROM `lines_live` LEFT JOIN `streams` ON `streams`.`id` = `lines_live`.`stream_id` WHERE `lines_live`.`server_id` = ?;', $rServerID);
-
-		if (0 >= $db->num_rows()) {
-		} else {
-			foreach ($db->get_rows() as $rRow) {
-				$rReturn[$rRow['pid']] = array('id' => $rRow['id'], 'title' => $rRow['stream_display_name'], 'type' => $rRow['type'], 'pid_type' => 'activity');
-			}
-		}
-	}
-
-	return $rReturn;
+	return StreamRepository::getPIDs($db, $rServerID, CoreUtilities::$rSettings);
 }
 
 function roundUpToAny($n, $x = 5) {
@@ -3847,16 +3331,11 @@ function roundUpToAny($n, $x = 5) {
 }
 
 function checksource($rServerID, $rFilename) {
-	$rAPI = CoreUtilities::$rServers[intval($rServerID)]['api_url_ip'] . '&action=getFile&filename=' . urlencode($rFilename);
-	$rCommand = 'timeout 10 ' . CoreUtilities::$rFFPROBE . ' -user_agent "Mozilla/5.0" -show_streams -v quiet "' . $rAPI . '" -of json';
-
-	return json_decode(shell_exec($rCommand), true);
+	return ServerRepository::checkSource(CoreUtilities::$rServers, CoreUtilities::$rFFPROBE, $rServerID, $rFilename);
 }
 
 function getSSLLog($rServerID) {
-	$rAPI = CoreUtilities::$rServers[intval($rServerID)]['api_url_ip'] . '&action=getFile&filename=' . urlencode(BIN_PATH . 'certbot/logs/xc_vm.log');
-
-	return json_decode(file_get_contents($rAPI), true);
+	return ServerRepository::getSSLLog(CoreUtilities::$rServers, $rServerID);
 }
 
 function getWatchdog($rID, $rLimit = 86400) {
@@ -3876,12 +3355,7 @@ function getWatchdog($rID, $rLimit = 86400) {
 
 function getMemberGroup($rID) {
 	global $db;
-	$db->query('SELECT * FROM `users_groups` WHERE `group_id` = ?;', $rID);
-
-	if ($db->num_rows() != 1) {
-	} else {
-		return $db->get_row();
-	}
+	return GroupRepository::getById($db, $rID);
 }
 
 function getOutputs() {
@@ -3901,107 +3375,42 @@ function getOutputs() {
 
 function getUserBouquets() {
 	global $db;
-	$rReturn = array();
-	$db->query('SELECT `id`, `bouquet` FROM `lines` ORDER BY `id` ASC;');
-
-	if (0 >= $db->num_rows()) {
-	} else {
-		foreach ($db->get_rows() as $rRow) {
-			$rReturn[intval($rRow['id'])] = $rRow;
-		}
-	}
-
-	return $rReturn;
+	return BouquetRepository::getUserBouquets($db);
 }
 
 function getBouquets() {
 	global $db;
-	$rReturn = array();
-	$db->query('SELECT * FROM `bouquets` ORDER BY `bouquet_order` ASC;');
-
-	if (0 >= $db->num_rows()) {
-	} else {
-		foreach ($db->get_rows() as $rRow) {
-			$rReturn[intval($rRow['id'])] = $rRow;
-		}
-	}
-
-	return $rReturn;
+	return BouquetRepository::getAllSimple($db);
 }
 
 function getBouquetOrder() {
 	global $db;
-	$rReturn = array();
-	$db->query('SELECT * FROM `bouquets` ORDER BY `bouquet_order` ASC;');
-
-	if (0 >= $db->num_rows()) {
-	} else {
-		foreach ($db->get_rows() as $rRow) {
-			$rReturn[intval($rRow['id'])] = $rRow;
-		}
-	}
-
-	return $rReturn;
+	return BouquetRepository::getOrder($db);
 }
 
 function getBlockedIPs() {
 	global $db;
-	$rReturn = array();
-	$db->query('SELECT * FROM `blocked_ips` ORDER BY `id` ASC;');
-
-	if (0 >= $db->num_rows()) {
-	} else {
-		foreach ($db->get_rows() as $rRow) {
-			$rReturn[] = $rRow;
-		}
-	}
-
-	return $rReturn;
+	return BlocklistRepository::getBlockedIPsSimple($db);
 }
 
 function getRTMPIPs() {
 	global $db;
-	$rReturn = array();
-	$db->query('SELECT * FROM `rtmp_ips` ORDER BY `id` ASC;');
-
-	if (0 >= $db->num_rows()) {
-	} else {
-		foreach ($db->get_rows() as $rRow) {
-			$rReturn[] = $rRow;
-		}
-	}
-
-	return $rReturn;
+	return BlocklistRepository::getRTMPIPsSimple($db);
 }
 
 function getStream($rID) {
 	global $db;
-	$db->query('SELECT * FROM `streams` WHERE `id` = ?;', $rID);
-
-	if ($db->num_rows() != 1) {
-	} else {
-		return $db->get_row();
-	}
+	return StreamRepository::getById($db, $rID);
 }
 
 function getUser($rID) {
 	global $db;
-	$db->query('SELECT * FROM `lines` WHERE `id` = ?;', $rID);
-
-	if ($db->num_rows() != 1) {
-	} else {
-		return $db->get_row();
-	}
+	return UserRepository::getLineById($db, $rID);
 }
 
 function getRegisteredUser($rID) {
 	global $db;
-	$db->query('SELECT * FROM `users` WHERE `id` = ?;', $rID);
-
-	if ($db->num_rows() != 1) {
-	} else {
-		return $db->get_row();
-	}
+	return UserRepository::getRegisteredUserById($db, $rID);
 }
 
 function getPageName() {
@@ -4044,51 +3453,15 @@ function cleanValue($rValue) {
 
 function getStreamStats($rStreamID) {
 	global $db;
-	$rReturn = array();
-	$db->query('SELECT * FROM `streams_stats` WHERE `stream_id` = ?;', $rStreamID);
-
-	if (0 >= $db->num_rows()) {
-	} else {
-		foreach ($db->get_rows() as $rRow) {
-			$rReturn[$rRow['type']] = $rRow;
-		}
-	}
-
-	foreach (array('today', 'week', 'month', 'all') as $rType) {
-		if (isset($rReturn[$rType])) {
-		} else {
-			$rReturn[$rType] = array('rank' => 0, 'users' => 0, 'connections' => 0, 'time' => 0);
-		}
-	}
-
-	return $rReturn;
+	return StreamRepository::getStats($db, $rStreamID);
 }
 
 function getSimilarMovies($rID, $rPage = 1) {
-	require_once MAIN_HOME . 'includes/libs/tmdb.php';
-
-	if (0 < strlen(CoreUtilities::$rSettings['tmdb_language'])) {
-		$rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key'], CoreUtilities::$rSettings['tmdb_language']);
-	} else {
-		$rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key']);
-	}
-
-	return json_decode(json_encode($rTMDB->getSimilarMovies($rID, $rPage)), true);
+	return MovieRepository::getSimilar($rID, $rPage);
 }
 
 function getSimilarSeries($rID, $rPage = 1) {
-	require_once MAIN_HOME . 'includes/libs/tmdb.php';
-
-	if (0 < strlen(CoreUtilities::$rSettings['tmdb_language'])) {
-		$rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key'], CoreUtilities::$rSettings['tmdb_language']);
-	} else {
-		$rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key']);
-	}
-
-
-
-
-	return json_decode(json_encode($rTMDB->getSimilarSeries($rID, $rPage)), true);
+	return SeriesRepository::getSimilar($rID, $rPage);
 }
 
 function generateReport($rURL, $rParams) {
@@ -4134,95 +3507,40 @@ function forcePlex($rServerID, $rPlexID) {
 }
 
 function freeTemp($rServerID) {
-	systemapirequest($rServerID, array('action' => 'free_temp'));
+	ServerRepository::freeTemp('systemapirequest', $rServerID);
 }
 
 function freeStreams($rServerID) {
-	systemapirequest($rServerID, array('action' => 'free_streams'));
+	ServerRepository::freeStreams('systemapirequest', $rServerID);
 }
 
 function probeSource($rServerID, $rURL, $rUserAgent = null, $rProxy = null, $rCookies = null, $rHeaders = null) {
-	return json_decode(systemapirequest($rServerID, array('action' => 'probe', 'url' => $rURL, 'user_agent' => $rUserAgent, 'http_proxy' => $rProxy, 'cookies' => $rCookies, 'headers' => $rHeaders), 30), true);
+	return ServerRepository::probeSource('systemapirequest', $rServerID, $rURL, $rUserAgent, $rProxy, $rCookies, $rHeaders);
 }
 
 function getchannelepg($rStreamID, $rArchive = false) {
-	global $db;
 	$rStream = getStream($rStreamID);
-
-	if (!$rStream['channel_id']) {
-		return array();
-	}
-
-	if ($rArchive) {
-		return CoreUtilities::getEPG($rStreamID, time() - $rStream['tv_archive_duration'] * 86400, time());
-	}
-
-	return CoreUtilities::getEPG($rStreamID, time(), time() + 1209600);
+	return EpgService::getChannelEpg($rStream, $rArchive);
 }
 
 function getEPG($rID) {
 	global $db;
-	$db->query('SELECT * FROM `epg` WHERE `id` = ?;', $rID);
-
-	if ($db->num_rows() != 1) {
-	} else {
-		return $db->get_row();
-	}
+	return EpgRepository::getById($db, $rID);
 }
 
 function getStreamOptions($rID) {
 	global $db;
-	$rReturn = array();
-	$db->query('SELECT * FROM `streams_options` WHERE `stream_id` = ?;', $rID);
-
-
-
-
-	if (0 >= $db->num_rows()) {
-	} else {
-		foreach ($db->get_rows() as $rRow) {
-			$rReturn[intval($rRow['argument_id'])] = $rRow;
-		}
-	}
-
-	return $rReturn;
+	return StreamRepository::getOptions($db, $rID);
 }
 
 function getStreamSys($rID) {
 	global $db;
-	$rReturn = array();
-	$db->query('SELECT * FROM `streams_servers` WHERE `stream_id` = ?;', $rID);
-
-	if (0 >= $db->num_rows()) {
-	} else {
-		foreach ($db->get_rows() as $rRow) {
-			$rReturn[intval($rRow['server_id'])] = $rRow;
-		}
-	}
-
-	return $rReturn;
+	return StreamRepository::getSystemRows($db, $rID);
 }
 
 function getRegisteredUsers($rOwner = null, $rIncludeSelf = true) {
 	global $db;
-	$rReturn = array();
-	$db->query('SELECT * FROM `users` ORDER BY `username` ASC;');
-
-	if (0 >= $db->num_rows()) {
-	} else {
-		foreach ($db->get_rows() as $rRow) {
-			if (!(!$rOwner || $rRow['owner_id'] == $rOwner || $rRow['id'] == $rOwner && $rIncludeSelf)) {
-			} else {
-				$rReturn[intval($rRow['id'])] = $rRow;
-			}
-		}
-	}
-
-	if (count($rReturn) == 0) {
-		$rReturn[-1] = array();
-	}
-
-	return $rReturn;
+	return UserRepository::getRegisteredUsers($db, $rOwner, $rIncludeSelf);
 }
 
 function getFooter() {
@@ -4230,7 +3548,7 @@ function getFooter() {
 }
 
 function scanBouquets() {
-	shell_exec(PHP_BIN . ' ' . CLI_PATH . 'tools.php "bouquets" > /dev/null 2>/dev/null &');
+	BouquetService::scan();
 }
 
 /**
@@ -4241,52 +3559,7 @@ function scanBouquets() {
  */
 function scanBouquet($rID) {
 	global $db;
-
-	$rBouquet = getBouquet($rID);
-	if (!$rBouquet) {
-		return; // Bouquet not found, exit early
-	}
-
-	// Get all available stream IDs
-	$availableStreams = [];
-	$db->query('SELECT `id` FROM `streams`;');
-	if ($db->num_rows() > 0) {
-		foreach ($db->get_rows() as $rRow) {
-			$availableStreams[] = (int)$rRow['id'];
-		}
-	}
-
-	// Get all available series IDs
-	$availableSeries = [];
-	$db->query('SELECT `id` FROM `streams_series`;');
-	if ($db->num_rows() > 0) {
-		foreach ($db->get_rows() as $rRow) {
-			$availableSeries[] = (int)$rRow['id'];
-		}
-	}
-
-	// Filter bouquet data against available IDs
-	$updateData = [
-		'channels' => filterIDs(json_decode($rBouquet['bouquet_channels'] ?? '[]', true), $availableStreams, true),
-		'movies' => filterIDs(json_decode($rBouquet['bouquet_movies'] ?? '[]', true), $availableStreams, true),
-		'radios' => filterIDs(json_decode($rBouquet['bouquet_radios'] ?? '[]', true), $availableStreams, true),
-		'series' => filterIDs(json_decode($rBouquet['bouquet_series'] ?? '[]', true), $availableSeries, false)
-	];
-
-	// Update bouquet with filtered data using prepared statements
-	$db->query(
-		"UPDATE `bouquets` SET 
-            `bouquet_channels` = ?, 
-            `bouquet_movies` = ?, 
-            `bouquet_radios` = ?, 
-            `bouquet_series` = ? 
-         WHERE `id` = ?",
-		json_encode($updateData['channels']),
-		json_encode($updateData['movies']),
-		json_encode($updateData['radios']),
-		json_encode($updateData['series']),
-		$rBouquet['id']
-	);
+	BouquetService::scanOne($db, $rID, 'getBouquet', 'filterIDs');
 }
 
 /**
@@ -4318,34 +3591,12 @@ function filterIDs($ids, $availableIDs, $checkPositive = true) {
 
 function getNextOrder() {
 	global $db;
-	$db->query('SELECT MAX(`order`) AS `order` FROM `streams`;');
-
-	if ($db->num_rows() != 1) {
-		return 0;
-	}
-
-	return intval($db->get_row()['order']) + 1;
+	return StreamRepository::getNextOrder($db);
 }
 
 function generateSeriesPlaylist($rSeriesNo) {
 	global $db;
-	$rReturn = array();
-	$db->query('SELECT `stream_id` FROM `streams_episodes` WHERE `series_id` = ? ORDER BY `season_num` ASC, `episode_num` ASC;', $rSeriesNo);
-
-	if (0 >= $db->num_rows()) {
-	} else {
-		foreach ($db->get_rows() as $rRow) {
-			$db->query('SELECT `stream_source` FROM `streams` WHERE `id` = ?;', $rRow['stream_id']);
-
-			if (0 >= $db->num_rows()) {
-			} else {
-				list($rSource) = json_decode($db->get_row()['stream_source'], true);
-				$rReturn[] = $rSource;
-			}
-		}
-	}
-
-	return $rReturn;
+	return SeriesRepository::generatePlaylist($db, $rSeriesNo);
 }
 
 function shutdown_admin() {

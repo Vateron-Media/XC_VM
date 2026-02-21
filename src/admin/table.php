@@ -1375,7 +1375,17 @@ if ($rType == "lines") {
                             $rRow["bitrate"] = "?";
                         }
                         if (isset($rProgressInfo["speed"])) {
-                            $rSpeed = floor($rProgressInfo["speed"] * 100) / 100 . "x";
+                            $rSpeedValue = null;
+                            if (is_numeric($rProgressInfo["speed"])) {
+                                $rSpeedValue = (float) $rProgressInfo["speed"];
+                            } elseif (is_string($rProgressInfo["speed"]) && preg_match('/([0-9]+(?:\.[0-9]+)?)/', $rProgressInfo["speed"], $rSpeedMatch)) {
+                                $rSpeedValue = (float) $rSpeedMatch[1];
+                            }
+                            if ($rSpeedValue !== null) {
+                                $rSpeed = floor($rSpeedValue * 100) / 100 . "x";
+                            } else {
+                                $rSpeed = "1x";
+                            }
                         } else {
                             $rSpeed = "1x";
                         }

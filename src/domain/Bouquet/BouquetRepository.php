@@ -25,4 +25,34 @@ class BouquetRepository {
 
 		return $rOutput;
 	}
+
+	public static function getUserBouquets($db) {
+		$rReturn = array();
+		$db->query('SELECT `id`, `bouquet` FROM `lines` ORDER BY `id` ASC;');
+
+		if ($db->num_rows() > 0) {
+			foreach ($db->get_rows() as $rRow) {
+				$rReturn[intval($rRow['id'])] = $rRow;
+			}
+		}
+
+		return $rReturn;
+	}
+
+	public static function getAllSimple($db) {
+		$rReturn = array();
+		$db->query('SELECT * FROM `bouquets` ORDER BY `bouquet_order` ASC;');
+
+		if ($db->num_rows() > 0) {
+			foreach ($db->get_rows() as $rRow) {
+				$rReturn[intval($rRow['id'])] = $rRow;
+			}
+		}
+
+		return $rReturn;
+	}
+
+	public static function getOrder($db) {
+		return self::getAllSimple($db);
+	}
 }

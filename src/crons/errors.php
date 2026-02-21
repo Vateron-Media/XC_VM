@@ -116,10 +116,13 @@ function loadCron() {
             while (false !== ($fileEntry = readdir($rHandle))) {
                 if ($fileEntry != '.' && $fileEntry != '..' && is_file($rPath . $fileEntry)) {
                     $rFile = $rPath . $fileEntry;
-                    list($rStreamID, $rExtension) = explode('.', $fileEntry);
-                    if ($rExtension == 'errors') {
-                        $rErrors = array_values(array_unique(array_map('trim', explode("\n", file_get_contents($rFile)))));
+                    $rPathInfo = pathinfo($fileEntry);
+                    $rStreamID = (int) ($rPathInfo['filename'] ?? 0);
+                    $rExtension = $rPathInfo['extension'] ?? '';
+                    if ($rExtension == 'errors' && 0 < $rStreamID) {
+                        $rErrors = preg_split('/\r\n|\r|\n/', (string) file_get_contents($rFile));
                         foreach ($rErrors as $rError) {
+                            $rError = trim((string) $rError);
                             if (!(empty($rError) || inArray($rIgnoreErrors, $rError))) {
                                 if (CoreUtilities::$rSettings['stream_logs_save']) {
                                     $rQuery .= '(' . $rStreamID . ',' . SERVER_ID . ',' . time() . ',' . $db->escape($rError) . '),';
