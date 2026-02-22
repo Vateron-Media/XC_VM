@@ -319,7 +319,8 @@ src/
 │   ├── ministra/                    # Ministra/Stalker middleware (текущий ministra/)
 │   │   ├── module.json              # Manifest: name, version, dependencies
 │   │   ├── MinistraModule.php       # Точка входа модуля (implements ModuleInterface)
-│   │   ├── PortalHandler.php
+│   │   ├── PortalHandler.php        # Диспетчер type+action (15 обработчиков)
+│   │   ├── PortalHelpers.php        # Хелперы портала (19 статических методов)
 │   │   └── assets/
 │   │
 │   ├── plex/                        # Plex integration (текущий settings_plex, plex_add)
@@ -328,16 +329,33 @@ src/
 │   │   ├── PlexService.php
 │   │   └── config/
 │   │
-│   ├── tmdb/                        # TMDb metadata (текущий libs/TMDb, crons/tmdb)
+│   ├── tmdb/                        # TMDB Integration
 │   │   ├── module.json
 │   │   ├── TmdbModule.php
 │   │   ├── TmdbService.php
-│   │   └── TmdbCron.php
+│   │   ├── TmdbCron.php
+│   │   ├── TmdbPopularCron.php
+│   │   └── lib.php                  # proxy → includes/libs/tmdb.php
 │   │
 │   ├── watch/                       # Watch/Recording (текущие watch, record файлы)
 │   │   ├── module.json
 │   │   ├── WatchModule.php
-│   │   └── ...
+│   │   ├── WatchService.php
+│   │   ├── RecordingService.php
+│   │   ├── WatchController.php
+│   │   ├── WatchCron.php
+│   │   ├── WatchItem.php
+│   │   └── views/
+│   │       ├── watch.php
+│   │       ├── watch_scripts.php
+│   │       ├── watch_add.php
+│   │       ├── watch_add_scripts.php
+│   │       ├── settings_watch.php
+│   │       ├── settings_watch_scripts.php
+│   │       ├── watch_output.php
+│   │       ├── watch_output_scripts.php
+│   │       ├── record.php
+│   │       └── record_scripts.php
 │   │
 │   ├── fingerprint/                 # Fingerprint watermarking
 │   │   ├── module.json
@@ -1054,11 +1072,6 @@ lb_copy_files:
 **Из `CoreUtilities.php` (4847 строк) → новые классы:**
 
 #### Шаг 1.7.1 — Логирование ✅
-```
-CoreUtilities::saveLog()           → core/Logging/FileLogger.php
-StreamingUtilities::clientLog()    → core/Logging/DatabaseLogger.php
-Контракт                          → core/Logging/LoggerInterface.php
-```
 - ✅ Извлечь `saveLog()` (стр. 489–504) → `FileLogger::log()`
 - ✅ Извлечь `clientLog()` (StUtil стр. 1169–1177) → `DatabaseLogger::log()`
 - ✅ Написать `LoggerInterface` с методом `log($type, $message, $extra)`
@@ -1066,584 +1079,169 @@ StreamingUtilities::clientLog()    → core/Logging/DatabaseLogger.php
 - ✅ Proxy: `StreamingUtilities::clientLog()` → `DatabaseLogger::log()`
 
 #### Шаг 1.7.2 — Системная информация ✅
-```
-CoreUtilities::getStats()              → core/Util/SystemInfo.php
-CoreUtilities::getTotalCPU()           →
-CoreUtilities::getMemory()             →
-CoreUtilities::getUptime()             →
-CoreUtilities::getNetworkInterfaces()  →
-CoreUtilities::getVideoDevices()       →
-CoreUtilities::getAudioDevices()       →
-CoreUtilities::getIO()                 →
-CoreUtilities::getGPUInfo()            →
-```
 - ✅ Извлечь 9 методов (стр. 534–671, 827–852, 1338–1344, 4621–4665) → `SystemInfo`
 - ✅ Proxy: каждый вызов `CoreUtilities::getStats()` → `SystemInfo::getStats()`
 
 #### Шаг 1.7.3 — Защита от брутфорса (Flood/Bruteforce) ✅
-```
-CoreUtilities::checkFlood()            → core/Auth/BruteforceGuard.php
-CoreUtilities::checkBruteforce()       →
-CoreUtilities::checkAuthFlood()        →
-CoreUtilities::truncateAttempts()      →
-StreamingUtilities::checkFlood()       → делегирует туда же
-StreamingUtilities::checkBruteforce()  →
-StreamingUtilities::checkAuthFlood()   →
-StreamingUtilities::truncateAttempts() →
-```
 - ✅ Извлечь 4 метода из CoreUtilities (стр. 709–826) → `BruteforceGuard`
 - ✅ 4 дублированных метода в StreamingUtilities (стр. 215–394) → proxy на тот же `BruteforceGuard`
 - ✅ Первая дедупликация CoreUtilities ↔ StreamingUtilities
 
 #### Шаг 1.7.4 — HTTP-клиент (cURL) ✅
-```
-CoreUtilities::getMultiCURL()  → core/Http/CurlClient.php
-CoreUtilities::getURL()        →
-CoreUtilities::serverRequest() →
-```
 - ✅ Извлечь 3 метода (стр. 373–428, 1408–1442, 3568–3578) → `CurlClient`
 
 #### Шаг 1.7.5 — Событийная система ✅
-```
-Новый файл → core/Events/EventDispatcher.php
-Новый файл → core/Events/EventInterface.php
-```
 - ✅ Написать простой EventDispatcher (publish/subscribe)
 - ✅ Пока без подписчиков — подготовка к модульной системе
 
 #### Шаг 1.7.6 — RBAC / Авторизация ✅
-```
-admin.php::hasPermissions()         → core/Auth/Authorization.php
-admin.php::hasResellerPermissions() →
-$rAdvPermissions (из admin.php)     → resources/data/permissions.php
-```
 - ✅ Извлечь `hasPermissions()` (стр. 582–619) и `hasResellerPermissions()` (стр. 575–581)
 - ✅ Массив `$rAdvPermissions` → `resources/data/permissions.php`
 - ✅ Proxy: глобальные функции в `admin.php` → `Authorization::check()`
 
 #### Шаг 1.7.7 — Аутентификация ✅
-```
-API::processLogin()            → core/Auth/Authenticator.php
-ResellerAPI::processLogin()    →
-```
 - ✅ Извлечь `processLogin()` из `admin_api.php` (стр. 1399–1478) → `Authenticator::login()`
 - ✅ Извлечь `processLogin()` из `reseller_api.php` → `Authenticator::resellerLogin()`
 - ✅ Proxy: `API::processLogin()` → `Authenticator::login()`
 
 #### Шаг 1.7.8 — Утилиты изображений ✅
-```
-CoreUtilities → core/Util/ImageUtils.php
-admin.php::getAdminImage() →
-```
 - ✅ Извлечь методы работы с изображениями (resize, thumbnail, URL-валидация)
 - ✅ `StreamingUtilities::validateImage()` (стр. 1355) → `ImageUtils::validateURL()`
 - ✅ `admin.php::getAdminImage()` (стр. 871–883) → `ImageUtils::resize()`
 
 ---
 
-### Фаза 2: Дедупликация CoreUtilities ↔ StreamingUtilities
+### Фаза 2: Дедупликация CoreUtilities ↔ StreamingUtilities ✅
 
-Перед извлечением domain/ нужно устранить форк. 60+ методов дублированы.
+Форк устранён. 53 дублированных метода дедуплицированы.
 
-#### Шаг 2.1 — Инвентаризация дубликатов
+#### Шаг 2.1 — Инвентаризация дубликатов ✅
 
-Актуальная инвентаризация (20.02.2026): **53 общих метода**.
-
-| Метод | CoreUtilities (стр.) | StreamingUtilities (стр.) | Целевой шаг |
-|-------|---------------------|--------------------------|-------------|
-| `addToQueue()` | 3419 | 1437 | 2.3 |
-| `base64url_decode()` | 4089 | 1794 | 2.4 |
-| `base64url_encode()` | 4077 | 1782 | 2.4 |
-| `checkAuthFlood()` | 3200 | 224 | 2.4 |
-| `checkBlockedUAs()` | 2718 | 1015 | 2.4 |
-| `checkBruteforce()` | 507 | 220 | 2.4 |
-| `checkFlood()` | 503 | 216 | 2.4 |
-| `checkISP()` | 2972 | 1164 | 2.4 |
-| `checkServer()` | 2980 | 1173 | 2.4 |
-| `cleanGlobals()` | 376 | 155 | 2.4 |
-| `closeConnection()` | 2567 | 711 | 2.3 |
-| `connectRedis()` | 3508 | 1546 | 2.2 |
-| `decryptData()` | 4113 | 1818 | 2.4 |
-| `encryptData()` | 4101 | 1806 | 2.4 |
-| `formatTitle()` | 3454 | 1480 | 2.4 |
-| `generateString()` | 436 | 1469 | 2.4 |
-| `getAdultCategories()` | 2490 | 1536 | 2.4 |
-| `getBouquetMap()` | 3355 | 1402 | 2.4 |
-| `getCache()` | 296 | 133 | 2.5 |
-| `getCapacity()` | 3203 | 240 | 2.3 |
-| `getCategories()` | 514 | 1248 | 2.4 |
-| `getConnections()` | 3297 | 1650 | 2.3 |
-| `getDiffTimezone()` | 115 | 1531 | 2.4 |
-| `getDomainName()` | 3764 | 1683 | 2.2 |
-| `getIPInfo()` | 2983 | 1176 | 2.4 |
-| `getISP()` | 2957 | 1147 | 2.4 |
-| `getMainID()` | 3411 | 1429 | 2.3 |
-| `getNearest()` | 3844 | 1673 | 2.4 |
-| `getPlaylistSegments()` | 2682 | 1305 | 2.4 |
-| `getProxies()` | 4059 | 1729 | 2.3 |
-| `getPublicURL()` | 3097 | 1207 | 2.2 |
-| `getUserIP()` | 2915 | 1144 | 2.4 |
-| `getUserInfo()` | 2320 | 816 | 2.4 |
-| `init()` | 23 | 22 | 2.5 |
-| `isMonitorRunning()` | 2745 | 1032 | 2.4 |
-| `isProcessRunning()` | 2841 | 1100 | 2.4 |
-| `isProxy()` | 174 | 230 | 2.4 |
-| `isRunning()` | 2998 | 1195 | 2.4 |
-| `isStreamRunning()` | 2812 | 1055 | 2.4 |
-| `parseCleanKey()` | 414 | 193 | 2.4 |
-| `parseCleanValue()` | 423 | 203 | 2.4 |
-| `parseIncomingRecursively()` | 394 | 173 | 2.4 |
-| `redisSignal()` | 3578 | 1664 | 2.3 |
-| `removeFromQueue()` | 3437 | 1455 | 2.3 |
-| `setSignal()` | 3505 | 986 | 2.2 |
-| `sortChannels()` | 3467 | 1493 | 2.4 |
-| `sortSeries()` | 3486 | 1512 | 2.4 |
-| `startMonitor()` | 1320 | 1119 | 2.4 |
-| `startProxy()` | 1324 | 1123 | 2.4 |
-| `truncateAttempts()` | 511 | 237 | 2.4 |
-| `updateConnection()` | 3522 | 1595 | 2.3 |
-| `validateImage()` | 3094 | 1192 | 2.4 |
-| `writeOfflineActivity()` | 2663 | 779 | 2.4 |
-
-Инвентаризация выше — рабочий baseline для декомпозиции в шагах 2.2–2.5.
+Инвентаризация выполнена: **53 общих метода** между CoreUtilities и StreamingUtilities.
+Все методы распределены по шагам 2.2–2.5 и успешно дедуплицированы.
 
 #### Шаг 2.2 — Redis и сигналы ✅
-```
-CoreUtilities::connectRedis()  → infrastructure/redis/RedisManager.php
-CoreUtilities::setSignal()     →
-CoreUtilities::getDomainName() → core/Config/DomainResolver.php
-StreamingUtilities::closeRedis() →
-```
 - ✅ Извлечь Redis-подключение в `RedisManager` (единый для обоих)
 - ✅ Proxy: оба класса вызывают `RedisManager::connect()`
 - ✅ `getDomainName()` → `DomainResolver::resolve()` (чистая утилита конфигурации)
 
-#### Шаг 2.3 — Трекинг подключений (Redis)
-```
-CoreUtilities::updateConnection()      → domain/Stream/ConnectionTracker.php
-CoreUtilities::redisSignal()           →
-CoreUtilities::getUserConnections()    →
-CoreUtilities::getServerConnections()  →
-CoreUtilities::getStreamConnections()  →
-CoreUtilities::getRedisConnections()   →
-CoreUtilities::getFirstConnection()    →
-CoreUtilities::getConnections()        →
-CoreUtilities::getMainID()             →
-CoreUtilities::addToQueue()            →
-CoreUtilities::removeFromQueue()       →
-CoreUtilities::getProxies()            →
-CoreUtilities::getCapacity()           →
-StreamingUtilities::getConnection()    →
-StreamingUtilities::createConnection() →
-StreamingUtilities::updateConnection() →
-StreamingUtilities::getConnections()   →
-```
+#### Шаг 2.3 — Трекинг подключений (Redis) ✅
 - ✅ ~17 методов вынесены в `ConnectionTracker` (работа с Redis-ключами подключений)
 - ✅ Proxy: оба god-объекта делегируют в `ConnectionTracker`
 
-#### Шаг 2.4 — Справочные данные и сортировки
-```
-CoreUtilities::sortChannels()    → domain/Stream/StreamSorter.php
-CoreUtilities::sortSeries()      →
-CoreUtilities::formatTitle()     →
-CoreUtilities::getNearest()      →
-CoreUtilities::getBouquetMap()   → domain/Bouquet/BouquetMapper.php
-CoreUtilities::getCategories()   → domain/Stream/CategoryRepository.php
-CoreUtilities::getBouquets()     → domain/Bouquet/BouquetRepository.php
-CoreUtilities::getServers()      → domain/Server/ServerRepository.php
-CoreUtilities::getSettings()     → вынести кэширование настроек
-```
+#### Шаг 2.4 — Справочные данные и сортировки ✅
 - ✅ Сортировки и форматирование вынесены в `StreamSorter`
 - ✅ Данные-справочники вынесены в `BouquetMapper` / `CategoryRepository` / `BouquetRepository` / `ServerRepository` / `SettingsRepository`
 
-#### Шаг 2.5 — Дедупликация init()
-```
-CoreUtilities::init()            → упрощение, делегирование в ServiceContainer
-StreamingUtilities::init()       → упрощение, делегирование в ServiceContainer
-```
+#### Шаг 2.5 — Дедупликация init() ✅
 - ✅ Оба `init()` стали тонкими обёртками
 - ✅ Общая логика вынесена в `core/Init/LegacyInitializer.php`
 - ✅ Состояние init синхронизируется через `ServiceContainer`
 
 ---
 
-### Фаза 3: Извлечение domain/ — бизнес-логика
+### Фаза 3: Извлечение domain/ — бизнес-логика ✅
 
-Теперь god-объекты уже частично разгружены. Извлекаем entity/repository/service по доменам.
+Все entity/repository/service извлечены из god-объектов. Proxy-методы оставлены в исходных файлах.
 
-#### Шаг 3.1 — domain/Stream/ (самый крупный домен)
+#### Шаг 3.1 — domain/Stream/ ✅
+- `StreamService.php` — processStream, massEdit, massDelete, move, replaceDNS ← admin_api.php
+- `ChannelService.php` — processChannel, massEdit, setOrder ← admin_api.php
+- `CategoryService.php` — processCategory, orderCategories ← admin_api.php
+- `StreamRepository.php` — getStream, getStreamStats, getStreamErrors, getStreamPIDs, getStreamOptions, getStreamSys, getNextOrder ← admin.php
+- `CategoryRepository.php` — getCategories ← admin.php
+- `M3UParser.php` — parseM3U ← admin.php
+- `StreamProcess.php` — startMonitor, stopStream, startProxy, startThumbnail, queueChannel, createChannel, updateStream(s), createChannelItem, startMovie, stopMovie, startLoopback, queueMovie(s), refreshMovies, startStream, startLLOD ← CoreUtilities
 
-**Из `admin_api.php`:**
-```
-API::processStream()     (стр. 5468–5933, 466 строк) → domain/Stream/StreamService.php
-API::processChannel()    (стр. 522–730, 209 строк)   → domain/Stream/ChannelService.php
-API::massEditStreams()    (стр. 4935–5234, 300 строк) → StreamService::massEdit()
-API::massEditChannels()  (стр. 5235–5467, 233 строки) → ChannelService::massEdit()
-API::processCategory()   (стр. 5965–5997, 33 строки) → domain/Stream/CategoryService.php
-API::orderCategories()   (стр. 5934–5949)             → CategoryService::reorder()
-API::setChannelOrder()   (стр. 499–521)               → ChannelService::setOrder()
-API::moveStreams()        (стр. 5998–6045)             → StreamService::move()
-API::replaceDNS()         (стр. 6046–6059)             → StreamService::replaceDNS()
-API::massDeleteStreams()  (стр. 1479–1496)             → StreamService::massDelete()
-```
-- ✅ `API::processChannel()` вынесен в `domain/Stream/ChannelService.php` (proxy в `admin_api.php`)
-- ✅ `API::processStream()` вынесен в `domain/Stream/StreamService.php` (proxy в `admin_api.php`)
-- ✅ `API::massEditStreams()` вынесен в `domain/Stream/StreamService::massEdit()` (proxy в `admin_api.php`)
-- ✅ `API::massEditChannels()` вынесен в `domain/Stream/ChannelService::massEdit()` (proxy в `admin_api.php`)
-- ✅ `API::processCategory()` и `API::orderCategories()` вынесены в `domain/Stream/CategoryService.php` (proxy в `admin_api.php`)
-- ✅ `API::moveStreams()` и `API::replaceDNS()` вынесены в `domain/Stream/StreamService.php` (proxy в `admin_api.php`)
-- ✅ `API::setChannelOrder()` вынесен в `domain/Stream/ChannelService::setOrder()` (proxy в `admin_api.php`)
-- ✅ `API::massDeleteStreams()` вынесен в `domain/Stream/StreamService::massDelete()` (proxy в `admin_api.php`)
-- ✅ Из `admin.php` вынесены `getStream()/getStreamStats()/getStreamErrors()/getStreamPIDs()/getStreamOptions()/getStreamSys()/getNextOrder()` в `domain/Stream/StreamRepository.php`
-- ✅ Из `admin.php` `parseM3U()` вынесен в `domain/Stream/M3UParser.php`
-- ✅ Из `admin.php` `getCategories()` переключён на `domain/Stream/CategoryRepository.php`
-- ✅ Из `CoreUtilities` вынесены в `domain/Stream/StreamProcess.php`: `deleteCache()`, `queueChannel()`, `createChannel()`, `startMonitor()`, `startProxy()`, `startThumbnail()`, `updateStream()`, `updateStreams()` (proxy в `CoreUtilities`)
-- ✅ Из `CoreUtilities` вынесены в `domain/Stream/StreamProcess.php`: `createChannelItem()`, `stopStream()` (proxy в `CoreUtilities`)
-- ✅ Дополнительно из `CoreUtilities` вынесены в `domain/Stream/StreamProcess.php`: `startMovie()`, `stopMovie()` (proxy в `CoreUtilities`)
-- ✅ Дополнительно из `CoreUtilities` вынесен в `domain/Stream/StreamProcess.php`: `startLoopback()` (proxy в `CoreUtilities`)
-- ✅ Дополнительно из `CoreUtilities` вынесены в `domain/Stream/StreamProcess.php`: `queueMovie()`, `queueMovies()`, `refreshMovies()` (proxy в `CoreUtilities`)
-- ✅ Дополнительно из `CoreUtilities` вынесен в `domain/Stream/StreamProcess.php`: `startStream()` (proxy в `CoreUtilities`)
-- ✅ Дополнительно из `CoreUtilities` вынесен в `domain/Stream/StreamProcess.php`: `startLLOD()` (proxy в `CoreUtilities`)
+#### Шаг 3.2 — domain/Vod/ ✅
+- `MovieService.php` — process, massEdit, massDelete, import ← admin_api.php
+- `SeriesService.php` — process, massEdit, massDelete, import ← admin_api.php
+- `EpisodeService.php` — process, massEdit, massDelete ← admin_api.php
+- `SeriesRepository.php` — getList, updateFromTMDB, queueRefresh, getSimilar, generatePlaylist ← admin.php
+- `MovieRepository.php` — getSimilar, deleteFile ← admin.php
 
-**Из `admin.php`:**
-```
-getStream()              (стр. 4014) → domain/Stream/StreamRepository.php
-getStreamStats()         (стр. 4082) →
-getStreamErrors()        (стр. 884)  →
-getStreamPIDs()          (стр. 3810) →
-getStreamOptions()       (стр. 4210) →
-getStreamSys()           (стр. 4228) →
-getCategories()          (стр. 3505) → domain/Stream/CategoryRepository.php
-getNextOrder()           (стр. 4356) →
-parseM3U()               (стр. 968)  → domain/Stream/M3UParser.php
-```
+#### Шаг 3.3 — domain/Line/ ✅
+- `LineService.php` — process, massEdit, massDelete, delete, update (одиночные и массовые) ← admin_api.php + CoreUtilities
+- `LineRepository.php` — deleteMany ← admin.php
 
-**Из `CoreUtilities`:**
-```
-CoreUtilities::startMonitor()    (стр. 1697) → domain/Stream/StreamProcess.php
-CoreUtilities::stopStream()      (стр. 1640) →
-CoreUtilities::startProxy()      (стр. 1701) →
-CoreUtilities::startThumbnail()  (стр. 1705) →
-CoreUtilities::queueChannel()    (стр. 1455) →
-CoreUtilities::createChannel()   (стр. 1466) →
-CoreUtilities::createChannelItem() (стр. 1470) →
-CoreUtilities::updateStream()    (стр. 3833) →
-CoreUtilities::updateStreams()   (стр. 3844) →
-CoreUtilities::deleteCache()     (стр. 1443) →
-```
+#### Шаг 3.4 — domain/User/ ✅
+- `UserService.php` — process, massEdit, massDelete ← admin_api.php
+- `GroupService.php` — process ← admin_api.php
+- `ProfileService.php` — editAdminProfile ← admin_api.php
+- `UserRepository.php` — getUserInfo, getUser, getRegisteredUser(s), getResellers, getDirectReports, getSubUsers, getParent, getStreamingUserInfo ← admin.php + StreamingUtilities
+- `GroupRepository.php` — getAll, getById, deleteById ← admin.php
 
-**Паттерн:** По 3–5 методов за шаг. Proxy в старых файлах.
+#### Шаг 3.5 — domain/Device/ ✅
+- `MagService.php` — process, massEdit, massDelete ← admin_api.php
+- `EnigmaService.php` — process, massEdit, massDelete ← admin_api.php
+- `DeviceSync.php` — syncLineDevices ← admin.php
 
-#### Шаг 3.2 — domain/Vod/ (фильмы + сериалы + эпизоды)
+#### Шаг 3.6 — domain/Server/ ✅
+- `ServerService.php` — process, processProxy, install, reorder ← admin_api.php
+- `ServerRepository.php` — getAllSimple, getStreamingSimple, getProxySimple, getFreeSpace, getStreamsRamdisk, killPID, getRTMPStats, deleteById, probeSource, getSSLLog, checkSource, freeTemp, freeStreams ← admin.php
 
-**Из `admin_api.php`:**
-```
-API::processMovie()      (стр. 1643–2110, 468 строк) → domain/Vod/MovieService.php
-API::massEditMovies()    (стр. 2111–2369, 259 строк) → MovieService::massEdit()
-API::massDeleteMovies()  (стр. 1497–1514)             → MovieService::massDelete()
-API::importMovies()      (стр. 3903–4105, 203 строки) → MovieService::import()
+#### Шаг 3.7 — domain/Bouquet/ ✅
+- `BouquetService.php` — process, reorder, sort, scan, scanOne ← admin_api.php + admin.php
+- `BouquetRepository.php` — getAllSimple, getOrder, getUserBouquets ← admin.php
 
-API::processSeries()     (стр. 4106–4225, 120 строк) → domain/Vod/SeriesService.php
-API::massEditSeries()    (стр. 4226–4347, 122 строки) → SeriesService::massEdit()
-API::massDeleteSeries()  (стр. 1605–1622)             → SeriesService::massDelete()
-API::importSeries()      (стр. 3719–3902, 184 строки) → SeriesService::import()
+#### Шаг 3.8 — domain/Epg/ ✅
+- `EpgService.php` — process, getChannelEpg ← admin_api.php + admin.php
+- `EpgRepository.php` — getById, findByName, getStreamEpg, getStreamsEpg, getProgramme, search ← admin.php + CoreUtilities
 
-API::processEpisode()    (стр. 821–1074, 254 строки) → domain/Vod/EpisodeService.php
-API::massEditEpisodes()  (стр. 1075–1259, 185 строк) → EpisodeService::massEdit()
-API::massDeleteEpisodes()(стр. 1623–1642)             → EpisodeService::massDelete()
-```
-- ✅ `API::massDeleteMovies()` вынесен в `domain/Vod/MovieService::massDelete()` (proxy в `admin_api.php`)
-- ✅ `API::massDeleteSeries()` вынесен в `domain/Vod/SeriesService::massDelete()` (proxy в `admin_api.php`)
-- ✅ `API::massDeleteEpisodes()` вынесен в `domain/Vod/EpisodeService::massDelete()` (proxy в `admin_api.php`)
-- ✅ `API::massEditMovies()` вынесен в `domain/Vod/MovieService::massEdit()` (proxy в `admin_api.php`)
-- ✅ `API::massEditSeries()` вынесен в `domain/Vod/SeriesService::massEdit()` (proxy в `admin_api.php`)
-- ✅ `API::massEditEpisodes()` вынесен в `domain/Vod/EpisodeService::massEdit()` (proxy в `admin_api.php`)
-- ✅ `API::processEpisode()` вынесен в `domain/Vod/EpisodeService::process()` (proxy в `admin_api.php`)
-- ✅ `API::processMovie()` вынесен в `domain/Vod/MovieService::process()` (proxy в `admin_api.php`)
-- ✅ `API::processSeries()` вынесен в `domain/Vod/SeriesService::process()` (proxy в `admin_api.php`)
-- ✅ `API::importMovies()` вынесен в `domain/Vod/MovieService::import()` (proxy в `admin_api.php`)
-- ✅ `API::importSeries()` вынесен в `domain/Vod/SeriesService::import()` (proxy в `admin_api.php`)
+#### Шаг 3.9 — domain/Settings/ + domain/Ticket/ ✅
+- `SettingsService.php` — edit, editBackup, editCacheCron ← admin_api.php
+- `TicketService.php` — submit ← admin_api.php
 
-**Из `admin.php`:**
-```
-getSeriesList()          (стр. 135) → domain/Vod/SeriesRepository.php
-updateSeries()           (стр. 164) →
-updateSeriesAsync()      (стр. 207) →
-getSimilarMovies()       (стр. 4104) → domain/Vod/MovieRepository.php
-getSimilarSeries()       (стр. 4116) → domain/Vod/SeriesRepository.php
-deleteMovieFile()        (стр. 3717) → MovieRepository::deleteFile()
-generateSeriesPlaylist() (стр. 4367) → SeriesRepository::generatePlaylist()
-```
-- ✅ `getSeriesList()` вынесен в `domain/Vod/SeriesRepository::getList()` (proxy в `admin.php`)
-- ✅ `updateSeries()` вынесен в `domain/Vod/SeriesRepository::updateFromTMDB()` (proxy в `admin.php`)
-- ✅ `updateSeriesAsync()` вынесен в `domain/Vod/SeriesRepository::queueRefresh()` (proxy в `admin.php`)
-- ✅ `getSimilarMovies()` вынесен в `domain/Vod/MovieRepository::getSimilar()` (proxy в `admin.php`)
-- ✅ `getSimilarSeries()` вынесен в `domain/Vod/SeriesRepository::getSimilar()` (proxy в `admin.php`)
-- ✅ `deleteMovieFile()` вынесен в `domain/Vod/MovieRepository::deleteFile()` (proxy в `admin.php`)
-- ✅ `generateSeriesPlaylist()` вынесен в `domain/Vod/SeriesRepository::generatePlaylist()` (proxy в `admin.php`)
+#### Шаг 3.10 — domain/Security/ ✅
+- `BlocklistService.php` — processISP, processUA, blockIP, processRTMPIP, checkBlockedUAs, checkISP, checkServer ← admin_api.php + StreamingUtilities
+- `BlocklistRepository.php` — getBlockedIPsSimple, getRTMPIPsSimple, getBlockedUA, getBlockedIPs, getBlockedISP, getBlockedServers, getProxyIPs ← admin.php + CoreUtilities
 
-**Из `CoreUtilities`:**
-```
-CoreUtilities::stopMovie()     (стр. 1709) → domain/Vod/MovieProcess.php
-CoreUtilities::queueMovie()    (стр. 1719) →
-CoreUtilities::queueMovies()   (стр. 1727) →
-```
+#### Шаг 3.11 — domain/Auth/ ✅
+- `CodeService.php` — process ← admin_api.php
+- `HMACService.php` — process ← admin_api.php
+- `PackageService.php` — process ← admin_api.php (в domain/Line/)
+- `CodeRepository.php` — getActiveCodes, updateCodes, getCurrentCode ← admin.php
+- `HMACRepository.php` — getAll, getById ← admin.php
+- `PackageRepository.php` — deleteById ← admin.php (в domain/Line/)
+- `HMACValidator.php` — validate ← StreamingUtilities
 
-#### Шаг 3.3 — domain/Line/ (подписки/линии)
-```
-API::processLine()       (стр. 6812–6943, 132 строки) → domain/Line/LineService.php
-API::massEditLines()     (стр. 6283–6399, 117 строк)  → LineService::massEdit()
-API::massDeleteLines()   (стр. 1515–1532)              → LineService::massDelete()
-
-admin.php::deleteLines() (стр. 980)                    → domain/Line/LineRepository.php
-CoreUtilities::deleteLine()    (стр. 3855)             → LineService::delete()
-CoreUtilities::deleteLines()   (стр. 3858)             →
-CoreUtilities::updateLine()    (стр. 3861)             → LineService::update()
-CoreUtilities::updateLines()   (стр. 3872)             →
-```
-- ✅ `API::massDeleteLines()` вынесен в `domain/Line/LineService::massDelete()` (proxy в `admin_api.php`)
-- ✅ `API::massEditLines()` вынесен в `domain/Line/LineService::massEdit()` (proxy в `admin_api.php`)
-- ✅ `API::processLine()` вынесен в `domain/Line/LineService::process()` (proxy в `admin_api.php`)
-- ✅ `admin.php::deleteLines()` вынесен в `domain/Line/LineRepository::deleteMany()` (proxy в `admin.php`)
-- ✅ `CoreUtilities::deleteLine()/deleteLines()/updateLine()/updateLines()` вынесены в `domain/Line/LineService` (proxy в `CoreUtilities`)
-
-#### Шаг 3.4 — domain/User/ (пользователи, группы, реселлеры)
-```
-API::processUser()       (стр. 3579–3669)  → domain/User/UserService.php
-API::massEditUsers()     (стр. 6731–6811)  → UserService::massEdit()
-API::massDeleteUsers()   (стр. 1533–1550)  → UserService::massDelete()
-API::processGroup()      (стр. 1260–1350)  → domain/User/GroupService.php
-
-admin.php::getUserInfo()           (стр. 122) → domain/User/UserRepository.php
-admin.php::getUser()               (стр. 4024) →
-admin.php::getRegisteredUser()     (стр. 4034) →
-admin.php::getRegisteredUsers()    (стр. 4243) →
-admin.php::getResellers()          (стр. 532)  →
-admin.php::getDirectReports()      (стр. 545)  →
-admin.php::getSubUsers()           (стр. 854)  →
-admin.php::getParent()             (стр. 842)  →
-admin.php::getMemberGroups()       (стр. 620)  → domain/User/GroupRepository.php
-admin.php::getMemberGroup()        (стр. 3914) →
-admin.php::deleteGroup()           (стр. 3548) →
-
-StreamingUtilities::getUserInfo()  (стр. 970)  → domain/User/UserRepository (streaming-вариант)
-```
-- ✅ `API::massDeleteUsers()` вынесен в `domain/User/UserService::massDelete()` (proxy в `admin_api.php`)
-- ✅ `API::massEditUsers()` вынесен в `domain/User/UserService::massEdit()` (proxy в `admin_api.php`)
-- ✅ `API::processUser()` вынесен в `domain/User/UserService::process()` (proxy в `admin_api.php`)
-- ✅ `API::processGroup()` вынесен в `domain/User/GroupService::process()` (proxy в `admin_api.php`)
-- ✅ `admin.php::getUserInfo()` вынесен в `domain/User/UserRepository::getAuthUserByCredentials()` (proxy в `admin.php`)
-- ✅ `admin.php::getUser()` вынесен в `domain/User/UserRepository::getLineById()` (proxy в `admin.php`)
-- ✅ `admin.php::getRegisteredUser()` вынесен в `domain/User/UserRepository::getRegisteredUserById()` (proxy в `admin.php`)
-- ✅ `admin.php::getRegisteredUsers()` вынесен в `domain/User/UserRepository::getRegisteredUsers()` (proxy в `admin.php`)
-- ✅ `admin.php::getResellers()` вынесен в `domain/User/UserRepository::getResellers()` (proxy в `admin.php`)
-- ✅ `admin.php::getDirectReports()` вынесен в `domain/User/UserRepository::getDirectReports()` (proxy в `admin.php`)
-- ✅ `admin.php::getSubUsers()` вынесен в `domain/User/UserRepository::getSubUsers()` (proxy в `admin.php`)
-- ✅ `admin.php::getParent()` вынесен в `domain/User/UserRepository::getParent()` (proxy в `admin.php`)
-- ✅ `admin.php::getMemberGroups()` вынесен в `domain/User/GroupRepository::getAll()` (proxy в `admin.php`)
-- ✅ `admin.php::getMemberGroup()` вынесен в `domain/User/GroupRepository::getById()` (proxy в `admin.php`)
-- ✅ `admin.php::deleteGroup()` вынесен в `domain/User/GroupRepository::deleteById()` (proxy в `admin.php`)
-- ✅ `StreamingUtilities::getUserInfo()` вынесен в `domain/User/UserRepository::getStreamingUserInfo()` (proxy в `StreamingUtilities`)
-
-#### Шаг 3.5 — domain/Device/ (MAG + Enigma)
-```
-API::processMAG()         (стр. 2433–2624) → domain/Device/MagService.php
-API::massEditMags()       (стр. 6400–6589) → MagService::massEdit()
-API::massDeleteMags()     (стр. 1569–1586) → MagService::massDelete()
-
-API::processEnigma()      (стр. 2625–2812) → domain/Device/EnigmaService.php
-API::massEditEnigmas()    (стр. 6590–6730) → EnigmaService::massEdit()
-API::massDeleteEnigmas()  (стр. 1587–1604) → EnigmaService::massDelete()
-
-admin.php::syncDevices()  (стр. 371)       → domain/Device/DeviceSync.php
-```
-- ✅ `API::massDeleteMags()` вынесен в `domain/Device/MagService::massDelete()` (proxy в `admin_api.php`)
-- ✅ `API::massDeleteEnigmas()` вынесен в `domain/Device/EnigmaService::massDelete()` (proxy в `admin_api.php`)
-- ✅ `API::massEditMags()` вынесен в `domain/Device/MagService::massEdit()` (proxy в `admin_api.php`)
-- ✅ `API::massEditEnigmas()` вынесен в `domain/Device/EnigmaService::massEdit()` (proxy в `admin_api.php`)
-- ✅ `API::processMAG()` вынесен в `domain/Device/MagService::process()` (proxy в `admin_api.php`)
-- ✅ `API::processEnigma()` вынесен в `domain/Device/EnigmaService::process()` (proxy в `admin_api.php`)
-- ✅ `admin.php::syncDevices()` вынесен в `domain/Device/DeviceSync::syncLineDevices()` (proxy в `admin.php`)
-
-#### Шаг 3.6 — domain/Server/
-```
-API::processServer()     (стр. 4348–4516) → domain/Server/ServerService.php
-API::processProxy()      (стр. 4517–4587) → domain/Server/ProxyService.php
-API::installServer()     (стр. 4588–4683) → domain/Server/ServerInstaller.php
-API::orderServers()      (стр. 5950–5964) → ServerService::reorder()
-
-admin.php::getAllServers()       (стр. 3745) → domain/Server/ServerRepository.php
-admin.php::getStreamingServers() (стр. 3760) →
-admin.php::getProxyServers()    (стр. 3784) →
-admin.php::getFreeSpace()       (стр. 239)  →
-admin.php::getStreamsRamdisk()   (стр. 259)  →
-admin.php::killPID()            (стр. 275)  →
-admin.php::getRTMPStats()       (стр. 281)  →
-admin.php::deleteServer()       (стр. 3620) →
-admin.php::probeSource()        (стр. 4181) →
-admin.php::getSSLLog()          (стр. 3893) →
-admin.php::checksource()        (стр. 3886) →
-admin.php::freeTemp()           (стр. 4173) →
-admin.php::freeStreams()         (стр. 4177) →
-```
-
-- ✅ `API::processServer()` вынесен в `domain/Server/ServerService::process()` (proxy в `admin_api.php`)
-- ✅ `API::processProxy()` вынесен в `domain/Server/ServerService::processProxy()` (proxy в `admin_api.php`)
-- ✅ `API::installServer()` вынесен в `domain/Server/ServerService::install()` (proxy в `admin_api.php`)
-- ✅ `API::orderServers()` вынесен в `domain/Server/ServerService::reorder()` (proxy в `admin_api.php`)
-- ✅ `admin.php::getAllServers()` вынесен в `domain/Server/ServerRepository::getAllSimple()` (proxy в `admin.php`)
-- ✅ `admin.php::getStreamingServers()` вынесен в `domain/Server/ServerRepository::getStreamingSimple()` (proxy в `admin.php`)
-- ✅ `admin.php::getProxyServers()` вынесен в `domain/Server/ServerRepository::getProxySimple()` (proxy в `admin.php`)
-- ✅ `admin.php::getFreeSpace()` вынесен в `domain/Server/ServerRepository::getFreeSpace()` (proxy в `admin.php`)
-- ✅ `admin.php::getStreamsRamdisk()` вынесен в `domain/Server/ServerRepository::getStreamsRamdisk()` (proxy в `admin.php`)
-- ✅ `admin.php::killPID()` вынесен в `domain/Server/ServerRepository::killPID()` (proxy в `admin.php`)
-- ✅ `admin.php::getRTMPStats()` вынесен в `domain/Server/ServerRepository::getRTMPStats()` (proxy в `admin.php`)
-- ✅ `admin.php::deleteServer()` вынесен в `domain/Server/ServerRepository::deleteById()` (proxy в `admin.php`)
-- ✅ `admin.php::probeSource()` вынесен в `domain/Server/ServerRepository::probeSource()` (proxy в `admin.php`)
-- ✅ `admin.php::getSSLLog()` вынесен в `domain/Server/ServerRepository::getSSLLog()` (proxy в `admin.php`)
-- ✅ `admin.php::checksource()` вынесен в `domain/Server/ServerRepository::checkSource()` (proxy в `admin.php`)
-- ✅ `admin.php::freeTemp()` вынесен в `domain/Server/ServerRepository::freeTemp()` (proxy в `admin.php`)
-- ✅ `admin.php::freeStreams()` вынесен в `domain/Server/ServerRepository::freeStreams()` (proxy в `admin.php`)
-
-#### Шаг 3.7 — domain/Bouquet/
-```
-- ✅ `API::processBouquet()` вынесен в `domain/Bouquet/BouquetService::process()` (proxy в `admin_api.php`)
-- ✅ `API::reorderBouquet()` вынесен в `domain/Bouquet/BouquetService::reorder()` (proxy в `admin_api.php`)
-- ✅ `API::sortBouquets()` вынесен в `domain/Bouquet/BouquetService::sort()` (proxy в `admin_api.php`)
-
-- ✅ `admin.php::getBouquets()` вынесен в `domain/Bouquet/BouquetRepository::getAllSimple()` (proxy в `admin.php`)
-- ✅ `admin.php::getBouquetOrder()` вынесен в `domain/Bouquet/BouquetRepository::getOrder()` (proxy в `admin.php`)
-- ✅ `admin.php::getUserBouquets()` вынесен в `domain/Bouquet/BouquetRepository::getUserBouquets()` (proxy в `admin.php`)
-- ✅ `admin.php::scanBouquets()` вынесен в `domain/Bouquet/BouquetService::scan()` (proxy в `admin.php`)
-- ✅ `admin.php::scanBouquet()` вынесен в `domain/Bouquet/BouquetService::scanOne()` (proxy в `admin.php`)
-```
-
-#### Шаг 3.8 — domain/Epg/
-```
-- ✅ `API::processEPG()` вынесен в `domain/Epg/EpgService::process()` (proxy в `admin_api.php`)
-
-- ✅ `admin.php::getchannelepg()` вынесен в `domain/Epg/EpgService::getChannelEpg()` (proxy в `admin.php`)
-- ✅ `admin.php::getEPG()` вынесен в `domain/Epg/EpgRepository::getById()` (proxy в `admin.php`)
-- ✅ `admin.php::findEPG()` вынесен в `domain/Epg/EpgRepository::findByName()` (proxy в `admin.php`)
-
-- ✅ `CoreUtilities::getEPG()` вынесен в `domain/Epg/EpgRepository::getStreamEpg()` (proxy в `CoreUtilities.php`)
-- ✅ `CoreUtilities::getEPGs()` вынесен в `domain/Epg/EpgRepository::getStreamsEpg()` (proxy в `CoreUtilities.php`)
-- ✅ `CoreUtilities::getProgramme()` вынесен в `domain/Epg/EpgRepository::getProgramme()` (proxy в `CoreUtilities.php`)
-- ✅ `CoreUtilities::searchEPG()` вынесен в `domain/Epg/EpgRepository::search()` (proxy в `CoreUtilities.php`)
-```
-
-#### Шаг 3.9 — domain/Settings/ + domain/Ticket/
-```
-- ✅ `API::editSettings()` вынесен в `domain/Settings/SettingsService::edit()` (proxy в `admin_api.php`)
-- ✅ `API::editBackupSettings()` вынесен в `domain/Settings/SettingsService::editBackup()` (proxy в `admin_api.php`)
-- ✅ `API::editCacheCron()` вынесен в `domain/Settings/SettingsService::editCacheCron()` (proxy в `admin_api.php`)
-- ✅ `API::editAdminProfile()` вынесен в `domain/User/ProfileService::editAdminProfile()` (proxy в `admin_api.php`)
-
-- ✅ `API::submitTicket()` вынесен в `domain/Ticket/TicketService::submit()` (proxy в `admin_api.php`)
-```
-
-#### Шаг 3.10 — domain/Security/ (IP, ISP, UA, RTMP)
-```
-- ✅ `API::processISP()` вынесен в `domain/Security/BlocklistService::processISP()` (proxy в `admin_api.php`)
-- ✅ `API::processUA()` вынесен в `domain/Security/BlocklistService::processUA()` (proxy в `admin_api.php`)
-- ✅ `API::blockIP()` вынесен в `domain/Security/BlocklistService::blockIP()` (proxy в `admin_api.php`)
-- ✅ `API::processRTMPIP()` вынесен в `domain/Security/BlocklistService::processRTMPIP()` (proxy в `admin_api.php`)
-
-- ✅ `admin.php::getBlockedIPs()` вынесен в `domain/Security/BlocklistRepository::getBlockedIPsSimple()` (proxy в `admin.php`)
-- ✅ `admin.php::getRTMPIPs()` вынесен в `domain/Security/BlocklistRepository::getRTMPIPsSimple()` (proxy в `admin.php`)
-
-- ✅ `StreamingUtilities::checkBlockedUAs()` вынесен в `domain/Security/BlocklistService::checkBlockedUAs()` (proxy в `StreamingUtilities.php`)
-- ✅ `StreamingUtilities::checkISP()` вынесен в `domain/Security/BlocklistService::checkISP()` (proxy в `StreamingUtilities.php`)
-- ✅ `StreamingUtilities::checkServer()` вынесен в `domain/Security/BlocklistService::checkServer()` (proxy в `StreamingUtilities.php`)
-- ✅ `CoreUtilities::getBlockedUA()` вынесен в `domain/Security/BlocklistRepository::getBlockedUA()` (proxy в `CoreUtilities.php`)
-- ✅ `CoreUtilities::getBlockedIPs()` вынесен в `domain/Security/BlocklistRepository::getBlockedIPs()` (proxy в `CoreUtilities.php`)
-- ✅ `CoreUtilities::getBlockedISP()` вынесен в `domain/Security/BlocklistRepository::getBlockedISP()` (proxy в `CoreUtilities.php`)
-- ✅ `CoreUtilities::getBlockedServers()` вынесен в `domain/Security/BlocklistRepository::getBlockedServers()` (proxy в `CoreUtilities.php`)
-- ✅ `CoreUtilities::getProxyIPs()` вынесен в `domain/Security/BlocklistRepository::getProxyIPs()` (proxy в `CoreUtilities.php`)
-```
-
-#### Шаг 3.11 — domain/Auth/ (коды, HMAC, пакеты)
-```
-- ✅ `API::processCode()` вынесен в `domain/Auth/CodeService::process()` (proxy в `admin_api.php`)
-- ✅ `API::processHMAC()` вынесен в `domain/Auth/HMACService::process()` (proxy в `admin_api.php`)
-- ✅ `API::processPackage()` вынесен в `domain/Line/PackageService::process()` (proxy в `admin_api.php`)
-
-- ✅ `admin.php::getActiveCodes()` вынесен в `domain/Auth/CodeRepository::getActiveCodes()` (proxy в `admin.php`)
-- ✅ `admin.php::updateCodes()` вынесен в `domain/Auth/CodeRepository::updateCodes()` (proxy в `admin.php`)
-- ✅ `admin.php::getCurrentCode()` вынесен в `domain/Auth/CodeRepository::getCurrentCode()` (proxy в `admin.php`)
-- ✅ `admin.php::getHMACTokens()` вынесен в `domain/Auth/HMACRepository::getAll()` (proxy в `admin.php`)
-- ✅ `admin.php::getHMACToken()` вынесен в `domain/Auth/HMACRepository::getById()` (proxy в `admin.php`)
-- ✅ `admin.php::deletePackage()` вынесен в `domain/Line/PackageRepository::deleteById()` (proxy в `admin.php`)
-
-- ✅ `StreamingUtilities::validateHMAC()` вынесен в `domain/Auth/HMACValidator::validate()` (proxy в `StreamingUtilities.php`)
-```
-
-#### Шаг 3.12 — Playlist-генератор (большой метод)
-```
-- ✅ `CoreUtilities::generatePlaylist()` вынесен в `domain/Stream/PlaylistGenerator::generate()` (proxy в `CoreUtilities.php`)
-- ✅ `CoreUtilities::generateCron()` вынесен в `domain/Stream/CronGenerator::generate()` (proxy в `CoreUtilities.php`)
-```
-- `generatePlaylist()` — самый длинный метод в CoreUtilities
-- Дробится внутри на: live playlist, vod playlist, series playlist, radio playlist
+#### Шаг 3.12 — Playlist-генератор ✅
+- `PlaylistGenerator.php` — generate ← CoreUtilities (самый длинный метод, live/vod/series/radio)
+- `CronGenerator.php` — generate ← CoreUtilities
 
 ---
 
-### Фаза 4: Извлечение streaming/ (hot path)
+### Фаза 4: Извлечение streaming/ (hot path) ✅
 
-После Фазы 3 в StreamingUtilities останется только стриминг-специфичный код.
+#### Шаг 4.1 — streaming/Auth/ ✅
+- `StreamAuth.php` — checkAccess, validateConnections ← auth.php + StreamingUtilities
+- `TokenAuth.php` — парсинг токенов
+- `DeviceLock.php` — привязка к устройству
+- `ConnectionLimiter.php` — closeConnections, closeRTMP → Protection/
 
-#### Шаг 4.1 — streaming/Auth/
-```
-www/stream/auth.php (799 строк) → streaming/Auth/StreamAuth.php
-                                 → streaming/Auth/TokenAuth.php
-                                 → streaming/Auth/DeviceLock.php
+#### Шаг 4.2 — streaming/Delivery/ ✅
+- `LiveDelivery.php` ← www/stream/live.php
+- `StreamRedirector.php` — redirectStream, showVideoServer
+- `OffAirHandler.php` — getOffAirVideo
+- `HLSGenerator.php` — generateHLS
+- `SegmentReader.php` — getLLODSegments
+- `SignalSender.php` — sendSignal
+- `ProxySelector.php` → Balancer/
 
-StreamingUtilities::validateHMAC()           → (уже в domain/Auth/HMACValidator)
-StreamingUtilities::F4221e28760B623E()       → streaming/Auth/StreamAuth::checkAccess()
-StreamingUtilities::validateConnections()    → streaming/Auth/StreamAuth::validateConnections()
-StreamingUtilities::closeConnections()       → streaming/Protection/ConnectionLimiter.php
-StreamingUtilities::closeConnection()        →
-StreamingUtilities::closeRTMP()              →
-```
+#### Шаг 4.3 — streaming/Codec/ ✅
+- `FFprobeRunner.php` — probeStream, parseFFProbe
+- `FFmpegCommand.php` — сборка FFmpeg-команд
+- `SubtitleExtractor.php` — extractSubtitle
 
-#### Шаг 4.2 — streaming/Delivery/
-```
-www/stream/live.php (707 строк) → streaming/Delivery/LiveDelivery.php
+#### Шаг 4.4 — streaming/Protection/ + Health/ ✅
+- `ConnectionLimiter.php` — closeConnections
+- `HealthChecker.php` — isRunning
+- `ProcessChecker.php` — isPIDRunning, isPIDsRunning, checkPID
+- `WatchdogMonitor.php` — getWatchdog
 
-StreamingUtilities::redirectStream()     (стр. 397–525)  → streaming/Delivery/StreamRedirector.php
-StreamingUtilities::showVideoServer()    (стр. 559–622)  →
-StreamingUtilities::getOffAirVideo()     (стр. 526–558)  → streaming/Delivery/OffAirHandler.php
-StreamingUtilities::availableProxy()     (стр. 692–748)  → streaming/Balancer/ProxySelector.php
-StreamingUtilities::getStreamingURL()    (стр. 1910–1947)→
-StreamingUtilities::generateHLS()        (стр. 1516–1560)→ streaming/Delivery/HLSGenerator.php
-StreamingUtilities::getLLODSegments()    (стр. 1441)     → streaming/Delivery/SegmentReader.php
-StreamingUtilities::sendSignal()         (стр. 1290)     → streaming/Delivery/SignalSender.php
-```
-
-#### Шаг 4.3 — streaming/Codec/
-```
-CoreUtilities::probeStream()       (стр. 1588) → streaming/Codec/FFprobeRunner.php
-CoreUtilities::parseFFProbe()      (стр. 1603) →
-CoreUtilities::createChannelItem() (стр. 1470) → streaming/Codec/FFmpegCommand.php (сборка команд)
-CoreUtilities::extractSubtitle()   (стр. 1575) → streaming/Codec/SubtitleExtractor.php
-```
-
-#### Шаг 4.4 — streaming/Protection/
-```
-StreamingUtilities::closeConnections() → streaming/Protection/ConnectionLimiter.php (из 4.1)
-StreamingUtilities::isRunning()        → streaming/Health/HealthChecker.php
-
-CoreUtilities::isPIDRunning()    (стр. 1399) → streaming/Health/ProcessChecker.php
-CoreUtilities::isPIDsRunning()   (стр. 1375) →
-CoreUtilities::checkPID()        (стр. 1680) →
-
-admin.php::getWatchdog()         (стр. 3899) → streaming/Health/WatchdogMonitor.php
-```
-
-#### Шаг 4.5 — streaming/StreamingBootstrap.php
-- Заменить `www/stream/init.php` лёгким bootstrap
+#### Шаг 4.5 — streaming/StreamingBootstrap.php ✅
+- Лёгкий bootstrap заменяет `www/stream/init.php`
 - Загружает: autoload → constants → Database → Redis
-- НЕ загружает: CoreUtilities, API, Translator, session
 
 ---
 
@@ -1651,75 +1249,90 @@ admin.php::getWatchdog()         (стр. 3899) → streaming/Health/WatchdogMon
 
 Каждый модуль извлекается атомарно — система продолжает работать без него.
 
-#### Шаг 5.1 — modules/plex/
-```
-API::editPlexSettings()          → modules/plex/PlexService.php
-API::processPlexSync()           →
-admin.php::getPlexServers()      →
-admin.php::getPlexSections()     →
-admin.php::forcePlex()           →
-CoreUtilities::getPlexToken()    → modules/plex/PlexAuth.php
-CoreUtilities::getPlexLogin()    →
-CoreUtilities::checkPlexToken()  →
-CoreUtilities::cachePlexToken()  →
-CoreUtilities::getPlexServerCacheKey() →
-CoreUtilities::getCachedPlexToken()    →
-admin/settings_plex.php          → modules/plex/views/
-admin/plex_add.php               →
-admin/plex.php                   →
-crons/plex.php                   → modules/plex/PlexCron.php
-includes/cli/plex_item.php       →
-config/plex/                     → modules/plex/config/
-```
+#### Шаг 5.1 — modules/plex/ ⚡ (в процессе)
+
+**Завершено:**
+- ✅ `PlexAuth.php` — аутентификация (getPlexToken, checkPlexToken, cachePlexToken и др.)
+- ✅ `PlexRepository.php` — данные (getPlexServers, getPlexSections)
+- ✅ `PlexService.php` — бизнес-логика (editPlexSettings, processPlexSync, forcePlex)
+- ✅ `PlexCron.php` — крон синхронизации (Thread, Multithread, PlexCron::run())
+- ✅ `PlexItem.php` — CLI обработка элементов (PlexItem::run())
+- ✅ `crons/plex.php` — тонкая обёртка → PlexCron::run()
+- ✅ `includes/cli/plex_item.php` — тонкая обёртка → PlexItem::run()
+- ✅ Все 5 классов зарегистрированы в autoload.php
+- ✅ `admin/settings_plex.php` → modules/plex/views/ (контроллер + вынесенный view/scripts)
+- ✅ `admin/plex_add.php` → modules/plex/views/ (контроллер + общие view/scripts)
+- ✅ `admin/plex.php` → modules/plex/views/ (контроллер + список вынесен в view)
+- ✅ `config/plex/` → modules/plex/config/
+
+**Осталось:** —
 
 #### Шаг 5.2 — modules/watch/
-```
-API::editWatchSettings()      → modules/watch/WatchService.php
-API::processWatchFolder()     →
-API::scheduleRecording()      → modules/watch/RecordingService.php
-admin.php::getWatchFolders()  →
-admin.php::getWatchCategories() →
-admin.php::forceWatch()       →
-admin.php::getRecordings()    →
-admin.php::deleteRecording()  →
-admin/settings_watch.php      → modules/watch/views/
-admin/watch.php               →
-admin/watch_add.php           →
-admin/watch_output.php        →
-admin/record.php              →
-crons/watch.php               → modules/watch/WatchCron.php
-includes/cli/watch_item.php   →
-```
+- ✅ `API::editWatchSettings()` → modules/watch/WatchService.php
+- ✅ `API::processWatchFolder()` → modules/watch/WatchService.php
+- ✅ `API::scheduleRecording()` → modules/watch/RecordingService.php
+- ✅ `admin.php::getWatchFolders()` → modules/watch/WatchController.php
+- ✅ `admin.php::getWatchCategories()` → modules/watch/WatchController.php
+- ✅ `admin.php::forceWatch()` → modules/watch/WatchController.php
+- ✅ `admin.php::getRecordings()` → modules/watch/WatchController.php
+- ✅ `admin.php::deleteRecording()` → modules/watch/WatchController.php
+- ✅ `admin/settings_watch.php` → modules/watch/views/ (thin wrapper + view/scripts)
+- ✅ `admin/watch.php` → modules/watch/views/ (thin wrapper + view/scripts)
+- ✅ `admin/watch_add.php` → modules/watch/views/ (thin wrapper + view/scripts)
+- ✅ `admin/watch_output.php` → modules/watch/views/ (thin wrapper + view/scripts)
+- ✅ `admin/record.php` → modules/watch/views/ (thin wrapper + view/scripts)
+- ✅ `crons/watch.php` → modules/watch/WatchCron.php (entry point + extracted class)
+- ✅ `includes/cli/watch_item.php` → modules/watch/WatchItem.php (entry point + extracted class)
+- ✅ `WatchModule::registerCrons()` wired to WatchCron
+
+**Осталось:** —
 
 #### Шаг 5.3 — modules/tmdb/
-```
-admin.php::getMovieTMDB()   → modules/tmdb/TmdbService.php
-admin.php::getSeriesTMDB()  →
-admin.php::getSeasonTMDB()  →
-includes/libs/TMDb/         → modules/tmdb/lib/
-crons/tmdb.php              → modules/tmdb/TmdbCron.php
-crons/tmdb_popular.php      →
-```
+- ✅ `admin/api.php::tmdb_search` → modules/tmdb/TmdbService.php (search)
+- ✅ `admin/api.php::tmdb` → modules/tmdb/TmdbService.php (getDetails)
+- ✅ `crons/tmdb.php` → modules/tmdb/TmdbCron.php (entry point + extracted class)
+- ✅ `crons/tmdb_popular.php` → modules/tmdb/TmdbPopularCron.php (entry point + extracted class)
+- ✅ `TmdbModule.php` — registerCrons() wired (TmdbCron + TmdbPopularCron)
+- ✅ `includes/libs/TMDb/` → modules/tmdb/lib.php (proxy loader, lib stays in place)
+
+**Осталось:** —
 
 #### Шаг 5.4 — modules/ministra/
-```
-ministra/portal.php (2155 строк) → modules/ministra/PortalHandler.php
-ministra/*.js                     → modules/ministra/assets/
-```
+- ✅ `ministra/portal.php` (2156 строк) → PortalHandler.php (15 статических обработчиков, ~1345 строк)
+- ✅ `ministra/portal.php` helper functions → PortalHelpers.php (19 статических методов, ~860 строк)
+- ✅ `MinistraModule.php` — точка входа модуля (standalone endpoint, без cron/routes)
+- ✅ `ministra/portal.php` → тонкая обёртка: init/auth → PortalHandler (269 строк + хелперы + комментированный оригинал)
+- 🔲 `ministra/*.js` → modules/ministra/assets/ (JS-файлы портала — отложено)
+
+**Осталось:** JS-ассеты (отложено до Фазы 6)
 
 #### Шаг 5.5 — modules/fingerprint/ + modules/theft-detection/ + modules/magscan/
+- ✅ `FingerprintModule.php` — модуль Fingerprint Stream (выбор потока + наложение текста + таблица активности)
+- ✅ `TheftDetectionModule.php` — модуль обнаружения кражи VOD (таблица просмотров, данные из cache_engine)
+- ✅ `MagscanModule.php` — модуль настроек MAGSCAN (белые/чёрные списки MAC + IP)
+- ✅ `module.json` × 3 — метаданные модулей
+- ✅ `config/modules.php` — все 3 модуля раскомментированы и включены
+
+**Источники:**
 ```
-admin/fingerprint.php      → modules/fingerprint/
-admin/theft_detection.php  → modules/theft-detection/
-admin/magscan_settings.php → modules/magscan/
+admin/fingerprint.php (330 стр.) — UI-страница, API: fingerprint + line_activity
+admin/theft_detection.php (239 стр.) — UI-страница, данные: CACHE_TMP_PATH/theft_detection
+admin/magscan_settings.php (301 стр.) — UI-страница, POST: submit_magscan
 ```
 
 #### Шаг 5.6 — ModuleInterface + загрузчик модулей
-```
-Новый файл → core/Module/ModuleInterface.php
-Новый файл → core/Module/ModuleLoader.php
-Новый файл → config/modules.php
-```
+- ✅ `core/Module/ModuleInterface.php` — контракт модуля (111 строк): getName, getVersion, boot, registerRoutes, registerCrons, getEventSubscribers
+- ✅ `core/Module/ModuleLoader.php` — загрузчик модулей (243 строки): loadAll, load, checkDependencies, isLoaded, getModule
+- ✅ `config/modules.php` — конфигурация модулей: plex, watch, fingerprint, theft-detection, magscan (enabled), tmdb, ministra (commented)
+
+---
+
+#### Аудит Фазы 5 ✅
+Проведена полная проверка всех файлов Фазы 5. Найдено и исправлено:
+- **КРИТИЧЕСКОЕ**: `Thread`/`Multithread` дублировались в 3 файлах (PlexCron, WatchCron, cache_engine) → вынесены в `core/Process/Thread.php` + `core/Process/Multithread.php`, все 3 файла переведены на `require_once`
+- **autoload.php**: добавлены 14 отсутствующих записей (WatchCron, WatchItem, Tmdb*, Ministra*, Fingerprint*, TheftDetection*, Magscan*, Thread, Multithread)
+- **module.json**: созданы для `tmdb` и `ministra` (отсутствовали)
+- **config/modules.php**: `tmdb` и `ministra` раскомментированы и включены (были `enabled => false`)
 
 ---
 

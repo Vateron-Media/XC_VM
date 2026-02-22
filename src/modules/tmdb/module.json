@@ -1,0 +1,7 @@
+{
+    "name": "tmdb",
+    "version": "1.0.0",
+    "description": "TMDB (The Movie Database) integration for metadata fetching",
+    "requires_core": ">=2.0",
+    "dependencies": []
+}

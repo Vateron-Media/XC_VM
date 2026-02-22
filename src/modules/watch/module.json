@@ -1,0 +1,7 @@
+{
+    "name": "watch",
+    "version": "1.0.0",
+    "description": "Watch Folder / Recording (DVR) module",
+    "requires_core": ">=2.0",
+    "dependencies": []
+}
