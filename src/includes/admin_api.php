@@ -2854,99 +2854,18 @@ class API {
 	}
 
 	public static function editPlexSettings($rData) {
-		if (self::checkMinimumRequirements($rData)) {
-			foreach ($rData as $rKey => $rValue) {
-				$rSplit = explode('_', $rKey);
-
-				if ($rSplit[0] != 'genre') {
-				} else {
-					if (isset($rData['bouquet_' . $rSplit[1]])) {
-						$rBouquets = '[' . implode(',', array_map('intval', $rData['bouquet_' . $rSplit[1]])) . ']';
-					} else {
-						$rBouquets = '[]';
-					}
-
-					self::$db->query('UPDATE `watch_categories` SET `category_id` = ?, `bouquets` = ? WHERE `genre_id` = ? AND `type` = 3;', $rValue, $rBouquets, $rSplit[1]);
-				}
-			}
-
-			foreach ($rData as $rKey => $rValue) {
-				$rSplit = explode('_', $rKey);
-
-				if ($rSplit[0] != 'genretv') {
-				} else {
-					if (isset($rData['bouquettv_' . $rSplit[1]])) {
-						$rBouquets = '[' . implode(',', array_map('intval', $rData['bouquettv_' . $rSplit[1]])) . ']';
-					} else {
-						$rBouquets = '[]';
-					}
-
-					self::$db->query('UPDATE `watch_categories` SET `category_id` = ?, `bouquets` = ? WHERE `genre_id` = ? AND `type` = 4;', $rValue, $rBouquets, $rSplit[1]);
-				}
-			}
-			self::$db->query('UPDATE `settings` SET `scan_seconds` = ?, `max_genres` = ?, `thread_count_movie` = ?, `thread_count_show` = ?;', $rData['scan_seconds'], $rData['max_genres'], $rData['thread_count_movie'], $rData['thread_count_show']);
-			clearSettingsCache();
-
-			return array('status' => STATUS_SUCCESS);
-		} else {
-
-
-
+		if (!self::checkMinimumRequirements($rData)) {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
+		return PlexService::editPlexSettings(self::$db, $rData, 'clearSettingsCache');
 	}
 
 	public static function editWatchSettings($rData) {
-		if (self::checkMinimumRequirements($rData)) {
-			foreach ($rData as $rKey => $rValue) {
-				$rSplit = explode('_', $rKey);
-
-				if ($rSplit[0] != 'genre') {
-				} else {
-					if (isset($rData['bouquet_' . $rSplit[1]])) {
-						$rBouquets = '[' . implode(',', array_map('intval', $rData['bouquet_' . $rSplit[1]])) . ']';
-					} else {
-						$rBouquets = '[]';
-					}
-
-					self::$db->query('UPDATE `watch_categories` SET `category_id` = ?, `bouquets` = ? WHERE `genre_id` = ? AND `type` = 1;', $rValue, $rBouquets, $rSplit[1]);
-				}
-			}
-
-			foreach ($rData as $rKey => $rValue) {
-				$rSplit = explode('_', $rKey);
-
-				if ($rSplit[0] != 'genretv') {
-				} else {
-					if (isset($rData['bouquettv_' . $rSplit[1]])) {
-						$rBouquets = '[' . implode(',', array_map('intval', $rData['bouquettv_' . $rSplit[1]])) . ']';
-					} else {
-						$rBouquets = '[]';
-					}
-
-					self::$db->query('UPDATE `watch_categories` SET `category_id` = ?, `bouquets` = ? WHERE `genre_id` = ? AND `type` = 2;', $rValue, $rBouquets, $rSplit[1]);
-				}
-			}
-
-			if (isset($rData['alternative_titles'])) {
-				$rAltTitles = true;
-			} else {
-				$rAltTitles = false;
-			}
-
-			if (isset($rData['fallback_parser'])) {
-				$rFallbackParser = true;
-			} else {
-				$rFallbackParser = false;
-			}
-
-			self::$db->query('UPDATE `settings` SET `percentage_match` = ?, `scan_seconds` = ?, `thread_count` = ?, `max_genres` = ?, `max_items` = ?, `alternative_titles` = ?, `fallback_parser` = ?;', $rData['percentage_match'], $rData['scan_seconds'], $rData['thread_count'], $rData['max_genres'], $rData['max_items'], $rAltTitles, $rFallbackParser);
-			clearSettingsCache();
-
-			return array('status' => STATUS_SUCCESS);
-		} else {
+		if (!self::checkMinimumRequirements($rData)) {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
+
+		return WatchService::editWatchSettings(self::$db, $rData, 'clearSettingsCache');
 	}
 
 	public static function massEditStreams($rData) {
@@ -3030,144 +2949,18 @@ class API {
 	}
 
 	public static function processPlexSync($rData) {
-		if (self::checkMinimumRequirements($rData)) {
-			if (isset($rData['edit'])) {
-				$rArray = overwriteData(getWatchFolder($rData['edit']), $rData);
-			} else {
-				$rArray = verifyPostTable('watch_folders', $rData);
-				unset($rArray['id']);
-			}
-
-			if (is_array($rData['server_id'])) {
-				$rServers = $rData['server_id'];
-				$rArray['server_id'] = intval(array_shift($rServers));
-				$rArray['server_add'] = '[' . implode(',', array_map('intval', $rServers)) . ']';
-			} else {
-				$rArray['server_id'] = intval($rData['server_id']);
-				$rArray['server_add'] = null;
-			}
-
-			if (isset($rData['edit'])) {
-				self::$db->query('SELECT COUNT(*) AS `count` FROM `watch_folders` WHERE `directory` = ? AND `server_id` = ? AND `plex_ip` = ? AND `id` <> ?;', $rData['library_id'], $rArray['server_id'], $rData['plex_ip'], $rArray['id']);
-			} else {
-				self::$db->query('SELECT COUNT(*) AS `count` FROM `watch_folders` WHERE `directory` = ? AND `server_id` = ? AND `plex_ip` = ?;', $rData['library_id'], $rArray['server_id'], $rData['plex_ip']);
-			}
-
-			if (0 >= self::$db->get_row()['count']) {
-				$rArray['type'] = 'plex';
-				$rArray['directory'] = $rData['library_id'];
-				$rArray['plex_ip'] = $rData['plex_ip'];
-				$rArray['plex_port'] = $rData['plex_port'];
-				$rArray['plex_libraries'] = $rData['libraries'];
-				$rArray['plex_username'] = $rData['username'];
-
-				if (isset($rData['direct_proxy'])) {
-					$rArray['direct_proxy'] = 1;
-				} else {
-					$rArray['direct_proxy'] = 0;
-				}
-
-				if (0 >= strlen($rData['password'])) {
-				} else {
-					$rArray['plex_password'] = $rData['password'];
-				}
-
-				foreach (array('remove_subtitles', 'check_tmdb', 'store_categories', 'scan_missing', 'auto_upgrade', 'read_native', 'movie_symlink', 'auto_encode', 'active') as $rKey) {
-					if (isset($rData[$rKey])) {
-						$rArray[$rKey] = 1;
-					} else {
-						$rArray[$rKey] = 0;
-					}
-				}
-				$overrideBouquets = $rData['override_bouquets'] ?? [];
-				$fallbackBouquets = $rData['fallback_bouquets'] ?? [];
-
-				$rArray['category_id'] = intval($rData['override_category']);
-				$rArray['fb_category_id'] = intval($rData['fallback_category']);
-				$rArray['bouquets'] = '[' . implode(',', array_map('intval', $overrideBouquets)) . ']';
-				$rArray['fb_bouquets'] = '[' . implode(',', array_map('intval', $fallbackBouquets)) . ']';
-				$rArray['target_container'] = ($rData['target_container'] == 'auto' ? null : $rData['target_container']);
-				$rPrepare = prepareArray($rArray);
-				$rQuery = 'REPLACE INTO `watch_folders`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-
-				if (self::$db->query($rQuery, ...$rPrepare['data'])) {
-					$rInsertID = self::$db->last_insert_id();
-
-					return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
-				}
-
-				return array('status' => STATUS_FAILURE, 'data' => $rData);
-			} else {
-				return array('status' => STATUS_EXISTS_DIR, 'data' => $rData);
-			}
-		} else {
+		if (!self::checkMinimumRequirements($rData)) {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
+		return PlexService::processPlexSync(self::$db, $rData, 'getWatchFolder');
 	}
 
 	public static function processWatchFolder($rData) {
-		if (self::checkMinimumRequirements($rData)) {
-			if (isset($rData['edit'])) {
-				$rArray = overwriteData(getWatchFolder($rData['edit']), $rData);
-			} else {
-				$rArray = verifyPostTable('watch_folders', $rData);
-				unset($rArray['id']);
-			}
-
-			$rPath = $rData['selected_path'];
-
-			if (0 < strlen($rPath) && $rPath != '/') {
-				if (isset($rData['edit'])) {
-					self::$db->query('SELECT COUNT(*) AS `count` FROM `watch_folders` WHERE `directory` = ? AND `server_id` = ? AND `type` = ? AND `id` <> ?;', $rPath, $rArray['server_id'], $rData['folder_type'], $rArray['id']);
-				} else {
-					self::$db->query('SELECT COUNT(*) AS `count` FROM `watch_folders` WHERE `directory` = ? AND `server_id` = ? AND `type` = ?;', $rPath, $rArray['server_id'], $rData['folder_type']);
-				}
-
-				if (0 >= self::$db->get_row()['count']) {
-					$bouquets = is_array($rData['bouquets'] ?? null) ? $rData['bouquets'] : [];
-					$fbBouquets = is_array($rData['fb_bouquets'] ?? null) ? $rData['fb_bouquets'] : [];
-
-					$rArray['type'] = $rData['folder_type'];
-					$rArray['directory'] = $rPath;
-					$rArray['bouquets'] = '[' . implode(',', array_map('intval', $bouquets)) . ']';
-					$rArray['fb_bouquets'] = '[' . implode(',', array_map('intval', $fbBouquets)) . ']';
-
-					if (is_array($rData['allowed_extensions'] ?? null) && count($rData['allowed_extensions']) > 0) {
-						$rArray['allowed_extensions'] = json_encode($rData['allowed_extensions']);
-					} else {
-						$rArray['allowed_extensions'] = '[]';
-					}
-
-					$rArray['target_container'] = ($rData['target_container'] == 'auto' ? null : $rData['target_container']);
-					$rArray['category_id'] = intval($rData['category_id_' . $rData['folder_type']]);
-					$rArray['fb_category_id'] = intval($rData['fb_category_id_' . $rData['folder_type']]);
-
-					foreach (array('remove_subtitles', 'duplicate_tmdb', 'extract_metadata', 'fallback_title', 'disable_tmdb', 'ignore_no_match', 'auto_subtitles', 'auto_upgrade', 'read_native', 'movie_symlink', 'auto_encode', 'ffprobe_input', 'active') as $rKey) {
-						if (isset($rData[$rKey])) {
-							$rArray[$rKey] = 1;
-						} else {
-							$rArray[$rKey] = 0;
-						}
-					}
-					$rPrepare = prepareArray($rArray);
-					$rQuery = 'REPLACE INTO `watch_folders`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-
-					if (self::$db->query($rQuery, ...$rPrepare['data'])) {
-						$rInsertID = self::$db->last_insert_id();
-
-						return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
-					}
-
-					return array('status' => STATUS_FAILURE, 'data' => $rData);
-				} else {
-					return array('status' => STATUS_EXISTS_DIR, 'data' => $rData);
-				}
-			} else {
-				return array('status' => STATUS_INVALID_DIR, 'data' => $rData);
-			}
-		} else {
+		if (!self::checkMinimumRequirements($rData)) {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
+
+		return WatchService::processWatchFolder(self::$db, $rData, 'getWatchFolder');
 	}
 
 	public static function massEditLines($rData) {
@@ -3872,40 +3665,13 @@ class API {
 	}
 
 	public static function scheduleRecording($rData) {
-		if (self::checkMinimumRequirements($rData)) {
-			if (hasPermissions('adv', 'add_stream')) {
-
-
-				if (!empty($rData['title'])) {
-
-
-					if (!empty($rData['source_id'])) {
-
-
-						$rArray = verifyPostTable('recordings', $rData);
-						$rArray['bouquets'] = '[' . implode(',', array_map('intval', $rData['bouquets'])) . ']';
-						$rArray['category_id'] = '[' . implode(',', array_map('intval', $rData['category_id'])) . ']';
-						$rPrepare = prepareArray($rArray);
-						$rQuery = 'REPLACE INTO `recordings`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-
-						if (self::$db->query($rQuery, ...$rPrepare['data'])) {
-							$rInsertID = self::$db->last_insert_id();
-
-							return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
-						}
-
-						return array('status' => STATUS_FAILURE, 'data' => $rData);
-					}
-
-					return array('status' => STATUS_NO_SOURCE);
-				}
-
-				return array('status' => STATUS_NO_TITLE);
-			}
-
+		if (!self::checkMinimumRequirements($rData)) {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		}
+		if (!hasPermissions('adv', 'add_stream')) {
 			exit();
 		}
 
-		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		return RecordingService::schedule(self::$db, $rData);
 	}
 }

@@ -1,0 +1,7 @@
+{
+    "name": "ministra",
+    "version": "1.0.0",
+    "description": "Ministra (Stalker Portal) for MAG STB devices",
+    "requires_core": ">=2.0",
+    "dependencies": []
+}
