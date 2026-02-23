@@ -7,121 +7,11 @@ header('Pragma: no-cache');
 $rReqType = (!empty($_REQUEST['type']) ? $_REQUEST['type'] : null);
 $rReqAction = (!empty($_REQUEST['action']) ? $_REQUEST['action'] : null);
 
-if ($rReqType && $rReqAction) {
-	switch ($rReqType) {
-		case 'stb':
-			switch ($rReqAction) {
-				case 'get_ad':
-					exit(json_encode(array('js' => array())));
+require __DIR__ . '/../modules/ministra/PortalHandler.php';
 
-				case 'get_storages':
-					exit(json_encode(array('js' => array())));
+// Phase 1: Pre-init stub responses (no DB needed)
+PortalHandler::handlePreInit($rReqType, $rReqAction);
 
-				case 'log':
-					exit(json_encode(array('js' => true)));
-
-				case 'get_countries':
-					exit(json_encode(array('js' => array())));
-
-				case 'get_timezones':
-					exit(json_encode(array('js' => array())));
-
-				case 'get_cities':
-					exit(json_encode(array('js' => array())));
-
-				case 'search_cities':
-					exit(json_encode(array('js' => array())));
-			}
-
-			break;
-
-		case 'remote_pvr':
-			switch ($rReqAction) {
-				case 'start_record_on_stb':
-					exit(json_encode(array('js' => true)));
-
-				case 'stop_record_on_stb':
-					exit(json_encode(array('js' => true)));
-
-				case 'get_active_recordings':
-					exit(json_encode(array('js' => array())));
-			}
-
-			break;
-
-		case 'media_favorites':
-			exit(json_encode(array('js' => '')));
-
-		case 'tvreminder':
-			exit(json_encode(array('js' => array())));
-
-		case 'series':
-		case 'vod':
-			switch ($rReqAction) {
-				case 'set_not_ended':
-					exit(json_encode(array('js' => true)));
-
-				case 'del_link':
-					exit(json_encode(array('js' => true)));
-
-				case 'log':
-					exit(json_encode(array('js' => 1)));
-			}
-
-			break;
-
-		case 'downloads':
-			exit(json_encode(array('js' => true)));
-
-		case 'weatherco':
-			exit(json_encode(array('js' => false)));
-
-		case 'course':
-			exit(json_encode(array('js' => true)));
-
-		case 'account_info':
-			switch ($rReqAction) {
-				case 'get_terms_info':
-					exit(json_encode(array('js' => true)));
-
-				case 'get_payment_info':
-					exit(json_encode(array('js' => true)));
-
-				case 'get_demo_video_parts':
-					exit(json_encode(array('js' => true)));
-
-				case 'get_agreement_info':
-					exit(json_encode(array('js' => true)));
-			}
-
-			break;
-
-		case 'tv_archive':
-			switch ($rReqAction) {
-				case 'set_played_timeshift':
-					exit(json_encode(array('js' => true)));
-
-				case 'set_played':
-					exit(json_encode(array('js' => true)));
-
-				case 'update_played_timeshift_end_time':
-					exit(json_encode(array('js' => true)));
-			}
-
-			break;
-
-		case 'itv':
-			switch ($rReqAction) {
-				case 'set_fav_status':
-					exit(json_encode(array('js' => array())));
-
-				case 'set_played':
-					exit(json_encode(array('js' => true)));
-			}
-
-			break;
-	}
-}
 register_shutdown_function('shutdown');
 require '/home/xc_vm/www/stream/init.php';
 
@@ -339,10 +229,46 @@ if (!StreamingUtilities::$rSettings['disable_ministra']) {
 			$rLanguage['en_GB.utf8']['off'] = 'off';
 		}
 
-		switch ($rReqType) {
-			case 'stb':
-				switch ($rReqAction) {
-					case 'get_profile':
+		// Build context for PortalHandler
+		$ctx = [
+			'device'        => &$rDevice,
+			'profile'       => $rProfile,
+			'language'      => $rLanguage,
+			'magData'       => $rMagData,
+			'locales'       => $rLocales,
+			'timezone'      => $rTimezone,
+			'theme'         => $rTheme,
+			'pageItems'     => $rPageItems,
+			'forceProtocol' => $rForceProtocol,
+			'player'        => '',
+			'mac'           => $rMAC,
+			'ip'            => $rIP,
+			'authenticated' => $rAuthenticated,
+			'gMode'         => $rGMode,
+			'debug'         => $rDebug,
+		];
+
+		// Phase 4: Unauthenticated STB actions (get_profile, get_localization, get_modules)
+		if ($rReqType == 'stb') {
+			PortalHandler::handleStbPublic($rReqAction, $ctx);
+		}
+
+		// Phase 5: Authenticated actions
+		if ($rAuthenticated) {
+			PortalHandler::handleAuthenticated($rReqType, $rReqAction, $ctx);
+		} else {
+			// Phase 6: Unauthenticated — bruteforce check
+			PortalHandler::handleUnauthenticated($rReqType, $rReqAction, $ctx);
+		}
+	} else {
+		// Phase 7: Handshake
+		PortalHandler::handleHandshake($rMAC);
+	}
+} else {
+	exit();
+}
+
+/* REPLACED BLOCK START — original dispatch code moved to PortalHandler.php
 						$rTotal = ($rAuthenticated ? array_merge($rProfile, $rDevice['get_profile_vars']) : $rProfile);
 						$rTotal['status'] = intval(!$rAuthenticated);
 						$rTotal['update_url'] = (empty(StreamingUtilities::$rSettings['update_url']) ? '' : StreamingUtilities::$rSettings['update_url']);
@@ -1375,6 +1301,7 @@ if (!StreamingUtilities::$rSettings['disable_ministra']) {
 } else {
 	exit();
 }
+REPLACED BLOCK END */
 
 function getSeriesItems($rUserID, $rType = 'series', $rCategoryID = null, $rFav = null, $rOrderBy = null, $rSearchBy = null, $rPicking = array()) {
 	global $rDevice;

@@ -235,58 +235,17 @@ function getTranscodeProfiles() {
 
 function getWatchFolders($rType = null) {
 	global $db;
-	$rReturn = array();
-
-	if ($rType) {
-		$db->query("SELECT * FROM `watch_folders` WHERE `type` = ? AND `type` <> 'plex' ORDER BY `id` ASC;", $rType);
-	} else {
-
-		$db->query("SELECT * FROM `watch_folders` WHERE `type` <> 'plex' ORDER BY `id` ASC;");
-	}
-
-	if (0 >= $db->num_rows()) {
-	} else {
-		foreach ($db->get_rows() as $rRow) {
-			$rReturn[] = $rRow;
-		}
-	}
-
-	return $rReturn;
+	return WatchService::getWatchFolders($db, $rType);
 }
 
 function getPlexServers() {
 	global $db;
-	$rReturn = array();
-	$db->query("SELECT * FROM `watch_folders` WHERE `type` = 'plex' ORDER BY `id` ASC;");
-
-	if (0 >= $db->num_rows()) {
-	} else {
-		foreach ($db->get_rows() as $rRow) {
-			$rReturn[] = $rRow;
-		}
-	}
-
-	return $rReturn;
+	return PlexRepository::getPlexServers($db);
 }
 
 function getWatchCategories($rType = null) {
 	global $db;
-	$rReturn = array();
-
-	if ($rType) {
-		$db->query('SELECT * FROM `watch_categories` WHERE `type` = ? ORDER BY `genre_id` ASC;', $rType);
-	} else {
-		$db->query('SELECT * FROM `watch_categories` ORDER BY `genre_id` ASC;');
-	}
-
-	if (0 >= $db->num_rows()) {
-	} else {
-		foreach ($db->get_rows() as $rRow) {
-			$rReturn[$rRow['genre_id']] = $rRow;
-		}
-	}
-
-	return $rReturn;
+	return WatchService::getWatchCategories($db, $rType);
 }
 
 function syncDevices($rUserID, $rDeviceID = null) {
@@ -370,18 +329,7 @@ function getArchive($rStreamID) {
 }
 
 function getPlexSections($rIP, $rPort, $rToken) {
-	$URL = 'http://' . $rIP . ':' . $rPort . '/library/sections?X-Plex-Token=' . $rToken;
-	$rSections = json_decode(json_encode(simplexml_load_string(file_get_contents($URL))), true);
-
-	if (!isset($rSections['Directory'])) {
-		return array();
-	}
-
-	if (isset($rSections['Directory']['@attributes'])) {
-		$rSections['Directory'] = array($rSections['Directory']);
-	}
-
-	return $rSections['Directory'];
+	return PlexRepository::getPlexSections($rIP, $rPort, $rToken);
 }
 
 function getMovieTMDB($rID) {
@@ -1755,16 +1703,7 @@ function restoreImages() {
 
 function killWatchFolder() {
 	global $db;
-	$db->query("SELECT DISTINCT(`server_id`) AS `server_id` FROM `watch_folders` WHERE `active` = 11 AND `type` <> 'plex';");
-
-	foreach ($db->get_rows() as $rRow) {
-		if (!CoreUtilities::$rServers[$rRow['server_id']]['server_online']) {
-		} else {
-			systemapirequest($rRow['server_id'], array('action' => 'kill_watch'));
-		}
-	}
-
-	return true;
+	return WatchService::killWatch($db);
 }
 
 function killPlexSync() {
@@ -3243,32 +3182,12 @@ function getEncodeErrors($rID) {
 
 function deleteRecording($rID) {
 	global $db;
-	$db->query('SELECT `created_id`, `source_id` FROM `recordings` WHERE `id` = ?;', $rID);
-
-	if (0 >= $db->num_rows()) {
-	} else {
-		$rRecording = $db->get_row();
-
-		if (!$rRecording['created_id']) {
-		} else {
-			deleteStream($rRecording['created_id'], $rRecording['source_id'], true, true);
-		}
-
-		shell_exec("kill -9 `ps -ef | grep 'Record\\[" . intval($rID) . "\\]' | grep -v grep | awk '{print \$2}'`;");
-		$db->query('DELETE FROM `recordings` WHERE `id` = ?;', $rID);
-	}
+	return WatchService::deleteRecording($db, $rID, 'deleteStream');
 }
 
 function getRecordings() {
 	global $db;
-	$rRecordings = array();
-	$db->query('SELECT * FROM `recordings` ORDER BY `id` DESC;');
-
-	foreach ($db->get_rows() as $rRow) {
-		$rRecordings[] = $rRow;
-	}
-
-	return $rRecordings;
+	return WatchService::getRecordings($db);
 }
 
 function issecure() {
@@ -3340,17 +3259,7 @@ function getSSLLog($rServerID) {
 
 function getWatchdog($rID, $rLimit = 86400) {
 	global $db;
-	$rReturn = array();
-	$db->query('SELECT * FROM `servers_stats` WHERE `server_id` = ? AND UNIX_TIMESTAMP() - `time` <= ? ORDER BY `time` DESC;', $rID, $rLimit);
-
-	if (0 >= $db->num_rows()) {
-	} else {
-		foreach ($db->get_rows() as $rRow) {
-			$rReturn[] = $rRow;
-		}
-	}
-
-	return $rReturn;
+	return WatchdogMonitor::getWatchdog($db, $rID, $rLimit);
 }
 
 function getMemberGroup($rID) {
@@ -3499,11 +3408,11 @@ function convertToCSV($rData) {
 }
 
 function forceWatch($rServerID, $rWatchID) {
-	systemapirequest($rServerID, array('action' => 'watch_force', 'id' => $rWatchID));
+	WatchService::forceWatch($rServerID, $rWatchID);
 }
 
 function forcePlex($rServerID, $rPlexID) {
-	systemapirequest($rServerID, array('action' => 'plex_force', 'id' => $rPlexID));
+	PlexService::forcePlex($rServerID, $rPlexID, 'systemapirequest');
 }
 
 function freeTemp($rServerID) {

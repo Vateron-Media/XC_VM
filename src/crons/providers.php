@@ -58,9 +58,10 @@ function loadCron() {
         $rInfo = readurl($rURL);
         if ($rInfo) {
             $rStatus = 1;
-            $rArray['max_connections'] = $rInfo['user_info']['max_connections'];
-            $rArray['active_connections'] = $rInfo['user_info']['active_cons'];
-            $rArray['exp_date'] = $rInfo['user_info']['exp_date'];
+            $rUserInfo = $rInfo['user_info'] ?? [];
+            $rArray['max_connections'] = $rUserInfo['max_connections'] ?? null;
+            $rArray['active_connections'] = $rUserInfo['active_cons'] ?? 0;
+            $rArray['exp_date'] = $rUserInfo['exp_date'] ?? null;
         } else {
             $rStatus = 0;
             $rArray['exp_date'] = ($rRow['exp_date'] ?: -1);
