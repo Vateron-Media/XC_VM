@@ -348,6 +348,69 @@ class XC_Autoloader {
             'FileLogger'            => $base . 'core/Logging/FileLogger.php',
             'DatabaseLogger'        => $base . 'core/Logging/DatabaseLogger.php',
             'RedisManager'          => $base . 'infrastructure/redis/RedisManager.php',
+            'StreamAuth'            => $base . 'streaming/Auth/StreamAuth.php',
+            'TokenAuth'             => $base . 'streaming/Auth/TokenAuth.php',
+            'DeviceLock'            => $base . 'streaming/Auth/DeviceLock.php',
+            'ConnectionLimiter'     => $base . 'streaming/Protection/ConnectionLimiter.php',
+            'StreamRedirector'      => $base . 'streaming/Delivery/StreamRedirector.php',
+            'OffAirHandler'         => $base . 'streaming/Delivery/OffAirHandler.php',
+            'HLSGenerator'          => $base . 'streaming/Delivery/HLSGenerator.php',
+            'SegmentReader'         => $base . 'streaming/Delivery/SegmentReader.php',
+            'SignalSender'          => $base . 'streaming/Delivery/SignalSender.php',
+            'ProxySelector'         => $base . 'streaming/Balancer/ProxySelector.php',
+            'FFprobeRunner'         => $base . 'streaming/Codec/FFprobeRunner.php',
+            'FFmpegCommand'         => $base . 'streaming/Codec/FFmpegCommand.php',
+            'SubtitleExtractor'     => $base . 'streaming/Codec/SubtitleExtractor.php',
+            'HealthChecker'         => $base . 'streaming/Health/HealthChecker.php',
+            'ProcessChecker'        => $base . 'streaming/Health/ProcessChecker.php',
+            'WatchdogMonitor'       => $base . 'streaming/Health/WatchdogMonitor.php',
+            'StreamingBootstrap'    => $base . 'streaming/StreamingBootstrap.php',
+
+            // ── Ядро: HTTP Router + Module System ─────────────────
+            'Router'                => $base . 'core/Http/Router.php',
+            'ModuleInterface'       => $base . 'core/Module/ModuleInterface.php',
+            'ModuleLoader'          => $base . 'core/Module/ModuleLoader.php',
+
+            // ── Ядро: Process (Thread/Multithread) ────────────────
+            'Thread'                => $base . 'core/Process/Thread.php',
+            'Multithread'           => $base . 'core/Process/Multithread.php',
+
+            // ── Модуль: Plex ──────────────────────────────────────
+            'PlexAuth'              => $base . 'modules/plex/PlexAuth.php',
+            'PlexRepository'        => $base . 'modules/plex/PlexRepository.php',
+            'PlexService'           => $base . 'modules/plex/PlexService.php',
+            'PlexCron'              => $base . 'modules/plex/PlexCron.php',
+            'PlexItem'              => $base . 'modules/plex/PlexItem.php',
+            'PlexController'        => $base . 'modules/plex/PlexController.php',
+            'PlexModule'            => $base . 'modules/plex/PlexModule.php',
+
+            // ── Модуль: Watch ─────────────────────────────────────
+            'WatchService'          => $base . 'modules/watch/WatchService.php',
+            'RecordingService'      => $base . 'modules/watch/RecordingService.php',
+            'WatchController'       => $base . 'modules/watch/WatchController.php',
+            'WatchCron'             => $base . 'modules/watch/WatchCron.php',
+            'WatchItem'             => $base . 'modules/watch/WatchItem.php',
+            'WatchModule'           => $base . 'modules/watch/WatchModule.php',
+
+            // ── Модуль: TMDB ──────────────────────────────────────
+            'TmdbModule'            => $base . 'modules/tmdb/TmdbModule.php',
+            'TmdbService'           => $base . 'modules/tmdb/TmdbService.php',
+            'TmdbCron'              => $base . 'modules/tmdb/TmdbCron.php',
+            'TmdbPopularCron'       => $base . 'modules/tmdb/TmdbPopularCron.php',
+
+            // ── Модуль: Ministra ──────────────────────────────────
+            'MinistraModule'        => $base . 'modules/ministra/MinistraModule.php',
+            'PortalHandler'         => $base . 'modules/ministra/PortalHandler.php',
+            'PortalHelpers'         => $base . 'modules/ministra/PortalHelpers.php',
+
+            // ── Модуль: Fingerprint ───────────────────────────────
+            'FingerprintModule'     => $base . 'modules/fingerprint/FingerprintModule.php',
+
+            // ── Модуль: Theft Detection ───────────────────────────
+            'TheftDetectionModule'  => $base . 'modules/theft-detection/TheftDetectionModule.php',
+
+            // ── Модуль: MAGSCAN ───────────────────────────────────
+            'MagscanModule'         => $base . 'modules/magscan/MagscanModule.php',
 
             // ── Ядро (legacy) ─────────────────────────────────────
             'Database'              => $base . 'core/Database/Database.php',

@@ -13,7 +13,7 @@ if (defined('TMP_PATH')) {
 	define('TMP_PATH', '/home/xc_vm/tmp/');
 }
 
-if (session_status() != PHP_SESSION_NONE) {
+if (session_status() != PHP_SESSION_NONE || headers_sent()) {
 } else {
 	session_start();
 }
@@ -27,7 +27,7 @@ if (!(isset($_SESSION['hash']) && isset($_SESSION['last_activity']) && $rSession
 		}
 	}
 
-	if (session_status() !== PHP_SESSION_NONE) {
+	if (session_status() !== PHP_SESSION_NONE || headers_sent()) {
 	} else {
 		session_start();
 	}

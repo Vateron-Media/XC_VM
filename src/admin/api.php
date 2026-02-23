@@ -3122,7 +3122,7 @@ if (isset($_SESSION['hash'])) {
 		}
 		if (CoreUtilities::$rRequest['action'] == 'disable_watch') {
 			if (hasPermissions('adv', 'folder_watch_settings')) {
-				$db->query("UPDATE `watch_folders` SET `active` = 0 WHERE `type` <> 'plex';");
+				WatchService::disableWatch($db);
 				echo json_encode(array('result' => true));
 
 				exit();
@@ -3134,7 +3134,7 @@ if (isset($_SESSION['hash'])) {
 		}
 		if (CoreUtilities::$rRequest['action'] == 'enable_watch') {
 			if (hasPermissions('adv', 'folder_watch_settings')) {
-				$db->query("UPDATE `watch_folders` SET `active` = 1 WHERE `type` <> 'plex';");
+				WatchService::enableWatch($db);
 				echo json_encode(array('result' => true));
 
 				exit();
