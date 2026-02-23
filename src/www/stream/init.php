@@ -128,47 +128,6 @@ if (isset($rSettings['exit']) && $rFilename != 'status') {
 	generate404();
 }
 
-require_once INCLUDES_PATH . 'libs/AsyncFileOperations.php';
-require_once MAIN_HOME . 'core/Database/DatabaseHandler.php';
-
-switch ($rFilename) {
-	case 'probe':
-	case 'player_api':
-		require_once INCLUDES_PATH . 'StreamingUtilities.php';
-		StreamingUtilities::$rSettings = $rSettings;
-		StreamingUtilities::$rAccess = $rFilename;
-		StreamingUtilities::init(false);
-		$db = &StreamingUtilities::$db;
-
-		if ($rSettings['enable_cache']) {
-		} else {
-			StreamingUtilities::connectDatabase();
-			$db = &StreamingUtilities::$db;
-		}
-
-		break;
-
-	case 'live':
-	case 'thumb':
-	case 'subtitle':
-	case 'timeshift':
-	case 'vod':
-	case 'status':
-		require_once INCLUDES_PATH . 'StreamingUtilities.php';
-		StreamingUtilities::$rSettings = $rSettings;
-		StreamingUtilities::$rAccess = $rFilename;
-		StreamingUtilities::init(false);
-		$db = &StreamingUtilities::$db;
-
-		break;
-
-	case 'rtmp':
-	case 'portal':
-		require_once INCLUDES_PATH . 'StreamingUtilities.php';
-		StreamingUtilities::$rSettings = $rSettings;
-		StreamingUtilities::$rAccess = $rFilename;
-		StreamingUtilities::init();
-		$db = &StreamingUtilities::$db;
-
-		break;
+if (in_array($rFilename, array('probe', 'player_api', 'live', 'thumb', 'subtitle', 'timeshift', 'vod', 'status', 'rtmp', 'portal'))) {
+	$db = StreamingBootstrap::bootstrap($rFilename, $rSettings);
 }

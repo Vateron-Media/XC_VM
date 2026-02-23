@@ -1,0 +1,7 @@
+{
+    "name": "magscan",
+    "version": "1.0.0",
+    "description": "MAG device scanning whitelist/blacklist management",
+    "requires_core": ">=2.0",
+    "dependencies": []
+}

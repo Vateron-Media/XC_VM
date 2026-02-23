@@ -563,37 +563,10 @@ class CoreUtilities {
 		return $rOutput;
 	}
 	public static function isPIDsRunning($rServerIDS, $rPIDs, $rEXE) {
-		if (is_array($rServerIDS)) {
-		} else {
-			$rServerIDS = array(intval($rServerIDS));
-		}
-		$rPIDs = array_map('intval', $rPIDs);
-		$rOutput = array();
-		foreach ($rServerIDS as $rServerID) {
-			if (is_array(self::$rServers) && array_key_exists($rServerID, self::$rServers)) {
-				$rResponse = self::serverRequest($rServerID, self::$rServers[$rServerID]['api_url_ip'] . '&action=pidsAreRunning', array('program' => $rEXE, 'pids' => $rPIDs));
-				if ($rResponse) {
-					$rDecoded = json_decode($rResponse, true);
-					if (is_array($rDecoded)) {
-						$rOutput[$rServerID] = array_map('trim', $rDecoded);
-					} else {
-						$rOutput[$rServerID] = false;
-					}
-				} else {
-					$rOutput[$rServerID] = false;
-				}
-			}
-		}
-		return $rOutput;
+		return ProcessChecker::isPIDsRunning(self::$rServers, $rServerIDS, $rPIDs, $rEXE, array(self::class, 'serverRequest'));
 	}
 	public static function isPIDRunning($rServerID, $rPID, $rEXE) {
-		if (!is_null($rPID) && is_numeric($rPID) && is_array(self::$rServers) && array_key_exists($rServerID, self::$rServers)) {
-			if (!($rOutput = self::isPIDsRunning($rServerID, array($rPID), $rEXE))) {
-				return false;
-			}
-			return $rOutput[$rServerID][$rPID];
-		}
-		return false;
+		return ProcessChecker::isPIDRunning(self::$rServers, $rServerID, $rPID, $rEXE, array(self::class, 'isPIDsRunning'));
 	}
 	public static function serverRequest($rServerID, $rURL, $rPostData = array()) {
 		return CurlClient::serverRequest(self::$rServers, $rServerID, $rURL, $rPostData);
@@ -608,92 +581,22 @@ class CoreUtilities {
 		return StreamProcess::createChannel($rStreamID);
 	}
 	public static function createChannelItem($rStreamID, $rSource) {
-		return StreamProcess::createChannelItem(self::$db, self::$rSettings, self::$rServers, self::$rFFMPEG_CPU, self::$rFFMPEG_GPU, $rStreamID, $rSource);
+		return FFmpegCommand::createChannelItem(self::$db, self::$rSettings, self::$rServers, self::$rFFMPEG_CPU, self::$rFFMPEG_GPU, $rStreamID, $rSource);
 	}
 	public static function extractSubtitle($rStreamID, $rSourceURL, $rIndex) {
-		$rTimeout = 10;
-		$rCommand = 'timeout ' . $rTimeout . ' ' . self::$rFFMPEG_CPU . ' -y -nostdin -hide_banner -loglevel ' . ((self::$rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err -i "' . $rSourceURL . '" -map 0:s:' . intval($rIndex) . ' ' . VOD_PATH . intval($rStreamID) . '_' . intval($rIndex) . '.srt';
-		exec($rCommand, $rOutput);
-		if (file_exists(VOD_PATH . intval($rStreamID) . '_' . intval($rIndex) . '.srt')) {
-			if (filesize(VOD_PATH . intval($rStreamID) . '_' . intval($rIndex) . '.srt') != 0) {
-				return true;
-			}
-			unlink(VOD_PATH . intval($rStreamID) . '_' . intval($rIndex) . '.srt');
-			return false;
-		}
-		return false;
+		return SubtitleExtractor::extractSubtitle(self::$rFFMPEG_CPU, self::$rSettings, $rStreamID, $rSourceURL, $rIndex);
 	}
 	public static function probeStream($rSourceURL, $rFetchArguments = array(), $rPrepend = '', $rParse = true) {
-		$rAnalyseDuration = abs(intval(self::$rSettings['stream_max_analyze']));
-		$rProbesize = abs(intval(self::$rSettings['probesize']));
-		$rTimeout = intval($rAnalyseDuration / 1000000) + self::$rSettings['probe_extra_wait'];
-		if (!is_array($rFetchArguments)) {
-			$rFetchArguments = !empty($rFetchArguments) ? [$rFetchArguments] : [];
-		}
-		$rCommand = $rPrepend . 'timeout ' . $rTimeout . ' ' . self::$rFFPROBE . ' -probesize ' . $rProbesize . ' -analyzeduration ' . $rAnalyseDuration . ' ' . implode(' ', $rFetchArguments) . ' -i "' . $rSourceURL . '" -v quiet -print_format json -show_streams -show_format';
-		exec($rCommand, $rReturn);
-		$result = implode("\n", $rReturn);
-		if ($rParse) {
-			return self::parseFFProbe(json_decode($result, true));
-		}
-		return json_decode($result, true);
+		return FFprobeRunner::probeStream(self::$rSettings, self::$rFFPROBE, $rSourceURL, $rFetchArguments, $rPrepend, $rParse, array(self::class, 'parseFFProbe'));
 	}
 	public static function parseFFProbe($rCodecs) {
-		if (empty($rCodecs)) {
-			return false;
-		}
-		if (empty($rCodecs['codecs'])) {
-			$rOutput = array();
-			$rOutput['codecs']['video'] = '';
-			$rOutput['codecs']['audio'] = '';
-			$rOutput['container'] = $rCodecs['format']['format_name'];
-			$rOutput['filename'] = $rCodecs['format']['filename'];
-			$rOutput['bitrate'] = (!empty($rCodecs['format']['bit_rate']) ? $rCodecs['format']['bit_rate'] : null);
-			$rOutput['of_duration'] = (!empty($rCodecs['format']['duration']) ? $rCodecs['format']['duration'] : 'N/A');
-			$rOutput['duration'] = (!empty($rCodecs['format']['duration']) ? gmdate('H:i:s', intval($rCodecs['format']['duration'])) : 'N/A');
-			foreach ($rCodecs['streams'] as $rCodec) {
-				if (isset($rCodec['codec_type']) && !($rCodec['codec_type'] != 'audio' && $rCodec['codec_type'] != 'video' && $rCodec['codec_type'] != 'subtitle')) {
-					if ($rCodec['codec_type'] == 'audio' || $rCodec['codec_type'] == 'video') {
-						if (!empty($rOutput['codecs'][$rCodec['codec_type']])) {
-						} else {
-							$rOutput['codecs'][$rCodec['codec_type']] = $rCodec;
-						}
-					} else {
-						if ($rCodec['codec_type'] != 'subtitle') {
-						} else {
-							if (isset($rOutput['codecs'][$rCodec['codec_type']])) {
-							} else {
-								$rOutput['codecs'][$rCodec['codec_type']] = array();
-							}
-							$rOutput['codecs'][$rCodec['codec_type']][] = $rCodec;
-						}
-					}
-				}
-			}
-			return $rOutput;
-		} else {
-			return $rCodecs;
-		}
+		return FFprobeRunner::parseFFProbe($rCodecs);
 	}
 	public static function stopStream($rStreamID, $rStop = false) {
 		StreamProcess::stopStream(self::$db, $rStreamID, $rStop);
 	}
 	public static function checkPID($rPID, $rSearch) {
-		if (is_array($rSearch)) {
-		} else {
-			$rSearch = array($rSearch);
-		}
-		if (!file_exists('/proc/' . $rPID)) {
-		} else {
-			$rCommand = trim(file_get_contents('/proc/' . $rPID . '/cmdline'));
-			foreach ($rSearch as $rTerm) {
-				if (!stristr($rCommand, $rTerm)) {
-				} else {
-					return true;
-				}
-			}
-		}
-		return false;
+		return ProcessChecker::checkPID($rPID, $rSearch);
 	}
 	public static function startMonitor($rStreamID, $rRestart = 0) {
 		return StreamProcess::startMonitor($rStreamID, $rRestart);
@@ -2254,38 +2157,7 @@ class CoreUtilities {
 	 * @return string|false The valid Plex token or false on failure
 	 */
 	public static function getPlexToken($plexIP = null, $plexPort = null, $plexUsername = null, $plexPassword = null) {
-		// Generate a unique cache key based on connection details and credentials
-		$serverKey = self::getPlexServerCacheKey($plexIP, $plexPort, $plexUsername, $plexPassword);
-
-		// 1. Try to retrieve token from file cache
-		$rToken = self::getCachedPlexToken($serverKey);
-		if ($rToken) {
-			// Even if cached, verify that the token is still valid on the server
-			$rToken = self::checkPlexToken($plexIP, $plexPort, $rToken);
-		}
-
-		// 2. If no valid token yet – perform a fresh login via plex.tv
-		if (!$rToken) {
-			echo "Plex token not found in cache or invalid, logging in for server {$plexIP}:{$plexPort}...\n";
-
-			$rData = self::getPlexLogin($plexUsername, $plexPassword);
-
-			if (isset($rData['user']['authToken'])) {
-				// Validate the freshly obtained token against the local server
-				$rToken = self::checkPlexToken($plexIP, $plexPort, $rData['user']['authToken']);
-
-				if ($rToken) {
-					// Cache the working token for future use
-					self::cachePlexToken($serverKey, $rToken);
-					echo "New Plex token successfully cached for key: $serverKey\n";
-				}
-			} else {
-				echo "Failed to login to Plex (wrong credentials or network issue)!\n";
-				$rToken = false;
-			}
-		}
-
-		return $rToken;
+		return PlexAuth::getPlexToken($plexIP, $plexPort, $plexUsername, $plexPassword);
 	}
 
 	/**
@@ -2299,12 +2171,7 @@ class CoreUtilities {
 	 * @return string MD5 hash used as cache filename
 	 */
 	public static function getPlexServerCacheKey($ip, $port, $username = null, $password = null) {
-		// Include credentials in the hash when provided – allows multiple accounts on same server
-		if ($username && $password) {
-			return md5($ip . ':' . $port . ':' . $username . ':' . $password);
-		}
-
-		return md5($ip . ':' . $port);
+		return PlexAuth::getPlexServerCacheKey($ip, $port, $username, $password);
 	}
 
 	/**
@@ -2315,26 +2182,7 @@ class CoreUtilities {
 	 * @return string|null Token string if valid and not near expiry, otherwise null
 	 */
 	public static function getCachedPlexToken($serverKey) {
-		$cacheFile = CONFIG_PATH . 'plex/plex_token_' . $serverKey . '.json';
-
-		if (!file_exists($cacheFile)) {
-			return null;
-		}
-
-		$data = json_decode(file_get_contents($cacheFile), true);
-
-		// Validate cache structure
-		if (!$data || !isset($data['token']) || !isset($data['expires'])) {
-			return null;
-		}
-
-		// If token will expire within the next 24 hours – treat it as expired and refresh
-		if ($data['expires'] < time() + 86400) {
-			@unlink($cacheFile); // Clean up almost-expired cache file
-			return null;
-		}
-
-		return $data['token'];
+		return PlexAuth::getCachedPlexToken($serverKey);
 	}
 
 	/**
@@ -2347,29 +2195,7 @@ class CoreUtilities {
 	 * @return array Response array from plex.tv (decoded JSON)
 	 */
 	public static function getPlexLogin($rUsername, $rPassword) {
-		$headers = [
-			'Content-Type: application/xml; charset=utf-8',
-			'X-Plex-Client-Identifier: 526e163c-8dbd-11eb-8dcd-0242ac130003',
-			'X-Plex-Product: XC_VM',
-			'X-Plex-Version: v' . XC_VM_VERSION
-		];
-
-		$ch = curl_init('https://plex.tv/users/sign_in.json');
-		curl_setopt_array($ch, [
-			CURLOPT_HTTPHEADER     => $headers,
-			CURLOPT_HEADER         => false,
-			CURLOPT_HTTPAUTH       => CURLAUTH_BASIC,
-			CURLOPT_USERPWD        => $rUsername . ':' . $rPassword,
-			CURLOPT_TIMEOUT        => 30,
-			CURLOPT_SSL_VERIFYPEER => false, // Note: consider enabling in production
-			CURLOPT_POST           => true,
-			CURLOPT_RETURNTRANSFER => true,
-		]);
-
-		$response = curl_exec($ch);
-		curl_close($ch);
-
-		return json_decode($response, true);
+		return PlexAuth::getPlexLogin($rUsername, $rPassword);
 	}
 
 	/**
@@ -2382,30 +2208,7 @@ class CoreUtilities {
 	 * @return string The same token if valid, empty string otherwise
 	 */
 	public static function checkPlexToken($rIP, $rPort, $rToken) {
-		$checkURL = 'http://' . $rIP . ':' . $rPort . '/myplex/account?X-Plex-Token=' . $rToken;
-
-		$ch = curl_init($checkURL);
-		curl_setopt_array($ch, [
-			CURLOPT_RETURNTRANSFER => true,
-			CURLOPT_CONNECTTIMEOUT => 10,
-			CURLOPT_TIMEOUT        => 10,
-			CURLOPT_SSL_VERIFYPEER => false, // Consider enabling with proper certs
-		]);
-
-		$data = curl_exec($ch);
-		curl_close($ch);
-
-		// Plex returns XML – convert to array for easy attribute access
-		$xml = simplexml_load_string($data);
-		if ($xml === false) {
-			return '';
-		}
-
-		$json = json_decode(json_encode($xml), true);
-
-		return (isset($json['@attributes']['signInState']) && $json['@attributes']['signInState'] === 'ok')
-			? $rToken
-			: '';
+		return PlexAuth::checkPlexToken($rIP, $rPort, $rToken);
 	}
 
 	/**
@@ -2417,21 +2220,6 @@ class CoreUtilities {
 	 * @return void
 	 */
 	public static function cachePlexToken($serverKey, $token) {
-		$cacheFile = CONFIG_PATH . 'plex/plex_token_' . $serverKey . '.json';
-
-		$data = [
-			'token'     => $token,
-			'cached_at' => time(),
-			// Plex tokens are generally valid for months; 30 days is a safe conservative value
-			'expires'   => time() + 30 * 86400
-		];
-
-		// Ensure the directory exists
-		if (!is_dir(dirname($cacheFile))) {
-			mkdir(dirname($cacheFile), 0755, true);
-		}
-
-		file_put_contents($cacheFile, json_encode($data, JSON_PRETTY_PRINT));
-		@chmod($cacheFile, 0600); // Restrict permissions – contains sensitive token
+		PlexAuth::cachePlexToken($serverKey, $token);
 	}
 }
