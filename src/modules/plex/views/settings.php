@@ -147,10 +147,10 @@
                                                                     class="form-control select2-multiple" data-toggle="select2"
                                                                     multiple="multiple" data-placeholder="Choose...">
                                                                     <?php
-                                                                    foreach ($rBouquets as $rBouquet) {
+                                                                    foreach ((is_array($rBouquets ?? null) ? $rBouquets : []) as $rBouquet) {
                                                                     ?>
                                                                         <option value="<?= $rBouquet['id']; ?>"
-                                                                            <?= in_array(intval($rBouquet['id']), json_decode($rRow['bouquets'], true)) ? 'selected' : ''; ?>
+                                                                            <?= in_array(intval($rBouquet['id']), (array) json_decode($rRow['bouquets'], true)) ? 'selected' : ''; ?>
                                                                             >
                                                                             <?= $rBouquet['bouquet_name']; ?>
                                                                         </option>
@@ -215,10 +215,10 @@
                                                                     class="form-control select2-multiple" data-toggle="select2"
                                                                     multiple="multiple" data-placeholder="Choose...">
                                                                     <?php
-                                                                    foreach ($rBouquets as $rBouquet) {
+                                                                    foreach ((is_array($rBouquets ?? null) ? $rBouquets : []) as $rBouquet) {
                                                                     ?>
                                                                         <option value="<?= $rBouquet['id']; ?>"
-                                                                            <?= in_array(intval($rBouquet['id']), json_decode($rRow['bouquets'], true)) ? 'selected' : ''; ?>
+                                                                            <?= in_array(intval($rBouquet['id']), (array) json_decode($rRow['bouquets'], true)) ? 'selected' : ''; ?>
                                                                             >
                                                                             <?= $rBouquet['bouquet_name']; ?>
                                                                         </option>

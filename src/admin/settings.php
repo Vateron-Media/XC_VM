@@ -1,5 +1,7 @@
 <?php
 
+if (!isset($__settingsViewMode)):
+
 include "session.php";
 include "functions.php";
 
@@ -15,7 +17,10 @@ $GeoISP = json_decode(file_get_contents(BIN_PATH . "maxmind/version.json"), true
 $Nginx = trim(shell_exec(BIN_PATH . "nginx/sbin/nginx -v 2>&1 | cut -d'/' -f2"));
 
 $_TITLE = "Settings";
-include "header.php";
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+renderUnifiedLayoutHeader('admin');
+
+endif; // !$__settingsViewMode
 ?>
 
 <div class="wrapper boxed-layout-ext" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest'): ?> style="display: none;" <?php endif; ?>>
@@ -49,23 +54,25 @@ include "header.php";
 					} ?>
 					<div class="card bg-info text-white cta-box">
 						<?php
-						if (is_array($rUpdate) && $rUpdate["version"] && (0 < version_compare($rUpdate["version"], XC_VM_VERSION) || (version_compare($rUpdate["version"], XC_VM_VERSION) == 0))) {
+						if (isset($rUpdate) && is_array($rUpdate) && !empty($rUpdate["version"]) && (0 < version_compare($rUpdate["version"], XC_VM_VERSION) || (version_compare($rUpdate["version"], XC_VM_VERSION) == 0))) {
 						?>
 							<div class="card-body" style="max-height: 250px;">
 								<h5 class="card-title text-white">Update Available</h5>
 								<p>Official Release v <?= $rUpdate["version"]; ?> is now available to download.</p>
 								<?php
+								if (!empty($rUpdate["changelog"]) && is_array($rUpdate["changelog"])) {
 								foreach ($rUpdate["changelog"] as $rItem) {
 									echo '<h5 class="card-title text-white mt-1">Changelog - v';
 									echo $rItem["version"];
 									echo '</h5><ul>';
 
-									foreach ($rItem["changes"] as $rChange) {
+									foreach ((is_array($rItem["changes"] ?? null) ? $rItem["changes"] : []) as $rChange) {
 										echo '<li>';
 										echo $rChange;
 										echo '</li>';
 									}
 									echo '</ul>';
+								}
 								}
 								?>
 								<br />
@@ -2315,7 +2322,8 @@ include "header.php";
 	</div>
 </div>
 <?php
-include 'footer.php'; ?>
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin'); ?>
 <script id="scripts">
 	var resizeObserver = new ResizeObserver(entries => $(window).scroll());
 	$(document).ready(function() {

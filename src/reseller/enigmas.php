@@ -1,4 +1,5 @@
 <?php
+if (!isset($__viewMode)):
 
 include 'session.php';
 include 'functions.php';
@@ -9,9 +10,11 @@ if (checkResellerPermissions()) {
 }
 
 $_TITLE = 'Enigma Devices';
-include 'header.php';
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+renderUnifiedLayoutHeader('reseller');
+endif;
 echo '<div class="wrapper">' . "\r\n" . '    <div class="container-fluid">' . "\r\n\t\t" . '<div class="row">' . "\r\n\t\t\t" . '<div class="col-12">' . "\r\n\t\t\t\t" . '<div class="page-title-box">' . "\r\n\t\t\t\t\t" . '<div class="page-title-right">' . "\r\n" . '                        ';
-include 'topbar.php';
+include __DIR__ . '/topbar.php';
 echo "\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t" . '<h4 class="page-title">';
 echo $language::get('enigma_devices');
 echo '</h4>' . "\r\n\t\t\t\t" . '</div>' . "\r\n\t\t\t" . '</div>' . "\r\n\t\t" . '</div>     ' . "\r\n\t\t" . '<div class="row">' . "\r\n\t\t\t" . '<div class="col-12">' . "\r\n" . '                ';
@@ -193,4 +196,5 @@ echo $language::get('expiration');
 echo '</th>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">';
 echo $language::get('actions');
 echo '</th>' . "\r\n\t\t\t\t\t\t\t\t" . '</tr>' . "\r\n\t\t\t\t\t\t\t" . '</thead>' . "\r\n\t\t\t\t\t\t\t" . '<tbody></tbody>' . "\r\n\t\t\t\t\t\t" . '</table>' . "\r\n\r\n\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t" . '</div> ' . "\r\n\t\t\t" . '</div>' . "\r\n\t\t" . '</div>' . "\r\n\t" . '</div>' . "\r\n" . '</div>' . "\r\n";
-include 'footer.php';
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('reseller');

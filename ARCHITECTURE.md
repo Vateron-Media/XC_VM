@@ -2,8 +2,9 @@
 
 ## Содержание
 
+0. [Стратегические цели](#0-стратегические-цели)
 1. [Диагноз текущего состояния](#1-диагноз-текущего-состояния)
-2. [Принципы целевой архитектуры](#2-принципы-целевой-архитектуры)
+2. [Архитектурный стиль и принципы](#2-архитектурный-стиль-и-принципы)
 3. [Целевая структура `/src`](#3-целевая-структура-src)
 4. [Описание компонентов](#4-описание-компонентов)
 5. [Карта миграции: откуда → куда](#5-карта-миграции-откуда--куда)
@@ -11,6 +12,40 @@
 7. [Границы ядра и модулей](#7-границы-ядра-и-модулей)
 8. [Варианты сборки: MAIN vs LoadBalancer](#8-варианты-сборки-main-vs-loadbalancer)
 9. [Порядок миграции](#9-порядок-миграции)
+10. [Транзакции и производительность](#10-транзакции-и-производительность)
+11. [Стратегия миграции по рискам](#11-стратегия-миграции-по-рискам)
+12. [Правила для контрибьюторов](#12-правила-для-контрибьюторов)
+
+---
+
+## 0. Стратегические цели
+
+### 0.1. Зачем это всё
+
+| # | Цель | Приоритет | Метрика успеха |
+|---|------|-----------|----------------|
+| 1 | **Контрибьюторская доступность** | 🔴 Критический | PHP-разработчик среднего уровня делает первый PR за 2 часа, не зная DDD |
+| 2 | **Поддерживаемость** | 🔴 Критический | Типичное изменение (добавить поток, изменить лимиты) < 1 час без риска сайд-эффектов |
+| 3 | **Изоляция отказов** | 🔴 Критический | Баг в admin-панели не ломает стриминг. Баг в модуле не ломает ядро |
+| 4 | **Multi-node** | 🟡 Важный | LB-сервер собирается из подмножества koda. Streaming-путь не загружает admin-логику |
+| 5 | **Open-core коммерция** | 🟡 Важный | Коммерческие модули подключаются без модификации ядра. Удаление модуля не ломает систему |
+| 6 | **Тестируемость** | 🟢 Поддерживающий | Любой сервис можно тестировать, подставив mock зависимости |
+
+### 0.2. Чем это НЕ является
+
+- **Не переписывание с нуля.** Итеративный рефакторинг. Каждый шаг обратимо совместим.
+- **Не DDD.** Нет Event Sourcing, CQRS, Aggregate Root, Domain Events. Простой паттерн: Controller → Service → Repository.
+- **Не академический проект.** Архитектура оптимизирована под понятность и предсказуемость, а не под теоретическую чистоту.
+
+### 0.3. Принцип принятия решений
+
+Каждое архитектурное решение проходит три фильтра:
+
+1. **Контрибьютор поймёт за 5 минут?** → если нет — упростить
+2. **Не ломает streaming hot path?** → если ломает — отклонить
+3. **Можно изолировать в модуль?** → если нет — обосновать
+
+Если решение улучшает «красоту кода», но повышает барьер входа — **отклонить**.
 
 ---
 
@@ -55,7 +90,46 @@ www/stream/*.php ──→ www/stream/init.php ──→ StreamingUtilities (199
 
 ---
 
-## 2. Принципы целевой архитектуры
+## 2. Архитектурный стиль и принципы
+
+### 2.0. Формализация архитектурного стиля
+
+**Это: структурированный монолит с предсказуемой организацией по контексту.**
+
+Не DDD. Не Hexagonal. Не Clean Architecture. Не микросервисы.
+Простой PHP-монолит, разложенный по контекстам с минимумом абстракций.
+
+#### Паттерн: Controller → Service → Repository
+
+Каждый контекст (Streams, VOD, Lines, Users...) внутри устроен одинаково:
+
+```
+domain/Stream/
+  ├── StreamService.php       # Бизнес-логика + оркестрация
+  ├── StreamRepository.php    # SQL-запросы (SELECT/INSERT/UPDATE/DELETE)
+  └── StreamProcess.php       # Специализированные операции (ffmpeg, kill)
+
+interfaces/Http/Controllers/Admin/
+  └── StreamController.php    # Принять запрос → вызвать Service → отдать ответ
+```
+
+Вот и всё. Три файла на контекст. Контрибьютор видит `/Stream/` — и знает где менять.
+
+#### Правила зависимостей (просто)
+
+```
+Controller  →  Service  →  Repository  →  Database
+                  ↓
+          Infrastructure (nginx, redis, ffmpeg)
+```
+
+| Слой | Можно зависеть от | НЕЛЬЗЯ зависеть от |
+|------|-------------------|--------------------|
+| `interfaces/` | `domain/` (Service + Repository), `core/` | `streaming/`, `modules/` напрямую |
+| `domain/` | `core/` (Database, Cache, Events) | `interfaces/`, `streaming/`, `modules/`, `infrastructure/` |
+| `core/` | Только другие `core/` подкаталоги | Всё остальное |
+| `streaming/` | `core/` (subset), `domain/` (read-only queries) | `interfaces/`, `modules/` |
+| `modules/` | `domain/` (Service, Repository), `core/` | Другие модули (без явной зависимости), `interfaces/`, `streaming/` |
 
 ### 2.1. Инверсия зависимостей
 
@@ -65,15 +139,100 @@ www/stream/*.php ──→ www/stream/init.php ──→ StreamingUtilities (199
 
 Вместо дублированных `init.php` / `constants.php` / `stream/init.php` — один bootstrap с конфигурируемым набором загружаемых сервисов.
 
-### 2.3. Границы через интерфейсы, а не через `global`
+### 2.3. Strict Constructor Injection — запрет Service Locator
 
-Каждый сервис получает зависимости через конструктор или контейнер. Ни один компонент не использует `global`.
+**Правило:** `ServiceContainer` используется **ТОЛЬКО** на этапе bootstrap (composition root).
+После bootstrap все зависимости передаются **через конструктор**. Ни один сервис не вызывает `$container->get()` внутри своих методов.
 
-### 2.4. Модуль = изолированная директория
+```php
+// ✅ ПРАВИЛЬНО — constructor injection:
+class StreamService {
+    public function __construct(
+        private StreamRepository $repository,
+        private EventDispatcher $events,
+        private FileLogger $logger
+    ) {}
+    
+    public function create(array $data): int {
+        // Использует $this->repository, $this->events, $this->logger
+        // НЕ вызывает ServiceContainer
+    }
+}
+
+// ✅ ПРАВИЛЬНО — composition root (bootstrap.php):
+$container->register('stream.service', function($c) {
+    return new StreamService(
+        $c->get('stream.repository'),
+        $c->get('event.dispatcher'),
+        $c->get('logger.file')
+    );
+});
+
+// ❌ ЗАПРЕЩЕНО — Service Locator внутри сервиса:
+class StreamService {
+    public function create(array $data): int {
+        $db = ServiceContainer::getInstance()->get('db');  // ← АНТИПАТТЕРН
+        $logger = ServiceContainer::getInstance()->get('logger');  // ← АНТИПАТТЕРН
+    }
+}
+```
+
+**Исключения (временные, фаза миграции):**
+- Legacy-код в `includes/` может обращаться к контейнеру напрямую через proxy-методы
+- Каждое такое обращение помечается `// @legacy-container — убрать в Фазе 8`
+- В Фазе 8 все legacy-обращения к контейнеру заменяются на constructor injection
+
+### 2.4. Консолидация мелких классов — запрет «один класс = один файл» вслепую
+
+**Правило:** Не создавать отдельный файл/класс, если в нём < 150 строк **и** < 5 публичных методов. Маленькие классы живут в одном файле с родственным классом.
+
+**Зачем:** Избежать взрыва файлов с классами по 1-2 функции. 44 файла по 40 строк — хуже одного бога на 4000, но не намного лучше для навигации.
+
+**Конкретные правила:**
+
+| Ситуация | Что делать | Пример |
+|----------|-----------|--------|
+| Repository < 5 методов | Объединить Service + Repository в один файл | `EpgService.php` содержит и бизнес-логику, и SQL |
+| Контекст = 1 Service с 1-2 методами | Влить в ближайший родственный контекст | `TicketService::submit()` → `UserService::submitTicket()` |
+| Отдельный «Validator» с 1 методом | Сделать private-методом в Service | `HMACValidator::validate()` → `HMACService::validate()` |
+| Отдельный «Sync» с 1 методом | Влить в Service того же контекста | `DeviceSync::sync()` → `MagService::syncLineDevices()` |
+| Service + Repository > 300 строк суммарно | Разделить в отдельные файлы | `StreamService` (700 стр.) + `StreamRepository` (400 стр.) = раздельно |
+
+**Когда МОЖНО создавать отдельный файл:**
+- Класс > 150 строк
+- Класс имеет ≥ 5 публичных методов
+- Класс используется из 3+ разных контекстов (например `ConnectionTracker`)
+- Интерфейс для DI (`CacheInterface`, `LoggerInterface`)
+
+```php
+// ✅ ПРАВИЛЬНО — маленькие Service+Repository в одном файле:
+// domain/Epg/EpgService.php
+class EpgRepository {
+    public function __construct(private Database $db) {}
+    public function findById(int $id): ?array { ... }
+    public function getStreamEpg(int $streamId): array { ... }
+}
+
+class EpgService {
+    public function __construct(private EpgRepository $repo) {}
+    public function process(array $data): int { ... }
+    public function getChannelEpg(int $channelId): array { ... }
+}
+
+// ❌ НЕПРАВИЛЬНО — два файла по 40 строк:
+// domain/Epg/EpgRepository.php  (40 строк, 3 метода)
+// domain/Epg/EpgService.php     (50 строк, 2 метода)
+```
+
+### 2.5. Границы через интерфейсы, а не через `global`
+
+Каждый сервис получает зависимости через конструктор. Ни один компонент не использует `global`.
+
+### 2.6. Модуль = изолированная директория
 
 Модуль — это директория с известным контрактом. Его можно удалить, и система продолжит работать (деградируя в функциональности, но не падая).
 
-### 2.5. Open-core без лицензионных ограничений в ядре
+### 2.7. Open-core без лицензионных ограничений в ядре
 
 Ядро (`core/`) полностью свободно. Модули (`modules/`) могут быть как open-source, так и коммерческими. Ядро не содержит проверок лицензий, шифрования, или скрытых ограничений. Лицензирование — это задача отдельного опционального модуля расширений.
 
@@ -140,63 +299,57 @@ src/
 │       ├── Encryption.php           # AES, token generation
 │       └── ImageUtils.php           # Resize, thumbnail, upload
 │
-├── domain/                          # ═══ БИЗНЕС-ЛОГИКА (сущности и сервисы) ═══
+├── domain/                          # ═══ БИЗНЕС-ЛОГИКА (сервисы и репозитории) ═══
 │   ├── Stream/
-│   │   ├── StreamEntity.php         # Модель потока (поля, валидация)
-│   │   ├── StreamRepository.php     # SQL-запросы для потоков (из admin_api.php)
-│   │   ├── StreamService.php        # Бизнес-логика: create, update, reorder
+│   │   ├── StreamService.php        # Бизнес-логика + оркестрация
+│   │   ├── StreamRepository.php    # SQL-запросы (из admin_api.php)
+│   │   ├── ChannelService.php       # Каналы: create, massEdit, order
+│   │   ├── CategoryService.php      # Категории + CategoryRepository (< 150 стр. = один файл)
+│   │   ├── StreamProcess.php       # FFmpeg, kill, restart
 │   │   ├── StreamMonitor.php        # Мониторинг потока (из cli/monitor.php)
-│   │   ├── CategoryEntity.php
-│   │   └── CategoryRepository.php
+│   │   ├── ConnectionTracker.php    # Redis: подключения, heartbeat
+│   │   ├── StreamSorter.php         # Сортировки и форматирование
+│   │   ├── PlaylistGenerator.php    # Генерация M3U/EPG плейлистов
+│   │   ├── CronGenerator.php        # Генерация кронов
+│   │   └── M3UParser.php            # Парсинг M3U
 │   │
 │   ├── Vod/
-│   │   ├── MovieEntity.php
-│   │   ├── MovieRepository.php
-│   │   ├── MovieService.php
-│   │   ├── SeriesEntity.php
-│   │   ├── SeriesRepository.php
-│   │   ├── SeriesService.php
-│   │   ├── EpisodeEntity.php
-│   │   └── EpisodeRepository.php
+│   │   ├── MovieService.php         # + MovieRepository (< 300 стр. суммарно = один файл)
+│   │   ├── SeriesService.php        # + SeriesRepository (< 300 стр. суммарно = один файл)
+│   │   └── EpisodeService.php       # process, massEdit, massDelete
 │   │
 │   ├── Line/
-│   │   ├── LineEntity.php           # Подписка/линия
+│   │   ├── LineService.php          # + LineRepository (раздельно — > 300 стр. суммарно)
 │   │   ├── LineRepository.php
-│   │   ├── LineService.php
-│   │   ├── PackageEntity.php
-│   │   └── PackageRepository.php
+│   │   └── PackageService.php       # + PackageRepository (один файл, < 150 стр.)
 │   │
 │   ├── Device/
-│   │   ├── MagEntity.php
-│   │   ├── MagRepository.php
-│   │   ├── EnigmaEntity.php
-│   │   └── EnigmaRepository.php
+│   │   ├── MagService.php           # + DeviceSync::syncLineDevices (влито)
+│   │   └── EnigmaService.php
 │   │
 │   ├── User/
-│   │   ├── UserEntity.php           # Админ/реselлер
-│   │   ├── UserRepository.php
-│   │   ├── GroupEntity.php
-│   │   └── GroupRepository.php
+│   │   ├── UserService.php          # + ProfileService::editAdminProfile (влито)
+│   │   │                            # + TicketService::submit (влито)
+│   │   ├── UserRepository.php       # getUserInfo, getUser, getRegisteredUsers...
+│   │   └── GroupService.php         # + GroupRepository (один файл, < 150 стр.)
 │   │
 │   ├── Server/
-│   │   ├── ServerEntity.php
 │   │   ├── ServerRepository.php
 │   │   ├── ServerService.php        # Мониторинг, health-check
-│   │   └── ServerStats.php
+│   │   └── SettingsService.php      # edit, editBackup, editCacheCron (влито из domain/Settings/)
 │   │
 │   ├── Bouquet/
-│   │   ├── BouquetEntity.php
-│   │   ├── BouquetRepository.php
-│   │   └── BouquetService.php       # Ordering, mapping
+│   │   └── BouquetService.php       # + BouquetRepository + BouquetMapper (один файл, < 300 стр.)
 │   │
 │   ├── Epg/
-│   │   ├── EpgSource.php
-│   │   ├── EpgRepository.php
-│   │   └── EpgService.php
+│   │   └── EpgService.php           # + EpgRepository (один файл, < 300 стр.)
 │   │
-│   └── Ticket/
-│       ├── TicketEntity.php
-│       └── TicketRepository.php
+│   ├── Auth/
+│   │   ├── AuthService.php          # CodeService + HMACService + HMACValidator (объединены)
+│   │   └── AuthRepository.php       # CodeRepository + HMACRepository (объединены)
+│   │
+│   └── Security/
+│       └── BlocklistService.php     # + BlocklistRepository (один файл, < 300 стр.)
 │
 ├── streaming/                       # ═══ СТРИМИНГ-ДВИЖОК (hot path) ═══
 │   ├── StreamingBootstrap.php       # Лёгкий init для стриминг-контекста
@@ -212,8 +365,7 @@ src/
 │   │   └── SegmentReader.php        # Чтение TS-сегментов
 │   │
 │   ├── Balancer/
-│   │   ├── LoadBalancer.php         # Серверное распределение
-│   │   └── RedirectStrategy.php
+│   │   └── LoadBalancer.php         # Распределение + RedirectStrategy (один файл, < 150 стр.)
 │   │
 │   ├── Protection/
 │   │   ├── RestreamDetector.php     # Антипиратская защита
@@ -457,28 +609,81 @@ src/
 | `Process/` | Управление PID, демонами, блокировками | `shell_exec('ps aux')`, `posix_kill()`, `checkCron()` разбросанные по файлам |
 | `Logging/` | Унифицированное логирование | `CoreUtilities::saveLog()`, `StreamingUtilities::clientLog()`, `Logger::init()` |
 | `Events/` | Event bus для связи без жёстких зависимостей | Прямые вызовы между компонентами |
-| `Container/` | DI-контейнер | `global $db`, статические `CoreUtilities::$rSettings` |
+| `Container/` | DI-контейнер (composition root only — см. §2.3) | `global $db`, статические `CoreUtilities::$rSettings` |
 | `Util/` | Утилиты без состояния | Функции разбросанные по CoreUtilities, admin.php |
 
 **Ключевое правило:** `core/` не знает о существовании `domain/`, `streaming/`, `modules/`, `interfaces/`. Зависимости направлены только внутрь ядра.
 
 ### 4.2. `domain/` — Бизнес-логика
 
-**Ответственность:** Сущности, репозитории, бизнес-сервисы. Каждый поддомен — отдельная директория.
+**Ответственность:** Сервисы и репозитории, организованные по контекстам. Каждый контекст (Stream, Vod, Line, User...) — отдельная директория.
 
-**Паттерн для каждого поддомена:**
+**Паттерн для каждого контекста:**
 
 ```
 domain/Stream/
-  ├── StreamEntity.php       # Данные сущности + валидация полей
-  ├── StreamRepository.php   # SQL-запросы (SELECT/INSERT/UPDATE/DELETE)
-  └── StreamService.php      # Бизнес-логика (create с проверками, mass-edit и т.д.)
+  ├── StreamService.php       # Бизнес-логика + оркестрация (валидация, транзакции, side-effects)
+  ├── StreamRepository.php    # SQL-запросы (SELECT/INSERT/UPDATE/DELETE)
+  └── StreamProcess.php       # Специфичные системные операции (ffmpeg, kill, PID)
+```
+
+**Правила:**
+
+1. **Service** = вся бизнес-логика контекста. Валидация, транзакции, вызов Infrastructure (nginx, ffmpeg), логирование. Один Service на контекст, при росте можно разбить.
+2. **Repository** = только SQL. Принимает массивы, возвращает массивы. Никакой логики. Никаких side-effects.
+3. **Нет Entity-классов.** Данные передаются как `array`. Это PHP — массивы проще и понятнее, чем аномичные DTO-объекты.
+4. **Консолидация мелких классов (§2.4).** Если Repository < 5 методов и < 150 строк — он живёт в одном файле с Service. Мелкие контексты (Ticket, Settings) вливаются в родственный контекст, а не создают отдельную директорию.
+
+```php
+// ✅ ПРАВИЛЬНО — Service делает всё:
+class StreamService {
+    public function __construct(
+        private StreamRepository $repository,
+        private ProcessManager $processManager,
+        private FileLogger $logger,
+        private Database $db
+    ) {}
+    
+    public function create(array $data): int {
+        // Валидация
+        if (empty($data['stream_source'])) {
+            throw new \InvalidArgumentException('Source required');
+        }
+        
+        // Транзакция
+        $this->db->beginTransaction();
+        try {
+            $id = $this->repository->insert($data);
+            $this->db->commit();
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+        
+        $this->logger->log('stream', "Created stream {$id}");
+        return $id;
+    }
+}
+
+// ✅ ПРАВИЛЬНО — Repository = только SQL:
+class StreamRepository {
+    public function __construct(private Database $db) {}
+    
+    public function findById(int $id): ?array {
+        return $this->db->row("SELECT * FROM streams WHERE id = ?", [$id]);
+    }
+    
+    public function insert(array $data): int {
+        $this->db->query("INSERT INTO streams ...", $data);
+        return $this->db->lastInsertId();
+    }
+}
 ```
 
 **Откуда берётся код:**
-- `admin_api.php` (6981 строк) → разбивается на ~10 Repository + 10 Service файлов
-- `reseller_api.php` (1204 строк) → те же Repository, но ограниченные Service-методы
-- `admin.php` → процедурные `getUserInfo()`, `getSeriesList()`, `updateSeries()` → в соответствующие Repository
+- `admin_api.php` (6981 строк) → разбивается на ~10 Service + ~6 Repository (§2.4 — мелкие Repository влиты в Service)
+- `admin.php` → процедурные `getUserInfo()`, `getSeriesList()` → в Repository
+- Оркестрация (validate + save + nginx + cache + log) → в Service
 
 **Зависимости:** `domain/` зависит от `core/` (Database, Cache, Events). Не зависит от `interfaces/` или `modules/`.
 
@@ -487,7 +692,24 @@ domain/Stream/
 **Ответственность:** Весь hot path доставки видео. Выделен отдельно от `domain/` потому что:
 - Критичен к производительности (нельзя загружать всю бизнес-логику)
 - Имеет собственный лёгкий bootstrap
-- Работает на уровне байтов/сегментов, а не сущностей
+- Работает на уровне байтов/сегментов, а не на уровне CRUD
+
+#### Изоляция streaming
+
+Streaming — **отдельный контекст исполнения** с минимальными зависимостями:
+
+```
+streaming/ зависит от:
+  ✅ core/ (Database, Redis, Logging, GeoIP, Encryption, NetworkUtils)
+  ✅ domain/ (Repository — только SELECT-запросы: потоки, серверы, букеты)
+  
+  ❌ НЕ зависит от:
+     - interfaces/ (контроллеры)
+     - modules/ (всё)
+     - domain/*Service.php (бизнес-мутации)
+```
+
+**Главное правило:** streaming вызывает **только read-методы** Repository. Запись данных (PID, stats, connections) — через собственные классы (`ConnectionTracker`, `BitrateTracker`), а не через Domain Services.
 
 **Откуда берётся код:**
 - `StreamingUtilities.php` (1992 стр.) → распределяется по подкаталогам
@@ -499,13 +721,44 @@ domain/Stream/
 
 ### 4.4. `interfaces/` — Точки входа
 
-**Ответственность:** Получение запроса, вызов доменных сервисов, формирование ответа. Никакой бизнес-логики.
+**Ответственность:** Получение запроса, вызов Service, формирование ответа. Никакой бизнес-логики.
 
 **HTTP:**
 - Один front controller `public/index.php` + `Router`
-- Контроллеры только маршрутизируют вызовы к `domain/` сервисам
+- Контроллеры вызывают **Service** из `domain/` для мутаций и **Repository** для чтения
 - Шаблоны (`Views/`) — чистый HTML с минимумом PHP-вставок
 - Admin и Reseller — разные контроллеры, общие шаблоны
+
+```php
+// ✅ ПРАВИЛЬНО — контроллер вызывает Service:
+class StreamController {
+    public function __construct(
+        private StreamService $streamService,
+        private StreamRepository $streamRepo
+    ) {}
+    
+    public function create(Request $request): void {
+        $id = $this->streamService->create($request->all());
+        Response::json(['id' => $id]);
+    }
+    
+    public function list(): void {
+        $streams = $this->streamRepo->getAll();
+        include VIEW_PATH . '/admin/streams/list.php';
+    }
+}
+
+// ❌ ЗАПРЕЩЕНО — контроллер содержит бизнес-логику:
+class StreamController {
+    public function create(Request $request): void {
+        // Валидация, транзакции, nginx — это задача Service
+        $this->db->beginTransaction();
+        $this->streamRepo->insert(...);  // ← fat controller
+        $this->nginx->reload();
+        $this->db->commit();
+    }
+}
+```
 
 **CLI:**
 - Каждый демон/крон — отдельный Command-класс
@@ -624,12 +877,14 @@ interface ModuleInterface {
 | `processMAG()` | `domain/Device/MagService.php` |
 | `processEnigma()` | `domain/Device/EnigmaService.php` |
 | `processServer()` | `domain/Server/ServerService.php` |
-| `processBouquet()` | `domain/Bouquet/BouquetService.php` |
-| `processUser()` | `domain/User/UserService.php` |
-| `processGroup()` | `domain/User/GroupService.php` |
+| `processBouquet()` | `domain/Bouquet/BouquetService.php` (+ Repository + Mapper — один файл) |
+| `processUser()` | `domain/User/UserService.php` (+ submit ticket, editProfile) |
+| `processGroup()` | `domain/User/GroupService.php` (+ GroupRepository — один файл) |
+| `processCode()` | `domain/Auth/AuthService.php` (+ Code + HMAC — объединены) |
 | `processLogin()` | `core/Auth/Authenticator.php` |
+| `processSettings()` | `domain/Server/SettingsService.php` (влито из domain/Settings/) |
 | `massEditStreams()` | `domain/Stream/StreamService::massEdit()` |
-| `checkMinimumRequirements()` | Валидация в каждом Entity |
+| `checkMinimumRequirements()` | Валидация в каждом Service |
 
 ### 5.3. God-bootstrap `admin.php` (4448 строк)
 
@@ -642,7 +897,7 @@ interface ModuleInterface {
 | `$rCountryCodes`, `$rCountries` | `resources/data/countries.php` |
 | `$rPermissions` | `resources/data/permissions.php` → `core/Auth/Authorization.php` |
 | `getUserInfo()` | `domain/User/UserRepository.php` |
-| `getSeriesList()`, `updateSeries()` | `domain/Vod/SeriesRepository.php` |
+| `getSeriesList()`, `updateSeries()` | `domain/Vod/SeriesService.php` (Repository влит — §2.4) |
 | `secondsToTime()` | `core/Util/TimeUtils.php` |
 | `hasPermissions()` | `core/Auth/Authorization.php` |
 | Mobile detect init | `core/Http/Middleware/` (если нужно) |
@@ -717,10 +972,11 @@ interface ModuleInterface {
 
 ```
 ✅ Модуль МОЖЕТ:
-   - Использовать любые сервисы из core/ через ServiceContainer
-   - Использовать Repository/Service из domain/ (read-only или через интерфейсы)
+   - Использовать сервисы из core/ через constructor injection
+   - Вызывать Service из domain/ для бизнес-операций
+   - Использовать Repository из domain/ для чтения данных
    - Регистрировать свои маршруты, команды, кроны
-   - Подписываться на события ядра
+   - Подписываться на события-хуки ядра
    - Иметь свои assets, views, конфиги
 
 ❌ Модуль НЕ МОЖЕТ:
@@ -731,20 +987,40 @@ interface ModuleInterface {
    - Добавлять ограничения лицензирования в ядро
 ```
 
-### 6.3. Расширяемость через события
+### 6.3. Расширяемость через события-хуки
+
+События используются **только для модульных хуков**, а не внутри обычного CRUD.
+
+**Когда использовать события:**
+- Модуль хочет отреагировать на действие ядра (например, запись DVR при запуске потока)
+- Ядро не должно знать о модуле
+
+**Когда НЕ использовать:**
+- Внутри CRUD-операций (создал поток → обновил nginx) — это прямой вызов в Service
+- Между ядерными компонентами (это магия, которую сложно отладить)
 
 ```php
-// Ядро публикует события:
+// ✅ ПРАВИЛЬНО — события для модульных хуков:
+// Ядро публикует:
 $dispatcher->dispatch(new StreamStartedEvent($streamId));
-$dispatcher->dispatch(new LineCreatedEvent($lineId));
-$dispatcher->dispatch(new UserLoginEvent($userId));
 
-// Модуль подписывается:
-class FingerprintModule implements ModuleInterface {
+// Модуль watch подписывается:
+class WatchModule implements ModuleInterface {
     public function getEventSubscribers(): array {
         return [
-            StreamStartedEvent::class => [FingerprintApplier::class, 'onStreamStarted'],
+            StreamStartedEvent::class => [WatchRecorder::class, 'onStreamStarted'],
         ];
+    }
+}
+
+// ❌ НЕПРАВИЛЬНО — события внутри CRUD:
+class StreamService {
+    public function create(array $data): int {
+        $id = $this->repo->insert($data);
+        // НЕ нужно dispatch StreamCreatedEvent для обновления nginx.
+        // Просто вызвать $this->nginx->reload() напрямую.
+        $this->nginx->reload();
+        return $id;
     }
 }
 ```
@@ -798,6 +1074,8 @@ modules/
 ```
 
 **Стрелки всегда направлены вниз.** Ни один нижний слой не знает о верхних.
+
+**Исключение:** `streaming/` — горизонтальный слой на уровне `domain/`, но с read-only доступом к domain/Repository. У него свой лёгкий entry path (см. §4.3).
 
 ### 7.2. Что входит в ядро, а что нет
 
@@ -1336,7 +1614,7 @@ admin/magscan_settings.php (301 стр.) — UI-страница, POST: submit_m
 
 ---
 
-### Фаза 6: Контроллеры и Views (admin/reseller)
+### Фаза 6: Контроллеры и Views (admin/reseller) ⚡ (в процессе)
 
 Выполняется ПОСЛЕ извлечения domain/ — контроллеры вызывают сервисы.
 
@@ -1350,29 +1628,277 @@ admin/footer.php (804 стр.) + reseller/footer.php (719 стр.)
                             + assets/admin/js/*.js (вынесенный inline JS)
 ```
 
+**Сделано (старт шага 6.1):**
+- ✅ Создан `interfaces/Http/Views/layouts/admin.php` — unified header wrapper (`renderUnifiedLayoutHeader`)
+- ✅ Создан `interfaces/Http/Views/layouts/footer.php` — unified footer wrapper (`renderUnifiedLayoutFooter`)
+- ✅ Удалён `interfaces/Http/Views/layouts/.gitkeep`
+- ✅ Переведены на unified wrappers (пилот):
+    - `admin/fingerprint.php`
+    - `admin/magscan_settings.php`
+    - `admin/theft_detection.php`
+- ✅ Переведены на unified wrappers (группа F — настройки):
+    - `admin/settings.php`
+    - `admin/profile.php`
+    - `admin/edit_profile.php`
+- ✅ Переведены на unified wrappers (группа E — букеты):
+    - `admin/bouquets.php`
+    - `admin/bouquet.php`
+    - `admin/bouquet_order.php`
+    - `admin/bouquet_sort.php`
+- ✅ Переведены на unified wrappers (группа D — серверы):
+    - `admin/servers.php`
+    - `admin/server.php`
+    - `admin/server_view.php`
+    - `admin/server_install.php`
+- ✅ Переведены на unified wrappers (группа C — линии/устройства):
+    - `admin/lines.php`
+    - `admin/line.php`
+    - `admin/mags.php`
+    - `admin/mag.php`
+    - `admin/enigmas.php`
+    - `admin/enigma.php`
+- ✅ Переведены на unified wrappers (группа B — VOD):
+    - `admin/movies.php`
+    - `admin/movie.php`
+    - `admin/series.php`
+    - `admin/serie.php`
+    - `admin/episodes.php`
+    - `admin/episode.php`
+- ✅ Переведены на unified wrappers (группа A — потоки):
+    - `admin/streams.php`
+    - `admin/stream.php`
+    - `admin/stream_view.php`
+    - `admin/created_channel.php`
+    - `admin/created_channels.php`
+- ✅ Переведены на unified wrappers (группа G — остальное, пакет 1):
+    - `admin/archive.php`
+    - `admin/dashboard.php`
+    - `admin/epg.php`
+    - `admin/epgs.php`
+    - `admin/group.php`
+    - `admin/groups.php`
+- ✅ Переведены на unified wrappers (группа G — остальное, пакет 2):
+    - `admin/providers.php`
+    - `admin/provider.php`
+    - `admin/packages.php`
+    - `admin/package.php`
+    - `admin/profiles.php`
+    - `admin/proxies.php`
+
+**Дальше в 6.1:**
+- 🔄 Перенос общих CSS/JS-блоков из `admin|reseller` в единые partials
+- 🔄 Подключение `partials/header.php` + `partials/footer.php` к layout system (сейчас не используются)
+- ✅ ~~Постраничное переключение include `header.php/footer.php` → unified layout wrappers~~ — завершено
+
+**Reseller миграция на unified wrappers:**
+- ✅ Переведены (ранее): `dashboard.php`, `streams.php`, `live_connections.php`, `user.php`, `users.php`, `user_logs.php`
+- ✅ Переведены (batch 2): `movies.php`, `enigma.php` (footer fix), `epg_view.php`, `enigmas.php`, `tickets.php`, `ticket_view.php`, `ticket.php`, `radios.php`, `mags.php`, `mag.php`, `line_activity.php`, `lines.php`, `line.php`, `episodes.php`, `created_channels.php`, `edit_profile.php`
+- ℹ️ Не требуют миграции (utility/support): `header.php`, `footer.php`, `functions.php`, `session.php`, `api.php`, `table.php`, `post.php`, `topbar.php`, `modals.php`, `resize.php`, `index.php`, `logout.php`
+- ℹ️ Отдельная страница (свой HTML): `login.php`
+- **Admin: 112/112 page-файлов — 100% мигрированы**
+- **Reseller: 22/22 page-файлов — 100% мигрированы**
+
 #### Шаг 6.2 — Router + Front Controller
 ```
 Новый → core/Http/Router.php
 Новый → interfaces/Http/public/index.php (front controller)
+Новый → interfaces/Http/routes/admin.php  (admin route definitions)
+Новый → interfaces/Http/routes/api.php    (API route definitions)
 ```
 
-#### Шаг 6.3 — Конвертация admin-страниц (группами по 5–10)
-```
-Группа A (потоки):    admin/streams.php, stream.php, stream_view.php, created_channel.php, created_channels.php
-Группа B (VOD):       admin/movies.php, movie.php, series.php, serie.php, episodes.php, episode.php
-Группа C (линии):     admin/lines.php, line.php, mags.php, mag.php, enigmas.php, enigma.php
-Группа D (серверы):   admin/servers.php, server.php, server_view.php, server_install.php
-Группа E (букеты):    admin/bouquets.php, bouquet.php, bouquet_order.php, bouquet_sort.php
-Группа F (настройки): admin/settings.php, database.php, profile.php, edit_profile.php
-Группа G (остальное): admin/dashboard.php, epgs.php, epg.php, groups.php, group.php ...
-```
-Каждая группа: SQL → Repository (уже есть), логика → Controller, HTML → View.
+**Статус 6.2:** ✅ Завершён
+- ✅ `core/Http/Router.php` — полная реализация (450 стр.): GET/POST/API routes, group(), middleware, permissions, dispatch(), dispatchApi(), singleton
+  - **Fix: normalizePage()** — `buildRoute()` теперь вызывает `normalizePage()` на результате, чтобы ключи регистрации совпадали с ключами dispatch (rtmp_ips → rtmp/ips)
+  - **Fix: ServiceContainer DI** — `callHandler()` теперь использует `ServiceContainer::getInstance()->get($class)` с fallback на `new $class()` при ошибке
+- ✅ `core/Http/Request.php` — HTTP request wrapper (450 стр.): capture(), input access, sanitization, backward compat
+- ✅ `core/Http/Response.php` — HTTP response helper: json(), redirect(), notFound(), cors(), noCache()
+- ✅ `core/Http/RequestGuard.php` — flood protection, host verification, Logger init
+- ✅ `interfaces/Http/public/index.php` — Front Controller:
+    - Трёхрежимный парсинг URL → scope + pageName + accessCode:
+      - **Режим A** (Access Code + XC_SCOPE): nginx передаёт scope через `fastcgi_param XC_SCOPE`
+      - **Режим B** (Direct URL): URL содержит `/admin/...` или `/reseller/...`
+      - **Режим C** (Access Code без XC_SCOPE): fallback через `PHP_SELF` (как `CodeRepository::getCurrentCode`)
+    - Маппинг `#TYPE#` → scope: admin, reseller, ministra, includes/api/admin → admin, и т.д.
+    - Bootstrap через legacy chain (session.php → functions.php)
+    - Загрузка маршрутов из routes/{scope}.php + routes/api.php
+    - Dispatch через Router → fallback в legacy include
+    - Поддержка API action dispatch (/admin/api?action=xxx)
+- ✅ `interfaces/Http/routes/admin.php` — шаблон маршрутов admin (заглушки для Step 6.3)
+- ✅ `interfaces/Http/routes/api.php` — шаблон API маршрутов (заглушки для Step 6.3)
 
-#### Шаг 6.4 — Объединение admin/reseller
+**Access Codes (`bin/nginx/conf/codes/`):**
+
+Панель доступна не по `/admin/`, а по `/RANDOMCODE/`. Коды генерируются из шаблона:
+- Шаблон: `bin/nginx/conf/codes/template`
+- Генератор: `domain/Auth/CodeRepository.php` → `updateCodes()`
+- URL: `http://host/MYCODE/dashboard` → nginx alias → `/home/xc_vm/admin/dashboard.php`
+- Типы кодов (field `type` в таблице):
+
+| type | #TYPE# (alias path)      | scope (Router) |
+|------|--------------------------|----------------|
+| 0    | admin                    | admin          |
+| 1    | reseller                 | reseller       |
+| 2    | ministra                 | ministra       |
+| 3    | includes/api/admin       | admin          |
+| 4    | includes/api/reseller    | reseller       |
+| 5    | ministra/new             | ministra       |
+| 6    | player                   | player         |
+
+**Активация — два варианта:**
+
+1) **Прямой доступ** (dev/test, без access codes):
+```nginx
+location ~ ^/(admin|reseller)(/.*)?$ {
+    try_files $uri /interfaces/Http/public/index.php?$args;
+}
+```
+
+2) **Access codes** (production) — обновлённый шаблон `bin/nginx/conf/codes/template`:
+```nginx
+location ^~ /#CODE# {
+    alias /home/xc_vm/#TYPE#;
+    index index.php;
+    # Статика и legacy PHP отдаются напрямую
+    try_files $uri $uri.html $uri/ @fc_#CODE#;
+
+    location ~ \.php$ {
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        fastcgi_pass php;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $request_filename;
+    }
+}
+
+# Front Controller fallback для access code #CODE#
+location @fc_#CODE# {
+    fastcgi_param XC_SCOPE #TYPE#;
+    fastcgi_param XC_CODE  #CODE#;
+    fastcgi_param SCRIPT_FILENAME /home/xc_vm/interfaces/Http/public/index.php;
+    fastcgi_pass php;
+    include fastcgi_params;
+}
+```
+
+Пока nginx шаблон не обновлён — legacy URL через access codes (`/MYCODE/dashboard` → `admin/dashboard.php`) работают как раньше. Front Controller активируется только после обновления template.
+
+#### Шаг 6.3 — Конвертация admin-страниц (Controller/View)
+
+**Паттерн: Thin Controller + View файл**
+
+Каждая legacy admin-страница разделяется на:
+- **Controller** (`interfaces/Http/Controllers/Admin/XxxController.php`) — подготовка данных, редиректы, проверка прав
+- **View** (`interfaces/Http/Views/admin/xxx.php`) — только HTML-контент (между header и footer)
+- **Scripts** (`interfaces/Http/Views/admin/xxx.scripts.php`) — page-specific JS (DataTables, api(), etc.)
+
+**✅ `interfaces/Http/Controllers/Admin/BaseAdminController.php` — render(), redirect(), json(), setTitle(), requirePermission(), requireAdvPermission(), input(), getStatus()
+- ✅ `interfaces/Http/Views/admin/_scripts_init.php` — общий JS-бойлерплейт (ResizeObserver, Switchery, DataTable errMode, bindHref, inputFilter, js_navigate и т.д.)
+- ✅ `interfaces/Http/Views/layout.php` — мёртвый код, помечен `@deprecated` (актуальный layout: `Views/layouts/admin.php` + `footer.php`)
+- ✅ `interfaces/Http/Views/partials/header.php` + `footer.php` — мёртвый код, помечены `@deprecated`
+
+**Render flow:** `renderUnifiedLayoutHeader('admin')` → `view.php` → `renderUnifiedLayoutFooter('admin')` → `scripts.php` (включает `_scripts_init.php`) → `</body></html>`
+
+**Инфраструктурные исправления перед Phase 6.3:**
+- ✅ Router `buildRoute()` — нормализация ключей при регистрации (rtmp_ips → rtmp/ips)
+- ✅ Router `callHandler()` — DI через ServiceContainer с fallback
+- ✅ Autoloader — раскомментированы `domain/`, `streaming/`, `modules/`, добавлен `interfaces/`
+- ✅ Autoloader — `MAIN_HOME` fallback: `__DIR__ . '/'` вместо `/home/xc_vm/`
+- ✅ Мёртвый Layout код (layout.php + partials/header.php + partials/footer.php) помечен `@deprecated`
+
+**Пилотная группа (простые листинги, no POST, inline DataTables):**
+- ✅ `IpController.php` + `Views/admin/ips.php` + `ips.scripts.php` — Blocked IPs, flush action, getBlockedIPs()
+- ✅ `IspController.php` + `Views/admin/isps.php` + `isps.scripts.php` — Blocked ISPs, getISPs()
+- ✅ `HmacController.php` + `Views/admin/hmacs.php` + `hmacs.scripts.php` — HMAC Keys, getHMACTokens()
+- ✅ `GroupController.php` + `Views/admin/groups.php` + `groups.scripts.php` — Member Groups, getMemberGroups(), adv:edit_group
+- ✅ `CodeController.php` + `Views/admin/codes.php` + `codes.scripts.php` — Access Codes, getcodes(), type mapping
+- ✅ `PackageController.php` + `Views/admin/packages.php` + `packages.scripts.php` — Packages (filtered !is_addon), getPackages()
+- ✅ `RtmpIpController.php` + `Views/admin/rtmp_ips.php` + `rtmp_ips.scripts.php` — RTMP IPs, getRTMPIPs(), push/pull icons
+- ✅ `ProfileController.php` + `Views/admin/profiles.php` + `profiles.scripts.php` — Transcode Profiles, getTranscodeProfiles(), JSON profile_options
+- ✅ `ProviderController.php` + `Views/admin/providers.php` + `providers.scripts.php` — Stream Providers, getStreamProviders(), reload action, JSON data
+- ✅ `TheftDetectionController.php` + `Views/admin/theft_detection.php` + `theft_detection.scripts.php` — VOD Theft Detection, igbinary cache, range filter, custom search
+- ✅ Маршруты в `interfaces/Http/routes/admin.php` — 10 GET-маршрутов зарегистрированы
+
+**Статус 6.3:** ✅ Завершён — **111/111 admin-страниц мигрировано**
+
+| Артефакт | Кол-во | Статус |
+|---|---|---|
+| Контроллеры (`Controllers/Admin/`) | 111 + BaseAdminController | ✅ |
+| View-прокси (`Views/admin/`) | 111 | ✅ |
+| Маршруты (`routes/admin.php`) | 111 | ✅ |
+| Legacy-обёртки (`$__viewMode`) | 111 (108 std + 1 settings variant + 2 module bypass) | ✅ |
+
+**Группы миграции (все завершены):**
+- ✅ **Pilot** (10): ips, isps, hmacs, groups, codes, packages, rtmp_ips, profiles, providers, theft_detection
+- ✅ **A** (19): streams, stream, stream_view, stream_mass, stream_categories, stream_category, stream_errors, stream_rank, stream_review, stream_tools, channel_order, created_channel, created_channels, created_channel_mass, live_connections, rtmp_monitor, radio, radios, radio_mass
+- ✅ **B** (10): movies, movie, movie_mass, series, serie, series_mass, episodes, episode, episodes_mass, ondemand
+- ✅ **C** (6): lines, line, line_mass, line_activity, line_ips, mass_delete
+- ✅ **D** (4): server_order, server_install, server, server_view
+- ✅ **E** (4): bouquets, bouquet, bouquet_order, bouquet_sort
+- ✅ **F** (4): settings, settings_plex, settings_watch, quick_tools
+- ✅ **G** (6): login_logs, mysql_syslog, mag_events, restream_logs, panel_logs, epgs
+- ✅ **H** (9): dashboard, cache, queue, process_monitor, backups, client_logs, user_logs, useragent, useragents
+- ✅ **I** (6): mags, mag, mag_mass, enigmas, enigma, enigma_mass
+- ✅ **J** (6): epg, epg_view, code, hmac, ip, isp
+- ✅ **K** (5): group, package, profile, provider, rtmp_ip
+- ✅ **L** (5): users, user, user_mass, plex, plex_add
+- ✅ **M** (8): tickets, ticket, ticket_view, serie, watch, watch_add, watch_output, magscan_settings
+- ✅ **N** (9): credit_logs, edit_profile, fingerprint, proxies, proxy, record, review, archive, asns
+
+**16 non-page файлов** (миграция не требуется): header.php, footer.php, topbar.php, modals.php, functions.php, session.php, post.php, login.php, logout.php, setup.php, database.php, index.php, resize.php, player.php, api.php, table.php
+
+#### Шаг 6.4 — Объединение admin/reseller ✅
+
+**Статус:** Завершён — 22 reseller-страницы мигрированы.
+
+**Артефакты:**
+- ✅ `BaseResellerController` — расширяет BaseAdminController, `$scope = 'reseller'`, переопределяет `requirePermission()` → `checkResellerPermissions()`
+- ✅ 22 контроллера (`Reseller*Controller`) в `interfaces/Http/Controllers/Reseller/`
+- ✅ 22 view proxy в `interfaces/Http/Views/reseller/`
+- ✅ 22 legacy файла обёрнуты `$__viewMode` гардами
+- ✅ `interfaces/Http/routes/reseller.php` — 22 маршрута
+
+**Reseller-страницы (22):**
+Dashboard & Profile: dashboard, edit_profile
+Lines: lines, line, line_activity, live_connections
+Devices: mags, mag, enigmas, enigma
+Content: streams, movies, radios, episodes, created_channels, epg_view
+Tickets: tickets, ticket, ticket_view
+Users: users, user, user_logs
+
+**Ключевые отличия от admin:**
+- Контроллеры с префиксом `Reseller` (ResellerDashboardController и т.д.) для избежания конфликтов с admin-контроллерами в безнеймспейсном автозагрузчике
+- `checkResellerPermissions()` вместо `checkPermissions()`
+- `$_SESSION['reseller']` вместо `$_SESSION['hash']`
+
 ```
 reseller/table.php (1836 стр.) → переиспользует admin-контроллеры с RBAC-фильтром
 reseller/api.php (997 стр.)    → ResellerApiController (ограниченный AdminApiController)
 ```
+
+#### Шаг 6.5 — Стабилизация Controller/View контракта ✅
+
+**Статус:** Завершён (первый стабилизационный проход после 6.3/6.4).
+
+**Сделано:**
+- ✅ Расширен базовый контракт `BaseAdminController::$viewGlobals`:
+    - добавлены `rTMDBLanguages`, `rGeoCountries`, `rMAGs`, `rTimezones`
+    - ранее добавлен `allowedLangs`
+- ✅ Исправлен рендер update-уведомления/changelog в `admin/settings.php`:
+    - защита `foreach` по `changelog` через `is_array`
+    - защита вложенного `changes` через безопасный fallback на `[]`
+- ✅ Исправлен `modules/watch/views/watch_add.php`:
+    - защита `foreach` по `$rTMDBLanguages` при отсутствии/некорректном типе
+- ✅ Второй стабилизационный проход (расширенный, 14 файлов):
+    - контроллеры `watch/plex/settings_*` теперь нормализуют массивы (`[]` fallback)
+    - в `watch/plex/profile` view добавлены безопасные `foreach` и `in_array/count` с `(array)`/`is_array` guard
+    - закрыты риски `foreach(null)` и `Undefined variable` для страниц `watch_output`, `watch_add`, `settings_watch`, `record`, `plex/index`, `plex/settings`, `plex/library_edit`, `admin/edit_profile`
+
+**Цель шага:**
+- убрать class-runtime регрессий «Undefined variable / foreach() argument must be array|object»
+- зафиксировать единый контракт данных для legacy view в controller-режиме
+
+**Дальше (следующий проход 6.5):**
+- 🔄 точечный аудит `Reseller`-view (особенно echo-сгенерированные файлы) на `foreach/in_array` с nullable-данными
+- 🔄 выборочно перенести оставшиеся high-risk случаи в контроллерный data-contract вместо локальных view-guard
 
 ---
 
@@ -1453,6 +1979,247 @@ admin.php::Translator init       → ServiceContainer::get('translator')
 Каждый шаг (1.7.1, 1.7.2 ...) — это одна рабочая сессия (1–3 часа).
 Каждая фаза (1.7, 2, 3...) — это неделя–две постепенной работы.
 После каждого шага система полностью работоспособна.
+
+---
+
+## 10. Транзакции и производительность
+
+### 10.1. Кто управляет транзакциями
+
+**Правило:** Транзакцией управляет **Service**. Контроллер и Repository не открывают транзакции.
+
+```
+Controller ──→ Service ──→ Repository + Infrastructure
+                  │
+                  ├── beginTransaction()
+                  ├── ... бизнес-операции ...
+                  ├── commit()
+                  └── (rollback при исключении)
+```
+
+### 10.2. Паттерн транзакции
+
+```php
+class StreamService {
+    public function massEdit(array $streamIds, array $changes): int {
+        $this->db->beginTransaction();
+        try {
+            $affected = 0;
+            foreach ($streamIds as $id) {
+                $this->repository->update($id, $changes);
+                $affected++;
+            }
+            $this->db->commit();
+            return $affected;
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            $this->logger->log('error', "Mass edit failed: " . $e->getMessage());
+            throw $e;
+        }
+    }
+}
+```
+
+### 10.3. Границы по контексту
+
+| Контекст | Транзакция | Кто управляет | Пример |
+|----------|-----------|---------------|--------|
+| **Admin CRUD** | Одна операция = одна транзакция | Service | `StreamService::create()` |
+| **Mass edit** | Весь batch = одна транзакция | Service | `StreamService::massEdit()` |
+| **Import** | Chunk по 100 записей | Service | `StreamService::importM3U()` |
+| **Cron** | Каждая итерация = отдельная транзакция | CronJob | `ServersCron::processServer()` |
+| **Streaming** | ❌ Нет транзакций | — | Hot path не мутирует через транзакции |
+
+### 10.4. Внешние процессы
+
+Операция «создать поток + запустить ffmpeg + обновить nginx» — не атомарна. FFmpeg/nginx — внешние процессы, откатить нельзя.
+
+**Паттерн:**
+1. DB-операции — в транзакции
+2. Внешние процессы — после commit, с обработкой ошибок
+3. При сбое внешнего процесса — обновить статус в БД (`status = 'error'`)
+
+```php
+class StreamService {
+    public function start(int $streamId): void {
+        // 1. DB: обновить статус
+        $this->repository->updateStatus($streamId, 'starting');
+        
+        // 2. Внешние процессы (вне транзакции)
+        try {
+            $pid = $this->processManager->startFFmpeg($streamId);
+            $this->repository->updatePid($streamId, $pid);
+            $this->repository->updateStatus($streamId, 'running');
+        } catch (\Throwable $e) {
+            $this->repository->updateStatus($streamId, 'error');
+            $this->logger->log('error', "Start failed: {$e->getMessage()}");
+            throw $e;
+        }
+    }
+}
+```
+
+### 10.5. Два режима работы системы
+
+| Режим | Путь | Частота | Допустимая latency | Загрузка |
+|-------|------|---------|-------------------|----------|
+| **Hot path** (streaming) | `www/stream/*.php` | ~10K–100K req/min | < 50ms p99 | Минимальный bootstrap, никаких модулей |
+| **Cold path** (admin) | `admin/*.php`, API | ~1–100 req/min | < 500ms p99 | Полный bootstrap, все модули |
+
+### 10.6. Бюджет hot path
+
+Streaming-запрос (`auth.php` → `live.php`) должен уложиться в:
+
+```
+Bootstrap:     < 5ms  (autoload + constants + DB)
+Auth:          < 10ms (token + Redis + bruteforce)
+Stream lookup: < 5ms  (Redis cache) | < 15ms (DB fallback)
+Delivery:      < 10ms (redirect + headers)
+─────────────────────────────────────
+Total:         < 30ms (target) | < 50ms (max)
+```
+
+**НЕЛЬЗЯ загружать в hot path:** Router, EventDispatcher с подписчиками, ServiceContainer полный boot.
+**МОЖНО:** Database (persistent), Redis (single connection), GeoIP (mmap), streaming/*.
+
+### 10.7. Async / Queue (будущее)
+
+Длинные операции (ffprobe, tmdb, mass import) — кандидаты на async:
+
+```
+HTTP → Service → Queue Job (Redis LPUSH) → Worker (cron) → Result
+```
+
+Без RabbitMQ/Kafka — простая Redis-очередь через `LPUSH`/`BRPOP`.
+
+---
+
+## 11. Стратегия миграции по рискам
+
+### 11.1. Принцип: каждый шаг обратим
+
+Каждое изменение следует паттерну **extract → delegate → verify → replace**:
+
+```
+1. Extract: создать новый класс
+2. Delegate: старый код вызывает новый через proxy
+3. Verify: система работает как раньше + новый код работает
+4. Replace: обновить вызывающий код на прямые вызовы (отдельный шаг)
+```
+
+Если шаг 3 провалился — откат = удалить новый класс + убрать proxy. Система возвращается в предыдущее состояние.
+
+### 11.2. Регрессионная стратегия
+
+| Уровень | Что проверяется | Как проверяется | Когда |
+|---------|----------------|-----------------|-------|
+| **Syntax** | PHP-файлы компилируются | `php -l` на каждый изменённый файл | После каждого коммита |
+| **Smoke** | Система запускается | `make new && make lb` + проверка HTTP 200 | После каждой фазы |
+| **Functional** | Основные сценарии работают | Ручной checklist (создать поток, запустить, остановить) | После каждой фазы |
+| **Integration** | LB-сборка работает | Деплой на тестовый LB-сервер + стриминг-тест | После фаз 1–4 |
+| **Backward compat** | API не сломан | Проверка ответов API (формат JSON, коды ошибок) | После фазы 6 |
+
+### 11.3. Dual bootstrap на переходном этапе
+
+**Текущее состояние (фазы 1–6):** Dual bootstrap работает параллельно.
+
+```
+bootstrap.php (новый)          includes/admin.php (старый legacy)
+      │                                │
+      ├── autoload.php                 ├── require Database.php
+      ├── ServiceContainer             ├── CoreUtilities::init()
+      ├── ConfigLoader                 ├── API/ResellerAPI init
+      └── новые core/ классы           └── 50 define() + global $db
+```
+
+**Правила dual bootstrap:**
+1. `bootstrap.php` загружается ПЕРВЫМ в каждой точке входа
+2. `includes/admin.php` загружается ПОСЛЕ — для legacy-кода, который ещё не мигрирован
+3. Новые классы (`core/`, `domain/`) инициализируются через `ServiceContainer`
+4. Legacy-код (`CoreUtilities`, `admin_api.php`) продолжает работать через proxy-методы
+5. После полной миграции (Фаза 8) — `includes/admin.php` удаляется
+
+### 11.4. API backward compatibility
+
+**Правило:** Внешний API (`player.api`, `xmltv.php`, межсерверный API) не меняет формат ответов до Фазы 8.
+
+```
+Фазы 1–7: Внутренняя рефакторизация, внешний API неизменен
+Фаза 8:   API v2 (опционально) с новой маршрутизацией
+           API v1 продолжает работать через compatibility layer
+```
+
+### 11.5. Разделение релизов
+
+| Релиз | Содержит | Риск |
+|-------|----------|------|
+| **v1.8** | Фазы 0–2 (core/ extraction, dedup) | 🟢 Низкий — proxy-методы, обратная совместимость |
+| **v1.9** | Фазы 3–4 (domain/ + streaming/ extraction) | 🟡 Средний — больше перемещений, proxy покрывает |
+| **v2.0** | Фазы 5–6 (modules + controllers) | 🟡 Средний — новая маршрутизация, dual bootstrap |
+| **v2.1** | Фазы 7–8 (cleanup, удаление legacy) | 🔴 Высокий — удаление god-объектов, нет fallback |
+
+### 11.6. Rollback plan
+
+```
+Если v2.0 ломает production:
+1. git revert последний merge в main
+2. Пересобрать: make new && make lb
+3. Задеплоить предыдущую сборку
+4. Post-mortem: что сломалось, почему не поймали на smoke test
+```
+
+Для v2.1 (удаление legacy) — **feature flag:**
+```php
+// config.ini
+[migration]
+use_legacy_bootstrap = false    ; true = откат на admin.php
+use_legacy_api = false          ; true = откат на admin_api.php switch
+```
+
+---
+
+## 12. Правила для контрибьюторов
+
+> Этот раздел — краткая выжимка для тех, кто не читал весь документ. Подробности — в CONTRIBUTING.md.
+
+### 12.1. Как добавить новый эндпоинт (admin)
+
+1. Найти контекст в `domain/` (например `domain/Stream/`)
+2. Добавить метод в `StreamService.php` (бизнес-логика)
+3. Добавить SQL-метод в `StreamRepository.php` (если нужен новый запрос)
+4. Добавить action в Controller или `admin_api.php` → вызов Service
+5. `php -l` на изменённые файлы
+
+### 12.2. Как добавить новую таблицу
+
+1. Добавить миграцию в `infrastructure/install/`
+2. Создать Repository в `domain/{Context}/` с CRUD-методами
+3. Зарегистрировать в `autoload.php`
+
+### 12.3. Как НЕ сломать streaming
+
+- **Никогда** не менять `www/stream/*.php` без явного ревью
+- **Никогда** не добавлять `require` тяжёлых классов в streaming bootstrap
+- Не использовать EventDispatcher / Router / ServiceContainer в hot path
+- Проверять latency: `< 50ms p99`
+
+### 12.4. Правила PR
+
+1. Один PR = одна фича/багфикс. Не смешивать рефакторинг с фичами.
+2. `php -l` на все изменённые файлы перед пушем.
+3. Если трогаете `core/` или `streaming/` — обязательный ревью.
+4. proxy-методы помечать `// @legacy-proxy — убрать в Фазе 8`.
+5. Новые классы регистрировать в `autoload.php`.
+
+### 12.5. Простые правила (cheat sheet)
+
+```
+✗  Не пиши SQL в Controller          →  Пиши в Repository
+✗  Не пиши логику в Controller       →  Пиши в Service
+✗  Не добавляй global               →  Используй constructor injection
+✗  Не трогай streaming без ревью   →  hot path = священная территория
+✗  Не модифицируй core/ из модулей  →  Модуль вызывает, не меняет
+```
 
 ---
 

@@ -63,7 +63,7 @@ class CoreUtilities {
 	}
 
 	public static function getProxyIPs($rForce = false) {
-		return BlocklistRepository::getProxyIPs(self::$rServers, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
+		return BlocklistService::getProxyIPs(self::$rServers, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
 	}
 
 	public static function isProxy($rIP) {
@@ -73,23 +73,23 @@ class CoreUtilities {
 	}
 
 	public static function getBlockedUA($rForce = false) {
-		return BlocklistRepository::getBlockedUA(self::$db, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
+		return BlocklistService::getBlockedUA(self::$db, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
 	}
 
 	public static function getBlockedIPs($rForce = false) {
-		return BlocklistRepository::getBlockedIPs(self::$db, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
+		return BlocklistService::getBlockedIPs(self::$db, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
 	}
 
 	public static function getBlockedISP($rForce = false) {
-		return BlocklistRepository::getBlockedISP(self::$db, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
+		return BlocklistService::getBlockedISP(self::$db, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
 	}
 
 	public static function getBlockedServers($rForce = false) {
-		return BlocklistRepository::getBlockedServers(self::$db, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
+		return BlocklistService::getBlockedServers(self::$db, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
 	}
 
 	public static function getBouquets($rForce = false) {
-		return BouquetRepository::getAll(self::$db, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
+		return BouquetService::getAll(self::$db, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
 	}
 
 	public static function getSettings($rForce = false) {
@@ -197,11 +197,11 @@ class CoreUtilities {
 	}
 
 	public static function searchEPG($rArray, $rKey, $rValue) {
-		return EpgRepository::search($rArray, $rKey, $rValue);
+		return EpgService::search($rArray, $rKey, $rValue);
 	}
 
 	public static function searchRecursive($rArray, $rKey, $rValue, &$rResults) {
-		foreach (EpgRepository::search($rArray, $rKey, $rValue) as $rMatch) {
+		foreach (EpgService::search($rArray, $rKey, $rValue) as $rMatch) {
 			$rResults[] = $rMatch;
 		}
 	}
@@ -232,7 +232,7 @@ class CoreUtilities {
 	}
 
 	public static function getCategories($rType = null, $rForce = false) {
-		return CategoryRepository::getFromDatabase(self::$db, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rType, $rForce);
+		return CategoryService::getFromDatabase(self::$db, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rType, $rForce);
 	}
 
 	public static function generateUniqueCode() {
@@ -1744,7 +1744,7 @@ class CoreUtilities {
 		}
 	}
 	public static function getBouquetMap($rStreamID) {
-		return BouquetMapper::getMapEntry($rStreamID);
+		return BouquetService::getMapEntry($rStreamID);
 	}
 	public static function updateStream($rStreamID, $rForce = false) {
 		return StreamProcess::updateStream(self::$db, self::$rCached, self::getMainID(), $rStreamID, $rForce);
@@ -2061,13 +2061,13 @@ class CoreUtilities {
 		return json_decode(shell_exec(BIN_PATH . 'tsinfo ' . escapeshellarg($rFilename)), true);
 	}
 	public static function getEPG($rStreamID, $rStartDate = null, $rFinishDate = null, $rByID = false) {
-		return EpgRepository::getStreamEpg($rStreamID, $rStartDate, $rFinishDate, $rByID);
+		return EpgService::getStreamEpg($rStreamID, $rStartDate, $rFinishDate, $rByID);
 	}
 	public static function getEPGs($rStreamIDs, $rStartDate = null, $rFinishDate = null) {
-		return EpgRepository::getStreamsEpg($rStreamIDs, $rStartDate, $rFinishDate);
+		return EpgService::getStreamsEpg($rStreamIDs, $rStartDate, $rFinishDate);
 	}
 	public static function getProgramme($rStreamID, $rProgrammeID) {
-		return EpgRepository::getProgramme($rStreamID, $rProgrammeID);
+		return EpgService::getProgramme($rStreamID, $rProgrammeID);
 	}
 	public static function getProxies($rServerID, $rOnline = true) {
 		return ConnectionTracker::getProxies(self::$rServers, $rServerID, $rOnline);

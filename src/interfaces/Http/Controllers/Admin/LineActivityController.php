@@ -1,0 +1,29 @@
+<?php
+/**
+ * LineActivityController — логи активности линий (Phase 6.3 — Group C).
+ */
+class LineActivityController extends BaseAdminController
+{
+    public function index()
+    {
+        $this->requirePermission();
+
+        $data = [];
+
+        if (isset(CoreUtilities::$rRequest['user_id'])) {
+            $rSearchUser = getUser(CoreUtilities::$rRequest['user_id']);
+            if ($rSearchUser) {
+                $data['rSearchUser'] = $rSearchUser;
+            }
+        }
+
+        if (isset(CoreUtilities::$rRequest['stream_id'])) {
+            $rSearchStream = getStream(CoreUtilities::$rRequest['stream_id']);
+            if ($rSearchStream) {
+                $data['rSearchStream'] = $rSearchStream;
+            }
+        }
+
+        $this->render('line_activity', $data);
+    }
+}

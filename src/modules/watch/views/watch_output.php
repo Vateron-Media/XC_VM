@@ -22,7 +22,7 @@
 								<div class="col-md-2">
 									<select id="result_server" class="form-control" data-toggle="select2">
 										<option value="" selected>All Servers</option>
-										<?php foreach ($rServers as $rServer) : ?>
+										<?php foreach ((is_array($rServers ?? null) ? $rServers : []) as $rServer) : ?>
 											<option value="<?= $rServer['id']; ?>"><?= $rServer['server_name']; ?></option>
 										<?php endforeach; ?>
 									</select>

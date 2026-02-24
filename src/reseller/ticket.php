@@ -1,4 +1,5 @@
 <?php
+if (!isset($__viewMode)):
 
 include 'session.php';
 include 'functions.php';
@@ -24,9 +25,11 @@ if (!isset(CoreUtilities::$rRequest['id'])) {
 }
 
 $_TITLE = 'Ticket';
-include 'header.php';
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+renderUnifiedLayoutHeader('reseller');
+endif;
 echo '<div class="wrapper boxed-layout">' . "\r\n" . '    <div class="container-fluid">' . "\r\n\t\t" . '<div class="row">' . "\r\n\t\t\t" . '<div class="col-12">' . "\r\n\t\t\t\t" . '<div class="page-title-box">' . "\r\n\t\t\t\t\t" . '<div class="page-title-right">' . "\r\n" . '                        ';
-include 'topbar.php';
+include __DIR__ . '/topbar.php';
 echo "\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t";
 
 if (isset($rTicketInfo)) {
@@ -52,4 +55,5 @@ if (isset($rTicketInfo)) {
 }
 
 echo "\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="message">Message</label>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<textarea id="message" name="message" class="form-control" rows="3" placeholder="" required data-parsley-trigger="change"></textarea>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<ul class="list-inline wizard mb-0">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="list-inline-item float-right">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="submit_ticket" type="submit" class="btn btn-primary" value="Create" />' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</ul>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t\t\t" . '</form>' . "\r\n\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t" . '</div> ' . "\r\n\t\t\t" . '</div> ' . "\r\n\t\t" . '</div>' . "\r\n\t" . '</div>' . "\r\n" . '</div>' . "\r\n";
-include 'footer.php';
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('reseller');

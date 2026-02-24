@@ -1,4 +1,5 @@
 <?php
+if (!isset($__viewMode)):
 include 'session.php';
 include 'functions.php';
 
@@ -7,7 +8,9 @@ if (!checkResellerPermissions()) {
 }
 
 $_TITLE = 'Movies';
-include 'header.php';
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+renderUnifiedLayoutHeader('reseller');
+endif;
 ?>
 
 <div class="wrapper boxed-layout-ext">
@@ -17,7 +20,7 @@ include 'header.php';
             <div class="col-12">
                 <div class="page-title-box">
                     <div class="page-title-right">
-                        <?php include 'topbar.php'; ?>
+                        <?php include __DIR__ . '/topbar.php'; ?>
                     </div>
                     <h4 class="page-title"><?php echo $language::get('movies'); ?></h4>
                 </div>
@@ -101,4 +104,7 @@ include 'header.php';
     </div>
 </div>
 
-<?php include 'footer.php'; ?>
+<?php
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('reseller');
+?>

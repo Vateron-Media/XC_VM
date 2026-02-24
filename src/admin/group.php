@@ -1,7 +1,6 @@
 <?php
 
-
-
+if (!isset($__viewMode)):
 
 
 
@@ -48,7 +47,9 @@ if (!isset($rGroup)) {
 }
 
 $_TITLE = 'Group';
-include 'header.php';
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+renderUnifiedLayoutHeader('admin');
+endif; // !$__viewMode
 echo '<div class="wrapper boxed-layout"';
 
 if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
@@ -475,7 +476,8 @@ if (isset($rGroup)) {
 
 
 echo '" />' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</ul>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t" . '</form>' . "\n\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t" . '</div> ' . "\n\t\t\t" . '</div> ' . "\n\t\t" . '</div>' . "\n\t" . '</div>' . "\n" . '</div>' . "\n";
-include 'footer.php'; ?>
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin'); ?>
 <script id="scripts">
 	var resizeObserver = new ResizeObserver(entries => $(window).scroll());
 	$(document).ready(function() {

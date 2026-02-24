@@ -166,7 +166,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return CodeService::process(self::$db, $rData, 'getCode', 'updateCodes');
+		return AuthService::processCode(self::$db, $rData, 'getCode', 'updateCodes');
 	}
 
 	public static function processHMAC($rData) {
@@ -174,7 +174,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return HMACService::process(self::$db, $rData, self::$rSettings, 'getHMACToken');
+		return AuthService::processHMAC(self::$db, $rData, self::$rSettings, 'getHMACToken');
 	}
 
 	public static function reorderBouquet($rData) {
@@ -191,7 +191,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return ProfileService::editAdminProfile(self::$db, $rData, self::$rUserInfo, $allowedLangs);
+		return UserService::editAdminProfile(self::$db, $rData, self::$rUserInfo, $allowedLangs);
 	}
 
 	public static function blockIP($rData) {
@@ -2937,7 +2937,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return TicketService::submit(self::$db, $rData, self::$rUserInfo, 'getTicket');
+		return UserService::submitTicket(self::$db, $rData, self::$rUserInfo, 'getTicket');
 	}
 
 	public static function processUA($rData) {

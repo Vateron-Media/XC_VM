@@ -108,7 +108,7 @@
                                                         <select id="library_id" name="library_id" class="form-control" data-toggle="select2">
                                                             <?php
                                                             $rLibraries = isset($rFolder['plex_libraries']) ? json_decode($rFolder['plex_libraries'], true) : array();
-                                                            foreach ($rLibraries as $rLibrary) {
+                                                            foreach ((is_array($rLibraries ?? null) ? $rLibraries : []) as $rLibrary) {
                                                                 if ($rFolder['directory'] == $rLibrary['key']) {
                                                                     echo '<option selected value="' . $rLibrary['key'] . '">' . $rLibrary['title'] . '</option>';
                                                                 } else {
@@ -261,8 +261,8 @@
                                                         <select name="override_bouquets[]" id="override_bouquets"
                                                             class="form-control select2-multiple" data-toggle="select2"
                                                             multiple="multiple" data-placeholder="Choose...">
-                                                            <?php foreach ($rBouquets as $rBouquet) { ?>
-                                                                <?php $folderBouquets = json_decode($rFolder['bouquets'] ?? '[]', true); ?>
+                                                            <?php foreach ((is_array($rBouquets ?? null) ? $rBouquets : []) as $rBouquet) { ?>
+                                                                <?php $folderBouquets = (array) json_decode($rFolder['bouquets'] ?? '[]', true); ?>
                                                                 <option <?php if (in_array(intval($rBouquet['id']), $folderBouquets)) {
                                                                     echo 'selected ';
                                                                 } ?> value="<?= $rBouquet['id']; ?>"><?= $rBouquet['bouquet_name']; ?>
@@ -278,8 +278,8 @@
                                                         <select name="fallback_bouquets[]" id="fallback_bouquets"
                                                             class="form-control select2-multiple" data-toggle="select2"
                                                             multiple="multiple" data-placeholder="Choose...">
-                                                            <?php foreach ($rBouquets as $rBouquet) { ?>
-                                                                <?php $folderBouquets = json_decode($rFolder['fb_bouquets'] ?? '[]', true); ?>
+                                                            <?php foreach ((is_array($rBouquets ?? null) ? $rBouquets : []) as $rBouquet) { ?>
+                                                                <?php $folderBouquets = (array) json_decode($rFolder['fb_bouquets'] ?? '[]', true); ?>
                                                                 <option <?php if (in_array(intval($rBouquet['id']), $folderBouquets)) {
                                                                     echo 'selected';
                                                                 } ?> value="<?= $rBouquet['id']; ?>"><?= $rBouquet['bouquet_name']; ?>

@@ -353,7 +353,7 @@ function display_select($sth, $q) {
 
 function print_header() {
     global $err_msg, $VERSION, $DBSERVERS, $SRV, $DB, $dbh, $self, $is_sht, $xurl, $SHOW_T;
-    $dbn = $DB['db'];
+    $dbn = $DB['db'] ?? '';
     ?>
     <!DOCTYPE html>
     <html>
@@ -729,7 +729,7 @@ function print_header() {
 
             <div class="inv">
                 <a href="http://phpminiadmin.sourceforge.net/" target="_blank"><b>phpMiniAdmin <?php eo($VERSION) ?></b></a>
-                <?php if ($_SESSION['is_logged'] && $dbh) {
+                <?php if (!empty($_SESSION['is_logged']) && $dbh) {
                     if ($DBSERVERS) { ?>
                         | Servers: <select name="srv" onChange="frefresh()">
                             <option value=''>- select/refresh -</option>
@@ -753,7 +753,7 @@ function print_header() {
                     <?php } ?>
                     | <a href="?showcfg=1">Settings</a>
                 <?php } ?>
-                <?php if ($_SESSION['is_logged']) {
+                <?php if (!empty($_SESSION['is_logged'])) {
                     ?> | <a href="?<?php eo($xurl) ?>&logoff=1" onclick="logoff()">Logoff</a>
                 <?php } ?>
                 | <a href="?pi=1">phpinfo</a>

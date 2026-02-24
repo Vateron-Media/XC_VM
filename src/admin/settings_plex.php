@@ -10,7 +10,9 @@ if (!checkPermissions()) {
 $rBouquets = getBouquets();
 $_TITLE = 'Plex Settings';
 
-include 'header.php';
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+renderUnifiedLayoutHeader('admin');
 include dirname(__DIR__) . '/modules/plex/views/settings.php';
-include 'footer.php';
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin');
 include dirname(__DIR__) . '/modules/plex/views/settings_scripts.php';

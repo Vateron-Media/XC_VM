@@ -343,9 +343,12 @@ class Router {
      */
     protected function buildRoute($route) {
         if ($this->groupPrefix && $route !== '') {
-            return $this->groupPrefix . '/' . $route;
+            $full = $this->groupPrefix . '/' . $route;
+        } else {
+            $full = $this->groupPrefix ?: $route;
         }
-        return $this->groupPrefix ?: $route;
+        // Нормализуем при регистрации, чтобы dispatch() находил по тому же ключу
+        return $this->normalizePage($full);
     }
 
     /**
@@ -424,10 +427,23 @@ class Router {
      */
     protected function callHandler($handler) {
         if (is_array($handler) && count($handler) === 2 && is_string($handler[0])) {
-            // [ClassName, 'method'] → инстанцируем и вызываем
+            // [ClassName, 'method'] → инстанцируем (через DI-контейнер если доступен)
             $class  = $handler[0];
             $method = $handler[1];
-            $obj    = new $class();
+
+            // Попытка получить экземпляр через ServiceContainer (DI)
+            if (class_exists('ServiceContainer', false)) {
+                $container = ServiceContainer::getInstance();
+                try {
+                    $obj = $container->get($class);
+                } catch (\Throwable $e) {
+                    // Fallback: конструктор без параметров
+                    $obj = new $class();
+                }
+            } else {
+                $obj = new $class();
+            }
+
             $obj->$method();
         } elseif (is_callable($handler)) {
             call_user_func($handler);

@@ -1,4 +1,5 @@
 <?php
+if (!isset($__viewMode)):
 
 include 'session.php';
 include 'functions.php';
@@ -9,7 +10,9 @@ if (checkPermissions()) {
 }
 
 $_TITLE = 'Mass Edit Users';
-include 'header.php';
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+renderUnifiedLayoutHeader('admin');
+endif; // !$__viewMode
 echo '<div class="wrapper boxed-layout-ext"';
 
 if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
@@ -88,7 +91,8 @@ foreach (getPackages() as $rPackage) {
 	}
 }
 echo "\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</tbody>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</table>' . "\r\n" . '                                                <div class="custom-control col-md-12 custom-checkbox text-center" style="margin-top:20px;">' . "\r\n" . '                                                    <input type="checkbox" class="custom-control-input" id="c_override" data-name="override" data-type="override" name="c_override">' . "\r\n" . '                                                    <label class="custom-control-label" for="c_override">Tick this box to apply the above package override to all selected users.</label>' . "\r\n" . '                                                </div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<ul class="list-inline wizard mb-0">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="prevb list-inline-item">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" class="btn btn-secondary">Previous</a>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="nextb list-inline-item float-right">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="submit_user" type="submit" class="btn btn-primary" value="Mass Edit" />' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</ul>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t\t\t" . '</form>' . "\r\n\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t" . '</div> ' . "\r\n\t\t\t" . '</div> ' . "\r\n\t\t" . '</div>' . "\r\n\t" . '</div>' . "\r\n" . '</div>' . "\r\n";
-include 'footer.php'; ?>
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin'); ?>
 <script id="scripts">
 			var resizeObserver = new ResizeObserver(entries => $(window).scroll());
 			$(document).ready(function() {

@@ -1,5 +1,6 @@
 <?php
 
+if (!isset($__viewMode)):
 include 'session.php';
 include 'functions.php';
 
@@ -11,7 +12,9 @@ if (checkPermissions()) {
 $rRange = (intval(CoreUtilities::$rRequest['range']) ?: 0);
 $rTheftDetection = (igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'theft_detection')) ?: array());
 $_TITLE = 'VOD Theft Detection';
-include 'header.php';
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+renderUnifiedLayoutHeader('admin');
+endif; // !$__viewMode
 echo '<div class="wrapper boxed-layout-ext"';
 
 if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
@@ -94,7 +97,8 @@ foreach ($rTheftDetection[$rRange] as $rRow) {
 	echo '</td>' . "\r\n" . '                                    </tr>' . "\r\n" . '                                ';
 }
 echo '                            </tbody>' . "\r\n\t\t\t\t\t\t" . '</table>' . "\r\n\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t" . '</div> ' . "\r\n\t\t\t" . '</div>' . "\r\n\t\t" . '</div>' . "\r\n\t" . '</div>' . "\r\n" . '</div>' . "\r\n";
-include 'footer.php'; ?>
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin'); ?>
 <script id="scripts">
 			var resizeObserver = new ResizeObserver(entries => $(window).scroll());
 			$(document).ready(function() {
