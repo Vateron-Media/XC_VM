@@ -1,4 +1,5 @@
 <?php
+if (!isset($__viewMode)):
 
 include 'session.php';
 include 'functions.php';
@@ -14,9 +15,11 @@ if (!(isset(CoreUtilities::$rRequest['id']) && (!($rUser = getRegisteredUser(Cor
 }
 
 $_TITLE = 'User';
-include 'header.php';
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+renderUnifiedLayoutHeader('reseller');
+endif;
 echo '<div class="wrapper boxed-layout">' . "\n" . '    <div class="container-fluid">' . "\n\t\t" . '<div class="row">' . "\n\t\t\t" . '<div class="col-12">' . "\n\t\t\t\t" . '<div class="page-title-box">' . "\n\t\t\t\t\t" . '<div class="page-title-right">' . "\n" . '                        ';
-include 'topbar.php';
+include __DIR__ . '/topbar.php';
 echo "\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t" . '<h4 class="page-title">';
 
 if (isset($rUser)) {
@@ -252,4 +255,5 @@ if (isset($rUser)) {
 }
 
 echo "\t\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t" . '</form>' . "\n\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t" . '</div> ' . "\n\t\t\t" . '</div> ' . "\n\t\t" . '</div>' . "\n\t" . '</div>' . "\n" . '</div>' . "\n";
-include 'footer.php';
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('reseller');

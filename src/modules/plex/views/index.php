@@ -37,16 +37,16 @@
 								</tr>
 							</thead>
 							<tbody>
-								<?php foreach ($rPlexServers as $rServer) :
+								<?php foreach ((is_array($rPlexServers ?? null) ? $rPlexServers : []) as $rServer) :
 									$rDate = ($rServer['last_run'] > 0) ? date('Y-m-d H:i:s', $rServer['last_run']) : 'Never';
 									$rLibraryName = 'Unknown';
-									foreach (json_decode($rServer['plex_libraries'], true) as $rLibrary) {
+									foreach ((array) json_decode($rServer['plex_libraries'], true) as $rLibrary) {
 										if (intval($rLibrary['key']) == intval($rServer['directory'])) {
 											$rLibraryName = $rLibrary['title'];
 											break;
 										}
 									}
-									$rServerAdd = is_null($rServer['server_add']) ? 0 : count(json_decode($rServer['server_add'], true));
+									$rServerAdd = is_null($rServer['server_add']) ? 0 : count((array) json_decode($rServer['server_add'], true));
 								?>
 									<tr id="folder-<?= intval($rServer['id']); ?>">
 										<td class="text-center"><?= intval($rServer['id']); ?></td>

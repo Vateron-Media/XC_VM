@@ -1,3 +1,4 @@
+<?php if (!isset($__viewMode)): ?>
 <?php
 
 include 'session.php';
@@ -13,7 +14,9 @@ $rPeriod = (CoreUtilities::$rRequest['period'] ?: 'all');
 $db->query('SELECT `streams_stats`.*, `streams`.`stream_display_name` FROM `streams_stats` INNER JOIN `streams` ON `streams`.`id` = `streams_stats`.`stream_id` WHERE `streams_stats`.`type` = ? AND `streams`.`type` IN (1,3) GROUP BY `stream_id` ORDER BY `streams_stats`.`rank` ASC LIMIT 500;', $rPeriod);
 $rRows = $db->get_rows();
 $_TITLE = 'Stream Rank';
-include 'header.php';
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+renderUnifiedLayoutHeader('admin');
+<?php endif; ?>
 ?>
 <div class="wrapper boxed-layout-ext"
     <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
@@ -107,7 +110,10 @@ include 'header.php';
     </div>
 
 </div>
-<?php include 'footer.php'; ?>
+<?php
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin');
+?>
 <script id="scripts">
 			var resizeObserver = new ResizeObserver(entries => $(window).scroll());
 			$(document).ready(function() {

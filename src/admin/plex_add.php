@@ -1,5 +1,7 @@
 <?php
 
+if (!isset($__viewMode)):
+
 include 'session.php';
 include 'functions.php';
 
@@ -15,7 +17,12 @@ if (!isset(CoreUtilities::$rRequest['id']) || ($rFolder = getWatchFolder(CoreUti
 $rBouquets = getBouquets();
 $_TITLE = 'Add Library';
 
-include 'header.php';
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+renderUnifiedLayoutHeader('admin');
+
+endif; // !$__viewMode
 include dirname(__DIR__) . '/modules/plex/views/library_edit.php';
-include 'footer.php';
+
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin');
 include dirname(__DIR__) . '/modules/plex/views/library_edit_scripts.php';

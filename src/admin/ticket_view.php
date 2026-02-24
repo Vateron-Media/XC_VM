@@ -1,4 +1,5 @@
 <?php
+if (!isset($__viewMode)):
 
 
 
@@ -25,7 +26,9 @@ if ($rUserInfo['id'] == $rTicketInfo['member_id']) {
 }
 
 $_TITLE = 'View Ticket';
-include 'header.php';
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+renderUnifiedLayoutHeader('admin');
+endif; // !$__viewMode
 echo '<div class="wrapper boxed-layout-ext"';
 
 if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
@@ -62,4 +65,5 @@ foreach ($rTicketInfo['replies'] as $rReply) {
 	echo '</p>' . "\r\n\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t" . '</article>' . "\r\n\t\t\t\t\t";
 }
 echo "\t\t\t\t" . '</div>' . "\r\n\t\t\t" . '</div>' . "\r\n\t\t" . '</div>' . "\r\n\t" . '</div>' . "\r\n" . '</div>' . "\r\n";
-include 'footer.php';
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin');

@@ -1,3 +1,4 @@
+<?php if (!isset($__viewMode)): ?>
 <?php include 'session.php'; ?>
 <?php include 'functions.php'; ?>
 
@@ -6,7 +7,9 @@
 } ?>
 
 <?php $_TITLE = 'System Logs'; ?>
-<?php include 'header.php'; ?>
+<?php require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php'; ?>
+<?php renderUnifiedLayoutHeader('admin'); ?>
+<?php endif; ?>
 
 <div class="wrapper" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest'): ?> style="display: none;" <?php endif; ?>>
 	<div class="container-fluid">
@@ -44,7 +47,10 @@
 	</div>
 </div>
 
-<?php include 'footer.php'; ?>
+<?php
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin');
+?>
 <script id="scripts">
 	var resizeObserver = new ResizeObserver(entries => $(window).scroll());
 	$(document).ready(function() {

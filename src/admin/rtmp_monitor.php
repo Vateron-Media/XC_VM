@@ -1,3 +1,4 @@
+<?php if (!isset($__viewMode)): ?>
 <?php
 
 include 'session.php';
@@ -13,7 +14,9 @@ if (!isset(CoreUtilities::$rRequest['server']) || !isset($rServers[CoreUtilities
 
 $rRTMPInfo = getRTMPStats(CoreUtilities::$rRequest['server']);
 $_TITLE = 'RTMP Monitor';
-include 'header.php';
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+renderUnifiedLayoutHeader('admin');
+<?php endif; ?>
 ?>
 
 <div class="wrapper"
@@ -194,7 +197,10 @@ include 'header.php';
         </div>
     </div>
 </div>
-<?php include 'footer.php'; ?>
+<?php
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin');
+?>
 <script id="scripts">
 			var resizeObserver = new ResizeObserver(entries => $(window).scroll());
 			$(document).ready(function() {

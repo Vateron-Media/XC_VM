@@ -183,9 +183,9 @@
                                                                     id="bouquet_<?php echo $rRow['genre_id']; ?>"
                                                                     class="form-control select2-multiple" data-toggle="select2"
                                                                     multiple="multiple" data-placeholder="Choose...">
-                                                                    <?php foreach ($rBouquets as $rBouquet) { ?>
+                                                                    <?php foreach ((is_array($rBouquets ?? null) ? $rBouquets : []) as $rBouquet) { ?>
                                                                         <option
-                                                                            <?php if (in_array(intval($rBouquet['id']), json_decode($rRow['bouquets'], true))) {
+                                                                            <?php if (in_array(intval($rBouquet['id']), (array) json_decode($rRow['bouquets'], true))) {
                                                                                 echo 'selected';
                                                                             } ?>
                                                                             value="<?php echo $rBouquet['id']; ?>">
@@ -249,9 +249,9 @@
                                                                     id="bouquettv_<?php echo $rRow['genre_id']; ?>"
                                                                     class="form-control select2-multiple" data-toggle="select2"
                                                                     multiple="multiple" data-placeholder="Choose...">
-                                                                    <?php foreach ($rBouquets as $rBouquet) { ?>
+                                                                    <?php foreach ((is_array($rBouquets ?? null) ? $rBouquets : []) as $rBouquet) { ?>
                                                                         <option
-                                                                            <?php if (in_array(intval($rBouquet['id']), json_decode($rRow['bouquets'], true))) {
+                                                                            <?php if (in_array(intval($rBouquet['id']), (array) json_decode($rRow['bouquets'], true))) {
                                                                                 echo 'selected';
                                                                             } ?>
                                                                             value="<?php echo $rBouquet['id']; ?>">

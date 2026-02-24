@@ -5129,7 +5129,7 @@ if ($rType == "lines") {
                     $rReturn["data"][] = filterrow($rRow, CoreUtilities::$rRequest["show_columns"], CoreUtilities::$rRequest["hide_columns"]);
                 } else {
                     $rCategoryIDs = json_decode($rRow["category_id"], true);
-                    if (0 < strlen(CoreUtilities::$rRequest["category_id"])) {
+                    if (isset(CoreUtilities::$rRequest["category_id"]) && 0 < strlen(CoreUtilities::$rRequest["category_id"])) {
                         $rCategory = $rCategories[(int) CoreUtilities::$rRequest["category_id"]]["category_name"] ?: "No Category";
                     } else {
                         $rCategory = $rCategoryIDs[0] ?? null;
@@ -5195,7 +5195,7 @@ if ($rType == "lines") {
                     $rReturn["data"][] = filterrow($rRow, CoreUtilities::$rRequest["show_columns"], CoreUtilities::$rRequest["hide_columns"]);
                 } else {
                     $rCategoryIDs = json_decode($rRow["category_id"], true);
-                    if (0 < strlen(CoreUtilities::$rRequest["category_id"])) {
+                    if (isset(CoreUtilities::$rRequest["category_id"]) && 0 < strlen(CoreUtilities::$rRequest["category_id"])) {
                         $rCategory = $rCategories[(int) CoreUtilities::$rRequest["category_id"]]["category_name"] ?: "No Category";
                     } else {
                         $rCategory = $rCategoryIDs[0] ?? null;
@@ -5260,7 +5260,7 @@ if ($rType == "lines") {
                     $rReturn["data"][] = filterrow($rRow, CoreUtilities::$rRequest["show_columns"], CoreUtilities::$rRequest["hide_columns"]);
                 } else {
                     $rCategoryIDs = json_decode($rRow["category_id"], true);
-                    if (0 < strlen(CoreUtilities::$rRequest["category_id"])) {
+                    if (isset(CoreUtilities::$rRequest["category_id"]) && 0 < strlen(CoreUtilities::$rRequest["category_id"])) {
                         $rCategory = $rCategories[(int) CoreUtilities::$rRequest["category_id"]]["category_name"] ?: "No Category";
                     } else {
                         $rCategory = $rCategoryIDs[0] ?? null;
@@ -5326,7 +5326,7 @@ if ($rType == "lines") {
                     $rReturn["data"][] = filterrow($rRow, CoreUtilities::$rRequest["show_columns"], CoreUtilities::$rRequest["hide_columns"]);
                 } else {
                     $rCategoryIDs = json_decode($rRow["category_id"], true);
-                    if (0 < strlen(CoreUtilities::$rRequest["category_id"])) {
+                    if (isset(CoreUtilities::$rRequest["category_id"]) && 0 < strlen(CoreUtilities::$rRequest["category_id"])) {
                         $rCategory = $rCategories[(int) CoreUtilities::$rRequest["category_id"]]["category_name"] ?: "No Category";
                     } else {
                         $rCategory = $rCategoryIDs[0] ?? null;

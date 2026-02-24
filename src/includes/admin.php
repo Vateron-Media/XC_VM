@@ -130,7 +130,7 @@ function getUserInfo($rUsername, $rPassword) {
 
 function getSeriesList() {
 	global $db;
-	return SeriesRepository::getList($db);
+	return SeriesService::getList($db);
 }
 
 function secondsToTime($inputSeconds) {
@@ -150,12 +150,12 @@ function secondsToTime($inputSeconds) {
 
 function updateSeries($rID) {
 	global $db;
-	SeriesRepository::updateFromTMDB($db, $rID);
+	SeriesService::updateFromTMDB($db, $rID);
 }
 
 function updateSeriesAsync($rID) {
 	global $db;
-	SeriesRepository::queueRefresh($db, $rID);
+	SeriesService::queueRefresh($db, $rID);
 }
 
 function validateCIDR($rCIDR) {
@@ -250,7 +250,7 @@ function getWatchCategories($rType = null) {
 
 function syncDevices($rUserID, $rDeviceID = null) {
 	global $db;
-	DeviceSync::syncLineDevices($db, $rUserID, $rDeviceID);
+	MagService::syncLineDevices($db, $rUserID, $rDeviceID);
 }
 
 function encodeRow($rRow) {
@@ -396,31 +396,31 @@ function hasPermissions($rType, $rID) {
 
 function getMemberGroups() {
 	global $db;
-	return GroupRepository::getAll($db);
+	return GroupService::getAll($db);
 }
 
 function getHMACTokens() {
 	global $db;
-	return HMACRepository::getAll($db);
+	return AuthRepository::getAllHMAC($db);
 }
 
 function getHMACToken($rID) {
 	global $db;
-	return HMACRepository::getById($db, $rID);
+	return AuthRepository::getHMACById($db, $rID);
 }
 
 function getActiveCodes() {
-	return CodeRepository::getActiveCodes(MAIN_HOME);
+	return AuthRepository::getActiveCodes(MAIN_HOME);
 }
 
 function updateCodes() {
 	global $db;
-	CodeRepository::updateCodes($db, MAIN_HOME, SERVER_ID, 'getcodes', 'reloadNginx');
+	AuthRepository::updateCodes($db, MAIN_HOME, SERVER_ID, 'getcodes', 'reloadNginx');
 }
 
 function getCurrentCode($rInfo = false) {
 	global $db;
-	return CodeRepository::getCurrentCode($db, $rInfo);
+	return AuthRepository::getCurrentCode($db, $rInfo);
 }
 
 function overwriteData($rData, $rOverwrite, $rSkip = array()) {
@@ -3111,7 +3111,7 @@ function getEPGSources() {
 
 function getCategories($rType = 'live') {
 	global $db;
-	$rCategories = CategoryRepository::getFromDatabase($db, null, null, ($rType ?: null), true);
+	$rCategories = CategoryService::getFromDatabase($db, null, null, ($rType ?: null), true);
 	$rReturn = array();
 	foreach ($rCategories as $rID => $rRow) {
 		$rReturn[intval($rID)] = $rRow;
@@ -3121,17 +3121,17 @@ function getCategories($rType = 'live') {
 
 function findEPG($rEPGName) {
 	global $db;
-	return EpgRepository::findByName($db, $rEPGName);
+	return EpgService::findByName($db, $rEPGName);
 }
 
 function deleteGroup($rID) {
 	global $db;
-	return GroupRepository::deleteById($db, $rID);
+	return GroupService::deleteById($db, $rID);
 }
 
 function deletePackage($rID) {
 	global $db;
-	return PackageRepository::deleteById($db, 'getPackage', $rID);
+	return PackageService::deleteById($db, 'getPackage', $rID);
 }
 
 function deleteProvider($rID) {
@@ -3207,7 +3207,7 @@ function getProtocol() {
 
 function deleteMovieFile($rServerIDs, $rID) {
 	global $db;
-	return MovieRepository::deleteFile($db, $rServerIDs, $rID);
+	return MovieService::deleteFile($db, $rServerIDs, $rID);
 }
 
 function generateString($strength = 10) {
@@ -3264,7 +3264,7 @@ function getWatchdog($rID, $rLimit = 86400) {
 
 function getMemberGroup($rID) {
 	global $db;
-	return GroupRepository::getById($db, $rID);
+	return GroupService::getById($db, $rID);
 }
 
 function getOutputs() {
@@ -3284,27 +3284,27 @@ function getOutputs() {
 
 function getUserBouquets() {
 	global $db;
-	return BouquetRepository::getUserBouquets($db);
+	return BouquetService::getUserBouquets($db);
 }
 
 function getBouquets() {
 	global $db;
-	return BouquetRepository::getAllSimple($db);
+	return BouquetService::getAllSimple($db);
 }
 
 function getBouquetOrder() {
 	global $db;
-	return BouquetRepository::getOrder($db);
+	return BouquetService::getOrder($db);
 }
 
 function getBlockedIPs() {
 	global $db;
-	return BlocklistRepository::getBlockedIPsSimple($db);
+	return BlocklistService::getBlockedIPsSimple($db);
 }
 
 function getRTMPIPs() {
 	global $db;
-	return BlocklistRepository::getRTMPIPsSimple($db);
+	return BlocklistService::getRTMPIPsSimple($db);
 }
 
 function getStream($rID) {
@@ -3323,6 +3323,10 @@ function getRegisteredUser($rID) {
 }
 
 function getPageName() {
+	if (defined('PAGE_NAME') && PAGE_NAME) {
+		return strtolower(PAGE_NAME);
+	}
+
 	return strtolower(basename(get_included_files()[0], '.php'));
 }
 
@@ -3366,11 +3370,11 @@ function getStreamStats($rStreamID) {
 }
 
 function getSimilarMovies($rID, $rPage = 1) {
-	return MovieRepository::getSimilar($rID, $rPage);
+	return MovieService::getSimilar($rID, $rPage);
 }
 
 function getSimilarSeries($rID, $rPage = 1) {
-	return SeriesRepository::getSimilar($rID, $rPage);
+	return SeriesService::getSimilar($rID, $rPage);
 }
 
 function generateReport($rURL, $rParams) {
@@ -3434,7 +3438,7 @@ function getchannelepg($rStreamID, $rArchive = false) {
 
 function getEPG($rID) {
 	global $db;
-	return EpgRepository::getById($db, $rID);
+	return EpgService::getById($db, $rID);
 }
 
 function getStreamOptions($rID) {
@@ -3505,7 +3509,7 @@ function getNextOrder() {
 
 function generateSeriesPlaylist($rSeriesNo) {
 	global $db;
-	return SeriesRepository::generatePlaylist($db, $rSeriesNo);
+	return SeriesService::generatePlaylist($db, $rSeriesNo);
 }
 
 function shutdown_admin() {

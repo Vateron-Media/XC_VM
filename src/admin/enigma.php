@@ -1,4 +1,5 @@
 <?php
+if (!isset($__viewMode)):
 
 include 'session.php';
 include 'functions.php';
@@ -24,7 +25,9 @@ if (!isset($rDevice) || isset($rDevice['user'])) {
 }
 
 $_TITLE = 'Enigma Device';
-include 'header.php';
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+renderUnifiedLayoutHeader('admin');
+endif; // !$__viewMode
 echo '<div class="wrapper boxed-layout"';
 
 if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
@@ -291,7 +294,8 @@ if (isset($rDevice)) {
 }
 
 echo '" />' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</ul>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t\t\t" . '</form>' . "\r\n\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t" . '</div> ' . "\r\n\t\t\t" . '</div> ' . "\r\n\t\t" . '</div>' . "\r\n\t" . '</div>' . "\r\n" . '</div>' . "\r\n";
-include 'footer.php'; ?>
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin'); ?>
 <script id="scripts">
 			var resizeObserver = new ResizeObserver(entries => $(window).scroll());
 			$(document).ready(function() {

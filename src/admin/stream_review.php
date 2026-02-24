@@ -1,3 +1,4 @@
+<?php if (!isset($__viewMode)): ?>
 <?php
 include 'session.php';
 include 'functions.php';
@@ -118,7 +119,9 @@ if (isset(CoreUtilities::$rRequest['save_changes'])) {
     }
 }
 $_TITLE = 'Review';
-include 'header.php';
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+renderUnifiedLayoutHeader('admin');
+<?php endif; ?>
 ?>
 
 <div class="wrapper<?= $rImport ? '' : ' boxed-layout-ext' ?>"
@@ -264,7 +267,10 @@ include 'header.php';
         </form>
     </div>
 </div>
-<?php include 'footer.php'; ?>
+<?php
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin');
+?>
 <script id="scripts">
 			var resizeObserver = new ResizeObserver(entries => $(window).scroll());
 			$(document).ready(function() {

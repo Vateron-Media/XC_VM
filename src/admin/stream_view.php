@@ -1,3 +1,4 @@
+<?php if (!isset($__viewMode)): ?>
 <?php
 
 
@@ -83,7 +84,9 @@ if ($rStream['type'] != 5) {
 
 $rStreamStats = getStreamStats($rStream['id']);
 $_TITLE = 'View ' . $rTypeString;
-include 'header.php';
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+renderUnifiedLayoutHeader('admin');
+endif;
 echo '<div class="wrapper boxed-layout-ext"';
 
 if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
@@ -596,7 +599,8 @@ if ($rStream['type'] == 1) {
 
 
 echo "\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t" . '</div>' . "\r\n\t\t\t" . '</div> ' . "\r\n\t\t" . '</div>' . "\r\n\t" . '</div>' . "\r\n" . '</div>' . "\r\n";
-include 'footer.php'; ?>
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin'); ?>
 <script id="scripts">
 			var resizeObserver = new ResizeObserver(entries => $(window).scroll());
 			$(document).ready(function() {

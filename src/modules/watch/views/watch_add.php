@@ -237,8 +237,8 @@
 													<label class="col-md-4 col-form-label" for="bouquets">Override Bouquets <i title="Ignore category allocation and force bouquet allocation." class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-8">
 														<select name="bouquets[]" id="bouquets" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">
-															<?php foreach ($rBouquets as $rBouquet) : ?>
-																<option <?php if (isset($rFolder) && in_array(intval($rBouquet['id']), json_decode($rFolder['bouquets'], true))) echo 'selected '; ?>value="<?= intval($rBouquet['id']); ?>"><?= $rBouquet['bouquet_name']; ?></option>
+															<?php foreach ((is_array($rBouquets ?? null) ? $rBouquets : []) as $rBouquet) : ?>
+																<option <?php if (isset($rFolder) && in_array(intval($rBouquet['id']), (array) json_decode($rFolder['bouquets'], true))) echo 'selected '; ?>value="<?= intval($rBouquet['id']); ?>"><?= $rBouquet['bouquet_name']; ?></option>
 															<?php endforeach; ?>
 														</select>
 													</div>
@@ -269,8 +269,8 @@
 													<label class="col-md-4 col-form-label" for="fb_bouquets">Fallback Bouquets <i title="Add to these bouquets if the Genre isn't found in the category allocation list." class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-8">
 														<select name="fb_bouquets[]" id="fb_bouquets" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">
-															<?php foreach ($rBouquets as $rBouquet) : ?>
-																<option <?php if (isset($rFolder) && in_array(intval($rBouquet['id']), json_decode($rFolder['fb_bouquets'], true))) echo 'selected '; ?>value="<?= intval($rBouquet['id']); ?>"><?= $rBouquet['bouquet_name']; ?></option>
+															<?php foreach ((is_array($rBouquets ?? null) ? $rBouquets : []) as $rBouquet) : ?>
+																<option <?php if (isset($rFolder) && in_array(intval($rBouquet['id']), (array) json_decode($rFolder['fb_bouquets'], true))) echo 'selected '; ?>value="<?= intval($rBouquet['id']); ?>"><?= $rBouquet['bouquet_name']; ?></option>
 															<?php endforeach; ?>
 														</select>
 													</div>
@@ -286,7 +286,7 @@
 													<div class="col-md-8">
 														<select name="allowed_extensions[]" id="allowed_extensions" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">
 															<?php foreach (array('mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts') as $rExtension) : ?>
-																<option <?php if (isset($rFolder) && in_array($rExtension, json_decode($rFolder['allowed_extensions'], true))) echo 'selected '; ?>value="<?= $rExtension; ?>"><?= $rExtension; ?></option>
+																<option <?php if (isset($rFolder) && in_array($rExtension, (array) json_decode($rFolder['allowed_extensions'], true))) echo 'selected '; ?>value="<?= $rExtension; ?>"><?= $rExtension; ?></option>
 															<?php endforeach; ?>
 														</select>
 													</div>
@@ -296,7 +296,7 @@
 													<div class="col-md-8">
 														<select name="language" id="language" class="form-control" data-toggle="select2">
 															<option value="">Do Not Force</option>
-															<?php foreach (array_slice($rTMDBLanguages, 1, count($rTMDBLanguages) - 1) as $rKey => $rLanguage) : ?>
+															<?php foreach (is_array($rTMDBLanguages ?? null) ? array_slice($rTMDBLanguages, 1, count($rTMDBLanguages) - 1) : [] as $rKey => $rLanguage) : ?>
 																<option<?php if (isset($rFolder) && $rFolder['language'] == $rKey) echo ' selected'; ?> value="<?= $rKey; ?>"><?= $rLanguage; ?></option>
 															<?php endforeach; ?>
 														</select>
