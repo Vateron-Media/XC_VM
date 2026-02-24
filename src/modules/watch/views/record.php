@@ -165,7 +165,7 @@
                                                         <div class="col-md-8">
                                                             <select name="source_id" id="source_id" class="form-control"
                                                                 data-toggle="select2">
-                                                                <?php foreach ($rAvailableServers as $rServerID) { ?>
+                                                                <?php foreach ((is_array($rAvailableServers ?? null) ? $rAvailableServers : []) as $rServerID) { ?>
                                                                     <option
                                                                         value="<?php echo CoreUtilities::$rServers[$rServerID]['id']; ?>">
                                                                         <?php echo CoreUtilities::$rServers[$rServerID]['server_name']; ?>

@@ -400,8 +400,10 @@ switch ($rPage) {
 			$firstKey = array_keys($rDropdown[$rPage])[0];
 			$firstItem = $rDropdown[$rPage][$firstKey];
 
+			$permAllowed = !isset($firstItem[1]) || $firstItem[1] === '' || $firstItem[1] === null || hasPermissions('adv', $firstItem[1]);
+
 			$shouldShowButton = !$rMobile &&
-				hasPermissions('adv', $firstItem[1]) &&
+				$permAllowed &&
 				strlen($firstKey) > 0;
 
 			if ($shouldShowButton) {

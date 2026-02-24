@@ -1,3 +1,4 @@
+<?php if (!isset($__viewMode)): ?>
 <?php
 
 include 'session.php';
@@ -51,8 +52,10 @@ foreach (range(max($rPageInt - 2, 1), min($rPageInt + 2, $rPages)) as $i) {
     $rPagination[] = $i;
 }
 $_TITLE = 'TV Guide';
-include 'header.php';
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+renderUnifiedLayoutHeader('admin');
 ?>
+<?php endif; ?>
 <div class="wrapper " <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
                             echo ' style="display: none;"';
                         } ?>>
@@ -170,7 +173,10 @@ include 'header.php';
         <?php } ?>
     </div>
 </div>
-<?php include 'footer.php'; ?>
+<?php
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin');
+?>
 <script id="scripts">
 			var resizeObserver = new ResizeObserver(entries => $(window).scroll());
 			$(document).ready(function() {

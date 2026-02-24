@@ -1,3 +1,4 @@
+<?php if (!isset($__viewMode)): ?>
 <?php
 
 include 'session.php';
@@ -29,7 +30,9 @@ $rFS = getFreeSpace(CoreUtilities::$rRequest['server']) ?: array();
 $rProcesses = getPIDs(CoreUtilities::$rRequest['server']) ?: array();
 $rStatus = array('D' => 'Uninterruptible Sleep', 'I' => 'Idle', 'R' => 'Running', 'S' => 'Interruptible Sleep', 'T' => 'Stopped', 'W' => 'Paging', 'X' => 'Dead', 'Z' => 'Zombie');
 $_TITLE = 'Process Monitor';
-include 'header.php'; ?>
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+renderUnifiedLayoutHeader('admin'); ?>
+<?php endif; ?>
 <div class="wrapper" <?= empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest' ? '' : ' style="display: none;"' ?>>
     <div class="container-fluid">
         <div class="row">
@@ -321,7 +324,10 @@ include 'header.php'; ?>
         </div>
     </div>
 </div>
-<?php include 'footer.php'; ?>
+<?php
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin');
+?>
 <script id="scripts">
     var resizeObserver = new ResizeObserver(entries => $(window).scroll());
     $(document).ready(function() {

@@ -1,7 +1,10 @@
+<?php if (!isset($__viewMode)): ?>
 <?php include 'session.php';
 include 'functions.php';
 $_TITLE = 'Edit Profile';
-include 'header.php'; ?>
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+renderUnifiedLayoutHeader('admin'); ?>
+<?php endif; ?>
 <div class="wrapper boxed-layout" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
                                         echo ' style="display: none;"';
                                     } ?>>
@@ -70,7 +73,7 @@ include 'header.php'; ?>
                                                     <label class="col-md-4 col-form-label" for="theme">System Theme</label>
                                                     <div class="col-md-8">
                                                         <select name="theme" id="theme" class="form-control" data-toggle="select2">
-                                                            <?php foreach ($rThemes as $rValue => $rArray) { ?>
+                                                            <?php foreach ((is_array($rThemes ?? null) ? $rThemes : []) as $rValue => $rArray) { ?>
                                                                 <option <?php if ($rUserInfo['theme'] == $rValue) {
                                                                             echo 'selected ';
                                                                         } ?>value="<?php echo $rValue; ?>"><?php echo $rArray['name']; ?></option>
@@ -82,7 +85,7 @@ include 'header.php'; ?>
                                                     <label class="col-md-4 col-form-label" for="hue">Topbar Theme</label>
                                                     <div class="col-md-8">
                                                         <select name="hue" id="hue" class="form-control" data-toggle="select2">
-                                                            <?php foreach ($rHues as $rValue => $rText) { ?>
+                                                            <?php foreach ((is_array($rHues ?? null) ? $rHues : []) as $rValue => $rText) { ?>
                                                                 <option <?php if ($rUserInfo['hue'] == $rValue) {
                                                                             echo 'selected ';
                                                                         } ?>value="<?php echo $rValue; ?>"><?php echo $rText; ?></option>
@@ -94,7 +97,7 @@ include 'header.php'; ?>
                                                     <label class="col-md-4 col-form-label" for="lang">Language</label>
                                                     <div class="col-md-8">
                                                         <select name="lang" id="lang" class="form-control" data-toggle="select2">
-                                                            <?php foreach ($allowedLangs as $rText) { ?>
+                                                            <?php foreach ((is_array($allowedLangs ?? null) ? $allowedLangs : []) as $rText) { ?>
                                                                 <option <?php if ($rUserInfo['lang'] == $rText) {
                                                                             echo 'selected ';
                                                                         } ?>value="<?php echo $rText; ?>"><?php echo $rText; ?></option>
@@ -134,7 +137,10 @@ include 'header.php'; ?>
         </div>
     </div>
 </div>
-<?php include 'footer.php'; ?>
+<?php
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin');
+?>
 
 <script id="scripts">
     var resizeObserver = new ResizeObserver(entries => $(window).scroll());

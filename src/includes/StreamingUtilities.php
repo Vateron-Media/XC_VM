@@ -229,7 +229,7 @@ class StreamingUtilities {
 		file_put_contents(SIGNALS_TMP_PATH . 'cache_' . md5($rKey), json_encode(array($rKey, $rData)));
 	}
 	public static function validateHMAC($rHMAC, $rExpiry, $rStreamID, $rExtension, $rIP = '', $rMACIP = '', $rIdentifier = '', $rMaxConnections = 0) {
-		return HMACValidator::validate(self::$db, self::$rSettings, self::$rCached, $rHMAC, $rExpiry, $rStreamID, $rExtension, $rIP, $rMACIP, $rIdentifier, $rMaxConnections, array('StreamingUtilities', 'decryptData'));
+		return AuthService::validateHMAC(self::$db, self::$rSettings, self::$rCached, $rHMAC, $rExpiry, $rStreamID, $rExtension, $rIP, $rMACIP, $rIdentifier, $rMaxConnections, array('StreamingUtilities', 'decryptData'));
 	}
 	public static function checkBlockedUAs($rUserAgent, $rReturn = false) {
 		return BlocklistService::checkBlockedUAs(self::$rBlockedUA, $rUserAgent, $rReturn);
@@ -422,7 +422,7 @@ class StreamingUtilities {
 		}
 	}
 	public static function getCategories($rType = null) {
-		return CategoryRepository::filterLoaded(self::$rCategories, $rType);
+		return CategoryService::filterLoaded(self::$rCategories, $rType);
 	}
 	public static function matchCIDR($rASN, $rIP) {
 		if (!file_exists(CIDR_TMP_PATH . $rASN)) {
@@ -486,7 +486,7 @@ class StreamingUtilities {
 		StreamAuth::validateConnections($rUserInfo, $rIsHMAC, $rIdentifier, $rIP, $rUserAgent, array(self::class, 'closeConnections'));
 	}
 	public static function getBouquetMap($rStreamID) {
-		return BouquetMapper::getMapEntry($rStreamID);
+		return BouquetService::getMapEntry($rStreamID);
 	}
 	public static function getStreamData($rStreamID) {
 		$rOutput = array();

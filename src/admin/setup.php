@@ -132,7 +132,8 @@ if (!isset(CoreUtilities::$rRequest['update'])):
 
     $_TITLE = 'Database Migration';
     $_SETUP = true;
-    include 'header.php';
+    require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+    renderUnifiedLayoutHeader('admin');
 ?>
     <div class="wrapper boxed-layout" <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
                                         } else {
@@ -299,7 +300,10 @@ if (!isset(CoreUtilities::$rRequest['update'])):
             </div>
         </div>
     </div>
-    <?php include 'footer.php'; ?>
+    <?php
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin');
+?>
     <?php if ($rMigrating): ?>
         <script>
             function getMigrationStatus() {

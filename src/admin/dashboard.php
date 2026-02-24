@@ -1,3 +1,4 @@
+<?php if (!isset($__viewMode)): ?>
 <?php
 include 'session.php';
 include 'functions.php';
@@ -66,12 +67,11 @@ if (isset(CoreUtilities::$rRequest['server_id'])) {
 $rOrderedServers = $rServers;
 array_multisort(array_column($rOrderedServers, 'order'), SORT_ASC, $rOrderedServers);
 
-$rLicenseType = 'License';
-
 $_TITLE = 'Dashboard';
-include 'header.php';
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+renderUnifiedLayoutHeader('admin');
 ?>
-
+<?php endif; ?>
 <div class="wrapper">
 	<div class="container-fluid">
 		<?php if (hasPermissions('adv', 'index')): ?>
@@ -734,7 +734,10 @@ include 'header.php';
 	</div>
 </div>
 
-<?php include 'footer.php';?>
+<?php
+require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin');
+?>
 <script id="scripts">
 			var resizeObserver = new ResizeObserver(entries => $(window).scroll());
 			$(document).ready(function() {
