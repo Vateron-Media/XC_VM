@@ -13,7 +13,7 @@ class SettingsPlexController extends BaseAdminController
     {
         $this->requirePermission();
 
-        $rBouquets = getBouquets();
+        $rBouquets = BouquetService::getAllSimple();
         if (!is_array($rBouquets)) {
             $rBouquets = [];
         }

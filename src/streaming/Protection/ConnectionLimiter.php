@@ -1,7 +1,8 @@
 <?php
 
 class ConnectionLimiter {
-	public static function closeConnections($db, $redis, $rSettings, $rServers, $rUserID, $rMaxConnections, $rIsHMAC = null, $rIdentifier = '', $rIP = null, $rUserAgent = null, $rGetConnectionsCallback = null, $rGetUserIPCallback = null, $rCloseConnectionCallback = null, $rRemoveFromQueueCallback = null) {
+	public static function closeConnections($redis, $rSettings, $rServers, $rUserID, $rMaxConnections, $rIsHMAC = null, $rIdentifier = '', $rIP = null, $rUserAgent = null, $rGetConnectionsCallback = null, $rGetUserIPCallback = null, $rCloseConnectionCallback = null, $rRemoveFromQueueCallback = null) {
+		global $db;
 		if ($rSettings['redis_handler']) {
 			$rConnections = array();
 			$rKeys = call_user_func($rGetConnectionsCallback, $rUserID, true, true);
@@ -115,7 +116,8 @@ class ConnectionLimiter {
 		return $rKilled;
 	}
 
-	public static function closeConnection($db, $redis, $rSettings, $rServers, $rActivityInfo, $rUpdateConnectionCallback = null, $rRedisSignalCallback = null, $rWriteOfflineActivityCallback = null) {
+	public static function closeConnection($redis, $rSettings, $rServers, $rActivityInfo, $rUpdateConnectionCallback = null, $rRedisSignalCallback = null, $rWriteOfflineActivityCallback = null) {
+		global $db;
 		if (empty($rActivityInfo)) {
 			return false;
 		}
@@ -173,7 +175,8 @@ class ConnectionLimiter {
 		return true;
 	}
 
-	public static function closeRTMP($db, $rPID, $rWriteOfflineActivityCallback = null) {
+	public static function closeRTMP($rPID, $rWriteOfflineActivityCallback = null) {
+		global $db;
 		if (empty($rPID)) {
 			return false;
 		}

@@ -496,7 +496,7 @@ class GitHubReleases {
         }
         return false;
     }
-    
+
     /**
      * Change the update channel and clear cache.
      *

@@ -7,7 +7,8 @@ class GroupService {
 
 	// ──────────── Из GroupRepository ────────────
 
-	public static function getAll($db) {
+	public static function getAll() {
+		global $db;
 		$rReturn = array();
 		$db->query('SELECT * FROM `users_groups` ORDER BY `group_id` ASC;');
 
@@ -21,7 +22,8 @@ class GroupService {
 		return $rReturn;
 	}
 
-	public static function getById($db, $rID) {
+	public static function getById($rID) {
+		global $db;
 		$db->query('SELECT * FROM `users_groups` WHERE `group_id` = ?;', $rID);
 
 		if ($db->num_rows() != 1) {
@@ -30,8 +32,9 @@ class GroupService {
 		}
 	}
 
-	public static function deleteById($db, $rID) {
-		$rGroup = getMemberGroup($rID);
+	public static function deleteById($rID) {
+		global $db;
+		$rGroup = self::getById($rID);
 
 		if (!($rGroup && $rGroup['can_delete'])) {
 			return false;

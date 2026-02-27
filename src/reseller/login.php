@@ -4,7 +4,7 @@ include 'functions.php';
 
 if (!isset($_SESSION['reseller'])) {
 	session_start();
-	$rIP = getIP();
+	$rIP = CoreUtilities::getUserIP();
 
 	if (0 >= intval($rSettings['login_flood'])) {
 	} else {

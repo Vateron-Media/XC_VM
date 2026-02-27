@@ -1,24 +1,24 @@
 <?php if (!isset($__viewMode)): ?>
-<?php
+    <?php
 
-include 'session.php';
-include 'functions.php';
+    include 'session.php';
+    include 'functions.php';
 
-if (checkPermissions()) {
-} else {
-    goHome();
-}
+    if (checkPermissions()) {
+    } else {
+        goHome();
+    }
 
-$rCategories = getCategories('live');
-$rTranscodeProfiles = getTranscodeProfiles();
-$rServerTree = array(array('id' => 'source', 'parent' => '#', 'text' => "<strong class='btn btn-success waves-effect waves-light btn-xs'>Active</strong>", 'icon' => 'mdi mdi-play', 'state' => array('opened' => true)), array('id' => 'offline', 'parent' => '#', 'text' => "<strong class='btn btn-secondary waves-effect waves-light btn-xs'>Offline</strong>", 'icon' => 'mdi mdi-stop', 'state' => array('opened' => true)));
+    $rCategories = getCategories('live');
+    $rTranscodeProfiles = StreamConfigRepository::getTranscodeProfiles();
+    $rServerTree = array(array('id' => 'source', 'parent' => '#', 'text' => "<strong class='btn btn-success waves-effect waves-light btn-xs'>Active</strong>", 'icon' => 'mdi mdi-play', 'state' => array('opened' => true)), array('id' => 'offline', 'parent' => '#', 'text' => "<strong class='btn btn-secondary waves-effect waves-light btn-xs'>Offline</strong>", 'icon' => 'mdi mdi-stop', 'state' => array('opened' => true)));
 
-foreach ($rServers as $rServer) {
-    $rServerTree[] = array('id' => intval($rServer['id']), 'parent' => 'offline', 'text' => htmlspecialchars($rServer['server_name']), 'icon' => 'mdi mdi-server-network', 'state' => array('opened' => true));
-}
-$_TITLE = 'Mass Edit Channels';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('admin'); ?>
+    foreach ($rServers as $rServer) {
+        $rServerTree[] = array('id' => intval($rServer['id']), 'parent' => 'offline', 'text' => htmlspecialchars($rServer['server_name']), 'icon' => 'mdi mdi-server-network', 'state' => array('opened' => true));
+    }
+    $_TITLE = 'Mass Edit Channels';
+    require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+    renderUnifiedLayoutHeader('admin'); ?>
 <?php endif; ?>
 <div class="wrapper boxed-layout-xl" <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
                                         } else {
@@ -83,7 +83,7 @@ renderUnifiedLayoutHeader('admin'); ?>
                                                 <select id="stream_server_id" class="form-control" data-toggle="select2">
                                                     <option value="" selected>All Servers</option>
                                                     <option value="-1">No Servers</option>
-                                                    <?php foreach (getStreamingServers() as $rServer) { ?>
+                                                    <?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer) { ?>
                                                         <option value="<?php echo intval($rServer['id']); ?>"><?php echo $rServer['server_name']; ?></option>
                                                     <?php } ?>
                                                 </select>
@@ -173,7 +173,7 @@ renderUnifiedLayoutHeader('admin'); ?>
                                                     <label class="col-md-3 col-form-label" for="bouquets">Select Bouquets</label>
                                                     <div class="col-md-6">
                                                         <select disabled name="bouquets[]" id="bouquets" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">
-                                                            <?php foreach (getBouquets() as $rBouquet) { ?>
+                                                            <?php foreach (BouquetService::getAllSimple() as $rBouquet) { ?>
                                                                 <option value="<?php echo intval($rBouquet['id']); ?>"><?php echo htmlspecialchars($rBouquet['bouquet_name']); ?></option>
                                                             <?php } ?>
                                                         </select>

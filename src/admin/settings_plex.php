@@ -7,7 +7,7 @@ if (!checkPermissions()) {
     goHome();
 }
 
-$rBouquets = getBouquets();
+$rBouquets = BouquetService::getAllSimple();
 $_TITLE = 'Plex Settings';
 
 require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';

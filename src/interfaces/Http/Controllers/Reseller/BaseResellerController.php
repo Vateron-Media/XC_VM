@@ -37,7 +37,7 @@ class BaseResellerController extends BaseAdminController
      */
     protected function requireAdvPermission($type, $key)
     {
-        if (function_exists('hasPermissions') && !hasPermissions($type, $key)) {
+        if (class_exists('Authorization') && !Authorization::check($type, $key)) {
             if (function_exists('goHome')) {
                 goHome();
             }

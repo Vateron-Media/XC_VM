@@ -11,11 +11,11 @@ if (!isset($_SESSION['hash'])) {
         session_start();
     }
 
-    if (!($rBypassRecaptcha = in_array(getCurrentCode(), array('setup', 'rescue')))) {
+    if (!($rBypassRecaptcha = in_array(AuthRepository::getCurrentCode(), array('setup', 'rescue')))) {
         $rSettings['recaptcha_enable'] = false;
     }
 
-    $rIP = getIP();
+    $rIP = CoreUtilities::getUserIP();
 
     if (0 >= intval($rSettings['login_flood'])) {
     } else {
@@ -39,7 +39,7 @@ if (!isset($_SESSION['hash'])) {
 
         if ($_STATUS != STATUS_SUCCESS) {
         } else {
-            if (getCurrentCode() == 'setup') {
+            if (AuthRepository::getCurrentCode() == 'setup') {
                 header('Location: codes');
 
                 exit();

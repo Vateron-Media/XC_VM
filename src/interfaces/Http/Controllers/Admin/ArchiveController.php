@@ -8,10 +8,12 @@ class ArchiveController extends BaseAdminController
     {
         $this->requirePermission();
 
+        global $db;
+
         $rRecordings = null;
 
         if (isset(CoreUtilities::$rRequest['id'])) {
-            $rStream = getStream(CoreUtilities::$rRequest['id']);
+            $rStream = StreamRepository::getById(CoreUtilities::$rRequest['id']);
 
             if (!$rStream || $rStream['type'] != 1 || $rStream['tv_archive_duration'] == 0 || $rStream['tv_archive_server_id'] == 0) {
                 $this->redirect('archive');
@@ -20,7 +22,7 @@ class ArchiveController extends BaseAdminController
 
             $rArchive = getArchive($rStream['id']);
         } else {
-            $rRecordings = getRecordings();
+            $rRecordings = WatchService::getRecordings();
         }
 
         $rTitle = (!is_null($rRecordings) ? 'Recordings' : 'TV Archive');

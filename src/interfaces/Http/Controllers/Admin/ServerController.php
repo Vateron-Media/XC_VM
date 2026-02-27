@@ -47,7 +47,7 @@ class ServerController extends BaseAdminController
         }
 
         // Free space
-        $rFS = getFreeSpace($rServerArr['id']);
+        $rFS = ServerRepository::getFreeSpace('systemapirequest', $rServerArr['id']);
         $rMounted = false;
         foreach ($rFS as $rMount) {
             if ($rMount['mount'] === rtrim(STREAMS_PATH, '/')) {
@@ -57,7 +57,7 @@ class ServerController extends BaseAdminController
         }
 
         // SSL Log
-        $rSSLLog = getSSLLog($rServerArr['id']);
+        $rSSLLog = ServerRepository::getSSLLog(CoreUtilities::$rServers, $rServerArr['id']);
 
         $this->setTitle('Edit Server');
         $this->render('server', compact(

@@ -8,7 +8,7 @@ class LineService {
 		ini_set('default_socket_timeout', 0);
 
 		$rLines = json_decode($rData['lines'], true);
-		deleteLines($rLines);
+		LineRepository::deleteMany($rLines);
 
 		return array('status' => STATUS_SUCCESS);
 	}
@@ -21,15 +21,16 @@ class LineService {
 		return API::processLineLegacy($rData);
 	}
 
-	public static function deleteLineSignal($db, $rCached, $rMainID, $rUserID, $rForce = false) {
-		self::updateLineSignal($db, $rCached, $rMainID, $rUserID, $rForce);
+	public static function deleteLineSignal($rCached, $rMainID, $rUserID, $rForce = false) {
+		self::updateLineSignal($rCached, $rMainID, $rUserID, $rForce);
 	}
 
-	public static function deleteLinesSignal($db, $rCached, $rMainID, $rUserIDs, $rForce = false) {
-		self::updateLinesSignal($db, $rCached, $rMainID, $rUserIDs);
+	public static function deleteLinesSignal($rCached, $rMainID, $rUserIDs, $rForce = false) {
+		self::updateLinesSignal($rCached, $rMainID, $rUserIDs);
 	}
 
-	public static function updateLineSignal($db, $rCached, $rMainID, $rUserID, $rForce = false) {
+	public static function updateLineSignal($rCached, $rMainID, $rUserID, $rForce = false) {
+		global $db;
 		if ($rCached) {
 			$db->query('SELECT COUNT(*) AS `count` FROM `signals` WHERE `server_id` = ? AND `cache` = 1 AND `custom_data` = ?;', $rMainID, json_encode(array('type' => 'update_line', 'id' => $rUserID)));
 			if ($db->get_row()['count'] != 0) {
@@ -41,7 +42,8 @@ class LineService {
 		return false;
 	}
 
-	public static function updateLinesSignal($db, $rCached, $rMainID, $rUserIDs) {
+	public static function updateLinesSignal($rCached, $rMainID, $rUserIDs) {
+		global $db;
 		if ($rCached) {
 			$db->query('SELECT COUNT(*) AS `count` FROM `signals` WHERE `server_id` = ? AND `cache` = 1 AND `custom_data` = ?;', $rMainID, json_encode(array('type' => 'update_lines', 'id' => $rUserIDs)));
 			if ($db->get_row()['count'] != 0) {

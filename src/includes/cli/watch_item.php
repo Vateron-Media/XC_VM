@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Watch Item CLI — точка входа.
  *
@@ -42,4 +43,3 @@ function shutdown() {
     }
     @unlink(WATCH_TMP_PATH . @getmypid() . '.wpid');
 }
-

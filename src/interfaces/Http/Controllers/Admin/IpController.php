@@ -13,6 +13,7 @@ class IpController extends BaseAdminController
     public function index()
     {
         $this->requirePermission();
+        global $db;
 
         // Обработка flush перед рендером
         if ($this->input('flush') !== null) {
@@ -24,7 +25,7 @@ class IpController extends BaseAdminController
 
         $this->setTitle("Blocked IP's");
 
-        $ips = function_exists('getBlockedIPs') ? getBlockedIPs() : [];
+        $ips = BlocklistService::getBlockedIPsSimple();
 
         $this->render('ips', [
             'ips' => $ips,

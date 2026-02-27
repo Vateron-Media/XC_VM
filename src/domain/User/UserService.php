@@ -23,7 +23,8 @@ class UserService {
 
 	// ──────────── Из ProfileService ────────────
 
-	public static function editAdminProfile($db, $rData, $rUserInfo, $allowedLangs) {
+	public static function editAdminProfile($rData, $rUserInfo, $allowedLangs) {
+		global $db;
 		if (!(0 >= strlen($rData['email']) || filter_var($rData['email'], FILTER_VALIDATE_EMAIL))) {
 			return array('status' => STATUS_INVALID_EMAIL);
 		}
@@ -49,7 +50,8 @@ class UserService {
 
 	// ──────────── Из TicketService ────────────
 
-	public static function submitTicket($db, $rData, $rUserInfo, $rGetTicketCallback) {
+	public static function submitTicket($rData, $rUserInfo, $rGetTicketCallback) {
+		global $db;
 		if (isset($rData['edit'])) {
 			$rArray = overwriteData(call_user_func($rGetTicketCallback, $rData['edit']), $rData);
 		} else {

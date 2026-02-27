@@ -8,7 +8,7 @@ class ProfileController extends BaseAdminController
         $this->setTitle('Transcoding Profiles');
 
         $this->render('profiles', [
-            'profiles' => getTranscodeProfiles(),
+            'profiles' => StreamConfigRepository::getTranscodeProfiles(),
         ]);
     }
 }

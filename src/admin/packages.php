@@ -1,17 +1,17 @@
 <?php if (!isset($__viewMode)): ?>
-<?php
+	<?php
 
-include 'session.php';
-include 'functions.php';
+	include 'session.php';
+	include 'functions.php';
 
-if (!checkPermissions()) {
-	goHome();
-}
+	if (!checkPermissions()) {
+		goHome();
+	}
 
-$_TITLE = 'Packages';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('admin');
-?>
+	$_TITLE = 'Packages';
+	require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+	renderUnifiedLayoutHeader('admin');
+	?>
 <?php endif; ?>
 <div class="wrapper boxed-layout-ext" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
 											echo ' style="display: none;"';
@@ -70,7 +70,7 @@ renderUnifiedLayoutHeader('admin');
 												<?php endif; ?>
 											</td>
 											<td class="text-center">
-												<?php if (hasPermissions('adv', 'edit_package')): ?>
+												<?php if (Authorization::check('adv', 'edit_package')): ?>
 													<div class="btn-group">
 														<a href="./package?id=<?php echo $rPackage['id']; ?>"><button type="button" data-toggle="tooltip" data-placement="top" title="<?php echo $language::get('edit_package'); ?>" class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-pencil-outline"></i></button></a>
 														<button type="button" data-toggle="tooltip" data-placement="top" title="<?php echo $language::get('delete_package'); ?>" class="btn btn-light waves-effect waves-light btn-xs" onClick="api(<?php echo $rPackage['id']; ?>, 'delete');"><i class="mdi mdi-close"></i></button>
@@ -229,11 +229,11 @@ renderUnifiedLayoutFooter('admin');
 	echo $language::get('error_occured');
 	echo '");' . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n\t\t" . '}' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . '$("#datatable").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n\t\t\t\t" . '},' . "\r\n" . '                order: [[ 1, "asc" ]],' . "\r\n" . '                columnDefs: [' . "\r\n\t\t\t\t\t" . '{"visible": false, "targets": [0]}' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t\t" . 'responsive: false' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable").css("width", "100%");' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n" . '        ';
 	?>
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-    <?php endif; ?>
+	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+		$(document).ready(function() {
+			initSearch();
+		});
+	<?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

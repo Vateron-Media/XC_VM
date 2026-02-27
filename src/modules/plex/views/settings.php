@@ -130,8 +130,7 @@
                                                                     foreach (getCategories('movie') as $rCategory) {
                                                                     ?>
                                                                         <option value="<?= $rCategory['id']; ?>"
-                                                                            <?= intval($rRow['category_id']) == intval($rCategory['id']) ? 'selected' : ''; ?>
-                                                                            >
+                                                                            <?= intval($rRow['category_id']) == intval($rCategory['id']) ? 'selected' : ''; ?>>
                                                                             <?= $rCategory['category_name']; ?>
                                                                         </option>
                                                                     <?php
@@ -150,8 +149,7 @@
                                                                     foreach ((is_array($rBouquets ?? null) ? $rBouquets : []) as $rBouquet) {
                                                                     ?>
                                                                         <option value="<?= $rBouquet['id']; ?>"
-                                                                            <?= in_array(intval($rBouquet['id']), (array) json_decode($rRow['bouquets'], true)) ? 'selected' : ''; ?>
-                                                                            >
+                                                                            <?= in_array(intval($rBouquet['id']), (array) json_decode($rRow['bouquets'], true)) ? 'selected' : ''; ?>>
                                                                             <?= $rBouquet['bouquet_name']; ?>
                                                                         </option>
                                                                     <?php
@@ -198,8 +196,7 @@
                                                                     foreach (getCategories('series') as $rCategory) {
                                                                     ?>
                                                                         <option value="<?= $rCategory['id']; ?>"
-                                                                            <?= intval($rRow['category_id']) == intval($rCategory['id']) ? 'selected' : ''; ?>
-                                                                            >
+                                                                            <?= intval($rRow['category_id']) == intval($rCategory['id']) ? 'selected' : ''; ?>>
                                                                             <?= $rCategory['category_name']; ?>
                                                                         </option>
                                                                     <?php
@@ -218,8 +215,7 @@
                                                                     foreach ((is_array($rBouquets ?? null) ? $rBouquets : []) as $rBouquet) {
                                                                     ?>
                                                                         <option value="<?= $rBouquet['id']; ?>"
-                                                                            <?= in_array(intval($rBouquet['id']), (array) json_decode($rRow['bouquets'], true)) ? 'selected' : ''; ?>
-                                                                            >
+                                                                            <?= in_array(intval($rBouquet['id']), (array) json_decode($rRow['bouquets'], true)) ? 'selected' : ''; ?>>
                                                                             <?= $rBouquet['bouquet_name']; ?>
                                                                         </option>
                                                                     <?php

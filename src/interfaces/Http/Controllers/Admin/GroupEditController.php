@@ -19,7 +19,7 @@ class GroupEditController extends BaseAdminController
 
         $id = $this->input('id');
         if ($id !== null) {
-            $rGroup = function_exists('getMemberGroup') ? getMemberGroup($id) : null;
+            $rGroup = GroupService::getById($id);
             if (!$rGroup) {
                 if (function_exists('goHome')) {
                     goHome();

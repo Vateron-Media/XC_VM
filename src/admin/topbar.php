@@ -243,8 +243,8 @@ $rDropdownPage = array();
 
 if (isset($rDropdown[$rPage])) {
 	foreach ($rDropdown[$rPage] as $rName => $rData) {
-		if ($rName != 'Export as CSV' || hasPermissions('adv', 'backups')) {
-			if ($rName && (!$rData[1] || hasPermissions('adv', $rData[1]))) {
+		if ($rName != 'Export as CSV' || Authorization::check('adv', 'backups')) {
+			if ($rName && (empty($rData[1]) || Authorization::check('adv', $rData[1]))) {
 				if (count($rData) == 3) {
 					$rDropdownPage[$rName] = 'code:' . $rData[2];
 				} else {
@@ -274,7 +274,7 @@ switch ($rPage) {
 	case 'episodes':
 		echo '<div class="btn-group">';
 
-		if (!(!$rMobile && hasPermissions('adv', $rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][1]) && 0 < strlen(array_keys($rDropdown[$rPage])[0]))) {
+		if (!(!$rMobile && Authorization::check('adv', $rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][1]) && 0 < strlen(array_keys($rDropdown[$rPage])[0]))) {
 		} else {
 			if ($rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][0]) {
 				echo "<button type=\"button\" onClick=\"navigate('" . $rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][0] . "');\" class=\"btn btn-sm btn-info waves-effect waves-light\">" . array_keys($rDropdown[$rPage])[0] . '</button>';
@@ -333,7 +333,7 @@ switch ($rPage) {
 			}
 		}
 
-		if (!(!$rMobile && hasPermissions('adv', $rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][1]) && 0 < strlen(array_keys($rDropdown[$rPage])[0]))) {
+		if (!(!$rMobile && Authorization::check('adv', $rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][1]) && 0 < strlen(array_keys($rDropdown[$rPage])[0]))) {
 		} else {
 			echo "<button type=\"button\" onClick=\"navigate('" . $rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][0] . "');\" class=\"btn btn-sm btn-info waves-effect waves-light\">" . array_keys($rDropdown[$rPage])[0] . '</button>';
 		}
@@ -362,7 +362,7 @@ switch ($rPage) {
 	case 'stream_categories':
 		echo '<div class="btn-group">';
 
-		if (!$rMobile && hasPermissions('adv', $rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][1]) && 0 < strlen(array_keys($rDropdown[$rPage])[0])) {
+		if (!$rMobile && Authorization::check('adv', $rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][1]) && 0 < strlen(array_keys($rDropdown[$rPage])[0])) {
 			echo "<button type=\"button\" onClick=\"navigate('" . $rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][0] . "');\" class=\"btn btn-sm btn-info waves-effect waves-light\">" . array_keys($rDropdown[$rPage])[0] . '</button>';
 		}
 
@@ -400,7 +400,7 @@ switch ($rPage) {
 			$firstKey = array_keys($rDropdown[$rPage])[0];
 			$firstItem = $rDropdown[$rPage][$firstKey];
 
-			$permAllowed = !isset($firstItem[1]) || $firstItem[1] === '' || $firstItem[1] === null || hasPermissions('adv', $firstItem[1]);
+			$permAllowed = !isset($firstItem[1]) || $firstItem[1] === '' || $firstItem[1] === null || Authorization::check('adv', $firstItem[1]);
 
 			$shouldShowButton = !$rMobile &&
 				$permAllowed &&

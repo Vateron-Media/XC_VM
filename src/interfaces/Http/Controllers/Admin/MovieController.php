@@ -8,13 +8,13 @@ class MovieController extends BaseAdminController
     {
         $this->requirePermission();
 
-        global $rServers;
+        global $db, $rServers;
 
         $rCategories = getCategories('movie');
-        $rTranscodeProfiles = getTranscodeProfiles();
+        $rTranscodeProfiles = StreamConfigRepository::getTranscodeProfiles();
 
         if (isset(CoreUtilities::$rRequest['id'])) {
-            $rMovie = getStream(CoreUtilities::$rRequest['id']);
+            $rMovie = StreamRepository::getById(CoreUtilities::$rRequest['id']);
             if (!$rMovie || $rMovie['type'] != 2) {
                 $this->redirect('movies');
                 return;
@@ -29,7 +29,7 @@ class MovieController extends BaseAdminController
 
         if (isset($rMovie)) {
             $rMovie['properties'] = json_decode($rMovie['movie_properties'], true);
-            $rStreamSys = getStreamSys(CoreUtilities::$rRequest['id']);
+            $rStreamSys = StreamRepository::getSystemRows(CoreUtilities::$rRequest['id']);
 
             $streamSourceJson = $rMovie['stream_source'] ?? '';
             $rMovieSource = json_decode($streamSourceJson, true);

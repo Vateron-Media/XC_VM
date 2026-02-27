@@ -1,20 +1,21 @@
 <?php
 
 class StreamService {
-	public static function process($rData, $db, $rSettings) {
+	public static function process($rData, $rSettings) {
+		global $db;
 		set_time_limit(0);
 		ini_set('mysql.connect_timeout', 0);
 		ini_set('max_execution_time', 0);
 		ini_set('default_socket_timeout', 0);
 
 		if (isset($rData['edit'])) {
-			if (hasPermissions('adv', 'edit_stream')) {
-				$rArray = overwriteData(getStream($rData['edit']), $rData);
+			if (Authorization::check('adv', 'edit_stream')) {
+				$rArray = overwriteData(StreamRepository::getById($rData['edit']), $rData);
 			} else {
 				exit();
 			}
 		} else {
-			if (hasPermissions('adv', 'add_stream')) {
+			if (Authorization::check('adv', 'add_stream')) {
 				$rArray = verifyPostTable('streams', $rData);
 				$rArray['type'] = 1;
 				$rArray['added'] = time();
@@ -66,7 +67,7 @@ class StreamService {
 			foreach ($rData['review'] as $rImportStream) {
 				if ($rImportStream['channel_id'] || !$rImportStream['tvg_id']) {
 				} else {
-					$rEPG = findEPG($rImportStream['tvg_id']);
+					$rEPG = EpgService::findByName($rImportStream['tvg_id']);
 
 					if (!isset($rEPG)) {
 					} else {
@@ -84,9 +85,9 @@ class StreamService {
 			}
 		} else {
 			if (isset($_FILES['m3u_file'])) {
-				if (hasPermissions('adv', 'import_streams')) {
+				if (Authorization::check('adv', 'import_streams')) {
 					if (!(empty($_FILES['m3u_file']['tmp_name']) || strtolower(pathinfo(explode('?', $_FILES['m3u_file']['name'])[0], PATHINFO_EXTENSION)) != 'm3u')) {
-						$rResults = parseM3U($_FILES['m3u_file']['tmp_name']);
+						$rResults = M3UParser::parse($_FILES['m3u_file']['tmp_name']);
 
 						if (0 >= count($rResults)) {
 						} else {
@@ -328,7 +329,7 @@ class StreamService {
 
 					if (isset($rData['edit']) || isset($rImportStream['id'])) {
 					} else {
-						$rImportArray['order'] = getNextOrder();
+						$rImportArray['order'] = StreamRepository::getNextOrder();
 					}
 
 					$rImportArray['title_sync'] = ($rData['title_sync'] ?: null);
@@ -430,7 +431,7 @@ class StreamService {
 
 						if (!(isset($rData['edit']) || isset($rImportStream['id']))) {
 						} else {
-							foreach (getBouquets() as $rBouquet) {
+							foreach (BouquetService::getAllSimple() as $rBouquet) {
 								if (in_array($rBouquet['id'], $rBouquets)) {
 								} else {
 									removeFromBouquet('stream', $rBouquet['id'], $rInsertID);
@@ -459,7 +460,8 @@ class StreamService {
 		}
 	}
 
-	public static function massEdit($rData, $db) {
+	public static function massEdit($rData) {
+		global $db;
 		set_time_limit(0);
 		ini_set('mysql.connect_timeout', 0);
 		ini_set('max_execution_time', 0);
@@ -556,7 +558,7 @@ class StreamService {
 			foreach ($db->get_rows() as $rRow) {
 				$rStreamExists[intval($rRow['stream_id'])][intval($rRow['server_id'])] = intval($rRow['server_stream_id']);
 			}
-			$rBouquets = getBouquets();
+			$rBouquets = BouquetService::getAllSimple();
 			$rDelOptions = $rAddBouquet = $rDelBouquet = array();
 			$rOptQuery = $rAddQuery = '';
 
@@ -754,7 +756,8 @@ class StreamService {
 		return array('status' => STATUS_SUCCESS);
 	}
 
-	public static function move($rData, $db) {
+	public static function move($rData) {
+		global $db;
 		$rType = intval($rData['content_type']);
 		$rSource = intval($rData['source_server']);
 		$rReplacement = intval($rData['replacement_server']);
@@ -796,7 +799,8 @@ class StreamService {
 		return array('status' => STATUS_SUCCESS);
 	}
 
-	public static function replaceDNS($rData, $db) {
+	public static function replaceDNS($rData) {
+		global $db;
 		$rOldDNS = str_replace('/', '\\/', $rData['old_dns']);
 		$rNewDNS = str_replace('/', '\\/', $rData['new_dns']);
 		$db->query('UPDATE `streams` SET `stream_source` = REPLACE(`stream_source`, ?, ?);', $rOldDNS, $rNewDNS);

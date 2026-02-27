@@ -23,15 +23,27 @@ if (isset($_GET['token']) && !ctype_xdigit($_GET['token'])) {
 		$rIsMag = true;
 	}
 
+	if (count($rData) < 2) {
+		generateError('BAD_TOKEN');
+	}
+
 	if ($_GET['type'] == 'timeshift') {
+		if (count($rData) < 6) {
+			generateError('BAD_TOKEN');
+		}
+
 		list(, $_GET['username'], $_GET['password'], $_GET['duration'], $_GET['start'], $_GET['stream']) = $rData;
 
 		if ($rIsMag) {
-			$rMagToken = $rData[6];
+			$rMagToken = $rData[6] ?? null;
 		}
 
 		$_GET['extension'] = 'ts';
 	} else {
+		if (count($rData) < 4) {
+			generateError('BAD_TOKEN');
+		}
+
 		list(, $_GET['username'], $_GET['password'], $_GET['stream']) = $rData;
 
 		if (5 <= count($rData)) {
@@ -471,8 +483,8 @@ if ($rExtension) {
 				}
 
 				$rURL = StreamingUtilities::getStreamingURL($rChannelInfo['redirect_id'], ($rChannelInfo['originator_id'] ?? null), $rForceHTTP);
-				$rStreamInfo = json_decode($rChannelInfo['stream_info'], true);
-				$rVideoCodec = ($rStreamInfo['codecs']['video']['codec_name'] ?: 'h264');
+				$rStreamInfo = json_decode($rChannelInfo['stream_info'] ?? '', true);
+				$rVideoCodec = ($rStreamInfo['codecs']['video']['codec_name'] ?? 'h264');
 
 				switch ($rExtension) {
 					case 'm3u8':
@@ -601,16 +613,16 @@ if ($rExtension) {
 					$rChannelInfo['redirect_id'] = $rProxyID;
 				}
 
-				$rURL = StreamingUtilities::getStreamingURL($rChannelInfo['redirect_id'], ($rChannelInfo['originator_id'] ?: null), $rForceHTTP);
+				$rURL = StreamingUtilities::getStreamingURL($rChannelInfo['redirect_id'], ($rChannelInfo['originator_id'] ?? null), $rForceHTTP);
 
 				if ($rChannelInfo['direct_proxy']) {
-					$rChannelInfo['bitrate'] = (json_decode($rChannelInfo['movie_properties'], true)['duration_secs'] ?: 0);
+					$rChannelInfo['bitrate'] = (json_decode($rChannelInfo['movie_properties'] ?? '', true)['duration_secs'] ?? 0);
 				}
 
 				if (!$rIsHMAC) {
-					$rTokenData = array('stream_id' => $rStreamID, 'username' => $rUserInfo['username'], 'password' => $rUserInfo['password'], 'extension' => $rExtension, 'type' => $rType, 'pid' => $rPID, 'channel_info' => array('stream_id' => $rChannelInfo['stream_id'], 'bitrate' => $rChannelInfo['bitrate'], 'target_container' => $rChannelInfo['target_container'], 'redirect_id' => $rChannelInfo['redirect_id'], 'originator_id' => ($rChannelInfo['originator_id'] ?: null), 'pid' => $rChannelInfo['pid'], 'proxy' => ($rChannelInfo['direct_proxy'] ? json_decode($rChannelInfo['stream_source'], true)[0] : null)), 'user_info' => array('id' => $rUserInfo['id'], 'max_connections' => $rUserInfo['max_connections'], 'pair_id' => $rUserInfo['pair_id'], 'con_isp_name' => $rUserInfo['con_isp_name'], 'is_restreamer' => $rUserInfo['is_restreamer']), 'country_code' => $rCountryCode, 'activity_start' => $rActivityStart, 'is_mag' => $rIsMag, 'uuid' => $rUUID, 'http_range' => (isset($_SERVER['HTTP_RANGE']) ? $_SERVER['HTTP_RANGE'] : null));
+					$rTokenData = array('stream_id' => $rStreamID, 'username' => $rUserInfo['username'], 'password' => $rUserInfo['password'], 'extension' => $rExtension, 'type' => $rType, 'pid' => $rPID, 'channel_info' => array('stream_id' => $rChannelInfo['stream_id'], 'bitrate' => $rChannelInfo['bitrate'], 'target_container' => $rChannelInfo['target_container'], 'redirect_id' => $rChannelInfo['redirect_id'], 'originator_id' => ($rChannelInfo['originator_id'] ?? null), 'pid' => $rChannelInfo['pid'], 'proxy' => ($rChannelInfo['direct_proxy'] ? json_decode($rChannelInfo['stream_source'], true)[0] : null)), 'user_info' => array('id' => $rUserInfo['id'], 'max_connections' => $rUserInfo['max_connections'], 'pair_id' => $rUserInfo['pair_id'], 'con_isp_name' => $rUserInfo['con_isp_name'], 'is_restreamer' => $rUserInfo['is_restreamer']), 'country_code' => $rCountryCode, 'activity_start' => $rActivityStart, 'is_mag' => $rIsMag, 'uuid' => $rUUID, 'http_range' => (isset($_SERVER['HTTP_RANGE']) ? $_SERVER['HTTP_RANGE'] : null));
 				} else {
-					$rTokenData = array('stream_id' => $rStreamID, 'hmac_hash' => StreamingUtilities::$rRequest['hmac'], 'hmac_id' => $rIsHMAC, 'identifier' => $rIdentifier, 'extension' => $rExtension, 'type' => $rType, 'pid' => $rPID, 'channel_info' => array('stream_id' => $rChannelInfo['stream_id'], 'bitrate' => $rChannelInfo['bitrate'], 'target_container' => $rChannelInfo['target_container'], 'redirect_id' => $rChannelInfo['redirect_id'], 'originator_id' => ($rChannelInfo['originator_id'] ?: null), 'pid' => $rChannelInfo['pid'], 'proxy_source' => ($rChannelInfo['direct_proxy'] ? json_decode($rChannelInfo['stream_source'], true)[0] : null)), 'user_info' => $rUserInfo, 'country_code' => $rCountryCode, 'activity_start' => $rActivityStart, 'is_mag' => $rIsMag, 'uuid' => $rUUID, 'http_range' => (isset($_SERVER['HTTP_RANGE']) ? $_SERVER['HTTP_RANGE'] : null));
+					$rTokenData = array('stream_id' => $rStreamID, 'hmac_hash' => StreamingUtilities::$rRequest['hmac'], 'hmac_id' => $rIsHMAC, 'identifier' => $rIdentifier, 'extension' => $rExtension, 'type' => $rType, 'pid' => $rPID, 'channel_info' => array('stream_id' => $rChannelInfo['stream_id'], 'bitrate' => $rChannelInfo['bitrate'], 'target_container' => $rChannelInfo['target_container'], 'redirect_id' => $rChannelInfo['redirect_id'], 'originator_id' => ($rChannelInfo['originator_id'] ?? null), 'pid' => $rChannelInfo['pid'], 'proxy_source' => ($rChannelInfo['direct_proxy'] ? json_decode($rChannelInfo['stream_source'], true)[0] : null)), 'user_info' => $rUserInfo, 'country_code' => $rCountryCode, 'activity_start' => $rActivityStart, 'is_mag' => $rIsMag, 'uuid' => $rUUID, 'http_range' => (isset($_SERVER['HTTP_RANGE']) ? $_SERVER['HTTP_RANGE'] : null));
 				}
 
 				if (isset($_GET['segment'])) {

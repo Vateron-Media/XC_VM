@@ -708,7 +708,7 @@ class APIWrapper {
         return array('status' => 'STATUS_SUCCESS', 'data' => $rUserInfo, 'permissions' => $rPermissions);
     }
     public static function getLine($rID) {
-        if (!($rLine = getUser($rID))) {
+        if (!($rLine = UserRepository::getLineById($rID))) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS', 'data' => $rLine);
@@ -780,7 +780,7 @@ class APIWrapper {
         return array('status' => 'STATUS_SUCCESS');
     }
     public static function getUser($rID) {
-        if (!($rUser = getRegisteredUser($rID))) {
+        if (!($rUser = UserRepository::getRegisteredUserById($rID))) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS', 'data' => $rUser);
@@ -992,7 +992,7 @@ class APIWrapper {
         return array('status' => 'STATUS_SUCCESS', 'data' => self::getLine($rDevice['user_id']));
     }
     public static function getBouquets() {
-        return array('status' => 'STATUS_SUCCESS', 'data' => getBouquets());
+        return array('status' => 'STATUS_SUCCESS', 'data' => BouquetService::getAllSimple());
     }
     public static function getBouquet($rID) {
         if (!($rBouquet = getBouquet($rID))) {
@@ -1078,10 +1078,10 @@ class APIWrapper {
         return array('status' => 'STATUS_FAILURE');
     }
     public static function getHMACs() {
-        return array('status' => 'STATUS_SUCCESS', 'data' => getHMACTokens());
+        return array('status' => 'STATUS_SUCCESS', 'data' => AuthRepository::getAllHMAC());
     }
     public static function getHMAC($rID) {
-        if (!($rToken = getHMACToken($rID))) {
+        if (!($rToken = AuthRepository::getHMACById($rID))) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS', 'data' => $rToken);
@@ -1124,7 +1124,7 @@ class APIWrapper {
         return array('status' => 'STATUS_SUCCESS', 'data' => getEPGs());
     }
     public static function getEPG($rID) {
-        if (!($rEPG = getEPG($rID))) {
+        if (!($rEPG = EpgService::getById($rID))) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS', 'data' => $rEPG);
@@ -1223,10 +1223,10 @@ class APIWrapper {
         return array('status' => 'STATUS_SUCCESS');
     }
     public static function getGroups() {
-        return array('status' => 'STATUS_SUCCESS', 'data' => getMemberGroups());
+        return array('status' => 'STATUS_SUCCESS', 'data' => GroupService::getAll());
     }
     public static function getGroup($rID) {
-        if (!($rGroup = getMemberGroup($rID))) {
+        if (!($rGroup = GroupService::getById($rID))) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS', 'data' => $rGroup);
@@ -1258,7 +1258,7 @@ class APIWrapper {
     public static function deleteGroup($rID) {
         if (!(($rGroup = self::getGroup($rID)) && isset($rGroup['data']))) {
         } else {
-            if (!deleteGroup($rID)) {
+            if (!GroupService::deleteById($rID)) {
             } else {
                 return array('status' => 'STATUS_SUCCESS');
             }
@@ -1301,7 +1301,7 @@ class APIWrapper {
     public static function deletePackage($rID) {
         if (!(($rPackage = self::getPackage($rID)) && isset($rPackage['data']))) {
         } else {
-            if (!deletePackage($rID)) {
+            if (!PackageService::deleteById('getPackage', $rID)) {
             } else {
                 return array('status' => 'STATUS_SUCCESS');
             }
@@ -1309,7 +1309,7 @@ class APIWrapper {
         return array('status' => 'STATUS_FAILURE');
     }
     public static function getTranscodeProfiles() {
-        return array('status' => 'STATUS_SUCCESS', 'data' => getTranscodeProfiles());
+        return array('status' => 'STATUS_SUCCESS', 'data' => StreamConfigRepository::getTranscodeProfiles());
     }
     public static function getTranscodeProfile($rID) {
         if (!($rProfile = getTranscodeProfile($rID))) {
@@ -1352,7 +1352,7 @@ class APIWrapper {
         return array('status' => 'STATUS_FAILURE');
     }
     public static function getRTMPIPs() {
-        return array('status' => 'STATUS_SUCCESS', 'data' => getRTMPIPs());
+        return array('status' => 'STATUS_SUCCESS', 'data' => BlocklistService::getRTMPIPsSimple());
     }
     public static function getRTMPIP($rID) {
         if (!($rIP = getRTMPIP($rID))) {
@@ -1438,7 +1438,7 @@ class APIWrapper {
         return array('status' => 'STATUS_FAILURE');
     }
     public static function getWatchFolders() {
-        return array('status' => 'STATUS_SUCCESS', 'data' => getWatchFolders());
+        return array('status' => 'STATUS_SUCCESS', 'data' => WatchService::getWatchFolders());
     }
     public static function getWatchFolder($rID) {
         if (!($rFolder = getWatchFolder($rID))) {
@@ -1481,7 +1481,7 @@ class APIWrapper {
         return array('status' => 'STATUS_FAILURE');
     }
     public static function reloadWatchFolder($rServerID, $rID) {
-        forceWatch($rServerID, $rID);
+        WatchService::forceWatch($rServerID, $rID);
         return array('status' => 'STATUS_SUCCESS');
     }
     public static function getBlockedISPs() {
@@ -1527,7 +1527,7 @@ class APIWrapper {
         return array('status' => 'STATUS_SUCCESS');
     }
     public static function getBlockedIPs() {
-        return array('status' => 'STATUS_SUCCESS', 'data' => getBlockedIPs());
+        return array('status' => 'STATUS_SUCCESS', 'data' => BlocklistService::getBlockedIPsSimple());
     }
     public static function addBlockedIP($rData) {
         if (!isset($rData['edit'])) {
@@ -1552,7 +1552,7 @@ class APIWrapper {
         return array('status' => 'STATUS_SUCCESS');
     }
     public static function getStream($rID) {
-        if (!(($rStream = getStream($rID)) && $rStream['type'] == 1)) {
+        if (!(($rStream = StreamRepository::getById($rID)) && $rStream['type'] == 1)) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS', 'data' => $rStream);
@@ -1614,7 +1614,7 @@ class APIWrapper {
         return array('status' => 'STATUS_SUCCESS');
     }
     public static function getChannel($rID) {
-        if (!(($rStream = getStream($rID)) && $rStream['type'] == 3)) {
+        if (!(($rStream = StreamRepository::getById($rID)) && $rStream['type'] == 3)) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS', 'data' => $rStream);
@@ -1654,7 +1654,7 @@ class APIWrapper {
         return array('status' => 'STATUS_FAILURE');
     }
     public static function getStation($rID) {
-        if (!(($rStream = getStream($rID)) && $rStream['type'] == 4)) {
+        if (!(($rStream = StreamRepository::getById($rID)) && $rStream['type'] == 4)) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS', 'data' => $rStream);
@@ -1694,7 +1694,7 @@ class APIWrapper {
         return array('status' => 'STATUS_FAILURE');
     }
     public static function getMovie($rID) {
-        if (!(($rStream = getStream($rID)) && $rStream['type'] == 2)) {
+        if (!(($rStream = StreamRepository::getById($rID)) && $rStream['type'] == 2)) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS', 'data' => $rStream);
@@ -1756,7 +1756,7 @@ class APIWrapper {
         return array('status' => 'STATUS_SUCCESS');
     }
     public static function getEpisode($rID) {
-        if (!(($rStream = getStream($rID)) && $rStream['type'] == 5)) {
+        if (!(($rStream = StreamRepository::getById($rID)) && $rStream['type'] == 5)) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS', 'data' => $rStream);
@@ -1836,7 +1836,7 @@ class APIWrapper {
         return array('status' => 'STATUS_FAILURE');
     }
     public static function getServers() {
-        return array('status' => 'STATUS_SUCCESS', 'data' => getStreamingServers());
+        return array('status' => 'STATUS_SUCCESS', 'data' => ServerRepository::getStreamingSimple($rPermissions));
     }
     public static function getServer($rID) {
         if (!($rServer = getStreamingServersByID($rID))) {
@@ -1886,7 +1886,7 @@ class APIWrapper {
     public static function deleteServer($rID) {
         if (!(($rServer = self::getServer($rID)) && isset($rServer['data']))) {
         } else {
-            if (!deleteServer($rID)) {
+            if (!ServerRepository::deleteById(CoreUtilities::$rSettings, 'getStreamingServersByID', $rID)) {
             } else {
                 return array('status' => 'STATUS_SUCCESS');
             }

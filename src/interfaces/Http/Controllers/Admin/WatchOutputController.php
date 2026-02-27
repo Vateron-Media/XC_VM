@@ -8,7 +8,7 @@ class WatchOutputController extends BaseAdminController
     {
         $this->requirePermission();
 
-        $rServers = getStreamingServers();
+        $rServers = ServerRepository::getStreamingSimple($rPermissions);
         if (!is_array($rServers)) {
             $rServers = [];
         }

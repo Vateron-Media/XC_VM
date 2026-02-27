@@ -1,14 +1,15 @@
 <?php
 
 class PackageService {
-	public static function process($db, $rData, $rGetPackageCallback, $rGetBouquetOrderCallback, $rSortArrayByArrayCallback) {
+	public static function process($rData, $rGetPackageCallback) {
+		global $db;
 		if (isset($rData['edit'])) {
-			if (!hasPermissions('adv', 'edit_package')) {
+			if (!Authorization::check('adv', 'edit_package')) {
 				exit();
 			}
 			$rArray = overwriteData(call_user_func($rGetPackageCallback, $rData['edit']), $rData);
 		} else {
-			if (!hasPermissions('adv', 'add_packages')) {
+			if (!Authorization::check('adv', 'add_packages')) {
 				exit();
 			}
 			$rArray = verifyPostTable('users_packages', $rData);
@@ -28,7 +29,7 @@ class PackageService {
 		}
 
 		$rArray['groups'] = '[' . implode(',', array_map('intval', json_decode($rData['groups_selected'], true))) . ']';
-		$rArray['bouquets'] = call_user_func($rSortArrayByArrayCallback, array_values(json_decode($rData['bouquets_selected'], true)), array_keys(call_user_func($rGetBouquetOrderCallback)));
+		$rArray['bouquets'] = sortArrayByArray(array_values(json_decode($rData['bouquets_selected'], true)), array_keys(BouquetService::getOrder()));
 		$rArray['bouquets'] = '[' . implode(',', array_map('intval', $rArray['bouquets'])) . ']';
 
 		if (isset($rData['output_formats'])) {
@@ -52,7 +53,8 @@ class PackageService {
 
 	// ──────────── Из PackageRepository ────────────
 
-	public static function deleteById($db, $rGetPackageCallback, $rID) {
+	public static function deleteById($rGetPackageCallback, $rID) {
+		global $db;
 		$rPackage = call_user_func($rGetPackageCallback, $rID);
 
 		if (!$rPackage) {

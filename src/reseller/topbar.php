@@ -26,7 +26,7 @@ if (count(get_included_files()) != 1) {
 
 	if (isset($rDropdown[$rPage])) {
 		foreach ($rDropdown[$rPage] as $rName => $rData) {
-			if ($rName && (!$rData[1] || hasResellerPermissions($rData[1]))) {
+			if ($rName && (!$rData[1] || Authorization::hasResellerPermissions($rData[1]))) {
 				if (count($rData) == 3) {
 					$rDropdownPage[$rName] = 'javascript: void(0);" ' . $rData[2];
 				} else {
@@ -55,7 +55,7 @@ if (count(get_included_files()) != 1) {
 				$keys = array_keys($rDropdown[$rPage]);
 				$firstKey = $keys[0] ?? null;
 
-				if ($firstKey !== null && (!$rDropdown[$rPage][$firstKey][1] || hasResellerPermissions($rDropdown[$rPage][$firstKey][1])) && strlen($firstKey) > 0) {
+				if ($firstKey !== null && (!$rDropdown[$rPage][$firstKey][1] || Authorization::hasResellerPermissions($rDropdown[$rPage][$firstKey][1])) && strlen($firstKey) > 0) {
 					if ($rDropdown[$rPage][$firstKey][0]) {
 						echo "<button type=\"button\" onClick=\"navigate('" .
 							$rDropdown[$rPage][$firstKey][0] .
@@ -118,7 +118,7 @@ if (count(get_included_files()) != 1) {
 		default:
 			echo '<div class="btn-group">';
 
-			if (!(!$rMobile && (!$rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][1] || hasResellerPermissions($rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][1])) && 0 < strlen(array_keys($rDropdown[$rPage])[0]))) {
+			if (!(!$rMobile && (!$rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][1] || Authorization::hasResellerPermissions($rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][1])) && 0 < strlen(array_keys($rDropdown[$rPage])[0]))) {
 			} else {
 				if ($rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][0]) {
 					echo "<button type=\"button\" onClick=\"navigate('" . $rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][0] . "');\" class=\"btn btn-sm btn-info waves-effect waves-light\">" . array_keys($rDropdown[$rPage])[0] . '</button>';

@@ -20,7 +20,7 @@ if (isset(CoreUtilities::$rRequest['api_key'])) {
         $rUserID = $db->get_row()['id'];
         $rIsAPI = true;
         require_once MAIN_HOME . 'includes/admin.php';
-        $rUserInfo = getRegisteredUser($rUserID);
+        $rUserInfo = UserRepository::getRegisteredUserById($rUserID);
         $rPermissions = array_merge(getPermissions($rUserInfo['member_group_id']), getGroupPermissions($rUserInfo['id']));
         if (0 >= strlen($rUserInfo['timezone'])) {
         } else {
@@ -1628,14 +1628,14 @@ if (isset($rUserInfo['reports'])) {
                             $rLineInfo = null;
                             switch ($rRow['type']) {
                                 case 'line':
-                                    $rLine = getUser($rRow['log_id']);
+                                    $rLine = UserRepository::getLineById($rRow['log_id']);
                                     if (!$rLine) {
                                     } else {
                                         $rLineInfo = "<a href='line?id=" . $rRow['log_id'] . "'>" . $rLine['username'] . '</a>';
                                     }
                                     break;
                                 case 'user':
-                                    $rLine = getRegisteredUser($rRow['log_id']);
+                                    $rLine = UserRepository::getRegisteredUserById($rRow['log_id']);
                                     if (!$rLine) {
                                     } else {
                                         $rLineInfo = "<a href='user?id=" . $rRow['log_id'] . "'>" . $rLine['username'] . '</a>';

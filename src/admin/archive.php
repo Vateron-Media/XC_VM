@@ -1,31 +1,31 @@
 <?php if (!isset($__viewMode)): ?>
-<?php
+    <?php
 
-include 'session.php';
-include 'functions.php';
+    include 'session.php';
+    include 'functions.php';
 
-if (!checkPermissions()) {
-    goHome();
-}
-
-$rRecordings = null;
-
-if (isset(CoreUtilities::$rRequest['id'])) {
-    $rStream = getStream(CoreUtilities::$rRequest['id']);
-
-    if (!$rStream || $rStream['type'] != 1 || $rStream['tv_archive_duration'] == 0 || $rStream['tv_archive_server_id'] == 0) {
+    if (!checkPermissions()) {
         goHome();
     }
 
-    $rArchive = getArchive($rStream['id']);
-} else {
-    $rRecordings = getRecordings();
-}
+    $rRecordings = null;
 
-$_TITLE = (!is_null($rRecordings) ? 'Recordings' : 'TV Archive');
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('admin');
-?>
+    if (isset(CoreUtilities::$rRequest['id'])) {
+        $rStream = StreamRepository::getById(CoreUtilities::$rRequest['id']);
+
+        if (!$rStream || $rStream['type'] != 1 || $rStream['tv_archive_duration'] == 0 || $rStream['tv_archive_server_id'] == 0) {
+            goHome();
+        }
+
+        $rArchive = getArchive($rStream['id']);
+    } else {
+        $rRecordings = WatchService::getRecordings($db);
+    }
+
+    $_TITLE = (!is_null($rRecordings) ? 'Recordings' : 'TV Archive');
+    require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+    renderUnifiedLayoutHeader('admin');
+    ?>
 <?php endif; ?>
 <div class="wrapper boxed-layout-ext" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
                                             echo ' style="display: none;"';

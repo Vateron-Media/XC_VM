@@ -1,17 +1,17 @@
 <?php if (!isset($__viewMode)): ?>
-<?php
+	<?php
 
-include 'session.php';
-include 'functions.php';
+	include 'session.php';
+	include 'functions.php';
 
-if (!checkPermissions()) {
-	goHome();
-}
+	if (!checkPermissions()) {
+		goHome();
+	}
 
-$_TITLE = 'HMAC Keys';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('admin');
-?>
+	$_TITLE = 'HMAC Keys';
+	require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+	renderUnifiedLayoutHeader('admin');
+	?>
 <?php endif; ?>
 <div class="wrapper boxed-layout" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') echo ' style="display: none;"'; ?>>
 	<div class="container-fluid">
@@ -47,7 +47,7 @@ renderUnifiedLayoutHeader('admin');
 								</tr>
 							</thead>
 							<tbody>
-								<?php foreach (getHMACTokens() as $rHMAC): ?>
+								<?php foreach (AuthRepository::getAllHMAC() as $rHMAC): ?>
 									<tr id="hmac-<?= $rHMAC['id']; ?>">
 										<td class="text-center"><?= $rHMAC['id']; ?></td>
 										<td><?= $rHMAC['notes']; ?></td>
@@ -263,11 +263,11 @@ renderUnifiedLayoutFooter('admin');
 		});
 		$("#datatable").css("width", "100%");
 	});
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-    <?php endif; ?>
+	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+		$(document).ready(function() {
+			initSearch();
+		});
+	<?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

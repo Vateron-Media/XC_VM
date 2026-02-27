@@ -20,7 +20,7 @@ if (isset(CoreUtilities::$rRequest['api_key'])) {
         $rUserID = $db->get_row()['id'];
         $rIsAPI = true;
         require_once MAIN_HOME . 'includes/admin.php';
-        $rUserInfo = getRegisteredUser($rUserID);
+        $rUserInfo = UserRepository::getRegisteredUserById($rUserID);
         $rPermissions = getPermissions($rUserInfo['member_group_id']);
         $rPermissions['advanced'] = json_decode($rPermissions['allowed_pages'], true);
         if (strlen($rUserInfo['timezone']) > 0) {
@@ -34,7 +34,7 @@ if (isset(CoreUtilities::$rRequest['api_key'])) {
     if ($_SERVER['REMOTE_ADDR'] == '127.0.0.1' && isset(CoreUtilities::$rRequest['api_user_id'])) {
         $rIsAPI = true;
         require_once MAIN_HOME . 'includes/admin.php';
-        $rUserInfo = getRegisteredUser(CoreUtilities::$rRequest['api_user_id']);
+        $rUserInfo = UserRepository::getRegisteredUserById(CoreUtilities::$rRequest['api_user_id']);
         $rPermissions = getPermissions($rUserInfo['member_group_id']);
         $rPermissions['advanced'] = json_decode($rPermissions['allowed_pages'], true);
         if (strlen($rUserInfo['timezone']) > 0) {
@@ -63,7 +63,7 @@ if (CoreUtilities::$rSettings['redis_handler']) {
     CoreUtilities::connectRedis();
 }
 if ($rType == 'lines') {
-    if (hasPermissions('adv', 'users') || hasPermissions('adv', 'mass_edit_users')) {
+    if (Authorization::check('adv', 'users') || Authorization::check('adv', 'mass_edit_users')) {
         $rOrderDirection = (strtolower(CoreUtilities::$rRequest['order'][0]['dir']) === 'desc' ? 'desc' : 'asc');
         $rOrder = array('`lines`.`id`', '`lines`.`username`', '`lines`.`password`', '`lines`.`member_id`', '`lines`.`enabled` - `lines`.`admin_enabled`', '`active_connections` > 0', '`lines`.`is_trial`', '`lines`.`is_restreamer`', '`active_connections`', '`lines`.`max_connections`', '`lines`.`exp_date`', '`active_connections` ' . $rOrderDirection . ', `last_activity`', false);
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
@@ -257,7 +257,7 @@ if ($rType == 'lines') {
                         } else {
                             $rActiveConnections = "<button type='button' class='btn btn-secondary btn-xs waves-effect waves-light'>0</button>";
                         }
-                        if (!(hasPermissions('adv', 'live_connections') && 0 < $rRow['active_connections'])) {
+                        if (!(Authorization::check('adv', 'live_connections') && 0 < $rRow['active_connections'])) {
                         } else {
                             $rActiveConnections = '<a href="live_connections?user_id=' . $rRow['id'] . '">' . $rActiveConnections . '</a>';
                         }
@@ -286,16 +286,16 @@ if ($rType == 'lines') {
                                 $rButtons .= '<button type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" title="' . $rNotes . '"><i class="mdi mdi-note"></i></button>';
                             }
                             $rButtons .= '<div class="btn-group dropdown"><a href="javascript: void(0);" class="table-action-btn dropdown-toggle arrow-none btn btn-light btn-sm" data-toggle="dropdown" aria-expanded="false"><i class="mdi mdi-menu"></i></a><div class="dropdown-menu dropdown-menu-right">';
-                            if (!hasPermissions('adv', 'edit_user')) {
+                            if (!Authorization::check('adv', 'edit_user')) {
                             } else {
                                 $rButtons .= '<a class="dropdown-item" href="line?id=' . $rRow['id'] . '" ' . ((CoreUtilities::$rSettings['modal_edit'] ? "onClick=\"editModal(event, 'line', " . intval($rRow['id']) . ", '" . str_replace('"', '&quot;', str_replace("'", "\\'", $rRow['username'])) . "')\" data-modal=\"true\"" : '')) . '>Edit Line</a>';
                             }
-                            if (!(hasPermissions('adv', 'fingerprint') && 0 < $rRow['active_connections'])) {
+                            if (!(Authorization::check('adv', 'fingerprint') && 0 < $rRow['active_connections'])) {
                             } else {
                                 $rButtons .= '<a class="dropdown-item" href="javascript:void(0);" onClick="modalFingerprint(' . $rRow['id'] . ", 'user');\">Fingerprint</a>";
                             }
                             $rButtons .= "<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"openDownload('" . $rRow['username'] . "', '" . $rRow['password'] . "');\">Download Playlist</a>";
-                            if (!hasPermissions('adv', 'edit_user')) {
+                            if (!Authorization::check('adv', 'edit_user')) {
                             } else {
                                 $rButtons .= '<a class="dropdown-item" href="javascript:void(0);" onClick="api(' . $rRow['id'] . ", 'kill');\">Kill Connections</a>";
                                 if ($rRow['admin_enabled']) {
@@ -318,11 +318,11 @@ if ($rType == 'lines') {
                             } else {
                                 $rButtons .= '<button type="button" disabled class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-note"></i></button>';
                             }
-                            if (!hasPermissions('adv', 'edit_user')) {
+                            if (!Authorization::check('adv', 'edit_user')) {
                             } else {
                                 $rButtons .= '<a href="line?id=' . $rRow['id'] . '" ' . ((CoreUtilities::$rSettings['modal_edit'] ? "onClick=\"editModal(event, 'line', " . intval($rRow['id']) . ", '" . str_replace('"', '&quot;', str_replace("'", "\\'", $rRow['username'])) . "')\" data-modal=\"true\"" : '')) . '><button title="Edit" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-pencil"></i></button></a>';
                             }
-                            if (!hasPermissions('adv', 'fingerprint')) {
+                            if (!Authorization::check('adv', 'fingerprint')) {
                             } else {
                                 if (0 < $rRow['active_connections']) {
                                     $rButtons .= '<button title="Fingerprint" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="modalFingerprint(' . $rRow['id'] . ", 'user');\"><i class=\"mdi mdi-fingerprint\"></i></button>";
@@ -331,7 +331,7 @@ if ($rType == 'lines') {
                                 }
                             }
                             $rButtons .= "<button type=\"button\" title=\"Download Playlist\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"openDownload('" . $rRow['username'] . "', '" . $rRow['password'] . "');\"><i class=\"mdi mdi-download\"></i></button>";
-                            if (!hasPermissions('adv', 'edit_user')) {
+                            if (!Authorization::check('adv', 'edit_user')) {
                             } else {
                                 $rButtons .= '<button title="Kill Connections" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(' . $rRow['id'] . ", 'kill');\"><i class=\"fas fa-hammer\"></i></button>";
                                 if ($rRow['admin_enabled']) {
@@ -379,7 +379,7 @@ if ($rType == 'lines') {
     exit();
 }
 if ($rType == 'mags') {
-    if (hasPermissions('adv', 'manage_mag')) {
+    if (Authorization::check('adv', 'manage_mag')) {
         $rOrderDirection = (strtolower(CoreUtilities::$rRequest['order'][0]['dir']) === 'desc' ? 'desc' : 'asc');
         $rOrder = array('`lines`.`id`', '`lines`.`username`', '`mag_devices`.`mac`', '`mag_devices`.`stb_type`', '`lines`.`member_id`', '`lines`.`enabled`', '`active_connections` > 0', '`lines`.`is_trial`', '`lines`.`exp_date`', '`active_connections` ' . $rOrderDirection . ', `last_activity`', false);
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
@@ -560,7 +560,7 @@ if ($rType == 'mags') {
                         } else {
                             $rExpDate = '&infin;';
                         }
-                        if (hasPermissions('adv', 'live_connections')) {
+                        if (Authorization::check('adv', 'live_connections')) {
                             $rActiveConnections = '<a href="live_connections?user_id=' . $rRow['id'] . '">' . $rRow['active_connections'] . '</a>';
                         } else {
                             $rActiveConnections = $rRow['active_connections'];
@@ -585,19 +585,19 @@ if ($rType == 'mags') {
                                 $rButtons .= '<button type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" title="' . $rNotes . '"><i class="mdi mdi-note"></i></button>';
                             }
                             $rButtons .= '<div class="btn-group dropdown"><a href="javascript: void(0);" class="table-action-btn dropdown-toggle arrow-none btn btn-light btn-sm" data-toggle="dropdown" aria-expanded="false"><i class="mdi mdi-menu"></i></a><div class="dropdown-menu dropdown-menu-right">';
-                            if (!hasPermissions('adv', 'manage_events')) {
+                            if (!Authorization::check('adv', 'manage_events')) {
                             } else {
                                 $rButtons .= '<a class="dropdown-item" href="javascript:void(0);" onClick="message(' . $rRow['mag_id'] . ", '" . $rRow['mac'] . "');\">MAG Event</a>";
                             }
-                            if (!hasPermissions('adv', 'edit_user')) {
+                            if (!Authorization::check('adv', 'edit_user')) {
                             } else {
                                 $rButtons .= '<a class="dropdown-item" href="javascript:void(0);" onClick="api(' . $rRow['mag_id'] . ", 'convert');\">Convert to Line</a>";
                             }
-                            if (!(hasPermissions('adv', 'fingerprint') && $rRow['user_id'] && 0 < $rRow['active_connections'])) {
+                            if (!(Authorization::check('adv', 'fingerprint') && $rRow['user_id'] && 0 < $rRow['active_connections'])) {
                             } else {
                                 $rButtons .= '<a class="dropdown-item" href="javascript:void(0);" onClick="modalFingerprint(' . $rRow['user_id'] . ", 'user');\">Fingerprint</a>";
                             }
-                            if (!hasPermissions('adv', 'edit_mag')) {
+                            if (!Authorization::check('adv', 'edit_mag')) {
                             } else {
                                 $rButtons .= '<a class="dropdown-item" href="mag?id=' . $rRow['id'] . '" ' . ((CoreUtilities::$rSettings['modal_edit'] ? "onClick=\"editModal(event, 'mag', " . intval($rRow['mag_id']) . ", '" . str_replace('"', '&quot;', str_replace("'", "\\'", $rRow['username'])) . "')\" data-modal=\"true\"" : '')) . '>Edit Device</a>';
                                 if ($rRow['admin_enabled']) {
@@ -620,15 +620,15 @@ if ($rType == 'mags') {
                             } else {
                                 $rButtons .= '<button type="button" disabled class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-note"></i></button>';
                             }
-                            if (!hasPermissions('adv', 'manage_events')) {
+                            if (!Authorization::check('adv', 'manage_events')) {
                             } else {
                                 $rButtons .= '<button title="MAG Event" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="message(' . $rRow['mag_id'] . ", '" . $rRow['mac'] . "');\"><i class=\"mdi mdi-message-alert\"></i></button>";
                             }
-                            if (!hasPermissions('adv', 'edit_user')) {
+                            if (!Authorization::check('adv', 'edit_user')) {
                             } else {
                                 $rButtons .= '<button title="Convert to User Line" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(' . $rRow['mag_id'] . ", 'convert');\"><i class=\"fas fa-retweet\"></i></button>";
                             }
-                            if (!hasPermissions('adv', 'fingerprint')) {
+                            if (!Authorization::check('adv', 'fingerprint')) {
                             } else {
                                 if ($rRow['user_id'] && 0 < $rRow['active_connections']) {
                                     $rButtons .= '<button title="Fingerprint" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="modalFingerprint(' . $rRow['user_id'] . ", 'user');\"><i class=\"mdi mdi-fingerprint\"></i></button>";
@@ -636,7 +636,7 @@ if ($rType == 'mags') {
                                     $rButtons .= '<button type="button" disabled class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-fingerprint"></i></button>';
                                 }
                             }
-                            if (!hasPermissions('adv', 'edit_mag')) {
+                            if (!Authorization::check('adv', 'edit_mag')) {
                             } else {
                                 $rButtons .= '<a href="mag?id=' . $rRow['mag_id'] . '" ' . ((CoreUtilities::$rSettings['modal_edit'] ? "onClick=\"editModal(event, 'mag', " . intval($rRow['mag_id']) . ", '" . str_replace('"', '&quot;', str_replace("'", "\\'", $rRow['mac'])) . "')\" data-modal=\"true\"" : '')) . '><button title="Edit" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-pencil"></i></button></a>';
                                 if ($rRow['admin_enabled']) {
@@ -684,7 +684,7 @@ if ($rType == 'mags') {
     exit();
 }
 if ($rType == 'enigmas') {
-    if (hasPermissions('adv', 'manage_e2')) {
+    if (Authorization::check('adv', 'manage_e2')) {
         $rOrderDirection = (strtolower(CoreUtilities::$rRequest['order'][0]['dir']) === 'desc' ? 'desc' : 'asc');
         $rOrder = array('`lines`.`id`', '`lines`.`username`', '`enigma2_devices`.`mac`', '`enigma2_devices`.`public_ip`', '`lines`.`member_id`', '`lines`.`enabled`', '`active_connections` > 0', '`lines`.`is_trial`', '`lines`.`exp_date`', '`active_connections` ' . $rOrderDirection . ', `last_activity`', false);
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
@@ -865,7 +865,7 @@ if ($rType == 'enigmas') {
                         } else {
                             $rExpDate = '&infin;';
                         }
-                        if (hasPermissions('adv', 'live_connections')) {
+                        if (Authorization::check('adv', 'live_connections')) {
                             $rActiveConnections = '<a href="live_connections?user_id=' . $rRow['id'] . '">' . $rRow['active_connections'] . '</a>';
                         } else {
                             $rActiveConnections = $rRow['active_connections'];
@@ -890,15 +890,15 @@ if ($rType == 'enigmas') {
                                 $rButtons .= '<button type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" title="' . $rNotes . '"><i class="mdi mdi-note"></i></button>';
                             }
                             $rButtons .= '<div class="btn-group dropdown"><a href="javascript: void(0);" class="table-action-btn dropdown-toggle arrow-none btn btn-light btn-sm" data-toggle="dropdown" aria-expanded="false"><i class="mdi mdi-menu"></i></a><div class="dropdown-menu dropdown-menu-right">';
-                            if (!hasPermissions('adv', 'edit_user')) {
+                            if (!Authorization::check('adv', 'edit_user')) {
                             } else {
                                 $rButtons .= '<a class="dropdown-item" href="javascript:void(0);" onClick="api(' . $rRow['device_id'] . ", 'convert');\">Convert to Line</a>";
                             }
-                            if (!(hasPermissions('adv', 'fingerprint') && $rRow['user_id'] && 0 < $rRow['active_connections'])) {
+                            if (!(Authorization::check('adv', 'fingerprint') && $rRow['user_id'] && 0 < $rRow['active_connections'])) {
                             } else {
                                 $rButtons .= '<a class="dropdown-item" href="javascript:void(0);" onClick="modalFingerprint(' . $rRow['user_id'] . ", 'user');\">Fingerprint</a>";
                             }
-                            if (!hasPermissions('adv', 'edit_e2')) {
+                            if (!Authorization::check('adv', 'edit_e2')) {
                             } else {
                                 $rButtons .= '<a class="dropdown-item" href="enigma?id=' . $rRow['id'] . '" ' . ((CoreUtilities::$rSettings['modal_edit'] ? "onClick=\"editModal(event, 'enigma', " . intval($rRow['device_id']) . ", '" . str_replace('"', '&quot;', str_replace("'", "\\'", $rRow['username'])) . "')\" data-modal=\"true\"" : '')) . '>Edit Device</a>';
                                 if ($rRow['admin_enabled']) {
@@ -921,11 +921,11 @@ if ($rType == 'enigmas') {
                             } else {
                                 $rButtons .= '<button type="button" disabled class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-note"></i></button>';
                             }
-                            if (!hasPermissions('adv', 'edit_user')) {
+                            if (!Authorization::check('adv', 'edit_user')) {
                             } else {
                                 $rButtons .= '<button title="Convert to User Line" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(' . $rRow['device_id'] . ", 'convert');\"><i class=\"fas fa-retweet\"></i></button>";
                             }
-                            if (!hasPermissions('adv', 'fingerprint')) {
+                            if (!Authorization::check('adv', 'fingerprint')) {
                             } else {
                                 if ($rRow['user_id'] && 0 < $rRow['active_connections']) {
                                     $rButtons .= '<button title="Fingerprint" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="modalFingerprint(' . $rRow['user_id'] . ", 'user');\"><i class=\"mdi mdi-fingerprint\"></i></button>";
@@ -933,7 +933,7 @@ if ($rType == 'enigmas') {
                                     $rButtons .= '<button type="button" disabled class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-fingerprint"></i></button>';
                                 }
                             }
-                            if (!hasPermissions('adv', 'edit_e2')) {
+                            if (!Authorization::check('adv', 'edit_e2')) {
                             } else {
                                 $rButtons .= '<a href="enigma?id=' . $rRow['device_id'] . '" ' . ((CoreUtilities::$rSettings['modal_edit'] ? "onClick=\"editModal(event, 'enigma', " . intval($rRow['device_id']) . ", '" . str_replace('"', '&quot;', str_replace("'", "\\'", $rRow['mac'])) . "')\" data-modal=\"true\"" : '')) . '><button title="Edit" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-pencil"></i></button></a>';
                                 if ($rRow['admin_enabled']) {
@@ -981,7 +981,7 @@ if ($rType == 'enigmas') {
     exit();
 }
 if ($rType == 'streams') {
-    if (hasPermissions('adv', 'streams') || hasPermissions('adv', 'mass_edit_streams')) {
+    if (Authorization::check('adv', 'streams') || Authorization::check('adv', 'mass_edit_streams')) {
         $rCategories = getCategories('live');
         $rOrder = array('`streams`.`id`', '`streams`.`stream_icon`', '`streams`.`stream_display_name`', '`streams_servers`.`current_source`', '`clients`', '`streams_servers`.`stream_started`', false, false, false, '`streams_servers`.`bitrate`');
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
@@ -1214,7 +1214,7 @@ if ($rType == 'streams') {
                         }
                         $rStreamName = "<a href='stream_view?id=" . $rRow['id'] . "'><strong>" . $rRow['stream_display_name'] . "</strong><br><span style='font-size:11px;'>" . $rCategory . '</span></a>';
                         if ($rRow['server_name']) {
-                            if (hasPermissions('adv', 'servers')) {
+                            if (Authorization::check('adv', 'servers')) {
                                 $rServerName = "<a href='server_view?id=" . $rRow['server_id'] . "'>" . $rRow['server_name'] . '</a>';
                             } else {
                                 $rServerName = $rRow['server_name'];
@@ -1314,7 +1314,7 @@ if ($rType == 'streams') {
                         } else {
                             $rRow['server_id'] = -1;
                         }
-                        if (hasPermissions('adv', 'live_connections')) {
+                        if (Authorization::check('adv', 'live_connections')) {
                             if (0 < $rRow['clients']) {
                                 $rClients = "<a href='javascript: void(0);' onClick='viewLiveConnections(" . intval($rRow['id']) . ', ' . intval($rRow['server_id']) . ");'><button type='button' class='btn btn-info btn-xs waves-effect waves-light'>" . number_format($rRow['clients'], 0) . '</button></a>';
                             } else {
@@ -1413,7 +1413,7 @@ if ($rType == 'streams') {
                                 $rButtons .= '<button type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" title="' . $rRow['notes'] . '"><i class="mdi mdi-note"></i></button>';
                             }
                             $rButtons .= '<div class="btn-group dropdown"><a href="javascript: void(0);" class="table-action-btn dropdown-toggle arrow-none btn btn-light btn-sm" data-toggle="dropdown" aria-expanded="false"><i class="mdi mdi-menu"></i></a><div class="dropdown-menu dropdown-menu-right">';
-                            if ((isset(CoreUtilities::$rRequest['single']) || isset(CoreUtilities::$rRequest['simple'])) && hasPermissions('adv', 'edit_stream')) {
+                            if ((isset(CoreUtilities::$rRequest['single']) || isset(CoreUtilities::$rRequest['simple'])) && Authorization::check('adv', 'edit_stream')) {
                                 if (intval($rActualStatus) == 1 || intval($rActualStatus) == 2 || intval($rActualStatus) == 3 || $rRow['on_demand'] == 1 || $rActualStatus == 5) {
                                     $rButtons .= '<a class="dropdown-item" href="javascript:void(0);" onClick="api(' . $rRow['id'] . ', ' . $rRow['server_id'] . ", 'stop');\">Stop</a>" . "\r\n\t\t\t\t\t\t\t" . '<a class="dropdown-item" href="javascript:void(0);" onClick="api(' . $rRow['id'] . ', ' . $rRow['server_id'] . ", 'restart');\">Restart</a>" . "\r\n\t\t\t\t\t\t\t" . '<a class="dropdown-item" href="javascript:void(0);" onClick="api(' . $rRow['id'] . ', ' . $rRow['server_id'] . ", 'purge');\">Kill Connections</a>";
                                 } else {
@@ -1424,7 +1424,7 @@ if ($rType == 'streams') {
                                     $rButtons .= '<a class="dropdown-item" href="javascript:void(0);" onClick="api(' . $rRow['id'] . ', ' . $rRow['server_id'] . ", 'delete');\">Delete</a>";
                                 }
                             } else {
-                                if (!hasPermissions('adv', 'edit_stream')) {
+                                if (!Authorization::check('adv', 'edit_stream')) {
                                 } else {
                                     if (intval($rActualStatus) == 1 || intval($rActualStatus) == 2 || intval($rActualStatus) == 3 || $rRow['on_demand'] == 1 || $rActualStatus == 5) {
                                         $rButtons .= '<a class="dropdown-item" href="javascript:void(0);" onClick="api(' . $rRow['id'] . ', ' . $rRow['server_id'] . ", 'stop');\">Stop</a>" . "\r\n\t\t\t\t\t\t\t\t" . '<a class="dropdown-item" href="javascript:void(0);" onClick="api(' . $rRow['id'] . ', ' . $rRow['server_id'] . ", 'restart');\">Restart</a>" . "\r\n\t\t\t\t\t\t\t\t" . '<a class="dropdown-item" href="javascript:void(0);" onClick="api(' . $rRow['id'] . ', ' . $rRow['server_id'] . ", 'purge');\">Kill Connections</a>";
@@ -1432,11 +1432,11 @@ if ($rType == 'streams') {
                                         $rButtons .= '<a class="dropdown-item" href="javascript:void(0);" onClick="api(' . $rRow['id'] . ', ' . $rRow['server_id'] . ", 'start');\">Start</a>";
                                     }
                                 }
-                                if (!(hasPermissions('adv', 'fingerprint') && !$rCreated && 0 < $rRow['clients'])) {
+                                if (!(Authorization::check('adv', 'fingerprint') && !$rCreated && 0 < $rRow['clients'])) {
                                 } else {
                                     $rButtons .= '<a class="dropdown-item" href="javascript:void(0);" onClick="modalFingerprint(' . $rRow['id'] . ", 'stream');\">Fingerprint</a>";
                                 }
-                                if (!hasPermissions('adv', 'edit_stream')) {
+                                if (!Authorization::check('adv', 'edit_stream')) {
                                 } else {
                                     if ($rRow['type'] == 3) {
                                         $rButtons .= '<a class="dropdown-item" href="created_channel?id=' . $rRow['id'] . '" ' . ((CoreUtilities::$rSettings['modal_edit'] ? "onClick=\"editModal(event, 'created_channel', " . intval($rRow['id']) . ", '" . str_replace('"', '&quot;', str_replace("'", "\\'", $rRow['stream_display_name'])) . "')\" data-modal=\"true\"" : '')) . '>Edit</a>';
@@ -1449,7 +1449,7 @@ if ($rType == 'streams') {
                             $rButtons .= '</div></div>';
                         } else {
                             $rButtons = '<div class="btn-group">';
-                            if ((isset(CoreUtilities::$rRequest['single']) || isset(CoreUtilities::$rRequest['simple'])) && hasPermissions('adv', 'edit_stream')) {
+                            if ((isset(CoreUtilities::$rRequest['single']) || isset(CoreUtilities::$rRequest['simple'])) && Authorization::check('adv', 'edit_stream')) {
                                 if (intval($rActualStatus) == 1 || intval($rActualStatus) == 2 || intval($rActualStatus) == 3 || $rRow['on_demand'] == 1 || $rActualStatus == 5) {
                                     $rButtons .= '<button title="Stop" type="button" class="btn btn-light waves-effect waves-light btn-xs api-stop tooltip" onClick="api(' . $rRow['id'] . ', ' . $rRow['server_id'] . ", 'stop');\"><i class=\"mdi mdi-stop\"></i></button>";
                                     $rStatus = '';
@@ -1468,7 +1468,7 @@ if ($rType == 'streams') {
                                 } else {
                                     $rButtons .= '<button disabled type="button" class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-note"></i></button>';
                                 }
-                                if (!hasPermissions('adv', 'edit_stream')) {
+                                if (!Authorization::check('adv', 'edit_stream')) {
                                 } else {
                                     if (intval($rActualStatus) == 1 || intval($rActualStatus) == 2 || intval($rActualStatus) == 3 || $rRow['on_demand'] == 1 || $rActualStatus == 5) {
                                         $rButtons .= '<button title="Stop" type="button" class="btn btn-light waves-effect waves-light btn-xs api-stop tooltip" onClick="api(' . $rRow['id'] . ', ' . $rRow['server_id'] . ", 'stop');\"><i class=\"mdi mdi-stop\"></i></button>";
@@ -1479,7 +1479,7 @@ if ($rType == 'streams') {
                                     }
                                     $rButtons .= '<button title="Restart" type="button" class="btn btn-light waves-effect waves-light btn-xs api-restart tooltip" onClick="api(' . $rRow['id'] . ', ' . $rRow['server_id'] . ", 'restart');\"" . $rStatus . '><i class="mdi mdi-refresh"></i></button>' . "\r\n\t\t\t\t\t\t\t" . '<button title="Kill Connections" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(' . $rRow['id'] . ', ' . $rRow['server_id'] . ", 'purge');\"" . $rStatus . '><i class="mdi mdi-hammer"></i></button>';
                                 }
-                                if (!hasPermissions('adv', 'fingerprint') || $rCreated) {
+                                if (!Authorization::check('adv', 'fingerprint') || $rCreated) {
                                 } else {
                                     if (0 < $rRow['clients']) {
                                         $rButtons .= '<button title="Fingerprint" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="modalFingerprint(' . $rRow['id'] . ", 'stream');\"><i class=\"mdi mdi-fingerprint\"></i></button>";
@@ -1487,7 +1487,7 @@ if ($rType == 'streams') {
                                         $rButtons .= '<button type="button" disabled class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-fingerprint"></i></button>';
                                     }
                                 }
-                                if (!hasPermissions('adv', 'edit_stream')) {
+                                if (!Authorization::check('adv', 'edit_stream')) {
                                 } else {
                                     if ($rRow['type'] == 3) {
                                         $rButtons .= '<a href="created_channel?id=' . $rRow['id'] . '" ' . ((CoreUtilities::$rSettings['modal_edit'] ? "onClick=\"editModal(event, 'created_channel', " . intval($rRow['id']) . ", '" . str_replace('"', '&quot;', str_replace("'", "\\'", $rRow['stream_display_name'])) . "')\" data-modal=\"true\"" : '')) . '><button title="Edit" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-pencil"></i></button></a>';
@@ -1543,7 +1543,7 @@ if ($rType == 'streams') {
                             }
                             $rStreamInfoText .= '<td>' . $rFPS . '</td></tr></tbody></table>';
                         }
-                        if (hasPermissions('adv', 'player')) {
+                        if (Authorization::check('adv', 'player')) {
                             if ((intval($rActualStatus) == 1 || $rActualStatus == 4) && !$rRow['direct_proxy']) {
                                 if (empty($rStreamInfo['codecs']['video']['codec_name']) || strtoupper($rStreamInfo['codecs']['video']['codec_name']) == 'H264' || strtoupper($rStreamInfo['codecs']['video']['codec_name']) == 'N/A') {
                                     $rPlayer = '<button title="Play" type="button" class="btn btn-info waves-effect waves-light btn-xs tooltip" onClick="player(' . $rRow['id'] . ');"><i class="mdi mdi-play"></i></button>';
@@ -1593,7 +1593,7 @@ if ($rType == 'streams') {
     exit();
 }
 if ($rType == 'radios') {
-    if (hasPermissions('adv', 'radio') || hasPermissions('adv', 'mass_edit_radio')) {
+    if (Authorization::check('adv', 'radio') || Authorization::check('adv', 'mass_edit_radio')) {
         $rCategories = getCategories('radio');
         $rOrder = array('`streams`.`id`', '`streams`.`stream_icon`', '`streams`.`stream_display_name`', '`server_name`', '`clients`', '`streams_servers`.`stream_started`', false, '`streams_servers`.`bitrate`');
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
@@ -1745,7 +1745,7 @@ if ($rType == 'radios') {
                         }
                         $rStreamName = "<a href='stream_view?id=" . $rRow['id'] . "'><strong>" . $rRow['stream_display_name'] . "</strong><br><span style='font-size:11px;'>" . $rCategory . '</span></a>';
                         if ($rRow['server_name']) {
-                            if (hasPermissions('adv', 'servers')) {
+                            if (Authorization::check('adv', 'servers')) {
                                 $rServerName = "<a href='server_view?id=" . $rRow['server_id'] . "'>" . $rRow['server_name'] . '</a>';
                             } else {
                                 $rServerName = $rRow['server_name'];
@@ -1813,7 +1813,7 @@ if ($rType == 'radios') {
                         } else {
                             $rRow['server_id'] = -1;
                         }
-                        if (hasPermissions('adv', 'live_connections')) {
+                        if (Authorization::check('adv', 'live_connections')) {
                             if (0 < $rRow['clients']) {
                                 $rClients = "<a href='javascript: void(0);' onClick='viewLiveConnections(" . intval($rRow['id']) . ', ' . intval($rRow['server_id']) . ");'><button type='button' class='btn btn-info btn-xs waves-effect waves-light'>" . number_format($rRow['clients'], 0) . '</button></a>';
                             } else {
@@ -1848,7 +1848,7 @@ if ($rType == 'radios') {
                                 $rButtons .= '<button type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" title="' . $rRow['notes'] . '"><i class="mdi mdi-note"></i></button>';
                             }
                             $rButtons .= '<div class="btn-group dropdown"><a href="javascript: void(0);" class="table-action-btn dropdown-toggle arrow-none btn btn-light btn-sm" data-toggle="dropdown" aria-expanded="false"><i class="mdi mdi-menu"></i></a><div class="dropdown-menu dropdown-menu-right">';
-                            if ((isset(CoreUtilities::$rRequest['single']) || isset(CoreUtilities::$rRequest['simple'])) && hasPermissions('adv', 'edit_radio')) {
+                            if ((isset(CoreUtilities::$rRequest['single']) || isset(CoreUtilities::$rRequest['simple'])) && Authorization::check('adv', 'edit_radio')) {
                                 if (intval($rActualStatus) == 1 || intval($rActualStatus) == 2 || intval($rActualStatus) == 3 || $rRow['on_demand'] == 1 || $rActualStatus == 5) {
                                     $rButtons .= '<a class="dropdown-item" href="javascript:void(0);" onClick="api(' . $rRow['id'] . ', ' . $rRow['server_id'] . ", 'stop');\">Stop</a>" . "\r\n\t\t\t\t\t\t\t" . '<a class="dropdown-item" href="javascript:void(0);" onClick="api(' . $rRow['id'] . ', ' . $rRow['server_id'] . ", 'restart');\">Restart</a>" . "\r\n\t\t\t\t\t\t\t" . '<a class="dropdown-item" href="javascript:void(0);" onClick="api(' . $rRow['id'] . ', ' . $rRow['server_id'] . ", 'purge');\">Kill Connections</a>";
                                 } else {
@@ -1859,7 +1859,7 @@ if ($rType == 'radios') {
                                     $rButtons .= '<a class="dropdown-item" href="javascript:void(0);" onClick="api(' . $rRow['id'] . ', ' . $rRow['server_id'] . ", 'delete');\">Delete</a>";
                                 }
                             } else {
-                                if (!hasPermissions('adv', 'edit_radio')) {
+                                if (!Authorization::check('adv', 'edit_radio')) {
                                 } else {
                                     if (intval($rActualStatus) == 1 || intval($rActualStatus) == 2 || intval($rActualStatus) == 3 || $rRow['on_demand'] == 1 || $rActualStatus == 5) {
                                         $rButtons .= '<a class="dropdown-item" href="javascript:void(0);" onClick="api(' . $rRow['id'] . ', ' . $rRow['server_id'] . ", 'stop');\">Stop</a>" . "\r\n\t\t\t\t\t\t\t\t" . '<a class="dropdown-item" href="javascript:void(0);" onClick="api(' . $rRow['id'] . ', ' . $rRow['server_id'] . ", 'restart');\">Restart</a>" . "\r\n\t\t\t\t\t\t\t\t" . '<a class="dropdown-item" href="javascript:void(0);" onClick="api(' . $rRow['id'] . ', ' . $rRow['server_id'] . ", 'purge');\">Kill Connections</a>";
@@ -1872,7 +1872,7 @@ if ($rType == 'radios') {
                             $rButtons .= '</div></div>';
                         } else {
                             $rButtons = '<div class="btn-group">';
-                            if ((isset(CoreUtilities::$rRequest['single']) || isset(CoreUtilities::$rRequest['simple'])) && hasPermissions('adv', 'edit_radio')) {
+                            if ((isset(CoreUtilities::$rRequest['single']) || isset(CoreUtilities::$rRequest['simple'])) && Authorization::check('adv', 'edit_radio')) {
                                 if (intval($rActualStatus) == 1 || intval($rActualStatus) == 2 || intval($rActualStatus) == 3 || $rRow['on_demand'] == 1 || $rActualStatus == 5) {
                                     $rButtons .= '<button title="Stop" type="button" class="btn btn-light waves-effect waves-light btn-xs api-stop tooltip" onClick="api(' . $rRow['id'] . ', ' . $rRow['server_id'] . ", 'stop');\"><i class=\"mdi mdi-stop\"></i></button>";
                                     $rStatus = '';
@@ -1891,7 +1891,7 @@ if ($rType == 'radios') {
                                 } else {
                                     $rButtons .= '<button disabled type="button" class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-note"></i></button>';
                                 }
-                                if (!hasPermissions('adv', 'edit_radio')) {
+                                if (!Authorization::check('adv', 'edit_radio')) {
                                 } else {
                                     if (intval($rActualStatus) == 1 || intval($rActualStatus) == 2 || intval($rActualStatus) == 3 || $rRow['on_demand'] == 1 || $rActualStatus == 5) {
                                         $rButtons .= '<button title="Stop" type="button" class="btn btn-light waves-effect waves-light btn-xs api-stop tooltip" onClick="api(' . $rRow['id'] . ', ' . $rRow['server_id'] . ", 'stop');\"><i class=\"mdi mdi-stop\"></i></button>";
@@ -1953,7 +1953,7 @@ if ($rType == 'radios') {
     exit();
 }
 if ($rType == 'movies') {
-    if (hasPermissions('adv', 'movies') || hasPermissions('adv', 'mass_sedits_vod')) {
+    if (Authorization::check('adv', 'movies') || Authorization::check('adv', 'mass_sedits_vod')) {
         $rCategories = getCategories('movie');
         $rOrder = array('`streams`.`id`', false, '`streams`.`stream_display_name`', '`server_name`', '`clients`', '`streams_servers`.`stream_started`', false, false, false, '`streams_servers`.`bitrate`');
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
@@ -2182,7 +2182,7 @@ if ($rType == 'movies') {
                         $rYear = ($rRow['year'] ? '<strong>' . $rRow['year'] . '</strong> &nbsp;' : '');
                         $rStreamName = "<a href='stream_view?id=" . $rRow['id'] . "'><strong>" . $rRow['stream_display_name'] . "</strong><br><span style='font-size:11px;'>" . $rYear . $rRatingText . '<br/>' . $rCategory . '</span></a>';
                         if ($rRow['server_name']) {
-                            if (hasPermissions('adv', 'servers')) {
+                            if (Authorization::check('adv', 'servers')) {
                                 $rServerName = "<a href='server_view?id=" . $rRow['server_id'] . "'>" . $rRow['server_name'] . '</a>';
                             } else {
                                 $rServerName = $rRow['server_name'];
@@ -2233,7 +2233,7 @@ if ($rType == 'movies') {
                         } else {
                             $rRow['server_id'] = -1;
                         }
-                        if (hasPermissions('adv', 'live_connections')) {
+                        if (Authorization::check('adv', 'live_connections')) {
                             if (0 < $rRow['clients']) {
                                 $rClients = "<a href='javascript: void(0);' onClick='viewLiveConnections(" . intval($rRow['id']) . ', ' . intval($rRow['server_id']) . ");'><button type='button' class='btn btn-info btn-xs waves-effect waves-light'>" . number_format($rRow['clients'], 0) . '</button></a>';
                             } else {
@@ -2253,7 +2253,7 @@ if ($rType == 'movies') {
                                 $rButtons .= '<button type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" title="' . $rRow['notes'] . '"><i class="mdi mdi-note"></i></button>';
                             }
                             $rButtons .= '<div class="btn-group dropdown"><a href="javascript: void(0);" class="table-action-btn dropdown-toggle arrow-none btn btn-light btn-sm" data-toggle="dropdown" aria-expanded="false"><i class="mdi mdi-menu"></i></a><div class="dropdown-menu dropdown-menu-right">';
-                            if ((isset(CoreUtilities::$rRequest['single']) || isset(CoreUtilities::$rRequest['simple'])) && hasPermissions('adv', 'edit_movie')) {
+                            if ((isset(CoreUtilities::$rRequest['single']) || isset(CoreUtilities::$rRequest['simple'])) && Authorization::check('adv', 'edit_movie')) {
                                 if (intval($rActualStatus) == 1) {
                                     $rButtons .= '<a class="dropdown-item" href="javascript:void(0);" onClick="api(' . $rRow['id'] . ', ' . $rRow['server_id'] . ", 'start');\">Encode</a>";
                                 } else {
@@ -2271,7 +2271,7 @@ if ($rType == 'movies') {
                                     $rButtons .= '<a class="dropdown-item" href="javascript:void(0);" onClick="api(' . $rRow['id'] . ', ' . $rRow['server_id'] . ", 'delete');\">Delete</a>";
                                 }
                             } else {
-                                if (!hasPermissions('adv', 'edit_movie')) {
+                                if (!Authorization::check('adv', 'edit_movie')) {
                                 } else {
                                     if (intval($rActualStatus) == 1) {
                                         $rButtons .= '<a class="dropdown-item" href="javascript:void(0);" onClick="api(' . $rRow['id'] . ', ' . $rRow['server_id'] . ", 'start');\">Encode</a>";
@@ -2291,7 +2291,7 @@ if ($rType == 'movies') {
                             $rButtons .= '</div></div>';
                         } else {
                             $rButtons = '<div class="btn-group">';
-                            if ((isset(CoreUtilities::$rRequest['single']) || isset(CoreUtilities::$rRequest['simple'])) && hasPermissions('adv', 'edit_movie')) {
+                            if ((isset(CoreUtilities::$rRequest['single']) || isset(CoreUtilities::$rRequest['simple'])) && Authorization::check('adv', 'edit_movie')) {
                                 if (intval($rActualStatus) == 1) {
                                     $rButtons .= '<button title="Encode" type="button" class="btn btn-light waves-effect waves-light btn-xs api-start tooltip" onClick="api(' . $rRow['id'] . ', ' . $rRow['server_id'] . ", 'start');\"><i class=\"mdi mdi-refresh\"></i></button>";
                                 } else {
@@ -2315,7 +2315,7 @@ if ($rType == 'movies') {
                                 } else {
                                     $rButtons .= '<button disabled type="button" class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-note"></i></button>';
                                 }
-                                if (!hasPermissions('adv', 'edit_movie')) {
+                                if (!Authorization::check('adv', 'edit_movie')) {
                                 } else {
                                     if (intval($rActualStatus) == 1) {
                                         $rButtons .= '<button title="Encode" type="button" class="btn btn-light waves-effect waves-light btn-xs api-start tooltip" onClick="api(' . $rRow['id'] . ', ' . $rRow['server_id'] . ", 'start');\"><i class=\"mdi mdi-refresh\"></i></button>";
@@ -2359,7 +2359,7 @@ if ($rType == 'movies') {
                                 $rStreamInfoText = "<table class='table-data nowrap table-data-120 text-center' align='center'>" . "\r\n\t\t\t\t\t\t\t" . '<tbody>' . "\r\n\t\t\t\t\t\t\t\t" . '<tr>' . "\r\n\t\t\t\t\t\t\t\t\t" . "<td class='double'>" . number_format($rRow['bitrate'], 0) . ' Kbps</td>' . "\r\n\t\t\t\t\t\t\t\t\t" . "<td class='text-success'><i class='mdi mdi-video' data-name='mdi-video'></i></td>" . "\r\n\t\t\t\t\t\t\t\t\t" . "<td class='text-success'><i class='mdi mdi-volume-high' data-name='mdi-volume-high'></i></td>" . "\r\n\t\t\t\t\t\t\t\t\t" . "<td class='text-success'><i class='mdi mdi-clock' data-name='mdi-clock'></i></td>" . "\r\n\t\t\t\t\t\t\t\t" . '</tr>' . "\r\n\t\t\t\t\t\t\t\t" . '<tr>' . "\r\n\t\t\t\t\t\t\t\t\t" . "<td class='double'>" . $rStreamInfo['codecs']['video']['width'] . ' x ' . $rStreamInfo['codecs']['video']['height'] . '</td>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<td>' . $rStreamInfo['codecs']['video']['codec_name'] . '</td>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<td>' . $rStreamInfo['codecs']['audio']['codec_name'] . '</td>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<td>' . $rDuration . '</td>' . "\r\n\t\t\t\t\t\t\t\t" . '</tr>' . "\r\n\t\t\t\t\t\t\t" . '</tbody>' . "\r\n\t\t\t\t\t\t" . '</table>';
                             }
                         }
-                        if (hasPermissions('adv', 'player')) {
+                        if (Authorization::check('adv', 'player')) {
                             if (intval($rActualStatus) == 1 || $rActualStatus == 3) {
                                 if (empty($rStreamInfo['codecs']['video']['codec_name']) || strtoupper($rStreamInfo['codecs']['video']['codec_name']) == 'H264' || strtoupper($rStreamInfo['codecs']['video']['codec_name']) == 'N/A') {
                                     $rPlayer = '<button title="Play" type="button" class="btn btn-info waves-effect waves-light btn-xs tooltip" onClick="player(' . $rRow['id'] . ", '" . $rRow['target_container'] . "');\"><i class=\"mdi mdi-play\"></i></button>";
@@ -2401,7 +2401,7 @@ if ($rType == 'movies') {
     exit();
 }
 if ($rType == 'episode_list') {
-    if (hasPermissions('adv', 'import_episodes') || hasPermissions('adv', 'mass_delete')) {
+    if (Authorization::check('adv', 'import_episodes') || Authorization::check('adv', 'mass_delete')) {
         $rOrder = array('`streams`.`id`', false, '`streams`.`stream_display_name`', '`streams_servers`.`server_id`', '`streams_servers`.`stream_status`');
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
             $rOrderRow = intval(CoreUtilities::$rRequest['order'][0]['column']);
@@ -2548,7 +2548,7 @@ if ($rType == 'episode_list') {
     exit();
 }
 if ($rType == 'line_activity') {
-    if (hasPermissions('adv', 'connection_logs')) {
+    if (Authorization::check('adv', 'connection_logs')) {
         $rOrderDirection = (strtolower(CoreUtilities::$rRequest['order'][0]['dir']) === 'desc' ? 'desc' : 'asc');
         $rOrder = array('`username` ' . $rOrderDirection . ', `lines_activity`.`hmac_identifier`', '`streams`.`stream_display_name`', '`server_name`', '`lines_activity`.`user_agent`', '`lines_activity`.`isp`', '`lines_activity`.`user_ip`', '`lines_activity`.`date_start`', '`lines_activity`.`activity_id`', '`lines_activity`.`date_end` - `lines_activity`.`date_start`', '`lines_activity`.`container`', '`lines`.`is_restreamer`');
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
@@ -2661,27 +2661,27 @@ if ($rType == 'line_activity') {
                     }
                     if (!$rIsAPI) {
                         if ($rRow['hmac_id']) {
-                            if (hasPermissions('adv', 'add_hmac')) {
+                            if (Authorization::check('adv', 'add_hmac')) {
                                 $rUsername = "<a href='hmac?id=" . $rRow['hmac_id'] . "'>HMAC - " . $rRow['hmac_identifier'] . '</a>';
                             } else {
                                 $rUsername = 'HMAC - ' . $rRow['hmac_identifier'];
                             }
                         } else {
                             if ($rRow['is_mag']) {
-                                if (hasPermissions('adv', 'edit_mag')) {
+                                if (Authorization::check('adv', 'edit_mag')) {
                                     $rUsername = "<a href='mag?id=" . $rRow['device_id'] . "'>" . $rRow['username'] . "<br/><strong>MAC: </strong> <span class='text-secondary'>" . $rRow['device_name'] . '</span></a>';
                                 } else {
                                     $rUsername = $rRow['username'];
                                 }
                             } else {
                                 if ($rRow['is_e2']) {
-                                    if (hasPermissions('adv', 'edit_e2')) {
+                                    if (Authorization::check('adv', 'edit_e2')) {
                                         $rUsername = "<a href='enigma?id=" . $rRow['device_id'] . "'>" . $rRow['username'] . '<br/>' . $rRow['device_name'] . '</a>';
                                     } else {
                                         $rUsername = $rRow['username'];
                                     }
                                 } else {
-                                    if (hasPermissions('adv', 'users')) {
+                                    if (Authorization::check('adv', 'users')) {
                                         $rUsername = "<a href='line?id=" . $rRow['user_id'] . "'>" . $rRow['username'] . '</a>';
                                     } else {
                                         $rUsername = $rRow['username'];
@@ -2691,7 +2691,7 @@ if ($rType == 'line_activity') {
                         }
                         $rPermission = array(1 => 'streams', 2 => 'movies', 3 => 'streams', 4 => 'radio', 5 => 'series');
                         $rURLs = array(1 => 'stream_view', 2 => 'stream_view', 3 => 'stream_view', 4 => 'stream_view');
-                        if (hasPermissions('adv', $rPermission[$rRow['type']])) {
+                        if (Authorization::check('adv', $rPermission[$rRow['type']])) {
                             if ($rRow['type'] == 5) {
                                 $rChannel = "<a href='serie?id=" . $rRow['series_no'] . "'>" . $rRow['stream_display_name'] . '</a>';
                             } else {
@@ -2700,7 +2700,7 @@ if ($rType == 'line_activity') {
                         } else {
                             $rChannel = $rRow['stream_display_name'];
                         }
-                        if (hasPermissions('adv', 'servers')) {
+                        if (Authorization::check('adv', 'servers')) {
                             $rServer = "<a href='server_view?id=" . $rRow['server_id'] . "'>" . $rRow['server_name'] . '</a>';
                         } else {
                             $rServer = $rRow['server_name'];
@@ -2774,7 +2774,7 @@ if ($rType == 'line_activity') {
     exit();
 }
 if ($rType == 'live_connections') {
-    if (hasPermissions('adv', 'live_connections')) {
+    if (Authorization::check('adv', 'live_connections')) {
         $rRows = array();
         if (CoreUtilities::$rSettings['redis_handler']) {
             $rOrderDirection = (strtolower(CoreUtilities::$rRequest['order'][0]['dir']) === 'desc' ? false : true);
@@ -3032,27 +3032,27 @@ if ($rType == 'live_connections') {
                         }
                     }
                     if ($rRow['hmac_id']) {
-                        if (hasPermissions('adv', 'add_hmac')) {
+                        if (Authorization::check('adv', 'add_hmac')) {
                             $rUsername = "<a href='hmac?id=" . $rRow['hmac_id'] . "'>HMAC - " . $rRow['hmac_identifier'] . '</a>';
                         } else {
                             $rUsername = 'HMAC - ' . $rRow['hmac_identifier'];
                         }
                     } else {
                         if ($rRow['is_mag']) {
-                            if (hasPermissions('adv', 'edit_mag')) {
+                            if (Authorization::check('adv', 'edit_mag')) {
                                 $rUsername = "<a href='mag?id=" . $rRow['mag_id'] . "'>" . $rRow['username'] . '</a>';
                             } else {
                                 $rUsername = $rRow['username'];
                             }
                         } else {
                             if ($rRow['is_e2']) {
-                                if (hasPermissions('adv', 'edit_e2')) {
+                                if (Authorization::check('adv', 'edit_e2')) {
                                     $rUsername = "<a href='enigma?id=" . $rRow['device_id'] . "'>" . $rRow['username'] . '</a>';
                                 } else {
                                     $rUsername = $rRow['username'];
                                 }
                             } else {
-                                if (hasPermissions('adv', 'users')) {
+                                if (Authorization::check('adv', 'users')) {
                                     $rUsername = "<a href='line?id=" . $rRow['user_id'] . "'>" . $rRow['username'] . '</a>';
                                 } else {
                                     $rUsername = $rRow['username'];
@@ -3062,7 +3062,7 @@ if ($rType == 'live_connections') {
                     }
                     $rPermission = array(1 => 'streams', 2 => 'movies', 3 => 'streams', 4 => 'radio', 5 => 'series');
                     $rURLs = array(1 => 'stream_view', 2 => 'stream_view', 3 => 'stream_view', 4 => 'stream_view');
-                    if (hasPermissions('adv', $rPermission[$rRow['type']])) {
+                    if (Authorization::check('adv', $rPermission[$rRow['type']])) {
                         if ($rRow['type'] == 5) {
                             $rChannel = "<a href='serie?id=" . $rRow['series_no'] . "'>" . $rRow['stream_display_name'] . '</a>';
                         } else {
@@ -3071,7 +3071,7 @@ if ($rType == 'live_connections') {
                     } else {
                         $rChannel = $rRow['stream_display_name'];
                     }
-                    if (hasPermissions('adv', 'servers')) {
+                    if (Authorization::check('adv', 'servers')) {
                         $rServer = "<a href='server_view?id=" . $rRow['server_id'] . "'>" . $rRow['server_name'] . '</a>';
                     } else {
                         $rServer = $rRow['server_name'];
@@ -3131,7 +3131,7 @@ if ($rType == 'live_connections') {
                         $rButtons .= "<button title=\"Kill Connection\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"api('" . $rRow['uuid'] . "', 'kill', '" . $rRow['activity_id'] . "');\"><i class=\"fas fa-hammer\"></i></button>";
                     } else {
                         $rButtons .= "<button title=\"Kill Connection\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"api('" . $rRow['uuid'] . "', 'kill');\"><i class=\"fas fa-hammer\"></i></button>";
-                        if (!(hasPermissions('adv', 'fingerprint') && 0 < intval($rRow['user_id']) && $rRow['type'] == 1)) {
+                        if (!(Authorization::check('adv', 'fingerprint') && 0 < intval($rRow['user_id']) && $rRow['type'] == 1)) {
                         } else {
                             $rButtons .= '<button title="Fingerprint" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="modalFingerprint(' . $rRow['user_id'] . ", 'user');\"><i class=\"mdi mdi-fingerprint\"></i></button>";
                         }
@@ -3150,7 +3150,7 @@ if ($rType == 'live_connections') {
     }
 }
 if ($rType == 'stream_list') {
-    if (hasPermissions('adv', 'import_streams') || hasPermissions('adv', 'mass_delete')) {
+    if (Authorization::check('adv', 'import_streams') || Authorization::check('adv', 'mass_delete')) {
         $rCategories = getCategories('live');
         $rOrder = array('`streams`.`id`', '`streams`.`stream_icon`', '`streams`.`stream_display_name`', '`streams`.`category_id`', '`streams_servers`.`server_id`', '`streams_servers`.`stream_status`');
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
@@ -3379,7 +3379,7 @@ if ($rType == 'stream_list') {
     exit();
 }
 if ($rType == 'movie_list') {
-    if (hasPermissions('adv', 'import_movies') || hasPermissions('adv', 'mass_delete')) {
+    if (Authorization::check('adv', 'import_movies') || Authorization::check('adv', 'mass_delete')) {
         $rCategories = getCategories('movie');
         $rOrder = array('`streams`.`id`', false, '`streams`.`stream_display_name`', '`streams`.`category_id`', '`streams_servers`.`server_id`', '`streams_servers`.`stream_status`', false);
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
@@ -3579,7 +3579,7 @@ if ($rType == 'movie_list') {
     exit();
 }
 if ($rType == 'radio_list') {
-    if (hasPermissions('adv', 'mass_delete')) {
+    if (Authorization::check('adv', 'mass_delete')) {
         $rCategories = getCategories('radio');
         $rOrder = array('`streams`.`id`', '`streams`.`stream_icon`', '`streams`.`stream_display_name`', '`streams`.`category_id`', '`streams_servers`.`server_id`', '`streams_servers`.`stream_status`');
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
@@ -3747,7 +3747,7 @@ if ($rType == 'radio_list') {
     exit();
 }
 if ($rType == 'series_list') {
-    if (hasPermissions('adv', 'mass_delete')) {
+    if (Authorization::check('adv', 'mass_delete')) {
         $rCategories = getCategories('series');
         $rOrder = array('`streams_series`.`id`', '`streams_series`.`cover`', '`streams_series`.`title`', '`streams_series`.`category_id`', '`latest_season`', '`episode_count`', false, '`streams_series`.`release_date`', '`streams_series`.`last_modified`');
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
@@ -3880,7 +3880,7 @@ if ($rType == 'series_list') {
     exit();
 }
 if ($rType == 'credits_log') {
-    if (hasPermissions('adv', 'credits_log')) {
+    if (Authorization::check('adv', 'credits_log')) {
         $rOrder = array('`users_credits_logs`.`id`', '`owner_username`', '`target_username`', '`users_credits_logs`.`amount`', '`users_credits_logs`.`reason`', '`date`');
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
             $rOrderRow = intval(CoreUtilities::$rRequest['order'][0]['column']);
@@ -3946,7 +3946,7 @@ if ($rType == 'credits_log') {
             } else {
                 foreach ($db->get_rows() as $rRow) {
                     if (!$rIsAPI) {
-                        if (hasPermissions('adv', 'edit_reguser')) {
+                        if (Authorization::check('adv', 'edit_reguser')) {
                             $rOwner = "<a href='user?id=" . $rRow['admin_id'] . "'>" . $rRow['owner_username'] . '</a>';
                             $rTarget = "<a href='user?id=" . $rRow['target_id'] . "'>" . $rRow['target_username'] . '</a>';
                         } else {
@@ -3966,7 +3966,7 @@ if ($rType == 'credits_log') {
     exit();
 }
 if ($rType == 'client_logs') {
-    if (hasPermissions('adv', 'client_request_log')) {
+    if (Authorization::check('adv', 'client_request_log')) {
         $rOrder = array('`lines_logs`.`id`', '`lines`.`username`', '`streams`.`stream_display_name`', '`lines_logs`.`client_status`', '`lines_logs`.`user_agent`', '`lines_logs`.`ip`', '`lines_logs`.`date`');
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
             $rOrderRow = intval(CoreUtilities::$rRequest['order'][0]['column']);
@@ -4031,14 +4031,14 @@ if ($rType == 'client_logs') {
             } else {
                 foreach ($db->get_rows() as $rRow) {
                     if (!$rIsAPI) {
-                        if (hasPermissions('adv', 'edit_user')) {
+                        if (Authorization::check('adv', 'edit_user')) {
                             $rUsername = "<a href='line?id=" . $rRow['user_id'] . "'>" . $rRow['username'] . '</a>';
                         } else {
                             $rUsername = $rRow['username'];
                         }
                         $rPermission = array(1 => 'streams', 2 => 'movies', 3 => 'streams', 4 => 'radio', 5 => 'series');
                         $rURLs = array(1 => 'stream_view', 2 => 'stream_view', 3 => 'stream_view', 4 => 'stream_view');
-                        if (hasPermissions('adv', $rPermission[$rRow['type']])) {
+                        if (Authorization::check('adv', $rPermission[$rRow['type']])) {
                             if ($rRow['type'] == 5) {
                                 $rChannel = "<a href='serie?id=" . $rRow['series_no'] . "'>" . $rRow['stream_display_name'] . '</a>';
                             } else {
@@ -4062,7 +4062,7 @@ if ($rType == 'client_logs') {
     exit();
 }
 if ($rType == 'reg_user_logs') {
-    if (hasPermissions('adv', 'reg_userlog')) {
+    if (Authorization::check('adv', 'reg_userlog')) {
         $rOrder = array('`users_logs`.`id`', '`users`.`username`', '`users_logs`.`log_id`', '`users_logs`.`type`, `users_logs`.`action`', '`users_logs`.`cost`', '`users_logs`.`credits_after`', '`users_logs`.`date`');
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
             $rOrderRow = intval(CoreUtilities::$rRequest['order'][0]['column']);
@@ -4133,7 +4133,7 @@ if ($rType == 'reg_user_logs') {
             } else {
                 foreach ($db->get_rows() as $rRow) {
                     if (!$rIsAPI) {
-                        if (hasPermissions('adv', 'edit_reguser')) {
+                        if (Authorization::check('adv', 'edit_reguser')) {
                             $rOwner = "<a href='user?id=" . $rRow['owner'] . "'>" . $rRow['username'] . '</a>';
                         } else {
                             $rOwner = $rRow['username'];
@@ -4180,14 +4180,14 @@ if ($rType == 'reg_user_logs') {
                         $rLineInfo = null;
                         switch ($rRow['type']) {
                             case 'line':
-                                $rLine = getUser($rRow['log_id']);
+                                $rLine = UserRepository::getLineById($rRow['log_id']);
                                 if (!$rLine) {
                                 } else {
                                     $rLineInfo = "<a href='line?id=" . $rRow['log_id'] . "'>" . $rLine['username'] . '</a>';
                                 }
                                 break;
                             case 'user':
-                                $rLine = getRegisteredUser($rRow['log_id']);
+                                $rLine = UserRepository::getRegisteredUserById($rRow['log_id']);
                                 if (!$rLine) {
                                 } else {
                                     $rLineInfo = "<a href='user?id=" . $rRow['log_id'] . "'>" . $rLine['username'] . '</a>';
@@ -4234,7 +4234,7 @@ if ($rType == 'reg_user_logs') {
     exit();
 }
 if ($rType == 'stream_errors') {
-    if (hasPermissions('adv', 'stream_errors')) {
+    if (Authorization::check('adv', 'stream_errors')) {
         $rOrder = array('`streams_errors`.`id`', '`streams`.`stream_display_name`', '`servers`.`server_name`', '`streams_errors`.`error`', '`streams_errors`.`date`');
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
             $rOrderRow = intval(CoreUtilities::$rRequest['order'][0]['column']);
@@ -4301,7 +4301,7 @@ if ($rType == 'stream_errors') {
                     if (!$rIsAPI) {
                         $rPermission = array(1 => 'streams', 2 => 'movies', 3 => 'streams', 4 => 'radio', 5 => 'series');
                         $rURLs = array(1 => 'stream_view', 2 => 'stream_view', 3 => 'stream_view', 4 => 'stream_view');
-                        if (hasPermissions('adv', $rPermission[$rRow['type']])) {
+                        if (Authorization::check('adv', $rPermission[$rRow['type']])) {
                             if ($rRow['type'] == 5) {
                                 $rChannel = "<a href='serie?id=" . $rRow['series_no'] . "'>" . $rRow['stream_display_name'] . '</a>';
                             } else {
@@ -4323,7 +4323,7 @@ if ($rType == 'stream_errors') {
     exit();
 }
 if ($rType == 'stream_unique') {
-    if (hasPermissions('adv', 'fingerprint')) {
+    if (Authorization::check('adv', 'fingerprint')) {
         $rCategories = getCategories('live');
         $rOrder = array('`streams`.`id`', '`streams`.`stream_display_name`', false, '`active_count`', null);
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
@@ -4418,7 +4418,7 @@ if ($rType == 'stream_unique') {
     exit();
 }
 if ($rType == 'reg_users') {
-    if (hasPermissions('adv', 'mng_regusers')) {
+    if (Authorization::check('adv', 'mng_regusers')) {
         $rOrder = array('`users`.`id`', '`users`.`username`', '`users`.`owner_id`', '`users`.`ip`', '`users`.`status`', '`users`.`member_group_id`', '`users`.`credits`', false, false, false, false, '`users`.`last_login`', false);
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
             $rOrderRow = intval(CoreUtilities::$rRequest['order'][0]['column']);
@@ -4536,7 +4536,7 @@ if ($rType == 'reg_users') {
                                 $rButtons .= '<button type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" title="' . $rRow['notes'] . '"><i class="mdi mdi-note"></i></button>';
                             }
                             $rButtons .= '<div class="btn-group dropdown"><a href="javascript: void(0);" class="table-action-btn dropdown-toggle arrow-none btn btn-light btn-sm" data-toggle="dropdown" aria-expanded="false"><i class="mdi mdi-menu"></i></a><div class="dropdown-menu dropdown-menu-right">';
-                            if (!hasPermissions('adv', 'edit_reguser')) {
+                            if (!Authorization::check('adv', 'edit_reguser')) {
                             } else {
                                 if (!$rRow['is_reseller']) {
                                 } else {
@@ -4558,7 +4558,7 @@ if ($rType == 'reg_users') {
                             } else {
                                 $rButtons .= '<button disabled type="button" class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-note"></i></button>';
                             }
-                            if (!hasPermissions('adv', 'edit_reguser')) {
+                            if (!Authorization::check('adv', 'edit_reguser')) {
                             } else {
                                 if ($rRow['is_reseller']) {
                                     $rButtons .= '<button title="Adjust Credits" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="addCredits(' . $rRow['id'] . ');"><i class="mdi mdi-coin"></i></button>';
@@ -4623,7 +4623,7 @@ if ($rType == 'reg_users') {
     exit();
 }
 if ($rType == 'asns') {
-    if (hasPermissions('adv', 'block_isps')) {
+    if (Authorization::check('adv', 'block_isps')) {
         $rOrder = array('`blocked_asns`.`asn`', '`blocked_asns`.`isp`', '`blocked_asns`.`domain`', '`blocked_asns`.`country`', '`blocked_asns`.`num_ips`', '`blocked_asns`.`type`', '`blocked_asns`.`blocked`', false);
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
             $rOrderRow = intval(CoreUtilities::$rRequest['order'][0]['column']);
@@ -4700,7 +4700,7 @@ if ($rType == 'asns') {
     exit();
 }
 if ($rType == 'series') {
-    if (hasPermissions('adv', 'series') || hasPermissions('adv', 'mass_sedits')) {
+    if (Authorization::check('adv', 'series') || Authorization::check('adv', 'mass_sedits')) {
         $rCategories = getCategories('series');
         $rOrder = array('`streams_series`.`id`', '`streams_series`.`cover`', '`streams_series`.`title`', '`streams_series`.`category_id`', '`latest_season`', '`episode_count`', false, '`streams_series`.`release_date`', '`streams_series`.`last_modified`', false);
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
@@ -4767,30 +4767,30 @@ if ($rType == 'series') {
                         }
                         if (CoreUtilities::$rSettings['group_buttons']) {
                             $rButtons = '<div class="btn-group dropdown"><a href="javascript: void(0);" class="table-action-btn dropdown-toggle arrow-none btn btn-light btn-sm" data-toggle="dropdown" aria-expanded="false"><i class="mdi mdi-menu"></i></a><div class="dropdown-menu dropdown-menu-right">';
-                            if (!hasPermissions('adv', 'add_episode')) {
+                            if (!Authorization::check('adv', 'add_episode')) {
                             } else {
                                 $rButtons .= '<a class="dropdown-item" href="episode?sid=' . $rRow['id'] . '">Add Episode(s)</a>';
                             }
-                            if (!hasPermissions('adv', 'episodes')) {
+                            if (!Authorization::check('adv', 'episodes')) {
                             } else {
                                 $rButtons .= '<a class="dropdown-item" href="episodes?series=' . $rRow['id'] . '">View Episodes</a>';
                             }
-                            if (!hasPermissions('adv', 'edit_series')) {
+                            if (!Authorization::check('adv', 'edit_series')) {
                             } else {
                                 $rButtons .= '<a class="dropdown-item" href="serie?id=' . $rRow['id'] . '" ' . ((CoreUtilities::$rSettings['modal_edit'] ? "onClick=\"editModal(event, 'serie', " . intval($rRow['id']) . ", '" . str_replace('"', '&quot;', str_replace("'", "\\'", $rRow['title'])) . "')\" data-modal=\"true\"" : '')) . '>Edit</a>' . "\r\n\t\t\t\t\t\t" . '<a class="dropdown-item" href="javascript:void(0);" onClick="api(' . $rRow['id'] . ", 'delete');\">Delete</a>";
                             }
                             $rButtons .= '</div></div>';
                         } else {
                             $rButtons = '<div class="btn-group">';
-                            if (!hasPermissions('adv', 'add_episode')) {
+                            if (!Authorization::check('adv', 'add_episode')) {
                             } else {
                                 $rButtons .= '<a href="episode?sid=' . $rRow['id'] . '"><button title="Add Episode(s)" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-plus-circle-outline"></i></button></a>';
                             }
-                            if (!hasPermissions('adv', 'episodes')) {
+                            if (!Authorization::check('adv', 'episodes')) {
                             } else {
                                 $rButtons .= '<a href="episodes?series=' . $rRow['id'] . '"><button title="View Episodes" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-eye"></i></button></a>';
                             }
-                            if (!hasPermissions('adv', 'edit_series')) {
+                            if (!Authorization::check('adv', 'edit_series')) {
                             } else {
                                 $rButtons .= '<a href="serie?id=' . $rRow['id'] . '" ' . ((CoreUtilities::$rSettings['modal_edit'] ? "onClick=\"editModal(event, 'serie', " . intval($rRow['id']) . ", '" . str_replace('"', '&quot;', str_replace("'", "\\'", $rRow['title'])) . "')\" data-modal=\"true\"" : '')) . '><button title="Edit" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-pencil"></i></button></a>' . "\r\n\t\t\t\t\t\t" . '<button type="button" title="Delete" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(' . $rRow['id'] . ", 'delete');\"><i class=\"mdi mdi-close\"></i></button>";
                             }
@@ -4802,7 +4802,7 @@ if ($rType == 'series') {
                             $rRow['latest_season'] = "<button type='button' class='btn btn-secondary btn-xs waves-effect waves-light'>0</button>";
                         }
                         if (0 < $rRow['episode_count']) {
-                            if (hasPermissions('adv', 'episodes')) {
+                            if (Authorization::check('adv', 'episodes')) {
                                 $rRow['episode_count'] = "<a href='episodes?series=" . $rRow['id'] . "'><button type='button' class='btn btn-info btn-xs waves-effect waves-light'>" . $rRow['episode_count'] . '</button></a>';
                             } else {
                                 $rRow['episode_count'] = "<button type='button' class='btn btn-info btn-xs waves-effect waves-light'>" . $rRow['episode_count'] . '</button>';
@@ -4829,7 +4829,7 @@ if ($rType == 'series') {
                         } else {
                             $rImage = '';
                         }
-                        if (hasPermissions('adv', 'episodes')) {
+                        if (Authorization::check('adv', 'episodes')) {
                             $rID = "<a href='serie?id=" . intval($rRow['id']) . "'>" . $rRow['id'] . '</a>';
                             $rTitle = "<a href='serie?id=" . intval($rRow['id']) . "'><strong>" . $rRow['title'] . '</strong></a>';
                         } else {
@@ -4875,7 +4875,7 @@ if ($rType == 'series') {
     exit();
 }
 if ($rType == 'episodes') {
-    if (hasPermissions('adv', 'episodes') || hasPermissions('adv', 'mass_sedits')) {
+    if (Authorization::check('adv', 'episodes') || Authorization::check('adv', 'mass_sedits')) {
         $rOrder = array('`streams`.`id`', false, '`streams`.`stream_display_name`', '`server_name`', '`clients`', '`streams_servers`.`stream_started`', false, false, '`streams_servers`.`bitrate`');
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
             $rOrderRow = intval(CoreUtilities::$rRequest['order'][0]['column']);
@@ -5061,7 +5061,7 @@ if ($rType == 'episodes') {
                         $rSeriesName = $rRow['title'] . ' - Season ' . $rRow['season_num'];
                         $rStreamName = '<strong>' . $rRow['stream_display_name'] . "</strong><br><span style='font-size:11px;'>" . $rSeriesName . '</span>';
                         if ($rRow['server_name']) {
-                            if (hasPermissions('adv', 'servers')) {
+                            if (Authorization::check('adv', 'servers')) {
                                 $rServerName = "<a href='server_view?id=" . $rRow['server_id'] . "'>" . $rRow['server_name'] . '</a>';
                             } else {
                                 $rServerName = $rRow['server_name'];
@@ -5113,7 +5113,7 @@ if ($rType == 'episodes') {
                         } else {
                             $rRow['server_id'] = -1;
                         }
-                        if (hasPermissions('adv', 'live_connections')) {
+                        if (Authorization::check('adv', 'live_connections')) {
                             if (0 < $rRow['clients']) {
                                 $rClients = "<a href='javascript: void(0);' onClick='viewLiveConnections(" . intval($rRow['id']) . ', ' . intval($rRow['server_id']) . ");'><button type='button' class='btn btn-info btn-xs waves-effect waves-light'>" . number_format($rRow['clients'], 0) . '</button></a>';
                             } else {
@@ -5133,7 +5133,7 @@ if ($rType == 'episodes') {
                                 $rButtons .= '<button type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" title="' . $rRow['notes'] . '"><i class="mdi mdi-note"></i></button>';
                             }
                             $rButtons .= '<div class="btn-group dropdown"><a href="javascript: void(0);" class="table-action-btn dropdown-toggle arrow-none btn btn-light btn-sm" data-toggle="dropdown" aria-expanded="false"><i class="mdi mdi-menu"></i></a><div class="dropdown-menu dropdown-menu-right">';
-                            if ((isset(CoreUtilities::$rRequest['single']) || isset(CoreUtilities::$rRequest['simple'])) && hasPermissions('adv', 'edit_episode')) {
+                            if ((isset(CoreUtilities::$rRequest['single']) || isset(CoreUtilities::$rRequest['simple'])) && Authorization::check('adv', 'edit_episode')) {
                                 if (intval($rActualStatus) == 1) {
                                     $rButtons .= '<a class="dropdown-item" href="javascript:void(0);" onClick="api(' . $rRow['id'] . ', ' . $rRow['server_id'] . ", 'start');\">Encode</a>";
                                 } else {
@@ -5151,7 +5151,7 @@ if ($rType == 'episodes') {
                                     $rButtons .= '<a class="dropdown-item" href="javascript:void(0);" onClick="api(' . $rRow['id'] . ', ' . $rRow['server_id'] . ", 'delete');\">Delete</a>";
                                 }
                             } else {
-                                if (!hasPermissions('adv', 'edit_episode')) {
+                                if (!Authorization::check('adv', 'edit_episode')) {
                                 } else {
                                     if (intval($rActualStatus) == 1) {
                                         $rButtons .= '<a class="dropdown-item" href="javascript:void(0);" onClick="api(' . $rRow['id'] . ', ' . $rRow['server_id'] . ", 'start');\">Encode</a>";
@@ -5171,7 +5171,7 @@ if ($rType == 'episodes') {
                             $rButtons .= '</div></div>';
                         } else {
                             $rButtons = '<div class="btn-group">';
-                            if ((isset(CoreUtilities::$rRequest['single']) || isset(CoreUtilities::$rRequest['simple'])) && hasPermissions('adv', 'edit_episode')) {
+                            if ((isset(CoreUtilities::$rRequest['single']) || isset(CoreUtilities::$rRequest['simple'])) && Authorization::check('adv', 'edit_episode')) {
                                 if (intval($rActualStatus) == 1) {
                                     $rButtons .= '<button title="Encode" type="button" class="btn btn-light waves-effect waves-light btn-xs api-start tooltip" onClick="api(' . $rRow['id'] . ', ' . $rRow['server_id'] . ", 'start');\"><i class=\"mdi mdi-refresh\"></i></button>";
                                 } else {
@@ -5195,7 +5195,7 @@ if ($rType == 'episodes') {
                                 } else {
                                     $rButtons .= '<button disabled type="button" class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-note"></i></button>';
                                 }
-                                if (!hasPermissions('adv', 'edit_episode')) {
+                                if (!Authorization::check('adv', 'edit_episode')) {
                                 } else {
                                     if (intval($rActualStatus) == 1) {
                                         $rButtons .= '<button title="Encode" type="button" class="btn btn-light waves-effect waves-light btn-xs api-start tooltip" onClick="api(' . $rRow['id'] . ', ' . $rRow['server_id'] . ", 'start');\"><i class=\"mdi mdi-refresh\"></i></button>";
@@ -5238,7 +5238,7 @@ if ($rType == 'episodes') {
                                 $rStreamInfoText = "<table class='table-data nowrap table-data-120' align='center'>" . "\r\n\t\t\t\t\t\t\t" . '<tbody>' . "\r\n\t\t\t\t\t\t\t\t" . '<tr>' . "\r\n\t\t\t\t\t\t\t\t\t" . "<td class='double'>" . number_format($rRow['bitrate'], 0) . ' Kbps</td>' . "\r\n\t\t\t\t\t\t\t\t\t" . "<td class='text-success'><i class='mdi mdi-video' data-name='mdi-video'></i></td>" . "\r\n\t\t\t\t\t\t\t\t\t" . "<td class='text-success'><i class='mdi mdi-volume-high' data-name='mdi-volume-high'></i></td>" . "\r\n\t\t\t\t\t\t\t\t" . '</tr>' . "\r\n\t\t\t\t\t\t\t\t" . '<tr>' . "\r\n\t\t\t\t\t\t\t\t\t" . "<td class='double'>" . $rStreamInfo['codecs']['video']['width'] . ' x ' . $rStreamInfo['codecs']['video']['height'] . '</td>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<td>' . $rStreamInfo['codecs']['video']['codec_name'] . '</td>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<td>' . $rStreamInfo['codecs']['audio']['codec_name'] . '</td>' . "\r\n\t\t\t\t\t\t\t\t" . '</tr>' . "\r\n\t\t\t\t\t\t\t" . '</tbody>' . "\r\n\t\t\t\t\t\t" . '</table>';
                             }
                         }
-                        if (hasPermissions('adv', 'player')) {
+                        if (Authorization::check('adv', 'player')) {
                             if (intval($rActualStatus) == 1 || $rActualStatus == 3) {
                                 if (empty($rStreamInfo['codecs']['video']['codec_name']) || strtoupper($rStreamInfo['codecs']['video']['codec_name']) == 'H264' || strtoupper($rStreamInfo['codecs']['video']['codec_name']) == 'N/A') {
                                     $rPlayer = '<button title="Play" type="button" class="btn btn-info waves-effect waves-light btn-xs tooltip" onClick="player(' . $rRow['id'] . ", '" . $rRow['target_container'] . "');\"><i class=\"mdi mdi-play\"></i></button>";
@@ -5276,7 +5276,7 @@ if ($rType == 'episodes') {
     exit();
 }
 if ($rType == 'backups') {
-    if (hasPermissions('adv', 'database')) {
+    if (Authorization::check('adv', 'database')) {
         $rBackups = array_reverse(getBackups());
         $rRemoteBackups = array();
         if (0 >= strlen($rSettings['dropbox_token'])) {
@@ -5324,7 +5324,7 @@ if ($rType == 'backups') {
     }
 }
 if ($rType == 'watch_output') {
-    if (hasPermissions('adv', 'folder_watch_output')) {
+    if (Authorization::check('adv', 'folder_watch_output')) {
         $rOrder = array('`watch_logs`.`id`', '`watch_logs`.`type`', '`watch_logs`.`server_id`', '`watch_logs`.`filename`', '`watch_logs`.`status`', '`watch_logs`.`dateadded`', false);
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
             $rOrderRow = intval(CoreUtilities::$rRequest['order'][0]['column']);
@@ -5384,12 +5384,12 @@ if ($rType == 'watch_output') {
                         if (0 >= $rRow['stream_id']) {
                         } else {
                             if ($rRow['type'] == 1) {
-                                if (!hasPermissions('adv', 'edit_movie')) {
+                                if (!Authorization::check('adv', 'edit_movie')) {
                                 } else {
                                     $rButtons = '<a href="stream_view?id=' . $rRow['stream_id'] . '"><button title="View Movie" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-eye"></i></button></a>';
                                 }
                             } else {
-                                if (!hasPermissions('adv', 'edit_episode')) {
+                                if (!Authorization::check('adv', 'edit_episode')) {
                                 } else {
                                     $rButtons = '<a href="stream_view?id=' . $rRow['stream_id'] . '"><button title="View Episode" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-eye"></i></button></a>';
                                 }
@@ -5401,7 +5401,7 @@ if ($rType == 'watch_output') {
                         }
                         $rButtons .= '<button type="button" title="Delete" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(' . $rRow['id'] . ", 'delete');\"><i class=\"mdi mdi-close\"></i></button>";
                         $rButtons .= '</div>';
-                        if (hasPermissions('adv', 'servers')) {
+                        if (Authorization::check('adv', 'servers')) {
                             $rServer = "<a href='server_view?id=" . $rRow['server_id'] . "'>" . $rRow['server_name'] . '</a>';
                         } else {
                             $rServer = $rRow['server_name'];
@@ -5419,7 +5419,7 @@ if ($rType == 'watch_output') {
     exit();
 }
 if ($rType == 'mysql_syslog') {
-    if ($rPermissions['is_admin'] && hasPermissions('adv', 'panel_logs')) {
+    if ($rPermissions['is_admin'] && Authorization::check('adv', 'panel_logs')) {
         $rOrder = array('`mysql_syslog`.`date`', '`servers`.`server_name`', '`mysql_syslog`.`type`', '`mysql_syslog`.`error`', '`mysql_syslog`.`ip`', false);
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
             $rOrderRow = intval(CoreUtilities::$rRequest['order'][0]['column']);
@@ -5494,7 +5494,7 @@ if ($rType == 'mysql_syslog') {
     exit();
 }
 if ($rType == 'panel_logs') {
-    if ($rPermissions['is_admin'] && hasPermissions('adv', 'panel_logs')) {
+    if ($rPermissions['is_admin'] && Authorization::check('adv', 'panel_logs')) {
         $rOrder = array('`panel_logs`.`date`', '`servers`.`server_name`', '`panel_logs`.`type`', '`panel_logs`.`log_message`');
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
             $rOrderRow = intval(CoreUtilities::$rRequest['order'][0]['column']);
@@ -5548,7 +5548,7 @@ if ($rType == 'panel_logs') {
     exit();
 }
 if ($rType == 'login_logs') {
-    if ($rPermissions['is_admin'] && hasPermissions('adv', 'login_logs')) {
+    if ($rPermissions['is_admin'] && Authorization::check('adv', 'login_logs')) {
         $rOrder = array('`login_logs`.`date`', '`login_logs`.`type`', '`login_logs`.`status`', '`users`.`username`', '`access_codes`.`code`', '`login_logs`.`login_ip`', false);
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
             $rOrderRow = intval(CoreUtilities::$rRequest['order'][0]['column']);
@@ -5619,7 +5619,7 @@ if ($rType == 'login_logs') {
     exit();
 }
 if ($rType == 'queue') {
-    if ($rPermissions['is_admin'] && (hasPermissions('adv', 'movies') || hasPermissions('adv', 'episodes') || hasPermissions('adv', 'series'))) {
+    if ($rPermissions['is_admin'] && (Authorization::check('adv', 'movies') || Authorization::check('adv', 'episodes') || Authorization::check('adv', 'series'))) {
         $rOrder = array('`queue`.`id`', '`streams`.`stream_display_name`', '`servers`.`server_name`', '`queue`.`pid`', '`queue`.`added`', false);
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
             $rOrderRow = intval(CoreUtilities::$rRequest['order'][0]['column']);
@@ -5661,13 +5661,13 @@ if ($rType == 'queue') {
                 $rPosition = $rStart + 1;
                 foreach ($db->get_rows() as $rRow) {
                     if (!$rIsAPI) {
-                        if (hasPermissions('adv', 'servers')) {
+                        if (Authorization::check('adv', 'servers')) {
                             $rServerName = "<a href='server_view?id=" . $rRow['server_id'] . "'>" . $rRow['server_name'] . '</a>';
                         } else {
                             $rServerName = $rRow['server_name'];
                         }
                         $rPermission = array(2 => 'movies', 5 => 'series');
-                        if (hasPermissions('adv', $rPermission[$rRow['type']])) {
+                        if (Authorization::check('adv', $rPermission[$rRow['type']])) {
                             $rStream = "<a href='stream_view?id=" . $rRow['stream_id'] . "'>" . $rRow['stream_display_name'] . '</a>';
                         } else {
                             $rStream = $rRow['stream_display_name'];
@@ -5694,7 +5694,7 @@ if ($rType == 'queue') {
     exit();
 }
 if ($rType == 'restream_logs') {
-    if ($rPermissions['is_admin'] && hasPermissions('adv', 'restream_logs')) {
+    if ($rPermissions['is_admin'] && Authorization::check('adv', 'restream_logs')) {
         $rOrder = array('`detect_restream_logs`.`id`', '`lines`.`username`', '`streams`.`stream_display_name`', '`detect_restream_logs`.`ip`', '`detect_restream_logs`.`time`', false);
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
             $rOrderRow = intval(CoreUtilities::$rRequest['order'][0]['column']);
@@ -5754,7 +5754,7 @@ if ($rType == 'restream_logs') {
                         }
                         $rPermission = array(1 => 'streams', 2 => 'movies', 3 => 'streams', 4 => 'radio', 5 => 'series');
                         $rURLs = array(1 => 'stream_view', 2 => 'stream_view', 3 => 'stream_view', 4 => 'stream_view');
-                        if (hasPermissions('adv', $rPermission[$rRow['type']])) {
+                        if (Authorization::check('adv', $rPermission[$rRow['type']])) {
                             if ($rRow['type'] == 5) {
                                 $rStream = "<a href='serie?id=" . $rRow['series_no'] . "'>" . $rRow['stream_display_name'] . '</a>';
                             } else {
@@ -5763,7 +5763,7 @@ if ($rType == 'restream_logs') {
                         } else {
                             $rStream = $rRow['stream_display_name'];
                         }
-                        if (hasPermissions('adv', 'edit_user')) {
+                        if (Authorization::check('adv', 'edit_user')) {
                             $rLine = '<a href="line?id=' . $rRow['user_id'] . '">' . $rRow['username'] . '</a>';
                         } else {
                             $rLine = $rRow['username'];
@@ -5781,7 +5781,7 @@ if ($rType == 'restream_logs') {
     exit();
 }
 if ($rType == 'mag_events') {
-    if ($rPermissions['is_admin'] && hasPermissions('adv', 'manage_events')) {
+    if ($rPermissions['is_admin'] && Authorization::check('adv', 'manage_events')) {
         $rOrder = array('`mag_events`.`send_time`', '`mag_devices`.`mac`', '`mag_events`.`event`', '`mag_events`.`msg`', false);
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
             $rOrderRow = intval(CoreUtilities::$rRequest['order'][0]['column']);
@@ -5836,7 +5836,7 @@ if ($rType == 'mag_events') {
     exit();
 }
 if ($rType == 'bouquets_streams') {
-    if ($rPermissions['is_admin'] && hasPermissions('adv', 'bouquets')) {
+    if ($rPermissions['is_admin'] && Authorization::check('adv', 'bouquets')) {
         $rCategories = getCategories('live');
         $rOrder = array('`streams`.`id`', '`streams`.`stream_display_name`', false, false);
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
@@ -5908,7 +5908,7 @@ if ($rType == 'bouquets_streams') {
     exit();
 }
 if ($rType == 'bouquets_vod') {
-    if ($rPermissions['is_admin'] && hasPermissions('adv', 'bouquets')) {
+    if ($rPermissions['is_admin'] && Authorization::check('adv', 'bouquets')) {
         $rCategories = getCategories('movie');
         $rOrder = array('`streams`.`id`', '`streams`.`stream_display_name`', false, false);
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
@@ -5980,7 +5980,7 @@ if ($rType == 'bouquets_vod') {
     exit();
 }
 if ($rType == 'bouquets_series') {
-    if ($rPermissions['is_admin'] && hasPermissions('adv', 'bouquets')) {
+    if ($rPermissions['is_admin'] && Authorization::check('adv', 'bouquets')) {
         $rCategories = getCategories('series');
         $rOrder = array('`streams_series`.`id`', '`streams_series`.`title`', false, false);
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
@@ -6051,7 +6051,7 @@ if ($rType == 'bouquets_series') {
     exit();
 }
 if ($rType == 'bouquets_radios') {
-    if ($rPermissions['is_admin'] && hasPermissions('adv', 'bouquets')) {
+    if ($rPermissions['is_admin'] && Authorization::check('adv', 'bouquets')) {
         $rCategories = getCategories('radio');
         $rOrder = array('`streams`.`id`', '`streams`.`stream_display_name`', false, false);
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
@@ -6123,7 +6123,7 @@ if ($rType == 'bouquets_radios') {
     exit();
 }
 if ($rType == 'streams_short') {
-    if ($rPermissions['is_admin'] && hasPermissions('adv', 'categories')) {
+    if ($rPermissions['is_admin'] && Authorization::check('adv', 'categories')) {
         $rOrder = array('`streams`.`id`', '`streams`.`stream_display_name`', false);
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
             $rOrderRow = intval(CoreUtilities::$rRequest['order'][0]['column']);
@@ -6184,7 +6184,7 @@ if ($rType == 'streams_short') {
     exit();
 }
 if ($rType == 'movies_short') {
-    if ($rPermissions['is_admin'] && hasPermissions('adv', 'categories')) {
+    if ($rPermissions['is_admin'] && Authorization::check('adv', 'categories')) {
         $rOrder = array('`streams`.`id`', '`streams`.`stream_display_name`', false);
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
             $rOrderRow = intval(CoreUtilities::$rRequest['order'][0]['column']);
@@ -6245,7 +6245,7 @@ if ($rType == 'movies_short') {
     exit();
 }
 if ($rType == 'radios_short') {
-    if ($rPermissions['is_admin'] && hasPermissions('adv', 'categories')) {
+    if ($rPermissions['is_admin'] && Authorization::check('adv', 'categories')) {
         $rOrder = array('`streams`.`id`', '`streams`.`stream_display_name`', false);
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
             $rOrderRow = intval(CoreUtilities::$rRequest['order'][0]['column']);
@@ -6306,7 +6306,7 @@ if ($rType == 'radios_short') {
     exit();
 }
 if ($rType == 'series_short') {
-    if ($rPermissions['is_admin'] && hasPermissions('adv', 'categories')) {
+    if ($rPermissions['is_admin'] && Authorization::check('adv', 'categories')) {
         $rOrder = array('`streams_series`.`id`', '`streams_series`.`title`', false);
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
             $rOrderRow = intval(CoreUtilities::$rRequest['order'][0]['column']);
@@ -6366,7 +6366,7 @@ if ($rType == 'series_short') {
     exit();
 }
 if ($rType == 'vod_selection') {
-    if ($rPermissions['is_admin'] && hasPermissions('adv', 'create_channel')) {
+    if ($rPermissions['is_admin'] && Authorization::check('adv', 'create_channel')) {
         $rCategories = getCategories('movie');
         $rOrder = array('`streams`.`id`', '`streams`.`stream_display_name`', '`streams_series`.`title`', false);
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
@@ -6527,7 +6527,7 @@ if ($rType == 'provider_streams') {
     exit();
 }
 if ($rType == 'parent_servers') {
-    if (hasPermissions('adv', 'servers')) {
+    if (Authorization::check('adv', 'servers')) {
         if (isset(CoreUtilities::$rServers[CoreUtilities::$rRequest['proxy_id']]) && count(CoreUtilities::$rServers[CoreUtilities::$rRequest['proxy_id']]['parent_id']) != 0) {
             $rOrder = array('`id`', '`server_name`', '`server_ip`');
             if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
@@ -6583,7 +6583,7 @@ if ($rType == 'parent_servers') {
     exit();
 }
 if ($rType == 'failures_modal') {
-    if (hasPermissions('adv', 'streams')) {
+    if (Authorization::check('adv', 'streams')) {
         $rLimit = 10;
         $rOrderBy = 'ORDER BY `date` DESC';
         $rWhere = $rWhereV = array();
@@ -6691,7 +6691,7 @@ if ($rType == 'stream_logs') {
     exit();
 }
 if ($rType == 'ondemand') {
-    if (hasPermissions('adv', 'streams')) {
+    if (Authorization::check('adv', 'streams')) {
         $rCategories = getCategories('live');
         $rOrder = array('`streams`.`id`', '`streams`.`stream_icon`', '`streams`.`stream_display_name`', '`streams_servers`.`server_id`', '`ondemand_check`.`status`', '`ondemand_check`.`response`', '`ondemand_check`.`resolution`', '`ondemand_check`.`date`');
         if (isset(CoreUtilities::$rRequest['order']) && 0 < strlen(CoreUtilities::$rRequest['order'][0]['column'])) {
@@ -6790,7 +6790,7 @@ if ($rType == 'ondemand') {
                         }
                         $rStreamName = "<a href='stream_view?id=" . $rRow['id'] . "'><strong>" . $rRow['stream_display_name'] . "</strong><br><span style='font-size:11px;'>" . $rCategory . '</span></a>';
                         if ($rRow['server_name']) {
-                            if (hasPermissions('adv', 'servers')) {
+                            if (Authorization::check('adv', 'servers')) {
                                 $rServerName = "<a href='server_view?id=" . $rRow['server_id'] . "'>" . $rRow['server_name'] . '</a>';
                             } else {
                                 $rServerName = $rRow['server_name'];

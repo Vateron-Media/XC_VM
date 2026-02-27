@@ -90,6 +90,22 @@ if (!defined('MAIN_HOME')) {
 }
 
 // ─────────────────────────────────────────────────────────────────
+//  1a. Debug: ловим фатальные ошибки, которые убивают рендеринг
+// ─────────────────────────────────────────────────────────────────
+
+register_shutdown_function(function () {
+    $error = error_get_last();
+    if ($error && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
+        // Вывод ошибки для диагностики (убрать после отладки)
+        echo '<div style="background:#c00;color:#fff;padding:15px;margin:10px;font-family:monospace;position:fixed;bottom:0;left:0;right:0;z-index:99999;">';
+        echo '<b>FATAL ERROR:</b> ' . htmlspecialchars($error['message']);
+        echo ' in <b>' . htmlspecialchars($error['file']) . '</b>';
+        echo ' on line <b>' . $error['line'] . '</b>';
+        echo '</div>';
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────
 //  2. Разбор URL → scope + pageName
 // ─────────────────────────────────────────────────────────────────
 //
@@ -124,7 +140,7 @@ if (!empty($_SERVER['XC_SCOPE'])) {
         'ministra'             => 'ministra',
         'ministra/new'         => 'ministra',
         'includes/api/admin'   => 'admin',
-        'includes/api/reseller'=> 'reseller',
+        'includes/api/reseller' => 'reseller',
         'player'               => 'player',
     ];
 

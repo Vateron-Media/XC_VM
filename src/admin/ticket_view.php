@@ -7,27 +7,27 @@ if (!isset($__viewMode)):
 
 
 
-include 'session.php';
-include 'functions.php';
+	include 'session.php';
+	include 'functions.php';
 
-if (checkPermissions()) {
-} else {
-	goHome();
-}
+	if (checkPermissions()) {
+	} else {
+		goHome();
+	}
 
-if (isset(CoreUtilities::$rRequest['id']) && ($rTicketInfo = getTicket(CoreUtilities::$rRequest['id']))) {
-} else {
-	goHome();
-}
+	if (isset(CoreUtilities::$rRequest['id']) && ($rTicketInfo = getTicket(CoreUtilities::$rRequest['id']))) {
+	} else {
+		goHome();
+	}
 
-if ($rUserInfo['id'] == $rTicketInfo['member_id']) {
-} else {
-	$db->query('UPDATE `tickets` SET `admin_read` = 1 WHERE `id` = ?;', CoreUtilities::$rRequest['id']);
-}
+	if ($rUserInfo['id'] == $rTicketInfo['member_id']) {
+	} else {
+		$db->query('UPDATE `tickets` SET `admin_read` = 1 WHERE `id` = ?;', CoreUtilities::$rRequest['id']);
+	}
 
-$_TITLE = 'View Ticket';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('admin');
+	$_TITLE = 'View Ticket';
+	require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+	renderUnifiedLayoutHeader('admin');
 endif; // !$__viewMode
 echo '<div class="wrapper boxed-layout-ext"';
 

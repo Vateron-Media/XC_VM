@@ -340,7 +340,7 @@ function loadapi() {
 					if (is_dir($rDirectory . '/' . $rValue)) {
 						$rReturn['dirs'][] = $rValue;
 					} else {
-						$rExt = strtolower(pathinfo($rValue)['extension']);
+						$rExt = strtolower(pathinfo($rValue, PATHINFO_EXTENSION));
 
 						if (!(is_array($rAllowed) && in_array($rExt, $rAllowed)) && $rAllowed) {
 						} else {

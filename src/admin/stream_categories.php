@@ -1,24 +1,24 @@
 <?php if (!isset($__viewMode)): ?>
 <?php
-include 'session.php';
-include 'functions.php';
+	include 'session.php';
+	include 'functions.php';
 
-if (!checkPermissions()) {
-	goHome();
-}
-
-$rCategories = array(1 => getCategories(), 2 => getCategories('movie'), 3 => getCategories('series'), 4 => getCategories('radio'));
-$rMainCategories = array(1 => array(), 2 => array(), 3 => array());
-
-foreach (array(1, 2, 3, 4) as $rID) {
-	foreach ($rCategories[$rID] as $rCategoryID => $rCategoryData) {
-		$rMainCategories[$rID][] = $rCategoryData;
+	if (!checkPermissions()) {
+		goHome();
 	}
-}
-$_TITLE = 'Stream Categories';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('admin');
-<?php endif; ?>
+
+	$rCategories = array(1 => getCategories(), 2 => getCategories('movie'), 3 => getCategories('series'), 4 => getCategories('radio'));
+	$rMainCategories = array(1 => array(), 2 => array(), 3 => array());
+
+	foreach (array(1, 2, 3, 4) as $rID) {
+		foreach ($rCategories[$rID] as $rCategoryID => $rCategoryData) {
+			$rMainCategories[$rID][] = $rCategoryData;
+		}
+	}
+	$_TITLE = 'Stream Categories';
+	require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+	renderUnifiedLayoutHeader('admin');
+endif;
 ?>
 <div class="wrapper boxed-layout" <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
 									} else {
@@ -113,7 +113,7 @@ renderUnifiedLayoutHeader('admin');
 																			<i class='text-pink mdi mdi-record'></i>
 																		<?php } ?>
 																		<span style="float:right;">
-																			<?php if (hasPermissions('adv', 'edit_cat')) { ?>
+																			<?php if (Authorization::check('adv', 'edit_cat')) { ?>
 																				<div class="btn-group">
 																					<button type="button"
 																						onClick="navigate('stream_category?id=<?php echo $rCategory['id']; ?>');"

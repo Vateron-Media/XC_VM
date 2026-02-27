@@ -9,9 +9,9 @@ class Authenticator {
 			}
 		}
 
-		$rIP = getIP();
-		$rUserInfo = getUserInfo($rData['username'], $rData['password']);
-		$rAccessCode = getCurrentCode(true);
+		$rIP = CoreUtilities::getUserIP();
+		$rUserInfo = UserRepository::getAuthUserByCredentials($rData['username'], $rData['password']);
+		$rAccessCode = AuthRepository::getCurrentCode(true);
 
 		if (!isset($rUserInfo)) {
 			if (!empty($rSettings['save_login_logs'])) {
@@ -52,7 +52,7 @@ class Authenticator {
 
 			$_SESSION['hash'] = $rUserInfo['id'];
 			$_SESSION['ip'] = $rIP;
-			$_SESSION['code'] = getCurrentCode();
+			$_SESSION['code'] = AuthRepository::getCurrentCode();
 			$_SESSION['verify'] = md5($rUserInfo['username'] . '||' . $rCrypt);
 
 			if (!empty($rSettings['save_login_logs'])) {
@@ -79,9 +79,9 @@ class Authenticator {
 			}
 		}
 
-		$rIP = getIP();
-		$rUserInfo = getUserInfo($rData['username'], $rData['password']);
-		$rAccessCode = getCurrentCode(true);
+		$rIP = CoreUtilities::getUserIP();
+		$rUserInfo = UserRepository::getAuthUserByCredentials($rData['username'], $rData['password']);
+		$rAccessCode = AuthRepository::getCurrentCode(true);
 
 		if (!isset($rUserInfo)) {
 			if (!empty($rSettings['save_login_logs'])) {
@@ -90,7 +90,7 @@ class Authenticator {
 			return array('status' => STATUS_FAILURE);
 		}
 
-		if (!(in_array($rUserInfo['member_group_id'], ($rAccessCode && isset($rAccessCode['groups'])) ? (json_decode($rAccessCode['groups'], true) ?: []) : []) || count(getActiveCodes()) == 0)) {
+		if (!(in_array($rUserInfo['member_group_id'], ($rAccessCode && isset($rAccessCode['groups'])) ? (json_decode($rAccessCode['groups'], true) ?: []) : []) || count(AuthRepository::getActiveCodes(MAIN_HOME)) == 0)) {
 			if (!empty($rSettings['save_login_logs'])) {
 				$db->query("INSERT INTO `login_logs`(`type`, `access_code`, `user_id`, `status`, `login_ip`, `date`) VALUES('RESELLER', ?, ?, ?, ?, ?);", $rAccessCode['id'], $rUserInfo['id'], 'INVALID_CODE', $rIP, time());
 			}
@@ -115,7 +115,7 @@ class Authenticator {
 
 			$_SESSION['reseller'] = $rUserInfo['id'];
 			$_SESSION['rip'] = $rIP;
-			$_SESSION['rcode'] = getCurrentCode();
+			$_SESSION['rcode'] = AuthRepository::getCurrentCode();
 			$_SESSION['rverify'] = md5($rUserInfo['username'] . '||' . $rCrypt);
 
 			if (!empty($rSettings['save_login_logs'])) {

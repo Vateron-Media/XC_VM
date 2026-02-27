@@ -61,9 +61,7 @@ class PlexController {
      * Подготавливает: $rPlexServers
      */
     public function index() {
-        global $db;
-
-        $rPlexServers = PlexRepository::getPlexServers($db);
+        $rPlexServers = PlexRepository::getPlexServers();
         $_TITLE = 'Plex Sync';
 
         include 'header.php';
@@ -87,7 +85,7 @@ class PlexController {
             }
         }
 
-        $rBouquets = getBouquets();
+        $rBouquets = BouquetService::getAllSimple();
         $_TITLE = isset($rFolder) ? 'Edit Library' : 'Add Library';
 
         include 'header.php';
@@ -103,7 +101,7 @@ class PlexController {
      * Подготавливает: $rBouquets
      */
     public function settings() {
-        $rBouquets = getBouquets();
+        $rBouquets = BouquetService::getAllSimple();
         $_TITLE = 'Plex Settings';
 
         include 'header.php';

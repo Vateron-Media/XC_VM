@@ -1,17 +1,17 @@
 <?php if (!isset($__viewMode)): ?>
-<?php
+	<?php
 
-include 'session.php';
-include 'functions.php';
+	include 'session.php';
+	include 'functions.php';
 
-if (isset(CoreUtilities::$rRequest['id']) && !($rEPGArr = getEPG(CoreUtilities::$rRequest['id']))) {
-	exit();
-}
+	if (isset(CoreUtilities::$rRequest['id']) && !($rEPGArr = EpgService::getById(CoreUtilities::$rRequest['id']))) {
+		exit();
+	}
 
-$_TITLE = 'EPG';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('admin');
-?>
+	$_TITLE = 'EPG';
+	require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+	renderUnifiedLayoutHeader('admin');
+	?>
 <?php endif; ?>
 <div class="wrapper boxed-layout" <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
 										echo ' style="display: block;"';
@@ -279,11 +279,11 @@ renderUnifiedLayoutFooter('admin');
 			submitForm(window.rCurrentPage, new FormData($("form")[0]));
 		});
 	});
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-    <?php endif; ?>
+	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+		$(document).ready(function() {
+			initSearch();
+		});
+	<?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

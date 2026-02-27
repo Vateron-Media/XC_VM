@@ -1,69 +1,69 @@
 <?php if (!isset($__viewMode)): ?>
-<?php
+	<?php
 
-include 'session.php';
-include 'functions.php';
+	include 'session.php';
+	include 'functions.php';
 
-if (!checkPermissions()) {
-	goHome();
-}
-
-$rCategories = getCategories('movie');
-$rTranscodeProfiles = getTranscodeProfiles();
-
-if (isset(CoreUtilities::$rRequest['id'])) {
-	$rMovie = getStream(CoreUtilities::$rRequest['id']);
-
-	if ($rMovie && $rMovie['type'] == 2) {
-	} else {
+	if (!checkPermissions()) {
 		goHome();
 	}
-}
 
-$rServerTree = array(array('id' => 'source', 'parent' => '#', 'text' => "<strong class='btn btn-success waves-effect waves-light btn-xs'>Active</strong>", 'icon' => 'mdi mdi-play', 'state' => array('opened' => true)), array('id' => 'offline', 'parent' => '#', 'text' => "<strong class='btn btn-secondary waves-effect waves-light btn-xs'>Offline</strong>", 'icon' => 'mdi mdi-stop', 'state' => array('opened' => true)));
-$activeStreamingServers = array();
+	$rCategories = getCategories('movie');
+	$rTranscodeProfiles = StreamConfigRepository::getTranscodeProfiles();
 
-if (isset($rMovie)) {
-	$rMovie['properties'] = json_decode($rMovie['movie_properties'], true);
-	$rStreamSys = getStreamSys(CoreUtilities::$rRequest['id']);
+	if (isset(CoreUtilities::$rRequest['id'])) {
+		$rMovie = StreamRepository::getById(CoreUtilities::$rRequest['id']);
 
-	// Getting and extracting the path to a movie
-	$streamSourceJson = $rMovie['stream_source'] ?? '';
-	$rMovieSource = json_decode($streamSourceJson, true);
-	if (!is_array($rMovieSource)) {
-		$rMovieSource = [''];
-	}
-	$rSource = $rMovieSource[0] ?? '';
-	if (str_starts_with($rSource, 's:')) {
-		$parts = explode(':', $rSource, 3);
-		$rPathSources = (count($parts) >= 3) ? urldecode($parts[2]) : '';
-	} else {
-		$rPathSources = $rSource;
-	}
-
-	foreach ($rServers as $rServer) {
-		if ($rServer['direct_source'] == 0 && $rServer['stream_status'] == 1) {
-			$activeStreamingServers[] = intval($rServer['id']);
-		}
-
-		if (isset($rStreamSys[intval($rServer['id'])])) {
-			$rParent = 'source';
+		if ($rMovie && $rMovie['type'] == 2) {
 		} else {
-			$rParent = 'offline';
+			goHome();
+		}
+	}
+
+	$rServerTree = array(array('id' => 'source', 'parent' => '#', 'text' => "<strong class='btn btn-success waves-effect waves-light btn-xs'>Active</strong>", 'icon' => 'mdi mdi-play', 'state' => array('opened' => true)), array('id' => 'offline', 'parent' => '#', 'text' => "<strong class='btn btn-secondary waves-effect waves-light btn-xs'>Offline</strong>", 'icon' => 'mdi mdi-stop', 'state' => array('opened' => true)));
+	$activeStreamingServers = array();
+
+	if (isset($rMovie)) {
+		$rMovie['properties'] = json_decode($rMovie['movie_properties'], true);
+		$rStreamSys = StreamRepository::getSystemRows(CoreUtilities::$rRequest['id']);
+
+		// Getting and extracting the path to a movie
+		$streamSourceJson = $rMovie['stream_source'] ?? '';
+		$rMovieSource = json_decode($streamSourceJson, true);
+		if (!is_array($rMovieSource)) {
+			$rMovieSource = [''];
+		}
+		$rSource = $rMovieSource[0] ?? '';
+		if (str_starts_with($rSource, 's:')) {
+			$parts = explode(':', $rSource, 3);
+			$rPathSources = (count($parts) >= 3) ? urldecode($parts[2]) : '';
+		} else {
+			$rPathSources = $rSource;
 		}
 
-		$rServerTree[] = array('id' => $rServer['id'], 'parent' => $rParent, 'text' => $rServer['server_name'], 'icon' => 'mdi mdi-server-network', 'state' => array('opened' => true));
-	}
-} else {
-	foreach ($rServers as $rServer) {
-		$rServerTree[] = array('id' => $rServer['id'], 'parent' => 'offline', 'text' => $rServer['server_name'], 'icon' => 'mdi mdi-server-network', 'state' => array('opened' => true));
-	}
-}
+		foreach ($rServers as $rServer) {
+			if ($rServer['direct_source'] == 0 && $rServer['stream_status'] == 1) {
+				$activeStreamingServers[] = intval($rServer['id']);
+			}
 
-$_TITLE = 'Movie';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('admin');
-?>
+			if (isset($rStreamSys[intval($rServer['id'])])) {
+				$rParent = 'source';
+			} else {
+				$rParent = 'offline';
+			}
+
+			$rServerTree[] = array('id' => $rServer['id'], 'parent' => $rParent, 'text' => $rServer['server_name'], 'icon' => 'mdi mdi-server-network', 'state' => array('opened' => true));
+		}
+	} else {
+		foreach ($rServers as $rServer) {
+			$rServerTree[] = array('id' => $rServer['id'], 'parent' => 'offline', 'text' => $rServer['server_name'], 'icon' => 'mdi mdi-server-network', 'state' => array('opened' => true));
+		}
+	}
+
+	$_TITLE = 'Movie';
+	require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+	renderUnifiedLayoutHeader('admin');
+	?>
 <?php endif; ?>
 
 <div class="wrapper boxed-layout" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest'): ?> style="display: none;" <?php endif; ?>>
@@ -297,17 +297,19 @@ renderUnifiedLayoutHeader('admin');
 													</div>
 												</div>
 												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" 
-														for="bouquets"><?php if (CoreUtilities::$rRequest['import']) {echo 'Fallback ';	} ?><?php echo $language::get('bouquets'); ?></label>
+													<label class="col-md-4 col-form-label"
+														for="bouquets"><?php if (CoreUtilities::$rRequest['import']) {
+																			echo 'Fallback ';
+																		} ?><?php echo $language::get('bouquets'); ?></label>
 													<div class="col-md-8">
-															<select name="bouquets[]" id="bouquets" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="<?php echo $language::get('choose'); ?>...">
-																<?php foreach (getBouquets() as $rBouquet): ?>
-																	<option <?php if (isset($rMovie) && in_array($rMovie['id'], json_decode($rBouquet['bouquet_movies'], true))): ?>selected<?php endif; ?> value="<?php echo $rBouquet['id']; ?>"><?php echo $rBouquet['bouquet_name']; ?></option>
-																<?php endforeach; ?>
-															</select>
-															<div id="bouquet_create" class="alert bg-dark text-white border-0 mt-2 mb-0" role="alert" style="display: none;">
-																<strong>New Bouquets:</strong> <span id="bouquet_new"></span>
-															</div>
+														<select name="bouquets[]" id="bouquets" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="<?php echo $language::get('choose'); ?>...">
+															<?php foreach (BouquetService::getAllSimple() as $rBouquet): ?>
+																<option <?php if (isset($rMovie) && in_array($rMovie['id'], json_decode($rBouquet['bouquet_movies'], true))): ?>selected<?php endif; ?> value="<?php echo $rBouquet['id']; ?>"><?php echo $rBouquet['bouquet_name']; ?></option>
+															<?php endforeach; ?>
+														</select>
+														<div id="bouquet_create" class="alert bg-dark text-white border-0 mt-2 mb-0" role="alert" style="display: none;">
+															<strong>New Bouquets:</strong> <span id="bouquet_new"></span>
+														</div>
 													</div>
 												</div>
 												<?php if (isset(CoreUtilities::$rRequest['import'])): ?>
@@ -580,7 +582,7 @@ renderUnifiedLayoutHeader('admin');
 											<label class="col-md-4 col-form-label" for="server_id"><?php echo htmlspecialchars($language::get('server_name')); ?></label>
 											<div class="col-md-8">
 												<select id="server_id" class="form-control" data-toggle="select2">
-													<?php foreach (getStreamingServers() as $rServer): ?>
+													<?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer): ?>
 														<option value="<?php echo htmlspecialchars($rServer['id']); ?>" <?php if (isset(CoreUtilities::$rRequest['server']) && CoreUtilities::$rRequest['server'] == $rServer['id']) echo ' selected'; ?>>
 															<?php echo htmlspecialchars($rServer['server_name']); ?>
 														</option>
@@ -648,136 +650,136 @@ renderUnifiedLayoutHeader('admin');
 	</div>
 
 	<?php
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
-renderUnifiedLayoutFooter('admin');
-?>
-<script id="scripts">
-			var resizeObserver = new ResizeObserver(entries => $(window).scroll());
-			$(document).ready(function() {
-				resizeObserver.observe(document.body)
-				$("form").attr('autocomplete', 'off');
-				$(document).keypress(function(event) {
-					if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
+	require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+	renderUnifiedLayoutFooter('admin');
+	?>
+	<script id="scripts">
+		var resizeObserver = new ResizeObserver(entries => $(window).scroll());
+		$(document).ready(function() {
+			resizeObserver.observe(document.body)
+			$("form").attr('autocomplete', 'off');
+			$(document).keypress(function(event) {
+				if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
+			});
+			$.fn.dataTable.ext.errMode = 'none';
+			var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
+			elems.forEach(function(html) {
+				var switchery = new Switchery(html, {
+					'color': '#414d5f'
 				});
-				$.fn.dataTable.ext.errMode = 'none';
-				var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
-				elems.forEach(function(html) {
-					var switchery = new Switchery(html, {
-						'color': '#414d5f'
-					});
-					window.rSwitches[$(html).attr("id")] = switchery;
-				});
-				setTimeout(pingSession, 30000);
-				<?php if (!$rMobile && $rSettings['header_stats']): ?>
-					headerStats();
-				<?php endif; ?>
-				bindHref();
-				refreshTooltips();
-				$(window).scroll(function() {
-					if ($(this).scrollTop() > 200) {
-						if ($(document).height() > $(window).height()) {
-							$('#scrollToBottom').fadeOut();
-						}
-						$('#scrollToTop').fadeIn();
+				window.rSwitches[$(html).attr("id")] = switchery;
+			});
+			setTimeout(pingSession, 30000);
+			<?php if (!$rMobile && $rSettings['header_stats']): ?>
+				headerStats();
+			<?php endif; ?>
+			bindHref();
+			refreshTooltips();
+			$(window).scroll(function() {
+				if ($(this).scrollTop() > 200) {
+					if ($(document).height() > $(window).height()) {
+						$('#scrollToBottom').fadeOut();
+					}
+					$('#scrollToTop').fadeIn();
+				} else {
+					$('#scrollToTop').fadeOut();
+					if ($(document).height() > $(window).height()) {
+						$('#scrollToBottom').fadeIn();
 					} else {
-						$('#scrollToTop').fadeOut();
-						if ($(document).height() > $(window).height()) {
-							$('#scrollToBottom').fadeIn();
-						} else {
-							$('#scrollToBottom').hide();
-						}
-					}
-				});
-				$("#scrollToTop").unbind("click");
-				$('#scrollToTop').click(function() {
-					$('html, body').animate({
-						scrollTop: 0
-					}, 800);
-					return false;
-				});
-				$("#scrollToBottom").unbind("click");
-				$('#scrollToBottom').click(function() {
-					$('html, body').animate({
-						scrollTop: $(document).height()
-					}, 800);
-					return false;
-				});
-				$(window).scroll();
-				$(".nextb").unbind("click");
-				$(".nextb").click(function() {
-					var rPos = 0;
-					var rActive = null;
-					$(".nav .nav-item").each(function() {
-						if ($(this).find(".nav-link").hasClass("active")) {
-							rActive = rPos;
-						}
-						if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-							$(this).find(".nav-link").trigger("click");
-							return false;
-						}
-						rPos += 1;
-					});
-				});
-				$(".prevb").unbind("click");
-				$(".prevb").click(function() {
-					var rPos = 0;
-					var rActive = null;
-					$($(".nav .nav-item").get().reverse()).each(function() {
-						if ($(this).find(".nav-link").hasClass("active")) {
-							rActive = rPos;
-						}
-						if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-							$(this).find(".nav-link").trigger("click");
-							return false;
-						}
-						rPos += 1;
-					});
-				});
-				(function($) {
-					$.fn.inputFilter = function(inputFilter) {
-						return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
-							if (inputFilter(this.value)) {
-								this.oldValue = this.value;
-								this.oldSelectionStart = this.selectionStart;
-								this.oldSelectionEnd = this.selectionEnd;
-							} else if (this.hasOwnProperty("oldValue")) {
-								this.value = this.oldValue;
-								this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
-							}
-						});
-					};
-				}(jQuery));
-				<?php if ($rSettings['js_navigate']): ?>
-					$(".navigation-menu li").mouseenter(function() {
-						$(this).find(".submenu").show();
-					});
-					delParam("status");
-					$(window).on("popstate", function() {
-						if (window.rRealURL) {
-							if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
-								navigate(window.location.href.split("/").reverse()[0]);
-							}
-						}
-					});
-				<?php endif; ?>
-				$(document).keydown(function(e) {
-					if (e.keyCode == 16) {
-						window.rShiftHeld = true;
-					}
-				});
-				$(document).keyup(function(e) {
-					if (e.keyCode == 16) {
-						window.rShiftHeld = false;
-					}
-				});
-				document.onselectstart = function() {
-					if (window.rShiftHeld) {
-						return false;
+						$('#scrollToBottom').hide();
 					}
 				}
 			});
+			$("#scrollToTop").unbind("click");
+			$('#scrollToTop').click(function() {
+				$('html, body').animate({
+					scrollTop: 0
+				}, 800);
+				return false;
+			});
+			$("#scrollToBottom").unbind("click");
+			$('#scrollToBottom').click(function() {
+				$('html, body').animate({
+					scrollTop: $(document).height()
+				}, 800);
+				return false;
+			});
+			$(window).scroll();
+			$(".nextb").unbind("click");
+			$(".nextb").click(function() {
+				var rPos = 0;
+				var rActive = null;
+				$(".nav .nav-item").each(function() {
+					if ($(this).find(".nav-link").hasClass("active")) {
+						rActive = rPos;
+					}
+					if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
+						$(this).find(".nav-link").trigger("click");
+						return false;
+					}
+					rPos += 1;
+				});
+			});
+			$(".prevb").unbind("click");
+			$(".prevb").click(function() {
+				var rPos = 0;
+				var rActive = null;
+				$($(".nav .nav-item").get().reverse()).each(function() {
+					if ($(this).find(".nav-link").hasClass("active")) {
+						rActive = rPos;
+					}
+					if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
+						$(this).find(".nav-link").trigger("click");
+						return false;
+					}
+					rPos += 1;
+				});
+			});
+			(function($) {
+				$.fn.inputFilter = function(inputFilter) {
+					return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
+						if (inputFilter(this.value)) {
+							this.oldValue = this.value;
+							this.oldSelectionStart = this.selectionStart;
+							this.oldSelectionEnd = this.selectionEnd;
+						} else if (this.hasOwnProperty("oldValue")) {
+							this.value = this.oldValue;
+							this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
+						}
+					});
+				};
+			}(jQuery));
+			<?php if ($rSettings['js_navigate']): ?>
+				$(".navigation-menu li").mouseenter(function() {
+					$(this).find(".submenu").show();
+				});
+				delParam("status");
+				$(window).on("popstate", function() {
+					if (window.rRealURL) {
+						if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
+							navigate(window.location.href.split("/").reverse()[0]);
+						}
+					}
+				});
+			<?php endif; ?>
+			$(document).keydown(function(e) {
+				if (e.keyCode == 16) {
+					window.rShiftHeld = true;
+				}
+			});
+			$(document).keyup(function(e) {
+				if (e.keyCode == 16) {
+					window.rShiftHeld = false;
+				}
+			});
+			document.onselectstart = function() {
+				if (window.rShiftHeld) {
+					return false;
+				}
+			}
+		});
 
-<?php 
+		<?php
 		echo '        ' . "\r\n\t\t" . 'var changeTitle = false;' . "\r\n\r\n\t\t" . 'function selectDirectory(elem) {' . "\r\n\t\t\t" . 'window.currentDirectory += elem + "/";' . "\r\n\t\t\t" . '$("#current_path").val(window.currentDirectory);' . "\r\n\t\t\t" . '$("#changeDir").click();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function selectParent() {' . "\r\n\t\t\t" . '$("#current_path").val(window.currentDirectory.split("/").slice(0,-2).join("/") + "/");' . "\r\n\t\t\t" . '$("#changeDir").click();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function selectFile(rFile) {' . "\r\n\t\t\t" . "if (\$('li.nav-item .active').attr('href') == \"#stream-details\") {" . "\r\n\t\t\t\t" . '$("#stream_source").val("s:" + $("#server_id").val() + ":" + window.currentDirectory + rFile);' . "\r\n\t\t\t\t" . "var rExtension = rFile.substr((rFile.lastIndexOf('.')+1));" . "\r\n\t\t\t\t" . "if (\$(\"#target_container option[value='\" + rExtension + \"']\").length > 0) {" . "\r\n\t\t\t\t\t" . "\$(\"#target_container\").val(rExtension).trigger('change');" . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '} else {' . "\r\n\t\t\t\t" . '$("#movie_subtitles").val("s:" + $("#server_id").val() + ":" + window.currentDirectory + rFile);' . "\r\n\t\t\t" . '}' . "\r\n\t\t\t" . '$.magnificPopup.close();' . "\r\n\t\t" . '}' . "\r\n" . '        function openYouTube(elem) {' . "\r\n" . '            rPath = $(elem).parent().parent().find("input").val();' . "\r\n" . '            if (rPath) {' . "\r\n" . '                $.magnificPopup.open({' . "\r\n" . '                    items: {' . "\r\n" . "                        src: 'http://www.youtube.com/watch?v=' + rPath," . "\r\n" . "                        type: 'iframe'" . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n" . '        }' . "\r\n\t\t" . 'function openImage(elem) {' . "\r\n\t\t\t" . 'rPath = $(elem).parent().parent().find("input").val();' . "\r\n\t\t\t" . 'if (rPath) {' . "\r\n" . '                $.magnificPopup.open({' . "\r\n" . '                    items: {' . "\r\n" . "                        src: 'resize?maxw=512&maxh=512&url=' + encodeURIComponent(rPath)," . "\r\n" . "                        type: 'image'" . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n\t\t\t" . '}' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function clearSearch() {' . "\r\n\t\t\t" . '$("#search").val("");' . "\r\n\t\t\t" . '$("#doSearch").click();' . "\r\n\t\t" . '}' . "\r\n" . '        function addStream(rName, rURL) {' . "\r\n" . '            $("#stream_source").val(rURL);' . "\r\n" . '            $("#stream_display_name").val(rName).trigger("change");' . "\r\n" . '            $(".bs-provider-movies-modal-center").modal("hide");' . "\r\n\t\t" . '}' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'});" . "\r\n" . '            $("#category_id").select2({' . "\r\n" . "                width: '100%'," . "\r\n" . '                tags: true' . "\r\n" . '            }).on("change", function(e) {' . "\r\n" . "                rData = \$('#category_id').select2('data');" . "\r\n" . '                rAdded = [];' . "\r\n" . '                for (i = 0; i < rData.length; i++) {' . "\r\n" . '                    if (!rData[i].selected) {' . "\r\n" . '                        rAdded.push(rData[i].text);' . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n" . '                if (rAdded.length > 0) {' . "\r\n" . '                    $("#category_create").show();' . "\r\n" . "                    \$(\"#category_new\").html(rAdded.join(', '));" . "\r\n" . '                } else {' . "\r\n" . '                    $("#category_create").hide();' . "\r\n" . '                }' . "\r\n" . '                $("#category_create_list").val(JSON.stringify(rAdded));' . "\r\n" . '            });' . "\r\n" . '            $("#bouquets").select2({' . "\r\n" . "                width: '100%'," . "\r\n" . '                tags: true' . "\r\n" . '            }).on("change", function(e) {' . "\r\n" . "                rData = \$('#bouquets').select2('data');" . "\r\n" . '                rAdded = [];' . "\r\n" . '                for (i = 0; i < rData.length; i++) {' . "\r\n" . '                    if (!rData[i].selected) {' . "\r\n" . '                        rAdded.push(rData[i].text);' . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n" . '                if (rAdded.length > 0) {' . "\r\n" . '                    $("#bouquet_create").show();' . "\r\n" . "                    \$(\"#bouquet_new\").html(rAdded.join(', '));" . "\r\n" . '                } else {' . "\r\n" . '                    $("#bouquet_create").hide();' . "\r\n" . '                }' . "\r\n" . '                $("#bouquet_create_list").val(JSON.stringify(rAdded));' . "\r\n" . '            });' . "\r\n\t\t\t" . '$("#datatable").DataTable({' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'paging: false,' . "\r\n\t\t\t\t" . 'bInfo: false,' . "\r\n\t\t\t\t" . 'searching: false,' . "\r\n\t\t\t\t" . 'scrollY: "250px",' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0]},' . "\r\n\t\t\t\t" . '],' . "\r\n" . '                drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n" . '                },' . "\r\n\t\t\t\t" . '"language": {' . "\r\n\t\t\t\t\t" . '"emptyTable": ""' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable-files").DataTable({' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'paging: false,' . "\r\n\t\t\t\t" . 'bInfo: false,' . "\r\n\t\t\t\t" . 'searching: true,' . "\r\n\t\t\t\t" . 'scrollY: "250px",' . "\r\n" . '                drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n" . '                },' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0]},' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t\t" . '"language": {' . "\r\n\t\t\t\t\t" . '"emptyTable": "';
 		echo $language::get('no_compatible_file');
 		echo '"' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#doSearch").click(function() {' . "\r\n\t\t\t\t" . "\$('#datatable-files').DataTable().search(\$(\"#search\").val()).draw();" . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . '$("#select_folder").click(function() {' . "\r\n\t\t\t\t" . '$("#import_folder").val("s:" + $("#server_id").val() + ":" + window.currentDirectory);' . "\r\n\t\t\t\t" . '$.magnificPopup.close();' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#changeDir").click(function() {' . "\r\n\t\t\t\t" . '$("#search").val("");' . "\r\n\t\t\t\t" . 'window.currentDirectory = $("#current_path").val();' . "\r\n\t\t\t\t" . 'if (window.currentDirectory.substr(-1) != "/") {' . "\r\n\t\t\t\t\t" . 'window.currentDirectory += "/";' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '$("#current_path").val(window.currentDirectory);' . "\r\n\t\t\t\t" . '$("#datatable").DataTable().clear();' . "\r\n\t\t\t\t" . '$("#datatable").DataTable().row.add(["", "';
@@ -835,13 +837,13 @@ renderUnifiedLayoutFooter('admin');
 
 		echo "\t\t\t\t" . "\$(\"#server_tree_data\").val(JSON.stringify(\$('#server_tree').jstree(true).get_json('source', {flat:true})));" . "\r\n" . '                if (rSubmit) {' . "\r\n" . "                    \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                    submitForm(window.rCurrentPage, new FormData($("form")[0]), window.rReferer);' . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
 		?>
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-    <?php endif; ?>
-</script>
-<script src="assets/js/listings.js"></script>
-</body>
+		<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+			$(document).ready(function() {
+				initSearch();
+			});
+		<?php endif; ?>
+	</script>
+	<script src="assets/js/listings.js"></script>
+	</body>
 
-</html>
+	</html>

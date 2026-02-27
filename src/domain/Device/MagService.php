@@ -23,8 +23,9 @@ class MagService {
 
 	// ──────────── Из DeviceSync ────────────
 
-	public static function syncLineDevices($db, $rUserID, $rDeviceID = null) {
-		$rUser = getUser($rUserID);
+	public static function syncLineDevices($rUserID, $rDeviceID = null) {
+		global $db;
+		$rUser = UserRepository::getLineById($rUserID);
 
 		if (!$rUser) {
 		} else {

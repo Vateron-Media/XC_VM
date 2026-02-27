@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Plex Sync Cron — точка входа.
  *

@@ -1,37 +1,37 @@
 <?php if (!isset($__viewMode)): ?>
-<?php
+    <?php
 
-include 'session.php';
-include 'functions.php';
+    include 'session.php';
+    include 'functions.php';
 
-if (!checkPermissions()) {
-    goHome();
-}
+    if (!checkPermissions()) {
+        goHome();
+    }
 
-if (!isset(CoreUtilities::$rRequest['server']) || !isset($rServers[CoreUtilities::$rRequest['server']])) {
-    CoreUtilities::$rRequest['server'] = SERVER_ID;
-}
+    if (!isset(CoreUtilities::$rRequest['server']) || !isset($rServers[CoreUtilities::$rRequest['server']])) {
+        CoreUtilities::$rRequest['server'] = SERVER_ID;
+    }
 
-if (isset(CoreUtilities::$rRequest['clear'])) {
-    freeTemp(CoreUtilities::$rRequest['server']);
-    header('Location: ./process_monitor?server=' . CoreUtilities::$rRequest['server']);
-    exit();
-}
+    if (isset(CoreUtilities::$rRequest['clear'])) {
+        ServerRepository::freeTemp('systemapirequest', CoreUtilities::$rRequest['server']);
+        header('Location: ./process_monitor?server=' . CoreUtilities::$rRequest['server']);
+        exit();
+    }
 
-if (isset(CoreUtilities::$rRequest['clear_s'])) {
-    freeStreams(CoreUtilities::$rRequest['server']);
-    header('Location: ./process_monitor?server=' . CoreUtilities::$rRequest['server']);
-    exit();
-}
+    if (isset(CoreUtilities::$rRequest['clear_s'])) {
+        ServerRepository::freeStreams('systemapirequest', CoreUtilities::$rRequest['server']);
+        header('Location: ./process_monitor?server=' . CoreUtilities::$rRequest['server']);
+        exit();
+    }
 
 
-$rStreams = getStreamPIDs(CoreUtilities::$rRequest['server']) ?: array();
-$rFS = getFreeSpace(CoreUtilities::$rRequest['server']) ?: array();
-$rProcesses = getPIDs(CoreUtilities::$rRequest['server']) ?: array();
-$rStatus = array('D' => 'Uninterruptible Sleep', 'I' => 'Idle', 'R' => 'Running', 'S' => 'Interruptible Sleep', 'T' => 'Stopped', 'W' => 'Paging', 'X' => 'Dead', 'Z' => 'Zombie');
-$_TITLE = 'Process Monitor';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('admin'); ?>
+    $rStreams = StreamRepository::getPIDs(CoreUtilities::$rRequest['server'], CoreUtilities::$rSettings) ?: array();
+    $rFS = ServerRepository::getFreeSpace('systemapirequest', CoreUtilities::$rRequest['server']) ?: array();
+    $rProcesses = getPIDs(CoreUtilities::$rRequest['server']) ?: array();
+    $rStatus = array('D' => 'Uninterruptible Sleep', 'I' => 'Idle', 'R' => 'Running', 'S' => 'Interruptible Sleep', 'T' => 'Stopped', 'W' => 'Paging', 'X' => 'Dead', 'Z' => 'Zombie');
+    $_TITLE = 'Process Monitor';
+    require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+    renderUnifiedLayoutHeader('admin'); ?>
 <?php endif; ?>
 <div class="wrapper" <?= empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest' ? '' : ' style="display: none;"' ?>>
     <div class="container-fluid">
@@ -115,7 +115,7 @@ renderUnifiedLayoutHeader('admin'); ?>
                                 <strong>You are running out of space on one or more of your mount points. You should resolve this before issues occur.</strong>
                             </div>
                         <?php }
-                        $ramdiskUsage = getStreamsRamdisk(CoreUtilities::$rRequest['server']);
+                        $ramdiskUsage = ServerRepository::getStreamsRamdisk('systemapirequest', CoreUtilities::$rRequest['server']);
                         $db->query('SELECT `stream_id`, `stream_display_name`, `bitrate` FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `server_id` = ? AND `pid` > 0;', CoreUtilities::$rRequest['server']);
                         $rStreamNames = $db->get_rows(true, 'stream_id');
                         $streamUsage = array();

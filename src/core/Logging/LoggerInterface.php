@@ -9,8 +9,7 @@
  * @see FileLogger      Логирование в файл (ошибки PDO, EPG, и т.д.)
  * @see DatabaseLogger  Логирование клиентских запросов стриминга
  */
-interface LoggerInterface
-{
+interface LoggerInterface {
     /**
      * Записать лог-сообщение.
      *

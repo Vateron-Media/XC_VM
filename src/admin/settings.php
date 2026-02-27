@@ -2,23 +2,23 @@
 
 if (!isset($__settingsViewMode)):
 
-include "session.php";
-include "functions.php";
+	include "session.php";
+	include "functions.php";
 
-if (!checkPermissions()) {
-	goHome();
-}
+	if (!checkPermissions()) {
+		goHome();
+	}
 
-$rSettings = getSettings();
-$rStreamArguments = getStreamArguments();
+	$rSettings = getSettings();
+	$rStreamArguments = StreamConfigRepository::getStreamArguments();
 
-$GeoLite2 = json_decode(file_get_contents(BIN_PATH . "maxmind/version.json"), true)["geolite2_version"];
-$GeoISP = json_decode(file_get_contents(BIN_PATH . "maxmind/version.json"), true)["geoisp_version"];
-$Nginx = trim(shell_exec(BIN_PATH . "nginx/sbin/nginx -v 2>&1 | cut -d'/' -f2"));
+	$GeoLite2 = json_decode(file_get_contents(BIN_PATH . "maxmind/version.json"), true)["geolite2_version"];
+	$GeoISP = json_decode(file_get_contents(BIN_PATH . "maxmind/version.json"), true)["geoisp_version"];
+	$Nginx = trim(shell_exec(BIN_PATH . "nginx/sbin/nginx -v 2>&1 | cut -d'/' -f2"));
 
-$_TITLE = "Settings";
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('admin');
+	$_TITLE = "Settings";
+	require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+	renderUnifiedLayoutHeader('admin');
 
 endif; // !$__settingsViewMode
 ?>
@@ -61,18 +61,18 @@ endif; // !$__settingsViewMode
 								<p>Official Release v <?= $rUpdate["version"]; ?> is now available to download.</p>
 								<?php
 								if (!empty($rUpdate["changelog"]) && is_array($rUpdate["changelog"])) {
-								foreach ($rUpdate["changelog"] as $rItem) {
-									echo '<h5 class="card-title text-white mt-1">Changelog - v';
-									echo $rItem["version"];
-									echo '</h5><ul>';
+									foreach ($rUpdate["changelog"] as $rItem) {
+										echo '<h5 class="card-title text-white mt-1">Changelog - v';
+										echo $rItem["version"];
+										echo '</h5><ul>';
 
-									foreach ((is_array($rItem["changes"] ?? null) ? $rItem["changes"] : []) as $rChange) {
-										echo '<li>';
-										echo $rChange;
-										echo '</li>';
+										foreach ((is_array($rItem["changes"] ?? null) ? $rItem["changes"] : []) as $rChange) {
+											echo '<li>';
+											echo $rChange;
+											echo '</li>';
+										}
+										echo '</ul>';
 									}
-									echo '</ul>';
-								}
 								}
 								?>
 								<br />
@@ -127,7 +127,7 @@ endif; // !$__settingsViewMode
 												class="mdi mdi-file-document-outline mr-1"></i><span
 												class="d-none d-sm-inline">Info</span></a>
 									</li>
-									<?php if (hasPermissions("adv", "database") && DEVELOPMENT) { ?>
+									<?php if (Authorization::check("adv", "database") && DEVELOPMENT) { ?>
 										<li class="nav-item">
 											<a href="#database" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"> <i
 													class="mdi mdi-file-document-outline mr-1"></i><span
@@ -2303,7 +2303,7 @@ endif; // !$__settingsViewMode
 										</div>
 									</div>
 									<?php
-									if (hasPermissions("adv", "database") && DEVELOPMENT) { ?>
+									if (Authorization::check("adv", "database") && DEVELOPMENT) { ?>
 										<div class="tab-pane" id="database">
 											<div class="row">
 												<iframe width="100%" height="650px" src="./database.php"
