@@ -15,7 +15,7 @@ class RecordController extends BaseAdminController
         $rStream = $rProgramme = null;
 
         if (isset(CoreUtilities::$rRequest['id'])) {
-            $rStream = getStream(CoreUtilities::$rRequest['id']);
+            $rStream = StreamRepository::getById(CoreUtilities::$rRequest['id']);
             $rProgramme = CoreUtilities::getProgramme(CoreUtilities::$rRequest['id'], CoreUtilities::$rRequest['programme']);
 
             if ($rStream && $rStream['type'] == 1 && $rProgramme) {
@@ -26,7 +26,7 @@ class RecordController extends BaseAdminController
         } else {
             if (isset(CoreUtilities::$rRequest['archive'])) {
                 $rArchive = json_decode(base64_decode(CoreUtilities::$rRequest['archive']), true);
-                $rStream = getStream($rArchive['stream_id']);
+                $rStream = StreamRepository::getById($rArchive['stream_id']);
                 $rProgramme = array('start' => $rArchive['start'], 'end' => $rArchive['end'], 'title' => $rArchive['title'], 'description' => $rArchive['description'], 'archive' => true);
 
                 if ($rStream && $rStream['type'] == 1 && $rProgramme) {
@@ -37,7 +37,7 @@ class RecordController extends BaseAdminController
             } else {
                 if (!isset(CoreUtilities::$rRequest['stream_id'])) {
                 } else {
-                    $rStream = getStream(CoreUtilities::$rRequest['stream_id']);
+                    $rStream = StreamRepository::getById(CoreUtilities::$rRequest['stream_id']);
                     $rProgramme = array('start' => strtotime(CoreUtilities::$rRequest['start_date']), 'end' => strtotime(CoreUtilities::$rRequest['start_date']) + intval(CoreUtilities::$rRequest['duration']) * 60, 'title' => '', 'description' => '');
 
                     if (!(!$rStream || $rStream['type'] != 1 || !$rProgramme || $rProgramme['end'] < time())) {

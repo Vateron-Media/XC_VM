@@ -1,49 +1,49 @@
 <?php if (!isset($__viewMode)):
-include 'session.php';
-include 'functions.php';
+    include 'session.php';
+    include 'functions.php';
 
-if (!checkPermissions()) {
-    goHome();
-}
-
-if (isset(CoreUtilities::$rRequest['id'])) {
-    $rLine = getUser(CoreUtilities::$rRequest['id']);
-
-    if (!$rLine || !hasPermissions('adv', 'edit_user')) {
+    if (!checkPermissions()) {
         goHome();
     }
 
-    if ($rLine['is_mag']) {
-        $db->query('SELECT `mag_id` FROM `mag_devices` WHERE `user_id` = ?;', $rLine['id']);
+    if (isset(CoreUtilities::$rRequest['id'])) {
+        $rLine = UserRepository::getLineById(CoreUtilities::$rRequest['id']);
 
-        if ($db->num_rows() > 0) {
-            header('Location: mag?id=' . intval($db->get_row()['mag_id']));
-            exit;
-        } else {
+        if (!$rLine || !Authorization::check('adv', 'edit_user')) {
+            goHome();
+        }
+
+        if ($rLine['is_mag']) {
+            $db->query('SELECT `mag_id` FROM `mag_devices` WHERE `user_id` = ?;', $rLine['id']);
+
+            if ($db->num_rows() > 0) {
+                header('Location: mag?id=' . intval($db->get_row()['mag_id']));
+                exit;
+            } else {
+                goHome();
+            }
+        }
+
+        if ($rLine['is_e2']) {
+            $db->query('SELECT `device_id` FROM `enigma2_devices` WHERE `user_id` = ?;', $rLine['id']);
+
+            if ($db->num_rows() > 0) {
+                header('Location: enigma?id=' . intval($db->get_row()['device_id']));
+                exit;
+            } else {
+                goHome();
+            }
+        }
+    } else {
+        if (!Authorization::check('adv', 'add_user')) {
             goHome();
         }
     }
 
-    if ($rLine['is_e2']) {
-        $db->query('SELECT `device_id` FROM `enigma2_devices` WHERE `user_id` = ?;', $rLine['id']);
-
-        if ($db->num_rows() > 0) {
-            header('Location: enigma?id=' . intval($db->get_row()['device_id']));
-            exit;
-        } else {
-            goHome();
-        }
-    }
-} else {
-    if (!hasPermissions('adv', 'add_user')) {
-        goHome();
-    }
-}
-
-$rRegisteredUsers = getRegisteredUsers();
-$_TITLE = 'Line';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('admin');
+    $rRegisteredUsers = UserRepository::getRegisteredUsers();
+    $_TITLE = 'Line';
+    require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+    renderUnifiedLayoutHeader('admin');
 endif;
 ?>
 <div class="wrapper boxed-layout" <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
@@ -127,7 +127,7 @@ endif;
                                                     <div class="col-md-6">
                                                         <select name="member_id" id="member_id" class="form-control select2" data-toggle="select2">
                                                             <?php
-                                                            if (isset($rLine['member_id']) && ($rOwner = getRegisteredUser(intval($rLine['member_id'])))) {
+                                                            if (isset($rLine['member_id']) && ($rOwner = UserRepository::getRegisteredUserById(intval($rLine['member_id'])))) {
                                                                 echo '<option value="' . intval($rOwner['id']) . '" selected="selected">' . $rOwner['username'] . '</option>';
                                                             } else {
                                                                 echo '<option value="' . $rUserInfo['id'] . '">' . $rUserInfo['username'] . '</option>';
@@ -355,7 +355,7 @@ endif;
                                                         </thead>
                                                         <tbody>
                                                             <?php
-                                                            foreach (getBouquets() as $rBouquet) {
+                                                            foreach (BouquetService::getAllSimple() as $rBouquet) {
                                                                 $selected = isset($rLine) && in_array($rBouquet['id'], json_decode($rLine['bouquet'], true)) ? " class='selected selectedfilter ui-selected'" : "";
                                                                 echo "<tr$selected><td class='text-center'>" . $rBouquet['id'] . "</td><td>" . $rBouquet['bouquet_name'] . "</td><td class='text-center'>" . count(json_decode($rBouquet['bouquet_channels'], true)) . "</td><td class='text-center'>" . count(json_decode($rBouquet['bouquet_movies'], true)) . "</td><td class='text-center'>" . count(json_decode($rBouquet['bouquet_series'], true)) . "</td><td class='text-center'>" . count(json_decode($rBouquet['bouquet_radios'], true)) . "</td></tr>";
                                                             }
@@ -389,150 +389,150 @@ require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
 ?>
 <script id="scripts">
-			var resizeObserver = new ResizeObserver(entries => $(window).scroll());
-			$(document).ready(function() {
-				resizeObserver.observe(document.body)
-				$("form").attr('autocomplete', 'off');
-				$(document).keypress(function(event) {
-					if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
-				});
-				$.fn.dataTable.ext.errMode = 'none';
-				var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
-				elems.forEach(function(html) {
-					var switchery = new Switchery(html, {
-						'color': '#414d5f'
-					});
-					window.rSwitches[$(html).attr("id")] = switchery;
-				});
-				setTimeout(pingSession, 30000);
-				<?php if (!$rMobile && $rSettings['header_stats']): ?>
-					headerStats();
-				<?php endif; ?>
-				bindHref();
-				refreshTooltips();
-				$(window).scroll(function() {
-					if ($(this).scrollTop() > 200) {
-						if ($(document).height() > $(window).height()) {
-							$('#scrollToBottom').fadeOut();
-						}
-						$('#scrollToTop').fadeIn();
-					} else {
-						$('#scrollToTop').fadeOut();
-						if ($(document).height() > $(window).height()) {
-							$('#scrollToBottom').fadeIn();
-						} else {
-							$('#scrollToBottom').hide();
-						}
-					}
-				});
-				$("#scrollToTop").unbind("click");
-				$('#scrollToTop').click(function() {
-					$('html, body').animate({
-						scrollTop: 0
-					}, 800);
-					return false;
-				});
-				$("#scrollToBottom").unbind("click");
-				$('#scrollToBottom').click(function() {
-					$('html, body').animate({
-						scrollTop: $(document).height()
-					}, 800);
-					return false;
-				});
-				$(window).scroll();
-				$(".nextb").unbind("click");
-				$(".nextb").click(function() {
-					var rPos = 0;
-					var rActive = null;
-					$(".nav .nav-item").each(function() {
-						if ($(this).find(".nav-link").hasClass("active")) {
-							rActive = rPos;
-						}
-						if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-							$(this).find(".nav-link").trigger("click");
-							return false;
-						}
-						rPos += 1;
-					});
-				});
-				$(".prevb").unbind("click");
-				$(".prevb").click(function() {
-					var rPos = 0;
-					var rActive = null;
-					$($(".nav .nav-item").get().reverse()).each(function() {
-						if ($(this).find(".nav-link").hasClass("active")) {
-							rActive = rPos;
-						}
-						if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-							$(this).find(".nav-link").trigger("click");
-							return false;
-						}
-						rPos += 1;
-					});
-				});
-				(function($) {
-					$.fn.inputFilter = function(inputFilter) {
-						return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
-							if (inputFilter(this.value)) {
-								this.oldValue = this.value;
-								this.oldSelectionStart = this.selectionStart;
-								this.oldSelectionEnd = this.selectionEnd;
-							} else if (this.hasOwnProperty("oldValue")) {
-								this.value = this.oldValue;
-								this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
-							}
-						});
-					};
-				}(jQuery));
-				<?php if ($rSettings['js_navigate']): ?>
-					$(".navigation-menu li").mouseenter(function() {
-						$(this).find(".submenu").show();
-					});
-					delParam("status");
-					$(window).on("popstate", function() {
-						if (window.rRealURL) {
-							if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
-								navigate(window.location.href.split("/").reverse()[0]);
-							}
-						}
-					});
-				<?php endif; ?>
-				$(document).keydown(function(e) {
-					if (e.keyCode == 16) {
-						window.rShiftHeld = true;
-					}
-				});
-				$(document).keyup(function(e) {
-					if (e.keyCode == 16) {
-						window.rShiftHeld = false;
-					}
-				});
-				document.onselectstart = function() {
-					if (window.rShiftHeld) {
-						return false;
-					}
-				}
-			});
+    var resizeObserver = new ResizeObserver(entries => $(window).scroll());
+    $(document).ready(function() {
+        resizeObserver.observe(document.body)
+        $("form").attr('autocomplete', 'off');
+        $(document).keypress(function(event) {
+            if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
+        });
+        $.fn.dataTable.ext.errMode = 'none';
+        var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
+        elems.forEach(function(html) {
+            var switchery = new Switchery(html, {
+                'color': '#414d5f'
+            });
+            window.rSwitches[$(html).attr("id")] = switchery;
+        });
+        setTimeout(pingSession, 30000);
+        <?php if (!$rMobile && $rSettings['header_stats']): ?>
+            headerStats();
+        <?php endif; ?>
+        bindHref();
+        refreshTooltips();
+        $(window).scroll(function() {
+            if ($(this).scrollTop() > 200) {
+                if ($(document).height() > $(window).height()) {
+                    $('#scrollToBottom').fadeOut();
+                }
+                $('#scrollToTop').fadeIn();
+            } else {
+                $('#scrollToTop').fadeOut();
+                if ($(document).height() > $(window).height()) {
+                    $('#scrollToBottom').fadeIn();
+                } else {
+                    $('#scrollToBottom').hide();
+                }
+            }
+        });
+        $("#scrollToTop").unbind("click");
+        $('#scrollToTop').click(function() {
+            $('html, body').animate({
+                scrollTop: 0
+            }, 800);
+            return false;
+        });
+        $("#scrollToBottom").unbind("click");
+        $('#scrollToBottom').click(function() {
+            $('html, body').animate({
+                scrollTop: $(document).height()
+            }, 800);
+            return false;
+        });
+        $(window).scroll();
+        $(".nextb").unbind("click");
+        $(".nextb").click(function() {
+            var rPos = 0;
+            var rActive = null;
+            $(".nav .nav-item").each(function() {
+                if ($(this).find(".nav-link").hasClass("active")) {
+                    rActive = rPos;
+                }
+                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
+                    $(this).find(".nav-link").trigger("click");
+                    return false;
+                }
+                rPos += 1;
+            });
+        });
+        $(".prevb").unbind("click");
+        $(".prevb").click(function() {
+            var rPos = 0;
+            var rActive = null;
+            $($(".nav .nav-item").get().reverse()).each(function() {
+                if ($(this).find(".nav-link").hasClass("active")) {
+                    rActive = rPos;
+                }
+                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
+                    $(this).find(".nav-link").trigger("click");
+                    return false;
+                }
+                rPos += 1;
+            });
+        });
+        (function($) {
+            $.fn.inputFilter = function(inputFilter) {
+                return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
+                    if (inputFilter(this.value)) {
+                        this.oldValue = this.value;
+                        this.oldSelectionStart = this.selectionStart;
+                        this.oldSelectionEnd = this.selectionEnd;
+                    } else if (this.hasOwnProperty("oldValue")) {
+                        this.value = this.oldValue;
+                        this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
+                    }
+                });
+            };
+        }(jQuery));
+        <?php if ($rSettings['js_navigate']): ?>
+            $(".navigation-menu li").mouseenter(function() {
+                $(this).find(".submenu").show();
+            });
+            delParam("status");
+            $(window).on("popstate", function() {
+                if (window.rRealURL) {
+                    if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
+                        navigate(window.location.href.split("/").reverse()[0]);
+                    }
+                }
+            });
+        <?php endif; ?>
+        $(document).keydown(function(e) {
+            if (e.keyCode == 16) {
+                window.rShiftHeld = true;
+            }
+        });
+        $(document).keyup(function(e) {
+            if (e.keyCode == 16) {
+                window.rShiftHeld = false;
+            }
+        });
+        document.onselectstart = function() {
+            if (window.rShiftHeld) {
+                return false;
+            }
+        }
+    });
 
-<?php 
-		echo '        ' . "\r\n\t\t";
-		if (isset($rUser)) {
-			echo "\t\t" . 'var rBouquets = ';
-			echo $rUser['bouquet'];
-			echo ';' . "\r\n\t\t";
-		} else {
-			echo "\t\t" . 'var rBouquets = [];' . "\r\n\t\t";
-		}
+    <?php
+    echo '        ' . "\r\n\t\t";
+    if (isset($rUser)) {
+        echo "\t\t" . 'var rBouquets = ';
+        echo $rUser['bouquet'];
+        echo ';' . "\r\n\t\t";
+    } else {
+        echo "\t\t" . 'var rBouquets = [];' . "\r\n\t\t";
+    }
 
-		echo "\r\n" . '        function generateToken() {' . "\r\n\t\t\t" . "var result           = '';" . "\r\n\t\t\t" . "var characters       = 'ABCDEF0123456789';" . "\r\n\t\t\t" . 'var charactersLength = characters.length;' . "\r\n\t\t\t" . 'for ( var i = 0; i < 32; i++ ) {' . "\r\n\t\t\t\t" . 'result += characters.charAt(Math.floor(Math.random() * charactersLength));' . "\r\n\t\t\t" . '}' . "\r\n\t\t\t" . '$("#access_token").val(result);' . "\r\n\t\t" . '}' . "\r\n" . '        function clearToken() {' . "\r\n" . '            $("#access_token").val("");' . "\r\n" . '        }' . "\r\n\t\t" . 'function toggleBouquets() {' . "\r\n\t\t\t" . '$("#datatable-bouquets tr").each(function() {' . "\r\n\t\t\t\t" . "if (\$(this).hasClass('selected')) {" . "\r\n\t\t\t\t\t" . "\$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rBouquets.splice(parseInt($.inArray($(this).find("td:eq(0)").text()), window.rBouquets), 1);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '} else {            ' . "\r\n\t\t\t\t\t" . "\$(this).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rBouquets.push(parseInt($(this).find("td:eq(0)").text()));' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n" . '        function clearISP() {' . "\r\n" . '            $("#isp_clear").val("");' . "\r\n" . '        }' . "\r\n" . '        function clearOwner() {' . "\r\n" . "            \$('#member_id').val(\"\").trigger('change');" . "\r\n" . '        }' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('select.select2').select2({width: '100%'});" . "\r\n" . "            \$('#member_id').select2({" . "\r\n\t\t\t" . '  ajax: {' . "\r\n\t\t\t\t" . "url: './api'," . "\r\n\t\t\t\t" . "dataType: 'json'," . "\r\n\t\t\t\t" . 'data: function (params) {' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'search: params.term,' . "\r\n\t\t\t\t\t" . "action: 'reguserlist'," . "\r\n\t\t\t\t\t" . 'page: params.page' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processResults: function (data, params) {' . "\r\n\t\t\t\t" . '  params.page = params.page || 1;' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'results: data.items,' . "\r\n\t\t\t\t\t" . 'pagination: {' . "\r\n\t\t\t\t\t\t" . 'more: (params.page * 100) < data.total_count' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'cache: true,' . "\r\n\t\t\t\t" . 'width: "100%"' . "\r\n\t\t\t" . '  },' . "\r\n\t\t\t" . "  placeholder: 'Search for an owner...'" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#exp_date').daterangepicker({" . "\r\n\t\t\t\t" . 'singleDatePicker: true,' . "\r\n\t\t\t\t" . 'showDropdowns: true,' . "\r\n\t\t\t\t" . 'minDate: new Date(),' . "\r\n" . '                timePicker: true,' . "\r\n\t\t\t\t" . 'locale: {' . "\r\n\t\t\t\t\t" . "format: 'YYYY-MM-DD HH:mm'" . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n" . "            \$('#username').pwstrength();" . "\r\n" . "            \$('#password').pwstrength();" . "\r\n\t\t\t" . '$("#datatable-bouquets").DataTable({' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,2,3]}' . "\r\n\t\t\t\t" . '],' . "\r\n" . '                drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n" . '                },' . "\r\n\t\t\t\t" . '"rowCallback": function(row, data) {' . "\r\n\t\t\t\t\t" . 'if ($.inArray(data[0], window.rBouquets) !== -1) {' . "\r\n\t\t\t\t\t\t" . '$(row).addClass("selected");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'paging: false,' . "\r\n\t\t\t\t" . 'bInfo: false,' . "\r\n\t\t\t\t" . 'searching: false' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable-bouquets").selectable({' . "\r\n\t\t\t\t" . "filter: 'tr'," . "\r\n\t\t\t\t" . 'selected: function (event, ui) {' . "\r\n\t\t\t\t\t" . "if (\$(ui.selected).hasClass('selectedfilter')) {" . "\r\n\t\t\t\t\t\t" . "\$(ui.selected).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t\t" . 'window.rBouquets.splice(parseInt($.inArray($(ui.selected).find("td:eq(0)").text()), window.rBouquets), 1);' . "\r\n\t\t\t\t\t" . '} else {            ' . "\r\n\t\t\t\t\t\t" . "\$(ui.selected).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t\t" . 'window.rBouquets.push(parseInt($(ui.selected).find("td:eq(0)").text()));' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#no_expire").change(function() {' . "\r\n\t\t\t\t" . 'if ($(this).prop("checked")) {' . "\r\n\t\t\t\t\t" . '$("#exp_date").prop("disabled", true);' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . '$("#exp_date").removeAttr("disabled");' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#add_ip").click(function() {' . "\r\n\t\t\t\t" . 'if (($("#ip_field").val()) && (isValidIP($("#ip_field").val()))) {' . "\r\n\t\t\t\t\t" . 'var o = new Option($("#ip_field").val(), $("#ip_field").val());' . "\r\n\t\t\t\t\t" . '$("#allowed_ips").append(o);' . "\r\n\t\t\t\t\t" . '$("#ip_field").val("");' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . '$.toast("Please enter a valid IP address.");' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#remove_ip").click(function() {' . "\r\n\t\t\t\t" . "\$('#allowed_ips option:selected').remove();" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#add_ua").click(function() {' . "\r\n\t\t\t\t" . 'if ($("#ua_field").val()) {' . "\r\n\t\t\t\t\t" . 'var o = new Option($("#ua_field").val(), $("#ua_field").val());' . "\r\n\t\t\t\t\t" . '$("#allowed_ua").append(o);' . "\r\n\t\t\t\t\t" . '$("#ua_field").val("");' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . '$.toast("Please enter a user-agent.");' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#remove_ua").click(function() {' . "\r\n\t\t\t\t" . "\$('#allowed_ua option:selected').remove();" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#max_connections").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t\r\n" . "            \$('#username').keypress(function (e) {" . "\r\n" . '                var regex = new RegExp("^[a-zA-Z0-9@._-]+$");' . "\r\n" . '                var str = String.fromCharCode(!e.charCode ? e.which : e.charCode);' . "\r\n" . '                if (regex.test(str)) {' . "\r\n" . '                    return true;' . "\r\n" . '                }' . "\r\n" . '                e.preventDefault();' . "\r\n" . '                return false;' . "\r\n" . '            });' . "\r\n" . "            \$('#password').keypress(function (e) {" . "\r\n" . '                var regex = new RegExp("^[a-zA-Z0-9@._-]+$");' . "\r\n" . '                var str = String.fromCharCode(!e.charCode ? e.which : e.charCode);' . "\r\n" . '                if (regex.test(str)) {' . "\r\n" . '                    return true;' . "\r\n" . '                }' . "\r\n" . '                e.preventDefault();' . "\r\n" . '                return false;' . "\r\n" . '            });' . "\r\n" . '            ';
+    echo "\r\n" . '        function generateToken() {' . "\r\n\t\t\t" . "var result           = '';" . "\r\n\t\t\t" . "var characters       = 'ABCDEF0123456789';" . "\r\n\t\t\t" . 'var charactersLength = characters.length;' . "\r\n\t\t\t" . 'for ( var i = 0; i < 32; i++ ) {' . "\r\n\t\t\t\t" . 'result += characters.charAt(Math.floor(Math.random() * charactersLength));' . "\r\n\t\t\t" . '}' . "\r\n\t\t\t" . '$("#access_token").val(result);' . "\r\n\t\t" . '}' . "\r\n" . '        function clearToken() {' . "\r\n" . '            $("#access_token").val("");' . "\r\n" . '        }' . "\r\n\t\t" . 'function toggleBouquets() {' . "\r\n\t\t\t" . '$("#datatable-bouquets tr").each(function() {' . "\r\n\t\t\t\t" . "if (\$(this).hasClass('selected')) {" . "\r\n\t\t\t\t\t" . "\$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rBouquets.splice(parseInt($.inArray($(this).find("td:eq(0)").text()), window.rBouquets), 1);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '} else {            ' . "\r\n\t\t\t\t\t" . "\$(this).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rBouquets.push(parseInt($(this).find("td:eq(0)").text()));' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n" . '        function clearISP() {' . "\r\n" . '            $("#isp_clear").val("");' . "\r\n" . '        }' . "\r\n" . '        function clearOwner() {' . "\r\n" . "            \$('#member_id').val(\"\").trigger('change');" . "\r\n" . '        }' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('select.select2').select2({width: '100%'});" . "\r\n" . "            \$('#member_id').select2({" . "\r\n\t\t\t" . '  ajax: {' . "\r\n\t\t\t\t" . "url: './api'," . "\r\n\t\t\t\t" . "dataType: 'json'," . "\r\n\t\t\t\t" . 'data: function (params) {' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'search: params.term,' . "\r\n\t\t\t\t\t" . "action: 'reguserlist'," . "\r\n\t\t\t\t\t" . 'page: params.page' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processResults: function (data, params) {' . "\r\n\t\t\t\t" . '  params.page = params.page || 1;' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'results: data.items,' . "\r\n\t\t\t\t\t" . 'pagination: {' . "\r\n\t\t\t\t\t\t" . 'more: (params.page * 100) < data.total_count' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'cache: true,' . "\r\n\t\t\t\t" . 'width: "100%"' . "\r\n\t\t\t" . '  },' . "\r\n\t\t\t" . "  placeholder: 'Search for an owner...'" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#exp_date').daterangepicker({" . "\r\n\t\t\t\t" . 'singleDatePicker: true,' . "\r\n\t\t\t\t" . 'showDropdowns: true,' . "\r\n\t\t\t\t" . 'minDate: new Date(),' . "\r\n" . '                timePicker: true,' . "\r\n\t\t\t\t" . 'locale: {' . "\r\n\t\t\t\t\t" . "format: 'YYYY-MM-DD HH:mm'" . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n" . "            \$('#username').pwstrength();" . "\r\n" . "            \$('#password').pwstrength();" . "\r\n\t\t\t" . '$("#datatable-bouquets").DataTable({' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,2,3]}' . "\r\n\t\t\t\t" . '],' . "\r\n" . '                drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n" . '                },' . "\r\n\t\t\t\t" . '"rowCallback": function(row, data) {' . "\r\n\t\t\t\t\t" . 'if ($.inArray(data[0], window.rBouquets) !== -1) {' . "\r\n\t\t\t\t\t\t" . '$(row).addClass("selected");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'paging: false,' . "\r\n\t\t\t\t" . 'bInfo: false,' . "\r\n\t\t\t\t" . 'searching: false' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable-bouquets").selectable({' . "\r\n\t\t\t\t" . "filter: 'tr'," . "\r\n\t\t\t\t" . 'selected: function (event, ui) {' . "\r\n\t\t\t\t\t" . "if (\$(ui.selected).hasClass('selectedfilter')) {" . "\r\n\t\t\t\t\t\t" . "\$(ui.selected).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t\t" . 'window.rBouquets.splice(parseInt($.inArray($(ui.selected).find("td:eq(0)").text()), window.rBouquets), 1);' . "\r\n\t\t\t\t\t" . '} else {            ' . "\r\n\t\t\t\t\t\t" . "\$(ui.selected).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t\t" . 'window.rBouquets.push(parseInt($(ui.selected).find("td:eq(0)").text()));' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#no_expire").change(function() {' . "\r\n\t\t\t\t" . 'if ($(this).prop("checked")) {' . "\r\n\t\t\t\t\t" . '$("#exp_date").prop("disabled", true);' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . '$("#exp_date").removeAttr("disabled");' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#add_ip").click(function() {' . "\r\n\t\t\t\t" . 'if (($("#ip_field").val()) && (isValidIP($("#ip_field").val()))) {' . "\r\n\t\t\t\t\t" . 'var o = new Option($("#ip_field").val(), $("#ip_field").val());' . "\r\n\t\t\t\t\t" . '$("#allowed_ips").append(o);' . "\r\n\t\t\t\t\t" . '$("#ip_field").val("");' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . '$.toast("Please enter a valid IP address.");' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#remove_ip").click(function() {' . "\r\n\t\t\t\t" . "\$('#allowed_ips option:selected').remove();" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#add_ua").click(function() {' . "\r\n\t\t\t\t" . 'if ($("#ua_field").val()) {' . "\r\n\t\t\t\t\t" . 'var o = new Option($("#ua_field").val(), $("#ua_field").val());' . "\r\n\t\t\t\t\t" . '$("#allowed_ua").append(o);' . "\r\n\t\t\t\t\t" . '$("#ua_field").val("");' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . '$.toast("Please enter a user-agent.");' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#remove_ua").click(function() {' . "\r\n\t\t\t\t" . "\$('#allowed_ua option:selected').remove();" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#max_connections").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t\r\n" . "            \$('#username').keypress(function (e) {" . "\r\n" . '                var regex = new RegExp("^[a-zA-Z0-9@._-]+$");' . "\r\n" . '                var str = String.fromCharCode(!e.charCode ? e.which : e.charCode);' . "\r\n" . '                if (regex.test(str)) {' . "\r\n" . '                    return true;' . "\r\n" . '                }' . "\r\n" . '                e.preventDefault();' . "\r\n" . '                return false;' . "\r\n" . '            });' . "\r\n" . "            \$('#password').keypress(function (e) {" . "\r\n" . '                var regex = new RegExp("^[a-zA-Z0-9@._-]+$");' . "\r\n" . '                var str = String.fromCharCode(!e.charCode ? e.which : e.charCode);' . "\r\n" . '                if (regex.test(str)) {' . "\r\n" . '                    return true;' . "\r\n" . '                }' . "\r\n" . '                e.preventDefault();' . "\r\n" . '                return false;' . "\r\n" . '            });' . "\r\n" . '            ';
 
-		if (!isset($rLine)) {
-		} else {
-			echo "            \$('#username').trigger('keyup');" . "\r\n" . "            \$('#password').trigger('keyup');" . "\r\n" . '            ';
-		}
+    if (!isset($rLine)) {
+    } else {
+        echo "            \$('#username').trigger('keyup');" . "\r\n" . "            \$('#password').trigger('keyup');" . "\r\n" . '            ';
+    }
 
-		echo '            $("form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n\t\t\t\t" . 'var rBouquets = [];' . "\r\n\t\t\t\t" . '$("#datatable-bouquets tr.selected").each(function() {' . "\r\n\t\t\t\t\t" . 'rBouquets.push($(this).find("td:eq(0)").text());' . "\r\n\t\t\t\t" . '});' . "\r\n\t\t\t\t" . '$("#bouquets_selected").val(JSON.stringify(rBouquets));' . "\r\n\t\t\t\t" . "\$(\"#allowed_ua option\").prop('selected', true);" . "\r\n\t\t\t\t" . "\$(\"#allowed_ips option\").prop('selected', true);" . "\r\n" . "                \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                submitForm(window.rCurrentPage, new FormData($("form")[0]), window.rReferer);' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
-		?>
+    echo '            $("form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n\t\t\t\t" . 'var rBouquets = [];' . "\r\n\t\t\t\t" . '$("#datatable-bouquets tr.selected").each(function() {' . "\r\n\t\t\t\t\t" . 'rBouquets.push($(this).find("td:eq(0)").text());' . "\r\n\t\t\t\t" . '});' . "\r\n\t\t\t\t" . '$("#bouquets_selected").val(JSON.stringify(rBouquets));' . "\r\n\t\t\t\t" . "\$(\"#allowed_ua option\").prop('selected', true);" . "\r\n\t\t\t\t" . "\$(\"#allowed_ips option\").prop('selected', true);" . "\r\n" . "                \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                submitForm(window.rCurrentPage, new FormData($("form")[0]), window.rReferer);' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
+    ?>
     <?php if (CoreUtilities::$rSettings['enable_search']): ?>
         $(document).ready(function() {
             initSearch();

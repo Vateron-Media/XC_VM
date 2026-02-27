@@ -25,7 +25,7 @@ class AuthRepository {
 		return $rCodes;
 	}
 
-	public static function updateCodes($db, $rMainHome, $rServerId, $rGetCodesCallback, $rReloadNginxCallback) {
+	public static function updateCodes($rMainHome, $rServerId, $rGetCodesCallback, $rReloadNginxCallback) {
 		$rTemplate = file_get_contents($rMainHome . 'bin/nginx/conf/codes/template');
 		shell_exec('rm -f ' . $rMainHome . 'bin/nginx/conf/codes/*.conf');
 
@@ -67,7 +67,8 @@ class AuthRepository {
 		call_user_func($rReloadNginxCallback, $rServerId);
 	}
 
-	public static function getCurrentCode($db, $rInfo = false) {
+	public static function getCurrentCode($rInfo = false) {
+		global $db;
 		// Front Controller передаёт XC_CODE через fastcgi_param.
 		// Без FC — определяем из PHP_SELF (legacy поведение).
 		$rCode = !empty($_SERVER['XC_CODE'])
@@ -89,7 +90,8 @@ class AuthRepository {
 	// Из HMACRepository
 	// ──────────────────────────────────────────────
 
-	public static function getAllHMAC($db) {
+	public static function getAllHMAC() {
+		global $db;
 		$rReturn = array();
 		$db->query('SELECT * FROM `hmac_keys` ORDER BY `id` ASC;');
 
@@ -102,7 +104,8 @@ class AuthRepository {
 		return $rReturn;
 	}
 
-	public static function getHMACById($db, $rID) {
+	public static function getHMACById($rID) {
+		global $db;
 		$db->query('SELECT * FROM `hmac_keys` WHERE `id` = ?;', $rID);
 		if ($db->num_rows() == 1) {
 			return $db->get_row();

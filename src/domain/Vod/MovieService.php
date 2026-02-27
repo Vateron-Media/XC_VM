@@ -1,7 +1,8 @@
 <?php
 
 class MovieService {
-	public static function process($db, $rSettings, $rData) {
+	public static function process($rSettings, $rData) {
+		global $db;
 		return API::processMovieLegacy($rData);
 	}
 
@@ -21,7 +22,8 @@ class MovieService {
 		return array('status' => STATUS_SUCCESS);
 	}
 
-	public static function massEdit($db, $rData) {
+	public static function massEdit($rData) {
+		global $db;
 		set_time_limit(0);
 		ini_set('mysql.connect_timeout', 0);
 		ini_set('max_execution_time', 0);
@@ -105,7 +107,7 @@ class MovieService {
 				$rStreamExists[intval($rRow['stream_id'])][intval($rRow['server_id'])] = intval($rRow['server_stream_id']);
 				$rProcessServers[intval($rRow['stream_id'])][] = intval($rRow['server_id']);
 			}
-			$rBouquets = getBouquets();
+			$rBouquets = BouquetService::getAllSimple();
 			$rAddBouquet = $rDelBouquet = array();
 			$rAddQuery = '';
 
@@ -254,7 +256,8 @@ class MovieService {
 	/**
 	 * Send delete signal for movie files on specified servers.
 	 */
-	public static function deleteFile($db, $rServerIDs, $rID) {
+	public static function deleteFile($rServerIDs, $rID) {
+		global $db;
 		if (is_array($rServerIDs)) {
 		} else {
 			$rServerIDs = array($rServerIDs);
@@ -266,3 +269,4 @@ class MovieService {
 
 		return true;
 	}
+}

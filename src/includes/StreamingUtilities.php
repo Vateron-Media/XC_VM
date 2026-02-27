@@ -159,7 +159,7 @@ class StreamingUtilities {
 		if (self::$rCached) {
 			return json_decode(file_get_contents(CACHE_TMP_PATH . (($rProxy ? 'proxy_capacity' : 'servers_capacity'))), true);
 		}
-		return ConnectionTracker::getCapacity(self::$rSettings, self::$rServers, self::$redis, self::$db, $rProxy);
+		return ConnectionTracker::getCapacity(self::$rSettings, self::$rServers, self::$redis, $rProxy);
 	}
 	public static function redirectStream($rStreamID, $rExtension, $rUserInfo, $rCountryCode, $rUserISP = '', $rType = '') {
 		return StreamRedirector::redirectStream(self::$rCached, self::$rSettings, self::$rServers, $rStreamID, $rExtension, $rUserInfo, $rCountryCode, $rUserISP, $rType, array(self::class, 'getBouquetMap'), array(self::class, 'getStreamData'), array(self::class, 'getCapacity'));
@@ -177,13 +177,13 @@ class StreamingUtilities {
 		return ProxySelector::availableProxy(self::$rServers, $rProxies, $rCountryCode, $rUserISP, array(self::class, 'getCapacity'));
 	}
 	public static function closeConnections($rUserID, $rMaxConnections, $rIsHMAC = null, $rIdentifier = '', $rIP = null, $rUserAgent = null) {
-		return ConnectionLimiter::closeConnections(self::$db, self::$redis, self::$rSettings, self::$rServers, $rUserID, $rMaxConnections, $rIsHMAC, $rIdentifier, $rIP, $rUserAgent, array(self::class, 'getConnections'), array(self::class, 'getUserIP'), array(self::class, 'closeConnection'), array(self::class, 'removeFromQueue'));
+		return ConnectionLimiter::closeConnections(self::$redis, self::$rSettings, self::$rServers, $rUserID, $rMaxConnections, $rIsHMAC, $rIdentifier, $rIP, $rUserAgent, array(self::class, 'getConnections'), array(self::class, 'getUserIP'), array(self::class, 'closeConnection'), array(self::class, 'removeFromQueue'));
 	}
 	public static function closeConnection($rActivityInfo) {
-		return ConnectionLimiter::closeConnection(self::$db, self::$redis, self::$rSettings, self::$rServers, $rActivityInfo, array(self::class, 'updateConnection'), array(self::class, 'redisSignal'), array(self::class, 'writeOfflineActivity'));
+		return ConnectionLimiter::closeConnection(self::$redis, self::$rSettings, self::$rServers, $rActivityInfo, array(self::class, 'updateConnection'), array(self::class, 'redisSignal'), array(self::class, 'writeOfflineActivity'));
 	}
 	public static function closeRTMP($rPID) {
-		return ConnectionLimiter::closeRTMP(self::$db, $rPID, array(self::class, 'writeOfflineActivity'));
+		return ConnectionLimiter::closeRTMP($rPID, array(self::class, 'writeOfflineActivity'));
 	}
 	public static function writeOfflineActivity($rServerID, $rProxyID, $rUserID, $rStreamID, $rStart, $rUserAgent, $rIP, $rExtension, $rGeoIP, $rISP, $rExternalDevice = '', $rDivergence = 0, $rIsHMAC = null, $rIdentifier = '') {
 		if (self::$rSettings['save_closed_connection'] != 0) {
@@ -223,13 +223,13 @@ class StreamingUtilities {
 		return false;
 	}
 	public static function getUserInfo($rUserID = null, $rUsername = null, $rPassword = null, $rGetChannelIDs = false, $rGetConnections = false, $rIP = '') {
-		return UserRepository::getStreamingUserInfo(self::$db, self::$rSettings, self::$rCached, self::$rBouquets, $rUserID, $rUsername, $rPassword, $rGetChannelIDs, $rGetConnections, $rIP, array('getIPInfo' => array(self::class, 'getIPInfo'), 'setSignal' => array(self::class, 'setSignal'), 'getISP' => array(self::class, 'getISP'), 'checkISP' => array(self::class, 'checkISP'), 'checkServer' => array(self::class, 'checkServer')));
+		return UserRepository::getStreamingUserInfo(self::$rSettings, self::$rCached, self::$rBouquets, $rUserID, $rUsername, $rPassword, $rGetChannelIDs, $rGetConnections, $rIP, array('getIPInfo' => array(self::class, 'getIPInfo'), 'setSignal' => array(self::class, 'setSignal'), 'getISP' => array(self::class, 'getISP'), 'checkISP' => array(self::class, 'checkISP'), 'checkServer' => array(self::class, 'checkServer')));
 	}
 	public static function setSignal($rKey, $rData) {
 		file_put_contents(SIGNALS_TMP_PATH . 'cache_' . md5($rKey), json_encode(array($rKey, $rData)));
 	}
 	public static function validateHMAC($rHMAC, $rExpiry, $rStreamID, $rExtension, $rIP = '', $rMACIP = '', $rIdentifier = '', $rMaxConnections = 0) {
-		return AuthService::validateHMAC(self::$db, self::$rSettings, self::$rCached, $rHMAC, $rExpiry, $rStreamID, $rExtension, $rIP, $rMACIP, $rIdentifier, $rMaxConnections, array('StreamingUtilities', 'decryptData'));
+		return AuthService::validateHMAC(self::$rSettings, self::$rCached, $rHMAC, $rExpiry, $rStreamID, $rExtension, $rIP, $rMACIP, $rIdentifier, $rMaxConnections, array('StreamingUtilities', 'decryptData'));
 	}
 	public static function checkBlockedUAs($rUserAgent, $rReturn = false) {
 		return BlocklistService::checkBlockedUAs(self::$rBlockedUA, $rUserAgent, $rReturn);

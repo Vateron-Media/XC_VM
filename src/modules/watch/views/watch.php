@@ -1,10 +1,12 @@
-<div class="wrapper boxed-layout-ext" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') { echo ' style="display: none;"'; } ?>>
-    <div class="container-fluid">
+<div class="wrapper boxed-layout-ext" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+											echo ' style="display: none;"';
+										} ?>>
+	<div class="container-fluid">
 		<div class="row">
 			<div class="col-12">
 				<div class="page-title-box">
 					<div class="page-title-right">
-                        <?php include 'topbar.php'; ?>
+						<?php include 'topbar.php'; ?>
 					</div>
 					<h4 class="page-title">Watch Folder</h4>
 				</div>
@@ -36,30 +38,30 @@
 								</tr>
 							</thead>
 							<tbody>
-								<?php foreach (getWatchFolders() as $rFolder) :
+								<?php foreach (WatchService::getWatchFolders() as $rFolder) :
 									$rDate = ($rFolder['last_run'] > 0) ? date('Y-m-d H:i:s', $rFolder['last_run']) : 'Never';
 								?>
-								<tr id="folder-<?= intval($rFolder['id']); ?>">
-									<td class="text-center"><?= intval($rFolder['id']); ?></td>
-									<td class="text-center">
-										<?php if ($rFolder['active']) : ?>
-											<i class="text-success fas fa-square"></i>
-										<?php else : ?>
-											<i class="text-secondary fas fa-square"></i>
-										<?php endif; ?>
-									</td>
-									<td><?= array('movie' => 'Movies', 'series' => 'Series')[$rFolder['type']]; ?></td>
-									<td><?= $rServers[$rFolder['server_id']]['server_name']; ?></td>
-									<td><?= $rFolder['directory']; ?></td>
-									<td class="text-center"><?= $rDate; ?></td>
-									<td class="text-center">
-										<div class="btn-group">
-											<a href="./watch_add?id=<?= intval($rFolder['id']); ?>"><button type="button" class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-pencil-outline"></i></button></a>
-											<button type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="api(<?= intval($rFolder['id']); ?>, 'force');"><i class="mdi mdi-refresh"></i></button>
-											<button type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="api(<?= intval($rFolder['id']); ?>, 'delete');"><i class="mdi mdi-close"></i></button>
-										</div>
-									</td>
-								</tr>
+									<tr id="folder-<?= intval($rFolder['id']); ?>">
+										<td class="text-center"><?= intval($rFolder['id']); ?></td>
+										<td class="text-center">
+											<?php if ($rFolder['active']) : ?>
+												<i class="text-success fas fa-square"></i>
+											<?php else : ?>
+												<i class="text-secondary fas fa-square"></i>
+											<?php endif; ?>
+										</td>
+										<td><?= array('movie' => 'Movies', 'series' => 'Series')[$rFolder['type']]; ?></td>
+										<td><?= $rServers[$rFolder['server_id']]['server_name']; ?></td>
+										<td><?= $rFolder['directory']; ?></td>
+										<td class="text-center"><?= $rDate; ?></td>
+										<td class="text-center">
+											<div class="btn-group">
+												<a href="./watch_add?id=<?= intval($rFolder['id']); ?>"><button type="button" class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-pencil-outline"></i></button></a>
+												<button type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="api(<?= intval($rFolder['id']); ?>, 'force');"><i class="mdi mdi-refresh"></i></button>
+												<button type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="api(<?= intval($rFolder['id']); ?>, 'delete');"><i class="mdi mdi-close"></i></button>
+											</div>
+										</td>
+									</tr>
 								<?php endforeach; ?>
 							</tbody>
 						</table>

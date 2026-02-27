@@ -56,7 +56,7 @@ class Database {
 
 	public function db_connect($migrate = false) {
 		try {
-			$this->dbh = new PDO('mysql:host=' . $this->dbhost . ';port=' . $this->dbport . ';dbname=' . $this->dbname. ';charset=utf8mb4', $this->dbuser, $this->dbpassword);
+			$this->dbh = new PDO('mysql:host=' . $this->dbhost . ';port=' . $this->dbport . ';dbname=' . $this->dbname . ';charset=utf8mb4', $this->dbuser, $this->dbpassword);
 			if (!$this->dbh) {
 				if (!$migrate) {
 					exit(json_encode(array('error' => 'MySQL: Cannot connect to database! Please check credentials.')));
@@ -225,16 +225,16 @@ class Database {
 	}
 
 	public function get_column() {
-    $col = [];
-    if ($this->result) {
-        while ($val = $this->result->fetchColumn(0)) {
-            $col[] = $val;
-        }
-        $this->result->closeCursor();
-        $this->result = null;
-    }
-    return $col;
-}
+		$col = [];
+		if ($this->result) {
+			while ($val = $this->result->fetchColumn(0)) {
+				$col[] = $val;
+			}
+			$this->result->closeCursor();
+			$this->result = null;
+		}
+		return $col;
+	}
 
 	public function escape($string) {
 		if ($this->dbh) {

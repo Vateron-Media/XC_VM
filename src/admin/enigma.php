@@ -1,32 +1,32 @@
 <?php
 if (!isset($__viewMode)):
 
-include 'session.php';
-include 'functions.php';
+	include 'session.php';
+	include 'functions.php';
 
-if (checkPermissions()) {
-} else {
-	goHome();
-}
-
-if (!isset(CoreUtilities::$rRequest['id'])) {
-} else {
-	$rDevice = getEnigma(CoreUtilities::$rRequest['id']);
-
-	if ($rDevice['user_id']) {
+	if (checkPermissions()) {
 	} else {
-		exit();
+		goHome();
 	}
-}
 
-if (!isset($rDevice) || isset($rDevice['user'])) {
-} else {
-	$rDevice['user'] = array('bouquet' => array());
-}
+	if (!isset(CoreUtilities::$rRequest['id'])) {
+	} else {
+		$rDevice = getEnigma(CoreUtilities::$rRequest['id']);
 
-$_TITLE = 'Enigma Device';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('admin');
+		if ($rDevice['user_id']) {
+		} else {
+			exit();
+		}
+	}
+
+	if (!isset($rDevice) || isset($rDevice['user'])) {
+	} else {
+		$rDevice['user'] = array('bouquet' => array());
+	}
+
+	$_TITLE = 'Enigma Device';
+	require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+	renderUnifiedLayoutHeader('admin');
 endif; // !$__viewMode
 echo '<div class="wrapper boxed-layout"';
 
@@ -81,7 +81,7 @@ if (!(isset($rDevice) && 0 < $rDevice['user']['pair_id'])) {
 
 echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</select>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-2">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" onClick="unpairUser();" class="btn btn-warning" style="width: 100%">Unpair</a>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n" . '                                                <div id="linked_info">' . "\r\n" . '                                                    <div class="form-group row mb-4">' . "\r\n" . '                                                        <label class="col-md-4 col-form-label" for="member_id">Owner</label>' . "\r\n" . '                                                        <div class="col-md-6">' . "\r\n" . '                                                            <select name="member_id" id="member_id" class="form-control select2" data-toggle="select2">' . "\r\n" . '                                                                ';
 
-if (isset($rDevice['user']['member_id']) && ($rOwner = getRegisteredUser(intval($rDevice['user']['member_id'])))) {
+if (isset($rDevice['user']['member_id']) && ($rOwner = UserRepository::getRegisteredUserById(intval($rDevice['user']['member_id'])))) {
 	echo '                                                                <option value="';
 	echo intval($rOwner['id']);
 	echo '" selected="selected">';
@@ -263,7 +263,7 @@ echo '</th>' . "\r\n" . '                                                       
 echo $language::get('stations');
 echo '</th' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</thead>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<tbody>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
 
-foreach (getBouquets() as $rBouquet) {
+foreach (BouquetService::getAllSimple() as $rBouquet) {
 	echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<tr';
 
 	if (!(isset($rDevice) && in_array($rBouquet['id'], json_decode($rDevice['user']['bouquet'], true)))) {
@@ -297,154 +297,153 @@ echo '" />' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\r\n\t\t\t\t\t\t\t\t\t\t
 require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
 renderUnifiedLayoutFooter('admin'); ?>
 <script id="scripts">
-			var resizeObserver = new ResizeObserver(entries => $(window).scroll());
-			$(document).ready(function() {
-				resizeObserver.observe(document.body)
-				$("form").attr('autocomplete', 'off');
-				$(document).keypress(function(event) {
-					if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
-				});
-				$.fn.dataTable.ext.errMode = 'none';
-				var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
-				elems.forEach(function(html) {
-					var switchery = new Switchery(html, {
-						'color': '#414d5f'
-					});
-					window.rSwitches[$(html).attr("id")] = switchery;
-				});
-				setTimeout(pingSession, 30000);
-				<?php if (!$rMobile && $rSettings['header_stats']): ?>
-					headerStats();
-				<?php endif; ?>
-				bindHref();
-				refreshTooltips();
-				$(window).scroll(function() {
-					if ($(this).scrollTop() > 200) {
-						if ($(document).height() > $(window).height()) {
-							$('#scrollToBottom').fadeOut();
-						}
-						$('#scrollToTop').fadeIn();
-					} else {
-						$('#scrollToTop').fadeOut();
-						if ($(document).height() > $(window).height()) {
-							$('#scrollToBottom').fadeIn();
-						} else {
-							$('#scrollToBottom').hide();
-						}
-					}
-				});
-				$("#scrollToTop").unbind("click");
-				$('#scrollToTop').click(function() {
-					$('html, body').animate({
-						scrollTop: 0
-					}, 800);
+	var resizeObserver = new ResizeObserver(entries => $(window).scroll());
+	$(document).ready(function() {
+		resizeObserver.observe(document.body)
+		$("form").attr('autocomplete', 'off');
+		$(document).keypress(function(event) {
+			if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
+		});
+		$.fn.dataTable.ext.errMode = 'none';
+		var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
+		elems.forEach(function(html) {
+			var switchery = new Switchery(html, {
+				'color': '#414d5f'
+			});
+			window.rSwitches[$(html).attr("id")] = switchery;
+		});
+		setTimeout(pingSession, 30000);
+		<?php if (!$rMobile && $rSettings['header_stats']): ?>
+			headerStats();
+		<?php endif; ?>
+		bindHref();
+		refreshTooltips();
+		$(window).scroll(function() {
+			if ($(this).scrollTop() > 200) {
+				if ($(document).height() > $(window).height()) {
+					$('#scrollToBottom').fadeOut();
+				}
+				$('#scrollToTop').fadeIn();
+			} else {
+				$('#scrollToTop').fadeOut();
+				if ($(document).height() > $(window).height()) {
+					$('#scrollToBottom').fadeIn();
+				} else {
+					$('#scrollToBottom').hide();
+				}
+			}
+		});
+		$("#scrollToTop").unbind("click");
+		$('#scrollToTop').click(function() {
+			$('html, body').animate({
+				scrollTop: 0
+			}, 800);
+			return false;
+		});
+		$("#scrollToBottom").unbind("click");
+		$('#scrollToBottom').click(function() {
+			$('html, body').animate({
+				scrollTop: $(document).height()
+			}, 800);
+			return false;
+		});
+		$(window).scroll();
+		$(".nextb").unbind("click");
+		$(".nextb").click(function() {
+			var rPos = 0;
+			var rActive = null;
+			$(".nav .nav-item").each(function() {
+				if ($(this).find(".nav-link").hasClass("active")) {
+					rActive = rPos;
+				}
+				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
+					$(this).find(".nav-link").trigger("click");
 					return false;
-				});
-				$("#scrollToBottom").unbind("click");
-				$('#scrollToBottom').click(function() {
-					$('html, body').animate({
-						scrollTop: $(document).height()
-					}, 800);
+				}
+				rPos += 1;
+			});
+		});
+		$(".prevb").unbind("click");
+		$(".prevb").click(function() {
+			var rPos = 0;
+			var rActive = null;
+			$($(".nav .nav-item").get().reverse()).each(function() {
+				if ($(this).find(".nav-link").hasClass("active")) {
+					rActive = rPos;
+				}
+				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
+					$(this).find(".nav-link").trigger("click");
 					return false;
-				});
-				$(window).scroll();
-				$(".nextb").unbind("click");
-				$(".nextb").click(function() {
-					var rPos = 0;
-					var rActive = null;
-					$(".nav .nav-item").each(function() {
-						if ($(this).find(".nav-link").hasClass("active")) {
-							rActive = rPos;
-						}
-						if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-							$(this).find(".nav-link").trigger("click");
-							return false;
-						}
-						rPos += 1;
-					});
-				});
-				$(".prevb").unbind("click");
-				$(".prevb").click(function() {
-					var rPos = 0;
-					var rActive = null;
-					$($(".nav .nav-item").get().reverse()).each(function() {
-						if ($(this).find(".nav-link").hasClass("active")) {
-							rActive = rPos;
-						}
-						if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-							$(this).find(".nav-link").trigger("click");
-							return false;
-						}
-						rPos += 1;
-					});
-				});
-				(function($) {
-					$.fn.inputFilter = function(inputFilter) {
-						return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
-							if (inputFilter(this.value)) {
-								this.oldValue = this.value;
-								this.oldSelectionStart = this.selectionStart;
-								this.oldSelectionEnd = this.selectionEnd;
-							} else if (this.hasOwnProperty("oldValue")) {
-								this.value = this.oldValue;
-								this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
-							}
-						});
-					};
-				}(jQuery));
-				<?php if ($rSettings['js_navigate']): ?>
-					$(".navigation-menu li").mouseenter(function() {
-						$(this).find(".submenu").show();
-					});
-					delParam("status");
-					$(window).on("popstate", function() {
-						if (window.rRealURL) {
-							if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
-								navigate(window.location.href.split("/").reverse()[0]);
-							}
-						}
-					});
-				<?php endif; ?>
-				$(document).keydown(function(e) {
-					if (e.keyCode == 16) {
-						window.rShiftHeld = true;
+				}
+				rPos += 1;
+			});
+		});
+		(function($) {
+			$.fn.inputFilter = function(inputFilter) {
+				return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
+					if (inputFilter(this.value)) {
+						this.oldValue = this.value;
+						this.oldSelectionStart = this.selectionStart;
+						this.oldSelectionEnd = this.selectionEnd;
+					} else if (this.hasOwnProperty("oldValue")) {
+						this.value = this.oldValue;
+						this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
 					}
 				});
-				$(document).keyup(function(e) {
-					if (e.keyCode == 16) {
-						window.rShiftHeld = false;
-					}
-				});
-				document.onselectstart = function() {
-					if (window.rShiftHeld) {
-						return false;
+			};
+		}(jQuery));
+		<?php if ($rSettings['js_navigate']): ?>
+			$(".navigation-menu li").mouseenter(function() {
+				$(this).find(".submenu").show();
+			});
+			delParam("status");
+			$(window).on("popstate", function() {
+				if (window.rRealURL) {
+					if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
+						navigate(window.location.href.split("/").reverse()[0]);
 					}
 				}
 			});
-
-			<?php
-		echo '        ' . "\r\n\t\t";
-
-		if (isset($rDevice)) {
-			echo "\t\t" . 'var rBouquets = ';
-			echo $rDevice['user']['bouquet'];
-			echo ';' . "\r\n\t\t";
-		} else {
-			echo "\t\t" . 'var rBouquets = [];' . "\r\n\t\t";
+		<?php endif; ?>
+		$(document).keydown(function(e) {
+			if (e.keyCode == 16) {
+				window.rShiftHeld = true;
+			}
+		});
+		$(document).keyup(function(e) {
+			if (e.keyCode == 16) {
+				window.rShiftHeld = false;
+			}
+		});
+		document.onselectstart = function() {
+			if (window.rShiftHeld) {
+				return false;
+			}
 		}
+	});
 
-		echo "\r\n\t\t" . 'function toggleBouquets() {' . "\r\n" . '            if (!$("#pair_id").val()) {' . "\r\n" . '                $("#datatable-bouquets tr").each(function() {' . "\r\n" . "                    if (\$(this).hasClass('selected')) {" . "\r\n" . "                        \$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n" . '                        if ($(this).find("td:eq(0)").text()) {' . "\r\n" . '                            window.rBouquets.splice(parseInt($.inArray($(this).find("td:eq(0)").text()), window.rBouquets), 1);' . "\r\n" . '                        }' . "\r\n" . '                    } else {            ' . "\r\n" . "                        \$(this).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n" . '                        if ($(this).find("td:eq(0)").text()) {' . "\r\n" . '                            window.rBouquets.push(parseInt($(this).find("td:eq(0)").text()));' . "\r\n" . '                        }' . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function clearDevice() {' . "\r\n\t\t\t" . '$("#device-info input").each(function() {' . "\r\n\t\t\t\t" . 'if (!$(this).hasClass("sticky")) {' . "\r\n\t\t\t\t\t" . '$(this).val("");' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function clearISP() {' . "\r\n" . '            $("#isp_clear").val("");' . "\r\n" . '        }' . "\r\n\t\t" . 'function unpairUser() {' . "\r\n\t\t\t" . '$("#pair_id").val("").trigger("change");' . "\r\n\t\t" . '}' . "\r\n" . '        function evaluatePair() {' . "\r\n" . '            if ($("#pair_id").val()) {' . "\r\n" . '                $("#toggle_bouquets").addClass("disabled");' . "\r\n" . '                $("#advanced_warning").show();' . "\r\n" . '                $("#bouquet_warning").show();' . "\r\n" . '                $("#linked_info").hide();' . "\r\n" . '                $("#bouquets_info").hide();' . "\r\n" . '                $("#advanced_info").hide();' . "\r\n" . '            } else {' . "\r\n" . '                $("#toggle_bouquets").removeClass("disabled");' . "\r\n" . '                $("#advanced_warning").hide();' . "\r\n" . '                $("#bouquet_warning").hide();' . "\r\n" . '                $("#linked_info").show();' . "\r\n" . '                $("#bouquets_info").show();' . "\r\n" . '                $("#advanced_info").show();' . "\r\n" . '            }' . "\r\n" . '            $(["exp_date", "is_trial", "no_expire", "force_server_id", "forced_country", "ip_field", "allowed_ips"]).each(function(rID, rElement) {' . "\r\n" . '                if ($(rElement)) {' . "\r\n" . '                    if ($("#pair_id").val()) {' . "\r\n" . '                        if (window.rSwitches[rElement]) {' . "\r\n" . '                            setSwitch(window.rSwitches[rElement], false);' . "\r\n" . '                            window.rSwitches[rElement].disable();' . "\r\n" . '                        } else {' . "\r\n" . '                            $("#" + rElement).prop("disabled", true);' . "\r\n" . '                        }' . "\r\n" . '                    } else {' . "\r\n" . '                        if (window.rSwitches[rElement]) {' . "\r\n" . '                            window.rSwitches[rElement].enable();' . "\r\n" . '                        } else {' . "\r\n" . '                            $("#" + rElement).prop("disabled", false);' . "\r\n" . '                        }' . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '        }' . "\r\n" . '        function clearOwner() {' . "\r\n" . "            \$('#member_id').val(\"\").trigger('change');" . "\r\n" . '        }' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('select.select2').select2({width: '100%'});" . "\r\n" . "            \$('#member_id').select2({" . "\r\n\t\t\t" . '  ajax: {' . "\r\n\t\t\t\t" . "url: './api'," . "\r\n\t\t\t\t" . "dataType: 'json'," . "\r\n\t\t\t\t" . 'data: function (params) {' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'search: params.term,' . "\r\n\t\t\t\t\t" . "action: 'reguserlist'," . "\r\n\t\t\t\t\t" . 'page: params.page' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processResults: function (data, params) {' . "\r\n\t\t\t\t" . '  params.page = params.page || 1;' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'results: data.items,' . "\r\n\t\t\t\t\t" . 'pagination: {' . "\r\n\t\t\t\t\t\t" . 'more: (params.page * 100) < data.total_count' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'cache: true,' . "\r\n\t\t\t\t" . 'width: "100%"' . "\r\n\t\t\t" . '  },' . "\r\n\t\t\t" . "  placeholder: 'Search for an owner...'" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#exp_date').daterangepicker({" . "\r\n\t\t\t\t" . 'singleDatePicker: true,' . "\r\n\t\t\t\t" . 'showDropdowns: true,' . "\r\n\t\t\t\t" . 'minDate: new Date(),' . "\r\n" . '                timePicker: true,' . "\r\n\t\t\t\t" . 'locale: {' . "\r\n\t\t\t\t\t" . "format: 'YYYY-MM-DD HH:mm'" . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#pair_id').select2({" . "\r\n\t\t\t" . '  ajax: {' . "\r\n\t\t\t\t" . "url: './api'," . "\r\n\t\t\t\t" . "dataType: 'json'," . "\r\n\t\t\t\t" . 'data: function (params) {' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'search: params.term,' . "\r\n\t\t\t\t\t" . "action: 'userlist'," . "\r\n\t\t\t\t\t" . 'page: params.page' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processResults: function (data, params) {' . "\r\n\t\t\t\t" . '  params.page = params.page || 1;' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'results: data.items,' . "\r\n\t\t\t\t\t" . 'pagination: {' . "\r\n\t\t\t\t\t\t" . 'more: (params.page * 100) < data.total_count' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'cache: true,' . "\r\n\t\t\t\t" . 'width: "100%"' . "\r\n\t\t\t" . '  },' . "\r\n\t\t\t" . "  placeholder: '";
-		echo $language::get('search_user');
-		echo "'" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t\r\n\t\t\t" . '$("#datatable-bouquets").DataTable({' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,2,3]}' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t\t" . '"rowCallback": function(row, data) {' . "\r\n\t\t\t\t\t" . 'if ($.inArray(data[0], window.rBouquets) !== -1) {' . "\r\n\t\t\t\t\t\t" . '$(row).addClass("selected");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n" . '                drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n" . '                },' . "\r\n\t\t\t\t" . 'paging: false,' . "\r\n\t\t\t\t" . 'bInfo: false,' . "\r\n\t\t\t\t" . 'searching: false' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable-bouquets").selectable({' . "\r\n\t\t\t\t" . "filter: 'tr'," . "\r\n\t\t\t\t" . 'selected: function (event, ui) {' . "\r\n" . '                    if (!$("#pair_id").val()) {' . "\r\n" . "                        if (\$(ui.selected).hasClass('selectedfilter')) {" . "\r\n" . "                            \$(ui.selected).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n" . '                            window.rBouquets.splice(parseInt($.inArray($(ui.selected).find("td:eq(0)").text()), window.rBouquets), 1);' . "\r\n" . '                        } else {            ' . "\r\n" . "                            \$(ui.selected).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n" . '                            window.rBouquets.push(parseInt($(ui.selected).find("td:eq(0)").text()));' . "\r\n" . '                        }' . "\r\n" . '                    }' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#no_expire").change(function() {' . "\r\n\t\t\t\t" . 'if ($(this).prop("checked")) {' . "\r\n\t\t\t\t\t" . '$("#exp_date").prop("disabled", true);' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . '$("#exp_date").removeAttr("disabled");' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#add_ip").click(function() {' . "\r\n" . '                if (!$("#pair_id").val()) {' . "\r\n" . '                    if (($("#ip_field").val()) && (isValidIP($("#ip_field").val()))) {' . "\r\n" . '                        var o = new Option($("#ip_field").val(), $("#ip_field").val());' . "\r\n" . '                        $("#allowed_ips").append(o);' . "\r\n" . '                        $("#ip_field").val("");' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("Please enter a valid IP address.");' . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#remove_ip").click(function() {' . "\r\n" . '                if (!$("#pair_id").val()) {' . "\r\n" . "                    \$('#allowed_ips option:selected').remove();" . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n" . '            $("#pair_id").change(function() {' . "\r\n" . '                evaluatePair();' . "\r\n" . '            });' . "\r\n" . '            $("#mac").on("input", function(e) {' . "\r\n" . '                var rRegex = /([a-f0-9]{2})([a-f0-9]{2})/i, rString = e.target.value.replace(/[^a-f0-9]/ig, "");' . "\r\n" . '                while (rRegex.test(rString)) {' . "\r\n" . "                    rString = rString.replace(rRegex, '\$1' + ':' + '\$2');" . "\r\n" . '                }' . "\r\n" . '                e.target.value = rString.slice(0, 17).toUpperCase();' . "\r\n" . '            });' . "\r\n" . '            evaluatePair();' . "\r\n" . '            $("#no_expire").trigger("change");' . "\r\n" . '            $("form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n\t\t\t\t" . 'var rBouquets = [];' . "\r\n\t\t\t\t" . '$("#datatable-bouquets tr.selected").each(function() {' . "\r\n\t\t\t\t\t" . 'rBouquets.push($(this).find("td:eq(0)").text());' . "\r\n\t\t\t\t" . '});' . "\r\n\t\t\t\t" . '$("#bouquets_selected").val(JSON.stringify(rBouquets));' . "\r\n\t\t\t\t" . "\$(\"#allowed_ips option\").prop('selected', true);" . "\r\n" . "                \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                submitForm(window.rCurrentPage, new FormData($("form")[0]), window.rReferer);' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
-		?>
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-    <?php endif; ?>
+	<?php
+	echo '        ' . "\r\n\t\t";
+
+	if (isset($rDevice)) {
+		echo "\t\t" . 'var rBouquets = ';
+		echo $rDevice['user']['bouquet'];
+		echo ';' . "\r\n\t\t";
+	} else {
+		echo "\t\t" . 'var rBouquets = [];' . "\r\n\t\t";
+	}
+
+	echo "\r\n\t\t" . 'function toggleBouquets() {' . "\r\n" . '            if (!$("#pair_id").val()) {' . "\r\n" . '                $("#datatable-bouquets tr").each(function() {' . "\r\n" . "                    if (\$(this).hasClass('selected')) {" . "\r\n" . "                        \$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n" . '                        if ($(this).find("td:eq(0)").text()) {' . "\r\n" . '                            window.rBouquets.splice(parseInt($.inArray($(this).find("td:eq(0)").text()), window.rBouquets), 1);' . "\r\n" . '                        }' . "\r\n" . '                    } else {            ' . "\r\n" . "                        \$(this).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n" . '                        if ($(this).find("td:eq(0)").text()) {' . "\r\n" . '                            window.rBouquets.push(parseInt($(this).find("td:eq(0)").text()));' . "\r\n" . '                        }' . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function clearDevice() {' . "\r\n\t\t\t" . '$("#device-info input").each(function() {' . "\r\n\t\t\t\t" . 'if (!$(this).hasClass("sticky")) {' . "\r\n\t\t\t\t\t" . '$(this).val("");' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function clearISP() {' . "\r\n" . '            $("#isp_clear").val("");' . "\r\n" . '        }' . "\r\n\t\t" . 'function unpairUser() {' . "\r\n\t\t\t" . '$("#pair_id").val("").trigger("change");' . "\r\n\t\t" . '}' . "\r\n" . '        function evaluatePair() {' . "\r\n" . '            if ($("#pair_id").val()) {' . "\r\n" . '                $("#toggle_bouquets").addClass("disabled");' . "\r\n" . '                $("#advanced_warning").show();' . "\r\n" . '                $("#bouquet_warning").show();' . "\r\n" . '                $("#linked_info").hide();' . "\r\n" . '                $("#bouquets_info").hide();' . "\r\n" . '                $("#advanced_info").hide();' . "\r\n" . '            } else {' . "\r\n" . '                $("#toggle_bouquets").removeClass("disabled");' . "\r\n" . '                $("#advanced_warning").hide();' . "\r\n" . '                $("#bouquet_warning").hide();' . "\r\n" . '                $("#linked_info").show();' . "\r\n" . '                $("#bouquets_info").show();' . "\r\n" . '                $("#advanced_info").show();' . "\r\n" . '            }' . "\r\n" . '            $(["exp_date", "is_trial", "no_expire", "force_server_id", "forced_country", "ip_field", "allowed_ips"]).each(function(rID, rElement) {' . "\r\n" . '                if ($(rElement)) {' . "\r\n" . '                    if ($("#pair_id").val()) {' . "\r\n" . '                        if (window.rSwitches[rElement]) {' . "\r\n" . '                            setSwitch(window.rSwitches[rElement], false);' . "\r\n" . '                            window.rSwitches[rElement].disable();' . "\r\n" . '                        } else {' . "\r\n" . '                            $("#" + rElement).prop("disabled", true);' . "\r\n" . '                        }' . "\r\n" . '                    } else {' . "\r\n" . '                        if (window.rSwitches[rElement]) {' . "\r\n" . '                            window.rSwitches[rElement].enable();' . "\r\n" . '                        } else {' . "\r\n" . '                            $("#" + rElement).prop("disabled", false);' . "\r\n" . '                        }' . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '        }' . "\r\n" . '        function clearOwner() {' . "\r\n" . "            \$('#member_id').val(\"\").trigger('change');" . "\r\n" . '        }' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('select.select2').select2({width: '100%'});" . "\r\n" . "            \$('#member_id').select2({" . "\r\n\t\t\t" . '  ajax: {' . "\r\n\t\t\t\t" . "url: './api'," . "\r\n\t\t\t\t" . "dataType: 'json'," . "\r\n\t\t\t\t" . 'data: function (params) {' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'search: params.term,' . "\r\n\t\t\t\t\t" . "action: 'reguserlist'," . "\r\n\t\t\t\t\t" . 'page: params.page' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processResults: function (data, params) {' . "\r\n\t\t\t\t" . '  params.page = params.page || 1;' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'results: data.items,' . "\r\n\t\t\t\t\t" . 'pagination: {' . "\r\n\t\t\t\t\t\t" . 'more: (params.page * 100) < data.total_count' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'cache: true,' . "\r\n\t\t\t\t" . 'width: "100%"' . "\r\n\t\t\t" . '  },' . "\r\n\t\t\t" . "  placeholder: 'Search for an owner...'" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#exp_date').daterangepicker({" . "\r\n\t\t\t\t" . 'singleDatePicker: true,' . "\r\n\t\t\t\t" . 'showDropdowns: true,' . "\r\n\t\t\t\t" . 'minDate: new Date(),' . "\r\n" . '                timePicker: true,' . "\r\n\t\t\t\t" . 'locale: {' . "\r\n\t\t\t\t\t" . "format: 'YYYY-MM-DD HH:mm'" . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#pair_id').select2({" . "\r\n\t\t\t" . '  ajax: {' . "\r\n\t\t\t\t" . "url: './api'," . "\r\n\t\t\t\t" . "dataType: 'json'," . "\r\n\t\t\t\t" . 'data: function (params) {' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'search: params.term,' . "\r\n\t\t\t\t\t" . "action: 'userlist'," . "\r\n\t\t\t\t\t" . 'page: params.page' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processResults: function (data, params) {' . "\r\n\t\t\t\t" . '  params.page = params.page || 1;' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'results: data.items,' . "\r\n\t\t\t\t\t" . 'pagination: {' . "\r\n\t\t\t\t\t\t" . 'more: (params.page * 100) < data.total_count' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'cache: true,' . "\r\n\t\t\t\t" . 'width: "100%"' . "\r\n\t\t\t" . '  },' . "\r\n\t\t\t" . "  placeholder: '";
+	echo $language::get('search_user');
+	echo "'" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t\r\n\t\t\t" . '$("#datatable-bouquets").DataTable({' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,2,3]}' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t\t" . '"rowCallback": function(row, data) {' . "\r\n\t\t\t\t\t" . 'if ($.inArray(data[0], window.rBouquets) !== -1) {' . "\r\n\t\t\t\t\t\t" . '$(row).addClass("selected");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n" . '                drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n" . '                },' . "\r\n\t\t\t\t" . 'paging: false,' . "\r\n\t\t\t\t" . 'bInfo: false,' . "\r\n\t\t\t\t" . 'searching: false' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable-bouquets").selectable({' . "\r\n\t\t\t\t" . "filter: 'tr'," . "\r\n\t\t\t\t" . 'selected: function (event, ui) {' . "\r\n" . '                    if (!$("#pair_id").val()) {' . "\r\n" . "                        if (\$(ui.selected).hasClass('selectedfilter')) {" . "\r\n" . "                            \$(ui.selected).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n" . '                            window.rBouquets.splice(parseInt($.inArray($(ui.selected).find("td:eq(0)").text()), window.rBouquets), 1);' . "\r\n" . '                        } else {            ' . "\r\n" . "                            \$(ui.selected).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n" . '                            window.rBouquets.push(parseInt($(ui.selected).find("td:eq(0)").text()));' . "\r\n" . '                        }' . "\r\n" . '                    }' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#no_expire").change(function() {' . "\r\n\t\t\t\t" . 'if ($(this).prop("checked")) {' . "\r\n\t\t\t\t\t" . '$("#exp_date").prop("disabled", true);' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . '$("#exp_date").removeAttr("disabled");' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#add_ip").click(function() {' . "\r\n" . '                if (!$("#pair_id").val()) {' . "\r\n" . '                    if (($("#ip_field").val()) && (isValidIP($("#ip_field").val()))) {' . "\r\n" . '                        var o = new Option($("#ip_field").val(), $("#ip_field").val());' . "\r\n" . '                        $("#allowed_ips").append(o);' . "\r\n" . '                        $("#ip_field").val("");' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("Please enter a valid IP address.");' . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#remove_ip").click(function() {' . "\r\n" . '                if (!$("#pair_id").val()) {' . "\r\n" . "                    \$('#allowed_ips option:selected').remove();" . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n" . '            $("#pair_id").change(function() {' . "\r\n" . '                evaluatePair();' . "\r\n" . '            });' . "\r\n" . '            $("#mac").on("input", function(e) {' . "\r\n" . '                var rRegex = /([a-f0-9]{2})([a-f0-9]{2})/i, rString = e.target.value.replace(/[^a-f0-9]/ig, "");' . "\r\n" . '                while (rRegex.test(rString)) {' . "\r\n" . "                    rString = rString.replace(rRegex, '\$1' + ':' + '\$2');" . "\r\n" . '                }' . "\r\n" . '                e.target.value = rString.slice(0, 17).toUpperCase();' . "\r\n" . '            });' . "\r\n" . '            evaluatePair();' . "\r\n" . '            $("#no_expire").trigger("change");' . "\r\n" . '            $("form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n\t\t\t\t" . 'var rBouquets = [];' . "\r\n\t\t\t\t" . '$("#datatable-bouquets tr.selected").each(function() {' . "\r\n\t\t\t\t\t" . 'rBouquets.push($(this).find("td:eq(0)").text());' . "\r\n\t\t\t\t" . '});' . "\r\n\t\t\t\t" . '$("#bouquets_selected").val(JSON.stringify(rBouquets));' . "\r\n\t\t\t\t" . "\$(\"#allowed_ips option\").prop('selected', true);" . "\r\n" . "                \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                submitForm(window.rCurrentPage, new FormData($("form")[0]), window.rReferer);' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
+	?>
+	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+		$(document).ready(function() {
+			initSearch();
+		});
+	<?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>
 
 </html>
-

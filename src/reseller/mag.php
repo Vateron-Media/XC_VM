@@ -1,34 +1,34 @@
 <?php
 if (!isset($__viewMode)):
 
-include 'session.php';
-include 'functions.php';
+	include 'session.php';
+	include 'functions.php';
 
-if (checkResellerPermissions()) {
-} else {
-	goHome();
-}
-
-if (!isset(CoreUtilities::$rRequest['id'])) {
-} else {
-	$rDevice = getMag(CoreUtilities::$rRequest['id']);
-
-	if ($rDevice && $rDevice['user'] && $rDevice['user']['is_mag'] && hasPermissions('line', $rDevice['user']['id'])) {
+	if (checkResellerPermissions()) {
 	} else {
 		goHome();
 	}
 
-	$rLine = $rDevice['user'];
-
-	if (0 >= $rLine['package_id']) {
+	if (!isset(CoreUtilities::$rRequest['id'])) {
 	} else {
-		$rOrigPackage = getPackage($rLine['package_id']);
-	}
-}
+		$rDevice = getMag(CoreUtilities::$rRequest['id']);
 
-$_TITLE = 'MAG Device';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('reseller');
+		if ($rDevice && $rDevice['user'] && $rDevice['user']['is_mag'] && Authorization::check('line', $rDevice['user']['id'])) {
+		} else {
+			goHome();
+		}
+
+		$rLine = $rDevice['user'];
+
+		if (0 >= $rLine['package_id']) {
+		} else {
+			$rOrigPackage = getPackage($rLine['package_id']);
+		}
+	}
+
+	$_TITLE = 'MAG Device';
+	require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+	renderUnifiedLayoutHeader('reseller');
 endif;
 echo '<div class="wrapper boxed-layout-ext">' . "\r\n" . '    <div class="container-fluid">' . "\r\n\t\t" . '<div class="row">' . "\r\n\t\t\t" . '<div class="col-12">' . "\r\n\t\t\t\t" . '<div class="page-title-box">' . "\r\n\t\t\t\t\t" . '<div class="page-title-right">' . "\r\n" . '                        ';
 include 'topbar.php';
@@ -65,7 +65,7 @@ if (!$rGenTrials && !isset($rLine) && isset(CoreUtilities::$rRequest['trial'])) 
 
 	if (!isset($rLine) || in_array($rLine['member_id'], array_merge(array($rUserInfo['id']), $rPermissions['direct_reports']))) {
 	} else {
-		$rOwner = getRegisteredUser($rLine['member_id']);
+		$rOwner = UserRepository::getRegisteredUserById($rLine['member_id']);
 		echo '                <div class="alert alert-info" role="alert">' . "\r\n" . "                    This device does not belong to you, although you have the right to edit this device you should notify the device's owner <strong><a href=\"user?id=";
 		echo $rOwner['id'];
 		echo '">';

@@ -1,70 +1,70 @@
 <?php if (!isset($__viewMode)): ?>
-<?php
+    <?php
 
-include 'session.php';
-include 'functions.php';
+    include 'session.php';
+    include 'functions.php';
 
-if (!checkPermissions()) {
-    goHome();
-}
-
-if (!isset(CoreUtilities::$rRequest['id'])) {
-    exit();
-}
-if (isset($allServers[CoreUtilities::$rRequest['id']])) {
-    $rServer = $allServers[CoreUtilities::$rRequest['id']];
-} elseif (isset($rProxyServers[CoreUtilities::$rRequest['id']])) {
-    $rServer = $rProxyServers[CoreUtilities::$rRequest['id']];
-} else {
-    exit();
-}
-
-$rWatchdog = json_decode($rServer['watchdog_data'], true);
-$rServer['gpu_info'] = json_decode($rServer['gpu_info'], true);
-$rStats = array('cpu' => array(), 'memory' => array(), 'io' => array(), 'input' => array(), 'output' => array(), 'dates' => array(null, null));
-
-foreach (getWatchdog($rServer['id']) as $rData) {
-    if ($rStats['dates'][0] && $rData['time'] * 1000 > $rStats['dates'][0]) {
-    } else {
-        $rStats['dates'][0] = $rData['time'] * 1000;
+    if (!checkPermissions()) {
+        goHome();
     }
 
-    if ($rStats['dates'][1] && $rStats['dates'][1] > $rData['time'] * 1000) {
+    if (!isset(CoreUtilities::$rRequest['id'])) {
+        exit();
+    }
+    if (isset($allServers[CoreUtilities::$rRequest['id']])) {
+        $rServer = $allServers[CoreUtilities::$rRequest['id']];
+    } elseif (isset($rProxyServers[CoreUtilities::$rRequest['id']])) {
+        $rServer = $rProxyServers[CoreUtilities::$rRequest['id']];
     } else {
-        $rStats['dates'][1] = $rData['time'] * 1000;
+        exit();
     }
 
-    $rStats['cpu'][] = array($rData['time'] * 1000, floatval(rtrim($rData['cpu'], '%')));
-    $rStats['memory'][] = array($rData['time'] * 1000, floatval(rtrim($rData['total_mem_used_percent'], '%')));
-    $rStats['io'][] = array($rData['time'] * 1000, floatval(json_decode($rData['iostat_info'], true)['avg-cpu']['iowait']));
-    $rStats['input'][] = array($rData['time'] * 1000, round($rData['bytes_received'] / 125000, 0));
-    $rStats['output'][] = array($rData['time'] * 1000, round($rData['bytes_sent'] / 125000, 0));
-}
-$rCertificate = json_decode($rServer['certbot_ssl'], true);
-$rCertValid = false;
+    $rWatchdog = json_decode($rServer['watchdog_data'], true);
+    $rServer['gpu_info'] = json_decode($rServer['gpu_info'], true);
+    $rStats = array('cpu' => array(), 'memory' => array(), 'io' => array(), 'input' => array(), 'output' => array(), 'dates' => array(null, null));
 
-if ($rCertificate['expiration']) {
-    $rHasCert = true;
+    foreach (WatchdogMonitor::getWatchdog($rServer['id']) as $rData) {
+        if ($rStats['dates'][0] && $rData['time'] * 1000 > $rStats['dates'][0]) {
+        } else {
+            $rStats['dates'][0] = $rData['time'] * 1000;
+        }
 
-    if (time() >= $rCertificate['expiration']) {
+        if ($rStats['dates'][1] && $rStats['dates'][1] > $rData['time'] * 1000) {
+        } else {
+            $rStats['dates'][1] = $rData['time'] * 1000;
+        }
+
+        $rStats['cpu'][] = array($rData['time'] * 1000, floatval(rtrim($rData['cpu'], '%')));
+        $rStats['memory'][] = array($rData['time'] * 1000, floatval(rtrim($rData['total_mem_used_percent'], '%')));
+        $rStats['io'][] = array($rData['time'] * 1000, floatval(json_decode($rData['iostat_info'], true)['avg-cpu']['iowait']));
+        $rStats['input'][] = array($rData['time'] * 1000, round($rData['bytes_received'] / 125000, 0));
+        $rStats['output'][] = array($rData['time'] * 1000, round($rData['bytes_sent'] / 125000, 0));
+    }
+    $rCertificate = json_decode($rServer['certbot_ssl'], true);
+    $rCertValid = false;
+
+    if ($rCertificate['expiration']) {
+        $rHasCert = true;
+
+        if (time() >= $rCertificate['expiration']) {
+        } else {
+            $rCertValid = true;
+        }
+
+        $rExpiration = date($rSettings['datetime_format'], $rCertificate['expiration']);
     } else {
-        $rCertValid = true;
+        $rHasCert = false;
+        $rExpiration = 'No Certificate Installed';
     }
 
-    $rExpiration = date($rSettings['datetime_format'], $rCertificate['expiration']);
-} else {
-    $rHasCert = false;
-    $rExpiration = 'No Certificate Installed';
-}
+    if ($rServer['server_type'] == 0) {
+        $_TITLE = 'View Server';
+    } else {
+        $_TITLE = 'View Proxy';
+    }
 
-if ($rServer['server_type'] == 0) {
-    $_TITLE = 'View Server';
-} else {
-    $_TITLE = 'View Proxy';
-}
-
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('admin'); ?>
+    require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+    renderUnifiedLayoutHeader('admin'); ?>
 <?php endif; ?>
 
 <div class="wrapper boxed-layout-ext" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') echo ' style="display: none;"'; ?>>
@@ -104,7 +104,7 @@ renderUnifiedLayoutHeader('admin'); ?>
                         <?php else: ?>
                             <div class="col-md-6">
                             <?php endif; ?>
-                            <?php if (hasPermissions('adv', 'live_connections')): ?>
+                            <?php if (Authorization::check('adv', 'live_connections')): ?>
                                 <a href="./live_connections?server_id=<?= $rServer['id']; ?>">
                                 <?php endif; ?>
                                 <div class="card cta-box <?php if (!$rSettings['dark_mode']) echo 'bg-purple'; ?> text-white">
@@ -124,7 +124,7 @@ renderUnifiedLayoutHeader('admin'); ?>
                                         </div>
                                     </div>
                                 </div>
-                                <?php if (hasPermissions('adv', 'live_connections')): ?>
+                                <?php if (Authorization::check('adv', 'live_connections')): ?>
                                 </a>
                             <?php endif; ?>
                             </div>
@@ -133,7 +133,7 @@ renderUnifiedLayoutHeader('admin'); ?>
                                 <?php else: ?>
                                     <div class="col-md-6">
                                     <?php endif; ?>
-                                    <?php if (hasPermissions('adv', 'live_connections')): ?>
+                                    <?php if (Authorization::check('adv', 'live_connections')): ?>
                                         <a href="./live_connections?server_id=<?= $rServer['id']; ?>">
                                         <?php endif; ?>
                                         <div class="card cta-box <?php if (!$rSettings['dark_mode']) echo 'bg-success'; ?> text-white">
@@ -153,13 +153,13 @@ renderUnifiedLayoutHeader('admin'); ?>
                                                 </div>
                                             </div>
                                         </div>
-                                        <?php if (hasPermissions('adv', 'live_connections')): ?>
+                                        <?php if (Authorization::check('adv', 'live_connections')): ?>
                                         </a>
                                     <?php endif; ?>
                                     </div>
                                     <?php if ($rServer['server_type'] == 0): ?>
                                         <div class="col-md-3">
-                                            <?php if (hasPermissions('adv', 'streams')): ?>
+                                            <?php if (Authorization::check('adv', 'streams')): ?>
                                                 <a href="./streams?filter=1&server=<?= $rServer['id']; ?>">
                                                 <?php endif; ?>
                                                 <div class="card cta-box <?php if (!$rSettings['dark_mode']) echo 'bg-pink'; ?> text-white">
@@ -179,12 +179,12 @@ renderUnifiedLayoutHeader('admin'); ?>
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <?php if (hasPermissions('adv', 'streams')): ?>
+                                                <?php if (Authorization::check('adv', 'streams')): ?>
                                                 </a>
                                             <?php endif; ?>
                                         </div>
                                         <div class="col-md-3">
-                                            <?php if (hasPermissions('adv', 'streams')): ?>
+                                            <?php if (Authorization::check('adv', 'streams')): ?>
                                                 <a href="./streams?filter=2&server=<?= $rServer['id']; ?>">
                                                 <?php endif; ?>
                                                 <div class="card cta-box <?php if (!$rSettings['dark_mode']) echo 'bg-info'; ?> text-white">
@@ -204,7 +204,7 @@ renderUnifiedLayoutHeader('admin'); ?>
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <?php if (hasPermissions('adv', 'streams')): ?>
+                                                <?php if (Authorization::check('adv', 'streams')): ?>
                                                 </a>
                                             <?php endif; ?>
                                         </div>
@@ -453,10 +453,10 @@ renderUnifiedLayoutHeader('admin'); ?>
         </div>
 
         <!-- Additional UI elements can be added here -->
-    <?php
-    require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
-    renderUnifiedLayoutFooter('admin');
-    ?>
+        <?php
+        require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+        renderUnifiedLayoutFooter('admin');
+        ?>
         <script id="scripts">
             var resizeObserver = new ResizeObserver(entries => $(window).scroll());
             $(document).ready(function() {

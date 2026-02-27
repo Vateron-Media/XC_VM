@@ -9,7 +9,8 @@ class AuthService {
 	// Из CodeService
 	// ──────────────────────────────────────────────
 
-	public static function processCode($db, $rData, $rGetCodeCallback, $rUpdateCodesCallback) {
+	public static function processCode($rData, $rGetCodeCallback, $rUpdateCodesCallback) {
+		global $db;
 		if (isset($rData['edit'])) {
 			$rArray = overwriteData(call_user_func($rGetCodeCallback, $rData['edit']), $rData);
 			$rOrigCode = $rArray['code'];
@@ -80,7 +81,8 @@ class AuthService {
 	// Из HMACService
 	// ──────────────────────────────────────────────
 
-	public static function processHMAC($db, $rData, $rSettings, $rGetHMACTokenCallback) {
+	public static function processHMAC($rData, $rSettings, $rGetHMACTokenCallback) {
+		global $db;
 		if (isset($rData['edit'])) {
 			$rArray = overwriteData(call_user_func($rGetHMACTokenCallback, $rData['edit']), $rData);
 		} else {
@@ -135,7 +137,8 @@ class AuthService {
 	// Из HMACValidator
 	// ──────────────────────────────────────────────
 
-	public static function validateHMAC($db, $rSettings, $rCached, $rHMAC, $rExpiry, $rStreamID, $rExtension, $rIP = '', $rMACIP = '', $rIdentifier = '', $rMaxConnections = 0, $rDecryptCallback = null) {
+	public static function validateHMAC($rSettings, $rCached, $rHMAC, $rExpiry, $rStreamID, $rExtension, $rIP = '', $rMACIP = '', $rIdentifier = '', $rMaxConnections = 0, $rDecryptCallback = null) {
+		global $db;
 		if (0 < strlen($rIP) && 0 < strlen($rMACIP) && $rIP != $rMACIP) {
 			return null;
 		}

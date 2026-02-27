@@ -58,7 +58,7 @@ class BaseAdminController
      */
     protected function requireAdvPermission($type, $key)
     {
-        if (function_exists('hasPermissions') && !hasPermissions($type, $key)) {
+        if (class_exists('Authorization') && !Authorization::check($type, $key)) {
             if (function_exists('goHome')) {
                 goHome();
             }
@@ -78,13 +78,31 @@ class BaseAdminController
         require_once MAIN_HOME . 'interfaces/Http/Views/layouts/admin.php';
         require_once MAIN_HOME . 'interfaces/Http/Views/layouts/footer.php';
 
-        // Глобальные переменные, нужные view-шаблонам
+        // Глобальные переменные, нужные view-шаблонам и legacy-файлам.
+        // Полный набор, включая переменные из bootstrap, functions.php
+        // и admin_constants.php, чтобы legacy body code мог их использовать.
         $viewGlobals = [
+            // Core rendering
             'language', 'db', 'rSettings', 'rMobile', 'rUserInfo',
             'rPermissions', '_TITLE', '_STATUS', '_PAGE',
-            'rThemes', 'rHues', 'rServers', 'allServers',
-            'allowedLangs', 'rTMDBLanguages', 'rGeoCountries', 'rMAGs',
-            'rTimezones',
+            // Theme/UI
+            'rThemes', 'rHues',
+            // Servers
+            'rServers', 'allServers', 'rProxyServers',
+            'rServerError', 'allServersHealthy', 'updateRequired',
+            // Locale/Geo
+            'allowedLangs', 'rTMDBLanguages', 'rGeoCountries',
+            'rCountryCodes', 'rCountries',
+            // Devices & constants
+            'rMAGs', 'rTimezones',
+            // Status arrays (admin_constants.php)
+            'rStatusArray', 'rSearchStatusArray', 'rVODStatusArray',
+            'rWatchStatusArray', 'rFailureStatusArray', 'rStreamLogsArray',
+            'rResellerActions', 'rClientFilters',
+            // Permissions
+            'rPermissionKeys', 'rAdvPermissions',
+            // Misc from bootstrap
+            'rDetect', 'rTimeout', 'rProtocol',
         ];
         foreach ($viewGlobals as $_g) {
             if (array_key_exists($_g, $GLOBALS) && !array_key_exists($_g, $data)) {
@@ -95,25 +113,25 @@ class BaseAdminController
 
         extract($data);
 
-        $viewsDir = MAIN_HOME . 'interfaces/Http/Views/' . $this->scope . '/';
+        $__viewsDir = MAIN_HOME . 'interfaces/Http/Views/' . $this->scope . '/';
 
         // 1. Header
         renderUnifiedLayoutHeader($this->scope);
 
         // 2. View content
-        $viewFile = $viewsDir . $view . '.php';
-        $scriptsFile = $viewsDir . $view . '.scripts.php';
-        $hasScriptsFile = file_exists($scriptsFile);
+        $__viewFile = $__viewsDir . $view . '.php';
+        $__scriptsFile = $__viewsDir . $view . '.scripts.php';
+        $__hasScriptsFile = file_exists($__scriptsFile);
 
-        if (file_exists($viewFile)) {
-            require $viewFile;
+        if (file_exists($__viewFile)) {
+            require $__viewFile;
         }
 
         // Split mode: separate .scripts.php exists → footer + scripts handled here.
         // Unified mode: no .scripts.php → view includes footer + scripts itself.
-        if ($hasScriptsFile) {
+        if ($__hasScriptsFile) {
             renderUnifiedLayoutFooter($this->scope);
-            require $scriptsFile;
+            require $__scriptsFile;
         }
     }
 

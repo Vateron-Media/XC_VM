@@ -1,4 +1,5 @@
 <?php
+
 /**
  * WatchCron — крон-задача Watch Folder.
  *

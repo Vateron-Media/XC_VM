@@ -1,7 +1,8 @@
 <?php
 
 class ServerRepository {
-	public static function getAll($db, $rSettings, $rGetCacheCallback, $rSetCacheCallback, $rForce = false) {
+	public static function getAll($rSettings, $rGetCacheCallback, $rSetCacheCallback, $rForce = false) {
+		global $db;
 		if (!$rForce && is_callable($rGetCacheCallback)) {
 			$rCache = call_user_func($rGetCacheCallback, 'servers', 10);
 			if (!empty($rCache)) {
@@ -81,7 +82,8 @@ class ServerRepository {
 		return $rServers;
 	}
 
-	public static function getAllSimple($db) {
+	public static function getAllSimple() {
+		global $db;
 		$rReturn = array();
 		$db->query('SELECT * FROM `servers` ORDER BY `id` ASC;');
 
@@ -95,7 +97,8 @@ class ServerRepository {
 		return $rReturn;
 	}
 
-	public static function getStreamingSimple($db, $rPermissions, $type = 'online') {
+	public static function getStreamingSimple($rPermissions, $type = 'online') {
+		global $db;
 		$rReturn = array();
 		$db->query('SELECT * FROM `servers` WHERE `server_type` = 0 ORDER BY `id` ASC;');
 
@@ -118,14 +121,15 @@ class ServerRepository {
 		return $rReturn;
 	}
 
-	public static function getProxySimple($db, $rPermissions, $rOnline = false) {
+	public static function getProxySimple($rPermissions, $rOnline = false) {
+		global $db;
 		$rReturn = array();
 		$db->query('SELECT * FROM `servers` WHERE `server_type` = 1 ORDER BY `id` ASC;');
 
 		if (0 >= $db->num_rows()) {
 		} else {
 			foreach ($db->get_rows() as $rRow) {
-				if ($rPermissions['is_reseller']) {
+				if (isset($rPermissions['is_reseller']) && $rPermissions['is_reseller']) {
 					$rRow['server_name'] = 'Proxy #' . $rRow['id'];
 				}
 
@@ -203,7 +207,8 @@ class ServerRepository {
 		return json_decode(call_user_func($rSystemApiRequest, $rServerID, array('action' => 'probe', 'url' => $rURL, 'user_agent' => $rUserAgent, 'http_proxy' => $rProxy, 'cookies' => $rCookies, 'headers' => $rHeaders), 30), true);
 	}
 
-	public static function deleteById($db, $rSettings, $rGetServerById, $rID, $rReplaceWith = null) {
+	public static function deleteById($rSettings, $rGetServerById, $rID, $rReplaceWith = null) {
+		global $db;
 		$rServer = call_user_func($rGetServerById, $rID);
 
 		if (!$rServer || $rServer['is_main']) {

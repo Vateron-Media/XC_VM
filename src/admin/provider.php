@@ -1,19 +1,19 @@
 <?php if (!isset($__viewMode)): ?>
-<?php
-include 'session.php';
-include 'functions.php';
+    <?php
+    include 'session.php';
+    include 'functions.php';
 
-if (!checkPermissions()) {
-    goHome();
-}
+    if (!checkPermissions()) {
+        goHome();
+    }
 
-if (isset(CoreUtilities::$rRequest['id']) && !($rProvider = getStreamProvider(CoreUtilities::$rRequest['id']))) {
-    exit();
-}
+    if (isset(CoreUtilities::$rRequest['id']) && !($rProvider = getStreamProvider(CoreUtilities::$rRequest['id']))) {
+        exit();
+    }
 
-$_TITLE = 'Stream Provider';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('admin'); ?>
+    $_TITLE = 'Stream Provider';
+    require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+    renderUnifiedLayoutHeader('admin'); ?>
 <?php endif; ?>
 <div class="wrapper boxed-layout-ext" <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') : ?><?php else : ?> style="display: none;" <?php endif; ?>>
     <div class="container-fluid">

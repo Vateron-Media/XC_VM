@@ -308,6 +308,7 @@ class XC_Autoloader {
             'CronGenerator'         => $base . 'domain/Stream/CronGenerator.php',
             'CategoryService'       => $base . 'domain/Stream/CategoryService.php',
             'StreamRepository'      => $base . 'domain/Stream/StreamRepository.php',
+            'StreamConfigRepository' => $base . 'domain/Stream/StreamConfigRepository.php',
             'M3UParser'             => $base . 'domain/Stream/M3UParser.php',
             'MovieService'          => $base . 'domain/Vod/MovieService.php',
             'SeriesService'         => $base . 'domain/Vod/SeriesService.php',

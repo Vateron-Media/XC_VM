@@ -1,4 +1,6 @@
-<div class="wrapper boxed-layout" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') { echo ' style="display: none;"'; } ?>>
+<div class="wrapper boxed-layout" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+										echo ' style="display: none;"';
+									} ?>>
 	<div class="container-fluid">
 		<div class="row">
 			<div class="col-12">
@@ -49,7 +51,7 @@
 													<div class="col-md-8">
 														<select id="folder_type" name="folder_type" class="form-control" data-toggle="select2">
 															<?php foreach (array('movie' => 'Movies', 'series' => 'TV Series') as $rKey => $rType) : ?>
-																<option value="<?= $rKey; ?>"<?php if (isset($rFolder) && $rFolder['type'] == $rKey) echo ' selected'; ?>><?= $rType; ?></option>
+																<option value="<?= $rKey; ?>" <?php if (isset($rFolder) && $rFolder['type'] == $rKey) echo ' selected'; ?>><?= $rType; ?></option>
 															<?php endforeach; ?>
 														</select>
 													</div>
@@ -58,8 +60,8 @@
 													<label class="col-md-4 col-form-label" for="server_id">Server Name</label>
 													<div class="col-md-8">
 														<select id="server_id" name="server_id" class="form-control" data-toggle="select2">
-															<?php foreach (getStreamingServers() as $rServer) : ?>
-																<option value="<?= $rServer['id']; ?>"<?php if (isset($rFolder) && $rFolder['server_id'] == $rServer['id']) echo ' selected'; ?>><?= $rServer['server_name']; ?></option>
+															<?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer) : ?>
+																<option value="<?= $rServer['id']; ?>" <?php if (isset($rFolder) && $rFolder['server_id'] == $rServer['id']) echo ' selected'; ?>><?= $rServer['server_name']; ?></option>
 															<?php endforeach; ?>
 														</select>
 													</div>
@@ -82,7 +84,7 @@
 												<div class="form-group row mb-4">
 													<label class="col-md-4 col-form-label" for="active">Enabled</label>
 													<div class="col-md-2">
-														<input name="active" id="active" type="checkbox" <?php if (!isset($rFolder) || $rFolder['active']) echo 'checked '; ?>data-plugin="switchery" class="js-switch" data-color="#039cfd"/>
+														<input name="active" id="active" type="checkbox" <?php if (!isset($rFolder) || $rFolder['active']) echo 'checked '; ?>data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 													</div>
 												</div>
 												<div class="form-group row mb-4">
@@ -124,57 +126,57 @@
 												<div class="form-group row mb-4">
 													<label class="col-md-4 col-form-label" for="disable_tmdb">Disable TMDb <i title="Do not use TMDb to match the content." class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-2">
-														<input name="disable_tmdb" id="disable_tmdb" type="checkbox" <?php if (isset($rFolder) && $rFolder['disable_tmdb']) echo 'checked '; ?>data-plugin="switchery" class="js-switch" data-color="#039cfd"/>
+														<input name="disable_tmdb" id="disable_tmdb" type="checkbox" <?php if (isset($rFolder) && $rFolder['disable_tmdb']) echo 'checked '; ?>data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 													</div>
 													<label class="col-md-4 col-form-label" for="ignore_no_match">Ignore No Match <i title="Add to database even if no TMDb match is found." class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-2">
-														<input name="ignore_no_match" id="ignore_no_match" type="checkbox" <?php if (isset($rFolder) && $rFolder['ignore_no_match']) echo 'checked '; ?>data-plugin="switchery" class="js-switch" data-color="#039cfd"/>
+														<input name="ignore_no_match" id="ignore_no_match" type="checkbox" <?php if (isset($rFolder) && $rFolder['ignore_no_match']) echo 'checked '; ?>data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 													</div>
 												</div>
 												<div class="form-group row mb-4">
 													<label class="col-md-4 col-form-label" for="read_native">Native Frames <i title="Read input video at native frame rate." class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-2">
-														<input name="read_native" id="read_native" type="checkbox" <?php if (isset($rFolder) && $rFolder['read_native']) echo 'checked '; ?>data-plugin="switchery" class="js-switch" data-color="#039cfd"/>
+														<input name="read_native" id="read_native" type="checkbox" <?php if (isset($rFolder) && $rFolder['read_native']) echo 'checked '; ?>data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 													</div>
 													<label class="col-md-4 col-form-label" for="movie_symlink">Create Symlink <i title="Generate a symlink to the original file instead of encoding. File needs to exist on all selected servers." class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-2">
-														<input name="movie_symlink" id="movie_symlink" type="checkbox" <?php if (isset($rFolder) && $rFolder['movie_symlink']) echo 'checked '; ?>data-plugin="switchery" class="js-switch" data-color="#039cfd"/>
+														<input name="movie_symlink" id="movie_symlink" type="checkbox" <?php if (isset($rFolder) && $rFolder['movie_symlink']) echo 'checked '; ?>data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 													</div>
 												</div>
 												<div class="form-group row mb-4">
 													<label class="col-md-4 col-form-label" for="auto_encode">Auto-Encode <i title="Start encoding as soon as the movie is added." class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-2">
-														<input name="auto_encode" id="auto_encode" type="checkbox" <?php if (!isset($rFolder) || $rFolder['auto_encode']) echo 'checked '; ?>data-plugin="switchery" class="js-switch" data-color="#039cfd"/>
+														<input name="auto_encode" id="auto_encode" type="checkbox" <?php if (!isset($rFolder) || $rFolder['auto_encode']) echo 'checked '; ?>data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 													</div>
 													<label class="col-md-4 col-form-label" for="ffprobe_input">Probe Input <i title="Use ffmpeg to probe input files to ensure broken / incomplete files aren't added. Will increase load." class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-2">
-														<input name="ffprobe_input" id="ffprobe_input" type="checkbox" <?php if (!isset($rFolder) || $rFolder['ffprobe_input']) echo 'checked '; ?>data-plugin="switchery" class="js-switch" data-color="#039cfd"/>
+														<input name="ffprobe_input" id="ffprobe_input" type="checkbox" <?php if (!isset($rFolder) || $rFolder['ffprobe_input']) echo 'checked '; ?>data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 													</div>
 												</div>
 												<div class="form-group row mb-4">
 													<label class="col-md-4 col-form-label" for="auto_subtitles">Auto-Add Subtitles <i title="Automatically embed subtitles of the same name in the same folder." class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-2">
-														<input name="auto_subtitles" id="auto_subtitles" type="checkbox" <?php if (isset($rFolder) && $rFolder['auto_subtitles']) echo 'checked '; ?>data-plugin="switchery" class="js-switch" data-color="#039cfd"/>
+														<input name="auto_subtitles" id="auto_subtitles" type="checkbox" <?php if (isset($rFolder) && $rFolder['auto_subtitles']) echo 'checked '; ?>data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 													</div>
 													<label class="col-md-4 col-form-label" for="auto_upgrade">Auto-Upgrade Quality <i title="Automatically upgrade quality if the system finds a new file with better quality that has the same TMDb ID." class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-2">
-														<input name="auto_upgrade" id="auto_upgrade" type="checkbox" <?php if (isset($rFolder) && $rFolder['auto_upgrade']) echo 'checked '; ?>data-plugin="switchery" class="js-switch" data-color="#039cfd"/>
+														<input name="auto_upgrade" id="auto_upgrade" type="checkbox" <?php if (isset($rFolder) && $rFolder['auto_upgrade']) echo 'checked '; ?>data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 													</div>
 												</div>
 												<div class="form-group row mb-4">
 													<label class="col-md-4 col-form-label" for="extract_metadata">Extract Metadata <i title="Use ffprobe to extract metadata information of the file and use that instead of the filename for matching against TMDb." class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-2">
-														<input name="extract_metadata" id="extract_metadata" type="checkbox" <?php if (isset($rFolder) && $rFolder['extract_metadata']) echo 'checked '; ?>data-plugin="switchery" class="js-switch" data-color="#039cfd"/>
+														<input name="extract_metadata" id="extract_metadata" type="checkbox" <?php if (isset($rFolder) && $rFolder['extract_metadata']) echo 'checked '; ?>data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 													</div>
 													<label class="col-md-4 col-form-label" for="duplicate_tmdb">Allow TMDb Duplicates <i title="Disable checks for duplicates using the TMDb ID. Turn this on if you want to add duplicates based on different file locations. Auto-upgrade won't work if you enable this." class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-2">
-														<input name="duplicate_tmdb" id="duplicate_tmdb" type="checkbox" <?php if (isset($rFolder) && $rFolder['duplicate_tmdb']) echo 'checked '; ?>data-plugin="switchery" class="js-switch" data-color="#039cfd"/>
+														<input name="duplicate_tmdb" id="duplicate_tmdb" type="checkbox" <?php if (isset($rFolder) && $rFolder['duplicate_tmdb']) echo 'checked '; ?>data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 													</div>
 												</div>
 												<div class="form-group row mb-4">
 													<label class="col-md-4 col-form-label" for="remove_subtitles">Remove Existing Subtitles <i title="Remove existing subtitles from file before encoding. You can't remove hardcoded subtitles using this method." class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-2">
-														<input name="remove_subtitles" id="remove_subtitles" type="checkbox" <?php if (isset($rFolder) && $rFolder['remove_subtitles']) echo 'checked '; ?>data-plugin="switchery" class="js-switch" data-color="#039cfd"/>
+														<input name="remove_subtitles" id="remove_subtitles" type="checkbox" <?php if (isset($rFolder) && $rFolder['remove_subtitles']) echo 'checked '; ?>data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 													</div>
 													<label class="col-md-4 col-form-label" for="target_container"><?= $language::get('target_container'); ?> <i title="Which container to use when transcoding files." class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-2">
@@ -190,7 +192,7 @@
 													<div class="col-md-8">
 														<select name="transcode_profile_id" id="transcode_profile_id" class="form-control" data-toggle="select2">
 															<option <?php if (isset($rFolder) && intval($rFolder['transcode_profile_id']) == 0) echo 'selected '; ?>value="0">Transcoding Disabled</option>
-															<?php foreach (getTranscodeProfiles() as $rProfile) : ?>
+															<?php foreach (StreamConfigRepository::getTranscodeProfiles() as $rProfile) : ?>
 																<option <?php if (isset($rFolder) && intval($rFolder['transcode_profile_id']) == intval($rProfile['profile_id'])) echo 'selected '; ?>value="<?= $rProfile['profile_id']; ?>"><?= $rProfile['profile_name']; ?></option>
 															<?php endforeach; ?>
 														</select>
@@ -211,7 +213,7 @@
 									<div class="tab-pane" id="override">
 										<div class="row">
 											<div class="col-12">
-												<div class="form-group row mb-4" id="category_movie"<?php if (isset($rFolder) && $rFolder['type'] != 'movie') echo ' style="display: none;"'; ?>>
+												<div class="form-group row mb-4" id="category_movie" <?php if (isset($rFolder) && $rFolder['type'] != 'movie') echo ' style="display: none;"'; ?>>
 													<label class="col-md-4 col-form-label" for="category_id_movie">Override Category <i title="Ignore category allocation and force category allocation." class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-8">
 														<select name="category_id_movie" id="category_id_movie" class="form-control select2" data-toggle="select2">
@@ -222,7 +224,7 @@
 														</select>
 													</div>
 												</div>
-												<div class="form-group row mb-4" id="category_series"<?php if (!isset($rFolder) || $rFolder['type'] != 'series') echo ' style="display: none;"'; ?>>
+												<div class="form-group row mb-4" id="category_series" <?php if (!isset($rFolder) || $rFolder['type'] != 'series') echo ' style="display: none;"'; ?>>
 													<label class="col-md-4 col-form-label" for="category_id_series">Override Category <i title="Ignore category allocation and force category allocation." class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-8">
 														<select name="category_id_series" id="category_id_series" class="form-control select2" data-toggle="select2">
@@ -243,7 +245,7 @@
 														</select>
 													</div>
 												</div>
-												<div class="form-group row mb-4" id="fb_category_movie"<?php if (isset($rFolder) && $rFolder['type'] != 'movie') echo ' style="display: none;"'; ?>>
+												<div class="form-group row mb-4" id="fb_category_movie" <?php if (isset($rFolder) && $rFolder['type'] != 'movie') echo ' style="display: none;"'; ?>>
 													<label class="col-md-4 col-form-label" for="fb_category_id_movie">Fallback Category <i title="Add to this category if the Genre isn't found in the category allocation list." class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-8">
 														<select name="fb_category_id_movie" id="fb_category_id_movie" class="form-control select2" data-toggle="select2">
@@ -254,7 +256,7 @@
 														</select>
 													</div>
 												</div>
-												<div class="form-group row mb-4" id="fb_category_series"<?php if (!isset($rFolder) || $rFolder['type'] != 'series') echo ' style="display: none;"'; ?>>
+												<div class="form-group row mb-4" id="fb_category_series" <?php if (!isset($rFolder) || $rFolder['type'] != 'series') echo ' style="display: none;"'; ?>>
 													<label class="col-md-4 col-form-label" for="fb_category_id_series">Fallback Category <i title="Add to this category if the Genre isn't found in the category allocation list." class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-8">
 														<select name="fb_category_id_series" id="fb_category_id_series" class="form-control select2" data-toggle="select2">
@@ -278,7 +280,7 @@
 												<div class="form-group row mb-4">
 													<label class="col-md-4 col-form-label" for="fallback_title">Fallback to Folder Name <i title="If the title of the file isn't matched with TMDb, try to match the folder name instead." class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-2">
-														<input name="fallback_title" id="fallback_title" type="checkbox" <?php if (isset($rFolder) && $rFolder['fallback_title']) echo 'checked '; ?>data-plugin="switchery" class="js-switch" data-color="#039cfd"/>
+														<input name="fallback_title" id="fallback_title" type="checkbox" <?php if (isset($rFolder) && $rFolder['fallback_title']) echo 'checked '; ?>data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 													</div>
 												</div>
 												<div class="form-group row mb-4">
@@ -298,7 +300,7 @@
 															<option value="">Do Not Force</option>
 															<?php foreach (is_array($rTMDBLanguages ?? null) ? array_slice($rTMDBLanguages, 1, count($rTMDBLanguages) - 1) : [] as $rKey => $rLanguage) : ?>
 																<option<?php if (isset($rFolder) && $rFolder['language'] == $rKey) echo ' selected'; ?> value="<?= $rKey; ?>"><?= $rLanguage; ?></option>
-															<?php endforeach; ?>
+																<?php endforeach; ?>
 														</select>
 													</div>
 												</div>

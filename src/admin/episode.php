@@ -7,86 +7,86 @@
 
 
 
-include 'session.php';
-include 'functions.php';
+	include 'session.php';
+	include 'functions.php';
 
-if (checkPermissions()) {
-} else {
-	goHome();
-}
-
-if (!empty(CoreUtilities::$rRequest['sid']) || empty(CoreUtilities::$rRequest['id'])) {
-} else {
-	$db->query('SELECT `series_id` FROM `streams_episodes` WHERE `stream_id` = ?;', intval(CoreUtilities::$rRequest['id']));
-
-	if (0 >= $db->num_rows()) {
-	} else {
-		CoreUtilities::$rRequest['sid'] = intval($db->get_row()['series_id']);
-	}
-}
-
-if ($rSeriesArr = getSerie(CoreUtilities::$rRequest['sid'])) {
-} else {
-	goHome();
-}
-
-if (!isset(CoreUtilities::$rRequest['id'])) {
-} else {
-	$rEpisode = getStream(CoreUtilities::$rRequest['id']);
-
-	if ($rEpisode && $rEpisode['type'] == 5) {
+	if (checkPermissions()) {
 	} else {
 		goHome();
 	}
-}
 
-$rServerTree = array(array('id' => 'source', 'parent' => '#', 'text' => "<strong class='btn btn-success waves-effect waves-light btn-xs'>Active</strong>", 'icon' => 'mdi mdi-play', 'state' => array('opened' => true)), array('id' => 'offline', 'parent' => '#', 'text' => "<strong class='btn btn-secondary waves-effect waves-light btn-xs'>Offline</strong>", 'icon' => 'mdi mdi-stop', 'state' => array('opened' => true)));
-
-if (isset($rEpisode)) {
-	$db->query('SELECT `season_num`, `episode_num` FROM `streams_episodes` WHERE `stream_id` = ?;', $rEpisode['id']);
-
-	if (0 < $db->num_rows()) {
-		$rRow = $db->get_row();
-		$rEpisode['episode'] = intval($rRow['episode_num']);
-		$rEpisode['season'] = intval($rRow['season_num']);
+	if (!empty(CoreUtilities::$rRequest['sid']) || empty(CoreUtilities::$rRequest['id'])) {
 	} else {
-		$rEpisode['episode'] = 0;
-		$rEpisode['season'] = 0;
-	}
+		$db->query('SELECT `series_id` FROM `streams_episodes` WHERE `stream_id` = ?;', intval(CoreUtilities::$rRequest['id']));
 
-	$rEpisode['properties'] = json_decode($rEpisode['movie_properties'], true);
-	$rStreamSys = getStreamSys(CoreUtilities::$rRequest['id']);
-
-	foreach ($rServers as $rServer) {
-		if (isset($rStreamSys[intval($rServer['id'])])) {
-			$rParent = 'source';
+		if (0 >= $db->num_rows()) {
 		} else {
-			$rParent = 'offline';
+			CoreUtilities::$rRequest['sid'] = intval($db->get_row()['series_id']);
 		}
-
-		$rServerTree[] = array('id' => $rServer['id'], 'parent' => $rParent, 'text' => $rServer['server_name'], 'icon' => 'mdi mdi-server-network', 'state' => array('opened' => true));
 	}
-} else {
-	if (hasPermissions('adv', 'add_episode')) {
-		foreach ($rServers as $rServer) {
-			$rServerTree[] = array('id' => $rServer['id'], 'parent' => 'offline', 'text' => $rServer['server_name'], 'icon' => 'mdi mdi-server-network', 'state' => array('opened' => true));
+
+	if ($rSeriesArr = getSerie(CoreUtilities::$rRequest['sid'])) {
+	} else {
+		goHome();
+	}
+
+	if (!isset(CoreUtilities::$rRequest['id'])) {
+	} else {
+		$rEpisode = StreamRepository::getById(CoreUtilities::$rRequest['id']);
+
+		if ($rEpisode && $rEpisode['type'] == 5) {
+		} else {
+			goHome();
+		}
+	}
+
+	$rServerTree = array(array('id' => 'source', 'parent' => '#', 'text' => "<strong class='btn btn-success waves-effect waves-light btn-xs'>Active</strong>", 'icon' => 'mdi mdi-play', 'state' => array('opened' => true)), array('id' => 'offline', 'parent' => '#', 'text' => "<strong class='btn btn-secondary waves-effect waves-light btn-xs'>Offline</strong>", 'icon' => 'mdi mdi-stop', 'state' => array('opened' => true)));
+
+	if (isset($rEpisode)) {
+		$db->query('SELECT `season_num`, `episode_num` FROM `streams_episodes` WHERE `stream_id` = ?;', $rEpisode['id']);
+
+		if (0 < $db->num_rows()) {
+			$rRow = $db->get_row();
+			$rEpisode['episode'] = intval($rRow['episode_num']);
+			$rEpisode['season'] = intval($rRow['season_num']);
+		} else {
+			$rEpisode['episode'] = 0;
+			$rEpisode['season'] = 0;
 		}
 
-		if (isset(CoreUtilities::$rRequest['multi'])) {
-			if (hasPermissions('adv', 'import_episodes')) {
-				$rMulti = true;
+		$rEpisode['properties'] = json_decode($rEpisode['movie_properties'], true);
+		$rStreamSys = StreamRepository::getSystemRows(CoreUtilities::$rRequest['id']);
+
+		foreach ($rServers as $rServer) {
+			if (isset($rStreamSys[intval($rServer['id'])])) {
+				$rParent = 'source';
 			} else {
-				exit();
+				$rParent = 'offline';
 			}
+
+			$rServerTree[] = array('id' => $rServer['id'], 'parent' => $rParent, 'text' => $rServer['server_name'], 'icon' => 'mdi mdi-server-network', 'state' => array('opened' => true));
 		}
 	} else {
-		exit();
-	}
-}
+		if (Authorization::check('adv', 'add_episode')) {
+			foreach ($rServers as $rServer) {
+				$rServerTree[] = array('id' => $rServer['id'], 'parent' => 'offline', 'text' => $rServer['server_name'], 'icon' => 'mdi mdi-server-network', 'state' => array('opened' => true));
+			}
 
-$_TITLE = 'Episode';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('admin');
+			if (isset(CoreUtilities::$rRequest['multi'])) {
+				if (Authorization::check('adv', 'import_episodes')) {
+					$rMulti = true;
+				} else {
+					exit();
+				}
+			}
+		} else {
+			exit();
+		}
+	}
+
+	$_TITLE = 'Episode';
+	require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+	renderUnifiedLayoutHeader('admin');
 endif;
 echo '<div class="wrapper boxed-layout"';
 
@@ -455,7 +455,7 @@ echo 'value="0">';
 echo $language::get('transcoding_disabled');
 echo '</option>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
 
-foreach (getTranscodeProfiles() as $rProfile) {
+foreach (StreamConfigRepository::getTranscodeProfiles() as $rProfile) {
 	echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<option ';
 
 	if (!isset($rEpisode)) {
@@ -500,7 +500,7 @@ echo '" />' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . 
 echo $language::get('server_name');
 echo '</label>' . "\n\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<select id="server_id" class="form-control" data-toggle="select2">' . "\n\t\t\t\t\t\t\t\t\t\t\t";
 
-foreach (getStreamingServers() as $rServer) {
+foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer) {
 	echo "\t\t\t\t\t\t\t\t\t\t\t" . '<option value="';
 	echo $rServer['id'];
 	echo '"';
@@ -862,7 +862,9 @@ renderUnifiedLayoutFooter('admin'); ?>
 				}
 				rID++;
 			});
-			$.post("./api?action=get_episode_ids",{"data": JSON.stringify(rNames)},
+			$.post("./api?action=get_episode_ids", {
+					"data": JSON.stringify(rNames)
+				},
 				function(data) {
 					$(data.data).each(function(id, item) {
 						$("#episode_" + item[0] + "_num").val(item[1]);

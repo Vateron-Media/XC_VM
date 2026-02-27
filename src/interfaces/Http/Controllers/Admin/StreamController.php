@@ -8,11 +8,11 @@ class StreamController extends BaseAdminController
     {
         $this->requirePermission();
 
-        global $rServers;
+        global $db, $rServers;
 
         if (isset(CoreUtilities::$rRequest['id'])) {
-            if (!isset(CoreUtilities::$rRequest['import']) && hasPermissions('adv', 'edit_stream')) {
-                $rStream = getStream(CoreUtilities::$rRequest['id']);
+            if (!isset(CoreUtilities::$rRequest['import']) && Authorization::check('adv', 'edit_stream')) {
+                $rStream = StreamRepository::getById(CoreUtilities::$rRequest['id']);
                 if (!$rStream || $rStream['type'] != 1) {
                     $this->redirect('streams');
                     return;
@@ -23,9 +23,12 @@ class StreamController extends BaseAdminController
         }
 
         $rEPGSources = getEPGSources();
-        $rStreamArguments = getStreamArguments();
-        $rTranscodeProfiles = getTranscodeProfiles();
+        $rStreamArguments = StreamConfigRepository::getStreamArguments();
+        $rTranscodeProfiles = StreamConfigRepository::getTranscodeProfiles();
         $rOnDemand = [];
+        $rStream = null;
+        $rStreamOptions = null;
+        $rStreamSys = null;
         $rEPGJS = [[]];
 
         foreach ($rEPGSources as $rEPG) {
@@ -44,8 +47,8 @@ class StreamController extends BaseAdminController
         }
 
         if (isset($rStream)) {
-            $rStreamOptions = getStreamOptions(CoreUtilities::$rRequest['id']);
-            $rStreamSys = getStreamSys(CoreUtilities::$rRequest['id']);
+            $rStreamOptions = StreamRepository::getOptions(CoreUtilities::$rRequest['id']);
+            $rStreamSys = StreamRepository::getSystemRows(CoreUtilities::$rRequest['id']);
 
             foreach ($rServers as $rServer) {
                 if (isset($rStreamSys[intval($rServer['id'])])) {
@@ -62,7 +65,7 @@ class StreamController extends BaseAdminController
                 $rServerTree[] = ['id' => $rServer['id'], 'parent' => $rParent, 'text' => $rServer['server_name'], 'icon' => 'mdi mdi-server-network', 'state' => ['opened' => true]];
             }
         } else {
-            if (hasPermissions('adv', 'add_stream')) {
+            if (Authorization::check('adv', 'add_stream')) {
                 foreach ($rServers as $rServer) {
                     $rServerTree[] = ['id' => $rServer['id'], 'parent' => 'offline', 'text' => $rServer['server_name'], 'icon' => 'mdi mdi-server-network', 'state' => ['opened' => true]];
                 }

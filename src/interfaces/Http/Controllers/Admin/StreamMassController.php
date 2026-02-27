@@ -11,8 +11,8 @@ class StreamMassController extends BaseAdminController
         global $rServers;
 
         $rCategories = getCategories('live');
-        $rStreamArguments = getStreamArguments();
-        $rTranscodeProfiles = getTranscodeProfiles();
+        $rStreamArguments = StreamConfigRepository::getStreamArguments();
+        $rTranscodeProfiles = StreamConfigRepository::getTranscodeProfiles();
 
         $rServerTree = [
             ['id' => 'source', 'parent' => '#', 'text' => "<strong class='btn btn-success waves-effect waves-light btn-xs'>Online</strong>", 'icon' => 'mdi mdi-play', 'state' => ['opened' => true]],

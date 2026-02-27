@@ -1,49 +1,49 @@
 <?php if (!isset($__viewMode)): ?>
-<?php
+    <?php
 
-include 'session.php';
-include 'functions.php';
+    include 'session.php';
+    include 'functions.php';
 
-if (checkPermissions()) {
-} else {
-    goHome();
-}
-
-$rOverride = isset(CoreUtilities::$rRequest['override']);
-$rOrdered = array('stream' => array(), 'movie' => array(), 'series' => array(), 'radio' => array());
-$db->query('SELECT COUNT(`id`) AS `count` FROM `streams`;');
-$rCount = $db->get_row()['count'];
-
-if (!($rCount <= 50000 || $rOverride)) {
-} else {
-    $db->query('SELECT `id`, `type`, `stream_display_name`, `category_id` FROM `streams` ORDER BY `order` ASC, `stream_display_name` ASC;');
-
-    if (0 >= $db->num_rows()) {
+    if (checkPermissions()) {
     } else {
-        foreach ($db->get_rows() as $rRow) {
-            if ($rRow['type'] == 1 || $rRow['type'] == 3) {
-                $rOrdered['stream'][] = $rRow;
-            } else {
-                if ($rRow['type'] == 2) {
-                    $rOrdered['movie'][] = $rRow;
+        goHome();
+    }
+
+    $rOverride = isset(CoreUtilities::$rRequest['override']);
+    $rOrdered = array('stream' => array(), 'movie' => array(), 'series' => array(), 'radio' => array());
+    $db->query('SELECT COUNT(`id`) AS `count` FROM `streams`;');
+    $rCount = $db->get_row()['count'];
+
+    if (!($rCount <= 50000 || $rOverride)) {
+    } else {
+        $db->query('SELECT `id`, `type`, `stream_display_name`, `category_id` FROM `streams` ORDER BY `order` ASC, `stream_display_name` ASC;');
+
+        if (0 >= $db->num_rows()) {
+        } else {
+            foreach ($db->get_rows() as $rRow) {
+                if ($rRow['type'] == 1 || $rRow['type'] == 3) {
+                    $rOrdered['stream'][] = $rRow;
                 } else {
-                    if ($rRow['type'] == 4) {
-                        $rOrdered['radio'][] = $rRow;
+                    if ($rRow['type'] == 2) {
+                        $rOrdered['movie'][] = $rRow;
                     } else {
-                        if ($rRow['type'] != 5) {
+                        if ($rRow['type'] == 4) {
+                            $rOrdered['radio'][] = $rRow;
                         } else {
-                            $rOrdered['series'][] = $rRow;
+                            if ($rRow['type'] != 5) {
+                            } else {
+                                $rOrdered['series'][] = $rRow;
+                            }
                         }
                     }
                 }
             }
         }
     }
-}
 
-$_TITLE = 'Channel Order';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('admin'); ?>
+    $_TITLE = 'Channel Order';
+    require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+    renderUnifiedLayoutHeader('admin'); ?>
 <?php endif; ?>
 <div class="wrapper boxed-layout-ext" <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
                                         } else {

@@ -399,12 +399,12 @@ class Router {
 
         $perm = $entry['permission'];
 
-        // Поддержка формата ['type', 'key'] для hasPermissions()
+        // Поддержка формата ['type', 'key'] для Authorization::check()
         if (is_array($perm) && count($perm) === 2 && is_string($perm[0])) {
-            if (function_exists('hasPermissions')) {
-                return hasPermissions($perm[0], $perm[1]);
+            if (class_exists('Authorization')) {
+                return Authorization::check($perm[0], $perm[1]);
             }
-            return true; // fallback если функция недоступна
+            return true; // fallback если класс недоступен
         }
 
         // Произвольный callable

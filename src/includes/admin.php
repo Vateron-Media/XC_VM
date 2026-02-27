@@ -1,136 +1,15 @@
 <?php
 
-if (session_status() == PHP_SESSION_NONE && php_sapi_name() !== 'cli') {
-	$rParams = (session_get_cookie_params() ?: array());
-	$rParams['samesite'] = 'Strict';
-	session_set_cookie_params($rParams);
-	session_start();
-}
+require_once __DIR__ . '/bootstrap/admin_bootstrap.php';
+bootstrapAdminInclude();
 
-define('STATUS_FAILURE', 0);
-define('STATUS_SUCCESS', 1);
-define('STATUS_SUCCESS_MULTI', 2);
-define('STATUS_CODE_LENGTH', 3);
-define('STATUS_NO_SOURCES', 4);
-define('STATUS_DISABLED', 5);
-define('STATUS_NOT_ADMIN', 6);
-define('STATUS_INVALID_EMAIL', 7);
-define('STATUS_INVALID_PASSWORD', 8);
-define('STATUS_INVALID_IP', 9);
-define('STATUS_INVALID_PLAYLIST', 10);
-define('STATUS_INVALID_NAME', 11);
-define('STATUS_INVALID_CAPTCHA', 12);
-define('STATUS_INVALID_CODE', 13);
-define('STATUS_INVALID_DATE', 14);
-define('STATUS_INVALID_FILE', 15);
-define('STATUS_INVALID_GROUP', 16);
-define('STATUS_INVALID_DATA', 17);
-define('STATUS_INVALID_DIR', 18);
-define('STATUS_INVALID_MAC', 19);
-define('STATUS_EXISTS_CODE', 20);
-define('STATUS_EXISTS_NAME', 21);
-define('STATUS_EXISTS_USERNAME', 22);
-define('STATUS_EXISTS_MAC', 23);
-define('STATUS_EXISTS_SOURCE', 24);
-define('STATUS_EXISTS_IP', 25);
-define('STATUS_EXISTS_DIR', 26);
-define('STATUS_SUCCESS_REPLACE', 27);
-define('STATUS_FLUSH', 28);
-define('STATUS_TOO_MANY_RESULTS', 29);
-define('STATUS_SPACE_ISSUE', 30);
-define('STATUS_INVALID_USER', 31);
-define('STATUS_CERTBOT', 32);
-define('STATUS_CERTBOT_INVALID', 33);
-define('STATUS_INVALID_INPUT', 34);
-define('STATUS_NOT_RESELLER', 35);
-define('STATUS_NO_TRIALS', 36);
-define('STATUS_INSUFFICIENT_CREDITS', 37);
-define('STATUS_INVALID_PACKAGE', 38);
-define('STATUS_INVALID_TYPE', 39);
-define('STATUS_INVALID_USERNAME', 40);
-define('STATUS_INVALID_SUBRESELLER', 41);
-define('STATUS_NO_DESCRIPTION', 42);
-define('STATUS_NO_KEY', 43);
-define('STATUS_EXISTS_HMAC', 44);
-define('STATUS_CERTBOT_RUNNING', 45);
-define('STATUS_RESERVED_CODE', 46);
-define('STATUS_NO_TITLE', 47);
-define('STATUS_NO_SOURCE', 48);
-require_once '/home/xc_vm/www/constants.php';
-require_once MAIN_HOME . 'core/Database/DatabaseHandler.php';
-require_once INCLUDES_PATH . 'CoreUtilities.php';
-require_once INCLUDES_PATH . 'libs/mobiledetect.php';
-require_once INCLUDES_PATH . 'libs/Translator.php';
-require_once INCLUDES_PATH . 'admin_api.php';
-require_once INCLUDES_PATH . 'reseller_api.php';
-register_shutdown_function('shutdown_admin');
-$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
-CoreUtilities::$db = &$db;
-CoreUtilities::init();
-API::$db = &$db;
-API::init();
-ResellerAPI::$db = &$db;
-ResellerAPI::init();
-CoreUtilities::connectRedis();
-if (defined('SERVER_ID') === false) {
-	define('SERVER_ID', intval(CoreUtilities::$rConfig['server_id']));
-}
-$rDetect = new Mobile_Detect();
-$rMobile = $rDetect->isMobile();
-$rTimeout = 15;
-$rSQLTimeout = 10;
-set_time_limit($rTimeout);
-ini_set('mysql.connect_timeout', $rSQLTimeout);
-ini_set('max_execution_time', $rTimeout);
-ini_set('default_socket_timeout', $rTimeout);
-$rProtocol = getProtocol();
-$allServers = getAllServers();
-$rServers = getStreamingServers();
-$rSettings = CoreUtilities::$rSettings;
-$rProxyServers = getProxyServers();
-
-// Multilingual support
-$language = Translator::class;
-$language::init(MAIN_HOME . 'includes/langs/');
-$allowedLangs = $language::available();
-
-
-uasort(
-	$rServers,
-	function ($a, $b) {
-		return $a['order'] - $b['order'];
-	}
-);
-
-$rMAGs = array('AuraHD', 'AuraHD2', 'AuraHD3', 'AuraHD4', 'AuraHD5', 'AuraHD6', 'AuraHD7', 'AuraHD8', 'AuraHD9', 'MAG200', 'MAG245', 'MAG245D', 'MAG250', 'MAG254', 'MAG255', 'MAG256', 'MAG257', 'MAG260', 'MAG270', 'MAG275', 'MAG322', 'MAG323', 'MAG324', 'MAG325', 'MAG349', 'MAG350', 'MAG351', 'MAG352', 'MAG420', 'WR320', 'TH100', 'MAG424', 'MAG424W3');
-$rCountryCodes = array('AF' => 'Afghanistan', 'AL' => 'Albania', 'DZ' => 'Algeria', 'AS' => 'American Samoa', 'AD' => 'Andorra', 'AO' => 'Angola', 'AI' => 'Anguilla', 'AQ' => 'Antarctica', 'AG' => 'Antigua and Barbuda', 'AR' => 'Argentina', 'AM' => 'Armenia', 'AW' => 'Aruba', 'AU' => 'Australia', 'AT' => 'Austria', 'AZ' => 'Azerbaijan', 'BS' => 'Bahamas', 'BH' => 'Bahrain', 'BD' => 'Bangladesh', 'BB' => 'Barbados', 'BY' => 'Belarus', 'BE' => 'Belgium', 'BZ' => 'Belize', 'BJ' => 'Benin', 'BM' => 'Bermuda', 'BT' => 'Bhutan', 'BO' => 'Bolivia (Plurinational State of)', 'BQ' => 'Bonaire, Sint Eustatius and Saba', 'BA' => 'Bosnia and Herzegovina', 'BW' => 'Botswana', 'BV' => 'Bouvet Island', 'BR' => 'Brazil', 'IO' => 'British Indian Ocean Territory', 'BN' => 'Brunei Darussalam', 'BG' => 'Bulgaria', 'BF' => 'Burkina Faso', 'BI' => 'Burundi', 'CV' => 'Cabo Verde', 'KH' => 'Cambodia', 'CM' => 'Cameroon', 'CA' => 'Canada', 'KY' => 'Cayman Islands', 'CF' => 'Central African Republic', 'TD' => 'Chad', 'CL' => 'Chile', 'CN' => 'China', 'CX' => 'Christmas Island', 'CC' => 'Cocos (Keeling) Islands', 'CO' => 'Colombia', 'KM' => 'Comoros', 'CD' => 'Congo (the Democratic Republic of the)', 'CG' => 'Congo', 'CK' => 'Cook Islands', 'CR' => 'Costa Rica', 'HR' => 'Croatia', 'CU' => 'Cuba', 'CW' => 'Curaçao', 'CY' => 'Cyprus', 'CZ' => 'Czechia', 'CI' => "Côte d'Ivoire", 'DK' => 'Denmark', 'DJ' => 'Djibouti', 'DM' => 'Dominica', 'DO' => 'Dominican Republic', 'EC' => 'Ecuador', 'EG' => 'Egypt', 'SV' => 'El Salvador', 'GQ' => 'Equatorial Guinea', 'ER' => 'Eritrea', 'EE' => 'Estonia', 'SZ' => 'Eswatini', 'ET' => 'Ethiopia', 'FK' => 'Falkland Islands [Malvinas]', 'FO' => 'Faroe Islands', 'FJ' => 'Fiji', 'FI' => 'Finland', 'FR' => 'France', 'GF' => 'French Guiana', 'PF' => 'French Polynesia', 'TF' => 'French Southern Territories', 'GA' => 'Gabon', 'GM' => 'Gambia', 'GE' => 'Georgia', 'DE' => 'Germany', 'GH' => 'Ghana', 'GI' => 'Gibraltar', 'GR' => 'Greece', 'GL' => 'Greenland', 'GD' => 'Grenada', 'GP' => 'Guadeloupe', 'GU' => 'Guam', 'GT' => 'Guatemala', 'GG' => 'Guernsey', 'GN' => 'Guinea', 'GW' => 'Guinea-Bissau', 'GY' => 'Guyana', 'HT' => 'Haiti', 'HM' => 'Heard Island and McDonald Islands', 'VA' => 'Holy See', 'HN' => 'Honduras', 'HK' => 'Hong Kong', 'HU' => 'Hungary', 'IS' => 'Iceland', 'IN' => 'India', 'ID' => 'Indonesia', 'IR' => 'Iran (Islamic Republic of)', 'IQ' => 'Iraq', 'IE' => 'Ireland', 'IM' => 'Isle of Man', 'IL' => 'Israel', 'IT' => 'Italy', 'JM' => 'Jamaica', 'JP' => 'Japan', 'JE' => 'Jersey', 'JO' => 'Jordan', 'KZ' => 'Kazakhstan', 'KE' => 'Kenya', 'KI' => 'Kiribati', 'KP' => "Korea (the Democratic People's Republic of)", 'KR' => 'Korea (the Republic of)', 'KW' => 'Kuwait', 'KG' => 'Kyrgyzstan', 'LA' => "Lao People's Democratic Republic", 'LV' => 'Latvia', 'LB' => 'Lebanon', 'LS' => 'Lesotho', 'LR' => 'Liberia', 'LY' => 'Libya', 'LI' => 'Liechtenstein', 'LT' => 'Lithuania', 'LU' => 'Luxembourg', 'MO' => 'Macao', 'MG' => 'Madagascar', 'MW' => 'Malawi', 'MY' => 'Malaysia', 'MV' => 'Maldives', 'ML' => 'Mali', 'MT' => 'Malta', 'MH' => 'Marshall Islands', 'MQ' => 'Martinique', 'MR' => 'Mauritania', 'MU' => 'Mauritius', 'YT' => 'Mayotte', 'MX' => 'Mexico', 'FM' => 'Micronesia (Federated States of)', 'MD' => 'Moldova (the Republic of)', 'MC' => 'Monaco', 'MN' => 'Mongolia', 'ME' => 'Montenegro', 'MS' => 'Montserrat', 'MA' => 'Morocco', 'MZ' => 'Mozambique', 'MM' => 'Myanmar', 'NA' => 'Namibia', 'NR' => 'Nauru', 'NP' => 'Nepal', 'NL' => 'Netherlands', 'NC' => 'New Caledonia', 'NZ' => 'New Zealand', 'NI' => 'Nicaragua', 'NE' => 'Niger', 'NG' => 'Nigeria', 'NU' => 'Niue', 'NF' => 'Norfolk Island', 'MP' => 'Northern Mariana Islands', 'NO' => 'Norway', 'OM' => 'Oman', 'PK' => 'Pakistan', 'PW' => 'Palau', 'PS' => 'Palestine, State of', 'PA' => 'Panama', 'PG' => 'Papua New Guinea', 'PY' => 'Paraguay', 'PE' => 'Peru', 'PH' => 'Philippines', 'PN' => 'Pitcairn', 'PL' => 'Poland', 'PT' => 'Portugal', 'PR' => 'Puerto Rico', 'QA' => 'Qatar', 'MK' => 'Republic of North Macedonia', 'RO' => 'Romania', 'RU' => 'Russian Federation', 'RW' => 'Rwanda', 'RE' => 'Réunion', 'BL' => 'Saint Barthélemy', 'SH' => 'Saint Helena, Ascension and Tristan da Cunha', 'KN' => 'Saint Kitts and Nevis', 'LC' => 'Saint Lucia', 'MF' => 'Saint Martin (French part)', 'PM' => 'Saint Pierre and Miquelon', 'VC' => 'Saint Vincent and the Grenadines', 'WS' => 'Samoa', 'SM' => 'San Marino', 'ST' => 'Sao Tome and Principe', 'SA' => 'Saudi Arabia', 'SN' => 'Senegal', 'RS' => 'Serbia', 'SC' => 'Seychelles', 'SL' => 'Sierra Leone', 'SG' => 'Singapore', 'SX' => 'Sint Maarten (Dutch part)', 'SK' => 'Slovakia', 'SI' => 'Slovenia', 'SB' => 'Solomon Islands', 'SO' => 'Somalia', 'ZA' => 'South Africa', 'GS' => 'South Georgia and the South Sandwich Islands', 'SS' => 'South Sudan', 'ES' => 'Spain', 'LK' => 'Sri Lanka', 'SD' => 'Sudan', 'SR' => 'Suriname', 'SJ' => 'Svalbard and Jan Mayen', 'SE' => 'Sweden', 'CH' => 'Switzerland', 'SY' => 'Syrian Arab Republic', 'TW' => 'Taiwan (Province of China)', 'TJ' => 'Tajikistan', 'TZ' => 'Tanzania, United Republic of', 'TH' => 'Thailand', 'TL' => 'Timor-Leste', 'TG' => 'Togo', 'TK' => 'Tokelau', 'TO' => 'Tonga', 'TT' => 'Trinidad and Tobago', 'TN' => 'Tunisia', 'TR' => 'Turkey', 'TM' => 'Turkmenistan', 'TC' => 'Turks and Caicos Islands', 'TV' => 'Tuvalu', 'UG' => 'Uganda', 'UA' => 'Ukraine', 'AE' => 'United Arab Emirates', 'GB' => 'United Kingdom', 'UM' => 'United States Minor Outlying Islands', 'US' => 'United States of America', 'UY' => 'Uruguay', 'UZ' => 'Uzbekistan', 'VU' => 'Vanuatu', 'VE' => 'Venezuela (Bolivarian Republic of)', 'VN' => 'Viet Nam', 'VG' => 'Virgin Islands (British)', 'VI' => 'Virgin Islands (U.S.)', 'WF' => 'Wallis and Futuna', 'EH' => 'Western Sahara', 'YE' => 'Yemen', 'ZM' => 'Zambia', 'ZW' => 'Zimbabwe', 'AX' => 'Åland Islands');
-$rCountries = array(array('id' => '', 'name' => 'Off'), array('id' => 'A1', 'name' => 'Anonymous Proxy'), array('id' => 'A2', 'name' => 'Satellite Provider'), array('id' => 'O1', 'name' => 'Other Country'), array('id' => 'AF', 'name' => 'Afghanistan'), array('id' => 'AX', 'name' => 'Aland Islands'), array('id' => 'AL', 'name' => 'Albania'), array('id' => 'DZ', 'name' => 'Algeria'), array('id' => 'AS', 'name' => 'American Samoa'), array('id' => 'AD', 'name' => 'Andorra'), array('id' => 'AO', 'name' => 'Angola'), array('id' => 'AI', 'name' => 'Anguilla'), array('id' => 'AQ', 'name' => 'Antarctica'), array('id' => 'AG', 'name' => 'Antigua And Barbuda'), array('id' => 'AR', 'name' => 'Argentina'), array('id' => 'AM', 'name' => 'Armenia'), array('id' => 'AW', 'name' => 'Aruba'), array('id' => 'AU', 'name' => 'Australia'), array('id' => 'AT', 'name' => 'Austria'), array('id' => 'AZ', 'name' => 'Azerbaijan'), array('id' => 'BS', 'name' => 'Bahamas'), array('id' => 'BH', 'name' => 'Bahrain'), array('id' => 'BD', 'name' => 'Bangladesh'), array('id' => 'BB', 'name' => 'Barbados'), array('id' => 'BY', 'name' => 'Belarus'), array('id' => 'BE', 'name' => 'Belgium'), array('id' => 'BZ', 'name' => 'Belize'), array('id' => 'BJ', 'name' => 'Benin'), array('id' => 'BM', 'name' => 'Bermuda'), array('id' => 'BT', 'name' => 'Bhutan'), array('id' => 'BO', 'name' => 'Bolivia'), array('id' => 'BA', 'name' => 'Bosnia And Herzegovina'), array('id' => 'BW', 'name' => 'Botswana'), array('id' => 'BV', 'name' => 'Bouvet Island'), array('id' => 'BR', 'name' => 'Brazil'), array('id' => 'IO', 'name' => 'British Indian Ocean Territory'), array('id' => 'BN', 'name' => 'Brunei Darussalam'), array('id' => 'BG', 'name' => 'Bulgaria'), array('id' => 'BF', 'name' => 'Burkina Faso'), array('id' => 'BI', 'name' => 'Burundi'), array('id' => 'KH', 'name' => 'Cambodia'), array('id' => 'CM', 'name' => 'Cameroon'), array('id' => 'CA', 'name' => 'Canada'), array('id' => 'CV', 'name' => 'Cape Verde'), array('id' => 'KY', 'name' => 'Cayman Islands'), array('id' => 'CF', 'name' => 'Central African Republic'), array('id' => 'TD', 'name' => 'Chad'), array('id' => 'CL', 'name' => 'Chile'), array('id' => 'CN', 'name' => 'China'), array('id' => 'CX', 'name' => 'Christmas Island'), array('id' => 'CC', 'name' => 'Cocos (Keeling) Islands'), array('id' => 'CO', 'name' => 'Colombia'), array('id' => 'KM', 'name' => 'Comoros'), array('id' => 'CG', 'name' => 'Congo'), array('id' => 'CD', 'name' => 'Congo, Democratic Republic'), array('id' => 'CK', 'name' => 'Cook Islands'), array('id' => 'CR', 'name' => 'Costa Rica'), array('id' => 'CI', 'name' => "Cote D'Ivoire"), array('id' => 'HR', 'name' => 'Croatia'), array('id' => 'CU', 'name' => 'Cuba'), array('id' => 'CY', 'name' => 'Cyprus'), array('id' => 'CZ', 'name' => 'Czech Republic'), array('id' => 'DK', 'name' => 'Denmark'), array('id' => 'DJ', 'name' => 'Djibouti'), array('id' => 'DM', 'name' => 'Dominica'), array('id' => 'DO', 'name' => 'Dominican Republic'), array('id' => 'EC', 'name' => 'Ecuador'), array('id' => 'EG', 'name' => 'Egypt'), array('id' => 'SV', 'name' => 'El Salvador'), array('id' => 'GQ', 'name' => 'Equatorial Guinea'), array('id' => 'ER', 'name' => 'Eritrea'), array('id' => 'EE', 'name' => 'Estonia'), array('id' => 'ET', 'name' => 'Ethiopia'), array('id' => 'FK', 'name' => 'Falkland Islands (Malvinas)'), array('id' => 'FO', 'name' => 'Faroe Islands'), array('id' => 'FJ', 'name' => 'Fiji'), array('id' => 'FI', 'name' => 'Finland'), array('id' => 'FR', 'name' => 'France'), array('id' => 'GF', 'name' => 'French Guiana'), array('id' => 'PF', 'name' => 'French Polynesia'), array('id' => 'TF', 'name' => 'French Southern Territories'), array('id' => 'MK', 'name' => 'Fyrom'), array('id' => 'GA', 'name' => 'Gabon'), array('id' => 'GM', 'name' => 'Gambia'), array('id' => 'GE', 'name' => 'Georgia'), array('id' => 'DE', 'name' => 'Germany'), array('id' => 'GH', 'name' => 'Ghana'), array('id' => 'GI', 'name' => 'Gibraltar'), array('id' => 'GR', 'name' => 'Greece'), array('id' => 'GL', 'name' => 'Greenland'), array('id' => 'GD', 'name' => 'Grenada'), array('id' => 'GP', 'name' => 'Guadeloupe'), array('id' => 'GU', 'name' => 'Guam'), array('id' => 'GT', 'name' => 'Guatemala'), array('id' => 'GG', 'name' => 'Guernsey'), array('id' => 'GN', 'name' => 'Guinea'), array('id' => 'GW', 'name' => 'Guinea-Bissau'), array('id' => 'GY', 'name' => 'Guyana'), array('id' => 'HT', 'name' => 'Haiti'), array('id' => 'HM', 'name' => 'Heard Island & Mcdonald Islands'), array('id' => 'VA', 'name' => 'Holy See (Vatican City State)'), array('id' => 'HN', 'name' => 'Honduras'), array('id' => 'HK', 'name' => 'Hong Kong'), array('id' => 'HU', 'name' => 'Hungary'), array('id' => 'IS', 'name' => 'Iceland'), array('id' => 'IN', 'name' => 'India'), array('id' => 'ID', 'name' => 'Indonesia'), array('id' => 'IR', 'name' => 'Iran, Islamic Republic Of'), array('id' => 'IQ', 'name' => 'Iraq'), array('id' => 'IE', 'name' => 'Ireland'), array('id' => 'IM', 'name' => 'Isle Of Man'), array('id' => 'IL', 'name' => 'Israel'), array('id' => 'IT', 'name' => 'Italy'), array('id' => 'JM', 'name' => 'Jamaica'), array('id' => 'JP', 'name' => 'Japan'), array('id' => 'JE', 'name' => 'Jersey'), array('id' => 'JO', 'name' => 'Jordan'), array('id' => 'KZ', 'name' => 'Kazakhstan'), array('id' => 'KE', 'name' => 'Kenya'), array('id' => 'KI', 'name' => 'Kiribati'), array('id' => 'KR', 'name' => 'Korea'), array('id' => 'KW', 'name' => 'Kuwait'), array('id' => 'KG', 'name' => 'Kyrgyzstan'), array('id' => 'LA', 'name' => "Lao People's Democratic Republic"), array('id' => 'LV', 'name' => 'Latvia'), array('id' => 'LB', 'name' => 'Lebanon'), array('id' => 'LS', 'name' => 'Lesotho'), array('id' => 'LR', 'name' => 'Liberia'), array('id' => 'LY', 'name' => 'Libyan Arab Jamahiriya'), array('id' => 'LI', 'name' => 'Liechtenstein'), array('id' => 'LT', 'name' => 'Lithuania'), array('id' => 'LU', 'name' => 'Luxembourg'), array('id' => 'MO', 'name' => 'Macao'), array('id' => 'MG', 'name' => 'Madagascar'), array('id' => 'MW', 'name' => 'Malawi'), array('id' => 'MY', 'name' => 'Malaysia'), array('id' => 'MV', 'name' => 'Maldives'), array('id' => 'ML', 'name' => 'Mali'), array('id' => 'MT', 'name' => 'Malta'), array('id' => 'MH', 'name' => 'Marshall Islands'), array('id' => 'MQ', 'name' => 'Martinique'), array('id' => 'MR', 'name' => 'Mauritania'), array('id' => 'MU', 'name' => 'Mauritius'), array('id' => 'YT', 'name' => 'Mayotte'), array('id' => 'MX', 'name' => 'Mexico'), array('id' => 'FM', 'name' => 'Micronesia, Federated States Of'), array('id' => 'MD', 'name' => 'Moldova'), array('id' => 'MC', 'name' => 'Monaco'), array('id' => 'MN', 'name' => 'Mongolia'), array('id' => 'ME', 'name' => 'Montenegro'), array('id' => 'MS', 'name' => 'Montserrat'), array('id' => 'MA', 'name' => 'Morocco'), array('id' => 'MZ', 'name' => 'Mozambique'), array('id' => 'MM', 'name' => 'Myanmar'), array('id' => 'NA', 'name' => 'Namibia'), array('id' => 'NR', 'name' => 'Nauru'), array('id' => 'NP', 'name' => 'Nepal'), array('id' => 'NL', 'name' => 'Netherlands'), array('id' => 'AN', 'name' => 'Netherlands Antilles'), array('id' => 'NC', 'name' => 'New Caledonia'), array('id' => 'NZ', 'name' => 'New Zealand'), array('id' => 'NI', 'name' => 'Nicaragua'), array('id' => 'NE', 'name' => 'Niger'), array('id' => 'NG', 'name' => 'Nigeria'), array('id' => 'NU', 'name' => 'Niue'), array('id' => 'NF', 'name' => 'Norfolk Island'), array('id' => 'MP', 'name' => 'Northern Mariana Islands'), array('id' => 'NO', 'name' => 'Norway'), array('id' => 'OM', 'name' => 'Oman'), array('id' => 'PK', 'name' => 'Pakistan'), array('id' => 'PW', 'name' => 'Palau'), array('id' => 'PS', 'name' => 'Palestinian Territory, Occupied'), array('id' => 'PA', 'name' => 'Panama'), array('id' => 'PG', 'name' => 'Papua New Guinea'), array('id' => 'PY', 'name' => 'Paraguay'), array('id' => 'PE', 'name' => 'Peru'), array('id' => 'PH', 'name' => 'Philippines'), array('id' => 'PN', 'name' => 'Pitcairn'), array('id' => 'PL', 'name' => 'Poland'), array('id' => 'PT', 'name' => 'Portugal'), array('id' => 'PR', 'name' => 'Puerto Rico'), array('id' => 'QA', 'name' => 'Qatar'), array('id' => 'RE', 'name' => 'Reunion'), array('id' => 'RO', 'name' => 'Romania'), array('id' => 'RU', 'name' => 'Russian Federation'), array('id' => 'RW', 'name' => 'Rwanda'), array('id' => 'BL', 'name' => 'Saint Barthelemy'), array('id' => 'SH', 'name' => 'Saint Helena'), array('id' => 'KN', 'name' => 'Saint Kitts And Nevis'), array('id' => 'LC', 'name' => 'Saint Lucia'), array('id' => 'MF', 'name' => 'Saint Martin'), array('id' => 'PM', 'name' => 'Saint Pierre And Miquelon'), array('id' => 'VC', 'name' => 'Saint Vincent And Grenadines'), array('id' => 'WS', 'name' => 'Samoa'), array('id' => 'SM', 'name' => 'San Marino'), array('id' => 'ST', 'name' => 'Sao Tome And Principe'), array('id' => 'SA', 'name' => 'Saudi Arabia'), array('id' => 'SN', 'name' => 'Senegal'), array('id' => 'RS', 'name' => 'Serbia'), array('id' => 'SC', 'name' => 'Seychelles'), array('id' => 'SL', 'name' => 'Sierra Leone'), array('id' => 'SG', 'name' => 'Singapore'), array('id' => 'SK', 'name' => 'Slovakia'), array('id' => 'SI', 'name' => 'Slovenia'), array('id' => 'SB', 'name' => 'Solomon Islands'), array('id' => 'SO', 'name' => 'Somalia'), array('id' => 'ZA', 'name' => 'South Africa'), array('id' => 'GS', 'name' => 'South Georgia And Sandwich Isl.'), array('id' => 'ES', 'name' => 'Spain'), array('id' => 'LK', 'name' => 'Sri Lanka'), array('id' => 'SD', 'name' => 'Sudan'), array('id' => 'SR', 'name' => 'Suriname'), array('id' => 'SJ', 'name' => 'Svalbard And Jan Mayen'), array('id' => 'SZ', 'name' => 'Swaziland'), array('id' => 'SE', 'name' => 'Sweden'), array('id' => 'CH', 'name' => 'Switzerland'), array('id' => 'SY', 'name' => 'Syrian Arab Republic'), array('id' => 'TW', 'name' => 'Taiwan'), array('id' => 'TJ', 'name' => 'Tajikistan'), array('id' => 'TZ', 'name' => 'Tanzania'), array('id' => 'TH', 'name' => 'Thailand'), array('id' => 'TL', 'name' => 'Timor-Leste'), array('id' => 'TG', 'name' => 'Togo'), array('id' => 'TK', 'name' => 'Tokelau'), array('id' => 'TO', 'name' => 'Tonga'), array('id' => 'TT', 'name' => 'Trinidad And Tobago'), array('id' => 'TN', 'name' => 'Tunisia'), array('id' => 'TR', 'name' => 'Turkey'), array('id' => 'TM', 'name' => 'Turkmenistan'), array('id' => 'TC', 'name' => 'Turks And Caicos Islands'), array('id' => 'TV', 'name' => 'Tuvalu'), array('id' => 'UG', 'name' => 'Uganda'), array('id' => 'UA', 'name' => 'Ukraine'), array('id' => 'AE', 'name' => 'United Arab Emirates'), array('id' => 'GB', 'name' => 'United Kingdom'), array('id' => 'US', 'name' => 'United States'), array('id' => 'UM', 'name' => 'United States Outlying Islands'), array('id' => 'UY', 'name' => 'Uruguay'), array('id' => 'UZ', 'name' => 'Uzbekistan'), array('id' => 'VU', 'name' => 'Vanuatu'), array('id' => 'VE', 'name' => 'Venezuela'), array('id' => 'VN', 'name' => 'Viet Nam'), array('id' => 'VG', 'name' => 'Virgin Islands, British'), array('id' => 'VI', 'name' => 'Virgin Islands, U.S.'), array('id' => 'WF', 'name' => 'Wallis And Futuna'), array('id' => 'EH', 'name' => 'Western Sahara'), array('id' => 'YE', 'name' => 'Yemen'), array('id' => 'ZM', 'name' => 'Zambia'), array('id' => 'ZW', 'name' => 'Zimbabwe'));
-$rGeoCountries = array('ALL' => 'All Countries', 'A1' => 'Anonymous Proxy', 'A2' => 'Satellite Provider', 'O1' => 'Other Country', 'AF' => 'Afghanistan', 'AX' => 'Aland Islands', 'AL' => 'Albania', 'DZ' => 'Algeria', 'AS' => 'American Samoa', 'AD' => 'Andorra', 'AO' => 'Angola', 'AI' => 'Anguilla', 'AQ' => 'Antarctica', 'AG' => 'Antigua And Barbuda', 'AR' => 'Argentina', 'AM' => 'Armenia', 'AW' => 'Aruba', 'AU' => 'Australia', 'AT' => 'Austria', 'AZ' => 'Azerbaijan', 'BS' => 'Bahamas', 'BH' => 'Bahrain', 'BD' => 'Bangladesh', 'BB' => 'Barbados', 'BY' => 'Belarus', 'BE' => 'Belgium', 'BZ' => 'Belize', 'BJ' => 'Benin', 'BM' => 'Bermuda', 'BT' => 'Bhutan', 'BO' => 'Bolivia', 'BA' => 'Bosnia And Herzegovina', 'BW' => 'Botswana', 'BV' => 'Bouvet Island', 'BR' => 'Brazil', 'IO' => 'British Indian Ocean Territory', 'BN' => 'Brunei Darussalam', 'BG' => 'Bulgaria', 'BF' => 'Burkina Faso', 'BI' => 'Burundi', 'KH' => 'Cambodia', 'CM' => 'Cameroon', 'CA' => 'Canada', 'CV' => 'Cape Verde', 'KY' => 'Cayman Islands', 'CF' => 'Central African Republic', 'TD' => 'Chad', 'CL' => 'Chile', 'CN' => 'China', 'CX' => 'Christmas Island', 'CC' => 'Cocos (Keeling) Islands', 'CO' => 'Colombia', 'KM' => 'Comoros', 'CG' => 'Congo', 'CD' => 'Congo, Democratic Republic', 'CK' => 'Cook Islands', 'CR' => 'Costa Rica', 'CI' => "Cote D'Ivoire", 'HR' => 'Croatia', 'CU' => 'Cuba', 'CY' => 'Cyprus', 'CZ' => 'Czech Republic', 'DK' => 'Denmark', 'DJ' => 'Djibouti', 'DM' => 'Dominica', 'DO' => 'Dominican Republic', 'EC' => 'Ecuador', 'EG' => 'Egypt', 'SV' => 'El Salvador', 'GQ' => 'Equatorial Guinea', 'ER' => 'Eritrea', 'EE' => 'Estonia', 'ET' => 'Ethiopia', 'FK' => 'Falkland Islands (Malvinas)', 'FO' => 'Faroe Islands', 'FJ' => 'Fiji', 'FI' => 'Finland', 'FR' => 'France', 'GF' => 'French Guiana', 'PF' => 'French Polynesia', 'TF' => 'French Southern Territories', 'MK' => 'Fyrom', 'GA' => 'Gabon', 'GM' => 'Gambia', 'GE' => 'Georgia', 'DE' => 'Germany', 'GH' => 'Ghana', 'GI' => 'Gibraltar', 'GR' => 'Greece', 'GL' => 'Greenland', 'GD' => 'Grenada', 'GP' => 'Guadeloupe', 'GU' => 'Guam', 'GT' => 'Guatemala', 'GG' => 'Guernsey', 'GN' => 'Guinea', 'GW' => 'Guinea-Bissau', 'GY' => 'Guyana', 'HT' => 'Haiti', 'HM' => 'Heard Island & Mcdonald Islands', 'VA' => 'Holy See (Vatican City State)', 'HN' => 'Honduras', 'HK' => 'Hong Kong', 'HU' => 'Hungary', 'IS' => 'Iceland', 'IN' => 'India', 'ID' => 'Indonesia', 'IR' => 'Iran, Islamic Republic Of', 'IQ' => 'Iraq', 'IE' => 'Ireland', 'IM' => 'Isle Of Man', 'IL' => 'Israel', 'IT' => 'Italy', 'JM' => 'Jamaica', 'JP' => 'Japan', 'JE' => 'Jersey', 'JO' => 'Jordan', 'KZ' => 'Kazakhstan', 'KE' => 'Kenya', 'KI' => 'Kiribati', 'KR' => 'Korea', 'KW' => 'Kuwait', 'KG' => 'Kyrgyzstan', 'LA' => "Lao People's Democratic Republic", 'LV' => 'Latvia', 'LB' => 'Lebanon', 'LS' => 'Lesotho', 'LR' => 'Liberia', 'LY' => 'Libyan Arab Jamahiriya', 'LI' => 'Liechtenstein', 'LT' => 'Lithuania', 'LU' => 'Luxembourg', 'MO' => 'Macao', 'MG' => 'Madagascar', 'MW' => 'Malawi', 'MY' => 'Malaysia', 'MV' => 'Maldives', 'ML' => 'Mali', 'MT' => 'Malta', 'MH' => 'Marshall Islands', 'MQ' => 'Martinique', 'MR' => 'Mauritania', 'MU' => 'Mauritius', 'YT' => 'Mayotte', 'MX' => 'Mexico', 'FM' => 'Micronesia, Federated States Of', 'MD' => 'Moldova', 'MC' => 'Monaco', 'MN' => 'Mongolia', 'ME' => 'Montenegro', 'MS' => 'Montserrat', 'MA' => 'Morocco', 'MZ' => 'Mozambique', 'MM' => 'Myanmar', 'NA' => 'Namibia', 'NR' => 'Nauru', 'NP' => 'Nepal', 'NL' => 'Netherlands', 'AN' => 'Netherlands Antilles', 'NC' => 'New Caledonia', 'NZ' => 'New Zealand', 'NI' => 'Nicaragua', 'NE' => 'Niger', 'NG' => 'Nigeria', 'NU' => 'Niue', 'NF' => 'Norfolk Island', 'MP' => 'Northern Mariana Islands', 'NO' => 'Norway', 'OM' => 'Oman', 'PK' => 'Pakistan', 'PW' => 'Palau', 'PS' => 'Palestinian Territory, Occupied', 'PA' => 'Panama', 'PG' => 'Papua New Guinea', 'PY' => 'Paraguay', 'PE' => 'Peru', 'PH' => 'Philippines', 'PN' => 'Pitcairn', 'PL' => 'Poland', 'PT' => 'Portugal', 'PR' => 'Puerto Rico', 'QA' => 'Qatar', 'RE' => 'Reunion', 'RO' => 'Romania', 'RU' => 'Russian Federation', 'RW' => 'Rwanda', 'BL' => 'Saint Barthelemy', 'SH' => 'Saint Helena', 'KN' => 'Saint Kitts And Nevis', 'LC' => 'Saint Lucia', 'MF' => 'Saint Martin', 'PM' => 'Saint Pierre And Miquelon', 'VC' => 'Saint Vincent And Grenadines', 'WS' => 'Samoa', 'SM' => 'San Marino', 'ST' => 'Sao Tome And Principe', 'SA' => 'Saudi Arabia', 'SN' => 'Senegal', 'RS' => 'Serbia', 'SC' => 'Seychelles', 'SL' => 'Sierra Leone', 'SG' => 'Singapore', 'SK' => 'Slovakia', 'SI' => 'Slovenia', 'SB' => 'Solomon Islands', 'SO' => 'Somalia', 'ZA' => 'South Africa', 'GS' => 'South Georgia And Sandwich Isl.', 'ES' => 'Spain', 'LK' => 'Sri Lanka', 'SD' => 'Sudan', 'SR' => 'Suriname', 'SJ' => 'Svalbard And Jan Mayen', 'SZ' => 'Swaziland', 'SE' => 'Sweden', 'CH' => 'Switzerland', 'SY' => 'Syrian Arab Republic', 'TW' => 'Taiwan', 'TJ' => 'Tajikistan', 'TZ' => 'Tanzania', 'TH' => 'Thailand', 'TL' => 'Timor-Leste', 'TG' => 'Togo', 'TK' => 'Tokelau', 'TO' => 'Tonga', 'TT' => 'Trinidad And Tobago', 'TN' => 'Tunisia', 'TR' => 'Turkey', 'TM' => 'Turkmenistan', 'TC' => 'Turks And Caicos Islands', 'TV' => 'Tuvalu', 'UG' => 'Uganda', 'UA' => 'Ukraine', 'AE' => 'United Arab Emirates', 'GB' => 'United Kingdom', 'US' => 'United States', 'UM' => 'United States Outlying Islands', 'UY' => 'Uruguay', 'UZ' => 'Uzbekistan', 'VU' => 'Vanuatu', 'VE' => 'Venezuela', 'VN' => 'Viet Nam', 'VG' => 'Virgin Islands, British', 'VI' => 'Virgin Islands, U.S.', 'WF' => 'Wallis And Futuna', 'EH' => 'Western Sahara', 'YE' => 'Yemen', 'ZM' => 'Zambia', 'ZW' => 'Zimbabwe');
-$rHues = array('' => 'Default', 'primary' => 'Blue', 'info' => 'Light Blue', 'success' => 'Green', 'danger' => 'Red', 'warning' => 'Orange', 'purple' => 'Purple', 'pink' => 'Pink', 'dark' => 'Dark Grey', 'secondary' => 'Light Grey');
-$rTMDBLanguages = array('' => 'Default - EN', 'aa' => 'Afar', 'af' => 'Afrikaans', 'ak' => 'Akan', 'an' => 'Aragonese', 'as' => 'Assamese', 'av' => 'Avaric', 'ae' => 'Avestan', 'ay' => 'Aymara', 'az' => 'Azerbaijani', 'ba' => 'Bashkir', 'bm' => 'Bambara', 'bi' => 'Bislama', 'bo' => 'Tibetan', 'br' => 'Breton', 'ca' => 'Catalan', 'cs' => 'Czech', 'ce' => 'Chechen', 'cu' => 'Slavic', 'cv' => 'Chuvash', 'kw' => 'Cornish', 'co' => 'Corsican', 'cr' => 'Cree', 'cy' => 'Welsh', 'da' => 'Danish', 'de' => 'German', 'dv' => 'Divehi', 'dz' => 'Dzongkha', 'eo' => 'Esperanto', 'et' => 'Estonian', 'eu' => 'Basque', 'fo' => 'Faroese', 'fj' => 'Fijian', 'fi' => 'Finnish', 'fr' => 'French', 'fy' => 'Frisian', 'ff' => 'Fulah', 'gd' => 'Gaelic', 'ga' => 'Irish', 'gl' => 'Galician', 'gv' => 'Manx', 'gn' => 'Guarani', 'gu' => 'Gujarati', 'ht' => 'Haitian', 'ha' => 'Hausa', 'sh' => 'Serbo-Croatian', 'hz' => 'Herero', 'ho' => 'Hiri Motu', 'hr' => 'Croatian', 'hu' => 'Hungarian', 'ig' => 'Igbo', 'io' => 'Ido', 'ii' => 'Yi', 'iu' => 'Inuktitut', 'ie' => 'Interlingue', 'ia' => 'Interlingua', 'id' => 'Indonesian', 'ik' => 'Inupiaq', 'is' => 'Icelandic', 'it' => 'Italian', 'ja' => 'Japanese', 'kl' => 'Kalaallisut', 'kn' => 'Kannada', 'ks' => 'Kashmiri', 'kr' => 'Kanuri', 'kk' => 'Kazakh', 'km' => 'Khmer', 'ki' => 'Kikuyu', 'rw' => 'Kinyarwanda', 'ky' => 'Kirghiz', 'kv' => 'Komi', 'kg' => 'Kongo', 'ko' => 'Korean', 'kj' => 'Kuanyama', 'ku' => 'Kurdish', 'lo' => 'Lao', 'la' => 'Latin', 'lv' => 'Latvian', 'li' => 'Limburgish', 'ln' => 'Lingala', 'lt' => 'Lithuanian', 'lb' => 'Letzeburgesch', 'lu' => 'Luba-Katanga', 'lg' => 'Ganda', 'mh' => 'Marshall', 'ml' => 'Malayalam', 'mr' => 'Marathi', 'mg' => 'Malagasy', 'mt' => 'Maltese', 'mo' => 'Moldavian', 'mn' => 'Mongolian', 'mi' => 'Maori', 'ms' => 'Malay', 'my' => 'Burmese', 'na' => 'Nauru', 'nv' => 'Navajo', 'nr' => 'Ndebele', 'nd' => 'Ndebele', 'ng' => 'Ndonga', 'ne' => 'Nepali', 'nl' => 'Dutch', 'nn' => 'Norwegian Nynorsk', 'nb' => 'Norwegian Bokmal', 'no' => 'Norwegian', 'ny' => 'Chichewa', 'oc' => 'Occitan', 'oj' => 'Ojibwa', 'or' => 'Oriya', 'om' => 'Oromo', 'os' => 'Ossetian; Ossetic', 'pi' => 'Pali', 'pl' => 'Polish', 'pt' => 'Portuguese', 'pt-BR' => 'Portuguese - Brazil', 'qu' => 'Quechua', 'rm' => 'Raeto-Romance', 'ro' => 'Romanian', 'rn' => 'Rundi', 'ru' => 'Russian', 'sg' => 'Sango', 'sa' => 'Sanskrit', 'si' => 'Sinhalese', 'sk' => 'Slovak', 'sl' => 'Slovenian', 'se' => 'Northern Sami', 'sm' => 'Samoan', 'sn' => 'Shona', 'sd' => 'Sindhi', 'so' => 'Somali', 'st' => 'Sotho', 'es' => 'Spanish', 'sq' => 'Albanian', 'sc' => 'Sardinian', 'sr' => 'Serbian', 'ss' => 'Swati', 'su' => 'Sundanese', 'sw' => 'Swahili', 'sv' => 'Swedish', 'ty' => 'Tahitian', 'ta' => 'Tamil', 'tt' => 'Tatar', 'te' => 'Telugu', 'tg' => 'Tajik', 'tl' => 'Tagalog', 'th' => 'Thai', 'ti' => 'Tigrinya', 'to' => 'Tonga', 'tn' => 'Tswana', 'ts' => 'Tsonga', 'tk' => 'Turkmen', 'tr' => 'Turkish', 'tw' => 'Twi', 'ug' => 'Uighur', 'uk' => 'Ukrainian', 'ur' => 'Urdu', 'uz' => 'Uzbek', 've' => 'Venda', 'vi' => 'Vietnamese', 'vo' => 'Volapük', 'wa' => 'Walloon', 'wo' => 'Wolof', 'xh' => 'Xhosa', 'yi' => 'Yiddish', 'za' => 'Zhuang', 'zu' => 'Zulu', 'ab' => 'Abkhazian', 'zh' => 'Mandarin', 'ps' => 'Pushto', 'am' => 'Amharic', 'ar' => 'Arabic', 'bg' => 'Bulgarian', 'cn' => 'Cantonese', 'mk' => 'Macedonian', 'el' => 'Greek', 'fa' => 'Persian', 'he' => 'Hebrew', 'hi' => 'Hindi', 'hy' => 'Armenian', 'en' => 'English', 'ee' => 'Ewe', 'ka' => 'Georgian', 'pa' => 'Punjabi', 'bn' => 'Bengali', 'bs' => 'Bosnian', 'ch' => 'Chamorro', 'be' => 'Belarusian', 'yo' => 'Yoruba');
-$rResellerActions = array('new' => 'Create', 'extend' => 'Extend', 'convert' => 'Convert', 'edit' => 'Edit', 'enable' => 'Enable', 'disable' => 'Disable', 'delete' => 'Delete', 'send_event' => 'MAG Event', 'adjust_credits' => 'Adjust Credits');
-$rClientFilters = array('LB_TOKEN_INVALID' => 'Token Failure', 'NOT_IN_BOUQUET' => 'Not in Bouquet', 'BLOCKED_ASN' => 'Blocked ASN', 'ISP_LOCK_FAILED' => 'ISP Lock Failed', 'USER_DISALLOW_EXT' => 'Extension Disallowed', 'AUTH_FAILED' => 'Authentication Failed', 'USER_EXPIRED' => 'User Expired', 'USER_DISABLED' => 'User Disabled', 'USER_BAN' => 'User Banned', 'MAG_TOKEN_INVALID' => 'MAG Token Invalid', 'STALKER_CHANNEL_MISMATCH' => 'Stalker Channel Mismatch', 'STALKER_IP_MISMATCH' => 'Stalker IP Mismatch', 'STALKER_KEY_EXPIRED' => 'Stalker Key Expired', 'STALKER_DECRYPT_FAILED' => 'Stalker Decrypt Failed', 'EMPTY_UA' => 'Empty User-Agent', 'IP_BAN' => 'IP Banned', 'COUNTRY_DISALLOW' => 'Country Disallowed', 'USER_AGENT_BAN' => 'User-Agent Disallowed', 'USER_ALREADY_CONNECTED' => 'IP Limit Reached', 'RESTREAM_DETECT' => 'Restream Detected', 'PROXY_DETECT' => 'Proxy / VPN Detected', 'HOSTING_DETECT' => 'Hosting Server Detected', 'LINE_CREATE_FAIL' => 'Connection Failed', 'CONNECTION_LOOP' => 'Connection Loop', 'TOKEN_EXPIRED' => 'Token Expired', 'IP_MISMATCH' => 'IP Mismatch');
-$rStatusArray = array(-1 => "<button type='button' class='btn btn-secondary btn-xs waves-effect waves-light btn-fixed-xl'>NO SERVERS</button>", 0 => "<button type='button' class='btn btn-dark btn-xs waves-effect waves-light btn-fixed-xl'>STOPPED</button>", 1 => "<button type='button' class='btn btn-success btn-xs waves-effect waves-light btn-fixed-xl'>ONLINE</button>", 2 => "<button type='button' class='btn btn-warning btn-xs waves-effect waves-light btn-fixed'>STARTING</button>", 3 => "<button type='button' class='btn btn-danger btn-xs waves-effect waves-light btn-fixed'>DOWN</button>", 4 => "<button type='button' class='btn btn-info btn-xs waves-effect waves-light btn-fixed-xl'>ON DEMAND</button>", 5 => "<button type='button' class='btn btn-purple btn-xs waves-effect waves-light btn-fixed-xl'>DIRECT SOURCE</button>", 6 => "<button type='button' class='btn btn-primary btn-xs waves-effect waves-light btn-fixed-xl'>CREATING...</button>", 7 => "<button type='button' class='btn btn-purple btn-xs waves-effect waves-light btn-fixed-xl'>DIRECT STREAM</button>");
-$rSearchStatusArray = array(-1 => "<button type='button' class='btn bg-animate-secondary btn-xs waves-effect waves-light no-border btn-fixed-xl'>NO SERVERS</button>", 0 => "<button type='button' class='btn bg-animate-dark btn-xs waves-effect waves-light no-border btn-fixed-xl'>STOPPED</button>", "<button type='button' class='btn bg-animate-warning btn-xs waves-effect waves-light no-border btn-fixed-xl'>STARTING</button>", "<button type='button' class='btn bg-animate-danger btn-xs waves-effect waves-light no-border btn-fixed-xl'>DOWN</button>", "<button type='button' class='btn bg-animate-success btn-xs waves-effect waves-light no-border btn-fixed-xl'>ON DEMAND</button>", "<button type='button' class='btn bg-animate-purple btn-xs waves-effect waves-light no-border btn-fixed-xl'>DIRECT</button>", 7 => "<button type='button' class='btn bg-animate-warning btn-xs waves-effect waves-light no-border btn-fixed-xl'>ENCODING</button>", 8 => "<button type='button' class='btn bg-animate-dark btn-xs waves-effect waves-light no-border btn-fixed-xl'>NOT ENCODED</button>", 9 => "<button type='button' class='btn bg-animate-info btn-xs waves-effect waves-light no-border btn-fixed-xl'>ENCODED</button>", 10 => "<button type='button' class='btn bg-animate-danger btn-xs waves-effect waves-light no-border btn-fixed-xl'>BROKEN</button>");
-$rVODStatusArray = array(-1 => "<button type='button' class='btn btn-secondary btn-xs waves-effect waves-light tooltip' title='No Server Selected'><i class='text-white mdi mdi-triangle'></i></button>", 0 => "<button type='button' class='btn btn-dark btn-xs waves-effect waves-light tooltip' title='Not Encoded'><i class='text-white mdi mdi-checkbox-blank-circle'></i></button>", 1 => "<button type='button' class='btn btn-success btn-xs waves-effect waves-light tooltip' title='Encoded'><i class='text-white mdi mdi-check-circle'></i></button>", 2 => "<button type='button' class='btn btn-warning btn-xs waves-effect waves-light tooltip' title='Encoding'><i class='text-white mdi mdi-checkbox-blank-circle'></i></button>", 3 => "<button type='button' class='btn btn-primary btn-xs waves-effect waves-light tooltip' title='Direct Source'><i class='text-white mdi mdi mdi-web'></i></button>", 4 => "<button type='button' class='btn btn-danger btn-xs waves-effect waves-light tooltip' title='Down'><i class='text-white mdi mdi-triangle'></i></button>", 5 => "<button type='button' class='btn btn-info btn-xs waves-effect waves-light tooltip' title='Direct Stream'><i class='text-white mdi mdi mdi-web'></i></button>");
-$rWatchStatusArray = array(1 => "<button type='button' class='btn btn-success btn-xs waves-effect waves-light'>ADDED</button>", 2 => "<button type='button' class='btn btn-danger btn-xs waves-effect waves-light'>SQL FAILED</button>", 3 => "<button type='button' class='btn btn-danger btn-xs waves-effect waves-light'>NO CATEGORY</button>", 4 => "<button type='button' class='btn btn-danger btn-xs waves-effect waves-light'>NO TMDb MATCH</button>", 5 => "<button type='button' class='btn btn-danger btn-xs waves-effect waves-light'>INVALID FILE</button>", 6 => "<button type='button' class='btn btn-info btn-xs waves-effect waves-light'>UPGRADED</button>");
-$rFailureStatusArray = array('STREAM_STOP' => "<button type='button' class='btn btn-secondary btn-xs waves-effect waves-light btn-fixed-xl'>STOPPED</button>", 'STREAM_START_FAIL' => "<button type='button' class='btn btn-danger btn-xs waves-effect waves-light btn-fixed-xl'>START FAILED</button>", 'STREAM_START' => "<button type='button' class='btn btn-success btn-xs waves-effect waves-light btn-fixed-xl'>STARTED</button>", 'STREAM_RESTART' => "<button type='button' class='btn btn-info btn-xs waves-effect waves-light btn-fixed-xl'>RESTARTED</button>", 'STREAM_FAILED' => "<button type='button' class='btn btn-danger btn-xs waves-effect waves-light btn-fixed-xl'>STREAM FAILED</button>");
-$rStreamLogsArray = array('STREAM_FAILED' => 'Stream Failed', 'STREAM_START' => 'Stream Started', 'STREAM_RESTART' => 'Stream Restarted', 'STREAM_STOP' => 'Stream Stopped', 'FORCE_SOURCE' => 'Force Change Source', 'AUTO_RESTART' => 'Timed Auto Restart', 'AUDIO_LOSS' => 'Audio Lost', 'PRIORITY_SWITCH' => 'Priority Switch', 'DELAY_START' => 'Delay Started', 'FFMPEG_ERROR' => 'FFMPEG Error');
-$rThemes = array(array('name' => 'Light', 'dark' => false, 'image' => null), array('name' => 'Dark', 'dark' => true, 'image' => null));
-$rPermissionsFile = MAIN_HOME . 'resources/data/permissions.php';
-if (!file_exists($rPermissionsFile)) {
-	$rPermissionsFile = INCLUDES_PATH . 'data/permissions.php';
-}
-$rAdvPermissions = require $rPermissionsFile;
-
-function getUserInfo($rUsername, $rPassword) {
-	global $db;
-	return UserRepository::getAuthUserByCredentials($db, $rUsername, $rPassword);
-}
-
-function getSeriesList() {
-	global $db;
-	return SeriesService::getList($db);
+if (is_array($rServers)) {
+	uasort(
+		$rServers,
+		function ($a, $b) {
+			return $a['order'] - $b['order'];
+		}
+	);
 }
 
 function secondsToTime($inputSeconds) {
@@ -146,16 +25,6 @@ function secondsToTime($inputSeconds) {
 	$seconds = ceil($remainingSeconds);
 
 	return array('d' => (int) $days, 'h' => (int) $hours, 'm' => (int) $minutes, 's' => (int) $seconds);
-}
-
-function updateSeries($rID) {
-	global $db;
-	SeriesService::updateFromTMDB($db, $rID);
-}
-
-function updateSeriesAsync($rID) {
-	global $db;
-	SeriesService::queueRefresh($db, $rID);
 }
 
 function validateCIDR($rCIDR) {
@@ -185,74 +54,6 @@ function validateCIDR($rCIDR) {
 	return (is_null($rNetmask) ? true : $rNetmask <= 32);
 }
 
-function getFreeSpace($rServerID) {
-	return ServerRepository::getFreeSpace('systemapirequest', $rServerID);
-}
-
-function getStreamsRamdisk($rServerID) {
-	return ServerRepository::getStreamsRamdisk('systemapirequest', $rServerID);
-}
-
-
-function killPID($rServerID, $rPID) {
-	ServerRepository::killPID('systemapirequest', $rServerID, $rPID);
-}
-
-
-function getRTMPStats($rServerID) {
-	return ServerRepository::getRTMPStats('systemapirequest', $rServerID);
-}
-
-function getStreamArguments() {
-	global $db;
-	$rReturn = array();
-	$db->query('SELECT * FROM `streams_arguments` ORDER BY `id` ASC;');
-
-	if (0 >= $db->num_rows()) {
-	} else {
-		foreach ($db->get_rows() as $rRow) {
-			$rReturn[$rRow['argument_key']] = $rRow;
-		}
-	}
-
-	return $rReturn;
-}
-
-function getTranscodeProfiles() {
-	global $db;
-	$rReturn = array();
-	$db->query('SELECT * FROM `profiles` ORDER BY `profile_id` ASC;');
-
-	if (0 >= $db->num_rows()) {
-	} else {
-		foreach ($db->get_rows() as $rRow) {
-			$rReturn[] = $rRow;
-		}
-	}
-
-	return $rReturn;
-}
-
-function getWatchFolders($rType = null) {
-	global $db;
-	return WatchService::getWatchFolders($db, $rType);
-}
-
-function getPlexServers() {
-	global $db;
-	return PlexRepository::getPlexServers($db);
-}
-
-function getWatchCategories($rType = null) {
-	global $db;
-	return WatchService::getWatchCategories($db, $rType);
-}
-
-function syncDevices($rUserID, $rDeviceID = null) {
-	global $db;
-	MagService::syncLineDevices($db, $rUserID, $rDeviceID);
-}
-
 function encodeRow($rRow) {
 	foreach ($rRow as $rKey => $rValue) {
 		if (!is_array($rValue)) {
@@ -269,9 +70,10 @@ function getArchiveFiles($rServerID, $rStreamID) {
 }
 
 function getArchive($rStreamID) {
+	global $db;
 	$rReturn = array();
-	$rStream = getStream($rStreamID);
-	$rEPG = getchannelepg($rStreamID, true);
+	$rStream = StreamRepository::getById($rStreamID);
+	$rEPG = EpgService::getChannelEpg($rStream, true);
 	$rFiles = getArchiveFiles($rStream['tv_archive_server_id'], $rStreamID);
 
 	if (!empty($rFiles) && !empty($rEPG)) {
@@ -328,10 +130,6 @@ function getArchive($rStreamID) {
 	return $rReturn;
 }
 
-function getPlexSections($rIP, $rPort, $rToken) {
-	return PlexRepository::getPlexSections($rIP, $rPort, $rToken);
-}
-
 function getMovieTMDB($rID) {
 	require_once MAIN_HOME . 'includes/libs/tmdb.php';
 
@@ -367,60 +165,6 @@ function getSeasonTMDB($rID, $rSeason) {
 	}
 
 	return json_decode($rTMDB->getSeason($rID, intval($rSeason))->getJSON(), true);
-}
-
-function getResellers($rOwner, $rIncludeSelf = true) {
-	global $db;
-	return UserRepository::getResellers($db, $rOwner, $rIncludeSelf);
-}
-
-function getDirectReports($rIncludeSelf = true) {
-	global $db;
-	global $rPermissions;
-	global $rUserInfo;
-	return UserRepository::getDirectReports($db, $rPermissions, $rUserInfo, $rIncludeSelf);
-}
-
-function hasResellerPermissions($rType) {
-	global $rPermissions;
-	return Authorization::hasResellerPermissions($rPermissions, $rType);
-}
-
-
-function hasPermissions($rType, $rID) {
-	global $rUserInfo;
-	global $db;
-	global $rPermissions;
-	return Authorization::check($rType, $rID, $rUserInfo, $rPermissions, $db);
-}
-
-function getMemberGroups() {
-	global $db;
-	return GroupService::getAll($db);
-}
-
-function getHMACTokens() {
-	global $db;
-	return AuthRepository::getAllHMAC($db);
-}
-
-function getHMACToken($rID) {
-	global $db;
-	return AuthRepository::getHMACById($db, $rID);
-}
-
-function getActiveCodes() {
-	return AuthRepository::getActiveCodes(MAIN_HOME);
-}
-
-function updateCodes() {
-	global $db;
-	AuthRepository::updateCodes($db, MAIN_HOME, SERVER_ID, 'getcodes', 'reloadNginx');
-}
-
-function getCurrentCode($rInfo = false) {
-	global $db;
-	return AuthRepository::getCurrentCode($db, $rInfo);
 }
 
 function overwriteData($rData, $rOverwrite, $rSkip = array()) {
@@ -525,26 +269,6 @@ function setArgs($rArgs, $rGet = true) {
 	return "<script>history.replaceState({},'','" . $rURL . "');</script>";
 }
 
-function getParent($rID) {
-	global $rPermissions;
-	global $rUserInfo;
-	return UserRepository::getParent($rPermissions, $rUserInfo, $rID);
-}
-
-function getSubUsers($rUser) {
-	global $db;
-	return UserRepository::getSubUsers($db, $rUser);
-}
-
-function getAdminImage($rURL, $rMaxW, $rMaxH) {
-	return ImageUtils::resize($rURL, $rMaxW, $rMaxH);
-}
-
-function getStreamErrors($rStreamID, $rAmount = 250) {
-	global $db;
-	return StreamRepository::getErrors($db, $rStreamID, $rAmount);
-}
-
 function getPageFromURL($rURL) {
 	if ($rURL) {
 		return strtolower(basename(ltrim(parse_url($rURL)['path'], '/'), '.php'));
@@ -557,9 +281,9 @@ function verifyCode() {
 	global $rUserInfo;
 
 	if (isset($rUserInfo)) {
-		$rAccessCode = getCurrentCode(true);
+		$rAccessCode = AuthRepository::getCurrentCode(true);
 
-		if (in_array($rUserInfo['member_group_id'], json_decode($rAccessCode['groups'], true)) || count(getActiveCodes()) == 0) {
+		if (in_array($rUserInfo['member_group_id'], json_decode($rAccessCode['groups'], true)) || count(AuthRepository::getActiveCodes(MAIN_HOME)) == 0) {
 			if (isset($_SESSION['code']) && $_SESSION['code'] != $rAccessCode['code']) {
 				return false;
 			}
@@ -614,15 +338,6 @@ function checkExists($rTable, $rColumn, $rValue, $rExcludeColumn = null, $rExclu
 
 
 	return 0 < $db->get_row()['count'];
-}
-
-function parseM3U($rData, $rFile = true) {
-	return M3UParser::parse($rData, $rFile);
-}
-
-function deleteLines($rIDs) {
-	global $db;
-	return LineRepository::deleteMany($db, $rIDs);
 }
 
 function deleteMAG($rID, $rDeletePaired = false, $rCloseCons = true, $rConvert = false) {
@@ -764,7 +479,7 @@ function deleteSeries($rID, $rDeleteFiles = true) {
 	}
 	$db->query('DELETE FROM `streams_episodes` WHERE `series_id` = ?;', $rID);
 	$db->query('DELETE FROM `streams_series` WHERE `id` = ?;', $rID);
-	scanBouquets();
+	BouquetService::scan();
 
 	return true;
 }
@@ -791,7 +506,7 @@ function deleteSeriesMass($rIDs) {
 		deleteStreams($rStreamIDs, true);
 	}
 
-	scanBouquets();
+	BouquetService::scan();
 
 	return true;
 }
@@ -858,7 +573,7 @@ function deleteBouquet($rID) {
 		$db->query("UPDATE `watch_folders` SET `bouquets` = '[" . implode(',', array_map('intval', $rRow['bouquets'])) . "]', `fb_bouquets` = '[" . implode(',', array_map('intval', $rRow['fb_bouquets'])) . "]' WHERE `id` = ?;", $rRow['id']);
 	}
 	$db->query('DELETE FROM `bouquets` WHERE `id` = ?;', $rID);
-	scanBouquets();
+	BouquetService::scan();
 
 	return true;
 }
@@ -1359,7 +1074,7 @@ function removeAccessEntry($rID) {
 
 
 	$db->query('DELETE FROM `access_codes` WHERE `id` = ?;', $rID);
-	updateCodes();
+	AuthRepository::updateCodes(MAIN_HOME, SERVER_ID, 'getcodes', 'reloadNginx');
 
 
 
@@ -1561,17 +1276,13 @@ function cryptPassword($rPassword, $rSalt = 'xc_vm', $rRounds = 20000) {
 	return crypt($rPassword, $rSalt);
 }
 
-function getIP() {
-	return CoreUtilities::getUserIP();
-}
-
 function getPermissions($rID) {
 	global $db;
 	$db->query('SELECT * FROM `users_groups` WHERE `group_id` = ?;', $rID);
 
 	if ($db->num_rows() == 1) {
 		$rRow = $db->get_row();
-		$rRow['subresellers'] = !empty($rRow['subresellers'])? json_decode($rRow['subresellers'], true): [];
+		$rRow['subresellers'] = !empty($rRow['subresellers']) ? json_decode($rRow['subresellers'], true) : [];
 
 		if (count($rRow['subresellers'] ?? []) == 0) {
 			$rRow['create_sub_resellers'] = 0;
@@ -1701,11 +1412,6 @@ function restoreImages() {
 	return true;
 }
 
-function killWatchFolder() {
-	global $db;
-	return WatchService::killWatch($db);
-}
-
 function killPlexSync() {
 	global $db;
 	$db->query("SELECT DISTINCT(`server_id`) AS `server_id` FROM `watch_folders` WHERE `active` = 1 AND `type` = 'plex';");
@@ -1799,7 +1505,7 @@ function clearSettingsCache() {
 
 function deleteUser($rID, $rDeleteSubUsers = false, $rDeleteLines = false, $rReplaceWith = null) {
 	global $db;
-	$rUser = getRegisteredUser($rID);
+	$rUser = UserRepository::getRegisteredUserById($rID);
 
 	if (!$rUser) {
 		return false;
@@ -1892,7 +1598,7 @@ function deleteStream($rID, $rServerID = -1, $rDeleteFiles = true, $f2d619cb3869
 
 		if (!($rDeleteFiles && 0 < count($rServerIDs) && in_array($rType, array(2, 5)))) {
 		} else {
-			deleteMovieFile($rServerIDs, $rID);
+			MovieService::deleteFile($rServerIDs, $rID);
 		}
 
 		$db->query('DELETE FROM `streams_servers` WHERE `stream_id` = ?;', $rID);
@@ -1902,13 +1608,13 @@ function deleteStream($rID, $rServerID = -1, $rDeleteFiles = true, $f2d619cb3869
 
 		if (!($rDeleteFiles && in_array($rType, array(2, 5)))) {
 		} else {
-			deleteMovieFile(array($rServerID), $rID);
+			MovieService::deleteFile(array($rServerID), $rID);
 		}
 	}
 
 	$db->query('DELETE FROM `streams_servers` WHERE `parent_id` IS NOT NULL AND `parent_id` > 0 AND `parent_id` NOT IN (SELECT `id` FROM `servers` WHERE `server_type` = 0);');
 	CoreUtilities::updateStream($rID);
-	scanBouquets();
+	BouquetService::scan();
 
 	return true;
 }
@@ -1944,7 +1650,7 @@ function deleteStreams($rIDs, $rDeleteFiles = false) {
 			}
 		}
 
-		scanBouquets();
+		BouquetService::scan();
 	}
 
 	return true;
@@ -2136,14 +1842,14 @@ function checkPermissions($rPage = null) {
 		case 'isps':
 		case 'isp':
 		case 'asns':
-			return hasPermissions('adv', 'block_isps');
+			return Authorization::check('adv', 'block_isps');
 
 		case 'bouquet':
-			if (isset(CoreUtilities::$rRequest['id']) && hasPermissions('adv', 'edit_bouquet')) {
+			if (isset(CoreUtilities::$rRequest['id']) && Authorization::check('adv', 'edit_bouquet')) {
 				return true;
 			}
 
-			if (isset(CoreUtilities::$rRequest['id']) || !hasPermissions('adv', 'add_bouquet')) {
+			if (isset(CoreUtilities::$rRequest['id']) || !Authorization::check('adv', 'add_bouquet')) {
 			} else {
 				return true;
 			}
@@ -2151,23 +1857,23 @@ function checkPermissions($rPage = null) {
 			// no break
 		case 'bouquet_order':
 		case 'bouquet_sort':
-			return hasPermissions('adv', 'edit_bouquet');
+			return Authorization::check('adv', 'edit_bouquet');
 
 		case 'bouquets':
-			return hasPermissions('adv', 'bouquets');
+			return Authorization::check('adv', 'bouquets');
 
 		case 'channel_order':
-			return hasPermissions('adv', 'channel_order');
+			return Authorization::check('adv', 'channel_order');
 
 		case 'client_logs':
-			return hasPermissions('adv', 'client_request_log');
+			return Authorization::check('adv', 'client_request_log');
 
 		case 'created_channel':
-			if (isset(CoreUtilities::$rRequest['id']) && hasPermissions('adv', 'edit_cchannel')) {
+			if (isset(CoreUtilities::$rRequest['id']) && Authorization::check('adv', 'edit_cchannel')) {
 				return true;
 			}
 
-			if (isset(CoreUtilities::$rRequest['id']) || !hasPermissions('adv', 'create_channel')) {
+			if (isset(CoreUtilities::$rRequest['id']) || !Authorization::check('adv', 'create_channel')) {
 			} else {
 				return true;
 			}
@@ -2175,217 +1881,217 @@ function checkPermissions($rPage = null) {
 			// no break
 		case 'code':
 		case 'codes':
-			return hasPermissions('adv', 'add_code');
+			return Authorization::check('adv', 'add_code');
 
 		case 'hmac':
 		case 'hmacs':
-			return hasPermissions('adv', 'add_hmac');
+			return Authorization::check('adv', 'add_hmac');
 
 		case 'credit_logs':
-			return hasPermissions('adv', 'credits_log');
+			return Authorization::check('adv', 'credits_log');
 
 		case 'enigmas':
-			return hasPermissions('adv', 'manage_e2');
+			return Authorization::check('adv', 'manage_e2');
 
 		case 'epg':
-			if (isset(CoreUtilities::$rRequest['id']) && hasPermissions('adv', 'epg_edit')) {
+			if (isset(CoreUtilities::$rRequest['id']) && Authorization::check('adv', 'epg_edit')) {
 				return true;
 			}
 
-			if (isset(CoreUtilities::$rRequest['id']) || !hasPermissions('adv', 'add_epg')) {
+			if (isset(CoreUtilities::$rRequest['id']) || !Authorization::check('adv', 'add_epg')) {
 			} else {
 				return true;
 			}
 
 			// no break
 		case 'epgs':
-			return hasPermissions('adv', 'epg');
+			return Authorization::check('adv', 'epg');
 
 		case 'episode':
-			if (isset(CoreUtilities::$rRequest['id']) && hasPermissions('adv', 'edit_episode')) {
+			if (isset(CoreUtilities::$rRequest['id']) && Authorization::check('adv', 'edit_episode')) {
 				return true;
 			}
 
-			if (isset(CoreUtilities::$rRequest['id']) || !hasPermissions('adv', 'add_episode')) {
+			if (isset(CoreUtilities::$rRequest['id']) || !Authorization::check('adv', 'add_episode')) {
 			} else {
 				return true;
 			}
 
 			// no break
 		case 'episodes':
-			return hasPermissions('adv', 'episodes');
+			return Authorization::check('adv', 'episodes');
 
 		case 'series_mass':
 		case 'episodes_mass':
-			return hasPermissions('adv', 'mass_sedits');
+			return Authorization::check('adv', 'mass_sedits');
 
 		case 'fingerprint':
-			return hasPermissions('adv', 'fingerprint');
+			return Authorization::check('adv', 'fingerprint');
 
 		case 'group':
-			if (isset(CoreUtilities::$rRequest['id']) && hasPermissions('adv', 'edit_group')) {
+			if (isset(CoreUtilities::$rRequest['id']) && Authorization::check('adv', 'edit_group')) {
 				return true;
 			}
 
-			if (isset(CoreUtilities::$rRequest['id']) || !hasPermissions('adv', 'add_group')) {
+			if (isset(CoreUtilities::$rRequest['id']) || !Authorization::check('adv', 'add_group')) {
 			} else {
 				return true;
 			}
 
 			// no break
 		case 'groups':
-			return hasPermissions('adv', 'mng_groups');
+			return Authorization::check('adv', 'mng_groups');
 
 		case 'ip':
 		case 'ips':
-			return hasPermissions('adv', 'block_ips');
+			return Authorization::check('adv', 'block_ips');
 
 		case 'live_connections':
-			return hasPermissions('adv', 'live_connections');
+			return Authorization::check('adv', 'live_connections');
 
 		case 'mag':
-			if (isset(CoreUtilities::$rRequest['id']) && hasPermissions('adv', 'edit_mag')) {
+			if (isset(CoreUtilities::$rRequest['id']) && Authorization::check('adv', 'edit_mag')) {
 				return true;
 			}
-			if (isset(CoreUtilities::$rRequest['id']) || !hasPermissions('adv', 'add_mag')) {
+			if (isset(CoreUtilities::$rRequest['id']) || !Authorization::check('adv', 'add_mag')) {
 				break;
 			}
 			return true;
 		case 'mag_events':
-			return hasPermissions('adv', 'manage_events');
+			return Authorization::check('adv', 'manage_events');
 		case 'mags':
-			return hasPermissions('adv', 'manage_mag');
+			return Authorization::check('adv', 'manage_mag');
 
 		case 'mass_delete':
-			return hasPermissions('adv', 'mass_delete');
+			return Authorization::check('adv', 'mass_delete');
 
 		case 'record':
-			return hasPermissions('adv', 'add_movie');
+			return Authorization::check('adv', 'add_movie');
 		case 'recordings':
-			return hasPermissions('adv', 'movies');
+			return Authorization::check('adv', 'movies');
 		case 'queue':
-			return hasPermissions('adv', 'streams') || hasPermissions('adv', 'episodes') || hasPermissions('adv', 'series');
+			return Authorization::check('adv', 'streams') || Authorization::check('adv', 'episodes') || Authorization::check('adv', 'series');
 		case 'movie':
-			if (isset(CoreUtilities::$rRequest['id']) && hasPermissions('adv', 'edit_movie')) {
+			if (isset(CoreUtilities::$rRequest['id']) && Authorization::check('adv', 'edit_movie')) {
 				return true;
 			}
-			if (isset(CoreUtilities::$rRequest['id']) || !hasPermissions('adv', 'add_movie')) {
+			if (isset(CoreUtilities::$rRequest['id']) || !Authorization::check('adv', 'add_movie')) {
 			} else {
-				if (isset(CoreUtilities::$rRequest['import']) && !hasPermissions('adv', 'import_movies')) {
+				if (isset(CoreUtilities::$rRequest['import']) && !Authorization::check('adv', 'import_movies')) {
 				} else {
 					return true;
 				}
 			}
 			break;
 		case 'movie_mass':
-			return hasPermissions('adv', 'mass_sedits_vod');
+			return Authorization::check('adv', 'mass_sedits_vod');
 		case 'movies':
-			return hasPermissions('adv', 'movies');
+			return Authorization::check('adv', 'movies');
 		case 'package':
-			if (isset(CoreUtilities::$rRequest['id']) && hasPermissions('adv', 'edit_package')) {
+			if (isset(CoreUtilities::$rRequest['id']) && Authorization::check('adv', 'edit_package')) {
 				return true;
 			}
 
-			if (isset(CoreUtilities::$rRequest['id']) || !hasPermissions('adv', 'add_packages')) {
+			if (isset(CoreUtilities::$rRequest['id']) || !Authorization::check('adv', 'add_packages')) {
 				break;
 			}
 			return true;
 		case 'packages':
 		case 'addons':
-			return hasPermissions('adv', 'mng_packages');
+			return Authorization::check('adv', 'mng_packages');
 
 		case 'player':
-			return hasPermissions('adv', 'player');
+			return Authorization::check('adv', 'player');
 
 		case 'process_monitor':
-			return hasPermissions('adv', 'process_monitor');
+			return Authorization::check('adv', 'process_monitor');
 
 		case 'profile':
-			return hasPermissions('adv', 'tprofile');
+			return Authorization::check('adv', 'tprofile');
 
 		case 'profiles':
-			return hasPermissions('adv', 'tprofiles');
+			return Authorization::check('adv', 'tprofiles');
 
 		case 'radio':
-			if (isset(CoreUtilities::$rRequest['id']) && hasPermissions('adv', 'edit_radio')) {
+			if (isset(CoreUtilities::$rRequest['id']) && Authorization::check('adv', 'edit_radio')) {
 				return true;
 			}
-			if (isset(CoreUtilities::$rRequest['id']) || !hasPermissions('adv', 'add_radio')) {
+			if (isset(CoreUtilities::$rRequest['id']) || !Authorization::check('adv', 'add_radio')) {
 				break;
 			}
 			return true;
 		case 'radio_mass':
-			return hasPermissions('adv', 'mass_edit_radio');
+			return Authorization::check('adv', 'mass_edit_radio');
 		case 'radios':
-			return hasPermissions('adv', 'radio');
+			return Authorization::check('adv', 'radio');
 		case 'user':
-			if (isset(CoreUtilities::$rRequest['id']) && hasPermissions('adv', 'edit_reguser')) {
+			if (isset(CoreUtilities::$rRequest['id']) && Authorization::check('adv', 'edit_reguser')) {
 				return true;
 			}
 
-			if (isset(CoreUtilities::$rRequest['id']) || !hasPermissions('adv', 'add_reguser')) {
+			if (isset(CoreUtilities::$rRequest['id']) || !Authorization::check('adv', 'add_reguser')) {
 				break;
 			}
 			return true;
 		case 'user_logs':
-			return hasPermissions('adv', 'reg_userlog');
+			return Authorization::check('adv', 'reg_userlog');
 		case 'users':
-			return hasPermissions('adv', 'mng_regusers');
+			return Authorization::check('adv', 'mng_regusers');
 		case 'rtmp_ip':
-			return hasPermissions('adv', 'add_rtmp');
+			return Authorization::check('adv', 'add_rtmp');
 		case 'rtmp_ips':
 		case 'rtmp_monitor':
-			return hasPermissions('adv', 'rtmp');
+			return Authorization::check('adv', 'rtmp');
 		case 'serie':
-			if (isset(CoreUtilities::$rRequest['id']) && hasPermissions('adv', 'edit_series')) {
+			if (isset(CoreUtilities::$rRequest['id']) && Authorization::check('adv', 'edit_series')) {
 				return true;
 			}
 
-			if (isset(CoreUtilities::$rRequest['id']) || !hasPermissions('adv', 'add_series')) {
+			if (isset(CoreUtilities::$rRequest['id']) || !Authorization::check('adv', 'add_series')) {
 				break;
 			}
 			return true;
 		case 'series':
-			return hasPermissions('adv', 'series');
+			return Authorization::check('adv', 'series');
 		case 'series_order':
-			return hasPermissions('adv', 'edit_series');
+			return Authorization::check('adv', 'edit_series');
 		case 'server':
 		case 'proxy':
-			if (isset(CoreUtilities::$rRequest['id']) && hasPermissions('adv', 'edit_server')) {
+			if (isset(CoreUtilities::$rRequest['id']) && Authorization::check('adv', 'edit_server')) {
 				return true;
 			}
-			if (isset(CoreUtilities::$rRequest['id']) || !hasPermissions('adv', 'add_server')) {
+			if (isset(CoreUtilities::$rRequest['id']) || !Authorization::check('adv', 'add_server')) {
 				break;
 			}
 			return true;
 		case 'server_install':
-			return hasPermissions('adv', 'add_server');
+			return Authorization::check('adv', 'add_server');
 		case 'servers':
 		case 'server_view':
 		case 'server_order':
 		case 'proxies':
-			return hasPermissions('adv', 'servers');
+			return Authorization::check('adv', 'servers');
 
 		case 'settings':
-			return hasPermissions('adv', 'settings');
+			return Authorization::check('adv', 'settings');
 
 		case 'backups':
 		case 'cache':
 		case 'setup':
-			return hasPermissions('adv', 'database');
+			return Authorization::check('adv', 'database');
 
 		case 'settings_watch':
 		case 'settings_plex':
-			return hasPermissions('adv', 'folder_watch_settings');
+			return Authorization::check('adv', 'folder_watch_settings');
 
 		case 'stream':
-			if (isset(CoreUtilities::$rRequest['id']) && hasPermissions('adv', 'edit_stream')) {
+			if (isset(CoreUtilities::$rRequest['id']) && Authorization::check('adv', 'edit_stream')) {
 				return true;
 			}
 
-			if (isset(CoreUtilities::$rRequest['id']) || !hasPermissions('adv', 'add_stream')) {
+			if (isset(CoreUtilities::$rRequest['id']) || !Authorization::check('adv', 'add_stream')) {
 			} else {
-				if (isset(CoreUtilities::$rRequest['import']) && !hasPermissions('adv', 'import_streams')) {
+				if (isset(CoreUtilities::$rRequest['import']) && !Authorization::check('adv', 'import_streams')) {
 				} else {
 					return true;
 				}
@@ -2394,43 +2100,43 @@ function checkPermissions($rPage = null) {
 			break;
 
 		case 'review':
-			return hasPermissions('adv', 'import_streams');
+			return Authorization::check('adv', 'import_streams');
 
 		case 'mass_edit_streams':
-			return hasPermissions('adv', 'edit_stream');
+			return Authorization::check('adv', 'edit_stream');
 
 		case 'stream_categories':
-			return hasPermissions('adv', 'categories');
+			return Authorization::check('adv', 'categories');
 
 		case 'stream_category':
-			return hasPermissions('adv', 'add_cat');
+			return Authorization::check('adv', 'add_cat');
 
 		case 'stream_errors':
-			return hasPermissions('adv', 'stream_errors');
+			return Authorization::check('adv', 'stream_errors');
 
 		case 'created_channel_mass':
 		case 'stream_mass':
-			return hasPermissions('adv', 'mass_edit_streams');
+			return Authorization::check('adv', 'mass_edit_streams');
 
 		case 'user_mass':
-			return hasPermissions('adv', 'mass_edit_users');
+			return Authorization::check('adv', 'mass_edit_users');
 
 		case 'mag_mass':
-			return hasPermissions('adv', 'mass_edit_mags');
+			return Authorization::check('adv', 'mass_edit_mags');
 
 
 
 		case 'enigma_mass':
-			return hasPermissions('adv', 'mass_edit_enigmas');
+			return Authorization::check('adv', 'mass_edit_enigmas');
 
 
 		case 'quick_tools':
-			return hasPermissions('adv', 'quick_tools');
+			return Authorization::check('adv', 'quick_tools');
 
 
 
 		case 'stream_tools':
-			return hasPermissions('adv', 'stream_tools');
+			return Authorization::check('adv', 'stream_tools');
 
 
 
@@ -2445,21 +2151,21 @@ function checkPermissions($rPage = null) {
 		case 'created_channels':
 		case 'stream_rank':
 		case 'archive':
-			return hasPermissions('adv', 'streams');
+			return Authorization::check('adv', 'streams');
 
 		case 'ticket':
-			return hasPermissions('adv', 'ticket');
+			return Authorization::check('adv', 'ticket');
 
 		case 'ticket_view':
 		case 'tickets':
-			return hasPermissions('adv', 'manage_tickets');
+			return Authorization::check('adv', 'manage_tickets');
 
 		case 'line':
-			if (isset(CoreUtilities::$rRequest['id']) && hasPermissions('adv', 'edit_user')) {
+			if (isset(CoreUtilities::$rRequest['id']) && Authorization::check('adv', 'edit_user')) {
 				return true;
 			}
 
-			if (isset(CoreUtilities::$rRequest['id']) || !hasPermissions('adv', 'add_user')) {
+			if (isset(CoreUtilities::$rRequest['id']) || !Authorization::check('adv', 'add_user')) {
 				break;
 			}
 
@@ -2471,15 +2177,15 @@ function checkPermissions($rPage = null) {
 		case 'line_activity':
 		case 'theft_detection':
 		case 'line_ips':
-			return hasPermissions('adv', 'connection_logs');
+			return Authorization::check('adv', 'connection_logs');
 
 		case 'line_mass':
-			return hasPermissions('adv', 'mass_edit_lines');
+			return Authorization::check('adv', 'mass_edit_lines');
 
 
 		case 'useragents':
 		case 'useragent':
-			return hasPermissions('adv', 'block_uas');
+			return Authorization::check('adv', 'block_uas');
 
 
 
@@ -2492,27 +2198,27 @@ function checkPermissions($rPage = null) {
 
 
 		case 'lines':
-			return hasPermissions('adv', 'users');
+			return Authorization::check('adv', 'users');
 
 
 		case 'plex':
 		case 'watch':
-			return hasPermissions('adv', 'folder_watch');
+			return Authorization::check('adv', 'folder_watch');
 
 
 
 		case 'plex_add':
 		case 'watch_add':
-			return hasPermissions('adv', 'folder_watch_add');
+			return Authorization::check('adv', 'folder_watch_add');
 
 		case 'watch_output':
-			return hasPermissions('adv', 'folder_watch_output');
+			return Authorization::check('adv', 'folder_watch_output');
 
 
 
 		case 'mysql_syslog':
 		case 'panel_logs':
-			return hasPermissions('adv', 'panel_logs');
+			return Authorization::check('adv', 'panel_logs');
 
 
 
@@ -2521,10 +2227,10 @@ function checkPermissions($rPage = null) {
 
 
 		case 'login_logs':
-			return hasPermissions('adv', 'login_logs');
+			return Authorization::check('adv', 'login_logs');
 
 		case 'restream_logs':
-			return hasPermissions('adv', 'restream_logs');
+			return Authorization::check('adv', 'restream_logs');
 
 
 
@@ -2624,14 +2330,6 @@ function getCode($rID) {
 	}
 }
 
-function closeConnection($rServerID, $rActivityID) {
-	return systemapirequest($rServerID, array('action' => 'closeConnection', 'activity_id' => intval($rActivityID)));
-}
-
-function getCertificateInfo($rServerID) {
-	return systemapirequest($rServerID, array('action' => 'get_certificate_info'));
-}
-
 function getBarColour($rInt) {
 	if (75 <= $rInt) {
 		return 'bg-danger';
@@ -2672,7 +2370,7 @@ function getNVENCProcesses($rServerID) {
 
 function deleteLine($rID, $rDeletePaired = false, $rCloseCons = true) {
 	global $db;
-	$rLine = getUser($rID);
+	$rLine = UserRepository::getLineById($rID);
 
 	if (!$rLine) {
 		return false;
@@ -2762,7 +2460,7 @@ function deleteTicket($rID) {
 function canGenerateTrials($rUserID) {
 	global $db;
 	global $rSettings;
-	$rUser = getRegisteredUser($rUserID);
+	$rUser = UserRepository::getRegisteredUserById($rUserID);
 	$rPermissions = getPermissions($rUser['member_group_id']);
 
 	if ($rSettings['disable_trial']) {
@@ -2812,7 +2510,7 @@ function getGroupPermissions($rUserID, $rStreams = true, $rUsers = true) {
 	global $db;
 	$rStart = round(microtime(true) * 1000);
 	$rReturn = array('create_line' => false, 'create_mag' => false, 'create_enigma' => false, 'stream_ids' => array(), 'series_ids' => array(), 'category_ids' => array(), 'users' => array(), 'direct_reports' => array(), 'all_reports' => array(), 'report_map' => array());
-	$rUser = getRegisteredUser($rUserID);
+	$rUser = UserRepository::getRegisteredUserById($rUserID);
 
 	if (!$rUser) {
 	} else {
@@ -2844,7 +2542,7 @@ function getGroupPermissions($rUserID, $rStreams = true, $rUsers = true) {
 
 		if (!$rUsers) {
 		} else {
-			$rReturn['users'] = getSubUsers($rUser['id']);
+			$rReturn['users'] = UserRepository::getSubUsers($rUser['id']);
 
 			foreach ($rReturn['users'] as $rUserID => $rUserData) {
 				if ($rUser['id'] != $rUserData['parent']) {
@@ -2858,14 +2556,6 @@ function getGroupPermissions($rUserID, $rStreams = true, $rUsers = true) {
 	}
 
 	return $rReturn;
-}
-
-function reloadNginx($rServerID) {
-	systemapirequest($rServerID, array('action' => 'reload_nginx'));
-}
-
-function getFPMStatus($rServerID) {
-	return systemapirequest($rServerID, array('action' => 'fpm_status'));
 }
 
 function grantPrivilegesToAllServers() {
@@ -2916,12 +2606,12 @@ function getMag($rID) {
 	}
 
 	$rRow = $db->get_row();
-	$rRow['user'] = getUser($rRow['user_id']);
+	$rRow['user'] = UserRepository::getLineById($rRow['user_id']);
 	$db->query('SELECT `pair_id` FROM `lines` WHERE `id` = ?;', $rRow['user_id']);
 
 	if ($db->num_rows() != 1) {
 	} else {
-		$rRow['paired'] = getUser($rRow['user']['pair_id']);
+		$rRow['paired'] = UserRepository::getLineById($rRow['user']['pair_id']);
 	}
 
 
@@ -2938,13 +2628,13 @@ function getEnigma($rID) {
 	}
 
 	$rRow = $db->get_row();
-	$rRow['user'] = getUser($rRow['user_id']);
+	$rRow['user'] = UserRepository::getLineById($rRow['user_id']);
 
 	$db->query('SELECT `pair_id` FROM `lines` WHERE `id` = ?;', $rRow['user_id']);
 
 	if ($db->num_rows() != 1) {
 	} else {
-		$rRow['paired'] = getUser($rRow['user']['pair_id']);
+		$rRow['paired'] = UserRepository::getLineById($rRow['user']['pair_id']);
 	}
 
 	return $rRow;
@@ -2982,7 +2672,7 @@ function getTicket($rID) {
 
 			$rRow['replies'][] = $rReply;
 		}
-		$rRow['user'] = getRegisteredUser($rRow['member_id']);
+		$rRow['user'] = UserRepository::getRegisteredUserById($rRow['member_id']);
 		return $rRow;
 	}
 }
@@ -3111,27 +2801,12 @@ function getEPGSources() {
 
 function getCategories($rType = 'live') {
 	global $db;
-	$rCategories = CategoryService::getFromDatabase($db, null, null, ($rType ?: null), true);
+	$rCategories = CategoryService::getFromDatabase(null, null, ($rType ?: null), true);
 	$rReturn = array();
 	foreach ($rCategories as $rID => $rRow) {
 		$rReturn[intval($rID)] = $rRow;
 	}
 	return $rReturn;
-}
-
-function findEPG($rEPGName) {
-	global $db;
-	return EpgService::findByName($db, $rEPGName);
-}
-
-function deleteGroup($rID) {
-	global $db;
-	return GroupService::deleteById($db, $rID);
-}
-
-function deletePackage($rID) {
-	global $db;
-	return PackageService::deleteById($db, 'getPackage', $rID);
 }
 
 function deleteProvider($rID) {
@@ -3150,7 +2825,7 @@ function deleteProvider($rID) {
 
 function deleteEPG($rID) {
 	global $db;
-	$rEPG = getEPG($rID);
+	$rEPG = EpgService::getById($rID);
 
 	if (!$rEPG) {
 		return false;
@@ -3165,7 +2840,7 @@ function deleteEPG($rID) {
 
 function deleteServer($rID, $rReplaceWith = null) {
 	global $db;
-	return ServerRepository::deleteById($db, CoreUtilities::$rSettings, 'getStreamingServersByID', $rID, $rReplaceWith);
+	return ServerRepository::deleteById(CoreUtilities::$rSettings, 'getStreamingServersByID', $rID, $rReplaceWith);
 }
 
 function getEncodeErrors($rID) {
@@ -3180,21 +2855,11 @@ function getEncodeErrors($rID) {
 	return $rErrors;
 }
 
-function deleteRecording($rID) {
-	global $db;
-	return WatchService::deleteRecording($db, $rID, 'deleteStream');
-}
-
-function getRecordings() {
-	global $db;
-	return WatchService::getRecordings($db);
-}
-
 function issecure() {
-    $https = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
-    $port443 = isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443;
+	$https = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+	$port443 = isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443;
 
-    return $https || $port443;
+	return $https || $port443;
 }
 
 function getProtocol() {
@@ -3203,11 +2868,6 @@ function getProtocol() {
 	}
 
 	return 'http';
-}
-
-function deleteMovieFile($rServerIDs, $rID) {
-	global $db;
-	return MovieService::deleteFile($db, $rServerIDs, $rID);
 }
 
 function generateString($strength = 10) {
@@ -3223,48 +2883,8 @@ function generateString($strength = 10) {
 	return $random_string;
 }
 
-function getAllServers() {
-	global $db;
-	return ServerRepository::getAllSimple($db);
-}
-
-function getStreamingServers(string $type = 'online') {
-	global $db;
-	global $rPermissions;
-	return ServerRepository::getStreamingSimple($db, $rPermissions, $type);
-}
-
-function getProxyServers($rOnline = false) {
-	global $db;
-	global $rPermissions;
-	return ServerRepository::getProxySimple($db, $rPermissions, $rOnline);
-}
-
-function getStreamPIDs($rServerID) {
-	global $db;
-	return StreamRepository::getPIDs($db, $rServerID, CoreUtilities::$rSettings);
-}
-
 function roundUpToAny($n, $x = 5) {
 	return round(($n + $x / 2) / $x) * $x;
-}
-
-function checksource($rServerID, $rFilename) {
-	return ServerRepository::checkSource(CoreUtilities::$rServers, CoreUtilities::$rFFPROBE, $rServerID, $rFilename);
-}
-
-function getSSLLog($rServerID) {
-	return ServerRepository::getSSLLog(CoreUtilities::$rServers, $rServerID);
-}
-
-function getWatchdog($rID, $rLimit = 86400) {
-	global $db;
-	return WatchdogMonitor::getWatchdog($db, $rID, $rLimit);
-}
-
-function getMemberGroup($rID) {
-	global $db;
-	return GroupService::getById($db, $rID);
 }
 
 function getOutputs() {
@@ -3280,46 +2900,6 @@ function getOutputs() {
 	}
 
 	return $rReturn;
-}
-
-function getUserBouquets() {
-	global $db;
-	return BouquetService::getUserBouquets($db);
-}
-
-function getBouquets() {
-	global $db;
-	return BouquetService::getAllSimple($db);
-}
-
-function getBouquetOrder() {
-	global $db;
-	return BouquetService::getOrder($db);
-}
-
-function getBlockedIPs() {
-	global $db;
-	return BlocklistService::getBlockedIPsSimple($db);
-}
-
-function getRTMPIPs() {
-	global $db;
-	return BlocklistService::getRTMPIPsSimple($db);
-}
-
-function getStream($rID) {
-	global $db;
-	return StreamRepository::getById($db, $rID);
-}
-
-function getUser($rID) {
-	global $db;
-	return UserRepository::getLineById($db, $rID);
-}
-
-function getRegisteredUser($rID) {
-	global $db;
-	return UserRepository::getRegisteredUserById($db, $rID);
 }
 
 function getPageName() {
@@ -3364,19 +2944,6 @@ function cleanValue($rValue) {
 	return '';
 }
 
-function getStreamStats($rStreamID) {
-	global $db;
-	return StreamRepository::getStats($db, $rStreamID);
-}
-
-function getSimilarMovies($rID, $rPage = 1) {
-	return MovieService::getSimilar($rID, $rPage);
-}
-
-function getSimilarSeries($rID, $rPage = 1) {
-	return SeriesService::getSimilar($rID, $rPage);
-}
-
 function generateReport($rURL, $rParams) {
 	$rPost = http_build_query($rParams);
 	$ch = curl_init();
@@ -3411,68 +2978,8 @@ function convertToCSV($rData) {
 	return $rFilename;
 }
 
-function forceWatch($rServerID, $rWatchID) {
-	WatchService::forceWatch($rServerID, $rWatchID);
-}
-
-function forcePlex($rServerID, $rPlexID) {
-	PlexService::forcePlex($rServerID, $rPlexID, 'systemapirequest');
-}
-
-function freeTemp($rServerID) {
-	ServerRepository::freeTemp('systemapirequest', $rServerID);
-}
-
-function freeStreams($rServerID) {
-	ServerRepository::freeStreams('systemapirequest', $rServerID);
-}
-
-function probeSource($rServerID, $rURL, $rUserAgent = null, $rProxy = null, $rCookies = null, $rHeaders = null) {
-	return ServerRepository::probeSource('systemapirequest', $rServerID, $rURL, $rUserAgent, $rProxy, $rCookies, $rHeaders);
-}
-
-function getchannelepg($rStreamID, $rArchive = false) {
-	$rStream = getStream($rStreamID);
-	return EpgService::getChannelEpg($rStream, $rArchive);
-}
-
-function getEPG($rID) {
-	global $db;
-	return EpgService::getById($db, $rID);
-}
-
-function getStreamOptions($rID) {
-	global $db;
-	return StreamRepository::getOptions($db, $rID);
-}
-
-function getStreamSys($rID) {
-	global $db;
-	return StreamRepository::getSystemRows($db, $rID);
-}
-
-function getRegisteredUsers($rOwner = null, $rIncludeSelf = true) {
-	global $db;
-	return UserRepository::getRegisteredUsers($db, $rOwner, $rIncludeSelf);
-}
-
 function getFooter() {
 	return "&copy; 2025 <img height='20px' style='padding-left: 10px; padding-right: 10px; margin-top: -2px;' src='./assets/images/logo-topbar.png' /> v" . XC_VM_VERSION;
-}
-
-function scanBouquets() {
-	BouquetService::scan();
-}
-
-/**
- * Scan and update bouquet with valid stream IDs
- * Removes invalid or non-existent streams from bouquet
- * 
- * @param int $rID Bouquet ID to scan
- */
-function scanBouquet($rID) {
-	global $db;
-	BouquetService::scanOne($db, $rID, 'getBouquet', 'filterIDs');
 }
 
 /**
@@ -3500,16 +3007,6 @@ function filterIDs($ids, $availableIDs, $checkPositive = true) {
 	}
 
 	return $filtered;
-}
-
-function getNextOrder() {
-	global $db;
-	return StreamRepository::getNextOrder($db);
-}
-
-function generateSeriesPlaylist($rSeriesNo) {
-	global $db;
-	return SeriesService::generatePlaylist($db, $rSeriesNo);
 }
 
 function shutdown_admin() {

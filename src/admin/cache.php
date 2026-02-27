@@ -1,18 +1,18 @@
 <?php if (!isset($__viewMode)): ?>
-<?php include 'session.php'; ?>
-<?php include 'functions.php'; ?>
+    <?php include 'session.php'; ?>
+    <?php include 'functions.php'; ?>
 
-<?php if (!checkPermissions()) {
-    goHome();
-} ?>
+    <?php if (!checkPermissions()) {
+        goHome();
+    } ?>
 
-<?php
-CoreUtilities::$rSettings = CoreUtilities::getSettings(true);
-$rSettings = CoreUtilities::$rSettings;
-$_TITLE = 'Cache & Redis Settings';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('admin');
-?>
+    <?php
+    CoreUtilities::$rSettings = CoreUtilities::getSettings(true);
+    $rSettings = CoreUtilities::$rSettings;
+    $_TITLE = 'Cache & Redis Settings';
+    require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+    renderUnifiedLayoutHeader('admin');
+    ?>
 <?php endif; ?>
 
 <div class="wrapper boxed-layout-ext" <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {

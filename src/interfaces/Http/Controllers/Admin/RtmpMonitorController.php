@@ -14,7 +14,7 @@ class RtmpMonitorController extends BaseAdminController
             CoreUtilities::$rRequest['server'] = SERVER_ID;
         }
 
-        $rRTMPInfo = getRTMPStats(CoreUtilities::$rRequest['server']);
+        $rRTMPInfo = ServerRepository::getRTMPStats('systemapirequest', CoreUtilities::$rRequest['server']);
 
         $this->setTitle('RTMP Monitor');
         $this->render('rtmp_monitor', compact('rRTMPInfo'));

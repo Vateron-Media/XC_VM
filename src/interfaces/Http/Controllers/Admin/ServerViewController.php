@@ -14,7 +14,7 @@ class ServerViewController extends BaseAdminController
     {
         $this->requirePermission();
 
-        global $allServers, $rProxyServers;
+        global $allServers, $rProxyServers, $db;
 
         $id = $this->input('id');
         if (!$id) {
@@ -43,7 +43,7 @@ class ServerViewController extends BaseAdminController
             'dates'  => [null, null],
         ];
 
-        foreach (getWatchdog($rServer['id']) as $rData) {
+        foreach (WatchdogMonitor::getWatchdog($rServer['id']) as $rData) {
             if (!$rStats['dates'][0] || $rData['time'] * 1000 <= $rStats['dates'][0]) {
                 $rStats['dates'][0] = $rData['time'] * 1000;
             }

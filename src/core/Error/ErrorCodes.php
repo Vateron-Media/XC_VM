@@ -11,6 +11,7 @@
  * которые при миграции будут перенесены сюда.
  */
 
+global $rErrorCodes;
 $rErrorCodes = array(
     'API_IP_NOT_ALLOWED'       => 'IP is not allowed to access the API.',
     'ARCHIVE_DOESNT_EXIST'     => 'Archive files are missing for this stream ID.',
@@ -44,7 +45,7 @@ $rErrorCodes = array(
     'LB_TOKEN_INVALID'         => 'AES Token cannot be decrypted.',
     'LEGACY_EPG_DISABLED'      => 'Legacy epg.php access has been disabled.',
     'LEGACY_GET_DISABLED'      => 'Legacy get.php access has been disabled.',
-    'LEGACY_PANEL_API_DISABLED'=> 'Legacy panel_api.php access has been disabled.',
+    'LEGACY_PANEL_API_DISABLED' => 'Legacy panel_api.php access has been disabled.',
     'LINE_CREATE_FAIL'         => 'Line failed to insert into database.',
     'NO_CREDENTIALS'           => 'No credentials have been specified.',
     'NO_TIMESTAMP'             => 'No archive timestamp has been specified.',

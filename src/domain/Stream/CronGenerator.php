@@ -1,7 +1,8 @@
 <?php
 
 class CronGenerator {
-	public static function generate($db) {
+	public static function generate() {
+		global $db;
 		if (file_exists(TMP_PATH . 'crontab')) {
 			return false;
 		}

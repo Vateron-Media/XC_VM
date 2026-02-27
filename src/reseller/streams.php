@@ -1,15 +1,15 @@
 <?php
 if (!isset($__viewMode)):
-include 'session.php';
-include 'functions.php';
+    include 'session.php';
+    include 'functions.php';
 
-if (!checkResellerPermissions()) {
-    goHome();
-}
+    if (!checkResellerPermissions()) {
+        goHome();
+    }
 
-$_TITLE = 'Streams';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('reseller');
+    $_TITLE = 'Streams';
+    require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+    renderUnifiedLayoutHeader('reseller');
 endif;
 ?>
 
@@ -25,21 +25,21 @@ endif;
                 </div>
             </div>
         </div>
-        
+
         <div class="row">
             <div class="col-12">
                 <div class="card">
                     <div class="card-body" style="overflow-x:auto;">
 
                         <div id="collapse_filters"
-                             class="<?php echo $rMobile ? 'collapse' : ''; ?> form-group row mb-4">
+                            class="<?php echo $rMobile ? 'collapse' : ''; ?> form-group row mb-4">
 
                             <div class="col-md-5">
                                 <input type="text"
-                                       class="form-control"
-                                       id="stream_search"
-                                       value="<?php echo isset(CoreUtilities::$rRequest['search']) ? htmlspecialchars(CoreUtilities::$rRequest['search']) : ''; ?>"
-                                       placeholder="Search Streams...">
+                                    class="form-control"
+                                    id="stream_search"
+                                    value="<?php echo isset(CoreUtilities::$rRequest['search']) ? htmlspecialchars(CoreUtilities::$rRequest['search']) : ''; ?>"
+                                    placeholder="Search Streams...">
                             </div>
 
                             <div class="col-md-4">
@@ -78,7 +78,7 @@ endif;
                         </div>
 
                         <table id="datatable-streampage"
-                               class="table table-borderless table-striped dt-responsive nowrap font-normal">
+                            class="table table-borderless table-striped dt-responsive nowrap font-normal">
                             <thead>
                                 <tr>
                                     <th class="text-center">ID</th>

@@ -18,7 +18,7 @@ class WatchAddController extends BaseAdminController
             }
         }
 
-        $rBouquets = getBouquets();
+        $rBouquets = BouquetService::getAllSimple();
         if (!is_array($rBouquets)) {
             $rBouquets = [];
         }

@@ -2,7 +2,6 @@
 /**
  * XC_VM — Контроллер просмотра тикета (admin/ticket_view.php)
  */
-namespace App\Http\Controllers\Admin;
 
 class TicketViewController extends BaseAdminController {
     public function index() {
@@ -11,8 +10,8 @@ class TicketViewController extends BaseAdminController {
         $this->requirePermission();
 
         $rTicketInfo = null;
-        if (isset(\CoreUtilities::$rRequest['id'])) {
-            $rTicketInfo = getTicket(\CoreUtilities::$rRequest['id']);
+        if (isset(CoreUtilities::$rRequest['id'])) {
+            $rTicketInfo = getTicket(CoreUtilities::$rRequest['id']);
         }
         if (!$rTicketInfo) {
             $this->redirect('tickets');
@@ -20,7 +19,7 @@ class TicketViewController extends BaseAdminController {
         }
 
         if ($rUserInfo['id'] != $rTicketInfo['member_id']) {
-            $db->query('UPDATE `tickets` SET `admin_read` = 1 WHERE `id` = ?;', \CoreUtilities::$rRequest['id']);
+            $db->query('UPDATE `tickets` SET `admin_read` = 1 WHERE `id` = ?;', CoreUtilities::$rRequest['id']);
         }
 
         $this->setTitle('View Ticket');

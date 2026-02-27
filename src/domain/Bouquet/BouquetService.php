@@ -1,15 +1,16 @@
 <?php
 
 class BouquetService {
-	public static function process($rData, $db, $rGetBouquetCallback, $rScanBouquetCallback) {
+	public static function process($rData, $rGetBouquetCallback, $rScanBouquetCallback) {
+		global $db;
 		if (isset($rData['edit'])) {
-			if (!hasPermissions('adv', 'edit_bouquet')) {
+			if (!Authorization::check('adv', 'edit_bouquet')) {
 				exit();
 			}
 
 			$rArray = overwriteData(call_user_func($rGetBouquetCallback, $rData['edit']), $rData);
 		} else {
-			if (!hasPermissions('adv', 'add_bouquet')) {
+			if (!Authorization::check('adv', 'add_bouquet')) {
 				exit();
 			}
 
@@ -72,7 +73,8 @@ class BouquetService {
 		return array('status' => STATUS_FAILURE, 'data' => $rData);
 	}
 
-	public static function reorder($rData, $db) {
+	public static function reorder($rData) {
+		global $db;
 		$rOrder = json_decode($rData['stream_order_array'], true);
 		$rOrder['stream'] = confirmIDs($rOrder['stream']);
 		$rOrder['series'] = confirmIDs($rOrder['series']);
@@ -83,7 +85,8 @@ class BouquetService {
 		return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rData['reorder']));
 	}
 
-	public static function sort($rData, $db, $rGetUserBouquetsCallback, $rGetPackagesCallback, $rSortArrayByArrayCallback, $rUpdateLineCallback) {
+	public static function sort($rData, $rGetUserBouquetsCallback, $rGetPackagesCallback, $rSortArrayByArrayCallback, $rUpdateLineCallback) {
+		global $db;
 		set_time_limit(0);
 		ini_set('mysql.connect_timeout', 0);
 		ini_set('max_execution_time', 0);
@@ -123,7 +126,8 @@ class BouquetService {
 		shell_exec(PHP_BIN . ' ' . CLI_PATH . 'tools.php "bouquets" > /dev/null 2>/dev/null &');
 	}
 
-	public static function scanOne($db, $rID, $rGetBouquetCallback, $rFilterIDsCallback) {
+	public static function scanOne($rID, $rGetBouquetCallback, $rFilterIDsCallback) {
+		global $db;
 		$rBouquet = call_user_func($rGetBouquetCallback, $rID);
 		if (!$rBouquet) {
 			return;
@@ -178,7 +182,8 @@ class BouquetService {
 
 	// ──────────── Из BouquetRepository ────────────
 
-	public static function getAll($db, $rGetCacheCallback, $rSetCacheCallback, $rForce = false) {
+	public static function getAll($rGetCacheCallback, $rSetCacheCallback, $rForce = false) {
+		global $db;
 		if (!$rForce && is_callable($rGetCacheCallback)) {
 			$rCache = call_user_func($rGetCacheCallback, 'bouquets', 60);
 			if (!empty($rCache)) {
@@ -203,7 +208,8 @@ class BouquetService {
 		return $rOutput;
 	}
 
-	public static function getUserBouquets($db) {
+	public static function getUserBouquets() {
+		global $db;
 		$rReturn = array();
 		$db->query('SELECT `id`, `bouquet` FROM `lines` ORDER BY `id` ASC;');
 
@@ -216,7 +222,8 @@ class BouquetService {
 		return $rReturn;
 	}
 
-	public static function getAllSimple($db) {
+	public static function getAllSimple() {
+		global $db;
 		$rReturn = array();
 		$db->query('SELECT * FROM `bouquets` ORDER BY `bouquet_order` ASC;');
 
@@ -229,7 +236,8 @@ class BouquetService {
 		return $rReturn;
 	}
 
-	public static function getOrder($db) {
-		return self::getAllSimple($db);
+	public static function getOrder() {
+		global $db;
+		return self::getAllSimple();
 	}
 }

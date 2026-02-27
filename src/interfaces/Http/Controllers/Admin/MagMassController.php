@@ -2,8 +2,6 @@
 /**
  * XC_VM — Контроллер массового редактирования MAG-устройств (admin/mag_mass.php)
  */
-namespace App\Http\Controllers\Admin;
-
 class MagMassController extends BaseAdminController {
     public function index() {
         $this->requirePermission();

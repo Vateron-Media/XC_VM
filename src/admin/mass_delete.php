@@ -1,18 +1,18 @@
 <?php if (!isset($__viewMode)): ?>
-<?php
+    <?php
 
-include 'session.php';
-include 'functions.php';
+    include 'session.php';
+    include 'functions.php';
 
-if (!checkPermissions()) {
-    goHome();
-}
+    if (!checkPermissions()) {
+        goHome();
+    }
 
-set_time_limit(0);
-ini_set('max_execution_time', 0);
-$_TITLE = 'Mass Delete';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('admin'); ?>
+    set_time_limit(0);
+    ini_set('max_execution_time', 0);
+    $_TITLE = 'Mass Delete';
+    require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+    renderUnifiedLayoutHeader('admin'); ?>
 <?php endif; ?>
 <div class="wrapper boxed-layout-xl" <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest'): ?><?php else: ?> style="display: none;" <?php endif; ?>>
     <div class="container-fluid">
@@ -107,7 +107,7 @@ renderUnifiedLayoutHeader('admin'); ?>
                                                 <select id="stream_server_id" class="form-control" data-toggle="select2">
                                                     <option value="" selected>All Servers</option>
                                                     <option value="-1">No Servers</option>
-                                                    <?php foreach (getStreamingServers() as $rServer): ?>
+                                                    <?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer): ?>
                                                         <option value="<?= intval($rServer['id']) ?>"><?= $rServer['server_name'] ?></option>
                                                     <?php endforeach; ?>
                                                 </select>
@@ -185,7 +185,7 @@ renderUnifiedLayoutHeader('admin'); ?>
                                                 <select id="movie_server_id" class="form-control" data-toggle="select2">
                                                     <option value="" selected>All Servers</option>
                                                     <option value="-1">No Servers</option>
-                                                    <?php foreach (getStreamingServers() as $rServer): ?>
+                                                    <?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer): ?>
                                                         <option value="<?= intval($rServer['id']) ?>"><?= $rServer['server_name'] ?></option>
                                                     <?php endforeach; ?>
                                                 </select>
@@ -257,7 +257,7 @@ renderUnifiedLayoutHeader('admin'); ?>
                                                 <select id="station_server_id" class="form-control" data-toggle="select2">
                                                     <option value="" selected>All Servers</option>
                                                     <option value="-1">No Servers</option>
-                                                    <?php foreach (getStreamingServers() as $rServer): ?>
+                                                    <?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer): ?>
                                                         <option value="<?= intval($rServer['id']) ?>"><?= $rServer['server_name'] ?></option>
                                                     <?php endforeach; ?>
                                                 </select>
@@ -391,7 +391,7 @@ renderUnifiedLayoutHeader('admin'); ?>
                                                 <select id="episode_server_id" class="form-control" data-toggle="select2">
                                                     <option value="" selected>All Servers</option>
                                                     <option value="-1">No Servers</option>
-                                                    <?php foreach (getStreamingServers() as $rServer): ?>
+                                                    <?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer): ?>
                                                         <option value="<?= intval($rServer['id']) ?>"><?= $rServer['server_name'] ?></option>
                                                     <?php endforeach; ?>
                                                 </select>
@@ -450,7 +450,7 @@ renderUnifiedLayoutHeader('admin'); ?>
                                             </div>
                                             <div class="col-md-3">
                                                 <select id="reseller_search" class="form-control" data-toggle="select2">
-                                                    <?php if (isset(CoreUtilities::$rRequest['owner']) && ($rOwner = getRegisteredUser(intval(CoreUtilities::$rRequest['owner'])))): ?>
+                                                    <?php if (isset(CoreUtilities::$rRequest['owner']) && ($rOwner = UserRepository::getRegisteredUserById(intval(CoreUtilities::$rRequest['owner'])))): ?>
                                                         <option value="<?= intval($rOwner['id']) ?>" selected="selected"><?= $rOwner['username'] ?></option>
                                                     <?php endif; ?>
                                                 </select>
@@ -521,7 +521,7 @@ renderUnifiedLayoutHeader('admin'); ?>
                                             </div>
                                             <div class="col-md-3">
                                                 <select id="user_reseller_search" class="form-control" data-toggle="select2">
-                                                    <?php if (isset(CoreUtilities::$rRequest['owner']) && ($rOwner = getRegisteredUser(intval(CoreUtilities::$rRequest['owner'])))): ?>
+                                                    <?php if (isset(CoreUtilities::$rRequest['owner']) && ($rOwner = UserRepository::getRegisteredUserById(intval(CoreUtilities::$rRequest['owner'])))): ?>
                                                         <option value="<?= intval($rOwner['id']) ?>" selected="selected"><?= $rOwner['username'] ?></option>
                                                     <?php endif; ?>
                                                 </select>
@@ -584,7 +584,7 @@ renderUnifiedLayoutHeader('admin'); ?>
                                             </div>
                                             <div class="col-md-3">
                                                 <select id="mag_reseller_search" class="form-control" data-toggle="select2">
-                                                    <?php if (isset(CoreUtilities::$rRequest['owner']) && ($rOwner = getRegisteredUser(intval(CoreUtilities::$rRequest['owner'])))): ?>
+                                                    <?php if (isset(CoreUtilities::$rRequest['owner']) && ($rOwner = UserRepository::getRegisteredUserById(intval(CoreUtilities::$rRequest['owner'])))): ?>
                                                         <option value="<?= intval($rOwner['id']) ?>" selected="selected"><?= $rOwner['username'] ?></option>
                                                     <?php endif; ?>
                                                 </select>
@@ -650,7 +650,7 @@ renderUnifiedLayoutHeader('admin'); ?>
                                             </div>
                                             <div class="col-md-3">
                                                 <select id="enigma_reseller_search" class="form-control" data-toggle="select2">
-                                                    <?php if (isset(CoreUtilities::$rRequest['owner']) && ($rOwner = getRegisteredUser(intval(CoreUtilities::$rRequest['owner'])))): ?>
+                                                    <?php if (isset(CoreUtilities::$rRequest['owner']) && ($rOwner = UserRepository::getRegisteredUserById(intval(CoreUtilities::$rRequest['owner'])))): ?>
                                                         <option value="<?= intval($rOwner['id']) ?>" selected="selected"><?= $rOwner['username'] ?></option>
                                                     <?php endif; ?>
                                                 </select>

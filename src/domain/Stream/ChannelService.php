@@ -1,15 +1,16 @@
 <?php
 
 class ChannelService {
-	public static function process($rData, $db, $rSettings) {
+	public static function process($rData, $rSettings) {
+		global $db;
 		if (isset($rData['edit'])) {
-			if (hasPermissions('adv', 'edit_cchannel')) {
-				$rArray = overwriteData(getStream($rData['edit']), $rData);
+			if (Authorization::check('adv', 'edit_cchannel')) {
+				$rArray = overwriteData(StreamRepository::getById($rData['edit']), $rData);
 			} else {
 				exit();
 			}
 		} else {
-			if (hasPermissions('adv', 'create_channel')) {
+			if (Authorization::check('adv', 'create_channel')) {
 				$rArray = verifyPostTable('streams', $rData);
 				$rArray['type'] = 3;
 				$rArray['added'] = time();
@@ -41,7 +42,7 @@ class ChannelService {
 		$rArray['movie_properties'] = array('type' => intval($rData['channel_type']));
 
 		if (intval($rData['channel_type']) == 0) {
-			$rPlaylist = generateSeriesPlaylist($rData['series_no']);
+			$rPlaylist = SeriesService::generatePlaylist($rData['series_no']);
 			$rArray['stream_source'] = $rPlaylist;
 			$rArray['series_no'] = intval($rData['series_no']);
 		} else {
@@ -116,7 +117,7 @@ class ChannelService {
 
 			if (isset($rData['edit'])) {
 			} else {
-				$rArray['order'] = getNextOrder();
+				$rArray['order'] = StreamRepository::getNextOrder();
 			}
 
 			$rPrepare = prepareArray($rArray);
@@ -182,7 +183,7 @@ class ChannelService {
 
 				if (!isset($rData['edit'])) {
 				} else {
-					foreach (getBouquets() as $rBouquet) {
+					foreach (BouquetService::getAllSimple() as $rBouquet) {
 						if (in_array($rBouquet['id'], $rBouquets)) {
 						} else {
 							removeFromBouquet('stream', $rBouquet['id'], $rInsertID);
@@ -201,7 +202,8 @@ class ChannelService {
 		}
 	}
 
-	public static function massEdit($rData, $db) {
+	public static function massEdit($rData) {
+		global $db;
 		set_time_limit(0);
 		ini_set('mysql.connect_timeout', 0);
 		ini_set('max_execution_time', 0);
@@ -253,7 +255,7 @@ class ChannelService {
 				$rStreamExists[intval($rRow['stream_id'])][intval($rRow['server_id'])] = intval($rRow['server_stream_id']);
 				$rProcessServers[intval($rRow['stream_id'])][] = intval($rRow['server_id']);
 			}
-			$rBouquets = getBouquets();
+			$rBouquets = BouquetService::getAllSimple();
 			$rDelOptions = $rAddBouquet = $rDelBouquet = array();
 			$rEncQuery = $rAddQuery = '';
 
@@ -426,7 +428,8 @@ class ChannelService {
 		return array('status' => STATUS_SUCCESS);
 	}
 
-	public static function setOrder($rData, $db) {
+	public static function setOrder($rData) {
+		global $db;
 		set_time_limit(0);
 		ini_set('mysql.connect_timeout', 0);
 		ini_set('max_execution_time', 0);

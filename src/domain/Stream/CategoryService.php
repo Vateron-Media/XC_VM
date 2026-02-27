@@ -1,7 +1,8 @@
 <?php
 
 class CategoryService {
-	public static function reorder($rData, $db) {
+	public static function reorder($rData) {
+		global $db;
 		$rPostCategories = json_decode($rData['categories'], true);
 
 		if (0 >= count($rPostCategories)) {
@@ -14,7 +15,8 @@ class CategoryService {
 		return array('status' => STATUS_SUCCESS);
 	}
 
-	public static function process($rData, $db) {
+	public static function process($rData) {
+		global $db;
 		if (isset($rData['edit'])) {
 			$rArray = overwriteData(getCategory($rData['edit']), $rData);
 		} else {
@@ -42,7 +44,8 @@ class CategoryService {
 
 	// ──────────── Из CategoryRepository ────────────
 
-	public static function getFromDatabase($db, $rGetCacheCallback, $rSetCacheCallback, $rType = null, $rForce = false) {
+	public static function getFromDatabase($rGetCacheCallback, $rSetCacheCallback, $rType = null, $rForce = false) {
+		global $db;
 		if (is_string($rType)) {
 			$db->query('SELECT t1.* FROM `streams_categories` t1 WHERE t1.category_type = ? GROUP BY t1.id ORDER BY t1.cat_order ASC', $rType);
 			return (0 < $db->num_rows() ? $db->get_rows(true, 'id') : array());

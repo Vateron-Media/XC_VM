@@ -1,22 +1,22 @@
 <?php
 if (!isset($__viewMode)):
 
-include 'session.php';
-include 'functions.php';
+	include 'session.php';
+	include 'functions.php';
 
-if (checkResellerPermissions()) {
-} else {
-	goHome();
-}
+	if (checkResellerPermissions()) {
+	} else {
+		goHome();
+	}
 
-if (!(isset(CoreUtilities::$rRequest['id']) && (!($rUser = getRegisteredUser(CoreUtilities::$rRequest['id'])) || CoreUtilities::$rRequest['id'] == $rUserInfo['id']))) {
-} else {
-	goHome();
-}
+	if (!(isset(CoreUtilities::$rRequest['id']) && (!($rUser = UserRepository::getRegisteredUserById(CoreUtilities::$rRequest['id'])) || CoreUtilities::$rRequest['id'] == $rUserInfo['id']))) {
+	} else {
+		goHome();
+	}
 
-$_TITLE = 'User';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('reseller');
+	$_TITLE = 'User';
+	require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+	renderUnifiedLayoutHeader('reseller');
 endif;
 echo '<div class="wrapper boxed-layout">' . "\n" . '    <div class="container-fluid">' . "\n\t\t" . '<div class="row">' . "\n\t\t\t" . '<div class="col-12">' . "\n\t\t\t\t" . '<div class="page-title-box">' . "\n\t\t\t\t\t" . '<div class="page-title-right">' . "\n" . '                        ';
 include __DIR__ . '/topbar.php';
@@ -32,7 +32,7 @@ echo ' User</h4>' . "\n\t\t\t\t" . '</div>' . "\n\t\t\t" . '</div>' . "\n\t\t" .
 
 if (!isset($rUser) || in_array($rUser['id'], $rPermissions['direct_reports'])) {
 } else {
-	$rOwner = getRegisteredUser($rUser['owner_id']);
+	$rOwner = UserRepository::getRegisteredUserById($rUser['owner_id']);
 	echo '                <div class="alert alert-info" role="alert">' . "\n" . "                    This user does not directly report to you, although you have the right to edit this user you should notify the user's parent <strong><a href=\"user?id=";
 	echo $rOwner['id'];
 	echo '">';
@@ -176,7 +176,7 @@ if (1 >= count($rPermissions['subresellers'])) {
 } else {
 	echo '                                                <div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="member_group_id">Member Group</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<select name="member_group_id" id="member_group_id" class="form-control select2" data-toggle="select2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
 
-	foreach (getMemberGroups() as $rGroup) {
+	foreach (GroupService::getAll() as $rGroup) {
 		if (in_array($rGroup['group_id'], $rPermissions['subresellers'])) {
 			echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<option ';
 

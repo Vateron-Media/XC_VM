@@ -11,8 +11,7 @@
  *   - Поиск совпадений в TMDB API
  *   - Обновление метаданных в БД
  */
-class TmdbCron
-{
+class TmdbCron {
     /**
      * Создать TMDB-клиент с корректным языком.
      *
@@ -21,8 +20,7 @@ class TmdbCron
      * @param string|null $streamLang Язык потока (tmdb_language)
      * @return TMDB
      */
-    private static function createTmdbClient(?string $streamLang = null): TMDB
-    {
+    private static function createTmdbClient(?string $streamLang = null): TMDB {
         if (0 < strlen($streamLang)) {
             return new TMDB(CoreUtilities::$rSettings['tmdb_api_key'], $streamLang);
         }
@@ -45,8 +43,7 @@ class TmdbCron
      * @param string      $searchType 'movie' или 'tv'
      * @return int TMDB ID (0 — не найден)
      */
-    private static function findBestMatch(TMDB $tmdb, string $title, ?string $altTitle, ?string $year, string $searchType = 'movie'): int
-    {
+    private static function findBestMatch(TMDB $tmdb, string $title, ?string $altTitle, ?string $year, string $searchType = 'movie'): int {
         $rMatch = null;
         $rMatches = array();
 
@@ -131,8 +128,7 @@ class TmdbCron
      *
      * @param array $row Строка из watch_refresh
      */
-    private static function processMovie(array $row): void
-    {
+    private static function processMovie(array $row): void {
         global $db;
 
         $db->query('SELECT * FROM `streams` WHERE `id` = ?;', $row['stream_id']);
@@ -235,9 +231,11 @@ class TmdbCron
 
             $rDirectors = array();
             foreach ($rMovieData['credits']['crew'] as $rMember) {
-                if (!(count($rDirectors) < 5
-                    && ($rMember['department'] == 'Directing' || $rMember['known_for_department'] == 'Directing'))
-                    || in_array($rMember['name'], $rDirectors)) {
+                if (
+                    !(count($rDirectors) < 5
+                        && ($rMember['department'] == 'Directing' || $rMember['known_for_department'] == 'Directing'))
+                    || in_array($rMember['name'], $rDirectors)
+                ) {
                 } else {
                     $rDirectors[] = $rMember['name'];
                 }
@@ -320,8 +318,7 @@ class TmdbCron
      * @param array $row           Строка из watch_refresh
      * @param array &$updateSeries Массив ID сериалов для последующего updateSeries()
      */
-    private static function processSeries(array $row, array &$updateSeries): void
-    {
+    private static function processSeries(array $row, array &$updateSeries): void {
         global $db;
 
         $db->query('SELECT * FROM `streams_series` WHERE `id` = ?;', $row['stream_id']);
@@ -414,9 +411,11 @@ class TmdbCron
 
             $rDirectors = array();
             foreach ($rShowData['credits']['crew'] as $rMember) {
-                if (!(count($rDirectors) < 5
-                    && ($rMember['department'] == 'Directing' || $rMember['known_for_department'] == 'Directing'))
-                    || in_array($rMember['name'], $rDirectors)) {
+                if (
+                    !(count($rDirectors) < 5
+                        && ($rMember['department'] == 'Directing' || $rMember['known_for_department'] == 'Directing'))
+                    || in_array($rMember['name'], $rDirectors)
+                ) {
                 } else {
                     $rDirectors[] = $rMember['name'];
                 }
@@ -439,7 +438,7 @@ class TmdbCron
 
             if ($db->query($rQuery, ...$rPrepare['data'])) {
                 $rInsertID = $db->last_insert_id();
-                updateSeries(intval($rInsertID));
+                SeriesService::updateFromTMDB(intval($rInsertID));
                 $db->query('UPDATE `watch_refresh` SET `status` = 1 WHERE `id` = ?;', $row['id']);
             } else {
                 $db->query('UPDATE `watch_refresh` SET `status` = -2 WHERE `id` = ?;', $row['id']);
@@ -458,8 +457,7 @@ class TmdbCron
      * @param array $row           Строка из watch_refresh
      * @param array &$updateSeries Массив ID сериалов для последующего updateSeries()
      */
-    private static function processEpisode(array $row, array &$updateSeries): void
-    {
+    private static function processEpisode(array $row, array &$updateSeries): void {
         global $db;
 
         $db->query('SELECT * FROM `streams` WHERE `id` = ?;', $row['stream_id']);
@@ -594,8 +592,7 @@ class TmdbCron
      * Подключает библиотеки TMDB, выбирает записи из очереди
      * и делегирует обработку по типу.
      */
-    public static function run(): void
-    {
+    public static function run(): void {
         global $db;
 
         require INCLUDES_PATH . 'libs/tmdb.php';
@@ -623,7 +620,7 @@ class TmdbCron
         }
 
         foreach ($rUpdateSeries as $rSeriesID) {
-            updateSeries(intval($rSeriesID));
+            SeriesService::updateFromTMDB(intval($rSeriesID));
         }
     }
 }

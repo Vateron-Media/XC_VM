@@ -1,17 +1,17 @@
 <?php
 if (!isset($__viewMode)):
 
-include 'session.php';
-include 'functions.php';
+	include 'session.php';
+	include 'functions.php';
 
-if (checkResellerPermissions()) {
-} else {
-	goHome();
-}
+	if (checkResellerPermissions()) {
+	} else {
+		goHome();
+	}
 
-$_TITLE = 'Episodes';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('reseller');
+	$_TITLE = 'Episodes';
+	require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+	renderUnifiedLayoutHeader('reseller');
 endif;
 echo '<div class="wrapper boxed-layout-ext">' . "\n" . '    <div class="container-fluid">' . "\n" . '        <div class="row">' . "\n" . '            <div class="col-12">' . "\n" . '                <div class="page-title-box">' . "\n" . '                    <div class="page-title-right">' . "\n" . '                        ';
 include __DIR__ . '/topbar.php';
@@ -44,7 +44,7 @@ echo '>';
 echo $language::get('all_series');
 echo '</option>' . "\n" . '                                    ';
 
-foreach (getSeriesList() as $rSeriesArr) {
+foreach (SeriesService::getList() as $rSeriesArr) {
 	if (!in_array($rSeriesArr['id'], $rPermissions['series_ids'])) {
 	} else {
 		echo '                                    <option value="';
