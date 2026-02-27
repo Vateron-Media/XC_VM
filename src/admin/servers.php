@@ -1,18 +1,18 @@
 <?php if (!isset($__viewMode)): ?>
-<?php
+    <?php
 
-include 'session.php';
-include 'functions.php';
+    include 'session.php';
+    include 'functions.php';
 
-if (!checkPermissions()) {
-    goHome();
-}
+    if (!checkPermissions()) {
+        goHome();
+    }
 
-CoreUtilities::$rServers = CoreUtilities::getServers(true);
-$_TITLE = 'Servers';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('admin');
-?>
+    CoreUtilities::$rServers = CoreUtilities::getServers(true);
+    $_TITLE = 'Servers';
+    require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+    renderUnifiedLayoutHeader('admin');
+    ?>
 <?php endif; ?>
 
 <div class="wrapper" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') echo 'style="display: none;"' ?>>
@@ -129,7 +129,7 @@ renderUnifiedLayoutHeader('admin');
                                                 } else {
                                                     $rClients = getLiveConnections($rServer['id']);
                                                 }
-                                                if (hasPermissions('adv', 'live_connections')) {
+                                                if (Authorization::check('adv', 'live_connections')) {
                                                     $rClients = '<a href="./live_connections?server=' . $rServer['id'] . "\"><button type='button' class='btn btn-dark bg-animate btn-xs waves-effect waves-light no-border'>" . number_format($rClients, 0) . '</button></a>';
                                                 } else {
                                                     $rClients = "<button type='button' class='btn btn-dark bg-animate btn-xs waves-effect waves-light no-border'>" . number_format($rClients, 0) . '</button>';
@@ -194,7 +194,7 @@ renderUnifiedLayoutHeader('admin');
                                                 </button>
                                             </td>
                                             <td class="text-center">
-                                                <?php if (hasPermissions('adv', 'edit_server')): ?>
+                                                <?php if (Authorization::check('adv', 'edit_server')): ?>
                                                     <?php if (CoreUtilities::$rSettings['group_buttons']): ?>
                                                         <div class="btn-group dropdown">
                                                             <a href="javascript: void(0);" class="table-action-btn dropdown-toggle arrow-none btn btn-light btn-sm" data-toggle="dropdown" aria-expanded="false">
@@ -803,7 +803,7 @@ renderUnifiedLayoutFooter('admin');
                 bindServers();
                 bindHref();
                 refreshTooltips();
-                <?php if (hasPermissions('adv', 'edit_server')): ?>
+                <?php if (Authorization::check('adv', 'edit_server')): ?>
                     // Multi Actions
                     multiAPI("clear");
                     $("#datatable tr").click(function() {

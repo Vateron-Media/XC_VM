@@ -16,7 +16,7 @@ class GroupController extends BaseAdminController
 
         $this->setTitle('Groups');
 
-        $groups = function_exists('getMemberGroups') ? getMemberGroups() : [];
+        $groups = GroupService::getAll();
 
         $this->render('groups', [
             'groups' => $groups,

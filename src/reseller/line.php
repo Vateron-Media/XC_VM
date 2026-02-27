@@ -1,32 +1,32 @@
 <?php
 if (!isset($__viewMode)):
 
-include 'session.php';
-include 'functions.php';
+	include 'session.php';
+	include 'functions.php';
 
-if (checkResellerPermissions()) {
-} else {
-	goHome();
-}
-
-if (!isset(CoreUtilities::$rRequest['id'])) {
-} else {
-	$rLine = getUser(CoreUtilities::$rRequest['id']);
-
-	if (!(!$rLine || $rLine['is_mag'] || $rLine['is_e2']) && hasPermissions('line', $rLine['id'])) {
+	if (checkResellerPermissions()) {
 	} else {
 		goHome();
 	}
 
-	if (0 >= $rLine['package_id']) {
+	if (!isset(CoreUtilities::$rRequest['id'])) {
 	} else {
-		$rOrigPackage = getPackage($rLine['package_id']);
-	}
-}
+		$rLine = UserRepository::getLineById(CoreUtilities::$rRequest['id']);
 
-$_TITLE = 'Line';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('reseller');
+		if (!(!$rLine || $rLine['is_mag'] || $rLine['is_e2']) && Authorization::check('line', $rLine['id'])) {
+		} else {
+			goHome();
+		}
+
+		if (0 >= $rLine['package_id']) {
+		} else {
+			$rOrigPackage = getPackage($rLine['package_id']);
+		}
+	}
+
+	$_TITLE = 'Line';
+	require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+	renderUnifiedLayoutHeader('reseller');
 endif;
 echo '<div class="wrapper boxed-layout-ext">' . "\n" . '    <div class="container-fluid">' . "\n\t\t" . '<div class="row">' . "\n\t\t\t" . '<div class="col-12">' . "\n\t\t\t\t" . '<div class="page-title-box">' . "\n\t\t\t\t\t" . '<div class="page-title-right">' . "\n" . '                        ';
 include __DIR__ . '/topbar.php';
@@ -63,7 +63,7 @@ if (!$rGenTrials && !isset($rLine) && isset(CoreUtilities::$rRequest['trial'])) 
 
 	if (!isset($rLine) || in_array($rLine['member_id'], array_merge(array($rUserInfo['id']), $rPermissions['direct_reports']))) {
 	} else {
-		$rOwner = getRegisteredUser($rLine['member_id']);
+		$rOwner = UserRepository::getRegisteredUserById($rLine['member_id']);
 		echo '                <div class="alert alert-info" role="alert">' . "\n" . "                    This line does not belong to you, although you have the right to edit this line you should notify the line's owner <strong><a href=\"user?id=";
 		echo $rOwner['id'];
 		echo '">';

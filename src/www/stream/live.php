@@ -182,7 +182,7 @@ if ($rChannelInfo) {
 
                 // Use async file monitoring instead of busy-wait loop
                 $foundFile = AsyncFileOperations::awaitAnyFileExists([$rFirstTS, $rFirstAlt], $maxRetries, 100);
-                
+
                 if (!$foundFile) {
                     generateError("WAIT_TIME_EXPIRED");
                 } else {
@@ -195,7 +195,7 @@ if ($rChannelInfo) {
         } else {
             $maxRetries = intval(StreamingUtilities::$rSettings["on_demand_wait_time"]) * 10;
             $foundFile = AsyncFileOperations::awaitAnyFileExists([$rPlaylist, STREAMS_PATH . $rStreamID . "_.m3u8"], $maxRetries, 100);
-            
+
             if (!$foundFile) {
                 generateError("WAIT_TIME_EXPIRED");
             }

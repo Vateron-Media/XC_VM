@@ -1,28 +1,28 @@
 <?php if (!isset($__viewMode)): ?>
-<?php
+    <?php
 
-include 'session.php';
-include 'functions.php';
+    include 'session.php';
+    include 'functions.php';
 
-if (!checkPermissions()) {
-    goHome();
-}
-
-if (isset(CoreUtilities::$rRequest['id'])) {
-    $rDevice = getMag(CoreUtilities::$rRequest['id']);
-
-    if (!$rDevice['user_id']) {
-        exit();
+    if (!checkPermissions()) {
+        goHome();
     }
-}
 
-if (isset($rDevice) && !isset($rDevice['user'])) {
-    $rDevice['user'] = array('bouquet' => array());
-}
+    if (isset(CoreUtilities::$rRequest['id'])) {
+        $rDevice = getMag(CoreUtilities::$rRequest['id']);
 
-$_TITLE = 'MAG Device';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('admin'); ?>
+        if (!$rDevice['user_id']) {
+            exit();
+        }
+    }
+
+    if (isset($rDevice) && !isset($rDevice['user'])) {
+        $rDevice['user'] = array('bouquet' => array());
+    }
+
+    $_TITLE = 'MAG Device';
+    require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+    renderUnifiedLayoutHeader('admin'); ?>
 <?php endif; ?>
 
 <div class="wrapper boxed-layout" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') echo 'style="display: none;"' ?>>
@@ -103,7 +103,7 @@ renderUnifiedLayoutHeader('admin'); ?>
                                                         <label class="col-md-4 col-form-label" for="member_id">Owner</label>
                                                         <div class="col-md-6">
                                                             <select name="member_id" id="member_id" class="form-control select2" data-toggle="select2">
-                                                                <?php if (isset($rDevice['user']['member_id']) && ($rOwner = getRegisteredUser(intval($rDevice['user']['member_id'])))): ?>
+                                                                <?php if (isset($rDevice['user']['member_id']) && ($rOwner = UserRepository::getRegisteredUserById(intval($rDevice['user']['member_id'])))): ?>
                                                                     <option value="<?= intval($rOwner['id']) ?>" selected="selected"><?= $rOwner['username'] ?></option>
                                                                 <?php else: ?>
                                                                     <option value="<?= $rUserInfo['id'] ?>"><?= $rUserInfo['username'] ?></option>
@@ -338,7 +338,7 @@ renderUnifiedLayoutHeader('admin'); ?>
                                                             </tr>
                                                         </thead>
                                                         <tbody>
-                                                            <?php foreach (getBouquets() as $rBouquet): ?>
+                                                            <?php foreach (BouquetService::getAllSimple() as $rBouquet): ?>
                                                                 <tr <?= isset($rDevice) && in_array($rBouquet['id'], json_decode($rDevice['user']['bouquet'], true)) ? "class='selected selectedfilter ui-selected'" : '' ?>>
                                                                     <td class="text-center"><?= $rBouquet['id'] ?></td>
                                                                     <td><?= $rBouquet['bouquet_name'] ?></td>
@@ -733,4 +733,5 @@ renderUnifiedLayoutFooter('admin');
 </script>
 <script src="assets/js/listings.js"></script>
 </body>
+
 </html>

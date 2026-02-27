@@ -1,32 +1,32 @@
 <?php
 
 if (!isset($__viewMode)):
-include 'session.php';
-include 'functions.php';
+    include 'session.php';
+    include 'functions.php';
 
-if (!checkPermissions()) {
-    goHome();
-}
-
-$rType = isset(CoreUtilities::$rRequest['proxy']) ? 1 : 2;
-
-
-if (isset(CoreUtilities::$rRequest['id'])) {
-    if ($rType == 1) {
-        $rServerArr = $rProxyServers[intval(CoreUtilities::$rRequest['id'])];
-    } else {
-        $rServerArr = $allServers[intval(CoreUtilities::$rRequest['id'])];
-    }
-
-    if (!$rServerArr) {
+    if (!checkPermissions()) {
         goHome();
     }
-}
 
-$_TITLE = $rType == 1 ? 'Install Proxy' : 'Install Server';
+    $rType = isset(CoreUtilities::$rRequest['proxy']) ? 1 : 2;
 
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('admin');
+
+    if (isset(CoreUtilities::$rRequest['id'])) {
+        if ($rType == 1) {
+            $rServerArr = $rProxyServers[intval(CoreUtilities::$rRequest['id'])];
+        } else {
+            $rServerArr = $allServers[intval(CoreUtilities::$rRequest['id'])];
+        }
+
+        if (!$rServerArr) {
+            goHome();
+        }
+    }
+
+    $_TITLE = $rType == 1 ? 'Install Proxy' : 'Install Server';
+
+    require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+    renderUnifiedLayoutHeader('admin');
 endif; // !$__viewMode
 echo '<div class="wrapper boxed-layout"';
 

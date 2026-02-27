@@ -1,80 +1,80 @@
 <?php if (!isset($__viewMode)): ?>
-<?php
-include 'session.php';
-include 'functions.php';
+	<?php
+	include 'session.php';
+	include 'functions.php';
 
-if ($rThemes[$rUserInfo['theme']]['dark']) {
-	$rColours = array(1 => array('secondary', '#7e8e9d', '#ffffff'), 2 => array('secondary', '#7e8e9d', '#ffffff'), 3 => array('secondary', '#7e8e9d', '#ffffff'), 4 => array('secondary', '#7e8e9d', '#ffffff'));
-	$rColourMap = array(array('#7e8e9d', 'bg-map-dark-1'), array('#6c7b8a', 'bg-map-dark-2'), array('#5a6977', 'bg-map-dark-3'), array('#485765', 'bg-map-dark-4'), array('#374654', 'bg-map-dark-5'), array('#273643', 'bg-map-dark-6'));
-} else {
-	$rColours = array(1 => array('purple', '#675db7', '#675db7'), 2 => array('success', '#23b397', '#23b397'), 3 => array('pink', '#e36498', '#e36498'), 4 => array('info', '#56C3D6', '#56C3D6'));
-	$rColourMap = array(array('#23b397', 'bg-success'), array('#56c2d6', 'bg-info'), array('#5089de', 'bg-primary'), array('#675db7', 'bg-purple'), array('#e36498', 'bg-pink'), array('#98a6ad', 'bg-secondary'));
-}
-
-if (!isset(CoreUtilities::$rRequest['server_id']) || isset($rServers[CoreUtilities::$rRequest['server_id']])) {
-} else {
-	goHome();
-}
-
-$rConnectionMap = array();
-$rConnectionCount = 0;
-
-if (isset(CoreUtilities::$rRequest['server_id'])) {
-	$db->query('SELECT `geoip_country_code`, COUNT(`geoip_country_code`) AS `count` FROM `lines_activity` WHERE (`server_id` = ? OR `proxy_id` = ?) GROUP BY `geoip_country_code` ORDER BY `count` DESC;', intval(CoreUtilities::$rRequest['server_id']), intval(CoreUtilities::$rRequest['server_id']));
-} else {
-	$db->query('SELECT `geoip_country_code`, COUNT(`geoip_country_code`) AS `count` FROM `lines_activity` GROUP BY `geoip_country_code` ORDER BY `count` DESC;');
-}
-
-if (0 >= $db->num_rows()) {
-} else {
-	$i = 0;
-
-	foreach ($db->get_rows() as $rRow) {
-		if ($i < count($rColourMap)) {
-			$rRow['colour'] = $rColourMap[$i];
-		} else {
-			$rRow['colour'] = $rColourMap[count($rColourMap) - 1];
-		}
-
-		if (isset($rCountryCodes[$rRow['geoip_country_code']])) {
-			$rRow['name'] = $rCountryCodes[$rRow['geoip_country_code']];
-		} else {
-			$rRow['name'] = 'Unknown Country';
-		}
-
-		$rConnectionCount += $rRow['count'];
-		$rConnectionMap[] = $rRow;
-		$i++;
+	if ($rThemes[$rUserInfo['theme']]['dark']) {
+		$rColours = array(1 => array('secondary', '#7e8e9d', '#ffffff'), 2 => array('secondary', '#7e8e9d', '#ffffff'), 3 => array('secondary', '#7e8e9d', '#ffffff'), 4 => array('secondary', '#7e8e9d', '#ffffff'));
+		$rColourMap = array(array('#7e8e9d', 'bg-map-dark-1'), array('#6c7b8a', 'bg-map-dark-2'), array('#5a6977', 'bg-map-dark-3'), array('#485765', 'bg-map-dark-4'), array('#374654', 'bg-map-dark-5'), array('#273643', 'bg-map-dark-6'));
+	} else {
+		$rColours = array(1 => array('purple', '#675db7', '#675db7'), 2 => array('success', '#23b397', '#23b397'), 3 => array('pink', '#e36498', '#e36498'), 4 => array('info', '#56C3D6', '#56C3D6'));
+		$rColourMap = array(array('#23b397', 'bg-success'), array('#56c2d6', 'bg-info'), array('#5089de', 'bg-primary'), array('#675db7', 'bg-purple'), array('#e36498', 'bg-pink'), array('#98a6ad', 'bg-secondary'));
 	}
-}
 
-if (isset(CoreUtilities::$rRequest['server_id'])) {
-} else {
-	$rLimit = 3600;
-	$rTime = time();
-	$rNearestRange = $rTime - $rLimit;
-	$rServerStats = array();
-	$db->query('SELECT * FROM `servers_stats` WHERE `time` >= ? ORDER BY `time` ASC;', $rNearestRange);
+	if (!isset(CoreUtilities::$rRequest['server_id']) || isset($rServers[CoreUtilities::$rRequest['server_id']])) {
+	} else {
+		goHome();
+	}
+
+	$rConnectionMap = array();
+	$rConnectionCount = 0;
+
+	if (isset(CoreUtilities::$rRequest['server_id'])) {
+		$db->query('SELECT `geoip_country_code`, COUNT(`geoip_country_code`) AS `count` FROM `lines_activity` WHERE (`server_id` = ? OR `proxy_id` = ?) GROUP BY `geoip_country_code` ORDER BY `count` DESC;', intval(CoreUtilities::$rRequest['server_id']), intval(CoreUtilities::$rRequest['server_id']));
+	} else {
+		$db->query('SELECT `geoip_country_code`, COUNT(`geoip_country_code`) AS `count` FROM `lines_activity` GROUP BY `geoip_country_code` ORDER BY `count` DESC;');
+	}
 
 	if (0 >= $db->num_rows()) {
 	} else {
+		$i = 0;
+
 		foreach ($db->get_rows() as $rRow) {
-			$rServerStats[intval($rRow['server_id'])][] = $rRow['cpu'];
+			if ($i < count($rColourMap)) {
+				$rRow['colour'] = $rColourMap[$i];
+			} else {
+				$rRow['colour'] = $rColourMap[count($rColourMap) - 1];
+			}
+
+			if (isset($rCountryCodes[$rRow['geoip_country_code']])) {
+				$rRow['name'] = $rCountryCodes[$rRow['geoip_country_code']];
+			} else {
+				$rRow['name'] = 'Unknown Country';
+			}
+
+			$rConnectionCount += $rRow['count'];
+			$rConnectionMap[] = $rRow;
+			$i++;
 		}
 	}
-}
 
-$rOrderedServers = $rServers;
-array_multisort(array_column($rOrderedServers, 'order'), SORT_ASC, $rOrderedServers);
+	if (isset(CoreUtilities::$rRequest['server_id'])) {
+	} else {
+		$rLimit = 3600;
+		$rTime = time();
+		$rNearestRange = $rTime - $rLimit;
+		$rServerStats = array();
+		$db->query('SELECT * FROM `servers_stats` WHERE `time` >= ? ORDER BY `time` ASC;', $rNearestRange);
 
-$_TITLE = 'Dashboard';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('admin');
-?>
+		if (0 >= $db->num_rows()) {
+		} else {
+			foreach ($db->get_rows() as $rRow) {
+				$rServerStats[intval($rRow['server_id'])][] = $rRow['cpu'];
+			}
+		}
+	}
+
+	$rOrderedServers = $rServers;
+	array_multisort(array_column($rOrderedServers, 'order'), SORT_ASC, $rOrderedServers);
+
+	$_TITLE = 'Dashboard';
+	require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+	renderUnifiedLayoutHeader('admin');
+	?>
 <?php endif; ?>
 <div class="wrapper">
 	<div class="container-fluid">
-		<?php if (hasPermissions('adv', 'index')): ?>
+		<?php if (Authorization::check('adv', 'index')): ?>
 			<div class="row">
 				<div class="col-12">
 					<div class="page-title-box">
@@ -108,7 +108,7 @@ renderUnifiedLayoutHeader('admin');
 			</div>
 			<div class="row mb-4">
 				<div class="col-md-4">
-					<?php if (hasPermissions('adv', 'live_connections')): ?><a href="./live_connections"><?php endif; ?>
+					<?php if (Authorization::check('adv', 'live_connections')): ?><a href="./live_connections"><?php endif; ?>
 						<div class="card cta-box <?php echo $rUserInfo['theme'] != 0 ? '' : 'bg-purple'; ?> text-white rounded-2">
 							<div class="card-body active-connections">
 								<div class="media align-items-center">
@@ -126,11 +126,11 @@ renderUnifiedLayoutHeader('admin');
 								</div>
 							</div>
 						</div>
-						<?php if (hasPermissions('adv', 'live_connections')): ?>
+						<?php if (Authorization::check('adv', 'live_connections')): ?>
 						</a><?php endif; ?>
 				</div>
 				<div class="col-md-4">
-					<?php if (hasPermissions('adv', 'live_connections')): ?>
+					<?php if (Authorization::check('adv', 'live_connections')): ?>
 						<a href="./live_connections">
 						<?php endif; ?>
 
@@ -152,12 +152,12 @@ renderUnifiedLayoutHeader('admin');
 							</div>
 						</div>
 
-						<?php if (hasPermissions('adv', 'live_connections')): ?>
+						<?php if (Authorization::check('adv', 'live_connections')): ?>
 						</a>
 					<?php endif; ?>
 				</div>
 				<div class="col-md-4">
-					<?php if (hasPermissions('adv', 'streams')): ?>
+					<?php if (Authorization::check('adv', 'streams')): ?>
 						<a href="./streams?filter=1">
 						<?php endif; ?>
 
@@ -179,12 +179,12 @@ renderUnifiedLayoutHeader('admin');
 							</div>
 						</div>
 
-						<?php if (hasPermissions('adv', 'streams')): ?>
+						<?php if (Authorization::check('adv', 'streams')): ?>
 						</a>
 					<?php endif; ?>
 				</div>
 				<div class="col-md-4">
-					<?php if (hasPermissions('adv', 'streams')): ?>
+					<?php if (Authorization::check('adv', 'streams')): ?>
 						<a href="./streams?filter=2">
 						<?php endif; ?>
 
@@ -206,7 +206,7 @@ renderUnifiedLayoutHeader('admin');
 							</div>
 						</div>
 
-						<?php if (hasPermissions('adv', 'streams')): ?>
+						<?php if (Authorization::check('adv', 'streams')): ?>
 						</a>
 					<?php endif; ?>
 				</div>
@@ -249,78 +249,78 @@ renderUnifiedLayoutHeader('admin');
 					</div>
 				</div>
 				<?php if ($rSettings['dashboard_status']): ?>
-				<div class="col-xl-6">
-					<div class="card" style="height: 390px; overflow:hidden;">
-						<div class="card-body">
-							<h4 class="header-title mb-4">Service Status</h4>
-							<div style="max-height: 288px; overflow-y: scroll;">
-								<div class="timeline-alt">
-									<?php $rHasError = false; ?>
+					<div class="col-xl-6">
+						<div class="card" style="height: 390px; overflow:hidden;">
+							<div class="card-body">
+								<h4 class="header-title mb-4">Service Status</h4>
+								<div style="max-height: 288px; overflow-y: scroll;">
+									<div class="timeline-alt">
+										<?php $rHasError = false; ?>
 
-									<?php
-									try {
-										$rResult = $db->dbh->query("SELECT JSON_CONTAINS('0', 0, '\$') AS `json_test`;");
-									} catch (Exception $e) {
-										$rHasError = true;
-									?>
-										<div class="timeline-item">
-											<i class="timeline-icon bg-danger"></i>
-											<div class="timeline-item-info">
-												<a href="javascript:void(0);" class="text-body font-weight-semibold mb-1 d-block bg"><strong>MariaDB Outdated!</strong></a>
-												<small>You're using an old version of MariaDB. Please update to at least v10.5 in order for XC_VM to work correctly.</small><br />
-												<p><br /></p>
+										<?php
+										try {
+											$rResult = $db->dbh->query("SELECT JSON_CONTAINS('0', 0, '\$') AS `json_test`;");
+										} catch (Exception $e) {
+											$rHasError = true;
+										?>
+											<div class="timeline-item">
+												<i class="timeline-icon bg-danger"></i>
+												<div class="timeline-item-info">
+													<a href="javascript:void(0);" class="text-body font-weight-semibold mb-1 d-block bg"><strong>MariaDB Outdated!</strong></a>
+													<small>You're using an old version of MariaDB. Please update to at least v10.5 in order for XC_VM to work correctly.</small><br />
+													<p><br /></p>
+												</div>
 											</div>
-										</div>
-									<?php
-									}
+										<?php
+										}
 
-									if (empty(CoreUtilities::$rSettings['status_uuid']) || CoreUtilities::$rSettings['status_uuid'] != md5(XC_VM_VERSION)) {
-										$rHasError = true;
-									?>
-										<div class="timeline-item">
-											<i class="timeline-icon bg-warning"></i>
-											<div class="timeline-item-info">
-												<a href="javascript:void(0);" class="text-body font-weight-semibold mb-1 d-block bg"><strong>Database Incomplete</strong></a>
-												<small>Your database is outdated, please run <strong>/home/xc_vm/status</strong> as root user to update your tables.</small><br />
-												<p><br /></p>
+										if (empty(CoreUtilities::$rSettings['status_uuid']) || CoreUtilities::$rSettings['status_uuid'] != md5(XC_VM_VERSION)) {
+											$rHasError = true;
+										?>
+											<div class="timeline-item">
+												<i class="timeline-icon bg-warning"></i>
+												<div class="timeline-item-info">
+													<a href="javascript:void(0);" class="text-body font-weight-semibold mb-1 d-block bg"><strong>Database Incomplete</strong></a>
+													<small>Your database is outdated, please run <strong>/home/xc_vm/status</strong> as root user to update your tables.</small><br />
+													<p><br /></p>
+												</div>
 											</div>
-										</div>
-									<?php
-									}
+										<?php
+										}
 
-									if (!file_exists(CONFIG_PATH . 'signals.last') || time() - filemtime(CONFIG_PATH . 'signals.last') > 600) {
-										$rHasError = true;
-									?>
-										<div class="timeline-item">
-											<i class="timeline-icon bg-dark"></i>
-											<div class="timeline-item-info">
-												<a href="javascript:void(0);" class="text-body font-weight-semibold mb-1 d-block bg"><strong>Root Crons Missing</strong></a>
-												<small>Root cronjob hasn't run recently, please check root crontab or run <strong>/home/xc_vm/status</strong></small><br />
-												<p><br /></p>
+										if (!file_exists(CONFIG_PATH . 'signals.last') || time() - filemtime(CONFIG_PATH . 'signals.last') > 600) {
+											$rHasError = true;
+										?>
+											<div class="timeline-item">
+												<i class="timeline-icon bg-dark"></i>
+												<div class="timeline-item-info">
+													<a href="javascript:void(0);" class="text-body font-weight-semibold mb-1 d-block bg"><strong>Root Crons Missing</strong></a>
+													<small>Root cronjob hasn't run recently, please check root crontab or run <strong>/home/xc_vm/status</strong></small><br />
+													<p><br /></p>
+												</div>
 											</div>
-										</div>
-									<?php
-									}
+										<?php
+										}
 
-									// Additional conditions and outputs similar to the above
+										// Additional conditions and outputs similar to the above
 
-									if (!$rHasError) {
-									?>
-										<div class="timeline-item">
-											<i class="timeline-icon bg-dark"></i>
-											<div class="timeline-item-info">
-												<a href="#" class="text-body font-weight-semibold mb-1 d-block bg"><strong>No potential issues have been detected!</strong></a>
-												<p><br /></p>
+										if (!$rHasError) {
+										?>
+											<div class="timeline-item">
+												<i class="timeline-icon bg-dark"></i>
+												<div class="timeline-item-info">
+													<a href="#" class="text-body font-weight-semibold mb-1 d-block bg"><strong>No potential issues have been detected!</strong></a>
+													<p><br /></p>
+												</div>
 											</div>
-										</div>
-									<?php
-									}
-									?>
+										<?php
+										}
+										?>
+									</div>
 								</div>
 							</div>
 						</div>
 					</div>
-				</div>
 				<?php endif; ?>
 
 				<?php if (!$rMobile && $rSettings['dashboard_stats']): ?>
@@ -739,188 +739,188 @@ require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
 ?>
 <script id="scripts">
-			var resizeObserver = new ResizeObserver(entries => $(window).scroll());
-			$(document).ready(function() {
-				resizeObserver.observe(document.body)
-				$("form").attr('autocomplete', 'off');
-				$(document).keypress(function(event) {
-					if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
-				});
-				$.fn.dataTable.ext.errMode = 'none';
-				var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
-				elems.forEach(function(html) {
-					var switchery = new Switchery(html, {
-						'color': '#414d5f'
-					});
-					window.rSwitches[$(html).attr("id")] = switchery;
-				});
-				setTimeout(pingSession, 30000);
-				<?php if (!$rMobile && $rSettings['header_stats']): ?>
-					headerStats();
-				<?php endif; ?>
-				bindHref();
-				refreshTooltips();
-				$(window).scroll(function() {
-					if ($(this).scrollTop() > 200) {
-						if ($(document).height() > $(window).height()) {
-							$('#scrollToBottom').fadeOut();
-						}
-						$('#scrollToTop').fadeIn();
-					} else {
-						$('#scrollToTop').fadeOut();
-						if ($(document).height() > $(window).height()) {
-							$('#scrollToBottom').fadeIn();
-						} else {
-							$('#scrollToBottom').hide();
-						}
-					}
-				});
-				$("#scrollToTop").unbind("click");
-				$('#scrollToTop').click(function() {
-					$('html, body').animate({
-						scrollTop: 0
-					}, 800);
+	var resizeObserver = new ResizeObserver(entries => $(window).scroll());
+	$(document).ready(function() {
+		resizeObserver.observe(document.body)
+		$("form").attr('autocomplete', 'off');
+		$(document).keypress(function(event) {
+			if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
+		});
+		$.fn.dataTable.ext.errMode = 'none';
+		var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
+		elems.forEach(function(html) {
+			var switchery = new Switchery(html, {
+				'color': '#414d5f'
+			});
+			window.rSwitches[$(html).attr("id")] = switchery;
+		});
+		setTimeout(pingSession, 30000);
+		<?php if (!$rMobile && $rSettings['header_stats']): ?>
+			headerStats();
+		<?php endif; ?>
+		bindHref();
+		refreshTooltips();
+		$(window).scroll(function() {
+			if ($(this).scrollTop() > 200) {
+				if ($(document).height() > $(window).height()) {
+					$('#scrollToBottom').fadeOut();
+				}
+				$('#scrollToTop').fadeIn();
+			} else {
+				$('#scrollToTop').fadeOut();
+				if ($(document).height() > $(window).height()) {
+					$('#scrollToBottom').fadeIn();
+				} else {
+					$('#scrollToBottom').hide();
+				}
+			}
+		});
+		$("#scrollToTop").unbind("click");
+		$('#scrollToTop').click(function() {
+			$('html, body').animate({
+				scrollTop: 0
+			}, 800);
+			return false;
+		});
+		$("#scrollToBottom").unbind("click");
+		$('#scrollToBottom').click(function() {
+			$('html, body').animate({
+				scrollTop: $(document).height()
+			}, 800);
+			return false;
+		});
+		$(window).scroll();
+		$(".nextb").unbind("click");
+		$(".nextb").click(function() {
+			var rPos = 0;
+			var rActive = null;
+			$(".nav .nav-item").each(function() {
+				if ($(this).find(".nav-link").hasClass("active")) {
+					rActive = rPos;
+				}
+				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
+					$(this).find(".nav-link").trigger("click");
 					return false;
-				});
-				$("#scrollToBottom").unbind("click");
-				$('#scrollToBottom').click(function() {
-					$('html, body').animate({
-						scrollTop: $(document).height()
-					}, 800);
+				}
+				rPos += 1;
+			});
+		});
+		$(".prevb").unbind("click");
+		$(".prevb").click(function() {
+			var rPos = 0;
+			var rActive = null;
+			$($(".nav .nav-item").get().reverse()).each(function() {
+				if ($(this).find(".nav-link").hasClass("active")) {
+					rActive = rPos;
+				}
+				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
+					$(this).find(".nav-link").trigger("click");
 					return false;
-				});
-				$(window).scroll();
-				$(".nextb").unbind("click");
-				$(".nextb").click(function() {
-					var rPos = 0;
-					var rActive = null;
-					$(".nav .nav-item").each(function() {
-						if ($(this).find(".nav-link").hasClass("active")) {
-							rActive = rPos;
-						}
-						if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-							$(this).find(".nav-link").trigger("click");
-							return false;
-						}
-						rPos += 1;
-					});
-				});
-				$(".prevb").unbind("click");
-				$(".prevb").click(function() {
-					var rPos = 0;
-					var rActive = null;
-					$($(".nav .nav-item").get().reverse()).each(function() {
-						if ($(this).find(".nav-link").hasClass("active")) {
-							rActive = rPos;
-						}
-						if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-							$(this).find(".nav-link").trigger("click");
-							return false;
-						}
-						rPos += 1;
-					});
-				});
-				(function($) {
-					$.fn.inputFilter = function(inputFilter) {
-						return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
-							if (inputFilter(this.value)) {
-								this.oldValue = this.value;
-								this.oldSelectionStart = this.selectionStart;
-								this.oldSelectionEnd = this.selectionEnd;
-							} else if (this.hasOwnProperty("oldValue")) {
-								this.value = this.oldValue;
-								this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
-							}
-						});
-					};
-				}(jQuery));
-				<?php if ($rSettings['js_navigate']): ?>
-					$(".navigation-menu li").mouseenter(function() {
-						$(this).find(".submenu").show();
-					});
-					delParam("status");
-					$(window).on("popstate", function() {
-						if (window.rRealURL) {
-							if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
-								navigate(window.location.href.split("/").reverse()[0]);
-							}
-						}
-					});
-				<?php endif; ?>
-				$(document).keydown(function(e) {
-					if (e.keyCode == 16) {
-						window.rShiftHeld = true;
+				}
+				rPos += 1;
+			});
+		});
+		(function($) {
+			$.fn.inputFilter = function(inputFilter) {
+				return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
+					if (inputFilter(this.value)) {
+						this.oldValue = this.value;
+						this.oldSelectionStart = this.selectionStart;
+						this.oldSelectionEnd = this.selectionEnd;
+					} else if (this.hasOwnProperty("oldValue")) {
+						this.value = this.oldValue;
+						this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
 					}
 				});
-				$(document).keyup(function(e) {
-					if (e.keyCode == 16) {
-						window.rShiftHeld = false;
-					}
-				});
-				document.onselectstart = function() {
-					if (window.rShiftHeld) {
-						return false;
+			};
+		}(jQuery));
+		<?php if ($rSettings['js_navigate']): ?>
+			$(".navigation-menu li").mouseenter(function() {
+				$(this).find(".submenu").show();
+			});
+			delParam("status");
+			$(window).on("popstate", function() {
+				if (window.rRealURL) {
+					if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
+						navigate(window.location.href.split("/").reverse()[0]);
 					}
 				}
 			});
-
-<?php 
-echo '        ' . "\r\n\t\t" . 'rChart = null; rDates = null; rOptions = null;' . "\r\n\r\n" . '        ';
-
-if (!$rMobile) {
-	if ($rSettings['dashboard_stats']) {
-		if ($rSettings['save_closed_connection']) {
-			echo '        $("#map").vectorMap({' . "\r\n" . '            zoomOnScroll: false,' . "\r\n" . '            map: "world_mill_en",' . "\r\n" . '            backgroundColor: "transparent",' . "\r\n" . '            regionStyle: {' . "\r\n" . '                initial: {' . "\r\n" . '                    fill: "#f5f6f8"' . "\r\n" . '                }' . "\r\n" . '            },' . "\r\n" . '            series: {' . "\r\n" . '                regions: [{' . "\r\n" . '                    values: {' . "\r\n" . '                        ';
-
-			foreach ($rConnectionMap as $rCountry) {
-				echo '"' . $rCountry['geoip_country_code'] . '": "' . $rCountry['colour'][0] . '",';
+		<?php endif; ?>
+		$(document).keydown(function(e) {
+			if (e.keyCode == 16) {
+				window.rShiftHeld = true;
 			}
-			echo '                    },' . "\r\n" . '                    attribute: "fill"' . "\r\n" . '                }]' . "\r\n" . '            }' . "\r\n" . '        });' . "\r\n" . '        ';
+		});
+		$(document).keyup(function(e) {
+			if (e.keyCode == 16) {
+				window.rShiftHeld = false;
+			}
+		});
+		document.onselectstart = function() {
+			if (window.rShiftHeld) {
+				return false;
+			}
+		}
+	});
+
+	<?php
+	echo '        ' . "\r\n\t\t" . 'rChart = null; rDates = null; rOptions = null;' . "\r\n\r\n" . '        ';
+
+	if (!$rMobile) {
+		if ($rSettings['dashboard_stats']) {
+			if ($rSettings['save_closed_connection']) {
+				echo '        $("#map").vectorMap({' . "\r\n" . '            zoomOnScroll: false,' . "\r\n" . '            map: "world_mill_en",' . "\r\n" . '            backgroundColor: "transparent",' . "\r\n" . '            regionStyle: {' . "\r\n" . '                initial: {' . "\r\n" . '                    fill: "#f5f6f8"' . "\r\n" . '                }' . "\r\n" . '            },' . "\r\n" . '            series: {' . "\r\n" . '                regions: [{' . "\r\n" . '                    values: {' . "\r\n" . '                        ';
+
+				foreach ($rConnectionMap as $rCountry) {
+					echo '"' . $rCountry['geoip_country_code'] . '": "' . $rCountry['colour'][0] . '",';
+				}
+				echo '                    },' . "\r\n" . '                    attribute: "fill"' . "\r\n" . '                }]' . "\r\n" . '            }' . "\r\n" . '        });' . "\r\n" . '        ';
+			}
+
+			echo '        function getGraphStats(auto=true) {' . "\r\n" . '            if ((window.rCurrentPage != "dashboard") && (window.rCurrentPage != "index")) { return; }' . "\r\n" . '            var rStart = Date.now();' . "\r\n" . '            rURL = "./api?action=graph_stats';
+
+			if (isset(CoreUtilities::$rRequest['server_id'])) {
+				echo '&server_id=' . intval(CoreUtilities::$rRequest['server_id']);
+			}
+
+			echo '";' . "\r\n" . '            $.getJSON(rURL, function(data) {' . "\r\n" . '                rDates = data.dates;' . "\r\n" . '                rCPUOptions = {' . "\r\n" . '                    chart: {' . "\r\n" . '                        height: 300,' . "\r\n" . '                        type: "area",' . "\r\n" . '                        stacked: false,' . "\r\n" . '                        zoom: {' . "\r\n" . '                            enabled: false,' . "\r\n" . '                        },' . "\r\n" . '                        toolbar: {' . "\r\n" . '                            show: false' . "\r\n" . '                        },' . "\r\n" . '                        animations: {' . "\r\n" . '                            enabled: false' . "\r\n" . '                        }' . "\r\n" . '                    },' . "\r\n" . '                    colors: ["#5089de", "#56c2d6", "#51b089"],' . "\r\n" . '                    dataLabels: {' . "\r\n" . '                        enabled: false' . "\r\n" . '                    },' . "\r\n" . '                    stroke: {' . "\r\n" . '                        width: [2],' . "\r\n" . '                        curve: "smooth"' . "\r\n" . '                    },' . "\r\n" . '                    series: [{' . "\r\n" . '                        name: "CPU Usage",' . "\r\n" . '                        data: data.cpu' . "\r\n" . '                    },' . "\r\n" . '                    {' . "\r\n" . '                        name: "Memory Usage",' . "\r\n" . '                        data: data.memory' . "\r\n" . '                    },' . "\r\n" . '                    {' . "\r\n" . '                        name: "IO Usage",' . "\r\n" . '                        data: data.io' . "\r\n" . '                    }],' . "\r\n" . '                    fill: {' . "\r\n" . '                        type: "gradient", ' . "\r\n" . '                        gradient: {' . "\r\n" . '                            opacityFrom: .6,' . "\r\n" . '                            opacityTo: .8' . "\r\n" . '                        }' . "\r\n" . '                    },' . "\r\n" . '                    xaxis: {' . "\r\n" . '                        type: "datetime",' . "\r\n" . '                        min: rDates[0],' . "\r\n" . '                        max: rDates[1],' . "\r\n" . '                        range: 3600000,' . "\r\n" . '                        labels: {' . "\r\n" . '                            formatter: function(value, timestamp, opts) {' . "\r\n" . '                                var d = new Date(timestamp);' . "\r\n" . '                                return ("0"+d.getHours()).slice(-2) + ":" + ("0"+d.getMinutes()).slice(-2);' . "\r\n" . '                            }' . "\r\n" . '                        }' . "\r\n" . '                    },' . "\r\n" . '                    tooltip: {' . "\r\n" . '                      y: {' . "\r\n" . '                        formatter: function(value, { series, seriesIndex, dataPointIndex, w }) {' . "\r\n" . '                          return value + "%";' . "\r\n" . '                        }' . "\r\n" . '                      }' . "\r\n" . '                    }' . "\r\n" . '                };' . "\r\n" . '                if (typeof(rCPUChart) != "undefined") {' . "\r\n" . '                    rCPUChart.destroy();' . "\r\n" . '                    rCPUChart = undefined;' . "\r\n" . '                }' . "\r\n" . '                (rCPUChart = new ApexCharts(document.querySelector("#cpu_chart"), rCPUOptions)).render();' . "\r\n" . '                rNetworkOptions = {' . "\r\n" . '                    chart: {' . "\r\n" . '                        height: 300,' . "\r\n" . '                        type: "area",' . "\r\n" . '                        stacked: false,' . "\r\n" . '                        zoom: {' . "\r\n" . '                            enabled: false,' . "\r\n" . '                        },' . "\r\n" . '                        toolbar: {' . "\r\n" . '                            show: false' . "\r\n" . '                        },' . "\r\n" . '                        animations: {' . "\r\n" . '                            enabled: false' . "\r\n" . '                        }' . "\r\n" . '                    },' . "\r\n" . '                    colors: ["#5089de", "#56c2d6"],' . "\r\n" . '                    dataLabels: {' . "\r\n" . '                        enabled: false' . "\r\n" . '                    },' . "\r\n" . '                    stroke: {' . "\r\n" . '                        width: [2],' . "\r\n" . '                        curve: "smooth"' . "\r\n" . '                    },' . "\r\n" . '                    series: [{' . "\r\n" . '                        name: "Input",' . "\r\n" . '                        data: data.input' . "\r\n" . '                    },' . "\r\n" . '                    {' . "\r\n" . '                        name: "Output",' . "\r\n" . '                        data: data.output' . "\r\n" . '                    }],' . "\r\n" . '                    fill: {' . "\r\n" . '                        type: "gradient", ' . "\r\n" . '                        gradient: {' . "\r\n" . '                            opacityFrom: .6,' . "\r\n" . '                            opacityTo: .8' . "\r\n" . '                        }' . "\r\n" . '                    },' . "\r\n" . '                    xaxis: {' . "\r\n" . '                        type: "datetime",' . "\r\n" . '                        min: rDates[0],' . "\r\n" . '                        max: rDates[1],' . "\r\n" . '                        range: 3600000,' . "\r\n" . '                        labels: {' . "\r\n" . '                            formatter: function(value, timestamp, opts) {' . "\r\n" . '                                var d = new Date(timestamp);' . "\r\n" . '                                return ("0"+d.getHours()).slice(-2) + ":" + ("0"+d.getMinutes()).slice(-2);' . "\r\n" . '                            }' . "\r\n" . '                        }' . "\r\n" . '                    },' . "\r\n" . '                    tooltip: {' . "\r\n" . '                      y: {' . "\r\n" . '                        formatter: function(value, { series, seriesIndex, dataPointIndex, w }) {' . "\r\n" . '                          return value + " Mbps";' . "\r\n" . '                        }' . "\r\n" . '                      }' . "\r\n" . '                    }' . "\r\n" . '                };' . "\r\n" . '                if (typeof(rNetworkChart) != "undefined") {' . "\r\n" . '                    rNetworkChart.destroy();' . "\r\n" . '                    rNetworkChart = undefined;' . "\r\n" . '                }' . "\r\n" . '                (rNetworkChart = new ApexCharts(document.querySelector("#network_chart"), rNetworkOptions)).render();' . "\r\n" . '                rConnectionsOptions = {' . "\r\n" . '                    chart: {' . "\r\n" . '                        height: 300,' . "\r\n" . '                        type: "area",' . "\r\n" . '                        stacked: false,' . "\r\n" . '                        zoom: {' . "\r\n" . '                            enabled: false,' . "\r\n" . '                        },' . "\r\n" . '                        toolbar: {' . "\r\n" . '                            show: false' . "\r\n" . '                        },' . "\r\n" . '                        animations: {' . "\r\n" . '                            enabled: false' . "\r\n" . '                        }' . "\r\n" . '                    },' . "\r\n" . '                    colors: ["#5089de", "#56c2d6", "#51b089"],' . "\r\n" . '                    dataLabels: {' . "\r\n" . '                        enabled: false' . "\r\n" . '                    },' . "\r\n" . '                    stroke: {' . "\r\n" . '                        width: [2],' . "\r\n" . '                        curve: "smooth"' . "\r\n" . '                    },' . "\r\n" . '                    series: [{' . "\r\n" . '                        name: "Online Streams",' . "\r\n" . '                        data: data.streams' . "\r\n" . '                    },' . "\r\n" . '                    {' . "\r\n" . '                        name: "Unique Users",' . "\r\n" . '                        data: data.users' . "\r\n" . '                    },' . "\r\n" . '                    {' . "\r\n" . '                        name: "Total Connections",' . "\r\n" . '                        data: data.connections' . "\r\n" . '                    }],' . "\r\n" . '                    fill: {' . "\r\n" . '                        type: "gradient", ' . "\r\n" . '                        gradient: {' . "\r\n" . '                            opacityFrom: .6,' . "\r\n" . '                            opacityTo: .8' . "\r\n" . '                        }' . "\r\n" . '                    },' . "\r\n" . '                    xaxis: {' . "\r\n" . '                        type: "datetime",' . "\r\n" . '                        min: rDates[0],' . "\r\n" . '                        max: rDates[1],' . "\r\n" . '                        range: 3600000,' . "\r\n" . '                        labels: {' . "\r\n" . '                            formatter: function(value, timestamp, opts) {' . "\r\n" . '                                var d = new Date(timestamp);' . "\r\n" . '                                return ("0"+d.getHours()).slice(-2) + ":" + ("0"+d.getMinutes()).slice(-2);' . "\r\n" . '                            }' . "\r\n" . '                        }' . "\r\n" . '                    },' . "\r\n" . '                    tooltip: {' . "\r\n" . '                      y: {' . "\r\n" . '                        formatter: function(value, { series, seriesIndex, dataPointIndex, w }) {' . "\r\n" . '                          return value;' . "\r\n" . '                        }' . "\r\n" . '                      }' . "\r\n" . '                    }' . "\r\n" . '                };' . "\r\n" . '                if (typeof(rConnectionsChart) != "undefined") {' . "\r\n" . '                    rConnectionsChart.destroy();' . "\r\n" . '                    rConnectionsChart = undefined;' . "\r\n" . '                }' . "\r\n" . '                (rConnectionsChart = new ApexCharts(document.querySelector("#connections_chart"), rConnectionsOptions)).render();' . "\r\n" . '                if (auto) {' . "\r\n" . '                    setTimeout(getGraphStats, 60000 - (Date.now() - rStart));' . "\r\n" . '                }' . "\r\n" . '            }).fail(function() {' . "\r\n" . '                if (auto) {' . "\r\n" . '                    setTimeout(getGraphStats, 60000);' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '        }' . "\r\n" . '        ';
+		}
+	}
+
+	echo '        function getStats(auto=true) {' . "\r\n" . '            if ((window.rCurrentPage != "dashboard") && (window.rCurrentPage != "index")) { return; }' . "\r\n" . '            var rStart = Date.now();' . "\r\n" . '            rURL = "./api?action=stats';
+
+	if (isset(CoreUtilities::$rRequest['server_id'])) {
+		echo '&server_id=' . intval(CoreUtilities::$rRequest['server_id']);
+	}
+
+	echo '";' . "\r\n" . '            $.getJSON(rURL, function(data) {' . "\r\n" . '                // Open Connections' . "\r\n" . '                var rCapacity = Math.ceil((data.open_connections / data.total_connections) * 100);' . "\r\n" . '                if (isNaN(rCapacity)) { rCapacity = 0; }' . "\r\n" . '                $(".active-connections .entry").html($.number(data.open_connections, 0));' . "\r\n" . '                $(".active-connections .entry-percentage").html($.number(data.total_connections, 0));' . "\r\n" . '                $(".active-connections .progress-bar").prop("aria-valuenow", rCapacity);' . "\r\n" . '                $(".active-connections .progress-bar").css("width", rCapacity.toString() + "%");' . "\r\n" . '                $(".active-connections .sr-only").html(rCapacity.toString() + "%");' . "\r\n" . '                // Online Users' . "\r\n" . '                var rCapacity = Math.ceil((data.online_users / data.total_users) * 100);' . "\r\n" . '                if (isNaN(rCapacity)) { rCapacity = 0; }' . "\r\n" . '                $(".online-users .entry").html($.number(data.online_users, 0));' . "\r\n" . '                $(".online-users .entry-percentage").html($.number(data.total_users, 0));' . "\r\n" . '                $(".online-users .progress-bar").prop("aria-valuenow", rCapacity);' . "\r\n" . '                $(".online-users .progress-bar").css("width", rCapacity.toString() + "%");' . "\r\n" . '                $(".online-users .sr-only").html(rCapacity.toString() + "%");' . "\r\n" . '                // Network Load - Input' . "\r\n" . '                var rCapacity = Math.ceil((Math.floor(data.bytes_received / 125000) / data.network_guaranteed_speed) * 100);' . "\r\n" . '                if (isNaN(rCapacity)) { rCapacity = 0; }' . "\r\n" . '                $(".input-flow .entry").html($.number(Math.floor(data.bytes_received / 125000), 0));' . "\r\n" . '                $(".input-flow .entry-percentage").html(rCapacity.toString() + "%");' . "\r\n" . '                $(".input-flow .progress-bar").prop("aria-valuenow", rCapacity);' . "\r\n" . '                $(".input-flow .progress-bar").css("width", rCapacity.toString() + "%");' . "\r\n" . '                $(".input-flow .sr-only").html(rCapacity.toString() + "%");' . "\r\n" . '                // Network Load - Output' . "\r\n" . '                var rCapacity = Math.ceil((Math.floor(data.bytes_sent / 125000) / data.network_guaranteed_speed) * 100);' . "\r\n" . '                if (isNaN(rCapacity)) { rCapacity = 0; }' . "\r\n" . '                $(".output-flow .entry").html($.number(Math.floor(data.bytes_sent / 125000), 0));' . "\r\n" . '                $(".output-flow .entry-percentage").html(rCapacity.toString() + "%");' . "\r\n" . '                $(".output-flow .progress-bar").prop("aria-valuenow", rCapacity);' . "\r\n" . '                $(".output-flow .progress-bar").css("width", rCapacity.toString() + "%");' . "\r\n" . '                $(".output-flow .sr-only").html(rCapacity.toString() + "%");' . "\r\n" . '                // Active Streams' . "\r\n" . '                var rCapacity = Math.ceil((data.total_running_streams / (data.offline_streams + data.total_running_streams)) * 100);' . "\r\n" . '                if (isNaN(rCapacity)) { rCapacity = 0; }' . "\r\n" . '                $(".active-streams .entry").html($.number(data.total_running_streams, 0));' . "\r\n" . '                $(".active-streams .entry-percentage").html($.number(data.offline_streams, 0));' . "\r\n" . '                $(".active-streams .progress-bar").prop("aria-valuenow", rCapacity);' . "\r\n" . '                $(".active-streams .progress-bar").css("width", rCapacity.toString() + "%");' . "\r\n" . '                $(".active-streams .sr-only").html(rCapacity.toString() + "%");' . "\r\n\t\t\t\t" . '$(".offline-streams .entry").html($.number(data.offline_streams, 0));' . "\r\n" . '                // CPU Usage' . "\r\n" . '                $(".cpu-usage .entry").html(data.cpu);' . "\r\n" . '                $(".cpu-usage .entry-percentage").html(data.cpu.toString() + "%");' . "\r\n" . '                $(".cpu-usage .progress-bar").prop("aria-valuenow", data.cpu);' . "\r\n" . '                $(".cpu-usage .progress-bar").css("width", data.cpu.toString() + "%");' . "\r\n" . '                $(".cpu-usage .sr-only").html(data.cpu.toString() + "%");' . "\r\n" . '                // Memory Usage' . "\r\n" . '                $(".mem-usage .entry").html(data.mem);' . "\r\n" . '                $(".mem-usage .entry-percentage").html(data.mem.toString() + "%");' . "\r\n" . '                $(".mem-usage .progress-bar").prop("aria-valuenow", data.mem);' . "\r\n" . '                $(".mem-usage .progress-bar").css("width", data.mem.toString() + "%");' . "\r\n" . '                $(".mem-usage .sr-only").html(data.mem.toString() + "%");' . "\r\n" . '                // Uptime' . "\r\n\t\t\t\t" . 'if (data.uptime) {' . "\r\n\t\t\t\t\t" . '$(".uptime .entry").html(data.uptime.split(" ").slice(0,2).join(" "));' . "\r\n\t\t\t\t" . '}' . "\r\n" . '                ';
+
+	if (!isset(CoreUtilities::$rRequest['server_id'])) {
+		echo "\t\t\t\t" . '// Per Server' . "\r\n\t\t\t\t" . '$(data.servers).each(function(i) {' . "\r\n" . '                    $("#s_" + data.servers[i].server_id + "_conns").html($.number(data.servers[i].open_connections, 0));' . "\r\n\t\t\t\t\t" . '$("#s_" + data.servers[i].server_id + "_users").html($.number(data.servers[i].online_users, 0));' . "\r\n\t\t\t\t\t" . '$("#s_" + data.servers[i].server_id + "_online").html($.number(data.servers[i].total_running_streams, 0));' . "\r\n" . '                    $("#s_" + data.servers[i].server_id + "_offline").html($.number(data.servers[i].offline_streams, 0));' . "\r\n\t\t\t\t\t" . '$("#s_" + data.servers[i].server_id + "_input").html($.number(Math.floor(data.servers[i].bytes_received / 125000), 0));' . "\r\n\t\t\t\t\t" . '$("#s_" + data.servers[i].server_id + "_output").html($.number(Math.floor(data.servers[i].bytes_sent / 125000), 0));' . "\r\n" . '                    $("#s_" + data.servers[i].server_id + "_requests").html($.number(data.servers[i].requests_per_second, 0));' . "\r\n" . '                    if (data.servers[i].uptime) {' . "\r\n\t\t\t\t\t\t" . '$("#s_" + data.servers[i].server_id + "_uptime").html(data.servers[i].uptime.split(" ").slice(0,2).join(" "));' . "\r\n\t\t\t\t\t" . '}' . "\r\n" . '                    ';
+
+		if ($rSettings['dashboard_display_alt'] && !$rMobile) {
+			echo '                    $("#s_" + data.servers[i].server_id + "_cpu").removeClass("bg-success").removeClass("bg-danger").removeClass("bg-warning");' . "\r\n" . '                    $("#s_" + data.servers[i].server_id + "_mem").removeClass("bg-success").removeClass("bg-danger").removeClass("bg-warning");' . "\r\n\t\t\t\t\t" . '$("#s_" + data.servers[i].server_id + "_cpu").attr("aria-valuenow", data.servers[i].cpu);' . "\r\n" . '                    $("#s_" + data.servers[i].server_id + "_cpu").css("width", data.servers[i].cpu + "%");' . "\r\n" . '                    $("#s_" + data.servers[i].server_id + "_mem").attr("aria-valuenow", data.servers[i].mem);' . "\r\n" . '                    $("#s_" + data.servers[i].server_id + "_mem").css("width", data.servers[i].mem + "%");' . "\r\n" . '                    if (data.servers[i].server_type == 0) {' . "\r\n" . '                        $("#s_" + data.servers[i].server_id + "_io").removeClass("bg-success").removeClass("bg-danger").removeClass("bg-warning");' . "\r\n" . '                        $("#s_" + data.servers[i].server_id + "_fs").removeClass("bg-success").removeClass("bg-danger").removeClass("bg-warning");' . "\r\n" . '                        $("#s_" + data.servers[i].server_id + "_io").attr("aria-valuenow", data.servers[i].io);' . "\r\n" . '                        $("#s_" + data.servers[i].server_id + "_io").css("width", data.servers[i].io + "%");' . "\r\n" . '                        $("#s_" + data.servers[i].server_id + "_fs").attr("aria-valuenow", data.servers[i].fs);' . "\r\n" . '                        $("#s_" + data.servers[i].server_id + "_fs").css("width", data.servers[i].fs + "%");' . "\r\n" . '                    }' . "\r\n" . '                    if (data.servers[i].cpu > 75) {' . "\r\n" . '                        $("#s_" + data.servers[i].server_id + "_cpu").addClass("bg-danger");' . "\r\n" . '                    } else if (data.servers[i].cpu > 50) {' . "\r\n" . '                        $("#s_" + data.servers[i].server_id + "_cpu").addClass("bg-warning");' . "\r\n" . '                    } else {' . "\r\n" . '                        $("#s_" + data.servers[i].server_id + "_cpu").addClass("bg-success");' . "\r\n" . '                    }' . "\r\n" . '                    if (data.servers[i].mem > 75) {' . "\r\n" . '                        $("#s_" + data.servers[i].server_id + "_mem").addClass("bg-danger");' . "\r\n" . '                    } else if (data.servers[i].mem > 50) {' . "\r\n" . '                        $("#s_" + data.servers[i].server_id + "_mem").addClass("bg-warning");' . "\r\n" . '                    } else {' . "\r\n" . '                        $("#s_" + data.servers[i].server_id + "_mem").addClass("bg-success");' . "\r\n" . '                    }' . "\r\n" . '                    if (data.servers[i].server_type == 0) {' . "\r\n" . '                        if (data.servers[i].io > 75) {' . "\r\n" . '                            $("#s_" + data.servers[i].server_id + "_io").addClass("bg-danger");' . "\r\n" . '                        } else if (data.servers[i].io > 50) {' . "\r\n" . '                            $("#s_" + data.servers[i].server_id + "_io").addClass("bg-warning");' . "\r\n" . '                        } else {' . "\r\n" . '                            $("#s_" + data.servers[i].server_id + "_io").addClass("bg-success");' . "\r\n" . '                        }' . "\r\n" . '                        if (data.servers[i].fs > 75) {' . "\r\n" . '                            $("#s_" + data.servers[i].server_id + "_fs").addClass("bg-danger");' . "\r\n" . '                        } else if (data.servers[i].fs > 50) {' . "\r\n" . '                            $("#s_" + data.servers[i].server_id + "_fs").addClass("bg-warning");' . "\r\n" . '                        } else {' . "\r\n" . '                            $("#s_" + data.servers[i].server_id + "_fs").addClass("bg-success");' . "\r\n" . '                        }' . "\r\n" . '                    }' . "\r\n" . '                    ';
+		} else {
+			echo "\t\t\t\t\t" . "\$(\"#s_\" + data.servers[i].server_id + \"_cpu\").val(data.servers[i].cpu).trigger('change');" . "\r\n\t\t\t\t\t" . "\$(\"#s_\" + data.servers[i].server_id + \"_mem\").val(data.servers[i].mem).trigger('change');" . "\r\n" . "                    \$(\"#s_\" + data.servers[i].server_id + \"_io\").val(data.servers[i].io).trigger('change');" . "\r\n" . "                    \$(\"#s_\" + data.servers[i].server_id + \"_fs\").val(data.servers[i].fs).trigger('change');" . "\r\n" . '                    ';
 		}
 
-		echo '        function getGraphStats(auto=true) {' . "\r\n" . '            if ((window.rCurrentPage != "dashboard") && (window.rCurrentPage != "index")) { return; }' . "\r\n" . '            var rStart = Date.now();' . "\r\n" . '            rURL = "./api?action=graph_stats';
-
-		if (isset(CoreUtilities::$rRequest['server_id'])) {
-			echo '&server_id=' . intval(CoreUtilities::$rRequest['server_id']);
-		}
-
-		echo '";' . "\r\n" . '            $.getJSON(rURL, function(data) {' . "\r\n" . '                rDates = data.dates;' . "\r\n" . '                rCPUOptions = {' . "\r\n" . '                    chart: {' . "\r\n" . '                        height: 300,' . "\r\n" . '                        type: "area",' . "\r\n" . '                        stacked: false,' . "\r\n" . '                        zoom: {' . "\r\n" . '                            enabled: false,' . "\r\n" . '                        },' . "\r\n" . '                        toolbar: {' . "\r\n" . '                            show: false' . "\r\n" . '                        },' . "\r\n" . '                        animations: {' . "\r\n" . '                            enabled: false' . "\r\n" . '                        }' . "\r\n" . '                    },' . "\r\n" . '                    colors: ["#5089de", "#56c2d6", "#51b089"],' . "\r\n" . '                    dataLabels: {' . "\r\n" . '                        enabled: false' . "\r\n" . '                    },' . "\r\n" . '                    stroke: {' . "\r\n" . '                        width: [2],' . "\r\n" . '                        curve: "smooth"' . "\r\n" . '                    },' . "\r\n" . '                    series: [{' . "\r\n" . '                        name: "CPU Usage",' . "\r\n" . '                        data: data.cpu' . "\r\n" . '                    },' . "\r\n" . '                    {' . "\r\n" . '                        name: "Memory Usage",' . "\r\n" . '                        data: data.memory' . "\r\n" . '                    },' . "\r\n" . '                    {' . "\r\n" . '                        name: "IO Usage",' . "\r\n" . '                        data: data.io' . "\r\n" . '                    }],' . "\r\n" . '                    fill: {' . "\r\n" . '                        type: "gradient", ' . "\r\n" . '                        gradient: {' . "\r\n" . '                            opacityFrom: .6,' . "\r\n" . '                            opacityTo: .8' . "\r\n" . '                        }' . "\r\n" . '                    },' . "\r\n" . '                    xaxis: {' . "\r\n" . '                        type: "datetime",' . "\r\n" . '                        min: rDates[0],' . "\r\n" . '                        max: rDates[1],' . "\r\n" . '                        range: 3600000,' . "\r\n" . '                        labels: {' . "\r\n" . '                            formatter: function(value, timestamp, opts) {' . "\r\n" . '                                var d = new Date(timestamp);' . "\r\n" . '                                return ("0"+d.getHours()).slice(-2) + ":" + ("0"+d.getMinutes()).slice(-2);' . "\r\n" . '                            }' . "\r\n" . '                        }' . "\r\n" . '                    },' . "\r\n" . '                    tooltip: {' . "\r\n" . '                      y: {' . "\r\n" . '                        formatter: function(value, { series, seriesIndex, dataPointIndex, w }) {' . "\r\n" . '                          return value + "%";' . "\r\n" . '                        }' . "\r\n" . '                      }' . "\r\n" . '                    }' . "\r\n" . '                };' . "\r\n" . '                if (typeof(rCPUChart) != "undefined") {' . "\r\n" . '                    rCPUChart.destroy();' . "\r\n" . '                    rCPUChart = undefined;' . "\r\n" . '                }' . "\r\n" . '                (rCPUChart = new ApexCharts(document.querySelector("#cpu_chart"), rCPUOptions)).render();' . "\r\n" . '                rNetworkOptions = {' . "\r\n" . '                    chart: {' . "\r\n" . '                        height: 300,' . "\r\n" . '                        type: "area",' . "\r\n" . '                        stacked: false,' . "\r\n" . '                        zoom: {' . "\r\n" . '                            enabled: false,' . "\r\n" . '                        },' . "\r\n" . '                        toolbar: {' . "\r\n" . '                            show: false' . "\r\n" . '                        },' . "\r\n" . '                        animations: {' . "\r\n" . '                            enabled: false' . "\r\n" . '                        }' . "\r\n" . '                    },' . "\r\n" . '                    colors: ["#5089de", "#56c2d6"],' . "\r\n" . '                    dataLabels: {' . "\r\n" . '                        enabled: false' . "\r\n" . '                    },' . "\r\n" . '                    stroke: {' . "\r\n" . '                        width: [2],' . "\r\n" . '                        curve: "smooth"' . "\r\n" . '                    },' . "\r\n" . '                    series: [{' . "\r\n" . '                        name: "Input",' . "\r\n" . '                        data: data.input' . "\r\n" . '                    },' . "\r\n" . '                    {' . "\r\n" . '                        name: "Output",' . "\r\n" . '                        data: data.output' . "\r\n" . '                    }],' . "\r\n" . '                    fill: {' . "\r\n" . '                        type: "gradient", ' . "\r\n" . '                        gradient: {' . "\r\n" . '                            opacityFrom: .6,' . "\r\n" . '                            opacityTo: .8' . "\r\n" . '                        }' . "\r\n" . '                    },' . "\r\n" . '                    xaxis: {' . "\r\n" . '                        type: "datetime",' . "\r\n" . '                        min: rDates[0],' . "\r\n" . '                        max: rDates[1],' . "\r\n" . '                        range: 3600000,' . "\r\n" . '                        labels: {' . "\r\n" . '                            formatter: function(value, timestamp, opts) {' . "\r\n" . '                                var d = new Date(timestamp);' . "\r\n" . '                                return ("0"+d.getHours()).slice(-2) + ":" + ("0"+d.getMinutes()).slice(-2);' . "\r\n" . '                            }' . "\r\n" . '                        }' . "\r\n" . '                    },' . "\r\n" . '                    tooltip: {' . "\r\n" . '                      y: {' . "\r\n" . '                        formatter: function(value, { series, seriesIndex, dataPointIndex, w }) {' . "\r\n" . '                          return value + " Mbps";' . "\r\n" . '                        }' . "\r\n" . '                      }' . "\r\n" . '                    }' . "\r\n" . '                };' . "\r\n" . '                if (typeof(rNetworkChart) != "undefined") {' . "\r\n" . '                    rNetworkChart.destroy();' . "\r\n" . '                    rNetworkChart = undefined;' . "\r\n" . '                }' . "\r\n" . '                (rNetworkChart = new ApexCharts(document.querySelector("#network_chart"), rNetworkOptions)).render();' . "\r\n" . '                rConnectionsOptions = {' . "\r\n" . '                    chart: {' . "\r\n" . '                        height: 300,' . "\r\n" . '                        type: "area",' . "\r\n" . '                        stacked: false,' . "\r\n" . '                        zoom: {' . "\r\n" . '                            enabled: false,' . "\r\n" . '                        },' . "\r\n" . '                        toolbar: {' . "\r\n" . '                            show: false' . "\r\n" . '                        },' . "\r\n" . '                        animations: {' . "\r\n" . '                            enabled: false' . "\r\n" . '                        }' . "\r\n" . '                    },' . "\r\n" . '                    colors: ["#5089de", "#56c2d6", "#51b089"],' . "\r\n" . '                    dataLabels: {' . "\r\n" . '                        enabled: false' . "\r\n" . '                    },' . "\r\n" . '                    stroke: {' . "\r\n" . '                        width: [2],' . "\r\n" . '                        curve: "smooth"' . "\r\n" . '                    },' . "\r\n" . '                    series: [{' . "\r\n" . '                        name: "Online Streams",' . "\r\n" . '                        data: data.streams' . "\r\n" . '                    },' . "\r\n" . '                    {' . "\r\n" . '                        name: "Unique Users",' . "\r\n" . '                        data: data.users' . "\r\n" . '                    },' . "\r\n" . '                    {' . "\r\n" . '                        name: "Total Connections",' . "\r\n" . '                        data: data.connections' . "\r\n" . '                    }],' . "\r\n" . '                    fill: {' . "\r\n" . '                        type: "gradient", ' . "\r\n" . '                        gradient: {' . "\r\n" . '                            opacityFrom: .6,' . "\r\n" . '                            opacityTo: .8' . "\r\n" . '                        }' . "\r\n" . '                    },' . "\r\n" . '                    xaxis: {' . "\r\n" . '                        type: "datetime",' . "\r\n" . '                        min: rDates[0],' . "\r\n" . '                        max: rDates[1],' . "\r\n" . '                        range: 3600000,' . "\r\n" . '                        labels: {' . "\r\n" . '                            formatter: function(value, timestamp, opts) {' . "\r\n" . '                                var d = new Date(timestamp);' . "\r\n" . '                                return ("0"+d.getHours()).slice(-2) + ":" + ("0"+d.getMinutes()).slice(-2);' . "\r\n" . '                            }' . "\r\n" . '                        }' . "\r\n" . '                    },' . "\r\n" . '                    tooltip: {' . "\r\n" . '                      y: {' . "\r\n" . '                        formatter: function(value, { series, seriesIndex, dataPointIndex, w }) {' . "\r\n" . '                          return value;' . "\r\n" . '                        }' . "\r\n" . '                      }' . "\r\n" . '                    }' . "\r\n" . '                };' . "\r\n" . '                if (typeof(rConnectionsChart) != "undefined") {' . "\r\n" . '                    rConnectionsChart.destroy();' . "\r\n" . '                    rConnectionsChart = undefined;' . "\r\n" . '                }' . "\r\n" . '                (rConnectionsChart = new ApexCharts(document.querySelector("#connections_chart"), rConnectionsOptions)).render();' . "\r\n" . '                if (auto) {' . "\r\n" . '                    setTimeout(getGraphStats, 60000 - (Date.now() - rStart));' . "\r\n" . '                }' . "\r\n" . '            }).fail(function() {' . "\r\n" . '                if (auto) {' . "\r\n" . '                    setTimeout(getGraphStats, 60000);' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '        }' . "\r\n" . '        ';
-	}
-}
-
-echo '        function getStats(auto=true) {' . "\r\n" . '            if ((window.rCurrentPage != "dashboard") && (window.rCurrentPage != "index")) { return; }' . "\r\n" . '            var rStart = Date.now();' . "\r\n" . '            rURL = "./api?action=stats';
-
-if (isset(CoreUtilities::$rRequest['server_id'])) {
-	echo '&server_id=' . intval(CoreUtilities::$rRequest['server_id']);
-}
-
-echo '";' . "\r\n" . '            $.getJSON(rURL, function(data) {' . "\r\n" . '                // Open Connections' . "\r\n" . '                var rCapacity = Math.ceil((data.open_connections / data.total_connections) * 100);' . "\r\n" . '                if (isNaN(rCapacity)) { rCapacity = 0; }' . "\r\n" . '                $(".active-connections .entry").html($.number(data.open_connections, 0));' . "\r\n" . '                $(".active-connections .entry-percentage").html($.number(data.total_connections, 0));' . "\r\n" . '                $(".active-connections .progress-bar").prop("aria-valuenow", rCapacity);' . "\r\n" . '                $(".active-connections .progress-bar").css("width", rCapacity.toString() + "%");' . "\r\n" . '                $(".active-connections .sr-only").html(rCapacity.toString() + "%");' . "\r\n" . '                // Online Users' . "\r\n" . '                var rCapacity = Math.ceil((data.online_users / data.total_users) * 100);' . "\r\n" . '                if (isNaN(rCapacity)) { rCapacity = 0; }' . "\r\n" . '                $(".online-users .entry").html($.number(data.online_users, 0));' . "\r\n" . '                $(".online-users .entry-percentage").html($.number(data.total_users, 0));' . "\r\n" . '                $(".online-users .progress-bar").prop("aria-valuenow", rCapacity);' . "\r\n" . '                $(".online-users .progress-bar").css("width", rCapacity.toString() + "%");' . "\r\n" . '                $(".online-users .sr-only").html(rCapacity.toString() + "%");' . "\r\n" . '                // Network Load - Input' . "\r\n" . '                var rCapacity = Math.ceil((Math.floor(data.bytes_received / 125000) / data.network_guaranteed_speed) * 100);' . "\r\n" . '                if (isNaN(rCapacity)) { rCapacity = 0; }' . "\r\n" . '                $(".input-flow .entry").html($.number(Math.floor(data.bytes_received / 125000), 0));' . "\r\n" . '                $(".input-flow .entry-percentage").html(rCapacity.toString() + "%");' . "\r\n" . '                $(".input-flow .progress-bar").prop("aria-valuenow", rCapacity);' . "\r\n" . '                $(".input-flow .progress-bar").css("width", rCapacity.toString() + "%");' . "\r\n" . '                $(".input-flow .sr-only").html(rCapacity.toString() + "%");' . "\r\n" . '                // Network Load - Output' . "\r\n" . '                var rCapacity = Math.ceil((Math.floor(data.bytes_sent / 125000) / data.network_guaranteed_speed) * 100);' . "\r\n" . '                if (isNaN(rCapacity)) { rCapacity = 0; }' . "\r\n" . '                $(".output-flow .entry").html($.number(Math.floor(data.bytes_sent / 125000), 0));' . "\r\n" . '                $(".output-flow .entry-percentage").html(rCapacity.toString() + "%");' . "\r\n" . '                $(".output-flow .progress-bar").prop("aria-valuenow", rCapacity);' . "\r\n" . '                $(".output-flow .progress-bar").css("width", rCapacity.toString() + "%");' . "\r\n" . '                $(".output-flow .sr-only").html(rCapacity.toString() + "%");' . "\r\n" . '                // Active Streams' . "\r\n" . '                var rCapacity = Math.ceil((data.total_running_streams / (data.offline_streams + data.total_running_streams)) * 100);' . "\r\n" . '                if (isNaN(rCapacity)) { rCapacity = 0; }' . "\r\n" . '                $(".active-streams .entry").html($.number(data.total_running_streams, 0));' . "\r\n" . '                $(".active-streams .entry-percentage").html($.number(data.offline_streams, 0));' . "\r\n" . '                $(".active-streams .progress-bar").prop("aria-valuenow", rCapacity);' . "\r\n" . '                $(".active-streams .progress-bar").css("width", rCapacity.toString() + "%");' . "\r\n" . '                $(".active-streams .sr-only").html(rCapacity.toString() + "%");' . "\r\n\t\t\t\t" . '$(".offline-streams .entry").html($.number(data.offline_streams, 0));' . "\r\n" . '                // CPU Usage' . "\r\n" . '                $(".cpu-usage .entry").html(data.cpu);' . "\r\n" . '                $(".cpu-usage .entry-percentage").html(data.cpu.toString() + "%");' . "\r\n" . '                $(".cpu-usage .progress-bar").prop("aria-valuenow", data.cpu);' . "\r\n" . '                $(".cpu-usage .progress-bar").css("width", data.cpu.toString() + "%");' . "\r\n" . '                $(".cpu-usage .sr-only").html(data.cpu.toString() + "%");' . "\r\n" . '                // Memory Usage' . "\r\n" . '                $(".mem-usage .entry").html(data.mem);' . "\r\n" . '                $(".mem-usage .entry-percentage").html(data.mem.toString() + "%");' . "\r\n" . '                $(".mem-usage .progress-bar").prop("aria-valuenow", data.mem);' . "\r\n" . '                $(".mem-usage .progress-bar").css("width", data.mem.toString() + "%");' . "\r\n" . '                $(".mem-usage .sr-only").html(data.mem.toString() + "%");' . "\r\n" . '                // Uptime' . "\r\n\t\t\t\t" . 'if (data.uptime) {' . "\r\n\t\t\t\t\t" . '$(".uptime .entry").html(data.uptime.split(" ").slice(0,2).join(" "));' . "\r\n\t\t\t\t" . '}' . "\r\n" . '                ';
-
-if (!isset(CoreUtilities::$rRequest['server_id'])) {
-	echo "\t\t\t\t" . '// Per Server' . "\r\n\t\t\t\t" . '$(data.servers).each(function(i) {' . "\r\n" . '                    $("#s_" + data.servers[i].server_id + "_conns").html($.number(data.servers[i].open_connections, 0));' . "\r\n\t\t\t\t\t" . '$("#s_" + data.servers[i].server_id + "_users").html($.number(data.servers[i].online_users, 0));' . "\r\n\t\t\t\t\t" . '$("#s_" + data.servers[i].server_id + "_online").html($.number(data.servers[i].total_running_streams, 0));' . "\r\n" . '                    $("#s_" + data.servers[i].server_id + "_offline").html($.number(data.servers[i].offline_streams, 0));' . "\r\n\t\t\t\t\t" . '$("#s_" + data.servers[i].server_id + "_input").html($.number(Math.floor(data.servers[i].bytes_received / 125000), 0));' . "\r\n\t\t\t\t\t" . '$("#s_" + data.servers[i].server_id + "_output").html($.number(Math.floor(data.servers[i].bytes_sent / 125000), 0));' . "\r\n" . '                    $("#s_" + data.servers[i].server_id + "_requests").html($.number(data.servers[i].requests_per_second, 0));' . "\r\n" . '                    if (data.servers[i].uptime) {' . "\r\n\t\t\t\t\t\t" . '$("#s_" + data.servers[i].server_id + "_uptime").html(data.servers[i].uptime.split(" ").slice(0,2).join(" "));' . "\r\n\t\t\t\t\t" . '}' . "\r\n" . '                    ';
-
-	if ($rSettings['dashboard_display_alt'] && !$rMobile) {
-		echo '                    $("#s_" + data.servers[i].server_id + "_cpu").removeClass("bg-success").removeClass("bg-danger").removeClass("bg-warning");' . "\r\n" . '                    $("#s_" + data.servers[i].server_id + "_mem").removeClass("bg-success").removeClass("bg-danger").removeClass("bg-warning");' . "\r\n\t\t\t\t\t" . '$("#s_" + data.servers[i].server_id + "_cpu").attr("aria-valuenow", data.servers[i].cpu);' . "\r\n" . '                    $("#s_" + data.servers[i].server_id + "_cpu").css("width", data.servers[i].cpu + "%");' . "\r\n" . '                    $("#s_" + data.servers[i].server_id + "_mem").attr("aria-valuenow", data.servers[i].mem);' . "\r\n" . '                    $("#s_" + data.servers[i].server_id + "_mem").css("width", data.servers[i].mem + "%");' . "\r\n" . '                    if (data.servers[i].server_type == 0) {' . "\r\n" . '                        $("#s_" + data.servers[i].server_id + "_io").removeClass("bg-success").removeClass("bg-danger").removeClass("bg-warning");' . "\r\n" . '                        $("#s_" + data.servers[i].server_id + "_fs").removeClass("bg-success").removeClass("bg-danger").removeClass("bg-warning");' . "\r\n" . '                        $("#s_" + data.servers[i].server_id + "_io").attr("aria-valuenow", data.servers[i].io);' . "\r\n" . '                        $("#s_" + data.servers[i].server_id + "_io").css("width", data.servers[i].io + "%");' . "\r\n" . '                        $("#s_" + data.servers[i].server_id + "_fs").attr("aria-valuenow", data.servers[i].fs);' . "\r\n" . '                        $("#s_" + data.servers[i].server_id + "_fs").css("width", data.servers[i].fs + "%");' . "\r\n" . '                    }' . "\r\n" . '                    if (data.servers[i].cpu > 75) {' . "\r\n" . '                        $("#s_" + data.servers[i].server_id + "_cpu").addClass("bg-danger");' . "\r\n" . '                    } else if (data.servers[i].cpu > 50) {' . "\r\n" . '                        $("#s_" + data.servers[i].server_id + "_cpu").addClass("bg-warning");' . "\r\n" . '                    } else {' . "\r\n" . '                        $("#s_" + data.servers[i].server_id + "_cpu").addClass("bg-success");' . "\r\n" . '                    }' . "\r\n" . '                    if (data.servers[i].mem > 75) {' . "\r\n" . '                        $("#s_" + data.servers[i].server_id + "_mem").addClass("bg-danger");' . "\r\n" . '                    } else if (data.servers[i].mem > 50) {' . "\r\n" . '                        $("#s_" + data.servers[i].server_id + "_mem").addClass("bg-warning");' . "\r\n" . '                    } else {' . "\r\n" . '                        $("#s_" + data.servers[i].server_id + "_mem").addClass("bg-success");' . "\r\n" . '                    }' . "\r\n" . '                    if (data.servers[i].server_type == 0) {' . "\r\n" . '                        if (data.servers[i].io > 75) {' . "\r\n" . '                            $("#s_" + data.servers[i].server_id + "_io").addClass("bg-danger");' . "\r\n" . '                        } else if (data.servers[i].io > 50) {' . "\r\n" . '                            $("#s_" + data.servers[i].server_id + "_io").addClass("bg-warning");' . "\r\n" . '                        } else {' . "\r\n" . '                            $("#s_" + data.servers[i].server_id + "_io").addClass("bg-success");' . "\r\n" . '                        }' . "\r\n" . '                        if (data.servers[i].fs > 75) {' . "\r\n" . '                            $("#s_" + data.servers[i].server_id + "_fs").addClass("bg-danger");' . "\r\n" . '                        } else if (data.servers[i].fs > 50) {' . "\r\n" . '                            $("#s_" + data.servers[i].server_id + "_fs").addClass("bg-warning");' . "\r\n" . '                        } else {' . "\r\n" . '                            $("#s_" + data.servers[i].server_id + "_fs").addClass("bg-success");' . "\r\n" . '                        }' . "\r\n" . '                    }' . "\r\n" . '                    ';
-	} else {
-		echo "\t\t\t\t\t" . "\$(\"#s_\" + data.servers[i].server_id + \"_cpu\").val(data.servers[i].cpu).trigger('change');" . "\r\n\t\t\t\t\t" . "\$(\"#s_\" + data.servers[i].server_id + \"_mem\").val(data.servers[i].mem).trigger('change');" . "\r\n" . "                    \$(\"#s_\" + data.servers[i].server_id + \"_io\").val(data.servers[i].io).trigger('change');" . "\r\n" . "                    \$(\"#s_\" + data.servers[i].server_id + \"_fs\").val(data.servers[i].fs).trigger('change');" . "\r\n" . '                    ';
+		echo "\t\t\t\t" . '});' . "\r\n" . '                ';
 	}
 
-	echo "\t\t\t\t" . '});' . "\r\n" . '                ';
-}
+	echo '                if (auto) {' . "\r\n" . '                    if (Date.now() - rStart < 1000) {' . "\r\n" . '                        setTimeout(getStats, 1000 - (Date.now() - rStart));' . "\r\n" . '                    } else {' . "\r\n" . '                        getStats();' . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n" . '            }).fail(function() {' . "\r\n" . '                if (auto) {' . "\r\n" . '                    setTimeout(getStats, 1000);' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '        }' . "\r\n" . '        $(document).ready(function() {' . "\r\n" . "            \$('select').select2({width: '100%'});" . "\r\n" . '            getStats();' . "\r\n\t\t\t";
 
-echo '                if (auto) {' . "\r\n" . '                    if (Date.now() - rStart < 1000) {' . "\r\n" . '                        setTimeout(getStats, 1000 - (Date.now() - rStart));' . "\r\n" . '                    } else {' . "\r\n" . '                        getStats();' . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n" . '            }).fail(function() {' . "\r\n" . '                if (auto) {' . "\r\n" . '                    setTimeout(getStats, 1000);' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '        }' . "\r\n" . '        $(document).ready(function() {' . "\r\n" . "            \$('select').select2({width: '100%'});" . "\r\n" . '            getStats();' . "\r\n\t\t\t";
+	if (!$rMobile || $rSettings['dashboard_stats']) {
+		echo "\t\t\t" . 'getGraphStats();' . "\r\n\t\t\t";
+	}
 
-if (!$rMobile || $rSettings['dashboard_stats']) {
-	echo "\t\t\t" . 'getGraphStats();' . "\r\n\t\t\t";
-}
-
-echo '            $("#server_id").change(function() {' . "\r\n" . '                if ($(this).val().length > 0) {' . "\r\n" . '                    navigate("./dashboard?server_id=" + $(this).val());' . "\r\n" . '                } else {' . "\r\n" . '                    navigate("./dashboard");' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '        });' . "\r\n" . '        ' . "\r\n\t\t";
-?>
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-    <?php endif; ?>
+	echo '            $("#server_id").change(function() {' . "\r\n" . '                if ($(this).val().length > 0) {' . "\r\n" . '                    navigate("./dashboard?server_id=" + $(this).val());' . "\r\n" . '                } else {' . "\r\n" . '                    navigate("./dashboard");' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '        });' . "\r\n" . '        ' . "\r\n\t\t";
+	?>
+	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+		$(document).ready(function() {
+			initSearch();
+		});
+	<?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

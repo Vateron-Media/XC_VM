@@ -1,17 +1,17 @@
 <?php if (!isset($__viewMode)): ?>
-<?php
+    <?php
 
-include 'session.php';
-include 'functions.php';
+    include 'session.php';
+    include 'functions.php';
 
-if (!checkPermissions()) {
-    goHome();
-}
+    if (!checkPermissions()) {
+        goHome();
+    }
 
-$_TITLE = 'Bouquet Order';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('admin');
-?>
+    $_TITLE = 'Bouquet Order';
+    require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+    renderUnifiedLayoutHeader('admin');
+    ?>
 <?php endif; ?>
 <div class="wrapper boxed-layout" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
                                         echo ' style="display: none;"';
@@ -57,7 +57,7 @@ renderUnifiedLayoutHeader('admin');
                                             <div class="col-12">
                                                 <p class="sub-header"><?php echo $language::get('bouquet_sort_text'); ?></p>
                                                 <select multiple id="sort_bouquet" class="form-control" style="min-height:400px;">
-                                                    <?php foreach (getBouquets() as $rBouquet) : ?>
+                                                    <?php foreach (BouquetService::getAllSimple() as $rBouquet) : ?>
                                                         <option value="<?php echo $rBouquet['id']; ?>"><?php echo $rBouquet['bouquet_name']; ?></option>
                                                     <?php endforeach; ?>
                                                 </select>

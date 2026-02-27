@@ -1,6 +1,6 @@
 <div class="wrapper boxed-layout-ext" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
-	echo ' style="display: none;"';
-} ?>>
+											echo ' style="display: none;"';
+										} ?>>
 	<div class="container-fluid">
 		<div class="row">
 			<div class="col-12">

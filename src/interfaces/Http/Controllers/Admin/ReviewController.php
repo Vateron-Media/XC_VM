@@ -9,7 +9,12 @@ class ReviewController extends BaseAdminController
     public function index()
     {
         $this->requirePermission();
+
+        $rType = isset(CoreUtilities::$rRequest['type']) ? intval(CoreUtilities::$rRequest['type']) : 1;
+        $rCategorySet = [];
+        $rLogoSet = [];
+
         $this->setTitle('Review');
-        $this->render('review');
+        $this->render('review', compact('rType', 'rCategorySet', 'rLogoSet'));
     }
 }

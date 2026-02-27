@@ -2,15 +2,14 @@
 /**
  * XC_VM — Контроллер редактирования Enigma-устройства (admin/enigma.php)
  */
-namespace App\Http\Controllers\Admin;
 
 class EnigmaController extends BaseAdminController {
     public function index() {
         $this->requirePermission();
 
         $rDevice = null;
-        if (isset(\CoreUtilities::$rRequest['id'])) {
-            $rDevice = getEnigma(\CoreUtilities::$rRequest['id']);
+        if (isset(CoreUtilities::$rRequest['id'])) {
+            $rDevice = getEnigma(CoreUtilities::$rRequest['id']);
             if (!$rDevice['user_id']) {
                 exit();
             }

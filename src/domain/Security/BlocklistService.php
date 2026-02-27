@@ -1,7 +1,8 @@
 <?php
 
 class BlocklistService {
-	public static function blockIP($db, $rData) {
+	public static function blockIP($rData) {
+		global $db;
 		if (!validateCIDR($rData['ip'])) {
 			return array('status' => STATUS_INVALID_IP, 'data' => $rData);
 		}
@@ -19,14 +20,15 @@ class BlocklistService {
 		return array('status' => STATUS_FAILURE, 'data' => $rData);
 	}
 
-	public static function processISP($db, $rData, $rGetISPCallback) {
+	public static function processISP($rData, $rGetISPCallback) {
+		global $db;
 		if (isset($rData['edit'])) {
-			if (!hasPermissions('adv', 'block_isps')) {
+			if (!Authorization::check('adv', 'block_isps')) {
 				exit();
 			}
 			$rArray = overwriteData(call_user_func($rGetISPCallback, $rData['edit']), $rData);
 		} else {
-			if (!hasPermissions('adv', 'block_isps')) {
+			if (!Authorization::check('adv', 'block_isps')) {
 				exit();
 			}
 			$rArray = verifyPostTable('blocked_isps', $rData);
@@ -54,7 +56,8 @@ class BlocklistService {
 		return array('status' => STATUS_FAILURE, 'data' => $rData);
 	}
 
-	public static function processRTMPIP($db, $rData, $rGetRTMPIPCallback) {
+	public static function processRTMPIP($rData, $rGetRTMPIPCallback) {
+		global $db;
 		if (isset($rData['edit'])) {
 			$rArray = overwriteData(call_user_func($rGetRTMPIPCallback, $rData['edit']), $rData);
 		} else {
@@ -93,7 +96,8 @@ class BlocklistService {
 		return array('status' => STATUS_FAILURE, 'data' => $rData);
 	}
 
-	public static function processUA($db, $rData, $rGetUserAgentCallback) {
+	public static function processUA($rData, $rGetUserAgentCallback) {
+		global $db;
 		if (isset($rData['edit'])) {
 			$rArray = overwriteData(call_user_func($rGetUserAgentCallback, $rData['edit']), $rData);
 		} else {
@@ -174,7 +178,8 @@ class BlocklistService {
 		return $rOutput;
 	}
 
-	public static function getBlockedUA($db, $rGetCacheCallback, $rSetCacheCallback, $rForce = false) {
+	public static function getBlockedUA($rGetCacheCallback, $rSetCacheCallback, $rForce = false) {
+		global $db;
 		if (!$rForce && is_callable($rGetCacheCallback)) {
 			$rCache = call_user_func($rGetCacheCallback, 'blocked_ua', 20);
 			if ($rCache !== false) {
@@ -192,7 +197,8 @@ class BlocklistService {
 		return $rOutput;
 	}
 
-	public static function getBlockedIPs($db, $rGetCacheCallback, $rSetCacheCallback, $rForce = false) {
+	public static function getBlockedIPs($rGetCacheCallback, $rSetCacheCallback, $rForce = false) {
+		global $db;
 		if (!$rForce && is_callable($rGetCacheCallback)) {
 			$rCache = call_user_func($rGetCacheCallback, 'blocked_ips', 20);
 			if ($rCache !== false) {
@@ -213,7 +219,8 @@ class BlocklistService {
 		return $rOutput;
 	}
 
-	public static function getBlockedISP($db, $rGetCacheCallback, $rSetCacheCallback, $rForce = false) {
+	public static function getBlockedISP($rGetCacheCallback, $rSetCacheCallback, $rForce = false) {
+		global $db;
 		if (!$rForce && is_callable($rGetCacheCallback)) {
 			$rCache = call_user_func($rGetCacheCallback, 'blocked_isp', 20);
 			if ($rCache !== false) {
@@ -231,7 +238,8 @@ class BlocklistService {
 		return $rOutput;
 	}
 
-	public static function getBlockedServers($db, $rGetCacheCallback, $rSetCacheCallback, $rForce = false) {
+	public static function getBlockedServers($rGetCacheCallback, $rSetCacheCallback, $rForce = false) {
+		global $db;
 		if (!$rForce && is_callable($rGetCacheCallback)) {
 			$rCache = call_user_func($rGetCacheCallback, 'blocked_servers', 20);
 			if ($rCache !== false) {
@@ -252,7 +260,8 @@ class BlocklistService {
 		return $rOutput;
 	}
 
-	public static function getBlockedIPsSimple($db) {
+	public static function getBlockedIPsSimple() {
+		global $db;
 		$rReturn = array();
 		$db->query('SELECT * FROM `blocked_ips` ORDER BY `id` ASC;');
 
@@ -265,7 +274,8 @@ class BlocklistService {
 		return $rReturn;
 	}
 
-	public static function getRTMPIPsSimple($db) {
+	public static function getRTMPIPsSimple() {
+		global $db;
 		$rReturn = array();
 		$db->query('SELECT * FROM `rtmp_ips` ORDER BY `id` ASC;');
 

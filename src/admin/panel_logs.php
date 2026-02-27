@@ -1,17 +1,17 @@
 <?php if (!isset($__viewMode)): ?>
-<?php
+    <?php
 
-include 'session.php';
-include 'functions.php';
+    include 'session.php';
+    include 'functions.php';
 
-if (!checkPermissions()) {
-    goHome();
-}
+    if (!checkPermissions()) {
+        goHome();
+    }
 
-$_TITLE = 'Panel Errors';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('admin');
-?>
+    $_TITLE = 'Panel Errors';
+    require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+    renderUnifiedLayoutHeader('admin');
+    ?>
 <?php endif; ?>
 <div class="wrapper" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
                             echo ' style="display: none;"';
@@ -283,7 +283,7 @@ renderUnifiedLayoutFooter('admin');
 </script>
 <script src="assets/js/listings.js"></script>
 <?php if (!isset($__viewMode)): ?>
-</body>
+    </body>
 
-</html>
+    </html>
 <?php endif; ?>

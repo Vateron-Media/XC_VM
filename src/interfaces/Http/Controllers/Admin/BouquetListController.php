@@ -15,10 +15,8 @@ class BouquetListController extends BaseAdminController
         $this->requirePermission();
         $this->setTitle('Bouquets');
 
-        $bouquets = function_exists('getBouquets') ? getBouquets() : [];
+        $rBouquets = BouquetService::getAllSimple();
 
-        $this->render('bouquets', [
-            'bouquets' => $bouquets,
-        ]);
+        $this->render('bouquets', compact('rBouquets'));
     }
 }

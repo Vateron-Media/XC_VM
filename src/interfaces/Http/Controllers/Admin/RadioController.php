@@ -8,17 +8,20 @@ class RadioController extends BaseAdminController
     {
         $this->requirePermission();
 
-        global $rServers;
+        global $db, $rServers;
 
         if (isset(CoreUtilities::$rRequest['id'])) {
-            $rStation = getStream(CoreUtilities::$rRequest['id']);
+            $rStation = StreamRepository::getById(CoreUtilities::$rRequest['id']);
             if (!$rStation || $rStation['type'] != 4) {
                 goHome();
             }
         }
 
+        $rStation = null;
+        $rStationOptions = null;
+        $rStationSys = null;
         $rOnDemand = array();
-        $rStationArguments = getStreamArguments();
+        $rStationArguments = StreamConfigRepository::getStreamArguments();
         $rServerTree = array(
             array(
                 'id' => 'source',
@@ -37,8 +40,8 @@ class RadioController extends BaseAdminController
         );
 
         if (isset($rStation)) {
-            $rStationOptions = getStreamOptions(CoreUtilities::$rRequest['id']);
-            $rStationSys = getStreamSys(CoreUtilities::$rRequest['id']);
+            $rStationOptions = StreamRepository::getOptions(CoreUtilities::$rRequest['id']);
+            $rStationSys = StreamRepository::getSystemRows(CoreUtilities::$rRequest['id']);
 
             foreach ($rServers as $rServer) {
                 if (isset($rStationSys[intval($rServer['id'])])) {

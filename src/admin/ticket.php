@@ -1,24 +1,24 @@
 <?php
 if (!isset($__viewMode)):
 
-include 'session.php';
-include 'functions.php';
+	include 'session.php';
+	include 'functions.php';
 
-if (checkPermissions()) {
-} else {
-	goHome();
-}
+	if (checkPermissions()) {
+	} else {
+		goHome();
+	}
 
-$rTicket = getTicket(CoreUtilities::$rRequest['id']);
+	$rTicket = getTicket(CoreUtilities::$rRequest['id']);
 
-if ($rTicket) {
-} else {
-	goHome();
-}
+	if ($rTicket) {
+	} else {
+		goHome();
+	}
 
-$_TITLE = 'Ticket';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('admin');
+	$_TITLE = 'Ticket';
+	require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+	renderUnifiedLayoutHeader('admin');
 endif; // !$__viewMode
 echo '<div class="wrapper boxed-layout"';
 
@@ -171,11 +171,11 @@ renderUnifiedLayoutFooter('admin');
 			submitForm(window.rCurrentPage, new FormData($("form")[0]));
 		});
 	});
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-    <?php endif; ?>
+	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+		$(document).ready(function() {
+			initSearch();
+		});
+	<?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

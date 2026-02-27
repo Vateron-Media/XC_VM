@@ -82,7 +82,7 @@ class StreamReviewController extends BaseAdminController
             } else {
                 $rStreams = json_decode(CoreUtilities::$rRequest['streams'], true);
                 $rCategories = getCategories('live');
-                $rBouquets = getBouquets();
+                $rBouquets = BouquetService::getAllSimple();
                 $rStreamBouquets = array();
                 foreach ($rBouquets as $rBouquet) {
                     $rBouquetChannels = json_decode($rBouquet['bouquet_channels'], true);

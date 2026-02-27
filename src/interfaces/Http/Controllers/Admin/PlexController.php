@@ -8,7 +8,7 @@ class PlexController extends BaseAdminController
     {
         $this->requirePermission();
 
-        $rPlexServers = getPlexServers();
+        $rPlexServers = PlexRepository::getPlexServers();
         if (!is_array($rPlexServers)) {
             $rPlexServers = [];
         }

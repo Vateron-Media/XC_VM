@@ -1,7 +1,8 @@
 <?php
 
 class PlaylistGenerator {
-	public static function generate($db, $rSettings, $rServers, $rCategories, $rCached, $rUserInfo, $rDeviceKey, $rOutputKey = 'ts', $rTypeKey = null, $rNoCache = false, $rProxy = false) {
+	public static function generate($rSettings, $rServers, $rCategories, $rCached, $rUserInfo, $rDeviceKey, $rOutputKey = 'ts', $rTypeKey = null, $rNoCache = false, $rProxy = false) {
+		global $db;
 		if (empty($rDeviceKey)) {
 			return false;
 		}

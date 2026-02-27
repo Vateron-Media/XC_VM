@@ -8,9 +8,11 @@ class API {
 	public static $rUserInfo = array();
 
 	public static function init($rUserID = null) {
+		global $db;
+		global $rPermissions;
 		self::$rSettings = getSettings();
-		self::$rServers = getStreamingServers('all');
-		self::$rProxyServers = getProxyServers();
+		self::$rServers = ServerRepository::getStreamingSimple($rPermissions, 'all');
+		self::$rProxyServers = ServerRepository::getProxySimple($rPermissions);
 
 		if ($rUserID || !isset($_SESSION['hash'])) {
 		} else {
@@ -19,7 +21,7 @@ class API {
 
 		if (!$rUserID) {
 		} else {
-			self::$rUserInfo = getRegisteredUser($rUserID);
+			self::$rUserInfo = UserRepository::getRegisteredUserById($rUserID);
 		}
 	}
 
@@ -158,7 +160,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return BouquetService::process($rData, self::$db, 'getBouquet', 'scanBouquet');
+		return BouquetService::process($rData, 'getBouquet', 'scanBouquet');
 	}
 
 	public static function processCode($rData) {
@@ -166,7 +168,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return AuthService::processCode(self::$db, $rData, 'getCode', 'updateCodes');
+		return AuthService::processCode($rData, 'getCode', 'updateCodes');
 	}
 
 	public static function processHMAC($rData) {
@@ -174,7 +176,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return AuthService::processHMAC(self::$db, $rData, self::$rSettings, 'getHMACToken');
+		return AuthService::processHMAC($rData, self::$rSettings, 'getHMACToken');
 	}
 
 	public static function reorderBouquet($rData) {
@@ -182,7 +184,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return BouquetService::reorder($rData, self::$db);
+		return BouquetService::reorder($rData);
 	}
 
 	public static function editAdminProfile($rData) {
@@ -191,7 +193,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return UserService::editAdminProfile(self::$db, $rData, self::$rUserInfo, $allowedLangs);
+		return UserService::editAdminProfile($rData, self::$rUserInfo, $allowedLangs);
 	}
 
 	public static function blockIP($rData) {
@@ -199,7 +201,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return BlocklistService::blockIP(self::$db, $rData);
+		return BlocklistService::blockIP($rData);
 	}
 
 	public static function sortBouquets($rData) {
@@ -207,7 +209,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return BouquetService::sort($rData, self::$db, 'getUserBouquets', 'getPackages', 'sortArrayByArray', array('CoreUtilities', 'updateLine'));
+		return BouquetService::sort($rData, 'getUserBouquets', 'getPackages', 'sortArrayByArray', array('CoreUtilities', 'updateLine'));
 	}
 
 	public static function setChannelOrder($rData) {
@@ -215,7 +217,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return ChannelService::setOrder($rData, self::$db);
+		return ChannelService::setOrder($rData);
 	}
 
 	public static function processChannel($rData) {
@@ -223,7 +225,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return ChannelService::process($rData, self::$db, self::$rSettings);
+		return ChannelService::process($rData, self::$rSettings);
 	}
 
 	public static function processEPG($rData) {
@@ -231,13 +233,13 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return EpgService::process($rData, self::$db, 'getEPG');
+		return EpgService::process($rData, 'getEPG');
 	}
 
 	public static function processProvider($rData) {
 		if (self::checkMinimumRequirements($rData)) {
 			if (isset($rData['edit'])) {
-				if (hasPermissions('adv', 'streams')) {
+				if (Authorization::check('adv', 'streams')) {
 
 
 					$rArray = overwriteData(getStreamProvider($rData['edit']), $rData);
@@ -245,7 +247,7 @@ class API {
 					exit();
 				}
 			} else {
-				if (hasPermissions('adv', 'streams')) {
+				if (Authorization::check('adv', 'streams')) {
 
 
 					$rArray = verifyPostTable('providers', $rData);
@@ -295,7 +297,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return EpisodeService::process(self::$db, self::$rSettings, $rData);
+		return EpisodeService::process(self::$rSettings, $rData);
 	}
 
 	public static function massEditEpisodes($rData) {
@@ -303,7 +305,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return EpisodeService::massEdit(self::$db, $rData);
+		return EpisodeService::massEdit($rData);
 	}
 
 	public static function processGroup($rData) {
@@ -317,15 +319,15 @@ class API {
 	public static function processGroupLegacy($rData) {
 		if (self::checkMinimumRequirements($rData)) {
 			if (isset($rData['edit'])) {
-				if (hasPermissions('adv', 'edit_group')) {
+				if (Authorization::check('adv', 'edit_group')) {
 
 
-					$rArray = overwriteData(getMemberGroup($rData['edit']), $rData);
+					$rArray = overwriteData(GroupService::getById($rData['edit']), $rData);
 				} else {
 					exit();
 				}
 			} else {
-				if (hasPermissions('adv', 'add_group')) {
+				if (Authorization::check('adv', 'add_group')) {
 
 
 					$rArray = verifyPostTable('users_groups', $rData);
@@ -345,7 +347,7 @@ class API {
 
 			if ($rArray['can_delete'] || !isset($rData['edit'])) {
 			} else {
-				$rGroup = getMemberGroup($rData['edit']);
+				$rGroup = GroupService::getById($rData['edit']);
 				$rArray['is_admin'] = $rGroup['is_admin'];
 				$rArray['is_reseller'] = $rGroup['is_reseller'];
 			}
@@ -410,7 +412,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return BlocklistService::processISP(self::$db, $rData, 'getISP');
+		return BlocklistService::processISP($rData, 'getISP');
 	}
 
 	public static function processLogin($rData, $rBypassRecaptcha = false) {
@@ -504,10 +506,11 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return MovieService::process(self::$db, self::$rSettings, $rData);
+		return MovieService::process(self::$rSettings, $rData);
 	}
 
 	public static function processMovieLegacy($rData) {
+		global $db;
 		if (self::checkMinimumRequirements($rData)) {
 			set_time_limit(0);
 			ini_set('mysql.connect_timeout', 0);
@@ -515,15 +518,15 @@ class API {
 			ini_set('default_socket_timeout', 0);
 
 			if (isset($rData['edit'])) {
-				if (hasPermissions('adv', 'edit_movie')) {
+				if (Authorization::check('adv', 'edit_movie')) {
 
 
-					$rArray = overwriteData(getStream($rData['edit']), $rData);
+					$rArray = overwriteData(StreamRepository::getById($rData['edit']), $rData);
 				} else {
 					exit();
 				}
 			} else {
-				if (hasPermissions('adv', 'add_movie')) {
+				if (Authorization::check('adv', 'add_movie')) {
 
 
 					$rArray = verifyPostTable('streams', $rData);
@@ -656,7 +659,7 @@ class API {
 				$rImportStreams = array();
 
 				if (!empty($_FILES['m3u_file']['tmp_name'])) {
-					if (hasPermissions('adv', 'import_movies')) {
+					if (Authorization::check('adv', 'import_movies')) {
 						$rStreamDatabase = array();
 
 
@@ -714,7 +717,7 @@ class API {
 					}
 				} else {
 					if (!empty($rData['import_folder'])) {
-						if (hasPermissions('adv', 'import_movies')) {
+						if (Authorization::check('adv', 'import_movies')) {
 							$rStreamDatabase = array();
 
 
@@ -873,7 +876,7 @@ class API {
 
 					if (isset($rData['edit'])) {
 					} else {
-						$rImportArray['order'] = getNextOrder();
+						$rImportArray['order'] = StreamRepository::getNextOrder();
 					}
 
 					$rImportArray['tmdb_id'] = ($rImportStream['movie_properties']['tmdb_id'] ?: null);
@@ -935,7 +938,7 @@ class API {
 							addToBouquet('movie', $rBouquet, $rInsertID);
 						}
 
-						foreach (getBouquets() as $rBouquet) {
+						foreach (BouquetService::getAllSimple() as $rBouquet) {
 							if (in_array($rBouquet['id'], $rBouquets)) {
 							} else {
 								removeFromBouquet('movie', $rBouquet['id'], $rInsertID);
@@ -980,7 +983,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return MovieService::massEdit(self::$db, $rData);
+		return MovieService::massEdit($rData);
 	}
 
 	public static function processPackage($rData) {
@@ -988,7 +991,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return PackageService::process(self::$db, $rData, 'getPackage', 'getBouquetOrder', 'sortArrayByArray');
+		return PackageService::process($rData, 'getPackage');
 	}
 
 	public static function processMAG($rData) {
@@ -1000,13 +1003,14 @@ class API {
 	}
 
 	public static function processMAGLegacy($rData) {
+		global $db;
 		if (self::checkMinimumRequirements($rData)) {
 			if (isset($rData['edit'])) {
-				if (hasPermissions('adv', 'edit_mag')) {
+				if (Authorization::check('adv', 'edit_mag')) {
 
 
 					$rArray = overwriteData(getMag($rData['edit']), $rData);
-					$rUser = getUser($rArray['user_id']);
+					$rUser = UserRepository::getLineById($rArray['user_id']);
 
 					if ($rUser) {
 						$rUserArray = overwriteData($rUser, $rData);
@@ -1019,7 +1023,7 @@ class API {
 					exit();
 				}
 			} else {
-				if (hasPermissions('adv', 'add_mag')) {
+				if (Authorization::check('adv', 'add_mag')) {
 
 
 					$rArray = verifyPostTable('mag_devices', $rData);
@@ -1071,7 +1075,7 @@ class API {
 				$rArray['lock_device'] = 0;
 			}
 
-			$rUserArray['bouquet'] = sortArrayByArray(array_values(json_decode($rData['bouquets_selected'], true)), array_keys(getBouquetOrder()));
+			$rUserArray['bouquet'] = sortArrayByArray(array_values(json_decode($rData['bouquets_selected'], true)), array_keys(BouquetService::getOrder()));
 			$rUserArray['bouquet'] = '[' . implode(',', array_map('intval', $rUserArray['bouquet'])) . ']';
 
 			if (isset($rData['exp_date']) && !isset($rData['no_expire'])) {
@@ -1116,7 +1120,7 @@ class API {
 
 			if (0 >= $rDevice['user']['pair_id']) {
 			} else {
-				$rUserCheck = getUser($rDevice['user']['pair_id']);
+				$rUserCheck = UserRepository::getLineById($rDevice['user']['pair_id']);
 
 				if ($rUserCheck) {
 				} else {
@@ -1166,7 +1170,7 @@ class API {
 
 							if (0 >= $rDevice['user']['pair_id']) {
 							} else {
-								syncDevices($rDevice['user']['pair_id'], $rInsertID);
+								MagService::syncLineDevices($rDevice['user']['pair_id'], $rInsertID);
 								CoreUtilities::updateLine($rDevice['user']['pair_id']);
 							}
 
@@ -1200,13 +1204,14 @@ class API {
 	}
 
 	public static function processEnigmaLegacy($rData) {
+		global $db;
 		if (self::checkMinimumRequirements($rData)) {
 			if (isset($rData['edit'])) {
-				if (hasPermissions('adv', 'edit_e2')) {
+				if (Authorization::check('adv', 'edit_e2')) {
 
 
 					$rArray = overwriteData(getEnigma($rData['edit']), $rData);
-					$rUser = getUser($rArray['user_id']);
+					$rUser = UserRepository::getLineById($rArray['user_id']);
 
 					if ($rUser) {
 						$rUserArray = overwriteData($rUser, $rData);
@@ -1219,7 +1224,7 @@ class API {
 					exit();
 				}
 			} else {
-				if (hasPermissions('adv', 'add_e2')) {
+				if (Authorization::check('adv', 'add_e2')) {
 					$rArray = verifyPostTable('enigma2_devices', $rData);
 					$rUserArray = verifyPostTable('lines', $rData);
 					$rUserArray['created_at'] = time();
@@ -1268,7 +1273,7 @@ class API {
 				$rArray['lock_device'] = 0;
 			}
 
-			$rUserArray['bouquet'] = sortArrayByArray(array_values(json_decode($rData['bouquets_selected'], true)), array_keys(getBouquetOrder()));
+			$rUserArray['bouquet'] = sortArrayByArray(array_values(json_decode($rData['bouquets_selected'], true)), array_keys(BouquetService::getOrder()));
 			$rUserArray['bouquet'] = '[' . implode(',', array_map('intval', $rUserArray['bouquet'])) . ']';
 
 			if (isset($rData['exp_date']) && !isset($rData['no_expire'])) {
@@ -1313,7 +1318,7 @@ class API {
 
 			if (0 >= $rDevice['user']['pair_id']) {
 			} else {
-				$rUserCheck = getUser($rDevice['user']['pair_id']);
+				$rUserCheck = UserRepository::getLineById($rDevice['user']['pair_id']);
 
 				if ($rUserCheck) {
 				} else {
@@ -1362,7 +1367,7 @@ class API {
 
 							if (0 >= $rDevice['user']['pair_id']) {
 							} else {
-								syncDevices($rDevice['user']['pair_id'], $rInsertID);
+								MagService::syncLineDevices($rDevice['user']['pair_id'], $rInsertID);
 								CoreUtilities::updateLine($rDevice['user']['pair_id']);
 							}
 
@@ -1710,17 +1715,18 @@ class API {
 	}
 
 	public static function processRadio($rData) {
+		global $db;
 		if (self::checkMinimumRequirements($rData)) {
 			if (isset($rData['edit'])) {
-				if (hasPermissions('adv', 'edit_radio')) {
+				if (Authorization::check('adv', 'edit_radio')) {
 
 
-					$rArray = overwriteData(getStream($rData['edit']), $rData);
+					$rArray = overwriteData(StreamRepository::getById($rData['edit']), $rData);
 				} else {
 					exit();
 				}
 			} else {
-				if (hasPermissions('adv', 'add_radio')) {
+				if (Authorization::check('adv', 'add_radio')) {
 
 
 					$rArray = verifyPostTable('streams', $rData);
@@ -1832,7 +1838,7 @@ class API {
 
 						if (isset($rData['edit'])) {
 						} else {
-							$rImportArray['order'] = getNextOrder();
+							$rImportArray['order'] = StreamRepository::getNextOrder();
 						}
 
 						$rPrepare = prepareArray($rImportArray);
@@ -1922,7 +1928,7 @@ class API {
 
 							if (!isset($rData['edit'])) {
 							} else {
-								foreach (getBouquets() as $rBouquet) {
+								foreach (BouquetService::getAllSimple() as $rBouquet) {
 									if (in_array($rBouquet['id'], $rBouquets)) {
 									} else {
 										removeFromBouquet('radio', $rBouquet['id'], $rInsertID);
@@ -2001,7 +2007,7 @@ class API {
 				foreach (self::$db->get_rows() as $rRow) {
 					$rStreamExists[intval($rRow['stream_id'])][intval($rRow['server_id'])] = intval($rRow['server_stream_id']);
 				}
-				$rBouquets = getBouquets();
+				$rBouquets = BouquetService::getAllSimple();
 				$rAddBouquet = $rDelBouquet = array();
 				$rAddQuery = '';
 
@@ -2162,13 +2168,14 @@ class API {
 	}
 
 	public static function processUserLegacy($rData, $rBypassAuth = false) {
+		global $db;
 		if (self::checkMinimumRequirements($rData)) {
 
 
 
 			if (isset($rData['edit'])) {
-				if (hasPermissions('adv', 'edit_reguser') || $rBypassAuth) {
-					$rUser = getRegisteredUser($rData['edit']);
+				if (Authorization::check('adv', 'edit_reguser') || $rBypassAuth) {
+					$rUser = UserRepository::getRegisteredUserById($rData['edit']);
 
 
 					$rArray = overwriteData($rUser, $rData, array('password'));
@@ -2176,7 +2183,7 @@ class API {
 					exit();
 				}
 			} else {
-				if (hasPermissions('adv', 'add_reguser') || $rBypassAuth) {
+				if (Authorization::check('adv', 'add_reguser') || $rBypassAuth) {
 					$rArray = verifyPostTable('users', $rData);
 					$rArray['date_registered'] = time();
 					unset($rArray['id']);
@@ -2257,11 +2264,11 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return BlocklistService::processRTMPIP(self::$db, $rData, 'getRTMPIP');
+		return BlocklistService::processRTMPIP($rData, 'getRTMPIP');
 	}
 
 	public static function importSeries($rData) {
-		if (!hasPermissions('adv', 'import_movies')) {
+		if (!Authorization::check('adv', 'import_movies')) {
 			exit();
 		}
 		if (!self::checkMinimumRequirements($rData)) {
@@ -2272,7 +2279,7 @@ class API {
 	}
 
 	public static function importSeriesLegacy($rData) {
-		if (hasPermissions('adv', 'import_movies')) {
+		if (Authorization::check('adv', 'import_movies')) {
 			if (self::checkMinimumRequirements($rData)) {
 				$rPostData = $rData;
 
@@ -2435,7 +2442,7 @@ class API {
 							$rServerIDs[] = intval($rServer['id']);
 						}
 					}
-					$rWatchCategories = array(1 => getWatchCategories(1), 2 => getWatchCategories(2));
+					$rWatchCategories = array(1 => WatchService::getWatchCategories(1), 2 => WatchService::getWatchCategories(2));
 
 					foreach ($rImportStreams as $rImportStream) {
 						$rData = array('import' => true, 'type' => 'series', 'title' => $rImportStream['title'], 'file' => $rImportStream['url'], 'subtitles' => array(), 'servers' => $rServerIDs, 'fb_category_id' => $rCategories, 'fb_bouquets' => $rBouquets, 'disable_tmdb' => false, 'ignore_no_match' => false, 'bouquets' => array(), 'category_id' => array(), 'language' => CoreUtilities::$rSettings['tmdb_language'], 'watch_categories' => $rWatchCategories, 'read_native' => $rData['read_native'], 'movie_symlink' => $rData['movie_symlink'], 'remove_subtitles' => $rData['remove_subtitles'], 'direct_source' => $rData['direct_source'], 'direct_proxy' => $rData['direct_proxy'], 'auto_encode' => $rRestart, 'auto_upgrade' => false, 'fallback_title' => false, 'ffprobe_input' => false, 'transcode_profile_id' => $rData['transcode_profile_id'], 'target_container' => $rImportStream['container'], 'max_genres' => intval(CoreUtilities::$rSettings['max_genres']), 'duplicate_tmdb' => true);
@@ -2456,7 +2463,7 @@ class API {
 	}
 
 	public static function importMovies($rData) {
-		if (!hasPermissions('adv', 'import_movies')) {
+		if (!Authorization::check('adv', 'import_movies')) {
 			exit();
 		}
 		if (!self::checkMinimumRequirements($rData)) {
@@ -2467,7 +2474,7 @@ class API {
 	}
 
 	public static function importMoviesLegacy($rData) {
-		if (hasPermissions('adv', 'import_movies')) {
+		if (Authorization::check('adv', 'import_movies')) {
 
 
 			if (self::checkMinimumRequirements($rData)) {
@@ -2646,7 +2653,7 @@ class API {
 							$rServerIDs[] = intval($rServer['id']);
 						}
 					}
-					$rWatchCategories = array(1 => getWatchCategories(1), 2 => getWatchCategories(2));
+					$rWatchCategories = array(1 => WatchService::getWatchCategories(1), 2 => WatchService::getWatchCategories(2));
 
 					foreach ($rImportStreams as $rImportStream) {
 						$rData = array('import' => true, 'type' => 'movie', 'title' => $rImportStream['title'], 'file' => $rImportStream['url'], 'subtitles' => array(), 'servers' => $rServerIDs, 'fb_category_id' => $rCategories, 'fb_bouquets' => $rBouquets, 'disable_tmdb' => $rDisableTMDB, 'ignore_no_match' => $rIgnoreMatch, 'bouquets' => array(), 'category_id' => array(), 'language' => CoreUtilities::$rSettings['tmdb_language'], 'watch_categories' => $rWatchCategories, 'read_native' => $rData['read_native'], 'movie_symlink' => $rData['movie_symlink'], 'remove_subtitles' => $rData['remove_subtitles'], 'direct_source' => $rData['direct_source'], 'direct_proxy' => $rData['direct_proxy'], 'auto_encode' => $rRestart, 'auto_upgrade' => false, 'fallback_title' => false, 'ffprobe_input' => false, 'transcode_profile_id' => $rData['transcode_profile_id'], 'target_container' => $rImportStream['container'], 'max_genres' => intval(CoreUtilities::$rSettings['max_genres']), 'duplicate_tmdb' => true);
@@ -2674,13 +2681,13 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return SeriesService::process(self::$db, self::$rSettings, $rData);
+		return SeriesService::process(self::$rSettings, $rData);
 	}
 
 	public static function processSeriesLegacy($rData) {
 		if (self::checkMinimumRequirements($rData)) {
 			if (isset($rData['edit'])) {
-				if (hasPermissions('adv', 'edit_series')) {
+				if (Authorization::check('adv', 'edit_series')) {
 
 
 					$rArray = overwriteData(getSerie($rData['edit']), $rData);
@@ -2688,7 +2695,7 @@ class API {
 					exit();
 				}
 			} else {
-				if (hasPermissions('adv', 'add_series')) {
+				if (Authorization::check('adv', 'add_series')) {
 
 
 					$rArray = verifyPostTable('streams_series', $rData);
@@ -2767,13 +2774,13 @@ class API {
 
 			if (self::$db->query($rQuery, ...$rPrepare['data'])) {
 				$rInsertID = self::$db->last_insert_id();
-				updateSeriesAsync($rInsertID);
+				SeriesService::queueRefresh($rInsertID);
 
 				foreach ($rBouquets as $rBouquet) {
 					addToBouquet('series', $rBouquet, $rInsertID);
 				}
 
-				foreach (getBouquets() as $rBouquet) {
+				foreach (BouquetService::getAllSimple() as $rBouquet) {
 					if (in_array($rBouquet['id'], $rBouquets)) {
 					} else {
 						removeFromBouquet('series', $rBouquet['id'], $rInsertID);
@@ -2802,7 +2809,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return SeriesService::massEdit(self::$db, $rData);
+		return SeriesService::massEdit($rData);
 	}
 
 	public static function processServer($rData) {
@@ -2810,7 +2817,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return ServerService::process($rData, self::$db);
+		return ServerService::process($rData);
 	}
 
 	public static function processProxy($rData) {
@@ -2818,7 +2825,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return ServerService::processProxy($rData, self::$db);
+		return ServerService::processProxy($rData);
 	}
 
 	public static function installServer($rData) {
@@ -2826,7 +2833,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return ServerService::install($rData, self::$db, self::$rServers, self::$rProxyServers);
+		return ServerService::install($rData, self::$rServers, self::$rProxyServers);
 	}
 
 	public static function editSettings($rData) {
@@ -2834,7 +2841,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return SettingsService::edit(self::$db, $rData, 'clearSettingsCache');
+		return SettingsService::edit($rData, 'clearSettingsCache');
 	}
 
 	public static function editBackupSettings($rData) {
@@ -2842,7 +2849,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return SettingsService::editBackup(self::$db, $rData, 'clearSettingsCache');
+		return SettingsService::editBackup($rData, 'clearSettingsCache');
 	}
 
 	public static function editCacheCron($rData) {
@@ -2850,7 +2857,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return SettingsService::editCacheCron(self::$db, $rData, 'clearSettingsCache');
+		return SettingsService::editCacheCron($rData, 'clearSettingsCache');
 	}
 
 	public static function editPlexSettings($rData) {
@@ -2873,7 +2880,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return StreamService::massEdit($rData, self::$db);
+		return StreamService::massEdit($rData);
 	}
 
 	public static function massEditChannels($rData) {
@@ -2881,7 +2888,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return ChannelService::massEdit($rData, self::$db);
+		return ChannelService::massEdit($rData);
 	}
 
 	public static function processStream($rData) {
@@ -2889,7 +2896,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return StreamService::process($rData, self::$db, self::$rSettings);
+		return StreamService::process($rData, self::$rSettings);
 	}
 
 	public static function orderCategories($rData) {
@@ -2897,7 +2904,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return CategoryService::reorder($rData, self::$db);
+		return CategoryService::reorder($rData);
 	}
 
 	public static function orderServers($rData) {
@@ -2905,7 +2912,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return ServerService::reorder($rData, self::$db);
+		return ServerService::reorder($rData);
 	}
 
 	public static function processCategory($rData) {
@@ -2913,7 +2920,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return CategoryService::process($rData, self::$db);
+		return CategoryService::process($rData);
 	}
 
 	public static function moveStreams($rData) {
@@ -2921,7 +2928,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return StreamService::move($rData, self::$db);
+		return StreamService::move($rData);
 	}
 
 	public static function replaceDNS($rData) {
@@ -2929,7 +2936,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return StreamService::replaceDNS($rData, self::$db);
+		return StreamService::replaceDNS($rData);
 	}
 
 	public static function submitTicket($rData) {
@@ -2937,7 +2944,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return UserService::submitTicket(self::$db, $rData, self::$rUserInfo, 'getTicket');
+		return UserService::submitTicket($rData, self::$rUserInfo, 'getTicket');
 	}
 
 	public static function processUA($rData) {
@@ -2945,7 +2952,7 @@ class API {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		return BlocklistService::processUA(self::$db, $rData, 'getUserAgent');
+		return BlocklistService::processUA($rData, 'getUserAgent');
 	}
 
 	public static function processPlexSync($rData) {
@@ -3049,7 +3056,7 @@ class API {
 						$rArray['bouquet'][] = $rBouquet;
 					}
 				}
-				$rArray['bouquet'] = sortArrayByArray($rArray['bouquet'], array_keys(getBouquetOrder()));
+				$rArray['bouquet'] = sortArrayByArray($rArray['bouquet'], array_keys(BouquetService::getOrder()));
 				$rArray['bouquet'] = '[' . implode(',', array_map('intval', $rArray['bouquet'])) . ']';
 			}
 
@@ -3074,7 +3081,7 @@ class API {
 				self::$db->query('SELECT `pair_id` FROM `lines` WHERE `pair_id` IN (' . implode(',', $rUsers) . ');');
 
 				foreach (self::$db->get_rows() as $rRow) {
-					syncDevices($rRow['pair_id']);
+					MagService::syncLineDevices($rRow['pair_id']);
 				}
 				CoreUtilities::updateLines($rUsers);
 			}
@@ -3185,7 +3192,7 @@ class API {
 						$rUserArray['bouquet'][] = $rBouquet;
 					}
 				}
-				$rUserArray['bouquet'] = sortArrayByArray($rUserArray['bouquet'], array_keys(getBouquetOrder()));
+				$rUserArray['bouquet'] = sortArrayByArray($rUserArray['bouquet'], array_keys(BouquetService::getOrder()));
 				$rUserArray['bouquet'] = '[' . implode(',', array_map('intval', $rUserArray['bouquet'])) . ']';
 			}
 
@@ -3358,7 +3365,7 @@ class API {
 						$rUserArray['bouquet'][] = $rBouquet;
 					}
 				}
-				$rUserArray['bouquet'] = sortArrayByArray($rUserArray['bouquet'], array_keys(getBouquetOrder()));
+				$rUserArray['bouquet'] = sortArrayByArray($rUserArray['bouquet'], array_keys(BouquetService::getOrder()));
 				$rUserArray['bouquet'] = '[' . implode(',', array_map('intval', $rUserArray['bouquet'])) . ']';
 			}
 
@@ -3533,17 +3540,18 @@ class API {
 	}
 
 	public static function processLineLegacy($rData) {
+		global $db;
 		if (self::checkMinimumRequirements($rData)) {
 			if (isset($rData['edit'])) {
-				if (hasPermissions('adv', 'edit_user')) {
+				if (Authorization::check('adv', 'edit_user')) {
 
 
-					$rArray = overwriteData(getUser($rData['edit']), $rData);
+					$rArray = overwriteData(UserRepository::getLineById($rData['edit']), $rData);
 				} else {
 					exit();
 				}
 			} else {
-				if (hasPermissions('adv', 'add_user')) {
+				if (Authorization::check('adv', 'add_user')) {
 
 
 					$rArray = verifyPostTable('lines', $rData);
@@ -3586,7 +3594,7 @@ class API {
 				$rArray['as_number'] = null;
 			}
 
-			$rArray['bouquet'] = sortArrayByArray(array_values(json_decode($rData['bouquets_selected'], true)), array_keys(getBouquetOrder()));
+			$rArray['bouquet'] = sortArrayByArray(array_values(json_decode($rData['bouquets_selected'], true)), array_keys(BouquetService::getOrder()));
 			$rArray['bouquet'] = '[' . implode(',', array_map('intval', $rArray['bouquet'])) . ']';
 
 			if (isset($rData['exp_date']) && !isset($rData['no_expire'])) {
@@ -3649,7 +3657,7 @@ class API {
 
 				if (self::$db->query($rQuery, ...$rPrepare['data'])) {
 					$rInsertID = self::$db->last_insert_id();
-					syncDevices($rInsertID);
+					MagService::syncLineDevices($rInsertID);
 					CoreUtilities::updateLine($rInsertID);
 
 					return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
@@ -3668,7 +3676,7 @@ class API {
 		if (!self::checkMinimumRequirements($rData)) {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
-		if (!hasPermissions('adv', 'add_stream')) {
+		if (!Authorization::check('adv', 'add_stream')) {
 			exit();
 		}
 

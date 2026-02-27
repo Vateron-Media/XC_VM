@@ -1,16 +1,16 @@
 <?php if (!isset($__viewMode)): ?>
-<?php include 'session.php';
-include 'functions.php';
-if (checkPermissions()) {
-} else {
-    goHome();
-}
-if (isset(CoreUtilities::$rRequest['id']) && !($rCode = getCode(CoreUtilities::$rRequest['id']))) {
-    exit();
-}
-$_TITLE = 'Access Code';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('admin'); ?>
+    <?php include 'session.php';
+    include 'functions.php';
+    if (checkPermissions()) {
+    } else {
+        goHome();
+    }
+    if (isset(CoreUtilities::$rRequest['id']) && !($rCode = getCode(CoreUtilities::$rRequest['id']))) {
+        exit();
+    }
+    $_TITLE = 'Access Code';
+    require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+    renderUnifiedLayoutHeader('admin'); ?>
 <?php endif; ?>
 <div class="wrapper boxed-layout"
     <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
@@ -34,7 +34,7 @@ renderUnifiedLayoutHeader('admin'); ?>
         </div>
         <div class="row">
             <div class="col-xl-12">
-                <?php if (!(isset($rCode) && getCurrentCode() == $rCode['code'])) {
+                <?php if (!(isset($rCode) && AuthRepository::getCurrentCode() == $rCode['code'])) {
                 } else { ?>
                     <div class="alert alert-warning" role="alert">
                         You are editing the Access Code you're currently using to access the system. Ensure you have set up
@@ -134,7 +134,7 @@ renderUnifiedLayoutHeader('admin'); ?>
                                         <div class="row">
                                             <div class="col-12">
                                                 <div class="form-group row mb-4">
-                                                    <?php foreach (getMemberGroups() as $rGroup) { ?>
+                                                    <?php foreach (GroupService::getAll() as $rGroup) { ?>
                                                         <div class="col-md-6">
                                                             <div class="custom-control custom-checkbox mt-1">
                                                                 <input type="checkbox"

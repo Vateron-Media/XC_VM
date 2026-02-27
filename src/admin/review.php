@@ -1,176 +1,176 @@
 <?php if (!isset($__viewMode)): ?>
-<?php include 'session.php';
-include 'functions.php'; ?>
+    <?php include 'session.php';
+    include 'functions.php'; ?>
 
-<?php if (checkPermissions()): ?>
-<?php else: goHome();
-endif; ?>
+    <?php if (checkPermissions()): ?>
+    <?php else: goHome();
+    endif; ?>
 
-<?php
-if (isset(CoreUtilities::$rRequest['type'])) {
-    $rType = intval(CoreUtilities::$rRequest['type']);
-} else {
+    <?php
     if (isset(CoreUtilities::$rRequest['type'])) {
         $rType = intval(CoreUtilities::$rRequest['type']);
     } else {
-        $rType = 1;
-    }
-}
-
-if (isset(CoreUtilities::$rRequest['post_data'])) {
-    $rPostData = json_decode(base64_decode(CoreUtilities::$rRequest['post_data']), true);
-    $rPostData['review'] = array();
-    $rPostData['notes'] = '';
-    $rPostData['custom_sid'] = $rPostData['notes'];
-    $rCategoryIDs = array();
-
-    foreach (getCategories(array(1 => 'live', 2 => 'movie')[intval($rType)]) as $rCategory) {
-        $rCategoryIDs[] = $rCategory['id'];
-    }
-    $rNewCategories = array();
-
-    foreach (CoreUtilities::$rRequest['category_selection'] as $rCategory) {
-        if (in_array($rCategory, $rCategoryIDs) || is_numeric($rCategory)) {
+        if (isset(CoreUtilities::$rRequest['type'])) {
+            $rType = intval(CoreUtilities::$rRequest['type']);
         } else {
-            $rReturn = API::processCategory(array('category_type' => array(1 => 'live', 2 => 'movie')[intval($rType)], 'category_name' => $rCategory));
-            $rNewCategories[$rCategory] = $rReturn['data']['insert_id'];
+            $rType = 1;
         }
     }
 
-    foreach (CoreUtilities::$rRequest as $rKey => $rValue) {
-        if (substr($rKey, 0, 7) != 'import_') {
-        } else {
-            $rID = intval(explode('import_', $rKey)[1]);
+    if (isset(CoreUtilities::$rRequest['post_data'])) {
+        $rPostData = json_decode(base64_decode(CoreUtilities::$rRequest['post_data']), true);
+        $rPostData['review'] = array();
+        $rPostData['notes'] = '';
+        $rPostData['custom_sid'] = $rPostData['notes'];
+        $rCategoryIDs = array();
 
-            if (!CoreUtilities::$rRequest['import_' . $rID]) {
+        foreach (getCategories(array(1 => 'live', 2 => 'movie')[intval($rType)]) as $rCategory) {
+            $rCategoryIDs[] = $rCategory['id'];
+        }
+        $rNewCategories = array();
+
+        foreach (CoreUtilities::$rRequest['category_selection'] as $rCategory) {
+            if (in_array($rCategory, $rCategoryIDs) || is_numeric($rCategory)) {
             } else {
-                $rCategories = array();
+                $rReturn = API::processCategory(array('category_type' => array(1 => 'live', 2 => 'movie')[intval($rType)], 'category_name' => $rCategory));
+                $rNewCategories[$rCategory] = $rReturn['data']['insert_id'];
+            }
+        }
 
-                foreach (json_decode(CoreUtilities::$rRequest['category_id_' . $rID], true) as $rCategory) {
-                    if (!is_numeric($rCategory) && isset($rNewCategories[$rCategory])) {
-                        $rCategories[] = intval($rNewCategories[$rCategory]);
-                    } else {
-                        if (!is_numeric($rCategory)) {
+        foreach (CoreUtilities::$rRequest as $rKey => $rValue) {
+            if (substr($rKey, 0, 7) != 'import_') {
+            } else {
+                $rID = intval(explode('import_', $rKey)[1]);
+
+                if (!CoreUtilities::$rRequest['import_' . $rID]) {
+                } else {
+                    $rCategories = array();
+
+                    foreach (json_decode(CoreUtilities::$rRequest['category_id_' . $rID], true) as $rCategory) {
+                        if (!is_numeric($rCategory) && isset($rNewCategories[$rCategory])) {
+                            $rCategories[] = intval($rNewCategories[$rCategory]);
                         } else {
-                            $rCategories[] = intval($rCategory);
+                            if (!is_numeric($rCategory)) {
+                            } else {
+                                $rCategories[] = intval($rCategory);
+                            }
                         }
                     }
-                }
-
-                if ($rType == 1) {
-                    $rPostData['review'][] = array('stream_source' => array(CoreUtilities::$rRequest['url_' . $rID]), 'stream_icon' => CoreUtilities::$rRequest['icon_' . $rID], 'stream_display_name' => CoreUtilities::$rRequest['name_' . $rID], 'epg_lang' => null, 'channel_id' => (!empty(CoreUtilities::$rRequest['channel_id_' . $rID]) ? CoreUtilities::$rRequest['channel_id_' . $rID] : null), 'epg_api' => (!empty(CoreUtilities::$rRequest['epg_type_' . $rID]) ? CoreUtilities::$rRequest['epg_type_' . $rID] : 0), 'epg_id' => (!empty(CoreUtilities::$rRequest['epg_id_' . $rID]) ? CoreUtilities::$rRequest['epg_id_' . $rID] : 0), 'bouquets' => json_decode(CoreUtilities::$rRequest['bouquets_' . $rID], true), 'category_id' => $rCategories);
-                } else {
-                    $rPostData['review'][] = array('stream_source' => array(CoreUtilities::$rRequest['url_' . $rID]), 'stream_display_name' => CoreUtilities::$rRequest['name_' . $rID], 'tmdb_id' => (!empty(CoreUtilities::$rRequest['tmdb_id_' . $rID]) ? CoreUtilities::$rRequest['tmdb_id_' . $rID] : null), 'bouquets' => json_decode(CoreUtilities::$rRequest['bouquets_' . $rID], true), 'category_id' => $rCategories);
-                }
-            }
-        }
-    }
-
-    if ($rType == 1) {
-        $rReturn = API::processStream($rPostData);
-        $_STATUS = $rReturn['status'];
-
-        if ($_STATUS != STATUS_SUCCESS) {
-        } else {
-            header('Location: ./streams?status=' . STATUS_SUCCESS);
-            exit();
-        }
-    } else {
-        $rReturn = API::processMovie($rPostData);
-        $_STATUS = $rReturn['status'];
-
-        if ($_STATUS != STATUS_SUCCESS) {
-        } else {
-            header('Location: ./movies?status=' . STATUS_SUCCESS);
-            exit();
-        }
-    }
-} else {
-    if (!isset($_FILES['m3u_file'])) {
-    } else {
-        unset(CoreUtilities::$rRequest['submit_stream']);
-        $rPostData = base64_encode(json_encode(CoreUtilities::$rRequest));
-        $rCategories = getCategories(array(1 => 'live', 2 => 'movie')[intval($rType)]);
-        $rBouquets = getBouquets();
-        $rSources = array();
-        $rDuplicates = array();
-        $db->query('SELECT `stream_source` FROM `streams` WHERE `type` = ?;', $rType);
-
-        foreach ($db->get_rows() as $rRow) {
-            foreach (json_decode($rRow['stream_source'], true) as $rURL) {
-                if (in_array($rURL, $rSources)) {
-                } else {
-                    $rSources[] = str_replace('https://', 'http://', $rURL);
-                }
-            }
-        }
-        $rStreamDatabase = array();
-
-        if (empty($_FILES['m3u_file']['tmp_name']) || !in_array(strtolower(pathinfo($_FILES['m3u_file']['name'], PATHINFO_EXTENSION)), array('m3u', 'm3u8'))) {
-            $_STATUS = STATUS_INVALID_FILE;
-        } else {
-            $rImport = array();
-            $rResults = parseM3U($_FILES['m3u_file']['tmp_name']);
-
-            foreach ($rResults as $rResult) {
-                list($rTag) = $rResult->getExtTags();
-
-                if (!$rTag) {
-                } else {
-                    $rURL = $rResult->getPath();
 
                     if ($rType == 1) {
-                        $rExtensions = array('ts', 'm3u8', 'm3u', 'mpd', 'ism', '');
+                        $rPostData['review'][] = array('stream_source' => array(CoreUtilities::$rRequest['url_' . $rID]), 'stream_icon' => CoreUtilities::$rRequest['icon_' . $rID], 'stream_display_name' => CoreUtilities::$rRequest['name_' . $rID], 'epg_lang' => null, 'channel_id' => (!empty(CoreUtilities::$rRequest['channel_id_' . $rID]) ? CoreUtilities::$rRequest['channel_id_' . $rID] : null), 'epg_api' => (!empty(CoreUtilities::$rRequest['epg_type_' . $rID]) ? CoreUtilities::$rRequest['epg_type_' . $rID] : 0), 'epg_id' => (!empty(CoreUtilities::$rRequest['epg_id_' . $rID]) ? CoreUtilities::$rRequest['epg_id_' . $rID] : 0), 'bouquets' => json_decode(CoreUtilities::$rRequest['bouquets_' . $rID], true), 'category_id' => $rCategories);
                     } else {
-                        $rExtensions = array('mp4', 'mkv', 'mov', 'avi', 'mpg', 'mpeg', 'flv', 'wmv', 'm4v');
+                        $rPostData['review'][] = array('stream_source' => array(CoreUtilities::$rRequest['url_' . $rID]), 'stream_display_name' => CoreUtilities::$rRequest['name_' . $rID], 'tmdb_id' => (!empty(CoreUtilities::$rRequest['tmdb_id_' . $rID]) ? CoreUtilities::$rRequest['tmdb_id_' . $rID] : null), 'bouquets' => json_decode(CoreUtilities::$rRequest['bouquets_' . $rID], true), 'category_id' => $rCategories);
                     }
+                }
+            }
+        }
 
-                    if (!in_array(strtolower(pathinfo(explode('?', $rURL)[0])['extension']), $rExtensions)) {
+        if ($rType == 1) {
+            $rReturn = API::processStream($rPostData);
+            $_STATUS = $rReturn['status'];
+
+            if ($_STATUS != STATUS_SUCCESS) {
+            } else {
+                header('Location: ./streams?status=' . STATUS_SUCCESS);
+                exit();
+            }
+        } else {
+            $rReturn = API::processMovie($rPostData);
+            $_STATUS = $rReturn['status'];
+
+            if ($_STATUS != STATUS_SUCCESS) {
+            } else {
+                header('Location: ./movies?status=' . STATUS_SUCCESS);
+                exit();
+            }
+        }
+    } else {
+        if (!isset($_FILES['m3u_file'])) {
+        } else {
+            unset(CoreUtilities::$rRequest['submit_stream']);
+            $rPostData = base64_encode(json_encode(CoreUtilities::$rRequest));
+            $rCategories = getCategories(array(1 => 'live', 2 => 'movie')[intval($rType)]);
+            $rBouquets = BouquetService::getAllSimple();
+            $rSources = array();
+            $rDuplicates = array();
+            $db->query('SELECT `stream_source` FROM `streams` WHERE `type` = ?;', $rType);
+
+            foreach ($db->get_rows() as $rRow) {
+                foreach (json_decode($rRow['stream_source'], true) as $rURL) {
+                    if (in_array($rURL, $rSources)) {
                     } else {
-                        $rExists = in_array(str_replace('https://', 'http://', $rURL), $rSources);
+                        $rSources[] = str_replace('https://', 'http://', $rURL);
+                    }
+                }
+            }
+            $rStreamDatabase = array();
 
-                        if ($rExists && !CoreUtilities::$rRequest['duplicates']) {
+            if (empty($_FILES['m3u_file']['tmp_name']) || !in_array(strtolower(pathinfo($_FILES['m3u_file']['name'], PATHINFO_EXTENSION)), array('m3u', 'm3u8'))) {
+                $_STATUS = STATUS_INVALID_FILE;
+            } else {
+                $rImport = array();
+                $rResults = M3UParser::parse($_FILES['m3u_file']['tmp_name']);
+
+                foreach ($rResults as $rResult) {
+                    list($rTag) = $rResult->getExtTags();
+
+                    if (!$rTag) {
+                    } else {
+                        $rURL = $rResult->getPath();
+
+                        if ($rType == 1) {
+                            $rExtensions = array('ts', 'm3u8', 'm3u', 'mpd', 'ism', '');
                         } else {
-                            if (count($rImport) < 500) {
-                                if ($rType == 1) {
-                                    $rImport[] = array('url' => $rURL, 'logo' => ($rTag->getAttribute('tvg-logo') ?: ''), 'tvg_id' => ($rTag->getAttribute('tvg-id') ?: ''), 'title' => ($rTag->getTitle() ?: ''), 'category' => ($rTag->getAttribute('group-title') ?: ''), 'exists' => $rExists);
-                                } else {
-                                    $rImport[] = array('url' => $rURL, 'title' => ($rTag->getTitle() ?: ''), 'category' => ($rTag->getAttribute('group-title') ?: ''), 'exists' => $rExists);
-                                }
+                            $rExtensions = array('mp4', 'mkv', 'mov', 'avi', 'mpg', 'mpeg', 'flv', 'wmv', 'm4v');
+                        }
+
+                        if (!in_array(strtolower(pathinfo(explode('?', $rURL)[0])['extension']), $rExtensions)) {
+                        } else {
+                            $rExists = in_array(str_replace('https://', 'http://', $rURL), $rSources);
+
+                            if ($rExists && !CoreUtilities::$rRequest['duplicates']) {
                             } else {
-                                $_STATUS = STATUS_TOO_MANY_RESULTS;
-                                break;
+                                if (count($rImport) < 500) {
+                                    if ($rType == 1) {
+                                        $rImport[] = array('url' => $rURL, 'logo' => ($rTag->getAttribute('tvg-logo') ?: ''), 'tvg_id' => ($rTag->getAttribute('tvg-id') ?: ''), 'title' => ($rTag->getTitle() ?: ''), 'category' => ($rTag->getAttribute('group-title') ?: ''), 'exists' => $rExists);
+                                    } else {
+                                        $rImport[] = array('url' => $rURL, 'title' => ($rTag->getTitle() ?: ''), 'category' => ($rTag->getAttribute('group-title') ?: ''), 'exists' => $rExists);
+                                    }
+                                } else {
+                                    $_STATUS = STATUS_TOO_MANY_RESULTS;
+                                    break;
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            if (count($rImport) == 0) {
-                $_STATUS = STATUS_NO_SOURCES;
-                $rImport = null;
+                if (count($rImport) == 0) {
+                    $_STATUS = STATUS_NO_SOURCES;
+                    $rImport = null;
+                }
             }
         }
     }
-}
 
-if (isset($rImport) && $rImport) {
-    // Code for processing $rImport
-} else {
-    $rServerTree = array(array('id' => 'source', 'parent' => '#', 'text' => "<strong class='btn btn-success waves-effect waves-light btn-xs'>Live Stream</strong>", 'icon' => 'mdi mdi-play', 'state' => array('opened' => true)), array('id' => 'offline', 'parent' => '#', 'text' => "<strong class='btn btn-secondary waves-effect waves-light btn-xs'>Offline</strong>", 'icon' => 'mdi mdi-stop', 'state' => array('opened' => true)));
+    if (isset($rImport) && $rImport) {
+        // Code for processing $rImport
+    } else {
+        $rServerTree = array(array('id' => 'source', 'parent' => '#', 'text' => "<strong class='btn btn-success waves-effect waves-light btn-xs'>Live Stream</strong>", 'icon' => 'mdi mdi-play', 'state' => array('opened' => true)), array('id' => 'offline', 'parent' => '#', 'text' => "<strong class='btn btn-secondary waves-effect waves-light btn-xs'>Offline</strong>", 'icon' => 'mdi mdi-stop', 'state' => array('opened' => true)));
 
-    foreach ($rServers as $rServer) {
-        $rServerTree[] = array('id' => $rServer['id'], 'parent' => 'offline', 'text' => $rServer['server_name'], 'icon' => 'mdi mdi-server-network', 'state' => array('opened' => true));
+        foreach ($rServers as $rServer) {
+            $rServerTree[] = array('id' => $rServer['id'], 'parent' => 'offline', 'text' => $rServer['server_name'], 'icon' => 'mdi mdi-server-network', 'state' => array('opened' => true));
+        }
+        $rStreamArguments = StreamConfigRepository::getStreamArguments();
+        $rTranscodeProfiles = StreamConfigRepository::getTranscodeProfiles();
     }
-    $rStreamArguments = getStreamArguments();
-    $rTranscodeProfiles = getTranscodeProfiles();
-}
 
-$rLogoSet = $rCategorySet = array();
-$_TITLE = 'Review';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('admin');
-?>
+    $rLogoSet = $rCategorySet = array();
+    $_TITLE = 'Review';
+    require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+    renderUnifiedLayoutHeader('admin');
+    ?>
 <?php endif; ?>
 
 <div class="wrapper<?php if (!isset($rImport)) {
@@ -713,220 +713,220 @@ require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
 ?>
 <script id="scripts">
-			var resizeObserver = new ResizeObserver(entries => $(window).scroll());
-			$(document).ready(function() {
-				resizeObserver.observe(document.body)
-				$("form").attr('autocomplete', 'off');
-				$(document).keypress(function(event) {
-					if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
-				});
-				$.fn.dataTable.ext.errMode = 'none';
-				var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
-				elems.forEach(function(html) {
-					var switchery = new Switchery(html, {
-						'color': '#414d5f'
-					});
-					window.rSwitches[$(html).attr("id")] = switchery;
-				});
-				setTimeout(pingSession, 30000);
-				<?php if (!$rMobile && $rSettings['header_stats']): ?>
-					headerStats();
-				<?php endif; ?>
-				bindHref();
-				refreshTooltips();
-				$(window).scroll(function() {
-					if ($(this).scrollTop() > 200) {
-						if ($(document).height() > $(window).height()) {
-							$('#scrollToBottom').fadeOut();
-						}
-						$('#scrollToTop').fadeIn();
-					} else {
-						$('#scrollToTop').fadeOut();
-						if ($(document).height() > $(window).height()) {
-							$('#scrollToBottom').fadeIn();
-						} else {
-							$('#scrollToBottom').hide();
-						}
-					}
-				});
-				$("#scrollToTop").unbind("click");
-				$('#scrollToTop').click(function() {
-					$('html, body').animate({
-						scrollTop: 0
-					}, 800);
-					return false;
-				});
-				$("#scrollToBottom").unbind("click");
-				$('#scrollToBottom').click(function() {
-					$('html, body').animate({
-						scrollTop: $(document).height()
-					}, 800);
-					return false;
-				});
-				$(window).scroll();
-				$(".nextb").unbind("click");
-				$(".nextb").click(function() {
-					var rPos = 0;
-					var rActive = null;
-					$(".nav .nav-item").each(function() {
-						if ($(this).find(".nav-link").hasClass("active")) {
-							rActive = rPos;
-						}
-						if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-							$(this).find(".nav-link").trigger("click");
-							return false;
-						}
-						rPos += 1;
-					});
-				});
-				$(".prevb").unbind("click");
-				$(".prevb").click(function() {
-					var rPos = 0;
-					var rActive = null;
-					$($(".nav .nav-item").get().reverse()).each(function() {
-						if ($(this).find(".nav-link").hasClass("active")) {
-							rActive = rPos;
-						}
-						if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-							$(this).find(".nav-link").trigger("click");
-							return false;
-						}
-						rPos += 1;
-					});
-				});
-				(function($) {
-					$.fn.inputFilter = function(inputFilter) {
-						return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
-							if (inputFilter(this.value)) {
-								this.oldValue = this.value;
-								this.oldSelectionStart = this.selectionStart;
-								this.oldSelectionEnd = this.selectionEnd;
-							} else if (this.hasOwnProperty("oldValue")) {
-								this.value = this.oldValue;
-								this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
-							}
-						});
-					};
-				}(jQuery));
-				<?php if ($rSettings['js_navigate']): ?>
-					$(".navigation-menu li").mouseenter(function() {
-						$(this).find(".submenu").show();
-					});
-					delParam("status");
-					$(window).on("popstate", function() {
-						if (window.rRealURL) {
-							if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
-								navigate(window.location.href.split("/").reverse()[0]);
-							}
-						}
-					});
-				<?php endif; ?>
-				$(document).keydown(function(e) {
-					if (e.keyCode == 16) {
-						window.rShiftHeld = true;
-					}
-				});
-				$(document).keyup(function(e) {
-					if (e.keyCode == 16) {
-						window.rShiftHeld = false;
-					}
-				});
-				document.onselectstart = function() {
-					if (window.rShiftHeld) {
-						return false;
-					}
-				}
-			});
-            
-			<?php
-		echo '        ' . "\r\n" . '        var rBouquetSet = [];' . "\r\n" . '        var rCategorySet = [';
-		echo implode(',', array_map('intval', $rCategorySet));
-		echo '];' . "\r\n" . '        var rLogoSet = [';
-		echo implode(',', array_map('intval', $rLogoSet));
-		echo '];' . "\r\n" . '        var rCheckSet = [];' . "\r\n" . '        var rPages = [];' . "\r\n" . '        var rImages = [];' . "\r\n" . '        var rData = [];' . "\r\n" . '        var rTrigger = true;' . "\r\n\r\n" . '        function openImage(elem) {' . "\r\n" . '            var rImage = $(elem).data("src");' . "\r\n" . '            if (rImage) {' . "\r\n" . '                $.magnificPopup.open({' . "\r\n" . '                    items: {' . "\r\n" . '                        src: rImage,' . "\r\n" . "                        type: 'image'" . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n" . '        }' . "\r\n" . '        ';
+    var resizeObserver = new ResizeObserver(entries => $(window).scroll());
+    $(document).ready(function() {
+        resizeObserver.observe(document.body)
+        $("form").attr('autocomplete', 'off');
+        $(document).keypress(function(event) {
+            if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
+        });
+        $.fn.dataTable.ext.errMode = 'none';
+        var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
+        elems.forEach(function(html) {
+            var switchery = new Switchery(html, {
+                'color': '#414d5f'
+            });
+            window.rSwitches[$(html).attr("id")] = switchery;
+        });
+        setTimeout(pingSession, 30000);
+        <?php if (!$rMobile && $rSettings['header_stats']): ?>
+            headerStats();
+        <?php endif; ?>
+        bindHref();
+        refreshTooltips();
+        $(window).scroll(function() {
+            if ($(this).scrollTop() > 200) {
+                if ($(document).height() > $(window).height()) {
+                    $('#scrollToBottom').fadeOut();
+                }
+                $('#scrollToTop').fadeIn();
+            } else {
+                $('#scrollToTop').fadeOut();
+                if ($(document).height() > $(window).height()) {
+                    $('#scrollToBottom').fadeIn();
+                } else {
+                    $('#scrollToBottom').hide();
+                }
+            }
+        });
+        $("#scrollToTop").unbind("click");
+        $('#scrollToTop').click(function() {
+            $('html, body').animate({
+                scrollTop: 0
+            }, 800);
+            return false;
+        });
+        $("#scrollToBottom").unbind("click");
+        $('#scrollToBottom').click(function() {
+            $('html, body').animate({
+                scrollTop: $(document).height()
+            }, 800);
+            return false;
+        });
+        $(window).scroll();
+        $(".nextb").unbind("click");
+        $(".nextb").click(function() {
+            var rPos = 0;
+            var rActive = null;
+            $(".nav .nav-item").each(function() {
+                if ($(this).find(".nav-link").hasClass("active")) {
+                    rActive = rPos;
+                }
+                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
+                    $(this).find(".nav-link").trigger("click");
+                    return false;
+                }
+                rPos += 1;
+            });
+        });
+        $(".prevb").unbind("click");
+        $(".prevb").click(function() {
+            var rPos = 0;
+            var rActive = null;
+            $($(".nav .nav-item").get().reverse()).each(function() {
+                if ($(this).find(".nav-link").hasClass("active")) {
+                    rActive = rPos;
+                }
+                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
+                    $(this).find(".nav-link").trigger("click");
+                    return false;
+                }
+                rPos += 1;
+            });
+        });
+        (function($) {
+            $.fn.inputFilter = function(inputFilter) {
+                return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
+                    if (inputFilter(this.value)) {
+                        this.oldValue = this.value;
+                        this.oldSelectionStart = this.selectionStart;
+                        this.oldSelectionEnd = this.selectionEnd;
+                    } else if (this.hasOwnProperty("oldValue")) {
+                        this.value = this.oldValue;
+                        this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
+                    }
+                });
+            };
+        }(jQuery));
+        <?php if ($rSettings['js_navigate']): ?>
+            $(".navigation-menu li").mouseenter(function() {
+                $(this).find(".submenu").show();
+            });
+            delParam("status");
+            $(window).on("popstate", function() {
+                if (window.rRealURL) {
+                    if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
+                        navigate(window.location.href.split("/").reverse()[0]);
+                    }
+                }
+            });
+        <?php endif; ?>
+        $(document).keydown(function(e) {
+            if (e.keyCode == 16) {
+                window.rShiftHeld = true;
+            }
+        });
+        $(document).keyup(function(e) {
+            if (e.keyCode == 16) {
+                window.rShiftHeld = false;
+            }
+        });
+        document.onselectstart = function() {
+            if (window.rShiftHeld) {
+                return false;
+            }
+        }
+    });
 
-		if ($rType == 1) {
-			echo '        function clearEPG(elem) {' . "\r\n" . '            var rEPG = $("#epg_api_" + $(elem).data("id")).val();' . "\r\n" . '            if (rEPG) {' . "\r\n" . '                $("#epg_api_" + $(elem).data("id")).val("").trigger("change");' . "\r\n" . '            }' . "\r\n" . '        }' . "\r\n";
-		} else {
-			echo '        function scanTMDb(rIndivID=null) {' . "\r\n" . '            $("#datatable tr").each(function() {' . "\r\n" . '                try {' . "\r\n" . '                    var rID = $(this).data("id");' . "\r\n" . '                    if (($("#check_" + rID).is(":checked")) || (rID == rIndivID)) {' . "\r\n" . '                        if ((rID == rIndivID) || (!rIndivID)) {' . "\r\n" . '                            var rName = $("#name_" + rID).val();' . "\r\n" . '                            if (rName) {' . "\r\n" . '                                $("#tmdb_search_" + rID).empty().trigger("change");' . "\r\n" . '                                $.ajax({' . "\r\n" . "                                    url: './api?action=tmdb_search&type=movie&term=' + encodeURIComponent(rName) + \"&language=";
-			echo urlencode(htmlspecialchars((!empty(CoreUtilities::$rRequest['tmdb_language']) ? CoreUtilities::$rRequest['tmdb_language'] : $rSettings['tmdb_language'])));
-			echo '",' . "\r\n" . '                                    success: function (data) {' . "\r\n" . '                                        var rJSON = $.parseJSON(data);' . "\r\n" . '                                        if (rJSON.result) {' . "\r\n" . '                                            $(rJSON.data).each(function() {' . "\r\n" . '                                                if (this.release_date) {' . "\r\n" . '                                                    ';
+    <?php
+    echo '        ' . "\r\n" . '        var rBouquetSet = [];' . "\r\n" . '        var rCategorySet = [';
+    echo implode(',', array_map('intval', $rCategorySet));
+    echo '];' . "\r\n" . '        var rLogoSet = [';
+    echo implode(',', array_map('intval', $rLogoSet));
+    echo '];' . "\r\n" . '        var rCheckSet = [];' . "\r\n" . '        var rPages = [];' . "\r\n" . '        var rImages = [];' . "\r\n" . '        var rData = [];' . "\r\n" . '        var rTrigger = true;' . "\r\n\r\n" . '        function openImage(elem) {' . "\r\n" . '            var rImage = $(elem).data("src");' . "\r\n" . '            if (rImage) {' . "\r\n" . '                $.magnificPopup.open({' . "\r\n" . '                    items: {' . "\r\n" . '                        src: rImage,' . "\r\n" . "                        type: 'image'" . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n" . '        }' . "\r\n" . '        ';
 
-			if ($rSettings['movie_year_append'] == 0) {
-				echo '                                                    rTitle = this.title + " (" + this.release_date.substring(0, 4) + ")";' . "\r\n" . '                                                    ';
-			} else {
-				if ($rSettings['movie_year_append'] == 1) {
-					echo '                                                    rTitle = this.title + " - " + this.release_date.substring(0, 4);' . "\r\n" . '                                                    ';
-				} else {
-					echo '                                                    rTitle = this.title;' . "\r\n" . '                                                    ';
-				}
-			}
+    if ($rType == 1) {
+        echo '        function clearEPG(elem) {' . "\r\n" . '            var rEPG = $("#epg_api_" + $(elem).data("id")).val();' . "\r\n" . '            if (rEPG) {' . "\r\n" . '                $("#epg_api_" + $(elem).data("id")).val("").trigger("change");' . "\r\n" . '            }' . "\r\n" . '        }' . "\r\n";
+    } else {
+        echo '        function scanTMDb(rIndivID=null) {' . "\r\n" . '            $("#datatable tr").each(function() {' . "\r\n" . '                try {' . "\r\n" . '                    var rID = $(this).data("id");' . "\r\n" . '                    if (($("#check_" + rID).is(":checked")) || (rID == rIndivID)) {' . "\r\n" . '                        if ((rID == rIndivID) || (!rIndivID)) {' . "\r\n" . '                            var rName = $("#name_" + rID).val();' . "\r\n" . '                            if (rName) {' . "\r\n" . '                                $("#tmdb_search_" + rID).empty().trigger("change");' . "\r\n" . '                                $.ajax({' . "\r\n" . "                                    url: './api?action=tmdb_search&type=movie&term=' + encodeURIComponent(rName) + \"&language=";
+        echo urlencode(htmlspecialchars((!empty(CoreUtilities::$rRequest['tmdb_language']) ? CoreUtilities::$rRequest['tmdb_language'] : $rSettings['tmdb_language'])));
+        echo '",' . "\r\n" . '                                    success: function (data) {' . "\r\n" . '                                        var rJSON = $.parseJSON(data);' . "\r\n" . '                                        if (rJSON.result) {' . "\r\n" . '                                            $(rJSON.data).each(function() {' . "\r\n" . '                                                if (this.release_date) {' . "\r\n" . '                                                    ';
 
-			echo '                                                } else {' . "\r\n" . '                                                    rTitle = this.title;' . "\r\n" . '                                                }' . "\r\n" . '                                                $("#tmdb_search_" + rID).append(new Option(rTitle, this.id));' . "\r\n" . '                                                if (this.poster_path) {' . "\r\n" . '                                                    window.rImages[this.id] = "https://image.tmdb.org/t/p/w600_and_h900_bestv2" + this.poster_path' . "\r\n" . '                                                }' . "\r\n" . '                                            });' . "\r\n" . '                                        }' . "\r\n" . '                                        $("#tmdb_search_" + rID).trigger("change");' . "\r\n" . '                                    }' . "\r\n" . '                                });' . "\r\n" . '                            }' . "\r\n" . '                        }' . "\r\n" . '                    }' . "\r\n" . '                } catch (e) {}' . "\r\n" . '            });' . "\r\n" . '        }' . "\r\n" . '        ';
-		}
+        if ($rSettings['movie_year_append'] == 0) {
+            echo '                                                    rTitle = this.title + " (" + this.release_date.substring(0, 4) + ")";' . "\r\n" . '                                                    ';
+        } else {
+            if ($rSettings['movie_year_append'] == 1) {
+                echo '                                                    rTitle = this.title + " - " + this.release_date.substring(0, 4);' . "\r\n" . '                                                    ';
+            } else {
+                echo '                                                    rTitle = this.title;' . "\r\n" . '                                                    ';
+            }
+        }
 
-		echo '        function saveChanges() {' . "\r\n" . '            $("#datatable tr").each(function() {' . "\r\n" . '                var rID = $(this).data("id");' . "\r\n" . '                $("#name_i_" + rID).val($("#name_" + rID).val());' . "\r\n" . '                $("#category_id_i_" + rID).val(JSON.stringify($("#category_id_" + rID).val()));' . "\r\n" . '                $("#bouquets_i_" + rID).val(JSON.stringify($("#bouquets_" + rID).val()));' . "\r\n" . '                if ($("#check_" + rID).prop("checked")) {' . "\r\n" . '                    rInt = 1;' . "\r\n" . '                } else {' . "\r\n" . '                    rInt = 0;' . "\r\n" . '                }' . "\r\n" . '                $("#import_" + rID).val(rInt);' . "\r\n" . '                ';
+        echo '                                                } else {' . "\r\n" . '                                                    rTitle = this.title;' . "\r\n" . '                                                }' . "\r\n" . '                                                $("#tmdb_search_" + rID).append(new Option(rTitle, this.id));' . "\r\n" . '                                                if (this.poster_path) {' . "\r\n" . '                                                    window.rImages[this.id] = "https://image.tmdb.org/t/p/w600_and_h900_bestv2" + this.poster_path' . "\r\n" . '                                                }' . "\r\n" . '                                            });' . "\r\n" . '                                        }' . "\r\n" . '                                        $("#tmdb_search_" + rID).trigger("change");' . "\r\n" . '                                    }' . "\r\n" . '                                });' . "\r\n" . '                            }' . "\r\n" . '                        }' . "\r\n" . '                    }' . "\r\n" . '                } catch (e) {}' . "\r\n" . '            });' . "\r\n" . '        }' . "\r\n" . '        ';
+    }
 
-		if ($rType == 1) {
-			echo '                $("#channel_id_" + rID).val($("#epg_api_" + rID).val());' . "\r\n" . '                ';
-		} else {
-			echo '                $("#tmdb_id_" + rID).val($("#tmdb_search_" + rID).val());' . "\r\n" . '                ';
-		}
+    echo '        function saveChanges() {' . "\r\n" . '            $("#datatable tr").each(function() {' . "\r\n" . '                var rID = $(this).data("id");' . "\r\n" . '                $("#name_i_" + rID).val($("#name_" + rID).val());' . "\r\n" . '                $("#category_id_i_" + rID).val(JSON.stringify($("#category_id_" + rID).val()));' . "\r\n" . '                $("#bouquets_i_" + rID).val(JSON.stringify($("#bouquets_" + rID).val()));' . "\r\n" . '                if ($("#check_" + rID).prop("checked")) {' . "\r\n" . '                    rInt = 1;' . "\r\n" . '                } else {' . "\r\n" . '                    rInt = 0;' . "\r\n" . '                }' . "\r\n" . '                $("#import_" + rID).val(rInt);' . "\r\n" . '                ';
 
-		echo '            });' . "\r\n" . '        }' . "\r\n" . '        function evaluateServers() {' . "\r\n" . '            var rVVal = $("#vframes_server_id").val();' . "\r\n" . '            var rTVal = $("#tv_archive_server_id").val();' . "\r\n" . '            var rOVal = $("#on_demand").val();' . "\r\n" . '            $("#on_demand").empty();' . "\r\n" . '            $("#vframes_server_id").empty().append(new Option("Disabled", 0));' . "\r\n" . '            $("#tv_archive_server_id").empty().append(new Option("Disabled", 0));' . "\r\n" . "            \$(\$('#server_tree').jstree(true).get_json('source', {flat:true})).each(function(index, value) {" . "\r\n" . '                if (value.parent != "#") {' . "\r\n" . '                    $("#vframes_server_id").append(new Option(value.text, value.id));' . "\r\n" . '                    $("#tv_archive_server_id").append(new Option(value.text, value.id));' . "\r\n" . '                    $("#on_demand").append(new Option(value.text, value.id));' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            $("#vframes_server_id").val(rVVal).trigger("change");' . "\r\n" . '            if (!$("#vframes_server_id").val()) {' . "\r\n" . '                $("#vframes_server_id").val(0).trigger("change");' . "\r\n" . '            }' . "\r\n" . '            $("#tv_archive_server_id").val(rTVal).trigger("change");' . "\r\n" . '            if (!$("#tv_archive_server_id").val()) {' . "\r\n" . '                $("#tv_archive_server_id").val(0).trigger("change");' . "\r\n" . '            }' . "\r\n" . '            $("#on_demand").val(rOVal).trigger("change");' . "\r\n" . '            if (!$("#on_demand").val()) {' . "\r\n" . '                $("#on_demand").val(0).trigger("change");' . "\r\n" . '            }' . "\r\n" . '        }' . "\r\n" . '        function evaluateDirectSource() {' . "\r\n" . '            ';
+    if ($rType == 1) {
+        echo '                $("#channel_id_" + rID).val($("#epg_api_" + rID).val());' . "\r\n" . '                ';
+    } else {
+        echo '                $("#tmdb_id_" + rID).val($("#tmdb_search_" + rID).val());' . "\r\n" . '                ';
+    }
 
-		if ($rType == 1) {
-			echo '            $(["custom_sid", "read_native", "gen_timestamps", "stream_all", "allow_record", "rtmp_output", "delay_minutes", "custom_ffmpeg", "probesize_ondemand", "user_agent", "http_proxy", "cookie", "headers", "transcode_profile_id", "custom_map", "days_to_restart", "time_to_restart", "epg_id", "epg_lang", "channel_id", "on_demand", "tv_archive_duration", "tv_archive_server_id", "vframes_server_id", "restart_on_edit"]).each(function(rID, rElement) {' . "\r\n" . '            ';
-		} else {
-			echo '            $(["read_native", "transcode_profile_id", "remove_subtitles", "movie_subtitles"]).each(function(rID, rElement) {' . "\r\n" . '            ';
-		}
+    echo '            });' . "\r\n" . '        }' . "\r\n" . '        function evaluateServers() {' . "\r\n" . '            var rVVal = $("#vframes_server_id").val();' . "\r\n" . '            var rTVal = $("#tv_archive_server_id").val();' . "\r\n" . '            var rOVal = $("#on_demand").val();' . "\r\n" . '            $("#on_demand").empty();' . "\r\n" . '            $("#vframes_server_id").empty().append(new Option("Disabled", 0));' . "\r\n" . '            $("#tv_archive_server_id").empty().append(new Option("Disabled", 0));' . "\r\n" . "            \$(\$('#server_tree').jstree(true).get_json('source', {flat:true})).each(function(index, value) {" . "\r\n" . '                if (value.parent != "#") {' . "\r\n" . '                    $("#vframes_server_id").append(new Option(value.text, value.id));' . "\r\n" . '                    $("#tv_archive_server_id").append(new Option(value.text, value.id));' . "\r\n" . '                    $("#on_demand").append(new Option(value.text, value.id));' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            $("#vframes_server_id").val(rVVal).trigger("change");' . "\r\n" . '            if (!$("#vframes_server_id").val()) {' . "\r\n" . '                $("#vframes_server_id").val(0).trigger("change");' . "\r\n" . '            }' . "\r\n" . '            $("#tv_archive_server_id").val(rTVal).trigger("change");' . "\r\n" . '            if (!$("#tv_archive_server_id").val()) {' . "\r\n" . '                $("#tv_archive_server_id").val(0).trigger("change");' . "\r\n" . '            }' . "\r\n" . '            $("#on_demand").val(rOVal).trigger("change");' . "\r\n" . '            if (!$("#on_demand").val()) {' . "\r\n" . '                $("#on_demand").val(0).trigger("change");' . "\r\n" . '            }' . "\r\n" . '        }' . "\r\n" . '        function evaluateDirectSource() {' . "\r\n" . '            ';
 
-		echo '                if ($(rElement)) {' . "\r\n" . '                    if ($("#direct_source").is(":checked")) {' . "\r\n" . '                        if (window.rSwitches[rElement]) {' . "\r\n" . '                            setSwitch(window.rSwitches[rElement], false);' . "\r\n" . '                            window.rSwitches[rElement].disable();' . "\r\n" . '                        } else {' . "\r\n" . '                            $("#" + rElement).prop("disabled", true);' . "\r\n" . '                        }' . "\r\n" . '                    } else {' . "\r\n" . '                        if (window.rSwitches[rElement]) {' . "\r\n" . '                            window.rSwitches[rElement].enable();' . "\r\n" . '                        } else {' . "\r\n" . '                            $("#" + rElement).prop("disabled", false);' . "\r\n" . '                        }' . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            $(["direct_proxy"]).each(function(rID, rElement) {' . "\r\n" . '                if ($(rElement)) {' . "\r\n" . '                    if (!$("#direct_source").is(":checked")) {' . "\r\n" . '                        if (window.rSwitches[rElement]) {' . "\r\n" . '                            setSwitch(window.rSwitches[rElement], false);' . "\r\n" . '                            window.rSwitches[rElement].disable();' . "\r\n" . '                        } else {' . "\r\n" . '                            $("#" + rElement).prop("disabled", true);' . "\r\n" . '                        }' . "\r\n" . '                    } else {' . "\r\n" . '                        if (window.rSwitches[rElement]) {' . "\r\n" . '                            window.rSwitches[rElement].enable();' . "\r\n" . '                        } else {' . "\r\n" . '                            $("#" + rElement).prop("disabled", false);' . "\r\n" . '                        }' . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            ';
+    if ($rType == 1) {
+        echo '            $(["custom_sid", "read_native", "gen_timestamps", "stream_all", "allow_record", "rtmp_output", "delay_minutes", "custom_ffmpeg", "probesize_ondemand", "user_agent", "http_proxy", "cookie", "headers", "transcode_profile_id", "custom_map", "days_to_restart", "time_to_restart", "epg_id", "epg_lang", "channel_id", "on_demand", "tv_archive_duration", "tv_archive_server_id", "vframes_server_id", "restart_on_edit"]).each(function(rID, rElement) {' . "\r\n" . '            ';
+    } else {
+        echo '            $(["read_native", "transcode_profile_id", "remove_subtitles", "movie_subtitles"]).each(function(rID, rElement) {' . "\r\n" . '            ';
+    }
 
-		if ($rType != 1) {
-		} else {
-			echo '            $(["user_agent", "http_proxy", "cookie", "headers"]).each(function(rID, rElement) {' . "\r\n" . '                if ($(rElement)) {' . "\r\n" . '                    if (($("#direct_proxy").is(":checked")) || (!$("#direct_source").is(":checked"))) {' . "\r\n" . '                        if (window.rSwitches[rElement]) {' . "\r\n" . '                            window.rSwitches[rElement].enable();' . "\r\n" . '                        } else {' . "\r\n" . '                            $("#" + rElement).prop("disabled", false);' . "\r\n" . '                        }' . "\r\n" . '                    } else {' . "\r\n" . '                        if (window.rSwitches[rElement]) {' . "\r\n" . '                            setSwitch(window.rSwitches[rElement], false);' . "\r\n" . '                            window.rSwitches[rElement].disable();' . "\r\n" . '                        } else {' . "\r\n" . '                            $("#" + rElement).prop("disabled", true);' . "\r\n" . '                        }' . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            ';
-		}
+    echo '                if ($(rElement)) {' . "\r\n" . '                    if ($("#direct_source").is(":checked")) {' . "\r\n" . '                        if (window.rSwitches[rElement]) {' . "\r\n" . '                            setSwitch(window.rSwitches[rElement], false);' . "\r\n" . '                            window.rSwitches[rElement].disable();' . "\r\n" . '                        } else {' . "\r\n" . '                            $("#" + rElement).prop("disabled", true);' . "\r\n" . '                        }' . "\r\n" . '                    } else {' . "\r\n" . '                        if (window.rSwitches[rElement]) {' . "\r\n" . '                            window.rSwitches[rElement].enable();' . "\r\n" . '                        } else {' . "\r\n" . '                            $("#" + rElement).prop("disabled", false);' . "\r\n" . '                        }' . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            $(["direct_proxy"]).each(function(rID, rElement) {' . "\r\n" . '                if ($(rElement)) {' . "\r\n" . '                    if (!$("#direct_source").is(":checked")) {' . "\r\n" . '                        if (window.rSwitches[rElement]) {' . "\r\n" . '                            setSwitch(window.rSwitches[rElement], false);' . "\r\n" . '                            window.rSwitches[rElement].disable();' . "\r\n" . '                        } else {' . "\r\n" . '                            $("#" + rElement).prop("disabled", true);' . "\r\n" . '                        }' . "\r\n" . '                    } else {' . "\r\n" . '                        if (window.rSwitches[rElement]) {' . "\r\n" . '                            window.rSwitches[rElement].enable();' . "\r\n" . '                        } else {' . "\r\n" . '                            $("#" + rElement).prop("disabled", false);' . "\r\n" . '                        }' . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            ';
 
-		echo '        }' . "\r\n" . '        function evaluateChanges() {' . "\r\n" . '            $(".bouquet").change(function() {' . "\r\n" . '                if (window.rTrigger) {' . "\r\n" . '                    window.rTrigger = false;' . "\r\n" . '                    var rThis = this;' . "\r\n" . '                    var rChangeID = $(this).data("id");' . "\r\n" . '                    $("#datatable tr").each(function() {' . "\r\n" . '                        var rID = $(this).data("id");' . "\r\n" . '                        if ((rID > rChangeID) && ($("#check_" + rID).is(":checked"))) {' . "\r\n" . '                            if ($.inArray(rID, window.rBouquetSet) == -1) {' . "\r\n" . '                                $("#bouquets_" + rID).val($(rThis).select2("val")).trigger("change");' . "\r\n" . '                            } else {' . "\r\n" . '                                return false;' . "\r\n" . '                            }' . "\r\n" . '                        }' . "\r\n" . '                    });' . "\r\n" . '                    window.rBouquetSet.push(rChangeID);' . "\r\n" . '                    window.rTrigger = true;' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            $(".category_id").change(function() {' . "\r\n" . '                if (window.rTrigger) {' . "\r\n" . '                    window.rTrigger = false;' . "\r\n" . '                    var rThis = this;' . "\r\n" . '                    var rChangeID = $(this).data("id");' . "\r\n" . '                    $("#datatable tr").each(function() {' . "\r\n" . '                        var rID = $(this).data("id");' . "\r\n" . '                        if ((rID > rChangeID) && ($("#check_" + rID).is(":checked"))) {' . "\r\n" . '                            if ($.inArray(rID, window.rCategorySet) == -1) {' . "\r\n" . '                                $("#category_id_" + rID).val($(rThis).select2("val")).trigger("change");' . "\r\n" . '                            } else {' . "\r\n" . '                                return false;' . "\r\n" . '                            }' . "\r\n" . '                        }' . "\r\n" . '                    });' . "\r\n" . '                    window.rCategorySet.push(rChangeID);' . "\r\n" . '                    window.rTrigger = true;' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            $(".activate").change(function() {' . "\r\n" . '                if (window.rTrigger) {' . "\r\n" . '                    window.rTrigger = false;' . "\r\n" . '                    var rThis = this;' . "\r\n" . '                    var rVal = $(this).prop("checked");' . "\r\n" . '                    var rChangeID = $(this).data("id");' . "\r\n" . '                    $("#datatable tr").each(function() {' . "\r\n" . '                        var rID = $(this).data("id");' . "\r\n" . '                        if (rID > rChangeID) {' . "\r\n" . '                            if (($.inArray(rID, window.rCheckSet) == -1) && ($("#check_" + rID).prop("checked") != rVal)) {' . "\r\n" . '                                $("#check_" + rID).prop("checked", rVal);' . "\r\n" . '                            } else {' . "\r\n" . '                                return false;' . "\r\n" . '                            }' . "\r\n" . '                        }' . "\r\n" . '                    });' . "\r\n" . '                    window.rCheckSet.push(rChangeID);' . "\r\n" . '                    window.rTrigger = true;' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            ';
+    if ($rType != 1) {
+    } else {
+        echo '            $(["user_agent", "http_proxy", "cookie", "headers"]).each(function(rID, rElement) {' . "\r\n" . '                if ($(rElement)) {' . "\r\n" . '                    if (($("#direct_proxy").is(":checked")) || (!$("#direct_source").is(":checked"))) {' . "\r\n" . '                        if (window.rSwitches[rElement]) {' . "\r\n" . '                            window.rSwitches[rElement].enable();' . "\r\n" . '                        } else {' . "\r\n" . '                            $("#" + rElement).prop("disabled", false);' . "\r\n" . '                        }' . "\r\n" . '                    } else {' . "\r\n" . '                        if (window.rSwitches[rElement]) {' . "\r\n" . '                            setSwitch(window.rSwitches[rElement], false);' . "\r\n" . '                            window.rSwitches[rElement].disable();' . "\r\n" . '                        } else {' . "\r\n" . '                            $("#" + rElement).prop("disabled", true);' . "\r\n" . '                        }' . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            ';
+    }
 
-		if ($rType == 1) {
-			echo '            $(".epg_api").change(function() {' . "\r\n" . '                var rID = $(this).data("id");' . "\r\n" . '                if (window.rData[rID]) {' . "\r\n" . '                    var rData = window.rData[rID];' . "\r\n" . '                    window.rData[rID] = null;' . "\r\n" . '                } else {' . "\r\n" . '                    var rData = $("#epg_api_" + rID).select2("data")[0];' . "\r\n" . '                }' . "\r\n" . '                if (rData) {' . "\r\n" . '                    if ($.inArray(rID, window.rLogoSet) == -1) {' . "\r\n" . '                        if (rData.icon) {' . "\r\n" . '                            $("#picon_" + rID).find("a").data("src", "./resize?maxw=512&maxh=512&url=" + rData.icon);' . "\r\n" . '                            $("#picon_" + rID).find("img").attr("src", "./resize?maxw=96&maxh=32&url=" + rData.icon);' . "\r\n" . '                            $("#icon_" + rID).val(rData.icon);' . "\r\n" . '                        } else {' . "\r\n" . '                            $("#picon_" + rID).find("a").data("src", "");' . "\r\n" . '                            $("#picon_" + rID).find("img").attr("src", "");' . "\r\n" . '                            $("#icon_" + rID).val("");' . "\r\n" . '                        }' . "\r\n" . '                    }' . "\r\n" . '                    $("#clear_epg_" + rID).removeClass("btn-secondary").addClass("btn-warning");' . "\r\n" . '                    $("#epg_type_" + rID).val(rData.type);' . "\r\n" . '                    if (rData.type == 1) {' . "\r\n" . '                        $("#view_epg_" + rID).removeClass("btn-secondary").addClass("btn-success");' . "\r\n" . '                        $("#view_epg_" + rID + " i").removeClass("far").addClass("fas");' . "\r\n" . '                        $("#epg_id_" + rID).val(rData.epg_id);' . "\r\n" . '                    } else {' . "\r\n" . '                        $("#view_epg_" + rID).removeClass("btn-success").addClass("btn-secondary");' . "\r\n" . '                        $("#view_epg_" + rID + " i").removeClass("fas").addClass("far");' . "\r\n" . '                        $("#epg_id_" + rID).val(0);' . "\r\n" . '                    }' . "\r\n" . '                } else {' . "\r\n" . '                    $("#clear_epg_" + rID).removeClass("btn-warning").addClass("btn-secondary");' . "\r\n" . '                    $("#view_epg_" + rID).removeClass("btn-success").addClass("btn-secondary");' . "\r\n" . '                    $("#view_epg_" + rID + " i").removeClass("fas").addClass("far");' . "\r\n" . '                    $("#epg_id_" + rID).val(0);' . "\r\n" . '                    $("#epg_type_" + rID).val(0);' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            ';
-		} else {
-			echo '            $(".tmdb_search").change(function() {' . "\r\n" . '                var rID = $(this).data("id");' . "\r\n" . '                if (($.inArray($(this).val(), window.rImages) == -1) && (typeof(window.rImages[$(this).val()]) != "undefined")) {' . "\r\n" . '                    $("#picon_" + rID).find("a").data("src", "./resize?maxw=512&maxh=512&url=" + window.rImages[$(this).val()]);' . "\r\n" . '                    $("#picon_" + rID).find("img").attr("src", "./resize?maxw=96&maxh=32&url=" + window.rImages[$(this).val()]);' . "\r\n" . '                    $("#icon_" + rID).val(window.rImages[$(this).val()]);' . "\r\n" . '                } else {' . "\r\n" . '                    $("#picon_" + rID).find("a").data("src", "");' . "\r\n" . '                    $("#picon_" + rID).find("img").attr("src", "");' . "\r\n" . '                    $("#icon_" + rID).val("");' . "\r\n" . '                }' . "\r\n" . '                if ($(this).find("option:selected").text()) {' . "\r\n" . '                    $("#name_" + rID).val($(this).find("option:selected").text());' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            ';
-		}
+    echo '        }' . "\r\n" . '        function evaluateChanges() {' . "\r\n" . '            $(".bouquet").change(function() {' . "\r\n" . '                if (window.rTrigger) {' . "\r\n" . '                    window.rTrigger = false;' . "\r\n" . '                    var rThis = this;' . "\r\n" . '                    var rChangeID = $(this).data("id");' . "\r\n" . '                    $("#datatable tr").each(function() {' . "\r\n" . '                        var rID = $(this).data("id");' . "\r\n" . '                        if ((rID > rChangeID) && ($("#check_" + rID).is(":checked"))) {' . "\r\n" . '                            if ($.inArray(rID, window.rBouquetSet) == -1) {' . "\r\n" . '                                $("#bouquets_" + rID).val($(rThis).select2("val")).trigger("change");' . "\r\n" . '                            } else {' . "\r\n" . '                                return false;' . "\r\n" . '                            }' . "\r\n" . '                        }' . "\r\n" . '                    });' . "\r\n" . '                    window.rBouquetSet.push(rChangeID);' . "\r\n" . '                    window.rTrigger = true;' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            $(".category_id").change(function() {' . "\r\n" . '                if (window.rTrigger) {' . "\r\n" . '                    window.rTrigger = false;' . "\r\n" . '                    var rThis = this;' . "\r\n" . '                    var rChangeID = $(this).data("id");' . "\r\n" . '                    $("#datatable tr").each(function() {' . "\r\n" . '                        var rID = $(this).data("id");' . "\r\n" . '                        if ((rID > rChangeID) && ($("#check_" + rID).is(":checked"))) {' . "\r\n" . '                            if ($.inArray(rID, window.rCategorySet) == -1) {' . "\r\n" . '                                $("#category_id_" + rID).val($(rThis).select2("val")).trigger("change");' . "\r\n" . '                            } else {' . "\r\n" . '                                return false;' . "\r\n" . '                            }' . "\r\n" . '                        }' . "\r\n" . '                    });' . "\r\n" . '                    window.rCategorySet.push(rChangeID);' . "\r\n" . '                    window.rTrigger = true;' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            $(".activate").change(function() {' . "\r\n" . '                if (window.rTrigger) {' . "\r\n" . '                    window.rTrigger = false;' . "\r\n" . '                    var rThis = this;' . "\r\n" . '                    var rVal = $(this).prop("checked");' . "\r\n" . '                    var rChangeID = $(this).data("id");' . "\r\n" . '                    $("#datatable tr").each(function() {' . "\r\n" . '                        var rID = $(this).data("id");' . "\r\n" . '                        if (rID > rChangeID) {' . "\r\n" . '                            if (($.inArray(rID, window.rCheckSet) == -1) && ($("#check_" + rID).prop("checked") != rVal)) {' . "\r\n" . '                                $("#check_" + rID).prop("checked", rVal);' . "\r\n" . '                            } else {' . "\r\n" . '                                return false;' . "\r\n" . '                            }' . "\r\n" . '                        }' . "\r\n" . '                    });' . "\r\n" . '                    window.rCheckSet.push(rChangeID);' . "\r\n" . '                    window.rTrigger = true;' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            ';
 
-		echo '        }' . "\r\n" . '        function scanCategories() {' . "\r\n" . '            window.rTrigger = false;' . "\r\n" . '            $("#datatable tr").each(function() {' . "\r\n" . '                var rID = $(this).data("id");' . "\r\n" . '                rValues = $("#category_id_" + rID).select2("val");' . "\r\n" . '                $("#category_id_" + rID).empty();' . "\r\n" . '                $($("#category_selection").val()).each(function() {' . "\r\n" . "                    var rCategory = \$(\"#category_selection option[value='\" + this + \"']\");" . "\r\n" . '                    $("#category_id_" + rID).append(new Option(rCategory.text(), rCategory.val()));' . "\r\n" . '                });' . "\r\n" . '                $("#category_id_" + rID).val(rValues).trigger("change");' . "\r\n" . '            });' . "\r\n" . '            window.rTrigger = true;' . "\r\n" . '        }' . "\r\n" . '        function enableChecked() {' . "\r\n" . '            window.rTrigger = false;' . "\r\n" . '            $("#datatable tr").each(function() {' . "\r\n" . '                var rID = $(this).data("id");' . "\r\n" . '                if ($("#check_" + rID).hasClass("checked")) {' . "\r\n" . '                    $("#check_" + rID).prop("checked", true);' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            window.rTrigger = true;' . "\r\n" . '        }' . "\r\n" . '        $(document).ready(function() {' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'});" . "\r\n" . '            lazyload();' . "\r\n" . '            ' . "\r\n" . '            ';
+    if ($rType == 1) {
+        echo '            $(".epg_api").change(function() {' . "\r\n" . '                var rID = $(this).data("id");' . "\r\n" . '                if (window.rData[rID]) {' . "\r\n" . '                    var rData = window.rData[rID];' . "\r\n" . '                    window.rData[rID] = null;' . "\r\n" . '                } else {' . "\r\n" . '                    var rData = $("#epg_api_" + rID).select2("data")[0];' . "\r\n" . '                }' . "\r\n" . '                if (rData) {' . "\r\n" . '                    if ($.inArray(rID, window.rLogoSet) == -1) {' . "\r\n" . '                        if (rData.icon) {' . "\r\n" . '                            $("#picon_" + rID).find("a").data("src", "./resize?maxw=512&maxh=512&url=" + rData.icon);' . "\r\n" . '                            $("#picon_" + rID).find("img").attr("src", "./resize?maxw=96&maxh=32&url=" + rData.icon);' . "\r\n" . '                            $("#icon_" + rID).val(rData.icon);' . "\r\n" . '                        } else {' . "\r\n" . '                            $("#picon_" + rID).find("a").data("src", "");' . "\r\n" . '                            $("#picon_" + rID).find("img").attr("src", "");' . "\r\n" . '                            $("#icon_" + rID).val("");' . "\r\n" . '                        }' . "\r\n" . '                    }' . "\r\n" . '                    $("#clear_epg_" + rID).removeClass("btn-secondary").addClass("btn-warning");' . "\r\n" . '                    $("#epg_type_" + rID).val(rData.type);' . "\r\n" . '                    if (rData.type == 1) {' . "\r\n" . '                        $("#view_epg_" + rID).removeClass("btn-secondary").addClass("btn-success");' . "\r\n" . '                        $("#view_epg_" + rID + " i").removeClass("far").addClass("fas");' . "\r\n" . '                        $("#epg_id_" + rID).val(rData.epg_id);' . "\r\n" . '                    } else {' . "\r\n" . '                        $("#view_epg_" + rID).removeClass("btn-success").addClass("btn-secondary");' . "\r\n" . '                        $("#view_epg_" + rID + " i").removeClass("fas").addClass("far");' . "\r\n" . '                        $("#epg_id_" + rID).val(0);' . "\r\n" . '                    }' . "\r\n" . '                } else {' . "\r\n" . '                    $("#clear_epg_" + rID).removeClass("btn-warning").addClass("btn-secondary");' . "\r\n" . '                    $("#view_epg_" + rID).removeClass("btn-success").addClass("btn-secondary");' . "\r\n" . '                    $("#view_epg_" + rID + " i").removeClass("fas").addClass("far");' . "\r\n" . '                    $("#epg_id_" + rID).val(0);' . "\r\n" . '                    $("#epg_type_" + rID).val(0);' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            ';
+    } else {
+        echo '            $(".tmdb_search").change(function() {' . "\r\n" . '                var rID = $(this).data("id");' . "\r\n" . '                if (($.inArray($(this).val(), window.rImages) == -1) && (typeof(window.rImages[$(this).val()]) != "undefined")) {' . "\r\n" . '                    $("#picon_" + rID).find("a").data("src", "./resize?maxw=512&maxh=512&url=" + window.rImages[$(this).val()]);' . "\r\n" . '                    $("#picon_" + rID).find("img").attr("src", "./resize?maxw=96&maxh=32&url=" + window.rImages[$(this).val()]);' . "\r\n" . '                    $("#icon_" + rID).val(window.rImages[$(this).val()]);' . "\r\n" . '                } else {' . "\r\n" . '                    $("#picon_" + rID).find("a").data("src", "");' . "\r\n" . '                    $("#picon_" + rID).find("img").attr("src", "");' . "\r\n" . '                    $("#icon_" + rID).val("");' . "\r\n" . '                }' . "\r\n" . '                if ($(this).find("option:selected").text()) {' . "\r\n" . '                    $("#name_" + rID).val($(this).find("option:selected").text());' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            ';
+    }
 
-		if (isset($rImport)) {
-			echo '            ';
+    echo '        }' . "\r\n" . '        function scanCategories() {' . "\r\n" . '            window.rTrigger = false;' . "\r\n" . '            $("#datatable tr").each(function() {' . "\r\n" . '                var rID = $(this).data("id");' . "\r\n" . '                rValues = $("#category_id_" + rID).select2("val");' . "\r\n" . '                $("#category_id_" + rID).empty();' . "\r\n" . '                $($("#category_selection").val()).each(function() {' . "\r\n" . "                    var rCategory = \$(\"#category_selection option[value='\" + this + \"']\");" . "\r\n" . '                    $("#category_id_" + rID).append(new Option(rCategory.text(), rCategory.val()));' . "\r\n" . '                });' . "\r\n" . '                $("#category_id_" + rID).val(rValues).trigger("change");' . "\r\n" . '            });' . "\r\n" . '            window.rTrigger = true;' . "\r\n" . '        }' . "\r\n" . '        function enableChecked() {' . "\r\n" . '            window.rTrigger = false;' . "\r\n" . '            $("#datatable tr").each(function() {' . "\r\n" . '                var rID = $(this).data("id");' . "\r\n" . '                if ($("#check_" + rID).hasClass("checked")) {' . "\r\n" . '                    $("#check_" + rID).prop("checked", true);' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            window.rTrigger = true;' . "\r\n" . '        }' . "\r\n" . '        $(document).ready(function() {' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'});" . "\r\n" . '            lazyload();' . "\r\n" . '            ' . "\r\n" . '            ';
 
-			if ($rType == 1) {
-				echo "            \$('.epg_api').select2({" . "\r\n" . '              ajax: {' . "\r\n" . "                url: './api'," . "\r\n" . "                dataType: 'json'," . "\r\n" . '                data: function (params) {' . "\r\n" . '                  return {' . "\r\n" . '                    search: params.term,' . "\r\n" . "                    action: 'epglist'," . "\r\n" . '                    page: params.page' . "\r\n" . '                  };' . "\r\n" . '                },' . "\r\n" . '                processResults: function (data, params) {' . "\r\n" . '                  params.page = params.page || 1;' . "\r\n" . '                  return {' . "\r\n" . '                    results: data.items,' . "\r\n" . '                    pagination: {' . "\r\n" . '                        more: (params.page * 100) < data.total_count' . "\r\n" . '                    }' . "\r\n" . '                  };' . "\r\n" . '                },' . "\r\n" . '                cache: true' . "\r\n" . '              },' . "\r\n" . "              placeholder: 'Search EPG API...'" . "\r\n" . '            });' . "\r\n" . '            ';
-			}
+    if (isset($rImport)) {
+        echo '            ';
 
-			echo "\t\t\t" . '$("#datatable").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n" . '                    if ($.inArray($("#datatable").DataTable().page.info().page, window.rPages) == -1) {' . "\r\n" . '                        enableChecked();' . "\r\n" . '                        ';
+        if ($rType == 1) {
+            echo "            \$('.epg_api').select2({" . "\r\n" . '              ajax: {' . "\r\n" . "                url: './api'," . "\r\n" . "                dataType: 'json'," . "\r\n" . '                data: function (params) {' . "\r\n" . '                  return {' . "\r\n" . '                    search: params.term,' . "\r\n" . "                    action: 'epglist'," . "\r\n" . '                    page: params.page' . "\r\n" . '                  };' . "\r\n" . '                },' . "\r\n" . '                processResults: function (data, params) {' . "\r\n" . '                  params.page = params.page || 1;' . "\r\n" . '                  return {' . "\r\n" . '                    results: data.items,' . "\r\n" . '                    pagination: {' . "\r\n" . '                        more: (params.page * 100) < data.total_count' . "\r\n" . '                    }' . "\r\n" . '                  };' . "\r\n" . '                },' . "\r\n" . '                cache: true' . "\r\n" . '              },' . "\r\n" . "              placeholder: 'Search EPG API...'" . "\r\n" . '            });' . "\r\n" . '            ';
+        }
 
-			if ($rType != 1) {
-				echo '                        scanTMDb();' . "\r\n" . '                        ';
-			}
+        echo "\t\t\t" . '$("#datatable").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n" . '                    if ($.inArray($("#datatable").DataTable().page.info().page, window.rPages) == -1) {' . "\r\n" . '                        enableChecked();' . "\r\n" . '                        ';
 
-			echo '                        window.rPages.push($("#datatable").DataTable().page.info().page);' . "\r\n" . '                    }' . "\r\n" . '                    evaluateChanges();' . "\r\n" . '                    scanCategories();' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'bAutoWidth: false,' . "\r\n" . '                responsive: false,' . "\r\n" . '                searching: false,' . "\r\n" . '                bSort: false,' . "\r\n" . '                paging: true,' . "\r\n" . '                pageLength: 50,' . "\r\n" . '                lengthChange: false' . "\r\n\t\t\t" . "}).on('page.dt', function() {" . "\r\n" . '                saveChanges();' . "\r\n" . '            });' . "\r\n\t\t\t" . '$("#datatable").css("width", "100%");' . "\r\n" . '            $("#category_selection").change(function() {' . "\r\n" . '                scanCategories();' . "\r\n" . '            });' . "\r\n" . "            \$(\"#category_selection\").select2({width: '100%', tags: true});" . "\r\n" . '            saveChanges();' . "\r\n" . '            $("form").submit(function(e){' . "\r\n" . '                saveChanges();' . "\r\n\t\t\t" . '});' . "\r\n" . '            ';
-		} else {
-			echo "\t\t\t" . "\$('#server_tree').on('redraw.jstree', function (e, data) {" . "\r\n" . '                evaluateServers();' . "\r\n" . "            }).on('select_node.jstree', function (e, data) {" . "\r\n" . '                if (data.node.parent == "offline") {' . "\r\n" . "                    \$('#server_tree').jstree(\"move_node\", data.node.id, \"#source\", \"last\");" . "\r\n" . '                } else {' . "\r\n" . "                    \$('#server_tree').jstree(\"move_node\", data.node.id, \"#offline\", \"first\");" . "\r\n" . '                }' . "\r\n" . "            }).jstree({ 'core' : {" . "\r\n\t\t\t\t" . "'check_callback': function (op, node, parent, position, more) {" . "\r\n\t\t\t\t\t" . 'switch (op) {' . "\r\n\t\t\t\t\t\t" . "case 'move_node':" . "\r\n\t\t\t\t\t\t\t" . 'if ((node.id == "offline") || (node.id == "source")) { return false; }' . "\r\n" . '                            ';
+        if ($rType != 1) {
+            echo '                        scanTMDb();' . "\r\n" . '                        ';
+        }
 
-			if ($rType == 1) {
-			} else {
-				echo '                            if (parent.id != "offline" && parent.id != "source") { return false; }' . "\r\n" . '                            ';
-			}
+        echo '                        window.rPages.push($("#datatable").DataTable().page.info().page);' . "\r\n" . '                    }' . "\r\n" . '                    evaluateChanges();' . "\r\n" . '                    scanCategories();' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'bAutoWidth: false,' . "\r\n" . '                responsive: false,' . "\r\n" . '                searching: false,' . "\r\n" . '                bSort: false,' . "\r\n" . '                paging: true,' . "\r\n" . '                pageLength: 50,' . "\r\n" . '                lengthChange: false' . "\r\n\t\t\t" . "}).on('page.dt', function() {" . "\r\n" . '                saveChanges();' . "\r\n" . '            });' . "\r\n\t\t\t" . '$("#datatable").css("width", "100%");' . "\r\n" . '            $("#category_selection").change(function() {' . "\r\n" . '                scanCategories();' . "\r\n" . '            });' . "\r\n" . "            \$(\"#category_selection\").select2({width: '100%', tags: true});" . "\r\n" . '            saveChanges();' . "\r\n" . '            $("form").submit(function(e){' . "\r\n" . '                saveChanges();' . "\r\n\t\t\t" . '});' . "\r\n" . '            ';
+    } else {
+        echo "\t\t\t" . "\$('#server_tree').on('redraw.jstree', function (e, data) {" . "\r\n" . '                evaluateServers();' . "\r\n" . "            }).on('select_node.jstree', function (e, data) {" . "\r\n" . '                if (data.node.parent == "offline") {' . "\r\n" . "                    \$('#server_tree').jstree(\"move_node\", data.node.id, \"#source\", \"last\");" . "\r\n" . '                } else {' . "\r\n" . "                    \$('#server_tree').jstree(\"move_node\", data.node.id, \"#offline\", \"first\");" . "\r\n" . '                }' . "\r\n" . "            }).jstree({ 'core' : {" . "\r\n\t\t\t\t" . "'check_callback': function (op, node, parent, position, more) {" . "\r\n\t\t\t\t\t" . 'switch (op) {' . "\r\n\t\t\t\t\t\t" . "case 'move_node':" . "\r\n\t\t\t\t\t\t\t" . 'if ((node.id == "offline") || (node.id == "source")) { return false; }' . "\r\n" . '                            ';
 
-			echo '                            if (parent.id == "#") { return false; }' . "\r\n\t\t\t\t\t\t\t" . 'return true;' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . "'data' : ";
-			echo json_encode(($rServerTree ?: array()));
-			echo "\t\t\t" . '}, "plugins" : [ "dnd" ]' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#direct_source").change(function() {' . "\r\n\t\t\t\t" . 'evaluateDirectSource();' . "\r\n\t\t\t" . '});' . "\r\n" . '            $("#direct_proxy").change(function() {' . "\r\n\t\t\t\t" . 'evaluateDirectSource();' . "\r\n\t\t\t" . '});' . "\r\n" . '            evaluateDirectSource();' . "\r\n\t\t\t" . '$("form").submit(function(e){' . "\r\n" . '                if ($("#server_tree_data").length) {' . "\r\n" . "                    \$(\"#server_tree_data\").val(JSON.stringify(\$('#server_tree').jstree(true).get_json('source', {flat:true})));" . "\r\n" . '                    if(!$("#m3u_file").val()) {' . "\r\n" . '                        $.toast("Please select a playlist to upload & review.");' . "\r\n" . '                        e.preventDefault();' . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#probesize_ondemand").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#delay_minutes").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#tv_archive_duration").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            ';
-		}
+        if ($rType == 1) {
+        } else {
+            echo '                            if (parent.id != "offline" && parent.id != "source") { return false; }' . "\r\n" . '                            ';
+        }
 
-		echo "\t\t" . '});' . "\r\n" . '        ' . "\r\n" . '        ';
-		?>
+        echo '                            if (parent.id == "#") { return false; }' . "\r\n\t\t\t\t\t\t\t" . 'return true;' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . "'data' : ";
+        echo json_encode(($rServerTree ?: array()));
+        echo "\t\t\t" . '}, "plugins" : [ "dnd" ]' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#direct_source").change(function() {' . "\r\n\t\t\t\t" . 'evaluateDirectSource();' . "\r\n\t\t\t" . '});' . "\r\n" . '            $("#direct_proxy").change(function() {' . "\r\n\t\t\t\t" . 'evaluateDirectSource();' . "\r\n\t\t\t" . '});' . "\r\n" . '            evaluateDirectSource();' . "\r\n\t\t\t" . '$("form").submit(function(e){' . "\r\n" . '                if ($("#server_tree_data").length) {' . "\r\n" . "                    \$(\"#server_tree_data\").val(JSON.stringify(\$('#server_tree').jstree(true).get_json('source', {flat:true})));" . "\r\n" . '                    if(!$("#m3u_file").val()) {' . "\r\n" . '                        $.toast("Please select a playlist to upload & review.");' . "\r\n" . '                        e.preventDefault();' . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#probesize_ondemand").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#delay_minutes").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#tv_archive_duration").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            ';
+    }
+
+    echo "\t\t" . '});' . "\r\n" . '        ' . "\r\n" . '        ';
+    ?>
     <?php if (CoreUtilities::$rSettings['enable_search']): ?>
         $(document).ready(function() {
             initSearch();

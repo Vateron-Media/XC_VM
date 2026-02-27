@@ -1,17 +1,17 @@
 <?php if (!isset($__viewMode)): ?>
-<?php
+	<?php
 
-include 'session.php';
-include 'functions.php';
+	include 'session.php';
+	include 'functions.php';
 
-if (!checkPermissions()) {
-	goHome();
-}
+	if (!checkPermissions()) {
+		goHome();
+	}
 
-CoreUtilities::$rServers = CoreUtilities::getServers(true);
-$_TITLE = 'Proxy Servers';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('admin'); ?>
+	CoreUtilities::$rServers = CoreUtilities::getServers(true);
+	$_TITLE = 'Proxy Servers';
+	require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+	renderUnifiedLayoutHeader('admin'); ?>
 <?php endif; ?>
 
 
@@ -112,7 +112,7 @@ renderUnifiedLayoutHeader('admin'); ?>
 										echo '</a></td>' . "\n\t\t\t\t\t\t\t\t\t" . '<td class="text-center">' . "\n\t\t\t\t\t\t\t\t\t";
 										$rClients = getLiveConnections($rServer['id'], true);
 
-										if (hasPermissions('adv', 'live_connections')) {
+										if (Authorization::check('adv', 'live_connections')) {
 											$rClients = '<a href="./live_connections?server=' . $rServer['id'] . "\"><button type='button' class='btn btn-dark bg-animate btn-xs waves-effect waves-light no-border'>" . number_format($rClients, 0) . '</button></a>';
 										} else {
 											$rClients = "<button type='button' class='btn btn-dark bg-animate btn-xs waves-effect waves-light no-border'>" . number_format($rClients, 0) . '</button>';
@@ -177,7 +177,7 @@ renderUnifiedLayoutHeader('admin'); ?>
 										echo number_format(($rServer['server_online'] ? $rServer['ping'] : 0), 0);
 										echo ' ms</button></td>' . "\n\t\t\t\t\t\t\t\t\t" . '<td class="text-center">' . "\n\t\t\t\t\t\t\t\t\t\t";
 
-										if (hasPermissions('adv', 'edit_server')) {
+										if (Authorization::check('adv', 'edit_server')) {
 											if (CoreUtilities::$rSettings['group_buttons']) {
 												echo "\t\t\t\t\t\t\t\t\t\t" . '<div class="btn-group dropdown">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" class="table-action-btn dropdown-toggle arrow-none btn btn-light btn-sm" data-toggle="dropdown" aria-expanded="false"><i class="mdi mdi-menu"></i></a>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<div class="dropdown-menu dropdown-menu-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a class="dropdown-item btn-reboot-server" href="javascript:void(0);" data-id="';
 												echo $rServer['id'];
@@ -603,7 +603,7 @@ renderUnifiedLayoutFooter('admin');
 				bindServers();
 				bindHref();
 				refreshTooltips();
-				<?php if (hasPermissions('adv', 'edit_server')): ?>
+				<?php if (Authorization::check('adv', 'edit_server')): ?>
 					// Multi Actions
 					multiAPI("clear");
 					$("#datatable tr").click(function() {

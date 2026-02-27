@@ -1,14 +1,18 @@
 <?php
 
 class Authorization {
-	public static function hasResellerPermissions($rPermissions, $rType) {
+	public static function hasResellerPermissions($rType) {
+		global $rPermissions;
 		if (!is_array($rPermissions)) {
 			return false;
 		}
 		return !empty($rPermissions[$rType]);
 	}
 
-	public static function check($rType, $rID, $rUserInfo, $rPermissions, $db) {
+	public static function check($rType, $rID) {
+		global $rUserInfo;
+		global $db;
+		global $rPermissions;
 		if (!(isset($rUserInfo) && isset($rPermissions) && is_array($rPermissions) && $db)) {
 			return false;
 		}

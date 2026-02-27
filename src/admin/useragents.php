@@ -1,17 +1,17 @@
 <?php
 if (!isset($__viewMode)):
 
-include 'session.php';
-include 'functions.php';
+	include 'session.php';
+	include 'functions.php';
 
-if (checkPermissions()) {
-} else {
-	goHome();
-}
+	if (checkPermissions()) {
+	} else {
+		goHome();
+	}
 
-$_TITLE = 'Blocked User-Agents';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('admin');
+	$_TITLE = 'Blocked User-Agents';
+	require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+	renderUnifiedLayoutHeader('admin');
 endif; // !$__viewMode
 echo '<div class="wrapper boxed-layout-ext"';
 
@@ -236,11 +236,11 @@ renderUnifiedLayoutFooter('admin');
 		});
 		$("#datatable").css("width", "100%");
 	});
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-    <?php endif; ?>
+	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+		$(document).ready(function() {
+			initSearch();
+		});
+	<?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

@@ -8,15 +8,15 @@ class CreatedChannelController extends BaseAdminController
     {
         $this->requirePermission();
 
-        global $rServers;
+        global $db, $rServers;
 
         $rCategories = getCategories('live');
-        $rTranscodeProfiles = getTranscodeProfiles();
+        $rTranscodeProfiles = StreamConfigRepository::getTranscodeProfiles();
 
         if (!isset(CoreUtilities::$rRequest['id'])) {
             $rChannel = null;
         } else {
-            $rChannel = getStream(CoreUtilities::$rRequest['id']);
+            $rChannel = StreamRepository::getById(CoreUtilities::$rRequest['id']);
 
             if (!$rChannel || $rChannel['type'] != 3) {
                 goHome();
@@ -24,6 +24,8 @@ class CreatedChannelController extends BaseAdminController
         }
 
         $rOnDemand = [];
+        $rProperties = null;
+        $rChannelSys = null;
         $rServerTree = [
             [
                 'id' => 'source',
@@ -48,7 +50,7 @@ class CreatedChannelController extends BaseAdminController
                 $rProperties = ['type' => $rChannel['series_no'] > 0 ? 0 : 1];
             }
 
-            $rChannelSys = getStreamSys(CoreUtilities::$rRequest['id']);
+            $rChannelSys = StreamRepository::getSystemRows(CoreUtilities::$rRequest['id']);
 
             foreach ($rServers as $rServer) {
                 if (isset($rChannelSys[intval($rServer['id'])])) {

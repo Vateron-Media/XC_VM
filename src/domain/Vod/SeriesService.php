@@ -1,7 +1,8 @@
 <?php
 
 class SeriesService {
-	public static function process($db, $rSettings, $rData) {
+	public static function process($rSettings, $rData) {
+		global $db;
 		return API::processSeriesLegacy($rData);
 	}
 
@@ -21,7 +22,8 @@ class SeriesService {
 		return array('status' => STATUS_SUCCESS);
 	}
 
-	public static function massEdit($db, $rData) {
+	public static function massEdit($rData) {
+		global $db;
 		set_time_limit(0);
 		ini_set('mysql.connect_timeout', 0);
 		ini_set('max_execution_time', 0);
@@ -41,7 +43,7 @@ class SeriesService {
 				}
 			}
 
-			$rBouquets = getBouquets();
+			$rBouquets = BouquetService::getAllSimple();
 			$rAddBouquet = $rDelBouquet = array();
 
 			foreach ($rSeriesIDs as $rSeriesID) {
@@ -136,7 +138,8 @@ class SeriesService {
 	/**
 	 * Get all series as id => row array, ordered by title.
 	 */
-	public static function getList($db) {
+	public static function getList() {
+		global $db;
 		$rReturn = array();
 		$db->query('SELECT `id`, `title` FROM `streams_series` ORDER BY `title` ASC;');
 
@@ -152,7 +155,8 @@ class SeriesService {
 	/**
 	 * Update series seasons from TMDB.
 	 */
-	public static function updateFromTMDB($db, $rID) {
+	public static function updateFromTMDB($rID) {
+		global $db;
 		require_once MAIN_HOME . 'includes/libs/tmdb.php';
 		$db->query('SELECT `tmdb_id`, `tmdb_language` FROM `streams_series` WHERE `id` = ?;', $rID);
 
@@ -197,14 +201,16 @@ class SeriesService {
 	/**
 	 * Queue async series refresh via watch_refresh table.
 	 */
-	public static function queueRefresh($db, $rID) {
+	public static function queueRefresh($rID) {
+		global $db;
 		$db->query('INSERT INTO `watch_refresh`(`type`, `stream_id`, `status`) VALUES(4, ?, 0);', $rID);
 	}
 
 	/**
 	 * Generate playlist of episode sources for a series.
 	 */
-	public static function generatePlaylist($db, $rSeriesNo) {
+	public static function generatePlaylist($rSeriesNo) {
+		global $db;
 		$rReturn = array();
 		$db->query('SELECT `stream_id` FROM `streams_episodes` WHERE `series_id` = ? ORDER BY `season_num` ASC, `episode_num` ASC;', $rSeriesNo);
 
@@ -223,3 +229,4 @@ class SeriesService {
 
 		return $rReturn;
 	}
+}

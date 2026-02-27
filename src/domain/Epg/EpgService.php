@@ -1,14 +1,15 @@
 <?php
 
 class EpgService {
-	public static function process($rData, $db, $rGetEPGCallback) {
+	public static function process($rData, $rGetEPGCallback) {
+		global $db;
 		if (isset($rData['edit'])) {
-			if (!hasPermissions('adv', 'epg_edit')) {
+			if (!Authorization::check('adv', 'epg_edit')) {
 				exit();
 			}
 			$rArray = overwriteData(call_user_func($rGetEPGCallback, $rData['edit']), $rData);
 		} else {
-			if (!hasPermissions('adv', 'add_epg')) {
+			if (!Authorization::check('adv', 'add_epg')) {
 				exit();
 			}
 			$rArray = verifyPostTable('epg', $rData);
@@ -44,7 +45,8 @@ class EpgService {
 
 	// ──────────── Из EpgRepository ────────────
 
-	public static function findByName($db, $rEPGName) {
+	public static function findByName($rEPGName) {
+		global $db;
 		$db->query('SELECT `id`, `data` FROM `epg`;');
 
 		if ($db->num_rows() > 0) {
@@ -64,7 +66,8 @@ class EpgService {
 		}
 	}
 
-	public static function getById($db, $rID) {
+	public static function getById($rID) {
+		global $db;
 		$db->query('SELECT * FROM `epg` WHERE `id` = ?;', $rID);
 
 		if ($db->num_rows() == 1) {

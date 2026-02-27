@@ -13,8 +13,7 @@
  *   - Сбор популярных live-потоков по активности
  *   - Запись результатов в файлы (tmdb_popular, live_popular)
  */
-class TmdbPopularCron
-{
+class TmdbPopularCron {
     /**
      * Собрать популярные фильмы и сериалы из TMDB.
      *
@@ -25,8 +24,7 @@ class TmdbPopularCron
      * @param int   $pages   Количество страниц для запроса
      * @return array ['movies' => int[], 'series' => int[]]
      */
-    private static function collectPopular(TMDB $tmdb, array $tmdbIDs, int $pages = 100): array
-    {
+    private static function collectPopular(TMDB $tmdb, array $tmdbIDs, int $pages = 100): array {
         $rReturn = ['movies' => [], 'series' => []];
 
         // Popular movies
@@ -57,8 +55,7 @@ class TmdbPopularCron
      *
      * @param TMDB $tmdb Инстанс клиента
      */
-    private static function processSimilarMovies(TMDB $tmdb): void
-    {
+    private static function processSimilarMovies(TMDB $tmdb): void {
         global $db;
 
         $db->query(
@@ -99,8 +96,7 @@ class TmdbPopularCron
      *
      * @param TMDB $tmdb Инстанс клиента
      */
-    private static function processSimilarSeries(TMDB $tmdb): void
-    {
+    private static function processSimilarSeries(TMDB $tmdb): void {
         global $db;
 
         $db->query(
@@ -139,8 +135,7 @@ class TmdbPopularCron
     /**
      * Собрать популярные live-потоки по активности за 28 дней.
      */
-    private static function collectPopularLive(): void
-    {
+    private static function collectPopularLive(): void {
         global $db;
 
         $rPopularLive = [];
@@ -169,8 +164,7 @@ class TmdbPopularCron
      *   3. Заполнение similar для сериалов
      *   4. Сбор популярных live-потоков
      */
-    public static function run(): void
-    {
+    public static function run(): void {
         global $db;
 
         require_once MAIN_HOME . 'includes/libs/tmdb.php';

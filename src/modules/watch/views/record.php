@@ -152,7 +152,7 @@
                                                             <select name="bouquets[]" id="bouquets"
                                                                 class="form-control select2-multiple" data-toggle="select2"
                                                                 multiple="multiple" data-placeholder="Choose...">
-                                                                <?php foreach (getBouquets() as $rBouquet) { ?>
+                                                                <?php foreach (BouquetService::getAllSimple() as $rBouquet) { ?>
                                                                     <option value="<?php echo $rBouquet['id']; ?>">
                                                                         <?php echo $rBouquet['bouquet_name']; ?></option>
                                                                 <?php } ?>

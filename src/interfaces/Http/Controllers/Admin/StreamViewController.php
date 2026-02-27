@@ -10,7 +10,7 @@ class StreamViewController extends BaseAdminController
 
         global $db;
 
-        if (isset(CoreUtilities::$rRequest['id']) && ($rStream = getStream(CoreUtilities::$rRequest['id']))) {
+        if (isset(CoreUtilities::$rRequest['id']) && ($rStream = StreamRepository::getById(CoreUtilities::$rRequest['id']))) {
         } else {
             goHome();
         }
@@ -20,7 +20,7 @@ class StreamViewController extends BaseAdminController
         $rImage = null;
 
         if ($rStream['type'] == 1) {
-            $rEPGData = getchannelepg($rStream['id']);
+            $rEPGData = EpgService::getChannelEpg($rStream);
 
             if (0 >= $rStream['vframes_server_id']) {
             } else {
@@ -77,7 +77,7 @@ class StreamViewController extends BaseAdminController
             $rSeriesID = $rSeries['id'];
         }
 
-        $rStreamStats = getStreamStats($rStream['id']);
+        $rStreamStats = StreamRepository::getStats($rStream['id']);
 
         $this->setTitle('View ' . $rTypeString);
         $this->render('stream_view', compact(

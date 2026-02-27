@@ -1,16 +1,16 @@
 <?php if (!isset($__viewMode)): ?>
-<?php include 'session.php'; ?>
-<?php include 'functions.php'; ?>
+    <?php include 'session.php'; ?>
+    <?php include 'functions.php'; ?>
 
-<?php if (!checkPermissions()): ?>
-    <?php goHome(); ?>
-<?php endif; ?>
+    <?php if (!checkPermissions()): ?>
+        <?php goHome(); ?>
+    <?php endif; ?>
 
-<?php $_TITLE = 'Lines'; ?>
-<?php
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('admin');
-?>
+    <?php $_TITLE = 'Lines'; ?>
+    <?php
+    require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+    renderUnifiedLayoutHeader('admin');
+    ?>
 <?php endif; ?>
 
 <div class="wrapper" <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
@@ -53,7 +53,7 @@ renderUnifiedLayoutHeader('admin');
                             <label class="col-md-2 col-form-label text-center" for="user_reseller">Filter Results &nbsp; <button type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="clearOwner();"><i class="mdi mdi-close"></i></button></label>
                             <div class="col-md-3">
                                 <select id="user_reseller" class="form-control" data-toggle="select2">
-                                    <?php if (!(isset(CoreUtilities::$rRequest['owner']) && ($rOwner = getRegisteredUser(intval(CoreUtilities::$rRequest['owner']))))): ?>
+                                    <?php if (!(isset(CoreUtilities::$rRequest['owner']) && ($rOwner = UserRepository::getRegisteredUserById(intval(CoreUtilities::$rRequest['owner']))))): ?>
                                     <?php else: ?>
                                         <option value="<?php echo intval($rOwner['id']); ?>" selected="selected"><?php echo $rOwner['username']; ?></option>
                                     <?php endif; ?>
@@ -263,7 +263,7 @@ renderUnifiedLayoutFooter('admin');
     echo intval($rSettings['default_entries']);
     echo '; }' . "\r\n\t\t\t" . 'var rTable = $("#datatable-users").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"," . "\r\n\t\t\t\t\t" . '},' . "\r\n\t\t\t\t\t" . 'infoFiltered: ""' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n\t\t\t\t\t" . 'bindHref(); refreshTooltips();' . "\r\n" . '                    if ($("#datatable-users").DataTable().page.info().page > 0) {' . "\r\n" . '                        setParam("page", $("#datatable-users").DataTable().page.info().page+1);' . "\r\n" . '                    } else {' . "\r\n" . '                        delParam("page");' . "\r\n" . '                    }' . "\r\n" . '                    var rOrder = $("#datatable-users").DataTable().order()[0];' . "\r\n" . '                    setParam("order", rOrder[0]); setParam("dir", rOrder[1]);' . "\r\n" . '                    ';
 
-    if (!hasPermissions('adv', 'edit_user')) {
+    if (!Authorization::check('adv', 'edit_user')) {
     } else {
         echo '                    // Multi Actions' . "\r\n" . '                    multiAPI("clear");' . "\r\n" . '                    $("#datatable-users tr").click(function() {' . "\r\n" . '                        if (window.rShiftHeld) {' . "\r\n" . "                            if (\$(this).hasClass('selectedfilter')) {" . "\r\n" . "                                \$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n" . '                                window.rSelected.splice($.inArray($(this).find("td:eq(0)").text(), window.rSelected), 1);' . "\r\n" . '                            } else {            ' . "\r\n" . "                                \$(this).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n" . '                                window.rSelected.push($(this).find("td:eq(0)").text());' . "\r\n" . '                            }' . "\r\n" . '                        }' . "\r\n" . '                        $("#multi_lines_selected").html(window.rSelected.length + " lines");' . "\r\n" . '                        if (window.rSelected.length > 0) {' . "\r\n" . '                            if ("#header_stats") {' . "\r\n" . '                                $("#header_stats").hide();' . "\r\n" . '                            }' . "\r\n" . '                            $("#multiselect_lines").show();' . "\r\n" . '                        } else {' . "\r\n" . '                            if ("#header_stats") {' . "\r\n" . '                                $("#header_stats").show();' . "\r\n" . '                            }' . "\r\n" . '                            $("#multiselect_lines").hide();' . "\r\n" . '                        }' . "\r\n" . '                    });' . "\r\n" . '                    ';
     }
@@ -330,67 +330,67 @@ renderUnifiedLayoutFooter('admin');
     </div>
 </div>
 <script>
-// WhatsApp Renewal Messages
-var waMessages = {
-    de: "Hallo Lieber {USERNAME},\n\nIhr IPTV Abonnement endet am {EXPDATE} und es sind noch {DAYS} Tage übrig.\n\nMöchten Sie Ihr IPTV Abonnement verlängern?\n\nMit freundlichen Grüßen",
-    en: "Hello Dear {USERNAME},\n\nYour IPTV subscription expires on {EXPDATE} and there are {DAYS} days remaining.\n\nWould you like to renew your IPTV subscription?\n\nBest regards",
-    tr: "Merhaba Sayın {USERNAME},\n\nIPTV aboneliğiniz {EXPDATE} tarihinde sona eriyor ve {DAYS} gün kaldı.\n\nIPTV aboneliğinizi yenilemek ister misiniz?\n\nSaygılarımızla"
-};
+    // WhatsApp Renewal Messages
+    var waMessages = {
+        de: "Hallo Lieber {USERNAME},\n\nIhr IPTV Abonnement endet am {EXPDATE} und es sind noch {DAYS} Tage übrig.\n\nMöchten Sie Ihr IPTV Abonnement verlängern?\n\nMit freundlichen Grüßen",
+        en: "Hello Dear {USERNAME},\n\nYour IPTV subscription expires on {EXPDATE} and there are {DAYS} days remaining.\n\nWould you like to renew your IPTV subscription?\n\nBest regards",
+        tr: "Merhaba Sayın {USERNAME},\n\nIPTV aboneliğiniz {EXPDATE} tarihinde sona eriyor ve {DAYS} gün kaldı.\n\nIPTV aboneliğinizi yenilemek ister misiniz?\n\nSaygılarımızla"
+    };
 
-function updateWaPreview() {
-    var lang = $("#wa_language").val();
-    var username = $("#wa_username").val();
-    var expdate = $("#wa_expdate").val();
-    var days = $("#wa_daysremaining").val();
-    
-    var message = waMessages[lang]
-        .replace("{USERNAME}", username)
-        .replace("{EXPDATE}", expdate)
-        .replace("{DAYS}", days);
-    
-    $("#wa_message_preview").val(message);
-    
-    var phone = $("#wa_phone").val().replace(/[^0-9]/g, '');
-    var encodedMessage = encodeURIComponent(message);
-    $("#wa_send_btn").attr("href", "https://wa.me/" + phone + "?text=" + encodedMessage);
-}
+    function updateWaPreview() {
+        var lang = $("#wa_language").val();
+        var username = $("#wa_username").val();
+        var expdate = $("#wa_expdate").val();
+        var days = $("#wa_daysremaining").val();
 
-function openWhatsApp(username, contact, expTimestamp) {
-    if (!contact) {
-        $.toast({
-            heading: 'No WhatsApp Number',
-            text: 'This line has no WhatsApp number set.',
-            icon: 'warning',
-            position: 'top-right'
-        });
-        return;
+        var message = waMessages[lang]
+            .replace("{USERNAME}", username)
+            .replace("{EXPDATE}", expdate)
+            .replace("{DAYS}", days);
+
+        $("#wa_message_preview").val(message);
+
+        var phone = $("#wa_phone").val().replace(/[^0-9]/g, '');
+        var encodedMessage = encodeURIComponent(message);
+        $("#wa_send_btn").attr("href", "https://wa.me/" + phone + "?text=" + encodedMessage);
     }
-    
-    var expDate = expTimestamp ? new Date(expTimestamp * 1000) : null;
-    var expDateStr = expDate ? expDate.toLocaleDateString('de-DE') : 'Never';
-    var daysRemaining = 0;
-    
-    if (expDate) {
-        var today = new Date();
-        var diffTime = expDate - today;
-        daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        if (daysRemaining < 0) daysRemaining = 0;
-    }
-    
-    $("#wa_phone").val(contact);
-    $("#wa_username").val(username);
-    $("#wa_expdate").val(expDateStr);
-    $("#wa_daysremaining").val(daysRemaining);
-    
-    updateWaPreview();
-    $("#whatsappModal").modal("show");
-}
 
-$(document).ready(function() {
-    $("#wa_language").change(function() {
+    function openWhatsApp(username, contact, expTimestamp) {
+        if (!contact) {
+            $.toast({
+                heading: 'No WhatsApp Number',
+                text: 'This line has no WhatsApp number set.',
+                icon: 'warning',
+                position: 'top-right'
+            });
+            return;
+        }
+
+        var expDate = expTimestamp ? new Date(expTimestamp * 1000) : null;
+        var expDateStr = expDate ? expDate.toLocaleDateString('de-DE') : 'Never';
+        var daysRemaining = 0;
+
+        if (expDate) {
+            var today = new Date();
+            var diffTime = expDate - today;
+            daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            if (daysRemaining < 0) daysRemaining = 0;
+        }
+
+        $("#wa_phone").val(contact);
+        $("#wa_username").val(username);
+        $("#wa_expdate").val(expDateStr);
+        $("#wa_daysremaining").val(daysRemaining);
+
         updateWaPreview();
+        $("#whatsappModal").modal("show");
+    }
+
+    $(document).ready(function() {
+        $("#wa_language").change(function() {
+            updateWaPreview();
+        });
     });
-});
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

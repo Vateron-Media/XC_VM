@@ -142,7 +142,8 @@ class ServiceContainer {
     /**
      * Приватный конструктор (singleton).
      */
-    private function __construct() {}
+    private function __construct() {
+    }
 
     // ─────────────────────────────────────────────────────────
     //  Регистрация
@@ -236,7 +237,7 @@ class ServiceContainer {
             if (isset($this->creating[$id])) {
                 throw new RuntimeException(
                     "ServiceContainer: циклическая зависимость при создании сервиса '{$id}'. "
-                    . "Цепочка: " . implode(' → ', array_keys($this->creating)) . " → {$id}"
+                        . "Цепочка: " . implode(' → ', array_keys($this->creating)) . " → {$id}"
                 );
             }
 
@@ -265,7 +266,7 @@ class ServiceContainer {
 
         throw new RuntimeException(
             "ServiceContainer: сервис '{$id}' не зарегистрирован. "
-            . "Доступные сервисы: " . implode(', ', $this->keys())
+                . "Доступные сервисы: " . implode(', ', $this->keys())
         );
     }
 

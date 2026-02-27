@@ -10,6 +10,7 @@ class SerieController extends BaseAdminController
 
         global $rServers;
 
+        $rSeriesArr = null;
         if (isset(CoreUtilities::$rRequest['id']) && !($rSeriesArr = getSerie(CoreUtilities::$rRequest['id']))) {
             $this->redirect('series');
             return;
@@ -19,7 +20,7 @@ class SerieController extends BaseAdminController
             unset(CoreUtilities::$rRequest['import']);
         }
 
-        $rTranscodeProfiles = getTranscodeProfiles();
+        $rTranscodeProfiles = StreamConfigRepository::getTranscodeProfiles();
 
         $rServerTree = [
             ['id' => 'source', 'parent' => '#', 'text' => "<strong class='btn btn-success waves-effect waves-light btn-xs'>Active</strong>", 'icon' => 'mdi mdi-play', 'state' => ['opened' => true]],

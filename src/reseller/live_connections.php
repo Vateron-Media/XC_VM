@@ -1,31 +1,31 @@
 <?php
 if (!isset($__viewMode)):
 
-include 'session.php';
-include 'functions.php';
+	include 'session.php';
+	include 'functions.php';
 
-if (checkResellerPermissions()) {
-} else {
-	goHome();
-}
-
-if (!isset(CoreUtilities::$rRequest['line'])) {
-} else {
-	if (hasPermissions('line', CoreUtilities::$rRequest['line'])) {
-		$rSearchLine = getUser(CoreUtilities::$rRequest['line']);
+	if (checkResellerPermissions()) {
 	} else {
-		exit();
+		goHome();
 	}
-}
 
-if (!isset(CoreUtilities::$rRequest['stream'])) {
-} else {
-	$rSearchStream = getStream(CoreUtilities::$rRequest['stream']);
-}
+	if (!isset(CoreUtilities::$rRequest['line'])) {
+	} else {
+		if (Authorization::check('line', CoreUtilities::$rRequest['line'])) {
+			$rSearchLine = UserRepository::getLineById(CoreUtilities::$rRequest['line']);
+		} else {
+			exit();
+		}
+	}
 
-$_TITLE = 'Live Connections';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('reseller');
+	if (!isset(CoreUtilities::$rRequest['stream'])) {
+	} else {
+		$rSearchStream = StreamRepository::getById(CoreUtilities::$rRequest['stream']);
+	}
+
+	$_TITLE = 'Live Connections';
+	require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+	renderUnifiedLayoutHeader('reseller');
 endif;
 echo '<div class="wrapper">' . "\r\n" . '    <div class="container-fluid">' . "\r\n\t\t" . '<div class="row">' . "\r\n\t\t\t" . '<div class="col-12">' . "\r\n\t\t\t\t" . '<div class="page-title-box">' . "\r\n\t\t\t\t\t" . '<div class="page-title-right">' . "\r\n" . '                        ';
 include __DIR__ . '/topbar.php';

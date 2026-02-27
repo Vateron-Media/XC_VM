@@ -1,51 +1,51 @@
 <?php if (!isset($__viewMode)): ?>
 <?php
 
-include 'session.php';
-include 'functions.php';
+    include 'session.php';
+    include 'functions.php';
 
-if (!checkPermissions()) {
-    goHome();
-}
+    if (!checkPermissions()) {
+        goHome();
+    }
 
-if (!isset(CoreUtilities::$rRequest['id']) || ($rProfileArr = getTranscodeProfile(CoreUtilities::$rRequest['id']))) {
-} else {
-    goHome();
-}
-
-if (isset($rProfileArr)) {
-    $rProfileOptions = json_decode($rProfileArr['profile_options'], true);
-
-    if ($rProfileOptions['software_decoding']) {
-        if (isset($rProfileOptions[9])) {
-            $rProfileOptions['gpu']['resize'] = str_replace(':', 'x', $rProfileOptions[9]['val']);
-        }
-
-        $rProfileOptions['gpu']['deint'] = intval(isset($rProfileOptions[17]));
+    if (!isset(CoreUtilities::$rRequest['id']) || ($rProfileArr = getTranscodeProfile(CoreUtilities::$rRequest['id']))) {
     } else {
-        if (isset($rProfileOptions['gpu']['resize'])) {
-            $rProfileOptions[9]['val'] = str_replace('x', ':', $rProfileOptions['gpu']['resize']);
-        }
-
-        $rProfileOptions[17]['val'] = 0 < intval($rProfileOptions['gpu']['deint']);
+        goHome();
     }
-}
 
-$rDevices = array('Off');
+    if (isset($rProfileArr)) {
+        $rProfileOptions = json_decode($rProfileArr['profile_options'], true);
 
-foreach ($rServers as $rServer) {
-    $rServer['gpu_info'] = json_decode($rServer['gpu_info'], true);
+        if ($rProfileOptions['software_decoding']) {
+            if (isset($rProfileOptions[9])) {
+                $rProfileOptions['gpu']['resize'] = str_replace(':', 'x', $rProfileOptions[9]['val']);
+            }
 
-    if (isset($rServer['gpu_info']['gpus'])) {
-        foreach ($rServer['gpu_info']['gpus'] as $rGPUID => $rGPU) {
-            $rDevices[$rServer['id'] . '_' . $rGPUID] = $rServer['server_name'] . ' - ' . $rGPU['name'];
+            $rProfileOptions['gpu']['deint'] = intval(isset($rProfileOptions[17]));
+        } else {
+            if (isset($rProfileOptions['gpu']['resize'])) {
+                $rProfileOptions[9]['val'] = str_replace('x', ':', $rProfileOptions['gpu']['resize']);
+            }
+
+            $rProfileOptions[17]['val'] = 0 < intval($rProfileOptions['gpu']['deint']);
         }
     }
-}
-$_TITLE = 'Transcoding Profile';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('admin');
-<?php endif; ?>
+
+    $rDevices = array('Off');
+
+    foreach ($rServers as $rServer) {
+        $rServer['gpu_info'] = json_decode($rServer['gpu_info'], true);
+
+        if (isset($rServer['gpu_info']['gpus'])) {
+            foreach ($rServer['gpu_info']['gpus'] as $rGPUID => $rGPU) {
+                $rDevices[$rServer['id'] . '_' . $rGPUID] = $rServer['server_name'] . ' - ' . $rGPU['name'];
+            }
+        }
+    }
+    $_TITLE = 'Transcoding Profile';
+    require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+    renderUnifiedLayoutHeader('admin');
+endif;
 ?>
 
 <div class="wrapper boxed-layout-ext" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') echo 'style="display: none;"' ?>>

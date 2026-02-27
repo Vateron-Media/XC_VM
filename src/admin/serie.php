@@ -1,35 +1,35 @@
 <?php if (!isset($__viewMode)): ?>
-<?php
+	<?php
 
-include 'session.php';
-include 'functions.php';
+	include 'session.php';
+	include 'functions.php';
 
-if (!checkPermissions()) {
-	goHome();
-}
+	if (!checkPermissions()) {
+		goHome();
+	}
 
-if (isset(CoreUtilities::$rRequest['id']) && !($rSeriesArr = getSerie(CoreUtilities::$rRequest['id']))) {
-	goHome();
-}
+	if (isset(CoreUtilities::$rRequest['id']) && !($rSeriesArr = getSerie(CoreUtilities::$rRequest['id']))) {
+		goHome();
+	}
 
-if (isset($rSeriesArr) && isset(CoreUtilities::$rRequest['import'])) {
-	unset(CoreUtilities::$rRequest['import']);
-}
+	if (isset($rSeriesArr) && isset(CoreUtilities::$rRequest['import'])) {
+		unset(CoreUtilities::$rRequest['import']);
+	}
 
-$rTranscodeProfiles = getTranscodeProfiles();
+	$rTranscodeProfiles = StreamConfigRepository::getTranscodeProfiles();
 
-$rServerTree = [
-	['id' => 'source', 'parent' => '#', 'text' => "<strong class='btn btn-success waves-effect waves-light btn-xs'>Active</strong>", 'icon' => 'mdi mdi-play', 'state' => ['opened' => true]],
-	['id' => 'offline', 'parent' => '#', 'text' => "<strong class='btn btn-secondary waves-effect waves-light btn-xs'>Offline</strong>", 'icon' => 'mdi mdi-stop', 'state' => ['opened' => true]]
-];
+	$rServerTree = [
+		['id' => 'source', 'parent' => '#', 'text' => "<strong class='btn btn-success waves-effect waves-light btn-xs'>Active</strong>", 'icon' => 'mdi mdi-play', 'state' => ['opened' => true]],
+		['id' => 'offline', 'parent' => '#', 'text' => "<strong class='btn btn-secondary waves-effect waves-light btn-xs'>Offline</strong>", 'icon' => 'mdi mdi-stop', 'state' => ['opened' => true]]
+	];
 
-foreach ($rServers as $rServer) {
-	$rServerTree[] = array('id' => $rServer['id'], 'parent' => 'offline', 'text' => $rServer['server_name'], 'icon' => 'mdi mdi-server-network', 'state' => array('opened' => true));
-}
-$_TITLE = 'TV Series';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
-renderUnifiedLayoutHeader('admin');
-?>
+	foreach ($rServers as $rServer) {
+		$rServerTree[] = array('id' => $rServer['id'], 'parent' => 'offline', 'text' => $rServer['server_name'], 'icon' => 'mdi mdi-server-network', 'state' => array('opened' => true));
+	}
+	$_TITLE = 'TV Series';
+	require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+	renderUnifiedLayoutHeader('admin');
+	?>
 <?php endif; ?>
 
 <div class="wrapper boxed-layout" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') == 'xmlhttprequest') echo ' style="display: none;"'; ?>>
@@ -214,7 +214,7 @@ renderUnifiedLayoutHeader('admin');
 													<label class="col-md-4 col-form-label" for="bouquets"><?= (isset(CoreUtilities::$rRequest['import']) ? 'Fallback ' : ''); ?>Bouquets</label>
 													<div class="col-md-8">
 														<select name="bouquets[]" id="bouquets" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">
-															<?php foreach (getBouquets() as $bouquet): ?>
+															<?php foreach (BouquetService::getAllSimple() as $bouquet): ?>
 																<?php
 																$selected = '';
 																if (isset($rSeriesArr)) {
@@ -415,7 +415,7 @@ renderUnifiedLayoutHeader('admin');
 										<label class="col-md-4 col-form-label" for="server_id"><?= $language::get('server_name'); ?></label>
 										<div class="col-md-8">
 											<select id="server_id" class="form-control" data-toggle="select2">
-												<?php foreach (getStreamingServers() as $server): ?>
+												<?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $server): ?>
 													<option value="<?= htmlspecialchars($server['id']); ?>">
 														<?= htmlspecialchars($server['server_name']); ?>
 													</option>
@@ -1026,11 +1026,11 @@ renderUnifiedLayoutFooter('admin');
 			<?php endif; ?>
 		});
 	});
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-    <?php endif; ?>
+	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+		$(document).ready(function() {
+			initSearch();
+		});
+	<?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

@@ -1,7 +1,8 @@
 <?php
 
 class SettingsService {
-	public static function edit($db, $rData, $rClearSettingsCacheCallback) {
+	public static function edit($rData, $rClearSettingsCacheCallback) {
+		global $db;
 		foreach (array('user_agent', 'http_proxy', 'cookie', 'headers') as $rKey) {
 			$db->query('UPDATE `streams_arguments` SET `argument_default_value` = ? WHERE `argument_key` = ?;', ($rData[$rKey] ?: null), $rKey);
 			unset($rData[$rKey]);
@@ -61,7 +62,8 @@ class SettingsService {
 		return array('status' => STATUS_FAILURE);
 	}
 
-	public static function editBackup($db, $rData, $rClearSettingsCacheCallback) {
+	public static function editBackup($rData, $rClearSettingsCacheCallback) {
+		global $db;
 		$rArray = verifyPostTable('settings', $rData, true);
 
 		foreach (array('dropbox_remote') as $rSetting) {
@@ -94,7 +96,8 @@ class SettingsService {
 		return array('status' => STATUS_FAILURE);
 	}
 
-	public static function editCacheCron($db, $rData, $rClearSettingsCacheCallback) {
+	public static function editCacheCron($rData, $rClearSettingsCacheCallback) {
+		global $db;
 		$rCheck = array(false, false);
 		$rCron = array('*', '*', '*', '*', '*');
 		$rPattern = '/^[0-9\/*,-]+$/';

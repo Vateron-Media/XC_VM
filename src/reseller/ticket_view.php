@@ -14,7 +14,7 @@ if (isset(CoreUtilities::$rRequest['id']) && ($rTicketInfo = getTicket(CoreUtili
 	goHome();
 }
 
-if (hasPermissions('user', $rTicketInfo['member_id'])) {
+if (Authorization::check('user', $rTicketInfo['member_id'])) {
 	if ($rUserInfo['id'] != $rTicketInfo['member_id']) {
 		$db->query('UPDATE `tickets` SET `admin_read` = 1 WHERE `id` = ?;', CoreUtilities::$rRequest['id']);
 	} else {

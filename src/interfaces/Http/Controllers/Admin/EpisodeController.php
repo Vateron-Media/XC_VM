@@ -24,7 +24,7 @@ class EpisodeController extends BaseAdminController
         }
 
         if (isset(CoreUtilities::$rRequest['id'])) {
-            $rEpisode = getStream(CoreUtilities::$rRequest['id']);
+            $rEpisode = StreamRepository::getById(CoreUtilities::$rRequest['id']);
             if (!$rEpisode || $rEpisode['type'] != 5) {
                 $this->redirect('episodes');
                 return;
@@ -49,20 +49,20 @@ class EpisodeController extends BaseAdminController
             }
 
             $rEpisode['properties'] = json_decode($rEpisode['movie_properties'], true);
-            $rStreamSys = getStreamSys(CoreUtilities::$rRequest['id']);
+            $rStreamSys = StreamRepository::getSystemRows(CoreUtilities::$rRequest['id']);
 
             foreach ($rServers as $rServer) {
                 $rParent = isset($rStreamSys[intval($rServer['id'])]) ? 'source' : 'offline';
                 $rServerTree[] = ['id' => $rServer['id'], 'parent' => $rParent, 'text' => $rServer['server_name'], 'icon' => 'mdi mdi-server-network', 'state' => ['opened' => true]];
             }
         } else {
-            if (!hasPermissions('adv', 'add_episode')) {
+            if (!Authorization::check('adv', 'add_episode')) {
                 exit();
             }
             foreach ($rServers as $rServer) {
                 $rServerTree[] = ['id' => $rServer['id'], 'parent' => 'offline', 'text' => $rServer['server_name'], 'icon' => 'mdi mdi-server-network', 'state' => ['opened' => true]];
             }
-            if (isset(CoreUtilities::$rRequest['multi']) && hasPermissions('adv', 'import_episodes')) {
+            if (isset(CoreUtilities::$rRequest['multi']) && Authorization::check('adv', 'import_episodes')) {
                 $rMulti = true;
             }
         }

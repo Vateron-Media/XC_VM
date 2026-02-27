@@ -86,7 +86,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 			break;
 
 		case 'user':
-			$rGroup = getMemberGroup(1);
+			$rGroup = GroupService::getById(1);
 
 			if ($rGroup && $rGroup['is_admin']) {
 			} else {

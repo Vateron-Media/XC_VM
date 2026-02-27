@@ -15,19 +15,19 @@ class ProcessMonitorController extends BaseAdminController
         }
 
         if (isset(CoreUtilities::$rRequest['clear'])) {
-            freeTemp(CoreUtilities::$rRequest['server']);
+            ServerRepository::freeTemp('systemapirequest', CoreUtilities::$rRequest['server']);
             header('Location: ./process_monitor?server=' . CoreUtilities::$rRequest['server']);
             exit();
         }
 
         if (isset(CoreUtilities::$rRequest['clear_s'])) {
-            freeStreams(CoreUtilities::$rRequest['server']);
+            ServerRepository::freeStreams('systemapirequest', CoreUtilities::$rRequest['server']);
             header('Location: ./process_monitor?server=' . CoreUtilities::$rRequest['server']);
             exit();
         }
 
-        $rStreams = getStreamPIDs(CoreUtilities::$rRequest['server']) ?: array();
-        $rFS = getFreeSpace(CoreUtilities::$rRequest['server']) ?: array();
+        $rStreams = StreamRepository::getPIDs(CoreUtilities::$rRequest['server'], CoreUtilities::$rSettings) ?: array();
+        $rFS = ServerRepository::getFreeSpace('systemapirequest', CoreUtilities::$rRequest['server']) ?: array();
         $rProcesses = getPIDs(CoreUtilities::$rRequest['server']) ?: array();
         $rStatus = array('D' => 'Uninterruptible Sleep', 'I' => 'Idle', 'R' => 'Running', 'S' => 'Interruptible Sleep', 'T' => 'Stopped', 'W' => 'Paging', 'X' => 'Dead', 'Z' => 'Zombie');
 

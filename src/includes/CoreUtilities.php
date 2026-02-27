@@ -73,23 +73,23 @@ class CoreUtilities {
 	}
 
 	public static function getBlockedUA($rForce = false) {
-		return BlocklistService::getBlockedUA(self::$db, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
+		return BlocklistService::getBlockedUA(array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
 	}
 
 	public static function getBlockedIPs($rForce = false) {
-		return BlocklistService::getBlockedIPs(self::$db, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
+		return BlocklistService::getBlockedIPs(array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
 	}
 
 	public static function getBlockedISP($rForce = false) {
-		return BlocklistService::getBlockedISP(self::$db, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
+		return BlocklistService::getBlockedISP(array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
 	}
 
 	public static function getBlockedServers($rForce = false) {
-		return BlocklistService::getBlockedServers(self::$db, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
+		return BlocklistService::getBlockedServers(array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
 	}
 
 	public static function getBouquets($rForce = false) {
-		return BouquetService::getAll(self::$db, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
+		return BouquetService::getAll(array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
 	}
 
 	public static function getSettings($rForce = false) {
@@ -110,7 +110,7 @@ class CoreUtilities {
 	}
 
 	public static function getServers($rForce = false) {
-		return ServerRepository::getAll(self::$db, self::$rSettings, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
+		return ServerRepository::getAll(self::$rSettings, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
 	}
 
 	public static function getMultiCURL($rURLs, $callback = null, $rTimeout = 5) {
@@ -232,7 +232,7 @@ class CoreUtilities {
 	}
 
 	public static function getCategories($rType = null, $rForce = false) {
-		return CategoryService::getFromDatabase(self::$db, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rType, $rForce);
+		return CategoryService::getFromDatabase(array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rType, $rForce);
 	}
 
 	public static function generateUniqueCode() {
@@ -257,281 +257,12 @@ class CoreUtilities {
 	}
 
 	public static function generatePlaylist($rUserInfo, $rDeviceKey, $rOutputKey = 'ts', $rTypeKey = null, $rNoCache = false, $rProxy = false) {
-		return PlaylistGenerator::generate(self::$db, self::$rSettings, self::$rServers, self::$rCategories, self::$rCached, $rUserInfo, $rDeviceKey, $rOutputKey, $rTypeKey, $rNoCache, $rProxy);
+		return PlaylistGenerator::generate(self::$rSettings, self::$rServers, self::$rCategories, self::$rCached, $rUserInfo, $rDeviceKey, $rOutputKey, $rTypeKey, $rNoCache, $rProxy);
 	}
 
 	public static function generateCron() {
-		return CronGenerator::generate(self::$db);
+		return CronGenerator::generate();
 	}
-
-	/*
-													$rEncData .= $rChannelInfo['id'] . '/' . $rChannelInfo['target_container'];
-												} else {
-													if (self::$rSettings['cloudflare'] && $rOutputExt == 'ts') {
-														$rEncData .= $rChannelInfo['id'];
-													} else {
-														$rEncData .= $rChannelInfo['id'] . '/' . $rOutputExt;
-													}
-												}
-												$rToken = CoreUtilities::encryptData($rEncData, self::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
-												$rURL = $rDomainName . 'play/' . $rToken;
-												if ($rChannelInfo['live'] != 0) {
-												} else {
-													$rURL .= '#.' . $rChannelInfo['target_container'];
-												}
-											} else {
-												$rURL = $rDomainName . $rChannelInfo['type_output'] . '/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/';
-												if ($rChannelInfo['live'] == 0) {
-													$rURL .= $rChannelInfo['id'] . '.' . $rChannelInfo['target_container'];
-												} else {
-													if (self::$rSettings['cloudflare'] && $rOutputExt == 'ts') {
-														$rURL .= $rChannelInfo['id'];
-													} else {
-														$rURL .= $rChannelInfo['id'] . '.' . $rOutputExt;
-													}
-												}
-											}
-										}
-										if ($rChannelInfo['live'] == 0) {
-											if (empty($rProperties['movie_image'])) {
-											} else {
-												$rIcon = $rProperties['movie_image'];
-											}
-										} else {
-											$rIcon = $rChannelInfo['stream_icon'];
-										}
-										$rChannel = array();
-										$rChannel['name'] = $rChannelInfo['stream_display_name'];
-										$rChannel['icon'] = self::validateImage($rIcon);
-										$rChannel['stream_url'] = $rURL;
-										$rChannel['stream_type'] = 0;
-										$rOutput['iptvstreams_list']['group']['channel'][] = $rChannel;
-									}
-								}
-								unset($rRows);
-							}
-							$rData = json_encode((object) $rOutput);
-						} else {
-							if (!empty($rDeviceInfo['device_header'])) {
-								$epgUrl = $rDomainName . 'epg/' . $rUserInfo['username'] . '/' . $rUserInfo['password'];
-								$isM3UFormat = (strpos($rDeviceInfo['device_header'], '#EXTM3U') !== false);
-
-								// If M3U format and no existing x-tvg-url, add it
-								if ($isM3UFormat && strpos($rDeviceInfo['device_header'], 'x-tvg-url') === false) {
-									$rDeviceInfo['device_header'] = str_replace('#EXTM3U', '#EXTM3U x-tvg-url="' . $epgUrl . '"', $rDeviceInfo['device_header']);
-								}
-
-								$rAppend = ($isM3UFormat ? "\n" . '#EXT-X-SESSION-DATA:DATA-ID="com.xc_vm.' . str_replace('.', '_', XC_VM_VERSION) . '"' : '');
-								$rData = str_replace(array('&lt;', '&gt;'), array('<', '>'), str_replace(array('{BOUQUET_NAME}', '{USERNAME}', '{PASSWORD}', '{SERVER_URL}', '{OUTPUT_KEY}'), array(self::$rSettings['server_name'], $rUserInfo['username'], $rUserInfo['password'], $rDomainName, $rOutputKey), $rDeviceInfo['device_header'] . $rAppend)) . "\n";
-								if ($rOutputFile) {
-									fwrite($rOutputFile, $rData);
-								}
-								echo $rData;
-								unset($rData);
-							}
-							if (!empty($rDeviceInfo['device_conf'])) {
-								if (preg_match('/\\{URL\\#(.*?)\\}/', $rDeviceInfo['device_conf'], $rMatches)) {
-									$rCharts = str_split($rMatches[1]);
-									$rPattern = $rMatches[0];
-								} else {
-									$rCharts = array();
-									$rPattern = '{URL}';
-								}
-								foreach (array_chunk($rChannelIDs, 1000) as $rBlockIDs) {
-									if (self::$rSettings['playlist_from_mysql'] || !self::$rCached) {
-										$rOrder = 'FIELD(`t1`.`id`,' . implode(',', $rBlockIDs) . ')';
-										self::$db->query('SELECT t1.id,t1.channel_id,t1.year,t1.movie_properties,t1.stream_icon,t1.custom_sid,t1.category_id,t1.stream_display_name,t2.type_output,t2.type_key,t1.target_container,t2.live,t1.tv_archive_duration,t1.tv_archive_server_id FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.type_id = t1.type WHERE `t1`.`id` IN (' . implode(',', array_map('intval', $rBlockIDs)) . ') ORDER BY ' . $rOrder . ';');
-										$rRows = self::$db->get_rows();
-									} else {
-										$rRows = array();
-										foreach ($rBlockIDs as $rID) {
-											$rRows[] = igbinary_unserialize(file_get_contents(STREAMS_TMP_PATH . 'stream_' . intval($rID)))['info'];
-										}
-									}
-									foreach ($rRows as $rChannel) {
-										if (!$rTypeKey || in_array($rChannel['type_output'], $rTypeKey)) {
-											if (!$rChannel['target_container']) {
-												$rChannel['target_container'] = 'mp4';
-											}
-
-											$rConfig = $rDeviceInfo['device_conf'];
-											if ($rDeviceInfo['device_key'] == 'm3u_plus') {
-												if (!$rChannel['live']) {
-													$rConfig = str_replace('tvg-id="{CHANNEL_ID}" ', '', $rConfig);
-												}
-												if (!$rEncryptPlaylist) {
-													$rConfig = str_replace('xc_vm-id="{XC_VM_ID}" ', '', $rConfig);
-												}
-												if (0 < $rChannel['tv_archive_server_id'] && 0 < $rChannel['tv_archive_duration']) {
-													$rConfig = str_replace('#EXTINF:-1 ', '#EXTINF:-1 timeshift="' . intval($rChannel['tv_archive_duration']) . '" ', $rConfig);
-												}
-											}
-											$rProperties = (!is_array($rChannel['movie_properties']) ? json_decode($rChannel['movie_properties'], true) : $rChannel['movie_properties']);
-											if ($rChannel['type_key'] == 'series') {
-												$rSeriesID = $rSeriesAllocation[$rChannel['id']];
-												$rChannel['live'] = 0;
-												$rChannel['stream_display_name'] = $rSeriesInfo[$rSeriesID]['title'] . ' S' . sprintf('%02d', $rSeriesEpisodes[$rChannel['id']][0]) . 'E' . sprintf('%02d', $rSeriesEpisodes[$rChannel['id']][1]);
-												$rChannel['movie_properties'] = array('movie_image' => (!empty($rProperties['movie_image']) ? $rProperties['movie_image'] : $rSeriesInfo['cover']));
-												$rChannel['type_output'] = 'series';
-												$rChannel['category_id'] = $rSeriesInfo[$rSeriesID]['category_id'];
-											} else {
-												$rChannel['stream_display_name'] = self::formatTitle($rChannel['stream_display_name'], $rChannel['year']);
-											}
-
-											if ($rChannel['live'] == 0) {
-												if (strlen($rUserInfo['access_token']) == 32) {
-													$rURL = $rDomainName . $rChannel['type_output'] . '/' . $rUserInfo['access_token'] . '/' . $rChannel['id'] . '.' . $rChannel['target_container'];
-												} else {
-													if ($rEncryptPlaylist) {
-														$rEncData = $rChannel['type_output'] . '/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rChannel['id'] . '/' . $rChannel['target_container'];
-														$rToken = CoreUtilities::encryptData($rEncData, self::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
-														$rURL = $rDomainName . 'play/' . $rToken . '#.' . $rChannel['target_container'];
-													} else {
-														$rURL = $rDomainName . $rChannel['type_output'] . '/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rChannel['id'] . '.' . $rChannel['target_container'];
-													}
-												}
-												if (!empty($rProperties['movie_image'])) {
-													$rIcon = $rProperties['movie_image'];
-												}
-											} else {
-												if ($rOutputKey != 'rtmp' || !array_key_exists($rChannel['id'], $rRTMPRows)) {
-													if (strlen($rUserInfo['access_token']) == 32) {
-														if (self::$rSettings['cloudflare'] && $rOutputExt == 'ts') {
-															$rURL = $rDomainName . $rChannel['type_output'] . '/' . $rUserInfo['access_token'] . '/' . $rChannel['id'];
-														} else {
-															$rURL = $rDomainName . $rChannel['type_output'] . '/' . $rUserInfo['access_token'] . '/' . $rChannel['id'] . '.' . $rOutputExt;
-														}
-													} else {
-														if ($rEncryptPlaylist) {
-															$rEncData = $rChannel['type_output'] . '/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rChannel['id'];
-															$rToken = CoreUtilities::encryptData($rEncData, self::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
-															if (self::$rSettings['cloudflare'] && $rOutputExt == 'ts') {
-																$rURL = $rDomainName . 'play/' . $rToken;
-															} else {
-																$rURL = $rDomainName . 'play/' . $rToken . '/' . $rOutputExt;
-															}
-														} else {
-															if (self::$rSettings['cloudflare'] && $rOutputExt == 'ts') {
-																$rURL = $rDomainName . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rChannel['id'];
-															} else {
-																$rURL = $rDomainName . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rChannel['id'] . '.' . $rOutputExt;
-															}
-														}
-													}
-												} else {
-													$rAvailableServers = array_values(array_keys($rRTMPRows[$rChannel['id']]));
-													if (in_array($rUserInfo['force_server_id'], $rAvailableServers)) {
-														$rServerID = $rUserInfo['force_server_id'];
-													} else {
-														if (self::$rSettings['rtmp_random'] == 1) {
-															$rServerID = $rAvailableServers[array_rand($rAvailableServers, 1)];
-														} else {
-															$rServerID = $rAvailableServers[0];
-														}
-													}
-													if (strlen($rUserInfo['access_token']) == 32) {
-														$rURL = self::$rServers[$rServerID]['rtmp_server'] . $rChannel['id'] . '?token=' . $rUserInfo['access_token'];
-													} else {
-														if ($rEncryptPlaylist) {
-															$rEncData = $rUserInfo['username'] . '/' . $rUserInfo['password'];
-															$rToken = CoreUtilities::encryptData($rEncData, self::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
-															$rURL = self::$rServers[$rServerID]['rtmp_server'] . $rChannel['id'] . '?token=' . $rToken;
-														} else {
-															$rURL = self::$rServers[$rServerID]['rtmp_server'] . $rChannel['id'] . '?username=' . $rUserInfo['username'] . '&password=' . $rUserInfo['password'];
-														}
-													}
-												}
-												$rIcon = $rChannel['stream_icon'];
-											}
-											$rESRID = ($rChannel['live'] == 1 ? 1 : 4097);
-											$rSID = (!empty($rChannel['custom_sid']) ? $rChannel['custom_sid'] : ':0:1:0:0:0:0:0:0:0:');
-											$rCategoryIDs = json_decode($rChannel['category_id'], true);
-
-											// If there are no categories, set the category to 0
-											if (empty($rCategoryIDs)) {
-												$rCategoryIDs = [0];
-											}
-
-											foreach ($rCategoryIDs as $rCategoryID) {
-												if (isset(self::$rCategories[$rCategoryID])) {
-													$rData = str_replace(array('&lt;', '&gt;'), array('<', '>'), str_replace(array($rPattern, '{ESR_ID}', '{SID}', '{CHANNEL_NAME}', '{CHANNEL_ID}', '{XC_VM_ID}', '{CATEGORY}', '{CHANNEL_ICON}'), array(str_replace($rCharts, array_map('urlencode', $rCharts), $rURL), $rESRID, $rSID, $rChannel['stream_display_name'], $rChannel['channel_id'], $rChannel['id'], self::$rCategories[$rCategoryID]['category_name'], self::validateImage($rIcon)), $rConfig)) . "\r\n";
-												} else {
-													$rData = str_replace(array('&lt;', '&gt;'), array('<', '>'), str_replace(array($rPattern, '{ESR_ID}', '{SID}', '{CHANNEL_NAME}', '{CHANNEL_ID}', '{XC_VM_ID}', '{CHANNEL_ICON}'), array(str_replace($rCharts, array_map('urlencode', $rCharts), $rURL), $rESRID, $rSID, $rChannel['stream_display_name'], $rChannel['channel_id'], $rChannel['id'], $rIcon), $rConfig)) . "\r\n";
-													$rData = str_replace(' group-title="{CATEGORY}"', "", $rData);
-												}
-												if ($rOutputFile) {
-													fwrite($rOutputFile, $rData);
-												}
-												echo $rData;
-												unset($rData);
-
-												// Break the loop if the playlist does not support categories
-												if (stripos($rDeviceInfo['device_conf'], '{CATEGORY}') === false) {
-													break;
-												}
-											}
-										}
-									}
-									unset($rRows);
-								}
-								$rData = trim(str_replace(array('&lt;', '&gt;'), array('<', '>'), $rDeviceInfo['device_footer']));
-								if ($rOutputFile) {
-									fwrite($rOutputFile, $rData);
-								}
-								echo $rData;
-								unset($rData);
-							}
-						}
-						if ($rOutputFile) {
-							fclose($rOutputFile);
-							rename(PLAYLIST_PATH . md5($rCacheName) . '.write', PLAYLIST_PATH . md5($rCacheName));
-						}
-						exit();
-					} else {
-						header('Content-Description: File Transfer');
-						header('Content-Type: audio/mpegurl');
-						header('Expires: 0');
-						header('Cache-Control: must-revalidate');
-						header('Pragma: public');
-						header('Content-Disposition: attachment; filename="' . $rFilename . '"');
-						header('Content-Length: ' . filesize(PLAYLIST_PATH . md5($rCacheName)));
-						readfile(PLAYLIST_PATH . md5($rCacheName));
-						exit();
-					}
-				} else {
-					exit();
-				}
-			} else {
-				return false;
-			}
-		} else {
-			return false;
-		}
-	}
-	public static function generateCron() {
-		if (!file_exists(TMP_PATH . 'crontab')) {
-			$rJobs = array();
-			self::$db->query('SELECT * FROM `crontab` WHERE `enabled` = 1;');
-			foreach (self::$db->get_rows() as $rRow) {
-				$rFullPath = CRON_PATH . $rRow['filename'];
-				if (pathinfo($rFullPath, PATHINFO_EXTENSION) == 'php' && file_exists($rFullPath)) {
-					$rJobs[] = $rRow['time'] . ' ' . PHP_BIN . ' ' . $rFullPath . ' # XC_VM';
-				}
-			}
-			shell_exec('crontab -r');
-			$rTempName = tempnam('/tmp', 'crontab');
-			$rHandle = fopen($rTempName, 'w');
-			fwrite($rHandle, implode("\n", $rJobs) . "\n");
-			fclose($rHandle);
-			shell_exec('crontab -u xc_vm ' . $rTempName);
-			@unlink($rTempName);
-			file_put_contents(TMP_PATH . 'crontab', 1);
-			return true;
-		} else {
-			return false;
-		}
-	}
-	*/
 	public static function secondsToTime($rInputSeconds, $rInclSecs = true) {
 		$rSecondsInAMinute = 60;
 		$rSecondsInAnHour = 60 * $rSecondsInAMinute;
@@ -575,13 +306,13 @@ class CoreUtilities {
 		return StreamProcess::deleteCache($rSources);
 	}
 	public static function queueChannel($rStreamID, $rServerID = null) {
-		StreamProcess::queueChannel(self::$db, $rStreamID, $rServerID);
+		StreamProcess::queueChannel($rStreamID, $rServerID);
 	}
 	public static function createChannel($rStreamID) {
 		return StreamProcess::createChannel($rStreamID);
 	}
 	public static function createChannelItem($rStreamID, $rSource) {
-		return FFmpegCommand::createChannelItem(self::$db, self::$rSettings, self::$rServers, self::$rFFMPEG_CPU, self::$rFFMPEG_GPU, $rStreamID, $rSource);
+		return FFmpegCommand::createChannelItem(self::$rSettings, self::$rServers, self::$rFFMPEG_CPU, self::$rFFMPEG_GPU, $rStreamID, $rSource);
 	}
 	public static function extractSubtitle($rStreamID, $rSourceURL, $rIndex) {
 		return SubtitleExtractor::extractSubtitle(self::$rFFMPEG_CPU, self::$rSettings, $rStreamID, $rSourceURL, $rIndex);
@@ -593,7 +324,7 @@ class CoreUtilities {
 		return FFprobeRunner::parseFFProbe($rCodecs);
 	}
 	public static function stopStream($rStreamID, $rStop = false) {
-		StreamProcess::stopStream(self::$db, $rStreamID, $rStop);
+		StreamProcess::stopStream($rStreamID, $rStop);
 	}
 	public static function checkPID($rPID, $rSearch) {
 		return ProcessChecker::checkPID($rPID, $rSearch);
@@ -608,19 +339,19 @@ class CoreUtilities {
 		return StreamProcess::startThumbnail($rStreamID);
 	}
 	public static function stopMovie($rStreamID, $rForce = false) {
-		StreamProcess::stopMovie(self::$db, $rStreamID, $rForce);
+		StreamProcess::stopMovie($rStreamID, $rForce);
 	}
 	public static function queueMovie($rStreamID, $rServerID = null) {
-		StreamProcess::queueMovie(self::$db, $rStreamID, $rServerID);
+		StreamProcess::queueMovie($rStreamID, $rServerID);
 	}
 	public static function queueMovies($rStreamIDs, $rServerID = null) {
-		StreamProcess::queueMovies(self::$db, $rStreamIDs, $rServerID);
+		StreamProcess::queueMovies($rStreamIDs, $rServerID);
 	}
 	public static function refreshMovies($rIDs, $rType = 1) {
-		StreamProcess::refreshMovies(self::$db, $rIDs, $rType);
+		StreamProcess::refreshMovies($rIDs, $rType);
 	}
 	public static function startMovie($rStreamID) {
-		return StreamProcess::startMovie(self::$db, self::$rSettings, self::$rServers, self::$rFFMPEG_CPU, self::$rFFMPEG_GPU, $rStreamID);
+		return StreamProcess::startMovie(self::$rSettings, self::$rServers, self::$rFFMPEG_CPU, self::$rFFMPEG_GPU, $rStreamID);
 	}
 	public static function fixCookie($rCookie) {
 		$rPath = false;
@@ -652,10 +383,10 @@ class CoreUtilities {
 		return $rCookie;
 	}
 	public static function startLLOD($rStreamID, $rStreamInfo, $rStreamArguments, $rForceSource = null) {
-		return StreamProcess::startLLOD(self::$db, $rStreamID, $rStreamInfo, $rStreamArguments, $rForceSource);
+		return StreamProcess::startLLOD($rStreamID, $rStreamInfo, $rStreamArguments, $rForceSource);
 	}
 	public static function startLoopback($rStreamID) {
-		return StreamProcess::startLoopback(self::$db, self::$rSettings, self::$rServers, $rStreamID);
+		return StreamProcess::startLoopback(self::$rSettings, self::$rServers, $rStreamID);
 	}
 
 	/**
@@ -679,7 +410,7 @@ class CoreUtilities {
 	 * @return array|false|int Returns array with stream details on success, false on failure, or 0 when stream is empty/invalid
 	 */
 	public static function startStream($rStreamID, $rFromCache = false, $rForceSource = null, $rLLOD = false, $rStartPos = 0) {
-		return StreamProcess::startStream(self::$db, self::$rSettings, self::$rServers, self::$rSegmentSettings, self::$rFFMPEG_CPU, self::$rFFMPEG_GPU, self::$rFFPROBE, $rStreamID, $rFromCache, $rForceSource, $rLLOD, $rStartPos);
+		return StreamProcess::startStream(self::$rSettings, self::$rServers, self::$rSegmentSettings, self::$rFFMPEG_CPU, self::$rFFMPEG_GPU, self::$rFFPROBE, $rStreamID, $rFromCache, $rForceSource, $rLLOD, $rStartPos);
 	}
 
 	public static function getArguments($rArguments, $rProtocol, $rType) {
@@ -1698,7 +1429,7 @@ class CoreUtilities {
 		if (self::$rSettings['redis_handler'] && !is_object(self::$redis)) {
 			self::connectRedis();
 		}
-		return ConnectionTracker::getCapacity(self::$rSettings, self::$rServers, self::$redis, self::$db, $rProxy);
+		return ConnectionTracker::getCapacity(self::$rSettings, self::$rServers, self::$redis, $rProxy);
 	}
 
 	/**
@@ -1729,7 +1460,7 @@ class CoreUtilities {
 		if (self::$rSettings['redis_handler'] && !is_object(self::$redis)) {
 			self::connectRedis();
 		}
-		return ConnectionTracker::getConnections(self::$rSettings, self::$redis, self::$db, $rServerID, $rUserID, $rStreamID);
+		return ConnectionTracker::getConnections(self::$rSettings, self::$redis, $rServerID, $rUserID, $rStreamID);
 	}
 
 	public static function getEnded() {
@@ -1747,22 +1478,22 @@ class CoreUtilities {
 		return BouquetService::getMapEntry($rStreamID);
 	}
 	public static function updateStream($rStreamID, $rForce = false) {
-		return StreamProcess::updateStream(self::$db, self::$rCached, self::getMainID(), $rStreamID, $rForce);
+		return StreamProcess::updateStream(self::$rCached, self::getMainID(), $rStreamID, $rForce);
 	}
 	public static function updateStreams($rStreamIDs) {
-		return StreamProcess::updateStreams(self::$db, self::$rCached, self::getMainID(), $rStreamIDs);
+		return StreamProcess::updateStreams(self::$rCached, self::getMainID(), $rStreamIDs);
 	}
 	public static function deleteLine($rUserID, $rForce = false) {
-		LineService::deleteLineSignal(self::$db, self::$rCached, self::getMainID(), $rUserID, $rForce);
+		LineService::deleteLineSignal(self::$rCached, self::getMainID(), $rUserID, $rForce);
 	}
 	public static function deleteLines($rUserIDs, $rForce = false) {
-		LineService::deleteLinesSignal(self::$db, self::$rCached, self::getMainID(), $rUserIDs, $rForce);
+		LineService::deleteLinesSignal(self::$rCached, self::getMainID(), $rUserIDs, $rForce);
 	}
 	public static function updateLine($rUserID, $rForce = false) {
-		return LineService::updateLineSignal(self::$db, self::$rCached, self::getMainID(), $rUserID, $rForce);
+		return LineService::updateLineSignal(self::$rCached, self::getMainID(), $rUserID, $rForce);
 	}
 	public static function updateLines($rUserIDs) {
-		return LineService::updateLinesSignal(self::$db, self::$rCached, self::getMainID(), $rUserIDs);
+		return LineService::updateLinesSignal(self::$rCached, self::getMainID(), $rUserIDs);
 	}
 	public static function getMainID() {
 		return ConnectionTracker::getMainID(self::$rServers);

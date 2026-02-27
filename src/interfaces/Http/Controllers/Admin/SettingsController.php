@@ -14,7 +14,7 @@ class SettingsController extends BaseAdminController
         $this->requirePermission();
 
         $rSettings = getSettings();
-        $rStreamArguments = getStreamArguments();
+        $rStreamArguments = StreamConfigRepository::getStreamArguments();
 
         $versionData = json_decode(@file_get_contents(BIN_PATH . 'maxmind/version.json'), true) ?: [];
         $GeoLite2 = $versionData['geolite2_version'] ?? 'N/A';

@@ -1,8 +1,9 @@
 <?php
 
 class ServerService {
-	public static function process($rData, $db) {
-		if (!hasPermissions('adv', 'edit_server')) {
+	public static function process($rData) {
+		global $db;
+		if (!Authorization::check('adv', 'edit_server')) {
 			exit();
 		}
 
@@ -123,7 +124,7 @@ class ServerService {
 			unlink(CACHE_TMP_PATH . 'servers');
 		}
 
-		$rFS = getFreeSpace($rInsertID);
+		$rFS = ServerRepository::getFreeSpace('systemapirequest', $rInsertID);
 		$rMounted = false;
 		foreach ($rFS as $rMount) {
 			if ($rMount['mount'] == rtrim(STREAMS_PATH, '/')) {
@@ -141,8 +142,9 @@ class ServerService {
 		return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
 	}
 
-	public static function processProxy($rData, $db) {
-		if (!hasPermissions('adv', 'edit_server')) {
+	public static function processProxy($rData) {
+		global $db;
+		if (!Authorization::check('adv', 'edit_server')) {
 			exit();
 		}
 
@@ -191,8 +193,9 @@ class ServerService {
 		return array('status' => STATUS_FAILURE, 'data' => $rData);
 	}
 
-	public static function install($rData, $db, $rServers, $rProxyServers) {
-		if (!hasPermissions('adv', 'add_server')) {
+	public static function install($rData, $rServers, $rProxyServers) {
+		global $db;
+		if (!Authorization::check('adv', 'add_server')) {
 			exit();
 		}
 
@@ -266,7 +269,8 @@ class ServerService {
 		return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
 	}
 
-	public static function reorder($rData, $db) {
+	public static function reorder($rData) {
+		global $db;
 		$rPostServers = json_decode($rData['server_order'], true);
 		if (count($rPostServers) > 0) {
 			foreach ($rPostServers as $rOrder => $rPostServer) {

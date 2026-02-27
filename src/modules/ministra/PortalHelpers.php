@@ -1,20 +1,19 @@
 <?php
+
 /**
  * PortalHelpers — статические хелперы для Ministra/Stalker портала.
  *
  * Извлечено из ministra/portal.php — функции для получения контента
  * (каналы, фильмы, сериалы, радио, EPG) и управления устройствами.
  */
-class PortalHelpers
-{
+class PortalHelpers {
     // ─── Устройство / кэш ───────────────────────────────────────────
 
     /**
      * Получить устройство MAG по ID или MAC.
      * Загружает из кэша (igbinary) или БД, собирает права из букетов.
      */
-    public static function getDevice($rID = null, $rMAC = null)
-    {
+    public static function getDevice($rID = null, $rMAC = null) {
         global $db;
         global $rIP;
         StreamingUtilities::$rBouquets = StreamingUtilities::getCache('bouquets');
@@ -112,8 +111,7 @@ class PortalHelpers
     /**
      * Сохранить кэш устройства в файл.
      */
-    public static function updateCache(&$rDevice)
-    {
+    public static function updateCache(&$rDevice) {
         file_put_contents(MINISTRA_TMP_PATH . 'ministra_' . $rDevice['mag_id'], igbinary_serialize($rDevice));
     }
 
@@ -122,8 +120,7 @@ class PortalHelpers
     /**
      * Получить EPG для стрима.
      */
-    public static function getEPG($rStreamID, $rStartDate = null, $rFinishDate = null, $rByID = false)
-    {
+    public static function getEPG($rStreamID, $rStartDate = null, $rFinishDate = null, $rByID = false) {
         $rReturn = array();
         $rData = (file_exists(EPG_PATH . 'stream_' . $rStreamID)
             ? igbinary_unserialize(file_get_contents(EPG_PATH . 'stream_' . $rStreamID))
@@ -146,8 +143,7 @@ class PortalHelpers
     /**
      * Получить EPG для нескольких стримов.
      */
-    public static function getEPGs($rStreamIDs, $rStartDate = null, $rFinishDate = null)
-    {
+    public static function getEPGs($rStreamIDs, $rStartDate = null, $rFinishDate = null) {
         $rReturn = array();
 
         foreach ($rStreamIDs as $rStreamID) {
@@ -160,8 +156,7 @@ class PortalHelpers
     /**
      * Получить конкретную программу.
      */
-    public static function getProgramme($rStreamID, $rProgrammeID)
-    {
+    public static function getProgramme($rStreamID, $rProgrammeID) {
         $rData = self::getEPG($rStreamID, null, null, true);
 
         if (!isset($rData[$rProgrammeID])) {
@@ -175,8 +170,7 @@ class PortalHelpers
     /**
      * Преобразовать строковые типы в числовые.
      */
-    public static function convertTypes($rTypes)
-    {
+    public static function convertTypes($rTypes) {
         $rReturn = array();
         $rTypeInt = array('live' => 1, 'movie' => 2, 'created_live' => 3, 'radio_streams' => 4, 'series' => 5);
 
@@ -191,8 +185,7 @@ class PortalHelpers
      * Универсальный запрос контента.
      * Используется для каналов, фильмов, радио, эпизодов.
      */
-    public static function getItems($rDevice, $rTypes = array(), $rCategoryID = null, $rFav = null, $rOrderBy = null, $rSearchBy = null, $rPicking = array(), $rStart = 0, $rLimit = 10, $additionalOptions = null)
-    {
+    public static function getItems($rDevice, $rTypes = array(), $rCategoryID = null, $rFav = null, $rOrderBy = null, $rSearchBy = null, $rPicking = array(), $rStart = 0, $rLimit = 10, $additionalOptions = null) {
         global $db;
         $rAdded = false;
         $rChannels = array();
@@ -352,8 +345,7 @@ class PortalHelpers
     /**
      * Получить список сериалов с фильтрацией и сортировкой.
      */
-    public static function getSeriesItems($rDevice, $rUserID, $rType = 'series', $rCategoryID = null, $rFav = null, $rOrderBy = null, $rSearchBy = null, $rPicking = array())
-    {
+    public static function getSeriesItems($rDevice, $rUserID, $rType = 'series', $rCategoryID = null, $rFav = null, $rOrderBy = null, $rSearchBy = null, $rPicking = array()) {
         global $db;
 
         if (0 < count($rDevice['series_ids'])) {
@@ -419,8 +411,7 @@ class PortalHelpers
     /**
      * Получить сезоны определённого сериала.
      */
-    public static function getSeasons($rSeriesID)
-    {
+    public static function getSeasons($rSeriesID) {
         global $db;
         $db->query('SELECT * FROM `streams_episodes` t1 INNER JOIN `streams` t2 ON t2.id=t1.stream_id WHERE t1.series_id = ? ORDER BY t1.season_num DESC, t1.episode_num ASC', $rSeriesID);
 
@@ -432,8 +423,7 @@ class PortalHelpers
     /**
      * Получить список фильмов в формате Stalker API.
      */
-    public static function getMovies($rDevice, $rPageItems, $rForceProtocol, $rCategoryID = null, $rFav = null, $rOrderBy = null, $rSearchBy = null, $rPicking = array())
-    {
+    public static function getMovies($rDevice, $rPageItems, $rForceProtocol, $rCategoryID = null, $rFav = null, $rOrderBy = null, $rSearchBy = null, $rPicking = array()) {
         $rDefaultPage = false;
         $rPage = (!empty(StreamingUtilities::$rRequest['p']) ? StreamingUtilities::$rRequest['p'] : 0);
 
@@ -500,8 +490,7 @@ class PortalHelpers
     /**
      * Получить список сериалов/сезонов в формате Stalker API.
      */
-    public static function getSeries($rDevice, $rPageItems, $rForceProtocol, $rMovieID = null, $rCategoryID = null, $rFav = null, $rOrderBy = null, $rSearchBy = null, $rPicking = array())
-    {
+    public static function getSeries($rDevice, $rPageItems, $rForceProtocol, $rMovieID = null, $rCategoryID = null, $rFav = null, $rOrderBy = null, $rSearchBy = null, $rPicking = array()) {
         global $db;
         $rPage = (!empty(StreamingUtilities::$rRequest['p']) ? StreamingUtilities::$rRequest['p'] : 0);
         $rDefaultPage = false;
@@ -614,8 +603,7 @@ class PortalHelpers
     /**
      * Получить список радиостанций в формате Stalker API.
      */
-    public static function getStations($rDevice, $rPlayer, $rPageItems, $rCategoryID = null, $rFav = null, $rOrderBy = null)
-    {
+    public static function getStations($rDevice, $rPlayer, $rPageItems, $rCategoryID = null, $rFav = null, $rOrderBy = null) {
         $rDefaultPage = false;
         $rPage = (!empty(StreamingUtilities::$rRequest['p']) ? StreamingUtilities::$rRequest['p'] : 0);
 
@@ -665,8 +653,7 @@ class PortalHelpers
     /**
      * Получить список live-каналов в формате Stalker API.
      */
-    public static function getStreams($rDevice, $rPlayer, $rPageItems, $rTimezone, $rForceProtocol, $rCategoryID = null, $rAll = false, $rFav = null, $rOrderBy = null, $rSearchBy = null)
-    {
+    public static function getStreams($rDevice, $rPlayer, $rPageItems, $rTimezone, $rForceProtocol, $rCategoryID = null, $rAll = false, $rFav = null, $rOrderBy = null, $rSearchBy = null) {
         $rDefaultPage = false;
         $rPage = (isset(StreamingUtilities::$rRequest['p']) ? intval(StreamingUtilities::$rRequest['p']) : 0);
         $rPosition = 0;
@@ -759,8 +746,7 @@ class PortalHelpers
 
     // ─── Сортировка ──────────────────────────────────────────────────
 
-    public static function sortArrayStreamRating($a, $b)
-    {
+    public static function sortArrayStreamRating($a, $b) {
         if (isset($a['rating'])) {
         } else {
             if (isset($a['movie_properties']) && isset($b['movie_properties'])) {
@@ -787,8 +773,7 @@ class PortalHelpers
         return 0;
     }
 
-    public static function sortArrayStreamAdded($a, $b)
-    {
+    public static function sortArrayStreamAdded($a, $b) {
         $rColumn = (isset($a['added']) ? 'added' : 'last_modified');
 
         if (is_numeric($a[$rColumn])) {
@@ -808,8 +793,7 @@ class PortalHelpers
         return 0;
     }
 
-    public static function sortArrayStreamNumber($a, $b)
-    {
+    public static function sortArrayStreamNumber($a, $b) {
         if ($a['number'] != $b['number']) {
             return ($a['number'] < $b['number'] ? -1 : 1);
         }
@@ -817,8 +801,7 @@ class PortalHelpers
         return 0;
     }
 
-    public static function sortArrayStreamName($a, $b)
-    {
+    public static function sortArrayStreamName($a, $b) {
         $rColumn = (isset($a['stream_display_name']) ? 'stream_display_name' : 'title');
 
         return strcmp($a[$rColumn], $b[$rColumn]);
@@ -829,8 +812,7 @@ class PortalHelpers
     /**
      * Извлечь HTTP-заголовки из $_SERVER.
      */
-    public static function getHeaders()
-    {
+    public static function getHeaders() {
         $rHeaders = array();
 
         foreach ($_SERVER as $rName => $rValue) {
@@ -846,8 +828,7 @@ class PortalHelpers
     /**
      * Shutdown callback: закрыть MySQL-соединение.
      */
-    public static function shutdown()
-    {
+    public static function shutdown() {
         global $db;
 
         if (!is_object($db)) {

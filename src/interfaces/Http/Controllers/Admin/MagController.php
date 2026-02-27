@@ -2,15 +2,14 @@
 /**
  * XC_VM — Контроллер редактирования MAG-устройства (admin/mag.php)
  */
-namespace App\Http\Controllers\Admin;
 
 class MagController extends BaseAdminController {
     public function index() {
         $this->requirePermission();
 
         $rDevice = null;
-        if (isset(\CoreUtilities::$rRequest['id'])) {
-            $rDevice = getMag(\CoreUtilities::$rRequest['id']);
+        if (isset(CoreUtilities::$rRequest['id'])) {
+            $rDevice = getMag(CoreUtilities::$rRequest['id']);
             if (!$rDevice['user_id']) {
                 exit();
             }

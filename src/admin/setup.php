@@ -62,15 +62,15 @@ if (!isset(CoreUtilities::$rRequest['update'])):
                 $rArray['last_login'] = time();
                 $rArray['date_registered'] = $rArray['last_login'];
                 $rArray['member_group_id'] = 1;
-                $rArray['ip'] = getIP();
+                $rArray['ip'] = CoreUtilities::getUserIP();
                 $rArray['last_login'] = time();
                 $rPrepare = prepareArray($rArray);
                 $rQuery = 'INSERT INTO `users`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
                 if ($db->query($rQuery, ...$rPrepare['data'])) {
                     $_SESSION['hash'] = $db->last_insert_id();
-                    $_SESSION['ip'] = getIP();
-                    $_SESSION['code'] = getCurrentCode();
+                    $_SESSION['ip'] = CoreUtilities::getUserIP();
+                    $_SESSION['code'] = AuthRepository::getCurrentCode();
                     $_SESSION['verify'] = md5($rArray['username'] . '||' . $rArray['password']);
                     $db->query('UPDATE `servers` SET `server_ip` = ? WHERE `is_main` = 1 AND `server_type` = 0 LIMIT 1;', $_SERVER['SERVER_ADDR']);
                     $db->query('UPDATE `settings` SET `live_streaming_pass` = ? WHERE `id` = 1', generateString(25));
@@ -301,9 +301,9 @@ if (!isset(CoreUtilities::$rRequest['update'])):
         </div>
     </div>
     <?php
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
-renderUnifiedLayoutFooter('admin');
-?>
+    require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+    renderUnifiedLayoutFooter('admin');
+    ?>
     <?php if ($rMigrating): ?>
         <script>
             function getMigrationStatus() {

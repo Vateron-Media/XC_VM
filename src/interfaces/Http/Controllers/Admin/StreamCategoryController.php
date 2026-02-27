@@ -10,7 +10,7 @@ class StreamCategoryController extends BaseAdminController
 
         if (isset(CoreUtilities::$rRequest['id'])) {
             $rCategoryArr = getCategory(CoreUtilities::$rRequest['id']);
-            if (!$rCategoryArr || !hasPermissions('adv', 'edit_cat')) {
+            if (!$rCategoryArr || !Authorization::check('adv', 'edit_cat')) {
                 exit();
             }
         }

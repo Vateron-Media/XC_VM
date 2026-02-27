@@ -11,9 +11,9 @@ class LineController extends BaseAdminController
         $db = $GLOBALS['db'];
 
         if (isset(CoreUtilities::$rRequest['id'])) {
-            $rLine = getUser(CoreUtilities::$rRequest['id']);
+            $rLine = UserRepository::getLineById(CoreUtilities::$rRequest['id']);
 
-            if (!$rLine || !hasPermissions('adv', 'edit_user')) {
+            if (!$rLine || !Authorization::check('adv', 'edit_user')) {
                 goHome();
             }
 
@@ -37,13 +37,13 @@ class LineController extends BaseAdminController
                 }
             }
         } else {
-            if (!hasPermissions('adv', 'add_user')) {
+            if (!Authorization::check('adv', 'add_user')) {
                 goHome();
             }
             $rLine = null;
         }
 
-        $rRegisteredUsers = getRegisteredUsers();
+        $rRegisteredUsers = UserRepository::getRegisteredUsers();
 
         $data = ['rRegisteredUsers' => $rRegisteredUsers];
         if ($rLine) {

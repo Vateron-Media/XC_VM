@@ -11,7 +11,7 @@ class CreatedChannelMassController extends BaseAdminController
         global $rServers;
 
         $rCategories = getCategories('live');
-        $rTranscodeProfiles = getTranscodeProfiles();
+        $rTranscodeProfiles = StreamConfigRepository::getTranscodeProfiles();
         $rServerTree = array(
             array('id' => 'source', 'parent' => '#', 'text' => "<strong class='btn btn-success waves-effect waves-light btn-xs'>Active</strong>", 'icon' => 'mdi mdi-play', 'state' => array('opened' => true)),
             array('id' => 'offline', 'parent' => '#', 'text' => "<strong class='btn btn-secondary waves-effect waves-light btn-xs'>Offline</strong>", 'icon' => 'mdi mdi-stop', 'state' => array('opened' => true))

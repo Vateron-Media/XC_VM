@@ -2,7 +2,6 @@
 /**
  * XC_VM — Контроллер списка тикетов (admin/tickets.php)
  */
-namespace App\Http\Controllers\Admin;
 
 class TicketsController extends BaseAdminController {
     public function index() {
