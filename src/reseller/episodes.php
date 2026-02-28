@@ -10,7 +10,7 @@ if (!isset($__viewMode)):
 	}
 
 	$_TITLE = 'Episodes';
-	require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+	require_once __DIR__ . '/../public/Views/layouts/admin.php';
 	renderUnifiedLayoutHeader('reseller');
 endif;
 echo '<div class="wrapper boxed-layout-ext">' . "\n" . '    <div class="container-fluid">' . "\n" . '        <div class="row">' . "\n" . '            <div class="col-12">' . "\n" . '                <div class="page-title-box">' . "\n" . '                    <div class="page-title-right">' . "\n" . '                        ';
@@ -115,5 +115,5 @@ foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) {
 	echo '</option>' . "\n" . '                                    ';
 }
 echo '                                </select>' . "\n" . '                            </div>' . "\n" . '                        </div>' . "\n" . '                        <table id="datatable-streampage" class="table table-striped table-borderless dt-responsive nowrap font-normal">' . "\n" . '                            <thead>' . "\n" . '                                <tr>' . "\n" . '                                    <th class="text-center">ID</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">Image</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th>Name</th>' . "\n" . '                                    <th>Category</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">Connections</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">Kill</th>' . "\n" . '                                </tr>' . "\n" . '                            </thead>' . "\n" . '                            <tbody></tbody>' . "\n" . '                        </table>' . "\n" . '                    </div> ' . "\n" . '                </div> ' . "\n" . '            </div>' . "\n" . '        </div>' . "\n" . '    </div>' . "\n" . '</div>' . "\n";
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
 renderUnifiedLayoutFooter('reseller');

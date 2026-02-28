@@ -16,7 +16,7 @@
  *      — Через access code: nginx передаёт XC_SCOPE и XC_CODE через fastcgi_param
  *      — Напрямую: URL /admin/... или /reseller/... → scope из пути
  *   3. Загружается bootstrap (session → functions → includes/admin)
- *   4. Загружаются маршруты из interfaces/Http/routes/{scope}.php
+ *   4. Загружаются маршруты из public/routes/{scope}.php
  *   5. Router пытается dispatch(pageName, method):
  *      — Если маршрут зарегистрирован → вызывает Controller
  *      — Если нет → fallback: include legacy файл admin/{pageName}.php
@@ -57,7 +57,7 @@
  *   location @fc_#CODE# {
  *       fastcgi_param XC_SCOPE #TYPE#;
  *       fastcgi_param XC_CODE  #CODE#;
- *       fastcgi_param SCRIPT_FILENAME /home/xc_vm/interfaces/Http/public/index.php;
+ *       fastcgi_param SCRIPT_FILENAME /home/xc_vm/public/index.php;
  *       fastcgi_pass php;
  *       include fastcgi_params;
  *   }
@@ -76,8 +76,8 @@
  * @see core/Http/Router.php
  * @see domain/Auth/CodeRepository.php
  * @see bin/nginx/conf/codes/template
- * @see interfaces/Http/routes/admin.php
- * @see interfaces/Http/routes/api.php
+ * @see public/routes/admin.php
+ * @see public/routes/api.php
  */
 
 // ─────────────────────────────────────────────────────────────────
@@ -85,8 +85,8 @@
 // ─────────────────────────────────────────────────────────────────
 
 if (!defined('MAIN_HOME')) {
-    // interfaces/Http/public/index.php → 3 уровня до корня (src/)
-    define('MAIN_HOME', dirname(__DIR__, 3) . '/');
+    // public/index.php → 1 уровень до корня (src/)
+    define('MAIN_HOME', dirname(__DIR__) . '/');
 }
 
 // ─────────────────────────────────────────────────────────────────

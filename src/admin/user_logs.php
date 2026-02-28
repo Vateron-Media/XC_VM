@@ -10,7 +10,7 @@ if (!isset($__viewMode)):
 	}
 
 	$_TITLE = 'User Logs';
-	require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+	require_once __DIR__ . '/../public/Views/layouts/admin.php';
 	renderUnifiedLayoutHeader('admin');
 endif; // !$__viewMode
 
@@ -50,7 +50,7 @@ foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) {
 }
 echo "\t\t\t\t\t\t\t\t" . '</select>' . "\r\n\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t" . '<table id="datatable-activity" class="table table-striped table-borderless dt-responsive nowrap">' . "\r\n\t\t\t\t\t\t\t" . '<thead>' . "\r\n\t\t\t\t\t\t\t\t" . '<tr>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">ID</th>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<th>Reseller</th>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<th>Line / Device</th>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<th>Action</th>' . "\r\n" . '                                    <th class="text-center">Cost</th>' . "\r\n" . '                                    <th class="text-center">Credits Remaining</th>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">Date</th>' . "\r\n\t\t\t\t\t\t\t\t" . '</tr>' . "\r\n\t\t\t\t\t\t\t" . '</thead>' . "\r\n\t\t\t\t\t\t\t" . '<tbody></tbody>' . "\r\n\t\t\t\t\t\t" . '</table>' . "\r\n\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t" . '</div> ' . "\r\n\t\t\t" . '</div>' . "\r\n\t\t" . '</div>' . "\r\n\t" . '</div>' . "\r\n" . '</div>' . "\r\n";
 
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
 ?>
 <script id="scripts">

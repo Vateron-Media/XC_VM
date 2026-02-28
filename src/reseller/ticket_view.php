@@ -22,7 +22,7 @@ if (Authorization::check('user', $rTicketInfo['member_id'])) {
 	}
 
 	$_TITLE = 'View Ticket';
-	require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+	require_once __DIR__ . '/../public/Views/layouts/admin.php';
 	renderUnifiedLayoutHeader('reseller');
 	endif;
 	echo '<div class="wrapper boxed-layout-ext">' . "\r\n" . '    <div class="container-fluid">' . "\r\n\t\t" . '<div class="row">' . "\r\n\t\t\t" . '<div class="col-12">' . "\r\n\t\t\t\t" . '<div class="page-title-box">' . "\r\n\t\t\t\t\t" . '<div class="page-title-right">' . "\r\n" . '                        ';
@@ -54,7 +54,7 @@ if (Authorization::check('user', $rTicketInfo['member_id'])) {
 		echo '</p>' . "\r\n\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t" . '</article>' . "\r\n\t\t\t\t\t";
 	}
 	echo "\t\t\t\t" . '</div>' . "\r\n\t\t\t" . '</div>' . "\r\n\t\t" . '</div>' . "\r\n\t" . '</div>' . "\r\n" . '</div>' . "\r\n";
-	require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+	require_once __DIR__ . '/../public/Views/layouts/footer.php';
 	renderUnifiedLayoutFooter('reseller');
 } else {
 	exit();

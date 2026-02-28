@@ -25,7 +25,7 @@ if (!isset($__viewMode)):
 
     $_TITLE = $rType == 1 ? 'Install Proxy' : 'Install Server';
 
-    require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+    require_once __DIR__ . '/../public/Views/layouts/admin.php';
     renderUnifiedLayoutHeader('admin');
 endif; // !$__viewMode
 echo '<div class="wrapper boxed-layout"';
@@ -203,7 +203,7 @@ if (isset($rServerArr) && $rServerArr['is_main'] == 1) {
 }
 
 echo "\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t" . '</div> ' . "\n\t\t\t" . '</div> ' . "\n\t\t" . '</div>' . "\n\t" . '</div>' . "\n" . '</div>' . "\n";
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
 renderUnifiedLayoutFooter('admin'); ?>
 <script id="scripts">
     var resizeObserver = new ResizeObserver(entries => $(window).scroll());

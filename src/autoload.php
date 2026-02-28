@@ -488,7 +488,7 @@ class XC_Autoloader {
         self::addDirectory($base . 'domain');
         self::addDirectory($base . 'streaming');
         self::addDirectory($base . 'modules');
-        self::addDirectory($base . 'interfaces');
+        self::addDirectory($base . 'public');
     }
 }
 

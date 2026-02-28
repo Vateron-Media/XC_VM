@@ -14,8 +14,8 @@
  *   - Устанавливает setTitle() для $_TITLE
  *   - Вызывает render('view_name', $data) для отрисовки
  *
- * @see interfaces/Http/Views/layouts/admin.php  — renderUnifiedLayoutHeader()
- * @see interfaces/Http/Views/layouts/footer.php — renderUnifiedLayoutFooter()
+ * @see public/Views/layouts/admin.php  — renderUnifiedLayoutHeader()
+ * @see public/Views/layouts/footer.php — renderUnifiedLayoutFooter()
  * @see core/Http/Router.php                     — callHandler() → new Controller()->method()
  */
 class BaseAdminController
@@ -75,8 +75,8 @@ class BaseAdminController
     protected function render($view, array $data = [])
     {
         // Layout functions
-        require_once MAIN_HOME . 'interfaces/Http/Views/layouts/admin.php';
-        require_once MAIN_HOME . 'interfaces/Http/Views/layouts/footer.php';
+        require_once MAIN_HOME . 'public/Views/layouts/admin.php';
+        require_once MAIN_HOME . 'public/Views/layouts/footer.php';
 
         // Глобальные переменные, нужные view-шаблонам и legacy-файлам.
         // Полный набор, включая переменные из bootstrap, functions.php
@@ -113,7 +113,7 @@ class BaseAdminController
 
         extract($data);
 
-        $__viewsDir = MAIN_HOME . 'interfaces/Http/Views/' . $this->scope . '/';
+        $__viewsDir = MAIN_HOME . 'public/Views/' . $this->scope . '/';
 
         // 1. Header
         renderUnifiedLayoutHeader($this->scope);

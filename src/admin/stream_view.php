@@ -84,7 +84,7 @@
 
 	$rStreamStats = StreamRepository::getStats($rStream['id']);
 	$_TITLE = 'View ' . $rTypeString;
-	require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+	require_once __DIR__ . '/../public/Views/layouts/admin.php';
 	renderUnifiedLayoutHeader('admin');
 endif;
 echo '<div class="wrapper boxed-layout-ext"';
@@ -599,7 +599,7 @@ if ($rStream['type'] == 1) {
 
 
 echo "\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t" . '</div>' . "\r\n\t\t\t" . '</div> ' . "\r\n\t\t" . '</div>' . "\r\n\t" . '</div>' . "\r\n" . '</div>' . "\r\n";
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
 renderUnifiedLayoutFooter('admin'); ?>
 <script id="scripts">
 	var resizeObserver = new ResizeObserver(entries => $(window).scroll());

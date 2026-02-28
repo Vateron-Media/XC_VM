@@ -21,7 +21,7 @@
 		$rVideoCodecs[] = $rRow['video_codec'];
 	}
 	$_TITLE = 'Streams';
-	require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+	require_once __DIR__ . '/../public/Views/layouts/admin.php';
 	renderUnifiedLayoutHeader('admin');
 endif;
 echo '<div class="wrapper"';
@@ -333,7 +333,7 @@ if ($rSettings['streams_grouped'] == 1) {
 }
 
 echo "\t\t\t\t\t\t\t\t\t" . '<th class="text-center">Clients</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">Uptime</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">Actions</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">Player</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">EPG</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">Stream Info</th>' . "\n\t\t\t\t\t\t\t\t" . '</tr>' . "\n\t\t\t\t\t\t\t" . '</thead>' . "\n\t\t\t\t\t\t\t" . '<tbody></tbody>' . "\n\t\t\t\t\t\t" . '</table>' . "\n\t\t\t\t\t" . '</div>' . "\n\t\t\t\t" . '</div>' . "\n\t\t\t" . '</div>' . "\n\t\t" . '</div>' . "\n\t" . '</div>' . "\n" . '</div>' . "\n";
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
 renderUnifiedLayoutFooter('admin'); ?>
 <script id="scripts">
 	var resizeObserver = new ResizeObserver(entries => $(window).scroll());

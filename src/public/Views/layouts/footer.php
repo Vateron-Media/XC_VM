@@ -36,7 +36,7 @@ if (!function_exists('renderUnifiedLayoutFooter')) {
         }
         unset($_g);
 
-        $rootPath = dirname(__DIR__, 4);
+        $rootPath = dirname(__DIR__, 3);
 
         if ($scope === 'reseller') {
             require $rootPath . '/reseller/footer.php';

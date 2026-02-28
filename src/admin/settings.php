@@ -17,7 +17,7 @@ if (!isset($__settingsViewMode)):
 	$Nginx = trim(shell_exec(BIN_PATH . "nginx/sbin/nginx -v 2>&1 | cut -d'/' -f2"));
 
 	$_TITLE = "Settings";
-	require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+	require_once __DIR__ . '/../public/Views/layouts/admin.php';
 	renderUnifiedLayoutHeader('admin');
 
 endif; // !$__settingsViewMode
@@ -2322,7 +2322,7 @@ endif; // !$__settingsViewMode
 	</div>
 </div>
 <?php
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
 renderUnifiedLayoutFooter('admin'); ?>
 <script id="scripts">
 	var resizeObserver = new ResizeObserver(entries => $(window).scroll());

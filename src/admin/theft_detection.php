@@ -12,7 +12,7 @@ if (!isset($__viewMode)):
 	$rRange = (intval(CoreUtilities::$rRequest['range']) ?: 0);
 	$rTheftDetection = (igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'theft_detection')) ?: array());
 	$_TITLE = 'VOD Theft Detection';
-	require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+	require_once __DIR__ . '/../public/Views/layouts/admin.php';
 	renderUnifiedLayoutHeader('admin');
 endif; // !$__viewMode
 echo '<div class="wrapper boxed-layout-ext"';
@@ -97,7 +97,7 @@ foreach ($rTheftDetection[$rRange] as $rRow) {
 	echo '</td>' . "\r\n" . '                                    </tr>' . "\r\n" . '                                ';
 }
 echo '                            </tbody>' . "\r\n\t\t\t\t\t\t" . '</table>' . "\r\n\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t" . '</div> ' . "\r\n\t\t\t" . '</div>' . "\r\n\t\t" . '</div>' . "\r\n\t" . '</div>' . "\r\n" . '</div>' . "\r\n";
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
 renderUnifiedLayoutFooter('admin'); ?>
 <script id="scripts">
 	var resizeObserver = new ResizeObserver(entries => $(window).scroll());

@@ -42,7 +42,7 @@
     }
 
     $_TITLE = 'Channel Order';
-    require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+    require_once __DIR__ . '/../public/Views/layouts/admin.php';
     renderUnifiedLayoutHeader('admin'); ?>
 <?php endif; ?>
 <div class="wrapper boxed-layout-ext" <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
@@ -283,7 +283,7 @@
     </div>
 </div>
 <?php
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
 ?>
 <script id="scripts">
