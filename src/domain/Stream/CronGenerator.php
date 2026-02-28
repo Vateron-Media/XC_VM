@@ -23,7 +23,7 @@ class CronGenerator {
 		fclose($rHandle);
 		shell_exec('crontab -u xc_vm ' . $rTempName);
 		@unlink($rTempName);
-		file_put_contents(TMP_PATH . 'crontab', 1);
+		@file_put_contents(TMP_PATH . 'crontab', '1', LOCK_EX);
 		return true;
 	}
 }

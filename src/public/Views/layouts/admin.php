@@ -37,7 +37,7 @@ if (!function_exists('renderUnifiedLayoutHeader')) {
         }
         unset($_g);
 
-        $rootPath = dirname(__DIR__, 4);
+        $rootPath = dirname(__DIR__, 3);
 
         if ($scope === 'reseller') {
             require $rootPath . '/reseller/header.php';

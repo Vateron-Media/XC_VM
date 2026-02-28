@@ -12,12 +12,12 @@ if (!isset($__viewMode)):
 	$_TITLE = 'Plex Sync';
 	$rPlexServers = PlexRepository::getPlexServers();
 
-	require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+	require_once __DIR__ . '/../public/Views/layouts/admin.php';
 	renderUnifiedLayoutHeader('admin');
 
 endif; // !$__viewMode
 include dirname(__DIR__) . '/modules/plex/views/index.php';
 
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
 include dirname(__DIR__) . '/modules/plex/views/library_scripts.php';

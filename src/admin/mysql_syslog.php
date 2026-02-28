@@ -7,7 +7,7 @@
 	} ?>
 
 	<?php $_TITLE = 'System Logs'; ?>
-	<?php require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php'; ?>
+	<?php require_once __DIR__ . '/../public/Views/layouts/admin.php'; ?>
 	<?php renderUnifiedLayoutHeader('admin'); ?>
 <?php endif; ?>
 
@@ -48,7 +48,7 @@
 </div>
 
 <?php
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
 ?>
 <script id="scripts">

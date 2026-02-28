@@ -11,7 +11,7 @@
     set_time_limit(0);
     ini_set('max_execution_time', 0);
     $_TITLE = 'Mass Delete';
-    require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+    require_once __DIR__ . '/../public/Views/layouts/admin.php';
     renderUnifiedLayoutHeader('admin'); ?>
 <?php endif; ?>
 <div class="wrapper boxed-layout-xl" <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest'): ?><?php else: ?> style="display: none;" <?php endif; ?>>
@@ -714,7 +714,7 @@
     </div>
 </div>
 <?php
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
 ?>
 <script id="scripts">

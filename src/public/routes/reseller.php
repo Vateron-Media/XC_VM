@@ -7,7 +7,7 @@
  * Файл подключается Front Controller'ом (index.php) при scope = 'reseller'.
  * Переменная $router (Router::getInstance()) доступна из вызывающего контекста.
  *
- * @see interfaces/Http/public/index.php
+ * @see public/index.php
  * @see core/Http/Router.php
  */
 

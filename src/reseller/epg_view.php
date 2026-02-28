@@ -80,7 +80,7 @@ if (!isset($__viewMode)):
 		}
 	}
 	$_TITLE = 'TV Guide';
-	require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+	require_once __DIR__ . '/../public/Views/layouts/admin.php';
 	renderUnifiedLayoutHeader('reseller');
 endif;
 echo '<div class="wrapper "';
@@ -208,5 +208,5 @@ if (0 < count($rStreamIDs)) {
 }
 
 echo "\t\t\t" . '</div>' . "\n\t\t" . '</div>' . "\n" . '    </div>' . "\n" . '</div>' . "\n";
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
 renderUnifiedLayoutFooter('reseller');

@@ -101,9 +101,20 @@ class CoreUtilities {
 	}
 
 	public static function getCache($rCache, $rSeconds = null) {
-		if (file_exists(CACHE_TMP_PATH . $rCache)) {
-			if (!$rSeconds || time() - filemtime(CACHE_TMP_PATH . $rCache) < $rSeconds) {
-				return igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . $rCache));
+		$rPath = CACHE_TMP_PATH . $rCache;
+		if (file_exists($rPath)) {
+			if (!$rSeconds || time() - filemtime($rPath) < $rSeconds) {
+				$rRaw = file_get_contents($rPath);
+				if ($rRaw === false || $rRaw === '') {
+					@unlink($rPath);
+					return false;
+				}
+				$rData = @igbinary_unserialize($rRaw);
+				if ($rData === null && $rRaw !== igbinary_serialize(null)) {
+					@unlink($rPath);
+					return false;
+				}
+				return $rData;
 			}
 		}
 		return false;
@@ -1372,16 +1383,19 @@ class CoreUtilities {
 		if ($rFloodLimit != 0) {
 			if (!$rUser['is_restreamer']) {
 				$rFile = FLOOD_TMP_PATH . $rUser['id'] . '_downloads';
+				$rFloodRow = array('epg' => array(), 'playlist' => array());
 				if (file_exists($rFile) && time() - filemtime($rFile) < 10) {
-					$rFloodRow[$rType] = array();
-					foreach (json_decode(file_get_contents($rFile), true)[$rType] as $rPID) {
-						if (!(self::isProcessRunning($rPID, 'php-fpm') && $rPID != $rDownloadPID)) {
-						} else {
-							$rFloodRow[$rType][] = $rPID;
+					$rExisting = json_decode(file_get_contents($rFile), true);
+					if (is_array($rExisting)) {
+						$rFloodRow = array_merge($rFloodRow, $rExisting);
+					}
+					$rActive = array();
+					foreach (($rFloodRow[$rType] ?? []) as $rPID) {
+						if (self::isProcessRunning($rPID, 'php-fpm') && $rPID != $rDownloadPID) {
+							$rActive[] = $rPID;
 						}
 					}
-				} else {
-					$rFloodRow = array('epg' => array(), 'playlist' => array());
+					$rFloodRow[$rType] = $rActive;
 				}
 				$rAllow = false;
 				if (count($rFloodRow[$rType]) >= $rFloodLimit) {
