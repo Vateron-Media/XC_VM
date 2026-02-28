@@ -109,7 +109,7 @@ domain/Stream/
   ├── StreamRepository.php    # SQL-запросы (SELECT/INSERT/UPDATE/DELETE)
   └── StreamProcess.php       # Специализированные операции (ffmpeg, kill)
 
-interfaces/Http/Controllers/Admin/
+public/Controllers/Admin/
   └── StreamController.php    # Принять запрос → вызвать Service → отдать ответ
 ```
 
@@ -125,11 +125,11 @@ Controller  →  Service  →  Repository  →  Database
 
 | Слой | Можно зависеть от | НЕЛЬЗЯ зависеть от |
 |------|-------------------|--------------------|
-| `interfaces/` | `domain/` (Service + Repository), `core/` | `streaming/`, `modules/` напрямую |
-| `domain/` | `core/` (Database, Cache, Events) | `interfaces/`, `streaming/`, `modules/`, `infrastructure/` |
+| `public/` | `domain/` (Service + Repository), `core/` | `streaming/`, `modules/` напрямую |
+| `domain/` | `core/` (Database, Cache, Events) | `public/`, `streaming/`, `modules/`, `infrastructure/` |
 | `core/` | Только другие `core/` подкаталоги | Всё остальное |
-| `streaming/` | `core/` (subset), `domain/` (read-only queries) | `interfaces/`, `modules/` |
-| `modules/` | `domain/` (Service, Repository), `core/` | Другие модули (без явной зависимости), `interfaces/`, `streaming/` |
+| `streaming/` | `core/` (subset), `domain/` (read-only queries) | `public/`, `modules/` |
+| `modules/` | `domain/` (Service, Repository), `core/` | Другие модули (без явной зависимости), `public/`, `streaming/` |
 
 ### 2.1. Инверсия зависимостей
 
@@ -381,91 +381,90 @@ src/
 │       ├── DivergenceDetector.php   # Мониторинг качества
 │       └── BitrateTracker.php       # Отслеживание bitrate/FPS
 │
-├── interfaces/                      # ═══ ТОЧКИ ВХОДА (UI, API, CLI) ═══
-│   ├── Http/
-│   │   ├── public/                  # Web root (nginx document root)
-│   │   │   ├── index.php            # Единая точка входа (front controller)
-│   │   │   ├── stream.php           # Точка входа для стриминга
-│   │   │   └── assets/              # CSS/JS/images/fonts
-│   │   │       ├── admin/
-│   │   │       └── player/
-│   │   │
-│   │   ├── Controllers/
-│   │   │   ├── Admin/
-│   │   │   │   ├── DashboardController.php
-│   │   │   │   ├── StreamController.php
-│   │   │   │   ├── LineController.php
-│   │   │   │   ├── VodController.php
-│   │   │   │   ├── ServerController.php
-│   │   │   │   ├── SettingsController.php
-│   │   │   │   ├── UserController.php
-│   │   │   │   ├── BouquetController.php
-│   │   │   │   ├── EpgController.php
-│   │   │   │   └── ... (по одному на доменную область)
-│   │   │   │
-│   │   │   ├── Reseller/
-│   │   │   │   ├── DashboardController.php
-│   │   │   │   ├── LineController.php
-│   │   │   │   └── ... (только разрешённые действия)
-│   │   │   │
-│   │   │   └── Api/
-│   │   │       ├── AdminApiController.php
-│   │   │       ├── ResellerApiController.php
-│   │   │       ├── PlayerApiController.php   # Публичный player API
-│   │   │       └── InternalApiController.php  # Межсерверный API (текущий www/api.php)
-│   │   │
-│   │   └── Views/
-│   │       ├── layouts/
-│   │       │   ├── admin.php        # Header + footer шаблон для admin
-│   │       │   └── reseller.php     # Header + footer шаблон для reseller
-│   │       │
-│   │       ├── admin/
-│   │       │   ├── dashboard.php
-│   │       │   ├── streams/
-│   │       │   │   ├── list.php
-│   │       │   │   ├── edit.php
-│   │       │   │   └── view.php
-│   │       │   ├── lines/
-│   │       │   ├── vod/
-│   │       │   ├── servers/
-│   │       │   └── settings/
-│   │       │
-│   │       ├── reseller/
-│   │       │   ├── dashboard.php
-│   │       │   └── ...
-│   │       │
-│   │       └── partials/
-│   │           ├── modals.php
-│   │           ├── topbar.php
-│   │           └── table.php
+├── public/                          # ═══ ТОЧКИ ВХОДА — HTTP (UI, API) ═══
+│   ├── index.php                    # Единая точка входа (front controller)
 │   │
-│   ├── Cli/
-│   │   ├── Commands/
-│   │   │   ├── StartupCommand.php       # cli/startup.php
-│   │   │   ├── WatchdogCommand.php      # cli/watchdog.php
-│   │   │   ├── MonitorCommand.php       # cli/monitor.php
-│   │   │   ├── CacheHandlerCommand.php  # cli/cache_handler.php
-│   │   │   ├── QueueCommand.php         # cli/queue.php
-│   │   │   ├── SignalsCommand.php       # cli/signals.php
-│   │   │   ├── ScannerCommand.php       # cli/scanner.php
-│   │   │   ├── MigrateCommand.php       # Из status
-│   │   │   └── ToolsCommand.php         # Из tools (rescue, access, ports и т.д.)
-│   │   └── CronJobs/
-│   │       ├── StreamsCron.php
-│   │       ├── ServersCron.php
-│   │       ├── CacheCron.php
-│   │       ├── EpgCron.php
-│   │       ├── CleanupCron.php
-│   │       ├── BackupsCron.php
-│   │       ├── StatsCron.php
-│   │       ├── LogsCron.php            # lines_logs + streams_logs
-│   │       ├── VodCron.php
-│   │       └── TmdbCron.php
+│   ├── Controllers/
+│   │   ├── Admin/
+│   │   │   ├── BaseAdminController.php
+│   │   │   ├── DashboardController.php
+│   │   │   ├── StreamController.php
+│   │   │   ├── LineController.php
+│   │   │   ├── VodController.php
+│   │   │   ├── ServerController.php
+│   │   │   ├── SettingsController.php
+│   │   │   ├── UserController.php
+│   │   │   ├── BouquetController.php
+│   │   │   ├── EpgController.php
+│   │   │   └── ... (111 контроллеров, по одному на страницу)
+│   │   │
+│   │   ├── Reseller/
+│   │   │   ├── BaseResellerController.php
+│   │   │   ├── DashboardController.php
+│   │   │   ├── LineController.php
+│   │   │   └── ... (22 контроллера)
+│   │   │
+│   │   └── Api/                         # (planned)
+│   │       ├── AdminApiController.php
+│   │       ├── ResellerApiController.php
+│   │       ├── PlayerApiController.php   # Публичный player API
+│   │       └── InternalApiController.php  # Межсерверный API (текущий www/api.php)
 │   │
-│   └── Player/                         # Встроенный web-плеер
-│       ├── PlayerController.php
-│       └── views/
-│           └── ... (текущий player/)
+│   ├── Views/
+│   │   ├── layouts/
+│   │   │   ├── admin.php            # Header + footer шаблон для admin
+│   │   │   └── footer.php           # Единый footer
+│   │   │
+│   │   ├── admin/
+│   │   │   ├── dashboard.php
+│   │   │   ├── streams/
+│   │   │   │   ├── list.php
+│   │   │   │   ├── edit.php
+│   │   │   │   └── view.php
+│   │   │   ├── lines/
+│   │   │   ├── vod/
+│   │   │   ├── servers/
+│   │   │   └── settings/
+│   │   │
+│   │   ├── reseller/
+│   │   │   ├── dashboard.php
+│   │   │   └── ...
+│   │   │
+│   │   └── partials/
+│   │       ├── modals.php
+│   │       ├── topbar.php
+│   │       └── table.php
+│   │
+│   └── routes/
+│       ├── admin.php
+│       ├── reseller.php
+│       └── api.php
+│
+├── player/                          # Встроенный web-плеер
+│   └── ... (PHP + JS + CSS)
+│
+├── cli/                             # ═══ (PLANNED) CLI ТОЧКИ ВХОДА ═══
+│   ├── Commands/
+│   │   ├── StartupCommand.php       # cli/startup.php
+│   │   ├── WatchdogCommand.php      # cli/watchdog.php
+│   │   ├── MonitorCommand.php       # cli/monitor.php
+│   │   ├── CacheHandlerCommand.php  # cli/cache_handler.php
+│   │   ├── QueueCommand.php         # cli/queue.php
+│   │   ├── SignalsCommand.php       # cli/signals.php
+│   │   ├── ScannerCommand.php       # cli/scanner.php
+│   │   ├── MigrateCommand.php       # Из status
+│   │   └── ToolsCommand.php         # Из tools (rescue, access, ports и т.д.)
+│   └── CronJobs/
+│       ├── StreamsCron.php
+│       ├── ServersCron.php
+│       ├── CacheCron.php
+│       ├── EpgCron.php
+│       ├── CleanupCron.php
+│       ├── BackupsCron.php
+│       ├── StatsCron.php
+│       ├── LogsCron.php            # lines_logs + streams_logs
+│       ├── VodCron.php
+│       └── TmdbCron.php
 │
 ├── modules/                         # ═══ ОПЦИОНАЛЬНЫЕ МОДУЛИ ═══
 │   ├── ministra/                    # Ministra/Stalker middleware (текущий ministra/)
@@ -612,7 +611,7 @@ src/
 | `Container/` | DI-контейнер (composition root only — см. §2.3) | `global $db`, статические `CoreUtilities::$rSettings` |
 | `Util/` | Утилиты без состояния | Функции разбросанные по CoreUtilities, admin.php |
 
-**Ключевое правило:** `core/` не знает о существовании `domain/`, `streaming/`, `modules/`, `interfaces/`. Зависимости направлены только внутрь ядра.
+**Ключевое правило:** `core/` не знает о существовании `domain/`, `streaming/`, `modules/`, `public/`. Зависимости направлены только внутрь ядра.
 
 ### 4.2. `domain/` — Бизнес-логика
 
@@ -685,7 +684,7 @@ class StreamRepository {
 - `admin.php` → процедурные `getUserInfo()`, `getSeriesList()` → в Repository
 - Оркестрация (validate + save + nginx + cache + log) → в Service
 
-**Зависимости:** `domain/` зависит от `core/` (Database, Cache, Events). Не зависит от `interfaces/` или `modules/`.
+**Зависимости:** `domain/` зависит от `core/` (Database, Cache, Events). Не зависит от `public/` или `modules/`.
 
 ### 4.3. `streaming/` — Стриминг-движок
 
@@ -704,7 +703,7 @@ streaming/ зависит от:
   ✅ domain/ (Repository — только SELECT-запросы: потоки, серверы, букеты)
   
   ❌ НЕ зависит от:
-     - interfaces/ (контроллеры)
+     - public/ (контроллеры)
      - modules/ (всё)
      - domain/*Service.php (бизнес-мутации)
 ```
@@ -719,7 +718,7 @@ streaming/ зависит от:
 - `CoreUtilities` методы FFmpeg → `Codec/FFmpegCommand.php`
 - `ts.php` → `Codec/TsParser.php`
 
-### 4.4. `interfaces/` — Точки входа
+### 4.4. `public/` — Точки входа
 
 **Ответственность:** Получение запроса, вызов Service, формирование ответа. Никакой бизнес-логики.
 
@@ -912,9 +911,9 @@ interface ModuleInterface {
   admin/streams.php (один файл = SQL + HTML + JS)
 
 СТАЛО:
-  interfaces/Http/Controllers/Admin/StreamController.php  — маршрутизация
+  public/Controllers/Admin/StreamController.php            — маршрутизация
   domain/Stream/StreamRepository.php                       — данные
-  interfaces/Http/Views/admin/streams/list.php             — шаблон
+  public/Views/admin/streams/list.php                      — шаблон
 ```
 
 ### 5.5. Дублирование admin/ ↔ reseller/
@@ -927,8 +926,8 @@ interface ModuleInterface {
   admin/functions.php             +  reseller/functions.php
 
 СТАЛО:
-  interfaces/Http/Views/layouts/admin.php      — единый layout
-  interfaces/Http/Views/layouts/reseller.php   — наследует admin layout с ограничениями
+  public/Views/layouts/admin.php               — единый layout
+  public/Views/layouts/footer.php              — единый footer
   core/Auth/SessionManager.php                 — единый менеджер сессий
   core/Auth/Authorization.php                  — RBAC определяет, что видит пользователь
 ```
@@ -1051,7 +1050,7 @@ modules/
 
 ```
                     ┌──────────────┐
-                    │  interfaces/ │   ← HTTP, CLI, Player
+                    │   public/    │   ← HTTP (Controllers, Views, Routes)
                     └──────┬───────┘
                            │ depends on
               ┌────────────┼────────────┐
@@ -1126,11 +1125,11 @@ includes/
 
 ### 5.2 admin/ — Легаси admin-страницы
 
-~120 PHP-файлов — старые admin-страницы, которые содержали SQL+HTML в одном файле. **Заменены** на `interfaces/Http/Controllers/Admin/` + `interfaces/Http/Views/admin/`.
+~120 PHP-файлов — старые admin-страницы, которые содержали SQL+HTML в одном файле. **Заменены** на `public/Controllers/Admin/` + `public/Views/admin/`.
 
 ### 5.3 reseller/ — Легаси reseller-страницы
 
-~35 PHP-файлов — аналогично admin/, но для реселлерской панели. **Заменены** на `interfaces/Http/Controllers/Reseller/` + `interfaces/Http/Views/reseller/`.
+~35 PHP-файлов — аналогично admin/, но для реселлерской панели. **Заменены** на `public/Controllers/Reseller/` + `public/Views/reseller/`.
 
 ### 5.4 ministra/ — Stalker Portal JS
 
@@ -1176,7 +1175,7 @@ LB_FILES := bin config content crons includes signals tmp www status update serv
 | `infrastructure/` | ✅ ДА — redis/, nginx/ | ⚠ Отсутствует в LB |
 | `resources/` | ⚠ ЧАСТИЧНО — data/error_codes.php нужен; langs/ — нет | ⚠ Отсутствует в LB |
 | `data/` | ⚠ ЧАСТИЧНО — runtime-данные создаются динамически | ⚠ Отсутствует в LB |
-| `interfaces/` | ⚠ ЧАСТИЧНО — Cli/ частично нужен | ⚠ Отсутствует в LB |
+| `public/` | ❌ НЕТ — admin UI, не нужен на LB | ⚠ Отсутствует в LB |
 | `modules/` | ❌ НЕТ — все текущие модули admin-only | ⚠ Отсутствует в LB |
 | `admin/` | ❌ НЕТ | ✅ Корректно отсутствует |
 | `ministra/` | ❌ НЕТ | ✅ Корректно отсутствует |
@@ -1193,7 +1192,7 @@ LB_FILES := bin config content crons includes signals tmp www status update serv
 # ЦЕЛЕВОЙ (обновлённый) список:
 LB_FILES := autoload.php bootstrap.php \
     bin config content core crons data domain includes infrastructure \
-    interfaces resources signals streaming tmp www status update service
+    public resources signals streaming tmp www status update service
 ```
 
 #### Обновлённый `LB_DIRS_TO_REMOVE`
@@ -1215,10 +1214,10 @@ LB_DIRS_TO_REMOVE := \
     domain/User \
     domain/Ticket \
     domain/Device \
-    interfaces/Http/Controllers/Admin \
-    interfaces/Http/Controllers/Reseller \
-    interfaces/Http/Views \
-    interfaces/Player \
+    public/Controllers/Admin \
+    public/Controllers/Reseller \
+    public/Views \
+    player \
     modules/fingerprint \
     modules/magscan \
     modules/ministra \
@@ -1670,17 +1669,17 @@ admin/magscan_settings.php (301 стр.) — UI-страница, POST: submit_m
 #### Шаг 6.1 — Единый layout
 ```
 admin/header.php (675 стр.) + reseller/header.php (284 стр.)
-                            → interfaces/Http/Views/layouts/admin.php
+                            → public/Views/layouts/admin.php
 
 admin/footer.php (804 стр.) + reseller/footer.php (719 стр.)
-                            → interfaces/Http/Views/layouts/footer.php
+                            → public/Views/layouts/footer.php
                             + assets/admin/js/*.js (вынесенный inline JS)
 ```
 
 **Сделано (старт шага 6.1):**
-- ✅ Создан `interfaces/Http/Views/layouts/admin.php` — unified header wrapper (`renderUnifiedLayoutHeader`)
-- ✅ Создан `interfaces/Http/Views/layouts/footer.php` — unified footer wrapper (`renderUnifiedLayoutFooter`)
-- ✅ Удалён `interfaces/Http/Views/layouts/.gitkeep`
+- ✅ Создан `public/Views/layouts/admin.php` — unified header wrapper (`renderUnifiedLayoutHeader`)
+- ✅ Создан `public/Views/layouts/footer.php` — unified footer wrapper (`renderUnifiedLayoutFooter`)
+- ✅ Удалён `public/Views/layouts/.gitkeep`
 - ✅ Переведены на unified wrappers (пилот):
     - `admin/fingerprint.php`
     - `admin/magscan_settings.php`
@@ -1750,9 +1749,9 @@ admin/footer.php (804 стр.) + reseller/footer.php (719 стр.)
 #### Шаг 6.2 — Router + Front Controller
 ```
 Новый → core/Http/Router.php
-Новый → interfaces/Http/public/index.php (front controller)
-Новый → interfaces/Http/routes/admin.php  (admin route definitions)
-Новый → interfaces/Http/routes/api.php    (API route definitions)
+Новый → public/index.php          (front controller)
+Новый → public/routes/admin.php  (admin route definitions)
+Новый → public/routes/api.php    (API route definitions)
 ```
 
 **Статус 6.2:** ✅ Завершён
@@ -1762,7 +1761,7 @@ admin/footer.php (804 стр.) + reseller/footer.php (719 стр.)
 - ✅ `core/Http/Request.php` — HTTP request wrapper (450 стр.): capture(), input access, sanitization, backward compat
 - ✅ `core/Http/Response.php` — HTTP response helper: json(), redirect(), notFound(), cors(), noCache()
 - ✅ `core/Http/RequestGuard.php` — flood protection, host verification, Logger init
-- ✅ `interfaces/Http/public/index.php` — Front Controller:
+- ✅ `public/index.php` — Front Controller:
     - Трёхрежимный парсинг URL → scope + pageName + accessCode:
       - **Режим A** (Access Code + XC_SCOPE): nginx передаёт scope через `fastcgi_param XC_SCOPE`
       - **Режим B** (Direct URL): URL содержит `/admin/...` или `/reseller/...`
@@ -1772,8 +1771,8 @@ admin/footer.php (804 стр.) + reseller/footer.php (719 стр.)
     - Загрузка маршрутов из routes/{scope}.php + routes/api.php
     - Dispatch через Router → fallback в legacy include
     - Поддержка API action dispatch (/admin/api?action=xxx)
-- ✅ `interfaces/Http/routes/admin.php` — шаблон маршрутов admin (заглушки для Step 6.3)
-- ✅ `interfaces/Http/routes/api.php` — шаблон API маршрутов (заглушки для Step 6.3)
+- ✅ `public/routes/admin.php` — шаблон маршрутов admin (заглушки для Step 6.3)
+- ✅ `public/routes/api.php` — шаблон API маршрутов (заглушки для Step 6.3)
 
 **Access Codes (`bin/nginx/conf/codes/`):**
 
@@ -1798,7 +1797,7 @@ admin/footer.php (804 стр.) + reseller/footer.php (719 стр.)
 1) **Прямой доступ** (dev/test, без access codes):
 ```nginx
 location ~ ^/(admin|reseller)(/.*)?$ {
-    try_files $uri /interfaces/Http/public/index.php?$args;
+    try_files $uri /public/index.php?$args;
 }
 ```
 
@@ -1822,7 +1821,7 @@ location ^~ /#CODE# {
 location @fc_#CODE# {
     fastcgi_param XC_SCOPE #TYPE#;
     fastcgi_param XC_CODE  #CODE#;
-    fastcgi_param SCRIPT_FILENAME /home/xc_vm/interfaces/Http/public/index.php;
+    fastcgi_param SCRIPT_FILENAME /home/xc_vm/public/index.php;
     fastcgi_pass php;
     include fastcgi_params;
 }
@@ -1835,21 +1834,21 @@ location @fc_#CODE# {
 **Паттерн: Thin Controller + View файл**
 
 Каждая legacy admin-страница разделяется на:
-- **Controller** (`interfaces/Http/Controllers/Admin/XxxController.php`) — подготовка данных, редиректы, проверка прав
-- **View** (`interfaces/Http/Views/admin/xxx.php`) — только HTML-контент (между header и footer)
-- **Scripts** (`interfaces/Http/Views/admin/xxx.scripts.php`) — page-specific JS (DataTables, api(), etc.)
+- **Controller** (`public/Controllers/Admin/XxxController.php`) — подготовка данных, редиректы, проверка прав
+- **View** (`public/Views/admin/xxx.php`) — только HTML-контент (между header и footer)
+- **Scripts** (`public/Views/admin/xxx.scripts.php`) — page-specific JS (DataTables, api(), etc.)
 
-**✅ `interfaces/Http/Controllers/Admin/BaseAdminController.php` — render(), redirect(), json(), setTitle(), requirePermission(), requireAdvPermission(), input(), getStatus()
-- ✅ `interfaces/Http/Views/admin/_scripts_init.php` — общий JS-бойлерплейт (ResizeObserver, Switchery, DataTable errMode, bindHref, inputFilter, js_navigate и т.д.)
-- ✅ `interfaces/Http/Views/layout.php` — мёртвый код, помечен `@deprecated` (актуальный layout: `Views/layouts/admin.php` + `footer.php`)
-- ✅ `interfaces/Http/Views/partials/header.php` + `footer.php` — мёртвый код, помечены `@deprecated`
+**✅ `public/Controllers/Admin/BaseAdminController.php` — render(), redirect(), json(), setTitle(), requirePermission(), requireAdvPermission(), input(), getStatus()
+- ✅ `public/Views/admin/_scripts_init.php` — общий JS-бойлерплейт (ResizeObserver, Switchery, DataTable errMode, bindHref, inputFilter, js_navigate и т.д.)
+- ✅ `public/Views/layout.php` — мёртвый код, помечен `@deprecated` (актуальный layout: `Views/layouts/admin.php` + `footer.php`)
+- ✅ `public/Views/partials/header.php` + `footer.php` — мёртвый код, помечены `@deprecated`
 
 **Render flow:** `renderUnifiedLayoutHeader('admin')` → `view.php` → `renderUnifiedLayoutFooter('admin')` → `scripts.php` (включает `_scripts_init.php`) → `</body></html>`
 
 **Инфраструктурные исправления перед Phase 6.3:**
 - ✅ Router `buildRoute()` — нормализация ключей при регистрации (rtmp_ips → rtmp/ips)
 - ✅ Router `callHandler()` — DI через ServiceContainer с fallback
-- ✅ Autoloader — раскомментированы `domain/`, `streaming/`, `modules/`, добавлен `interfaces/`
+- ✅ Autoloader — раскомментированы `domain/`, `streaming/`, `modules/`, добавлен `public/`
 - ✅ Autoloader — `MAIN_HOME` fallback: `__DIR__ . '/'` вместо `/home/xc_vm/`
 - ✅ Мёртвый Layout код (layout.php + partials/header.php + partials/footer.php) помечен `@deprecated`
 
@@ -1864,7 +1863,7 @@ location @fc_#CODE# {
 - ✅ `ProfileController.php` + `Views/admin/profiles.php` + `profiles.scripts.php` — Transcode Profiles, getTranscodeProfiles(), JSON profile_options
 - ✅ `ProviderController.php` + `Views/admin/providers.php` + `providers.scripts.php` — Stream Providers, getStreamProviders(), reload action, JSON data
 - ✅ `TheftDetectionController.php` + `Views/admin/theft_detection.php` + `theft_detection.scripts.php` — VOD Theft Detection, igbinary cache, range filter, custom search
-- ✅ Маршруты в `interfaces/Http/routes/admin.php` — 10 GET-маршрутов зарегистрированы
+- ✅ Маршруты в `public/routes/admin.php` — 10 GET-маршрутов зарегистрированы
 
 **Статус 6.3:** ✅ Завершён — **111/111 admin-страниц мигрировано**
 
@@ -1900,10 +1899,10 @@ location @fc_#CODE# {
 
 **Артефакты:**
 - ✅ `BaseResellerController` — расширяет BaseAdminController, `$scope = 'reseller'`, переопределяет `requirePermission()` → `checkResellerPermissions()`
-- ✅ 22 контроллера (`Reseller*Controller`) в `interfaces/Http/Controllers/Reseller/`
-- ✅ 22 view proxy в `interfaces/Http/Views/reseller/`
+- ✅ 22 контроллера (`Reseller*Controller`) в `public/Controllers/Reseller/`
+- ✅ 22 view proxy в `public/Views/reseller/`
 - ✅ 22 legacy файла обёрнуты `$__viewMode` гардами
-- ✅ `interfaces/Http/routes/reseller.php` — 22 маршрута
+- ✅ `public/routes/reseller.php` — 22 маршрута
 
 **Reseller-страницы (22):**
 Dashboard & Profile: dashboard, edit_profile
@@ -2031,7 +2030,7 @@ admin.php::Translator init       → ServiceContainer::get('translator')
 - `src/includes/api/reseller/` — 11 вызовов
 - `src/admin/*.php` — ~100 вызовов
 - `src/reseller/*.php` — 18 вызовов
-- `src/interfaces/Http/Controllers/Admin/` — 37 вызовов
+- `src/public/Controllers/Admin/` — 37 вызовов
 - `src/domain/` (кросс-вызовы) — 15 вызовов
 - `src/modules/` + `src/crons/` — 11 вызовов
 
@@ -2066,13 +2065,13 @@ StreamRepository::getById($rStreamID);
 
 #### Шаг 8.3 — Ревизия core/
 - Убедиться: `core/` не содержит бизнес-логики
-- Убедиться: `domain/` не знает об `interfaces/`
+- Убедиться: `domain/` не знает об `public/`
 - Убедиться: удаление любого модуля не ломает систему
 
 #### Шаг 8.4 — Рефакторинг cli/monitor.php
 - Удалить goto-лейблы (`label235`, `label592`)
 - Переписать с нормальным control flow
-- Вынести в `interfaces/Cli/Commands/MonitorCommand.php`
+- Вынести в `cli/Commands/MonitorCommand.php`
 
 ---
 
@@ -2358,7 +2357,7 @@ use_legacy_api = false          ; true = откат на admin_api.php switch
 | `CONTEXT_ADMIN` | + Database + CoreUtilities + API + ResellerAPI + Translator + session + Redis | Админ/реselлер-панель |
 
 ```php
-// interfaces/Http/public/index.php — admin/reseller entry point
+// public/index.php — admin/reseller entry point
 require_once '/home/xc_vm/bootstrap.php';
 XC_Bootstrap::defineStatusConstants();
 XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_ADMIN);
@@ -2366,14 +2365,14 @@ XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_ADMIN);
 ```
 
 ```php
-// interfaces/Http/public/stream.php — streaming entry point (lightweight)
+// public/stream.php — streaming entry point (lightweight)
 require_once '/home/xc_vm/bootstrap.php';
 XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_STREAM);
 // Только Database + StreamingUtilities, без admin_api, без Translator
 ```
 
 ```php
-// interfaces/Cli/CronJobs/StreamsCron.php — cron
+// cli/CronJobs/StreamsCron.php — cron
 require_once '/home/xc_vm/bootstrap.php';
 XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_CLI, [
     'cached'  => true,

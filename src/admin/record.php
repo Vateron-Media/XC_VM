@@ -60,10 +60,10 @@ if (!isset($__viewMode)):
 
     $_TITLE = 'Record';
 
-    require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+    require_once __DIR__ . '/../public/Views/layouts/admin.php';
     renderUnifiedLayoutHeader('admin');
 endif; // !$__viewMode
 include dirname(__DIR__) . '/modules/watch/views/record.php';
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
 include dirname(__DIR__) . '/modules/watch/views/record_scripts.php';

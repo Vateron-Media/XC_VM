@@ -10,7 +10,7 @@
 	$rRange = (intval(CoreUtilities::$rRequest['range']) ?: 0);
 	$rLineIPs = (igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'lines_per_ip')) ?: array());
 	$_TITLE = 'Line IP Usage';
-	require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+	require_once __DIR__ . '/../public/Views/layouts/admin.php';
 	renderUnifiedLayoutHeader('admin');
 endif;
 ?>
@@ -93,7 +93,7 @@ endif;
 </div>
 
 <?php
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
 ?>
 <script id="scripts">

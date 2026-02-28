@@ -75,7 +75,7 @@ foreach ($rSeries as $bb2621204e39e62d) {
 }
 $_TITLE = 'Bouquet Sort';
 
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/admin.php';
+require_once __DIR__ . '/../public/Views/layouts/admin.php';
 renderUnifiedLayoutHeader('admin');
 
 ?>
@@ -299,7 +299,7 @@ renderUnifiedLayoutHeader('admin');
 </div>
 
 <?php
-require_once __DIR__ . '/../interfaces/Http/Views/layouts/footer.php';
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
 ?>
 <script id="scripts">

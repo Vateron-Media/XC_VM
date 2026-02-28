@@ -7,7 +7,7 @@
 # Разница с оригинальным template:
 #   - try_files fallback → @fc_#CODE# вместо @extensionless-php
 #   - @fc_#CODE# передаёт XC_SCOPE и XC_CODE через fastcgi_param
-#   - SCRIPT_FILENAME → interfaces/Http/public/index.php
+#   - SCRIPT_FILENAME → public/index.php
 #
 # Активация:
 #   cp template.fc template
@@ -47,8 +47,8 @@ location @fc_#CODE# {
     fastcgi_pass php;
     include fastcgi_params;
     # Custom params ПОСЛЕ include чтобы перезаписать дефолты
-    fastcgi_param SCRIPT_FILENAME /home/xc_vm/interfaces/Http/public/index.php;
-    fastcgi_param SCRIPT_NAME /interfaces/Http/public/index.php;
+    fastcgi_param SCRIPT_FILENAME /home/xc_vm/public/index.php;
+    fastcgi_param SCRIPT_NAME /public/index.php;
     fastcgi_param XC_SCOPE #TYPE#;
     fastcgi_param XC_CODE  #CODE#;
     fastcgi_buffering on;
