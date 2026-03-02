@@ -1,20 +1,23 @@
-<?php
-include 'session.php';
-include 'functions.php';
+<?php if (!isset($__viewMode)): ?>
+	<?php
+	include 'session.php';
+	include 'functions.php';
 
-if (!checkPermissions()) {
-	goHome();
-}
+	if (!checkPermissions()) {
+		goHome();
+	}
 
-$rUser = isset(CoreUtilities::$rRequest['id']) ? getRegisteredUser(CoreUtilities::$rRequest['id']) : null;
-if ($rUser === false) {
-	goHome();
-}
+	$rUser = isset(CoreUtilities::$rRequest['id']) ? UserRepository::getRegisteredUserById(CoreUtilities::$rRequest['id']) : null;
+	if ($rUser === false) {
+		goHome();
+	}
 
-$rPackages = $rUser ? getPackages($rUser['member_group_id']) : [];
-$_TITLE = 'User';
-include 'header.php';
-?>
+	$rPackages = $rUser ? getPackages($rUser['member_group_id']) : [];
+	$_TITLE = 'User';
+	require_once __DIR__ . '/../public/Views/layouts/admin.php';
+	renderUnifiedLayoutHeader('admin');
+	?>
+<?php endif; ?>
 
 <div class="wrapper boxed-layout" <?= empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest' ? '' : 'style="display: none;"' ?>>
 	<div class="container-fluid">
@@ -85,7 +88,7 @@ include 'header.php';
 													<label class="col-md-4 col-form-label" for="member_group_id">Member Group</label>
 													<div class="col-md-8">
 														<select name="member_group_id" id="member_group_id" class="form-control select2" data-toggle="select2">
-															<?php foreach (getMemberGroups() as $rGroup): ?>
+															<?php foreach (GroupService::getAll() as $rGroup): ?>
 																<option value="<?= intval($rGroup['group_id']) ?>"
 																	<?= isset($rUser) && intval($rUser['member_group_id']) === intval($rGroup['group_id']) ? 'selected' : '' ?>>
 																	<?= htmlspecialchars($rGroup['group_name']) ?>
@@ -162,7 +165,10 @@ include 'header.php';
 	</div>
 </div>
 
-<?php include 'footer.php'; ?>
+<?php
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin');
+?>
 <script id="scripts">
 	var resizeObserver = new ResizeObserver(entries => $(window).scroll());
 	$(document).ready(function() {
@@ -288,7 +294,7 @@ include 'header.php';
 			}
 		}
 	});
-	
+
 	function clearOwner() {
 		$('#owner_id').val("").trigger('change');
 	}
@@ -334,11 +340,11 @@ include 'header.php';
 			submitForm(window.rCurrentPage, new FormData($("form")[0]), window.rReferer);
 		});
 	});
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-    <?php endif; ?>
+	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+		$(document).ready(function() {
+			initSearch();
+		});
+	<?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

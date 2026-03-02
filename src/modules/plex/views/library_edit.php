@@ -68,7 +68,7 @@
                                                                     }
                                                                 }
                                                             }
-                                                            foreach (getStreamingServers() as $rServer) {
+                                                            foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer) {
                                                                 if (!in_array($rServer['id'], $rActiveServers)) {
                                                                     echo '<option value="' . $rServer['id'] . '">' . $rServer['server_name'] . '</option>';
                                                                 }
@@ -108,7 +108,7 @@
                                                         <select id="library_id" name="library_id" class="form-control" data-toggle="select2">
                                                             <?php
                                                             $rLibraries = isset($rFolder['plex_libraries']) ? json_decode($rFolder['plex_libraries'], true) : array();
-                                                            foreach ($rLibraries as $rLibrary) {
+                                                            foreach ((is_array($rLibraries ?? null) ? $rLibraries : []) as $rLibrary) {
                                                                 if ($rFolder['directory'] == $rLibrary['key']) {
                                                                     echo '<option selected value="' . $rLibrary['key'] . '">' . $rLibrary['title'] . '</option>';
                                                                 } else {
@@ -248,8 +248,8 @@
                                                             data-toggle="select2">
                                                             <?php foreach (array('auto', 'mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts') as $container) { ?>
                                                                 <option <?php if (isset($rFolder) && $rFolder['target_container']) {
-                                                                    echo 'checked ';
-                                                                } ?> value="<?= $container; ?>"><?= $container; ?></option>
+                                                                            echo 'checked ';
+                                                                        } ?> value="<?= $container; ?>"><?= $container; ?></option>
                                                             <?php } ?>
                                                         </select>
                                                     </div>
@@ -261,11 +261,11 @@
                                                         <select name="override_bouquets[]" id="override_bouquets"
                                                             class="form-control select2-multiple" data-toggle="select2"
                                                             multiple="multiple" data-placeholder="Choose...">
-                                                            <?php foreach ($rBouquets as $rBouquet) { ?>
-                                                                <?php $folderBouquets = json_decode($rFolder['bouquets'] ?? '[]', true); ?>
+                                                            <?php foreach ((is_array($rBouquets ?? null) ? $rBouquets : []) as $rBouquet) { ?>
+                                                                <?php $folderBouquets = (array) json_decode($rFolder['bouquets'] ?? '[]', true); ?>
                                                                 <option <?php if (in_array(intval($rBouquet['id']), $folderBouquets)) {
-                                                                    echo 'selected ';
-                                                                } ?> value="<?= $rBouquet['id']; ?>"><?= $rBouquet['bouquet_name']; ?>
+                                                                            echo 'selected ';
+                                                                        } ?> value="<?= $rBouquet['id']; ?>"><?= $rBouquet['bouquet_name']; ?>
                                                                 </option>
                                                             <?php } ?>
                                                         </select>
@@ -278,11 +278,11 @@
                                                         <select name="fallback_bouquets[]" id="fallback_bouquets"
                                                             class="form-control select2-multiple" data-toggle="select2"
                                                             multiple="multiple" data-placeholder="Choose...">
-                                                            <?php foreach ($rBouquets as $rBouquet) { ?>
-                                                                <?php $folderBouquets = json_decode($rFolder['fb_bouquets'] ?? '[]', true); ?>
+                                                            <?php foreach ((is_array($rBouquets ?? null) ? $rBouquets : []) as $rBouquet) { ?>
+                                                                <?php $folderBouquets = (array) json_decode($rFolder['fb_bouquets'] ?? '[]', true); ?>
                                                                 <option <?php if (in_array(intval($rBouquet['id']), $folderBouquets)) {
-                                                                    echo 'selected';
-                                                                } ?> value="<?= $rBouquet['id']; ?>"><?= $rBouquet['bouquet_name']; ?>
+                                                                            echo 'selected';
+                                                                        } ?> value="<?= $rBouquet['id']; ?>"><?= $rBouquet['bouquet_name']; ?>
                                                                 </option>
                                                             <?php } ?>
                                                         </select>
@@ -295,20 +295,20 @@
                                                         <select name="override_category" id="override_category"
                                                             class="form-control select2" data-toggle="select2">
                                                             <option <?php if (isset($rFolder) && intval($rFolder['category_id']) == 0) {
-                                                                echo 'selected ';
-                                                            } ?> value="0">Do Not Use</option>
+                                                                        echo 'selected ';
+                                                                    } ?> value="0">Do Not Use</option>
                                                             <optgroup label="Movies">
                                                                 <?php foreach (getCategories('movie') as $rCategory) { ?>
                                                                     <option <?php if (isset($rFolder) && intval($rFolder['category_id']) == intval($rCategory['id'])) {
-                                                                        echo 'selected ';
-                                                                    } ?> value="<?= intval($rCategory['id']); ?>"><?= $rCategory['category_name']; ?>
+                                                                                echo 'selected ';
+                                                                            } ?> value="<?= intval($rCategory['id']); ?>"><?= $rCategory['category_name']; ?>
                                                                     </option>
                                                                 <?php } ?>
                                                             <optgroup label="Series">
                                                                 <?php foreach (getCategories('series') as $rCategory) { ?>
                                                                     <option <?php if (isset($rFolder) && intval($rFolder['category_id']) == intval($rCategory['id'])) {
-                                                                        echo 'selected ';
-                                                                    } ?> value="<?= intval($rCategory['id']); ?>"><?= $rCategory['category_name']; ?>
+                                                                                echo 'selected ';
+                                                                            } ?> value="<?= intval($rCategory['id']); ?>"><?= $rCategory['category_name']; ?>
                                                                     </option>
                                                                 <?php } ?>
                                                         </select>
@@ -321,20 +321,20 @@
                                                         <select name="fallback_category" id="fallback_category"
                                                             class="form-control select2" data-toggle="select2">
                                                             <option <?php if (isset($rFolder) && intval($rFolder['fb_category_id']) == 0) {
-                                                                echo 'selected ';
-                                                            } ?> value="0">Do Not Use</option>
+                                                                        echo 'selected ';
+                                                                    } ?> value="0">Do Not Use</option>
                                                             <optgroup label="Movies">
                                                                 <?php foreach (getCategories('movie') as $rCategory) { ?>
                                                                     <option <?php if (isset($rFolder) && intval($rFolder['fb_category_id']) == intval($rCategory['id'])) {
-                                                                        echo 'selected ';
-                                                                    } ?> value="<?= intval($rCategory['id']); ?>"><?= $rCategory['category_name']; ?>
+                                                                                echo 'selected ';
+                                                                            } ?> value="<?= intval($rCategory['id']); ?>"><?= $rCategory['category_name']; ?>
                                                                     </option>
                                                                 <?php } ?>
                                                             <optgroup label="Series">
                                                                 <?php foreach (getCategories('series') as $rCategory) { ?>
                                                                     <option <?php if (isset($rFolder) && intval($rFolder['fb_category_id']) == intval($rCategory['id'])) {
-                                                                        echo 'selected ';
-                                                                    } ?> value="<?= intval($rCategory['id']); ?>"><?= $rCategory['category_name']; ?>
+                                                                                echo 'selected ';
+                                                                            } ?> value="<?= intval($rCategory['id']); ?>"><?= $rCategory['category_name']; ?>
                                                                     </option>
                                                                 <?php } ?>
                                                         </select>
@@ -349,12 +349,12 @@
                                                         <select name="transcode_profile_id" id="transcode_profile_id"
                                                             class="form-control" data-toggle="select2">
                                                             <option <?php if (isset($rFolder) && intval($rFolder['transcode_profile_id']) == 0) {
-                                                                echo 'selected ';
-                                                            } ?>value="0">Transcoding Disabled</option>
-                                                            <?php foreach (getTranscodeProfiles() as $rProfile) { ?>
+                                                                        echo 'selected ';
+                                                                    } ?>value="0">Transcoding Disabled</option>
+                                                            <?php foreach (StreamConfigRepository::getTranscodeProfiles() as $rProfile) { ?>
                                                                 <option <?php if (isset($rFolder) && intval($rFolder['transcode_profile_id']) == intval($rProfile['profile_id'])) {
-                                                                    echo 'selected ';
-                                                                } ?> value="<?= $rProfile['profile_id']; ?>"><?= $rProfile['profile_name']; ?>
+                                                                            echo 'selected ';
+                                                                        } ?> value="<?= $rProfile['profile_id']; ?>"><?= $rProfile['profile_name']; ?>
                                                                 </option>
                                                             <?php } ?>
                                                         </select>

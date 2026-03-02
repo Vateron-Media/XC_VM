@@ -1,21 +1,28 @@
 <?php
 
-include 'session.php';
-include 'functions.php';
+if (!isset($__viewMode)):
 
-if (!checkPermissions()) {
-    goHome();
-}
+    include 'session.php';
+    include 'functions.php';
 
-if (!isset(CoreUtilities::$rRequest['id']) || ($rFolder = getWatchFolder(CoreUtilities::$rRequest['id']))) {
-} else {
-    goHome();
-}
+    if (!checkPermissions()) {
+        goHome();
+    }
 
-$rBouquets = getBouquets();
-$_TITLE = 'Add Library';
+    if (!isset(CoreUtilities::$rRequest['id']) || ($rFolder = getWatchFolder(CoreUtilities::$rRequest['id']))) {
+    } else {
+        goHome();
+    }
 
-include 'header.php';
+    $rBouquets = BouquetService::getAllSimple();
+    $_TITLE = 'Add Library';
+
+    require_once __DIR__ . '/../public/Views/layouts/admin.php';
+    renderUnifiedLayoutHeader('admin');
+
+endif; // !$__viewMode
 include dirname(__DIR__) . '/modules/plex/views/library_edit.php';
-include 'footer.php';
+
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin');
 include dirname(__DIR__) . '/modules/plex/views/library_edit_scripts.php';

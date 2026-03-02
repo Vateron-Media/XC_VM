@@ -1,14 +1,17 @@
+<?php if (!isset($__viewMode)): ?>
 <?php
 
-include 'session.php';
-include 'functions.php';
+    include 'session.php';
+    include 'functions.php';
 
-if (!checkPermissions()) {
-    goHome();
-}
+    if (!checkPermissions()) {
+        goHome();
+    }
 
-$_TITLE = 'Stream Tools';
-include 'header.php';
+    $_TITLE = 'Stream Tools';
+    require_once __DIR__ . '/../public/Views/layouts/admin.php';
+    renderUnifiedLayoutHeader('admin');
+endif;
 ?>
 <div class="wrapper boxed-layout"
     <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
@@ -206,7 +209,10 @@ include 'header.php';
         </div>
     </div>
 </div>
-<?php include 'footer.php'; ?>
+<?php
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin');
+?>
 <script id="scripts">
     var resizeObserver = new ResizeObserver(entries => $(window).scroll());
     $(document).ready(function() {

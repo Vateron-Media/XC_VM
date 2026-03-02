@@ -155,11 +155,11 @@ if (isset($_GET['token'])) {
 						$maxWaitTime = max(1, $b73e9a5cd67eae9b * 10);
 						$encWaitFile = $rSegment . '.enc_write';
 						$encCompleteFile = $rSegment . '.enc';
-						
+
 						// Monitor for completion - use inotify if available
 						$startTime = microtime(true);
 						$timeout = $maxWaitTime / 10; // Convert to seconds
-						
+
 						while (file_exists($encWaitFile) && !file_exists($encCompleteFile) && (microtime(true) - $startTime) < $timeout) {
 							AsyncFileOperations::efficientSleep(100000); // 0.1 seconds
 						}

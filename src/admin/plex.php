@@ -1,16 +1,23 @@
 <?php
 
-include 'session.php';
-include 'functions.php';
+if (!isset($__viewMode)):
 
-if (!checkPermissions()) {
-	goHome();
-}
+	include 'session.php';
+	include 'functions.php';
 
-$_TITLE = 'Plex Sync';
-$rPlexServers = getPlexServers();
+	if (!checkPermissions()) {
+		goHome();
+	}
 
-include 'header.php';
+	$_TITLE = 'Plex Sync';
+	$rPlexServers = PlexRepository::getPlexServers();
+
+	require_once __DIR__ . '/../public/Views/layouts/admin.php';
+	renderUnifiedLayoutHeader('admin');
+
+endif; // !$__viewMode
 include dirname(__DIR__) . '/modules/plex/views/index.php';
-include 'footer.php';
+
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin');
 include dirname(__DIR__) . '/modules/plex/views/library_scripts.php';

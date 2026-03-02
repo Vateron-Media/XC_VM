@@ -1,7 +1,8 @@
 <?php
 
 class ConnectionTracker {
-	public static function getCapacity($rSettings, $rServers, $rRedis, $db, $rProxy = false) {
+	public static function getCapacity($rSettings, $rServers, $rRedis, $rProxy = false) {
+		global $db;
 		$rFile = ($rProxy ? 'proxy_capacity' : 'servers_capacity');
 		if ($rSettings['redis_handler'] && $rProxy && $rSettings['split_by'] == 'maxclients') {
 			$rSettings['split_by'] == 'guar_band';
@@ -74,7 +75,8 @@ class ConnectionTracker {
 		return $rRows;
 	}
 
-	public static function getConnections($rSettings, $rRedis, $db, $rServerID = null, $rUserID = null, $rStreamID = null) {
+	public static function getConnections($rSettings, $rRedis, $rServerID = null, $rUserID = null, $rStreamID = null) {
+		global $db;
 		if ($rSettings['redis_handler']) {
 			if ($rServerID) {
 				$rKeys = $rRedis->zRangeByScore('SERVER#' . $rServerID, '-inf', '+inf');

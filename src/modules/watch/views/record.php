@@ -152,7 +152,7 @@
                                                             <select name="bouquets[]" id="bouquets"
                                                                 class="form-control select2-multiple" data-toggle="select2"
                                                                 multiple="multiple" data-placeholder="Choose...">
-                                                                <?php foreach (getBouquets() as $rBouquet) { ?>
+                                                                <?php foreach (BouquetService::getAllSimple() as $rBouquet) { ?>
                                                                     <option value="<?php echo $rBouquet['id']; ?>">
                                                                         <?php echo $rBouquet['bouquet_name']; ?></option>
                                                                 <?php } ?>
@@ -165,7 +165,7 @@
                                                         <div class="col-md-8">
                                                             <select name="source_id" id="source_id" class="form-control"
                                                                 data-toggle="select2">
-                                                                <?php foreach ($rAvailableServers as $rServerID) { ?>
+                                                                <?php foreach ((is_array($rAvailableServers ?? null) ? $rAvailableServers : []) as $rServerID) { ?>
                                                                     <option
                                                                         value="<?php echo CoreUtilities::$rServers[$rServerID]['id']; ?>">
                                                                         <?php echo CoreUtilities::$rServers[$rServerID]['server_name']; ?>

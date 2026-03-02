@@ -111,9 +111,9 @@ if (isset($_SESSION['reseller'])) {
 					if ($rPermissions['create_line']) {
 						$rSub = CoreUtilities::$rRequest['sub'];
 						$rUserID = intval(CoreUtilities::$rRequest['user_id']);
-						$rLine = getUser($rUserID);
+						$rLine = UserRepository::getLineById($rUserID);
 
-						if (hasPermissions('line', $rUserID) && $rLine) {
+						if (Authorization::check('line', $rUserID) && $rLine) {
 							if ($rSub == 'delete') {
 								deleteLine($rUserID);
 								$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'line', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'delete', CoreUtilities::$rRequest['user_id'], 0, $rUserInfo['credits'], time(), json_encode($rLine));
@@ -191,7 +191,7 @@ if (isset($_SESSION['reseller'])) {
 								if (CoreUtilities::$rSettings['redis_handler']) {
 									if (!($rActivityInfo = igbinary_unserialize(CoreUtilities::$redis->get(CoreUtilities::$rRequest['uuid'])))) {
 									} else {
-										if (hasPermissions('line', $rActivityInfo['user_id'])) {
+										if (Authorization::check('line', $rActivityInfo['user_id'])) {
 											CoreUtilities::closeConnection($rActivityInfo);
 											echo json_encode(array('result' => true));
 
@@ -209,7 +209,7 @@ if (isset($_SESSION['reseller'])) {
 									} else {
 										$rRow = $db->get_row();
 
-										if (hasPermissions('line', $rRow['user_id'])) {
+										if (Authorization::check('line', $rRow['user_id'])) {
 											CoreUtilities::closeConnection($rRow);
 											echo json_encode(array('result' => true));
 
@@ -233,8 +233,8 @@ if (isset($_SESSION['reseller'])) {
 
 					if (CoreUtilities::$rRequest['action'] == 'adjust_credits') {
 						if ($rPermissions['create_sub_resellers']) {
-							if (hasPermissions('user', CoreUtilities::$rRequest['id'])) {
-								$rUser = getRegisteredUser(CoreUtilities::$rRequest['id']);
+							if (Authorization::check('user', CoreUtilities::$rRequest['id'])) {
+								$rUser = UserRepository::getRegisteredUserById(CoreUtilities::$rRequest['id']);
 
 								if (!($rUser && is_numeric(CoreUtilities::$rRequest['credits']))) {
 								} else {
@@ -268,9 +268,9 @@ if (isset($_SESSION['reseller'])) {
 
 					if (CoreUtilities::$rRequest['action'] == 'reg_user') {
 						if ($rPermissions['create_sub_resellers']) {
-							if (hasPermissions('user', CoreUtilities::$rRequest['user_id'])) {
+							if (Authorization::check('user', CoreUtilities::$rRequest['user_id'])) {
 								$rSub = CoreUtilities::$rRequest['sub'];
-								$rUser = getRegisteredUser(CoreUtilities::$rRequest['user_id']);
+								$rUser = UserRepository::getRegisteredUserById(CoreUtilities::$rRequest['user_id']);
 
 								if ($rSub == 'delete') {
 									if ($rPermissions['delete_users']) {
@@ -321,7 +321,7 @@ if (isset($_SESSION['reseller'])) {
 
 						if (!$rTicket) {
 						} else {
-							if (hasPermissions('user', $rTicket['member_id'])) {
+							if (Authorization::check('user', $rTicket['member_id'])) {
 								$rSub = CoreUtilities::$rRequest['sub'];
 
 								if ($rSub == 'close') {
@@ -361,7 +361,7 @@ if (isset($_SESSION['reseller'])) {
 
 							if (!$rMagDetails) {
 							} else {
-								if (hasPermissions('line', $rMagDetails['user_id'])) {
+								if (Authorization::check('line', $rMagDetails['user_id'])) {
 									if ($rSub == 'delete') {
 										deleteMAG(CoreUtilities::$rRequest['mag_id']);
 										$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'mag', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'delete', CoreUtilities::$rRequest['mag_id'], 0, $rUserInfo['credits'], time(), json_encode($rMagDetails));
@@ -448,7 +448,7 @@ if (isset($_SESSION['reseller'])) {
 
 							if (!$rE2Details) {
 							} else {
-								if (hasPermissions('line', $rE2Details['user_id'])) {
+								if (Authorization::check('line', $rE2Details['user_id'])) {
 									if ($rSub == 'delete') {
 										deleteEnigma(CoreUtilities::$rRequest['e2_id']);
 										$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'enigma', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'delete', CoreUtilities::$rRequest['e2_id'], 0, $rUserInfo['credits'], time(), json_encode($rE2Details));
@@ -551,7 +551,7 @@ if (isset($_SESSION['reseller'])) {
 
 							if (!(isset(CoreUtilities::$rRequest['user_id']) && $rData['compatible'])) {
 							} else {
-								if (!($rUser = getUser(CoreUtilities::$rRequest['user_id']))) {
+								if (!($rUser = UserRepository::getLineById(CoreUtilities::$rRequest['user_id']))) {
 								} else {
 									if (time() < $rUser['exp_date']) {
 										$rData['exp_date'] = date('Y-m-d H:i', strtotime('+' . intval($rData['official_duration']) . ' ' . $rData['official_duration_in'], $rUser['exp_date']));
@@ -714,7 +714,7 @@ if (isset($_SESSION['reseller'])) {
 
 											if (!$rMag) {
 											} else {
-												if (hasPermissions('line', $rMag['user_id'])) {
+												if (Authorization::check('line', $rMag['user_id'])) {
 													if ($rData['type'] == 'send_msg') {
 														$rData['need_confirm'] = 1;
 													} else {

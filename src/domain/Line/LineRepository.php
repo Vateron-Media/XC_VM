@@ -1,7 +1,8 @@
 <?php
 
 class LineRepository {
-	public static function deleteMany($db, $rIDs) {
+	public static function deleteMany($rIDs) {
+		global $db;
 		$rIDs = confirmIDs($rIDs);
 
 		if (0 >= count($rIDs)) {

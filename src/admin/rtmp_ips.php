@@ -1,15 +1,18 @@
-<?php
+<?php if (!isset($__viewMode)): ?>
+	<?php
 
-include 'session.php';
-include 'functions.php';
+	include 'session.php';
+	include 'functions.php';
 
-if (!checkPermissions()) {
-	goHome();
-}
+	if (!checkPermissions()) {
+		goHome();
+	}
 
-$_TITLE = "RTMP IP's";
-include 'header.php';
-?>
+	$_TITLE = "RTMP IP's";
+	require_once __DIR__ . '/../public/Views/layouts/admin.php';
+	renderUnifiedLayoutHeader('admin');
+	?>
+<?php endif; ?>
 
 <div class="wrapper boxed-layout-ext"
 	<?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') echo ' style="display: none;"'; ?>>
@@ -48,7 +51,7 @@ include 'header.php';
 								</tr>
 							</thead>
 							<tbody>
-								<?php foreach (getRTMPIPs() as $rIP): ?>
+								<?php foreach (BlocklistService::getRTMPIPsSimple() as $rIP): ?>
 									<tr id="ip-<?php echo $rIP['id']; ?>">
 										<td class="text-center"><?php echo $rIP['id']; ?></td>
 										<td class="text-center"><?php echo $rIP['ip']; ?></td>
@@ -69,7 +72,7 @@ include 'header.php';
 										</td>
 										<td class="text-center">
 											<div class="btn-group">
-												<?php if (hasPermissions('adv', 'add_rtmp')): ?>
+												<?php if (Authorization::check('adv', 'add_rtmp')): ?>
 													<a href="./rtmp_ip?id=<?php echo $rIP['id']; ?>"><button type="button"
 															class="btn btn-light waves-effect waves-light btn-xs"><i
 																class="mdi mdi-pencil-outline"></i></button></a>
@@ -90,7 +93,10 @@ include 'header.php';
 	</div>
 </div>
 
-<?php include 'footer.php'; ?>
+<?php
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin');
+?>
 <script id="scripts">
 	var resizeObserver = new ResizeObserver(entries => $(window).scroll());
 	$(document).ready(function() {
@@ -269,11 +275,11 @@ include 'header.php';
 		});
 		$("#datatable").css("width", "100%");
 	});
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-    <?php endif; ?>
+	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+		$(document).ready(function() {
+			initSearch();
+		});
+	<?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

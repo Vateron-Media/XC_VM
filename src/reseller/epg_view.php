@@ -1,85 +1,88 @@
 <?php
+if (!isset($__viewMode)):
 
-include 'session.php';
-include 'functions.php';
+	include 'session.php';
+	include 'functions.php';
 
-if (checkResellerPermissions()) {
-} else {
-	goHome();
-}
-
-if (!$rMobile) {
-} else {
-	header('Location: dashboard');
-}
-
-$rPageInt = (0 < intval(CoreUtilities::$rRequest['page']) ? intval(CoreUtilities::$rRequest['page']) : 1);
-$rLimit = (0 < intval(CoreUtilities::$rRequest['entries']) ? intval(CoreUtilities::$rRequest['entries']) : CoreUtilities::$rSettings['default_entries']);
-$rStart = ($rPageInt - 1) * $rLimit;
-
-if (0 < count($rPermissions['stream_ids'])) {
-	$rWhere = $rWhereV = array();
-	$rWhere[] = '`type` = 1 AND `epg_id` IS NOT NULL AND `channel_id` IS NOT NULL';
-	$rWhere[] = '`id` IN (' . implode(',', array_map('intval', $rPermissions['stream_ids'])) . ')';
-
-	if (!(isset(CoreUtilities::$rRequest['category']) && 0 < intval(CoreUtilities::$rRequest['category']))) {
+	if (checkResellerPermissions()) {
 	} else {
-		$rWhere[] = "JSON_CONTAINS(`category_id`, ?, '\$')";
-		$rWhereV[] = CoreUtilities::$rRequest['category'];
+		goHome();
 	}
 
-	if (empty(CoreUtilities::$rRequest['search'])) {
+	if (!$rMobile) {
 	} else {
-		$rWhere[] = '(`stream_display_name` LIKE ? OR `id` LIKE ?';
-		$rWhereV[] = '%' . CoreUtilities::$rRequest['search'] . '%';
-		$rWhereV[] = $rWhereV;
-		$rWhereV[] = CoreUtilities::$rRequest['search'];
+		header('Location: dashboard');
 	}
 
-	if (0 < count($rWhere)) {
-		$rWhereString = 'WHERE ' . implode(' AND ', $rWhere);
-	} else {
-		$rWhereString = '';
-	}
+	$rPageInt = (0 < intval(CoreUtilities::$rRequest['page']) ? intval(CoreUtilities::$rRequest['page']) : 1);
+	$rLimit = (0 < intval(CoreUtilities::$rRequest['entries']) ? intval(CoreUtilities::$rRequest['entries']) : CoreUtilities::$rSettings['default_entries']);
+	$rStart = ($rPageInt - 1) * $rLimit;
 
-	$rOrder = array('name' => '`stream_display_name` ASC', 'added' => '`added` DESC');
+	if (0 < count($rPermissions['stream_ids'])) {
+		$rWhere = $rWhereV = array();
+		$rWhere[] = '`type` = 1 AND `epg_id` IS NOT NULL AND `channel_id` IS NOT NULL';
+		$rWhere[] = '`id` IN (' . implode(',', array_map('intval', $rPermissions['stream_ids'])) . ')';
 
-	if (!empty(CoreUtilities::$rRequest['sort']) && isset($rOrder[CoreUtilities::$rRequest['sort']])) {
-		$rOrderBy = $rOrder[CoreUtilities::$rRequest['sort']];
-	} else {
-		$rChannelOrder = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'channel_order'));
-
-		if (CoreUtilities::$rSettings['channel_number_type'] != 'manual' && 0 < count($rChannelOrder)) {
-			$rOrderBy = 'FIELD(`id`,' . implode(',', $rChannelOrder) . ')';
+		if (!(isset(CoreUtilities::$rRequest['category']) && 0 < intval(CoreUtilities::$rRequest['category']))) {
 		} else {
-			$rOrderBy = '`order` ASC';
+			$rWhere[] = "JSON_CONTAINS(`category_id`, ?, '\$')";
+			$rWhereV[] = CoreUtilities::$rRequest['category'];
+		}
+
+		if (empty(CoreUtilities::$rRequest['search'])) {
+		} else {
+			$rWhere[] = '(`stream_display_name` LIKE ? OR `id` LIKE ?';
+			$rWhereV[] = '%' . CoreUtilities::$rRequest['search'] . '%';
+			$rWhereV[] = $rWhereV;
+			$rWhereV[] = CoreUtilities::$rRequest['search'];
+		}
+
+		if (0 < count($rWhere)) {
+			$rWhereString = 'WHERE ' . implode(' AND ', $rWhere);
+		} else {
+			$rWhereString = '';
+		}
+
+		$rOrder = array('name' => '`stream_display_name` ASC', 'added' => '`added` DESC');
+
+		if (!empty(CoreUtilities::$rRequest['sort']) && isset($rOrder[CoreUtilities::$rRequest['sort']])) {
+			$rOrderBy = $rOrder[CoreUtilities::$rRequest['sort']];
+		} else {
+			$rChannelOrder = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'channel_order'));
+
+			if (CoreUtilities::$rSettings['channel_number_type'] != 'manual' && 0 < count($rChannelOrder)) {
+				$rOrderBy = 'FIELD(`id`,' . implode(',', $rChannelOrder) . ')';
+			} else {
+				$rOrderBy = '`order` ASC';
+			}
+		}
+
+		$rStreamIDs = array();
+		$db->query('SELECT COUNT(`id`) AS `count` FROM `streams` ' . $rWhereString . ';', ...$rWhereV);
+		$rCount = $db->get_row()['count'];
+		$db->query('SELECT `id` FROM `streams` ' . $rWhereString . ' ORDER BY ' . $rOrderBy . ' LIMIT ' . $rStart . ', ' . $rLimit . ';', ...$rWhereV);
+
+		foreach ($db->get_rows() as $rRow) {
+			$rStreamIDs[] = $rRow['id'];
+		}
+	} else {
+		$rStreamIDs = array();
+		$rCount = 0;
+	}
+
+	$rPages = ceil($rCount / $rLimit);
+	$rPagination = array();
+
+	foreach (range($rPageInt - 2, $rPageInt + 2) as $i) {
+		if (!(1 <= $i && $i <= $rPages)) {
+		} else {
+			$rPagination[] = $i;
 		}
 	}
-
-	$rStreamIDs = array();
-	$db->query('SELECT COUNT(`id`) AS `count` FROM `streams` ' . $rWhereString . ';', ...$rWhereV);
-	$rCount = $db->get_row()['count'];
-	$db->query('SELECT `id` FROM `streams` ' . $rWhereString . ' ORDER BY ' . $rOrderBy . ' LIMIT ' . $rStart . ', ' . $rLimit . ';', ...$rWhereV);
-
-	foreach ($db->get_rows() as $rRow) {
-		$rStreamIDs[] = $rRow['id'];
-	}
-} else {
-	$rStreamIDs = array();
-	$rCount = 0;
-}
-
-$rPages = ceil($rCount / $rLimit);
-$rPagination = array();
-
-foreach (range($rPageInt - 2, $rPageInt + 2) as $i) {
-	if (!(1 <= $i && $i <= $rPages)) {
-	} else {
-		$rPagination[] = $i;
-	}
-}
-$_TITLE = 'TV Guide';
-include 'header.php';
+	$_TITLE = 'TV Guide';
+	require_once __DIR__ . '/../public/Views/layouts/admin.php';
+	renderUnifiedLayoutHeader('reseller');
+endif;
 echo '<div class="wrapper "';
 
 if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
@@ -88,7 +91,7 @@ if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQU
 }
 
 echo '>' . "\n" . '    <div class="container-fluid">' . "\n\t\t" . '<div class="row">' . "\n\t\t\t" . '<div class="col-12">' . "\n\t\t\t\t" . '<div class="page-title-box">' . "\n\t\t\t\t\t" . '<div class="page-title-right">' . "\n" . '                        ';
-include 'topbar.php';
+include __DIR__ . '/topbar.php';
 echo "\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t" . '<h4 class="page-title">TV Guide</h4>' . "\n\t\t\t\t" . '</div>' . "\n\t\t\t\t" . '<form method="GET" action="epg_view">' . "\n\t\t\t\t\t" . '<div class="card">' . "\n\t\t\t\t\t\t" . '<div class="card-body">' . "\n\t\t\t\t\t\t\t" . '<div id="collapse_filters" class="form-group row" style="margin-bottom: 0;">' . "\n\t\t\t\t\t\t\t\t" . '<div class="col-md-3">' . "\n\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control" id="search" name="search" value="';
 
 if (!isset(CoreUtilities::$rRequest['search'])) {
@@ -205,4 +208,5 @@ if (0 < count($rStreamIDs)) {
 }
 
 echo "\t\t\t" . '</div>' . "\n\t\t" . '</div>' . "\n" . '    </div>' . "\n" . '</div>' . "\n";
-include 'footer.php';
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('reseller');

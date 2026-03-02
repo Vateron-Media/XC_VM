@@ -1,21 +1,26 @@
 <?php
 
-include "session.php";
-include "functions.php";
+if (!isset($__settingsViewMode)):
 
-if (!checkPermissions()) {
-	goHome();
-}
+	include "session.php";
+	include "functions.php";
 
-$rSettings = getSettings();
-$rStreamArguments = getStreamArguments();
+	if (!checkPermissions()) {
+		goHome();
+	}
 
-$GeoLite2 = json_decode(file_get_contents(BIN_PATH . "maxmind/version.json"), true)["geolite2_version"];
-$GeoISP = json_decode(file_get_contents(BIN_PATH . "maxmind/version.json"), true)["geoisp_version"];
-$Nginx = trim(shell_exec(BIN_PATH . "nginx/sbin/nginx -v 2>&1 | cut -d'/' -f2"));
+	$rSettings = getSettings();
+	$rStreamArguments = StreamConfigRepository::getStreamArguments();
 
-$_TITLE = "Settings";
-include "header.php";
+	$GeoLite2 = json_decode(file_get_contents(BIN_PATH . "maxmind/version.json"), true)["geolite2_version"];
+	$GeoISP = json_decode(file_get_contents(BIN_PATH . "maxmind/version.json"), true)["geoisp_version"];
+	$Nginx = trim(shell_exec(BIN_PATH . "nginx/sbin/nginx -v 2>&1 | cut -d'/' -f2"));
+
+	$_TITLE = "Settings";
+	require_once __DIR__ . '/../public/Views/layouts/admin.php';
+	renderUnifiedLayoutHeader('admin');
+
+endif; // !$__settingsViewMode
 ?>
 
 <div class="wrapper boxed-layout-ext" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest'): ?> style="display: none;" <?php endif; ?>>
@@ -49,23 +54,25 @@ include "header.php";
 					} ?>
 					<div class="card bg-info text-white cta-box">
 						<?php
-						if (is_array($rUpdate) && $rUpdate["version"] && (0 < version_compare($rUpdate["version"], XC_VM_VERSION) || (version_compare($rUpdate["version"], XC_VM_VERSION) == 0))) {
+						if (isset($rUpdate) && is_array($rUpdate) && !empty($rUpdate["version"]) && (0 < version_compare($rUpdate["version"], XC_VM_VERSION) || (version_compare($rUpdate["version"], XC_VM_VERSION) == 0))) {
 						?>
 							<div class="card-body" style="max-height: 250px;">
 								<h5 class="card-title text-white">Update Available</h5>
 								<p>Official Release v <?= $rUpdate["version"]; ?> is now available to download.</p>
 								<?php
-								foreach ($rUpdate["changelog"] as $rItem) {
-									echo '<h5 class="card-title text-white mt-1">Changelog - v';
-									echo $rItem["version"];
-									echo '</h5><ul>';
+								if (!empty($rUpdate["changelog"]) && is_array($rUpdate["changelog"])) {
+									foreach ($rUpdate["changelog"] as $rItem) {
+										echo '<h5 class="card-title text-white mt-1">Changelog - v';
+										echo $rItem["version"];
+										echo '</h5><ul>';
 
-									foreach ($rItem["changes"] as $rChange) {
-										echo '<li>';
-										echo $rChange;
-										echo '</li>';
+										foreach ((is_array($rItem["changes"] ?? null) ? $rItem["changes"] : []) as $rChange) {
+											echo '<li>';
+											echo $rChange;
+											echo '</li>';
+										}
+										echo '</ul>';
 									}
-									echo '</ul>';
 								}
 								?>
 								<br />
@@ -120,7 +127,7 @@ include "header.php";
 												class="mdi mdi-file-document-outline mr-1"></i><span
 												class="d-none d-sm-inline">Info</span></a>
 									</li>
-									<?php if (hasPermissions("adv", "database") && DEVELOPMENT) { ?>
+									<?php if (Authorization::check("adv", "database") && DEVELOPMENT) { ?>
 										<li class="nav-item">
 											<a href="#database" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"> <i
 													class="mdi mdi-file-document-outline mr-1"></i><span
@@ -2296,7 +2303,7 @@ include "header.php";
 										</div>
 									</div>
 									<?php
-									if (hasPermissions("adv", "database") && DEVELOPMENT) { ?>
+									if (Authorization::check("adv", "database") && DEVELOPMENT) { ?>
 										<div class="tab-pane" id="database">
 											<div class="row">
 												<iframe width="100%" height="650px" src="./database.php"
@@ -2315,7 +2322,8 @@ include "header.php";
 	</div>
 </div>
 <?php
-include 'footer.php'; ?>
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin'); ?>
 <script id="scripts">
 	var resizeObserver = new ResizeObserver(entries => $(window).scroll());
 	$(document).ready(function() {

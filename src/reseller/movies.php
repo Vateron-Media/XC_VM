@@ -1,13 +1,16 @@
 <?php
-include 'session.php';
-include 'functions.php';
+if (!isset($__viewMode)):
+    include 'session.php';
+    include 'functions.php';
 
-if (!checkResellerPermissions()) {
-    goHome();
-}
+    if (!checkResellerPermissions()) {
+        goHome();
+    }
 
-$_TITLE = 'Movies';
-include 'header.php';
+    $_TITLE = 'Movies';
+    require_once __DIR__ . '/../public/Views/layouts/admin.php';
+    renderUnifiedLayoutHeader('reseller');
+endif;
 ?>
 
 <div class="wrapper boxed-layout-ext">
@@ -17,7 +20,7 @@ include 'header.php';
             <div class="col-12">
                 <div class="page-title-box">
                     <div class="page-title-right">
-                        <?php include 'topbar.php'; ?>
+                        <?php include __DIR__ . '/topbar.php'; ?>
                     </div>
                     <h4 class="page-title"><?php echo $language::get('movies'); ?></h4>
                 </div>
@@ -30,14 +33,14 @@ include 'header.php';
                     <div class="card-body" style="overflow-x:auto;">
 
                         <div id="collapse_filters"
-                             class="<?php echo $rMobile ? 'collapse' : ''; ?> form-group row mb-4">
+                            class="<?php echo $rMobile ? 'collapse' : ''; ?> form-group row mb-4">
 
                             <div class="col-md-5">
                                 <input type="text"
-                                       class="form-control"
-                                       id="movies_search"
-                                       value="<?php echo isset(CoreUtilities::$rRequest['search']) ? htmlspecialchars(CoreUtilities::$rRequest['search']) : ''; ?>"
-                                       placeholder="<?php echo $language::get('search_movies'); ?>...">
+                                    class="form-control"
+                                    id="movies_search"
+                                    value="<?php echo isset(CoreUtilities::$rRequest['search']) ? htmlspecialchars(CoreUtilities::$rRequest['search']) : ''; ?>"
+                                    placeholder="<?php echo $language::get('search_movies'); ?>...">
                             </div>
 
                             <div class="col-md-4">
@@ -101,4 +104,7 @@ include 'header.php';
     </div>
 </div>
 
-<?php include 'footer.php'; ?>
+<?php
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('reseller');
+?>

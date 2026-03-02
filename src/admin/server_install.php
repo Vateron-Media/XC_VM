@@ -1,30 +1,33 @@
 <?php
 
-include 'session.php';
-include 'functions.php';
+if (!isset($__viewMode)):
+    include 'session.php';
+    include 'functions.php';
 
-if (!checkPermissions()) {
-    goHome();
-}
-
-$rType = isset(CoreUtilities::$rRequest['proxy']) ? 1 : 2;
-
-
-if (isset(CoreUtilities::$rRequest['id'])) {
-    if ($rType == 1) {
-        $rServerArr = $rProxyServers[intval(CoreUtilities::$rRequest['id'])];
-    } else {
-        $rServerArr = $allServers[intval(CoreUtilities::$rRequest['id'])];
-    }
-
-    if (!$rServerArr) {
+    if (!checkPermissions()) {
         goHome();
     }
-}
 
-$_TITLE = $rType == 1 ? 'Install Proxy' : 'Install Server';
+    $rType = isset(CoreUtilities::$rRequest['proxy']) ? 1 : 2;
 
-include 'header.php';
+
+    if (isset(CoreUtilities::$rRequest['id'])) {
+        if ($rType == 1) {
+            $rServerArr = $rProxyServers[intval(CoreUtilities::$rRequest['id'])];
+        } else {
+            $rServerArr = $allServers[intval(CoreUtilities::$rRequest['id'])];
+        }
+
+        if (!$rServerArr) {
+            goHome();
+        }
+    }
+
+    $_TITLE = $rType == 1 ? 'Install Proxy' : 'Install Server';
+
+    require_once __DIR__ . '/../public/Views/layouts/admin.php';
+    renderUnifiedLayoutHeader('admin');
+endif; // !$__viewMode
 echo '<div class="wrapper boxed-layout"';
 
 if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
@@ -200,7 +203,8 @@ if (isset($rServerArr) && $rServerArr['is_main'] == 1) {
 }
 
 echo "\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t" . '</div> ' . "\n\t\t\t" . '</div> ' . "\n\t\t" . '</div>' . "\n\t" . '</div>' . "\n" . '</div>' . "\n";
-include 'footer.php'; ?>
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin'); ?>
 <script id="scripts">
     var resizeObserver = new ResizeObserver(entries => $(window).scroll());
     $(document).ready(function() {

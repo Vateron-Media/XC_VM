@@ -1,7 +1,8 @@
 <?php
 
 class UserRepository {
-	public static function getAuthUserByCredentials($db, $rUsername, $rPassword) {
+	public static function getAuthUserByCredentials($rUsername, $rPassword) {
+		global $db;
 		$db->query('SELECT `id`, `username`, `password`, `member_group_id`, `status` FROM `users` WHERE `username` = ? LIMIT 1;', $rUsername);
 
 		if ($db->num_rows() == 1) {
@@ -13,7 +14,8 @@ class UserRepository {
 		}
 	}
 
-	public static function getResellers($db, $rOwner, $rIncludeSelf = true) {
+	public static function getResellers($rOwner, $rIncludeSelf = true) {
+		global $db;
 		if ($rIncludeSelf) {
 			$db->query('SELECT `id`, `username` FROM `users` WHERE `owner_id` = ? OR `id` = ? ORDER BY `username` ASC;', $rOwner, $rOwner);
 		} else {
@@ -23,7 +25,8 @@ class UserRepository {
 		return $db->get_rows(true, 'id');
 	}
 
-	public static function getDirectReports($db, $rPermissions, $rUserInfo, $rIncludeSelf = true) {
+	public static function getDirectReports($rPermissions, $rUserInfo, $rIncludeSelf = true) {
+		global $db;
 		$rUserIDs = $rPermissions['direct_reports'];
 
 		if (!$rIncludeSelf) {
@@ -56,14 +59,15 @@ class UserRepository {
 		return self::getParent($rPermissions, $rUserInfo, $rPermissions['users'][$rID]['parent']);
 	}
 
-	public static function getSubUsers($db, $rUser) {
+	public static function getSubUsers($rUser) {
+		global $db;
 		$rReturn = array();
 		$db->query('SELECT `id`, `username` FROM `users` WHERE `owner_id` = ?;', $rUser);
 
 		foreach ($db->get_rows() as $rRow) {
 			$rReturn[$rRow['id']] = array('username' => $rRow['username'], 'parent' => $rUser);
 
-			foreach (self::getSubUsers($db, $rRow['id']) as $rUserID => $rUserData) {
+			foreach (self::getSubUsers($rRow['id']) as $rUserID => $rUserData) {
 				$rReturn[$rUserID] = $rUserData;
 			}
 		}
@@ -71,7 +75,8 @@ class UserRepository {
 		return $rReturn;
 	}
 
-	public static function getLineById($db, $rID) {
+	public static function getLineById($rID) {
+		global $db;
 		$db->query('SELECT * FROM `lines` WHERE `id` = ?;', $rID);
 
 		if ($db->num_rows() != 1) {
@@ -80,7 +85,8 @@ class UserRepository {
 		}
 	}
 
-	public static function getRegisteredUserById($db, $rID) {
+	public static function getRegisteredUserById($rID) {
+		global $db;
 		$db->query('SELECT * FROM `users` WHERE `id` = ?;', $rID);
 
 		if ($db->num_rows() != 1) {
@@ -89,7 +95,8 @@ class UserRepository {
 		}
 	}
 
-	public static function getRegisteredUsers($db, $rOwner = null, $rIncludeSelf = true) {
+	public static function getRegisteredUsers($rOwner = null, $rIncludeSelf = true) {
+		global $db;
 		$rReturn = array();
 		$db->query('SELECT * FROM `users` ORDER BY `username` ASC;');
 
@@ -110,7 +117,8 @@ class UserRepository {
 		return $rReturn;
 	}
 
-	public static function getStreamingUserInfo($db, $rSettings, $rCached, $rBouquets, $rUserID = null, $rUsername = null, $rPassword = null, $rGetChannelIDs = false, $rGetConnections = false, $rIP = '', $rCallbacks = array()) {
+	public static function getStreamingUserInfo($rSettings, $rCached, $rBouquets, $rUserID = null, $rUsername = null, $rPassword = null, $rGetChannelIDs = false, $rGetConnections = false, $rIP = '', $rCallbacks = array()) {
+		global $db;
 		$rUserInfo = null;
 
 		if ($rCached) {

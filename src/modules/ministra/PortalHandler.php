@@ -1,7 +1,6 @@
 <?php
 
-class PortalHandler
-{
+class PortalHandler {
     /**
      * Phase 1: Pre-init stub responses (no DB needed).
      * Exits immediately if the action is handled, otherwise returns void.
@@ -9,8 +8,7 @@ class PortalHandler
      * @param string|null $rReqType
      * @param string|null $rReqAction
      */
-    public static function handlePreInit($rReqType, $rReqAction)
-    {
+    public static function handlePreInit($rReqType, $rReqAction) {
         if ($rReqType && $rReqAction) {
             switch ($rReqType) {
                 case 'stb':
@@ -136,8 +134,7 @@ class PortalHandler
      * @param string $rReqAction
      * @param array  &$ctx Context array with device, profile, language, theme, authenticated, etc.
      */
-    public static function handleStbPublic($rReqAction, &$ctx)
-    {
+    public static function handleStbPublic($rReqAction, &$ctx) {
         switch ($rReqAction) {
             case 'get_profile':
                 $rTotal = ($ctx['authenticated'] ? array_merge($ctx['profile'], $ctx['device']['get_profile_vars']) : $ctx['profile']);
@@ -193,8 +190,7 @@ class PortalHandler
      * @param string $rReqAction
      * @param array  &$ctx Context array
      */
-    public static function handleAuthenticated($rReqType, $rReqAction, &$ctx)
-    {
+    public static function handleAuthenticated($rReqType, $rReqAction, &$ctx) {
         $ctx['device']['mag_player'] = trim($ctx['device']['mag_player'], "'\"");
         $ctx['player'] = (!empty($ctx['device']['mag_player']) ? $ctx['device']['mag_player'] . ' ' : 'ffmpeg ');
 
@@ -261,8 +257,7 @@ class PortalHandler
      * @param string $rReqAction
      * @param array  &$ctx Context array
      */
-    public static function handleStbSettings($rReqAction, &$ctx)
-    {
+    public static function handleStbSettings($rReqAction, &$ctx) {
         global $db;
 
         switch ($rReqAction) {
@@ -447,8 +442,7 @@ class PortalHandler
      * @param string $rReqAction
      * @param array  &$ctx Context array
      */
-    public static function handleWatchdog($rReqAction, &$ctx)
-    {
+    public static function handleWatchdog($rReqAction, &$ctx) {
         global $db;
 
         $ctx['device']['last_watchdog'] = time();
@@ -495,8 +489,7 @@ class PortalHandler
      * @param string $rReqAction
      * @param array  &$ctx Context array
      */
-    public static function handleAudioclub($rReqAction, &$ctx)
-    {
+    public static function handleAudioclub($rReqAction, &$ctx) {
         switch ($rReqAction) {
             case 'get_categories':
                 $rOutput = array();
@@ -526,8 +519,7 @@ class PortalHandler
      * @param string $rReqAction
      * @param array  &$ctx Context array
      */
-    public static function handleItv($rReqAction, &$ctx)
-    {
+    public static function handleItv($rReqAction, &$ctx) {
         global $db;
 
         switch ($rReqAction) {
@@ -698,8 +690,7 @@ class PortalHandler
      * @param string $rReqAction
      * @param array  &$ctx Context array
      */
-    public static function handleVod($rReqAction, &$ctx)
-    {
+    public static function handleVod($rReqAction, &$ctx) {
         global $db;
 
         switch ($rReqAction) {
@@ -861,8 +852,7 @@ class PortalHandler
      * @param string $rReqAction
      * @param array  &$ctx Context array
      */
-    public static function handleSeries($rReqAction, &$ctx)
-    {
+    public static function handleSeries($rReqAction, &$ctx) {
         global $db;
 
         switch ($rReqAction) {
@@ -970,8 +960,7 @@ class PortalHandler
      * @param string $rReqAction
      * @param array  &$ctx Context array
      */
-    public static function handleAccountInfo($rReqAction, &$ctx)
-    {
+    public static function handleAccountInfo($rReqAction, &$ctx) {
         switch ($rReqAction) {
             case 'get_main_info':
                 if (empty($ctx['device']['exp_date'])) {
@@ -991,8 +980,7 @@ class PortalHandler
      * @param string $rReqAction
      * @param array  &$ctx Context array
      */
-    public static function handleRadio($rReqAction, &$ctx)
-    {
+    public static function handleRadio($rReqAction, &$ctx) {
         global $db;
 
         switch ($rReqAction) {
@@ -1026,8 +1014,7 @@ class PortalHandler
      * @param string $rReqAction
      * @param array  &$ctx Context array
      */
-    public static function handleTvArchive($rReqAction, &$ctx)
-    {
+    public static function handleTvArchive($rReqAction, &$ctx) {
         global $db;
 
         switch ($rReqAction) {
@@ -1104,8 +1091,7 @@ class PortalHandler
      * @param string $rReqAction
      * @param array  &$ctx Context array
      */
-    public static function handleEpg($rReqAction, &$ctx)
-    {
+    public static function handleEpg($rReqAction, &$ctx) {
         global $db;
 
         switch ($rReqAction) {
@@ -1304,8 +1290,7 @@ class PortalHandler
      * @param string $rReqAction
      * @param array  &$ctx Context array
      */
-    public static function handleUnauthenticated($rReqType, $rReqAction, &$ctx)
-    {
+    public static function handleUnauthenticated($rReqType, $rReqAction, &$ctx) {
         if (!($rReqType == 'stb' && $rReqAction == 'get_profile')) {
         } else {
             BruteforceGuard::checkBruteforce($ctx['ip'], $ctx['mac']);
@@ -1321,8 +1306,7 @@ class PortalHandler
      *
      * @param string $rMAC
      */
-    public static function handleHandshake($rMAC)
-    {
+    public static function handleHandshake($rMAC) {
         global $db;
 
         $rDevice = getdevice(null, $rMAC);

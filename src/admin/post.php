@@ -1261,7 +1261,7 @@ if (1 < $rICount) { ?>
 				$rReturn = API::processCode($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
-					if (getCurrentCode() == $rReturn['data']['orig_code']) {
+					if (AuthRepository::getCurrentCode() == $rReturn['data']['orig_code']) {
 						echo json_encode(array('result' => true, 'location' => getProtocol() . '://' . $rServers[SERVER_ID]['server_ip'] . ':' . $_SERVER['SERVER_PORT'] . '/' . $rReturn['data']['new_code'] . '/codes?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
 
 						exit();

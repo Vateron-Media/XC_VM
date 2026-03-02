@@ -14,6 +14,7 @@
  *   'port'      — порт MySQL
  */
 
+global $_INFO;
 $_INFO = array();
 
 if (file_exists(MAIN_HOME . 'config')) {
