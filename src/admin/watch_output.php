@@ -1,15 +1,22 @@
 <?php
 
-include 'session.php';
-include 'functions.php';
+if (!isset($__viewMode)):
 
-if (!checkPermissions()) {
-	goHome();
-}
+	include 'session.php';
+	include 'functions.php';
 
-$_TITLE = 'Watch Folder Logs';
+	if (!checkPermissions()) {
+		goHome();
+	}
 
-include 'header.php';
+	$_TITLE = 'Watch Folder Logs';
+
+	require_once __DIR__ . '/../public/Views/layouts/admin.php';
+	renderUnifiedLayoutHeader('admin');
+
+endif; // !$__viewMode
 include dirname(__DIR__) . '/modules/watch/views/watch_output.php';
-include 'footer.php';
+
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin');
 include dirname(__DIR__) . '/modules/watch/views/watch_output_scripts.php';

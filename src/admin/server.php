@@ -1,56 +1,59 @@
-<?php
+<?php if (!isset($__viewMode)): ?>
+    <?php
 
-include 'session.php';
-include 'functions.php';
+    include 'session.php';
+    include 'functions.php';
 
-if (!checkPermissions()) {
-    goHome();
-}
-
-if (isset(CoreUtilities::$rRequest['id']) && ($rServerArr = $allServers[CoreUtilities::$rRequest['id']])) {
-} else {
-    goHome();
-}
-
-$rWatchdog = !empty($rServerArr['watchdog_data']) ? json_decode($rServerArr['watchdog_data'], true) : [];
-$rServiceMax = (0 < intval($rWatchdog['cpu_cores']) ? $rWatchdog['cpu_cores'] : 16);
-
-if ($rServiceMax < 4) {
-    $rServiceMax = 4;
-}
-
-$rInterfaces = !empty($rServerArr['interfaces']) ? json_decode($rServerArr['interfaces'], true) : [];
-$rCertificate = !empty($rServerArr['certbot_ssl']) ? json_decode($rServerArr['certbot_ssl'], true) : [];
-$rCertValid = false;
-
-if (isset($rCertificate['expiration'])) {
-    $rHasCert = true;
-
-    if (time() < $rCertificate['expiration']) {
-        $rCertValid = true;
+    if (!checkPermissions()) {
+        goHome();
     }
 
-    $rExpiration = date($rSettings['datetime_format'], $rCertificate['expiration']);
-} else {
-    $rHasCert = false;
-    $rExpiration = 'No Certificate Installed';
-}
-
-if (count($rInterfaces) == 0) {
-    $rInterfaces = array('eth0');
-}
-
-$rFS = getFreeSpace($rServerArr['id']);
-$rMounted = false;
-
-foreach ($rFS as $rMount) {
-    if ($rMount['mount'] == rtrim(STREAMS_PATH, '/')) {
-        $rMounted = true;
-        break;
+    if (isset(CoreUtilities::$rRequest['id']) && ($rServerArr = $allServers[CoreUtilities::$rRequest['id']])) {
+    } else {
+        goHome();
     }
-}
-$_TITLE = 'Edit Server';
-include 'header.php'; ?>
+
+    $rWatchdog = !empty($rServerArr['watchdog_data']) ? json_decode($rServerArr['watchdog_data'], true) : [];
+    $rServiceMax = (0 < intval($rWatchdog['cpu_cores']) ? $rWatchdog['cpu_cores'] : 16);
+
+    if ($rServiceMax < 4) {
+        $rServiceMax = 4;
+    }
+
+    $rInterfaces = !empty($rServerArr['interfaces']) ? json_decode($rServerArr['interfaces'], true) : [];
+    $rCertificate = !empty($rServerArr['certbot_ssl']) ? json_decode($rServerArr['certbot_ssl'], true) : [];
+    $rCertValid = false;
+
+    if (isset($rCertificate['expiration'])) {
+        $rHasCert = true;
+
+        if (time() < $rCertificate['expiration']) {
+            $rCertValid = true;
+        }
+
+        $rExpiration = date($rSettings['datetime_format'], $rCertificate['expiration']);
+    } else {
+        $rHasCert = false;
+        $rExpiration = 'No Certificate Installed';
+    }
+
+    if (count($rInterfaces) == 0) {
+        $rInterfaces = array('eth0');
+    }
+
+    $rFS = ServerRepository::getFreeSpace('systemapirequest', $rServerArr['id']);
+    $rMounted = false;
+
+    foreach ($rFS as $rMount) {
+        if ($rMount['mount'] == rtrim(STREAMS_PATH, '/')) {
+            $rMounted = true;
+            break;
+        }
+    }
+    $_TITLE = 'Edit Server';
+    require_once __DIR__ . '/../public/Views/layouts/admin.php';
+    renderUnifiedLayoutHeader('admin'); ?>
+<?php endif; ?>
 <div class="wrapper boxed-layout" <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
                                     } else {
                                         echo ' style="display: none;"';
@@ -596,7 +599,7 @@ include 'header.php'; ?>
                                                     </div>
                                                 </div>
                                                 <?php if (!$rCertValid): ?>
-                                                    <?php $rErrorLog = getSSLLog($rServerArr['id']); ?>
+                                                    <?php $rErrorLog = ServerRepository::getSSLLog(CoreUtilities::$rServers, $rServerArr['id']); ?>
                                                     <?php if ($rErrorLog): ?>
                                                         <div class="form-group row mb-4">
                                                             <label class="col-md-4 col-form-label" for="error_log">Error
@@ -646,7 +649,10 @@ include 'header.php'; ?>
         </div>
     </div>
 </div>
-<?php include 'footer.php'; ?>
+<?php
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin');
+?>
 <script id="scripts">
     var resizeObserver = new ResizeObserver(entries => $(window).scroll());
     $(document).ready(function() {

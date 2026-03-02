@@ -20,8 +20,7 @@
 
 require_once __DIR__ . '/LoggerInterface.php';
 
-class FileLogger implements LoggerInterface
-{
+class FileLogger implements LoggerInterface {
     /**
      * Путь к файлу лога.
      * По умолчанию используется LOGS_TMP_PATH . 'error_log.log'
@@ -35,8 +34,7 @@ class FileLogger implements LoggerInterface
      *
      * @param string $path Полный путь к файлу
      */
-    public static function setLogFile(string $path): void
-    {
+    public static function setLogFile(string $path): void {
         self::$logFile = $path;
     }
 
@@ -46,8 +44,7 @@ class FileLogger implements LoggerInterface
      *
      * @return string
      */
-    public static function getLogFile(): string
-    {
+    public static function getLogFile(): string {
         if (self::$logFile !== null) {
             return self::$logFile;
         }
@@ -70,8 +67,7 @@ class FileLogger implements LoggerInterface
      * @param string|int $extra   Дополнительные данные (SQL-запрос, trace, и т.д.)
      * @param int        $line    Номер строки (опционально)
      */
-    public static function log(string $type, string $message, $extra = '', int $line = 0): void
-    {
+    public static function log(string $type, string $message, $extra = '', int $line = 0): void {
         $extra = (string) $extra;
 
         // Фильтрация шумных / рекурсивных записей
@@ -105,8 +101,7 @@ class FileLogger implements LoggerInterface
      *
      * @return bool true — пропустить, false — записать
      */
-    private static function shouldSkip(string $message, string $extra): bool
-    {
+    private static function shouldSkip(string $message, string $extra): bool {
         // Рекурсивный лог: запись о таблице panel_logs
         if (stripos($extra, 'panel_logs') !== false) {
             return true;

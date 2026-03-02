@@ -5,11 +5,11 @@ session_write_close();
 if (isset($_SESSION['hash'])) {
 	set_time_limit(2);
 	ini_set('default_socket_timeout', 2);
-	define('MAIN_HOME', '/home/xc_vm/');
-	define('WWW_PATH', MAIN_HOME . 'www/');
-	define('IMAGES_PATH', WWW_PATH . 'images/');
-	define('TMP_PATH', MAIN_HOME . 'tmp/');
-	define('CACHE_TMP_PATH', TMP_PATH . 'cache/');
+	if (!defined('MAIN_HOME')) define('MAIN_HOME', '/home/xc_vm/');
+	if (!defined('WWW_PATH')) define('WWW_PATH', MAIN_HOME . 'www/');
+	if (!defined('IMAGES_PATH')) define('IMAGES_PATH', WWW_PATH . 'images/');
+	if (!defined('TMP_PATH')) define('TMP_PATH', MAIN_HOME . 'tmp/');
+	if (!defined('CACHE_TMP_PATH')) define('CACHE_TMP_PATH', TMP_PATH . 'cache/');
 	$rServers = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'servers'));
 	$rURL = $_GET['url'];
 	$rMaxW = 0;
@@ -47,7 +47,12 @@ if (isset($_SESSION['hash'])) {
 				$rActURL = IMAGES_PATH . basename($rURL);
 			}
 
-			$rImageInfo = getimagesize($rActURL);
+			$rImageInfo = @getimagesize($rActURL);
+
+			if (!$rImageInfo) {
+				return;
+			}
+
 			$rImageSize = getimagesizekeepaspectratio($rImageInfo[0], $rImageInfo[1], $rMaxW, $rMaxH);
 
 			if (!($rImageSize['width'] && $rImageSize['height'])) {

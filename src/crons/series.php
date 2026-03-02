@@ -23,7 +23,7 @@ function loadCron() {
     $db->query('SELECT `id`, `stream_display_name`, `series_no`, `stream_source` FROM `streams` WHERE `type` = 3 AND `series_no` <> 0;');
     if ($db->num_rows() > 0) {
         foreach ($db->get_rows() as $rRow) {
-            $rPlaylist = generateSeriesPlaylist(intval($rRow['series_no']));
+            $rPlaylist = SeriesService::generatePlaylist(intval($rRow['series_no']));
             if ($rPlaylist['success']) {
                 $rSourceArray = json_decode($rRow['stream_source'], true);
                 $UpdateSeries = false;
@@ -39,5 +39,5 @@ function loadCron() {
             }
         }
     }
-    scanBouquets();
+    BouquetService::scan();
 }

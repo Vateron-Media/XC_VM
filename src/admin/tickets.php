@@ -1,15 +1,19 @@
 <?php
+if (!isset($__viewMode)):
 
-include 'session.php';
-include 'functions.php';
+	include 'session.php';
+	include 'functions.php';
 
-if (!checkPermissions()) {
-	goHome();
-}
+	if (!checkPermissions()) {
+		goHome();
+	}
 
-$rStatusArray = array('CLOSED', 'OPEN', 'RESPONDED TO', 'READ BY USER', 'NEW RESPONSE', 'READ BY ME', 'READ BY USER');
-$_TITLE = 'Tickets';
-include 'header.php';
+	$rStatusArray = array('CLOSED', 'OPEN', 'RESPONDED TO', 'READ BY USER', 'NEW RESPONSE', 'READ BY ME', 'READ BY USER');
+	$_TITLE = 'Tickets';
+	require_once __DIR__ . '/../public/Views/layouts/admin.php';
+	renderUnifiedLayoutHeader('admin');
+endif; // !$__viewMode
+
 echo '<div class="wrapper"';
 
 if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
@@ -45,7 +49,7 @@ foreach ($rTickets as $rTicket) {
 	echo intval($rTicket['id']);
 	echo '"><i class="mdi mdi-eye mr-2 text-muted font-18 vertical-middle"></i>View Ticket</a>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t";
 
-	if (hasPermissions('adv', 'ticket')) {
+	if (Authorization::check('adv', 'ticket')) {
 		if (0 < $rTicket['status']) {
 			echo "\t\t\t\t\t\t\t\t\t\t\t" . '<a class="dropdown-item" href="javascript:void(0);" onClick="api(';
 			echo intval($rTicket['id']);
@@ -64,7 +68,9 @@ foreach ($rTickets as $rTicket) {
 	echo "\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t" . '</td>' . "\r\n\t\t\t\t\t\t\t" . '</tr>' . "\r\n\t\t\t\t\t\t\t";
 }
 echo "\t\t\t\t\t\t" . '</tbody>' . "\r\n\t\t\t\t\t" . '</table>' . "\r\n\t\t\t\t" . '</div>' . "\r\n\t\t\t" . '</div>' . "\r\n\t\t" . '</div>' . "\r\n\t" . '</div>' . "\r\n" . '</div>' . "\r\n";
-include 'footer.php';
+
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin');
 ?>
 
 <script id="scripts">
@@ -236,11 +242,11 @@ include 'footer.php';
 		});
 		$("#tickets-table").css("width", "100%");
 	});
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-    <?php endif; ?>
+	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+		$(document).ready(function() {
+			initSearch();
+		});
+	<?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

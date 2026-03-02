@@ -11,7 +11,7 @@ if ($rMobile) {
 }
 
 if (isset($_SESSION['reseller'])) {
-	$rUserInfo = getRegisteredUser($_SESSION['reseller']);
+	$rUserInfo = UserRepository::getRegisteredUserById($_SESSION['reseller']);
 
 	if (strlen($rUserInfo['timezone']) > 0) {
 		date_default_timezone_set($rUserInfo['timezone']);
@@ -23,7 +23,7 @@ if (isset($_SESSION['reseller'])) {
 
 	$rPermissions = array_merge(getPermissions($rUserInfo['member_group_id']), getGroupPermissions($rUserInfo['id']));
 	$rUserInfo['reports'] = array_map('intval', array_merge(array($rUserInfo['id']), $rPermissions['all_reports']));
-	$rIP = getIP();
+	$rIP = CoreUtilities::getUserIP();
 	$rIPMatch = ($rSettings['ip_subnet_match'] ? implode('.', array_slice(explode('.', $_SESSION['rip']), 0, -1)) == implode('.', array_slice(explode('.', $rIP), 0, -1)) : $_SESSION['rip'] == $rIP);
 
 	if (!$rUserInfo || !$rPermissions || !$rPermissions['is_reseller'] || !$rIPMatch && $rSettings['ip_logout'] || $_SESSION['rverify'] != md5($rUserInfo['username'] . '||' . $rUserInfo['password'])) {

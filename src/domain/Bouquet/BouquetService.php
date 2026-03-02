@@ -1,15 +1,16 @@
 <?php
 
 class BouquetService {
-	public static function process($rData, $db, $rGetBouquetCallback, $rScanBouquetCallback) {
+	public static function process($rData, $rGetBouquetCallback, $rScanBouquetCallback) {
+		global $db;
 		if (isset($rData['edit'])) {
-			if (!hasPermissions('adv', 'edit_bouquet')) {
+			if (!Authorization::check('adv', 'edit_bouquet')) {
 				exit();
 			}
 
 			$rArray = overwriteData(call_user_func($rGetBouquetCallback, $rData['edit']), $rData);
 		} else {
-			if (!hasPermissions('adv', 'add_bouquet')) {
+			if (!Authorization::check('adv', 'add_bouquet')) {
 				exit();
 			}
 
@@ -72,7 +73,8 @@ class BouquetService {
 		return array('status' => STATUS_FAILURE, 'data' => $rData);
 	}
 
-	public static function reorder($rData, $db) {
+	public static function reorder($rData) {
+		global $db;
 		$rOrder = json_decode($rData['stream_order_array'], true);
 		$rOrder['stream'] = confirmIDs($rOrder['stream']);
 		$rOrder['series'] = confirmIDs($rOrder['series']);
@@ -83,7 +85,8 @@ class BouquetService {
 		return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rData['reorder']));
 	}
 
-	public static function sort($rData, $db, $rGetUserBouquetsCallback, $rGetPackagesCallback, $rSortArrayByArrayCallback, $rUpdateLineCallback) {
+	public static function sort($rData, $rGetUserBouquetsCallback, $rGetPackagesCallback, $rSortArrayByArrayCallback, $rUpdateLineCallback) {
+		global $db;
 		set_time_limit(0);
 		ini_set('mysql.connect_timeout', 0);
 		ini_set('max_execution_time', 0);
@@ -123,7 +126,8 @@ class BouquetService {
 		shell_exec(PHP_BIN . ' ' . CLI_PATH . 'tools.php "bouquets" > /dev/null 2>/dev/null &');
 	}
 
-	public static function scanOne($db, $rID, $rGetBouquetCallback, $rFilterIDsCallback) {
+	public static function scanOne($rID, $rGetBouquetCallback, $rFilterIDsCallback) {
+		global $db;
 		$rBouquet = call_user_func($rGetBouquetCallback, $rID);
 		if (!$rBouquet) {
 			return;
@@ -165,5 +169,75 @@ class BouquetService {
 			json_encode($updateData['series']),
 			$rBouquet['id']
 		);
+	}
+
+	// ──────────── Из BouquetMapper ────────────
+
+	public static function getMapEntry($rStreamID) {
+		$rBouquetMap = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'bouquet_map'));
+		$rReturn = ($rBouquetMap[$rStreamID] ?: array());
+		unset($rBouquetMap);
+		return $rReturn;
+	}
+
+	// ──────────── Из BouquetRepository ────────────
+
+	public static function getAll($rGetCacheCallback, $rSetCacheCallback, $rForce = false) {
+		global $db;
+		if (!$rForce && is_callable($rGetCacheCallback)) {
+			$rCache = call_user_func($rGetCacheCallback, 'bouquets', 60);
+			if (!empty($rCache)) {
+				return $rCache;
+			}
+		}
+
+		$rOutput = array();
+		$db->query('SELECT *, IF(`bouquet_order` > 0, `bouquet_order`, 999) AS `order` FROM `bouquets` ORDER BY `order` ASC;');
+		foreach ($db->get_rows(true, 'id') as $rID => $rChannels) {
+			$rOutput[$rID]['streams'] = array_merge(json_decode($rChannels['bouquet_channels'], true), json_decode($rChannels['bouquet_movies'], true), json_decode($rChannels['bouquet_radios'], true));
+			$rOutput[$rID]['series'] = json_decode($rChannels['bouquet_series'], true);
+			$rOutput[$rID]['channels'] = json_decode($rChannels['bouquet_channels'], true);
+			$rOutput[$rID]['movies'] = json_decode($rChannels['bouquet_movies'], true);
+			$rOutput[$rID]['radios'] = json_decode($rChannels['bouquet_radios'], true);
+		}
+
+		if (is_callable($rSetCacheCallback)) {
+			call_user_func($rSetCacheCallback, 'bouquets', $rOutput);
+		}
+
+		return $rOutput;
+	}
+
+	public static function getUserBouquets() {
+		global $db;
+		$rReturn = array();
+		$db->query('SELECT `id`, `bouquet` FROM `lines` ORDER BY `id` ASC;');
+
+		if ($db->num_rows() > 0) {
+			foreach ($db->get_rows() as $rRow) {
+				$rReturn[intval($rRow['id'])] = $rRow;
+			}
+		}
+
+		return $rReturn;
+	}
+
+	public static function getAllSimple() {
+		global $db;
+		$rReturn = array();
+		$db->query('SELECT * FROM `bouquets` ORDER BY `bouquet_order` ASC;');
+
+		if ($db->num_rows() > 0) {
+			foreach ($db->get_rows() as $rRow) {
+				$rReturn[intval($rRow['id'])] = $rRow;
+			}
+		}
+
+		return $rReturn;
+	}
+
+	public static function getOrder() {
+		global $db;
+		return self::getAllSimple();
 	}
 }

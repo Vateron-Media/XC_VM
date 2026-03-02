@@ -1,13 +1,16 @@
 <?php
-include 'session.php';
-include 'functions.php';
+if (!isset($__viewMode)):
+    include 'session.php';
+    include 'functions.php';
 
-if (!checkResellerPermissions()) {
-    goHome();
-}
+    if (!checkResellerPermissions()) {
+        goHome();
+    }
 
-$_TITLE = 'Streams';
-include 'header.php';
+    $_TITLE = 'Streams';
+    require_once __DIR__ . '/../public/Views/layouts/admin.php';
+    renderUnifiedLayoutHeader('reseller');
+endif;
 ?>
 
 <div class="wrapper boxed-layout-ext">
@@ -16,7 +19,7 @@ include 'header.php';
             <div class="col-12">
                 <div class="page-title-box">
                     <div class="page-title-right">
-                        <?php include 'topbar.php'; ?>
+                        <?php include __DIR__ . '/topbar.php'; ?>
                     </div>
                     <h4 class="page-title">Streams</h4>
                 </div>
@@ -29,14 +32,14 @@ include 'header.php';
                     <div class="card-body" style="overflow-x:auto;">
 
                         <div id="collapse_filters"
-                             class="<?php echo $rMobile ? 'collapse' : ''; ?> form-group row mb-4">
+                            class="<?php echo $rMobile ? 'collapse' : ''; ?> form-group row mb-4">
 
                             <div class="col-md-5">
                                 <input type="text"
-                                       class="form-control"
-                                       id="stream_search"
-                                       value="<?php echo isset(CoreUtilities::$rRequest['search']) ? htmlspecialchars(CoreUtilities::$rRequest['search']) : ''; ?>"
-                                       placeholder="Search Streams...">
+                                    class="form-control"
+                                    id="stream_search"
+                                    value="<?php echo isset(CoreUtilities::$rRequest['search']) ? htmlspecialchars(CoreUtilities::$rRequest['search']) : ''; ?>"
+                                    placeholder="Search Streams...">
                             </div>
 
                             <div class="col-md-4">
@@ -75,7 +78,7 @@ include 'header.php';
                         </div>
 
                         <table id="datatable-streampage"
-                               class="table table-borderless table-striped dt-responsive nowrap font-normal">
+                            class="table table-borderless table-striped dt-responsive nowrap font-normal">
                             <thead>
                                 <tr>
                                     <th class="text-center">ID</th>
@@ -96,4 +99,7 @@ include 'header.php';
     </div>
 </div>
 
-<?php include 'footer.php'; ?>
+<?php
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('reseller');
+?>

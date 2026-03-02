@@ -264,7 +264,7 @@ class APIWrapper {
         return array('status' => 'STATUS_SUCCESS', 'data' => $rPackages);
     }
     public static function getLine($rID) {
-        if (!(($rLine = getUser($rID)) && hasPermissions('line', $rID))) {
+        if (!(($rLine = UserRepository::getLineById($rID)) && Authorization::check('line', $rID))) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS', 'data' => $rLine);
@@ -282,7 +282,7 @@ class APIWrapper {
         return $rReturn;
     }
     public static function editLine($rID, $rData) {
-        if (!getUser($rID)) {
+        if (!UserRepository::getLineById($rID)) {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
@@ -298,7 +298,7 @@ class APIWrapper {
         return $rReturn;
     }
     public static function deleteLine($rID) {
-        if (!getUser($rID)) {
+        if (!UserRepository::getLineById($rID)) {
         } else {
             if (!deleteLine($rID)) {
             } else {
@@ -308,14 +308,14 @@ class APIWrapper {
         return array('status' => 'STATUS_FAILURE');
     }
     public static function disableLine($rID) {
-        if (!getUser($rID)) {
+        if (!UserRepository::getLineById($rID)) {
             return array('status' => 'STATUS_FAILURE');
         }
         self::$db->query('UPDATE `lines` SET `enabled` = 0 WHERE `id` = ?;', $rID);
         return array('status' => 'STATUS_SUCCESS');
     }
     public static function enableLine($rID) {
-        if (!getUser($rID)) {
+        if (!UserRepository::getLineById($rID)) {
             return array('status' => 'STATUS_FAILURE');
         }
         self::$db->query('UPDATE `lines` SET `enabled` = 1 WHERE `id` = ?;', $rID);
@@ -324,7 +324,7 @@ class APIWrapper {
     public static function getMAG($rID) {
         if (!($rDevice = getMag($rID))) {
         } else {
-            if (!hasPermissions('line', $rDevice['user_id'])) {
+            if (!Authorization::check('line', $rDevice['user_id'])) {
             } else {
                 return array('status' => 'STATUS_SUCCESS', 'data' => $rDevice);
             }
@@ -384,16 +384,17 @@ class APIWrapper {
         return array('status' => 'STATUS_SUCCESS');
     }
     public static function convertMAG($rID) {
+        global $db;
         if (!($rDevice = getMag($rID))) {
             return array('status' => 'STATUS_FAILURE');
         }
         deleteMAG($rID, false, false, true);
-        return array('status' => 'STATUS_SUCCESS', 'data' => getUser($rDevice['user_id']));
+        return array('status' => 'STATUS_SUCCESS', 'data' => UserRepository::getLineById($rDevice['user_id']));
     }
     public static function getEnigma($rID) {
         if (!($rDevice = getEnigma($rID))) {
         } else {
-            if (!hasPermissions('line', $rDevice['user_id'])) {
+            if (!Authorization::check('line', $rDevice['user_id'])) {
             } else {
                 return array('status' => 'STATUS_SUCCESS', 'data' => $rDevice);
             }
@@ -453,14 +454,15 @@ class APIWrapper {
         return array('status' => 'STATUS_SUCCESS');
     }
     public static function convertEnigma($rID) {
+        global $db;
         if (!($rDevice = getEnigma($rID))) {
             return array('status' => 'STATUS_FAILURE');
         }
         deleteEnigma($rID, false, false, true);
-        return array('status' => 'STATUS_SUCCESS', 'data' => getUser($rDevice['user_id']));
+        return array('status' => 'STATUS_SUCCESS', 'data' => UserRepository::getLineById($rDevice['user_id']));
     }
     public static function getUser($rID) {
-        if (!(($rUser = getRegisteredUser($rID)) && hasPermissions('user', $rUser['id']))) {
+        if (!(($rUser = UserRepository::getRegisteredUserById($rID)) && Authorization::check('user', $rUser['id']))) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS', 'data' => $rUser);

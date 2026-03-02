@@ -1,19 +1,22 @@
+<?php if (!isset($__viewMode)): ?>
 <?php
 
-include 'session.php';
-include 'functions.php';
+    include 'session.php';
+    include 'functions.php';
 
-if (!checkPermissions()) {
-    goHome();
-}
+    if (!checkPermissions()) {
+        goHome();
+    }
 
-if (!isset(CoreUtilities::$rRequest['id']) || ($rISPArr = getISP(CoreUtilities::$rRequest['id']))) {
-} else {
-    goHome();
-}
+    if (!isset(CoreUtilities::$rRequest['id']) || ($rISPArr = getISP(CoreUtilities::$rRequest['id']))) {
+    } else {
+        goHome();
+    }
 
-$_TITLE = 'Blocked ISP';
-include 'header.php';
+    $_TITLE = 'Blocked ISP';
+    require_once __DIR__ . '/../public/Views/layouts/admin.php';
+    renderUnifiedLayoutHeader('admin');
+endif;
 ?>
 <div class="wrapper boxed-layout" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') echo ' style="display: none;"'; ?>>
     <div class="container-fluid">
@@ -77,7 +80,10 @@ include 'header.php';
         </div>
     </div>
 </div>
-<?php include 'footer.php';  ?>
+<?php
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin');
+?>
 <script id="scripts">
     var resizeObserver = new ResizeObserver(entries => $(window).scroll());
     $(document).ready(function() {

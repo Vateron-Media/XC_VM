@@ -1,4 +1,5 @@
 <?php
+if (!isset($__viewMode)):
 
 
 
@@ -6,21 +7,23 @@
 
 
 
-include 'session.php';
-include 'functions.php';
+	include 'session.php';
+	include 'functions.php';
 
-if (checkPermissions()) {
-} else {
-	goHome();
-}
+	if (checkPermissions()) {
+	} else {
+		goHome();
+	}
 
-if (!isset(CoreUtilities::$rRequest['id']) || ($rUAArr = getUserAgent(CoreUtilities::$rRequest['id']))) {
-} else {
-	goHome();
-}
+	if (!isset(CoreUtilities::$rRequest['id']) || ($rUAArr = getUserAgent(CoreUtilities::$rRequest['id']))) {
+	} else {
+		goHome();
+	}
 
-$_TITLE = 'Block User-Agent';
-include 'header.php';
+	$_TITLE = 'Block User-Agent';
+	require_once __DIR__ . '/../public/Views/layouts/admin.php';
+	renderUnifiedLayoutHeader('admin');
+endif; // !$__viewMode
 echo '<div class="wrapper boxed-layout"';
 
 if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
@@ -75,7 +78,8 @@ if (isset($rUAArr)) {
 
 
 echo '" />' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</ul>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t" . '</form>' . "\n\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t" . '</div> ' . "\n\t\t\t" . '</div> ' . "\n\t\t" . '</div>' . "\n\t" . '</div>' . "\n" . '</div>' . "\n";
-include 'footer.php'; ?>
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin'); ?>
 <script id="scripts">
 	var resizeObserver = new ResizeObserver(entries => $(window).scroll());
 	$(document).ready(function() {
@@ -209,11 +213,11 @@ include 'footer.php'; ?>
 			submitForm(window.rCurrentPage, new FormData($("form")[0]));
 		});
 	});
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-    <?php endif; ?>
+	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+		$(document).ready(function() {
+			initSearch();
+		});
+	<?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

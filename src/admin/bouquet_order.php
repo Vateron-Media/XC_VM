@@ -1,15 +1,18 @@
-<?php
+<?php if (!isset($__viewMode)): ?>
+    <?php
 
-include 'session.php';
-include 'functions.php';
+    include 'session.php';
+    include 'functions.php';
 
-if (!checkPermissions()) {
-    goHome();
-}
+    if (!checkPermissions()) {
+        goHome();
+    }
 
-$_TITLE = 'Bouquet Order';
-include 'header.php';
-?>
+    $_TITLE = 'Bouquet Order';
+    require_once __DIR__ . '/../public/Views/layouts/admin.php';
+    renderUnifiedLayoutHeader('admin');
+    ?>
+<?php endif; ?>
 <div class="wrapper boxed-layout" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
                                         echo ' style="display: none;"';
                                     } ?>>
@@ -54,7 +57,7 @@ include 'header.php';
                                             <div class="col-12">
                                                 <p class="sub-header"><?php echo $language::get('bouquet_sort_text'); ?></p>
                                                 <select multiple id="sort_bouquet" class="form-control" style="min-height:400px;">
-                                                    <?php foreach (getBouquets() as $rBouquet) : ?>
+                                                    <?php foreach (BouquetService::getAllSimple() as $rBouquet) : ?>
                                                         <option value="<?php echo $rBouquet['id']; ?>"><?php echo $rBouquet['bouquet_name']; ?></option>
                                                     <?php endforeach; ?>
                                                 </select>
@@ -86,7 +89,10 @@ include 'header.php';
         </div>
     </div>
 </div>
-<?php include 'footer.php'; ?>
+<?php
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin');
+?>
 <script id="scripts">
     var resizeObserver = new ResizeObserver(entries => $(window).scroll());
     $(document).ready(function() {

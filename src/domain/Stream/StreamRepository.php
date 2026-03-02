@@ -1,7 +1,8 @@
 <?php
 
 class StreamRepository {
-	public static function getErrors($db, $rStreamID, $rAmount = 250) {
+	public static function getErrors($rStreamID, $rAmount = 250) {
+		global $db;
 		$rReturn = array();
 		$db->query('SELECT * FROM (SELECT MAX(`date`) AS `date`, `error` FROM `streams_errors` WHERE `stream_id` = ? GROUP BY `error`) AS `output` ORDER BY `date` DESC LIMIT ' . intval($rAmount) . ';', $rStreamID);
 
@@ -12,7 +13,8 @@ class StreamRepository {
 		return $rReturn;
 	}
 
-	public static function getById($db, $rID) {
+	public static function getById($rID) {
+		global $db;
 		$db->query('SELECT * FROM `streams` WHERE `id` = ?;', $rID);
 
 		if ($db->num_rows() != 1) {
@@ -21,7 +23,8 @@ class StreamRepository {
 		}
 	}
 
-	public static function getStats($db, $rStreamID) {
+	public static function getStats($rStreamID) {
+		global $db;
 		$rReturn = array();
 		$db->query('SELECT * FROM `streams_stats` WHERE `stream_id` = ?;', $rStreamID);
 
@@ -42,7 +45,8 @@ class StreamRepository {
 		return $rReturn;
 	}
 
-	public static function getPIDs($db, $rServerID, $rSettings) {
+	public static function getPIDs($rServerID, $rSettings) {
+		global $db;
 		$rReturn = array();
 		$db->query('SELECT `streams`.`id`, `streams`.`stream_display_name`, `streams`.`type`, `streams_servers`.`pid`, `streams_servers`.`monitor_pid`, `streams_servers`.`delay_pid` FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams_servers`.`server_id` = ?;', $rServerID);
 
@@ -113,7 +117,8 @@ class StreamRepository {
 		return $rReturn;
 	}
 
-	public static function getOptions($db, $rID) {
+	public static function getOptions($rID) {
+		global $db;
 		$rReturn = array();
 		$db->query('SELECT * FROM `streams_options` WHERE `stream_id` = ?;', $rID);
 
@@ -127,7 +132,8 @@ class StreamRepository {
 		return $rReturn;
 	}
 
-	public static function getSystemRows($db, $rID) {
+	public static function getSystemRows($rID) {
+		global $db;
 		$rReturn = array();
 		$db->query('SELECT * FROM `streams_servers` WHERE `stream_id` = ?;', $rID);
 
@@ -141,7 +147,8 @@ class StreamRepository {
 		return $rReturn;
 	}
 
-	public static function getNextOrder($db) {
+	public static function getNextOrder() {
+		global $db;
 		$db->query('SELECT MAX(`order`) AS `order` FROM `streams`;');
 
 		if ($db->num_rows() != 1) {

@@ -79,7 +79,8 @@ class WatchService {
 		return array('status' => STATUS_FAILURE, 'data' => $rData);
 	}
 
-	public static function getWatchFolders($db, $rType = null) {
+	public static function getWatchFolders($rType = null) {
+		global $db;
 		if ($rType) {
 			$db->query("SELECT * FROM `watch_folders` WHERE `type` = ? AND `type` <> 'plex' ORDER BY `id` ASC;", $rType);
 		} else {
@@ -89,7 +90,8 @@ class WatchService {
 		return $db->get_rows();
 	}
 
-	public static function getWatchCategories($db, $rType = null) {
+	public static function getWatchCategories($rType = null) {
+		global $db;
 		$rReturn = array();
 		if ($rType) {
 			$db->query('SELECT * FROM `watch_categories` WHERE `type` = ? ORDER BY `genre_id` ASC;', $rType);

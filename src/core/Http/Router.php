@@ -343,9 +343,12 @@ class Router {
      */
     protected function buildRoute($route) {
         if ($this->groupPrefix && $route !== '') {
-            return $this->groupPrefix . '/' . $route;
+            $full = $this->groupPrefix . '/' . $route;
+        } else {
+            $full = $this->groupPrefix ?: $route;
         }
-        return $this->groupPrefix ?: $route;
+        // Нормализуем при регистрации, чтобы dispatch() находил по тому же ключу
+        return $this->normalizePage($full);
     }
 
     /**
@@ -396,12 +399,12 @@ class Router {
 
         $perm = $entry['permission'];
 
-        // Поддержка формата ['type', 'key'] для hasPermissions()
+        // Поддержка формата ['type', 'key'] для Authorization::check()
         if (is_array($perm) && count($perm) === 2 && is_string($perm[0])) {
-            if (function_exists('hasPermissions')) {
-                return hasPermissions($perm[0], $perm[1]);
+            if (class_exists('Authorization')) {
+                return Authorization::check($perm[0], $perm[1]);
             }
-            return true; // fallback если функция недоступна
+            return true; // fallback если класс недоступен
         }
 
         // Произвольный callable
@@ -424,10 +427,23 @@ class Router {
      */
     protected function callHandler($handler) {
         if (is_array($handler) && count($handler) === 2 && is_string($handler[0])) {
-            // [ClassName, 'method'] → инстанцируем и вызываем
+            // [ClassName, 'method'] → инстанцируем (через DI-контейнер если доступен)
             $class  = $handler[0];
             $method = $handler[1];
-            $obj    = new $class();
+
+            // Попытка получить экземпляр через ServiceContainer (DI)
+            if (class_exists('ServiceContainer', false)) {
+                $container = ServiceContainer::getInstance();
+                try {
+                    $obj = $container->get($class);
+                } catch (\Throwable $e) {
+                    // Fallback: конструктор без параметров
+                    $obj = new $class();
+                }
+            } else {
+                $obj = new $class();
+            }
+
             $obj->$method();
         } elseif (is_callable($handler)) {
             call_user_func($handler);

@@ -1,15 +1,18 @@
-<?php
+<?php if (!isset($__viewMode)): ?>
+	<?php
 
-include 'session.php';
-include 'functions.php';
+	include 'session.php';
+	include 'functions.php';
 
-if (isset(CoreUtilities::$rRequest['id']) && !($rEPGArr = getEPG(CoreUtilities::$rRequest['id']))) {
-	exit();
-}
+	if (isset(CoreUtilities::$rRequest['id']) && !($rEPGArr = EpgService::getById(CoreUtilities::$rRequest['id']))) {
+		exit();
+	}
 
-$_TITLE = 'EPG';
-include 'header.php';
-?>
+	$_TITLE = 'EPG';
+	require_once __DIR__ . '/../public/Views/layouts/admin.php';
+	renderUnifiedLayoutHeader('admin');
+	?>
+<?php endif; ?>
 <div class="wrapper boxed-layout" <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
 										echo ' style="display: block;"';
 									} ?>>
@@ -118,7 +121,10 @@ include 'header.php';
 		</div>
 	</div>
 </div>
-<?php include 'footer.php'; ?>
+<?php
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin');
+?>
 <script id="scripts">
 	var resizeObserver = new ResizeObserver(entries => $(window).scroll());
 	$(document).ready(function() {
@@ -273,11 +279,11 @@ include 'header.php';
 			submitForm(window.rCurrentPage, new FormData($("form")[0]));
 		});
 	});
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-    <?php endif; ?>
+	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+		$(document).ready(function() {
+			initSearch();
+		});
+	<?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

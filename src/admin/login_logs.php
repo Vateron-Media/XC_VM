@@ -1,12 +1,17 @@
-<?php include 'session.php'; ?>
-<?php include 'functions.php'; ?>
+<?php if (!isset($__viewMode)): ?>
+	<?php include 'session.php'; ?>
+	<?php include 'functions.php'; ?>
 
-<?php if (!checkPermissions()): ?>
-	<?php goHome(); ?>
+	<?php if (!checkPermissions()): ?>
+		<?php goHome(); ?>
+	<?php endif; ?>
+
+	<?php $_TITLE = 'Login Logs'; ?>
+	<?php
+	require_once __DIR__ . '/../public/Views/layouts/admin.php';
+	renderUnifiedLayoutHeader('admin');
+	?>
 <?php endif; ?>
-
-<?php $_TITLE = 'Login Logs'; ?>
-<?php include 'header.php'; ?>
 
 <div class="wrapper" <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
 						} else {
@@ -17,7 +22,7 @@
 			<div class="col-12">
 				<div class="page-title-box">
 					<div class="page-title-right">
-						<?php include 'topbar.php'; ?>
+						<?php include __DIR__ . '/topbar.php'; ?>
 					</div>
 					<h4 class="page-title">Login Logs</h4>
 				</div>
@@ -48,7 +53,10 @@
 	</div>
 </div>
 
-<?php include 'footer.php'; ?>
+<?php
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin');
+?>
 <script id="scripts">
 	var resizeObserver = new ResizeObserver(entries => $(window).scroll());
 	$(document).ready(function() {
@@ -239,11 +247,11 @@
 			window.location.href = "api?action=report&params=" + encodeURIComponent(JSON.stringify($("#datatable").DataTable().ajax.params()));
 		});
 	});
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-    <?php endif; ?>
+	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+		$(document).ready(function() {
+			initSearch();
+		});
+	<?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>
