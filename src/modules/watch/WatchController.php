@@ -85,7 +85,7 @@ class WatchController {
             }
         }
 
-        $rBouquets = getBouquets();
+        $rBouquets = BouquetService::getAllSimple();
         $_TITLE = isset($rFolder) ? 'Edit Folder' : 'Add Folder';
 
         include 'header.php';
@@ -99,7 +99,7 @@ class WatchController {
      * Подготавливает: $rBouquets, категории
      */
     public function settings() {
-        $rBouquets = getBouquets();
+        $rBouquets = BouquetService::getAllSimple();
         $_TITLE = 'Watch Settings';
 
         include 'header.php';
@@ -131,7 +131,7 @@ class WatchController {
         $rStream = $rProgramme = null;
 
         if (isset(CoreUtilities::$rRequest['id'])) {
-            $rStream = getStream(CoreUtilities::$rRequest['id']);
+            $rStream = StreamRepository::getById(CoreUtilities::$rRequest['id']);
             $rProgramme = CoreUtilities::getProgramme(
                 CoreUtilities::$rRequest['id'],
                 CoreUtilities::$rRequest['programme']
@@ -142,7 +142,7 @@ class WatchController {
             }
         } elseif (isset(CoreUtilities::$rRequest['archive'])) {
             $rArchive = json_decode(base64_decode(CoreUtilities::$rRequest['archive']), true);
-            $rStream = getStream($rArchive['stream_id']);
+            $rStream = StreamRepository::getById($rArchive['stream_id']);
             $rProgramme = [
                 'start'       => $rArchive['start'],
                 'end'         => $rArchive['end'],
@@ -155,7 +155,7 @@ class WatchController {
                 return;
             }
         } elseif (isset(CoreUtilities::$rRequest['stream_id'])) {
-            $rStream = getStream(CoreUtilities::$rRequest['stream_id']);
+            $rStream = StreamRepository::getById(CoreUtilities::$rRequest['stream_id']);
             $rProgramme = [
                 'start'       => strtotime(CoreUtilities::$rRequest['start_date']),
                 'end'         => strtotime(CoreUtilities::$rRequest['start_date']) + intval(CoreUtilities::$rRequest['duration']) * 60,

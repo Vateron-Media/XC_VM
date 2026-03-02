@@ -16,7 +16,7 @@ if (isset($_SESSION['hash'])) {
 
 	if (isset(CoreUtilities::$rRequest['action'])) {
 		if (CoreUtilities::$rRequest['action'] == 'stream') {
-			if (hasPermissions('adv', 'edit_stream')) {
+			if (Authorization::check('adv', 'edit_stream')) {
 				$rStreamID = intval(CoreUtilities::$rRequest['stream_id']);
 				$rServerID = intval(CoreUtilities::$rRequest['server_id']);
 				$rSub = CoreUtilities::$rRequest['sub'];
@@ -47,7 +47,7 @@ if (isset($_SESSION['hash'])) {
 				} else {
 					if ($rSub == 'force') {
 						$rForceID = intval(CoreUtilities::$rRequest['force_id']);
-						$rServerIDs = array_keys(getStreamSys($rStreamID));
+						$rServerIDs = array_keys(StreamRepository::getSystemRows($rStreamID));
 
 						if (0 >= count($rServerIDs)) {
 							echo json_encode(array('result' => false));
@@ -108,7 +108,7 @@ if (isset($_SESSION['hash'])) {
 			}
 		}
 		if (CoreUtilities::$rRequest['action'] == 'movie') {
-			if (hasPermissions('adv', 'edit_movie')) {
+			if (Authorization::check('adv', 'edit_movie')) {
 				$rStreamID = intval(CoreUtilities::$rRequest['stream_id']);
 				$rServerID = intval(CoreUtilities::$rRequest['server_id']);
 				$rSub = CoreUtilities::$rRequest['sub'];
@@ -181,7 +181,7 @@ if (isset($_SESSION['hash'])) {
 			}
 		}
 		if (CoreUtilities::$rRequest['action'] == 'episode') {
-			if (hasPermissions('adv', 'edit_episode')) {
+			if (Authorization::check('adv', 'edit_episode')) {
 				$rStreamID = intval(CoreUtilities::$rRequest['stream_id']);
 				$rServerID = intval(CoreUtilities::$rRequest['server_id']);
 				$rSub = CoreUtilities::$rRequest['sub'];
@@ -254,7 +254,7 @@ if (isset($_SESSION['hash'])) {
 			}
 		}
 		if (CoreUtilities::$rRequest['action'] == 'line') {
-			if (hasPermissions('adv', 'edit_user')) {
+			if (Authorization::check('adv', 'edit_user')) {
 				$rUserID = intval(CoreUtilities::$rRequest['user_id']);
 				$rSub = CoreUtilities::$rRequest['sub'];
 
@@ -325,7 +325,7 @@ if (isset($_SESSION['hash'])) {
 			}
 		}
 		if (CoreUtilities::$rRequest['action'] == 'line_activity') {
-			if (hasPermissions('adv', 'connection_logs')) {
+			if (Authorization::check('adv', 'connection_logs')) {
 				$rSub = CoreUtilities::$rRequest['sub'];
 
 				if ($rSub != 'kill') {
@@ -345,7 +345,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'process') {
-			if (hasPermissions('adv', 'process_monitor')) {
+			if (Authorization::check('adv', 'process_monitor')) {
 				systemapirequest(CoreUtilities::$rRequest['server'], array('action' => 'kill_pid', 'pid' => intval(CoreUtilities::$rRequest['pid'])));
 				echo json_encode(array('result' => true));
 
@@ -357,8 +357,8 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'adjust_credits') {
-			if (hasPermissions('adv', 'edit_reguser')) {
-				$rUser = getRegisteredUser(CoreUtilities::$rRequest['id']);
+			if (Authorization::check('adv', 'edit_reguser')) {
+				$rUser = UserRepository::getRegisteredUserById(CoreUtilities::$rRequest['id']);
 
 				if ($rUser && is_numeric(CoreUtilities::$rRequest['credits'])) {
 					$rCredits = intval($rUser['credits']) + intval(CoreUtilities::$rRequest['credits']);
@@ -386,7 +386,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'reg_user') {
-			if (hasPermissions('adv', 'edit_reguser')) {
+			if (Authorization::check('adv', 'edit_reguser')) {
 				$rSub = CoreUtilities::$rRequest['sub'];
 
 				if ($rSub == 'delete') {
@@ -420,7 +420,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'ticket') {
-			if (hasPermissions('adv', 'ticket')) {
+			if (Authorization::check('adv', 'ticket')) {
 				$rSub = CoreUtilities::$rRequest['sub'];
 
 				if ($rSub == 'delete') {
@@ -454,7 +454,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'mag') {
-			if (hasPermissions('adv', 'edit_mag')) {
+			if (Authorization::check('adv', 'edit_mag')) {
 				$rSub = CoreUtilities::$rRequest['sub'];
 				$rMagDetails = getMag(intval(CoreUtilities::$rRequest['mag_id']));
 
@@ -532,7 +532,7 @@ if (isset($_SESSION['hash'])) {
 			}
 		}
 		if (CoreUtilities::$rRequest['action'] == 'enigma') {
-			if (hasPermissions('adv', 'edit_e2')) {
+			if (Authorization::check('adv', 'edit_e2')) {
 				$rSub = CoreUtilities::$rRequest['sub'];
 				$rE2Details = getEnigma(intval(CoreUtilities::$rRequest['e2_id']));
 
@@ -610,7 +610,7 @@ if (isset($_SESSION['hash'])) {
 			}
 		}
 		if (CoreUtilities::$rRequest['action'] == 'mag_event') {
-			if (hasPermissions('adv', 'manage_events')) {
+			if (Authorization::check('adv', 'manage_events')) {
 				$rSub = CoreUtilities::$rRequest['sub'];
 
 				if ($rSub == 'delete') {
@@ -630,7 +630,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'regenerate_cache') {
-			if (hasPermissions('adv', 'backups')) {
+			if (Authorization::check('adv', 'backups')) {
 				shell_exec(PHP_BIN . ' ' . CRON_PATH . 'cache_engine.php "force"');
 				echo json_encode(array('result' => true));
 
@@ -642,7 +642,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'enable_cache') {
-			if (hasPermissions('adv', 'backups')) {
+			if (Authorization::check('adv', 'backups')) {
 				$db->query('UPDATE `settings` SET `enable_cache` = 1;');
 
 				if (!file_exists(CACHE_TMP_PATH . 'settings')) {
@@ -668,7 +668,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'disable_cache') {
-			if (hasPermissions('adv', 'backups')) {
+			if (Authorization::check('adv', 'backups')) {
 				$db->query('UPDATE `settings` SET `enable_cache` = 0;');
 
 				if (!file_exists(CACHE_TMP_PATH . 'settings')) {
@@ -687,7 +687,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'epg') {
-			if (hasPermissions('adv', 'epg_edit')) {
+			if (Authorization::check('adv', 'epg_edit')) {
 				$rSub = CoreUtilities::$rRequest['sub'];
 
 				if ($rSub == 'delete') {
@@ -714,7 +714,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'provider') {
-			if (hasPermissions('adv', 'streams')) {
+			if (Authorization::check('adv', 'streams')) {
 				$rSub = CoreUtilities::$rRequest['sub'];
 
 				if ($rSub == 'delete') {
@@ -741,7 +741,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'profile') {
-			if (hasPermissions('adv', 'tprofiles')) {
+			if (Authorization::check('adv', 'tprofiles')) {
 				$rSub = CoreUtilities::$rRequest['sub'];
 
 				if ($rSub == 'delete') {
@@ -761,7 +761,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'series') {
-			if (hasPermissions('adv', 'edit_series')) {
+			if (Authorization::check('adv', 'edit_series')) {
 				$rSub = CoreUtilities::$rRequest['sub'];
 
 				if ($rSub == 'delete') {
@@ -781,8 +781,8 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'kill_watch') {
-			if (hasPermissions('adv', 'folder_watch')) {
-				killWatchFolder();
+			if (Authorization::check('adv', 'folder_watch')) {
+				WatchService::killWatch($db);
 				echo json_encode(array('result' => true));
 
 				exit();
@@ -793,7 +793,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'kill_plex') {
-			if (hasPermissions('adv', 'folder_watch')) {
+			if (Authorization::check('adv', 'folder_watch')) {
 				killPlexSync();
 				echo json_encode(array('result' => true));
 
@@ -805,7 +805,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'folder') {
-			if (hasPermissions('adv', 'folder_watch')) {
+			if (Authorization::check('adv', 'folder_watch')) {
 				$rSub = CoreUtilities::$rRequest['sub'];
 
 				if ($rSub == 'delete') {
@@ -819,7 +819,7 @@ if (isset($_SESSION['hash'])) {
 					$rFolder = getWatchFolder(CoreUtilities::$rRequest['folder_id']);
 
 					if ($rFolder) {
-						forceWatch($rFolder['server_id'], $rFolder['id']);
+						WatchService::forceWatch($rFolder['server_id'], $rFolder['id']);
 						echo json_encode(array('result' => true));
 
 						exit();
@@ -840,7 +840,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'library') {
-			if (hasPermissions('adv', 'folder_watch')) {
+			if (Authorization::check('adv', 'folder_watch')) {
 				$rSub = CoreUtilities::$rRequest['sub'];
 
 				if ($rSub == 'delete') {
@@ -854,7 +854,7 @@ if (isset($_SESSION['hash'])) {
 					$rFolder = getWatchFolder(CoreUtilities::$rRequest['folder_id']);
 
 					if ($rFolder) {
-						forcePlex($rFolder['server_id'], $rFolder['id']);
+						PlexService::forcePlex($rFolder['server_id'], $rFolder['id'], 'systemapirequest');
 						echo json_encode(array('result' => true));
 
 						exit();
@@ -875,7 +875,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'useragent') {
-			if (hasPermissions('adv', 'block_uas')) {
+			if (Authorization::check('adv', 'block_uas')) {
 				$rSub = CoreUtilities::$rRequest['sub'];
 
 				if ($rSub == 'delete') {
@@ -895,7 +895,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'isp') {
-			if (hasPermissions('adv', 'block_isps')) {
+			if (Authorization::check('adv', 'block_isps')) {
 				$rSub = CoreUtilities::$rRequest['sub'];
 
 				if ($rSub == 'delete') {
@@ -915,7 +915,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'mysql_syslog') {
-			if (hasPermissions('adv', 'block_ips')) {
+			if (Authorization::check('adv', 'block_ips')) {
 				$rSub = CoreUtilities::$rRequest['sub'];
 
 				if ($rSub == 'block' && filter_var(CoreUtilities::$rRequest['ip'], FILTER_VALIDATE_IP)) {
@@ -936,7 +936,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'ip') {
-			if (hasPermissions('adv', 'block_ips')) {
+			if (Authorization::check('adv', 'block_ips')) {
 				$rSub = CoreUtilities::$rRequest['sub'];
 
 				if ($rSub == 'delete') {
@@ -956,7 +956,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'rtmp_ip') {
-			if (hasPermissions('adv', 'add_rtmp')) {
+			if (Authorization::check('adv', 'add_rtmp')) {
 				$rSub = CoreUtilities::$rRequest['sub'];
 
 				if ($rSub == 'delete') {
@@ -976,7 +976,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'watch_output') {
-			if (hasPermissions('adv', 'folder_watch_output')) {
+			if (Authorization::check('adv', 'folder_watch_output')) {
 				$rSub = CoreUtilities::$rRequest['sub'];
 
 				if ($rSub == 'delete') {
@@ -996,12 +996,12 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'server') {
-			if (hasPermissions('adv', 'edit_server')) {
+			if (Authorization::check('adv', 'edit_server')) {
 				$rSub = CoreUtilities::$rRequest['sub'];
 
 				if ($rSub == 'delete') {
 					if ($rServers[CoreUtilities::$rRequest['server_id']]['is_main'] == 0) {
-						deleteServer(CoreUtilities::$rRequest['server_id']);
+						ServerRepository::deleteById(CoreUtilities::$rSettings, 'getStreamingServersByID', CoreUtilities::$rRequest['server_id']);
 						echo json_encode(array('result' => true));
 
 						exit();
@@ -1144,11 +1144,11 @@ if (isset($_SESSION['hash'])) {
 			}
 		}
 		if (CoreUtilities::$rRequest['action'] == 'proxy') {
-			if (hasPermissions('adv', 'edit_server')) {
+			if (Authorization::check('adv', 'edit_server')) {
 				$rSub = CoreUtilities::$rRequest['sub'];
 
 				if ($rSub == 'delete') {
-					deleteServer(CoreUtilities::$rRequest['server_id']);
+					ServerRepository::deleteById(CoreUtilities::$rSettings, 'getStreamingServersByID', CoreUtilities::$rRequest['server_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -1208,11 +1208,11 @@ if (isset($_SESSION['hash'])) {
 			}
 		}
 		if (CoreUtilities::$rRequest['action'] == 'package') {
-			if (hasPermissions('adv', 'edit_package')) {
+			if (Authorization::check('adv', 'edit_package')) {
 				$rSub = CoreUtilities::$rRequest['sub'];
 
 				if ($rSub == 'delete') {
-					deletePackage(CoreUtilities::$rRequest['package_id']);
+					PackageService::deleteById('getPackage', CoreUtilities::$rRequest['package_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -1235,7 +1235,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'code') {
-			if (hasPermissions('adv', 'add_code')) {
+			if (Authorization::check('adv', 'add_code')) {
 				$rSub = CoreUtilities::$rRequest['sub'];
 
 				if ($rSub == 'delete') {
@@ -1255,7 +1255,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'hmac') {
-			if (hasPermissions('adv', 'add_hmac')) {
+			if (Authorization::check('adv', 'add_hmac')) {
 				$rSub = CoreUtilities::$rRequest['sub'];
 
 				if ($rSub == 'delete') {
@@ -1275,11 +1275,11 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'group') {
-			if (hasPermissions('adv', 'edit_group')) {
+			if (Authorization::check('adv', 'edit_group')) {
 				$rSub = CoreUtilities::$rRequest['sub'];
 
 				if ($rSub == 'delete') {
-					deleteGroup(CoreUtilities::$rRequest['group_id']);
+					GroupService::deleteById(CoreUtilities::$rRequest['group_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -1302,7 +1302,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'bouquet') {
-			if (hasPermissions('adv', 'edit_bouquet')) {
+			if (Authorization::check('adv', 'edit_bouquet')) {
 				$rSub = CoreUtilities::$rRequest['sub'];
 
 				if ($rSub == 'delete') {
@@ -1322,7 +1322,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'category') {
-			if (hasPermissions('adv', 'edit_cat')) {
+			if (Authorization::check('adv', 'edit_cat')) {
 				$rSub = CoreUtilities::$rRequest['sub'];
 
 				if ($rSub == 'delete') {
@@ -1358,7 +1358,7 @@ if (isset($_SESSION['hash'])) {
 
 				if (!isset(CoreUtilities::$rRequest['user_id'])) {
 				} else {
-					if (!($rUser = getUser(CoreUtilities::$rRequest['user_id']))) {
+					if (!($rUser = UserRepository::getLineById(CoreUtilities::$rRequest['user_id']))) {
 					} else {
 						if (time() < $rUser['exp_date']) {
 							$rData['exp_date'] = date('Y-m-d', strtotime('+' . intval($rData['official_duration']) . ' ' . $rData['official_duration_in'], $rUser['exp_date']));
@@ -1504,7 +1504,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'stats') {
-			if (hasPermissions('adv', 'index')) {
+			if (Authorization::check('adv', 'index')) {
 				$rServers = CoreUtilities::getServers(true);
 				$rReturn = array('cpu' => 0, 'mem' => 0, 'io' => 0, 'fs' => 0, 'uptime' => '--', 'bytes_sent' => 0, 'bytes_received' => 0, 'open_connections' => 0, 'total_connections' => 0, 'online_users' => 0, 'total_users' => 0, 'total_streams' => 0, 'total_running_streams' => 0, 'offline_streams' => 0, 'requests_per_second' => 0, 'servers' => array());
 
@@ -1719,7 +1719,7 @@ if (isset($_SESSION['hash'])) {
 			}
 		}
 		if (CoreUtilities::$rRequest['action'] == 'header_stats') {
-			if (hasPermissions('adv', 'index')) {
+			if (Authorization::check('adv', 'index')) {
 				$rReturn = array('bytes_sent' => 0, 'bytes_received' => 0, 'total_connections' => 0, 'total_users' => 0, 'total_running_streams' => 0, 'offline_streams' => 0);
 
 				if (!CoreUtilities::$rSettings['redis_handler']) {
@@ -1781,7 +1781,7 @@ if (isset($_SESSION['hash'])) {
 			}
 		}
 		if (CoreUtilities::$rRequest['action'] == 'review_selection') {
-			if (hasPermissions('adv', 'edit_cchannel') || hasPermissions('adv', 'create_channel')) {
+			if (Authorization::check('adv', 'edit_cchannel') || Authorization::check('adv', 'create_channel')) {
 				$rReturn = array('streams' => array(), 'result' => true);
 
 				if (!isset(CoreUtilities::$rRequest['data'])) {
@@ -1806,7 +1806,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'review_bouquet') {
-			if (hasPermissions('adv', 'edit_bouquet') || hasPermissions('adv', 'add_bouquet')) {
+			if (Authorization::check('adv', 'edit_bouquet') || Authorization::check('adv', 'add_bouquet')) {
 				$rReturn = array('streams' => array(), 'movies' => array(), 'series' => array(), 'radios' => array(), 'result' => true);
 
 				if (!isset(CoreUtilities::$rRequest['data']['stream'])) {
@@ -1871,7 +1871,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'epglist') {
-			if (hasPermissions('adv', 'import_streams')) {
+			if (Authorization::check('adv', 'import_streams')) {
 				$rGroups = array();
 				$rReturn = array('total_count' => 0, 'items' => array(), 'result' => true);
 
@@ -1905,7 +1905,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'serieslist') {
-			if (hasPermissions('adv', 'episodes')) {
+			if (Authorization::check('adv', 'episodes')) {
 				$rReturn = array('total_count' => 0, 'items' => array(), 'result' => true);
 
 				if (!isset(CoreUtilities::$rRequest['search'])) {
@@ -1938,7 +1938,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'reguserlist') {
-			if (hasPermissions('adv', 'mng_regusers') || hasPermissions('adv', 'manage_mag') || hasPermissions('adv', 'manage_e2') || hasPermissions('adv', 'edit_e2') || hasPermissions('adv', 'add_e2') || hasPermissions('adv', 'add_mag') || hasPermissions('adv', 'edit_mag')) {
+			if (Authorization::check('adv', 'mng_regusers') || Authorization::check('adv', 'manage_mag') || Authorization::check('adv', 'manage_e2') || Authorization::check('adv', 'edit_e2') || Authorization::check('adv', 'add_e2') || Authorization::check('adv', 'add_mag') || Authorization::check('adv', 'edit_mag')) {
 				$rReturn = array('total_count' => 0, 'items' => array(), 'result' => true);
 
 				if (!isset(CoreUtilities::$rRequest['search'])) {
@@ -1971,7 +1971,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'userlist') {
-			if (hasPermissions('adv', 'edit_e2') || hasPermissions('adv', 'add_e2') || hasPermissions('adv', 'add_mag') || hasPermissions('adv', 'edit_mag')) {
+			if (Authorization::check('adv', 'edit_e2') || Authorization::check('adv', 'add_e2') || Authorization::check('adv', 'add_mag') || Authorization::check('adv', 'edit_mag')) {
 				$rReturn = array('total_count' => 0, 'items' => array(), 'result' => true);
 
 				if (!isset(CoreUtilities::$rRequest['search'])) {
@@ -2008,7 +2008,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'streamlist') {
-			if (hasPermissions('adv', 'manage_mag')) {
+			if (Authorization::check('adv', 'manage_mag')) {
 				$rReturn = array('total_count' => 0, 'items' => array(), 'result' => true);
 
 				if (!isset(CoreUtilities::$rRequest['search'])) {
@@ -2041,7 +2041,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'adaptivelist') {
-			if (hasPermissions('adv', 'edit_stream')) {
+			if (Authorization::check('adv', 'edit_stream')) {
 				$rReturn = array('total_count' => 0, 'items' => array(), 'result' => true);
 
 				if (!isset(CoreUtilities::$rRequest['search'])) {
@@ -2074,7 +2074,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'titlesync') {
-			if (hasPermissions('adv', 'edit_stream')) {
+			if (Authorization::check('adv', 'edit_stream')) {
 				$rReturn = array('total_count' => 0, 'items' => array(), 'result' => true);
 
 				if (!isset(CoreUtilities::$rRequest['search'])) {
@@ -2117,7 +2117,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'force_epg') {
-			if (hasPermissions('adv', 'epg')) {
+			if (Authorization::check('adv', 'epg')) {
 				shell_exec(PHP_BIN . ' ' . CRON_PATH . 'epg.php > /dev/null 2>/dev/null &');
 				echo json_encode(array('result' => true));
 
@@ -2129,7 +2129,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'tmdb_search') {
-			if (hasPermissions('adv', 'add_series') || hasPermissions('adv', 'edit_series') || hasPermissions('adv', 'add_movie') || hasPermissions('adv', 'edit_movie') || hasPermissions('adv', 'add_episode') || hasPermissions('adv', 'edit_episode')) {
+			if (Authorization::check('adv', 'add_series') || Authorization::check('adv', 'edit_series') || Authorization::check('adv', 'add_movie') || Authorization::check('adv', 'edit_movie') || Authorization::check('adv', 'add_episode') || Authorization::check('adv', 'edit_episode')) {
 				$rTerm = CoreUtilities::$rRequest['term'];
 
 				if (0 >= strlen($rTerm)) {
@@ -2206,7 +2206,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'tmdb') {
-			if (hasPermissions('adv', 'add_series') || hasPermissions('adv', 'edit_series') || hasPermissions('adv', 'add_movie') || hasPermissions('adv', 'edit_movie') || hasPermissions('adv', 'add_episode') || hasPermissions('adv', 'edit_episode')) {
+			if (Authorization::check('adv', 'add_series') || Authorization::check('adv', 'edit_series') || Authorization::check('adv', 'add_movie') || Authorization::check('adv', 'edit_movie') || Authorization::check('adv', 'add_episode') || Authorization::check('adv', 'edit_episode')) {
 				include MAIN_HOME . 'includes/libs/tmdb.php';
 
 				if (0 < strlen(CoreUtilities::$rRequest['language'])) {
@@ -2250,7 +2250,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'listdir') {
-			if (hasPermissions('adv', 'add_episode') || hasPermissions('adv', 'edit_episode') || hasPermissions('adv', 'add_movie') || hasPermissions('adv', 'edit_movie') || hasPermissions('adv', 'create_channel') || hasPermissions('adv', 'edit_cchannel') || hasPermissions('adv', 'folder_watch_add')) {
+			if (Authorization::check('adv', 'add_episode') || Authorization::check('adv', 'edit_episode') || Authorization::check('adv', 'add_movie') || Authorization::check('adv', 'edit_movie') || Authorization::check('adv', 'create_channel') || Authorization::check('adv', 'edit_cchannel') || Authorization::check('adv', 'folder_watch_add')) {
 				if (CoreUtilities::$rRequest['filter'] == 'video') {
 					$rFilter = array('mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts');
 				} else {
@@ -2277,7 +2277,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'fingerprint') {
-			if (hasPermissions('adv', 'fingerprint')) {
+			if (Authorization::check('adv', 'fingerprint')) {
 				$rData = json_decode(CoreUtilities::$rRequest['data'], true);
 				$rActiveServers = array();
 
@@ -2364,7 +2364,7 @@ if (isset($_SESSION['hash'])) {
 			}
 		}
 		if (CoreUtilities::$rRequest['action'] == 'restart_all_services') {
-			if (hasPermissions('adv', 'servers')) {
+			if (Authorization::check('adv', 'servers')) {
 				foreach ($rServers as $rServer) {
 					if (!$rServer['server_online']) {
 					} else {
@@ -2381,7 +2381,7 @@ if (isset($_SESSION['hash'])) {
 			}
 		}
 		if (CoreUtilities::$rRequest['action'] == 'restart_services') {
-			if (hasPermissions('adv', 'edit_server')) {
+			if (Authorization::check('adv', 'edit_server')) {
 				if (!is_numeric(CoreUtilities::$rRequest['server_id'])) {
 					$rIDs = json_decode(CoreUtilities::$rRequest['server_id'], true);
 				} else {
@@ -2401,7 +2401,7 @@ if (isset($_SESSION['hash'])) {
 			}
 		}
 		if (CoreUtilities::$rRequest['action'] == 'reboot_server') {
-			if (hasPermissions('adv', 'edit_server')) {
+			if (Authorization::check('adv', 'edit_server')) {
 				if (!is_numeric(CoreUtilities::$rRequest['server_id'])) {
 					$rIDs = json_decode(CoreUtilities::$rRequest['server_id'], true);
 				} else {
@@ -2421,7 +2421,7 @@ if (isset($_SESSION['hash'])) {
 			}
 		}
 		if (CoreUtilities::$rRequest['action'] == 'update_binaries') {
-			if (hasPermissions('adv', 'edit_server')) {
+			if (Authorization::check('adv', 'edit_server')) {
 				if (!is_numeric(CoreUtilities::$rRequest['server_id'])) {
 					$rIDs = json_decode(CoreUtilities::$rRequest['server_id'], true);
 				} else {
@@ -2441,7 +2441,7 @@ if (isset($_SESSION['hash'])) {
 			}
 		}
 		if (CoreUtilities::$rRequest['action'] == 'probe_stream') {
-			if (hasPermissions('adv', 'add_stream') || hasPermissions('adv', 'edit_stream')) {
+			if (Authorization::check('adv', 'add_stream') || Authorization::check('adv', 'edit_stream')) {
 				$rAnalyseDuration = abs(intval(CoreUtilities::$rSettings['stream_max_analyze']));
 				$rTimeout = intval($rAnalyseDuration / 1000000) + CoreUtilities::$rSettings['probe_extra_wait'];
 				set_time_limit(intval($rTimeout));
@@ -2476,7 +2476,7 @@ if (isset($_SESSION['hash'])) {
 					}
 
 					if (!$rStreamInfo) {
-						$rStreamInfo = probeSource($rServerID, CoreUtilities::$rRequest['url'], (CoreUtilities::$rRequest['user_agent'] ?: null), (CoreUtilities::$rRequest['http_proxy'] ?: null), (CoreUtilities::$rRequest['cookies'] ?: null), (CoreUtilities::$rRequest['headers'] ?: null))['data'];
+						$rStreamInfo = ServerRepository::probeSource('systemapirequest', $rServerID, CoreUtilities::$rRequest['url'], (CoreUtilities::$rRequest['user_agent'] ?: null), (CoreUtilities::$rRequest['http_proxy'] ?: null), (CoreUtilities::$rRequest['cookies'] ?: null), (CoreUtilities::$rRequest['headers'] ?: null))['data'];
 						$rStreamInfo['container'] = $rStreamInfo['format']['format_name'];
 					}
 				}
@@ -2538,7 +2538,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'check_stream') {
-			if (hasPermissions('adv', 'add_stream') || hasPermissions('adv', 'edit_stream')) {
+			if (Authorization::check('adv', 'add_stream') || Authorization::check('adv', 'edit_stream')) {
 				$rAnalyseDuration = abs(intval(CoreUtilities::$rSettings['stream_max_analyze']));
 				$rTimeout = intval($rAnalyseDuration / 1000000) + CoreUtilities::$rSettings['probe_extra_wait'];
 				set_time_limit(intval($rTimeout));
@@ -2560,8 +2560,8 @@ if (isset($_SESSION['hash'])) {
 						$rCookie = '';
 					}
 				} else {
-					$rStream = getStream(CoreUtilities::$rRequest['stream']);
-					$rStreamOptions = getStreamOptions(CoreUtilities::$rRequest['stream']);
+					$rStream = StreamRepository::getById(CoreUtilities::$rRequest['stream']);
+					$rStreamOptions = StreamRepository::getOptions(CoreUtilities::$rRequest['stream']);
 
 					if (0 < strlen($rStreamOptions[1]['value'])) {
 						$rUA = ' -user_agent ' . escapeshellarg($rStreamOptions[1]['value']);
@@ -2659,7 +2659,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'clear_logs') {
-			if (hasPermissions('adv', 'reg_userlog') || hasPermissions('adv', 'client_request_log') || hasPermissions('adv', 'connection_logs') || hasPermissions('adv', 'stream_errors') || hasPermissions('adv', 'credits_log') || hasPermissions('adv', 'folder_watch_settings')) {
+			if (Authorization::check('adv', 'reg_userlog') || Authorization::check('adv', 'client_request_log') || Authorization::check('adv', 'connection_logs') || Authorization::check('adv', 'stream_errors') || Authorization::check('adv', 'credits_log') || Authorization::check('adv', 'folder_watch_settings')) {
 				if (strlen(CoreUtilities::$rRequest['from']) == 0) {
 					$rStartTime = null;
 				} else {
@@ -2731,7 +2731,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'backup') {
-			if (hasPermissions('adv', 'database')) {
+			if (Authorization::check('adv', 'database')) {
 				$rSub = CoreUtilities::$rRequest['sub'];
 
 				if ($rSub == 'delete') {
@@ -2798,7 +2798,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'send_event') {
-			if (hasPermissions('adv', 'manage_events')) {
+			if (Authorization::check('adv', 'manage_events')) {
 				$rData = json_decode(CoreUtilities::$rRequest['data'], true);
 
 				if (!is_numeric($rData['id'])) {
@@ -2901,7 +2901,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'asn') {
-			if (hasPermissions('adv', 'block_isps')) {
+			if (Authorization::check('adv', 'block_isps')) {
 				$rSub = CoreUtilities::$rRequest['sub'];
 				$rASN = CoreUtilities::$rRequest['id'];
 
@@ -2940,7 +2940,7 @@ if (isset($_SESSION['hash'])) {
 			}
 		}
 		if (CoreUtilities::$rRequest['action'] == 'server_view') {
-			if (hasPermissions('adv', 'add_server') || hasPermissions('adv', 'edit_server')) {
+			if (Authorization::check('adv', 'add_server') || Authorization::check('adv', 'edit_server')) {
 				if (isset($rServers[CoreUtilities::$rRequest['server_id']])) {
 					$rServer = $rServers[CoreUtilities::$rRequest['server_id']];
 				} else {
@@ -2970,11 +2970,11 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'server_stats') {
-			if (hasPermissions('adv', 'add_server') || hasPermissions('adv', 'edit_server')) {
+			if (Authorization::check('adv', 'add_server') || Authorization::check('adv', 'edit_server')) {
 				$rID = intval(CoreUtilities::$rRequest['id']);
 
 				if (isset($rServers[$rID])) {
-					$rWatchdog = getWatchdog($rID);
+					$rWatchdog = WatchdogMonitor::getWatchdog($rID);
 					$rReturn = array();
 
 					foreach ($rWatchdog as $rData) {
@@ -2995,7 +2995,7 @@ if (isset($_SESSION['hash'])) {
 			}
 		}
 		if (CoreUtilities::$rRequest['action'] == 'rtmp_kill') {
-			if (hasPermissions('adv', 'rtmp')) {
+			if (Authorization::check('adv', 'rtmp')) {
 				echo systemapirequest(intval(CoreUtilities::$rRequest['server']), array('action' => 'rtmp_kill', 'name' => CoreUtilities::$rRequest['name']));
 
 				exit();
@@ -3006,7 +3006,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'install_status') {
-			if (hasPermissions('adv', 'add_server') || hasPermissions('adv', 'edit_server')) {
+			if (Authorization::check('adv', 'add_server') || Authorization::check('adv', 'edit_server')) {
 				CoreUtilities::$rServers = CoreUtilities::getServers(true);
 				$rServerID = intval(CoreUtilities::$rRequest['server_id']);
 				$rFilename = BIN_PATH . 'install/' . $rServerID . '.install';
@@ -3027,7 +3027,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'reinstall_server') {
-			if (hasPermissions('adv', 'add_server') || hasPermissions('adv', 'edit_server')) {
+			if (Authorization::check('adv', 'add_server') || Authorization::check('adv', 'edit_server')) {
 				$rServerID = intval(CoreUtilities::$rRequest['server_id']);
 
 				if ($rServers[$rServerID]['server_type'] == 0) {
@@ -3064,8 +3064,8 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'fpm_status') {
-			if (hasPermissions('adv', 'add_server') || hasPermissions('adv', 'edit_server')) {
-				$rData = str_replace("\n", '<br/>', getFPMStatus(CoreUtilities::$rRequest['server_id']));
+			if (Authorization::check('adv', 'add_server') || Authorization::check('adv', 'edit_server')) {
+				$rData = str_replace("\n", '<br/>', systemapirequest(CoreUtilities::$rRequest['server_id'], array('action' => 'fpm_status')));
 
 				if (empty($rData)) {
 					$rData = '<strong>No response from status page.</strong>';
@@ -3088,7 +3088,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'update_all_servers') {
-			if (hasPermissions('adv', 'servers')) {
+			if (Authorization::check('adv', 'servers')) {
 				foreach ($rServers as $rServer) {
 					if ($rServer['server_online']) {
 						$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rServer['id'], time(), json_encode(array('action' => 'update')));
@@ -3104,7 +3104,7 @@ if (isset($_SESSION['hash'])) {
 			}
 		}
 		if (CoreUtilities::$rRequest['action'] == 'update_all_binaries') {
-			if (hasPermissions('adv', 'servers')) {
+			if (Authorization::check('adv', 'servers')) {
 				foreach ($rServers as $rServer) {
 					if (!$rServer['server_online']) {
 					} else {
@@ -3121,7 +3121,7 @@ if (isset($_SESSION['hash'])) {
 			}
 		}
 		if (CoreUtilities::$rRequest['action'] == 'disable_watch') {
-			if (hasPermissions('adv', 'folder_watch_settings')) {
+			if (Authorization::check('adv', 'folder_watch_settings')) {
 				WatchService::disableWatch($db);
 				echo json_encode(array('result' => true));
 
@@ -3133,7 +3133,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'enable_watch') {
-			if (hasPermissions('adv', 'folder_watch_settings')) {
+			if (Authorization::check('adv', 'folder_watch_settings')) {
 				WatchService::enableWatch($db);
 				echo json_encode(array('result' => true));
 
@@ -3145,7 +3145,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'disable_plex') {
-			if (hasPermissions('adv', 'folder_watch_settings')) {
+			if (Authorization::check('adv', 'folder_watch_settings')) {
 				$db->query("UPDATE `watch_folders` SET `active` = 0 WHERE `type` = 'plex';");
 				echo json_encode(array('result' => true));
 
@@ -3157,7 +3157,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'enable_plex') {
-			if (hasPermissions('adv', 'folder_watch_settings')) {
+			if (Authorization::check('adv', 'folder_watch_settings')) {
 				$db->query("UPDATE `watch_folders` SET `active` = 1 WHERE `type` = 'plex';");
 				echo json_encode(array('result' => true));
 
@@ -3169,9 +3169,9 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'plex_sections') {
-			if (hasPermissions('adv', 'folder_watch_settings')) {
+			if (Authorization::check('adv', 'folder_watch_settings')) {
 				$rToken = CoreUtilities::getPlexToken(CoreUtilities::$rRequest['ip'], CoreUtilities::$rRequest['port'], CoreUtilities::$rRequest['username'], CoreUtilities::$rRequest['password']);
-				$rSections = getPlexSections(CoreUtilities::$rRequest['ip'], CoreUtilities::$rRequest['port'], $rToken);
+				$rSections = PlexRepository::getPlexSections(CoreUtilities::$rRequest['ip'], CoreUtilities::$rRequest['port'], $rToken);
 
 				if ($rSections && 0 < count($rSections)) {
 					echo json_encode(array('result' => true, 'data' => $rSections));
@@ -3186,7 +3186,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'enable_handler') {
-			if (hasPermissions('adv', 'backups')) {
+			if (Authorization::check('adv', 'backups')) {
 				$db->query('UPDATE `settings` SET `redis_handler` = 1;');
 
 				if (!file_exists(CACHE_TMP_PATH . 'settings')) {
@@ -3233,7 +3233,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'disable_handler') {
-			if (hasPermissions('adv', 'backups')) {
+			if (Authorization::check('adv', 'backups')) {
 				$db->query('UPDATE `settings` SET `redis_handler` = 0;');
 
 				if (!file_exists(CACHE_TMP_PATH . 'settings')) {
@@ -3277,7 +3277,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'clear_redis') {
-			if (hasPermissions('adv', 'backups')) {
+			if (Authorization::check('adv', 'backups')) {
 				CoreUtilities::$redis->flushAll();
 				echo json_encode(array('result' => true));
 
@@ -3289,7 +3289,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'report') {
-			if (hasPermissions('adv', 'backups')) {
+			if (Authorization::check('adv', 'backups')) {
 				$rURL = pathinfo('http://127.0.0.1:' . $rServers[SERVER_ID]['http_broadcast_port'] . $_SERVER['REQUEST_URI'])['dirname'] . '/table';
 				set_time_limit(60);
 				ini_set('memory_limit', '-1');
@@ -3319,7 +3319,7 @@ if (isset($_SESSION['hash'])) {
 			}
 		}
 		if (CoreUtilities::$rRequest['action'] == 'decrypt_text') {
-			if (hasPermissions('adv', 'stream_tools')) {
+			if (Authorization::check('adv', 'stream_tools')) {
 				$rDecryptedArray = array();
 				$rText = (CoreUtilities::$rRequest['text'] ?: null);
 
@@ -3369,7 +3369,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'get_episode_ids') {
-			if (hasPermissions('adv', 'add_episode')) {
+			if (Authorization::check('adv', 'add_episode')) {
 				$rReturn = array();
 				$rData = json_decode(CoreUtilities::$rRequest['data'], true);
 
@@ -3421,7 +3421,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'get_epg') {
-			if (hasPermissions('adv', 'manage_streams')) {
+			if (Authorization::check('adv', 'manage_streams')) {
 				$rTimezone = (CoreUtilities::$rRequest['timezone'] ?: 'Europe/London');
 				date_default_timezone_set($rTimezone);
 				$rReturn = array('Channels' => array());
@@ -3526,7 +3526,7 @@ if (isset($_SESSION['hash'])) {
 			}
 		}
 		if (CoreUtilities::$rRequest['action'] == 'get_programme') {
-			if (hasPermissions('adv', 'manage_streams')) {
+			if (Authorization::check('adv', 'manage_streams')) {
 				$rTimezone = (CoreUtilities::$rRequest['timezone'] ?: 'Europe/London');
 				date_default_timezone_set($rTimezone);
 
@@ -3572,7 +3572,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'queue') {
-			if (hasPermissions('adv', 'streams') || hasPermissions('adv', 'series') || hasPermissions('adv', 'episodes')) {
+			if (Authorization::check('adv', 'streams') || Authorization::check('adv', 'series') || Authorization::check('adv', 'episodes')) {
 				$rSub = CoreUtilities::$rRequest['sub'];
 				$db->query('SELECT * FROM `queue` WHERE `id` = ?;', CoreUtilities::$rRequest['id']);
 
@@ -3591,7 +3591,7 @@ if (isset($_SESSION['hash'])) {
 					} else {
 						if (0 >= $rRow['pid']) {
 						} else {
-							killPID($rRow['server_id'], $rRow['pid']);
+							ServerRepository::killPID('systemapirequest', $rRow['server_id'], $rRow['pid']);
 						}
 
 						$db->query('DELETE FROM `queue` WHERE `id` = ?;', CoreUtilities::$rRequest['id']);
@@ -3859,7 +3859,7 @@ if (isset($_SESSION['hash'])) {
 				}
 
 				$rCategories = getCategories(null);
-				$rGroups = getMemberGroups();
+				$rGroups = GroupService::getAll();
 
 				foreach ($rItems as $rItem) {
 					$rTableInfo = $rTables[$rItem['table']];
@@ -3871,7 +3871,7 @@ if (isset($_SESSION['hash'])) {
 							$rProperties = json_decode($rItem['movie_properties'], true);
 
 							if ($rItem['type'] != 5) {
-								if (hasPermissions('adv', 'manage_streams')) {
+								if (Authorization::check('adv', 'manage_streams')) {
 									$rTitle = "<span style='cursor: pointer;' onClick=\"navigate('stream_view?id=" . intval($rItem['id']) . "');\">" . $rItem['stream_display_name'] . '</span>';
 								} else {
 									$rTitle = $rItem['stream_display_name'];
@@ -3884,7 +3884,7 @@ if (isset($_SESSION['hash'])) {
 									$rCategory .= ' (+' . (count($rCategoryIDs) - 1) . ')';
 								}
 							} else {
-								if (hasPermissions('adv', 'manage_streams')) {
+								if (Authorization::check('adv', 'manage_streams')) {
 									$rTitle = ($rSeriesTitles[$rItem['id']] ? "<span style='cursor: pointer;' onClick=\"navigate('stream_view?id=" . intval($rItem['id']) . "');\">" . $rSeriesTitles[$rItem['id']] . '</span>' : 'No Series');
 								} else {
 									$rTitle = ($rSeriesTitles[$rItem['id']] ?: 'No Series');
@@ -4078,7 +4078,7 @@ if (isset($_SESSION['hash'])) {
 							$rButtons = '<div class="btn-group bg-animate-info">';
 
 							if (in_array($rItem['type'], array(1, 3, 4))) {
-								if (!hasPermissions('adv', 'edit_stream')) {
+								if (!Authorization::check('adv', 'edit_stream')) {
 								} else {
 									$rHasButtons = true;
 									$rButtons .= "<button title=\"Edit\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\" onclick=\"navigate('" . $rPage . '?id=' . intval($rItem['id']) . "');\"><i class=\"mdi mdi-pencil\"></i></button>";
@@ -4104,7 +4104,7 @@ if (isset($_SESSION['hash'])) {
 									}
 								}
 							} else {
-								if (!hasPermissions('adv', 'edit_' . $rPage)) {
+								if (!Authorization::check('adv', 'edit_' . $rPage)) {
 								} else {
 									$rHasButtons = true;
 									$rButtons .= "<button title=\"Edit\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\" onclick=\"navigate('" . $rPage . '?id=' . intval($rItem['id']) . "');\"><i class=\"mdi mdi-pencil\"></i></button>";
@@ -4198,19 +4198,19 @@ if (isset($_SESSION['hash'])) {
 							$rHasButtons = false;
 							$rButtons = '<div class="btn-group bg-animate-info">';
 
-							if (!hasPermissions('adv', 'add_episode')) {
+							if (!Authorization::check('adv', 'add_episode')) {
 							} else {
 								$rHasButtons = true;
 								$rButtons .= "<button title=\"Add Episode(s)\" onClick=\"navigate('episode?sid=" . $rItem['id'] . "');\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\"><i class=\"mdi mdi-plus-circle-outline\"></i></button>";
 							}
 
-							if (!hasPermissions('adv', 'episodes')) {
+							if (!Authorization::check('adv', 'episodes')) {
 							} else {
 								$rHasButtons = true;
 								$rButtons .= "<button title=\"View Episodes\" onClick=\"navigate('episodes?series=" . $rItem['id'] . "');\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\"><i class=\"mdi mdi-eye\"></i></button>";
 							}
 
-							if (!hasPermissions('adv', 'edit_series')) {
+							if (!Authorization::check('adv', 'edit_series')) {
 							} else {
 								$rHasButtons = true;
 								$rButtons .= "<button title=\"Edit\" onClick=\"navigate('serie?id=" . $rItem['id'] . "');\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\"><i class=\"mdi mdi-pencil\"></i></button>";
@@ -4236,7 +4236,7 @@ if (isset($_SESSION['hash'])) {
 							$rHasButtons = false;
 							$rButtons = '<div class="btn-group bg-animate-info">';
 
-							if (!hasPermissions('adv', 'edit_reguser')) {
+							if (!Authorization::check('adv', 'edit_reguser')) {
 							} else {
 								$rHasButtons = true;
 
@@ -4293,7 +4293,7 @@ if (isset($_SESSION['hash'])) {
 							$rHasButtons = false;
 							$rButtons = '<div class="btn-group bg-animate-info">';
 
-							if (hasPermissions('adv', 'edit_user')) {
+							if (Authorization::check('adv', 'edit_user')) {
 								$rHasButtons = true;
 								$rButtons .= "<button title=\"Edit\" onClick=\"navigate('line?id=" . $rItem['id'] . "');\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\"><i class=\"mdi mdi-pencil\"></i></button>";
 								$rButtons .= "<button title=\"Kill Connections\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\" onClick=\"searchAPI('line', " . $rItem['id'] . ", 'kill');\"><i class=\"fas fa-hammer\"></i></button>";
@@ -4368,7 +4368,7 @@ if (isset($_SESSION['hash'])) {
 								$rHasButtons = false;
 								$rButtons = '<div class="btn-group bg-animate-info">';
 
-								if (!hasPermissions('adv', 'edit_user')) {
+								if (!Authorization::check('adv', 'edit_user')) {
 								} else {
 									$rHasButtons = true;
 									$rButtons .= "<button title=\"Edit\" onClick=\"navigate('" . $rDeviceType . '?id=' . $rItem['id'] . "');\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\"><i class=\"mdi mdi-pencil\"></i></button>";
@@ -4454,14 +4454,14 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'delete_recording') {
-			if (hasPermissions('adv', 'edit_movie')) {
+			if (Authorization::check('adv', 'edit_movie')) {
 				if (!(isset(CoreUtilities::$rRequest['id']) && 0 < intval(CoreUtilities::$rRequest['id']))) {
 					echo json_encode(array('result' => false));
 
 					exit();
 				}
 
-				deleteRecording(CoreUtilities::$rRequest['id']);
+				WatchService::deleteRecording($db, CoreUtilities::$rRequest['id'], 'deleteStream');
 				echo json_encode(array('result' => true));
 
 				exit();
@@ -4472,7 +4472,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (CoreUtilities::$rRequest['action'] == 'clear_failures') {
-			if (hasPermissions('adv', 'streams')) {
+			if (Authorization::check('adv', 'streams')) {
 				if (!(isset(CoreUtilities::$rRequest['id']) && 0 < intval(CoreUtilities::$rRequest['id']))) {
 					echo json_encode(array('result' => false));
 
@@ -4498,9 +4498,9 @@ if (isset($_SESSION['hash'])) {
 		if (count($rRequestIDs) != 0) {
 			switch ($rType) {
 				case 'line':
-					if (hasPermissions('adv', 'edit_line')) {
+					if (Authorization::check('adv', 'edit_line')) {
 						if ($rSub == 'delete') {
-							deleteLines($rRequestIDs);
+							LineRepository::deleteMany($rRequestIDs);
 						} else {
 							if ($rSub == 'enable') {
 								$db->query('UPDATE `lines` SET `enabled` = 1 WHERE `id`IN (' . implode(',', array_map('intval', $rRequestIDs)) . ');');
@@ -4552,7 +4552,7 @@ if (isset($_SESSION['hash'])) {
 				case 'enigma':
 					$rPermission = array('mag' => 'edit_mag', 'enigma2' => 'edit_e2')[$rType];
 
-					if (hasPermissions('adv', $rPermission)) {
+					if (Authorization::check('adv', $rPermission)) {
 						$rUserIDs = array();
 
 						if ($rType == 'mag') {
@@ -4632,7 +4632,7 @@ if (isset($_SESSION['hash'])) {
 
 					// no break
 				case 'user':
-					if (hasPermissions('adv', 'edit_reguser')) {
+					if (Authorization::check('adv', 'edit_reguser')) {
 						if ($rSub == 'enable') {
 							$db->query('UPDATE `users` SET `status` = 1 WHERE `id` IN (' . implode(',', array_map('intval', $rRequestIDs)) . ');');
 						} else {
@@ -4657,7 +4657,7 @@ if (isset($_SESSION['hash'])) {
 
 				case 'server':
 				case 'proxy':
-					if (hasPermissions('adv', 'edit_server')) {
+					if (Authorization::check('adv', 'edit_server')) {
 						if ($rType == 'server' && in_array($rSub, array('restart', 'start', 'stop'))) {
 							$rStreamMap = array();
 
@@ -4729,7 +4729,7 @@ if (isset($_SESSION['hash'])) {
 												foreach ($rRequestIDs as $rServerID) {
 													if ($rServers[$rServerID]['is_main'] != 0) {
 													} else {
-														deleteServer($rServerID);
+														ServerRepository::deleteById(CoreUtilities::$rSettings, 'getStreamingServersByID', $rServerID);
 													}
 												}
 											}
@@ -4763,7 +4763,7 @@ if (isset($_SESSION['hash'])) {
 				case 'episode':
 				case 'cchannel':
 				case 'radio':
-					if (hasPermissions('adv', 'edit_' . $rType)) {
+					if (Authorization::check('adv', 'edit_' . $rType)) {
 						$rNoServer = $rStreamMap = array();
 
 						foreach ($rRequestIDs as $rStream) {

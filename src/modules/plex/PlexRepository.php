@@ -1,7 +1,8 @@
 <?php
 
 class PlexRepository {
-	public static function getPlexServers($db) {
+	public static function getPlexServers() {
+		global $db;
 		$rReturn = array();
 		$db->query("SELECT * FROM `watch_folders` WHERE `type` = 'plex' ORDER BY `id` ASC;");
 		if (0 < $db->num_rows()) {

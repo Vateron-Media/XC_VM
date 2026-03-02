@@ -1,15 +1,16 @@
 <?php
 
 class EpisodeService {
-	public static function process($db, $rSettings, $rData) {
+	public static function process($rSettings, $rData) {
+		global $db;
 		if (isset($rData['edit'])) {
-			if (hasPermissions('adv', 'edit_episode')) {
-				$rArray = overwriteData(getStream($rData['edit']), $rData);
+			if (Authorization::check('adv', 'edit_episode')) {
+				$rArray = overwriteData(StreamRepository::getById($rData['edit']), $rData);
 			} else {
 				exit();
 			}
 		} else {
-			if (hasPermissions('adv', 'add_episode')) {
+			if (Authorization::check('adv', 'add_episode')) {
 				$rArray = verifyPostTable('streams', $rData);
 				$rArray['type'] = 5;
 				$rArray['added'] = time();
@@ -50,7 +51,7 @@ class EpisodeService {
 		$rProcessArray = array();
 
 		if (isset($rData['multi'])) {
-			if (hasPermissions('adv', 'import_episodes')) {
+			if (Authorization::check('adv', 'import_episodes')) {
 				set_time_limit(0);
 				include INCLUDES_PATH . 'libs/tmdb.php';
 				$rSeries = getSerie(intval($rData['series']));
@@ -165,7 +166,7 @@ class EpisodeService {
 				$rInsertID = $db->last_insert_id();
 				$db->query('DELETE FROM `streams_episodes` WHERE `stream_id` = ?;', $rInsertID);
 				$db->query('INSERT INTO `streams_episodes`(`season_num`, `series_id`, `stream_id`, `episode_num`) VALUES(?, ?, ?, ?);', $rData['season_num'], $rData['series'], $rInsertID, $rImportArray['episode']);
-				updateSeriesAsync(intval($rData['series']));
+				SeriesService::queueRefresh(intval($rData['series']));
 				$rStreamExists = array();
 
 				if (isset($rData['edit'])) {
@@ -230,7 +231,8 @@ class EpisodeService {
 		return array('status' => STATUS_SUCCESS);
 	}
 
-	public static function massEdit($db, $rData) {
+	public static function massEdit($rData) {
+		global $db;
 		set_time_limit(0);
 		ini_set('mysql.connect_timeout', 0);
 		ini_set('max_execution_time', 0);

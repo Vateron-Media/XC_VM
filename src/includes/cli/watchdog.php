@@ -39,7 +39,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                     echo 'Not running! Break.' . "\n";
                 }
             }
-            
+
             $rNginx = explode("\n", file_get_contents('http://127.0.0.1:' . CoreUtilities::$rServers[SERVER_ID]['http_broadcast_port'] . '/nginx_status'));
             list($rAccepted, $rHandled, $rRequests) = explode(' ', trim($rNginx[2]));
             $rRequestsPerSecond = ($rLastRequests ? intval(floatval($rRequests - $rLastRequests) / (time() - $rLastRequestsTime)) : 0);

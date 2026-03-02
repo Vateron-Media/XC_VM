@@ -10,7 +10,7 @@ if ($rMobile) {
 }
 
 if (isset($_SESSION['hash'])) {
-	$rUserInfo = getRegisteredUser($_SESSION['hash']);
+	$rUserInfo = UserRepository::getRegisteredUserById($_SESSION['hash']);
 
 	if (!empty($rUserInfo['timezone'])) {
 		date_default_timezone_set($rUserInfo['timezone']);
@@ -30,7 +30,7 @@ if (isset($_SESSION['hash'])) {
 
 	$rPermissions = getPermissions($rUserInfo['member_group_id']);
 	$rPermissions['advanced'] = json_decode($rPermissions['allowed_pages'], true);
-	$rIP = getIP();
+	$rIP = CoreUtilities::getUserIP();
 	$rIPMatch = ($rSettings['ip_subnet_match'] ? implode('.', array_slice(explode('.', $_SESSION['ip']), 0, -1)) == implode('.', array_slice(explode('.', $rIP), 0, -1)) : $_SESSION['ip'] == $rIP);
 
 	if (!$rUserInfo || !$rPermissions || !$rPermissions['is_admin'] || !$rIPMatch && $rSettings['ip_logout'] || $_SESSION['verify'] != md5($rUserInfo['username'] . '||' . $rUserInfo['password'])) {

@@ -1,16 +1,18 @@
-<?php
+<?php if (!isset($__viewMode)):
 
-include 'session.php';
-include 'functions.php';
+	include 'session.php';
+	include 'functions.php';
 
-if (!checkPermissions()) {
-	goHome();
-}
+	if (!checkPermissions()) {
+		goHome();
+	}
 
-$rRange = (intval(CoreUtilities::$rRequest['range']) ?: 0);
-$rLineIPs = (igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'lines_per_ip')) ?: array());
-$_TITLE = 'Line IP Usage';
-include 'header.php';
+	$rRange = (intval(CoreUtilities::$rRequest['range']) ?: 0);
+	$rLineIPs = (igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'lines_per_ip')) ?: array());
+	$_TITLE = 'Line IP Usage';
+	require_once __DIR__ . '/../public/Views/layouts/admin.php';
+	renderUnifiedLayoutHeader('admin');
+endif;
 ?>
 
 <div class="wrapper boxed-layout-ext" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
@@ -66,7 +68,7 @@ include 'header.php';
 										'<a href="line_activity?user_id=' . $rRow['user_id'] . '"><button type="button" class="btn btn-light waves-effect waves-light btn-xs">View Logs</button></a>' :
 										'<a href="line_activity?user_id=' . $rRow['user_id'] . '&range=' . date($rSettings['date_format'], time() - $rRange) . ' - ' . date($rSettings['date_format'], time()) . '"><button type="button" class="btn btn-light waves-effect waves-light btn-xs">View Logs</button></a>';
 
-									if (hasPermissions('adv', 'edit_user')) {
+									if (Authorization::check('adv', 'edit_user')) {
 										$rID = "<a href='line?id=" . $rRow['user_id'] . "'>" . $rRow['user_id'] . "</a>";
 										$rUsername = "<a href='line?id=" . $rRow['user_id'] . "'>" . $rRow['username'] . "</a>";
 									} else {
@@ -90,7 +92,10 @@ include 'header.php';
 	</div>
 </div>
 
-<?php include 'footer.php'; ?>
+<?php
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin');
+?>
 <script id="scripts">
 	var resizeObserver = new ResizeObserver(entries => $(window).scroll());
 	$(document).ready(function() {
@@ -253,11 +258,11 @@ include 'header.php';
 			rTable.search($(this).val()).draw();
 		});
 	});
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-    <?php endif; ?>
+	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+		$(document).ready(function() {
+			initSearch();
+		});
+	<?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

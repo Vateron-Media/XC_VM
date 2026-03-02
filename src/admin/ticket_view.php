@@ -1,4 +1,5 @@
 <?php
+if (!isset($__viewMode)):
 
 
 
@@ -6,26 +7,28 @@
 
 
 
-include 'session.php';
-include 'functions.php';
+	include 'session.php';
+	include 'functions.php';
 
-if (checkPermissions()) {
-} else {
-	goHome();
-}
+	if (checkPermissions()) {
+	} else {
+		goHome();
+	}
 
-if (isset(CoreUtilities::$rRequest['id']) && ($rTicketInfo = getTicket(CoreUtilities::$rRequest['id']))) {
-} else {
-	goHome();
-}
+	if (isset(CoreUtilities::$rRequest['id']) && ($rTicketInfo = getTicket(CoreUtilities::$rRequest['id']))) {
+	} else {
+		goHome();
+	}
 
-if ($rUserInfo['id'] == $rTicketInfo['member_id']) {
-} else {
-	$db->query('UPDATE `tickets` SET `admin_read` = 1 WHERE `id` = ?;', CoreUtilities::$rRequest['id']);
-}
+	if ($rUserInfo['id'] == $rTicketInfo['member_id']) {
+	} else {
+		$db->query('UPDATE `tickets` SET `admin_read` = 1 WHERE `id` = ?;', CoreUtilities::$rRequest['id']);
+	}
 
-$_TITLE = 'View Ticket';
-include 'header.php';
+	$_TITLE = 'View Ticket';
+	require_once __DIR__ . '/../public/Views/layouts/admin.php';
+	renderUnifiedLayoutHeader('admin');
+endif; // !$__viewMode
 echo '<div class="wrapper boxed-layout-ext"';
 
 if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
@@ -62,4 +65,5 @@ foreach ($rTicketInfo['replies'] as $rReply) {
 	echo '</p>' . "\r\n\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t" . '</article>' . "\r\n\t\t\t\t\t";
 }
 echo "\t\t\t\t" . '</div>' . "\r\n\t\t\t" . '</div>' . "\r\n\t\t" . '</div>' . "\r\n\t" . '</div>' . "\r\n" . '</div>' . "\r\n";
-include 'footer.php';
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin');

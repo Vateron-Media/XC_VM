@@ -1,12 +1,15 @@
-<?php include 'session.php'; ?>
-<?php include 'functions.php'; ?>
+<?php if (!isset($__viewMode)): ?>
+	<?php include 'session.php'; ?>
+	<?php include 'functions.php'; ?>
 
-<?php if (!checkPermissions()) {
-	goHome();
-} ?>
+	<?php if (!checkPermissions()) {
+		goHome();
+	} ?>
 
-<?php $_TITLE = 'System Logs'; ?>
-<?php include 'header.php'; ?>
+	<?php $_TITLE = 'System Logs'; ?>
+	<?php require_once __DIR__ . '/../public/Views/layouts/admin.php'; ?>
+	<?php renderUnifiedLayoutHeader('admin'); ?>
+<?php endif; ?>
 
 <div class="wrapper" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest'): ?> style="display: none;" <?php endif; ?>>
 	<div class="container-fluid">
@@ -44,7 +47,10 @@
 	</div>
 </div>
 
-<?php include 'footer.php'; ?>
+<?php
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin');
+?>
 <script id="scripts">
 	var resizeObserver = new ResizeObserver(entries => $(window).scroll());
 	$(document).ready(function() {
@@ -235,11 +241,11 @@
 			window.location.href = "api?action=report&params=" + encodeURIComponent(JSON.stringify($("#datatable").DataTable().ajax.params()));
 		});
 	});
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-    <?php endif; ?>
+	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+		$(document).ready(function() {
+			initSearch();
+		});
+	<?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

@@ -19,8 +19,7 @@
 
 require_once __DIR__ . '/LoggerInterface.php';
 
-class DatabaseLogger implements LoggerInterface
-{
+class DatabaseLogger implements LoggerInterface {
     /**
      * Путь к файлу лога клиентских запросов.
      *
@@ -41,8 +40,7 @@ class DatabaseLogger implements LoggerInterface
      *
      * @param string $path Полный путь к файлу
      */
-    public static function setLogFile(string $path): void
-    {
+    public static function setLogFile(string $path): void {
         self::$logFile = $path;
     }
 
@@ -51,8 +49,7 @@ class DatabaseLogger implements LoggerInterface
      *
      * @param int $value 0 — выключено, 1+ — включено
      */
-    public static function setEnabled(int $value): void
-    {
+    public static function setEnabled(int $value): void {
         self::$enabled = $value;
     }
 
@@ -61,8 +58,7 @@ class DatabaseLogger implements LoggerInterface
      *
      * @return string
      */
-    public static function getLogFile(): string
-    {
+    public static function getLogFile(): string {
         if (self::$logFile !== null) {
             return self::$logFile;
         }
@@ -85,8 +81,7 @@ class DatabaseLogger implements LoggerInterface
      * @param string|int $extra   Дополнительные данные
      * @param int        $line    Не используется (совместимость с LoggerInterface)
      */
-    public static function log(string $type, string $message, $extra = '', int $line = 0): void
-    {
+    public static function log(string $type, string $message, $extra = '', int $line = 0): void {
         // По умолчанию логирование включено (если не задано явно)
         if (self::$enabled !== null && self::$enabled == 0) {
             return;
@@ -147,8 +142,10 @@ class DatabaseLogger implements LoggerInterface
 
             // Если не задано — проверяем через StreamingUtilities (обратная совместимость)
             if (self::$enabled === null && class_exists('StreamingUtilities', false)) {
-                if (isset(StreamingUtilities::$rSettings['client_logs_save'])
-                    && StreamingUtilities::$rSettings['client_logs_save'] == 0) {
+                if (
+                    isset(StreamingUtilities::$rSettings['client_logs_save'])
+                    && StreamingUtilities::$rSettings['client_logs_save'] == 0
+                ) {
                     return;
                 }
             }

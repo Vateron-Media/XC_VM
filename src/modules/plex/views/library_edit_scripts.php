@@ -127,7 +127,7 @@
 
 
     function evaluateDirectSource() {
-        $( ["read_native", "movie_symlink", "auto_encode", "auto_upgrade", "remove_subtitles", "target_container", "transcode_profile_id"] ).each(function(rID, rElement) {
+        $(["read_native", "movie_symlink", "auto_encode", "auto_upgrade", "remove_subtitles", "target_container", "transcode_profile_id"]).each(function(rID, rElement) {
             if ($(rElement)) {
                 if ($("#direct_proxy").is(":checked")) {
                     if (window.rSwitches[rElement]) {

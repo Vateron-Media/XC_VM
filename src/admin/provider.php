@@ -1,17 +1,20 @@
-<?php
-include 'session.php';
-include 'functions.php';
+<?php if (!isset($__viewMode)): ?>
+    <?php
+    include 'session.php';
+    include 'functions.php';
 
-if (!checkPermissions()) {
-    goHome();
-}
+    if (!checkPermissions()) {
+        goHome();
+    }
 
-if (isset(CoreUtilities::$rRequest['id']) && !($rProvider = getStreamProvider(CoreUtilities::$rRequest['id']))) {
-    exit();
-}
+    if (isset(CoreUtilities::$rRequest['id']) && !($rProvider = getStreamProvider(CoreUtilities::$rRequest['id']))) {
+        exit();
+    }
 
-$_TITLE = 'Stream Provider';
-include 'header.php'; ?>
+    $_TITLE = 'Stream Provider';
+    require_once __DIR__ . '/../public/Views/layouts/admin.php';
+    renderUnifiedLayoutHeader('admin'); ?>
+<?php endif; ?>
 <div class="wrapper boxed-layout-ext" <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') : ?><?php else : ?> style="display: none;" <?php endif; ?>>
     <div class="container-fluid">
         <div class="row">
@@ -198,7 +201,10 @@ include 'header.php'; ?>
         </div>
     </div>
 </div>
-<?php include 'footer.php'; ?>
+<?php
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin');
+?>
 <script id="scripts">
     var resizeObserver = new ResizeObserver(entries => $(window).scroll());
     $(document).ready(function() {

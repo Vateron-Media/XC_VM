@@ -258,6 +258,8 @@ class XC_Autoloader {
                 if ($found !== null) {
                     return $found;
                 }
+            } elseif ($item === $fileName) {
+                return $fullPath;
             }
         }
 
@@ -306,41 +308,27 @@ class XC_Autoloader {
             'CronGenerator'         => $base . 'domain/Stream/CronGenerator.php',
             'CategoryService'       => $base . 'domain/Stream/CategoryService.php',
             'StreamRepository'      => $base . 'domain/Stream/StreamRepository.php',
+            'StreamConfigRepository' => $base . 'domain/Stream/StreamConfigRepository.php',
             'M3UParser'             => $base . 'domain/Stream/M3UParser.php',
-            'CategoryRepository'    => $base . 'domain/Stream/CategoryRepository.php',
             'MovieService'          => $base . 'domain/Vod/MovieService.php',
-            'MovieRepository'       => $base . 'domain/Vod/MovieRepository.php',
             'SeriesService'         => $base . 'domain/Vod/SeriesService.php',
-            'SeriesRepository'      => $base . 'domain/Vod/SeriesRepository.php',
             'EpisodeService'        => $base . 'domain/Vod/EpisodeService.php',
             'LineService'           => $base . 'domain/Line/LineService.php',
             'LineRepository'        => $base . 'domain/Line/LineRepository.php',
             'PackageService'        => $base . 'domain/Line/PackageService.php',
-            'PackageRepository'     => $base . 'domain/Line/PackageRepository.php',
             'UserService'           => $base . 'domain/User/UserService.php',
-            'ProfileService'        => $base . 'domain/User/ProfileService.php',
             'GroupService'          => $base . 'domain/User/GroupService.php',
             'UserRepository'        => $base . 'domain/User/UserRepository.php',
-            'GroupRepository'       => $base . 'domain/User/GroupRepository.php',
             'EpgService'            => $base . 'domain/Epg/EpgService.php',
-            'EpgRepository'         => $base . 'domain/Epg/EpgRepository.php',
-            'SettingsService'       => $base . 'domain/Settings/SettingsService.php',
+            'SettingsService'       => $base . 'domain/Server/SettingsService.php',
             'BlocklistService'      => $base . 'domain/Security/BlocklistService.php',
-            'BlocklistRepository'   => $base . 'domain/Security/BlocklistRepository.php',
             'ServerService'         => $base . 'domain/Server/ServerService.php',
             'MagService'            => $base . 'domain/Device/MagService.php',
             'EnigmaService'         => $base . 'domain/Device/EnigmaService.php',
-            'DeviceSync'            => $base . 'domain/Device/DeviceSync.php',
             'BouquetService'        => $base . 'domain/Bouquet/BouquetService.php',
-            'BouquetMapper'         => $base . 'domain/Bouquet/BouquetMapper.php',
-            'BouquetRepository'     => $base . 'domain/Bouquet/BouquetRepository.php',
             'ServerRepository'      => $base . 'domain/Server/ServerRepository.php',
-            'TicketService'         => $base . 'domain/Ticket/TicketService.php',
-            'CodeService'           => $base . 'domain/Auth/CodeService.php',
-            'HMACService'           => $base . 'domain/Auth/HMACService.php',
-            'CodeRepository'        => $base . 'domain/Auth/CodeRepository.php',
-            'HMACRepository'        => $base . 'domain/Auth/HMACRepository.php',
-            'HMACValidator'         => $base . 'domain/Auth/HMACValidator.php',
+            'AuthService'           => $base . 'domain/Auth/AuthService.php',
+            'AuthRepository'        => $base . 'domain/Auth/AuthRepository.php',
             'SystemInfo'            => $base . 'core/Util/SystemInfo.php',
             'EventInterface'        => $base . 'core/Events/EventInterface.php',
             'EventDispatcher'       => $base . 'core/Events/EventDispatcher.php',
@@ -497,11 +485,10 @@ class XC_Autoloader {
 
         // ── Новая архитектура ──────────────────────────────────────
         self::addDirectory($base . 'core');
-        //
-        // self::addDirectory($base . 'core');  // LEGACY: уже активен выше
-        // self::addDirectory($base . 'domain');
-        // self::addDirectory($base . 'streaming');
-        // self::addDirectory($base . 'modules');
+        self::addDirectory($base . 'domain');
+        self::addDirectory($base . 'streaming');
+        self::addDirectory($base . 'modules');
+        self::addDirectory($base . 'public');
     }
 }
 
@@ -510,7 +497,8 @@ class XC_Autoloader {
 // ─────────────────────────────────────────────────────────────────
 
 if (!defined('MAIN_HOME')) {
-    define('MAIN_HOME', '/home/xc_vm/');
+    // Динамический fallback: autoload.php лежит в src/, значит __DIR__ == src/
+    define('MAIN_HOME', __DIR__ . '/');
 }
 
 XC_Autoloader::init(MAIN_HOME);

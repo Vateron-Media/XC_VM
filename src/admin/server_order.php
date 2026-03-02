@@ -1,16 +1,19 @@
-<?php
-include 'session.php';
-include 'functions.php';
+<?php if (!isset($__viewMode)): ?>
+	<?php
+	include 'session.php';
+	include 'functions.php';
 
-if (!checkPermissions()) {
-	goHome();
-}
+	if (!checkPermissions()) {
+		goHome();
+	}
 
-$rOrderedServers = $rServers;
-array_multisort(array_column($rOrderedServers, 'order'), SORT_ASC, $rOrderedServers);
-$_TITLE = 'Server Order';
-include 'header.php';
-?>
+	$rOrderedServers = $rServers;
+	array_multisort(array_column($rOrderedServers, 'order'), SORT_ASC, $rOrderedServers);
+	$_TITLE = 'Server Order';
+	require_once __DIR__ . '/../public/Views/layouts/admin.php';
+	renderUnifiedLayoutHeader('admin');
+	?>
+<?php endif; ?>
 <div class="wrapper boxed-layout"
 	<?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
 		echo ' style="display: none;"';
@@ -93,7 +96,10 @@ include 'header.php';
 		</div>
 	</div>
 </div>
-<?php include 'footer.php'; ?>
+<?php
+require_once __DIR__ . '/../public/Views/layouts/footer.php';
+renderUnifiedLayoutFooter('admin');
+?>
 <script id="scripts">
 	var resizeObserver = new ResizeObserver(entries => $(window).scroll());
 	$(document).ready(function() {
@@ -232,11 +238,11 @@ include 'header.php';
 			submitForm(window.rCurrentPage, new FormData($("#server_form")[0]));
 		});
 	});
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-    <?php endif; ?>
+	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+		$(document).ready(function() {
+			initSearch();
+		});
+	<?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
 </body>

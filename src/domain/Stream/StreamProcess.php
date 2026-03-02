@@ -14,7 +14,8 @@ class StreamProcess {
 		}
 	}
 
-	public static function queueChannel($db, $rStreamID, $rServerID = null) {
+	public static function queueChannel($rStreamID, $rServerID = null) {
+		global $db;
 		if ($rServerID) {
 		} else {
 			$rServerID = SERVER_ID;
@@ -46,7 +47,8 @@ class StreamProcess {
 		return true;
 	}
 
-	public static function updateStream($db, $rCached, $rMainID, $rStreamID, $rForce = false) {
+	public static function updateStream($rCached, $rMainID, $rStreamID, $rForce = false) {
+		global $db;
 		if ($rCached) {
 			$db->query('SELECT COUNT(*) AS `count` FROM `signals` WHERE `server_id` = ? AND `cache` = 1 AND `custom_data` = ?;', $rMainID, json_encode(array('type' => 'update_stream', 'id' => $rStreamID)));
 			if ($db->get_row()['count'] != 0) {
@@ -58,7 +60,8 @@ class StreamProcess {
 		return false;
 	}
 
-	public static function updateStreams($db, $rCached, $rMainID, $rStreamIDs) {
+	public static function updateStreams($rCached, $rMainID, $rStreamIDs) {
+		global $db;
 		if ($rCached) {
 			$db->query('SELECT COUNT(*) AS `count` FROM `signals` WHERE `server_id` = ? AND `cache` = 1 AND `custom_data` = ?;', $rMainID, json_encode(array('type' => 'update_streams', 'id' => $rStreamIDs)));
 			if ($db->get_row()['count'] != 0) {
@@ -70,7 +73,8 @@ class StreamProcess {
 		return false;
 	}
 
-	public static function createChannelItem($db, $rSettings, $rServers, $rFFMPEGCPU, $rFFMPEGGPU, $rStreamID, $rSource) {
+	public static function createChannelItem($rSettings, $rServers, $rFFMPEGCPU, $rFFMPEGGPU, $rStreamID, $rSource) {
+		global $db;
 		$rStream = array();
 		$rLoopback = false;
 		$db->query('SELECT * FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.type_id = t1.type AND t1.type = 3 LEFT JOIN `profiles` t4 ON t1.transcode_profile_id = t4.profile_id WHERE t1.direct_source = 0 AND t1.id = ?', $rStreamID);
@@ -170,7 +174,8 @@ class StreamProcess {
 		return false;
 	}
 
-	public static function stopStream($db, $rStreamID, $rStop = false) {
+	public static function stopStream($rStreamID, $rStop = false) {
+		global $db;
 		if (file_exists(STREAMS_PATH . $rStreamID . '_.monitor')) {
 			$rMonitor = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.monitor'));
 		} else {
@@ -207,8 +212,9 @@ class StreamProcess {
 		}
 	}
 
-	public static function stopMovie($db, $rStreamID, $rForce = false) {
-		shell_exec("kill -9 `ps -ef | grep '/" . intval($rStreamID) . ".' | grep -v grep | awk '{print \$2}'`;" );
+	public static function stopMovie($rStreamID, $rForce = false) {
+		global $db;
+		shell_exec("kill -9 `ps -ef | grep '/" . intval($rStreamID) . ".' | grep -v grep | awk '{print \$2}'`;");
 		if ($rForce) {
 			exec('rm ' . MAIN_HOME . 'content/vod/' . intval($rStreamID) . '.*');
 		} else {
@@ -218,7 +224,8 @@ class StreamProcess {
 		CoreUtilities::updateStream($rStreamID);
 	}
 
-	public static function queueMovie($db, $rStreamID, $rServerID = null) {
+	public static function queueMovie($rStreamID, $rServerID = null) {
+		global $db;
 		if ($rServerID) {
 		} else {
 			$rServerID = SERVER_ID;
@@ -227,7 +234,8 @@ class StreamProcess {
 		$db->query("INSERT INTO `queue`(`type`, `stream_id`, `server_id`, `added`) VALUES('movie', ?, ?, ?);", $rStreamID, $rServerID, time());
 	}
 
-	public static function queueMovies($db, $rStreamIDs, $rServerID = null) {
+	public static function queueMovies($rStreamIDs, $rServerID = null) {
+		global $db;
 		if ($rServerID) {
 		} else {
 			$rServerID = SERVER_ID;
@@ -250,7 +258,8 @@ class StreamProcess {
 		}
 	}
 
-	public static function refreshMovies($db, $rIDs, $rType = 1) {
+	public static function refreshMovies($rIDs, $rType = 1) {
+		global $db;
 		if (0 >= count($rIDs)) {
 		} else {
 			$db->query('DELETE FROM `watch_refresh` WHERE `type` = ? AND `stream_id` IN (' . implode(',', array_map('intval', $rIDs)) . ');', $rType);
@@ -269,7 +278,8 @@ class StreamProcess {
 		}
 	}
 
-	public static function startMovie($db, $rSettings, $rServers, $rFFMPEGCPU, $rFFMPEGGPU, $rStreamID) {
+	public static function startMovie($rSettings, $rServers, $rFFMPEGCPU, $rFFMPEGGPU, $rStreamID) {
+		global $db;
 		$rStream = array();
 		$rLoopback = false;
 		$db->query('SELECT * FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.type_id = t1.type AND t2.live = 0 LEFT JOIN `profiles` t4 ON t1.transcode_profile_id = t4.profile_id WHERE t1.direct_source = 0 AND t1.id = ?', $rStreamID);
@@ -416,7 +426,8 @@ class StreamProcess {
 		return false;
 	}
 
-	public static function startLoopback($db, $rSettings, $rServers, $rStreamID) {
+	public static function startLoopback($rSettings, $rServers, $rStreamID) {
+		global $db;
 		shell_exec('rm -f ' . STREAMS_PATH . intval($rStreamID) . '_*.ts');
 		if (!file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
 		} else {
@@ -450,7 +461,8 @@ class StreamProcess {
 		return false;
 	}
 
-	public static function startLLOD($db, $rStreamID, $rStreamInfo, $rStreamArguments, $rForceSource = null) {
+	public static function startLLOD($rStreamID, $rStreamInfo, $rStreamArguments, $rForceSource = null) {
+		global $db;
 		shell_exec('rm -f ' . STREAMS_PATH . intval($rStreamID) . '_*.ts');
 		if (file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
 			unlink(STREAMS_PATH . $rStreamID . '_.pid');
@@ -472,7 +484,8 @@ class StreamProcess {
 		return array('main_pid' => $rPID, 'stream_source' => $rSources[0], 'delay_enabled' => false, 'parent_id' => 0, 'delay_start_at' => null, 'playlist' => STREAMS_PATH . $rStreamID . '_.m3u8', 'transcode' => false, 'offset' => 0);
 	}
 
-	public static function startStream($db, $rSettings, $rServers, $rSegmentSettings, $rFFMPEGCPU, $rFFMPEGGPU, $rFFPROBE, $rStreamID, $rFromCache = false, $rForceSource = null, $rLLOD = false, $rStartPos = 0) {
+	public static function startStream($rSettings, $rServers, $rSegmentSettings, $rFFMPEGCPU, $rFFMPEGGPU, $rFFPROBE, $rStreamID, $rFromCache = false, $rForceSource = null, $rLLOD = false, $rStartPos = 0) {
+		global $db;
 		if (file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
 			unlink(STREAMS_PATH . $rStreamID . '_.pid');
 		}
