@@ -137,7 +137,7 @@ class AuthService {
 	// Из HMACValidator
 	// ──────────────────────────────────────────────
 
-	public static function validateHMAC($rSettings, $rCached, $rHMAC, $rExpiry, $rStreamID, $rExtension, $rIP = '', $rMACIP = '', $rIdentifier = '', $rMaxConnections = 0, $rDecryptCallback = null) {
+	public static function validateHMAC($rSettings, $rCached, $rHMAC, $rExpiry, $rStreamID, $rExtension, $rIP = '', $rMACIP = '', $rIdentifier = '', $rMaxConnections = 0) {
 		global $db;
 		if (0 < strlen($rIP) && 0 < strlen($rMACIP) && $rIP != $rMACIP) {
 			return null;
@@ -155,7 +155,7 @@ class AuthService {
 		}
 
 		foreach ($rKeys as $rKey) {
-			$rSecret = call_user_func($rDecryptCallback, $rKey['key'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+			$rSecret = Encryption::decrypt($rKey['key'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 			$rResult = hash_hmac('sha256', (string) $rStreamID . '##' . $rExtension . '##' . $rExpiry . '##' . $rMACIP . '##' . $rIdentifier . '##' . $rMaxConnections, $rSecret);
 
 			if (md5($rResult) == md5($rHMAC)) {

@@ -4,13 +4,13 @@ register_shutdown_function('shutdown');
 require './stream/init.php';
 set_time_limit(0);
 
-if (StreamingUtilities::$rSettings['force_epg_timezone']) {
+if ($rSettings['force_epg_timezone']) {
 	date_default_timezone_set('UTC');
 }
 
 $rDeny = true;
 
-if (StreamingUtilities::$rSettings['disable_player_api']) {
+if ($rSettings['disable_player_api']) {
 	$rDeny = false;
 	generateError('PLAYER_API_DISABLED');
 }
@@ -18,7 +18,7 @@ if (StreamingUtilities::$rSettings['disable_player_api']) {
 $rPanelAPI = false;
 
 if (strtolower(explode('.', ltrim(parse_url($_SERVER['REQUEST_URI'])['path'], '/'))[0]) == 'panel_api') {
-	if (!StreamingUtilities::$rSettings['legacy_panel_api']) {
+	if (!$rSettings['legacy_panel_api']) {
 		$rDeny = false;
 		generateError('LEGACY_PANEL_API_DISABLED');
 	} else {
@@ -28,14 +28,14 @@ if (strtolower(explode('.', ltrim(parse_url($_SERVER['REQUEST_URI'])['path'], '/
 
 $rIP = $_SERVER['REMOTE_ADDR'];
 $rUserAgent = trim($_SERVER['HTTP_USER_AGENT']);
-$rOffset = (empty(StreamingUtilities::$rRequest['params']['offset']) ? 0 : abs(intval(StreamingUtilities::$rRequest['params']['offset'])));
-$rLimit = (empty(StreamingUtilities::$rRequest['params']['items_per_page']) ? 0 : abs(intval(StreamingUtilities::$rRequest['params']['items_per_page'])));
+$rOffset = (empty($rRequest['params']['offset']) ? 0 : abs(intval($rRequest['params']['offset'])));
+$rLimit = (empty($rRequest['params']['items_per_page']) ? 0 : abs(intval($rRequest['params']['items_per_page'])));
 $rNameTypes = array('live' => 'Live Streams', 'movie' => 'Movies', 'created_live' => 'Created Channels', 'radio_streams' => 'Radio Stations', 'series' => 'TV Series');
-$rDomainName = StreamingUtilities::getDomainName();
+$rDomainName = DomainResolver::resolve($rServers, $rSettings, SERVER_ID);
 $rDomain = parse_url($rDomainName)['host'];
 $rValidActions = array('get_epg', 200 => 'get_vod_categories', 201 => 'get_live_categories', 202 => 'get_live_streams', 203 => 'get_vod_streams', 204 => 'get_series_info', 205 => 'get_short_epg', 206 => 'get_series_categories', 207 => 'get_simple_data_table', 208 => 'get_series', 209 => 'get_vod_info');
 $output = array();
-$rAction = (!empty(StreamingUtilities::$rRequest['action']) && (in_array(StreamingUtilities::$rRequest['action'], $rValidActions) || array_key_exists(StreamingUtilities::$rRequest['action'], $rValidActions)) ? StreamingUtilities::$rRequest['action'] : '');
+$rAction = (!empty($rRequest['action']) && (in_array($rRequest['action'], $rValidActions) || array_key_exists($rRequest['action'], $rValidActions)) ? $rRequest['action'] : '');
 
 if (isset($rValidActions[$rAction])) {
 	$rAction = $rValidActions[$rAction];
@@ -48,33 +48,33 @@ if ($rPanelAPI && empty($rAction)) {
 }
 
 if ($rGetChannels) {
-	StreamingUtilities::$rBouquets = StreamingUtilities::getCache('bouquets');
+	$rBouquets = CacheReader::get('bouquets');
 }
 
 if ($rPanelAPI && empty($rAction) || in_array($rAction, array('get_vod_categories', 'get_series_categories', 'get_live_categories'))) {
-	StreamingUtilities::$rCategories = StreamingUtilities::getCache('categories');
+	$rCategories = CacheReader::get('categories');
 }
 
 $rExtract = array('offset' => $rOffset, 'items_per_page' => $rLimit);
 
-if (isset(StreamingUtilities::$rRequest['username']) && isset(StreamingUtilities::$rRequest['password'])) {
-	$rUsername = StreamingUtilities::$rRequest['username'];
-	$rPassword = StreamingUtilities::$rRequest['password'];
+if (isset($rRequest['username']) && isset($rRequest['password'])) {
+	$rUsername = $rRequest['username'];
+	$rPassword = $rRequest['password'];
 
 	if (empty($rUsername) || empty($rPassword)) {
 		generateError('NO_CREDENTIALS');
 	}
 
-	$rUserInfo = StreamingUtilities::getUserInfo(null, $rUsername, $rPassword, $rGetChannels);
+	$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, null, $rUsername, $rPassword, $rGetChannels);
 } else {
-	if (isset(StreamingUtilities::$rRequest['token'])) {
-		$rToken = StreamingUtilities::$rRequest['token'];
+	if (isset($rRequest['token'])) {
+		$rToken = $rRequest['token'];
 
 		if (empty($rToken)) {
 			generateError('NO_CREDENTIALS');
 		}
 
-		$rUserInfo = StreamingUtilities::getUserInfo(null, $rToken, null, $rGetChannels);
+		$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, null, $rToken, null, $rGetChannels);
 	}
 }
 
@@ -105,15 +105,15 @@ if ($rUserInfo) {
 
 	switch ($rAction) {
 		case 'get_epg':
-			if (!empty(StreamingUtilities::$rRequest['stream_id']) && (is_null($rUserInfo['exp_date']) || time() < $rUserInfo['exp_date'])) {
-				$rFromNow = !empty(StreamingUtilities::$rRequest['from_now']) && 0 < StreamingUtilities::$rRequest['from_now'];
+			if (!empty($rRequest['stream_id']) && (is_null($rUserInfo['exp_date']) || time() < $rUserInfo['exp_date'])) {
+				$rFromNow = !empty($rRequest['from_now']) && 0 < $rRequest['from_now'];
 
-				if (is_numeric(StreamingUtilities::$rRequest['stream_id']) && !isset(StreamingUtilities::$rRequest['multi'])) {
+				if (is_numeric($rRequest['stream_id']) && !isset($rRequest['multi'])) {
 					$rMulti = false;
-					$rStreamIDs = array(intval(StreamingUtilities::$rRequest['stream_id']));
+					$rStreamIDs = array(intval($rRequest['stream_id']));
 				} else {
 					$rMulti = true;
-					$rStreamIDs = array_map('intval', explode(',', StreamingUtilities::$rRequest['stream_id']));
+					$rStreamIDs = array_map('intval', explode(',', $rRequest['stream_id']));
 				}
 
 				$rEPGs = array();
@@ -154,57 +154,57 @@ if ($rUserInfo) {
 
 
 		case 'get_series_info':
-			$rSeriesID = (empty(StreamingUtilities::$rRequest['series_id']) ? 0 : intval(StreamingUtilities::$rRequest['series_id']));
+			$rSeriesID = (empty($rRequest['series_id']) ? 0 : intval($rRequest['series_id']));
 
-			if (StreamingUtilities::$rCached) {
+			if ($rCached) {
 				$rSeriesInfo = igbinary_unserialize(file_get_contents(SERIES_TMP_PATH . 'series_' . $rSeriesID));
 				$rRows = igbinary_unserialize(file_get_contents(SERIES_TMP_PATH . 'episodes_' . $rSeriesID));
 			} else {
-				StreamingUtilities::$db->query('SELECT * FROM `streams_episodes` t1 INNER JOIN `streams` t2 ON t2.id=t1.stream_id WHERE t1.series_id = ? ORDER BY t1.season_num ASC, t1.episode_num ASC', $rSeriesID);
-				$rRows = StreamingUtilities::$db->get_rows(true, 'season_num', false);
-				StreamingUtilities::$db->query('SELECT * FROM `streams_series` WHERE `id` = ?', $rSeriesID);
-				$rSeriesInfo = StreamingUtilities::$db->get_row();
+				$db->query('SELECT * FROM `streams_episodes` t1 INNER JOIN `streams` t2 ON t2.id=t1.stream_id WHERE t1.series_id = ? ORDER BY t1.season_num ASC, t1.episode_num ASC', $rSeriesID);
+				$rRows = $db->get_rows(true, 'season_num', false);
+				$db->query('SELECT * FROM `streams_series` WHERE `id` = ?', $rSeriesID);
+				$rSeriesInfo = $db->get_row();
 			}
 
 			$output['seasons'] = array();
 
 			foreach ((!empty($rSeriesInfo['seasons']) ? array_values(json_decode($rSeriesInfo['seasons'], true)) : array()) as $rSeason) {
-				$rSeason['cover'] = StreamingUtilities::validateImage($rSeason['cover']);
-				$rSeason['cover_big'] = StreamingUtilities::validateImage($rSeason['cover_big']);
+				$rSeason['cover'] = ImageUtils::validateURL($rSeason['cover']);
+				$rSeason['cover_big'] = ImageUtils::validateURL($rSeason['cover_big']);
 				$output['seasons'][] = $rSeason;
 			}
 			$rBackdrops = json_decode($rSeriesInfo['backdrop_path'], true);
 
 			if (!empty($rBackdrops) && is_array($rBackdrops)) {
 				foreach ($rBackdrops as $i => $rBackdrop) {
-					$rBackdrops[$i] = StreamingUtilities::validateImage($rBackdrop);
+					$rBackdrops[$i] = ImageUtils::validateURL($rBackdrop);
 				}
 			}
 			$rating = is_numeric($rSeriesInfo['rating']) ? floatval($rSeriesInfo['rating']) : 0.0;
 
-			$output['info'] = array('name' => StreamingUtilities::formatTitle($rSeriesInfo['title'], $rSeriesInfo['year']), 'title' => $rSeriesInfo['title'], 'year' => strval($rSeriesInfo['year']), 'cover' => StreamingUtilities::validateImage($rSeriesInfo['cover']), 'plot' => $rSeriesInfo['plot'], 'cast' => $rSeriesInfo['cast'], 'director' => $rSeriesInfo['director'], 'genre' => $rSeriesInfo['genre'], 'release_date' => $rSeriesInfo['release_date'], 'releaseDate' => $rSeriesInfo['release_date'], 'last_modified' => $rSeriesInfo['last_modified'], 'rating' => number_format($rating, 0), 'rating_5based' => number_format($rating * 0.5, 1) + 0, 'backdrop_path' => $rBackdrops, 'youtube_trailer' => $rSeriesInfo['youtube_trailer'], 'episode_run_time' => strval($rSeriesInfo['episode_run_time']), 'category_id' => strval(json_decode($rSeriesInfo['category_id'], true)[0]), 'category_ids' => json_decode($rSeriesInfo['category_id'], true));
+			$output['info'] = array('name' => StreamSorter::formatTitle($rSettings, $rSeriesInfo['title'], $rSeriesInfo['year']), 'title' => $rSeriesInfo['title'], 'year' => strval($rSeriesInfo['year']), 'cover' => ImageUtils::validateURL($rSeriesInfo['cover']), 'plot' => $rSeriesInfo['plot'], 'cast' => $rSeriesInfo['cast'], 'director' => $rSeriesInfo['director'], 'genre' => $rSeriesInfo['genre'], 'release_date' => $rSeriesInfo['release_date'], 'releaseDate' => $rSeriesInfo['release_date'], 'last_modified' => $rSeriesInfo['last_modified'], 'rating' => number_format($rating, 0), 'rating_5based' => number_format($rating * 0.5, 1) + 0, 'backdrop_path' => $rBackdrops, 'youtube_trailer' => $rSeriesInfo['youtube_trailer'], 'episode_run_time' => strval($rSeriesInfo['episode_run_time']), 'category_id' => strval(json_decode($rSeriesInfo['category_id'], true)[0]), 'category_ids' => json_decode($rSeriesInfo['category_id'], true));
 
 			foreach ($rRows as $rSeason => $rEpisodes) {
 				$rNum = 1;
 
 				foreach ($rEpisodes as $rEpisode) {
-					if (StreamingUtilities::$rCached) {
+					if ($rCached) {
 						$rEpisodeData = igbinary_unserialize(file_get_contents(STREAMS_TMP_PATH . 'stream_' . intval($rEpisode['stream_id'])))['info'];
 					} else {
 						$rEpisodeData = $rEpisode;
 					}
 
-					if (StreamingUtilities::$rSettings['api_redirect']) {
+					if ($rSettings['api_redirect']) {
 						$rEncData = 'series/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rEpisodeData['id'] . '/' . $rEpisodeData['target_container'];
-						$rToken = StreamingUtilities::encryptData($rEncData, StreamingUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+						$rToken = Encryption::encrypt($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 						$rURL = $rDomainName . 'play/' . $rToken;
 					} else {
 						$rURL = '';
 					}
 
 					$rProperties = (!empty($rEpisodeData['movie_properties']) ? json_decode($rEpisodeData['movie_properties'], true) : '');
-					$rProperties['cover_big'] = StreamingUtilities::validateImage($rProperties['cover_big']);
-					$rProperties['movie_image'] = StreamingUtilities::validateImage($rProperties['movie_image']);
+					$rProperties['cover_big'] = ImageUtils::validateURL($rProperties['cover_big']);
+					$rProperties['movie_image'] = ImageUtils::validateURL($rProperties['movie_image']);
 
 					if (!$rProperties['cover_big']) {
 						$rProperties['cover_big'] = $rProperties['movie_image'];
@@ -213,7 +213,7 @@ if ($rUserInfo) {
 					if (is_array($rProperties['backdrop_path']) && count($rProperties['backdrop_path']) > 0) {
 						foreach ($rProperties['backdrop_path'] as $key => $backdrop) {
 							if (!empty($backdrop)) {
-								$rProperties['backdrop_path'][$key] = StreamingUtilities::validateImage($backdrop);
+								$rProperties['backdrop_path'][$key] = ImageUtils::validateURL($backdrop);
 							}
 						}
 					}
@@ -241,13 +241,13 @@ if ($rUserInfo) {
 			break;
 
 		case 'get_series':
-			$rCategoryIDSearch = (empty(StreamingUtilities::$rRequest['category_id']) ? null : intval(StreamingUtilities::$rRequest['category_id']));
+			$rCategoryIDSearch = (empty($rRequest['category_id']) ? null : intval($rRequest['category_id']));
 			$rMovieNum = 0;
 
 			if (count($rUserInfo['series_ids']) > 0) {
-				if (StreamingUtilities::$rCached) {
-					if (StreamingUtilities::$rSettings['vod_sort_newest']) {
-						$rUserInfo['series_ids'] = StreamingUtilities::sortSeries($rUserInfo['series_ids']);
+				if ($rCached) {
+					if ($rSettings['vod_sort_newest']) {
+						$rUserInfo['series_ids'] = StreamSorter::sortSeries($rUserInfo['series_ids']);
 					}
 
 					foreach ($rUserInfo['series_ids'] as $rSeriesID) {
@@ -256,7 +256,7 @@ if ($rUserInfo) {
 
 						if (is_array($rBackdrops)) {
 							foreach ($rBackdrops as $i => $path) {
-								$rBackdrops[$i] = StreamingUtilities::validateImage($path);
+								$rBackdrops[$i] = ImageUtils::validateURL($path);
 							}
 						}
 
@@ -265,23 +265,23 @@ if ($rUserInfo) {
 						foreach ($rCategoryIDs as $rCategoryID) {
 							if (!$rCategoryIDSearch || $rCategoryIDSearch == $rCategoryID) {
 								$rating = is_numeric($rSeriesItem['rating']) ? floatval($rSeriesItem['rating']) : 0.0;
-								$output[] = array('num' => ++$rMovieNum, 'name' => StreamingUtilities::formatTitle($rSeriesItem['title'], $rSeriesItem['year']), 'title' => $rSeriesItem['title'], 'year' => strval($rSeriesItem['year']), 'stream_type' => 'series', 'series_id' => (int) $rSeriesItem['id'], 'cover' => StreamingUtilities::validateImage($rSeriesItem['cover']), 'plot' => $rSeriesItem['plot'], 'cast' => $rSeriesItem['cast'], 'director' => $rSeriesItem['director'], 'genre' => $rSeriesItem['genre'], 'release_date' => $rSeriesItem['release_date'], 'releaseDate' => $rSeriesItem['release_date'], 'last_modified' => $rSeriesItem['last_modified'], 'rating' => number_format($rating, 0), 'rating_5based' => number_format($rating * 0.5, 1) + 0, 'backdrop_path' => $rBackdrops, 'youtube_trailer' => $rSeriesItem['youtube_trailer'], 'episode_run_time' => strval($rSeriesItem['episode_run_time']), 'category_id' => strval($rCategoryID), 'category_ids' => $rCategoryIDs);
+								$output[] = array('num' => ++$rMovieNum, 'name' => StreamSorter::formatTitle($rSettings, $rSeriesItem['title'], $rSeriesItem['year']), 'title' => $rSeriesItem['title'], 'year' => strval($rSeriesItem['year']), 'stream_type' => 'series', 'series_id' => (int) $rSeriesItem['id'], 'cover' => ImageUtils::validateURL($rSeriesItem['cover']), 'plot' => $rSeriesItem['plot'], 'cast' => $rSeriesItem['cast'], 'director' => $rSeriesItem['director'], 'genre' => $rSeriesItem['genre'], 'release_date' => $rSeriesItem['release_date'], 'releaseDate' => $rSeriesItem['release_date'], 'last_modified' => $rSeriesItem['last_modified'], 'rating' => number_format($rating, 0), 'rating_5based' => number_format($rating * 0.5, 1) + 0, 'backdrop_path' => $rBackdrops, 'youtube_trailer' => $rSeriesItem['youtube_trailer'], 'episode_run_time' => strval($rSeriesItem['episode_run_time']), 'category_id' => strval($rCategoryID), 'category_ids' => $rCategoryIDs);
 							}
 
-							if (!($rCategoryIDSearch || StreamingUtilities::$rSettings['show_category_duplicates'])) {
+							if (!($rCategoryIDSearch || $rSettings['show_category_duplicates'])) {
 								break;
 							}
 						}
 					}
 				} else {
 					if (!empty($rUserInfo['series_ids'])) {
-						if (StreamingUtilities::$rSettings['vod_sort_newest']) {
-							StreamingUtilities::$db->query('SELECT *, (SELECT MAX(`streams`.`added`) FROM `streams_episodes` LEFT JOIN `streams` ON `streams`.`id` = `streams_episodes`.`stream_id` WHERE `streams_episodes`.`series_id` = `streams_series`.`id`) AS `last_modified_stream` FROM `streams_series` WHERE `id` IN (' . implode(',', array_map('intval', $rUserInfo['series_ids'])) . ') ORDER BY `last_modified_stream` DESC, `last_modified` DESC;');
+						if ($rSettings['vod_sort_newest']) {
+							$db->query('SELECT *, (SELECT MAX(`streams`.`added`) FROM `streams_episodes` LEFT JOIN `streams` ON `streams`.`id` = `streams_episodes`.`stream_id` WHERE `streams_episodes`.`series_id` = `streams_series`.`id`) AS `last_modified_stream` FROM `streams_series` WHERE `id` IN (' . implode(',', array_map('intval', $rUserInfo['series_ids'])) . ') ORDER BY `last_modified_stream` DESC, `last_modified` DESC;');
 						} else {
-							StreamingUtilities::$db->query('SELECT * FROM `streams_series` WHERE `id` IN (' . implode(',', array_map('intval', $rUserInfo['series_ids'])) . ') ORDER BY FIELD(`id`,' . implode(',', $rUserInfo['series_ids']) . ') ASC;');
+							$db->query('SELECT * FROM `streams_series` WHERE `id` IN (' . implode(',', array_map('intval', $rUserInfo['series_ids'])) . ') ORDER BY FIELD(`id`,' . implode(',', $rUserInfo['series_ids']) . ') ASC;');
 						}
 
-						$rSeries = StreamingUtilities::$db->get_rows(true, 'id');
+						$rSeries = $db->get_rows(true, 'id');
 
 						foreach ($rSeries as $rSeriesItem) {
 							if (isset($rSeriesItem['last_modified_stream']) && !empty($rSeriesItem['last_modified_stream'])) {
@@ -291,7 +291,7 @@ if ($rUserInfo) {
 
 							if (!empty($rBackdrops)) {
 								foreach (range(0, count($rBackdrops) - 1) as $i) {
-									$rBackdrops[$i] = StreamingUtilities::validateImage($rBackdrops[$i]);
+									$rBackdrops[$i] = ImageUtils::validateURL($rBackdrops[$i]);
 								}
 							}
 
@@ -300,10 +300,10 @@ if ($rUserInfo) {
 							foreach ($rCategoryIDs as $rCategoryID) {
 								if (!$rCategoryIDSearch || $rCategoryIDSearch == $rCategoryID) {
 									$rating = is_numeric($rSeriesItem['rating']) ? floatval($rSeriesItem['rating']) : 0.0;
-									$output[] = array('num' => ++$rMovieNum, 'name' => StreamingUtilities::formatTitle($rSeriesItem['title'], $rSeriesItem['year']), 'title' => $rSeriesItem['title'], 'year' => $rSeriesItem['year'], 'stream_type' => 'series', 'series_id' => (int) $rSeriesItem['id'], 'cover' => StreamingUtilities::validateImage($rSeriesItem['cover']), 'plot' => $rSeriesItem['plot'], 'cast' => $rSeriesItem['cast'], 'director' => $rSeriesItem['director'], 'genre' => $rSeriesItem['genre'], 'release_date' => $rSeriesItem['release_date'], 'releaseDate' => $rSeriesItem['release_date'], 'last_modified' => $rSeriesItem['last_modified'], 'rating' => number_format($rating, 0), 'rating_5based' => number_format($rating * 0.5, 1) + 0, 'backdrop_path' => $rBackdrops, 'youtube_trailer' => $rSeriesItem['youtube_trailer'], 'episode_run_time' => $rSeriesItem['episode_run_time'], 'category_id' => strval($rCategoryID), 'category_ids' => $rCategoryIDs);
+									$output[] = array('num' => ++$rMovieNum, 'name' => StreamSorter::formatTitle($rSettings, $rSeriesItem['title'], $rSeriesItem['year']), 'title' => $rSeriesItem['title'], 'year' => $rSeriesItem['year'], 'stream_type' => 'series', 'series_id' => (int) $rSeriesItem['id'], 'cover' => ImageUtils::validateURL($rSeriesItem['cover']), 'plot' => $rSeriesItem['plot'], 'cast' => $rSeriesItem['cast'], 'director' => $rSeriesItem['director'], 'genre' => $rSeriesItem['genre'], 'release_date' => $rSeriesItem['release_date'], 'releaseDate' => $rSeriesItem['release_date'], 'last_modified' => $rSeriesItem['last_modified'], 'rating' => number_format($rating, 0), 'rating_5based' => number_format($rating * 0.5, 1) + 0, 'backdrop_path' => $rBackdrops, 'youtube_trailer' => $rSeriesItem['youtube_trailer'], 'episode_run_time' => $rSeriesItem['episode_run_time'], 'category_id' => strval($rCategoryID), 'category_ids' => $rCategoryIDs);
 								}
 
-								if (!$rCategoryIDSearch && !StreamingUtilities::$rSettings['show_category_duplicates']) {
+								if (!$rCategoryIDSearch && !$rSettings['show_category_duplicates']) {
 									break;
 								}
 							}
@@ -315,7 +315,7 @@ if ($rUserInfo) {
 			break;
 
 		case 'get_vod_categories':
-			$rCategories = StreamingUtilities::getCategories('movie');
+			$rCategories = CategoryService::filterLoaded($rCategories, 'movie');
 
 			foreach ($rCategories as $rCategory) {
 				if (in_array($rCategory['id'], $rUserInfo['category_ids'])) {
@@ -326,7 +326,7 @@ if ($rUserInfo) {
 			break;
 
 		case 'get_series_categories':
-			$rCategories = StreamingUtilities::getCategories('series');
+			$rCategories = CategoryService::filterLoaded($rCategories, 'series');
 
 			foreach ($rCategories as $rCategory) {
 				if (in_array($rCategory['id'], $rUserInfo['category_ids'])) {
@@ -337,7 +337,7 @@ if ($rUserInfo) {
 			break;
 
 		case 'get_live_categories':
-			$rCategories = array_merge(StreamingUtilities::getCategories('live'), StreamingUtilities::getCategories('radio'));
+			$rCategories = array_merge(CategoryService::filterLoaded($rCategories, 'live'), CategoryService::filterLoaded($rCategories, 'radio'));
 
 			foreach ($rCategories as $rCategory) {
 				if (in_array($rCategory['id'], $rUserInfo['category_ids'])) {
@@ -350,21 +350,21 @@ if ($rUserInfo) {
 		case 'get_simple_data_table':
 			$output['epg_listings'] = array();
 
-			if (empty(StreamingUtilities::$rRequest['stream_id'])) {
+			if (empty($rRequest['stream_id'])) {
 			} else {
-				if (is_numeric(StreamingUtilities::$rRequest['stream_id']) && !isset(StreamingUtilities::$rRequest['multi'])) {
+				if (is_numeric($rRequest['stream_id']) && !isset($rRequest['multi'])) {
 					$rMulti = false;
-					$rStreamIDs = array(intval(StreamingUtilities::$rRequest['stream_id']));
+					$rStreamIDs = array(intval($rRequest['stream_id']));
 				} else {
 					$rMulti = true;
-					$rStreamIDs = array_map('intval', explode(',', StreamingUtilities::$rRequest['stream_id']));
+					$rStreamIDs = array_map('intval', explode(',', $rRequest['stream_id']));
 				}
 
 				if (0 >= count($rStreamIDs)) {
 				} else {
 					$rArchiveInfo = array();
 
-					if (StreamingUtilities::$rCached) {
+					if ($rCached) {
 						foreach ($rStreamIDs as $rStreamID) {
 							if (!file_exists(STREAMS_TMP_PATH . 'stream_' . intval($rStreamID))) {
 							} else {
@@ -426,16 +426,16 @@ if ($rUserInfo) {
 		case 'get_short_epg':
 			$output['epg_listings'] = array();
 
-			if (empty(StreamingUtilities::$rRequest['stream_id'])) {
+			if (empty($rRequest['stream_id'])) {
 			} else {
-				$rLimit = (empty(StreamingUtilities::$rRequest['limit']) ? 4 : intval(StreamingUtilities::$rRequest['limit']));
+				$rLimit = (empty($rRequest['limit']) ? 4 : intval($rRequest['limit']));
 
-				if (is_numeric(StreamingUtilities::$rRequest['stream_id']) && !isset(StreamingUtilities::$rRequest['multi'])) {
+				if (is_numeric($rRequest['stream_id']) && !isset($rRequest['multi'])) {
 					$rMulti = false;
-					$rStreamIDs = array(intval(StreamingUtilities::$rRequest['stream_id']));
+					$rStreamIDs = array(intval($rRequest['stream_id']));
 				} else {
 					$rMulti = true;
-					$rStreamIDs = array_map('intval', explode(',', StreamingUtilities::$rRequest['stream_id']));
+					$rStreamIDs = array_map('intval', explode(',', $rRequest['stream_id']));
 				}
 
 				if (0 >= count($rStreamIDs)) {
@@ -478,7 +478,7 @@ if ($rUserInfo) {
 			break;
 
 		case 'get_live_streams':
-			$rCategoryIDSearch = (empty(StreamingUtilities::$rRequest['category_id']) ? null : intval(StreamingUtilities::$rRequest['category_id']));
+			$rCategoryIDSearch = (empty($rRequest['category_id']) ? null : intval($rRequest['category_id']));
 			$rLiveNum = 0;
 			$rUserInfo['live_ids'] = array_merge($rUserInfo['live_ids'], $rUserInfo['radio_ids']);
 
@@ -486,9 +486,9 @@ if ($rUserInfo) {
 				$rUserInfo['live_ids'] = array_slice($rUserInfo['live_ids'], $rExtract['offset'], $rExtract['items_per_page']);
 			}
 
-			$rUserInfo['live_ids'] = StreamingUtilities::sortChannels($rUserInfo['live_ids']);
+			$rUserInfo['live_ids'] = StreamSorter::sortChannels($rSettings, $rUserInfo['live_ids']);
 
-			if (!StreamingUtilities::$rCached) {
+			if (!$rCached) {
 				$rChannels = array();
 
 				if (count($rUserInfo['live_ids']) > 0) {
@@ -502,21 +502,21 @@ if ($rUserInfo) {
 					$rWhere[] = '`t1`.`id` IN (' . implode(',', $rUserInfo['live_ids']) . ')';
 					$rWhereString = 'WHERE ' . implode(' AND ', $rWhere);
 
-					if (StreamingUtilities::$rSettings['channel_number_type'] != 'manual') {
+					if ($rSettings['channel_number_type'] != 'manual') {
 						$rOrder = 'FIELD(`t1`.`id`,' . implode(',', $rUserInfo['live_ids']) . ')';
 					} else {
 						$rOrder = '`order`';
 					}
 
-					StreamingUtilities::$db->query('SELECT t1.id,t1.epg_id,t1.added,t1.allow_record,t1.year,t1.channel_id,t1.movie_properties,t1.stream_source,t1.tv_archive_server_id,t1.vframes_server_id,t1.tv_archive_duration,t1.stream_icon,t1.custom_sid,t1.category_id,t1.stream_display_name,t1.series_no,t1.direct_source,t2.type_output,t1.target_container,t2.live,t1.rtmp_output,t1.order,t2.type_key FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.type_id = t1.type ' . $rWhereString . ' ORDER BY ' . $rOrder . ';', ...$rWhereV);
-					$rChannels = StreamingUtilities::$db->get_rows();
+					$db->query('SELECT t1.id,t1.epg_id,t1.added,t1.allow_record,t1.year,t1.channel_id,t1.movie_properties,t1.stream_source,t1.tv_archive_server_id,t1.vframes_server_id,t1.tv_archive_duration,t1.stream_icon,t1.custom_sid,t1.category_id,t1.stream_display_name,t1.series_no,t1.direct_source,t2.type_output,t1.target_container,t2.live,t1.rtmp_output,t1.order,t2.type_key FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.type_id = t1.type ' . $rWhereString . ' ORDER BY ' . $rOrder . ';', ...$rWhereV);
+					$rChannels = $db->get_rows();
 				}
 			} else {
 				$rChannels = $rUserInfo['live_ids'];
 			}
 
 			foreach ($rChannels as $rChannel) {
-				if (StreamingUtilities::$rCached) {
+				if ($rCached) {
 					$rChannel = igbinary_unserialize(file_get_contents(STREAMS_TMP_PATH . 'stream_' . intval($rChannel)))['info'];
 				}
 
@@ -530,17 +530,17 @@ if ($rUserInfo) {
 
 					foreach ($rCategoryIDs as $rCategoryID) {
 						if (!$rCategoryIDSearch || $rCategoryIDSearch == $rCategoryID) {
-							$rStreamIcon = (StreamingUtilities::validateImage($rChannel['stream_icon']) ?: '');
+							$rStreamIcon = (ImageUtils::validateURL($rChannel['stream_icon']) ?: '');
 							$rTVArchive = (!empty($rChannel['tv_archive_server_id']) && !empty($rChannel['tv_archive_duration']) ? 1 : 0);
 
-							if (StreamingUtilities::$rSettings['api_redirect']) {
+							if ($rSettings['api_redirect']) {
 								$rEncData = 'live/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rChannel['id'];
-								$rToken = StreamingUtilities::encryptData($rEncData, StreamingUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+								$rToken = Encryption::encrypt($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 
-								if (StreamingUtilities::$rSettings['cloudflare'] && StreamingUtilities::$rSettings['api_container'] == 'ts') {
+								if ($rSettings['cloudflare'] && $rSettings['api_container'] == 'ts') {
 									$rURL = $rDomainName . 'play/' . $rToken;
 								} else {
-									$rURL = $rDomainName . 'play/' . $rToken . '/' . StreamingUtilities::$rSettings['api_container'];
+									$rURL = $rDomainName . 'play/' . $rToken . '/' . $rSettings['api_container'];
 								}
 							} else {
 								$rURL = '';
@@ -548,7 +548,7 @@ if ($rUserInfo) {
 
 							if ($rChannel['vframes_server_id']) {
 								$rEncData = 'thumb/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rChannel['id'];
-								$rToken = StreamingUtilities::encryptData($rEncData, StreamingUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+								$rToken = Encryption::encrypt($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 								$rThumbURL = $rDomainName . 'play/' . $rToken;
 							} else {
 								$rThumbURL = '';
@@ -557,7 +557,7 @@ if ($rUserInfo) {
 							$output[] = array('num' => ++$rLiveNum, 'name' => $rChannel['stream_display_name'], 'stream_type' => $rChannel['type_key'], 'stream_id' => (int) $rChannel['id'], 'stream_icon' => $rStreamIcon, 'epg_channel_id' => $rChannel['channel_id'], 'added' => ($rChannel['added'] ?: ''), 'custom_sid' => strval($rChannel['custom_sid']), 'tv_archive' => $rTVArchive, 'direct_source' => $rURL, 'tv_archive_duration' => ($rTVArchive ? intval($rChannel['tv_archive_duration']) : 0), 'category_id' => strval($rCategoryID), 'category_ids' => $rCategoryIDs, 'thumbnail' => $rThumbURL);
 						}
 
-						if (!($rCategoryIDSearch || StreamingUtilities::$rSettings['show_category_duplicates'])) {
+						if (!($rCategoryIDSearch || $rSettings['show_category_duplicates'])) {
 							break;
 						}
 					}
@@ -569,20 +569,20 @@ if ($rUserInfo) {
 		case 'get_vod_info':
 			$output['info'] = array();
 
-			if (!empty(StreamingUtilities::$rRequest['vod_id'])) {
-				$rVODID = intval(StreamingUtilities::$rRequest['vod_id']);
+			if (!empty($rRequest['vod_id'])) {
+				$rVODID = intval($rRequest['vod_id']);
 
-				if (StreamingUtilities::$rCached) {
+				if ($rCached) {
 					$rRow = igbinary_unserialize(file_get_contents(STREAMS_TMP_PATH . 'stream_' . intval($rVODID)))['info'];
 				} else {
-					StreamingUtilities::$db->query('SELECT * FROM `streams` WHERE `id` = ?', $rVODID);
-					$rRow = StreamingUtilities::$db->get_row();
+					$db->query('SELECT * FROM `streams` WHERE `id` = ?', $rVODID);
+					$rRow = $db->get_row();
 				}
 
 				if ($rRow) {
-					if (StreamingUtilities::$rSettings['api_redirect']) {
+					if ($rSettings['api_redirect']) {
 						$rEncData = 'movie/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rRow['id'] . '/' . $rRow['target_container'];
-						$rToken = StreamingUtilities::encryptData($rEncData, StreamingUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+						$rToken = Encryption::encrypt($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 						$rURL = $rDomainName . 'play/' . $rToken;
 					} else {
 						$rURL = '';
@@ -594,13 +594,13 @@ if ($rUserInfo) {
 					$output['info']['tmdb_id'] = intval($output['info']['tmdb_id']);
 					$output['info']['episode_run_time'] = intval($output['info']['episode_run_time']);
 					$output['info']['releasedate'] = $output['info']['release_date'];
-					$output['info']['cover_big'] = StreamingUtilities::validateImage($output['info']['cover_big']);
-					$output['info']['movie_image'] = StreamingUtilities::validateImage($output['info']['movie_image']);
+					$output['info']['cover_big'] = ImageUtils::validateURL($output['info']['cover_big']);
+					$output['info']['movie_image'] = ImageUtils::validateURL($output['info']['movie_image']);
 					$output['info']['rating'] = number_format($rating, 2) + 0;
 
 					if (!empty($output['info']['backdrop_path']) && is_array($output['info']['backdrop_path'])) {
 						foreach ($output['info']['backdrop_path'] as $i => $path) {
-							$output['info']['backdrop_path'][$i] = StreamingUtilities::validateImage($path);
+							$output['info']['backdrop_path'][$i] = ImageUtils::validateURL($path);
 						}
 					}
 
@@ -620,23 +620,23 @@ if ($rUserInfo) {
 							unset($output['info'][$rKey]);
 						}
 					}
-					$output['movie_data'] = array('stream_id' => (int) $rRow['id'], 'name' => StreamingUtilities::formatTitle($rRow['stream_display_name'], $rRow['year']), 'title' => $rRow['stream_display_name'], 'year' => $rRow['year'], 'added' => ($rRow['added'] ?: ''), 'category_id' => strval(json_decode($rRow['category_id'], true)[0]), 'category_ids' => json_decode($rRow['category_id'], true), 'container_extension' => $rRow['target_container'], 'custom_sid' => strval($rRow['custom_sid']), 'direct_source' => $rURL);
+					$output['movie_data'] = array('stream_id' => (int) $rRow['id'], 'name' => StreamSorter::formatTitle($rSettings, $rRow['stream_display_name'], $rRow['year']), 'title' => $rRow['stream_display_name'], 'year' => $rRow['year'], 'added' => ($rRow['added'] ?: ''), 'category_id' => strval(json_decode($rRow['category_id'], true)[0]), 'category_ids' => json_decode($rRow['category_id'], true), 'container_extension' => $rRow['target_container'], 'custom_sid' => strval($rRow['custom_sid']), 'direct_source' => $rURL);
 				}
 			}
 
 			break;
 
 		case 'get_vod_streams':
-			$rCategoryIDSearch = (empty(StreamingUtilities::$rRequest['category_id']) ? null : intval(StreamingUtilities::$rRequest['category_id']));
+			$rCategoryIDSearch = (empty($rRequest['category_id']) ? null : intval($rRequest['category_id']));
 			$rMovieNum = 0;
 
 			if (!empty($rExtract['items_per_page'])) {
 				$rUserInfo['vod_ids'] = array_slice($rUserInfo['vod_ids'], $rExtract['offset'], $rExtract['items_per_page']);
 			}
 
-			$rUserInfo['vod_ids'] = StreamingUtilities::sortChannels($rUserInfo['vod_ids']);
+			$rUserInfo['vod_ids'] = StreamSorter::sortChannels($rSettings, $rUserInfo['vod_ids']);
 
-			if (!StreamingUtilities::$rCached) {
+			if (!$rCached) {
 				$rChannels = array();
 
 				if (count($rUserInfo['vod_ids']) > 0) {
@@ -650,21 +650,21 @@ if ($rUserInfo) {
 					$rWhere[] = '`t1`.`id` IN (' . implode(',', $rUserInfo['vod_ids']) . ')';
 					$rWhereString = 'WHERE ' . implode(' AND ', $rWhere);
 
-					if (StreamingUtilities::$rSettings['channel_number_type'] != 'manual') {
+					if ($rSettings['channel_number_type'] != 'manual') {
 						$rOrder = 'FIELD(`t1`.`id`,' . implode(',', $rUserInfo['vod_ids']) . ')';
 					} else {
 						$rOrder = '`order`';
 					}
 
-					StreamingUtilities::$db->query('SELECT t1.id,t1.epg_id,t1.added,t1.allow_record,t1.year,t1.channel_id,t1.movie_properties,t1.stream_source,t1.tv_archive_server_id,t1.vframes_server_id,t1.tv_archive_duration,t1.stream_icon,t1.custom_sid,t1.category_id,t1.stream_display_name,t1.series_no,t1.direct_source,t2.type_output,t1.target_container,t2.live,t1.rtmp_output,t1.order,t2.type_key FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.type_id = t1.type ' . $rWhereString . ' ORDER BY ' . $rOrder . ';', ...$rWhereV);
-					$rChannels = StreamingUtilities::$db->get_rows();
+					$db->query('SELECT t1.id,t1.epg_id,t1.added,t1.allow_record,t1.year,t1.channel_id,t1.movie_properties,t1.stream_source,t1.tv_archive_server_id,t1.vframes_server_id,t1.tv_archive_duration,t1.stream_icon,t1.custom_sid,t1.category_id,t1.stream_display_name,t1.series_no,t1.direct_source,t2.type_output,t1.target_container,t2.live,t1.rtmp_output,t1.order,t2.type_key FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.type_id = t1.type ' . $rWhereString . ' ORDER BY ' . $rOrder . ';', ...$rWhereV);
+					$rChannels = $db->get_rows();
 				}
 			} else {
 				$rChannels = $rUserInfo['vod_ids'];
 			}
 
 			foreach ($rChannels as $rChannel) {
-				if (StreamingUtilities::$rCached) {
+				if ($rCached) {
 					$rChannel = igbinary_unserialize(file_get_contents(STREAMS_TMP_PATH . 'stream_' . intval($rChannel)))['info'];
 				}
 				if (in_array($rChannel['type_key'], array('movie'))) {
@@ -674,19 +674,19 @@ if ($rUserInfo) {
 					foreach ($rCategoryIDs as $rCategoryID) {
 
 						if (!$rCategoryIDSearch || $rCategoryIDSearch == $rCategoryID) {
-							if (StreamingUtilities::$rSettings['api_redirect']) {
+							if ($rSettings['api_redirect']) {
 								$rEncData = 'movie/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rChannel['id'] . '/' . $rChannel['target_container'];
-								$rToken = StreamingUtilities::encryptData($rEncData, StreamingUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+								$rToken = Encryption::encrypt($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 								$rURL = $rDomainName . 'play/' . $rToken;
 							} else {
 								$rURL = '';
 							}
 
 							$rating = is_numeric($rProperties['rating']) ? floatval($rProperties['rating']) : 0.0;
-							$output[] = array('num' => ++$rMovieNum, 'name' => StreamingUtilities::formatTitle($rChannel['stream_display_name'], $rChannel['year']), 'title' => $rChannel['stream_display_name'], 'year' => strval($rChannel['year']), 'stream_type' => $rChannel['type_key'], 'stream_id' => (int) $rChannel['id'], 'stream_icon' => (StreamingUtilities::validateImage($rProperties['movie_image']) ?: ''), 'rating' => number_format($rating, 1) + 0, 'rating_5based' => number_format($rating * 0.5, 1) + 0, 'added' => strval(($rChannel['added'] ?: '')), 'plot' => $rProperties['plot'], 'cast' => $rProperties['cast'], 'director' => $rProperties['director'], 'genre' => $rProperties['genre'], 'release_date' => $rProperties['release_date'], 'youtube_trailer' => $rProperties['youtube_trailer'], 'episode_run_time' => $rProperties['episode_run_time'], 'category_id' => strval($rCategoryID), 'category_ids' => $rCategoryIDs, 'container_extension' => $rChannel['target_container'], 'custom_sid' => strval($rChannel['custom_sid']), 'direct_source' => $rURL);
+							$output[] = array('num' => ++$rMovieNum, 'name' => StreamSorter::formatTitle($rSettings, $rChannel['stream_display_name'], $rChannel['year']), 'title' => $rChannel['stream_display_name'], 'year' => strval($rChannel['year']), 'stream_type' => $rChannel['type_key'], 'stream_id' => (int) $rChannel['id'], 'stream_icon' => (ImageUtils::validateURL($rProperties['movie_image']) ?: ''), 'rating' => number_format($rating, 1) + 0, 'rating_5based' => number_format($rating * 0.5, 1) + 0, 'added' => strval(($rChannel['added'] ?: '')), 'plot' => $rProperties['plot'], 'cast' => $rProperties['cast'], 'director' => $rProperties['director'], 'genre' => $rProperties['genre'], 'release_date' => $rProperties['release_date'], 'youtube_trailer' => $rProperties['youtube_trailer'], 'episode_run_time' => $rProperties['episode_run_time'], 'category_id' => strval($rCategoryID), 'category_ids' => $rCategoryIDs, 'container_extension' => $rChannel['target_container'], 'custom_sid' => strval($rChannel['custom_sid']), 'direct_source' => $rURL);
 						}
 
-						if (!($rCategoryIDSearch || StreamingUtilities::$rSettings['show_category_duplicates'])) {
+						if (!($rCategoryIDSearch || $rSettings['show_category_duplicates'])) {
 							break;
 						}
 					}
@@ -698,7 +698,7 @@ if ($rUserInfo) {
 			$output['user_info'] = [
 				'username' => $rUserInfo['username'],
 				'password' => $rUserInfo['password'],
-				'message' => StreamingUtilities::$rSettings['message_of_day'],
+				'message' => $rSettings['message_of_day'],
 				'auth' => 1,
 				'status' => 'Active',
 				'exp_date' => $rUserInfo['exp_date'] !== null ? strval($rUserInfo['exp_date']) : null,
@@ -716,13 +716,13 @@ if ($rUserInfo) {
 			$output['server_info'] = [
 				'version' => XC_VM_VERSION,
 				'url' => $rDomain,
-				'port' => strval(StreamingUtilities::$rServers[SERVER_ID]['http_broadcast_port']),
-				'https_port' => strval(StreamingUtilities::$rServers[SERVER_ID]['https_broadcast_port']),
-				'server_protocol' => StreamingUtilities::$rServers[SERVER_ID]['server_protocol'],
-				'rtmp_port' => strval(StreamingUtilities::$rServers[SERVER_ID]['rtmp_port']),
+				'port' => strval($rServers[SERVER_ID]['http_broadcast_port']),
+				'https_port' => strval($rServers[SERVER_ID]['https_broadcast_port']),
+				'server_protocol' => $rServers[SERVER_ID]['server_protocol'],
+				'rtmp_port' => strval($rServers[SERVER_ID]['rtmp_port']),
 				'timestamp_now' => time(),
 				'time_now' => date('Y-m-d H:i:s'),
-				'timezone' => StreamingUtilities::$rSettings['force_epg_timezone'] ? 'UTC' : StreamingUtilities::$rSettings['default_timezone'],
+				'timezone' => $rSettings['force_epg_timezone'] ? 'UTC' : $rSettings['default_timezone'],
 				'process' => true
 			];
 			break;
@@ -746,13 +746,13 @@ function getOutputFormats($rFormats) {
 }
 
 function shutdown() {
-	global $rDeny;
+	global $rDeny, $db;
 
 	if ($rDeny) {
 		BruteforceGuard::checkFlood();
 	}
 
-	if (is_object(StreamingUtilities::$db)) {
-		StreamingUtilities::$db->close_mysql();
+	if (is_object($db)) {
+		$db->close_mysql();
 	}
 }

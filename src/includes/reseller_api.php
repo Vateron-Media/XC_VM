@@ -1,7 +1,6 @@
 <?php
 
 class ResellerAPI {
-	public static $db = null;
 	public static $rSettings = array();
 	public static $rServers = array();
 	public static $rProxyServers = array();
@@ -41,6 +40,7 @@ class ResellerAPI {
 	}
 
 	public static function editResellerProfile($rData) {
+		global $db;
 		global $rHues;
 		global $allowedLangs;
 		$rData = self::processData('profile', $rData);
@@ -75,7 +75,7 @@ class ResellerAPI {
 				$rData['lang'] = 'en';
 			}
 
-			self::$db->query('UPDATE `users` SET `password` = ?, `email` = ?, `reseller_dns` = ?, `theme` = ?, `hue` = ?, `timezone` = ?, `api_key` = ?, `lang` = ? WHERE `id` = ?;', $rPassword, $rData['email'], $rData['reseller_dns'], $rData['theme'], $rData['hue'], $rData['timezone'], $rData['api_key'], $rData['lang'], self::$rUserInfo['id']);
+			$db->query('UPDATE `users` SET `password` = ?, `email` = ?, `reseller_dns` = ?, `theme` = ?, `hue` = ?, `timezone` = ?, `api_key` = ?, `lang` = ? WHERE `id` = ?;', $rPassword, $rData['email'], $rData['reseller_dns'], $rData['theme'], $rData['hue'], $rData['timezone'], $rData['api_key'], $rData['lang'], self::$rUserInfo['id']);
 
 			return array('status' => STATUS_SUCCESS);
 		}
@@ -84,10 +84,11 @@ class ResellerAPI {
 	}
 
 	public static function processLogin($rData) {
-		return Authenticator::resellerLogin(self::$db, self::$rSettings, $rData);
+		return Authenticator::resellerLogin(self::$rSettings, $rData);
 	}
 
 	public static function processMAG($rData) {
+		global $db;
 		$rData = self::processData('mag', $rData);
 
 		if (self::$rPermissions['create_mag']) {
@@ -282,12 +283,12 @@ class ResellerAPI {
 
 
 				if (isset($rData['edit'])) {
-					self::$db->query('SELECT `mag_id` FROM `mag_devices` WHERE mac = ? AND `mag_id` <> ? LIMIT 1;', $rArray['mac'], $rData['edit']);
+					$db->query('SELECT `mag_id` FROM `mag_devices` WHERE mac = ? AND `mag_id` <> ? LIMIT 1;', $rArray['mac'], $rData['edit']);
 				} else {
-					self::$db->query('SELECT `mag_id` FROM `mag_devices` WHERE mac = ? LIMIT 1;', $rArray['mac']);
+					$db->query('SELECT `mag_id` FROM `mag_devices` WHERE mac = ? LIMIT 1;', $rArray['mac']);
 				}
 
-				if (0 >= self::$db->num_rows()) {
+				if (0 >= $db->num_rows()) {
 
 
 					$rArray['mac'] = $rData['mac'];
@@ -301,11 +302,11 @@ class ResellerAPI {
 					$rPrepare = prepareArray($rUserArray);
 					$rQuery = 'REPLACE INTO `lines`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
-					if (!self::$db->query($rQuery, ...$rPrepare['data'])) {
+					if (!$db->query($rQuery, ...$rPrepare['data'])) {
 					} else {
-						$rInsertID = self::$db->last_insert_id();
+						$rInsertID = $db->last_insert_id();
 						MagService::syncLineDevices($rInsertID);
-						self::$db->query('INSERT INTO `signals`(`server_id`, `cache`, `time`, `custom_data`) VALUES(?, 1, ?, ?);', SERVER_ID, time(), json_encode(array('type' => 'update_line', 'id' => $rInsertID)));
+						$db->query('INSERT INTO `signals`(`server_id`, `cache`, `time`, `custom_data`) VALUES(?, 1, ?, ?);', SERVER_ID, time(), json_encode(array('type' => 'update_line', 'id' => $rInsertID)));
 						$rArray['user_id'] = $rInsertID;
 						unset($rArray['user'], $rArray['paired']);
 
@@ -323,12 +324,12 @@ class ResellerAPI {
 						$rPrepare = prepareArray($rArray);
 						$rQuery = 'REPLACE INTO `mag_devices`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
-						if (self::$db->query($rQuery, ...$rPrepare['data'])) {
-							$rInsertID = self::$db->last_insert_id();
+						if ($db->query($rQuery, ...$rPrepare['data'])) {
+							$rInsertID = $db->last_insert_id();
 
 							if (isset($rPackage)) {
 								$rNewCredits = intval(self::$rUserInfo['credits']) - intval($rCost);
-								self::$db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $rNewCredits, self::$rUserInfo['id']);
+								$db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $rNewCredits, self::$rUserInfo['id']);
 
 								if (isset($rArray['id'])) {
 									if ($rUserArray['package_id']) {
@@ -341,9 +342,9 @@ class ResellerAPI {
 								}
 
 								$rData = getMag($rInsertID);
-								self::$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'mag', ?, ?, ?, ?, ?, ?, ?);", self::$rUserInfo['id'], $rType, $rInsertID, $rPackage['id'], $rCost, $rNewCredits, time(), json_encode($rData));
+								$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'mag', ?, ?, ?, ?, ?, ?, ?);", self::$rUserInfo['id'], $rType, $rInsertID, $rPackage['id'], $rCost, $rNewCredits, time(), json_encode($rData));
 							} else {
-								self::$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'mag', ?, ?, null, ?, ?, ?, ?);", self::$rUserInfo['id'], 'edit', $rInsertID, 0, self::$rUserInfo['credits'], time(), json_encode($rData));
+								$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'mag', ?, ?, null, ?, ?, ?, ?);", self::$rUserInfo['id'], 'edit', $rInsertID, 0, self::$rUserInfo['credits'], time(), json_encode($rData));
 							}
 
 							return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
@@ -351,7 +352,7 @@ class ResellerAPI {
 
 						if (isset($rData['edit'])) {
 						} else {
-							self::$db->query('DELETE FROM `lines` WHERE `id` = ?;', $rInsertID);
+							$db->query('DELETE FROM `lines` WHERE `id` = ?;', $rInsertID);
 						}
 					}
 
@@ -368,6 +369,7 @@ class ResellerAPI {
 	}
 
 	public static function processEnigma($rData) {
+		global $db;
 		$rData = self::processData('enigma', $rData);
 
 		if (self::$rPermissions['create_enigma']) {
@@ -561,12 +563,12 @@ class ResellerAPI {
 
 
 				if (isset($rData['edit'])) {
-					self::$db->query('SELECT `device_id` FROM `enigma2_devices` WHERE mac = ? AND `device_id` <> ? LIMIT 1;', $rArray['mac'], $rData['edit']);
+					$db->query('SELECT `device_id` FROM `enigma2_devices` WHERE mac = ? AND `device_id` <> ? LIMIT 1;', $rArray['mac'], $rData['edit']);
 				} else {
-					self::$db->query('SELECT `device_id` FROM `enigma2_devices` WHERE mac = ? LIMIT 1;', $rArray['mac']);
+					$db->query('SELECT `device_id` FROM `enigma2_devices` WHERE mac = ? LIMIT 1;', $rArray['mac']);
 				}
 
-				if (0 >= self::$db->num_rows()) {
+				if (0 >= $db->num_rows()) {
 
 
 					$rArray['mac'] = $rData['mac'];
@@ -580,11 +582,11 @@ class ResellerAPI {
 					$rPrepare = prepareArray($rUserArray);
 					$rQuery = 'REPLACE INTO `lines`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
-					if (!self::$db->query($rQuery, ...$rPrepare['data'])) {
+					if (!$db->query($rQuery, ...$rPrepare['data'])) {
 					} else {
-						$rInsertID = self::$db->last_insert_id();
+						$rInsertID = $db->last_insert_id();
 						MagService::syncLineDevices($rInsertID);
-						self::$db->query('INSERT INTO `signals`(`server_id`, `cache`, `time`, `custom_data`) VALUES(?, 1, ?, ?);', SERVER_ID, time(), json_encode(array('type' => 'update_line', 'id' => $rInsertID)));
+						$db->query('INSERT INTO `signals`(`server_id`, `cache`, `time`, `custom_data`) VALUES(?, 1, ?, ?);', SERVER_ID, time(), json_encode(array('type' => 'update_line', 'id' => $rInsertID)));
 						$rArray['user_id'] = $rInsertID;
 						unset($rArray['user'], $rArray['paired']);
 
@@ -601,12 +603,12 @@ class ResellerAPI {
 						$rPrepare = prepareArray($rArray);
 						$rQuery = 'REPLACE INTO `enigma2_devices`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
-						if (self::$db->query($rQuery, ...$rPrepare['data'])) {
-							$rInsertID = self::$db->last_insert_id();
+						if ($db->query($rQuery, ...$rPrepare['data'])) {
+							$rInsertID = $db->last_insert_id();
 
 							if (isset($rPackage)) {
 								$rNewCredits = intval(self::$rUserInfo['credits']) - intval($rCost);
-								self::$db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $rNewCredits, self::$rUserInfo['id']);
+								$db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $rNewCredits, self::$rUserInfo['id']);
 
 								if (isset($rArray['id'])) {
 									if ($rArray['package_id']) {
@@ -619,9 +621,9 @@ class ResellerAPI {
 								}
 
 								$rData = getEnigma($rInsertID);
-								self::$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'enigma', ?, ?, ?, ?, ?, ?, ?);", self::$rUserInfo['id'], $rType, $rInsertID, $rPackage['id'], $rCost, $rNewCredits, time(), json_encode($rData));
+								$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'enigma', ?, ?, ?, ?, ?, ?, ?);", self::$rUserInfo['id'], $rType, $rInsertID, $rPackage['id'], $rCost, $rNewCredits, time(), json_encode($rData));
 							} else {
-								self::$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'enigma', ?, ?, null, ?, ?, ?, ?);", self::$rUserInfo['id'], 'edit', $rInsertID, 0, self::$rUserInfo['credits'], time(), json_encode($rData));
+								$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'enigma', ?, ?, null, ?, ?, ?, ?);", self::$rUserInfo['id'], 'edit', $rInsertID, 0, self::$rUserInfo['credits'], time(), json_encode($rData));
 							}
 
 							return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
@@ -629,7 +631,7 @@ class ResellerAPI {
 
 						if (isset($rData['edit'])) {
 						} else {
-							self::$db->query('DELETE FROM `lines` WHERE `id` = ?;', $rInsertID);
+							$db->query('DELETE FROM `lines` WHERE `id` = ?;', $rInsertID);
 						}
 					}
 
@@ -646,6 +648,7 @@ class ResellerAPI {
 	}
 
 	public static function processUser($rData) {
+		global $db;
 		$rData = self::processData('user', $rData);
 
 		if (self::$rPermissions['create_sub_resellers']) {
@@ -736,16 +739,16 @@ class ResellerAPI {
 						$rPrepare = prepareArray($rArray);
 						$rQuery = 'REPLACE INTO `users`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
-						if (self::$db->query($rQuery, ...$rPrepare['data'])) {
-							$rInsertID = self::$db->last_insert_id();
+						if ($db->query($rQuery, ...$rPrepare['data'])) {
+							$rInsertID = $db->last_insert_id();
 							$rData = UserRepository::getRegisteredUserById($rInsertID);
 
 							if (isset($rCost)) {
 								$rNewCredits = intval(self::$rUserInfo['credits']) - intval($rCost);
-								self::$db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $rNewCredits, self::$rUserInfo['id']);
-								self::$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'user', ?, ?, null, ?, ?, ?, ?);", self::$rUserInfo['id'], 'new', $rInsertID, $rCost, $rNewCredits, time(), json_encode($rData));
+								$db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $rNewCredits, self::$rUserInfo['id']);
+								$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'user', ?, ?, null, ?, ?, ?, ?);", self::$rUserInfo['id'], 'new', $rInsertID, $rCost, $rNewCredits, time(), json_encode($rData));
 							} else {
-								self::$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'user', ?, ?, null, ?, ?, ?, ?);", self::$rUserInfo['id'], 'edit', $rInsertID, 0, self::$rUserInfo['credits'], time(), json_encode($rData));
+								$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'user', ?, ?, null, ?, ?, ?, ?);", self::$rUserInfo['id'], 'edit', $rInsertID, 0, self::$rUserInfo['credits'], time(), json_encode($rData));
 							}
 
 							return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
@@ -767,6 +770,7 @@ class ResellerAPI {
 	}
 
 	public static function submitTicket($rData) {
+		global $db;
 		$rData = self::processData('ticket', $rData);
 
 		if (isset($rData['edit'])) {
@@ -795,9 +799,9 @@ class ResellerAPI {
 				$rPrepare = prepareArray($rArray);
 				$rQuery = 'REPLACE INTO `tickets`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
-				if (self::$db->query($rQuery, ...$rPrepare['data'])) {
-					$rInsertID = self::$db->last_insert_id();
-					self::$db->query('INSERT INTO `tickets_replies`(`ticket_id`, `admin_reply`, `message`, `date`) VALUES(?, 0, ?, ?);', $rInsertID, $rData['message'], time());
+				if ($db->query($rQuery, ...$rPrepare['data'])) {
+					$rInsertID = $db->last_insert_id();
+					$db->query('INSERT INTO `tickets_replies`(`ticket_id`, `admin_reply`, `message`, `date`) VALUES(?, 0, ?, ?);', $rInsertID, $rData['message'], time());
 
 					return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
 				}
@@ -809,11 +813,11 @@ class ResellerAPI {
 
 			if ($rTicket) {
 				if (intval(self::$rUserInfo['id']) == intval($rTicket['member_id'])) {
-					self::$db->query('UPDATE `tickets` SET `admin_read` = 0, `user_read` = 1 WHERE `id` = ?;', $rData['respond']);
-					self::$db->query('INSERT INTO `tickets_replies`(`ticket_id`, `admin_reply`, `message`, `date`) VALUES(?, 0, ?, ?);', $rData['respond'], $rData['message'], time());
+					$db->query('UPDATE `tickets` SET `admin_read` = 0, `user_read` = 1 WHERE `id` = ?;', $rData['respond']);
+					$db->query('INSERT INTO `tickets_replies`(`ticket_id`, `admin_reply`, `message`, `date`) VALUES(?, 0, ?, ?);', $rData['respond'], $rData['message'], time());
 				} else {
-					self::$db->query('UPDATE `tickets` SET `admin_read` = 0, `user_read` = 0 WHERE `id` = ?;', $rData['respond']);
-					self::$db->query('INSERT INTO `tickets_replies`(`ticket_id`, `admin_reply`, `message`, `date`) VALUES(?, 1, ?, ?);', $rData['respond'], $rData['message'], time());
+					$db->query('UPDATE `tickets` SET `admin_read` = 0, `user_read` = 0 WHERE `id` = ?;', $rData['respond']);
+					$db->query('INSERT INTO `tickets_replies`(`ticket_id`, `admin_reply`, `message`, `date`) VALUES(?, 1, ?, ?);', $rData['respond'], $rData['message'], time());
 				}
 
 				return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rData['respond']));
@@ -826,6 +830,7 @@ class ResellerAPI {
 	}
 
 	public static function processLine($rData) {
+		global $db;
 		$rData = self::processData('line', $rData);
 
 		if (self::$rPermissions['create_line']) {
@@ -1094,12 +1099,12 @@ class ResellerAPI {
 				$rPrepare = prepareArray($rArray);
 				$rQuery = 'REPLACE INTO `lines`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
-				if (self::$db->query($rQuery, ...$rPrepare['data'])) {
-					$rInsertID = self::$db->last_insert_id();
+				if ($db->query($rQuery, ...$rPrepare['data'])) {
+					$rInsertID = $db->last_insert_id();
 					MagService::syncLineDevices($rInsertID);
 					if (isset($rPackage)) {
 						$rNewCredits = intval(self::$rUserInfo['credits']) - intval($rCost);
-						self::$db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $rNewCredits, self::$rUserInfo['id']);
+						$db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $rNewCredits, self::$rUserInfo['id']);
 
 						if (isset($rArray['id'])) {
 							if ($rArray['package_id']) {
@@ -1112,9 +1117,9 @@ class ResellerAPI {
 						}
 
 						$rData = UserRepository::getLineById($rInsertID);
-						self::$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'line', ?, ?, ?, ?, ?, ?, ?);", self::$rUserInfo['id'], $rType, $rInsertID, $rPackage['id'], $rCost, $rNewCredits, time(), json_encode($rData));
+						$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'line', ?, ?, ?, ?, ?, ?, ?);", self::$rUserInfo['id'], $rType, $rInsertID, $rPackage['id'], $rCost, $rNewCredits, time(), json_encode($rData));
 					} else {
-						self::$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'line', ?, ?, null, ?, ?, ?, ?);", self::$rUserInfo['id'], 'edit', $rInsertID, 0, self::$rUserInfo['credits'], time(), json_encode($rData));
+						$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'line', ?, ?, null, ?, ?, ?, ?);", self::$rUserInfo['id'], 'edit', $rInsertID, 0, self::$rUserInfo['credits'], time(), json_encode($rData));
 					}
 
 					return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));

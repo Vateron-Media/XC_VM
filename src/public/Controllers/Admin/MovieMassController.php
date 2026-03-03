@@ -13,7 +13,7 @@ class MovieMassController extends BaseAdminController
         $rCategories = getCategories('movie');
 
         if (isset(CoreUtilities::$rRequest['submit_stream'])) {
-            $rReturn = API::massEditMovies(CoreUtilities::$rRequest);
+            $rReturn = MovieService::massEdit(CoreUtilities::$rRequest);
             $_STATUS = $rReturn['status'];
             $GLOBALS['_STATUS'] = $_STATUS;
 

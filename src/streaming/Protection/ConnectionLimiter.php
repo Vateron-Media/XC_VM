@@ -1,11 +1,21 @@
 <?php
 
 class ConnectionLimiter {
-	public static function closeConnections($redis, $rSettings, $rServers, $rUserID, $rMaxConnections, $rIsHMAC = null, $rIdentifier = '', $rIP = null, $rUserAgent = null, $rGetConnectionsCallback = null, $rGetUserIPCallback = null, $rCloseConnectionCallback = null, $rRemoveFromQueueCallback = null) {
+	public static function writeOfflineActivity($rServerID, $rProxyID, $rUserID, $rStreamID, $rStart, $rUserAgent, $rIP, $rExtension, $rGeoIP, $rISP, $rExternalDevice = '', $rDivergence = 0, $rIsHMAC = null, $rIdentifier = '') {
+		global $rSettings;
+		if ($rSettings['save_closed_connection'] != 0) {
+			if ($rServerID && $rUserID && $rStreamID) {
+				$rActivityInfo = array('user_id' => intval($rUserID), 'stream_id' => intval($rStreamID), 'server_id' => intval($rServerID), 'proxy_id' => intval($rProxyID), 'date_start' => intval($rStart), 'user_agent' => $rUserAgent, 'user_ip' => htmlentities($rIP), 'date_end' => time(), 'container' => $rExtension, 'geoip_country_code' => $rGeoIP, 'isp' => $rISP, 'external_device' => htmlentities($rExternalDevice), 'divergence' => intval($rDivergence), 'hmac_id' => $rIsHMAC, 'hmac_identifier' => $rIdentifier);
+				file_put_contents(LOGS_TMP_PATH . 'activity', base64_encode(json_encode($rActivityInfo)) . "\n", FILE_APPEND | LOCK_EX);
+			}
+		}
+	}
+
+	public static function closeConnections($redis, $rSettings, $rServers, $rUserID, $rMaxConnections, $rIsHMAC = null, $rIdentifier = '', $rIP = null, $rUserAgent = null) {
 		global $db;
 		if ($rSettings['redis_handler']) {
 			$rConnections = array();
-			$rKeys = call_user_func($rGetConnectionsCallback, $rUserID, true, true);
+			$rKeys = ConnectionTracker::getLineConnections($redis, $rUserID, true, true);
 			$rToKill = count($rKeys) - $rMaxConnections;
 			if ($rToKill > 0) {
 				foreach (array_map('igbinary_unserialize', $redis->mGet($rKeys)) as $rConnection) {
@@ -34,7 +44,7 @@ class ConnectionLimiter {
 			}
 		}
 
-		$rIP = call_user_func($rGetUserIPCallback);
+		$rIP = $_SERVER['REMOTE_ADDR'];
 		$rKilled = 0;
 		$rDelSID = $rDelUUID = $rIDs = array();
 		if ($rIP && $rUserAgent) {
@@ -53,7 +63,7 @@ class ConnectionLimiter {
 				if ($rKilled != $rToKill) {
 					if ($rConnections[$i]['pid'] != getmypid()) {
 						if ($rConnections[$i]['user_ip'] == $rIP && $rConnections[$i]['user_agent'] == $rUserAgent && $rKillOwnIP == 2 || $rConnections[$i]['user_ip'] == $rIP && $rKillOwnIP == 1 || $rKillOwnIP == 0) {
-							if (call_user_func($rCloseConnectionCallback, $rConnections[$i])) {
+							if (self::closeConnection($redis, $rSettings, $rServers, $rConnections[$i])) {
 								$rKilled++;
 								if ($rConnections[$i]['container'] != 'hls') {
 									if ($rSettings['redis_handler']) {
@@ -65,7 +75,7 @@ class ConnectionLimiter {
 									$rDelSID[$rConnections[$i]['stream_id']][] = $rDelUUID;
 								}
 								if ($rConnections[$i]['on_demand'] && $rConnections[$i]['server_id'] == SERVER_ID && $rSettings['on_demand_instant_off']) {
-									call_user_func($rRemoveFromQueueCallback, $rConnections[$i]['stream_id'], $rConnections[$i]['pid']);
+									ConnectionTracker::removeFromQueue($rConnections[$i]['stream_id'], $rConnections[$i]['pid'], array('ProcessManager', 'isRunning'));
 								}
 							}
 						}
@@ -116,7 +126,7 @@ class ConnectionLimiter {
 		return $rKilled;
 	}
 
-	public static function closeConnection($redis, $rSettings, $rServers, $rActivityInfo, $rUpdateConnectionCallback = null, $rRedisSignalCallback = null, $rWriteOfflineActivityCallback = null) {
+	public static function closeConnection($redis, $rSettings, $rServers, $rActivityInfo) {
 		global $db;
 		if (empty($rActivityInfo)) {
 			return false;
@@ -144,7 +154,7 @@ class ConnectionLimiter {
 				shell_exec('wget --timeout=2 -O /dev/null -o /dev/null "' . $rServers[SERVER_ID]['rtmp_mport_url'] . 'control/drop/client?clientid=' . intval($rActivityInfo['pid']) . '" >/dev/null 2>/dev/null &');
 			} else {
 				if ($rSettings['redis_handler']) {
-					call_user_func($rRedisSignalCallback, $rActivityInfo['pid'], $rActivityInfo['server_id'], 1);
+					ConnectionTracker::redisSignal($redis, $rActivityInfo['pid'], $rActivityInfo['server_id'], 1);
 				} else {
 					$db->query('INSERT INTO `signals` (`pid`,`server_id`,`rtmp`,`time`) VALUES(?,?,?,UNIX_TIMESTAMP())', $rActivityInfo['pid'], $rActivityInfo['server_id'], 1);
 				}
@@ -152,7 +162,7 @@ class ConnectionLimiter {
 		} else {
 			if ($rActivityInfo['container'] == 'hls' || $rActivityInfo['container'] == 'm3u8') {
 				if ($rSettings['redis_handler']) {
-					call_user_func($rUpdateConnectionCallback, $rActivityInfo, array(), 'close');
+					ConnectionTracker::updateConnection($redis, $rActivityInfo, array(), 'close');
 				} else {
 					$db->query('UPDATE `lines_live` SET `hls_end` = 1 WHERE `activity_id` = ?', $rActivityInfo['activity_id']);
 				}
@@ -163,7 +173,7 @@ class ConnectionLimiter {
 					}
 				} else {
 					if ($rSettings['redis_handler']) {
-						call_user_func($rRedisSignalCallback, $rActivityInfo['pid'], $rActivityInfo['server_id'], 0);
+						ConnectionTracker::redisSignal($redis, $rActivityInfo['pid'], $rActivityInfo['server_id'], 0);
 					} else {
 						$db->query('INSERT INTO `signals` (`pid`,`server_id`,`time`) VALUES(?,?,UNIX_TIMESTAMP())', $rActivityInfo['pid'], $rActivityInfo['server_id']);
 					}
@@ -171,11 +181,11 @@ class ConnectionLimiter {
 			}
 		}
 
-		call_user_func($rWriteOfflineActivityCallback, $rActivityInfo['server_id'], $rActivityInfo['proxy_id'], $rActivityInfo['user_id'], $rActivityInfo['stream_id'], $rActivityInfo['date_start'], $rActivityInfo['user_agent'], $rActivityInfo['user_ip'], $rActivityInfo['container'], $rActivityInfo['geoip_country_code'], $rActivityInfo['isp'], $rActivityInfo['external_device'], $rActivityInfo['divergence'], $rActivityInfo['hmac_id'], $rActivityInfo['hmac_identifier']);
+		self::writeOfflineActivity($rActivityInfo['server_id'], $rActivityInfo['proxy_id'], $rActivityInfo['user_id'], $rActivityInfo['stream_id'], $rActivityInfo['date_start'], $rActivityInfo['user_agent'], $rActivityInfo['user_ip'], $rActivityInfo['container'], $rActivityInfo['geoip_country_code'], $rActivityInfo['isp'], $rActivityInfo['external_device'], $rActivityInfo['divergence'], $rActivityInfo['hmac_id'], $rActivityInfo['hmac_identifier']);
 		return true;
 	}
 
-	public static function closeRTMP($rPID, $rWriteOfflineActivityCallback = null) {
+	public static function closeRTMP($rPID) {
 		global $db;
 		if (empty($rPID)) {
 			return false;
@@ -188,7 +198,7 @@ class ConnectionLimiter {
 
 		$rActivityInfo = $db->get_row();
 		$db->query('DELETE FROM `lines_live` WHERE `activity_id` = ?', $rActivityInfo['activity_id']);
-		call_user_func($rWriteOfflineActivityCallback, $rActivityInfo['server_id'], $rActivityInfo['proxy_id'], $rActivityInfo['user_id'], $rActivityInfo['stream_id'], $rActivityInfo['date_start'], $rActivityInfo['user_agent'], $rActivityInfo['user_ip'], $rActivityInfo['container'], $rActivityInfo['geoip_country_code'], $rActivityInfo['isp'], $rActivityInfo['external_device'], $rActivityInfo['divergence'], $rActivityInfo['hmac_id'], $rActivityInfo['hmac_identifier']);
+		self::writeOfflineActivity($rActivityInfo['server_id'], $rActivityInfo['proxy_id'], $rActivityInfo['user_id'], $rActivityInfo['stream_id'], $rActivityInfo['date_start'], $rActivityInfo['user_agent'], $rActivityInfo['user_ip'], $rActivityInfo['container'], $rActivityInfo['geoip_country_code'], $rActivityInfo['isp'], $rActivityInfo['external_device'], $rActivityInfo['divergence'], $rActivityInfo['hmac_id'], $rActivityInfo['hmac_identifier']);
 		return true;
 	}
 }

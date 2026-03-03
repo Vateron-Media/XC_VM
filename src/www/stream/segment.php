@@ -3,7 +3,6 @@
 header('Access-Control-Allow-Origin: *');
 set_time_limit(0);
 require_once 'init.php';
-require_once INCLUDES_PATH . 'StreamingUtilities.php';
 
 $rSettings = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'settings'));
 $rServers = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'servers'));
@@ -40,7 +39,7 @@ $rIsHMAC = null;
 
 if (isset($_GET['token'])) {
 	$rOffset = 0;
-	$rTokenArray = explode('/', StreamingUtilities::decryptData($_GET['token'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA));
+	$rTokenArray = explode('/', Encryption::decrypt($_GET['token'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA));
 
 	if (6 > count($rTokenArray)) {
 	} else {
@@ -118,15 +117,15 @@ if (isset($_GET['token'])) {
 					$rSignalData = json_decode(file_get_contents(SIGNALS_PATH . $rUUID), true);
 
 					if ($rSignalData['type'] == 'signal') {
-						StreamingUtilities::init(false);
+						LegacyInitializer::initStreaming();
 
 						if ($rSettings['encrypt_hls']) {
 							$rKey = file_get_contents(STREAMS_PATH . $rStreamID . '_.key');
 							$rIV = file_get_contents(STREAMS_PATH . $rStreamID . '_.iv');
-							$rData = StreamingUtilities::sendSignal($rSignalData, basename($rSegment), $rVideoCodec, true);
+							$rData = SignalSender::sendSignal($rFFMPEG_CPU, $rSignalData, basename($rSegment), $rVideoCodec, true);
 							echo openssl_encrypt($rData, 'aes-128-cbc', $rKey, OPENSSL_RAW_DATA, $rIV);
 						} else {
-							StreamingUtilities::sendSignal($rSignalData, basename($rSegment), $rVideoCodec);
+							SignalSender::sendSignal($rFFMPEG_CPU, $rSignalData, basename($rSegment), $rVideoCodec);
 						}
 
 						unlink(SIGNALS_PATH . $rUUID);

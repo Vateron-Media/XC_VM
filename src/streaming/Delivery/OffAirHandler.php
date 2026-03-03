@@ -35,7 +35,7 @@ class OffAirHandler {
 		}
 	}
 
-	public static function showVideoServer($rSettings, $rServers, $rShowOptionKey, $rVideoPathKey, $rExtension, $rUserInfo, $rIP, $rCountryCode, $rISP, $rServerID = null, $rProxyID = null, $rSelectServerCallback = null, $rGetProxiesCallback = null, $rSelectProxyCallback = null, $rEncryptDataCallback = null) {
+	public static function showVideoServer($rSettings, $rServers, $rShowOptionKey, $rVideoPathKey, $rExtension, $rUserInfo, $rIP, $rCountryCode, $rISP, $rServerID = null, $rProxyID = null) {
 		$rVideoPath = self::getOffAirVideo($rSettings, $rVideoPathKey);
 		if (!(!$rUserInfo['is_restreamer'] && $rSettings[$rShowOptionKey] && 0 < strlen($rVideoPath))) {
 			switch ($rShowOptionKey) {
@@ -54,15 +54,15 @@ class OffAirHandler {
 			}
 		}
 		if (!$rServerID) {
-			$rServerID = call_user_func($rSelectServerCallback, $rUserInfo, $rIP, $rCountryCode, $rISP);
+			$rServerID = StreamAuth::checkAccess($rServers, $rSettings, $rUserInfo, $rIP, $rCountryCode, $rISP);
 		}
 		if (!$rServerID) {
 			$rServerID = SERVER_ID;
 		}
 		$rOriginatorID = null;
 		if ($rServers[$rServerID]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy'])) {
-			$rProxies = call_user_func($rGetProxiesCallback, $rServerID);
-			$rProxyID = call_user_func($rSelectProxyCallback, array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name']);
+			$rProxies = ConnectionTracker::getProxies($rServers, $rServerID);
+			$rProxyID = ProxySelector::availableProxy($rServers, array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name'], $rSettings);
 			if (!$rProxyID) {
 				generate404();
 			}
@@ -78,7 +78,7 @@ class OffAirHandler {
 			$rURL .= '/' . md5($rServerID . '_' . $rOriginatorID . '_' . OPENSSL_EXTRA);
 		}
 		$rTokenData = array('expires' => time() + 10, 'video_path' => $rVideoPath);
-		$rToken = call_user_func($rEncryptDataCallback, json_encode($rTokenData), $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+		$rToken = Encryption::encrypt(json_encode($rTokenData), $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 		if ($rExtension == 'm3u8') {
 			$segmentDuration = 10;
 			$sequence = intval(time() / $segmentDuration);

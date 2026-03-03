@@ -196,7 +196,7 @@ class WatchController {
      */
     public function apiEnable() {
         global $db;
-        WatchService::enableWatch($db);
+        WatchService::enableWatch();
         echo json_encode(['result' => true]);
         exit();
     }
@@ -208,7 +208,7 @@ class WatchController {
      */
     public function apiDisable() {
         global $db;
-        WatchService::disableWatch($db);
+        WatchService::disableWatch();
         echo json_encode(['result' => true]);
         exit();
     }
@@ -220,7 +220,7 @@ class WatchController {
      */
     public function apiKill() {
         global $db;
-        WatchService::killWatch($db);
+        WatchService::killWatch();
         echo json_encode(['result' => true]);
         exit();
     }

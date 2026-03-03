@@ -2,36 +2,36 @@
 register_shutdown_function("shutdown");
 set_time_limit(0);
 require_once "init.php";
-unset(StreamingUtilities::$rSettings["watchdog_data"]);
-unset(StreamingUtilities::$rSettings["server_hardware"]);
+unset($rSettings["watchdog_data"]);
+unset($rSettings["server_hardware"]);
 
 header("Access-Control-Allow-Origin: *");
 
-if (!empty(StreamingUtilities::$rSettings["send_server_header"])) {
-    header("Server: " . StreamingUtilities::$rSettings["send_server_header"]);
+if (!empty($rSettings["send_server_header"])) {
+    header("Server: " . $rSettings["send_server_header"]);
 }
 
-if (StreamingUtilities::$rSettings["send_protection_headers"]) {
+if ($rSettings["send_protection_headers"]) {
     header("X-XSS-Protection: 0");
     header("X-Content-Type-Options: nosniff");
 }
 
-if (StreamingUtilities::$rSettings["send_altsvc_header"]) {
-    header('Alt-Svc: h3-29=":' . StreamingUtilities::$rServers[SERVER_ID]["https_broadcast_port"] . '"; ma=2592000,h3-T051=":' . StreamingUtilities::$rServers[SERVER_ID]["https_broadcast_port"] . '"; ma=2592000,h3-Q050=":' . StreamingUtilities::$rServers[SERVER_ID]["https_broadcast_port"] . '"; ma=2592000,h3-Q046=":' . StreamingUtilities::$rServers[SERVER_ID]["https_broadcast_port"] . '"; ma=2592000,h3-Q043=":' . StreamingUtilities::$rServers[SERVER_ID]["https_broadcast_port"] . '"; ma=2592000,quic=":' . StreamingUtilities::$rServers[SERVER_ID]["https_broadcast_port"] . '"; ma=2592000; v="46,43"');
+if ($rSettings["send_altsvc_header"]) {
+    header('Alt-Svc: h3-29=":' . $rServers[SERVER_ID]["https_broadcast_port"] . '"; ma=2592000,h3-T051=":' . $rServers[SERVER_ID]["https_broadcast_port"] . '"; ma=2592000,h3-Q050=":' . $rServers[SERVER_ID]["https_broadcast_port"] . '"; ma=2592000,h3-Q046=":' . $rServers[SERVER_ID]["https_broadcast_port"] . '"; ma=2592000,h3-Q043=":' . $rServers[SERVER_ID]["https_broadcast_port"] . '"; ma=2592000,quic=":' . $rServers[SERVER_ID]["https_broadcast_port"] . '"; ma=2592000; v="46,43"');
 }
 
-if (empty(StreamingUtilities::$rSettings["send_unique_header_domain"]) && !filter_var(HOST, FILTER_VALIDATE_IP)) {
-    StreamingUtilities::$rSettings["send_unique_header_domain"] = "." . HOST;
+if (empty($rSettings["send_unique_header_domain"]) && !filter_var(HOST, FILTER_VALIDATE_IP)) {
+    $rSettings["send_unique_header_domain"] = "." . HOST;
 }
 
-if (!empty(StreamingUtilities::$rSettings["send_unique_header"])) {
+if (!empty($rSettings["send_unique_header"])) {
     $rExpires = new DateTime('+6 months', new DateTimeZone('GMT'));
-    header('Set-Cookie: ' . StreamingUtilities::$rSettings["send_unique_header"] . '=' . StreamingUtilities::generateString(11) . '; Domain=' . StreamingUtilities::$rSettings["send_unique_header_domain"] . '; Expires=' . $rExpires->format(DATE_RFC2822) . '; Path=/; Secure; HttpOnly; SameSite=none');
+    header('Set-Cookie: ' . $rSettings["send_unique_header"] . '=' . Encryption::randomString(11) . '; Domain=' . $rSettings["send_unique_header_domain"] . '; Expires=' . $rExpires->format(DATE_RFC2822) . '; Path=/; Secure; HttpOnly; SameSite=none');
 }
 
-$rCreateExpiration = (StreamingUtilities::$rSettings["create_expiration"] ?: 5);
+$rCreateExpiration = ($rSettings["create_expiration"] ?: 5);
 $rProxyID = NULL;
-$rIP = StreamingUtilities::getUserIP();
+$rIP = $_SERVER['REMOTE_ADDR'];
 $rUserAgent = (empty($_SERVER["HTTP_USER_AGENT"]) ? '' : htmlentities(trim($_SERVER["HTTP_USER_AGENT"])));
 $rConSpeedFile = NULL;
 $rDivergence = 0;
@@ -40,15 +40,15 @@ $rPID = getmypid();
 $rStartTime = time();
 $rVideoCodec = NULL;
 
-if (isset(StreamingUtilities::$rRequest["token"])) {
-    $rTokenData = json_decode(StreamingUtilities::decryptData(StreamingUtilities::$rRequest["token"], StreamingUtilities::$rSettings["live_streaming_pass"], OPENSSL_EXTRA), true);
+if (isset($rRequest["token"])) {
+    $rTokenData = json_decode(Encryption::decrypt($rRequest["token"], $rSettings["live_streaming_pass"], OPENSSL_EXTRA), true);
 
     if (!is_array($rTokenData)) {
         DatabaseLogger::clientLog(0, 0, "LB_TOKEN_INVALID", $rIP);
         generateError("LB_TOKEN_INVALID");
     }
 
-    if (isset($rTokenData["expires"]) && $rTokenData["expires"] < time() - intval(StreamingUtilities::$rServers[SERVER_ID]["time_offset"])) {
+    if (isset($rTokenData["expires"]) && $rTokenData["expires"] < time() - intval($rServers[SERVER_ID]["time_offset"])) {
         generateError("TOKEN_EXPIRED");
     }
 
@@ -85,14 +85,14 @@ if (isset(StreamingUtilities::$rRequest["token"])) {
 }
 
 if (!in_array($rExtension, array('ts', 'm3u8'))) {
-    $rExtension = StreamingUtilities::$rSettings["api_container"];
+    $rExtension = $rSettings["api_container"];
 }
 
 if ($rChannelInfo["proxy"] && $rExtension != "ts") {
     generateError("USER_DISALLOW_EXT");
 }
 
-if (StreamingUtilities::$rSettings["use_buffer"] == 0) {
+if ($rSettings["use_buffer"] == 0) {
     header("X-Accel-Buffering: no");
 }
 
@@ -113,20 +113,20 @@ if ($rChannelInfo) {
         $rChannelInfo["monitor_pid"] = intval(AsyncFileOperations::readFile(STREAMS_PATH . $rStreamID . "_.monitor"));
     }
 
-    if (StreamingUtilities::$rSettings["on_demand_instant_off"] && $rChannelInfo["on_demand"] == 1) {
-        StreamingUtilities::addToQueue($rStreamID, $rPID);
+    if ($rSettings["on_demand_instant_off"] && $rChannelInfo["on_demand"] == 1) {
+        ConnectionTracker::addToQueue($rStreamID, $rPID, array('ProcessManager', 'isRunning'));
     }
 
-    if (!StreamingUtilities::isStreamRunning($rChannelInfo["pid"], $rStreamID)) {
+    if (!ProcessManager::isStreamAlive($rChannelInfo["pid"], $rStreamID)) {
         $rChannelInfo["pid"] = NULL;
 
         if ($rChannelInfo["on_demand"] == 1) {
-            if (!StreamingUtilities::isMonitorRunning($rChannelInfo["monitor_pid"], $rStreamID)) {
-                if (($rActivityStart + $rCreateExpiration) - intval(StreamingUtilities::$rServers[SERVER_ID]["time_offset"]) < time()) {
+            if (!ProcessManager::isMonitorAlive($rChannelInfo["monitor_pid"], $rStreamID)) {
+                if (($rActivityStart + $rCreateExpiration) - intval($rServers[SERVER_ID]["time_offset"]) < time()) {
                     generateError("TOKEN_EXPIRED");
                 }
 
-                StreamingUtilities::startMonitor($rStreamID);
+                ProcessManager::startMonitor($rStreamID);
 
                 if (AsyncFileOperations::awaitFileExists(STREAMS_PATH . $rStreamID . "_.monitor", 300, 10)) {
                     $rChannelInfo["monitor_pid"] = (intval(AsyncFileOperations::readFile(STREAMS_PATH . $rStreamID . "_.monitor")) ?: NULL);
@@ -135,7 +135,7 @@ if ($rChannelInfo) {
 
             if (!$rChannelInfo["monitor_pid"]) {
                 // print('show_not_on_air_video_1');
-                StreamingUtilities::showVideoServer("show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
+                OffAirHandler::showVideoServer($rSettings, $rServers, "show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
             }
 
             for ($rRetries = 0; !AsyncFileOperations::awaitFileExists(STREAMS_PATH . intval($rStreamID) . "_.pid", 1, 10) && $rRetries < 300; $rRetries++) {
@@ -145,13 +145,13 @@ if ($rChannelInfo) {
 
             if (!$rChannelInfo["pid"]) {
                 // print('show_not_on_air_video_2');
-                StreamingUtilities::showVideoServer("show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
+                OffAirHandler::showVideoServer($rSettings, $rServers, "show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
             }
         } else {
             if ($rChannelInfo["proxy"]) {
-                if (!($rChannelInfo["monitor_pid"] && StreamingUtilities::isMonitorRunning($rChannelInfo["monitor_pid"], $rStreamID))) {
+                if (!($rChannelInfo["monitor_pid"] && ProcessManager::isMonitorAlive($rChannelInfo["monitor_pid"], $rStreamID))) {
                     @unlink(STREAMS_PATH . $rStreamID . "_.pid");
-                    StreamingUtilities::startProxy($rStreamID);
+                    ProcessManager::startProxy($rStreamID);
 
                     if (AsyncFileOperations::awaitFileExists(STREAMS_PATH . $rStreamID . "_.monitor", 300, 10)) {
                         $rChannelInfo["monitor_pid"] = intval(AsyncFileOperations::readFile(STREAMS_PATH . $rStreamID . "_.monitor"));
@@ -160,13 +160,13 @@ if ($rChannelInfo) {
 
                 if (!$rChannelInfo["monitor_pid"]) {
                     // print('show_not_on_air_video_3');
-                    StreamingUtilities::showVideoServer("show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
+                    OffAirHandler::showVideoServer($rSettings, $rServers, "show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
                 }
 
                 $rChannelInfo["pid"] = $rChannelInfo["monitor_pid"];
             } else {
                 // print('show_not_on_air_video_4');
-                StreamingUtilities::showVideoServer("show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
+                OffAirHandler::showVideoServer($rSettings, $rServers, "show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
             }
         }
     }
@@ -178,7 +178,7 @@ if ($rChannelInfo) {
             if (!file_exists($rPlaylist)) {
                 $rFirstTS = STREAMS_PATH . $rStreamID . "_0.ts";
                 $rFirstAlt = STREAMS_PATH . $rStreamID . "_0.m4s";
-                $maxRetries = intval(StreamingUtilities::$rSettings["on_demand_wait_time"]) * 10;
+                $maxRetries = intval($rSettings["on_demand_wait_time"]) * 10;
 
                 // Use async file monitoring instead of busy-wait loop
                 $foundFile = AsyncFileOperations::awaitAnyFileExists([$rFirstTS, $rFirstAlt], $maxRetries, 100);
@@ -187,13 +187,13 @@ if ($rChannelInfo) {
                     generateError("WAIT_TIME_EXPIRED");
                 } else {
                     // Verify stream is still running
-                    if (!(StreamingUtilities::isMonitorRunning($rChannelInfo["monitor_pid"], $rStreamID) && StreamingUtilities::isStreamRunning($rChannelInfo["pid"], $rStreamID))) {
-                        StreamingUtilities::showVideoServer("show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
+                    if (!(ProcessManager::isMonitorAlive($rChannelInfo["monitor_pid"], $rStreamID) && ProcessManager::isStreamAlive($rChannelInfo["pid"], $rStreamID))) {
+                        OffAirHandler::showVideoServer($rSettings, $rServers, "show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
                     }
                 }
             }
         } else {
-            $maxRetries = intval(StreamingUtilities::$rSettings["on_demand_wait_time"]) * 10;
+            $maxRetries = intval($rSettings["on_demand_wait_time"]) * 10;
             $foundFile = AsyncFileOperations::awaitAnyFileExists([$rPlaylist, STREAMS_PATH . $rStreamID . "_.m3u8"], $maxRetries, 100);
 
             if (!$foundFile) {
@@ -208,19 +208,19 @@ if ($rChannelInfo) {
     }
 
     $rExecutionTime = time() - $rStartTime;
-    $rExpiresAt = ($rActivityStart + $rCreateExpiration + $rExecutionTime) - intval(StreamingUtilities::$rServers[SERVER_ID]["time_offset"]);
+    $rExpiresAt = ($rActivityStart + $rCreateExpiration + $rExecutionTime) - intval($rServers[SERVER_ID]["time_offset"]);
 
-    if (StreamingUtilities::$rSettings["redis_handler"]) {
-        StreamingUtilities::connectRedis();
+    if ($rSettings["redis_handler"]) {
+        RedisManager::ensureConnected();
     } else {
-        StreamingUtilities::connectDatabase();
+        DatabaseFactory::connect();
     }
 
-    if (StreamingUtilities::$rSettings["disallow_2nd_ip_con"] && !$rUserInfo["is_restreamer"] && ($rUserInfo["max_connections"] <= StreamingUtilities::$rSettings["disallow_2nd_ip_max"] && 0 < $rUserInfo["max_connections"] || StreamingUtilities::$rSettings["disallow_2nd_ip_max"] == 0)) {
+    if ($rSettings["disallow_2nd_ip_con"] && !$rUserInfo["is_restreamer"] && ($rUserInfo["max_connections"] <= $rSettings["disallow_2nd_ip_max"] && 0 < $rUserInfo["max_connections"] || $rSettings["disallow_2nd_ip_max"] == 0)) {
         $rAcceptIP = NULL;
 
-        if (StreamingUtilities::$rSettings["redis_handler"]) {
-            $rConnections = StreamingUtilities::getConnections($rUserInfo["id"], true);
+        if ($rSettings["redis_handler"]) {
+            $rConnections = ConnectionTracker::getLineConnections(RedisManager::instance(), $rUserInfo["id"], true);
 
             if (count($rConnections) > 0) {
                 $rDate = array_column($rConnections, "date_start");
@@ -228,37 +228,37 @@ if ($rChannelInfo) {
                 $rAcceptIP = $rConnections[0]["user_ip"];
             }
         } else {
-            StreamingUtilities::$db->query('SELECT `user_ip` FROM `lines_live` WHERE `user_id` = ? AND `hls_end` = 0 ORDER BY `activity_id` DESC LIMIT 1;', $rUserInfo["id"]);
+            $db->query('SELECT `user_ip` FROM `lines_live` WHERE `user_id` = ? AND `hls_end` = 0 ORDER BY `activity_id` DESC LIMIT 1;', $rUserInfo["id"]);
 
-            if (StreamingUtilities::$db->num_rows() == 1) {
-                $rAcceptIP = StreamingUtilities::$db->get_row()["user_ip"];
+            if ($db->num_rows() == 1) {
+                $rAcceptIP = $db->get_row()["user_ip"];
             }
         }
 
-        $rIPMatch = (StreamingUtilities::$rSettings["ip_subnet_match"] ? implode(".", array_slice(explode(".", $rAcceptIP), 0, -1)) == implode(".", array_slice(explode(".", $rIP), 0, -1)) : $rAcceptIP == $rIP);
+        $rIPMatch = ($rSettings["ip_subnet_match"] ? implode(".", array_slice(explode(".", $rAcceptIP), 0, -1)) == implode(".", array_slice(explode(".", $rIP), 0, -1)) : $rAcceptIP == $rIP);
 
         if ($rAcceptIP && !$rIPMatch) {
             DatabaseLogger::clientLog($rStreamID, $rUserInfo["id"], "USER_ALREADY_CONNECTED", $rIP);
-            StreamingUtilities::showVideoServer("show_connected_video", "connected_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
+            OffAirHandler::showVideoServer($rSettings, $rServers, "show_connected_video", "connected_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
         }
     }
 
     switch ($rExtension) {
         case "m3u8":
-            if (StreamingUtilities::$rSettings["redis_handler"]) {
-                $rConnection = StreamingUtilities::getConnection($rTokenData["uuid"]);
+            if ($rSettings["redis_handler"]) {
+                $rConnection = ConnectionTracker::getConnection(RedisManager::instance(), $rTokenData["uuid"]);
             } else {
                 if (isset($rTokenData["adaptive"])) {
-                    StreamingUtilities::$db->query("SELECT `activity_id`, `user_ip` FROM `lines_live` WHERE `uuid` = ? AND `user_id` = ? AND `container` = 'hls' AND `hls_end` = 0", $rTokenData["uuid"], $rUserInfo["id"]);
+                    $db->query("SELECT `activity_id`, `user_ip` FROM `lines_live` WHERE `uuid` = ? AND `user_id` = ? AND `container` = 'hls' AND `hls_end` = 0", $rTokenData["uuid"], $rUserInfo["id"]);
                 } else {
                     if (!isset($rIsHMAC) && is_null($rIsHMAC)) {
-                        StreamingUtilities::$db->query("SELECT `activity_id`, `user_ip` FROM `lines_live` WHERE `uuid` = ? AND `user_id` = ? AND `server_id` = ? AND `container` = 'hls' AND `stream_id` = ? AND `hls_end` = 0", $rTokenData["uuid"], $rUserInfo["id"], $rServerID, $rStreamID);
+                        $db->query("SELECT `activity_id`, `user_ip` FROM `lines_live` WHERE `uuid` = ? AND `user_id` = ? AND `server_id` = ? AND `container` = 'hls' AND `stream_id` = ? AND `hls_end` = 0", $rTokenData["uuid"], $rUserInfo["id"], $rServerID, $rStreamID);
                     } else {
-                        StreamingUtilities::$db->query("SELECT `activity_id`, `user_ip` FROM `lines_live` WHERE `uuid` = ? AND `hmac_id` = ? AND `hmac_identifier` = ? AND `server_id` = ? AND `container` = 'hls' AND `stream_id` = ? AND `hls_end` = 0", $rTokenData["uuid"], $rIsHMAC, $rIdentifier, $rServerID, $rStreamID);
+                        $db->query("SELECT `activity_id`, `user_ip` FROM `lines_live` WHERE `uuid` = ? AND `hmac_id` = ? AND `hmac_identifier` = ? AND `server_id` = ? AND `container` = 'hls' AND `stream_id` = ? AND `hls_end` = 0", $rTokenData["uuid"], $rIsHMAC, $rIdentifier, $rServerID, $rStreamID);
                     }
                 }
-                if (StreamingUtilities::$db->num_rows() > 0) {
-                    $rConnection = StreamingUtilities::$db->get_row();
+                if ($db->num_rows() > 0) {
+                    $rConnection = $db->get_row();
                 }
             }
             if (!isset($rConnection)) {
@@ -267,38 +267,38 @@ if ($rChannelInfo) {
                 }
 
                 if (!isset($rIsHMAC) && is_null($rIsHMAC)) {
-                    if (StreamingUtilities::$rSettings["redis_handler"]) {
-                        $rConnectionData = array("user_id" => $rUserInfo["id"], "stream_id" => $rStreamID, "server_id" => $rServerID, "proxy_id" => $rProxyID, "user_agent" => $rUserAgent, "user_ip" => $rIP, "container" => "hls", "pid" => NULL, "date_start" => $rActivityStart, "geoip_country_code" => $rCountryCode, "isp" => $rUserInfo["con_isp_name"], "external_device" => $rExternalDevice, "hls_end" => 0, "hls_last_read" => time() - intval(StreamingUtilities::$rServers[SERVER_ID]["time_offset"]), "on_demand" => $rChannelInfo["on_demand"], "identity" => $rUserInfo["id"], "uuid" => $rTokenData["uuid"]);
-                        $rResult = StreamingUtilities::createConnection($rConnectionData);
+                    if ($rSettings["redis_handler"]) {
+                        $rConnectionData = array("user_id" => $rUserInfo["id"], "stream_id" => $rStreamID, "server_id" => $rServerID, "proxy_id" => $rProxyID, "user_agent" => $rUserAgent, "user_ip" => $rIP, "container" => "hls", "pid" => NULL, "date_start" => $rActivityStart, "geoip_country_code" => $rCountryCode, "isp" => $rUserInfo["con_isp_name"], "external_device" => $rExternalDevice, "hls_end" => 0, "hls_last_read" => time() - intval($rServers[SERVER_ID]["time_offset"]), "on_demand" => $rChannelInfo["on_demand"], "identity" => $rUserInfo["id"], "uuid" => $rTokenData["uuid"]);
+                        $rResult = ConnectionTracker::createConnection(RedisManager::instance(), $rConnectionData);
                     } else {
-                        $rResult = StreamingUtilities::$db->query('INSERT INTO `lines_live` (`user_id`,`stream_id`,`server_id`,`proxy_id`,`user_agent`,`user_ip`,`container`,`pid`,`uuid`,`date_start`,`geoip_country_code`,`isp`,`external_device`,`hls_last_read`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?);', $rUserInfo["id"], $rStreamID, $rServerID, $rProxyID, $rUserAgent, $rIP, 'hls', NULL, $rTokenData["uuid"], $rActivityStart, $rCountryCode, $rUserInfo["con_isp_name"], $rExternalDevice, time() - intval(StreamingUtilities::$rServers[SERVER_ID]["time_offset"]));
+                        $rResult = $db->query('INSERT INTO `lines_live` (`user_id`,`stream_id`,`server_id`,`proxy_id`,`user_agent`,`user_ip`,`container`,`pid`,`uuid`,`date_start`,`geoip_country_code`,`isp`,`external_device`,`hls_last_read`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?);', $rUserInfo["id"], $rStreamID, $rServerID, $rProxyID, $rUserAgent, $rIP, 'hls', NULL, $rTokenData["uuid"], $rActivityStart, $rCountryCode, $rUserInfo["con_isp_name"], $rExternalDevice, time() - intval($rServers[SERVER_ID]["time_offset"]));
                     }
                 } else {
-                    if (StreamingUtilities::$rSettings["redis_handler"]) {
-                        $rConnectionData = array("hmac_id" => $rIsHMAC, "hmac_identifier" => $rIdentifier, "stream_id" => $rStreamID, "server_id" => $rServerID, "proxy_id" => $rProxyID, "user_agent" => $rUserAgent, "user_ip" => $rIP, "container" => "hls", "pid" => NULL, "date_start" => $rActivityStart, "geoip_country_code" => $rCountryCode, "isp" => $rUserInfo["con_isp_name"], "external_device" => $rExternalDevice, "hls_end" => 0, "hls_last_read" => time() - intval(StreamingUtilities::$rServers[SERVER_ID]["time_offset"]), "on_demand" => $rChannelInfo["on_demand"], "identity" => $rIsHMAC . "_" . $rIdentifier, "uuid" => $rTokenData["uuid"]);
-                        $rResult = StreamingUtilities::createConnection($rConnectionData);
+                    if ($rSettings["redis_handler"]) {
+                        $rConnectionData = array("hmac_id" => $rIsHMAC, "hmac_identifier" => $rIdentifier, "stream_id" => $rStreamID, "server_id" => $rServerID, "proxy_id" => $rProxyID, "user_agent" => $rUserAgent, "user_ip" => $rIP, "container" => "hls", "pid" => NULL, "date_start" => $rActivityStart, "geoip_country_code" => $rCountryCode, "isp" => $rUserInfo["con_isp_name"], "external_device" => $rExternalDevice, "hls_end" => 0, "hls_last_read" => time() - intval($rServers[SERVER_ID]["time_offset"]), "on_demand" => $rChannelInfo["on_demand"], "identity" => $rIsHMAC . "_" . $rIdentifier, "uuid" => $rTokenData["uuid"]);
+                        $rResult = ConnectionTracker::createConnection(RedisManager::instance(), $rConnectionData);
                     } else {
-                        $rResult = StreamingUtilities::$db->query('INSERT INTO `lines_live` (`hmac_id`,`hmac_identifier`,`stream_id`,`server_id`,`proxy_id`,`user_agent`,`user_ip`,`container`,`pid`,`uuid`,`date_start`,`geoip_country_code`,`isp`,`external_device`,`hls_last_read`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);', $rIsHMAC, $rIdentifier, $rStreamID, $rServerID, $rProxyID, $rUserAgent, $rIP, 'hls', NULL, $rTokenData["uuid"], $rActivityStart, $rCountryCode, $rUserInfo["con_isp_name"], $rExternalDevice, time() - intval(StreamingUtilities::$rServers[SERVER_ID]["time_offset"]));
+                        $rResult = $db->query('INSERT INTO `lines_live` (`hmac_id`,`hmac_identifier`,`stream_id`,`server_id`,`proxy_id`,`user_agent`,`user_ip`,`container`,`pid`,`uuid`,`date_start`,`geoip_country_code`,`isp`,`external_device`,`hls_last_read`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);', $rIsHMAC, $rIdentifier, $rStreamID, $rServerID, $rProxyID, $rUserAgent, $rIP, 'hls', NULL, $rTokenData["uuid"], $rActivityStart, $rCountryCode, $rUserInfo["con_isp_name"], $rExternalDevice, time() - intval($rServers[SERVER_ID]["time_offset"]));
                     }
                 }
             } else {
-                $rIPMatch = (StreamingUtilities::$rSettings["ip_subnet_match"] ? implode(".", array_slice(explode(".", $rConnection["user_ip"]), 0, -1)) == implode(".", array_slice(explode(".", $rIP), 0, -1)) : $rConnection["user_ip"] == $rIP);
+                $rIPMatch = ($rSettings["ip_subnet_match"] ? implode(".", array_slice(explode(".", $rConnection["user_ip"]), 0, -1)) == implode(".", array_slice(explode(".", $rIP), 0, -1)) : $rConnection["user_ip"] == $rIP);
 
-                if (!$rIPMatch && StreamingUtilities::$rSettings["restrict_same_ip"]) {
+                if (!$rIPMatch && $rSettings["restrict_same_ip"]) {
                     DatabaseLogger::clientLog($rStreamID, $rUserInfo["id"], "IP_MISMATCH", $rIP);
                     generateError("IP_MISMATCH");
                 }
 
-                if (StreamingUtilities::$rSettings["redis_handler"]) {
-                    $rChanges = array("server_id" => $rServerID, "proxy_id" => $rProxyID, "hls_last_read" => time() - intval(StreamingUtilities::$rServers[SERVER_ID]["time_offset"]));
+                if ($rSettings["redis_handler"]) {
+                    $rChanges = array("server_id" => $rServerID, "proxy_id" => $rProxyID, "hls_last_read" => time() - intval($rServers[SERVER_ID]["time_offset"]));
 
-                    if ($rConnection = StreamingUtilities::updateConnection($rConnection, $rChanges, "open")) {
+                    if ($rConnection = ConnectionTracker::updateConnection(RedisManager::instance(), $rConnection, $rChanges, "open")) {
                         $rResult = true;
                     } else {
                         $rResult = false;
                     }
                 } else {
-                    $rResult = StreamingUtilities::$db->query('UPDATE `lines_live` SET `hls_last_read` = ?, `hls_end` = 0, `server_id` = ?, `proxy_id` = ? WHERE `activity_id` = ?', time() - intval(StreamingUtilities::$rServers[SERVER_ID]["time_offset"]), $rServerID, $rProxyID, $rConnection["activity_id"]);
+                    $rResult = $db->query('UPDATE `lines_live` SET `hls_last_read` = ?, `hls_end` = 0, `server_id` = ?, `proxy_id` = ? WHERE `activity_id` = ?', time() - intval($rServers[SERVER_ID]["time_offset"]), $rServerID, $rProxyID, $rConnection["activity_id"]);
                 }
             }
 
@@ -307,15 +307,15 @@ if ($rChannelInfo) {
                 generateError("LINE_CREATE_FAIL");
             }
 
-            StreamingUtilities::validateConnections($rUserInfo, $rIsHMAC, $rIdentifier, $rIP, $rUserAgent);
+            StreamAuth::validateConnections($rUserInfo, $rIsHMAC, $rIdentifier, $rIP, $rUserAgent);
 
-            if (StreamingUtilities::$rSettings["redis_handler"]) {
-                StreamingUtilities::closeRedis();
+            if ($rSettings["redis_handler"]) {
+                RedisManager::closeInstance();
             } else {
-                StreamingUtilities::closeDatabase();
+                DatabaseFactory::close();
             }
 
-            $rHLS = StreamingUtilities::generateHLS($rPlaylist, (isset($rUsername) ? $rUsername : NULL), (isset($rPassword) ? $rPassword : NULL), $rStreamID, $rTokenData["uuid"], $rIP, $rIsHMAC, $rIdentifier, $rVideoCodec, intval($rChannelInfo["on_demand"]), $rServerID, $rProxyID);
+            $rHLS = HLSGenerator::generateHLS($rSettings, $rPlaylist, (isset($rUsername) ? $rUsername : NULL), (isset($rPassword) ? $rPassword : NULL), $rStreamID, $rTokenData["uuid"], $rIP, $rIsHMAC, $rIdentifier, $rVideoCodec, intval($rChannelInfo["on_demand"]), $rServerID, $rProxyID);
 
             if ($rHLS) {
                 touch(CONS_TMP_PATH . $rTokenData["uuid"]);
@@ -326,23 +326,23 @@ if ($rChannelInfo) {
                 echo $rHLS;
             } else {
                 // print('show_not_on_air_video_6');
-                StreamingUtilities::showVideoServer("show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
+                OffAirHandler::showVideoServer($rSettings, $rServers, "show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
             }
 
             exit();
 
         default:
-            if (StreamingUtilities::$rSettings["redis_handler"]) {
-                $rConnection = StreamingUtilities::getConnection($rTokenData["uuid"]);
+            if ($rSettings["redis_handler"]) {
+                $rConnection = ConnectionTracker::getConnection(RedisManager::instance(), $rTokenData["uuid"]);
             } else {
                 if (!isset($rIsHMAC) && is_null($rIsHMAC)) {
-                    StreamingUtilities::$db->query('SELECT `activity_id`, `pid`, `user_ip` FROM `lines_live` WHERE `uuid` = ? AND `user_id` = ? AND `server_id` = ? AND `container` = ? AND `stream_id` = ?;', $rTokenData["uuid"], $rUserInfo["id"], $rServerID, $rExtension, $rStreamID);
+                    $db->query('SELECT `activity_id`, `pid`, `user_ip` FROM `lines_live` WHERE `uuid` = ? AND `user_id` = ? AND `server_id` = ? AND `container` = ? AND `stream_id` = ?;', $rTokenData["uuid"], $rUserInfo["id"], $rServerID, $rExtension, $rStreamID);
                 } else {
-                    StreamingUtilities::$db->query('SELECT `activity_id`, `pid`, `user_ip` FROM `lines_live` WHERE `uuid` = ? AND `hmac_id` = ? AND `hmac_identifier` = ? AND `server_id` = ? AND `container` = ? AND `stream_id` = ?;', $rTokenData["uuid"], $rIsHMAC, $rIdentifier, $rServerID, $rExtension, $rStreamID);
+                    $db->query('SELECT `activity_id`, `pid`, `user_ip` FROM `lines_live` WHERE `uuid` = ? AND `hmac_id` = ? AND `hmac_identifier` = ? AND `server_id` = ? AND `container` = ? AND `stream_id` = ?;', $rTokenData["uuid"], $rIsHMAC, $rIdentifier, $rServerID, $rExtension, $rStreamID);
                 }
 
-                if (StreamingUtilities::$db->num_rows() > 0) {
-                    $rConnection = StreamingUtilities::$db->get_row();
+                if ($db->num_rows() > 0) {
+                    $rConnection = $db->get_row();
                 }
             }
             if (!isset($rConnection)) {
@@ -350,42 +350,42 @@ if ($rChannelInfo) {
                     generateError("TOKEN_EXPIRED");
                 }
                 if (!isset($rIsHMAC) && is_null($rIsHMAC)) {
-                    if (StreamingUtilities::$rSettings["redis_handler"]) {
-                        $rConnectionData = array("user_id" => $rUserInfo["id"], "stream_id" => $rStreamID, "server_id" => $rServerID, "proxy_id" => $rProxyID, "user_agent" => $rUserAgent, "user_ip" => $rIP, "container" => $rExtension, "pid" => $rPID, "date_start" => $rActivityStart, "geoip_country_code" => $rCountryCode, "isp" => $rUserInfo["con_isp_name"], "external_device" => $rExternalDevice, "hls_end" => 0, "hls_last_read" => time() - intval(StreamingUtilities::$rServers[SERVER_ID]["time_offset"]), "on_demand" => $rChannelInfo["on_demand"], "identity" => $rUserInfo["id"], "uuid" => $rTokenData["uuid"]);
-                        $rResult = StreamingUtilities::createConnection($rConnectionData);
+                    if ($rSettings["redis_handler"]) {
+                        $rConnectionData = array("user_id" => $rUserInfo["id"], "stream_id" => $rStreamID, "server_id" => $rServerID, "proxy_id" => $rProxyID, "user_agent" => $rUserAgent, "user_ip" => $rIP, "container" => $rExtension, "pid" => $rPID, "date_start" => $rActivityStart, "geoip_country_code" => $rCountryCode, "isp" => $rUserInfo["con_isp_name"], "external_device" => $rExternalDevice, "hls_end" => 0, "hls_last_read" => time() - intval($rServers[SERVER_ID]["time_offset"]), "on_demand" => $rChannelInfo["on_demand"], "identity" => $rUserInfo["id"], "uuid" => $rTokenData["uuid"]);
+                        $rResult = ConnectionTracker::createConnection(RedisManager::instance(), $rConnectionData);
                     } else {
-                        $rResult = StreamingUtilities::$db->query('INSERT INTO `lines_live` (`user_id`,`stream_id`,`server_id`,`proxy_id`,`user_agent`,`user_ip`,`container`,`pid`,`uuid`,`date_start`,`geoip_country_code`,`isp`,`external_device`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)', $rUserInfo["id"], $rStreamID, $rServerID, $rProxyID, $rUserAgent, $rIP, $rExtension, $rPID, $rTokenData["uuid"], $rActivityStart, $rCountryCode, $rUserInfo["con_isp_name"], $rExternalDevice);
+                        $rResult = $db->query('INSERT INTO `lines_live` (`user_id`,`stream_id`,`server_id`,`proxy_id`,`user_agent`,`user_ip`,`container`,`pid`,`uuid`,`date_start`,`geoip_country_code`,`isp`,`external_device`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)', $rUserInfo["id"], $rStreamID, $rServerID, $rProxyID, $rUserAgent, $rIP, $rExtension, $rPID, $rTokenData["uuid"], $rActivityStart, $rCountryCode, $rUserInfo["con_isp_name"], $rExternalDevice);
                     }
                 } else {
-                    if (StreamingUtilities::$rSettings["redis_handler"]) {
-                        $rConnectionData = array("hmac_id" => $rIsHMAC, "hmac_identifier" => $rIdentifier, "stream_id" => $rStreamID, "server_id" => $rServerID, "proxy_id" => $rProxyID, "user_agent" => $rUserAgent, "user_ip" => $rIP, "container" => $rExtension, "pid" => $rPID, 'date_start' => $rActivityStart, 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo["con_isp_name"], 'external_device' => $rExternalDevice, 'hls_end' => 0, 'hls_last_read' => time() - intval(StreamingUtilities::$rServers[SERVER_ID]["time_offset"]), 'on_demand' => $rChannelInfo["on_demand"], 'identity' => $rIsHMAC . '_' . $rIdentifier, 'uuid' => $rTokenData["uuid"]);
-                        $rResult = StreamingUtilities::createConnection($rConnectionData);
+                    if ($rSettings["redis_handler"]) {
+                        $rConnectionData = array("hmac_id" => $rIsHMAC, "hmac_identifier" => $rIdentifier, "stream_id" => $rStreamID, "server_id" => $rServerID, "proxy_id" => $rProxyID, "user_agent" => $rUserAgent, "user_ip" => $rIP, "container" => $rExtension, "pid" => $rPID, 'date_start' => $rActivityStart, 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo["con_isp_name"], 'external_device' => $rExternalDevice, 'hls_end' => 0, 'hls_last_read' => time() - intval($rServers[SERVER_ID]["time_offset"]), 'on_demand' => $rChannelInfo["on_demand"], 'identity' => $rIsHMAC . '_' . $rIdentifier, 'uuid' => $rTokenData["uuid"]);
+                        $rResult = ConnectionTracker::createConnection(RedisManager::instance(), $rConnectionData);
                     } else {
-                        $rResult = StreamingUtilities::$db->query('INSERT INTO `lines_live` (`hmac_id`,`hmac_identifier`,`stream_id`,`server_id`,`proxy_id`,`user_agent`,`user_ip`,`container`,`pid`,`uuid`,`date_start`,`geoip_country_code`,`isp`,`external_device`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)', $rIsHMAC, $rIdentifier, $rStreamID, $rServerID, $rProxyID, $rUserAgent, $rIP, $rExtension, $rPID, $rTokenData["uuid"], $rActivityStart, $rCountryCode, $rUserInfo["con_isp_name"], $rExternalDevice);
+                        $rResult = $db->query('INSERT INTO `lines_live` (`hmac_id`,`hmac_identifier`,`stream_id`,`server_id`,`proxy_id`,`user_agent`,`user_ip`,`container`,`pid`,`uuid`,`date_start`,`geoip_country_code`,`isp`,`external_device`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)', $rIsHMAC, $rIdentifier, $rStreamID, $rServerID, $rProxyID, $rUserAgent, $rIP, $rExtension, $rPID, $rTokenData["uuid"], $rActivityStart, $rCountryCode, $rUserInfo["con_isp_name"], $rExternalDevice);
                     }
                 }
             } else {
-                $rIPMatch = (StreamingUtilities::$rSettings["ip_subnet_match"] ? implode(".", array_slice(explode(".", $rConnection["user_ip"]), 0, -1)) == implode(".", array_slice(explode(".", $rIP), 0, -1)) : $rConnection["user_ip"] == $rIP);
+                $rIPMatch = ($rSettings["ip_subnet_match"] ? implode(".", array_slice(explode(".", $rConnection["user_ip"]), 0, -1)) == implode(".", array_slice(explode(".", $rIP), 0, -1)) : $rConnection["user_ip"] == $rIP);
 
-                if (!$rIPMatch && StreamingUtilities::$rSettings["restrict_same_ip"]) {
+                if (!$rIPMatch && $rSettings["restrict_same_ip"]) {
                     DatabaseLogger::clientLog($rStreamID, $rUserInfo["id"], "IP_MISMATCH", $rIP);
                     generateError("IP_MISMATCH");
                 }
 
-                if (StreamingUtilities::isProcessRunning($rConnection["pid"], "php-fpm") && $rPID != $rConnection["pid"] && is_numeric($rConnection["pid"]) && 0 < $rConnection["pid"]) {
+                if (ProcessManager::isRunning($rConnection["pid"], "php-fpm") && $rPID != $rConnection["pid"] && is_numeric($rConnection["pid"]) && 0 < $rConnection["pid"]) {
                     posix_kill(intval($rConnection["pid"]), 9);
                 }
 
-                if (StreamingUtilities::$rSettings["redis_handler"]) {
-                    $rChanges = array("pid" => $rPID, "hls_last_read" => time() - intval(StreamingUtilities::$rServers[SERVER_ID]["time_offset"]));
+                if ($rSettings["redis_handler"]) {
+                    $rChanges = array("pid" => $rPID, "hls_last_read" => time() - intval($rServers[SERVER_ID]["time_offset"]));
 
-                    if ($rConnection = StreamingUtilities::updateConnection($rConnection, $rChanges, "open")) {
+                    if ($rConnection = ConnectionTracker::updateConnection(RedisManager::instance(), $rConnection, $rChanges, "open")) {
                         $rResult = true;
                     } else {
                         $rResult = false;
                     }
                 } else {
-                    $rResult = StreamingUtilities::$db->query('UPDATE `lines_live` SET `hls_end` = 0, `hls_last_read` = ?, `pid` = ? WHERE `activity_id` = ?;', time() - intval(StreamingUtilities::$rServers[SERVER_ID]["time_offset"]), $rPID, $rConnection["activity_id"]);
+                    $rResult = $db->query('UPDATE `lines_live` SET `hls_end` = 0, `hls_last_read` = ?, `pid` = ? WHERE `activity_id` = ?;', time() - intval($rServers[SERVER_ID]["time_offset"]), $rPID, $rConnection["activity_id"]);
                 }
             }
 
@@ -394,17 +394,17 @@ if ($rChannelInfo) {
                 generateError("LINE_CREATE_FAIL");
             }
 
-            StreamingUtilities::validateConnections($rUserInfo, $rIsHMAC, $rIdentifier, $rIP, $rUserAgent);
+            StreamAuth::validateConnections($rUserInfo, $rIsHMAC, $rIdentifier, $rIP, $rUserAgent);
 
-            if (StreamingUtilities::$rSettings["redis_handler"]) {
-                StreamingUtilities::closeRedis();
+            if ($rSettings["redis_handler"]) {
+                RedisManager::closeInstance();
             } else {
-                StreamingUtilities::closeDatabase();
+                DatabaseFactory::close();
             }
 
             $rCloseCon = true;
 
-            if (StreamingUtilities::$rSettings["monitor_connection_status"]) {
+            if ($rSettings["monitor_connection_status"]) {
                 ob_implicit_flush(true);
                 while (ob_get_level()) ob_end_clean();
             }
@@ -464,12 +464,12 @@ if ($rChannelInfo) {
                 // Define the prebuffer based on the user type
                 if ($rUserInfo["is_restreamer"]) {
                     if ($rTokenData["prebuffer"]) {
-                        $rPrebuffer = StreamingUtilities::$rSegmentSettings["seg_time"];
+                        $rPrebuffer = $rSegmentSettings["seg_time"];
                     } else {
-                        $rPrebuffer = StreamingUtilities::$rSettings["restreamer_prebuffer"];
+                        $rPrebuffer = $rSettings["restreamer_prebuffer"];
                     }
                 } else {
-                    $rPrebuffer = StreamingUtilities::$rSettings["client_prebuffer"];
+                    $rPrebuffer = $rSettings["client_prebuffer"];
                 }
 
                 // Get stream duration if available
@@ -477,13 +477,13 @@ if ($rChannelInfo) {
                     $rDuration = intval(file_get_contents(STREAMS_PATH . $rStreamID . "_.dur"));
 
                     // If duration is greater than segment time, adjust segment time
-                    if (StreamingUtilities::$rSegmentSettings["seg_time"] < $rDuration) {
-                        StreamingUtilities::$rSegmentSettings["seg_time"] = $rDuration;
+                    if ($rSegmentSettings["seg_time"] < $rDuration) {
+                        $rSegmentSettings["seg_time"] = $rDuration;
                     }
                 }
 
                 // Get list of segments for current prebuffer
-                $rSegments = StreamingUtilities::getPlaylistSegments($rPlaylist, $rPrebuffer, StreamingUtilities::$rSegmentSettings["seg_time"]);
+                $rSegments = SegmentReader::getPlaylistSegments($rPlaylist, $rPrebuffer, $rSegmentSettings["seg_time"]);
             } else {
                 $rSegments = NULL;
             }
@@ -526,8 +526,8 @@ if ($rChannelInfo) {
             // Settings for waiting for the next segment
             $rFails = 0;
             $rTotalFails = max(
-                StreamingUtilities::$rSegmentSettings["seg_time"] * 2,
-                intval(StreamingUtilities::$rSettings["segment_wait_time"]) ?: 20
+                $rSegmentSettings["seg_time"] * 2,
+                intval($rSettings["segment_wait_time"]) ?: 20
             );
 
             $rMonitorCheck = $rLastCheck = time();
@@ -547,7 +547,7 @@ if ($rChannelInfo) {
                         if ($rSignalData["type"] == "signal") {
                             // Wait for the next segment - using non-blocking check
                             AsyncFileOperations::awaitFileExists(STREAMS_PATH . $rNextSegment, max(1, $rTotalFails), 1000);
-                            StreamingUtilities::sendSignal($rSignalData, $rSegmentFile, ($rVideoCodec ?: "h264"));
+                            SignalSender::sendSignal($rFFMPEG_CPU, $rSignalData, $rSegmentFile, ($rVideoCodec ?: "h264"));
                             unlink(SIGNALS_PATH . $rTokenData["uuid"]);
                             $rCurrent++;
                         }
@@ -560,7 +560,7 @@ if ($rChannelInfo) {
 
                     // Send segment data to the client with adaptive delays
                     while ($rFails <= $rTotalFails && !file_exists(STREAMS_PATH . $rNextSegment)) {
-                        $rData = stream_get_line($rFP, StreamingUtilities::$rSettings["read_buffer_size"]);
+                        $rData = stream_get_line($rFP, $rSettings["read_buffer_size"]);
                         if (!empty($rData)) {
                             echo $rData;
                             $rData = "";
@@ -570,7 +570,7 @@ if ($rChannelInfo) {
                             AsyncFileOperations::efficientSleep(100000); // 100ms to reduce CPU spinning
                         }
 
-                        if (StreamingUtilities::isStreamRunning($rChannelInfo["pid"], $rStreamID)) {
+                        if (ProcessManager::isStreamAlive($rChannelInfo["pid"], $rStreamID)) {
                             AsyncFileOperations::efficientSleep(1000000); // 1 second with better CPU usage
                             $rFails++;
                         } else {
@@ -580,7 +580,7 @@ if ($rChannelInfo) {
                     }
 
                     // If the segment is not fully read, send the remaining data
-                    if (StreamingUtilities::isStreamRunning($rChannelInfo["pid"], $rStreamID) && $rFails <= $rTotalFails && file_exists(STREAMS_PATH . $rSegmentFile) && is_resource($rFP)) {
+                    if (ProcessManager::isStreamAlive($rChannelInfo["pid"], $rStreamID) && $rFails <= $rTotalFails && file_exists(STREAMS_PATH . $rSegmentFile) && is_resource($rFP)) {
                         $rSegmentSize = filesize(STREAMS_PATH . $rSegmentFile);
                         $rRestSize = $rSegmentSize - ftell($rFP);
                         if ($rRestSize > 0) {
@@ -592,7 +592,7 @@ if ($rChannelInfo) {
                     } else {
                         if (!($rUserInfo["is_restreamer"] == 1 || $rTotalFails < $rFails)) {
                             // Wait for segment recovery with non-blocking checks
-                            for ($rChecks = 0; $rChecks <= StreamingUtilities::$rSegmentSettings["seg_time"] && !StreamingUtilities::isStreamRunning($rChannelInfo["pid"], $rStreamID); $rChecks++) {
+                            for ($rChecks = 0; $rChecks <= $rSegmentSettings["seg_time"] && !ProcessManager::isStreamAlive($rChannelInfo["pid"], $rStreamID); $rChecks++) {
                                 if (file_exists(STREAMS_PATH . $rStreamID . "_.pid")) {
                                     $pidContent = AsyncFileOperations::readFile(STREAMS_PATH . $rStreamID . "_.pid");
                                     if ($pidContent) {
@@ -602,7 +602,7 @@ if ($rChannelInfo) {
                                 AsyncFileOperations::efficientSleep(1000000); // 1 second
                             }
 
-                            if (StreamingUtilities::$rSegmentSettings["seg_time"] >= $rChecks && StreamingUtilities::isStreamRunning($rChannelInfo["pid"], $rStreamID)) {
+                            if ($rSegmentSettings["seg_time"] >= $rChecks && ProcessManager::isStreamAlive($rChannelInfo["pid"], $rStreamID)) {
                                 if (!file_exists(STREAMS_PATH . $rNextSegment)) {
                                     $rCurrent = -2;
                                 }
@@ -619,7 +619,7 @@ if ($rChannelInfo) {
                     $rCurrent++;
 
                     // Monitor connection status every 5 seconds
-                    if (StreamingUtilities::$rSettings["monitor_connection_status"] && 5 <= time() - $rMonitorCheck) {
+                    if ($rSettings["monitor_connection_status"] && 5 <= time() - $rMonitorCheck) {
                         if (connection_status() != CONNECTION_NORMAL) {
                             exit();
                         }
@@ -630,21 +630,21 @@ if ($rChannelInfo) {
                     if (time() - $rLastCheck > 300) {
                         $rLastCheck = time();
                         $rConnection = NULL;
-                        StreamingUtilities::$rSettings = StreamingUtilities::getCache('settings');
+                        $rSettings = CacheReader::get('settings');
 
-                        if (StreamingUtilities::$rSettings["redis_handler"]) {
-                            StreamingUtilities::connectRedis();
-                            $rConnection = StreamingUtilities::getConnection($rTokenData["uuid"]);
-                            StreamingUtilities::closeRedis();
+                        if ($rSettings["redis_handler"]) {
+                            RedisManager::ensureConnected();
+                            $rConnection = ConnectionTracker::getConnection(RedisManager::instance(), $rTokenData["uuid"]);
+                            RedisManager::closeInstance();
                         } else {
-                            StreamingUtilities::connectDatabase();
-                            StreamingUtilities::$db->query('SELECT `pid`, `hls_end` FROM `lines_live` WHERE `uuid` = ?', $rTokenData["uuid"]);
+                            DatabaseFactory::connect();
+                            $db->query('SELECT `pid`, `hls_end` FROM `lines_live` WHERE `uuid` = ?', $rTokenData["uuid"]);
 
-                            if (StreamingUtilities::$db->num_rows() == 1) {
-                                $rConnection = StreamingUtilities::$db->get_row();
+                            if ($db->num_rows() == 1) {
+                                $rConnection = $db->get_row();
                             }
 
-                            StreamingUtilities::closeDatabase();
+                            DatabaseFactory::close();
                         }
 
                         if (!is_array($rConnection) || $rConnection["hls_end"] != 0 || $rConnection["pid"] != $rPID) {
@@ -658,7 +658,7 @@ if ($rChannelInfo) {
     }
 } else {
     // print('show_not_on_air_video_7');
-    StreamingUtilities::showVideoServer("show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
+    OffAirHandler::showVideoServer($rSettings, $rServers, "show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
 }
 
 function shutdown() {
@@ -667,41 +667,43 @@ function shutdown() {
     global $rPID;
     global $rChannelInfo;
     global $rStreamID;
-    StreamingUtilities::$rSettings = StreamingUtilities::getCache('settings');
+    global $rServers;
+    global $db;
+    $rSettings = CacheReader::get('settings');
 
     if ($rCloseCon) {
-        if (StreamingUtilities::$rSettings["redis_handler"]) {
-            if (!is_object(StreamingUtilities::$redis)) {
-                StreamingUtilities::connectRedis();
+        if ($rSettings["redis_handler"]) {
+            if (!RedisManager::isConnected()) {
+                RedisManager::ensureConnected();
             }
 
-            $rConnection = StreamingUtilities::getConnection($rTokenData["uuid"]);
+            $rConnection = ConnectionTracker::getConnection(RedisManager::instance(), $rTokenData["uuid"]);
 
             if ($rConnection && $rConnection["pid"] == $rPID) {
-                $rChanges = array('hls_last_read' => time() - intval(StreamingUtilities::$rServers[SERVER_ID]["time_offset"]));
-                StreamingUtilities::updateConnection($rConnection, $rChanges, 'close');
+                $rChanges = array('hls_last_read' => time() - intval($rServers[SERVER_ID]["time_offset"]));
+                ConnectionTracker::updateConnection(RedisManager::instance(), $rConnection, $rChanges, 'close');
             }
         } else {
-            if (!is_object(StreamingUtilities::$db)) {
-                StreamingUtilities::connectDatabase();
+            if (!is_object($db)) {
+                DatabaseFactory::connect();
             }
 
-            StreamingUtilities::$db->query('UPDATE `lines_live` SET `hls_end` = 1, `hls_last_read` = ? WHERE `uuid` = ? AND `pid` = ?;', time() - intval(StreamingUtilities::$rServers[SERVER_ID]["time_offset"]), $rTokenData["uuid"], $rPID);
+            $db->query('UPDATE `lines_live` SET `hls_end` = 1, `hls_last_read` = ? WHERE `uuid` = ? AND `pid` = ?;', time() - intval($rServers[SERVER_ID]["time_offset"]), $rTokenData["uuid"], $rPID);
         }
 
         @unlink(CONS_TMP_PATH . $rTokenData["uuid"]);
         @unlink(CONS_TMP_PATH . $rStreamID . "/" . $rTokenData["uuid"]);
     }
 
-    if (StreamingUtilities::$rSettings["on_demand_instant_off"] && $rChannelInfo["on_demand"] == 1) {
-        StreamingUtilities::removeFromQueue($rStreamID, $rPID);
+    if ($rSettings["on_demand_instant_off"] && $rChannelInfo["on_demand"] == 1) {
+        ConnectionTracker::removeFromQueue($rStreamID, $rPID, array('ProcessManager', 'isRunning'));
     }
 
-    if (!StreamingUtilities::$rSettings["redis_handler"] && is_object(StreamingUtilities::$db)) {
-        StreamingUtilities::closeDatabase();
+    if (!$rSettings["redis_handler"] && is_object($db)) {
+        DatabaseFactory::close();
     } else {
-        if (StreamingUtilities::$rSettings["redis_handler"] && is_object(StreamingUtilities::$redis)) {
-            StreamingUtilities::closeRedis();
+        if ($rSettings["redis_handler"] && RedisManager::isConnected()) {
+            RedisManager::closeInstance();
         }
     }
 }

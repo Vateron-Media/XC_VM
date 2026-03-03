@@ -1,7 +1,8 @@
 <?php
 
 class PlexService {
-	public static function editPlexSettings($db, $rData, $clearSettingsCacheCallback = null) {
+	public static function editPlexSettings($rData, $clearSettingsCacheCallback = null) {
+		global $db;
 		foreach ($rData as $rKey => $rValue) {
 			$rSplit = explode('_', $rKey);
 			if ($rSplit[0] == 'genre') {
@@ -31,7 +32,8 @@ class PlexService {
 		return array('status' => STATUS_SUCCESS);
 	}
 
-	public static function processPlexSync($db, $rData, $getWatchFolderCallback = null) {
+	public static function processPlexSync($rData, $getWatchFolderCallback = null) {
+		global $db;
 		if (isset($rData['edit'])) {
 			$rArray = overwriteData(call_user_func($getWatchFolderCallback, $rData['edit']), $rData);
 		} else {

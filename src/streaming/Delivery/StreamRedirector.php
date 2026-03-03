@@ -1,12 +1,12 @@
 <?php
 
 class StreamRedirector {
-	public static function redirectStream($rCached, $rSettings, $rServers, $rStreamID, $rExtension, $rUserInfo, $rCountryCode, $rUserISP = '', $rType = '', $rGetBouquetMapCallback = null, $rGetStreamDataCallback = null, $rGetCapacityCallback = null) {
+	public static function redirectStream($rCached, $rSettings, $rServers, $rStreamID, $rExtension, $rUserInfo, $rCountryCode, $rUserISP = '', $rType = '') {
 		if ($rCached) {
 			$rStream = (igbinary_unserialize(file_get_contents(STREAMS_TMP_PATH . 'stream_' . $rStreamID)) ?: null);
-			$rStream['bouquets'] = call_user_func($rGetBouquetMapCallback, $rStreamID);
+			$rStream['bouquets'] = BouquetService::getMapEntry($rStreamID);
 		} else {
-			$rStream = call_user_func($rGetStreamDataCallback, $rStreamID);
+			$rStream = self::getStreamData($rStreamID);
 		}
 		if (!$rStream) {
 			return false;
@@ -48,7 +48,7 @@ class StreamRedirector {
 		}
 
 		shuffle($rAvailableServers);
-		$rServerCapacity = call_user_func($rGetCapacityCallback);
+		$rServerCapacity = ConnectionTracker::getCapacity($rSettings, $rServers, RedisManager::instance());
 		$rAcceptServers = array();
 		foreach ($rAvailableServers as $rServerID) {
 			$rOnlineClients = (isset($rServerCapacity[$rServerID]['online_clients']) ? $rServerCapacity[$rServerID]['online_clients'] : 0);
@@ -126,6 +126,29 @@ class StreamRedirector {
 		$rStream['info']['redirect_id'] = $rRedirectID;
 		$fc4c58c5d1cd68d1 = $rRedirectID;
 		return array_merge($rStream['info'], $rStream['servers'][$fc4c58c5d1cd68d1]);
+	}
+
+	private static function getStreamData($rStreamID) {
+		global $db;
+		$rOutput = array();
+		$db->query('SELECT * FROM `streams` t1 LEFT JOIN `streams_types` t2 ON t2.type_id = t1.type WHERE t1.`id` = ?', $rStreamID);
+		if (0 >= $db->num_rows()) {
+		} else {
+			$rStreamInfo = $db->get_row();
+			$rServersData = array();
+			if (!($rStreamInfo['direct_source'] == 0 || $rStreamInfo['direct_proxy'] == 1)) {
+			} else {
+				$db->query('SELECT * FROM `streams_servers` WHERE `stream_id` = ?', $rStreamID);
+				if (0 >= $db->num_rows()) {
+				} else {
+					$rServersData = $db->get_rows(true, 'server_id');
+				}
+			}
+			$rOutput['bouquets'] = BouquetService::getMapEntry($rStreamID);
+			$rOutput['info'] = $rStreamInfo;
+			$rOutput['servers'] = $rServersData;
+		}
+		return (!empty($rOutput) ? $rOutput : false);
 	}
 
 	public static function getStreamingURL($rSettings, $rServers, $rServerID = null, $rOriginatorID = null, $rForceHTTP = false) {

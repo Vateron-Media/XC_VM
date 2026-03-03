@@ -287,4 +287,14 @@ class BlocklistService {
 
 		return $rReturn;
 	}
+
+	public static function getAllowedRTMP() {
+		global $db;
+		$rReturn = array();
+		$db->query('SELECT `ip`, `password`, `push`, `pull` FROM `rtmp_ips`');
+		foreach ($db->get_rows() as $rRow) {
+			$rReturn[gethostbyname($rRow['ip'])] = array('password' => $rRow['password'], 'push' => boolval($rRow['push']), 'pull' => boolval($rRow['pull']));
+		}
+		return $rReturn;
+	}
 }

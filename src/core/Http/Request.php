@@ -5,13 +5,13 @@
  *
  * Abstracts $_GET, $_POST, $_SERVER, $_COOKIE access with
  * input sanitization. Replaces duplicated cleanGlobals() and
- * parseIncomingRecursively() from CoreUtilities and StreamingUtilities.
+ * parseIncomingRecursively() from CoreUtilities.
  *
  * ---------------------------------------------------------------
  * What it replaces:
  * ---------------------------------------------------------------
  *
- *   BEFORE (duplicated in both CoreUtilities AND StreamingUtilities):
+ *   BEFORE (duplicated in both CoreUtilities):
  *     CoreUtilities::cleanGlobals($_GET);
  *     CoreUtilities::cleanGlobals($_POST);
  *     CoreUtilities::cleanGlobals($_REQUEST);
@@ -39,7 +39,7 @@
  *   delegate to this class during Phase 2+.
  *
  * @see CoreUtilities::cleanGlobals()
- * @see StreamingUtilities::cleanGlobals()
+ * @see Request::cleanGlobals()
  */
 
 class Request {

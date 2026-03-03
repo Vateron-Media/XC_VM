@@ -963,7 +963,7 @@ if ($rType == "lines") {
                 $rWhere[] = "`streams`.`transcode_profile_id` > 0";
             }
         }
-        if (0 < strlen(CoreUtilities::$rRequest["audio"])) {
+        if (0 < strlen(CoreUtilities::$rRequest["audio"] ?? '')) {
             if (CoreUtilities::$rRequest["audio"] == -1) {
                 $rWhere[] = "`streams_servers`.`audio_codec` IS NULL";
             } else {
@@ -971,7 +971,7 @@ if ($rType == "lines") {
                 $rWhereV[] = CoreUtilities::$rRequest["audio"];
             }
         }
-        if (0 < strlen(CoreUtilities::$rRequest["video"])) {
+        if (0 < strlen(CoreUtilities::$rRequest["video"] ?? '')) {
             if (CoreUtilities::$rRequest["video"] == -1) {
                 $rWhere[] = "`streams_servers`.`video_codec` IS NULL";
             } else {
@@ -979,14 +979,14 @@ if ($rType == "lines") {
                 $rWhereV[] = CoreUtilities::$rRequest["video"];
             }
         }
-        if (0 < strlen(CoreUtilities::$rRequest["resolution"])) {
+        if (0 < strlen(CoreUtilities::$rRequest["resolution"] ?? '')) {
             $rWhere[] = "`streams_servers`.`resolution` = ?";
             $rWhereV[] = (int) CoreUtilities::$rRequest["resolution"] ?: NULL;
         }
-        if (0 < (int) CoreUtilities::$rRequest["server"]) {
+        if (0 < (int) (CoreUtilities::$rRequest["server"] ?? 0)) {
             $rWhere[] = "`streams_servers`.`server_id` = ?";
             $rWhereV[] = (int) CoreUtilities::$rRequest["server"];
-        } elseif ((int) CoreUtilities::$rRequest["server"] == -1) {
+        } elseif ((int) (CoreUtilities::$rRequest["server"] ?? 0) == -1) {
             $rWhere[] = "`streams_servers`.`server_id` IS NULL";
         }
         if ($rOrder[$rOrderRow]) {
@@ -1818,7 +1818,7 @@ if ($rType == "lines") {
                 $rWhere[] = "`streams`.`transcode_profile_id` > 0";
             }
         }
-        if (0 < strlen(CoreUtilities::$rRequest["audio"])) {
+        if (0 < strlen(CoreUtilities::$rRequest["audio"] ?? '')) {
             if (CoreUtilities::$rRequest["audio"] == -1) {
                 $rWhere[] = "`streams_servers`.`audio_codec` IS NULL";
             } else {
@@ -1826,7 +1826,7 @@ if ($rType == "lines") {
                 $rWhereV[] = CoreUtilities::$rRequest["audio"];
             }
         }
-        if (0 < strlen(CoreUtilities::$rRequest["video"])) {
+        if (0 < strlen(CoreUtilities::$rRequest["video"] ?? '')) {
             if (CoreUtilities::$rRequest["video"] == -1) {
                 $rWhere[] = "`streams_servers`.`video_codec` IS NULL";
             } else {
@@ -1834,14 +1834,14 @@ if ($rType == "lines") {
                 $rWhereV[] = CoreUtilities::$rRequest["video"];
             }
         }
-        if (0 < strlen(CoreUtilities::$rRequest["resolution"])) {
+        if (0 < strlen(CoreUtilities::$rRequest["resolution"] ?? '')) {
             $rWhere[] = "`streams_servers`.`resolution` = ?";
             $rWhereV[] = (int) CoreUtilities::$rRequest["resolution"] ?: NULL;
         }
-        if (0 < (int) CoreUtilities::$rRequest["server"]) {
+        if (0 < (int) (CoreUtilities::$rRequest["server"] ?? 0)) {
             $rWhere[] = "`streams_servers`.`server_id` = ?";
             $rWhereV[] = (int) CoreUtilities::$rRequest["server"];
-        } elseif ((int) CoreUtilities::$rRequest["server"] == -1) {
+        } elseif ((int) (CoreUtilities::$rRequest["server"] ?? 0) == -1) {
             $rWhere[] = "`streams_servers`.`server_id` IS NULL";
         }
         if ($rOrder[$rOrderRow]) {
@@ -4301,7 +4301,7 @@ if ($rType == "lines") {
                 $rWhere[] = "`streams`.`transcode_profile_id` > 0";
             }
         }
-        if (0 < strlen(CoreUtilities::$rRequest["audio"])) {
+        if (0 < strlen(CoreUtilities::$rRequest["audio"] ?? '')) {
             if (CoreUtilities::$rRequest["audio"] == -1) {
                 $rWhere[] = "`streams_servers`.`audio_codec` IS NULL";
             } else {
@@ -4309,7 +4309,7 @@ if ($rType == "lines") {
                 $rWhereV[] = CoreUtilities::$rRequest["audio"];
             }
         }
-        if (0 < strlen(CoreUtilities::$rRequest["video"])) {
+        if (0 < strlen(CoreUtilities::$rRequest["video"] ?? '')) {
             if (CoreUtilities::$rRequest["video"] == -1) {
                 $rWhere[] = "`streams_servers`.`video_codec` IS NULL";
             } else {
@@ -4317,14 +4317,14 @@ if ($rType == "lines") {
                 $rWhereV[] = CoreUtilities::$rRequest["video"];
             }
         }
-        if (0 < strlen(CoreUtilities::$rRequest["resolution"])) {
+        if (0 < strlen(CoreUtilities::$rRequest["resolution"] ?? '')) {
             $rWhere[] = "`streams_servers`.`resolution` = ?";
             $rWhereV[] = (int) CoreUtilities::$rRequest["resolution"] ?: NULL;
         }
-        if (0 < (int) CoreUtilities::$rRequest["server"]) {
+        if (0 < (int) (CoreUtilities::$rRequest["server"] ?? 0)) {
             $rWhere[] = "`streams_servers`.`server_id` = ?";
             $rWhereV[] = (int) CoreUtilities::$rRequest["server"];
-        } elseif ((int) CoreUtilities::$rRequest["server"] == -1) {
+        } elseif ((int) (CoreUtilities::$rRequest["server"] ?? 0) == -1) {
             $rWhere[] = "`streams_servers`.`server_id` IS NULL";
         }
         if ($rOrder[$rOrderRow]) {

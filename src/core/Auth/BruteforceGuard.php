@@ -4,7 +4,6 @@
  * XC_VM — Bruteforce / Flood Guard
  *
  * Centralized rate-limiting and brute-force protection.
- * Extracted from both CoreUtilities and StreamingUtilities
  * (identical logic, unified here).
  *
  * ---------------------------------------------------------------
@@ -14,28 +13,22 @@
  *   CoreUtilities::checkBruteforce()   → BruteforceGuard::checkBruteforce()
  *   CoreUtilities::checkAuthFlood()    → BruteforceGuard::checkAuthFlood()
  *   CoreUtilities::truncateAttempts()  → BruteforceGuard::truncateAttempts()
- *   StreamingUtilities::checkFlood()        → same
- *   StreamingUtilities::checkBruteforce()   → same
- *   StreamingUtilities::checkAuthFlood()    → same
- *   StreamingUtilities::truncateAttempts()  → same
+ *   BruteforceGuard::checkFlood(, !empty($rCached))        → same
+ *   BruteforceGuard::checkBruteforce(, !empty($rCached))   → same
+ *   BruteforceGuard::checkAuthFlood()    → same
+ *   BruteforceGuard::truncateAttempts()  → same
  *
  * @see CoreUtilities::checkFlood()
- * @see StreamingUtilities::checkFlood()
+ * @see BruteforceGuard::checkFlood(, !empty($rCached))
  */
 
 class BruteforceGuard {
-
-    /**
-     * Resolve settings array from either CoreUtilities or StreamingUtilities.
-     *
-     * @return array
-     */
     private static function getSettings() {
         if (class_exists('CoreUtilities', false) && !empty(CoreUtilities::$rSettings)) {
             return CoreUtilities::$rSettings;
         }
-        if (class_exists('StreamingUtilities', false) && !empty(StreamingUtilities::$rSettings)) {
-            return StreamingUtilities::$rSettings;
+        if (!empty($GLOBALS['rSettings'])) {
+            return $GLOBALS['rSettings'];
         }
         return array();
     }
@@ -49,9 +42,6 @@ class BruteforceGuard {
         if (class_exists('CoreUtilities', false) && method_exists('CoreUtilities', 'getUserIP')) {
             return CoreUtilities::getUserIP();
         }
-        if (class_exists('StreamingUtilities', false) && method_exists('StreamingUtilities', 'getUserIP')) {
-            return StreamingUtilities::getUserIP();
-        }
         return $_SERVER['REMOTE_ADDR'] ?? '';
     }
 
@@ -64,8 +54,8 @@ class BruteforceGuard {
         if (class_exists('CoreUtilities', false) && isset(CoreUtilities::$rAllowedIPs)) {
             return CoreUtilities::$rAllowedIPs;
         }
-        if (class_exists('StreamingUtilities', false) && isset(StreamingUtilities::$rAllowedIPs)) {
-            return StreamingUtilities::$rAllowedIPs;
+        if (isset($GLOBALS['rAllowedIPs'])) {
+            return $GLOBALS['rAllowedIPs'];
         }
         return array();
     }
@@ -79,8 +69,8 @@ class BruteforceGuard {
         if (class_exists('CoreUtilities', false) && isset(CoreUtilities::$rBlockedIPs)) {
             return CoreUtilities::$rBlockedIPs;
         }
-        if (class_exists('StreamingUtilities', false) && isset(StreamingUtilities::$rBlockedIPs)) {
-            return StreamingUtilities::$rBlockedIPs;
+        if (isset($GLOBALS['rBlockedIPs'])) {
+            return $GLOBALS['rBlockedIPs'];
         }
         return array();
     }
@@ -94,8 +84,9 @@ class BruteforceGuard {
         if (class_exists('CoreUtilities', false) && isset(CoreUtilities::$db)) {
             return CoreUtilities::$db;
         }
-        if (class_exists('StreamingUtilities', false) && isset(StreamingUtilities::$db)) {
-            return StreamingUtilities::$db;
+        global $db;
+        if (is_object($db)) {
+            return $db;
         }
         return null;
     }
@@ -105,12 +96,12 @@ class BruteforceGuard {
      *
      * @param string $ip
      * @param string $reason
-     * @param bool   $useCachedMode  Use signal-based blocking (StreamingUtilities context)
+     * @param bool   $useCachedMode  Use signal-based blocking
      */
     private static function blockIP($ip, $reason, $useCachedMode = false) {
-        if ($useCachedMode && class_exists('StreamingUtilities', false) && !empty(StreamingUtilities::$rCached)) {
+        if ($useCachedMode && !empty($GLOBALS['rCached'])) {
             $signalKey = (stripos($reason, 'BRUTEFORCE') !== false ? 'bruteforce_attack' : 'flood_attack');
-            StreamingUtilities::setSignal($signalKey . '/' . $ip, 1);
+            RedisManager::setSignal($signalKey . '/' . $ip, 1);
         } else {
             $db = self::getDB();
             if ($db) {
