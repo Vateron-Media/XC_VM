@@ -4,8 +4,7 @@
  * XC_VM — File Cache Driver (igbinary)
  *
  * File-based cache using igbinary serialization. Direct replacement
- * for the inline igbinary_serialize/unserialize pattern used
- * throughout CoreUtilities and StreamingUtilities.
+ * for the inline igbinary_serialize/unserialize pattern
  *
  * ---------------------------------------------------------------
  * What it replaces:

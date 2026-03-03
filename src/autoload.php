@@ -403,8 +403,7 @@ class XC_Autoloader {
             // ── Ядро (legacy) ─────────────────────────────────────
             'Database'              => $base . 'core/Database/Database.php',
             'CoreUtilities'         => $base . 'includes/CoreUtilities.php',
-            'StreamingUtilities'    => $base . 'includes/StreamingUtilities.php',
-            'API'                   => $base . 'includes/admin_api.php',
+            // API class removed (Phase 8.1) — methods migrated to domain services
             'ResellerAPI'           => $base . 'includes/reseller_api.php',
             'TS'                    => $base . 'includes/ts.php',
 

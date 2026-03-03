@@ -12,12 +12,12 @@ class StreamingBootstrap {
 
 		require_once INCLUDES_PATH . 'libs/AsyncFileOperations.php';
 		require_once MAIN_HOME . 'core/Database/DatabaseHandler.php';
-		require_once INCLUDES_PATH . 'StreamingUtilities.php';
 
-		StreamingUtilities::$rSettings = $rSettings;
-		StreamingUtilities::$rAccess = $rFilename;
-		StreamingUtilities::init();
+		$GLOBALS['rSettings'] = $rSettings;
+		$GLOBALS['rAccess'] = $rFilename;
+		LegacyInitializer::initStreaming();
 
-		return StreamingUtilities::$db;
+		global $db;
+		return $db;
 	}
 }

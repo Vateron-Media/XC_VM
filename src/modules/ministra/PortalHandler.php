@@ -135,34 +135,36 @@ class PortalHandler {
      * @param array  &$ctx Context array with device, profile, language, theme, authenticated, etc.
      */
     public static function handleStbPublic($rReqAction, &$ctx) {
+        global $rSettings, $rServers;
+
         switch ($rReqAction) {
             case 'get_profile':
                 $rTotal = ($ctx['authenticated'] ? array_merge($ctx['profile'], $ctx['device']['get_profile_vars']) : $ctx['profile']);
                 $rTotal['status'] = intval(!$ctx['authenticated']);
-                $rTotal['update_url'] = (empty(StreamingUtilities::$rSettings['update_url']) ? '' : StreamingUtilities::$rSettings['update_url']);
-                $rTotal['test_download_url'] = (empty(StreamingUtilities::$rSettings['test_download_url']) ? '' : StreamingUtilities::$rSettings['test_download_url']);
-                $rTotal['default_timezone'] = StreamingUtilities::$rSettings['default_timezone'];
+                $rTotal['update_url'] = (empty($rSettings['update_url']) ? '' : $rSettings['update_url']);
+                $rTotal['test_download_url'] = (empty($rSettings['test_download_url']) ? '' : $rSettings['test_download_url']);
+                $rTotal['default_timezone'] = $rSettings['default_timezone'];
                 $rTotal['default_locale'] = $ctx['device']['locale'];
-                $rTotal['allowed_stb_types'] = StreamingUtilities::$rSettings['allowed_stb_types'];
-                $rTotal['allowed_stb_types_for_local_recording'] = StreamingUtilities::$rSettings['allowed_stb_types'];
+                $rTotal['allowed_stb_types'] = $rSettings['allowed_stb_types'];
+                $rTotal['allowed_stb_types_for_local_recording'] = $rSettings['allowed_stb_types'];
                 $rTotal['storages'] = array();
-                $rTotal['tv_channel_default_aspect'] = (empty(StreamingUtilities::$rSettings['tv_channel_default_aspect']) ? 'fit' : StreamingUtilities::$rSettings['tv_channel_default_aspect']);
-                $rTotal['playback_limit'] = (empty(StreamingUtilities::$rSettings['playback_limit']) ? false : intval(StreamingUtilities::$rSettings['playback_limit']));
+                $rTotal['tv_channel_default_aspect'] = (empty($rSettings['tv_channel_default_aspect']) ? 'fit' : $rSettings['tv_channel_default_aspect']);
+                $rTotal['playback_limit'] = (empty($rSettings['playback_limit']) ? false : intval($rSettings['playback_limit']));
 
                 if (!empty($rTotal['playback_limit'])) {
                 } else {
                     $rTotal['enable_playback_limit'] = false;
                 }
 
-                $rTotal['show_tv_channel_logo'] = !empty(StreamingUtilities::$rSettings['show_tv_channel_logo']);
-                $rTotal['show_channel_logo_in_preview'] = !empty(StreamingUtilities::$rSettings['show_channel_logo_in_preview']);
-                $rTotal['enable_connection_problem_indication'] = !empty(StreamingUtilities::$rSettings['enable_connection_problem_indication']);
+                $rTotal['show_tv_channel_logo'] = !empty($rSettings['show_tv_channel_logo']);
+                $rTotal['show_channel_logo_in_preview'] = !empty($rSettings['show_channel_logo_in_preview']);
+                $rTotal['enable_connection_problem_indication'] = !empty($rSettings['enable_connection_problem_indication']);
                 $rTotal['hls_fast_start'] = '1';
                 $rTotal['check_ssl_certificate'] = 0;
                 $rTotal['enable_buffering_indication'] = 1;
                 $rTotal['watchdog_timeout'] = mt_rand(80, 120);
 
-                if (!(empty($rTotal['aspect']) && StreamingUtilities::$rServers[SERVER_ID]['server_protocol'] == 'https')) {
+                if (!(empty($rTotal['aspect']) && $rServers[SERVER_ID]['server_protocol'] == 'https')) {
                 } else {
                     $rTotal['aspect'] = '16';
                 }
@@ -258,7 +260,7 @@ class PortalHandler {
      * @param array  &$ctx Context array
      */
     public static function handleStbSettings($rReqAction, &$ctx) {
-        global $db;
+        global $db, $rSettings, $rRequest;
 
         switch ($rReqAction) {
             case 'set_modern':
@@ -284,35 +286,35 @@ class PortalHandler {
             case 'get_settings_profile':
                 $db->query('SELECT * FROM `mag_devices` WHERE `mag_id` = ?', $ctx['device']['mag_id']);
                 $rInfo = $db->get_row();
-                $rSettings = array('js' => array('modules' => array(array('name' => 'lock'), array('name' => 'lang'), array('name' => 'update'), array('name' => 'net_info', 'sub' => array(array('name' => 'wired'), array('name' => 'pppoe', 'sub' => array(array('name' => 'dhcp'), array('name' => 'dhcp_manual'), array('name' => 'disable'))), array('name' => 'wireless'), array('name' => 'speed'))), array('name' => 'video'), array('name' => 'audio'), array('name' => 'net', 'sub' => array(array('name' => 'ethernet', 'sub' => array(array('name' => 'dhcp'), array('name' => 'dhcp_manual'), array('name' => 'manual'), array('name' => 'no_ip'))), array('name' => 'pppoe', 'sub' => array(array('name' => 'dhcp'), array('name' => 'dhcp_manual'), array('name' => 'disable'))), array('name' => 'wifi', 'sub' => array(array('name' => 'dhcp'), array('name' => 'dhcp_manual'), array('name' => 'manual'))), array('name' => 'speed'))), array('name' => 'advanced'), array('name' => 'dev_info'), array('name' => 'reload'), array('name' => 'internal_portal'), array('name' => 'reboot'))));
-                $rSettings['js']['parent_password'] = $rInfo['parent_password'];
-                $rSettings['js']['update_url'] = StreamingUtilities::$rSettings['update_url'];
-                $rSettings['js']['test_download_url'] = StreamingUtilities::$rSettings['test_download_url'];
-                $rSettings['js']['playback_buffer_size'] = $rInfo['playback_buffer_size'];
-                $rSettings['js']['screensaver_delay'] = $rInfo['screensaver_delay'];
-                $rSettings['js']['plasma_saving'] = $rInfo['plasma_saving'];
-                $rSettings['js']['spdif_mode'] = $rInfo['spdif_mode'];
-                $rSettings['js']['ts_enabled'] = $rInfo['ts_enabled'];
-                $rSettings['js']['ts_enable_icon'] = $rInfo['ts_enable_icon'];
-                $rSettings['js']['ts_path'] = $rInfo['ts_path'];
-                $rSettings['js']['ts_max_length'] = $rInfo['ts_max_length'];
-                $rSettings['js']['ts_buffer_use'] = $rInfo['ts_buffer_use'];
-                $rSettings['js']['ts_action_on_exit'] = $rInfo['ts_action_on_exit'];
-                $rSettings['js']['ts_delay'] = $rInfo['ts_delay'];
-                $rSettings['js']['hdmi_event_reaction'] = $rInfo['hdmi_event_reaction'];
-                $rSettings['js']['pri_audio_lang'] = $ctx['profile']['pri_audio_lang'];
-                $rSettings['js']['show_after_loading'] = $rInfo['show_after_loading'];
-                $rSettings['js']['sec_audio_lang'] = $ctx['profile']['sec_audio_lang'];
+                $rJsSettings = array('js' => array('modules' => array(array('name' => 'lock'), array('name' => 'lang'), array('name' => 'update'), array('name' => 'net_info', 'sub' => array(array('name' => 'wired'), array('name' => 'pppoe', 'sub' => array(array('name' => 'dhcp'), array('name' => 'dhcp_manual'), array('name' => 'disable'))), array('name' => 'wireless'), array('name' => 'speed'))), array('name' => 'video'), array('name' => 'audio'), array('name' => 'net', 'sub' => array(array('name' => 'ethernet', 'sub' => array(array('name' => 'dhcp'), array('name' => 'dhcp_manual'), array('name' => 'manual'), array('name' => 'no_ip'))), array('name' => 'pppoe', 'sub' => array(array('name' => 'dhcp'), array('name' => 'dhcp_manual'), array('name' => 'disable'))), array('name' => 'wifi', 'sub' => array(array('name' => 'dhcp'), array('name' => 'dhcp_manual'), array('name' => 'manual'))), array('name' => 'speed'))), array('name' => 'advanced'), array('name' => 'dev_info'), array('name' => 'reload'), array('name' => 'internal_portal'), array('name' => 'reboot'))));
+                $rJsSettings['js']['parent_password'] = $rInfo['parent_password'];
+                $rJsSettings['js']['update_url'] = $rSettings['update_url'];
+                $rJsSettings['js']['test_download_url'] = $rSettings['test_download_url'];
+                $rJsSettings['js']['playback_buffer_size'] = $rInfo['playback_buffer_size'];
+                $rJsSettings['js']['screensaver_delay'] = $rInfo['screensaver_delay'];
+                $rJsSettings['js']['plasma_saving'] = $rInfo['plasma_saving'];
+                $rJsSettings['js']['spdif_mode'] = $rInfo['spdif_mode'];
+                $rJsSettings['js']['ts_enabled'] = $rInfo['ts_enabled'];
+                $rJsSettings['js']['ts_enable_icon'] = $rInfo['ts_enable_icon'];
+                $rJsSettings['js']['ts_path'] = $rInfo['ts_path'];
+                $rJsSettings['js']['ts_max_length'] = $rInfo['ts_max_length'];
+                $rJsSettings['js']['ts_buffer_use'] = $rInfo['ts_buffer_use'];
+                $rJsSettings['js']['ts_action_on_exit'] = $rInfo['ts_action_on_exit'];
+                $rJsSettings['js']['ts_delay'] = $rInfo['ts_delay'];
+                $rJsSettings['js']['hdmi_event_reaction'] = $rInfo['hdmi_event_reaction'];
+                $rJsSettings['js']['pri_audio_lang'] = $ctx['profile']['pri_audio_lang'];
+                $rJsSettings['js']['show_after_loading'] = $rInfo['show_after_loading'];
+                $rJsSettings['js']['sec_audio_lang'] = $ctx['profile']['sec_audio_lang'];
 
-                if (StreamingUtilities::$rSettings['always_enabled_subtitles'] == 1) {
-                    $rSettings['js']['pri_subtitle_lang'] = $ctx['profile']['pri_subtitle_lang'];
-                    $rSettings['js']['sec_subtitle_lang'] = $ctx['profile']['sec_subtitle_lang'];
+                if ($rSettings['always_enabled_subtitles'] == 1) {
+                    $rJsSettings['js']['pri_subtitle_lang'] = $ctx['profile']['pri_subtitle_lang'];
+                    $rJsSettings['js']['sec_subtitle_lang'] = $ctx['profile']['sec_subtitle_lang'];
                 } else {
-                    $rSettings['js']['sec_subtitle_lang'] = '';
-                    $rSettings['js']['pri_subtitle_lang'] = $rSettings['js']['sec_subtitle_lang'];
+                    $rJsSettings['js']['sec_subtitle_lang'] = '';
+                    $rJsSettings['js']['pri_subtitle_lang'] = $rJsSettings['js']['sec_subtitle_lang'];
                 }
 
-                exit(json_encode($rSettings));
+                exit(json_encode($rJsSettings));
 
             case 'get_locales':
                 $db->query('SELECT `locale` FROM `mag_devices` WHERE `mag_id` = ?', $ctx['device']['mag_id']);
@@ -334,7 +336,7 @@ class PortalHandler {
                 exit(json_encode($ctx['device']['aspect']));
 
             case 'set_volume':
-                $rVolume = StreamingUtilities::$rRequest['vol'];
+                $rVolume = $rRequest['vol'];
 
                 if (empty($rVolume)) {
                     break;
@@ -347,8 +349,8 @@ class PortalHandler {
                 exit(json_encode(array('data' => true)));
 
             case 'set_aspect':
-                $rChannelID = StreamingUtilities::$rRequest['ch_id'];
-                $rAspect = StreamingUtilities::$rRequest['aspect'];
+                $rChannelID = $rRequest['ch_id'];
+                $rAspect = $rRequest['aspect'];
                 $rDeviceAspect = $ctx['device']['aspect'];
 
                 if (empty($rDeviceAspect)) {
@@ -371,7 +373,7 @@ class PortalHandler {
             case 'set_screensaver_delay':
                 if (empty($_SERVER['HTTP_COOKIE'])) {
                 } else {
-                    $rDelay = intval(StreamingUtilities::$rRequest['screensaver_delay']);
+                    $rDelay = intval($rRequest['screensaver_delay']);
                     $ctx['device']['screensaver_delay'] = $rDelay;
                     $db->query('UPDATE `mag_devices` SET `screensaver_delay` = ? WHERE `mag_id` = ?', $rDelay, $ctx['device']['mag_id']);
                     updatecache();
@@ -382,8 +384,8 @@ class PortalHandler {
             case 'set_playback_buffer':
                 if (empty($_SERVER['HTTP_COOKIE'])) {
                 } else {
-                    $rBufferBytes = intval(StreamingUtilities::$rRequest['playback_buffer_bytes']);
-                    $rBufferSize = intval(StreamingUtilities::$rRequest['playback_buffer_size']);
+                    $rBufferBytes = intval($rRequest['playback_buffer_bytes']);
+                    $rBufferSize = intval($rRequest['playback_buffer_size']);
                     $ctx['device']['playback_buffer_bytes'] = $rBufferBytes;
                     $ctx['device']['playback_buffer_size'] = $rBufferSize;
                     $db->query('UPDATE `mag_devices` SET `playback_buffer_bytes` = ? , `playback_buffer_size` = ? WHERE `mag_id` = ?', $rBufferBytes, $rBufferSize, $ctx['device']['mag_id']);
@@ -393,7 +395,7 @@ class PortalHandler {
                 exit(json_encode(array('js' => true)));
 
             case 'set_plasma_saving':
-                $rPlasmaSaving = intval(StreamingUtilities::$rRequest['plasma_saving']);
+                $rPlasmaSaving = intval($rRequest['plasma_saving']);
                 $ctx['device']['plasma_saving'] = $rPlasmaSaving;
                 $db->query('UPDATE `mag_devices` SET `plasma_saving` = ? WHERE `mag_id` = ?', $rPlasmaSaving, $ctx['device']['mag_id']);
                 updatecache();
@@ -401,9 +403,9 @@ class PortalHandler {
                 exit(json_encode(array('js' => true)));
 
             case 'set_parent_password':
-                if (isset(StreamingUtilities::$rRequest['parent_password']) && isset(StreamingUtilities::$rRequest['pass']) && isset(StreamingUtilities::$rRequest['repeat_pass']) && StreamingUtilities::$rRequest['pass'] == StreamingUtilities::$rRequest['repeat_pass']) {
-                    $ctx['device']['parent_password'] = StreamingUtilities::$rRequest['pass'];
-                    $db->query('UPDATE `mag_devices` SET `parent_password` = ? WHERE `mag_id` = ?', StreamingUtilities::$rRequest['pass'], $ctx['device']['mag_id']);
+                if (isset($rRequest['parent_password']) && isset($rRequest['pass']) && isset($rRequest['repeat_pass']) && $rRequest['pass'] == $rRequest['repeat_pass']) {
+                    $ctx['device']['parent_password'] = $rRequest['pass'];
+                    $db->query('UPDATE `mag_devices` SET `parent_password` = ? WHERE `mag_id` = ?', $rRequest['pass'], $ctx['device']['mag_id']);
                     updatecache();
 
                     exit(json_encode(array('js' => true)));
@@ -412,19 +414,19 @@ class PortalHandler {
                 exit(json_encode(array('js' => true)));
 
             case 'set_locale':
-                if (empty(StreamingUtilities::$rRequest['locale'])) {
+                if (empty($rRequest['locale'])) {
                 } else {
-                    $ctx['device']['locale'] = StreamingUtilities::$rRequest['locale'];
-                    $db->query('UPDATE `mag_devices` SET `locale` = ? WHERE `mag_id` = ?', StreamingUtilities::$rRequest['locale'], $ctx['device']['mag_id']);
+                    $ctx['device']['locale'] = $rRequest['locale'];
+                    $db->query('UPDATE `mag_devices` SET `locale` = ? WHERE `mag_id` = ?', $rRequest['locale'], $ctx['device']['mag_id']);
                     updatecache();
                 }
 
                 exit(json_encode(array('js' => array())));
 
             case 'set_hdmi_reaction':
-                if (empty($_SERVER['HTTP_COOKIE']) || !isset(StreamingUtilities::$rRequest['data'])) {
+                if (empty($_SERVER['HTTP_COOKIE']) || !isset($rRequest['data'])) {
                 } else {
-                    $rReaction = StreamingUtilities::$rRequest['data'];
+                    $rReaction = $rRequest['data'];
                     $ctx['device']['hdmi_event_reaction'] = $rReaction;
                     $db->query('UPDATE `mag_devices` SET `hdmi_event_reaction` = ? WHERE `mag_id` = ?', $rReaction, $ctx['device']['mag_id']);
                     updatecache();
@@ -443,7 +445,7 @@ class PortalHandler {
      * @param array  &$ctx Context array
      */
     public static function handleWatchdog($rReqAction, &$ctx) {
-        global $db;
+        global $db, $rRequest;
 
         $ctx['device']['last_watchdog'] = time();
         $db->query('UPDATE `mag_devices` SET `last_watchdog` = ? WHERE `mag_id` = ?', time(), $ctx['device']['mag_id']);
@@ -471,11 +473,11 @@ class PortalHandler {
                 exit(json_encode(array('js' => $rData), JSON_PARTIAL_OUTPUT_ON_ERROR));
 
             case 'confirm_event':
-                if (empty(StreamingUtilities::$rRequest['event_active_id'])) {
+                if (empty($rRequest['event_active_id'])) {
                     break;
                 }
 
-                $rActiveID = StreamingUtilities::$rRequest['event_active_id'];
+                $rActiveID = $rRequest['event_active_id'];
                 $db->query('UPDATE `mag_events` SET `status` = 1 WHERE `id` = ?', $rActiveID);
 
                 exit(json_encode(array('js' => array('data' => 'ok'))));
@@ -490,17 +492,19 @@ class PortalHandler {
      * @param array  &$ctx Context array
      */
     public static function handleAudioclub($rReqAction, &$ctx) {
+        global $rSettings, $rCategories;
+
         switch ($rReqAction) {
             case 'get_categories':
                 $rOutput = array();
                 $rOutput['js'] = array();
 
-                if (StreamingUtilities::$rSettings['show_all_category_mag'] != 1) {
+                if ($rSettings['show_all_category_mag'] != 1) {
                 } else {
                     $rOutput['js'][] = array('id' => '*', 'title' => 'All', 'alias' => '*', 'censored' => 0);
                 }
 
-                foreach (StreamingUtilities::$rCategories as $rCategoryID => $rCategory) {
+                foreach ($rCategories as $rCategoryID => $rCategory) {
                     if ($rCategory['category_type'] == 'movie' && in_array($rCategory['id'], $ctx['device']['category_ids'])) {
                         $rOutput['js'][] = array('id' => $rCategory['id'], 'title' => $rCategory['category_name'], 'alias' => $rCategory['category_name'], 'censored' => intval($rCategory['is_adult']));
                     }
@@ -520,22 +524,22 @@ class PortalHandler {
      * @param array  &$ctx Context array
      */
     public static function handleItv($rReqAction, &$ctx) {
-        global $db;
+        global $db, $rSettings, $rServers, $rRequest, $rCategories;
 
         switch ($rReqAction) {
             case 'create_link':
-                $rCommand = StreamingUtilities::$rRequest['cmd'];
+                $rCommand = $rRequest['cmd'];
                 $rValue = 'http://localhost/ch/';
                 list($rStreamID, $rStreamValue) = explode('_', substr($rCommand, strpos($rCommand, $rValue) + strlen($rValue)));
 
                 if (empty($rStreamValue)) {
-                    $rEncData = 'ministra::live/' . $ctx['device']['username'] . '/' . $ctx['device']['password'] . '/' . $rStreamID . '/' . StreamingUtilities::$rSettings['mag_container'] . '/' . $ctx['device']['token'];
-                    $rToken = StreamingUtilities::encryptData($rEncData, StreamingUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
-                    $rURL = $ctx['player'] . ((StreamingUtilities::$rSettings['mag_disable_ssl'] ? StreamingUtilities::$rServers[SERVER_ID]['http_url'] : StreamingUtilities::$rServers[SERVER_ID]['site_url'])) . 'play/' . $rToken;
+                    $rEncData = 'ministra::live/' . $ctx['device']['username'] . '/' . $ctx['device']['password'] . '/' . $rStreamID . '/' . $rSettings['mag_container'] . '/' . $ctx['device']['token'];
+                    $rToken = Encryption::encrypt($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+                    $rURL = $ctx['player'] . (($rSettings['mag_disable_ssl'] ? $rServers[SERVER_ID]['http_url'] : $rServers[SERVER_ID]['site_url'])) . 'play/' . $rToken;
 
-                    if (!StreamingUtilities::$rSettings['mag_keep_extension']) {
+                    if (!$rSettings['mag_keep_extension']) {
                     } else {
-                        $rURL .= '?ext=.' . StreamingUtilities::$rSettings['mag_container'];
+                        $rURL .= '?ext=.' . $rSettings['mag_container'];
                     }
                 } else {
                     $rURL = $ctx['player'] . $rStreamValue;
@@ -544,10 +548,10 @@ class PortalHandler {
                 exit(json_encode(array('js' => array('id' => $rStreamID, 'cmd' => $rURL), 'streamer_id' => 0, 'link_id' => 0, 'load' => 0, 'error' => '')));
 
             case 'set_claim':
-                if (empty(StreamingUtilities::$rRequest['id']) || empty(StreamingUtilities::$rRequest['real_type'])) {
+                if (empty($rRequest['id']) || empty($rRequest['real_type'])) {
                 } else {
-                    $rID = intval(StreamingUtilities::$rRequest['id']);
-                    $rRealType = StreamingUtilities::$rRequest['real_type'];
+                    $rID = intval($rRequest['id']);
+                    $rRealType = $rRequest['real_type'];
                     $rDate = date('Y-m-d H:i:s');
                     $db->query('INSERT INTO `mag_claims` (`stream_id`,`mag_id`,`real_type`,`date`) VALUES(?,?,?,?)', $rID, $ctx['device']['mag_id'], $rRealType, $rDate);
                 }
@@ -555,7 +559,7 @@ class PortalHandler {
                 exit(json_encode(array('js' => true)));
 
             case 'set_fav':
-                $rChannels = (empty(StreamingUtilities::$rRequest['fav_ch']) ? '' : StreamingUtilities::$rRequest['fav_ch']);
+                $rChannels = (empty($rRequest['fav_ch']) ? '' : $rRequest['fav_ch']);
                 $rChannels = array_filter(array_map('intval', explode(',', $rChannels)));
                 $ctx['device']['fav_channels']['live'] = $rChannels;
                 $db->query('UPDATE `mag_devices` SET `fav_channels` = ? WHERE `mag_id` = ?', json_encode($ctx['device']['fav_channels']), $ctx['device']['mag_id']);
@@ -567,20 +571,20 @@ class PortalHandler {
                 exit(json_encode(array('js' => $ctx['device']['fav_channels']['live'])));
 
             case 'get_all_channels':
-                $rGenre = (empty(StreamingUtilities::$rRequest['genre']) || !is_numeric(StreamingUtilities::$rRequest['genre']) ? null : intval(StreamingUtilities::$rRequest['genre']));
+                $rGenre = (empty($rRequest['genre']) || !is_numeric($rRequest['genre']) ? null : intval($rRequest['genre']));
 
                 exit(getStreams($rGenre, true));
 
             case 'get_ordered_list':
-                $rFav = (!empty(StreamingUtilities::$rRequest['fav']) ? 1 : null);
-                $rSortBy = (!empty(StreamingUtilities::$rRequest['sortby']) ? StreamingUtilities::$rRequest['sortby'] : null);
-                $rGenre = (empty(StreamingUtilities::$rRequest['genre']) || !is_numeric(StreamingUtilities::$rRequest['genre']) ? null : intval(StreamingUtilities::$rRequest['genre']));
-                $rSearch = (!empty(StreamingUtilities::$rRequest['search']) ? StreamingUtilities::$rRequest['search'] : null);
+                $rFav = (!empty($rRequest['fav']) ? 1 : null);
+                $rSortBy = (!empty($rRequest['sortby']) ? $rRequest['sortby'] : null);
+                $rGenre = (empty($rRequest['genre']) || !is_numeric($rRequest['genre']) ? null : intval($rRequest['genre']));
+                $rSearch = (!empty($rRequest['search']) ? $rRequest['search'] : null);
 
                 exit(getStreams($rGenre, false, $rFav, $rSortBy, $rSearch));
 
             case 'get_all_fav_channels':
-                $rGenre = (empty(StreamingUtilities::$rRequest['genre']) || !is_numeric(StreamingUtilities::$rRequest['genre']) ? null : intval(StreamingUtilities::$rRequest['genre']));
+                $rGenre = (empty($rRequest['genre']) || !is_numeric($rRequest['genre']) ? null : intval($rRequest['genre']));
 
                 exit(getStreams($rGenre, true, 1));
 
@@ -588,9 +592,9 @@ class PortalHandler {
                 exit(json_encode(array('js' => array('data' => array())), JSON_PARTIAL_OUTPUT_ON_ERROR));
 
             case 'get_short_epg':
-                if (empty(StreamingUtilities::$rRequest['ch_id'])) {
+                if (empty($rRequest['ch_id'])) {
                 } else {
-                    $rChannelID = StreamingUtilities::$rRequest['ch_id'];
+                    $rChannelID = $rRequest['ch_id'];
                     $rEPG = array('js' => array());
                     $rTime = time();
                     $rEPGData = array();
@@ -611,7 +615,7 @@ class PortalHandler {
 
                     if (empty($rEPGData)) {
                     } else {
-                        $rTimeDifference = (StreamingUtilities::getDiffTimezone($ctx['timezone']) ?: 0);
+                        $rTimeDifference = (CoreUtilities::getDiffTimezone($ctx['timezone']) ?: 0);
                         $i = 0;
 
                         for ($n = 0; $n < count($rEPGData); $n++) {
@@ -641,7 +645,7 @@ class PortalHandler {
                                 $rEPG['js'][$i]['mark_memo'] = 0;
                                 $rEPG['js'][$i]['mark_archive'] = 0;
 
-                                if (count($rEPG['js']) != ((intval(StreamingUtilities::$rRequest['size']) ?: 4))) {
+                                if (count($rEPG['js']) != ((intval($rRequest['size']) ?: 4))) {
                                     $i++;
                                 }
                             }
@@ -652,7 +656,7 @@ class PortalHandler {
                 exit(json_encode($rEPG, JSON_PARTIAL_OUTPUT_ON_ERROR));
 
             case 'set_last_id':
-                $rChannelID = intval(StreamingUtilities::$rRequest['id']);
+                $rChannelID = intval($rRequest['id']);
 
                 if (0 >= $rChannelID) {
                 } else {
@@ -667,12 +671,12 @@ class PortalHandler {
                 $rOutput = array();
                 $rNumber = 1;
 
-                if (StreamingUtilities::$rSettings['show_all_category_mag'] != 1) {
+                if ($rSettings['show_all_category_mag'] != 1) {
                 } else {
                     $rOutput['js'][] = array('id' => '*', 'title' => 'All', 'alias' => 'All', 'active_sub' => true, 'censored' => 0);
                 }
 
-                foreach (StreamingUtilities::$rCategories as $rCategoryID => $rCategory) {
+                foreach ($rCategories as $rCategoryID => $rCategory) {
                     if ($rCategory['category_type'] == 'live' && in_array($rCategory['id'], $ctx['device']['category_ids'])) {
                         $rOutput['js'][] = array('id' => $rCategory['id'], 'title' => $rCategory['category_name'], 'modified' => '', 'number' => $rNumber++, 'alias' => strtolower($rCategory['category_name']), 'censored' => intval($rCategory['is_adult']));
                     }
@@ -691,14 +695,14 @@ class PortalHandler {
      * @param array  &$ctx Context array
      */
     public static function handleVod($rReqAction, &$ctx) {
-        global $db;
+        global $db, $rSettings, $rServers, $rRequest, $rCategories;
 
         switch ($rReqAction) {
             case 'set_claim':
-                if (empty(StreamingUtilities::$rRequest['id']) || empty(StreamingUtilities::$rRequest['real_type'])) {
+                if (empty($rRequest['id']) || empty($rRequest['real_type'])) {
                 } else {
-                    $rID = intval(StreamingUtilities::$rRequest['id']);
-                    $rRealType = StreamingUtilities::$rRequest['real_type'];
+                    $rID = intval($rRequest['id']);
+                    $rRealType = $rRequest['real_type'];
                     $rDate = date('Y-m-d H:i:s');
                     $db->query('INSERT INTO `mag_claims` (`stream_id`,`mag_id`,`real_type`,`date`) VALUES(?,?,?,?)', $rID, $ctx['device']['mag_id'], $rRealType, $rDate);
                 }
@@ -706,9 +710,9 @@ class PortalHandler {
                 exit(json_encode(array('js' => true)));
 
             case 'set_fav':
-                if (empty(StreamingUtilities::$rRequest['video_id'])) {
+                if (empty($rRequest['video_id'])) {
                 } else {
-                    $rVideoID = intval(StreamingUtilities::$rRequest['video_id']);
+                    $rVideoID = intval($rRequest['video_id']);
 
                     if (in_array($rVideoID, $ctx['device']['fav_channels']['movie'])) {
                     } else {
@@ -722,9 +726,9 @@ class PortalHandler {
                 exit(json_encode(array('js' => true)));
 
             case 'del_fav':
-                if (empty(StreamingUtilities::$rRequest['video_id'])) {
+                if (empty($rRequest['video_id'])) {
                 } else {
-                    $rVideoID = intval(StreamingUtilities::$rRequest['video_id']);
+                    $rVideoID = intval($rRequest['video_id']);
 
                     foreach ($ctx['device']['fav_channels']['movie'] as $rKey => $rValue) {
                         if ($rValue != $rVideoID) {
@@ -745,12 +749,12 @@ class PortalHandler {
                 $rOutput = array();
                 $rOutput['js'] = array();
 
-                if (StreamingUtilities::$rSettings['show_all_category_mag'] != 1) {
+                if ($rSettings['show_all_category_mag'] != 1) {
                 } else {
                     $rOutput['js'][] = array('id' => '*', 'title' => 'All', 'alias' => '*', 'censored' => 0);
                 }
 
-                foreach (StreamingUtilities::$rCategories as $rCategoryID => $rCategory) {
+                foreach ($rCategories as $rCategoryID => $rCategory) {
                     if ($rCategory['category_type'] == 'movie' && in_array($rCategory['id'], $ctx['device']['category_ids'])) {
                         $rOutput['js'][] = array('id' => $rCategory['id'], 'title' => $rCategory['category_name'], 'alias' => $rCategory['category_name'], 'censored' => intval($rCategory['is_adult']));
                     }
@@ -762,7 +766,7 @@ class PortalHandler {
                 $rOutput = array();
                 $rOutput['js'][] = array('id' => '*', 'title' => '*');
 
-                foreach (StreamingUtilities::$rCategories as $rCategoryID => $rCategory) {
+                foreach ($rCategories as $rCategoryID => $rCategory) {
                     if ($rCategory['category_type'] == 'movie' && in_array($rCategory['id'], $ctx['device']['category_ids'])) {
                         $rOutput['js'][] = array('id' => $rCategory['id'], 'title' => $rCategory['category_name']);
                     }
@@ -774,20 +778,20 @@ class PortalHandler {
                 exit(json_encode($ctx['magData']['get_years']));
 
             case 'get_ordered_list':
-                $rCategory = (!empty(StreamingUtilities::$rRequest['category']) && is_numeric(StreamingUtilities::$rRequest['category']) ? StreamingUtilities::$rRequest['category'] : null);
-                $rFav = (!empty(StreamingUtilities::$rRequest['fav']) ? 1 : null);
-                $rSortBy = (!empty(StreamingUtilities::$rRequest['sortby']) ? StreamingUtilities::$rRequest['sortby'] : 'added');
-                $rSearch = (!empty(StreamingUtilities::$rRequest['search']) ? StreamingUtilities::$rRequest['search'] : null);
+                $rCategory = (!empty($rRequest['category']) && is_numeric($rRequest['category']) ? $rRequest['category'] : null);
+                $rFav = (!empty($rRequest['fav']) ? 1 : null);
+                $rSortBy = (!empty($rRequest['sortby']) ? $rRequest['sortby'] : 'added');
+                $rSearch = (!empty($rRequest['search']) ? $rRequest['search'] : null);
                 $rPicking = array();
-                $rPicking['abc'] = (!empty(StreamingUtilities::$rRequest['abc']) ? StreamingUtilities::$rRequest['abc'] : '*');
-                $rPicking['genre'] = (!empty(StreamingUtilities::$rRequest['genre']) ? StreamingUtilities::$rRequest['genre'] : '*');
-                $rPicking['years'] = (!empty(StreamingUtilities::$rRequest['years']) ? StreamingUtilities::$rRequest['years'] : '*');
+                $rPicking['abc'] = (!empty($rRequest['abc']) ? $rRequest['abc'] : '*');
+                $rPicking['genre'] = (!empty($rRequest['genre']) ? $rRequest['genre'] : '*');
+                $rPicking['years'] = (!empty($rRequest['years']) ? $rRequest['years'] : '*');
 
                 exit(getMovies($rCategory, $rFav, $rSortBy, $rSearch, $rPicking));
 
             case 'create_link':
-                $rCommand = StreamingUtilities::$rRequest['cmd'];
-                $rSeries = (!empty(StreamingUtilities::$rRequest['series']) ? (int) StreamingUtilities::$rRequest['series'] : 0);
+                $rCommand = $rRequest['cmd'];
+                $rSeries = (!empty($rRequest['series']) ? (int) $rRequest['series'] : 0);
                 $rError = '';
 
                 if (!stristr($rCommand, '/media/')) {
@@ -827,10 +831,10 @@ class PortalHandler {
                         }
                 }
                 $rEncData = 'ministra::' . $rCommand['type'] . '/' . $ctx['device']['username'] . '/' . $ctx['device']['password'] . '/' . $rCommand['stream_id'] . '/' . $rCommand['target_container'] . '/' . $ctx['device']['token'];
-                $rToken = StreamingUtilities::encryptData($rEncData, StreamingUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
-                $rURL = ((StreamingUtilities::$rSettings['mag_disable_ssl'] ? StreamingUtilities::$rServers[SERVER_ID]['http_url'] : StreamingUtilities::$rServers[SERVER_ID]['site_url'])) . 'play/' . $rToken;
+                $rToken = Encryption::encrypt($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+                $rURL = (($rSettings['mag_disable_ssl'] ? $rServers[SERVER_ID]['http_url'] : $rServers[SERVER_ID]['site_url'])) . 'play/' . $rToken;
 
-                if (!StreamingUtilities::$rSettings['mag_keep_extension']) {
+                if (!$rSettings['mag_keep_extension']) {
                 } else {
                     $rURL .= '?ext=.' . $rCommand['target_container'];
                 }
@@ -853,14 +857,14 @@ class PortalHandler {
      * @param array  &$ctx Context array
      */
     public static function handleSeries($rReqAction, &$ctx) {
-        global $db;
+        global $db, $rSettings, $rRequest, $rCategories;
 
         switch ($rReqAction) {
             case 'set_claim':
-                if (empty(StreamingUtilities::$rRequest['id']) || empty(StreamingUtilities::$rRequest['real_type'])) {
+                if (empty($rRequest['id']) || empty($rRequest['real_type'])) {
                 } else {
-                    $rID = intval(StreamingUtilities::$rRequest['id']);
-                    $rRealType = StreamingUtilities::$rRequest['real_type'];
+                    $rID = intval($rRequest['id']);
+                    $rRealType = $rRequest['real_type'];
                     $rDate = date('Y-m-d H:i:s');
                     $db->query('INSERT INTO `mag_claims` (`stream_id`,`mag_id`,`real_type`,`date`) VALUES(?,?,?,?)', $rID, $ctx['device']['mag_id'], $rRealType, $rDate);
                 }
@@ -868,9 +872,9 @@ class PortalHandler {
                 exit(json_encode(array('js' => true)));
 
             case 'set_fav':
-                if (empty(StreamingUtilities::$rRequest['video_id'])) {
+                if (empty($rRequest['video_id'])) {
                 } else {
-                    $rVideoID = intval(StreamingUtilities::$rRequest['video_id']);
+                    $rVideoID = intval($rRequest['video_id']);
 
                     if (in_array($rVideoID, $ctx['device']['fav_channels']['series'])) {
                     } else {
@@ -884,9 +888,9 @@ class PortalHandler {
                 exit(json_encode(array('js' => true)));
 
             case 'del_fav':
-                if (empty(StreamingUtilities::$rRequest['video_id'])) {
+                if (empty($rRequest['video_id'])) {
                 } else {
-                    $rVideoID = intval(StreamingUtilities::$rRequest['video_id']);
+                    $rVideoID = intval($rRequest['video_id']);
 
                     foreach ($ctx['device']['fav_channels']['series'] as $rKey => $rValue) {
                         if ($rValue != $rVideoID) {
@@ -907,12 +911,12 @@ class PortalHandler {
                 $rOutput = array();
                 $rOutput['js'] = array();
 
-                if (StreamingUtilities::$rSettings['show_all_category_mag'] != 1) {
+                if ($rSettings['show_all_category_mag'] != 1) {
                 } else {
                     $rOutput['js'][] = array('id' => '*', 'title' => 'All', 'alias' => '*', 'censored' => 0);
                 }
 
-                foreach (StreamingUtilities::$rCategories as $rCategoryID => $rCategory) {
+                foreach ($rCategories as $rCategoryID => $rCategory) {
                     if ($rCategory['category_type'] == 'series' && in_array($rCategory['id'], $ctx['device']['category_ids'])) {
                         $rOutput['js'][] = array('id' => $rCategory['id'], 'title' => $rCategory['category_name'], 'alias' => $rCategory['category_name'], 'censored' => intval($rCategory['is_adult']));
                     }
@@ -924,7 +928,7 @@ class PortalHandler {
                 $rOutput = array();
                 $rOutput['js'][] = array('id' => '*', 'title' => '*');
 
-                foreach (StreamingUtilities::$rCategories as $rCategoryID => $rCategory) {
+                foreach ($rCategories as $rCategoryID => $rCategory) {
                     if ($rCategory['category_type'] == 'series' && in_array($rCategory['id'], $ctx['device']['category_ids'])) {
                         $rOutput['js'][] = array('id' => $rCategory['id'], 'title' => $rCategory['category_name']);
                     }
@@ -936,15 +940,15 @@ class PortalHandler {
                 exit(json_encode($ctx['magData']['get_years']));
 
             case 'get_ordered_list':
-                $rCategory = (!empty(StreamingUtilities::$rRequest['category']) && is_numeric(StreamingUtilities::$rRequest['category']) ? StreamingUtilities::$rRequest['category'] : null);
-                $rFav = (!empty(StreamingUtilities::$rRequest['fav']) ? 1 : null);
-                $rSortBy = (!empty(StreamingUtilities::$rRequest['sortby']) ? StreamingUtilities::$rRequest['sortby'] : 'added');
-                $rSearch = (!empty(StreamingUtilities::$rRequest['search']) ? StreamingUtilities::$rRequest['search'] : null);
-                $rMovieID = (!empty(StreamingUtilities::$rRequest['movie_id']) ? (int) StreamingUtilities::$rRequest['movie_id'] : null);
+                $rCategory = (!empty($rRequest['category']) && is_numeric($rRequest['category']) ? $rRequest['category'] : null);
+                $rFav = (!empty($rRequest['fav']) ? 1 : null);
+                $rSortBy = (!empty($rRequest['sortby']) ? $rRequest['sortby'] : 'added');
+                $rSearch = (!empty($rRequest['search']) ? $rRequest['search'] : null);
+                $rMovieID = (!empty($rRequest['movie_id']) ? (int) $rRequest['movie_id'] : null);
                 $rPicking = array();
-                $rPicking['abc'] = (!empty(StreamingUtilities::$rRequest['abc']) ? StreamingUtilities::$rRequest['abc'] : '*');
-                $rPicking['genre'] = (!empty(StreamingUtilities::$rRequest['genre']) ? StreamingUtilities::$rRequest['genre'] : '*');
-                $rPicking['years'] = (!empty(StreamingUtilities::$rRequest['years']) ? StreamingUtilities::$rRequest['years'] : '*');
+                $rPicking['abc'] = (!empty($rRequest['abc']) ? $rRequest['abc'] : '*');
+                $rPicking['genre'] = (!empty($rRequest['genre']) ? $rRequest['genre'] : '*');
+                $rPicking['years'] = (!empty($rRequest['years']) ? $rRequest['years'] : '*');
 
                 exit(getSeries($rMovieID, $rCategory, $rFav, $rSortBy, $rSearch, $rPicking));
 
@@ -961,6 +965,8 @@ class PortalHandler {
      * @param array  &$ctx Context array
      */
     public static function handleAccountInfo($rReqAction, &$ctx) {
+        global $rSettings;
+
         switch ($rReqAction) {
             case 'get_main_info':
                 if (empty($ctx['device']['exp_date'])) {
@@ -969,7 +975,7 @@ class PortalHandler {
                     $rExpiry = date('F j, Y, g:i a', $ctx['device']['exp_date']);
                 }
 
-                exit(json_encode(array('js' => array('mac' => $ctx['mac'], 'phone' => $rExpiry, 'message' => htmlspecialchars_decode(str_replace("\n", '<br/>', StreamingUtilities::$rSettings['mag_message']))))));
+                exit(json_encode(array('js' => array('mac' => $ctx['mac'], 'phone' => $rExpiry, 'message' => htmlspecialchars_decode(str_replace("\n", '<br/>', $rSettings['mag_message']))))));
         }
     }
 
@@ -981,12 +987,12 @@ class PortalHandler {
      * @param array  &$ctx Context array
      */
     public static function handleRadio($rReqAction, &$ctx) {
-        global $db;
+        global $db, $rRequest;
 
         switch ($rReqAction) {
             case 'get_ordered_list':
-                $rFav = (!empty(StreamingUtilities::$rRequest['fav']) ? 1 : null);
-                $rSortBy = (!empty(StreamingUtilities::$rRequest['sortby']) ? StreamingUtilities::$rRequest['sortby'] : 'added');
+                $rFav = (!empty($rRequest['fav']) ? 1 : null);
+                $rSortBy = (!empty($rRequest['sortby']) ? $rRequest['sortby'] : 'added');
 
                 exit(getStations(null, $rFav, $rSortBy));
 
@@ -994,7 +1000,7 @@ class PortalHandler {
                 exit(getStations(null, 1, null));
 
             case 'set_fav':
-                $f3f9f9fa3c58c22b = (empty(StreamingUtilities::$rRequest['fav_radio']) ? '' : StreamingUtilities::$rRequest['fav_radio']);
+                $f3f9f9fa3c58c22b = (empty($rRequest['fav_radio']) ? '' : $rRequest['fav_radio']);
                 $f3f9f9fa3c58c22b = array_filter(array_map('intval', explode(',', $f3f9f9fa3c58c22b)));
                 $ctx['device']['fav_channels']['radio_streams'] = $f3f9f9fa3c58c22b;
                 $db->query('UPDATE `mag_devices` SET `fav_channels` = ? WHERE `mag_id` = ?', json_encode($ctx['device']['fav_channels']), $ctx['device']['mag_id']);
@@ -1015,13 +1021,13 @@ class PortalHandler {
      * @param array  &$ctx Context array
      */
     public static function handleTvArchive($rReqAction, &$ctx) {
-        global $db;
+        global $db, $rSettings, $rServers, $rRequest;
 
         switch ($rReqAction) {
             case 'get_next_part_url':
-                if (empty(StreamingUtilities::$rRequest['id'])) {
+                if (empty($rRequest['id'])) {
                 } else {
-                    $rID = StreamingUtilities::$rRequest['id'];
+                    $rID = $rRequest['id'];
                     $rStreamID = substr($rID, 0, strpos($rID, '_'));
                     $rDate = strtotime(substr($rID, strpos($rID, '_') + 1));
                     $rRow = (getepg($rStreamID, $rDate, $rDate + 86400)[0] ?: null);
@@ -1033,10 +1039,10 @@ class PortalHandler {
                         $rDuration = intval(($rRow['end'] - $rRow['start']) / 60);
                         $rTitle = $rRow['title'];
                         $rEncData = 'ministra::timeshift/' . $ctx['device']['username'] . '/' . $ctx['device']['password'] . '/' . $rDuration . '/' . $rProgramStart . '/' . $rStreamID . '/' . $ctx['device']['token'];
-                        $rToken = StreamingUtilities::encryptData($rEncData, StreamingUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
-                        $rURL = ((StreamingUtilities::$rSettings['mag_disable_ssl'] ? StreamingUtilities::$rServers[SERVER_ID]['http_url'] : StreamingUtilities::$rServers[SERVER_ID]['site_url'])) . 'play/' . $rToken . '?&osd_title=' . $rTitle;
+                        $rToken = Encryption::encrypt($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+                        $rURL = (($rSettings['mag_disable_ssl'] ? $rServers[SERVER_ID]['http_url'] : $rServers[SERVER_ID]['site_url'])) . 'play/' . $rToken . '?&osd_title=' . $rTitle;
 
-                        if (!StreamingUtilities::$rSettings['mag_keep_extension']) {
+                        if (!$rSettings['mag_keep_extension']) {
                         } else {
                             $rURL .= '&ext=.ts';
                         }
@@ -1048,7 +1054,7 @@ class PortalHandler {
                 exit(json_encode(array('js' => false)));
 
             case 'create_link':
-                $rCommand = (empty(StreamingUtilities::$rRequest['cmd']) ? '' : StreamingUtilities::$rRequest['cmd']);
+                $rCommand = (empty($rRequest['cmd']) ? '' : $rRequest['cmd']);
                 list($rEPGDataID, $rStreamID) = explode('_', pathinfo($rCommand)['filename']);
                 $rRow = (getprogramme($rStreamID, $rEPGDataID) ?: null);
 
@@ -1059,10 +1065,10 @@ class PortalHandler {
                 $rStart = $rRow['start'];
                 $rDuration = intval(($rRow['end'] - $rRow['start']) / 60);
                 $rEncData = 'ministra::timeshift/' . $ctx['device']['username'] . '/' . $ctx['device']['password'] . '/' . $rDuration . '/' . $rStart . '/' . $rStreamID . '/' . $ctx['device']['token'];
-                $rToken = StreamingUtilities::encryptData($rEncData, StreamingUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
-                $rURL = ((StreamingUtilities::$rSettings['mag_disable_ssl'] ? StreamingUtilities::$rServers[SERVER_ID]['http_url'] : StreamingUtilities::$rServers[SERVER_ID]['site_url'])) . 'play/' . $rToken;
+                $rToken = Encryption::encrypt($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+                $rURL = (($rSettings['mag_disable_ssl'] ? $rServers[SERVER_ID]['http_url'] : $rServers[SERVER_ID]['site_url'])) . 'play/' . $rToken;
 
-                if (!StreamingUtilities::$rSettings['mag_keep_extension']) {
+                if (!$rSettings['mag_keep_extension']) {
                 } else {
                     $rURL .= '?ext=.ts';
                 }
@@ -1073,11 +1079,11 @@ class PortalHandler {
 
             case 'get_link_for_channel':
                 $rOutput = array();
-                $rChannelID = (!empty(StreamingUtilities::$rRequest['ch_id']) ? intval(StreamingUtilities::$rRequest['ch_id']) : 0);
+                $rChannelID = (!empty($rRequest['ch_id']) ? intval($rRequest['ch_id']) : 0);
                 $rStart = strtotime(date('Ymd-H'));
                 $rEncData = 'ministra::timeshift/' . $ctx['device']['username'] . '/' . $ctx['device']['password'] . '/60/' . $rStart . '/' . $rChannelID . '/' . $ctx['device']['token'];
-                $rToken = StreamingUtilities::encryptData($rEncData, StreamingUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
-                $rURL = ((StreamingUtilities::$rSettings['mag_disable_ssl'] ? StreamingUtilities::$rServers[SERVER_ID]['http_url'] : StreamingUtilities::$rServers[SERVER_ID]['site_url'])) . 'play/' . $rToken . ((StreamingUtilities::$rSettings['mag_keep_extension'] ? '?ext=.ts' : '')) . ' position:' . (intval(date('i')) * 60 + intval(date('s'))) . ' media_len:' . (intval(date('H')) * 3600 + intval(date('i')) * 60 + intval(date('s')));
+                $rToken = Encryption::encrypt($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+                $rURL = (($rSettings['mag_disable_ssl'] ? $rServers[SERVER_ID]['http_url'] : $rServers[SERVER_ID]['site_url'])) . 'play/' . $rToken . (($rSettings['mag_keep_extension'] ? '?ext=.ts' : '')) . ' position:' . (intval(date('i')) * 60 + intval(date('s'))) . ' media_len:' . (intval(date('H')) * 3600 + intval(date('i')) * 60 + intval(date('s')));
                 $rOutput['js'] = array('id' => 0, 'cmd' => $ctx['player'] . $rURL, 'storage_id' => '', 'load' => 0, 'error' => '');
 
                 exit(json_encode($rOutput, JSON_PARTIAL_OUTPUT_ON_ERROR));
@@ -1092,7 +1098,7 @@ class PortalHandler {
      * @param array  &$ctx Context array
      */
     public static function handleEpg($rReqAction, &$ctx) {
-        global $db;
+        global $db, $rRequest;
 
         switch ($rReqAction) {
             case 'get_week':
@@ -1116,13 +1122,13 @@ class PortalHandler {
                 exit(json_encode(array('js' => array()), JSON_PARTIAL_OUTPUT_ON_ERROR));
 
             case 'get_simple_data_table':
-                if (empty(StreamingUtilities::$rRequest['ch_id']) || empty(StreamingUtilities::$rRequest['date'])) {
+                if (empty($rRequest['ch_id']) || empty($rRequest['date'])) {
                     exit();
                 }
 
-                $rChannelID = StreamingUtilities::$rRequest['ch_id'];
-                $rReqDate = StreamingUtilities::$rRequest['date'];
-                $rPage = intval(StreamingUtilities::$rRequest['p']);
+                $rChannelID = $rRequest['ch_id'];
+                $rReqDate = $rRequest['date'];
+                $rPage = intval($rRequest['p']);
                 $rPageItems = ($ctx['theme'] == 'xc_vm' ? 7 : 10);
                 $rDefaultPage = false;
                 $rEPGDatas = array();
@@ -1146,7 +1152,7 @@ class PortalHandler {
                 if (file_exists(STREAMS_TMP_PATH . 'stream_' . intval($rChannelID))) {
                     $rStreamRow = igbinary_unserialize(file_get_contents(STREAMS_TMP_PATH . 'stream_' . intval($rChannelID)))['info'];
                 } else {
-                    $db->query('SELECT `tv_archive_duration` FROM `streams` WHERE `id` = ?;', StreamingUtilities::$rRequest['ch_id']);
+                    $db->query('SELECT `tv_archive_duration` FROM `streams` WHERE `id` = ?;', $rRequest['ch_id']);
 
                     if (0 >= $db->num_rows()) {
                     } else {
@@ -1184,7 +1190,7 @@ class PortalHandler {
 
                 $rProgram = array_slice($rEPGDatas, ($rPage - 1) * $rPageItems, $rPageItems);
                 $rData = array();
-                $rTimeDifference = StreamingUtilities::getDiffTimezone($ctx['timezone']);
+                $rTimeDifference = CoreUtilities::getDiffTimezone($ctx['timezone']);
 
                 for ($i = 0; $i < count($rProgram); $i++) {
                     $open = 0;
@@ -1241,13 +1247,13 @@ class PortalHandler {
             case 'get_all_program_for_ch':
                 $rOutput = array();
                 $rOutput['js'] = array();
-                $rChannelID = (empty(StreamingUtilities::$rRequest['ch_id']) ? 0 : intval(StreamingUtilities::$rRequest['ch_id']));
-                $rTimeDifference = StreamingUtilities::getDiffTimezone($ctx['timezone']);
+                $rChannelID = (empty($rRequest['ch_id']) ? 0 : intval($rRequest['ch_id']));
+                $rTimeDifference = CoreUtilities::getDiffTimezone($ctx['timezone']);
 
                 if (file_exists(STREAMS_TMP_PATH . 'stream_' . intval($rChannelID))) {
                     $rStreamRow = igbinary_unserialize(file_get_contents(STREAMS_TMP_PATH . 'stream_' . intval($rChannelID)))['info'];
                 } else {
-                    $db->query('SELECT `tv_archive_duration` FROM `streams` WHERE `id` = ?;', StreamingUtilities::$rRequest['ch_id']);
+                    $db->query('SELECT `tv_archive_duration` FROM `streams` WHERE `id` = ?;', $rRequest['ch_id']);
 
                     if (0 >= $db->num_rows()) {
                     } else {
@@ -1307,14 +1313,14 @@ class PortalHandler {
      * @param string $rMAC
      */
     public static function handleHandshake($rMAC) {
-        global $db;
+        global $db, $rSettings;
 
         $rDevice = getdevice(null, $rMAC);
         $rVerifyToken = null;
 
         if ($rDevice) {
             $rDevice['token'] = strtoupper(md5(uniqid(rand(), true)));
-            $rVerifyToken = StreamingUtilities::encryptData(igbinary_serialize(array('id' => $rDevice['mag_id'], 'token' => $rDevice['token'])), StreamingUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+            $rVerifyToken = Encryption::encrypt(igbinary_serialize(array('id' => $rDevice['mag_id'], 'token' => $rDevice['token'])), $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
             $rDevice['authenticated'] = false;
             $db->query('UPDATE `mag_devices` SET `token` = ? WHERE `mag_id` = ?', $rDevice['token'], $rDevice['mag_id']);
             $db->query('INSERT INTO `signals`(`server_id`, `cache`, `time`, `custom_data`) VALUES(?, 1, ?, ?);', SERVER_ID, time(), json_encode(array('type' => 'update_line', 'id' => $rDevice['user_id'])));

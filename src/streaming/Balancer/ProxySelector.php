@@ -1,11 +1,11 @@
 <?php
 
 class ProxySelector {
-	public static function availableProxy($rServers, $rProxies, $rCountryCode, $rUserISP = '', $rGetCapacityCallback = null) {
+	public static function availableProxy($rServers, $rProxies, $rCountryCode, $rUserISP = '', $rSettings = null) {
 		if (empty($rProxies)) {
 			return null;
 		}
-		$rServerCapacity = call_user_func($rGetCapacityCallback, true);
+		$rServerCapacity = ConnectionTracker::getCapacity($rSettings, $rServers, RedisManager::instance(), true);
 		$rAcceptServers = array();
 		foreach ($rProxies as $rServerID) {
 			$rOnlineClients = (isset($rServerCapacity[$rServerID]['online_clients']) ? $rServerCapacity[$rServerID]['online_clients'] : 0);

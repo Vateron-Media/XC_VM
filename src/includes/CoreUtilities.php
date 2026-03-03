@@ -93,7 +93,7 @@ class CoreUtilities {
 	}
 
 	public static function getSettings($rForce = false) {
-		return SettingsRepository::getAll(self::$db, array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
+		return SettingsRepository::getAll(array('CoreUtilities', 'getCache'), array('CoreUtilities', 'setCache'), $rForce);
 	}
 
 	public static function setCache($rCache, $rData) {

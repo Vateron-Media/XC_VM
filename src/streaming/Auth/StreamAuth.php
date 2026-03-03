@@ -1,7 +1,7 @@
 <?php
 
 class StreamAuth {
-	public static function checkAccess($rServers, $rSettings, $rUserInfo, $rUserIP, $rCountryCode, $rUserISP = '', $rGetCapacityCallback = null) {
+	public static function checkAccess($rServers, $rSettings, $rUserInfo, $rUserIP, $rCountryCode, $rUserISP = '') {
 		$rAvailableServers = array();
 		foreach ($rServers as $rServerID => $rServerInfo) {
 			if ($rServerInfo['server_online'] && $rServerInfo['server_type'] == 0) {
@@ -14,7 +14,7 @@ class StreamAuth {
 		}
 
 		shuffle($rAvailableServers);
-		$rServerCapacity = call_user_func($rGetCapacityCallback);
+		$rServerCapacity = ConnectionTracker::getCapacity($rSettings, $rServers, RedisManager::instance());
 		$rAcceptServers = array();
 
 		foreach ($rAvailableServers as $rServerID) {
@@ -76,15 +76,17 @@ class StreamAuth {
 		return (empty($rRedirectID) ? array_search(min($rPriorityServers), $rPriorityServers) : $rRedirectID);
 	}
 
-	public static function validateConnections($rUserInfo, $rIsHMAC = false, $rIdentifier = '', $rIP = null, $rUserAgent = null, $rCloseConnectionsCallback = null) {
+	public static function validateConnections($rUserInfo, $rIsHMAC = false, $rIdentifier = '', $rIP = null, $rUserAgent = null) {
 		if ($rUserInfo['max_connections'] != 0) {
+			global $rSettings, $rServers;
+			$redis = RedisManager::instance();
 			if (!$rIsHMAC) {
 				if (!empty($rUserInfo['pair_id'])) {
-					call_user_func($rCloseConnectionsCallback, $rUserInfo['pair_id'], $rUserInfo['max_connections'], null, '', $rIP, $rUserAgent);
+					ConnectionLimiter::closeConnections($redis, $rSettings, $rServers, $rUserInfo['pair_id'], $rUserInfo['max_connections'], null, '', $rIP, $rUserAgent);
 				}
-				call_user_func($rCloseConnectionsCallback, $rUserInfo['id'], $rUserInfo['max_connections'], null, '', $rIP, $rUserAgent);
+				ConnectionLimiter::closeConnections($redis, $rSettings, $rServers, $rUserInfo['id'], $rUserInfo['max_connections'], null, '', $rIP, $rUserAgent);
 			} else {
-				call_user_func($rCloseConnectionsCallback, null, $rUserInfo['max_connections'], $rIsHMAC, $rIdentifier, $rIP, $rUserAgent);
+				ConnectionLimiter::closeConnections($redis, $rSettings, $rServers, null, $rUserInfo['max_connections'], $rIsHMAC, $rIdentifier, $rIP, $rUserAgent);
 			}
 		}
 	}

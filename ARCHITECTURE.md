@@ -2052,55 +2052,301 @@ StreamRepository::getById($rStreamID);
 
 ---
 
-### Фаза 8: Очистка и финализация
+### Фаза 8: Ликвидация god-объектов
 
-#### Шаг 8.1 — Удаление proxy-методов
-- Обновить все вызывающие места на прямые вызовы новых классов
-- Удалить proxy-методы из CoreUtilities, StreamingUtilities, admin_api.php
+**Цель:** Удалить три файла-монолита (`CoreUtilities.php`, `StreamingUtilities.php`, `admin_api.php`), заменив все ~7 100 внешних вызовов на прямые обращения к целевым классам в `domain/`, `core/`, `streaming/`.
 
-#### Шаг 8.2 — Удаление god-объектов
-- `CoreUtilities.php` → удалить (все методы разнесены)
-- `StreamingUtilities.php` → удалить (все методы разнесены)
-- Если что-то осталось — вынести в утилитный класс
+#### Аудит перед началом (28.02.2026)
 
-#### Шаг 8.3 — Ревизия core/
-- Убедиться: `core/` не содержит бизнес-логики
-- Убедиться: `domain/` не знает об `public/`
-- Убедиться: удаление любого модуля не ломает систему
+| Файл | Строк | Методов | PROXY | OWN | Внешних вызовов | Файлов-потребителей |
+|------|--------|---------|-------|-----|-----------------|---------------------|
+| `CoreUtilities.php` | 1 971 | 152 | 81 | 69 | 5 755 | 303 |
+| `StreamingUtilities.php` | 659 | 78 | 42 | 33 | 1 344 | 20 |
+| `admin_api.php` | 3 686 | 79 | 60 | 18 | ~300 | ~40 |
+| **Итого** | **6 316** | **309** | **183** | **120** | **~7 400** | — |
 
-#### Шаг 8.4 — Рефакторинг cli/monitor.php
-- Удалить goto-лейблы (`label235`, `label592`)
-- Переписать с нормальным control flow
-- Вынести в `cli/Commands/MonitorCommand.php`
+**Распределение вызовов CoreUtilities по типу:**
+- `$rRequest` — 3 863 обращений (67%) — глобальный request-контейнер
+- `$rSettings` — 769 обращений — настройки панели
+- `$rServers` — 201 обращение — массив серверов
+- Методы-вызовы — ~920 обращений
+
+**Распределение StreamingUtilities по директориям:**
+- `www/` — 769 | `ministra/` — 266 | `modules/` — 229 | `core/` — 76 | `streaming/` — 4
+
+**Дублирование:** ~25 методов идентичны в обоих классах (`encryptData`, `base64url_*`, `cleanGlobals`, `getUserIP`, `getISP`, `getIPInfo`, `getPublicURL`, `isMonitorRunning`, `isStreamRunning`, `isProcessRunning`, `validateImage`, `generateString`, `getDiffTimezone`, `getAdultCategories`, `writeOfflineActivity`, `getPlaylistSegments`, `checkISP`, `checkServer`, `setSignal`, `matchCIDR` и др.)
 
 ---
 
-### Сводка: объём работы по файлам
+#### Шаг 8.1 — admin_api.php (LOW RISK)
 
-| Исходный файл | Строк | Сколько целевых классов | Фазы |
-|----------------|-------|------------------------|------|
-| `CoreUtilities.php` | 4847 | ~20 классов | 1.7, 2, 3, 4, 5 |
-| `admin_api.php` | 6981 | ~25 классов (Service) | 3.1–3.12, 5 |
-| `admin.php` | 4448 | ~15 классов (Repository + данные) | 3, 5, 7 |
-| `StreamingUtilities.php` | 1992 | ~10 классов | 2, 4 |
-| `admin/post.php` | 1946 | распределяется по контроллерам | 6 |
-| `admin/table.php` | 6003 | распределяется по контроллерам | 6 |
-| `includes/api/admin/table.php` | 6868 | распределяется по контроллерам | 6 |
-| `www/stream/auth.php` | 799 | 3 класса (Auth) | 4 |
-| `www/stream/live.php` | 707 | 3 класса (Delivery) | 4 |
-| Прочие admin/*.php | ~100 файлов | Controller + View | 6 |
+**Объём:** 3 686 строк, 79 методов (60 PROXY + 18 OWN + 1 INIT), ~300 внешних вызовов в ~40 файлах.
 
-### Рекомендуемый порядок работы
+**8.1.1 — Удаление PROXY-методов** (60 шт.)
+Каждый PROXY-метод просто делегирует в сервис:
+```php
+// Было (admin_api.php):
+public static function processBouquet() { return BouquetService::process(self::$db, ...); }
+// Вызов:
+ipTV_lib::processBouquet();
 
-```
-Фаза 1.7  →  Фаза 2  →  Фаза 3.1–3.4  →  Фаза 4.1–4.3  →  Фаза 3.5–3.12
-                                                              ↓
-Фаза 5.1–5.5  →  Фаза 5.6  →  Фаза 6.1–6.4  →  Фаза 7  →  Фаза 8
+// Стало (прямой вызов):
+BouquetService::process($db, ...);
 ```
 
-Каждый шаг (1.7.1, 1.7.2 ...) — это одна рабочая сессия (1–3 часа).
-Каждая фаза (1.7, 2, 3...) — это неделя–две постепенной работы.
-После каждого шага система полностью работоспособна.
+Целевые классы-делегаты (все уже существуют в `domain/`):
+`BouquetService`(3), `AuthService`(2), `UserService`(4), `BlocklistService`(3), `ChannelService`(3),
+`EpgService`(1), `EpisodeService`(3), `GroupService`(1), `StreamService`(4), `MovieService`(3),
+`SeriesService`(3), `LineService`(3), `MagService`(3), `EnigmaService`(3), `PackageService`(1),
+`ServerService`(3), `SettingsService`(3), `CategoryService`(2), `PlexService`(2), `WatchService`(2),
+`RecordingService`(1), `Authenticator`(1)
+
+**8.1.2 — Извлечение OWN-методов** (18 шт.)
+Legacy-методы с прямым SQL, которые не были перенесены в сервисы:
+
+| Метод | Строк | Целевой класс |
+|-------|-------|--------------|
+| `processProvider()` | ~55 | → `domain/Stream/ProviderService.php` (новый) |
+| `processGroupLegacy()` | ~90 | → `domain/User/GroupService.php` |
+| `processMovieLegacy()` | ~465 | → `domain/Vod/MovieService.php` |
+| `processMAGLegacy()` | ~195 | → `domain/Device/MagService.php` |
+| `processEnigmaLegacy()` | ~193 | → `domain/Device/EnigmaService.php` |
+| `processProfile()` | ~320 | → `domain/Stream/ProfileService.php` (новый) |
+| `processRadio()` | ~248 | → `domain/Stream/RadioService.php` (новый) |
+| `massEditRadios()` | ~185 | → `domain/Stream/RadioService.php` |
+| `processUserLegacy()` | ~92 | → `domain/User/UserService.php` |
+| `processLineLegacy()` | ~108 | → `domain/Line/LineService.php` |
+| `processSeriesLegacy()` | ~100 | → `domain/Vod/SeriesService.php` |
+| `importSeriesLegacy()` | ~205 | → `domain/Vod/SeriesService.php` |
+| `importMoviesLegacy()` | ~200 | → `domain/Vod/MovieService.php` |
+| `massEditLinesLegacy()` | ~120 | → `domain/Line/LineService.php` |
+| `massEditMagsLegacy()` | ~187 | → `domain/Device/MagService.php` |
+| `massEditEnigmasLegacy()` | ~156 | → `domain/Device/EnigmaService.php` |
+| `massEditUsersLegacy()` | ~86 | → `domain/User/UserService.php` |
+| `massDeleteStations()` | ~16 | → `domain/Stream/StreamService.php` |
+
+**8.1.3 — Удаление `init()` и статических свойств**
+- `$db`, `$rSettings`, `$rServers`, `$rProxyServers`, `$rUserInfo` — уже доступны через `CoreUtilities` или `$GLOBALS`
+- `checkMinimumRequirements()` (приватный валидатор) → `core/Validation/InputValidator.php`
+- Удалить файл `includes/admin_api.php`
+
+**Статус 8.1:** ✅ Завершён
+- `admin_api.php` (класс `API`) — файл удалён, все proxy/OWN методы мигрированы в domain-сервисы
+- Осиротевшие ссылки `API::processUser()` в `src/tools` → заменены на `UserService::process()`
+- `API::$db`/`API::init()` в `src/tools` → удалены
+- Запись `'API'` в `autoload.php` → удалена
+- `reseller_api.php` (класс `ResellerAPI`): `self::$db` → `global $db` (42 вхождения)
+- Удалено свойство `public static $db = null` из `ResellerAPI`
+- Удалены внешние присвоения `ResellerAPI::$db` из `bootstrap.php`, `admin_runtime.php`, `api/reseller/index.php`
+
+---
+
+#### Шаг 8.2 — StreamingUtilities.php (MEDIUM RISK)
+
+**Объём:** 659 строк, 78 методов (42 PROXY + 33 OWN + 1 INIT + 2 PROPERTY), 1 344 внешних вызовов в 20 файлах.
+
+**8.2.1 — Удаление PROXY-методов** (42 шт.)
+Все прямые делегаты → заменить call sites на целевой класс:
+`ConnectionTracker`(8), `BruteforceGuard`(4), `StreamSorter`(4), `BlocklistService`(3),
+`ConnectionLimiter`(3), `StreamRedirector`(2), `OffAirHandler`(2), `RedisManager`(2),
+`StreamAuth`(2), `ProxySelector`(1), `SignalSender`(1), `AuthService`(1), `ImageUtils`(1),
+`HealthChecker`(1), `CategoryService`(1), `SegmentReader`(1), `HLSGenerator`(1),
+`BouquetService`(1), `DomainResolver`(1), `UserRepository`(1), `LegacyInitializer`(1)
+
+**8.2.2 — Извлечение OWN-методов** (33 шт.)
+Группировка по целевому модулю:
+
+| Группа | Методы | Целевой класс |
+|--------|--------|--------------|
+| Кеш | `getCache()` | → `core/Cache/FileCache.php` (объединить с `CoreUtilities::getCache/setCache`) |
+| Криптография | `encryptData()`, `decryptData()`, `base64url_encode/decode()`, `mc_decrypt()` | → `core/Crypto/DataEncryptor.php` (новый, общий) |
+| HTTP/Input | `cleanGlobals()`, `parseIncomingRecursively()`, `parseCleanKey()`, `parseCleanValue()` | → `core/Http/InputSanitizer.php` (новый, общий) |
+| Networking | `getUserIP()`, `getISP()`, `getIPInfo()`, `matchCIDR()`, `getDomainName()` | → `core/Network/IpUtils.php` (новый) |
+| Process | `isMonitorRunning()`, `isStreamRunning()`, `isProcessRunning()`, `startMonitor()`, `startProxy()` | → `streaming/Process/ProcessManager.php` (объединить из обоих) |
+| Streaming | `getPublicURL()`, `getStreamData()`, `getPlaylistSegments()`, `getAllowedRTMP()`, `canWatch()`, `writeOfflineActivity()`, `setSignal()`, `generateString()` | → `streaming/` соответствующие классы |
+| UI | `getDiffTimezone()`, `getAdultCategories()` | → `core/Util/DateUtils.php`, `domain/Stream/CategoryService.php` |
+| DB | `connectDatabase()`, `closeDatabase()` | → оставить в `LegacyInitializer` или `core/Database/` |
+| Init | `isCacheEnabledAndComplete()` | → `core/Cache/CacheStatus.php` |
+
+**8.2.3 — Замена статических свойств**
+`StreamingUtilities::$rRequest` (369), `$rSettings` (366), `$rServers` (105), `$db` (83) — всего **923 обращения** в 20 файлах.
+→ Заменить на `$GLOBALS['rRequest']` / `$GLOBALS['rSettings']` / `$GLOBALS['db']` (промежуточный шаг)
+→ Или инжектировать через параметры функций (целевой вариант)
+
+**8.2.4 — Удаление файла**
+После переноса всех методов и свойств — удалить `includes/StreamingUtilities.php`.
+
+**Статус 8.2:** ✅ **ЗАВЕРШЕНО** (2026-03-03)
+
+**Итого:** ~314 внешних ссылок заменены в 10 батчах (Batch 1–10d).
+Файл `includes/StreamingUtilities.php` удалён (676 строк мёртвого кода).
+
+**Ключевые результаты:**
+- 8.2.3 — все 18 статических свойств удалены → `global $var` / `$GLOBALS['var']`
+- 8.2.1 — все 42 PROXY-метода мигрированы → прямые вызовы сервисов
+- 8.2.2 — все 33 OWN-метода перенесены в целевые классы
+- 8.2.4 — файл удалён, require/autoload записи убраны, bootstrap.php очищен
+
+**Батчи миграции внешних вызовов:**
+
+| Батч | Методы | Замен | Файлов |
+|------|--------|-------|--------|
+| 1 | Crypto (encrypt/decrypt/base64url) | 42 | 5 |
+| 2 | validateImage | 22 | 3 |
+| 3–5 | Простые proxy (sort, categories, health, signal, cache, etc.) | ~60 | 12 |
+| 6 | DB lifecycle (connect/close) | 26 | 8 |
+| 7 | Redis + Connection (get/create/updateConnection, redisSignal, etc.) | 57 | 6 |
+| 8 | Process + Proxy + Queue | 17 | 5 |
+| 9 | Process + GeoIP (isMonitorRunning, getIPInfo, etc.) | 24 | 5 |
+| 10a | getUserInfo | 18 | 6 |
+| 10b | showVideoServer + availableProxy | 26 | 2 |
+| 10c | redirectStream, validateConnections, validateHMAC, generateHLS, etc. | 20 | 8 |
+| 10d | getAllowedRTMP + getPlaylistSegments | 2 | 2 |
+
+**Рефакторинг callback-цепочек (Batch 10):**
+9 сервисных классов избавлены от callback-параметров → прямые service-to-service вызовы:
+`UserRepository`, `OffAirHandler`, `StreamAuth`, `ProxySelector`, `StreamRedirector`,
+`ConnectionLimiter`, `HLSGenerator`, `AuthService`, `DomainResolver`
+
+**Новые методы/классы добавленные при миграции:**
+- `GeoIPService::getIPInfo()`, `getISP()`, `matchCIDR()`
+- `BlocklistService::getAllowedRTMP()`
+- `SegmentReader::getPlaylistSegments()`
+- `ConnectionLimiter::writeOfflineActivity()`
+- `StreamRedirector::getStreamData()` (private)
+- `ProcessManager::isStreamAlive()`, `isMonitorAlive()`, `startMonitor()`, `startProxy()`
+- `RedisManager::instance()` (singleton для прямого доступа)
+
+---
+
+#### Шаг 8.3 — CoreUtilities.php (HIGH RISK, поэтапно)
+
+**Объём:** 1 971 строк, 152 метода (81 PROXY + 69 OWN + 1 INIT + 1 PROPERTY), 5 755 внешних вызовов в 303 файлах.
+
+**Главная сложность:** `CoreUtilities::$rRequest` — 3 863 обращения в 303 файлах. Это глобальный массив POST/GET-данных, используемый как `CoreUtilities::$rRequest['page']`, `CoreUtilities::$rRequest['id']` и т.д. Аналогично `$rSettings` (769 обращений) и `$rServers` (201).
+
+**8.3.1 — Удаление PROXY-методов** (81 шт.)
+Прямая замена вызовов на целевые классы. Топ делегатов:
+`StreamProcess`(16), `ConnectionTracker`(14), `PlexAuth`(6), `BlocklistService`(5),
+`BruteforceGuard`(4), `StreamSorter`(4), `LineService`(4), `EpgService`(4),
+`ProcessChecker`(3), `CurlClient`(3), `FFprobeRunner`(2), `BouquetService`(2),
+`ImageUtils`(2), `RedisManager`(2), остальные по 1
+
+**Топ-10 вызываемых PROXY-методов** (количество call sites):
+
+| Метод | Вызовов | Делегат |
+|-------|---------|---------|
+| `closeConnection()` | 48 | → `ConnectionLimiter::closeConnection()` |
+| `validateImage()` | 40 | → `ImageUtils::validateURL()` |
+| `downloadImage()` | 32 | → `ImageUtils::download()` (новый целевой) |
+| `getUserIP()` | 30 | → `core/Network/IpUtils::getUserIP()` |
+| `updateStream()` | 29 | → `StreamProcess::updateStream()` |
+| `getUserConnections()` | 29 | → `ConnectionTracker::getUserConnections()` |
+| `updateLine()` | 26 | → `LineService::updateLineSignal()` |
+| `checkCron()` | 22 | → метод остаётся (OWN) |
+| `getStreamConnections()` | 20 | → `ConnectionTracker::getStreamConnections()` |
+| `getRedisConnections()` | 20 | → `ConnectionTracker::getRedisConnections()` |
+
+**8.3.2 — Извлечение OWN-методов** (69 шт.)
+
+| Группа | Методы (шт.) | Целевой класс |
+|--------|-------------|--------------|
+| User/Auth | `getUserInfo()`(170 стр.), `getMAGInfo()`, `getE2Info()`, `getAllowedIPs()`, `getAllowedDomains()` | → `domain/Line/UserInfoResolver.php` (новый) |
+| Connection | `closeConnection()`(96 стр.), `writeOfflineActivity()`, `streamLog()` | → `streaming/Connection/ConnectionManager.php` |
+| Process | `isMonitorRunning()`, `isThumbnailRunning()`, `isArchiveRunning()`, `isDelayRunning()`, `isStreamRunning()`, `isProcessRunning()`, `isRunning()` | → `streaming/Process/ProcessManager.php` |
+| Streaming | `getPlaylistSegments()`, `generateAdminHLS()`, `getStreamBitrate()`, `isValidStream()`, `findKeyframe()`, `parseStreamURL()`, `detectXC_VM()`, `parseTranscode()`, `getArguments()`, `customOrder()`, `getRTMPStats()` | → распределить по `streaming/` классам |
+| Cache | `setCache()`, `getCache()` | → `core/Cache/FileCache.php` |
+| Crypto | `encryptData()`, `decryptData()`, `base64url_encode/decode()` | → `core/Crypto/DataEncryptor.php` |
+| Network | `getUserIP()`, `getISP()`, `checkISP()`, `checkServer()`, `getIPInfo()`, `getCertificateInfo()`, `getApiIP()` | → `core/Network/IpUtils.php` |
+| HTTP/Input | `cleanGlobals()`, `parseIncoming*()`, `parseCleanKey/Value()` | → `core/Http/InputSanitizer.php` |
+| Image | `downloadImage()`, `getImageSizeKeepAspectRatio()`, `isAbsoluteUrl()` | → `core/Media/ImageUtils.php` (расширить) |
+| URL | `getPublicURL()`(45 стр.), `getProxyFor()` | → `core/Network/UrlBuilder.php` |
+| Download | `startDownload()`, `stopDownload()` | → `streaming/Download/DownloadManager.php` |
+| Backup | `createBackup()`, `restoreBackup()`, `grantPrivileges()`, `revokePrivileges()` | → `domain/Server/BackupService.php` (новый) |
+| System | `checkCompatibility()`, `confirmIDs()`, `downloadPanelLogs()`, `submitPanelLogs()` | → `core/System/SystemCheck.php` (новый) |
+| Misc | `generateString()`, `secondsToTime()`, `mergeRecursive()`, `checkCron()`, `fixCookie()`, `unserialize_php()`, `getTSInfo()`, `getDiffTimezone()` | → `core/Util/Helpers.php` (новый) |
+
+**8.3.3 — Замена статических свойств** (наибольшая работа)
+
+| Свойство | Обращений | Стратегия замены |
+|----------|-----------|-----------------|
+| `$rRequest` | 3 863 | **Этап A:** глобальная переменная `$rRequest` (через `$GLOBALS['rRequest']` или `global $rRequest`). **Этап B:** `Request::input()` в контроллерах, прямой `$_POST/$_GET` в legacy. |
+| `$rSettings` | 769 | **Этап A:** `$GLOBALS['rSettings']`. **Этап B:** `SettingsRepository::getCached()` статический singleton. |
+| `$rServers` | 201 | **Этап A:** `$GLOBALS['rServers']`. **Этап B:** `ServerRepository::getCached()`. |
+| `$db` | 20 | `$GLOBALS['db']` или `global $db` (уже используется в большинстве мест) |
+| `$redis` | 60 | `RedisManager::getInstance()` |
+| Остальные | ~40 | Через соответствующие Repository/Service с кешем |
+
+**Порядок замены `$rRequest` (3 863 вызова):**
+1. `admin/` (2 307 из них — уже обёрнуты `$__viewMode` guard, контроллеры используют `$this->input()`)
+2. `includes/` (1 455 — через `global $rRequest`)
+3. `reseller/` (678), `www/` (373), `crons/` (260), `player/` (170)
+4. `core/` (164), `public/` (161), `modules/` (112), `domain/` (76)
+
+**8.3.4 — Удаление `init()` и `LegacyInitializer`**
+- `CoreUtilities::init()` → `LegacyInitializer::initCore()` → вызывается внешними `www/init.php`, `bootstrap.php`
+- Заменить инициализацию на `XC_Bootstrap::boot()` (уже существует)
+- Удалить `LegacyInitializer.php` после полного перехода
+
+**8.3.5 — Удаление файла**
+После переноса ВСЕХ методов и свойств — удалить `includes/CoreUtilities.php`.
+
+**Статус 8.3:** ⏳ Не начат
+
+---
+
+#### Шаг 8.4 — Ревизия архитектуры
+
+- Убедиться: `core/` не содержит бизнес-логики (только инфраструктура)
+- Убедиться: `domain/` не знает об `public/` (однонаправленные зависимости)
+- Убедиться: удаление любого модуля не ломает систему
+- Рефакторинг `cli/monitor.php` — убрать goto-лейблы, вынести в `cli/Commands/MonitorCommand.php`
+
+**Статус 8.4:** ⏳ Не начат
+
+---
+
+#### Новые целевые файлы (создаются в Фазе 8)
+
+| Файл | Откуда | Назначение |
+|------|--------|-----------|
+| `core/Cache/FileCache.php` | CU::getCache/setCache + SU::getCache | Файловый кеш с igbinary |
+| `core/Crypto/DataEncryptor.php` | CU+SU::encryptData/decryptData/base64url_* | Шифрование/кодирование |
+| `core/Http/InputSanitizer.php` | CU+SU::cleanGlobals/parseIncoming*/parseClean* | Очистка входных данных |
+| `core/Network/IpUtils.php` | CU+SU::getUserIP/getISP/getIPInfo/checkISP/matchCIDR | IP-утилиты |
+| `core/Network/UrlBuilder.php` | CU+SU::getPublicURL/getProxyFor | Построение URL |
+| `core/Media/ImageUtils.php` | CU::downloadImage/getImageSize* (расширить имеющийся) | Работа с изображениями |
+| `core/Util/Helpers.php` | CU::generateString/secondsToTime/mergeRecursive/etc. | Общие утилиты |
+| `core/Util/DateUtils.php` | CU+SU::getDiffTimezone | Дата/время |
+| `core/System/SystemCheck.php` | CU::checkCompatibility/downloadPanelLogs/submitPanelLogs | Системные проверки |
+| `core/Validation/InputValidator.php` | admin_api::checkMinimumRequirements | Валидация входных данных |
+| `streaming/Process/ProcessManager.php` | CU+SU::isMonitor/isStream/isProcess/isRunning | Управление процессами |
+| `streaming/Connection/ConnectionManager.php` | CU::closeConnection/writeOfflineActivity/streamLog | Управление соединениями |
+| `streaming/Download/DownloadManager.php` | CU::startDownload/stopDownload | Управление скачиваниями |
+| `domain/Line/UserInfoResolver.php` | CU::getUserInfo/getMAGInfo/getE2Info | Получение инфо о юзере/устройстве |
+| `domain/Server/BackupService.php` | CU::createBackup/restoreBackup/grant/revokePrivileges | Управление бэкапами |
+| `domain/Stream/ProviderService.php` | admin_api::processProvider | CRUD провайдеров |
+| `domain/Stream/ProfileService.php` | admin_api::processProfile | CRUD профилей транскодирования |
+| `domain/Stream/RadioService.php` | admin_api::processRadio/massEditRadios | CRUD радиостанций |
+
+---
+
+### Рекомендуемый порядок выполнения Фазы 8
+
+```
+8.1 admin_api.php    ──→  8.2 StreamingUtilities  ──→  8.3 CoreUtilities
+(~300 вызовов, ~40 файлов)  (1 344 вызовов, 20 файлов)  (5 755 вызовов, 303 файла)
+      LOW RISK                  MEDIUM RISK                  HIGH RISK
+
+Внутри каждого шага:
+  .1 Удалить PROXY (поиск-замена call sites)
+  .2 Извлечь OWN (создать целевые классы + перенести логику)
+  .3 Заменить свойства (static → global/DI)
+  .4 Удалить файл
+```
+
+Каждый подшаг (8.1.1, 8.1.2, ...) — одна рабочая сессия.
+После каждого подшага система полностью работоспособна (proxy и legacy продолжают работать).
 
 ---
 

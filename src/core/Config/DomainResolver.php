@@ -1,7 +1,7 @@
 <?php
 
 class DomainResolver {
-	public static function resolve($rServers, $rSettings, $rServerID, $rForceSSL = false, $rGetProxies = null, $rGetCache = null) {
+	public static function resolve($rServers, $rSettings, $rServerID, $rForceSSL = false) {
 		$rOriginatorID = null;
 		if ($rForceSSL) {
 			$rProtocol = 'https';
@@ -15,9 +15,9 @@ class DomainResolver {
 
 		$rProxied = $rServers[$rServerID]['enable_proxy'];
 		if ($rProxied) {
-			$rProxyIDs = is_callable($rGetProxies) ? array_keys(call_user_func($rGetProxies, $rServerID, true)) : array();
+			$rProxyIDs = array_keys(ConnectionTracker::getProxies($rServers, $rServerID, true));
 			if (count($rProxyIDs) == 0) {
-				$rProxyIDs = is_callable($rGetProxies) ? array_keys(call_user_func($rGetProxies, $rServerID, false)) : array();
+				$rProxyIDs = array_keys(ConnectionTracker::getProxies($rServers, $rServerID, false));
 			}
 			if (count($rProxyIDs) != 0) {
 				$rOriginatorID = $rServerID;
@@ -35,7 +35,7 @@ class DomainResolver {
 		}
 
 		if ($rProxied || $rSettings['use_mdomain_in_lists'] == 1) {
-			$rResellerDomains = is_callable($rGetCache) ? (call_user_func($rGetCache, 'reseller_domains') ?: array()) : array();
+			$rResellerDomains = CacheReader::get('reseller_domains') ?: array();
 			if (!(strlen($rDomain) > 0 && in_array(strtolower($rDomain), $rResellerDomains))) {
 				if (empty($rServers[$rServerID]['domain_name'])) {
 					$rDomain = escapeshellcmd($rServers[$rServerID]['server_ip']);

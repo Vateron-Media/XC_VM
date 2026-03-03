@@ -1,6 +1,7 @@
 <?php
 
 require_once 'constants.php';
+require_once MAIN_HOME . 'core/Init/LegacyInitializer.php';
 require_once INCLUDES_PATH . 'CoreUtilities.php';
 require_once MAIN_HOME . 'core/Database/DatabaseHandler.php';
 require_once INCLUDES_PATH . 'libs/GithubReleases.php';

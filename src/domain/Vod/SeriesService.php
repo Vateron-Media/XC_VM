@@ -3,11 +3,304 @@
 class SeriesService {
 	public static function process($rSettings, $rData) {
 		global $db;
-		return API::processSeriesLegacy($rData);
+		if (InputValidator::validate('processSeries', $rData)) {
+			if (isset($rData['edit'])) {
+				if (Authorization::check('adv', 'edit_series')) {
+					$rArray = overwriteData(getSerie($rData['edit']), $rData);
+				} else {
+					exit();
+				}
+			} else {
+				if (Authorization::check('adv', 'add_series')) {
+					$rArray = verifyPostTable('streams_series', $rData);
+					unset($rArray['id']);
+				} else {
+					exit();
+				}
+			}
+
+			if (!CoreUtilities::$rSettings['download_images']) {
+			} else {
+				$rData['cover'] = CoreUtilities::downloadImage($rData['cover'], 2);
+				$rData['backdrop_path'] = CoreUtilities::downloadImage($rData['backdrop_path']);
+			}
+
+			if (strlen($rData['backdrop_path']) == 0) {
+				$rArray['backdrop_path'] = array();
+			} else {
+				$rArray['backdrop_path'] = array($rData['backdrop_path']);
+			}
+
+			$rArray['last_modified'] = time();
+			$rArray['cover'] = $rData['cover'];
+			$rArray['cover_big'] = $rData['cover'];
+			$rBouquetCreate = array();
+
+			foreach (json_decode($rData['bouquet_create_list'], true) as $rBouquet) {
+				$rPrepare = prepareArray(array('bouquet_name' => $rBouquet, 'bouquet_channels' => array(), 'bouquet_movies' => array(), 'bouquet_series' => array(), 'bouquet_radios' => array()));
+				$rQuery = 'INSERT INTO `bouquets`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
+
+				if (!$db->query($rQuery, ...$rPrepare['data'])) {
+				} else {
+					$rBouquetID = $db->last_insert_id();
+					$rBouquetCreate[$rBouquet] = $rBouquetID;
+				}
+			}
+			$rCategoryCreate = array();
+
+			foreach (json_decode($rData['category_create_list'], true) as $rCategory) {
+				$rPrepare = prepareArray(array('category_type' => 'series', 'category_name' => $rCategory, 'parent_id' => 0, 'cat_order' => 99, 'is_adult' => 0));
+				$rQuery = 'INSERT INTO `streams_categories`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
+
+				if (!$db->query($rQuery, ...$rPrepare['data'])) {
+				} else {
+					$rCategoryID = $db->last_insert_id();
+					$rCategoryCreate[$rCategory] = $rCategoryID;
+				}
+			}
+			$rBouquets = array();
+
+			foreach ($rData['bouquets'] as $rBouquet) {
+				if (isset($rBouquetCreate[$rBouquet])) {
+					$rBouquets[] = $rBouquetCreate[$rBouquet];
+				} else {
+					if (!is_numeric($rBouquet)) {
+					} else {
+						$rBouquets[] = intval($rBouquet);
+					}
+				}
+			}
+			$rCategories = array();
+
+			foreach ($rData['category_id'] as $rCategory) {
+				if (isset($rCategoryCreate[$rCategory])) {
+					$rCategories[] = $rCategoryCreate[$rCategory];
+				} else {
+					if (!is_numeric($rCategory)) {
+					} else {
+						$rCategories[] = intval($rCategory);
+					}
+				}
+			}
+			$rArray['category_id'] = '[' . implode(',', array_map('intval', $rCategories)) . ']';
+			$rPrepare = prepareArray($rArray);
+			$rQuery = 'REPLACE INTO `streams_series`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
+
+			if ($db->query($rQuery, ...$rPrepare['data'])) {
+				$rInsertID = $db->last_insert_id();
+				SeriesService::queueRefresh($rInsertID);
+
+				foreach ($rBouquets as $rBouquet) {
+					addToBouquet('series', $rBouquet, $rInsertID);
+				}
+
+				foreach (BouquetService::getAllSimple() as $rBouquet) {
+					if (in_array($rBouquet['id'], $rBouquets)) {
+					} else {
+						removeFromBouquet('series', $rBouquet['id'], $rInsertID);
+					}
+				}
+
+				return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
+			} else {
+				foreach ($rBouquetCreate as $rBouquet => $rID) {
+					$db->query('DELETE FROM `bouquets` WHERE `id` = ?;', $rID);
+				}
+
+				foreach ($rCategoryCreate as $rCategory => $rID) {
+					$db->query('DELETE FROM `streams_categories` WHERE `id` = ?;', $rID);
+				}
+
+				return array('status' => STATUS_FAILURE, 'data' => $rData);
+			}
+		} else {
+			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+		}
 	}
 
 	public static function import($rData) {
-		return API::importSeriesLegacy($rData);
+		global $db;
+		if (Authorization::check('adv', 'import_movies')) {
+			if (InputValidator::validate('importSeries', $rData)) {
+				$rPostData = $rData;
+
+				foreach (array('read_native', 'movie_symlink', 'direct_source', 'direct_proxy', 'remove_subtitles') as $rKey) {
+					if (isset($rData[$rKey])) {
+						$rData[$rKey] = 1;
+					} else {
+						$rData[$rKey] = 0;
+					}
+				}
+
+				if (isset($rData['restart_on_edit'])) {
+					$rRestart = true;
+				} else {
+					$rRestart = false;
+				}
+
+				$rStreamDatabase = array();
+				$db->query('SELECT `stream_source` FROM `streams` WHERE `type` = 5;');
+
+				foreach ($db->get_rows() as $rRow) {
+					foreach (json_decode($rRow['stream_source'], true) as $rSource) {
+						if (0 >= strlen($rSource)) {
+						} else {
+							$rStreamDatabase[] = $rSource;
+						}
+					}
+				}
+				$rImportStreams = array();
+
+				if (!empty($_FILES['m3u_file']['tmp_name'])) {
+					$rFile = '';
+
+					if (empty($_FILES['m3u_file']['tmp_name']) || strtolower(pathinfo(explode('?', $_FILES['m3u_file']['name'])[0], PATHINFO_EXTENSION)) != 'm3u') {
+					} else {
+						$rFile = file_get_contents($_FILES['m3u_file']['tmp_name']);
+					}
+
+					preg_match_all('/(?P<tag>#EXTINF:[-1,0])|(?:(?P<prop_key>[-a-z]+)=\\"(?P<prop_val>[^"]+)")|(?<name>,[^\\r\\n]+)|(?<url>http[^\\s]*:\\/\\/.*\\/.*)/', $rFile, $rMatches);
+					$rResults = array();
+					$rIndex = -1;
+
+					for ($i = 0; $i < count($rMatches[0]); $i++) {
+						$rItem = $rMatches[0][$i];
+
+						if (!empty($rMatches['tag'][$i])) {
+							$rIndex++;
+						} else {
+							if (!empty($rMatches['prop_key'][$i])) {
+								$rResults[$rIndex][$rMatches['prop_key'][$i]] = trim($rMatches['prop_val'][$i]);
+							} else {
+								if (!empty($rMatches['name'][$i])) {
+									$rResults[$rIndex]['name'] = trim(substr($rItem, 1));
+								} else {
+									if (!empty($rMatches['url'][$i])) {
+										$rResults[$rIndex]['url'] = str_replace(' ', '%20', trim($rItem));
+									}
+								}
+							}
+						}
+					}
+
+					foreach ($rResults as $rResult) {
+						if (empty($rResult['url']) || in_array($rResult['url'], $rStreamDatabase)) {
+						} else {
+							$rPathInfo = pathinfo(explode('?', $rResult['url'])[0]);
+
+							if (!empty($rPathInfo['extension'])) {
+							} else {
+								$rPathInfo['extension'] = ($rData['target_container'] ?: 'mp4');
+							}
+
+							$rImportStreams[] = array('url' => $rResult['url'], 'title' => ($rResult['name'] ?: ''), 'container' => ($rData['movie_symlink'] || $rData['direct_source'] ? $rPathInfo['extension'] : $rData['target_container']));
+						}
+					}
+				} else {
+					if (empty($rData['import_folder'])) {
+					} else {
+						$rParts = explode(':', $rData['import_folder']);
+
+						if (!is_numeric($rParts[1])) {
+						} else {
+							if (isset($rData['scan_recursive'])) {
+								$rFiles = scanRecursive(intval($rParts[1]), $rParts[2], array('mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts'));
+							} else {
+								$rFiles = array();
+
+								foreach (listDir(intval($rParts[1]), rtrim($rParts[2], '/'), array('mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts'))['files'] as $rFile) {
+									$rFiles[] = rtrim($rParts[2], '/') . '/' . $rFile;
+								}
+							}
+
+							foreach ($rFiles as $rFile) {
+								$rFilePath = 's:' . intval($rParts[1]) . ':' . $rFile;
+
+								if (empty($rFilePath) || in_array($rFilePath, $rStreamDatabase)) {
+								} else {
+									$rPathInfo = pathinfo($rFile);
+
+									if (!empty($rPathInfo['extension'])) {
+									} else {
+										$rPathInfo['extension'] = ($rData['target_container'] ?: 'mp4');
+									}
+
+									$rImportStreams[] = array('url' => $rFilePath, 'title' => $rPathInfo['filename'], 'container' => ($rData['movie_symlink'] || $rData['direct_source'] ? $rPathInfo['extension'] : $rData['target_container']));
+								}
+							}
+						}
+					}
+				}
+
+				$rSeriesCategories = array_keys(getCategories('series'));
+
+				if (0 < count($rImportStreams)) {
+					$rBouquets = array();
+
+					foreach (json_decode($rData['bouquet_create_list'], true) as $rBouquet) {
+						$rPrepare = prepareArray(array('bouquet_name' => $rBouquet, 'bouquet_channels' => array(), 'bouquet_movies' => array(), 'bouquet_series' => array(), 'bouquet_radios' => array()));
+						$rQuery = 'INSERT INTO `bouquets`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
+
+						if (!$db->query($rQuery, ...$rPrepare['data'])) {
+						} else {
+							$rBouquets[] = $db->last_insert_id();
+						}
+					}
+
+					foreach ($rData['bouquets'] as $rBouquetID) {
+						if (!(is_numeric($rBouquetID) && in_array($rBouquetID, array_keys(CoreUtilities::$rBouquets)))) {
+						} else {
+							$rBouquets[] = intval($rBouquetID);
+						}
+					}
+					unset($rData['bouquets'], $rData['bouquet_create_list']);
+
+					$rCategories = array();
+
+					foreach (json_decode($rData['category_create_list'], true) as $rCategory) {
+						$rPrepare = prepareArray(array('category_type' => 'series', 'category_name' => $rCategory, 'parent_id' => 0, 'cat_order' => 99, 'is_adult' => 0));
+						$rQuery = 'INSERT INTO `streams_categories`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
+
+						if (!$db->query($rQuery, ...$rPrepare['data'])) {
+						} else {
+							$rCategories[] = $db->last_insert_id();
+						}
+					}
+
+					foreach ($rData['category_id'] as $rCategoryID) {
+						if (!(is_numeric($rCategoryID) && in_array($rCategoryID, $rSeriesCategories))) {
+						} else {
+							$rCategories[] = intval($rCategoryID);
+						}
+					}
+					unset($rData['category_id'], $rData['category_create_list']);
+
+					$rServerIDs = array();
+
+					foreach (json_decode($rData['server_tree_data'], true) as $rServer) {
+						if ($rServer['parent'] == '#') {
+						} else {
+							$rServerIDs[] = intval($rServer['id']);
+						}
+					}
+					$rWatchCategories = array(1 => WatchService::getWatchCategories(1), 2 => WatchService::getWatchCategories(2));
+
+					foreach ($rImportStreams as $rImportStream) {
+						$rData = array('import' => true, 'type' => 'series', 'title' => $rImportStream['title'], 'file' => $rImportStream['url'], 'subtitles' => array(), 'servers' => $rServerIDs, 'fb_category_id' => $rCategories, 'fb_bouquets' => $rBouquets, 'disable_tmdb' => false, 'ignore_no_match' => false, 'bouquets' => array(), 'category_id' => array(), 'language' => CoreUtilities::$rSettings['tmdb_language'], 'watch_categories' => $rWatchCategories, 'read_native' => $rData['read_native'], 'movie_symlink' => $rData['movie_symlink'], 'remove_subtitles' => $rData['remove_subtitles'], 'direct_source' => $rData['direct_source'], 'direct_proxy' => $rData['direct_proxy'], 'auto_encode' => $rRestart, 'auto_upgrade' => false, 'fallback_title' => false, 'ffprobe_input' => false, 'transcode_profile_id' => $rData['transcode_profile_id'], 'target_container' => $rImportStream['container'], 'max_genres' => intval(CoreUtilities::$rSettings['max_genres']), 'duplicate_tmdb' => true);
+						$rCommand = '/usr/bin/timeout 300 ' . PHP_BIN . ' ' . INCLUDES_PATH . 'cli/watch_item.php "' . base64_encode(json_encode($rData, JSON_UNESCAPED_UNICODE)) . '" > /dev/null 2>/dev/null &';
+						shell_exec($rCommand);
+					}
+
+					return array('status' => STATUS_SUCCESS);
+				} else {
+					return array('status' => STATUS_NO_SOURCES, 'data' => $rPostData);
+				}
+			} else {
+				return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+			}
+		} else {
+			exit();
+		}
 	}
 
 	public static function massDelete($rData) {

@@ -1,7 +1,8 @@
 <?php
 
 class SettingsRepository {
-	public static function getAll($db, $rGetCacheCallback, $rSetCacheCallback, $rForce = false) {
+	public static function getAll($rGetCacheCallback, $rSetCacheCallback, $rForce = false) {
+		global $db;
 		if (!$rForce && is_callable($rGetCacheCallback)) {
 			$rCache = call_user_func($rGetCacheCallback, 'settings', 20);
 			if (!empty($rCache)) {

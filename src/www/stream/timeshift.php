@@ -3,35 +3,35 @@
 register_shutdown_function('shutdown');
 set_time_limit(0);
 require_once 'init.php';
-unset(StreamingUtilities::$rSettings['watchdog_data'], StreamingUtilities::$rSettings['server_hardware']);
+unset($rSettings['watchdog_data'], $rSettings['server_hardware']);
 
 header('Access-Control-Allow-Origin: *');
 
-if (!empty(StreamingUtilities::$rSettings['send_server_header'])) {
-	header('Server: ' . StreamingUtilities::$rSettings['send_server_header']);
+if (!empty($rSettings['send_server_header'])) {
+	header('Server: ' . $rSettings['send_server_header']);
 }
 
-if (StreamingUtilities::$rSettings['send_protection_headers']) {
+if ($rSettings['send_protection_headers']) {
 	header('X-XSS-Protection: 0');
 	header('X-Content-Type-Options: nosniff');
 }
 
-if (StreamingUtilities::$rSettings['send_altsvc_header']) {
-	header('Alt-Svc: h3-29=":' . StreamingUtilities::$rServers[SERVER_ID]['https_broadcast_port'] . '"; ma=2592000,h3-T051=":' . StreamingUtilities::$rServers[SERVER_ID]['https_broadcast_port'] . '"; ma=2592000,h3-Q050=":' . StreamingUtilities::$rServers[SERVER_ID]['https_broadcast_port'] . '"; ma=2592000,h3-Q046=":' . StreamingUtilities::$rServers[SERVER_ID]['https_broadcast_port'] . '"; ma=2592000,h3-Q043=":' . StreamingUtilities::$rServers[SERVER_ID]['https_broadcast_port'] . '"; ma=2592000,quic=":' . StreamingUtilities::$rServers[SERVER_ID]['https_broadcast_port'] . '"; ma=2592000; v="46,43"');
+if ($rSettings['send_altsvc_header']) {
+	header('Alt-Svc: h3-29=":' . $rServers[SERVER_ID]['https_broadcast_port'] . '"; ma=2592000,h3-T051=":' . $rServers[SERVER_ID]['https_broadcast_port'] . '"; ma=2592000,h3-Q050=":' . $rServers[SERVER_ID]['https_broadcast_port'] . '"; ma=2592000,h3-Q046=":' . $rServers[SERVER_ID]['https_broadcast_port'] . '"; ma=2592000,h3-Q043=":' . $rServers[SERVER_ID]['https_broadcast_port'] . '"; ma=2592000,quic=":' . $rServers[SERVER_ID]['https_broadcast_port'] . '"; ma=2592000; v="46,43"');
 }
 
-if (empty(StreamingUtilities::$rSettings['send_unique_header_domain']) || !filter_var(HOST, FILTER_VALIDATE_IP)) {
-	StreamingUtilities::$rSettings['send_unique_header_domain'] = '.' . HOST;
+if (empty($rSettings['send_unique_header_domain']) || !filter_var(HOST, FILTER_VALIDATE_IP)) {
+	$rSettings['send_unique_header_domain'] = '.' . HOST;
 }
 
-if (!empty(StreamingUtilities::$rSettings['send_unique_header'])) {
+if (!empty($rSettings['send_unique_header'])) {
 	$rExpires = new DateTime('+6 months', new DateTimeZone('GMT'));
-	header('Set-Cookie: ' . StreamingUtilities::$rSettings['send_unique_header'] . '=' . StreamingUtilities::generateString(11) . '; Domain=' . StreamingUtilities::$rSettings['send_unique_header_domain'] . '; Expires=' . $rExpires->format(DATE_RFC2822) . '; Path=/; Secure; HttpOnly; SameSite=none');
+	header('Set-Cookie: ' . $rSettings['send_unique_header'] . '=' . Encryption::randomString(11) . '; Domain=' . $rSettings['send_unique_header_domain'] . '; Expires=' . $rExpires->format(DATE_RFC2822) . '; Path=/; Secure; HttpOnly; SameSite=none');
 }
 
 $rCreateExpiration = 60;
 $rProxyID = null;
-$rIP = StreamingUtilities::getUserIP();
+$rIP = $_SERVER['REMOTE_ADDR'];
 $rUserAgent = (empty($_SERVER['HTTP_USER_AGENT']) ? '' : htmlentities(trim($_SERVER['HTTP_USER_AGENT'])));
 $rConSpeedFile = null;
 $rDivergence = 0;
@@ -39,15 +39,15 @@ $rCloseCon = false;
 $rPID = getmypid();
 $rStartTime = time();
 
-if (isset(StreamingUtilities::$rRequest['token'])) {
-	$rTokenData = json_decode(StreamingUtilities::decryptData(StreamingUtilities::$rRequest['token'], StreamingUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA), true);
+if (isset($rRequest['token'])) {
+	$rTokenData = json_decode(Encryption::decrypt($rRequest['token'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA), true);
 
 	if (!is_array($rTokenData)) {
 		DatabaseLogger::clientLog(0, 0, 'LB_TOKEN_INVALID', $rIP);
 		generateError('LB_TOKEN_INVALID');
 	}
 
-	if (isset($rTokenData['expires']) && $rTokenData['expires'] < time() - intval(StreamingUtilities::$rServers[SERVER_ID]['time_offset'])) {
+	if (isset($rTokenData['expires']) && $rTokenData['expires'] < time() - intval($rServers[SERVER_ID]['time_offset'])) {
 		generateError('TOKEN_EXPIRED');
 	}
 
@@ -71,7 +71,7 @@ if (isset(StreamingUtilities::$rRequest['token'])) {
 	generateError('NO_TOKEN_SPECIFIED');
 }
 
-if (StreamingUtilities::$rSettings['use_buffer'] == 0) {
+if ($rSettings['use_buffer'] == 0) {
 	header('X-Accel-Buffering: no');
 }
 
@@ -139,56 +139,56 @@ if ($rUserInfo) {
 		$rServerID = ($rRedirectID ?: SERVER_ID);
 	}
 
-	if (StreamingUtilities::$rSettings['redis_handler']) {
-		StreamingUtilities::connectRedis();
+	if ($rSettings['redis_handler']) {
+		RedisManager::ensureConnected();
 	} else {
-		StreamingUtilities::connectDatabase();
+		DatabaseFactory::connect();
 	}
 
 	switch ($rExtension) {
 		case 'm3u8':
-			if (StreamingUtilities::$rSettings['redis_handler']) {
-				$rConnection = StreamingUtilities::getConnection($rTokenData['uuid']);
+			if ($rSettings['redis_handler']) {
+				$rConnection = ConnectionTracker::getConnection(RedisManager::instance(), $rTokenData['uuid']);
 			} else {
-				StreamingUtilities::$db->query('SELECT `activity_id`, `pid`, `user_ip` FROM `lines_live` WHERE `uuid` = ?;', $rTokenData['uuid']);
+				$db->query('SELECT `activity_id`, `pid`, `user_ip` FROM `lines_live` WHERE `uuid` = ?;', $rTokenData['uuid']);
 
-				if (0 >= StreamingUtilities::$db->num_rows()) {
+				if (0 >= $db->num_rows()) {
 				} else {
-					$rConnection = StreamingUtilities::$db->get_row();
+					$rConnection = $db->get_row();
 				}
 			}
 
 			if (!$rConnection) {
-				if (file_exists(CONS_TMP_PATH . $rTokenData['uuid']) || ($rActivityStart + $rCreateExpiration) - intval(StreamingUtilities::$rServers[SERVER_ID]['time_offset']) >= time()) {
+				if (file_exists(CONS_TMP_PATH . $rTokenData['uuid']) || ($rActivityStart + $rCreateExpiration) - intval($rServers[SERVER_ID]['time_offset']) >= time()) {
 				} else {
 					generateError('TOKEN_EXPIRED');
 				}
 
-				if (StreamingUtilities::$rSettings['redis_handler']) {
-					$rConnectionData = array('user_id' => $rUserInfo['id'], 'stream_id' => $rStreamID, 'server_id' => $rServerID, 'proxy_id' => $rProxyID, 'user_agent' => $rUserAgent, 'user_ip' => $rIP, 'container' => 'hls', 'pid' => null, 'date_start' => $rActivityStart, 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo['con_isp_name'], 'external_device' => '', 'hls_end' => 0, 'hls_last_read' => time() - intval(StreamingUtilities::$rServers[SERVER_ID]['time_offset']), 'on_demand' => 0, 'identity' => $rUserInfo['id'], 'uuid' => $rTokenData['uuid']);
-					$rResult = StreamingUtilities::createConnection($rConnectionData);
+				if ($rSettings['redis_handler']) {
+					$rConnectionData = array('user_id' => $rUserInfo['id'], 'stream_id' => $rStreamID, 'server_id' => $rServerID, 'proxy_id' => $rProxyID, 'user_agent' => $rUserAgent, 'user_ip' => $rIP, 'container' => 'hls', 'pid' => null, 'date_start' => $rActivityStart, 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo['con_isp_name'], 'external_device' => '', 'hls_end' => 0, 'hls_last_read' => time() - intval($rServers[SERVER_ID]['time_offset']), 'on_demand' => 0, 'identity' => $rUserInfo['id'], 'uuid' => $rTokenData['uuid']);
+					$rResult = ConnectionTracker::createConnection(RedisManager::instance(), $rConnectionData);
 				} else {
-					$rResult = StreamingUtilities::$db->query('INSERT INTO `lines_live` (`user_id`,`stream_id`,`server_id`,`proxy_id`,`user_agent`,`user_ip`,`container`,`pid`,`uuid`,`date_start`,`geoip_country_code`,`isp`,`external_device`,`hls_last_read`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?);', $rUserInfo['id'], $rStreamID, $rServerID, $rProxyID, $rUserAgent, $rIP, 'hls', null, $rTokenData['uuid'], $rActivityStart, $rCountryCode, $rUserInfo['con_isp_name'], '', time() - intval(StreamingUtilities::$rServers[SERVER_ID]['time_offset']));
+					$rResult = $db->query('INSERT INTO `lines_live` (`user_id`,`stream_id`,`server_id`,`proxy_id`,`user_agent`,`user_ip`,`container`,`pid`,`uuid`,`date_start`,`geoip_country_code`,`isp`,`external_device`,`hls_last_read`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?);', $rUserInfo['id'], $rStreamID, $rServerID, $rProxyID, $rUserAgent, $rIP, 'hls', null, $rTokenData['uuid'], $rActivityStart, $rCountryCode, $rUserInfo['con_isp_name'], '', time() - intval($rServers[SERVER_ID]['time_offset']));
 				}
 			} else {
-				$rIPMatch = (StreamingUtilities::$rSettings['ip_subnet_match'] ? implode('.', array_slice(explode('.', $rConnection['user_ip']), 0, -1)) == implode('.', array_slice(explode('.', $rIP), 0, -1)) : $rConnection['user_ip'] == $rIP);
+				$rIPMatch = ($rSettings['ip_subnet_match'] ? implode('.', array_slice(explode('.', $rConnection['user_ip']), 0, -1)) == implode('.', array_slice(explode('.', $rIP), 0, -1)) : $rConnection['user_ip'] == $rIP);
 
-				if ($rIPMatch || !StreamingUtilities::$rSettings['restrict_same_ip']) {
+				if ($rIPMatch || !$rSettings['restrict_same_ip']) {
 				} else {
 					DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'IP_MISMATCH', $rIP);
 					generateError('IP_MISMATCH');
 				}
 
-				if (StreamingUtilities::$rSettings['redis_handler']) {
-					$rChanges = array('hls_last_read' => time() - intval(StreamingUtilities::$rServers[SERVER_ID]['time_offset']));
+				if ($rSettings['redis_handler']) {
+					$rChanges = array('hls_last_read' => time() - intval($rServers[SERVER_ID]['time_offset']));
 
-					if ($rConnection = StreamingUtilities::updateConnection($rConnection, $rChanges, 'open')) {
+					if ($rConnection = ConnectionTracker::updateConnection(RedisManager::instance(), $rConnection, $rChanges, 'open')) {
 						$rResult = true;
 					} else {
 						$rResult = false;
 					}
 				} else {
-					$rResult = StreamingUtilities::$db->query('UPDATE `lines_live` SET `hls_last_read` = ?, `hls_end` = 0 WHERE `activity_id` = ?', time() - intval(StreamingUtilities::$rServers[SERVER_ID]['time_offset']), $rConnection['activity_id']);
+					$rResult = $db->query('UPDATE `lines_live` SET `hls_last_read` = ?, `hls_end` = 0 WHERE `activity_id` = ?', time() - intval($rServers[SERVER_ID]['time_offset']), $rConnection['activity_id']);
 				}
 			}
 
@@ -198,12 +198,12 @@ if ($rUserInfo) {
 				generateError('LINE_CREATE_FAIL');
 			}
 
-			StreamingUtilities::validateConnections($rUserInfo, null, null, $rIP, $rUserAgent);
+			StreamAuth::validateConnections($rUserInfo, null, null, $rIP, $rUserAgent);
 
-			if (StreamingUtilities::$rSettings['redis_handler']) {
-				StreamingUtilities::closeRedis();
+			if ($rSettings['redis_handler']) {
+				RedisManager::closeInstance();
 			} else {
-				StreamingUtilities::closeDatabase();
+				DatabaseFactory::close();
 			}
 
 			touch(CONS_TMP_PATH . $rTokenData['uuid']);
@@ -215,7 +215,7 @@ if ($rUserInfo) {
 
 			for ($i = 0; $i < count($rQueue); $i++) {
 				$rOutput .= "#EXTINF:60.0,\n";
-				$rOutput .= (($rProxyID ? '/' . md5($rProxyID . '_' . $rServerID . '_' . OPENSSL_EXTRA) : '')) . '/hls/' . StreamingUtilities::encryptData('TS/' . $rUsername . '/' . $rPassword . '/' . $rIP . '/' . $rDuration . '/' . $rStartDate . '/' . $rStreamID . '_' . basename($rQueue[$i]['filename']) . '_' . (($i == 0 ? $rOffset : 0)) . '/' . $rTokenData['uuid'] . '/' . $rServerID, StreamingUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA) . "\n";
+				$rOutput .= (($rProxyID ? '/' . md5($rProxyID . '_' . $rServerID . '_' . OPENSSL_EXTRA) : '')) . '/hls/' . Encryption::encrypt('TS/' . $rUsername . '/' . $rPassword . '/' . $rIP . '/' . $rDuration . '/' . $rStartDate . '/' . $rStreamID . '_' . basename($rQueue[$i]['filename']) . '_' . (($i == 0 ? $rOffset : 0)) . '/' . $rTokenData['uuid'] . '/' . $rServerID, $rSettings['live_streaming_pass'], OPENSSL_EXTRA) . "\n";
 			}
 			$rOutput .= '#EXT-X-ENDLIST';
 			touch(CONS_TMP_PATH . $rTokenData['uuid']);
@@ -226,66 +226,66 @@ if ($rUserInfo) {
 
 			exit();
 		default:
-			if (StreamingUtilities::$rSettings['redis_handler']) {
-				$rConnection = StreamingUtilities::getConnection($rTokenData['uuid']);
+			if ($rSettings['redis_handler']) {
+				$rConnection = ConnectionTracker::getConnection(RedisManager::instance(), $rTokenData['uuid']);
 			} else {
-				StreamingUtilities::$db->query('SELECT `server_id`, `activity_id`, `pid`, `user_ip` FROM `lines_live` WHERE `uuid` = ?;', $rTokenData['uuid']);
+				$db->query('SELECT `server_id`, `activity_id`, `pid`, `user_ip` FROM `lines_live` WHERE `uuid` = ?;', $rTokenData['uuid']);
 
-				if (0 < StreamingUtilities::$db->num_rows()) {
-					$rConnection = StreamingUtilities::$db->get_row();
+				if (0 < $db->num_rows()) {
+					$rConnection = $db->get_row();
 				} else {
 					if (empty($_SERVER['HTTP_RANGE'])) {
 					} else {
-						StreamingUtilities::$db->query('SELECT `server_id`, `activity_id`, `pid`, `user_ip` FROM `lines_live` WHERE `hmac_id` = ? AND `hmac_identifier` = ? AND `container` = ? AND `user_agent` = ? AND `stream_id` = ?;', $rIsHMAC, $rIdentifier, 'hls', $rUserAgent, $rStreamID);
+						$db->query('SELECT `server_id`, `activity_id`, `pid`, `user_ip` FROM `lines_live` WHERE `hmac_id` = ? AND `hmac_identifier` = ? AND `container` = ? AND `user_agent` = ? AND `stream_id` = ?;', $rIsHMAC, $rIdentifier, 'hls', $rUserAgent, $rStreamID);
 
-						if (0 >= StreamingUtilities::$db->num_rows()) {
+						if (0 >= $db->num_rows()) {
 						} else {
-							$rConnection = StreamingUtilities::$db->get_row();
+							$rConnection = $db->get_row();
 						}
 					}
 				}
 			}
 
 			if (!$rConnection) {
-				if (file_exists(CONS_TMP_PATH . $rTokenData['uuid']) || ($rActivityStart + $rCreateExpiration) - intval(StreamingUtilities::$rServers[SERVER_ID]['time_offset']) >= time()) {
+				if (file_exists(CONS_TMP_PATH . $rTokenData['uuid']) || ($rActivityStart + $rCreateExpiration) - intval($rServers[SERVER_ID]['time_offset']) >= time()) {
 				} else {
 					generateError('TOKEN_EXPIRED');
 				}
 
-				if (StreamingUtilities::$rSettings['redis_handler']) {
-					$rConnectionData = array('user_id' => $rUserInfo['id'], 'stream_id' => $rStreamID, 'server_id' => $rServerID, 'proxy_id' => $rProxyID, 'user_agent' => $rUserAgent, 'user_ip' => $rIP, 'container' => $rExtension, 'pid' => $rPID, 'date_start' => $rActivityStart, 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo['con_isp_name'], 'external_device' => '', 'hls_end' => 0, 'hls_last_read' => time() - intval(StreamingUtilities::$rServers[SERVER_ID]['time_offset']), 'on_demand' => 0, 'identity' => $rUserInfo['id'], 'uuid' => $rTokenData['uuid']);
-					$rResult = StreamingUtilities::createConnection($rConnectionData);
+				if ($rSettings['redis_handler']) {
+					$rConnectionData = array('user_id' => $rUserInfo['id'], 'stream_id' => $rStreamID, 'server_id' => $rServerID, 'proxy_id' => $rProxyID, 'user_agent' => $rUserAgent, 'user_ip' => $rIP, 'container' => $rExtension, 'pid' => $rPID, 'date_start' => $rActivityStart, 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo['con_isp_name'], 'external_device' => '', 'hls_end' => 0, 'hls_last_read' => time() - intval($rServers[SERVER_ID]['time_offset']), 'on_demand' => 0, 'identity' => $rUserInfo['id'], 'uuid' => $rTokenData['uuid']);
+					$rResult = ConnectionTracker::createConnection(RedisManager::instance(), $rConnectionData);
 				} else {
-					$rResult = StreamingUtilities::$db->query('INSERT INTO `lines_live` (`user_id`,`stream_id`,`server_id`,`proxy_id`,`user_agent`,`user_ip`,`container`,`pid`,`uuid`,`date_start`,`geoip_country_code`,`isp`,`external_device`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)', $rUserInfo['id'], $rStreamID, $rServerID, $rProxyID, $rUserAgent, $rIP, $rExtension, $rPID, $rTokenData['uuid'], $rActivityStart, $rCountryCode, $rUserInfo['con_isp_name'], '');
+					$rResult = $db->query('INSERT INTO `lines_live` (`user_id`,`stream_id`,`server_id`,`proxy_id`,`user_agent`,`user_ip`,`container`,`pid`,`uuid`,`date_start`,`geoip_country_code`,`isp`,`external_device`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)', $rUserInfo['id'], $rStreamID, $rServerID, $rProxyID, $rUserAgent, $rIP, $rExtension, $rPID, $rTokenData['uuid'], $rActivityStart, $rCountryCode, $rUserInfo['con_isp_name'], '');
 				}
 			} else {
-				$rIPMatch = (StreamingUtilities::$rSettings['ip_subnet_match'] ? implode('.', array_slice(explode('.', $rConnection['user_ip']), 0, -1)) == implode('.', array_slice(explode('.', $rIP), 0, -1)) : $rConnection['user_ip'] == $rIP);
+				$rIPMatch = ($rSettings['ip_subnet_match'] ? implode('.', array_slice(explode('.', $rConnection['user_ip']), 0, -1)) == implode('.', array_slice(explode('.', $rIP), 0, -1)) : $rConnection['user_ip'] == $rIP);
 
-				if ($rIPMatch || !StreamingUtilities::$rSettings['restrict_same_ip']) {
+				if ($rIPMatch || !$rSettings['restrict_same_ip']) {
 				} else {
 					DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'IP_MISMATCH', $rIP);
 					generateError('IP_MISMATCH');
 				}
 
-				if (!(StreamingUtilities::isProcessRunning($rConnection['pid'], 'php-fpm') && $rPID != $rConnection['pid'] && is_numeric($rConnection['pid']) && 0 < $rConnection['pid'])) {
+				if (!(ProcessManager::isRunning($rConnection['pid'], 'php-fpm') && $rPID != $rConnection['pid'] && is_numeric($rConnection['pid']) && 0 < $rConnection['pid'])) {
 				} else {
 					if ($rConnection['server_id'] == SERVER_ID) {
 						posix_kill(intval($rConnection['pid']), 9);
 					} else {
-						StreamingUtilities::$db->query('INSERT INTO `signals` (`pid`,`server_id`,`time`) VALUES(?,?,UNIX_TIMESTAMP())', $rConnection['pid'], $rConnection['server_id']);
+						$db->query('INSERT INTO `signals` (`pid`,`server_id`,`time`) VALUES(?,?,UNIX_TIMESTAMP())', $rConnection['pid'], $rConnection['server_id']);
 					}
 				}
 
-				if (StreamingUtilities::$rSettings['redis_handler']) {
-					$rChanges = array('pid' => $rPID, 'hls_last_read' => time() - intval(StreamingUtilities::$rServers[SERVER_ID]['time_offset']));
+				if ($rSettings['redis_handler']) {
+					$rChanges = array('pid' => $rPID, 'hls_last_read' => time() - intval($rServers[SERVER_ID]['time_offset']));
 
-					if ($rConnection = StreamingUtilities::updateConnection($rConnection, $rChanges, 'open')) {
+					if ($rConnection = ConnectionTracker::updateConnection(RedisManager::instance(), $rConnection, $rChanges, 'open')) {
 						$rResult = true;
 					} else {
 						$rResult = false;
 					}
 				} else {
-					$rResult = StreamingUtilities::$db->query('UPDATE `lines_live` SET `hls_end` = 0, `pid` = ? WHERE `activity_id` = ?;', $rPID, $rConnection['activity_id']);
+					$rResult = $db->query('UPDATE `lines_live` SET `hls_end` = 0, `pid` = ? WHERE `activity_id` = ?;', $rPID, $rConnection['activity_id']);
 				}
 			}
 
@@ -295,17 +295,17 @@ if ($rUserInfo) {
 				generateError('LINE_CREATE_FAIL');
 			}
 
-			StreamingUtilities::validateConnections($rUserInfo, null, null, $rIP, $rUserAgent);
+			StreamAuth::validateConnections($rUserInfo, null, null, $rIP, $rUserAgent);
 
-			if (StreamingUtilities::$rSettings['redis_handler']) {
-				StreamingUtilities::closeRedis();
+			if ($rSettings['redis_handler']) {
+				RedisManager::closeInstance();
 			} else {
-				StreamingUtilities::closeDatabase();
+				DatabaseFactory::close();
 			}
 
 			$rCloseCon = true;
 
-			if (!StreamingUtilities::$rSettings['monitor_connection_status']) {
+			if (!$rSettings['monitor_connection_status']) {
 			} else {
 				ob_implicit_flush(true);
 
@@ -376,15 +376,15 @@ if ($rUserInfo) {
 			$rSeekTo = 0;
 			$rSizeToDate = 0;
 			$rDownloadBytes = $rBitrate * 125;
-			$rDownloadBytes += $rDownloadBytes * StreamingUtilities::$rSettings['vod_bitrate_plus'] * 0.01;
+			$rDownloadBytes += $rDownloadBytes * $rSettings['vod_bitrate_plus'] * 0.01;
 			$rLastCheck = $rTimeChecked = $rTimeStart = time();
 			$rBytesRead = 0;
-			$rBuffer = StreamingUtilities::$rSettings['read_buffer_size'];
+			$rBuffer = $rSettings['read_buffer_size'];
 			$i = 0;
 			$o = 0;
 
-			if (0 < StreamingUtilities::$rSettings['vod_limit_perc'] && !$rUserInfo['is_restreamer']) {
-				$rLimitAt = intval($rLength * floatval(StreamingUtilities::$rSettings['vod_limit_perc'] / 100));
+			if (0 < $rSettings['vod_limit_perc'] && !$rUserInfo['is_restreamer']) {
+				$rLimitAt = intval($rLength * floatval($rSettings['vod_limit_perc'] / 100));
 			} else {
 				$rLimitAt = $rLength;
 			}
@@ -431,7 +431,7 @@ if ($rUserInfo) {
 						$rBytesRead = 0;
 					}
 
-					if (!(StreamingUtilities::$rSettings['monitor_connection_status'] && 5 <= time() - $rTimeChecked)) {
+					if (!($rSettings['monitor_connection_status'] && 5 <= time() - $rTimeChecked)) {
 					} else {
 						if (connection_status() == CONNECTION_NORMAL) {
 
@@ -446,22 +446,22 @@ if ($rUserInfo) {
 					} else {
 						$rLastCheck = time();
 						$rConnection = null;
-						StreamingUtilities::$rSettings = StreamingUtilities::getCache('settings');
+						$rSettings = CacheReader::get('settings');
 
-						if (StreamingUtilities::$rSettings['redis_handler']) {
-							StreamingUtilities::connectRedis();
-							$rConnection = StreamingUtilities::getConnection($rTokenData['uuid']);
-							StreamingUtilities::closeRedis();
+						if ($rSettings['redis_handler']) {
+							RedisManager::ensureConnected();
+							$rConnection = ConnectionTracker::getConnection(RedisManager::instance(), $rTokenData['uuid']);
+							RedisManager::closeInstance();
 						} else {
-							StreamingUtilities::connectDatabase();
-							StreamingUtilities::$db->query('SELECT `pid`, `hls_end` FROM `lines_live` WHERE `uuid` = ?', $rTokenData['uuid']);
+							DatabaseFactory::connect();
+							$db->query('SELECT `pid`, `hls_end` FROM `lines_live` WHERE `uuid` = ?', $rTokenData['uuid']);
 
-							if (StreamingUtilities::$db->num_rows() != 1) {
+							if ($db->num_rows() != 1) {
 							} else {
-								$rConnection = StreamingUtilities::$db->get_row();
+								$rConnection = $db->get_row();
 							}
 
-							StreamingUtilities::closeDatabase();
+							DatabaseFactory::close();
 						}
 
 						if (!(!is_array($rConnection) || $rConnection['hls_end'] != 0 || $rConnection['pid'] != $rPID)) {
@@ -497,39 +497,40 @@ function shutdown() {
 	global $rCloseCon;
 	global $rTokenData;
 	global $rPID;
-	StreamingUtilities::$rSettings = StreamingUtilities::getCache('settings');
+	global $db;
+	$rSettings = CacheReader::get('settings');
 
 	if (!$rCloseCon) {
 	} else {
-		if (StreamingUtilities::$rSettings['redis_handler']) {
-			if (is_object(StreamingUtilities::$redis)) {
+		if ($rSettings['redis_handler']) {
+			if (RedisManager::isConnected()) {
 			} else {
-				StreamingUtilities::connectRedis();
+				RedisManager::ensureConnected();
 			}
 
-			$rConnection = StreamingUtilities::getConnection($rTokenData['uuid']);
+			$rConnection = ConnectionTracker::getConnection(RedisManager::instance(), $rTokenData['uuid']);
 
 			if (!($rConnection && $rConnection['pid'] == $rPID)) {
 			} else {
-				$rChanges = array('hls_last_read' => time() - intval(StreamingUtilities::$rServers[SERVER_ID]['time_offset']));
-				StreamingUtilities::updateConnection($rConnection, $rChanges, 'close');
+				$rChanges = array('hls_last_read' => time() - intval($rServers[SERVER_ID]['time_offset']));
+				ConnectionTracker::updateConnection(RedisManager::instance(), $rConnection, $rChanges, 'close');
 			}
 		} else {
-			if (is_object(StreamingUtilities::$db)) {
+			if (is_object($db)) {
 			} else {
-				StreamingUtilities::connectDatabase();
+				DatabaseFactory::connect();
 			}
 
-			StreamingUtilities::$db->query('UPDATE `lines_live` SET `hls_end` = 1, `hls_last_read` = ? WHERE `uuid` = ? AND `pid` = ?;', time() - intval(StreamingUtilities::$rServers[SERVER_ID]['time_offset']), $rTokenData['uuid'], $rPID);
+			$db->query('UPDATE `lines_live` SET `hls_end` = 1, `hls_last_read` = ? WHERE `uuid` = ? AND `pid` = ?;', time() - intval($rServers[SERVER_ID]['time_offset']), $rTokenData['uuid'], $rPID);
 		}
 	}
 
-	if (!StreamingUtilities::$rSettings['redis_handler'] && is_object(StreamingUtilities::$db)) {
-		StreamingUtilities::closeDatabase();
+	if (!$rSettings['redis_handler'] && is_object($db)) {
+		DatabaseFactory::close();
 	} else {
-		if (!(StreamingUtilities::$rSettings['redis_handler'] && is_object(StreamingUtilities::$redis))) {
+		if (!($rSettings['redis_handler'] && RedisManager::isConnected())) {
 		} else {
-			StreamingUtilities::closeRedis();
+			RedisManager::closeInstance();
 		}
 	}
 }

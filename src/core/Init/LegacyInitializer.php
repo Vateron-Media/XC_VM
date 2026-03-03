@@ -107,78 +107,78 @@ class LegacyInitializer {
 
 	public static function initStreaming() {
 		if (!empty($_GET)) {
-			StreamingUtilities::cleanGlobals($_GET);
+			Request::cleanGlobals($_GET);
 		}
 		if (!empty($_POST)) {
-			StreamingUtilities::cleanGlobals($_POST);
+			Request::cleanGlobals($_POST);
 		}
 		if (!empty($_SESSION)) {
-			StreamingUtilities::cleanGlobals($_SESSION);
+			Request::cleanGlobals($_SESSION);
 		}
 		if (!empty($_COOKIE)) {
-			StreamingUtilities::cleanGlobals($_COOKIE);
+			Request::cleanGlobals($_COOKIE);
 		}
 
-		$rInput = @StreamingUtilities::parseIncomingRecursively($_GET, array());
-		StreamingUtilities::$rRequest = @StreamingUtilities::parseIncomingRecursively($_POST, $rInput);
-		StreamingUtilities::$rConfig = parse_ini_file(CONFIG_PATH . 'config.ini');
+		$rInput = @Request::parseIncomingRecursively($_GET, array());
+		$GLOBALS['rRequest'] = @Request::parseIncomingRecursively($_POST, $rInput);
+		$GLOBALS['rConfig'] = parse_ini_file(CONFIG_PATH . 'config.ini');
 
 		if (!defined('SERVER_ID')) {
-			define('SERVER_ID', intval(StreamingUtilities::$rConfig['server_id']));
+			define('SERVER_ID', intval($GLOBALS['rConfig']['server_id']));
 		}
 
-		if (!StreamingUtilities::$rSettings) {
-			StreamingUtilities::$rSettings = StreamingUtilities::getCache('settings');
+		if (!$GLOBALS['rSettings']) {
+			$GLOBALS['rSettings'] = CacheReader::get('settings');
 		}
 
-		if (!empty(StreamingUtilities::$rSettings['default_timezone'])) {
-			date_default_timezone_set(StreamingUtilities::$rSettings['default_timezone']);
+		if (!empty($GLOBALS['rSettings']['default_timezone'])) {
+			date_default_timezone_set($GLOBALS['rSettings']['default_timezone']);
 		}
 
-		if (StreamingUtilities::$rSettings['on_demand_wait_time'] == 0) {
-			StreamingUtilities::$rSettings['on_demand_wait_time'] = 15;
+		if ($GLOBALS['rSettings']['on_demand_wait_time'] == 0) {
+			$GLOBALS['rSettings']['on_demand_wait_time'] = 15;
 		}
 
-		switch (StreamingUtilities::$rSettings['ffmpeg_cpu']) {
+		switch ($GLOBALS['rSettings']['ffmpeg_cpu']) {
 			case '8.0':
-				StreamingUtilities::$rFFMPEG_CPU = FFMPEG_BIN_80;
-				StreamingUtilities::$rFFMPEG_GPU = FFMPEG_BIN_80;
+				$GLOBALS['rFFMPEG_CPU'] = FFMPEG_BIN_80;
+				$GLOBALS['rFFMPEG_GPU'] = FFMPEG_BIN_80;
 				break;
 			case '7.1':
-				StreamingUtilities::$rFFMPEG_CPU = FFMPEG_BIN_71;
-				StreamingUtilities::$rFFMPEG_GPU = FFMPEG_BIN_71;
+				$GLOBALS['rFFMPEG_CPU'] = FFMPEG_BIN_71;
+				$GLOBALS['rFFMPEG_GPU'] = FFMPEG_BIN_71;
 				break;
 			case '5.1':
-				StreamingUtilities::$rFFMPEG_CPU = FFMPEG_BIN_51;
-				StreamingUtilities::$rFFMPEG_GPU = FFMPEG_BIN_40;
+				$GLOBALS['rFFMPEG_CPU'] = FFMPEG_BIN_51;
+				$GLOBALS['rFFMPEG_GPU'] = FFMPEG_BIN_40;
 				break;
 			case '4.4':
-				StreamingUtilities::$rFFMPEG_CPU = FFMPEG_BIN_44;
-				StreamingUtilities::$rFFMPEG_GPU = FFMPEG_BIN_40;
+				$GLOBALS['rFFMPEG_CPU'] = FFMPEG_BIN_44;
+				$GLOBALS['rFFMPEG_GPU'] = FFMPEG_BIN_40;
 				break;
 			case '4.3':
-				StreamingUtilities::$rFFMPEG_CPU = FFMPEG_BIN_43;
-				StreamingUtilities::$rFFMPEG_GPU = FFMPEG_BIN_40;
+				$GLOBALS['rFFMPEG_CPU'] = FFMPEG_BIN_43;
+				$GLOBALS['rFFMPEG_GPU'] = FFMPEG_BIN_40;
 				break;
 			default:
-				StreamingUtilities::$rFFMPEG_CPU = FFMPEG_BIN_40;
-				StreamingUtilities::$rFFMPEG_GPU = FFMPEG_BIN_40;
+				$GLOBALS['rFFMPEG_CPU'] = FFMPEG_BIN_40;
+				$GLOBALS['rFFMPEG_GPU'] = FFMPEG_BIN_40;
 				break;
 		}
 
-		StreamingUtilities::$rCached = StreamingUtilities::isCacheEnabledAndComplete();
-		StreamingUtilities::$rServers = StreamingUtilities::getCache('servers');
-		StreamingUtilities::$rBlockedUA = StreamingUtilities::getCache('blocked_ua');
-		StreamingUtilities::$rBlockedISP = StreamingUtilities::getCache('blocked_isp');
-		StreamingUtilities::$rBlockedIPs = StreamingUtilities::getCache('blocked_ips');
-		StreamingUtilities::$rBlockedServers = StreamingUtilities::getCache('blocked_servers');
-		StreamingUtilities::$rAllowedIPs = StreamingUtilities::getCache('allowed_ips');
-		StreamingUtilities::$rProxies = StreamingUtilities::getCache('proxy_servers');
-		StreamingUtilities::$rSegmentSettings = array(
-			'seg_time' => intval(StreamingUtilities::$rSettings['seg_time']),
-			'seg_list_size' => intval(StreamingUtilities::$rSettings['seg_list_size'])
+		$GLOBALS['rCached'] = CacheReader::isReady($GLOBALS['rSettings']);
+		$GLOBALS['rServers'] = CacheReader::get('servers');
+		$GLOBALS['rBlockedUA'] = CacheReader::get('blocked_ua');
+		$GLOBALS['rBlockedISP'] = CacheReader::get('blocked_isp');
+		$GLOBALS['rBlockedIPs'] = CacheReader::get('blocked_ips');
+		$GLOBALS['rBlockedServers'] = CacheReader::get('blocked_servers');
+		$GLOBALS['rAllowedIPs'] = CacheReader::get('allowed_ips');
+		$GLOBALS['rProxies'] = CacheReader::get('proxy_servers');
+		$GLOBALS['rSegmentSettings'] = array(
+			'seg_time' => intval($GLOBALS['rSettings']['seg_time']),
+			'seg_list_size' => intval($GLOBALS['rSettings']['seg_list_size'])
 		);
-		StreamingUtilities::connectDatabase();
+		DatabaseFactory::connect();
 
 		self::syncStreamingContainer();
 	}
@@ -195,9 +195,9 @@ class LegacyInitializer {
 
 	private static function syncStreamingContainer() {
 		$rContainer = ServiceContainer::getInstance();
-		$rContainer->set('streaming.request', StreamingUtilities::$rRequest);
-		$rContainer->set('streaming.config', StreamingUtilities::$rConfig);
-		$rContainer->set('streaming.settings', StreamingUtilities::$rSettings);
-		$rContainer->set('streaming.servers', StreamingUtilities::$rServers);
+		$rContainer->set('streaming.request', $GLOBALS['rRequest']);
+		$rContainer->set('streaming.config', $GLOBALS['rConfig']);
+		$rContainer->set('streaming.settings', $GLOBALS['rSettings']);
+		$rContainer->set('streaming.servers', $GLOBALS['rServers']);
 	}
 }

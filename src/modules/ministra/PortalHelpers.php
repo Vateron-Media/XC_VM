@@ -14,9 +14,8 @@ class PortalHelpers {
      * Загружает из кэша (igbinary) или БД, собирает права из букетов.
      */
     public static function getDevice($rID = null, $rMAC = null) {
-        global $db;
-        global $rIP;
-        StreamingUtilities::$rBouquets = StreamingUtilities::getCache('bouquets');
+        global $db, $rIP, $rBouquets, $rSettings, $rCached;
+        $rBouquets = CacheReader::get('bouquets');
         $rDevice = ($rID && file_exists(MINISTRA_TMP_PATH . 'ministra_' . $rID)
             ? igbinary_unserialize(file_get_contents(MINISTRA_TMP_PATH . 'ministra_' . $rID))
             : null);
@@ -33,7 +32,7 @@ class PortalHelpers {
             if (0 >= $db->num_rows()) {
             } else {
                 $rDevice = $db->get_row();
-                $rUserInfo = StreamingUtilities::getUserInfo($rDevice['user_id'], null, null, true, false, $rIP);
+                $rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, $rDevice['user_id'], null, null, true, false, $rIP);
                 $rDevice = array_merge($rDevice, $rUserInfo);
                 if (is_string($rDevice['allowed_ips'])) {
                     $rDevice['allowed_ips'] = json_decode($rDevice['allowed_ips'], true);
@@ -72,29 +71,29 @@ class PortalHelpers {
                 $rLiveIDs = $rVODIDs = $rRadioIDs = $rCategoryIDs = $rChannelIDs = $rSeriesIDs = array();
 
                 foreach ($rDevice['bouquet'] as $rID) {
-                    if (!isset(StreamingUtilities::$rBouquets[$rID]['streams'])) {
+                    if (!isset($rBouquets[$rID]['streams'])) {
                     } else {
-                        $rChannelIDs = array_merge($rChannelIDs, StreamingUtilities::$rBouquets[$rID]['streams']);
+                        $rChannelIDs = array_merge($rChannelIDs, $rBouquets[$rID]['streams']);
                     }
 
-                    if (!isset(StreamingUtilities::$rBouquets[$rID]['series'])) {
+                    if (!isset($rBouquets[$rID]['series'])) {
                     } else {
-                        $rSeriesIDs = array_merge($rSeriesIDs, StreamingUtilities::$rBouquets[$rID]['series']);
+                        $rSeriesIDs = array_merge($rSeriesIDs, $rBouquets[$rID]['series']);
                     }
 
-                    if (!isset(StreamingUtilities::$rBouquets[$rID]['channels'])) {
+                    if (!isset($rBouquets[$rID]['channels'])) {
                     } else {
-                        $rLiveIDs = array_merge($rLiveIDs, StreamingUtilities::$rBouquets[$rID]['channels']);
+                        $rLiveIDs = array_merge($rLiveIDs, $rBouquets[$rID]['channels']);
                     }
 
-                    if (!isset(StreamingUtilities::$rBouquets[$rID]['movies'])) {
+                    if (!isset($rBouquets[$rID]['movies'])) {
                     } else {
-                        $rVODIDs = array_merge($rVODIDs, StreamingUtilities::$rBouquets[$rID]['movies']);
+                        $rVODIDs = array_merge($rVODIDs, $rBouquets[$rID]['movies']);
                     }
 
-                    if (!isset(StreamingUtilities::$rBouquets[$rID]['radios'])) {
+                    if (!isset($rBouquets[$rID]['radios'])) {
                     } else {
-                        $rRadioIDs = array_merge($rRadioIDs, StreamingUtilities::$rBouquets[$rID]['radios']);
+                        $rRadioIDs = array_merge($rRadioIDs, $rBouquets[$rID]['radios']);
                     }
                 }
                 $rDevice['channel_ids'] = array_map('intval', array_unique($rChannelIDs));
@@ -186,7 +185,7 @@ class PortalHelpers {
      * Используется для каналов, фильмов, радио, эпизодов.
      */
     public static function getItems($rDevice, $rTypes = array(), $rCategoryID = null, $rFav = null, $rOrderBy = null, $rSearchBy = null, $rPicking = array(), $rStart = 0, $rLimit = 10, $additionalOptions = null) {
-        global $db;
+        global $db, $rSettings, $rCategories;
         $rAdded = false;
         $rChannels = array();
 
@@ -214,7 +213,7 @@ class PortalHelpers {
             }
         }
         $rStreams = array('count' => 0, 'streams' => array());
-        $rAdultCategories = StreamingUtilities::getAdultCategories();
+        $rAdultCategories = CategoryService::getAdultIDs($rCategories);
         $rKey = $rStart + 1;
         $rWhereV = $rWhere = array();
 
@@ -235,7 +234,7 @@ class PortalHelpers {
             $rWhereV[] = $rPicking['genre'];
         }
 
-        $rChannels = StreamingUtilities::sortChannels($rChannels);
+        $rChannels = StreamSorter::sortChannels($rSettings, $rChannels);
 
         if (empty($rFav)) {
         } else {
@@ -287,7 +286,7 @@ class PortalHelpers {
 
             case 'number':
             default:
-                if (StreamingUtilities::$rSettings['channel_number_type'] != 'manual') {
+                if ($rSettings['channel_number_type'] != 'manual') {
                     $rOrder = 'FIELD(id,' . implode(',', $rChannels) . ')';
                 } else {
                     $rOrder = '`order` ASC';
@@ -424,8 +423,9 @@ class PortalHelpers {
      * Получить список фильмов в формате Stalker API.
      */
     public static function getMovies($rDevice, $rPageItems, $rForceProtocol, $rCategoryID = null, $rFav = null, $rOrderBy = null, $rSearchBy = null, $rPicking = array()) {
+        global $rRequest;
         $rDefaultPage = false;
-        $rPage = (!empty(StreamingUtilities::$rRequest['p']) ? StreamingUtilities::$rRequest['p'] : 0);
+        $rPage = (!empty($rRequest['p']) ? $rRequest['p'] : 0);
 
         if ($rPage != 0) {
         } else {
@@ -472,7 +472,7 @@ class PortalHelpers {
             }
 
             $rDuration = (isset($rProperties['duration_secs']) ? $rProperties['duration_secs'] : 60);
-            $rDatas[] = array('id' => $rMovie['id'], 'owner' => '', 'name' => $rMovie['stream_display_name'], 'tmdb_id' => $rProperties['tmdb_id'], 'old_name' => '', 'o_name' => $rMovie['stream_display_name'], 'fname' => '', 'description' => (empty($rProperties['plot']) ? 'N/A' : $rProperties['plot']), 'pic' => '', 'cost' => 0, 'time' => intval($rDuration / 60), 'file' => '', 'path' => str_replace(' ', '_', $rMovie['stream_display_name']), 'protocol' => '', 'rtsp_url' => '', 'censored' => intval($rMovie['is_adult']), 'series' => array(), 'volume_correction' => 0, 'category_id' => $rMovie['category_id'], 'genre_id' => 0, 'genre_id_1' => 0, 'genre_id_2' => 0, 'genre_id_3' => 0, 'hd' => $rHD, 'genre_id_4' => 0, 'cat_genre_id_1' => $rMovie['category_id'], 'cat_genre_id_2' => 0, 'cat_genre_id_3' => 0, 'cat_genre_id_4' => 0, 'director' => (empty($rProperties['director']) ? 'N/A' : $rProperties['director']), 'actors' => (empty($rProperties['cast']) ? 'N/A' : $rProperties['cast']), 'year' => $rMovie['year'], 'accessed' => 1, 'status' => 1, 'disable_for_hd_devices' => 0, 'added' => date('Y-m-d H:i:s', $rMovie['added']), 'count' => 0, 'count_first_0_5' => 0, 'count_second_0_5' => 0, 'vote_sound_good' => 0, 'vote_sound_bad' => 0, 'vote_video_good' => 0, 'vote_video_bad' => 0, 'rate' => '', 'last_rate_update' => '', 'last_played' => '', 'for_sd_stb' => 0, 'rating_im' => (empty($rProperties['rating']) ? 'N/A' : $rProperties['rating']), 'rating_count_im' => '', 'rating_last_update' => '0000-00-00 00:00:00', 'age' => '12+', 'high_quality' => 0, 'rating_kinopoisk' => (empty($rProperties['rating']) ? 'N/A' : $rProperties['rating']), 'comments' => '', 'low_quality' => 0, 'is_series' => 0, 'year_end' => 0, 'autocomplete_provider' => 'im', 'screenshots' => '', 'is_movie' => 1, 'lock' => $rMovie['is_adult'], 'fav' => (in_array($rMovie['id'], $rDevice['fav_channels']['movie']) ? 1 : 0), 'for_rent' => 0, 'screenshot_uri' => (empty($rProperties['movie_image']) ? '' : StreamingUtilities::validateImage($rProperties['movie_image'], $rForceProtocol)), 'genres_str' => (empty($rProperties['genre']) ? 'N/A' : $rProperties['genre']), 'cmd' => base64_encode(json_encode($rPostData, JSON_PARTIAL_OUTPUT_ON_ERROR)), $rAddedKey => $rAddedVal, 'has_files' => 0);
+            $rDatas[] = array('id' => $rMovie['id'], 'owner' => '', 'name' => $rMovie['stream_display_name'], 'tmdb_id' => $rProperties['tmdb_id'], 'old_name' => '', 'o_name' => $rMovie['stream_display_name'], 'fname' => '', 'description' => (empty($rProperties['plot']) ? 'N/A' : $rProperties['plot']), 'pic' => '', 'cost' => 0, 'time' => intval($rDuration / 60), 'file' => '', 'path' => str_replace(' ', '_', $rMovie['stream_display_name']), 'protocol' => '', 'rtsp_url' => '', 'censored' => intval($rMovie['is_adult']), 'series' => array(), 'volume_correction' => 0, 'category_id' => $rMovie['category_id'], 'genre_id' => 0, 'genre_id_1' => 0, 'genre_id_2' => 0, 'genre_id_3' => 0, 'hd' => $rHD, 'genre_id_4' => 0, 'cat_genre_id_1' => $rMovie['category_id'], 'cat_genre_id_2' => 0, 'cat_genre_id_3' => 0, 'cat_genre_id_4' => 0, 'director' => (empty($rProperties['director']) ? 'N/A' : $rProperties['director']), 'actors' => (empty($rProperties['cast']) ? 'N/A' : $rProperties['cast']), 'year' => $rMovie['year'], 'accessed' => 1, 'status' => 1, 'disable_for_hd_devices' => 0, 'added' => date('Y-m-d H:i:s', $rMovie['added']), 'count' => 0, 'count_first_0_5' => 0, 'count_second_0_5' => 0, 'vote_sound_good' => 0, 'vote_sound_bad' => 0, 'vote_video_good' => 0, 'vote_video_bad' => 0, 'rate' => '', 'last_rate_update' => '', 'last_played' => '', 'for_sd_stb' => 0, 'rating_im' => (empty($rProperties['rating']) ? 'N/A' : $rProperties['rating']), 'rating_count_im' => '', 'rating_last_update' => '0000-00-00 00:00:00', 'age' => '12+', 'high_quality' => 0, 'rating_kinopoisk' => (empty($rProperties['rating']) ? 'N/A' : $rProperties['rating']), 'comments' => '', 'low_quality' => 0, 'is_series' => 0, 'year_end' => 0, 'autocomplete_provider' => 'im', 'screenshots' => '', 'is_movie' => 1, 'lock' => $rMovie['is_adult'], 'fav' => (in_array($rMovie['id'], $rDevice['fav_channels']['movie']) ? 1 : 0), 'for_rent' => 0, 'screenshot_uri' => (empty($rProperties['movie_image']) ? '' : ImageUtils::validateURL($rProperties['movie_image'], $rForceProtocol)), 'genres_str' => (empty($rProperties['genre']) ? 'N/A' : $rProperties['genre']), 'cmd' => base64_encode(json_encode($rPostData, JSON_PARTIAL_OUTPUT_ON_ERROR)), $rAddedKey => $rAddedVal, 'has_files' => 0);
         }
 
         if ($rDefaultPage) {
@@ -491,8 +491,8 @@ class PortalHelpers {
      * Получить список сериалов/сезонов в формате Stalker API.
      */
     public static function getSeries($rDevice, $rPageItems, $rForceProtocol, $rMovieID = null, $rCategoryID = null, $rFav = null, $rOrderBy = null, $rSearchBy = null, $rPicking = array()) {
-        global $db;
-        $rPage = (!empty(StreamingUtilities::$rRequest['p']) ? StreamingUtilities::$rRequest['p'] : 0);
+        global $db, $rRequest;
+        $rPage = (!empty($rRequest['p']) ? $rRequest['p'] : 0);
         $rDefaultPage = false;
 
         if (empty($rMovieID)) {
@@ -582,7 +582,7 @@ class PortalHelpers {
                 $rTitle = $rMovie['title'];
             }
 
-            $rDatas[] = array('id' => $rProperties['id'], 'owner' => '', 'name' => $rTitle, 'tmdb_id' => $rProperties['tmdb_id'], 'old_name' => '', 'o_name' => $rTitle, 'fname' => '', 'description' => (empty($rProperties['plot']) ? 'N/A' : $rProperties['plot']), 'pic' => '', 'cost' => 0, 'time' => 'N/a', 'file' => '', 'path' => str_replace(' ', '_', $rProperties['title']), 'protocol' => '', 'rtsp_url' => '', 'censored' => 0, 'series' => (!empty($rSeriesInfo) ? range(1, count($rMovie)) : array()), 'volume_correction' => 0, 'category_id' => $rProperties['category_id'], 'genre_id' => 0, 'genre_id_1' => 0, 'genre_id_2' => 0, 'genre_id_3' => 0, 'hd' => 1, 'genre_id_4' => 0, 'cat_genre_id_1' => $rProperties['category_id'], 'cat_genre_id_2' => 0, 'cat_genre_id_3' => 0, 'cat_genre_id_4' => 0, 'director' => (empty($rProperties['director']) ? 'N/A' : $rProperties['director']), 'actors' => (empty($rProperties['cast']) ? 'N/A' : $rProperties['cast']), 'year' => (empty($rProperties['release_date']) ? 'N/A' : $rProperties['release_date']), 'accessed' => 1, 'status' => 1, 'disable_for_hd_devices' => 0, 'added' => date('Y-m-d H:i:s', $rMaxAdded), 'count' => 0, 'count_first_0_5' => 0, 'count_second_0_5' => 0, 'vote_sound_good' => 0, 'vote_sound_bad' => 0, 'vote_video_good' => 0, 'vote_video_bad' => 0, 'rate' => '', 'last_rate_update' => '', 'last_played' => '', 'for_sd_stb' => 0, 'rating_im' => (empty($rProperties['rating']) ? 'N/A' : $rProperties['rating']), 'rating_count_im' => '', 'rating_last_update' => '0000-00-00 00:00:00', 'age' => '12+', 'high_quality' => 0, 'rating_kinopoisk' => (empty($rProperties['rating']) ? 'N/A' : $rProperties['rating']), 'comments' => '', 'low_quality' => 0, 'is_series' => 1, 'year_end' => 0, 'autocomplete_provider' => 'im', 'screenshots' => '', 'is_movie' => 1, 'lock' => 0, 'fav' => (in_array($rProperties['id'], $rDevice['fav_channels']['series']) ? 1 : 0), 'for_rent' => 0, 'screenshot_uri' => (empty($rProperties['cover']) ? '' : StreamingUtilities::validateImage($rProperties['cover'], $rForceProtocol)), 'genres_str' => (empty($rProperties['genre']) ? 'N/A' : $rProperties['genre']), 'cmd' => (!empty($rSeriesInfo) ? base64_encode(json_encode($rPostData, JSON_PARTIAL_OUTPUT_ON_ERROR)) : ''), $rAddedKey => $rAddedVal, 'has_files' => (empty($rMovieID) ? 1 : 0));
+            $rDatas[] = array('id' => $rProperties['id'], 'owner' => '', 'name' => $rTitle, 'tmdb_id' => $rProperties['tmdb_id'], 'old_name' => '', 'o_name' => $rTitle, 'fname' => '', 'description' => (empty($rProperties['plot']) ? 'N/A' : $rProperties['plot']), 'pic' => '', 'cost' => 0, 'time' => 'N/a', 'file' => '', 'path' => str_replace(' ', '_', $rProperties['title']), 'protocol' => '', 'rtsp_url' => '', 'censored' => 0, 'series' => (!empty($rSeriesInfo) ? range(1, count($rMovie)) : array()), 'volume_correction' => 0, 'category_id' => $rProperties['category_id'], 'genre_id' => 0, 'genre_id_1' => 0, 'genre_id_2' => 0, 'genre_id_3' => 0, 'hd' => 1, 'genre_id_4' => 0, 'cat_genre_id_1' => $rProperties['category_id'], 'cat_genre_id_2' => 0, 'cat_genre_id_3' => 0, 'cat_genre_id_4' => 0, 'director' => (empty($rProperties['director']) ? 'N/A' : $rProperties['director']), 'actors' => (empty($rProperties['cast']) ? 'N/A' : $rProperties['cast']), 'year' => (empty($rProperties['release_date']) ? 'N/A' : $rProperties['release_date']), 'accessed' => 1, 'status' => 1, 'disable_for_hd_devices' => 0, 'added' => date('Y-m-d H:i:s', $rMaxAdded), 'count' => 0, 'count_first_0_5' => 0, 'count_second_0_5' => 0, 'vote_sound_good' => 0, 'vote_sound_bad' => 0, 'vote_video_good' => 0, 'vote_video_bad' => 0, 'rate' => '', 'last_rate_update' => '', 'last_played' => '', 'for_sd_stb' => 0, 'rating_im' => (empty($rProperties['rating']) ? 'N/A' : $rProperties['rating']), 'rating_count_im' => '', 'rating_last_update' => '0000-00-00 00:00:00', 'age' => '12+', 'high_quality' => 0, 'rating_kinopoisk' => (empty($rProperties['rating']) ? 'N/A' : $rProperties['rating']), 'comments' => '', 'low_quality' => 0, 'is_series' => 1, 'year_end' => 0, 'autocomplete_provider' => 'im', 'screenshots' => '', 'is_movie' => 1, 'lock' => 0, 'fav' => (in_array($rProperties['id'], $rDevice['fav_channels']['series']) ? 1 : 0), 'for_rent' => 0, 'screenshot_uri' => (empty($rProperties['cover']) ? '' : ImageUtils::validateURL($rProperties['cover'], $rForceProtocol)), 'genres_str' => (empty($rProperties['genre']) ? 'N/A' : $rProperties['genre']), 'cmd' => (!empty($rSeriesInfo) ? base64_encode(json_encode($rPostData, JSON_PARTIAL_OUTPUT_ON_ERROR)) : ''), $rAddedKey => $rAddedVal, 'has_files' => (empty($rMovieID) ? 1 : 0));
         }
 
         if ($rDefaultPage) {
@@ -604,8 +604,9 @@ class PortalHelpers {
      * Получить список радиостанций в формате Stalker API.
      */
     public static function getStations($rDevice, $rPlayer, $rPageItems, $rCategoryID = null, $rFav = null, $rOrderBy = null) {
+        global $rSettings, $rServers, $rRequest;
         $rDefaultPage = false;
-        $rPage = (!empty(StreamingUtilities::$rRequest['p']) ? StreamingUtilities::$rRequest['p'] : 0);
+        $rPage = (!empty($rRequest['p']) ? $rRequest['p'] : 0);
 
         if ($rPage != 0) {
         } else {
@@ -619,14 +620,14 @@ class PortalHelpers {
         $i = 0;
 
         foreach ($rStreams['streams'] as $rStream) {
-            if (StreamingUtilities::$rSettings['mag_security'] == 0) {
-                $rEncData = 'ministra::live/' . $rDevice['username'] . '/' . $rDevice['password'] . '/' . $rStream['id'] . '/' . StreamingUtilities::$rSettings['mag_container'] . '/' . $rDevice['token'];
-                $rToken = StreamingUtilities::encryptData($rEncData, StreamingUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
-                $rStreamURL = ((StreamingUtilities::$rSettings['mag_disable_ssl'] ? StreamingUtilities::$rServers[SERVER_ID]['http_url'] : StreamingUtilities::$rServers[SERVER_ID]['site_url'])) . 'play/' . $rToken;
+            if ($rSettings['mag_security'] == 0) {
+                $rEncData = 'ministra::live/' . $rDevice['username'] . '/' . $rDevice['password'] . '/' . $rStream['id'] . '/' . $rSettings['mag_container'] . '/' . $rDevice['token'];
+                $rToken = Encryption::encrypt($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+                $rStreamURL = (($rSettings['mag_disable_ssl'] ? $rServers[SERVER_ID]['http_url'] : $rServers[SERVER_ID]['site_url'])) . 'play/' . $rToken;
 
-                if (!StreamingUtilities::$rSettings['mag_keep_extension']) {
+                if (!$rSettings['mag_keep_extension']) {
                 } else {
-                    $rStreamURL .= '?ext=.' . StreamingUtilities::$rSettings['mag_container'];
+                    $rStreamURL .= '?ext=.' . $rSettings['mag_container'];
                 }
 
                 $rStreamSourceSt = 0;
@@ -654,15 +655,16 @@ class PortalHelpers {
      * Получить список live-каналов в формате Stalker API.
      */
     public static function getStreams($rDevice, $rPlayer, $rPageItems, $rTimezone, $rForceProtocol, $rCategoryID = null, $rAll = false, $rFav = null, $rOrderBy = null, $rSearchBy = null) {
+        global $rSettings, $rServers, $rRequest;
         $rDefaultPage = false;
-        $rPage = (isset(StreamingUtilities::$rRequest['p']) ? intval(StreamingUtilities::$rRequest['p']) : 0);
+        $rPage = (isset($rRequest['p']) ? intval($rRequest['p']) : 0);
         $rPosition = 0;
 
         if (!($rPage == 0 && $rCategoryID != -1)) {
         } else {
             $rDefaultPage = true;
 
-            if (StreamingUtilities::$rRequest['p'] != 0 || empty($rDevice['last_itv_id'])) {
+            if ($rRequest['p'] != 0 || empty($rDevice['last_itv_id'])) {
             } else {
                 $rPosition = self::getItems($rDevice, array('live', 'created_live'), $rCategoryID, $rFav, $rOrderBy, $rSearchBy, null, 0, 0, $rDevice['last_itv_id']);
 
@@ -683,7 +685,7 @@ class PortalHelpers {
         $rStart = ($rPage - 1) * $rPageItems;
 
         if ($rCategoryID == -1) {
-            if (StreamingUtilities::$rSettings['mag_load_all_channels']) {
+            if ($rSettings['mag_load_all_channels']) {
                 $rStreams = self::getItems($rDevice, array('live', 'created_live'), (0 < $rCategoryID ? $rCategoryID : null), $rFav, $rOrderBy, $rSearchBy, null, 0, 0);
             } else {
                 return '{"js":{"total_items":0,"max_page_items":14,"selected_item":0,"cur_page":0,"data":[]}}';
@@ -697,19 +699,19 @@ class PortalHelpers {
         }
 
         $rDatas = array();
-        $rTimeDifference = StreamingUtilities::getDiffTimezone($rTimezone);
+        $rTimeDifference = CoreUtilities::getDiffTimezone($rTimezone);
 
         foreach ($rStreams['streams'] as $rStream) {
             $rHD = intval(1200 < $rStream['stream_info']['codecs']['video']['width']);
 
-            if (StreamingUtilities::$rSettings['mag_security'] == 0) {
-                $rEncData = 'ministra::live/' . $rDevice['username'] . '/' . $rDevice['password'] . '/' . $rStream['id'] . '/' . StreamingUtilities::$rSettings['mag_container'] . '/' . $rDevice['token'];
-                $rToken = StreamingUtilities::encryptData($rEncData, StreamingUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
-                $rStreamURL = ((StreamingUtilities::$rSettings['mag_disable_ssl'] ? StreamingUtilities::$rServers[SERVER_ID]['http_url'] : StreamingUtilities::$rServers[SERVER_ID]['site_url'])) . 'play/' . $rToken;
+            if ($rSettings['mag_security'] == 0) {
+                $rEncData = 'ministra::live/' . $rDevice['username'] . '/' . $rDevice['password'] . '/' . $rStream['id'] . '/' . $rSettings['mag_container'] . '/' . $rDevice['token'];
+                $rToken = Encryption::encrypt($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+                $rStreamURL = (($rSettings['mag_disable_ssl'] ? $rServers[SERVER_ID]['http_url'] : $rServers[SERVER_ID]['site_url'])) . 'play/' . $rToken;
 
-                if (!StreamingUtilities::$rSettings['mag_keep_extension']) {
+                if (!$rSettings['mag_keep_extension']) {
                 } else {
-                    $rStreamURL .= '?ext=.' . StreamingUtilities::$rSettings['mag_container'];
+                    $rStreamURL .= '?ext=.' . $rSettings['mag_container'];
                 }
 
                 $rStreamSourceSt = 0;
@@ -730,7 +732,7 @@ class PortalHelpers {
                 $rNowPlaying = 'No channel information is available...';
             }
 
-            $rDatas[] = array('id' => intval($rStream['id']), 'name' => $rStream['stream_display_name'], 'number' => (string) $rStream['number'], 'snumber' => (string) $rStream['number'], 'censored' => ($rStream['is_adult'] == 1 ? 1 : 0), 'cmd' => $rPlayer . $rStreamURL, 'cost' => '0', 'count' => '0', 'status' => 1, 'tv_genre_id' => $rStream['category_id'], 'base_ch' => '1', 'hd' => $rHD, 'xmltv_id' => (!empty($rStream['channel_id']) ? $rStream['channel_id'] : ''), 'service_id' => '', 'bonus_ch' => '0', 'volume_correction' => '0', 'use_http_tmp_link' => $rStreamSourceSt, 'mc_cmd' => '', 'enable_tv_archive' => (0 < $rStream['tv_archive_duration'] ? 1 : 0), 'wowza_tmp_link' => '0', 'wowza_dvr' => '0', 'monitoring_status' => '1', 'enable_monitoring' => '0', 'enable_wowza_load_balancing' => '0', 'cmd_1' => '', 'cmd_2' => '', 'cmd_3' => '', 'logo' => StreamingUtilities::validateImage($rStream['stream_icon'], $rForceProtocol), 'correct_time' => '0', 'nimble_dvr' => '0', 'allow_pvr' => (int) $rStream['allow_record'], 'allow_local_pvr' => (int) $rStream['allow_record'], 'allow_remote_pvr' => 0, 'modified' => '', 'allow_local_timeshift' => '1', 'nginx_secure_link' => $rStreamSourceSt, 'tv_archive_duration' => (0 < $rStream['tv_archive_duration'] ? $rStream['tv_archive_duration'] * 24 : 0), 'locked' => 0, 'lock' => $rStream['is_adult'], 'fav' => (in_array($rStream['id'], $rDevice['fav_channels']['live']) ? 1 : 0), 'archive' => (0 < $rStream['tv_archive_duration'] ? 1 : 0), 'genres_str' => '', 'cur_playing' => $rNowPlaying, 'epg' => array(), 'open' => 1, 'cmds' => array(array('id' => (string) $rStream['id'], 'ch_id' => (string) $rStream['id'], 'priority' => '0', 'url' => $rPlayer . $rStreamURL, 'status' => '1', 'use_http_tmp_link' => $rStreamSourceSt, 'wowza_tmp_link' => '0', 'user_agent_filter' => '', 'use_load_balancing' => '0', 'changed' => '', 'enable_monitoring' => '0', 'enable_balancer_monitoring' => '0', 'nginx_secure_link' => $rStreamSourceSt, 'flussonic_tmp_link' => '0')), 'use_load_balancing' => 0, 'pvr' => (int) $rStream['allow_record']);
+            $rDatas[] = array('id' => intval($rStream['id']), 'name' => $rStream['stream_display_name'], 'number' => (string) $rStream['number'], 'snumber' => (string) $rStream['number'], 'censored' => ($rStream['is_adult'] == 1 ? 1 : 0), 'cmd' => $rPlayer . $rStreamURL, 'cost' => '0', 'count' => '0', 'status' => 1, 'tv_genre_id' => $rStream['category_id'], 'base_ch' => '1', 'hd' => $rHD, 'xmltv_id' => (!empty($rStream['channel_id']) ? $rStream['channel_id'] : ''), 'service_id' => '', 'bonus_ch' => '0', 'volume_correction' => '0', 'use_http_tmp_link' => $rStreamSourceSt, 'mc_cmd' => '', 'enable_tv_archive' => (0 < $rStream['tv_archive_duration'] ? 1 : 0), 'wowza_tmp_link' => '0', 'wowza_dvr' => '0', 'monitoring_status' => '1', 'enable_monitoring' => '0', 'enable_wowza_load_balancing' => '0', 'cmd_1' => '', 'cmd_2' => '', 'cmd_3' => '', 'logo' => ImageUtils::validateURL($rStream['stream_icon'], $rForceProtocol), 'correct_time' => '0', 'nimble_dvr' => '0', 'allow_pvr' => (int) $rStream['allow_record'], 'allow_local_pvr' => (int) $rStream['allow_record'], 'allow_remote_pvr' => 0, 'modified' => '', 'allow_local_timeshift' => '1', 'nginx_secure_link' => $rStreamSourceSt, 'tv_archive_duration' => (0 < $rStream['tv_archive_duration'] ? $rStream['tv_archive_duration'] * 24 : 0), 'locked' => 0, 'lock' => $rStream['is_adult'], 'fav' => (in_array($rStream['id'], $rDevice['fav_channels']['live']) ? 1 : 0), 'archive' => (0 < $rStream['tv_archive_duration'] ? 1 : 0), 'genres_str' => '', 'cur_playing' => $rNowPlaying, 'epg' => array(), 'open' => 1, 'cmds' => array(array('id' => (string) $rStream['id'], 'ch_id' => (string) $rStream['id'], 'priority' => '0', 'url' => $rPlayer . $rStreamURL, 'status' => '1', 'use_http_tmp_link' => $rStreamSourceSt, 'wowza_tmp_link' => '0', 'user_agent_filter' => '', 'use_load_balancing' => '0', 'changed' => '', 'enable_monitoring' => '0', 'enable_balancer_monitoring' => '0', 'nginx_secure_link' => $rStreamSourceSt, 'flussonic_tmp_link' => '0')), 'use_load_balancing' => 0, 'pvr' => (int) $rStream['allow_record']);
         }
 
         if ($rDefaultPage) {

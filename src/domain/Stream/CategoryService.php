@@ -78,4 +78,20 @@ class CategoryService {
 		}
 		return $rReturn;
 	}
+
+	/**
+	 * Возвращает ID всех категорий, помеченных как «для взрослых».
+	 *
+	 * @param array $rCategories Массив загруженных категорий
+	 * @return int[]
+	 */
+	public static function getAdultIDs($rCategories) {
+		$rReturn = array();
+		foreach ($rCategories as $rCategory) {
+			if ($rCategory['is_adult']) {
+				$rReturn[] = intval($rCategory['id']);
+			}
+		}
+		return $rReturn;
+	}
 }

@@ -1,7 +1,8 @@
 <?php
 
 class WatchService {
-	public static function editWatchSettings($db, $rData, $clearSettingsCacheCallback = null) {
+	public static function editWatchSettings($rData, $clearSettingsCacheCallback = null) {
+		global $db;
 		foreach ($rData as $rKey => $rValue) {
 			$rSplit = explode('_', $rKey);
 			if ($rSplit[0] == 'genre') {
@@ -29,7 +30,8 @@ class WatchService {
 		return array('status' => STATUS_SUCCESS);
 	}
 
-	public static function processWatchFolder($db, $rData, $getWatchFolderCallback = null) {
+	public static function processWatchFolder($rData, $getWatchFolderCallback = null) {
+		global $db;
 		if (isset($rData['edit'])) {
 			$rArray = overwriteData(call_user_func($getWatchFolderCallback, $rData['edit']), $rData);
 		} else {
@@ -110,15 +112,18 @@ class WatchService {
 		return call_user_func($requestCallback, $rServerID, array('action' => 'watch_force', 'id' => $rWatchID));
 	}
 
-	public static function enableWatch($db) {
+	public static function enableWatch() {
+		global $db;
 		return $db->query("UPDATE `watch_folders` SET `active` = 1 WHERE `type` <> 'plex';");
 	}
 
-	public static function disableWatch($db) {
+	public static function disableWatch() {
+		global $db;
 		return $db->query("UPDATE `watch_folders` SET `active` = 0 WHERE `type` <> 'plex';");
 	}
 
-	public static function killWatch($db, $requestCallback = 'systemapirequest') {
+	public static function killWatch($requestCallback = 'systemapirequest') {
+		global $db;
 		$db->query("SELECT DISTINCT(`server_id`) AS `server_id` FROM `watch_folders` WHERE `active` = 11 AND `type` <> 'plex';");
 		foreach ($db->get_rows() as $rRow) {
 			if (CoreUtilities::$rServers[$rRow['server_id']]['server_online']) {
@@ -128,7 +133,8 @@ class WatchService {
 		return true;
 	}
 
-	public static function getRecordings($db) {
+	public static function getRecordings() {
+		global $db;
 		$rRecordings = array();
 		$db->query('SELECT * FROM `recordings` ORDER BY `id` DESC;');
 		foreach ($db->get_rows() as $rRow) {
@@ -137,7 +143,8 @@ class WatchService {
 		return $rRecordings;
 	}
 
-	public static function deleteRecording($db, $rID, $deleteStreamCallback = 'deleteStream') {
+	public static function deleteRecording($rID, $deleteStreamCallback = 'deleteStream') {
+		global $db;
 		$db->query('SELECT `created_id`, `source_id` FROM `recordings` WHERE `id` = ?;', $rID);
 		if ($db->num_rows() > 0) {
 			$rRecording = $db->get_row();

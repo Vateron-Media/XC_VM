@@ -30,9 +30,9 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 		}
 
 		echo 'Database' . "\n" . '------------------------------' . "\n";
-		StreamingUtilities::connectDatabase();
+		DatabaseFactory::connect();
 
-		if (!StreamingUtilities::$db->connected) {
+		if (!$db->connected) {
 			echo "Couldn't connect to database. Please add them to config.ini." . "\n\n";
 
 			exit();
@@ -43,38 +43,38 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 
 		if ($rServers[SERVER_ID]['is_main']) {
 			// EXAMPLE OF A DB UPDATE
-			// StreamingUtilities::$db->query("SHOW COLUMNS FROM `lines` LIKE 'allowed_outputs';");
-			// if (StreamingUtilities::$db->num_rows() == 0) {
-			// 	StreamingUtilities::$db->query('ALTER TABLE `lines` ADD COLUMN `allowed_outputs` MEDIUMTEXT NULL DEFAULT NULL AFTER `bouquet`;');
+			// $db->query("SHOW COLUMNS FROM `lines` LIKE 'allowed_outputs';");
+			// if ($db->num_rows() == 0) {
+			// 	$db->query('ALTER TABLE `lines` ADD COLUMN `allowed_outputs` MEDIUMTEXT NULL DEFAULT NULL AFTER `bouquet`;');
 			// }
 
-			StreamingUtilities::$db->query("SHOW COLUMNS FROM `watch_folders` LIKE 'plex_token';");
-			if (StreamingUtilities::$db->num_rows() != 0) {
-				StreamingUtilities::$db->query('ALTER TABLE `watch_folders` DROP COLUMN `plex_token`;');
+			$db->query("SHOW COLUMNS FROM `watch_folders` LIKE 'plex_token';");
+			if ($db->num_rows() != 0) {
+				$db->query('ALTER TABLE `watch_folders` DROP COLUMN `plex_token`;');
 			}
 
-			StreamingUtilities::$db->query("SHOW COLUMNS FROM `panel_logs` LIKE 'file';");
-			if (StreamingUtilities::$db->num_rows() == 0) {
-				StreamingUtilities::$db->query('ALTER TABLE `panel_logs` ADD COLUMN `file` VARCHAR(255) NULL;');
+			$db->query("SHOW COLUMNS FROM `panel_logs` LIKE 'file';");
+			if ($db->num_rows() == 0) {
+				$db->query('ALTER TABLE `panel_logs` ADD COLUMN `file` VARCHAR(255) NULL;');
 			}
 
-			StreamingUtilities::$db->query("SHOW COLUMNS FROM `panel_logs` LIKE 'env';");
-			if (StreamingUtilities::$db->num_rows() == 0) {
-				StreamingUtilities::$db->query("ALTER TABLE `panel_logs` ADD COLUMN `env` VARCHAR(32) NOT NULL DEFAULT 'cli';");
+			$db->query("SHOW COLUMNS FROM `panel_logs` LIKE 'env';");
+			if ($db->num_rows() == 0) {
+				$db->query("ALTER TABLE `panel_logs` ADD COLUMN `env` VARCHAR(32) NOT NULL DEFAULT 'cli';");
 			}
 
-			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'segment_type';");
-			if (StreamingUtilities::$db->num_rows() != 0) {
-				StreamingUtilities::$db->query('ALTER TABLE `settings` DROP COLUMN IF EXISTS `segment_type`;');
+			$db->query("SHOW COLUMNS FROM `settings` LIKE 'segment_type';");
+			if ($db->num_rows() != 0) {
+				$db->query('ALTER TABLE `settings` DROP COLUMN IF EXISTS `segment_type`;');
 			}
 
-			StreamingUtilities::$db->query("INSERT INTO streams_arguments (argument_cat, argument_name, argument_description, argument_wprotocol, argument_key, argument_cmd, argument_type, argument_default_value) SELECT 'fetch', 'Force Input Audio Codec', 'Force FFmpeg to interpret the input audio stream as a specific codec (e.g., aac, ac3). Useful for streams with corrupted PMT metadata.', NULL, 'force_input_acodec', '-acodec %s', 'text', NULL FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM streams_arguments WHERE argument_key = 'force_input_acodec');");
+			$db->query("INSERT INTO streams_arguments (argument_cat, argument_name, argument_description, argument_wprotocol, argument_key, argument_cmd, argument_type, argument_default_value) SELECT 'fetch', 'Force Input Audio Codec', 'Force FFmpeg to interpret the input audio stream as a specific codec (e.g., aac, ac3). Useful for streams with corrupted PMT metadata.', NULL, 'force_input_acodec', '-acodec %s', 'text', NULL FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM streams_arguments WHERE argument_key = 'force_input_acodec');");
 
-			StreamingUtilities::$db->query("INSERT INTO streams_arguments (argument_cat, argument_name, argument_description, argument_wprotocol, argument_key, argument_cmd, argument_type, argument_default_value) SELECT 'fetch', 'Skip FFProbe', 'Skip codec detection via ffprobe. Assumes h264 video and aac audio. Use for streams with corrupted PMT where ffprobe misdetects codecs.', NULL, 'skip_ffprobe', '', 'radio', '0' FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM streams_arguments WHERE argument_key = 'skip_ffprobe');");
+			$db->query("INSERT INTO streams_arguments (argument_cat, argument_name, argument_description, argument_wprotocol, argument_key, argument_cmd, argument_type, argument_default_value) SELECT 'fetch', 'Skip FFProbe', 'Skip codec detection via ffprobe. Assumes h264 video and aac audio. Use for streams with corrupted PMT where ffprobe misdetects codecs.', NULL, 'skip_ffprobe', '', 'radio', '0' FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM streams_arguments WHERE argument_key = 'skip_ffprobe');");
 
-			StreamingUtilities::$db->query("SHOW COLUMNS FROM `settings` LIKE 'update_channel';");
-			if (StreamingUtilities::$db->num_rows() == 0) {
-				StreamingUtilities::$db->query("ALTER TABLE `settings` ADD COLUMN `update_channel` varchar(12) COLLATE utf8_unicode_ci DEFAULT 'stable';");
+			$db->query("SHOW COLUMNS FROM `settings` LIKE 'update_channel';");
+			if ($db->num_rows() == 0) {
+				$db->query("ALTER TABLE `settings` ADD COLUMN `update_channel` varchar(12) COLLATE utf8_unicode_ci DEFAULT 'stable';");
 			}
 
 
@@ -179,8 +179,8 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 
 		if ($rServers[SERVER_ID]['is_main']) {
 			foreach ($rServers as $rServerID => $rServerArray) {
-				StreamingUtilities::$db->query('DELETE FROM `signals` WHERE `custom_data` = ?;', json_encode(array('action' => 'update_binaries')));
-				StreamingUtilities::$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rServerID, time(), json_encode(array('action' => 'update_binaries')));
+				$db->query('DELETE FROM `signals` WHERE `custom_data` = ?;', json_encode(array('action' => 'update_binaries')));
+				$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rServerID, time(), json_encode(array('action' => 'update_binaries')));
 			}
 			$rConfig = file_get_contents(MAIN_HOME . 'bin/redis/redis.conf');
 
@@ -226,29 +226,29 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 				file_put_contents(MAIN_HOME . 'bin/redis/redis.conf', $rConfig);
 			}
 
-			StreamingUtilities::$db->query('SELECT `redis_password` FROM `settings`;');
+			$db->query('SELECT `redis_password` FROM `settings`;');
 
-			if (StreamingUtilities::$db->get_row()['redis_password'] == $rPassword) {
+			if ($db->get_row()['redis_password'] == $rPassword) {
 			} else {
 				echo 'Updating Redis password in database' . "\n";
-				StreamingUtilities::$db->query('UPDATE `settings` SET `redis_password` = ?;', $rPassword);
+				$db->query('UPDATE `settings` SET `redis_password` = ?;', $rPassword);
 			}
 		}
 
 		if (!$rFirstRun && $rServers[SERVER_ID]['is_main']) {
-			StreamingUtilities::$db->query('UPDATE `servers` SET `is_main` = 0 WHERE `id` <> ?;', SERVER_ID);
-			StreamingUtilities::$db->query('UPDATE `servers` SET `is_main` = 1 WHERE `id` = ?;', SERVER_ID);
-			StreamingUtilities::$db->query('UPDATE `settings` SET `status_uuid` = ?;', md5(XC_VM_VERSION));
+			$db->query('UPDATE `servers` SET `is_main` = 0 WHERE `id` <> ?;', SERVER_ID);
+			$db->query('UPDATE `servers` SET `is_main` = 1 WHERE `id` = ?;', SERVER_ID);
+			$db->query('UPDATE `settings` SET `status_uuid` = ?;', md5(XC_VM_VERSION));
 
-			if (stripos(StreamingUtilities::$rSettings['server_name'], 'xtream') !== false || stripos(StreamingUtilities::$rSettings['server_name'], 'zapx') !== false || stripos(StreamingUtilities::$rSettings['server_name'], 'streamcreed') !== false) {
-				StreamingUtilities::$db->query("UPDATE `settings` SET `server_name` = 'XC_VM';");
+			if (stripos($rSettings['server_name'], 'xtream') !== false || stripos($rSettings['server_name'], 'zapx') !== false || stripos($rSettings['server_name'], 'streamcreed') !== false) {
+				$db->query("UPDATE `settings` SET `server_name` = 'XC_VM';");
 			}
 
-			StreamingUtilities::$db->query('SELECT * FROM `access_codes` WHERE `enabled` = 1 AND `type` = 0;');
+			$db->query('SELECT * FROM `access_codes` WHERE `enabled` = 1 AND `type` = 0;');
 			$Dc5a760abaff4c21 = 0;
 			echo 'Access Codes' . "\n" . '------------------------------' . "\n";
 
-			foreach (StreamingUtilities::$db->get_rows() as $rRow) {
+			foreach ($db->get_rows() as $rRow) {
 				$rExists = file_exists(MAIN_HOME . 'bin/nginx/conf/codes/' . $rRow['code'] . '.conf');
 
 				if ($rExists) {
@@ -264,9 +264,9 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 				echo "\n";
 			}
 
-			StreamingUtilities::$db->query('SELECT COUNT(`id`) AS `count` FROM `users` LEFT JOIN `users_groups` ON `users_groups`.`group_id` = `users`.`member_group_id` WHERE `status` = 1 AND `users_groups`.`is_admin` = 1;');
+			$db->query('SELECT COUNT(`id`) AS `count` FROM `users` LEFT JOIN `users_groups` ON `users_groups`.`group_id` = `users`.`member_group_id` WHERE `status` = 1 AND `users_groups`.`is_admin` = 1;');
 
-			if (StreamingUtilities::$db->get_row()['count'] == 0) {
+			if ($db->get_row()['count'] == 0) {
 				echo 'No administrator users are available on the system.' . "\n" . 'Generate a rescue user with tools' . "\n\n";
 			}
 
@@ -309,7 +309,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 			}
 		}
 
-		StreamingUtilities::$db->query('UPDATE `servers` SET `xc_vm_version` = ? WHERE `id` = ?;', XC_VM_VERSION, SERVER_ID);
+		$db->query('UPDATE `servers` SET `xc_vm_version` = ? WHERE `id` = ?;', XC_VM_VERSION, SERVER_ID);
 	} else {
 		exit(0);
 	}
@@ -334,11 +334,12 @@ function isrunning() {
 }
 
 function ABc6134F1458b898() {
-	StreamingUtilities::$db->query('SELECT * FROM `servers`');
+	global $db;
+	$db->query('SELECT * FROM `servers`');
 	$rServers = array();
 	$rOnlineStatus = array(1);
 
-	foreach (StreamingUtilities::$db->get_rows() as $rRow) {
+	foreach ($db->get_rows() as $rRow) {
 		if (empty($rRow['domain_name'])) {
 			$rURL = escapeshellcmd($rRow['server_ip']);
 		} else {
