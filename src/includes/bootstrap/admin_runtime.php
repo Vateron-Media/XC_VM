@@ -98,17 +98,18 @@ if (!function_exists('bootstrapAdminRuntime')) {
 		}
 
 		if (!$rBootstrapped) {
+			require_once MAIN_HOME . 'core/Init/LegacyInitializer.php';
 			require_once MAIN_HOME . 'core/Database/DatabaseHandler.php';
 			require_once INCLUDES_PATH . 'CoreUtilities.php';
-			require_once INCLUDES_PATH . 'admin_api.php';
 			require_once INCLUDES_PATH . 'reseller_api.php';
 			require_once INCLUDES_PATH . 'libs/Translator.php';
 			$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
 			CoreUtilities::$db = &$db;
 			CoreUtilities::init();
-			API::$db = &$db;
-			API::init();
-			ResellerAPI::$db = &$db;
+			// Admin user info (formerly API::$rUserInfo)
+			if (isset($_SESSION['hash'])) {
+				$GLOBALS['rAdminUserInfo'] = UserRepository::getRegisteredUserById($_SESSION['hash']);
+			}
 			ResellerAPI::init();
 			CoreUtilities::connectRedis();
 			register_shutdown_function(function () {

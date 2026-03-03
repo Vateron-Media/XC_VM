@@ -140,11 +140,11 @@ class DatabaseLogger implements LoggerInterface {
                 return;
             }
 
-            // Если не задано — проверяем через StreamingUtilities (обратная совместимость)
-            if (self::$enabled === null && class_exists('StreamingUtilities', false)) {
+            // Если не задано — проверяем через глобальные настройки (обратная совместимость)
+            if (self::$enabled === null && !empty($GLOBALS['rSettings'])) {
                 if (
-                    isset(StreamingUtilities::$rSettings['client_logs_save'])
-                    && StreamingUtilities::$rSettings['client_logs_save'] == 0
+                    isset($GLOBALS['rSettings']['client_logs_save'])
+                    && $GLOBALS['rSettings']['client_logs_save'] == 0
                 ) {
                     return;
                 }

@@ -1,7 +1,8 @@
 <?php
 
 class Authenticator {
-	public static function login($db, $rSettings, $rData, $rBypassRecaptcha = false) {
+	public static function login($rSettings, $rData, $rBypassRecaptcha = false) {
+		global $db;
 		if (!empty($rSettings['recaptcha_enable']) && !$rBypassRecaptcha) {
 			$rResponse = json_decode(file_get_contents('https://www.google.com/recaptcha/api/siteverify?secret=' . $rSettings['recaptcha_v2_secret_key'] . '&response=' . $rData['g-recaptcha-response']), true);
 			if (!$rResponse['success']) {
@@ -71,7 +72,8 @@ class Authenticator {
 		return array('status' => STATUS_FAILURE);
 	}
 
-	public static function resellerLogin($db, $rSettings, $rData) {
+	public static function resellerLogin($rSettings, $rData) {
+		global $db;
 		if (!empty($rSettings['recaptcha_enable'])) {
 			$rResponse = json_decode(file_get_contents('https://www.google.com/recaptcha/api/siteverify?secret=' . $rSettings['recaptcha_v2_secret_key'] . '&response=' . $rData['g-recaptcha-response']), true);
 			if (!$rResponse['success']) {

@@ -117,8 +117,8 @@ class UserRepository {
 		return $rReturn;
 	}
 
-	public static function getStreamingUserInfo($rSettings, $rCached, $rBouquets, $rUserID = null, $rUsername = null, $rPassword = null, $rGetChannelIDs = false, $rGetConnections = false, $rIP = '', $rCallbacks = array()) {
-		global $db;
+	public static function getStreamingUserInfo($rSettings, $rCached, $rBouquets, $rUserID = null, $rUsername = null, $rPassword = null, $rGetChannelIDs = false, $rGetConnections = false, $rIP = '') {
+		global $db, $rBlockedISP, $rBlockedServers;
 		$rUserInfo = null;
 
 		if ($rCached) {
@@ -184,10 +184,10 @@ class UserRepository {
 		}
 
 		if ($rSettings['county_override_1st'] == 1 && empty($rUserInfo['forced_country']) && !empty($rIP) && $rUserInfo['max_connections'] == 1) {
-			$rUserInfo['forced_country'] = call_user_func($rCallbacks['getIPInfo'], $rIP)['registered_country']['iso_code'];
+			$rUserInfo['forced_country'] = GeoIPService::getIPInfo($rIP)['registered_country']['iso_code'];
 
 			if ($rCached) {
-				call_user_func($rCallbacks['setSignal'], 'forced_country/' . $rUserInfo['id'], $rUserInfo['forced_country']);
+				file_put_contents(SIGNALS_TMP_PATH . 'cache_' . md5('forced_country/' . $rUserInfo['id']), json_encode(array('forced_country/' . $rUserInfo['id'], $rUserInfo['forced_country'])));
 			} else {
 				$db->query('UPDATE `lines` SET `forced_country` = ? WHERE `id` = ?', $rUserInfo['forced_country'], $rUserInfo['id']);
 			}
@@ -222,15 +222,15 @@ class UserRepository {
 		$rUserInfo['isp_is_server'] = 0;
 
 		if ($rSettings['show_isps'] == 1 && !empty($rIP)) {
-			$rISPLock = call_user_func($rCallbacks['getISP'], $rIP);
+			$rISPLock = GeoIPService::getISP($rIP);
 
 			if (is_array($rISPLock) && !empty($rISPLock['isp'])) {
 				$rUserInfo['con_isp_name'] = $rISPLock['isp'];
 				$rUserInfo['isp_asn'] = $rISPLock['autonomous_system_number'];
-				$rUserInfo['isp_violate'] = call_user_func($rCallbacks['checkISP'], $rUserInfo['con_isp_name']);
+				$rUserInfo['isp_violate'] = BlocklistService::checkISP($rBlockedISP, $rUserInfo['con_isp_name']);
 
 				if ($rSettings['block_svp'] == 1) {
-					$rUserInfo['isp_is_server'] = intval(call_user_func($rCallbacks['checkServer'], $rUserInfo['isp_asn']));
+					$rUserInfo['isp_is_server'] = intval(BlocklistService::checkServer($rBlockedServers, $rUserInfo['isp_asn']));
 				}
 			}
 
@@ -240,7 +240,8 @@ class UserRepository {
 
 			if ($rUserInfo['isp_violate'] == 0 && strtolower($rUserInfo['con_isp_name']) != strtolower($rUserInfo['isp_desc'])) {
 				if ($rCached) {
-					call_user_func($rCallbacks['setSignal'], 'isp/' . $rUserInfo['id'], json_encode(array($rUserInfo['con_isp_name'], $rUserInfo['isp_asn'])));
+					$rSignalKey = 'isp/' . $rUserInfo['id'];
+					file_put_contents(SIGNALS_TMP_PATH . 'cache_' . md5($rSignalKey), json_encode(array($rSignalKey, json_encode(array($rUserInfo['con_isp_name'], $rUserInfo['isp_asn'])))));
 				} else {
 					$db->query('UPDATE `lines` SET `isp_desc` = ?, `as_number` = ? WHERE `id` = ?', $rUserInfo['con_isp_name'], $rUserInfo['isp_asn'], $rUserInfo['id']);
 				}

@@ -690,10 +690,10 @@ class APIWrapper {
         if (0 >= self::$db->num_rows()) {
             return false;
         }
-        API::$db = &self::$db;
-        API::init(self::$db->get_row()['id']);
-        unset(API::$rUserInfo['password']);
-        $rUserInfo = API::$rUserInfo;
+        $rUserID = self::$db->get_row()['id'];
+        $GLOBALS['rAdminUserInfo'] = UserRepository::getRegisteredUserById($rUserID);
+        unset($GLOBALS['rAdminUserInfo']['password']);
+        $rUserInfo = $GLOBALS['rAdminUserInfo'];
         $rPermissions = getPermissions($rUserInfo['member_group_id']);
         $rPermissions['advanced'] = array();
         if (0 >= strlen($rUserInfo['timezone'])) {
@@ -718,7 +718,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(API::processLine($rData));
+        $rReturn = parseerror(LineService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getLine($rReturn['data']['insert_id'])['data'];
@@ -734,7 +734,7 @@ class APIWrapper {
         } else {
             $rData['isp_clear'] = '';
         }
-        $rReturn = parseerror(API::processLine($rData));
+        $rReturn = parseerror(LineService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getLine($rReturn['data']['insert_id'])['data'];
@@ -790,7 +790,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(API::processUser($rData));
+        $rReturn = parseerror(UserService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getUser($rReturn['data']['insert_id'])['data'];
@@ -802,7 +802,7 @@ class APIWrapper {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
-        $rReturn = parseerror(API::processUser($rData));
+        $rReturn = parseerror(UserService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getUser($rReturn['data']['insert_id'])['data'];
@@ -844,7 +844,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(API::processMAG($rData));
+        $rReturn = parseerror(MagService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getMAG($rReturn['data']['insert_id'])['data'];
@@ -860,7 +860,7 @@ class APIWrapper {
         } else {
             $rData['isp_clear'] = '';
         }
-        $rReturn = parseerror(API::processMAG($rData));
+        $rReturn = parseerror(MagService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getMAG($rReturn['data']['insert_id'])['data'];
@@ -923,7 +923,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(API::processEnigma($rData));
+        $rReturn = parseerror(EnigmaService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getMAG($rReturn['data']['insert_id'])['data'];
@@ -939,7 +939,7 @@ class APIWrapper {
         } else {
             $rData['isp_clear'] = '';
         }
-        $rReturn = parseerror(API::processEnigma($rData));
+        $rReturn = parseerror(EnigmaService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getMAG($rReturn['data']['insert_id'])['data'];
@@ -1005,7 +1005,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(API::processBouquet($rData));
+        $rReturn = parseerror(BouquetService::process($rData, 'getBouquet', 'scanBouquet'));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getBouquet($rReturn['data']['insert_id'])['data'];
@@ -1017,7 +1017,7 @@ class APIWrapper {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
-        $rReturn = parseerror(API::processBouquet($rData));
+        $rReturn = parseerror(BouquetService::process($rData, 'getBouquet', 'scanBouquet'));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getBouquet($rReturn['data']['insert_id'])['data'];
@@ -1048,7 +1048,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(API::processCode($rData));
+        $rReturn = parseerror(AuthService::processCode($rData, 'getCode', 'updateCodes'));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getAccessCode($rReturn['data']['insert_id'])['data'];
@@ -1060,7 +1060,7 @@ class APIWrapper {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
-        $rReturn = parseerror(API::processCode($rData));
+        $rReturn = parseerror(AuthService::processCode($rData, 'getCode', 'updateCodes'));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getAccessCode($rReturn['data']['insert_id'])['data'];
@@ -1091,7 +1091,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(API::processHMAC($rData));
+        $rReturn = parseerror(AuthService::processHMAC($rData, CoreUtilities::$rSettings, 'getHMACToken'));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getHMAC($rReturn['data']['insert_id'])['data'];
@@ -1103,7 +1103,7 @@ class APIWrapper {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
-        $rReturn = parseerror(API::processHMAC($rData));
+        $rReturn = parseerror(AuthService::processHMAC($rData, CoreUtilities::$rSettings, 'getHMACToken'));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getHMAC($rReturn['data']['insert_id'])['data'];
@@ -1134,7 +1134,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(API::processEPG($rData));
+        $rReturn = parseerror(EpgService::process($rData, 'getEPG'));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getEPG($rReturn['data']['insert_id'])['data'];
@@ -1146,7 +1146,7 @@ class APIWrapper {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
-        $rReturn = parseerror(API::processEPG($rData));
+        $rReturn = parseerror(EpgService::process($rData, 'getEPG'));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getEPG($rReturn['data']['insert_id'])['data'];
@@ -1185,7 +1185,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(API::processProvider($rData));
+        $rReturn = parseerror(ProviderService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getProvider($rReturn['data']['insert_id'])['data'];
@@ -1197,7 +1197,7 @@ class APIWrapper {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
-        $rReturn = parseerror(API::processProvider($rData));
+        $rReturn = parseerror(ProviderService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getProvider($rReturn['data']['insert_id'])['data'];
@@ -1236,7 +1236,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(API::processGroup($rData));
+        $rReturn = parseerror(GroupService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getGroup($rReturn['data']['insert_id'])['data'];
@@ -1248,7 +1248,7 @@ class APIWrapper {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
-        $rReturn = parseerror(API::processGroup($rData));
+        $rReturn = parseerror(GroupService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getGroup($rReturn['data']['insert_id'])['data'];
@@ -1279,7 +1279,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(API::processPackage($rData));
+        $rReturn = parseerror(PackageService::process($rData, 'getPackage'));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getPackage($rReturn['data']['insert_id'])['data'];
@@ -1291,7 +1291,7 @@ class APIWrapper {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
-        $rReturn = parseerror(API::processPackage($rData));
+        $rReturn = parseerror(PackageService::process($rData, 'getPackage'));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getPackage($rReturn['data']['insert_id'])['data'];
@@ -1322,7 +1322,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(API::processProfile($rData));
+        $rReturn = parseerror(ProfileService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getTranscodeProfile($rReturn['data']['insert_id'])['data'];
@@ -1334,7 +1334,7 @@ class APIWrapper {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
-        $rReturn = parseerror(API::processProfile($rData));
+        $rReturn = parseerror(ProfileService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getTranscodeProfile($rReturn['data']['insert_id'])['data'];
@@ -1365,7 +1365,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(API::processRTMPIP($rData));
+        $rReturn = parseerror(BlocklistService::processRTMPIP($rData, 'getRTMPIP'));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getRTMPIP($rReturn['data']['insert_id'])['data'];
@@ -1377,7 +1377,7 @@ class APIWrapper {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
-        $rReturn = parseerror(API::processRTMPIP($rData));
+        $rReturn = parseerror(BlocklistService::processRTMPIP($rData, 'getRTMPIP'));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getRTMPIP($rReturn['data']['insert_id'])['data'];
@@ -1408,7 +1408,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(API::processCategory($rData));
+        $rReturn = parseerror(CategoryService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getCategory($rReturn['data']['insert_id'])['data'];
@@ -1420,7 +1420,7 @@ class APIWrapper {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
-        $rReturn = parseerror(API::processCategory($rData));
+        $rReturn = parseerror(CategoryService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getCategory($rReturn['data']['insert_id'])['data'];
@@ -1451,7 +1451,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(API::processWatchFolder($rData));
+        $rReturn = parseerror(WatchService::processWatchFolder($rData, 'getWatchFolder'));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getWatchFolder($rReturn['data']['insert_id'])['data'];
@@ -1463,7 +1463,7 @@ class APIWrapper {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
-        $rReturn = parseerror(API::processWatchFolder($rData));
+        $rReturn = parseerror(WatchService::processWatchFolder($rData, 'getWatchFolder'));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getWatchFolder($rReturn['data']['insert_id'])['data'];
@@ -1492,7 +1492,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(API::processISP($rData));
+        $rReturn = parseerror(BlocklistService::processISP($rData, 'getISP'));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = $rReturn['data']['insert_id'];
@@ -1513,7 +1513,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(API::processUA($rData));
+        $rReturn = parseerror(BlocklistService::processUA($rData, 'getUserAgent'));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = $rReturn['data']['insert_id'];
@@ -1534,7 +1534,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(API::blockIP($rData));
+        $rReturn = parseerror(BlocklistService::blockIP($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = $rReturn['data']['insert_id'];
@@ -1562,7 +1562,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(API::processStream($rData));
+        $rReturn = parseerror(StreamService::process($rData, CoreUtilities::$rSettings));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getStream($rReturn['data']['insert_id'])['data'];
@@ -1574,7 +1574,7 @@ class APIWrapper {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
-        $rReturn = parseerror(API::processStream($rData));
+        $rReturn = parseerror(StreamService::process($rData, CoreUtilities::$rSettings));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getStream($rReturn['data']['insert_id'])['data'];
@@ -1624,7 +1624,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(API::processChannel($rData));
+        $rReturn = parseerror(ChannelService::process($rData, CoreUtilities::$rSettings));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getChannel($rReturn['data']['insert_id'])['data'];
@@ -1636,7 +1636,7 @@ class APIWrapper {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
-        $rReturn = parseerror(API::processChannel($rData));
+        $rReturn = parseerror(ChannelService::process($rData, CoreUtilities::$rSettings));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getChannel($rReturn['data']['insert_id'])['data'];
@@ -1664,7 +1664,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(API::processRadio($rData));
+        $rReturn = parseerror(RadioService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getStation($rReturn['data']['insert_id'])['data'];
@@ -1676,7 +1676,7 @@ class APIWrapper {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
-        $rReturn = parseerror(API::processRadio($rData));
+        $rReturn = parseerror(RadioService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getStation($rReturn['data']['insert_id'])['data'];
@@ -1704,7 +1704,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(API::processMovie($rData));
+        $rReturn = parseerror(MovieService::process(CoreUtilities::$rSettings, $rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getMovie($rReturn['data']['insert_id'])['data'];
@@ -1716,7 +1716,7 @@ class APIWrapper {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
-        $rReturn = parseerror(API::processMovie($rData));
+        $rReturn = parseerror(MovieService::process(CoreUtilities::$rSettings, $rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getMovie($rReturn['data']['insert_id'])['data'];
@@ -1766,7 +1766,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(API::processEpisode($rData));
+        $rReturn = parseerror(EpisodeService::process(CoreUtilities::$rSettings, $rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getEpisode($rReturn['data']['insert_id'])['data'];
@@ -1778,7 +1778,7 @@ class APIWrapper {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
-        $rReturn = parseerror(API::processEpisode($rData));
+        $rReturn = parseerror(EpisodeService::process(CoreUtilities::$rSettings, $rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getEpisode($rReturn['data']['insert_id'])['data'];
@@ -1806,7 +1806,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(API::processSeries($rData));
+        $rReturn = parseerror(SeriesService::process(CoreUtilities::$rSettings, $rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getSeries($rReturn['data']['insert_id'])['data'];
@@ -1818,7 +1818,7 @@ class APIWrapper {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
-        $rReturn = parseerror(API::processSeries($rData));
+        $rReturn = parseerror(SeriesService::process(CoreUtilities::$rSettings, $rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getSeries($rReturn['data']['insert_id'])['data'];
@@ -1847,7 +1847,7 @@ class APIWrapper {
     public static function installServer($rData) {
         if (!(empty($rData['type']) || empty($rData['ssh_port']) || empty($rData['root_username']) || empty($rData['root_password']))) {
             if (!($rData['type'] == 1 && (empty($rData['type']) || empty($rData['ssh_port'])))) {
-                $rReturn = parseerror(API::installServer($rData));
+                $rReturn = parseerror(ServerService::install($rData, ServerRepository::getStreamingSimple($rPermissions, 'all'), ServerRepository::getProxySimple($rPermissions)));
                 if (!isset($rReturn['data']['insert_id'])) {
                 } else {
                     $rReturn['data'] = self::getServer($rReturn['data']['insert_id']);
@@ -1863,7 +1863,7 @@ class APIWrapper {
             return array('status' => 'STATUS_FAILURE');
         } else {
             $rData['edit'] = $rID;
-            $rReturn = parseerror(API::processServer($rData));
+            $rReturn = parseerror(ServerService::process($rData));
             if (!isset($rReturn['data']['insert_id'])) {
             } else {
                 $rReturn['data'] = self::getServer($rReturn['data']['insert_id'])['data'];
@@ -1876,7 +1876,7 @@ class APIWrapper {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
-        $rReturn = parseerror(API::processProxy($rData));
+        $rReturn = parseerror(ServerService::processProxy($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getServer($rReturn['data']['insert_id'])['data'];
@@ -1897,7 +1897,7 @@ class APIWrapper {
         return array('status' => 'STATUS_SUCCESS', 'data' => getSettings());
     }
     public static function editSettings($rData) {
-        $rReturn = parseerror(API::editSettings($rData));
+        $rReturn = parseerror(SettingsService::edit($rData, 'clearSettingsCache'));
         $rReturn['data'] = self::getSettings()['data'];
         return $rReturn;
     }

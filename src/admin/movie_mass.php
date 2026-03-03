@@ -11,7 +11,7 @@
 	$rCategories = getCategories('movie');
 
 	if (isset(CoreUtilities::$rRequest['submit_stream'])) {
-		$rReturn = API::massEditMovies(CoreUtilities::$rRequest);
+		$rReturn = MovieService::massEdit(CoreUtilities::$rRequest);
 		$_STATUS = $rReturn['status'];
 
 		if ($_STATUS == 0) {

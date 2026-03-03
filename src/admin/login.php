@@ -25,7 +25,7 @@ if (!isset($_SESSION['hash'])) {
         } else {
             if (intval($rSettings['login_flood']) > intval($db->get_row()['count'])) {
             } else {
-                API::blockIP(array('ip' => $rIP, 'notes' => 'LOGIN FLOOD ATTACK'));
+                BlocklistService::blockIP(array('ip' => $rIP, 'notes' => 'LOGIN FLOOD ATTACK'));
 
                 exit();
             }
@@ -34,7 +34,7 @@ if (!isset($_SESSION['hash'])) {
 
     if (!isset(CoreUtilities::$rRequest['login'])) {
     } else {
-        $rReturn = API::processLogin(CoreUtilities::$rRequest, $rBypassRecaptcha);
+        $rReturn = Authenticator::login(CoreUtilities::$rSettings, CoreUtilities::$rRequest, $rBypassRecaptcha);
         $_STATUS = $rReturn['status'];
 
         if ($_STATUS != STATUS_SUCCESS) {

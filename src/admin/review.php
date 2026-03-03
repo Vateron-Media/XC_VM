@@ -32,7 +32,7 @@
         foreach (CoreUtilities::$rRequest['category_selection'] as $rCategory) {
             if (in_array($rCategory, $rCategoryIDs) || is_numeric($rCategory)) {
             } else {
-                $rReturn = API::processCategory(array('category_type' => array(1 => 'live', 2 => 'movie')[intval($rType)], 'category_name' => $rCategory));
+                $rReturn = CategoryService::process(array('category_type' => array(1 => 'live', 2 => 'movie')[intval($rType)], 'category_name' => $rCategory));
                 $rNewCategories[$rCategory] = $rReturn['data']['insert_id'];
             }
         }
@@ -67,7 +67,7 @@
         }
 
         if ($rType == 1) {
-            $rReturn = API::processStream($rPostData);
+            $rReturn = StreamService::process($rPostData, CoreUtilities::$rSettings);
             $_STATUS = $rReturn['status'];
 
             if ($_STATUS != STATUS_SUCCESS) {
@@ -76,7 +76,7 @@
                 exit();
             }
         } else {
-            $rReturn = API::processMovie($rPostData);
+            $rReturn = MovieService::process(CoreUtilities::$rSettings, $rPostData);
             $_STATUS = $rReturn['status'];
 
             if ($_STATUS != STATUS_SUCCESS) {

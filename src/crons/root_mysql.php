@@ -32,7 +32,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
                 if (in_array($rRow['ip'], CoreUtilities::getAllowedIPs())) {
                 } else {
                     echo 'Blocking IP ' . $rRow['ip'] . "\n";
-                    API::blockIP(array('ip' => $rRow['ip'], 'notes' => 'MYSQL BRUTEFORCE ATTACK'));
+                    BlocklistService::blockIP(array('ip' => $rRow['ip'], 'notes' => 'MYSQL BRUTEFORCE ATTACK'));
                 }
             }
         }

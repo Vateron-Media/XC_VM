@@ -6,7 +6,7 @@
  * Заменяет три дублированных bootstrap-файла:
  *   1. includes/admin.php       (строки 1-100: session, defines, DB, API init)
  *   2. www/init.php             (DB + CoreUtilities для crons и www)
- *   3. www/stream/init.php      (constants + StreamingUtilities для стриминга)
+ *   3. www/stream/init.php      (constants + LegacyInitializer для стриминга)
  *
  * Каждый из этих файлов дублирует: загрузку констант, подключение к БД,
  * flood-protection, Logger, error-функции. bootstrap.php объединяет общую
@@ -23,7 +23,7 @@
  *   CONTEXT_CLI      — + Database + CoreUtilities::init().
  *                      Для cron-задач и CLI-скриптов.
  *
- *   CONTEXT_STREAM   — + Database + StreamingUtilities (лёгкий путь).
+ *   CONTEXT_STREAM   — + Database + LegacyInitializer (лёгкий путь).
  *                      Для стриминг-эндпоинтов (live, vod, timeshift).
  *                      Не загружает admin_api, Translator и т.д.
  *
@@ -56,7 +56,7 @@
  * ──────────────────────────────────────────────────────────────────
  *
  *   $db остаётся глобальной переменной.
- *   Все статические свойства CoreUtilities / StreamingUtilities
+ *   Все статические свойства CoreUtilities
  *   инициализируются как раньше.
  *   Старые файлы (admin.php, init.php, stream/init.php) продолжают
  *   работать — bootstrap.php используется параллельно, а не вместо.
@@ -114,7 +114,6 @@ class XC_Bootstrap {
     private static $loggerStarted    = false;
     private static $databaseReady    = false;
     private static $coreReady        = false;
-    private static $streamingReady   = false;
     private static $adminReady       = false;
     private static $sessionStarted   = false;
     private static $redisReady       = false;
@@ -177,7 +176,6 @@ class XC_Bootstrap {
 
             case self::CONTEXT_STREAM:
                 self::initDatabase(true);
-                self::initStreamingUtilities();
                 break;
 
             case self::CONTEXT_ADMIN:
@@ -251,7 +249,6 @@ class XC_Bootstrap {
         self::$loggerStarted   = false;
         self::$databaseReady   = false;
         self::$coreReady       = false;
-        self::$streamingReady  = false;
         self::$adminReady      = false;
         self::$sessionStarted  = false;
         self::$redisReady      = false;
@@ -409,6 +406,7 @@ class XC_Bootstrap {
 
         global $db;
 
+        require_once MAIN_HOME . 'core/Init/LegacyInitializer.php';
         require_once INCLUDES_PATH . 'CoreUtilities.php';
 
         CoreUtilities::$db = &$db;
@@ -431,38 +429,6 @@ class XC_Bootstrap {
     }
 
     /**
-     * Инициализация StreamingUtilities (лёгкий путь).
-     *
-     * Для стриминг-эндпоинтов (live, vod, timeshift и т.д.).
-     * НЕ загружает admin_api, Translator, MobileDetect.
-     * Использует кэш настроек для минимальной нагрузки на БД.
-     */
-    private static function initStreamingUtilities(): void {
-        if (self::$streamingReady) {
-            return;
-        }
-
-        global $db;
-
-        require_once INCLUDES_PATH . 'StreamingUtilities.php';
-
-        // Настройки из файлового кэша
-        $rSettings = [];
-        if (file_exists(CACHE_TMP_PATH . 'settings')) {
-            $rSettings = @igbinary_unserialize(@file_get_contents(CACHE_TMP_PATH . 'settings'));
-            if (!is_array($rSettings)) {
-                $rSettings = ['verify_host' => false, 'debug_show_errors' => false, 'enable_cache' => false];
-            }
-        }
-
-        StreamingUtilities::$rSettings = $rSettings;
-        StreamingUtilities::init(false);
-        $db = &StreamingUtilities::$db;
-
-        self::$streamingReady = true;
-    }
-
-    /**
      * Подключение к Redis.
      */
     private static function initRedis(): void {
@@ -477,8 +443,8 @@ class XC_Bootstrap {
     /**
      * Инициализация Admin API + Reseller API.
      *
-     * Загружает admin_api.php и reseller_api.php,
-     * инициализирует классы API и ResellerAPI.
+     * Загружает reseller_api.php,
+     * инициализирует класс ResellerAPI и admin user info.
      */
     private static function initAdminAPI(): void {
         if (self::$adminReady) {
@@ -487,13 +453,13 @@ class XC_Bootstrap {
 
         global $db;
 
-        require_once INCLUDES_PATH . 'admin_api.php';
         require_once INCLUDES_PATH . 'reseller_api.php';
 
-        API::$db = &$db;
-        API::init();
+        // Admin user info (formerly API::$rUserInfo)
+        if (isset($_SESSION['hash'])) {
+            $GLOBALS['rAdminUserInfo'] = UserRepository::getRegisteredUserById($_SESSION['hash']);
+        }
 
-        ResellerAPI::$db = &$db;
         ResellerAPI::init();
 
         self::$adminReady = true;
@@ -558,11 +524,6 @@ class XC_Bootstrap {
             if (self::$redisReady && CoreUtilities::$redis !== null) {
                 $container->set('redis', CoreUtilities::$redis);
             }
-        }
-
-        // Настройки StreamingUtilities (stream-контекст)
-        if (self::$streamingReady) {
-            $container->set('settings', StreamingUtilities::$rSettings);
         }
 
         // Translator

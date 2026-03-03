@@ -230,7 +230,6 @@ class APIWrapper {
         if (0 >= self::$db->num_rows()) {
             return false;
         }
-        ResellerAPI::$db = &self::$db;
         ResellerAPI::init(self::$db->get_row()['id']);
         unset(ResellerAPI::$rUserInfo['password']);
         $rUserInfo = ResellerAPI::$rUserInfo;

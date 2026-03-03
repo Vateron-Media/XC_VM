@@ -1,7 +1,8 @@
 <?php
 
 class RecordingService {
-	public static function schedule($db, $rData) {
+	public static function schedule($rData) {
+		global $db;
 		if (empty($rData['title'])) {
 			return array('status' => STATUS_NO_TITLE);
 		}

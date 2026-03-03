@@ -1121,7 +1121,7 @@ if (1 < $rICount) { ?>
 			// no break
 			case 'stream_tools':
 				if (isset($rData['replace_dns'])) {
-					API::replaceDNS($rData);
+					StreamService::replaceDNS($rData);
 					echo json_encode(array('result' => true, 'location' => 'stream_tools?status=1', 'status' => 1));
 					exit();
 				}
@@ -1130,13 +1130,13 @@ if (1 < $rICount) { ?>
 					break;
 				}
 
-				API::moveStreams($rData);
+				StreamService::move($rData);
 				echo json_encode(array('result' => true, 'location' => 'stream_tools?status=2', 'status' => 2));
 				exit();
 
 
 			case 'bouquet':
-				$rReturn = API::processBouquet($rData);
+				$rReturn = BouquetService::process($rData, 'getBouquet', 'scanBouquet');
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'bouquets?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1146,7 +1146,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'stream':
-				$rReturn = API::processStream($rData);
+				$rReturn = StreamService::process($rData, CoreUtilities::$rSettings);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					if (isset($rData['edit']) && getPageFromURL($rReferer) == 'streams') {
@@ -1170,12 +1170,12 @@ if (1 < $rICount) { ?>
 
 			case 'movie':
 				if (!empty($rData['import_folder']) || !empty($_FILES['m3u_file']['tmp_name'])) {
-					$rReturn = API::importMovies($rData);
+					$rReturn = MovieService::import($rData);
 					echo json_encode(array('result' => true, 'location' => 'movies?status=2', 'status' => $rReturn['status']));
 					exit();
 				}
 
-				$rReturn = API::processMovie($rData);
+				$rReturn = MovieService::process(CoreUtilities::$rSettings, $rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					if (isset($rData['edit']) && getPageFromURL($rReferer) == 'movies') {
@@ -1198,7 +1198,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'backups':
-				$rReturn = API::editBackupSettings($rData);
+				$rReturn = SettingsService::editBackup($rData, 'clearSettingsCache');
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'backups?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1209,7 +1209,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'cache':
-				$rReturn = API::editCacheCron($rData);
+				$rReturn = SettingsService::editCacheCron($rData, 'clearSettingsCache');
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'cache?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1220,7 +1220,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'bouquet_order':
-				$rReturn = API::sortBouquets($rData);
+				$rReturn = BouquetService::sort($rData, 'getUserBouquets', 'getPackages', 'sortArrayByArray', array('CoreUtilities', 'updateLine'));
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'bouquet_order?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1236,7 +1236,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'bouquet_sort':
-				$rReturn = API::reorderBouquet($rData);
+				$rReturn = BouquetService::reorder($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'bouquet_sort?id=' . intval($rReturn['data']['insert_id']) . '&status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1247,7 +1247,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'channel_order':
-				$rReturn = API::setChannelOrder($rData);
+				$rReturn = ChannelService::setOrder($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'channel_order?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1258,7 +1258,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'code':
-				$rReturn = API::processCode($rData);
+				$rReturn = AuthService::processCode($rData, 'getCode', 'updateCodes');
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					if (AuthRepository::getCurrentCode() == $rReturn['data']['orig_code']) {
@@ -1275,7 +1275,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'hmac':
-				$rReturn = API::processHMAC($rData);
+				$rReturn = AuthService::processHMAC($rData, CoreUtilities::$rSettings, 'getHMACToken');
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'hmacs?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1286,7 +1286,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'record':
-				$rReturn = API::scheduleRecording($rData);
+				$rReturn = RecordingService::schedule($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'archive?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1297,7 +1297,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'created_channel':
-				$rReturn = API::processChannel($rData);
+				$rReturn = ChannelService::process($rData, CoreUtilities::$rSettings);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					if (isset($rData['edit']) && getPageFromURL($rReferer) == 'created_channels') {
@@ -1314,7 +1314,8 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'edit_profile':
-				$rReturn = API::editAdminProfile($rData);
+				global $allowedLangs;
+				$rReturn = UserService::editAdminProfile($rData, $GLOBALS['rAdminUserInfo'], $allowedLangs);
 				setcookie('hue', $rData['hue'], time() + 315360000);
 				setcookie('theme', $rData['theme'], time() + 315360000);
 				$language::setLanguage($rData['lang']);
@@ -1328,7 +1329,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'epg':
-				$rReturn = API::processEPG($rData);
+				$rReturn = EpgService::process($rData, 'getEPG');
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'epgs?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1339,7 +1340,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'provider':
-				$rReturn = API::processProvider($rData);
+				$rReturn = ProviderService::process($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'providers?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1350,7 +1351,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'episode':
-				$rReturn = API::processEpisode($rData);
+				$rReturn = EpisodeService::process(CoreUtilities::$rSettings, $rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					if (isset($rData['edit']) && getPageFromURL($rReferer) == 'episodes') {
@@ -1378,7 +1379,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'episodes_mass':
-				$rReturn = API::massEditEpisodes($rData);
+				$rReturn = EpisodeService::massEdit($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'episodes_mass?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1389,7 +1390,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'line_mass':
-				$rReturn = API::massEditLines($rData);
+				$rReturn = LineService::massEdit($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'line_mass?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1400,7 +1401,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'user_mass':
-				$rReturn = API::massEditUsers($rData);
+				$rReturn = UserService::massEdit($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'user_mass?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1411,7 +1412,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'mag_mass':
-				$rReturn = API::massEditMags($rData);
+				$rReturn = MagService::massEdit($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'mag_mass?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1422,7 +1423,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'enigma_mass':
-				$rReturn = API::massEditEnigmas($rData);
+				$rReturn = EnigmaService::massEdit($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'enigma_mass?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1433,7 +1434,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'stream_mass':
-				$rReturn = API::massEditStreams($rData);
+				$rReturn = StreamService::massEdit($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'stream_mass?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1444,7 +1445,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'created_channel_mass':
-				$rReturn = API::massEditChannels($rData);
+				$rReturn = ChannelService::massEdit($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'created_channel_mass?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1455,7 +1456,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'movie_mass':
-				$rReturn = API::massEditMovies($rData);
+				$rReturn = MovieService::massEdit($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'movie_mass?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1466,7 +1467,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'radio_mass':
-				$rReturn = API::massEditRadios($rData);
+				$rReturn = RadioService::massEdit($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'radio_mass?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1477,7 +1478,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'series_mass':
-				$rReturn = API::massEditSeries($rData);
+				$rReturn = SeriesService::massEdit($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'series_mass?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1488,7 +1489,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'group':
-				$rReturn = API::processGroup($rData);
+				$rReturn = GroupService::process($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'groups?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1499,7 +1500,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'ip':
-				$rReturn = API::blockIP($rData);
+				$rReturn = BlocklistService::blockIP($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'ips?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1510,7 +1511,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'isp':
-				$rReturn = API::processISP($rData);
+				$rReturn = BlocklistService::processISP($rData, 'getISP');
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'isps?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1521,7 +1522,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'line':
-				$rReturn = API::processLine($rData);
+				$rReturn = LineService::process($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					if (isset($rData['edit']) && getPageFromURL($rReferer) == 'lines') {
@@ -1538,7 +1539,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'mag':
-				$rReturn = API::processMAG($rData);
+				$rReturn = MagService::process($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					if (isset($rData['edit']) && getPageFromURL($rReferer) == 'mags') {
@@ -1555,7 +1556,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'enigma':
-				$rReturn = API::processEnigma($rData);
+				$rReturn = EnigmaService::process($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					if (isset($rData['edit']) && getPageFromURL($rReferer) == 'enigmas') {
@@ -1572,7 +1573,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'mass_delete_streams':
-				$rReturn = API::massDeleteStreams($rData);
+				$rReturn = StreamService::massDelete($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'mass_delete?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1583,7 +1584,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'mass_delete_movies':
-				$rReturn = API::massDeleteMovies($rData);
+				$rReturn = MovieService::massDelete($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'mass_delete?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1594,7 +1595,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'mass_delete_lines':
-				$rReturn = API::massDeleteLines($rData);
+				$rReturn = LineService::massDelete($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'mass_delete?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1605,7 +1606,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'mass_delete_series':
-				$rReturn = API::massDeleteSeries($rData);
+				$rReturn = SeriesService::massDelete($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'mass_delete?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1616,7 +1617,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'mass_delete_episodes':
-				$rReturn = API::massDeleteEpisodes($rData);
+				$rReturn = EpisodeService::massDelete($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'mass_delete?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1627,7 +1628,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'mass_delete_radios':
-				$rReturn = API::massDeleteStations($rData);
+				$rReturn = RadioService::massDelete($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'mass_delete?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1638,7 +1639,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'mass_delete_users':
-				$rReturn = API::massDeleteUsers($rData);
+				$rReturn = UserService::massDelete($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'mass_delete?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1649,7 +1650,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'mass_delete_mags':
-				$rReturn = API::massDeleteMags($rData);
+				$rReturn = MagService::massDelete($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'mass_delete?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1660,7 +1661,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'mass_delete_enigmas':
-				$rReturn = API::massDeleteEnigmas($rData);
+				$rReturn = EnigmaService::massDelete($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'mass_delete?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1671,7 +1672,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'package':
-				$rReturn = API::processPackage($rData);
+				$rReturn = PackageService::process($rData, 'getPackage');
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'packages?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1682,7 +1683,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'profile':
-				$rReturn = API::processProfile($rData);
+				$rReturn = ProfileService::process($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'profiles?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1693,7 +1694,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'radio':
-				$rReturn = API::processRadio($rData);
+				$rReturn = RadioService::process($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					if (isset($rData['edit']) && getPageFromURL($rReferer) == 'radios') {
@@ -1710,7 +1711,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'rtmp_ip':
-				$rReturn = API::processRTMPIP($rData);
+				$rReturn = BlocklistService::processRTMPIP($rData, 'getRTMPIP');
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'rtmp_ips?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1722,12 +1723,12 @@ if (1 < $rICount) { ?>
 
 			case 'serie':
 				if (!empty($rData['import_folder']) || !empty($_FILES['m3u_file']['tmp_name'])) {
-					$rReturn = API::importSeries($rData);
+					$rReturn = SeriesService::import($rData);
 					echo json_encode(array('result' => true, 'location' => 'series?status=2', 'status' => $rReturn['status']));
 					exit();
 				}
 
-				$rReturn = API::processSeries($rData);
+				$rReturn = SeriesService::process(CoreUtilities::$rSettings, $rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					if (isset($rData['edit']) && getPageFromURL($rReferer) == 'series') {
@@ -1744,7 +1745,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'proxy':
-				$rReturn = API::processProxy($rData);
+				$rReturn = ServerService::processProxy($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'server_view?id=' . intval($rReturn['data']['insert_id']) . '&status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1756,7 +1757,7 @@ if (1 < $rICount) { ?>
 
 			case 'server':
 				$rData['server_type'] = 0;
-				$rReturn = API::processServer($rData);
+				$rReturn = ServerService::process($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					if ($rData['regenerate_ssl'] == 1) {
@@ -1795,7 +1796,8 @@ if (1 < $rICount) { ?>
 
 				// no break
 			case 'server_install':
-				$rReturn = API::installServer($rData);
+				global $rPermissions;
+				$rReturn = ServerService::install($rData, ServerRepository::getStreamingSimple($rPermissions, 'all'), ServerRepository::getProxySimple($rPermissions));
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'server_view?id=' . intval($rReturn['data']['insert_id']) . '&status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1806,7 +1808,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'settings':
-				$rReturn = API::editSettings($rData);
+				$rReturn = SettingsService::edit($rData, 'clearSettingsCache');
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'settings?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1817,7 +1819,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'settings_plex':
-				$rReturn = API::editPlexSettings($rData);
+				$rReturn = PlexService::editPlexSettings($rData, 'clearSettingsCache');
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'settings_plex?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1828,7 +1830,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'settings_watch':
-				$rReturn = API::editWatchSettings($rData);
+				$rReturn = WatchService::editWatchSettings($rData, 'clearSettingsCache');
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'settings_watch?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1839,7 +1841,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'server_order':
-				$rReturn = API::orderServers($rData);
+				$rReturn = ServerService::reorder($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'server_order?status=' . STATUS_SUCCESS, 'status' => $rReturn['status']));
@@ -1856,7 +1858,7 @@ if (1 < $rICount) { ?>
 				}
 
 			case 'stream_categories':
-				$rReturn = API::orderCategories($rData);
+				$rReturn = CategoryService::reorder($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'stream_categories?status=' . STATUS_SUCCESS_MULTI, 'status' => $rReturn['status']));
@@ -1867,7 +1869,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'stream_category':
-				$rReturn = API::processCategory($rData);
+				$rReturn = CategoryService::process($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'stream_categories?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1878,7 +1880,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'ticket':
-				$rReturn = API::submitTicket($rData);
+				$rReturn = UserService::submitTicket($rData, $GLOBALS['rAdminUserInfo'], 'getTicket');
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'ticket_view?id=' . intval($rReturn['data']['insert_id']) . '&status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1889,7 +1891,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'user':
-				$rReturn = API::processUser($rData);
+				$rReturn = UserService::process($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					if (isset($rData['edit']) && getPageFromURL($rReferer) == 'users') {
@@ -1906,7 +1908,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'useragent':
-				$rReturn = API::processUA($rData);
+				$rReturn = BlocklistService::processUA($rData, 'getUserAgent');
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'useragents?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1917,7 +1919,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'watch_add':
-				$rReturn = API::processWatchFolder($rData);
+				$rReturn = WatchService::processWatchFolder($rData, 'getWatchFolder');
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'watch?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1928,7 +1930,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'plex_add':
-				$rReturn = API::processPlexSync($rData);
+				$rReturn = PlexService::processPlexSync($rData, 'getWatchFolder');
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'plex?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));

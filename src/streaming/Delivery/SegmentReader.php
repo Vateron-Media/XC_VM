@@ -34,4 +34,30 @@ class SegmentReader {
 		}
 		return (!empty($rSegments) ? $rSegments : null);
 	}
+
+	public static function getPlaylistSegments($rPlaylist, $rPrebuffer = 0, $rSegmentDuration = 10) {
+		if (file_exists($rPlaylist)) {
+			$rSource = file_get_contents($rPlaylist);
+			$rSource = str_replace(array("\r\n", "\r"), "\n", $rSource);
+
+			if (preg_match('/#EXT-X-MAP:URI="(.*?)"/', $rSource, $rInitMatch)) {
+				$rInitSegment = $rInitMatch[1];
+			}
+
+			if (preg_match_all('/(.*?)\.(ts|m4s)/', $rSource, $rMatches)) {
+				if (0 < $rPrebuffer) {
+					$rTotalSegments = intval($rPrebuffer / $rSegmentDuration);
+					if (!$rTotalSegments) {
+						$rTotalSegments = 1;
+					}
+					return array_slice($rMatches[0], 0 - $rTotalSegments);
+				}
+				if ($rPrebuffer == -1) {
+					return $rMatches[0];
+				}
+				preg_match('/_(.*)\\./', array_pop($rMatches[0]), $rCurrentSegment);
+				return $rCurrentSegment[1];
+			}
+		}
+	}
 }

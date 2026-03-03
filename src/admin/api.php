@@ -782,7 +782,7 @@ if (isset($_SESSION['hash'])) {
 		}
 		if (CoreUtilities::$rRequest['action'] == 'kill_watch') {
 			if (Authorization::check('adv', 'folder_watch')) {
-				WatchService::killWatch($db);
+				WatchService::killWatch();
 				echo json_encode(array('result' => true));
 
 				exit();
@@ -3122,7 +3122,7 @@ if (isset($_SESSION['hash'])) {
 		}
 		if (CoreUtilities::$rRequest['action'] == 'disable_watch') {
 			if (Authorization::check('adv', 'folder_watch_settings')) {
-				WatchService::disableWatch($db);
+				WatchService::disableWatch();
 				echo json_encode(array('result' => true));
 
 				exit();
@@ -3134,7 +3134,7 @@ if (isset($_SESSION['hash'])) {
 		}
 		if (CoreUtilities::$rRequest['action'] == 'enable_watch') {
 			if (Authorization::check('adv', 'folder_watch_settings')) {
-				WatchService::enableWatch($db);
+				WatchService::enableWatch();
 				echo json_encode(array('result' => true));
 
 				exit();
@@ -4461,7 +4461,7 @@ if (isset($_SESSION['hash'])) {
 					exit();
 				}
 
-				WatchService::deleteRecording($db, CoreUtilities::$rRequest['id'], 'deleteStream');
+				WatchService::deleteRecording(CoreUtilities::$rRequest['id'], 'deleteStream');
 				echo json_encode(array('result' => true));
 
 				exit();

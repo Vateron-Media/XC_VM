@@ -19,7 +19,7 @@
 
         $rArchive = getArchive($rStream['id']);
     } else {
-        $rRecordings = WatchService::getRecordings($db);
+        $rRecordings = WatchService::getRecordings();
     }
 
     $_TITLE = (!is_null($rRecordings) ? 'Recordings' : 'TV Archive');

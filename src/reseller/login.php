@@ -14,7 +14,7 @@ if (!isset($_SESSION['reseller'])) {
 		} else {
 			if (intval($rSettings['login_flood']) > intval($db->get_row()['count'])) {
 			} else {
-				API::blockIP(array('ip' => $rIP, 'notes' => 'LOGIN FLOOD ATTACK'));
+				BlocklistService::blockIP(array('ip' => $rIP, 'notes' => 'LOGIN FLOOD ATTACK'));
 
 				exit();
 			}

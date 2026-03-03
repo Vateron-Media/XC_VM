@@ -353,6 +353,121 @@ class ProcessManager {
         self::$procCache = [];
     }
 
+    // ───────────────────────────────────────────────────────────
+    //  Streaming-specific Process Methods
+    //  Extracted from StreamingUtilities
+    // ───────────────────────────────────────────────────────────
+
+    /**
+     * Check if a stream process is alive (simplified cmdline search).
+     *
+     * Extracted from ProcessManager::isStreamAlive().
+     * Searches for $streamID anywhere in /proc/PID/cmdline (case-insensitive).
+     *
+     * @param int $pid Process ID
+     * @param int|string $streamID Stream identifier to search for
+     * @return bool
+     */
+    public static function isStreamAlive($pid, $streamID) {
+        $pid = (int)$pid;
+        if ($pid <= 1) {
+            return false;
+        }
+
+        if (!self::procExists($pid)) {
+            return false;
+        }
+
+        if (!is_link('/proc/' . $pid . '/exe')) {
+            return false;
+        }
+
+        static $cache = [];
+        $cacheKey = $pid . '|' . $streamID;
+        if (isset($cache[$cacheKey]) && $cache[$cacheKey]['time'] > time() - 4) {
+            return $cache[$cacheKey]['alive'];
+        }
+
+        $cmd = @file_get_contents('/proc/' . $pid . '/cmdline');
+        if ($cmd === false) {
+            $alive = false;
+        } else {
+            $cmd = str_replace("\0", ' ', $cmd);
+            $alive = stripos($cmd, $streamID) !== false;
+        }
+
+        $cache[$cacheKey] = ['alive' => $alive, 'time' => time()];
+        return $alive;
+    }
+
+    /**
+     * Check if a monitor/proxy process is running.
+     *
+     * Extracted from ProcessManager::isMonitorAlive().
+     * Checks for XC_VM[streamID] OR XC_VMProxy[streamID] in cmdline.
+     *
+     * @param int $pid Process ID
+     * @param int|string $streamID Stream identifier
+     * @param string|null $exe Expected executable (default: PHP_BIN)
+     * @return bool
+     */
+    public static function isMonitorAlive($pid, $streamID, $exe = null) {
+        $pid = (int)$pid;
+        if ($pid <= 0) {
+            return false;
+        }
+
+        if ($exe === null && defined('PHP_BIN')) {
+            $exe = PHP_BIN;
+        }
+
+        if (!self::procExists($pid)) {
+            return false;
+        }
+
+        if (!$exe || !is_readable('/proc/' . $pid . '/exe')) {
+            return false;
+        }
+
+        if (strpos(basename(@readlink('/proc/' . $pid . '/exe')), basename($exe)) !== 0) {
+            return false;
+        }
+
+        $cmdline = trim(@file_get_contents('/proc/' . $pid . '/cmdline'));
+        return ($cmdline == 'XC_VM[' . $streamID . ']' || $cmdline == 'XC_VMProxy[' . $streamID . ']');
+    }
+
+    /**
+     * Start a stream monitor process in background.
+     *
+     * Extracted from ProcessManager::startMonitor().
+     *
+     * @param int $streamID
+     * @param int $restart
+     * @return bool
+     */
+    public static function startMonitor($streamID, $restart = 0) {
+        shell_exec(PHP_BIN . ' ' . CLI_PATH . 'monitor.php ' . intval($streamID) . ' ' . intval($restart) . ' >/dev/null 2>/dev/null &');
+        return true;
+    }
+
+    /**
+     * Start a proxy process in background.
+     *
+     * Extracted from ProcessManager::startProxy().
+     *
+     * @param int $streamID
+     * @return bool
+     */
+    public static function startProxy($streamID) {
+        shell_exec(PHP_BIN . ' ' . CLI_PATH . 'proxy.php ' . intval($streamID) . ' >/dev/null 2>/dev/null &');
+        return true;
+    }
+
+    // ───────────────────────────────────────────────────────────
+    //  Utility
+    // ───────────────────────────────────────────────────────────
+
     /**
      * Count running processes matching a pattern
      *
