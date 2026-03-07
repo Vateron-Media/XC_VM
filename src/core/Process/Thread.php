@@ -1,13 +1,10 @@
 <?php
 
 /**
- * XC_VM — Обёртка для процесса
+ * Обёртка для процесса
  *
  * Управление дочерним процессом через proc_open().
  * Используется совместно с Multithread для параллельного выполнения.
- *
- * Извлечён из crons/cache_engine.php, modules/plex/PlexCron.php,
- * modules/watch/WatchCron.php (устранение дублирования — Фаза 5 аудит).
  *
  * @see Multithread
  */

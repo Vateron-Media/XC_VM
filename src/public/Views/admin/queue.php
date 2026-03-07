@@ -1,6 +1,6 @@
 <?php
 /**
- * Encoding Queue view (Phase 6.3 — Group M).
+ * Encoding Queue view.
  * Delegation proxy → legacy admin/queue.php HTML body.
  */
 $__viewMode = true;

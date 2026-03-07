@@ -2,8 +2,6 @@
 
 /**
  * WatchItem — модуль обработки отдельного элемента Watch Folder (фильм/сериал).
- *
- * Извлечён из includes/cli/watch_item.php (Фаза 5.2).
  */
 
 class WatchItem {
@@ -178,7 +176,7 @@ class WatchItem {
      * @return array|null
      */
     public static function checksource($rFilename) {
-        $rCommand = 'timeout 10 ' . CoreUtilities::$rFFPROBE . ' -show_streams -show_format -v quiet ' . escapeshellarg($rFilename) . ' -of json';
+        $rCommand = 'timeout 10 ' . FfmpegPaths::probe() . ' -show_streams -show_format -v quiet ' . escapeshellarg($rFilename) . ' -of json';
         return json_decode(shell_exec($rCommand), true);
     }
 
@@ -208,12 +206,12 @@ class WatchItem {
      * @return string
      */
     public static function getSeriesTrailer($rTMDBID, $rLanguage = null) {
-        $rURL = 'https://api.themoviedb.org/3/tv/' . intval($rTMDBID) . '/videos?api_key=' . urlencode(CoreUtilities::$rSettings['tmdb_api_key']);
+        $rURL = 'https://api.themoviedb.org/3/tv/' . intval($rTMDBID) . '/videos?api_key=' . urlencode(SettingsManager::getAll()['tmdb_api_key']);
         if ($rLanguage) {
             $rURL .= '&language=' . urlencode($rLanguage);
         } else {
-            if (strlen(CoreUtilities::$rSettings['tmdb_language']) > 0) {
-                $rURL .= '&language=' . urlencode(CoreUtilities::$rSettings['tmdb_language']);
+            if (strlen(SettingsManager::getAll()['tmdb_language']) > 0) {
+                $rURL .= '&language=' . urlencode(SettingsManager::getAll()['tmdb_language']);
             }
         }
         $rJSON = json_decode(file_get_contents($rURL), true);
@@ -299,13 +297,13 @@ class WatchItem {
             $rYear = null;
 
             if (!empty($rThreadData['language'])) {
-                $rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key'], $rThreadData['language']);
+                $rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key'], $rThreadData['language']);
                 $rLanguage = $rThreadData['language'];
             } else {
-                if (!empty(CoreUtilities::$rSettings['tmdb_language'])) {
-                    $rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key'], CoreUtilities::$rSettings['tmdb_language']);
+                if (!empty(SettingsManager::getAll()['tmdb_language'])) {
+                    $rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
                 } else {
-                    $rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key']);
+                    $rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key']);
                 }
             }
             if ($rThreadData['type'] != 'movie') {
@@ -358,9 +356,9 @@ class WatchItem {
                             $rFilename = $rThreadData['title'];
                         }
                         if ($rThreadData['fallback_parser'] && !$rThreadData['disable_tmdb'] && !$rMetaMatch) {
-                            $rParseTypes = array(CoreUtilities::$rSettings['parse_type'], (CoreUtilities::$rSettings['parse_type'] == 'guessit' ? 'ptn' : 'guessit'));
+                            $rParseTypes = array(SettingsManager::getAll()['parse_type'], (SettingsManager::getAll()['parse_type'] == 'guessit' ? 'ptn' : 'guessit'));
                         } else {
-                            $rParseTypes = array(CoreUtilities::$rSettings['parse_type']);
+                            $rParseTypes = array(SettingsManager::getAll()['parse_type']);
                         }
                         foreach ($rParseTypes as $rParseType) {
                             if ($rThreadData['disable_tmdb'] || $rMetaMatch) {
@@ -445,12 +443,11 @@ class WatchItem {
                                                 }
                                             }
 
-
                                             $rPercentageAlt = 0;
                                             if ($rAltTitle) {
                                                 similar_text(self::parseTitle($rAltTitle), self::parseTitle(($rResultArr->get('title') ?: $rResultArr->get('name'))), $rPercentageAlt);
                                             }
-                                            if (CoreUtilities::$rSettings['percentage_match'] <= $rPercentage || CoreUtilities::$rSettings['percentage_match'] <= $rPercentageAlt) {
+                                            if (SettingsManager::getAll()['percentage_match'] <= $rPercentage || SettingsManager::getAll()['percentage_match'] <= $rPercentageAlt) {
                                                 if ($rSearchYear && !in_array(intval(substr(($rResultArr->get('release_date') ?: $rResultArr->get('first_air_date')), 0, 4)), range(intval($rSearchYear) - 1, intval($rSearchYear) + 1))) {
                                                 } else {
                                                     if ($rAltTitle && self::parseTitle(($rResultArr->get('title') ?: $rResultArr->get('name'))) == self::parseTitle($rAltTitle)) {
@@ -568,7 +565,7 @@ class WatchItem {
                                         $db->query('UPDATE `streams` SET `stream_source` = ?, `target_container` = ? WHERE `id` = ?;', $rImportArray['stream_source'], $rImportArray['target_container'], $rUpgradeData['id']);
                                         $db->query('UPDATE `streams_servers` SET `bitrate` = NULL, `current_source` = NULL, `to_analyze` = 0, `pid` = NULL, `stream_started` = NULL, `stream_info` = NULL, `compatible` = 0, `video_codec` = NULL, `audio_codec` = NULL, `resolution` = NULL, `stream_status` = 0 WHERE `stream_id` = ? AND `server_id` = ?', $rUpgradeData['id'], SERVER_ID);
                                         if ($rThreadData['auto_encode']) {
-                                            CoreUtilities::queueMovie($rUpgradeData['id']);
+                                            StreamProcess::queueMovie($rUpgradeData['id']);
                                         }
                                         $db->query('INSERT INTO `watch_logs`(`type`, `server_id`, `filename`, `status`, `stream_id`) VALUES(?, ?, ?, 6, 0);', $rThreadType, SERVER_ID, htmlspecialchars($rFile, ENT_QUOTES, 'UTF-8'));
                                         file_put_contents(WATCH_TMP_PATH . 'movie_' . $rMatch->get('id') . '.cache', json_encode(array('id' => $rUpgradeData['id'], 'source' => 's:' . SERVER_ID . ':' . $rFile)));
@@ -585,9 +582,9 @@ class WatchItem {
                             $rMovieData['trailer'] = $rMovie->getTrailer();
                             $rThumb = 'https://image.tmdb.org/t/p/w600_and_h900_bestv2' . $rMovieData['poster_path'];
                             $rBG = 'https://image.tmdb.org/t/p/w1280' . $rMovieData['backdrop_path'];
-                            if (CoreUtilities::$rSettings['download_images']) {
-                                $rThumb = CoreUtilities::downloadImage($rThumb);
-                                $rBG = CoreUtilities::downloadImage($rBG);
+                            if (SettingsManager::getAll()['download_images']) {
+                                $rThumb = ImageUtils::downloadImage($rThumb);
+                                $rBG = ImageUtils::downloadImage($rBG);
                             }
                             $rCast = array();
                             foreach ($rMovieData['credits']['cast'] as $rMember) {
@@ -683,7 +680,7 @@ class WatchItem {
                                         $db->query('UPDATE `streams` SET `stream_source` = ?, `target_container` = ? WHERE `id` = ?;', $rImportArray['stream_source'], $rImportArray['target_container'], $rUpgradeData['id']);
                                         $db->query('UPDATE `streams_servers` SET `bitrate` = NULL, `current_source` = NULL, `to_analyze` = 0, `pid` = NULL, `stream_started` = NULL, `stream_info` = NULL, `compatible` = 0, `video_codec` = NULL, `audio_codec` = NULL, `resolution` = NULL, `stream_status` = 0 WHERE `stream_id` = ? AND `server_id` = ?', $rUpgradeData['id'], SERVER_ID);
                                         if ($rThreadData['auto_encode']) {
-                                            CoreUtilities::queueMovie($rUpgradeData['id']);
+                                            StreamProcess::queueMovie($rUpgradeData['id']);
                                         }
                                         $db->query('INSERT INTO `watch_logs`(`type`, `server_id`, `filename`, `status`, `stream_id`) VALUES(?, ?, ?, 6, 0);', $rThreadType, SERVER_ID, htmlspecialchars($rFile, ENT_QUOTES, 'UTF-8'));
                                         $rCacheData = json_decode(file_get_contents(WATCH_TMP_PATH . 'series_' . $rMatch->get('id') . '.cache'), true);
@@ -714,8 +711,8 @@ class WatchItem {
                                 $rSeasonData = array();
                                 foreach ($rShowData['seasons'] as $rSeason) {
                                     $rSeason['cover'] = 'https://image.tmdb.org/t/p/w600_and_h900_bestv2' . $rSeason['poster_path'];
-                                    if (CoreUtilities::$rSettings['download_images']) {
-                                        $rSeason['cover'] = CoreUtilities::downloadImage($rSeason['cover'], 2);
+                                    if (SettingsManager::getAll()['download_images']) {
+                                        $rSeason['cover'] = ImageUtils::downloadImage($rSeason['cover'], 2);
                                     }
                                     $rSeason['cover_big'] = $rSeason['cover'];
                                     unset($rSeason['poster_path']);
@@ -724,13 +721,13 @@ class WatchItem {
                                 $rSeries = self::getSeriesByTMDB($rShowData['id']);
                                 if (!$rSeries) {
                                     $rSeriesArray = array('title' => $rShowData['name'], 'category_id' => array(), 'episode_run_time' => 0, 'tmdb_id' => $rShowData['id'], 'cover' => '', 'genre' => '', 'plot' => $rShowData['overview'], 'cast' => '', 'rating' => $rShowData['vote_average'], 'director' => '', 'release_date' => $rShowData['first_air_date'], 'last_modified' => time(), 'seasons' => $rSeasonData, 'backdrop_path' => array(), 'youtube_trailer' => '', 'year' => null);
-                                    $rSeriesArray['youtube_trailer'] = self::getSeriesTrailer($rShowData['id'], (!empty($rThreadData['language']) ? $rThreadData['language'] : CoreUtilities::$rSettings['tmdb_language']));
+                                    $rSeriesArray['youtube_trailer'] = self::getSeriesTrailer($rShowData['id'], (!empty($rThreadData['language']) ? $rThreadData['language'] : SettingsManager::getAll()['tmdb_language']));
                                     $rSeriesArray['cover'] = 'https://image.tmdb.org/t/p/w600_and_h900_bestv2' . $rShowData['poster_path'];
                                     $rSeriesArray['cover_big'] = $rSeriesArray['cover'];
                                     $rSeriesArray['backdrop_path'] = array('https://image.tmdb.org/t/p/w1280' . $rShowData['backdrop_path']);
-                                    if (CoreUtilities::$rSettings['download_images']) {
-                                        $rSeriesArray['cover'] = CoreUtilities::downloadImage($rSeriesArray['cover'], 2);
-                                        $rSeriesArray['backdrop_path'] = array(CoreUtilities::downloadImage($rSeriesArray['backdrop_path'][0]));
+                                    if (SettingsManager::getAll()['download_images']) {
+                                        $rSeriesArray['cover'] = ImageUtils::downloadImage($rSeriesArray['cover'], 2);
+                                        $rSeriesArray['backdrop_path'] = array(ImageUtils::downloadImage($rSeriesArray['backdrop_path'][0]));
                                     }
                                     $rCast = array();
                                     foreach ($rShowData['credits']['cast'] as $rMember) {
@@ -852,8 +849,8 @@ class WatchItem {
                                         if (intval($rEpisode['episode_number']) == $rReleaseEpisode) {
                                             if (strlen($rEpisode['still_path']) > 0) {
                                                 $rImage = 'https://image.tmdb.org/t/p/w1280' . $rEpisode['still_path'];
-                                                if (CoreUtilities::$rSettings['download_images']) {
-                                                    $rImage = CoreUtilities::downloadImage($rImage, 5);
+                                                if (SettingsManager::getAll()['download_images']) {
+                                                    $rImage = ImageUtils::downloadImage($rImage, 5);
                                                 }
                                             }
                                             if (strlen($rEpisode['name']) > 0) {
@@ -951,10 +948,10 @@ class WatchItem {
                         if ($rThreadData['auto_encode']) {
                             if ($rThreadData['import']) {
                                 foreach ($rThreadData['servers'] as $rServerID) {
-                                    CoreUtilities::queueMovie($rInsertID, $rServerID);
+                                    StreamProcess::queueMovie($rInsertID, $rServerID);
                                 }
                             } else {
-                                CoreUtilities::queueMovie($rInsertID);
+                                StreamProcess::queueMovie($rInsertID);
                             }
                         }
                         echo 'Success!' . "\n";

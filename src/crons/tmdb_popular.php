@@ -8,8 +8,8 @@ if ((posix_getpwuid(posix_geteuid())['name'] ?? null) === 'xc_vm') {
         require_once MAIN_HOME . 'includes/libs/tmdb.php';
         require_once MAIN_HOME . 'modules/tmdb/TmdbPopularCron.php';
         cli_set_process_title('XC_VM[Popular]');
-        $rIdentifier = CRONS_TMP_PATH . md5(CoreUtilities::generateUniqueCode() . __FILE__);
-        CoreUtilities::checkCron($rIdentifier);
+        $rIdentifier = CRONS_TMP_PATH . md5(Encryption::generateUniqueCode(SettingsManager::getAll()['live_streaming_pass']) . __FILE__);
+        ProcessManager::acquireCronLock($rIdentifier);
         TmdbPopularCron::run();
     } else {
         exit(0);

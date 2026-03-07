@@ -1,6 +1,6 @@
 <?php
 /**
- * EPG preview view (Phase 6.4 — Reseller).
+ * EPG preview view.
  * Delegation proxy → legacy reseller/epg_view.php HTML body.
  */
 $__viewMode = true;

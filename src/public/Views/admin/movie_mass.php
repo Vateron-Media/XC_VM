@@ -1,6 +1,6 @@
 <?php
 /**
- * Movie mass edit view (Phase 6.3 — Group B).
+ * Movie mass edit view.
  * Delegation proxy → legacy admin/movie_mass.php HTML body.
  */
 $__viewMode = true;

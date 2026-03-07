@@ -61,7 +61,7 @@ class OffAirHandler {
 		}
 		$rOriginatorID = null;
 		if ($rServers[$rServerID]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy'])) {
-			$rProxies = ConnectionTracker::getProxies($rServers, $rServerID);
+			$rProxies = ConnectionTracker::getProxies($rServerID);
 			$rProxyID = ProxySelector::availableProxy($rServers, array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name'], $rSettings);
 			if (!$rProxyID) {
 				generate404();

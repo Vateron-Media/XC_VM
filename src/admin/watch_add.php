@@ -9,7 +9,7 @@ if (!isset($__viewMode)):
 		goHome();
 	}
 
-	if (!isset(CoreUtilities::$rRequest['id']) || ($rFolder = getWatchFolder(CoreUtilities::$rRequest['id']))) {
+	if (!isset(RequestManager::getAll()['id']) || ($rFolder = getWatchFolder(RequestManager::getAll()['id']))) {
 	} else {
 		goHome();
 	}

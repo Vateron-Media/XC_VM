@@ -1,7 +1,7 @@
 <?php
 
 /**
- * XC_VM — Fingerprint Module
+ * Fingerprint Module
  *
  * Модуль «Отпечаток стрима» (Fingerprint Stream).
  * Позволяет администратору накладывать текст (ID активности, имя пользователя

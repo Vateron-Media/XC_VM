@@ -9,7 +9,7 @@ if (!isset($__viewMode)):
 		goHome();
 	}
 
-	if (!(isset(CoreUtilities::$rRequest['id']) && (!($rUser = UserRepository::getRegisteredUserById(CoreUtilities::$rRequest['id'])) || CoreUtilities::$rRequest['id'] == $rUserInfo['id']))) {
+	if (!(isset(RequestManager::getAll()['id']) && (!($rUser = UserRepository::getRegisteredUserById(RequestManager::getAll()['id'])) || RequestManager::getAll()['id'] == $rUserInfo['id']))) {
 	} else {
 		goHome();
 	}
@@ -90,7 +90,7 @@ if (!$rPermissions['allow_change_password'] && isset($rUser)) {
 	}
 
 	echo ' value="';
-	echo (isset($rUser) ? '' : ($rPermissions['allow_change_username'] ? generateString((10 < CoreUtilities::$rSettings['pass_length'] ? CoreUtilities::$rSettings['pass_length'] : 10)) : ''));
+	echo (isset($rUser) ? '' : ($rPermissions['allow_change_username'] ? generateString((10 < SettingsManager::getAll()['pass_length'] ? SettingsManager::getAll()['pass_length'] : 10)) : ''));
 	echo '" data-indicator="pwindicator">' . "\n" . '                                                        <div id="pwindicator">' . "\n" . '                                                            <div class="bar"></div>' . "\n" . '                                                            <div class="label"></div>' . "\n" . '                                                        </div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n" . '                                                ';
 }
 
@@ -176,7 +176,7 @@ if (1 >= count($rPermissions['subresellers'])) {
 } else {
 	echo '                                                <div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="member_group_id">Member Group</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<select name="member_group_id" id="member_group_id" class="form-control select2" data-toggle="select2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
 
-	foreach (GroupService::getAll() as $rGroup) {
+	foreach (GroupService::getAll() ?: [] as $rGroup) {
 		if (in_array($rGroup['group_id'], $rPermissions['subresellers'])) {
 			echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<option ';
 

@@ -10,12 +10,12 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
         }
 
         cli_set_process_title('XC_VM[MysqlErrors]');
-        $rIdentifier = CRONS_TMP_PATH . md5(CoreUtilities::generateUniqueCode() . __FILE__);
-        CoreUtilities::checkCron($rIdentifier);
+        $rIdentifier = CRONS_TMP_PATH . md5(Encryption::generateUniqueCode(SettingsManager::getAll()['live_streaming_pass']) . __FILE__);
+        ProcessManager::acquireCronLock($rIdentifier);
         $rIgnoreErrors = array('innodb: page_cleaner', 'aborted connection', 'got an error reading communication packets', 'got packets out of order', 'got timeout reading communication packets');
-        if (0 >= CoreUtilities::$rSettings['mysql_sleep_kill']) {
+        if (0 >= SettingsManager::getAll()['mysql_sleep_kill']) {
         } else {
-            $db->query("SELECT `id` FROM `INFORMATION_SCHEMA`.`PROCESSLIST` WHERE `COMMAND` = 'Sleep' AND `TIME` > ?;", intval(CoreUtilities::$rSettings['mysql_sleep_kill']));
+            $db->query("SELECT `id` FROM `INFORMATION_SCHEMA`.`PROCESSLIST` WHERE `COMMAND` = 'Sleep' AND `TIME` > ?;", intval(SettingsManager::getAll()['mysql_sleep_kill']));
             foreach ($db->get_rows() as $rRow) {
                 $db->query('KILL ?;', $rRow['id']);
             }
@@ -29,7 +29,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
             $rAttempts[$rRow['ip']] = $rRow['count'];
             if ($rMaxAttempts >= $rRow['count'] || $rRow['block_id']) {
             } else {
-                if (in_array($rRow['ip'], CoreUtilities::getAllowedIPs())) {
+                if (in_array($rRow['ip'], ServerRepository::getAllowedIPs())) {
                 } else {
                     echo 'Blocking IP ' . $rRow['ip'] . "\n";
                     BlocklistService::blockIP(array('ip' => $rRow['ip'], 'notes' => 'MYSQL BRUTEFORCE ATTACK'));

@@ -352,15 +352,15 @@ if (1 < $rICount) { ?>
 <?php
 } else {
 	if (checkPermissions($_PAGE)) {
-		if (isset(CoreUtilities::$rRequest['referer'])) {
-			$rReferer = CoreUtilities::$rRequest['referer'];
-			unset(CoreUtilities::$rRequest['referer']);
+		if (isset(RequestManager::getAll()['referer'])) {
+			$rReferer = RequestManager::getAll()['referer'];
+			unset(RequestManager::getAll()['referer']);
 		} else {
 			$rReferer = null;
 		}
 
-		$rAction = CoreUtilities::$rRequest['action'];
-		$rData = CoreUtilities::$rRequest;
+		$rAction = RequestManager::getAll()['action'];
+		$rData = RequestManager::getAll();
 		unset($rData['action']);
 
 		if (count($rData) == 0) {
@@ -899,7 +899,7 @@ if (1 < $rICount) { ?>
 					}
 
 					foreach ($rStreams as $rStream) {
-						CoreUtilities::queueMovie($rStream['id'], $rStream['server_id']);
+						StreamProcess::queueMovie($rStream['id'], $rStream['server_id']);
 					}
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 					exit();
@@ -919,7 +919,7 @@ if (1 < $rICount) { ?>
 					}
 
 					foreach ($rStreams as $rStream) {
-						CoreUtilities::queueMovie($rStream['id'], $rStream['server_id']);
+						StreamProcess::queueMovie($rStream['id'], $rStream['server_id']);
 					}
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 					exit();
@@ -1072,7 +1072,7 @@ if (1 < $rICount) { ?>
 							$db->query('SELECT `server_stream_id`, `stream_info`, `compatible` FROM `streams_servers` WHERE `stream_info` IS NOT NULL LIMIT ' . $rStep . ', 1000;');
 
 							foreach ($db->get_rows() as $rRow) {
-								$rCompatible = CoreUtilities::checkCompatibility($rRow['stream_info']);
+								$rCompatible = DiagnosticsService::checkCompatibility($rRow['stream_info'], SettingsManager::getAll()['player_allow_hevc']);
 
 								if ($rCompatible == $rRow['compatible']) {
 								} else {
@@ -1136,7 +1136,7 @@ if (1 < $rICount) { ?>
 
 
 			case 'bouquet':
-				$rReturn = BouquetService::process($rData, 'getBouquet', 'scanBouquet');
+				$rReturn = BouquetService::process($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'bouquets?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1146,7 +1146,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'stream':
-				$rReturn = StreamService::process($rData, CoreUtilities::$rSettings);
+				$rReturn = StreamService::process($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					if (isset($rData['edit']) && getPageFromURL($rReferer) == 'streams') {
@@ -1175,7 +1175,7 @@ if (1 < $rICount) { ?>
 					exit();
 				}
 
-				$rReturn = MovieService::process(CoreUtilities::$rSettings, $rData);
+				$rReturn = MovieService::process($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					if (isset($rData['edit']) && getPageFromURL($rReferer) == 'movies') {
@@ -1198,7 +1198,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'backups':
-				$rReturn = SettingsService::editBackup($rData, 'clearSettingsCache');
+				$rReturn = SettingsService::editBackup($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'backups?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1209,7 +1209,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'cache':
-				$rReturn = SettingsService::editCacheCron($rData, 'clearSettingsCache');
+				$rReturn = SettingsService::editCacheCron($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'cache?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1220,7 +1220,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'bouquet_order':
-				$rReturn = BouquetService::sort($rData, 'getUserBouquets', 'getPackages', 'sortArrayByArray', array('CoreUtilities', 'updateLine'));
+				$rReturn = BouquetService::sort($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'bouquet_order?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1258,7 +1258,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'code':
-				$rReturn = AuthService::processCode($rData, 'getCode', 'updateCodes');
+				$rReturn = AuthService::processCode($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					if (AuthRepository::getCurrentCode() == $rReturn['data']['orig_code']) {
@@ -1275,7 +1275,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'hmac':
-				$rReturn = AuthService::processHMAC($rData, CoreUtilities::$rSettings, 'getHMACToken');
+				$rReturn = AuthService::processHMAC($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'hmacs?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1297,7 +1297,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'created_channel':
-				$rReturn = ChannelService::process($rData, CoreUtilities::$rSettings);
+				$rReturn = ChannelService::process($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					if (isset($rData['edit']) && getPageFromURL($rReferer) == 'created_channels') {
@@ -1329,7 +1329,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'epg':
-				$rReturn = EpgService::process($rData, 'getEPG');
+				$rReturn = EpgService::process($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'epgs?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1351,7 +1351,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'episode':
-				$rReturn = EpisodeService::process(CoreUtilities::$rSettings, $rData);
+				$rReturn = EpisodeService::process($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					if (isset($rData['edit']) && getPageFromURL($rReferer) == 'episodes') {
@@ -1511,7 +1511,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'isp':
-				$rReturn = BlocklistService::processISP($rData, 'getISP');
+				$rReturn = BlocklistService::processISP($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'isps?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1672,7 +1672,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'package':
-				$rReturn = PackageService::process($rData, 'getPackage');
+				$rReturn = PackageService::process($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'packages?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1711,7 +1711,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'rtmp_ip':
-				$rReturn = BlocklistService::processRTMPIP($rData, 'getRTMPIP');
+				$rReturn = BlocklistService::processRTMPIP($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'rtmp_ips?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1728,7 +1728,7 @@ if (1 < $rICount) { ?>
 					exit();
 				}
 
-				$rReturn = SeriesService::process(CoreUtilities::$rSettings, $rData);
+				$rReturn = SeriesService::process($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					if (isset($rData['edit']) && getPageFromURL($rReferer) == 'series') {
@@ -1808,7 +1808,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'settings':
-				$rReturn = SettingsService::edit($rData, 'clearSettingsCache');
+				$rReturn = SettingsService::edit($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'settings?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1819,7 +1819,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'settings_plex':
-				$rReturn = PlexService::editPlexSettings($rData, 'clearSettingsCache');
+				$rReturn = PlexService::editPlexSettings($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'settings_plex?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1830,7 +1830,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'settings_watch':
-				$rReturn = WatchService::editWatchSettings($rData, 'clearSettingsCache');
+				$rReturn = WatchService::editWatchSettings($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'settings_watch?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1880,7 +1880,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'ticket':
-				$rReturn = UserService::submitTicket($rData, $GLOBALS['rAdminUserInfo'], 'getTicket');
+				$rReturn = UserService::submitTicket($rData, $GLOBALS['rAdminUserInfo']);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'ticket_view?id=' . intval($rReturn['data']['insert_id']) . '&status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1908,7 +1908,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'useragent':
-				$rReturn = BlocklistService::processUA($rData, 'getUserAgent');
+				$rReturn = BlocklistService::processUA($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'useragents?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1919,7 +1919,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'watch_add':
-				$rReturn = WatchService::processWatchFolder($rData, 'getWatchFolder');
+				$rReturn = WatchService::processWatchFolder($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'watch?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1930,7 +1930,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'plex_add':
-				$rReturn = PlexService::processPlexSync($rData, 'getWatchFolder');
+				$rReturn = PlexService::processPlexSync($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'plex?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));

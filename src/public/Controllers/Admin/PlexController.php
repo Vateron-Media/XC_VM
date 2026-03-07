@@ -1,6 +1,6 @@
 <?php
 /**
- * PlexController — Plex Sync listing (Phase 6.3 — Group L).
+ * PlexController — Plex Sync listing.
  */
 class PlexController extends BaseAdminController
 {

@@ -20,7 +20,7 @@ echo '        $("#search__button").click(function() {' . "\r\n" . '            v
 
 if ($_PAGE == 'profile') {
 	echo '    function AtoZ() {' . "\r\n" . '        $("#sort_bouquet").append($("#sort_bouquet option").remove().sort(function(a, b) {' . "\r\n" . '            var at = $(a).text().toUpperCase(), bt = $(b).text().toUpperCase();' . "\r\n" . '            return (at > bt) ? 1 : ((at < bt) ? -1 : 0);' . "\r\n" . '        }));' . "\r\n" . '    }' . "\r\n" . '    function MoveUp() {' . "\r\n" . "        var rSelected = \$('#sort_bouquet option:selected');" . "\r\n" . '        if (rSelected.length) {' . "\r\n" . '            var rPrevious = rSelected.first().prev()[0];' . "\r\n" . "            if (\$(rPrevious).html() != '') {" . "\r\n" . '                rSelected.first().prev().before(rSelected);' . "\r\n" . '            }' . "\r\n" . '        }' . "\r\n" . '    }' . "\r\n" . '    function MoveDown() {' . "\r\n" . "        var rSelected = \$('#sort_bouquet option:selected');" . "\r\n" . '        if (rSelected.length) {' . "\r\n" . '            rSelected.last().next().after(rSelected);' . "\r\n" . '        }' . "\r\n" . '    }' . "\r\n" . '    function doLogout() {' . "\r\n" . '        window.location.href = "logout";' . "\r\n" . '    }' . "\r\n" . '    ' . "\r\n" . '    $(document).ready(function () {' . "\r\n" . '        $("#output_type").change(function() {' . "\r\n" . '            $("#download_type").trigger("change");' . "\r\n" . '        });' . "\r\n" . '        $("#download_type").change(function() {' . "\r\n" . '            if ($("#download_type").val()) {' . "\r\n" . '                ';
-	$rURL = rtrim(CoreUtilities::getDomainName(), '/');
+	$rURL = rtrim(DomainResolver::resolve(SERVER_ID), '/');
 
 	echo '                rText = "';
 	echo $rURL;
@@ -129,7 +129,7 @@ if ($_PAGE == 'profile') {
 				echo '&season=" + rSplit[rSplit.length-1];' . "\r\n" . '        });' . "\r\n" . '        ';
 			}
 
-			if (!isset(CoreUtilities::$rRequest['season'])) {
+			if (!isset(RequestManager::getAll()['season'])) {
 			} else {
 				echo "        \$('html,body').animate({" . "\r\n" . '            scrollTop: $(".seasons").offset().top - 90' . "\r\n" . '        });' . "\r\n" . '        ';
 			}

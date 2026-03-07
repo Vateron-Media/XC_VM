@@ -7,8 +7,8 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
     if ($argc) {
         register_shutdown_function('shutdown');
         require str_replace('\\', '/', dirname($argv[0])) . '/../www/init.php';
-        $rIdentifier = CRONS_TMP_PATH . md5(CoreUtilities::generateUniqueCode() . __FILE__);
-        CoreUtilities::checkCron($rIdentifier);
+        $rIdentifier = CRONS_TMP_PATH . md5(Encryption::generateUniqueCode(SettingsManager::getAll()['live_streaming_pass']) . __FILE__);
+        ProcessManager::acquireCronLock($rIdentifier);
         $pids = shell_exec("pgrep -f 'XC_VM\[Signals\]'");
         if (!empty($pids)) {
             shell_exec("sudo kill -9 $pids");
@@ -165,7 +165,7 @@ function loadCron() {
     global $db;
     global $rSaveIPTables;
     global $AutoUpdateServerIP;
-    CoreUtilities::$rServers = CoreUtilities::getServers(true);
+    $rServers = ServerRepository::getAll(true);
     $db->query("SELECT `signal_id` FROM `signals` WHERE `server_id` = ? AND `custom_data` = '{\"action\":\"flush\"}' AND `cache` = 0;", SERVER_ID);
     if (0 < $db->num_rows()) {
         echo "Flushing IP's...";
@@ -219,7 +219,7 @@ function loadCron() {
         }
     }
     $rReload = false;
-    $rAllowedIPs = CoreUtilities::getAllowedIPs();
+    $rAllowedIPs = ServerRepository::getAllowedIPs();
     $rXC_VMList = array();
     foreach ($rAllowedIPs as $rIP) {
         if (!empty($rIP) && filter_var($rIP, FILTER_VALIDATE_IP)) {
@@ -238,7 +238,7 @@ function loadCron() {
         $rReload = true;
     }
     $rCurrentList = (trim(file_get_contents(BIN_PATH . 'nginx/conf/realip_cloudflare.conf')) ?: '');
-    if (CoreUtilities::$rSettings['cloudflare']) {
+    if (SettingsManager::getAll()['cloudflare']) {
         if (empty($rCurrentList)) {
             echo 'Enabling Cloudflare...' . "\n";
             file_put_contents(BIN_PATH . 'nginx/conf/realip_cloudflare.conf', 'set_real_ip_from 103.21.244.0/22;' . "\n" . 'set_real_ip_from 103.22.200.0/22;' . "\n" . 'set_real_ip_from 103.31.4.0/22;' . "\n" . 'set_real_ip_from 104.16.0.0/13;' . "\n" . 'set_real_ip_from 104.24.0.0/14;' . "\n" . 'set_real_ip_from 108.162.192.0/18;' . "\n" . 'set_real_ip_from 131.0.72.0/22;' . "\n" . 'set_real_ip_from 141.101.64.0/18;' . "\n" . 'set_real_ip_from 162.158.0.0/15;' . "\n" . 'set_real_ip_from 172.64.0.0/13;' . "\n" . 'set_real_ip_from 173.245.48.0/20;' . "\n" . 'set_real_ip_from 188.114.96.0/20;' . "\n" . 'set_real_ip_from 190.93.240.0/20;' . "\n" . 'set_real_ip_from 197.234.240.0/22;' . "\n" . 'set_real_ip_from 198.41.128.0/17;' . "\n" . 'set_real_ip_from 2400:cb00::/32;' . "\n" . 'set_real_ip_from 2606:4700::/32;' . "\n" . 'set_real_ip_from 2803:f800::/32;' . "\n" . 'set_real_ip_from 2405:b500::/32;' . "\n" . 'set_real_ip_from 2405:8100::/32;' . "\n" . 'set_real_ip_from 2c0f:f248::/32;' . "\n" . 'set_real_ip_from 2a06:98c0::/29;');
@@ -251,9 +251,9 @@ function loadCron() {
             $rReload = true;
         }
     }
-    if (CoreUtilities::$rServers[SERVER_ID]['is_main']) {
+    if ($rServers[SERVER_ID]['is_main']) {
         $rCurrentStatus = stripos((trim(file_get_contents(BIN_PATH . 'nginx/conf/gzip.conf')) ?: 'gzip off'), 'gzip on') !== false;
-        if (CoreUtilities::$rServers[SERVER_ID]['enable_gzip']) {
+        if ($rServers[SERVER_ID]['enable_gzip']) {
             if (!$rCurrentStatus) {
                 echo 'Enabling GZIP...' . "\n";
                 file_put_contents(BIN_PATH . 'nginx/conf/gzip.conf', 'gzip on;' . "\n" . 'gzip_min_length 1000;' . "\n" . 'gzip_buffers 4 32k;' . "\n" . 'gzip_proxied any;' . "\n" . 'gzip_types application/json application/xml;' . "\n" . 'gzip_vary on;' . "\n" . 'gzip_disable "MSIE [1-6].(?!.*SV1)";');
@@ -268,20 +268,20 @@ function loadCron() {
         }
 
         // Check curent server IP and update if needed
-        $rServerIP = getServerIP((CoreUtilities::$rServers[SERVER_ID]['network_interface'] == 'auto' ? null : CoreUtilities::$rServers[SERVER_ID]['network_interface']));
-        if ($rServerIP && $rServerIP != CoreUtilities::$rServers[SERVER_ID]['server_ip'] && $AutoUpdateServerIP) {
-            echo 'Updating server IP from ' . CoreUtilities::$rServers[SERVER_ID]['server_ip'] . ' to ' . $rServerIP . '...' . "\n";
+        $rServerIP = getServerIP(($rServers[SERVER_ID]['network_interface'] == 'auto' ? null : $rServers[SERVER_ID]['network_interface']));
+        if ($rServerIP && $rServerIP != $rServers[SERVER_ID]['server_ip'] && $AutoUpdateServerIP) {
+            echo 'Updating server IP from ' . $rServers[SERVER_ID]['server_ip'] . ' to ' . $rServerIP . '...' . "\n";
             $db->query('UPDATE `servers` SET `server_ip` = ? WHERE `id` = ?;', $rServerIP, SERVER_ID);
-            CoreUtilities::$rServers[SERVER_ID]['server_ip'] = $rServerIP;
+            $rServers[SERVER_ID]['server_ip'] = $rServerIP;
         }
 
         // Auto generation of live_streaming_pass if it is empty
-        if (empty(CoreUtilities::$rSettings['live_streaming_pass']) || CoreUtilities::$rSettings['live_streaming_pass'] === null) {
-            $db->query('UPDATE `settings` SET `live_streaming_pass` = ?', CoreUtilities::generateString(40));
+        if (empty(SettingsManager::getAll()['live_streaming_pass']) || SettingsManager::getAll()['live_streaming_pass'] === null) {
+            $db->query('UPDATE `settings` SET `live_streaming_pass` = ?', Encryption::randomString(40));
         }
     }
-    if (0 < CoreUtilities::$rServers[SERVER_ID]['limit_requests']) {
-        $rLimitConf = 'limit_req_zone global zone=two:10m rate=' . intval(CoreUtilities::$rServers[SERVER_ID]['limit_requests']) . 'r/s;';
+    if (0 < $rServers[SERVER_ID]['limit_requests']) {
+        $rLimitConf = 'limit_req_zone global zone=two:10m rate=' . intval($rServers[SERVER_ID]['limit_requests']) . 'r/s;';
     } else {
         $rLimitConf = '';
     }
@@ -291,8 +291,8 @@ function loadCron() {
         file_put_contents(BIN_PATH . 'nginx/conf/limit.conf', $rLimitConf);
         $rReload = true;
     }
-    if (0 < CoreUtilities::$rServers[SERVER_ID]['limit_requests']) {
-        $rLimitConf = 'limit_req zone=two burst=' . intval(CoreUtilities::$rServers[SERVER_ID]['limit_burst']) . ';';
+    if (0 < $rServers[SERVER_ID]['limit_requests']) {
+        $rLimitConf = 'limit_req zone=two burst=' . intval($rServers[SERVER_ID]['limit_burst']) . ';';
     } else {
         $rLimitConf = '';
     }
@@ -305,7 +305,7 @@ function loadCron() {
     if ($rReload) {
         shell_exec('sudo ' . BIN_PATH . 'nginx/sbin/nginx -s reload');
     }
-    if (CoreUtilities::$rSettings['restart_php_fpm']) {
+    if (SettingsManager::getAll()['restart_php_fpm']) {
         $rPHP = $rNginx = 0;
         // exec('ps -fp $(pgrep -u xc_vm)', $rOutput, $rReturnVar);
         exec('ps -fp ' . trim(shell_exec('pgrep -u xc_vm | tr "\n" "," | sed "s/,$//"')), $rOutput, $rReturnVar);
@@ -327,7 +327,7 @@ function loadCron() {
                 exit();
             }
         }
-        $rHandle = curl_init('http://127.0.0.1:' . CoreUtilities::$rServers[SERVER_ID]['http_broadcast_port'] . '/init');
+        $rHandle = curl_init('http://127.0.0.1:' . $rServers[SERVER_ID]['http_broadcast_port'] . '/init');
         curl_setopt($rHandle, CURLOPT_RETURNTRANSFER, true);
         $rResponse = curl_exec($rHandle);
         $rCode = curl_getinfo($rHandle, CURLINFO_HTTP_CODE);
@@ -364,7 +364,7 @@ function loadCron() {
             }
         }
         if ($rCheck['mag']) {
-            if (CoreUtilities::$rSettings['mag_legacy_redirect']) {
+            if (SettingsManager::getAll()['mag_legacy_redirect']) {
                 if (!file_exists(MAIN_HOME . 'www/c')) {
                     array_unshift($rRows, array('custom_data' => json_encode(array('action' => 'enable_ministra'))));
                 }
@@ -382,19 +382,19 @@ function loadCron() {
                     $rCurServices++;
                 }
             }
-            if (CoreUtilities::$rServers[SERVER_ID]['total_services'] != $rCurServices) {
-                array_unshift($rRows, array('custom_data' => json_encode(array('action' => 'set_services', 'count' => CoreUtilities::$rServers[SERVER_ID]['total_services'], 'reload' => true))));
+            if ($rServers[SERVER_ID]['total_services'] != $rCurServices) {
+                array_unshift($rRows, array('custom_data' => json_encode(array('action' => 'set_services', 'count' => $rServers[SERVER_ID]['total_services'], 'reload' => true))));
             }
         }
         if ($rCheck['ports']) {
             $rListen = $rPorts = array('http' => array(), 'https' => array());
-            foreach (array_merge(array(intval(CoreUtilities::$rServers[SERVER_ID]['http_broadcast_port'])), explode(',', CoreUtilities::$rServers[SERVER_ID]['http_ports_add'])) as $rPort) {
+            foreach (array_merge(array(intval($rServers[SERVER_ID]['http_broadcast_port'])), explode(',', $rServers[SERVER_ID]['http_ports_add'])) as $rPort) {
                 if (is_numeric($rPort) && 0 < $rPort && $rPort <= 65535) {
                     $rListen['http'][] = 'listen ' . intval($rPort) . ';';
                     $rPorts['http'][] = intval($rPort);
                 }
             }
-            foreach (array_merge(array(intval(CoreUtilities::$rServers[SERVER_ID]['https_broadcast_port'])), explode(',', CoreUtilities::$rServers[SERVER_ID]['https_ports_add'])) as $rPort) {
+            foreach (array_merge(array(intval($rServers[SERVER_ID]['https_broadcast_port'])), explode(',', $rServers[SERVER_ID]['https_ports_add'])) as $rPort) {
                 if (is_numeric($rPort) && 0 < $rPort && $rPort <= 65535) {
                     $rListen['https'][] = 'listen ' . intval($rPort) . ' ssl;';
                     $rPorts['https'][] = intval($rPort);
@@ -406,8 +406,8 @@ function loadCron() {
             if (trim(implode(' ', $rListen['https'])) != trim(file_get_contents(MAIN_HOME . 'bin/nginx/conf/ports/https.conf'))) {
                 array_unshift($rRows, array('custom_data' => json_encode(array('action' => 'set_port', 'type' => 1, 'ports' => $rPorts['https'], 'reload' => true))));
             }
-            if ('listen ' . intval(CoreUtilities::$rServers[SERVER_ID]['rtmp_port']) . ';' != trim(file_get_contents(MAIN_HOME . 'bin/nginx_rtmp/conf/port.conf'))) {
-                array_unshift($rRows, array('custom_data' => json_encode(array('action' => 'set_port', 'type' => 2, 'ports' => array(intval(CoreUtilities::$rServers[SERVER_ID]['rtmp_port'])), 'reload' => true))));
+            if ('listen ' . intval($rServers[SERVER_ID]['rtmp_port']) . ';' != trim(file_get_contents(MAIN_HOME . 'bin/nginx_rtmp/conf/port.conf'))) {
+                array_unshift($rRows, array('custom_data' => json_encode(array('action' => 'set_port', 'type' => 2, 'ports' => array(intval($rServers[SERVER_ID]['rtmp_port'])), 'reload' => true))));
             }
         }
         if ($rCheck['ramdisk']) {
@@ -421,7 +421,7 @@ function loadCron() {
                     break;
                 }
             }
-            if (CoreUtilities::$rServers[SERVER_ID]['use_disk']) {
+            if ($rServers[SERVER_ID]['use_disk']) {
                 if ($rMounted) {
                     array_unshift($rRows, array('custom_data' => json_encode(array('action' => 'disable_ramdisk'))));
                 }

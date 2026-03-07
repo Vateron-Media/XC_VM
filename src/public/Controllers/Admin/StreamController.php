@@ -1,6 +1,6 @@
 <?php
 /**
- * StreamController — редактирование/добавление стрима (Phase 6.3 — Group A).
+ * StreamController — редактирование/добавление стрима.
  */
 class StreamController extends BaseAdminController
 {
@@ -10,9 +10,9 @@ class StreamController extends BaseAdminController
 
         global $db, $rServers;
 
-        if (isset(CoreUtilities::$rRequest['id'])) {
-            if (!isset(CoreUtilities::$rRequest['import']) && Authorization::check('adv', 'edit_stream')) {
-                $rStream = StreamRepository::getById(CoreUtilities::$rRequest['id']);
+        if (isset(RequestManager::getAll()['id'])) {
+            if (!isset(RequestManager::getAll()['import']) && Authorization::check('adv', 'edit_stream')) {
+                $rStream = StreamRepository::getById(RequestManager::getAll()['id']);
                 if (!$rStream || $rStream['type'] != 1) {
                     $this->redirect('streams');
                     return;
@@ -47,8 +47,8 @@ class StreamController extends BaseAdminController
         }
 
         if (isset($rStream)) {
-            $rStreamOptions = StreamRepository::getOptions(CoreUtilities::$rRequest['id']);
-            $rStreamSys = StreamRepository::getSystemRows(CoreUtilities::$rRequest['id']);
+            $rStreamOptions = StreamRepository::getOptions(RequestManager::getAll()['id']);
+            $rStreamSys = StreamRepository::getSystemRows(RequestManager::getAll()['id']);
 
             foreach ($rServers as $rServer) {
                 if (isset($rStreamSys[intval($rServer['id'])])) {

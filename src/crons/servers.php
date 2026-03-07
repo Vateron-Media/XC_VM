@@ -4,8 +4,8 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
         register_shutdown_function('shutdown');
         require str_replace('\\', '/', dirname($argv[0])) . '/../www/init.php';
         cli_set_process_title('XC_VM[Servers]');
-        $rIdentifier = CRONS_TMP_PATH . md5(CoreUtilities::generateUniqueCode() . __FILE__);
-        CoreUtilities::checkCron($rIdentifier);
+        $rIdentifier = CRONS_TMP_PATH . md5(Encryption::generateUniqueCode(SettingsManager::getAll()['live_streaming_pass']) . __FILE__);
+        ProcessManager::acquireCronLock($rIdentifier);
         loadCron();
     } else {
         exit(0);
@@ -27,10 +27,10 @@ function pingServer($rIP, $rPort) {
 }
 function loadCron() {
     global $db;
-    CoreUtilities::$rSettings = CoreUtilities::getSettings(true);
-    if (CoreUtilities::isRunning()) {
-        $rServers = CoreUtilities::getServers(true);
-        if ($rServers[SERVER_ID]['is_main'] && CoreUtilities::$rSettings['redis_handler']) {
+    SettingsManager::set(SettingsRepository::getAll(true));
+    if (ProcessManager::isNginxRunning()) {
+        $rServers = ServerRepository::getAll(true);
+        if ($rServers[SERVER_ID]['is_main'] && SettingsManager::getAll()['redis_handler']) {
             exec('pgrep -u xc_vm redis-server', $rRedis);
             if (count($rRedis) == 0) {
                 echo 'Restarting Redis!' . "\n";
@@ -43,10 +43,10 @@ function loadCron() {
         }
         if ($rServers[SERVER_ID]['is_main']) {
             $rCache = intval(trim(shell_exec('pgrep -U xc_vm | xargs ps -f -p | grep cache_handler | grep -v grep | grep -v pgrep | wc -l')));
-            if (CoreUtilities::$rSettings['enable_cache'] && $rCache == 0) {
+            if (SettingsManager::getAll()['enable_cache'] && $rCache == 0) {
                 shell_exec(PHP_BIN . ' ' . CLI_PATH . 'cache_handler.php > /dev/null 2>/dev/null &');
             } else {
-                if (CoreUtilities::$rSettings['enable_cache'] || 0 >= $rCache) {
+                if (SettingsManager::getAll()['enable_cache'] || 0 >= $rCache) {
                 } else {
                     echo 'Killing Cache Handler' . "\n";
                     exec("pgrep -U xc_vm | xargs ps | grep cache_handler | awk '{print \$1}'", $rPIDs);
@@ -72,10 +72,10 @@ function loadCron() {
             shell_exec(PHP_BIN . ' ' . CLI_PATH . 'queue.php > /dev/null 2>/dev/null &');
         }
         $rOnDemand = intval(trim(shell_exec('pgrep -U xc_vm | xargs ps -f -p | grep ondemand | grep -v grep | grep -v pgrep | wc -l')));
-        if (CoreUtilities::$rSettings['on_demand_instant_off'] && $rOnDemand == 0) {
+        if (SettingsManager::getAll()['on_demand_instant_off'] && $rOnDemand == 0) {
             shell_exec(PHP_BIN . ' ' . CLI_PATH . 'ondemand.php > /dev/null 2>/dev/null &');
         } else {
-            if (CoreUtilities::$rSettings['on_demand_instant_off'] || 0 >= $rOnDemand) {
+            if (SettingsManager::getAll()['on_demand_instant_off'] || 0 >= $rOnDemand) {
             } else {
                 echo 'Killing On-Demand Instant-Off' . "\n";
                 exec("pgrep -U xc_vm | xargs ps | grep ondemand | awk '{print \$1}'", $rPIDs);
@@ -88,10 +88,10 @@ function loadCron() {
             }
         }
         $rScanner = intval(trim(shell_exec('pgrep -U xc_vm | xargs ps -f -p | grep scanner | grep -v grep | grep -v pgrep | wc -l')));
-        if (CoreUtilities::$rSettings['on_demand_checker'] && $rScanner == 0) {
+        if (SettingsManager::getAll()['on_demand_checker'] && $rScanner == 0) {
             shell_exec(PHP_BIN . ' ' . CLI_PATH . 'scanner.php > /dev/null 2>/dev/null &');
         } else {
-            if (CoreUtilities::$rSettings['on_demand_checker'] || 0 >= $rScanner) {
+            if (SettingsManager::getAll()['on_demand_checker'] || 0 >= $rScanner) {
             } else {
                 echo 'Killing On-Demand Scanner' . "\n";
                 exec("pgrep -U xc_vm | xargs ps | grep scanner | awk '{print \$1}'", $rPIDs);
@@ -116,7 +116,7 @@ function loadCron() {
         } else {
             $rRemoteStatus = false;
         }
-        if (CoreUtilities::$rSettings['redis_handler']) {
+        if (SettingsManager::getAll()['redis_handler']) {
             $rConnections = $rServers[SERVER_ID]['connections'];
             $rUsers = $rServers[SERVER_ID]['users'];
             $rAllUsers = 0;

@@ -11,7 +11,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
             if ($rLastCheck && $rInterval > time() - $rLastCheck) {
             } else {
                 if (md5_file(__FILE__) == $rMD5) {
-                    CoreUtilities::$rSettings = CoreUtilities::getSettings(true);
+                    SettingsManager::set(SettingsRepository::getAll(true));
                     $rLastCheck = time();
                 } else {
                     echo 'File changed! Break.' . "\n";
@@ -22,21 +22,21 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                 if (0 >= $db->num_rows()) {
                 } else {
                     foreach ($db->get_rows() as $rRow) {
-                        if ($rRow['pid'] && (CoreUtilities::isProcessRunning($rRow['pid'], 'ffmpeg') || CoreUtilities::isProcessRunning($rRow['pid'], PHP_BIN))) {
+                        if ($rRow['pid'] && (ProcessManager::isRunning($rRow['pid'], 'ffmpeg') || ProcessManager::isRunning($rRow['pid'], PHP_BIN))) {
                             $rInProgress[] = $rRow['pid'];
                         } else {
                             $rDelete[] = $rRow['id'];
                         }
                     }
                 }
-                $rFreeSlots = (0 < CoreUtilities::$rSettings['max_encode_movies'] ? intval(CoreUtilities::$rSettings['max_encode_movies']) - count($rInProgress) : 50);
+                $rFreeSlots = (0 < SettingsManager::getAll()['max_encode_movies'] ? intval(SettingsManager::getAll()['max_encode_movies']) - count($rInProgress) : 50);
                 if (0 >= $rFreeSlots) {
                 } else {
                     if ($db->query("SELECT `id`, `stream_id` FROM `queue` WHERE `server_id` = ? AND `pid` IS NULL AND `type` = 'movie' ORDER BY `added` ASC LIMIT " . $rFreeSlots . ';', SERVER_ID)) {
                         if (0 >= $db->num_rows()) {
                         } else {
                             foreach ($db->get_rows() as $rRow) {
-                                $rPID = CoreUtilities::startMovie($rRow['stream_id']);
+                                $rPID = StreamProcess::startMovie($rRow['stream_id']);
                                 if ($rPID) {
                                     $db->query('UPDATE `queue` SET `pid` = ? WHERE `id` = ?;', $rPID, $rRow['id']);
                                 } else {
@@ -51,14 +51,14 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                     if (0 >= $db->num_rows()) {
                     } else {
                         foreach ($db->get_rows() as $rRow) {
-                            if ($rRow['pid'] && CoreUtilities::isProcessRunning($rRow['pid'], PHP_BIN)) {
+                            if ($rRow['pid'] && ProcessManager::isRunning($rRow['pid'], PHP_BIN)) {
                                 $rInProgress[] = $rRow['pid'];
                             } else {
                                 $rDelete[] = $rRow['id'];
                             }
                         }
                     }
-                    $rFreeSlots = (0 < CoreUtilities::$rSettings['max_encode_cc'] ? intval(CoreUtilities::$rSettings['max_encode_cc']) - count($rInProgress) : 1);
+                    $rFreeSlots = (0 < SettingsManager::getAll()['max_encode_cc'] ? intval(SettingsManager::getAll()['max_encode_cc']) - count($rInProgress) : 1);
                     if (0 >= $rFreeSlots) {
                     } else {
                         if ($db->query("SELECT `id`, `stream_id` FROM `queue` WHERE `server_id` = ? AND `pid` IS NULL AND `type` = 'channel' ORDER BY `added` ASC LIMIT " . $rFreeSlots . ';', SERVER_ID)) {
@@ -92,7 +92,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                     } else {
                         $db->query('DELETE FROM `queue` WHERE `id` IN (' . implode(',', $rDelete) . ');');
                     }
-                    sleep((0 < CoreUtilities::$rSettings['queue_loop'] ? intval(CoreUtilities::$rSettings['queue_loop']) : 5));
+                    sleep((0 < SettingsManager::getAll()['queue_loop'] ? intval(SettingsManager::getAll()['queue_loop']) : 5));
                 }
                 break;
             }

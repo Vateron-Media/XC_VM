@@ -8,11 +8,11 @@
         goHome();
     }
 
-    if (!isset(CoreUtilities::$rRequest['server']) || !isset($rServers[CoreUtilities::$rRequest['server']])) {
-        CoreUtilities::$rRequest['server'] = SERVER_ID;
+    if (!isset(RequestManager::getAll()['server']) || !isset($rServers[RequestManager::getAll()['server']])) {
+        RequestManager::update('server', SERVER_ID);
     }
 
-    $rRTMPInfo = ServerRepository::getRTMPStats('systemapirequest', CoreUtilities::$rRequest['server']);
+    $rRTMPInfo = ServerRepository::getRTMPStats(RequestManager::getAll()['server']);
     $_TITLE = 'RTMP Monitor';
     require_once __DIR__ . '/../public/Views/layouts/admin.php';
     renderUnifiedLayoutHeader('admin');
@@ -97,7 +97,7 @@ endif;
                                     <select id="live_filter" class="form-control" data-toggle="select2">
                                         <?php foreach ($rServers as $rServer) { ?>
                                             <option value="<?php echo $rServer['id']; ?>"
-                                                <?php if (CoreUtilities::$rRequest['server'] == $rServer['id']) {
+                                                <?php if (RequestManager::getAll()['server'] == $rServer['id']) {
                                                     echo ' selected';
                                                 } ?>>
                                                 <?php echo $rServer['server_name']; ?>
@@ -155,7 +155,7 @@ endif;
                                 ?>
                                     <tr>
                                         <td class="text-center"><?php echo $rStream['name']; ?></td>
-                                        <td><?php echo htmlspecialchars(CoreUtilities::$rServers[intval(CoreUtilities::$rRequest['server'])]['rtmp_server']) . $rStream['name']; ?>
+                                        <td><?php echo htmlspecialchars(ServerRepository::getAll()[intval(RequestManager::getAll()['server'])]['rtmp_server']) . $rStream['name']; ?>
                                         </td>
                                         <td class="text-center"><?php echo $rPublisher; ?></td>
                                         <td class="text-center">
@@ -184,7 +184,7 @@ endif;
                                         <td class="text-center">
                                             <button data-toggle="tooltip" title="Kill Stream" type="button"
                                                 class="btn tooltip btn-light waves-effect waves-light btn-xs"
-                                                onClick="kill(<?php echo intval(CoreUtilities::$rRequest['server']); ?>, '<?php echo $rStream['name']; ?>');"><i
+                                                onClick="kill(<?php echo intval(RequestManager::getAll()['server']); ?>, '<?php echo $rStream['name']; ?>');"><i
                                                     class="mdi mdi-close"></ i></button>
                                         </td>
                                     </tr>
@@ -334,7 +334,7 @@ renderUnifiedLayoutFooter('admin');
     echo (intval($rSettings['default_entries']) ?: 10);
     echo ',' . "\r\n\t\t\t\t" . 'lengthMenu: [10, 25, 50, 250, 500, 1000]' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable-activity").css("width", "100%");' . "\r\n\t\t\t" . "\$('#live_search').keyup(function(){" . "\r\n\t\t\t\t" . "\$('#datatable-activity').DataTable().search(\$(this).val()).draw();" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#live_show_entries').change(function(){" . "\r\n\t\t\t\t" . "\$('#datatable-activity').DataTable().page.len(\$(this).val()).draw();" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#live_filter').change(function(){" . "\r\n\t\t\t\t" . 'navigate("./rtmp_monitor?server=" + $(this).val());' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#datatable-activity').DataTable().search(\$('#live_search').val()).draw();" . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
     ?>
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+    <?php if (SettingsManager::getAll()['enable_search']): ?>
         $(document).ready(function() {
             initSearch();
         });

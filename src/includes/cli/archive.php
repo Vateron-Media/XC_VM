@@ -29,7 +29,7 @@ function loadcli() {
         if (0 >= $db->num_rows()) {
         } else {
             $rRow = $db->get_row();
-            if (!CoreUtilities::isProcessRunning($rRow['tv_archive_pid'], PHP_BIN)) {
+            if (!ProcessManager::isRunning($rRow['tv_archive_pid'], PHP_BIN)) {
             } else {
                 if (!(is_numeric($rRow['tv_archive_pid']) && 0 < $rRow['tv_archive_pid'])) {
                 } else {
@@ -41,13 +41,13 @@ function loadcli() {
                 posix_kill(getmypid(), 9);
             }
             $db->query('UPDATE `streams` SET `tv_archive_pid` = ? WHERE `id` = ?', getmypid(), $rStreamID);
-            CoreUtilities::updateStream($rStreamID);
+            StreamProcess::updateStream($rStreamID);
             $db->close_mysql();
-            while (CoreUtilities::isStreamRunning($rPID, $rStreamID) && file_exists($rPlaylist)) {
+            while (ProcessManager::isStreamRunning($rPID, $rStreamID) && file_exists($rPlaylist)) {
                 $rLastCheck = time();
                 deleteSegments($rStreamID, $rRow['tv_archive_duration']);
                 $rFileTime = gmdate('Y-m-d:H-i');
-                $rFP = @fopen('http://127.0.0.1:' . CoreUtilities::$rServers[SERVER_ID]['http_broadcast_port'] . '/admin/live?password=' . CoreUtilities::$rSettings['live_streaming_pass'] . '&stream=' . $rStreamID . '&extension=ts', 'r');
+                $rFP = @fopen('http://127.0.0.1:' . ServerRepository::getAll()[SERVER_ID]['http_broadcast_port'] . '/admin/live?password=' . SettingsManager::getAll()['live_streaming_pass'] . '&stream=' . $rStreamID . '&extension=ts', 'r');
                 if (!$rFP) {
                 } else {
                     $rWriteFile = fopen(ARCHIVE_PATH . $rStreamID . '/' . $rFileTime . '.ts', 'a');
@@ -64,7 +64,7 @@ function loadcli() {
                             } else {
                                 mkdir(ARCHIVE_PATH . $rStreamID);
                             }
-                            $rOffset = (CoreUtilities::findKeyframe(ARCHIVE_PATH . $rStreamID . '/' . $rFileTime . '.ts') ?: 0);
+                            $rOffset = (StreamUtils::findKeyframe(ARCHIVE_PATH . $rStreamID . '/' . $rFileTime . '.ts') ?: 0);
                             file_put_contents(ARCHIVE_PATH . $rStreamID . '/' . $rFileTime . '.ts.offset', $rOffset);
                             $rFileTime = gmdate('Y-m-d:H-i');
                             $rWriteFile = fopen(ARCHIVE_PATH . $rStreamID . '/' . $rFileTime . '.ts', 'a');

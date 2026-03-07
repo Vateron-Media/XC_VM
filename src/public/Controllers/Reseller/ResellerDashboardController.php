@@ -1,6 +1,6 @@
 <?php
 /**
- * ResellerDashboardController — Reseller dashboard (Phase 6.4 — Reseller).
+ * ResellerDashboardController — Reseller dashboard.
  */
 class ResellerDashboardController extends BaseResellerController
 {

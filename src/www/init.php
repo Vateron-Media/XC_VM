@@ -2,7 +2,6 @@
 
 require_once 'constants.php';
 require_once MAIN_HOME . 'core/Init/LegacyInitializer.php';
-require_once INCLUDES_PATH . 'CoreUtilities.php';
 require_once MAIN_HOME . 'core/Database/DatabaseHandler.php';
 require_once INCLUDES_PATH . 'libs/GithubReleases.php';
 
@@ -28,17 +27,17 @@ $rFilename = strtolower(basename(get_included_files()[0], '.php'));
 
 if (!in_array($rFilename, array('enigma2', 'epg', 'playlist', 'api', 'xplugin', 'live', 'proxy_api', 'thumb', 'timeshift', 'vod')) || isset($argc)) {
 	$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
-	CoreUtilities::$db = &$db;
-	CoreUtilities::init();
+	DatabaseFactory::set($db);
+	LegacyInitializer::initCore();
 } else {
 	$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
-	CoreUtilities::$db = &$db;
-	CoreUtilities::init(true);
+	DatabaseFactory::set($db);
+	LegacyInitializer::initCore(true);
 
-	if (!CoreUtilities::$rCached) {
+	if (!SettingsManager::getAll()['enable_cache']) {
 		$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
-		CoreUtilities::$db = &$db;
+		DatabaseFactory::set($db);
 	}
 }
 
-$gitRelease = new GitHubReleases(GIT_OWNER, GIT_REPO_MAIN, CoreUtilities::$rSettings['update_channel']);
+$gitRelease = new GitHubReleases(GIT_OWNER, GIT_REPO_MAIN, SettingsManager::getAll()['update_channel']);

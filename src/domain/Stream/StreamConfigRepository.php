@@ -1,9 +1,7 @@
 <?php
 
 /**
- * StreamConfigRepository — аргументы потоков и профили транскодирования (§7.3).
- *
- * Извлечено из admin_proxies.php (getStreamArguments / getTranscodeProfiles).
+ * StreamConfigRepository — аргументы потоков и профили транскодирования.
  */
 class StreamConfigRepository {
 	/**

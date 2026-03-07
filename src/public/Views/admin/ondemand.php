@@ -1,6 +1,6 @@
 <?php
 /**
- * On-Demand scanner view (Phase 6.3 — Group B).
+ * On-Demand scanner view.
  * Delegation proxy → legacy admin/ondemand.php HTML body.
  */
 $__viewMode = true;

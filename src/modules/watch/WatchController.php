@@ -1,7 +1,7 @@
 <?php
 
 /**
- * XC_VM — Watch Module Controller
+ * Watch Module Controller
  *
  * Обрабатывает все маршруты модуля Watch:
  * - Список Watch Folder'ов (index)
@@ -77,8 +77,8 @@ class WatchController {
     public function add() {
         global $db;
 
-        if (isset(CoreUtilities::$rRequest['id'])) {
-            $rFolder = getWatchFolder(CoreUtilities::$rRequest['id']);
+        if (isset(RequestManager::getAll()['id'])) {
+            $rFolder = getWatchFolder(RequestManager::getAll()['id']);
             if (!$rFolder) {
                 goHome();
                 return;
@@ -130,18 +130,18 @@ class WatchController {
         $rAvailableServers = $rServers = array();
         $rStream = $rProgramme = null;
 
-        if (isset(CoreUtilities::$rRequest['id'])) {
-            $rStream = StreamRepository::getById(CoreUtilities::$rRequest['id']);
-            $rProgramme = CoreUtilities::getProgramme(
-                CoreUtilities::$rRequest['id'],
-                CoreUtilities::$rRequest['programme']
+        if (isset(RequestManager::getAll()['id'])) {
+            $rStream = StreamRepository::getById(RequestManager::getAll()['id']);
+            $rProgramme = EpgService::getProgramme(
+                RequestManager::getAll()['id'],
+                RequestManager::getAll()['programme']
             );
             if (!$rStream || $rStream['type'] != 1 || !$rProgramme) {
                 goHome();
                 return;
             }
-        } elseif (isset(CoreUtilities::$rRequest['archive'])) {
-            $rArchive = json_decode(base64_decode(CoreUtilities::$rRequest['archive']), true);
+        } elseif (isset(RequestManager::getAll()['archive'])) {
+            $rArchive = json_decode(base64_decode(RequestManager::getAll()['archive']), true);
             $rStream = StreamRepository::getById($rArchive['stream_id']);
             $rProgramme = [
                 'start'       => $rArchive['start'],
@@ -154,11 +154,11 @@ class WatchController {
                 goHome();
                 return;
             }
-        } elseif (isset(CoreUtilities::$rRequest['stream_id'])) {
-            $rStream = StreamRepository::getById(CoreUtilities::$rRequest['stream_id']);
+        } elseif (isset(RequestManager::getAll()['stream_id'])) {
+            $rStream = StreamRepository::getById(RequestManager::getAll()['stream_id']);
             $rProgramme = [
-                'start'       => strtotime(CoreUtilities::$rRequest['start_date']),
-                'end'         => strtotime(CoreUtilities::$rRequest['start_date']) + intval(CoreUtilities::$rRequest['duration']) * 60,
+                'start'       => strtotime(RequestManager::getAll()['start_date']),
+                'end'         => strtotime(RequestManager::getAll()['start_date']) + intval(RequestManager::getAll()['duration']) * 60,
                 'title'       => '',
                 'description' => '',
             ];
@@ -232,8 +232,8 @@ class WatchController {
      */
     public function apiFolder() {
         global $db;
-        $rSub = CoreUtilities::$rRequest['sub'] ?? '';
-        $rFolderID = CoreUtilities::$rRequest['folder_id'] ?? 0;
+        $rSub = RequestManager::getAll()['sub'] ?? '';
+        $rFolderID = RequestManager::getAll()['folder_id'] ?? 0;
 
         if ($rSub === 'delete') {
             deleteWatchFolder($rFolderID);

@@ -1,6 +1,6 @@
 <?php
 /**
- * IpEditController — add/edit blocked IP (Phase 6.3 — Group H).
+ * IpEditController — add/edit blocked IP.
  *
  * Route: GET /admin/ip → index()
  */

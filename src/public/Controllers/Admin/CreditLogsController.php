@@ -1,6 +1,6 @@
 <?php
 /**
- * CreditLogsController — Credit Logs listing (Phase 6.3 — Group N).
+ * CreditLogsController — Credit Logs listing.
  */
 class CreditLogsController extends BaseAdminController
 {

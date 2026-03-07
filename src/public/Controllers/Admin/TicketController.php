@@ -1,13 +1,13 @@
 <?php
 /**
- * XC_VM — Контроллер редактирования тикета (admin/ticket.php)
+ * Контроллер редактирования тикета (admin/ticket.php)
  */
 
 class TicketController extends BaseAdminController {
     public function index() {
         $this->requirePermission();
 
-        $rTicket = getTicket(CoreUtilities::$rRequest['id']);
+        $rTicket = getTicket(RequestManager::getAll()['id']);
         if (!$rTicket) {
             $this->redirect('tickets');
             return;

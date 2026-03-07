@@ -8,8 +8,8 @@
         goHome();
     }
 
-    if (isset(CoreUtilities::$rRequest['id']) && isset($rProxyServers[CoreUtilities::$rRequest['id']])) {
-        $rServerArr = $rProxyServers[CoreUtilities::$rRequest['id']];
+    if (isset(RequestManager::getAll()['id']) && isset($rProxyServers[RequestManager::getAll()['id']])) {
+        $rServerArr = $rProxyServers[RequestManager::getAll()['id']];
         if ($rServerArr['server_type'] != 1) {
             goHome();
         }
@@ -405,7 +405,7 @@ renderUnifiedLayoutFooter('admin');
             submitForm(window.rCurrentPage, new FormData($("form")[0]));
         });
     });
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+    <?php if (SettingsManager::getAll()['enable_search']): ?>
         $(document).ready(function() {
             initSearch();
         });

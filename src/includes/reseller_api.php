@@ -84,7 +84,7 @@ class ResellerAPI {
 	}
 
 	public static function processLogin($rData) {
-		return Authenticator::resellerLogin(self::$rSettings, $rData);
+		return Authenticator::resellerLogin($rData);
 	}
 
 	public static function processMAG($rData) {

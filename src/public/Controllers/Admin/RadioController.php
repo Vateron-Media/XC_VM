@@ -1,6 +1,6 @@
 <?php
 /**
- * RadioController — редактирование/добавление радиостанции (Phase 6.3 — Group A).
+ * RadioController — редактирование/добавление радиостанции.
  */
 class RadioController extends BaseAdminController
 {
@@ -10,8 +10,8 @@ class RadioController extends BaseAdminController
 
         global $db, $rServers;
 
-        if (isset(CoreUtilities::$rRequest['id'])) {
-            $rStation = StreamRepository::getById(CoreUtilities::$rRequest['id']);
+        if (isset(RequestManager::getAll()['id'])) {
+            $rStation = StreamRepository::getById(RequestManager::getAll()['id']);
             if (!$rStation || $rStation['type'] != 4) {
                 goHome();
             }
@@ -40,8 +40,8 @@ class RadioController extends BaseAdminController
         );
 
         if (isset($rStation)) {
-            $rStationOptions = StreamRepository::getOptions(CoreUtilities::$rRequest['id']);
-            $rStationSys = StreamRepository::getSystemRows(CoreUtilities::$rRequest['id']);
+            $rStationOptions = StreamRepository::getOptions(RequestManager::getAll()['id']);
+            $rStationSys = StreamRepository::getSystemRows(RequestManager::getAll()['id']);
 
             foreach ($rServers as $rServer) {
                 if (isset($rStationSys[intval($rServer['id'])])) {

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * XC_VM — Watch Module
+ * Watch Module
  *
  * Модуль Watch Folder / Recording.
  * Регистрирует сервисы, маршруты, API-действия и крон-задачи.

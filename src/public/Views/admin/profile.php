@@ -1,6 +1,6 @@
 <?php
 /**
- * Transcoding profile edit view (Phase 6.3 — Group H).
+ * Transcoding profile edit view.
  * Delegation proxy → legacy admin/profile.php HTML body.
  */
 $__viewMode = true;

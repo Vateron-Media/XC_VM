@@ -9,7 +9,7 @@
         goHome();
     }
 
-    if (!isset(CoreUtilities::$rRequest['id']) || ($rPackage = getPackage(CoreUtilities::$rRequest['id']))) {
+    if (!isset(RequestManager::getAll()['id']) || ($rPackage = getPackage(RequestManager::getAll()['id']))) {
     } else {
         goHome();
     }
@@ -219,7 +219,7 @@
                                                 <div class="form-group row mb-4">
                                                     <label class="col-md-4 col-form-label" for="output_formats"><?php echo $language::get('access_output'); ?></label>
                                                     <div class="col-md-8">
-                                                        <?php foreach (getOutputs() as $rOutput) { ?>
+                                                        <?php foreach (OutputFormatRepository::getAll() as $rOutput) { ?>
                                                             <div class="checkbox form-check-inline">
                                                                 <input data-size="large" type="checkbox"
                                                                     id="output_formats_<?php echo $rOutput['access_output_id']; ?>"
@@ -659,7 +659,7 @@ renderUnifiedLayoutFooter('admin');
             submitForm(window.rCurrentPage, new FormData($("form")[0]));
         });
     });
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+    <?php if (SettingsManager::getAll()['enable_search']): ?>
         $(document).ready(function() {
             initSearch();
         });

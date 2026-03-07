@@ -1,6 +1,6 @@
 <?php
 /**
- * Lines list view (Phase 6.4 — Reseller).
+ * Lines list view.
  * Delegation proxy → legacy reseller/lines.php HTML body.
  */
 $__viewMode = true;

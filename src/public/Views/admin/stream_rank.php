@@ -1,6 +1,6 @@
 <?php
 /**
- * Stream rank view (Phase 6.3 — Group A).
+ * Stream rank view.
  * Delegation proxy → legacy admin/stream_rank.php HTML body.
  */
 $__viewMode = true;

@@ -1,6 +1,6 @@
 <?php
 /**
- * MAG devices list view (Phase 6.4 — Reseller).
+ * MAG devices list view.
  * Delegation proxy → legacy reseller/mags.php HTML body.
  */
 $__viewMode = true;

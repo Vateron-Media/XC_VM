@@ -6,7 +6,7 @@
 		goHome();
 	} ?>
 
-	<?php $rCategories = getCategories('radio'); ?>
+	<?php $rCategories = CategoryService::getAllByType('radio'); ?>
 	<?php $_TITLE = 'Radio Stations'; ?>
 	<?php require_once __DIR__ . '/../public/Views/layouts/admin.php'; ?>
 	<?php renderUnifiedLayoutHeader('admin'); ?>
@@ -34,18 +34,18 @@
 																					echo 'collapse';
 																				} ?>">
 							<div class="col-md-2">
-								<input type="text" class="form-control" id="station_search" value="<?php if (isset(CoreUtilities::$rRequest['search'])) {
-																										echo htmlspecialchars(CoreUtilities::$rRequest['search']);
+								<input type="text" class="form-control" id="station_search" value="<?php if (isset(RequestManager::getAll()['search'])) {
+																										echo htmlspecialchars(RequestManager::getAll()['search']);
 																									} ?>" placeholder="Search Stations...">
 							</div>
 							<div class="col-md-3">
 								<select id="station_server_id" class="form-control" data-toggle="select2">
 									<option value="" selected><?php echo $language::get('all_servers'); ?></option>
-									<option value="-1" <?php if (isset(CoreUtilities::$rRequest['server']) && CoreUtilities::$rRequest['server'] == -1) {
+									<option value="-1" <?php if (isset(RequestManager::getAll()['server']) && RequestManager::getAll()['server'] == -1) {
 															echo ' selected';
 														} ?>>No Servers</option>
 									<?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer) { ?>
-										<option value="<?php echo $rServer['id']; ?>" <?php if (isset(CoreUtilities::$rRequest['server']) && CoreUtilities::$rRequest['server'] == $rServer['id']) {
+										<option value="<?php echo $rServer['id']; ?>" <?php if (isset(RequestManager::getAll()['server']) && RequestManager::getAll()['server'] == $rServer['id']) {
 																							echo ' selected';
 																						} ?>><?php echo $rServer['server_name']; ?></option>
 									<?php } ?>
@@ -54,11 +54,11 @@
 							<div class="col-md-3">
 								<select id="station_category_id" class="form-control" data-toggle="select2">
 									<option value="" selected><?php echo $language::get('all_categories'); ?></option>
-									<option value="-1" <?php if (isset(CoreUtilities::$rRequest['category']) && CoreUtilities::$rRequest['category'] == -1) {
+									<option value="-1" <?php if (isset(RequestManager::getAll()['category']) && RequestManager::getAll()['category'] == -1) {
 															echo ' selected';
 														} ?>>No Categories</option>
 									<?php foreach ($rCategories as $rCategory) { ?>
-										<option value="<?php echo $rCategory['id']; ?>" <?php if (isset(CoreUtilities::$rRequest['category']) && CoreUtilities::$rRequest['category'] == $rCategory['id']) {
+										<option value="<?php echo $rCategory['id']; ?>" <?php if (isset(RequestManager::getAll()['category']) && RequestManager::getAll()['category'] == $rCategory['id']) {
 																							echo ' selected';
 																						} ?>><?php echo $rCategory['category_name']; ?></option>
 									<?php } ?>
@@ -66,25 +66,25 @@
 							</div>
 							<div class="col-md-2">
 								<select id="station_filter" class="form-control" data-toggle="select2">
-									<option value="" <?php if (!isset(CoreUtilities::$rRequest['filter'])) {
+									<option value="" <?php if (!isset(RequestManager::getAll()['filter'])) {
 															echo ' selected';
 														} ?>><?php echo $language::get('no_filter'); ?></option>
-									<option value="1" <?php if (isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 1) {
+									<option value="1" <?php if (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 1) {
 															echo ' selected';
 														} ?>>Online</option>
-									<option value="2" <?php if (isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 2) {
+									<option value="2" <?php if (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 2) {
 															echo ' selected';
 														} ?>>Down</option>
-									<option value="3" <?php if (isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 3) {
+									<option value="3" <?php if (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 3) {
 															echo ' selected';
 														} ?>>Stopped</option>
-									<option value="4" <?php if (isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 4) {
+									<option value="4" <?php if (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 4) {
 															echo ' selected';
 														} ?>>Starting</option>
-									<option value="5" <?php if (isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 5) {
+									<option value="5" <?php if (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 5) {
 															echo ' selected';
 														} ?>>On Demand</option>
-									<option value="6" <?php if (isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 6) {
+									<option value="6" <?php if (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 6) {
 															echo ' selected';
 														} ?>>Direct</option>
 								</select>
@@ -93,7 +93,7 @@
 							<div class="col-md-1">
 								<select id="station_show_entries" class="form-control" data-toggle="select2">
 									<?php foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) { ?>
-										<option value="<?php echo $rShow; ?>" <?php if ((isset(CoreUtilities::$rRequest['entries']) && CoreUtilities::$rRequest['entries'] == $rShow) || (!isset(CoreUtilities::$rRequest['entries']) && $rSettings['default_entries'] == $rShow)) {
+										<option value="<?php echo $rShow; ?>" <?php if ((isset(RequestManager::getAll()['entries']) && RequestManager::getAll()['entries'] == $rShow) || (!isset(RequestManager::getAll()['entries']) && $rSettings['default_entries'] == $rShow)) {
 																					echo ' selected';
 																				} ?>><?php echo $rShow; ?></option>
 									<?php } ?>
@@ -270,7 +270,7 @@ renderUnifiedLayoutFooter('admin');
 
 	echo "\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "radios",' . "\r\n\t\t\t\t\t\t" . 'd.category = getCategory();' . "\r\n\t\t\t\t\t\t" . 'd.filter = getFilter();' . "\r\n\t\t\t\t\t\t" . 'd.server = getServer();' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,1,4,5,6,7]},' . "\r\n\t\t\t\t\t";
 
-	if (CoreUtilities::$rSettings['redis_handler']) {
+	if (SettingsManager::getAll()['redis_handler']) {
 		echo "\t\t\t\t\t" . '{"orderable": false, "targets": [4,6]},' . "\r\n\t\t\t\t\t";
 	} else {
 		echo "\t\t\t\t\t" . '{"orderable": false, "targets": [6]},' . "\r\n\t\t\t\t\t";
@@ -291,12 +291,12 @@ renderUnifiedLayoutFooter('admin');
 	}
 
 	echo "\t\t\t\t" . 'order: [[ ';
-	echo (isset(CoreUtilities::$rRequest['order']) ? intval(CoreUtilities::$rRequest['order']) : 0);
+	echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 0);
 	echo ', "';
-	echo (in_array(strtolower(CoreUtilities::$rRequest['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(CoreUtilities::$rRequest['dir']) : 'desc');
+	echo (in_array(strtolower(RequestManager::getAll()['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::getAll()['dir']) : 'desc');
 	echo '" ]],' . "\r\n\t\t\t\t" . 'pageLength: parseInt(rEntries),' . "\r\n\t\t\t\t" . 'lengthMenu: [10, 25, 50, 250, 500, 1000],' . "\r\n" . '                displayStart: (parseInt(rPage)-1) * parseInt(rEntries)' . "\r\n\t\t\t" . "}).on('processing.dt', function (e, settings, processing) {" . "\r\n" . '                window.rProcessing = processing;' . "\r\n" . '            });' . "\r\n" . '            function doSearch(rValue) {' . "\r\n" . '                clearTimeout(window.rSearch); window.rSearch = setTimeout(function(){ rTable.search(rValue).draw(); }, 500);' . "\r\n" . '            }' . "\r\n\t\t\t" . '$("#datatable-streampage").css("width", "100%");' . "\r\n\t\t\t" . "\$('#station_search').keyup(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#station_search").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("search", $("#station_search").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("search");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'doSearch($(this).val());' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#station_show_entries').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#station_show_entries").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("entries", $("#station_show_entries").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("entries");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'rTable.page.len($(this).val()).draw();' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#station_category_id').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#station_category_id").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("category", $("#station_category_id").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("category");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#station_server_id').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#station_server_id").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("server", $("#station_server_id").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("server");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#station_filter').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#station_filter").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("filter", $("#station_filter").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("filter");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "if (\$('#station_search').val()) {" . "\r\n\t\t\t\t" . "rTable.search(\$('#station_search').val()).draw();" . "\r\n\t\t\t" . '}' . "\r\n" . '            $("#btn-export-csv").click(function() {' . "\r\n" . '                $.toast("Generating CSV report...");' . "\r\n" . '                window.location.href = "api?action=report&params=" + encodeURIComponent(JSON.stringify($("#datatable-streampage").DataTable().ajax.params()));' . "\r\n\t\t\t" . '});' . "\r\n" . '            checkClear();' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
 	?>
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+	<?php if (SettingsManager::getAll()['enable_search']): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

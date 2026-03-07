@@ -1,6 +1,6 @@
 <?php
 /**
- * Line activity logs view (Phase 6.3 — Group C).
+ * Line activity logs view.
  * Delegation proxy → legacy admin/line_activity.php HTML body.
  */
 $__viewMode = true;

@@ -1,6 +1,6 @@
 <?php
 /**
- * ProxiesController — Proxy Servers listing (Phase 6.3 — Group N).
+ * ProxiesController — Proxy Servers listing.
  */
 class ProxiesController extends BaseAdminController
 {
@@ -8,7 +8,7 @@ class ProxiesController extends BaseAdminController
     {
         $this->requirePermission();
 
-        CoreUtilities::$rServers = CoreUtilities::getServers(true);
+        ServerRepository::getAll(true);
 
         $this->setTitle('Proxy Servers');
         $this->render('proxies');

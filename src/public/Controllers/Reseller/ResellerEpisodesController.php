@@ -1,6 +1,6 @@
 <?php
 /**
- * ResellerEpisodesController — Episodes listing (read-only) (Phase 6.4 — Reseller).
+ * ResellerEpisodesController — Episodes listing (read-only).
  */
 class ResellerEpisodesController extends BaseResellerController
 {

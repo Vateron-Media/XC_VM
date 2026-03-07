@@ -1,21 +1,24 @@
 <?php
 
 /**
- * XC_VM — Time Utilities
+ * Time Utilities
  *
  * Time formatting and conversion helpers.
- *
- * ---------------------------------------------------------------
- * What it replaces:
- * ---------------------------------------------------------------
- *
- *   CoreUtilities::secondsToTime() → TimeUtils::secondsToTime()
- *   admin.php inline secondsToTime  → same function, no duplication
- *
- * @see CoreUtilities::secondsToTime()
  */
 
 class TimeUtils {
+
+    /**
+     * Get timezone difference in seconds between server timezone and user timezone
+     *
+     * @param string $timezone User timezone identifier (e.g., 'Europe/Moscow')
+     * @return int Offset in seconds
+     */
+    public static function getDiffTimezone($timezone) {
+        $serverTZ = new DateTime('UTC', new DateTimeZone(date_default_timezone_get()));
+        $userTZ = new DateTime('UTC', new DateTimeZone($timezone));
+        return $userTZ->getTimestamp() - $serverTZ->getTimestamp();
+    }
 
     /**
      * Convert seconds to human-readable time string

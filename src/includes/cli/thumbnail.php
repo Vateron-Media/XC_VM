@@ -21,10 +21,10 @@ function loadcli() {
     if (0 < $db->num_rows()) {
         $rRow = $db->get_row();
         $db->query('UPDATE `streams` SET `vframes_pid` = ? WHERE `id` = ?', getmypid(), $rStreamID);
-        CoreUtilities::updateStream($rStreamID);
+        StreamProcess::updateStream($rStreamID);
         $db->close_mysql();
-        while (CoreUtilities::isStreamRunning($rRow['pid'], $rStreamID)) {
-            shell_exec(CoreUtilities::$rFFMPEG_CPU . ' -y -i "' . STREAMS_PATH . $rStreamID . '_.m3u8" -qscale:v 4 -frames:v 1 "' . STREAMS_PATH . $rStreamID . '_.jpg" >/dev/null 2>/dev/null &');
+        while (ProcessManager::isStreamRunning($rRow['pid'], $rStreamID)) {
+            shell_exec(FfmpegPaths::cpu() . ' -y -i "' . STREAMS_PATH . $rStreamID . '_.m3u8" -qscale:v 4 -frames:v 1 "' . STREAMS_PATH . $rStreamID . '_.jpg" >/dev/null 2>/dev/null &');
             sleep(5);
         }
     } else {

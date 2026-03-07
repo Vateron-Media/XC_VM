@@ -1,7 +1,7 @@
 <?php
 
 /**
- * XC_VM — Front Controller (Phase 6.2)
+ * Front Controller
  *
  * Единая точка входа для admin/reseller.
  * Заменяет паттерн «каждая страница — отдельный PHP-файл» на

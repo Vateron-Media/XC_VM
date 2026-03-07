@@ -19,7 +19,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
             } else {
                 $rPrevPID = null;
             }
-            if (!($rPrevPID && CoreUtilities::isProcessRunning($rPrevPID, 'php'))) {
+            if (!($rPrevPID && ProcessManager::isRunning($rPrevPID, 'php'))) {
             } else {
                 echo 'Watch folder is already running. Please wait until it finishes.' . "\n";
                 exit();
@@ -27,11 +27,11 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
         }
         file_put_contents(CACHE_TMP_PATH . 'watch_pid', getmypid());
         cli_set_process_title('XC_VM[Watch Folder]');
-        $rScanOffset = (intval(CoreUtilities::$rSettings['scan_seconds']) ?: 3600);
-        $rThreadCount = (intval(CoreUtilities::$rSettings['thread_count']) ?: 50);
-        $F7fa29461a8a5ee2 = (intval(CoreUtilities::$rSettings['max_items']) ?: 0);
+        $rScanOffset = (intval(SettingsManager::getAll()['scan_seconds']) ?: 3600);
+        $rThreadCount = (intval(SettingsManager::getAll()['thread_count']) ?: 50);
+        $F7fa29461a8a5ee2 = (intval(SettingsManager::getAll()['max_items']) ?: 0);
         set_time_limit(0);
-        if (strlen(CoreUtilities::$rSettings['tmdb_api_key']) != 0) {
+        if (strlen(SettingsManager::getAll()['tmdb_api_key']) != 0) {
             WatchCron::run();
         } else {
             exit('No TMDb API key.');

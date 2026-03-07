@@ -1,7 +1,7 @@
 <?php
 
 /**
- * XC_VM — Plex Module Controller
+ * Plex Module Controller
  *
  * Обрабатывает все маршруты модуля Plex:
  * - Список Plex Sync серверов (index)
@@ -77,8 +77,8 @@ class PlexController {
      * Подготавливает: $rFolder (при edit), $rBouquets
      */
     public function add() {
-        if (isset(CoreUtilities::$rRequest['id'])) {
-            $rFolder = getWatchFolder(CoreUtilities::$rRequest['id']);
+        if (isset(RequestManager::getAll()['id'])) {
+            $rFolder = getWatchFolder(RequestManager::getAll()['id']);
             if (!$rFolder) {
                 goHome();
                 return;
@@ -155,8 +155,8 @@ class PlexController {
      * Заменяет admin/api.php action=library&sub=delete|force
      */
     public function apiLibrary() {
-        $rSub = CoreUtilities::$rRequest['sub'] ?? '';
-        $rFolderID = CoreUtilities::$rRequest['folder_id'] ?? 0;
+        $rSub = RequestManager::getAll()['sub'] ?? '';
+        $rFolderID = RequestManager::getAll()['folder_id'] ?? 0;
 
         if ($rSub === 'delete') {
             deleteWatchFolder($rFolderID);
@@ -167,7 +167,7 @@ class PlexController {
         if ($rSub === 'force') {
             $rFolder = getWatchFolder($rFolderID);
             if ($rFolder) {
-                PlexService::forcePlex($rFolder['server_id'], $rFolder['id'], 'systemapirequest');
+                PlexService::forcePlex($rFolder['server_id'], $rFolder['id']);
                 echo json_encode(['result' => true]);
                 exit();
             }
@@ -183,10 +183,10 @@ class PlexController {
      * Заменяет admin/api.php action=plex_sections
      */
     public function apiSections() {
-        $rIP       = CoreUtilities::$rRequest['ip'] ?? '';
-        $rPort     = CoreUtilities::$rRequest['port'] ?? '';
-        $rUsername  = CoreUtilities::$rRequest['username'] ?? '';
-        $rPassword = CoreUtilities::$rRequest['password'] ?? '';
+        $rIP       = RequestManager::getAll()['ip'] ?? '';
+        $rPort     = RequestManager::getAll()['port'] ?? '';
+        $rUsername  = RequestManager::getAll()['username'] ?? '';
+        $rPassword = RequestManager::getAll()['password'] ?? '';
 
         $rToken = PlexAuth::getPlexToken($rIP, $rPort, $rUsername, $rPassword);
         $rSections = PlexRepository::getPlexSections($rIP, $rPort, $rToken);

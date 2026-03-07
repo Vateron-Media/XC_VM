@@ -19,11 +19,11 @@ define('CLIENT_DISABLED', 6);
 define('CLIENT_DISALLOWED', 7);
 $rErrors = array('Invalid username or password.', 'Enigma lines are not permitted here.', 'MAG lines are not permitted here.', 'Stalker lines are not permitted here.', 'Your line has expired.', 'Your line has been banned.', 'Your line has been disabled.', 'You are not allowed to access this player.');
 
-if (empty(CoreUtilities::$rRequest['username']) && empty(CoreUtilities::$rRequest['password'])) {
+if (empty(RequestManager::getAll()['username']) && empty(RequestManager::getAll()['password'])) {
 } else {
-	$rIP = CoreUtilities::getUserIP();
-	$rCountryCode = CoreUtilities::getIPInfo($rIP)['country']['iso_code'];
-	$rUserInfo = CoreUtilities::getUserInfo(null, CoreUtilities::$rRequest['username'], CoreUtilities::$rRequest['password'], true);
+	$rIP = NetworkUtils::getUserIP();
+	$rCountryCode = GeoIP::getCountry($rIP)['country']['iso_code'];
+	$rUserInfo = UserRepository::getUserInfo(null, RequestManager::getAll()['username'], RequestManager::getAll()['password'], true);
 	$rDeny = true;
 	$rUserAgent = (empty($_SERVER['HTTP_USER_AGENT']) ? '' : htmlentities(trim($_SERVER['HTTP_USER_AGENT'])));
 
@@ -58,7 +58,7 @@ if (empty(CoreUtilities::$rRequest['username']) && empty(CoreUtilities::$rReques
 										if (!($rForceCountry && $rUserInfo['forced_country'] != 'ALL' && $rCountryCode != $rUserInfo['forced_country'])) {
 
 
-											if ($rForceCountry || in_array('ALL', CoreUtilities::$rSettings['allow_countries']) || in_array($rCountryCode, CoreUtilities::$rSettings['allow_countries'])) {
+											if ($rForceCountry || in_array('ALL', SettingsManager::getAll()['allow_countries']) || in_array($rCountryCode, SettingsManager::getAll()['allow_countries'])) {
 											} else {
 												$_STATUS = CLIENT_DISALLOWED;
 											}
@@ -120,7 +120,7 @@ if (empty(CoreUtilities::$rRequest['username']) && empty(CoreUtilities::$rReques
 }
 
 echo '<!DOCTYPE html>' . "\r\n" . '<html lang="en">' . "\r\n" . '<head>' . "\r\n\t" . '<meta charset="utf-8">' . "\r\n\t" . '<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">' . "\r\n\t" . '<link rel="stylesheet" href="css/bootstrap-reboot.min.css">' . "\r\n\t" . '<link rel="stylesheet" href="css/bootstrap-grid.min.css">' . "\r\n\t" . '<link rel="stylesheet" href="css/default-skin.css">' . "\r\n\t" . '<link rel="stylesheet" href="css/main.css">' . "\r\n\t" . '<link rel="shortcut icon" href="img/favicon.ico">' . "\r\n\t" . '<title>';
-echo CoreUtilities::$rSettings['server_name'];
+echo SettingsManager::getAll()['server_name'];
 echo '</title>' . "\r\n" . '</head>' . "\r\n" . '<body class="body" style="padding-bottom: 0 !important;">' . "\r\n\t" . '<div class="sign">' . "\r\n\t\t" . '<div class="container">' . "\r\n\t\t\t" . '<div class="row">' . "\r\n\t\t\t\t" . '<div class="col-12">' . "\r\n\t\t\t\t\t" . '<div class="sign__content">' . "\r\n" . '                        ';
 
 if (file_exists('install.php')) {

@@ -7,29 +7,29 @@
     endif; ?>
 
     <?php
-    if (isset(CoreUtilities::$rRequest['type'])) {
-        $rType = intval(CoreUtilities::$rRequest['type']);
+    if (isset(RequestManager::getAll()['type'])) {
+        $rType = intval(RequestManager::getAll()['type']);
     } else {
-        if (isset(CoreUtilities::$rRequest['type'])) {
-            $rType = intval(CoreUtilities::$rRequest['type']);
+        if (isset(RequestManager::getAll()['type'])) {
+            $rType = intval(RequestManager::getAll()['type']);
         } else {
             $rType = 1;
         }
     }
 
-    if (isset(CoreUtilities::$rRequest['post_data'])) {
-        $rPostData = json_decode(base64_decode(CoreUtilities::$rRequest['post_data']), true);
+    if (isset(RequestManager::getAll()['post_data'])) {
+        $rPostData = json_decode(base64_decode(RequestManager::getAll()['post_data']), true);
         $rPostData['review'] = array();
         $rPostData['notes'] = '';
         $rPostData['custom_sid'] = $rPostData['notes'];
         $rCategoryIDs = array();
 
-        foreach (getCategories(array(1 => 'live', 2 => 'movie')[intval($rType)]) as $rCategory) {
+        foreach (CategoryService::getAllByType(array(1 => 'live', 2 => 'movie')[intval($rType)]) as $rCategory) {
             $rCategoryIDs[] = $rCategory['id'];
         }
         $rNewCategories = array();
 
-        foreach (CoreUtilities::$rRequest['category_selection'] as $rCategory) {
+        foreach (RequestManager::getAll()['category_selection'] as $rCategory) {
             if (in_array($rCategory, $rCategoryIDs) || is_numeric($rCategory)) {
             } else {
                 $rReturn = CategoryService::process(array('category_type' => array(1 => 'live', 2 => 'movie')[intval($rType)], 'category_name' => $rCategory));
@@ -37,16 +37,16 @@
             }
         }
 
-        foreach (CoreUtilities::$rRequest as $rKey => $rValue) {
+        foreach (RequestManager::getAll() as $rKey => $rValue) {
             if (substr($rKey, 0, 7) != 'import_') {
             } else {
                 $rID = intval(explode('import_', $rKey)[1]);
 
-                if (!CoreUtilities::$rRequest['import_' . $rID]) {
+                if (!RequestManager::getAll()['import_' . $rID]) {
                 } else {
                     $rCategories = array();
 
-                    foreach (json_decode(CoreUtilities::$rRequest['category_id_' . $rID], true) as $rCategory) {
+                    foreach (json_decode(RequestManager::getAll()['category_id_' . $rID], true) as $rCategory) {
                         if (!is_numeric($rCategory) && isset($rNewCategories[$rCategory])) {
                             $rCategories[] = intval($rNewCategories[$rCategory]);
                         } else {
@@ -58,16 +58,16 @@
                     }
 
                     if ($rType == 1) {
-                        $rPostData['review'][] = array('stream_source' => array(CoreUtilities::$rRequest['url_' . $rID]), 'stream_icon' => CoreUtilities::$rRequest['icon_' . $rID], 'stream_display_name' => CoreUtilities::$rRequest['name_' . $rID], 'epg_lang' => null, 'channel_id' => (!empty(CoreUtilities::$rRequest['channel_id_' . $rID]) ? CoreUtilities::$rRequest['channel_id_' . $rID] : null), 'epg_api' => (!empty(CoreUtilities::$rRequest['epg_type_' . $rID]) ? CoreUtilities::$rRequest['epg_type_' . $rID] : 0), 'epg_id' => (!empty(CoreUtilities::$rRequest['epg_id_' . $rID]) ? CoreUtilities::$rRequest['epg_id_' . $rID] : 0), 'bouquets' => json_decode(CoreUtilities::$rRequest['bouquets_' . $rID], true), 'category_id' => $rCategories);
+                        $rPostData['review'][] = array('stream_source' => array(RequestManager::getAll()['url_' . $rID]), 'stream_icon' => RequestManager::getAll()['icon_' . $rID], 'stream_display_name' => RequestManager::getAll()['name_' . $rID], 'epg_lang' => null, 'channel_id' => (!empty(RequestManager::getAll()['channel_id_' . $rID]) ? RequestManager::getAll()['channel_id_' . $rID] : null), 'epg_api' => (!empty(RequestManager::getAll()['epg_type_' . $rID]) ? RequestManager::getAll()['epg_type_' . $rID] : 0), 'epg_id' => (!empty(RequestManager::getAll()['epg_id_' . $rID]) ? RequestManager::getAll()['epg_id_' . $rID] : 0), 'bouquets' => json_decode(RequestManager::getAll()['bouquets_' . $rID], true), 'category_id' => $rCategories);
                     } else {
-                        $rPostData['review'][] = array('stream_source' => array(CoreUtilities::$rRequest['url_' . $rID]), 'stream_display_name' => CoreUtilities::$rRequest['name_' . $rID], 'tmdb_id' => (!empty(CoreUtilities::$rRequest['tmdb_id_' . $rID]) ? CoreUtilities::$rRequest['tmdb_id_' . $rID] : null), 'bouquets' => json_decode(CoreUtilities::$rRequest['bouquets_' . $rID], true), 'category_id' => $rCategories);
+                        $rPostData['review'][] = array('stream_source' => array(RequestManager::getAll()['url_' . $rID]), 'stream_display_name' => RequestManager::getAll()['name_' . $rID], 'tmdb_id' => (!empty(RequestManager::getAll()['tmdb_id_' . $rID]) ? RequestManager::getAll()['tmdb_id_' . $rID] : null), 'bouquets' => json_decode(RequestManager::getAll()['bouquets_' . $rID], true), 'category_id' => $rCategories);
                     }
                 }
             }
         }
 
         if ($rType == 1) {
-            $rReturn = StreamService::process($rPostData, CoreUtilities::$rSettings);
+            $rReturn = StreamService::process($rPostData);
             $_STATUS = $rReturn['status'];
 
             if ($_STATUS != STATUS_SUCCESS) {
@@ -76,7 +76,7 @@
                 exit();
             }
         } else {
-            $rReturn = MovieService::process(CoreUtilities::$rSettings, $rPostData);
+            $rReturn = MovieService::process($rPostData);
             $_STATUS = $rReturn['status'];
 
             if ($_STATUS != STATUS_SUCCESS) {
@@ -88,9 +88,9 @@
     } else {
         if (!isset($_FILES['m3u_file'])) {
         } else {
-            unset(CoreUtilities::$rRequest['submit_stream']);
-            $rPostData = base64_encode(json_encode(CoreUtilities::$rRequest));
-            $rCategories = getCategories(array(1 => 'live', 2 => 'movie')[intval($rType)]);
+            unset(RequestManager::getAll()['submit_stream']);
+            $rPostData = base64_encode(json_encode(RequestManager::getAll()));
+            $rCategories = CategoryService::getAllByType(array(1 => 'live', 2 => 'movie')[intval($rType)]);
             $rBouquets = BouquetService::getAllSimple();
             $rSources = array();
             $rDuplicates = array();
@@ -129,7 +129,7 @@
                         } else {
                             $rExists = in_array(str_replace('https://', 'http://', $rURL), $rSources);
 
-                            if ($rExists && !CoreUtilities::$rRequest['duplicates']) {
+                            if ($rExists && !RequestManager::getAll()['duplicates']) {
                             } else {
                                 if (count($rImport) < 500) {
                                     if ($rType == 1) {
@@ -849,7 +849,7 @@ renderUnifiedLayoutFooter('admin');
         echo '        function clearEPG(elem) {' . "\r\n" . '            var rEPG = $("#epg_api_" + $(elem).data("id")).val();' . "\r\n" . '            if (rEPG) {' . "\r\n" . '                $("#epg_api_" + $(elem).data("id")).val("").trigger("change");' . "\r\n" . '            }' . "\r\n" . '        }' . "\r\n";
     } else {
         echo '        function scanTMDb(rIndivID=null) {' . "\r\n" . '            $("#datatable tr").each(function() {' . "\r\n" . '                try {' . "\r\n" . '                    var rID = $(this).data("id");' . "\r\n" . '                    if (($("#check_" + rID).is(":checked")) || (rID == rIndivID)) {' . "\r\n" . '                        if ((rID == rIndivID) || (!rIndivID)) {' . "\r\n" . '                            var rName = $("#name_" + rID).val();' . "\r\n" . '                            if (rName) {' . "\r\n" . '                                $("#tmdb_search_" + rID).empty().trigger("change");' . "\r\n" . '                                $.ajax({' . "\r\n" . "                                    url: './api?action=tmdb_search&type=movie&term=' + encodeURIComponent(rName) + \"&language=";
-        echo urlencode(htmlspecialchars((!empty(CoreUtilities::$rRequest['tmdb_language']) ? CoreUtilities::$rRequest['tmdb_language'] : $rSettings['tmdb_language'])));
+        echo urlencode(htmlspecialchars((!empty(RequestManager::getAll()['tmdb_language']) ? RequestManager::getAll()['tmdb_language'] : $rSettings['tmdb_language'])));
         echo '",' . "\r\n" . '                                    success: function (data) {' . "\r\n" . '                                        var rJSON = $.parseJSON(data);' . "\r\n" . '                                        if (rJSON.result) {' . "\r\n" . '                                            $(rJSON.data).each(function() {' . "\r\n" . '                                                if (this.release_date) {' . "\r\n" . '                                                    ';
 
         if ($rSettings['movie_year_append'] == 0) {
@@ -927,7 +927,7 @@ renderUnifiedLayoutFooter('admin');
 
     echo "\t\t" . '});' . "\r\n" . '        ' . "\r\n" . '        ';
     ?>
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+    <?php if (SettingsManager::getAll()['enable_search']): ?>
         $(document).ready(function() {
             initSearch();
         });

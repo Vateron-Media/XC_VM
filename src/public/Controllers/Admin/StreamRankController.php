@@ -1,6 +1,6 @@
 <?php
 /**
- * StreamRankController — рейтинг стримов (Phase 6.3 — Group A).
+ * StreamRankController — рейтинг стримов.
  */
 class StreamRankController extends BaseAdminController
 {
@@ -11,7 +11,7 @@ class StreamRankController extends BaseAdminController
         global $db;
 
         $rStreamTypes = array(1 => 'Live Stream', 2 => 'Movie', 3 => 'Created Channel', 4 => 'Radio Station', 5 => 'Episode');
-        $rPeriod = (CoreUtilities::$rRequest['period'] ?: 'all');
+        $rPeriod = (RequestManager::getAll()['period'] ?: 'all');
         $db->query('SELECT `streams_stats`.*, `streams`.`stream_display_name` FROM `streams_stats` INNER JOIN `streams` ON `streams`.`id` = `streams_stats`.`stream_id` WHERE `streams_stats`.`type` = ? AND `streams`.`type` IN (1,3) GROUP BY `stream_id` ORDER BY `streams_stats`.`rank` ASC LIMIT 500;', $rPeriod);
         $rRows = $db->get_rows();
 

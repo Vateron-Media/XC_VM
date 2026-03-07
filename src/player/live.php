@@ -2,18 +2,18 @@
 
 include 'functions.php';
 
-if (!in_array(1, $rUserInfo['allowed_outputs']) || CoreUtilities::$rSettings['disable_hls']) {
+if (!in_array(1, $rUserInfo['allowed_outputs']) || SettingsManager::getAll()['disable_hls']) {
 	header('Location: index.php');
 }
 
 $rCategories = getOrderedCategories($rUserInfo['category_ids'], 'live');
 $rFilterArray = array('all' => 'All Channels', 'timeshift' => 'Timeshift Only', 'epg' => 'Has EPG Only');
-$rFilterBy = (isset($rFilterArray[CoreUtilities::$rRequest['filter']]) ? CoreUtilities::$rRequest['filter'] : 'all');
+$rFilterBy = (isset($rFilterArray[RequestManager::getAll()['filter']]) ? RequestManager::getAll()['filter'] : 'all');
 $rPicking = array('filter' => $rFilterBy);
 $rSortArray = array('number' => 'Default', 'name' => 'Name A-Z', 'added' => 'Date Added');
-$rSortBy = (isset($rSortArray[CoreUtilities::$rRequest['sort']]) ? CoreUtilities::$rRequest['sort'] : 'number');
-$rCategoryID = (intval(CoreUtilities::$rRequest['category']) ?: $rCategories[0]['id']);
-$rSearchBy = (CoreUtilities::$rRequest['search'] ?: null);
+$rSortBy = (isset($rSortArray[RequestManager::getAll()['sort']]) ? RequestManager::getAll()['sort'] : 'number');
+$rCategoryID = (intval(RequestManager::getAll()['category']) ?: $rCategories[0]['id']);
+$rSearchBy = (RequestManager::getAll()['search'] ?: null);
 $rStreamIDs = array();
 $rStreams = getUserStreams($rUserInfo, array('live', 'created_live'), $rCategoryID, null, $rSortBy, $rSearchBy, $rPicking, null, null, true);
 
@@ -28,7 +28,7 @@ foreach ($db->get_rows() as $rStream) {
 	$rProperties = json_decode($rStream['movie_properties'], true);
 
 	if (!empty($rProperties['backdrop_path'][0])) {
-		$rCover = CoreUtilities::validateImage($rProperties['backdrop_path'][0]);
+		$rCover = ImageUtils::validateURL($rProperties['backdrop_path'][0]);
 
 		break;
 	}
@@ -43,7 +43,7 @@ echo '</h2>' . "\n" . '                        <button onClick="closeChannel();"
 
 if (!$rSearchBy) {
 	echo "\t" . '<div class="filter">' . "\n\t\t" . '<div class="container">' . "\n\t\t\t" . '<div class="row">' . "\n\t\t\t\t" . '<div class="col-12">' . "\n\t\t\t\t\t" . '<div class="filter__content">' . "\n\t\t\t\t\t\t" . '<div class="filter__items">' . "\n\t\t\t\t\t\t\t" . '<div class="filter__item" id="filter__genre">' . "\n\t\t\t\t\t\t\t\t" . '<span class="filter__item-label">CATEGORY:</span>' . "\n\t\t\t\t\t\t\t\t" . '<div class="filter__item-btn dropdown-toggle" role="navigation" id="filter-genre" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">' . "\n\t\t\t\t\t\t\t\t\t" . '<input type="button" value="';
-	echo (!empty($rCategoryID) ? CoreUtilities::$rCategories[$rCategoryID]['category_name'] : $rCategories[0]['title']);
+	echo (!empty($rCategoryID) ? CategoryService::getFromDatabase()[$rCategoryID]['category_name'] : $rCategories[0]['title']);
 	echo '">' . "\n\t\t\t\t\t\t\t\t\t" . '<span></span>' . "\n\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '<ul class="filter__item-menu dropdown-menu scrollbar-dropdown" aria-labelledby="filter-genre">' . "\n" . '                                    ';
 
 	foreach ($rCategories as $rCategory) {

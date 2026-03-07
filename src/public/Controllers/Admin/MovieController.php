@@ -1,6 +1,6 @@
 <?php
 /**
- * MovieController — редактирование/добавление фильма (Phase 6.3 — Group B).
+ * MovieController — редактирование/добавление фильма.
  */
 class MovieController extends BaseAdminController
 {
@@ -10,11 +10,11 @@ class MovieController extends BaseAdminController
 
         global $db, $rServers;
 
-        $rCategories = getCategories('movie');
+        $rCategories = CategoryService::getAllByType('movie');
         $rTranscodeProfiles = StreamConfigRepository::getTranscodeProfiles();
 
-        if (isset(CoreUtilities::$rRequest['id'])) {
-            $rMovie = StreamRepository::getById(CoreUtilities::$rRequest['id']);
+        if (isset(RequestManager::getAll()['id'])) {
+            $rMovie = StreamRepository::getById(RequestManager::getAll()['id']);
             if (!$rMovie || $rMovie['type'] != 2) {
                 $this->redirect('movies');
                 return;
@@ -29,7 +29,7 @@ class MovieController extends BaseAdminController
 
         if (isset($rMovie)) {
             $rMovie['properties'] = json_decode($rMovie['movie_properties'], true);
-            $rStreamSys = StreamRepository::getSystemRows(CoreUtilities::$rRequest['id']);
+            $rStreamSys = StreamRepository::getSystemRows(RequestManager::getAll()['id']);
 
             $streamSourceJson = $rMovie['stream_source'] ?? '';
             $rMovieSource = json_decode($streamSourceJson, true);

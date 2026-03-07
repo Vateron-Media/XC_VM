@@ -210,7 +210,7 @@ if ($rExtension) {
 				generateError('TOKEN_EXPIRED');
 			}
 
-			$rIsHMAC = AuthService::validateHMAC($rSettings, $rCached, $rRequest['hmac'], $rExpiry, $rStreamID, $rExtension, $rIP, $rHMACIP, $rIdentifier, $rMaxConnections);
+			$rIsHMAC = AuthService::validateHMAC($rRequest['hmac'], $rExpiry, $rStreamID, $rExtension, $rIP, $rHMACIP, $rIdentifier, $rMaxConnections);
 
 			if ($rIsHMAC) {
 				$rUserInfo = array('id' => null, 'is_restreamer' => 0, 'force_server_id' => 0, 'con_isp_name' => null, 'max_connections' => $rMaxConnections);
@@ -468,7 +468,7 @@ if ($rExtension) {
 				}
 
 				if (($rServers[$rChannelInfo['redirect_id']]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))) {
-					$rProxies = ConnectionTracker::getProxies($rServers, $rChannelInfo['redirect_id']);
+					$rProxies = ConnectionTracker::getProxies($rChannelInfo['redirect_id']);
 					$rProxyID = ProxySelector::availableProxy($rServers, array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name'], $rSettings);
 
 					if (!$rProxyID) {
@@ -503,7 +503,7 @@ if ($rExtension) {
 									$rAdaptiveInfo = StreamRedirector::redirectStream($rCached, $rSettings, $rServers, $rAdaptiveID, $rExtension, $rUserInfo, $rCountryCode, $rUserInfo['con_isp_name'], 'live');
 
 									if (($rServers[$rAdaptiveInfo['redirect_id']]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))) {
-										$rProxies = ConnectionTracker::getProxies($rServers, $rAdaptiveInfo['redirect_id']);
+										$rProxies = ConnectionTracker::getProxies($rAdaptiveInfo['redirect_id']);
 										$rProxyID = ProxySelector::availableProxy($rServers, array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name'], $rSettings);
 
 										if (!$rProxyID) {
@@ -599,7 +599,7 @@ if ($rExtension) {
 
 			if ($rChannelInfo) {
 				if (($rServers[$rChannelInfo['redirect_id']]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))) {
-					$rProxies = ConnectionTracker::getProxies($rServers, $rChannelInfo['redirect_id']);
+					$rProxies = ConnectionTracker::getProxies($rChannelInfo['redirect_id']);
 					$rProxyID = ProxySelector::availableProxy($rServers, array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name'], $rSettings);
 
 					if (!$rProxyID) {
@@ -654,7 +654,7 @@ if ($rExtension) {
 			}
 
 			if (($rServers[$rChannelInfo['redirect_id']]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))) {
-				$rProxies = ConnectionTracker::getProxies($rServers, $rChannelInfo['redirect_id']);
+				$rProxies = ConnectionTracker::getProxies($rChannelInfo['redirect_id']);
 				$rProxyID = ProxySelector::availableProxy($rServers, array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name'], $rSettings);
 
 				if (!$rProxyID) {
@@ -733,7 +733,7 @@ if ($rExtension) {
 			$rOriginatorID = null;
 
 			if (($rServers[$rStreamInfo['info']['vframes_server_id']]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))) {
-				$rProxies = ConnectionTracker::getProxies($rServers, $rStreamInfo['info']['vframes_server_id']);
+				$rProxies = ConnectionTracker::getProxies($rStreamInfo['info']['vframes_server_id']);
 				$rProxyID = ProxySelector::availableProxy($rServers, array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name'], $rSettings);
 
 				if (!$rProxyID) {
@@ -755,7 +755,7 @@ if ($rExtension) {
 
 			if ($rChannelInfo) {
 				if (($rServers[$rChannelInfo['redirect_id']]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))) {
-					$rProxies = ConnectionTracker::getProxies($rServers, $rChannelInfo['redirect_id']);
+					$rProxies = ConnectionTracker::getProxies($rChannelInfo['redirect_id']);
 					$rProxyID = ProxySelector::availableProxy($rServers, array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name'], $rSettings);
 
 					if (!$rProxyID) {

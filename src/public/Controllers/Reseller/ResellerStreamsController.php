@@ -1,6 +1,6 @@
 <?php
 /**
- * ResellerStreamsController — Streams listing (read-only) (Phase 6.4 — Reseller).
+ * ResellerStreamsController — Streams listing (read-only).
  */
 class ResellerStreamsController extends BaseResellerController
 {

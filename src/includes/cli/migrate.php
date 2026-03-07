@@ -53,7 +53,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = prepareArray($rResult);
                     $rQuery = 'INSERT INTO `access_codes`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                    AuthRepository::updateCodes(MAIN_HOME, SERVER_ID, 'getcodes', 'reloadNginx');
+                    AuthRepository::updateCodes();
                 } catch (Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }

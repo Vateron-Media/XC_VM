@@ -88,7 +88,7 @@ if (!in_array($rExtension, array('ts', 'm3u8'))) {
     $rExtension = $rSettings["api_container"];
 }
 
-if ($rChannelInfo["proxy"] && $rExtension != "ts") {
+if (($rChannelInfo["proxy"] ?? false) && $rExtension != "ts") {
     generateError("USER_DISALLOW_EXT");
 }
 
@@ -114,7 +114,7 @@ if ($rChannelInfo) {
     }
 
     if ($rSettings["on_demand_instant_off"] && $rChannelInfo["on_demand"] == 1) {
-        ConnectionTracker::addToQueue($rStreamID, $rPID, array('ProcessManager', 'isRunning'));
+        ConnectionTracker::addToQueue($rStreamID, $rPID);
     }
 
     if (!ProcessManager::isStreamAlive($rChannelInfo["pid"], $rStreamID)) {
@@ -220,7 +220,7 @@ if ($rChannelInfo) {
         $rAcceptIP = NULL;
 
         if ($rSettings["redis_handler"]) {
-            $rConnections = ConnectionTracker::getLineConnections(RedisManager::instance(), $rUserInfo["id"], true);
+            $rConnections = ConnectionTracker::getLineConnections($rUserInfo["id"], true);
 
             if (count($rConnections) > 0) {
                 $rDate = array_column($rConnections, "date_start");
@@ -246,7 +246,7 @@ if ($rChannelInfo) {
     switch ($rExtension) {
         case "m3u8":
             if ($rSettings["redis_handler"]) {
-                $rConnection = ConnectionTracker::getConnection(RedisManager::instance(), $rTokenData["uuid"]);
+                $rConnection = ConnectionTracker::getConnection($rTokenData["uuid"]);
             } else {
                 if (isset($rTokenData["adaptive"])) {
                     $db->query("SELECT `activity_id`, `user_ip` FROM `lines_live` WHERE `uuid` = ? AND `user_id` = ? AND `container` = 'hls' AND `hls_end` = 0", $rTokenData["uuid"], $rUserInfo["id"]);
@@ -269,14 +269,14 @@ if ($rChannelInfo) {
                 if (!isset($rIsHMAC) && is_null($rIsHMAC)) {
                     if ($rSettings["redis_handler"]) {
                         $rConnectionData = array("user_id" => $rUserInfo["id"], "stream_id" => $rStreamID, "server_id" => $rServerID, "proxy_id" => $rProxyID, "user_agent" => $rUserAgent, "user_ip" => $rIP, "container" => "hls", "pid" => NULL, "date_start" => $rActivityStart, "geoip_country_code" => $rCountryCode, "isp" => $rUserInfo["con_isp_name"], "external_device" => $rExternalDevice, "hls_end" => 0, "hls_last_read" => time() - intval($rServers[SERVER_ID]["time_offset"]), "on_demand" => $rChannelInfo["on_demand"], "identity" => $rUserInfo["id"], "uuid" => $rTokenData["uuid"]);
-                        $rResult = ConnectionTracker::createConnection(RedisManager::instance(), $rConnectionData);
+                        $rResult = ConnectionTracker::createConnection($rConnectionData);
                     } else {
                         $rResult = $db->query('INSERT INTO `lines_live` (`user_id`,`stream_id`,`server_id`,`proxy_id`,`user_agent`,`user_ip`,`container`,`pid`,`uuid`,`date_start`,`geoip_country_code`,`isp`,`external_device`,`hls_last_read`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?);', $rUserInfo["id"], $rStreamID, $rServerID, $rProxyID, $rUserAgent, $rIP, 'hls', NULL, $rTokenData["uuid"], $rActivityStart, $rCountryCode, $rUserInfo["con_isp_name"], $rExternalDevice, time() - intval($rServers[SERVER_ID]["time_offset"]));
                     }
                 } else {
                     if ($rSettings["redis_handler"]) {
                         $rConnectionData = array("hmac_id" => $rIsHMAC, "hmac_identifier" => $rIdentifier, "stream_id" => $rStreamID, "server_id" => $rServerID, "proxy_id" => $rProxyID, "user_agent" => $rUserAgent, "user_ip" => $rIP, "container" => "hls", "pid" => NULL, "date_start" => $rActivityStart, "geoip_country_code" => $rCountryCode, "isp" => $rUserInfo["con_isp_name"], "external_device" => $rExternalDevice, "hls_end" => 0, "hls_last_read" => time() - intval($rServers[SERVER_ID]["time_offset"]), "on_demand" => $rChannelInfo["on_demand"], "identity" => $rIsHMAC . "_" . $rIdentifier, "uuid" => $rTokenData["uuid"]);
-                        $rResult = ConnectionTracker::createConnection(RedisManager::instance(), $rConnectionData);
+                        $rResult = ConnectionTracker::createConnection($rConnectionData);
                     } else {
                         $rResult = $db->query('INSERT INTO `lines_live` (`hmac_id`,`hmac_identifier`,`stream_id`,`server_id`,`proxy_id`,`user_agent`,`user_ip`,`container`,`pid`,`uuid`,`date_start`,`geoip_country_code`,`isp`,`external_device`,`hls_last_read`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);', $rIsHMAC, $rIdentifier, $rStreamID, $rServerID, $rProxyID, $rUserAgent, $rIP, 'hls', NULL, $rTokenData["uuid"], $rActivityStart, $rCountryCode, $rUserInfo["con_isp_name"], $rExternalDevice, time() - intval($rServers[SERVER_ID]["time_offset"]));
                     }
@@ -292,7 +292,7 @@ if ($rChannelInfo) {
                 if ($rSettings["redis_handler"]) {
                     $rChanges = array("server_id" => $rServerID, "proxy_id" => $rProxyID, "hls_last_read" => time() - intval($rServers[SERVER_ID]["time_offset"]));
 
-                    if ($rConnection = ConnectionTracker::updateConnection(RedisManager::instance(), $rConnection, $rChanges, "open")) {
+                    if ($rConnection = ConnectionTracker::updateConnection($rConnection, $rChanges, "open")) {
                         $rResult = true;
                     } else {
                         $rResult = false;
@@ -333,7 +333,7 @@ if ($rChannelInfo) {
 
         default:
             if ($rSettings["redis_handler"]) {
-                $rConnection = ConnectionTracker::getConnection(RedisManager::instance(), $rTokenData["uuid"]);
+                $rConnection = ConnectionTracker::getConnection($rTokenData["uuid"]);
             } else {
                 if (!isset($rIsHMAC) && is_null($rIsHMAC)) {
                     $db->query('SELECT `activity_id`, `pid`, `user_ip` FROM `lines_live` WHERE `uuid` = ? AND `user_id` = ? AND `server_id` = ? AND `container` = ? AND `stream_id` = ?;', $rTokenData["uuid"], $rUserInfo["id"], $rServerID, $rExtension, $rStreamID);
@@ -352,14 +352,14 @@ if ($rChannelInfo) {
                 if (!isset($rIsHMAC) && is_null($rIsHMAC)) {
                     if ($rSettings["redis_handler"]) {
                         $rConnectionData = array("user_id" => $rUserInfo["id"], "stream_id" => $rStreamID, "server_id" => $rServerID, "proxy_id" => $rProxyID, "user_agent" => $rUserAgent, "user_ip" => $rIP, "container" => $rExtension, "pid" => $rPID, "date_start" => $rActivityStart, "geoip_country_code" => $rCountryCode, "isp" => $rUserInfo["con_isp_name"], "external_device" => $rExternalDevice, "hls_end" => 0, "hls_last_read" => time() - intval($rServers[SERVER_ID]["time_offset"]), "on_demand" => $rChannelInfo["on_demand"], "identity" => $rUserInfo["id"], "uuid" => $rTokenData["uuid"]);
-                        $rResult = ConnectionTracker::createConnection(RedisManager::instance(), $rConnectionData);
+                        $rResult = ConnectionTracker::createConnection($rConnectionData);
                     } else {
                         $rResult = $db->query('INSERT INTO `lines_live` (`user_id`,`stream_id`,`server_id`,`proxy_id`,`user_agent`,`user_ip`,`container`,`pid`,`uuid`,`date_start`,`geoip_country_code`,`isp`,`external_device`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)', $rUserInfo["id"], $rStreamID, $rServerID, $rProxyID, $rUserAgent, $rIP, $rExtension, $rPID, $rTokenData["uuid"], $rActivityStart, $rCountryCode, $rUserInfo["con_isp_name"], $rExternalDevice);
                     }
                 } else {
                     if ($rSettings["redis_handler"]) {
                         $rConnectionData = array("hmac_id" => $rIsHMAC, "hmac_identifier" => $rIdentifier, "stream_id" => $rStreamID, "server_id" => $rServerID, "proxy_id" => $rProxyID, "user_agent" => $rUserAgent, "user_ip" => $rIP, "container" => $rExtension, "pid" => $rPID, 'date_start' => $rActivityStart, 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo["con_isp_name"], 'external_device' => $rExternalDevice, 'hls_end' => 0, 'hls_last_read' => time() - intval($rServers[SERVER_ID]["time_offset"]), 'on_demand' => $rChannelInfo["on_demand"], 'identity' => $rIsHMAC . '_' . $rIdentifier, 'uuid' => $rTokenData["uuid"]);
-                        $rResult = ConnectionTracker::createConnection(RedisManager::instance(), $rConnectionData);
+                        $rResult = ConnectionTracker::createConnection($rConnectionData);
                     } else {
                         $rResult = $db->query('INSERT INTO `lines_live` (`hmac_id`,`hmac_identifier`,`stream_id`,`server_id`,`proxy_id`,`user_agent`,`user_ip`,`container`,`pid`,`uuid`,`date_start`,`geoip_country_code`,`isp`,`external_device`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)', $rIsHMAC, $rIdentifier, $rStreamID, $rServerID, $rProxyID, $rUserAgent, $rIP, $rExtension, $rPID, $rTokenData["uuid"], $rActivityStart, $rCountryCode, $rUserInfo["con_isp_name"], $rExternalDevice);
                     }
@@ -379,7 +379,7 @@ if ($rChannelInfo) {
                 if ($rSettings["redis_handler"]) {
                     $rChanges = array("pid" => $rPID, "hls_last_read" => time() - intval($rServers[SERVER_ID]["time_offset"]));
 
-                    if ($rConnection = ConnectionTracker::updateConnection(RedisManager::instance(), $rConnection, $rChanges, "open")) {
+                    if ($rConnection = ConnectionTracker::updateConnection($rConnection, $rChanges, "open")) {
                         $rResult = true;
                     } else {
                         $rResult = false;
@@ -634,7 +634,7 @@ if ($rChannelInfo) {
 
                         if ($rSettings["redis_handler"]) {
                             RedisManager::ensureConnected();
-                            $rConnection = ConnectionTracker::getConnection(RedisManager::instance(), $rTokenData["uuid"]);
+                            $rConnection = ConnectionTracker::getConnection($rTokenData["uuid"]);
                             RedisManager::closeInstance();
                         } else {
                             DatabaseFactory::connect();
@@ -677,11 +677,11 @@ function shutdown() {
                 RedisManager::ensureConnected();
             }
 
-            $rConnection = ConnectionTracker::getConnection(RedisManager::instance(), $rTokenData["uuid"]);
+            $rConnection = ConnectionTracker::getConnection($rTokenData["uuid"]);
 
             if ($rConnection && $rConnection["pid"] == $rPID) {
                 $rChanges = array('hls_last_read' => time() - intval($rServers[SERVER_ID]["time_offset"]));
-                ConnectionTracker::updateConnection(RedisManager::instance(), $rConnection, $rChanges, 'close');
+                ConnectionTracker::updateConnection($rConnection, $rChanges, 'close');
             }
         } else {
             if (!is_object($db)) {
@@ -696,7 +696,7 @@ function shutdown() {
     }
 
     if ($rSettings["on_demand_instant_off"] && $rChannelInfo["on_demand"] == 1) {
-        ConnectionTracker::removeFromQueue($rStreamID, $rPID, array('ProcessManager', 'isRunning'));
+        ConnectionTracker::removeFromQueue($rStreamID, $rPID);
     }
 
     if (!$rSettings["redis_handler"] && is_object($db)) {

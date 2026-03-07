@@ -1,7 +1,7 @@
 <?php
 
 /**
- * XC_VM — TMDB Library Loader
+ * TMDB Library Loader
  *
  * Прокси-файл для загрузки TMDB-библиотеки из includes/libs/.
  *

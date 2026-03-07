@@ -1,7 +1,7 @@
 <?php
 
 /**
- * BaseResellerController — базовый контроллер для reseller-страниц (Phase 6.4).
+ * BaseResellerController — базовый контроллер для reseller-страниц.
  *
  * Наследует BaseAdminController, переопределяя:
  *   - $scope = 'reseller' (для renderUnifiedLayout и путей views)

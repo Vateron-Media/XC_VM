@@ -1,6 +1,6 @@
 <?php
 /**
- * CreatedChannelListController — список созданных каналов (Phase 6.3 — Group A).
+ * CreatedChannelListController — список созданных каналов.
  */
 class CreatedChannelListController extends BaseAdminController
 {

@@ -8,9 +8,9 @@
 		goHome();
 	}
 
-	if (!isset(CoreUtilities::$rRequest['id'])) {
+	if (!isset(RequestManager::getAll()['id'])) {
 	} else {
-		$rCategoryArr = getCategory(CoreUtilities::$rRequest['id']);
+		$rCategoryArr = getCategory(RequestManager::getAll()['id']);
 
 		if ($rCategoryArr && Authorization::check('adv', 'edit_cat')) {
 		} else {
@@ -316,7 +316,7 @@ renderUnifiedLayoutFooter('admin');
 
 	echo '            $("form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n" . "                \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                submitForm(window.rCurrentPage, new FormData($("form")[0]));' . "\r\n" . '            });' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
 	?>
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+	<?php if (SettingsManager::getAll()['enable_search']): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

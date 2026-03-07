@@ -1,13 +1,13 @@
 <?php
 
 class EpgService {
-	public static function process($rData, $rGetEPGCallback) {
+	public static function process($rData) {
 		global $db;
 		if (isset($rData['edit'])) {
 			if (!Authorization::check('adv', 'epg_edit')) {
 				exit();
 			}
-			$rArray = overwriteData(call_user_func($rGetEPGCallback, $rData['edit']), $rData);
+			$rArray = overwriteData(self::getById($rData['edit']), $rData);
 		} else {
 			if (!Authorization::check('adv', 'add_epg')) {
 				exit();
@@ -27,20 +27,16 @@ class EpgService {
 		return array('status' => STATUS_FAILURE, 'data' => $rData);
 	}
 
-	public static function getChannelEpg($rStream, $rArchive = false, $rGetEpgCallback = null) {
+	public static function getChannelEpg($rStream, $rArchive = false) {
 		if (!$rStream || !$rStream['channel_id']) {
 			return array();
 		}
 
-		if (!$rGetEpgCallback) {
-			$rGetEpgCallback = array('CoreUtilities', 'getEPG');
-		}
-
 		if ($rArchive) {
-			return call_user_func($rGetEpgCallback, $rStream['id'], time() - $rStream['tv_archive_duration'] * 86400, time());
+			return EpgService::getStreamEpg($rStream['id'], time() - $rStream['tv_archive_duration'] * 86400, time());
 		}
 
-		return call_user_func($rGetEpgCallback, $rStream['id'], time(), time() + 1209600);
+		return EpgService::getStreamEpg($rStream['id'], time(), time() + 1209600);
 	}
 
 	// ──────────── Из EpgRepository ────────────

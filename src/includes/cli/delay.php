@@ -119,11 +119,12 @@ function loadcli() {
             $rPlaylistDelay = DELAY_PATH . $rStreamID . '_.m3u8';
             $rPlaylistOld = DELAY_PATH . $rStreamID . '_.m3u8_old';
             $db->query('UPDATE `streams_servers` SET delay_pid = ? WHERE stream_id = ? AND server_id = ?', getmypid(), $rStreamID, SERVER_ID);
-            CoreUtilities::updateStream($rStreamInfo['id']);
+            StreamProcess::updateStream($rStreamInfo['id']);
             $db->close_mysql();
             $rDelayDuration = intval($rStreamInfo['delay_minutes']) + 5;
             cleanUpSegments();
-            $rTotalSegments = intval(CoreUtilities::$rSegmentSettings['seg_list_size']) + 5;
+            $rSegmentSettings = array('seg_time' => intval(SettingsManager::getAll()['seg_time']), 'seg_list_size' => intval(SettingsManager::getAll()['seg_list_size']), 'seg_delete_threshold' => intval(SettingsManager::getAll()['seg_delete_threshold']));
+            $rTotalSegments = intval($rSegmentSettings['seg_list_size']) + 5;
             $rOldSegments = array();
             if (!file_exists($rPlaylistOld)) {
             } else {
@@ -131,18 +132,18 @@ function loadcli() {
             }
             $rPrevMD5 = null;
             $rMD5 = md5(file_get_contents($rPlaylistDelay));
-            while (CoreUtilities::isStreamRunning($rPID, $rStreamID) && file_exists($rPlaylistDelay)) {
+            while (ProcessManager::isStreamRunning($rPID, $rStreamID) && file_exists($rPlaylistDelay)) {
                 if ($rMD5 == $rPrevMD5) {
                 } else {
                     if (!file_exists(STREAMS_PATH . $rStreamID . '_.dur')) {
                     } else {
                         $rDuration = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.dur'));
-                        if (CoreUtilities::$rSegmentSettings['seg_time'] >= $rDuration) {
+                        if ($rSegmentSettings['seg_time'] >= $rDuration) {
                         } else {
-                            CoreUtilities::$rSegmentSettings['seg_time'] = $rDuration;
+                            $rSegmentSettings['seg_time'] = $rDuration;
                         }
                     }
-                    $rM3U8 = array('vars' => array('#EXTM3U' => '', '#EXT-X-VERSION' => 3, '#EXT-X-MEDIA-SEQUENCE' => '0', '#EXT-X-TARGETDURATION' => CoreUtilities::$rSegmentSettings['seg_time']), 'segments' => getData($rPlaylistDelay, $rOldSegments, $rTotalSegments));
+                    $rM3U8 = array('vars' => array('#EXTM3U' => '', '#EXT-X-VERSION' => 3, '#EXT-X-MEDIA-SEQUENCE' => '0', '#EXT-X-TARGETDURATION' => $rSegmentSettings['seg_time']), 'segments' => getData($rPlaylistDelay, $rOldSegments, $rTotalSegments));
                     if (empty($rM3U8['segments'])) {
                     } else {
                         $rData = '';

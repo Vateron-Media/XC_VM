@@ -1,6 +1,6 @@
 <?php
 /**
- * QuickToolsController — Quick Tools (Phase 6.3 — Group M).
+ * QuickToolsController — Quick Tools.
  */
 class QuickToolsController extends BaseAdminController
 {

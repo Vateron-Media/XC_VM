@@ -8,10 +8,10 @@
 		goHome();
 	}
 
-	$rCategories = getCategories('movie');
+	$rCategories = CategoryService::getAllByType('movie');
 
-	if (isset(CoreUtilities::$rRequest['submit_stream'])) {
-		$rReturn = MovieService::massEdit(CoreUtilities::$rRequest);
+	if (isset(RequestManager::getAll()['submit_stream'])) {
+		$rReturn = MovieService::massEdit(RequestManager::getAll());
 		$_STATUS = $rReturn['status'];
 
 		if ($_STATUS == 0) {
@@ -101,7 +101,7 @@
 													<option value="-1">No Categories</option>
 													<?php foreach ($rCategories as $cat):
 														echo '<option value="' . $cat['id'] . '"' .
-															((isset(CoreUtilities::$rRequest['category']) && CoreUtilities::$rRequest['category'] == $cat['id']) ? ' selected' : '') .
+															((isset(RequestManager::getAll()['category']) && RequestManager::getAll()['category'] == $cat['id']) ? ' selected' : '') .
 															'>' . $cat['category_name'] . '</option>' . "\n";
 													endforeach; ?>
 												</select>
@@ -459,7 +459,7 @@ renderUnifiedLayoutFooter('admin');
 	echo $language::get('select_at_least_one_movie');
 	echo '");' . "\r\n" . '                    rSubmit = false;' . "\r\n\t\t\t\t" . '}' . "\r\n" . '                if (rSubmit) {' . "\r\n" . "                    \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                    submitForm(window.rCurrentPage, new FormData($("form")[0]));' . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
 	?>
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+	<?php if (SettingsManager::getAll()['enable_search']): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

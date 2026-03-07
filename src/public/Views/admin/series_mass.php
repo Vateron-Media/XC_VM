@@ -1,6 +1,6 @@
 <?php
 /**
- * Series mass edit view (Phase 6.3 — Group B).
+ * Series mass edit view.
  * Delegation proxy → legacy admin/series_mass.php HTML body.
  */
 $__viewMode = true;

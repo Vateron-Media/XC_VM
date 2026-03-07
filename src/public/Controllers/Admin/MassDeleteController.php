@@ -1,6 +1,6 @@
 <?php
 /**
- * MassDeleteController — Mass Delete (Phase 6.3 — Group M).
+ * MassDeleteController — Mass Delete.
  */
 class MassDeleteController extends BaseAdminController
 {

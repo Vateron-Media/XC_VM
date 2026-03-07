@@ -1,6 +1,6 @@
 <?php
 /**
- * GroupEditController — add/edit member group (Phase 6.3 — Group H).
+ * GroupEditController — add/edit member group.
  *
  * Route: GET /admin/group → index()
  */

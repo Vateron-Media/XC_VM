@@ -9,9 +9,9 @@ if (!isset($__viewMode)):
 		goHome();
 	}
 
-	if (!isset(CoreUtilities::$rRequest['id'])) {
+	if (!isset(RequestManager::getAll()['id'])) {
 	} else {
-		$rLine = UserRepository::getLineById(CoreUtilities::$rRequest['id']);
+		$rLine = UserRepository::getLineById(RequestManager::getAll()['id']);
 
 		if (!(!$rLine || $rLine['is_mag'] || $rLine['is_e2']) && Authorization::check('line', $rLine['id'])) {
 		} else {
@@ -38,14 +38,14 @@ if (isset($rLine)) {
 	echo 'Add';
 }
 
-if (!isset(CoreUtilities::$rRequest['trial'])) {
+if (!isset(RequestManager::getAll()['trial'])) {
 } else {
 	echo ' Trial';
 }
 
 echo ' Line</h4>' . "\n\t\t\t\t" . '</div>' . "\n\t\t\t" . '</div>' . "\n\t\t" . '</div>' . "\n\t\t" . '<div class="row">' . "\n\t\t\t" . '<div class="col-xl-12">' . "\n" . '                ';
 
-if (!$rGenTrials && !isset($rLine) && isset(CoreUtilities::$rRequest['trial'])) {
+if (!$rGenTrials && !isset($rLine) && isset(RequestManager::getAll()['trial'])) {
 	echo '                <div class="alert alert-danger alert-dismissible fade show" role="alert">' . "\n" . '                    ';
 
 	if ($rSettings['disable_trial']) {
@@ -78,7 +78,7 @@ if (!$rGenTrials && !isset($rLine) && isset(CoreUtilities::$rRequest['trial'])) 
 		echo $rLine['id'];
 		echo '" />' . "\n\t\t\t\t\t\t\t";
 	} else {
-		if (!isset(CoreUtilities::$rRequest['trial'])) {
+		if (!isset(RequestManager::getAll()['trial'])) {
 		} else {
 			echo '                            <input type="hidden" name="trial" value="1" />' . "\n" . '                            ';
 		}
@@ -215,8 +215,8 @@ if (!$rGenTrials && !isset($rLine) && isset(CoreUtilities::$rRequest['trial'])) 
 		echo '                                                            <option value="">No Changes</option>' . "\n" . '                                                            ';
 	}
 
-	foreach (getPackages($rUserInfo['member_group_id'], 'line') as $rPackage) {
-		if (!($rPackage['is_trial'] && isset(CoreUtilities::$rRequest['trial']) || $rPackage['is_official'] && !isset(CoreUtilities::$rRequest['trial']))) {
+	foreach (getPackages($rUserInfo['member_group_id'], 'line') ?: [] as $rPackage) {
+		if (!($rPackage['is_trial'] && isset(RequestManager::getAll()['trial']) || $rPackage['is_official'] && !isset(RequestManager::getAll()['trial']))) {
 		} else {
 			echo '                                                                <option value="';
 			echo intval($rPackage['id']);
@@ -266,7 +266,7 @@ if (!$rGenTrials && !isset($rLine) && isset(CoreUtilities::$rRequest['trial'])) 
 
 		if (!isset($rLine)) {
 		} else {
-			foreach (json_decode($rLine['allowed_ips'], true) as $rIP) {
+			foreach (json_decode($rLine['allowed_ips'], true) ?: [] as $rIP) {
 				echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<option value="';
 				echo $rIP;
 				echo '">';
@@ -279,7 +279,7 @@ if (!$rGenTrials && !isset($rLine) && isset(CoreUtilities::$rRequest['trial'])) 
 
 		if (!isset($rLine)) {
 		} else {
-			foreach (json_decode($rLine['allowed_ua'], true) as $rUA) {
+			foreach (json_decode($rLine['allowed_ua'], true) ?: [] as $rUA) {
 				echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<option value="';
 				echo $rUA;
 				echo '">';

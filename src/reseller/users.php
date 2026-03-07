@@ -31,28 +31,28 @@ if (!$rMobile) {
 
 echo ' form-group row mb-4">' . "\n" . '                            <div class="col-md-6">' . "\n" . '                                <input type="text" class="form-control" id="reg_search" value="';
 
-if (!isset(CoreUtilities::$rRequest['search'])) {
+if (!isset(RequestManager::getAll()['search'])) {
 } else {
-	echo htmlspecialchars(CoreUtilities::$rRequest['search']);
+	echo htmlspecialchars(RequestManager::getAll()['search']);
 }
 
 echo '" placeholder="Search Users...">' . "\n" . '                            </div>' . "\n" . '                            <label class="col-md-2 col-form-label text-center" for="reg_reseller">Filter Results</label>' . "\n" . '                            <div class="col-md-2">' . "\n" . '                                <select id="reg_filter" class="form-control" data-toggle="select2">' . "\n" . '                                    <option value=""';
 
-if (isset(CoreUtilities::$rRequest['filter'])) {
+if (isset(RequestManager::getAll()['filter'])) {
 } else {
 	echo ' selected';
 }
 
 echo '>No Filter</option>' . "\n" . '                                    <option value="1"';
 
-if (!(isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 1)) {
+if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 1)) {
 } else {
 	echo ' selected';
 }
 
 echo '>Active</option>' . "\n" . '                                    <option value="2"';
 
-if (!(isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 2)) {
+if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 2)) {
 } else {
 	echo ' selected';
 }
@@ -62,8 +62,8 @@ echo '>Disabled</option>' . "\n" . '                                </select>' .
 foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) {
 	echo '                                    <option';
 
-	if (isset(CoreUtilities::$rRequest['entries'])) {
-		if (CoreUtilities::$rRequest['entries'] != $rShow) {
+	if (isset(RequestManager::getAll()['entries'])) {
+		if (RequestManager::getAll()['entries'] != $rShow) {
 		} else {
 			echo ' selected';
 		}

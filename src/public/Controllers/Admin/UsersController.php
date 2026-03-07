@@ -1,6 +1,6 @@
 <?php
 /**
- * XC_VM — Контроллер списка пользователей (admin/users.php)
+ * Контроллер списка пользователей (admin/users.php)
  */
 class UsersController extends BaseAdminController {
     public function index() {

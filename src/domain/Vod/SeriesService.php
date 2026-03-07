@@ -1,7 +1,7 @@
 <?php
 
 class SeriesService {
-	public static function process($rSettings, $rData) {
+	public static function process($rData) {
 		global $db;
 		if (InputValidator::validate('processSeries', $rData)) {
 			if (isset($rData['edit'])) {
@@ -19,10 +19,10 @@ class SeriesService {
 				}
 			}
 
-			if (!CoreUtilities::$rSettings['download_images']) {
+			if (!SettingsManager::getAll()['download_images']) {
 			} else {
-				$rData['cover'] = CoreUtilities::downloadImage($rData['cover'], 2);
-				$rData['backdrop_path'] = CoreUtilities::downloadImage($rData['backdrop_path']);
+				$rData['cover'] = ImageUtils::downloadImage($rData['cover'], 2);
+				$rData['backdrop_path'] = ImageUtils::downloadImage($rData['backdrop_path']);
 			}
 
 			if (strlen($rData['backdrop_path']) == 0) {
@@ -232,7 +232,7 @@ class SeriesService {
 					}
 				}
 
-				$rSeriesCategories = array_keys(getCategories('series'));
+				$rSeriesCategories = array_keys(CategoryService::getAllByType('series'));
 
 				if (0 < count($rImportStreams)) {
 					$rBouquets = array();
@@ -248,7 +248,7 @@ class SeriesService {
 					}
 
 					foreach ($rData['bouquets'] as $rBouquetID) {
-						if (!(is_numeric($rBouquetID) && in_array($rBouquetID, array_keys(CoreUtilities::$rBouquets)))) {
+						if (!(is_numeric($rBouquetID) && in_array($rBouquetID, array_keys(BouquetService::getAll())))) {
 						} else {
 							$rBouquets[] = intval($rBouquetID);
 						}
@@ -286,7 +286,7 @@ class SeriesService {
 					$rWatchCategories = array(1 => WatchService::getWatchCategories(1), 2 => WatchService::getWatchCategories(2));
 
 					foreach ($rImportStreams as $rImportStream) {
-						$rData = array('import' => true, 'type' => 'series', 'title' => $rImportStream['title'], 'file' => $rImportStream['url'], 'subtitles' => array(), 'servers' => $rServerIDs, 'fb_category_id' => $rCategories, 'fb_bouquets' => $rBouquets, 'disable_tmdb' => false, 'ignore_no_match' => false, 'bouquets' => array(), 'category_id' => array(), 'language' => CoreUtilities::$rSettings['tmdb_language'], 'watch_categories' => $rWatchCategories, 'read_native' => $rData['read_native'], 'movie_symlink' => $rData['movie_symlink'], 'remove_subtitles' => $rData['remove_subtitles'], 'direct_source' => $rData['direct_source'], 'direct_proxy' => $rData['direct_proxy'], 'auto_encode' => $rRestart, 'auto_upgrade' => false, 'fallback_title' => false, 'ffprobe_input' => false, 'transcode_profile_id' => $rData['transcode_profile_id'], 'target_container' => $rImportStream['container'], 'max_genres' => intval(CoreUtilities::$rSettings['max_genres']), 'duplicate_tmdb' => true);
+						$rData = array('import' => true, 'type' => 'series', 'title' => $rImportStream['title'], 'file' => $rImportStream['url'], 'subtitles' => array(), 'servers' => $rServerIDs, 'fb_category_id' => $rCategories, 'fb_bouquets' => $rBouquets, 'disable_tmdb' => false, 'ignore_no_match' => false, 'bouquets' => array(), 'category_id' => array(), 'language' => SettingsManager::getAll()['tmdb_language'], 'watch_categories' => $rWatchCategories, 'read_native' => $rData['read_native'], 'movie_symlink' => $rData['movie_symlink'], 'remove_subtitles' => $rData['remove_subtitles'], 'direct_source' => $rData['direct_source'], 'direct_proxy' => $rData['direct_proxy'], 'auto_encode' => $rRestart, 'auto_upgrade' => false, 'fallback_title' => false, 'ffprobe_input' => false, 'transcode_profile_id' => $rData['transcode_profile_id'], 'target_container' => $rImportStream['container'], 'max_genres' => intval(SettingsManager::getAll()['max_genres']), 'duplicate_tmdb' => true);
 						$rCommand = '/usr/bin/timeout 300 ' . PHP_BIN . ' ' . INCLUDES_PATH . 'cli/watch_item.php "' . base64_encode(json_encode($rData, JSON_UNESCAPED_UNICODE)) . '" > /dev/null 2>/dev/null &';
 						shell_exec($rCommand);
 					}
@@ -419,10 +419,10 @@ class SeriesService {
 	public static function getSimilar($rID, $rPage = 1) {
 		require_once MAIN_HOME . 'includes/libs/tmdb.php';
 
-		if (0 < strlen(CoreUtilities::$rSettings['tmdb_language'])) {
-			$rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key'], CoreUtilities::$rSettings['tmdb_language']);
+		if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
+			$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
 		} else {
-			$rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key']);
+			$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key']);
 		}
 
 		return json_decode(json_encode($rTMDB->getSimilarSeries($rID, $rPage)), true);
@@ -461,12 +461,12 @@ class SeriesService {
 			if (0 >= strlen($rTMDBID)) {
 			} else {
 				if (0 < strlen($rRow['tmdb_language'])) {
-					$rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key'], $rRow['tmdb_language']);
+					$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key'], $rRow['tmdb_language']);
 				} else {
-					if (0 < strlen(CoreUtilities::$rSettings['tmdb_language'])) {
-						$rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key'], CoreUtilities::$rSettings['tmdb_language']);
+					if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
+						$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
 					} else {
-						$rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key']);
+						$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key']);
 					}
 				}
 
@@ -476,9 +476,9 @@ class SeriesService {
 				foreach ($rSeasons as $rSeason) {
 					$rSeason['cover'] = 'https://image.tmdb.org/t/p/w600_and_h900_bestv2' . $rSeason['poster_path'];
 
-					if (!CoreUtilities::$rSettings['download_images']) {
+					if (!SettingsManager::getAll()['download_images']) {
 					} else {
-						$rSeason['cover'] = CoreUtilities::downloadImage($rSeason['cover']);
+						$rSeason['cover'] = ImageUtils::downloadImage($rSeason['cover']);
 					}
 
 					$rSeason['cover_big'] = $rSeason['cover'];

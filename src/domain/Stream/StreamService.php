@@ -1,8 +1,9 @@
 <?php
 
 class StreamService {
-	public static function process($rData, $rSettings) {
+	public static function process($rData) {
 		global $db;
+		$rSettings = SettingsManager::getAll();
 		set_time_limit(0);
 		ini_set('mysql.connect_timeout', 0);
 		ini_set('max_execution_time', 0);
@@ -282,7 +283,7 @@ class StreamService {
 
 					if (!$rSettings['download_images']) {
 					} else {
-						$rImportStream['stream_icon'] = CoreUtilities::downloadImage($rImportStream['stream_icon'], 1);
+						$rImportStream['stream_icon'] = ImageUtils::downloadImage($rImportStream['stream_icon'], 1);
 					}
 
 					if ($rReview) {
@@ -439,7 +440,7 @@ class StreamService {
 							}
 						}
 
-						CoreUtilities::updateStream($rInsertID);
+						StreamProcess::updateStream($rInsertID);
 					} else {
 						foreach ($rBouquetCreate as $rBouquet => $rID) {
 							$db->query('DELETE FROM `bouquets` WHERE `id` = ?;', $rID);
@@ -745,7 +746,7 @@ class StreamService {
 				$db->query('INSERT INTO `streams_servers`(`stream_id`, `server_id`, `parent_id`, `on_demand`) VALUES ' . $rAddQuery . ';');
 			}
 
-			CoreUtilities::updateStreams($rStreamIDs);
+			StreamProcess::updateStreams($rStreamIDs);
 
 			if (!isset($rData['restart_on_edit'])) {
 			} else {

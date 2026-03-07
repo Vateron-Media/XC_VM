@@ -1,6 +1,6 @@
 <?php
 /**
- * StreamListController — список стримов (Phase 6.3 — Group A).
+ * StreamListController — список стримов.
  */
 class StreamListController extends BaseAdminController
 {

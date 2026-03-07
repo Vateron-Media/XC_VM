@@ -1,31 +1,17 @@
 <?php
 
 /**
- * XC_VM — GeoIP Utilities
+ * GeoIP Utilities
  *
  * MaxMind GeoIP2/GeoLite2 database lookups for IP geolocation
  * and ISP detection with file-based caching.
  *
- * ---------------------------------------------------------------
- * What it replaces:
- * ---------------------------------------------------------------
- *
- *   CoreUtilities::getISP()     → GeoIP::getISP()
- *   CoreUtilities::getIPInfo()  → GeoIP::getCountry()
- *   CoreUtilities::checkISP()   → GeoIP::isISPBlocked()
- *   CoreUtilities::checkServer() → GeoIP::isASNBlocked()
- *
- * ---------------------------------------------------------------
  * Dependencies:
- * ---------------------------------------------------------------
  *
  *   - GEOISP_BIN constant    — path to GeoIP2-ISP.mmdb
  *   - GEOLITE2_BIN constant  — path to GeoLite2-City.mmdb
  *   - CONS_TMP_PATH constant — path for file cache
  *   - MaxMind\Db\Reader class (included in bin/maxmind/)
- *
- * @see CoreUtilities::getISP()
- * @see CoreUtilities::getIPInfo()
  */
 
 class GeoIP {

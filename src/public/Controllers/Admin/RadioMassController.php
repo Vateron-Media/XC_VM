@@ -1,6 +1,6 @@
 <?php
 /**
- * RadioMassController — массовое редактирование радиостанций (Phase 6.3 — Group A).
+ * RadioMassController — массовое редактирование радиостанций.
  */
 class RadioMassController extends BaseAdminController
 {
@@ -10,7 +10,7 @@ class RadioMassController extends BaseAdminController
 
         global $rServers;
 
-        $rCategories = getCategories('radio');
+        $rCategories = CategoryService::getAllByType('radio');
         $rServerTree = array(
             array('id' => 'source', 'parent' => '#', 'text' => "<strong class='btn btn-success waves-effect waves-light btn-xs'>Active</strong>", 'icon' => 'mdi mdi-play', 'state' => array('opened' => true)),
             array('id' => 'offline', 'parent' => '#', 'text' => "<strong class='btn btn-secondary waves-effect waves-light btn-xs'>Offline</strong>", 'icon' => 'mdi mdi-stop', 'state' => array('opened' => true))

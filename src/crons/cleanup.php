@@ -4,8 +4,8 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
         register_shutdown_function('shutdown');
         require str_replace('\\', '/', dirname($argv[0])) . '/../www/init.php';
         cli_set_process_title('XC_VM[Cleanup]');
-        $rIdentifier = CRONS_TMP_PATH . md5(CoreUtilities::generateUniqueCode() . __FILE__);
-        CoreUtilities::checkCron($rIdentifier);
+        $rIdentifier = CRONS_TMP_PATH . md5(Encryption::generateUniqueCode(SettingsManager::getAll()['live_streaming_pass']) . __FILE__);
+        ProcessManager::acquireCronLock($rIdentifier);
         $rTimeout = 3600;
         set_time_limit($rTimeout);
         ini_set('max_execution_time', $rTimeout);
@@ -18,7 +18,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
 }
 function loadCron() {
     global $db;
-    if (intval(CoreUtilities::$rSettings['cleanup']) != 1) {
+    if (intval(SettingsManager::getAll()['cleanup']) != 1) {
     } else {
         $rStreams = array();
         $db->query('SELECT `id` FROM `streams` LEFT JOIN `streams_servers` ON `streams_servers`.`stream_id` = `streams`.`id` WHERE `streams`.`type` IN (1,3,4) AND `streams_servers`.`server_id` = ?;', SERVER_ID);
@@ -76,7 +76,7 @@ function loadCron() {
             }
         }
     }
-    if (intval(CoreUtilities::$rSettings['check_vod']) != 1) {
+    if (intval(SettingsManager::getAll()['check_vod']) != 1) {
     } else {
         $db->query('SELECT `server_stream_id`, `id`, `target_container`, `movie_properties`, `stream_status` FROM `streams` LEFT JOIN `streams_servers` ON `streams_servers`.`stream_id` = `streams`.`id` WHERE `server_id` = ? AND `type` IN (2,5) AND `streams`.`direct_source` = 0 AND `streams_servers`.`pid` > 0;', SERVER_ID);
         if (0 >= $db->num_rows()) {
@@ -89,12 +89,12 @@ function loadCron() {
                     } else {
                         echo 'BAD MOVIE' . "\n";
                         $db->query('UPDATE `streams_servers` SET `stream_status` = 1 WHERE `server_stream_id` = ?', $rRow['server_stream_id']);
-                        CoreUtilities::updateStream($rRow['id']);
+                        StreamProcess::updateStream($rRow['id']);
                     }
                 } else {
                     if ($rRow['stream_status'] != 1) {
                     } else {
-                        if (!(file_exists($rMoviePath) && ($rFFProbee = CoreUtilities::probeStream($rMoviePath)))) {
+                        if (!(file_exists($rMoviePath) && ($rFFProbee = FFprobeRunner::probeStream($rMoviePath)))) {
                         } else {
                             $rDuration = (isset($rFFProbee['duration']) ? $rFFProbee['duration'] : 0);
                             sscanf($rDuration, '%d:%d:%d', $rHours, $rMinutes, $rSeconds);
@@ -119,7 +119,7 @@ function loadCron() {
                             } else {
                                 $rMovieProperties['audio'] = $rFFProbee['codecs']['audio'];
                             }
-                            if (!CoreUtilities::$rSettings['extract_subtitles']) {
+                            if (!SettingsManager::getAll()['extract_subtitles']) {
                             } else {
                                 if (isset($rMovieProperties['subtitle']) && $rFFProbee['codecs']['subtitle']['codec_name'] == $rMovieProperties['subtitle']) {
                                 } else {
@@ -134,11 +134,11 @@ function loadCron() {
                                     $rBitrate = $rMovieProperties['bitrate'];
                                 }
                             }
-                            if (!(isset($rFFProbee['codecs']['subtitle']) && CoreUtilities::$rSettings['extract_subtitles'])) {
+                            if (!(isset($rFFProbee['codecs']['subtitle']) && SettingsManager::getAll()['extract_subtitles'])) {
                             } else {
                                 $i = 0;
                                 foreach ($rFFProbee['codecs']['subtitle'] as $rSubtitle) {
-                                    CoreUtilities::extractSubtitle($rRow['stream_id'], $rMoviePath, $i);
+                                    SubtitleExtractor::extractSubtitle($rRow['stream_id'], $rMoviePath, $i);
                                     $i++;
                                 }
                             }
@@ -146,18 +146,18 @@ function loadCron() {
                             $rAudioCodec = $rVideoCodec = $rResolution = null;
                             if (!$rFFProbee) {
                             } else {
-                                $rCompatible = intval(CoreUtilities::checkCompatibility($rFFProbee));
+                                $rCompatible = intval(DiagnosticsService::checkCompatibility($rFFProbee, SettingsManager::getAll()['player_allow_hevc']));
                                 $rAudioCodec = ($rFFProbee['codecs']['audio']['codec_name'] ?: null);
                                 $rVideoCodec = ($rFFProbee['codecs']['video']['codec_name'] ?: null);
                                 $rResolution = ($rFFProbee['codecs']['video']['height'] ?: null);
                                 if (!$rResolution) {
                                 } else {
-                                    $rResolution = CoreUtilities::getNearest(array(240, 360, 480, 576, 720, 1080, 1440, 2160), $rResolution);
+                                    $rResolution = StreamSorter::getNearest(array(240, 360, 480, 576, 720, 1080, 1440, 2160), $rResolution);
                                 }
                             }
                             $db->query('UPDATE `streams` SET `movie_properties` = ? WHERE `id` = ?', json_encode($rMovieProperties, JSON_UNESCAPED_UNICODE), $rRow['id']);
                             $db->query('UPDATE `streams_servers` SET `bitrate` = ?,`to_analyze` = 0,`stream_status` = 0,`stream_info` = ?, `audio_codec` = ?, `video_codec` = ?, `resolution` = ?, `compatible` = ? WHERE `server_stream_id` = ?', $rBitrate, json_encode($rFFProbee, JSON_UNESCAPED_UNICODE), $rAudioCodec, $rVideoCodec, $rResolution, $rCompatible, $rRow['server_stream_id']);
-                            CoreUtilities::updateStream($rRow['id']);
+                            StreamProcess::updateStream($rRow['id']);
                             echo 'VALID MOVIE' . "\n";
                         }
                     }
@@ -190,21 +190,21 @@ function loadCron() {
                     } else {
                         echo 'BAD CHANNEL' . "\n";
                         $db->query('UPDATE `streams_servers` SET `cchannel_rsources` = ? WHERE `server_stream_id` = ?;', json_encode($rActualFiles, JSON_UNESCAPED_UNICODE), $rStream['server_stream_id']);
-                        CoreUtilities::updateStream($rStream['id']);
+                        StreamProcess::updateStream($rStream['id']);
                     }
                 } else {
                     echo 'BAD CHANNEL' . "\n";
                     $db->query("UPDATE `streams_servers` SET `cchannel_rsources` = '[]' WHERE `server_stream_id` = ?;", $rStream['server_stream_id']);
-                    CoreUtilities::updateStream($rStream['id']);
+                    StreamProcess::updateStream($rStream['id']);
                 }
             }
         }
     }
     $rTables = array('lines_activity' => array('keep_activity', 'date_end'), 'lines_logs' => array('keep_client', 'date'), 'login_logs' => array('keep_login', 'date'), 'streams_errors' => array('keep_errors', 'date'), 'streams_logs' => array('keep_restarts', 'date'), 'ondemand_check' => array('on_demand_scan_keep', 'date'));
     foreach ($rTables as $rTable => $rArray) {
-        if (!(CoreUtilities::$rSettings[$rArray[0]] && 0 < CoreUtilities::$rSettings[$rArray[0]])) {
+        if (!(SettingsManager::getAll()[$rArray[0]] && 0 < SettingsManager::getAll()[$rArray[0]])) {
         } else {
-            $rDeleteBefore = time() - intval(CoreUtilities::$rSettings[$rArray[0]]);
+            $rDeleteBefore = time() - intval(SettingsManager::getAll()[$rArray[0]]);
             $db->query('DELETE FROM `' . $rTable . '` WHERE `' . $rArray[1] . '` < ?;', $rDeleteBefore);
         }
     }

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * XC_VM — Файловый логгер
+ * Файловый логгер
  *
  * Записывает бизнес-события в файл в формате base64-encoded JSON.
  * Каждая строка — отдельная запись. Файл блокируется при записи (LOCK_EX).
@@ -12,8 +12,6 @@
  * Фильтрация:
  *   - Игнорируются записи, содержащие 'panel_logs' в extra (рекурсивные логи)
  *   - Игнорируются 'timeout exceeded', 'lock wait timeout', 'duplicate entry' (шумные ошибки MySQL)
- *
- * Извлечено из: CoreUtilities::saveLog()
  *
  * @see LoggerInterface
  */

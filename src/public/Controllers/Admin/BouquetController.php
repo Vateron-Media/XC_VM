@@ -70,10 +70,10 @@ class BouquetController extends BaseAdminController
         }
 
         // Категории для вкладок
-        $liveCategories = function_exists('getCategories') ? getCategories('live') : [];
-        $movieCategories = function_exists('getCategories') ? getCategories('movie') : [];
-        $seriesCategories = function_exists('getCategories') ? getCategories('series') : [];
-        $radioCategories = function_exists('getCategories') ? getCategories('radio') : [];
+        $liveCategories = CategoryService::getAllByType('live');
+        $movieCategories = CategoryService::getAllByType('movie');
+        $seriesCategories = CategoryService::getAllByType('series');
+        $radioCategories = CategoryService::getAllByType('radio');
 
         $this->render('bouquet', [
             'rBouquetArr'       => $rBouquetArr,

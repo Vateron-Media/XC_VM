@@ -1,6 +1,6 @@
 <?php
 /**
- * CacheController — Cache & Redis Settings (Phase 6.3 — Group M).
+ * CacheController — Cache & Redis Settings.
  */
 class CacheController extends BaseAdminController
 {
@@ -8,8 +8,8 @@ class CacheController extends BaseAdminController
     {
         $this->requirePermission();
 
-        CoreUtilities::$rSettings = CoreUtilities::getSettings(true);
-        $GLOBALS['rSettings'] = CoreUtilities::$rSettings;
+        SettingsManager::set(SettingsRepository::getAll(true));
+        $GLOBALS['rSettings'] = SettingsManager::getAll();
 
         $this->setTitle('Cache & Redis Settings');
         $this->render('cache');

@@ -1,6 +1,6 @@
 <?php
 /**
- * ResellerUserLogsController — Sub-reseller login logs (Phase 6.4 — Reseller).
+ * ResellerUserLogsController — Sub-reseller login logs.
  */
 class ResellerUserLogsController extends BaseResellerController
 {

@@ -7,8 +7,8 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
         require INCLUDES_PATH . 'libs/tmdb_release.php';
         require str_replace('\\', '/', dirname($argv[0])) . '/../modules/tmdb/TmdbCron.php';
         cli_set_process_title('XC_VM[TMDB]');
-        $rIdentifier = CRONS_TMP_PATH . md5(CoreUtilities::generateUniqueCode() . __FILE__);
-        CoreUtilities::checkCron($rIdentifier);
+        $rIdentifier = CRONS_TMP_PATH . md5(Encryption::generateUniqueCode(SettingsManager::getAll()['live_streaming_pass']) . __FILE__);
+        ProcessManager::acquireCronLock($rIdentifier);
         $rTimeout = 3600;
         set_time_limit($rTimeout);
         ini_set('max_execution_time', $rTimeout);

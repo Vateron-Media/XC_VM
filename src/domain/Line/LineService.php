@@ -119,7 +119,7 @@ class LineService {
 				foreach ($db->get_rows() as $rRow) {
 					MagService::syncLineDevices($rRow['pair_id']);
 				}
-				CoreUtilities::updateLines($rUsers);
+				LineService::updateLinesSignal($rUsers);
 			}
 
 			return array('status' => STATUS_SUCCESS);
@@ -242,7 +242,7 @@ class LineService {
 				if ($db->query($rQuery, ...$rPrepare['data'])) {
 					$rInsertID = $db->last_insert_id();
 					MagService::syncLineDevices($rInsertID);
-					CoreUtilities::updateLine($rInsertID);
+					LineService::updateLineSignal($rInsertID);
 
 					return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
 				}
@@ -256,16 +256,18 @@ class LineService {
 		}
 	}
 
-	public static function deleteLineSignal($rCached, $rMainID, $rUserID, $rForce = false) {
-		self::updateLineSignal($rCached, $rMainID, $rUserID, $rForce);
+	public static function deleteLineSignal($rUserID, $rForce = false) {
+		self::updateLineSignal($rUserID, $rForce);
 	}
 
-	public static function deleteLinesSignal($rCached, $rMainID, $rUserIDs, $rForce = false) {
-		self::updateLinesSignal($rCached, $rMainID, $rUserIDs);
+	public static function deleteLinesSignal($rUserIDs, $rForce = false) {
+		self::updateLinesSignal($rUserIDs);
 	}
 
-	public static function updateLineSignal($rCached, $rMainID, $rUserID, $rForce = false) {
+	public static function updateLineSignal($rUserID, $rForce = false) {
 		global $db;
+		$rCached = SettingsManager::getAll()['enable_cache'];
+		$rMainID = ConnectionTracker::getMainID();
 		if ($rCached) {
 			$db->query('SELECT COUNT(*) AS `count` FROM `signals` WHERE `server_id` = ? AND `cache` = 1 AND `custom_data` = ?;', $rMainID, json_encode(array('type' => 'update_line', 'id' => $rUserID)));
 			if ($db->get_row()['count'] != 0) {
@@ -277,8 +279,10 @@ class LineService {
 		return false;
 	}
 
-	public static function updateLinesSignal($rCached, $rMainID, $rUserIDs) {
+	public static function updateLinesSignal($rUserIDs) {
 		global $db;
+		$rCached = SettingsManager::getAll()['enable_cache'];
+		$rMainID = ConnectionTracker::getMainID();
 		if ($rCached) {
 			$db->query('SELECT COUNT(*) AS `count` FROM `signals` WHERE `server_id` = ? AND `cache` = 1 AND `custom_data` = ?;', $rMainID, json_encode(array('type' => 'update_lines', 'id' => $rUserIDs)));
 			if ($db->get_row()['count'] != 0) {

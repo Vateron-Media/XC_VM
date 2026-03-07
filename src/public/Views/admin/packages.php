@@ -1,6 +1,6 @@
 <?php
 /**
- * View: packages — delegation proxy (Phase 6.3 — Pilot fix).
+ * View: packages — delegation proxy.
  */
 $__viewMode = true;
 include MAIN_HOME . 'admin/packages.php';

@@ -1,6 +1,6 @@
 <?php
 /**
- * ResellerLinesController — Lines listing (Phase 6.4 — Reseller).
+ * ResellerLinesController — Lines listing.
  */
 class ResellerLinesController extends BaseResellerController
 {

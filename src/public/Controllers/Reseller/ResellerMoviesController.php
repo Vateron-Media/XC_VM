@@ -1,6 +1,6 @@
 <?php
 /**
- * ResellerMoviesController — Movies listing (read-only) (Phase 6.4 — Reseller).
+ * ResellerMoviesController — Movies listing (read-only).
  */
 class ResellerMoviesController extends BaseResellerController
 {

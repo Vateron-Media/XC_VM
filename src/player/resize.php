@@ -24,7 +24,7 @@ if (isset($_SESSION['phash'])) {
 	} else {
 		$rSkipVerify = true;
 		require_once 'functions.php';
-		$rServers = CoreUtilities::$rServers;
+		$rServers = ServerRepository::getAll();
 	}
 
 	$rURL = $_GET['url'];

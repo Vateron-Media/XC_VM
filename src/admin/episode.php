@@ -15,24 +15,24 @@
 		goHome();
 	}
 
-	if (!empty(CoreUtilities::$rRequest['sid']) || empty(CoreUtilities::$rRequest['id'])) {
+	if (!empty(RequestManager::getAll()['sid']) || empty(RequestManager::getAll()['id'])) {
 	} else {
-		$db->query('SELECT `series_id` FROM `streams_episodes` WHERE `stream_id` = ?;', intval(CoreUtilities::$rRequest['id']));
+		$db->query('SELECT `series_id` FROM `streams_episodes` WHERE `stream_id` = ?;', intval(RequestManager::getAll()['id']));
 
 		if (0 >= $db->num_rows()) {
 		} else {
-			CoreUtilities::$rRequest['sid'] = intval($db->get_row()['series_id']);
+			RequestManager::update('sid', intval($db->get_row()['series_id']));
 		}
 	}
 
-	if ($rSeriesArr = getSerie(CoreUtilities::$rRequest['sid'])) {
+	if ($rSeriesArr = getSerie(RequestManager::getAll()['sid'])) {
 	} else {
 		goHome();
 	}
 
-	if (!isset(CoreUtilities::$rRequest['id'])) {
+	if (!isset(RequestManager::getAll()['id'])) {
 	} else {
-		$rEpisode = StreamRepository::getById(CoreUtilities::$rRequest['id']);
+		$rEpisode = StreamRepository::getById(RequestManager::getAll()['id']);
 
 		if ($rEpisode && $rEpisode['type'] == 5) {
 		} else {
@@ -55,7 +55,7 @@
 		}
 
 		$rEpisode['properties'] = json_decode($rEpisode['movie_properties'], true);
-		$rStreamSys = StreamRepository::getSystemRows(CoreUtilities::$rRequest['id']);
+		$rStreamSys = StreamRepository::getSystemRows(RequestManager::getAll()['id']);
 
 		foreach ($rServers as $rServer) {
 			if (isset($rStreamSys[intval($rServer['id'])])) {
@@ -72,7 +72,7 @@
 				$rServerTree[] = array('id' => $rServer['id'], 'parent' => 'offline', 'text' => $rServer['server_name'], 'icon' => 'mdi mdi-server-network', 'state' => array('opened' => true));
 			}
 
-			if (isset(CoreUtilities::$rRequest['multi'])) {
+			if (isset(RequestManager::getAll()['multi'])) {
 				if (Authorization::check('adv', 'import_episodes')) {
 					$rMulti = true;
 				} else {
@@ -197,7 +197,7 @@ if (!isset($rMulti)) {
 
 	echo '" required data-parsley-trigger="change">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t";
 
-	if (0 >= strlen(CoreUtilities::$rSettings['tmdb_api_key'])) {
+	if (0 >= strlen(SettingsManager::getAll()['tmdb_api_key'])) {
 	} else {
 		echo "\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="tmdb_search">';
 		echo $language::get('tmdb_results');
@@ -505,7 +505,7 @@ foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer) {
 	echo $rServer['id'];
 	echo '"';
 
-	if (!(isset(CoreUtilities::$rRequest['server']) && CoreUtilities::$rRequest['server'] == $rServer['id'])) {
+	if (!(isset(RequestManager::getAll()['server']) && RequestManager::getAll()['server'] == $rServer['id'])) {
 	} else {
 		echo ' selected';
 	}
@@ -1091,7 +1091,7 @@ renderUnifiedLayoutFooter('admin'); ?>
 
 
 
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+	<?php if (SettingsManager::getAll()['enable_search']): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

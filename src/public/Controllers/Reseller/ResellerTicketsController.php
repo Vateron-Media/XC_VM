@@ -1,6 +1,6 @@
 <?php
 /**
- * ResellerTicketsController — Tickets listing (Phase 6.4 — Reseller).
+ * ResellerTicketsController — Tickets listing.
  */
 class ResellerTicketsController extends BaseResellerController
 {

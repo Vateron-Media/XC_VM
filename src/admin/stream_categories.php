@@ -7,7 +7,7 @@
 		goHome();
 	}
 
-	$rCategories = array(1 => getCategories(), 2 => getCategories('movie'), 3 => getCategories('series'), 4 => getCategories('radio'));
+	$rCategories = array(1 => CategoryService::getAllByType(), 2 => CategoryService::getAllByType('movie'), 3 => CategoryService::getAllByType('series'), 4 => CategoryService::getAllByType('radio'));
 	$rMainCategories = array(1 => array(), 2 => array(), 3 => array());
 
 	foreach (array(1, 2, 3, 4) as $rID) {
@@ -367,7 +367,7 @@ renderUnifiedLayoutFooter('admin');
 			submitForm(window.rCurrentPage, new FormData($("#stream_categories_form-4")[0]));
 		});
 	});
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+	<?php if (SettingsManager::getAll()['enable_search']): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

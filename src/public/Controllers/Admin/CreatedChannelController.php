@@ -1,6 +1,6 @@
 <?php
 /**
- * CreatedChannelController — редактирование/добавление канала (Phase 6.3 — Group A).
+ * CreatedChannelController — редактирование/добавление канала.
  */
 class CreatedChannelController extends BaseAdminController
 {
@@ -10,13 +10,13 @@ class CreatedChannelController extends BaseAdminController
 
         global $db, $rServers;
 
-        $rCategories = getCategories('live');
+        $rCategories = CategoryService::getAllByType('live');
         $rTranscodeProfiles = StreamConfigRepository::getTranscodeProfiles();
 
-        if (!isset(CoreUtilities::$rRequest['id'])) {
+        if (!isset(RequestManager::getAll()['id'])) {
             $rChannel = null;
         } else {
-            $rChannel = StreamRepository::getById(CoreUtilities::$rRequest['id']);
+            $rChannel = StreamRepository::getById(RequestManager::getAll()['id']);
 
             if (!$rChannel || $rChannel['type'] != 3) {
                 goHome();
@@ -50,7 +50,7 @@ class CreatedChannelController extends BaseAdminController
                 $rProperties = ['type' => $rChannel['series_no'] > 0 ? 0 : 1];
             }
 
-            $rChannelSys = StreamRepository::getSystemRows(CoreUtilities::$rRequest['id']);
+            $rChannelSys = StreamRepository::getSystemRows(RequestManager::getAll()['id']);
 
             foreach ($rServers as $rServer) {
                 if (isset($rChannelSys[intval($rServer['id'])])) {

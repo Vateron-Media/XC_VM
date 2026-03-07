@@ -1,7 +1,9 @@
 <?php
 
 class FFprobeRunner {
-	public static function probeStream($rSettings, $rFFPROBE, $rSourceURL, $rFetchArguments = array(), $rPrepend = '', $rParse = true, $rParseCallback = null) {
+	public static function probeStream($rSourceURL, $rFetchArguments = array(), $rPrepend = '', $rParse = true) {
+		$rSettings = SettingsManager::getAll();
+		$rFFPROBE = FfmpegPaths::probe();
 		$rAnalyseDuration = abs(intval($rSettings['stream_max_analyze']));
 		$rProbesize = abs(intval($rSettings['probesize']));
 		$rTimeout = intval($rAnalyseDuration / 1000000) + $rSettings['probe_extra_wait'];
@@ -12,7 +14,7 @@ class FFprobeRunner {
 		exec($rCommand, $rReturn);
 		$result = implode("\n", $rReturn);
 		if ($rParse) {
-			return call_user_func($rParseCallback, json_decode($result, true));
+			return self::parseFFProbe(json_decode($result, true));
 		}
 		return json_decode($result, true);
 	}

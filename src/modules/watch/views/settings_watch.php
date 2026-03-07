@@ -166,7 +166,7 @@
                                                                             echo 'selected';
                                                                         } ?>
                                                                         value="0">Do Not Use</option>
-                                                                    <?php foreach (getCategories('movie') as $rCategory) { ?>
+                                                                    <?php foreach (CategoryService::getAllByType('movie') as $rCategory) { ?>
                                                                         <option
                                                                             <?php if (intval($rRow['category_id']) == intval($rCategory['id'])) {
                                                                                 echo 'selected';
@@ -232,7 +232,7 @@
                                                                             echo 'selected';
                                                                         } ?>
                                                                         value="0">Do Not Use</option>
-                                                                    <?php foreach (getCategories('series') as $rCategory) { ?>
+                                                                    <?php foreach (CategoryService::getAllByType('series') as $rCategory) { ?>
                                                                         <option
                                                                             <?php if (intval($rRow['category_id']) == intval($rCategory['id'])) {
                                                                                 echo 'selected';

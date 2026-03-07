@@ -2,23 +2,23 @@
 
 include 'functions.php';
 $rFlip = array_flip($rUserInfo['channel_ids']);
-$rTimezone = (CoreUtilities::$rRequest['timezone'] ?: 'Europe/London');
+$rTimezone = (RequestManager::getAll()['timezone'] ?: 'Europe/London');
 date_default_timezone_set($rTimezone);
 
-if (isset(CoreUtilities::$rRequest['id'])) {
-	$rReturn = array('id' => CoreUtilities::$rRequest['id'], 'title' => 'LIVE TV', 'epg_title' => 'No Programme Information...', 'epg_description' => '', 'url' => null);
+if (isset(RequestManager::getAll()['id'])) {
+	$rReturn = array('id' => RequestManager::getAll()['id'], 'title' => 'LIVE TV', 'epg_title' => 'No Programme Information...', 'epg_description' => '', 'url' => null);
 
-	if (!isset($rFlip[CoreUtilities::$rRequest['id']])) {
+	if (!isset($rFlip[RequestManager::getAll()['id']])) {
 	} else {
-		$rStart = intval(CoreUtilities::$rRequest['start'] ?: time());
-		$rDuration = intval(CoreUtilities::$rRequest['duration'] ?: '');
-		$db->query('SELECT `id`, `stream_display_name`, `channel_id`, `epg_id` FROM `streams` WHERE `id` = ?;', CoreUtilities::$rRequest['id']);
+		$rStart = intval(RequestManager::getAll()['start'] ?: time());
+		$rDuration = intval(RequestManager::getAll()['duration'] ?: '');
+		$db->query('SELECT `id`, `stream_display_name`, `channel_id`, `epg_id` FROM `streams` WHERE `id` = ?;', RequestManager::getAll()['id']);
 
 		if ($db->num_rows() != 1) {
 		} else {
 			$rStream = $db->get_row();
 			$rReturn['title'] = $rStream['stream_display_name'];
-			$rEPGRow = (CoreUtilities::getEPG(CoreUtilities::$rRequest['id'], $rStart, $rStart + 86400)[0] ?: null);
+			$rEPGRow = (EpgService::getStreamEpg(RequestManager::getAll()['id'], $rStart, $rStart + 86400)[0] ?: null);
 
 			if (!$rEPGRow) {
 			} else {
@@ -27,12 +27,12 @@ if (isset(CoreUtilities::$rRequest['id'])) {
 			}
 		}
 
-		$rDomainName = CoreUtilities::getDomainName(!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443);
+		$rDomainName = DomainResolver::resolve(SERVER_ID, !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443);
 
 		if ($rStart + $rDuration * 60 < time() && 0 < $rDuration) {
-			$rReturn['url'] = $rDomainName . 'timeshift/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rDuration . '/' . $rStart . '/' . intval(CoreUtilities::$rRequest['id']) . '.m3u8';
+			$rReturn['url'] = $rDomainName . 'timeshift/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rDuration . '/' . $rStart . '/' . intval(RequestManager::getAll()['id']) . '.m3u8';
 		} else {
-			$rReturn['url'] = $rDomainName . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . intval(CoreUtilities::$rRequest['id']) . '.m3u8';
+			$rReturn['url'] = $rDomainName . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . intval(RequestManager::getAll()['id']) . '.m3u8';
 		}
 	}
 
@@ -40,9 +40,9 @@ if (isset(CoreUtilities::$rRequest['id'])) {
 } else {
 	$rReturn = array('Channels' => array());
 	$rChannels = array();
-	$rHideEmpty = (intval(CoreUtilities::$rRequest['hideempty']) ?: 0);
+	$rHideEmpty = (intval(RequestManager::getAll()['hideempty']) ?: 0);
 
-	foreach (array_map('intval', explode(',', CoreUtilities::$rRequest['channels'])) as $rChannelID) {
+	foreach (array_map('intval', explode(',', RequestManager::getAll()['channels'])) as $rChannelID) {
 		if (!($rChannelID && isset($rFlip[$rChannelID]))) {
 		} else {
 			$rChannels[] = $rChannelID;
@@ -50,8 +50,8 @@ if (isset(CoreUtilities::$rRequest['id'])) {
 	}
 
 	if (count($rChannels) != 0) {
-		$rHours = (intval(CoreUtilities::$rRequest['hours']) ?: 3);
-		$rStartDate = (intval(strtotime(CoreUtilities::$rRequest['startdate'])) ?: time());
+		$rHours = (intval(RequestManager::getAll()['hours']) ?: 3);
+		$rStartDate = (intval(strtotime(RequestManager::getAll()['startdate'])) ?: time());
 		$rFinishDate = $rStartDate + $rHours * 3600;
 		$rPerUnit = floatval(100 / ($rHours * 60));
 		$rChannelsSort = $rChannels;
@@ -73,7 +73,7 @@ if (isset(CoreUtilities::$rRequest['id'])) {
 					}
 				}
 
-				$rEPGs = CoreUtilities::getEPGs($rChannels, $rStartDate, $rFinishDate);
+				$rEPGs = EpgService::getStreamsEpg($rChannels, $rStartDate, $rFinishDate);
 
 				foreach ($rEPGs as $rChannelID => $rEPGData) {
 					$rFullSize = 0;
@@ -123,10 +123,10 @@ if (isset(CoreUtilities::$rRequest['id'])) {
 					$rDefaultArray = $rDefaultEPG;
 					$rDefaultArray['ChannelId'] = $rStream['id'];
 					$rCategoryIDs = json_decode($rStream['category_id'], true);
-					$rCategories = CoreUtilities::getCategories('live');
+					$rCategories = CategoryService::getFromDatabase('live');
 
-					if (0 < strlen(CoreUtilities::$rRequest['category'])) {
-						$rCategory = ($rCategories[intval(CoreUtilities::$rRequest['category'])]['category_name'] ?: 'No Category');
+					if (0 < strlen(RequestManager::getAll()['category'])) {
+						$rCategory = ($rCategories[intval(RequestManager::getAll()['category'])]['category_name'] ?: 'No Category');
 					} else {
 						$rCategory = ($rCategories[$rCategoryIDs[0]]['category_name'] ?: 'No Category');
 					}
@@ -136,7 +136,7 @@ if (isset(CoreUtilities::$rRequest['id'])) {
 						$rCategory .= ' (+' . (count($rCategoryIDs) - 1) . ' others)';
 					}
 
-					$rReturn['Channels'][] = array('Id' => $rStream['id'], 'DisplayName' => $rStream['stream_display_name'], 'CategoryName' => $rCategory, 'Archive' => $rArchive, 'Image' => (CoreUtilities::validateImage($rStream['stream_icon']) ?: ''), 'TvListings' => ($rListings[$rStream['id']] ?: array($rDefaultArray)));
+					$rReturn['Channels'][] = array('Id' => $rStream['id'], 'DisplayName' => $rStream['stream_display_name'], 'CategoryName' => $rCategory, 'Archive' => $rArchive, 'Image' => (ImageUtils::validateURL($rStream['stream_icon']) ?: ''), 'TvListings' => ($rListings[$rStream['id']] ?: array($rDefaultArray)));
 				}
 			}
 			file_put_contents(TMP_PATH . 'cache_' . $rCacheID, igbinary_serialize($rReturn));

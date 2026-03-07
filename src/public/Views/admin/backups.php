@@ -1,6 +1,6 @@
 <?php
 /**
- * Backups view (Phase 6.3 — Group M).
+ * Backups view.
  * Delegation proxy → legacy admin/backups.php HTML body.
  */
 $__viewMode = true;

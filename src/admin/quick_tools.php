@@ -683,7 +683,7 @@ renderUnifiedLayoutFooter('admin');
             e.preventDefault();
         });
     });
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+    <?php if (SettingsManager::getAll()['enable_search']): ?>
         $(document).ready(function() {
             initSearch();
         });

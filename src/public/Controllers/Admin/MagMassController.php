@@ -1,6 +1,6 @@
 <?php
 /**
- * XC_VM — Контроллер массового редактирования MAG-устройств (admin/mag_mass.php)
+ * Контроллер массового редактирования MAG-устройств (admin/mag_mass.php)
  */
 class MagMassController extends BaseAdminController {
     public function index() {

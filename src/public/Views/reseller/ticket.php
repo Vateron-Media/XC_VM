@@ -1,6 +1,6 @@
 <?php
 /**
- * Ticket edit view (Phase 6.4 — Reseller).
+ * Ticket edit view.
  * Delegation proxy → legacy reseller/ticket.php HTML body.
  */
 $__viewMode = true;

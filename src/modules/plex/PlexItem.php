@@ -3,7 +3,6 @@
 /**
  * PlexItem — модуль обработки отдельного элемента Plex (фильм/сериал).
  *
- * Извлечён из includes/cli/plex_item.php (Фаза 5.1).
  * Содержит логику импорта/обновления фильмов и эпизодов из Plex.
  */
 
@@ -441,7 +440,7 @@ class PlexItem {
                         if (!empty($Video['@attributes']['thumb'])) {
                             $rThumbURL = 'http://' . $rThreadData['ip'] . ':' . $rThreadData['port'] . '/photo/:/transcode?width=300&height=450&minSize=1&quality=100&upscale=1&url=' . $Video['@attributes']['thumb'] . '&X-Plex-Token=' . $rThreadData['token'];
                             echo "LOG: Downloading poster: $rThumbURL\n";
-                            $rThumb = CoreUtilities::downloadImage($rThumbURL);
+                            $rThumb = ImageUtils::downloadImage($rThumbURL);
                         } else {
                             $rThumb = null;
                             echo "LOG: No poster available in Plex\n";
@@ -451,7 +450,7 @@ class PlexItem {
                         if (!empty($Video['@attributes']['art'])) {
                             $rBGURL = 'http://' . $rThreadData['ip'] . ':' . $rThreadData['port'] . '/photo/:/transcode?width=1280&height=720&minSize=1&quality=100&upscale=1&url=' . $Video['@attributes']['art'] . '&X-Plex-Token=' . $rThreadData['token'];
                             echo "LOG: Downloading backdrop: $rBGURL\n";
-                            $rBG = CoreUtilities::downloadImage($rBGURL);
+                            $rBG = ImageUtils::downloadImage($rBGURL);
                         } else {
                             $rBG = null;
                             echo "LOG: No backdrop available in Plex\n";
@@ -587,7 +586,7 @@ class PlexItem {
                                 }
                                 if ($rThreadData['auto_encode']) {
                                     foreach ($rServers as $rServerID) {
-                                        CoreUtilities::queueMovie($rInsertID, $rServerID);
+                                        StreamProcess::queueMovie($rInsertID, $rServerID);
                                     }
                                 }
                                 $db->query('INSERT INTO `watch_logs`(`type`, `server_id`, `filename`, `status`, `stream_id`) VALUES(?, ?, ?, 6, 0);', $rThreadType, SERVER_ID, htmlspecialchars($rFileArray['file'], ENT_QUOTES, 'UTF-8'));
@@ -669,7 +668,7 @@ class PlexItem {
                         if ($rSeason['@attributes']['thumb']) {
                             $rThumbURL = 'http://' . $rThreadData['ip'] . ':' . $rThreadData['port'] . '/photo/:/transcode?width=300&height=450&minSize=1&quality=100&upscale=1&url=' . $rSeason['@attributes']['thumb'] . '&X-Plex-Token=' . $rThreadData['token'];
                             echo "Downloading season cover: $rThumbURL\n";
-                            $rCover = CoreUtilities::downloadImage($rThumbURL);
+                            $rCover = ImageUtils::downloadImage($rThumbURL);
                         }
                         $rSeasonData[] = array(
                             'name' => $rSeason['@attributes']['title'],
@@ -715,12 +714,12 @@ class PlexItem {
                     if ($rShowData['@attributes']['thumb']) {
                         $rThumbURL = 'http://' . $rThreadData['ip'] . ':' . $rThreadData['port'] . '/photo/:/transcode?width=300&height=450&minSize=1&quality=100&upscale=1&url=' . $rShowData['@attributes']['thumb'] . '&X-Plex-Token=' . $rThreadData['token'];
                         echo "Downloading show poster: $rThumbURL\n";
-                        $rThumb = CoreUtilities::downloadImage($rThumbURL);
+                        $rThumb = ImageUtils::downloadImage($rThumbURL);
                     }
                     if ($rShowData['@attributes']['art']) {
                         $rBGURL = 'http://' . $rThreadData['ip'] . ':' . $rThreadData['port'] . '/photo/:/transcode?width=1280&height=720&minSize=1&quality=100&upscale=1&url=' . $rShowData['@attributes']['art'] . '&X-Plex-Token=' . $rThreadData['token'];
                         echo "Downloading backdrop: $rBGURL\n";
-                        $rBG = CoreUtilities::downloadImage($rBGURL);
+                        $rBG = ImageUtils::downloadImage($rBGURL);
                     }
 
                     $rSeriesArray['cover'] = $rThumb ?? null;
@@ -755,7 +754,6 @@ class PlexItem {
                             }
                         }
                     }
-
 
                     if (count($rCategoryIDs) == 0 && 0 < intval($rThreadData['fb_category_id'])) {
                         $rCategoryIDs = array(intval($rThreadData['fb_category_id']));
@@ -815,12 +813,12 @@ class PlexItem {
                         echo "Series has no cover — trying to download from Plex\n";
                         if ($rShowData['@attributes']['thumb']) {
                             $rThumbURL = 'http://' . $rThreadData['ip'] . ':' . $rThreadData['port'] . '/photo/:/transcode?width=300&height=450&minSize=1&quality=100&upscale=1&url=' . $rShowData['@attributes']['thumb'] . '&X-Plex-Token=' . $rThreadData['token'];
-                            $rThumb = CoreUtilities::downloadImage($rThumbURL);
+                            $rThumb = ImageUtils::downloadImage($rThumbURL);
                         }
 
                         if ($rShowData['@attributes']['art']) {
                             $rBGURL = 'http://' . $rThreadData['ip'] . ':' . $rThreadData['port'] . '/photo/:/transcode?width=1280&height=720&minSize=1&quality=100&upscale=1&url=' . $rShowData['@attributes']['art'] . '&X-Plex-Token=' . $rThreadData['token'];
-                            $rBG = CoreUtilities::downloadImage($rBGURL);
+                            $rBG = ImageUtils::downloadImage($rBGURL);
                         }
 
                         if ($rThumb || $rBG) {
@@ -886,7 +884,7 @@ class PlexItem {
 
                                 if ($rEpisode['@attributes']['thumb']) {
                                     $rThumbURL = 'http://' . $rThreadData['ip'] . ':' . $rThreadData['port'] . '/photo/:/transcode?width=450&height=253&minSize=1&quality=100&upscale=1&url=' . $rEpisode['@attributes']['thumb'] . '&X-Plex-Token=' . $rThreadData['token'];
-                                    $rThumb = CoreUtilities::downloadImage($rThumbURL);
+                                    $rThumb = ImageUtils::downloadImage($rThumbURL);
                                 }
 
                                 $rSeconds = intval($rEpisode['@attributes']['duration'] / 1000);
@@ -925,7 +923,7 @@ class PlexItem {
 
                                     if ($rThreadData['auto_encode']) {
                                         foreach ($rServers as $rServerID) {
-                                            CoreUtilities::queueMovie($rInsertID, $rServerID);
+                                            StreamProcess::queueMovie($rInsertID, $rServerID);
                                         }
                                     }
 
@@ -945,7 +943,7 @@ class PlexItem {
 
                                         if ($rThreadData['auto_encode']) {
                                             foreach ($rServers as $rServerID) {
-                                                CoreUtilities::queueMovie($rUpgradeData['id'], $rServerID);
+                                                StreamProcess::queueMovie($rUpgradeData['id'], $rServerID);
                                             }
                                         }
 

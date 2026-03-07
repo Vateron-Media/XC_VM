@@ -1,6 +1,6 @@
 <?php
 /**
- * Line IP usage view (Phase 6.3 — Group C).
+ * Line IP usage view.
  * Delegation proxy → legacy admin/line_ips.php HTML body.
  */
 $__viewMode = true;

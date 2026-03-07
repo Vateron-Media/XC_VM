@@ -1,6 +1,6 @@
 <?php
 /**
- * EpisodeController — редактирование/добавление эпизода (Phase 6.3 — Group B).
+ * EpisodeController — редактирование/добавление эпизода.
  */
 class EpisodeController extends BaseAdminController
 {
@@ -11,20 +11,20 @@ class EpisodeController extends BaseAdminController
         global $db, $rServers;
 
         // Resolve series_id from episode if not provided
-        if (!empty(CoreUtilities::$rRequest['id']) && empty(CoreUtilities::$rRequest['sid'])) {
-            $db->query('SELECT `series_id` FROM `streams_episodes` WHERE `stream_id` = ?;', intval(CoreUtilities::$rRequest['id']));
+        if (!empty(RequestManager::getAll()['id']) && empty(RequestManager::getAll()['sid'])) {
+            $db->query('SELECT `series_id` FROM `streams_episodes` WHERE `stream_id` = ?;', intval(RequestManager::getAll()['id']));
             if ($db->num_rows() > 0) {
-                CoreUtilities::$rRequest['sid'] = intval($db->get_row()['series_id']);
+                RequestManager::update('sid', intval($db->get_row()['series_id']));
             }
         }
 
-        if (!($rSeriesArr = getSerie(CoreUtilities::$rRequest['sid'] ?? null))) {
+        if (!($rSeriesArr = getSerie(RequestManager::getAll()['sid'] ?? null))) {
             $this->redirect('series');
             return;
         }
 
-        if (isset(CoreUtilities::$rRequest['id'])) {
-            $rEpisode = StreamRepository::getById(CoreUtilities::$rRequest['id']);
+        if (isset(RequestManager::getAll()['id'])) {
+            $rEpisode = StreamRepository::getById(RequestManager::getAll()['id']);
             if (!$rEpisode || $rEpisode['type'] != 5) {
                 $this->redirect('episodes');
                 return;
@@ -49,7 +49,7 @@ class EpisodeController extends BaseAdminController
             }
 
             $rEpisode['properties'] = json_decode($rEpisode['movie_properties'], true);
-            $rStreamSys = StreamRepository::getSystemRows(CoreUtilities::$rRequest['id']);
+            $rStreamSys = StreamRepository::getSystemRows(RequestManager::getAll()['id']);
 
             foreach ($rServers as $rServer) {
                 $rParent = isset($rStreamSys[intval($rServer['id'])]) ? 'source' : 'offline';
@@ -62,7 +62,7 @@ class EpisodeController extends BaseAdminController
             foreach ($rServers as $rServer) {
                 $rServerTree[] = ['id' => $rServer['id'], 'parent' => 'offline', 'text' => $rServer['server_name'], 'icon' => 'mdi mdi-server-network', 'state' => ['opened' => true]];
             }
-            if (isset(CoreUtilities::$rRequest['multi']) && Authorization::check('adv', 'import_episodes')) {
+            if (isset(RequestManager::getAll()['multi']) && Authorization::check('adv', 'import_episodes')) {
                 $rMulti = true;
             }
         }

@@ -2,7 +2,7 @@
 
 include 'functions.php';
 
-if (isset(CoreUtilities::$rRequest['sort']) && CoreUtilities::$rRequest['sort'] == 'popular') {
+if (isset(RequestManager::getAll()['sort']) && RequestManager::getAll()['sort'] == 'popular') {
 	$rPopular = true;
 	$rPopular = (igbinary_unserialize(file_get_contents(CONTENT_PATH . 'tmdb_popular'))['series'] ?: array());
 
@@ -15,13 +15,13 @@ if (isset(CoreUtilities::$rRequest['sort']) && CoreUtilities::$rRequest['sort'] 
 	}
 } else {
 	$rPopular = false;
-	$rPage = (intval(CoreUtilities::$rRequest['page']) ?: 1);
+	$rPage = (intval(RequestManager::getAll()['page']) ?: 1);
 	$rLimit = 48;
 	$rSortArray = array('number' => 'Default', 'added' => 'Last Updated', 'release' => 'Air Date', 'name' => 'Title A-Z', 'top' => 'Rating');
-	$rSortBy = (isset($rSortArray[CoreUtilities::$rRequest['sort']]) ? CoreUtilities::$rRequest['sort'] : 'number');
+	$rSortBy = (isset($rSortArray[RequestManager::getAll()['sort']]) ? RequestManager::getAll()['sort'] : 'number');
 	$rPicking = array();
-	$rYearStart = (intval(CoreUtilities::$rRequest['year_s']) ?: 1900);
-	$rYearEnd = (intval(CoreUtilities::$rRequest['year_e']) ?: date('Y'));
+	$rYearStart = (intval(RequestManager::getAll()['year_s']) ?: 1900);
+	$rYearEnd = (intval(RequestManager::getAll()['year_e']) ?: date('Y'));
 
 	if (!($rYearStart < 1900 || date('Y') < $rYearStart)) {
 	} else {
@@ -38,8 +38,8 @@ if (isset(CoreUtilities::$rRequest['sort']) && CoreUtilities::$rRequest['sort'] 
 		$rPicking['year_range'] = array($rYearStart, $rYearEnd);
 	}
 
-	$rRatingStart = (intval(CoreUtilities::$rRequest['rating_s']) ?: 0);
-	$rRatingEnd = (intval(CoreUtilities::$rRequest['rating_e']) ?: 10);
+	$rRatingStart = (intval(RequestManager::getAll()['rating_s']) ?: 0);
+	$rRatingEnd = (intval(RequestManager::getAll()['rating_e']) ?: 10);
 
 	if (!($rRatingStart < 0 || 10 < $rRatingStart)) {
 	} else {
@@ -56,8 +56,8 @@ if (isset(CoreUtilities::$rRequest['sort']) && CoreUtilities::$rRequest['sort'] 
 		$rPicking['rating_range'] = array($rRatingStart, $rRatingEnd);
 	}
 
-	$rCategoryID = (intval(CoreUtilities::$rRequest['category']) ?: null);
-	$rSearchBy = (CoreUtilities::$rRequest['search'] ?: null);
+	$rCategoryID = (intval(RequestManager::getAll()['category']) ?: null);
+	$rSearchBy = (RequestManager::getAll()['search'] ?: null);
 
 	if (!$rSearchBy) {
 	} else {
@@ -77,7 +77,7 @@ foreach ($rShuffle as $rStream) {
 
 	if (empty($rBackdrop[0])) {
 	} else {
-		$rCover = CoreUtilities::validateImage($rBackdrop[0]);
+		$rCover = ImageUtils::validateURL($rBackdrop[0]);
 
 		break;
 	}
@@ -115,7 +115,7 @@ echo "\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t" . '</div>' . "\r\n\t\t\t" . '</div
 if ($rPopular || $rSearchBy) {
 } else {
 	echo "\t" . '<div class="filter">' . "\r\n\t\t" . '<div class="container">' . "\r\n\t\t\t" . '<div class="row">' . "\r\n\t\t\t\t" . '<div class="col-12">' . "\r\n\t\t\t\t\t" . '<div class="filter__content">' . "\r\n\t\t\t\t\t\t" . '<div class="filter__items">' . "\r\n\t\t\t\t\t\t\t" . '<div class="filter__item" id="filter__genre">' . "\r\n\t\t\t\t\t\t\t\t" . '<span class="filter__item-label">GENRE:</span>' . "\r\n\t\t\t\t\t\t\t\t" . '<div class="filter__item-btn dropdown-toggle" role="navigation" id="filter-genre" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<input type="button" value="';
-	echo (isset($rCategoryID) ? CoreUtilities::$rCategories[$rCategoryID]['category_name'] : 'All Genres');
+	echo (isset($rCategoryID) ? CategoryService::getFromDatabase()[$rCategoryID]['category_name'] : 'All Genres');
 	echo '">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<span></span>' . "\r\n\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t" . '<ul class="filter__item-menu dropdown-menu scrollbar-dropdown" aria-labelledby="filter-genre">' . "\r\n" . '                                    ';
 
 	foreach (getOrderedCategories($rUserInfo['category_ids'], 'series') as $rCategory) {
@@ -146,7 +146,7 @@ echo '">' . "\r\n\t\t" . '<div class="container">' . "\r\n\t\t\t" . '<div class=
 
 foreach ($rSeries['streams'] as $rStreamID => $rStream) {
 	echo '                    <div class="col-6 col-sm-4 col-lg-3 col-xl-3">' . "\r\n" . '                        <div class="card">' . "\r\n" . '                            <div class="card__cover">' . "\r\n" . '                                <img loading="lazy" src="resize.php?url=';
-	echo urlencode((CoreUtilities::validateImage($rStream['cover']) ?: ''));
+	echo urlencode((ImageUtils::validateURL($rStream['cover']) ?: ''));
 	echo '&w=267&h=400" alt="">' . "\r\n" . '                                <a href="episodes.php?id=';
 	echo $rStream['id'];
 	echo '" class="card__play">' . "\r\n" . '                                    <i class="icon ion-ios-play"></i>' . "\r\n" . '                                </a>' . "\r\n" . '                            </div>' . "\r\n" . '                            <div class="card__content">' . "\r\n" . '                                <h3 class="card__title"><a href="episodes.php?id=';
@@ -220,7 +220,7 @@ if ($rPopular) {
 
 			if (empty($rBackdrop[0])) {
 			} else {
-				$rCover = CoreUtilities::validateImage($rBackdrop[0]);
+				$rCover = ImageUtils::validateURL($rBackdrop[0]);
 
 				break;
 			}
@@ -231,7 +231,7 @@ if ($rPopular) {
 
 		foreach ($rStreams as $rStream) {
 			echo '                            <div class="col-6 col-sm-4 col-lg-3 col-xl-2">' . "\r\n" . '                                <div class="card__cover">' . "\r\n" . '                                    <img loading="lazy" src="resize.php?url=';
-			echo urlencode((CoreUtilities::validateImage($rStream['cover']) ?: ''));
+			echo urlencode((ImageUtils::validateURL($rStream['cover']) ?: ''));
 			echo '&w=267&h=400" alt="">' . "\r\n" . '                                    <a href="episodes.php?id=';
 			echo $rStream['id'];
 			echo '" class="card__play">' . "\r\n" . '                                        <i class="icon ion-ios-play"></i>' . "\r\n" . '                                    </a>' . "\r\n" . '                                </div>' . "\r\n" . '                                <div class="card__content">' . "\r\n" . '                                    <h3 class="card__title"><a href="episodes.php?id=';

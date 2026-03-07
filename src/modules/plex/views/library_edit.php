@@ -58,13 +58,13 @@
                                                             if (isset($rFolder)) {
                                                                 if ($rFolder['server_id']) {
                                                                     $rActiveServers[] = $rFolder['server_id'];
-                                                                    echo '<option value="' . $rFolder['server_id'] . '" selected>' . CoreUtilities::$rServers[$rFolder['server_id']]['server_name'] . '</option>';
+                                                                    echo '<option value="' . $rFolder['server_id'] . '" selected>' . ServerRepository::getAll()[$rFolder['server_id']]['server_name'] . '</option>';
                                                                 }
 
                                                                 if ($rFolder['server_add']) {
                                                                     foreach (json_decode($rFolder['server_add'], true) as $rServerID) {
                                                                         $rActiveServers[] = $rServerID;
-                                                                        echo '<option value="' . $rServerID['server_id'] . '" selected>' . CoreUtilities::$rServers[$rServerID]['server_name'] . '</option>';
+                                                                        echo '<option value="' . $rServerID['server_id'] . '" selected>' . ServerRepository::getAll()[$rServerID]['server_name'] . '</option>';
                                                                     }
                                                                 }
                                                             }
@@ -298,14 +298,14 @@
                                                                         echo 'selected ';
                                                                     } ?> value="0">Do Not Use</option>
                                                             <optgroup label="Movies">
-                                                                <?php foreach (getCategories('movie') as $rCategory) { ?>
+                                                                <?php foreach (CategoryService::getAllByType('movie') as $rCategory) { ?>
                                                                     <option <?php if (isset($rFolder) && intval($rFolder['category_id']) == intval($rCategory['id'])) {
                                                                                 echo 'selected ';
                                                                             } ?> value="<?= intval($rCategory['id']); ?>"><?= $rCategory['category_name']; ?>
                                                                     </option>
                                                                 <?php } ?>
                                                             <optgroup label="Series">
-                                                                <?php foreach (getCategories('series') as $rCategory) { ?>
+                                                                <?php foreach (CategoryService::getAllByType('series') as $rCategory) { ?>
                                                                     <option <?php if (isset($rFolder) && intval($rFolder['category_id']) == intval($rCategory['id'])) {
                                                                                 echo 'selected ';
                                                                             } ?> value="<?= intval($rCategory['id']); ?>"><?= $rCategory['category_name']; ?>
@@ -324,14 +324,14 @@
                                                                         echo 'selected ';
                                                                     } ?> value="0">Do Not Use</option>
                                                             <optgroup label="Movies">
-                                                                <?php foreach (getCategories('movie') as $rCategory) { ?>
+                                                                <?php foreach (CategoryService::getAllByType('movie') as $rCategory) { ?>
                                                                     <option <?php if (isset($rFolder) && intval($rFolder['fb_category_id']) == intval($rCategory['id'])) {
                                                                                 echo 'selected ';
                                                                             } ?> value="<?= intval($rCategory['id']); ?>"><?= $rCategory['category_name']; ?>
                                                                     </option>
                                                                 <?php } ?>
                                                             <optgroup label="Series">
-                                                                <?php foreach (getCategories('series') as $rCategory) { ?>
+                                                                <?php foreach (CategoryService::getAllByType('series') as $rCategory) { ?>
                                                                     <option <?php if (isset($rFolder) && intval($rFolder['fb_category_id']) == intval($rCategory['id'])) {
                                                                                 echo 'selected ';
                                                                             } ?> value="<?= intval($rCategory['id']); ?>"><?= $rCategory['category_name']; ?>

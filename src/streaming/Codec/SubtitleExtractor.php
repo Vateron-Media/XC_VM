@@ -1,7 +1,9 @@
 <?php
 
 class SubtitleExtractor {
-	public static function extractSubtitle($rFFMPEG_CPU, $rSettings, $rStreamID, $rSourceURL, $rIndex) {
+	public static function extractSubtitle($rStreamID, $rSourceURL, $rIndex) {
+		$rFFMPEG_CPU = FfmpegPaths::cpu();
+		$rSettings = SettingsManager::getAll();
 		$rTimeout = 10;
 		$rCommand = 'timeout ' . $rTimeout . ' ' . $rFFMPEG_CPU . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err -i "' . $rSourceURL . '" -map 0:s:' . intval($rIndex) . ' ' . VOD_PATH . intval($rStreamID) . '_' . intval($rIndex) . '.srt';
 		exec($rCommand, $rOutput);

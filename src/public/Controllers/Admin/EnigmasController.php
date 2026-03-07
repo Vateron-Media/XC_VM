@@ -1,6 +1,6 @@
 <?php
 /**
- * XC_VM — Контроллер списка Enigma-устройств (admin/enigmas.php)
+ * Контроллер списка Enigma-устройств (admin/enigmas.php)
  */
 class EnigmasController extends BaseAdminController {
     public function index() {

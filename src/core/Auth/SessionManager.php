@@ -1,29 +1,12 @@
 <?php
 
 /**
- * XC_VM — Unified Session Manager
+ * Unified Session Manager
  *
  * Consolidates duplicated session logic from admin/session.php
  * and reseller/session.php into a single class with role contexts.
  *
- * ---------------------------------------------------------------
- * What it replaces:
- * ---------------------------------------------------------------
- *
- *   BEFORE:
- *     admin/session.php    — $_SESSION['hash'], $_SESSION['last_activity']
- *     reseller/session.php — $_SESSION['reseller'], $_SESSION['rlast_activity']
- *     (identical logic, different session key names)
- *
- *   AFTER:
- *     SessionManager::start('admin');     // or 'reseller'
- *     SessionManager::requireAuth();      // redirect if not logged in
- *     SessionManager::getUser();          // get session hash/token
- *     SessionManager::destroy();          // logout
- *
- * ---------------------------------------------------------------
  * Session Keys by Context:
- * ---------------------------------------------------------------
  *
  *   Admin:
  *     hash          — session authentication hash
@@ -39,9 +22,7 @@
  *     rcode          — 2FA code
  *     rverify        — 2FA verification flag
  *
- * ---------------------------------------------------------------
  * Backward Compatibility:
- * ---------------------------------------------------------------
  *
  *   admin/session.php will be reduced to:
  *     require_once MAIN_HOME . 'core/Auth/SessionManager.php';

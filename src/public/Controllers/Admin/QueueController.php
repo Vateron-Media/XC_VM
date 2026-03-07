@@ -1,6 +1,6 @@
 <?php
 /**
- * QueueController — Encoding Queue (Phase 6.3 — Group M).
+ * QueueController — Encoding Queue.
  */
 class QueueController extends BaseAdminController
 {

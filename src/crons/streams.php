@@ -4,8 +4,8 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
         register_shutdown_function('shutdown');
         require str_replace('\\', '/', dirname($argv[0])) . '/../www/init.php';
         cli_set_process_title('XC_VM[Live Checker]');
-        $rIdentifier = CRONS_TMP_PATH . md5(CoreUtilities::generateUniqueCode() . __FILE__);
-        CoreUtilities::checkCron($rIdentifier);
+        $rIdentifier = CRONS_TMP_PATH . md5(Encryption::generateUniqueCode(SettingsManager::getAll()['live_streaming_pass']) . __FILE__);
+        ProcessManager::acquireCronLock($rIdentifier);
         loadCron();
     } else {
         exit(0);
@@ -15,15 +15,15 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
 }
 function loadCron() {
     global $db;
-    if (!CoreUtilities::isRunning()) {
+    if (!ProcessManager::isNginxRunning()) {
         echo 'XC_VM not running...' . "\n";
     }
-    if (CoreUtilities::$rSettings['redis_handler']) {
-        CoreUtilities::connectRedis();
+    if (SettingsManager::getAll()['redis_handler']) {
+        RedisManager::ensureConnected();
     }
     $rActivePIDs = array();
     $rStreamIDs = array();
-    if (CoreUtilities::$rSettings['redis_handler']) {
+    if (SettingsManager::getAll()['redis_handler']) {
         $db->query('SELECT t2.stream_display_name, t1.stream_started, t1.stream_info, t2.fps_restart, t1.stream_status, t1.progress_info, t1.stream_id, t1.monitor_pid, t1.on_demand, t1.server_stream_id, t1.pid, servers_attached.attached, t2.vframes_server_id, t2.vframes_pid, t2.tv_archive_server_id, t2.tv_archive_pid FROM `streams_servers` t1 INNER JOIN `streams` t2 ON t2.id = t1.stream_id AND t2.direct_source = 0 INNER JOIN `streams_types` t3 ON t3.type_id = t2.type LEFT JOIN (SELECT `stream_id`, COUNT(*) AS `attached` FROM `streams_servers` WHERE `parent_id` = ? AND `pid` IS NOT NULL AND `pid` > 0 AND `monitor_pid` IS NOT NULL AND `monitor_pid` > 0) AS `servers_attached` ON `servers_attached`.`stream_id` = t1.`stream_id` WHERE (t1.pid IS NOT NULL OR t1.stream_status <> 0 OR t1.to_analyze = 1) AND t1.server_id = ? AND t3.live = 1', SERVER_ID, SERVER_ID);
     } else {
         $db->query("SELECT t2.stream_display_name, t1.stream_started, t1.stream_info, t2.fps_restart, t1.stream_status, t1.progress_info, t1.stream_id, t1.monitor_pid, t1.on_demand, t1.server_stream_id, t1.pid, clients.online_clients, clients_hls.online_clients_hls, servers_attached.attached, t2.vframes_server_id, t2.vframes_pid, t2.tv_archive_server_id, t2.tv_archive_pid FROM `streams_servers` t1 INNER JOIN `streams` t2 ON t2.id = t1.stream_id AND t2.direct_source = 0 INNER JOIN `streams_types` t3 ON t3.type_id = t2.type LEFT JOIN (SELECT stream_id, COUNT(*) as online_clients FROM `lines_live` WHERE `server_id` = ? AND `hls_end` = 0 GROUP BY stream_id) AS clients ON clients.stream_id = t1.stream_id LEFT JOIN (SELECT `stream_id`, COUNT(*) AS `attached` FROM `streams_servers` WHERE `parent_id` = ? AND `pid` IS NOT NULL AND `pid` > 0 AND `monitor_pid` IS NOT NULL AND `monitor_pid` > 0) AS `servers_attached` ON `servers_attached`.`stream_id` = t1.`stream_id` LEFT JOIN (SELECT stream_id, COUNT(*) as online_clients_hls FROM `lines_live` WHERE `server_id` = ? AND `container` = 'hls' AND `hls_end` = 0 GROUP BY stream_id) AS clients_hls ON clients_hls.stream_id = t1.stream_id WHERE (t1.pid IS NOT NULL OR t1.stream_status <> 0 OR t1.to_analyze = 1) AND t1.server_id = ? AND t3.live = 1", SERVER_ID, SERVER_ID, SERVER_ID, SERVER_ID);
@@ -33,16 +33,16 @@ function loadCron() {
         foreach ($db->get_rows() as $rStream) {
             echo 'Stream ID: ' . $rStream['stream_id'] . "\n";
             $rStreamIDs[] = $rStream['stream_id'];
-            if (CoreUtilities::isMonitorRunning($rStream['monitor_pid'], $rStream['stream_id']) || $rStream['on_demand']) {
+            if (ProcessManager::isMonitorAlive($rStream['monitor_pid'], $rStream['stream_id']) || $rStream['on_demand']) {
                 if (!($rStream['on_demand'] == 1 && $rStream['attached'] == 0)) {
                 } else {
-                    if (!CoreUtilities::$rSettings['redis_handler']) {
+                    if (!SettingsManager::getAll()['redis_handler']) {
                     } else {
                         $rCount = 0;
-                        $rKeys = CoreUtilities::$redis->zRangeByScore('STREAM#' . $rStream['stream_id'], '-inf', '+inf');
+                        $rKeys = RedisManager::instance()->zRangeByScore('STREAM#' . $rStream['stream_id'], '-inf', '+inf');
                         if (0 >= count($rKeys)) {
                         } else {
-                            $rConnections = array_map('igbinary_unserialize', CoreUtilities::$redis->mGet($rKeys));
+                            $rConnections = array_map('igbinary_unserialize', RedisManager::instance()->mGet($rKeys));
                             foreach ($rConnections as $rConnection) {
                                 if (!($rConnection && $rConnection['server_id'] == SERVER_ID)) {
                                 } else {
@@ -53,10 +53,10 @@ function loadCron() {
                         $rStream['online_clients'] = $rCount;
                     }
                     $rAdminQueue = $rQueue = 0;
-                    if (!(CoreUtilities::$rSettings['on_demand_instant_off'] && file_exists(SIGNALS_TMP_PATH . 'queue_' . intval($rStream['stream_id'])))) {
+                    if (!(SettingsManager::getAll()['on_demand_instant_off'] && file_exists(SIGNALS_TMP_PATH . 'queue_' . intval($rStream['stream_id'])))) {
                     } else {
                         foreach ((igbinary_unserialize(file_get_contents(SIGNALS_TMP_PATH . 'queue_' . intval($rStream['stream_id']))) ?: array()) as $rPID) {
-                            if (!CoreUtilities::isProcessRunning($rPID, 'php-fpm')) {
+                            if (!ProcessManager::isRunning($rPID, 'php-fpm')) {
                             } else {
                                 $rQueue++;
                             }
@@ -70,18 +70,18 @@ function loadCron() {
                             unlink(SIGNALS_TMP_PATH . 'admin_' . intval($rStream['stream_id']));
                         }
                     }
-                    if (!($rQueue == 0 && $rAdminQueue == 0 && $rStream['online_clients'] == 0 && (file_exists(STREAMS_PATH . $rStream['stream_id'] . '_.m3u8') || intval(CoreUtilities::$rSettings['on_demand_wait_time']) < time() - intval($rStream['stream_started']) || $rStream['stream_status'] == 1))) {
+                    if (!($rQueue == 0 && $rAdminQueue == 0 && $rStream['online_clients'] == 0 && (file_exists(STREAMS_PATH . $rStream['stream_id'] . '_.m3u8') || intval(SettingsManager::getAll()['on_demand_wait_time']) < time() - intval($rStream['stream_started']) || $rStream['stream_status'] == 1))) {
                     } else {
                         echo 'Stop on-demand stream...' . "\n\n";
-                        CoreUtilities::stopStream($rStream['stream_id'], true);
+                        StreamProcess::stopStream($rStream['stream_id'], true);
                     }
                 }
-                if ($rStream['vframes_server_id'] != SERVER_ID || CoreUtilities::isThumbnailRunning($rStream['vframes_pid'], $rStream['stream_id'])) {
+                if ($rStream['vframes_server_id'] != SERVER_ID || ProcessManager::isNamedProcessRunning($rStream['vframes_pid'], 'Thumbnail', $rStream['stream_id'])) {
                 } else {
                     echo 'Start Thumbnail...' . "\n";
-                    CoreUtilities::startThumbnail($rStream['stream_id']);
+                    StreamProcess::startThumbnail($rStream['stream_id']);
                 }
-                if ($rStream['tv_archive_server_id'] != SERVER_ID || CoreUtilities::isArchiveRunning($rStream['tv_archive_pid'], $rStream['stream_id'])) {
+                if ($rStream['tv_archive_server_id'] != SERVER_ID || ProcessManager::isNamedProcessRunning($rStream['tv_archive_pid'], 'TVArchive', $rStream['stream_id'])) {
                 } else {
                     echo 'Start TV Archive...' . "\n";
                     shell_exec(PHP_BIN . ' ' . CLI_PATH . 'archive.php ' . intval($rStream['stream_id']) . ' >/dev/null 2>/dev/null & echo $!');
@@ -99,10 +99,10 @@ function loadCron() {
                 }
                 $rActivePIDs[] = intval($rPID);
                 $rPlaylist = STREAMS_PATH . $rStream['stream_id'] . '_.m3u8';
-                if (!(CoreUtilities::isStreamRunning($rPID, $rStream['stream_id']) && file_exists($rPlaylist))) {
+                if (!(ProcessManager::isStreamRunning($rPID, $rStream['stream_id']) && file_exists($rPlaylist))) {
                 } else {
                     echo 'Update Stream Information...' . "\n";
-                    $rBitrate = CoreUtilities::getStreamBitrate('live', STREAMS_PATH . $rStream['stream_id'] . '_.m3u8');
+                    $rBitrate = StreamUtils::getStreamBitrate('live', STREAMS_PATH . $rStream['stream_id'] . '_.m3u8');
                     if (file_exists(STREAMS_PATH . $rStream['stream_id'] . '_.progress')) {
                         $rProgress = file_get_contents(STREAMS_PATH . $rStream['stream_id'] . '_.progress');
                         unlink(STREAMS_PATH . $rStream['stream_id'] . '_.progress');
@@ -124,13 +124,13 @@ function loadCron() {
                     if (!$rStreamInfo) {
                     } else {
                         $rStreamJSON = json_decode($rStreamInfo, true);
-                        $rCompatible = intval(CoreUtilities::checkCompatibility($rStreamJSON));
+                        $rCompatible = intval(DiagnosticsService::checkCompatibility($rStreamJSON, SettingsManager::getAll()['player_allow_hevc']));
                         $rAudioCodec = ($rStreamJSON['codecs']['audio']['codec_name'] ?: null);
                         $rVideoCodec = ($rStreamJSON['codecs']['video']['codec_name'] ?: null);
                         $rResolution = ($rStreamJSON['codecs']['video']['height'] ?: null);
                         if (!$rResolution) {
                         } else {
-                            $rResolution = CoreUtilities::getNearest(array(240, 360, 480, 576, 720, 1080, 1440, 2160), $rResolution);
+                            $rResolution = StreamSorter::getNearest(array(240, 360, 480, 576, 720, 1080, 1440, 2160), $rResolution);
                         }
                     }
                     if ($rStream['pid'] != $rPID) {
@@ -142,7 +142,7 @@ function loadCron() {
                 echo "\n";
             } else {
                 echo 'Start monitor...' . "\n\n";
-                CoreUtilities::startMonitor($rStream['stream_id']);
+                StreamProcess::startMonitor($rStream['stream_id']);
                 usleep(50000);
             }
         }
@@ -153,17 +153,17 @@ function loadCron() {
         foreach ($db->get_rows() as $rStream) {
             if (!file_exists(STREAMS_PATH . $rStream['id'] . '.analyse')) {
             } else {
-                $rFFProbeOutput = CoreUtilities::probeStream(STREAMS_PATH . $rStream['id'] . '.analyse');
+                $rFFProbeOutput = FFprobeRunner::probeStream(STREAMS_PATH . $rStream['id'] . '.analyse');
                 if (!$rFFProbeOutput) {
                 } else {
                     $rBitrate = $rFFProbeOutput['bitrate'] / 1024;
-                    $rCompatible = intval(CoreUtilities::checkCompatibility($rFFProbeOutput));
+                    $rCompatible = intval(DiagnosticsService::checkCompatibility($rFFProbeOutput, SettingsManager::getAll()['player_allow_hevc']));
                     $rAudioCodec = ($rFFProbeOutput['codecs']['audio']['codec_name'] ?: null);
                     $rVideoCodec = ($rFFProbeOutput['codecs']['video']['codec_name'] ?: null);
                     $rResolution = ($rFFProbeOutput['codecs']['video']['height'] ?: null);
                     if (!$rResolution) {
                     } else {
-                        $rResolution = CoreUtilities::getNearest(array(240, 360, 480, 576, 720, 1080, 1440, 2160), $rResolution);
+                        $rResolution = StreamSorter::getNearest(array(240, 360, 480, 576, 720, 1080, 1440, 2160), $rResolution);
                     }
                 }
                 echo 'Stream ID: ' . $rStream['id'] . "\n";
@@ -171,7 +171,7 @@ function loadCron() {
                 $db->query('UPDATE `streams_servers` SET `bitrate` = ?, `stream_info` = ?, `audio_codec` = ?, `video_codec` = ?, `resolution` = ?, `compatible` = ? WHERE `stream_id` = ? AND `server_id` = ?', $rBitrate, json_encode($rFFProbeOutput), $rAudioCodec, $rVideoCodec, $rResolution, $rCompatible, $rStream['id'], SERVER_ID);
             }
             $rUUIDs = array();
-            $rConnections = CoreUtilities::getConnections(SERVER_ID, null, $rStream['id']);
+            $rConnections = ConnectionTracker::getConnections(SERVER_ID, null, $rStream['id']);
             foreach ($rConnections as $rUserID => $rItems) {
                 foreach ($rItems as $rItem) {
                     $rUUIDs[] = $rItem['uuid'];
@@ -207,7 +207,7 @@ function loadCron() {
             }
         }
     }
-    if (!CoreUtilities::$rSettings['kill_rogue_ffmpeg']) {
+    if (!SettingsManager::getAll()['kill_rogue_ffmpeg']) {
     } else {
         exec("ps aux | grep -v grep | grep '/*_.m3u8' | awk '{print \$2}'", $rFFMPEG);
         foreach ($rFFMPEG as $rPID) {

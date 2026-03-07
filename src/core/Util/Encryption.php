@@ -1,22 +1,11 @@
 <?php
 
 /**
- * XC_VM — Encryption Utilities
+ * Encryption Utilities
  *
  * Centralized encryption/decryption, base64url encoding,
  * and random string generation.
  *
- * ---------------------------------------------------------------
- * What it replaces:
- * ---------------------------------------------------------------
- *
- *   CoreUtilities::encryptData()     → Encryption::encrypt()
- *   CoreUtilities::decryptData()     → Encryption::decrypt()
- *   CoreUtilities::base64url_encode() → Encryption::base64urlEncode()
- *   CoreUtilities::base64url_decode() → Encryption::base64urlDecode()
- *   CoreUtilities::generateString()  → Encryption::randomString()
- *
- * @see CoreUtilities::encryptData()
  * @see StreamingUtilities::mc_decrypt()
  */
 
@@ -133,5 +122,15 @@ class Encryption {
     public static function generateIV($cipher = 'AES-128-CBC') {
         $ivSize = openssl_cipher_iv_length($cipher);
         return openssl_random_pseudo_bytes($ivSize);
+    }
+
+    /**
+     * Генерирует уникальный код панели на основе пароля.
+     *
+     * @param string $pass  Пароль (live_streaming_pass)
+     * @return string 15-символьный хеш
+     */
+    public static function generateUniqueCode($pass) {
+        return substr(md5($pass), 0, 15);
     }
 }

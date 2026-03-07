@@ -3,7 +3,7 @@
 /**
  * Watch Item CLI — точка входа.
  *
- * Логика извлечена в modules/watch/WatchItem.php (Фаза 5.2).
+ * Логика извлечена в modules/watch/WatchItem.php.
  * Этот файл содержит только CLI-бутстрап и вызов модуля.
  */
 setlocale(LC_ALL, 'en_US.UTF-8');

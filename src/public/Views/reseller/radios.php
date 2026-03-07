@@ -1,6 +1,6 @@
 <?php
 /**
- * Radio stations list view (Phase 6.4 — Reseller).
+ * Radio stations list view.
  * Delegation proxy → legacy reseller/radios.php HTML body.
  */
 $__viewMode = true;

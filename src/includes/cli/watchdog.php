@@ -7,29 +7,30 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
         $current_pid = getmypid();
         exec("pgrep -f 'watchdog.php' | grep -v $current_pid | xargs kill -9", $out, $kill_status);
 
-        $rInterval = (intval(CoreUtilities::$rSettings['online_capacity_interval']) ?: 10);
+        $rInterval = (intval(SettingsManager::getAll()['online_capacity_interval']) ?: 10);
         $rLastRequests = $rLastRequestsTime = $rPrevStat = $rLastCheck = null;
         $rMD5 = md5_file(__FILE__);
-        if (CoreUtilities::$rSettings['redis_handler']) {
-            CoreUtilities::connectRedis();
+        if (SettingsManager::getAll()['redis_handler']) {
+            RedisManager::ensureConnected();
         }
-        $rWatchdog = json_decode(CoreUtilities::$rServers[SERVER_ID]['watchdog_data'], true);
+        $rServers = ServerRepository::getAll();
+        $rWatchdog = json_decode($rServers[SERVER_ID]['watchdog_data'], true);
         $rCPUAverage = ($rWatchdog['cpu_average_array'] ?: array());
         while (true && $db && $db->ping()) {
-            if (CoreUtilities::$rSettings['redis_handler'] ?? false) {
-                if (!CoreUtilities::$redis || !CoreUtilities::$redis->ping()) {
+            if (SettingsManager::getAll()['redis_handler'] ?? false) {
+                if (!RedisManager::instance() || !RedisManager::instance()->ping()) {
                     echo "Redis connection lost\n";
                     break;
                 }
             }
 
             if (!$rLastCheck && $rInterval < time() - $rLastCheck) {
-                if (CoreUtilities::isRunning()) {
+                if (ProcessManager::isNginxRunning()) {
                     if (md5_file(__FILE__) == $rMD5) {
-                        CoreUtilities::$rServers = CoreUtilities::getServers(true);
-                        CoreUtilities::$rSettings = CoreUtilities::getSettings(true);
-                        CoreUtilities::getCapacity(true);
-                        CoreUtilities::getCapacity(false);
+                        $rServers = ServerRepository::getAll(true);
+                        SettingsManager::set(SettingsRepository::getAll(true));
+                        ConnectionTracker::getCapacity(true);
+                        ConnectionTracker::getCapacity(false);
                         $rLastCheck = time();
                         echo 'Set new time LastCheck' . "\n";
                     } else {
@@ -40,7 +41,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                 }
             }
 
-            $rNginx = explode("\n", file_get_contents('http://127.0.0.1:' . CoreUtilities::$rServers[SERVER_ID]['http_broadcast_port'] . '/nginx_status'));
+            $rNginx = explode("\n", file_get_contents('http://127.0.0.1:' . $rServers[SERVER_ID]['http_broadcast_port'] . '/nginx_status'));
             list($rAccepted, $rHandled, $rRequests) = explode(' ', trim($rNginx[2]));
             $rRequestsPerSecond = ($rLastRequests ? intval(floatval($rRequests - $rLastRequests) / (time() - $rLastRequestsTime)) : 0);
             $rLastRequests = $rRequests;
@@ -74,7 +75,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
             $rPHPPIDs = array();
             exec("ps -u xc_vm | grep php-fpm | awk {'print \$1'}", $rPHPPIDs);
             $rConnections = $rUsers = 0;
-            if (!CoreUtilities::$rSettings['redis_handler']) {
+            if (!SettingsManager::getAll()['redis_handler']) {
                 $db->query('SELECT COUNT(*) AS `count` FROM `lines_live` WHERE `hls_end` = 0 AND `server_id` = ?;', SERVER_ID);
                 $rConnections = $db->get_row()['count'];
                 $db->query('SELECT `activity_id` FROM `lines_live` WHERE `hls_end` = 0 AND `server_id` = ? GROUP BY `user_id`;', SERVER_ID);
@@ -84,11 +85,11 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                 $rResult = $db->query('UPDATE `servers` SET `watchdog_data` = ?, `last_check_ago` = UNIX_TIMESTAMP(), `requests_per_second` = ?, `php_pids` = ? WHERE `id` = ?;', json_encode($rStats, JSON_PARTIAL_OUTPUT_ON_ERROR), $rRequestsPerSecond, json_encode($rPHPPIDs), SERVER_ID);
             }
             if ($rResult) {
-                if (CoreUtilities::$rServers[SERVER_ID]['is_main']) {
-                    if (CoreUtilities::$rSettings['redis_handler']) {
-                        $rMulti = CoreUtilities::$redis->multi();
-                        foreach (array_keys(CoreUtilities::$rServers) as $rServerID) {
-                            if (!CoreUtilities::$rServers[$rServerID]['server_online']) {
+                if ($rServers[SERVER_ID]['is_main']) {
+                    if (SettingsManager::getAll()['redis_handler']) {
+                        $rMulti = RedisManager::instance()->multi();
+                        foreach (array_keys($rServers) as $rServerID) {
+                            if (!$rServers[$rServerID]['server_online']) {
                             } else {
                                 $rMulti->zCard('SERVER#' . $rServerID);
                                 $rMulti->zRangeByScore('SERVER_LINES#' . $rServerID, '-inf', '+inf', array('withscores' => true));
@@ -97,8 +98,8 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                         $rResults = $rMulti->exec();
                         $rTotalUsers = array();
                         $i = 0;
-                        foreach (array_keys(CoreUtilities::$rServers) as $rServerID) {
-                            if (CoreUtilities::$rServers[$rServerID]['server_online']) {
+                        foreach (array_keys($rServers) as $rServerID) {
+                            if ($rServers[$rServerID]['server_online']) {
                                 $db->query('UPDATE `servers` SET `connections` = ?, `users` = ? WHERE `id` = ?;', $rResults[$i * 2], count(array_unique(array_values($rResults[$i * 2 + 1]))), $rServerID);
                                 $rTotalUsers = array_merge(array_values($rResults[$i * 2 + 1]), $rTotalUsers);
                                 $i++;

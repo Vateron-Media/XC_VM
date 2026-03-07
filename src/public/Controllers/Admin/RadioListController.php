@@ -1,6 +1,6 @@
 <?php
 /**
- * RadioListController — список радиостанций (Phase 6.3 — Group A).
+ * RadioListController — список радиостанций.
  */
 class RadioListController extends BaseAdminController
 {
@@ -8,7 +8,7 @@ class RadioListController extends BaseAdminController
     {
         $this->requirePermission();
 
-        $rCategories = getCategories('radio');
+        $rCategories = CategoryService::getAllByType('radio');
 
         $this->setTitle('Radio Stations');
         $this->render('radios', compact('rCategories'));

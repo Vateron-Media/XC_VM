@@ -5,7 +5,7 @@ class ProxySelector {
 		if (empty($rProxies)) {
 			return null;
 		}
-		$rServerCapacity = ConnectionTracker::getCapacity($rSettings, $rServers, RedisManager::instance(), true);
+		$rServerCapacity = ConnectionTracker::getCapacity(true);
 		$rAcceptServers = array();
 		foreach ($rProxies as $rServerID) {
 			$rOnlineClients = (isset($rServerCapacity[$rServerID]['online_clients']) ? $rServerCapacity[$rServerID]['online_clients'] : 0);

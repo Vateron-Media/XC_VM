@@ -1,6 +1,6 @@
 <?php
 /**
- * XC_VM — View: Ticket edit
+ * View: Ticket edit
  * Делегирует рендеринг в legacy admin/ticket.php
  */
 $__viewMode = true;

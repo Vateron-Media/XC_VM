@@ -1,6 +1,6 @@
 <?php
 /**
- * EpisodeListController — список эпизодов (Phase 6.3 — Group B).
+ * EpisodeListController — список эпизодов.
  */
 class EpisodeListController extends BaseAdminController
 {

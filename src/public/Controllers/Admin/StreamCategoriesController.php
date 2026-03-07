@@ -1,6 +1,6 @@
 <?php
 /**
- * StreamCategoriesController — список категорий стримов (Phase 6.3 — Group A).
+ * StreamCategoriesController — список категорий стримов.
  */
 class StreamCategoriesController extends BaseAdminController
 {
@@ -8,7 +8,7 @@ class StreamCategoriesController extends BaseAdminController
     {
         $this->requirePermission();
 
-        $rCategories = [1 => getCategories(), 2 => getCategories('movie'), 3 => getCategories('series'), 4 => getCategories('radio')];
+        $rCategories = [1 => CategoryService::getAllByType(), 2 => CategoryService::getAllByType('movie'), 3 => CategoryService::getAllByType('series'), 4 => CategoryService::getAllByType('radio')];
         $rMainCategories = [1 => [], 2 => [], 3 => [], 4 => []];
 
         foreach ([1, 2, 3, 4] as $rID) {

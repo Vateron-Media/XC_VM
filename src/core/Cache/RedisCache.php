@@ -1,28 +1,12 @@
 <?php
 
 /**
- * XC_VM — Redis Cache Driver
+ * Redis Cache Driver
  *
  * Redis-based cache driver implementing CacheInterface.
  * Wraps the phpredis extension with serialization and TTL support.
  *
- * ---------------------------------------------------------------
- * What it replaces:
- * ---------------------------------------------------------------
- *
- *   BEFORE (CoreUtilities):
- *     CoreUtilities::connectRedis();
- *     CoreUtilities::$redis->get('key');
- *     CoreUtilities::$redis->set('key', igbinary_serialize($data));
- *
- *   AFTER:
- *     $redis = new RedisCache('127.0.0.1', 6379, $password);
- *     $redis->set('key', $data, 300);
- *     $data = $redis->get('key');
- *
- * ---------------------------------------------------------------
  * ServiceContainer Registration:
- * ---------------------------------------------------------------
  *
  *   $container->set('redis', function($c) {
  *       $settings = $c->get('settings');
@@ -34,9 +18,7 @@
  *       );
  *   });
  *
- * ---------------------------------------------------------------
  * Raw Redis Access:
- * ---------------------------------------------------------------
  *
  *   During migration, legacy code may need raw Redis:
  *     $rawRedis = $redisCache->getConnection();
@@ -45,7 +27,7 @@
  *     $rawRedis->exec();
  *
  * @see CacheInterface
- * @see CoreUtilities::connectRedis()
+ * @see RedisManager::ensureConnected()
  */
 
 class RedisCache implements CacheInterface {

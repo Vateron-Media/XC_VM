@@ -1,6 +1,6 @@
 <?php
 /**
- * PackageEditController — add/edit package (Phase 6.3 — Group H).
+ * PackageEditController — add/edit package.
  *
  * Route: GET /admin/package → index()
  */

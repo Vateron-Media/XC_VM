@@ -1,6 +1,6 @@
 <?php
 /**
- * SeriesMassController — массовое редактирование сериалов (Phase 6.3 — Group B).
+ * SeriesMassController — массовое редактирование сериалов.
  */
 class SeriesMassController extends BaseAdminController
 {
@@ -8,7 +8,7 @@ class SeriesMassController extends BaseAdminController
     {
         $this->requirePermission();
 
-        $rCategories = getCategories('series');
+        $rCategories = CategoryService::getAllByType('series');
 
         $this->setTitle('Mass Edit Series');
         $this->render('series_mass', compact('rCategories'));

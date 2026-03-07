@@ -7,7 +7,7 @@
 		goHome();
 	}
 
-	$rRange = (intval(CoreUtilities::$rRequest['range']) ?: 0);
+	$rRange = (intval(RequestManager::getAll()['range']) ?: 0);
 	$rLineIPs = (igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'lines_per_ip')) ?: array());
 	$_TITLE = 'Line IP Usage';
 	require_once __DIR__ . '/../public/Views/layouts/admin.php';
@@ -258,7 +258,7 @@ renderUnifiedLayoutFooter('admin');
 			rTable.search($(this).val()).draw();
 		});
 	});
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+	<?php if (SettingsManager::getAll()['enable_search']): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

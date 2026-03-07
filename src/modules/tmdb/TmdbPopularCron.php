@@ -1,10 +1,9 @@
 <?php
 
 /**
- * XC_VM — TmdbPopularCron
+ * TmdbPopularCron
  *
  * Крон сбора популярных фильмов/сериалов из TMDB.
- * Извлечён из crons/tmdb_popular.php.
  *
  * Ответственность:
  *   - Сбор популярных фильмов и сериалов из TMDB API
@@ -169,11 +168,11 @@ class TmdbPopularCron {
 
         require_once MAIN_HOME . 'includes/libs/tmdb.php';
 
-        if (strlen(CoreUtilities::$rSettings['tmdb_api_key'] ?? '') > 0) {
-            $lang = CoreUtilities::$rSettings['tmdb_language'] ?? '';
+        if (strlen(SettingsManager::getAll()['tmdb_api_key'] ?? '') > 0) {
+            $lang = SettingsManager::getAll()['tmdb_language'] ?? '';
             $rTMDB = $lang !== ''
-                ? new TMDB(CoreUtilities::$rSettings['tmdb_api_key'], $lang)
-                : new TMDB(CoreUtilities::$rSettings['tmdb_api_key']);
+                ? new TMDB(SettingsManager::getAll()['tmdb_api_key'], $lang)
+                : new TMDB(SettingsManager::getAll()['tmdb_api_key']);
 
             $rPages = 100;
             $rTMDBIDs = [];
