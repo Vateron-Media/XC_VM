@@ -1,6 +1,6 @@
 <?php
 /**
- * Edit profile view (Phase 6.4 — Reseller).
+ * Edit profile view.
  * Delegation proxy → legacy reseller/edit_profile.php HTML body.
  */
 $__viewMode = true;

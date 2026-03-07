@@ -139,12 +139,7 @@ class EnigmaService {
 								$rPrepare['data'][] = $rUserID;
 								$rQuery = 'UPDATE `lines` SET ' . $rPrepare['update'] . ' WHERE `id` = ?;';
 								$db->query($rQuery, ...$rPrepare['data']);
-								CoreUtilities::updateLine($rUserID);
-							}
-						}
-					}
-				}
-			}
+									LineService::updateLineSignal($rUserID);
 
 			return array('status' => STATUS_SUCCESS);
 		} else {
@@ -289,9 +284,7 @@ class EnigmaService {
 					} else {
 						$rInsertID = $db->last_insert_id();
 						$rArray['user_id'] = $rInsertID;
-						CoreUtilities::updateLine($rArray['user_id']);
-						unset($rArray['user'], $rArray['paired']);
-
+					LineService::updateLineSignal($rArray['user_id']);
 						if (isset($rData['edit'])) {
 						} else {
 							$rArray['token'] = '';
@@ -311,7 +304,7 @@ class EnigmaService {
 							if (0 >= $rDevice['user']['pair_id']) {
 							} else {
 								MagService::syncLineDevices($rDevice['user']['pair_id'], $rInsertID);
-								CoreUtilities::updateLine($rDevice['user']['pair_id']);
+										LineService::updateLineSignal($rDevice['user']['pair_id']);
 							}
 
 							return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));

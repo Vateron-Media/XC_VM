@@ -42,17 +42,33 @@ class CategoryService {
 		return array('status' => STATUS_FAILURE, 'data' => $rData);
 	}
 
+	/**
+	 * Возвращает категории с int-ключами (замена legacy getCategories()).
+	 * Всегда читает из БД ($rForce = true).
+	 *
+	 * @param string $rType 'live'|'movie'|'series'|'radio'|null
+	 * @return array<int, array>
+	 */
+	public static function getAllByType($rType = 'live') {
+		$rCategories = self::getFromDatabase(($rType ?: null), true);
+		$rReturn = array();
+		foreach ($rCategories as $rID => $rRow) {
+			$rReturn[intval($rID)] = $rRow;
+		}
+		return $rReturn;
+	}
+
 	// ──────────── Из CategoryRepository ────────────
 
-	public static function getFromDatabase($rGetCacheCallback, $rSetCacheCallback, $rType = null, $rForce = false) {
+	public static function getFromDatabase($rType = null, $rForce = false) {
 		global $db;
 		if (is_string($rType)) {
 			$db->query('SELECT t1.* FROM `streams_categories` t1 WHERE t1.category_type = ? GROUP BY t1.id ORDER BY t1.cat_order ASC', $rType);
 			return (0 < $db->num_rows() ? $db->get_rows(true, 'id') : array());
 		}
 
-		if (!$rForce && is_callable($rGetCacheCallback)) {
-			$rCache = call_user_func($rGetCacheCallback, 'categories', 20);
+		if (!$rForce) {
+			$rCache = FileCache::getCache('categories', 20);
 			if (!empty($rCache)) {
 				return $rCache;
 			}
@@ -61,9 +77,7 @@ class CategoryService {
 		$db->query('SELECT t1.* FROM `streams_categories` t1 ORDER BY t1.cat_order ASC');
 		$rCategories = (0 < $db->num_rows() ? $db->get_rows(true, 'id') : array());
 
-		if (is_callable($rSetCacheCallback)) {
-			call_user_func($rSetCacheCallback, 'categories', $rCategories);
-		}
+		FileCache::setCache('categories', $rCategories);
 
 		return $rCategories;
 	}

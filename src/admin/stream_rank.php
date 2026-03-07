@@ -10,7 +10,7 @@
 	}
 
 	$rStreamTypes = array(1 => 'Live Stream', 2 => 'Movie', 3 => 'Created Channel', 4 => 'Radio Station', 5 => 'Episode');
-	$rPeriod = (CoreUtilities::$rRequest['period'] ?: 'all');
+	$rPeriod = (RequestManager::getAll()['period'] ?: 'all');
 	$db->query('SELECT `streams_stats`.*, `streams`.`stream_display_name` FROM `streams_stats` INNER JOIN `streams` ON `streams`.`id` = `streams_stats`.`stream_id` WHERE `streams_stats`.`type` = ? AND `streams`.`type` IN (1,3) GROUP BY `stream_id` ORDER BY `streams_stats`.`rank` ASC LIMIT 500;', $rPeriod);
 	$rRows = $db->get_rows();
 	$_TITLE = 'Stream Rank';
@@ -245,7 +245,7 @@ renderUnifiedLayoutFooter('admin');
 	echo (intval($rSettings['default_entries']) ?: 10);
 	echo "\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable-activity").css("width", "100%");' . "\r\n" . "            \$('#log_search').keyup(function(){" . "\r\n\t\t\t\t" . 'rTable.search($(this).val()).draw();' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n" . '        ';
 	?>
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+	<?php if (SettingsManager::getAll()['enable_search']): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

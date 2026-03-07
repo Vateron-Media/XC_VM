@@ -1,6 +1,6 @@
 <?php
 /**
- * ProviderEditController — add/edit stream provider (Phase 6.3 — Group H).
+ * ProviderEditController — add/edit stream provider.
  *
  * Route: GET /admin/provider → index()
  */

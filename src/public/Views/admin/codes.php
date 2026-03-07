@@ -1,6 +1,6 @@
 <?php
 /**
- * View: codes — delegation proxy (Phase 6.3 — Pilot fix).
+ * View: codes — delegation proxy.
  */
 $__viewMode = true;
 include MAIN_HOME . 'admin/codes.php';

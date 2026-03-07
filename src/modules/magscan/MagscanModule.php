@@ -1,7 +1,7 @@
 <?php
 
 /**
- * XC_VM — MAGSCAN Module
+ * MAGSCAN Module
  *
  * Модуль настроек MAGSCAN.
  * Управляет белыми/чёрными списками для сканирования MAG-устройств

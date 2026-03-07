@@ -1,6 +1,6 @@
 <?php
 /**
- * XC_VM — Контроллер массового редактирования Enigma-устройств (admin/enigma_mass.php)
+ * Контроллер массового редактирования Enigma-устройств (admin/enigma_mass.php)
  */
 class EnigmaMassController extends BaseAdminController {
     public function index() {

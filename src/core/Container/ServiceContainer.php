@@ -1,9 +1,9 @@
 <?php
 
 /**
- * XC_VM — Минимальный DI-контейнер (Service Container)
+ * Минимальный DI-контейнер (Service Container)
  *
- * Заменяет паттерн `global $db` / `CoreUtilities::$rSettings` / `API::$db`
+ * Заменяет паттерн `global $db` / `SettingsManager::getAll()` / `API::$db`
  * единым реестром сервисов с ленивой инициализацией.
  *
  * ──────────────────────────────────────────────────────────────────

@@ -1,26 +1,10 @@
 <?php
 
 /**
- * XC_VM — System Information
+ * System Information
  *
  * Collects server hardware/OS metrics: CPU, memory, disk, network,
  * GPU, I/O, audio/video devices.
- *
- * ---------------------------------------------------------------
- * What it replaces (CoreUtilities):
- * ---------------------------------------------------------------
- *   getStats()             — aggregate server stats
- *   getTotalCPU()          — total CPU usage via ps
- *   getMemory()            — memory info from /proc/meminfo
- *   getUptime()            — uptime from /proc/uptime
- *   getNetworkInterfaces() — list of network interfaces
- *   getNetwork()           — network I/O from cached file
- *   getVideoDevices()      — V4L2 video devices
- *   getAudioDevices()      — ALSA audio devices
- *   getIO()                — iostat JSON
- *   getGPUInfo()           — nvidia-smi GPU data
- *
- * @see CoreUtilities::getStats()
  */
 
 class SystemInfo {
@@ -29,7 +13,7 @@ class SystemInfo {
      * Aggregate server statistics.
      *
      * Collects CPU, memory, disk, network, GPU, I/O, audio/video devices.
-     * Requires CoreUtilities::$rServers[SERVER_ID] for network interface selection.
+     * Requires ServerRepository::getAll()[SERVER_ID] for network interface selection.
      *
      * @return array<string, mixed>
      */
@@ -69,12 +53,12 @@ class SystemInfo {
             $rJSON['total_mem_used_percent'] = 100;
         }
 
-        // Network interface selection: delegate to CoreUtilities::$rServers for backward compat
+        // Network interface selection: delegate to ServerRepository for backward compat
         $rNetworkInterface = null;
-        if (defined('SERVER_ID') && isset(CoreUtilities::$rServers[SERVER_ID]['network_interface'])) {
-            $rNetworkInterface = CoreUtilities::$rServers[SERVER_ID]['network_interface'] == 'auto'
+        if (defined('SERVER_ID') && isset(ServerRepository::getAll()[SERVER_ID]['network_interface'])) {
+            $rNetworkInterface = ServerRepository::getAll()[SERVER_ID]['network_interface'] == 'auto'
                 ? null
-                : CoreUtilities::$rServers[SERVER_ID]['network_interface'];
+                : ServerRepository::getAll()[SERVER_ID]['network_interface'];
         }
         $rJSON['network_info'] = self::getNetwork($rNetworkInterface);
 

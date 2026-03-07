@@ -1,6 +1,6 @@
 <?php
 /**
- * Settings view (Phase 6.3 — Group F).
+ * Settings view.
  *
  * Делегирует рендеринг HTML-body в legacy-файл admin/settings.php,
  * пропуская его data-prep и layout-обёртки через флаг $__settingsViewMode.

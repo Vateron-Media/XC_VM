@@ -4,8 +4,8 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
     if ($argc) {
         require str_replace('\\', '/', dirname($argv[0])) . '/../includes/admin.php';
         cli_set_process_title('XC_VM[Series]');
-        $rIdentifier = CRONS_TMP_PATH . md5(CoreUtilities::generateUniqueCode() . __FILE__);
-        CoreUtilities::checkCron($rIdentifier);
+        $rIdentifier = CRONS_TMP_PATH . md5(Encryption::generateUniqueCode(SettingsManager::getAll()['live_streaming_pass']) . __FILE__);
+        ProcessManager::acquireCronLock($rIdentifier);
         loadCron();
         @unlink($rIdentifier);
     } else {
@@ -16,7 +16,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
 }
 function loadCron() {
     global $db;
-    if (time() - CoreUtilities::$rSettings['cc_time'] < 3600) {
+    if (time() - SettingsManager::getAll()['cc_time'] < 3600) {
         exit();
     }
     $db->query('UPDATE `settings` SET `cc_time` = ?;', time());

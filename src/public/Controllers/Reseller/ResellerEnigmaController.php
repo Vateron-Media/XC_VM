@@ -1,6 +1,6 @@
 <?php
 /**
- * ResellerEnigmaController — Enigma device edit/create (Phase 6.4 — Reseller).
+ * ResellerEnigmaController — Enigma device edit/create.
  */
 class ResellerEnigmaController extends BaseResellerController
 {

@@ -1,6 +1,6 @@
 <?php
 /**
- * Server Order view (Phase 6.3 — Group M).
+ * Server Order view.
  * Delegation proxy → legacy admin/server_order.php HTML body.
  */
 $__viewMode = true;

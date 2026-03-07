@@ -1,10 +1,9 @@
 <?php
 
 /**
- * XC_VM — TmdbCron
+ * TmdbCron
  *
  * Крон обработки очереди TMDB (watch_refresh).
- * Извлечён из crons/tmdb.php.
  *
  * Ответственность:
  *   - Обработка очереди watch_refresh (фильмы, сериалы, эпизоды)
@@ -22,12 +21,12 @@ class TmdbCron {
      */
     private static function createTmdbClient(?string $streamLang = null): TMDB {
         if (0 < strlen($streamLang)) {
-            return new TMDB(CoreUtilities::$rSettings['tmdb_api_key'], $streamLang);
+            return new TMDB(SettingsManager::getAll()['tmdb_api_key'], $streamLang);
         }
-        if (0 < strlen(CoreUtilities::$rSettings['tmdb_language'])) {
-            return new TMDB(CoreUtilities::$rSettings['tmdb_api_key'], CoreUtilities::$rSettings['tmdb_language']);
+        if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
+            return new TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
         }
-        return new TMDB(CoreUtilities::$rSettings['tmdb_api_key']);
+        return new TMDB(SettingsManager::getAll()['tmdb_api_key']);
     }
 
     /**
@@ -80,8 +79,8 @@ class TmdbCron {
                     );
                 }
 
-                if (!(CoreUtilities::$rSettings['percentage_match'] <= $rPercentage
-                    || CoreUtilities::$rSettings['percentage_match'] <= $rPercentageAlt)) {
+                if (!(SettingsManager::getAll()['percentage_match'] <= $rPercentage
+                    || SettingsManager::getAll()['percentage_match'] <= $rPercentageAlt)) {
                 } else {
                     if ($year && !in_array(
                         intval(substr(($rResultArr->get('release_date') ?: $rResultArr->get('first_air_date')), 0, 4)),
@@ -204,15 +203,15 @@ class TmdbCron {
                 ? 'https://image.tmdb.org/t/p/w1280' . $rMovieData['backdrop_path']
                 : '');
 
-            if (!CoreUtilities::$rSettings['download_images']) {
+            if (!SettingsManager::getAll()['download_images']) {
             } else {
                 if (empty($rThumb)) {
                 } else {
-                    $rThumb = CoreUtilities::downloadImage($rThumb, 2);
+                    $rThumb = ImageUtils::downloadImage($rThumb, 2);
                 }
                 if (empty($rBG)) {
                 } else {
-                    $rBG = CoreUtilities::downloadImage($rBG);
+                    $rBG = ImageUtils::downloadImage($rBG);
                 }
             }
 
@@ -383,15 +382,15 @@ class TmdbCron {
                 ? 'https://image.tmdb.org/t/p/w1280' . $rShowData['backdrop_path']
                 : '');
 
-            if (!CoreUtilities::$rSettings['download_images']) {
+            if (!SettingsManager::getAll()['download_images']) {
             } else {
                 if (empty($rSeriesArray['cover'])) {
                 } else {
-                    $rSeriesArray['cover'] = CoreUtilities::downloadImage($rSeriesArray['cover'], 2);
+                    $rSeriesArray['cover'] = ImageUtils::downloadImage($rSeriesArray['cover'], 2);
                 }
                 if (empty($rBG)) {
                 } else {
-                    $rBG = CoreUtilities::downloadImage($rBG);
+                    $rBG = ImageUtils::downloadImage($rBG);
                 }
             }
 
@@ -530,9 +529,9 @@ class TmdbCron {
                 if (0 >= strlen($rEpisode['still_path'])) {
                 } else {
                     $rImage = 'https://image.tmdb.org/t/p/w1280' . $rEpisode['still_path'];
-                    if (!CoreUtilities::$rSettings['download_images']) {
+                    if (!SettingsManager::getAll()['download_images']) {
                     } else {
-                        $rImage = CoreUtilities::downloadImage($rImage, 5);
+                        $rImage = ImageUtils::downloadImage($rImage, 5);
                     }
                 }
 

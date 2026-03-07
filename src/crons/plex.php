@@ -3,7 +3,7 @@
 /**
  * Plex Sync Cron — точка входа.
  *
- * Логика извлечена в modules/plex/PlexCron.php (Фаза 5.1).
+ * Логика извлечена в modules/plex/PlexCron.php.
  * Этот файл содержит только CLI-бутстрап и вызов модуля.
  */
 ini_set('memory_limit', -1);
@@ -26,7 +26,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
             } else {
                 $rPrevPID = null;
             }
-            if ($rPrevPID && CoreUtilities::isProcessRunning($rPrevPID, 'php')) {
+            if ($rPrevPID && ProcessManager::isRunning($rPrevPID, 'php')) {
                 echo 'Plex Sync is already running. Please wait until it finishes.' . "\n";
                 exit();
             }
@@ -34,9 +34,9 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
         $rIdentifier = CACHE_TMP_PATH . 'plex_pid';
         file_put_contents($rIdentifier, getmypid());
         cli_set_process_title('XC_VM[Plex Sync]');
-        $rScanOffset = (intval(CoreUtilities::$rSettings['scan_seconds']) ?: 3600);
+        $rScanOffset = (intval(SettingsManager::getAll()['scan_seconds']) ?: 3600);
         set_time_limit(0);
-        if (!empty(CoreUtilities::$rSettings['tmdb_api_key'])) {
+        if (!empty(SettingsManager::getAll()['tmdb_api_key'])) {
             PlexCron::run();
         } else {
             exit('No TMDb API key.');

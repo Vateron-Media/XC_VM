@@ -1,8 +1,9 @@
 <?php
 
 class ChannelService {
-	public static function process($rData, $rSettings) {
+	public static function process($rData) {
 		global $db;
+		$rSettings = SettingsManager::getAll();
 		if (isset($rData['edit'])) {
 			if (Authorization::check('adv', 'edit_cchannel')) {
 				$rArray = overwriteData(StreamRepository::getById($rData['edit']), $rData);
@@ -112,7 +113,7 @@ class ChannelService {
 
 			if (!$rSettings['download_images']) {
 			} else {
-				$rArray['stream_icon'] = CoreUtilities::downloadImage($rArray['stream_icon'], 3);
+				$rArray['stream_icon'] = ImageUtils::downloadImage($rArray['stream_icon'], 3);
 			}
 
 			if (isset($rData['edit'])) {
@@ -170,7 +171,7 @@ class ChannelService {
 				if ($rReencode) {
 					APIRequest(array('action' => 'stream', 'sub' => 'stop', 'stream_ids' => array($rInsertID)));
 					$db->query("UPDATE `streams_servers` SET `pids_create_channel` = '[]', `cchannel_rsources` = '[]' WHERE `stream_id` = ?;", $rInsertID);
-					CoreUtilities::queueChannel($rInsertID);
+					StreamProcess::queueChannel($rInsertID);
 				}
 
 				if ($rRestart) {
@@ -191,7 +192,7 @@ class ChannelService {
 					}
 				}
 
-				CoreUtilities::updateStream($rInsertID);
+				StreamProcess::updateStream($rInsertID);
 
 				return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
 			} else {
@@ -405,7 +406,7 @@ class ChannelService {
 				$db->query('INSERT INTO `streams_servers`(`stream_id`, `server_id`, `parent_id`, `on_demand`) VALUES ' . $rAddQuery . ';');
 			}
 
-			CoreUtilities::updateStreams($rStreamIDs);
+			StreamProcess::updateStreams($rStreamIDs);
 
 			if (isset($rData['reencode_on_edit'])) {
 				$db->query("UPDATE `streams_servers` SET `pids_create_channel` = '[]', `cchannel_rsources` = '[]' WHERE `stream_id` IN (" . implode(',', array_map('intval', $rStreamIDs)) . ');');

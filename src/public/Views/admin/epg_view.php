@@ -1,6 +1,6 @@
 <?php
 /**
- * XC_VM — View: TV Guide
+ * View: TV Guide
  * Делегирует рендеринг в legacy admin/epg_view.php
  */
 $__viewMode = true;

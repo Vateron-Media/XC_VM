@@ -1,6 +1,6 @@
 <?php
 /**
- * Cache & Redis Settings view (Phase 6.3 — Group M).
+ * Cache & Redis Settings view.
  * Delegation proxy → legacy admin/cache.php HTML body.
  */
 $__viewMode = true;

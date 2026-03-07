@@ -1,6 +1,6 @@
 <?php
 /**
- * ProcessMonitorController — Process Monitor (Phase 6.3 — Group M).
+ * ProcessMonitorController — Process Monitor.
  */
 class ProcessMonitorController extends BaseAdminController
 {
@@ -10,25 +10,25 @@ class ProcessMonitorController extends BaseAdminController
 
         $this->requirePermission();
 
-        if (!isset(CoreUtilities::$rRequest['server']) || !isset($rServers[CoreUtilities::$rRequest['server']])) {
-            CoreUtilities::$rRequest['server'] = SERVER_ID;
+        if (!isset(RequestManager::getAll()['server']) || !isset($rServers[RequestManager::getAll()['server']])) {
+            RequestManager::update('server', SERVER_ID);
         }
 
-        if (isset(CoreUtilities::$rRequest['clear'])) {
-            ServerRepository::freeTemp('systemapirequest', CoreUtilities::$rRequest['server']);
-            header('Location: ./process_monitor?server=' . CoreUtilities::$rRequest['server']);
+        if (isset(RequestManager::getAll()['clear'])) {
+            ServerRepository::freeTemp(RequestManager::getAll()['server']);
+            header('Location: ./process_monitor?server=' . RequestManager::getAll()['server']);
             exit();
         }
 
-        if (isset(CoreUtilities::$rRequest['clear_s'])) {
-            ServerRepository::freeStreams('systemapirequest', CoreUtilities::$rRequest['server']);
-            header('Location: ./process_monitor?server=' . CoreUtilities::$rRequest['server']);
+        if (isset(RequestManager::getAll()['clear_s'])) {
+            ServerRepository::freeStreams(RequestManager::getAll()['server']);
+            header('Location: ./process_monitor?server=' . RequestManager::getAll()['server']);
             exit();
         }
 
-        $rStreams = StreamRepository::getPIDs(CoreUtilities::$rRequest['server'], CoreUtilities::$rSettings) ?: array();
-        $rFS = ServerRepository::getFreeSpace('systemapirequest', CoreUtilities::$rRequest['server']) ?: array();
-        $rProcesses = getPIDs(CoreUtilities::$rRequest['server']) ?: array();
+        $rStreams = StreamRepository::getPIDs(RequestManager::getAll()['server']) ?: array();
+        $rFS = ServerRepository::getFreeSpace(RequestManager::getAll()['server']) ?: array();
+        $rProcesses = getPIDs(RequestManager::getAll()['server']) ?: array();
         $rStatus = array('D' => 'Uninterruptible Sleep', 'I' => 'Idle', 'R' => 'Running', 'S' => 'Interruptible Sleep', 'T' => 'Stopped', 'W' => 'Paging', 'X' => 'Dead', 'Z' => 'Zombie');
 
         $this->setTitle('Process Monitor');

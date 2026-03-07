@@ -10,8 +10,8 @@
 
     $rRecordings = null;
 
-    if (isset(CoreUtilities::$rRequest['id'])) {
-        $rStream = StreamRepository::getById(CoreUtilities::$rRequest['id']);
+    if (isset(RequestManager::getAll()['id'])) {
+        $rStream = StreamRepository::getById(RequestManager::getAll()['id']);
 
         if (!$rStream || $rStream['type'] != 1 || $rStream['tv_archive_duration'] == 0 || $rStream['tv_archive_server_id'] == 0) {
             goHome();
@@ -114,7 +114,7 @@
                                         <?php foreach ($rArchive as $rItem) : ?>
                                             <?php
                                             $rDuration = $rItem['end'] - $rItem['start'];
-                                            $rItem['stream_id'] = CoreUtilities::$rRequest['id'];
+                                            $rItem['stream_id'] = RequestManager::getAll()['id'];
                                             ?>
                                             <tr>
                                                 <td><?php echo $rItem['id']; ?></td>
@@ -341,7 +341,7 @@ renderUnifiedLayoutFooter('admin');
         });
         $("#datatable").css("width", "100%");
     });
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+    <?php if (SettingsManager::getAll()['enable_search']): ?>
         $(document).ready(function() {
             initSearch();
         });

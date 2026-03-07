@@ -1,6 +1,6 @@
 <?php
 /**
- * Stream mass edit view (Phase 6.3 — Group A).
+ * Stream mass edit view.
  * Delegation proxy → legacy admin/stream_mass.php HTML body.
  */
 $__viewMode = true;

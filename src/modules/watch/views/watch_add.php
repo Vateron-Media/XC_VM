@@ -218,7 +218,7 @@
 													<div class="col-md-8">
 														<select name="category_id_movie" id="category_id_movie" class="form-control select2" data-toggle="select2">
 															<option <?php if (isset($rFolder) && intval($rFolder['category_id']) == 0) echo 'selected '; ?>value="0">Do Not Use</option>
-															<?php foreach (getCategories('movie') as $rCategory) : ?>
+															<?php foreach (CategoryService::getAllByType('movie') as $rCategory) : ?>
 																<option <?php if (isset($rFolder) && intval($rFolder['category_id']) == intval($rCategory['id'])) echo 'selected '; ?>value="<?= intval($rCategory['id']); ?>"><?= $rCategory['category_name']; ?></option>
 															<?php endforeach; ?>
 														</select>
@@ -229,7 +229,7 @@
 													<div class="col-md-8">
 														<select name="category_id_series" id="category_id_series" class="form-control select2" data-toggle="select2">
 															<option <?php if (isset($rFolder) && intval($rFolder['category_id']) == 0) echo 'selected '; ?>value="0">Do Not Use</option>
-															<?php foreach (getCategories('series') as $rCategory) : ?>
+															<?php foreach (CategoryService::getAllByType('series') as $rCategory) : ?>
 																<option <?php if (isset($rFolder) && intval($rFolder['category_id']) == intval($rCategory['id'])) echo 'selected '; ?>value="<?= intval($rCategory['id']); ?>"><?= $rCategory['category_name']; ?></option>
 															<?php endforeach; ?>
 														</select>
@@ -250,7 +250,7 @@
 													<div class="col-md-8">
 														<select name="fb_category_id_movie" id="fb_category_id_movie" class="form-control select2" data-toggle="select2">
 															<option <?php if (isset($rFolder) && intval($rFolder['fb_category_id']) == 0) echo 'selected '; ?>value="0">Do Not Use</option>
-															<?php foreach (getCategories('movie') as $rCategory) : ?>
+															<?php foreach (CategoryService::getAllByType('movie') as $rCategory) : ?>
 																<option <?php if (isset($rFolder) && intval($rFolder['fb_category_id']) == intval($rCategory['id'])) echo 'selected '; ?>value="<?= intval($rCategory['id']); ?>"><?= $rCategory['category_name']; ?></option>
 															<?php endforeach; ?>
 														</select>
@@ -261,7 +261,7 @@
 													<div class="col-md-8">
 														<select name="fb_category_id_series" id="fb_category_id_series" class="form-control select2" data-toggle="select2">
 															<option <?php if (isset($rFolder) && intval($rFolder['fb_category_id']) == 0) echo 'selected '; ?>value="0">Do Not Use</option>
-															<?php foreach (getCategories('series') as $rCategory) : ?>
+															<?php foreach (CategoryService::getAllByType('series') as $rCategory) : ?>
 																<option <?php if (isset($rFolder) && intval($rFolder['fb_category_id']) == intval($rCategory['id'])) echo 'selected '; ?>value="<?= intval($rCategory['id']); ?>"><?= $rCategory['category_name']; ?></option>
 															<?php endforeach; ?>
 														</select>

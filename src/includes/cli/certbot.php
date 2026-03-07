@@ -34,7 +34,7 @@ function loadcli() {
         $rResult = false;
         if (0 < count($rActiveDomains)) {
             foreach (array('--dry-run ', '') as $rDry) {
-                if (CoreUtilities::$rServers[SERVER_ID]['http_broadcast_port'] == 80) {
+                if (ServerRepository::getAll()[SERVER_ID]['http_broadcast_port'] == 80) {
                     $rCommand = 'sudo certbot ' . $rDry . '--config-dir ' . BIN_PATH . 'certbot/config --work-dir ' . BIN_PATH . 'certbot/work --logs-dir ' . BIN_PATH . 'certbot/logs certonly --agree-tos --expand --non-interactive --register-unsafely-without-email --webroot -w /home/xc_vm/www/';
                 } else {
                     $rCommand = 'sudo certbot ' . $rDry . '--config-dir ' . BIN_PATH . 'certbot/config --work-dir ' . BIN_PATH . 'certbot/work --logs-dir ' . BIN_PATH . 'certbot/logs certonly --agree-tos --expand --non-interactive --register-unsafely-without-email --standalone';
@@ -69,7 +69,7 @@ function loadcli() {
                                 $rSSLConfig = 'ssl_certificate ' . $rCertificate . ';' . "\n" . 'ssl_certificate_key ' . $rPrivateKey . ';' . "\n" . 'ssl_trusted_certificate ' . $rChain . ';' . "\n" . 'ssl_protocols TLSv1.2 TLSv1.3;' . "\n" . 'ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;' . "\n" . 'ssl_prefer_server_ciphers off;' . "\n" . 'ssl_ecdh_curve auto;' . "\n" . 'ssl_session_timeout 10m;' . "\n" . 'ssl_session_cache shared:MozSSL:10m;' . "\n" . 'ssl_session_tickets off;';
                                 file_put_contents(BIN_PATH . 'nginx/conf/ssl.conf', $rSSLConfig);
                                 shell_exec('chown xc_vm:xc_vm ' . BIN_PATH . 'nginx/conf/ssl.conf');
-                                $rInfo = CoreUtilities::getCertificateInfo();
+                                $rInfo = DiagnosticsService::getCertificateInfo();
                                 if ($rInfo['serial']) {
                                     $db->query('UPDATE `servers` SET `certbot_ssl` = ? WHERE `id` = ?;', json_encode($rInfo), SERVER_ID);
                                 }
@@ -119,7 +119,7 @@ function loadcli() {
                             $rDomain = $rDir;
                         }
                         if (in_array(strtolower($rDomain), array_map('strtolower', $rActiveDomains))) {
-                            $rInfo = CoreUtilities::getCertificateInfo(BIN_PATH . 'certbot/config/live/' . $rDir . '/fullchain.pem');
+                            $rInfo = DiagnosticsService::getCertificateInfo(BIN_PATH . 'certbot/config/live/' . $rDir . '/fullchain.pem');
                             if (($rInfo['serial'] && $rSelectedDomain[0] < $rInfo['expiration']) && !$rSelectedDomain[0]) {
                                 $rSelectedDomain = array($rInfo['expiration'], $rInfo);
                             }

@@ -9,16 +9,16 @@ if (checkResellerPermissions()) {
 	goHome();
 }
 
-if (isset(CoreUtilities::$rRequest['id']) && ($rTicketInfo = getTicket(CoreUtilities::$rRequest['id']))) {
+if (isset(RequestManager::getAll()['id']) && ($rTicketInfo = getTicket(RequestManager::getAll()['id']))) {
 } else {
 	goHome();
 }
 
 if (Authorization::check('user', $rTicketInfo['member_id'])) {
 	if ($rUserInfo['id'] != $rTicketInfo['member_id']) {
-		$db->query('UPDATE `tickets` SET `admin_read` = 1 WHERE `id` = ?;', CoreUtilities::$rRequest['id']);
+		$db->query('UPDATE `tickets` SET `admin_read` = 1 WHERE `id` = ?;', RequestManager::getAll()['id']);
 	} else {
-		$db->query('UPDATE `tickets` SET `user_read` = 1 WHERE `id` = ?;', CoreUtilities::$rRequest['id']);
+		$db->query('UPDATE `tickets` SET `user_read` = 1 WHERE `id` = ?;', RequestManager::getAll()['id']);
 	}
 
 	$_TITLE = 'View Ticket';
@@ -31,7 +31,7 @@ if (Authorization::check('user', $rTicketInfo['member_id'])) {
 	echo $rTicketInfo['title'];
 	echo '</h4>' . "\r\n\t\t\t\t" . '</div>' . "\r\n\t\t\t" . '</div>' . "\r\n\t\t" . '</div>     ' . "\r\n\t\t" . '<div class="row">' . "\r\n\t\t\t" . '<div class="col-12">' . "\r\n\t\t\t\t" . '<div class="timeline" dir="ltr">' . "\r\n\t\t\t\t\t";
 
-	foreach ($rTicketInfo['replies'] as $rReply) {
+	foreach ($rTicketInfo['replies'] ?? [] as $rReply) {
 		echo "\t\t\t\t\t" . '<article class="timeline-item';
 
 		if ($rReply['admin_reply']) {

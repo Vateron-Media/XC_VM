@@ -9,7 +9,7 @@
         goHome();
     }
 
-    $rOverride = isset(CoreUtilities::$rRequest['override']);
+    $rOverride = isset(RequestManager::getAll()['override']);
     $rOrdered = array('stream' => array(), 'movie' => array(), 'series' => array(), 'radio' => array());
     $db->query('SELECT COUNT(`id`) AS `count` FROM `streams`;');
     $rCount = $db->get_row()['count'];
@@ -558,7 +558,7 @@ renderUnifiedLayoutFooter('admin');
             submitForm(window.rCurrentPage, new FormData($("form")[0]));
         });
     });
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+    <?php if (SettingsManager::getAll()['enable_search']): ?>
         $(document).ready(function() {
             initSearch();
         });

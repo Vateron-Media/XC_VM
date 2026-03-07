@@ -1,6 +1,6 @@
 <?php
 /**
- * XC_VM — Контроллер редактирования User-Agent (admin/useragent.php)
+ * Контроллер редактирования User-Agent (admin/useragent.php)
  */
 
 class UseragentController extends BaseAdminController {
@@ -8,8 +8,8 @@ class UseragentController extends BaseAdminController {
         $this->requirePermission();
 
         $rUAArr = null;
-        if (isset(CoreUtilities::$rRequest['id'])) {
-            $rUAArr = getUserAgent(CoreUtilities::$rRequest['id']);
+        if (isset(RequestManager::getAll()['id'])) {
+            $rUAArr = getUserAgent(RequestManager::getAll()['id']);
             if (!$rUAArr) {
                 $this->redirect('useragents');
                 return;

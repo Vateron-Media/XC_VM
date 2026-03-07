@@ -1,6 +1,6 @@
 <?php
 /**
- * ResellerMagsController — MAG devices listing (Phase 6.4 — Reseller).
+ * ResellerMagsController — MAG devices listing.
  */
 class ResellerMagsController extends BaseResellerController
 {

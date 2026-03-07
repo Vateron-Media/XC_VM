@@ -1,6 +1,6 @@
 <?php
 /**
- * WatchOutputController — Watch Folder Logs (Phase 6.3 — Group L).
+ * WatchOutputController — Watch Folder Logs.
  */
 class WatchOutputController extends BaseAdminController
 {

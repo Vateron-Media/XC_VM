@@ -8,14 +8,14 @@
 		goHome();
 	}
 
-	if (!isset(CoreUtilities::$rRequest['user_id'])) {
+	if (!isset(RequestManager::getAll()['user_id'])) {
 	} else {
-		$rSearchUser = UserRepository::getLineById(CoreUtilities::$rRequest['user_id']);
+		$rSearchUser = UserRepository::getLineById(RequestManager::getAll()['user_id']);
 	}
 
-	if (!isset(CoreUtilities::$rRequest['stream_id'])) {
+	if (!isset(RequestManager::getAll()['stream_id'])) {
 	} else {
-		$rSearchStream = StreamRepository::getById(CoreUtilities::$rRequest['stream_id']);
+		$rSearchStream = StreamRepository::getById(RequestManager::getAll()['stream_id']);
 	}
 
 	$_TITLE = 'Activity Logs';
@@ -48,19 +48,19 @@ endif;
 																					echo ' collapse';
 																				} ?>">
 							<div class="col-md-2">
-								<input type="text" class="form-control" id="act_search" value="<?php if (!isset(CoreUtilities::$rRequest['search'])) {
+								<input type="text" class="form-control" id="act_search" value="<?php if (!isset(RequestManager::getAll()['search'])) {
 																								} else {
-																									echo htmlspecialchars(CoreUtilities::$rRequest['search']);
+																									echo htmlspecialchars(RequestManager::getAll()['search']);
 																								} ?>" placeholder="<?php echo $language::get('search_logs'); ?>...">
 							</div>
 							<div class="col-md-2">
 								<select id="act_server" class="form-control" data-toggle="select2">
-									<option value="" <?php if (isset(CoreUtilities::$rRequest['server'])) {
+									<option value="" <?php if (isset(RequestManager::getAll()['server'])) {
 														} else {
 															echo ' selected';
 														} ?>><?php echo $language::get('all_servers'); ?></option>
-									<?php foreach (CoreUtilities::$rServers as $rServer) { ?>
-										<option value="<?php echo $rServer['id']; ?>" <?php if (isset(CoreUtilities::$rRequest['server']) && CoreUtilities::$rRequest['server'] == $rServer['id']) {
+									<?php foreach (ServerRepository::getAll() as $rServer) { ?>
+										<option value="<?php echo $rServer['id']; ?>" <?php if (isset(RequestManager::getAll()['server']) && RequestManager::getAll()['server'] == $rServer['id']) {
 																							echo ' selected';
 																						} ?>><?php echo $rServer['server_name']; ?></option>
 									<?php } ?>
@@ -83,9 +83,9 @@ endif;
 								</select>
 							</div>
 							<div class="col-md-2">
-								<input type="text" class="form-control text-center date" id="act_range" name="range" value="<?php if (!isset(CoreUtilities::$rRequest['range'])) {
+								<input type="text" class="form-control text-center date" id="act_range" name="range" value="<?php if (!isset(RequestManager::getAll()['range'])) {
 																															} else {
-																																echo htmlspecialchars(CoreUtilities::$rRequest['range']);
+																																echo htmlspecialchars(RequestManager::getAll()['range']);
 																															} ?>" data-toggle="date-picker" data-single-date-picker="true" placeholder="All Dates">
 							</div>
 							<label class="col-md-1 col-form-label text-center" for="act_show_entries"><?php echo $language::get('show'); ?></label>
@@ -266,20 +266,20 @@ renderUnifiedLayoutFooter('admin');
 	}
 
 	echo "\t\t\t\t" . 'order: [[ ';
-	echo (isset(CoreUtilities::$rRequest['order']) ? intval(CoreUtilities::$rRequest['order']) : 7);
+	echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 7);
 	echo ', "';
-	echo (in_array(strtolower(CoreUtilities::$rRequest['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(CoreUtilities::$rRequest['dir']) : 'desc');
+	echo (in_array(strtolower(RequestManager::getAll()['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::getAll()['dir']) : 'desc');
 	echo '" ]],' . "\r\n" . '                pageLength: parseInt(rEntries),' . "\r\n\t\t\t\t" . 'lengthMenu: [10, 25, 50, 250, 500, 1000],' . "\r\n" . '                displayStart: (parseInt(rPage)-1) * parseInt(rEntries)' . "\r\n\t\t\t" . '});' . "\r\n" . '            function doSearch(rValue) {' . "\r\n" . '                clearTimeout(window.rSearch); window.rSearch = setTimeout(function(){ rTable.search(rValue).draw(); }, 500);' . "\r\n" . '            }' . "\r\n\t\t\t" . '$("#datatable-activity").css("width", "100%");' . "\r\n\t\t\t" . "\$('#act_search').keyup(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n\t\t\t\t\t" . 'doSearch($(this).val());' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#act_show_entries').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n\t\t\t\t\t" . 'rTable.page.len($(this).val()).draw();' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#act_filter').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n\t\t\t\t\t" . '$("#datatable-activity").DataTable().ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t";
 
-	if (isset(CoreUtilities::$rRequest['range'])) {
+	if (isset(RequestManager::getAll()['range'])) {
 		echo "\t\t\t" . '$("#act_range").val("';
-		echo str_replace('"', '\\"', htmlspecialchars(CoreUtilities::$rRequest['range']));
+		echo str_replace('"', '\\"', htmlspecialchars(RequestManager::getAll()['range']));
 		echo "\").trigger('change');" . "\r\n\t\t\t";
 	}
 
 	echo "\t\t\t" . "\$('#act_search').keyup(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#act_search").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("search", $("#act_search").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("search");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.search($(this).val()).draw();' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#act_show_entries').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#live_show_entries").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("entries", $("#live_show_entries").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("entries");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.page.len($(this).val()).draw();' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#act_line').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#act_line").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("user_id", $("#act_line").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("user_id");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n" . "            \$('#act_stream').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#act_stream").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("stream_id", $("#act_stream").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("stream_id");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n" . "            \$('#act_server').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#act_server").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("server", $("#act_server").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("server");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n" . "            if (\$('#act_search').val()) {" . "\r\n\t\t\t\t" . "rTable.search(\$('#act_search').val()).draw();" . "\r\n\t\t\t" . '}' . "\r\n" . '            checkClear();' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
 	?>
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+	<?php if (SettingsManager::getAll()['enable_search']): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

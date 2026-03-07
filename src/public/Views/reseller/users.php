@@ -1,6 +1,6 @@
 <?php
 /**
- * Sub-resellers list view (Phase 6.4 — Reseller).
+ * Sub-resellers list view.
  * Delegation proxy → legacy reseller/users.php HTML body.
  */
 $__viewMode = true;

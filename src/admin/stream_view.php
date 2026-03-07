@@ -15,7 +15,7 @@
 		goHome();
 	}
 
-	if (isset(CoreUtilities::$rRequest['id']) && ($rStream = StreamRepository::getById(CoreUtilities::$rRequest['id']))) {
+	if (isset(RequestManager::getAll()['id']) && ($rStream = StreamRepository::getById(RequestManager::getAll()['id']))) {
 	} else {
 		goHome();
 	}
@@ -30,13 +30,15 @@
 		if (0 >= $rStream['vframes_server_id']) {
 		} else {
 			$rExpires = time() + 3600;
-			$rTokenData = array('session_id' => session_id(), 'expires' => $rExpires, 'stream_id' => intval(CoreUtilities::$rRequest['id']), 'ip' => CoreUtilities::getUserIP());
-			$rUIToken = CoreUtilities::encryptData(json_encode($rTokenData), CoreUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+			$rTokenData = array('session_id' => session_id(), 'expires' => $rExpires, 'stream_id' => intval(RequestManager::getAll()['id']), 'ip' => NetworkUtils::getUserIP());
+			$rUIToken = Encryption::encrypt(json_encode($rTokenData), SettingsManager::getAll()['live_streaming_pass'], OPENSSL_EXTRA);
 
 			if (issecure()) {
-				$rImage = 'https://' . ((CoreUtilities::$rServers[$rStream['vframes_server_id']]['domain_name'] ? CoreUtilities::$rServers[$rStream['vframes_server_id']]['domain_name'] : CoreUtilities::$rServers[$rStream['vframes_server_id']]['server_ip'])) . ':' . intval(CoreUtilities::$rServers[$rStream['vframes_server_id']]['https_broadcast_port']) . '/admin/thumb?uitoken=' . $rUIToken;
+				$rVServer = ServerRepository::getAll()[$rStream['vframes_server_id']];
+				$rImage = 'https://' . (($rVServer['domain_name'] ? $rVServer['domain_name'] : $rVServer['server_ip'])) . ':' . intval($rVServer['https_broadcast_port']) . '/admin/thumb?uitoken=' . $rUIToken;
 			} else {
-				$rImage = 'http://' . ((CoreUtilities::$rServers[$rStream['vframes_server_id']]['domain_name'] ? CoreUtilities::$rServers[$rStream['vframes_server_id']]['domain_name'] : CoreUtilities::$rServers[$rStream['vframes_server_id']]['server_ip'])) . ':' . intval(CoreUtilities::$rServers[$rStream['vframes_server_id']]['http_broadcast_port']) . '/admin/thumb?uitoken=' . $rUIToken;
+				$rVServer = ServerRepository::getAll()[$rStream['vframes_server_id']];
+				$rImage = 'http://' . (($rVServer['domain_name'] ? $rVServer['domain_name'] : $rVServer['server_ip'])) . ':' . intval($rVServer['http_broadcast_port']) . '/admin/thumb?uitoken=' . $rUIToken;
 			}
 		}
 
@@ -44,7 +46,7 @@
 	} else {
 		if ($rStream['type'] == 2 || $rStream['type'] == 5) {
 			$rProperties = json_decode($rStream['movie_properties'], true);
-			$rImage = (!empty($rProperties['backdrop_path'][0]) ? CoreUtilities::validateImage($rProperties['backdrop_path'][0], (issecure() ? 'https' : 'http')) : CoreUtilities::validateImage($rProperties['movie_image'], (issecure() ? 'https' : 'http')));
+			$rImage = (!empty($rProperties['backdrop_path'][0]) ? ImageUtils::validateURL($rProperties['backdrop_path'][0], (issecure() ? 'https' : 'http')) : ImageUtils::validateURL($rProperties['movie_image'], (issecure() ? 'https' : 'http')));
 
 			if (empty($rImage)) {
 			} else {
@@ -225,7 +227,7 @@ if ($rStream['type'] == 1) {
 		echo "\t\t\t\t\t\t\t\t\t\t" . '<tr class="stream_info" data-id="';
 		echo $i - 1;
 		echo '">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<td class="text-center">' . "\r\n" . '                                                <button onClick="overrideSource(';
-		echo intval(CoreUtilities::$rRequest['id']);
+		echo intval(RequestManager::getAll()['id']);
 		echo ', ';
 		echo $i - 1;
 		echo ');" type="button" title="Override Source" class="tooltip btn btn-info btn-xs waves-effect waves-light btn-fixed-xs">';
@@ -387,7 +389,7 @@ if ($rStream['type'] == 1) {
 
 		foreach ($rArchive as $rItem) {
 			$rDuration = $rItem['end'] - $rItem['start'];
-			$rItem['stream_id'] = CoreUtilities::$rRequest['id'];
+			$rItem['stream_id'] = RequestManager::getAll()['id'];
 			echo "\t\t\t\t\t\t\t\t\t\t" . '<tr>' . "\r\n" . '                                            <td class="text-center">';
 			echo date($rSettings['date_format'], $rItem['start']);
 			echo '<br/>';
@@ -456,7 +458,7 @@ if ($rStream['type'] == 1) {
 		echo '">' . "\r\n" . '                                    </div>' . "\r\n" . '                                    <label class="col-md-2 col-form-label" for="episode_run_time">';
 		echo $language::get('runtime');
 		echo '</label>' . "\r\n" . '                                    <div class="col-md-4">' . "\r\n" . '                                        <input readonly type="text" class="form-control text-center" id="episode_run_time" name="episode_run_time" value="';
-		echo CoreUtilities::secondsToTime(intval($rProperties['episode_run_time']) * 60, false);
+		echo TimeUtils::secondsToTime(intval($rProperties['episode_run_time']) * 60, false);
 		echo '">' . "\r\n" . '                                    </div>' . "\r\n" . '                                </div>' . "\r\n" . '                                <div class="form-group row mb-4">' . "\r\n" . '                                    <label class="col-md-2 col-form-label" for="youtube_trailer">';
 		echo $language::get('youtube_trailer');
 		echo '</label>' . "\r\n" . '                                    <div class="col-md-4 input-group">' . "\r\n" . '                                        <input readonly type="text" class="form-control text-center" id="youtube_trailer" name="youtube_trailer" value="';
@@ -485,7 +487,7 @@ if ($rStream['type'] == 1) {
 				echo '">' . "\r\n" . '                                        </div>' . "\r\n" . '                                    </div>' . "\r\n" . '                                    <div class="form-group row mb-4">' . "\r\n" . '                                        <label class="col-md-2 col-form-label" for="release_date">Release Date</label>' . "\r\n" . '                                        <div class="col-md-4">' . "\r\n" . '                                            <input readonly type="text" class="form-control text-center" id="release_date" name="release_date" value="';
 				echo htmlspecialchars($rSeries['release_date']);
 				echo '">' . "\r\n" . '                                        </div>' . "\r\n" . '                                        <label class="col-md-2 col-form-label" for="episode_run_time">Runtime</label>' . "\r\n" . '                                        <div class="col-md-4">' . "\r\n" . '                                            <input readonly type="text" class="form-control text-center" id="episode_run_time" name="episode_run_time" value="';
-				echo CoreUtilities::secondsToTime(intval($rProperties['episode_run_time']) * 60, false);
+				echo TimeUtils::secondsToTime(intval($rProperties['episode_run_time']) * 60, false);
 				echo '">' . "\r\n" . '                                        </div>' . "\r\n" . '                                    </div>' . "\r\n" . '                                    <div class="form-group row mb-4">' . "\r\n" . '                                        <label class="col-md-2 col-form-label" for="youtube_trailer">Youtube Trailer</label>' . "\r\n" . '                                        <div class="col-md-4">' . "\r\n" . '                                            <input readonly type="text" class="form-control text-center" id="youtube_trailer" name="youtube_trailer" value="';
 				echo htmlspecialchars($rSeries['youtube_trailer']);
 				echo '">' . "\r\n" . '                                        </div>' . "\r\n" . '                                        <label class="col-md-2 col-form-label" for="rating">Rating</label>' . "\r\n" . '                                        <div class="col-md-4">' . "\r\n" . '                                            <input readonly type="text" class="form-control text-center" id="rating" name="rating" value="';
@@ -504,7 +506,7 @@ if ($rStream['type'] == 1) {
 			echo '">' . "\r\n" . '                                        </div>' . "\r\n" . '                                        <label class="col-md-2 col-form-label" for="episode_run_time">';
 			echo $language::get('runtime');
 			echo '</label>' . "\r\n" . '                                        <div class="col-md-4">' . "\r\n" . '                                            <input readonly type="text" class="form-control text-center" id="episode_run_time" name="episode_run_time" value="';
-			echo CoreUtilities::secondsToTime(intval($rProperties['duration_secs']), false);
+			echo TimeUtils::secondsToTime(intval($rProperties['duration_secs']), false);
 			echo '">' . "\r\n" . '                                        </div>' . "\r\n" . '                                    </div>' . "\r\n" . '                                    <div class="form-group row mb-4">' . "\r\n" . '                                        <label class="col-md-2 col-form-label" for="rating">';
 			echo $language::get('rating');
 			echo '</label>' . "\r\n" . '                                        <div class="col-md-4">' . "\r\n" . '                                            <input readonly type="text" class="form-control text-center" id="rating" name="rating" value="';
@@ -822,7 +824,7 @@ renderUnifiedLayoutFooter('admin'); ?>
 
 	echo "\t\t\t\t" . '],' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . 'setTimeout(reloadStream, 5000);' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
 	?>
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+	<?php if (SettingsManager::getAll()['enable_search']): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

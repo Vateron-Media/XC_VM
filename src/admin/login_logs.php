@@ -247,7 +247,7 @@ renderUnifiedLayoutFooter('admin');
 			window.location.href = "api?action=report&params=" + encodeURIComponent(JSON.stringify($("#datatable").DataTable().ajax.params()));
 		});
 	});
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+	<?php if (SettingsManager::getAll()['enable_search']): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

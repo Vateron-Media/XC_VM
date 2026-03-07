@@ -1,6 +1,6 @@
 <?php
 /**
- * ProfileEditController — add/edit transcoding profile (Phase 6.3 — Group H).
+ * ProfileEditController — add/edit transcoding profile.
  *
  * Route: GET /admin/profile → index()
  */

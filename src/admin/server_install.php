@@ -8,14 +8,14 @@ if (!isset($__viewMode)):
         goHome();
     }
 
-    $rType = isset(CoreUtilities::$rRequest['proxy']) ? 1 : 2;
+    $rType = isset(RequestManager::getAll()['proxy']) ? 1 : 2;
 
 
-    if (isset(CoreUtilities::$rRequest['id'])) {
+    if (isset(RequestManager::getAll()['id'])) {
         if ($rType == 1) {
-            $rServerArr = $rProxyServers[intval(CoreUtilities::$rRequest['id'])];
+            $rServerArr = $rProxyServers[intval(RequestManager::getAll()['id'])];
         } else {
-            $rServerArr = $allServers[intval(CoreUtilities::$rRequest['id'])];
+            $rServerArr = $allServers[intval(RequestManager::getAll()['id'])];
         }
 
         if (!$rServerArr) {
@@ -43,7 +43,7 @@ if ($rType == 1) {
     echo "\t\t\t\t\t" . '<h4 class="page-title">';
 
     if (isset($rServerArr)) {
-        if (isset(CoreUtilities::$rRequest['update'])) {
+        if (isset(RequestManager::getAll()['update'])) {
             echo 'Update Proxy';
         } else {
             echo 'Reinstall Proxy';
@@ -57,7 +57,7 @@ if ($rType == 1) {
     echo '                    <h4 class="page-title">';
 
     if (isset($rServerArr)) {
-        if (isset(CoreUtilities::$rRequest['update'])) {
+        if (isset(RequestManager::getAll()['update'])) {
             echo 'Update Server';
         } else {
             echo 'Reinstall Server';
@@ -137,7 +137,7 @@ if (isset($rServerArr) && $rServerArr['is_main'] == 1) {
         echo '                                                <div class="form-group row mb-4">' . "\n" . "                                                    <label class=\"col-md-3 col-form-label\" for=\"use_private_ip\">Use Private IP <i title=\"Use the private IP of the load balancer you've selected to route traffic internally.\" class=\"tooltip text-secondary far fa-circle\"></i></label>" . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-3">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="use_private_ip" id="use_private_ip" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd"/>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n" . '                                                </div>' . "\n" . '                                                ';
     }
 
-    if (isset($rServerArr) && isset(CoreUtilities::$rRequest['update'])) {
+    if (isset($rServerArr) && isset(RequestManager::getAll()['update'])) {
         echo '                                                <div class="alert alert-info" role="alert">' . "\n" . '                                                    In order to update your XC_VM core from v';
         echo $rServerArr['xc_vm_version'];
         echo ' to v';
@@ -176,11 +176,11 @@ if (isset($rServerArr) && $rServerArr['is_main'] == 1) {
     if ($rType == 1) {
         echo '                                    <div class="tab-pane" id="server-coverage">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div class="row">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-12">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<table id="datatable" class="table table-borderless mb-0">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<thead class="bg-light">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<tr>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<th class="text-center">ID</th>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<th>Server Name</th>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<th class="text-center">Server IP</th>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</thead>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<tbody>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
 
-        foreach (CoreUtilities::$rServers as $d58b4f8653a391d8 => $A08adcff1f387f4c) {
+        foreach (ServerRepository::getAll() as $d58b4f8653a391d8 => $A08adcff1f387f4c) {
             if ($A08adcff1f387f4c['server_type'] == 0) {
                 echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<tr';
 
-                if (!(isset($rServerArr) && in_array($A08adcff1f387f4c['id'], CoreUtilities::$rServers[$rServerArr['id']]['parent_id']))) {
+                if (!(isset($rServerArr) && in_array($A08adcff1f387f4c['id'], ServerRepository::getAll()[$rServerArr['id']]['parent_id']))) {
                 } else {
                     echo " class='selected selectedfilter ui-selected'";
                 }
@@ -389,7 +389,7 @@ renderUnifiedLayoutFooter('admin'); ?>
         <?php endif; ?>
     });
 
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+    <?php if (SettingsManager::getAll()['enable_search']): ?>
         $(document).ready(function() {
             initSearch();
         });

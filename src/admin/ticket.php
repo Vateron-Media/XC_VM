@@ -9,7 +9,7 @@ if (!isset($__viewMode)):
 		goHome();
 	}
 
-	$rTicket = getTicket(CoreUtilities::$rRequest['id']);
+	$rTicket = getTicket(RequestManager::getAll()['id']);
 
 	if ($rTicket) {
 	} else {
@@ -171,7 +171,7 @@ renderUnifiedLayoutFooter('admin');
 			submitForm(window.rCurrentPage, new FormData($("form")[0]));
 		});
 	});
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+	<?php if (SettingsManager::getAll()['enable_search']): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

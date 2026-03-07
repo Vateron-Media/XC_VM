@@ -1,6 +1,6 @@
 <?php
 /**
- * XC_VM — View: Enigma Devices listing
+ * View: Enigma Devices listing
  * Делегирует рендеринг в legacy admin/enigmas.php
  */
 $__viewMode = true;

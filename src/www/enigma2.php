@@ -4,39 +4,39 @@ register_shutdown_function('shutdown');
 require './init.php';
 $rDeny = true;
 
-if (!CoreUtilities::$rSettings['disable_enigma2']) {
+if (!SettingsManager::getAll()['disable_enigma2']) {
 } else {
 	$rDeny = false;
 	generateError('E2_DISABLED');
 }
 
-$rUsername = CoreUtilities::$rRequest['username'];
-$rPassword = CoreUtilities::$rRequest['password'];
-$rType = (!empty(CoreUtilities::$rRequest['type']) ? CoreUtilities::$rRequest['type'] : null);
-$rCatID = (!empty(CoreUtilities::$rRequest['cat_id']) ? intval(CoreUtilities::$rRequest['cat_id']) : null);
-$sCatID = (!empty(CoreUtilities::$rRequest['scat_id']) ? intval(CoreUtilities::$rRequest['scat_id']) : null);
-$rSeriesID = (!empty(CoreUtilities::$rRequest['series_id']) ? intval(CoreUtilities::$rRequest['series_id']) : null);
-$rSeason = (!empty(CoreUtilities::$rRequest['season']) ? intval(CoreUtilities::$rRequest['season']) : null);
+$rUsername = RequestManager::getAll()['username'];
+$rPassword = RequestManager::getAll()['password'];
+$rType = (!empty(RequestManager::getAll()['type']) ? RequestManager::getAll()['type'] : null);
+$rCatID = (!empty(RequestManager::getAll()['cat_id']) ? intval(RequestManager::getAll()['cat_id']) : null);
+$sCatID = (!empty(RequestManager::getAll()['scat_id']) ? intval(RequestManager::getAll()['scat_id']) : null);
+$rSeriesID = (!empty(RequestManager::getAll()['series_id']) ? intval(RequestManager::getAll()['series_id']) : null);
+$rSeason = (!empty(RequestManager::getAll()['season']) ? intval(RequestManager::getAll()['season']) : null);
 $rProtocol = (stripos($_SERVER['SERVER_PROTOCOL'], 'https') === 0 ? 'https://' : 'http://');
-$rURL = (!empty($_SERVER['HTTP_HOST']) ? $rProtocol . $_SERVER['HTTP_HOST'] . '/' : CoreUtilities::$rServers[SERVER_ID]['site_url']);
+$rURL = (!empty($_SERVER['HTTP_HOST']) ? $rProtocol . $_SERVER['HTTP_HOST'] . '/' : ServerRepository::getAll()[SERVER_ID]['site_url']);
 ini_set('memory_limit', -1);
 
 if (empty($rUsername) || empty($rPassword)) {
 	generateError('NO_CREDENTIALS');
 }
 
-if ($rUserInfo = CoreUtilities::getUserInfo(null, $rUsername, $rPassword, true, false)) {
+if ($rUserInfo = UserRepository::getUserInfo(null, $rUsername, $rPassword, true, false)) {
 	$rDeny = false;
 	$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
-	CoreUtilities::$db = &$db;
+	DatabaseFactory::set($db);
 	BruteforceGuard::checkAuthFlood($rUserInfo);
-	$rLiveCategories = CoreUtilities::getCategories('live');
-	$rVODCategories = CoreUtilities::getCategories('movie');
-	$rSeriesCategories = CoreUtilities::getCategories('series');
+	$rLiveCategories = CategoryService::getFromDatabase('live');
+	$rVODCategories = CategoryService::getFromDatabase('movie');
+	$rSeriesCategories = CategoryService::getFromDatabase('series');
 	$rLiveStreams = array();
 	$rVODStreams = array();
 
-	if (CoreUtilities::$rCached) {
+	if (SettingsManager::getAll()['enable_cache']) {
 		$rChannels = $rUserInfo['channel_ids'];
 	} else {
 		$rChannels = array();
@@ -47,15 +47,15 @@ if ($rUserInfo = CoreUtilities::getUserInfo(null, $rUsername, $rPassword, true, 
 			$rWhere[] = '`id` IN (' . implode(',', $rUserInfo['channel_ids']) . ')';
 			$rWhereString = 'WHERE ' . implode(' AND ', $rWhere);
 			$rOrder = 'FIELD(id,' . implode(',', $rUserInfo['channel_ids']) . ')';
-			CoreUtilities::$db->query('SELECT t1.id,t1.epg_id,t1.added,t1.allow_record,t1.year,t1.channel_id,t1.movie_properties,t1.stream_source,t1.tv_archive_server_id,t1.vframes_server_id,t1.tv_archive_duration,t1.stream_icon,t1.custom_sid,t1.category_id,t1.stream_display_name,t1.series_no,t1.direct_source,t2.type_output,t1.target_container,t2.live,t1.rtmp_output,t1.order,t2.type_key FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.type_id = t1.type ' . $rWhereString . ' ORDER BY ' . $rOrder . ';', ...$rWhereV);
-			$rChannels = CoreUtilities::$db->get_rows();
+			DatabaseFactory::get()->query('SELECT t1.id,t1.epg_id,t1.added,t1.allow_record,t1.year,t1.channel_id,t1.movie_properties,t1.stream_source,t1.tv_archive_server_id,t1.vframes_server_id,t1.tv_archive_duration,t1.stream_icon,t1.custom_sid,t1.category_id,t1.stream_display_name,t1.series_no,t1.direct_source,t2.type_output,t1.target_container,t2.live,t1.rtmp_output,t1.order,t2.type_key FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.type_id = t1.type ' . $rWhereString . ' ORDER BY ' . $rOrder . ';', ...$rWhereV);
+			$rChannels = DatabaseFactory::get()->get_rows();
 		}
 	}
 
-	$rUserInfo['channel_ids'] = CoreUtilities::sortChannels($rUserInfo['channel_ids']);
+	$rUserInfo['channel_ids'] = StreamSorter::sortChannels($rUserInfo['channel_ids']);
 
 	foreach ($rChannels as $rChannel) {
-		if (!CoreUtilities::$rCached) {
+		if (!SettingsManager::getAll()['enable_cache']) {
 		} else {
 			$rChannel = igbinary_unserialize(file_get_contents(STREAMS_TMP_PATH . 'stream_' . intval($rChannel)))['info'];
 		}
@@ -71,10 +71,10 @@ if ($rUserInfo = CoreUtilities::getUserInfo(null, $rUsername, $rPassword, true, 
 	switch ($rType) {
 		case 'get_live_categories':
 			$rXML = new SimpleXMLExtended('<items/>');
-			$rXML->addChild('playlist_name', 'Live [ ' . CoreUtilities::$rSettings['server_name'] . ' ]');
+			$rXML->addChild('playlist_name', 'Live [ ' . SettingsManager::getAll()['server_name'] . ' ]');
 			$rCategory = $rXML->addChild('category');
 			$rCategory->addChild('category_id', 1);
-			$rCategory->addChild('category_title', 'Live [ ' . CoreUtilities::$rSettings['server_name'] . ' ]');
+			$rCategory->addChild('category_title', 'Live [ ' . SettingsManager::getAll()['server_name'] . ' ]');
 			$rChannels = $rXML->addChild('channel');
 			$rChannels->addChild('title', base64_encode('All'));
 			$rChannels->addChild('description', base64_encode('Live Streams Category [ ALL ]'));
@@ -97,10 +97,10 @@ if ($rUserInfo = CoreUtilities::getUserInfo(null, $rUsername, $rPassword, true, 
 
 		case 'get_vod_categories':
 			$rXML = new SimpleXMLExtended('<items/>');
-			$rXML->addChild('playlist_name', 'Movie [ ' . CoreUtilities::$rSettings['server_name'] . ' ]');
+			$rXML->addChild('playlist_name', 'Movie [ ' . SettingsManager::getAll()['server_name'] . ' ]');
 			$rCategory = $rXML->addChild('category');
 			$rCategory->addChild('category_id', 1);
-			$rCategory->addChild('category_title', 'Movie [ ' . CoreUtilities::$rSettings['server_name'] . ' ]');
+			$rCategory->addChild('category_title', 'Movie [ ' . SettingsManager::getAll()['server_name'] . ' ]');
 			$rChannels = $rXML->addChild('channel');
 			$rChannels->addChild('title', base64_encode('All'));
 			$rChannels->addChild('description', base64_encode('Movie Streams Category [ ALL ]'));
@@ -123,10 +123,10 @@ if ($rUserInfo = CoreUtilities::getUserInfo(null, $rUsername, $rPassword, true, 
 
 		case 'get_series_categories':
 			$rXML = new SimpleXMLExtended('<items/>');
-			$rXML->addChild('playlist_name', 'SubCategory [ ' . CoreUtilities::$rSettings['server_name'] . ' ]');
+			$rXML->addChild('playlist_name', 'SubCategory [ ' . SettingsManager::getAll()['server_name'] . ' ]');
 			$rCategory = $rXML->addChild('category');
 			$rCategory->addChild('category_id', 1);
-			$rCategory->addChild('category_title', 'SubCategory [ ' . CoreUtilities::$rSettings['server_name'] . ' ]');
+			$rCategory->addChild('category_title', 'SubCategory [ ' . SettingsManager::getAll()['server_name'] . ' ]');
 			$rChannels = $rXML->addChild('channel');
 			$rChannels->addChild('title', base64_encode('All'));
 			$rChannels->addChild('description', base64_encode('TV Series Category [ ALL ]'));
@@ -167,7 +167,7 @@ if ($rUserInfo = CoreUtilities::getUserInfo(null, $rUsername, $rPassword, true, 
 
 				if (0 >= count($rUserInfo['series_ids'])) {
 				} else {
-					if (CoreUtilities::$rSettings['vod_sort_newest']) {
+					if (SettingsManager::getAll()['vod_sort_newest']) {
 						$db->query('SELECT * FROM `streams_series` WHERE `id` IN (' . implode(',', array_map('intval', $rUserInfo['series_ids'])) . ') ORDER BY `last_modified` DESC;');
 					} else {
 						$db->query('SELECT * FROM `streams_series` WHERE `id` IN (' . implode(',', array_map('intval', $rUserInfo['series_ids'])) . ') ORDER BY FIELD(`id`,' . implode(',', $rUserInfo['series_ids']) . ') ASC;');
@@ -248,12 +248,12 @@ if ($rUserInfo = CoreUtilities::getUserInfo(null, $rUsername, $rPassword, true, 
 					$rChannels->addChild('title', base64_encode('Episode ' . sprintf('%02d', ++$rEpisodeNum)));
 					$rDesc = '';
 					$rDescChannel = $rChannels->addChild('desc_image');
-					$rDescChannel->addCData(CoreUtilities::validateImage($rSeriesInfo['cover']));
+					$rDescChannel->addCData(ImageUtils::validateURL($rSeriesInfo['cover']));
 					$rChannels->addChild('description', base64_encode($rDesc));
 					$rChannels->addChild('category_id', $rCatID);
 					$rCDataURL = $rChannels->addChild('stream_url');
 					$rEncData = 'movie/' . $rUsername . '/' . $rPassword . '/' . $rEpisode['id'] . '/' . $rEpisode['target_container'];
-					$rToken = CoreUtilities::encryptData($rEncData, CoreUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+					$rToken = Encryption::encrypt($rEncData, SettingsManager::getAll()['live_streaming_pass'], OPENSSL_EXTRA);
 					$rSource = $rURL . 'play/' . $rToken;
 					$rCDataURL->addCData($rSource);
 				}
@@ -268,10 +268,10 @@ if ($rUserInfo = CoreUtilities::getUserInfo(null, $rUsername, $rPassword, true, 
 			} else {
 				$rCategoryID = (is_null($rCatID) ? null : $rCatID);
 				$rXML = new SimpleXMLExtended('<items/>');
-				$rXML->addChild('playlist_name', 'Live [ ' . CoreUtilities::$rSettings['server_name'] . ' ]');
+				$rXML->addChild('playlist_name', 'Live [ ' . SettingsManager::getAll()['server_name'] . ' ]');
 				$rCategory = $rXML->addChild('category');
 				$rCategory->addChild('category_id', 1);
-				$rCategory->addChild('category_title', 'Live [ ' . CoreUtilities::$rSettings['server_name'] . ' ]');
+				$rCategory->addChild('category_title', 'Live [ ' . SettingsManager::getAll()['server_name'] . ' ]');
 
 				foreach ($rLiveStreams as $rStream) {
 					if ($rCategoryID && !in_array($rCategoryID, json_decode($rStream['category_id'], true))) {
@@ -314,11 +314,11 @@ if ($rUserInfo = CoreUtilities::getUserInfo(null, $rUsername, $rPassword, true, 
 							$rChannels->addChild('title', base64_encode($rStream['stream_display_name'] . ' ' . $rShortEPG));
 							$rChannels->addChild('description', base64_encode($rDesc));
 							$rDescChannel = $rChannels->addChild('desc_image');
-							$rDescChannel->addCData(CoreUtilities::validateImage($rStream['stream_icon']));
+							$rDescChannel->addCData(ImageUtils::validateURL($rStream['stream_icon']));
 							$rChannels->addChild('category_id', $rCategoryIDSearch);
 							$rCData = $rChannels->addChild('stream_url');
 							$rEncData = 'live/' . $rUsername . '/' . $rPassword . '/' . $rStream['id'];
-							$rToken = CoreUtilities::encryptData($rEncData, CoreUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+							$rToken = Encryption::encrypt($rEncData, SettingsManager::getAll()['live_streaming_pass'], OPENSSL_EXTRA);
 							$rSource = $rURL . 'play/' . $rToken;
 							$rCData->addCData($rSource);
 						}
@@ -340,10 +340,10 @@ if ($rUserInfo = CoreUtilities::getUserInfo(null, $rUsername, $rPassword, true, 
 			} else {
 				$rCategoryID = (is_null($rCatID) ? null : $rCatID);
 				$rXML = new SimpleXMLExtended('<items/>');
-				$rXML->addChild('playlist_name', 'Movie [ ' . CoreUtilities::$rSettings['server_name'] . ' ]');
+				$rXML->addChild('playlist_name', 'Movie [ ' . SettingsManager::getAll()['server_name'] . ' ]');
 				$rCategory = $rXML->addChild('category');
 				$rCategory->addChild('category_id', 1);
-				$rCategory->addChild('category_title', 'Movie [ ' . CoreUtilities::$rSettings['server_name'] . ' ]');
+				$rCategory->addChild('category_title', 'Movie [ ' . SettingsManager::getAll()['server_name'] . ' ]');
 
 				foreach ($rVODStreams as $rStream) {
 					foreach (json_decode($rStream['category_id'], true) as $rCategoryIDSearch) {
@@ -364,12 +364,12 @@ if ($rUserInfo = CoreUtilities::getUserInfo(null, $rUsername, $rPassword, true, 
 							}
 
 							$rDescChannel = $rChannels->addChild('desc_image');
-							$rDescChannel->addCData(CoreUtilities::validateImage($rProperties['movie_image']));
+							$rDescChannel->addCData(ImageUtils::validateURL($rProperties['movie_image']));
 							$rChannels->addChild('description', base64_encode($rDesc));
 							$rChannels->addChild('category_id', $rCategoryIDSearch);
 							$rCDataURL = $rChannels->addChild('stream_url');
 							$rEncData = 'movie/' . $rUsername . '/' . $rPassword . '/' . $rStream['id'] . '/' . $rStream['target_container'];
-							$rToken = CoreUtilities::encryptData($rEncData, CoreUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+							$rToken = Encryption::encrypt($rEncData, SettingsManager::getAll()['live_streaming_pass'], OPENSSL_EXTRA);
 							$rSource = $rURL . 'play/' . $rToken;
 							$rCDataURL->addCData($rSource);
 						}
@@ -388,10 +388,10 @@ if ($rUserInfo = CoreUtilities::getUserInfo(null, $rUsername, $rPassword, true, 
 
 		default:
 			$rXML = new SimpleXMLExtended('<items/>');
-			$rXML->addChild('playlist_name', CoreUtilities::$rSettings['server_name']);
+			$rXML->addChild('playlist_name', SettingsManager::getAll()['server_name']);
 			$rCategory = $rXML->addChild('category');
 			$rCategory->addChild('category_id', 1);
-			$rCategory->addChild('category_title', CoreUtilities::$rSettings['server_name']);
+			$rCategory->addChild('category_title', SettingsManager::getAll()['server_name']);
 
 			if (empty($rLiveStreams)) {
 			} else {

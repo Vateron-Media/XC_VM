@@ -1,6 +1,6 @@
 <?php
 /**
- * LiveConnectionsController — активные подключения (Phase 6.3 — Group A).
+ * LiveConnectionsController — активные подключения.
  */
 class LiveConnectionsController extends BaseAdminController
 {
@@ -13,12 +13,12 @@ class LiveConnectionsController extends BaseAdminController
         $rSearchUser = null;
         $rSearchStream = null;
 
-        if (isset(CoreUtilities::$rRequest['user_id'])) {
-            $rSearchUser = UserRepository::getLineById(CoreUtilities::$rRequest['user_id']);
+        if (isset(RequestManager::getAll()['user_id'])) {
+            $rSearchUser = UserRepository::getLineById(RequestManager::getAll()['user_id']);
         }
 
-        if (isset(CoreUtilities::$rRequest['stream_id'])) {
-            $rSearchStream = StreamRepository::getById(CoreUtilities::$rRequest['stream_id']);
+        if (isset(RequestManager::getAll()['stream_id'])) {
+            $rSearchStream = StreamRepository::getById(RequestManager::getAll()['stream_id']);
         }
 
         $this->setTitle('Live Connections');

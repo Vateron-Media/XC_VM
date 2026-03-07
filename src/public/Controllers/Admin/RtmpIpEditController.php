@@ -1,6 +1,6 @@
 <?php
 /**
- * RtmpIpEditController — add/edit RTMP IP (Phase 6.3 — Group H).
+ * RtmpIpEditController — add/edit RTMP IP.
  *
  * Route: GET /admin/rtmp_ip → index()
  */

@@ -1,6 +1,6 @@
 <?php
 /**
- * RecordController — Record programme (Phase 6.3 — Group N).
+ * RecordController — Record programme.
  * Complex data-prep: stream/programme/archive loading from multiple sources.
  */
 class RecordController extends BaseAdminController
@@ -14,9 +14,9 @@ class RecordController extends BaseAdminController
         $rAvailableServers = $rServers = array();
         $rStream = $rProgramme = null;
 
-        if (isset(CoreUtilities::$rRequest['id'])) {
-            $rStream = StreamRepository::getById(CoreUtilities::$rRequest['id']);
-            $rProgramme = CoreUtilities::getProgramme(CoreUtilities::$rRequest['id'], CoreUtilities::$rRequest['programme']);
+        if (isset(RequestManager::getAll()['id'])) {
+            $rStream = StreamRepository::getById(RequestManager::getAll()['id']);
+            $rProgramme = EpgService::getProgramme(RequestManager::getAll()['id'], RequestManager::getAll()['programme']);
 
             if ($rStream && $rStream['type'] == 1 && $rProgramme) {
             } else {
@@ -24,8 +24,8 @@ class RecordController extends BaseAdminController
                 return;
             }
         } else {
-            if (isset(CoreUtilities::$rRequest['archive'])) {
-                $rArchive = json_decode(base64_decode(CoreUtilities::$rRequest['archive']), true);
+            if (isset(RequestManager::getAll()['archive'])) {
+                $rArchive = json_decode(base64_decode(RequestManager::getAll()['archive']), true);
                 $rStream = StreamRepository::getById($rArchive['stream_id']);
                 $rProgramme = array('start' => $rArchive['start'], 'end' => $rArchive['end'], 'title' => $rArchive['title'], 'description' => $rArchive['description'], 'archive' => true);
 
@@ -35,10 +35,10 @@ class RecordController extends BaseAdminController
                     return;
                 }
             } else {
-                if (!isset(CoreUtilities::$rRequest['stream_id'])) {
+                if (!isset(RequestManager::getAll()['stream_id'])) {
                 } else {
-                    $rStream = StreamRepository::getById(CoreUtilities::$rRequest['stream_id']);
-                    $rProgramme = array('start' => strtotime(CoreUtilities::$rRequest['start_date']), 'end' => strtotime(CoreUtilities::$rRequest['start_date']) + intval(CoreUtilities::$rRequest['duration']) * 60, 'title' => '', 'description' => '');
+                    $rStream = StreamRepository::getById(RequestManager::getAll()['stream_id']);
+                    $rProgramme = array('start' => strtotime(RequestManager::getAll()['start_date']), 'end' => strtotime(RequestManager::getAll()['start_date']) + intval(RequestManager::getAll()['duration']) * 60, 'title' => '', 'description' => '');
 
                     if (!(!$rStream || $rStream['type'] != 1 || !$rProgramme || $rProgramme['end'] < time())) {
                     } else {

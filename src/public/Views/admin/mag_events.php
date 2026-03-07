@@ -1,6 +1,6 @@
 <?php
 /**
- * View: mag_events — delegation proxy (Phase 6.3 — Group G fix).
+ * View: mag_events — delegation proxy.
  */
 $__viewMode = true;
 include MAIN_HOME . 'admin/mag_events.php';

@@ -1,10 +1,9 @@
 <?php
 
 /**
- * XC_VM — TmdbService
+ * TmdbService
  *
  * Сервис для работы с TMDB API.
- * Извлечён из admin/api.php (действия: tmdb_search, tmdb).
  *
  * Ответственность:
  *   - Создание экземпляра TMDB с правильной локализацией
@@ -31,7 +30,7 @@ class TmdbService {
             return new TMDB($apiKey, $language);
         }
 
-        $settingsLang = CoreUtilities::$rSettings['tmdb_language'] ?? '';
+        $settingsLang = SettingsManager::getAll()['tmdb_language'] ?? '';
         if (strlen($settingsLang) > 0) {
             return new TMDB($apiKey, $settingsLang);
         }
@@ -53,7 +52,7 @@ class TmdbService {
      * @return array ['result' => bool, 'data' => array|null]
      */
     public static function search(string $term, string $type, ?string $language = null, ?int $season = null): array {
-        $apiKey = CoreUtilities::$rSettings['tmdb_api_key'] ?? '';
+        $apiKey = SettingsManager::getAll()['tmdb_api_key'] ?? '';
         if (strlen($apiKey) === 0) {
             return ['result' => false];
         }
@@ -100,7 +99,7 @@ class TmdbService {
      * @return array ['result' => bool, 'data' => array|null]
      */
     public static function getDetails(int $id, string $type, ?string $language = null): array {
-        $apiKey = CoreUtilities::$rSettings['tmdb_api_key'] ?? '';
+        $apiKey = SettingsManager::getAll()['tmdb_api_key'] ?? '';
         if (strlen($apiKey) === 0) {
             return ['result' => false];
         }
@@ -116,7 +115,7 @@ class TmdbService {
         } elseif ($type === 'series') {
             $rSeries = $rTMDB->getTVShow($id);
             $rResult = json_decode($rSeries->getJSON(), true);
-            $settingsLang = CoreUtilities::$rSettings['tmdb_language'] ?? '';
+            $settingsLang = SettingsManager::getAll()['tmdb_language'] ?? '';
             $rResult['trailer'] = getSeriesTrailer($id, ($language ?: $settingsLang));
         }
 

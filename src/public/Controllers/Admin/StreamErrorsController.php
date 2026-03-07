@@ -1,6 +1,6 @@
 <?php
 /**
- * StreamErrorsController — ошибки стримов (Phase 6.3 — Group A).
+ * StreamErrorsController — ошибки стримов.
  */
 class StreamErrorsController extends BaseAdminController
 {

@@ -1,6 +1,6 @@
 <?php
 /**
- * SeriesListController — список сериалов (Phase 6.3 — Group B).
+ * SeriesListController — список сериалов.
  */
 class SeriesListController extends BaseAdminController
 {
@@ -8,7 +8,7 @@ class SeriesListController extends BaseAdminController
     {
         $this->requirePermission();
 
-        $rCategories = getCategories('series');
+        $rCategories = CategoryService::getAllByType('series');
 
         $this->setTitle('TV Series');
         $this->render('series', compact('rCategories'));

@@ -17,7 +17,7 @@ echo '<div class="wrapper">' . "\r\n" . '    <div class="container-fluid">' . "\
 include 'topbar.php';
 echo "\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t" . '<h4 class="page-title">Reseller Logs</h4>' . "\r\n\t\t\t\t" . '</div>' . "\r\n\t\t\t" . '</div>' . "\r\n\t\t" . '</div>     ' . "\r\n\t\t" . '<div class="row">' . "\r\n\t\t\t" . '<div class="col-12">' . "\r\n\t\t\t\t" . '<div class="card">' . "\r\n\t\t\t\t\t" . '<div class="card-body" style="overflow-x:auto;">' . "\r\n\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\r\n\t\t\t\t\t\t\t" . '<div class="col-md-3">' . "\r\n\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control" id="log_search" value="" placeholder="Search Logs...">' . "\r\n\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t" . '<label class="col-md-1 col-form-label text-center" for="reseller">Reseller</label>' . "\r\n\t\t\t\t\t\t\t" . '<div class="col-md-3">' . "\r\n\t\t\t\t\t\t\t\t" . '<select id="reseller" class="form-control" data-toggle="select2">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<optgroup label="Global">' . "\r\n" . '                                        <option value=""';
 
-if (isset(CoreUtilities::$rRequest['user_id'])) {
+if (isset(RequestManager::getAll()['user_id'])) {
 } else {
 	echo ' selected';
 }
@@ -26,7 +26,7 @@ echo '>All Users</option>' . "\r\n" . '                                        <
 echo $rUserInfo['id'];
 echo '"';
 
-if (!(isset(CoreUtilities::$rRequest['user_id']) && CoreUtilities::$rRequest['user_id'] == $rUserInfo['id'])) {
+if (!(isset(RequestManager::getAll()['user_id']) && RequestManager::getAll()['user_id'] == $rUserInfo['id'])) {
 } else {
 	echo ' selected';
 }
@@ -43,7 +43,7 @@ if (0 >= count($rPermissions['direct_reports'])) {
 		echo $rUserID;
 		echo '"';
 
-		if (!(isset(CoreUtilities::$rRequest['user_id']) && CoreUtilities::$rRequest['user_id'] == $rUserID)) {
+		if (!(isset(RequestManager::getAll()['user_id']) && RequestManager::getAll()['user_id'] == $rUserID)) {
 		} else {
 			echo ' selected';
 		}
@@ -67,7 +67,7 @@ if (count($rPermissions['direct_reports']) >= count($rPermissions['all_reports']
 			echo $rUserID;
 			echo '"';
 
-			if (!(isset(CoreUtilities::$rRequest['user_id']) && CoreUtilities::$rRequest['user_id'] == $rUserID)) {
+			if (!(isset(RequestManager::getAll()['user_id']) && RequestManager::getAll()['user_id'] == $rUserID)) {
 			} else {
 				echo ' selected';
 			}

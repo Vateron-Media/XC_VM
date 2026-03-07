@@ -4,7 +4,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
         set_time_limit(0);
         require str_replace('\\', '/', dirname($argv[0])) . '/../../www/init.php';
         shell_exec('kill -9 $(ps aux | grep scanner | grep -v grep | grep -v ' . getmypid() . " | awk '{print \$2}')");
-        if (CoreUtilities::$rSettings['on_demand_checker']) {
+        if (SettingsManager::getAll()['on_demand_checker']) {
             $rLastCheck = null;
             $rInterval = 60;
             $rMD5 = md5_file(__FILE__);
@@ -12,13 +12,13 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                 if ($rLastCheck && $rInterval > time() - $rLastCheck) {
                 } else {
                     if (md5_file(__FILE__) == $rMD5) {
-                        CoreUtilities::$rSettings = CoreUtilities::getSettings(true);
+                        SettingsManager::set(SettingsRepository::getAll(true));
                         $rLastCheck = time();
                     } else {
                         echo 'File changed! Break.' . "\n";
                     }
                 }
-                if ($db->query('SELECT `streams`.* FROM `streams` LEFT JOIN `streams_servers` ON `streams_servers`.`stream_id` = `streams`.`id` WHERE `streams_servers`.`pid` IS NULL AND `streams_servers`.`on_demand` = 1 AND `streams_servers`.`parent_id` IS NULL AND `streams`.`type` = 1 AND `streams`.`direct_source` = 0 AND `streams_servers`.`server_id` = ? AND (UNIX_TIMESTAMP() - (SELECT MAX(`date`) FROM `ondemand_check` WHERE `stream_id` = `streams`.`id` AND `server_id` = `streams_servers`.`server_id`) > ? OR (SELECT MAX(`date`) FROM `ondemand_check` WHERE `stream_id` = `streams`.`id` AND `server_id` = `streams_servers`.`server_id`) IS NULL);', SERVER_ID, (CoreUtilities::$rSettings['on_demand_scan_time'] ?: 3600))) {
+                if ($db->query('SELECT `streams`.* FROM `streams` LEFT JOIN `streams_servers` ON `streams_servers`.`stream_id` = `streams`.`id` WHERE `streams_servers`.`pid` IS NULL AND `streams_servers`.`on_demand` = 1 AND `streams_servers`.`parent_id` IS NULL AND `streams`.`type` = 1 AND `streams`.`direct_source` = 0 AND `streams_servers`.`server_id` = ? AND (UNIX_TIMESTAMP() - (SELECT MAX(`date`) FROM `ondemand_check` WHERE `stream_id` = `streams`.`id` AND `server_id` = `streams_servers`.`server_id`) > ? OR (SELECT MAX(`date`) FROM `ondemand_check` WHERE `stream_id` = `streams`.`id` AND `server_id` = `streams_servers`.`server_id`) IS NULL);', SERVER_ID, (SettingsManager::getAll()['on_demand_scan_time'] ?: 3600))) {
                     if (0 >= $db->num_rows()) {
                     } else {
                         foreach ($db->get_rows() as $rRow) {
@@ -27,23 +27,23 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                             $rStreamArguments = $db->get_rows();
                             $rProbesize = (intval($rRow['probesize_ondemand']) ?: 512000);
                             $rAnalyseDuration = '10000000';
-                            $rTimeout = intval($rAnalyseDuration / 1000000) + CoreUtilities::$rSettings['probe_extra_wait'];
-                            if (!(CoreUtilities::$rSettings['on_demand_max_probe'] < $rTimeout && 0 < CoreUtilities::$rSettings['on_demand_max_probe'])) {
+                            $rTimeout = intval($rAnalyseDuration / 1000000) + SettingsManager::getAll()['probe_extra_wait'];
+                            if (!(SettingsManager::getAll()['on_demand_max_probe'] < $rTimeout && 0 < SettingsManager::getAll()['on_demand_max_probe'])) {
                             } else {
-                                $rTimeout = intval(CoreUtilities::$rSettings['on_demand_max_probe']);
+                                $rTimeout = intval(SettingsManager::getAll()['on_demand_max_probe']);
                             }
-                            $rFFProbee = 'timeout ' . $rTimeout . ' ' . CoreUtilities::$rFFPROBE . ' {FETCH_OPTIONS} -probesize ' . $rProbesize . ' -analyzeduration ' . $rAnalyseDuration . ' -i {STREAM_SOURCE} -loglevel error -print_format json -show_streams -show_format 2>' . STREAMS_TMP_PATH . $rRow['id'] . '._errors';
+                            $rFFProbee = 'timeout ' . $rTimeout . ' ' . FfmpegPaths::probe() . ' {FETCH_OPTIONS} -probesize ' . $rProbesize . ' -analyzeduration ' . $rAnalyseDuration . ' -i {STREAM_SOURCE} -loglevel error -print_format json -show_streams -show_format 2>' . STREAMS_TMP_PATH . $rRow['id'] . '._errors';
                             $rSources = json_decode($rRow['stream_source'], true);
                             $rSourceID = 0;
                             $rErrors = null;
                             foreach ($rSources as $rSource) {
                                 $rProcessed = false;
                                 $rRealSource = $rSource;
-                                $rStreamSource = CoreUtilities::parseStreamURL($rSource);
+                                $rStreamSource = StreamUtils::parseStreamURL($rSource);
                                 echo 'Checking source: ' . $rSource . "\n";
                                 $rURLInfo = parse_url($rStreamSource);
-                                $rIsXC_VM = CoreUtilities::detectXC_VM($rStreamSource);
-                                if (!($rIsXC_VM && CoreUtilities::$rSettings['send_xc_vm_header'])) {
+                                $rIsXC_VM = StreamUtils::detectXC_VM($rStreamSource);
+                                if (!($rIsXC_VM && SettingsManager::getAll()['send_xc_vm_header'])) {
                                 } else {
                                     foreach (array_keys($rStreamArguments) as $rID) {
                                         if ($rStreamArguments[$rID]['argument_key'] != 'headers') {
@@ -57,7 +57,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                                         $rStreamArguments[] = array('value' => 'X-XC_VM-Detect:1', 'argument_key' => 'headers', 'argument_cat' => 'fetch', 'argument_wprotocol' => 'http', 'argument_type' => 'text', 'argument_cmd' => "-headers '%s" . "\r\n" . "'");
                                     }
                                 }
-                                if (!($rIsXC_VM && CoreUtilities::$rSettings['request_prebuffer'] == 1)) {
+                                if (!($rIsXC_VM && SettingsManager::getAll()['request_prebuffer'] == 1)) {
                                 } else {
                                     foreach (array_keys($rStreamArguments) as $rID) {
                                         if ($rStreamArguments[$rID]['argument_key'] != 'headers') {
@@ -72,12 +72,12 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                                     }
                                 }
                                 $rProtocol = strtolower(substr($rStreamSource, 0, strpos($rStreamSource, '://')));
-                                $rFetchOptions = implode(' ', CoreUtilities::getArguments($rStreamArguments, $rProtocol, 'fetch'));
-                                if (!($rIsXC_VM && CoreUtilities::$rSettings['api_probe'])) {
+                                $rFetchOptions = implode(' ', StreamUtils::getArguments($rStreamArguments, $rProtocol, 'fetch'));
+                                if (!($rIsXC_VM && SettingsManager::getAll()['api_probe'])) {
                                 } else {
                                     $rProbeURL = $rURLInfo['scheme'] . '://' . $rURLInfo['host'] . ':' . $rURLInfo['port'] . '/probe/' . base64_encode($rURLInfo['path']);
                                     $rTime = round(microtime(true) * 1000);
-                                    $rFFProbeOutput = json_decode(CoreUtilities::getURL($rProbeURL), true);
+                                    $rFFProbeOutput = json_decode(CurlClient::getURL($rProbeURL), true);
                                     $rTimeTaken = round(microtime(true) * 1000) - $rTime;
                                     if (!($rFFProbeOutput && isset($rFFProbeOutput['streams']))) {
                                     } else {
@@ -109,7 +109,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                             }
                             if (!empty($rFFProbeOutput)) {
                                 echo 'Source live!' . "\n";
-                                $rFFProbeOutput = CoreUtilities::parseFFProbe($rFFProbeOutput);
+                                $rFFProbeOutput = FFprobeRunner::parseFFProbe($rFFProbeOutput);
                                 $rAudioCodec = ($rFFProbeOutput['codecs']['audio']['codec_name'] ?: null);
                                 $rVideoCodec = ($rFFProbeOutput['codecs']['video']['codec_name'] ?: null);
                                 $rResolution = ($rFFProbeOutput['codecs']['video']['height'] ?: null);
@@ -126,7 +126,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                                 }
                                 if (!$rResolution) {
                                 } else {
-                                    $rResolution = CoreUtilities::getNearest(array(240, 360, 480, 576, 720, 1080, 1440, 2160), $rResolution);
+                                    $rResolution = StreamSorter::getNearest(array(240, 360, 480, 576, 720, 1080, 1440, 2160), $rResolution);
                                 }
                                 $rStatus = 1;
                             } else {

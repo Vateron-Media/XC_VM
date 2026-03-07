@@ -1,6 +1,6 @@
 <?php
 /**
- * Blocked ISP edit view (Phase 6.3 — Group H).
+ * Blocked ISP edit view.
  * Delegation proxy → legacy admin/isp.php HTML body.
  */
 $__viewMode = true;

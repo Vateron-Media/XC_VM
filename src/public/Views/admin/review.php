@@ -1,6 +1,6 @@
 <?php
 /**
- * View: review — delegation proxy (Phase 6.3 — Group N).
+ * View: review — delegation proxy.
  */
 $__viewMode = true;
 include MAIN_HOME . 'admin/review.php';

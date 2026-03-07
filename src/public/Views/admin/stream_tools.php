@@ -1,6 +1,6 @@
 <?php
 /**
- * Stream tools view (Phase 6.3 — Group A).
+ * Stream tools view.
  * Delegation proxy → legacy admin/stream_tools.php HTML body.
  */
 $__viewMode = true;

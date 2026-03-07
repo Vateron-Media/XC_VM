@@ -1,6 +1,6 @@
 <?php
 /**
- * FingerprintController — Fingerprint Stream (Phase 6.3 — Group N).
+ * FingerprintController — Fingerprint Stream.
  */
 class FingerprintController extends BaseAdminController
 {

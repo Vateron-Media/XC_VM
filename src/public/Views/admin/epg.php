@@ -1,6 +1,6 @@
 <?php
 /**
- * XC_VM — View: EPG edit/add
+ * View: EPG edit/add
  * Делегирует рендеринг в legacy admin/epg.php
  */
 $__viewMode = true;

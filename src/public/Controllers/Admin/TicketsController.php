@@ -1,6 +1,6 @@
 <?php
 /**
- * XC_VM — Контроллер списка тикетов (admin/tickets.php)
+ * Контроллер списка тикетов (admin/tickets.php)
  */
 
 class TicketsController extends BaseAdminController {

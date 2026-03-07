@@ -1,21 +1,21 @@
 <?php
 
 echo '<!DOCTYPE html>' . "\r\n" . '<html lang="en">' . "\r\n" . '<head>' . "\r\n\t" . '<meta charset="utf-8">' . "\r\n\t" . '<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">' . "\r\n\t" . '<link rel="stylesheet" href="./css/bootstrap-reboot.min.css">' . "\r\n\t" . '<link rel="stylesheet" href="./css/bootstrap-grid.min.css">' . "\r\n\t" . '<link rel="stylesheet" href="./css/owl.carousel.min.css">' . "\r\n\t" . '<link rel="stylesheet" href="./css/jquery.mcustomscrollbar.min.css">' . "\r\n\t" . '<link rel="stylesheet" href="./css/nouislider.min.css">' . "\r\n\t" . '<link rel="stylesheet" href="./css/ionicons.min.css">' . "\r\n\t" . '<link rel="stylesheet" href="./css/photoswipe.css">' . "\r\n" . '    <link rel="stylesheet" href="./css/glightbox.css">' . "\r\n\t" . '<link rel="stylesheet" href="./css/default-skin.css">' . "\r\n" . '    <link rel="stylesheet" href="./css/jBox.all.min.css">' . "\r\n" . '    <link rel="stylesheet" href="./css/select2.min.css">' . "\r\n" . '    <link rel="stylesheet" href="./css/listings.css">' . "\r\n" . '    <link rel="stylesheet" href="./css/main.css">' . "\r\n" . '    <link rel="shortcut icon" href="img/favicon.ico">' . "\r\n\t" . '<title>';
-echo (CoreUtilities::$rSettings['server_name'] ?: 'XC_VM Web Player');
+echo (SettingsManager::getAll()['server_name'] ?: 'XC_VM Web Player');
 echo ' - ';
 echo $_TITLE;
 echo '</title>' . "\r\n" . '    <style>' . "\r\n" . '    .seasons__cover {' . "\r\n" . '        filter: blur(';
-echo (intval(CoreUtilities::$rSettings['player_blur']) ?: 0);
+echo (intval(SettingsManager::getAll()['player_blur']) ?: 0);
 echo 'px) !important;' . "\r\n" . '        opacity: ';
-echo (intval(CoreUtilities::$rSettings['player_opacity']) ?: 10);
+echo (intval(SettingsManager::getAll()['player_opacity']) ?: 10);
 echo '%;' . "\r\n" . '    }' . "\r\n" . '    .details__bg {' . "\r\n" . '        filter: blur(';
-echo (intval(CoreUtilities::$rSettings['player_blur']) ?: 0);
+echo (intval(SettingsManager::getAll()['player_blur']) ?: 0);
 echo 'px) !important;' . "\r\n" . '        opacity: ';
-echo (intval(CoreUtilities::$rSettings['player_opacity']) ?: 10);
+echo (intval(SettingsManager::getAll()['player_opacity']) ?: 10);
 echo '%;' . "\r\n" . '    }' . "\r\n" . '    .home__bg {' . "\r\n" . '        filter: blur(';
-echo (intval(CoreUtilities::$rSettings['player_blur']) ?: 0);
+echo (intval(SettingsManager::getAll()['player_blur']) ?: 0);
 echo 'px) !important;' . "\r\n" . '        opacity: ';
-echo (intval(CoreUtilities::$rSettings['player_opacity']) ?: 10);
+echo (intval(SettingsManager::getAll()['player_opacity']) ?: 10);
 echo '%;' . "\r\n" . '    }' . "\r\n" . '    </style>' . "\r\n" . '</head>' . "\r\n" . '<body class="body">' . "\r\n\t" . '<header class="header">' . "\r\n" . '        <div class="navbar-overlay bg-animate"></div>' . "\r\n\t\t" . '<div class="header__wrap">' . "\r\n\t\t\t" . '<div class="container">' . "\r\n\t\t\t\t" . '<div class="row">' . "\r\n\t\t\t\t\t" . '<div class="col-12">' . "\r\n\t\t\t\t\t\t" . '<div class="header__content">' . "\r\n\t\t\t\t\t\t\t" . '<a class="header__logo" href="index.php">' . "\r\n\t\t\t\t\t\t\t\t" . '<img src="img/logo.png" alt="" height="48px">' . "\r\n\t\t\t\t\t\t\t" . '</a>' . "\r\n\t\t\t\t\t\t\t" . '<ul class="header__nav">' . "\r\n\t\t\t\t\t\t\t\t" . '<li class="header__nav-item">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<a href="./index.php" class="header__nav-link';
 
 if ($_PAGE != 'index') {
@@ -25,7 +25,7 @@ if ($_PAGE != 'index') {
 
 echo '">Home</a>' . "\r\n\t\t\t\t\t\t\t\t" . '</li>' . "\r\n" . '                                ';
 
-if (!(in_array(1, $rUserInfo['allowed_outputs']) && !CoreUtilities::$rSettings['disable_hls'])) {
+if (!(in_array(1, $rUserInfo['allowed_outputs']) && !SettingsManager::getAll()['disable_hls'])) {
 } else {
 	echo "\t\t\t\t\t\t\t\t" . '<li class="header__nav-item">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<a href="./live.php" class="header__nav-link';
 

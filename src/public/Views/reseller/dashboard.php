@@ -1,6 +1,6 @@
 <?php
 /**
- * Dashboard view (Phase 6.4 — Reseller).
+ * Dashboard view.
  * Delegation proxy → legacy reseller/dashboard.php HTML body.
  */
 $__viewMode = true;

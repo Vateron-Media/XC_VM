@@ -1,6 +1,6 @@
 <?php
 /**
- * OndemandController — On-Demand сканер (Phase 6.3 — Group B).
+ * OndemandController — On-Demand сканер.
  */
 class OndemandController extends BaseAdminController
 {

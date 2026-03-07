@@ -8,7 +8,7 @@
 		goHome();
 	}
 
-	$rCategories = getCategories('series');
+	$rCategories = CategoryService::getAllByType('series');
 	$_TITLE = 'TV Series';
 	require_once __DIR__ . '/../public/Views/layouts/admin.php';
 	renderUnifiedLayoutHeader('admin');
@@ -51,21 +51,21 @@
 						<div id="collapse_filters" class="form-group row mb-4 <?php if ($rMobile) echo 'collapse'; ?>">
 							<div class="col-md-6">
 								<input type="text" class="form-control" id="series_search"
-									value="<?php if (isset(CoreUtilities::$rRequest['search'])) echo htmlspecialchars(CoreUtilities::$rRequest['search']); ?>"
+									value="<?php if (isset(RequestManager::getAll()['search'])) echo htmlspecialchars(RequestManager::getAll()['search']); ?>"
 									placeholder="Search Series...">
 							</div>
 							<div class="col-md-3">
 								<select id="series_category_id" class="form-control" data-toggle="select2">
 									<option value="">All Categories</option>
 									<option value="-1"
-										<?php if (isset(CoreUtilities::$rRequest['category']) && CoreUtilities::$rRequest['category'] == -1) echo 'selected'; ?>>
+										<?php if (isset(RequestManager::getAll()['category']) && RequestManager::getAll()['category'] == -1) echo 'selected'; ?>>
 										No TMDb Match</option>
 									<option value="-2"
-										<?php if (isset(CoreUtilities::$rRequest['category']) && CoreUtilities::$rRequest['category'] == -2) echo 'selected'; ?>>
+										<?php if (isset(RequestManager::getAll()['category']) && RequestManager::getAll()['category'] == -2) echo 'selected'; ?>>
 										No Categories</option>
 									<?php foreach ($rCategories as $rCategory): ?>
 										<option value="<?= $rCategory['id']; ?>"
-											<?php if (isset(CoreUtilities::$rRequest['category']) && CoreUtilities::$rRequest['category'] == $rCategory['id']) echo 'selected'; ?>>
+											<?php if (isset(RequestManager::getAll()['category']) && RequestManager::getAll()['category'] == $rCategory['id']) echo 'selected'; ?>>
 											<?= $rCategory['category_name']; ?>
 										</option>
 									<?php endforeach; ?>
@@ -76,7 +76,7 @@
 								<select id="series_show_entries" class="form-control" data-toggle="select2">
 									<?php foreach (array(10, 25, 50, 250, 500, 1000) as $rShow): ?>
 										<option value="<?= $rShow; ?>"
-											<?php if ((isset(CoreUtilities::$rRequest['entries']) && CoreUtilities::$rRequest['entries'] == $rShow) || (!isset(CoreUtilities::$rRequest['entries']) && $rSettings['default_entries'] == $rShow)) echo 'selected'; ?>>
+											<?php if ((isset(RequestManager::getAll()['entries']) && RequestManager::getAll()['entries'] == $rShow) || (!isset(RequestManager::getAll()['entries']) && $rSettings['default_entries'] == $rShow)) echo 'selected'; ?>>
 											<?= $rShow; ?>
 										</option>
 									<?php endforeach; ?>
@@ -266,12 +266,12 @@ renderUnifiedLayoutFooter('admin');
 	}
 
 	echo "\t\t\t\t" . 'order: [[ ';
-	echo (isset(CoreUtilities::$rRequest['order']) ? intval(CoreUtilities::$rRequest['order']) : 0);
+	echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 0);
 	echo ', "';
-	echo (in_array(strtolower(CoreUtilities::$rRequest['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(CoreUtilities::$rRequest['dir']) : 'desc');
+	echo (in_array(strtolower(RequestManager::getAll()['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::getAll()['dir']) : 'desc');
 	echo '" ]],' . "\r\n\t\t\t\t" . 'pageLength: parseInt(rEntries),' . "\r\n\t\t\t\t" . 'lengthMenu: [10, 25, 50, 250, 500, 1000],' . "\r\n" . '                displayStart: (parseInt(rPage)-1) * parseInt(rEntries)' . "\r\n\t\t\t" . '});' . "\r\n" . '            function doSearch(rValue) {' . "\r\n" . '                clearTimeout(window.rSearch); window.rSearch = setTimeout(function(){ rTable.search(rValue).draw(); }, 500);' . "\r\n" . '            }' . "\r\n\t\t\t" . '$("#datatable-streampage").css("width", "100%");' . "\r\n\t\t\t" . "\$('#series_search').keyup(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#series_search").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("search", $("#series_search").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("search");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'doSearch($(this).val());' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#series_show_entries').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#series_show_entries").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("entries", $("#series_show_entries").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("entries");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.page.len($(this).val()).draw();' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#series_category_id').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#series_category_id").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("category", $("#series_category_id").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("category");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "if (\$('#series_search').val()) {" . "\r\n\t\t\t\t" . "rTable.search(\$('#series_search').val()).draw();" . "\r\n\t\t\t" . '}' . "\r\n" . '            $("#btn-export-csv").click(function() {' . "\r\n" . '                $.toast("Generating CSV report...");' . "\r\n" . '                window.location.href = "api?action=report&params=" + encodeURIComponent(JSON.stringify($("#datatable-streampage").DataTable().ajax.params()));' . "\r\n\t\t\t" . '});' . "\r\n" . '            checkClear();' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
 	?>
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+	<?php if (SettingsManager::getAll()['enable_search']): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

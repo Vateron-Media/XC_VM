@@ -98,20 +98,20 @@ if (!function_exists('bootstrapAdminRuntime')) {
 		}
 
 		if (!$rBootstrapped) {
+			require_once MAIN_HOME . 'autoload.php';
 			require_once MAIN_HOME . 'core/Init/LegacyInitializer.php';
 			require_once MAIN_HOME . 'core/Database/DatabaseHandler.php';
-			require_once INCLUDES_PATH . 'CoreUtilities.php';
 			require_once INCLUDES_PATH . 'reseller_api.php';
 			require_once INCLUDES_PATH . 'libs/Translator.php';
 			$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
-			CoreUtilities::$db = &$db;
-			CoreUtilities::init();
+			DatabaseFactory::set($db);
+			LegacyInitializer::initCore();
 			// Admin user info (formerly API::$rUserInfo)
 			if (isset($_SESSION['hash'])) {
 				$GLOBALS['rAdminUserInfo'] = UserRepository::getRegisteredUserById($_SESSION['hash']);
 			}
 			ResellerAPI::init();
-			CoreUtilities::connectRedis();
+			RedisManager::ensureConnected();
 			register_shutdown_function(function () {
 				global $db;
 				if (is_object($db)) {
@@ -124,7 +124,7 @@ if (!function_exists('bootstrapAdminRuntime')) {
 		}
 
 		if (defined('SERVER_ID') === false) {
-			define('SERVER_ID', intval(CoreUtilities::$rConfig['server_id']));
+			define('SERVER_ID', intval(ConfigReader::get('server_id')));
 		}
 
 		require_once INCLUDES_PATH . 'libs/mobiledetect.php';
@@ -140,7 +140,7 @@ if (!function_exists('bootstrapAdminRuntime')) {
 		$rProtocol = getProtocol();
 		$allServers = ServerRepository::getAllSimple();
 		$rServers = ServerRepository::getStreamingSimple($rPermissions);
-		$rSettings = CoreUtilities::$rSettings;
+		$rSettings = SettingsManager::getAll();
 		$rProxyServers = ServerRepository::getProxySimple($rPermissions);
 
 		$language = Translator::class;

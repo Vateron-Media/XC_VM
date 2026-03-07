@@ -370,7 +370,7 @@ renderUnifiedLayoutFooter('admin');
             submitForm(window.rCurrentPage, new FormData($("#move_form")[0]));
         });
     });
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+    <?php if (SettingsManager::getAll()['enable_search']): ?>
         $(document).ready(function() {
             initSearch();
         });

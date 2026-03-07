@@ -1,7 +1,7 @@
 <?php
 
 class SettingsService {
-	public static function edit($rData, $rClearSettingsCacheCallback) {
+	public static function edit($rData) {
 		global $db;
 		foreach (array('user_agent', 'http_proxy', 'cookie', 'headers') as $rKey) {
 			$db->query('UPDATE `streams_arguments` SET `argument_default_value` = ? WHERE `argument_key` = ?;', ($rData[$rKey] ?: null), $rKey);
@@ -55,14 +55,14 @@ class SettingsService {
 
 		$rQuery = 'UPDATE `settings` SET ' . $rPrepare['update'] . ';';
 		if ($db->query($rQuery, ...$rPrepare['data'])) {
-			call_user_func($rClearSettingsCacheCallback);
+			clearSettingsCache();
 			return array('status' => STATUS_SUCCESS);
 		}
 
 		return array('status' => STATUS_FAILURE);
 	}
 
-	public static function editBackup($rData, $rClearSettingsCacheCallback) {
+	public static function editBackup($rData) {
 		global $db;
 		$rArray = verifyPostTable('settings', $rData, true);
 
@@ -89,14 +89,14 @@ class SettingsService {
 
 		$rQuery = 'UPDATE `settings` SET ' . $rPrepare['update'] . ';';
 		if ($db->query($rQuery, ...$rPrepare['data'])) {
-			call_user_func($rClearSettingsCacheCallback);
+			clearSettingsCache();
 			return array('status' => STATUS_SUCCESS);
 		}
 
 		return array('status' => STATUS_FAILURE);
 	}
 
-	public static function editCacheCron($rData, $rClearSettingsCacheCallback) {
+	public static function editCacheCron($rData) {
 		global $db;
 		$rCheck = array(false, false);
 		$rCron = array('*', '*', '*', '*', '*');
@@ -123,7 +123,7 @@ class SettingsService {
 				unlink(TMP_PATH . 'crontab');
 			}
 
-			call_user_func($rClearSettingsCacheCallback);
+			clearSettingsCache();
 			return array('status' => STATUS_SUCCESS);
 		}
 

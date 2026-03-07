@@ -1,6 +1,6 @@
 <?php
 /**
- * Series list view (Phase 6.3 — Group B).
+ * Series list view.
  * Delegation proxy → legacy admin/series.php HTML body.
  */
 $__viewMode = true;

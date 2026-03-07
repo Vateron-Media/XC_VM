@@ -1,6 +1,6 @@
 <?php
 /**
- * Live connections view (Phase 6.4 — Reseller).
+ * Live connections view.
  * Delegation proxy → legacy reseller/live_connections.php HTML body.
  */
 $__viewMode = true;

@@ -1,6 +1,6 @@
 <?php
 /**
- * ChannelOrderController — порядок каналов (Phase 6.3 — Group A).
+ * ChannelOrderController — порядок каналов.
  */
 class ChannelOrderController extends BaseAdminController
 {
@@ -10,7 +10,7 @@ class ChannelOrderController extends BaseAdminController
 
         global $db;
 
-        $rOverride = isset(CoreUtilities::$rRequest['override']);
+        $rOverride = isset(RequestManager::getAll()['override']);
         $rOrdered = array('stream' => array(), 'movie' => array(), 'series' => array(), 'radio' => array());
         $db->query('SELECT COUNT(`id`) AS `count` FROM `streams`;');
         $rCount = $db->get_row()['count'];

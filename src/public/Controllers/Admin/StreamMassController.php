@@ -1,6 +1,6 @@
 <?php
 /**
- * StreamMassController — массовое редактирование стримов (Phase 6.3 — Group A).
+ * StreamMassController — массовое редактирование стримов.
  */
 class StreamMassController extends BaseAdminController
 {
@@ -10,7 +10,7 @@ class StreamMassController extends BaseAdminController
 
         global $rServers;
 
-        $rCategories = getCategories('live');
+        $rCategories = CategoryService::getAllByType('live');
         $rStreamArguments = StreamConfigRepository::getStreamArguments();
         $rTranscodeProfiles = StreamConfigRepository::getTranscodeProfiles();
 

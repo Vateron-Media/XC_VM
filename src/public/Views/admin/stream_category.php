@@ -1,6 +1,6 @@
 <?php
 /**
- * Stream category edit view (Phase 6.3 — Group A).
+ * Stream category edit view.
  * Delegation proxy → legacy admin/stream_category.php HTML body.
  */
 $__viewMode = true;

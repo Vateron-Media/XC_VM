@@ -1,7 +1,7 @@
 <?php
 
 /**
- * BaseAdminController — базовый контроллер для admin-страниц (Phase 6.3).
+ * BaseAdminController — базовый контроллер для admin-страниц.
  *
  * Инкапсулирует общий render-flow:
  *   1. renderUnifiedLayoutHeader('admin')
@@ -156,7 +156,7 @@ class BaseAdminController
     }
 
     /**
-     * Получить параметр запроса (GET/POST/CoreUtilities::$rRequest).
+     * Получить параметр запроса (GET/POST/RequestManager::getAll()).
      *
      * @param string $key
      * @param mixed  $default
@@ -164,9 +164,9 @@ class BaseAdminController
      */
     protected function input($key, $default = null)
     {
-        // Приоритет: CoreUtilities::$rRequest → $_REQUEST
-        if (class_exists('CoreUtilities', false) && isset(CoreUtilities::$rRequest[$key])) {
-            return CoreUtilities::$rRequest[$key];
+        // Приоритет: RequestManager → $_REQUEST
+        if (isset(RequestManager::getAll()[$key])) {
+            return RequestManager::getAll()[$key];
         }
         return isset($_REQUEST[$key]) ? $_REQUEST[$key] : $default;
     }

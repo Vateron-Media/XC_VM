@@ -1,6 +1,6 @@
 <?php
 /**
- * SerieController — редактирование/добавление сериала (Phase 6.3 — Group B).
+ * SerieController — редактирование/добавление сериала.
  */
 class SerieController extends BaseAdminController
 {
@@ -11,13 +11,13 @@ class SerieController extends BaseAdminController
         global $rServers;
 
         $rSeriesArr = null;
-        if (isset(CoreUtilities::$rRequest['id']) && !($rSeriesArr = getSerie(CoreUtilities::$rRequest['id']))) {
+        if (isset(RequestManager::getAll()['id']) && !($rSeriesArr = getSerie(RequestManager::getAll()['id']))) {
             $this->redirect('series');
             return;
         }
 
-        if (isset($rSeriesArr) && isset(CoreUtilities::$rRequest['import'])) {
-            unset(CoreUtilities::$rRequest['import']);
+        if (isset($rSeriesArr) && isset(RequestManager::getAll()['import'])) {
+            unset(RequestManager::getAll()['import']);
         }
 
         $rTranscodeProfiles = StreamConfigRepository::getTranscodeProfiles();

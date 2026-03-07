@@ -81,7 +81,7 @@ if (count(get_included_files()) != 1) {
 					echo intval($rSettings['default_entries']);
 					echo '; }' . "\r\n\t\t\t" . 'var rTable = $("#datatable-users").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"," . "\r\n\t\t\t\t\t" . '},' . "\r\n\t\t\t\t\t" . 'infoFiltered: ""' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n\t\t\t\t\t" . 'bindHref(); refreshTooltips();' . "\r\n" . '                    if ($("#datatable-users").DataTable().page.info().page > 0) {' . "\r\n" . '                        setParam("page", $("#datatable-users").DataTable().page.info().page+1);' . "\r\n" . '                    } else {' . "\r\n" . '                        delParam("page");' . "\r\n" . '                    }' . "\r\n" . '                    var rOrder = $("#datatable-users").DataTable().order()[0];' . "\r\n" . '                    setParam("order", rOrder[0]); setParam("dir", rOrder[1]);' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'createdRow: function(row, data, index) {' . "\r\n\t\t\t\t\t" . "\$(row).addClass('user-' + data[0]);" . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "enigmas",' . "\r\n\t\t\t\t\t\t" . 'd.filter = getFilter(),' . "\r\n\t\t\t\t\t\t" . 'd.reseller = getReseller()' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,2,3,5,6,7,8,9]},' . "\r\n\t\t\t\t\t";
 
-					if (CoreUtilities::$rSettings['redis_handler']) {
+					if (SettingsManager::getAll()['redis_handler']) {
 						echo "\t\t\t\t\t" . '{"orderable": false, "targets": [6,9]},' . "\r\n\t\t\t\t\t";
 					} else {
 						echo "\t\t\t\t\t" . '{"orderable": false, "targets": [9]},' . "\r\n\t\t\t\t\t";
@@ -95,9 +95,9 @@ if (count(get_included_files()) != 1) {
 					}
 
 					echo "\t\t\t\t" . 'order: [[ ';
-					echo (isset(CoreUtilities::$rRequest['order']) ? intval(CoreUtilities::$rRequest['order']) : 0);
+					echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 0);
 					echo ', "';
-					echo (in_array(strtolower(CoreUtilities::$rRequest['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(CoreUtilities::$rRequest['dir']) : 'desc');
+					echo (in_array(strtolower(RequestManager::getAll()['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::getAll()['dir']) : 'desc');
 					echo '" ]],' . "\r\n\t\t\t\t" . 'pageLength: parseInt(rEntries),' . "\r\n\t\t\t\t" . 'lengthMenu: [10, 25, 50, 250, 500, 1000],' . "\r\n" . '                displayStart: (parseInt(rPage)-1) * parseInt(rEntries)' . "\r\n\t\t\t" . '});' . "\r\n" . '            function doSearch(rValue) {' . "\r\n" . '                clearTimeout(window.rSearch); window.rSearch = setTimeout(function(){ rTable.search(rValue).draw(); }, 500);' . "\r\n" . '            }' . "\r\n\t\t\t" . '$("#datatable-users").css("width", "100%");' . "\r\n\t\t\t" . "\$('#e2_search').keyup(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#e2_search").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("search", $("#e2_search").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("search");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'doSearch($(this).val());' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#e2_show_entries').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#e2_show_entries").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("entries", $("#e2_show_entries").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("entries");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.page.len($(this).val()).draw();' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#e2_filter').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#e2_filter").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("filter", $("#e2_filter").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("filter");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#e2_reseller').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#e2_reseller").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("owner", $("#e2_reseller").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("owner");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "if (\$('#e2_search').val()) {" . "\r\n\t\t\t\t" . "rTable.search(\$('#e2_search').val()).draw();" . "\r\n\t\t\t" . '}' . "\r\n\t\t\t" . 'checkClear();' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n" . '        ';
 				} else {
 					if ($_PAGE == 'episodes') {
@@ -107,7 +107,7 @@ if (count(get_included_files()) != 1) {
 						echo intval($rSettings['default_entries']);
 						echo '; }' . "\r\n\t\t\t" . 'var rTable = $("#datatable-streampage").DataTable({' . "\r\n" . '                language: {' . "\r\n" . '                    paginate: {' . "\r\n" . "                        previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n" . "                        next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n" . '                    }' . "\r\n" . '                },' . "\r\n" . '                drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n" . '                    if ($("#datatable-streampage").DataTable().page.info().page > 0) {' . "\r\n" . '                        setParam("page", $("#datatable-streampage").DataTable().page.info().page+1);' . "\r\n" . '                    } else {' . "\r\n" . '                        delParam("page");' . "\r\n" . '                    }' . "\r\n" . '                    var rOrder = $("#datatable-streampage").DataTable().order()[0];' . "\r\n" . '                    setParam("order", rOrder[0]); setParam("dir", rOrder[1]);' . "\r\n" . '                },' . "\r\n" . '                createdRow: function(row, data, index) {' . "\r\n" . "                    \$(row).addClass('stream-' + data[0]);" . "\r\n" . '                },' . "\r\n" . '                responsive: false,' . "\r\n" . '                processing: true,' . "\r\n" . '                serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n" . '                ajax: {' . "\r\n" . '                    url: "./table",' . "\r\n" . '                    "data": function(d) {' . "\r\n" . '                        d.id = "episodes";' . "\r\n" . '                        d.series = getSeries();' . "\r\n" . '                        d.category = getCategory();' . "\r\n" . '                    }' . "\r\n" . '                },' . "\r\n" . '                columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,1,4,5]},' . "\r\n\t\t\t\t\t";
 
-						if (CoreUtilities::$rSettings['redis_handler']) {
+						if (SettingsManager::getAll()['redis_handler']) {
 							echo "\t\t\t\t\t" . '{"orderable": false, "targets": [1,4,5]},' . "\r\n\t\t\t\t\t";
 						} else {
 							echo "\t\t\t\t\t" . '{"orderable": false, "targets": [1,5]},' . "\r\n\t\t\t\t\t";
@@ -122,17 +122,17 @@ if (count(get_included_files()) != 1) {
 
 						echo "\t\t\t\t";
 
-						if (CoreUtilities::$rSettings['redis_handler']) {
+						if (SettingsManager::getAll()['redis_handler']) {
 							echo "\t\t\t\t" . 'order: [[ ';
-							echo (isset(CoreUtilities::$rRequest['order']) ? intval(CoreUtilities::$rRequest['order']) : 2);
+							echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 2);
 							echo ', "';
-							echo (in_array(strtolower(CoreUtilities::$rRequest['dir']), array('asc', 'desc')) ? strtolower(CoreUtilities::$rRequest['dir']) : 'asc');
+							echo (in_array(strtolower(RequestManager::getAll()['dir']), array('asc', 'desc')) ? strtolower(RequestManager::getAll()['dir']) : 'asc');
 							echo '" ]],' . "\r\n\t\t\t\t";
 						} else {
 							echo "\t\t\t\t" . 'order: [[ ';
-							echo (isset(CoreUtilities::$rRequest['order']) ? intval(CoreUtilities::$rRequest['order']) : 4);
+							echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 4);
 							echo ', "';
-							echo (in_array(strtolower(CoreUtilities::$rRequest['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(CoreUtilities::$rRequest['dir']) : 'desc');
+							echo (in_array(strtolower(RequestManager::getAll()['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::getAll()['dir']) : 'desc');
 							echo '" ]],' . "\r\n\t\t\t\t";
 						}
 
@@ -155,9 +155,9 @@ if (count(get_included_files()) != 1) {
 							}
 
 							echo "\t\t\t\t" . 'order: [[ ';
-							echo (isset(CoreUtilities::$rRequest['order']) ? intval(CoreUtilities::$rRequest['order']) : 7);
+							echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 7);
 							echo ', "';
-							echo (in_array(strtolower(CoreUtilities::$rRequest['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(CoreUtilities::$rRequest['dir']) : 'desc');
+							echo (in_array(strtolower(RequestManager::getAll()['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::getAll()['dir']) : 'desc');
 							echo '" ]],' . "\r\n" . '                pageLength: parseInt(rEntries),' . "\r\n\t\t\t\t" . 'lengthMenu: [10, 25, 50, 250, 500, 1000],' . "\r\n" . '                displayStart: (parseInt(rPage)-1) * parseInt(rEntries)' . "\r\n\t\t\t" . '});' . "\r\n" . '            function doSearch(rValue) {' . "\r\n" . '                clearTimeout(window.rSearch); window.rSearch = setTimeout(function(){ rTable.search(rValue).draw(); }, 500);' . "\r\n" . '            }' . "\r\n\t\t\t" . '$("#datatable-activity").css("width", "100%");' . "\r\n\t\t\t" . "\$('#live_search').keyup(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#live_search").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("search", $("#live_search").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("search");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'doSearch($(this).val());' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#live_show_entries').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#live_show_entries").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("entries", $("#live_show_entries").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("entries");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.page.len($(this).val()).draw();' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#live_line').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#live_line").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("line", $("#live_line").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("line");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n" . "            \$('#live_user').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#live_user").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("user", $("#live_user").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("user");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n" . "            \$('#live_stream').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#live_stream").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("stream", $("#live_stream").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("stream");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n" . "            if (\$('#live_search').val()) {" . "\r\n\t\t\t\t" . "rTable.search(\$('#live_search').val()).draw();" . "\r\n\t\t\t" . '}' . "\r\n" . '            checkClear();' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
 						} else {
 							if ($_PAGE == 'mag' || $_PAGE == 'enigma') {
@@ -175,7 +175,7 @@ if (count(get_included_files()) != 1) {
 
 								echo '        ' . "\r\n" . '        function getPackage() {' . "\r\n" . "            var rTable = \$('#datatable-review').DataTable();" . "\r\n" . '            rTable.clear();' . "\r\n" . '            rTable.draw();' . "\r\n" . '            if ($("#package").val().length > 0) {' . "\r\n" . '                $.getJSON("./api?action=get_package';
 
-								if (!isset(CoreUtilities::$rRequest['trial']) || isset($rLine)) {
+								if (!isset(RequestManager::getAll()['trial']) || isset($rLine)) {
 								} else {
 									echo '_trial';
 								}
@@ -232,7 +232,7 @@ if (count(get_included_files()) != 1) {
 									$C688c27929fadb1a = json_decode($rLine['bouquet'], true);
 								}
 
-								foreach ($rBouquets as $rBouquetID) {
+								foreach ($rBouquets ?: [] as $rBouquetID) {
 									$rBouquetData = getBouquet($rBouquetID);
 
 									if (0 >= strlen($rBouquetID)) {
@@ -244,7 +244,7 @@ if (count(get_included_files()) != 1) {
 											echo $rBouquetID;
 											echo "' ";
 
-											if (!in_array($rBouquetID, $C688c27929fadb1a)) {
+											if (!in_array($rBouquetID, $C688c27929fadb1a ?: [])) {
 											} else {
 												echo 'checked';
 											}
@@ -257,13 +257,13 @@ if (count(get_included_files()) != 1) {
 										echo ", '";
 										echo str_replace("'", "\\'", $rBouquetData['bouquet_name']);
 										echo "', ";
-										echo count(json_decode($rBouquetData['bouquet_channels'], true));
+										echo count(json_decode($rBouquetData['bouquet_channels'], true) ?: []);
 										echo ', ';
-										echo count(json_decode($rBouquetData['bouquet_movies'], true));
+										echo count(json_decode($rBouquetData['bouquet_movies'], true) ?: []);
 										echo ', ';
-										echo count(json_decode($rBouquetData['bouquet_series'], true));
+										echo count(json_decode($rBouquetData['bouquet_series'], true) ?: []);
 										echo ', ';
-										echo count(json_decode($rBouquetData['bouquet_radios'], true));
+										echo count(json_decode($rBouquetData['bouquet_radios'], true) ?: []);
 										echo ']);' . "\r\n\t\t\t\t\t";
 									}
 								}
@@ -286,7 +286,7 @@ if (count(get_included_files()) != 1) {
 									echo intval($rSettings['default_entries']);
 									echo '; }' . "\r\n\t\t\t" . 'var rTable = $("#datatable-users").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"," . "\r\n\t\t\t\t\t" . '},' . "\r\n\t\t\t\t\t" . 'infoFiltered: ""' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\t\t\t\t\t" . 'bindHref(); refreshTooltips();' . "\r\n" . '                    if ($("#datatable-users").DataTable().page.info().page > 0) {' . "\r\n" . '                        setParam("page", $("#datatable-users").DataTable().page.info().page+1);' . "\r\n" . '                    } else {' . "\r\n" . '                        delParam("page");' . "\r\n" . '                    }' . "\r\n" . '                    var rOrder = $("#datatable-users").DataTable().order()[0];' . "\r\n" . '                    setParam("order", rOrder[0]); setParam("dir", rOrder[1]);' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'createdRow: function(row, data, index) {' . "\r\n\t\t\t\t\t" . "\$(row).addClass('user-' + data[0]);" . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "mags",' . "\r\n\t\t\t\t\t\t" . 'd.filter = getFilter(),' . "\r\n\t\t\t\t\t\t" . 'd.reseller = getReseller()' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,2,3,5,6,7,8,9]},' . "\r\n\t\t\t\t\t";
 
-									if (CoreUtilities::$rSettings['redis_handler']) {
+									if (SettingsManager::getAll()['redis_handler']) {
 										echo "\t\t\t\t\t" . '{"orderable": false, "targets": [6,9]},' . "\r\n\t\t\t\t\t";
 									} else {
 										echo "\t\t\t\t\t" . '{"orderable": false, "targets": [9]},' . "\r\n\t\t\t\t\t";
@@ -300,9 +300,9 @@ if (count(get_included_files()) != 1) {
 									}
 
 									echo "\t\t\t\t" . 'order: [[ ';
-									echo (isset(CoreUtilities::$rRequest['order']) ? intval(CoreUtilities::$rRequest['order']) : 0);
+									echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 0);
 									echo ', "';
-									echo (in_array(strtolower(CoreUtilities::$rRequest['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(CoreUtilities::$rRequest['dir']) : 'desc');
+									echo (in_array(strtolower(RequestManager::getAll()['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::getAll()['dir']) : 'desc');
 									echo '" ]],' . "\r\n\t\t\t\t" . 'pageLength: parseInt(rEntries),' . "\r\n\t\t\t\t" . 'lengthMenu: [10, 25, 50, 250, 500, 1000],' . "\r\n" . '                displayStart: (parseInt(rPage)-1) * parseInt(rEntries)' . "\r\n\t\t\t" . '});' . "\r\n" . '            function doSearch(rValue) {' . "\r\n" . '                clearTimeout(window.rSearch); window.rSearch = setTimeout(function(){ rTable.search(rValue).draw(); }, 500);' . "\r\n" . '            }' . "\r\n\t\t\t" . '$("#datatable-users").css("width", "100%");' . "\r\n\t\t\t" . "\$('#mag_search').keyup(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#mag_search").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("search", $("#mag_search").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("search");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'doSearch($(this).val());' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#mag_show_entries').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#mag_show_entries").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("entries", $("#mag_show_entries").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("entries");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.page.len($(this).val()).draw();' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#mag_filter').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#mag_filter").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("filter", $("#mag_filter").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("filter");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#mag_reseller').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#mag_reseller").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("owner", $("#mag_reseller").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("owner");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#message_type").change(function(){' . "\r\n\t\t\t\t" . 'if ($(this).val() == "send_msg") {' . "\r\n\t\t\t\t\t" . '$("#send_msg_form").show();' . "\r\n\t\t\t\t\t" . '$("#play_channel_form").hide();' . "\r\n\t\t\t\t\t" . '$("#message_submit").attr("disabled", false);' . "\r\n\t\t\t\t" . '} else if ($(this).val() == "play_channel") {' . "\r\n\t\t\t\t\t" . '$("#send_msg_form").hide();' . "\r\n\t\t\t\t\t" . '$("#play_channel_form").show();' . "\r\n\t\t\t\t\t" . '$("#message_submit").attr("disabled", false);' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . '$("#send_msg_form").hide();' . "\r\n\t\t\t\t\t" . '$("#play_channel_form").hide();' . "\r\n\t\t\t\t\t" . 'if ($(this).val() == "") {' . "\r\n\t\t\t\t\t\t" . '$("#message_submit").attr("disabled", true);' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . '$("#message_submit").attr("disabled", false);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#selected_channel').select2({" . "\r\n\t\t\t" . '  ajax: {' . "\r\n\t\t\t\t" . "url: './api'," . "\r\n\t\t\t\t" . "dataType: 'json'," . "\r\n\t\t\t\t" . 'data: function (params) {' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'search: params.term,' . "\r\n\t\t\t\t\t" . "action: 'streamlist'," . "\r\n\t\t\t\t\t" . 'page: params.page' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processResults: function (data, params) {' . "\r\n\t\t\t\t" . '  params.page = params.page || 1;' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'results: data.items,' . "\r\n\t\t\t\t\t" . 'pagination: {' . "\r\n\t\t\t\t\t\t" . 'more: (params.page * 100) < data.total_count' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'cache: true' . "\r\n\t\t\t" . '  },' . "\r\n\t\t\t" . "  placeholder: '";
 									echo $language::get('start_typing');
 									echo "...'," . "\r\n\t\t\t" . '  width: "100%"' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#message_submit").click(function() {' . "\r\n\t\t\t\t" . "rArray = {\"id\": \$('.messageModal').data('id'), \"type\": \$(\"#message_type\").val()};" . "\r\n\t\t\t\t" . 'if (rArray.type) {' . "\r\n\t\t\t\t\t" . 'if (rArray.type == "send_msg") {' . "\r\n\t\t\t\t\t\t" . 'rArray.message = $("#message").val();' . "\r\n\t\t\t\t\t\t" . 'if ($("#reboot_portal").is(":checked")) {' . "\r\n\t\t\t\t\t\t\t" . 'rArray.reboot_portal = 1;' . "\r\n\t\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t\t" . 'rArray.reboot_portal = 0;' . "\r\n\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '} else if (rArray.type == "play_channel") {' . "\r\n\t\t\t\t\t\t" . 'rArray.channel = $("#selected_channel").val();' . "\r\n\t\t\t\t\t\t" . 'if (!rArray.channel) {' . "\r\n\t\t\t\t\t\t\t" . 'rArray.channel = "";' . "\r\n\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'if ((rArray.type == "send_msg") && (rArray.message.length == 0)) {' . "\r\n\t\t\t\t\t\t" . '$.toast("';
@@ -322,7 +322,7 @@ if (count(get_included_files()) != 1) {
 										echo intval($rSettings['default_entries']);
 										echo '; }' . "\r\n\t\t\t" . 'var rTable = $("#datatable-streampage").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\t\t\t\t\t" . 'bindHref(); refreshTooltips();' . "\r\n" . '                    if ($("#datatable-streampage").DataTable().page.info().page > 0) {' . "\r\n" . '                        setParam("page", $("#datatable-streampage").DataTable().page.info().page+1);' . "\r\n" . '                    } else {' . "\r\n" . '                        delParam("page");' . "\r\n" . '                    }' . "\r\n" . '                    var rOrder = $("#datatable-streampage").DataTable().order()[0];' . "\r\n" . '                    setParam("order", rOrder[0]); setParam("dir", rOrder[1]);' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'createdRow: function(row, data, index) {' . "\r\n\t\t\t\t\t" . "\$(row).addClass('stream-' + data[0]);" . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "movies";' . "\r\n\t\t\t\t\t\t" . 'd.category = getCategory();' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,1,4,5]},' . "\r\n\t\t\t\t\t";
 
-										if (CoreUtilities::$rSettings['redis_handler']) {
+										if (SettingsManager::getAll()['redis_handler']) {
 											echo "\t\t\t\t\t" . '{"orderable": false, "targets": [1,4,5]},' . "\r\n\t\t\t\t\t";
 										} else {
 											echo "\t\t\t\t\t" . '{"orderable": false, "targets": [1,5]},' . "\r\n\t\t\t\t\t";
@@ -337,17 +337,17 @@ if (count(get_included_files()) != 1) {
 
 										echo "\t\t\t\t";
 
-										if (CoreUtilities::$rSettings['redis_handler']) {
+										if (SettingsManager::getAll()['redis_handler']) {
 											echo "\t\t\t\t" . 'order: [[ ';
-											echo (isset(CoreUtilities::$rRequest['order']) ? intval(CoreUtilities::$rRequest['order']) : 2);
+											echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 2);
 											echo ', "';
-											echo (in_array(strtolower(CoreUtilities::$rRequest['dir']), array('asc', 'desc')) ? strtolower(CoreUtilities::$rRequest['dir']) : 'asc');
+											echo (in_array(strtolower(RequestManager::getAll()['dir']), array('asc', 'desc')) ? strtolower(RequestManager::getAll()['dir']) : 'asc');
 											echo '" ]],' . "\r\n\t\t\t\t";
 										} else {
 											echo "\t\t\t\t" . 'order: [[ ';
-											echo (isset(CoreUtilities::$rRequest['order']) ? intval(CoreUtilities::$rRequest['order']) : 4);
+											echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 4);
 											echo ', "';
-											echo (in_array(strtolower(CoreUtilities::$rRequest['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(CoreUtilities::$rRequest['dir']) : 'desc');
+											echo (in_array(strtolower(RequestManager::getAll()['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::getAll()['dir']) : 'desc');
 											echo '" ]],' . "\r\n\t\t\t\t";
 										}
 
@@ -360,7 +360,7 @@ if (count(get_included_files()) != 1) {
 											echo intval($rSettings['default_entries']);
 											echo '; }' . "\r\n\t\t\t" . 'var rTable = $("#datatable-streampage").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\t\t\t\t\t" . 'bindHref(); refreshTooltips();' . "\r\n" . '                    if ($("#datatable-streampage").DataTable().page.info().page > 0) {' . "\r\n" . '                        setParam("page", $("#datatable-streampage").DataTable().page.info().page+1);' . "\r\n" . '                    } else {' . "\r\n" . '                        delParam("page");' . "\r\n" . '                    }' . "\r\n" . '                    var rOrder = $("#datatable-streampage").DataTable().order()[0];' . "\r\n" . '                    setParam("order", rOrder[0]); setParam("dir", rOrder[1]);' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'createdRow: function(row, data, index) {' . "\r\n\t\t\t\t\t" . "\$(row).addClass('stream-' + data[0]);" . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "radios",' . "\r\n\t\t\t\t\t\t" . 'd.category = getCategory();' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,1,4,5]},' . "\r\n\t\t\t\t\t";
 
-											if (CoreUtilities::$rSettings['redis_handler']) {
+											if (SettingsManager::getAll()['redis_handler']) {
 												echo "\t\t\t\t\t" . '{"orderable": false, "targets": [1,4,5]},' . "\r\n\t\t\t\t\t";
 											} else {
 												echo "\t\t\t\t\t" . '{"orderable": false, "targets": [1,5]},' . "\r\n\t\t\t\t\t";
@@ -375,17 +375,17 @@ if (count(get_included_files()) != 1) {
 
 											echo "\t\t\t\t";
 
-											if (CoreUtilities::$rSettings['redis_handler']) {
+											if (SettingsManager::getAll()['redis_handler']) {
 												echo "\t\t\t\t" . 'order: [[ ';
-												echo (isset(CoreUtilities::$rRequest['order']) ? intval(CoreUtilities::$rRequest['order']) : 2);
+												echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 2);
 												echo ', "';
-												echo (in_array(strtolower(CoreUtilities::$rRequest['dir']), array('asc', 'desc')) ? strtolower(CoreUtilities::$rRequest['dir']) : 'asc');
+												echo (in_array(strtolower(RequestManager::getAll()['dir']), array('asc', 'desc')) ? strtolower(RequestManager::getAll()['dir']) : 'asc');
 												echo '" ]],' . "\r\n\t\t\t\t";
 											} else {
 												echo "\t\t\t\t" . 'order: [[ ';
-												echo (isset(CoreUtilities::$rRequest['order']) ? intval(CoreUtilities::$rRequest['order']) : 4);
+												echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 4);
 												echo ', "';
-												echo (in_array(strtolower(CoreUtilities::$rRequest['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(CoreUtilities::$rRequest['dir']) : 'desc');
+												echo (in_array(strtolower(RequestManager::getAll()['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::getAll()['dir']) : 'desc');
 												echo '" ]],' . "\r\n\t\t\t\t";
 											}
 
@@ -415,9 +415,9 @@ if (count(get_included_files()) != 1) {
 															}
 
 															echo "\t\t\t\t" . 'order: [[ ';
-															echo (isset(CoreUtilities::$rRequest['order']) ? intval(CoreUtilities::$rRequest['order']) : 0);
+															echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 0);
 															echo ', "';
-															echo (in_array(strtolower(CoreUtilities::$rRequest['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(CoreUtilities::$rRequest['dir']) : 'desc');
+															echo (in_array(strtolower(RequestManager::getAll()['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::getAll()['dir']) : 'desc');
 															echo '" ]],' . "\r\n\t\t\t\t" . 'pageLength: parseInt(rEntries),' . "\r\n\t\t\t\t" . 'lengthMenu: [10, 25, 50, 250, 500, 1000],' . "\r\n" . '                displayStart: (parseInt(rPage)-1) * parseInt(rEntries)' . "\r\n\t\t\t" . '});' . "\r\n" . '            function doSearch(rValue) {' . "\r\n" . '                clearTimeout(window.rSearch); window.rSearch = setTimeout(function(){ rTable.search(rValue).draw(); }, 500);' . "\r\n" . '            }' . "\r\n\t\t\t" . '$("#datatable-users").css("width", "100%");' . "\r\n\t\t\t" . "\$('#reg_search').keyup(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#reg_search").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("search", $("#reg_search").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("search");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'doSearch($(this).val());' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#reg_show_entries').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#reg_show_entries").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("entries", $("#reg_show_entries").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("entries");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.page.len($(this).val()).draw();' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#reg_filter').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#reg_filter").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("filter", $("#reg_filter").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("filter");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#reg_reseller').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#reg_reseller").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("owner", $("#reg_reseller").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("owner");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . '$("#datatable-users").DataTable().ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n" . '            $("#credits").keyup(function() {' . "\r\n" . '                updateCredits();' . "\r\n" . '            });' . "\r\n\t\t\t" . "if (\$('#reg_search').val()) {" . "\r\n\t\t\t\t" . "rTable.search(\$('#reg_search').val()).draw();" . "\r\n\t\t\t" . '}' . "\r\n" . '            checkClear();' . "\r\n\t\t" . '});' . "\r\n\r\n\t\t";
 														} else {
 															if ($_PAGE == 'streams') {
@@ -427,7 +427,7 @@ if (count(get_included_files()) != 1) {
 																echo intval($rSettings['default_entries']);
 																echo '; }' . "\r\n\t\t\t" . 'var rTable = $("#datatable-streampage").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n" . '                    if ($("#datatable-streampage").DataTable().page.info().page > 0) {' . "\r\n" . '                        setParam("page", $("#datatable-streampage").DataTable().page.info().page+1);' . "\r\n" . '                    } else {' . "\r\n" . '                        delParam("page");' . "\r\n" . '                    }' . "\r\n" . '                    var rOrder = $("#datatable-streampage").DataTable().order()[0];' . "\r\n" . '                    setParam("order", rOrder[0]); setParam("dir", rOrder[1]);' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'createdRow: function(row, data, index) {' . "\r\n\t\t\t\t\t" . "\$(row).addClass('stream-' + data[0]);" . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "streams",' . "\r\n\t\t\t\t\t\t" . 'd.category = getCategory();' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,1,4,5]},' . "\r\n\t\t\t\t\t";
 
-																if (CoreUtilities::$rSettings['redis_handler']) {
+																if (SettingsManager::getAll()['redis_handler']) {
 																	echo "\t\t\t\t\t" . '{"orderable": false, "targets": [1,4,5]},' . "\r\n\t\t\t\t\t";
 																} else {
 																	echo "\t\t\t\t\t" . '{"orderable": false, "targets": [1,5]},' . "\r\n\t\t\t\t\t";
@@ -442,17 +442,17 @@ if (count(get_included_files()) != 1) {
 
 																echo "\t\t\t\t";
 
-																if (CoreUtilities::$rSettings['redis_handler']) {
+																if (SettingsManager::getAll()['redis_handler']) {
 																	echo "\t\t\t\t" . 'order: [[ ';
-																	echo (isset(CoreUtilities::$rRequest['order']) ? intval(CoreUtilities::$rRequest['order']) : 2);
+																	echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 2);
 																	echo ', "';
-																	echo (in_array(strtolower(CoreUtilities::$rRequest['dir']), array('asc', 'desc')) ? strtolower(CoreUtilities::$rRequest['dir']) : 'asc');
+																	echo (in_array(strtolower(RequestManager::getAll()['dir']), array('asc', 'desc')) ? strtolower(RequestManager::getAll()['dir']) : 'asc');
 																	echo '" ]],' . "\r\n\t\t\t\t";
 																} else {
 																	echo "\t\t\t\t" . 'order: [[ ';
-																	echo (isset(CoreUtilities::$rRequest['order']) ? intval(CoreUtilities::$rRequest['order']) : 4);
+																	echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 4);
 																	echo ', "';
-																	echo (in_array(strtolower(CoreUtilities::$rRequest['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(CoreUtilities::$rRequest['dir']) : 'desc');
+																	echo (in_array(strtolower(RequestManager::getAll()['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::getAll()['dir']) : 'desc');
 																	echo '" ]],' . "\r\n\t\t\t\t";
 																}
 
@@ -465,7 +465,7 @@ if (count(get_included_files()) != 1) {
 																	echo intval($rSettings['default_entries']);
 																	echo '; }' . "\r\n\t\t\t" . 'var rTable = $("#datatable-streampage").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r" . '                    bindHref(); refreshTooltips();' . "\r\n" . '                    if ($("#datatable-streampage").DataTable().page.info().page > 0) {' . "\r\n" . '                        setParam("page", $("#datatable-streampage").DataTable().page.info().page+1);' . "\r\n" . '                    } else {' . "\r\n" . '                        delParam("page");' . "\r\n" . '                    }' . "\r\n" . '                    var rOrder = $("#datatable-streampage").DataTable().order()[0];' . "\r\n" . '                    setParam("order", rOrder[0]); setParam("dir", rOrder[1]);' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'createdRow: function(row, data, index) {' . "\r\n\t\t\t\t\t" . "\$(row).addClass('stream-' + data[0]);" . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "streams",' . "\r\n\t\t\t\t\t\t" . 'd.category = getCategory();' . "\r\n" . '                        d.created = true;' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,1,4,5]},' . "\r\n\t\t\t\t\t";
 
-																	if (CoreUtilities::$rSettings['redis_handler']) {
+																	if (SettingsManager::getAll()['redis_handler']) {
 																		echo "\t\t\t\t\t" . '{"orderable": false, "targets": [1,4,5]},' . "\r\n\t\t\t\t\t";
 																	} else {
 																		echo "\t\t\t\t\t" . '{"orderable": false, "targets": [1,5]},' . "\r\n\t\t\t\t\t";
@@ -480,17 +480,17 @@ if (count(get_included_files()) != 1) {
 
 																	echo "\t\t\t\t";
 
-																	if (CoreUtilities::$rSettings['redis_handler']) {
+																	if (SettingsManager::getAll()['redis_handler']) {
 																		echo "\t\t\t\t" . 'order: [[ ';
-																		echo (isset(CoreUtilities::$rRequest['order']) ? intval(CoreUtilities::$rRequest['order']) : 2);
+																		echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 2);
 																		echo ', "';
-																		echo (in_array(strtolower(CoreUtilities::$rRequest['dir']), array('asc', 'desc')) ? strtolower(CoreUtilities::$rRequest['dir']) : 'asc');
+																		echo (in_array(strtolower(RequestManager::getAll()['dir']), array('asc', 'desc')) ? strtolower(RequestManager::getAll()['dir']) : 'asc');
 																		echo '" ]],' . "\r\n\t\t\t\t";
 																	} else {
 																		echo "\t\t\t\t" . 'order: [[ ';
-																		echo (isset(CoreUtilities::$rRequest['order']) ? intval(CoreUtilities::$rRequest['order']) : 4);
+																		echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 4);
 																		echo ', "';
-																		echo (in_array(strtolower(CoreUtilities::$rRequest['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(CoreUtilities::$rRequest['dir']) : 'desc');
+																		echo (in_array(strtolower(RequestManager::getAll()['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::getAll()['dir']) : 'desc');
 																		echo '" ]],' . "\r\n\t\t\t\t";
 																	}
 
@@ -514,7 +514,7 @@ if (count(get_included_files()) != 1) {
 
 																			echo '        ' . "\r\n" . '        function getPackage() {' . "\r\n" . "            var rTable = \$('#datatable-review').DataTable();" . "\r\n" . '            rTable.clear();' . "\r\n" . '            rTable.draw();' . "\r\n" . '            if ($("#package").val().length > 0) {' . "\r\n" . '                $.getJSON("./api?action=get_package';
 
-																			if (!isset(CoreUtilities::$rRequest['trial']) || isset($rLine)) {
+																			if (!isset(RequestManager::getAll()['trial']) || isset($rLine)) {
 																			} else {
 																				echo '_trial';
 																			}
@@ -575,7 +575,7 @@ if (count(get_included_files()) != 1) {
 																					$C688c27929fadb1a = json_decode($rLine['bouquet'], true);
 																				}
 
-																				foreach ($rBouquets as $rBouquetID) {
+																				foreach ($rBouquets ?: [] as $rBouquetID) {
 																					$rBouquetData = getBouquet($rBouquetID);
 
 																					if (0 >= strlen($rBouquetID)) {
@@ -587,7 +587,7 @@ if (count(get_included_files()) != 1) {
 																							echo $rBouquetID;
 																							echo "' ";
 
-																							if (!in_array($rBouquetID, $C688c27929fadb1a)) {
+																								if (!in_array($rBouquetID, $C688c27929fadb1a ?: [])) {
 																							} else {
 																								echo 'checked';
 																							}
@@ -600,13 +600,13 @@ if (count(get_included_files()) != 1) {
 																						echo ", '";
 																						echo str_replace("'", "\\'", $rBouquetData['bouquet_name']);
 																						echo "', ";
-																						echo count(json_decode($rBouquetData['bouquet_channels'], true));
-																						echo ', ';
-																						echo count(json_decode($rBouquetData['bouquet_movies'], true));
-																						echo ', ';
-																						echo count(json_decode($rBouquetData['bouquet_series'], true));
-																						echo ', ';
-																						echo count(json_decode($rBouquetData['bouquet_radios'], true));
+																							echo count(json_decode($rBouquetData['bouquet_channels'], true) ?: []);
+																							echo ', ';
+																							echo count(json_decode($rBouquetData['bouquet_movies'], true) ?: []);
+																							echo ', ';
+																							echo count(json_decode($rBouquetData['bouquet_series'], true) ?: []);
+																							echo ', ';
+																							echo count(json_decode($rBouquetData['bouquet_radios'], true) ?: []);
 																						echo ']);' . "\r\n\t\t\t\t\t";
 																					}
 																				}
@@ -633,15 +633,15 @@ if (count(get_included_files()) != 1) {
 																				}
 
 																				echo "\t\t\t\t" . 'order: [[ ';
-																				echo (isset(CoreUtilities::$rRequest['order']) ? intval(CoreUtilities::$rRequest['order']) : 6);
+																				echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 6);
 																				echo ', "';
-																				echo (in_array(strtolower(CoreUtilities::$rRequest['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(CoreUtilities::$rRequest['dir']) : 'desc');
+																				echo (in_array(strtolower(RequestManager::getAll()['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::getAll()['dir']) : 'desc');
 																				echo '" ]],' . "\r\n" . '                pageLength: parseInt(rEntries),' . "\r\n\t\t\t\t" . 'lengthMenu: [10, 25, 50, 250, 500, 1000],' . "\r\n" . '                displayStart: (parseInt(rPage)-1) * parseInt(rEntries)' . "\r\n\t\t\t" . '});' . "\r\n" . '            function doSearch(rValue) {' . "\r\n" . '                clearTimeout(window.rSearch); window.rSearch = setTimeout(function(){ rTable.search(rValue).draw(); }, 500);' . "\r\n" . '            }' . "\r\n\t\t\t" . '$("#datatable-activity").css("width", "100%");' . "\r\n\t\t\t" . "\$('#act_search').keyup(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n\t\t\t\t\t" . 'doSearch($(this).val());' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#act_show_entries').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n\t\t\t\t\t" . 'rTable.page.len($(this).val()).draw();' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#act_filter').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n\t\t\t\t\t" . '$("#datatable-activity").DataTable().ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t";
 
-																				if (!isset(CoreUtilities::$rRequest['range'])) {
+																				if (!isset(RequestManager::getAll()['range'])) {
 																				} else {
 																					echo "\t\t\t" . '$("#act_range").val("';
-																					echo str_replace('"', '\\"', htmlspecialchars(CoreUtilities::$rRequest['range']));
+																					echo str_replace('"', '\\"', htmlspecialchars(RequestManager::getAll()['range']));
 																					echo "\").trigger('change');" . "\r\n\t\t\t";
 																				}
 
@@ -652,10 +652,10 @@ if (count(get_included_files()) != 1) {
 																					echo implode(',', $rStreamIDs);
 																					echo '";' . "\r\n\t\t\t";
 
-																					if (!(isset(CoreUtilities::$rRequest['category']) && 0 < intval(CoreUtilities::$rRequest['category']))) {
+																					if (!(isset(RequestManager::getAll()['category']) && 0 < intval(RequestManager::getAll()['category']))) {
 																					} else {
 																						echo "\t\t\t" . 'window.XC_VM.Listings.Category = ';
-																						echo intval(CoreUtilities::$rRequest['category']);
+																						echo intval(RequestManager::getAll()['category']);
 																						echo ';' . "\r\n\t\t\t";
 																					}
 
@@ -666,14 +666,14 @@ if (count(get_included_files()) != 1) {
 																						echo '        ' . "\r\n\t\t" . 'var rClearing = false;' . "\r\n\r\n\t\t" . 'function api(rID, rType, rConfirm=false) {' . "\r\n" . '            if ((rType == "delete") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Delete",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to delete this line?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        api(rID, rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else if ((rType == "kill") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Kill",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to kill this connection?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        api(rID, rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else if ((rType == "kill_line") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Kill",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to kill all connections for this line?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        api(rID, rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n\t\t\t" . '} else {' . "\r\n" . '                rConfirm = true;' . "\r\n" . '            }' . "\r\n" . '            if (rConfirm) {' . "\r\n" . '                $.getJSON("./api?action=line&sub=" + rType + "&user_id=" + rID, function(data) {' . "\r\n" . '                    if (data.result === true) {' . "\r\n" . '                        if (rType == "delete") {' . "\r\n" . '                            $.toast("Line has been deleted.");' . "\r\n" . '                        } else if (rType == "enable") {' . "\r\n" . '                            $.toast("Line has been enabled.");' . "\r\n" . '                        } else if (rType == "disable") {' . "\r\n" . '                            $.toast("Line has been disabled.");' . "\r\n" . '                        } else if (rType == "kill_line") {' . "\r\n" . '                            $.toast("All connections for this line have been killed.");' . "\r\n" . '                        } else if (rType == "kill") {' . "\r\n" . '                            $.toast("Connection has been killed.");' . "\r\n" . '                        } else if (rType == "reset_isp") {' . "\r\n" . '                            $.toast("ISP has been reset.");' . "\r\n" . '                        }' . "\r\n" . '                        $("#datatable-users").DataTable().ajax.reload(null, false);' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("An error occured while processing your request.");' . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function download(username, password) {' . "\r\n\t\t\t" . '$("#download_type").val("").trigger("change");' . "\r\n" . '            $("#output_type").val("").trigger("change");' . "\r\n\t\t\t" . '$("#download_button").attr("disabled", true);' . "\r\n\t\t\t" . "\$('.downloadModal').data('username', username);" . "\r\n\t\t\t" . "\$('.downloadModal').data('password', password);" . "\r\n\t\t\t" . "\$('.downloadModal').modal('show');" . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function doDownload() {' . "\r\n\t\t\t" . 'if ($("#download_url").val()) {' . "\r\n\t\t\t\t" . 'window.open($("#download_url").val());' . "\r\n\t\t\t" . '}' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function copyDownload() {' . "\r\n\t\t\t" . '$("#download_url").select();' . "\r\n\t\t\t" . 'document.execCommand("copy");' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getFilter() {' . "\r\n\t\t\t" . 'return $("#user_filter").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getReseller() {' . "\r\n\t\t\t" . 'return $("#user_reseller").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function clearFilters() {' . "\r\n\t\t\t" . 'window.rClearing = true;' . "\r\n\t\t\t" . "\$(\"#user_search\").val(\"\").trigger('change');" . "\r\n\t\t\t" . "\$('#user_filter').val(\"\").trigger('change');" . "\r\n\t\t\t" . "\$('#user_reseller').val(\"\").trigger('change');" . "\r\n\t\t\t" . "\$('#user_show_entries').val(\"";
 																						echo (intval($rSettings['default_entries']) ?: 10);
 																						echo "\").trigger('change');" . "\r\n\t\t\t" . 'window.rClearing = false;' . "\r\n\t\t\t" . "\$('#datatable-users').DataTable().search(\$(\"#user_search\").val());" . "\r\n\t\t\t" . "\$('#datatable-users').DataTable().page.len(\$('#user_show_entries').val());" . "\r\n\t\t\t" . "\$(\"#datatable-users\").DataTable().page(0).draw('page');" . "\r\n\t\t\t" . '$("#datatable-users").DataTable().ajax.reload( null, false );' . "\r\n" . '            delParams(["search", "filter", "owner", "page", "entries"]);' . "\r\n\t\t\t" . 'checkClear();' . "\r\n\t\t" . '}' . "\r\n" . '        function checkClear() {' . "\r\n\t\t\t" . 'if (!hasParams(["search", "filter", "owner"])) {' . "\r\n\t\t\t\t" . '$("#clearFilters").prop("disabled", true);' . "\r\n\t\t\t" . '} else {' . "\r\n\t\t\t\t" . '$("#clearFilters").prop("disabled", false);' . "\r\n\t\t\t" . '}' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function refreshTable() {' . "\r\n\t\t\t" . '$("#datatable-users").DataTable().ajax.reload( null, false );' . "\r\n\t\t" . '}' . "\r\n" . '        var rSearch;' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n" . '            $("#output_type").change(function() {' . "\r\n" . '                $("#download_type").trigger("change");' . "\r\n" . '            });' . "\r\n" . '            $("#download_type").change(function() {' . "\r\n" . '                if ($("#download_type").val()) {' . "\r\n" . '                    ';
-																						$rURL = (empty($rUserInfo['reseller_dns']) ? rtrim(CoreUtilities::$rServers[SERVER_ID]['site_url'], '/') : (CoreUtilities::$rSettings['reseller_ssl_domain'] && CoreUtilities::$rServers[SERVER_ID]['enable_https'] ? 'https://' . htmlspecialchars($rUserInfo['reseller_dns']) . ':' . intval(CoreUtilities::$rServers[SERVER_ID]['https_broadcast_port']) : 'http://' . htmlspecialchars($rUserInfo['reseller_dns']) . ':' . intval(CoreUtilities::$rServers[SERVER_ID]['http_broadcast_port'])));
+																						$rServerInfo = ServerRepository::getAll()[SERVER_ID];\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t$rURL = (empty($rUserInfo['reseller_dns']) ? rtrim($rServerInfo['site_url'], '/') : (SettingsManager::getAll()['reseller_ssl_domain'] && $rServerInfo['enable_https'] ? 'https://' . htmlspecialchars($rUserInfo['reseller_dns']) . ':' . intval($rServerInfo['https_broadcast_port']) : 'http://' . htmlspecialchars($rUserInfo['reseller_dns']) . ':' . intval($rServerInfo['http_broadcast_port'])));
 																						echo '                    rText = "';
 																						echo $rURL;
 																						echo "/playlist/\" + \$('.downloadModal').data('username') + \"/\" + \$('.downloadModal').data('password') + \"/\" + decodeURIComponent(\$('.downloadModal select').val());" . "\r\n" . '                    if ($("#output_type").val().length > 0) {' . "\r\n" . "                        if (rText.indexOf('?output=') != -1) {" . "\r\n" . '                            rText = rText + "&key=" + $("#output_type").val().join(",");' . "\r\n" . '                        } else {' . "\r\n" . '                            rText = rText + "?key=" + $("#output_type").val().join(",");' . "\r\n" . '                        }' . "\r\n" . '                    }' . "\r\n" . "                    if (\$(\"#download_type\").find(':selected').data('text')) {" . "\r\n" . "                        rText = \$(\"#download_type\").find(':selected').data('text').replace(\"{DEVICE_LINK}\", '\"' + rText + '\"');" . "\r\n" . '                        $("#download_button").attr("disabled", true);' . "\r\n" . '                    } else {' . "\r\n" . '                        $("#download_button").attr("disabled", false);' . "\r\n" . '                    }' . "\r\n" . '                    $("#download_url").val(rText);' . "\r\n" . '                } else {' . "\r\n" . '                    $("#download_url").val("");' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'});" . "\r\n" . '            var rPage = getParam("page");' . "\r\n" . '            if (!rPage) { rPage = 1; }' . "\r\n" . '            var rEntries = getParam("entries");' . "\r\n" . '            if (!rEntries) { rEntries = ';
 																						echo intval($rSettings['default_entries']);
 																						echo '; }' . "\r\n\t\t\t" . 'var rTable = $("#datatable-users").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"," . "\r\n\t\t\t\t\t" . '},' . "\r\n\t\t\t\t\t" . 'infoFiltered: ""' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\t\t\t\t\t" . 'bindHref(); refreshTooltips();' . "\r\n" . '                    if ($("#datatable-users").DataTable().page.info().page > 0) {' . "\r\n" . '                        setParam("page", $("#datatable-users").DataTable().page.info().page+1);' . "\r\n" . '                    } else {' . "\r\n" . '                        delParam("page");' . "\r\n" . '                    }' . "\r\n" . '                    var rOrder = $("#datatable-users").DataTable().order()[0];' . "\r\n" . '                    setParam("order", rOrder[0]); setParam("dir", rOrder[1]);' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'createdRow: function(row, data, index) {' . "\r\n\t\t\t\t\t" . "\$(row).addClass('user-' + data[0]);" . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "lines";' . "\r\n\t\t\t\t\t\t" . 'd.filter = getFilter();' . "\r\n\t\t\t\t\t\t" . 'd.reseller = getReseller();' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,4,5,6,7,8,9,10,11]},' . "\r\n\t\t\t\t\t";
 
-																						if (CoreUtilities::$rSettings['redis_handler']) {
+																						if (SettingsManager::getAll()['redis_handler']) {
 																							echo "\t\t\t\t\t" . '{"orderable": false, "targets": [5,7,11]}' . "\r\n\t\t\t\t\t";
 																						} else {
 																							echo "\t\t\t\t\t" . '{"orderable": false, "targets": [11]}' . "\r\n\t\t\t\t\t";
@@ -687,9 +687,9 @@ if (count(get_included_files()) != 1) {
 																						}
 
 																						echo "\t\t\t\t" . 'order: [[ ';
-																						echo (isset(CoreUtilities::$rRequest['order']) ? intval(CoreUtilities::$rRequest['order']) : 0);
+																						echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 0);
 																						echo ', "';
-																						echo (in_array(strtolower(CoreUtilities::$rRequest['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(CoreUtilities::$rRequest['dir']) : 'desc');
+																						echo (in_array(strtolower(RequestManager::getAll()['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::getAll()['dir']) : 'desc');
 																						echo '" ]],' . "\r\n\t\t\t\t" . 'pageLength: parseInt(rEntries),' . "\r\n\t\t\t\t" . 'lengthMenu: [10, 25, 50, 250, 500, 1000],' . "\r\n" . '                displayStart: (parseInt(rPage)-1) * parseInt(rEntries)' . "\r\n\t\t\t" . '});' . "\r\n" . '            function doSearch(rValue) {' . "\r\n" . '                clearTimeout(window.rSearch); window.rSearch = setTimeout(function(){ rTable.search(rValue).draw(); }, 500);' . "\r\n" . '            }' . "\r\n\t\t\t" . '$("#datatable-users").css("width", "100%");' . "\r\n\t\t\t" . "\$('#user_search').keyup(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#user_search").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("search", $("#user_search").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("search");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'doSearch($(this).val());' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#user_show_entries').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#user_show_entries").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("entries", $("#user_show_entries").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("entries");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.page.len($(this).val()).draw();' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#user_filter').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#user_filter").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("filter", $("#user_filter").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("filter");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#user_reseller').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#user_reseller").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("owner", $("#user_reseller").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("owner");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "if (\$('#user_search').val()) {" . "\r\n\t\t\t\t" . "rTable.search(\$('#user_search').val()).draw();" . "\r\n\t\t\t" . '}' . "\r\n" . '            checkClear();' . "\r\n\t\t" . '});' . "\r\n" . '        ';
 																					}
 																				}

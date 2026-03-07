@@ -40,14 +40,14 @@ class ServerController extends BaseAdminController
             if (time() < $rCertificate['expiration']) {
                 $rCertValid = true;
             }
-            $rExpiration = date(\CoreUtilities::$rSettings['datetime_format'], $rCertificate['expiration']);
+            $rExpiration = date(\SettingsManager::getAll()['datetime_format'], $rCertificate['expiration']);
         } else {
             $rHasCert = false;
             $rExpiration = 'No Certificate Installed';
         }
 
         // Free space
-        $rFS = ServerRepository::getFreeSpace('systemapirequest', $rServerArr['id']);
+        $rFS = ServerRepository::getFreeSpace($rServerArr['id']);
         $rMounted = false;
         foreach ($rFS as $rMount) {
             if ($rMount['mount'] === rtrim(STREAMS_PATH, '/')) {
@@ -57,7 +57,7 @@ class ServerController extends BaseAdminController
         }
 
         // SSL Log
-        $rSSLLog = ServerRepository::getSSLLog(CoreUtilities::$rServers, $rServerArr['id']);
+        $rSSLLog = ServerRepository::getSSLLog($rServerArr['id']);
 
         $this->setTitle('Edit Server');
         $this->render('server', compact(

@@ -1,6 +1,6 @@
 <?php
 /**
- * WatchController — Watch Folder listing (Phase 6.3 — Group L).
+ * WatchController — Watch Folder listing.
  */
 class WatchController extends BaseAdminController
 {

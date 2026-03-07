@@ -11,21 +11,21 @@ foreach (get_defined_constants(true)['user'] as $rKey => $rValue) {
         $_ERRORS[intval($rValue)] = $rKey;
     }
 }
-$rData = CoreUtilities::$rRequest;
+$rData = RequestManager::getAll();
 APIWrapper::$db = &$db;
 APIWrapper::$rKey = $rData['api_key'];
-if (!empty(CoreUtilities::$rRequest['api_key']) && APIWrapper::createSession()) {
+if (!empty(RequestManager::getAll()['api_key']) && APIWrapper::createSession()) {
     $rAction = $rData['action'];
     $rStart = (intval($rData['start']) ?: 0);
     $rLimit = (intval($rData['limit']) ?: 50);
     unset($rData['api_key'], $rData['action'], $rData['start'], $rData['limit']);
-    if (isset(CoreUtilities::$rRequest['show_columns'])) {
-        $rShowColumns = explode(',', CoreUtilities::$rRequest['show_columns']);
+    if (isset(RequestManager::getAll()['show_columns'])) {
+        $rShowColumns = explode(',', RequestManager::getAll()['show_columns']);
     } else {
         $rShowColumns = null;
     }
-    if (isset(CoreUtilities::$rRequest['hide_columns'])) {
-        $rHideColumns = explode(',', CoreUtilities::$rRequest['hide_columns']);
+    if (isset(RequestManager::getAll()['hide_columns'])) {
+        $rHideColumns = explode(',', RequestManager::getAll()['hide_columns']);
     } else {
         $rHideColumns = null;
     }
@@ -58,70 +58,70 @@ if (!empty(CoreUtilities::$rRequest['api_key']) && APIWrapper::createSession()) 
             echo json_encode(APIWrapper::TableAPI('reg_user_logs', $rStart, $rLimit, $rData, $rShowColumns, $rHideColumns));
             break;
         case 'get_line':
-            echo json_encode(APIWrapper::filterRow(APIWrapper::getLine(CoreUtilities::$rRequest['id']), $rShowColumns, $rHideColumns));
+            echo json_encode(APIWrapper::filterRow(APIWrapper::getLine(RequestManager::getAll()['id']), $rShowColumns, $rHideColumns));
             break;
         case 'create_line':
-            echo json_encode(APIWrapper::createLine(CoreUtilities::$rRequest));
+            echo json_encode(APIWrapper::createLine(RequestManager::getAll()));
             break;
         case 'edit_line':
-            $rData = CoreUtilities::$rRequest;
+            $rData = RequestManager::getAll();
             unset($rData['id']);
-            echo json_encode(APIWrapper::editLine(CoreUtilities::$rRequest['id'], $rData));
+            echo json_encode(APIWrapper::editLine(RequestManager::getAll()['id'], $rData));
             break;
         case 'delete_line':
-            echo json_encode(APIWrapper::deleteLine(CoreUtilities::$rRequest['id']));
+            echo json_encode(APIWrapper::deleteLine(RequestManager::getAll()['id']));
             break;
         case 'disable_line':
-            echo json_encode(APIWrapper::disableLine(CoreUtilities::$rRequest['id']));
+            echo json_encode(APIWrapper::disableLine(RequestManager::getAll()['id']));
             break;
         case 'enable_line':
-            echo json_encode(APIWrapper::enableLine(CoreUtilities::$rRequest['id']));
+            echo json_encode(APIWrapper::enableLine(RequestManager::getAll()['id']));
             break;
         case 'get_mag':
-            echo json_encode(APIWrapper::filterRow(APIWrapper::getMAG(CoreUtilities::$rRequest['id']), $rShowColumns, $rHideColumns));
+            echo json_encode(APIWrapper::filterRow(APIWrapper::getMAG(RequestManager::getAll()['id']), $rShowColumns, $rHideColumns));
             break;
         case 'create_mag':
-            echo json_encode(APIWrapper::createMAG(CoreUtilities::$rRequest));
+            echo json_encode(APIWrapper::createMAG(RequestManager::getAll()));
             break;
         case 'edit_mag':
-            $rData = CoreUtilities::$rRequest;
+            $rData = RequestManager::getAll();
             unset($rData['id']);
-            echo json_encode(APIWrapper::editMAG(CoreUtilities::$rRequest['id'], $rData));
+            echo json_encode(APIWrapper::editMAG(RequestManager::getAll()['id'], $rData));
             break;
         case 'delete_mag':
-            echo json_encode(APIWrapper::deleteMAG(CoreUtilities::$rRequest['id']));
+            echo json_encode(APIWrapper::deleteMAG(RequestManager::getAll()['id']));
             break;
         case 'disable_mag':
-            echo json_encode(APIWrapper::disableMAG(CoreUtilities::$rRequest['id']));
+            echo json_encode(APIWrapper::disableMAG(RequestManager::getAll()['id']));
             break;
         case 'enable_mag':
-            echo json_encode(APIWrapper::enableMAG(CoreUtilities::$rRequest['id']));
+            echo json_encode(APIWrapper::enableMAG(RequestManager::getAll()['id']));
             break;
         case 'convert_mag':
-            echo json_encode(APIWrapper::convertMAG(CoreUtilities::$rRequest['id']));
+            echo json_encode(APIWrapper::convertMAG(RequestManager::getAll()['id']));
             break;
         case 'get_enigma':
-            echo json_encode(APIWrapper::filterRow(APIWrapper::getEnigma(CoreUtilities::$rRequest['id']), $rShowColumns, $rHideColumns));
+            echo json_encode(APIWrapper::filterRow(APIWrapper::getEnigma(RequestManager::getAll()['id']), $rShowColumns, $rHideColumns));
             break;
         case 'create_enigma':
-            echo json_encode(APIWrapper::createEnigma(CoreUtilities::$rRequest));
+            echo json_encode(APIWrapper::createEnigma(RequestManager::getAll()));
             break;
         case 'edit_enigma':
-            $rData = CoreUtilities::$rRequest;
+            $rData = RequestManager::getAll();
             unset($rData['id']);
-            echo json_encode(APIWrapper::editEnigma(CoreUtilities::$rRequest['id'], $rData));
+            echo json_encode(APIWrapper::editEnigma(RequestManager::getAll()['id'], $rData));
             break;
         case 'delete_enigma':
-            echo json_encode(APIWrapper::deleteEnigma(CoreUtilities::$rRequest['id']));
+            echo json_encode(APIWrapper::deleteEnigma(RequestManager::getAll()['id']));
             break;
         case 'disable_enigma':
-            echo json_encode(APIWrapper::disableEnigma(CoreUtilities::$rRequest['id']));
+            echo json_encode(APIWrapper::disableEnigma(RequestManager::getAll()['id']));
             break;
         case 'enable_enigma':
-            echo json_encode(APIWrapper::enableEnigma(CoreUtilities::$rRequest['id']));
+            echo json_encode(APIWrapper::enableEnigma(RequestManager::getAll()['id']));
             break;
         case 'convert_enigma':
-            echo json_encode(APIWrapper::convertEnigma(CoreUtilities::$rRequest['id']));
+            echo json_encode(APIWrapper::convertEnigma(RequestManager::getAll()['id']));
             break;
         case 'get_user':
             if (in_array('password', $rHideColumns)) {
@@ -206,7 +206,7 @@ class APIWrapper {
         return $rReturn;
     }
     public static function TableAPI($rID, $rStart = 0, $rLimit = 10, $rData = array(), $rShowColumns = array(), $rHideColumns = array()) {
-        $rTableAPI = 'http://127.0.0.1:' . CoreUtilities::$rServers[SERVER_ID]['http_broadcast_port'] . '/' . trim(dirname($_SERVER['PHP_SELF']), '/') . '/table.php';
+        $rTableAPI = 'http://127.0.0.1:' . ServerRepository::getAll()[SERVER_ID]['http_broadcast_port'] . '/' . trim(dirname($_SERVER['PHP_SELF']), '/') . '/table.php';
         $rData['api_key'] = self::$rKey;
         $rData['id'] = $rID;
         $rData['start'] = $rStart;

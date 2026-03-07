@@ -30,7 +30,7 @@ if (isset($_SESSION['hash'])) {
 
 	$rPermissions = getPermissions($rUserInfo['member_group_id']);
 	$rPermissions['advanced'] = json_decode($rPermissions['allowed_pages'], true);
-	$rIP = CoreUtilities::getUserIP();
+	$rIP = NetworkUtils::getUserIP();
 	$rIPMatch = ($rSettings['ip_subnet_match'] ? implode('.', array_slice(explode('.', $_SESSION['ip']), 0, -1)) == implode('.', array_slice(explode('.', $rIP), 0, -1)) : $_SESSION['ip'] == $rIP);
 
 	if (!$rUserInfo || !$rPermissions || !$rPermissions['is_admin'] || !$rIPMatch && $rSettings['ip_logout'] || $_SESSION['verify'] != md5($rUserInfo['username'] . '||' . $rUserInfo['password'])) {
@@ -63,14 +63,14 @@ if (isset($_SESSION['hash'])) {
 	}
 	$updateRequired = false;
 
-	if (!version_compare($rServers[SERVER_ID]['xc_vm_version'], CoreUtilities::$rSettings['update_version'], '>=')) {
+	if (!version_compare($rServers[SERVER_ID]['xc_vm_version'], SettingsManager::getAll()['update_version'], '>=')) {
 		$updateRequired = true;
 	}
 }
 
-if (isset(CoreUtilities::$rRequest['status'])) {
-	$_STATUS = intval(CoreUtilities::$rRequest['status']);
-	$rArgs = CoreUtilities::$rRequest;
+if (isset(RequestManager::getAll()['status'])) {
+	$_STATUS = intval(RequestManager::getAll()['status']);
+	$rArgs = RequestManager::getAll();
 	unset($rArgs['status']);
 	$customScript = setArgs($rArgs);
 }

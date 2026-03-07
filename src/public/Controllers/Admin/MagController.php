@@ -1,6 +1,6 @@
 <?php
 /**
- * XC_VM — Контроллер редактирования MAG-устройства (admin/mag.php)
+ * Контроллер редактирования MAG-устройства (admin/mag.php)
  */
 
 class MagController extends BaseAdminController {
@@ -8,8 +8,8 @@ class MagController extends BaseAdminController {
         $this->requirePermission();
 
         $rDevice = null;
-        if (isset(CoreUtilities::$rRequest['id'])) {
-            $rDevice = getMag(CoreUtilities::$rRequest['id']);
+        if (isset(RequestManager::getAll()['id'])) {
+            $rDevice = getMag(RequestManager::getAll()['id']);
             if (!$rDevice['user_id']) {
                 exit();
             }

@@ -2,9 +2,6 @@
 
 /**
  * PlexCron — модуль синхронизации Plex (крон-задача).
- *
- * Извлечён из crons/plex.php (Фаза 5.1).
- * Thread/Multithread вынесены в core/Process/ (Фаза 5 аудит).
  */
 
 require_once __DIR__ . '/../../core/Process/Thread.php';
@@ -211,7 +208,7 @@ class PlexCron {
             $rThreadData = array();
 
             // Get a Plex token (with caching)
-            $rToken = CoreUtilities::getPlexToken($rRow['plex_ip'], $rRow['plex_port'], $rRow['plex_username'], $rRow['plex_password']);
+            $rToken = PlexAuth::getPlexToken($rRow['plex_ip'], $rRow['plex_port'], $rRow['plex_username'], $rRow['plex_password']);
 
             $db->query('UPDATE `watch_folders` SET `last_run` = UNIX_TIMESTAMP() WHERE `id` = ?;', $rRow['id']);
 
@@ -220,9 +217,9 @@ class PlexCron {
             $rThreadCount = 1;
             foreach (self::makeArray($rSections['Directory']) as $F24f1be2729b363d) {
                 if ($F24f1be2729b363d['@attributes']['type'] == 'movie') {
-                    $rThreadCount = (intval(CoreUtilities::$rSettings['thread_count_movie']) ?: 25);
+                    $rThreadCount = (intval(SettingsManager::getAll()['thread_count_movie']) ?: 25);
                 } else {
-                    $rThreadCount = (intval(CoreUtilities::$rSettings['thread_count_show']) ?: 5);
+                    $rThreadCount = (intval(SettingsManager::getAll()['thread_count_show']) ?: 5);
                 }
                 $rKey = $F24f1be2729b363d['@attributes']['key'];
                 if ($rKey == $rRow['directory']) {
@@ -266,7 +263,7 @@ class PlexCron {
                                             'auto_encode' => $rRow['auto_encode'],
                                             'auto_upgrade' => $rRow['auto_upgrade'],
                                             'transcode_profile_id' => $rRow['transcode_profile_id'],
-                                            'max_genres' => intval(CoreUtilities::$rSettings['max_genres'] ?? 5),
+                                            'max_genres' => intval(SettingsManager::getAll()['max_genres'] ?? 5),
                                             'plex' => true,
                                             'ip' => $rRow['plex_ip'],
                                             'port' => $rRow['plex_port'],
@@ -302,7 +299,7 @@ class PlexCron {
                                             'auto_encode' => $rRow['auto_encode'],
                                             'auto_upgrade' => $rRow['auto_upgrade'],
                                             'transcode_profile_id' => $rRow['transcode_profile_id'],
-                                            'max_genres' => intval(CoreUtilities::$rSettings['max_genres'] ?? 5),
+                                            'max_genres' => intval(SettingsManager::getAll()['max_genres'] ?? 5),
                                             'plex' => true,
                                             'ip' => $rRow['plex_ip'],
                                             'port' => $rRow['plex_port'],

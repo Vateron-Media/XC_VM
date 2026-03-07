@@ -1,10 +1,10 @@
 <?php
 include 'functions.php';
 
-if (($rStream = getStream(CoreUtilities::$rRequest['id'])) && in_array(CoreUtilities::$rRequest['id'], $rUserInfo['vod_ids'])) {
+if (($rStream = getStream(RequestManager::getAll()['id'])) && in_array(RequestManager::getAll()['id'], $rUserInfo['vod_ids'])) {
 	$rProperties = json_decode($rStream['movie_properties'], true);
 	$rSubtitles = array(getSubtitles($rStream['id'], $rProperties['subtitle']));
-	$rDomainName = CoreUtilities::getDomainName(!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443);
+	$rDomainName = DomainResolver::resolve(SERVER_ID, !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443);
 	$rURLs = array($rDomainName . 'movie/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rStream['id'] . '.' . $rStream['target_container']);
 	$rLegacy = false;
 
@@ -24,8 +24,8 @@ if (($rStream = getStream(CoreUtilities::$rRequest['id'])) && in_array(CoreUtili
 		}
 	}
 
-	$rCover = (CoreUtilities::validateImage($rProperties['backdrop_path'][0]) ?: '');
-	$rPoster = (CoreUtilities::validateImage($rProperties['cover_big']) ?: '');
+	$rCover = (ImageUtils::validateURL($rProperties['backdrop_path'][0]) ?: '');
+	$rPoster = (ImageUtils::validateURL($rProperties['cover_big']) ?: '');
 
 	$rSimilarIDs = array($rStream['id']);
 	$rSimilar = array();
@@ -33,7 +33,7 @@ if (($rStream = getStream(CoreUtilities::$rRequest['id'])) && in_array(CoreUtili
 
 	if (0 >= count($rSimilarArray)) {
 	} else {
-		if (CoreUtilities::$rSettings['player_hide_incompatible']) {
+		if (SettingsManager::getAll()['player_hide_incompatible']) {
 			$db->query('SELECT * FROM `streams` WHERE `tmdb_id` IN (' . implode(',', $rSimilarArray) . ') AND (SELECT MAX(`compatible`) FROM `streams_servers` WHERE `streams_servers`.`stream_id` = `streams`.`id` LIMIT 1) = 1 LIMIT 6;');
 		} else {
 			$db->query('SELECT * FROM `streams` WHERE `tmdb_id` IN (' . implode(',', $rSimilarArray) . ') LIMIT 6;');
@@ -41,7 +41,7 @@ if (($rStream = getStream(CoreUtilities::$rRequest['id'])) && in_array(CoreUtili
 
 		foreach ($db->get_rows() as $rRow) {
 			$rSimilarProperties = json_decode($rRow['movie_properties'], true);
-			$rSimilar[] = array('type' => 'movie', 'id' => $rRow['id'], 'title' => ($rRow['title'] ?: $rRow['stream_display_name']), 'year' => ($rRow['year'] ?: null), 'rating' => $rSimilarProperties['rating'], 'cover' => (CoreUtilities::validateImage($rSimilarProperties['movie_image']) ?: ''), 'backdrop' => (CoreUtilities::validateImage($rSimilarProperties['backdrop_path'][0]) ?: ''));
+			$rSimilar[] = array('type' => 'movie', 'id' => $rRow['id'], 'title' => ($rRow['title'] ?: $rRow['stream_display_name']), 'year' => ($rRow['year'] ?: null), 'rating' => $rSimilarProperties['rating'], 'cover' => (ImageUtils::validateURL($rSimilarProperties['movie_image']) ?: ''), 'backdrop' => (ImageUtils::validateURL($rSimilarProperties['backdrop_path'][0]) ?: ''));
 			$rSimilarIDs[] = $rRow['id'];
 		}
 	}
@@ -54,7 +54,7 @@ if (($rStream = getStream(CoreUtilities::$rRequest['id'])) && in_array(CoreUtili
 			$rPrevious = '';
 		}
 
-		if (CoreUtilities::$rSettings['player_hide_incompatible']) {
+		if (SettingsManager::getAll()['player_hide_incompatible']) {
 			$db->query('SELECT `streams`.*, COUNT(`user_id`) AS `count` FROM `lines_activity` LEFT JOIN `streams` ON `streams`.`id` = `lines_activity`.`stream_id` WHERE `user_id` IN (SELECT DISTINCT(`user_id`) FROM `lines_activity` WHERE `stream_id` = ? AND (`date_end` - `date_start` > 60)) AND `type` = 2 AND ' . $rPrevious . ' `stream_id` IN (' . implode(',', $rUserInfo['vod_ids']) . ') AND (SELECT MAX(`compatible`) FROM `streams_servers` WHERE `streams_servers`.`stream_id` = `streams`.`id` LIMIT 1) = 1 GROUP BY `stream_id` ORDER BY `count` DESC LIMIT ' . (6 - count($rSimilar)) . ';', $rStream['id']);
 		} else {
 			$db->query('SELECT `streams`.*, COUNT(`user_id`) AS `count` FROM `lines_activity` LEFT JOIN `streams` ON `streams`.`id` = `lines_activity`.`stream_id` WHERE `user_id` IN (SELECT DISTINCT(`user_id`) FROM `lines_activity` WHERE `stream_id` = ? AND (`date_end` - `date_start` > 60)) AND `type` = 2 AND ' . $rPrevious . ' `stream_id` IN (' . implode(',', $rUserInfo['vod_ids']) . ') GROUP BY `stream_id` ORDER BY `count` DESC LIMIT ' . (6 - count($rSimilar)) . ';', $rStream['id']);
@@ -64,7 +64,7 @@ if (($rStream = getStream(CoreUtilities::$rRequest['id'])) && in_array(CoreUtili
 			if (!$rRow['id']) {
 			} else {
 				$rSimilarProperties = json_decode($rRow['movie_properties'], true);
-				$rSimilar[] = array('type' => 'movie', 'id' => $rRow['id'], 'title' => ($rRow['title'] ?: $rRow['stream_display_name']), 'year' => ($rRow['year'] ?: null), 'rating' => $rSimilarProperties['rating'], 'cover' => (CoreUtilities::validateImage($rSimilarProperties['movie_image']) ?: ''), 'backdrop' => (CoreUtilities::validateImage($rSimilarProperties['backdrop_path'][0]) ?: ''));
+				$rSimilar[] = array('type' => 'movie', 'id' => $rRow['id'], 'title' => ($rRow['title'] ?: $rRow['stream_display_name']), 'year' => ($rRow['year'] ?: null), 'rating' => $rSimilarProperties['rating'], 'cover' => (ImageUtils::validateURL($rSimilarProperties['movie_image']) ?: ''), 'backdrop' => (ImageUtils::validateURL($rSimilarProperties['backdrop_path'][0]) ?: ''));
 				$rSimilarIDs[] = $rRow['id'];
 			}
 		}
@@ -80,7 +80,7 @@ if (($rStream = getStream(CoreUtilities::$rRequest['id'])) && in_array(CoreUtili
 
 	foreach (json_decode($rStream['category_id'], true) as $rCategoryID) {
 		echo '                            <li>';
-		echo CoreUtilities::$rCategories[$rCategoryID]['category_name'];
+		echo CategoryService::getFromDatabase()[$rCategoryID]['category_name'];
 		echo '</li>' . "\n" . '                            ';
 	}
 	echo '                        </ul>' . "\n" . '                    </h1>' . "\n\t\t\t\t" . '</div>' . "\n\t\t\t\t" . '<div class="col-12 col-xl-12">' . "\n\t\t\t\t\t" . '<div class="card card--details">' . "\n\t\t\t\t\t\t" . '<div class="row">' . "\n\t\t\t\t\t\t\t" . '<div class="col-12 col-sm-3 col-md-3 col-lg-3 col-xl-3">' . "\n\t\t\t\t\t\t\t\t" . '<div class="card__cover">' . "\n\t\t\t\t\t\t\t\t\t" . '<img src="';
@@ -108,7 +108,7 @@ if (($rStream = getStream(CoreUtilities::$rRequest['id'])) && in_array(CoreUtili
 			echo '                                        <track label="';
 			echo $rSubtitle['label'];
 			echo '" kind="subtitles" src="proxy.php?url=';
-			echo CoreUtilities::encryptData($rSubtitle['file'], CoreUtilities::$rSettings['live_streaming_pass'], 'd8de497ebccf4f4697a1da20219c7c33');
+			echo Encryption::encrypt($rSubtitle['file'], SettingsManager::getAll()['live_streaming_pass'], 'd8de497ebccf4f4697a1da20219c7c33');
 			echo '">' . "\n" . '                                        ';
 		}
 		echo '                                    </video>' . "\n" . '                                    ';

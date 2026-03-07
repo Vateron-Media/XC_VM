@@ -1,7 +1,9 @@
 <?php
 
 class DomainResolver {
-	public static function resolve($rServers, $rSettings, $rServerID, $rForceSSL = false) {
+	public static function resolve($rServerID, $rForceSSL = false) {
+		$rServers = ServerRepository::getAll();
+		$rSettings = SettingsManager::getAll();
 		$rOriginatorID = null;
 		if ($rForceSSL) {
 			$rProtocol = 'https';
@@ -15,9 +17,9 @@ class DomainResolver {
 
 		$rProxied = $rServers[$rServerID]['enable_proxy'];
 		if ($rProxied) {
-			$rProxyIDs = array_keys(ConnectionTracker::getProxies($rServers, $rServerID, true));
+			$rProxyIDs = array_keys(ConnectionTracker::getProxies($rServerID, true));
 			if (count($rProxyIDs) == 0) {
-				$rProxyIDs = array_keys(ConnectionTracker::getProxies($rServers, $rServerID, false));
+				$rProxyIDs = array_keys(ConnectionTracker::getProxies($rServerID, false));
 			}
 			if (count($rProxyIDs) != 0) {
 				$rOriginatorID = $rServerID;

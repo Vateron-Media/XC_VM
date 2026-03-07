@@ -1,6 +1,6 @@
 <?php
 /**
- * CodeEditController — add/edit access code (Phase 6.3 — Group H).
+ * CodeEditController — add/edit access code.
  *
  * Route: GET /admin/code → index()
  */

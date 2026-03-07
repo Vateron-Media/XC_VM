@@ -3,7 +3,6 @@
 /**
  * PortalHelpers — статические хелперы для Ministra/Stalker портала.
  *
- * Извлечено из ministra/portal.php — функции для получения контента
  * (каналы, фильмы, сериалы, радио, EPG) и управления устройствами.
  */
 class PortalHelpers {
@@ -234,7 +233,7 @@ class PortalHelpers {
             $rWhereV[] = $rPicking['genre'];
         }
 
-        $rChannels = StreamSorter::sortChannels($rSettings, $rChannels);
+        $rChannels = StreamSorter::sortChannels($rChannels);
 
         if (empty($rFav)) {
         } else {
@@ -699,7 +698,7 @@ class PortalHelpers {
         }
 
         $rDatas = array();
-        $rTimeDifference = CoreUtilities::getDiffTimezone($rTimezone);
+        $rTimeDifference = TimeUtils::getDiffTimezone($rTimezone);
 
         foreach ($rStreams['streams'] as $rStream) {
             $rHD = intval(1200 < $rStream['stream_info']['codecs']['video']['width']);

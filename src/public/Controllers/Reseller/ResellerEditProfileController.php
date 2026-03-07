@@ -1,6 +1,6 @@
 <?php
 /**
- * ResellerEditProfileController — Edit reseller profile (Phase 6.4 — Reseller).
+ * ResellerEditProfileController — Edit reseller profile.
  */
 class ResellerEditProfileController extends BaseResellerController
 {

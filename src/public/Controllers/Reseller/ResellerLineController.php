@@ -1,6 +1,6 @@
 <?php
 /**
- * ResellerLineController — Line edit/create (Phase 6.4 — Reseller).
+ * ResellerLineController — Line edit/create.
  */
 class ResellerLineController extends BaseResellerController
 {

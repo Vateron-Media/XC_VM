@@ -9,7 +9,7 @@
         goHome();
     }
 
-    $rCategories = getCategories('live');
+    $rCategories = CategoryService::getAllByType('live');
     $rTranscodeProfiles = StreamConfigRepository::getTranscodeProfiles();
     $rServerTree = array(array('id' => 'source', 'parent' => '#', 'text' => "<strong class='btn btn-success waves-effect waves-light btn-xs'>Active</strong>", 'icon' => 'mdi mdi-play', 'state' => array('opened' => true)), array('id' => 'offline', 'parent' => '#', 'text' => "<strong class='btn btn-secondary waves-effect waves-light btn-xs'>Offline</strong>", 'icon' => 'mdi mdi-stop', 'state' => array('opened' => true)));
 
@@ -93,7 +93,7 @@
                                                     <option value="" selected>All Categories</option>
                                                     <option value="-1">No Categories</option>
                                                     <?php foreach ($rCategories as $rCategory) { ?>
-                                                        <option value="<?php echo intval($rCategory['id']); ?>" <?php if (isset(CoreUtilities::$rRequest['category']) && CoreUtilities::$rRequest['category'] == $rCategory['id']) {
+                                                        <option value="<?php echo intval($rCategory['id']); ?>" <?php if (isset(RequestManager::getAll()['category']) && RequestManager::getAll()['category'] == $rCategory['id']) {
                                                                                                                     echo ' selected';
                                                                                                                 } ?>>
                                                             <?php echo htmlspecialchars($rCategory['category_name']); ?>
@@ -636,7 +636,7 @@ renderUnifiedLayoutFooter('admin');
             }
         });
     });
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+    <?php if (SettingsManager::getAll()['enable_search']): ?>
         $(document).ready(function() {
             initSearch();
         });

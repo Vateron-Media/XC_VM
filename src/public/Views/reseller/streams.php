@@ -1,6 +1,6 @@
 <?php
 /**
- * Streams list view (Phase 6.4 — Reseller).
+ * Streams list view.
  * Delegation proxy → legacy reseller/streams.php HTML body.
  */
 $__viewMode = true;

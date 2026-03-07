@@ -1,6 +1,6 @@
 <?php
 /**
- * Channel order view (Phase 6.3 — Group A).
+ * Channel order view.
  * Delegation proxy → legacy admin/channel_order.php HTML body.
  */
 $__viewMode = true;

@@ -1,14 +1,12 @@
 <?php
 
 /**
- * XC_VM — HTTP Response Helper
+ * HTTP Response Helper
  *
  * Standardizes HTTP response output. Replaces scattered
  * header() + echo json_encode() + exit() patterns.
  *
- * ---------------------------------------------------------------
  * Usage:
- * ---------------------------------------------------------------
  *
  *   // JSON response
  *   Response::json(['status' => 'ok', 'data' => $rows]);

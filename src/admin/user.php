@@ -7,7 +7,7 @@
 		goHome();
 	}
 
-	$rUser = isset(CoreUtilities::$rRequest['id']) ? UserRepository::getRegisteredUserById(CoreUtilities::$rRequest['id']) : null;
+	$rUser = isset(RequestManager::getAll()['id']) ? UserRepository::getRegisteredUserById(RequestManager::getAll()['id']) : null;
 	if ($rUser === false) {
 		goHome();
 	}
@@ -340,7 +340,7 @@ renderUnifiedLayoutFooter('admin');
 			submitForm(window.rCurrentPage, new FormData($("form")[0]), window.rReferer);
 		});
 	});
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+	<?php if (SettingsManager::getAll()['enable_search']): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

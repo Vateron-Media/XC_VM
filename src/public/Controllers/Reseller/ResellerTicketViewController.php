@@ -1,6 +1,6 @@
 <?php
 /**
- * ResellerTicketViewController — View ticket (Phase 6.4 — Reseller).
+ * ResellerTicketViewController — View ticket.
  */
 class ResellerTicketViewController extends BaseResellerController
 {

@@ -124,7 +124,7 @@ class ServerService {
 			unlink(CACHE_TMP_PATH . 'servers');
 		}
 
-		$rFS = ServerRepository::getFreeSpace('systemapirequest', $rInsertID);
+		$rFS = ServerRepository::getFreeSpace($rInsertID);
 		$rMounted = false;
 		foreach ($rFS as $rMount) {
 			if ($rMount['mount'] == rtrim(STREAMS_PATH, '/')) {
@@ -256,7 +256,7 @@ class ServerService {
 
 		$rInsertID = $db->last_insert_id();
 		if ($rArray['server_type'] == 0) {
-			CoreUtilities::grantPrivileges($rArray['server_ip']);
+			BackupService::grantPrivileges($rArray['server_ip'], DatabaseFactory::get(), ConfigReader::getAll());
 		}
 
 		if ($rData['type'] == 1) {

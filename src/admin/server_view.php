@@ -8,13 +8,13 @@
         goHome();
     }
 
-    if (!isset(CoreUtilities::$rRequest['id'])) {
+    if (!isset(RequestManager::getAll()['id'])) {
         exit();
     }
-    if (isset($allServers[CoreUtilities::$rRequest['id']])) {
-        $rServer = $allServers[CoreUtilities::$rRequest['id']];
-    } elseif (isset($rProxyServers[CoreUtilities::$rRequest['id']])) {
-        $rServer = $rProxyServers[CoreUtilities::$rRequest['id']];
+    if (isset($allServers[RequestManager::getAll()['id']])) {
+        $rServer = $allServers[RequestManager::getAll()['id']];
+    } elseif (isset($rProxyServers[RequestManager::getAll()['id']])) {
+        $rServer = $rProxyServers[RequestManager::getAll()['id']];
     } else {
         exit();
     }
@@ -584,16 +584,16 @@
             });
 
             <?php
-            if (in_array($allServers[intval(CoreUtilities::$rRequest['id'])]['status'], array(3, 4)) || in_array($rProxyServers[intval(CoreUtilities::$rRequest['id'])]['status'], array(3, 4))): ?>
+            if (in_array($allServers[intval(RequestManager::getAll()['id'])]['status'], array(3, 4)) || in_array($rProxyServers[intval(RequestManager::getAll()['id'])]['status'], array(3, 4))): ?>
 
                 function getInstallStatus() {
-                    $.getJSON("./api?action=install_status&server_id=<?= intval(CoreUtilities::$rRequest['id']); ?>", function(data) {
+                    $.getJSON("./api?action=install_status&server_id=<?= intval(RequestManager::getAll()['id']); ?>", function(data) {
                         if (data.result === true) {
                             $("#server_install").html(data.data);
                             if (data.status == 3) {
                                 setTimeout(getInstallStatus, 1000);
                             } else if (data.status == 1) {
-                                setTimeout(navigate, 3000, './server_view?id=<?= intval(CoreUtilities::$rRequest['id']); ?>');
+                                setTimeout(navigate, 3000, './server_view?id=<?= intval(RequestManager::getAll()['id']); ?>');
                             }
                         } else {
                             $("#server_install").html("No status available...");
@@ -652,7 +652,7 @@
 
             function getStats(auto = true) {
                 var rStart = Date.now();
-                rURL = "./api?action=server_view&server_id=<?= intval(CoreUtilities::$rRequest['id']); ?>";
+                rURL = "./api?action=server_view&server_id=<?= intval(RequestManager::getAll()['id']); ?>";
                 $.getJSON(rURL, function(data) {
                     $("#open_connections").html(data.data.open_connections);
                     $("#total_running_streams").html(data.data.total_running_streams);
@@ -767,7 +767,7 @@
                 }
             }
             $(document).ready(function() {
-                <?php if (in_array($allServers[intval(CoreUtilities::$rRequest['id'])]['status'], array(3, 4)) || in_array($rProxyServers[intval(CoreUtilities::$rRequest['id'])]['status'], array(3, 4))): ?>
+                <?php if (in_array($allServers[intval(RequestManager::getAll()['id'])]['status'], array(3, 4)) || in_array($rProxyServers[intval(RequestManager::getAll()['id'])]['status'], array(3, 4))): ?>
                     getInstallStatus();
                 <?php endif; ?>
                 getStats();
@@ -784,7 +784,7 @@
                         url: "./table",
                         "data": function(d) {
                             d.id = "streams";
-                            d.server = <?= CoreUtilities::$rRequest['id']; ?>;
+                            d.server = <?= RequestManager::getAll()['id']; ?>;
                             d.filter = 1;
                             d.simple = true;
                         }
@@ -823,7 +823,7 @@
                         url: "./table",
                         "data": function(d) {
                             d.id = "live_connections";
-                            d.server_id = <?= CoreUtilities::$rRequest['id']; ?>;
+                            d.server_id = <?= RequestManager::getAll()['id']; ?>;
                         }
                     },
                     columnDefs: [{
@@ -992,7 +992,7 @@
                 };
                 (rNetworkChart = new ApexCharts(document.querySelector("#network_chart"), rNetworkOptions)).render();
             });
-            <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+            <?php if (SettingsManager::getAll()['enable_search']): ?>
                 $(document).ready(function() {
                     initSearch();
                 });

@@ -615,7 +615,7 @@ class PortalHandler {
 
                     if (empty($rEPGData)) {
                     } else {
-                        $rTimeDifference = (CoreUtilities::getDiffTimezone($ctx['timezone']) ?: 0);
+                        $rTimeDifference = (TimeUtils::getDiffTimezone($ctx['timezone']) ?: 0);
                         $i = 0;
 
                         for ($n = 0; $n < count($rEPGData); $n++) {
@@ -1190,7 +1190,7 @@ class PortalHandler {
 
                 $rProgram = array_slice($rEPGDatas, ($rPage - 1) * $rPageItems, $rPageItems);
                 $rData = array();
-                $rTimeDifference = CoreUtilities::getDiffTimezone($ctx['timezone']);
+                $rTimeDifference = TimeUtils::getDiffTimezone($ctx['timezone']);
 
                 for ($i = 0; $i < count($rProgram); $i++) {
                     $open = 0;
@@ -1248,7 +1248,7 @@ class PortalHandler {
                 $rOutput = array();
                 $rOutput['js'] = array();
                 $rChannelID = (empty($rRequest['ch_id']) ? 0 : intval($rRequest['ch_id']));
-                $rTimeDifference = CoreUtilities::getDiffTimezone($ctx['timezone']);
+                $rTimeDifference = TimeUtils::getDiffTimezone($ctx['timezone']);
 
                 if (file_exists(STREAMS_TMP_PATH . 'stream_' . intval($rChannelID))) {
                     $rStreamRow = igbinary_unserialize(file_get_contents(STREAMS_TMP_PATH . 'stream_' . intval($rChannelID)))['info'];

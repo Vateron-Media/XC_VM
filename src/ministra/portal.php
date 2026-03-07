@@ -400,7 +400,7 @@ function getItems($rTypes = array(), $rCategoryID = null, $rFav = null, $rOrderB
 		$rWhereV[] = $rPicking['genre'];
 	}
 
-	$rChannels = StreamSorter::sortChannels($rSettings, $rChannels);
+	$rChannels = StreamSorter::sortChannels($rChannels);
 
 	if (empty($rFav)) {
 	} else {
@@ -982,7 +982,7 @@ function getStreams($rCategoryID = null, $rAll = false, $rFav = null, $rOrderBy 
 	}
 
 	$rDatas = array();
-	$rTimeDifference = CoreUtilities::getDiffTimezone($rTimezone);
+	$rTimeDifference = TimeUtils::getDiffTimezone($rTimezone);
 
 	foreach ($rStreams['streams'] as $rStream) {
 		$rHD = intval(1200 < $rStream['stream_info']['codecs']['video']['width']);

@@ -2,9 +2,9 @@
 
 include 'functions.php';
 
-if (isset(CoreUtilities::$rRequest['search']) && isset(CoreUtilities::$rRequest['type'])) {
-	if (in_array(CoreUtilities::$rRequest['type'], array('live', 'movies', 'series'))) {
-		header('Location: ' . CoreUtilities::$rRequest['type'] . '.php?search=' . urlencode(CoreUtilities::$rRequest['search']));
+if (isset(RequestManager::getAll()['search']) && isset(RequestManager::getAll()['type'])) {
+	if (in_array(RequestManager::getAll()['type'], array('live', 'movies', 'series'))) {
+		header('Location: ' . RequestManager::getAll()['type'] . '.php?search=' . urlencode(RequestManager::getAll()['search']));
 		exit();
 	}
 }
@@ -14,7 +14,7 @@ $rPopular = igbinary_unserialize(file_get_contents(CONTENT_PATH . 'tmdb_popular'
 
 if (!(0 < count($rPopular['movies']) && 0 < count($rUserInfo['vod_ids']))) {
 } else {
-	if (CoreUtilities::$rSettings['player_hide_incompatible']) {
+	if (SettingsManager::getAll()['player_hide_incompatible']) {
 		$db->query('SELECT `id`, `stream_display_name`, `year`, `rating`, `movie_properties` FROM `streams` WHERE `id` IN (' . implode(',', $rPopular['movies']) . ') AND `id` IN (' . implode(',', $rUserInfo['vod_ids']) . ') AND (SELECT MAX(`compatible`) FROM `streams_servers` WHERE `streams_servers`.`stream_id` = `streams`.`id` LIMIT 1) = 1 ORDER BY FIELD(id, ' . implode(',', $rPopular['movies']) . ') ASC LIMIT 50;');
 	} else {
 		$db->query('SELECT `id`, `stream_display_name`, `year`, `rating`, `movie_properties` FROM `streams` WHERE `id` IN (' . implode(',', $rPopular['movies']) . ') AND `id` IN (' . implode(',', $rUserInfo['vod_ids']) . ') ORDER BY FIELD(id, ' . implode(',', $rPopular['movies']) . ') ASC LIMIT 50;');
@@ -24,13 +24,13 @@ if (!(0 < count($rPopular['movies']) && 0 < count($rUserInfo['vod_ids']))) {
 
 	foreach ($rStreams as $rStream) {
 		$rProperties = json_decode($rStream['movie_properties'], true);
-		$rPopularNow[] = array('type' => 'movie', 'id' => $rStream['id'], 'title' => $rStream['stream_display_name'], 'year' => ($rStream['year'] ?: null), 'rating' => $rStream['rating'], 'cover' => (CoreUtilities::validateImage($rProperties['movie_image']) ?: ''), 'backdrop' => (CoreUtilities::validateImage($rProperties['backdrop_path'][0]) ?: ''));
+		$rPopularNow[] = array('type' => 'movie', 'id' => $rStream['id'], 'title' => $rStream['stream_display_name'], 'year' => ($rStream['year'] ?: null), 'rating' => $rStream['rating'], 'cover' => (ImageUtils::validateURL($rProperties['movie_image']) ?: ''), 'backdrop' => (ImageUtils::validateURL($rProperties['backdrop_path'][0]) ?: ''));
 	}
 }
 
 if (!(0 < count($rPopular['series']) && 0 < count($rUserInfo['series_ids']))) {
 } else {
-	if (CoreUtilities::$rSettings['player_hide_incompatible']) {
+	if (SettingsManager::getAll()['player_hide_incompatible']) {
 		$db->query('SELECT `id`, `title`, `year`, `rating`, `cover`, `backdrop_path` FROM `streams_series` WHERE `id` IN (' . implode(',', $rPopular['series']) . ') AND `id` IN (' . implode(',', $rUserInfo['series_ids']) . ') AND (SELECT MAX(`compatible`) FROM `streams_servers` LEFT JOIN `streams_episodes` ON `streams_episodes`.`stream_id` = `streams_servers`.`stream_id` WHERE `streams_episodes`.`series_id` = `streams_series`.`id`) = 1 ORDER BY FIELD(id, ' . implode(',', $rPopular['series']) . ') ASC LIMIT 50;');
 	} else {
 		$db->query('SELECT `id`, `title`, `year`, `rating`, `cover`, `backdrop_path` FROM `streams_series` WHERE `id` IN (' . implode(',', $rPopular['series']) . ') AND `id` IN (' . implode(',', $rUserInfo['series_ids']) . ') ORDER BY FIELD(id, ' . implode(',', $rPopular['series']) . ') ASC LIMIT 50;');
@@ -40,7 +40,7 @@ if (!(0 < count($rPopular['series']) && 0 < count($rUserInfo['series_ids']))) {
 
 	foreach ($rStreams as $rStream) {
 		$rBackdrop = json_decode($rStream['backdrop_path'], true);
-		$rPopularNow[] = array('type' => 'episodes', 'id' => $rStream['id'], 'title' => $rStream['title'], 'year' => ($rStream['year'] ?: (substr($rStream['releaseDate'], 0, 4) ?: null)), 'rating' => $rStream['rating'], 'cover' => (CoreUtilities::validateImage($rStream['cover']) ?: ''), 'backdrop' => (CoreUtilities::validateImage($rBackdrop[0]) ?: ''));
+		$rPopularNow[] = array('type' => 'episodes', 'id' => $rStream['id'], 'title' => $rStream['title'], 'year' => ($rStream['year'] ?: (substr($rStream['releaseDate'], 0, 4) ?: null)), 'rating' => $rStream['rating'], 'cover' => (ImageUtils::validateURL($rStream['cover']) ?: ''), 'backdrop' => (ImageUtils::validateURL($rBackdrop[0]) ?: ''));
 	}
 }
 
@@ -97,7 +97,7 @@ echo '>' . "\r\n\t\t" . '<div class="content__head">' . "\r\n\t\t\t" . '<div cla
 foreach ($rMovies['streams'] as $rStreamID => $rStream) {
 	$rProperties = json_decode($rStream['movie_properties'], true);
 	echo '                            <div class="col-6 col-sm-4 col-lg-3 col-xl-3">' . "\r\n" . '                                <div class="card">' . "\r\n" . '                                    <div class="card__cover">' . "\r\n" . '                                        <img loading="lazy" src="resize.php?url=';
-	echo urlencode((CoreUtilities::validateImage($rProperties['movie_image']) ?: ''));
+	echo urlencode((ImageUtils::validateURL($rProperties['movie_image']) ?: ''));
 	echo '&w=267&h=400" alt="">' . "\r\n" . '                                        <a href="movie.php?id=';
 	echo $rStream['id'];
 	echo '" class="card__play">' . "\r\n" . '                                            <i class="icon ion-ios-play"></i>' . "\r\n" . '                                        </a>' . "\r\n" . '                                    </div>' . "\r\n" . '                                    <div class="card__content">' . "\r\n" . '                                        <h3 class="card__title"><a href="movie.php?id=';
@@ -114,7 +114,7 @@ echo "\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t" . '</div>' . "\r\n\t\t\t\t" . '<di
 
 foreach ($rSeries['streams'] as $rStreamID => $rStream) {
 	echo '                            <div class="col-6 col-sm-4 col-lg-3 col-xl-3">' . "\r\n" . '                                <div class="card">' . "\r\n" . '                                    <div class="card__cover">' . "\r\n" . '                                        <img loading="lazy" src="resize.php?url=';
-	echo urlencode((CoreUtilities::validateImage($rStream['cover']) ?: ''));
+	echo urlencode((ImageUtils::validateURL($rStream['cover']) ?: ''));
 	echo '&w=267&h=400" alt="">' . "\r\n" . '                                        <a href="episodes.php?id=';
 	echo $rStream['id'];
 	echo '" class="card__play">' . "\r\n" . '                                            <i class="icon ion-ios-play"></i>' . "\r\n" . '                                        </a>' . "\r\n" . '                                    </div>' . "\r\n" . '                                    <div class="card__content">' . "\r\n" . '                                        <h3 class="card__title"><a href="episodes.php?id=';

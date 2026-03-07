@@ -992,7 +992,7 @@ endif; // !$__settingsViewMode
 														for="live_streaming_pass">Streaming Password</label>
 													<div class="col-md-8"><input type="text" class="form-control"
 															id="live_streaming_pass" name="live_streaming_pass"
-															value="<?= htmlspecialchars(CoreUtilities::$rSettings["live_streaming_pass"] ?? '') ?>">
+															value="<?= htmlspecialchars(SettingsManager::getAll()["live_streaming_pass"] ?? '') ?>">
 													</div>
 												</div>
 											</div>
@@ -2693,7 +2693,7 @@ renderUnifiedLayoutFooter('admin'); ?>
 			}
 		});
 	};
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+	<?php if (SettingsManager::getAll()['enable_search']): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

@@ -7,7 +7,7 @@
 		goHome();
 	}
 
-	if (isset(CoreUtilities::$rRequest['id']) && !($rIPArr = getRTMPIP(CoreUtilities::$rRequest['id']))) {
+	if (isset(RequestManager::getAll()['id']) && !($rIPArr = getRTMPIP(RequestManager::getAll()['id']))) {
 		goHome();
 	}
 
@@ -262,7 +262,7 @@ renderUnifiedLayoutFooter('admin');
 			submitForm(window.rCurrentPage, new FormData($("form")[0]));
 		});
 	});
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+	<?php if (SettingsManager::getAll()['enable_search']): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

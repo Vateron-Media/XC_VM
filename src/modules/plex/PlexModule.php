@@ -1,7 +1,7 @@
 <?php
 
 /**
- * XC_VM — Plex Module
+ * Plex Module
  *
  * Модуль Plex Sync Integration.
  * Регистрирует сервисы, маршруты, API-действия и крон-задачи.

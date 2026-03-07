@@ -1,7 +1,7 @@
 <?php
 
 /**
- * XC_VM — Менеджер базы данных (PDO)
+ * Менеджер базы данных (PDO)
  *
  * Расширяет базовый класс Database:
  *   - Transaction support (begin/commit/rollback)
@@ -56,18 +56,6 @@
  *         $cfg = $c->get('config');
  *         return DatabaseHandler::create($cfg);
  *     });
- *
- * ---------------------------------------------------------------
- * Migration Path:
- * ---------------------------------------------------------------
- *
- *   Phase 1: DatabaseHandler extends Database (this file).
- *            Database.php moved to core/Database/Database.php.
- *            bootstrap.php creates DatabaseHandler instead of Database.
- *            All legacy code works via inheritance.
- *
- *   Phase 6: Database.php merged into DatabaseHandler. DatabaseHandler becomes standalone.
- *            All `global $db` replaced with ServiceContainer.
  *
  * @see core/Database/Database.php  Base PDO wrapper class
  * @see core/Container/ServiceContainer.php  DI container

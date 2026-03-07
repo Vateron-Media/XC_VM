@@ -22,8 +22,14 @@ if (isset($_SESSION['reseller'])) {
 	$language::setLanguage($rUserInfo['lang']);
 
 	$rPermissions = array_merge(getPermissions($rUserInfo['member_group_id']), getGroupPermissions($rUserInfo['id']));
+	$rPermissions['direct_reports'] = $rPermissions['direct_reports'] ?? [];
+	$rPermissions['all_reports'] = $rPermissions['all_reports'] ?? [];
+	$rPermissions['stream_ids'] = $rPermissions['stream_ids'] ?? [];
+	$rPermissions['category_ids'] = $rPermissions['category_ids'] ?? [];
+	$rPermissions['series_ids'] = $rPermissions['series_ids'] ?? [];
+	$rPermissions['subresellers'] = $rPermissions['subresellers'] ?? [];
 	$rUserInfo['reports'] = array_map('intval', array_merge(array($rUserInfo['id']), $rPermissions['all_reports']));
-	$rIP = CoreUtilities::getUserIP();
+	$rIP = NetworkUtils::getUserIP();
 	$rIPMatch = ($rSettings['ip_subnet_match'] ? implode('.', array_slice(explode('.', $_SESSION['rip']), 0, -1)) == implode('.', array_slice(explode('.', $rIP), 0, -1)) : $_SESSION['rip'] == $rIP);
 
 	if (!$rUserInfo || !$rPermissions || !$rPermissions['is_reseller'] || !$rIPMatch && $rSettings['ip_logout'] || $_SESSION['rverify'] != md5($rUserInfo['username'] . '||' . $rUserInfo['password'])) {
@@ -39,9 +45,9 @@ if (isset($_SESSION['reseller'])) {
 	}
 }
 
-if (isset(CoreUtilities::$rRequest['status'])) {
-	$_STATUS = intval(CoreUtilities::$rRequest['status']);
-	$rArgs = CoreUtilities::$rRequest;
+if (isset(RequestManager::getAll()['status'])) {
+	$_STATUS = intval(RequestManager::getAll()['status']);
+	$rArgs = RequestManager::getAll();
 	unset($rArgs['status']);
 	$customScript = setArgs($rArgs);
 }

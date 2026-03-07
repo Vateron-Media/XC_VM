@@ -1,6 +1,6 @@
 <?php
 /**
- * Radio list view (Phase 6.3 — Group A).
+ * Radio list view.
  * Delegation proxy → legacy admin/radios.php HTML body.
  */
 $__viewMode = true;

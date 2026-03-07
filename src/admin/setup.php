@@ -1,7 +1,7 @@
 <?php
 
 include 'functions.php';
-if (!isset(CoreUtilities::$rRequest['update'])):
+if (!isset(RequestManager::getAll()['update'])):
     $rFirstRun = true;
     $db->query('SELECT COUNT(`id`) AS `count` FROM `users` LEFT JOIN `users_groups` ON `users_groups`.`group_id` = `users`.`member_group_id` WHERE `users_groups`.`is_admin` = 1;');
 
@@ -24,10 +24,10 @@ if (!isset(CoreUtilities::$rRequest['update'])):
         }
     }
 
-    if (isset(CoreUtilities::$rRequest['migrate'])) {
+    if (isset(RequestManager::getAll()['migrate'])) {
         $rMigrateOptions = array();
 
-        foreach (CoreUtilities::$rRequest as $rKey => $rValue) {
+        foreach (RequestManager::getAll() as $rKey => $rValue) {
             if (substr($rKey, 0, 8) == 'migrate#') {
                 list(, $rMigrateOptions[]) = explode('#', $rKey);
             }
@@ -50,26 +50,26 @@ if (!isset(CoreUtilities::$rRequest['update'])):
             exit();
         }
     } else {
-        if (isset(CoreUtilities::$rRequest['new_user']) && $rFirstRun) {
-            if (strlen(CoreUtilities::$rRequest['password']) < 8 || strlen(CoreUtilities::$rRequest['username']) < 8) {
-                CoreUtilities::$rRequest['new'] = 1;
+        if (isset(RequestManager::getAll()['new_user']) && $rFirstRun) {
+            if (strlen(RequestManager::getAll()['password']) < 8 || strlen(RequestManager::getAll()['username']) < 8) {
+                RequestManager::update('new', 1);
                 $_STATUS = STATUS_FAILURE;
             } else {
                 $rArray = verifyPostTable('users');
-                $rArray['username'] = CoreUtilities::$rRequest['username'];
-                $rArray['password'] = cryptPassword(CoreUtilities::$rRequest['password']);
-                $rArray['email'] = CoreUtilities::$rRequest['email'];
+                $rArray['username'] = RequestManager::getAll()['username'];
+                $rArray['password'] = cryptPassword(RequestManager::getAll()['password']);
+                $rArray['email'] = RequestManager::getAll()['email'];
                 $rArray['last_login'] = time();
                 $rArray['date_registered'] = $rArray['last_login'];
                 $rArray['member_group_id'] = 1;
-                $rArray['ip'] = CoreUtilities::getUserIP();
+                $rArray['ip'] = NetworkUtils::getUserIP();
                 $rArray['last_login'] = time();
                 $rPrepare = prepareArray($rArray);
                 $rQuery = 'INSERT INTO `users`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
                 if ($db->query($rQuery, ...$rPrepare['data'])) {
                     $_SESSION['hash'] = $db->last_insert_id();
-                    $_SESSION['ip'] = CoreUtilities::getUserIP();
+                    $_SESSION['ip'] = NetworkUtils::getUserIP();
                     $_SESSION['code'] = AuthRepository::getCurrentCode();
                     $_SESSION['verify'] = md5($rArray['username'] . '||' . $rArray['password']);
                     $db->query('UPDATE `servers` SET `server_ip` = ? WHERE `is_main` = 1 AND `server_type` = 0 LIMIT 1;', $_SERVER['SERVER_ADDR']);
@@ -85,7 +85,7 @@ if (!isset(CoreUtilities::$rRequest['update'])):
                     exit();
                 }
 
-                CoreUtilities::$rRequest['new'] = 1;
+                RequestManager::update('new', 1);
                 $_STATUS = STATUS_FAILURE;
             }
         }
@@ -167,7 +167,7 @@ if (!isset(CoreUtilities::$rRequest['update'])):
                                 </div>
                             </div>
                             <?php } else {
-                            if (isset(CoreUtilities::$rRequest['new']) && $rFirstRun) { ?>
+                            if (isset(RequestManager::getAll()['new']) && $rFirstRun) { ?>
                                 <form action="./setup" method="POST" data-parsley-validate="">
                                     <div class="row">
                                         <div class="col-12">

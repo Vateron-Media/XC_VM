@@ -6,7 +6,7 @@
  * Examples (file #2)
  *
  * several examples for the methods of XML_Util
- * 
+ *
  * PHP versions 4 and 5
  *
  * LICENSE:
@@ -63,7 +63,6 @@
         array('foo' => 'bar'), 'http://www.w3c.org/myNs#'));
     print "\n<br><br>\n";
 
-
     /**
      * creating a start element
      */
@@ -82,7 +81,6 @@
         'http://www.w3c.org/myNs#', true));
     print '</pre>';
     print "\n<br><br>\n";
-
 
     /**
      * creating an end element
@@ -140,6 +138,5 @@
     print htmlentities(XML_Util::attributesToString($atts, 
         array('entities' => XML_UTIL_ENTITIES_NONE)));
     print "\n<br><br>\n";
-
 
 ?>

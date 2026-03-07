@@ -8,7 +8,7 @@
 		goHome();
 	}
 
-	CoreUtilities::$rServers = CoreUtilities::getServers(true);
+	$rServers = ServerRepository::getAll(true);
 	$_TITLE = 'Proxy Servers';
 	require_once __DIR__ . '/../public/Views/layouts/admin.php';
 	renderUnifiedLayoutHeader('admin'); ?>
@@ -49,13 +49,13 @@
 							</thead>
 							<tbody>
 								<?php
-								foreach (CoreUtilities::$rServers as $rServer):
+								foreach ($rServers as $rServer):
 									if ($rServer['server_type'] == 1):
 										$rWatchDog = json_decode($rServer['watchdog_data'], true);
 
 										$rWatchDog = is_array($rWatchDog) ? $rWatchDog : array('total_mem_used_percent' => 0, 'cpu' => 0);
 
-										if (!CoreUtilities::$rServers[$rServer['id']]['server_online']) {
+										if (!$rServers[$rServer['id']]['server_online']) {
 											$rWatchDog['cpu'] = 0;
 											$rWatchDog['total_mem_used_percent'] = 0;
 										}
@@ -178,7 +178,7 @@
 										echo ' ms</button></td>' . "\n\t\t\t\t\t\t\t\t\t" . '<td class="text-center">' . "\n\t\t\t\t\t\t\t\t\t\t";
 
 										if (Authorization::check('adv', 'edit_server')) {
-											if (CoreUtilities::$rSettings['group_buttons']) {
+											if (SettingsManager::getAll()['group_buttons']) {
 												echo "\t\t\t\t\t\t\t\t\t\t" . '<div class="btn-group dropdown">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" class="table-action-btn dropdown-toggle arrow-none btn btn-light btn-sm" data-toggle="dropdown" aria-expanded="false"><i class="mdi mdi-menu"></i></a>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<div class="dropdown-menu dropdown-menu-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a class="dropdown-item btn-reboot-server" href="javascript:void(0);" data-id="';
 												echo $rServer['id'];
 												echo '">Proxy Tools</a>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a class="dropdown-item" href="javascript:void(0);" onClick="api(';
@@ -636,7 +636,7 @@ renderUnifiedLayoutFooter('admin');
 		$("#datatable").css("width", "100%");
 	});
 
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+	<?php if (SettingsManager::getAll()['enable_search']): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

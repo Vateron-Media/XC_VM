@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Консолидированный репозиторий аутентификации (§2.4).
+ * Консолидированный репозиторий аутентификации.
  * Объединяет: CodeRepository, HMACRepository.
  */
 class AuthRepository {
@@ -25,11 +25,13 @@ class AuthRepository {
 		return $rCodes;
 	}
 
-	public static function updateCodes($rMainHome, $rServerId, $rGetCodesCallback, $rReloadNginxCallback) {
+	public static function updateCodes() {
+		$rMainHome = MAIN_HOME;
+		$rServerId = SERVER_ID;
 		$rTemplate = file_get_contents($rMainHome . 'bin/nginx/conf/codes/template');
 		shell_exec('rm -f ' . $rMainHome . 'bin/nginx/conf/codes/*.conf');
 
-		foreach (call_user_func($rGetCodesCallback) as $rCode) {
+		foreach (getcodes() as $rCode) {
 			if ($rCode['enabled']) {
 				$rWhitelist = array();
 
@@ -64,7 +66,7 @@ class AuthRepository {
 			}
 		}
 
-		call_user_func($rReloadNginxCallback, $rServerId);
+		systemapirequest($rServerId, array('action' => 'reload_nginx'));
 	}
 
 	public static function getCurrentCode($rInfo = false) {

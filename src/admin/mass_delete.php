@@ -116,7 +116,7 @@
                                                 <select id="stream_category_search" class="form-control" data-toggle="select2">
                                                     <option value="" selected><?= $language::get('all_categories') ?></option>
                                                     <option value="-1">No Categories</option>
-                                                    <?php foreach (getCategories('live') as $rCategory): ?>
+                                                    <?php foreach (CategoryService::getAllByType('live') as $rCategory): ?>
                                                         <option value="<?= $rCategory['id'] ?>"><?= $rCategory['category_name'] ?></option>
                                                     <?php endforeach; ?>
                                                 </select>
@@ -194,7 +194,7 @@
                                                 <select id="movie_category_search" class="form-control" data-toggle="select2">
                                                     <option value="" selected><?= $language::get('all_categories') ?></option>
                                                     <option value="-1">No Categories</option>
-                                                    <?php foreach (getCategories('movie') as $rCategory): ?>
+                                                    <?php foreach (CategoryService::getAllByType('movie') as $rCategory): ?>
                                                         <option value="<?= $rCategory['id'] ?>"><?= $rCategory['category_name'] ?></option>
                                                     <?php endforeach; ?>
                                                 </select>
@@ -266,7 +266,7 @@
                                                 <select id="radio_category_search" class="form-control" data-toggle="select2">
                                                     <option value="" selected><?= $language::get('all_categories') ?></option>
                                                     <option value="-1">No Categories</option>
-                                                    <?php foreach (getCategories('radio') as $rCategory): ?>
+                                                    <?php foreach (CategoryService::getAllByType('radio') as $rCategory): ?>
                                                         <option value="<?= $rCategory['id'] ?>"><?= $rCategory['category_name'] ?></option>
                                                     <?php endforeach; ?>
                                                 </select>
@@ -329,7 +329,7 @@
                                                     <option value="" selected><?= $language::get('all_categories') ?></option>
                                                     <option value="-1"><?= $language::get('no_tmdb_match') ?></option>
                                                     <option value="-2">No Categories</option>
-                                                    <?php foreach (getCategories('series') as $rCategory): ?>
+                                                    <?php foreach (CategoryService::getAllByType('series') as $rCategory): ?>
                                                         <option value="<?= $rCategory['id'] ?>"><?= $rCategory['category_name'] ?></option>
                                                     <?php endforeach; ?>
                                                 </select>
@@ -450,7 +450,7 @@
                                             </div>
                                             <div class="col-md-3">
                                                 <select id="reseller_search" class="form-control" data-toggle="select2">
-                                                    <?php if (isset(CoreUtilities::$rRequest['owner']) && ($rOwner = UserRepository::getRegisteredUserById(intval(CoreUtilities::$rRequest['owner'])))): ?>
+                                                    <?php if (isset(RequestManager::getAll()['owner']) && ($rOwner = UserRepository::getRegisteredUserById(intval(RequestManager::getAll()['owner'])))): ?>
                                                         <option value="<?= intval($rOwner['id']) ?>" selected="selected"><?= $rOwner['username'] ?></option>
                                                     <?php endif; ?>
                                                 </select>
@@ -521,7 +521,7 @@
                                             </div>
                                             <div class="col-md-3">
                                                 <select id="user_reseller_search" class="form-control" data-toggle="select2">
-                                                    <?php if (isset(CoreUtilities::$rRequest['owner']) && ($rOwner = UserRepository::getRegisteredUserById(intval(CoreUtilities::$rRequest['owner'])))): ?>
+                                                    <?php if (isset(RequestManager::getAll()['owner']) && ($rOwner = UserRepository::getRegisteredUserById(intval(RequestManager::getAll()['owner'])))): ?>
                                                         <option value="<?= intval($rOwner['id']) ?>" selected="selected"><?= $rOwner['username'] ?></option>
                                                     <?php endif; ?>
                                                 </select>
@@ -584,7 +584,7 @@
                                             </div>
                                             <div class="col-md-3">
                                                 <select id="mag_reseller_search" class="form-control" data-toggle="select2">
-                                                    <?php if (isset(CoreUtilities::$rRequest['owner']) && ($rOwner = UserRepository::getRegisteredUserById(intval(CoreUtilities::$rRequest['owner'])))): ?>
+                                                    <?php if (isset(RequestManager::getAll()['owner']) && ($rOwner = UserRepository::getRegisteredUserById(intval(RequestManager::getAll()['owner'])))): ?>
                                                         <option value="<?= intval($rOwner['id']) ?>" selected="selected"><?= $rOwner['username'] ?></option>
                                                     <?php endif; ?>
                                                 </select>
@@ -650,7 +650,7 @@
                                             </div>
                                             <div class="col-md-3">
                                                 <select id="enigma_reseller_search" class="form-control" data-toggle="select2">
-                                                    <?php if (isset(CoreUtilities::$rRequest['owner']) && ($rOwner = UserRepository::getRegisteredUserById(intval(CoreUtilities::$rRequest['owner'])))): ?>
+                                                    <?php if (isset(RequestManager::getAll()['owner']) && ($rOwner = UserRepository::getRegisteredUserById(intval(RequestManager::getAll()['owner'])))): ?>
                                                         <option value="<?= intval($rOwner['id']) ?>" selected="selected"><?= $rOwner['username'] ?></option>
                                                     <?php endif; ?>
                                                 </select>
@@ -882,7 +882,7 @@ renderUnifiedLayoutFooter('admin');
     echo (intval($rSettings['default_entries']) ?: 10);
     echo "\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#enigma_search').keyup(function(){" . "\r\n\t\t\t\t" . 'eTable.search($(this).val()).draw();' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#enigma_show_entries').change(function(){" . "\r\n\t\t\t\t" . 'eTable.page.len($(this).val()).draw();' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#enigma_reseller_search').change(function(){" . "\r\n\t\t\t\t" . 'eTable.ajax.reload(null, false);' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#enigma_filter').change(function(){" . "\r\n\t\t\t\t" . 'eTable.ajax.reload( null, false );' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . '$("#datatable-md1").selectable({' . "\r\n\t\t\t\t" . "filter: 'tr'," . "\r\n\t\t\t\t" . 'selected: function (event, ui) {' . "\r\n\t\t\t\t\t" . "if (\$(ui.selected).hasClass('selectedfilter')) {" . "\r\n\t\t\t\t\t\t" . "\$(ui.selected).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t\t" . 'window.rStreams.splice($.inArray($(ui.selected).find("td:eq(0)").text(), window.rStreams), 1);' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . "\$(ui.selected).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t\t" . 'window.rStreams.push($(ui.selected).find("td:eq(0)").text());' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n" . '$("#datatable-md6").selectable({' . "\r\n\t\t\t\t" . "filter: 'tr'," . "\r\n\t\t\t\t" . 'selected: function (event, ui) {' . "\r\n\t\t\t\t\t" . "if (\$(ui.selected).hasClass('selectedfilter')) {" . "\r\n\t\t\t\t\t\t" . "\$(ui.selected).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t\t" . 'window.rRadios.splice($.inArray($(ui.selected).find("td:eq(0)").text(), window.rRadios), 1);' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . "\$(ui.selected).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t\t" . 'window.rRadios.push($(ui.selected).find("td:eq(0)").text());' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable-md2").selectable({' . "\r\n\t\t\t\t" . "filter: 'tr'," . "\r\n\t\t\t\t" . 'selected: function (event, ui) {' . "\r\n\t\t\t\t\t" . "if (\$(ui.selected).hasClass('selectedfilter')) {" . "\r\n\t\t\t\t\t\t" . "\$(ui.selected).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t\t" . 'window.rMovies.splice($.inArray($(ui.selected).find("td:eq(0)").text(), window.rMovies), 1);' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . "\$(ui.selected).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t\t" . 'window.rMovies.push($(ui.selected).find("td:eq(0)").text());' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable-md4").selectable({' . "\r\n\t\t\t\t" . "filter: 'tr'," . "\r\n\t\t\t\t" . 'selected: function (event, ui) {' . "\r\n\t\t\t\t\t" . "if (\$(ui.selected).hasClass('selectedfilter')) {" . "\r\n\t\t\t\t\t\t" . "\$(ui.selected).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t\t" . 'window.rSeries.splice($.inArray($(ui.selected).find("td:eq(0)").text(), window.rSeries), 1);' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . "\$(ui.selected).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t\t" . 'window.rSeries.push($(ui.selected).find("td:eq(0)").text());' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable-md5").selectable({' . "\r\n\t\t\t\t" . "filter: 'tr'," . "\r\n\t\t\t\t" . 'selected: function (event, ui) {' . "\r\n\t\t\t\t\t" . "if (\$(ui.selected).hasClass('selectedfilter')) {" . "\r\n\t\t\t\t\t\t" . "\$(ui.selected).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t\t" . 'window.rEpisodes.splice($.inArray($(ui.selected).find("td:eq(0)").text(), window.rEpisodes), 1);' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . "\$(ui.selected).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t\t" . 'window.rEpisodes.push($(ui.selected).find("td:eq(0)").text());' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable-md3").selectable({' . "\r\n\t\t\t\t" . "filter: 'tr'," . "\r\n\t\t\t\t" . 'selected: function (event, ui) {' . "\r\n\t\t\t\t\t" . "if (\$(ui.selected).hasClass('selectedfilter')) {" . "\r\n\t\t\t\t\t\t" . "\$(ui.selected).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t\t" . 'window.rLines.splice($.inArray($(ui.selected).find("td:eq(0)").text(), window.rLines), 1);' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . "\$(ui.selected).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t\t" . 'window.rLines.push($(ui.selected).find("td:eq(0)").text());' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n" . '$("#datatable-md7").selectable({' . "\r\n\t\t\t\t" . "filter: 'tr'," . "\r\n\t\t\t\t" . 'selected: function (event, ui) {' . "\r\n\t\t\t\t\t" . "if (\$(ui.selected).hasClass('selectedfilter')) {" . "\r\n\t\t\t\t\t\t" . "\$(ui.selected).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t\t" . 'window.rUsers.splice($.inArray($(ui.selected).find("td:eq(0)").text(), window.rUsers), 1);' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . "\$(ui.selected).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t\t" . 'window.rUsers.push($(ui.selected).find("td:eq(0)").text());' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n" . '$("#datatable-md8").selectable({' . "\r\n\t\t\t\t" . "filter: 'tr'," . "\r\n\t\t\t\t" . 'selected: function (event, ui) {' . "\r\n\t\t\t\t\t" . "if (\$(ui.selected).hasClass('selectedfilter')) {" . "\r\n\t\t\t\t\t\t" . "\$(ui.selected).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t\t" . 'window.rMAGs.splice($.inArray($(ui.selected).find("td:eq(0)").text(), window.rMAGs), 1);' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . "\$(ui.selected).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t\t" . 'window.rMAGs.push($(ui.selected).find("td:eq(0)").text());' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n" . '$("#datatable-md9").selectable({' . "\r\n\t\t\t\t" . "filter: 'tr'," . "\r\n\t\t\t\t" . 'selected: function (event, ui) {' . "\r\n\t\t\t\t\t" . "if (\$(ui.selected).hasClass('selectedfilter')) {" . "\r\n\t\t\t\t\t\t" . "\$(ui.selected).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t\t" . 'window.rEnigmas.splice($.inArray($(ui.selected).find("td:eq(0)").text(), window.rEnigmas), 1);' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . "\$(ui.selected).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t\t" . 'window.rEnigmas.push($(ui.selected).find("td:eq(0)").text());' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '});' . "\r\n" . '' . "\r\n\t\t";
     ?>
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+    <?php if (SettingsManager::getAll()['enable_search']): ?>
         $(document).ready(function() {
             initSearch();
         });

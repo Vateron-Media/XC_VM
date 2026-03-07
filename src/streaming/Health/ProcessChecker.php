@@ -1,7 +1,8 @@
 <?php
 
 class ProcessChecker {
-	public static function isPIDsRunning($rServers, $rServerIDS, $rPIDs, $rEXE, $rServerRequestCallback = null) {
+	public static function isPIDsRunning($rServerIDS, $rPIDs, $rEXE) {
+		$rServers = ServerRepository::getAll();
 		if (!is_array($rServerIDS)) {
 			$rServerIDS = array(intval($rServerIDS));
 		}
@@ -9,7 +10,7 @@ class ProcessChecker {
 		$rOutput = array();
 		foreach ($rServerIDS as $rServerID) {
 			if (is_array($rServers) && array_key_exists($rServerID, $rServers)) {
-				$rResponse = call_user_func($rServerRequestCallback, $rServerID, $rServers[$rServerID]['api_url_ip'] . '&action=pidsAreRunning', array('program' => $rEXE, 'pids' => $rPIDs));
+				$rResponse = CurlClient::serverRequest($rServerID, $rServers[$rServerID]['api_url_ip'] . '&action=pidsAreRunning', array('program' => $rEXE, 'pids' => $rPIDs));
 				if ($rResponse) {
 					$rDecoded = json_decode($rResponse, true);
 					if (is_array($rDecoded)) {
@@ -25,9 +26,10 @@ class ProcessChecker {
 		return $rOutput;
 	}
 
-	public static function isPIDRunning($rServers, $rServerID, $rPID, $rEXE, $rIsPIDsRunningCallback = null) {
+	public static function isPIDRunning($rServerID, $rPID, $rEXE) {
+		$rServers = ServerRepository::getAll();
 		if (!is_null($rPID) && is_numeric($rPID) && is_array($rServers) && array_key_exists($rServerID, $rServers)) {
-			if (!($rOutput = call_user_func($rIsPIDsRunningCallback, $rServerID, array($rPID), $rEXE))) {
+			if (!($rOutput = self::isPIDsRunning($rServerID, array($rPID), $rEXE))) {
 				return false;
 			}
 			return $rOutput[$rServerID][$rPID];

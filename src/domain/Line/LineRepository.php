@@ -9,7 +9,7 @@ class LineRepository {
 			return false;
 		}
 
-		CoreUtilities::deleteLines($rIDs);
+		LineService::deleteLinesSignal($rIDs);
 		$db->query('DELETE FROM `lines` WHERE `id` IN (' . implode(',', $rIDs) . ');');
 		$db->query('DELETE FROM `lines_logs` WHERE `user_id` IN (' . implode(',', $rIDs) . ');');
 		$db->query('UPDATE `lines_activity` SET `user_id` = 0 WHERE `user_id` IN (' . implode(',', $rIDs) . ');');
@@ -26,7 +26,7 @@ class LineRepository {
 		if (0 >= count($rPairIDs)) {
 		} else {
 			$db->query('UPDATE `lines` SET `pair_id` = null WHERE `id` = (' . implode(',', $rPairIDs) . ');');
-			CoreUtilities::updateLines($rPairIDs);
+			LineService::updateLinesSignal($rPairIDs);
 		}
 
 		return true;

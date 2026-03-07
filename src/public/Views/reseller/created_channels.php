@@ -1,6 +1,6 @@
 <?php
 /**
- * Created channels list view (Phase 6.4 — Reseller).
+ * Created channels list view.
  * Delegation proxy → legacy reseller/created_channels.php HTML body.
  */
 $__viewMode = true;

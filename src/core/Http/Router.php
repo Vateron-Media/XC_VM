@@ -1,7 +1,7 @@
 <?php
 
 /**
- * XC_VM — HTTP Router
+ * HTTP Router
  *
  * Маршрутизатор запросов. Заменяет паттерн switch($rAction) в admin/api.php
  * и прямые include в admin-страницах. Поддерживает модульные маршруты.

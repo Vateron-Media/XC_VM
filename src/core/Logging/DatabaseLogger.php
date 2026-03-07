@@ -1,7 +1,7 @@
 <?php
 
 /**
- * XC_VM — Логгер клиентских запросов (запись в файл для последующей вставки в БД)
+ * Логгер клиентских запросов (запись в файл для последующей вставки в БД)
  *
  * Записывает события клиентского стриминга в файл client_request.log.
  * Формат: base64-encoded JSON, одна строка на запись.
@@ -11,8 +11,6 @@
  *
  * Типичные события: AUTH_FAILED, USER_EXPIRED, USER_BAN, IP_MISMATCH,
  *                   COUNTRY_DISALLOW, RESTREAM_DETECT, LINE_CREATE_FAIL и т.д.
- *
- * Извлечено из: StreamingUtilities::clientLog()
  *
  * @see LoggerInterface
  */

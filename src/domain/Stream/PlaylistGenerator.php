@@ -1,8 +1,12 @@
 <?php
 
 class PlaylistGenerator {
-	public static function generate($rSettings, $rServers, $rCategories, $rCached, $rUserInfo, $rDeviceKey, $rOutputKey = 'ts', $rTypeKey = null, $rNoCache = false, $rProxy = false) {
+	public static function generate($rUserInfo, $rDeviceKey, $rOutputKey = 'ts', $rTypeKey = null, $rNoCache = false, $rProxy = false) {
 		global $db;
+		$rSettings = SettingsManager::getAll();
+		$rServers = ServerRepository::getAll();
+		$rCategories = CategoryService::getFromDatabase();
+		$rCached = SettingsManager::getAll()['enable_cache'];
 		if (empty($rDeviceKey)) {
 			return false;
 		}
@@ -31,7 +35,7 @@ class PlaylistGenerator {
 			$rEncryptPlaylist = false;
 		}
 
-		$rDomainName = CoreUtilities::getDomainName();
+		$rDomainName = DomainResolver::resolve(SERVER_ID);
 		if (!$rDomainName) {
 			exit();
 		}
@@ -140,7 +144,7 @@ class PlaylistGenerator {
 		}
 
 		if (in_array($rSettings['channel_number_type'], array('bouquet_new', 'manual'))) {
-			$rChannelIDs = CoreUtilities::sortChannels($rChannelIDs);
+			$rChannelIDs = StreamSorter::sortChannels($rChannelIDs);
 		}
 
 		unset($rUserInfo['live_ids'], $rUserInfo['vod_ids'], $rUserInfo['radio_ids'], $rUserInfo['episode_ids'], $rUserInfo['channel_ids']);
@@ -190,7 +194,7 @@ class PlaylistGenerator {
 							$rChannelInfo['type_output'] = 'series';
 							$rChannelInfo['category_id'] = $rSeriesInfo[$rSeriesID]['category_id'];
 						} else {
-							$rChannelInfo['stream_display_name'] = CoreUtilities::formatTitle($rChannelInfo['stream_display_name'], $rChannelInfo['year']);
+							$rChannelInfo['stream_display_name'] = StreamSorter::formatTitle($rChannelInfo['stream_display_name'], $rChannelInfo['year']);
 						}
 						if (strlen($rUserInfo['access_token']) == 32) {
 							$rURL = $rDomainName . $rChannelInfo['type_output'] . '/' . $rUserInfo['access_token'] . '/';
@@ -207,7 +211,7 @@ class PlaylistGenerator {
 								} else {
 									$rEncData .= ($rSettings['cloudflare'] && $rOutputExt == 'ts') ? $rChannelInfo['id'] : ($rChannelInfo['id'] . '/' . $rOutputExt);
 								}
-								$rToken = CoreUtilities::encryptData($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+								$rToken = Encryption::encrypt($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 								$rURL = $rDomainName . 'play/' . $rToken;
 								if ($rChannelInfo['live'] == 0) {
 									$rURL .= '#.' . $rChannelInfo['target_container'];
@@ -222,7 +226,7 @@ class PlaylistGenerator {
 							}
 						}
 						$rIcon = ($rChannelInfo['live'] == 0 ? (!empty($rProperties['movie_image']) ? $rProperties['movie_image'] : null) : $rChannelInfo['stream_icon']);
-						$rOutput['iptvstreams_list']['group']['channel'][] = array('name' => $rChannelInfo['stream_display_name'], 'icon' => CoreUtilities::validateImage($rIcon), 'stream_url' => $rURL, 'stream_type' => 0);
+						$rOutput['iptvstreams_list']['group']['channel'][] = array('name' => $rChannelInfo['stream_display_name'], 'icon' => ImageUtils::validateURL($rIcon), 'stream_url' => $rURL, 'stream_type' => 0);
 					}
 				}
 			}
@@ -296,7 +300,7 @@ class PlaylistGenerator {
 							$rChannel['type_output'] = 'series';
 							$rChannel['category_id'] = $rSeriesInfo[$rSeriesID]['category_id'];
 						} else {
-							$rChannel['stream_display_name'] = CoreUtilities::formatTitle($rChannel['stream_display_name'], $rChannel['year']);
+							$rChannel['stream_display_name'] = StreamSorter::formatTitle($rChannel['stream_display_name'], $rChannel['year']);
 						}
 
 						if ($rChannel['live'] == 0) {
@@ -304,7 +308,7 @@ class PlaylistGenerator {
 								$rURL = $rDomainName . $rChannel['type_output'] . '/' . $rUserInfo['access_token'] . '/' . $rChannel['id'] . '.' . $rChannel['target_container'];
 							} else if ($rEncryptPlaylist) {
 								$rEncData = $rChannel['type_output'] . '/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rChannel['id'] . '/' . $rChannel['target_container'];
-								$rToken = CoreUtilities::encryptData($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+								$rToken = Encryption::encrypt($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 								$rURL = $rDomainName . 'play/' . $rToken . '#.' . $rChannel['target_container'];
 							} else {
 								$rURL = $rDomainName . $rChannel['type_output'] . '/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rChannel['id'] . '.' . $rChannel['target_container'];
@@ -322,7 +326,7 @@ class PlaylistGenerator {
 									}
 								} else if ($rEncryptPlaylist) {
 									$rEncData = $rChannel['type_output'] . '/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rChannel['id'];
-									$rToken = CoreUtilities::encryptData($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+									$rToken = Encryption::encrypt($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 									if ($rSettings['cloudflare'] && $rOutputExt == 'ts') {
 										$rURL = $rDomainName . 'play/' . $rToken;
 									} else {
@@ -346,7 +350,7 @@ class PlaylistGenerator {
 									$rURL = $rServers[$rServerID]['rtmp_server'] . $rChannel['id'] . '?token=' . $rUserInfo['access_token'];
 								} else if ($rEncryptPlaylist) {
 									$rEncData = $rUserInfo['username'] . '/' . $rUserInfo['password'];
-									$rToken = CoreUtilities::encryptData($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+									$rToken = Encryption::encrypt($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 									$rURL = $rServers[$rServerID]['rtmp_server'] . $rChannel['id'] . '?token=' . $rToken;
 								} else {
 									$rURL = $rServers[$rServerID]['rtmp_server'] . $rChannel['id'] . '?username=' . $rUserInfo['username'] . '&password=' . $rUserInfo['password'];
@@ -363,7 +367,7 @@ class PlaylistGenerator {
 						}
 						foreach ($rCategoryIDs as $rCategoryID) {
 							if (isset($rCategories[$rCategoryID])) {
-								$rData = str_replace(array('&lt;', '&gt;'), array('<', '>'), str_replace(array($rPattern, '{ESR_ID}', '{SID}', '{CHANNEL_NAME}', '{CHANNEL_ID}', '{XC_VM_ID}', '{CATEGORY}', '{CHANNEL_ICON}'), array(str_replace($rCharts, array_map('urlencode', $rCharts), $rURL), $rESRID, $rSID, $rChannel['stream_display_name'], $rChannel['channel_id'], $rChannel['id'], $rCategories[$rCategoryID]['category_name'], CoreUtilities::validateImage($rIcon)), $rConfig)) . "\r\n";
+								$rData = str_replace(array('&lt;', '&gt;'), array('<', '>'), str_replace(array($rPattern, '{ESR_ID}', '{SID}', '{CHANNEL_NAME}', '{CHANNEL_ID}', '{XC_VM_ID}', '{CATEGORY}', '{CHANNEL_ICON}'), array(str_replace($rCharts, array_map('urlencode', $rCharts), $rURL), $rESRID, $rSID, $rChannel['stream_display_name'], $rChannel['channel_id'], $rChannel['id'], $rCategories[$rCategoryID]['category_name'], ImageUtils::validateURL($rIcon)), $rConfig)) . "\r\n";
 							} else {
 								$rData = str_replace(array('&lt;', '&gt;'), array('<', '>'), str_replace(array($rPattern, '{ESR_ID}', '{SID}', '{CHANNEL_NAME}', '{CHANNEL_ID}', '{XC_VM_ID}', '{CHANNEL_ICON}'), array(str_replace($rCharts, array_map('urlencode', $rCharts), $rURL), $rESRID, $rSID, $rChannel['stream_display_name'], $rChannel['channel_id'], $rChannel['id'], $rIcon), $rConfig)) . "\r\n";
 								$rData = str_replace(' group-title="{CATEGORY}"', '', $rData);

@@ -1,15 +1,13 @@
 <?php
 
 /**
- * XC_VM — Cache Interface (Contract)
+ * Cache Interface (Contract)
  *
  * Contract for all cache drivers. Both FileCache and RedisCache
  * implement this interface, allowing swapping drivers without
  * changing consuming code.
  *
- * ---------------------------------------------------------------
  * Usage:
- * ---------------------------------------------------------------
  *
  *   // Getting a cache driver from ServiceContainer:
  *   $cache = $container->get('cache');
@@ -28,9 +26,7 @@
  *   // Check existence:
  *   if ($cache->has('settings')) { ... }
  *
- * ---------------------------------------------------------------
  * Backward Compatibility:
- * ---------------------------------------------------------------
  *
  *   CoreUtilities::setCache() and CoreUtilities::getCache() will
  *   delegate to FileCache. No changes needed in existing code.

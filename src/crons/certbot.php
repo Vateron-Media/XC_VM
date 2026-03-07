@@ -17,14 +17,14 @@ function loadCron() {
     $rCertInfo = null;
     if (!$rCheck) {
         if (!DEVELOPMENT) {
-            CoreUtilities::submitPanelLogs(); // Submit panel logs to the central server
+            DiagnosticsService::submitPanelLogs(DatabaseFactory::get()); // Submit panel logs to the central server
         }
-        $rCertInfo = CoreUtilities::getCertificateInfo();
-        if (CoreUtilities::$rServers[SERVER_ID]['enable_https'] && $rCertInfo) {
+        $rCertInfo = DiagnosticsService::getCertificateInfo();
+        if (ServerRepository::getAll()[SERVER_ID]['enable_https'] && $rCertInfo) {
             if ($rCertInfo['expiration'] - time() < 604800) {
                 echo 'Certificate due for renewal.' . "\n";
                 $rData = array('action' => 'certbot_generate', 'domain' => array());
-                foreach (explode(',', CoreUtilities::$rServers[SERVER_ID]['domain_name']) as $rDomain) {
+                foreach (explode(',', ServerRepository::getAll()[SERVER_ID]['domain_name']) as $rDomain) {
                     if (!filter_var($rDomain, FILTER_VALIDATE_IP)) {
                         $rData['domain'][] = $rDomain;
                     }
@@ -44,15 +44,15 @@ function loadCron() {
         if (explode(' ', $rLine)[0] == 'ssl_certificate') {
             list($rCertificate) = explode(';', explode(' ', $rLine)[1]);
             if ($rCertificate != 'server.crt') {
-                $rCertInfoFile = CoreUtilities::getCertificateInfo($rCertificate);
-                if ($rCertInfo['serial'] != $rCertInfoFile['serial'] || !CoreUtilities::$rServers[SERVER_ID]['certbot_ssl'] || $rDBCertInfo['serial'] != $rCertInfoFile['serial']) {
+                $rCertInfoFile = DiagnosticsService::getCertificateInfo($rCertificate);
+                if ($rCertInfo['serial'] != $rCertInfoFile['serial'] || !ServerRepository::getAll()[SERVER_ID]['certbot_ssl'] || $rDBCertInfo['serial'] != $rCertInfoFile['serial']) {
                     $db->query('UPDATE `servers` SET `certbot_ssl` = ? WHERE `id` = ?;', json_encode($rCertInfoFile), SERVER_ID);
                     echo 'Updated ssl configuration in database' . "\n";
                     $db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', SERVER_ID, time(), json_encode(array('action' => 'reload_nginx')));
                 }
             } else {
-                if (CoreUtilities::$rServers[SERVER_ID]['certbot_ssl']) {
-                    $rCertInfo = json_decode(CoreUtilities::$rServers[SERVER_ID]['certbot_ssl'], true);
+                if (ServerRepository::getAll()[SERVER_ID]['certbot_ssl']) {
+                    $rCertInfo = json_decode(ServerRepository::getAll()[SERVER_ID]['certbot_ssl'], true);
                     if (file_exists($rCertInfo['path'] . '/fullchain.pem')) {
                         $rCertificate = $rCertInfo['path'] . '/fullchain.pem';
                         $rChain = $rCertInfo['path'] . '/chain.pem';

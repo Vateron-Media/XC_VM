@@ -5,8 +5,8 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
         register_shutdown_function('shutdown');
         require str_replace('\\', '/', dirname($argv[0])) . '/../www/init.php';
         cli_set_process_title('XC_VM[Errors]');
-        $rIdentifier = CRONS_TMP_PATH . md5(CoreUtilities::generateUniqueCode() . __FILE__);
-        CoreUtilities::checkCron($rIdentifier);
+        $rIdentifier = CRONS_TMP_PATH . md5(Encryption::generateUniqueCode(SettingsManager::getAll()['live_streaming_pass']) . __FILE__);
+        ProcessManager::acquireCronLock($rIdentifier);
         $rIgnoreErrors = array('the user-agent option is deprecated', 'last message repeated', 'deprecated', 'packets poorly interleaved', 'invalid timestamps', 'timescale not set', 'frame size not set', 'non-monotonous dts in output stream', 'invalid dts', 'no trailing crlf', 'failed to parse extradata', 'truncated', 'missing picture', 'non-existing pps', 'clipping', 'out of range', 'cannot use rename on non file protocol', 'end of file', 'stream ends prematurely');
         loadCron();
     } else {
@@ -124,7 +124,7 @@ function loadCron() {
                         foreach ($rErrors as $rError) {
                             $rError = trim((string) $rError);
                             if (!(empty($rError) || inArray($rIgnoreErrors, $rError))) {
-                                if (CoreUtilities::$rSettings['stream_logs_save']) {
+                                if (SettingsManager::getAll()['stream_logs_save']) {
                                     $rQuery .= '(' . $rStreamID . ',' . SERVER_ID . ',' . time() . ',' . $db->escape($rError) . '),';
                                 }
                             }
@@ -136,7 +136,7 @@ function loadCron() {
             closedir($rHandle);
         }
     }
-    if (CoreUtilities::$rSettings['stream_logs_save'] && !empty($rQuery)) {
+    if (SettingsManager::getAll()['stream_logs_save'] && !empty($rQuery)) {
         $rQuery = rtrim($rQuery, ',');
         $db->query('INSERT INTO `streams_errors` (`stream_id`,`server_id`,`date`,`error`) VALUES ' . $rQuery . ';');
     }

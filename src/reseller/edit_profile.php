@@ -85,10 +85,10 @@ foreach ($rHues as $rValue => $rText) {
 echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</select>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n" . '                                                ';
 
 foreach (getcodes() as $rCode) {
-	if (!($rCode['type'] == 4 && in_array($rUserInfo['member_group_id'], json_decode($rCode['groups'], true)))) {
+	if (!($rCode['type'] == 4 && in_array($rUserInfo['member_group_id'], json_decode($rCode['groups'], true) ?: []))) {
 	} else {
 		echo '                                                <div class="form-group row mb-4">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="api_key">API Key <i title="API URL:<br/>';
-		echo ((empty($rUserInfo['reseller_dns']) ? CoreUtilities::$rServers[SERVER_ID]['http_url'] : 'http://' . $rUserInfo['reseller_dns'] . ':' . intval(CoreUtilities::$rServers[SERVER_ID]['http_broadcast_port']) . '/')) . $rCode['code'];
+		echo ((empty($rUserInfo['reseller_dns']) ? ServerRepository::getAll()[SERVER_ID]['http_url'] : 'http://' . $rUserInfo['reseller_dns'] . ':' . intval(ServerRepository::getAll()[SERVER_ID]['http_broadcast_port']) . '/')) . $rCode['code'];
 		echo '/" class="tooltip text-secondary far fa-circle"></i></label>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8 input-group">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input readonly type="text" maxlength="32" class="form-control" id="api_key" name="api_key" value="';
 		echo htmlspecialchars($rUserInfo['api_key']);
 		echo '">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="input-group-append">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<button class="btn btn-danger waves-effect waves-light" onClick="clearCode();" type="button"><i class="mdi mdi-close"></i></button>' . "\r\n" . '                                                            <button class="btn btn-info waves-effect waves-light" onClick="generateCode();" type="button"><i class="mdi mdi-refresh"></i></button>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n" . '                                                ';

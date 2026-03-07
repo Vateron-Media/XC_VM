@@ -1,6 +1,6 @@
 <?php
 /**
- * Radio mass edit view (Phase 6.3 — Group A).
+ * Radio mass edit view.
  * Delegation proxy → legacy admin/radio_mass.php HTML body.
  */
 $__viewMode = true;

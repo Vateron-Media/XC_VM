@@ -1,6 +1,6 @@
 <?php
 /**
- * DashboardController — Dashboard page (Phase 6.3 — Group M).
+ * DashboardController — Dashboard page.
  *
  * Complex data-prep: theme colours, connection map queries, server stats.
  * Dashboard has NO checkPermissions() — it uses server_id validation instead.
@@ -21,7 +21,7 @@ class DashboardController extends BaseAdminController
         }
 
         // Server ID validation
-        if (!isset(CoreUtilities::$rRequest['server_id']) || isset($rServers[CoreUtilities::$rRequest['server_id']])) {
+        if (!isset(RequestManager::getAll()['server_id']) || isset($rServers[RequestManager::getAll()['server_id']])) {
         } else {
             $this->redirect('dashboard');
             return;
@@ -31,8 +31,8 @@ class DashboardController extends BaseAdminController
         $rConnectionMap = array();
         $rConnectionCount = 0;
 
-        if (isset(CoreUtilities::$rRequest['server_id'])) {
-            $db->query('SELECT `geoip_country_code`, COUNT(`geoip_country_code`) AS `count` FROM `lines_activity` WHERE (`server_id` = ? OR `proxy_id` = ?) GROUP BY `geoip_country_code` ORDER BY `count` DESC;', intval(CoreUtilities::$rRequest['server_id']), intval(CoreUtilities::$rRequest['server_id']));
+        if (isset(RequestManager::getAll()['server_id'])) {
+            $db->query('SELECT `geoip_country_code`, COUNT(`geoip_country_code`) AS `count` FROM `lines_activity` WHERE (`server_id` = ? OR `proxy_id` = ?) GROUP BY `geoip_country_code` ORDER BY `count` DESC;', intval(RequestManager::getAll()['server_id']), intval(RequestManager::getAll()['server_id']));
         } else {
             $db->query('SELECT `geoip_country_code`, COUNT(`geoip_country_code`) AS `count` FROM `lines_activity` GROUP BY `geoip_country_code` ORDER BY `count` DESC;');
         }
@@ -59,7 +59,7 @@ class DashboardController extends BaseAdminController
 
         // Server stats (when no server filter)
         $rServerStats = array();
-        if (!isset(CoreUtilities::$rRequest['server_id'])) {
+        if (!isset(RequestManager::getAll()['server_id'])) {
             $rLimit = 3600;
             $rTime = time();
             $rNearestRange = $rTime - $rLimit;

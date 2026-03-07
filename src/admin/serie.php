@@ -8,12 +8,12 @@
 		goHome();
 	}
 
-	if (isset(CoreUtilities::$rRequest['id']) && !($rSeriesArr = getSerie(CoreUtilities::$rRequest['id']))) {
+	if (isset(RequestManager::getAll()['id']) && !($rSeriesArr = getSerie(RequestManager::getAll()['id']))) {
 		goHome();
 	}
 
-	if (isset($rSeriesArr) && isset(CoreUtilities::$rRequest['import'])) {
-		unset(CoreUtilities::$rRequest['import']);
+	if (isset($rSeriesArr) && isset(RequestManager::getAll()['import'])) {
+		unset(RequestManager::getAll()['import']);
 	}
 
 	$rTranscodeProfiles = StreamConfigRepository::getTranscodeProfiles();
@@ -43,7 +43,7 @@
 					<h4 class="page-title">
 						<?php if (isset($rSeriesArr['id'])) {
 							echo $rSeriesArr['title'];
-						} elseif (isset(CoreUtilities::$rRequest['import'])) {
+						} elseif (isset(RequestManager::getAll()['import'])) {
 							echo 'Import Series';
 						} else {
 							echo 'Add Series';
@@ -56,8 +56,8 @@
 			<div class="col-xl-12">
 				<div class="card">
 					<div class="card-body">
-						<form<?php if (isset(CoreUtilities::$rRequest['import'])) echo ' enctype="multipart/form-data"'; ?> action="#" method="POST" data-parsley-validate="">
-							<?php if (!isset(CoreUtilities::$rRequest['import'])): ?>
+						<form<?php if (isset(RequestManager::getAll()['import'])) echo ' enctype="multipart/form-data"'; ?> action="#" method="POST" data-parsley-validate="">
+							<?php if (!isset(RequestManager::getAll()['import'])): ?>
 								<?php if (isset($rSeriesArr)): ?>
 									<input type="hidden" name="edit" value="<?= $rSeriesArr['id']; ?>" />
 								<?php endif; ?>
@@ -77,7 +77,7 @@
 											<span class="d-none d-sm-inline">Details</span>
 										</a>
 									</li>
-									<?php if (!isset(CoreUtilities::$rRequest['import'])): ?>
+									<?php if (!isset(RequestManager::getAll()['import'])): ?>
 										<li class="nav-item">
 											<a href="#movie-information" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
 												<i class="mdi mdi-movie-outline mr-1"></i>
@@ -107,7 +107,7 @@
 									<div class="tab-pane" id="stream-details">
 										<div class="row">
 											<div class="col-12">
-												<?php if (!isset(CoreUtilities::$rRequest['import'])): ?>
+												<?php if (!isset(RequestManager::getAll()['import'])): ?>
 													<div class="form-group row mb-4">
 														<label class="col-md-4 col-form-label" for="title">Series Name</label>
 														<div class="col-md-5">
@@ -117,7 +117,7 @@
 															<input type="text" class="form-control text-center" placeholder="Year" id="year" name="year" value="<?= isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['year']) : ''; ?>">
 														</div>
 													</div>
-													<?php if (strlen(CoreUtilities::$rSettings['tmdb_api_key']) > 0): ?>
+													<?php if (strlen(SettingsManager::getAll()['tmdb_api_key']) > 0): ?>
 														<div class="form-group row mb-4">
 															<label class="col-md-4 col-form-label" for="tmdb_search">TMDb Results</label>
 															<div class="col-md-5">
@@ -187,10 +187,10 @@
 													</div>
 												<?php endif; ?>
 												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="category_id"><?= (isset(CoreUtilities::$rRequest['import']) ? 'Fallback ' : ''); ?>Categories</label>
+													<label class="col-md-4 col-form-label" for="category_id"><?= (isset(RequestManager::getAll()['import']) ? 'Fallback ' : ''); ?>Categories</label>
 													<div class="col-md-8">
 														<select name="category_id[]" id="category_id" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">
-															<?php foreach (getCategories('series') as $category): ?>
+															<?php foreach (CategoryService::getAllByType('series') as $category): ?>
 																<?php
 																$selected = '';
 																if (isset($rSeriesArr)) {
@@ -211,7 +211,7 @@
 													</div>
 												</div>
 												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="bouquets"><?= (isset(CoreUtilities::$rRequest['import']) ? 'Fallback ' : ''); ?>Bouquets</label>
+													<label class="col-md-4 col-form-label" for="bouquets"><?= (isset(RequestManager::getAll()['import']) ? 'Fallback ' : ''); ?>Bouquets</label>
 													<div class="col-md-8">
 														<select name="bouquets[]" id="bouquets" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">
 															<?php foreach (BouquetService::getAllSimple() as $bouquet): ?>
@@ -242,7 +242,7 @@
 											</li>
 										</ul>
 									</div>
-									<?php if (!isset(CoreUtilities::$rRequest['import'])): ?>
+									<?php if (!isset(RequestManager::getAll()['import'])): ?>
 										<div class="tab-pane" id="movie-information">
 											<div class="row">
 												<div class="col-12">
@@ -1004,7 +1004,7 @@ renderUnifiedLayoutFooter('admin');
 		<?php endif; ?>
 		$("form").submit(function(e) {
 			e.preventDefault();
-			<?php if (!isset(CoreUtilities::$rRequest['import'])): ?>
+			<?php if (!isset(RequestManager::getAll()['import'])): ?>
 				if ($("#title").val().length === 0) {
 					$.toast("Enter a series name.");
 				} else {
@@ -1026,7 +1026,7 @@ renderUnifiedLayoutFooter('admin');
 			<?php endif; ?>
 		});
 	});
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+	<?php if (SettingsManager::getAll()['enable_search']): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Консолидированный сервис аутентификации (§2.4).
+ * Консолидированный сервис аутентификации.
  * Объединяет: CodeService, HMACService, HMACValidator.
  */
 class AuthService {
@@ -9,10 +9,10 @@ class AuthService {
 	// Из CodeService
 	// ──────────────────────────────────────────────
 
-	public static function processCode($rData, $rGetCodeCallback, $rUpdateCodesCallback) {
+	public static function processCode($rData) {
 		global $db;
 		if (isset($rData['edit'])) {
-			$rArray = overwriteData(call_user_func($rGetCodeCallback, $rData['edit']), $rData);
+			$rArray = overwriteData(getCode($rData['edit']), $rData);
 			$rOrigCode = $rArray['code'];
 		} else {
 			$rArray = verifyPostTable('access_codes', $rData);
@@ -70,7 +70,7 @@ class AuthService {
 
 		if ($db->query($rQuery, ...$rPrepare['data'])) {
 			$rInsertID = $db->last_insert_id();
-			call_user_func($rUpdateCodesCallback);
+			AuthRepository::updateCodes();
 			return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID, 'orig_code' => $rOrigCode, 'new_code' => $rData['code']));
 		}
 
@@ -81,10 +81,11 @@ class AuthService {
 	// Из HMACService
 	// ──────────────────────────────────────────────
 
-	public static function processHMAC($rData, $rSettings, $rGetHMACTokenCallback) {
+	public static function processHMAC($rData) {
 		global $db;
+		$rSettings = SettingsManager::getAll();
 		if (isset($rData['edit'])) {
-			$rArray = overwriteData(call_user_func($rGetHMACTokenCallback, $rData['edit']), $rData);
+			$rArray = overwriteData(AuthRepository::getHMACById($rData['edit']), $rData);
 		} else {
 			$rArray = verifyPostTable('hmac_keys', $rData);
 			unset($rArray['id']);
@@ -106,20 +107,20 @@ class AuthService {
 
 		if (isset($rData['edit'])) {
 			if ($rData['keygen'] != 'HMAC KEY HIDDEN') {
-				$db->query('SELECT `id` FROM `hmac_keys` WHERE `key` = ? AND `id` <> ?;', CoreUtilities::encryptData($rData['keygen'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA), $rData['edit']);
+				$db->query('SELECT `id` FROM `hmac_keys` WHERE `key` = ? AND `id` <> ?;', Encryption::encrypt($rData['keygen'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA), $rData['edit']);
 				if (0 < $db->num_rows()) {
 					return array('status' => STATUS_EXISTS_HMAC, 'data' => $rData);
 				}
 			}
 		} else {
-			$db->query('SELECT `id` FROM `hmac_keys` WHERE `key` = ?;', CoreUtilities::encryptData($rData['keygen'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA));
+			$db->query('SELECT `id` FROM `hmac_keys` WHERE `key` = ?;', Encryption::encrypt($rData['keygen'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA));
 			if (0 < $db->num_rows()) {
 				return array('status' => STATUS_EXISTS_HMAC, 'data' => $rData);
 			}
 		}
 
 		if ($rData['keygen'] != 'HMAC KEY HIDDEN') {
-			$rArray['key'] = CoreUtilities::encryptData($rData['keygen'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+			$rArray['key'] = Encryption::encrypt($rData['keygen'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 		}
 
 		$rPrepare = prepareArray($rArray);
@@ -137,8 +138,10 @@ class AuthService {
 	// Из HMACValidator
 	// ──────────────────────────────────────────────
 
-	public static function validateHMAC($rSettings, $rCached, $rHMAC, $rExpiry, $rStreamID, $rExtension, $rIP = '', $rMACIP = '', $rIdentifier = '', $rMaxConnections = 0) {
+	public static function validateHMAC($rHMAC, $rExpiry, $rStreamID, $rExtension, $rIP = '', $rMACIP = '', $rIdentifier = '', $rMaxConnections = 0) {
 		global $db;
+		$rSettings = SettingsManager::getAll();
+		$rCached = SettingsManager::getAll()['enable_cache'];
 		if (0 < strlen($rIP) && 0 < strlen($rMACIP) && $rIP != $rMACIP) {
 			return null;
 		}

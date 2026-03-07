@@ -1,6 +1,6 @@
 <?php
 /**
- * ResellerLiveConnectionsController — Live connections (Phase 6.4 — Reseller).
+ * ResellerLiveConnectionsController — Live connections.
  */
 class ResellerLiveConnectionsController extends BaseResellerController
 {

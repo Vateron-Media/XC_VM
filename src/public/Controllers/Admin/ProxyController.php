@@ -1,6 +1,6 @@
 <?php
 /**
- * ProxyController — Edit Proxy (Phase 6.3 — Group N).
+ * ProxyController — Edit Proxy.
  */
 class ProxyController extends BaseAdminController
 {
@@ -10,8 +10,8 @@ class ProxyController extends BaseAdminController
 
         $this->requirePermission();
 
-        if (isset(CoreUtilities::$rRequest['id']) && isset($rProxyServers[CoreUtilities::$rRequest['id']])) {
-            $rServerArr = $rProxyServers[CoreUtilities::$rRequest['id']];
+        if (isset(RequestManager::getAll()['id']) && isset($rProxyServers[RequestManager::getAll()['id']])) {
+            $rServerArr = $rProxyServers[RequestManager::getAll()['id']];
             if ($rServerArr['server_type'] != 1) {
                 $this->redirect('proxies');
                 return;

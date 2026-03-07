@@ -1,10 +1,10 @@
 <?php
 
 class SettingsRepository {
-	public static function getAll($rGetCacheCallback, $rSetCacheCallback, $rForce = false) {
+	public static function getAll($rForce = false) {
 		global $db;
-		if (!$rForce && is_callable($rGetCacheCallback)) {
-			$rCache = call_user_func($rGetCacheCallback, 'settings', 20);
+		if (!$rForce) {
+			$rCache = FileCache::getCache('settings', 20);
 			if (!empty($rCache)) {
 				return $rCache;
 			}
@@ -31,9 +31,7 @@ class SettingsRepository {
 		}
 		$rOutput['api_ips'] = !empty($rOutput['api_ips']) ? explode(',', $rOutput['api_ips']) : [];
 
-		if (is_callable($rSetCacheCallback)) {
-			call_user_func($rSetCacheCallback, 'settings', $rOutput);
-		}
+		FileCache::setCache('settings', $rOutput);
 
 		return $rOutput;
 	}

@@ -1,6 +1,6 @@
 <?php
 /**
- * Enigma device edit view (Phase 6.4 — Reseller).
+ * Enigma device edit view.
  * Delegation proxy → legacy reseller/enigma.php HTML body.
  */
 $__viewMode = true;

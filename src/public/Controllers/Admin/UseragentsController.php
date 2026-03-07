@@ -1,6 +1,6 @@
 <?php
 /**
- * XC_VM — Контроллер списка заблокированных User-Agent (admin/useragents.php)
+ * Контроллер списка заблокированных User-Agent (admin/useragents.php)
  */
 class UseragentsController extends BaseAdminController {
     public function index() {

@@ -1,6 +1,6 @@
 <?php
 /**
- * Created channel edit view (Phase 6.3 — Group A).
+ * Created channel edit view.
  * Delegation proxy → legacy admin/created_channel.php HTML body.
  */
 $__viewMode = true;

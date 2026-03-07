@@ -1,8 +1,9 @@
 <?php
 
 class EpisodeService {
-	public static function process($rSettings, $rData) {
+	public static function process($rData) {
 		global $db;
+		$rSettings = SettingsManager::getAll();
 		if (isset($rData['edit'])) {
 			if (Authorization::check('adv', 'edit_episode')) {
 				$rArray = overwriteData(StreamRepository::getById($rData['edit']), $rData);
@@ -90,7 +91,7 @@ class EpisodeService {
 										$rImage = 'https://image.tmdb.org/t/p/w600_and_h900_bestv2' . $rEpisode['still_path'];
 
 										if ($rSettings['download_images']) {
-											$rImage = CoreUtilities::downloadImage($rImage, 5);
+											$rImage = ImageUtils::downloadImage($rImage, 5);
 										}
 									}
 
@@ -121,7 +122,7 @@ class EpisodeService {
 			$rImportArray = array('filename' => $rArray['stream_source'][0], 'properties' => array(), 'name' => $rArray['stream_display_name'], 'episode' => $rData['episode'], 'target_container' => $rData['target_container']);
 
 			if ($rSettings['download_images']) {
-				$rData['movie_image'] = CoreUtilities::downloadImage($rData['movie_image'], 5);
+				$rData['movie_image'] = ImageUtils::downloadImage($rData['movie_image'], 5);
 			}
 
 			$rSeconds = intval($rData['episode_run_time']) * 60;
@@ -202,7 +203,7 @@ class EpisodeService {
 				}
 
 				$db->query('UPDATE `streams_series` SET `last_modified` = ? WHERE `id` = ?;', time(), $rData['streams_series']);
-				CoreUtilities::updateStream($rInsertID);
+				StreamProcess::updateStream($rInsertID);
 			} else {
 				return array('status' => STATUS_FAILURE);
 			}
@@ -371,16 +372,16 @@ class EpisodeService {
 				$db->query('INSERT INTO `streams_servers`(`stream_id`, `server_id`) VALUES ' . $rAddQuery . ';');
 			}
 
-			CoreUtilities::updateStreams($rStreamIDs);
+			StreamProcess::updateStreams($rStreamIDs);
 
 			if (isset($rData['reencode_on_edit'])) {
 				foreach ($rQueueMovies as $rServerID => $rQueueIDs) {
-					CoreUtilities::queueMovies($rQueueIDs, $rServerID);
+					StreamProcess::queueMovies($rQueueIDs, $rServerID);
 				}
 			}
 
 			if (isset($rData['reprocess_tmdb'])) {
-				CoreUtilities::refreshMovies($rStreamIDs, 3);
+				StreamProcess::refreshMovies($rStreamIDs, 3);
 			}
 		}
 

@@ -1,6 +1,6 @@
 <?php
 /**
- * Movies list view (Phase 6.4 — Reseller).
+ * Movies list view.
  * Delegation proxy → legacy reseller/movies.php HTML body.
  */
 $__viewMode = true;

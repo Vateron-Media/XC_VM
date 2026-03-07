@@ -10,8 +10,8 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
             $rStartup = true;
         }
         cli_set_process_title('XC_VM[Cache Builder]');
-        $rIdentifier = CRONS_TMP_PATH . md5(CoreUtilities::generateUniqueCode() . __FILE__);
-        CoreUtilities::checkCron($rIdentifier);
+        $rIdentifier = CRONS_TMP_PATH . md5(Encryption::generateUniqueCode(SettingsManager::getAll()['live_streaming_pass']) . __FILE__);
+        ProcessManager::acquireCronLock($rIdentifier);
         loadCron();
     } else {
         exit(0);
@@ -43,19 +43,19 @@ function loadCron() {
                 mkdir($rPath);
             }
         }
-        CoreUtilities::setCache('settings', CoreUtilities::getSettings(true));
-        CoreUtilities::setCache('bouquets', CoreUtilities::getBouquets(true));
-        $rServers = CoreUtilities::getServers(true);
+        FileCache::setCache('settings', SettingsRepository::getAll(true));
+        FileCache::setCache('bouquets', BouquetService::getAll(true));
+        $rServers = ServerRepository::getAll(true);
         unset($rServers['php_pids']);
-        CoreUtilities::setCache('servers', $rServers);
-        CoreUtilities::setCache('proxy_servers', CoreUtilities::getProxyIPs(true));
-        CoreUtilities::setCache('blocked_servers', CoreUtilities::getBlockedServers(true));
-        CoreUtilities::setCache('blocked_isp', CoreUtilities::getBlockedISP(true));
-        CoreUtilities::setCache('blocked_ua', CoreUtilities::getBlockedUA(true));
-        CoreUtilities::setCache('blocked_ips', CoreUtilities::getBlockedIPs(true));
-        CoreUtilities::setCache('allowed_ips', CoreUtilities::getAllowedIPs(true));
-        CoreUtilities::setCache('categories', CoreUtilities::getCategories(null, true));
-        if (CoreUtilities::$rServers[SERVER_ID]['is_main']) {
+        FileCache::setCache('servers', $rServers);
+        FileCache::setCache('proxy_servers', BlocklistService::getProxyIPs(true));
+        FileCache::setCache('blocked_servers', BlocklistService::getBlockedServers(true));
+        FileCache::setCache('blocked_isp', BlocklistService::getBlockedISP(true));
+        FileCache::setCache('blocked_ua', BlocklistService::getBlockedUA(true));
+        FileCache::setCache('blocked_ips', BlocklistService::getBlockedIPs(true));
+        FileCache::setCache('allowed_ips', ServerRepository::getAllowedIPs(true));
+        FileCache::setCache('categories', CategoryService::getFromDatabase(null, true));
+        if (ServerRepository::getAll()[SERVER_ID]['is_main']) {
             $rOutputFormats = array();
             $db->query('SELECT `access_output_id`, `output_key` FROM `output_formats`;');
             foreach ($db->get_rows() as $rRow) {
@@ -84,7 +84,7 @@ function loadCron() {
                 }
             }
             $rChannelOrder = array();
-            if (CoreUtilities::$rSettings['channel_number_type'] == 'manual') {
+            if (SettingsManager::getAll()['channel_number_type'] == 'manual') {
                 $db->query('SELECT `id`, `order` FROM `streams` ORDER BY `order` ASC;');
                 foreach ($db->get_rows() as $rRow) {
                     $rChannelOrder[] = intval($rRow['id']);
@@ -165,7 +165,7 @@ function loadCron() {
                 }
                 $rCategoryMap[$rID] = array_unique($rAllowedCategories);
             }
-            if (CoreUtilities::$rSettings['channel_number_type'] == 'manual') {
+            if (SettingsManager::getAll()['channel_number_type'] == 'manual') {
             } else {
                 foreach (array('channels', 'radios', 'movies', 'episodes') as $rKey) {
                     if (0 < count($rStreamIDs[$rKey])) {
@@ -195,7 +195,7 @@ function loadCron() {
                         }
                     }
                 }
-                if (!CoreUtilities::$rSettings['vod_sort_newest']) {
+                if (!SettingsManager::getAll()['vod_sort_newest']) {
                 } else {
                     $rStreamIDs['movies'] = array();
                     $rStreamIDs['episodes'] = array();

@@ -24,19 +24,19 @@ if (!$rMobile) {
 
 echo ' form-group row mb-4">' . "\n" . '                            <div class="col-md-5">' . "\n" . '                                <input type="text" class="form-control" id="stream_search" value="';
 
-if (!isset(CoreUtilities::$rRequest['search'])) {
+if (!isset(RequestManager::getAll()['search'])) {
 } else {
-	echo htmlspecialchars(CoreUtilities::$rRequest['search']);
+	echo htmlspecialchars(RequestManager::getAll()['search']);
 }
 
 echo '" placeholder="Search Channels...">' . "\n" . '                            </div>' . "\n" . '                            <div class="col-md-4">' . "\n" . '                                <select id="stream_category_id" class="form-control" data-toggle="select2">' . "\n" . '                                    <option value="" selected>All Categories</option>' . "\n" . '                                    ';
 
-foreach (getCategories('live') as $rCategory) {
+foreach (CategoryService::getAllByType('live') as $rCategory) {
 	echo '                                    <option value="';
 	echo $rCategory['id'];
 	echo '"';
 
-	if (!(isset(CoreUtilities::$rRequest['category']) && CoreUtilities::$rRequest['category'] == $rCategory['id'])) {
+	if (!(isset(RequestManager::getAll()['category']) && RequestManager::getAll()['category'] == $rCategory['id'])) {
 	} else {
 		echo ' selected';
 	}
@@ -50,8 +50,8 @@ echo '                                </select>' . "\n" . '                     
 foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) {
 	echo '                                    <option';
 
-	if (isset(CoreUtilities::$rRequest['entries'])) {
-		if (CoreUtilities::$rRequest['entries'] != $rShow) {
+	if (isset(RequestManager::getAll()['entries'])) {
+		if (RequestManager::getAll()['entries'] != $rShow) {
 		} else {
 			echo ' selected';
 		}

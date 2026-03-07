@@ -39,7 +39,7 @@
 					<div class="card-body" style="overflow-x:auto;">
 						<div id="collapse_filters" class="form-group row mb-4 <?php if ($rMobile) echo 'collapse'; ?>">
 							<div class="col-md-3">
-								<input type="text" class="form-control" id="mag_search" value="<?php if (isset(CoreUtilities::$rRequest['search'])) echo htmlspecialchars(CoreUtilities::$rRequest['search']); ?>" placeholder="<?= $language::get('search_devices'); ?>...">
+								<input type="text" class="form-control" id="mag_search" value="<?php if (isset(RequestManager::getAll()['search'])) echo htmlspecialchars(RequestManager::getAll()['search']); ?>" placeholder="<?= $language::get('search_devices'); ?>...">
 							</div>
 							<label class="col-md-2 col-form-label text-center" for="mag_reseller">Filter Results &nbsp; <button type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="clearOwner();"><i class="mdi mdi-close"></i></button></label>
 							<div class="col-md-3">
@@ -48,26 +48,26 @@
 							</div>
 							<div class="col-md-2">
 								<select id="mag_filter" class="form-control" data-toggle="select2">
-									<?php if (isset(CoreUtilities::$rRequest['owner']) && ($rOwner = UserRepository::getRegisteredUserById(intval(CoreUtilities::$rRequest['owner'])))): ?>
+									<?php if (isset(RequestManager::getAll()['owner']) && ($rOwner = UserRepository::getRegisteredUserById(intval(RequestManager::getAll()['owner'])))): ?>
 										<option value="<?= intval($rOwner['id']); ?>" selected="selected"><?= htmlspecialchars($rOwner['username']); ?></option>
 									<?php endif; ?>
 								</select>
 							</div>
 							<div class="col-md-2">
 								<select id="mag_filter" class="form-control" data-toggle="select2">
-									<option value="" <?= !isset(CoreUtilities::$rRequest['filter']) ? 'selected' : ''; ?>><?= $language::get('no_filter'); ?></option>
-									<option value="1" <?= (isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 1) ? 'selected' : ''; ?>><?= $language::get('active'); ?></option>
-									<option value="2" <?= (isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 2) ? 'selected' : ''; ?>><?= $language::get('disabled'); ?></option>
-									<option value="3" <?= (isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 3) ? 'selected' : ''; ?>><?= $language::get('banned'); ?></option>
-									<option value="4" <?= (isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 4) ? 'selected' : ''; ?>><?= $language::get('expired'); ?></option>
-									<option value="5" <?= (isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 5) ? 'selected' : ''; ?>><?= $language::get('trial'); ?></option>
+									<option value="" <?= !isset(RequestManager::getAll()['filter']) ? 'selected' : ''; ?>><?= $language::get('no_filter'); ?></option>
+									<option value="1" <?= (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 1) ? 'selected' : ''; ?>><?= $language::get('active'); ?></option>
+									<option value="2" <?= (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 2) ? 'selected' : ''; ?>><?= $language::get('disabled'); ?></option>
+									<option value="3" <?= (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 3) ? 'selected' : ''; ?>><?= $language::get('banned'); ?></option>
+									<option value="4" <?= (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 4) ? 'selected' : ''; ?>><?= $language::get('expired'); ?></option>
+									<option value="5" <?= (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 5) ? 'selected' : ''; ?>><?= $language::get('trial'); ?></option>
 								</select>
 							</div>
 							<label class="col-md-1 col-form-label text-center" for="mag_show_entries"><?= $language::get('show'); ?></label>
 							<div class="col-md-1">
 								<select id="mag_show_entries" class="form-control" data-toggle="select2">
 									<?php foreach (array(10, 25, 50, 250, 500, 1000) as $rShow): ?>
-										<option value="<?= $rShow; ?>" <?= (isset(CoreUtilities::$rRequest['entries']) && CoreUtilities::$rRequest['entries'] == $rShow) || (!isset(CoreUtilities::$rRequest['entries']) && $rSettings['default_entries'] == $rShow) ? 'selected' : ''; ?>>
+										<option value="<?= $rShow; ?>" <?= (isset(RequestManager::getAll()['entries']) && RequestManager::getAll()['entries'] == $rShow) || (!isset(RequestManager::getAll()['entries']) && $rSettings['default_entries'] == $rShow) ? 'selected' : ''; ?>>
 											<?= $rShow; ?>
 										</option>
 									<?php endforeach; ?>
@@ -257,7 +257,7 @@ renderUnifiedLayoutFooter('admin');
 
 	echo "\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "mags",' . "\r\n\t\t\t\t\t\t" . 'd.filter = getFilter(),' . "\r\n\t\t\t\t\t\t" . 'd.reseller = getReseller()' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,2,3,5,6,7,8,9,10]},' . "\r\n\t\t\t\t\t";
 
-	if (CoreUtilities::$rSettings['redis_handler']) {
+	if (SettingsManager::getAll()['redis_handler']) {
 		echo "\t\t\t\t\t" . '{"orderable": false, "targets": [6,10]},' . "\r\n\t\t\t\t\t";
 	} else {
 		echo "\t\t\t\t\t" . '{"orderable": false, "targets": [10]},' . "\r\n\t\t\t\t\t";
@@ -271,9 +271,9 @@ renderUnifiedLayoutFooter('admin');
 	}
 
 	echo "\t\t\t\t" . 'order: [[ ';
-	echo (isset(CoreUtilities::$rRequest['order']) ? intval(CoreUtilities::$rRequest['order']) : 0);
+	echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 0);
 	echo ', "';
-	echo (in_array(strtolower(CoreUtilities::$rRequest['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(CoreUtilities::$rRequest['dir']) : 'desc');
+	echo (in_array(strtolower(RequestManager::getAll()['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::getAll()['dir']) : 'desc');
 	echo '" ]],' . "\r\n\t\t\t\t" . 'pageLength: parseInt(rEntries),' . "\r\n\t\t\t\t" . 'lengthMenu: [10, 25, 50, 250, 500, 1000],' . "\r\n" . '                displayStart: (parseInt(rPage)-1) * parseInt(rEntries)' . "\r\n\t\t\t" . '});' . "\r\n" . '            function doSearch(rValue) {' . "\r\n" . '                clearTimeout(window.rSearch); window.rSearch = setTimeout(function(){ rTable.search(rValue).draw(); }, 500);' . "\r\n" . '            }' . "\r\n\t\t\t" . '$("#datatable-users").css("width", "100%");' . "\r\n\t\t\t" . "\$('#mag_search').keyup(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#mag_search").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("search", $("#mag_search").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("search");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'doSearch($(this).val());' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#mag_show_entries').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#mag_show_entries").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("entries", $("#mag_show_entries").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("entries");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.page.len($(this).val()).draw();' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#mag_filter').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#mag_filter").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("filter", $("#mag_filter").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("filter");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#mag_reseller').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#mag_reseller").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("owner", $("#mag_reseller").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("owner");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#message_type").change(function(){' . "\r\n\t\t\t\t" . 'if ($(this).val() == "send_msg") {' . "\r\n\t\t\t\t\t" . '$("#send_msg_form").show();' . "\r\n\t\t\t\t\t" . '$("#play_channel_form").hide();' . "\r\n\t\t\t\t\t" . '$("#message_submit").attr("disabled", false);' . "\r\n\t\t\t\t" . '} else if ($(this).val() == "play_channel") {' . "\r\n\t\t\t\t\t" . '$("#send_msg_form").hide();' . "\r\n\t\t\t\t\t" . '$("#play_channel_form").show();' . "\r\n\t\t\t\t\t" . '$("#message_submit").attr("disabled", false);' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . '$("#send_msg_form").hide();' . "\r\n\t\t\t\t\t" . '$("#play_channel_form").hide();' . "\r\n\t\t\t\t\t" . 'if ($(this).val() == "") {' . "\r\n\t\t\t\t\t\t" . '$("#message_submit").attr("disabled", true);' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . '$("#message_submit").attr("disabled", false);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#selected_channel').select2({" . "\r\n\t\t\t" . '  ajax: {' . "\r\n\t\t\t\t" . "url: './api'," . "\r\n\t\t\t\t" . "dataType: 'json'," . "\r\n\t\t\t\t" . 'data: function (params) {' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'search: params.term,' . "\r\n\t\t\t\t\t" . "action: 'streamlist'," . "\r\n\t\t\t\t\t" . 'page: params.page' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processResults: function (data, params) {' . "\r\n\t\t\t\t" . '  params.page = params.page || 1;' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'results: data.items,' . "\r\n\t\t\t\t\t" . 'pagination: {' . "\r\n\t\t\t\t\t\t" . 'more: (params.page * 100) < data.total_count' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'cache: true' . "\r\n\t\t\t" . '  },' . "\r\n\t\t\t" . "  placeholder: '";
 	echo $language::get('start_typing');
 	echo "...'," . "\r\n\t\t\t" . '  width: "100%"' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#message_submit").click(function() {' . "\r\n\t\t\t\t" . "rArray = {\"id\": \$('.messageModal').data('id'), \"type\": \$(\"#message_type\").val()};" . "\r\n\t\t\t\t" . 'if (rArray.type) {' . "\r\n\t\t\t\t\t" . 'if (rArray.type == "send_msg") {' . "\r\n\t\t\t\t\t\t" . 'rArray.message = $("#message").val();' . "\r\n\t\t\t\t\t\t" . 'if ($("#reboot_portal").is(":checked")) {' . "\r\n\t\t\t\t\t\t\t" . 'rArray.reboot_portal = 1;' . "\r\n\t\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t\t" . 'rArray.reboot_portal = 0;' . "\r\n\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '} else if (rArray.type == "play_channel") {' . "\r\n\t\t\t\t\t\t" . 'rArray.channel = $("#selected_channel").val();' . "\r\n\t\t\t\t\t\t" . 'if (!rArray.channel) {' . "\r\n\t\t\t\t\t\t\t" . 'rArray.channel = "";' . "\r\n\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'if ((rArray.type == "send_msg") && (rArray.message.length == 0)) {' . "\r\n\t\t\t\t\t\t" . '$.toast("';
@@ -286,7 +286,7 @@ renderUnifiedLayoutFooter('admin');
 	echo $language::get('mag_toast_4');
 	echo '.");' . "\r\n\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t" . '});' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "if (\$('#mag_search').val()) {" . "\r\n\t\t\t\t" . "rTable.search(\$('#mag_search').val()).draw();" . "\r\n\t\t\t" . '}' . "\r\n" . '            $("#btn-export-csv").click(function() {' . "\r\n" . '                $.toast("Generating CSV report...");' . "\r\n" . '                window.location.href = "api?action=report&params=" + encodeURIComponent(JSON.stringify($("#datatable-users").DataTable().ajax.params()));' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . 'checkClear();' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
 	?>
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+	<?php if (SettingsManager::getAll()['enable_search']): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

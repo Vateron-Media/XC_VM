@@ -9,8 +9,8 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
         register_shutdown_function('shutdown');
         require str_replace('\\', '/', dirname($argv[0])) . '/../www/init.php';
         cli_set_process_title('XC_VM[Providers]');
-        $rIdentifier = CRONS_TMP_PATH . md5(CoreUtilities::generateUniqueCode() . __FILE__);
-        CoreUtilities::checkCron($rIdentifier);
+        $rIdentifier = CRONS_TMP_PATH . md5(Encryption::generateUniqueCode(SettingsManager::getAll()['live_streaming_pass']) . __FILE__);
+        ProcessManager::acquireCronLock($rIdentifier);
         $rTimeout = 300;
         set_time_limit($rTimeout);
         ini_set('max_execution_time', $rTimeout);
@@ -118,7 +118,7 @@ function loadCron() {
                     if ($rStream['name'] == $rSyncTitle[$rRow['id']][$rStream['stream_id']][1]) {
                     } else {
                         $db->query('UPDATE `streams` SET `stream_display_name` = ? WHERE `id` = ?;', $rStream['name'], $rSyncTitle[$rRow['id']][$rStream['stream_id']][0]);
-                        CoreUtilities::updateStream($rSyncTitle[$rRow['id']][$rStream['stream_id']][0]);
+                        StreamProcess::updateStream($rSyncTitle[$rRow['id']][$rStream['stream_id']][0]);
                     }
                 }
             }

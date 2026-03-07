@@ -3,7 +3,6 @@
 /**
  * GeoIPService — GeoIP/ISP lookup и CIDR matching.
  *
- * Извлечено из GeoIPService::getIPInfo(), getISP(), matchCIDR().
  * Использует MaxMind GeoLite2 и GeoISP базы с файловым кэшированием.
  */
 class GeoIPService {

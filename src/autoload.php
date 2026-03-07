@@ -1,7 +1,7 @@
 <?php
 
 /**
- * XC_VM — Автозагрузчик классов
+ * Автозагрузчик классов
  *
  * Загружает классы по имени без namespace и без Composer.
  * Работает в двух режимах:
@@ -280,14 +280,19 @@ class XC_Autoloader {
             // ── Ядро (новая архитектура) ──────────────────────────
             'ServiceContainer'      => $base . 'core/Container/ServiceContainer.php',
             'DatabaseHandler'       => $base . 'core/Database/DatabaseHandler.php',
+            'DatabaseFactory'       => $base . 'infrastructure/database/DatabaseFactory.php',
+            'CacheReader'           => $base . 'infrastructure/cache/CacheReader.php',
             'CacheInterface'        => $base . 'core/Cache/CacheInterface.php',
             'FileCache'             => $base . 'core/Cache/FileCache.php',
             'RedisCache'            => $base . 'core/Cache/RedisCache.php',
             'Request'               => $base . 'core/Http/Request.php',
+            'RequestManager'        => $base . 'core/Http/RequestManager.php',
             'Response'              => $base . 'core/Http/Response.php',
             'CurlClient'            => $base . 'core/Http/CurlClient.php',
             'DomainResolver'        => $base . 'core/Config/DomainResolver.php',
             'SettingsRepository'    => $base . 'core/Config/SettingsRepository.php',
+            'SettingsManager'       => $base . 'core/Config/SettingsManager.php',
+            'ConfigReader'          => $base . 'core/Config/ConfigReader.php',
             'SessionManager'        => $base . 'core/Auth/SessionManager.php',
             'BruteforceGuard'       => $base . 'core/Auth/BruteforceGuard.php',
             'Authorization'         => $base . 'core/Auth/Authorization.php',
@@ -299,6 +304,11 @@ class XC_Autoloader {
             'GeoIP'                 => $base . 'core/Util/GeoIP.php',
             'NetworkUtils'          => $base . 'core/Util/NetworkUtils.php',
             'ImageUtils'            => $base . 'core/Util/ImageUtils.php',
+            'StreamUtils'           => $base . 'core/Util/StreamUtils.php',
+            'BackupService'         => $base . 'core/Backup/BackupService.php',
+            'DiagnosticsService'    => $base . 'core/Diagnostics/DiagnosticsService.php',
+            'InputValidator'        => $base . 'core/Validation/InputValidator.php',
+            'GeoIPService'          => $base . 'core/GeoIP/GeoIPService.php',
             'ConnectionTracker'     => $base . 'domain/Stream/ConnectionTracker.php',
             'StreamSorter'          => $base . 'domain/Stream/StreamSorter.php',
             'ChannelService'        => $base . 'domain/Stream/ChannelService.php',
@@ -310,11 +320,15 @@ class XC_Autoloader {
             'StreamRepository'      => $base . 'domain/Stream/StreamRepository.php',
             'StreamConfigRepository' => $base . 'domain/Stream/StreamConfigRepository.php',
             'M3UParser'             => $base . 'domain/Stream/M3UParser.php',
+            'RadioService'          => $base . 'domain/Stream/RadioService.php',
+            'ProfileService'        => $base . 'domain/Stream/ProfileService.php',
+            'ProviderService'       => $base . 'domain/Stream/ProviderService.php',
             'MovieService'          => $base . 'domain/Vod/MovieService.php',
             'SeriesService'         => $base . 'domain/Vod/SeriesService.php',
             'EpisodeService'        => $base . 'domain/Vod/EpisodeService.php',
             'LineService'           => $base . 'domain/Line/LineService.php',
             'LineRepository'        => $base . 'domain/Line/LineRepository.php',
+            'OutputFormatRepository' => $base . 'domain/Line/OutputFormatRepository.php',
             'PackageService'        => $base . 'domain/Line/PackageService.php',
             'UserService'           => $base . 'domain/User/UserService.php',
             'GroupService'          => $base . 'domain/User/GroupService.php',
@@ -348,6 +362,7 @@ class XC_Autoloader {
             'ProxySelector'         => $base . 'streaming/Balancer/ProxySelector.php',
             'FFprobeRunner'         => $base . 'streaming/Codec/FFprobeRunner.php',
             'FFmpegCommand'         => $base . 'streaming/Codec/FFmpegCommand.php',
+            'FfmpegPaths'           => $base . 'streaming/Codec/FfmpegPaths.php',
             'SubtitleExtractor'     => $base . 'streaming/Codec/SubtitleExtractor.php',
             'HealthChecker'         => $base . 'streaming/Health/HealthChecker.php',
             'ProcessChecker'        => $base . 'streaming/Health/ProcessChecker.php',
@@ -402,7 +417,7 @@ class XC_Autoloader {
 
             // ── Ядро (legacy) ─────────────────────────────────────
             'Database'              => $base . 'core/Database/Database.php',
-            'CoreUtilities'         => $base . 'includes/CoreUtilities.php',
+            // CoreUtilities removed (Phase 8.10) — init() inlined to LegacyInitializer::initCore()
             // API class removed (Phase 8.1) — methods migrated to domain services
             'ResellerAPI'           => $base . 'includes/reseller_api.php',
             'TS'                    => $base . 'includes/ts.php',

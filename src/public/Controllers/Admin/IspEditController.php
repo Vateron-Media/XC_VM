@@ -1,6 +1,6 @@
 <?php
 /**
- * IspEditController — add/edit blocked ISP (Phase 6.3 — Group H).
+ * IspEditController — add/edit blocked ISP.
  *
  * Route: GET /admin/isp → index()
  */

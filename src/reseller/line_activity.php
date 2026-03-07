@@ -15,20 +15,20 @@ if (!isset($__viewMode)):
 		goHome();
 	}
 
-	if (!isset(CoreUtilities::$rRequest['line'])) {
+	if (!isset(RequestManager::getAll()['line'])) {
 	} else {
-		if (Authorization::check('line', CoreUtilities::$rRequest['line'])) {
+		if (Authorization::check('line', RequestManager::getAll()['line'])) {
 
 
-			$rSearchLine = UserRepository::getLineById(CoreUtilities::$rRequest['line']);
+			$rSearchLine = UserRepository::getLineById(RequestManager::getAll()['line']);
 		} else {
 			exit();
 		}
 	}
 
-	if (!isset(CoreUtilities::$rRequest['stream'])) {
+	if (!isset(RequestManager::getAll()['stream'])) {
 	} else {
-		$rSearchStream = StreamRepository::getById(CoreUtilities::$rRequest['stream']);
+		$rSearchStream = StreamRepository::getById(RequestManager::getAll()['stream']);
 	}
 
 	$_TITLE = 'Activity Logs';
@@ -46,9 +46,9 @@ if (!$rMobile) {
 
 echo ' form-group row mb-4">' . "\r\n" . '                            <div class="col-md-2">' . "\r\n" . '                                <input type="text" class="form-control" id="act_search" value="';
 
-if (!isset(CoreUtilities::$rRequest['search'])) {
+if (!isset(RequestManager::getAll()['search'])) {
 } else {
-	echo htmlspecialchars(CoreUtilities::$rRequest['search']);
+	echo htmlspecialchars(RequestManager::getAll()['search']);
 }
 
 echo '" placeholder="';
@@ -77,7 +77,7 @@ if (!isset($rSearchLine)) {
 
 echo '                                </select>' . "\r\n" . '                            </div>' . "\r\n" . '                            <div class="col-md-2">' . "\r\n" . '                                <select id="act_user" class="form-control" data-toggle="select2">' . "\r\n" . '                                    <optgroup label="Global">' . "\r\n" . '                                        <option value=""';
 
-if (isset(CoreUtilities::$rRequest['user'])) {
+if (isset(RequestManager::getAll()['user'])) {
 } else {
 	echo ' selected';
 }
@@ -86,7 +86,7 @@ echo '>All Users</option>' . "\r\n" . '                                        <
 echo $rUserInfo['id'];
 echo '"';
 
-if (!(isset(CoreUtilities::$rRequest['user']) && CoreUtilities::$rRequest['user'] == $rUserInfo['id'])) {
+if (!(isset(RequestManager::getAll()['user']) && RequestManager::getAll()['user'] == $rUserInfo['id'])) {
 } else {
 	echo ' selected';
 }
@@ -103,7 +103,7 @@ if (0 >= count($rPermissions['direct_reports'])) {
 		echo $rUserID;
 		echo '"';
 
-		if (!(isset(CoreUtilities::$rRequest['user']) && CoreUtilities::$rRequest['user'] == $rUserID)) {
+		if (!(isset(RequestManager::getAll()['user']) && RequestManager::getAll()['user'] == $rUserID)) {
 		} else {
 			echo ' selected';
 		}
@@ -127,7 +127,7 @@ if (count($rPermissions['direct_reports']) >= count($rPermissions['all_reports']
 			echo $rUserID;
 			echo '"';
 
-			if (!(isset(CoreUtilities::$rRequest['user']) && CoreUtilities::$rRequest['user'] == $rUserID)) {
+			if (!(isset(RequestManager::getAll()['user']) && RequestManager::getAll()['user'] == $rUserID)) {
 			} else {
 				echo ' selected';
 			}
@@ -142,9 +142,9 @@ if (count($rPermissions['direct_reports']) >= count($rPermissions['all_reports']
 
 echo '                                </select>' . "\r\n" . '                            </div>' . "\r\n" . '                            <div class="col-md-2">' . "\r\n" . '                                <input type="text" class="form-control text-center date" id="act_range" name="range" value="';
 
-if (!isset(CoreUtilities::$rRequest['range'])) {
+if (!isset(RequestManager::getAll()['range'])) {
 } else {
-	echo htmlspecialchars(CoreUtilities::$rRequest['range']);
+	echo htmlspecialchars(RequestManager::getAll()['range']);
 }
 
 echo '" data-toggle="date-picker" data-single-date-picker="true" placeholder="All Dates">' . "\r\n" . '                            </div>' . "\r\n" . '                            <label class="col-md-1 col-form-label text-center" for="act_show_entries">';

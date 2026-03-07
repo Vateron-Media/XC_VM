@@ -10,16 +10,16 @@ if (!PHP_ERRORS) {
 }
 
 if (isset($_SESSION['hash'])) {
-	if (CoreUtilities::$rSettings['redis_handler']) {
-		CoreUtilities::connectRedis();
+	if (SettingsManager::getAll()['redis_handler']) {
+		RedisManager::ensureConnected();
 	}
 
-	if (isset(CoreUtilities::$rRequest['action'])) {
-		if (CoreUtilities::$rRequest['action'] == 'stream') {
+	if (isset(RequestManager::getAll()['action'])) {
+		if (RequestManager::getAll()['action'] == 'stream') {
 			if (Authorization::check('adv', 'edit_stream')) {
-				$rStreamID = intval(CoreUtilities::$rRequest['stream_id']);
-				$rServerID = intval(CoreUtilities::$rRequest['server_id']);
-				$rSub = CoreUtilities::$rRequest['sub'];
+				$rStreamID = intval(RequestManager::getAll()['stream_id']);
+				$rServerID = intval(RequestManager::getAll()['server_id']);
+				$rSub = RequestManager::getAll()['sub'];
 
 				if (in_array($rSub, array('start', 'stop', 'restart'))) {
 					if ($rSub == 'restart') {
@@ -46,7 +46,7 @@ if (isset($_SESSION['hash'])) {
 					}
 				} else {
 					if ($rSub == 'force') {
-						$rForceID = intval(CoreUtilities::$rRequest['force_id']);
+						$rForceID = intval(RequestManager::getAll()['force_id']);
 						$rServerIDs = array_keys(StreamRepository::getSystemRows($rStreamID));
 
 						if (0 >= count($rServerIDs)) {
@@ -69,16 +69,16 @@ if (isset($_SESSION['hash'])) {
 					}
 
 					if ($rSub == 'kill') {
-						CoreUtilities::closeConnection(CoreUtilities::$rRequest['stream_id']);
+						ConnectionTracker::closeConnection(RequestManager::getAll()['stream_id']);
 						echo json_encode(array('result' => true));
 
 						exit();
 					}
 
 					if ($rSub == 'purge') {
-						if (CoreUtilities::$rSettings['redis_handler']) {
-							foreach (CoreUtilities::getRedisConnections(null, ($rServerID == -1 ? null : $rServerID), $rStreamID, true, false, false) as $rConnection) {
-								CoreUtilities::closeConnection($rConnection);
+						if (SettingsManager::getAll()['redis_handler']) {
+							foreach (ConnectionTracker::getRedisConnections(null, ($rServerID == -1 ? null : $rServerID), $rStreamID, true, false, false) as $rConnection) {
+								ConnectionTracker::closeConnection($rConnection);
 							}
 						} else {
 							if ($rServerID == -1) {
@@ -88,7 +88,7 @@ if (isset($_SESSION['hash'])) {
 							}
 
 							foreach ($db->get_rows() as $rRow) {
-								CoreUtilities::closeConnection($rRow);
+								ConnectionTracker::closeConnection($rRow);
 							}
 						}
 
@@ -107,11 +107,11 @@ if (isset($_SESSION['hash'])) {
 				exit();
 			}
 		}
-		if (CoreUtilities::$rRequest['action'] == 'movie') {
+		if (RequestManager::getAll()['action'] == 'movie') {
 			if (Authorization::check('adv', 'edit_movie')) {
-				$rStreamID = intval(CoreUtilities::$rRequest['stream_id']);
-				$rServerID = intval(CoreUtilities::$rRequest['server_id']);
-				$rSub = CoreUtilities::$rRequest['sub'];
+				$rStreamID = intval(RequestManager::getAll()['stream_id']);
+				$rServerID = intval(RequestManager::getAll()['server_id']);
+				$rSub = RequestManager::getAll()['sub'];
 
 				if (in_array($rSub, array('start', 'stop'))) {
 					if ($rServerID == -1) {
@@ -142,16 +142,16 @@ if (isset($_SESSION['hash'])) {
 					}
 
 					if ($rSub == 'kill') {
-						CoreUtilities::closeConnection(CoreUtilities::$rRequest['stream_id']);
+						ConnectionTracker::closeConnection(RequestManager::getAll()['stream_id']);
 						echo json_encode(array('result' => true));
 
 						exit();
 					}
 
 					if ($rSub == 'purge') {
-						if (CoreUtilities::$rSettings['redis_handler']) {
-							foreach (CoreUtilities::getRedisConnections(null, ($rServerID == -1 ? null : $rServerID), $rStreamID, true, false, false) as $rConnection) {
-								CoreUtilities::closeConnection($rConnection);
+						if (SettingsManager::getAll()['redis_handler']) {
+							foreach (ConnectionTracker::getRedisConnections(null, ($rServerID == -1 ? null : $rServerID), $rStreamID, true, false, false) as $rConnection) {
+								ConnectionTracker::closeConnection($rConnection);
 							}
 						} else {
 							if ($rServerID == -1) {
@@ -161,7 +161,7 @@ if (isset($_SESSION['hash'])) {
 							}
 
 							foreach ($db->get_rows() as $rRow) {
-								CoreUtilities::closeConnection($rRow);
+								ConnectionTracker::closeConnection($rRow);
 							}
 						}
 
@@ -180,11 +180,11 @@ if (isset($_SESSION['hash'])) {
 				exit();
 			}
 		}
-		if (CoreUtilities::$rRequest['action'] == 'episode') {
+		if (RequestManager::getAll()['action'] == 'episode') {
 			if (Authorization::check('adv', 'edit_episode')) {
-				$rStreamID = intval(CoreUtilities::$rRequest['stream_id']);
-				$rServerID = intval(CoreUtilities::$rRequest['server_id']);
-				$rSub = CoreUtilities::$rRequest['sub'];
+				$rStreamID = intval(RequestManager::getAll()['stream_id']);
+				$rServerID = intval(RequestManager::getAll()['server_id']);
+				$rSub = RequestManager::getAll()['sub'];
 
 				if (in_array($rSub, array('start', 'stop'))) {
 					if ($rServerID == -1) {
@@ -215,16 +215,16 @@ if (isset($_SESSION['hash'])) {
 					}
 
 					if ($rSub == 'kill') {
-						CoreUtilities::closeConnection(CoreUtilities::$rRequest['stream_id']);
+						ConnectionTracker::closeConnection(RequestManager::getAll()['stream_id']);
 						echo json_encode(array('result' => true));
 
 						exit();
 					}
 
 					if ($rSub == 'purge') {
-						if (CoreUtilities::$rSettings['redis_handler']) {
-							foreach (CoreUtilities::getRedisConnections(null, ($rServerID == -1 ? null : $rServerID), $rStreamID, true, false, false) as $rConnection) {
-								CoreUtilities::closeConnection($rConnection);
+						if (SettingsManager::getAll()['redis_handler']) {
+							foreach (ConnectionTracker::getRedisConnections(null, ($rServerID == -1 ? null : $rServerID), $rStreamID, true, false, false) as $rConnection) {
+								ConnectionTracker::closeConnection($rConnection);
 							}
 						} else {
 							if ($rServerID == -1) {
@@ -234,7 +234,7 @@ if (isset($_SESSION['hash'])) {
 							}
 
 							foreach ($db->get_rows() as $rRow) {
-								CoreUtilities::closeConnection($rRow);
+								ConnectionTracker::closeConnection($rRow);
 							}
 						}
 
@@ -253,10 +253,10 @@ if (isset($_SESSION['hash'])) {
 				exit();
 			}
 		}
-		if (CoreUtilities::$rRequest['action'] == 'line') {
+		if (RequestManager::getAll()['action'] == 'line') {
 			if (Authorization::check('adv', 'edit_user')) {
-				$rUserID = intval(CoreUtilities::$rRequest['user_id']);
-				$rSub = CoreUtilities::$rRequest['sub'];
+				$rUserID = intval(RequestManager::getAll()['user_id']);
+				$rSub = RequestManager::getAll()['sub'];
 
 				if ($rSub == 'delete') {
 					deleteLine($rUserID);
@@ -267,7 +267,7 @@ if (isset($_SESSION['hash'])) {
 
 				if ($rSub == 'enable') {
 					$db->query('UPDATE `lines` SET `enabled` = 1 WHERE `id` = ?;', $rUserID);
-					CoreUtilities::updateLine($rUserID);
+					LineService::updateLineSignal($rUserID);
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -275,7 +275,7 @@ if (isset($_SESSION['hash'])) {
 
 				if ($rSub == 'disable') {
 					$db->query('UPDATE `lines` SET `enabled` = 0 WHERE `id` = ?;', $rUserID);
-					CoreUtilities::updateLine($rUserID);
+					LineService::updateLineSignal($rUserID);
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -283,7 +283,7 @@ if (isset($_SESSION['hash'])) {
 
 				if ($rSub == 'ban') {
 					$db->query('UPDATE `lines` SET `admin_enabled` = 0 WHERE `id` = ?;', $rUserID);
-					CoreUtilities::updateLine($rUserID);
+					LineService::updateLineSignal($rUserID);
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -291,22 +291,22 @@ if (isset($_SESSION['hash'])) {
 
 				if ($rSub == 'unban') {
 					$db->query('UPDATE `lines` SET `admin_enabled` = 1 WHERE `id` = ?;', $rUserID);
-					CoreUtilities::updateLine($rUserID);
+					LineService::updateLineSignal($rUserID);
 					echo json_encode(array('result' => true));
 
 					exit();
 				}
 
 				if ($rSub == 'kill') {
-					if (CoreUtilities::$rSettings['redis_handler']) {
-						foreach (CoreUtilities::getRedisConnections($rUserID, null, null, true, false, false) as $rConnection) {
-							CoreUtilities::closeConnection($rConnection);
+					if (SettingsManager::getAll()['redis_handler']) {
+						foreach (ConnectionTracker::getRedisConnections($rUserID, null, null, true, false, false) as $rConnection) {
+							ConnectionTracker::closeConnection($rConnection);
 						}
 					} else {
 						$db->query('SELECT * FROM `lines_live` WHERE `user_id` = ?;', $rUserID);
 
 						foreach ($db->get_rows() as $rRow) {
-							CoreUtilities::closeConnection($rRow);
+							ConnectionTracker::closeConnection($rRow);
 						}
 					}
 
@@ -324,9 +324,9 @@ if (isset($_SESSION['hash'])) {
 				exit();
 			}
 		}
-		if (CoreUtilities::$rRequest['action'] == 'line_activity') {
+		if (RequestManager::getAll()['action'] == 'line_activity') {
 			if (Authorization::check('adv', 'connection_logs')) {
-				$rSub = CoreUtilities::$rRequest['sub'];
+				$rSub = RequestManager::getAll()['sub'];
 
 				if ($rSub != 'kill') {
 					echo json_encode(array('result' => false));
@@ -334,7 +334,7 @@ if (isset($_SESSION['hash'])) {
 					exit();
 				}
 
-				CoreUtilities::closeConnection(CoreUtilities::$rRequest['pid']);
+				ConnectionTracker::closeConnection(RequestManager::getAll()['pid']);
 				echo json_encode(array('result' => true));
 
 				exit();
@@ -344,9 +344,9 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'process') {
+		if (RequestManager::getAll()['action'] == 'process') {
 			if (Authorization::check('adv', 'process_monitor')) {
-				systemapirequest(CoreUtilities::$rRequest['server'], array('action' => 'kill_pid', 'pid' => intval(CoreUtilities::$rRequest['pid'])));
+				systemapirequest(RequestManager::getAll()['server'], array('action' => 'kill_pid', 'pid' => intval(RequestManager::getAll()['pid'])));
 				echo json_encode(array('result' => true));
 
 				exit();
@@ -356,16 +356,16 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'adjust_credits') {
+		if (RequestManager::getAll()['action'] == 'adjust_credits') {
 			if (Authorization::check('adv', 'edit_reguser')) {
-				$rUser = UserRepository::getRegisteredUserById(CoreUtilities::$rRequest['id']);
+				$rUser = UserRepository::getRegisteredUserById(RequestManager::getAll()['id']);
 
-				if ($rUser && is_numeric(CoreUtilities::$rRequest['credits'])) {
-					$rCredits = intval($rUser['credits']) + intval(CoreUtilities::$rRequest['credits']);
+				if ($rUser && is_numeric(RequestManager::getAll()['credits'])) {
+					$rCredits = intval($rUser['credits']) + intval(RequestManager::getAll()['credits']);
 
 					if (0 <= $rCredits) {
 						$db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $rCredits, $rUser['id']);
-						$db->query('INSERT INTO `users_credits_logs`(`target_id`, `admin_id`, `amount`, `date`, `reason`) VALUES(?, ?, ?, ?, ?);', $rUser['id'], $rUserInfo['id'], CoreUtilities::$rRequest['credits'], time(), CoreUtilities::$rRequest['reason']);
+						$db->query('INSERT INTO `users_credits_logs`(`target_id`, `admin_id`, `amount`, `date`, `reason`) VALUES(?, ?, ?, ?, ?);', $rUser['id'], $rUserInfo['id'], RequestManager::getAll()['credits'], time(), RequestManager::getAll()['reason']);
 						echo json_encode(array('result' => true));
 
 						exit();
@@ -385,26 +385,26 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'reg_user') {
+		if (RequestManager::getAll()['action'] == 'reg_user') {
 			if (Authorization::check('adv', 'edit_reguser')) {
-				$rSub = CoreUtilities::$rRequest['sub'];
+				$rSub = RequestManager::getAll()['sub'];
 
 				if ($rSub == 'delete') {
-					deleteUser(CoreUtilities::$rRequest['user_id'], false, false, $rUserInfo['id']);
+					deleteUser(RequestManager::getAll()['user_id'], false, false, $rUserInfo['id']);
 					echo json_encode(array('result' => true));
 
 					exit();
 				}
 
 				if ($rSub == 'enable') {
-					$db->query('UPDATE `users` SET `status` = 1 WHERE `id` = ?;', CoreUtilities::$rRequest['user_id']);
+					$db->query('UPDATE `users` SET `status` = 1 WHERE `id` = ?;', RequestManager::getAll()['user_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
 				}
 
 				if ($rSub == 'disable') {
-					$db->query('UPDATE `users` SET `status` = 0 WHERE `id` = ?;', CoreUtilities::$rRequest['user_id']);
+					$db->query('UPDATE `users` SET `status` = 0 WHERE `id` = ?;', RequestManager::getAll()['user_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -419,26 +419,26 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'ticket') {
+		if (RequestManager::getAll()['action'] == 'ticket') {
 			if (Authorization::check('adv', 'ticket')) {
-				$rSub = CoreUtilities::$rRequest['sub'];
+				$rSub = RequestManager::getAll()['sub'];
 
 				if ($rSub == 'delete') {
-					deleteTicket(CoreUtilities::$rRequest['ticket_id']);
+					deleteTicket(RequestManager::getAll()['ticket_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
 				}
 
 				if ($rSub == 'close') {
-					$db->query('UPDATE `tickets` SET `status` = 0 WHERE `id` = ?;', CoreUtilities::$rRequest['ticket_id']);
+					$db->query('UPDATE `tickets` SET `status` = 0 WHERE `id` = ?;', RequestManager::getAll()['ticket_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
 				}
 
 				if ($rSub == 'reopen') {
-					$db->query('UPDATE `tickets` SET `status` = 1 WHERE `id` = ?;', CoreUtilities::$rRequest['ticket_id']);
+					$db->query('UPDATE `tickets` SET `status` = 1 WHERE `id` = ?;', RequestManager::getAll()['ticket_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -453,13 +453,13 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'mag') {
+		if (RequestManager::getAll()['action'] == 'mag') {
 			if (Authorization::check('adv', 'edit_mag')) {
-				$rSub = CoreUtilities::$rRequest['sub'];
-				$rMagDetails = getMag(intval(CoreUtilities::$rRequest['mag_id']));
+				$rSub = RequestManager::getAll()['sub'];
+				$rMagDetails = getMag(intval(RequestManager::getAll()['mag_id']));
 
 				if ($rSub == 'delete') {
-					deleteMAG(CoreUtilities::$rRequest['mag_id']);
+					deleteMAG(RequestManager::getAll()['mag_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -467,7 +467,7 @@ if (isset($_SESSION['hash'])) {
 
 				if ($rSub == 'enable') {
 					$db->query('UPDATE `lines` SET `enabled` = 1 WHERE `id` = ?;', $rMagDetails['user_id']);
-					CoreUtilities::updateLine($rMagDetails['user_id']);
+					LineService::updateLineSignal($rMagDetails['user_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -475,7 +475,7 @@ if (isset($_SESSION['hash'])) {
 
 				if ($rSub == 'disable') {
 					$db->query('UPDATE `lines` SET `enabled` = 0 WHERE `id` = ?;', $rMagDetails['user_id']);
-					CoreUtilities::updateLine($rMagDetails['user_id']);
+					LineService::updateLineSignal($rMagDetails['user_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -483,7 +483,7 @@ if (isset($_SESSION['hash'])) {
 
 				if ($rSub == 'ban') {
 					$db->query('UPDATE `lines` SET `admin_enabled` = 0 WHERE `id` = ?;', $rMagDetails['user_id']);
-					CoreUtilities::updateLine($rMagDetails['user_id']);
+					LineService::updateLineSignal($rMagDetails['user_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -491,29 +491,29 @@ if (isset($_SESSION['hash'])) {
 
 				if ($rSub == 'unban') {
 					$db->query('UPDATE `lines` SET `admin_enabled` = 1 WHERE `id` = ?;', $rMagDetails['user_id']);
-					CoreUtilities::updateLine($rMagDetails['user_id']);
+					LineService::updateLineSignal($rMagDetails['user_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
 				}
 
 				if ($rSub == 'convert') {
-					deleteMAG(CoreUtilities::$rRequest['mag_id'], false, false, true);
+					deleteMAG(RequestManager::getAll()['mag_id'], false, false, true);
 					echo json_encode(array('result' => true, 'line_id' => $rMagDetails['user']['id']));
 
 					exit();
 				}
 
 				if ($rSub == 'kill') {
-					if (CoreUtilities::$rSettings['redis_handler']) {
-						foreach (CoreUtilities::getRedisConnections($rMagDetails['user_id'], null, null, true, false, false) as $rConnection) {
-							CoreUtilities::closeConnection($rConnection);
+					if (SettingsManager::getAll()['redis_handler']) {
+						foreach (ConnectionTracker::getRedisConnections($rMagDetails['user_id'], null, null, true, false, false) as $rConnection) {
+							ConnectionTracker::closeConnection($rConnection);
 						}
 					} else {
 						$db->query('SELECT * FROM `lines_live` WHERE `user_id` = ?;', $rMagDetails['user_id']);
 
 						foreach ($db->get_rows() as $rRow) {
-							CoreUtilities::closeConnection($rRow);
+							ConnectionTracker::closeConnection($rRow);
 						}
 					}
 
@@ -531,13 +531,13 @@ if (isset($_SESSION['hash'])) {
 				exit();
 			}
 		}
-		if (CoreUtilities::$rRequest['action'] == 'enigma') {
+		if (RequestManager::getAll()['action'] == 'enigma') {
 			if (Authorization::check('adv', 'edit_e2')) {
-				$rSub = CoreUtilities::$rRequest['sub'];
-				$rE2Details = getEnigma(intval(CoreUtilities::$rRequest['e2_id']));
+				$rSub = RequestManager::getAll()['sub'];
+				$rE2Details = getEnigma(intval(RequestManager::getAll()['e2_id']));
 
 				if ($rSub == 'delete') {
-					deleteEnigma(CoreUtilities::$rRequest['e2_id']);
+					deleteEnigma(RequestManager::getAll()['e2_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -545,7 +545,7 @@ if (isset($_SESSION['hash'])) {
 
 				if ($rSub == 'enable') {
 					$db->query('UPDATE `lines` SET `enabled` = 1 WHERE `id` = ?;', $rE2Details['user_id']);
-					CoreUtilities::updateLine($rE2Details['user_id']);
+					LineService::updateLineSignal($rE2Details['user_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -553,7 +553,7 @@ if (isset($_SESSION['hash'])) {
 
 				if ($rSub == 'disable') {
 					$db->query('UPDATE `lines` SET `enabled` = 0 WHERE `id` = ?;', $rE2Details['user_id']);
-					CoreUtilities::updateLine($rE2Details['user_id']);
+					LineService::updateLineSignal($rE2Details['user_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -561,7 +561,7 @@ if (isset($_SESSION['hash'])) {
 
 				if ($rSub == 'ban') {
 					$db->query('UPDATE `lines` SET `admin_enabled` = 0 WHERE `id` = ?;', $rE2Details['user_id']);
-					CoreUtilities::updateLine($rE2Details['user_id']);
+					LineService::updateLineSignal($rE2Details['user_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -569,29 +569,29 @@ if (isset($_SESSION['hash'])) {
 
 				if ($rSub == 'unban') {
 					$db->query('UPDATE `lines` SET `admin_enabled` = 1 WHERE `id` = ?;', $rE2Details['user_id']);
-					CoreUtilities::updateLine($rE2Details['user_id']);
+					LineService::updateLineSignal($rE2Details['user_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
 				}
 
 				if ($rSub == 'convert') {
-					deleteEnigma(CoreUtilities::$rRequest['e2_id'], false, false, true);
+					deleteEnigma(RequestManager::getAll()['e2_id'], false, false, true);
 					echo json_encode(array('result' => true, 'line_id' => $rE2Details['user']['id']));
 
 					exit();
 				}
 
 				if ($rSub == 'kill') {
-					if (CoreUtilities::$rSettings['redis_handler']) {
-						foreach (CoreUtilities::getRedisConnections($rE2Details['user_id'], null, null, true, false, false) as $rConnection) {
-							CoreUtilities::closeConnection($rConnection);
+					if (SettingsManager::getAll()['redis_handler']) {
+						foreach (ConnectionTracker::getRedisConnections($rE2Details['user_id'], null, null, true, false, false) as $rConnection) {
+							ConnectionTracker::closeConnection($rConnection);
 						}
 					} else {
 						$db->query('SELECT * FROM `lines_live` WHERE `user_id` = ?;', $rE2Details['user_id']);
 
 						foreach ($db->get_rows() as $rRow) {
-							CoreUtilities::closeConnection($rRow);
+							ConnectionTracker::closeConnection($rRow);
 						}
 					}
 
@@ -609,12 +609,12 @@ if (isset($_SESSION['hash'])) {
 				exit();
 			}
 		}
-		if (CoreUtilities::$rRequest['action'] == 'mag_event') {
+		if (RequestManager::getAll()['action'] == 'mag_event') {
 			if (Authorization::check('adv', 'manage_events')) {
-				$rSub = CoreUtilities::$rRequest['sub'];
+				$rSub = RequestManager::getAll()['sub'];
 
 				if ($rSub == 'delete') {
-					$db->query('DELETE FROM `mag_events` WHERE `id` = ?;', CoreUtilities::$rRequest['mag_id']);
+					$db->query('DELETE FROM `mag_events` WHERE `id` = ?;', RequestManager::getAll()['mag_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -629,7 +629,7 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'regenerate_cache') {
+		if (RequestManager::getAll()['action'] == 'regenerate_cache') {
 			if (Authorization::check('adv', 'backups')) {
 				shell_exec(PHP_BIN . ' ' . CRON_PATH . 'cache_engine.php "force"');
 				echo json_encode(array('result' => true));
@@ -641,7 +641,7 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'enable_cache') {
+		if (RequestManager::getAll()['action'] == 'enable_cache') {
 			if (Authorization::check('adv', 'backups')) {
 				$db->query('UPDATE `settings` SET `enable_cache` = 1;');
 
@@ -667,7 +667,7 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'disable_cache') {
+		if (RequestManager::getAll()['action'] == 'disable_cache') {
 			if (Authorization::check('adv', 'backups')) {
 				$db->query('UPDATE `settings` SET `enable_cache` = 0;');
 
@@ -686,19 +686,19 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'epg') {
+		if (RequestManager::getAll()['action'] == 'epg') {
 			if (Authorization::check('adv', 'epg_edit')) {
-				$rSub = CoreUtilities::$rRequest['sub'];
+				$rSub = RequestManager::getAll()['sub'];
 
 				if ($rSub == 'delete') {
-					deleteEPG(CoreUtilities::$rRequest['epg_id']);
+					deleteEPG(RequestManager::getAll()['epg_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
 				}
 
 				if ($rSub == 'reload') {
-					shell_exec(PHP_BIN . ' ' . CRON_PATH . 'epg.php "' . intval(CoreUtilities::$rRequest['epg_id']) . '" > /dev/null 2>/dev/null &');
+					shell_exec(PHP_BIN . ' ' . CRON_PATH . 'epg.php "' . intval(RequestManager::getAll()['epg_id']) . '" > /dev/null 2>/dev/null &');
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -713,19 +713,19 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'provider') {
+		if (RequestManager::getAll()['action'] == 'provider') {
 			if (Authorization::check('adv', 'streams')) {
-				$rSub = CoreUtilities::$rRequest['sub'];
+				$rSub = RequestManager::getAll()['sub'];
 
 				if ($rSub == 'delete') {
-					deleteProvider(CoreUtilities::$rRequest['id']);
+					deleteProvider(RequestManager::getAll()['id']);
 					echo json_encode(array('result' => true));
 
 					exit();
 				}
 
 				if ($rSub == 'reload') {
-					shell_exec(PHP_BIN . ' ' . CRON_PATH . 'providers.php "' . intval(CoreUtilities::$rRequest['id']) . '" > /dev/null 2>/dev/null &');
+					shell_exec(PHP_BIN . ' ' . CRON_PATH . 'providers.php "' . intval(RequestManager::getAll()['id']) . '" > /dev/null 2>/dev/null &');
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -740,12 +740,12 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'profile') {
+		if (RequestManager::getAll()['action'] == 'profile') {
 			if (Authorization::check('adv', 'tprofiles')) {
-				$rSub = CoreUtilities::$rRequest['sub'];
+				$rSub = RequestManager::getAll()['sub'];
 
 				if ($rSub == 'delete') {
-					deleteProfile(CoreUtilities::$rRequest['profile_id']);
+					deleteProfile(RequestManager::getAll()['profile_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -760,12 +760,12 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'series') {
+		if (RequestManager::getAll()['action'] == 'series') {
 			if (Authorization::check('adv', 'edit_series')) {
-				$rSub = CoreUtilities::$rRequest['sub'];
+				$rSub = RequestManager::getAll()['sub'];
 
 				if ($rSub == 'delete') {
-					deleteSeries(CoreUtilities::$rRequest['series_id']);
+					deleteSeries(RequestManager::getAll()['series_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -780,7 +780,7 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'kill_watch') {
+		if (RequestManager::getAll()['action'] == 'kill_watch') {
 			if (Authorization::check('adv', 'folder_watch')) {
 				WatchService::killWatch();
 				echo json_encode(array('result' => true));
@@ -792,7 +792,7 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'kill_plex') {
+		if (RequestManager::getAll()['action'] == 'kill_plex') {
 			if (Authorization::check('adv', 'folder_watch')) {
 				killPlexSync();
 				echo json_encode(array('result' => true));
@@ -804,19 +804,19 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'folder') {
+		if (RequestManager::getAll()['action'] == 'folder') {
 			if (Authorization::check('adv', 'folder_watch')) {
-				$rSub = CoreUtilities::$rRequest['sub'];
+				$rSub = RequestManager::getAll()['sub'];
 
 				if ($rSub == 'delete') {
-					deleteWatchFolder(CoreUtilities::$rRequest['folder_id']);
+					deleteWatchFolder(RequestManager::getAll()['folder_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
 				}
 
 				if ($rSub == 'force') {
-					$rFolder = getWatchFolder(CoreUtilities::$rRequest['folder_id']);
+					$rFolder = getWatchFolder(RequestManager::getAll()['folder_id']);
 
 					if ($rFolder) {
 						WatchService::forceWatch($rFolder['server_id'], $rFolder['id']);
@@ -839,22 +839,22 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'library') {
+		if (RequestManager::getAll()['action'] == 'library') {
 			if (Authorization::check('adv', 'folder_watch')) {
-				$rSub = CoreUtilities::$rRequest['sub'];
+				$rSub = RequestManager::getAll()['sub'];
 
 				if ($rSub == 'delete') {
-					deleteWatchFolder(CoreUtilities::$rRequest['folder_id']);
+					deleteWatchFolder(RequestManager::getAll()['folder_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
 				}
 
 				if ($rSub == 'force') {
-					$rFolder = getWatchFolder(CoreUtilities::$rRequest['folder_id']);
+					$rFolder = getWatchFolder(RequestManager::getAll()['folder_id']);
 
 					if ($rFolder) {
-						PlexService::forcePlex($rFolder['server_id'], $rFolder['id'], 'systemapirequest');
+						PlexService::forcePlex($rFolder['server_id'], $rFolder['id']);
 						echo json_encode(array('result' => true));
 
 						exit();
@@ -874,12 +874,12 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'useragent') {
+		if (RequestManager::getAll()['action'] == 'useragent') {
 			if (Authorization::check('adv', 'block_uas')) {
-				$rSub = CoreUtilities::$rRequest['sub'];
+				$rSub = RequestManager::getAll()['sub'];
 
 				if ($rSub == 'delete') {
-					rdeleteBlockedUA(CoreUtilities::$rRequest['ua_id']);
+					rdeleteBlockedUA(RequestManager::getAll()['ua_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -894,12 +894,12 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'isp') {
+		if (RequestManager::getAll()['action'] == 'isp') {
 			if (Authorization::check('adv', 'block_isps')) {
-				$rSub = CoreUtilities::$rRequest['sub'];
+				$rSub = RequestManager::getAll()['sub'];
 
 				if ($rSub == 'delete') {
-					rdeleteBlockedISP(CoreUtilities::$rRequest['isp_id']);
+					rdeleteBlockedISP(RequestManager::getAll()['isp_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -914,13 +914,13 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'mysql_syslog') {
+		if (RequestManager::getAll()['action'] == 'mysql_syslog') {
 			if (Authorization::check('adv', 'block_ips')) {
-				$rSub = CoreUtilities::$rRequest['sub'];
+				$rSub = RequestManager::getAll()['sub'];
 
-				if ($rSub == 'block' && filter_var(CoreUtilities::$rRequest['ip'], FILTER_VALIDATE_IP)) {
-					$db->query("INSERT INTO `blocked_ips`(`ip`, `notes`, `date`) VALUES(?, 'MySQL Bruteforce', ?);", CoreUtilities::$rRequest['ip'], time());
-					touch(FLOOD_TMP_PATH . 'block_' . CoreUtilities::$rRequest['ip']);
+				if ($rSub == 'block' && filter_var(RequestManager::getAll()['ip'], FILTER_VALIDATE_IP)) {
+					$db->query("INSERT INTO `blocked_ips`(`ip`, `notes`, `date`) VALUES(?, 'MySQL Bruteforce', ?);", RequestManager::getAll()['ip'], time());
+					touch(FLOOD_TMP_PATH . 'block_' . RequestManager::getAll()['ip']);
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -935,12 +935,12 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'ip') {
+		if (RequestManager::getAll()['action'] == 'ip') {
 			if (Authorization::check('adv', 'block_ips')) {
-				$rSub = CoreUtilities::$rRequest['sub'];
+				$rSub = RequestManager::getAll()['sub'];
 
 				if ($rSub == 'delete') {
-					rdeleteBlockedIP(CoreUtilities::$rRequest['ip']);
+					rdeleteBlockedIP(RequestManager::getAll()['ip']);
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -955,12 +955,12 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'rtmp_ip') {
+		if (RequestManager::getAll()['action'] == 'rtmp_ip') {
 			if (Authorization::check('adv', 'add_rtmp')) {
-				$rSub = CoreUtilities::$rRequest['sub'];
+				$rSub = RequestManager::getAll()['sub'];
 
 				if ($rSub == 'delete') {
-					deleteRTMPIP(CoreUtilities::$rRequest['ip']);
+					deleteRTMPIP(RequestManager::getAll()['ip']);
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -975,12 +975,12 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'watch_output') {
+		if (RequestManager::getAll()['action'] == 'watch_output') {
 			if (Authorization::check('adv', 'folder_watch_output')) {
-				$rSub = CoreUtilities::$rRequest['sub'];
+				$rSub = RequestManager::getAll()['sub'];
 
 				if ($rSub == 'delete') {
-					$db->query('DELETE FROM `watch_logs` WHERE `id` = ?;', CoreUtilities::$rRequest['result_id']);
+					$db->query('DELETE FROM `watch_logs` WHERE `id` = ?;', RequestManager::getAll()['result_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -995,13 +995,13 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'server') {
+		if (RequestManager::getAll()['action'] == 'server') {
 			if (Authorization::check('adv', 'edit_server')) {
-				$rSub = CoreUtilities::$rRequest['sub'];
+				$rSub = RequestManager::getAll()['sub'];
 
 				if ($rSub == 'delete') {
-					if ($rServers[CoreUtilities::$rRequest['server_id']]['is_main'] == 0) {
-						ServerRepository::deleteById(CoreUtilities::$rSettings, 'getStreamingServersByID', CoreUtilities::$rRequest['server_id']);
+					if ($rServers[RequestManager::getAll()['server_id']]['is_main'] == 0) {
+						ServerRepository::deleteById(RequestManager::getAll()['server_id']);
 						echo json_encode(array('result' => true));
 
 						exit();
@@ -1013,10 +1013,10 @@ if (isset($_SESSION['hash'])) {
 				}
 
 				if ($rSub == 'update') {
-					if (!is_numeric(CoreUtilities::$rRequest['server_id'])) {
-						$rIDs = json_decode(CoreUtilities::$rRequest['server_id'], true);
+					if (!is_numeric(RequestManager::getAll()['server_id'])) {
+						$rIDs = json_decode(RequestManager::getAll()['server_id'], true);
 					} else {
-						$rIDs = array(intval(CoreUtilities::$rRequest['server_id']));
+						$rIDs = array(intval(RequestManager::getAll()['server_id']));
 					}
 
 					foreach ($rIDs as $rID) {
@@ -1028,43 +1028,43 @@ if (isset($_SESSION['hash'])) {
 				}
 
 				if ($rSub == 'enable') {
-					$db->query('UPDATE `servers` SET `enabled` = 1 WHERE `id` = ?;', CoreUtilities::$rRequest['server_id']);
+					$db->query('UPDATE `servers` SET `enabled` = 1 WHERE `id` = ?;', RequestManager::getAll()['server_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
 				}
 
 				if ($rSub == 'disable') {
-					$db->query('UPDATE `servers` SET `enabled` = 0 WHERE `id` = ? AND `is_main` = 0;', CoreUtilities::$rRequest['server_id']);
+					$db->query('UPDATE `servers` SET `enabled` = 0 WHERE `id` = ? AND `is_main` = 0;', RequestManager::getAll()['server_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
 				}
 
 				if ($rSub == 'enable_proxy') {
-					$db->query('UPDATE `servers` SET `enable_proxy` = 1 WHERE `id` = ?;', CoreUtilities::$rRequest['server_id']);
+					$db->query('UPDATE `servers` SET `enable_proxy` = 1 WHERE `id` = ?;', RequestManager::getAll()['server_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
 				}
 
 				if ($rSub == 'disable_proxy') {
-					$db->query('UPDATE `servers` SET `enable_proxy` = 0 WHERE `id` = ?;', CoreUtilities::$rRequest['server_id']);
+					$db->query('UPDATE `servers` SET `enable_proxy` = 0 WHERE `id` = ?;', RequestManager::getAll()['server_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
 				}
 
 				if ($rSub == 'kill') {
-					if (CoreUtilities::$rSettings['redis_handler']) {
-						foreach (CoreUtilities::getRedisConnections(null, CoreUtilities::$rRequest['server_id'], null, true, false, false) as $rConnection) {
-							CoreUtilities::closeConnection($rConnection);
+					if (SettingsManager::getAll()['redis_handler']) {
+						foreach (ConnectionTracker::getRedisConnections(null, RequestManager::getAll()['server_id'], null, true, false, false) as $rConnection) {
+							ConnectionTracker::closeConnection($rConnection);
 						}
 					} else {
-						$db->query('SELECT * FROM `lines_live` WHERE `server_id` = ?;', CoreUtilities::$rRequest['server_id']);
+						$db->query('SELECT * FROM `lines_live` WHERE `server_id` = ?;', RequestManager::getAll()['server_id']);
 
 						foreach ($db->get_rows() as $rRow) {
-							CoreUtilities::closeConnection($rRow);
+							ConnectionTracker::closeConnection($rRow);
 						}
 					}
 
@@ -1075,7 +1075,7 @@ if (isset($_SESSION['hash'])) {
 
 				if ($rSub == 'restart') {
 					$rStreamIDs = array();
-					$db->query('SELECT `stream_id` FROM `streams_servers` WHERE `server_id` = ? AND `on_demand` = 0 AND `monitor_pid` > 0 AND `pid` > 0 AND `stream_status` = 0;', CoreUtilities::$rRequest['server_id']);
+					$db->query('SELECT `stream_id` FROM `streams_servers` WHERE `server_id` = ? AND `on_demand` = 0 AND `monitor_pid` > 0 AND `pid` > 0 AND `stream_status` = 0;', RequestManager::getAll()['server_id']);
 
 					if (0 >= $db->num_rows()) {
 					} else {
@@ -1086,7 +1086,7 @@ if (isset($_SESSION['hash'])) {
 
 					if (0 >= count($rStreamIDs)) {
 					} else {
-						$rResult = APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => array_values($rStreamIDs), 'servers' => array(intval(CoreUtilities::$rRequest['server_id']))));
+						$rResult = APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => array_values($rStreamIDs), 'servers' => array(intval(RequestManager::getAll()['server_id']))));
 					}
 
 					echo json_encode(array('result' => true));
@@ -1096,7 +1096,7 @@ if (isset($_SESSION['hash'])) {
 
 				if ($rSub == 'start') {
 					$rStreamIDs = array();
-					$db->query('SELECT `stream_id` FROM `streams_servers` WHERE `server_id` = ? AND `on_demand` = 0;', CoreUtilities::$rRequest['server_id']);
+					$db->query('SELECT `stream_id` FROM `streams_servers` WHERE `server_id` = ? AND `on_demand` = 0;', RequestManager::getAll()['server_id']);
 
 					if (0 >= $db->num_rows()) {
 					} else {
@@ -1107,7 +1107,7 @@ if (isset($_SESSION['hash'])) {
 
 					if (0 >= count($rStreamIDs)) {
 					} else {
-						$rResult = APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => array_values($rStreamIDs), 'servers' => array(intval(CoreUtilities::$rRequest['server_id']))));
+						$rResult = APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => array_values($rStreamIDs), 'servers' => array(intval(RequestManager::getAll()['server_id']))));
 					}
 
 					echo json_encode(array('result' => true));
@@ -1117,7 +1117,7 @@ if (isset($_SESSION['hash'])) {
 
 				if ($rSub == 'stop') {
 					$rStreamIDs = array();
-					$db->query('SELECT `stream_id` FROM `streams_servers` WHERE `server_id` = ? AND `on_demand` = 0;', CoreUtilities::$rRequest['server_id']);
+					$db->query('SELECT `stream_id` FROM `streams_servers` WHERE `server_id` = ? AND `on_demand` = 0;', RequestManager::getAll()['server_id']);
 
 					if (0 >= $db->num_rows()) {
 					} else {
@@ -1128,7 +1128,7 @@ if (isset($_SESSION['hash'])) {
 
 					if (0 >= count($rStreamIDs)) {
 					} else {
-						$rResult = APIRequest(array('action' => 'stream', 'sub' => 'stop', 'stream_ids' => array_values($rStreamIDs), 'servers' => array(intval(CoreUtilities::$rRequest['server_id']))));
+						$rResult = APIRequest(array('action' => 'stream', 'sub' => 'stop', 'stream_ids' => array_values($rStreamIDs), 'servers' => array(intval(RequestManager::getAll()['server_id']))));
 					}
 
 					echo json_encode(array('result' => true));
@@ -1143,53 +1143,53 @@ if (isset($_SESSION['hash'])) {
 				exit();
 			}
 		}
-		if (CoreUtilities::$rRequest['action'] == 'proxy') {
+		if (RequestManager::getAll()['action'] == 'proxy') {
 			if (Authorization::check('adv', 'edit_server')) {
-				$rSub = CoreUtilities::$rRequest['sub'];
+				$rSub = RequestManager::getAll()['sub'];
 
 				if ($rSub == 'delete') {
-					ServerRepository::deleteById(CoreUtilities::$rSettings, 'getStreamingServersByID', CoreUtilities::$rRequest['server_id']);
+					ServerRepository::deleteById(RequestManager::getAll()['server_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
 				}
 
 				if ($rSub == 'enable') {
-					$db->query('UPDATE `servers` SET `enabled` = 1 WHERE `id` = ?;', CoreUtilities::$rRequest['server_id']);
+					$db->query('UPDATE `servers` SET `enabled` = 1 WHERE `id` = ?;', RequestManager::getAll()['server_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
 				}
 
 				if ($rSub == 'disable') {
-					$db->query('UPDATE `servers` SET `enabled` = 0 WHERE `id` = ?;', CoreUtilities::$rRequest['server_id']);
+					$db->query('UPDATE `servers` SET `enabled` = 0 WHERE `id` = ?;', RequestManager::getAll()['server_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
 				}
 
 				if ($rSub == 'update') {
-					$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', CoreUtilities::$rRequest['server_id'], time(), json_encode(array('action' => 'update')));
+					$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', RequestManager::getAll()['server_id'], time(), json_encode(array('action' => 'update')));
 					echo json_encode(array('result' => true));
 
 					exit();
 				}
 
 				if ($rSub == 'kill') {
-					if (CoreUtilities::$rSettings['redis_handler']) {
-						foreach (CoreUtilities::$rServers[$rServerID]['parent_id'] as $rParentID) {
-							foreach (CoreUtilities::getRedisConnections(null, $rParentID, null, true, false, false) as $rConnection) {
-								if ($rConnection['proxy_id'] != CoreUtilities::$rRequest['server_id']) {
+					if (SettingsManager::getAll()['redis_handler']) {
+						foreach (ServerRepository::getAll()[$rServerID]['parent_id'] as $rParentID) {
+							foreach (ConnectionTracker::getRedisConnections(null, $rParentID, null, true, false, false) as $rConnection) {
+								if ($rConnection['proxy_id'] != RequestManager::getAll()['server_id']) {
 								} else {
-									CoreUtilities::closeConnection($rConnection);
+									ConnectionTracker::closeConnection($rConnection);
 								}
 							}
 						}
 					} else {
-						$db->query('SELECT * FROM `lines_live` WHERE `proxy_id` = ?;', CoreUtilities::$rRequest['server_id']);
+						$db->query('SELECT * FROM `lines_live` WHERE `proxy_id` = ?;', RequestManager::getAll()['server_id']);
 
 						foreach ($db->get_rows() as $rRow) {
-							CoreUtilities::closeConnection($rRow);
+							ConnectionTracker::closeConnection($rRow);
 						}
 					}
 
@@ -1207,19 +1207,19 @@ if (isset($_SESSION['hash'])) {
 				exit();
 			}
 		}
-		if (CoreUtilities::$rRequest['action'] == 'package') {
+		if (RequestManager::getAll()['action'] == 'package') {
 			if (Authorization::check('adv', 'edit_package')) {
-				$rSub = CoreUtilities::$rRequest['sub'];
+				$rSub = RequestManager::getAll()['sub'];
 
 				if ($rSub == 'delete') {
-					PackageService::deleteById('getPackage', CoreUtilities::$rRequest['package_id']);
+					PackageService::deleteById(RequestManager::getAll()['package_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
 				}
 
 				if (in_array($rSub, array('is_trial', 'is_official', 'can_gen_mag', 'can_gen_e2', 'only_mag', 'only_e2'))) {
-					$db->query('UPDATE `users_packages` SET ? = ? WHERE `id` = ?;', $rSub, CoreUtilities::$rRequest['value'], CoreUtilities::$rRequest['package_id']);
+					$db->query('UPDATE `users_packages` SET ? = ? WHERE `id` = ?;', $rSub, RequestManager::getAll()['value'], RequestManager::getAll()['package_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -1234,12 +1234,12 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'code') {
+		if (RequestManager::getAll()['action'] == 'code') {
 			if (Authorization::check('adv', 'add_code')) {
-				$rSub = CoreUtilities::$rRequest['sub'];
+				$rSub = RequestManager::getAll()['sub'];
 
 				if ($rSub == 'delete') {
-					removeAccessEntry(CoreUtilities::$rRequest['code_id']);
+					removeAccessEntry(RequestManager::getAll()['code_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -1254,12 +1254,12 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'hmac') {
+		if (RequestManager::getAll()['action'] == 'hmac') {
 			if (Authorization::check('adv', 'add_hmac')) {
-				$rSub = CoreUtilities::$rRequest['sub'];
+				$rSub = RequestManager::getAll()['sub'];
 
 				if ($rSub == 'delete') {
-					validateHMAC(CoreUtilities::$rRequest['hmac_id']);
+					validateHMAC(RequestManager::getAll()['hmac_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -1274,19 +1274,19 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'group') {
+		if (RequestManager::getAll()['action'] == 'group') {
 			if (Authorization::check('adv', 'edit_group')) {
-				$rSub = CoreUtilities::$rRequest['sub'];
+				$rSub = RequestManager::getAll()['sub'];
 
 				if ($rSub == 'delete') {
-					GroupService::deleteById(CoreUtilities::$rRequest['group_id']);
+					GroupService::deleteById(RequestManager::getAll()['group_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
 				}
 
 				if (in_array($rSub, array('is_admin', 'is_reseller'))) {
-					$db->query('UPDATE `users_groups` SET ? = ? WHERE `group_id` = ?;', $rSub, CoreUtilities::$rRequest['value'], CoreUtilities::$rRequest['group_id']);
+					$db->query('UPDATE `users_groups` SET ? = ? WHERE `group_id` = ?;', $rSub, RequestManager::getAll()['value'], RequestManager::getAll()['group_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -1301,12 +1301,12 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'bouquet') {
+		if (RequestManager::getAll()['action'] == 'bouquet') {
 			if (Authorization::check('adv', 'edit_bouquet')) {
-				$rSub = CoreUtilities::$rRequest['sub'];
+				$rSub = RequestManager::getAll()['sub'];
 
 				if ($rSub == 'delete') {
-					deleteBouquet(CoreUtilities::$rRequest['bouquet_id']);
+					deleteBouquet(RequestManager::getAll()['bouquet_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -1321,12 +1321,12 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'category') {
+		if (RequestManager::getAll()['action'] == 'category') {
 			if (Authorization::check('adv', 'edit_cat')) {
-				$rSub = CoreUtilities::$rRequest['sub'];
+				$rSub = RequestManager::getAll()['sub'];
 
 				if ($rSub == 'delete') {
-					deleteCategory(CoreUtilities::$rRequest['category_id']);
+					deleteCategory(RequestManager::getAll()['category_id']);
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -1341,10 +1341,10 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'get_package') {
+		if (RequestManager::getAll()['action'] == 'get_package') {
 			$rReturn = array();
 			$rOverride = json_decode($rUserInfo['override_packages'], true);
-			$db->query('SELECT `id`, `bouquets`, `official_credits` AS `cost_credits`, `official_duration`, `official_duration_in`, `max_connections`, `can_gen_mag`, `can_gen_e2`, `only_mag`, `only_e2` FROM `users_packages` WHERE `id` = ?;', CoreUtilities::$rRequest['package_id']);
+			$db->query('SELECT `id`, `bouquets`, `official_credits` AS `cost_credits`, `official_duration`, `official_duration_in`, `max_connections`, `can_gen_mag`, `can_gen_e2`, `only_mag`, `only_e2` FROM `users_packages` WHERE `id` = ?;', RequestManager::getAll()['package_id']);
 
 			if ($db->num_rows() == 1) {
 				$rData = $db->get_row();
@@ -1356,9 +1356,9 @@ if (isset($_SESSION['hash'])) {
 
 				$rData['exp_date'] = date('Y-m-d', strtotime('+' . intval($rData['official_duration']) . ' ' . $rData['official_duration_in']));
 
-				if (!isset(CoreUtilities::$rRequest['user_id'])) {
+				if (!isset(RequestManager::getAll()['user_id'])) {
 				} else {
-					if (!($rUser = UserRepository::getLineById(CoreUtilities::$rRequest['user_id']))) {
+					if (!($rUser = UserRepository::getLineById(RequestManager::getAll()['user_id']))) {
 					} else {
 						if (time() < $rUser['exp_date']) {
 							$rData['exp_date'] = date('Y-m-d', strtotime('+' . intval($rData['official_duration']) . ' ' . $rData['official_duration_in'], $rUser['exp_date']));
@@ -1384,9 +1384,9 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'get_package_trial') {
+		if (RequestManager::getAll()['action'] == 'get_package_trial') {
 			$rReturn = array();
-			$db->query('SELECT `bouquets`, `trial_credits` AS `cost_credits`, `trial_duration`, `trial_duration_in`, `max_connections`, `can_gen_mag`, `can_gen_e2`, `only_mag`, `only_e2` FROM `users_packages` WHERE `id` = ?;', CoreUtilities::$rRequest['package_id']);
+			$db->query('SELECT `bouquets`, `trial_credits` AS `cost_credits`, `trial_duration`, `trial_duration_in`, `max_connections`, `can_gen_mag`, `can_gen_e2`, `only_mag`, `only_e2` FROM `users_packages` WHERE `id` = ?;', RequestManager::getAll()['package_id']);
 
 			if ($db->num_rows() == 1) {
 				$rData = $db->get_row();
@@ -1408,7 +1408,7 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'graph_stats') {
+		if (RequestManager::getAll()['action'] == 'graph_stats') {
 			$rLimit = 3600;
 			$rTime = roundUpToAny(time(), 10);
 			$rNearestRange = $rTime - $rLimit;
@@ -1420,8 +1420,8 @@ if (isset($_SESSION['hash'])) {
 			}
 			$rServerStats = array();
 
-			if (isset(CoreUtilities::$rRequest['server_id'])) {
-				$db->query('SELECT `server_id`, `time`, `cpu`, `iostat_info`, `total_mem_used_percent`, `connections`, `streams`, `users`, `total_users`, `bytes_received`, `bytes_sent` FROM `servers_stats` WHERE `time` >= ? AND `server_id` = ? ORDER BY `time` DESC;', $rNearestRange, CoreUtilities::$rRequest['server_id']);
+			if (isset(RequestManager::getAll()['server_id'])) {
+				$db->query('SELECT `server_id`, `time`, `cpu`, `iostat_info`, `total_mem_used_percent`, `connections`, `streams`, `users`, `total_users`, `bytes_received`, `bytes_sent` FROM `servers_stats` WHERE `time` >= ? AND `server_id` = ? ORDER BY `time` DESC;', $rNearestRange, RequestManager::getAll()['server_id']);
 			} else {
 				$db->query('SELECT `server_id`, `time`, `cpu`, `iostat_info`, `total_mem_used_percent`, `connections`, `streams`, `users`, `total_users`, `bytes_received`, `bytes_sent` FROM `servers_stats` WHERE `server_id` IN (SELECT `id` FROM `servers` WHERE `server_type` = 0) AND `time` >= ? ORDER BY `time` DESC;', $rNearestRange);
 			}
@@ -1456,8 +1456,8 @@ if (isset($_SESSION['hash'])) {
 				$rTotalStreams = 0;
 				$rTotalUsers = 0;
 
-				if (isset(CoreUtilities::$rRequest['server_id'])) {
-					$rTotalUsers = $rServerStats[$rTime][CoreUtilities::$rRequest['server_id']]['users'];
+				if (isset(RequestManager::getAll()['server_id'])) {
+					$rTotalUsers = $rServerStats[$rTime][RequestManager::getAll()['server_id']]['users'];
 				} else {
 					$rTotalUsers = $rServerStats[$rTime][SERVER_ID]['total_users'];
 				}
@@ -1503,13 +1503,13 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'stats') {
+		if (RequestManager::getAll()['action'] == 'stats') {
 			if (Authorization::check('adv', 'index')) {
-				$rServers = CoreUtilities::getServers(true);
+				$rServers = ServerRepository::getAll(true);
 				$rReturn = array('cpu' => 0, 'mem' => 0, 'io' => 0, 'fs' => 0, 'uptime' => '--', 'bytes_sent' => 0, 'bytes_received' => 0, 'open_connections' => 0, 'total_connections' => 0, 'online_users' => 0, 'total_users' => 0, 'total_streams' => 0, 'total_running_streams' => 0, 'offline_streams' => 0, 'requests_per_second' => 0, 'servers' => array());
 
-				if (CoreUtilities::$rSettings['redis_handler']) {
-					$rReturn['total_users'] = CoreUtilities::$rSettings['total_users'];
+				if (SettingsManager::getAll()['redis_handler']) {
+					$rReturn['total_users'] = SettingsManager::getAll()['total_users'];
 				} else {
 					$db->query('SELECT `activity_id` FROM `lines_live` WHERE `hls_end` = 0 GROUP BY `user_id`;');
 
@@ -1519,8 +1519,8 @@ if (isset($_SESSION['hash'])) {
 					}
 				}
 
-				if (isset(CoreUtilities::$rRequest['server_id'])) {
-					$rServerID = intval(CoreUtilities::$rRequest['server_id']);
+				if (isset(RequestManager::getAll()['server_id'])) {
+					$rServerID = intval(RequestManager::getAll()['server_id']);
 					$rWatchDog = json_decode($rServers[$rServerID]['watchdog_data'], true);
 
 					if (!is_array($rWatchDog)) {
@@ -1545,7 +1545,7 @@ if (isset($_SESSION['hash'])) {
 
 					$rReturn['requests_per_second'] = $rServers[$rServerID]['requests_per_second'];
 
-					if (CoreUtilities::$rSettings['redis_handler']) {
+					if (SettingsManager::getAll()['redis_handler']) {
 						$rReturn['open_connections'] = $rServers[$rServerID]['connections'];
 						$rReturn['online_users'] = $rServers[$rServerID]['users'];
 
@@ -1603,7 +1603,7 @@ if (isset($_SESSION['hash'])) {
 				} else {
 					$rUptime = 0;
 
-					if (!CoreUtilities::$rSettings['redis_handler']) {
+					if (!SettingsManager::getAll()['redis_handler']) {
 						$db->query('SELECT COUNT(*) AS `count` FROM `lines_live` WHERE `hls_end` = 0;');
 
 						if (0 < $db->num_rows()) {
@@ -1656,7 +1656,7 @@ if (isset($_SESSION['hash'])) {
 						if ($rServers[$rServerID]['server_online']) {
 							$rArray = array();
 
-							if (CoreUtilities::$rSettings['redis_handler']) {
+							if (SettingsManager::getAll()['redis_handler']) {
 								$rArray['open_connections'] = $rServers[$rServerID]['connections'];
 								$rReturn['open_connections'] += $rServers[$rServerID]['connections'];
 								$rReturn['total_connections'] += $rServers[$rServerID]['connections'];
@@ -1706,7 +1706,7 @@ if (isset($_SESSION['hash'])) {
 						$rReturn['total_running_streams'] += $rServerArray['total_running_streams'];
 						$rReturn['offline_streams'] += $rServerArray['offline_streams'];
 					}
-					$rReturn['online_users'] = CoreUtilities::$rSettings['total_users'];
+					$rReturn['online_users'] = SettingsManager::getAll()['total_users'];
 				}
 
 				echo json_encode($rReturn, JSON_PARTIAL_OUTPUT_ON_ERROR);
@@ -1718,11 +1718,11 @@ if (isset($_SESSION['hash'])) {
 				exit();
 			}
 		}
-		if (CoreUtilities::$rRequest['action'] == 'header_stats') {
+		if (RequestManager::getAll()['action'] == 'header_stats') {
 			if (Authorization::check('adv', 'index')) {
 				$rReturn = array('bytes_sent' => 0, 'bytes_received' => 0, 'total_connections' => 0, 'total_users' => 0, 'total_running_streams' => 0, 'offline_streams' => 0);
 
-				if (!CoreUtilities::$rSettings['redis_handler']) {
+				if (!SettingsManager::getAll()['redis_handler']) {
 					$db->query('SELECT COUNT(*) AS `count` FROM `lines_live` WHERE `hls_end` = 0;');
 
 					if (0 >= $db->num_rows()) {
@@ -1737,7 +1737,7 @@ if (isset($_SESSION['hash'])) {
 						$rReturn['total_users'] = $db->num_rows();
 					}
 				} else {
-					$rReturn['total_users'] = CoreUtilities::$rSettings['total_users'];
+					$rReturn['total_users'] = SettingsManager::getAll()['total_users'];
 				}
 
 				$rOnlineCount = $rOfflineCount = array();
@@ -1755,7 +1755,7 @@ if (isset($_SESSION['hash'])) {
 				foreach (array_keys($rServers) as $rServerID) {
 					if (!$rServers[$rServerID]['server_online']) {
 					} else {
-						if (!CoreUtilities::$rSettings['redis_handler']) {
+						if (!SettingsManager::getAll()['redis_handler']) {
 						} else {
 							$rReturn['total_connections'] += $rServers[$rServerID]['connections'];
 						}
@@ -1780,13 +1780,13 @@ if (isset($_SESSION['hash'])) {
 				exit();
 			}
 		}
-		if (CoreUtilities::$rRequest['action'] == 'review_selection') {
+		if (RequestManager::getAll()['action'] == 'review_selection') {
 			if (Authorization::check('adv', 'edit_cchannel') || Authorization::check('adv', 'create_channel')) {
 				$rReturn = array('streams' => array(), 'result' => true);
 
-				if (!isset(CoreUtilities::$rRequest['data'])) {
+				if (!isset(RequestManager::getAll()['data'])) {
 				} else {
-					foreach (CoreUtilities::$rRequest['data'] as $rStreamID) {
+					foreach (RequestManager::getAll()['data'] as $rStreamID) {
 						$db->query('SELECT `id`, `stream_display_name`, `stream_source` FROM `streams` WHERE `id` = ?;', $rStreamID);
 
 						if ($db->num_rows() != 1) {
@@ -1805,13 +1805,13 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'review_bouquet') {
+		if (RequestManager::getAll()['action'] == 'review_bouquet') {
 			if (Authorization::check('adv', 'edit_bouquet') || Authorization::check('adv', 'add_bouquet')) {
 				$rReturn = array('streams' => array(), 'movies' => array(), 'series' => array(), 'radios' => array(), 'result' => true);
 
-				if (!isset(CoreUtilities::$rRequest['data']['stream'])) {
+				if (!isset(RequestManager::getAll()['data']['stream'])) {
 				} else {
-					foreach (CoreUtilities::$rRequest['data']['stream'] as $rStreamID) {
+					foreach (RequestManager::getAll()['data']['stream'] as $rStreamID) {
 						$db->query('SELECT `id`, `stream_display_name`, `type` FROM `streams` WHERE `id` = ? AND `type` IN (1,3);', $rStreamID);
 
 						if ($db->num_rows() != 1) {
@@ -1822,9 +1822,9 @@ if (isset($_SESSION['hash'])) {
 					}
 				}
 
-				if (!isset(CoreUtilities::$rRequest['data']['movies'])) {
+				if (!isset(RequestManager::getAll()['data']['movies'])) {
 				} else {
-					foreach (CoreUtilities::$rRequest['data']['movies'] as $rStreamID) {
+					foreach (RequestManager::getAll()['data']['movies'] as $rStreamID) {
 						$db->query('SELECT `id`, `stream_display_name`, `type` FROM `streams` WHERE `id` = ? AND `type` = 2;', $rStreamID);
 
 						if ($db->num_rows() != 1) {
@@ -1835,9 +1835,9 @@ if (isset($_SESSION['hash'])) {
 					}
 				}
 
-				if (!isset(CoreUtilities::$rRequest['data']['radios'])) {
+				if (!isset(RequestManager::getAll()['data']['radios'])) {
 				} else {
-					foreach (CoreUtilities::$rRequest['data']['radios'] as $rStreamID) {
+					foreach (RequestManager::getAll()['data']['radios'] as $rStreamID) {
 						$db->query('SELECT `id`, `stream_display_name`, `type` FROM `streams` WHERE `id` = ? AND `type` = 4;', $rStreamID);
 
 						if ($db->num_rows() != 1) {
@@ -1848,9 +1848,9 @@ if (isset($_SESSION['hash'])) {
 					}
 				}
 
-				if (!isset(CoreUtilities::$rRequest['data']['series'])) {
+				if (!isset(RequestManager::getAll()['data']['series'])) {
 				} else {
-					foreach (CoreUtilities::$rRequest['data']['series'] as $rSeriesID) {
+					foreach (RequestManager::getAll()['data']['series'] as $rSeriesID) {
 						$db->query('SELECT `id`, `title` FROM `streams_series` WHERE `id` = ?;', $rSeriesID);
 
 						if ($db->num_rows() != 1) {
@@ -1870,14 +1870,14 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'epglist') {
+		if (RequestManager::getAll()['action'] == 'epglist') {
 			if (Authorization::check('adv', 'import_streams')) {
 				$rGroups = array();
 				$rReturn = array('total_count' => 0, 'items' => array(), 'result' => true);
 
-				if (isset(CoreUtilities::$rRequest['search'])) {
+				if (isset(RequestManager::getAll()['search'])) {
 					$rEPGNames = $rEPGMap = array();
-					$db->query('SELECT `epg_channels`.`epg_id`, `epg_channels`.`channel_id`, `epg_channels`.`name`, `epg_channels`.`langs`, `epg`.`epg_name` FROM `epg_channels` LEFT JOIN `epg` ON `epg_channels`.`epg_id` = `epg`.`id` WHERE (LOWER(`epg_channels`.`channel_id`) LIKE ? OR LOWER(`epg_channels`.`name`) LIKE ?) ORDER BY `epg_channels`.`name` ASC LIMIT 50;', strtolower(CoreUtilities::$rRequest['search']) . '%', strtolower(CoreUtilities::$rRequest['search']) . '%');
+					$db->query('SELECT `epg_channels`.`epg_id`, `epg_channels`.`channel_id`, `epg_channels`.`name`, `epg_channels`.`langs`, `epg`.`epg_name` FROM `epg_channels` LEFT JOIN `epg` ON `epg_channels`.`epg_id` = `epg`.`id` WHERE (LOWER(`epg_channels`.`channel_id`) LIKE ? OR LOWER(`epg_channels`.`name`) LIKE ?) ORDER BY `epg_channels`.`name` ASC LIMIT 50;', strtolower(RequestManager::getAll()['search']) . '%', strtolower(RequestManager::getAll()['search']) . '%');
 
 					foreach ($db->get_rows() as $rRow) {
 						if (isset($rEPGNames[$rRow['epg_id']])) {
@@ -1904,21 +1904,21 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'serieslist') {
+		if (RequestManager::getAll()['action'] == 'serieslist') {
 			if (Authorization::check('adv', 'episodes')) {
 				$rReturn = array('total_count' => 0, 'items' => array(), 'result' => true);
 
-				if (!isset(CoreUtilities::$rRequest['search'])) {
+				if (!isset(RequestManager::getAll()['search'])) {
 				} else {
-					if (isset(CoreUtilities::$rRequest['page'])) {
-						$rPage = intval(CoreUtilities::$rRequest['page']);
+					if (isset(RequestManager::getAll()['page'])) {
+						$rPage = intval(RequestManager::getAll()['page']);
 					} else {
 						$rPage = 1;
 					}
 
-					$db->query('SELECT COUNT(`id`) AS `count` FROM `streams_series` WHERE `title` LIKE ?;', '%' . CoreUtilities::$rRequest['search'] . '%');
+					$db->query('SELECT COUNT(`id`) AS `count` FROM `streams_series` WHERE `title` LIKE ?;', '%' . RequestManager::getAll()['search'] . '%');
 					$rReturn['total_count'] = $db->get_row()['count'];
-					$db->query('SELECT `id`, `title` FROM `streams_series` WHERE `title` LIKE ? ORDER BY `title` ASC LIMIT ' . ($rPage - 1) * 100 . ', 100;', '%' . CoreUtilities::$rRequest['search'] . '%');
+					$db->query('SELECT `id`, `title` FROM `streams_series` WHERE `title` LIKE ? ORDER BY `title` ASC LIMIT ' . ($rPage - 1) * 100 . ', 100;', '%' . RequestManager::getAll()['search'] . '%');
 
 					if (0 >= $db->num_rows()) {
 					} else {
@@ -1937,21 +1937,21 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'reguserlist') {
+		if (RequestManager::getAll()['action'] == 'reguserlist') {
 			if (Authorization::check('adv', 'mng_regusers') || Authorization::check('adv', 'manage_mag') || Authorization::check('adv', 'manage_e2') || Authorization::check('adv', 'edit_e2') || Authorization::check('adv', 'add_e2') || Authorization::check('adv', 'add_mag') || Authorization::check('adv', 'edit_mag')) {
 				$rReturn = array('total_count' => 0, 'items' => array(), 'result' => true);
 
-				if (!isset(CoreUtilities::$rRequest['search'])) {
+				if (!isset(RequestManager::getAll()['search'])) {
 				} else {
-					if (isset(CoreUtilities::$rRequest['page'])) {
-						$rPage = intval(CoreUtilities::$rRequest['page']);
+					if (isset(RequestManager::getAll()['page'])) {
+						$rPage = intval(RequestManager::getAll()['page']);
 					} else {
 						$rPage = 1;
 					}
 
-					$db->query('SELECT COUNT(`id`) AS `id` FROM `users` WHERE `username` LIKE ?;', '%' . CoreUtilities::$rRequest['search'] . '%');
+					$db->query('SELECT COUNT(`id`) AS `id` FROM `users` WHERE `username` LIKE ?;', '%' . RequestManager::getAll()['search'] . '%');
 					$rReturn['total_count'] = $db->get_row()['id'];
-					$db->query('SELECT `id`, `username` FROM `users` WHERE `username` LIKE ? ORDER BY `username` ASC LIMIT ' . ($rPage - 1) * 100 . ', 100;', '%' . CoreUtilities::$rRequest['search'] . '%');
+					$db->query('SELECT `id`, `username` FROM `users` WHERE `username` LIKE ? ORDER BY `username` ASC LIMIT ' . ($rPage - 1) * 100 . ', 100;', '%' . RequestManager::getAll()['search'] . '%');
 
 					if (0 >= $db->num_rows()) {
 					} else {
@@ -1970,25 +1970,25 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'userlist') {
+		if (RequestManager::getAll()['action'] == 'userlist') {
 			if (Authorization::check('adv', 'edit_e2') || Authorization::check('adv', 'add_e2') || Authorization::check('adv', 'add_mag') || Authorization::check('adv', 'edit_mag')) {
 				$rReturn = array('total_count' => 0, 'items' => array(), 'result' => true);
 
-				if (!isset(CoreUtilities::$rRequest['search'])) {
+				if (!isset(RequestManager::getAll()['search'])) {
 				} else {
-					if (isset(CoreUtilities::$rRequest['page'])) {
-						$rPage = intval(CoreUtilities::$rRequest['page']);
+					if (isset(RequestManager::getAll()['page'])) {
+						$rPage = intval(RequestManager::getAll()['page']);
 					} else {
 						$rPage = 1;
 					}
 
-					$db->query('SELECT COUNT(`id`) AS `id` FROM `lines` WHERE `username` LIKE ? AND `is_e2` = 0 AND `is_mag` = 0;', CoreUtilities::$rRequest['search'] . '%');
+					$db->query('SELECT COUNT(`id`) AS `id` FROM `lines` WHERE `username` LIKE ? AND `is_e2` = 0 AND `is_mag` = 0;', RequestManager::getAll()['search'] . '%');
 					$rReturn['total_count'] = $db->get_row()['id'];
-					$db->query('SELECT COUNT(`device_id`) AS `id` FROM `enigma2_devices` WHERE `mac` LIKE ?;', CoreUtilities::$rRequest['search'] . '%');
+					$db->query('SELECT COUNT(`device_id`) AS `id` FROM `enigma2_devices` WHERE `mac` LIKE ?;', RequestManager::getAll()['search'] . '%');
 					$rReturn['total_count'] += $db->get_row()['id'];
-					$db->query('SELECT COUNT(`mag_id`) AS `id` FROM `mag_devices` WHERE `mac` LIKE ?;', CoreUtilities::$rRequest['search'] . '%');
+					$db->query('SELECT COUNT(`mag_id`) AS `id` FROM `mag_devices` WHERE `mac` LIKE ?;', RequestManager::getAll()['search'] . '%');
 					$rReturn['total_count'] += $db->get_row()['id'];
-					$db->query('SELECT `id`, IF(`lines`.`is_mag`, `mag_devices`.`mac`, IF(`lines`.`is_e2`, `enigma2_devices`.`mac`, `lines`.`username`)) AS `username` FROM `lines` LEFT JOIN `mag_devices` ON `mag_devices`.`user_id` = `lines`.`id` LEFT JOIN `enigma2_devices` ON `enigma2_devices`.`user_id` = `lines`.`id` WHERE `lines`.`username` LIKE ? OR `mag_devices`.`mac` LIKE ? OR `enigma2_devices`.`mac` LIKE ? ORDER BY `username` ASC LIMIT ' . ($rPage - 1) * 100 . ', 100;', CoreUtilities::$rRequest['search'] . '%', CoreUtilities::$rRequest['search'] . '%', CoreUtilities::$rRequest['search'] . '%');
+					$db->query('SELECT `id`, IF(`lines`.`is_mag`, `mag_devices`.`mac`, IF(`lines`.`is_e2`, `enigma2_devices`.`mac`, `lines`.`username`)) AS `username` FROM `lines` LEFT JOIN `mag_devices` ON `mag_devices`.`user_id` = `lines`.`id` LEFT JOIN `enigma2_devices` ON `enigma2_devices`.`user_id` = `lines`.`id` WHERE `lines`.`username` LIKE ? OR `mag_devices`.`mac` LIKE ? OR `enigma2_devices`.`mac` LIKE ? ORDER BY `username` ASC LIMIT ' . ($rPage - 1) * 100 . ', 100;', RequestManager::getAll()['search'] . '%', RequestManager::getAll()['search'] . '%', RequestManager::getAll()['search'] . '%');
 
 					if (0 >= $db->num_rows()) {
 					} else {
@@ -2007,21 +2007,21 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'streamlist') {
+		if (RequestManager::getAll()['action'] == 'streamlist') {
 			if (Authorization::check('adv', 'manage_mag')) {
 				$rReturn = array('total_count' => 0, 'items' => array(), 'result' => true);
 
-				if (!isset(CoreUtilities::$rRequest['search'])) {
+				if (!isset(RequestManager::getAll()['search'])) {
 				} else {
-					if (isset(CoreUtilities::$rRequest['page'])) {
-						$rPage = intval(CoreUtilities::$rRequest['page']);
+					if (isset(RequestManager::getAll()['page'])) {
+						$rPage = intval(RequestManager::getAll()['page']);
 					} else {
 						$rPage = 1;
 					}
 
-					$db->query('SELECT COUNT(`id`) AS `id` FROM `streams` WHERE `stream_display_name` LIKE ?;', '%' . CoreUtilities::$rRequest['search'] . '%');
+					$db->query('SELECT COUNT(`id`) AS `id` FROM `streams` WHERE `stream_display_name` LIKE ?;', '%' . RequestManager::getAll()['search'] . '%');
 					$rReturn['total_count'] = $db->get_row()['id'];
-					$db->query('SELECT `id`, `stream_display_name` FROM `streams` WHERE `stream_display_name` LIKE ? ORDER BY `stream_display_name` ASC LIMIT ' . ($rPage - 1) * 100 . ', 100;', '%' . CoreUtilities::$rRequest['search'] . '%');
+					$db->query('SELECT `id`, `stream_display_name` FROM `streams` WHERE `stream_display_name` LIKE ? ORDER BY `stream_display_name` ASC LIMIT ' . ($rPage - 1) * 100 . ', 100;', '%' . RequestManager::getAll()['search'] . '%');
 
 					if (0 >= $db->num_rows()) {
 					} else {
@@ -2040,21 +2040,21 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'adaptivelist') {
+		if (RequestManager::getAll()['action'] == 'adaptivelist') {
 			if (Authorization::check('adv', 'edit_stream')) {
 				$rReturn = array('total_count' => 0, 'items' => array(), 'result' => true);
 
-				if (!isset(CoreUtilities::$rRequest['search'])) {
+				if (!isset(RequestManager::getAll()['search'])) {
 				} else {
-					if (isset(CoreUtilities::$rRequest['page'])) {
-						$rPage = intval(CoreUtilities::$rRequest['page']);
+					if (isset(RequestManager::getAll()['page'])) {
+						$rPage = intval(RequestManager::getAll()['page']);
 					} else {
 						$rPage = 1;
 					}
 
-					$db->query('SELECT COUNT(`id`) AS `id` FROM `streams` WHERE (`stream_display_name` LIKE ? OR `id` LIKE ?) AND `type` = 1;', '%' . CoreUtilities::$rRequest['search'] . '%', CoreUtilities::$rRequest['search'] . '%');
+					$db->query('SELECT COUNT(`id`) AS `id` FROM `streams` WHERE (`stream_display_name` LIKE ? OR `id` LIKE ?) AND `type` = 1;', '%' . RequestManager::getAll()['search'] . '%', RequestManager::getAll()['search'] . '%');
 					$rReturn['total_count'] = $db->get_row()['id'];
-					$db->query('SELECT `id`, `stream_display_name` FROM `streams` WHERE (`stream_display_name` LIKE ? OR `id` LIKE ?) AND `type` = 1 ORDER BY `stream_display_name` ASC LIMIT ' . ($rPage - 1) * 100 . ', 100;', '%' . CoreUtilities::$rRequest['search'] . '%', CoreUtilities::$rRequest['search'] . '%');
+					$db->query('SELECT `id`, `stream_display_name` FROM `streams` WHERE (`stream_display_name` LIKE ? OR `id` LIKE ?) AND `type` = 1 ORDER BY `stream_display_name` ASC LIMIT ' . ($rPage - 1) * 100 . ', 100;', '%' . RequestManager::getAll()['search'] . '%', RequestManager::getAll()['search'] . '%');
 
 					if (0 >= $db->num_rows()) {
 					} else {
@@ -2073,21 +2073,21 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'titlesync') {
+		if (RequestManager::getAll()['action'] == 'titlesync') {
 			if (Authorization::check('adv', 'edit_stream')) {
 				$rReturn = array('total_count' => 0, 'items' => array(), 'result' => true);
 
-				if (!isset(CoreUtilities::$rRequest['search'])) {
+				if (!isset(RequestManager::getAll()['search'])) {
 				} else {
-					if (isset(CoreUtilities::$rRequest['page'])) {
-						$rPage = intval(CoreUtilities::$rRequest['page']);
+					if (isset(RequestManager::getAll()['page'])) {
+						$rPage = intval(RequestManager::getAll()['page']);
 					} else {
 						$rPage = 1;
 					}
 
-					$db->query("SELECT COUNT(`stream_id`) AS `stream_id` FROM `providers_streams` WHERE `type` = 'live' AND (`stream_display_name` LIKE ? OR `stream_id` LIKE ?);", '%' . CoreUtilities::$rRequest['search'] . '%', CoreUtilities::$rRequest['search'] . '%');
+					$db->query("SELECT COUNT(`stream_id`) AS `stream_id` FROM `providers_streams` WHERE `type` = 'live' AND (`stream_display_name` LIKE ? OR `stream_id` LIKE ?);", '%' . RequestManager::getAll()['search'] . '%', RequestManager::getAll()['search'] . '%');
 					$rReturn['total_count'] = $db->get_row()['stream_id'];
-					$db->query("SELECT `providers`.`name`, `providers_streams`.`provider_id`, `providers_streams`.`stream_id`, `providers_streams`.`stream_display_name` FROM `providers_streams` LEFT JOIN `providers` ON `providers`.`id` = `providers_streams`.`provider_id` WHERE `providers_streams`.`type` = 'live' AND (`stream_display_name` LIKE ? OR `stream_id` LIKE ?) ORDER BY `stream_display_name` ASC LIMIT " . ($rPage - 1) * 100 . ', 100;', '%' . CoreUtilities::$rRequest['search'] . '%', CoreUtilities::$rRequest['search'] . '%');
+					$db->query("SELECT `providers`.`name`, `providers_streams`.`provider_id`, `providers_streams`.`stream_id`, `providers_streams`.`stream_display_name` FROM `providers_streams` LEFT JOIN `providers` ON `providers`.`id` = `providers_streams`.`provider_id` WHERE `providers_streams`.`type` = 'live' AND (`stream_display_name` LIKE ? OR `stream_id` LIKE ?) ORDER BY `stream_display_name` ASC LIMIT " . ($rPage - 1) * 100 . ', 100;', '%' . RequestManager::getAll()['search'] . '%', RequestManager::getAll()['search'] . '%');
 					$rGroups = array();
 
 					if (0 >= $db->num_rows()) {
@@ -2116,7 +2116,7 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'force_epg') {
+		if (RequestManager::getAll()['action'] == 'force_epg') {
 			if (Authorization::check('adv', 'epg')) {
 				shell_exec(PHP_BIN . ' ' . CRON_PATH . 'epg.php > /dev/null 2>/dev/null &');
 				echo json_encode(array('result' => true));
@@ -2128,16 +2128,16 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'tmdb_search') {
+		if (RequestManager::getAll()['action'] == 'tmdb_search') {
 			if (Authorization::check('adv', 'add_series') || Authorization::check('adv', 'edit_series') || Authorization::check('adv', 'add_movie') || Authorization::check('adv', 'edit_movie') || Authorization::check('adv', 'add_episode') || Authorization::check('adv', 'edit_episode')) {
-				$rTerm = CoreUtilities::$rRequest['term'];
+				$rTerm = RequestManager::getAll()['term'];
 
 				if (0 >= strlen($rTerm)) {
 				} else {
 					include MAIN_HOME . 'includes/libs/tmdb.php';
 
-					if (0 < strlen(CoreUtilities::$rRequest['language'])) {
-						$rTMDB = new TMDB($rSettings['tmdb_api_key'], CoreUtilities::$rRequest['language']);
+					if (0 < strlen(RequestManager::getAll()['language'])) {
+						$rTMDB = new TMDB($rSettings['tmdb_api_key'], RequestManager::getAll()['language']);
 					} else {
 						if (0 < strlen($rSettings['tmdb_language'])) {
 							$rTMDB = new TMDB($rSettings['tmdb_api_key'], $rSettings['tmdb_language']);
@@ -2146,14 +2146,14 @@ if (isset($_SESSION['hash'])) {
 						}
 					}
 
-					if (is_numeric($rTerm) && in_array(CoreUtilities::$rRequest['type'], array('movie', 'series', 'episode'))) {
-						if (CoreUtilities::$rRequest['type'] == 'movie') {
+					if (is_numeric($rTerm) && in_array(RequestManager::getAll()['type'], array('movie', 'series', 'episode'))) {
+						if (RequestManager::getAll()['type'] == 'movie') {
 							$rResult = array(json_decode($rTMDB->getMovie($rTerm)->getJSON(), true));
 						} else {
-							if (CoreUtilities::$rRequest['type'] == 'series') {
+							if (RequestManager::getAll()['type'] == 'series') {
 								$rResult = array(json_decode($rTMDB->getTVShow($rTerm)->getJSON(), true));
 							} else {
-								$rResult = json_decode($rTMDB->getSeason($rTerm, intval(CoreUtilities::$rRequest['season']))->getJSON(), true);
+								$rResult = json_decode($rTMDB->getSeason($rTerm, intval(RequestManager::getAll()['season']))->getJSON(), true);
 
 								if (isset($rResult['tvshow_id']) && $rResult['tvshow_id'] == 0) {
 									$rResult = null;
@@ -2172,14 +2172,14 @@ if (isset($_SESSION['hash'])) {
 					$rTerm = $rRelease['title'];
 					$rJSON = array();
 
-					if (CoreUtilities::$rRequest['type'] == 'movie') {
+					if (RequestManager::getAll()['type'] == 'movie') {
 						$rResults = $rTMDB->searchMovie($rTerm);
 
 						foreach ($rResults as $rResult) {
 							$rJSON[] = json_decode($rResult->getJSON(), true);
 						}
 					} else {
-						if (CoreUtilities::$rRequest['type'] == 'series') {
+						if (RequestManager::getAll()['type'] == 'series') {
 							$rResults = $rTMDB->searchTVShow($rTerm);
 
 							foreach ($rResults as $rResult) {
@@ -2205,12 +2205,12 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'tmdb') {
+		if (RequestManager::getAll()['action'] == 'tmdb') {
 			if (Authorization::check('adv', 'add_series') || Authorization::check('adv', 'edit_series') || Authorization::check('adv', 'add_movie') || Authorization::check('adv', 'edit_movie') || Authorization::check('adv', 'add_episode') || Authorization::check('adv', 'edit_episode')) {
 				include MAIN_HOME . 'includes/libs/tmdb.php';
 
-				if (0 < strlen(CoreUtilities::$rRequest['language'])) {
-					$rTMDB = new TMDB($rSettings['tmdb_api_key'], CoreUtilities::$rRequest['language']);
+				if (0 < strlen(RequestManager::getAll()['language'])) {
+					$rTMDB = new TMDB($rSettings['tmdb_api_key'], RequestManager::getAll()['language']);
 				} else {
 					if (0 < strlen($rSettings['tmdb_language'])) {
 						$rTMDB = new TMDB($rSettings['tmdb_api_key'], $rSettings['tmdb_language']);
@@ -2219,18 +2219,18 @@ if (isset($_SESSION['hash'])) {
 					}
 				}
 
-				$rID = CoreUtilities::$rRequest['id'];
+				$rID = RequestManager::getAll()['id'];
 
-				if (CoreUtilities::$rRequest['type'] == 'movie') {
+				if (RequestManager::getAll()['type'] == 'movie') {
 					$rMovie = $rTMDB->getMovie($rID);
 					$rResult = json_decode($rMovie->getJSON(), true);
 					$rResult['trailer'] = $rMovie->getTrailer();
 				} else {
-					if (CoreUtilities::$rRequest['type'] != 'series') {
+					if (RequestManager::getAll()['type'] != 'series') {
 					} else {
 						$rSeries = $rTMDB->getTVShow($rID);
 						$rResult = json_decode($rSeries->getJSON(), true);
-						$rResult['trailer'] = getSeriesTrailer($rID, (!empty(CoreUtilities::$rRequest['language']) ? CoreUtilities::$rRequest['language'] : $rSettings['tmdb_language']));
+						$rResult['trailer'] = getSeriesTrailer($rID, (!empty(RequestManager::getAll()['language']) ? RequestManager::getAll()['language'] : $rSettings['tmdb_language']));
 					}
 				}
 
@@ -2249,25 +2249,25 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'listdir') {
+		if (RequestManager::getAll()['action'] == 'listdir') {
 			if (Authorization::check('adv', 'add_episode') || Authorization::check('adv', 'edit_episode') || Authorization::check('adv', 'add_movie') || Authorization::check('adv', 'edit_movie') || Authorization::check('adv', 'create_channel') || Authorization::check('adv', 'edit_cchannel') || Authorization::check('adv', 'folder_watch_add')) {
-				if (CoreUtilities::$rRequest['filter'] == 'video') {
+				if (RequestManager::getAll()['filter'] == 'video') {
 					$rFilter = array('mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts');
 				} else {
-					if (CoreUtilities::$rRequest['filter'] == 'subs') {
+					if (RequestManager::getAll()['filter'] == 'subs') {
 						$rFilter = array('srt', 'sub', 'sbv');
 					} else {
 						$rFilter = array('mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts', 'srt', 'sub', 'sbv');
 					}
 				}
 
-				if (!(isset(CoreUtilities::$rRequest['server']) && isset(CoreUtilities::$rRequest['dir']))) {
+				if (!(isset(RequestManager::getAll()['server']) && isset(RequestManager::getAll()['dir']))) {
 					echo json_encode(array('result' => false));
 
 					exit();
 				}
 
-				echo json_encode(array('result' => true, 'data' => listDir(intval(CoreUtilities::$rRequest['server']), CoreUtilities::$rRequest['dir'], $rFilter)));
+				echo json_encode(array('result' => true, 'data' => listDir(intval(RequestManager::getAll()['server']), RequestManager::getAll()['dir'], $rFilter)));
 
 				exit();
 			}
@@ -2276,9 +2276,9 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'fingerprint') {
+		if (RequestManager::getAll()['action'] == 'fingerprint') {
 			if (Authorization::check('adv', 'fingerprint')) {
-				$rData = json_decode(CoreUtilities::$rRequest['data'], true);
+				$rData = json_decode(RequestManager::getAll()['data'], true);
 				$rActiveServers = array();
 
 				foreach ($rServers as $rServer) {
@@ -2296,11 +2296,11 @@ if (isset($_SESSION['hash'])) {
 
 				if (!(0 < $rData['id'] && 0 < $rData['font_size'] && 0 < strlen($rData['font_color']) && 0 < strlen($rData['xy_offset']) && (0 < strlen($rData['message']) || $rData['type'] < 3))) {
 				} else {
-					if (CoreUtilities::$rSettings['redis_handler']) {
+					if (SettingsManager::getAll()['redis_handler']) {
 						if (isset($rData['user'])) {
-							$rRows = CoreUtilities::getRedisConnections($rData['id'], null, null, true, false, false);
+							$rRows = ConnectionTracker::getRedisConnections($rData['id'], null, null, true, false, false);
 						} else {
-							$rRows = CoreUtilities::getRedisConnections(null, null, $rData['id'], true, false, false);
+							$rRows = ConnectionTracker::getRedisConnections(null, null, $rData['id'], true, false, false);
 						}
 
 						$rUserMap = $rUserIDs = array();
@@ -2342,7 +2342,7 @@ if (isset($_SESSION['hash'])) {
 								if ($rData['type'] == 1) {
 									$rArray['message'] = $rRow['uuid'];
 								} elseif ($rData['type'] == 2) {
-									$rArray['message'] = (CoreUtilities::$rSettings['redis_handler'] ? $rUserMap[$rRow['user_id']] : $rRow['username']);
+									$rArray['message'] = (SettingsManager::getAll()['redis_handler'] ? $rUserMap[$rRow['user_id']] : $rRow['username']);
 								} elseif ($rData['type'] == 3) {
 									$rArray['message'] = $rData['message'];
 								}
@@ -2363,7 +2363,7 @@ if (isset($_SESSION['hash'])) {
 				exit();
 			}
 		}
-		if (CoreUtilities::$rRequest['action'] == 'restart_all_services') {
+		if (RequestManager::getAll()['action'] == 'restart_all_services') {
 			if (Authorization::check('adv', 'servers')) {
 				foreach ($rServers as $rServer) {
 					if (!$rServer['server_online']) {
@@ -2380,12 +2380,12 @@ if (isset($_SESSION['hash'])) {
 				exit();
 			}
 		}
-		if (CoreUtilities::$rRequest['action'] == 'restart_services') {
+		if (RequestManager::getAll()['action'] == 'restart_services') {
 			if (Authorization::check('adv', 'edit_server')) {
-				if (!is_numeric(CoreUtilities::$rRequest['server_id'])) {
-					$rIDs = json_decode(CoreUtilities::$rRequest['server_id'], true);
+				if (!is_numeric(RequestManager::getAll()['server_id'])) {
+					$rIDs = json_decode(RequestManager::getAll()['server_id'], true);
 				} else {
-					$rIDs = array(intval(CoreUtilities::$rRequest['server_id']));
+					$rIDs = array(intval(RequestManager::getAll()['server_id']));
 				}
 
 				foreach ($rIDs as $rID) {
@@ -2400,12 +2400,12 @@ if (isset($_SESSION['hash'])) {
 				exit();
 			}
 		}
-		if (CoreUtilities::$rRequest['action'] == 'reboot_server') {
+		if (RequestManager::getAll()['action'] == 'reboot_server') {
 			if (Authorization::check('adv', 'edit_server')) {
-				if (!is_numeric(CoreUtilities::$rRequest['server_id'])) {
-					$rIDs = json_decode(CoreUtilities::$rRequest['server_id'], true);
+				if (!is_numeric(RequestManager::getAll()['server_id'])) {
+					$rIDs = json_decode(RequestManager::getAll()['server_id'], true);
 				} else {
-					$rIDs = array(intval(CoreUtilities::$rRequest['server_id']));
+					$rIDs = array(intval(RequestManager::getAll()['server_id']));
 				}
 
 				foreach ($rIDs as $rID) {
@@ -2420,12 +2420,12 @@ if (isset($_SESSION['hash'])) {
 				exit();
 			}
 		}
-		if (CoreUtilities::$rRequest['action'] == 'update_binaries') {
+		if (RequestManager::getAll()['action'] == 'update_binaries') {
 			if (Authorization::check('adv', 'edit_server')) {
-				if (!is_numeric(CoreUtilities::$rRequest['server_id'])) {
-					$rIDs = json_decode(CoreUtilities::$rRequest['server_id'], true);
+				if (!is_numeric(RequestManager::getAll()['server_id'])) {
+					$rIDs = json_decode(RequestManager::getAll()['server_id'], true);
 				} else {
-					$rIDs = array(intval(CoreUtilities::$rRequest['server_id']));
+					$rIDs = array(intval(RequestManager::getAll()['server_id']));
 				}
 
 				foreach ($rIDs as $rID) {
@@ -2440,32 +2440,32 @@ if (isset($_SESSION['hash'])) {
 				exit();
 			}
 		}
-		if (CoreUtilities::$rRequest['action'] == 'probe_stream') {
+		if (RequestManager::getAll()['action'] == 'probe_stream') {
 			if (Authorization::check('adv', 'add_stream') || Authorization::check('adv', 'edit_stream')) {
-				$rAnalyseDuration = abs(intval(CoreUtilities::$rSettings['stream_max_analyze']));
-				$rTimeout = intval($rAnalyseDuration / 1000000) + CoreUtilities::$rSettings['probe_extra_wait'];
+				$rAnalyseDuration = abs(intval(SettingsManager::getAll()['stream_max_analyze']));
+				$rTimeout = intval($rAnalyseDuration / 1000000) + SettingsManager::getAll()['probe_extra_wait'];
 				set_time_limit(intval($rTimeout));
 				ini_set('max_execution_time', intval($rTimeout));
 				ini_set('default_socket_timeout', intval($rTimeout));
 				$rServerID = SERVER_ID;
 
-				if (empty(CoreUtilities::$rRequest['server']) || !$rServers[intval(CoreUtilities::$rRequest['server'])]['server_online']) {
+				if (empty(RequestManager::getAll()['server']) || !$rServers[intval(RequestManager::getAll()['server'])]['server_online']) {
 				} else {
-					$rServerID = intval(CoreUtilities::$rRequest['server']);
+					$rServerID = intval(RequestManager::getAll()['server']);
 				}
 
 				$rStreamInfoText = "<table style='width: 380px;' class='table-data' align='center'><tbody><tr><td colspan='4'>Stream probe failed!</td></tr></tbody></table>";
 				$rStreamInfo = null;
 
-				if (!empty(CoreUtilities::$rRequest['url'])) {
-					$rURL = CoreUtilities::parseStreamURL(CoreUtilities::$rRequest['url']);
+				if (!empty(RequestManager::getAll()['url'])) {
+					$rURL = StreamUtils::parseStreamURL(RequestManager::getAll()['url']);
 
-					if (CoreUtilities::detectXC_VM($rURL) && CoreUtilities::$rSettings['api_probe']) {
+					if (StreamUtils::detectXC_VM($rURL) && SettingsManager::getAll()['api_probe']) {
 						$rURLInfo = parse_url($rURL);
 						$rProbeURL = $rURLInfo['scheme'] . '://' . $rURLInfo['host'] . (($rURLInfo['port'] ? ':' . $rURLInfo['port'] : '')) . '/probe/' . base64_encode($rURLInfo['path']);
 
 
-						if ($rAPIInfo = json_decode(CoreUtilities::getURL($rProbeURL), true)) {
+						if ($rAPIInfo = json_decode(CurlClient::getURL($rProbeURL), true)) {
 							$rStreamInfo = array();
 
 							foreach ($rAPIInfo['codecs'] as $rType => $rCodec) {
@@ -2476,12 +2476,12 @@ if (isset($_SESSION['hash'])) {
 					}
 
 					if (!$rStreamInfo) {
-						$rStreamInfo = ServerRepository::probeSource('systemapirequest', $rServerID, CoreUtilities::$rRequest['url'], (CoreUtilities::$rRequest['user_agent'] ?: null), (CoreUtilities::$rRequest['http_proxy'] ?: null), (CoreUtilities::$rRequest['cookies'] ?: null), (CoreUtilities::$rRequest['headers'] ?: null))['data'];
+						$rStreamInfo = ServerRepository::probeSource($rServerID, RequestManager::getAll()['url'], (RequestManager::getAll()['user_agent'] ?: null), (RequestManager::getAll()['http_proxy'] ?: null), (RequestManager::getAll()['cookies'] ?: null), (RequestManager::getAll()['headers'] ?: null))['data'];
 						$rStreamInfo['container'] = $rStreamInfo['format']['format_name'];
 					}
 				}
 
-				if (isset(CoreUtilities::$rRequest['map'])) {
+				if (isset(RequestManager::getAll()['map'])) {
 					echo json_encode($rStreamInfo);
 					exit();
 				}
@@ -2537,31 +2537,31 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'check_stream') {
+		if (RequestManager::getAll()['action'] == 'check_stream') {
 			if (Authorization::check('adv', 'add_stream') || Authorization::check('adv', 'edit_stream')) {
-				$rAnalyseDuration = abs(intval(CoreUtilities::$rSettings['stream_max_analyze']));
-				$rTimeout = intval($rAnalyseDuration / 1000000) + CoreUtilities::$rSettings['probe_extra_wait'];
+				$rAnalyseDuration = abs(intval(SettingsManager::getAll()['stream_max_analyze']));
+				$rTimeout = intval($rAnalyseDuration / 1000000) + SettingsManager::getAll()['probe_extra_wait'];
 				set_time_limit(intval($rTimeout));
 				ini_set('max_execution_time', intval($rTimeout));
 				ini_set('default_socket_timeout', intval($rTimeout));
 
-				if (isset(CoreUtilities::$rRequest['url'])) {
-					$rURL = CoreUtilities::parseStreamURL(CoreUtilities::$rRequest['url']);
+				if (isset(RequestManager::getAll()['url'])) {
+					$rURL = StreamUtils::parseStreamURL(RequestManager::getAll()['url']);
 
-					if (isset(CoreUtilities::$rRequest['ua'])) {
-						$rUA = ' -user_agent ' . escapeshellarg(CoreUtilities::$rRequest['ua']);
+					if (isset(RequestManager::getAll()['ua'])) {
+						$rUA = ' -user_agent ' . escapeshellarg(RequestManager::getAll()['ua']);
 					} else {
 						$rUA = '';
 					}
 
-					if (isset(CoreUtilities::$rRequest['cookie'])) {
-						$rCookie = ' -cookies ' . escapeshellarg(CoreUtilities::fixCookie(CoreUtilities::$rRequest['cookie']));
+					if (isset(RequestManager::getAll()['cookie'])) {
+						$rCookie = ' -cookies ' . escapeshellarg(StreamUtils::fixCookie(RequestManager::getAll()['cookie']));
 					} else {
 						$rCookie = '';
 					}
 				} else {
-					$rStream = StreamRepository::getById(CoreUtilities::$rRequest['stream']);
-					$rStreamOptions = StreamRepository::getOptions(CoreUtilities::$rRequest['stream']);
+					$rStream = StreamRepository::getById(RequestManager::getAll()['stream']);
+					$rStreamOptions = StreamRepository::getOptions(RequestManager::getAll()['stream']);
 
 					if (0 < strlen($rStreamOptions[1]['value'])) {
 						$rUA = ' -user_agent ' . escapeshellarg($rStreamOptions[1]['value']);
@@ -2569,13 +2569,13 @@ if (isset($_SESSION['hash'])) {
 						$rUA = '';
 					}
 
-					if (isset(CoreUtilities::$rRequest['cookie'])) {
-						$rCookie = ' -cookies ' . escapeshellarg(CoreUtilities::fixCookie($rStreamOptions[17]['value']));
+					if (isset(RequestManager::getAll()['cookie'])) {
+						$rCookie = ' -cookies ' . escapeshellarg(StreamUtils::fixCookie($rStreamOptions[17]['value']));
 					} else {
 						$rCookie = '';
 					}
 
-					$rURL = CoreUtilities::parseStreamURL(json_decode($rStream['stream_source'], true)[intval(CoreUtilities::$rRequest['id'])]);
+					$rURL = StreamUtils::parseStreamURL(json_decode($rStream['stream_source'], true)[intval(RequestManager::getAll()['id'])]);
 				}
 
 				if (0 >= strlen($rURL)) {
@@ -2583,12 +2583,12 @@ if (isset($_SESSION['hash'])) {
 					$rStreamInfoText = "<table style='width: 300px;' class='table-data' align='center'><tbody><tr><td colspan='4'>Stream probe failed!</td></tr></tbody></table>";
 					$rStreamInfo = null;
 
-					if (!(CoreUtilities::detectXC_VM($rURL) && CoreUtilities::$rSettings['api_probe'])) {
+					if (!(StreamUtils::detectXC_VM($rURL) && SettingsManager::getAll()['api_probe'])) {
 					} else {
 						$rURLInfo = parse_url($rURL);
 						$rProbeURL = $rURLInfo['scheme'] . '://' . $rURLInfo['host'] . (($rURLInfo['port'] ? ':' . $rURLInfo['port'] : '')) . '/probe/' . base64_encode($rURLInfo['path']);
 
-						if (!($rAPIInfo = json_decode(CoreUtilities::getURL($rProbeURL), true))) {
+						if (!($rAPIInfo = json_decode(CurlClient::getURL($rProbeURL), true))) {
 						} else {
 							$rStreamInfo = array();
 
@@ -2600,7 +2600,7 @@ if (isset($_SESSION['hash'])) {
 
 					if ($rStreamInfo) {
 					} else {
-						$rStreamInfo = json_decode(shell_exec('timeout ' . intval($rTimeout) . ' ' . CoreUtilities::$rFFPROBE . $rUA . $rCookie . ' -v quiet -probesize 5000000 -print_format json -show_format -show_streams ' . escapeshellarg($rURL)), true);
+						$rStreamInfo = json_decode(shell_exec('timeout ' . intval($rTimeout) . ' ' . FfmpegPaths::probe() . $rUA . $rCookie . ' -v quiet -probesize 5000000 -print_format json -show_format -show_streams ' . escapeshellarg($rURL)), true);
 					}
 
 					if (0 >= count($rStreamInfo['streams'])) {
@@ -2658,12 +2658,12 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'clear_logs') {
+		if (RequestManager::getAll()['action'] == 'clear_logs') {
 			if (Authorization::check('adv', 'reg_userlog') || Authorization::check('adv', 'client_request_log') || Authorization::check('adv', 'connection_logs') || Authorization::check('adv', 'stream_errors') || Authorization::check('adv', 'credits_log') || Authorization::check('adv', 'folder_watch_settings')) {
-				if (strlen(CoreUtilities::$rRequest['from']) == 0) {
+				if (strlen(RequestManager::getAll()['from']) == 0) {
 					$rStartTime = null;
 				} else {
-					if ($rStartTime = strtotime(CoreUtilities::$rRequest['from'] . ' 00:00:00')) {
+					if ($rStartTime = strtotime(RequestManager::getAll()['from'] . ' 00:00:00')) {
 					} else {
 						echo json_encode(array('result' => false));
 
@@ -2671,10 +2671,10 @@ if (isset($_SESSION['hash'])) {
 					}
 				}
 
-				if (strlen(CoreUtilities::$rRequest['to']) == 0) {
+				if (strlen(RequestManager::getAll()['to']) == 0) {
 					$rEndTime = null;
 				} else {
-					if ($rEndTime = strtotime(CoreUtilities::$rRequest['to'] . ' 23:59:59')) {
+					if ($rEndTime = strtotime(RequestManager::getAll()['to'] . ' 23:59:59')) {
 					} else {
 						echo json_encode(array('result' => false));
 
@@ -2682,28 +2682,28 @@ if (isset($_SESSION['hash'])) {
 					}
 				}
 
-				if (in_array(CoreUtilities::$rRequest['type'], array('lines_logs', 'streams_errors', 'lines_activity', 'users_credits_logs', 'users_logs', 'panel_logs'))) {
-					if (CoreUtilities::$rRequest['type'] == 'lines_activity') {
+				if (in_array(RequestManager::getAll()['type'], array('lines_logs', 'streams_errors', 'lines_activity', 'users_credits_logs', 'users_logs', 'panel_logs'))) {
+					if (RequestManager::getAll()['type'] == 'lines_activity') {
 						$rColumn = 'date_start';
 					} else {
 						$rColumn = 'date';
 					}
 
 					if ($rStartTime && $rEndTime) {
-						$db->query('DELETE FROM ' . preparecolumn(CoreUtilities::$rRequest['type']) . ' WHERE `' . $rColumn . '` >= ? AND `' . $rColumn . '` <= ?;', $rStartTime, $rEndTime);
+						$db->query('DELETE FROM ' . preparecolumn(RequestManager::getAll()['type']) . ' WHERE `' . $rColumn . '` >= ? AND `' . $rColumn . '` <= ?;', $rStartTime, $rEndTime);
 					} else {
 						if ($rStartTime) {
-							$db->query('DELETE FROM ' . preparecolumn(CoreUtilities::$rRequest['type']) . ' WHERE `' . $rColumn . '` >= ?;', $rStartTime);
+							$db->query('DELETE FROM ' . preparecolumn(RequestManager::getAll()['type']) . ' WHERE `' . $rColumn . '` >= ?;', $rStartTime);
 						} else {
 							if ($rEndTime) {
-								$db->query('DELETE FROM ' . preparecolumn(CoreUtilities::$rRequest['type']) . ' WHERE `' . $rColumn . '` <= ?;', $rEndTime);
+								$db->query('DELETE FROM ' . preparecolumn(RequestManager::getAll()['type']) . ' WHERE `' . $rColumn . '` <= ?;', $rEndTime);
 							} else {
-								$db->query('TRUNCATE ' . preparecolumn(CoreUtilities::$rRequest['type']) . ';');
+								$db->query('TRUNCATE ' . preparecolumn(RequestManager::getAll()['type']) . ';');
 							}
 						}
 					}
 				} else {
-					if (CoreUtilities::$rRequest['type'] != 'watch_logs') {
+					if (RequestManager::getAll()['type'] != 'watch_logs') {
 					} else {
 						if ($rStartTime && $rEndTime) {
 							$db->query('DELETE FROM `watch_logs` WHERE UNIX_TIMESTAMP(`dateadded`) >= ? AND UNIX_TIMESTAMP(`dateadded`) <= ?;', $rStartTime, $rEndTime);
@@ -2730,12 +2730,12 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'backup') {
+		if (RequestManager::getAll()['action'] == 'backup') {
 			if (Authorization::check('adv', 'database')) {
-				$rSub = CoreUtilities::$rRequest['sub'];
+				$rSub = RequestManager::getAll()['sub'];
 
 				if ($rSub == 'delete') {
-					$rBackup = pathinfo(CoreUtilities::$rRequest['filename'])['filename'];
+					$rBackup = pathinfo(RequestManager::getAll()['filename'])['filename'];
 
 					if (!file_exists(MAIN_HOME . 'backups/' . $rBackup . '.sql')) {
 					} else {
@@ -2753,7 +2753,7 @@ if (isset($_SESSION['hash'])) {
 				}
 
 				if ($rSub == 'restore') {
-					$rBackup = pathinfo(CoreUtilities::$rRequest['filename'])['filename'];
+					$rBackup = pathinfo(RequestManager::getAll()['filename'])['filename'];
 					$rFilename = MAIN_HOME . 'backups/' . $rBackup . '.sql';
 
 					if (file_exists($rFilename)) {
@@ -2774,7 +2774,7 @@ if (isset($_SESSION['hash'])) {
 						}
 					}
 
-					CoreUtilities::restoreBackup($rFilename);
+					BackupService::restore($rFilename, ConfigReader::getAll());
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -2797,9 +2797,9 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'send_event') {
+		if (RequestManager::getAll()['action'] == 'send_event') {
 			if (Authorization::check('adv', 'manage_events')) {
-				$rData = json_decode(CoreUtilities::$rRequest['data'], true);
+				$rData = json_decode(RequestManager::getAll()['data'], true);
 
 				if (!is_numeric($rData['id'])) {
 					$rIDs = json_decode($rData['id'], true);
@@ -2837,8 +2837,8 @@ if (isset($_SESSION['hash'])) {
 				exit();
 			}
 		}
-		if (CoreUtilities::$rRequest['action'] == 'ip_whois') {
-			$rIP = CoreUtilities::$rRequest['ip'];
+		if (RequestManager::getAll()['action'] == 'ip_whois') {
+			$rIP = RequestManager::getAll()['ip'];
 			$rReader = new MaxMind\Db\Reader(GEOLITE2C_BIN);
 			$rResponse = $rReader->get($rIP);
 
@@ -2850,7 +2850,7 @@ if (isset($_SESSION['hash'])) {
 
 			$rReader->close();
 
-			if (!isset(CoreUtilities::$rRequest['isp'])) {
+			if (!isset(RequestManager::getAll()['isp'])) {
 			} else {
 				$rReader = new MaxMind\Db\Reader(GEOISP_BIN);
 				$rResponse['isp'] = $rReader->get($rIP);
@@ -2900,10 +2900,10 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'asn') {
+		if (RequestManager::getAll()['action'] == 'asn') {
 			if (Authorization::check('adv', 'block_isps')) {
-				$rSub = CoreUtilities::$rRequest['sub'];
-				$rASN = CoreUtilities::$rRequest['id'];
+				$rSub = RequestManager::getAll()['sub'];
+				$rASN = RequestManager::getAll()['id'];
 
 				if ($rSub == 'allow') {
 					$db->query('UPDATE `blocked_asns` SET `blocked` = 0 WHERE `id` = ?;', $rASN);
@@ -2939,13 +2939,13 @@ if (isset($_SESSION['hash'])) {
 				exit();
 			}
 		}
-		if (CoreUtilities::$rRequest['action'] == 'server_view') {
+		if (RequestManager::getAll()['action'] == 'server_view') {
 			if (Authorization::check('adv', 'add_server') || Authorization::check('adv', 'edit_server')) {
-				if (isset($rServers[CoreUtilities::$rRequest['server_id']])) {
-					$rServer = $rServers[CoreUtilities::$rRequest['server_id']];
+				if (isset($rServers[RequestManager::getAll()['server_id']])) {
+					$rServer = $rServers[RequestManager::getAll()['server_id']];
 				} else {
-					if (isset($rProxyServers[CoreUtilities::$rRequest['server_id']])) {
-						$rServer = $rProxyServers[CoreUtilities::$rRequest['server_id']];
+					if (isset($rProxyServers[RequestManager::getAll()['server_id']])) {
+						$rServer = $rProxyServers[RequestManager::getAll()['server_id']];
 					} else {
 						echo json_encode(array('result' => false));
 
@@ -2969,9 +2969,9 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'server_stats') {
+		if (RequestManager::getAll()['action'] == 'server_stats') {
 			if (Authorization::check('adv', 'add_server') || Authorization::check('adv', 'edit_server')) {
-				$rID = intval(CoreUtilities::$rRequest['id']);
+				$rID = intval(RequestManager::getAll()['id']);
 
 				if (isset($rServers[$rID])) {
 					$rWatchdog = WatchdogMonitor::getWatchdog($rID);
@@ -2994,9 +2994,9 @@ if (isset($_SESSION['hash'])) {
 				exit();
 			}
 		}
-		if (CoreUtilities::$rRequest['action'] == 'rtmp_kill') {
+		if (RequestManager::getAll()['action'] == 'rtmp_kill') {
 			if (Authorization::check('adv', 'rtmp')) {
-				echo systemapirequest(intval(CoreUtilities::$rRequest['server']), array('action' => 'rtmp_kill', 'name' => CoreUtilities::$rRequest['name']));
+				echo systemapirequest(intval(RequestManager::getAll()['server']), array('action' => 'rtmp_kill', 'name' => RequestManager::getAll()['name']));
 
 				exit();
 			}
@@ -3005,14 +3005,14 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'install_status') {
+		if (RequestManager::getAll()['action'] == 'install_status') {
 			if (Authorization::check('adv', 'add_server') || Authorization::check('adv', 'edit_server')) {
-				CoreUtilities::$rServers = CoreUtilities::getServers(true);
-				$rServerID = intval(CoreUtilities::$rRequest['server_id']);
+				$rServers = ServerRepository::getAll(true);
+				$rServerID = intval(RequestManager::getAll()['server_id']);
 				$rFilename = BIN_PATH . 'install/' . $rServerID . '.install';
 
 				if (file_exists($rFilename)) {
-					echo json_encode(array('result' => true, 'data' => trim(file_get_contents($rFilename)), 'status' => intval(CoreUtilities::$rServers[$rServerID]['status'])));
+					echo json_encode(array('result' => true, 'data' => trim(file_get_contents($rFilename)), 'status' => intval($rServers[$rServerID]['status'])));
 
 					exit();
 				}
@@ -3026,9 +3026,9 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'reinstall_server') {
+		if (RequestManager::getAll()['action'] == 'reinstall_server') {
 			if (Authorization::check('adv', 'add_server') || Authorization::check('adv', 'edit_server')) {
-				$rServerID = intval(CoreUtilities::$rRequest['server_id']);
+				$rServerID = intval(RequestManager::getAll()['server_id']);
 
 				if ($rServers[$rServerID]['server_type'] == 0) {
 					$rType = 2;
@@ -3063,14 +3063,14 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'fpm_status') {
+		if (RequestManager::getAll()['action'] == 'fpm_status') {
 			if (Authorization::check('adv', 'add_server') || Authorization::check('adv', 'edit_server')) {
-				$rData = str_replace("\n", '<br/>', systemapirequest(CoreUtilities::$rRequest['server_id'], array('action' => 'fpm_status')));
+				$rData = str_replace("\n", '<br/>', systemapirequest(RequestManager::getAll()['server_id'], array('action' => 'fpm_status')));
 
 				if (empty($rData)) {
 					$rData = '<strong>No response from status page.</strong>';
 				} else {
-					$rInstances = intval($rServers[CoreUtilities::$rRequest['server_id']]['total_services']);
+					$rInstances = intval($rServers[RequestManager::getAll()['server_id']]['total_services']);
 
 					if (!$rInstances) {
 					} else {
@@ -3087,7 +3087,7 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'update_all_servers') {
+		if (RequestManager::getAll()['action'] == 'update_all_servers') {
 			if (Authorization::check('adv', 'servers')) {
 				foreach ($rServers as $rServer) {
 					if ($rServer['server_online']) {
@@ -3103,7 +3103,7 @@ if (isset($_SESSION['hash'])) {
 				exit();
 			}
 		}
-		if (CoreUtilities::$rRequest['action'] == 'update_all_binaries') {
+		if (RequestManager::getAll()['action'] == 'update_all_binaries') {
 			if (Authorization::check('adv', 'servers')) {
 				foreach ($rServers as $rServer) {
 					if (!$rServer['server_online']) {
@@ -3120,7 +3120,7 @@ if (isset($_SESSION['hash'])) {
 				exit();
 			}
 		}
-		if (CoreUtilities::$rRequest['action'] == 'disable_watch') {
+		if (RequestManager::getAll()['action'] == 'disable_watch') {
 			if (Authorization::check('adv', 'folder_watch_settings')) {
 				WatchService::disableWatch();
 				echo json_encode(array('result' => true));
@@ -3132,7 +3132,7 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'enable_watch') {
+		if (RequestManager::getAll()['action'] == 'enable_watch') {
 			if (Authorization::check('adv', 'folder_watch_settings')) {
 				WatchService::enableWatch();
 				echo json_encode(array('result' => true));
@@ -3144,7 +3144,7 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'disable_plex') {
+		if (RequestManager::getAll()['action'] == 'disable_plex') {
 			if (Authorization::check('adv', 'folder_watch_settings')) {
 				$db->query("UPDATE `watch_folders` SET `active` = 0 WHERE `type` = 'plex';");
 				echo json_encode(array('result' => true));
@@ -3156,7 +3156,7 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'enable_plex') {
+		if (RequestManager::getAll()['action'] == 'enable_plex') {
 			if (Authorization::check('adv', 'folder_watch_settings')) {
 				$db->query("UPDATE `watch_folders` SET `active` = 1 WHERE `type` = 'plex';");
 				echo json_encode(array('result' => true));
@@ -3168,10 +3168,10 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'plex_sections') {
+		if (RequestManager::getAll()['action'] == 'plex_sections') {
 			if (Authorization::check('adv', 'folder_watch_settings')) {
-				$rToken = CoreUtilities::getPlexToken(CoreUtilities::$rRequest['ip'], CoreUtilities::$rRequest['port'], CoreUtilities::$rRequest['username'], CoreUtilities::$rRequest['password']);
-				$rSections = PlexRepository::getPlexSections(CoreUtilities::$rRequest['ip'], CoreUtilities::$rRequest['port'], $rToken);
+				$rToken = PlexAuth::getPlexToken(RequestManager::getAll()['ip'], RequestManager::getAll()['port'], RequestManager::getAll()['username'], RequestManager::getAll()['password']);
+				$rSections = PlexRepository::getPlexSections(RequestManager::getAll()['ip'], RequestManager::getAll()['port'], $rToken);
 
 				if ($rSections && 0 < count($rSections)) {
 					echo json_encode(array('result' => true, 'data' => $rSections));
@@ -3185,7 +3185,7 @@ if (isset($_SESSION['hash'])) {
 			echo json_encode(array('result' => false));
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'enable_handler') {
+		if (RequestManager::getAll()['action'] == 'enable_handler') {
 			if (Authorization::check('adv', 'backups')) {
 				$db->query('UPDATE `settings` SET `redis_handler` = 1;');
 
@@ -3232,7 +3232,7 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'disable_handler') {
+		if (RequestManager::getAll()['action'] == 'disable_handler') {
 			if (Authorization::check('adv', 'backups')) {
 				$db->query('UPDATE `settings` SET `redis_handler` = 0;');
 
@@ -3276,9 +3276,9 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'clear_redis') {
+		if (RequestManager::getAll()['action'] == 'clear_redis') {
 			if (Authorization::check('adv', 'backups')) {
-				CoreUtilities::$redis->flushAll();
+				RedisManager::instance()->flushAll();
 				echo json_encode(array('result' => true));
 
 				exit();
@@ -3288,12 +3288,12 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'report') {
+		if (RequestManager::getAll()['action'] == 'report') {
 			if (Authorization::check('adv', 'backups')) {
 				$rURL = pathinfo('http://127.0.0.1:' . $rServers[SERVER_ID]['http_broadcast_port'] . $_SERVER['REQUEST_URI'])['dirname'] . '/table';
 				set_time_limit(60);
 				ini_set('memory_limit', '-1');
-				$rParams = json_decode(CoreUtilities::$rRequest['params'], true);
+				$rParams = json_decode(RequestManager::getAll()['params'], true);
 
 				foreach (array() as $rKey) {
 					unset($rParams[$rKey]);
@@ -3318,10 +3318,10 @@ if (isset($_SESSION['hash'])) {
 				exit();
 			}
 		}
-		if (CoreUtilities::$rRequest['action'] == 'decrypt_text') {
+		if (RequestManager::getAll()['action'] == 'decrypt_text') {
 			if (Authorization::check('adv', 'stream_tools')) {
 				$rDecryptedArray = array();
-				$rText = (CoreUtilities::$rRequest['text'] ?: null);
+				$rText = (RequestManager::getAll()['text'] ?: null);
 
 				if (!$rText) {
 				} else {
@@ -3340,7 +3340,7 @@ if (isset($_SESSION['hash'])) {
 
 							if (!empty($rDecoded)) {
 								try {
-									$rDecrypted = CoreUtilities::decryptData($rPiece, CoreUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+									$rDecrypted = Encryption::decrypt($rPiece, SettingsManager::getAll()['live_streaming_pass'], OPENSSL_EXTRA);
 								} catch (Exception $e) {
 									$rDecrypted = null;
 								}
@@ -3368,10 +3368,10 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'get_episode_ids') {
+		if (RequestManager::getAll()['action'] == 'get_episode_ids') {
 			if (Authorization::check('adv', 'add_episode')) {
 				$rReturn = array();
-				$rData = json_decode(CoreUtilities::$rRequest['data'], true);
+				$rData = json_decode(RequestManager::getAll()['data'], true);
 
 				if (!is_array($rData)) {
 					echo json_encode(array('result' => false));
@@ -3381,7 +3381,7 @@ if (isset($_SESSION['hash'])) {
 
 				$rInput = array();
 
-				if (CoreUtilities::$rSettings['parse_type'] == 'guessit') {
+				if (SettingsManager::getAll()['parse_type'] == 'guessit') {
 					foreach ($rData as $rEpisodeID => $rName) {
 						$rInput[$rEpisodeID] = pathinfo($rName)['filename'];
 					}
@@ -3414,22 +3414,22 @@ if (isset($_SESSION['hash'])) {
 				exit();
 			}
 		}
-		if (CoreUtilities::$rRequest['action'] == 'download_panel_logs') {
-			$errors = CoreUtilities::downloadPanelLogs();
+		if (RequestManager::getAll()['action'] == 'download_panel_logs') {
+			$errors = DiagnosticsService::downloadPanelLogs(DatabaseFactory::get());
 			echo json_encode(array('result' => true, 'data' => $errors));
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'get_epg') {
+		if (RequestManager::getAll()['action'] == 'get_epg') {
 			if (Authorization::check('adv', 'manage_streams')) {
-				$rTimezone = (CoreUtilities::$rRequest['timezone'] ?: 'Europe/London');
+				$rTimezone = (RequestManager::getAll()['timezone'] ?: 'Europe/London');
 				date_default_timezone_set($rTimezone);
 				$rReturn = array('Channels' => array());
-				$rChannels = array_map('intval', explode(',', CoreUtilities::$rRequest['channels']));
+				$rChannels = array_map('intval', explode(',', RequestManager::getAll()['channels']));
 
 				if (count($rChannels) != 0) {
-					$rHours = (intval(CoreUtilities::$rRequest['hours']) ?: 3);
-					$rStartDate = (intval(strtotime(CoreUtilities::$rRequest['startdate'])) ?: time());
+					$rHours = (intval(RequestManager::getAll()['hours']) ?: 3);
+					$rStartDate = (intval(strtotime(RequestManager::getAll()['startdate'])) ?: time());
 					$rFinishDate = $rStartDate + $rHours * 3600;
 					$rPerUnit = floatval(100 / ($rHours * 60));
 					$rChannelsSort = $rChannels;
@@ -3448,7 +3448,7 @@ if (isset($_SESSION['hash'])) {
 							}
 						}
 
-						$rEPG = CoreUtilities::getEPGs($rChannels, $rStartDate, $rFinishDate);
+						$rEPG = EpgService::getStreamsEpg($rChannels, $rStartDate, $rFinishDate);
 
 						foreach ($rEPG as $rChannelID => $rEPGData) {
 							$rFullSize = 0;
@@ -3496,10 +3496,10 @@ if (isset($_SESSION['hash'])) {
 						$rDefaultArray = $rDefaultEPG;
 						$rDefaultArray['ChannelId'] = $rStream['id'];
 						$rCategoryIDs = json_decode($rStream['category_id'], true);
-						$rCategories = getCategories('live');
+						$rCategories = CategoryService::getAllByType('live');
 
-						if (0 < strlen(CoreUtilities::$rRequest['category'])) {
-							$rCategory = ($rCategories[intval(CoreUtilities::$rRequest['category'])]['category_name'] ?: 'No Category');
+						if (0 < strlen(RequestManager::getAll()['category'])) {
+							$rCategory = ($rCategories[intval(RequestManager::getAll()['category'])]['category_name'] ?: 'No Category');
 						} else {
 							$rCategory = ($rCategories[$rCategoryIDs[0]]['category_name'] ?: 'No Category');
 						}
@@ -3509,7 +3509,7 @@ if (isset($_SESSION['hash'])) {
 							$rCategory .= ' (+' . (count($rCategoryIDs) - 1) . ' others)';
 						}
 
-						$rReturn['Channels'][] = array('Id' => $rStream['id'], 'DisplayName' => $rStream['stream_display_name'], 'CategoryName' => $rCategory, 'Archive' => $rArchive, 'Image' => (CoreUtilities::validateImage($rStream['stream_icon']) ?: ''), 'TvListings' => ($rListings[$rStream['id']] ?: array($rDefaultArray)));
+						$rReturn['Channels'][] = array('Id' => $rStream['id'], 'DisplayName' => $rStream['stream_display_name'], 'CategoryName' => $rCategory, 'Archive' => $rArchive, 'Image' => (ImageUtils::validateURL($rStream['stream_icon']) ?: ''), 'TvListings' => ($rListings[$rStream['id']] ?: array($rDefaultArray)));
 					}
 					echo json_encode($rReturn);
 
@@ -3525,14 +3525,14 @@ if (isset($_SESSION['hash'])) {
 				exit();
 			}
 		}
-		if (CoreUtilities::$rRequest['action'] == 'get_programme') {
+		if (RequestManager::getAll()['action'] == 'get_programme') {
 			if (Authorization::check('adv', 'manage_streams')) {
-				$rTimezone = (CoreUtilities::$rRequest['timezone'] ?: 'Europe/London');
+				$rTimezone = (RequestManager::getAll()['timezone'] ?: 'Europe/London');
 				date_default_timezone_set($rTimezone);
 
-				if (!isset(CoreUtilities::$rRequest['id'])) {
+				if (!isset(RequestManager::getAll()['id'])) {
 				} else {
-					$rRow = CoreUtilities::getProgramme(CoreUtilities::$rRequest['stream_id'], CoreUtilities::$rRequest['id']);
+					$rRow = EpgService::getProgramme(RequestManager::getAll()['stream_id'], RequestManager::getAll()['id']);
 
 					if (!$rRow) {
 					} else {
@@ -3540,7 +3540,7 @@ if (isset($_SESSION['hash'])) {
 
 						if (time() >= $rRow['end']) {
 						} else {
-							$db->query('SELECT `server_id`, `direct_source`, `monitor_pid`, `pid`, `stream_status`, `on_demand` FROM `streams` LEFT JOIN `streams_servers` ON `streams_servers`.`stream_id` = `streams`.`id` WHERE `streams`.`id` = ? AND `server_id` IS NOT NULL;', CoreUtilities::$rRequest['stream_id']);
+							$db->query('SELECT `server_id`, `direct_source`, `monitor_pid`, `pid`, `stream_status`, `on_demand` FROM `streams` LEFT JOIN `streams_servers` ON `streams_servers`.`stream_id` = `streams`.`id` WHERE `streams`.`id` = ? AND `server_id` IS NOT NULL;', RequestManager::getAll()['stream_id']);
 
 							if (0 >= $db->num_rows()) {
 							} else {
@@ -3571,17 +3571,17 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'queue') {
+		if (RequestManager::getAll()['action'] == 'queue') {
 			if (Authorization::check('adv', 'streams') || Authorization::check('adv', 'series') || Authorization::check('adv', 'episodes')) {
-				$rSub = CoreUtilities::$rRequest['sub'];
-				$db->query('SELECT * FROM `queue` WHERE `id` = ?;', CoreUtilities::$rRequest['id']);
+				$rSub = RequestManager::getAll()['sub'];
+				$db->query('SELECT * FROM `queue` WHERE `id` = ?;', RequestManager::getAll()['id']);
 
 				if ($db->num_rows() != 1) {
 				} else {
 					$rRow = $db->get_row();
 
 					if ($rSub == 'delete') {
-						$db->query('DELETE FROM `queue` WHERE `id` = ?;', CoreUtilities::$rRequest['id']);
+						$db->query('DELETE FROM `queue` WHERE `id` = ?;', RequestManager::getAll()['id']);
 						echo json_encode(array('result' => true));
 
 						exit();
@@ -3591,10 +3591,10 @@ if (isset($_SESSION['hash'])) {
 					} else {
 						if (0 >= $rRow['pid']) {
 						} else {
-							ServerRepository::killPID('systemapirequest', $rRow['server_id'], $rRow['pid']);
+							ServerRepository::killPID($rRow['server_id'], $rRow['pid']);
 						}
 
-						$db->query('DELETE FROM `queue` WHERE `id` = ?;', CoreUtilities::$rRequest['id']);
+						$db->query('DELETE FROM `queue` WHERE `id` = ?;', RequestManager::getAll()['id']);
 						echo json_encode(array('result' => true));
 
 						exit();
@@ -3610,12 +3610,12 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'search') {
+		if (RequestManager::getAll()['action'] == 'search') {
 			$rReturn = array('total_count' => 0, 'items' => array(), 'result' => true);
 			$rTables = array('lines' => array('Lines', 'line?id=', '`username`, `admin_notes`, `reseller_notes`, `last_ip`, `contact`', 'id', 'username'), 'mag_devices' => array('MAG Devices', 'mag?id=', '`mac_filter`, `ip`', 'mag_id', 'mac'), 'enigma2_devices' => array('Enigma2 Devices', 'enigma?id=', '`mac_filter`, `public_ip`', 'device_id', 'mac'), 'users' => array('Users', 'user?id=', '`username`, `email`, `ip`, `notes`, `reseller_dns`', 'id', 'username'), 'streams' => array('Streams, Movies & Episodes', 'stream_view?id=', '`stream_display_name`, `stream_source`, `notes`, `channel_id`', 'id', 'stream_display_name'), 'streams_series' => array('TV Series', 'serie?id=', '`title`, `plot`, `cast`, `director`', 'id', 'title'));
 			$rLimit = 100;
-			$rTerm = strtolower(preg_replace('/[^[:alnum:][:space:]]/u', '', CoreUtilities::$rRequest['search']));
-			$rTermSP = strtolower(preg_replace('/[^[:alnum:][:space:]]/u', ' ', CoreUtilities::$rRequest['search']));
+			$rTerm = strtolower(preg_replace('/[^[:alnum:][:space:]]/u', '', RequestManager::getAll()['search']));
+			$rTermSP = strtolower(preg_replace('/[^[:alnum:][:space:]]/u', ' ', RequestManager::getAll()['search']));
 
 			if (!empty($rTermSP)) {
 				$rItems = array();
@@ -3646,7 +3646,7 @@ if (isset($_SESSION['hash'])) {
 					}
 				}
 				array_multisort(array_column($rItems, 'score'), SORT_DESC, $rItems);
-				$rItems = array_slice($rItems, 0, (intval(CoreUtilities::$rSettings['search_items']) ?: 50));
+				$rItems = array_slice($rItems, 0, (intval(SettingsManager::getAll()['search_items']) ?: 50));
 				$rStreamNameIDs = $rDeviceIDs = $rLineIDs = $rOwnerIDs = $rUserIDs = $rSeriesIDs = $rStreamIDs = array();
 
 				foreach ($rItems as $rItem) {
@@ -3748,8 +3748,8 @@ if (isset($_SESSION['hash'])) {
 						array_multisort(array_column($rServerItems[$rStreamID], 'priority'), SORT_DESC, $rServerItems[$rStreamID]);
 					}
 
-					if (CoreUtilities::$rSettings['redis_handler']) {
-						$rConnectionCount = CoreUtilities::getStreamConnections($rStreamIDs, true, true);
+					if (SettingsManager::getAll()['redis_handler']) {
+						$rConnectionCount = ConnectionTracker::getStreamConnections($rStreamIDs, true, true);
 					} else {
 						$db->query('SELECT `stream_id`, COUNT(*) AS `count` FROM `lines_live` WHERE `stream_id` IN (' . implode(',', $rStreamIDs) . ') AND `hls_end` = 0;');
 
@@ -3801,9 +3801,9 @@ if (isset($_SESSION['hash'])) {
 
 				if (0 >= count($rLineIDs)) {
 				} else {
-					if (CoreUtilities::$rSettings['redis_handler']) {
-						$rLineConnectionCount = CoreUtilities::getUserConnections($rLineIDs, true);
-						$rConnectionMap = CoreUtilities::getFirstConnection($rLineIDs);
+					if (SettingsManager::getAll()['redis_handler']) {
+						$rLineConnectionCount = ConnectionTracker::getUserConnections($rLineIDs, true);
+						$rConnectionMap = ConnectionTracker::getFirstConnection($rLineIDs);
 						$rLStreamIDs = array();
 
 						foreach ($rConnectionMap as $rUserID => $rConnection) {
@@ -3858,7 +3858,7 @@ if (isset($_SESSION['hash'])) {
 					}
 				}
 
-				$rCategories = getCategories(null);
+				$rCategories = CategoryService::getAllByType(null);
 				$rGroups = GroupService::getAll();
 
 				foreach ($rItems as $rItem) {
@@ -4338,15 +4338,15 @@ if (isset($_SESSION['hash'])) {
 								$rLastInfo['stream_display_name'] = $rStreamNames[$rLastInfo['stream_id']];
 
 								if ($rLastInfo['online']) {
-									$rLastInfoText = "<a class='text-white' href='javascript:void(0);' onClick=\"navigate('stream_view?id=" . intval($rLastInfo['stream_id']) . "');\">" . $rLastInfo['stream_display_name'] . "</a><br/><small class='text-lighter'>Online: " . CoreUtilities::secondsToTime(time() - $rLastInfo['last_active']) . '</small>';
+									$rLastInfoText = "<a class='text-white' href='javascript:void(0);' onClick=\"navigate('stream_view?id=" . intval($rLastInfo['stream_id']) . "');\">" . $rLastInfo['stream_display_name'] . "</a><br/><small class='text-lighter'>Online: " . TimeUtils::secondsToTime(time() - $rLastInfo['last_active']) . '</small>';
 								} else {
-									$rLastInfoText = "Last Active<br/><small class='text-lighter'>" . (($rLastInfo['date_end'] ? date(CoreUtilities::$rSettings['date_format'], $rLastInfo['date_end']) . '<br/>' . date('H:i:s', $rLastInfo['date_end']) : 'Never')) . '</small>';
+									$rLastInfoText = "Last Active<br/><small class='text-lighter'>" . (($rLastInfo['date_end'] ? date(SettingsManager::getAll()['date_format'], $rLastInfo['date_end']) . '<br/>' . date('H:i:s', $rLastInfo['date_end']) : 'Never')) . '</small>';
 								}
 							} else {
 								$rLastInfoText = "Last Active<br/><small class='text-lighter'>Never</small>";
 							}
 
-							$rExpires = ($rItem['exp_date'] ? date(CoreUtilities::$rSettings['datetime_format'], $rItem['exp_date']) : null);
+							$rExpires = ($rItem['exp_date'] ? date(SettingsManager::getAll()['datetime_format'], $rItem['exp_date']) : null);
 							$rHTML = '<div class="card-search text-white">' . "\n\t\t\t\t\t\t\t" . '<div class="card-body">' . "\n\t\t\t\t\t\t\t\t" . '<div class="media align-items-center">' . "\n\t\t\t\t\t\t\t\t\t" . '<div class="col-9">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<h3 class="text-white my-1 text-truncate">' . $rItem['username'] . '</h3>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<p class="text-lighter mb-1 text-truncate"><small>' . (($rExpires ? '<span class="text-white">expires:</span> ' . $rExpires . '<br/>' : '')) . (($rOwnerName ? '<span class="text-white">owner:</span> ' . $rOwnerName : '')) . '</small></p>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t" . '<div class="col-3">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div class="float-right text-center search-icon-xl mt-1">' . $rLastInfoText . '</div>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t" . '<div class="card-body action-block">' . "\n\t\t\t\t\t\t\t\t" . '<div class="media align-items-center align-center">' . "\n\t\t\t\t\t\t\t\t\t" . '<ul class="list-unstyled topnav-menu topnav-menu-left m-0" style="opacity: 80%; display: flex;">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<button type="button" class="btn bg-animate-pink btn-xs waves-effect waves-light no-border">' . (($rItem['is_restreamer'] ? "<i title='Restreamer' class='mdi mdi-swap-horizontal tooltip'></i> " : ($rItem['is_trial'] ? "<i title='Trial' class='mdi mdi-gavel tooltip'></i> " : ''))) . 'LINE</button>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<i class="fe-user-check text-white"></i> &nbsp; <button type="button" class="btn bg-animate-' . $rStatusColour . ' btn-xs waves-effect waves-light no-border">' . $rStatus . '</button>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<i class="fe-zap text-white"></i> &nbsp; <button type="button" class="btn bg-animate-info btn-xs waves-effect waves-light no-border">' . number_format(($rLineConnectionCount[$rItem['id']] ?: 0), 0) . '</button>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>';
 
 							if (!$rHasButtons) {
@@ -4414,15 +4414,15 @@ if (isset($_SESSION['hash'])) {
 									$rLastInfo['stream_display_name'] = $rStreamNames[$rLastInfo['stream_id']];
 
 									if ($rLastInfo['online']) {
-										$rLastInfoText = "<a class='text-white' href='javascript:void(0);' onClick=\"navigate('stream_view?id=" . intval($rLastInfo['stream_id']) . "');\">" . $rLastInfo['stream_display_name'] . "</a><br/><small class='text-lighter'>Online: " . CoreUtilities::secondsToTime(time() - $rLastInfo['last_active']) . '</small>';
+										$rLastInfoText = "<a class='text-white' href='javascript:void(0);' onClick=\"navigate('stream_view?id=" . intval($rLastInfo['stream_id']) . "');\">" . $rLastInfo['stream_display_name'] . "</a><br/><small class='text-lighter'>Online: " . TimeUtils::secondsToTime(time() - $rLastInfo['last_active']) . '</small>';
 									} else {
-										$rLastInfoText = "Last Active<br/><small class='text-lighter'>" . (($rLastInfo['date_end'] ? date(CoreUtilities::$rSettings['date_format'], $rLastInfo['date_end']) . '<br/>' . date('H:i:s', $rLastInfo['date_end']) : 'Never')) . '</small>';
+										$rLastInfoText = "Last Active<br/><small class='text-lighter'>" . (($rLastInfo['date_end'] ? date(SettingsManager::getAll()['date_format'], $rLastInfo['date_end']) . '<br/>' . date('H:i:s', $rLastInfo['date_end']) : 'Never')) . '</small>';
 									}
 								} else {
 									$rLastInfoText = "Last Active<br/><small class='text-lighter'>Never</small>";
 								}
 
-								$rExpires = ($rLineInfo['exp_date'] ? date(CoreUtilities::$rSettings['datetime_format'], $rLineInfo['exp_date']) : null);
+								$rExpires = ($rLineInfo['exp_date'] ? date(SettingsManager::getAll()['datetime_format'], $rLineInfo['exp_date']) : null);
 								$rHTML = '<div class="card-search text-white">' . "\n\t\t\t\t\t\t\t" . '<div class="card-body">' . "\n\t\t\t\t\t\t\t\t" . '<div class="media align-items-center">' . "\n\t\t\t\t\t\t\t\t\t" . '<div class="col-9">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<h3 class="text-white my-1 text-truncate">' . $rItem['mac'] . '</h3>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<p class="text-lighter mb-1 text-truncate"><small>' . (($rExpires ? '<span class="text-white">expires:</span> ' . $rExpires . '<br/>' : '')) . (($rOwnerName ? '<span class="text-white">owner:</span> ' . $rOwnerName : '')) . '</small></p>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t" . '<div class="col-3">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div class="float-right text-center search-icon-xl mt-1">' . $rLastInfoText . '</div>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t" . '<div class="card-body action-block">' . "\n\t\t\t\t\t\t\t\t" . '<div class="media align-items-center align-center">' . "\n\t\t\t\t\t\t\t\t\t" . '<ul class="list-unstyled topnav-menu topnav-menu-left m-0" style="opacity: 80%; display: flex;">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<button type="button" class="btn bg-animate-pink btn-xs waves-effect waves-light no-border">' . (($rLineInfo['is_trial'] ? "<i class='mdi mdi-gavel'></i> " : '')) . strtoupper($rDeviceType) . '</button>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<i class="fe-user-check text-white"></i> &nbsp; <button type="button" class="btn bg-animate-' . $rStatusColour . ' btn-xs waves-effect waves-light no-border">' . $rStatus . '</button>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<i class="fe-zap text-white"></i> &nbsp; <button type="button" class="btn bg-animate-info btn-xs waves-effect waves-light no-border">' . number_format(($rLineConnectionCount[$rLineInfo['id']] ?: 0), 0) . '</button>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>';
 
 								if (!$rHasButtons) {
@@ -4453,15 +4453,15 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'delete_recording') {
+		if (RequestManager::getAll()['action'] == 'delete_recording') {
 			if (Authorization::check('adv', 'edit_movie')) {
-				if (!(isset(CoreUtilities::$rRequest['id']) && 0 < intval(CoreUtilities::$rRequest['id']))) {
+				if (!(isset(RequestManager::getAll()['id']) && 0 < intval(RequestManager::getAll()['id']))) {
 					echo json_encode(array('result' => false));
 
 					exit();
 				}
 
-				WatchService::deleteRecording(CoreUtilities::$rRequest['id'], 'deleteStream');
+				WatchService::deleteRecording(RequestManager::getAll()['id']);
 				echo json_encode(array('result' => true));
 
 				exit();
@@ -4471,15 +4471,15 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] == 'clear_failures') {
+		if (RequestManager::getAll()['action'] == 'clear_failures') {
 			if (Authorization::check('adv', 'streams')) {
-				if (!(isset(CoreUtilities::$rRequest['id']) && 0 < intval(CoreUtilities::$rRequest['id']))) {
+				if (!(isset(RequestManager::getAll()['id']) && 0 < intval(RequestManager::getAll()['id']))) {
 					echo json_encode(array('result' => false));
 
 					exit();
 				}
 
-				$db->query('DELETE FROM `streams_logs` WHERE `stream_id` = ?;', CoreUtilities::$rRequest['id']);
+				$db->query('DELETE FROM `streams_logs` WHERE `stream_id` = ?;', RequestManager::getAll()['id']);
 				echo json_encode(array('result' => true));
 
 				exit();
@@ -4489,11 +4489,11 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-		if (CoreUtilities::$rRequest['action'] != 'multi') {
+		if (RequestManager::getAll()['action'] != 'multi') {
 		}
-		$rType = CoreUtilities::$rRequest['type'];
-		$rRequestIDs = json_decode(CoreUtilities::$rRequest['ids'], true);
-		$rSub = CoreUtilities::$rRequest['sub'];
+		$rType = RequestManager::getAll()['type'];
+		$rRequestIDs = json_decode(RequestManager::getAll()['ids'], true);
+		$rSub = RequestManager::getAll()['sub'];
 
 		if (count($rRequestIDs) != 0) {
 			switch ($rType) {
@@ -4504,33 +4504,33 @@ if (isset($_SESSION['hash'])) {
 						} else {
 							if ($rSub == 'enable') {
 								$db->query('UPDATE `lines` SET `enabled` = 1 WHERE `id`IN (' . implode(',', array_map('intval', $rRequestIDs)) . ');');
-								CoreUtilities::updateLines($rRequestIDs);
+								LineService::updateLinesSignal($rRequestIDs);
 							} else {
 								if ($rSub == 'disable') {
 									$db->query('UPDATE `lines` SET `enabled` = 0 WHERE `id` IN (' . implode(',', array_map('intval', $rRequestIDs)) . ');');
-									CoreUtilities::updateLines($rRequestIDs);
+									LineService::updateLinesSignal($rRequestIDs);
 								} else {
 									if ($rSub == 'ban') {
 										$db->query('UPDATE `lines` SET `admin_enabled` = 0 WHERE `id` IN (' . implode(',', array_map('intval', $rRequestIDs)) . ');');
-										CoreUtilities::updateLines($rRequestIDs);
+										LineService::updateLinesSignal($rRequestIDs);
 									} else {
 										if ($rSub == 'unban') {
 											$db->query('UPDATE `lines` SET `admin_enabled` = 1 WHERE `id` IN (' . implode(',', array_map('intval', $rRequestIDs)) . ');');
-											CoreUtilities::updateLines($rRequestIDs);
+											LineService::updateLinesSignal($rRequestIDs);
 										} else {
 											if ($rSub != 'purge') {
 											} else {
-												if (CoreUtilities::$rSettings['redis_handler']) {
+												if (SettingsManager::getAll()['redis_handler']) {
 													foreach ($rRequestIDs as $rUserID) {
-														foreach (CoreUtilities::getRedisConnections($rUserID, null, null, true, false, false) as $rConnection) {
-															CoreUtilities::closeConnection($rConnection);
+														foreach (ConnectionTracker::getRedisConnections($rUserID, null, null, true, false, false) as $rConnection) {
+															ConnectionTracker::closeConnection($rConnection);
 														}
 													}
 												} else {
 													$db->query('SELECT * FROM `lines_live` WHERE `user_id` IN (' . implode(',', array_map('intval', $rRequestIDs)) . ');');
 
 													foreach ($db->get_rows() as $rRow) {
-														CoreUtilities::closeConnection($rRow);
+														ConnectionTracker::closeConnection($rRow);
 													}
 												}
 											}
@@ -4587,17 +4587,17 @@ if (isset($_SESSION['hash'])) {
 												$db->query('UPDATE `lines` SET `admin_enabled` = 1 WHERE `id` IN (' . implode(',', array_map('intval', $rUserIDs)) . ');');
 											} else {
 												if ($rSub == 'purge') {
-													if (CoreUtilities::$rSettings['redis_handler']) {
+													if (SettingsManager::getAll()['redis_handler']) {
 														foreach ($rUserIDs as $rUserID) {
-															foreach (CoreUtilities::getRedisConnections($rUserID, null, null, true, false, false) as $rConnection) {
-																CoreUtilities::closeConnection($rConnection);
+															foreach (ConnectionTracker::getRedisConnections($rUserID, null, null, true, false, false) as $rConnection) {
+																ConnectionTracker::closeConnection($rConnection);
 															}
 														}
 													} else {
 														$db->query('SELECT * FROM `lines_live` WHERE `user_id` IN (' . implode(',', array_map('intval', $rUserIDs)) . ');');
 
 														foreach ($db->get_rows() as $rRow) {
-															CoreUtilities::closeConnection($rRow);
+															ConnectionTracker::closeConnection($rRow);
 														}
 													}
 												} else {
@@ -4618,7 +4618,7 @@ if (isset($_SESSION['hash'])) {
 								}
 							}
 
-							CoreUtilities::updateLines($rUserIDs);
+							LineService::updateLinesSignal($rUserIDs);
 						}
 
 						echo json_encode(array('result' => true));
@@ -4687,18 +4687,18 @@ if (isset($_SESSION['hash'])) {
 						} else {
 							if ($rSub == 'purge') {
 								foreach ($rRequestIDs as $rServerID) {
-									if (CoreUtilities::$rSettings['redis_handler']) {
+									if (SettingsManager::getAll()['redis_handler']) {
 										if ($rType == 'proxy') {
-											foreach (CoreUtilities::$rServers[$rServerID]['parent_id'] as $rParentID) {
-												foreach (CoreUtilities::getRedisConnections(null, $rParentID, null, true, false, false) as $rConnection) {
+											foreach (ServerRepository::getAll()[$rServerID]['parent_id'] as $rParentID) {
+												foreach (ConnectionTracker::getRedisConnections(null, $rParentID, null, true, false, false) as $rConnection) {
 													if ($rConnection['proxy_id'] == $rServerID) {
-														CoreUtilities::closeConnection($rConnection);
+														ConnectionTracker::closeConnection($rConnection);
 													}
 												}
 											}
 										} else {
-											foreach (CoreUtilities::getRedisConnections(null, $rServerID, null, true, false, false) as $rConnection) {
-												CoreUtilities::closeConnection($rConnection);
+											foreach (ConnectionTracker::getRedisConnections(null, $rServerID, null, true, false, false) as $rConnection) {
+												ConnectionTracker::closeConnection($rConnection);
 											}
 										}
 									} else {
@@ -4709,7 +4709,7 @@ if (isset($_SESSION['hash'])) {
 										}
 
 										foreach ($db->get_rows() as $rRow) {
-											CoreUtilities::closeConnection($rRow);
+											ConnectionTracker::closeConnection($rRow);
 										}
 									}
 								}
@@ -4729,7 +4729,7 @@ if (isset($_SESSION['hash'])) {
 												foreach ($rRequestIDs as $rServerID) {
 													if ($rServers[$rServerID]['is_main'] != 0) {
 													} else {
-														ServerRepository::deleteById(CoreUtilities::$rSettings, 'getStreamingServersByID', $rServerID);
+														ServerRepository::deleteById($rServerID);
 													}
 												}
 											}
@@ -4830,17 +4830,17 @@ if (isset($_SESSION['hash'])) {
 									if ($rSub != 'purge') {
 									} else {
 										foreach ($rStreamMap as $rServerID => $rStreamIDs) {
-											if (CoreUtilities::$rSettings['redis_handler']) {
+											if (SettingsManager::getAll()['redis_handler']) {
 												foreach ($rStreamIDs as $rStreamID) {
-													foreach (CoreUtilities::getRedisConnections(null, $rServerID, $rStreamID, true, false, false) as $rConnection) {
-														CoreUtilities::closeConnection($rConnection);
+													foreach (ConnectionTracker::getRedisConnections(null, $rServerID, $rStreamID, true, false, false) as $rConnection) {
+														ConnectionTracker::closeConnection($rConnection);
 													}
 												}
 											} else {
 												$db->query('SELECT * FROM `lines_live` WHERE `server_id` = ? AND `stream_id` IN (' . implode(',', array_map('intval', $rStreamIDs)) . ');', $rServerID);
 
 												foreach ($db->get_rows() as $rRow) {
-													CoreUtilities::closeConnection($rRow);
+													ConnectionTracker::closeConnection($rRow);
 												}
 											}
 										}

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * XC_VM — Единая точка инициализации (bootstrap)
+ * Единая точка инициализации (bootstrap)
  *
  * Заменяет три дублированных bootstrap-файла:
  *   1. includes/admin.php       (строки 1-100: session, defines, DB, API init)
@@ -407,13 +407,12 @@ class XC_Bootstrap {
         global $db;
 
         require_once MAIN_HOME . 'core/Init/LegacyInitializer.php';
-        require_once INCLUDES_PATH . 'CoreUtilities.php';
 
-        CoreUtilities::$db = &$db;
-        CoreUtilities::init($cached);
+        DatabaseFactory::set($db);
+        LegacyInitializer::initCore($cached);
 
         // Если использовался кэш и кэш неполный — переподключаемся к БД
-        if ($cached && !CoreUtilities::$rCached) {
+        if ($cached && !SettingsManager::getAll()['enable_cache']) {
             global $_INFO;
             $db = new DatabaseHandler(
                 $_INFO['username'],
@@ -422,7 +421,7 @@ class XC_Bootstrap {
                 $_INFO['hostname'],
                 $_INFO['port']
             );
-            CoreUtilities::$db = &$db;
+            DatabaseFactory::set($db);
         }
 
         self::$coreReady = true;
@@ -436,7 +435,7 @@ class XC_Bootstrap {
             return;
         }
 
-        CoreUtilities::connectRedis();
+        RedisManager::ensureConnected();
         self::$redisReady = true;
     }
 
@@ -516,13 +515,13 @@ class XC_Bootstrap {
 
         // Настройки и данные CoreUtilities
         if (self::$coreReady) {
-            $container->set('settings',   CoreUtilities::$rSettings);
-            $container->set('servers',    CoreUtilities::$rServers);
-            $container->set('bouquets',   CoreUtilities::$rBouquets);
-            $container->set('categories', CoreUtilities::$rCategories);
+            $container->set('settings',   SettingsManager::getAll());
+            $container->set('servers',    ServerRepository::getAll());
+            $container->set('bouquets',   BouquetService::getAll());
+            $container->set('categories', CategoryService::getFromDatabase());
 
-            if (self::$redisReady && CoreUtilities::$redis !== null) {
-                $container->set('redis', CoreUtilities::$redis);
+            if (self::$redisReady && RedisManager::isConnected()) {
+                $container->set('redis', RedisManager::instance());
             }
         }
 

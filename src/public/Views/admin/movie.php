@@ -1,6 +1,6 @@
 <?php
 /**
- * Movie edit/add view (Phase 6.3 — Group B).
+ * Movie edit/add view.
  * Delegation proxy → legacy admin/movie.php HTML body.
  */
 $__viewMode = true;

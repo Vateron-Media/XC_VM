@@ -8,13 +8,13 @@
         goHome();
     }
 
-    $rCategories = getCategories('live');
+    $rCategories = CategoryService::getAllByType('live');
     $rTranscodeProfiles = StreamConfigRepository::getTranscodeProfiles();
 
-    if (!isset(CoreUtilities::$rRequest['id'])) {
+    if (!isset(RequestManager::getAll()['id'])) {
         $rChannel = null;
     } else {
-        $rChannel = StreamRepository::getById(CoreUtilities::$rRequest['id']);
+        $rChannel = StreamRepository::getById(RequestManager::getAll()['id']);
 
         if (!$rChannel || $rChannel['type'] != 3) {
             goHome();
@@ -46,7 +46,7 @@
             $rProperties = ['type' => $rChannel['series_no'] > 0 ? 0 : 1];
         }
 
-        $rChannelSys = StreamRepository::getSystemRows(CoreUtilities::$rRequest['id']);
+        $rChannelSys = StreamRepository::getSystemRows(RequestManager::getAll()['id']);
 
         foreach ($rServers as $rServer) {
             if (isset($rChannelSys[intval($rServer['id'])])) {
@@ -117,7 +117,7 @@ endif;
                 ?>
                 <div class="card">
                     <div class="card-body">
-                        <form action="./created_channel<?php echo isset(CoreUtilities::$rRequest['id']) ? '?id=' . intval(CoreUtilities::$rRequest['id']) : ''; ?>" method="POST" id="stream_form" data-parsley-validate="">
+                        <form action="./created_channel<?php echo isset(RequestManager::getAll()['id']) ? '?id=' . intval(RequestManager::getAll()['id']) : ''; ?>" method="POST" id="stream_form" data-parsley-validate="">
                             <?php if (isset($rChannel)): ?>
                                 <input type="hidden" name="edit" value="<?php echo $rChannel['id']; ?>" />
                             <?php endif; ?>
@@ -190,7 +190,7 @@ endif;
                                                     <label class="col-md-4 col-form-label" for="category_id">Categories</label>
                                                     <div class="col-md-8">
                                                         <select name="category_id[]" id="category_id" class="form-control select2 select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">
-                                                            <?php foreach (getCategories('live') as $rCategory): ?>
+                                                            <?php foreach (CategoryService::getAllByType('live') as $rCategory): ?>
                                                                 <option <?php if (isset($rChannel) && in_array(intval($rCategory['id']), json_decode($rChannel['category_id'], true))): ?>selected<?php endif; ?> value="<?php echo $rCategory['id']; ?>"><?php echo $rCategory['category_name']; ?></option>
                                                             <?php endforeach; ?>
                                                         </select>
@@ -295,7 +295,7 @@ endif;
                                                     <div class="col-md-8">
                                                         <select id="category_idv" class="form-control select2" data-toggle="select2">
                                                             <option value="" selected>No Filter</option>
-                                                            <?php foreach (getCategories('movie') as $rCategory): ?>
+                                                            <?php foreach (CategoryService::getAllByType('movie') as $rCategory): ?>
                                                                 <option value="0:<?php echo $rCategory['id']; ?>">
                                                                     <?php echo $rCategory['category_name']; ?>
                                                                 </option>
@@ -744,7 +744,7 @@ renderUnifiedLayoutFooter('admin');
 
     echo "\t\t\t" . '$("#changeDir").click();' . "\r\n\t\t\t" . "\$(\"#channel_type\").trigger('change');" . "\r\n" . '            $("form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n" . '                rSubmit = true;' . "\r\n\t\t\t\t" . 'var rVideoFiles = [];' . "\r\n\t\t\t\t" . 'if ($("#channel_type").val() == 0) {' . "\r\n\t\t\t\t\t" . 'if ($("#series_no").val() == 0) {' . "\r\n\t\t\t\t\t\t" . '$.toast("Please select a series to map.");' . "\r\n" . '                        rSubmit = false;' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '} else if ($("#channel_type").val() == 1) {' . "\r\n\t\t\t\t\t" . 'if ($("#videos_sort option").length == 0) {' . "\r\n\t\t\t\t\t\t" . '$.toast("Please add at least one video to the channel.");' . "\r\n" . '                        rSubmit = false;' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '$("#videos_sort option").each(function() {' . "\r\n\t\t\t\t\t\t" . 'rVideoFiles.push($(this).val());' . "\r\n\t\t\t\t\t" . '});' . "\r\n\t\t\t\t" . '} else if ($("#channel_type").val() == 2) {' . "\r\n\t\t\t\t\t" . 'if ($("#review_sort option").length == 0) {' . "\r\n\t\t\t\t\t\t" . '$.toast("Please add at least one video to the channel.");' . "\r\n" . '                        rSubmit = false;' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '$("#review_sort option").each(function() {' . "\r\n\t\t\t\t\t\t" . 'rVideoFiles.push($(this).val());' . "\r\n\t\t\t\t\t" . '});' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t\t" . 'if (!$("#transcode_profile_id").val()) {' . "\r\n\t\t\t\t\t" . '$.toast("Please select a trancoding profile.");' . "\r\n\t\t\t\t\t" . 'rSubmit = false;' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t\t" . "\$(\"#server_tree_data\").val(JSON.stringify(\$('#server_tree').jstree(true).get_json('source', {flat:true})));" . "\r\n\t\t\t\t" . '$("#video_files").val(JSON.stringify(rVideoFiles));' . "\r\n" . '                var rRTMPPush = {};' . "\r\n" . '                $(".rtmp_info").each(function() {' . "\r\n" . '                    rServerID = $(this).find("select").val();' . "\r\n" . '                    rSource = $(this).find("input").val();' . "\r\n" . '                    if (rServerID > 0 && rSource.length > 0) {' . "\r\n" . '                        if (!rRTMPPush[rServerID]) {' . "\r\n" . '                            rRTMPPush[rServerID] = [];' . "\r\n" . '                        }' . "\r\n" . '                        rRTMPPush[rServerID].push(rSource);' . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n" . '                $("#external_push").val(JSON.stringify(rRTMPPush));' . "\r\n" . '                if (rSubmit) {' . "\r\n" . "                    \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                    submitForm(window.rCurrentPage, new FormData($("form")[0]), window.rReferer);' . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
     ?>
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+    <?php if (SettingsManager::getAll()['enable_search']): ?>
         $(document).ready(function() {
             initSearch();
         });

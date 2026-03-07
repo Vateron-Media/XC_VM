@@ -1,6 +1,6 @@
 <?php
 /**
- * Stream provider edit view (Phase 6.3 — Group H).
+ * Stream provider edit view.
  * Delegation proxy → legacy admin/provider.php HTML body.
  */
 $__viewMode = true;

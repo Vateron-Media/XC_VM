@@ -1,7 +1,7 @@
 <?php
 
 /**
- * XC_VM — Ministra (Stalker Portal) Module
+ * Ministra (Stalker Portal) Module
  *
  * Модуль MAG/Ministra-портала для STB-устройств.
  * Обрабатывает HTTP-запросы от MAG-приставок через portal.php.

@@ -7,29 +7,29 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
         // Kill old ondemand processes (except ourselves)
         shell_exec('kill -9 $(ps aux | grep -E "ondemand\.php" | grep -v grep | grep -v ' . getmypid() . ' | awk \'{print $2}\')');
 
-        if (!CoreUtilities::$rSettings['on_demand_instant_off']) {
+        if (!SettingsManager::getAll()['on_demand_instant_off']) {
             echo 'On-Demand - Instant Off setting is disabled.' . "\n";
             exit();
         }
 
         // Connect Redis if enabled
-        if (CoreUtilities::$rSettings['redis_handler']) {
-            CoreUtilities::connectRedis();
+        if (SettingsManager::getAll()['redis_handler']) {
+            RedisManager::ensureConnected();
         }
 
-        $rMainID = CoreUtilities::getMainID();
+        $rMainID = ConnectionTracker::getMainID();
         $rLastCheck = null;
         $rInterval = 60; // update settings once per minute
         $rMD5 = md5_file(__FILE__);
 
         while (true) {
-            if (!$db || !$db->ping() || (CoreUtilities::$rSettings['redis_handler'] && CoreUtilities::$redis && !CoreUtilities::$redis->ping())) {
+            if (!$db || !$db->ping() || (SettingsManager::getAll()['redis_handler'] && RedisManager::instance() && !RedisManager::instance()->ping())) {
                 break;
             }
 
             $rCurentMD5Hash = md5_file(__FILE__);
             if (!$rLastCheck || time() - $rLastCheck > $rInterval || $rCurentMD5Hash !== $rMD5) {
-                CoreUtilities::$rSettings = CoreUtilities::getSettings(true);
+                SettingsManager::set(SettingsRepository::getAll(true));
                 $rLastCheck = time();
                 $rMD5 = $rCurentMD5Hash;
             }
@@ -37,7 +37,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
             $rRows = [];
 
             // === Getting active on-demand streams ===
-            if (CoreUtilities::$rSettings['redis_handler'] && CoreUtilities::$redis) {
+            if (SettingsManager::getAll()['redis_handler'] && RedisManager::instance()) {
                 // Redis mode
                 $db->query("SELECT stream_id FROM streams_servers WHERE server_id = ? AND on_demand = 1 AND pid IS NOT NULL AND pid > 0", SERVER_ID);
                 $rStreamIDs = $db->get_column();
@@ -52,7 +52,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                     }
                 }
 
-                $rConnections = CoreUtilities::getStreamConnections($rStreamIDs, false, false);
+                $rConnections = ConnectionTracker::getStreamConnections($rStreamIDs, false, false);
 
                 foreach ($rStreamIDs as $rStreamID) {
                     $rRows[] = [
@@ -119,7 +119,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                 if (file_exists($queueFile)) {
                     $queue = @igbinary_unserialize(@file_get_contents($queueFile)) ?: [];
                     foreach ($queue as $pid) {
-                        if (CoreUtilities::isProcessRunning($pid, 'php-fpm'))
+                        if (ProcessManager::isRunning($pid, 'php-fpm'))
                             $rQueue++;
                     }
                 }
@@ -151,7 +151,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
 
                 $db->query("INSERT INTO signals (server_id, cache, time, custom_data) VALUES (?, 1, ?, ?)", $rMainID, time(), json_encode(['type' => 'update_stream', 'id' => $rStreamID]));
 
-                CoreUtilities::updateStream($rStreamID);
+                StreamProcess::updateStream($rStreamID);
             }
 
             usleep(800000);

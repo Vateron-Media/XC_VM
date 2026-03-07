@@ -1,20 +1,10 @@
 <?php
 
 /**
- * XC_VM — Network Utilities
+ * Network Utilities
  *
  * IP address operations, CIDR matching, subnet checks,
  * and user IP detection.
- *
- * ---------------------------------------------------------------
- * What it replaces:
- * ---------------------------------------------------------------
- *
- *   CoreUtilities::getUserIP()  → NetworkUtils::getClientIP()
- *   Inline CIDR checks         → NetworkUtils::ipInCIDR()
- *   Inline IP validation       → NetworkUtils::isValidIP()
- *
- * @see CoreUtilities::getUserIP()
  */
 
 class NetworkUtils {
@@ -125,5 +115,72 @@ class NetworkUtils {
      */
     public static function ipToLong($ip) {
         return ip2long($ip);
+    }
+
+    /**
+     * Возвращает IP-адрес текущего клиента (REMOTE_ADDR).
+     *
+     * @return string
+     */
+    public static function getUserIP() {
+        return $_SERVER['REMOTE_ADDR'];
+    }
+
+    public static function startDownload($rType, $rUser, $rDownloadPID, $rFloodLimit) {
+        if ($rFloodLimit != 0) {
+            if (!$rUser['is_restreamer']) {
+                $rFile = FLOOD_TMP_PATH . $rUser['id'] . '_downloads';
+                $rFloodRow = array('epg' => array(), 'playlist' => array());
+                if (file_exists($rFile) && time() - filemtime($rFile) < 10) {
+                    $rExisting = json_decode(file_get_contents($rFile), true);
+                    if (is_array($rExisting)) {
+                        $rFloodRow = array_merge($rFloodRow, $rExisting);
+                    }
+                    $rActive = array();
+                    foreach (($rFloodRow[$rType] ?? []) as $rPID) {
+                        if (ProcessManager::isRunning($rPID, 'php-fpm') && $rPID != $rDownloadPID) {
+                            $rActive[] = $rPID;
+                        }
+                    }
+                    $rFloodRow[$rType] = $rActive;
+                }
+                $rAllow = false;
+                if (count($rFloodRow[$rType]) >= $rFloodLimit) {
+                } else {
+                    $rFloodRow[$rType][] = $rDownloadPID;
+                    $rAllow = true;
+                }
+                file_put_contents($rFile, json_encode($rFloodRow), LOCK_EX);
+                return $rAllow;
+            } else {
+                return true;
+            }
+        } else {
+            return true;
+        }
+    }
+
+    public static function stopDownload($rType, $rUser, $rDownloadPID, $rFloodLimit) {
+        if ($rFloodLimit != 0) {
+            if (!$rUser['is_restreamer']) {
+                $rFile = FLOOD_TMP_PATH . $rUser['id'] . '_downloads';
+                if (file_exists($rFile)) {
+                    $rFloodRow[$rType] = array();
+                    foreach (json_decode(file_get_contents($rFile), true)[$rType] as $rPID) {
+                        if (!(ProcessManager::isRunning($rPID, 'php-fpm') && $rPID != $rDownloadPID)) {
+                        } else {
+                            $rFloodRow[$rType][] = $rPID;
+                        }
+                    }
+                } else {
+                    $rFloodRow = array('epg' => array(), 'playlist' => array());
+                }
+                file_put_contents($rFile, json_encode($rFloodRow), LOCK_EX);
+            } else {
+                return null;
+            }
+        } else {
+            return null;
+        }
     }
 }

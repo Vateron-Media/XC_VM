@@ -3,7 +3,7 @@
 $rSkipVerify = true;
 include 'functions.php';
 ini_set('default_socket_timeout', 10);
-$rURL = CoreUtilities::decryptData($_GET['url'], CoreUtilities::$rSettings['live_streaming_pass'], 'd8de497ebccf4f4697a1da20219c7c33');
+$rURL = Encryption::decrypt($_GET['url'], SettingsManager::getAll()['live_streaming_pass'], 'd8de497ebccf4f4697a1da20219c7c33');
 
 if (substr($rURL, 0, 4) != 'http') {
 } else {
@@ -13,7 +13,7 @@ if (substr($rURL, 0, 4) != 'http') {
 	} else {
 		header('Content-Description: File Transfer');
 		header('Content-type: application/octet-stream');
-		header('Content-Disposition: attachment; filename="' . md5($rURL . CoreUtilities::$rSettings['live_streaming_pass']) . '.vtt"');
+		header('Content-Disposition: attachment; filename="' . md5($rURL . SettingsManager::getAll()['live_streaming_pass']) . '.vtt"');
 		echo $rData;
 
 		exit();
