@@ -5,8 +5,8 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
         require str_replace('\\', '/', dirname($argv[0])) . '/../www/init.php';
         $db->close_mysql();
         cli_set_process_title('XC_VM[TMP]');
-        $rIdentifier = CRONS_TMP_PATH . md5(CoreUtilities::generateUniqueCode() . __FILE__);
-        CoreUtilities::checkCron($rIdentifier);
+        $rIdentifier = CRONS_TMP_PATH . md5(Encryption::generateUniqueCode(SettingsManager::getAll()['live_streaming_pass']) . __FILE__);
+        ProcessManager::acquireCronLock($rIdentifier);
         foreach (array(TMP_PATH, CRONS_TMP_PATH, DIVERGENCE_TMP_PATH, FLOOD_TMP_PATH, MINISTRA_TMP_PATH, SIGNALS_TMP_PATH, LOGS_TMP_PATH) as $rTmpPath) {
             foreach (scandir($rTmpPath) as $rFile) {
                 $fullPath = $rTmpPath . '/' . $rFile;
@@ -33,7 +33,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
             // Only files
             if (is_file($fullPath)) {
                 // Check if the file is older than the cache duration
-                if (CoreUtilities::$rSettings['cache_playlists'] <= time() - filemtime($fullPath)) {
+                if (SettingsManager::getAll()['cache_playlists'] <= time() - filemtime($fullPath)) {
                     unlink($fullPath);
                 }
             }

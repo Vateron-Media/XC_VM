@@ -9,18 +9,18 @@ if (!isset($__viewMode)):
 		goHome();
 	}
 
-	if (!isset(CoreUtilities::$rRequest['line'])) {
+	if (!isset(RequestManager::getAll()['line'])) {
 	} else {
-		if (Authorization::check('line', CoreUtilities::$rRequest['line'])) {
-			$rSearchLine = UserRepository::getLineById(CoreUtilities::$rRequest['line']);
+		if (Authorization::check('line', RequestManager::getAll()['line'])) {
+			$rSearchLine = UserRepository::getLineById(RequestManager::getAll()['line']);
 		} else {
 			exit();
 		}
 	}
 
-	if (!isset(CoreUtilities::$rRequest['stream'])) {
+	if (!isset(RequestManager::getAll()['stream'])) {
 	} else {
-		$rSearchStream = StreamRepository::getById(CoreUtilities::$rRequest['stream']);
+		$rSearchStream = StreamRepository::getById(RequestManager::getAll()['stream']);
 	}
 
 	$_TITLE = 'Live Connections';
@@ -40,7 +40,7 @@ if (!$rMobile) {
 
 echo ' form-group row mb-4">' . "\r\n\t\t\t\t\t\t\t";
 
-if (CoreUtilities::$rSettings['redis_handler']) {
+if (SettingsManager::getAll()['redis_handler']) {
 	echo '                            <div class="col-md-4">' . "\r\n" . '                                <select id="live_stream" class="form-control" data-toggle="select2">' . "\r\n" . '                                    ';
 
 	if (!isset($rSearchStream)) {
@@ -65,7 +65,7 @@ if (CoreUtilities::$rSettings['redis_handler']) {
 
 	echo '                                </select>' . "\r\n" . '                            </div>' . "\r\n" . '                            <div class="col-md-3">' . "\r\n" . '                                <select id="live_user" class="form-control" data-toggle="select2">' . "\r\n" . '                                    <optgroup label="Global">' . "\r\n" . '                                        <option value=""';
 
-	if (isset(CoreUtilities::$rRequest['user'])) {
+	if (isset(RequestManager::getAll()['user'])) {
 	} else {
 		echo ' selected';
 	}
@@ -74,7 +74,7 @@ if (CoreUtilities::$rSettings['redis_handler']) {
 	echo $rUserInfo['id'];
 	echo '"';
 
-	if (!(isset(CoreUtilities::$rRequest['user']) && CoreUtilities::$rRequest['user'] == $rUserInfo['id'])) {
+	if (!(isset(RequestManager::getAll()['user']) && RequestManager::getAll()['user'] == $rUserInfo['id'])) {
 	} else {
 		echo ' selected';
 	}
@@ -91,7 +91,7 @@ if (CoreUtilities::$rSettings['redis_handler']) {
 			echo $rUserID;
 			echo '"';
 
-			if (!(isset(CoreUtilities::$rRequest['user']) && CoreUtilities::$rRequest['user'] == $rUserID)) {
+			if (!(isset(RequestManager::getAll()['user']) && RequestManager::getAll()['user'] == $rUserID)) {
 			} else {
 				echo ' selected';
 			}
@@ -115,7 +115,7 @@ if (CoreUtilities::$rSettings['redis_handler']) {
 				echo $rUserID;
 				echo '"';
 
-				if (!(isset(CoreUtilities::$rRequest['user']) && CoreUtilities::$rRequest['user'] == $rUserID)) {
+				if (!(isset(RequestManager::getAll()['user']) && RequestManager::getAll()['user'] == $rUserID)) {
 				} else {
 					echo ' selected';
 				}
@@ -132,9 +132,9 @@ if (CoreUtilities::$rSettings['redis_handler']) {
 } else {
 	echo "\t\t\t\t\t\t\t" . '<div class="col-md-3">' . "\r\n" . '                                <input type="text" class="form-control" id="live_search" value="';
 
-	if (!isset(CoreUtilities::$rRequest['search'])) {
+	if (!isset(RequestManager::getAll()['search'])) {
 	} else {
-		echo htmlspecialchars(CoreUtilities::$rRequest['search']);
+		echo htmlspecialchars(RequestManager::getAll()['search']);
 	}
 
 	echo '" placeholder="';
@@ -163,7 +163,7 @@ if (CoreUtilities::$rSettings['redis_handler']) {
 
 	echo '                                </select>' . "\r\n" . '                            </div>' . "\r\n" . '                            <div class="col-md-2">' . "\r\n" . '                                <select id="live_user" class="form-control" data-toggle="select2">' . "\r\n" . '                                    <optgroup label="Global">' . "\r\n" . '                                        <option value=""';
 
-	if (isset(CoreUtilities::$rRequest['user'])) {
+	if (isset(RequestManager::getAll()['user'])) {
 	} else {
 		echo ' selected';
 	}
@@ -172,7 +172,7 @@ if (CoreUtilities::$rSettings['redis_handler']) {
 	echo $rUserInfo['id'];
 	echo '"';
 
-	if (!(isset(CoreUtilities::$rRequest['user']) && CoreUtilities::$rRequest['user'] == $rUserInfo['id'])) {
+	if (!(isset(RequestManager::getAll()['user']) && RequestManager::getAll()['user'] == $rUserInfo['id'])) {
 	} else {
 		echo ' selected';
 	}
@@ -189,7 +189,7 @@ if (CoreUtilities::$rSettings['redis_handler']) {
 			echo $rUserID;
 			echo '"';
 
-			if (!(isset(CoreUtilities::$rRequest['user']) && CoreUtilities::$rRequest['user'] == $rUserID)) {
+			if (!(isset(RequestManager::getAll()['user']) && RequestManager::getAll()['user'] == $rUserID)) {
 			} else {
 				echo ' selected';
 			}
@@ -213,7 +213,7 @@ if (CoreUtilities::$rSettings['redis_handler']) {
 				echo $rUserID;
 				echo '"';
 
-				if (!(isset(CoreUtilities::$rRequest['user']) && CoreUtilities::$rRequest['user'] == $rUserID)) {
+				if (!(isset(RequestManager::getAll()['user']) && RequestManager::getAll()['user'] == $rUserID)) {
 				} else {
 					echo ' selected';
 				}

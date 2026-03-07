@@ -1,6 +1,6 @@
 <?php
 /**
- * ArchiveController — TV Archive / Recordings (Phase 6.3 — Group N).
+ * ArchiveController — TV Archive / Recordings.
  */
 class ArchiveController extends BaseAdminController
 {
@@ -12,8 +12,8 @@ class ArchiveController extends BaseAdminController
 
         $rRecordings = null;
 
-        if (isset(CoreUtilities::$rRequest['id'])) {
-            $rStream = StreamRepository::getById(CoreUtilities::$rRequest['id']);
+        if (isset(RequestManager::getAll()['id'])) {
+            $rStream = StreamRepository::getById(RequestManager::getAll()['id']);
 
             if (!$rStream || $rStream['type'] != 1 || $rStream['tv_archive_duration'] == 0 || $rStream['tv_archive_server_id'] == 0) {
                 $this->redirect('archive');

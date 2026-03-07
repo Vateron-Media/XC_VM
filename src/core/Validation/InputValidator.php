@@ -2,7 +2,6 @@
 
 /**
  * Валидация входных данных для admin API.
- * Извлечено из API::checkMinimumRequirements() (Phase 8.1).
  */
 class InputValidator {
 	/**
@@ -168,5 +167,87 @@ class InputValidator {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 		return null;
+	}
+
+	/**
+	 * Filter array to only positive integer IDs
+	 *
+	 * @param array $ids Input array of IDs
+	 * @return array Filtered array with only positive integer IDs
+	 */
+	public static function confirmIDs($ids) {
+		$result = array();
+		foreach ($ids as $id) {
+			if (intval($id) > 0) {
+				$result[] = $id;
+			}
+		}
+		return $result;
+	}
+
+	/**
+	 * Очистка глобальных массивов от нулевых байтов и опасных путей.
+	 */
+	public static function cleanGlobals(&$rData, $rIteration = 0) {
+		if ($rIteration >= 10) {
+			return;
+		}
+		foreach ($rData as $rKey => $rValue) {
+			if (is_array($rValue)) {
+				self::cleanGlobals($rData[$rKey], $rIteration + 1);
+			} else {
+				$rValue = str_replace(chr(0), '', $rValue);
+				$rValue = str_replace('../', '&#46;&#46;/', $rValue);
+				$rValue = str_replace('&#8238;', '', $rValue);
+				$rData[$rKey] = $rValue;
+			}
+		}
+	}
+
+	/**
+	 * Рекурсивный парсинг входных данных.
+	 */
+	public static function parseIncomingRecursively(&$rData, $rInput = array(), $rIteration = 0) {
+		if ($rIteration >= 20 || !is_array($rData)) {
+			return $rInput;
+		}
+		foreach ($rData as $rKey => $rValue) {
+			if (is_array($rValue)) {
+				$rInput[$rKey] = self::parseIncomingRecursively($rData[$rKey], array(), $rIteration + 1);
+			} else {
+				$rInput[self::parseCleanKey($rKey)] = self::parseCleanValue($rValue);
+			}
+		}
+		return $rInput;
+	}
+
+	/**
+	 * Очистка ключа входных данных.
+	 */
+	public static function parseCleanKey($rKey) {
+		if ($rKey === '') {
+			return '';
+		}
+		$rKey = htmlspecialchars(urldecode($rKey));
+		$rKey = str_replace('..', '', $rKey);
+		$rKey = preg_replace('/\_\_(.+?)\_\_/', '', $rKey);
+		return preg_replace('/^([\w\.\-\_]+)$/', '$1', $rKey);
+	}
+
+	/**
+	 * Очистка значения входных данных.
+	 */
+	public static function parseCleanValue($rValue) {
+		if ($rValue == '') {
+			return '';
+		}
+		$rValue = str_replace('&#032;', ' ', stripslashes($rValue));
+		$rValue = str_replace(array("\r\n", "\n\r", "\r"), "\n", $rValue);
+		$rValue = str_replace('<!--', '&#60;&#33;--', $rValue);
+		$rValue = str_replace('-->', '--&#62;', $rValue);
+		$rValue = str_ireplace('<script', '&#60;script', $rValue);
+		$rValue = preg_replace('/&amp;#([0-9]+);/s', '&#\\1;', $rValue);
+		$rValue = preg_replace('/&#(\d+?)([^\d;])/i', '&#\\1;\\2', $rValue);
+		return trim($rValue);
 	}
 }

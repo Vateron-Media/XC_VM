@@ -1,7 +1,10 @@
 <?php
 
 class ConnectionTracker {
-	public static function getCapacity($rSettings, $rServers, $rRedis, $rProxy = false) {
+	public static function getCapacity($rProxy = false) {
+		$rSettings = SettingsManager::getAll();
+		$rServers = ServerRepository::getAll();
+		$rRedis = RedisManager::instance();
 		global $db;
 		$rFile = ($rProxy ? 'proxy_capacity' : 'servers_capacity');
 		if ($rSettings['redis_handler'] && $rProxy && $rSettings['split_by'] == 'maxclients') {
@@ -75,7 +78,9 @@ class ConnectionTracker {
 		return $rRows;
 	}
 
-	public static function getConnections($rSettings, $rRedis, $rServerID = null, $rUserID = null, $rStreamID = null) {
+	public static function getConnections($rServerID = null, $rUserID = null, $rStreamID = null) {
+		$rSettings = SettingsManager::getAll();
+		$rRedis = RedisManager::instance();
 		global $db;
 		if ($rSettings['redis_handler']) {
 			if ($rServerID) {
@@ -113,7 +118,8 @@ class ConnectionTracker {
 		return $db->get_rows(true, 'user_id', false);
 	}
 
-	public static function getMainID($rServers) {
+	public static function getMainID() {
+		$rServers = ServerRepository::getAll();
 		foreach ($rServers as $rServerID => $rServer) {
 			if ($rServer['is_main']) {
 				return $rServerID;
@@ -121,13 +127,13 @@ class ConnectionTracker {
 		}
 	}
 
-	public static function addToQueue($rStreamID, $rAddPID, $rProcessCheckCallback) {
+	public static function addToQueue($rStreamID, $rAddPID) {
 		$rActivePIDs = $rPIDs = array();
 		if (file_exists(SIGNALS_TMP_PATH . 'queue_' . intval($rStreamID))) {
 			$rPIDs = igbinary_unserialize(file_get_contents(SIGNALS_TMP_PATH . 'queue_' . intval($rStreamID)));
 		}
 		foreach ($rPIDs as $rPID) {
-			if (call_user_func($rProcessCheckCallback, $rPID, 'php-fpm')) {
+			if (ProcessManager::isRunning($rPID, 'php-fpm')) {
 				$rActivePIDs[] = $rPID;
 			}
 		}
@@ -137,10 +143,10 @@ class ConnectionTracker {
 		file_put_contents(SIGNALS_TMP_PATH . 'queue_' . intval($rStreamID), igbinary_serialize($rActivePIDs), LOCK_EX);
 	}
 
-	public static function removeFromQueue($rStreamID, $rPID, $rProcessCheckCallback) {
+	public static function removeFromQueue($rStreamID, $rPID) {
 		$rActivePIDs = array();
 		foreach ((igbinary_unserialize(file_get_contents(SIGNALS_TMP_PATH . 'queue_' . intval($rStreamID))) ?: array()) as $rActivePID) {
-			if (call_user_func($rProcessCheckCallback, $rActivePID, 'php-fpm') && $rPID != $rActivePID) {
+			if (ProcessManager::isRunning($rActivePID, 'php-fpm') && $rPID != $rActivePID) {
 				$rActivePIDs[] = $rActivePID;
 			}
 		}
@@ -151,7 +157,8 @@ class ConnectionTracker {
 		}
 	}
 
-	public static function updateConnection($rRedis, $rData, $rChanges = array(), $rOption = null) {
+	public static function updateConnection($rData, $rChanges = array(), $rOption = null) {
+		$rRedis = RedisManager::instance();
 		$rOrigData = $rData;
 		foreach ($rChanges as $rKey => $rValue) {
 			$rData[$rKey] = $rValue;
@@ -197,13 +204,15 @@ class ConnectionTracker {
 		return null;
 	}
 
-	public static function redisSignal($rRedis, $rPID, $rServerID, $rRTMP, $rCustomData = null) {
+	public static function redisSignal($rPID, $rServerID, $rRTMP, $rCustomData = null) {
+		$rRedis = RedisManager::instance();
 		$rKey = 'SIGNAL#' . md5($rServerID . '#' . $rPID . '#' . $rRTMP);
 		$rData = array('pid' => $rPID, 'server_id' => $rServerID, 'rtmp' => $rRTMP, 'time' => time(), 'custom_data' => $rCustomData, 'key' => $rKey);
 		return $rRedis->multi()->sAdd('SIGNALS#' . $rServerID, $rKey)->set($rKey, igbinary_serialize($rData))->exec();
 	}
 
-	public static function getUserConnections($rRedis, $rUserIDs, $rCount = false, $rKeysOnly = false) {
+	public static function getUserConnections($rUserIDs, $rCount = false, $rKeysOnly = false) {
+		$rRedis = RedisManager::instance();
 		$rMulti = $rRedis->multi();
 		foreach ($rUserIDs as $rUserID) {
 			$rMulti->zRevRangeByScore('LINE#' . $rUserID, '+inf', '-inf');
@@ -232,7 +241,8 @@ class ConnectionTracker {
 		return $rRedisKeys;
 	}
 
-	public static function getServerConnections($rRedis, $rServerIDs, $rProxy = false, $rCount = false, $rKeysOnly = false) {
+	public static function getServerConnections($rServerIDs, $rProxy = false, $rCount = false, $rKeysOnly = false) {
+		$rRedis = RedisManager::instance();
 		$rMulti = $rRedis->multi();
 		foreach ($rServerIDs as $rServerID) {
 			$rMulti->zRevRangeByScore(($rProxy ? 'PROXY#' . $rServerID : 'SERVER#' . $rServerID), '+inf', '-inf');
@@ -261,7 +271,8 @@ class ConnectionTracker {
 		return $rRedisKeys;
 	}
 
-	public static function getFirstConnection($rRedis, $rUserIDs) {
+	public static function getFirstConnection($rUserIDs) {
+		$rRedis = RedisManager::instance();
 		$rMulti = $rRedis->multi();
 		foreach ($rUserIDs as $rUserID) {
 			$rMulti->zRevRangeByScore('LINE#' . $rUserID, '+inf', '-inf', array('limit' => array(0, 1)));
@@ -280,7 +291,8 @@ class ConnectionTracker {
 		return $rConnectionMap;
 	}
 
-	public static function getStreamConnections($rRedis, $rStreamIDs, $rGroup = true, $rCount = false) {
+	public static function getStreamConnections($rStreamIDs, $rGroup = true, $rCount = false) {
+		$rRedis = RedisManager::instance();
 		$rMulti = $rRedis->multi();
 		foreach ($rStreamIDs as $rStreamID) {
 			$rMulti->zRevRangeByScore('STREAM#' . $rStreamID, '+inf', '-inf');
@@ -309,7 +321,8 @@ class ConnectionTracker {
 		return $rConnectionMap;
 	}
 
-	public static function getRedisConnections($rRedis, $rUserID = null, $rServerID = null, $rStreamID = null, $rOpenOnly = false, $rCountOnly = false, $rGroup = true, $rHLSOnly = false) {
+	public static function getRedisConnections($rUserID = null, $rServerID = null, $rStreamID = null, $rOpenOnly = false, $rCountOnly = false, $rGroup = true, $rHLSOnly = false) {
+		$rRedis = RedisManager::instance();
 		$rReturn = ($rCountOnly ? array(0, 0) : array());
 		$rUniqueUsers = array();
 		$rUserID = (0 < intval($rUserID) ? intval($rUserID) : null);
@@ -358,11 +371,13 @@ class ConnectionTracker {
 		return $rReturn;
 	}
 
-	public static function getConnection($rRedis, $rUUID) {
+	public static function getConnection($rUUID) {
+		$rRedis = RedisManager::instance();
 		return igbinary_unserialize($rRedis->get($rUUID));
 	}
 
-	public static function createConnection($rRedis, $rData) {
+	public static function createConnection($rData) {
+		$rRedis = RedisManager::instance();
 		$rMulti = $rRedis->multi();
 		$rMulti->zAdd('LINE#' . $rData['identity'], $rData['date_start'], $rData['uuid']);
 		$rMulti->zAdd('LINE_ALL#' . $rData['identity'], $rData['date_start'], $rData['uuid']);
@@ -380,7 +395,8 @@ class ConnectionTracker {
 		return $rMulti->exec();
 	}
 
-	public static function getLineConnections($rRedis, $rUserID, $rActive = false, $rKeys = false) {
+	public static function getLineConnections($rUserID, $rActive = false, $rKeys = false) {
+		$rRedis = RedisManager::instance();
 		$rKeys = $rRedis->zRangeByScore((($rActive ? 'LINE#' : 'LINE_ALL#')) . $rUserID, '-inf', '+inf');
 		if ($rKeys) {
 			return $rKeys;
@@ -391,7 +407,17 @@ class ConnectionTracker {
 		return array_map('igbinary_unserialize', $rRedis->mGet($rKeys));
 	}
 
-	public static function getProxies($rServers, $rServerID, $rOnline = true) {
+	public static function getEnded() {
+		$rRedis = RedisManager::instance();
+		$rKeys = $rRedis->sMembers('ENDED');
+		if (0 >= count($rKeys)) {
+			return array();
+		}
+		return array_map('igbinary_unserialize', $rRedis->mGet($rKeys));
+	}
+
+	public static function getProxies($rServerID, $rOnline = true) {
+		$rServers = ServerRepository::getAll();
 		$rReturn = array();
 		foreach ($rServers as $rProxyID => $rServerInfo) {
 			if ($rServerInfo['server_type'] == 1 && in_array($rServerID, $rServerInfo['parent_id']) && ($rServerInfo['server_online'] || !$rOnline)) {
@@ -399,5 +425,118 @@ class ConnectionTracker {
 			}
 		}
 		return $rReturn;
+	}
+
+	public static function closeConnection($rActivityInfo, $rRemove = true, $rEnd = true) {
+		if (!empty($rActivityInfo)) {
+			$rSettings = SettingsManager::getAll();
+			$rServers = ServerRepository::getAll();
+			$db = DatabaseFactory::get();
+			if (!$rSettings['redis_handler'] || is_object(RedisManager::instance())) {
+			} else {
+				RedisManager::ensureConnected();
+			}
+			$rRedisObj = RedisManager::instance();
+			if (is_array($rActivityInfo)) {
+			} else {
+				if (!$rSettings['redis_handler']) {
+					if (strlen(strval($rActivityInfo)) == 32) {
+						$db->query('SELECT * FROM `lines_live` WHERE `uuid` = ?', $rActivityInfo);
+					} else {
+						$db->query('SELECT * FROM `lines_live` WHERE `activity_id` = ?', $rActivityInfo);
+					}
+					$rActivityInfo = $db->get_row();
+				} else {
+					$rActivityInfo = igbinary_unserialize($rRedisObj->get($rActivityInfo));
+				}
+			}
+			if (is_array($rActivityInfo)) {
+				if ($rActivityInfo['container'] == 'rtmp') {
+					if ($rActivityInfo['server_id'] == SERVER_ID) {
+						shell_exec('wget --timeout=2 -O /dev/null -o /dev/null "' . $rServers[SERVER_ID]['rtmp_mport_url'] . 'control/drop/client?clientid=' . intval($rActivityInfo['pid']) . '" >/dev/null 2>/dev/null &');
+					} else {
+						if ($rSettings['redis_handler']) {
+							self::redisSignal($rActivityInfo['pid'], $rActivityInfo['server_id'], 1);
+						} else {
+							$db->query('INSERT INTO `signals` (`pid`,`server_id`,`rtmp`,`time`) VALUES(?,?,?,UNIX_TIMESTAMP())', $rActivityInfo['pid'], $rActivityInfo['server_id'], 1);
+						}
+					}
+				} else {
+					if ($rActivityInfo['container'] == 'hls') {
+						if (!(!$rRemove && $rEnd && $rActivityInfo['hls_end'] == 0)) {
+						} else {
+							if ($rSettings['redis_handler']) {
+								self::updateConnection($rActivityInfo, array(), 'close');
+							} else {
+								$db->query('UPDATE `lines_live` SET `hls_end` = 1 WHERE `activity_id` = ?', $rActivityInfo['activity_id']);
+							}
+							@unlink(CONS_TMP_PATH . $rActivityInfo['stream_id'] . '/' . $rActivityInfo['uuid']);
+						}
+					} else {
+						if ($rActivityInfo['server_id'] == SERVER_ID) {
+							if (!($rActivityInfo['pid'] != getmypid() && is_numeric($rActivityInfo['pid']) && 0 < $rActivityInfo['pid'])) {
+							} else {
+								posix_kill(intval($rActivityInfo['pid']), 9);
+							}
+						} else {
+							if ($rSettings['redis_handler']) {
+								self::redisSignal($rActivityInfo['pid'], $rActivityInfo['server_id'], 0);
+							} else {
+								$db->query('INSERT INTO `signals` (`pid`,`server_id`,`time`) VALUES(?,?,UNIX_TIMESTAMP())', $rActivityInfo['pid'], $rActivityInfo['server_id']);
+							}
+						}
+					}
+				}
+				if ($rActivityInfo['server_id'] != SERVER_ID) {
+				} else {
+					@unlink(CONS_TMP_PATH . $rActivityInfo['uuid']);
+				}
+				if (!$rRemove) {
+				} else {
+					if ($rActivityInfo['server_id'] != SERVER_ID) {
+					} else {
+						@unlink(CONS_TMP_PATH . $rActivityInfo['stream_id'] . '/' . $rActivityInfo['uuid']);
+					}
+					if ($rSettings['redis_handler']) {
+						$rRedis = $rRedisObj->multi();
+						$rRedis->zRem('LINE#' . $rActivityInfo['identity'], $rActivityInfo['uuid']);
+						$rRedis->zRem('LINE_ALL#' . $rActivityInfo['identity'], $rActivityInfo['uuid']);
+						$rRedis->zRem('STREAM#' . $rActivityInfo['stream_id'], $rActivityInfo['uuid']);
+						$rRedis->zRem('SERVER#' . $rActivityInfo['server_id'], $rActivityInfo['uuid']);
+						if (!$rActivityInfo['user_id']) {
+						} else {
+							$rRedis->zRem('SERVER_LINES#' . $rActivityInfo['server_id'], $rActivityInfo['uuid']);
+						}
+						if (!$rActivityInfo['proxy_id']) {
+						} else {
+							$rRedis->zRem('PROXY#' . $rActivityInfo['proxy_id'], $rActivityInfo['uuid']);
+						}
+						$rRedis->del($rActivityInfo['uuid']);
+						$rRedis->zRem('CONNECTIONS', $rActivityInfo['uuid']);
+						$rRedis->zRem('LIVE', $rActivityInfo['uuid']);
+						$rRedis->sRem('ENDED', $rActivityInfo['uuid']);
+						$rRedis->exec();
+					} else {
+						$db->query('DELETE FROM `lines_live` WHERE `activity_id` = ?', $rActivityInfo['activity_id']);
+					}
+				}
+				self::writeOfflineActivity($rSettings, $rActivityInfo['server_id'], $rActivityInfo['proxy_id'], $rActivityInfo['user_id'], $rActivityInfo['stream_id'], $rActivityInfo['date_start'], $rActivityInfo['user_agent'], $rActivityInfo['user_ip'], $rActivityInfo['container'], $rActivityInfo['geoip_country_code'], $rActivityInfo['isp'], $rActivityInfo['external_device'], $rActivityInfo['divergence'], $rActivityInfo['hmac_id'], $rActivityInfo['hmac_identifier']);
+				return true;
+			}
+			return false;
+		}
+		return false;
+	}
+
+	public static function writeOfflineActivity($rSettings, $rServerID, $rProxyID, $rUserID, $rStreamID, $rStart, $rUserAgent, $rIP, $rExtension, $rGeoIP, $rISP, $rExternalDevice = '', $rDivergence = 0, $rIsHMAC = null, $rIdentifier = '') {
+		if ($rSettings['save_closed_connection'] != 0) {
+			if (!($rServerID && $rUserID && $rStreamID)) {
+			} else {
+				$rActivityInfo = array('user_id' => intval($rUserID), 'stream_id' => intval($rStreamID), 'server_id' => intval($rServerID), 'proxy_id' => intval($rProxyID), 'date_start' => intval($rStart), 'user_agent' => $rUserAgent, 'user_ip' => htmlentities($rIP), 'date_end' => time(), 'container' => $rExtension, 'geoip_country_code' => $rGeoIP, 'isp' => $rISP, 'external_device' => htmlentities($rExternalDevice), 'divergence' => intval($rDivergence), 'hmac_id' => $rIsHMAC, 'hmac_identifier' => $rIdentifier);
+				file_put_contents(LOGS_TMP_PATH . 'activity', base64_encode(json_encode($rActivityInfo)) . "\n", FILE_APPEND | LOCK_EX);
+			}
+		} else {
+			return null;
+		}
 	}
 }

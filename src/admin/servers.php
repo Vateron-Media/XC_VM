@@ -8,7 +8,7 @@
         goHome();
     }
 
-    CoreUtilities::$rServers = CoreUtilities::getServers(true);
+    $rServers = ServerRepository::getAll(true);
     $_TITLE = 'Servers';
     require_once __DIR__ . '/../public/Views/layouts/admin.php';
     renderUnifiedLayoutHeader('admin');
@@ -49,14 +49,14 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach (CoreUtilities::$rServers as $rServer): ?>
+                                <?php foreach ($rServers as $rServer): ?>
                                     <?php if ($rServer['server_type'] == 0): ?>
                                         <?php
                                         $rWatchDog = json_decode($rServer['watchdog_data'], true);
                                         if (!is_array($rWatchDog)) {
                                             $rWatchDog = array('total_mem_used_percent' => '0', 'cpu' => '0');
                                         }
-                                        if (!CoreUtilities::$rServers[$rServer['id']]['server_online']) {
+                                        if (!$rServers[$rServer['id']]['server_online']) {
                                             $rWatchDog['cpu'] = 0;
                                             $rWatchDog['total_mem_used_percent'] = 0;
                                         }
@@ -124,7 +124,7 @@
                                             </td>
                                             <td class="text-center">
                                                 <?php
-                                                if (CoreUtilities::$rSettings['redis_handler']) {
+                                                if (SettingsManager::getAll()['redis_handler']) {
                                                     $rClients = $rServer['connections'];
                                                 } else {
                                                     $rClients = getLiveConnections($rServer['id']);
@@ -195,7 +195,7 @@
                                             </td>
                                             <td class="text-center">
                                                 <?php if (Authorization::check('adv', 'edit_server')): ?>
-                                                    <?php if (CoreUtilities::$rSettings['group_buttons']): ?>
+                                                    <?php if (SettingsManager::getAll()['group_buttons']): ?>
                                                         <div class="btn-group dropdown">
                                                             <a href="javascript: void(0);" class="table-action-btn dropdown-toggle arrow-none btn btn-light btn-sm" data-toggle="dropdown" aria-expanded="false">
                                                                 <i class="mdi mdi-menu"></i>
@@ -835,7 +835,7 @@ renderUnifiedLayoutFooter('admin');
         });
         $("#datatable").css("width", "100%");
     });
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+    <?php if (SettingsManager::getAll()['enable_search']): ?>
         $(document).ready(function() {
             initSearch();
         });

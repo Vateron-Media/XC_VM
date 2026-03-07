@@ -1,6 +1,6 @@
 <?php
 /**
- * Mass Delete view (Phase 6.3 — Group M).
+ * Mass Delete view.
  * Delegation proxy → legacy admin/mass_delete.php HTML body.
  */
 $__viewMode = true;

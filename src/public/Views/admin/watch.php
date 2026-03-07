@@ -1,6 +1,6 @@
 <?php
 /**
- * Watch Folder view (Phase 6.3 — Group L).
+ * Watch Folder view.
  * Delegation proxy → legacy admin/watch.php module include.
  */
 $__viewMode = true;

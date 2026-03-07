@@ -1,6 +1,6 @@
 <?php
 /**
- * Plex Sync view (Phase 6.3 — Group L).
+ * Plex Sync view.
  * Delegation proxy → legacy admin/plex.php module include.
  */
 $__viewMode = true;

@@ -1,6 +1,6 @@
 <?php
 /**
- * RTMP IP edit view (Phase 6.3 — Group H).
+ * RTMP IP edit view.
  * Delegation proxy → legacy admin/rtmp_ip.php HTML body.
  */
 $__viewMode = true;

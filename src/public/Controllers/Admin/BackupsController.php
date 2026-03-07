@@ -1,6 +1,6 @@
 <?php
 /**
- * BackupsController — Backups listing (Phase 6.3 — Group M).
+ * BackupsController — Backups listing.
  */
 class BackupsController extends BaseAdminController
 {

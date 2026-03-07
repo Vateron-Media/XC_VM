@@ -1,6 +1,6 @@
 <?php
 /**
- * LineController — добавление / редактирование линии (Phase 6.3 — Group C).
+ * LineController — добавление / редактирование линии.
  */
 class LineController extends BaseAdminController
 {
@@ -10,8 +10,8 @@ class LineController extends BaseAdminController
 
         $db = $GLOBALS['db'];
 
-        if (isset(CoreUtilities::$rRequest['id'])) {
-            $rLine = UserRepository::getLineById(CoreUtilities::$rRequest['id']);
+        if (isset(RequestManager::getAll()['id'])) {
+            $rLine = UserRepository::getLineById(RequestManager::getAll()['id']);
 
             if (!$rLine || !Authorization::check('adv', 'edit_user')) {
                 goHome();

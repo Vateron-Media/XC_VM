@@ -1,6 +1,6 @@
 <?php
 /**
- * ResellerRadiosController — Radio stations listing (read-only) (Phase 6.4 — Reseller).
+ * ResellerRadiosController — Radio stations listing (read-only).
  */
 class ResellerRadiosController extends BaseResellerController
 {

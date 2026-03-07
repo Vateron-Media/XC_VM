@@ -12,9 +12,9 @@ if (isset($_SESSION['reseller'])) {
 		}
 	}
 
-	if (!CoreUtilities::$rSettings['redis_handler']) {
+	if (!SettingsManager::getAll()['redis_handler']) {
 	} else {
-		CoreUtilities::connectRedis();
+		RedisManager::ensureConnected();
 	}
 
 	if (!$rUserInfo['id']) {
@@ -26,12 +26,12 @@ if (isset($_SESSION['reseller'])) {
 		}
 	}
 
-	if (!isset(CoreUtilities::$rRequest['action'])) {
+	if (!isset(RequestManager::getAll()['action'])) {
 	} else {
-		if (CoreUtilities::$rRequest['action'] == 'dashboard') {
+		if (RequestManager::getAll()['action'] == 'dashboard') {
 			$rReturn = array('open_connections' => 0, 'online_users' => 0, 'active_accounts' => 0, 'credits' => 0, 'credits_assigned' => 0);
 
-			if (CoreUtilities::$rSettings['redis_handler']) {
+			if (SettingsManager::getAll()['redis_handler']) {
 				$rReports = array();
 				$db->query('SELECT `id` FROM `lines` WHERE `member_id` IN (' . implode(',', $rUserInfo['reports']) . ');');
 
@@ -39,9 +39,9 @@ if (isset($_SESSION['reseller'])) {
 					$rReports[] = $rRow['id'];
 				}
 
-				if (0 >= count($rReports)) {
+					if (0 >= count($rReports)) {
 				} else {
-					foreach (CoreUtilities::getUserConnections($rReports, true) as $rUserID => $rConnections) {
+					foreach (ConnectionTracker::getUserConnections($rReports, true) as $rUserID => $rConnections) {
 						$rReturn['open_connections'] += $rConnections;
 
 						if (0 >= $rConnections) {
@@ -66,32 +66,32 @@ if (isset($_SESSION['reseller'])) {
 
 			exit();
 		} else {
-			if (CoreUtilities::$rRequest['action'] == 'connections') {
+			if (RequestManager::getAll()['action'] == 'connections') {
 				if ($rPermissions['reseller_client_connection_logs']) {
-					$rStreamID = CoreUtilities::$rRequest['stream_id'];
-					$rSub = CoreUtilities::$rRequest['sub'];
+					$rStreamID = RequestManager::getAll()['stream_id'];
+					$rSub = RequestManager::getAll()['sub'];
 
 					if ($rSub == 'purge') {
-						if (CoreUtilities::$rSettings['redis_handler']) {
+						if (SettingsManager::getAll()['redis_handler']) {
 							$rReports = array();
 							$db->query('SELECT `id` FROM `lines` WHERE `member_id` IN (' . implode(',', $rUserInfo['reports']) . ');');
 
-							foreach ($db->get_rows() as $rRow) {
+								foreach ($db->get_rows() as $rRow) {
 								$rReports[] = $rRow['id'];
 							}
-							$rConnections = CoreUtilities::getRedisConnections(null, null, $rStreamID, true, false, false, false);
+							$rConnections = ConnectionTracker::getRedisConnections(null, null, $rStreamID, true, false, false, false);
 
 							foreach ($rConnections as $rConnection) {
 								if (!in_array($rConnection['user_id'], $rReports)) {
 								} else {
-									CoreUtilities::closeConnection($rConnection);
+									ConnectionTracker::closeConnection($rConnection);
 								}
 							}
 						} else {
 							$db->query('SELECT `lines_live`.* FROM `lines_live` LEFT JOIN `lines` ON `lines`.`id` = `lines_live`.`user_id` WHERE `lines_live`.`stream_id` = ? AND `hls_end` = 0 AND `lines`.`member_id` IN (' . implode(',', $rUserInfo['reports']) . ');', $rStreamID);
 
 							foreach ($db->get_rows() as $rRow) {
-								CoreUtilities::closeConnection($rRow);
+								ConnectionTracker::closeConnection($rRow);
 							}
 						}
 
@@ -107,16 +107,16 @@ if (isset($_SESSION['reseller'])) {
 					exit();
 				}
 			} else {
-				if (CoreUtilities::$rRequest['action'] == 'line') {
+				if (RequestManager::getAll()['action'] == 'line') {
 					if ($rPermissions['create_line']) {
-						$rSub = CoreUtilities::$rRequest['sub'];
-						$rUserID = intval(CoreUtilities::$rRequest['user_id']);
+						$rSub = RequestManager::getAll()['sub'];
+						$rUserID = intval(RequestManager::getAll()['user_id']);
 						$rLine = UserRepository::getLineById($rUserID);
 
 						if (Authorization::check('line', $rUserID) && $rLine) {
 							if ($rSub == 'delete') {
 								deleteLine($rUserID);
-								$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'line', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'delete', CoreUtilities::$rRequest['user_id'], 0, $rUserInfo['credits'], time(), json_encode($rLine));
+								$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'line', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'delete', RequestManager::getAll()['user_id'], 0, $rUserInfo['credits'], time(), json_encode($rLine));
 								echo json_encode(array('result' => true));
 
 								exit();
@@ -124,7 +124,7 @@ if (isset($_SESSION['reseller'])) {
 
 							if ($rSub == 'enable') {
 								$db->query('UPDATE `lines` SET `enabled` = 1 WHERE `id` = ?;', $rUserID);
-								$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'line', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'enable', CoreUtilities::$rRequest['user_id'], 0, $rUserInfo['credits'], time(), json_encode($rLine));
+								$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'line', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'enable', RequestManager::getAll()['user_id'], 0, $rUserInfo['credits'], time(), json_encode($rLine));
 								echo json_encode(array('result' => true));
 
 								exit();
@@ -132,7 +132,7 @@ if (isset($_SESSION['reseller'])) {
 
 							if ($rSub == 'disable') {
 								$db->query('UPDATE `lines` SET `enabled` = 0 WHERE `id` = ?;', $rUserID);
-								$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'line', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'disable', CoreUtilities::$rRequest['user_id'], 0, $rUserInfo['credits'], time(), json_encode($rLine));
+								$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'line', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'disable', RequestManager::getAll()['user_id'], 0, $rUserInfo['credits'], time(), json_encode($rLine));
 								echo json_encode(array('result' => true));
 
 								exit();
@@ -145,11 +145,11 @@ if (isset($_SESSION['reseller'])) {
 								exit();
 							}
 
-							if ($rSub == 'kill_line') {
+								if ($rSub == 'kill_line') {
 								if ($rPermissions['reseller_client_connection_logs']) {
-									if (CoreUtilities::$rSettings['redis_handler']) {
-										foreach (CoreUtilities::getUserConnections(array($rUserID), false)[$rUserID] as $rConnection) {
-											CoreUtilities::closeConnection($rConnection);
+									if (SettingsManager::getAll()['redis_handler']) {
+										foreach (ConnectionTracker::getUserConnections(array($rUserID), false)[$rUserID] as $rConnection) {
+											ConnectionTracker::closeConnection($rConnection);
 										}
 									} else {
 										$db->query('SELECT * FROM `lines_live` WHERE `user_id` = ?;', $rUserID);
@@ -157,7 +157,7 @@ if (isset($_SESSION['reseller'])) {
 										if (0 >= $db->num_rows()) {
 										} else {
 											foreach ($db->get_rows() as $rRow) {
-												CoreUtilities::closeConnection($rRow);
+												ConnectionTracker::closeConnection($rRow);
 											}
 										}
 									}
@@ -182,17 +182,17 @@ if (isset($_SESSION['reseller'])) {
 						exit();
 					}
 				} else {
-					if (CoreUtilities::$rRequest['action'] == 'line_activity') {
+					if (RequestManager::getAll()['action'] == 'line_activity') {
 						if ($rPermissions['reseller_client_connection_logs']) {
-							$rSub = CoreUtilities::$rRequest['sub'];
+							$rSub = RequestManager::getAll()['sub'];
 
 							if ($rSub != 'kill') {
 							} else {
-								if (CoreUtilities::$rSettings['redis_handler']) {
-									if (!($rActivityInfo = igbinary_unserialize(CoreUtilities::$redis->get(CoreUtilities::$rRequest['uuid'])))) {
+								if (SettingsManager::getAll()['redis_handler']) {
+									if (!($rActivityInfo = igbinary_unserialize(RedisManager::instance()->get(RequestManager::getAll()['uuid'])))) {
 									} else {
 										if (Authorization::check('line', $rActivityInfo['user_id'])) {
-											CoreUtilities::closeConnection($rActivityInfo);
+											ConnectionTracker::closeConnection($rActivityInfo);
 											echo json_encode(array('result' => true));
 
 											exit();
@@ -203,14 +203,14 @@ if (isset($_SESSION['reseller'])) {
 										exit();
 									}
 								} else {
-									$db->query('SELECT * FROM `lines_live` WHERE `uuid` = ? LIMIT 1;', CoreUtilities::$rRequest['uuid']);
+									$db->query('SELECT * FROM `lines_live` WHERE `uuid` = ? LIMIT 1;', RequestManager::getAll()['uuid']);
 
 									if ($db->num_rows() != 1) {
 									} else {
 										$rRow = $db->get_row();
 
 										if (Authorization::check('line', $rRow['user_id'])) {
-											CoreUtilities::closeConnection($rRow);
+											ConnectionTracker::closeConnection($rRow);
 											echo json_encode(array('result' => true));
 
 											exit();
@@ -231,22 +231,22 @@ if (isset($_SESSION['reseller'])) {
 						exit();
 					}
 
-					if (CoreUtilities::$rRequest['action'] == 'adjust_credits') {
+					if (RequestManager::getAll()['action'] == 'adjust_credits') {
 						if ($rPermissions['create_sub_resellers']) {
-							if (Authorization::check('user', CoreUtilities::$rRequest['id'])) {
-								$rUser = UserRepository::getRegisteredUserById(CoreUtilities::$rRequest['id']);
+							if (Authorization::check('user', RequestManager::getAll()['id'])) {
+								$rUser = UserRepository::getRegisteredUserById(RequestManager::getAll()['id']);
 
-								if (!($rUser && is_numeric(CoreUtilities::$rRequest['credits']))) {
+								if (!($rUser && is_numeric(RequestManager::getAll()['credits']))) {
 								} else {
-									$rOwnerCredits = intval($rUserInfo['credits']) - intval(CoreUtilities::$rRequest['credits']);
-									$rCredits = intval($rUser['credits']) + intval(CoreUtilities::$rRequest['credits']);
+									$rOwnerCredits = intval($rUserInfo['credits']) - intval(RequestManager::getAll()['credits']);
+									$rCredits = intval($rUser['credits']) + intval(RequestManager::getAll()['credits']);
 
 									if (!(0 <= $rCredits && 0 <= $rOwnerCredits)) {
 									} else {
 										$db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $rOwnerCredits, $rUserInfo['id']);
 										$db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $rCredits, $rUser['id']);
-										$db->query('INSERT INTO `users_credits_logs`(`target_id`, `admin_id`, `amount`, `date`, `reason`) VALUES(?, ?, ?, ?, ?);', $rUser['id'], $rUserInfo['id'], CoreUtilities::$rRequest['credits'], time(), CoreUtilities::$rRequest['reason']);
-										$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'user', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'adjust_credits', CoreUtilities::$rRequest['id'], intval(CoreUtilities::$rRequest['credits']), $rOwnerCredits, time(), json_encode($rUser));
+										$db->query('INSERT INTO `users_credits_logs`(`target_id`, `admin_id`, `amount`, `date`, `reason`) VALUES(?, ?, ?, ?, ?);', $rUser['id'], $rUserInfo['id'], RequestManager::getAll()['credits'], time(), RequestManager::getAll()['reason']);
+										$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'user', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'adjust_credits', RequestManager::getAll()['id'], intval(RequestManager::getAll()['credits']), $rOwnerCredits, time(), json_encode($rUser));
 										echo json_encode(array('result' => true));
 
 										exit();
@@ -266,19 +266,19 @@ if (isset($_SESSION['reseller'])) {
 						exit();
 					}
 
-					if (CoreUtilities::$rRequest['action'] == 'reg_user') {
+					if (RequestManager::getAll()['action'] == 'reg_user') {
 						if ($rPermissions['create_sub_resellers']) {
-							if (Authorization::check('user', CoreUtilities::$rRequest['user_id'])) {
-								$rSub = CoreUtilities::$rRequest['sub'];
-								$rUser = UserRepository::getRegisteredUserById(CoreUtilities::$rRequest['user_id']);
+							if (Authorization::check('user', RequestManager::getAll()['user_id'])) {
+								$rSub = RequestManager::getAll()['sub'];
+								$rUser = UserRepository::getRegisteredUserById(RequestManager::getAll()['user_id']);
 
 								if ($rSub == 'delete') {
 									if ($rPermissions['delete_users']) {
 										$rOwnerCredits = intval($rUserInfo['credits']) + intval($rUser['credits']);
 										$db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $rOwnerCredits, $rUserInfo['id']);
-										deleteUser(CoreUtilities::$rRequest['user_id'], false, false, $rUserInfo['id']);
+										deleteUser(RequestManager::getAll()['user_id'], false, false, $rUserInfo['id']);
 										$db->query('INSERT INTO `users_credits_logs`(`target_id`, `admin_id`, `amount`, `date`, `reason`) VALUES(?, ?, ?, ?, ?);', $rUserInfo['id'], $rUserInfo['id'], intval($rUser['credits']), time(), 'Deleted user: ' . $rUser['username']);
-										$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'user', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'delete', CoreUtilities::$rRequest['user_id'], intval($rUser['credits']), $rOwnerCredits, time(), json_encode($rUser));
+										$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'user', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'delete', RequestManager::getAll()['user_id'], intval($rUser['credits']), $rOwnerCredits, time(), json_encode($rUser));
 										echo json_encode(array('result' => true));
 
 										exit();
@@ -288,8 +288,8 @@ if (isset($_SESSION['reseller'])) {
 								}
 
 								if ($rSub == 'enable') {
-									$db->query('UPDATE `users` SET `status` = 1 WHERE `id` = ?;', CoreUtilities::$rRequest['user_id']);
-									$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'user', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'enable', CoreUtilities::$rRequest['user_id'], 0, $rUserInfo['credits'], time(), json_encode($rUser));
+									$db->query('UPDATE `users` SET `status` = 1 WHERE `id` = ?;', RequestManager::getAll()['user_id']);
+									$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'user', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'enable', RequestManager::getAll()['user_id'], 0, $rUserInfo['credits'], time(), json_encode($rUser));
 									echo json_encode(array('result' => true));
 
 									exit();
@@ -301,8 +301,8 @@ if (isset($_SESSION['reseller'])) {
 									exit();
 								}
 
-								$db->query('UPDATE `users` SET `status` = 0 WHERE `id` = ?;', CoreUtilities::$rRequest['user_id']);
-								$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'user', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'disable', CoreUtilities::$rRequest['user_id'], 0, $rUserInfo['credits'], time(), json_encode($rUser));
+								$db->query('UPDATE `users` SET `status` = 0 WHERE `id` = ?;', RequestManager::getAll()['user_id']);
+								$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'user', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'disable', RequestManager::getAll()['user_id'], 0, $rUserInfo['credits'], time(), json_encode($rUser));
 								echo json_encode(array('result' => true));
 
 								exit();
@@ -316,16 +316,16 @@ if (isset($_SESSION['reseller'])) {
 						exit();
 					}
 
-					if (CoreUtilities::$rRequest['action'] == 'ticket') {
-						$rTicket = getTicket(CoreUtilities::$rRequest['ticket_id']);
+					if (RequestManager::getAll()['action'] == 'ticket') {
+						$rTicket = getTicket(RequestManager::getAll()['ticket_id']);
 
 						if (!$rTicket) {
 						} else {
 							if (Authorization::check('user', $rTicket['member_id'])) {
-								$rSub = CoreUtilities::$rRequest['sub'];
+								$rSub = RequestManager::getAll()['sub'];
 
 								if ($rSub == 'close') {
-									$db->query('UPDATE `tickets` SET `status` = 0 WHERE `id` = ?;', CoreUtilities::$rRequest['ticket_id']);
+									$db->query('UPDATE `tickets` SET `status` = 0 WHERE `id` = ?;', RequestManager::getAll()['ticket_id']);
 									echo json_encode(array('result' => true));
 
 									exit();
@@ -334,7 +334,7 @@ if (isset($_SESSION['reseller'])) {
 								if ($rSub != 'reopen') {
 								} else {
 									if ($rTicket['member_id'] != $rUserInfo['id']) {
-										$db->query('UPDATE `tickets` SET `status` = 1 WHERE `id` = ?;', CoreUtilities::$rRequest['ticket_id']);
+										$db->query('UPDATE `tickets` SET `status` = 1 WHERE `id` = ?;', RequestManager::getAll()['ticket_id']);
 										echo json_encode(array('result' => true));
 
 										exit();
@@ -354,17 +354,17 @@ if (isset($_SESSION['reseller'])) {
 						exit();
 					}
 
-					if (CoreUtilities::$rRequest['action'] == 'mag') {
+					if (RequestManager::getAll()['action'] == 'mag') {
 						if ($rPermissions['create_mag']) {
-							$rSub = CoreUtilities::$rRequest['sub'];
-							$rMagDetails = getMag(intval(CoreUtilities::$rRequest['mag_id']));
+							$rSub = RequestManager::getAll()['sub'];
+							$rMagDetails = getMag(intval(RequestManager::getAll()['mag_id']));
 
 							if (!$rMagDetails) {
 							} else {
 								if (Authorization::check('line', $rMagDetails['user_id'])) {
 									if ($rSub == 'delete') {
-										deleteMAG(CoreUtilities::$rRequest['mag_id']);
-										$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'mag', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'delete', CoreUtilities::$rRequest['mag_id'], 0, $rUserInfo['credits'], time(), json_encode($rMagDetails));
+										deleteMAG(RequestManager::getAll()['mag_id']);
+										$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'mag', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'delete', RequestManager::getAll()['mag_id'], 0, $rUserInfo['credits'], time(), json_encode($rMagDetails));
 										echo json_encode(array('result' => true));
 
 										exit();
@@ -372,7 +372,7 @@ if (isset($_SESSION['reseller'])) {
 
 									if ($rSub == 'enable') {
 										$db->query('UPDATE `lines` SET `enabled` = 1 WHERE `id` = ?;', $rMagDetails['user_id']);
-										$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'mag', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'enable', CoreUtilities::$rRequest['mag_id'], 0, $rUserInfo['credits'], time(), json_encode($rMagDetails));
+										$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'mag', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'enable', RequestManager::getAll()['mag_id'], 0, $rUserInfo['credits'], time(), json_encode($rMagDetails));
 										echo json_encode(array('result' => true));
 
 										exit();
@@ -380,14 +380,14 @@ if (isset($_SESSION['reseller'])) {
 
 									if ($rSub == 'disable') {
 										$db->query('UPDATE `lines` SET `enabled` = 0 WHERE `id` = ?;', $rMagDetails['user_id']);
-										$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'mag', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'disable', CoreUtilities::$rRequest['mag_id'], 0, $rUserInfo['credits'], time(), json_encode($rMagDetails));
+										$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'mag', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'disable', RequestManager::getAll()['mag_id'], 0, $rUserInfo['credits'], time(), json_encode($rMagDetails));
 										echo json_encode(array('result' => true));
 
 										exit();
 									}
 
 									if ($rSub == 'convert') {
-										deleteMAG(CoreUtilities::$rRequest['mag_id'], false, false, true);
+										deleteMAG(RequestManager::getAll()['mag_id'], false, false, true);
 										$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'line', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'convert', $rMagDetails['user']['id'], 0, $rUserInfo['credits'], time(), json_encode($rMagDetails['user']));
 										echo json_encode(array('result' => true, 'line_id' => $rMagDetails['user']['id']));
 
@@ -404,9 +404,9 @@ if (isset($_SESSION['reseller'])) {
 									if ($rSub != 'kill_line') {
 									} else {
 										if ($rPermissions['reseller_client_connection_logs']) {
-											if (CoreUtilities::$rSettings['redis_handler']) {
-												foreach (CoreUtilities::getUserConnections(array($rMagDetails['user_id']), false)[$rMagDetails['user_id']] as $rConnection) {
-													CoreUtilities::closeConnection($rConnection);
+											if (SettingsManager::getAll()['redis_handler']) {
+												foreach (ConnectionTracker::getUserConnections(array($rMagDetails['user_id']), false)[$rMagDetails['user_id']] as $rConnection) {
+													ConnectionTracker::closeConnection($rConnection);
 												}
 											} else {
 												$db->query('SELECT * FROM `lines_live` WHERE `user_id` = ?;', $rMagDetails['user_id']);
@@ -414,7 +414,7 @@ if (isset($_SESSION['reseller'])) {
 												if (0 >= $db->num_rows()) {
 												} else {
 													foreach ($db->get_rows() as $rRow) {
-														CoreUtilities::closeConnection($rRow);
+														ConnectionTracker::closeConnection($rRow);
 													}
 												}
 											}
@@ -441,17 +441,17 @@ if (isset($_SESSION['reseller'])) {
 						exit();
 					}
 
-					if (CoreUtilities::$rRequest['action'] == 'enigma') {
+					if (RequestManager::getAll()['action'] == 'enigma') {
 						if ($rPermissions['create_enigma']) {
-							$rSub = CoreUtilities::$rRequest['sub'];
-							$rE2Details = getEnigma(intval(CoreUtilities::$rRequest['e2_id']));
+							$rSub = RequestManager::getAll()['sub'];
+							$rE2Details = getEnigma(intval(RequestManager::getAll()['e2_id']));
 
 							if (!$rE2Details) {
 							} else {
 								if (Authorization::check('line', $rE2Details['user_id'])) {
 									if ($rSub == 'delete') {
-										deleteEnigma(CoreUtilities::$rRequest['e2_id']);
-										$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'enigma', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'delete', CoreUtilities::$rRequest['e2_id'], 0, $rUserInfo['credits'], time(), json_encode($rE2Details));
+										deleteEnigma(RequestManager::getAll()['e2_id']);
+										$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'enigma', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'delete', RequestManager::getAll()['e2_id'], 0, $rUserInfo['credits'], time(), json_encode($rE2Details));
 										echo json_encode(array('result' => true));
 
 										exit();
@@ -459,7 +459,7 @@ if (isset($_SESSION['reseller'])) {
 
 									if ($rSub == 'enable') {
 										$db->query('UPDATE `lines` SET `enabled` = 1 WHERE `id` = ?;', $rE2Details['user_id']);
-										$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'enigma', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'enable', CoreUtilities::$rRequest['e2_id'], 0, $rUserInfo['credits'], time(), json_encode($rE2Details));
+										$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'enigma', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'enable', RequestManager::getAll()['e2_id'], 0, $rUserInfo['credits'], time(), json_encode($rE2Details));
 										echo json_encode(array('result' => true));
 
 										exit();
@@ -467,14 +467,14 @@ if (isset($_SESSION['reseller'])) {
 
 									if ($rSub == 'disable') {
 										$db->query('UPDATE `lines` SET `enabled` = 0 WHERE `id` = ?;', $rE2Details['user_id']);
-										$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'enigma', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'disable', CoreUtilities::$rRequest['e2_id'], 0, $rUserInfo['credits'], time(), json_encode($rE2Details));
+										$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'enigma', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'disable', RequestManager::getAll()['e2_id'], 0, $rUserInfo['credits'], time(), json_encode($rE2Details));
 										echo json_encode(array('result' => true));
 
 										exit();
 									}
 
 									if ($rSub == 'convert') {
-										deleteEnigma(CoreUtilities::$rRequest['e2_id'], false, false, true);
+										deleteEnigma(RequestManager::getAll()['e2_id'], false, false, true);
 										$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'line', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'convert', $rE2Details['user']['id'], 0, $rUserInfo['credits'], time(), json_encode($rE2Details['user']));
 										echo json_encode(array('result' => true, 'line_id' => $rE2Details['user']['id']));
 
@@ -491,9 +491,9 @@ if (isset($_SESSION['reseller'])) {
 									if ($rSub != 'kill_line') {
 									} else {
 										if ($rPermissions['reseller_client_connection_logs']) {
-											if (CoreUtilities::$rSettings['redis_handler']) {
-												foreach (CoreUtilities::getUserConnections(array($rMagDetails['user_id']), false)[$rE2Details['user_id']] as $rConnection) {
-													CoreUtilities::closeConnection($rConnection);
+											if (SettingsManager::getAll()['redis_handler']) {
+												foreach (ConnectionTracker::getUserConnections(array($rMagDetails['user_id']), false)[$rE2Details['user_id']] as $rConnection) {
+													ConnectionTracker::closeConnection($rConnection);
 												}
 											} else {
 												$db->query('SELECT * FROM `lines_live` WHERE `user_id` = ?;', $rE2Details['user_id']);
@@ -501,7 +501,7 @@ if (isset($_SESSION['reseller'])) {
 												if (0 >= $db->num_rows()) {
 												} else {
 													foreach ($db->get_rows() as $rRow) {
-														CoreUtilities::closeConnection($rRow);
+														ConnectionTracker::closeConnection($rRow);
 													}
 												}
 											}
@@ -528,10 +528,10 @@ if (isset($_SESSION['reseller'])) {
 						exit();
 					}
 
-					if (CoreUtilities::$rRequest['action'] == 'get_package') {
+					if (RequestManager::getAll()['action'] == 'get_package') {
 						$rReturn = array();
 						$rOverride = json_decode($rUserInfo['override_packages'], true);
-						$db->query('SELECT `id`, `bouquets`, `official_credits` AS `cost_credits`, `official_duration`, `official_duration_in`, `max_connections`, `check_compatible`, `is_isplock` FROM `users_packages` WHERE `id` = ?;', CoreUtilities::$rRequest['package_id']);
+						$db->query('SELECT `id`, `bouquets`, `official_credits` AS `cost_credits`, `official_duration`, `official_duration_in`, `max_connections`, `check_compatible`, `is_isplock` FROM `users_packages` WHERE `id` = ?;', RequestManager::getAll()['package_id']);
 
 						if ($db->num_rows() == 1) {
 							$rData = $db->get_row();
@@ -541,17 +541,17 @@ if (isset($_SESSION['reseller'])) {
 								$rData['cost_credits'] = $rOverride[$rData['id']]['official_credits'];
 							}
 
-							if (isset(CoreUtilities::$rRequest['orig_id']) && $rData['check_compatible']) {
-								$rData['compatible'] = checkCompatible(CoreUtilities::$rRequest['package_id'], CoreUtilities::$rRequest['orig_id']);
+							if (isset(RequestManager::getAll()['orig_id']) && $rData['check_compatible']) {
+								$rData['compatible'] = checkCompatible(RequestManager::getAll()['package_id'], RequestManager::getAll()['orig_id']);
 							} else {
 								$rData['compatible'] = true;
 							}
 
 							$rData['exp_date'] = date('Y-m-d H:i', strtotime('+' . intval($rData['official_duration']) . ' ' . $rData['official_duration_in']));
 
-							if (!(isset(CoreUtilities::$rRequest['user_id']) && $rData['compatible'])) {
+							if (!(isset(RequestManager::getAll()['user_id']) && $rData['compatible'])) {
 							} else {
-								if (!($rUser = UserRepository::getLineById(CoreUtilities::$rRequest['user_id']))) {
+								if (!($rUser = UserRepository::getLineById(RequestManager::getAll()['user_id']))) {
 								} else {
 									if (time() < $rUser['exp_date']) {
 										$rData['exp_date'] = date('Y-m-d H:i', strtotime('+' . intval($rData['official_duration']) . ' ' . $rData['official_duration_in'], $rUser['exp_date']));
@@ -578,9 +578,9 @@ if (isset($_SESSION['reseller'])) {
 
 						exit();
 					} else {
-						if (CoreUtilities::$rRequest['action'] == 'get_package_trial') {
+						if (RequestManager::getAll()['action'] == 'get_package_trial') {
 							$rReturn = array();
-							$db->query('SELECT `bouquets`, `trial_credits` AS `cost_credits`, `trial_duration`, `trial_duration_in`, `max_connections`, `is_isplock` FROM `users_packages` WHERE `id` = ?;', CoreUtilities::$rRequest['package_id']);
+							$db->query('SELECT `bouquets`, `trial_credits` AS `cost_credits`, `trial_duration`, `trial_duration_in`, `max_connections`, `is_isplock` FROM `users_packages` WHERE `id` = ?;', RequestManager::getAll()['package_id']);
 
 							if ($db->num_rows() == 1) {
 								$rData = $db->get_row();
@@ -604,10 +604,10 @@ if (isset($_SESSION['reseller'])) {
 
 							exit();
 						} else {
-							if (CoreUtilities::$rRequest['action'] == 'header_stats') {
+							if (RequestManager::getAll()['action'] == 'header_stats') {
 								$rReturn = array('total_connections' => 0, 'total_users' => 0);
 
-								if (CoreUtilities::$rSettings['redis_handler']) {
+								if (SettingsManager::getAll()['redis_handler']) {
 									$rReports = array();
 									$db->query('SELECT `id` FROM `lines` WHERE `member_id` IN (' . implode(',', $rUserInfo['reports']) . ');');
 
@@ -617,7 +617,7 @@ if (isset($_SESSION['reseller'])) {
 
 									if (0 >= count($rReports)) {
 									} else {
-										foreach (CoreUtilities::getUserConnections($rReports, true) as $rUserID => $rConnections) {
+										foreach (ConnectionTracker::getUserConnections($rReports, true) as $rUserID => $rConnections) {
 											$rReturn['total_connections'] += $rConnections;
 
 											if (0 >= $rConnections) {
@@ -637,11 +637,11 @@ if (isset($_SESSION['reseller'])) {
 
 								exit();
 							} else {
-								if (CoreUtilities::$rRequest['action'] == 'stats') {
+								if (RequestManager::getAll()['action'] == 'stats') {
 									$rReturn = array('open_connections' => 0, 'online_users' => 0, 'total_lines' => 0, 'total_users' => 0, 'owner_credits' => 0, 'user_credits' => 0, 'total_credits' => 0);
 									$rUptime = 0;
 
-									if (CoreUtilities::$rSettings['redis_handler']) {
+									if (SettingsManager::getAll()['redis_handler']) {
 										$rReports = array();
 										$db->query('SELECT `id` FROM `lines` WHERE `member_id` IN (' . implode(',', $rUserInfo['reports']) . ');');
 
@@ -651,7 +651,7 @@ if (isset($_SESSION['reseller'])) {
 
 										if (0 >= count($rReports)) {
 										} else {
-											foreach (CoreUtilities::getUserConnections($rReports, true) as $rUserID => $rConnections) {
+											foreach (ConnectionTracker::getUserConnections($rReports, true) as $rUserID => $rConnections) {
 												$rReturn['open_connections'] += $rConnections;
 
 												if (0 >= $rConnections) {
@@ -679,20 +679,20 @@ if (isset($_SESSION['reseller'])) {
 
 									exit();
 								} else {
-									if (CoreUtilities::$rRequest['action'] == 'userlist') {
+									if (RequestManager::getAll()['action'] == 'userlist') {
 										$rReturn = array('total_count' => 0, 'items' => array(), 'result' => true);
 
-										if (!isset(CoreUtilities::$rRequest['search'])) {
+										if (!isset(RequestManager::getAll()['search'])) {
 										} else {
-											if (isset(CoreUtilities::$rRequest['page'])) {
-												$rPage = intval(CoreUtilities::$rRequest['page']);
+											if (isset(RequestManager::getAll()['page'])) {
+												$rPage = intval(RequestManager::getAll()['page']);
 											} else {
 												$rPage = 1;
 											}
 
-											$db->query('SELECT COUNT(`id`) AS `id` FROM `lines` LEFT JOIN `mag_devices` ON `mag_devices`.`user_id` = `lines`.`id` LEFT JOIN `enigma2_devices` ON `enigma2_devices`.`user_id` = `lines`.`id` WHERE `lines`.`member_id` IN (' . implode(',', $rUserInfo['reports']) . ') AND (`lines`.`username` LIKE ? OR `mag_devices`.`mac` LIKE ? OR `enigma2_devices`.`mac` LIKE ?);', '%' . CoreUtilities::$rRequest['search'] . '%', '%' . CoreUtilities::$rRequest['search'] . '%', '%' . CoreUtilities::$rRequest['search'] . '%');
+											$db->query('SELECT COUNT(`id`) AS `id` FROM `lines` LEFT JOIN `mag_devices` ON `mag_devices`.`user_id` = `lines`.`id` LEFT JOIN `enigma2_devices` ON `enigma2_devices`.`user_id` = `lines`.`id` WHERE `lines`.`member_id` IN (' . implode(',', $rUserInfo['reports']) . ') AND (`lines`.`username` LIKE ? OR `mag_devices`.`mac` LIKE ? OR `enigma2_devices`.`mac` LIKE ?);', '%' . RequestManager::getAll()['search'] . '%', '%' . RequestManager::getAll()['search'] . '%', '%' . RequestManager::getAll()['search'] . '%');
 											$rReturn['total_count'] = $db->get_row()['id'];
-											$db->query('SELECT `id`, IF(`lines`.`is_mag`, `mag_devices`.`mac`, IF(`lines`.`is_e2`, `enigma2_devices`.`mac`, `lines`.`username`)) AS `username` FROM `lines` LEFT JOIN `mag_devices` ON `mag_devices`.`user_id` = `lines`.`id` LEFT JOIN `enigma2_devices` ON `enigma2_devices`.`user_id` = `lines`.`id` WHERE `member_id` IN (' . implode(',', $rUserInfo['reports']) . ') AND (`lines`.`username` LIKE ? OR `mag_devices`.`mac` LIKE ? OR `enigma2_devices`.`mac` LIKE ?) ORDER BY `username` ASC LIMIT ' . ($rPage - 1) * 100 . ', 100;', '%' . CoreUtilities::$rRequest['search'] . '%', '%' . CoreUtilities::$rRequest['search'] . '%', '%' . CoreUtilities::$rRequest['search'] . '%');
+											$db->query('SELECT `id`, IF(`lines`.`is_mag`, `mag_devices`.`mac`, IF(`lines`.`is_e2`, `enigma2_devices`.`mac`, `lines`.`username`)) AS `username` FROM `lines` LEFT JOIN `mag_devices` ON `mag_devices`.`user_id` = `lines`.`id` LEFT JOIN `enigma2_devices` ON `enigma2_devices`.`user_id` = `lines`.`id` WHERE `member_id` IN (' . implode(',', $rUserInfo['reports']) . ') AND (`lines`.`username` LIKE ? OR `mag_devices`.`mac` LIKE ? OR `enigma2_devices`.`mac` LIKE ?) ORDER BY `username` ASC LIMIT ' . ($rPage - 1) * 100 . ', 100;', '%' . RequestManager::getAll()['search'] . '%', '%' . RequestManager::getAll()['search'] . '%', '%' . RequestManager::getAll()['search'] . '%');
 
 											if (0 >= $db->num_rows()) {
 											} else {
@@ -707,9 +707,9 @@ if (isset($_SESSION['reseller'])) {
 										exit();
 									}
 
-									if (CoreUtilities::$rRequest['action'] == 'send_event') {
+									if (RequestManager::getAll()['action'] == 'send_event') {
 										if ($rPermissions['create_mag']) {
-											$rData = json_decode(CoreUtilities::$rRequest['data'], true);
+											$rData = json_decode(RequestManager::getAll()['data'], true);
 											$rMag = getMag($rData['id']);
 
 											if (!$rMag) {
@@ -758,21 +758,21 @@ if (isset($_SESSION['reseller'])) {
 										exit();
 									}
 
-									if (CoreUtilities::$rRequest['action'] == 'streamlist') {
+									if (RequestManager::getAll()['action'] == 'streamlist') {
 										if ($rPermissions['create_mag'] || $rPermissions['can_view_vod'] || $rPermissions['reseller_client_connection_logs']) {
 											$rReturn = array('total_count' => 0, 'items' => array(), 'result' => true);
 
-											if (!isset(CoreUtilities::$rRequest['search'])) {
+											if (!isset(RequestManager::getAll()['search'])) {
 											} else {
-												if (isset(CoreUtilities::$rRequest['page'])) {
-													$rPage = intval(CoreUtilities::$rRequest['page']);
+												if (isset(RequestManager::getAll()['page'])) {
+													$rPage = intval(RequestManager::getAll()['page']);
 												} else {
 													$rPage = 1;
 												}
 
-												$db->query('SELECT COUNT(`id`) AS `id` FROM `streams` WHERE `stream_display_name` LIKE ? AND `id` IN (' . implode(',', array_map('intval', $rPermissions['stream_ids'])) . ');', '%' . CoreUtilities::$rRequest['search'] . '%');
+												$db->query('SELECT COUNT(`id`) AS `id` FROM `streams` WHERE `stream_display_name` LIKE ? AND `id` IN (' . implode(',', array_map('intval', $rPermissions['stream_ids'])) . ');', '%' . RequestManager::getAll()['search'] . '%');
 												$rReturn['total_count'] = $db->get_row()['id'];
-												$db->query('SELECT `id`, `stream_display_name` FROM `streams` WHERE `id` IN (' . implode(',', array_map('intval', $rPermissions['stream_ids'])) . ') AND `stream_display_name` LIKE ? ORDER BY `stream_display_name` ASC LIMIT ' . ($rPage - 1) * 100 . ', 100;', '%' . CoreUtilities::$rRequest['search'] . '%');
+												$db->query('SELECT `id`, `stream_display_name` FROM `streams` WHERE `id` IN (' . implode(',', array_map('intval', $rPermissions['stream_ids'])) . ') AND `stream_display_name` LIKE ? ORDER BY `stream_display_name` ASC LIMIT ' . ($rPage - 1) * 100 . ', 100;', '%' . RequestManager::getAll()['search'] . '%');
 
 												if (0 >= $db->num_rows()) {
 												} else {
@@ -790,8 +790,8 @@ if (isset($_SESSION['reseller'])) {
 										exit();
 									}
 
-									if (CoreUtilities::$rRequest['action'] == 'ip_whois') {
-										$rIP = CoreUtilities::$rRequest['ip'];
+									if (RequestManager::getAll()['action'] == 'ip_whois') {
+										$rIP = RequestManager::getAll()['ip'];
 										$rReader = new MaxMind\Db\Reader(GEOLITE2C_BIN);
 										$rResponse = $rReader->get($rIP);
 
@@ -803,7 +803,7 @@ if (isset($_SESSION['reseller'])) {
 
 										$rReader->close();
 
-										if (!isset(CoreUtilities::$rRequest['isp'])) {
+										if (!isset(RequestManager::getAll()['isp'])) {
 										} else {
 											$rReader = new MaxMind\Db\Reader(GEOISP_BIN);
 											$rResponse['isp'] = $rReader->get($rIP);
@@ -827,17 +827,17 @@ if (isset($_SESSION['reseller'])) {
 										exit();
 									}
 
-									if (CoreUtilities::$rRequest['action'] == 'get_epg') {
+									if (RequestManager::getAll()['action'] == 'get_epg') {
 										if ($rPermissions['can_view_vod']) {
 											if (count($rPermissions['stream_ids']) != 0) {
-												$rTimezone = (CoreUtilities::$rRequest['timezone'] ?: 'Europe/London');
+												$rTimezone = (RequestManager::getAll()['timezone'] ?: 'Europe/London');
 												date_default_timezone_set($rTimezone);
 												$rReturn = array('Channels' => array());
-												$rChannels = array_map('intval', explode(',', CoreUtilities::$rRequest['channels']));
+												$rChannels = array_map('intval', explode(',', RequestManager::getAll()['channels']));
 
 												if (count($rChannels) != 0) {
-													$rHours = (intval(CoreUtilities::$rRequest['hours']) ?: 3);
-													$rStartDate = (intval(strtotime(CoreUtilities::$rRequest['startdate'])) ?: time());
+													$rHours = (intval(RequestManager::getAll()['hours']) ?: 3);
+													$rStartDate = (intval(strtotime(RequestManager::getAll()['startdate'])) ?: time());
 													$rFinishDate = $rStartDate + $rHours * 3600;
 													$rPerUnit = floatval(100 / ($rHours * 60));
 													$rChannelsSort = $rChannels;
@@ -856,7 +856,7 @@ if (isset($_SESSION['reseller'])) {
 															}
 														}
 
-														$rEPG = CoreUtilities::getEPGs($rChannels, $rStartDate, $rFinishDate);
+														$rEPG = EpgService::getStreamsEpg($rChannels, $rStartDate, $rFinishDate);
 
 														foreach ($rEPG as $rChannelID => $rEPGData) {
 															$rFullSize = 0;
@@ -904,10 +904,10 @@ if (isset($_SESSION['reseller'])) {
 														$rDefaultArray = $rDefaultEPG;
 														$rDefaultArray['ChannelId'] = $rStream['id'];
 														$rCategoryIDs = json_decode($rStream['category_id'], true);
-														$rCategories = getCategories('live');
+$rCategories = CategoryService::getAllByType('live');
 
-														if (0 < strlen(CoreUtilities::$rRequest['category'])) {
-															$rCategory = ($rCategories[intval(CoreUtilities::$rRequest['category'])]['category_name'] ?: 'No Category');
+														if (0 < strlen(RequestManager::getAll()['category'])) {
+															$rCategory = ($rCategories[intval(RequestManager::getAll()['category'])]['category_name'] ?: 'No Category');
 														} else {
 															$rCategory = ($rCategories[$rCategoryIDs[0]]['category_name'] ?: 'No Category');
 														}
@@ -917,7 +917,7 @@ if (isset($_SESSION['reseller'])) {
 															$rCategory .= ' (+' . (count($rCategoryIDs) - 1) . ' others)';
 														}
 
-														$rReturn['Channels'][] = array('Id' => $rStream['id'], 'DisplayName' => $rStream['stream_display_name'], 'CategoryName' => $rCategory, 'Archive' => $rArchive, 'Image' => (CoreUtilities::validateImage($rStream['stream_icon']) ?: ''), 'TvListings' => ($rListings[$rStream['id']] ?: array($rDefaultArray)));
+														$rReturn['Channels'][] = array('Id' => $rStream['id'], 'DisplayName' => $rStream['stream_display_name'], 'CategoryName' => $rCategory, 'Archive' => $rArchive, 'Image' => (ImageUtils::validateURL($rStream['stream_icon']) ?: ''), 'TvListings' => ($rListings[$rStream['id']] ?: array($rDefaultArray)));
 													}
 													echo json_encode($rReturn);
 
@@ -934,15 +934,15 @@ if (isset($_SESSION['reseller'])) {
 											exit();
 										}
 									} else {
-										if (CoreUtilities::$rRequest['action'] != 'get_programme') {
+										if (RequestManager::getAll()['action'] != 'get_programme') {
 										} else {
 											if ($rPermissions['can_view_vod']) {
-												$rTimezone = (CoreUtilities::$rRequest['timezone'] ?: 'Europe/London');
+												$rTimezone = (RequestManager::getAll()['timezone'] ?: 'Europe/London');
 												date_default_timezone_set($rTimezone);
 
-												if (!isset(CoreUtilities::$rRequest['id'])) {
+												if (!isset(RequestManager::getAll()['id'])) {
 												} else {
-													$rRow = CoreUtilities::getProgramme(CoreUtilities::$rRequest['stream_id'], CoreUtilities::$rRequest['id']);
+													$rRow = EpgService::getProgramme(RequestManager::getAll()['stream_id'], RequestManager::getAll()['id']);
 
 													if (!$rRow) {
 													} else {
@@ -950,7 +950,7 @@ if (isset($_SESSION['reseller'])) {
 
 														if (time() >= $rRow['end']) {
 														} else {
-															$db->query('SELECT `server_id`, `direct_source`, `monitor_pid`, `pid`, `stream_status`, `on_demand` FROM `streams` LEFT JOIN `streams_servers` ON `streams_servers`.`stream_id` = `streams`.`id` WHERE `streams`.`id` = ? AND `server_id` IS NOT NULL;', CoreUtilities::$rRequest['stream_id']);
+															$db->query('SELECT `server_id`, `direct_source`, `monitor_pid`, `pid`, `stream_status`, `on_demand` FROM `streams` LEFT JOIN `streams_servers` ON `streams_servers`.`stream_id` = `streams`.`id` WHERE `streams`.`id` = ? AND `server_id` IS NOT NULL;', RequestManager::getAll()['stream_id']);
 
 															if (0 >= $db->num_rows()) {
 															} else {

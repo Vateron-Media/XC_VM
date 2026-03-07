@@ -1,6 +1,6 @@
 <?php
 /**
- * MovieMassController — массовое редактирование фильмов (Phase 6.3 — Group B).
+ * MovieMassController — массовое редактирование фильмов.
  */
 class MovieMassController extends BaseAdminController
 {
@@ -10,10 +10,10 @@ class MovieMassController extends BaseAdminController
 
         global $rServers;
 
-        $rCategories = getCategories('movie');
+        $rCategories = CategoryService::getAllByType('movie');
 
-        if (isset(CoreUtilities::$rRequest['submit_stream'])) {
-            $rReturn = MovieService::massEdit(CoreUtilities::$rRequest);
+        if (isset(RequestManager::getAll()['submit_stream'])) {
+            $rReturn = MovieService::massEdit(RequestManager::getAll());
             $_STATUS = $rReturn['status'];
             $GLOBALS['_STATUS'] = $_STATUS;
 

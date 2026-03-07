@@ -1,6 +1,6 @@
 <?php
 /**
- * AsnsController — ASN's listing (Phase 6.3 — Group N).
+ * AsnsController — ASN's listing.
  */
 class AsnsController extends BaseAdminController
 {

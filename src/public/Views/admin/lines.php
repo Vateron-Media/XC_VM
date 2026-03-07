@@ -1,6 +1,6 @@
 <?php
 /**
- * Lines list view (Phase 6.3 — Group C).
+ * Lines list view.
  * Delegation proxy → legacy admin/lines.php HTML body.
  */
 $__viewMode = true;

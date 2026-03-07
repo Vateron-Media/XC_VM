@@ -1,6 +1,6 @@
 <?php
 /**
- * XC_VM — Контроллер логов пользователей (admin/user_logs.php)
+ * Контроллер логов пользователей (admin/user_logs.php)
  */
 class UserLogsController extends BaseAdminController {
     public function index() {

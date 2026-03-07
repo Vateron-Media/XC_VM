@@ -1,26 +1,13 @@
 <?php
 
 /**
- * XC_VM — Process Manager
+ * Process Manager
  *
  * Centralizes process management: PID checking, killing, cron locks,
  * /proc filesystem inspection. Replaces scattered posix_kill(),
  * shell_exec('ps ...'), and file_exists('/proc/PID') calls.
  *
- * ---------------------------------------------------------------
- * What it replaces:
- * ---------------------------------------------------------------
- *
- *   CoreUtilities::checkCron()        → ProcessManager::acquireCronLock()
- *   CoreUtilities::isProcessRunning() → ProcessManager::isRunning()
- *   CoreUtilities::isStreamRunning()  → ProcessManager::isStreamRunning()
- *   CoreUtilities::isMonitorRunning() → ProcessManager::isNamedProcessRunning()
- *   CoreUtilities::checkPID()         → ProcessManager::checkPID()
- *   posix_kill($pid, 9)              → ProcessManager::kill()
- *
- * ---------------------------------------------------------------
  * Usage:
- * ---------------------------------------------------------------
  *
  *   // Check if a process is running
  *   if (ProcessManager::isRunning($pid)) { ... }
@@ -39,10 +26,6 @@
  *   ProcessManager::acquireCronLock('/tmp/cron_streams.pid', 1800);
  *   // ... do work ...
  *   // Lock file cleaned up automatically on exit
- *
- * @see CoreUtilities::checkCron()
- * @see CoreUtilities::isProcessRunning()
- * @see CoreUtilities::isStreamRunning()
  */
 
 class ProcessManager {
@@ -477,5 +460,24 @@ class ProcessManager {
     public static function countProcesses($pattern) {
         $pattern = escapeshellarg($pattern);
         return (int)trim(shell_exec("ps ax | grep -v grep | grep -c {$pattern}"));
+    }
+
+    /**
+     * Check if nginx master process is running under xc_vm user
+     *
+     * Replaces CoreUtilities::isRunning().
+     *
+     * @return bool
+     */
+    public static function isNginxRunning() {
+        $rNginx = 0;
+        exec('ps -fp $(pgrep -u xc_vm)', $rOutput, $rReturnVar);
+        foreach ($rOutput as $rProcess) {
+            $rSplit = explode(' ', preg_replace('!\\s+!', ' ', trim($rProcess)));
+            if (isset($rSplit[8]) && $rSplit[8] == 'nginx:' && isset($rSplit[9]) && $rSplit[9] == 'master') {
+                $rNginx++;
+            }
+        }
+        return 0 < $rNginx;
     }
 }

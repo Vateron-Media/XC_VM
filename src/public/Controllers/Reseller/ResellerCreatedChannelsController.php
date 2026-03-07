@@ -1,6 +1,6 @@
 <?php
 /**
- * ResellerCreatedChannelsController — Created channels listing (read-only) (Phase 6.4 — Reseller).
+ * ResellerCreatedChannelsController — Created channels listing (read-only).
  */
 class ResellerCreatedChannelsController extends BaseResellerController
 {

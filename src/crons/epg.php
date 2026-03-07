@@ -326,7 +326,7 @@ require INCLUDES_PATH . 'libs/XmlStringStreamer.php';
 shell_exec('kill -9 `ps -ef | grep \'XC_VM\\[EPG\\]\' | grep -v grep | awk \'{print $2}\'`;');
 cli_set_process_title('XC_VM[EPG]');
 
-if (CoreUtilities::$rSettings['force_epg_timezone']) {
+if (SettingsManager::getAll()['force_epg_timezone']) {
 	date_default_timezone_set('UTC');
 	print_log("[SYSTEM] Forced timezone to UTC");
 }
@@ -442,7 +442,7 @@ foreach ($ApiDependencyIdentifier as $rBouquet => $BatchProcessId) {
 	print_log("[XMLTV] Generating EPG for bouquet: " . ($rBouquet === 'all' ? 'ALL' : $rBouquet));
 
 	$rOutput = '';
-	$rServerName = htmlspecialchars(CoreUtilities::$rSettings['server_name'], ENT_XML1 | ENT_QUOTES | ENT_DISALLOWED, 'UTF-8');
+	$rServerName = htmlspecialchars(SettingsManager::getAll()['server_name'], ENT_XML1 | ENT_QUOTES | ENT_DISALLOWED, 'UTF-8');
 	$rOutput .= '<?xml version="1.0" encoding="utf-8" ?><!DOCTYPE tv SYSTEM "xmltv.dtd">' . "\n";
 	$rOutput .= '<tv generator-info-name="' . $rServerName . '">' . "\n";
 
@@ -463,7 +463,7 @@ foreach ($ApiDependencyIdentifier as $rBouquet => $BatchProcessId) {
 		if ($rRow['tv_archive_duration'] > 0) $hasArchive++;
 
 		$displayName = htmlspecialchars($rRow['stream_display_name'], ENT_XML1 | ENT_QUOTES | ENT_DISALLOWED, 'UTF-8');
-		$icon = htmlspecialchars(CoreUtilities::validateImage($rRow['stream_icon']), ENT_XML1 | ENT_QUOTES | ENT_DISALLOWED, 'UTF-8');
+		$icon = htmlspecialchars(ImageUtils::validateURL($rRow['stream_icon']), ENT_XML1 | ENT_QUOTES | ENT_DISALLOWED, 'UTF-8');
 		$channelID = htmlspecialchars($rRow['channel_id'], ENT_XML1 | ENT_QUOTES | ENT_DISALLOWED, 'UTF-8');
 
 		$rOutput .= "\t<channel id=\"$channelID\">";

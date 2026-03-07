@@ -4,7 +4,7 @@
 	include 'session.php';
 	include 'functions.php';
 
-	if (isset(CoreUtilities::$rRequest['id']) && !($rEPGArr = EpgService::getById(CoreUtilities::$rRequest['id']))) {
+	if (isset(RequestManager::getAll()['id']) && !($rEPGArr = EpgService::getById(RequestManager::getAll()['id']))) {
 		exit();
 	}
 
@@ -279,7 +279,7 @@ renderUnifiedLayoutFooter('admin');
 			submitForm(window.rCurrentPage, new FormData($("form")[0]));
 		});
 	});
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+	<?php if (SettingsManager::getAll()['enable_search']): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

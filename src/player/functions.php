@@ -6,22 +6,22 @@ if (isset($rSkipVerify) || php_sapi_name() != 'cli') {
 	require_once '/home/xc_vm/www/constants.php';
 	require_once MAIN_HOME . 'core/Init/LegacyInitializer.php';
 	require_once MAIN_HOME . 'core/Database/DatabaseHandler.php';
-	require_once INCLUDES_PATH . 'CoreUtilities.php';
 	require_once INCLUDES_PATH . 'libs/tmdb.php';
 
 	$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
-	CoreUtilities::$db = &$db;
-	CoreUtilities::init();
+	DatabaseFactory::set($db);
+	LegacyInitializer::initCore();
 
-	define('SERVER_ID', CoreUtilities::getMainID());
+	define('SERVER_ID', ConnectionTracker::getMainID());
 
 	$_PAGE = getIncludedFileNameWithoutExtension();
-	CoreUtilities::$rSettings['live_streaming_pass'] = md5(sha1(CoreUtilities::$rServers[SERVER_ID]['server_name'] . CoreUtilities::$rServers[SERVER_ID]['server_ip']) . '5f13a731fb85944e5c69ce863b0c990d');
+	$rServers = ServerRepository::getAll();
+	SettingsManager::update('live_streaming_pass', md5(sha1($rServers[SERVER_ID]['server_name'] . $rServers[SERVER_ID]['server_ip']) . '5f13a731fb85944e5c69ce863b0c990d'));
 
 	if (!isset($rSkipVerify)) {
-		if (!(isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') || CoreUtilities::$rServers[SERVER_ID]['enable_https']) {
+		if (!(isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') || $rServers[SERVER_ID]['enable_https']) {
 			if (isset($_SESSION['phash'])) {
-				$rUserInfo = CoreUtilities::getUserInfo($_SESSION['phash'], null, null, true);
+				$rUserInfo = UserRepository::getUserInfo($_SESSION['phash'], null, null, true);
 
 				if (!(!$rUserInfo || $_SESSION['pverify'] != md5($rUserInfo['username'] . '||' . $rUserInfo['password']) || !is_null($rUserInfo['exp_date']) && $rUserInfo['exp_date'] <= time() || $rUserInfo['admin_enabled'] == 0 || $rUserInfo['enabled'] == 0)) {
 					sort($rUserInfo['bouquet']);
@@ -37,7 +37,7 @@ if (isset($rSkipVerify) || php_sapi_name() != 'cli') {
 				exit();
 			}
 		} else {
-			header('Location: ' . CoreUtilities::$rServers[SERVER_ID]['http_url'] . ltrim($_SERVER['REQUEST_URI'], '/'));
+			header('Location: ' . $rServers[SERVER_ID]['http_url'] . ltrim($_SERVER['REQUEST_URI'], '/'));
 
 			exit();
 		}
@@ -105,7 +105,7 @@ function getSerie($rID) {
 
 function getSubtitles($rStreamID, $rSubtitles) {
 	global $rUserInfo;
-	$rDomainName = CoreUtilities::getDomainName(!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443);
+	$rDomainName = DomainResolver::resolve(SERVER_ID, !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443);
 	$rReturn = array();
 
 	if (is_array($rSubtitles)) {
@@ -141,7 +141,7 @@ function getSubtitles($rStreamID, $rSubtitles) {
 function getOrderedCategories($rCategories, $rType = 'movie') {
 	$rReturn = array();
 
-	foreach (CoreUtilities::getCategories($rType) as $rCategory) {
+	foreach (CategoryService::getFromDatabase($rType) as $rCategory) {
 		if (in_array($rCategory['id'], $rCategories)) {
 			$rReturn[] = array('title' => $rCategory['category_name'], 'id' => $rCategory['id'], 'cat_order' => $rCategory['cat_order']);
 		}
@@ -159,30 +159,30 @@ function getOrderedCategories($rCategories, $rType = 'movie') {
 }
 
 function getMovieTMDB($rID) {
-	if (0 < strlen(CoreUtilities::$rSettings['tmdb_language'])) {
-		$rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key'], CoreUtilities::$rSettings['tmdb_language']);
+	if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
+		$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
 	} else {
-		$rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key']);
+		$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key']);
 	}
 
 	return ($rTMDB->getMovie($rID) ?: null);
 }
 
 function getSeriesTMDB($rID) {
-	if (0 < strlen(CoreUtilities::$rSettings['tmdb_language'])) {
-		$rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key'], CoreUtilities::$rSettings['tmdb_language']);
+	if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
+		$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
 	} else {
-		$rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key']);
+		$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key']);
 	}
 
 	return (json_decode($rTMDB->getTVShow($rID)->getJSON(), true) ?: null);
 }
 
 function getSeasonTMDB($rID, $rSeason) {
-	if (0 < strlen(CoreUtilities::$rSettings['tmdb_language'])) {
-		$rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key'], CoreUtilities::$rSettings['tmdb_language']);
+	if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
+		$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
 	} else {
-		$rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key']);
+		$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key']);
 	}
 
 	return json_decode($rTMDB->getSeason($rID, intval($rSeason))->getJSON(), true);
@@ -221,7 +221,7 @@ function getUserStreams($rUserInfo, $rTypes = array(), $rCategoryID = null, $rFa
 	$rKey = $rStart + 1;
 	$rWhereV = $rWhere = array();
 
-	if (CoreUtilities::$rSettings['player_hide_incompatible']) {
+	if (SettingsManager::getAll()['player_hide_incompatible']) {
 		$rWhere[] = '(SELECT MAX(`compatible`) FROM `streams_servers` WHERE `streams_servers`.`stream_id` = `streams`.`id` LIMIT 1) = 1';
 	}
 
@@ -254,7 +254,7 @@ function getUserStreams($rUserInfo, $rTypes = array(), $rCategoryID = null, $rFa
 				break;
 		}
 	}
-	$rChannels = CoreUtilities::sortChannels($rChannels);
+	$rChannels = StreamSorter::sortChannels($rChannels);
 
 	if (!empty($rFav)) {
 		$favoriteChannelIds = array();
@@ -284,7 +284,7 @@ function getUserStreams($rUserInfo, $rTypes = array(), $rCategoryID = null, $rFa
 		$rWhereV[] = $rPicking['rating_range'][1];
 	}
 
-	$rChannels = CoreUtilities::confirmIDs($rChannels);
+	$rChannels = InputValidator::confirmIDs($rChannels);
 
 	if (count($rChannels) != 0) {
 		$rWhere[] = '`id` IN (' . implode(',', array_map('intval', $rChannels)) . ')';
@@ -311,7 +311,7 @@ function getUserStreams($rUserInfo, $rTypes = array(), $rCategoryID = null, $rFa
 
 			case 'number':
 			default:
-				if (CoreUtilities::$rSettings['channel_number_type'] != 'manual' && 0 < count($rChannels)) {
+				if (SettingsManager::getAll()['channel_number_type'] != 'manual' && 0 < count($rChannels)) {
 					$rOrder = 'FIELD(id,' . implode(',', $rChannels) . ')';
 				} else {
 					$rOrder = '`order` ASC';
@@ -375,7 +375,7 @@ function getUserSeries($rUserInfo, $rCategoryID = null, $rFav = null, $rOrderBy 
 	$rKey = $rStart + 1;
 	$rWhereV = $rWhere = array();
 
-	if (CoreUtilities::$rSettings['player_hide_incompatible']) {
+	if (SettingsManager::getAll()['player_hide_incompatible']) {
 		$rWhere[] = '(SELECT MAX(`compatible`) FROM `streams_servers` LEFT JOIN `streams_episodes` ON `streams_episodes`.`stream_id` = `streams_servers`.`stream_id` WHERE `streams_episodes`.`series_id` = `streams_series`.`id`) = 1';
 	}
 
@@ -403,7 +403,7 @@ function getUserSeries($rUserInfo, $rCategoryID = null, $rFav = null, $rOrderBy 
 		$rWhereV[] = '%' . $rSearchBy . '%';
 	}
 
-	$rSeries = CoreUtilities::confirmIDs($rSeries);
+	$rSeries = InputValidator::confirmIDs($rSeries);
 
 	if (count($rSeries) != 0) {
 		$rWhere[] = '`id` IN (' . implode(',', array_map('intval', $rSeries)) . ')';
@@ -432,7 +432,7 @@ function getUserSeries($rUserInfo, $rCategoryID = null, $rFav = null, $rOrderBy 
 
 			case 'number':
 			default:
-				if (CoreUtilities::$rSettings['vod_sort_newest']) {
+				if (SettingsManager::getAll()['vod_sort_newest']) {
 					$rOrder = '`last_modified` DESC';
 				} else {
 					$rOrder = 'FIELD(id,' . implode(',', $rSeries) . ')';

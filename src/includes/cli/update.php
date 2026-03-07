@@ -29,10 +29,10 @@ function loadcli() {
 
     switch ($rCommand) {
         case 'update':
-            if (CoreUtilities::$rServers[SERVER_ID]['is_main']) {
+            if (ServerRepository::getAll()[SERVER_ID]['is_main']) {
                 $UpdateData = $gitRelease->getUpdateFile("main", XC_VM_VERSION);
             } else {
-                $UpdateData = $gitRelease->getUpdateFile("lb_update", CoreUtilities::$rServers[SERVER_ID]['xc_vm_version']);
+                $UpdateData = $gitRelease->getUpdateFile("lb_update", ServerRepository::getAll()[SERVER_ID]['xc_vm_version']);
             }
 
             // Download and validate main update archive
@@ -56,8 +56,8 @@ function loadcli() {
 
         case 'post-update':
             // Notify other load balancers to update
-            if (CoreUtilities::$rServers[SERVER_ID]['is_main'] && CoreUtilities::$rSettings['auto_update_lbs']) {
-                foreach (CoreUtilities::$rServers as $rServer) {
+            if (ServerRepository::getAll()[SERVER_ID]['is_main'] && SettingsManager::getAll()['auto_update_lbs']) {
+                foreach (ServerRepository::getAll() as $rServer) {
                     if (($rServer['enabled'] && $rServer['status'] == 1 && time() - $rServer['last_check_ago'] <= 180) || !$rServer['is_main']) {
                         $db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rServer['id'], time(), json_encode(array('action' => 'update')));
                     }

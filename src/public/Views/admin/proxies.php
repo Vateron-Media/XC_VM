@@ -1,6 +1,6 @@
 <?php
 /**
- * View: proxies — delegation proxy (Phase 6.3 — Group N).
+ * View: proxies — delegation proxy.
  */
 $__viewMode = true;
 include MAIN_HOME . 'admin/proxies.php';

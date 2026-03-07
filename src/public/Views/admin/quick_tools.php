@@ -1,6 +1,6 @@
 <?php
 /**
- * Quick Tools view (Phase 6.3 — Group M).
+ * Quick Tools view.
  * Delegation proxy → legacy admin/quick_tools.php HTML body.
  */
 $__viewMode = true;

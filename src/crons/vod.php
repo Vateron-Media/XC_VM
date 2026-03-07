@@ -4,8 +4,8 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
         register_shutdown_function('shutdown');
         require str_replace('\\', '/', dirname($argv[0])) . '/../www/init.php';
         cli_set_process_title('XC_VM[VOD]');
-        $rIdentifier = CRONS_TMP_PATH . md5(CoreUtilities::generateUniqueCode() . __FILE__);
-        CoreUtilities::checkCron($rIdentifier);
+        $rIdentifier = CRONS_TMP_PATH . md5(Encryption::generateUniqueCode(SettingsManager::getAll()['live_streaming_pass']) . __FILE__);
+        ProcessManager::acquireCronLock($rIdentifier);
         loadCron();
     } else {
         exit(0);
@@ -22,13 +22,13 @@ function loadCron() {
         foreach ($rStreams as $rStream) {
             echo "\n\n" . '[*] Checking Stream ' . $rStream['stream_display_name'] . "\n";
             $rPID = intval(file_get_contents(CREATED_PATH . $rStream['id'] . '_.create'));
-            if ($rPID && CoreUtilities::isPIDRunning(SERVER_ID, $rPID, PHP_BIN)) {
+            if ($rPID && ProcessChecker::isPIDRunning(SERVER_ID, $rPID, PHP_BIN)) {
                 echo "\t" . 'Build Is Still Going!' . "\n";
             } else {
                 $rSourcesLeft = array_diff(json_decode($rStream['stream_source'], true), json_decode($rStream['cchannel_rsources'], true));
                 if (0 < count($rSourcesLeft)) {
                     echo "\t" . 'Needs Updating!' . "\n";
-                    CoreUtilities::queueChannel($rStream['id']);
+                    StreamProcess::queueChannel($rStream['id']);
                 } else {
                     if (!file_exists(CREATED_PATH . $rStream['id'] . '_.info')) {
                     } else {
@@ -71,7 +71,7 @@ function loadCron() {
                         echo 'ENCODING...' . "\n";
                     } else {
                         $rMoviePath = VOD_PATH . intval($rRow['stream_id']) . '.' . escapeshellcmd($rRow['target_container']);
-                        if ($rFFProbee = CoreUtilities::probeStream($rMoviePath)) {
+                        if ($rFFProbee = FFprobeRunner::probeStream($rMoviePath)) {
                             $rDuration = (isset($rFFProbee['duration']) ? $rFFProbee['duration'] : 0);
                             sscanf($rDuration, '%d:%d:%d', $rHours, $rMinutes, $rSeconds);
                             $rSeconds = (isset($rSeconds) ? $rHours * 3600 + $rMinutes * 60 + $rSeconds : $rHours * 60 + $rMinutes);
@@ -95,7 +95,7 @@ function loadCron() {
                             } else {
                                 $rMovieProperties['audio'] = $rFFProbee['codecs']['audio'];
                             }
-                            if (!CoreUtilities::$rSettings['extract_subtitles']) {
+                            if (!SettingsManager::getAll()['extract_subtitles']) {
                             } else {
                                 if (isset($rMovieProperties['subtitle']) && $rFFProbee['codecs']['subtitle']['codec_name'] == $rMovieProperties['subtitle']) {
                                 } else {
@@ -110,11 +110,11 @@ function loadCron() {
                                     $rBitrate = $rMovieProperties['bitrate'];
                                 }
                             }
-                            if (!(isset($rFFProbee['codecs']['subtitle']) && CoreUtilities::$rSettings['extract_subtitles'])) {
+                            if (!(isset($rFFProbee['codecs']['subtitle']) && SettingsManager::getAll()['extract_subtitles'])) {
                             } else {
                                 $i = 0;
                                 foreach ($rFFProbee['codecs']['subtitle'] as $rSubtitle) {
-                                    CoreUtilities::extractSubtitle($rRow['stream_id'], $rMoviePath, $i);
+                                    SubtitleExtractor::extractSubtitle($rRow['stream_id'], $rMoviePath, $i);
                                     $i++;
                                 }
                             }
@@ -122,13 +122,13 @@ function loadCron() {
                             $rAudioCodec = $rVideoCodec = $rResolution = null;
                             if (!$rFFProbee) {
                             } else {
-                                $rCompatible = intval(CoreUtilities::checkCompatibility($rFFProbee));
+                                $rCompatible = intval(DiagnosticsService::checkCompatibility($rFFProbee, SettingsManager::getAll()['player_allow_hevc']));
                                 $rAudioCodec = ($rFFProbee['codecs']['audio']['codec_name'] ?: null);
                                 $rVideoCodec = ($rFFProbee['codecs']['video']['codec_name'] ?: null);
                                 $rResolution = ($rFFProbee['codecs']['video']['height'] ?: null);
                                 if (!$rResolution) {
                                 } else {
-                                    $rResolution = CoreUtilities::getNearest(array(240, 360, 480, 576, 720, 1080, 1440, 2160), $rResolution);
+                                    $rResolution = StreamSorter::getNearest(array(240, 360, 480, 576, 720, 1080, 1440, 2160), $rResolution);
                                 }
                             }
                             $db->query('UPDATE `streams` SET `movie_properties` = ? WHERE `id` = ?', json_encode($rMovieProperties, JSON_UNESCAPED_UNICODE), $rRow['stream_id']);
@@ -139,7 +139,7 @@ function loadCron() {
                             $db->query('UPDATE `streams_servers` SET `to_analyze` = 0,`stream_status` = 1 WHERE `server_stream_id` = ?', $rRow['server_stream_id']);
                             echo 'BROKEN' . "\n";
                         }
-                        CoreUtilities::updateStream($rRow['stream_id']);
+                        StreamProcess::updateStream($rRow['stream_id']);
                     }
                 }
             }

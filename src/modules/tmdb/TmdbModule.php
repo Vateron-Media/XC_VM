@@ -1,7 +1,7 @@
 <?php
 
 /**
- * XC_VM — TMDB Module
+ * TMDB Module
  *
  * Модуль интеграции с TheMovieDB.
  * Регистрирует сервисы, API-действия и крон-задачи.

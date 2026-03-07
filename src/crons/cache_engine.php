@@ -6,9 +6,9 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
         require str_replace('\\', '/', dirname($argv[0])) . '/../www/init.php';
         ini_set('memory_limit', -1);
         ini_set('max_execution_time', 0);
-        CoreUtilities::$rSettings = CoreUtilities::getSettings(true);
+        SettingsManager::set(SettingsRepository::getAll(true));
         $rSplit = 10000;
-        $rThreadCount = (CoreUtilities::$rSettings['cache_thread_count'] ?: 10);
+        $rThreadCount = (SettingsManager::getAll()['cache_thread_count'] ?: 10);
         $rForce = false;
         $rGroupStart = $rGroupMax = $rType = null;
         if (1 < count($argv)) {
@@ -25,7 +25,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
             if ($rType != 'force') {
             } else {
                 echo 'Forcing cache regen...' . "\n";
-                CoreUtilities::$rSettings['cache_changes'] = false;
+                SettingsManager::update('cache_changes', false);
                 $rForce = true;
             }
         } else {
@@ -75,8 +75,8 @@ function loadCron($rType, $rGroupStart, $rGroupMax) {
     global $rThreadCount;
     global $rForce;
     $rStartTime = time();
-    if (CoreUtilities::isRunning()) {
-        if (CoreUtilities::$rCached || isset($rUpdateIDs)) {
+    if (ProcessManager::isNginxRunning()) {
+        if (SettingsManager::getAll()['enable_cache'] || isset($rUpdateIDs)) {
             switch ($rType) {
                 case 'lines':
                     generateLines($rGroupStart, $rGroupMax);
@@ -126,7 +126,7 @@ function loadCron($rType, $rGroupStart, $rGroupMax) {
                     file_put_contents(SERIES_TMP_PATH . 'series_categories', igbinary_serialize($rSeriesCategories));
                     $rDelete = array('streams' => array(), 'lines_i' => array(), 'lines_c' => array(), 'lines_t' => array());
                     $cacheDataKey = array();
-                    if (CoreUtilities::$rSettings['cache_changes']) {
+                    if (SettingsManager::getAll()['cache_changes']) {
                         $rChanges = getChangedLines();
                         $rDelete['lines_i'] = $rChanges['delete_i'];
                         $rDelete['lines_c'] = $rChanges['delete_c'];
@@ -174,7 +174,7 @@ function loadCron($rType, $rGroupStart, $rGroupMax) {
                         // if there are no records — at least one call
                         $cacheDataKey[] = PHP_BIN . ' ' . CRON_PATH . 'cache_engine.php "series" 0 0';
                     }
-                    if (CoreUtilities::$rSettings['cache_changes']) {
+                    if (SettingsManager::getAll()['cache_changes']) {
                         $rChanges = getchangedstreams();
                         $rDelete['streams'] = $rChanges['delete'];
                         if (0 >= count($rChanges['changes'])) {
@@ -235,7 +235,7 @@ function loadCron($rType, $rGroupStart, $rGroupMax) {
                     foreach ($rSeriesEpisodes as $rSeriesID => $rSeasons) {
                         file_put_contents(SERIES_TMP_PATH . 'episodes_' . $rSeriesID, igbinary_serialize($rSeasons));
                     }
-                    if (CoreUtilities::$rSettings['cache_changes']) {
+                    if (SettingsManager::getAll()['cache_changes']) {
                         foreach ($rDelete['streams'] as $rStreamID) {
                             @unlink(STREAMS_TMP_PATH . 'stream_' . $rStreamID);
                         }
@@ -320,7 +320,7 @@ function generateLines($rStart = null, $rCount = null, $cacheLockMechanism = arr
                     foreach ($db->result->fetchAll(PDO::FETCH_ASSOC) as $rUserInfo) {
                         $rExists[] = $rUserInfo['id'];
                         file_put_contents(LINES_TMP_PATH . 'line_i_' . $rUserInfo['id'], igbinary_serialize($rUserInfo));
-                        $rKey = (CoreUtilities::$rSettings['case_sensitive_line'] ? $rUserInfo['username'] . '_' . $rUserInfo['password'] : strtolower($rUserInfo['username'] . '_' . $rUserInfo['password']));
+                        $rKey = (SettingsManager::getAll()['case_sensitive_line'] ? $rUserInfo['username'] . '_' . $rUserInfo['password'] : strtolower($rUserInfo['username'] . '_' . $rUserInfo['password']));
                         file_put_contents(LINES_TMP_PATH . 'line_c_' . $rKey, $rUserInfo['id']);
                         if (!empty($rUserInfo['access_token'])) {
                             file_put_contents(LINES_TMP_PATH . 'line_t_' . $rUserInfo['access_token'], $rUserInfo['id']);
@@ -592,7 +592,7 @@ function getChangedLines() {
                     $rReturn['changes'][] = $rRow['id'];
                 }
                 $cacheRevalidationCheck[] = $rRow['id'];
-                $cacheDataCompression[] = (CoreUtilities::$rSettings['case_sensitive_line'] ? $rRow['username'] . '_' . $rRow['password'] : strtolower($rRow['username'] . '_' . $rRow['password']));
+                $cacheDataCompression[] = (SettingsManager::getAll()['case_sensitive_line'] ? $rRow['username'] . '_' . $rRow['password'] : strtolower($rRow['username'] . '_' . $rRow['password']));
                 if (!$rRow['access_token']) {
                 } else {
                     $cacheDataDecompression[] = $rRow['access_token'];

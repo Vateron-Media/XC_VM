@@ -1,6 +1,6 @@
 <?php
 /**
- * View: rtmp_ips — delegation proxy (Phase 6.3 — Pilot fix).
+ * View: rtmp_ips — delegation proxy.
  */
 $__viewMode = true;
 include MAIN_HOME . 'admin/rtmp_ips.php';

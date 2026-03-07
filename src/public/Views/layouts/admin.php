@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Unified Layout Header (Phase 6.1)
+ * Unified Layout Header
  *
  * Единая точка входа для header/layout admin/reseller.
  * На текущем этапе используется как совместимая обёртка над legacy header.php,

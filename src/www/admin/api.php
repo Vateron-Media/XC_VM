@@ -3,22 +3,23 @@
 register_shutdown_function('shutdown');
 set_time_limit(0);
 require '../init.php';
-$rIP = CoreUtilities::getUserIP();
+$rIP = NetworkUtils::getUserIP();
 
-if (in_array($rIP, CoreUtilities::getAllowedIPs()) || in_array($rIP, CoreUtilities::$rSettings['api_ips'])) {
+if (in_array($rIP, ServerRepository::getAllowedIPs()) || in_array($rIP, SettingsManager::getAll()['api_ips'])) {
 } else {
 	generate404();
 }
 
-if (empty(CoreUtilities::$rSettings['api_pass']) || CoreUtilities::$rRequest['api_pass'] == CoreUtilities::$rSettings['api_pass']) {
+if (empty(SettingsManager::getAll()['api_pass']) || RequestManager::getAll()['api_pass'] == SettingsManager::getAll()['api_pass']) {
 } else {
 	generate404();
 }
 
 $db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
-CoreUtilities::$db = &$db;
-$rAction = (!empty(CoreUtilities::$rRequest['action']) ? CoreUtilities::$rRequest['action'] : '');
-$rSubAction = (!empty(CoreUtilities::$rRequest['sub']) ? CoreUtilities::$rRequest['sub'] : '');
+DatabaseFactory::set($db);
+$rAction = (!empty(RequestManager::getAll()['action']) ? RequestManager::getAll()['action'] : '');
+$rSubAction = (!empty(RequestManager::getAll()['sub']) ? RequestManager::getAll()['sub'] : '');
+$rAllServers = ServerRepository::getAll();
 
 switch ($rAction) {
 	case 'server':
@@ -26,7 +27,7 @@ switch ($rAction) {
 			case 'list':
 				$rOutput = array();
 
-				foreach (CoreUtilities::$rServers as $rServerID => $rServerInfo) {
+				foreach ($rAllServers as $rServerID => $rServerInfo) {
 					$rOutput[] = array('id' => $rServerID, 'server_name' => $rServerInfo['server_name'], 'online' => $rServerInfo['server_online'], 'info' => json_decode($rServerInfo['server_hardware'], true));
 				}
 				echo json_encode($rOutput);
@@ -39,28 +40,28 @@ switch ($rAction) {
 	case 'vod':
 		switch ($rSubAction) {
 			case 'start':
-				$rStreamIDs = array_map('intval', CoreUtilities::$rRequest['stream_ids']);
-				$rForce = (CoreUtilities::$rRequest['force'] ?: false);
-				$rServers = (empty(CoreUtilities::$rRequest['servers']) ? array_keys(CoreUtilities::$rServers) : array_map('intval', CoreUtilities::$rRequest['servers']));
+				$rStreamIDs = array_map('intval', RequestManager::getAll()['stream_ids']);
+				$rForce = (RequestManager::getAll()['force'] ?: false);
+				$rServers = (empty(RequestManager::getAll()['servers']) ? array_keys($rAllServers) : array_map('intval', RequestManager::getAll()['servers']));
 				$rURLs = array();
 
 				foreach ($rServers as $rServerID) {
-					$rURLs[$rServerID] = array('url' => CoreUtilities::$rServers[$rServerID]['api_url_ip'] . '&action=vod', 'postdata' => array('function' => $rSubAction, 'stream_ids' => $rStreamIDs, 'force' => $rForce));
+					$rURLs[$rServerID] = array('url' => $rAllServers[$rServerID]['api_url_ip'] . '&action=vod', 'postdata' => array('function' => $rSubAction, 'stream_ids' => $rStreamIDs, 'force' => $rForce));
 				}
-				CoreUtilities::getMultiCURL($rURLs);
+				CurlClient::getMultiCURL($rURLs);
 				echo json_encode(array('result' => true));
 
 				exit();
 
 			case 'stop':
-				$rStreamIDs = array_map('intval', CoreUtilities::$rRequest['stream_ids']);
-				$rServers = (empty(CoreUtilities::$rRequest['servers']) ? array_keys(CoreUtilities::$rServers) : array_map('intval', CoreUtilities::$rRequest['servers']));
+				$rStreamIDs = array_map('intval', RequestManager::getAll()['stream_ids']);
+				$rServers = (empty(RequestManager::getAll()['servers']) ? array_keys($rAllServers) : array_map('intval', RequestManager::getAll()['servers']));
 				$rURLs = array();
 
 				foreach ($rServers as $rServerID) {
-					$rURLs[$rServerID] = array('url' => CoreUtilities::$rServers[$rServerID]['api_url_ip'] . '&action=vod', 'postdata' => array('function' => $rSubAction, 'stream_ids' => $rStreamIDs));
+					$rURLs[$rServerID] = array('url' => $rAllServers[$rServerID]['api_url_ip'] . '&action=vod', 'postdata' => array('function' => $rSubAction, 'stream_ids' => $rStreamIDs));
 				}
-				CoreUtilities::getMultiCURL($rURLs);
+				CurlClient::getMultiCURL($rURLs);
 				echo json_encode(array('result' => true));
 
 				exit();
@@ -71,27 +72,27 @@ switch ($rAction) {
 	case 'stream':
 		switch ($rSubAction) {
 			case 'start':
-				$rStreamIDs = array_map('intval', CoreUtilities::$rRequest['stream_ids']);
-				$rServers = (empty(CoreUtilities::$rRequest['servers']) ? array_keys(CoreUtilities::$rServers) : array_map('intval', CoreUtilities::$rRequest['servers']));
+				$rStreamIDs = array_map('intval', RequestManager::getAll()['stream_ids']);
+				$rServers = (empty(RequestManager::getAll()['servers']) ? array_keys($rAllServers) : array_map('intval', RequestManager::getAll()['servers']));
 				$rURLs = array();
 
 				foreach ($rServers as $rServerID) {
-					$rURLs[$rServerID] = array('url' => CoreUtilities::$rServers[$rServerID]['api_url_ip'] . '&action=stream', 'postdata' => array('function' => $rSubAction, 'stream_ids' => $rStreamIDs));
+					$rURLs[$rServerID] = array('url' => $rAllServers[$rServerID]['api_url_ip'] . '&action=stream', 'postdata' => array('function' => $rSubAction, 'stream_ids' => $rStreamIDs));
 				}
-				CoreUtilities::getMultiCURL($rURLs);
+				CurlClient::getMultiCURL($rURLs);
 				echo json_encode(array('result' => true));
 
 				exit();
 
 			case 'stop':
-				$rStreamIDs = array_map('intval', CoreUtilities::$rRequest['stream_ids']);
-				$rServers = (empty(CoreUtilities::$rRequest['servers']) ? array_keys(CoreUtilities::$rServers) : array_map('intval', CoreUtilities::$rRequest['servers']));
+				$rStreamIDs = array_map('intval', RequestManager::getAll()['stream_ids']);
+				$rServers = (empty(RequestManager::getAll()['servers']) ? array_keys($rAllServers) : array_map('intval', RequestManager::getAll()['servers']));
 				$rURLs = array();
 
 				foreach ($rServers as $rServerID) {
-					$rURLs[$rServerID] = array('url' => CoreUtilities::$rServers[$rServerID]['api_url_ip'] . '&action=stream', 'postdata' => array('function' => $rSubAction, 'stream_ids' => $rStreamIDs));
+					$rURLs[$rServerID] = array('url' => $rAllServers[$rServerID]['api_url_ip'] . '&action=stream', 'postdata' => array('function' => $rSubAction, 'stream_ids' => $rStreamIDs));
 				}
-				CoreUtilities::getMultiCURL($rURLs);
+				CurlClient::getMultiCURL($rURLs);
 				echo json_encode(array('result' => true));
 
 				exit();
@@ -137,10 +138,10 @@ switch ($rAction) {
 	case 'line':
 		switch ($rSubAction) {
 			case 'info':
-				if (!empty(CoreUtilities::$rRequest['username']) && !empty(CoreUtilities::$rRequest['password'])) {
-					$rUsername = CoreUtilities::$rRequest['username'];
-					$rPassword = CoreUtilities::$rRequest['password'];
-					$rUserInfo = CoreUtilities::getUserInfo(false, $rUsername, $rPassword, true, true);
+				if (!empty(RequestManager::getAll()['username']) && !empty(RequestManager::getAll()['password'])) {
+					$rUsername = RequestManager::getAll()['username'];
+					$rPassword = RequestManager::getAll()['password'];
+					$rUserInfo = UserRepository::getUserInfo(false, $rUsername, $rPassword, true, true);
 
 					if (!empty($rUserInfo)) {
 						echo json_encode(array('result' => true, 'user_info' => $rUserInfo));

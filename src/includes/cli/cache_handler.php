@@ -8,17 +8,17 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
         $rLastCheck = null;
         $rInterval = 60;
         $rMD5 = md5_file(__FILE__);
-        CoreUtilities::$rSettings = CoreUtilities::getSettings(true);
-        if (CoreUtilities::$rSettings['enable_cache']) {
+        SettingsManager::set(SettingsRepository::getAll(true));
+        if (SettingsManager::get('enable_cache')) {
             while (true) {
                 if (!$db->ping()) {
                     break;
                 }
                 if ($rLastCheck && $rInterval > time() - $rLastCheck) {
                 } else {
-                    CoreUtilities::$rSettings = CoreUtilities::getSettings(true);
-                    CoreUtilities::$rServers = CoreUtilities::getServers(true);
-                    if (CoreUtilities::$rSettings['enable_cache']) {
+                    SettingsManager::set(SettingsRepository::getAll(true));
+                    ServerRepository::getAll(true);
+                    if (SettingsManager::get('enable_cache')) {
                         if (md5_file(__FILE__) == $rMD5) {
                             $rLastCheck = time();
                         } else {
@@ -71,7 +71,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                     }
                     $rUpdatedLines = array_unique($rUpdatedLines);
                     foreach ($rUpdatedLines as $rUserID) {
-                        CoreUtilities::updateLine($rUserID);
+                        LineService::updateLineSignal($rUserID);
                     }
                     sleep(1);
                 } catch (Exception $e) {

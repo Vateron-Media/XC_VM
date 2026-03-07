@@ -1,6 +1,6 @@
 <?php
 /**
- * MovieListController — список фильмов (Phase 6.3 — Group B).
+ * MovieListController — список фильмов.
  */
 class MovieListController extends BaseAdminController
 {
@@ -8,7 +8,7 @@ class MovieListController extends BaseAdminController
     {
         $this->requirePermission();
 
-        $rCategories = getCategories('movie');
+        $rCategories = CategoryService::getAllByType('movie');
         $rAudioCodecs = $rVideoCodecs = [];
 
         global $db;

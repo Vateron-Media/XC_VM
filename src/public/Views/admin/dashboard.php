@@ -1,6 +1,6 @@
 <?php
 /**
- * Dashboard view (Phase 6.3 — Group M).
+ * Dashboard view.
  * Delegation proxy → legacy admin/dashboard.php HTML body.
  */
 $__viewMode = true;

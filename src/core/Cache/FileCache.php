@@ -1,40 +1,18 @@
 <?php
 
 /**
- * XC_VM — File Cache Driver (igbinary)
+ * File Cache Driver (igbinary)
  *
- * File-based cache using igbinary serialization. Direct replacement
- * for the inline igbinary_serialize/unserialize pattern
+ * File-based cache using igbinary serialization.
  *
- * ---------------------------------------------------------------
- * What it replaces:
- * ---------------------------------------------------------------
- *
- *   BEFORE (CoreUtilities):
- *     CoreUtilities::setCache('settings', $data);
- *     $data = CoreUtilities::getCache('settings', 20);
- *
- *   BEFORE (inline):
- *     $rSettings = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'settings'));
- *     file_put_contents(CACHE_TMP_PATH . 'settings', igbinary_serialize($data), LOCK_EX);
- *
- *   AFTER:
- *     $cache = new FileCache(CACHE_TMP_PATH);
- *     $cache->set('settings', $data);
- *     $data = $cache->get('settings', 20);
- *
- * ---------------------------------------------------------------
  * Storage Format:
- * ---------------------------------------------------------------
  *
  *   Files stored at: {basePath}/{key}
  *   Format: igbinary_serialize($data) — binary, compact, fast
  *   Locking: LOCK_EX on write to prevent corruption
  *   TTL: Based on file modification time (filemtime)
  *
- * ---------------------------------------------------------------
  * ServiceContainer Registration:
- * ---------------------------------------------------------------
  *
  *   $container->set('cache', function() {
  *       return new FileCache(CACHE_TMP_PATH);
@@ -45,8 +23,6 @@
  *   });
  *
  * @see CacheInterface
- * @see CoreUtilities::setCache()
- * @see CoreUtilities::getCache()
  */
 
 class FileCache implements CacheInterface {
@@ -103,7 +79,7 @@ class FileCache implements CacheInterface {
         $file = $this->basePath . $key;
         $serialized = $this->serialize($data);
 
-        $result = file_put_contents($file, $serialized, LOCK_EX);
+        $result = @file_put_contents($file, $serialized, LOCK_EX);
 
         return $result !== false;
     }
@@ -224,5 +200,46 @@ class FileCache implements CacheInterface {
         }
 
         return unserialize($data);
+    }
+
+    // ------------------------------------------------------------------
+    //  Static convenience API (drop-in replacement for CoreUtilities)
+    // ------------------------------------------------------------------
+
+    /** @var self|null Singleton instance for static calls */
+    private static $defaultInstance;
+
+    /**
+     * Get the default singleton instance (uses CACHE_TMP_PATH)
+     *
+     * @return self
+     */
+    private static function getDefault() {
+        if (!self::$defaultInstance) {
+            self::$defaultInstance = new self(CACHE_TMP_PATH);
+        }
+        return self::$defaultInstance;
+    }
+
+    /**
+     * Static write — drop-in for CoreUtilities::setCache()
+     *
+     * @param string $key   Cache key
+     * @param mixed  $data  Data to cache
+     * @return bool
+     */
+    public static function setCache($key, $data) {
+        return self::getDefault()->set($key, $data);
+    }
+
+    /**
+     * Static read — drop-in for CoreUtilities::getCache()
+     *
+     * @param string $key     Cache key
+     * @param int|null $maxAge  Maximum age in seconds (null = no limit)
+     * @return mixed|false
+     */
+    public static function getCache($key, $maxAge = null) {
+        return self::getDefault()->get($key, $maxAge);
     }
 }

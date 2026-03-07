@@ -7,8 +7,8 @@
     } ?>
 
     <?php
-    CoreUtilities::$rSettings = CoreUtilities::getSettings(true);
-    $rSettings = CoreUtilities::$rSettings;
+    SettingsManager::set(SettingsRepository::getAll(true));
+    $rSettings = SettingsManager::getAll();
     $_TITLE = 'Cache & Redis Settings';
     require_once __DIR__ . '/../public/Views/layouts/admin.php';
     renderUnifiedLayoutHeader('admin');
@@ -51,18 +51,18 @@
 
                             $rMessage = "You're using neither Caching or Redis Connection Handler, the server will perform poorly compared to having either enabled."; // Default message
 
-                            if (CoreUtilities::$rSettings['enable_cache'] || CoreUtilities::$rSettings['redis_handler']) {
+                            if (SettingsManager::getAll()['enable_cache'] || SettingsManager::getAll()['redis_handler']) {
                                 $rHeader = 'Good';
                                 $rColour = 'info';
                                 $rMessage = "Redis Connection Handler is disabled on your service, if you have a lot of throughput you will see better performance with Redis enabled.<br/>If you maintain active connections of over 10,000 for example you should consider this. Below this amount you're unlikely to see any benefit.";
                                 $rSize = 75;
 
-                                if (!CoreUtilities::$rSettings['enable_cache']) {
+                                if (!SettingsManager::getAll()['enable_cache']) {
                                     $rSize = 50;
                                     $rMessage = 'Caching is disabled on your service, this will impact performance significantly under load compared to having it enabled.';
                                 }
 
-                                if (CoreUtilities::$rSettings['enable_cache'] && CoreUtilities::$rSettings['redis_handler']) {
+                                if (SettingsManager::getAll()['enable_cache'] && SettingsManager::getAll()['redis_handler']) {
                                     $rSize = 100;
                                     $rColour = 'pink';
                                     $rHeader = 'Maximum';
@@ -163,7 +163,7 @@
                                                                     </td>
                                                                     <td class="text-center">Time Taken</td>
                                                                     <td class="text-center">
-                                                                        <button type="button" class="btn btn-info btn-xs waves-effect waves-light"><?= CoreUtilities::secondsToTime($rSettings['last_cache_taken']) ?></button>
+                                                                        <button type="button" class="btn btn-info btn-xs waves-effect waves-light"><?= TimeUtils::secondsToTime($rSettings['last_cache_taken']) ?></button>
                                                                     </td>
                                                                 </tr>
                                                             </tbody>
@@ -203,15 +203,15 @@
                                                 <?php if ($rSettings['redis_handler']): ?>
                                                     <?php
                                                     try {
-                                                        CoreUtilities::$redis = new Redis();
-                                                        CoreUtilities::$redis->connect(CoreUtilities::$rServers[SERVER_ID]['server_ip'], 6379);
+                                                        $rTestRedis = new Redis();
+                                                        $rTestRedis->connect(ServerRepository::getAll()[SERVER_ID]['server_ip'], 6379);
                                                         $rStatus = true;
                                                     } catch (Exception $e) {
                                                         $rStatus = false;
                                                     }
 
                                                     try {
-                                                        CoreUtilities::$redis->auth(CoreUtilities::$rSettings['redis_password']);
+                                                        $rTestRedis->auth(SettingsManager::getAll()['redis_password']);
                                                         $rAuth = true;
                                                     } catch (Exception $e) {
                                                         $rAuth = false;
@@ -470,7 +470,7 @@ renderUnifiedLayoutFooter('admin');
             submitForm(window.rCurrentPage, new FormData($("form")[0]));
         });
     });
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+    <?php if (SettingsManager::getAll()['enable_search']): ?>
         $(document).ready(function() {
             initSearch();
         });

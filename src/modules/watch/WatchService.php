@@ -1,7 +1,7 @@
 <?php
 
 class WatchService {
-	public static function editWatchSettings($rData, $clearSettingsCacheCallback = null) {
+	public static function editWatchSettings($rData) {
 		global $db;
 		foreach ($rData as $rKey => $rValue) {
 			$rSplit = explode('_', $rKey);
@@ -23,17 +23,15 @@ class WatchService {
 		$fallbackParser = isset($rData['fallback_parser']);
 		$db->query('UPDATE `settings` SET `percentage_match` = ?, `scan_seconds` = ?, `thread_count` = ?, `max_genres` = ?, `max_items` = ?, `alternative_titles` = ?, `fallback_parser` = ?;', $rData['percentage_match'], $rData['scan_seconds'], $rData['thread_count'], $rData['max_genres'], $rData['max_items'], $altTitles, $fallbackParser);
 
-		if ($clearSettingsCacheCallback) {
-			call_user_func($clearSettingsCacheCallback);
-		}
+		clearSettingsCache();
 
 		return array('status' => STATUS_SUCCESS);
 	}
 
-	public static function processWatchFolder($rData, $getWatchFolderCallback = null) {
+	public static function processWatchFolder($rData) {
 		global $db;
 		if (isset($rData['edit'])) {
-			$rArray = overwriteData(call_user_func($getWatchFolderCallback, $rData['edit']), $rData);
+			$rArray = overwriteData(getWatchFolder($rData['edit']), $rData);
 		} else {
 			$rArray = verifyPostTable('watch_folders', $rData);
 			unset($rArray['id']);
@@ -108,8 +106,8 @@ class WatchService {
 		return $rReturn;
 	}
 
-	public static function forceWatch($rServerID, $rWatchID, $requestCallback = 'systemapirequest') {
-		return call_user_func($requestCallback, $rServerID, array('action' => 'watch_force', 'id' => $rWatchID));
+	public static function forceWatch($rServerID, $rWatchID) {
+		return systemapirequest($rServerID, array('action' => 'watch_force', 'id' => $rWatchID));
 	}
 
 	public static function enableWatch() {
@@ -122,12 +120,12 @@ class WatchService {
 		return $db->query("UPDATE `watch_folders` SET `active` = 0 WHERE `type` <> 'plex';");
 	}
 
-	public static function killWatch($requestCallback = 'systemapirequest') {
+	public static function killWatch() {
 		global $db;
 		$db->query("SELECT DISTINCT(`server_id`) AS `server_id` FROM `watch_folders` WHERE `active` = 11 AND `type` <> 'plex';");
 		foreach ($db->get_rows() as $rRow) {
-			if (CoreUtilities::$rServers[$rRow['server_id']]['server_online']) {
-				call_user_func($requestCallback, $rRow['server_id'], array('action' => 'kill_watch'));
+			if (ServerRepository::getAll()[$rRow['server_id']]['server_online']) {
+				systemapirequest($rRow['server_id'], array('action' => 'kill_watch'));
 			}
 		}
 		return true;
@@ -143,13 +141,13 @@ class WatchService {
 		return $rRecordings;
 	}
 
-	public static function deleteRecording($rID, $deleteStreamCallback = 'deleteStream') {
+	public static function deleteRecording($rID) {
 		global $db;
 		$db->query('SELECT `created_id`, `source_id` FROM `recordings` WHERE `id` = ?;', $rID);
 		if ($db->num_rows() > 0) {
 			$rRecording = $db->get_row();
 			if ($rRecording['created_id']) {
-				call_user_func($deleteStreamCallback, $rRecording['created_id'], $rRecording['source_id'], true, true);
+				deleteStream($rRecording['created_id'], $rRecording['source_id'], true, true);
 			}
 			shell_exec("kill -9 `ps -ef | grep 'Record[" . intval($rID) . "]' | grep -v grep | awk '{print $2}'`");
 			$db->query('DELETE FROM `recordings` WHERE `id` = ?;', $rID);

@@ -32,17 +32,17 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                         if (file_exists(CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.pid')) {
                             $rCurrentPID = intval(file_get_contents(CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.pid'));
 
-                            if (CoreUtilities::isPIDRunning(SERVER_ID, $rCurrentPID, CoreUtilities::$rFFMPEG_CPU)) {
+                            if (ProcessChecker::isPIDRunning(SERVER_ID, $rCurrentPID, FfmpegPaths::cpu())) {
                                 exec('kill -9 ' . $rCurrentPID);
                             }
                         }
                         echo 'Processing source: ' . $rSource . '...' . "\n";
 
-                        $rItemPID = CoreUtilities::createChannelItem($rStreamID, $rSource);
+                        $rItemPID = FFmpegCommand::createChannelItem($rStreamID, $rSource);
                         $db->close_mysql();
                         // Only wait if a transcoding process is running.
                         if ($rItemPID > 0) {
-                            while (CoreUtilities::isPIDRunning(SERVER_ID, $rItemPID, CoreUtilities::$rFFMPEG_CPU)) {
+                            while (ProcessChecker::isPIDRunning(SERVER_ID, $rItemPID, FfmpegPaths::cpu())) {
                                 sleep(1);
                             }
                         }
@@ -83,7 +83,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
 
                     shell_exec('echo ' . $rOutputList . ' | base64 --decode > "' . CREATED_PATH . intval($rStreamID) . '_.list"');
 
-                    CoreUtilities::updateStream($rStreamID);
+                    StreamProcess::updateStream($rStreamID);
 
                     $rInt = $rSeconds = 0;
                     $rList = explode("\n", file_get_contents(CREATED_PATH . $rStreamID . '_.list'));
@@ -96,7 +96,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                         $rFilename = $parts[1];
 
                         if (file_exists($rFilename)) {
-                            $rFileInfo = CoreUtilities::probeStream($rFilename);
+                            $rFileInfo = FFprobeRunner::probeStream($rFilename);
                             $rReturn[] = array(
                                 'position' => $rInt,
                                 'filename' => basename($rFilename),

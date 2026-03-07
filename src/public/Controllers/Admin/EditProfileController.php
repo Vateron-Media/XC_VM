@@ -1,6 +1,6 @@
 <?php
 /**
- * EditProfileController — Edit Profile (Phase 6.3 — Group N).
+ * EditProfileController — Edit Profile.
  * Note: no checkPermissions — profile is accessible to any logged-in admin.
  */
 class EditProfileController extends BaseAdminController

@@ -1,6 +1,6 @@
 <?php
 /**
- * ResellerUserController — Sub-reseller edit/create (Phase 6.4 — Reseller).
+ * ResellerUserController — Sub-reseller edit/create.
  */
 class ResellerUserController extends BaseResellerController
 {

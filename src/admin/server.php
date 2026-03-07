@@ -8,7 +8,7 @@
         goHome();
     }
 
-    if (isset(CoreUtilities::$rRequest['id']) && ($rServerArr = $allServers[CoreUtilities::$rRequest['id']])) {
+    if (isset(RequestManager::getAll()['id']) && ($rServerArr = $allServers[RequestManager::getAll()['id']])) {
     } else {
         goHome();
     }
@@ -41,7 +41,7 @@
         $rInterfaces = array('eth0');
     }
 
-    $rFS = ServerRepository::getFreeSpace('systemapirequest', $rServerArr['id']);
+    $rFS = ServerRepository::getFreeSpace($rServerArr['id']);
     $rMounted = false;
 
     foreach ($rFS as $rMount) {
@@ -599,7 +599,7 @@
                                                     </div>
                                                 </div>
                                                 <?php if (!$rCertValid): ?>
-                                                    <?php $rErrorLog = ServerRepository::getSSLLog(CoreUtilities::$rServers, $rServerArr['id']); ?>
+                                                    <?php $rErrorLog = ServerRepository::getSSLLog($rServerArr['id']); ?>
                                                     <?php if ($rErrorLog): ?>
                                                         <div class="form-group row mb-4">
                                                             <label class="col-md-4 col-form-label" for="error_log">Error
@@ -871,7 +871,7 @@ renderUnifiedLayoutFooter('admin');
             submitForm(window.rCurrentPage, new FormData($("form")[0]));
         });
     });
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+    <?php if (SettingsManager::getAll()['enable_search']): ?>
         $(document).ready(function() {
             initSearch();
         });

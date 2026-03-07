@@ -1,6 +1,6 @@
 <?php
 /**
- * XC_VM — Контроллер просмотра TV Guide (admin/epg_view.php)
+ * Контроллер просмотра TV Guide (admin/epg_view.php)
  */
 
 class EpgViewController extends BaseAdminController {
@@ -14,29 +14,29 @@ class EpgViewController extends BaseAdminController {
             exit;
         }
 
-        $rPageInt = max(intval(CoreUtilities::$rRequest['page']), 1);
-        $rLimit = max(intval(CoreUtilities::$rRequest['entries']), CoreUtilities::$rSettings['default_entries']);
+        $rPageInt = max(intval(RequestManager::getAll()['page']), 1);
+        $rLimit = max(intval(RequestManager::getAll()['entries']), SettingsManager::getAll()['default_entries']);
         $rStart = ($rPageInt - 1) * $rLimit;
         $rWhere = $rWhereV = array();
         $rWhere[] = '`type` = 1 AND `epg_id` IS NOT NULL AND `channel_id` IS NOT NULL';
 
-        if (isset(CoreUtilities::$rRequest['category']) && intval(CoreUtilities::$rRequest['category']) > 0) {
+        if (isset(RequestManager::getAll()['category']) && intval(RequestManager::getAll()['category']) > 0) {
             $rWhere[] = "JSON_CONTAINS(`category_id`, ?, '\$')";
-            $rWhereV[] = json_encode(intval(CoreUtilities::$rRequest['category']));
+            $rWhereV[] = json_encode(intval(RequestManager::getAll()['category']));
         }
 
-        if (!empty(CoreUtilities::$rRequest['search'])) {
+        if (!empty(RequestManager::getAll()['search'])) {
             $rWhere[] = '(`stream_display_name` LIKE ? OR `id` LIKE ?)';
-            $rWhereV[] = '%' . CoreUtilities::$rRequest['search'] . '%';
-            $rWhereV[] = CoreUtilities::$rRequest['search'];
+            $rWhereV[] = '%' . RequestManager::getAll()['search'] . '%';
+            $rWhereV[] = RequestManager::getAll()['search'];
         }
 
         $rWhereString = (count($rWhere) > 0) ? 'WHERE ' . implode(' AND ', $rWhere) : '';
 
         $rOrderBy = '`stream_display_name` ASC';
         $rOrder = ['name' => '`stream_display_name` ASC', 'added' => '`added` DESC'];
-        if (!empty(CoreUtilities::$rRequest['sort']) && in_array(CoreUtilities::$rRequest['sort'], array('name', 'added'))) {
-            $rOrderBy = $rOrder[CoreUtilities::$rRequest['sort']];
+        if (!empty(RequestManager::getAll()['sort']) && in_array(RequestManager::getAll()['sort'], array('name', 'added'))) {
+            $rOrderBy = $rOrder[RequestManager::getAll()['sort']];
         }
 
         $rStreamIDs = array();

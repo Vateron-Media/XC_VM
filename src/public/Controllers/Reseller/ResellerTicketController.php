@@ -1,6 +1,6 @@
 <?php
 /**
- * ResellerTicketController — Create/edit ticket (Phase 6.4 — Reseller).
+ * ResellerTicketController — Create/edit ticket.
  */
 class ResellerTicketController extends BaseResellerController
 {

@@ -15,9 +15,9 @@ if (!isset($__viewMode)):
 		goHome();
 	}
 
-	if (!isset(CoreUtilities::$rRequest['id'])) {
+	if (!isset(RequestManager::getAll()['id'])) {
 	} else {
-		$rDevice = getEnigma(CoreUtilities::$rRequest['id']);
+		$rDevice = getEnigma(RequestManager::getAll()['id']);
 
 		if ($rDevice && $rDevice['user'] && $rDevice['user']['is_e2'] && Authorization::check('line', $rDevice['user']['id'])) {
 		} else {
@@ -46,14 +46,14 @@ if (isset($rDevice)) {
 	echo 'Add';
 }
 
-if (!isset(CoreUtilities::$rRequest['trial'])) {
+if (!isset(RequestManager::getAll()['trial'])) {
 } else {
 	echo ' Trial';
 }
 
 echo ' Enigma Device</h4>' . "\r\n\t\t\t\t" . '</div>' . "\r\n\t\t\t" . '</div>' . "\r\n\t\t" . '</div>' . "\r\n\t\t" . '<div class="row">' . "\r\n\t\t\t" . '<div class="col-xl-12">' . "\r\n" . '                ';
 
-if (!$rGenTrials && !isset($rLine) && isset(CoreUtilities::$rRequest['trial'])) {
+if (!$rGenTrials && !isset($rLine) && isset(RequestManager::getAll()['trial'])) {
 	echo '                <div class="alert alert-danger alert-dismissible fade show" role="alert">' . "\r\n" . '                    ';
 
 	if ($rSettings['disable_trial']) {
@@ -86,7 +86,7 @@ if (!$rGenTrials && !isset($rLine) && isset(CoreUtilities::$rRequest['trial'])) 
 		echo intval($rDevice['device_id']);
 		echo '" />' . "\r\n\t\t\t\t\t\t\t";
 	} else {
-		if (!isset(CoreUtilities::$rRequest['trial'])) {
+		if (!isset(RequestManager::getAll()['trial'])) {
 		} else {
 			echo '                            <input type="hidden" name="trial" value="1" />' . "\r\n" . '                            ';
 		}
@@ -199,8 +199,8 @@ if (!$rGenTrials && !isset($rLine) && isset(CoreUtilities::$rRequest['trial'])) 
 		echo '                                                            <option value="">No Changes</option>' . "\r\n" . '                                                            ';
 	}
 
-	foreach (getPackages($rUserInfo['member_group_id'], 'e2') as $rPackage) {
-		if (!($rPackage['is_trial'] && isset(CoreUtilities::$rRequest['trial']) || $rPackage['is_official'] && !isset(CoreUtilities::$rRequest['trial']))) {
+	foreach (getPackages($rUserInfo['member_group_id'], 'e2') ?: [] as $rPackage) {
+		if (!($rPackage['is_trial'] && isset(RequestManager::getAll()['trial']) || $rPackage['is_official'] && !isset(RequestManager::getAll()['trial']))) {
 		} else {
 			echo '                                                                <option value="';
 			echo intval($rPackage['id']);
@@ -256,7 +256,7 @@ if (!$rGenTrials && !isset($rLine) && isset(CoreUtilities::$rRequest['trial'])) 
 
 		if (!isset($rDevice)) {
 		} else {
-			foreach (json_decode($rLine['allowed_ips'], true) as $rIP) {
+			foreach (json_decode($rLine['allowed_ips'], true) ?: [] as $rIP) {
 				echo '                                                            <option value="';
 				echo $rIP;
 				echo '">';

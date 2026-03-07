@@ -7,12 +7,12 @@
 		goHome();
 	}
 
-	if (isset(CoreUtilities::$rRequest['user_id'])) {
-		$rSearchUser = UserRepository::getLineById(CoreUtilities::$rRequest['user_id']);
+	if (isset(RequestManager::getAll()['user_id'])) {
+		$rSearchUser = UserRepository::getLineById(RequestManager::getAll()['user_id']);
 	}
 
-	if (isset(CoreUtilities::$rRequest['stream_id'])) {
-		$rSearchStream = StreamRepository::getById(CoreUtilities::$rRequest['stream_id']);
+	if (isset(RequestManager::getAll()['stream_id'])) {
+		$rSearchStream = StreamRepository::getById(RequestManager::getAll()['stream_id']);
 	}
 
 	$_TITLE = 'Live Connections';
@@ -42,15 +42,15 @@ endif;
 						<div id="collapse_filters" class="form-group row mb-4 <?php if ($rMobile) {
 																					echo 'collapse';
 																				} ?>">
-							<?php if (CoreUtilities::$rSettings['redis_handler']): ?>
+							<?php if (SettingsManager::getAll()['redis_handler']): ?>
 								<div class="col-md-3">
 									<select id="live_server" class="form-control" data-toggle="select2">
-										<option value="" <?php if (!isset(CoreUtilities::$rRequest['server'])): ?> selected<?php endif; ?>>
+										<option value="" <?php if (!isset(RequestManager::getAll()['server'])): ?> selected<?php endif; ?>>
 											<?php echo $language::get('all_servers'); ?>
 										</option>
-										<?php foreach (CoreUtilities::$rServers as $rServer): ?>
+									<?php foreach (ServerRepository::getAll() as $rServer): ?>
 											<?php if ($rServer['enabled']): ?>
-												<option value="<?php echo $rServer['id']; ?>" <?php if (isset(CoreUtilities::$rRequest['server']) && CoreUtilities::$rRequest['server'] == $rServer['id']): ?> selected<?php endif; ?>>
+												<option value="<?php echo $rServer['id']; ?>" <?php if (isset(RequestManager::getAll()['server']) && RequestManager::getAll()['server'] == $rServer['id']): ?> selected<?php endif; ?>>
 													<?php echo $rServer['server_name']; ?>
 												</option>
 											<?php endif; ?>
@@ -87,14 +87,14 @@ endif;
 								</div>
 							<?php else: ?>
 								<div class="col-md-2">
-									<input type="text" class="form-control" id="live_search" value="<?php echo isset(CoreUtilities::$rRequest['search']) ? htmlspecialchars(CoreUtilities::$rRequest['search']) : ''; ?>" placeholder="<?php echo $language::get('search_logs'); ?>...">
+									<input type="text" class="form-control" id="live_search" value="<?php echo isset(RequestManager::getAll()['search']) ? htmlspecialchars(RequestManager::getAll()['search']) : ''; ?>" placeholder="<?php echo $language::get('search_logs'); ?>...">
 								</div>
 								<div class="col-md-2">
 									<select id="live_server" class="form-control" data-toggle="select2">
-										<option value="" <?php if (!isset(CoreUtilities::$rRequest['server'])) echo ' selected'; ?>><?php echo $language::get('all_servers'); ?></option>
-										<?php foreach (CoreUtilities::$rServers as $rServer): ?>
+										<option value="" <?php if (!isset(RequestManager::getAll()['server'])) echo ' selected'; ?>><?php echo $language::get('all_servers'); ?></option>
+										<?php foreach (ServerRepository::getAll() as $rServer): ?>
 											<?php if ($rServer['enabled']): ?>
-												<option value="<?php echo $rServer['id']; ?>" <?php if (isset(CoreUtilities::$rRequest['server']) && CoreUtilities::$rRequest['server'] == $rServer['id']) echo ' selected'; ?>><?php echo $rServer['server_name']; ?></option>
+												<option value="<?php echo $rServer['id']; ?>" <?php if (isset(RequestManager::getAll()['server']) && RequestManager::getAll()['server'] == $rServer['id']) echo ' selected'; ?>><?php echo $rServer['server_name']; ?></option>
 											<?php endif; ?>
 										<?php endforeach; ?>
 									</select>
@@ -115,13 +115,13 @@ endif;
 								</div>
 								<div class="col-md-2">
 									<select id="live_filter" class="form-control" data-toggle="select2">
-										<option value="" <?php if (!isset(CoreUtilities::$rRequest['filter'])) echo ' selected'; ?>>No Filter</option>
-										<option value="1" <?php if (isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 1) echo ' selected'; ?>>User Lines</option>
-										<option value="2" <?php if (isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 2) echo ' selected'; ?>>MAG Devices</option>
-										<option value="3" <?php if (isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 3) echo ' selected'; ?>>Enigma2 Devices</option>
-										<option value="4" <?php if (isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 4) echo ' selected'; ?>>Trial Lines</option>
-										<option value="5" <?php if (isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 5) echo ' selected'; ?>>Restreamers</option>
-										<option value="6" <?php if (isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 6) echo ' selected'; ?>>Ministra Lines</option>
+										<option value="" <?php if (!isset(RequestManager::getAll()['filter'])) echo ' selected'; ?>>No Filter</option>
+										<option value="1" <?php if (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 1) echo ' selected'; ?>>User Lines</option>
+										<option value="2" <?php if (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 2) echo ' selected'; ?>>MAG Devices</option>
+										<option value="3" <?php if (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 3) echo ' selected'; ?>>Enigma2 Devices</option>
+										<option value="4" <?php if (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 4) echo ' selected'; ?>>Trial Lines</option>
+										<option value="5" <?php if (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 5) echo ' selected'; ?>>Restreamers</option>
+										<option value="6" <?php if (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 6) echo ' selected'; ?>>Ministra Lines</option>
 									</select>
 								</div>
 								<label class="col-md-1 col-form-label text-center" for="live_show_entries"><?php echo $language::get('show'); ?></label>
@@ -300,14 +300,14 @@ renderUnifiedLayoutFooter('admin');
 	echo intval($rSettings['default_entries']);
 	echo '; }' . "\r\n\t\t\t" . 'var rTable = $("#datatable-activity").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '},' . "\r\n\t\t\t\t\t" . 'infoFiltered: ""' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n" . '                    window.rProcessing = false;' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n" . '                    if ($("#datatable-activity").DataTable().page.info().page > 0) {' . "\r\n" . '                        setParam("page", $("#datatable-activity").DataTable().page.info().page+1);' . "\r\n" . '                    } else {' . "\r\n" . '                        delParam("page");' . "\r\n" . '                    }' . "\r\n" . '                    var rOrder = $("#datatable-activity").DataTable().order()[0];' . "\r\n" . '                    setParam("order", rOrder[0]); setParam("dir", rOrder[1]);' . "\r\n" . '                    clearTimeout(window.rRefresh);' . "\r\n" . '                    if ($("#datatable-activity").DataTable().rows().count() <= 50) {' . "\r\n" . '                        setTimeout(refreshInformation, 5000);' . "\r\n" . '                    }' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "live_connections";' . "\r\n" . '                        d.user_id = getLine();' . "\r\n\t\t\t\t\t\t" . 'd.stream_id = getStream();' . "\r\n\t\t\t\t\t\t" . 'd.server_id = getServer();' . "\r\n" . '                        ';
 
-	if (CoreUtilities::$rSettings['redis_handler']) {
+	if (SettingsManager::getAll()['redis_handler']) {
 	} else {
 		echo '                        d.filter = getFilter();' . "\r\n" . '                        ';
 	}
 
 	echo "\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [1,7,8,9,10,11]},' . "\r\n\t\t\t\t\t";
 
-	if (!CoreUtilities::$rSettings['redis_handler']) {
+	if (!SettingsManager::getAll()['redis_handler']) {
 	} else {
 		echo "\t\t\t\t\t" . '{"orderable": false, "targets": [1,2,3,4,5,6,7,9,10,11]},' . "\r\n\t\t\t\t\t";
 	}
@@ -321,21 +321,21 @@ renderUnifiedLayoutFooter('admin');
 
 	echo "\t\t\t\t";
 
-	if (CoreUtilities::$rSettings['redis_handler']) {
+	if (SettingsManager::getAll()['redis_handler']) {
 		echo "\t\t\t\t" . 'order: [[ 8, "';
-		echo (in_array(strtolower(CoreUtilities::$rRequest['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(CoreUtilities::$rRequest['dir']) : 'desc');
+		echo (in_array(strtolower(RequestManager::getAll()['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::getAll()['dir']) : 'desc');
 		echo '" ]],' . "\r\n\t\t\t\t";
 	} else {
 		echo "\t\t\t\t" . 'order: [[ ';
-		echo (isset(CoreUtilities::$rRequest['order']) ? intval(CoreUtilities::$rRequest['order']) : 8);
+		echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 8);
 		echo ', "';
-		echo (in_array(strtolower(CoreUtilities::$rRequest['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(CoreUtilities::$rRequest['dir']) : 'desc');
+		echo (in_array(strtolower(RequestManager::getAll()['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::getAll()['dir']) : 'desc');
 		echo '" ]],' . "\r\n\t\t\t\t";
 	}
 
 	echo '                pageLength: parseInt(rEntries),' . "\r\n\t\t\t\t" . 'lengthMenu: [10, 25, 50, 250, 500, 1000],' . "\r\n" . '                displayStart: (parseInt(rPage)-1) * parseInt(rEntries)' . "\r\n\t\t\t" . "}).on('processing.dt', function (e, settings, processing) {" . "\r\n" . '                window.rProcessing = processing;' . "\r\n" . '            });' . "\r\n" . '            function doSearch(rValue) {' . "\r\n" . '                clearTimeout(window.rSearch); window.rSearch = setTimeout(function(){ rTable.search(rValue).draw(); }, 500);' . "\r\n" . '            }' . "\r\n\t\t\t" . '$("#datatable-activity").css("width", "100%");' . "\r\n\t\t\t" . "\$('#live_search').keyup(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#live_search").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("search", $("#live_search").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("search");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'doSearch($(this).val());' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#live_show_entries').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#live_show_entries").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("entries", $("#live_show_entries").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("entries");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.page.len($(this).val()).draw();' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#live_line').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#live_line").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("user_id", $("#live_line").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("user_id");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n" . "            \$('#live_stream').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#live_stream").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("stream_id", $("#live_stream").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("stream_id");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n" . "            \$('#live_filter').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#live_filter").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("filter", $("#live_filter").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("filter");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n" . "            \$('#live_server').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#live_server").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("server", $("#live_server").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("server");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n" . "            if (\$('#live_search').val()) {" . "\r\n\t\t\t\t" . "rTable.search(\$('#live_search').val()).draw();" . "\r\n\t\t\t" . '}' . "\r\n" . '            $("#btn-export-csv").click(function() {' . "\r\n" . '                $.toast("Generating CSV report...");' . "\r\n" . '                window.location.href = "api?action=report&params=" + encodeURIComponent(JSON.stringify($("#datatable-activity").DataTable().ajax.params()));' . "\r\n\t\t\t" . '});' . "\r\n" . '            checkClear();' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
 	?>
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+	<?php if (SettingsManager::getAll()['enable_search']): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

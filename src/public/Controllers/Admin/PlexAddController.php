@@ -1,6 +1,6 @@
 <?php
 /**
- * PlexAddController — Add/Edit Plex Library (Phase 6.3 — Group L).
+ * PlexAddController — Add/Edit Plex Library.
  */
 class PlexAddController extends BaseAdminController
 {

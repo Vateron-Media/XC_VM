@@ -20,13 +20,13 @@ class BlocklistService {
 		return array('status' => STATUS_FAILURE, 'data' => $rData);
 	}
 
-	public static function processISP($rData, $rGetISPCallback) {
+	public static function processISP($rData) {
 		global $db;
 		if (isset($rData['edit'])) {
 			if (!Authorization::check('adv', 'block_isps')) {
 				exit();
 			}
-			$rArray = overwriteData(call_user_func($rGetISPCallback, $rData['edit']), $rData);
+			$rArray = overwriteData(getISP($rData['edit']), $rData);
 		} else {
 			if (!Authorization::check('adv', 'block_isps')) {
 				exit();
@@ -56,10 +56,10 @@ class BlocklistService {
 		return array('status' => STATUS_FAILURE, 'data' => $rData);
 	}
 
-	public static function processRTMPIP($rData, $rGetRTMPIPCallback) {
+	public static function processRTMPIP($rData) {
 		global $db;
 		if (isset($rData['edit'])) {
-			$rArray = overwriteData(call_user_func($rGetRTMPIPCallback, $rData['edit']), $rData);
+			$rArray = overwriteData(getRTMPIP($rData['edit']), $rData);
 		} else {
 			$rArray = verifyPostTable('rtmp_ips', $rData);
 			unset($rArray['id']);
@@ -96,10 +96,10 @@ class BlocklistService {
 		return array('status' => STATUS_FAILURE, 'data' => $rData);
 	}
 
-	public static function processUA($rData, $rGetUserAgentCallback) {
+	public static function processUA($rData) {
 		global $db;
 		if (isset($rData['edit'])) {
-			$rArray = overwriteData(call_user_func($rGetUserAgentCallback, $rData['edit']), $rData);
+			$rArray = overwriteData(getUserAgent($rData['edit']), $rData);
 		} else {
 			$rArray = verifyPostTable('blocked_uas', $rData);
 			unset($rArray['id']);
@@ -138,6 +138,33 @@ class BlocklistService {
 		return false;
 	}
 
+	public static function checkAndBlockUA($rBlockedUA, $rUserAgent, $rReturn = false) {
+		global $db;
+		$rUserAgent = strtolower($rUserAgent);
+		$rFoundID = false;
+		foreach ($rBlockedUA as $rKey => $rBlocked) {
+			if ($rBlocked['exact_match'] == 1) {
+				if ($rBlocked['blocked_ua'] == $rUserAgent) {
+					$rFoundID = $rKey;
+					break;
+				}
+			} else {
+				if (stristr($rUserAgent, $rBlocked['blocked_ua'])) {
+					$rFoundID = $rKey;
+					break;
+				}
+			}
+		}
+		if (0 < $rFoundID) {
+			$db->query('UPDATE `blocked_uas` SET `attempts_blocked` = `attempts_blocked`+1 WHERE `id` = ?', $rFoundID);
+			if ($rReturn) {
+				return true;
+			}
+			exit();
+		}
+		return false;
+	}
+
 	public static function checkISP($rBlockedISP, $rConISP) {
 		foreach ($rBlockedISP as $rISP) {
 			if (strtolower($rConISP) == strtolower($rISP['isp'])) {
@@ -153,14 +180,23 @@ class BlocklistService {
 
 	// ──────────── Из BlocklistRepository ────────────
 
-	public static function getProxyIPs($rServers, $rGetCacheCallback, $rSetCacheCallback, $rForce = false) {
-		if (!$rForce && is_callable($rGetCacheCallback)) {
-			$rCache = call_user_func($rGetCacheCallback, 'proxy_servers', 20);
+	public static function isProxy($rIP) {
+		$rProxies = self::getProxyIPs();
+		if (isset($rProxies[$rIP])) {
+			return $rProxies[$rIP];
+		}
+		return null;
+	}
+
+	public static function getProxyIPs($rForce = false) {
+		if (!$rForce) {
+			$rCache = FileCache::getCache('proxy_servers', 20);
 			if ($rCache !== false) {
 				return $rCache;
 			}
 		}
 
+		$rServers = ServerRepository::getAll();
 		$rOutput = array();
 		foreach ($rServers as $rServer) {
 			if ($rServer['server_type'] == 1) {
@@ -171,17 +207,15 @@ class BlocklistService {
 			}
 		}
 
-		if (is_callable($rSetCacheCallback)) {
-			call_user_func($rSetCacheCallback, 'proxy_servers', $rOutput);
-		}
+		FileCache::setCache('proxy_servers', $rOutput);
 
 		return $rOutput;
 	}
 
-	public static function getBlockedUA($rGetCacheCallback, $rSetCacheCallback, $rForce = false) {
+	public static function getBlockedUA($rForce = false) {
 		global $db;
-		if (!$rForce && is_callable($rGetCacheCallback)) {
-			$rCache = call_user_func($rGetCacheCallback, 'blocked_ua', 20);
+		if (!$rForce) {
+			$rCache = FileCache::getCache('blocked_ua', 20);
 			if ($rCache !== false) {
 				return $rCache;
 			}
@@ -190,17 +224,15 @@ class BlocklistService {
 		$db->query('SELECT id,exact_match,LOWER(user_agent) as blocked_ua FROM `blocked_uas`');
 		$rOutput = $db->get_rows(true, 'id');
 
-		if (is_callable($rSetCacheCallback)) {
-			call_user_func($rSetCacheCallback, 'blocked_ua', $rOutput);
-		}
+		FileCache::setCache('blocked_ua', $rOutput);
 
 		return $rOutput;
 	}
 
-	public static function getBlockedIPs($rGetCacheCallback, $rSetCacheCallback, $rForce = false) {
+	public static function getBlockedIPs($rForce = false) {
 		global $db;
-		if (!$rForce && is_callable($rGetCacheCallback)) {
-			$rCache = call_user_func($rGetCacheCallback, 'blocked_ips', 20);
+		if (!$rForce) {
+			$rCache = FileCache::getCache('blocked_ips', 20);
 			if ($rCache !== false) {
 				return $rCache;
 			}
@@ -212,17 +244,15 @@ class BlocklistService {
 			$rOutput[] = $rRow['ip'];
 		}
 
-		if (is_callable($rSetCacheCallback)) {
-			call_user_func($rSetCacheCallback, 'blocked_ips', $rOutput);
-		}
+		FileCache::setCache('blocked_ips', $rOutput);
 
 		return $rOutput;
 	}
 
-	public static function getBlockedISP($rGetCacheCallback, $rSetCacheCallback, $rForce = false) {
+	public static function getBlockedISP($rForce = false) {
 		global $db;
-		if (!$rForce && is_callable($rGetCacheCallback)) {
-			$rCache = call_user_func($rGetCacheCallback, 'blocked_isp', 20);
+		if (!$rForce) {
+			$rCache = FileCache::getCache('blocked_isp', 20);
 			if ($rCache !== false) {
 				return $rCache;
 			}
@@ -231,17 +261,15 @@ class BlocklistService {
 		$db->query('SELECT id,isp,blocked FROM `blocked_isps`');
 		$rOutput = $db->get_rows();
 
-		if (is_callable($rSetCacheCallback)) {
-			call_user_func($rSetCacheCallback, 'blocked_isp', $rOutput);
-		}
+		FileCache::setCache('blocked_isp', $rOutput);
 
 		return $rOutput;
 	}
 
-	public static function getBlockedServers($rGetCacheCallback, $rSetCacheCallback, $rForce = false) {
+	public static function getBlockedServers($rForce = false) {
 		global $db;
-		if (!$rForce && is_callable($rGetCacheCallback)) {
-			$rCache = call_user_func($rGetCacheCallback, 'blocked_servers', 20);
+		if (!$rForce) {
+			$rCache = FileCache::getCache('blocked_servers', 20);
 			if ($rCache !== false) {
 				return $rCache;
 			}
@@ -253,9 +281,7 @@ class BlocklistService {
 			$rOutput[] = $rRow['asn'];
 		}
 
-		if (is_callable($rSetCacheCallback)) {
-			call_user_func($rSetCacheCallback, 'blocked_servers', $rOutput);
-		}
+		FileCache::setCache('blocked_servers', $rOutput);
 
 		return $rOutput;
 	}

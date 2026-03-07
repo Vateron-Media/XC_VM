@@ -9,9 +9,9 @@
 		goHome();
 	}
 
-	if (isset(CoreUtilities::$rRequest['id'])) {
-		if (!isset(CoreUtilities::$rRequest['import']) && Authorization::check('adv', 'edit_stream')) {
-			$rStream = StreamRepository::getById(CoreUtilities::$rRequest['id']);
+	if (isset(RequestManager::getAll()['id'])) {
+		if (!isset(RequestManager::getAll()['import']) && Authorization::check('adv', 'edit_stream')) {
+			$rStream = StreamRepository::getById(RequestManager::getAll()['id']);
 
 			if (!$rStream && $rStream['type'] != 1) {
 				goHome();
@@ -39,8 +39,8 @@
 	}
 
 	if (isset($rStream)) {
-		$rStreamOptions = StreamRepository::getOptions(CoreUtilities::$rRequest['id']);
-		$rStreamSys = StreamRepository::getSystemRows(CoreUtilities::$rRequest['id']);
+		$rStreamOptions = StreamRepository::getOptions(RequestManager::getAll()['id']);
+		$rStreamSys = StreamRepository::getSystemRows(RequestManager::getAll()['id']);
 
 		foreach ($rServers as $rServer) {
 			if (isset($rStreamSys[intval($rServer['id'])])) {
@@ -93,7 +93,7 @@ endif;
 						if (isset($rStream['id'])) {
 							echo $rStream['stream_display_name'];
 						} else {
-							if (isset(CoreUtilities::$rRequest['import'])) {
+							if (isset(RequestManager::getAll()['import'])) {
 								echo 'Import Streams';
 							} else {
 								echo 'Add Stream';
@@ -110,7 +110,7 @@ endif;
 				<div class="card">
 					<div class="card-body">
 						<form
-							<?php if (isset(CoreUtilities::$rRequest['import'])): ?>
+							<?php if (isset(RequestManager::getAll()['import'])): ?>
 							enctype="multipart/form-data"
 							<?php endif; ?>
 							action="#"
@@ -133,13 +133,13 @@ endif;
 									<li class="nav-item"><a href="#stream-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"> <i class="mdi mdi-account-card-details-outline mr-1"></i><span class="d-none d-sm-inline">Details</span></a></li>
 
 									<?php
-									if (!isset(CoreUtilities::$rRequest['import'])) {
+									if (!isset(RequestManager::getAll()['import'])) {
 										echo ' <li class="nav-item"><a href="#stream-sources" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"><i class="mdi mdi-arrow-up-down-bold-outline mr-1"></i><span class="d-none d-sm-inline">Sources</span></a></li> ';
 									}
 
 									echo '<li class="nav-item"><a href="#advanced-options" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"><i class="mdi mdi-folder-alert-outline mr-1"></i><span class="d-none d-sm-inline">Advanced</span></a></li>';
 
-									if (isset(CoreUtilities::$rRequest['import'])) {
+									if (isset(RequestManager::getAll()['import'])) {
 									} else {
 										echo '<li class="nav-item"><a href="#stream-map" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"><i class="mdi mdi-map mr-1"></i><span class="d-none d-sm-inline">Map</span></a></li>
 									<li class="nav-item"><a href="#epg-options" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"><i class="mdi mdi-television-guide mr-1"></i><span class="d-none d-sm-inline">EPG</span></a></li> ';
@@ -157,15 +157,15 @@ endif;
 										<div class="row">
 											<div class="col-12">
 												<?php
-												if (!isset(CoreUtilities::$rRequest['import'])) {
+												if (!isset(RequestManager::getAll()['import'])) {
 													echo "\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="stream_display_name">Stream Name</label>
 													<div class="col-md-9"><input type="text" class="form-control" id="stream_display_name" name="stream_display_name" value="';
 
 													if (isset($rStream)) {
 														echo htmlspecialchars($rStream['stream_display_name']);
 													} else {
-														if (isset(CoreUtilities::$rRequest['title'])) {
-															echo str_replace('"', ' &quot;', CoreUtilities::$rRequest['title']);
+														if (isset(RequestManager::getAll()['title'])) {
+															echo str_replace('"', ' &quot;', RequestManager::getAll()['title']);
 														}
 													}
 
@@ -174,8 +174,8 @@ endif;
 													if (isset($rStream)) {
 														echo htmlspecialchars($rStream['stream_icon']);
 													} else {
-														if (isset(CoreUtilities::$rRequest['icon'])) {
-															echo str_replace('"', '&quot;', CoreUtilities::$rRequest['icon']);
+														if (isset(RequestManager::getAll()['icon'])) {
+															echo str_replace('"', '&quot;', RequestManager::getAll()['icon']);
 														}
 													}
 
@@ -186,7 +186,7 @@ endif;
 
 												echo "\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="category_id">Categories</label><div class="col-md-9">                                                        <select name="category_id[]" id="category_id" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
 
-												foreach (getCategories('live') as $rCategory) {
+												foreach (CategoryService::getAllByType('live') as $rCategory) {
 													echo '                                                            <option ';
 
 													if (isset($rStream)) {
@@ -227,7 +227,7 @@ endif;
 
 												echo '</textarea></div></div></div> </div> <ul class="list-inline wizard mb-0"><li class="nextb list-inline-item float-right"><a href="javascript: void(0);" class="btn btn-secondary">Next</a></li></ul></div>                                    ';
 
-												if (isset(CoreUtilities::$rRequest['import'])) {
+												if (isset(RequestManager::getAll()['import'])) {
 												} else {
 													echo '                                    <div class="tab-pane" id="stream-sources"><div class="row"><div class="col-12">                                                <table id="datatable-sources" class="table table-striped table-borderless mb-0">                                                    <thead>                                                        <tr>                                                            <th>URL</th>                                                            ';
 
@@ -245,8 +245,8 @@ endif;
 															$rStreamSources = array('');
 														}
 													} else {
-														if (isset(CoreUtilities::$rRequest['url'])) {
-															$rStreamSources = array(str_replace('"', '&quot;', CoreUtilities::$rRequest['url']));
+														if (isset(RequestManager::getAll()['url'])) {
+															$rStreamSources = array(str_replace('"', '&quot;', RequestManager::getAll()['url']));
 														} else {
 															$rStreamSources = array('');
 														}
@@ -357,7 +357,7 @@ endif;
 
 												echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div>                                                ';
 
-												if (!isset(CoreUtilities::$rRequest['import'])) {
+												if (!isset(RequestManager::getAll()['import'])) {
 												} else {
 													echo '                                                <div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="add_source_as_backup">Add Source as Backup <i title="If an identical stream name is found, or the XMLTV ID matches an existing stream, the source will be added as a backup. The existing stream options will be kept." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-3"><input name="add_source_as_backup" id="add_source_as_backup" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="update_existing">Update Existing <i title="If the source exists, overwrite it with the new title and stream options." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="update_existing" id="update_existing" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div>                                                ';
 												}
@@ -592,7 +592,7 @@ endif;
 								</div>
 								<?php
 
-								if (!isset(CoreUtilities::$rRequest['import'])) {
+								if (!isset(RequestManager::getAll()['import'])) {
 									echo '<div class="tab-pane" id="stream-map">
 												<div class="row">
 													<div class="col-12">
@@ -1064,7 +1064,7 @@ renderUnifiedLayoutFooter('admin'); ?>
 	echo (intval($rSettings['default_entries']) ?: 10);
 	echo "\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable-provider-streams").css("width", "100%");' . "\r\n" . '            $("#provider-streams").click(function() {' . "\r\n" . '                $("#datatable-provider-streams").DataTable().search($("#stream_display_name").val()).draw();' . "\r\n" . '                $(".bs-provider-streams-modal-center").modal("show");' . "\r\n" . '            });' . "\r\n" . '            $("#epg_picon_save").click(function() {' . "\r\n" . '                $("#stream_icon").val($("#epg-picon").attr("src")).trigger("change");' . "\r\n" . '                $(".bs-picon-modal-center").modal("hide");' . "\r\n" . '                $.toast("Stream icon has been set.");' . "\r\n" . '            });' . "\r\n\t\t\t" . '$("#capture_server_id").change(function() {' . "\r\n\t\t\t\t" . 'if (window.rVideoDevices[$("#capture_server_id").val()]) {' . "\r\n\t\t\t\t\t" . '// Coming soon! :)' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t\t" . 'if (window.rAudioDevices[$("#capture_server_id").val()]) {' . "\r\n\t\t\t\t\t" . '// Coming soon! :)' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . 'evaluateDirectSource();' . "\r\n" . '            $("form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n" . '                rSubmit = true;' . "\r\n\t\t\t\t";
 
-	if (!isset(CoreUtilities::$rRequest['import'])) {
+	if (!isset(RequestManager::getAll()['import'])) {
 		echo "\t\t\t\t" . 'if ($("#stream_display_name").val().length == 0) {' . "\r\n\t\t\t\t\t" . '$.toast("Enter a stream name.");' . "\r\n" . '                    rSubmit = false;' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t\t";
 	} else {
 		echo "\t\t\t\t" . 'if ($("#m3u_file").val().length == 0) {' . "\r\n\t\t\t\t\t" . '$.toast("Please select a M3U file to upload.");' . "\r\n" . '                    rSubmit = false;' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t\t";
@@ -1072,13 +1072,13 @@ renderUnifiedLayoutFooter('admin'); ?>
 
 	echo "\t\t\t\t" . "\$(\"#server_tree_data\").val(JSON.stringify(\$('#server_tree').jstree(true).get_json('source', {flat:true})));";
 
-	if (!isset(CoreUtilities::$rRequest['import'])) {
+	if (!isset(RequestManager::getAll()['import'])) {
 		echo '                var rRTMPPush = {};' . "\r\n" . '                $(".rtmp_info").each(function() {' . "\r\n" . '                    rServerID = $(this).find("select").val();' . "\r\n" . '                    rSource = $(this).find("input").val();' . "\r\n" . '                    if (rServerID > 0 && rSource.length > 0) {' . "\r\n" . '                        if (!rRTMPPush[rServerID]) {' . "\r\n" . '                            rRTMPPush[rServerID] = [];' . "\r\n" . '                        }' . "\r\n" . '                        rRTMPPush[rServerID].push(rSource);' . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n" . '                $("#external_push").val(JSON.stringify(rRTMPPush));' . "\r\n" . '                ';
 	}
 
 	echo '                if (rSubmit) {' . "\r\n" . "                    \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                    submitForm(window.rCurrentPage, new FormData($("form")[0]), window.rReferer);' . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
 	?>
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+	<?php if (SettingsManager::getAll()['enable_search']): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

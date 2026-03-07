@@ -1,7 +1,7 @@
 <?php
 
 class PlexService {
-	public static function editPlexSettings($rData, $clearSettingsCacheCallback = null) {
+	public static function editPlexSettings($rData) {
 		global $db;
 		foreach ($rData as $rKey => $rValue) {
 			$rSplit = explode('_', $rKey);
@@ -28,14 +28,14 @@ class PlexService {
 		}
 
 		$db->query('UPDATE `settings` SET `scan_seconds` = ?, `max_genres` = ?, `thread_count_movie` = ?, `thread_count_show` = ?;', $rData['scan_seconds'], $rData['max_genres'], $rData['thread_count_movie'], $rData['thread_count_show']);
-		call_user_func($clearSettingsCacheCallback);
+		clearSettingsCache();
 		return array('status' => STATUS_SUCCESS);
 	}
 
-	public static function processPlexSync($rData, $getWatchFolderCallback = null) {
+	public static function processPlexSync($rData) {
 		global $db;
 		if (isset($rData['edit'])) {
-			$rArray = overwriteData(call_user_func($getWatchFolderCallback, $rData['edit']), $rData);
+			$rArray = overwriteData(getWatchFolder($rData['edit']), $rData);
 		} else {
 			$rArray = verifyPostTable('watch_folders', $rData);
 			unset($rArray['id']);
@@ -92,7 +92,7 @@ class PlexService {
 		return array('status' => STATUS_FAILURE, 'data' => $rData);
 	}
 
-	public static function forcePlex($rServerID, $rPlexID, $systemApiRequestCallback = null) {
-		call_user_func($systemApiRequestCallback, $rServerID, array('action' => 'plex_force', 'id' => $rPlexID));
+	public static function forcePlex($rServerID, $rPlexID) {
+		systemapirequest($rServerID, array('action' => 'plex_force', 'id' => $rPlexID));
 	}
 }

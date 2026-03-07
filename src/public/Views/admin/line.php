@@ -1,6 +1,6 @@
 <?php
 /**
- * Line add/edit view (Phase 6.3 — Group C).
+ * Line add/edit view.
  * Delegation proxy → legacy admin/line.php HTML body.
  */
 $__viewMode = true;

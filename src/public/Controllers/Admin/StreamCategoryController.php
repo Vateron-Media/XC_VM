@@ -1,6 +1,6 @@
 <?php
 /**
- * StreamCategoryController — редактирование категории стрима (Phase 6.3 — Group A).
+ * StreamCategoryController — редактирование категории стрима.
  */
 class StreamCategoryController extends BaseAdminController
 {
@@ -8,8 +8,8 @@ class StreamCategoryController extends BaseAdminController
     {
         $this->requirePermission();
 
-        if (isset(CoreUtilities::$rRequest['id'])) {
-            $rCategoryArr = getCategory(CoreUtilities::$rRequest['id']);
+        if (isset(RequestManager::getAll()['id'])) {
+            $rCategoryArr = getCategory(RequestManager::getAll()['id']);
             if (!$rCategoryArr || !Authorization::check('adv', 'edit_cat')) {
                 exit();
             }

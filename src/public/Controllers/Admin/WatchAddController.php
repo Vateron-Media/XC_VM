@@ -1,6 +1,6 @@
 <?php
 /**
- * WatchAddController — Add/Edit Watch Folder (Phase 6.3 — Group L).
+ * WatchAddController — Add/Edit Watch Folder.
  */
 class WatchAddController extends BaseAdminController
 {

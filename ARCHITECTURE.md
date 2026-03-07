@@ -1351,1002 +1351,144 @@ lb_copy_files:
 
 ### Фаза 0: Подготовка ✅
 
-1. ✅ Автозагрузчик `src/autoload.php` — карта классов + fallback spl_autoload
-2. ✅ Скелет директорий (98 каталогов)
-3. ✅ `bootstrap.php` — XC_Bootstrap с 4 контекстами
-4. ✅ `core/Container/ServiceContainer.php` — DI-контейнер
-5. ✅ Разбиение `www/constants.php` → 7 core-файлов + тонкий фасад (74 строки)
-   - ✅ `core/Config/Paths.php`, `AppConfig.php`, `Binaries.php`, `ConfigLoader.php`
-   - ✅ `core/Error/ErrorCodes.php`, `ErrorHandler.php`
-   - ✅ `core/Http/RequestGuard.php`
-   - ✅ `www/stream/init.php` → подключён autoload.php
+Autoload, скелет директорий, bootstrap.php, ServiceContainer, разбиение constants.php → 7 core-файлов.
 
 ---
 
-### Фаза 1: Извлечение core/ (базовые компоненты)
+### Фаза 1: Извлечение core/ ✅
 
-#### 1.1 ✅ Database
-- ✅ `core/Database/DatabaseHandler.php` (530 стр.) ← `includes/Database.php`
-- ✅ `core/Database/Database.php` (299 стр.) — перемещён из `includes/`
-- ✅ Все 20 файлов переключены на DatabaseHandler
+Database, Cache, Http/Request, Auth, Process, Util — все базовые компоненты извлечены из god-объектов.
 
-#### 1.2 ✅ Cache
-- ✅ `core/Cache/CacheInterface.php` (84 стр.)
-- ✅ `core/Cache/FileCache.php` (229 стр.) ← `CoreUtilities::getCache/setCache`
-- ✅ `core/Cache/RedisCache.php` (262 стр.)
+### Фаза 1.7: Оставшиеся извлечения core/ ✅
 
-#### 1.3 ✅ Http / Request
-- ✅ `core/Http/Request.php` (449 стр.) ← `cleanGlobals()` + `parseIncomingRecursively()`
-- ✅ `core/Http/Response.php` (139 стр.)
-
-#### 1.4 ✅ Auth
-- ✅ `core/Auth/SessionManager.php` (305 стр.) ← из двух `session.php`
-
-#### 1.5 ✅ Process
-- ✅ `core/Process/ProcessManager.php` (366 стр.) ← shell_exec/posix_kill
-
-#### 1.6 ✅ Util
-- ✅ `core/Util/GeoIP.php` (159 стр.) ← `CoreUtilities`
-- ✅ `core/Util/Encryption.php` (137 стр.) ← `CoreUtilities`
-- ✅ `core/Util/TimeUtils.php` (114 стр.) ← `CoreUtilities` + `admin.php::secondsToTime()`
-- ✅ `core/Util/NetworkUtils.php` (129 стр.) ← IP/CIDR/subnet из `CoreUtilities`
-
----
-
-### Фаза 1.7: Оставшиеся извлечения core/
-
-**Из `CoreUtilities.php` (4847 строк) → новые классы:**
-
-#### Шаг 1.7.1 — Логирование ✅
-- ✅ Извлечь `saveLog()` (стр. 489–504) → `FileLogger::log()`
-- ✅ Извлечь `clientLog()` (StUtil стр. 1169–1177) → `DatabaseLogger::log()`
-- ✅ Написать `LoggerInterface` с методом `log($type, $message, $extra)`
-- ✅ Proxy: `CoreUtilities::saveLog()` → `FileLogger::log()`
-- ✅ Proxy: `StreamingUtilities::clientLog()` → `DatabaseLogger::log()`
-
-#### Шаг 1.7.2 — Системная информация ✅
-- ✅ Извлечь 9 методов (стр. 534–671, 827–852, 1338–1344, 4621–4665) → `SystemInfo`
-- ✅ Proxy: каждый вызов `CoreUtilities::getStats()` → `SystemInfo::getStats()`
-
-#### Шаг 1.7.3 — Защита от брутфорса (Flood/Bruteforce) ✅
-- ✅ Извлечь 4 метода из CoreUtilities (стр. 709–826) → `BruteforceGuard`
-- ✅ 4 дублированных метода в StreamingUtilities (стр. 215–394) → proxy на тот же `BruteforceGuard`
-- ✅ Первая дедупликация CoreUtilities ↔ StreamingUtilities
-
-#### Шаг 1.7.4 — HTTP-клиент (cURL) ✅
-- ✅ Извлечь 3 метода (стр. 373–428, 1408–1442, 3568–3578) → `CurlClient`
-
-#### Шаг 1.7.5 — Событийная система ✅
-- ✅ Написать простой EventDispatcher (publish/subscribe)
-- ✅ Пока без подписчиков — подготовка к модульной системе
-
-#### Шаг 1.7.6 — RBAC / Авторизация ✅
-- ✅ Извлечь `hasPermissions()` (стр. 582–619) и `hasResellerPermissions()` (стр. 575–581)
-- ✅ Массив `$rAdvPermissions` → `resources/data/admin_constants.php`
-- ✅ Proxy: глобальные функции в `admin.php` → `Authorization::check()`
-
-#### Шаг 1.7.7 — Аутентификация ✅
-- ✅ Извлечь `processLogin()` из `admin_api.php` (стр. 1399–1478) → `Authenticator::login()`
-- ✅ Извлечь `processLogin()` из `reseller_api.php` → `Authenticator::resellerLogin()`
-- ✅ Proxy: `API::processLogin()` → `Authenticator::login()`
-
-#### Шаг 1.7.8 — Утилиты изображений ✅
-- ✅ Извлечь методы работы с изображениями (resize, thumbnail, URL-валидация)
-- ✅ `StreamingUtilities::validateImage()` (стр. 1355) → `ImageUtils::validateURL()`
-- ✅ `admin.php::getAdminImage()` (стр. 871–883) → `ImageUtils::resize()`
+Логирование, SystemInfo, BruteforceGuard, CurlClient, EventDispatcher, Authorization, Authenticator, ImageUtils — 8 шагов завершены.
 
 ---
 
 ### Фаза 2: Дедупликация CoreUtilities ↔ StreamingUtilities ✅
 
-Форк устранён. 53 дублированных метода дедуплицированы.
-
-#### Шаг 2.1 — Инвентаризация дубликатов ✅
-
-Инвентаризация выполнена: **53 общих метода** между CoreUtilities и StreamingUtilities.
-Все методы распределены по шагам 2.2–2.5 и успешно дедуплицированы.
-
-#### Шаг 2.2 — Redis и сигналы ✅
-- ✅ Извлечь Redis-подключение в `RedisManager` (единый для обоих)
-- ✅ Proxy: оба класса вызывают `RedisManager::connect()`
-- ✅ `getDomainName()` → `DomainResolver::resolve()` (чистая утилита конфигурации)
-
-#### Шаг 2.3 — Трекинг подключений (Redis) ✅
-- ✅ ~17 методов вынесены в `ConnectionTracker` (работа с Redis-ключами подключений)
-- ✅ Proxy: оба god-объекта делегируют в `ConnectionTracker`
-
-#### Шаг 2.4 — Справочные данные и сортировки ✅
-- ✅ Сортировки и форматирование вынесены в `StreamSorter`
-- ✅ Данные-справочники вынесены в `BouquetMapper` / `CategoryRepository` / `BouquetRepository` / `ServerRepository` / `SettingsRepository`
-
-#### Шаг 2.5 — Дедупликация init() ✅
-- ✅ Оба `init()` стали тонкими обёртками
-- ✅ Общая логика вынесена в `core/Init/LegacyInitializer.php`
-- ✅ Состояние init синхронизируется через `ServiceContainer`
+53 дублированных метода дедуплицированы: Redis/сигналы, трекинг подключений, справочные данные, init().
 
 ---
 
 ### Фаза 3: Извлечение domain/ — бизнес-логика ✅
 
-Все entity/repository/service извлечены из god-объектов. Proxy-методы оставлены в исходных файлах.
-
-#### Шаг 3.1 — domain/Stream/ ✅
-- `StreamService.php` — processStream, massEdit, massDelete, move, replaceDNS ← admin_api.php
-- `ChannelService.php` — processChannel, massEdit, setOrder ← admin_api.php
-- `CategoryService.php` — processCategory, orderCategories ← admin_api.php
-- `StreamRepository.php` — getStream, getStreamStats, getStreamErrors, getStreamPIDs, getStreamOptions, getStreamSys, getNextOrder ← admin.php
-- `CategoryRepository.php` — getCategories ← admin.php
-- `M3UParser.php` — parseM3U ← admin.php
-- `StreamProcess.php` — startMonitor, stopStream, startProxy, startThumbnail, queueChannel, createChannel, updateStream(s), createChannelItem, startMovie, stopMovie, startLoopback, queueMovie(s), refreshMovies, startStream, startLLOD ← CoreUtilities
-
-#### Шаг 3.2 — domain/Vod/ ✅
-- `MovieService.php` — process, massEdit, massDelete, import ← admin_api.php
-- `SeriesService.php` — process, massEdit, massDelete, import ← admin_api.php
-- `EpisodeService.php` — process, massEdit, massDelete ← admin_api.php
-- `SeriesRepository.php` — getList, updateFromTMDB, queueRefresh, getSimilar, generatePlaylist ← admin.php
-- `MovieRepository.php` — getSimilar, deleteFile ← admin.php
-
-#### Шаг 3.3 — domain/Line/ ✅
-- `LineService.php` — process, massEdit, massDelete, delete, update (одиночные и массовые) ← admin_api.php + CoreUtilities
-- `LineRepository.php` — deleteMany ← admin.php
-
-#### Шаг 3.4 — domain/User/ ✅
-- `UserService.php` — process, massEdit, massDelete ← admin_api.php
-- `GroupService.php` — process ← admin_api.php
-- `ProfileService.php` — editAdminProfile ← admin_api.php
-- `UserRepository.php` — getUserInfo, getUser, getRegisteredUser(s), getResellers, getDirectReports, getSubUsers, getParent, getStreamingUserInfo ← admin.php + StreamingUtilities
-- `GroupRepository.php` — getAll, getById, deleteById ← admin.php
-
-#### Шаг 3.5 — domain/Device/ ✅
-- `MagService.php` — process, massEdit, massDelete ← admin_api.php
-- `EnigmaService.php` — process, massEdit, massDelete ← admin_api.php
-- `DeviceSync.php` — syncLineDevices ← admin.php
-
-#### Шаг 3.6 — domain/Server/ ✅
-- `ServerService.php` — process, processProxy, install, reorder ← admin_api.php
-- `ServerRepository.php` — getAllSimple, getStreamingSimple, getProxySimple, getFreeSpace, getStreamsRamdisk, killPID, getRTMPStats, deleteById, probeSource, getSSLLog, checkSource, freeTemp, freeStreams ← admin.php
-
-#### Шаг 3.7 — domain/Bouquet/ ✅
-- `BouquetService.php` — process, reorder, sort, scan, scanOne ← admin_api.php + admin.php
-- `BouquetRepository.php` — getAllSimple, getOrder, getUserBouquets ← admin.php
-
-#### Шаг 3.8 — domain/Epg/ ✅
-- `EpgService.php` — process, getChannelEpg ← admin_api.php + admin.php
-- `EpgRepository.php` — getById, findByName, getStreamEpg, getStreamsEpg, getProgramme, search ← admin.php + CoreUtilities
-
-#### Шаг 3.9 — domain/Settings/ + domain/Ticket/ ✅
-- `SettingsService.php` — edit, editBackup, editCacheCron ← admin_api.php
-- `TicketService.php` — submit ← admin_api.php
-
-#### Шаг 3.10 — domain/Security/ ✅
-- `BlocklistService.php` — processISP, processUA, blockIP, processRTMPIP, checkBlockedUAs, checkISP, checkServer ← admin_api.php + StreamingUtilities
-- `BlocklistRepository.php` — getBlockedIPsSimple, getRTMPIPsSimple, getBlockedUA, getBlockedIPs, getBlockedISP, getBlockedServers, getProxyIPs ← admin.php + CoreUtilities
-
-#### Шаг 3.11 — domain/Auth/ ✅
-- `CodeService.php` — process ← admin_api.php
-- `HMACService.php` — process ← admin_api.php
-- `PackageService.php` — process ← admin_api.php (в domain/Line/)
-- `CodeRepository.php` — getActiveCodes, updateCodes, getCurrentCode ← admin.php
-- `HMACRepository.php` — getAll, getById ← admin.php
-- `PackageRepository.php` — deleteById ← admin.php (в domain/Line/)
-- `HMACValidator.php` — validate ← StreamingUtilities
-
-#### Шаг 3.12 — Playlist-генератор ✅
-- `PlaylistGenerator.php` — generate ← CoreUtilities (самый длинный метод, live/vod/series/radio)
-- `CronGenerator.php` — generate ← CoreUtilities
+12 доменных контекстов: Stream, Vod, Line, User, Device, Server, Bouquet, Epg, Settings/Ticket, Security, Auth, Playlist. Все entity/repository/service извлечены.
 
 ---
 
 ### Фаза 4: Извлечение streaming/ (hot path) ✅
 
-#### Шаг 4.1 — streaming/Auth/ ✅
-- `StreamAuth.php` — checkAccess, validateConnections ← auth.php + StreamingUtilities
-- `TokenAuth.php` — парсинг токенов
-- `DeviceLock.php` — привязка к устройству
-- `ConnectionLimiter.php` — closeConnections, closeRTMP → Protection/
-
-#### Шаг 4.2 — streaming/Delivery/ ✅
-- `LiveDelivery.php` ← www/stream/live.php
-- `StreamRedirector.php` — redirectStream, showVideoServer
-- `OffAirHandler.php` — getOffAirVideo
-- `HLSGenerator.php` — generateHLS
-- `SegmentReader.php` — getLLODSegments
-- `SignalSender.php` — sendSignal
-- `ProxySelector.php` → Balancer/
-
-#### Шаг 4.3 — streaming/Codec/ ✅
-- `FFprobeRunner.php` — probeStream, parseFFProbe
-- `FFmpegCommand.php` — сборка FFmpeg-команд
-- `SubtitleExtractor.php` — extractSubtitle
-
-#### Шаг 4.4 — streaming/Protection/ + Health/ ✅
-- `ConnectionLimiter.php` — closeConnections
-- `HealthChecker.php` — isRunning
-- `ProcessChecker.php` — isPIDRunning, isPIDsRunning, checkPID
-- `WatchdogMonitor.php` — getWatchdog
-
-#### Шаг 4.5 — streaming/StreamingBootstrap.php ✅
-- Лёгкий bootstrap заменяет `www/stream/init.php`
-- Загружает: autoload → constants → Database → Redis
+streaming/Auth, Delivery, Codec, Protection/Health, StreamingBootstrap — лёгкий bootstrap для hot path.
 
 ---
 
-### Фаза 5: Вынесение модулей
+### Фаза 5: Вынесение модулей ✅
 
-Каждый модуль извлекается атомарно — система продолжает работать без него.
+6 модулей извлечены атомарно: plex, watch, tmdb, ministra, fingerprint/theft-detection/magscan. ModuleInterface + ModuleLoader. Thread/Multithread дедуплицированы в `core/Process/`.
 
-#### Шаг 5.1 — modules/plex/ ⚡ (в процессе)
-
-**Завершено:**
-- ✅ `PlexAuth.php` — аутентификация (getPlexToken, checkPlexToken, cachePlexToken и др.)
-- ✅ `PlexRepository.php` — данные (getPlexServers, getPlexSections)
-- ✅ `PlexService.php` — бизнес-логика (editPlexSettings, processPlexSync, forcePlex)
-- ✅ `PlexCron.php` — крон синхронизации (Thread, Multithread, PlexCron::run())
-- ✅ `PlexItem.php` — CLI обработка элементов (PlexItem::run())
-- ✅ `crons/plex.php` — тонкая обёртка → PlexCron::run()
-- ✅ `includes/cli/plex_item.php` — тонкая обёртка → PlexItem::run()
-- ✅ Все 5 классов зарегистрированы в autoload.php
-- ✅ `admin/settings_plex.php` → modules/plex/views/ (контроллер + вынесенный view/scripts)
-- ✅ `admin/plex_add.php` → modules/plex/views/ (контроллер + общие view/scripts)
-- ✅ `admin/plex.php` → modules/plex/views/ (контроллер + список вынесен в view)
-- ✅ `config/plex/` → modules/plex/config/
-
-**Осталось:** —
-
-#### Шаг 5.2 — modules/watch/
-- ✅ `API::editWatchSettings()` → modules/watch/WatchService.php
-- ✅ `API::processWatchFolder()` → modules/watch/WatchService.php
-- ✅ `API::scheduleRecording()` → modules/watch/RecordingService.php
-- ✅ `admin.php::getWatchFolders()` → modules/watch/WatchController.php
-- ✅ `admin.php::getWatchCategories()` → modules/watch/WatchController.php
-- ✅ `admin.php::forceWatch()` → modules/watch/WatchController.php
-- ✅ `admin.php::getRecordings()` → modules/watch/WatchController.php
-- ✅ `admin.php::deleteRecording()` → modules/watch/WatchController.php
-- ✅ `admin/settings_watch.php` → modules/watch/views/ (thin wrapper + view/scripts)
-- ✅ `admin/watch.php` → modules/watch/views/ (thin wrapper + view/scripts)
-- ✅ `admin/watch_add.php` → modules/watch/views/ (thin wrapper + view/scripts)
-- ✅ `admin/watch_output.php` → modules/watch/views/ (thin wrapper + view/scripts)
-- ✅ `admin/record.php` → modules/watch/views/ (thin wrapper + view/scripts)
-- ✅ `crons/watch.php` → modules/watch/WatchCron.php (entry point + extracted class)
-- ✅ `includes/cli/watch_item.php` → modules/watch/WatchItem.php (entry point + extracted class)
-- ✅ `WatchModule::registerCrons()` wired to WatchCron
-
-**Осталось:** —
-
-#### Шаг 5.3 — modules/tmdb/
-- ✅ `admin/api.php::tmdb_search` → modules/tmdb/TmdbService.php (search)
-- ✅ `admin/api.php::tmdb` → modules/tmdb/TmdbService.php (getDetails)
-- ✅ `crons/tmdb.php` → modules/tmdb/TmdbCron.php (entry point + extracted class)
-- ✅ `crons/tmdb_popular.php` → modules/tmdb/TmdbPopularCron.php (entry point + extracted class)
-- ✅ `TmdbModule.php` — registerCrons() wired (TmdbCron + TmdbPopularCron)
-- ✅ `includes/libs/TMDb/` → modules/tmdb/lib.php (proxy loader, lib stays in place)
-
-**Осталось:** —
-
-#### Шаг 5.4 — modules/ministra/
-- ✅ `ministra/portal.php` (2156 строк) → PortalHandler.php (15 статических обработчиков, ~1345 строк)
-- ✅ `ministra/portal.php` helper functions → PortalHelpers.php (19 статических методов, ~860 строк)
-- ✅ `MinistraModule.php` — точка входа модуля (standalone endpoint, без cron/routes)
-- ✅ `ministra/portal.php` → тонкая обёртка: init/auth → PortalHandler (269 строк + хелперы + комментированный оригинал)
 - 🔲 `ministra/*.js` → modules/ministra/assets/ (JS-файлы портала — отложено)
 
-**Осталось:** JS-ассеты (отложено до Фазы 6)
-
-#### Шаг 5.5 — modules/fingerprint/ + modules/theft-detection/ + modules/magscan/
-- ✅ `FingerprintModule.php` — модуль Fingerprint Stream (выбор потока + наложение текста + таблица активности)
-- ✅ `TheftDetectionModule.php` — модуль обнаружения кражи VOD (таблица просмотров, данные из cache_engine)
-- ✅ `MagscanModule.php` — модуль настроек MAGSCAN (белые/чёрные списки MAC + IP)
-- ✅ `module.json` × 3 — метаданные модулей
-- ✅ `config/modules.php` — все 3 модуля раскомментированы и включены
-
-**Источники:**
-```
-admin/fingerprint.php (330 стр.) — UI-страница, API: fingerprint + line_activity
-admin/theft_detection.php (239 стр.) — UI-страница, данные: CACHE_TMP_PATH/theft_detection
-admin/magscan_settings.php (301 стр.) — UI-страница, POST: submit_magscan
-```
-
-#### Шаг 5.6 — ModuleInterface + загрузчик модулей
-- ✅ `core/Module/ModuleInterface.php` — контракт модуля (111 строк): getName, getVersion, boot, registerRoutes, registerCrons, getEventSubscribers
-- ✅ `core/Module/ModuleLoader.php` — загрузчик модулей (243 строки): loadAll, load, checkDependencies, isLoaded, getModule
-- ✅ `config/modules.php` — конфигурация модулей: plex, watch, fingerprint, theft-detection, magscan (enabled), tmdb, ministra (commented)
-
 ---
 
-#### Аудит Фазы 5 ✅
-Проведена полная проверка всех файлов Фазы 5. Найдено и исправлено:
-- **КРИТИЧЕСКОЕ**: `Thread`/`Multithread` дублировались в 3 файлах (PlexCron, WatchCron, cache_engine) → вынесены в `core/Process/Thread.php` + `core/Process/Multithread.php`, все 3 файла переведены на `require_once`
-- **autoload.php**: добавлены 14 отсутствующих записей (WatchCron, WatchItem, Tmdb*, Ministra*, Fingerprint*, TheftDetection*, Magscan*, Thread, Multithread)
-- **module.json**: созданы для `tmdb` и `ministra` (отсутствовали)
-- **config/modules.php**: `tmdb` и `ministra` раскомментированы и включены (были `enabled => false`)
+### Фаза 6: Контроллеры и Views (admin/reseller) ✅
 
----
+#### Шаг 6.1 — Единый layout ✅
 
-### Фаза 6: Контроллеры и Views (admin/reseller) ⚡ (в процессе)
-
-Выполняется ПОСЛЕ извлечения domain/ — контроллеры вызывают сервисы.
-
-#### Шаг 6.1 — Единый layout
-```
-admin/header.php (675 стр.) + reseller/header.php (284 стр.)
-                            → public/Views/layouts/admin.php
-
-admin/footer.php (804 стр.) + reseller/footer.php (719 стр.)
-                            → public/Views/layouts/footer.php
-                            + assets/admin/js/*.js (вынесенный inline JS)
-```
-
-**Сделано (старт шага 6.1):**
-- ✅ Создан `public/Views/layouts/admin.php` — unified header wrapper (`renderUnifiedLayoutHeader`)
-- ✅ Создан `public/Views/layouts/footer.php` — unified footer wrapper (`renderUnifiedLayoutFooter`)
-- ✅ Удалён `public/Views/layouts/.gitkeep`
-- ✅ Переведены на unified wrappers (пилот):
-    - `admin/fingerprint.php`
-    - `admin/magscan_settings.php`
-    - `admin/theft_detection.php`
-- ✅ Переведены на unified wrappers (группа F — настройки):
-    - `admin/settings.php`
-    - `admin/profile.php`
-    - `admin/edit_profile.php`
-- ✅ Переведены на unified wrappers (группа E — букеты):
-    - `admin/bouquets.php`
-    - `admin/bouquet.php`
-    - `admin/bouquet_order.php`
-    - `admin/bouquet_sort.php`
-- ✅ Переведены на unified wrappers (группа D — серверы):
-    - `admin/servers.php`
-    - `admin/server.php`
-    - `admin/server_view.php`
-    - `admin/server_install.php`
-- ✅ Переведены на unified wrappers (группа C — линии/устройства):
-    - `admin/lines.php`
-    - `admin/line.php`
-    - `admin/mags.php`
-    - `admin/mag.php`
-    - `admin/enigmas.php`
-    - `admin/enigma.php`
-- ✅ Переведены на unified wrappers (группа B — VOD):
-    - `admin/movies.php`
-    - `admin/movie.php`
-    - `admin/series.php`
-    - `admin/serie.php`
-    - `admin/episodes.php`
-    - `admin/episode.php`
-- ✅ Переведены на unified wrappers (группа A — потоки):
-    - `admin/streams.php`
-    - `admin/stream.php`
-    - `admin/stream_view.php`
-    - `admin/created_channel.php`
-    - `admin/created_channels.php`
-- ✅ Переведены на unified wrappers (группа G — остальное, пакет 1):
-    - `admin/archive.php`
-    - `admin/dashboard.php`
-    - `admin/epg.php`
-    - `admin/epgs.php`
-    - `admin/group.php`
-    - `admin/groups.php`
-- ✅ Переведены на unified wrappers (группа G — остальное, пакет 2):
-    - `admin/providers.php`
-    - `admin/provider.php`
-    - `admin/packages.php`
-    - `admin/package.php`
-    - `admin/profiles.php`
-    - `admin/proxies.php`
-
-**Дальше в 6.1:**
-- 🔄 Перенос общих CSS/JS-блоков из `admin|reseller` в единые partials
-- 🔄 Подключение `partials/header.php` + `partials/footer.php` к layout system (сейчас не используются)
-- ✅ ~~Постраничное переключение include `header.php/footer.php` → unified layout wrappers~~ — завершено
-
-**Reseller миграция на unified wrappers:**
-- ✅ Переведены (ранее): `dashboard.php`, `streams.php`, `live_connections.php`, `user.php`, `users.php`, `user_logs.php`
-- ✅ Переведены (batch 2): `movies.php`, `enigma.php` (footer fix), `epg_view.php`, `enigmas.php`, `tickets.php`, `ticket_view.php`, `ticket.php`, `radios.php`, `mags.php`, `mag.php`, `line_activity.php`, `lines.php`, `line.php`, `episodes.php`, `created_channels.php`, `edit_profile.php`
-- ℹ️ Не требуют миграции (utility/support): `header.php`, `footer.php`, `functions.php`, `session.php`, `api.php`, `table.php`, `post.php`, `topbar.php`, `modals.php`, `resize.php`, `index.php`, `logout.php`
-- ℹ️ Отдельная страница (свой HTML): `login.php`
+Unified wrappers: `public/Views/layouts/admin.php` + `footer.php`.
 - **Admin: 112/112 page-файлов — 100% мигрированы**
 - **Reseller: 22/22 page-файлов — 100% мигрированы**
+- ⏭️ CSS/JS partials — **отложено** (footer.php: ~800 стр. page-specific inline JS)
 
-#### Шаг 6.2 — Router + Front Controller
-```
-Новый → core/Http/Router.php
-Новый → public/index.php          (front controller)
-Новый → public/routes/admin.php  (admin route definitions)
-Новый → public/routes/api.php    (API route definitions)
-```
+#### Шаг 6.2 — Router + Front Controller ✅
 
-**Статус 6.2:** ✅ Завершён
-- ✅ `core/Http/Router.php` — полная реализация (450 стр.): GET/POST/API routes, group(), middleware, permissions, dispatch(), dispatchApi(), singleton
-  - **Fix: normalizePage()** — `buildRoute()` теперь вызывает `normalizePage()` на результате, чтобы ключи регистрации совпадали с ключами dispatch (rtmp_ips → rtmp/ips)
-  - **Fix: ServiceContainer DI** — `callHandler()` теперь использует `ServiceContainer::getInstance()->get($class)` с fallback на `new $class()` при ошибке
-- ✅ `core/Http/Request.php` — HTTP request wrapper (450 стр.): capture(), input access, sanitization, backward compat
-- ✅ `core/Http/Response.php` — HTTP response helper: json(), redirect(), notFound(), cors(), noCache()
-- ✅ `core/Http/RequestGuard.php` — flood protection, host verification, Logger init
-- ✅ `public/index.php` — Front Controller:
-    - Трёхрежимный парсинг URL → scope + pageName + accessCode:
-      - **Режим A** (Access Code + XC_SCOPE): nginx передаёт scope через `fastcgi_param XC_SCOPE`
-      - **Режим B** (Direct URL): URL содержит `/admin/...` или `/reseller/...`
-      - **Режим C** (Access Code без XC_SCOPE): fallback через `PHP_SELF` (как `CodeRepository::getCurrentCode`)
-    - Маппинг `#TYPE#` → scope: admin, reseller, ministra, includes/api/admin → admin, и т.д.
-    - Bootstrap через legacy chain (session.php → functions.php)
-    - Загрузка маршрутов из routes/{scope}.php + routes/api.php
-    - Dispatch через Router → fallback в legacy include
-    - Поддержка API action dispatch (/admin/api?action=xxx)
-- ✅ `public/routes/admin.php` — шаблон маршрутов admin (заглушки для Step 6.3)
-- ✅ `public/routes/api.php` — шаблон API маршрутов (заглушки для Step 6.3)
+`core/Http/Router.php` (450 стр.), `public/index.php` (Front Controller), `Request.php`, `Response.php`, `RequestGuard.php`. Трёхрежимный URL-парсинг (Access Code + XC_SCOPE / Direct URL / fallback). Access Codes поддержаны.
 
-**Access Codes (`bin/nginx/conf/codes/`):**
+#### Шаг 6.3 — Конвертация admin-страниц (Controller/View) ✅
 
-Панель доступна не по `/admin/`, а по `/RANDOMCODE/`. Коды генерируются из шаблона:
-- Шаблон: `bin/nginx/conf/codes/template`
-- Генератор: `domain/Auth/CodeRepository.php` → `updateCodes()`
-- URL: `http://host/MYCODE/dashboard` → nginx alias → `/home/xc_vm/admin/dashboard.php`
-- Типы кодов (field `type` в таблице):
-
-| type | #TYPE# (alias path)      | scope (Router) |
-|------|--------------------------|----------------|
-| 0    | admin                    | admin          |
-| 1    | reseller                 | reseller       |
-| 2    | ministra                 | ministra       |
-| 3    | includes/api/admin       | admin          |
-| 4    | includes/api/reseller    | reseller       |
-| 5    | ministra/new             | ministra       |
-| 6    | player                   | player         |
-
-**Активация — два варианта:**
-
-1) **Прямой доступ** (dev/test, без access codes):
-```nginx
-location ~ ^/(admin|reseller)(/.*)?$ {
-    try_files $uri /public/index.php?$args;
-}
-```
-
-2) **Access codes** (production) — обновлённый шаблон `bin/nginx/conf/codes/template`:
-```nginx
-location ^~ /#CODE# {
-    alias /home/xc_vm/#TYPE#;
-    index index.php;
-    # Статика и legacy PHP отдаются напрямую
-    try_files $uri $uri.html $uri/ @fc_#CODE#;
-
-    location ~ \.php$ {
-        fastcgi_split_path_info ^(.+\.php)(/.+)$;
-        fastcgi_pass php;
-        include fastcgi_params;
-        fastcgi_param SCRIPT_FILENAME $request_filename;
-    }
-}
-
-# Front Controller fallback для access code #CODE#
-location @fc_#CODE# {
-    fastcgi_param XC_SCOPE #TYPE#;
-    fastcgi_param XC_CODE  #CODE#;
-    fastcgi_param SCRIPT_FILENAME /home/xc_vm/public/index.php;
-    fastcgi_pass php;
-    include fastcgi_params;
-}
-```
-
-Пока nginx шаблон не обновлён — legacy URL через access codes (`/MYCODE/dashboard` → `admin/dashboard.php`) работают как раньше. Front Controller активируется только после обновления template.
-
-#### Шаг 6.3 — Конвертация admin-страниц (Controller/View)
-
-**Паттерн: Thin Controller + View файл**
-
-Каждая legacy admin-страница разделяется на:
-- **Controller** (`public/Controllers/Admin/XxxController.php`) — подготовка данных, редиректы, проверка прав
-- **View** (`public/Views/admin/xxx.php`) — только HTML-контент (между header и footer)
-- **Scripts** (`public/Views/admin/xxx.scripts.php`) — page-specific JS (DataTables, api(), etc.)
-
-**✅ `public/Controllers/Admin/BaseAdminController.php` — render(), redirect(), json(), setTitle(), requirePermission(), requireAdvPermission(), input(), getStatus()
-- ✅ `public/Views/admin/_scripts_init.php` — общий JS-бойлерплейт (ResizeObserver, Switchery, DataTable errMode, bindHref, inputFilter, js_navigate и т.д.)
-- ✅ `public/Views/layout.php` — мёртвый код, помечен `@deprecated` (актуальный layout: `Views/layouts/admin.php` + `footer.php`)
-- ✅ `public/Views/partials/header.php` + `footer.php` — мёртвый код, помечены `@deprecated`
-
-**Render flow:** `renderUnifiedLayoutHeader('admin')` → `view.php` → `renderUnifiedLayoutFooter('admin')` → `scripts.php` (включает `_scripts_init.php`) → `</body></html>`
-
-**Инфраструктурные исправления перед Phase 6.3:**
-- ✅ Router `buildRoute()` — нормализация ключей при регистрации (rtmp_ips → rtmp/ips)
-- ✅ Router `callHandler()` — DI через ServiceContainer с fallback
-- ✅ Autoloader — раскомментированы `domain/`, `streaming/`, `modules/`, добавлен `public/`
-- ✅ Autoloader — `MAIN_HOME` fallback: `__DIR__ . '/'` вместо `/home/xc_vm/`
-- ✅ Мёртвый Layout код (layout.php + partials/header.php + partials/footer.php) помечен `@deprecated`
-
-**Пилотная группа (простые листинги, no POST, inline DataTables):**
-- ✅ `IpController.php` + `Views/admin/ips.php` + `ips.scripts.php` — Blocked IPs, flush action, getBlockedIPs()
-- ✅ `IspController.php` + `Views/admin/isps.php` + `isps.scripts.php` — Blocked ISPs, getISPs()
-- ✅ `HmacController.php` + `Views/admin/hmacs.php` + `hmacs.scripts.php` — HMAC Keys, getHMACTokens()
-- ✅ `GroupController.php` + `Views/admin/groups.php` + `groups.scripts.php` — Member Groups, getMemberGroups(), adv:edit_group
-- ✅ `CodeController.php` + `Views/admin/codes.php` + `codes.scripts.php` — Access Codes, getcodes(), type mapping
-- ✅ `PackageController.php` + `Views/admin/packages.php` + `packages.scripts.php` — Packages (filtered !is_addon), getPackages()
-- ✅ `RtmpIpController.php` + `Views/admin/rtmp_ips.php` + `rtmp_ips.scripts.php` — RTMP IPs, getRTMPIPs(), push/pull icons
-- ✅ `ProfileController.php` + `Views/admin/profiles.php` + `profiles.scripts.php` — Transcode Profiles, getTranscodeProfiles(), JSON profile_options
-- ✅ `ProviderController.php` + `Views/admin/providers.php` + `providers.scripts.php` — Stream Providers, getStreamProviders(), reload action, JSON data
-- ✅ `TheftDetectionController.php` + `Views/admin/theft_detection.php` + `theft_detection.scripts.php` — VOD Theft Detection, igbinary cache, range filter, custom search
-- ✅ Маршруты в `public/routes/admin.php` — 10 GET-маршрутов зарегистрированы
-
-**Статус 6.3:** ✅ Завершён — **111/111 admin-страниц мигрировано**
-
-| Артефакт | Кол-во | Статус |
-|---|---|---|
-| Контроллеры (`Controllers/Admin/`) | 111 + BaseAdminController | ✅ |
-| View-прокси (`Views/admin/`) | 111 | ✅ |
-| Маршруты (`routes/admin.php`) | 111 | ✅ |
-| Legacy-обёртки (`$__viewMode`) | 111 (108 std + 1 settings variant + 2 module bypass) | ✅ |
-
-**Группы миграции (все завершены):**
-- ✅ **Pilot** (10): ips, isps, hmacs, groups, codes, packages, rtmp_ips, profiles, providers, theft_detection
-- ✅ **A** (19): streams, stream, stream_view, stream_mass, stream_categories, stream_category, stream_errors, stream_rank, stream_review, stream_tools, channel_order, created_channel, created_channels, created_channel_mass, live_connections, rtmp_monitor, radio, radios, radio_mass
-- ✅ **B** (10): movies, movie, movie_mass, series, serie, series_mass, episodes, episode, episodes_mass, ondemand
-- ✅ **C** (6): lines, line, line_mass, line_activity, line_ips, mass_delete
-- ✅ **D** (4): server_order, server_install, server, server_view
-- ✅ **E** (4): bouquets, bouquet, bouquet_order, bouquet_sort
-- ✅ **F** (4): settings, settings_plex, settings_watch, quick_tools
-- ✅ **G** (6): login_logs, mysql_syslog, mag_events, restream_logs, panel_logs, epgs
-- ✅ **H** (9): dashboard, cache, queue, process_monitor, backups, client_logs, user_logs, useragent, useragents
-- ✅ **I** (6): mags, mag, mag_mass, enigmas, enigma, enigma_mass
-- ✅ **J** (6): epg, epg_view, code, hmac, ip, isp
-- ✅ **K** (5): group, package, profile, provider, rtmp_ip
-- ✅ **L** (5): users, user, user_mass, plex, plex_add
-- ✅ **M** (8): tickets, ticket, ticket_view, serie, watch, watch_add, watch_output, magscan_settings
-- ✅ **N** (9): credit_logs, edit_profile, fingerprint, proxies, proxy, record, review, archive, asns
-
-**16 non-page файлов** (миграция не требуется): header.php, footer.php, topbar.php, modals.php, functions.php, session.php, post.php, login.php, logout.php, setup.php, database.php, index.php, resize.php, player.php, api.php, table.php
+**111/111 admin-страниц** мигрированы: Controller + View + Scripts + routes. Паттерн: Thin Controller → Service → View. `BaseAdminController` + `_scripts_init.php`.
 
 #### Шаг 6.4 — Объединение admin/reseller ✅
 
-**Статус:** Завершён — 22 reseller-страницы мигрированы.
-
-**Артефакты:**
-- ✅ `BaseResellerController` — расширяет BaseAdminController, `$scope = 'reseller'`, переопределяет `requirePermission()` → `checkResellerPermissions()`
-- ✅ 22 контроллера (`Reseller*Controller`) в `public/Controllers/Reseller/`
-- ✅ 22 view proxy в `public/Views/reseller/`
-- ✅ 22 legacy файла обёрнуты `$__viewMode` гардами
-- ✅ `public/routes/reseller.php` — 22 маршрута
-
-**Reseller-страницы (22):**
-Dashboard & Profile: dashboard, edit_profile
-Lines: lines, line, line_activity, live_connections
-Devices: mags, mag, enigmas, enigma
-Content: streams, movies, radios, episodes, created_channels, epg_view
-Tickets: tickets, ticket, ticket_view
-Users: users, user, user_logs
-
-**Ключевые отличия от admin:**
-- Контроллеры с префиксом `Reseller` (ResellerDashboardController и т.д.) для избежания конфликтов с admin-контроллерами в безнеймспейсном автозагрузчике
-- `checkResellerPermissions()` вместо `checkPermissions()`
-- `$_SESSION['reseller']` вместо `$_SESSION['hash']`
-
-```
-reseller/table.php (1836 стр.) → переиспользует admin-контроллеры с RBAC-фильтром
-reseller/api.php (997 стр.)    → ResellerApiController (ограниченный AdminApiController)
-```
+22 reseller-страницы мигрированы. `BaseResellerController` + 22 контроллера/view/маршрута.
 
 #### Шаг 6.5 — Стабилизация Controller/View контракта ✅
 
-**Статус:** Завершён (первый стабилизационный проход после 6.3/6.4).
+Два прохода стабилизации: viewGlobals расширен, nullable-guards для foreach/in_array/count.
 
-**Сделано:**
-- ✅ Расширен базовый контракт `BaseAdminController::$viewGlobals`:
-    - добавлены `rTMDBLanguages`, `rGeoCountries`, `rMAGs`, `rTimezones`
-    - ранее добавлен `allowedLangs`
-- ✅ Исправлен рендер update-уведомления/changelog в `admin/settings.php`:
-    - защита `foreach` по `changelog` через `is_array`
-    - защита вложенного `changes` через безопасный fallback на `[]`
-- ✅ Исправлен `modules/watch/views/watch_add.php`:
-    - защита `foreach` по `$rTMDBLanguages` при отсутствии/некорректном типе
-- ✅ Второй стабилизационный проход (расширенный, 14 файлов):
-    - контроллеры `watch/plex/settings_*` теперь нормализуют массивы (`[]` fallback)
-    - в `watch/plex/profile` view добавлены безопасные `foreach` и `in_array/count` с `(array)`/`is_array` guard
-    - закрыты риски `foreach(null)` и `Undefined variable` для страниц `watch_output`, `watch_add`, `settings_watch`, `record`, `plex/index`, `plex/settings`, `plex/library_edit`, `admin/edit_profile`
+#### Шаг 6.5b — Reseller view nullable audit ✅
 
-**Цель шага:**
-- убрать class-runtime регрессий «Undefined variable / foreach() argument must be array|object»
-- зафиксировать единый контракт данных для legacy view в controller-режиме
-
-**Дальше (следующий проход 6.5):**
-- 🔄 точечный аудит `Reseller`-view (особенно echo-сгенерированные файлы) на `foreach/in_array` с nullable-данными
-- 🔄 выборочно перенести оставшиеся high-risk случаи в контроллерный data-contract вместо локальных view-guard
+Source-level fixes: `getPermissions()` → `[]` fallback, defensive defaults в `functions.php`/`table.php` для `direct_reports`, `all_reports`, `stream_ids`, `category_ids`, `series_ids`, `subresellers`. P0/P1 точечные исправления в 10 файлах.
 
 ---
 
 ### Фаза 7: Миграция admin.php bootstrap
 
-`admin.php` (4448 стр.) — после извлечения всех функций в domain/.
 #### Шаг 7.1 — Вынос inline-данных ✅
-- ✅ Данные bootstrap (`rMAGs`, `rCountryCodes`, `rCountries`, `rAdvPermissions`) консолидированы в `resources/data/admin_constants.php`
-- ✅ Отдельный `resources/data/permissions.php` удалён
+Данные bootstrap консолидированы в `resources/data/admin_constants.php`.
 
-#### Шаг 7.2 — Замена процедурного bootstrap 🔄
-```
-admin.php::initDatabase()        → ServiceContainer::get('db')
-admin.php::CoreUtilities::init() → bootstrap.php
-admin.php::session_start()       → SessionManager::start()
-admin.php::$rPermissions         → Authorization::getPermissions()
-admin.php::Translator init       → ServiceContainer::get('translator')
-```
-
-- ✅ Первый инкремент: инициализация runtime в `includes/admin.php` вынесена в `bootstrapAdminRuntime()` (поведение сохранено)
-- ✅ Второй инкремент: session/runtime-логика вынесена в `includes/bootstrap/admin_session.php` и `includes/bootstrap/admin_runtime.php` (без изменения поведения)
-- ✅ Третий инкремент: `includes/bootstrap/admin_runtime.php` переключён на `XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_ADMIN)` с legacy fallback
-- ✅ Четвёртый инкремент: прямые `require_once` зависимостей (`DatabaseHandler/CoreUtilities/API/Translator/MobileDetect`) удалены из `includes/admin.php` и централизованы в `includes/bootstrap/admin_runtime.php`
-- ✅ Пятый инкремент: `includes/admin.php` больше не подключает `www/constants.php` напрямую — инициализация идёт через bootstrap-поток
-- ✅ Шестой инкремент: убрана двойная `shutdown`-регистрация — в bootstrap-ветке используется `XC_Bootstrap`, в legacy fallback регистрируется локальный close-db shutdown callback
-- ✅ Седьмой инкремент: `STATUS_*` константы удалены из `includes/admin.php` и централизованы через `bootstrapAdminStatusConstants()` (`XC_Bootstrap::defineStatusConstants()` + fallback)
-- ✅ Восьмой инкремент: bootstrap-цепочка в `includes/admin.php` сведена к фасаду `includes/bootstrap/admin_bootstrap.php` (`bootstrapAdminInclude()`)
+#### Шаг 7.2 — Замена процедурного bootstrap ✅
+8 инкрементов: runtime → `bootstrapAdminRuntime()` → `admin_session.php` + `admin_runtime.php` → `XC_Bootstrap::boot(CONTEXT_ADMIN)` → фасад `admin_bootstrap.php`.
 
 #### Шаг 7.3 — Удаление proxy-обёрток из admin.php ✅
-- Все функции уже в domain/ (proxy-вызовы)
-- Все данные в resources/data/
-- Bootstrap через `bootstrap.php`
-- `admin.php` — сокращён с ~4448 до ~3070 строк (удалено 40 proxy-определений)
+40 proxy-определений удалены, 560+ call-sites заменены на прямые вызовы domain-сервисов. `admin.php` сокращён с ~4448 до ~3050 строк.
 
-**Статус (7.3 завершён):**
-- ✅ Первый инкремент: пакет простых proxy-обёрток вынесен из `includes/admin.php` в `includes/bootstrap/admin_proxies.php`
-- ✅ Второй инкремент: вынесены proxy/report/permission-обёртки (`getStreamArguments`, `getTranscodeProfiles`, `getResellers`, `getDirectReports`, `hasPermissions` и связанный блок) в `includes/bootstrap/admin_proxies.php`
-- ✅ Третий инкремент: начат прямой отказ от proxy-call-site — HMAC-ветка переведена на прямые вызовы `AuthRepository::*`, proxy `getHMACTokens/getHMACToken` удалены
-- ✅ Четвёртый инкремент: массовая замена всех внешних call-site (560+) для proxy-функций:
-  - `getBouquets()` → `BouquetService::getAllSimple()` (47 call-sites)
-  - `getStreamingServers()` → `ServerRepository::getStreamingSimple($rPermissions, $type)` (29 call-sites)
-  - `getStream()` → `StreamRepository::getById($rID)` (~30 call-sites)
-  - `getUser()` → `UserRepository::getLineById($rID)` (~34 call-sites)
-  - `getRegisteredUser()` → `UserRepository::getRegisteredUserById($rID)` (~48 call-sites)
-  - `getBouquetOrder()` → `BouquetService::getOrder()` (6 call-sites)
-  - `getMemberGroup()` → `GroupService::getById($rID)` (4 call-sites)
-  - `getBlockedIPs()` → `BlocklistService::getBlockedIPsSimple()` (2 call-sites)
-  - `getRTMPIPs()` → `BlocklistService::getRTMPIPsSimple()` (2 call-sites)
-  - `getSSLLog()` → `ServerRepository::getSSLLog(...)` (1 call-site)
-  - `getWatchdog()` → `WatchdogMonitor::getWatchdog(...)` (1 call-site)
-  - `getIP()` → `CoreUtilities::getUserIP()` (2 call-sites)
-  - `getFPMStatus()` → `systemapirequest(...)` inline (1 call-site)
-  - И ещё ~20 proxy-функций с 0 внешних вызовов
-- ✅ Пятый инкремент: все 40 proxy-определений удалены из `admin.php`
-- ✅ Рефакторинг: `PackageService::process()` — удалены callback-параметры `getBouquetOrder`/`sortArrayByArray`, заменены прямыми вызовами `BouquetService::getOrder()`
-- ⚠️ Оставлены: `getCategories()` (~15 внешних вызовов, не чистый proxy — трансформирует ключи), `getOutputs()` (3 внешних вызова, собственная SQL-логика)
+#### Шаг 7.3.1 — Миграция getCategories/getOutputs ✅
+`getCategories()` → `CategoryService::getAllByType()` (~75+ call-sites). `getOutputs()` → `OutputFormatRepository::getAll()` (3 call-sites). Создан `domain/Line/OutputFormatRepository.php`.
+
+#### Шаг 6.5b — Reseller view nullable audit ✅
+Source-level: `getPermissions()` → `[]` fallback, defensive defaults в `functions.php`/`table.php`. P0 fixes в 8 файлах (foreach/count/in_array guards). P1 в 2 файлах. P2/P3 покрыты source-level defaults.
+
+#### Шаг 7.4 — Устранение параметра `$db` из Domain-классов ✅
+28 классов (100 методов) → `global $db` внутри. ~357 call-sites обновлены.
 
 ---
 
-### Шаг 7.4 — Устранение параметра `$db` из Domain-классов (global $db)
-
-**Суть:** Все 28 Domain-классов (Service/Repository) принимали `$db` как параметр метода. Рефакторинг: убрать `$db` из сигнатур, внутри каждого метода объявить `global $db;`.
-
-**Затронутые классы (100 методов):**
-- `StreamRepository` (7), `StreamService` (4), `StreamProcess` (13), `ChannelService` (3)
-- `SeriesService` (3), `MovieService` (3), `EpisodeService` (2), `PlaylistGenerator` (1)
-- `CronGenerator` (1), `ConnectionTracker` (2), `ConnectionLimiter` (3), `CategoryService` (3)
-- `UserService` (2), `UserRepository` (5), `GroupService` (2), `PackageService` (2)
-- `LineRepository` (1), `LineService` (4), `SettingsService` (3), `ServerRepository` (5)
-- `ServerService` (4), `BlocklistService` (10), `EpgService` (3), `AuthService` (3)
-- `BouquetService` (8), `TokenAuth` (1), `FFmpegCommand` (1), `WatchdogMonitor` (1)
-
-**Обновлено ~357 call-sites** по всей кодовой базе:
-- `src/includes/CoreUtilities.php` — 28 вызовов
-- `src/includes/admin_api.php` — 60 вызовов
-- `src/includes/reseller_api.php` — 15 вызовов
-- `src/includes/admin.php` — 16 вызовов
-- `src/includes/StreamingUtilities.php` — 6 вызовов
-- `src/includes/bootstrap/admin_runtime.php` — 3 вызова
-- `src/includes/api/admin/` — 20 вызовов
-- `src/includes/api/reseller/` — 11 вызовов
-- `src/admin/*.php` — ~100 вызовов
-- `src/reseller/*.php` — 18 вызовов
-- `src/public/Controllers/Admin/` — 37 вызовов
-- `src/domain/` (кросс-вызовы) — 15 вызовов
-- `src/modules/` + `src/crons/` — 11 вызовов
-
-**Паттерн (до/после):**
-```php
-// Было:
-public static function getById($db, $rID) { ... }
-StreamRepository::getById($db, $rStreamID);
-
-// Стало:
-public static function getById($rID) {
-    global $db;
-    ...
-}
-StreamRepository::getById($rStreamID);
-```
-
-**Статус:** ✅ Завершено
-
----
-
-### Фаза 8: Ликвидация god-объектов
-
-**Цель:** Удалить три файла-монолита (`CoreUtilities.php`, `StreamingUtilities.php`, `admin_api.php`), заменив все ~7 100 внешних вызовов на прямые обращения к целевым классам в `domain/`, `core/`, `streaming/`.
-
-#### Аудит перед началом (28.02.2026)
-
-| Файл | Строк | Методов | PROXY | OWN | Внешних вызовов | Файлов-потребителей |
-|------|--------|---------|-------|-----|-----------------|---------------------|
-| `CoreUtilities.php` | 1 971 | 152 | 81 | 69 | 5 755 | 303 |
-| `StreamingUtilities.php` | 659 | 78 | 42 | 33 | 1 344 | 20 |
-| `admin_api.php` | 3 686 | 79 | 60 | 18 | ~300 | ~40 |
-| **Итого** | **6 316** | **309** | **183** | **120** | **~7 400** | — |
-
-**Распределение вызовов CoreUtilities по типу:**
-- `$rRequest` — 3 863 обращений (67%) — глобальный request-контейнер
-- `$rSettings` — 769 обращений — настройки панели
-- `$rServers` — 201 обращение — массив серверов
-- Методы-вызовы — ~920 обращений
-
-**Распределение StreamingUtilities по директориям:**
-- `www/` — 769 | `ministra/` — 266 | `modules/` — 229 | `core/` — 76 | `streaming/` — 4
-
-**Дублирование:** ~25 методов идентичны в обоих классах (`encryptData`, `base64url_*`, `cleanGlobals`, `getUserIP`, `getISP`, `getIPInfo`, `getPublicURL`, `isMonitorRunning`, `isStreamRunning`, `isProcessRunning`, `validateImage`, `generateString`, `getDiffTimezone`, `getAdultCategories`, `writeOfflineActivity`, `getPlaylistSegments`, `checkISP`, `checkServer`, `setSignal`, `matchCIDR` и др.)
-
----
-
-#### Шаг 8.1 — admin_api.php (LOW RISK)
-
-**Объём:** 3 686 строк, 79 методов (60 PROXY + 18 OWN + 1 INIT), ~300 внешних вызовов в ~40 файлах.
-
-**8.1.1 — Удаление PROXY-методов** (60 шт.)
-Каждый PROXY-метод просто делегирует в сервис:
-```php
-// Было (admin_api.php):
-public static function processBouquet() { return BouquetService::process(self::$db, ...); }
-// Вызов:
-ipTV_lib::processBouquet();
-
-// Стало (прямой вызов):
-BouquetService::process($db, ...);
-```
-
-Целевые классы-делегаты (все уже существуют в `domain/`):
-`BouquetService`(3), `AuthService`(2), `UserService`(4), `BlocklistService`(3), `ChannelService`(3),
-`EpgService`(1), `EpisodeService`(3), `GroupService`(1), `StreamService`(4), `MovieService`(3),
-`SeriesService`(3), `LineService`(3), `MagService`(3), `EnigmaService`(3), `PackageService`(1),
-`ServerService`(3), `SettingsService`(3), `CategoryService`(2), `PlexService`(2), `WatchService`(2),
-`RecordingService`(1), `Authenticator`(1)
-
-**8.1.2 — Извлечение OWN-методов** (18 шт.)
-Legacy-методы с прямым SQL, которые не были перенесены в сервисы:
-
-| Метод | Строк | Целевой класс |
-|-------|-------|--------------|
-| `processProvider()` | ~55 | → `domain/Stream/ProviderService.php` (новый) |
-| `processGroupLegacy()` | ~90 | → `domain/User/GroupService.php` |
-| `processMovieLegacy()` | ~465 | → `domain/Vod/MovieService.php` |
-| `processMAGLegacy()` | ~195 | → `domain/Device/MagService.php` |
-| `processEnigmaLegacy()` | ~193 | → `domain/Device/EnigmaService.php` |
-| `processProfile()` | ~320 | → `domain/Stream/ProfileService.php` (новый) |
-| `processRadio()` | ~248 | → `domain/Stream/RadioService.php` (новый) |
-| `massEditRadios()` | ~185 | → `domain/Stream/RadioService.php` |
-| `processUserLegacy()` | ~92 | → `domain/User/UserService.php` |
-| `processLineLegacy()` | ~108 | → `domain/Line/LineService.php` |
-| `processSeriesLegacy()` | ~100 | → `domain/Vod/SeriesService.php` |
-| `importSeriesLegacy()` | ~205 | → `domain/Vod/SeriesService.php` |
-| `importMoviesLegacy()` | ~200 | → `domain/Vod/MovieService.php` |
-| `massEditLinesLegacy()` | ~120 | → `domain/Line/LineService.php` |
-| `massEditMagsLegacy()` | ~187 | → `domain/Device/MagService.php` |
-| `massEditEnigmasLegacy()` | ~156 | → `domain/Device/EnigmaService.php` |
-| `massEditUsersLegacy()` | ~86 | → `domain/User/UserService.php` |
-| `massDeleteStations()` | ~16 | → `domain/Stream/StreamService.php` |
-
-**8.1.3 — Удаление `init()` и статических свойств**
-- `$db`, `$rSettings`, `$rServers`, `$rProxyServers`, `$rUserInfo` — уже доступны через `CoreUtilities` или `$GLOBALS`
-- `checkMinimumRequirements()` (приватный валидатор) → `core/Validation/InputValidator.php`
-- Удалить файл `includes/admin_api.php`
-
-**Статус 8.1:** ✅ Завершён
-- `admin_api.php` (класс `API`) — файл удалён, все proxy/OWN методы мигрированы в domain-сервисы
-- Осиротевшие ссылки `API::processUser()` в `src/tools` → заменены на `UserService::process()`
-- `API::$db`/`API::init()` в `src/tools` → удалены
-- Запись `'API'` в `autoload.php` → удалена
-- `reseller_api.php` (класс `ResellerAPI`): `self::$db` → `global $db` (42 вхождения)
-- Удалено свойство `public static $db = null` из `ResellerAPI`
-- Удалены внешние присвоения `ResellerAPI::$db` из `bootstrap.php`, `admin_runtime.php`, `api/reseller/index.php`
-
----
-
-#### Шаг 8.2 — StreamingUtilities.php (MEDIUM RISK)
-
-**Объём:** 659 строк, 78 методов (42 PROXY + 33 OWN + 1 INIT + 2 PROPERTY), 1 344 внешних вызовов в 20 файлах.
-
-**8.2.1 — Удаление PROXY-методов** (42 шт.)
-Все прямые делегаты → заменить call sites на целевой класс:
-`ConnectionTracker`(8), `BruteforceGuard`(4), `StreamSorter`(4), `BlocklistService`(3),
-`ConnectionLimiter`(3), `StreamRedirector`(2), `OffAirHandler`(2), `RedisManager`(2),
-`StreamAuth`(2), `ProxySelector`(1), `SignalSender`(1), `AuthService`(1), `ImageUtils`(1),
-`HealthChecker`(1), `CategoryService`(1), `SegmentReader`(1), `HLSGenerator`(1),
-`BouquetService`(1), `DomainResolver`(1), `UserRepository`(1), `LegacyInitializer`(1)
-
-**8.2.2 — Извлечение OWN-методов** (33 шт.)
-Группировка по целевому модулю:
-
-| Группа | Методы | Целевой класс |
-|--------|--------|--------------|
-| Кеш | `getCache()` | → `core/Cache/FileCache.php` (объединить с `CoreUtilities::getCache/setCache`) |
-| Криптография | `encryptData()`, `decryptData()`, `base64url_encode/decode()`, `mc_decrypt()` | → `core/Crypto/DataEncryptor.php` (новый, общий) |
-| HTTP/Input | `cleanGlobals()`, `parseIncomingRecursively()`, `parseCleanKey()`, `parseCleanValue()` | → `core/Http/InputSanitizer.php` (новый, общий) |
-| Networking | `getUserIP()`, `getISP()`, `getIPInfo()`, `matchCIDR()`, `getDomainName()` | → `core/Network/IpUtils.php` (новый) |
-| Process | `isMonitorRunning()`, `isStreamRunning()`, `isProcessRunning()`, `startMonitor()`, `startProxy()` | → `streaming/Process/ProcessManager.php` (объединить из обоих) |
-| Streaming | `getPublicURL()`, `getStreamData()`, `getPlaylistSegments()`, `getAllowedRTMP()`, `canWatch()`, `writeOfflineActivity()`, `setSignal()`, `generateString()` | → `streaming/` соответствующие классы |
-| UI | `getDiffTimezone()`, `getAdultCategories()` | → `core/Util/DateUtils.php`, `domain/Stream/CategoryService.php` |
-| DB | `connectDatabase()`, `closeDatabase()` | → оставить в `LegacyInitializer` или `core/Database/` |
-| Init | `isCacheEnabledAndComplete()` | → `core/Cache/CacheStatus.php` |
-
-**8.2.3 — Замена статических свойств**
-`StreamingUtilities::$rRequest` (369), `$rSettings` (366), `$rServers` (105), `$db` (83) — всего **923 обращения** в 20 файлах.
-→ Заменить на `$GLOBALS['rRequest']` / `$GLOBALS['rSettings']` / `$GLOBALS['db']` (промежуточный шаг)
-→ Или инжектировать через параметры функций (целевой вариант)
-
-**8.2.4 — Удаление файла**
-После переноса всех методов и свойств — удалить `includes/StreamingUtilities.php`.
-
-**Статус 8.2:** ✅ **ЗАВЕРШЕНО** (2026-03-03)
-
-**Итого:** ~314 внешних ссылок заменены в 10 батчах (Batch 1–10d).
-Файл `includes/StreamingUtilities.php` удалён (676 строк мёртвого кода).
-
-**Ключевые результаты:**
-- 8.2.3 — все 18 статических свойств удалены → `global $var` / `$GLOBALS['var']`
-- 8.2.1 — все 42 PROXY-метода мигрированы → прямые вызовы сервисов
-- 8.2.2 — все 33 OWN-метода перенесены в целевые классы
-- 8.2.4 — файл удалён, require/autoload записи убраны, bootstrap.php очищен
-
-**Батчи миграции внешних вызовов:**
-
-| Батч | Методы | Замен | Файлов |
-|------|--------|-------|--------|
-| 1 | Crypto (encrypt/decrypt/base64url) | 42 | 5 |
-| 2 | validateImage | 22 | 3 |
-| 3–5 | Простые proxy (sort, categories, health, signal, cache, etc.) | ~60 | 12 |
-| 6 | DB lifecycle (connect/close) | 26 | 8 |
-| 7 | Redis + Connection (get/create/updateConnection, redisSignal, etc.) | 57 | 6 |
-| 8 | Process + Proxy + Queue | 17 | 5 |
-| 9 | Process + GeoIP (isMonitorRunning, getIPInfo, etc.) | 24 | 5 |
-| 10a | getUserInfo | 18 | 6 |
-| 10b | showVideoServer + availableProxy | 26 | 2 |
-| 10c | redirectStream, validateConnections, validateHMAC, generateHLS, etc. | 20 | 8 |
-| 10d | getAllowedRTMP + getPlaylistSegments | 2 | 2 |
-
-**Рефакторинг callback-цепочек (Batch 10):**
-9 сервисных классов избавлены от callback-параметров → прямые service-to-service вызовы:
-`UserRepository`, `OffAirHandler`, `StreamAuth`, `ProxySelector`, `StreamRedirector`,
-`ConnectionLimiter`, `HLSGenerator`, `AuthService`, `DomainResolver`
-
-**Новые методы/классы добавленные при миграции:**
-- `GeoIPService::getIPInfo()`, `getISP()`, `matchCIDR()`
-- `BlocklistService::getAllowedRTMP()`
-- `SegmentReader::getPlaylistSegments()`
-- `ConnectionLimiter::writeOfflineActivity()`
-- `StreamRedirector::getStreamData()` (private)
-- `ProcessManager::isStreamAlive()`, `isMonitorAlive()`, `startMonitor()`, `startProxy()`
-- `RedisManager::instance()` (singleton для прямого доступа)
-
----
-
-#### Шаг 8.3 — CoreUtilities.php (HIGH RISK, поэтапно)
-
-**Объём:** 1 971 строк, 152 метода (81 PROXY + 69 OWN + 1 INIT + 1 PROPERTY), 5 755 внешних вызовов в 303 файлах.
-
-**Главная сложность:** `CoreUtilities::$rRequest` — 3 863 обращения в 303 файлах. Это глобальный массив POST/GET-данных, используемый как `CoreUtilities::$rRequest['page']`, `CoreUtilities::$rRequest['id']` и т.д. Аналогично `$rSettings` (769 обращений) и `$rServers` (201).
-
-**8.3.1 — Удаление PROXY-методов** (81 шт.)
-Прямая замена вызовов на целевые классы. Топ делегатов:
-`StreamProcess`(16), `ConnectionTracker`(14), `PlexAuth`(6), `BlocklistService`(5),
-`BruteforceGuard`(4), `StreamSorter`(4), `LineService`(4), `EpgService`(4),
-`ProcessChecker`(3), `CurlClient`(3), `FFprobeRunner`(2), `BouquetService`(2),
-`ImageUtils`(2), `RedisManager`(2), остальные по 1
-
-**Топ-10 вызываемых PROXY-методов** (количество call sites):
-
-| Метод | Вызовов | Делегат |
-|-------|---------|---------|
-| `closeConnection()` | 48 | → `ConnectionLimiter::closeConnection()` |
-| `validateImage()` | 40 | → `ImageUtils::validateURL()` |
-| `downloadImage()` | 32 | → `ImageUtils::download()` (новый целевой) |
-| `getUserIP()` | 30 | → `core/Network/IpUtils::getUserIP()` |
-| `updateStream()` | 29 | → `StreamProcess::updateStream()` |
-| `getUserConnections()` | 29 | → `ConnectionTracker::getUserConnections()` |
-| `updateLine()` | 26 | → `LineService::updateLineSignal()` |
-| `checkCron()` | 22 | → метод остаётся (OWN) |
-| `getStreamConnections()` | 20 | → `ConnectionTracker::getStreamConnections()` |
-| `getRedisConnections()` | 20 | → `ConnectionTracker::getRedisConnections()` |
-
-**8.3.2 — Извлечение OWN-методов** (69 шт.)
-
-| Группа | Методы (шт.) | Целевой класс |
-|--------|-------------|--------------|
-| User/Auth | `getUserInfo()`(170 стр.), `getMAGInfo()`, `getE2Info()`, `getAllowedIPs()`, `getAllowedDomains()` | → `domain/Line/UserInfoResolver.php` (новый) |
-| Connection | `closeConnection()`(96 стр.), `writeOfflineActivity()`, `streamLog()` | → `streaming/Connection/ConnectionManager.php` |
-| Process | `isMonitorRunning()`, `isThumbnailRunning()`, `isArchiveRunning()`, `isDelayRunning()`, `isStreamRunning()`, `isProcessRunning()`, `isRunning()` | → `streaming/Process/ProcessManager.php` |
-| Streaming | `getPlaylistSegments()`, `generateAdminHLS()`, `getStreamBitrate()`, `isValidStream()`, `findKeyframe()`, `parseStreamURL()`, `detectXC_VM()`, `parseTranscode()`, `getArguments()`, `customOrder()`, `getRTMPStats()` | → распределить по `streaming/` классам |
-| Cache | `setCache()`, `getCache()` | → `core/Cache/FileCache.php` |
-| Crypto | `encryptData()`, `decryptData()`, `base64url_encode/decode()` | → `core/Crypto/DataEncryptor.php` |
-| Network | `getUserIP()`, `getISP()`, `checkISP()`, `checkServer()`, `getIPInfo()`, `getCertificateInfo()`, `getApiIP()` | → `core/Network/IpUtils.php` |
-| HTTP/Input | `cleanGlobals()`, `parseIncoming*()`, `parseCleanKey/Value()` | → `core/Http/InputSanitizer.php` |
-| Image | `downloadImage()`, `getImageSizeKeepAspectRatio()`, `isAbsoluteUrl()` | → `core/Media/ImageUtils.php` (расширить) |
-| URL | `getPublicURL()`(45 стр.), `getProxyFor()` | → `core/Network/UrlBuilder.php` |
-| Download | `startDownload()`, `stopDownload()` | → `streaming/Download/DownloadManager.php` |
-| Backup | `createBackup()`, `restoreBackup()`, `grantPrivileges()`, `revokePrivileges()` | → `domain/Server/BackupService.php` (новый) |
-| System | `checkCompatibility()`, `confirmIDs()`, `downloadPanelLogs()`, `submitPanelLogs()` | → `core/System/SystemCheck.php` (новый) |
-| Misc | `generateString()`, `secondsToTime()`, `mergeRecursive()`, `checkCron()`, `fixCookie()`, `unserialize_php()`, `getTSInfo()`, `getDiffTimezone()` | → `core/Util/Helpers.php` (новый) |
-
-**8.3.3 — Замена статических свойств** (наибольшая работа)
-
-| Свойство | Обращений | Стратегия замены |
-|----------|-----------|-----------------|
-| `$rRequest` | 3 863 | **Этап A:** глобальная переменная `$rRequest` (через `$GLOBALS['rRequest']` или `global $rRequest`). **Этап B:** `Request::input()` в контроллерах, прямой `$_POST/$_GET` в legacy. |
-| `$rSettings` | 769 | **Этап A:** `$GLOBALS['rSettings']`. **Этап B:** `SettingsRepository::getCached()` статический singleton. |
-| `$rServers` | 201 | **Этап A:** `$GLOBALS['rServers']`. **Этап B:** `ServerRepository::getCached()`. |
-| `$db` | 20 | `$GLOBALS['db']` или `global $db` (уже используется в большинстве мест) |
-| `$redis` | 60 | `RedisManager::getInstance()` |
-| Остальные | ~40 | Через соответствующие Repository/Service с кешем |
-
-**Порядок замены `$rRequest` (3 863 вызова):**
-1. `admin/` (2 307 из них — уже обёрнуты `$__viewMode` guard, контроллеры используют `$this->input()`)
-2. `includes/` (1 455 — через `global $rRequest`)
-3. `reseller/` (678), `www/` (373), `crons/` (260), `player/` (170)
-4. `core/` (164), `public/` (161), `modules/` (112), `domain/` (76)
-
-**8.3.4 — Удаление `init()` и `LegacyInitializer`**
-- `CoreUtilities::init()` → `LegacyInitializer::initCore()` → вызывается внешними `www/init.php`, `bootstrap.php`
-- Заменить инициализацию на `XC_Bootstrap::boot()` (уже существует)
-- Удалить `LegacyInitializer.php` после полного перехода
-
-**8.3.5 — Удаление файла**
-После переноса ВСЕХ методов и свойств — удалить `includes/CoreUtilities.php`.
-
-**Статус 8.3:** ⏳ Не начат
-
----
-
-#### Шаг 8.4 — Ревизия архитектуры
-
-- Убедиться: `core/` не содержит бизнес-логики (только инфраструктура)
-- Убедиться: `domain/` не знает об `public/` (однонаправленные зависимости)
-- Убедиться: удаление любого модуля не ломает систему
-- Рефакторинг `cli/monitor.php` — убрать goto-лейблы, вынести в `cli/Commands/MonitorCommand.php`
-
-**Статус 8.4:** ⏳ Не начат
-
----
-
-#### Новые целевые файлы (создаются в Фазе 8)
-
-| Файл | Откуда | Назначение |
-|------|--------|-----------|
-| `core/Cache/FileCache.php` | CU::getCache/setCache + SU::getCache | Файловый кеш с igbinary |
-| `core/Crypto/DataEncryptor.php` | CU+SU::encryptData/decryptData/base64url_* | Шифрование/кодирование |
-| `core/Http/InputSanitizer.php` | CU+SU::cleanGlobals/parseIncoming*/parseClean* | Очистка входных данных |
-| `core/Network/IpUtils.php` | CU+SU::getUserIP/getISP/getIPInfo/checkISP/matchCIDR | IP-утилиты |
-| `core/Network/UrlBuilder.php` | CU+SU::getPublicURL/getProxyFor | Построение URL |
-| `core/Media/ImageUtils.php` | CU::downloadImage/getImageSize* (расширить имеющийся) | Работа с изображениями |
-| `core/Util/Helpers.php` | CU::generateString/secondsToTime/mergeRecursive/etc. | Общие утилиты |
-| `core/Util/DateUtils.php` | CU+SU::getDiffTimezone | Дата/время |
-| `core/System/SystemCheck.php` | CU::checkCompatibility/downloadPanelLogs/submitPanelLogs | Системные проверки |
-| `core/Validation/InputValidator.php` | admin_api::checkMinimumRequirements | Валидация входных данных |
-| `streaming/Process/ProcessManager.php` | CU+SU::isMonitor/isStream/isProcess/isRunning | Управление процессами |
-| `streaming/Connection/ConnectionManager.php` | CU::closeConnection/writeOfflineActivity/streamLog | Управление соединениями |
-| `streaming/Download/DownloadManager.php` | CU::startDownload/stopDownload | Управление скачиваниями |
-| `domain/Line/UserInfoResolver.php` | CU::getUserInfo/getMAGInfo/getE2Info | Получение инфо о юзере/устройстве |
-| `domain/Server/BackupService.php` | CU::createBackup/restoreBackup/grant/revokePrivileges | Управление бэкапами |
-| `domain/Stream/ProviderService.php` | admin_api::processProvider | CRUD провайдеров |
-| `domain/Stream/ProfileService.php` | admin_api::processProfile | CRUD профилей транскодирования |
-| `domain/Stream/RadioService.php` | admin_api::processRadio/massEditRadios | CRUD радиостанций |
-
----
-
-### Рекомендуемый порядок выполнения Фазы 8
-
-```
-8.1 admin_api.php    ──→  8.2 StreamingUtilities  ──→  8.3 CoreUtilities
-(~300 вызовов, ~40 файлов)  (1 344 вызовов, 20 файлов)  (5 755 вызовов, 303 файла)
-      LOW RISK                  MEDIUM RISK                  HIGH RISK
-
-Внутри каждого шага:
-  .1 Удалить PROXY (поиск-замена call sites)
-  .2 Извлечь OWN (создать целевые классы + перенести логику)
-  .3 Заменить свойства (static → global/DI)
-  .4 Удалить файл
-```
-
-Каждый подшаг (8.1.1, 8.1.2, ...) — одна рабочая сессия.
-После каждого подшага система полностью работоспособна (proxy и legacy продолжают работать).
+### Фаза 8: Ликвидация god-объектов ✅
+
+**Цель:** Удалить три файла-монолита (`CoreUtilities.php`, `StreamingUtilities.php`, `admin_api.php`), заменив ~7 400 внешних вызовов на прямые обращения к целевым классам.
+
+| Файл | Было строк | Методов | Внешних вызовов | Статус |
+|------|:----------:|:-------:|:---------------:|--------|
+| `admin_api.php` | 3 686 | 79 | ~300 | ✅ 8.1 — удалён |
+| `StreamingUtilities.php` | 659 | 78 | 1 344 | ✅ 8.2 — удалён |
+| `CoreUtilities.php` | 1 971 | 152 | 5 755 | ✅ 8.3–8.11 — удалён |
+
+#### Шаг 8.1 — admin_api.php ✅
+60 PROXY + 18 OWN методов мигрированы в domain-сервисы. Файл удалён.
+
+#### Шаг 8.2 — StreamingUtilities.php ✅
+42 PROXY + 33 OWN методов, 18 свойств. ~314 ссылок заменены в 10 батчах. Файл удалён.
+
+#### Шаг 8.3 — CoreUtilities методы ✅
+81 PROXY + 69 OWN методов извлечены в целевые классы (17 батчей). CU сокращён с 1 971 до 40 строк.
+
+#### Шаги 8.4–8.6 — Свойства (blocklist, FFmpeg, light) ✅
+- **8.4** 7 blocklist/allowlist свойств → `BlocklistService` lazy getters (FileCache)
+- **8.5** 3 FFmpeg свойства → value-object `FfmpegPaths::resolve()`
+- **8.6** 3 свойства ($rCategories, $rBouquets, $rSegmentSettings) → сервисные геттеры
+
+#### Шаги 8.7–8.10 — Инфраструктурные свойства → singletons ✅
+- **8.7** `$rCached` → `FileCache`, `$rConfig` → `ConfigReader`, `$rServers` (184 refs) → `ServerRepository::getAll()`
+- **8.8** `$db` (30 refs) → `DatabaseFactory::set()/get()`, `$redis` (62 refs) → `RedisManager::instance()`
+- **8.9** `$rSettings` (819 refs, 221 файл) → `SettingsManager::set()/getAll()/get()/update()`
+- **8.10** `$rRequest` (3863 refs, 166 файлов) → `RequestManager::set()/getAll()/get()/update()`
+
+#### Шаг 8.11 — Удаление CoreUtilities.php ✅
+6 call-sites `CoreUtilities::init()` → `LegacyInitializer::initCore()`. Файл физически удалён.
+
+**Эволюция CU:**
+
+| Фаза | Строк | Методов | Свойств |
+|------|------:|--------:|--------:|
+| До рефакторинга | 1 971 | 152 | 21 |
+| После 8.3 | 40 | 3 | 21 |
+| После 8.4–8.6 | 19 | 2 | 8 |
+| После 8.7–8.8 | 9 | 1 | 2 |
+| После 8.9–8.10 | 5 | 1 | 0 |
+| **8.11 — УДАЛЁН** | **0** | **0** | **0** |
+
+**Новые singleton/service классы (Phase 8):** `SettingsManager`, `RequestManager`, `ConfigReader`, `DatabaseFactory` (singleton), `RedisManager` (singleton), `FfmpegPaths`, `FileCache`, `DataEncryptor`, `InputSanitizer`, `IpUtils`, `UrlBuilder`, `ImageUtils`, `Helpers`, `ProcessManager`, `ConnectionManager`, `BackupService`, `ProviderService`, `ProfileService`, `RadioService`, `SystemCheck`, `InputValidator`.
 
 ---
 

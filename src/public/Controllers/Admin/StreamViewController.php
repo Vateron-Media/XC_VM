@@ -1,6 +1,6 @@
 <?php
 /**
- * StreamViewController — просмотр стрима (Phase 6.3 — Group A).
+ * StreamViewController — просмотр стрима.
  */
 class StreamViewController extends BaseAdminController
 {
@@ -10,7 +10,7 @@ class StreamViewController extends BaseAdminController
 
         global $db;
 
-        if (isset(CoreUtilities::$rRequest['id']) && ($rStream = StreamRepository::getById(CoreUtilities::$rRequest['id']))) {
+        if (isset(RequestManager::getAll()['id']) && ($rStream = StreamRepository::getById(RequestManager::getAll()['id']))) {
         } else {
             goHome();
         }
@@ -25,13 +25,15 @@ class StreamViewController extends BaseAdminController
             if (0 >= $rStream['vframes_server_id']) {
             } else {
                 $rExpires = time() + 3600;
-                $rTokenData = array('session_id' => session_id(), 'expires' => $rExpires, 'stream_id' => intval(CoreUtilities::$rRequest['id']), 'ip' => CoreUtilities::getUserIP());
-                $rUIToken = CoreUtilities::encryptData(json_encode($rTokenData), CoreUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+                $rTokenData = array('session_id' => session_id(), 'expires' => $rExpires, 'stream_id' => intval(RequestManager::getAll()['id']), 'ip' => NetworkUtils::getUserIP());
+                $rUIToken = Encryption::encrypt(json_encode($rTokenData), SettingsManager::getAll()['live_streaming_pass'], OPENSSL_EXTRA);
 
                 if (issecure()) {
-                    $rImage = 'https://' . ((CoreUtilities::$rServers[$rStream['vframes_server_id']]['domain_name'] ? CoreUtilities::$rServers[$rStream['vframes_server_id']]['domain_name'] : CoreUtilities::$rServers[$rStream['vframes_server_id']]['server_ip'])) . ':' . intval(CoreUtilities::$rServers[$rStream['vframes_server_id']]['https_broadcast_port']) . '/admin/thumb?uitoken=' . $rUIToken;
+                    $rVServer = ServerRepository::getAll()[$rStream['vframes_server_id']];
+                    $rImage = 'https://' . (($rVServer['domain_name'] ? $rVServer['domain_name'] : $rVServer['server_ip'])) . ':' . intval($rVServer['https_broadcast_port']) . '/admin/thumb?uitoken=' . $rUIToken;
                 } else {
-                    $rImage = 'http://' . ((CoreUtilities::$rServers[$rStream['vframes_server_id']]['domain_name'] ? CoreUtilities::$rServers[$rStream['vframes_server_id']]['domain_name'] : CoreUtilities::$rServers[$rStream['vframes_server_id']]['server_ip'])) . ':' . intval(CoreUtilities::$rServers[$rStream['vframes_server_id']]['http_broadcast_port']) . '/admin/thumb?uitoken=' . $rUIToken;
+                    $rVServer = ServerRepository::getAll()[$rStream['vframes_server_id']];
+                    $rImage = 'http://' . (($rVServer['domain_name'] ? $rVServer['domain_name'] : $rVServer['server_ip'])) . ':' . intval($rVServer['http_broadcast_port']) . '/admin/thumb?uitoken=' . $rUIToken;
                 }
             }
 
@@ -39,7 +41,7 @@ class StreamViewController extends BaseAdminController
         } else {
             if ($rStream['type'] == 2 || $rStream['type'] == 5) {
                 $rProperties = json_decode($rStream['movie_properties'], true);
-                $rImage = (!empty($rProperties['backdrop_path'][0]) ? CoreUtilities::validateImage($rProperties['backdrop_path'][0], (issecure() ? 'https' : 'http')) : CoreUtilities::validateImage($rProperties['movie_image'], (issecure() ? 'https' : 'http')));
+                $rImage = (!empty($rProperties['backdrop_path'][0]) ? ImageUtils::validateURL($rProperties['backdrop_path'][0], (issecure() ? 'https' : 'http')) : ImageUtils::validateURL($rProperties['movie_image'], (issecure() ? 'https' : 'http')));
 
                 if (empty($rImage)) {
                 } else {

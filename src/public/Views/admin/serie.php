@@ -1,6 +1,6 @@
 <?php
 /**
- * Serie edit/add view (Phase 6.3 — Group B).
+ * Serie edit/add view.
  * Delegation proxy → legacy admin/serie.php HTML body.
  */
 $__viewMode = true;

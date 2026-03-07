@@ -133,10 +133,10 @@ function getArchive($rStreamID) {
 function getMovieTMDB($rID) {
 	require_once MAIN_HOME . 'includes/libs/tmdb.php';
 
-	if (0 < strlen(CoreUtilities::$rSettings['tmdb_language'])) {
-		$rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key'], CoreUtilities::$rSettings['tmdb_language']);
+	if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
+		$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
 	} else {
-		$rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key']);
+		$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key']);
 	}
 
 	return ($rTMDB->getMovie($rID) ?: null);
@@ -145,10 +145,10 @@ function getMovieTMDB($rID) {
 function getSeriesTMDB($rID) {
 	require_once MAIN_HOME . 'includes/libs/tmdb.php';
 
-	if (0 < strlen(CoreUtilities::$rSettings['tmdb_language'])) {
-		$rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key'], CoreUtilities::$rSettings['tmdb_language']);
+	if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
+		$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
 	} else {
-		$rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key']);
+		$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key']);
 	}
 
 	return (json_decode($rTMDB->getTVShow($rID)->getJSON(), true) ?: null);
@@ -158,10 +158,10 @@ function getSeasonTMDB($rID, $rSeason) {
 	require_once MAIN_HOME . 'includes/libs/tmdb.php';
 
 
-	if (0 < strlen(CoreUtilities::$rSettings['tmdb_language'])) {
-		$rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key'], CoreUtilities::$rSettings['tmdb_language']);
+	if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
+		$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
 	} else {
-		$rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key']);
+		$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key']);
 	}
 
 	return json_decode($rTMDB->getSeason($rID, intval($rSeason))->getJSON(), true);
@@ -261,7 +261,7 @@ function setArgs($rArgs, $rGet = true) {
 
 		if ($rGet) {
 			foreach ($rArgs as $rKey => $rValue) {
-				CoreUtilities::$rRequest[$rKey] = $rValue;
+				RequestManager::getAll()[$rKey] = $rValue;
 			}
 		}
 	}
@@ -321,7 +321,7 @@ function getNearest($arr, $search) {
 }
 
 function generateUniqueCode() {
-	return substr(md5(CoreUtilities::$rSettings['live_streaming_pass']), 0, 15);
+	return substr(md5(SettingsManager::getAll()['live_streaming_pass']), 0, 15);
 }
 
 function checkExists($rTable, $rColumn, $rValue, $rExcludeColumn = null, $rExclude = null) {
@@ -357,7 +357,7 @@ function deleteMAG($rID, $rDeletePaired = false, $rCloseCons = true, $rConvert =
 	} else {
 		if ($rConvert) {
 			$db->query('UPDATE `lines` SET `is_mag` = 0 WHERE `id` = ?;', $rMag['user']['id']);
-			CoreUtilities::updateLine($rMag['user']['id']);
+			LineService::updateLineSignal($rMag['user']['id']);
 		} else {
 			$rCount = 0;
 			$db->query('SELECT `mag_id` FROM `mag_devices` WHERE `user_id` = ?;', $rMag['user']['id']);
@@ -419,7 +419,7 @@ function deleteEnigma($rID, $rDeletePaired = false, $rCloseCons = true, $rConver
 	} else {
 		if ($rConvert) {
 			$db->query('UPDATE `lines` SET `is_e2` = 0 WHERE `id` = ?;', $rEnigma['user']['id']);
-			CoreUtilities::updateLine($rEnigma['user']['id']);
+			LineService::updateLineSignal($rEnigma['user']['id']);
 		} else {
 			$rCount = 0;
 			$db->query('SELECT `mag_id` FROM `mag_devices` WHERE `user_id` = ?;', $rEnigma['user']['id']);
@@ -535,7 +535,7 @@ function deleteBouquet($rID) {
 		}
 
 		$db->query("UPDATE `lines` SET `bouquet` = '[" . implode(',', array_map('intval', $rRow['bouquet'])) . "]' WHERE `id` = ?;", $rRow['id']);
-		CoreUtilities::updateLine($rRow['id']);
+		LineService::updateLineSignal($rRow['id']);
 	}
 	$db->query("SELECT `id`, `bouquets` FROM `users_packages` WHERE JSON_CONTAINS(`bouquets`, ?, '\$');", $rID);
 
@@ -635,15 +635,15 @@ function deleteProfile($rID) {
 
 function AsyncAPIRequest($rServerIDs, $rData) {
 	$rURLs = array();
-
+	$rServers = ServerRepository::getAll();
 
 	foreach ($rServerIDs as $rServerID) {
-		if (!CoreUtilities::$rServers[$rServerID]['server_online']) {
+		if (!$rServers[$rServerID]['server_online']) {
 		} else {
-			$rURLs[$rServerID] = array('url' => CoreUtilities::$rServers[$rServerID]['api_url'], 'postdata' => $rData);
+			$rURLs[$rServerID] = array('url' => $rServers[$rServerID]['api_url'], 'postdata' => $rData);
 		}
 	}
-	CoreUtilities::getMultiCURL($rURLs);
+	CurlClient::getMultiCURL($rURLs);
 
 	return array('result' => true);
 }
@@ -698,10 +698,10 @@ function getSettings() {
 
 function APIRequest($rData, $rTimeout = 5) {
 	ini_set('default_socket_timeout', $rTimeout);
-	$rAPI = 'http://127.0.0.1:' . intval(CoreUtilities::$rServers[SERVER_ID]['http_broadcast_port']) . '/admin/api';
+	$rAPI = 'http://127.0.0.1:' . intval(ServerRepository::getAll()[SERVER_ID]['http_broadcast_port']) . '/admin/api';
 
-	if (!empty(CoreUtilities::$rSettings['api_pass'])) {
-		$rData['api_pass'] = CoreUtilities::$rSettings['api_pass'];
+	if (!empty(SettingsManager::getAll()['api_pass'])) {
+		$rData['api_pass'] = SettingsManager::getAll()['api_pass'];
 	}
 
 	$rPost = http_build_query($rData);
@@ -718,12 +718,13 @@ function APIRequest($rData, $rTimeout = 5) {
 
 function systemapirequest($rServerID, $rData, $rTimeout = 5) {
 	ini_set('default_socket_timeout', $rTimeout);
-	if (!is_array(CoreUtilities::$rServers) || !isset(CoreUtilities::$rServers[$rServerID])) {
+	$rServers = ServerRepository::getAll();
+	if (!is_array($rServers) || !isset($rServers[$rServerID])) {
 		return null;
 	}
-	if (CoreUtilities::$rServers[$rServerID]['server_online']) {
-		$rAPI = 'http://' . CoreUtilities::$rServers[intval($rServerID)]['server_ip'] . ':' . CoreUtilities::$rServers[intval($rServerID)]['http_broadcast_port'] . '/api';
-		$rData['password'] = CoreUtilities::$rSettings['live_streaming_pass'];
+	if ($rServers[$rServerID]['server_online']) {
+		$rAPI = 'http://' . $rServers[intval($rServerID)]['server_ip'] . ':' . $rServers[intval($rServerID)]['http_broadcast_port'] . '/api';
+		$rData['password'] = SettingsManager::getAll()['live_streaming_pass'];
 		$rPost = http_build_query($rData);
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, $rAPI);
@@ -786,16 +787,16 @@ function getSerie($rID) {
 }
 
 function getSeriesTrailer($rTMDBID, $rLanguage = null) {
-	$rURL = 'https://api.themoviedb.org/3/tv/' . intval($rTMDBID) . '/videos?api_key=' . urlencode(CoreUtilities::$rSettings['tmdb_api_key']);
+	$rURL = 'https://api.themoviedb.org/3/tv/' . intval($rTMDBID) . '/videos?api_key=' . urlencode(SettingsManager::getAll()['tmdb_api_key']);
 
 
 
 	if ($rLanguage) {
 		$rURL .= '&language=' . urlencode($rLanguage);
 	} else {
-		if (0 >= strlen(CoreUtilities::$rSettings['tmdb_language'])) {
+		if (0 >= strlen(SettingsManager::getAll()['tmdb_language'])) {
 		} else {
-			$rURL .= '&language=' . urlencode(CoreUtilities::$rSettings['tmdb_language']);
+			$rURL .= '&language=' . urlencode(SettingsManager::getAll()['tmdb_language']);
 		}
 	}
 
@@ -942,7 +943,7 @@ function downloadRemoteBackup($rPath, $rFilename) {
 	$rClient = new DropboxClient();
 
 	try {
-		$rClient->SetBearerToken(array('t' => CoreUtilities::$rSettings['dropbox_token']));
+		$rClient->SetBearerToken(array('t' => SettingsManager::getAll()['dropbox_token']));
 		$rClient->downloadFile($rPath, $rFilename);
 
 
@@ -965,7 +966,7 @@ function deleteRemoteBackup($rPath) {
 
 
 	try {
-		$rClient->SetBearerToken(array('t' => CoreUtilities::$rSettings['dropbox_token']));
+		$rClient->SetBearerToken(array('t' => SettingsManager::getAll()['dropbox_token']));
 		$rClient->Delete($rPath);
 
 
@@ -985,7 +986,7 @@ function deleteRemoteBackup($rPath) {
 }
 
 function parserelease($rRelease) {
-	if (CoreUtilities::$rSettings['parse_type'] == 'guessit') {
+	if (SettingsManager::getAll()['parse_type'] == 'guessit') {
 		$rCommand = MAIN_HOME . 'bin/guess ' . escapeshellarg(pathinfo($rRelease)['filename'] . '.mkv');
 	} else {
 		$rCommand = '/usr/bin/python3 ' . MAIN_HOME . 'includes/python/release.py ' . escapeshellarg(pathinfo(str_replace('-', '_', $rRelease))['filename']);
@@ -1074,7 +1075,7 @@ function removeAccessEntry($rID) {
 
 
 	$db->query('DELETE FROM `access_codes` WHERE `id` = ?;', $rID);
-	AuthRepository::updateCodes(MAIN_HOME, SERVER_ID, 'getcodes', 'reloadNginx');
+	AuthRepository::updateCodes();
 
 
 
@@ -1103,12 +1104,12 @@ function validateHMAC($rID) {
 }
 
 function getStills($rTMDBID, $rSeason, $rEpisode) {
-	$rURL = 'https://api.themoviedb.org/3/tv/' . intval($rTMDBID) . '/season/' . intval($rSeason) . '/episode/' . intval($rEpisode) . '/images?api_key=' . urlencode(CoreUtilities::$rSettings['tmdb_api_key']);
+	$rURL = 'https://api.themoviedb.org/3/tv/' . intval($rTMDBID) . '/season/' . intval($rSeason) . '/episode/' . intval($rEpisode) . '/images?api_key=' . urlencode(SettingsManager::getAll()['tmdb_api_key']);
 
 
-	if (0 >= strlen(CoreUtilities::$rSettings['tmdb_language'])) {
+	if (0 >= strlen(SettingsManager::getAll()['tmdb_language'])) {
 	} else {
-		$rURL .= '&language=' . urlencode(CoreUtilities::$rSettings['tmdb_language']);
+		$rURL .= '&language=' . urlencode(SettingsManager::getAll()['tmdb_language']);
 	}
 
 	return json_decode(file_get_contents($rURL), true);
@@ -1290,6 +1291,8 @@ function getPermissions($rID) {
 
 		return $rRow;
 	}
+
+	return [];
 }
 
 function destroySession($rType = 'admin') {
@@ -1346,7 +1349,7 @@ function checkRemote() {
 
 	try {
 		$rClient = new DropboxClient();
-		$rClient->SetBearerToken(array('t' => CoreUtilities::$rSettings['dropbox_token']));
+		$rClient->SetBearerToken(array('t' => SettingsManager::getAll()['dropbox_token']));
 		$rClient->GetFiles();
 
 		return true;
@@ -1362,7 +1365,7 @@ function getRemoteBackups() {
 
 	try {
 		$rClient = new DropboxClient();
-		$rClient->SetBearerToken(array('t' => CoreUtilities::$rSettings['dropbox_token']));
+		$rClient->SetBearerToken(array('t' => SettingsManager::getAll()['dropbox_token']));
 		$rFiles = $rClient->GetFiles();
 	} catch (exception $e) {
 		$rFiles = array();
@@ -1390,7 +1393,7 @@ function uploadRemoteBackup($rPath, $rFilename, $rOverwrite = true) {
 	$rClient = new DropboxClient();
 
 	try {
-		$rClient->SetBearerToken(array('t' => CoreUtilities::$rSettings['dropbox_token']));
+		$rClient->SetBearerToken(array('t' => SettingsManager::getAll()['dropbox_token']));
 
 		return $rClient->UploadFile($rFilename, $rPath, $rOverwrite);
 	} catch (exception $e) {
@@ -1402,8 +1405,9 @@ function restoreImages() {
 	global $db;
 
 
-	foreach (array_keys(CoreUtilities::$rServers) as $rServerID) {
-		if (!CoreUtilities::$rServers[$rServerID]['server_online']) {
+	$rServers = ServerRepository::getAll();
+	foreach (array_keys($rServers) as $rServerID) {
+		if (!$rServers[$rServerID]['server_online']) {
 		} else {
 			systemapirequest($rServerID, array('action' => 'restore_images'));
 		}
@@ -1416,8 +1420,9 @@ function killPlexSync() {
 	global $db;
 	$db->query("SELECT DISTINCT(`server_id`) AS `server_id` FROM `watch_folders` WHERE `active` = 1 AND `type` = 'plex';");
 
+	$rServers = ServerRepository::getAll();
 	foreach ($db->get_rows() as $rRow) {
-		if (!CoreUtilities::$rServers[$rRow['server_id']]['server_online']) {
+		if (!$rServers[$rRow['server_id']]['server_online']) {
 		} else {
 			systemapirequest($rRow['server_id'], array('action' => 'kill_plex'));
 		}
@@ -1613,7 +1618,7 @@ function deleteStream($rID, $rServerID = -1, $rDeleteFiles = true, $f2d619cb3869
 	}
 
 	$db->query('DELETE FROM `streams_servers` WHERE `parent_id` IS NOT NULL AND `parent_id` > 0 AND `parent_id` NOT IN (SELECT `id` FROM `servers` WHERE `server_type` = 0);');
-	CoreUtilities::updateStream($rID);
+	StreamProcess::updateStream($rID);
 	BouquetService::scan();
 
 	return true;
@@ -1645,7 +1650,7 @@ function deleteStreams($rIDs, $rDeleteFiles = false) {
 		$db->query('INSERT INTO `signals`(`server_id`, `cache`, `time`, `custom_data`) VALUES(?, 1, ?, ?);', SERVER_ID, time(), json_encode(array('type' => 'update_streams', 'id' => $rIDs)));
 
 		if ($rDeleteFiles) {
-			foreach (array_keys(CoreUtilities::$rServers) as $rServerID) {
+			foreach (array_keys(ServerRepository::getAll()) as $rServerID) {
 				$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`, `cache`) VALUES(?, ?, ?, 1);', $rServerID, time(), json_encode(array('type' => 'delete_vods', 'id' => $rIDs)));
 			}
 		}
@@ -1698,10 +1703,10 @@ function addTMDbCategories() {
 	global $db;
 	require_once MAIN_HOME . 'includes/libs/tmdb.php';
 
-	if (0 < strlen(CoreUtilities::$rSettings['tmdb_language'])) {
-		$rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key'], CoreUtilities::$rSettings['tmdb_language']);
+	if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
+		$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
 	} else {
-		$rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key']);
+		$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key']);
 	}
 
 	$rCurrentCats = array('movie' => array(), 'series' => array());
@@ -1739,10 +1744,10 @@ function updateTMDbCategories() {
 	global $db;
 	require_once MAIN_HOME . 'includes/libs/tmdb.php';
 
-	if (0 < strlen(CoreUtilities::$rSettings['tmdb_language'])) {
-		$rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key'], CoreUtilities::$rSettings['tmdb_language']);
+	if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
+		$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
 	} else {
-		$rTMDB = new TMDB(CoreUtilities::$rSettings['tmdb_api_key']);
+		$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key']);
 	}
 
 	$rCurrentCats = array(1 => array(), 2 => array());
@@ -1845,11 +1850,11 @@ function checkPermissions($rPage = null) {
 			return Authorization::check('adv', 'block_isps');
 
 		case 'bouquet':
-			if (isset(CoreUtilities::$rRequest['id']) && Authorization::check('adv', 'edit_bouquet')) {
+			if (isset(RequestManager::getAll()['id']) && Authorization::check('adv', 'edit_bouquet')) {
 				return true;
 			}
 
-			if (isset(CoreUtilities::$rRequest['id']) || !Authorization::check('adv', 'add_bouquet')) {
+			if (isset(RequestManager::getAll()['id']) || !Authorization::check('adv', 'add_bouquet')) {
 			} else {
 				return true;
 			}
@@ -1869,11 +1874,11 @@ function checkPermissions($rPage = null) {
 			return Authorization::check('adv', 'client_request_log');
 
 		case 'created_channel':
-			if (isset(CoreUtilities::$rRequest['id']) && Authorization::check('adv', 'edit_cchannel')) {
+			if (isset(RequestManager::getAll()['id']) && Authorization::check('adv', 'edit_cchannel')) {
 				return true;
 			}
 
-			if (isset(CoreUtilities::$rRequest['id']) || !Authorization::check('adv', 'create_channel')) {
+			if (isset(RequestManager::getAll()['id']) || !Authorization::check('adv', 'create_channel')) {
 			} else {
 				return true;
 			}
@@ -1894,11 +1899,11 @@ function checkPermissions($rPage = null) {
 			return Authorization::check('adv', 'manage_e2');
 
 		case 'epg':
-			if (isset(CoreUtilities::$rRequest['id']) && Authorization::check('adv', 'epg_edit')) {
+			if (isset(RequestManager::getAll()['id']) && Authorization::check('adv', 'epg_edit')) {
 				return true;
 			}
 
-			if (isset(CoreUtilities::$rRequest['id']) || !Authorization::check('adv', 'add_epg')) {
+			if (isset(RequestManager::getAll()['id']) || !Authorization::check('adv', 'add_epg')) {
 			} else {
 				return true;
 			}
@@ -1908,11 +1913,11 @@ function checkPermissions($rPage = null) {
 			return Authorization::check('adv', 'epg');
 
 		case 'episode':
-			if (isset(CoreUtilities::$rRequest['id']) && Authorization::check('adv', 'edit_episode')) {
+			if (isset(RequestManager::getAll()['id']) && Authorization::check('adv', 'edit_episode')) {
 				return true;
 			}
 
-			if (isset(CoreUtilities::$rRequest['id']) || !Authorization::check('adv', 'add_episode')) {
+			if (isset(RequestManager::getAll()['id']) || !Authorization::check('adv', 'add_episode')) {
 			} else {
 				return true;
 			}
@@ -1929,11 +1934,11 @@ function checkPermissions($rPage = null) {
 			return Authorization::check('adv', 'fingerprint');
 
 		case 'group':
-			if (isset(CoreUtilities::$rRequest['id']) && Authorization::check('adv', 'edit_group')) {
+			if (isset(RequestManager::getAll()['id']) && Authorization::check('adv', 'edit_group')) {
 				return true;
 			}
 
-			if (isset(CoreUtilities::$rRequest['id']) || !Authorization::check('adv', 'add_group')) {
+			if (isset(RequestManager::getAll()['id']) || !Authorization::check('adv', 'add_group')) {
 			} else {
 				return true;
 			}
@@ -1950,10 +1955,10 @@ function checkPermissions($rPage = null) {
 			return Authorization::check('adv', 'live_connections');
 
 		case 'mag':
-			if (isset(CoreUtilities::$rRequest['id']) && Authorization::check('adv', 'edit_mag')) {
+			if (isset(RequestManager::getAll()['id']) && Authorization::check('adv', 'edit_mag')) {
 				return true;
 			}
-			if (isset(CoreUtilities::$rRequest['id']) || !Authorization::check('adv', 'add_mag')) {
+			if (isset(RequestManager::getAll()['id']) || !Authorization::check('adv', 'add_mag')) {
 				break;
 			}
 			return true;
@@ -1972,12 +1977,12 @@ function checkPermissions($rPage = null) {
 		case 'queue':
 			return Authorization::check('adv', 'streams') || Authorization::check('adv', 'episodes') || Authorization::check('adv', 'series');
 		case 'movie':
-			if (isset(CoreUtilities::$rRequest['id']) && Authorization::check('adv', 'edit_movie')) {
+			if (isset(RequestManager::getAll()['id']) && Authorization::check('adv', 'edit_movie')) {
 				return true;
 			}
-			if (isset(CoreUtilities::$rRequest['id']) || !Authorization::check('adv', 'add_movie')) {
+			if (isset(RequestManager::getAll()['id']) || !Authorization::check('adv', 'add_movie')) {
 			} else {
-				if (isset(CoreUtilities::$rRequest['import']) && !Authorization::check('adv', 'import_movies')) {
+				if (isset(RequestManager::getAll()['import']) && !Authorization::check('adv', 'import_movies')) {
 				} else {
 					return true;
 				}
@@ -1988,11 +1993,11 @@ function checkPermissions($rPage = null) {
 		case 'movies':
 			return Authorization::check('adv', 'movies');
 		case 'package':
-			if (isset(CoreUtilities::$rRequest['id']) && Authorization::check('adv', 'edit_package')) {
+			if (isset(RequestManager::getAll()['id']) && Authorization::check('adv', 'edit_package')) {
 				return true;
 			}
 
-			if (isset(CoreUtilities::$rRequest['id']) || !Authorization::check('adv', 'add_packages')) {
+			if (isset(RequestManager::getAll()['id']) || !Authorization::check('adv', 'add_packages')) {
 				break;
 			}
 			return true;
@@ -2013,10 +2018,10 @@ function checkPermissions($rPage = null) {
 			return Authorization::check('adv', 'tprofiles');
 
 		case 'radio':
-			if (isset(CoreUtilities::$rRequest['id']) && Authorization::check('adv', 'edit_radio')) {
+			if (isset(RequestManager::getAll()['id']) && Authorization::check('adv', 'edit_radio')) {
 				return true;
 			}
-			if (isset(CoreUtilities::$rRequest['id']) || !Authorization::check('adv', 'add_radio')) {
+			if (isset(RequestManager::getAll()['id']) || !Authorization::check('adv', 'add_radio')) {
 				break;
 			}
 			return true;
@@ -2025,11 +2030,11 @@ function checkPermissions($rPage = null) {
 		case 'radios':
 			return Authorization::check('adv', 'radio');
 		case 'user':
-			if (isset(CoreUtilities::$rRequest['id']) && Authorization::check('adv', 'edit_reguser')) {
+			if (isset(RequestManager::getAll()['id']) && Authorization::check('adv', 'edit_reguser')) {
 				return true;
 			}
 
-			if (isset(CoreUtilities::$rRequest['id']) || !Authorization::check('adv', 'add_reguser')) {
+			if (isset(RequestManager::getAll()['id']) || !Authorization::check('adv', 'add_reguser')) {
 				break;
 			}
 			return true;
@@ -2043,11 +2048,11 @@ function checkPermissions($rPage = null) {
 		case 'rtmp_monitor':
 			return Authorization::check('adv', 'rtmp');
 		case 'serie':
-			if (isset(CoreUtilities::$rRequest['id']) && Authorization::check('adv', 'edit_series')) {
+			if (isset(RequestManager::getAll()['id']) && Authorization::check('adv', 'edit_series')) {
 				return true;
 			}
 
-			if (isset(CoreUtilities::$rRequest['id']) || !Authorization::check('adv', 'add_series')) {
+			if (isset(RequestManager::getAll()['id']) || !Authorization::check('adv', 'add_series')) {
 				break;
 			}
 			return true;
@@ -2057,10 +2062,10 @@ function checkPermissions($rPage = null) {
 			return Authorization::check('adv', 'edit_series');
 		case 'server':
 		case 'proxy':
-			if (isset(CoreUtilities::$rRequest['id']) && Authorization::check('adv', 'edit_server')) {
+			if (isset(RequestManager::getAll()['id']) && Authorization::check('adv', 'edit_server')) {
 				return true;
 			}
-			if (isset(CoreUtilities::$rRequest['id']) || !Authorization::check('adv', 'add_server')) {
+			if (isset(RequestManager::getAll()['id']) || !Authorization::check('adv', 'add_server')) {
 				break;
 			}
 			return true;
@@ -2085,13 +2090,13 @@ function checkPermissions($rPage = null) {
 			return Authorization::check('adv', 'folder_watch_settings');
 
 		case 'stream':
-			if (isset(CoreUtilities::$rRequest['id']) && Authorization::check('adv', 'edit_stream')) {
+			if (isset(RequestManager::getAll()['id']) && Authorization::check('adv', 'edit_stream')) {
 				return true;
 			}
 
-			if (isset(CoreUtilities::$rRequest['id']) || !Authorization::check('adv', 'add_stream')) {
+			if (isset(RequestManager::getAll()['id']) || !Authorization::check('adv', 'add_stream')) {
 			} else {
-				if (isset(CoreUtilities::$rRequest['import']) && !Authorization::check('adv', 'import_streams')) {
+				if (isset(RequestManager::getAll()['import']) && !Authorization::check('adv', 'import_streams')) {
 				} else {
 					return true;
 				}
@@ -2161,11 +2166,11 @@ function checkPermissions($rPage = null) {
 			return Authorization::check('adv', 'manage_tickets');
 
 		case 'line':
-			if (isset(CoreUtilities::$rRequest['id']) && Authorization::check('adv', 'edit_user')) {
+			if (isset(RequestManager::getAll()['id']) && Authorization::check('adv', 'edit_user')) {
 				return true;
 			}
 
-			if (isset(CoreUtilities::$rRequest['id']) || !Authorization::check('adv', 'add_user')) {
+			if (isset(RequestManager::getAll()['id']) || !Authorization::check('adv', 'add_user')) {
 				break;
 			}
 
@@ -2377,22 +2382,22 @@ function deleteLine($rID, $rDeletePaired = false, $rCloseCons = true) {
 	}
 
 
-	CoreUtilities::deleteLine($rID);
+	LineService::deleteLineSignal($rID);
 	$db->query('DELETE FROM `lines` WHERE `id` = ?;', $rID);
 	$db->query('DELETE FROM `lines_logs` WHERE `user_id` = ?;', $rID);
 	$db->query('UPDATE `lines_activity` SET `user_id` = 0 WHERE `user_id` = ?;', $rID);
 
 	if (!$rCloseCons) {
 	} else {
-		if (CoreUtilities::$rSettings['redis_handler']) {
-			foreach (CoreUtilities::getRedisConnections($rID, null, null, true, false, false) as $rConnection) {
-				CoreUtilities::closeConnection($rConnection);
+		if (SettingsManager::getAll()['redis_handler']) {
+			foreach (ConnectionTracker::getRedisConnections($rID, null, null, true, false, false) as $rConnection) {
+				ConnectionTracker::closeConnection($rConnection);
 			}
 		} else {
 			$db->query('SELECT * FROM `lines_live` WHERE `user_id` = ?;', $rID);
 
 			foreach ($db->get_rows() as $rRow) {
-				CoreUtilities::closeConnection($rRow);
+				ConnectionTracker::closeConnection($rRow);
 			}
 		}
 	}
@@ -2404,7 +2409,7 @@ function deleteLine($rID, $rDeletePaired = false, $rCloseCons = true) {
 			deleteLine($rRow['id'], true, $rCloseCons);
 		} else {
 			$db->query('UPDATE `lines` SET `pair_id` = null WHERE `id` = ?;', $rRow['id']);
-			CoreUtilities::updateLine($rRow['id']);
+			LineService::updateLineSignal($rRow['id']);
 		}
 	}
 
@@ -2562,7 +2567,7 @@ function grantPrivilegesToAllServers() {
 	global $rServers;
 
 	foreach ($rServers as $rServerID => $rServerArray) {
-		CoreUtilities::grantPrivileges($rServerArray['server_ip']);
+		BackupService::grantPrivileges($rServerArray['server_ip'], DatabaseFactory::get(), ConfigReader::getAll());
 	}
 }
 
@@ -2752,15 +2757,15 @@ function getStreamingServersByID($rID) {
 function getLiveConnections($rServerID, $rProxy = false) {
 	global $db;
 
-	if (CoreUtilities::$rSettings['redis_handler']) {
+	if (SettingsManager::getAll()['redis_handler']) {
 		$rCount = 0;
 
 
 		if ($rProxy) {
-			$rParentIDs = CoreUtilities::$rServers[$rServerID]['parent_id'];
+			$rParentIDs = ServerRepository::getAll()[$rServerID]['parent_id'];
 
 			foreach ($rParentIDs as $rParentID) {
-				foreach (CoreUtilities::getRedisConnections(null, $rParentID, null, true, false, false) as $rConnection) {
+				foreach (ConnectionTracker::getRedisConnections(null, $rParentID, null, true, false, false) as $rConnection) {
 					if ($rConnection['proxy_id'] != $rServerID) {
 					} else {
 						$rCount++;
@@ -2768,7 +2773,7 @@ function getLiveConnections($rServerID, $rProxy = false) {
 				}
 			}
 		} else {
-			list($rCount) = CoreUtilities::getRedisConnections(null, $rServerID, null, true, true, false);
+			list($rCount) = ConnectionTracker::getRedisConnections(null, $rServerID, null, true, true, false);
 		}
 
 		return $rCount;
@@ -2796,16 +2801,6 @@ function getEPGSources() {
 		}
 	}
 
-	return $rReturn;
-}
-
-function getCategories($rType = 'live') {
-	global $db;
-	$rCategories = CategoryService::getFromDatabase(null, null, ($rType ?: null), true);
-	$rReturn = array();
-	foreach ($rCategories as $rID => $rRow) {
-		$rReturn[intval($rID)] = $rRow;
-	}
 	return $rReturn;
 }
 
@@ -2840,7 +2835,7 @@ function deleteEPG($rID) {
 
 function deleteServer($rID, $rReplaceWith = null) {
 	global $db;
-	return ServerRepository::deleteById(CoreUtilities::$rSettings, 'getStreamingServersByID', $rID, $rReplaceWith);
+	return ServerRepository::deleteById($rID, $rReplaceWith);
 }
 
 function getEncodeErrors($rID) {
@@ -2885,21 +2880,6 @@ function generateString($strength = 10) {
 
 function roundUpToAny($n, $x = 5) {
 	return round(($n + $x / 2) / $x) * $x;
-}
-
-function getOutputs() {
-	global $db;
-	$rReturn = array();
-	$db->query('SELECT * FROM `output_formats` ORDER BY `access_output_id` ASC;');
-
-	if (0 >= $db->num_rows()) {
-	} else {
-		foreach ($db->get_rows() as $rRow) {
-			$rReturn[] = $rRow;
-		}
-	}
-
-	return $rReturn;
 }
 
 function getPageName() {

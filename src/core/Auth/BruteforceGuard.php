@@ -1,31 +1,16 @@
 <?php
 
 /**
- * XC_VM — Bruteforce / Flood Guard
+ * Bruteforce / Flood Guard
  *
  * Centralized rate-limiting and brute-force protection.
  * (identical logic, unified here).
- *
- * ---------------------------------------------------------------
- * What it replaces:
- * ---------------------------------------------------------------
- *   CoreUtilities::checkFlood()        → BruteforceGuard::checkFlood()
- *   CoreUtilities::checkBruteforce()   → BruteforceGuard::checkBruteforce()
- *   CoreUtilities::checkAuthFlood()    → BruteforceGuard::checkAuthFlood()
- *   CoreUtilities::truncateAttempts()  → BruteforceGuard::truncateAttempts()
- *   BruteforceGuard::checkFlood(, !empty($rCached))        → same
- *   BruteforceGuard::checkBruteforce(, !empty($rCached))   → same
- *   BruteforceGuard::checkAuthFlood()    → same
- *   BruteforceGuard::truncateAttempts()  → same
- *
- * @see CoreUtilities::checkFlood()
- * @see BruteforceGuard::checkFlood(, !empty($rCached))
  */
 
 class BruteforceGuard {
     private static function getSettings() {
-        if (class_exists('CoreUtilities', false) && !empty(CoreUtilities::$rSettings)) {
-            return CoreUtilities::$rSettings;
+        if (!empty(SettingsManager::getAll())) {
+            return SettingsManager::getAll();
         }
         if (!empty($GLOBALS['rSettings'])) {
             return $GLOBALS['rSettings'];
@@ -39,8 +24,8 @@ class BruteforceGuard {
      * @return string
      */
     private static function getUserIP() {
-        if (class_exists('CoreUtilities', false) && method_exists('CoreUtilities', 'getUserIP')) {
-            return CoreUtilities::getUserIP();
+        if (class_exists('NetworkUtils', false)) {
+            return NetworkUtils::getUserIP();
         }
         return $_SERVER['REMOTE_ADDR'] ?? '';
     }
@@ -51,8 +36,8 @@ class BruteforceGuard {
      * @return array
      */
     private static function getAllowedIPs() {
-        if (class_exists('CoreUtilities', false) && isset(CoreUtilities::$rAllowedIPs)) {
-            return CoreUtilities::$rAllowedIPs;
+        if (class_exists('ServerRepository', false)) {
+            return ServerRepository::getAllowedIPs();
         }
         if (isset($GLOBALS['rAllowedIPs'])) {
             return $GLOBALS['rAllowedIPs'];
@@ -66,8 +51,8 @@ class BruteforceGuard {
      * @return array
      */
     private static function getBlockedIPs() {
-        if (class_exists('CoreUtilities', false) && isset(CoreUtilities::$rBlockedIPs)) {
-            return CoreUtilities::$rBlockedIPs;
+        if (class_exists('BlocklistService', false)) {
+            return BlocklistService::getBlockedIPs();
         }
         if (isset($GLOBALS['rBlockedIPs'])) {
             return $GLOBALS['rBlockedIPs'];
@@ -81,8 +66,8 @@ class BruteforceGuard {
      * @return Database|null
      */
     private static function getDB() {
-        if (class_exists('CoreUtilities', false) && isset(CoreUtilities::$db)) {
-            return CoreUtilities::$db;
+        if (class_exists('DatabaseFactory', false) && DatabaseFactory::get() !== null) {
+            return DatabaseFactory::get();
         }
         global $db;
         if (is_object($db)) {
@@ -107,9 +92,9 @@ class BruteforceGuard {
             if ($db) {
                 $db->query('INSERT INTO `blocked_ips` (`ip`,`notes`,`date`) VALUES(?,?,?)', $ip, $reason, time());
             }
-            // Refresh blocked IPs list in CoreUtilities if available
-            if (class_exists('CoreUtilities', false) && method_exists('CoreUtilities', 'getBlockedIPs')) {
-                CoreUtilities::$rBlockedIPs = CoreUtilities::getBlockedIPs();
+            // Force-refresh blocked IPs cache
+            if (class_exists('BlocklistService', false) && method_exists('BlocklistService', 'getBlockedIPs')) {
+                BlocklistService::getBlockedIPs(true);
             }
         }
         touch(FLOOD_TMP_PATH . 'block_' . $ip);

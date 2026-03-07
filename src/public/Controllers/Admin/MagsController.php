@@ -1,6 +1,6 @@
 <?php
 /**
- * XC_VM — Контроллер списка MAG-устройств (admin/mags.php)
+ * Контроллер списка MAG-устройств (admin/mags.php)
  */
 class MagsController extends BaseAdminController {
     public function index() {

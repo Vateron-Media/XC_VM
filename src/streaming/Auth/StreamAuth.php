@@ -14,7 +14,7 @@ class StreamAuth {
 		}
 
 		shuffle($rAvailableServers);
-		$rServerCapacity = ConnectionTracker::getCapacity($rSettings, $rServers, RedisManager::instance());
+		$rServerCapacity = ConnectionTracker::getCapacity();
 		$rAcceptServers = array();
 
 		foreach ($rAvailableServers as $rServerID) {

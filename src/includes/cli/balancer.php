@@ -15,7 +15,7 @@ if ($argc && $argc >= 6) {
     register_shutdown_function('shutdown');
     require str_replace('\\', '/', dirname($argv[0])) . '/../../www/init.php';
     unlink(CACHE_TMP_PATH . 'servers');
-    CoreUtilities::$rServers = CoreUtilities::getServers();
+    $rServers = ServerRepository::getAll();
     $rType = intval($argv[1]);
     $rPort = intval($argv[3]);
     list(,,,, $rUsername, $rPassword) = $argv;
@@ -46,7 +46,7 @@ if ($argc && $argc >= 6) {
     } else {
         file_put_contents($rInstallDir . $rServerID . '.json', json_encode(array('root_username' => $rUsername, 'root_password' => $rPassword, 'ssh_port' => $rPort)));
     }
-    $rHost = CoreUtilities::$rServers[$rServerID]['server_ip'];
+    $rHost = $rServers[$rServerID]['server_ip'];
     echo 'Connecting to ' . $rHost . ':' . $rPort . "\n";
     if ($rConn = ssh2_connect($rHost, $rPort)) {
         if ($rUsername == 'root') {
@@ -174,12 +174,12 @@ if ($argc && $argc >= 6) {
         $rMasterConfig = parse_ini_file(CONFIG_PATH . 'config.ini');
         if ($rType == 1) {
             if ($rPrivateIP) {
-                $rNewConfig = '; XC_VM Configuration' . "\n" . '; -----------------' . "\n\n" . '[XC_VM]' . "\n" . 'hostname    =   "' . CoreUtilities::$rServers[SERVER_ID]['private_ip'] . '"' . "\n" . 'port        =   ' . intval(CoreUtilities::$rServers[SERVER_ID]['http_broadcast_port']) . "\n" . 'server_id   =   ' . $rServerID;
+                $rNewConfig = '; XC_VM Configuration' . "\n" . '; -----------------' . "\n\n" . '[XC_VM]' . "\n" . 'hostname    =   "' . $rServers[SERVER_ID]['private_ip'] . '"' . "\n" . 'port        =   ' . intval($rServers[SERVER_ID]['http_broadcast_port']) . "\n" . 'server_id   =   ' . $rServerID;
             } else {
-                $rNewConfig = '; XC_VM Configuration' . "\n" . '; -----------------' . "\n\n" . '[XC_VM]' . "\n" . 'hostname    =   "' . CoreUtilities::$rServers[SERVER_ID]['server_ip'] . '"' . "\n" . 'port        =   ' . intval(CoreUtilities::$rServers[SERVER_ID]['http_broadcast_port']) . "\n" . 'server_id   =   ' . $rServerID;
+                $rNewConfig = '; XC_VM Configuration' . "\n" . '; -----------------' . "\n\n" . '[XC_VM]' . "\n" . 'hostname    =   "' . $rServers[SERVER_ID]['server_ip'] . '"' . "\n" . 'port        =   ' . intval($rServers[SERVER_ID]['http_broadcast_port']) . "\n" . 'server_id   =   ' . $rServerID;
             }
         } else {
-            $rNewConfig = '; XC_VM Configuration' . "\n" . '; -----------------' . "\n\n" . '[XC_VM]' . "\n" . 'hostname    =   "' . CoreUtilities::$rServers[SERVER_ID]['server_ip'] . '"' . "\n" . 'database    =   "xc_vm"' . "\n" . 'port        =   ' . intval(CoreUtilities::$rConfig['port']) . "\n" . 'server_id   =   ' . $rServerID . "\n" . 'is_lb       =   1' . "\n\n" . '[Encrypted]' . "\n" . 'username    =   "' . CoreUtilities::$rConfig['username'] . '"' . "\n" . 'password    =   "' . CoreUtilities::$rConfig['password'] . '"';
+                $rNewConfig = '; XC_VM Configuration' . "\n" . '; -----------------' . "\n\n" . '[XC_VM]' . "\n" . 'hostname    =   "' . $rServers[SERVER_ID]['server_ip'] . '"' . "\n" . 'database    =   "xc_vm"' . "\n" . 'port        =   ' . intval(ConfigReader::get('port')) . "\n" . 'server_id   =   ' . $rServerID . "\n" . 'is_lb       =   1' . "\n\n" . '[Encrypted]' . "\n" . 'username    =   "' . ConfigReader::get('username') . '"' . "\n" . 'password    =   "' . ConfigReader::get('password') . '"';
         }
         file_put_contents(TMP_PATH . 'config_' . $rServerID, $rNewConfig);
         sendfile($rConn, TMP_PATH . 'config_' . $rServerID, CONFIG_PATH . 'config.ini');
@@ -197,12 +197,12 @@ if ($argc && $argc >= 6) {
             $rServices = 1;
             foreach ($rParentIDs as $rParentID) {
                 if ($rPrivateIP) {
-                    $rIP = CoreUtilities::$rServers[$rParentID]['private_ip'] . ':' . CoreUtilities::$rServers[$rParentID]['http_broadcast_port'];
+                    $rIP = $rServers[$rParentID]['private_ip'] . ':' . $rServers[$rParentID]['http_broadcast_port'];
                 } else {
-                    $rIP = CoreUtilities::$rServers[$rParentID]['server_ip'] . ':' . CoreUtilities::$rServers[$rParentID]['http_broadcast_port'];
+                    $rIP = $rServers[$rParentID]['server_ip'] . ':' . $rServers[$rParentID]['http_broadcast_port'];
                 }
                 $rKey = '';
-                if (CoreUtilities::$rServers[$rParentID]['is_main']) {
+                if ($rServers[$rParentID]['is_main']) {
                     $rConfigText = 'location / {' . "\n" . '    include options.conf;' . "\n" . '    proxy_pass http://' . $rIP . '$1;' . "\n" . '}';
                 } else {
                     $rKey = md5($rServerID . '_' . $rParentID . '_' . OPENSSL_EXTRA);
@@ -222,7 +222,7 @@ if ($argc && $argc >= 6) {
             sendfile($rConn, MAIN_HOME . 'bin/nginx/conf/realip_xc_vm.conf', MAIN_HOME . 'bin/nginx/conf/realip_xc_vm.conf');
             runCommand($rConn, 'sudo echo "" > "/home/xc_vm/bin/nginx/conf/limit.conf"');
             runCommand($rConn, 'sudo echo "" > "/home/xc_vm/bin/nginx/conf/limit_queue.conf"');
-            $rIP = '127.0.0.1:' . CoreUtilities::$rServers[$rServerID]['http_broadcast_port'];
+            $rIP = '127.0.0.1:' . $rServers[$rServerID]['http_broadcast_port'];
             runCommand($rConn, 'sudo echo "on_play http://' . $rIP . '/stream/rtmp; on_publish http://' . $rIP . '/stream/rtmp; on_play_done http://' . $rIP . '/stream/rtmp;" > "/home/xc_vm/bin/nginx_rtmp/conf/live.conf"');
             $rServices = (intval(runCommand($rConn, 'sudo cat /proc/cpuinfo | grep "^processor" | wc -l')['output']) ?: 4);
             runCommand($rConn, 'sudo rm ' . MAIN_HOME . 'bin/php/etc/*.conf');
@@ -264,7 +264,7 @@ if ($argc && $argc >= 6) {
         runCommand($rConn, 'sudo chown -R xc_vm:xc_vm ' . MAIN_HOME . 'tmp');
         runCommand($rConn, 'sudo chown -R xc_vm:xc_vm ' . MAIN_HOME . 'content/streams');
         runCommand($rConn, 'sudo chown -R xc_vm:xc_vm ' . MAIN_HOME);
-        CoreUtilities::grantPrivileges($rHost);
+        BackupService::grantPrivileges($rHost, DatabaseFactory::get(), ConfigReader::getAll());
         echo 'Installation complete! Starting XC_VM' . "\n";
         runCommand($rConn, 'sudo service xc_vm restart');
         if ($rType == 2) {

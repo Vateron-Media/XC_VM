@@ -89,13 +89,13 @@ function loadcli() {
                     $rImageSplit = explode('/', $rSplit[2]);
                     $rPathInfo = pathinfo($rImageSplit[count($rImageSplit) - 1]);
                     $rImage = $rPathInfo['filename'];
-                    $rOriginalURL = CoreUtilities::decryptData($rImage, CoreUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+                    $rOriginalURL = Encryption::decrypt($rImage, SettingsManager::getAll()['live_streaming_pass'], OPENSSL_EXTRA);
                     if (empty($rOriginalURL) || substr($rOriginalURL, 0, 4) != 'http') {
                     } else {
                         if (file_exists(IMAGES_PATH . $rPathInfo['basename'])) {
                         } else {
                             echo 'Downloading: ' . $rOriginalURL . "\n";
-                            CoreUtilities::downloadImage($rOriginalURL);
+                            ImageUtils::downloadImage($rOriginalURL);
                         }
                     }
                 }
@@ -190,7 +190,7 @@ function deleteStreams($rIDs) {
     $db->query('DELETE FROM `streams_servers` WHERE `stream_id` IN (' . implode(',', $rIDs) . ');');
     $db->query('DELETE FROM `streams_servers` WHERE `parent_id` IS NOT NULL AND `parent_id` > 0 AND `parent_id` NOT IN (SELECT `id` FROM `servers` WHERE `server_type` = 0);');
     $db->query('INSERT INTO `signals`(`server_id`, `cache`, `time`, `custom_data`) VALUES(?, 1, ?, ?);', SERVER_ID, time(), json_encode(array('type' => 'update_streams', 'id' => $rIDs)));
-    foreach (array_keys(CoreUtilities::$rServers) as $rServerID) {
+    foreach (array_keys(ServerRepository::getAll()) as $rServerID) {
         $db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`, `cache`) VALUES(?, ?, ?, 1);', $rServerID, time(), json_encode(array('type' => 'delete_vods', 'id' => $rIDs)));
     }
     return true;

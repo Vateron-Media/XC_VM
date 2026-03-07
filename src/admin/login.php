@@ -15,7 +15,7 @@ if (!isset($_SESSION['hash'])) {
         $rSettings['recaptcha_enable'] = false;
     }
 
-    $rIP = CoreUtilities::getUserIP();
+    $rIP = NetworkUtils::getUserIP();
 
     if (0 >= intval($rSettings['login_flood'])) {
     } else {
@@ -32,9 +32,9 @@ if (!isset($_SESSION['hash'])) {
         }
     }
 
-    if (!isset(CoreUtilities::$rRequest['login'])) {
+    if (!isset(RequestManager::getAll()['login'])) {
     } else {
-        $rReturn = Authenticator::login(CoreUtilities::$rSettings, CoreUtilities::$rRequest, $rBypassRecaptcha);
+        $rReturn = Authenticator::login(RequestManager::getAll(), $rBypassRecaptcha);
         $_STATUS = $rReturn['status'];
 
         if ($_STATUS != STATUS_SUCCESS) {
@@ -45,8 +45,8 @@ if (!isset($_SESSION['hash'])) {
                 exit();
             }
 
-            if (0 < strlen(CoreUtilities::$rRequest['referrer'])) {
-                $rReferer = basename(CoreUtilities::$rRequest['referrer']);
+            if (0 < strlen(RequestManager::getAll()['referrer'])) {
+                $rReferer = basename(RequestManager::getAll()['referrer']);
 
                 if (substr($rReferer, 0, 6) != 'logout') {
                 } else {
@@ -352,7 +352,7 @@ if (!isset($_SESSION['hash'])) {
                         <form action="./login" method="POST" data-parsley-validate class="login-form">
                             <div class="card">
                                 <div class="card-body">
-                                    <input type="hidden" name="referrer" value="<?= htmlspecialchars(CoreUtilities::$rRequest['referrer'] ?? '') ?>">
+                                    <input type="hidden" name="referrer" value="<?= htmlspecialchars(RequestManager::getAll()['referrer'] ?? '') ?>">
 
                                     <div class="form-group mb-3" id="username_group">
                                         <label for="username"><?= $language::get('username') ?></label>

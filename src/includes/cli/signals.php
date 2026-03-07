@@ -7,15 +7,16 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
         $rLastCheck = null;
         $rInterval = 60;
         $rMD5 = md5_file(__FILE__);
-        if (CoreUtilities::$rSettings['redis_handler']) {
-            CoreUtilities::connectRedis();
+        $rServers = ServerRepository::getAll();
+        if (SettingsManager::getAll()['redis_handler']) {
+            RedisManager::ensureConnected();
         }
         while (true && $db && $db->ping()) {
             if (!$rLastCheck && $rInterval < time() - $rLastCheck) {
-                if (CoreUtilities::isRunning()) {
+                if (ProcessManager::isNginxRunning()) {
                     if (md5_file(__FILE__) == $rMD5) {
-                        CoreUtilities::$rSettings = CoreUtilities::getSettings(true);
-                        CoreUtilities::$rServers = CoreUtilities::getServers(true);
+                        SettingsManager::set(SettingsRepository::getAll(true));
+                        $rServers = ServerRepository::getAll(true);
                         $rLastCheck = time();
                     } else {
                         echo 'File changed! Break.' . "\n";
@@ -24,7 +25,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                     echo 'Not running! Break.' . "\n";
                 }
             }
-            if (!(CoreUtilities::$rSettings['redis_handler'] && (!CoreUtilities::$redis || !CoreUtilities::$redis->ping())) && $db->query('SELECT `signal_id`, `pid`, `rtmp` FROM `signals` WHERE `server_id` = ? AND `pid` IS NOT NULL ORDER BY `signal_id` ASC LIMIT 100', SERVER_ID)) {
+            if (!(SettingsManager::getAll()['redis_handler'] && (!RedisManager::instance() || !RedisManager::instance()->ping())) && $db->query('SELECT `signal_id`, `pid`, `rtmp` FROM `signals` WHERE `server_id` = ? AND `pid` IS NOT NULL ORDER BY `signal_id` ASC LIMIT 100', SERVER_ID)) {
                 if ($db->num_rows() > 0) {
                     $rIDs = array();
                     foreach ($db->get_rows() as $rRow) {
@@ -35,7 +36,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                                 shell_exec('kill -9 ' . intval($rPID));
                             }
                         } else {
-                            shell_exec('wget --timeout=2 -O /dev/null -o /dev/null "' . CoreUtilities::$rServers[SERVER_ID]['rtmp_mport_url'] . 'control/drop/client?clientid=' . intval($rPID) . '" >/dev/null 2>/dev/null &');
+                            shell_exec('wget --timeout=2 -O /dev/null -o /dev/null "' . $rServers[SERVER_ID]['rtmp_mport_url'] . 'control/drop/client?clientid=' . intval($rPID) . '" >/dev/null 2>/dev/null &');
                         }
                     }
                     if (count($rIDs) > 0) {
@@ -103,14 +104,14 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                             $db->query('DELETE FROM `signals` WHERE `signal_id` IN (' . implode(',', $rIDs) . ')');
                         }
                     }
-                    if (CoreUtilities::$rSettings['redis_handler']) {
+                    if (SettingsManager::getAll()['redis_handler']) {
                         $rSignals = array();
-                        foreach (CoreUtilities::$redis->sMembers('SIGNALS#' . SERVER_ID) as $rKey) {
+                        foreach (RedisManager::instance()->sMembers('SIGNALS#' . SERVER_ID) as $rKey) {
                             $rSignals[] = $rKey;
                         }
                         if (0 >= count($rSignals)) {
                         } else {
-                            $rSignalData = CoreUtilities::$redis->mGet($rSignals);
+                            $rSignalData = RedisManager::instance()->mGet($rSignals);
                             $rIDs = array();
                             foreach ($rSignalData as $rData) {
                                 $rRow = igbinary_unserialize($rData);
@@ -121,10 +122,10 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                                         shell_exec('kill -9 ' . intval($rPID));
                                     }
                                 } else {
-                                    shell_exec('wget --timeout=2 -O /dev/null -o /dev/null "' . CoreUtilities::$rServers[SERVER_ID]['rtmp_mport_url'] . 'control/drop/client?clientid=' . intval($rPID) . '" >/dev/null 2>/dev/null &');
+                                    shell_exec('wget --timeout=2 -O /dev/null -o /dev/null "' . $rServers[SERVER_ID]['rtmp_mport_url'] . 'control/drop/client?clientid=' . intval($rPID) . '" >/dev/null 2>/dev/null &');
                                 }
                             }
-                            CoreUtilities::$redis->multi()->del($rIDs)->sRem('SIGNALS#' . SERVER_ID, ...$rSignals)->exec();
+                            RedisManager::instance()->multi()->del($rIDs)->sRem('SIGNALS#' . SERVER_ID, ...$rSignals)->exec();
                         }
                     }
                     usleep(250000);

@@ -33,9 +33,9 @@ if (!$rMobile) {
 
 echo ' form-group row mb-4">' . "\r\n" . '                            <div class="col-md-3">' . "\r\n" . '                                <input type="text" class="form-control" id="mag_search" value="';
 
-if (!isset(CoreUtilities::$rRequest['search'])) {
+if (!isset(RequestManager::getAll()['search'])) {
 } else {
-	echo htmlspecialchars(CoreUtilities::$rRequest['search']);
+	echo htmlspecialchars(RequestManager::getAll()['search']);
 }
 
 echo '" placeholder="';
@@ -44,7 +44,7 @@ echo '...">' . "\r\n" . '                            </div>' . "\r\n" . '       
 echo $language::get('filter_results');
 echo '</label>' . "\r\n" . '                            <div class="col-md-3">' . "\r\n" . '                                <select id="mag_reseller" class="form-control" data-toggle="select2">' . "\r\n" . '                                    <optgroup label="Global">' . "\r\n" . '                                        <option value=""';
 
-if (isset(CoreUtilities::$rRequest['owner'])) {
+if (isset(RequestManager::getAll()['owner'])) {
 } else {
 	echo ' selected';
 }
@@ -53,7 +53,7 @@ echo '>All Owners</option>' . "\r\n" . '                                        
 echo $rUserInfo['id'];
 echo '"';
 
-if (!(isset(CoreUtilities::$rRequest['owner']) && CoreUtilities::$rRequest['owner'] == $rUserInfo['id'])) {
+if (!(isset(RequestManager::getAll()['owner']) && RequestManager::getAll()['owner'] == $rUserInfo['id'])) {
 } else {
 	echo ' selected';
 }
@@ -70,7 +70,7 @@ if (0 >= count($rPermissions['direct_reports'])) {
 		echo $rUserID;
 		echo '"';
 
-		if (!(isset(CoreUtilities::$rRequest['owner']) && CoreUtilities::$rRequest['owner'] == $rUserID)) {
+		if (!(isset(RequestManager::getAll()['owner']) && RequestManager::getAll()['owner'] == $rUserID)) {
 		} else {
 			echo ' selected';
 		}
@@ -94,7 +94,7 @@ if (count($rPermissions['direct_reports']) >= count($rPermissions['all_reports']
 			echo $rUserID;
 			echo '"';
 
-			if (!(isset(CoreUtilities::$rRequest['owner']) && CoreUtilities::$rRequest['owner'] == $rUserID)) {
+			if (!(isset(RequestManager::getAll()['owner']) && RequestManager::getAll()['owner'] == $rUserID)) {
 			} else {
 				echo ' selected';
 			}
@@ -109,7 +109,7 @@ if (count($rPermissions['direct_reports']) >= count($rPermissions['all_reports']
 
 echo '                                </select>' . "\r\n" . '                            </div>' . "\r\n" . '                            <div class="col-md-2">' . "\r\n" . '                                <select id="mag_filter" class="form-control" data-toggle="select2">' . "\r\n" . '                                    <option value=""';
 
-if (isset(CoreUtilities::$rRequest['filter'])) {
+if (isset(RequestManager::getAll()['filter'])) {
 } else {
 	echo ' selected';
 }
@@ -118,7 +118,7 @@ echo '>';
 echo $language::get('no_filter');
 echo '</option>' . "\r\n" . '                                    <option value="1"';
 
-if (!(isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 1)) {
+if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 1)) {
 } else {
 	echo ' selected';
 }
@@ -127,7 +127,7 @@ echo '>';
 echo $language::get('active');
 echo '</option>' . "\r\n" . '                                    <option value="2"';
 
-if (!(isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 2)) {
+if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 2)) {
 } else {
 	echo ' selected';
 }
@@ -136,7 +136,7 @@ echo '>';
 echo $language::get('disabled');
 echo '</option>' . "\r\n" . '                                    <option value="3"';
 
-if (!(isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 4)) {
+if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 4)) {
 } else {
 	echo ' selected';
 }
@@ -145,7 +145,7 @@ echo '>';
 echo $language::get('expired');
 echo '</option>' . "\r\n" . '                                    <option value="4"';
 
-if (!(isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 5)) {
+if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 5)) {
 } else {
 	echo ' selected';
 }
@@ -159,8 +159,8 @@ echo '</label>' . "\r\n" . '                            <div class="col-md-1">' 
 foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) {
 	echo '                                    <option';
 
-	if (isset(CoreUtilities::$rRequest['entries'])) {
-		if (CoreUtilities::$rRequest['entries'] != $rShow) {
+	if (isset(RequestManager::getAll()['entries'])) {
+		if (RequestManager::getAll()['entries'] != $rShow) {
 		} else {
 			echo ' selected';
 		}

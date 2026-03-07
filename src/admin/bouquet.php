@@ -9,14 +9,14 @@ if (!isset($__viewMode)):
 		goHome();
 	}
 
-	if (!isset(CoreUtilities::$rRequest['id'])) {
+	if (!isset(RequestManager::getAll()['id'])) {
 	} else {
-		$rBouquetArr = getBouquet(CoreUtilities::$rRequest['id']);
+		$rBouquetArr = getBouquet(RequestManager::getAll()['id']);
 	}
 
-	if (!isset(CoreUtilities::$rRequest['duplicate'])) {
+	if (!isset(RequestManager::getAll()['duplicate'])) {
 	} else {
-		$rBouquetArr = getBouquet(CoreUtilities::$rRequest['duplicate']);
+		$rBouquetArr = getBouquet(RequestManager::getAll()['duplicate']);
 		$rBouquetArr['bouquet_name'] .= ' - Copy';
 		unset($rBouquetArr['id']);
 	}
@@ -130,7 +130,7 @@ if (!isset($rBouquetArr)) {
 	echo $language::get('all_categories');
 	echo '</option>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
 
-	foreach (getCategories('live') as $rCategory) {
+	foreach (CategoryService::getAllByType('live') as $rCategory) {
 		echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<option value="';
 		echo intval($rCategory['id']);
 		echo '">';
@@ -159,7 +159,7 @@ if (!isset($rBouquetArr)) {
 	echo $language::get('all_categories');
 	echo '</option>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
 
-	foreach (getCategories('movie') as $rCategory) {
+	foreach (CategoryService::getAllByType('movie') as $rCategory) {
 		echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<option value="';
 		echo intval($rCategory['id']);
 		echo '">';
@@ -188,7 +188,7 @@ if (!isset($rBouquetArr)) {
 	echo $language::get('all_categories');
 	echo '</option>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
 
-	foreach (getCategories('series') as $rCategory) {
+	foreach (CategoryService::getAllByType('series') as $rCategory) {
 		echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<option value="';
 		echo intval($rCategory['id']);
 		echo '">';
@@ -217,7 +217,7 @@ if (!isset($rBouquetArr)) {
 	echo $language::get('all_categories');
 	echo '</option>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
 
-	foreach (getCategories('radio') as $rCategory) {
+	foreach (CategoryService::getAllByType('radio') as $rCategory) {
 		echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<option value="';
 		echo intval($rCategory['id']);
 		echo '">';
@@ -485,7 +485,7 @@ renderUnifiedLayoutFooter('admin'); ?>
 	echo $language::get('enter_a_bouquet_name');
 	echo '");' . "\r\n" . '                } else {' . "\r\n" . "                    \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                    submitForm(window.rCurrentPage, new FormData($("form")[0]));' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '        });' . "\r\n" . '        ' . "\r\n\t\t";
 	?>
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+	<?php if (SettingsManager::getAll()['enable_search']): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

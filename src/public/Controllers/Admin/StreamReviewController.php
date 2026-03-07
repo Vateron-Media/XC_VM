@@ -1,6 +1,6 @@
 <?php
 /**
- * StreamReviewController — обзор стримов (Phase 6.3 — Group A).
+ * StreamReviewController — обзор стримов.
  */
 class StreamReviewController extends BaseAdminController
 {
@@ -10,33 +10,33 @@ class StreamReviewController extends BaseAdminController
 
         global $db;
 
-        if (isset(CoreUtilities::$rRequest['save_changes'])) {
+        if (isset(RequestManager::getAll()['save_changes'])) {
             $rChanges = array();
 
-            foreach (array_keys(CoreUtilities::$rRequest) as $rKey) {
+            foreach (array_keys(RequestManager::getAll()) as $rKey) {
                 $rSplit = explode('_', $rKey);
 
-                if (!($rSplit[0] == 'modified' && CoreUtilities::$rRequest[$rKey] == 1)) {
+                if (!($rSplit[0] == 'modified' && RequestManager::getAll()[$rKey] == 1)) {
                 } else {
                     $rID = intval($rSplit[1]);
                     $rChanges[$rID] = array();
 
                     foreach (array('name', 'channel_id', 'epg_id') as $rChangeKey) {
-                        $rChanges[$rID][$rChangeKey] = CoreUtilities::$rRequest[$rChangeKey . '_' . $rID];
+                        $rChanges[$rID][$rChangeKey] = RequestManager::getAll()[$rChangeKey . '_' . $rID];
                     }
 
                     foreach (array('bouquets', 'categories') as $rChangeKey) {
-                        $rChanges[$rID][$rChangeKey] = json_decode(CoreUtilities::$rRequest[$rChangeKey . '_' . $rID], true);
+                        $rChanges[$rID][$rChangeKey] = json_decode(RequestManager::getAll()[$rChangeKey . '_' . $rID], true);
                     }
                 }
             }
 
             foreach ($rChanges as $rID => $rStream) {
-                if (!CoreUtilities::$rRequest['save_bouquets']) {
+                if (!RequestManager::getAll()['save_bouquets']) {
                 } else {
                     $rHasBouquets = array();
 
-                    foreach (CoreUtilities::$rBouquets as $rBouquetID => $rBouquet) {
+                    foreach (BouquetService::getAll() as $rBouquetID => $rBouquet) {
                         if (!(in_array($rID, $rBouquet['streams']) || in_array($rID, $rBouquet['channels']))) {
                         } else {
                             $rHasBouquets[] = $rBouquetID;
@@ -60,13 +60,13 @@ class StreamReviewController extends BaseAdminController
                     }
                 }
 
-                if (CoreUtilities::$rRequest['save_categories'] && CoreUtilities::$rRequest['save_epg']) {
+                if (RequestManager::getAll()['save_categories'] && RequestManager::getAll()['save_epg']) {
                     $db->query('UPDATE `streams` SET `stream_display_name` = ?, `category_id` = ?, `channel_id` = ?, `epg_id` = ? WHERE `id` = ?;', $rStream['name'], '[' . implode(',', array_map('intval', $rStream['categories'])) . ']', ($rStream['channel_id'] ?: null), (is_null($rStream['epg_id']) ? null : $rStream['epg_id']), $rID);
                 } else {
-                    if (CoreUtilities::$rRequest['save_categories']) {
+                    if (RequestManager::getAll()['save_categories']) {
                         $db->query('UPDATE `streams` SET `stream_display_name` = ?, `category_id` = ? WHERE `id` = ?;', $rStream['name'], '[' . implode(',', array_map('intval', $rStream['categories'])) . ']', $rID);
                     } else {
-                        if (CoreUtilities::$rRequest['save_epg']) {
+                        if (RequestManager::getAll()['save_epg']) {
                             $db->query('UPDATE `streams` SET `stream_display_name` = ?, `channel_id` = ?, `epg_id` = ?, WHERE `id` = ?;', $rStream['name'], ($rStream['channel_id'] ?: null), (is_null($rStream['epg_id']) ? null : $rStream['epg_id']), $rID);
                         } else {
                             $db->query('UPDATE `streams` SET `stream_display_name` = ? WHERE `id` = ?;', $rStream['name'], $rID);
@@ -78,10 +78,10 @@ class StreamReviewController extends BaseAdminController
 
             exit();
         } else {
-            if (!isset(CoreUtilities::$rRequest['streams'])) {
+            if (!isset(RequestManager::getAll()['streams'])) {
             } else {
-                $rStreams = json_decode(CoreUtilities::$rRequest['streams'], true);
-                $rCategories = getCategories('live');
+                $rStreams = json_decode(RequestManager::getAll()['streams'], true);
+                $rCategories = CategoryService::getAllByType('live');
                 $rBouquets = BouquetService::getAllSimple();
                 $rStreamBouquets = array();
                 foreach ($rBouquets as $rBouquet) {
@@ -94,7 +94,7 @@ class StreamReviewController extends BaseAdminController
                         }
                     }
                 }
-                $rOptions = array('categories' => isset(CoreUtilities::$rRequest['edit_categories']), 'epg' => isset(CoreUtilities::$rRequest['edit_epg']), 'bouquets' => isset(CoreUtilities::$rRequest['edit_bouquets']));
+                $rOptions = array('categories' => isset(RequestManager::getAll()['edit_categories']), 'epg' => isset(RequestManager::getAll()['edit_epg']), 'bouquets' => isset(RequestManager::getAll()['edit_bouquets']));
                 $rWidth = array(25, 20, 20);
 
                 if ($rOptions['categories'] || $rOptions['bouquets'] || $rOptions['epg']) {

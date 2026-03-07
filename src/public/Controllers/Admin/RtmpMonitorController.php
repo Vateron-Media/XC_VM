@@ -1,6 +1,6 @@
 <?php
 /**
- * RtmpMonitorController — мониторинг RTMP (Phase 6.3 — Group A).
+ * RtmpMonitorController — мониторинг RTMP.
  */
 class RtmpMonitorController extends BaseAdminController
 {
@@ -10,11 +10,11 @@ class RtmpMonitorController extends BaseAdminController
 
         global $rServers;
 
-        if (!isset(CoreUtilities::$rRequest['server']) || !isset($rServers[CoreUtilities::$rRequest['server']])) {
-            CoreUtilities::$rRequest['server'] = SERVER_ID;
+        if (!isset(RequestManager::getAll()['server']) || !isset($rServers[RequestManager::getAll()['server']])) {
+            RequestManager::update('server', SERVER_ID);
         }
 
-        $rRTMPInfo = ServerRepository::getRTMPStats('systemapirequest', CoreUtilities::$rRequest['server']);
+        $rRTMPInfo = ServerRepository::getRTMPStats(RequestManager::getAll()['server']);
 
         $this->setTitle('RTMP Monitor');
         $this->render('rtmp_monitor', compact('rRTMPInfo'));

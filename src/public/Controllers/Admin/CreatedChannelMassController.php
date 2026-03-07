@@ -1,6 +1,6 @@
 <?php
 /**
- * CreatedChannelMassController — массовое редактирование каналов (Phase 6.3 — Group A).
+ * CreatedChannelMassController — массовое редактирование каналов.
  */
 class CreatedChannelMassController extends BaseAdminController
 {
@@ -10,7 +10,7 @@ class CreatedChannelMassController extends BaseAdminController
 
         global $rServers;
 
-        $rCategories = getCategories('live');
+        $rCategories = CategoryService::getAllByType('live');
         $rTranscodeProfiles = StreamConfigRepository::getTranscodeProfiles();
         $rServerTree = array(
             array('id' => 'source', 'parent' => '#', 'text' => "<strong class='btn btn-success waves-effect waves-light btn-xs'>Active</strong>", 'icon' => 'mdi mdi-play', 'state' => array('opened' => true)),

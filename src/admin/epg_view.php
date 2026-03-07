@@ -13,28 +13,28 @@
 		exit;
 	}
 
-	$rPageInt = max(intval(CoreUtilities::$rRequest['page']), 1);
-	$rLimit = max(intval(CoreUtilities::$rRequest['entries']), CoreUtilities::$rSettings['default_entries']);
+	$rPageInt = max(intval(RequestManager::getAll()['page']), 1);
+	$rLimit = max(intval(RequestManager::getAll()['entries']), SettingsManager::getAll()['default_entries']);
 	$rStart = ($rPageInt - 1) * $rLimit;
 	$rWhere = $rWhereV = array();
 	$rWhere[] = '`type` = 1 AND `epg_id` IS NOT NULL AND `channel_id` IS NOT NULL';
 
-	if (isset(CoreUtilities::$rRequest['category']) && intval(CoreUtilities::$rRequest['category']) > 0) {
+	if (isset(RequestManager::getAll()['category']) && intval(RequestManager::getAll()['category']) > 0) {
 		$rWhere[] = "JSON_CONTAINS(`category_id`, ?, '\$')";
-		$rWhereV[] = json_encode(intval(CoreUtilities::$rRequest['category']));
+		$rWhereV[] = json_encode(intval(RequestManager::getAll()['category']));
 	}
 
-	if (!empty(CoreUtilities::$rRequest['search'])) {
+	if (!empty(RequestManager::getAll()['search'])) {
 		$rWhere[] = '(`stream_display_name` LIKE ? OR `id` LIKE ?)';
-		$rWhereV[] = '%' . CoreUtilities::$rRequest['search'] . '%';
-		$rWhereV[] = CoreUtilities::$rRequest['search'];
+		$rWhereV[] = '%' . RequestManager::getAll()['search'] . '%';
+		$rWhereV[] = RequestManager::getAll()['search'];
 	}
 
 	$rWhereString = (count($rWhere) > 0) ? 'WHERE ' . implode(' AND ', $rWhere) : '';
 
 	$rOrderBy = '`stream_display_name` ASC';
-	if (!empty(CoreUtilities::$rRequest['sort']) && in_array(CoreUtilities::$rRequest['sort'], array('name', 'added'))) {
-		$rOrderBy = $rOrder[CoreUtilities::$rRequest['sort']];
+	if (!empty(RequestManager::getAll()['sort']) && in_array(RequestManager::getAll()['sort'], array('name', 'added'))) {
+		$rOrderBy = $rOrder[RequestManager::getAll()['sort']];
 	}
 
 	$rStreamIDs = array();
@@ -73,15 +73,15 @@
 						<div class="card-body">
 							<div id="collapse_filters" class="form-group row" style="margin-bottom: 0;">
 								<div class="col-md-3">
-									<input type="text" class="form-control" id="search" name="search" value="<?php echo isset(CoreUtilities::$rRequest['search']) ? htmlspecialchars(CoreUtilities::$rRequest['search']) : ''; ?>" placeholder="Search Streams...">
+									<input type="text" class="form-control" id="search" name="search" value="<?php echo isset(RequestManager::getAll()['search']) ? htmlspecialchars(RequestManager::getAll()['search']) : ''; ?>" placeholder="Search Streams...">
 								</div>
 								<div class="col-md-3">
 									<select id="category" name="category" class="form-control" data-toggle="select2">
-										<option value="" <?php if (!isset(CoreUtilities::$rRequest['category'])) {
+										<option value="" <?php if (!isset(RequestManager::getAll()['category'])) {
 																echo ' selected';
 															} ?>><?php echo $language::get('all_categories'); ?></option>
-										<?php foreach (getCategories('live') as $rCategory) { ?>
-											<option value="<?php echo intval($rCategory['id']); ?>" <?php if (isset(CoreUtilities::$rRequest['category']) && CoreUtilities::$rRequest['category'] == $rCategory['id']) {
+										<?php foreach (CategoryService::getAllByType('live') as $rCategory) { ?>
+											<option value="<?php echo intval($rCategory['id']); ?>" <?php if (isset(RequestManager::getAll()['category']) && RequestManager::getAll()['category'] == $rCategory['id']) {
 																										echo ' selected';
 																									} ?>><?php echo $rCategory['category_name']; ?></option>
 										<?php } ?>
@@ -90,7 +90,7 @@
 								<div class="col-md-2">
 									<select id="sort" name="sort" class="form-control" data-toggle="select2">
 										<?php foreach (array('' => 'Default Sort', 'name' => 'Alphabetical', 'added' => 'Date Added') as $rSort => $rText) { ?>
-											<option value="<?php echo $rSort; ?>" <?php if (isset(CoreUtilities::$rRequest['sort']) && CoreUtilities::$rRequest['sort'] == $rSort) {
+											<option value="<?php echo $rSort; ?>" <?php if (isset(RequestManager::getAll()['sort']) && RequestManager::getAll()['sort'] == $rSort) {
 																						echo ' selected';
 																					} ?>><?php echo $rText; ?></option>
 										<?php } ?>
@@ -148,17 +148,17 @@
 				<ul class="paginator">
 					<?php if (1 < $rPageInt) { ?>
 						<li class="paginator__item paginator__item--prev">
-							<a href="epg_view?search=<?php echo urlencode(CoreUtilities::$rRequest['search'] ?: '') ?>&category=<?php echo intval(CoreUtilities::$rRequest['category'] ?: '') ?>&sort=<?php echo urlencode(CoreUtilities::$rRequest['sort'] ?: '') ?>&entries=<?php echo intval(CoreUtilities::$rRequest['entries'] ?: '') ?>&page=<?php echo ($rPageInt - 1) ?>"><i class="mdi mdi-chevron-left"></i></a>
+							<a href="epg_view?search=<?php echo urlencode(RequestManager::getAll()['search'] ?: '') ?>&category=<?php echo intval(RequestManager::getAll()['category'] ?: '') ?>&sort=<?php echo urlencode(RequestManager::getAll()['sort'] ?: '') ?>&entries=<?php echo intval(RequestManager::getAll()['entries'] ?: '') ?>&page=<?php echo ($rPageInt - 1) ?>"><i class="mdi mdi-chevron-left"></i></a>
 						</li>
 					<?php } ?>
 					<?php foreach ($rPagination as $i) { ?>
 						<li class="paginator__item<?php echo ($rPageInt == $i ? ' paginator__item--active' : '') ?>">
-							<a href="epg_view?search=<?php echo urlencode(CoreUtilities::$rRequest['search'] ?: '') ?>&category=<?php echo intval(CoreUtilities::$rRequest['category'] ?: '') ?>&sort=<?php echo urlencode(CoreUtilities::$rRequest['sort'] ?: '') ?>&entries=<?php echo intval(CoreUtilities::$rRequest['entries'] ?: '') ?>&page=<?php echo $i ?>"><?php echo $i ?></a>
+							<a href="epg_view?search=<?php echo urlencode(RequestManager::getAll()['search'] ?: '') ?>&category=<?php echo intval(RequestManager::getAll()['category'] ?: '') ?>&sort=<?php echo urlencode(RequestManager::getAll()['sort'] ?: '') ?>&entries=<?php echo intval(RequestManager::getAll()['entries'] ?: '') ?>&page=<?php echo $i ?>"><?php echo $i ?></a>
 						</li>
 					<?php } ?>
 					<?php if ($rPageInt < $rPages) { ?>
 						<li class="paginator__item paginator__item--next">
-							<a href="epg_view?search=<?php echo urlencode(CoreUtilities::$rRequest['search'] ?: '') ?>&category=<?php echo intval(CoreUtilities::$rRequest['category'] ?: '') ?>&sort=<?php echo urlencode(CoreUtilities::$rRequest['sort'] ?: '') ?>&entries=<?php echo intval(CoreUtilities::$rRequest['entries'] ?: '') ?>&page=<?php echo ($rPageInt + 1) ?>"><i class="mdi mdi-chevron-right"></i></a>
+							<a href="epg_view?search=<?php echo urlencode(RequestManager::getAll()['search'] ?: '') ?>&category=<?php echo intval(RequestManager::getAll()['category'] ?: '') ?>&sort=<?php echo urlencode(RequestManager::getAll()['sort'] ?: '') ?>&entries=<?php echo intval(RequestManager::getAll()['entries'] ?: '') ?>&page=<?php echo ($rPageInt + 1) ?>"><i class="mdi mdi-chevron-right"></i></a>
 						</li>
 					<?php } ?>
 				</ul>
@@ -308,15 +308,15 @@ renderUnifiedLayoutFooter('admin');
 	echo implode(',', $rStreamIDs);
 	echo '";' . "\r\n\t\t\t";
 
-	if (isset(CoreUtilities::$rRequest['category']) && 0 < intval(CoreUtilities::$rRequest['category'])) {
+	if (isset(RequestManager::getAll()['category']) && 0 < intval(RequestManager::getAll()['category'])) {
 		echo "\t\t\t" . 'window.XC_VM.Listings.Category = ';
-		echo intval(CoreUtilities::$rRequest['category']);
+		echo intval(RequestManager::getAll()['category']);
 		echo ';' . "\r\n\t\t\t";
 	}
 
 	echo "\t\t\t\r\n\t\t\t" . 'XC_VM.Listings.Settings.init();' . "\r\n\t\t\t" . 'XC_VM.Listings.Grid.init();' . "\r\n\t\t\t" . 'XC_VM.Listings.Nav.init();' . "\r\n\t\t" . '});' . "\r\n\t\t\r\n\t\t";
 	?>
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+	<?php if (SettingsManager::getAll()['enable_search']): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

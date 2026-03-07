@@ -3,7 +3,7 @@
 /**
  * Plex Item CLI — точка входа.
  *
- * Логика извлечена в modules/plex/PlexItem.php (Фаза 5.1).
+ * Логика извлечена в modules/plex/PlexItem.php.
  * Этот файл содержит только CLI-бутстрап и вызов модуля.
  */
 setlocale(LC_ALL, 'en_US.UTF-8');

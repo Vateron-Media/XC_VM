@@ -1,33 +1,12 @@
 <?php
 
 /**
- * XC_VM — HTTP Request Wrapper
+ * HTTP Request Wrapper
  *
  * Abstracts $_GET, $_POST, $_SERVER, $_COOKIE access with
- * input sanitization. Replaces duplicated cleanGlobals() and
- * parseIncomingRecursively() from CoreUtilities.
+ * input sanitization.
  *
- * ---------------------------------------------------------------
- * What it replaces:
- * ---------------------------------------------------------------
- *
- *   BEFORE (duplicated in both CoreUtilities):
- *     CoreUtilities::cleanGlobals($_GET);
- *     CoreUtilities::cleanGlobals($_POST);
- *     CoreUtilities::cleanGlobals($_REQUEST);
- *     $rPost = CoreUtilities::parseIncomingRecursively($_POST);
- *     $rGet  = CoreUtilities::parseIncomingRecursively($_GET);
- *
- *   AFTER:
- *     $request = Request::capture();
- *     $value   = $request->get('stream_id');         // from $_GET
- *     $value   = $request->post('username');          // from $_POST
- *     $value   = $request->input('action');           // $_POST first, then $_GET
- *     $all     = $request->all();                     // merged clean input
- *
- * ---------------------------------------------------------------
  * Backward Compatibility:
- * ---------------------------------------------------------------
  *
  *   Static methods mirror the CoreUtilities API:
  *     Request::cleanGlobals($_GET);
@@ -35,10 +14,6 @@
  *     Request::parseCleanKey($key);
  *     Request::parseCleanValue($value);
  *
- *   Legacy code continues working via CoreUtilities, which will
- *   delegate to this class during Phase 2+.
- *
- * @see CoreUtilities::cleanGlobals()
  * @see Request::cleanGlobals()
  */
 

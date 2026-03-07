@@ -4,7 +4,7 @@ include 'functions.php';
 
 if (!isset($_SESSION['reseller'])) {
 	session_start();
-	$rIP = CoreUtilities::getUserIP();
+	$rIP = NetworkUtils::getUserIP();
 
 	if (0 >= intval($rSettings['login_flood'])) {
 	} else {
@@ -21,15 +21,15 @@ if (!isset($_SESSION['reseller'])) {
 		}
 	}
 
-	if (!isset(CoreUtilities::$rRequest['login'])) {
+	if (!isset(RequestManager::getAll()['login'])) {
 	} else {
-		$rReturn = ResellerAPI::processLogin(CoreUtilities::$rRequest);
+		$rReturn = ResellerAPI::processLogin(RequestManager::getAll());
 		$_STATUS = $rReturn['status'];
 
 		if ($_STATUS != STATUS_SUCCESS) {
 		} else {
-			if (0 < strlen(CoreUtilities::$rRequest['referrer'])) {
-				$rReferer = basename(CoreUtilities::$rRequest['referrer']);
+			if (0 < strlen(RequestManager::getAll()['referrer'])) {
+				$rReferer = basename(RequestManager::getAll()['referrer']);
 
 				if (substr($rReferer, 0, 6) != 'logout') {
 				} else {
@@ -98,7 +98,7 @@ if (!isset($_SESSION['reseller'])) {
 	}
 
 	echo '                            <form action="./login" method="POST" data-parsley-validate="">' . "\n" . '                                <div class="card">' . "\n" . '                                    <div class="card-body p-4">' . "\n" . '                                        <input type="hidden" name="referrer" value="';
-	echo htmlspecialchars(CoreUtilities::$rRequest['referrer']);
+	echo htmlspecialchars(RequestManager::getAll()['referrer']);
 	echo '" />' . "\n" . '                                        <div class="form-group mb-3" id="username_group">' . "\n" . '                                            <label for="username">';
 	echo $language::get('username');
 	echo '</label>' . "\n" . '                                            <input class="form-control" autocomplete="off" type="text" id="username" name="username" required data-parsley-trigger="change" placeholder="">' . "\n" . '                                        </div>' . "\n" . '                                        <div class="form-group mb-3">' . "\n" . '                                            <label for="password">';

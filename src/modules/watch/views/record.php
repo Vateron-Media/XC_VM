@@ -35,10 +35,10 @@
                                         <?php if ($rStream) { ?>
                                             <td><?php echo $rStream['stream_display_name']; ?></td>
                                             <td class="text-center">
-                                                <?php echo date(CoreUtilities::$rSettings['date_format'], $rProgramme['start']); ?><br /><?php echo date('H:i', $rProgramme['start']); ?>
+                                                <?php echo date(SettingsManager::getAll()['date_format'], $rProgramme['start']); ?><br /><?php echo date('H:i', $rProgramme['start']); ?>
                                             </td>
                                             <td class="text-center">
-                                                <?php echo date(CoreUtilities::$rSettings['date_format'], $rProgramme['end']); ?><br /><?php echo date('H:i', $rProgramme['end']); ?>
+                                                <?php echo date(SettingsManager::getAll()['date_format'], $rProgramme['end']); ?><br /><?php echo date('H:i', $rProgramme['end']); ?>
                                             </td>
                                         <?php } else { ?>
                                             <td><select id="stream_id" name="stream_id" class="form-control"
@@ -77,7 +77,7 @@
                     <div class="card">
                         <div class="card-body">
                             <form
-                                <?php if (!isset(CoreUtilities::$rRequest['import'])) {
+                                <?php if (!isset(RequestManager::getAll()['import'])) {
                                 } else {
                                     echo ' enctype="multipart/form-data"';
                                 } ?>
@@ -138,7 +138,7 @@
                                                             <select name="category_id[]" id="category_id"
                                                                 class="form-control select2-multiple" data-toggle="select2"
                                                                 multiple="multiple" data-placeholder="Choose...">
-                                                                <?php foreach (getCategories('movie') as $rCategory) { ?>
+                                                                <?php foreach (CategoryService::getAllByType('movie') as $rCategory) { ?>
                                                                     <option value="<?php echo $rCategory['id']; ?>">
                                                                         <?php echo $rCategory['category_name']; ?></option>
                                                                 <?php } ?>
@@ -167,9 +167,9 @@
                                                                 data-toggle="select2">
                                                                 <?php foreach ((is_array($rAvailableServers ?? null) ? $rAvailableServers : []) as $rServerID) { ?>
                                                                     <option
-                                                                        value="<?php echo CoreUtilities::$rServers[$rServerID]['id']; ?>">
-                                                                        <?php echo CoreUtilities::$rServers[$rServerID]['server_name']; ?>
-                                                                        - <?php echo CoreUtilities::$rServers[$rServerID]['server_ip']; ?>
+                                                                        value="<?php echo ServerRepository::getAll()[$rServerID]['id']; ?>">
+                                                                        <?php echo ServerRepository::getAll()[$rServerID]['server_name']; ?>
+                                                                        - <?php echo ServerRepository::getAll()[$rServerID]['server_ip']; ?>
                                                                     </option>
                                                                 <?php } ?>
                                                             </select>

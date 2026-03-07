@@ -7,8 +7,8 @@
         goHome();
     }
 
-    if (isset(CoreUtilities::$rRequest['id'])) {
-        $rStation = StreamRepository::getById(CoreUtilities::$rRequest['id']);
+    if (isset(RequestManager::getAll()['id'])) {
+        $rStation = StreamRepository::getById(RequestManager::getAll()['id']);
         if (!$rStation || $rStation['type'] != 4) {
             goHome();
         }
@@ -34,8 +34,8 @@
     );
 
     if (isset($rStation)) {
-        $rStationOptions = StreamRepository::getOptions(CoreUtilities::$rRequest['id']);
-        $rStationSys = StreamRepository::getSystemRows(CoreUtilities::$rRequest['id']);
+        $rStationOptions = StreamRepository::getOptions(RequestManager::getAll()['id']);
+        $rStationSys = StreamRepository::getSystemRows(RequestManager::getAll()['id']);
 
         foreach ($rServers as $rServer) {
             if (isset($rStationSys[intval($rServer['id'])])) {
@@ -173,7 +173,7 @@ endif;
                                                     <label class="col-md-4 col-form-label" for="category_id">Categories</label>
                                                     <div class="col-md-8">
                                                         <select name="category_id[]" id="category_id" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">
-                                                            <?php foreach (getCategories('radio') as $rCategory): ?>
+                                                            <?php foreach (CategoryService::getAllByType('radio') as $rCategory): ?>
                                                                 <option <?php if (isset($rStation) && in_array(intval($rCategory['id']), json_decode($rStation['category_id'], true))) {
                                                                             echo 'selected';
                                                                         } ?> value="<?= $rCategory['id']; ?>"><?= $rCategory['category_name']; ?></option>
@@ -521,7 +521,7 @@ renderUnifiedLayoutFooter('admin');
     echo $language::get('enter_a_radio_station_name');
     echo '");' . "\r\n\t\t\t\t" . '} else {' . "\r\n" . "                    \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                    submitForm(window.rCurrentPage, new FormData($("form")[0]), window.rReferer);' . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
     ?>
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+    <?php if (SettingsManager::getAll()['enable_search']): ?>
         $(document).ready(function() {
             initSearch();
         });

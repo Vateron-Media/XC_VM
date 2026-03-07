@@ -1,6 +1,6 @@
 <?php
 /**
- * ResellerEpgViewController — EPG preview (Phase 6.4 — Reseller).
+ * ResellerEpgViewController — EPG preview.
  */
 class ResellerEpgViewController extends BaseResellerController
 {

@@ -25,7 +25,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
             $rFP = null;
             startproxy($rStreamID, $rStreamInfo, $rStreamArguments);
         } else {
-            CoreUtilities::stopStream($rStreamID);
+            StreamProcess::stopStream($rStreamID);
             exit();
         }
     } else {
@@ -71,7 +71,7 @@ function startProxy($rStreamID, $rStreamInfo, $rStreamArguments) {
     } else {
         $rOptions['http']['header'] .= 'Cookie: ' . $rStreamArguments['cookie']['value'] . "\r\n";
     }
-    if (!CoreUtilities::$rSettings['request_prebuffer']) {
+    if (!SettingsManager::getAll()['request_prebuffer']) {
     } else {
         $rOptions['http']['header'] .= 'X-XC_VM-Prebuffer: 1' . "\r\n";
     }
@@ -82,14 +82,14 @@ function startProxy($rStreamID, $rStreamInfo, $rStreamArguments) {
     } else {
         $rHeaders = (!empty($rOptions['http']['header']) ? '-headers ' . escapeshellarg($rOptions['http']['header']) : '');
         $rProxy = (!empty($rStreamArguments['proxy']) ? '-http_proxy ' . escapeshellarg($rStreamArguments['proxy']) : '');
-        $rCommand = CoreUtilities::$rFFMPEG_CPU . ' -copyts -vsync 0 -nostats -nostdin -hide_banner -loglevel quiet -y -user_agent ' . escapeshellarg($rUserAgent) . ' ' . $rHeaders . ' ' . $rProxy . ' -i ' . escapeshellarg($rFP) . ' -map 0 -c copy -mpegts_flags +initial_discontinuity -pat_period ' . PAT_PERIOD . ' -f mpegts -';
+        $rCommand = FfmpegPaths::cpu() . ' -copyts -vsync 0 -nostats -nostdin -hide_banner -loglevel quiet -y -user_agent ' . escapeshellarg($rUserAgent) . ' ' . $rHeaders . ' ' . $rProxy . ' -i ' . escapeshellarg($rFP) . ' -map 0 -c copy -mpegts_flags +initial_discontinuity -pat_period ' . PAT_PERIOD . ' -f mpegts -';
         $rFP = popen($rCommand, 'rb');
     }
     if ($rFP) {
         $db->query('UPDATE `streams_servers` SET `monitor_pid` = ?, `pid` = ?, `stream_started` = ?, `stream_status` = 0, `to_analyze` = 0 WHERE `server_stream_id` = ?', getmypid(), getmypid(), time(), $rStreamInfo['server_stream_id']);
-        if (!CoreUtilities::$rSettings['enable_cache']) {
+        if (!SettingsManager::getAll()['enable_cache']) {
         } else {
-            CoreUtilities::updateStream($rStreamID);
+            StreamProcess::updateStream($rStreamID);
         }
         shell_exec('rm -f ' . STREAMS_PATH . intval($rStreamID) . '_*.ts');
         file_put_contents(STREAMS_PATH . $rStreamID . '_.pid', getmypid());
@@ -232,9 +232,9 @@ function startProxy($rStreamID, $rStreamInfo, $rStreamArguments) {
         fclose($rFP);
         $db->db_connect();
         $db->query('UPDATE `streams_servers` SET `monitor_pid` = null, `pid` = null, `stream_status` = 1 WHERE `server_stream_id` = ?;', $rStreamInfo['server_stream_id']);
-        if (!CoreUtilities::$rSettings['enable_cache']) {
+        if (!SettingsManager::getAll()['enable_cache']) {
         } else {
-            CoreUtilities::updateStream($rStreamID);
+            StreamProcess::updateStream($rStreamID);
         }
         exit();
         if ($rPacketNum != 0) {
@@ -243,11 +243,11 @@ function startProxy($rStreamID, $rStreamInfo, $rStreamArguments) {
         }
     } else {
         echo 'Failed!' . "\n";
-        CoreUtilities::streamLog($rStreamID, SERVER_ID, 'STREAM_START_FAIL');
+        StreamProcess::streamLog($rStreamID, SERVER_ID, 'STREAM_START_FAIL');
         $db->query('UPDATE `streams_servers` SET `monitor_pid` = null, `pid` = null, `stream_status` = 1 WHERE `server_stream_id` = ?;', $rStreamInfo['server_stream_id']);
-        if (!CoreUtilities::$rSettings['enable_cache']) {
+        if (!SettingsManager::getAll()['enable_cache']) {
         } else {
-            CoreUtilities::updateStream($rStreamID);
+            StreamProcess::updateStream($rStreamID);
         }
     }
 }
@@ -268,7 +268,7 @@ function getSockets() {
 }
 function getActiveStream($rURLs, $rContext) {
     foreach ($rURLs as $rURL) {
-        $rURL = CoreUtilities::parseStreamURL($rURL);
+        $rURL = StreamUtils::parseStreamURL($rURL);
         $rFP = @fopen($rURL, 'rb', false, $rContext);
         if (!$rFP) {
         } else {

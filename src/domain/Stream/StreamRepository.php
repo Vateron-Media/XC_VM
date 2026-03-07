@@ -45,8 +45,9 @@ class StreamRepository {
 		return $rReturn;
 	}
 
-	public static function getPIDs($rServerID, $rSettings) {
+	public static function getPIDs($rServerID) {
 		global $db;
+		$rSettings = SettingsManager::getAll();
 		$rReturn = array();
 		$db->query('SELECT `streams`.`id`, `streams`.`stream_display_name`, `streams`.`type`, `streams_servers`.`pid`, `streams_servers`.`monitor_pid`, `streams_servers`.`delay_pid` FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams_servers`.`server_id` = ?;', $rServerID);
 
@@ -82,7 +83,7 @@ class StreamRepository {
 
 		if ($rSettings['redis_handler']) {
 			$rStreamIDs = $rStreamMap = array();
-			$rConnections = CoreUtilities::getRedisConnections(null, $rServerID, null, true, false, false);
+			$rConnections = ConnectionTracker::getRedisConnections(null, $rServerID, null, true, false, false);
 
 			foreach ($rConnections as $rConnection) {
 				if (in_array($rConnection['stream_id'], $rStreamIDs)) {

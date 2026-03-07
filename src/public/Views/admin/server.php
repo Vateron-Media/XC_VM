@@ -1,6 +1,6 @@
 <?php
 /**
- * View: server — delegation proxy (Phase 6.3 — Group D fix).
+ * View: server — delegation proxy.
  */
 $__viewMode = true;
 include MAIN_HOME . 'admin/server.php';

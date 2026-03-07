@@ -1,8 +1,8 @@
 <?php
 include 'functions.php';
 
-if (($rSeries = getSerie(CoreUtilities::$rRequest['id'])) && in_array(CoreUtilities::$rRequest['id'], $rUserInfo['series_ids'])) {
-	$rDomainName = CoreUtilities::getDomainName(!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443);
+if (($rSeries = getSerie(RequestManager::getAll()['id'])) && in_array(RequestManager::getAll()['id'], $rUserInfo['series_ids'])) {
+	$rDomainName = DomainResolver::resolve(SERVER_ID, !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443);
 	$rTMDB = null;
 
 	if ($rSeries['tmdb_id']) {
@@ -18,8 +18,8 @@ if (($rSeries = getSerie(CoreUtilities::$rRequest['id'])) && in_array(CoreUtilit
 	}
 
 
-	$rCover = (CoreUtilities::validateImage(json_decode($rSeries['backdrop_path'], true)[0]) ?: '');
-	$rPoster = (CoreUtilities::validateImage($rSeries['cover_big']) ?: '');
+	$rCover = (ImageUtils::validateURL(json_decode($rSeries['backdrop_path'], true)[0]) ?: '');
+	$rPoster = (ImageUtils::validateURL($rSeries['cover_big']) ?: '');
 
 
 	$rSubtitles = $rURLs = $rSeasons = array();
@@ -27,7 +27,7 @@ if (($rSeries = getSerie(CoreUtilities::$rRequest['id'])) && in_array(CoreUtilit
 	$db->query('SELECT DISTINCT(`season_num`) AS `season_num` FROM `streams_episodes` WHERE `series_id` = ? ORDER BY `season_num` ASC;', $rSeries['id']);
 
 	foreach ($db->get_rows() as $rRow) {
-		if (CoreUtilities::$rSettings['player_hide_incompatible']) {
+		if (SettingsManager::getAll()['player_hide_incompatible']) {
 			$db->query('SELECT MAX(`compatible`) AS `compatible` FROM `streams_servers` LEFT JOIN `streams_episodes` ON `streams_episodes`.`stream_id` = `streams_servers`.`stream_id` WHERE `series_id` = ? AND `season_num` = ?;', $rSeries['id'], $rRow['season_num']);
 
 			if (!$db->get_row()['compatible']) {
@@ -38,9 +38,9 @@ if (($rSeries = getSerie(CoreUtilities::$rRequest['id'])) && in_array(CoreUtilit
 			$rSeasons[] = $rRow['season_num'];
 		}
 	}
-	$rSeasonNo = (intval(CoreUtilities::$rRequest['season']) ?: ($rSeasons[0] ?: 1));
+	$rSeasonNo = (intval(RequestManager::getAll()['season']) ?: ($rSeasons[0] ?: 1));
 
-	if (CoreUtilities::$rSettings['player_hide_incompatible']) {
+	if (SettingsManager::getAll()['player_hide_incompatible']) {
 		$db->query('SELECT * FROM `streams_episodes` LEFT JOIN `streams` ON `streams`.`id` = `streams_episodes`.`stream_id` WHERE `series_id` = ? AND `season_num` = ? AND (SELECT MAX(`compatible`) FROM `streams_servers` WHERE `streams_servers`.`stream_id` = `streams`.`id` LIMIT 1) = 1 ORDER BY `episode_num` ASC;', $rSeries['id'], $rSeasonNo);
 	} else {
 		$db->query('SELECT * FROM `streams_episodes` LEFT JOIN `streams` ON `streams`.`id` = `streams_episodes`.`stream_id` WHERE `series_id` = ? AND `season_num` = ? ORDER BY `episode_num` ASC;', $rSeries['id'], $rSeasonNo);
@@ -59,7 +59,7 @@ if (($rSeries = getSerie(CoreUtilities::$rRequest['id'])) && in_array(CoreUtilit
 			$rProxySubtitles = array();
 
 			foreach ($rSubtitles[$rEpisodes[$i]['id']] as $rSubtitle) {
-				$rSubtitle['file'] = 'proxy.php?url=' . CoreUtilities::encryptData($rSubtitle['file'], CoreUtilities::$rSettings['live_streaming_pass'], 'd8de497ebccf4f4697a1da20219c7c33');
+				$rSubtitle['file'] = 'proxy.php?url=' . Encryption::encrypt($rSubtitle['file'], SettingsManager::getAll()['live_streaming_pass'], 'd8de497ebccf4f4697a1da20219c7c33');
 				$rProxySubtitles[] = $rSubtitle;
 			}
 			$rSubtitles[$rEpisodes[$i]['id']] = $rProxySubtitles;
@@ -91,7 +91,7 @@ if (($rSeries = getSerie(CoreUtilities::$rRequest['id'])) && in_array(CoreUtilit
 	} else {
 		foreach ($rEpisodes as $rEpisode) {
 			$rProperties = json_decode($rEpisode['movie_properties'], true);
-			$rSeasonArray[$rEpisode['episode_num']] = array('title' => 'Episode ' . intval($rEpisode['episode_num']), 'description' => ($rProperties['plot'] ?: 'No description is available...'), 'rating' => ($rProperties['rating'] ?: null), 'image' => (str_replace('w600_and_h900_bestv2', 'w500', CoreUtilities::validateImage($rProperties['movie_image'])) ?: ''), 'image_cover' => str_replace('w600_and_h900_bestv2', 'w500', CoreUtilities::validateImage($rProperties['movie_image'])));
+			$rSeasonArray[$rEpisode['episode_num']] = array('title' => 'Episode ' . intval($rEpisode['episode_num']), 'description' => ($rProperties['plot'] ?: 'No description is available...'), 'rating' => ($rProperties['rating'] ?: null), 'image' => (str_replace('w600_and_h900_bestv2', 'w500', ImageUtils::validateURL($rProperties['movie_image'])) ?: ''), 'image_cover' => str_replace('w600_and_h900_bestv2', 'w500', ImageUtils::validateURL($rProperties['movie_image'])));
 		}
 	}
 
@@ -101,14 +101,14 @@ if (($rSeries = getSerie(CoreUtilities::$rRequest['id'])) && in_array(CoreUtilit
 
 	if (0 >= count($rSimilarArray)) {
 	} else {
-		if (CoreUtilities::$rSettings['player_hide_incompatible']) {
+		if (SettingsManager::getAll()['player_hide_incompatible']) {
 			$db->query('SELECT * FROM `streams_series` WHERE `tmdb_id` IN (' . implode(',', $rSimilarArray) . ') AND (SELECT MAX(`compatible`) FROM `streams_servers` LEFT JOIN `streams_episodes` ON `streams_episodes`.`stream_id` = `streams_servers`.`stream_id` WHERE `streams_episodes`.`series_id` = `streams_series`.`id`) = 1 LIMIT 6;');
 		} else {
 			$db->query('SELECT * FROM `streams_series` WHERE `tmdb_id` IN (' . implode(',', $rSimilarArray) . ') LIMIT 6;');
 		}
 
 		foreach ($db->get_rows() as $rRow) {
-			$rSimilar[] = array('type' => 'series', 'id' => $rRow['id'], 'title' => $rRow['title'], 'year' => ($rRow['year'] ?: ($rRow['releaseDate'] ? substr($rRow['releaseDate'], 0, 4) : null)), 'rating' => $rRow['rating'], 'cover' => (CoreUtilities::validateImage($rRow['cover']) ?: ''), 'backdrop' => (CoreUtilities::validateImage(json_decode($rRow['backdrop_path'], true)[0]) ?: ''));
+			$rSimilar[] = array('type' => 'series', 'id' => $rRow['id'], 'title' => $rRow['title'], 'year' => ($rRow['year'] ?: ($rRow['releaseDate'] ? substr($rRow['releaseDate'], 0, 4) : null)), 'rating' => $rRow['rating'], 'cover' => (ImageUtils::validateURL($rRow['cover']) ?: ''), 'backdrop' => (ImageUtils::validateURL(json_decode($rRow['backdrop_path'], true)[0]) ?: ''));
 			$rSimilarIDs[] = $rRow['id'];
 		}
 	}
@@ -123,7 +123,7 @@ if (($rSeries = getSerie(CoreUtilities::$rRequest['id'])) && in_array(CoreUtilit
 
 	foreach (json_decode($rSeries['category_id'], true) as $rCategoryID) {
 		echo '                            <li>';
-		echo CoreUtilities::$rCategories[$rCategoryID]['category_name'];
+		echo CategoryService::getFromDatabase()[$rCategoryID]['category_name'];
 		echo '</li>' . "\n" . '                            ';
 	}
 	echo '                        </ul>' . "\n" . '                    </h1>' . "\n\t\t\t\t" . '</div>' . "\n\t\t\t\t" . '<div class="col-12 col-xl-12">' . "\n\t\t\t\t\t" . '<div class="card card--details">' . "\n\t\t\t\t\t\t" . '<div class="row">' . "\n\t\t\t\t\t\t\t" . '<div class="col-12 col-sm-3 col-md-3 col-lg-3 col-xl-3">' . "\n\t\t\t\t\t\t\t\t" . '<div class="card__cover">' . "\n\t\t\t\t\t\t\t\t\t" . '<img src="';

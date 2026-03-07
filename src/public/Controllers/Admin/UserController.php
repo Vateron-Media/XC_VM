@@ -1,6 +1,6 @@
 <?php
 /**
- * XC_VM — Контроллер редактирования пользователя (admin/user.php)
+ * Контроллер редактирования пользователя (admin/user.php)
  */
 
 class UserController extends BaseAdminController {
@@ -9,7 +9,7 @@ class UserController extends BaseAdminController {
 
         global $db;
 
-        $rUser = isset(CoreUtilities::$rRequest['id']) ? UserRepository::getRegisteredUserById(CoreUtilities::$rRequest['id']) : null;
+        $rUser = isset(RequestManager::getAll()['id']) ? UserRepository::getRegisteredUserById(RequestManager::getAll()['id']) : null;
         if ($rUser === false) {
             $this->redirect('users');
             return;

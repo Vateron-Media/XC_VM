@@ -4,8 +4,8 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
         register_shutdown_function('shutdown');
         require str_replace('\\', '/', dirname($argv[0])) . '/../www/init.php';
         cli_set_process_title('XC_VM[Stats]');
-        $rIdentifier = CRONS_TMP_PATH . md5(CoreUtilities::generateUniqueCode() . __FILE__);
-        CoreUtilities::checkCron($rIdentifier);
+        $rIdentifier = CRONS_TMP_PATH . md5(Encryption::generateUniqueCode(SettingsManager::getAll()['live_streaming_pass']) . __FILE__);
+        ProcessManager::acquireCronLock($rIdentifier);
         $rTimeout = 60;
         set_time_limit($rTimeout);
         ini_set('max_execution_time', $rTimeout);
@@ -18,7 +18,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
 }
 function loadCron() {
     global $db;
-    if (!CoreUtilities::$rServers[SERVER_ID]['is_main']) {
+    if (!ServerRepository::getAll()[SERVER_ID]['is_main']) {
     } else {
         $rTime = time();
         $rDates = array('today' => array($rTime - 86400, $rTime), 'week' => array($rTime - 604800, $rTime), 'month' => array($rTime - 2592000, $rTime), 'all' => array(0, $rTime));

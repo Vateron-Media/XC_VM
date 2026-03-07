@@ -1,6 +1,6 @@
 <?php
 /**
- * Streams list view (Phase 6.3 — Group A).
+ * Streams list view.
  * Delegation proxy → legacy admin/streams.php HTML body.
  */
 $__viewMode = true;

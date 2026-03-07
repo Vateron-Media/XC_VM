@@ -45,15 +45,15 @@
                             <div class="tab-content b-0 mb-0 pt-0">
                                 <div class="tab-pane" id="stream-selection">
                                     <div class="row">
-                                        <?php if (CoreUtilities::$rSettings['redis_handler']) { ?>
+                                        <?php if (SettingsManager::getAll()['redis_handler']) { ?>
                                             <div class="col-md-6 col-6">
                                                 <input type="text" class="form-control" id="stream_search" value="" placeholder="<?php echo $language::get('search_streams'); ?>">
                                             </div>
                                             <div class="col-md-6 col-6">
                                                 <select id="category_search" class="form-control" data-toggle="select2">
                                                     <option value="" selected><?php echo $language::get('all_categories'); ?></option>
-                                                    <?php foreach (getCategories('live') as $rCategory) { ?>
-                                                        <option value="<?php echo $rCategory['id']; ?>" <?php if (isset(CoreUtilities::$rRequest['category']) && CoreUtilities::$rRequest['category'] == $rCategory['id']) {
+                                                    <?php foreach (CategoryService::getAllByType('live') as $rCategory) { ?>
+                                                        <option value="<?php echo $rCategory['id']; ?>" <?php if (isset(RequestManager::getAll()['category']) && RequestManager::getAll()['category'] == $rCategory['id']) {
                                                                                                             echo ' selected';
                                                                                                         } ?>>
                                                             <?php echo $rCategory['category_name']; ?>
@@ -68,8 +68,8 @@
                                             <div class="col-md-4 col-6">
                                                 <select id="category_search" class="form-control" data-toggle="select2">
                                                     <option value="" selected><?php echo $language::get('all_categories'); ?></option>
-                                                    <?php foreach (getCategories('live') as $rCategory) { ?>
-                                                        <option value="<?php echo $rCategory['id']; ?>" <?php if (isset(CoreUtilities::$rRequest['category']) && CoreUtilities::$rRequest['category'] == $rCategory['id']) {
+                                                    <?php foreach (CategoryService::getAllByType('live') as $rCategory) { ?>
+                                                        <option value="<?php echo $rCategory['id']; ?>" <?php if (isset(RequestManager::getAll()['category']) && RequestManager::getAll()['category'] == $rCategory['id']) {
                                                                                                             echo ' selected';
                                                                                                         } ?>><?php echo $rCategory['category_name']; ?></option>
                                                     <?php } ?>
@@ -312,7 +312,7 @@ renderUnifiedLayoutFooter('admin');
     echo $language::get('error_occured');
     echo '");' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'})" . "\r\n\t\t\t" . '$("#font_color").colorpicker({format:"auto"});' . "\r\n\t\t\t" . '$("#probesize_ondemand").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#delay_minutes").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#tv_archive_duration").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#datatable-md1").DataTable({' . "\r\n\t\t\t\t";
 
-    if (CoreUtilities::$rSettings['redis_handler']) {
+    if (SettingsManager::getAll()['redis_handler']) {
         echo "\t\t\t\t" . 'drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "stream_unique",' . "\r\n\t\t\t\t\t\t" . 'd.category = getCategory()' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,3,4]},' . "\r\n\t\t\t\t\t" . '{"orderable": false, "targets": [3,4]}' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t\t" . 'paging: false,' . "\r\n\t\t\t\t" . 'order: [[ 1, "asc" ]],' . "\r\n\t\t\t\t";
     } else {
         echo "\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "stream_unique",' . "\r\n\t\t\t\t\t\t" . 'd.category = getCategory()' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'pageLength: ';
@@ -324,7 +324,7 @@ renderUnifiedLayoutFooter('admin');
     echo (intval($rSettings['default_entries']) ?: 10);
     echo ',' . "\r\n\t\t\t\t" . 'lengthMenu: [10, 25, 50, 250, 500, 1000],' . "\r\n\t\t\t\t" . 'order: [[ 0, "desc" ]]' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#fingerprint_type").change(function() {' . "\r\n\t\t\t\t" . 'if ($(this).val() == 3) {' . "\r\n\t\t\t\t\t" . '$("#custom_message_div").show();' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . '$("#custom_message_div").hide();' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#font_size").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#position_x").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#position_y").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . "\$('#datatable-md2').parents('div.dataTables_wrapper').first().hide();" . "\r\n\t\t\t" . '$(".nav li.disabled a").click(function() {' . "\r\n\t\t\t\t" . 'return false;' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#stream-selection-nav").click(function() {' . "\r\n\t\t\t\t" . '$("#stream-activity-tab").attr("disabled", true);' . "\r\n\t\t\t\t" . 'window.rStreamID = -1;' . "\r\n\t\t\t\t" . '$("#filter_selection").show();' . "\r\n\t\t\t\t" . "\$('#datatable-md2').parents('div.dataTables_wrapper').first().hide();" . "\r\n\t\t\t\t" . '$("#datatable-md1").DataTable().ajax.reload( null, false );' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
     ?>
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+    <?php if (SettingsManager::getAll()['enable_search']): ?>
         $(document).ready(function() {
             initSearch();
         });

@@ -208,10 +208,10 @@ class UserService {
 
 	// ──────────── Из TicketService ────────────
 
-	public static function submitTicket($rData, $rUserInfo, $rGetTicketCallback) {
+	public static function submitTicket($rData, $rUserInfo) {
 		global $db;
 		if (isset($rData['edit'])) {
-			$rArray = overwriteData(call_user_func($rGetTicketCallback, $rData['edit']), $rData);
+			$rArray = overwriteData(getTicket($rData['edit']), $rData);
 		} else {
 			$rArray = verifyPostTable('tickets', $rData);
 			unset($rArray['id']);
@@ -234,7 +234,7 @@ class UserService {
 			return array('status' => STATUS_FAILURE, 'data' => $rData);
 		}
 
-		$rTicket = call_user_func($rGetTicketCallback, $rData['respond']);
+		$rTicket = getTicket($rData['respond']);
 		if (!$rTicket) {
 			return array('status' => STATUS_FAILURE, 'data' => $rData);
 		}

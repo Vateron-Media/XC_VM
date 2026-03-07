@@ -8,8 +8,8 @@
         goHome();
     }
 
-    if (isset(CoreUtilities::$rRequest['id'])) {
-        $rDevice = getMag(CoreUtilities::$rRequest['id']);
+    if (isset(RequestManager::getAll()['id'])) {
+        $rDevice = getMag(RequestManager::getAll()['id']);
 
         if (!$rDevice['user_id']) {
             exit();
@@ -725,7 +725,7 @@ renderUnifiedLayoutFooter('admin');
             submitForm(window.rCurrentPage, new FormData($("form")[0]), window.rReferer);
         });
     });
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+    <?php if (SettingsManager::getAll()['enable_search']): ?>
         $(document).ready(function() {
             initSearch();
         });

@@ -1,6 +1,6 @@
 <?php
 /**
- * ResellerLineActivityController — Line activity log (Phase 6.4 — Reseller).
+ * ResellerLineActivityController — Line activity log.
  */
 class ResellerLineActivityController extends BaseResellerController
 {

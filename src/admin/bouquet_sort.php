@@ -7,7 +7,7 @@
 } ?>
 
 <?php
-if (!isset(CoreUtilities::$rRequest['id']) || !($rBouquet = getBouquet(CoreUtilities::$rRequest['id']))) {
+if (!isset(RequestManager::getAll()['id']) || !($rBouquet = getBouquet(RequestManager::getAll()['id']))) {
     goHome();
 }
 
@@ -106,7 +106,7 @@ renderUnifiedLayoutHeader('admin');
                     <div class="card-body">
                         <form action="#" method="POST">
                             <input type="hidden" id="stream_order_array" name="stream_order_array" value="" />
-                            <input type="hidden" name="reorder" value="<?= intval(CoreUtilities::$rRequest['id']); ?>" />
+                            <input type="hidden" name="reorder" value="<?= intval(RequestManager::getAll()['id']); ?>" />
                             <div id="basicwizard">
                                 <ul class="nav nav-pills bg-light nav-justified form-wizard-header mb-4">
                                     <li class="nav-item">
@@ -579,7 +579,7 @@ renderUnifiedLayoutFooter('admin');
             submitForm(window.rCurrentPage, new FormData($("form")[0]));
         });
     });
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+    <?php if (SettingsManager::getAll()['enable_search']): ?>
         $(document).ready(function() {
             initSearch();
         });

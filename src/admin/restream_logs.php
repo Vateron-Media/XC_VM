@@ -28,11 +28,11 @@
 			<div class="col-12">
 				<div class="alert alert-info" role="alert">
 					<?php
-					if (CoreUtilities::$rSettings['detect_restream_block_user'] && CoreUtilities::$rSettings['detect_restream_block_ip']) {
+					if (SettingsManager::getAll()['detect_restream_block_user'] && SettingsManager::getAll()['detect_restream_block_ip']) {
 						echo 'Your service is set up to automatically block the lines and IP addresses of those detected restreaming without permission.';
-					} elseif (!CoreUtilities::$rSettings['detect_restream_block_user'] && CoreUtilities::$rSettings['detect_restream_block_ip']) {
+					} elseif (!SettingsManager::getAll()['detect_restream_block_user'] && SettingsManager::getAll()['detect_restream_block_ip']) {
 						echo 'Your service is set up to automatically block the IP addresses of those detected restreaming without permission. Lines will remain active.';
-					} elseif (CoreUtilities::$rSettings['detect_restream_block_user'] && !CoreUtilities::$rSettings['detect_restream_block_ip']) {
+					} elseif (SettingsManager::getAll()['detect_restream_block_user'] && !SettingsManager::getAll()['detect_restream_block_ip']) {
 						echo "Your service is set up to automatically block the lines of those detected restreaming without permission. IP's will not be automatically blocked.";
 					} else {
 						echo "Your service is set up to detect restreaming without permission, however it won't automatically block IP addresses or lines.";
@@ -196,7 +196,7 @@ renderUnifiedLayoutFooter('admin');
 	echo $language::get('error_occured');
 	echo '");' . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n\t\t" . '}' . "\r\n\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . '$("#datatable").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n\t\t\t\t\t" . 'bindHref(); refreshTooltips();' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "restream_logs";' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [3,4,5]},' . "\r\n" . '                    {"visible": false, "targets": [0]}' . "\r\n\t\t\t\t" . '],' . "\r\n" . '                order: [[ 4, "desc" ]]' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable").css("width", "100%");' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n" . '        ';
 	?>
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+	<?php if (SettingsManager::getAll()['enable_search']): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

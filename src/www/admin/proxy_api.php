@@ -4,10 +4,10 @@ set_time_limit(0);
 require '../init.php';
 $rSignals = array();
 
-if (CoreUtilities::isProxy($_SERVER['REMOTE_ADDR'])) {
+if (BlocklistService::isProxy($_SERVER['REMOTE_ADDR'])) {
 	$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
-	CoreUtilities::$db = &$db;
-	$rServers = CoreUtilities::$rServers;
+	DatabaseFactory::set($db);
+	$rServers = ServerRepository::getAll();
 	$rServerID = intval($_POST['server_id']);
 	$rStats = $_POST['stats'];
 	$db->query('SELECT `bytes_sent_total`, `bytes_received_total`, `time` FROM `servers_stats` WHERE `server_id` = ? ORDER BY `id` DESC LIMIT 1;', $rServerID);
@@ -29,7 +29,7 @@ if (CoreUtilities::isProxy($_SERVER['REMOTE_ADDR'])) {
 		$rPing = 0;
 	}
 
-	if (CoreUtilities::$rSettings['redis_handler']) {
+	if (SettingsManager::getAll()['redis_handler']) {
 		$rConnections = $rServers[$rServerID]['connections'];
 		$rUsers = $rServers[$rServerID]['users'];
 		$rAllUsers = 0;

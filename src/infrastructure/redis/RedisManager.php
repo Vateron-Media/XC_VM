@@ -4,7 +4,6 @@
  * RedisManager — управление жизненным циклом Redis-подключения.
  *
  * Singleton хранит активный экземпляр Redis.
- * Извлечено из RedisManager::ensureConnected() / closeRedis() / $redis.
  */
 class RedisManager {
 	/** @var Redis|null Singleton-экземпляр */
@@ -28,8 +27,7 @@ class RedisManager {
 	 * @return bool
 	 */
 	public static function ensureConnected() {
-		global $rConfig, $rSettings;
-		self::$instance = self::connect(self::$instance, $rConfig, $rSettings);
+		self::$instance = self::connect(self::$instance, ConfigReader::getAll(), SettingsManager::getAll());
 		return is_object(self::$instance);
 	}
 
@@ -59,6 +57,10 @@ class RedisManager {
 	public static function connect($rRedis, $rConfig, $rSettings) {
 		if (is_object($rRedis)) {
 			return $rRedis;
+		}
+
+		if (empty($rConfig['hostname']) || empty($rSettings['redis_password'])) {
+			return null;
 		}
 
 		try {

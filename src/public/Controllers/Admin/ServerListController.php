@@ -5,7 +5,7 @@
  *
  * GET /servers
  * Client-side DataTable — PHP рендерит <tbody>.
- * Данные: CoreUtilities::getServers(true).
+ * Данные: ServerRepository::getAll(true).
  */
 class ServerListController extends BaseAdminController
 {
@@ -14,7 +14,7 @@ class ServerListController extends BaseAdminController
         $this->requirePermission();
         $this->setTitle('Servers');
 
-        \CoreUtilities::$rServers = \CoreUtilities::getServers(true);
+        \ServerRepository::getAll(true);
 
         $this->render('servers');
     }

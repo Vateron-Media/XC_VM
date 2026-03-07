@@ -1,6 +1,6 @@
 <?php
 /**
- * View: groups — delegation proxy (Phase 6.3 — Pilot fix).
+ * View: groups — delegation proxy.
  */
 $__viewMode = true;
 include MAIN_HOME . 'admin/groups.php';

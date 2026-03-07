@@ -9,7 +9,7 @@ if (!isset($__viewMode)):
 		goHome();
 	}
 
-	$rRange = (intval(CoreUtilities::$rRequest['range']) ?: 0);
+	$rRange = (intval(RequestManager::getAll()['range']) ?: 0);
 	$rTheftDetection = (igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'theft_detection')) ?: array());
 	$_TITLE = 'VOD Theft Detection';
 	require_once __DIR__ . '/../public/Views/layouts/admin.php';
@@ -230,7 +230,7 @@ renderUnifiedLayoutFooter('admin'); ?>
 	echo (intval($rSettings['default_entries']) ?: 10);
 	echo "\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable-activity").css("width", "100%");' . "\r\n" . "            \$('#log_search').keyup(function(){" . "\r\n\t\t\t\t" . 'rTable.search($(this).val()).draw();' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
 	?>
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+	<?php if (SettingsManager::getAll()['enable_search']): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

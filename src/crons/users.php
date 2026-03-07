@@ -10,14 +10,15 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
         register_shutdown_function('shutdown');
         require str_replace('\\', '/', dirname($argv[0])) . '/../www/init.php';
         cli_set_process_title('XC_VM[Users]');
-        $rIdentifier = CRONS_TMP_PATH . md5(CoreUtilities::generateUniqueCode() . __FILE__);
-        CoreUtilities::checkCron($rIdentifier);
+        $rIdentifier = CRONS_TMP_PATH . md5(Encryption::generateUniqueCode(SettingsManager::getAll()['live_streaming_pass']) . __FILE__);
+        ProcessManager::acquireCronLock($rIdentifier);
         $rSync = null;
+        $rServers = ServerRepository::getAll();
 
-        if (count($argv) == 2 && CoreUtilities::$rServers[SERVER_ID]['is_main']) {
-            CoreUtilities::connectRedis();
+        if (count($argv) == 2 && $rServers[SERVER_ID]['is_main']) {
+            RedisManager::ensureConnected();
 
-            if (is_object(CoreUtilities::$redis)) {
+            if (RedisManager::isConnected()) {
                 $rSync = intval($argv[1]);
 
                 if ($rSync == 1) {
@@ -45,7 +46,7 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
                             }
                         }
 
-                        $rRedis = CoreUtilities::$redis->multi();
+                        $rRedis = RedisManager::instance()->multi();
 
                         foreach ($rRows as $rRow) {
                             echo 'Resynchronising UUID: ' . $rRow['uuid'] . "\n";
@@ -87,11 +88,11 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
             }
         }
 
-        if (CoreUtilities::$rSettings['redis_handler'] && CoreUtilities::$rServers[SERVER_ID]['is_main']) {
-            CoreUtilities::$rServers = CoreUtilities::getServers(true);
+        if (SettingsManager::getAll()['redis_handler'] && $rServers[SERVER_ID]['is_main']) {
+            $rServers = ServerRepository::getAll(true);
             $rPHPPIDs = array();
 
-            foreach (CoreUtilities::$rServers as $rServer) {
+            foreach ($rServers as $rServer) {
                 $rPHPPIDs[$rServer['id']] = (array_map('intval', json_decode($rServer['php_pids'], true)) ?: array());
             }
         }
@@ -108,9 +109,9 @@ function processDeletions($rDelete, $rDelStream = array()) {
     global $db;
     $rTime = time();
 
-    if (CoreUtilities::$rSettings['redis_handler']) {
+    if (SettingsManager::getAll()['redis_handler']) {
         if ($rDelete['count'] > 0) {
-            $rRedis = CoreUtilities::$redis->multi();
+            $rRedis = RedisManager::instance()->multi();
 
             foreach ($rDelete['line'] as $rUserID => $rUUIDs) {
                 $rRedis->zRem('LINE#' . $rUserID, ...$rUUIDs);
@@ -147,7 +148,7 @@ function processDeletions($rDelete, $rDelStream = array()) {
         }
     }
 
-    foreach ((CoreUtilities::$rSettings['redis_handler'] ? $rDelete['server'] : $rDelete) as $rServerID => $rConnections) {
+    foreach ((SettingsManager::getAll()['redis_handler'] ? $rDelete['server'] : $rDelete) as $rServerID => $rConnections) {
         if ($rServerID != SERVER_ID) {
             $rQuery = '';
 
@@ -168,7 +169,7 @@ function processDeletions($rDelete, $rDelStream = array()) {
         }
     }
 
-    if (CoreUtilities::$rSettings['redis_handler']) {
+    if (SettingsManager::getAll()['redis_handler']) {
         return array('line' => array(), 'server' => array(), 'server_lines' => array(), 'proxy' => array(), 'stream' => array(), 'uuid' => array(), 'count' => 0);
     }
 
@@ -178,21 +179,22 @@ function processDeletions($rDelete, $rDelStream = array()) {
 function loadCron() {
     global $db;
     global $rPHPPIDs;
+    $rServers = ServerRepository::getAll();
 
-    if (CoreUtilities::$rSettings['redis_handler']) {
-        CoreUtilities::connectRedis();
+    if (SettingsManager::getAll()['redis_handler']) {
+        RedisManager::ensureConnected();
     }
 
     $rStartTime = time();
 
-    if (!CoreUtilities::$rSettings['redis_handler'] || CoreUtilities::$rServers[SERVER_ID]['is_main']) {
-        $rAutoKick = CoreUtilities::$rSettings['user_auto_kick_hours'] * 3600;
+    if (!SettingsManager::getAll()['redis_handler'] || $rServers[SERVER_ID]['is_main']) {
+        $rAutoKick = SettingsManager::getAll()['user_auto_kick_hours'] * 3600;
         $rLiveKeys = $rDelete = $rDeleteStream = array();
 
-        if (CoreUtilities::$rSettings['redis_handler']) {
+        if (SettingsManager::getAll()['redis_handler']) {
             $rRedisDelete = array('line' => array(), 'server' => array(), 'server_lines' => array(), 'proxy' => array(), 'stream' => array(), 'uuid' => array(), 'count' => 0);
             $rUsers = array();
-            list($rKeys, $rConnections) = CoreUtilities::getConnections();
+            list($rKeys, $rConnections) = ConnectionTracker::getConnections();
             $i = 0;
 
             for ($rSize = count($rConnections); $i < $rSize; $i++) {
@@ -208,11 +210,11 @@ function loadCron() {
             }
             unset($rConnections);
         } else {
-            $rUsers = CoreUtilities::getConnections((CoreUtilities::$rServers[SERVER_ID]['is_main'] ? null : SERVER_ID));
+            $rUsers = ConnectionTracker::getConnections(($rServers[SERVER_ID]['is_main'] ? null : SERVER_ID));
         }
 
         $rRestreamerArray = $rMaxConnectionsArray = array();
-        $rUserIDs = CoreUtilities::confirmIDs(array_keys($rUsers));
+        $rUserIDs = InputValidator::confirmIDs(array_keys($rUsers));
 
         if (count($rUserIDs) > 0) {
             $db->query('SELECT `id`, `max_connections`, `is_restreamer` FROM `lines` WHERE `id` IN (' . implode(',', $rUserIDs) . ');');
@@ -223,8 +225,8 @@ function loadCron() {
             }
         }
 
-        if (CoreUtilities::$rSettings['redis_handler'] && CoreUtilities::$rServers[SERVER_ID]['is_main']) {
-            foreach (CoreUtilities::getEnded() as $rConnection) {
+        if (SettingsManager::getAll()['redis_handler'] && $rServers[SERVER_ID]['is_main']) {
+            foreach (ConnectionTracker::getEnded() as $rConnection) {
                 if (is_array($rConnection)) {
                     if (!in_array($rConnection['container'], array('ts', 'hls', 'rtmp')) && time() - $rConnection['hls_last_read'] < 300) {
                         $rClose = false;
@@ -234,7 +236,7 @@ function loadCron() {
 
                     if ($rClose) {
                         echo 'Close connection: ' . $rConnection['uuid'] . "\n";
-                        CoreUtilities::closeConnection($rConnection, false, false);
+                        ConnectionTracker::closeConnection($rConnection, false, false);
                         $rRedisDelete['count']++;
                         $rRedisDelete['line'][$rConnection['identity']][] = $rConnection['uuid'];
                         $rRedisDelete['stream'][$rConnection['stream_id']][] = $rConnection['uuid'];
@@ -259,7 +261,7 @@ function loadCron() {
             $rIsRestreamer = ($rRestreamerArray[$rUserID] ?: false);
 
             foreach ($rConnections as $rKey => $rConnection) {
-                if ($rConnection['server_id'] == SERVER_ID || CoreUtilities::$rSettings['redis_handler']) {
+                if ($rConnection['server_id'] == SERVER_ID || SettingsManager::getAll()['redis_handler']) {
                     if (is_null($rConnection['exp_date']) || $rConnection['exp_date'] >= $rStartTime) {
                         $rTotalTime = $rStartTime - $rConnection['date_start'];
 
@@ -267,9 +269,9 @@ function loadCron() {
                             if ($rConnection['container'] == 'hls') {
                                 if (30 <= $rStartTime - $rConnection['hls_last_read'] || $rConnection['hls_end'] == 1) {
                                     echo 'Close connection: ' . $rConnection['uuid'] . "\n";
-                                    CoreUtilities::closeConnection($rConnection, false, false);
+                                    ConnectionTracker::closeConnection($rConnection, false, false);
 
-                                    if (CoreUtilities::$rSettings['redis_handler']) {
+                                    if (SettingsManager::getAll()['redis_handler']) {
                                         $rRedisDelete['count']++;
                                         $rRedisDelete['line'][$rConnection['identity']][] = $rConnection['uuid'];
                                         $rRedisDelete['stream'][$rConnection['stream_id']][] = $rConnection['uuid'];
@@ -291,9 +293,9 @@ function loadCron() {
                             } else {
                                 if ($rConnection['container'] != 'rtmp') {
                                     if ($rConnection['server_id'] == SERVER_ID) {
-                                        $rIsRunning = CoreUtilities::isProcessRunning($rConnection['pid'], 'php-fpm');
+                                        $rIsRunning = ProcessManager::isRunning($rConnection['pid'], 'php-fpm');
                                     } else {
-                                        if ($rConnection['date_start'] <= CoreUtilities::$rServers[$rConnection['server_id']]['last_check_ago'] - 1 && 0 < count($rPHPPIDs[$rConnection['server_id']])) {
+                                        if ($rConnection['date_start'] <= $rServers[$rConnection['server_id']]['last_check_ago'] - 1 && 0 < count($rPHPPIDs[$rConnection['server_id']])) {
                                             $rIsRunning = in_array(intval($rConnection['pid']), $rPHPPIDs[$rConnection['server_id']]);
                                         } else {
                                             $rIsRunning = true;
@@ -302,9 +304,9 @@ function loadCron() {
 
                                     if (($rConnection['hls_end'] == 1 && ($rStartTime - $rConnection['hls_last_read']) >= 300) || !$rIsRunning) {
                                         echo 'Close connection: ' . $rConnection['uuid'] . "\n";
-                                        CoreUtilities::closeConnection($rConnection, false, false);
+                                        ConnectionTracker::closeConnection($rConnection, false, false);
 
-                                        if (CoreUtilities::$rSettings['redis_handler']) {
+                                        if (SettingsManager::getAll()['redis_handler']) {
                                             $rRedisDelete['count']++;
                                             $rRedisDelete['line'][$rConnection['identity']][] = $rConnection['uuid'];
                                             $rRedisDelete['stream'][$rConnection['stream_id']][] = $rConnection['uuid'];
@@ -327,9 +329,9 @@ function loadCron() {
                             }
                         } else {
                             echo 'Close connection: ' . $rConnection['uuid'] . "\n";
-                            CoreUtilities::closeConnection($rConnection, false, false);
+                            ConnectionTracker::closeConnection($rConnection, false, false);
 
-                            if (CoreUtilities::$rSettings['redis_handler']) {
+                            if (SettingsManager::getAll()['redis_handler']) {
                                 $rRedisDelete['count']++;
                                 $rRedisDelete['line'][$rConnection['identity']][] = $rConnection['uuid'];
                                 $rRedisDelete['stream'][$rConnection['stream_id']][] = $rConnection['uuid'];
@@ -350,9 +352,9 @@ function loadCron() {
                         }
                     } else {
                         echo 'Close connection: ' . $rConnection['uuid'] . "\n";
-                        CoreUtilities::closeConnection($rConnection, false, false);
+                        ConnectionTracker::closeConnection($rConnection, false, false);
 
-                        if (CoreUtilities::$rSettings['redis_handler']) {
+                        if (SettingsManager::getAll()['redis_handler']) {
                             $rRedisDelete['count']++;
                             $rRedisDelete['line'][$rConnection['identity']][] = $rConnection['uuid'];
                             $rRedisDelete['stream'][$rConnection['stream_id']][] = $rConnection['uuid'];
@@ -378,13 +380,13 @@ function loadCron() {
                 }
             }
 
-            if (CoreUtilities::$rServers[SERVER_ID]['is_main'] && 0 < $rMaxConnections && $rMaxConnections < $rActiveCount) {
+            if ($rServers[SERVER_ID]['is_main'] && 0 < $rMaxConnections && $rMaxConnections < $rActiveCount) {
                 foreach ($rConnections as $rConnection) {
                     if (!$rConnection['hls_end']) {
                         echo 'Close connection: ' . $rConnection['uuid'] . "\n";
-                        CoreUtilities::closeConnection($rConnection, false, false);
+                        ConnectionTracker::closeConnection($rConnection, false, false);
 
-                        if (CoreUtilities::$rSettings['redis_handler']) {
+                        if (SettingsManager::getAll()['redis_handler']) {
                             $rRedisDelete['count']++;
                             $rRedisDelete['line'][$rConnection['identity']][] = $rConnection['uuid'];
                             $rRedisDelete['stream'][$rConnection['stream_id']][] = $rConnection['uuid'];
@@ -412,19 +414,19 @@ function loadCron() {
                 }
             }
 
-            if (CoreUtilities::$rSettings['redis_handler'] && 1000 <= $rRedisDelete['count']) {
+            if (SettingsManager::getAll()['redis_handler'] && 1000 <= $rRedisDelete['count']) {
                 $rRedisDelete = processdeletions($rRedisDelete, $rRedisDelete['stream']);
             } else {
-                if (!CoreUtilities::$rSettings['redis_handler'] && count($rDelete) >= 1000) {
+                if (!SettingsManager::getAll()['redis_handler'] && count($rDelete) >= 1000) {
                     $rDelete = processdeletions($rDelete, $rDeleteStream);
                 }
             }
         }
 
-        if (CoreUtilities::$rSettings['redis_handler'] && 0 < $rRedisDelete['count']) {
+        if (SettingsManager::getAll()['redis_handler'] && 0 < $rRedisDelete['count']) {
             processdeletions($rRedisDelete, $rRedisDelete['stream']);
         } else {
-            if (!CoreUtilities::$rSettings['redis_handler'] && count($rDelete) > 0) {
+            if (!SettingsManager::getAll()['redis_handler'] && count($rDelete) > 0) {
                 processdeletions($rDelete, $rDeleteStream);
             }
         }
@@ -435,7 +437,7 @@ function loadCron() {
     if (count($rConnectionSpeeds) > 0) {
         $rBitrates = [];
         // Redis is enabled
-        if (CoreUtilities::$rSettings['redis_handler']) {
+        if (SettingsManager::getAll()['redis_handler']) {
             $rStreamMap = [];
 
             // Getting stream bitrates
@@ -461,7 +463,7 @@ function loadCron() {
 
             // Getting active connections from Redis
             if (count($rUUIDs) > 0) {
-                $rConnections = array_map('igbinary_unserialize', CoreUtilities::$redis->mGet($rUUIDs));
+                $rConnections = array_map('igbinary_unserialize', RedisManager::instance()->mGet($rUUIDs));
 
                 foreach ($rConnections as $rConnection) {
                     if (!is_array($rConnection)) {
@@ -495,7 +497,7 @@ function loadCron() {
         }
 
 
-        if (!CoreUtilities::$rSettings['redis_handler']) {
+        if (!SettingsManager::getAll()['redis_handler']) {
             $rUUIDMap = array();
             $db->query('SELECT `uuid`, `activity_id` FROM `lines_live`;');
 
@@ -520,7 +522,7 @@ function loadCron() {
                 // устанавливаем 0 дивергенции
                 $rDivergenceUpdate[] = "('$rUUID', 0)";
 
-                if (!CoreUtilities::$rSettings['redis_handler'] && isset($rUUIDMap[$rUUID])) {
+                if (!SettingsManager::getAll()['redis_handler'] && isset($rUUIDMap[$rUUID])) {
                     $rLiveQuery[] = '(' . $rUUIDMap[$rUUID] . ', 0)';
                 }
 
@@ -539,7 +541,7 @@ function loadCron() {
             // Preparing the queries
             $rDivergenceUpdate[] = "('" . $rUUID . "', " . abs($rDivergence) . ')';
 
-            if (!CoreUtilities::$rSettings['redis_handler'] && isset($rUUIDMap[$rUUID])) {
+            if (!SettingsManager::getAll()['redis_handler'] && isset($rUUIDMap[$rUUID])) {
                 $rLiveQuery[] = '(' . $rUUIDMap[$rUUID] . ', ' . abs($rDivergence) . ')';
             }
         }
@@ -549,7 +551,7 @@ function loadCron() {
             $db->query('INSERT INTO `lines_divergence`(`uuid`,`divergence`) VALUES ' . $rUpdateQuery . ' ON DUPLICATE KEY UPDATE `divergence`=VALUES(`divergence`);');
         }
 
-        if (!CoreUtilities::$rSettings['redis_handler'] && count($rLiveQuery) > 0) {
+        if (!SettingsManager::getAll()['redis_handler'] && count($rLiveQuery) > 0) {
             $rLiveQueryStr = implode(',', $rLiveQuery);
             $db->query('INSERT INTO `lines_live`(`activity_id`,`divergence`) VALUES ' . $rLiveQueryStr . ' ON DUPLICATE KEY UPDATE `divergence`=VALUES(`divergence`);');
         }
@@ -558,15 +560,15 @@ function loadCron() {
         shell_exec('rm -f ' . DIVERGENCE_TMP_PATH . '*');
     }
 
-    if (CoreUtilities::$rServers[SERVER_ID]['is_main']) {
-        if (CoreUtilities::$rSettings['redis_handler']) {
+    if ($rServers[SERVER_ID]['is_main']) {
+        if (SettingsManager::getAll()['redis_handler']) {
             $db->query("DELETE FROM `lines_divergence` WHERE `uuid` NOT IN ('" . implode("','", $rLiveKeys) . "');");
         } else {
             $db->query('DELETE FROM `lines_divergence` WHERE `uuid` NOT IN (SELECT `uuid` FROM `lines_live`);');
         }
     }
 
-    if (CoreUtilities::$rServers[SERVER_ID]['is_main']) {
+    if ($rServers[SERVER_ID]['is_main']) {
         $db->query('DELETE FROM `lines_live` WHERE `uuid` IS NULL;');
     }
 }

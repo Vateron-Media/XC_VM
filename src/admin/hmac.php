@@ -8,7 +8,7 @@
 		goHome();
 	}
 
-	if (isset(CoreUtilities::$rRequest['id']) && !($rHMAC = AuthRepository::getHMACById(CoreUtilities::$rRequest['id']))) {
+	if (isset(RequestManager::getAll()['id']) && !($rHMAC = AuthRepository::getHMACById(RequestManager::getAll()['id']))) {
 		exit();
 	}
 
@@ -239,7 +239,7 @@ renderUnifiedLayoutFooter('admin'); ?>
 			generateCode();
 		<?php endif; ?>
 	});
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+	<?php if (SettingsManager::getAll()['enable_search']): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

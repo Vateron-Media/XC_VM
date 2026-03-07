@@ -1,6 +1,6 @@
 <?php
 /**
- * Package edit view (Phase 6.3 — Group H).
+ * Package edit view.
  * Delegation proxy → legacy admin/package.php HTML body.
  */
 $__viewMode = true;

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Unified Layout Footer (Phase 6.1)
+ * Unified Layout Footer
  *
  * Единая точка входа для footer/layout admin/reseller.
  * На текущем этапе используется как совместимая обёртка над legacy footer.php,

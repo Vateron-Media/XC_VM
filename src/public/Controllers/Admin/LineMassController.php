@@ -1,6 +1,6 @@
 <?php
 /**
- * LineMassController — массовое редактирование линий (Phase 6.3 — Group C).
+ * LineMassController — массовое редактирование линий.
  */
 class LineMassController extends BaseAdminController
 {

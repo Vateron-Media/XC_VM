@@ -9,9 +9,9 @@ if (!isset($__viewMode)):
 		goHome();
 	}
 
-	if (!isset(CoreUtilities::$rRequest['id'])) {
+	if (!isset(RequestManager::getAll()['id'])) {
 	} else {
-		$rTicketInfo = getTicket(CoreUtilities::$rRequest['id']);
+		$rTicketInfo = getTicket(RequestManager::getAll()['id']);
 
 		if ($rTicketInfo) {
 		} else {

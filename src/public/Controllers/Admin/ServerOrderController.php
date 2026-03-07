@@ -1,6 +1,6 @@
 <?php
 /**
- * ServerOrderController — Server Order (Phase 6.3 — Group M).
+ * ServerOrderController — Server Order.
  */
 class ServerOrderController extends BaseAdminController
 {

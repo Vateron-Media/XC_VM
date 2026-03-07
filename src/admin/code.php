@@ -5,7 +5,7 @@
     } else {
         goHome();
     }
-    if (isset(CoreUtilities::$rRequest['id']) && !($rCode = getCode(CoreUtilities::$rRequest['id']))) {
+    if (isset(RequestManager::getAll()['id']) && !($rCode = getCode(RequestManager::getAll()['id']))) {
         exit();
     }
     $_TITLE = 'Access Code';
@@ -412,7 +412,7 @@ renderUnifiedLayoutFooter('admin');
 
         <?php if (!isset($rCode)) echo 'generateCode();'; ?>
     });
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+    <?php if (SettingsManager::getAll()['enable_search']): ?>
         $(document).ready(function() {
             initSearch();
         });

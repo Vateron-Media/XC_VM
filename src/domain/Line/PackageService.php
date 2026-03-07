@@ -1,13 +1,13 @@
 <?php
 
 class PackageService {
-	public static function process($rData, $rGetPackageCallback) {
+	public static function process($rData) {
 		global $db;
 		if (isset($rData['edit'])) {
 			if (!Authorization::check('adv', 'edit_package')) {
 				exit();
 			}
-			$rArray = overwriteData(call_user_func($rGetPackageCallback, $rData['edit']), $rData);
+			$rArray = overwriteData(getPackage($rData['edit']), $rData);
 		} else {
 			if (!Authorization::check('adv', 'add_packages')) {
 				exit();
@@ -53,9 +53,9 @@ class PackageService {
 
 	// ──────────── Из PackageRepository ────────────
 
-	public static function deleteById($rGetPackageCallback, $rID) {
+	public static function deleteById($rID) {
 		global $db;
-		$rPackage = call_user_func($rGetPackageCallback, $rID);
+		$rPackage = getPackage($rID);
 
 		if (!$rPackage) {
 			return false;

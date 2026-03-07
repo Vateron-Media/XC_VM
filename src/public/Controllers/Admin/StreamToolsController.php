@@ -1,6 +1,6 @@
 <?php
 /**
- * StreamToolsController — инструменты стримов (Phase 6.3 — Group A).
+ * StreamToolsController — инструменты стримов.
  */
 class StreamToolsController extends BaseAdminController
 {

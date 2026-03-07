@@ -1,6 +1,6 @@
 <?php
 /**
- * XC_VM — View: User edit/add
+ * View: User edit/add
  * Делегирует рендеринг в legacy admin/user.php
  */
 $__viewMode = true;

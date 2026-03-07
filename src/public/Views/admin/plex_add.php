@@ -1,6 +1,6 @@
 <?php
 /**
- * Plex Add/Edit Library view (Phase 6.3 — Group L).
+ * Plex Add/Edit Library view.
  * Delegation proxy → legacy admin/plex_add.php module include.
  */
 $__viewMode = true;

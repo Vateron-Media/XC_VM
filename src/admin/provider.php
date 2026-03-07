@@ -7,7 +7,7 @@
         goHome();
     }
 
-    if (isset(CoreUtilities::$rRequest['id']) && !($rProvider = getStreamProvider(CoreUtilities::$rRequest['id']))) {
+    if (isset(RequestManager::getAll()['id']) && !($rProvider = getStreamProvider(RequestManager::getAll()['id']))) {
         exit();
     }
 
@@ -133,7 +133,7 @@
                                                         </tr>
                                                     </thead>
                                                     <tbody>
-                                                        <?php $db->query('SELECT `stream_id`, `category_array`, `stream_display_name`, `modified`, `stream_icon` FROM `providers_streams` WHERE `provider_id` = ? AND `type` = \'live\' ORDER BY `modified` DESC, `stream_id` ASC;', CoreUtilities::$rRequest['id']); ?>
+                                                        <?php $db->query('SELECT `stream_id`, `category_array`, `stream_display_name`, `modified`, `stream_icon` FROM `providers_streams` WHERE `provider_id` = ? AND `type` = \'live\' ORDER BY `modified` DESC, `stream_id` ASC;', RequestManager::getAll()['id']); ?>
                                                         <?php foreach ($db->get_rows() as $rRow) : ?>
                                                             <?php
                                                             $rStreamURL = (($rProvider['ssl'] ? 'https' : 'http')) . '://' . $rProvider['ip'] . ':' . $rProvider['port'] . '/live/' . $rProvider['username'] . '/' . $rProvider['password'] . '/' . $rRow['stream_id'] . (($rProvider['hls'] ? '.m3u8' : ($rProvider['legacy'] ? '.ts' : '')));
@@ -170,7 +170,7 @@
                                                         </tr>
                                                     </thead>
                                                     <tbody>
-                                                        <?php $db->query('SELECT `stream_id`, `category_array`, `stream_display_name`, `modified`, `stream_icon`, `channel_id` FROM `providers_streams` WHERE `provider_id` = ? AND `type` = \'movie\' ORDER BY `modified` DESC, `stream_id` ASC;', CoreUtilities::$rRequest['id']); ?>
+                                                        <?php $db->query('SELECT `stream_id`, `category_array`, `stream_display_name`, `modified`, `stream_icon`, `channel_id` FROM `providers_streams` WHERE `provider_id` = ? AND `type` = \'movie\' ORDER BY `modified` DESC, `stream_id` ASC;', RequestManager::getAll()['id']); ?>
                                                         <?php foreach ($db->get_rows() as $rRow) : ?>
                                                             <?php
                                                             $rStreamURL = (($rRow['ssl'] ? 'https' : 'http')) . '://' . $rProvider['ip'] . ':' . $rProvider['port'] . '/movie/' . $rProvider['username'] . '/' . $rProvider['password'] . '/' . $rRow['stream_id'] . '.' . $rRow['channel_id'];
@@ -386,7 +386,7 @@ renderUnifiedLayoutFooter('admin');
             submitForm(window.rCurrentPage, new FormData($("form")[0]));
         });
     });
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+    <?php if (SettingsManager::getAll()['enable_search']): ?>
         $(document).ready(function() {
             initSearch();
         });

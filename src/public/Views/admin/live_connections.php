@@ -1,6 +1,6 @@
 <?php
 /**
- * Live connections view (Phase 6.3 — Group A).
+ * Live connections view.
  * Delegation proxy → legacy admin/live_connections.php HTML body.
  */
 $__viewMode = true;

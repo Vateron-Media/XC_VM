@@ -15,7 +15,7 @@ class ConnectionLimiter {
 		global $db;
 		if ($rSettings['redis_handler']) {
 			$rConnections = array();
-			$rKeys = ConnectionTracker::getLineConnections($redis, $rUserID, true, true);
+			$rKeys = ConnectionTracker::getLineConnections($rUserID, true, true);
 			$rToKill = count($rKeys) - $rMaxConnections;
 			if ($rToKill > 0) {
 				foreach (array_map('igbinary_unserialize', $redis->mGet($rKeys)) as $rConnection) {
@@ -75,7 +75,7 @@ class ConnectionLimiter {
 									$rDelSID[$rConnections[$i]['stream_id']][] = $rDelUUID;
 								}
 								if ($rConnections[$i]['on_demand'] && $rConnections[$i]['server_id'] == SERVER_ID && $rSettings['on_demand_instant_off']) {
-									ConnectionTracker::removeFromQueue($rConnections[$i]['stream_id'], $rConnections[$i]['pid'], array('ProcessManager', 'isRunning'));
+									ConnectionTracker::removeFromQueue($rConnections[$i]['stream_id'], $rConnections[$i]['pid']);
 								}
 							}
 						}
@@ -154,7 +154,7 @@ class ConnectionLimiter {
 				shell_exec('wget --timeout=2 -O /dev/null -o /dev/null "' . $rServers[SERVER_ID]['rtmp_mport_url'] . 'control/drop/client?clientid=' . intval($rActivityInfo['pid']) . '" >/dev/null 2>/dev/null &');
 			} else {
 				if ($rSettings['redis_handler']) {
-					ConnectionTracker::redisSignal($redis, $rActivityInfo['pid'], $rActivityInfo['server_id'], 1);
+					ConnectionTracker::redisSignal($rActivityInfo['pid'], $rActivityInfo['server_id'], 1);
 				} else {
 					$db->query('INSERT INTO `signals` (`pid`,`server_id`,`rtmp`,`time`) VALUES(?,?,?,UNIX_TIMESTAMP())', $rActivityInfo['pid'], $rActivityInfo['server_id'], 1);
 				}
@@ -162,7 +162,7 @@ class ConnectionLimiter {
 		} else {
 			if ($rActivityInfo['container'] == 'hls' || $rActivityInfo['container'] == 'm3u8') {
 				if ($rSettings['redis_handler']) {
-					ConnectionTracker::updateConnection($redis, $rActivityInfo, array(), 'close');
+					ConnectionTracker::updateConnection($rActivityInfo, array(), 'close');
 				} else {
 					$db->query('UPDATE `lines_live` SET `hls_end` = 1 WHERE `activity_id` = ?', $rActivityInfo['activity_id']);
 				}
@@ -173,7 +173,7 @@ class ConnectionLimiter {
 					}
 				} else {
 					if ($rSettings['redis_handler']) {
-						ConnectionTracker::redisSignal($redis, $rActivityInfo['pid'], $rActivityInfo['server_id'], 0);
+						ConnectionTracker::redisSignal($rActivityInfo['pid'], $rActivityInfo['server_id'], 0);
 					} else {
 						$db->query('INSERT INTO `signals` (`pid`,`server_id`,`time`) VALUES(?,?,UNIX_TIMESTAMP())', $rActivityInfo['pid'], $rActivityInfo['server_id']);
 					}

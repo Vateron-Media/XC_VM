@@ -22,7 +22,7 @@
 		</div>
 		<div class="row">
 			<div class="col-12">
-				<?php if (!CoreUtilities::$rSettings['on_demand_checker']): ?>
+				<?php if (!SettingsManager::getAll()['on_demand_checker']): ?>
 					<div class="alert alert-info alert-dismissible fade show" role="alert">
 						<button type="button" class="close" data-dismiss="alert" aria-label="Close">
 							<span aria-hidden="true">×</span>
@@ -40,24 +40,24 @@
 								<select id="server" class="form-control" data-toggle="select2">
 									<option value="" selected>All Servers</option>
 									<?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer): ?>
-										<option value="<?php echo $rServer['id']; ?>" <?php if (isset(CoreUtilities::$rRequest['server']) && CoreUtilities::$rRequest['server'] == $rServer['id']): ?> selected<?php endif; ?>><?php echo $rServer['server_name']; ?></option>
+										<option value="<?php echo $rServer['id']; ?>" <?php if (isset(RequestManager::getAll()['server']) && RequestManager::getAll()['server'] == $rServer['id']): ?> selected<?php endif; ?>><?php echo $rServer['server_name']; ?></option>
 									<?php endforeach; ?>
 								</select>
 							</div>
 							<div class="col-md-2">
 								<select id="category" class="form-control" data-toggle="select2">
 									<option value="" selected>All Categories</option>
-									<?php foreach (getCategories('live') as $rCategory): ?>
-										<option value="<?php echo $rCategory['id']; ?>" <?php if (isset(CoreUtilities::$rRequest['category']) && CoreUtilities::$rRequest['category'] == $rCategory['id']): ?> selected<?php endif; ?>><?php echo $rCategory['category_name']; ?></option>
+									<?php foreach (CategoryService::getAllByType('live') as $rCategory): ?>
+										<option value="<?php echo $rCategory['id']; ?>" <?php if (isset(RequestManager::getAll()['category']) && RequestManager::getAll()['category'] == $rCategory['id']): ?> selected<?php endif; ?>><?php echo $rCategory['category_name']; ?></option>
 									<?php endforeach; ?>
 								</select>
 							</div>
 							<div class="col-md-2">
 								<select id="filter" class="form-control" data-toggle="select2">
-									<option value="" <?php if (!isset(CoreUtilities::$rRequest['filter'])): ?> selected<?php endif; ?>><?php echo $language::get('no_filter'); ?></option>
-									<option value="1" <?php if (isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 1): ?> selected<?php endif; ?>>Ready</option>
-									<option value="2" <?php if (isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 2): ?> selected<?php endif; ?>>Down</option>
-									<option value="3" <?php if (isset(CoreUtilities::$rRequest['filter']) && CoreUtilities::$rRequest['filter'] == 3): ?> selected<?php endif; ?>>Not Scanned</option>
+									<option value="" <?php if (!isset(RequestManager::getAll()['filter'])): ?> selected<?php endif; ?>><?php echo $language::get('no_filter'); ?></option>
+									<option value="1" <?php if (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 1): ?> selected<?php endif; ?>>Ready</option>
+									<option value="2" <?php if (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 2): ?> selected<?php endif; ?>>Down</option>
+									<option value="3" <?php if (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 3): ?> selected<?php endif; ?>>Not Scanned</option>
 								</select>
 							</div>
 							<label class="col-md-1 col-form-label text-center" for="show_entries">Show</label>
@@ -241,12 +241,12 @@ renderUnifiedLayoutFooter('admin');
 	}
 
 	echo '                order: [[ ';
-	echo (isset(CoreUtilities::$rRequest['order']) ? intval(CoreUtilities::$rRequest['order']) : 7);
+	echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 7);
 	echo ', "';
-	echo (in_array(strtolower(CoreUtilities::$rRequest['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(CoreUtilities::$rRequest['dir']) : 'desc');
+	echo (in_array(strtolower(RequestManager::getAll()['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::getAll()['dir']) : 'desc');
 	echo '" ]],' . "\r\n\t\t\t\t" . 'pageLength: parseInt(rEntries),' . "\r\n\t\t\t\t" . 'lengthMenu: [10, 25, 50, 250, 500, 1000],' . "\r\n" . '                displayStart: (parseInt(rPage)-1) * parseInt(rEntries)' . "\r\n\t\t\t" . "}).on('processing.dt', function (e, settings, processing) {" . "\r\n" . '                window.rProcessing = processing;' . "\r\n" . '            });' . "\r\n\t\t\t" . 'function doSearch(rValue) {' . "\r\n" . '                clearTimeout(window.rSearch); window.rSearch = setTimeout(function(){ rTable.search(rValue).draw(); }, 500);' . "\r\n" . '            }' . "\r\n\t\t\t" . '$("#datatable-activity").css("width", "100%");' . "\r\n\t\t\t" . "\$('#search').keyup(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#search").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("search", $("#search").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("search");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'doSearch($(this).val());' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#show_entries').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#show_entries").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("entries", $("#show_entries").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("entries");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'rTable.page.len($(this).val()).draw();' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#category').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#category").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("category", $("#category").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("category");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#server').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#server").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("server", $("#server").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("server");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#filter').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#filter").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("filter", $("#filter").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("filter");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "if (\$('#search').val()) {" . "\r\n\t\t\t\t" . "rTable.search(\$('#search').val()).draw();" . "\r\n\t\t\t" . '}' . "\r\n" . '            $("#btn-export-csv").click(function() {' . "\r\n" . '                $.toast("Generating CSV report...");' . "\r\n" . '                window.location.href = "api?action=report&params=" + encodeURIComponent(JSON.stringify($("#datatable-activity").DataTable().ajax.params()));' . "\r\n\t\t\t" . '});' . "\r\n" . '            checkClear();' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n" . '        ';
 	?>
-	<?php if (CoreUtilities::$rSettings['enable_search']): ?>
+	<?php if (SettingsManager::getAll()['enable_search']): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

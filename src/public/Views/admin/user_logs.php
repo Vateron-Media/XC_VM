@@ -1,6 +1,6 @@
 <?php
 /**
- * XC_VM — View: User logs
+ * View: User logs
  * Делегирует рендеринг в legacy admin/user_logs.php
  */
 $__viewMode = true;

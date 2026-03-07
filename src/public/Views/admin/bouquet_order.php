@@ -1,6 +1,6 @@
 <?php
 /**
- * View: bouquet_order — delegation proxy (Phase 6.3 — Group E fix).
+ * View: bouquet_order — delegation proxy.
  */
 $__viewMode = true;
 include MAIN_HOME . 'admin/bouquet_order.php';

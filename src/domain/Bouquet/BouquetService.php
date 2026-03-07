@@ -1,14 +1,14 @@
 <?php
 
 class BouquetService {
-	public static function process($rData, $rGetBouquetCallback, $rScanBouquetCallback) {
+	public static function process($rData) {
 		global $db;
 		if (isset($rData['edit'])) {
 			if (!Authorization::check('adv', 'edit_bouquet')) {
 				exit();
 			}
 
-			$rArray = overwriteData(call_user_func($rGetBouquetCallback, $rData['edit']), $rData);
+			$rArray = overwriteData(getBouquet($rData['edit']), $rData);
 		} else {
 			if (!Authorization::check('adv', 'add_bouquet')) {
 				exit();
@@ -65,7 +65,7 @@ class BouquetService {
 
 		if ($db->query($rQuery, ...$rPrepare['data'])) {
 			$rInsertID = $db->last_insert_id();
-			call_user_func($rScanBouquetCallback, $rInsertID);
+			self::scan();
 
 			return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
 		}
@@ -85,7 +85,7 @@ class BouquetService {
 		return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rData['reorder']));
 	}
 
-	public static function sort($rData, $rGetUserBouquetsCallback, $rGetPackagesCallback, $rSortArrayByArrayCallback, $rUpdateLineCallback) {
+	public static function sort($rData) {
 		global $db;
 		set_time_limit(0);
 		ini_set('mysql.connect_timeout', 0);
@@ -100,19 +100,19 @@ class BouquetService {
 		}
 
 		if (isset($rData['confirmReplace'])) {
-			$rUsers = call_user_func($rGetUserBouquetsCallback);
+			$rUsers = self::getUserBouquets();
 
 			foreach ($rUsers as $rUser) {
 				$rBouquet = json_decode($rUser['bouquet'], true);
-				$rBouquet = array_map('intval', call_user_func($rSortArrayByArrayCallback, $rBouquet, $rOrder));
+				$rBouquet = array_map('intval', sortArrayByArray($rBouquet, $rOrder));
 				$db->query('UPDATE `lines` SET `bouquet` = ? WHERE `id` = ?;', '[' . implode(',', $rBouquet) . ']', $rUser['id']);
-				call_user_func($rUpdateLineCallback, $rUser['id']);
+				LineService::updateLineSignal($rUser['id']);
 			}
 
-			$rPackages = call_user_func($rGetPackagesCallback);
+			$rPackages = getPackages();
 			foreach ($rPackages as $rPackage) {
 				$rBouquet = json_decode($rPackage['bouquets'], true);
-				$rBouquet = array_map('intval', call_user_func($rSortArrayByArrayCallback, $rBouquet, $rOrder));
+				$rBouquet = array_map('intval', sortArrayByArray($rBouquet, $rOrder));
 				$db->query('UPDATE `users_packages` SET `bouquets` = ? WHERE `id` = ?;', '[' . implode(',', $rBouquet) . ']', $rPackage['id']);
 			}
 
@@ -126,9 +126,9 @@ class BouquetService {
 		shell_exec(PHP_BIN . ' ' . CLI_PATH . 'tools.php "bouquets" > /dev/null 2>/dev/null &');
 	}
 
-	public static function scanOne($rID, $rGetBouquetCallback, $rFilterIDsCallback) {
+	public static function scanOne($rID) {
 		global $db;
-		$rBouquet = call_user_func($rGetBouquetCallback, $rID);
+		$rBouquet = getBouquet($rID);
 		if (!$rBouquet) {
 			return;
 		}
@@ -150,10 +150,10 @@ class BouquetService {
 		}
 
 		$updateData = [
-			'channels' => call_user_func($rFilterIDsCallback, json_decode($rBouquet['bouquet_channels'] ?? '[]', true), $availableStreams, true),
-			'movies' => call_user_func($rFilterIDsCallback, json_decode($rBouquet['bouquet_movies'] ?? '[]', true), $availableStreams, true),
-			'radios' => call_user_func($rFilterIDsCallback, json_decode($rBouquet['bouquet_radios'] ?? '[]', true), $availableStreams, true),
-			'series' => call_user_func($rFilterIDsCallback, json_decode($rBouquet['bouquet_series'] ?? '[]', true), $availableSeries, false)
+			'channels' => filterIDs(json_decode($rBouquet['bouquet_channels'] ?? '[]', true), $availableStreams, true),
+			'movies' => filterIDs(json_decode($rBouquet['bouquet_movies'] ?? '[]', true), $availableStreams, true),
+			'radios' => filterIDs(json_decode($rBouquet['bouquet_radios'] ?? '[]', true), $availableStreams, true),
+			'series' => filterIDs(json_decode($rBouquet['bouquet_series'] ?? '[]', true), $availableSeries, false)
 		];
 
 		$db->query(
@@ -182,10 +182,10 @@ class BouquetService {
 
 	// ──────────── Из BouquetRepository ────────────
 
-	public static function getAll($rGetCacheCallback, $rSetCacheCallback, $rForce = false) {
+	public static function getAll($rForce = false) {
 		global $db;
-		if (!$rForce && is_callable($rGetCacheCallback)) {
-			$rCache = call_user_func($rGetCacheCallback, 'bouquets', 60);
+		if (!$rForce) {
+			$rCache = FileCache::getCache('bouquets', 60);
 			if (!empty($rCache)) {
 				return $rCache;
 			}
@@ -201,9 +201,7 @@ class BouquetService {
 			$rOutput[$rID]['radios'] = json_decode($rChannels['bouquet_radios'], true);
 		}
 
-		if (is_callable($rSetCacheCallback)) {
-			call_user_func($rSetCacheCallback, 'bouquets', $rOutput);
-		}
+		FileCache::setCache('bouquets', $rOutput);
 
 		return $rOutput;
 	}

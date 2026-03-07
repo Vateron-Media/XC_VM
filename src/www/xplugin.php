@@ -4,7 +4,7 @@ register_shutdown_function('shutdown');
 require 'init.php';
 $rDeny = true;
 
-if (!CoreUtilities::$rSettings['disable_enigma2']) {
+if (!SettingsManager::getAll()['disable_enigma2']) {
 } else {
 	$rDeny = false;
 	generateError('E2_DISABLED');
@@ -13,24 +13,24 @@ if (!CoreUtilities::$rSettings['disable_enigma2']) {
 $rIP = $_SERVER['REMOTE_ADDR'];
 $rUserAgent = trim($_SERVER['HTTP_USER_AGENT']);
 
-if (empty(CoreUtilities::$rRequest['action']) || CoreUtilities::$rRequest['action'] != 'gen_mac' || empty(CoreUtilities::$rRequest['pversion'])) {
+if (empty(RequestManager::getAll()['action']) || RequestManager::getAll()['action'] != 'gen_mac' || empty(RequestManager::getAll()['pversion'])) {
 	$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
-	CoreUtilities::$db = &$db;
+	DatabaseFactory::set($db);
 
-	if (empty(CoreUtilities::$rRequest['action']) || CoreUtilities::$rRequest['action'] != 'auth') {
+	if (empty(RequestManager::getAll()['action']) || RequestManager::getAll()['action'] != 'auth') {
 	} else {
-		$rMAC = (isset(CoreUtilities::$rRequest['mac']) ? htmlentities(CoreUtilities::$rRequest['mac']) : '');
-		$rModemMAC = (isset(CoreUtilities::$rRequest['mmac']) ? htmlentities(CoreUtilities::$rRequest['mmac']) : '');
-		$rLocalIP = (isset(CoreUtilities::$rRequest['ip']) ? htmlentities(CoreUtilities::$rRequest['ip']) : '');
-		$rEnigmaVersion = (isset(CoreUtilities::$rRequest['version']) ? htmlentities(CoreUtilities::$rRequest['version']) : '');
-		$rCPU = (isset(CoreUtilities::$rRequest['type']) ? htmlentities(CoreUtilities::$rRequest['type']) : '');
-		$rPluginVersion = (isset(CoreUtilities::$rRequest['pversion']) ? htmlentities(CoreUtilities::$rRequest['pversion']) : '');
-		$rLVersion = (isset(CoreUtilities::$rRequest['lversion']) ? base64_decode(CoreUtilities::$rRequest['lversion']) : '');
-		$rDNS = (!empty(CoreUtilities::$rRequest['dn']) ? htmlentities(CoreUtilities::$rRequest['dn']) : '-');
-		$rCMAC = (!empty(CoreUtilities::$rRequest['cmac']) ? htmlentities(strtoupper(CoreUtilities::$rRequest['cmac'])) : '');
+		$rMAC = (isset(RequestManager::getAll()['mac']) ? htmlentities(RequestManager::getAll()['mac']) : '');
+		$rModemMAC = (isset(RequestManager::getAll()['mmac']) ? htmlentities(RequestManager::getAll()['mmac']) : '');
+		$rLocalIP = (isset(RequestManager::getAll()['ip']) ? htmlentities(RequestManager::getAll()['ip']) : '');
+		$rEnigmaVersion = (isset(RequestManager::getAll()['version']) ? htmlentities(RequestManager::getAll()['version']) : '');
+		$rCPU = (isset(RequestManager::getAll()['type']) ? htmlentities(RequestManager::getAll()['type']) : '');
+		$rPluginVersion = (isset(RequestManager::getAll()['pversion']) ? htmlentities(RequestManager::getAll()['pversion']) : '');
+		$rLVersion = (isset(RequestManager::getAll()['lversion']) ? base64_decode(RequestManager::getAll()['lversion']) : '');
+		$rDNS = (!empty(RequestManager::getAll()['dn']) ? htmlentities(RequestManager::getAll()['dn']) : '-');
+		$rCMAC = (!empty(RequestManager::getAll()['cmac']) ? htmlentities(strtoupper(RequestManager::getAll()['cmac'])) : '');
 		$rDetails = array();
 
-		if ($rDevice = CoreUtilities::getE2Info(array('device_id' => null, 'mac' => strtoupper($rMAC)))) {
+		if ($rDevice = UserRepository::getE2Info(array('device_id' => null, 'mac' => strtoupper($rMAC)))) {
 			$rDeny = false;
 
 			if ($rDevice['enigma2']['lock_device'] != 1) {
@@ -60,12 +60,12 @@ if (empty(CoreUtilities::$rRequest['action']) || CoreUtilities::$rRequest['actio
 		generateError('INVALID_CREDENTIALS');
 	}
 
-	if (!empty(CoreUtilities::$rRequest['token'])) {
+	if (!empty(RequestManager::getAll()['token'])) {
 	} else {
 		generateError('E2_NO_TOKEN');
 	}
 
-	$rToken = CoreUtilities::$rRequest['token'];
+	$rToken = RequestManager::getAll()['token'];
 	$db->query('SELECT * FROM enigma2_devices WHERE `token` = ? AND `public_ip` = ? AND `key_auth` = ? LIMIT 1;', $rToken, $rIP, $rUserAgent);
 
 	if ($db->num_rows() > 0) {
@@ -81,10 +81,10 @@ if (empty(CoreUtilities::$rRequest['action']) || CoreUtilities::$rRequest['actio
 		generateError('E2_WATCHDOG_TIMEOUT');
 	}
 
-	$rPage = (isset(CoreUtilities::$rRequest['page']) ? CoreUtilities::$rRequest['page'] : '');
+	$rPage = (isset(RequestManager::getAll()['page']) ? RequestManager::getAll()['page'] : '');
 
 	if (empty($rPage)) {
-		$db->query('UPDATE `enigma2_devices` SET `last_updated` = ?,`rc` = ? WHERE `device_id` = ?;', time(), CoreUtilities::$rRequest['rc'], $rDeviceInfo['device_id']);
+		$db->query('UPDATE `enigma2_devices` SET `last_updated` = ?,`rc` = ? WHERE `device_id` = ?;', time(), RequestManager::getAll()['rc'], $rDeviceInfo['device_id']);
 		$db->query('SELECT * FROM `enigma2_actions` WHERE `device_id` = ?;', $rDeviceInfo['device_id']);
 		$rResult = array();
 
@@ -154,7 +154,7 @@ if (empty(CoreUtilities::$rRequest['action']) || CoreUtilities::$rRequest['actio
 			if ($_FILES['f']['error'] != 0) {
 			} else {
 				$rNewFileName = strtolower($_FILES['f']['tmp_name']);
-				$rType = CoreUtilities::$rRequest['t'];
+				$rType = RequestManager::getAll()['t'];
 
 				switch ($rType) {
 					case 'screen':
@@ -173,7 +173,7 @@ if (empty(CoreUtilities::$rRequest['action']) || CoreUtilities::$rRequest['actio
 } else {
 	$rDeny = false;
 
-	if (CoreUtilities::$rRequest['pversion'] == '0.0.1') {
+	if (RequestManager::getAll()['pversion'] == '0.0.1') {
 	} else {
 		echo json_encode(strtoupper(implode(':', str_split(substr(md5(mt_rand()), 0, 12), 2))));
 	}

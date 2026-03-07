@@ -26,16 +26,16 @@ if (!$rMobile) {
 
 echo ' form-group row mb-4">' . "\n" . '                            <div class="col-md-3">' . "\n" . '                                <input type="text" class="form-control" id="episodes_search" value="';
 
-if (!isset(CoreUtilities::$rRequest['search'])) {
+if (!isset(RequestManager::getAll()['search'])) {
 } else {
-	echo htmlspecialchars(CoreUtilities::$rRequest['search']);
+	echo htmlspecialchars(RequestManager::getAll()['search']);
 }
 
 echo '" placeholder="';
 echo $language::get('search_episodes');
 echo '...">' . "\n" . '                            </div>' . "\n" . '                            <div class="col-md-3">' . "\n" . '                                <select id="episodes_series" class="form-control" data-toggle="select2">' . "\n" . '                                    <option value=""';
 
-if (isset(CoreUtilities::$rRequest['series'])) {
+if (isset(RequestManager::getAll()['series'])) {
 } else {
 	echo ' selected';
 }
@@ -51,7 +51,7 @@ foreach (SeriesService::getList() as $rSeriesArr) {
 		echo $rSeriesArr['id'];
 		echo '"';
 
-		if (!(isset(CoreUtilities::$rRequest['series']) && CoreUtilities::$rRequest['series'] == $rSeriesArr['id'])) {
+		if (!(isset(RequestManager::getAll()['series']) && RequestManager::getAll()['series'] == $rSeriesArr['id'])) {
 		} else {
 			echo ' selected';
 		}
@@ -63,7 +63,7 @@ foreach (SeriesService::getList() as $rSeriesArr) {
 }
 echo '                                </select>' . "\n" . '                            </div>' . "\n" . '                            <div class="col-md-3">' . "\n" . '                                <select id="series_category_id" class="form-control" data-toggle="select2">' . "\n" . '                                    <option value=""';
 
-if (isset(CoreUtilities::$rRequest['category'])) {
+if (isset(RequestManager::getAll()['category'])) {
 } else {
 	echo ' selected';
 }
@@ -72,14 +72,14 @@ echo '>';
 echo $language::get('all_categories');
 echo '</option>' . "\n" . '                                    ';
 
-foreach (getCategories('series') as $rCategory) {
+foreach (CategoryService::getAllByType('series') as $rCategory) {
 	if (!in_array($rCategory['id'], $rPermissions['category_ids'])) {
 	} else {
 		echo '                                    <option value="';
 		echo $rCategory['id'];
 		echo '"';
 
-		if (!(isset(CoreUtilities::$rRequest['category']) && CoreUtilities::$rRequest['category'] == $rCategory['id'])) {
+		if (!(isset(RequestManager::getAll()['category']) && RequestManager::getAll()['category'] == $rCategory['id'])) {
 		} else {
 			echo ' selected';
 		}
@@ -96,8 +96,8 @@ echo '</label>' . "\n" . '                            <div class="col-md-2">' . 
 foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) {
 	echo '                                    <option';
 
-	if (isset(CoreUtilities::$rRequest['entries'])) {
-		if (CoreUtilities::$rRequest['entries'] != $rShow) {
+	if (isset(RequestManager::getAll()['entries'])) {
+		if (RequestManager::getAll()['entries'] != $rShow) {
 		} else {
 			echo ' selected';
 		}

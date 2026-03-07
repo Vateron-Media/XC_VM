@@ -1,7 +1,7 @@
 <?php
 
 /**
- * XC_VM — Theft Detection Module
+ * Theft Detection Module
  *
  * Модуль обнаружения кражи VOD-контента.
  * Мониторит паттерны просмотра VOD и выявляет потенциальное

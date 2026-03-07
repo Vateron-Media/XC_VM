@@ -108,7 +108,7 @@
                                                 <?php foreach (getcodes() as $rCode) {
                                                     if ($rCode['type'] == 3 && in_array($rUserInfo['member_group_id'], json_decode($rCode['groups'], true))) { ?>
                                                         <div class="form-group row mb-4">
-                                                            <label class="col-md-4 col-form-label" for="api_key">API Key <i title="API URL:<br/><?php echo CoreUtilities::$rServers[SERVER_ID]['site_url'] . $rCode['code']; ?>/" class="tooltip text-secondary far fa-circle"></i></label>
+                                                            <label class="col-md-4 col-form-label" for="api_key">API Key <i title="API URL:<br/><?php echo ServerRepository::getAll()[SERVER_ID]['site_url'] . $rCode['code']; ?>/" class="tooltip text-secondary far fa-circle"></i></label>
                                                             <div class="col-md-8 input-group">
                                                                 <input readonly type="text" maxlength="32" class="form-control" id="api_key" name="api_key" value="<?php echo htmlspecialchars($rUserInfo['api_key']); ?>">
                                                                 <div class="input-group-append">
@@ -291,7 +291,7 @@ renderUnifiedLayoutFooter('admin');
             submitForm(window.rCurrentPage, new FormData($("form")[0]));
         });
     });
-    <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+    <?php if (SettingsManager::getAll()['enable_search']): ?>
         $(document).ready(function() {
             initSearch();
         });

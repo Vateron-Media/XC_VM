@@ -1,6 +1,6 @@
 <?php
 /**
- * XC_VM — Контроллер редактирования Enigma-устройства (admin/enigma.php)
+ * Контроллер редактирования Enigma-устройства (admin/enigma.php)
  */
 
 class EnigmaController extends BaseAdminController {
@@ -8,8 +8,8 @@ class EnigmaController extends BaseAdminController {
         $this->requirePermission();
 
         $rDevice = null;
-        if (isset(CoreUtilities::$rRequest['id'])) {
-            $rDevice = getEnigma(CoreUtilities::$rRequest['id']);
+        if (isset(RequestManager::getAll()['id'])) {
+            $rDevice = getEnigma(RequestManager::getAll()['id']);
             if (!$rDevice['user_id']) {
                 exit();
             }

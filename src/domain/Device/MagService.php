@@ -188,12 +188,7 @@ class MagService {
 								$rPrepare['data'][] = $rUserID;
 								$rQuery = 'UPDATE `lines` SET ' . $rPrepare['update'] . ' WHERE `id` = ?;';
 								$db->query($rQuery, ...$rPrepare['data']);
-								CoreUtilities::updateLine($rUserID);
-							}
-						}
-					}
-				}
-			}
+									LineService::updateLineSignal($rUserID);
 
 			return array('status' => STATUS_SUCCESS);
 		} else {
@@ -222,7 +217,7 @@ class MagService {
 			} else {
 				if (Authorization::check('adv', 'add_mag')) {
 					$rArray = verifyPostTable('mag_devices', $rData);
-					$rArray['theme_type'] = CoreUtilities::$rSettings['mag_default_type'];
+					$rArray['theme_type'] = SettingsManager::getAll()['mag_default_type'];
 					$rUserArray = verifyPostTable('lines', $rData);
 					$rUserArray['created_at'] = time();
 					unset($rArray['mag_id'], $rUserArray['id']);
@@ -339,9 +334,7 @@ class MagService {
 					} else {
 						$rInsertID = $db->last_insert_id();
 						$rArray['user_id'] = $rInsertID;
-						CoreUtilities::updateLine($rArray['user_id']);
-						unset($rArray['user'], $rArray['paired']);
-
+					LineService::updateLineSignal($rArray['user_id']);
 						if (isset($rData['edit'])) {
 						} else {
 							$rArray['ver'] = '';
@@ -362,7 +355,7 @@ class MagService {
 							if (0 >= $rDevice['user']['pair_id']) {
 							} else {
 								MagService::syncLineDevices($rDevice['user']['pair_id'], $rInsertID);
-								CoreUtilities::updateLine($rDevice['user']['pair_id']);
+										LineService::updateLineSignal($rDevice['user']['pair_id']);
 							}
 
 							return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
@@ -416,7 +409,7 @@ class MagService {
 					$rPrepare = prepareArray($rUpdateDevice);
 					$rQuery = 'REPLACE INTO `lines`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 					$db->query($rQuery, ...$rPrepare['data']);
-					CoreUtilities::updateLine($rUpdateDevice['id']);
+					LineService::updateLineSignal($rUpdateDevice['id']);
 				}
 			}
 		}

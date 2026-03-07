@@ -39,20 +39,20 @@ endif;
                                 <input type="text"
                                     class="form-control"
                                     id="movies_search"
-                                    value="<?php echo isset(CoreUtilities::$rRequest['search']) ? htmlspecialchars(CoreUtilities::$rRequest['search']) : ''; ?>"
+                                    value="<?php echo isset(RequestManager::getAll()['search']) ? htmlspecialchars(RequestManager::getAll()['search']) : ''; ?>"
                                     placeholder="<?php echo $language::get('search_movies'); ?>...">
                             </div>
 
                             <div class="col-md-4">
                                 <select id="movies_category_id" class="form-control" data-toggle="select2">
                                     <option value=""
-                                        <?php echo !isset(CoreUtilities::$rRequest['category']) ? 'selected' : ''; ?>>
+                                        <?php echo !isset(RequestManager::getAll()['category']) ? 'selected' : ''; ?>>
                                         <?php echo $language::get('all_categories'); ?>
                                     </option>
-                                    <?php foreach (getCategories('movie') as $rCategory): ?>
+                                    <?php foreach (CategoryService::getAllByType('movie') as $rCategory): ?>
                                         <?php if (in_array($rCategory['id'], $rPermissions['category_ids'])): ?>
                                             <option value="<?php echo $rCategory['id']; ?>"
-                                                <?php echo (isset(CoreUtilities::$rRequest['category']) && CoreUtilities::$rRequest['category'] == $rCategory['id']) ? 'selected' : ''; ?>>
+                                                <?php echo (isset(RequestManager::getAll()['category']) && RequestManager::getAll()['category'] == $rCategory['id']) ? 'selected' : ''; ?>>
                                                 <?php echo $rCategory['category_name']; ?>
                                             </option>
                                         <?php endif; ?>
@@ -69,8 +69,8 @@ endif;
                                     <?php foreach ([10, 25, 50, 250, 500, 1000] as $rShow): ?>
                                         <option value="<?php echo $rShow; ?>"
                                             <?php
-                                            if (isset(CoreUtilities::$rRequest['entries'])) {
-                                                echo (CoreUtilities::$rRequest['entries'] == $rShow) ? 'selected' : '';
+                                            if (isset(RequestManager::getAll()['entries'])) {
+                                                echo (RequestManager::getAll()['entries'] == $rShow) ? 'selected' : '';
                                             } else {
                                                 echo ($rSettings['default_entries'] == $rShow) ? 'selected' : '';
                                             }

@@ -1,6 +1,6 @@
 <?php if (count(get_included_files()) != 1 || TRUE):
-    $rModal = isset(CoreUtilities::$rRequest['modal']);
-    $rUpdate = (json_decode((string) CoreUtilities::$rSettings['update_data'], true) ?: array());
+    $rModal = isset(RequestManager::getAll()['modal']);
+    $rUpdate = (json_decode((string) SettingsManager::getAll()['update_data'], true) ?: array());
 
 ?>
 
@@ -119,7 +119,7 @@
                                         </div>
                                     </a>
                                 </li>
-                                <?php if (CoreUtilities::$rSettings['enable_search']): ?>
+                                <?php if (SettingsManager::getAll()['enable_search']): ?>
                                     <li class="dropdown notification-list" id="search-mobile">
                                         <a href="javascript:void(0);"
                                             class="search-toggle pad-15 nav-link right-bar-toggle waves-effect text-white">

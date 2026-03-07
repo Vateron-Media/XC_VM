@@ -110,9 +110,9 @@ class RadioService {
 						$rArray['category_id'] = '[' . implode(',', array_map('intval', $rCategories)) . ']';
 						$rImportArray = $rArray;
 
-						if (!CoreUtilities::$rSettings['download_images']) {
+						if (!SettingsManager::getAll()['download_images']) {
 						} else {
-							$rImportStream['stream_icon'] = CoreUtilities::downloadImage($rImportStream['stream_icon'], 4);
+							$rImportStream['stream_icon'] = ImageUtils::downloadImage($rImportStream['stream_icon'], 4);
 						}
 
 						foreach (array_keys($rImportStream) as $rKey) {
@@ -219,7 +219,7 @@ class RadioService {
 								}
 							}
 
-							CoreUtilities::updateStream($rInsertID);
+							StreamProcess::updateStream($rInsertID);
 
 							return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
 						} else {
@@ -428,7 +428,7 @@ class RadioService {
 					$db->query('INSERT INTO `streams_servers`(`stream_id`, `server_id`, `parent_id`, `on_demand`) VALUES ' . $rAddQuery . ';');
 				}
 
-				CoreUtilities::updateStreams($rStreamIDs);
+				StreamProcess::updateStreams($rStreamIDs);
 
 				if (!isset($rData['restart_on_edit'])) {
 				} else {

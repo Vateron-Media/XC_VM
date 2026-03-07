@@ -11,21 +11,21 @@ foreach (get_defined_constants(true)['user'] as $rKey => $rValue) {
         $_ERRORS[intval($rValue)] = $rKey;
     }
 }
-$rData = CoreUtilities::$rRequest;
+$rData = RequestManager::getAll();
 APIWrapper::$db = &$db;
 APIWrapper::$rKey = $rData['api_key'];
-if (!empty(CoreUtilities::$rRequest['api_key']) && APIWrapper::createSession()) {
+if (!empty(RequestManager::getAll()['api_key']) && APIWrapper::createSession()) {
     $rAction = $rData['action'];
     $rStart = (intval($rData['start']) ?: 0);
     $rLimit = (intval($rData['limit']) ?: 50);
     unset($rData['api_key'], $rData['action'], $rData['start'], $rData['limit']);
-    if (isset(CoreUtilities::$rRequest['show_columns'])) {
-        $rShowColumns = explode(',', CoreUtilities::$rRequest['show_columns']);
+    if (isset(RequestManager::getAll()['show_columns'])) {
+        $rShowColumns = explode(',', RequestManager::getAll()['show_columns']);
     } else {
         $rShowColumns = null;
     }
-    if (isset(CoreUtilities::$rRequest['hide_columns'])) {
-        $rHideColumns = explode(',', CoreUtilities::$rRequest['hide_columns']);
+    if (isset(RequestManager::getAll()['hide_columns'])) {
+        $rHideColumns = explode(',', RequestManager::getAll()['hide_columns']);
     } else {
         $rHideColumns = null;
     }
@@ -666,7 +666,7 @@ class APIWrapper {
         return $rReturn;
     }
     public static function TableAPI($rID, $rStart = 0, $rLimit = 10, $rData = array(), $rShowColumns = array(), $rHideColumns = array()) {
-        $rTableAPI = 'http://127.0.0.1:' . CoreUtilities::$rServers[SERVER_ID]['http_broadcast_port'] . '/' . trim(dirname($_SERVER['PHP_SELF']), '/') . '/table.php';
+        $rTableAPI = 'http://127.0.0.1:' . ServerRepository::getAll()[SERVER_ID]['http_broadcast_port'] . '/' . trim(dirname($_SERVER['PHP_SELF']), '/') . '/table.php';
         $rData['api_key'] = self::$rKey;
         $rData['id'] = $rID;
         $rData['start'] = $rStart;
@@ -1005,7 +1005,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(BouquetService::process($rData, 'getBouquet', 'scanBouquet'));
+        $rReturn = parseerror(BouquetService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getBouquet($rReturn['data']['insert_id'])['data'];
@@ -1017,7 +1017,7 @@ class APIWrapper {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
-        $rReturn = parseerror(BouquetService::process($rData, 'getBouquet', 'scanBouquet'));
+        $rReturn = parseerror(BouquetService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getBouquet($rReturn['data']['insert_id'])['data'];
@@ -1048,7 +1048,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(AuthService::processCode($rData, 'getCode', 'updateCodes'));
+        $rReturn = parseerror(AuthService::processCode($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getAccessCode($rReturn['data']['insert_id'])['data'];
@@ -1060,7 +1060,7 @@ class APIWrapper {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
-        $rReturn = parseerror(AuthService::processCode($rData, 'getCode', 'updateCodes'));
+        $rReturn = parseerror(AuthService::processCode($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getAccessCode($rReturn['data']['insert_id'])['data'];
@@ -1091,7 +1091,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(AuthService::processHMAC($rData, CoreUtilities::$rSettings, 'getHMACToken'));
+        $rReturn = parseerror(AuthService::processHMAC($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getHMAC($rReturn['data']['insert_id'])['data'];
@@ -1103,7 +1103,7 @@ class APIWrapper {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
-        $rReturn = parseerror(AuthService::processHMAC($rData, CoreUtilities::$rSettings, 'getHMACToken'));
+        $rReturn = parseerror(AuthService::processHMAC($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getHMAC($rReturn['data']['insert_id'])['data'];
@@ -1134,7 +1134,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(EpgService::process($rData, 'getEPG'));
+        $rReturn = parseerror(EpgService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getEPG($rReturn['data']['insert_id'])['data'];
@@ -1146,7 +1146,7 @@ class APIWrapper {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
-        $rReturn = parseerror(EpgService::process($rData, 'getEPG'));
+        $rReturn = parseerror(EpgService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getEPG($rReturn['data']['insert_id'])['data'];
@@ -1279,7 +1279,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(PackageService::process($rData, 'getPackage'));
+        $rReturn = parseerror(PackageService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getPackage($rReturn['data']['insert_id'])['data'];
@@ -1291,7 +1291,7 @@ class APIWrapper {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
-        $rReturn = parseerror(PackageService::process($rData, 'getPackage'));
+        $rReturn = parseerror(PackageService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getPackage($rReturn['data']['insert_id'])['data'];
@@ -1301,7 +1301,7 @@ class APIWrapper {
     public static function deletePackage($rID) {
         if (!(($rPackage = self::getPackage($rID)) && isset($rPackage['data']))) {
         } else {
-            if (!PackageService::deleteById('getPackage', $rID)) {
+            if (!PackageService::deleteById($rID)) {
             } else {
                 return array('status' => 'STATUS_SUCCESS');
             }
@@ -1365,7 +1365,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(BlocklistService::processRTMPIP($rData, 'getRTMPIP'));
+        $rReturn = parseerror(BlocklistService::processRTMPIP($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getRTMPIP($rReturn['data']['insert_id'])['data'];
@@ -1377,7 +1377,7 @@ class APIWrapper {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
-        $rReturn = parseerror(BlocklistService::processRTMPIP($rData, 'getRTMPIP'));
+        $rReturn = parseerror(BlocklistService::processRTMPIP($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getRTMPIP($rReturn['data']['insert_id'])['data'];
@@ -1395,7 +1395,7 @@ class APIWrapper {
         return array('status' => 'STATUS_FAILURE');
     }
     public static function getCategories() {
-        return array('status' => 'STATUS_SUCCESS', 'data' => getCategories());
+        return array('status' => 'STATUS_SUCCESS', 'data' => CategoryService::getAllByType());
     }
     public static function getCategory($rID) {
         if (!($rCategory = getCategory($rID))) {
@@ -1451,7 +1451,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(WatchService::processWatchFolder($rData, 'getWatchFolder'));
+        $rReturn = parseerror(WatchService::processWatchFolder($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getWatchFolder($rReturn['data']['insert_id'])['data'];
@@ -1463,7 +1463,7 @@ class APIWrapper {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
-        $rReturn = parseerror(WatchService::processWatchFolder($rData, 'getWatchFolder'));
+        $rReturn = parseerror(WatchService::processWatchFolder($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getWatchFolder($rReturn['data']['insert_id'])['data'];
@@ -1492,7 +1492,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(BlocklistService::processISP($rData, 'getISP'));
+        $rReturn = parseerror(BlocklistService::processISP($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = $rReturn['data']['insert_id'];
@@ -1513,7 +1513,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(BlocklistService::processUA($rData, 'getUserAgent'));
+        $rReturn = parseerror(BlocklistService::processUA($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = $rReturn['data']['insert_id'];
@@ -1562,7 +1562,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(StreamService::process($rData, CoreUtilities::$rSettings));
+        $rReturn = parseerror(StreamService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getStream($rReturn['data']['insert_id'])['data'];
@@ -1574,7 +1574,7 @@ class APIWrapper {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
-        $rReturn = parseerror(StreamService::process($rData, CoreUtilities::$rSettings));
+        $rReturn = parseerror(StreamService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getStream($rReturn['data']['insert_id'])['data'];
@@ -1593,7 +1593,7 @@ class APIWrapper {
     }
     public static function startStream($rID, $rServerID = -1) {
         if ($rServerID == -1) {
-            $rData = json_decode(APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => array($rID), 'servers' => array_keys(CoreUtilities::$rServers))), true);
+            $rData = json_decode(APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => array($rID), 'servers' => array_keys(ServerRepository::getAll()))), true);
         } else {
             $rData = json_decode(systemapirequest($rServerID, array('action' => 'stream', 'stream_ids' => array($rID), 'function' => 'start')), true);
         }
@@ -1604,7 +1604,7 @@ class APIWrapper {
     }
     public static function stopStream($rID, $rServerID = -1) {
         if ($rServerID == -1) {
-            $rData = json_decode(APIRequest(array('action' => 'stream', 'sub' => 'stop', 'stream_ids' => array($rID), 'servers' => array_keys(CoreUtilities::$rServers))), true);
+            $rData = json_decode(APIRequest(array('action' => 'stream', 'sub' => 'stop', 'stream_ids' => array($rID), 'servers' => array_keys(ServerRepository::getAll()))), true);
         } else {
             $rData = json_decode(systemapirequest($rServerID, array('action' => 'stream', 'stream_ids' => array($rID), 'function' => 'stop')), true);
         }
@@ -1624,7 +1624,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(ChannelService::process($rData, CoreUtilities::$rSettings));
+        $rReturn = parseerror(ChannelService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getChannel($rReturn['data']['insert_id'])['data'];
@@ -1636,7 +1636,7 @@ class APIWrapper {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
-        $rReturn = parseerror(ChannelService::process($rData, CoreUtilities::$rSettings));
+        $rReturn = parseerror(ChannelService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getChannel($rReturn['data']['insert_id'])['data'];
@@ -1704,7 +1704,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(MovieService::process(CoreUtilities::$rSettings, $rData));
+        $rReturn = parseerror(MovieService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getMovie($rReturn['data']['insert_id'])['data'];
@@ -1716,7 +1716,7 @@ class APIWrapper {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
-        $rReturn = parseerror(MovieService::process(CoreUtilities::$rSettings, $rData));
+        $rReturn = parseerror(MovieService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getMovie($rReturn['data']['insert_id'])['data'];
@@ -1735,7 +1735,7 @@ class APIWrapper {
     }
     public static function startMovie($rID, $rServerID = -1) {
         if ($rServerID == -1) {
-            $rData = json_decode(APIRequest(array('action' => 'vod', 'sub' => 'start', 'stream_ids' => array($rID), 'servers' => array_keys(CoreUtilities::$rServers))), true);
+            $rData = json_decode(APIRequest(array('action' => 'vod', 'sub' => 'start', 'stream_ids' => array($rID), 'servers' => array_keys(ServerRepository::getAll()))), true);
         } else {
             $rData = json_decode(systemapirequest($rServerID, array('action' => 'vod', 'stream_ids' => array($rID), 'function' => 'start')), true);
         }
@@ -1746,7 +1746,7 @@ class APIWrapper {
     }
     public static function stopMovie($rID, $rServerID = -1) {
         if ($rServerID == -1) {
-            $rData = json_decode(APIRequest(array('action' => 'vod', 'sub' => 'stop', 'stream_ids' => array($rID), 'servers' => array_keys(CoreUtilities::$rServers))), true);
+            $rData = json_decode(APIRequest(array('action' => 'vod', 'sub' => 'stop', 'stream_ids' => array($rID), 'servers' => array_keys(ServerRepository::getAll()))), true);
         } else {
             $rData = json_decode(systemapirequest($rServerID, array('action' => 'vod', 'stream_ids' => array($rID), 'function' => 'stop')), true);
         }
@@ -1766,7 +1766,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(EpisodeService::process(CoreUtilities::$rSettings, $rData));
+        $rReturn = parseerror(EpisodeService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getEpisode($rReturn['data']['insert_id'])['data'];
@@ -1778,7 +1778,7 @@ class APIWrapper {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
-        $rReturn = parseerror(EpisodeService::process(CoreUtilities::$rSettings, $rData));
+        $rReturn = parseerror(EpisodeService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getEpisode($rReturn['data']['insert_id'])['data'];
@@ -1806,7 +1806,7 @@ class APIWrapper {
         } else {
             unset($rData['edit']);
         }
-        $rReturn = parseerror(SeriesService::process(CoreUtilities::$rSettings, $rData));
+        $rReturn = parseerror(SeriesService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getSeries($rReturn['data']['insert_id'])['data'];
@@ -1818,7 +1818,7 @@ class APIWrapper {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
-        $rReturn = parseerror(SeriesService::process(CoreUtilities::$rSettings, $rData));
+        $rReturn = parseerror(SeriesService::process($rData));
         if (!isset($rReturn['data']['insert_id'])) {
         } else {
             $rReturn['data'] = self::getSeries($rReturn['data']['insert_id'])['data'];
@@ -1886,7 +1886,7 @@ class APIWrapper {
     public static function deleteServer($rID) {
         if (!(($rServer = self::getServer($rID)) && isset($rServer['data']))) {
         } else {
-            if (!ServerRepository::deleteById(CoreUtilities::$rSettings, 'getStreamingServersByID', $rID)) {
+            if (!ServerRepository::deleteById($rID)) {
             } else {
                 return array('status' => 'STATUS_SUCCESS');
             }
@@ -1897,7 +1897,7 @@ class APIWrapper {
         return array('status' => 'STATUS_SUCCESS', 'data' => getSettings());
     }
     public static function editSettings($rData) {
-        $rReturn = parseerror(SettingsService::edit($rData, 'clearSettingsCache'));
+        $rReturn = parseerror(SettingsService::edit($rData));
         $rReturn['data'] = self::getSettings()['data'];
         return $rReturn;
     }
@@ -1907,7 +1907,7 @@ class APIWrapper {
         if (!$rData) {
             return array('status' => 'STATUS_FAILURE');
         }
-        $rData['requests_per_second'] = CoreUtilities::$rServers[$rServerID]['requests_per_second'];
+        $rData['requests_per_second'] = ServerRepository::getAll()[$rServerID]['requests_per_second'];
         $db->query('SELECT COUNT(*) AS `count` FROM `lines_live` WHERE `server_id` = ? AND `hls_end` = 0;', $rServerID);
         if (0 >= $db->num_rows()) {
         } else {
@@ -1943,7 +1943,7 @@ class APIWrapper {
         } else {
             $rData['offline_streams'] = $db->get_row()['count'];
         }
-        $rData['network_guaranteed_speed'] = CoreUtilities::$rServers[$rServerID]['network_guaranteed_speed'];
+        $rData['network_guaranteed_speed'] = ServerRepository::getAll()[$rServerID]['network_guaranteed_speed'];
         return array('status' => 'STATUS_SUCCESS', 'data' => $rData);
     }
     public static function getFPMStatus($rServerID) {

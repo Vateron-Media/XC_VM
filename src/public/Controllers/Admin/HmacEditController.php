@@ -1,7 +1,7 @@
 <?php
 
 /**
- * HmacEditController — add/edit HMAC key (Phase 6.3 — Group H).
+ * HmacEditController — add/edit HMAC key.
  *
  * Route: GET /admin/hmac → index()
  */

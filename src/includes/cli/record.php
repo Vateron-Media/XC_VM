@@ -80,12 +80,12 @@ function loadcli() {
             if (0 < $rPID && file_exists($rPlaylist)) {
                 $db->query('UPDATE `recordings` SET `status` = 1 WHERE `id` = ?;', $recordingID);
                 $db->close_mysql();
-                while (CoreUtilities::isStreamRunning($rPID, $recordingData['stream_id']) && file_exists($rPlaylist)) {
+                while (ProcessManager::isStreamRunning($rPID, $recordingData['stream_id']) && file_exists($rPlaylist)) {
                     if ($recordingData['archive']) {
                         $rDuration = intval(($recordingData['end'] - $recordingData['start']) / 60);
-                        $rFP = @fopen('http://127.0.0.1:' . CoreUtilities::$rServers[SERVER_ID]['http_broadcast_port'] . '/admin/timeshift?password=' . CoreUtilities::$rSettings['live_streaming_pass'] . '&stream=' . $recordingData['stream_id'] . '&start=' . $recordingData['start'] . '&duration=' . $rDuration . '&extension=ts', 'r');
+                        $rFP = @fopen('http://127.0.0.1:' . ServerRepository::getAll()[SERVER_ID]['http_broadcast_port'] . '/admin/timeshift?password=' . SettingsManager::getAll()['live_streaming_pass'] . '&stream=' . $recordingData['stream_id'] . '&start=' . $recordingData['start'] . '&duration=' . $rDuration . '&extension=ts', 'r');
                     } else {
-                        $rFP = @fopen('http://127.0.0.1:' . CoreUtilities::$rServers[SERVER_ID]['http_broadcast_port'] . '/admin/live?password=' . CoreUtilities::$rSettings['live_streaming_pass'] . '&stream=' . $recordingData['stream_id'] . '&extension=ts', 'r');
+                        $rFP = @fopen('http://127.0.0.1:' . ServerRepository::getAll()[SERVER_ID]['http_broadcast_port'] . '/admin/live?password=' . SettingsManager::getAll()['live_streaming_pass'] . '&stream=' . $recordingData['stream_id'] . '&extension=ts', 'r');
                     }
                     if (!$rFP) {
                     } else {

@@ -15,14 +15,14 @@ if (!isset($__viewMode)):
 		goHome();
 	}
 
-	if (isset(CoreUtilities::$rRequest['id']) && ($rTicketInfo = getTicket(CoreUtilities::$rRequest['id']))) {
+	if (isset(RequestManager::getAll()['id']) && ($rTicketInfo = getTicket(RequestManager::getAll()['id']))) {
 	} else {
 		goHome();
 	}
 
 	if ($rUserInfo['id'] == $rTicketInfo['member_id']) {
 	} else {
-		$db->query('UPDATE `tickets` SET `admin_read` = 1 WHERE `id` = ?;', CoreUtilities::$rRequest['id']);
+		$db->query('UPDATE `tickets` SET `admin_read` = 1 WHERE `id` = ?;', RequestManager::getAll()['id']);
 	}
 
 	$_TITLE = 'View Ticket';
