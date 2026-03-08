@@ -7,6 +7,9 @@ class ResellerCreatedChannelsController extends BaseResellerController
     public function index()
     {
         $this->requirePermission();
-        $this->render('created_channels');
+        $this->setTitle('Created Channels');
+        $this->render('created_channels', [
+            'categories' => CategoryService::getAllByType('live'),
+        ]);
     }
 }

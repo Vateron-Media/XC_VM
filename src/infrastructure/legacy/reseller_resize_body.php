@@ -1,20 +1,16 @@
 <?php
+/**
+ * Legacy reseller resize image handler.
+ * Extracted from reseller/resize.php.
+ * Variables expected from caller: MAIN_HOME, WWW_PATH, IMAGES_PATH, TMP_PATH, CACHE_TMP_PATH already defined.
+ */
+set_time_limit(2);
+ini_set('default_socket_timeout', 2);
 
-session_start();
-session_write_close();
-
-if (isset($_SESSION['reseller'])) {
-	set_time_limit(2);
-	ini_set('default_socket_timeout', 2);
-	define('MAIN_HOME', '/home/xc_vm/');
-	define('WWW_PATH', MAIN_HOME . 'www/');
-	define('IMAGES_PATH', WWW_PATH . 'images/');
-	define('TMP_PATH', MAIN_HOME . 'tmp/');
-	define('CACHE_TMP_PATH', TMP_PATH . 'cache/');
-	$rServers = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'servers'));
-	$rURL = $_GET['url'];
-	$rMaxW = 0;
-	$rMaxH = 0;
+$rServers = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'servers'));
+$rURL = $_GET['url'] ?? '';
+$rMaxW = 0;
+$rMaxH = 0;
 
 	if (!isset($_GET['maxw'])) {
 	} else {
@@ -93,9 +89,6 @@ if (isset($_SESSION['reseller'])) {
 	imagesavealpha($rImage, true);
 	imagefill($rImage, 0, 0, imagecolorallocatealpha($rImage, 0, 0, 0, 127));
 	imagepng($rImage);
-} else {
-	exit();
-}
 
 function getimagesizekeepaspectratio($origWidth, $origHeight, $maxWidth, $maxHeight) {
 	if ($maxWidth != 0) {

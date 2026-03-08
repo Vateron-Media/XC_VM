@@ -15,6 +15,20 @@
 
 $router->get('dashboard', [ResellerDashboardController::class, 'index']);
 $router->get('edit_profile', [ResellerEditProfileController::class, 'index']);
+$router->get('logout', [ResellerLogoutController::class, 'index']);
+$router->get('session', [ResellerSessionController::class, 'index']);
+
+// ─── Auth & Infrastructure ─────────────────────────────────────
+
+$router->get('login', [ResellerLoginController::class, 'index']);
+$router->post('login', [ResellerLoginController::class, 'index']);
+$router->get('index', [ResellerLoginController::class, 'index']);
+$router->post('post', [ResellerPostController::class, 'index']);
+$router->get('api', [ResellerApiController::class, 'index']);
+$router->post('api', [ResellerApiController::class, 'index']);
+$router->get('table', [ResellerTableController::class, 'index']);
+$router->post('table', [ResellerTableController::class, 'index']);
+$router->get('resize', [ResellerResizeController::class, 'index']);
 
 // ─── Lines (Phase 6.4) ─────────────────────────────────────────
 

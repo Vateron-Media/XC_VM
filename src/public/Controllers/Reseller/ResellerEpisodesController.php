@@ -7,6 +7,10 @@ class ResellerEpisodesController extends BaseResellerController
     public function index()
     {
         $this->requirePermission();
-        $this->render('episodes');
+        $this->setTitle('Episodes');
+        $this->render('episodes', [
+            'seriesList' => SeriesService::getList(),
+            'categories' => CategoryService::getAllByType('series'),
+        ]);
     }
 }

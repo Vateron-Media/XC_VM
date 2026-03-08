@@ -1,4 +1,11 @@
 <?php
+/**
+ * Reseller functions bootstrap.
+ *
+ * Extracted from reseller/functions.php for Front Controller use.
+ * Loads includes/admin.php, then sets up $rUserInfo, $rPermissions
+ * and validates reseller session integrity.
+ */
 
 if (!defined('MAIN_HOME')) {
 	define('MAIN_HOME', '/home/xc_vm/');
