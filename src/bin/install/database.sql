@@ -70217,7 +70217,7 @@ CREATE TABLE IF NOT EXISTS `settings` (
   `tmdb_pid` int(5) DEFAULT '0',
   `watch_pid` int(5) DEFAULT '0',
   `automatic_backups` varchar(16) COLLATE utf8_unicode_ci DEFAULT 'off',
-  `dropbox_token` varchar(256) COLLATE utf8_unicode_ci DEFAULT '',
+  `dropbox_token` varchar(1800) COLLATE utf8_unicode_ci DEFAULT '',
   `recaptcha_v2_secret_key` varchar(256) COLLATE utf8_unicode_ci DEFAULT '',
   `recaptcha_v2_site_key` varchar(256) COLLATE utf8_unicode_ci DEFAULT '',
   `tmdb_language` varchar(16) COLLATE utf8_unicode_ci DEFAULT '',
