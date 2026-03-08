@@ -2,11 +2,9 @@
 
 class PlaylistGenerator {
 	public static function generate($rUserInfo, $rDeviceKey, $rOutputKey = 'ts', $rTypeKey = null, $rNoCache = false, $rProxy = false) {
-		global $db;
-		$rSettings = SettingsManager::getAll();
-		$rServers = ServerRepository::getAll();
+		global $db, $rSettings, $rServers;
 		$rCategories = CategoryService::getFromDatabase();
-		$rCached = SettingsManager::getAll()['enable_cache'];
+		$rCached = $rSettings['enable_cache'];
 		if (empty($rDeviceKey)) {
 			return false;
 		}

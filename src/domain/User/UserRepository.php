@@ -292,9 +292,8 @@ class UserRepository {
 	}
 
 	public static function getUserInfo($rUserID = null, $rUsername = null, $rPassword = null, $rGetChannelIDs = false, $rGetConnections = false, $rIP = '') {
-		$db = DatabaseFactory::get();
-		$rCached = SettingsManager::getAll()['enable_cache'];
-		$rSettings = SettingsManager::getAll();
+		global $db, $rSettings;
+		$rCached = $rSettings['enable_cache'];
 		$rBouquets = BouquetService::getAll();
 		$rUserInfo = null;
 		if ($rCached) {
@@ -467,7 +466,7 @@ class UserRepository {
 	}
 
 	public static function getE2Info($rDevice, $rGetChannelIDs = false, $rGetBouquetInfo = false, $rGetConnections = false) {
-		$db = DatabaseFactory::get();
+		global $db;
 		if (empty($rDevice['device_id'])) {
 			$db->query('SELECT * FROM `enigma2_devices` WHERE `mac` = ?', $rDevice['mac']);
 		} else {

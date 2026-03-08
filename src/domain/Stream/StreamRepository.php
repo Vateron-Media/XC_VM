@@ -46,8 +46,7 @@ class StreamRepository {
 	}
 
 	public static function getPIDs($rServerID) {
-		global $db;
-		$rSettings = SettingsManager::getAll();
+		global $db, $rSettings;
 		$rReturn = array();
 		$db->query('SELECT `streams`.`id`, `streams`.`stream_display_name`, `streams`.`type`, `streams_servers`.`pid`, `streams_servers`.`monitor_pid`, `streams_servers`.`delay_pid` FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams_servers`.`server_id` = ?;', $rServerID);
 

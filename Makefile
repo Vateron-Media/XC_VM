@@ -18,17 +18,27 @@ HASH_FILE := hashes.md5
 EXCLUDES := \
 	.git
 
-# Files and directories to copy from MAIN to LB
-LB_FILES := bin config content crons includes signals tmp www status update service
+# Directories to copy from MAIN to LB
+LB_DIRS := bin config content core crons domain includes \
+	infrastructure resources signals streaming tmp www
 
-# Directories to remove from LB
+# Root-level files to copy from MAIN to LB (not inside directories)
+LB_ROOT_FILES := autoload.php bootstrap.php service status update
+
+# Directories to remove from LB (admin-only content)
 LB_DIRS_TO_REMOVE := \
 	bin/install \
 	bin/redis \
+	bin/nginx/conf/codes \
 	includes/langs \
 	includes/api \
 	includes/libs/resources \
-	bin/nginx/conf/codes
+	includes/bootstrap \
+	domain/User \
+	domain/Device \
+	domain/Auth \
+	resources/langs \
+	resources/libs
 
 # Files to remove from LB
 LB_FILES_TO_REMOVE := \
@@ -75,8 +85,8 @@ lb_copy_files:
 	@echo "==> [LB] Creating temporary directory: $(TEMP_DIR)"
 	@mkdir -p ${TEMP_DIR}
 
-	@echo "==> [LB] Copying tracked files from $(MAIN_DIR)"
-	@for lb_item in $(LB_FILES); do \
+	@echo "==> [LB] Copying tracked directories from $(MAIN_DIR)"
+	@for lb_item in $(LB_DIRS); do \
 		printf "   → Scanning: %s\n" "$$lb_item"; \
 		git ls-files | grep "^src/$$lb_item/" | while read -r file; do \
 			rel=$${file#src/}; \
@@ -84,6 +94,16 @@ lb_copy_files:
 			mkdir -p "$(TEMP_DIR)/$$(dirname $$rel)"; \
 			cp "$$file" "$(TEMP_DIR)/$$rel"; \
 		done; \
+	done
+
+	@echo "==> [LB] Copying root files from $(MAIN_DIR)"
+	@for root_file in $(LB_ROOT_FILES); do \
+		if git ls-files --error-unmatch "src/$$root_file" >/dev/null 2>&1; then \
+			printf "   → Copying: %s\n" "$$root_file"; \
+			cp "$(MAIN_DIR)/$$root_file" "$(TEMP_DIR)/$$root_file"; \
+		else \
+			printf "   ⚠ Not tracked: %s\n" "$$root_file"; \
+		fi; \
 	done
 
 	@echo "==> [LB] Removing excluded directories"
@@ -116,23 +136,30 @@ lb_update_copy_files:
 	@mkdir -p $(DIST_DIR)
 	@mkdir -p $(TEMP_DIR)
 
-	@echo "[INFO] Copying modified or added files from 'src/' that are in LB_FILES..."
+	@echo "[INFO] Copying modified or added files from 'src/' that are in LB scope..."
 	@for file in $$(git diff --name-only --diff-filter=AMR $(LAST_TAG)..HEAD | grep '^src/'); do \
 		rel_path=$$(echo "$$file" | sed 's|^src/||'); \
-		# Check if the file belongs to one of the allowed directories LB_FILES \
 		allowed=0; \
-		for lb_item in $(LB_FILES); do \
+		for lb_item in $(LB_DIRS); do \
 			if echo "$$rel_path" | grep -q "^$$lb_item/"; then \
 				allowed=1; \
 				break; \
 			fi; \
 		done; \
+		if [ "$$allowed" -eq 0 ]; then \
+			for root_file in $(LB_ROOT_FILES); do \
+				if [ "$$rel_path" = "$$root_file" ]; then \
+					allowed=1; \
+					break; \
+				fi; \
+			done; \
+		fi; \
 		if [ "$$allowed" -eq 1 ] && [ -f "$$file" ]; then \
 			echo "[COPY] $$file -> $(TEMP_DIR)/$$rel_path"; \
 			mkdir -p "$(TEMP_DIR)/$$(dirname $$rel_path)"; \
 			cp "$$file" "$(TEMP_DIR)/$$rel_path"; \
 		else \
-			echo "[SKIP] $$file (not in LB_FILES)"; \
+			echo "[SKIP] $$file (not in LB scope)"; \
 		fi \
 	done
 
@@ -302,6 +329,18 @@ set_permissions:
 	find $(TEMP_DIR)/crons -type f -exec chmod 777 {} \ 2>/dev/null || [ $$? -eq 1 ];
 	chmod 0755 $(TEMP_DIR)/includes 2>/dev/null || [ $$? -eq 1 ]
 	find $(TEMP_DIR)/includes -type f -exec chmod 777 {} \ 2>/dev/null || [ $$? -eq 1 ];
+
+	# New architecture directories (PHP code: 644, dirs: 755)
+	@for arch_dir in core domain streaming infrastructure resources; do \
+		if [ -d "$(TEMP_DIR)/$$arch_dir" ]; then \
+			find "$(TEMP_DIR)/$$arch_dir" -type d -exec chmod 755 {} +; \
+			find "$(TEMP_DIR)/$$arch_dir" -type f -exec chmod 644 {} +; \
+		fi; \
+	done
+
+	# Root-level PHP files
+	chmod 0644 $(TEMP_DIR)/autoload.php 2>/dev/null || true
+	chmod 0644 $(TEMP_DIR)/bootstrap.php 2>/dev/null || true
 
 	@if [ -d "$(TEMP_DIR)/ministra" ]; then \
 		# /ministra \
