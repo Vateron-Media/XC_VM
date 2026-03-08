@@ -2,10 +2,9 @@
 
 class SubtitleExtractor {
 	public static function extractSubtitle($rStreamID, $rSourceURL, $rIndex) {
-		$rFFMPEG_CPU = FfmpegPaths::cpu();
-		$rSettings = SettingsManager::getAll();
+		global $rSettings, $rFFMPEG;
 		$rTimeout = 10;
-		$rCommand = 'timeout ' . $rTimeout . ' ' . $rFFMPEG_CPU . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err -i "' . $rSourceURL . '" -map 0:s:' . intval($rIndex) . ' ' . VOD_PATH . intval($rStreamID) . '_' . intval($rIndex) . '.srt';
+		$rCommand = 'timeout ' . $rTimeout . ' ' . $rFFMPEG . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err -i "' . $rSourceURL . '" -map 0:s:' . intval($rIndex) . ' ' . VOD_PATH . intval($rStreamID) . '_' . intval($rIndex) . '.srt';
 		exec($rCommand, $rOutput);
 		if (file_exists(VOD_PATH . intval($rStreamID) . '_' . intval($rIndex) . '.srt')) {
 			if (filesize(VOD_PATH . intval($rStreamID) . '_' . intval($rIndex) . '.srt') != 0) {

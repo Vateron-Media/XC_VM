@@ -2,8 +2,7 @@
 
 class DomainResolver {
 	public static function resolve($rServerID, $rForceSSL = false) {
-		$rServers = ServerRepository::getAll();
-		$rSettings = SettingsManager::getAll();
+		global $rServers, $rSettings;
 		$rOriginatorID = null;
 		if ($rForceSSL) {
 			$rProtocol = 'https';

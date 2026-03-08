@@ -2,7 +2,7 @@
 
 class ProcessChecker {
 	public static function isPIDsRunning($rServerIDS, $rPIDs, $rEXE) {
-		$rServers = ServerRepository::getAll();
+		global $rServers;
 		if (!is_array($rServerIDS)) {
 			$rServerIDS = array(intval($rServerIDS));
 		}
@@ -27,7 +27,7 @@ class ProcessChecker {
 	}
 
 	public static function isPIDRunning($rServerID, $rPID, $rEXE) {
-		$rServers = ServerRepository::getAll();
+		global $rServers;
 		if (!is_null($rPID) && is_numeric($rPID) && is_array($rServers) && array_key_exists($rServerID, $rServers)) {
 			if (!($rOutput = self::isPIDsRunning($rServerID, array($rPID), $rEXE))) {
 				return false;

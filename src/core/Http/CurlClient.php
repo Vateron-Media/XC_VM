@@ -2,7 +2,7 @@
 
 class CurlClient {
 	public static function getMultiCURL($rURLs, $callback = null, $rTimeout = 5) {
-		$rServers = ServerRepository::getAll();
+		global $rServers;
 		if (empty($rURLs)) {
 			return array();
 		}
@@ -81,7 +81,7 @@ class CurlClient {
 	}
 
 	public static function serverRequest($rServerID, $rURL, $rPostData = array()) {
-		$rServers = ServerRepository::getAll();
+		global $rServers;
 		if (!(is_array($rServers) && isset($rServers[$rServerID]) && $rServers[$rServerID]['server_online'])) {
 			return false;
 		}
