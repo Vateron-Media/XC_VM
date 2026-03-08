@@ -2,8 +2,7 @@
 
 class ChannelService {
 	public static function process($rData) {
-		global $db;
-		$rSettings = SettingsManager::getAll();
+		global $db, $rSettings;
 		if (isset($rData['edit'])) {
 			if (Authorization::check('adv', 'edit_cchannel')) {
 				$rArray = overwriteData(StreamRepository::getById($rData['edit']), $rData);

@@ -1154,102 +1154,92 @@ JavaScript-файлы для поддержки Stalker Portal (MAG-устрой
 
 **Ключевой принцип:** LB — это подмножество MAIN. Код не форкается, а фильтруется при сборке.
 
-### 8.2. Текущая проблема (до миграции Makefile)
+### 8.2. Проблема LB-сборки (РЕШЕНО ✅ — Phase 9.1)
 
-`Makefile` собирает LB из фиксированного списка директорий (`LB_FILES`):
+Старый `Makefile` собирал LB из фиксированного списка `LB_FILES`, который не включал новые архитектурные директории. После фаз 0–8 это означало, что LB-сборка не содержала `core/`, `domain/`, `streaming/`, `infrastructure/`, `resources/`, а также `autoload.php` и `bootstrap.php`.
 
-```makefile
-# ТЕКУЩИЙ (устаревший) список:
-LB_FILES := bin config content crons includes signals tmp www status update service
-```
-
-**Эти новые директории НЕ входят в LB_FILES и НЕ копируются в LB:**
+**Решение (Phase 9.1):** `LB_FILES` разделён на `LB_DIRS` + `LB_ROOT_FILES`, добавлены все необходимые директории и admin-only исключения. Подробности — §8.3.
 
 | Директория / файл | Нужен LB? | Статус |
 |----|---|---|
-| `autoload.php` | ✅ ДА — без него новые классы не загружаются | ⚠ Отсутствует в LB |
-| `bootstrap.php` | ✅ ДА — единая точка инициализации (CONTEXT_STREAM) | ⚠ Отсутствует в LB |
-| `core/` | ✅ ДА — Database, Cache, Auth, Config, Process, Http, Logging, Container, Util | ⚠ Отсутствует в LB |
-| `domain/` | ⚠ ЧАСТИЧНО — Stream/, Server/, Bouquet/ нужны; User/, Ticket/, Device/ — нет | ⚠ Отсутствует в LB |
-| `streaming/` | ✅ ДА — весь стриминг-движок | ⚠ Отсутствует в LB |
-| `infrastructure/` | ✅ ДА — redis/, nginx/ | ⚠ Отсутствует в LB |
-| `resources/` | ⚠ ЧАСТИЧНО — data/error_codes.php нужен; langs/ — нет | ⚠ Отсутствует в LB |
-| `data/` | ⚠ ЧАСТИЧНО — runtime-данные создаются динамически | ⚠ Отсутствует в LB |
-| `public/` | ❌ НЕТ — admin UI, не нужен на LB | ⚠ Отсутствует в LB |
-| `modules/` | ❌ НЕТ — все текущие модули admin-only | ⚠ Отсутствует в LB |
+| `autoload.php` | ✅ ДА | ✅ Добавлен в `LB_ROOT_FILES` |
+| `bootstrap.php` | ✅ ДА | ✅ Добавлен в `LB_ROOT_FILES` |
+| `core/` | ✅ ДА | ✅ Добавлен в `LB_DIRS` |
+| `domain/` | ⚠ ЧАСТИЧНО | ✅ В `LB_DIRS` + исключения `User/`, `Device/`, `Auth/` |
+| `streaming/` | ✅ ДА | ✅ Добавлен в `LB_DIRS` |
+| `infrastructure/` | ✅ ДА | ✅ Добавлен в `LB_DIRS` |
+| `resources/` | ⚠ ЧАСТИЧНО | ✅ В `LB_DIRS` + исключения `langs/`, `libs/` |
+| `public/` | ❌ НЕТ | ✅ Корректно отсутствует |
+| `modules/` | ❌ НЕТ | ✅ Корректно отсутствует |
 | `admin/` | ❌ НЕТ | ✅ Корректно отсутствует |
 | `ministra/` | ❌ НЕТ | ✅ Корректно отсутствует |
 | `player/` | ❌ НЕТ | ✅ Корректно отсутствует |
 | `reseller/` | ❌ НЕТ | ✅ Корректно отсутствует |
 
-**Последствие:** Proxy-методы в `CoreUtilities.php` (который IS копируется в LB через `includes/`) вызывают классы из `core/` и `domain/`, но эти директории отсутствуют → **LB-сборка ломается при вызове мигрированного кода**.
+### 8.3. Реализованная конфигурация Makefile ✅
 
-### 8.3. Целевая конфигурация Makefile
-
-#### Обновлённый `LB_FILES`
+#### `LB_DIRS` + `LB_ROOT_FILES` (вместо единого `LB_FILES`)
 
 ```makefile
-# ЦЕЛЕВОЙ (обновлённый) список:
-LB_FILES := autoload.php bootstrap.php \
-    bin config content core crons data domain includes infrastructure \
-    public resources signals streaming tmp www status update service
+# Директории (копируются через git ls-files | grep "^src/$dir/")
+LB_DIRS := bin config content core crons domain includes \
+    infrastructure resources signals streaming tmp www
+
+# Root-файлы (копируются через git ls-files --error-unmatch)
+LB_ROOT_FILES := autoload.php bootstrap.php service status update
 ```
 
-#### Обновлённый `LB_DIRS_TO_REMOVE`
+> **Почему раздельно:** grep `"^src/$item/"` с trailing `/` никогда не матчит файлы (`autoload.php`, `service`, `status`, `update`). Поэтому root-файлы копируются отдельным циклом через `git ls-files --error-unmatch`.
+
+#### `LB_DIRS_TO_REMOVE` (admin-only директории)
 
 ```makefile
 LB_DIRS_TO_REMOVE := \
-    # Существующие исключения:
     bin/install \
     bin/redis \
+    bin/nginx/conf/codes \
     includes/langs \
     includes/api \
     includes/libs/resources \
-    bin/nginx/conf/codes \
-    # Новые исключения для целевой архитектуры:
-    admin \
-    ministra \
-    player \
-    reseller \
+    includes/bootstrap \
     domain/User \
-    domain/Ticket \
     domain/Device \
-    public/Controllers/Admin \
-    public/Controllers/Reseller \
-    public/Views \
-    player \
-    modules/fingerprint \
-    modules/magscan \
-    modules/ministra \
-    modules/plex \
-    modules/theft-detection \
-    modules/tmdb \
-    modules/watch \
-    resources/langs
+    domain/Auth \
+    resources/langs \
+    resources/libs
 ```
 
-#### Обновлённый `LB_FILES_TO_REMOVE`
+#### `lb_copy_files` — два цикла
+
+1. **Директории:** `for lb_item in $(LB_DIRS)` → `git ls-files | grep "^src/$$lb_item/"` → copy
+2. **Root-файлы:** `for root_file in $(LB_ROOT_FILES)` → `git ls-files --error-unmatch "src/$$root_file"` → copy
+
+#### `lb_update_copy_files` — каскадная проверка
+
+```bash
+# Для каждого changed file:
+for lb_item in $(LB_DIRS); do    # 1. проверка по директории
+    grep -q "^$$lb_item/"
+done
+for root_file in $(LB_ROOT_FILES); do  # 2. проверка по root-файлу
+    [ "$$rel_path" = "$$root_file" ]
+done
+```
+
+#### `set_permissions` — новые директории
 
 ```makefile
-LB_FILES_TO_REMOVE := \
-    # Существующие (пока admin.php/admin_api.php живут в includes/):
-    includes/admin_api.php \
-    includes/admin.php \
-    includes/reseller_api.php \
-    # ... остальные существующие исключения ...
-    # Новые:
-    includes/cli/migrate.php \
-    includes/cli/cache_handler.php \
-    includes/cli/balancer.php \
-    crons/backups.php \
-    crons/cache_engine.php \
-    crons/epg.php \
-    crons/update.php \
-    crons/providers.php \
-    crons/root_mysql.php \
-    crons/series.php \
-    crons/tmdb.php \
-    crons/tmdb_popular.php
+# core/ domain/ streaming/ infrastructure/ resources/ → dirs:755, files:644
+@for arch_dir in core domain streaming infrastructure resources; do \
+    if [ -d "$(TEMP_DIR)/$$arch_dir" ]; then \
+        find "$(TEMP_DIR)/$$arch_dir" -type d -exec chmod 755 {} +; \
+        find "$(TEMP_DIR)/$$arch_dir" -type f -exec chmod 644 {} +; \
+    fi; \
+done
+
+# autoload.php, bootstrap.php → 644
+chmod 0644 $(TEMP_DIR)/autoload.php 2>/dev/null || true
+chmod 0644 $(TEMP_DIR)/bootstrap.php 2>/dev/null || true
 ```
 
 ### 8.4. Что LB использует — карта зависимостей
@@ -1288,9 +1278,9 @@ crons/*.php (на LB) ──→ bootstrap.php (CONTEXT_CLI)
 
 ### 8.5. Правила для разработки с учётом LB
 
-1. **Proxy-методы в `CoreUtilities`/`StreamingUtilities`** должны быть безопасны для LB. Пока `autoload.php` и `core/`/`domain/` не добавлены в LB-сборку, proxy-вызовы сломают LB.
+1. ~~**Proxy-методы в `CoreUtilities`/`StreamingUtilities`** должны быть безопасны для LB~~ — **РЕШЕНО:** god-объекты удалены (Phase 8), все зависимости через прямые вызовы.
 
-2. **Makefile должен обновляться синхронно с миграцией**, конкретно при добавлении новых `LB_FILES` каждый раз, когда код из `includes/` мигрирует в новые директории.
+2. **Makefile обновлён синхронно с миграцией** ✅ — `LB_DIRS` включает все новые директории. При добавлении новых root-директорий — обновлять `LB_DIRS`.
 
 3. **Тестирование LB-сборки** — после каждой фазы миграции нужно проверять:
    ```bash
@@ -1303,27 +1293,14 @@ crons/*.php (на LB) ──→ bootstrap.php (CONTEXT_CLI)
 
 5. **modules/ полностью исключается из LB** — все текущие модули (ministra, plex, tmdb, watch, fingerprint, theft-detection, magscan) — это admin-функциональность. В будущем, если появится LB-specific модуль, его нужно будет явно добавить.
 
-### 8.6. Переходный период (сейчас)
+### 8.6. Makefile обновлён ✅ (Phase 9.1)
 
-Пока миграция идёт итеративно (фазы 1-3 в процессе), Makefile нужно обновить **немедленно**:
-
-**Минимально необходимое изменение (`LB_FILES`):**
-```makefile
-LB_FILES := bin config content core crons domain includes \
-    infrastructure resources signals streaming tmp www status update service
-```
-
-**Плюс два root-файла** — `autoload.php` и `bootstrap.php` — нужно копировать отдельно, т.к. `LB_FILES` работает только с директориями:
-```makefile
-lb_copy_files:
-    # ... существующий код ...
-    @echo "==> [LB] Copying root files"
-    @for root_file in autoload.php bootstrap.php; do \
-        if [ -f "$(MAIN_DIR)/$$root_file" ]; then \
-            cp "$(MAIN_DIR)/$$root_file" "$(TEMP_DIR)/$$root_file"; \
-        fi; \
-    done
-```
+Все 5 изменений применены:
+1. `LB_FILES` → `LB_DIRS` (14 директорий) + `LB_ROOT_FILES` (5 файлов)
+2. `lb_copy_files` — добавлен второй цикл для root-файлов
+3. `lb_update_copy_files` — каскадная проверка (dirs → root files)
+4. `LB_DIRS_TO_REMOVE` — 6 новых admin-only исключений
+5. `set_permissions` — корректные права на `core/`, `domain/`, `streaming/`, `infrastructure/`, `resources/`, `autoload.php`, `bootstrap.php`
 
 ---
 
@@ -1489,6 +1466,154 @@ Source-level: `getPermissions()` → `[]` fallback, defensive defaults в `funct
 | **8.11 — УДАЛЁН** | **0** | **0** | **0** |
 
 **Новые singleton/service классы (Phase 8):** `SettingsManager`, `RequestManager`, `ConfigReader`, `DatabaseFactory` (singleton), `RedisManager` (singleton), `FfmpegPaths`, `FileCache`, `DataEncryptor`, `InputSanitizer`, `IpUtils`, `UrlBuilder`, `ImageUtils`, `Helpers`, `ProcessManager`, `ConnectionManager`, `BackupService`, `ProviderService`, `ProfileService`, `RadioService`, `SystemCheck`, `InputValidator`.
+
+---
+
+### Фаза 9: Стабилизация сборки
+
+> **Цель фазы:** после массовых рефакторингов (Phases 7–8) довести проект до состояния «зелёной» сборки: корректный Makefile, стандартизированные PHP-заголовки, унифицированный layout, экспорт глобалов.
+
+#### Шаг 9.1 — Makefile: LB-сборка для новой архитектуры ✅
+
+**Проблема:** `LB_FILES` не включал `core/`, `domain/`, `streaming/`, `infrastructure/`, `resources/`, `autoload.php`, `bootstrap.php` — LB-сборка не могла работать с мигрированным кодом.
+
+**Решение (5 правок в Makefile):**
+1. `LB_FILES` → `LB_DIRS` (14 dirs) + `LB_ROOT_FILES` (5 root files)
+2. `lb_copy_files`: второй цикл для root-файлов через `git ls-files --error-unmatch`
+3. `lb_update_copy_files`: каскадная проверка (dirs → root files) для delta-обновлений
+4. `LB_DIRS_TO_REMOVE`: +6 admin-only исключений (`includes/bootstrap`, `domain/User`, `domain/Device`, `domain/Auth`, `resources/langs`, `resources/libs`)
+5. `set_permissions`: `core/ domain/ streaming/ infrastructure/ resources/` → dirs:755, files:644; root PHP → 644
+
+**Найденный баг:** Старый `LB_FILES` включал файлы `status`, `update`, `service`, но grep `"^src/$item/"` с trailing `/` никогда не матчил их — они молча не копировались. Теперь исправлено отдельным циклом.
+
+#### Шаг 9.2 — Стандартизация PHP-заголовков (Clean Headers) ✅
+
+**Проблема:** Admin- и reseller-view-файлы начинались разнородно: `<?php`, `<?php\ninclude 'session.php';`, `<?php\nrequire ...` — невозможно безопасно включать их как view-фрагменты из единого layout-контроллера, потому что при `include` (без отдельного процесса) bootstrap-логика (session, functions, header) выполняется повторно.
+
+**Решение:** Автоматизированная расстановка guard-условия `$__viewMode` через скрипт `tools/clean_headers.py` (4 итерации: `.vscode/tasks.json` → «Clean PHP Headers 1–4»). Каждый view-файл оборачивается:
+
+```php
+<?php if (!isset($__viewMode)): ?>
+    <?php
+    include 'session.php';
+    include 'functions.php';
+    // ... legacy bootstrap ...
+    renderUnifiedLayoutHeader('admin');
+    ?>
+<?php endif; // !$__viewMode ?>
+```
+
+Когда файл исполняется напрямую (`php admin/dashboard.php`), guard проходит, и legacy bootstrap запускается как обычно. Когда файл подключается как view (`$__viewMode = true; include 'dashboard.php'`), блок пропускается — нет двойной инициализации.
+
+**Масштаб:** 112 admin-файлов + 22 reseller-файла — все начинаются с `<?php if (!isset($__viewMode)): ?>`.
+
+**Скрипт удалён после использования** (`tools/clean_headers.py` — одноразовый).
+
+#### Шаг 9.3 — Миграция view-layout: renderUnifiedLayoutHeader ✅
+
+**Проблема:** Каждый admin/reseller PHP-файл подключал `header.php` и `footer.php` вручную через `include`/`require` с разным синтаксисом:
+```php
+// Было — 5+ вариантов:
+include 'header.php';
+require 'header.php';
+include_once 'header.php';
+<?php include 'header.php'; ?>
+include(__DIR__ . '/header.php');
+```
+
+При переходе к layout-контроллерам это создаёт хаос: нет единой точки для подключения общих переменных, нет возможности подменить layout без правки 134 файлов.
+
+**Решение:** Автоматизация через скрипт `tools/migrate_views.py` (3 итерации: `.vscode/tasks.json` → «Run migrate_views 1–3»).
+
+**Новые файлы:**
+- `public/Views/layouts/admin.php` — `renderUnifiedLayoutHeader($scope, $vars)`: извлекает 16 глобалов из `$GLOBALS` (`rUserInfo`, `rSettings`, `rThemes`, `rMobile`, `rHues`, `db`, `language`, `allServersHealthy`, `rServerError`, `rServers`, `allServers`, `rUpdate`, `_TITLE`, `rModal`, `rProxyServers`, `rPermissions`), затем `require` legacy `admin/header.php` или `reseller/header.php` в зависимости от `$scope`
+- `public/Views/layouts/footer.php` — `renderUnifiedLayoutFooter($scope, $vars)`: аналогичная обёртка для `footer.php`
+
+**Паттерн замены:**
+```php
+// Было:
+include 'header.php';
+
+// Стало:
+renderUnifiedLayoutHeader('admin');
+```
+
+```php
+// Было:
+include 'footer.php';
+
+// Стало:
+renderUnifiedLayoutFooter('admin');
+```
+
+**Масштаб:** 112 admin-файлов + 22 reseller-файла — все переведены на `renderUnifiedLayoutHeader()`/`renderUnifiedLayoutFooter()`.
+
+**Зачем обёртка, а не прямой include?**
+1. Единая точка подключения глобалов — при рефакторинге header достаточно изменить один файл
+2. Scope-параметр (`'admin'` / `'reseller'`) определяет правильный header без `if/else` в каждом файле
+3. Позволяет в будущем заменить legacy header на Blade/Twig без правки 134 view-файлов
+4. `$vars` позволяет передавать page-specific данные (напр. `_TITLE`) в layout без `$GLOBALS`-загрязнения
+
+**Скрипт удалён после использования** (`tools/migrate_views.py` — одноразовый).
+
+#### Шаг 9.4 — Глобальные переменные: экспорт singleton-данных ✅
+
+**Проблема:** После удаления god-объектов (Phase 8) все данные доступны только через singleton-менеджеры (`SettingsManager::getAll()`, `FfmpegPaths::probe()`, `ServerRepository::getAll()` и т.д.). Каждая функция вынуждена вызывать геттер в начале:
+```php
+// Было — каждый метод повторяет вызовы:
+$rSettings = SettingsManager::getAll();  // 400+ call-sites
+$rFFPROBE = FfmpegPaths::probe();       // 18 call-sites
+$rServers = ServerRepository::getAll();  // 50+ call-sites
+```
+
+**Решение:** `LegacyInitializer::exportGlobals()` — вызывается один раз в конце `initCore()` и `initStreaming()`, экспортирует singleton-данные в `$GLOBALS`:
+
+| Глобальная переменная | Источник | Контекст |
+|---|---|---|
+| `$rSettings` | `SettingsManager::getAll()` | core + streaming |
+| `$rRequest` | `RequestManager::getAll()` | core + streaming |
+| `$rConfig` | `ConfigReader::getAll()` | core + streaming |
+| `$rServers` | `ServerRepository::getAll()` | core + streaming |
+| `$rFFPROBE` | `FfmpegPaths::probe()` | core + streaming |
+| `$rFFMPEG` | `FfmpegPaths::cpu()` | core + streaming |
+| `$rFFMPEG_GPU` | `FfmpegPaths::gpu()` | core + streaming |
+| `$db` | `DatabaseFactory` | уже глобальная |
+
+**Использование:**
+```php
+// Теперь — одна строка global:
+public static function probeStream($url) {
+    global $rSettings, $rFFPROBE;
+    // $rSettings и $rFFPROBE доступны сразу
+}
+```
+
+**Правила:**
+- Глобалы — **read-only snapshot**, устанавливаются при bootstrap
+- Для мутаций использовать Manager: `SettingsManager::update('key', 'val')`
+- Streaming-контекст дополнительно экспортирует: `$rCached`, `$rBlockedUA`, `$rBlockedISP`, `$rBlockedIPs`, `$rBlockedServers`, `$rAllowedIPs`, `$rProxies`, `$rBouquets`, `$rSegmentSettings`
+
+**Обновлённые файлы (54 замены в 20 файлах):**
+- `core/Init/LegacyInitializer.php` — добавлен `exportGlobals()`, вызов из `initCore()` + FFmpeg globals в `initStreaming()`
+- `streaming/Codec/FFprobeRunner.php` — `global $rSettings, $rFFPROBE`
+- `streaming/Codec/SubtitleExtractor.php` — `global $rSettings, $rFFMPEG`
+- `streaming/Health/ProcessChecker.php` — `global $rServers`
+- `domain/Stream/StreamProcess.php` — 4 метода: `global $db, $rSettings, $rServers, $rFFMPEG, $rFFMPEG_GPU`; переименование `$rFFMPEGCPU`→`$rFFMPEG`, `$rFFMPEGGPU`→`$rFFMPEG_GPU`
+- `domain/Stream/ConnectionTracker.php` — 5 методов: `global $rSettings, $rServers, $db`
+- `domain/Stream/PlaylistGenerator.php` — `global $db, $rSettings, $rServers`
+- `domain/Stream/StreamService.php` — `global $db, $rSettings`
+- `domain/Stream/ChannelService.php` — `global $db, $rSettings`
+- `domain/Stream/StreamRepository.php` — `global $db, $rSettings`
+- `domain/Server/ServerRepository.php` — 6 методов: `global $rSettings, $rServers, $db`
+- `domain/Auth/AuthService.php` — 2 метода: `global $db, $rSettings`
+- `domain/Vod/EpisodeService.php` — `global $db, $rSettings`
+- `domain/User/UserRepository.php` — 2 метода: `global $db, $rSettings`
+- `domain/Security/BlocklistService.php` — `global $rServers`
+- `core/Config/DomainResolver.php` — `global $rServers, $rSettings`
+- `core/Auth/Authenticator.php` — 2 метода: `global $db, $rSettings`
+- `core/Http/CurlClient.php` — 2 метода: `global $rServers`
+- `crons/users.php` — `global $rServers, $rSettings`
+- `includes/admin.php` — 4 функции: `global $rServers` (+ `$rSettings`)
 
 ---
 

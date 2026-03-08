@@ -2,8 +2,7 @@
 
 class FFprobeRunner {
 	public static function probeStream($rSourceURL, $rFetchArguments = array(), $rPrepend = '', $rParse = true) {
-		$rSettings = SettingsManager::getAll();
-		$rFFPROBE = FfmpegPaths::probe();
+		global $rSettings, $rFFPROBE;
 		$rAnalyseDuration = abs(intval($rSettings['stream_max_analyze']));
 		$rProbesize = abs(intval($rSettings['probesize']));
 		$rTimeout = intval($rAnalyseDuration / 1000000) + $rSettings['probe_extra_wait'];

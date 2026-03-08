@@ -635,7 +635,7 @@ function deleteProfile($rID) {
 
 function AsyncAPIRequest($rServerIDs, $rData) {
 	$rURLs = array();
-	$rServers = ServerRepository::getAll();
+	global $rServers;
 
 	foreach ($rServerIDs as $rServerID) {
 		if (!$rServers[$rServerID]['server_online']) {
@@ -718,13 +718,13 @@ function APIRequest($rData, $rTimeout = 5) {
 
 function systemapirequest($rServerID, $rData, $rTimeout = 5) {
 	ini_set('default_socket_timeout', $rTimeout);
-	$rServers = ServerRepository::getAll();
+	global $rServers, $rSettings;
 	if (!is_array($rServers) || !isset($rServers[$rServerID])) {
 		return null;
 	}
 	if ($rServers[$rServerID]['server_online']) {
 		$rAPI = 'http://' . $rServers[intval($rServerID)]['server_ip'] . ':' . $rServers[intval($rServerID)]['http_broadcast_port'] . '/api';
-		$rData['password'] = SettingsManager::getAll()['live_streaming_pass'];
+		$rData['password'] = $rSettings['live_streaming_pass'];
 		$rPost = http_build_query($rData);
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, $rAPI);
@@ -1403,9 +1403,7 @@ function uploadRemoteBackup($rPath, $rFilename, $rOverwrite = true) {
 
 function restoreImages() {
 	global $db;
-
-
-	$rServers = ServerRepository::getAll();
+	global $rServers;
 	foreach (array_keys($rServers) as $rServerID) {
 		if (!$rServers[$rServerID]['server_online']) {
 		} else {
@@ -1420,7 +1418,7 @@ function killPlexSync() {
 	global $db;
 	$db->query("SELECT DISTINCT(`server_id`) AS `server_id` FROM `watch_folders` WHERE `active` = 1 AND `type` = 'plex';");
 
-	$rServers = ServerRepository::getAll();
+	global $rServers;
 	foreach ($db->get_rows() as $rRow) {
 		if (!$rServers[$rRow['server_id']]['server_online']) {
 		} else {

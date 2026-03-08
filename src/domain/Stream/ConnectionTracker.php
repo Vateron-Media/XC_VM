@@ -2,10 +2,8 @@
 
 class ConnectionTracker {
 	public static function getCapacity($rProxy = false) {
-		$rSettings = SettingsManager::getAll();
-		$rServers = ServerRepository::getAll();
+		global $rSettings, $rServers, $db;
 		$rRedis = RedisManager::instance();
-		global $db;
 		$rFile = ($rProxy ? 'proxy_capacity' : 'servers_capacity');
 		if ($rSettings['redis_handler'] && $rProxy && $rSettings['split_by'] == 'maxclients') {
 			$rSettings['split_by'] == 'guar_band';
@@ -79,9 +77,8 @@ class ConnectionTracker {
 	}
 
 	public static function getConnections($rServerID = null, $rUserID = null, $rStreamID = null) {
-		$rSettings = SettingsManager::getAll();
+		global $rSettings, $db;
 		$rRedis = RedisManager::instance();
-		global $db;
 		if ($rSettings['redis_handler']) {
 			if ($rServerID) {
 				$rKeys = $rRedis->zRangeByScore('SERVER#' . $rServerID, '-inf', '+inf');
@@ -119,7 +116,7 @@ class ConnectionTracker {
 	}
 
 	public static function getMainID() {
-		$rServers = ServerRepository::getAll();
+		global $rServers;
 		foreach ($rServers as $rServerID => $rServer) {
 			if ($rServer['is_main']) {
 				return $rServerID;
@@ -417,7 +414,7 @@ class ConnectionTracker {
 	}
 
 	public static function getProxies($rServerID, $rOnline = true) {
-		$rServers = ServerRepository::getAll();
+		global $rServers;
 		$rReturn = array();
 		foreach ($rServers as $rProxyID => $rServerInfo) {
 			if ($rServerInfo['server_type'] == 1 && in_array($rServerID, $rServerInfo['parent_id']) && ($rServerInfo['server_online'] || !$rOnline)) {
@@ -429,9 +426,7 @@ class ConnectionTracker {
 
 	public static function closeConnection($rActivityInfo, $rRemove = true, $rEnd = true) {
 		if (!empty($rActivityInfo)) {
-			$rSettings = SettingsManager::getAll();
-			$rServers = ServerRepository::getAll();
-			$db = DatabaseFactory::get();
+			global $rSettings, $rServers, $db;
 			if (!$rSettings['redis_handler'] || is_object(RedisManager::instance())) {
 			} else {
 				RedisManager::ensureConnected();

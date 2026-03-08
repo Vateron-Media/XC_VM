@@ -189,6 +189,7 @@ class BlocklistService {
 	}
 
 	public static function getProxyIPs($rForce = false) {
+		global $rServers;
 		if (!$rForce) {
 			$rCache = FileCache::getCache('proxy_servers', 20);
 			if ($rCache !== false) {
@@ -196,7 +197,6 @@ class BlocklistService {
 			}
 		}
 
-		$rServers = ServerRepository::getAll();
 		$rOutput = array();
 		foreach ($rServers as $rServer) {
 			if ($rServer['server_type'] == 1) {

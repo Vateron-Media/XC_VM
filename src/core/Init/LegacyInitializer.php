@@ -43,6 +43,7 @@ class LegacyInitializer {
 			CronGenerator::generate();
 		}
 
+		self::exportGlobals();
 		self::syncCoreContainer();
 	}
 
@@ -101,7 +102,40 @@ class LegacyInitializer {
 		SettingsManager::set($GLOBALS['rSettings']);
 		RequestManager::set($GLOBALS['rRequest']);
 
+		// FFmpeg paths — export to globals (streaming context)
+		$GLOBALS['rFFPROBE']    = FfmpegPaths::probe();
+		$GLOBALS['rFFMPEG']     = FfmpegPaths::cpu();
+		$GLOBALS['rFFMPEG_GPU'] = FfmpegPaths::gpu();
+
 		self::syncStreamingContainer();
+	}
+
+	/**
+	 * Экспортирует данные singleton-менеджеров в глобальные переменные.
+	 *
+	 * Позволяет использовать `global $rSettings;` внутри функций
+	 * вместо повторного вызова SettingsManager::getAll().
+	 *
+	 * Вызывается один раз в конце initCore() / initStreaming().
+	 * Глобалы — read-only snapshot. Для мутаций использовать Manager.
+	 *
+	 * Экспортируемые переменные:
+	 *   $rSettings   — настройки панели (SettingsManager)
+	 *   $rRequest    — параметры HTTP-запроса (RequestManager)
+	 *   $rConfig     — config.ini данные (ConfigReader)
+	 *   $rServers    — все серверы (ServerRepository)
+	 *   $rFFPROBE    — путь к ffprobe (FfmpegPaths)
+	 *   $rFFMPEG     — путь к ffmpeg CPU (FfmpegPaths)
+	 *   $rFFMPEG_GPU — путь к ffmpeg GPU (FfmpegPaths)
+	 */
+	public static function exportGlobals(): void {
+		$GLOBALS['rSettings']   = SettingsManager::getAll();
+		$GLOBALS['rRequest']    = RequestManager::getAll();
+		$GLOBALS['rConfig']     = ConfigReader::getAll();
+		$GLOBALS['rServers']    = ServerRepository::getAll();
+		$GLOBALS['rFFPROBE']    = FfmpegPaths::probe();
+		$GLOBALS['rFFMPEG']     = FfmpegPaths::cpu();
+		$GLOBALS['rFFMPEG_GPU'] = FfmpegPaths::gpu();
 	}
 
 	private static function syncCoreContainer() {

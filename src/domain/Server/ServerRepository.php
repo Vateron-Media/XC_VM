@@ -2,8 +2,7 @@
 
 class ServerRepository {
 	public static function getAll($rForce = false) {
-		global $db;
-		$rSettings = SettingsManager::getAll();
+		global $db, $rSettings;
 		if (!$rForce) {
 			$rCache = FileCache::getCache('servers', 10);
 			if (!empty($rCache)) {
@@ -190,7 +189,7 @@ class ServerRepository {
 	}
 
 	public static function getSSLLog($rServerID) {
-		$rServers = ServerRepository::getAll();
+		global $rServers;
 		$rAPI = $rServers[intval($rServerID)]['api_url_ip'] . '&action=getFile&filename=' . urlencode(BIN_PATH . 'certbot/logs/xc_vm.log');
 		return json_decode(file_get_contents($rAPI), true);
 	}
@@ -208,8 +207,7 @@ class ServerRepository {
 	}
 
 	public static function deleteById($rID, $rReplaceWith = null) {
-		global $db;
-		$rSettings = SettingsManager::getAll();
+		global $db, $rSettings;
 		$rServer = getStreamingServersByID($rID);
 
 		if (!$rServer || $rServer['is_main']) {
@@ -274,8 +272,7 @@ class ServerRepository {
 	}
 
 	public static function getAllowedIPs($rForce = false) {
-		$rServers = ServerRepository::getAll();
-		$rSettings = SettingsManager::getAll();
+		global $rServers, $rSettings;
 		if ($rForce) {
 		} else {
 			$rCache = FileCache::getCache('allowed_ips', 60);
@@ -316,7 +313,7 @@ class ServerRepository {
 	}
 
 	public static function getLocalRTMPStats() {
-		$rServers = ServerRepository::getAll();
+		global $rServers;
 		$rURL = $rServers[SERVER_ID]['rtmp_mport_url'] . 'stat';
 		$rContext = stream_context_create(array('http' => array('timeout' => 1)));
 		$rXML = file_get_contents($rURL, false, $rContext);
@@ -324,8 +321,7 @@ class ServerRepository {
 	}
 
 	public static function getPublicURL($rServerID = null, $rForceProtocol = null) {
-		$rSettings = SettingsManager::getAll();
-		$rServers = ServerRepository::getAll();
+		global $rSettings, $rServers;
 		$rOriginatorID = null;
 		if (isset($rServerID)) {
 		} else {

@@ -2,8 +2,7 @@
 
 class StreamService {
 	public static function process($rData) {
-		global $db;
-		$rSettings = SettingsManager::getAll();
+		global $db, $rSettings;
 		set_time_limit(0);
 		ini_set('mysql.connect_timeout', 0);
 		ini_set('max_execution_time', 0);

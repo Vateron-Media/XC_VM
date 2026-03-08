@@ -82,8 +82,7 @@ class AuthService {
 	// ──────────────────────────────────────────────
 
 	public static function processHMAC($rData) {
-		global $db;
-		$rSettings = SettingsManager::getAll();
+		global $db, $rSettings;
 		if (isset($rData['edit'])) {
 			$rArray = overwriteData(AuthRepository::getHMACById($rData['edit']), $rData);
 		} else {
@@ -139,9 +138,8 @@ class AuthService {
 	// ──────────────────────────────────────────────
 
 	public static function validateHMAC($rHMAC, $rExpiry, $rStreamID, $rExtension, $rIP = '', $rMACIP = '', $rIdentifier = '', $rMaxConnections = 0) {
-		global $db;
-		$rSettings = SettingsManager::getAll();
-		$rCached = SettingsManager::getAll()['enable_cache'];
+		global $db, $rSettings;
+		$rCached = $rSettings['enable_cache'];
 		if (0 < strlen($rIP) && 0 < strlen($rMACIP) && $rIP != $rMACIP) {
 			return null;
 		}

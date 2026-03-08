@@ -179,7 +179,7 @@ function processDeletions($rDelete, $rDelStream = array()) {
 function loadCron() {
     global $db;
     global $rPHPPIDs;
-    $rServers = ServerRepository::getAll();
+    global $rServers;
 
     if (SettingsManager::getAll()['redis_handler']) {
         RedisManager::ensureConnected();
