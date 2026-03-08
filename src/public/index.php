@@ -219,20 +219,48 @@ $cwdTarget   = is_dir($adminDir) ? $adminDir : MAIN_HOME;
 // Поддерживаем legacy относительные include внутри admin/reseller файлов
 // (некоторые страницы всё ещё используют include 'header.php' и т.п.).
 @chdir($cwdTarget);
-$sessionFile = $adminDir . 'session.php';
+
+// Для reseller scope: bootstrap из infrastructure/bootstrap/
+if ($scope === 'reseller') {
+    $sessionFile    = MAIN_HOME . 'infrastructure/bootstrap/reseller_session.php';
+    $functionsFile  = MAIN_HOME . 'infrastructure/bootstrap/reseller_functions.php';
+} else {
+    $sessionFile    = $adminDir . 'session.php';
+    $functionsFile  = $adminDir . 'functions.php';
+}
 
 // Некоторые страницы пропускают bootstrap (login, setup, database)
 $noBootstrapPages = ['login', 'setup', 'database', 'index'];
 
 // ─────────────────────────────────────────────────────────────────
-//  4a. Страницы без bootstrap → сразу legacy fallback
+//  4a. Страницы без bootstrap
 // ─────────────────────────────────────────────────────────────────
 //
 //  login, setup, database, index — имеют свой собственный bootstrap.
-//  Автозагрузчик и Router ещё не доступны → идём напрямую в legacy файл.
+//
+//  Admin: legacy fallback — загружает файл напрямую.
+//  Reseller: маршрутизация через Router (контроллеры обрабатывают сами).
 // ─────────────────────────────────────────────────────────────────
 
 if (in_array($pageName, $noBootstrapPages, true)) {
+    if ($scope === 'reseller') {
+        // Reseller login/index: загружаем autoloader для Router, без session bootstrap
+        require_once MAIN_HOME . 'includes/admin.php';
+        if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
+            session_start();
+        }
+        $router = Router::getInstance();
+        require_once __DIR__ . '/routes/reseller.php';
+        $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+        if ($router->dispatch($pageName, $method)) {
+            exit;
+        }
+        http_response_code(404);
+        echo '404 Not Found';
+        exit;
+    }
+
+    // Admin: legacy fallback
     $legacyFile = $adminDir . $pageName . '.php';
     if (file_exists($legacyFile)) {
         require $legacyFile;
@@ -256,7 +284,6 @@ if (file_exists($sessionFile)) {
     require $sessionFile;
 }
 
-$functionsFile = $adminDir . 'functions.php';
 if (file_exists($functionsFile)) {
     require $functionsFile;
 }
@@ -266,7 +293,7 @@ if (file_exists($functionsFile)) {
 // ─────────────────────────────────────────────────────────────────
 
 $router = Router::getInstance();
-$routesDir = dirname(__DIR__) . '/routes/';
+$routesDir = __DIR__ . '/routes/';
 
 // Загружаем маршруты для текущего scope
 $routeFile = $routesDir . $scope . '.php';
@@ -286,7 +313,12 @@ if (file_exists($apiRouteFile)) {
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
-// API-запросы: /admin/api?action=... обрабатываются отдельно
+// Страничные маршруты (reseller: api/table/post и прочие идут сюда)
+if ($router->dispatch($pageName, $method)) {
+    exit; // Router обработал запрос
+}
+
+// API-запросы: /admin/api?action=... обрабатываются отдельно (admin legacy)
 if ($pageName === 'api' && !empty($_REQUEST['action'])) {
     $action = $_REQUEST['action'];
 
@@ -302,11 +334,6 @@ if ($pageName === 'api' && !empty($_REQUEST['action'])) {
     }
 
     Response::jsonError('Unknown action: ' . $action, 404);
-}
-
-// Страничные маршруты: /admin/dashboard, /admin/streams и т.д.
-if ($router->dispatch($pageName, $method)) {
-    exit; // Router обработал запрос
 }
 
 // ─────────────────────────────────────────────────────────────────

@@ -40,7 +40,7 @@ if (!function_exists('renderUnifiedLayoutHeader')) {
         $rootPath = dirname(__DIR__, 3);
 
         if ($scope === 'reseller') {
-            require $rootPath . '/reseller/header.php';
+            require __DIR__ . '/reseller/header.php';
             return;
         }
 

@@ -84,7 +84,7 @@ class BaseAdminController
         $viewGlobals = [
             // Core rendering
             'language', 'db', 'rSettings', 'rMobile', 'rUserInfo',
-            'rPermissions', '_TITLE', '_STATUS', '_PAGE',
+            'rPermissions', '_TITLE', '_STATUS', '_PAGE', 'rRequest',
             // Theme/UI
             'rThemes', 'rHues',
             // Servers
@@ -103,6 +103,8 @@ class BaseAdminController
             'rPermissionKeys', 'rAdvPermissions',
             // Misc from bootstrap
             'rDetect', 'rTimeout', 'rProtocol',
+            // Reseller-specific
+            'rGenTrials',
         ];
         foreach ($viewGlobals as $_g) {
             if (array_key_exists($_g, $GLOBALS) && !array_key_exists($_g, $data)) {
@@ -118,6 +120,14 @@ class BaseAdminController
         // 1. Header
         renderUnifiedLayoutHeader($this->scope);
 
+        // Header may define new globals (e.g. reseller header sets rGenTrials)
+        foreach ($viewGlobals as $_g) {
+            if (!isset($$_g) && array_key_exists($_g, $GLOBALS)) {
+                $$_g = $GLOBALS[$_g];
+            }
+        }
+        unset($_g);
+
         // 2. View content
         $__viewFile = $__viewsDir . $view . '.php';
         $__scriptsFile = $__viewsDir . $view . '.scripts.php';
@@ -128,10 +138,13 @@ class BaseAdminController
         }
 
         // Split mode: separate .scripts.php exists → footer + scripts handled here.
-        // Unified mode: no .scripts.php → view includes footer + scripts itself.
+        // Clean mode: no .scripts.php + no $__viewMode → controller renders footer.
+        // Unified (proxy) mode: no .scripts.php + $__viewMode set → proxy view handles footer itself.
         if ($__hasScriptsFile) {
             renderUnifiedLayoutFooter($this->scope);
             require $__scriptsFile;
+        } elseif (!isset($__viewMode)) {
+            renderUnifiedLayoutFooter($this->scope);
         }
     }
 

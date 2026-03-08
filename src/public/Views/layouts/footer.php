@@ -39,7 +39,7 @@ if (!function_exists('renderUnifiedLayoutFooter')) {
         $rootPath = dirname(__DIR__, 3);
 
         if ($scope === 'reseller') {
-            require $rootPath . '/reseller/footer.php';
+            require __DIR__ . '/reseller/footer.php';
             return;
         }
 

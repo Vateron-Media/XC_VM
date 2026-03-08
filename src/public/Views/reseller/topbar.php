@@ -118,7 +118,7 @@ if (count(get_included_files()) != 1) {
 		default:
 			echo '<div class="btn-group">';
 
-			if (!(!$rMobile && (!$rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][1] || Authorization::hasResellerPermissions($rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][1])) && 0 < strlen(array_keys($rDropdown[$rPage])[0]))) {
+			if (!isset($rDropdown[$rPage]) || !is_array($rDropdown[$rPage]) || !(!$rMobile && (!$rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][1] || Authorization::hasResellerPermissions($rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][1])) && 0 < strlen(array_keys($rDropdown[$rPage])[0]))) {
 			} else {
 				if ($rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][0]) {
 					echo "<button type=\"button\" onClick=\"navigate('" . $rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][0] . "');\" class=\"btn btn-sm btn-info waves-effect waves-light\">" . array_keys($rDropdown[$rPage])[0] . '</button>';

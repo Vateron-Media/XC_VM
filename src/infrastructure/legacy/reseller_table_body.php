@@ -1,53 +1,9 @@
 <?php
-session_start();
-session_write_close();
-if (file_exists('../www/init.php')) {
-    require_once '../www/init.php';
-} else {
-    require_once '../../../www/init.php';
-}
-if (!PHP_ERRORS) {
-    if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
-        exit();
-    }
-}
-$rReturn = array('draw' => intval(RequestManager::getAll()['draw']), 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => array());
-$rIsAPI = false;
-if (isset(RequestManager::getAll()['api_key'])) {
-    $rReturn = array('status' => 'STATUS_SUCCESS', 'data' => array());
-    $db->query('SELECT `id` FROM `users` LEFT JOIN `users_groups` ON `users_groups`.`group_id` = `users`.`member_group_id` WHERE `api_key` = ? AND LENGTH(`api_key`) > 0 AND `is_reseller` = 1 AND `status` = 1;', RequestManager::getAll()['api_key']);
-    if ($db->num_rows() != 0) {
-        $rUserID = $db->get_row()['id'];
-        $rIsAPI = true;
-        require_once MAIN_HOME . 'includes/admin.php';
-        $rUserInfo = UserRepository::getRegisteredUserById($rUserID);
-        $rPermissions = array_merge(getPermissions($rUserInfo['member_group_id']), getGroupPermissions($rUserInfo['id']));
-        $rPermissions['direct_reports'] = $rPermissions['direct_reports'] ?? [];
-        $rPermissions['all_reports'] = $rPermissions['all_reports'] ?? [];
-        $rPermissions['stream_ids'] = $rPermissions['stream_ids'] ?? [];
-        $rPermissions['category_ids'] = $rPermissions['category_ids'] ?? [];
-        $rPermissions['series_ids'] = $rPermissions['series_ids'] ?? [];
-        $rPermissions['subresellers'] = $rPermissions['subresellers'] ?? [];
-        if (0 >= strlen($rUserInfo['timezone'])) {
-        } else {
-            date_default_timezone_set($rUserInfo['timezone']);
-        }
-    } else {
-        echo json_encode(array('status' => 'STATUS_FAILURE', 'error' => 'Invalid API key.'));
-        exit();
-    }
-} else {
-    if (isset($_SESSION['reseller'])) {
-        include 'functions.php';
-    } else {
-        echo json_encode($rReturn);
-        exit();
-    }
-}
-if (!$rUserInfo['id']) {
-    echo json_encode($rReturn);
-    exit();
-}
+/**
+ * Legacy reseller table data handler.
+ * Extracted from reseller/table.php (lines 50+).
+ * Variables expected from caller: $rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rSettings, $db
+ */
 if (isset($rUserInfo['reports'])) {
     $rType = RequestManager::getAll()['id'];
     $rStart = intval(RequestManager::getAll()['start']);

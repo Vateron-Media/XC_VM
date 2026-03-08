@@ -18,7 +18,12 @@
 #   - Статика (.css, .js, изображения) отдаётся напрямую (try_files $uri)
 #   - Существующие .php файлы обрабатываются напрямую (location ~ \.php$)
 #   - Несуществующие URL → Front Controller → Router → legacy fallback
+#   - Assets: /#CODE#/assets/* → /home/xc_vm/public/assets/* (shared admin/reseller/player)
 # ──────────────────────────────────────────────────────────────────
+
+location ^~ /#CODE#/assets/ {
+    alias /home/xc_vm/public/assets/#TYPE#/;
+}
 
 location ^~ /#CODE# {
     alias /home/xc_vm/#TYPE#;
