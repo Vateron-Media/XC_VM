@@ -143,6 +143,12 @@ final class Logger {
             'env'     => php_sapi_name()          // SAPI name (cli, fpm-fcgi, etc.)
         ];
 
+        // Ensure log directory exists
+        $logDir = dirname(self::$logFile);
+        if (!is_dir($logDir)) {
+            @mkdir($logDir, 0775, true);
+        }
+
         // Write to file as base64-encoded JSON (easy to parse and prevents line corruption)
         file_put_contents(
             self::$logFile,

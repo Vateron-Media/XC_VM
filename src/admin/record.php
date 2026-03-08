@@ -8,7 +8,7 @@ if (!isset($__viewMode)):
         goHome();
     }
 
-    $rAvailableServers = $rServers = array();
+    $rAvailableServers = array();
     $rStream = $rProgramme = null;
 
     if (isset(RequestManager::getAll()['id'])) {

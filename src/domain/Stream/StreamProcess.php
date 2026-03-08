@@ -95,7 +95,7 @@ class StreamProcess {
 	}
 
 	public static function createChannelItem($rStreamID, $rSource) {
-		global $db, $rSettings, $rServers, $rFFMPEG, $rFFMPEG_GPU;
+		global $db, $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU;
 		$rStream = array();
 		$rLoopback = false;
 		$db->query('SELECT * FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.type_id = t1.type AND t1.type = 3 LEFT JOIN `profiles` t4 ON t1.transcode_profile_id = t4.profile_id WHERE t1.direct_source = 0 AND t1.id = ?', $rStreamID);
@@ -170,7 +170,7 @@ class StreamProcess {
 						}
 					}
 
-					$rCommand = ((isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rFFMPEG_GPU : $rFFMPEG)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err {GPU} -fflags +genpts -async 1 -i {STREAM_SOURCE} {LOGO} ';
+					$rCommand = ((isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rFFMPEG_GPU : $rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err {GPU} -fflags +genpts -async 1 -i {STREAM_SOURCE} {LOGO} ';
 
 					if (!array_key_exists('-acodec', $rStream['stream_info']['transcode_attributes'])) {
 						$rStream['stream_info']['transcode_attributes']['-acodec'] = 'copy';
@@ -300,7 +300,7 @@ class StreamProcess {
 	}
 
 	public static function startMovie($rStreamID) {
-		global $db, $rSettings, $rServers, $rFFMPEG, $rFFMPEG_GPU;
+		global $db, $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU;
 		$rStream = array();
 		$rLoopback = false;
 		$db->query('SELECT * FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.type_id = t1.type AND t2.live = 0 LEFT JOIN `profiles` t4 ON t1.transcode_profile_id = t4.profile_id WHERE t1.direct_source = 0 AND t1.id = ?', $rStreamID);
@@ -403,7 +403,7 @@ class StreamProcess {
 							$rInputCodec = '-c:v ' . $rFFProbeOutput['codecs']['video']['codec_name'] . '_cuvid';
 						}
 					}
-					$rFFMPEG = ((isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rFFMPEG_GPU : $rFFMPEG)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err {GPU} {FETCH_OPTIONS} -fflags +genpts -async 1 {READ_NATIVE} -i {STREAM_SOURCE} {LOGO} ' . $rSubtitlesImport;
+					$rFFMPEG = ((isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rFFMPEG_GPU : $rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err {GPU} {FETCH_OPTIONS} -fflags +genpts -async 1 {READ_NATIVE} -i {STREAM_SOURCE} {LOGO} ' . $rSubtitlesImport;
 					$rMap = '-map 0 -copy_unknown ';
 					if (!empty($rStream['stream_info']['custom_map'])) {
 						$rMap = escapeshellcmd($rStream['stream_info']['custom_map']) . ' -copy_unknown ';
@@ -506,7 +506,7 @@ class StreamProcess {
 	}
 
 	public static function startStream($rStreamID, $rFromCache = false, $rForceSource = null, $rLLOD = false, $rStartPos = 0) {
-		global $db, $rSettings, $rServers, $rFFMPEG, $rFFMPEG_GPU, $rFFPROBE;
+		global $db, $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU, $rFFPROBE;
 		$rSegmentSettings = array('seg_time' => intval($rSettings['seg_time']), 'seg_list_size' => intval($rSettings['seg_list_size']), 'seg_delete_threshold' => intval($rSettings['seg_delete_threshold']));
 		if (file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
 			unlink(STREAMS_PATH . $rStreamID . '_.pid');
@@ -534,7 +534,7 @@ class StreamProcess {
 
 				$rTimeout = intval($rAnalyseDuration / 1000000) + $rSettings['probe_extra_wait'];
 				$rFFProbee = 'timeout ' . $rTimeout . ' ' . $rFFPROBE . ' {FETCH_OPTIONS} -probesize ' . $rProbesize . ' -analyzeduration ' . $rAnalyseDuration . ' {CONCAT} -i {STREAM_SOURCE} -v quiet -print_format json -show_streams -show_format';
-				$rFetchOptions = array();
+				$rFetchOptions = '';
 				$rLoopback = false;
 				$rOffset = 0;
 
@@ -789,11 +789,11 @@ class StreamProcess {
 						$rGenPTS = '-fflags +genpts -async 1';
 					} else {
 						if (is_array($rFFProbeOutput) && isset($rFFProbeOutput['codecs']['audio']['codec_name']) && in_array($rFFProbeOutput['codecs']['audio']['codec_name'], array('ac3', 'eac3')) && $rSettings['dts_legacy_ffmpeg']) {
-							$rFFMPEG = FFMPEG_BIN_40;
+							$rFFMPEG_CPU = FFMPEG_BIN_40;
 							$rFFPROBE = FFPROBE_BIN_40;
 						}
 
-						$rNoFix = ($rFFMPEG == FFMPEG_BIN_40 ? '-nofix_dts' : '');
+						$rNoFix = ($rFFMPEG_CPU == FFMPEG_BIN_40 ? '-nofix_dts' : '');
 						$rGenPTS = $rNoFix . ' -start_at_zero -copyts -vsync 0 -correct_ts_overflow 0 -avoid_negative_ts disabled -max_interleave_delta 0';
 					}
 
@@ -814,7 +814,7 @@ class StreamProcess {
 						$rStream['stream_info']['transcode_attributes'] = array();
 					}
 
-					$rFFMPEG = ((isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rFFMPEG_GPU : $rFFMPEG)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err ' . $rOptions . ' {GEN_PTS} {READ_NATIVE} -probesize ' . $rProbesize . ' -analyzeduration ' . $rAnalyseDuration . ' -progress "' . $rProgressURL . '" {CONCAT} -i {STREAM_SOURCE} {LOGO} ';
+					$rFFMPEG = ((isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rFFMPEG_GPU : $rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err ' . $rOptions . ' {GEN_PTS} {READ_NATIVE} -probesize ' . $rProbesize . ' -analyzeduration ' . $rAnalyseDuration . ' -progress "' . $rProgressURL . '" {CONCAT} -i {STREAM_SOURCE} {LOGO} ';
 
 					if (!array_key_exists('-acodec', $rStream['stream_info']['transcode_attributes'])) {
 						$rStream['stream_info']['transcode_attributes']['-acodec'] = 'copy';
@@ -829,7 +829,7 @@ class StreamProcess {
 					}
 				} else {
 					$rStream['stream_info']['transcode_attributes'] = array();
-					$rFFMPEG = ((stripos($rStream['stream_info']['custom_ffmpeg'], 'nvenc') !== false ? $rFFMPEG_GPU : $rFFMPEG)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -progress "' . $rProgressURL . '" ' . $rStream['stream_info']['custom_ffmpeg'];
+					$rFFMPEG = ((stripos($rStream['stream_info']['custom_ffmpeg'], 'nvenc') !== false ? $rFFMPEG_GPU : $rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -progress "' . $rProgressURL . '" ' . $rStream['stream_info']['custom_ffmpeg'];
 				}
 
 				$rLLODOptions = ($rLLOD && !$rLoopback ? '-fflags nobuffer -flags low_delay -strict experimental' : '');

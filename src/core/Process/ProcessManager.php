@@ -282,6 +282,10 @@ class ProcessManager {
         }
 
         // Write our PID
+        $lockDir = dirname($lockFile);
+        if (!is_dir($lockDir)) {
+            @mkdir($lockDir, 0775, true);
+        }
         file_put_contents($lockFile, getmypid());
 
         return true;
