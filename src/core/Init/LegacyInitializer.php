@@ -104,7 +104,7 @@ class LegacyInitializer {
 
 		// FFmpeg paths — export to globals (streaming context)
 		$GLOBALS['rFFPROBE']    = FfmpegPaths::probe();
-		$GLOBALS['rFFMPEG']     = FfmpegPaths::cpu();
+		$GLOBALS['rFFMPEG_CPU']     = FfmpegPaths::cpu();
 		$GLOBALS['rFFMPEG_GPU'] = FfmpegPaths::gpu();
 
 		self::syncStreamingContainer();
@@ -125,7 +125,7 @@ class LegacyInitializer {
 	 *   $rConfig     — config.ini данные (ConfigReader)
 	 *   $rServers    — все серверы (ServerRepository)
 	 *   $rFFPROBE    — путь к ffprobe (FfmpegPaths)
-	 *   $rFFMPEG     — путь к ffmpeg CPU (FfmpegPaths)
+	 *   $rFFMPEG_CPU     — путь к ffmpeg CPU (FfmpegPaths)
 	 *   $rFFMPEG_GPU — путь к ffmpeg GPU (FfmpegPaths)
 	 */
 	public static function exportGlobals(): void {
@@ -134,7 +134,7 @@ class LegacyInitializer {
 		$GLOBALS['rConfig']     = ConfigReader::getAll();
 		$GLOBALS['rServers']    = ServerRepository::getAll();
 		$GLOBALS['rFFPROBE']    = FfmpegPaths::probe();
-		$GLOBALS['rFFMPEG']     = FfmpegPaths::cpu();
+		$GLOBALS['rFFMPEG_CPU']     = FfmpegPaths::cpu();
 		$GLOBALS['rFFMPEG_GPU'] = FfmpegPaths::gpu();
 	}
 

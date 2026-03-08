@@ -1575,7 +1575,7 @@ $rServers = ServerRepository::getAll();  // 50+ call-sites
 | `$rConfig` | `ConfigReader::getAll()` | core + streaming |
 | `$rServers` | `ServerRepository::getAll()` | core + streaming |
 | `$rFFPROBE` | `FfmpegPaths::probe()` | core + streaming |
-| `$rFFMPEG` | `FfmpegPaths::cpu()` | core + streaming |
+| `$rFFMPEG_CPU` | `FfmpegPaths::cpu()` | core + streaming |
 | `$rFFMPEG_GPU` | `FfmpegPaths::gpu()` | core + streaming |
 | `$db` | `DatabaseFactory` | уже глобальная |
 
@@ -1596,9 +1596,9 @@ public static function probeStream($url) {
 **Обновлённые файлы (54 замены в 20 файлах):**
 - `core/Init/LegacyInitializer.php` — добавлен `exportGlobals()`, вызов из `initCore()` + FFmpeg globals в `initStreaming()`
 - `streaming/Codec/FFprobeRunner.php` — `global $rSettings, $rFFPROBE`
-- `streaming/Codec/SubtitleExtractor.php` — `global $rSettings, $rFFMPEG`
+- `streaming/Codec/SubtitleExtractor.php` — `global $rSettings, $rFFMPEG_CPU`
 - `streaming/Health/ProcessChecker.php` — `global $rServers`
-- `domain/Stream/StreamProcess.php` — 4 метода: `global $db, $rSettings, $rServers, $rFFMPEG, $rFFMPEG_GPU`; переименование `$rFFMPEGCPU`→`$rFFMPEG`, `$rFFMPEGGPU`→`$rFFMPEG_GPU`
+- `domain/Stream/StreamProcess.php` — 4 метода: `global $db, $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU`; переименование `$rFFMPEGCPU`→`$rFFMPEG_CPU`, `$rFFMPEGGPU`→`$rFFMPEG_GPU`
 - `domain/Stream/ConnectionTracker.php` — 5 методов: `global $rSettings, $rServers, $db`
 - `domain/Stream/PlaylistGenerator.php` — `global $db, $rSettings, $rServers`
 - `domain/Stream/StreamService.php` — `global $db, $rSettings`

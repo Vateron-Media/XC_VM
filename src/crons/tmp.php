@@ -8,6 +8,10 @@ if (posix_getpwuid(posix_geteuid())['name'] == 'xc_vm') {
         $rIdentifier = CRONS_TMP_PATH . md5(Encryption::generateUniqueCode(SettingsManager::getAll()['live_streaming_pass']) . __FILE__);
         ProcessManager::acquireCronLock($rIdentifier);
         foreach (array(TMP_PATH, CRONS_TMP_PATH, DIVERGENCE_TMP_PATH, FLOOD_TMP_PATH, MINISTRA_TMP_PATH, SIGNALS_TMP_PATH, LOGS_TMP_PATH) as $rTmpPath) {
+            if (!is_dir($rTmpPath)) {
+                @mkdir($rTmpPath, 0775, true);
+                continue;
+            }
             foreach (scandir($rTmpPath) as $rFile) {
                 $fullPath = $rTmpPath . '/' . $rFile;
 
