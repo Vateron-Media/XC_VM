@@ -105,8 +105,8 @@ if (ProcessManager::isStreamRunning($rPID, $rStreamID)) {
 }
 
 if (SettingsManager::getAll()['kill_rogue_ffmpeg']) {
-    exec('ps aux | grep -v grep | grep \'/' . $rStreamID . '_.m3u8\' | awk \'{print $2}\'', $rFFMPEG);
-    foreach ($rFFMPEG as $rRoguePID) {
+    exec('ps aux | grep -v grep | grep \'/' . $rStreamID . '_.m3u8\' | awk \'{print $2}\'', $rRoguePIDs);
+    foreach ($rRoguePIDs as $rRoguePID) {
         if (is_numeric($rRoguePID) && intval($rRoguePID) > 0 && intval($rRoguePID) != intval($rPID)) {
             shell_exec('kill -9 ' . $rRoguePID . ';');
         }

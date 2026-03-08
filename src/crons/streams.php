@@ -209,8 +209,8 @@ function loadCron() {
     }
     if (!SettingsManager::getAll()['kill_rogue_ffmpeg']) {
     } else {
-        exec("ps aux | grep -v grep | grep '/*_.m3u8' | awk '{print \$2}'", $rFFMPEG);
-        foreach ($rFFMPEG as $rPID) {
+        exec("ps aux | grep -v grep | grep '/*_.m3u8' | awk '{print \$2}'", $rRoguePIDs);
+        foreach ($rRoguePIDs as $rPID) {
             if (!(is_numeric($rPID) && 0 < intval($rPID)) || in_array($rPID, $rActivePIDs)) {
             } else {
                 echo 'Kill Roque PID: ' . $rPID . "\n";

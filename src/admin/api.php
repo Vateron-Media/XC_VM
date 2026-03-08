@@ -4491,9 +4491,9 @@ if (isset($_SESSION['hash'])) {
 		}
 		if (RequestManager::getAll()['action'] != 'multi') {
 		}
-		$rType = RequestManager::getAll()['type'];
-		$rRequestIDs = json_decode(RequestManager::getAll()['ids'], true);
-		$rSub = RequestManager::getAll()['sub'];
+		$rType = RequestManager::getAll()['type'] ?? '';
+		$rRequestIDs = json_decode(RequestManager::getAll()['ids'] ?? '[]', true) ?: [];
+		$rSub = RequestManager::getAll()['sub'] ?? '';
 
 		if (count($rRequestIDs) != 0) {
 			switch ($rType) {

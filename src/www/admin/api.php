@@ -42,10 +42,10 @@ switch ($rAction) {
 			case 'start':
 				$rStreamIDs = array_map('intval', RequestManager::getAll()['stream_ids']);
 				$rForce = (RequestManager::getAll()['force'] ?: false);
-				$rServers = (empty(RequestManager::getAll()['servers']) ? array_keys($rAllServers) : array_map('intval', RequestManager::getAll()['servers']));
+				$rServerIDs = (empty(RequestManager::getAll()['servers']) ? array_keys($rAllServers) : array_map('intval', RequestManager::getAll()['servers']));
 				$rURLs = array();
 
-				foreach ($rServers as $rServerID) {
+				foreach ($rServerIDs as $rServerID) {
 					$rURLs[$rServerID] = array('url' => $rAllServers[$rServerID]['api_url_ip'] . '&action=vod', 'postdata' => array('function' => $rSubAction, 'stream_ids' => $rStreamIDs, 'force' => $rForce));
 				}
 				CurlClient::getMultiCURL($rURLs);
@@ -55,10 +55,10 @@ switch ($rAction) {
 
 			case 'stop':
 				$rStreamIDs = array_map('intval', RequestManager::getAll()['stream_ids']);
-				$rServers = (empty(RequestManager::getAll()['servers']) ? array_keys($rAllServers) : array_map('intval', RequestManager::getAll()['servers']));
+				$rServerIDs = (empty(RequestManager::getAll()['servers']) ? array_keys($rAllServers) : array_map('intval', RequestManager::getAll()['servers']));
 				$rURLs = array();
 
-				foreach ($rServers as $rServerID) {
+				foreach ($rServerIDs as $rServerID) {
 					$rURLs[$rServerID] = array('url' => $rAllServers[$rServerID]['api_url_ip'] . '&action=vod', 'postdata' => array('function' => $rSubAction, 'stream_ids' => $rStreamIDs));
 				}
 				CurlClient::getMultiCURL($rURLs);
@@ -73,10 +73,10 @@ switch ($rAction) {
 		switch ($rSubAction) {
 			case 'start':
 				$rStreamIDs = array_map('intval', RequestManager::getAll()['stream_ids']);
-				$rServers = (empty(RequestManager::getAll()['servers']) ? array_keys($rAllServers) : array_map('intval', RequestManager::getAll()['servers']));
+				$rServerIDs = (empty(RequestManager::getAll()['servers']) ? array_keys($rAllServers) : array_map('intval', RequestManager::getAll()['servers']));
 				$rURLs = array();
 
-				foreach ($rServers as $rServerID) {
+				foreach ($rServerIDs as $rServerID) {
 					$rURLs[$rServerID] = array('url' => $rAllServers[$rServerID]['api_url_ip'] . '&action=stream', 'postdata' => array('function' => $rSubAction, 'stream_ids' => $rStreamIDs));
 				}
 				CurlClient::getMultiCURL($rURLs);
@@ -86,10 +86,10 @@ switch ($rAction) {
 
 			case 'stop':
 				$rStreamIDs = array_map('intval', RequestManager::getAll()['stream_ids']);
-				$rServers = (empty(RequestManager::getAll()['servers']) ? array_keys($rAllServers) : array_map('intval', RequestManager::getAll()['servers']));
+				$rServerIDs = (empty(RequestManager::getAll()['servers']) ? array_keys($rAllServers) : array_map('intval', RequestManager::getAll()['servers']));
 				$rURLs = array();
 
-				foreach ($rServers as $rServerID) {
+				foreach ($rServerIDs as $rServerID) {
 					$rURLs[$rServerID] = array('url' => $rAllServers[$rServerID]['api_url_ip'] . '&action=stream', 'postdata' => array('function' => $rSubAction, 'stream_ids' => $rStreamIDs));
 				}
 				CurlClient::getMultiCURL($rURLs);
@@ -113,8 +113,8 @@ switch ($rAction) {
 				$rStreams = $db->get_rows(true, 'stream_id', false, 'server_id');
 				$rOutput = array();
 
-				foreach ($rStreams as $rStreamID => $rServers) {
-					$rOutput[$rStreamID] = array_keys($rServers);
+				foreach ($rStreams as $rStreamID => $rStreamServers) {
+					$rOutput[$rStreamID] = array_keys($rStreamServers);
 				}
 				echo json_encode($rOutput);
 
@@ -125,8 +125,8 @@ switch ($rAction) {
 				$rStreams = $db->get_rows(true, 'stream_id', false, 'server_id');
 				$rOutput = array();
 
-				foreach ($rStreams as $rStreamID => $rServers) {
-					$rOutput[$rStreamID] = array_keys($rServers);
+				foreach ($rStreams as $rStreamID => $rStreamServers) {
+					$rOutput[$rStreamID] = array_keys($rStreamServers);
 				}
 				echo json_encode($rOutput);
 

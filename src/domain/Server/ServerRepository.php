@@ -3,6 +3,9 @@
 class ServerRepository {
 	public static function getAll($rForce = false) {
 		global $db, $rSettings;
+		if (!$rSettings) {
+			$rSettings = SettingsManager::getAll();
+		}
 		if (!$rForce) {
 			$rCache = FileCache::getCache('servers', 10);
 			if (!empty($rCache)) {
