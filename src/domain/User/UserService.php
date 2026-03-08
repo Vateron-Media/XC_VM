@@ -117,7 +117,7 @@ class UserService {
 					$rArray['username'] = generateString(10);
 				}
 
-				if (!checkExists('users', 'username', $rArray['username'], 'id', $rData['edit'])) {
+				if (!checkExists('users', 'username', $rArray['username'], 'id', $rData['edit'] ?? null)) {
 					if (strlen($rData['password']) > 0) {
 						$rArray['password'] = cryptPassword($rData['password']);
 					}

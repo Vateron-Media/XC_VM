@@ -7,6 +7,9 @@ class ResellerMoviesController extends BaseResellerController
     public function index()
     {
         $this->requirePermission();
-        $this->render('movies');
+        $this->setTitle('Movies');
+        $this->render('movies', [
+            'categories' => CategoryService::getAllByType('movie'),
+        ]);
     }
 }

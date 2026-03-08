@@ -2,6 +2,7 @@
 
 if (count(get_included_files()) != 1) {
 	$rGenTrials = canGenerateTrials($rUserInfo['id']);
+	$GLOBALS['rGenTrials'] = $rGenTrials;
 	echo '<!DOCTYPE html>' . "\r\n" . '<html lang="en">' . "\r\n" . '    <head>' . "\r\n" . '        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">' . "\r\n" . '        <title>';
 	echo ($rSettings['server_name'] ?: 'XC_VM');
 	echo ' ';

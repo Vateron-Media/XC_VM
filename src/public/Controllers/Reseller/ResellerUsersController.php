@@ -7,6 +7,7 @@ class ResellerUsersController extends BaseResellerController
     public function index()
     {
         $this->requirePermission();
+        $this->setTitle('Users');
         $this->render('users');
     }
 }

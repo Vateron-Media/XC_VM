@@ -7,6 +7,9 @@ class ResellerRadiosController extends BaseResellerController
     public function index()
     {
         $this->requirePermission();
-        $this->render('radios');
+        $this->setTitle('Radio Stations');
+        $this->render('radios', [
+            'categories' => CategoryService::getAllByType('radio'),
+        ]);
     }
 }
