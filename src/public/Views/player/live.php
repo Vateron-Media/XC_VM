@@ -1,53 +1,117 @@
-<?php
-echo "\t" . '<section class="section section--first">' . "\n" . '        <div class="details__bg" data-bg="';
-echo $rCover;
-echo '"></div>' . "\n\t\t" . '<div class="container">' . "\n\t\t\t" . '<div class="row">' . "\n\t\t\t\t" . '<div class="col-12">' . "\n\t\t\t\t\t" . '<div class="section__wrap">' . "\n\t\t\t\t\t\t" . '<h2 class="section__title" id="now__playing__title">';
-echo (strtoupper(htmlspecialchars($rSearchBy)) ?: 'LIVE TV');
-echo '</h2>' . "\n" . '                        <button onClick="closeChannel();" class="close__btn" type="button" style="display: none;">CLOSE</button>' . "\n\t\t\t\t\t" . '</div>' . "\n" . '                    <span id="now__playing__box" style="display: none;">' . "\n" . '                        <h3 class="card__title" id="now__playing__epg"></h3>' . "\n" . '                        <span class="card__rate" id="now__playing__text"></span>' . "\n" . '                        <video id="now__playing__player" class="video-js vjs-fantasy" controls preload="auto"></video>' . "\n" . '                    </span>' . "\n\t\t\t\t" . '</div>' . "\n\t\t\t" . '</div>' . "\n\t\t" . '</div>' . "\n\t" . '</section>' . "\n" . '    ';
-
-if (!$rSearchBy) {
-	echo "\t" . '<div class="filter">' . "\n\t\t" . '<div class="container">' . "\n\t\t\t" . '<div class="row">' . "\n\t\t\t\t" . '<div class="col-12">' . "\n\t\t\t\t\t" . '<div class="filter__content">' . "\n\t\t\t\t\t\t" . '<div class="filter__items">' . "\n\t\t\t\t\t\t\t" . '<div class="filter__item" id="filter__genre">' . "\n\t\t\t\t\t\t\t\t" . '<span class="filter__item-label">CATEGORY:</span>' . "\n\t\t\t\t\t\t\t\t" . '<div class="filter__item-btn dropdown-toggle" role="navigation" id="filter-genre" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">' . "\n\t\t\t\t\t\t\t\t\t" . '<input type="button" value="';
-	echo (!empty($rCategoryID) ? CategoryService::getFromDatabase()[$rCategoryID]['category_name'] : $rCategories[0]['title']);
-	echo '">' . "\n\t\t\t\t\t\t\t\t\t" . '<span></span>' . "\n\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '<ul class="filter__item-menu dropdown-menu scrollbar-dropdown" aria-labelledby="filter-genre">' . "\n" . '                                    ';
-
-	foreach ($rCategories as $rCategory) {
-		echo "\t\t\t\t\t\t\t\t\t" . '<li>';
-		echo $rCategory['title'];
-		echo '</li>' . "\n" . '                                    ';
-	}
-	echo "\t\t\t\t\t\t\t\t" . '</ul>' . "\n\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t" . '<div class="filter__item" id="filter__filter">' . "\n\t\t\t\t\t\t\t\t" . '<span class="filter__item-label">FILTER:</span>' . "\n\t\t\t\t\t\t\t\t" . '<div class="filter__item-btn dropdown-toggle" role="navigation" id="filter-archive" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">' . "\n" . '                                    <input type="button" value="';
-	echo (isset($rFilterBy) ? $rFilterArray[$rFilterBy] : 'All Channels');
-	echo '">' . "\n\t\t\t\t\t\t\t\t\t" . '<span></span>' . "\n\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '<ul class="filter__item-menu dropdown-menu scrollbar-dropdown" aria-labelledby="filter-archive">' . "\n" . '                                    ';
-
-	foreach ($rFilterArray as $rKey => $rValue) {
-		echo "\t\t\t\t\t\t\t\t\t" . '<li>';
-		echo $rValue;
-		echo '</li>' . "\n" . '                                    ';
-	}
-	echo "\t\t\t\t\t\t\t\t" . '</ul>' . "\n\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t" . '<div class="filter__item" id="filter__sort">' . "\n\t\t\t\t\t\t\t\t" . '<span class="filter__item-label">SORT:</span>' . "\n\t\t\t\t\t\t\t\t" . '<div class="filter__item-btn dropdown-toggle" role="navigation" id="filter-quality" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">' . "\n" . '                                    <input type="button" value="';
-	echo (isset($rSortBy) ? $rSortArray[$rSortBy] : 'Date Added');
-	echo '">' . "\n\t\t\t\t\t\t\t\t\t" . '<span></span>' . "\n\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '<ul class="filter__item-menu dropdown-menu scrollbar-dropdown" aria-labelledby="filter-quality">' . "\n" . '                                    ';
-
-	foreach ($rSortArray as $rKey => $rValue) {
-		echo "\t\t\t\t\t\t\t\t\t" . '<li>';
-		echo $rValue;
-		echo '</li>' . "\n" . '                                    ';
-	}
-	echo "\t\t\t\t\t\t\t\t" . '</ul>' . "\n\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t" . '</div>' . "\n" . '                        <div>' . "\n" . '                            <button class="filter__btn" type="button">filter</button>' . "\n" . '                            <button class="clear__btn" type="button">X</button>' . "\n" . '                        </div>' . "\n\t\t\t\t\t" . '</div>' . "\n\t\t\t\t" . '</div>' . "\n\t\t\t" . '</div>' . "\n\t\t" . '</div>' . "\n\t" . '</div>' . "\n" . '    ';
-}
-
-echo "\t" . '<div class="catalog details';
-
-if ($rSearchBy) {
-	echo ' top-margin-med';
-}
-
-echo '">' . "\n\t\t" . '<div class="container">' . "\n\t\t\t" . '<div class="row">' . "\n" . '                <div class="col-12">' . "\n" . '                    ';
-
-if (0 < count($rStreamIDs)) {
-	echo '                    <div class="listings-grid-container">' . "\n" . '                        <a href="#" class="listings-direction-link left day-nav-arrow js-day-nav-arrow" data-direction="prev"><span class="isvg isvg-left-dir"></span></a>' . "\n" . '                        <a href="#" class="listings-direction-link right day-nav-arrow js-day-nav-arrow" data-direction="next"><span class="isvg isvg-right-dir"></span></a>' . "\n" . '                        <div class="listings-day-slider-wrapper">' . "\n" . '                            <div class="listings-day-slider js-listings-day-slider">' . "\n" . '                                <div class="js-listings-day-nav-inner"></div>' . "\n" . '                            </div>' . "\n" . '                        </div>' . "\n" . '                        <div class="js-billboard-fix-point"></div>' . "\n" . '                        <div class="listings-grid-inner">' . "\n" . '                            <div class="time-nav-bar cf js-time-nav-bar">' . "\n" . '                                <div class="listings-mobile-nav">' . "\n" . '                                    <a class="listings-now-btn js-now-btn" href="#">NOW</a>' . "\n" . '                                </div>' . "\n" . '                                <div class="listings-times-wrapper">' . "\n" . '                                    <a href="#" class="listings-direction-link left js-time-nav-arrow" data-direction="prev"><span class="isvg isvg-left-dir"></span></a>' . "\n" . '                                    <a href="#" class="listings-direction-link right js-time-nav-arrow" data-direction="next"><span class="isvg isvg-right-dir"></span></a>' . "\n" . '                                    <div class="times-slider js-times-slider"></div>' . "\n" . '                                </div>' . "\n" . '                                <div class="listings-loader js-listings-loader"><span class="isvg isvg-loader animate-spin"></span></div>' . "\n" . '                            </div>' . "\n" . '                            <div class="listings-wrapper cf js-listings-wrapper">' . "\n" . '                                <div class="listings-timeline js-listings-timeline"></div>' . "\n" . '                                <div class="js-listings-container"></div>' . "\n" . '                            </div>' . "\n" . '                        </div>' . "\n" . '                    </div>' . "\n" . '                    ';
-} else {
-	echo '                    <div class="results_form">' . "\n" . '                        <div class="row">' . "\n" . '                            <div class="col-12">' . "\n" . '                                <h4 class="results__error">No Live Channels or Programmes have been found matching your search terms.</h4>' . "\n" . '                            </div>' . "\n" . '                        </div>' . "\n" . '                    </div>' . "\n" . '                    ';
-}
-
-echo '                </div>' . "\n\t\t\t" . '</div>' . "\n\t\t" . '</div>' . "\n\t" . '</div>' . "\n";
+<section class="section section--first">
+	<div class="details__bg" data-bg="<?= $rCover ?>"></div>
+	<div class="container">
+		<div class="row">
+			<div class="col-12">
+				<div class="section__wrap">
+					<h2 class="section__title" id="now__playing__title"><?= strtoupper(htmlspecialchars($rSearchBy)) ?: 'LIVE TV' ?></h2>
+					<button onClick="closeChannel();" class="close__btn" type="button" style="display: none;">CLOSE</button>
+				</div>
+				<span id="now__playing__box" style="display: none;">
+					<h3 class="card__title" id="now__playing__epg"></h3>
+					<span class="card__rate" id="now__playing__text"></span>
+					<video id="now__playing__player" class="video-js vjs-fantasy" controls preload="auto"></video>
+				</span>
+			</div>
+		</div>
+	</div>
+</section>
+<?php if (!$rSearchBy): ?>
+<div class="filter">
+	<div class="container">
+		<div class="row">
+			<div class="col-12">
+				<div class="filter__content">
+					<div class="filter__items">
+						<div class="filter__item" id="filter__genre">
+							<span class="filter__item-label">CATEGORY:</span>
+							<div class="filter__item-btn dropdown-toggle" role="navigation" id="filter-genre" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+								<input type="button" value="<?= !empty($rCategoryID) ? CategoryService::getFromDatabase()[$rCategoryID]['category_name'] : $rCategories[0]['title'] ?>">
+								<span></span>
+							</div>
+							<ul class="filter__item-menu dropdown-menu scrollbar-dropdown" aria-labelledby="filter-genre">
+								<?php foreach ($rCategories as $rCategory): ?>
+								<li><?= $rCategory['title'] ?></li>
+								<?php endforeach; ?>
+							</ul>
+						</div>
+						<div class="filter__item" id="filter__filter">
+							<span class="filter__item-label">FILTER:</span>
+							<div class="filter__item-btn dropdown-toggle" role="navigation" id="filter-archive" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+								<input type="button" value="<?= isset($rFilterBy) ? $rFilterArray[$rFilterBy] : 'All Channels' ?>">
+								<span></span>
+							</div>
+							<ul class="filter__item-menu dropdown-menu scrollbar-dropdown" aria-labelledby="filter-archive">
+								<?php foreach ($rFilterArray as $rKey => $rValue): ?>
+								<li><?= $rValue ?></li>
+								<?php endforeach; ?>
+							</ul>
+						</div>
+						<div class="filter__item" id="filter__sort">
+							<span class="filter__item-label">SORT:</span>
+							<div class="filter__item-btn dropdown-toggle" role="navigation" id="filter-quality" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+								<input type="button" value="<?= isset($rSortBy) ? $rSortArray[$rSortBy] : 'Date Added' ?>">
+								<span></span>
+							</div>
+							<ul class="filter__item-menu dropdown-menu scrollbar-dropdown" aria-labelledby="filter-quality">
+								<?php foreach ($rSortArray as $rKey => $rValue): ?>
+								<li><?= $rValue ?></li>
+								<?php endforeach; ?>
+							</ul>
+						</div>
+					</div>
+					<div>
+						<button class="filter__btn" type="button">filter</button>
+						<button class="clear__btn" type="button">X</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<?php endif; ?>
+<div class="catalog details<?= $rSearchBy ? ' top-margin-med' : '' ?>">
+	<div class="container">
+		<div class="row">
+			<div class="col-12">
+				<?php if (count($rStreamIDs) > 0): ?>
+				<div class="listings-grid-container">
+					<a href="#" class="listings-direction-link left day-nav-arrow js-day-nav-arrow" data-direction="prev"><span class="isvg isvg-left-dir"></span></a>
+					<a href="#" class="listings-direction-link right day-nav-arrow js-day-nav-arrow" data-direction="next"><span class="isvg isvg-right-dir"></span></a>
+					<div class="listings-day-slider-wrapper">
+						<div class="listings-day-slider js-listings-day-slider">
+							<div class="js-listings-day-nav-inner"></div>
+						</div>
+					</div>
+					<div class="js-billboard-fix-point"></div>
+					<div class="listings-grid-inner">
+						<div class="time-nav-bar cf js-time-nav-bar">
+							<div class="listings-mobile-nav">
+								<a class="listings-now-btn js-now-btn" href="#">NOW</a>
+							</div>
+							<div class="listings-times-wrapper">
+								<a href="#" class="listings-direction-link left js-time-nav-arrow" data-direction="prev"><span class="isvg isvg-left-dir"></span></a>
+								<a href="#" class="listings-direction-link right js-time-nav-arrow" data-direction="next"><span class="isvg isvg-right-dir"></span></a>
+								<div class="times-slider js-times-slider"></div>
+							</div>
+							<div class="listings-loader js-listings-loader"><span class="isvg isvg-loader animate-spin"></span></div>
+						</div>
+						<div class="listings-wrapper cf js-listings-wrapper">
+							<div class="listings-timeline js-listings-timeline"></div>
+							<div class="js-listings-container"></div>
+						</div>
+					</div>
+				</div>
+				<?php else: ?>
+				<div class="results_form">
+					<div class="row">
+						<div class="col-12">
+							<h4 class="results__error">No Live Channels or Programmes have been found matching your search terms.</h4>
+						</div>
+					</div>
+				</div>
+				<?php endif; ?>
+			</div>
+		</div>
+	</div>
+</div>

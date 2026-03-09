@@ -11,7 +11,9 @@ class PlayerProfileController extends BasePlayerController
             $rBouquetNames = array();
 
             foreach (BouquetService::getAll() as $rBouquet) {
-                $rBouquetNames[$rBouquet['id']] = $rBouquet['bouquet_name'];
+                if (isset($rBouquet['id'], $rBouquet['bouquet_name'])) {
+                    $rBouquetNames[$rBouquet['id']] = $rBouquet['bouquet_name'];
+                }
             }
 
             if (!isset(RequestManager::getAll()['bouquet_order'])) {
