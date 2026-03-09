@@ -27,7 +27,7 @@
 	if ($rLegacy) {
 		echo '                        <div class="row top-margin-sml" id="player_row" style="display: none;">' . "\n" . '                            <div class="col-12">' . "\n" . '                                <video controls width="100%" preload="none" id="video__player">' . "\n" . '                                    <source src="" type="video/mp4" />' . "\n" . '                                </video>' . "\n" . '                            </div>' . "\n" . '                        </div>' . "\n" . '                        ';
 	} else {
-		echo '                        <div class="row top-margin-sml">' . "\n" . '                            <div class="col-12">' . "\n" . '                                <div id="player_row">' . "\n" . '                                    <div id="now__playing__player"></div>' . "\n" . '                                </div>' . "\n" . '                            </div>' . "\n" . '                        </div>' . "\n" . '                        ';
+		echo '                        <div class="row top-margin-sml">' . "\n" . '                            <div class="col-12">' . "\n" . '                                <div id="player_row">' . "\n" . '                                    <video id="now__playing__player" class="video-js vjs-fantasy" controls preload="auto"></video>' . "\n" . '                                </div>' . "\n" . '                            </div>' . "\n" . '                        </div>' . "\n" . '                        ';
 	}
 
 	echo "\t\t\t\t\t" . '</div>' . "\n\t\t\t\t" . '</div>' . "\n\t\t\t" . '</div>' . "\n\t\t" . '</div>' . "\n\t" . '</section>' . "\n" . '    <section class="seasons">' . "\n" . '        ';
