@@ -4710,7 +4710,7 @@ html:not([dir="rtl"]) .noUi-horizontal .noUi-handle {
 
 
 .header__wrap {
-  background-image: url(../img/pattern.png);
+  background-image: url(../images/pattern.png);
   background-size: cover;
   width: 100%;
   padding: 0 0 0 0;

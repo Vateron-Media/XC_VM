@@ -93,7 +93,7 @@ class TMDB {
 	 *  @param boolean $debug The flag for debug output
 	 */
 	public function __construct($apikey = null, $lang = null, $adult = null, $debug = null) {
-		require_once 'TMDb/config/config.php';
+		require_once __DIR__ . '/TMDb/config/config.php';
 		$this->setConfig($cnf);
 		$this->setApikey(isset($apikey) ? $apikey : $cnf['apikey']);
 		$this->setLang(isset($lang) ? $lang : $cnf['lang']);

@@ -1,40 +1,4 @@
 <?php
-
-include 'functions.php';
-
-if (!in_array(1, $rUserInfo['allowed_outputs']) || SettingsManager::getAll()['disable_hls']) {
-	header('Location: index.php');
-}
-
-$rCategories = getOrderedCategories($rUserInfo['category_ids'], 'live');
-$rFilterArray = array('all' => 'All Channels', 'timeshift' => 'Timeshift Only', 'epg' => 'Has EPG Only');
-$rFilterBy = (isset($rFilterArray[RequestManager::getAll()['filter']]) ? RequestManager::getAll()['filter'] : 'all');
-$rPicking = array('filter' => $rFilterBy);
-$rSortArray = array('number' => 'Default', 'name' => 'Name A-Z', 'added' => 'Date Added');
-$rSortBy = (isset($rSortArray[RequestManager::getAll()['sort']]) ? RequestManager::getAll()['sort'] : 'number');
-$rCategoryID = (intval(RequestManager::getAll()['category']) ?: $rCategories[0]['id']);
-$rSearchBy = (RequestManager::getAll()['search'] ?: null);
-$rStreamIDs = array();
-$rStreams = getUserStreams($rUserInfo, array('live', 'created_live'), $rCategoryID, null, $rSortBy, $rSearchBy, $rPicking, null, null, true);
-
-foreach ($rStreams as $rStream) {
-	$rStreamIDs[] = $rStream['id'];
-}
-
-$db->query('SELECT `movie_properties` FROM `streams` WHERE `movie_properties` IS NOT NULL AND `type` = 2 ORDER BY RAND() LIMIT 5;');
-$rCover = '';
-
-foreach ($db->get_rows() as $rStream) {
-	$rProperties = json_decode($rStream['movie_properties'], true);
-
-	if (!empty($rProperties['backdrop_path'][0])) {
-		$rCover = ImageUtils::validateURL($rProperties['backdrop_path'][0]);
-
-		break;
-	}
-}
-$_TITLE = 'Live TV';
-include 'header.php';
 echo "\t" . '<section class="section section--first">' . "\n" . '        <div class="details__bg" data-bg="';
 echo $rCover;
 echo '"></div>' . "\n\t\t" . '<div class="container">' . "\n\t\t\t" . '<div class="row">' . "\n\t\t\t\t" . '<div class="col-12">' . "\n\t\t\t\t\t" . '<div class="section__wrap">' . "\n\t\t\t\t\t\t" . '<h2 class="section__title" id="now__playing__title">';
@@ -87,4 +51,3 @@ if (0 < count($rStreamIDs)) {
 }
 
 echo '                </div>' . "\n\t\t\t" . '</div>' . "\n\t\t" . '</div>' . "\n\t" . '</div>' . "\n";
-include 'footer.php';

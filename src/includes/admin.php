@@ -2957,7 +2957,11 @@ function convertToCSV($rData) {
 }
 
 function getFooter() {
-	return "&copy; 2025 <img height='20px' style='padding-left: 10px; padding-right: 10px; margin-top: -2px;' src='./assets/images/logo-topbar.png' /> v" . XC_VM_VERSION;
+	$currentYear = date('Y');
+	$startYear = 2025;
+	$yearRange = ($startYear === (int)$currentYear) ? $startYear : "{$startYear}-{$currentYear}";
+	
+	return "&copy; {$yearRange} <img height='20px' style='padding-left: 10px; padding-right: 10px; margin-top: -2px;' src='./assets/images/logo-topbar.png' /> v" . XC_VM_VERSION;
 }
 
 /**
