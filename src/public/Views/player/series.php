@@ -1,149 +1,183 @@
+<section class="section section--first">
+	<div class="details__bg" data-bg="<?= $rCover ?>"></div>
+	<div class="container">
+		<div class="row">
+			<div class="col-12">
+				<div class="section__wrap">
+					<h2 class="section__title"><?= $rSearchBy ? strtoupper(htmlspecialchars($rSearchBy)) : ($rPopular ? 'POPULAR TV SERIES' : 'TV SERIES') ?></h2>
+					<?php if ($rSearchBy): ?>
+					<button class="clear__btn wide" type="button">CLEAR</button>
+					<?php endif; ?>
+				</div>
+			</div>
+		</div>
+	</div>
+</section>
+<?php if (!$rPopular && !$rSearchBy): ?>
+<div class="filter">
+	<div class="container">
+		<div class="row">
+			<div class="col-12">
+				<div class="filter__content">
+					<div class="filter__items">
+						<div class="filter__item" id="filter__genre">
+							<span class="filter__item-label">GENRE:</span>
+							<div class="filter__item-btn dropdown-toggle" role="navigation" id="filter-genre" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+								<input type="button" value="<?= isset($rCategoryID) ? CategoryService::getFromDatabase()[$rCategoryID]['category_name'] : 'All Genres' ?>">
+								<span></span>
+							</div>
+							<ul class="filter__item-menu dropdown-menu scrollbar-dropdown" aria-labelledby="filter-genre">
+								<?php foreach (getOrderedCategories($rUserInfo['category_ids'], 'series') as $rCategory): ?>
+								<li><?= $rCategory['title'] ?></li>
+								<?php endforeach; ?>
+							</ul>
+						</div>
+						<div class="filter__item" id="filter__rate">
+							<span class="filter__item-label">RATING:</span>
+							<div class="filter__item-btn dropdown-toggle" role="button" id="filter-rate" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+								<div class="filter__range">
+									<div id="filter__rating-start"></div>
+									<div id="filter__rating-end"></div>
+								</div>
+								<span></span>
+							</div>
+							<div class="filter__item-menu filter__item-menu--range dropdown-menu" aria-labelledby="filter-rate">
+								<div id="filter__rating"></div>
+							</div>
+						</div>
+						<div class="filter__item" id="filter__year">
+							<span class="filter__item-label">YEAR:</span>
+							<div class="filter__item-btn dropdown-toggle" role="button" id="filter-year" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+								<div class="filter__range">
+									<div id="filter__years-start"></div>
+									<div id="filter__years-end"></div>
+								</div>
+								<span></span>
+							</div>
+							<div class="filter__item-menu filter__item-menu--range dropdown-menu" aria-labelledby="filter-year">
+								<div id="filter__years"></div>
+							</div>
+						</div>
+						<div class="filter__item" id="filter__sort">
+							<span class="filter__item-label">SORT:</span>
+							<div class="filter__item-btn dropdown-toggle" role="navigation" id="filter-quality" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+								<input type="button" value="<?= isset($rSortBy) ? $rSortArray[$rSortBy] : 'Date Added' ?>">
+								<span></span>
+							</div>
+							<ul class="filter__item-menu dropdown-menu scrollbar-dropdown" aria-labelledby="filter-quality">
+								<?php foreach ($rSortArray as $rKey => $rValue): ?>
+								<li><?= $rValue ?></li>
+								<?php endforeach; ?>
+							</ul>
+						</div>
+					</div>
+					<div>
+						<button class="filter__btn" type="button">filter</button>
+						<button class="clear__btn" type="button">X</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<?php endif; ?>
+<div class="catalog details<?= ($rPopular || $rSearchBy) ? ' top-margin-med' : '' ?>">
+	<div class="container">
+		<div class="row">
+			<?php foreach ($rSeries['streams'] as $rStreamID => $rStream): ?>
+			<div class="col-6 col-sm-4 col-lg-3 col-xl-3">
+				<div class="card">
+					<div class="card__cover">
+						<img loading="lazy" src="resize.php?url=<?= urlencode(ImageUtils::validateURL($rStream['cover']) ?: '') ?>&w=267&h=400" alt="">
+						<a href="episodes.php?id=<?= $rStream['id'] ?>" class="card__play">
+							<i class="icon ion-ios-play"></i>
+						</a>
+					</div>
+					<div class="card__content">
+						<h3 class="card__title"><a href="episodes.php?id=<?= $rStream['id'] ?>"><?= htmlspecialchars($rStream['title']) ?></a></h3>
+						<span class="card__rate"><?= $rStream['year'] ? intval($rStream['year']) . ' &nbsp; ' : ($rStream['releaseDate'] ? intval(substr($rStream['releaseDate'], 0, 4)) . ' &nbsp; ' : '') ?><i class="icon ion-ios-star"></i><?= $rStream['rating'] ? number_format($rStream['rating'], 0) : 'N/A' ?></span>
+					</div>
+				</div>
+			</div>
+			<?php endforeach; ?>
+			<?php if (!$rPopular): ?>
+			<div class="col-12">
+				<ul class="paginator">
+					<?php if ($rPage > 1): ?>
+					<li class="paginator__item paginator__item--prev">
+						<a href="series.php?page=<?= $rPage - 1 ?>"><i class="icon ion-ios-arrow-back"></i></a>
+					</li>
+					<?php endif; ?>
+					<?php if ($rPagination[0] > 1): ?>
+					<li class="paginator__item<?= $rPage == 1 ? ' paginator__item--active' : '' ?>"><a href="series.php?page=1">1</a></li>
+					<?php if (count($rPagination) > 1): ?>
+					<li class="paginator__item"><a href="javascript: void(0);">...</a></li>
+					<?php endif; ?>
+					<?php endif; ?>
+					<?php foreach ($rPagination as $i): ?>
+					<li class="paginator__item<?= $rPage == $i ? ' paginator__item--active' : '' ?>"><a href="series.php?page=<?= $i ?>"><?= $i ?></a></li>
+					<?php endforeach; ?>
+					<?php if ($rPagination[count($rPagination) - 1] < $rPages): ?>
+					<?php if (count($rPagination) > 1): ?>
+					<li class="paginator__item"><a href="javascript: void(0);">...</a></li>
+					<?php endif; ?>
+					<li class="paginator__item<?= $rPage == $rPages ? ' paginator__item--active' : '' ?>"><a href="series.php?page=<?= $rPages ?>"><?= $rPages ?></a></li>
+					<?php endif; ?>
+					<?php if ($rPage < $rPages): ?>
+					<li class="paginator__item paginator__item--next">
+						<a href="series.php?page=<?= $rPage + 1 ?>"><i class="icon ion-ios-arrow-forward"></i></a>
+					</li>
+					<?php endif; ?>
+				</ul>
+			</div>
+			<?php endif; ?>
+		</div>
+	</div>
+</div>
 <?php
-echo "\t" . '<section class="section section--first">' . "\r\n" . '        <div class="details__bg" data-bg="';
-echo $rCover;
-echo '"></div>' . "\r\n\t\t" . '<div class="container">' . "\r\n\t\t\t" . '<div class="row">' . "\r\n\t\t\t\t" . '<div class="col-12">' . "\r\n\t\t\t\t\t" . '<div class="section__wrap">' . "\r\n\t\t\t\t\t\t" . '<h2 class="section__title">';
-echo ($rSearchBy ? strtoupper(htmlspecialchars($rSearchBy)) : ($rPopular ? 'POPULAR TV SERIES' : 'TV SERIES'));
-echo '</h2>' . "\r\n" . '                        ';
-
-if (!$rSearchBy) {
-} else {
-	echo '                        <button class="clear__btn wide" type="button">CLEAR</button>' . "\r\n" . '                        ';
-}
-
-echo "\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t" . '</div>' . "\r\n\t\t\t" . '</div>' . "\r\n\t\t" . '</div>' . "\r\n\t" . '</section>' . "\r\n" . '    ';
-
-if ($rPopular || $rSearchBy) {
-} else {
-	echo "\t" . '<div class="filter">' . "\r\n\t\t" . '<div class="container">' . "\r\n\t\t\t" . '<div class="row">' . "\r\n\t\t\t\t" . '<div class="col-12">' . "\r\n\t\t\t\t\t" . '<div class="filter__content">' . "\r\n\t\t\t\t\t\t" . '<div class="filter__items">' . "\r\n\t\t\t\t\t\t\t" . '<div class="filter__item" id="filter__genre">' . "\r\n\t\t\t\t\t\t\t\t" . '<span class="filter__item-label">GENRE:</span>' . "\r\n\t\t\t\t\t\t\t\t" . '<div class="filter__item-btn dropdown-toggle" role="navigation" id="filter-genre" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<input type="button" value="';
-	echo (isset($rCategoryID) ? CategoryService::getFromDatabase()[$rCategoryID]['category_name'] : 'All Genres');
-	echo '">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<span></span>' . "\r\n\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t" . '<ul class="filter__item-menu dropdown-menu scrollbar-dropdown" aria-labelledby="filter-genre">' . "\r\n" . '                                    ';
-
-	foreach (getOrderedCategories($rUserInfo['category_ids'], 'series') as $rCategory) {
-		echo "\t\t\t\t\t\t\t\t\t" . '<li>';
-		echo $rCategory['title'];
-		echo '</li>' . "\r\n" . '                                    ';
-	}
-	echo "\t\t\t\t\t\t\t\t" . '</ul>' . "\r\n\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t" . '<div class="filter__item" id="filter__rate">' . "\r\n\t\t\t\t\t\t\t\t" . '<span class="filter__item-label">RATING:</span>' . "\r\n\t\t\t\t\t\t\t\t" . '<div class="filter__item-btn dropdown-toggle" role="button" id="filter-rate" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<div class="filter__range">' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<div id="filter__rating-start"></div>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<div id="filter__rating-end"></div>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<span></span>' . "\r\n\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t" . '<div class="filter__item-menu filter__item-menu--range dropdown-menu" aria-labelledby="filter-rate">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<div id="filter__rating"></div>' . "\r\n\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t" . '<div class="filter__item" id="filter__year">' . "\r\n\t\t\t\t\t\t\t\t" . '<span class="filter__item-label">YEAR:</span>' . "\r\n\t\t\t\t\t\t\t\t" . '<div class="filter__item-btn dropdown-toggle" role="button" id="filter-year" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<div class="filter__range">' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<div id="filter__years-start"></div>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<div id="filter__years-end"></div>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<span></span>' . "\r\n\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t" . '<div class="filter__item-menu filter__item-menu--range dropdown-menu" aria-labelledby="filter-year">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<div id="filter__years"></div>' . "\r\n\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t" . '<div class="filter__item" id="filter__sort">' . "\r\n\t\t\t\t\t\t\t\t" . '<span class="filter__item-label">SORT:</span>' . "\r\n\t\t\t\t\t\t\t\t" . '<div class="filter__item-btn dropdown-toggle" role="navigation" id="filter-quality" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">' . "\r\n" . '                                    <input type="button" value="';
-	echo (isset($rSortBy) ? $rSortArray[$rSortBy] : 'Date Added');
-	echo '">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<span></span>' . "\r\n\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t" . '<ul class="filter__item-menu dropdown-menu scrollbar-dropdown" aria-labelledby="filter-quality">' . "\r\n" . '                                    ';
-
-	foreach ($rSortArray as $rKey => $rValue) {
-		echo "\t\t\t\t\t\t\t\t\t" . '<li>';
-		echo $rValue;
-		echo '</li>' . "\r\n" . '                                    ';
-	}
-	echo "\t\t\t\t\t\t\t\t" . '</ul>' . "\r\n\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t" . '</div>' . "\r\n" . '                        <div>' . "\r\n" . '                            <button class="filter__btn" type="button">filter</button>' . "\r\n" . '                            <button class="clear__btn" type="button">X</button>' . "\r\n" . '                        </div>' . "\r\n\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t" . '</div>' . "\r\n\t\t\t" . '</div>' . "\r\n\t\t" . '</div>' . "\r\n\t" . '</div>' . "\r\n" . '    ';
-}
-
-echo "\t" . '<div class="catalog details';
-
-if (!($rPopular || $rSearchBy)) {
-} else {
-	echo ' top-margin-med';
-}
-
-echo '">' . "\r\n\t\t" . '<div class="container">' . "\r\n\t\t\t" . '<div class="row">' . "\r\n" . '                ';
-
-foreach ($rSeries['streams'] as $rStreamID => $rStream) {
-	echo '                    <div class="col-6 col-sm-4 col-lg-3 col-xl-3">' . "\r\n" . '                        <div class="card">' . "\r\n" . '                            <div class="card__cover">' . "\r\n" . '                                <img loading="lazy" src="resize.php?url=';
-	echo urlencode((ImageUtils::validateURL($rStream['cover']) ?: ''));
-	echo '&w=267&h=400" alt="">' . "\r\n" . '                                <a href="episodes.php?id=';
-	echo $rStream['id'];
-	echo '" class="card__play">' . "\r\n" . '                                    <i class="icon ion-ios-play"></i>' . "\r\n" . '                                </a>' . "\r\n" . '                            </div>' . "\r\n" . '                            <div class="card__content">' . "\r\n" . '                                <h3 class="card__title"><a href="episodes.php?id=';
-	echo $rStream['id'];
-	echo '">';
-	echo htmlspecialchars($rStream['title']);
-	echo '</a></h3>' . "\r\n" . '                                <span class="card__rate">';
-	echo ($rStream['year'] ? intval($rStream['year']) . ' &nbsp; ' : ($rStream['releaseDate'] ? intval(substr($rStream['releaseDate'], 0, 4)) . ' &nbsp; ' : ''));
-	echo '<i class="icon ion-ios-star"></i>';
-	echo ($rStream['rating'] ? number_format($rStream['rating'], 0) : 'N/A');
-	echo '</span>' . "\r\n" . '                            </div>' . "\r\n" . '                        </div>' . "\r\n" . '                    </div>' . "\r\n" . '                ';
-}
-
-if ($rPopular) {
-} else {
-	echo "\t\t\t\t" . '<div class="col-12">' . "\r\n\t\t\t\t\t" . '<ul class="paginator">' . "\r\n" . '                        ';
-
-	if (1 >= $rPage) {
-	} else {
-		echo '<li class="paginator__item paginator__item--prev">' . "\r\n" . '                                <a href="series.php?page=' . ($rPage - 1) . '"><i class="icon ion-ios-arrow-back"></i></a>' . "\r\n" . '                            </li>';
-	}
-
-	if (1 >= $rPagination[0]) {
-	} else {
-		echo '<li class="paginator__item' . (($rPage == 1 ? ' paginator__item--active' : '')) . '"><a href="series.php?page=1">1</a></li>';
-
-		if (1 >= count($rPagination)) {
-		} else {
-			echo "<li class='paginator__item'><a href='javascript: void(0);'>...</a></li>";
-		}
-	}
-
-	foreach ($rPagination as $i) {
-		echo '<li class="paginator__item' . (($rPage == $i ? ' paginator__item--active' : '')) . '"><a href="series.php?page=' . $i . '">' . $i . '</a></li>';
-	}
-
-	if ($rPagination[count($rPagination) - 1] >= $rPages) {
-	} else {
-		if (1 >= count($rPagination)) {
-		} else {
-			echo "<li class='paginator__item'><a href='javascript: void(0);'>...</a></li>";
-		}
-
-		echo '<li class="paginator__item' . (($rPage == $rPages ? ' paginator__item--active' : '')) . '"><a href="series.php?page=' . $rPages . '">' . $rPages . '</a></li>';
-	}
-
-	if ($rPage >= $rPages) {
-	} else {
-		echo '<li class="paginator__item paginator__item--next">' . "\r\n" . '                                <a href="series.php?page=' . ($rPage + 1) . '"><i class="icon ion-ios-arrow-forward"></i></a>' . "\r\n" . '                            </li>';
-	}
-
-	echo "\t\t\t\t\t" . '</ul>' . "\r\n\t\t\t\t" . '</div>' . "\r\n" . '                ';
-}
-
-echo "\t\t\t" . '</div>' . "\r\n\t\t" . '</div>' . "\r\n\t" . '</div>' . "\r\n" . '    ';
-
-if ($rPopular) {
-} else {
+if (!$rPopular):
 	$rPopular = (igbinary_unserialize(file_get_contents(CONTENT_PATH . 'tmdb_popular'))['series'] ?: array());
-
-	if (!(0 < count($rPopular) && 0 < count($rUserInfo['series_ids']))) {
-	} else {
+	if (count($rPopular) > 0 && count($rUserInfo['series_ids']) > 0):
 		$db->query('SELECT `id`, `title`, `year`, `rating`, `cover`, `backdrop_path` FROM `streams_series` WHERE `id` IN (' . implode(',', $rPopular) . ') AND `id` IN (' . implode(',', $rUserInfo['series_ids']) . ') ORDER BY FIELD(id, ' . implode(',', $rPopular) . ') ASC LIMIT 6;');
-
 		$rStreams = $db->get_rows();
 		$rShuffle = $rStreams;
 		shuffle($rShuffle);
-
 		foreach ($rShuffle as $rStream) {
 			$rBackdrop = json_decode($rStream['backdrop_path'], true);
-
-			if (empty($rBackdrop[0])) {
-			} else {
+			if (!empty($rBackdrop[0])) {
 				$rCover = ImageUtils::validateURL($rBackdrop[0]);
-
 				break;
 			}
 		}
-		echo '            <section class="section">' . "\r\n" . '                <div class="details__bg" data-bg="';
-		echo $rCover;
-		echo '"></div>' . "\r\n" . '                <div class="container">' . "\r\n" . '                    <div class="row">' . "\r\n" . '                        <div class="col-12">' . "\r\n" . '                            <h1 class="home__title bottom-margin-sml">POPULAR <b>THIS WEEK</b></h1>' . "\r\n" . '                        </div>' . "\r\n" . '                        ';
-
-		foreach ($rStreams as $rStream) {
-			echo '                            <div class="col-6 col-sm-4 col-lg-3 col-xl-2">' . "\r\n" . '                                <div class="card__cover">' . "\r\n" . '                                    <img loading="lazy" src="resize.php?url=';
-			echo urlencode((ImageUtils::validateURL($rStream['cover']) ?: ''));
-			echo '&w=267&h=400" alt="">' . "\r\n" . '                                    <a href="episodes.php?id=';
-			echo $rStream['id'];
-			echo '" class="card__play">' . "\r\n" . '                                        <i class="icon ion-ios-play"></i>' . "\r\n" . '                                    </a>' . "\r\n" . '                                </div>' . "\r\n" . '                                <div class="card__content">' . "\r\n" . '                                    <h3 class="card__title"><a href="episodes.php?id=';
-			echo $rStream['id'];
-			echo '">';
-			echo htmlspecialchars($rStream['title']);
-			echo '</a></h3>' . "\r\n" . '                                    <span class="card__rate">';
-			echo ($rStream['year'] ? intval($rStream['year']) . ' &nbsp; ' : ($rStream['releaseDate'] ? intval(substr($rStream['releaseDate'], 0, 4)) . ' &nbsp; ' : ''));
-			echo '<i class="icon ion-ios-star"></i>';
-			echo ($rStream['rating'] ? number_format($rStream['rating'], 0) : 'N/A');
-			echo '</span>' . "\r\n" . '                                </div>' . "\r\n" . '                            </div>' . "\r\n" . '                        ';
-		}
-		echo '                        <div class="col-12">' . "\r\n" . '                            <a href="series.php?sort=popular" class="section__btn">Show more</a>' . "\r\n" . '                        </div>' . "\r\n" . '                    </div>' . "\r\n" . '                </div>' . "\r\n" . '            </section>' . "\r\n" . '        ';
-	}
-}
+?>
+<section class="section">
+	<div class="details__bg" data-bg="<?= $rCover ?>"></div>
+	<div class="container">
+		<div class="row">
+			<div class="col-12">
+				<h1 class="home__title bottom-margin-sml">POPULAR <b>THIS WEEK</b></h1>
+			</div>
+			<?php foreach ($rStreams as $rStream): ?>
+			<div class="col-6 col-sm-4 col-lg-3 col-xl-2">
+				<div class="card__cover">
+					<img loading="lazy" src="resize.php?url=<?= urlencode(ImageUtils::validateURL($rStream['cover']) ?: '') ?>&w=267&h=400" alt="">
+					<a href="episodes.php?id=<?= $rStream['id'] ?>" class="card__play">
+						<i class="icon ion-ios-play"></i>
+					</a>
+				</div>
+				<div class="card__content">
+					<h3 class="card__title"><a href="episodes.php?id=<?= $rStream['id'] ?>"><?= htmlspecialchars($rStream['title']) ?></a></h3>
+					<span class="card__rate"><?= $rStream['year'] ? intval($rStream['year']) . ' &nbsp; ' : ($rStream['releaseDate'] ? intval(substr($rStream['releaseDate'], 0, 4)) . ' &nbsp; ' : '') ?><i class="icon ion-ios-star"></i><?= $rStream['rating'] ? number_format($rStream['rating'], 0) : 'N/A' ?></span>
+				</div>
+			</div>
+			<?php endforeach; ?>
+			<div class="col-12">
+				<a href="series.php?sort=popular" class="section__btn">Show more</a>
+			</div>
+		</div>
+	</div>
+</section>
+<?php
+	endif;
+endif;
+?>
