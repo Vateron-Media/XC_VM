@@ -40,7 +40,7 @@ if ($rLegacy) {
 	}
 	echo '                                    </video>' . "\n" . '                                    ';
 } else {
-	echo '                                    <div id="now__playing__player"></div>' . "\n" . '                                    ';
+	echo '                                    <video id="now__playing__player" class="video-js vjs-fantasy" controls preload="auto"></video>' . "\n" . '                                    ';
 }
 
 echo '                                </div>' . "\n" . '                            </div>' . "\n" . '                        </div>' . "\n\t\t\t\t\t" . '</div>' . "\n\t\t\t\t" . '</div>' . "\n\t\t\t" . '</div>' . "\n\t\t" . '</div>' . "\n\t" . '</section>' . "\n" . '    ';
