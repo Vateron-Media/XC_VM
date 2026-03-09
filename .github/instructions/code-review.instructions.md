@@ -1,6 +1,56 @@
-# Code Review — Extensions and Templates
+---
+description: "Use when performing structured multi-agent code review, security audit, performance analysis, or quality review of PHP code. Covers finding templates, severity matrix, deduplication rules."
+---
+# XC_VM Structured Code Review (Pragmatic Mode)
 
-This companion document provides concrete templates and rules to extend the base `.github/instructions/code-review.md` process.
+This repository uses a structured multi-agent review process.
+
+Execution order is mandatory:
+
+1. Architect
+2. Security Auditor
+3. Performance Analyst
+4. Code Reviewer
+5. Final Verdict
+
+The system must:
+- Assume untrusted input.
+- Assume internet exposure.
+- Assume production deployment.
+- Avoid unrealistic theoretical attacks.
+- Focus on practical, real-world risk.
+
+Agents must:
+- Avoid repeating findings.
+- Clearly label severity: Low / Medium / High.
+- Provide realistic mitigation steps.
+- Avoid exaggerated conclusions.
+- Avoid generic praise.
+
+Output format is mandatory:
+
+---
+
+## 1. Architectural Analysis
+...
+
+## 2. Security Analysis
+...
+
+## 3. Performance Analysis
+...
+
+## 4. Code Quality Review
+...
+
+## 5. Final Verdict
+- Overall Risk Level:
+- Production Ready:
+- Refactor Priority:
+- Blocking Issues:
+```
+
+---
 
 ## Example finding template (required)
 - **Title:** Short descriptive title
@@ -38,7 +88,7 @@ When assigning severity, include brief justification mapping to the matrix.
 
 Recommended format: include the above as a JSON code block at the end of each finding to aid automation. Example:
 
-```
+```json
 {
   "title": "SQL injection in getUser()",
   "file": "src/auth/User.php#L210",
@@ -55,7 +105,3 @@ Recommended format: include the above as a JSON code block at the end of each fi
 
 ## Examples and expectations
 - Include one worked example (one High severity finding) in reviews produced by the system during onboarding runs to demonstrate the required level of detail and patch quality.
-
----
-
-If you prefer, I can re-run and attempt to patch the original `code-review.md` to integrate these extensions in-place; currently I created this companion file to avoid modifying the original file directly.
