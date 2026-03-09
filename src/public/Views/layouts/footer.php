@@ -3,12 +3,12 @@
 /**
  * Unified Layout Footer
  *
- * Единая точка входа для footer/layout admin/reseller.
+ * Единая точка входа для footer/layout admin/reseller/player.
  * На текущем этапе используется как совместимая обёртка над legacy footer.php,
  * чтобы начать миграцию страниц без риска регрессий.
  *
  * Параметры:
- * - $scope: 'admin' | 'reseller'
+ * - $scope: 'admin' | 'reseller' | 'player'
  * - $vars:  набор переменных страницы (опционально)
  *
  * Пример:
@@ -28,7 +28,10 @@ if (!function_exists('renderUnifiedLayoutFooter')) {
             'rUserInfo', 'rSettings', 'rThemes', 'rMobile', 'rHues',
             'db', 'language', 'rServers', 'allServers', 'rUpdate',
             '_TITLE', 'rModal', 'rProxyServers', 'rPermissions',
-            'rServerError', 'allServersHealthy',
+            'rServerError', 'allServersHealthy', '_PAGE',
+            'rStreamIDs', 'rFilterBy', 'rSortArray', 'rFilterArray',
+            'rSearchBy', 'rURLs', 'rSubtitles', 'rLegacy', 'rSeries',
+            'rYearStart', 'rYearEnd', 'rRatingStart', 'rRatingEnd',
         ] as $_g) {
             if (array_key_exists($_g, $GLOBALS)) {
                 $$_g = $GLOBALS[$_g];
@@ -37,6 +40,11 @@ if (!function_exists('renderUnifiedLayoutFooter')) {
         unset($_g);
 
         $rootPath = dirname(__DIR__, 3);
+
+        if ($scope === 'player') {
+            require __DIR__ . '/player/footer.php';
+            return;
+        }
 
         if ($scope === 'reseller') {
             require __DIR__ . '/reseller/footer.php';

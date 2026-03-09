@@ -224,13 +224,21 @@ $cwdTarget   = is_dir($adminDir) ? $adminDir : MAIN_HOME;
 if ($scope === 'reseller') {
     $sessionFile    = MAIN_HOME . 'infrastructure/bootstrap/reseller_session.php';
     $functionsFile  = MAIN_HOME . 'infrastructure/bootstrap/reseller_functions.php';
+} elseif ($scope === 'player') {
+    $sessionFile    = MAIN_HOME . 'infrastructure/bootstrap/player_session.php';
+    $functionsFile  = MAIN_HOME . 'infrastructure/bootstrap/player_functions.php';
 } else {
     $sessionFile    = $adminDir . 'session.php';
     $functionsFile  = $adminDir . 'functions.php';
 }
 
 // Некоторые страницы пропускают bootstrap (login, setup, database)
-$noBootstrapPages = ['login', 'setup', 'database', 'index'];
+// Для player scope: только login (index = home page, не login)
+if ($scope === 'player') {
+    $noBootstrapPages = ['login'];
+} else {
+    $noBootstrapPages = ['login', 'setup', 'database', 'index'];
+}
 
 // ─────────────────────────────────────────────────────────────────
 //  4a. Страницы без bootstrap
@@ -243,14 +251,14 @@ $noBootstrapPages = ['login', 'setup', 'database', 'index'];
 // ─────────────────────────────────────────────────────────────────
 
 if (in_array($pageName, $noBootstrapPages, true)) {
-    if ($scope === 'reseller') {
-        // Reseller login/index: загружаем autoloader для Router, без session bootstrap
+    if ($scope === 'reseller' || $scope === 'player') {
+        // Reseller/Player login: загружаем autoloader для Router, без session bootstrap
         require_once MAIN_HOME . 'includes/admin.php';
         if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
             session_start();
         }
         $router = Router::getInstance();
-        require_once __DIR__ . '/routes/reseller.php';
+        require_once __DIR__ . '/routes/' . $scope . '.php';
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         if ($router->dispatch($pageName, $method)) {
             exit;
