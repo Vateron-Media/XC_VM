@@ -46,19 +46,20 @@ class AuthRepository {
 				}
 
 				$rType = array('admin', 'reseller', 'ministra', 'includes/api/admin', 'includes/api/reseller', 'ministra/new', 'player')[$rCode['type']];
+				$rAlias = array('admin', 'reseller', 'ministra', 'includes/api/admin', 'includes/api/reseller', 'ministra/new', 'public/assets/player')[$rCode['type']];
 				$rBurst = array(500, 50, 50, 1000, 1000, 50, 500)[$rCode['type']];
 
 				if (strlen($rCode['code']) >= 4) {
-					file_put_contents($rMainHome . 'bin/nginx/conf/codes/' . $rCode['code'] . '.conf', str_replace(array('#WHITELIST#', '#CODE#', '#TYPE#', '#BURST#'), array(implode(' ', $rWhitelist), $rCode['code'], $rType, $rBurst), $rTemplate));
+					file_put_contents($rMainHome . 'bin/nginx/conf/codes/' . $rCode['code'] . '.conf', str_replace(array('#WHITELIST#', '#CODE#', '#TYPE#', '#BURST#', '#ALIAS#'), array(implode(' ', $rWhitelist), $rCode['code'], $rType, $rBurst, $rAlias), $rTemplate));
 				} else {
-					file_put_contents($rMainHome . 'bin/nginx/conf/codes/' . $rCode['code'] . '.conf', str_replace(array('#WHITELIST#', '#CODE#', '#TYPE#', '#BURST#'), array(implode(' ', $rWhitelist), $rCode['code'] . '/', $rType . '/', $rBurst), $rTemplate));
+					file_put_contents($rMainHome . 'bin/nginx/conf/codes/' . $rCode['code'] . '.conf', str_replace(array('#WHITELIST#', '#CODE#', '#TYPE#', '#BURST#', '#ALIAS#'), array(implode(' ', $rWhitelist), $rCode['code'] . '/', $rType . '/', $rBurst, $rAlias . '/'), $rTemplate));
 				}
 			}
 		}
 
 		if (count(self::getActiveCodes($rMainHome)) == 0) {
 			if (!file_exists($rMainHome . 'bin/nginx/conf/codes/default.conf')) {
-				file_put_contents($rMainHome . 'bin/nginx/conf/codes/default.conf', str_replace(array('alias ', '#WHITELIST#', '#CODE#', '#TYPE#'), array('root ', '', '', 'admin'), $rTemplate));
+				file_put_contents($rMainHome . 'bin/nginx/conf/codes/default.conf', str_replace(array('alias ', '#WHITELIST#', '#CODE#', '#TYPE#', '#ALIAS#'), array('root ', '', '', 'admin', 'admin'), $rTemplate));
 			}
 		} else {
 			if (file_exists($rMainHome . 'bin/nginx/conf/codes/default.conf')) {

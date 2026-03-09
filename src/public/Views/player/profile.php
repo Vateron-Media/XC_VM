@@ -1,37 +1,5 @@
 <?php
-
-
-
-
-
-
-
-include 'functions.php';
-
-if (!SettingsManager::getAll()['player_allow_bouquet']) {
-} else {
-	$rBouquetNames = array();
-
-	foreach (BouquetService::getAll() as $rBouquet) {
-		$rBouquetNames[$rBouquet['id']] = $rBouquet['bouquet_name'];
-	}
-
-	if (!isset(RequestManager::getAll()['bouquet_order'])) {
-	} else {
-		$rBouquetOrder = json_decode(RequestManager::getAll()['bouquet_order'], true);
-		$rUserInfo['bouquet'] = array_map('intval', sortArrayByArray($rUserInfo['bouquet'], $rBouquetOrder));
-		$db->query('UPDATE `lines` SET `bouquet` = ? WHERE `id` = ?;', '[' . implode(',', $rUserInfo['bouquet']) . ']', $rUserInfo['id']);
-
-		if (!SettingsManager::getAll()['enable_cache']) {
-		} else {
-			LineService::updateLineSignal($rUserInfo['id']);
-		}
-	}
-}
-
-$_TITLE = 'Profile';
-include 'header.php';
-echo "\t" . '<section class="section section--first section--bg" data-bg="img/pattern.png">' . "\r\n\t\t" . '<div class="container">' . "\r\n\t\t\t" . '<div class="row">' . "\r\n\t\t\t\t" . '<div class="col-12">' . "\r\n\t\t\t\t\t" . '<div class="section__wrap">' . "\r\n\t\t\t\t\t\t" . '<h2 class="section__title">PROFILE</h2>' . "\r\n\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t" . '</div>' . "\r\n\t\t\t" . '</div>' . "\r\n\t\t" . '</div>' . "\r\n\t" . '</section>' . "\r\n\t" . '<div class="content">' . "\r\n\t\t" . '<div class="profile">' . "\r\n\t\t\t" . '<div class="container">' . "\r\n\t\t\t\t" . '<div class="row">' . "\r\n\t\t\t\t\t" . '<div class="col-12">' . "\r\n\t\t\t\t\t\t" . '<div class="profile__content">' . "\r\n\t\t\t\t\t\t\t" . '<div class="profile__user">' . "\r\n\t\t\t\t\t\t\t\t" . '<div class="profile__meta">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<h3>Username</h3>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<span>';
+	echo "\t" . '<section class="section section--first section--bg" data-bg="images/pattern.png">' . "\r\n\t\t" . '<div class="container">' . "\r\n\t\t\t" . '<div class="row">' . "\r\n\t\t\t\t" . '<div class="col-12">' . "\r\n\t\t\t\t\t" . '<div class="section__wrap">' . "\r\n\t\t\t\t\t\t" . '<h2 class="section__title">PROFILE</h2>' . "\r\n\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t" . '</div>' . "\r\n\t\t\t" . '</div>' . "\r\n\t\t" . '</div>' . "\r\n\t" . '</section>' . "\r\n\t" . '<div class="content">' . "\r\n\t\t" . '<div class="profile">' . "\r\n\t\t\t" . '<div class="container">' . "\r\n\t\t\t\t" . '<div class="row">' . "\r\n\t\t\t\t\t" . '<div class="col-12">' . "\r\n\t\t\t\t\t\t" . '<div class="profile__content">' . "\r\n\t\t\t\t\t\t\t" . '<div class="profile__user">' . "\r\n\t\t\t\t\t\t\t\t" . '<div class="profile__meta">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<h3>Username</h3>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<span>';
 echo htmlspecialchars($rUserInfo['username']);
 echo '</span>' . "\r\n\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t" . '<ul class="nav nav-tabs content__tabs content__tabs--profile" id="content__tabs" role="tablist">' . "\r\n\t\t\t\t\t\t\t\t" . '<li class="nav-item">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<a class="nav-link active" data-toggle="tab" href="#tab-profile" role="tab" aria-controls="tab-profile" aria-selected="true">Profile</a>' . "\r\n\t\t\t\t\t\t\t\t" . '</li>' . "\r\n" . '                                ';
 
@@ -80,7 +48,7 @@ echo '                    </div>' . "\r\n" . '                </div>' . "\r\n" .
 
 if (!SettingsManager::getAll()['player_allow_bouquet']) {
 } else {
-	echo '                <div class="tab-pane fade hide" id="tab-bouquets" role="tabpanel" aria-labelledby="bouquets-tab">' . "\r\n" . '                    <div class="row">' . "\r\n" . '                        <div class="col-12 col-lg-12">' . "\r\n" . '                            <form action="profile.php" class="profile__form" id="bouquet__form" method="POST">' . "\r\n" . '                                <input type="hidden" id="bouquet_order_array" name="bouquet_order" value="" />' . "\r\n\t\t\t\t\t\t\t\t" . '<div class="row">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<div class="col-12">' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<h4 class="profile__title">Bouquet Order</h4>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<div class="col-12 col-md-12 col-lg-12 col-xl-12">' . "\r\n" . '                                        <div class="profile__group">' . "\r\n" . '                                            <select multiple="" id="sort_bouquet" class="profile__input" style="min-height:250px;">' . "\r\n" . '                                                ';
+	echo '                <div class="tab-pane fade hide" id="tab-bouquets" role="tabpanel" aria-labelledby="bouquets-tab">' . "\r\n" . '                    <div class="row">' . "\r\n" . '                        <div class="col-12 col-lg-12">' . "\r\n" . '                            <form action="profile" class="profile__form" id="bouquet__form" method="POST">' . "\r\n" . '                                <input type="hidden" id="bouquet_order_array" name="bouquet_order" value="" />' . "\r\n\t\t\t\t\t\t\t\t" . '<div class="row">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<div class="col-12">' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<h4 class="profile__title">Bouquet Order</h4>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<div class="col-12 col-md-12 col-lg-12 col-xl-12">' . "\r\n" . '                                        <div class="profile__group">' . "\r\n" . '                                            <select multiple="" id="sort_bouquet" class="profile__input" style="min-height:250px;">' . "\r\n" . '                                                ';
 
 	foreach ($rUserInfo['bouquet'] as $rBouquet) {
 		echo '                                                <option value="';
@@ -95,4 +63,3 @@ if (!SettingsManager::getAll()['player_allow_bouquet']) {
 
 
 echo "\t\t\t" . '</div>' . "\r\n\t\t" . '</div>' . "\r\n\t" . '</div>' . "\r\n";
-include 'footer.php';

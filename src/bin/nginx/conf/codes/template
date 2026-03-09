@@ -1,38 +1,15 @@
-# ──────────────────────────────────────────────────────────────────
-# XC_VM — Access Code Template (Front Controller mode)
-# ──────────────────────────────────────────────────────────────────
-#
-# Этот шаблон заменяет 'template' при активации Front Controller (Step 6.2+).
-#
-# Разница с оригинальным template:
-#   - try_files fallback → @fc_#CODE# вместо @extensionless-php
-#   - @fc_#CODE# передаёт XC_SCOPE и XC_CODE через fastcgi_param
-#   - SCRIPT_FILENAME → public/index.php
-#
-# Активация:
-#   cp template.fc template
-#   Перегенерировать коды через CodeRepository::updateCodes()
-#   nginx -s reload
-#
-# Обратная совместимость:
-#   - Статика (.css, .js, изображения) отдаётся напрямую (try_files $uri)
-#   - Существующие .php файлы обрабатываются напрямую (location ~ \.php$)
-#   - Несуществующие URL → Front Controller → Router → legacy fallback
-#   - Assets: /#CODE#/assets/* → /home/xc_vm/public/assets/* (shared admin/reseller/player)
-# ──────────────────────────────────────────────────────────────────
-
 location ^~ /#CODE#/assets/ {
     alias /home/xc_vm/public/assets/#TYPE#/;
 }
 
 location ^~ /#CODE# {
-    alias /home/xc_vm/#TYPE#;
+    alias /home/xc_vm/#ALIAS#;
     index index.php index.html index.htm;
     try_files $uri $uri.html $uri/ @fc_#CODE#;
     #WHITELIST#
     location ~ \.php$ {
         limit_req zone=one burst=#BURST# nodelay;
-        try_files $uri =404;
+        try_files $uri @fc_#CODE#;
         fastcgi_index index.php;
         fastcgi_pass php;
         include fastcgi_params;
@@ -46,12 +23,10 @@ location ^~ /#CODE# {
     }
 }
 
-# Front Controller fallback для access code #CODE#
 location @fc_#CODE# {
     fastcgi_index index.php;
     fastcgi_pass php;
     include fastcgi_params;
-    # Custom params ПОСЛЕ include чтобы перезаписать дефолты
     fastcgi_param SCRIPT_FILENAME /home/xc_vm/public/index.php;
     fastcgi_param SCRIPT_NAME /public/index.php;
     fastcgi_param XC_SCOPE #TYPE#;

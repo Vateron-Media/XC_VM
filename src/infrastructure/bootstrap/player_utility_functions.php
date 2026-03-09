@@ -1,84 +1,22 @@
 <?php
-
-if (isset($rSkipVerify) || php_sapi_name() != 'cli') {
-	session_start();
-
-	require_once '/home/xc_vm/www/constants.php';
-	require_once MAIN_HOME . 'core/Init/LegacyInitializer.php';
-	require_once MAIN_HOME . 'core/Database/DatabaseHandler.php';
-	require_once INCLUDES_PATH . 'libs/tmdb.php';
-
-	$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
-	DatabaseFactory::set($db);
-	LegacyInitializer::initCore();
-
-	define('SERVER_ID', ConnectionTracker::getMainID());
-
-	$_PAGE = getIncludedFileNameWithoutExtension();
-	$rServers = ServerRepository::getAll();
-	SettingsManager::update('live_streaming_pass', md5(sha1($rServers[SERVER_ID]['server_name'] . $rServers[SERVER_ID]['server_ip']) . '5f13a731fb85944e5c69ce863b0c990d'));
-
-	if (!isset($rSkipVerify)) {
-		if (!(isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') || $rServers[SERVER_ID]['enable_https']) {
-			if (isset($_SESSION['phash'])) {
-				$rUserInfo = UserRepository::getUserInfo($_SESSION['phash'], null, null, true);
-
-				if (!(!$rUserInfo || $_SESSION['pverify'] != md5($rUserInfo['username'] . '||' . $rUserInfo['password']) || !is_null($rUserInfo['exp_date']) && $rUserInfo['exp_date'] <= time() || $rUserInfo['admin_enabled'] == 0 || $rUserInfo['enabled'] == 0)) {
-					sort($rUserInfo['bouquet']);
-				} else {
-					destroySession();
-					header('Location: login.php');
-
-					exit();
-				}
-			} else {
-				header('Location: login.php');
-
-				exit();
-			}
-		} else {
-			header('Location: ' . $rServers[SERVER_ID]['http_url'] . ltrim($_SERVER['REQUEST_URI'], '/'));
-
-			exit();
-		}
-	}
-} else {
-	exit();
-}
+/**
+ * Player Utility Functions
+ *
+ * Extracted from player/functions.php — only the utility functions,
+ * without the legacy standalone bootstrap.
+ *
+ * Functions: sortArrayStreamName, getStream,
+ * getSubtitles, getOrderedCategories,
+ * getUserStreams, getUserSeries, mapContentTypesToNumbers
+ *
+ * Shared with includes/admin.php: sortArrayByArray, getSerie,
+ * getMovieTMDB, getSeriesTMDB, getSeasonTMDB.
+ */
 
 function sortArrayStreamName($a, $b) {
 	$rColumn = (isset($a['stream_display_name']) ? 'stream_display_name' : 'title');
 
 	return strcmp($a[$rColumn], $b[$rColumn]);
-}
-
-function destroySession() {
-	global $_SESSION;
-
-	foreach (array('phash', 'pverify') as $rKey) {
-		if (!isset($_SESSION[$rKey])) {
-		} else {
-			unset($_SESSION[$rKey]);
-		}
-	}
-}
-
-function sortArrayByArray($rArray, $rSort) {
-	if (!(empty($rArray) || empty($rSort))) {
-		$rOrdered = array();
-
-		foreach ($rSort as $rValue) {
-			if (($rKey = array_search($rValue, $rArray)) === false) {
-			} else {
-				$rOrdered[] = $rValue;
-				unset($rArray[$rKey]);
-			}
-		}
-
-		return $rOrdered + $rArray;
-	} else {
-		return array();
-	}
 }
 
 function getStream($rID) {
@@ -87,19 +25,11 @@ function getStream($rID) {
 	if ($db->num_rows() == 1) {
 		$rRow = $db->get_row();
 
-		if ($rRow['title']) {
+		if (!empty($rRow['title'])) {
 			$rRow['stream_display_name'] = $rRow['title'];
 		}
 
 		return $rRow;
-	}
-}
-function getSerie($rID) {
-	global $db;
-	$db->query('SELECT * FROM `streams_series` WHERE `id` = ?;', $rID);
-
-	if ($db->num_rows() == 1) {
-		return $db->get_row();
 	}
 }
 
@@ -158,38 +88,9 @@ function getOrderedCategories($rCategories, $rType = 'movie') {
 	return $rReturn;
 }
 
-function getMovieTMDB($rID) {
-	if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
-		$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
-	} else {
-		$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key']);
-	}
-
-	return ($rTMDB->getMovie($rID) ?: null);
-}
-
-function getSeriesTMDB($rID) {
-	if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
-		$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
-	} else {
-		$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key']);
-	}
-
-	return (json_decode($rTMDB->getTVShow($rID)->getJSON(), true) ?: null);
-}
-
-function getSeasonTMDB($rID, $rSeason) {
-	if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
-		$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
-	} else {
-		$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key']);
-	}
-
-	return json_decode($rTMDB->getSeason($rID, intval($rSeason))->getJSON(), true);
-}
-
 function getUserStreams($rUserInfo, $rTypes = array(), $rCategoryID = null, $rFav = null, $rOrderBy = null, $rSearchBy = null, $rPicking = array(), $rStart = 0, $rLimit = 10, $rIDs = false) {
 	global $db;
+	$rPicking = $rPicking ?? [];
 	$rAdded = false;
 	$rChannels = array();
 
@@ -244,7 +145,7 @@ function getUserStreams($rUserInfo, $rTypes = array(), $rCategoryID = null, $rFa
 		}
 	}
 
-	if ($rPicking['filter']) {
+	if (!empty($rPicking['filter'])) {
 		switch ($rPicking['filter']) {
 			case 'all':
 				break;
@@ -272,13 +173,13 @@ function getUserStreams($rUserInfo, $rTypes = array(), $rCategoryID = null, $rFa
 		$rWhereV[] = '%' . $rSearchBy . '%';
 	}
 
-	if (is_array($rPicking['year_range'])) {
+	if (!empty($rPicking['year_range']) && is_array($rPicking['year_range'])) {
 		$rWhere[] = '(`year` >= ? AND `year` <= ?)';
 		$rWhereV[] = $rPicking['year_range'][0];
 		$rWhereV[] = $rPicking['year_range'][1];
 	}
 
-	if (is_array($rPicking['rating_range'])) {
+	if (!empty($rPicking['rating_range']) && is_array($rPicking['rating_range'])) {
 		$rWhere[] = '(`rating` >= ? AND `rating` <= ?)';
 		$rWhereV[] = $rPicking['rating_range'][0];
 		$rWhereV[] = $rPicking['rating_range'][1];
@@ -370,6 +271,7 @@ function getUserStreams($rUserInfo, $rTypes = array(), $rCategoryID = null, $rFa
 
 function getUserSeries($rUserInfo, $rCategoryID = null, $rFav = null, $rOrderBy = null, $rSearchBy = null, $rPicking = array(), $rStart = 0, $rLimit = 10, $additionalOptions = null) {
 	global $db;
+	$rPicking = $rPicking ?? [];
 	$rSeries = $rUserInfo['series_ids'];
 	$rStreams = array('count' => 0, 'streams' => array());
 	$rKey = $rStart + 1;
@@ -385,14 +287,14 @@ function getUserSeries($rUserInfo, $rCategoryID = null, $rFav = null, $rOrderBy 
 		$rWhereV[] = $rCategoryID;
 	}
 
-	if (is_array($rPicking['year_range'])) {
+	if (!empty($rPicking['year_range']) && is_array($rPicking['year_range'])) {
 		$rWhere[] = '(`year` >= ? AND `year` <= ?)';
 
 		$rWhereV[] = $rPicking['year_range'][0];
 		$rWhereV[] = $rPicking['year_range'][1];
 	}
 
-	if (is_array($rPicking['rating_range'])) {
+	if (!empty($rPicking['rating_range']) && is_array($rPicking['rating_range'])) {
 		$rWhere[] = '(`rating` >= ? AND `rating` <= ?)';
 		$rWhereV[] = $rPicking['rating_range'][0];
 		$rWhereV[] = $rPicking['rating_range'][1];
@@ -479,10 +381,6 @@ function getUserSeries($rUserInfo, $rCategoryID = null, $rFav = null, $rOrderBy 
 	} else {
 		return $rStreams;
 	}
-}
-
-function getIncludedFileNameWithoutExtension() {
-	return strtolower(basename(get_included_files()[0], '.php'));
 }
 
 function mapContentTypesToNumbers($rTypes) {

@@ -1,13 +1,6 @@
 <?php
 
-
-
-
-
-
-
-echo '    <footer class="footer">' . "\r\n\t\t" . '<div class="container">' . "\r\n\t\t\t" . '<div class="row">' . "\r\n\t\t\t\t" . '<div class="col-12">' . "\r\n\t\t\t\t\t" . '<div class="footer__copyright">' . "\r\n" . '                        &copy; 2025 <img height="20px" style="padding-left: 10px; padding-right: 10px; margin-top: -2px;" src="img/logo.png"> v';
-echo XC_VM_VERSION;
+echo '    <footer class="footer">' . "\r\n\t\t" . '<div class="container">' . "\r\n\t\t\t" . '<div class="row">' . "\r\n\t\t\t\t" . '<div class="col-12">' . "\r\n\t\t\t\t\t" . '<div class="footer__copyright">' . "\r\n" . '                        ' . getFooter();
 echo "\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t" . '</div>' . "\r\n\t\t\t" . '</div>' . "\r\n\t\t" . '</div>' . "\r\n\t" . '</footer>' . "\r\n\t" . '<script src="./js/jquery-3.5.1.min.js"></script>' . "\r\n\t" . '<script src="./js/bootstrap.bundle.min.js"></script>' . "\r\n\t" . '<script src="./js/owl.carousel.min.js"></script>' . "\r\n\t" . '<script src="./js/jquery.mousewheel.min.js"></script>' . "\r\n\t" . '<script src="./js/jquery.mcustomscrollbar.min.js"></script>' . "\r\n\t" . '<script src="./js/wnumb.js"></script>' . "\r\n\t" . '<script src="./js/nouislider.min.js"></script>' . "\r\n\t" . '<script src="./js/jquery.morelines.min.js"></script>' . "\r\n\t" . '<script src="./js/photoswipe.min.js"></script>' . "\r\n\t" . '<script src="./js/photoswipe-ui-default.min.js"></script>' . "\r\n" . '    <script src="./js/glightbox.min.js"></script>' . "\r\n" . '    <script src="./js/jBox.all.min.js"></script>' . "\r\n" . '    <script src="./js/select2.min.js"></script>' . "\r\n" . '    <script src="./js/jwplayer.js"></script>' . "\r\n" . '    <script src="./js/jwplayer.core.controls.js"></script>' . "\r\n" . '    <script src="./js/provider.hlsjs.js"></script>' . "\r\n\t" . '<script src="./js/main.js"></script>' . "\r\n" . '    <script>' . "\r\n" . '    $(document).ready(function () {' . "\r\n" . '        ';
 
 if ($_PAGE != 'profile') {
