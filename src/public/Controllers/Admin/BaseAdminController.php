@@ -134,6 +134,7 @@ class BaseAdminController
         $__hasScriptsFile = file_exists($__scriptsFile);
 
         if (file_exists($__viewFile)) {
+            $__viewMode = true;
             require $__viewFile;
         }
 

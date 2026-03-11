@@ -527,6 +527,7 @@ function shutdown() {
 	global $rTokenData;
 	global $rPID;
 	global $db;
+	global $rServers;
 	$rSettings = CacheReader::get('settings');
 
 	if (!$rCloseCon) {

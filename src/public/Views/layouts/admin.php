@@ -49,6 +49,6 @@ if (!function_exists('renderUnifiedLayoutHeader')) {
             return;
         }
 
-        require $rootPath . '/admin/header.php';
+        require dirname(__DIR__) . '/admin/header.php';
     }
 }

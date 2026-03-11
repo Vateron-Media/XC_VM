@@ -18,6 +18,13 @@ class StreamViewController extends BaseAdminController
         $rTypeString = array(1 => 'Stream', 2 => 'Movie', 3 => 'Channel', 4 => 'Station', 5 => 'Episode')[$rStream['type']];
         $rEPGData = null;
         $rImage = null;
+        $rUIToken = null;
+        $rAdaptiveLink = null;
+        $rProperties = null;
+        $rCCInfo = null;
+        $rSeconds = null;
+        $rSeries = null;
+        $rSeriesID = null;
 
         if ($rStream['type'] == 1) {
             $rEPGData = EpgService::getChannelEpg($rStream);
