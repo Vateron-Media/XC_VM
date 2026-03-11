@@ -213,10 +213,16 @@ if (in_array($ext, ['css', 'js', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'ico', 'wof
 //  4. Bootstrap — сессия + глобальные данные (legacy chain)
 // ─────────────────────────────────────────────────────────────────
 
-$adminDir    = MAIN_HOME . $scope . '/';
-$cwdTarget   = is_dir($adminDir) ? $adminDir : MAIN_HOME;
+// Директория страниц текущего scope.
+// Admin-файлы перемещены в public/Views/admin/ (Phase 10.6).
+if ($scope === 'admin') {
+    $adminDir = MAIN_HOME . 'public/Views/admin/';
+} else {
+    $adminDir = MAIN_HOME . $scope . '/';
+}
+$cwdTarget = is_dir($adminDir) ? $adminDir : MAIN_HOME;
 
-// Поддерживаем legacy относительные include внутри admin/reseller файлов
+// Поддерживаем legacy относительные include внутри файлов страниц
 // (некоторые страницы всё ещё используют include 'header.php' и т.п.).
 @chdir($cwdTarget);
 
@@ -228,8 +234,8 @@ if ($scope === 'reseller') {
     $sessionFile    = MAIN_HOME . 'infrastructure/bootstrap/player_session.php';
     $functionsFile  = MAIN_HOME . 'infrastructure/bootstrap/player_functions.php';
 } else {
-    $sessionFile    = $adminDir . 'session.php';
-    $functionsFile  = $adminDir . 'functions.php';
+    $sessionFile    = MAIN_HOME . 'infrastructure/bootstrap/admin_session_fc.php';
+    $functionsFile  = MAIN_HOME . 'infrastructure/bootstrap/admin_functions_fc.php';
 }
 
 // Некоторые страницы пропускают bootstrap (login, setup, database)
@@ -245,36 +251,25 @@ if ($scope === 'player') {
 // ─────────────────────────────────────────────────────────────────
 //
 //  login, setup, database, index — имеют свой собственный bootstrap.
+//  Все scope (admin, reseller, player) маршрутизируются через Router.
+//  Контроллеры noBootstrapPages делегируют в legacy-файлы напрямую.
 //
-//  Admin: legacy fallback — загружает файл напрямую.
-//  Reseller: маршрутизация через Router (контроллеры обрабатывают сами).
+//  ВАЖНО: НЕ загружаем includes/admin.php здесь!
+//  Если загрузить includes/admin.php через require_once, то когда
+//  legacy-файл попытается загрузить его повторно (через functions.php),
+//  require_once пропустит загрузку и переменные ($db, $rMobile и т.д.)
+//  не будут определены в scope контроллера.
 // ─────────────────────────────────────────────────────────────────
 
 if (in_array($pageName, $noBootstrapPages, true)) {
-    if ($scope === 'reseller' || $scope === 'player') {
-        // Reseller/Player login: загружаем autoloader для Router, без session bootstrap
-        require_once MAIN_HOME . 'includes/admin.php';
-        if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
-            session_start();
-        }
-        $router = Router::getInstance();
-        require_once __DIR__ . '/routes/' . $scope . '.php';
-        $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-        if ($router->dispatch($pageName, $method)) {
-            exit;
-        }
-        http_response_code(404);
-        echo '404 Not Found';
+    // Загружаем только autoloader (без full bootstrap)
+    require_once MAIN_HOME . 'autoload.php';
+    $router = Router::getInstance();
+    require_once __DIR__ . '/routes/' . $scope . '.php';
+    $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+    if ($router->dispatch($pageName, $method)) {
         exit;
     }
-
-    // Admin: legacy fallback
-    $legacyFile = $adminDir . $pageName . '.php';
-    if (file_exists($legacyFile)) {
-        require $legacyFile;
-        exit;
-    }
-    // Файл не найден
     http_response_code(404);
     echo '404 Not Found';
     exit;
@@ -320,6 +315,7 @@ if (file_exists($apiRouteFile)) {
 // ─────────────────────────────────────────────────────────────────
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+$useLegacyFallback = ($rSettings['use_legacy_fallback'] ?? true);
 
 // Страничные маршруты (reseller: api/table/post и прочие идут сюда)
 if ($router->dispatch($pageName, $method)) {
@@ -327,6 +323,8 @@ if ($router->dispatch($pageName, $method)) {
 }
 
 // API-запросы: /admin/api?action=... обрабатываются отдельно (admin legacy)
+// Примечание: если маршрут 'api' зарегистрирован в Router (Phase 10.4),
+// dispatch() выше уже обработал запрос и мы сюда не попадём.
 if ($pageName === 'api' && !empty($_REQUEST['action'])) {
     $action = $_REQUEST['action'];
 
@@ -334,32 +332,38 @@ if ($pageName === 'api' && !empty($_REQUEST['action'])) {
         exit; // Router обработал API-запрос
     }
 
-    // Fallback: передаём в legacy admin/api.php
-    $legacyApi = $adminDir . 'api.php';
-    if (file_exists($legacyApi)) {
-        require $legacyApi;
-        exit;
+    // Fallback: передаём в legacy admin/api.php (feature-flagged)
+    if ($useLegacyFallback) {
+        $legacyApi = $adminDir . 'api.php';
+        if (file_exists($legacyApi)) {
+            require $legacyApi;
+            exit;
+        }
     }
 
     Response::jsonError('Unknown action: ' . $action, 404);
 }
 
 // ─────────────────────────────────────────────────────────────────
-//  7. Fallback — legacy include
+//  7. Fallback — legacy include (feature-flagged)
 // ─────────────────────────────────────────────────────────────────
 //
 //  Если Router не знает маршрут, подключаем legacy PHP-файл.
 //  Bootstrap уже загружен (шаг 4b), поэтому session/functions доступны.
 //
-//  По мере миграции (Step 6.3) страницы будут регистрироваться
-//  в Router и fallback перестанет использоваться.
+//  Feature flag: use_legacy_fallback (default: true).
+//  Когда все страницы зарегистрированы в Router, переключить на false
+//  чтобы полностью отключить fallback.
 // ─────────────────────────────────────────────────────────────────
 
-$legacyFile = $adminDir . $pageName . '.php';
-
-if (file_exists($legacyFile)) {
-    require $legacyFile;
-    exit;
+if ($useLegacyFallback) {
+    $legacyFile = $adminDir . $pageName . '.php';
+    if (file_exists($legacyFile)) {
+        // Предотвращаем повторный bootstrap — FC уже загрузил сессию и функции (шаг 4b).
+        $__viewMode = true;
+        require $legacyFile;
+        exit;
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────

@@ -63,13 +63,20 @@ class FileCache implements CacheInterface {
             }
         }
 
-        $data = file_get_contents($file);
+        $data = @file_get_contents($file);
 
-        if ($data === false) {
+        if ($data === false || $data === '') {
+            @unlink($file);
             return false;
         }
 
-        return $this->deserialize($data);
+        $result = $this->deserialize($data);
+
+        if ($result === false) {
+            @unlink($file);
+        }
+
+        return $result;
     }
 
     /**
@@ -79,9 +86,12 @@ class FileCache implements CacheInterface {
         $file = $this->basePath . $key;
         $serialized = $this->serialize($data);
 
-        $result = @file_put_contents($file, $serialized, LOCK_EX);
-
-        return $result !== false;
+        $tmp = $file . '.' . getmypid() . '.tmp';
+        if (@file_put_contents($tmp, $serialized, LOCK_EX) === false) {
+            @unlink($tmp);
+            return false;
+        }
+        return @rename($tmp, $file);
     }
 
     /**
@@ -191,15 +201,25 @@ class FileCache implements CacheInterface {
     /**
      * Deserialize data using igbinary (if available) or PHP unserialize
      *
+     * Returns false on corrupted data (cache miss).
+     *
      * @param string $data
-     * @return mixed
+     * @return mixed|false
      */
     protected function deserialize($data) {
         if ($this->useIgbinary) {
-            return igbinary_unserialize($data);
+            $result = @igbinary_unserialize($data);
+            if ($result === false && $data !== igbinary_serialize(false)) {
+                return false;
+            }
+            return $result;
         }
 
-        return unserialize($data);
+        $result = @unserialize($data);
+        if ($result === false && $data !== serialize(false)) {
+            return false;
+        }
+        return $result;
     }
 
     // ------------------------------------------------------------------

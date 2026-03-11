@@ -51,6 +51,6 @@ if (!function_exists('renderUnifiedLayoutFooter')) {
             return;
         }
 
-        require $rootPath . '/admin/footer.php';
+        require dirname(__DIR__) . '/admin/footer.php';
     }
 }

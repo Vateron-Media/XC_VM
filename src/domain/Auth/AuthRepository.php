@@ -46,7 +46,7 @@ class AuthRepository {
 				}
 
 				$rType = array('admin', 'reseller', 'ministra', 'includes/api/admin', 'includes/api/reseller', 'ministra/new', 'player')[$rCode['type']];
-				$rAlias = array('admin', 'reseller', 'ministra', 'includes/api/admin', 'includes/api/reseller', 'ministra/new', 'public/assets/player')[$rCode['type']];
+				$rAlias = array('public/Views/admin', 'reseller', 'ministra', 'includes/api/admin', 'includes/api/reseller', 'ministra/new', 'public/assets/player')[$rCode['type']];
 				$rBurst = array(500, 50, 50, 1000, 1000, 50, 500)[$rCode['type']];
 
 				if (strlen($rCode['code']) >= 4) {
@@ -59,7 +59,7 @@ class AuthRepository {
 
 		if (count(self::getActiveCodes($rMainHome)) == 0) {
 			if (!file_exists($rMainHome . 'bin/nginx/conf/codes/default.conf')) {
-				file_put_contents($rMainHome . 'bin/nginx/conf/codes/default.conf', str_replace(array('alias ', '#WHITELIST#', '#CODE#', '#TYPE#', '#ALIAS#'), array('root ', '', '', 'admin', 'admin'), $rTemplate));
+				file_put_contents($rMainHome . 'bin/nginx/conf/codes/default.conf', str_replace(array('alias ', '#WHITELIST#', '#CODE#', '#TYPE#', '#ALIAS#'), array('root ', '', '', 'admin', 'public/Views/admin'), $rTemplate));
 			}
 		} else {
 			if (file_exists($rMainHome . 'bin/nginx/conf/codes/default.conf')) {

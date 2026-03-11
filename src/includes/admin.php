@@ -1,5 +1,10 @@
 <?php
 
+// Импорт глобальных переменных — нужен когда файл включается
+// из метода контроллера (не из глобального scope).
+global $db, $rSettings, $rMobile, $rServers, $rProxyServers, $rDetect,
+       $rTimeout, $rProtocol, $allServers, $rPermissions, $language, $allowedLangs, $_INFO;
+
 require_once __DIR__ . '/bootstrap/admin_bootstrap.php';
 bootstrapAdminInclude();
 
