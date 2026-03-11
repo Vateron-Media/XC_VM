@@ -166,3 +166,17 @@ $router->any('record', [RecordController::class, 'index']);
 $router->any('review', [ReviewController::class, 'index']);
 $router->any('archive', [ArchiveController::class, 'index']);
 $router->get('asns', [AsnsController::class, 'index']);
+
+// ─── Phase 10: Formerly unrouted pages ─────────────────────────
+
+$router->get('logout', [LogoutController::class, 'index']);
+$router->any('player', [PlayerEmbedController::class, 'index']);
+$router->any('post', [PostController::class, 'index']);
+$router->any('api', [AjaxController::class, 'index']);
+
+// ─── Phase 10: No-bootstrap pages (login, setup, database) ────
+
+$router->any('login', [LoginController::class, 'index']);
+$router->any('setup', [SetupController::class, 'index']);
+$router->any('database', [SetupController::class, 'database']);
+$router->get('index', [LoginController::class, 'index']);

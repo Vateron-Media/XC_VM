@@ -243,10 +243,10 @@ delete_files_list:
 set_permissions:
 	@echo "==> Setting file and directory permissions"
 
-	@if [ -d "$(TEMP_DIR)/admin" ]; then \
-		# /admin \
-		find "$(TEMP_DIR)/admin" -type d -exec chmod 755 {} +; \
-		find "$(TEMP_DIR)/admin" -type f -exec chmod 644 {} +; \
+	@if [ -d "$(TEMP_DIR)/public/assets/admin" ]; then \
+		# /public/assets/admin (static assets) \
+		find "$(TEMP_DIR)/public/assets/admin" -type d -exec chmod 755 {} +; \
+		find "$(TEMP_DIR)/public/assets/admin" -type f -exec chmod 644 {} +; \
 	fi
 
 	# /backups

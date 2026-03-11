@@ -11,10 +11,10 @@
 6. [Система модулей](#6-система-модулей)
 7. [Границы ядра и модулей](#7-границы-ядра-и-модулей)
 8. [Варианты сборки: MAIN vs LoadBalancer](#8-варианты-сборки-main-vs-loadbalancer)
-9. [Порядок миграции](#9-порядок-миграции)
-10. [Транзакции и производительность](#10-транзакции-и-производительность)
-11. [Стратегия миграции по рискам](#11-стратегия-миграции-по-рискам)
-12. [Правила для контрибьюторов](#12-правила-для-контрибьюторов)
+9. [Транзакции и производительность](#9-транзакции-и-производительность)
+10. [Правила для контрибьюторов](#10-правила-для-контрибьюторов)
+
+> **План миграции** (фазы 0–15, стратегия рисков, порядок выполнения) вынесен в [MIGRATION.md](MIGRATION.md).
 
 ---
 
@@ -1304,322 +1304,9 @@ crons/*.php (на LB) ──→ bootstrap.php (CONTEXT_CLI)
 
 ---
 
-## 9. Порядок миграции
+## 9. Транзакции и производительность
 
-### Принцип: извлечение → делегирование → замена
-
-Каждый шаг миграции следует одному паттерну:
-
-```
-1. Создать новый класс в целевой директории
-2. Перенести в него методы из god-объекта
-3. В старом файле оставить proxy-метод:
-     public static function oldMethod(...$args) {
-         return NewClass::method(...$args);
-     }
-4. Зарегистрировать класс в autoloader
-5. Проверить: система работает как раньше
-6. (позже) Обновить вызывающий код → удалить proxy
-```
-
-Так каждый шаг безопасен и обратимо совместим.
-
----
-
-### Фаза 0: Подготовка ✅
-
-Autoload, скелет директорий, bootstrap.php, ServiceContainer, разбиение constants.php → 7 core-файлов.
-
----
-
-### Фаза 1: Извлечение core/ ✅
-
-Database, Cache, Http/Request, Auth, Process, Util — все базовые компоненты извлечены из god-объектов.
-
-### Фаза 1.7: Оставшиеся извлечения core/ ✅
-
-Логирование, SystemInfo, BruteforceGuard, CurlClient, EventDispatcher, Authorization, Authenticator, ImageUtils — 8 шагов завершены.
-
----
-
-### Фаза 2: Дедупликация CoreUtilities ↔ StreamingUtilities ✅
-
-53 дублированных метода дедуплицированы: Redis/сигналы, трекинг подключений, справочные данные, init().
-
----
-
-### Фаза 3: Извлечение domain/ — бизнес-логика ✅
-
-12 доменных контекстов: Stream, Vod, Line, User, Device, Server, Bouquet, Epg, Settings/Ticket, Security, Auth, Playlist. Все entity/repository/service извлечены.
-
----
-
-### Фаза 4: Извлечение streaming/ (hot path) ✅
-
-streaming/Auth, Delivery, Codec, Protection/Health, StreamingBootstrap — лёгкий bootstrap для hot path.
-
----
-
-### Фаза 5: Вынесение модулей ✅
-
-6 модулей извлечены атомарно: plex, watch, tmdb, ministra, fingerprint/theft-detection/magscan. ModuleInterface + ModuleLoader. Thread/Multithread дедуплицированы в `core/Process/`.
-
-- 🔲 `ministra/*.js` → modules/ministra/assets/ (JS-файлы портала — отложено)
-
----
-
-### Фаза 6: Контроллеры и Views (admin/reseller) ✅
-
-#### Шаг 6.1 — Единый layout ✅
-
-Unified wrappers: `public/Views/layouts/admin.php` + `footer.php`.
-- **Admin: 112/112 page-файлов — 100% мигрированы**
-- **Reseller: 22/22 page-файлов — 100% мигрированы**
-- ⏭️ CSS/JS partials — **отложено** (footer.php: ~800 стр. page-specific inline JS)
-
-#### Шаг 6.2 — Router + Front Controller ✅
-
-`core/Http/Router.php` (450 стр.), `public/index.php` (Front Controller), `Request.php`, `Response.php`, `RequestGuard.php`. Трёхрежимный URL-парсинг (Access Code + XC_SCOPE / Direct URL / fallback). Access Codes поддержаны.
-
-#### Шаг 6.3 — Конвертация admin-страниц (Controller/View) ✅
-
-**111/111 admin-страниц** мигрированы: Controller + View + Scripts + routes. Паттерн: Thin Controller → Service → View. `BaseAdminController` + `_scripts_init.php`.
-
-#### Шаг 6.4 — Объединение admin/reseller ✅
-
-22 reseller-страницы мигрированы. `BaseResellerController` + 22 контроллера/view/маршрута.
-
-#### Шаг 6.5 — Стабилизация Controller/View контракта ✅
-
-Два прохода стабилизации: viewGlobals расширен, nullable-guards для foreach/in_array/count.
-
-#### Шаг 6.5b — Reseller view nullable audit ✅
-
-Source-level fixes: `getPermissions()` → `[]` fallback, defensive defaults в `functions.php`/`table.php` для `direct_reports`, `all_reports`, `stream_ids`, `category_ids`, `series_ids`, `subresellers`. P0/P1 точечные исправления в 10 файлах.
-
----
-
-### Фаза 7: Миграция admin.php bootstrap
-
-#### Шаг 7.1 — Вынос inline-данных ✅
-Данные bootstrap консолидированы в `resources/data/admin_constants.php`.
-
-#### Шаг 7.2 — Замена процедурного bootstrap ✅
-8 инкрементов: runtime → `bootstrapAdminRuntime()` → `admin_session.php` + `admin_runtime.php` → `XC_Bootstrap::boot(CONTEXT_ADMIN)` → фасад `admin_bootstrap.php`.
-
-#### Шаг 7.3 — Удаление proxy-обёрток из admin.php ✅
-40 proxy-определений удалены, 560+ call-sites заменены на прямые вызовы domain-сервисов. `admin.php` сокращён с ~4448 до ~3050 строк.
-
-#### Шаг 7.3.1 — Миграция getCategories/getOutputs ✅
-`getCategories()` → `CategoryService::getAllByType()` (~75+ call-sites). `getOutputs()` → `OutputFormatRepository::getAll()` (3 call-sites). Создан `domain/Line/OutputFormatRepository.php`.
-
-#### Шаг 6.5b — Reseller view nullable audit ✅
-Source-level: `getPermissions()` → `[]` fallback, defensive defaults в `functions.php`/`table.php`. P0 fixes в 8 файлах (foreach/count/in_array guards). P1 в 2 файлах. P2/P3 покрыты source-level defaults.
-
-#### Шаг 7.4 — Устранение параметра `$db` из Domain-классов ✅
-28 классов (100 методов) → `global $db` внутри. ~357 call-sites обновлены.
-
----
-
-### Фаза 8: Ликвидация god-объектов ✅
-
-**Цель:** Удалить три файла-монолита (`CoreUtilities.php`, `StreamingUtilities.php`, `admin_api.php`), заменив ~7 400 внешних вызовов на прямые обращения к целевым классам.
-
-| Файл | Было строк | Методов | Внешних вызовов | Статус |
-|------|:----------:|:-------:|:---------------:|--------|
-| `admin_api.php` | 3 686 | 79 | ~300 | ✅ 8.1 — удалён |
-| `StreamingUtilities.php` | 659 | 78 | 1 344 | ✅ 8.2 — удалён |
-| `CoreUtilities.php` | 1 971 | 152 | 5 755 | ✅ 8.3–8.11 — удалён |
-
-#### Шаг 8.1 — admin_api.php ✅
-60 PROXY + 18 OWN методов мигрированы в domain-сервисы. Файл удалён.
-
-#### Шаг 8.2 — StreamingUtilities.php ✅
-42 PROXY + 33 OWN методов, 18 свойств. ~314 ссылок заменены в 10 батчах. Файл удалён.
-
-#### Шаг 8.3 — CoreUtilities методы ✅
-81 PROXY + 69 OWN методов извлечены в целевые классы (17 батчей). CU сокращён с 1 971 до 40 строк.
-
-#### Шаги 8.4–8.6 — Свойства (blocklist, FFmpeg, light) ✅
-- **8.4** 7 blocklist/allowlist свойств → `BlocklistService` lazy getters (FileCache)
-- **8.5** 3 FFmpeg свойства → value-object `FfmpegPaths::resolve()`
-- **8.6** 3 свойства ($rCategories, $rBouquets, $rSegmentSettings) → сервисные геттеры
-
-#### Шаги 8.7–8.10 — Инфраструктурные свойства → singletons ✅
-- **8.7** `$rCached` → `FileCache`, `$rConfig` → `ConfigReader`, `$rServers` (184 refs) → `ServerRepository::getAll()`
-- **8.8** `$db` (30 refs) → `DatabaseFactory::set()/get()`, `$redis` (62 refs) → `RedisManager::instance()`
-- **8.9** `$rSettings` (819 refs, 221 файл) → `SettingsManager::set()/getAll()/get()/update()`
-- **8.10** `$rRequest` (3863 refs, 166 файлов) → `RequestManager::set()/getAll()/get()/update()`
-
-#### Шаг 8.11 — Удаление CoreUtilities.php ✅
-6 call-sites `CoreUtilities::init()` → `LegacyInitializer::initCore()`. Файл физически удалён.
-
-**Эволюция CU:**
-
-| Фаза | Строк | Методов | Свойств |
-|------|------:|--------:|--------:|
-| До рефакторинга | 1 971 | 152 | 21 |
-| После 8.3 | 40 | 3 | 21 |
-| После 8.4–8.6 | 19 | 2 | 8 |
-| После 8.7–8.8 | 9 | 1 | 2 |
-| После 8.9–8.10 | 5 | 1 | 0 |
-| **8.11 — УДАЛЁН** | **0** | **0** | **0** |
-
-**Новые singleton/service классы (Phase 8):** `SettingsManager`, `RequestManager`, `ConfigReader`, `DatabaseFactory` (singleton), `RedisManager` (singleton), `FfmpegPaths`, `FileCache`, `DataEncryptor`, `InputSanitizer`, `IpUtils`, `UrlBuilder`, `ImageUtils`, `Helpers`, `ProcessManager`, `ConnectionManager`, `BackupService`, `ProviderService`, `ProfileService`, `RadioService`, `SystemCheck`, `InputValidator`.
-
----
-
-### Фаза 9: Стабилизация сборки
-
-> **Цель фазы:** после массовых рефакторингов (Phases 7–8) довести проект до состояния «зелёной» сборки: корректный Makefile, стандартизированные PHP-заголовки, унифицированный layout, экспорт глобалов.
-
-#### Шаг 9.1 — Makefile: LB-сборка для новой архитектуры ✅
-
-**Проблема:** `LB_FILES` не включал `core/`, `domain/`, `streaming/`, `infrastructure/`, `resources/`, `autoload.php`, `bootstrap.php` — LB-сборка не могла работать с мигрированным кодом.
-
-**Решение (5 правок в Makefile):**
-1. `LB_FILES` → `LB_DIRS` (14 dirs) + `LB_ROOT_FILES` (5 root files)
-2. `lb_copy_files`: второй цикл для root-файлов через `git ls-files --error-unmatch`
-3. `lb_update_copy_files`: каскадная проверка (dirs → root files) для delta-обновлений
-4. `LB_DIRS_TO_REMOVE`: +6 admin-only исключений (`includes/bootstrap`, `domain/User`, `domain/Device`, `domain/Auth`, `resources/langs`, `resources/libs`)
-5. `set_permissions`: `core/ domain/ streaming/ infrastructure/ resources/` → dirs:755, files:644; root PHP → 644
-
-**Найденный баг:** Старый `LB_FILES` включал файлы `status`, `update`, `service`, но grep `"^src/$item/"` с trailing `/` никогда не матчил их — они молча не копировались. Теперь исправлено отдельным циклом.
-
-#### Шаг 9.2 — Стандартизация PHP-заголовков (Clean Headers) ✅
-
-**Проблема:** Admin- и reseller-view-файлы начинались разнородно: `<?php`, `<?php\ninclude 'session.php';`, `<?php\nrequire ...` — невозможно безопасно включать их как view-фрагменты из единого layout-контроллера, потому что при `include` (без отдельного процесса) bootstrap-логика (session, functions, header) выполняется повторно.
-
-**Решение:** Автоматизированная расстановка guard-условия `$__viewMode` через скрипт `tools/clean_headers.py` (4 итерации: `.vscode/tasks.json` → «Clean PHP Headers 1–4»). Каждый view-файл оборачивается:
-
-```php
-<?php if (!isset($__viewMode)): ?>
-    <?php
-    include 'session.php';
-    include 'functions.php';
-    // ... legacy bootstrap ...
-    renderUnifiedLayoutHeader('admin');
-    ?>
-<?php endif; // !$__viewMode ?>
-```
-
-Когда файл исполняется напрямую (`php admin/dashboard.php`), guard проходит, и legacy bootstrap запускается как обычно. Когда файл подключается как view (`$__viewMode = true; include 'dashboard.php'`), блок пропускается — нет двойной инициализации.
-
-**Масштаб:** 112 admin-файлов + 22 reseller-файла — все начинаются с `<?php if (!isset($__viewMode)): ?>`.
-
-**Скрипт удалён после использования** (`tools/clean_headers.py` — одноразовый).
-
-#### Шаг 9.3 — Миграция view-layout: renderUnifiedLayoutHeader ✅
-
-**Проблема:** Каждый admin/reseller PHP-файл подключал `header.php` и `footer.php` вручную через `include`/`require` с разным синтаксисом:
-```php
-// Было — 5+ вариантов:
-include 'header.php';
-require 'header.php';
-include_once 'header.php';
-<?php include 'header.php'; ?>
-include(__DIR__ . '/header.php');
-```
-
-При переходе к layout-контроллерам это создаёт хаос: нет единой точки для подключения общих переменных, нет возможности подменить layout без правки 134 файлов.
-
-**Решение:** Автоматизация через скрипт `tools/migrate_views.py` (3 итерации: `.vscode/tasks.json` → «Run migrate_views 1–3»).
-
-**Новые файлы:**
-- `public/Views/layouts/admin.php` — `renderUnifiedLayoutHeader($scope, $vars)`: извлекает 16 глобалов из `$GLOBALS` (`rUserInfo`, `rSettings`, `rThemes`, `rMobile`, `rHues`, `db`, `language`, `allServersHealthy`, `rServerError`, `rServers`, `allServers`, `rUpdate`, `_TITLE`, `rModal`, `rProxyServers`, `rPermissions`), затем `require` legacy `admin/header.php` или `reseller/header.php` в зависимости от `$scope`
-- `public/Views/layouts/footer.php` — `renderUnifiedLayoutFooter($scope, $vars)`: аналогичная обёртка для `footer.php`
-
-**Паттерн замены:**
-```php
-// Было:
-include 'header.php';
-
-// Стало:
-renderUnifiedLayoutHeader('admin');
-```
-
-```php
-// Было:
-include 'footer.php';
-
-// Стало:
-renderUnifiedLayoutFooter('admin');
-```
-
-**Масштаб:** 112 admin-файлов + 22 reseller-файла — все переведены на `renderUnifiedLayoutHeader()`/`renderUnifiedLayoutFooter()`.
-
-**Зачем обёртка, а не прямой include?**
-1. Единая точка подключения глобалов — при рефакторинге header достаточно изменить один файл
-2. Scope-параметр (`'admin'` / `'reseller'`) определяет правильный header без `if/else` в каждом файле
-3. Позволяет в будущем заменить legacy header на Blade/Twig без правки 134 view-файлов
-4. `$vars` позволяет передавать page-specific данные (напр. `_TITLE`) в layout без `$GLOBALS`-загрязнения
-
-**Скрипт удалён после использования** (`tools/migrate_views.py` — одноразовый).
-
-#### Шаг 9.4 — Глобальные переменные: экспорт singleton-данных ✅
-
-**Проблема:** После удаления god-объектов (Phase 8) все данные доступны только через singleton-менеджеры (`SettingsManager::getAll()`, `FfmpegPaths::probe()`, `ServerRepository::getAll()` и т.д.). Каждая функция вынуждена вызывать геттер в начале:
-```php
-// Было — каждый метод повторяет вызовы:
-$rSettings = SettingsManager::getAll();  // 400+ call-sites
-$rFFPROBE = FfmpegPaths::probe();       // 18 call-sites
-$rServers = ServerRepository::getAll();  // 50+ call-sites
-```
-
-**Решение:** `LegacyInitializer::exportGlobals()` — вызывается один раз в конце `initCore()` и `initStreaming()`, экспортирует singleton-данные в `$GLOBALS`:
-
-| Глобальная переменная | Источник | Контекст |
-|---|---|---|
-| `$rSettings` | `SettingsManager::getAll()` | core + streaming |
-| `$rRequest` | `RequestManager::getAll()` | core + streaming |
-| `$rConfig` | `ConfigReader::getAll()` | core + streaming |
-| `$rServers` | `ServerRepository::getAll()` | core + streaming |
-| `$rFFPROBE` | `FfmpegPaths::probe()` | core + streaming |
-| `$rFFMPEG_CPU` | `FfmpegPaths::cpu()` | core + streaming |
-| `$rFFMPEG_GPU` | `FfmpegPaths::gpu()` | core + streaming |
-| `$db` | `DatabaseFactory` | уже глобальная |
-
-**Использование:**
-```php
-// Теперь — одна строка global:
-public static function probeStream($url) {
-    global $rSettings, $rFFPROBE;
-    // $rSettings и $rFFPROBE доступны сразу
-}
-```
-
-**Правила:**
-- Глобалы — **read-only snapshot**, устанавливаются при bootstrap
-- Для мутаций использовать Manager: `SettingsManager::update('key', 'val')`
-- Streaming-контекст дополнительно экспортирует: `$rCached`, `$rBlockedUA`, `$rBlockedISP`, `$rBlockedIPs`, `$rBlockedServers`, `$rAllowedIPs`, `$rProxies`, `$rBouquets`, `$rSegmentSettings`
-
-**Обновлённые файлы (54 замены в 20 файлах):**
-- `core/Init/LegacyInitializer.php` — добавлен `exportGlobals()`, вызов из `initCore()` + FFmpeg globals в `initStreaming()`
-- `streaming/Codec/FFprobeRunner.php` — `global $rSettings, $rFFPROBE`
-- `streaming/Codec/SubtitleExtractor.php` — `global $rSettings, $rFFMPEG_CPU`
-- `streaming/Health/ProcessChecker.php` — `global $rServers`
-- `domain/Stream/StreamProcess.php` — 4 метода: `global $db, $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU`; переименование `$rFFMPEGCPU`→`$rFFMPEG_CPU`, `$rFFMPEGGPU`→`$rFFMPEG_GPU`
-- `domain/Stream/ConnectionTracker.php` — 5 методов: `global $rSettings, $rServers, $db`
-- `domain/Stream/PlaylistGenerator.php` — `global $db, $rSettings, $rServers`
-- `domain/Stream/StreamService.php` — `global $db, $rSettings`
-- `domain/Stream/ChannelService.php` — `global $db, $rSettings`
-- `domain/Stream/StreamRepository.php` — `global $db, $rSettings`
-- `domain/Server/ServerRepository.php` — 6 методов: `global $rSettings, $rServers, $db`
-- `domain/Auth/AuthService.php` — 2 метода: `global $db, $rSettings`
-- `domain/Vod/EpisodeService.php` — `global $db, $rSettings`
-- `domain/User/UserRepository.php` — 2 метода: `global $db, $rSettings`
-- `domain/Security/BlocklistService.php` — `global $rServers`
-- `core/Config/DomainResolver.php` — `global $rServers, $rSettings`
-- `core/Auth/Authenticator.php` — 2 метода: `global $db, $rSettings`
-- `core/Http/CurlClient.php` — 2 метода: `global $rServers`
-- `crons/users.php` — `global $rServers, $rSettings`
-- `includes/admin.php` — 4 функции: `global $rServers` (+ `$rSettings`)
-
----
-
-## 10. Транзакции и производительность
-
-### 10.1. Кто управляет транзакциями
+### 9.1. Кто управляет транзакциями
 
 **Правило:** Транзакцией управляет **Service**. Контроллер и Repository не открывают транзакции.
 
@@ -1632,7 +1319,8 @@ Controller ──→ Service ──→ Repository + Infrastructure
                   └── (rollback при исключении)
 ```
 
-### 10.2. Паттерн транзакции
+
+### 9.2. Паттерн транзакции
 
 ```php
 class StreamService {
@@ -1655,7 +1343,7 @@ class StreamService {
 }
 ```
 
-### 10.3. Границы по контексту
+### 9.3. Границы по контексту
 
 | Контекст | Транзакция | Кто управляет | Пример |
 |----------|-----------|---------------|--------|
@@ -1665,7 +1353,7 @@ class StreamService {
 | **Cron** | Каждая итерация = отдельная транзакция | CronJob | `ServersCron::processServer()` |
 | **Streaming** | ❌ Нет транзакций | — | Hot path не мутирует через транзакции |
 
-### 10.4. Внешние процессы
+### 9.4. Внешние процессы
 
 Операция «создать поток + запустить ffmpeg + обновить nginx» — не атомарна. FFmpeg/nginx — внешние процессы, откатить нельзя.
 
@@ -1694,14 +1382,14 @@ class StreamService {
 }
 ```
 
-### 10.5. Два режима работы системы
+### 9.5. Два режима работы системы
 
 | Режим | Путь | Частота | Допустимая latency | Загрузка |
 |-------|------|---------|-------------------|----------|
 | **Hot path** (streaming) | `www/stream/*.php` | ~10K–100K req/min | < 50ms p99 | Минимальный bootstrap, никаких модулей |
 | **Cold path** (admin) | `admin/*.php`, API | ~1–100 req/min | < 500ms p99 | Полный bootstrap, все модули |
 
-### 10.6. Бюджет hot path
+### 9.6. Бюджет hot path
 
 Streaming-запрос (`auth.php` → `live.php`) должен уложиться в:
 
@@ -1717,7 +1405,7 @@ Total:         < 30ms (target) | < 50ms (max)
 **НЕЛЬЗЯ загружать в hot path:** Router, EventDispatcher с подписчиками, ServiceContainer полный boot.
 **МОЖНО:** Database (persistent), Redis (single connection), GeoIP (mmap), streaming/*.
 
-### 10.7. Async / Queue (будущее)
+### 9.7. Async / Queue (будущее)
 
 Длинные операции (ffprobe, tmdb, mass import) — кандидаты на async:
 
@@ -1729,95 +1417,11 @@ HTTP → Service → Queue Job (Redis LPUSH) → Worker (cron) → Result
 
 ---
 
-## 11. Стратегия миграции по рискам
-
-### 11.1. Принцип: каждый шаг обратим
-
-Каждое изменение следует паттерну **extract → delegate → verify → replace**:
-
-```
-1. Extract: создать новый класс
-2. Delegate: старый код вызывает новый через proxy
-3. Verify: система работает как раньше + новый код работает
-4. Replace: обновить вызывающий код на прямые вызовы (отдельный шаг)
-```
-
-Если шаг 3 провалился — откат = удалить новый класс + убрать proxy. Система возвращается в предыдущее состояние.
-
-### 11.2. Регрессионная стратегия
-
-| Уровень | Что проверяется | Как проверяется | Когда |
-|---------|----------------|-----------------|-------|
-| **Syntax** | PHP-файлы компилируются | `php -l` на каждый изменённый файл | После каждого коммита |
-| **Smoke** | Система запускается | `make new && make lb` + проверка HTTP 200 | После каждой фазы |
-| **Functional** | Основные сценарии работают | Ручной checklist (создать поток, запустить, остановить) | После каждой фазы |
-| **Integration** | LB-сборка работает | Деплой на тестовый LB-сервер + стриминг-тест | После фаз 1–4 |
-| **Backward compat** | API не сломан | Проверка ответов API (формат JSON, коды ошибок) | После фазы 6 |
-
-### 11.3. Dual bootstrap на переходном этапе
-
-**Текущее состояние (фазы 1–6):** Dual bootstrap работает параллельно.
-
-```
-bootstrap.php (новый)          includes/admin.php (старый legacy)
-      │                                │
-      ├── autoload.php                 ├── require Database.php
-      ├── ServiceContainer             ├── CoreUtilities::init()
-      ├── ConfigLoader                 ├── API/ResellerAPI init
-      └── новые core/ классы           └── 50 define() + global $db
-```
-
-**Правила dual bootstrap:**
-1. `bootstrap.php` загружается ПЕРВЫМ в каждой точке входа
-2. `includes/admin.php` загружается ПОСЛЕ — для legacy-кода, который ещё не мигрирован
-3. Новые классы (`core/`, `domain/`) инициализируются через `ServiceContainer`
-4. Legacy-код (`CoreUtilities`, `admin_api.php`) продолжает работать через proxy-методы
-5. После полной миграции (Фаза 8) — `includes/admin.php` удаляется
-
-### 11.4. API backward compatibility
-
-**Правило:** Внешний API (`player.api`, `xmltv.php`, межсерверный API) не меняет формат ответов до Фазы 8.
-
-```
-Фазы 1–7: Внутренняя рефакторизация, внешний API неизменен
-Фаза 8:   API v2 (опционально) с новой маршрутизацией
-           API v1 продолжает работать через compatibility layer
-```
-
-### 11.5. Разделение релизов
-
-| Релиз | Содержит | Риск |
-|-------|----------|------|
-| **v1.8** | Фазы 0–2 (core/ extraction, dedup) | 🟢 Низкий — proxy-методы, обратная совместимость |
-| **v1.9** | Фазы 3–4 (domain/ + streaming/ extraction) | 🟡 Средний — больше перемещений, proxy покрывает |
-| **v2.0** | Фазы 5–6 (modules + controllers) | 🟡 Средний — новая маршрутизация, dual bootstrap |
-| **v2.1** | Фазы 7–8 (cleanup, удаление legacy) | 🔴 Высокий — удаление god-объектов, нет fallback |
-
-### 11.6. Rollback plan
-
-```
-Если v2.0 ломает production:
-1. git revert последний merge в main
-2. Пересобрать: make new && make lb
-3. Задеплоить предыдущую сборку
-4. Post-mortem: что сломалось, почему не поймали на smoke test
-```
-
-Для v2.1 (удаление legacy) — **feature flag:**
-```php
-// config.ini
-[migration]
-use_legacy_bootstrap = false    ; true = откат на admin.php
-use_legacy_api = false          ; true = откат на admin_api.php switch
-```
-
----
-
-## 12. Правила для контрибьюторов
+## 10. Правила для контрибьюторов
 
 > Этот раздел — краткая выжимка для тех, кто не читал весь документ. Подробности — в CONTRIBUTING.md.
 
-### 12.1. Как добавить новый эндпоинт (admin)
+### 10.1. Как добавить новый эндпоинт (admin)
 
 1. Найти контекст в `domain/` (например `domain/Stream/`)
 2. Добавить метод в `StreamService.php` (бизнес-логика)
@@ -1825,20 +1429,20 @@ use_legacy_api = false          ; true = откат на admin_api.php switch
 4. Добавить action в Controller или `admin_api.php` → вызов Service
 5. `php -l` на изменённые файлы
 
-### 12.2. Как добавить новую таблицу
+### 10.2. Как добавить новую таблицу
 
 1. Добавить миграцию в `infrastructure/install/`
 2. Создать Repository в `domain/{Context}/` с CRUD-методами
 3. Зарегистрировать в `autoload.php`
 
-### 12.3. Как НЕ сломать streaming
+### 10.3. Как НЕ сломать streaming
 
 - **Никогда** не менять `www/stream/*.php` без явного ревью
 - **Никогда** не добавлять `require` тяжёлых классов в streaming bootstrap
 - Не использовать EventDispatcher / Router / ServiceContainer в hot path
 - Проверять latency: `< 50ms p99`
 
-### 12.4. Правила PR
+### 10.4. Правила PR
 
 1. Один PR = одна фича/багфикс. Не смешивать рефакторинг с фичами.
 2. `php -l` на все изменённые файлы перед пушем.
@@ -1846,7 +1450,7 @@ use_legacy_api = false          ; true = откат на admin_api.php switch
 4. proxy-методы помечать `// @legacy-proxy — убрать в Фазе 8`.
 5. Новые классы регистрировать в `autoload.php`.
 
-### 12.5. Простые правила (cheat sheet)
+### 10.5. Простые правила (cheat sheet)
 
 ```
 ✗  Не пиши SQL в Controller          →  Пиши в Repository
