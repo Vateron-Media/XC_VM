@@ -261,7 +261,7 @@ function getBouquetGroups() {
 		$rBouquets = json_decode($rRow['bouquet'] ?? null, true);
 
 		if (!is_array($rBouquets) || empty($rBouquets)) {
-			print_log("[XMLTV] Skipping invalid/empty bouquet value: " . var_export($rBouquetsRaw, true));
+			print_log("[XMLTV] Skipping invalid/empty bouquet value: " . var_export($rBouquets, true));
 			continue;
 		}
 
