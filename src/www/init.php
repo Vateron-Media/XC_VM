@@ -23,7 +23,9 @@ if (basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'])) {
 	generate404();
 }
 
-$rFilename = strtolower(basename(get_included_files()[0], '.php'));
+if (!isset($rFilename)) {
+	$rFilename = strtolower(basename(get_included_files()[0], '.php'));
+}
 
 if (!in_array($rFilename, array('enigma2', 'epg', 'playlist', 'api', 'xplugin', 'live', 'proxy_api', 'thumb', 'timeshift', 'vod')) || isset($argc)) {
 	$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);

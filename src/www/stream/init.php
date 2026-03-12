@@ -122,7 +122,9 @@ Logger::init(
 //  8. Stream endpoint routing
 // -----------------------------------------------------------------
 
-$rFilename = strtolower(basename(get_included_files()[0], '.php'));
+if (!isset($rFilename)) {
+	$rFilename = strtolower(basename(get_included_files()[0], '.php'));
+}
 
 if (isset($rSettings['exit']) && $rFilename != 'status') {
 	generate404();

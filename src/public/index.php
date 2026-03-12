@@ -90,20 +90,13 @@ if (!defined('MAIN_HOME')) {
 }
 
 // ─────────────────────────────────────────────────────────────────
-//  1a. Debug: ловим фатальные ошибки, которые убивают рендеринг
+//  1b. Autoloader — загружаем ДО всего dispatch-кода
+// ─────────────────────────────────────────────────────────────────
+//  Гарантирует доступность классов (Router, Controller-ы, Domain)
+//  на ВСЕХ путях исполнения: 3a REST, 3b Streaming, 4a noBootstrap, 4b full.
 // ─────────────────────────────────────────────────────────────────
 
-register_shutdown_function(function () {
-    $error = error_get_last();
-    if ($error && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
-        // Вывод ошибки для диагностики (убрать после отладки)
-        echo '<div style="background:#c00;color:#fff;padding:15px;margin:10px;font-family:monospace;position:fixed;bottom:0;left:0;right:0;z-index:99999;">';
-        echo '<b>FATAL ERROR:</b> ' . htmlspecialchars($error['message']);
-        echo ' in <b>' . htmlspecialchars($error['file']) . '</b>';
-        echo ' on line <b>' . $error['line'] . '</b>';
-        echo '</div>';
-    }
-});
+require_once MAIN_HOME . 'autoload.php';
 
 // ─────────────────────────────────────────────────────────────────
 //  2. Разбор URL → scope + pageName
@@ -126,6 +119,7 @@ $urlPath    = '/' . ltrim($urlPath, '/');
 $scope      = 'admin';
 $pageName   = '';
 $accessCode = null;
+$rawScope   = null;
 
 // Режим A: access code — nginx передаёт scope через fastcgi_param
 if (!empty($_SERVER['XC_SCOPE'])) {
@@ -210,6 +204,67 @@ if (in_array($ext, ['css', 'js', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'ico', 'wof
 }
 
 // ─────────────────────────────────────────────────────────────────
+//  3a. REST API — admin/reseller external API dispatch
+// ─────────────────────────────────────────────────────────────────
+//
+//  Access code type 3/4 → nginx fallback @fc_{code} → FC.
+//  index.php удалён из includes/api/, bootstrap + controller напрямую.
+// ─────────────────────────────────────────────────────────────────
+
+if (isset($rawScope) && in_array($rawScope, ['includes/api/admin', 'includes/api/reseller'], true)) {
+	require_once MAIN_HOME . 'includes/admin.php';
+	if ($rawScope === 'includes/api/admin') {
+		$controller = new AdminApiController();
+	} else {
+		$controller = new ResellerRestApiController();
+	}
+	$controller->index();
+	exit;
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  3b. Streaming API — player_api, enigma2, epg, playlist и др.
+// ─────────────────────────────────────────────────────────────────
+//
+//  nginx location перехватывает /{endpoint}.php → FC с XC_SCOPE=api,
+//  XC_API={endpoint}. Загружаем streaming bootstrap, dispatch controller.
+// ─────────────────────────────────────────────────────────────────
+
+if (isset($rawScope) && $rawScope === 'api' && !empty($_SERVER['XC_API'])) {
+	$rApiName = $_SERVER['XC_API'];
+	$rApiControllerMap = [
+		'player_api' => 'PlayerApiController',
+		'enigma2'    => 'Enigma2ApiController',
+		'xplugin'    => 'XPluginApiController',
+		'epg'        => 'EpgApiController',
+		'playlist'   => 'PlaylistApiController',
+		'internal'   => 'InternalApiController',
+	];
+
+	if (!isset($rApiControllerMap[$rApiName])) {
+		http_response_code(404);
+		exit;
+	}
+
+	// $rFilename задаётся напрямую — init.php/stream/init.php
+	// проверяют isset($rFilename) и не вычисляют из basename.
+	$rFilename = ($rApiName === 'internal') ? 'api' : $rApiName;
+
+	chdir(MAIN_HOME . 'www/');
+	if ($rApiName === 'player_api') {
+		require MAIN_HOME . 'www/stream/init.php';
+	} else {
+		require MAIN_HOME . 'www/init.php';
+	}
+
+	$rControllerClass = $rApiControllerMap[$rApiName];
+	$controller = new $rControllerClass();
+	register_shutdown_function([$controller, 'shutdown']);
+	$controller->index();
+	exit;
+}
+
+// ─────────────────────────────────────────────────────────────────
 //  4. Bootstrap — сессия + глобальные данные (legacy chain)
 // ─────────────────────────────────────────────────────────────────
 
@@ -262,8 +317,6 @@ if ($scope === 'player') {
 // ─────────────────────────────────────────────────────────────────
 
 if (in_array($pageName, $noBootstrapPages, true)) {
-    // Загружаем только autoloader (без full bootstrap)
-    require_once MAIN_HOME . 'autoload.php';
     $router = Router::getInstance();
     require_once __DIR__ . '/routes/' . $scope . '.php';
     $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';

@@ -349,17 +349,23 @@ FC переключён на `infrastructure/bootstrap/admin_*_fc.php`. Ориг
 4. `includes/api/admin/` и `includes/api/reseller/` → thin proxies → удаление
 5. Маршруты в `public/routes/api.php`
 
-#### Шаг 11.6 — Удаление legacy API файлов
+#### Шаг 11.6 — Удаление legacy API файлов ✅
 
 **Предусловия:** 11.1–11.5 завершены, nginx rewrites обновлены.
 
 **Действия:**
-1. Удалить `www/player_api.php`, `www/enigma2.php`, `www/xplugin.php`, `www/epg.php`, `www/playlist.php`
-2. Удалить `www/api.php` (межсерверный)
-3. Удалить `includes/api/admin/`, `includes/api/reseller/`
-4. `www/probe.php`, `www/progress.php` → thin helpers (оставить или перенести в stream/)
-5. Обновить nginx-конфиг: rewrite на `public/index.php` с scope=`api`
-6. Smoke test: player_api, enigma2, playlist, epg, internal API
+1. ✅ Удалить `www/player_api.php`, `www/enigma2.php`, `www/xplugin.php`, `www/epg.php`, `www/playlist.php`
+2. ✅ Удалить `www/api.php` (межсерверный)
+3. ✅ Удалить `includes/api/admin/index.php`, `includes/api/reseller/index.php` (table.php оставлен — используется через curl из TableAPI)
+4. ✅ `www/probe.php`, `www/progress.php` — оставлены как streaming helpers
+5. ✅ Обновить nginx-конфиг: rewrite на `public/index.php` с scope=`api`
+   - `location ~ ^/(player_api|enigma2|xplugin|epg|playlist)\.php$` → FC с `XC_SCOPE=api`, `XC_API=$1`
+   - `location = /api.php` → FC с `XC_SCOPE=api`, `XC_API=internal` (allow 127.0.0.1 only)
+6. ✅ `public/index.php` — добавлены секции 3a (REST API dispatch) и 3b (Streaming API dispatch)
+   - REST API: `XC_SCOPE=includes/api/admin|reseller` → `includes/admin.php` + controller
+   - Streaming API: `XC_SCOPE=api` + `XC_API` → `www/init.php` или `www/stream/init.php` + controller
+7. ✅ `www/init.php`, `www/stream/init.php` — добавлен `FC_API_NAME` override для `$rFilename`
+8. Smoke test: player_api, enigma2, playlist, epg, internal API — **ожидает деплоя**
 
 ---
 
