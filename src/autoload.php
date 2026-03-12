@@ -479,7 +479,11 @@ class XC_Autoloader {
             'EPG'                   => $base . 'crons/epg.php',
 
             // ── WWW ───────────────────────────────────────────────
-            'SimpleXMLExtended'     => $base . 'www/enigma2.php',
+            'SimpleXMLExtended'        => $base . 'public/Controllers/Api/Enigma2ApiController.php',
+            'AdminAPIWrapper'          => $base . 'public/Controllers/Api/AdminApiController.php',
+            'ResellerRestApiController' => $base . 'public/Controllers/Api/ResellerRestApiController.php',
+            'ResellerAPIWrapper'       => $base . 'public/Controllers/Api/ResellerRestApiController.php',
+            'ResellerApiController'    => $base . 'public/Controllers/Reseller/ResellerApiController.php',
         ];
     }
 
