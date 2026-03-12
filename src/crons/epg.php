@@ -258,7 +258,13 @@ function getBouquetGroups() {
 	];
 
 	foreach ($db->get_rows() as $rRow) {
-		$rBouquets = json_decode($rRow['bouquet'], true);
+		$rBouquets = json_decode($rRow['bouquet'] ?? null, true);
+
+		if (!is_array($rBouquets) || empty($rBouquets)) {
+			print_log("[XMLTV] Skipping invalid/empty bouquet value: " . var_export($rBouquetsRaw, true));
+			continue;
+		}
+
 		sort($rBouquets);
 		$ApiDependencyIdentifier[implode('_', $rBouquets)] = [
 			'streams'  => [],
