@@ -1,0 +1,91 @@
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>XC_VM Documentation</title>
+  <meta name="google-site-verification" content="6t0LoIeFksrjF4c9sqUEsVXiQNxLp2hgoqo0KryT-sE">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="keywords" content="xc_vm,iptv,panel,documentation,api,streaming">
+  <meta name="description" content="XC_VM IPTV Panel Documentation">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify@4/lib/themes/buble.css" title="buble">
+  <style>
+    nav.app-nav li ul {
+      min-width: 100px;
+    }
+  </style>
+  <style>
+    .sidebar {
+      padding-top: 0;
+    }
+
+    .app-name.hide,
+    .sidebar-nav.hide {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app"></div>
+  <script>
+    // Redirect root to en-us BEFORE Docsify loads
+    if (
+      location.hash === '' ||
+      location.hash === '#' ||
+      location.hash === '#/'
+    ) {
+      location.replace('#/en-us/');
+    }
+  </script>
+
+  <script>
+    // Language detection
+    var lang = location.hash.match(/#\/(ru-ru|en-us)\//);
+
+    if (lang) {
+      document.documentElement.setAttribute('lang', lang[1]);
+    }
+
+    window.$docsify = {
+      alias: {
+        '/.*/_navbar.md': '/_navbar.md',
+        '/ru-ru/(.*)': '/ru/$1',
+        '/en-us/(.*)': '/en/$1',
+      },
+      auto2top: true,
+      executeScript: true,
+      loadSidebar: true,
+      loadNavbar: true,
+      mergeNavbar: true,
+      maxLevel: 4,
+      subMaxLevel: 2,
+      name: 'XC_VM',
+      nameLink: {
+        '/ru-ru/': '#/ru-ru/',
+        '/en-us/': '#/en-us/',
+        '/': '#/en-us/',
+      },
+      search: {
+        placeholder: 'Search...',
+        noData: 'No results',
+        paths: 'auto',
+        depth: 4,
+      },
+    };
+  </script>
+  <script src="//cdn.jsdelivr.net/npm/docsify@4/lib/docsify.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/docsify@4/lib/plugins/search.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-bash.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-markdown.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-nginx.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-php.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-sql.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-json.min.js"></script>
+
+
+  <div class="progress" style="opacity: 0; width: 0%;"></div>
+</body>
+
+</html>
