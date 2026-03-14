@@ -633,7 +633,7 @@ if (1 < $rICount) { ?>
 				}
 
 				if (isset($rData['force_epg_update'])) {
-					shell_exec(MAIN_HOME . '/php/bin/php ' . MAIN_HOME . '/crons/epg.php > /dev/null 2>/dev/null &');
+					shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:epg > /dev/null 2>/dev/null &');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 					exit();
 				}
@@ -938,7 +938,7 @@ if (1 < $rICount) { ?>
 				}
 
 				if (isset($rData['delete_duplicates'])) {
-					shell_exec(PHP_BIN . ' ' . CLI_PATH . 'tools.php "duplicates" > /dev/null 2>/dev/null &');
+					shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php tools duplicates > /dev/null 2>/dev/null &');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 					exit();
 				}

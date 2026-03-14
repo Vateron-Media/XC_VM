@@ -1169,9 +1169,9 @@ class AdminAPIWrapper {
     }
     public static function reloadEPG($rID = null) {
         if ($rID) {
-            shell_exec(PHP_BIN . ' ' . CRON_PATH . 'epg.php "' . intval($rID) . '" > /dev/null 2>/dev/null &');
+            shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:epg "' . intval($rID) . '" > /dev/null 2>/dev/null &');
         } else {
-            shell_exec(PHP_BIN . ' ' . CRON_PATH . 'epg.php > /dev/null 2>/dev/null &');
+            shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:epg > /dev/null 2>/dev/null &');
         }
         return array('status' => 'STATUS_SUCCESS');
     }
@@ -1220,9 +1220,9 @@ class AdminAPIWrapper {
     }
     public static function reloadProvider($rID = null) {
         if ($rID) {
-            shell_exec(PHP_BIN . ' ' . CRON_PATH . 'providers.php "' . intval($rID) . '" > /dev/null 2>/dev/null &');
+            shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:providers "' . intval($rID) . '" > /dev/null 2>/dev/null &');
         } else {
-            shell_exec(PHP_BIN . ' ' . CRON_PATH . 'providers.php > /dev/null 2>/dev/null &');
+            shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:providers > /dev/null 2>/dev/null &');
         }
         return array('status' => 'STATUS_SUCCESS');
     }
@@ -2044,7 +2044,7 @@ class AdminAPIWrapper {
         return array('status' => 'STATUS_FAILURE');
     }
     public static function reloadCache() {
-        shell_exec(PHP_BIN . ' ' . CRON_PATH . 'cache_engine.php > /dev/null 2>/dev/null &');
+        shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:cache_engine > /dev/null 2>/dev/null &');
         return array('status' => 'STATUS_SUCCESS');
     }
     public static function runQuery($rQuery) {

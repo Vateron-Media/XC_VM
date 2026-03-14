@@ -72,8 +72,7 @@
 
 ```
 admin/*.php ──────┐
-reseller/*.php ───┤
-crons/*.php ──────┤──→ includes/admin.php ──→ CoreUtilities (4847)
+reseller/*.php ───┤──→ includes/admin.php ──→ CoreUtilities (4847)
 includes/api/ ────┘         │                     ├── Database
                             │                     ├── Redis
                             ├──→ admin_api.php (6981)
@@ -342,6 +341,7 @@ src/
 │   │   └── BouquetService.php       # + BouquetRepository + BouquetMapper (один файл, < 300 стр.)
 │   │
 │   ├── Epg/
+│   │   ├── EPG.php                  # XML-парсер EPG (XmlStringStreamer), MAIN-only
 │   │   └── EpgService.php           # + EpgRepository (один файл, < 300 стр.)
 │   │
 │   ├── Auth/
@@ -768,8 +768,8 @@ class StreamController {
 - Каждый `admin/*.php` (100+ файлов) → Controller + View. Пример: `admin/streams.php` → `Controllers/Admin/StreamController.php` + `Views/admin/streams/list.php`
 - `admin/header.php` (675 стр.) + `admin/footer.php` (805 стр.) → `Views/layouts/admin.php` + выделение JS в файлы `assets/`
 - `admin/post.php` (1946 стр.) → обработчики форм распределяются по контроллерам
-- `crons/*.php` → `Cli/CronJobs/`, каждый крон — один файл
-- `includes/cli/*.php` → `Cli/Commands/`
+- `crons/*.php` → `cli/CronJobs/`, каждый крон — один файл (**crons/ удалён**, Phase 12.8)
+- `includes/cli/*.php` → `cli/Commands/` (**includes/cli/ удалён**, Phase 12.6)
 
 ### 4.5. `modules/` — Опциональные модули
 
@@ -1272,8 +1272,10 @@ www/stream/*.php ──→ bootstrap.php (CONTEXT_STREAM)
                          ├──→ infrastructure/redis/(RedisManager)
                          └──→ resources/data/      (error_codes.php)
 
-crons/*.php (на LB) ──→ bootstrap.php (CONTEXT_CLI)
+console.php cron:* ──→ bootstrap.php (CONTEXT_CLI)
                          └──→ те же зависимости + domain/Stream/*
+
+> **Примечание:** `crons/*.php` удалены (Phase 12.8). Все вызовы идут через `console.php cron:{name}`.
 ```
 
 ### 8.5. Правила для разработки с учётом LB

@@ -51,21 +51,25 @@ if (!function_exists('getallheaders')) {
 //  3. Direct access guard
 // -----------------------------------------------------------------
 
-if (basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'])) {
-	generate404();
+if (!defined('PHP_SAPI') || PHP_SAPI !== 'cli') {
+	if (basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'] ?? '')) {
+		generate404();
+	}
 }
 
 @ini_set('user_agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.61 Safari/537.36');
 @ini_set('default_socket_timeout', 5);
 
 // -----------------------------------------------------------------
-//  4. Flood protection (via $argc - stream-specific)
+//  4. Flood protection (HTTP-only, skip in CLI)
 // -----------------------------------------------------------------
 
-if (!$argc) {
-	$rIP = $_SERVER['REMOTE_ADDR'];
+$rIsCli = (PHP_SAPI === 'cli');
 
-	if (file_exists(FLOOD_TMP_PATH . 'block_' . $rIP)) {
+if (!$rIsCli) {
+	$rIP = $_SERVER['REMOTE_ADDR'] ?? '';
+
+	if ($rIP !== '' && file_exists(FLOOD_TMP_PATH . 'block_' . $rIP)) {
 		http_response_code(403);
 
 		exit();
@@ -85,11 +89,11 @@ if (file_exists(CACHE_TMP_PATH . 'settings')) {
 $rShowErrors = false;
 
 // -----------------------------------------------------------------
-//  6. Host verification (via $argc - stream-specific)
+//  6. Host verification (HTTP-only, skip in CLI)
 // -----------------------------------------------------------------
 
-if (!$argc) {
-	define('HOST', trim(explode(':', $_SERVER['HTTP_HOST'])[0]));
+if (!$rIsCli) {
+	define('HOST', trim(explode(':', $_SERVER['HTTP_HOST'] ?? '')[0]));
 
 	if (is_array($rSettings) && $rSettings['verify_host']) {
 		$rAllowedDomains = (igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'allowed_domains')) ?: array());
@@ -105,7 +109,9 @@ if (!$argc) {
 	$rShowErrors = (isset($rSettings['debug_show_errors']) ? $rSettings['debug_show_errors'] : false);
 }
 
-define('PHP_ERRORS', $rShowErrors);
+if (!defined('PHP_ERRORS')) {
+	define('PHP_ERRORS', $rShowErrors);
+}
 
 // -----------------------------------------------------------------
 //  7. Logger

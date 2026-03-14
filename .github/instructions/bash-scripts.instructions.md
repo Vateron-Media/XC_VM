@@ -29,5 +29,5 @@ set -euo pipefail
 - Avoid `eval` unless absolutely necessary
 
 ## Paths
-- Use absolute paths for system binaries: `/usr/bin/php8.2`, `/usr/sbin/nginx`
+- Use absolute paths for system binaries: `/usr/bin/php8.1`, `/usr/sbin/nginx`
 - Reference project root via variable, not hardcoded paths

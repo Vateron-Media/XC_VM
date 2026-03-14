@@ -434,7 +434,7 @@ class ProcessManager {
      * @return bool
      */
     public static function startMonitor($streamID, $restart = 0) {
-        shell_exec(PHP_BIN . ' ' . CLI_PATH . 'monitor.php ' . intval($streamID) . ' ' . intval($restart) . ' >/dev/null 2>/dev/null &');
+        shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php monitor ' . intval($streamID) . ' ' . intval($restart) . ' >/dev/null 2>/dev/null &');
         return true;
     }
 
@@ -447,7 +447,7 @@ class ProcessManager {
      * @return bool
      */
     public static function startProxy($streamID) {
-        shell_exec(PHP_BIN . ' ' . CLI_PATH . 'proxy.php ' . intval($streamID) . ' >/dev/null 2>/dev/null &');
+        shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php proxy ' . intval($streamID) . ' >/dev/null 2>/dev/null &');
         return true;
     }
 
@@ -474,14 +474,13 @@ class ProcessManager {
      * @return bool
      */
     public static function isNginxRunning() {
-        $rNginx = 0;
-        exec('ps -fp $(pgrep -u xc_vm)', $rOutput, $rReturnVar);
+        $rOutput = [];
+        exec('pgrep -u xc_vm -a 2>/dev/null', $rOutput);
         foreach ($rOutput as $rProcess) {
-            $rSplit = explode(' ', preg_replace('!\\s+!', ' ', trim($rProcess)));
-            if (isset($rSplit[8]) && $rSplit[8] == 'nginx:' && isset($rSplit[9]) && $rSplit[9] == 'master') {
-                $rNginx++;
+            if (preg_match('/nginx:\s+master/', $rProcess)) {
+                return true;
             }
         }
-        return 0 < $rNginx;
+        return false;
     }
 }

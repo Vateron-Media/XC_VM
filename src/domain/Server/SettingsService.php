@@ -116,7 +116,7 @@ class SettingsService {
 		}
 
 		if ($rCheck[0] && $rCheck[1]) {
-			$db->query("UPDATE `crontab` SET `time` = ? WHERE `filename` = 'cache_engine.php';", $rCronOutput);
+			$db->query("UPDATE `crontab` SET `time` = ? WHERE `filename` = 'cache_engine';", $rCronOutput);
 			$db->query('UPDATE `settings` SET `cache_thread_count` = ?, `cache_changes` = ?;', $rData['cache_thread_count'], $rCacheChanges);
 
 			if (file_exists(TMP_PATH . 'crontab')) {

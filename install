@@ -523,7 +523,7 @@ if __name__ == "__main__":
     os.system("sudo /home/xc_vm/status 1")
     os.system("sudo chown xc_vm:xc_vm -R /home/xc_vm/config/")
     os.system(
-        "sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/includes/cli/startup.php >/dev/null 2>&1"
+        "sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php startup >/dev/null 2>&1"
     )
 
     time.sleep(3)

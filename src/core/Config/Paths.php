@@ -8,7 +8,7 @@
  *
  * Группы:
  *   1. Базовые пути (content/, tmp/)
- *   2. Системные директории (config/, bin/, includes/, www/, crons/, signals/)
+ *   2. Системные директории (config/, bin/, includes/, www/, signals/)
  *   3. Контент-директории (streams/, epg/, vod/, archive/, ...)
  *   4. Временные директории (cache/, flood/, logs/, ...)
  *   5. Веб-ресурсы (images/, enigma2/)
@@ -34,9 +34,7 @@ define('CONFIG_PATH',   MAIN_HOME . 'config/');
 define('BIN_PATH',      MAIN_HOME . 'bin/');
 define('INCLUDES_PATH', MAIN_HOME . 'includes/');
 define('WWW_PATH',      MAIN_HOME . 'www/');
-define('CRON_PATH',     MAIN_HOME . 'crons/');
 define('SIGNALS_PATH',  MAIN_HOME . 'signals/');
-define('CLI_PATH',      INCLUDES_PATH . 'cli/');
 
 // ─────────────────────────────────────────────────────────────────
 //  3. Контент-директории
