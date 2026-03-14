@@ -631,7 +631,7 @@ if (isset($_SESSION['hash'])) {
 		}
 		if (RequestManager::getAll()['action'] == 'regenerate_cache') {
 			if (Authorization::check('adv', 'backups')) {
-				shell_exec(PHP_BIN . ' ' . CRON_PATH . 'cache_engine.php "force"');
+				shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:cache_engine "force"');
 				echo json_encode(array('result' => true));
 
 				exit();
@@ -650,12 +650,12 @@ if (isset($_SESSION['hash'])) {
 					unlink(CACHE_TMP_PATH . 'settings');
 				}
 
-				shell_exec(PHP_BIN . ' ' . CRON_PATH . 'cache_engine.php');
+				shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:cache_engine');
 				$rCache = intval(trim(shell_exec('pgrep -U xc_vm | xargs ps -f -p | grep cache_handler | grep -v grep | grep -v pgrep | wc -l')));
 
 				if ($rCache != 0) {
 				} else {
-					shell_exec(PHP_BIN . ' ' . CLI_PATH . 'cache_handler.php > /dev/null 2>/dev/null &');
+					shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php cache_handler > /dev/null 2>/dev/null &');
 				}
 
 				echo json_encode(array('result' => true));
@@ -676,7 +676,7 @@ if (isset($_SESSION['hash'])) {
 					unlink(CACHE_TMP_PATH . 'settings');
 				}
 
-				shell_exec(PHP_BIN . ' ' . CRON_PATH . 'cache.php');
+				shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:cache');
 				echo json_encode(array('result' => true));
 
 				exit();
@@ -698,7 +698,7 @@ if (isset($_SESSION['hash'])) {
 				}
 
 				if ($rSub == 'reload') {
-					shell_exec(PHP_BIN . ' ' . CRON_PATH . 'epg.php "' . intval(RequestManager::getAll()['epg_id']) . '" > /dev/null 2>/dev/null &');
+					shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:epg "' . intval(RequestManager::getAll()['epg_id']) . '" > /dev/null 2>/dev/null &');
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -725,7 +725,7 @@ if (isset($_SESSION['hash'])) {
 				}
 
 				if ($rSub == 'reload') {
-					shell_exec(PHP_BIN . ' ' . CRON_PATH . 'providers.php "' . intval(RequestManager::getAll()['id']) . '" > /dev/null 2>/dev/null &');
+					shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:providers "' . intval(RequestManager::getAll()['id']) . '" > /dev/null 2>/dev/null &');
 					echo json_encode(array('result' => true));
 
 					exit();
@@ -2118,7 +2118,7 @@ if (isset($_SESSION['hash'])) {
 		}
 		if (RequestManager::getAll()['action'] == 'force_epg') {
 			if (Authorization::check('adv', 'epg')) {
-				shell_exec(PHP_BIN . ' ' . CRON_PATH . 'epg.php > /dev/null 2>/dev/null &');
+				shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:epg > /dev/null 2>/dev/null &');
 				echo json_encode(array('result' => true));
 
 				exit();
@@ -2786,7 +2786,7 @@ if (isset($_SESSION['hash'])) {
 					exit();
 				}
 
-				$rCommand = PHP_BIN . ' ' . CRON_PATH . 'backups.php 1 > /dev/null 2>/dev/null &';
+				$rCommand = PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:backups 1 > /dev/null 2>/dev/null &';
 				$rRet = shell_exec($rCommand);
 				echo json_encode(array('result' => true));
 
@@ -3043,9 +3043,9 @@ if (isset($_SESSION['hash'])) {
 					$db->query('UPDATE `servers` SET `status` = 3 WHERE `id` = ?;', $rServerID);
 
 					if (isset($rParams['http_broadcast_port'])) {
-						$rCommand = PHP_BIN . ' ' . CLI_PATH . 'balancer.php ' . $rType . ' ' . intval($rServerID) . ' ' . intval($rParams['ssh_port']) . ' ' . escapeshellarg($rParams['root_username']) . ' ' . escapeshellarg($rParams['root_password']) . ' ' . intval($rParams['http_broadcast_port']) . ' ' . intval($rParams['https_broadcast_port']) . ' > "' . BIN_PATH . 'install/' . intval($rServerID) . '.install" 2>/dev/null &';
+						$rCommand = PHP_BIN . ' ' . MAIN_HOME . 'console.php balancer ' . $rType . ' ' . intval($rServerID) . ' ' . intval($rParams['ssh_port']) . ' ' . escapeshellarg($rParams['root_username']) . ' ' . escapeshellarg($rParams['root_password']) . ' ' . intval($rParams['http_broadcast_port']) . ' ' . intval($rParams['https_broadcast_port']) . ' > "' . BIN_PATH . 'install/' . intval($rServerID) . '.install" 2>/dev/null &';
 					} else {
-						$rCommand = PHP_BIN . ' ' . CLI_PATH . 'balancer.php ' . $rType . ' ' . intval($rServerID) . ' ' . intval($rParams['ssh_port']) . ' ' . escapeshellarg($rParams['root_username']) . ' ' . escapeshellarg($rParams['root_password']) . ' > "' . BIN_PATH . 'install/' . intval($rServerID) . '.install" 2>/dev/null &';
+						$rCommand = PHP_BIN . ' ' . MAIN_HOME . 'console.php balancer ' . $rType . ' ' . intval($rServerID) . ' ' . intval($rParams['ssh_port']) . ' ' . escapeshellarg($rParams['root_username']) . ' ' . escapeshellarg($rParams['root_password']) . ' > "' . BIN_PATH . 'install/' . intval($rServerID) . '.install" 2>/dev/null &';
 					}
 
 					shell_exec($rCommand);
@@ -3210,7 +3210,7 @@ if (isset($_SESSION['hash'])) {
 				} else {
 					$rPID = intval($rPID[0]);
 					shell_exec('kill -9 ' . $rPID);
-					shell_exec(PHP_BIN . ' ' . CLI_PATH . 'signals.php > /dev/null 2>/dev/null &');
+					shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php signals > /dev/null 2>/dev/null &');
 				}
 
 				exec("pgrep -U xc_vm | xargs ps | grep watchdog | awk '{print \$1}'", $rPID);
@@ -3219,10 +3219,10 @@ if (isset($_SESSION['hash'])) {
 				} else {
 					$rPID = intval($rPID[0]);
 					shell_exec('kill -9 ' . $rPID);
-					shell_exec(PHP_BIN . ' ' . CLI_PATH . 'watchdog.php > /dev/null 2>/dev/null &');
+					shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php watchdog > /dev/null 2>/dev/null &');
 				}
 
-				shell_exec(PHP_BIN . ' ' . CRON_PATH . 'users.php 1 > /dev/null 2>/dev/null &');
+				shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:users 1 > /dev/null 2>/dev/null &');
 				echo json_encode(array('result' => true));
 
 				exit();
@@ -3255,7 +3255,7 @@ if (isset($_SESSION['hash'])) {
 				} else {
 					$rPID = intval($rPID[0]);
 					shell_exec('kill -9 ' . $rPID);
-					shell_exec(PHP_BIN . ' ' . CLI_PATH . 'signals.php > /dev/null 2>/dev/null &');
+					shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php signals > /dev/null 2>/dev/null &');
 				}
 
 				exec("pgrep -U xc_vm | xargs ps | grep watchdog | awk '{print \$1}'", $rPID);
@@ -3264,7 +3264,7 @@ if (isset($_SESSION['hash'])) {
 				} else {
 					$rPID = intval($rPID[0]);
 					shell_exec('kill -9 ' . $rPID);
-					shell_exec(PHP_BIN . ' ' . CLI_PATH . 'watchdog.php > /dev/null 2>/dev/null &');
+					shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php watchdog > /dev/null 2>/dev/null &');
 				}
 
 				echo json_encode(array('result' => true));

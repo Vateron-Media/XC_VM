@@ -123,7 +123,7 @@ class BouquetService {
 	}
 
 	public static function scan() {
-		shell_exec(PHP_BIN . ' ' . CLI_PATH . 'tools.php "bouquets" > /dev/null 2>/dev/null &');
+		shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php tools bouquets > /dev/null 2>/dev/null &');
 	}
 
 	public static function scanOne($rID) {

@@ -43,7 +43,7 @@ if (!isset(RequestManager::getAll()['update'])):
             unlink(TMP_PATH . '.migration.status');
             unlink(TMP_PATH . '.migration.pid');
             unlink(TMP_PATH . '.migration.log');
-            shell_exec(PHP_BIN . ' ' . CLI_PATH . 'migrate.php > ' . TMP_PATH . '.migration.log 2>&1 &');
+            shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php migrate > ' . TMP_PATH . '.migration.log 2>&1 &');
             $rMigrating = true;
         } else {
             header('Location: ./setup');

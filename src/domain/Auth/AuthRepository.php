@@ -9,6 +9,25 @@ class AuthRepository {
 	// Из CodeRepository
 	// ──────────────────────────────────────────────
 
+	public static function getAllCodes($rType = null) {
+		global $db;
+		$rReturn = array();
+
+		if (!is_null($rType)) {
+			$db->query('SELECT * FROM `access_codes` WHERE `type` = ? ORDER BY `id` ASC;', $rType);
+		} else {
+			$db->query('SELECT * FROM `access_codes` ORDER BY `id` ASC;');
+		}
+
+		if ($db->num_rows() > 0) {
+			foreach ($db->get_rows() as $rRow) {
+				$rReturn[intval($rRow['id'])] = $rRow;
+			}
+		}
+
+		return $rReturn;
+	}
+
 	public static function getActiveCodes($rMainHome) {
 		$rCodes = array();
 		$rFiles = scandir($rMainHome . 'bin/nginx/conf/codes/');
@@ -31,7 +50,7 @@ class AuthRepository {
 		$rTemplate = file_get_contents($rMainHome . 'bin/nginx/conf/codes/template');
 		shell_exec('rm -f ' . $rMainHome . 'bin/nginx/conf/codes/*.conf');
 
-		foreach (getcodes() as $rCode) {
+		foreach (self::getAllCodes() as $rCode) {
 			if ($rCode['enabled']) {
 				$rWhitelist = array();
 
@@ -67,7 +86,9 @@ class AuthRepository {
 			}
 		}
 
-		systemapirequest($rServerId, array('action' => 'reload_nginx'));
+		if (function_exists('systemapirequest')) {
+			systemapirequest($rServerId, array('action' => 'reload_nginx'));
+		}
 	}
 
 	public static function getCurrentCode($rInfo = false) {

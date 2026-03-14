@@ -1,33 +1,11 @@
 <?php
 
-register_shutdown_function('shutdown');
+register_shutdown_function([ShutdownHandler::class, 'handle'], 'timeshift');
 set_time_limit(0);
 require_once 'init.php';
 unset($rSettings['watchdog_data'], $rSettings['server_hardware']);
 
-header('Access-Control-Allow-Origin: *');
-
-if (!empty($rSettings['send_server_header'])) {
-	header('Server: ' . $rSettings['send_server_header']);
-}
-
-if ($rSettings['send_protection_headers']) {
-	header('X-XSS-Protection: 0');
-	header('X-Content-Type-Options: nosniff');
-}
-
-if ($rSettings['send_altsvc_header']) {
-	header('Alt-Svc: h3-29=":' . $rServers[SERVER_ID]['https_broadcast_port'] . '"; ma=2592000,h3-T051=":' . $rServers[SERVER_ID]['https_broadcast_port'] . '"; ma=2592000,h3-Q050=":' . $rServers[SERVER_ID]['https_broadcast_port'] . '"; ma=2592000,h3-Q046=":' . $rServers[SERVER_ID]['https_broadcast_port'] . '"; ma=2592000,h3-Q043=":' . $rServers[SERVER_ID]['https_broadcast_port'] . '"; ma=2592000,quic=":' . $rServers[SERVER_ID]['https_broadcast_port'] . '"; ma=2592000; v="46,43"');
-}
-
-if (empty($rSettings['send_unique_header_domain']) || !filter_var(HOST, FILTER_VALIDATE_IP)) {
-	$rSettings['send_unique_header_domain'] = '.' . HOST;
-}
-
-if (!empty($rSettings['send_unique_header'])) {
-	$rExpires = new DateTime('+6 months', new DateTimeZone('GMT'));
-	header('Set-Cookie: ' . $rSettings['send_unique_header'] . '=' . Encryption::randomString(11) . '; Domain=' . $rSettings['send_unique_header_domain'] . '; Expires=' . $rExpires->format(DATE_RFC2822) . '; Path=/; Secure; HttpOnly; SameSite=none');
-}
+StreamAuthMiddleware::sendStreamHeaders($rSettings, $rServers);
 
 $rCreateExpiration = 60;
 $rProxyID = null;
@@ -40,16 +18,7 @@ $rPID = getmypid();
 $rStartTime = time();
 
 if (isset($rRequest['token'])) {
-	$rTokenData = json_decode(Encryption::decrypt($rRequest['token'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA), true);
-
-	if (!is_array($rTokenData)) {
-		DatabaseLogger::clientLog(0, 0, 'LB_TOKEN_INVALID', $rIP);
-		generateError('LB_TOKEN_INVALID');
-	}
-
-	if (isset($rTokenData['expires']) && $rTokenData['expires'] < time() - intval($rServers[SERVER_ID]['time_offset'])) {
-		generateError('TOKEN_EXPIRED');
-	}
+	$rTokenData = StreamAuthMiddleware::decryptToken($rRequest['token'], $rSettings, $rServers, $rIP);
 
 	$rUsername = $rTokenData['username'];
 	$rPassword = $rTokenData['password'];
@@ -491,46 +460,4 @@ function getLength($rQueue) {
 	}
 
 	return $rLength;
-}
-
-function shutdown() {
-	global $rCloseCon;
-	global $rTokenData;
-	global $rPID;
-	global $db;
-	$rSettings = CacheReader::get('settings');
-
-	if (!$rCloseCon) {
-	} else {
-		if ($rSettings['redis_handler']) {
-			if (RedisManager::isConnected()) {
-			} else {
-				RedisManager::ensureConnected();
-			}
-
-			$rConnection = ConnectionTracker::getConnection($rTokenData['uuid']);
-
-			if (!($rConnection && $rConnection['pid'] == $rPID)) {
-			} else {
-				$rChanges = array('hls_last_read' => time() - intval($rServers[SERVER_ID]['time_offset']));
-				ConnectionTracker::updateConnection($rConnection, $rChanges, 'close');
-			}
-		} else {
-			if (is_object($db)) {
-			} else {
-				DatabaseFactory::connect();
-			}
-
-			$db->query('UPDATE `lines_live` SET `hls_end` = 1, `hls_last_read` = ? WHERE `uuid` = ? AND `pid` = ?;', time() - intval($rServers[SERVER_ID]['time_offset']), $rTokenData['uuid'], $rPID);
-		}
-	}
-
-	if (!$rSettings['redis_handler'] && is_object($db)) {
-		DatabaseFactory::close();
-	} else {
-		if (!($rSettings['redis_handler'] && RedisManager::isConnected())) {
-		} else {
-			RedisManager::closeInstance();
-		}
-	}
 }

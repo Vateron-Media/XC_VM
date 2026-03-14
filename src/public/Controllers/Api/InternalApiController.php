@@ -60,12 +60,12 @@ class InternalApiController {
 				break;
 
 			case 'reload_epg':
-				shell_exec(PHP_BIN . ' ' . CRON_PATH . 'epg.php >/dev/null 2>/dev/null &');
+				shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:epg >/dev/null 2>/dev/null &');
 
 				break;
 
 			case 'restore_images':
-				shell_exec(PHP_BIN . ' ' . INCLUDES_PATH . 'cli/tools.php "images" >/dev/null 2>/dev/null &');
+				shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php tools images >/dev/null 2>/dev/null &');
 
 				break;
 
@@ -315,7 +315,7 @@ class InternalApiController {
 
 			case 'free_temp':
 				exec('rm -rf ' . MAIN_HOME . 'tmp/*');
-				shell_exec(PHP_BIN . ' ' . CRON_PATH . 'cache.php');
+				shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:cache');
 				echo json_encode(array('result' => true));
 
 				break;
@@ -340,12 +340,12 @@ class InternalApiController {
 				exit();
 
 			case 'watch_force':
-				shell_exec(PHP_BIN . ' ' . CRON_PATH . 'watch.php ' . intval($rRequest['id']) . ' >/dev/null 2>/dev/null &');
+				shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:watch ' . intval($rRequest['id']) . ' >/dev/null 2>/dev/null &');
 
 				break;
 
 			case 'plex_force':
-				shell_exec(PHP_BIN . ' ' . CRON_PATH . 'plex.php ' . intval($rRequest['id']) . ' >/dev/null 2>/dev/null &');
+				shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:plex ' . intval($rRequest['id']) . ' >/dev/null 2>/dev/null &');
 
 				break;
 

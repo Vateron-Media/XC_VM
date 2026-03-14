@@ -100,7 +100,7 @@
                                             <div class="col-12">
                                                 <?php if ($rSettings['enable_cache']): ?>
                                                     <?php
-                                                    $db->query("SELECT `time` FROM `crontab` WHERE `filename` = 'cache_engine.php';");
+                                                    $db->query("SELECT `time` FROM `crontab` WHERE `filename` = 'cache_engine';");
                                                     list($rMinute, $rHour, $rDayOfMonth, $rMonth, $rDayOfWeek) = explode(' ', $db->get_row()['time']);
                                                     $db->query('SELECT `id` FROM `lines`;');
                                                     $rLineCount = $db->result->rowCount();

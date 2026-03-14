@@ -280,6 +280,7 @@ class XC_Autoloader {
             // ── Ядро (новая архитектура) ──────────────────────────
             'ServiceContainer'      => $base . 'core/Container/ServiceContainer.php',
             'DatabaseHandler'       => $base . 'core/Database/DatabaseHandler.php',
+            'MigrationRunner'       => $base . 'core/Database/MigrationRunner.php',
             'DatabaseFactory'       => $base . 'infrastructure/database/DatabaseFactory.php',
             'CacheReader'           => $base . 'infrastructure/cache/CacheReader.php',
             'CacheInterface'        => $base . 'core/Cache/CacheInterface.php',
@@ -475,8 +476,8 @@ class XC_Autoloader {
             'Season'                => $base . 'includes/libs/TMDb/Season.php',
             'TVShow'                => $base . 'includes/libs/TMDb/TVShow.php',
 
-            // ── Crons (локальные классы) ──────────────────────────
-            'EPG'                   => $base . 'crons/epg.php',
+            // ── Domain ────────────────────────────────────────────
+            'EPG'                   => $base . 'domain/Epg/EPG.php',
 
             // ── WWW ───────────────────────────────────────────────
             'SimpleXMLExtended'        => $base . 'public/Controllers/Api/Enigma2ApiController.php',
