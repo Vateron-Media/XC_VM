@@ -186,6 +186,15 @@ if ($pageName === '') {
     $pageName = 'index';
 }
 
+// Корень access code (/CODE или /CODE/) → redirect на login.
+// Без redirect браузер остаётся на /CODE, и relative assets
+// резолвятся от / вместо /CODE/ — все CSS/JS/images ломаются.
+if ($pageName === 'index' && $accessCode && in_array($scope, ['admin', 'reseller'], true)
+    && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
+    header('Location: /' . $accessCode . '/login');
+    exit;
+}
+
 // Делаем имя страницы доступным глобально для legacy вспомогательных функций
 // (например, getPageName() в includes/admin.php), которые иначе видят только index.php.
 if (!defined('PAGE_NAME')) {

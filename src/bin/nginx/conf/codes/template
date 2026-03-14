@@ -4,8 +4,7 @@ location ^~ /#CODE#/assets/ {
 
 location ^~ /#CODE# {
     alias /home/xc_vm/#ALIAS#;
-    index index.php index.html index.htm;
-    try_files $uri $uri.html $uri/ @fc_#CODE#;
+    try_files $uri $uri.html @fc_#CODE#;
     #WHITELIST#
     location ~ \.php$ {
         limit_req zone=one burst=#BURST# nodelay;

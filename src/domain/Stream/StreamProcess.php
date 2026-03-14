@@ -45,22 +45,22 @@ class StreamProcess {
 	}
 
 	public static function createChannel($rStreamID) {
-		shell_exec(PHP_BIN . ' ' . CLI_PATH . 'created.php ' . intval($rStreamID) . ' >/dev/null 2>/dev/null &');
+		shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php created ' . intval($rStreamID) . ' >/dev/null 2>/dev/null &');
 		return true;
 	}
 
 	public static function startMonitor($rStreamID, $rRestart = 0) {
-		shell_exec(PHP_BIN . ' ' . CLI_PATH . 'monitor.php ' . intval($rStreamID) . ' ' . intval($rRestart) . ' >/dev/null 2>/dev/null &');
+		shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php monitor ' . intval($rStreamID) . ' ' . intval($rRestart) . ' >/dev/null 2>/dev/null &');
 		return true;
 	}
 
 	public static function startProxy($rStreamID) {
-		shell_exec(PHP_BIN . ' ' . CLI_PATH . 'proxy.php ' . intval($rStreamID) . ' >/dev/null 2>/dev/null &');
+		shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php proxy ' . intval($rStreamID) . ' >/dev/null 2>/dev/null &');
 		return true;
 	}
 
 	public static function startThumbnail($rStreamID) {
-		shell_exec(PHP_BIN . ' ' . CLI_PATH . 'thumbnail.php ' . intval($rStreamID) . ' >/dev/null 2>/dev/null &');
+		shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php thumbnail ' . intval($rStreamID) . ' >/dev/null 2>/dev/null &');
 		return true;
 	}
 
@@ -462,7 +462,7 @@ class StreamProcess {
 			if ($db->num_rows() > 0) {
 				$rStream['server_info'] = $db->get_row();
 				if ($rStream['server_info']['parent_id'] != 0) {
-					shell_exec(PHP_BIN . ' ' . CLI_PATH . 'loopback.php ' . intval($rStreamID) . ' ' . intval($rStream['server_info']['parent_id']) . ' >/dev/null 2>/dev/null & echo $! > ' . STREAMS_PATH . intval($rStreamID) . '_.pid');
+					shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php loopback ' . intval($rStreamID) . ' ' . intval($rStream['server_info']['parent_id']) . ' >/dev/null 2>/dev/null & echo $! > ' . STREAMS_PATH . intval($rStreamID) . '_.pid');
 					$rPID = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.pid'));
 					$rLoopURL = (!is_null($rServers[SERVER_ID]['private_url_ip']) && !is_null($rServers[$rStream['server_info']['parent_id']]['private_url_ip']) ? $rServers[$rStream['server_info']['parent_id']]['private_url_ip'] : $rServers[$rStream['server_info']['parent_id']]['public_url_ip']);
 					$rCurrentSource = $rLoopURL . 'admin/live?stream=' . intval($rStreamID) . '&password=' . urlencode($rSettings['live_streaming_pass']) . '&extension=ts';
@@ -493,7 +493,7 @@ class StreamProcess {
 		foreach ($rStreamArguments as $rStreamArgument) {
 			$rArgumentMap[$rStreamArgument['argument_key']] = array('value' => $rStreamArgument['value'], 'argument_default_value' => $rStreamArgument['argument_default_value']);
 		}
-		shell_exec(PHP_BIN . ' ' . CLI_PATH . 'llod.php ' . intval($rStreamID) . ' "' . base64_encode(json_encode($rSources)) . '" "' . base64_encode(json_encode($rArgumentMap)) . '" >/dev/null 2>/dev/null & echo $! > ' . STREAMS_PATH . intval($rStreamID) . '_.pid');
+		shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php llod ' . intval($rStreamID) . ' "' . base64_encode(json_encode($rSources)) . '" "' . base64_encode(json_encode($rArgumentMap)) . '" >/dev/null 2>/dev/null & echo $! > ' . STREAMS_PATH . intval($rStreamID) . '_.pid');
 		$rPID = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.pid'));
 		$rKey = openssl_random_pseudo_bytes(16);
 		file_put_contents(STREAMS_PATH . $rStreamID . '_.key', $rKey);
@@ -991,7 +991,7 @@ class StreamProcess {
 				$rPID = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.pid'));
 
 				if ($rStream['stream_info']['tv_archive_server_id'] == SERVER_ID) {
-					shell_exec(PHP_BIN . ' ' . CLI_PATH . 'archive.php ' . intval($rStreamID) . ' >/dev/null 2>/dev/null & echo $!');
+					shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php archive ' . intval($rStreamID) . ' >/dev/null 2>/dev/null & echo $!');
 				}
 
 				if ($rStream['stream_info']['vframes_server_id'] == SERVER_ID) {

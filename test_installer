@@ -1815,10 +1815,10 @@ if __name__ == "__main__":
     # Set config permissions
     run_command("chown -R xc_vm:xc_vm /home/xc_vm/config/")
     
-    # Run startup PHP script
-    startup_php = "/home/xc_vm/includes/cli/startup.php"
-    if os.path.exists(startup_php):
-        run_command(f"/home/xc_vm/bin/php/bin/php {startup_php} >/dev/null 2>&1")
+    # Run startup command via console.php
+    startup_cmd = "/home/xc_vm/console.php"
+    if os.path.exists(startup_cmd):
+        run_command(f"/home/xc_vm/bin/php/bin/php {startup_cmd} startup >/dev/null 2>&1")
     
     time.sleep(3)
     

@@ -7,10 +7,10 @@
 
 1. [Принцип миграции](#1-принцип-миграции)
 2. [Фазы 0–9: Завершённые](#2-фазы-09-завершённые)
-3. [Фаза 10: Удаление legacy admin entry-points](#3-фаза-10-удаление-legacy-admin-entry-points)
-4. [Фаза 11: Унификация API](#4-фаза-11-унификация-api)
-5. [Фаза 12: CLI — единый runner](#5-фаза-12-cli--единый-runner)
-6. [Фаза 13: Streaming entry points](#6-фаза-13-streaming-entry-points)
+3. [Фаза 10: Удаление legacy admin entry-points ✅](#3-фаза-10-удаление-legacy-admin-entry-points)
+4. [Фаза 11: Унификация API ✅ (11.1–11.4)](#4-фаза-11-унификация-api)
+5. [Фаза 12: CLI — единый runner ✅](#5-фаза-12-cli--единый-runner)
+6. [Фаза 13: Streaming entry points ✅ (13.1–13.3)](#6-фаза-13-streaming-entry-points)
 7. [Фаза 14: CSS/JS partials](#7-фаза-14-cssjs-partials)
 8. [Фаза 15: Удаление includes/admin.php](#8-фаза-15-удаление-includesadminphp)
 9. [Порядок выполнения и риск-матрица](#9-порядок-выполнения-и-риск-матрица)
@@ -293,105 +293,69 @@ FC переключён на `infrastructure/bootstrap/admin_*_fc.php`. Ориг
 
 ---
 
-## 4. Фаза 11: Унификация API — внешние и внутренние
+## 4. Фаза 11: Унификация API — внешние и внутренние ✅ (11.1–11.4)
 
 > **Цель:** Единый API-слой через `public/Controllers/Api/` с Router-маршрутизацией. Удаление самостоятельных PHP-файлов в `src/www/` (`player_api.php`, `enigma2.php`, `epg.php`, `playlist.php`, `xplugin.php`).
 
-#### Шаг 11.1 — Player API → PlayerApiController
+#### Шаг 11.1 — Player API → PlayerApiController ✅
 
-**Проблема:** `www/player_api.php` (~600 строк) — самостоятельный entry point с собственным bootstrap через `stream/init.php`. Action-based switch (`get_epg`, `get_live_streams`, `get_vod_streams`, `get_series`, `get_series_info`, `get_vod_info`).
+**Результат:** `public/Controllers/Api/PlayerApiController.php` (843 строки, 10 actions). Bootstrap через `stream/init.php` (hot path). Auth через `UserRepository::getStreamingUserInfo()`. Standalone — НЕ наследует BaseApiController.
 
-**Решение:**
-1. Создать `public/Controllers/Api/PlayerApiController.php`
-2. Каждый action → метод: `getLiveStreams()`, `getVodStreams()`, `getSeries()`, `getEpg()`, ...
-3. Аутентификация (username/password или token) → `StreamingAuth::authenticate()`
-4. Entry point: `www/player_api.php` → thin proxy вызов контроллера (обратная совместимость URL)
-5. Позже: nginx rewrite на `public/index.php` с scope=`api`
+`www/player_api.php` → thin proxy (7 строк).
 
-#### Шаг 11.2 — Enigma2 API → Enigma2ApiController
+#### Шаг 11.2 — Enigma2 API → Enigma2ApiController + XPluginApiController ✅
 
-**Проблема:** `www/enigma2.php` (~400 строк) + `www/xplugin.php` (~300 строк) — два entry point для Enigma2-устройств (STB). Отдельные bootstrap-пути, дублирование auth-логики.
+**Результат:** Разделены (вместо объединения по плану) — разные auth, output format, domain:
+- `Enigma2ApiController.php` (507 строк, 10 XML-actions)
+- `XPluginApiController.php` (181 строка, device management)
+- `SimpleXMLExtended` извлечён в отдельный класс (был inline в switch/default — баг)
 
-**Решение:**
-1. `public/Controllers/Api/Enigma2ApiController.php` — объединить enigma2 + xplugin
-2. Методы: `getLiveCategories()`, `getVodCategories()`, `getLiveStreams()`, `auth()`, `watchdog()`, ...
-3. `www/enigma2.php` и `www/xplugin.php` → thin proxies → удаление после переключения nginx
+`www/enigma2.php` и `www/xplugin.php` → thin proxies (7 строк каждый).
 
-#### Шаг 11.3 — Playlist/EPG → PlaylistController, EpgController
+#### Шаг 11.3 — Playlist/EPG → PlaylistApiController, EpgApiController ✅
 
-**Проблема:** `www/playlist.php` (~300 строк) и `www/epg.php` (~200 строк) — генерация M3U и XMLTV. Самостоятельные entry points.
+**Результат:**
+- `PlaylistApiController.php` (62 строки) — M3U/M3U8 генерация
+- `EpgApiController.php` (105 строк) — XMLTV XML генерация
+- `BaseApiController.php` (109 строк) — общий базовый класс
 
-**Решение:**
-1. `public/Controllers/Api/PlaylistController.php` — M3U/M3U8 генерация
-2. `public/Controllers/Api/EpgController.php` — XMLTV XML генерация
-3. Auth-логика уже в `UserRepository::getUserInfo()` — переиспользовать
-4. Thin proxy → удаление
+`www/playlist.php` и `www/epg.php` → thin proxies.
 
-#### Шаг 11.4 — Internal Server API → InternalApiController
+#### Шаг 11.4 — Internal Server API → InternalApiController ✅
 
-**Проблема:** `www/api.php` (~800 строк) — межсерверный API (server-to-server). Защищён `live_streaming_pass` + IP whitelist. ~40 case в switch: `stream`, `vod`, `reload_nginx`, `fpm_status`, `restore_images`, ...
+**Результат:** `InternalApiController.php` (506 строк, 30+ actions). Auth: password + IP whitelist (server-to-server). Извлечены: `serveFile()`, `probeStream()`, `killProcessGroup()`.
 
-**Решение:**
-1. `public/Controllers/Api/InternalApiController.php`
-2. Группировка: `stream*` → `StreamInternalController`, `vod*` → `VodInternalController`, `server*` → `ServerInternalController`
-3. Middleware: IP whitelist + password check → `InternalApiMiddleware`
-4. `www/api.php` → маршрутизатор, затем удаление
-5. **ВАЖНО:** hot path не затрагивается — внутренний API это cold path (~1 req/min)
+`www/api.php` → thin proxy.
 
-#### Шаг 11.5 — Admin/Reseller REST API → единые маршруты
+**Статистика:** 7 controller-файлов = 2313 строк. 6 proxy-файлов = 42 строки.
 
-**Проблема:** `includes/api/admin/index.php` и `includes/api/reseller/index.php` — два REST API через `APIWrapper`. Отдельная аутентификация (api_key через access codes).
+#### Шаг 11.5 — Admin/Reseller REST API → единые маршруты ⏳
 
-**Решение:**
-1. Admin REST: `public/Controllers/Api/AdminApiController.php`
-2. Reseller REST: `public/Controllers/Api/ResellerApiController.php`
-3. Auth: access code type 3 (admin) / type 4 (reseller) → middleware
-4. `includes/api/admin/` и `includes/api/reseller/` → thin proxies → удаление
-5. Маршруты в `public/routes/api.php`
+**Статус:** ОТЛОЖЕНО. `APIWrapper` классы встроены в `index.php` (2065+556 строк, одинаковое имя класса). Требуется: переименование классов, извлечение, разрешение конфликта namespace. Отдельный PR.
 
-#### Шаг 11.6 — Удаление legacy API файлов ✅
+#### Шаг 11.6 — Удаление legacy API файлов ⏳
 
-**Предусловия:** 11.1–11.5 завершены, nginx rewrites обновлены.
+**Статус:** ОТЛОЖЕНО. Требуется FC API routing (scope=api). `www/*.php` thin proxies должны оставаться до маршрутизации API через Front Controller.
 
-**Действия:**
-1. ✅ Удалить `www/player_api.php`, `www/enigma2.php`, `www/xplugin.php`, `www/epg.php`, `www/playlist.php`
-2. ✅ Удалить `www/api.php` (межсерверный)
-3. ✅ Удалить `includes/api/admin/index.php`, `includes/api/reseller/index.php` (table.php оставлен — используется через curl из TableAPI)
-4. ✅ `www/probe.php`, `www/progress.php` — оставлены как streaming helpers
-5. ✅ Обновить nginx-конфиг: rewrite на `public/index.php` с scope=`api`
-   - `location ~ ^/(player_api|enigma2|xplugin|epg|playlist)\.php$` → FC с `XC_SCOPE=api`, `XC_API=$1`
-   - `location = /api.php` → FC с `XC_SCOPE=api`, `XC_API=internal` (allow 127.0.0.1 only)
-6. ✅ `public/index.php` — добавлены секции 3a (REST API dispatch) и 3b (Streaming API dispatch)
-   - REST API: `XC_SCOPE=includes/api/admin|reseller` → `includes/admin.php` + controller
-   - Streaming API: `XC_SCOPE=api` + `XC_API` → `www/init.php` или `www/stream/init.php` + controller
-7. ✅ `www/init.php`, `www/stream/init.php` — добавлен `FC_API_NAME` override для `$rFilename`
-8. Smoke test: player_api, enigma2, playlist, epg, internal API — **ожидает деплоя**
+**Предусловия:** 11.5 завершён, nginx rewrites обновлены.
 
 ---
 
-## 5. Фаза 12: CLI — единый runner и структурированные команды
+## 5. Фаза 12: CLI — единый runner и структурированные команды ✅
 
-> **Цель:** Все CLI-скрипты (`includes/cli/`, `crons/`, `src/service`, `src/tools`, `src/status`) запускаются через единую точку входа `cli/console.php`. Каждый скрипт — класс-команда с интерфейсом `CommandInterface`.
+> **Цель:** Все CLI-скрипты (`includes/cli/`, `crons/`, `src/service`, `src/tools`, `src/status`) запускаются через единую точку входа `console.php`. Каждый скрипт — класс-команда с интерфейсом `CommandInterface`.
 
-#### Шаг 12.1 — Console entry point + CommandInterface
+#### Шаг 12.1 — Console entry point + CommandInterface ✅
 
-**Создать:**
+**Создано:**
 ```
 cli/
-├── console.php              # Единая точка входа: parse argv → dispatch Command
 ├── CommandInterface.php     # interface: getName(), getDescription(), execute(array $args): int
-└── CommandRegistry.php      # Реестр команд (name → class)
-```
-
-**Паттерн:**
-```php
-// cli/console.php
-require_once __DIR__ . '/../bootstrap.php';
-XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_CLI);
-$registry = new CommandRegistry();
-$registry->registerFromDir(__DIR__ . '/Commands');
-$registry->registerFromDir(__DIR__ . '/CronJobs');
-exit($registry->dispatch($argv));
+├── CommandRegistry.php      # Реестр команд (name → class)
+├── DaemonTrait.php          # Общий boilerplate для демонов
+├── Commands/                # 26 команд
+└── CronJobs/                # 25 cron-задач
+console.php                  # Единая точка входа (root-level)
 ```
 
 **Запуск:**
@@ -401,22 +365,13 @@ php /home/xc_vm/includes/cli/startup.php
 php /home/xc_vm/crons/servers.php
 
 # Стало:
-php /home/xc_vm/cli/console.php startup
-php /home/xc_vm/cli/console.php cron:servers
+php /home/xc_vm/console.php startup
+php /home/xc_vm/console.php cron:servers
 ```
 
-#### Шаг 12.2 — Миграция демонов includes/cli/ → cli/Commands/
+#### Шаг 12.2 — Миграция includes/cli/ → cli/Commands/ ✅
 
-**Скрипты:** `startup.php`, `watchdog.php`, `signals.php`, `queue.php`, `cache_handler.php`, `connection_sync.php`, `monitor.php`, `scanner.php`, `balancer.php`.
-
-**Паттерн миграции (для каждого):**
-1. Создать `cli/Commands/XxxCommand.php` implements `CommandInterface`
-2. Вынести `loadXxx()` → `execute()`
-3. Общий boilerplate (user check, process title, cron lock) → trait `DaemonTrait`
-4. В старом файле оставить proxy: `require __DIR__ . '/../cli/console.php'; exit;` (обратная совместимость)
-5. Обновить `src/service` (daemons.sh): новые пути запуска
-
-**Инвентарь:** 24 файла в `includes/cli/`:
+**Результат:** 24 файла из `includes/cli/` → 26 Command-классов в `cli/Commands/`. Вся логика перенесена, proxy-файлы были созданы, затем удалены (шаг 12.6).
 
 | Legacy файл | → Command | Тип |
 |---|---|---|
@@ -444,140 +399,183 @@ php /home/xc_vm/cli/console.php cron:servers
 | `record.php` | `Commands/RecordCommand` | CLI |
 | `thumbnail.php` | `Commands/ThumbnailCommand` | CLI |
 | `watch_item.php` | `Commands/WatchItemCommand` | CLI |
+| — | `Commands/CertbotCommand` | CLI |
+| — | `Commands/ServiceCommand` | CLI |
 
-#### Шаг 12.3 — Миграция crons/ → cli/CronJobs/
+#### Шаг 12.3 — Миграция crons/ → cli/CronJobs/ ✅
 
-**Инвентарь:** 25 cron-файлов.
-
-**Паттерн миграции (для каждого):**
-1. Создать `cli/CronJobs/XxxCron.php` implements `CommandInterface`
-2. Общий boilerplate → trait `CronTrait` (user check, lock, shutdown)
-3. Вместо `loadCron()` → `execute()`
-4. Proxy в старом файле для обратной совместимости crontab
+**Результат:** 25 cron-файлов → 25 CronJob-классов в `cli/CronJobs/`. Proxy-файлы и директория `crons/` удалены (шаг 12.8).
 
 | Legacy файл | → CronJob | Заметки |
 |---|---|---|
-| `activity.php` | `CronJobs/ActivityCron` | |
-| `backups.php` | `CronJobs/BackupsCron` | |
-| `cache.php` | `CronJobs/CacheCron` | |
-| `cache_engine.php` | `CronJobs/CacheEngineCron` | |
-| `certbot.php` | `CronJobs/CertbotCron` | |
-| `cleanup.php` | `CronJobs/CleanupCron` | |
-| `epg.php` | `CronJobs/EpgCron` | Крупный: EPG-класс + парсинг XML |
-| `errors.php` | `CronJobs/ErrorsCron` | |
-| `lines_logs.php` | `CronJobs/LinesLogsCron` | |
-| `plex.php` | `CronJobs/PlexCron` | Модуль plex |
-| `providers.php` | `CronJobs/ProvidersCron` | |
-| `root_mysql.php` | `CronJobs/RootMysqlCron` | Требует root |
-| `root_signals.php` | `CronJobs/RootSignalsCron` | Требует root |
-| `series.php` | `CronJobs/SeriesCron` | |
-| `servers.php` | `CronJobs/ServersCron` | |
-| `stats.php` | `CronJobs/StatsCron` | |
-| `streams.php` | `CronJobs/StreamsCron` | |
-| `streams_logs.php` | `CronJobs/StreamsLogsCron` | |
-| `tmdb.php` | `CronJobs/TmdbCron` | Модуль tmdb |
-| `tmdb_popular.php` | `CronJobs/TmdbPopularCron` | Модуль tmdb |
-| `tmp.php` | `CronJobs/TmpCron` | |
-| `update.php` | `CronJobs/UpdateCron` | |
-| `users.php` | `CronJobs/UsersCron` | |
-| `vod.php` | `CronJobs/VodCron` | |
-| `watch.php` | `CronJobs/WatchCron` | Модуль watch |
+| `activity.php` | `CronJobs/ActivityCronJob` | |
+| `backups.php` | `CronJobs/BackupsCronJob` | |
+| `cache.php` | `CronJobs/CacheCronJob` | |
+| `cache_engine.php` | `CronJobs/CacheEngineCronJob` | |
+| `certbot.php` | `CronJobs/CertbotCronJob` | |
+| `cleanup.php` | `CronJobs/CleanupCronJob` | |
+| `epg.php` | `CronJobs/EpgCronJob` | Крупный: EPG-класс + парсинг XML |
+| `errors.php` | `CronJobs/ErrorsCronJob` | |
+| `lines_logs.php` | `CronJobs/LinesLogsCronJob` | |
+| `plex.php` | `CronJobs/PlexCronJob` | Модуль plex |
+| `providers.php` | `CronJobs/ProvidersCronJob` | |
+| `root_mysql.php` | `CronJobs/RootMysqlCronJob` | Требует root, LB-excluded |
+| `root_signals.php` | `CronJobs/RootSignalsCronJob` | Требует root |
+| `series.php` | `CronJobs/SeriesCronJob` | |
+| `servers.php` | `CronJobs/ServersCronJob` | |
+| `stats.php` | `CronJobs/StatsCronJob` | |
+| `streams.php` | `CronJobs/StreamsCronJob` | |
+| `streams_logs.php` | `CronJobs/StreamsLogsCronJob` | |
+| `tmdb.php` | `CronJobs/TmdbCronJob` | Модуль tmdb |
+| `tmdb_popular.php` | `CronJobs/TmdbPopularCronJob` | Модуль tmdb |
+| `tmp.php` | `CronJobs/TmpCronJob` | |
+| `update.php` | `CronJobs/UpdateCronJob` | |
+| `users.php` | `CronJobs/UsersCronJob` | |
+| `vod.php` | `CronJobs/VodCronJob` | |
+| `watch.php` | `CronJobs/WatchCronJob` | Модуль watch |
 
-#### Шаг 12.4 — Миграция root-level скриптов
+#### Шаг 12.4 — Миграция root-level скриптов ✅
 
-| Legacy | → | Заметки |
+| Legacy | → | Статус |
 |---|---|---|
-| `src/service` (shell) | `cli/console.php service:{start\|stop\|restart\|reload}` | Shell-обёртка остаётся для systemd |
-| `src/status` (PHP) | `cli/console.php status` | DB migrations, version check |
-| `src/tools` (PHP) | `cli/console.php tools:{rescue\|access\|ports}` | Утилиты |
-| `src/update` (Python) | Остаётся Python-скриптом, вызывает `cli/console.php update:post` | |
+| `src/service` (shell) | `console.php service:{start\|stop\|restart\|reload}` | ✅ ServiceCommand |
+| `src/status` (PHP) | `console.php status` | ✅ StatusCommand |
+| `src/tools` (PHP) | `console.php tools:{rescue\|access\|ports}` | ✅ ToolsCommand |
+| `src/update` (Python) | Остаётся Python-скриптом | Без изменений |
 
-#### Шаг 12.5 — Обновление daemons.sh и crontab
+#### Шаг 12.5 — Обновление daemons.sh и crontab ✅
 
-1. `src/bin/daemons.sh` → запуск через `cli/console.php {command}` вместо `includes/cli/{script}.php`
-2. Шаблон crontab → `cli/console.php cron:{name}` вместо `php crons/{name}.php`
-3. `src/service` → команды start/stop через `cli/console.php`
+1. ✅ `bin/daemons.sh` → запуск через `console.php {command}`
+2. ✅ Crontab генерируется `StartupCommand::installCrontab()` / `installRootCrontab()` → `console.php cron:{name}`
+3. ✅ `src/service` → `console.php service:{start|stop|restart|reload}`
 
-#### Шаг 12.6 — Удаление legacy CLI файлов
+#### Шаг 12.6 — Удаление legacy CLI файлов ✅
 
-**Предусловия:** 12.2–12.5 завершены, все процессы используют новые пути.
+**Выполнено:**
+1. ✅ `CLI_PATH` constant удалён из `core/Config/Paths.php`
+2. ✅ 37 ссылок на `CLI_PATH` заменены на `MAIN_HOME . 'console.php {command}'` в 14 файлах
+3. ✅ `includes/cli/` — **папка удалена** (24 файла)
+4. ✅ Makefile: 3 старые записи `includes/cli/` удалены из EXCLUDES
+5. ✅ `php -l` — все 14 файлов проверены, синтаксис ОК
+6. ✅ `crons/` — **папка удалена** (25 proxy-файлов), см. шаг 12.8
 
-**Действия:**
-1. Удалить `includes/cli/*.php` (24 файла)
-2. Удалить `crons/*.php` (25 файлов) → оставить директорию для crontab proxies на переходный период
-3. Обновить `Makefile`: `CLI_DIRS` включает `cli/`
-4. `php -l` + smoke test (запуск демонов, cron-задач)
+**Паттерн замены:**
+```
+# Было:
+PHP_BIN . ' ' . CLI_PATH . 'script.php args'
+# Стало:
+PHP_BIN . ' ' . MAIN_HOME . 'console.php command args'
+```
+
+**Особые случаи:**
+- `OndemandCommand`: `md5_file(CLI_PATH . 'ondemand.php')` → `md5_file(__FILE__)` (self-change detection)
+- `BalancerCommand`: обе ветки `$rType == 2` → `console.php startup` (was using different legacy paths)
+
+#### Шаг 12.8 — Удаление CRON_PATH и crons/ директории ✅
+
+**Проблема:** 25 proxy-файлов в `crons/` и константа `CRON_PATH` — legacy остатки после миграции cron → `console.php cron:{name}`. 34+ ссылки на `CRON_PATH` в кодовой базе.
+
+**Выполнено:**
+1. ✅ 35 ссылок на `CRON_PATH` заменены на `MAIN_HOME . 'console.php cron:{name}'` в 9 файлах
+2. ✅ Константа `CRON_PATH` удалена из `core/Config/Paths.php`
+3. ✅ Мёртвый autoload-маппинг `EPG → crons/epg.php` удалён
+4. ✅ Класс `EPG` восстановлен в `domain/Epg/EPG.php` (был потерян при proxy-конвертации)
+5. ✅ `src/crons/` — **папка удалена** (25 proxy-файлов)
+6. ✅ Makefile: `crons` убран из `LB_DIRS`, 9 записей `crons/*.php` из `LB_FILES_TO_REMOVE`, 2 строки permissions
+7. ✅ 8 CronJob-файлов (MAIN-only) добавлены в `LB_FILES_TO_REMOVE` + `file_exists()` guards в `console.php`
+8. ✅ `MigrationRunner::runFileCleanup()` — теперь удаляет опустевшие директории
+9. ✅ Legacy-путь в `post.php` (`MAIN_HOME . '/php/bin/php ' . MAIN_HOME . '/crons/epg.php'`) исправлен
+
+**Паттерн замены:**
+```
+# Было:
+PHP_BIN . ' ' . CRON_PATH . 'name.php args'
+# Стало:
+PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:name args'
+```
+
+**Затронутые файлы:**
+- `cli/CronJobs/CacheEngineCronJob.php` (9 замен)
+- `cli/Commands/StartupCommand.php` (4 замены, вкл. `file_exists()` → проверка `cache_complete`)
+- `cli/Commands/SignalsCommand.php` (2 замены)
+- `cli/Commands/BalancerCommand.php` (1 замена)
+- `cli/Commands/CertbotCommand.php` (1 замена)
+- `public/Controllers/Api/InternalApiController.php` (4 замены)
+- `public/Controllers/Api/AdminApiController.php` (5 замен)
+- `public/Views/admin/api.php` (8 замен)
+- `public/Views/admin/post.php` (1 замена)
+
+#### Шаг 12.7 — LB guard для MAIN-only команд ✅
+
+**Проблема:** 4 CLI-класса исключены из LB-сборки через `LB_FILES_TO_REMOVE`, но `console.php` регистрировал их безусловно → crash `require_once` на LB.
+
+**Решение:** `file_exists()` guards в `console.php` для условной регистрации.
+
+| Файл | Guard в console.php | Guard в crontab |
+|---|---|---|
+| `cli/Commands/MigrateCommand.php` | ✅ `file_exists()` | — (не в crontab) |
+| `cli/Commands/CacheHandlerCommand.php` | ✅ `file_exists()` | — (не в crontab) |
+| `cli/Commands/BalancerCommand.php` | ✅ `file_exists()` | — (не в crontab) |
+| `cli/CronJobs/RootMysqlCronJob.php` | ✅ `file_exists()` | ✅ `file_exists()` в StartupCommand + StatusCommand |
+| `cli/CronJobs/BackupsCronJob.php` | ✅ `file_exists()` | — |
+| `cli/CronJobs/CacheEngineCronJob.php` | ✅ `file_exists()` | — |
+| `cli/CronJobs/EpgCronJob.php` | ✅ `file_exists()` | — |
+| `cli/CronJobs/UpdateCronJob.php` | ✅ `file_exists()` | — |
+| `cli/CronJobs/ProvidersCronJob.php` | ✅ `file_exists()` | — |
+| `cli/CronJobs/SeriesCronJob.php` | ✅ `file_exists()` | — |
+| `cli/CronJobs/TmdbCronJob.php` | ✅ `file_exists()` | — |
+| `cli/CronJobs/TmdbPopularCronJob.php` | ✅ `file_exists()` | — |
+| `domain/Epg/EPG.php` | — | — (autoload) |
+
+**Makefile `LB_FILES_TO_REMOVE`:**
+```makefile
+cli/Commands/MigrateCommand.php
+cli/Commands/CacheHandlerCommand.php
+cli/Commands/BalancerCommand.php
+cli/CronJobs/RootMysqlCronJob.php
+cli/CronJobs/BackupsCronJob.php
+cli/CronJobs/CacheEngineCronJob.php
+cli/CronJobs/EpgCronJob.php
+cli/CronJobs/UpdateCronJob.php
+cli/CronJobs/ProvidersCronJob.php
+cli/CronJobs/SeriesCronJob.php
+cli/CronJobs/TmdbCronJob.php
+cli/CronJobs/TmdbPopularCronJob.php
+domain/Epg/EPG.php
+```
 
 ---
 
-## 6. Фаза 13: Streaming entry points — оптимизация без ломки hot path
+## 6. Фаза 13: Streaming entry points ✅ (13.1–13.3)
 
 > **Цель:** Минимизировать дублирование bootstrap в `www/stream/*.php`, НЕ увеличивая latency. Hot path остаётся < 50ms p99.
 
 > **ВАЖНО:** Streaming — священная территория. Никакого Router, никакого ServiceContainer, никакого полного autoload в hot path. Только точечные улучшения.
 
-#### Шаг 13.1 — Единый streaming entry point (micro-router)
+#### Шаг 13.1 — Единый streaming entry point (micro-router) ✅
 
-**Проблема:** 11 файлов в `www/stream/` — каждый с `require 'init.php'` + своим shutdown handler. nginx rewrite направляет на конкретный файл. Дублирование инициализации.
+**Результат:** `www/stream/index.php` — micro-router с `?handler=` параметром. Dormant-режим: nginx по-прежнему направляет на конкретные файлы, router активируется опционально.
 
-**Решение:** Лёгкий micro-router (НЕ полный Router из core/):
-```php
-// www/stream/index.php (новый)
-require_once 'init.php';
-$handler = basename($_SERVER['SCRIPT_FILENAME'], '.php');
-$map = [
-    'live'      => 'live.php',
-    'vod'       => 'vod.php',
-    'segment'   => 'segment.php',
-    'key'       => 'key.php',
-    'timeshift' => 'timeshift.php',
-    'thumb'     => 'thumb.php',
-    'subtitle'  => 'subtitle.php',
-    'rtmp'      => 'rtmp.php',
-    'auth'      => 'auth.php',
-];
-if (isset($map[$handler])) {
-    require $map[$handler];
-} else {
-    http_response_code(404);
-}
-```
-- Один `require 'init.php'`, один `register_shutdown_function`
-- nginx rewrite не меняется (по-прежнему указывает на конкретные файлы)
-- Опционально: переключить nginx на единый `stream/index.php` с параметром
+Overhead < 0.1ms (один array lookup).
 
-**Бенчмарк:** overhead micro-router < 0.1ms (один array lookup). Допустимо.
+#### Шаг 13.2 — Дедупликация shutdown handlers ✅
 
-#### Шаг 13.2 — Дедупликация shutdown handlers
+**Результат:** `streaming/Lifecycle/ShutdownHandler.php` — заменяет дублированные `function shutdown()` в live/vod/timeshift. Context-параметр для live-специфичной очистки (tmp files, on_demand queue).
 
-**Проблема:** Каждый streaming-файл определяет свой `shutdown()`. 80% кода одинаковый: close DB, unlink PID, log error.
+`auth.php` и `rtmp.php` сохраняют свои shutdown handlers (BruteforceGuard pattern).
 
-**Решение:**
-1. `streaming/Lifecycle/ShutdownHandler.php` — общий `shutdown($context)` с контекстом (live/vod/segment и т.д.)
-2. В каждом файле: `register_shutdown_function([ShutdownHandler::class, 'handle'], 'live');`
-3. Специфическая логика (вроде `$rServers[SERVER_ID]['time_offset']` в vod.php) — callback
+#### Шаг 13.3 — Извлечение streaming auth middleware ✅
 
-#### Шаг 13.3 — Извлечение streaming auth middleware
+**Результат:** `streaming/Auth/StreamAuthMiddleware.php` — `sendStreamHeaders()` + `decryptToken()`. Извлекает ~35 дублированных строк из каждого streaming-файла.
 
-**Проблема:** `stream/live.php`, `stream/vod.php`, `stream/timeshift.php` — дублируют блок аутентификации (~50 строк): token parse → user lookup → blocklist check → geo check → connection limit.
+**Изменённые файлы:**
+- `www/stream/live.php` — ShutdownHandler + StreamAuthMiddleware
+- `www/stream/vod.php` — аналогично
+- `www/stream/timeshift.php` — аналогично
 
-**Решение:**
-1. `streaming/Auth/StreamAuthMiddleware.php` — `authenticate(string $token, string $type): array|false`
-2. Возвращает `['user' => $rUserInfo, 'stream' => $rStreamInfo]` или генерирует ошибку
-3. Каждый файл: `$auth = StreamAuthMiddleware::authenticate($token, 'live');`
+#### Шаг 13.4 — Ministra JS → modules/ministra/assets/ ⏳
 
-**Ограничение:** Не использовать DI-container — только static-вызов с `global $db, $rSettings`.
-
-#### Шаг 13.4 — Ministra JS → modules/ministra/assets/
-
-**Проблема:** ~80 JS-файлов в `src/ministra/` — клиентский портал для Stalker-устройств. Живут вне модульной структуры.
-
-**Решение:**
-1. `mv src/ministra/*.js src/modules/ministra/assets/`
-2. `src/ministra/portal.php` → `modules/ministra/PortalHandler.php` (уже запланировано)
-3. `src/ministra/index.html` → `modules/ministra/assets/index.html`
-4. nginx-конфиг: `alias /home/xc_vm/modules/ministra/assets/`
-5. Обновить Makefile
+**Статус:** ОТЛОЖЕНО. `www/c` — симлинк на `ministra/` (создаётся `RootSignalsCronJob::enable_ministra`). Перемещение JS ломает симлинк, требует nginx alias + изменения signal handler. Низкий benefit, высокий cost.
 
 ---
 
@@ -663,19 +661,19 @@ if (isset($map[$handler])) {
 Фаза 10 ─── Удаление admin/ legacy entry-points        ✅ ВЫПОЛНЕНА
     │
     ▼
-Фаза 11 ─── Унификация API (player_api, enigma2, internal)
+Фаза 11 ─── Унификация API (controllers ✅ / deletion ⏳)  ✅ 11.1–11.4
     │
     ▼
-Фаза 12 ─── CLI единый runner (cli/console.php)
+Фаза 12 ─── CLI единый runner + удаление includes/cli/   ✅ ВЫПОЛНЕНА
     │
     ▼
-Фаза 13 ─── Streaming micro-optimizations (без ломки hot path)
+Фаза 13 ─── Streaming micro-optimizations                ✅ 13.1–13.3
     │
     ▼
-Фаза 14 ─── CSS/JS partials (footer.php разбиение)
+Фаза 14 ─── CSS/JS partials (footer.php разбиение)       ⏳ НЕ НАЧАТА
     │
     ▼
-Фаза 15 ─── Удаление includes/admin.php (финальный legacy bootstrap)
+Фаза 15 ─── Удаление includes/admin.php                  ⏳ НЕ НАЧАТА
 ```
 
 ### Риск-матрица
@@ -683,9 +681,9 @@ if (isset($map[$handler])) {
 | Фаза | Риск | Обоснование |
 |------|------|-------------|
 | 10 | ✅ Завершена | Все 6 шагов выполнены |
-| 11 | 🟡 Средний | API backward compat: внешние устройства (MAG, Enigma2, плееры) зависят от URL-формата |
-| 12 | 🟢 Низкий | CLI — внутренний, proxy в старых файлах обеспечивает обратную совместимость |
-| 13 | 🟡 Средний | Hot path: любая регрессия latency = потеря стримов у всех пользователей |
+| 11 | ✅ Controllers / ⏳ Deletion | 11.1–11.4 — контроллеры + proxies. 11.5–11.6 — REST API extraction + deletion отложены |
+| 12 | ✅ Завершена | console.php, 26 Commands, 25 CronJobs, includes/cli/ удалена, LB guards |
+| 13 | ✅ 13.1–13.3 / ⏳ 13.4 | ShutdownHandler + StreamAuthMiddleware. Ministra отложена |
 | 14 | 🟢 Низкий | Только frontend-рефакторинг, не ломает backend |
 | 15 | 🔴 Высокий | Удаление последнего legacy bootstrap, нет fallback |
 
@@ -702,9 +700,9 @@ if (isset($map[$handler])) {
 
 | Релиз | Содержит | Риск |
 |-------|----------|------|
-| **v2.2** | Фаза 10 (удаление admin/) + Фаза 14 (CSS/JS partials) | ✅ + 🟢 |
-| **v2.3** | Фаза 12 (CLI runner) | 🟢 Низкий |
-| **v2.4** | Фаза 11 (API унификация) + Фаза 13 (streaming) | 🟡 + 🟡 |
+| **v2.2** | Фаза 10 (удаление admin/) | ✅ Завершена |
+| **v2.3** | Фаза 11 (API controllers) + Фаза 12 (CLI runner) + Фаза 13 (streaming) | ✅ Завершена |
+| **v2.4** | Фаза 11 (API deletion) + Фаза 14 (CSS/JS partials) | 🟢 + 🟢 |
 | **v3.0** | Фаза 15 (удаление legacy bootstrap) | 🔴 Финальный milestone |
 
 ---
