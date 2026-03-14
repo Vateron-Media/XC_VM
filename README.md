@@ -65,10 +65,10 @@ It enables:
 ## 📚 Documentation
 
 * 🇬🇧 **English Guide**
-  [https://vateron-media.github.io/XC_VM_Docs/#/en-us/](https://vateron-media.github.io/XC_VM_Docs/#/en-us/)
+  [https://vateron-media.github.io/XC_VM/#/en-us/](https://vateron-media.github.io/XC_VM/#/en-us/)
 
 * 🇷🇺 **Руководство на русском**
-  [https://vateron-media.github.io/XC_VM_Docs/#/ru-ru/](https://vateron-media.github.io/XC_VM_Docs/#/ru-ru/)
+  [https://vateron-media.github.io/XC_VM/#/ru-ru/](https://vateron-media.github.io/XC_VM/#/ru-ru/)
 
 ---
 
