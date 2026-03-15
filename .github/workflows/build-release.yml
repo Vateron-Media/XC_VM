@@ -1,0 +1,56 @@
+name: Build Release Assets
+
+on:
+  release:
+    types: [released]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Determine previous tag
+        id: prev_tag
+        run: |
+          CURRENT_TAG="${{ github.event.release.tag_name }}"
+          # Find the tag right before the current one (sorted by version descending)
+          PREV_TAG=$(git tag --sort=-v:refname | awk -v cur="$CURRENT_TAG" 'found { print; exit } $0 == cur { found=1 }')
+          if [ -z "$PREV_TAG" ]; then
+            echo "No previous tag found — update archives will be skipped"
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Previous tag: ${PREV_TAG}"
+            echo "tag=${PREV_TAG}" >> "$GITHUB_OUTPUT"
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Clean dist directory
+        run: make new
+
+      - name: Build LB install archive
+        run: make lb
+
+      - name: Build MAIN install archive
+        run: make main
+
+      - name: Build MAIN update archive
+        if: steps.prev_tag.outputs.found == 'true'
+        run: make main_update LAST_TAG="${{ steps.prev_tag.outputs.tag }}"
+
+      - name: Build LB update archive
+        if: steps.prev_tag.outputs.found == 'true'
+        run: make lb_update LAST_TAG="${{ steps.prev_tag.outputs.tag }}"
+
+      - name: Upload assets to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.release.tag_name }}
+          files: dist/*

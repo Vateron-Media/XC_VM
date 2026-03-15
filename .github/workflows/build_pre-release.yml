@@ -19,6 +19,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
       
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
@@ -37,16 +39,36 @@ jobs:
         git add .
         git commit -m "Bump version to ${{ github.event.inputs.version }}"
         git push
-        
-    - name: Build update archives
+
+    - name: Determine previous tag
+      id: prev_tag
       run: |
-        make main_update
-        make lb_update
-        
-    - name: Generate MD5 hashes
-      run: |
-        cd dist
-        md5sum update.tar.gz loadbalancer_update.tar.gz > hashes.md5
+        PREV_TAG=$(git tag --sort=-v:refname | head -n 1)
+        if [ -z "$PREV_TAG" ]; then
+          echo "No previous tag found — update archives will be skipped"
+          echo "found=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "Previous tag: ${PREV_TAG}"
+          echo "tag=${PREV_TAG}" >> "$GITHUB_OUTPUT"
+          echo "found=true" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Clean dist directory
+      run: make new
+
+    - name: Build LB install archive
+      run: make lb
+
+    - name: Build MAIN install archive
+      run: make main
+
+    - name: Build MAIN update archive
+      if: steps.prev_tag.outputs.found == 'true'
+      run: make main_update LAST_TAG="${{ steps.prev_tag.outputs.tag }}"
+
+    - name: Build LB update archive
+      if: steps.prev_tag.outputs.found == 'true'
+      run: make lb_update LAST_TAG="${{ steps.prev_tag.outputs.tag }}"
         
     - name: Create Pre-release
       uses: softprops/action-gh-release@v2
@@ -59,13 +81,12 @@ jobs:
           ${{ github.event.inputs.changelog }}
           
           ## Downloads
+          - `XC_VM.zip` - Main installation archive
           - `update.tar.gz` - Main update archive
+          - `loadbalancer.tar.gz` - LoadBalancer installation archive
           - `loadbalancer_update.tar.gz` - LoadBalancer update archive
         draft: false
         prerelease: true
-        files: |
-          dist/update.tar.gz
-          dist/loadbalancer_update.tar.gz
-          dist/hashes.md5
+        files: dist/*
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

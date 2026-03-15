@@ -70,7 +70,9 @@ git push
 
 ## ⚙️ 3. Build Archives
 
-* Run the following commands sequentially:
+> 🤖 **Automated:** Building is handled by GitHub Actions workflow `.github/workflows/build-release.yml` when a release is published. Assets are automatically attached to the release.
+
+For **local builds**, run the following commands:
 
 ```bash
 make new
@@ -80,7 +82,7 @@ make main_update
 make lb_update
 ```
 
-* Make sure the following files are created in `dist/`:
+After building, `dist/` should contain:
 
   - `loadbalancer.tar.gz` — LB installation archive
   - `loadbalancer_update.tar.gz` — LB update archive
@@ -124,18 +126,16 @@ git log --pretty=format:"- %s (%h)" X.Y.Z..main > dist/changes.md
 
 ## 🚀 5. GitHub Release
 
-* Create a new release on [GitHub Releases](https://github.com/Vateron-Media/XC_VM/releases).
-
-* Attach the following files:
-
-  - `dist/loadbalancer.tar.gz`
-  - `dist/XC_VM.zip`
-  - `dist/update.tar.gz`
-  - `dist/loadbalancer_update.tar.gz`
-  - `dist/hashes.md5`
-
+* Create a new release on [GitHub Releases](https://github.com/Vateron-Media/XC_VM/releases) **without attaching files**.
 * Include the changelog in the release description.
+* After publishing, GitHub Actions will automatically build and attach:
 
-> ✅ **Completion:** After publishing, verify that all files are downloadable and checksums match.
+  - `loadbalancer.tar.gz` — LB installation archive
+  - `loadbalancer_update.tar.gz` — LB update archive
+  - `XC_VM.zip` — MAIN installation archive
+  - `update.tar.gz` — MAIN update archive
+  - `hashes.md5` — file with checksums
+
+> ✅ **Completion:** Wait for the workflow to finish (Actions tab), then verify that all files are downloadable and checksums match.
 
 ---
