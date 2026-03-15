@@ -35,9 +35,9 @@ trait DaemonTrait {
 	 */
 	protected function killStaleProcesses(string $rPattern): void {
 		$rPID = intval(getmypid());
-		$rPids = trim(shell_exec('ps aux | grep ' . escapeshellarg($rPattern) . ' | grep -v grep | grep -v ' . $rPID . " | awk '{print \$2}'") ?? '');
+		$rPids = trim(@shell_exec('ps aux | grep ' . escapeshellarg($rPattern) . ' | grep -v grep | grep -v ' . $rPID . " | awk '{print \$2}'") ?? '');
 		if ($rPids !== '') {
-			shell_exec('kill -9 ' . $rPids . ' > /dev/null 2>&1');
+			@shell_exec('kill -9 ' . $rPids . ' > /dev/null 2>&1');
 		}
 	}
 
