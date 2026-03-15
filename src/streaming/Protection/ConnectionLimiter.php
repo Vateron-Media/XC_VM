@@ -141,7 +141,8 @@ class ConnectionLimiter {
 				}
 				$rActivityInfo = $db->get_row();
 			} else {
-				$rActivityInfo = igbinary_unserialize($redis->get($rActivityInfo));
+				$raw = $redis->get($rActivityInfo);
+				$rActivityInfo = ($raw !== false) ? igbinary_unserialize($raw) : null;
 			}
 		}
 
