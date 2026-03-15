@@ -70,7 +70,9 @@ git push
 
 ## ⚙️ 3. Сборка архивов
 
-* Последовательно выполнить команды для сборки:
+> 🤖 **Автоматически:** Сборка выполняется через GitHub Actions workflow `.github/workflows/build-release.yml` при публикации релиза. Файлы автоматически прикрепляются к релизу.
+
+При необходимости **локальной сборки** выполните команды:
 
 ```bash
 make new
@@ -80,7 +82,7 @@ make main_update
 make lb_update
 ```
 
-* Убедиться, что созданы следующие файлы в директории `dist/`:
+После сборки в директории `dist/` должны быть:
 
   - `loadbalancer.tar.gz` — установочный архив LB
   - `loadbalancer_update.tar.gz` — архив обновления LB
@@ -121,17 +123,16 @@ git log --pretty=format:"- %s (%h)" X.Y.Z..main > dist/changes.md
 
 ## 🚀 5. GitHub релиз
 
-* Создать новый релиз на [GitHub Releases](https://github.com/Vateron-Media/XC_VM/releases).
-* Прикрепить следующие файлы к релизу:
-
-  - `dist/loadbalancer.tar.gz`
-  - `dist/XC_VM.zip`
-  - `dist/update.tar.gz`
-  - `dist/loadbalancer_update.tar.gz`
-  - `dist/hashes.md5`
-
+* Создать новый релиз на [GitHub Releases](https://github.com/Vateron-Media/XC_VM/releases) **без прикрепления файлов**.
 * Указать changelog в описании релиза.
+* После публикации GitHub Actions автоматически соберёт и прикрепит к релизу:
 
-> ✅ **Завершение:** После публикации проверьте, что все файлы доступны для скачивания и хеш-суммы совпадают.
+  - `loadbalancer.tar.gz` — установочный архив LB
+  - `loadbalancer_update.tar.gz` — архив обновления LB
+  - `XC_VM.zip` — установочный архив MAIN
+  - `update.tar.gz` — архив обновления MAIN
+  - `hashes.md5` — файл с хеш-суммами
+
+> ✅ **Завершение:** Дождитесь завершения workflow (вкладка Actions) и проверьте, что все файлы доступны для скачивания и хеш-суммы совпадают.
 
 ---
