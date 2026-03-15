@@ -1,16 +1,11 @@
-name: Create Pre-release
+name: Build Pre-release Assets
 
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Pre-release version (e.g., 1.2.3-beta.1)'
-        required: true
-        type: string
-      changelog:
-        description: 'Changelog for pre-release'
-        required: true
-        type: string
+  release:
+    types: [prereleased]
+
+permissions:
+  contents: write
 
 jobs:
   pre-release:
@@ -21,29 +16,12 @@ jobs:
       uses: actions/checkout@v5
       with:
         fetch-depth: 0
-      
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.1'
-        
-    - name: Update version in PHP files
-      run: |
-        find . -type f -name "*.php" -exec sed -i \
-        "s/define('XC_VM_VERSION', '[0-9]\+\.[0-9]\+\.[0-9]\+.*');/define('XC_VM_VERSION', '${{ github.event.inputs.version }}');/g" {} \;
-        
-    - name: Commit version update
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add .
-        git commit -m "Bump version to ${{ github.event.inputs.version }}"
-        git push
 
     - name: Determine previous tag
       id: prev_tag
       run: |
-        PREV_TAG=$(git tag --sort=-v:refname | head -n 1)
+        CURRENT_TAG="${{ github.event.release.tag_name }}"
+        PREV_TAG=$(git tag --sort=-v:refname | awk -v cur="$CURRENT_TAG" 'found { print; exit } $0 == cur { found=1 }')
         if [ -z "$PREV_TAG" ]; then
           echo "No previous tag found — update archives will be skipped"
           echo "found=false" >> "$GITHUB_OUTPUT"
@@ -69,24 +47,9 @@ jobs:
     - name: Build LB update archive
       if: steps.prev_tag.outputs.found == 'true'
       run: make lb_update LAST_TAG="${{ steps.prev_tag.outputs.tag }}"
-        
-    - name: Create Pre-release
+
+    - name: Upload assets to pre-release
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: ${{ github.event.inputs.version }}
-        name: XC_VM ${{ github.event.inputs.version }}
-        body: |
-          # Pre-release ${{ github.event.inputs.version }}
-          
-          ${{ github.event.inputs.changelog }}
-          
-          ## Downloads
-          - `XC_VM.zip` - Main installation archive
-          - `update.tar.gz` - Main update archive
-          - `loadbalancer.tar.gz` - LoadBalancer installation archive
-          - `loadbalancer_update.tar.gz` - LoadBalancer update archive
-        draft: false
-        prerelease: true
+        tag_name: ${{ github.event.release.tag_name }}
         files: dist/*
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
