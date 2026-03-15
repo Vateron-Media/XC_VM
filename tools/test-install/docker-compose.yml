@@ -1,0 +1,6 @@
+services:
+  xcvm-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: xcvm-test:latest
