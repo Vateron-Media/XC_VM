@@ -66,4 +66,3 @@ jobs:
         with:
           tag_name: ${{ steps.tag.outputs.name }}
           files: dist/*
-          files: dist/*
