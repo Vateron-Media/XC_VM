@@ -19,7 +19,7 @@ class TmdbCronJob implements CommandInterface {
         }
 
         require INCLUDES_PATH . 'admin.php';
-        require INCLUDES_PATH . 'libs/tmdb.php';
+        require_once INCLUDES_PATH . 'libs/tmdb.php';
         require INCLUDES_PATH . 'libs/tmdb_release.php';
         require MAIN_HOME . 'modules/tmdb/TmdbCron.php';
 
