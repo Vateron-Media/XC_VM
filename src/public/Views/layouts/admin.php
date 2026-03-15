@@ -29,7 +29,7 @@ if (!function_exists('renderUnifiedLayoutHeader')) {
             'rUserInfo', 'rSettings', 'rThemes', 'rMobile', 'rHues',
             'db', 'language', 'allServersHealthy', 'rServerError',
             'rServers', 'allServers', 'rUpdate', '_TITLE', 'rModal',
-            'rProxyServers', 'rPermissions', '_PAGE',
+            'rProxyServers', 'rPermissions', '_PAGE', '_SETUP',
         ] as $_g) {
             if (array_key_exists($_g, $GLOBALS)) {
                 $$_g = $GLOBALS[$_g];

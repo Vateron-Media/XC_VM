@@ -28,7 +28,7 @@ if (!function_exists('renderUnifiedLayoutFooter')) {
             'rUserInfo', 'rSettings', 'rThemes', 'rMobile', 'rHues',
             'db', 'language', 'rServers', 'allServers', 'rUpdate',
             '_TITLE', 'rModal', 'rProxyServers', 'rPermissions',
-            'rServerError', 'allServersHealthy', '_PAGE',
+            'rServerError', 'allServersHealthy', '_PAGE', '_SETUP',
             'rStreamIDs', 'rFilterBy', 'rSortArray', 'rFilterArray',
             'rSearchBy', 'rURLs', 'rSubtitles', 'rLegacy', 'rSeries',
             'rYearStart', 'rYearEnd', 'rRatingStart', 'rRatingEnd',

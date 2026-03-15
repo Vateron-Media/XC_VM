@@ -132,8 +132,9 @@ if (!isset(RequestManager::getAll()['update'])):
 
     $_TITLE = 'Database Migration';
     $_SETUP = true;
+    $GLOBALS['_SETUP'] = true;
     require_once __DIR__ . '/../layouts/admin.php';
-    renderUnifiedLayoutHeader('admin');
+    renderUnifiedLayoutHeader('admin', ['_SETUP' => true]);
 ?>
     <div class="wrapper boxed-layout" <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
                                         } else {
@@ -302,7 +303,7 @@ if (!isset(RequestManager::getAll()['update'])):
     </div>
     <?php
     require_once __DIR__ . '/../layouts/footer.php';
-    renderUnifiedLayoutFooter('admin');
+    renderUnifiedLayoutFooter('admin', ['_SETUP' => true]);
     ?>
     <?php if ($rMigrating): ?>
         <script>
