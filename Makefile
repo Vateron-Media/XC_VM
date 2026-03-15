@@ -270,93 +270,95 @@ lb_delete_files_list:
 set_permissions:
 	@echo "==> Setting file and directory permissions"
 
-	@if [ -d "$(TEMP_DIR)/public/assets/admin" ]; then \
-		# /public/assets/admin (static assets) \
-		find "$(TEMP_DIR)/public/assets/admin" -type d -exec chmod 755 {} +; \
-		find "$(TEMP_DIR)/public/assets/admin" -type f -exec chmod 644 {} +; \
+	@if [ -d "$(TEMP_DIR)/public" ]; then \
+		find "$(TEMP_DIR)/public" -type d -exec chmod 755 {} +; \
+		find "$(TEMP_DIR)/public" -type f -exec chmod 644 {} +; \
 	fi
 
 	# /backups
-	chmod 0750 $(TEMP_DIR)/backups 2>/dev/null || [ $$? -eq 1 ]
+	chmod 0750 $(TEMP_DIR)/backups 2>/dev/null || true
 
 	# /bin
-	chmod 0750 $(TEMP_DIR)/bin || [ $$? -eq 1 ]
-	chmod 0775 $(TEMP_DIR)/bin/certbot 2>/dev/null || [ $$? -eq 1 ]
+	chmod 0750 $(TEMP_DIR)/bin 2>/dev/null || true
+	chmod 0775 $(TEMP_DIR)/bin/certbot 2>/dev/null || true
 
-	chmod 0755 $(TEMP_DIR)/bin/ffmpeg_bin 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0755 $(TEMP_DIR)/bin/ffmpeg_bin/4.0 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0755 $(TEMP_DIR)/bin/ffmpeg_bin/4.3 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0755 $(TEMP_DIR)/bin/ffmpeg_bin/4.4 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0755 $(TEMP_DIR)/bin/ffmpeg_bin/5.1 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0755 $(TEMP_DIR)/bin/ffmpeg_bin/7.1 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0755 $(TEMP_DIR)/bin/ffmpeg_bin/8.0 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/4.0/ffmpeg 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/4.0/ffprobe 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/4.3/ffmpeg 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/4.3/ffprobe 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/4.4/ffmpeg 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/4.4/ffprobe 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/5.1/ffmpeg 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/5.1/ffprobe 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/7.1/ffmpeg 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/7.1/ffprobe 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/8.0/ffmpeg 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/8.0/ffprobe 2>/dev/null || [ $$? -eq 1 ]
+	chmod 0755 $(TEMP_DIR)/bin/ffmpeg_bin 2>/dev/null || true
+	chmod 0755 $(TEMP_DIR)/bin/ffmpeg_bin/4.0 2>/dev/null || true
+	chmod 0755 $(TEMP_DIR)/bin/ffmpeg_bin/4.3 2>/dev/null || true
+	chmod 0755 $(TEMP_DIR)/bin/ffmpeg_bin/4.4 2>/dev/null || true
+	chmod 0755 $(TEMP_DIR)/bin/ffmpeg_bin/5.1 2>/dev/null || true
+	chmod 0755 $(TEMP_DIR)/bin/ffmpeg_bin/7.1 2>/dev/null || true
+	chmod 0755 $(TEMP_DIR)/bin/ffmpeg_bin/8.0 2>/dev/null || true
+	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/4.0/ffmpeg 2>/dev/null || true
+	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/4.0/ffprobe 2>/dev/null || true
+	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/4.3/ffmpeg 2>/dev/null || true
+	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/4.3/ffprobe 2>/dev/null || true
+	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/4.4/ffmpeg 2>/dev/null || true
+	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/4.4/ffprobe 2>/dev/null || true
+	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/5.1/ffmpeg 2>/dev/null || true
+	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/5.1/ffprobe 2>/dev/null || true
+	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/7.1/ffmpeg 2>/dev/null || true
+	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/7.1/ffprobe 2>/dev/null || true
+	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/8.0/ffmpeg 2>/dev/null || true
+	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/8.0/ffprobe 2>/dev/null || true
 
-	chmod 0775 $(TEMP_DIR)/bin/install 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0644 $(TEMP_DIR)/bin/install/database.sql 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0644 $(TEMP_DIR)/bin/install/proxy.tar.gz 2>/dev/null || [ $$? -eq 1 ]
+	chmod 0775 $(TEMP_DIR)/bin/install 2>/dev/null || true
+	chmod 0644 $(TEMP_DIR)/bin/install/database.sql 2>/dev/null || true
+	chmod 0644 $(TEMP_DIR)/bin/install/proxy.tar.gz 2>/dev/null || true
 
-	chmod 0750 $(TEMP_DIR)/bin/maxmind 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0750 $(TEMP_DIR)/bin/maxmind/GeoIP2-ISP.mmdb 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0750 $(TEMP_DIR)/bin/maxmind/GeoLite2-City.mmdb 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0750 $(TEMP_DIR)/bin/maxmind/GeoLite2-Country.mmdb 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0750 $(TEMP_DIR)/bin/maxmind/version.json 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0550 $(TEMP_DIR)/bin/maxmind/cidr.db 2>/dev/null || [ $$? -eq 1 ]
+	chmod 0750 $(TEMP_DIR)/bin/maxmind 2>/dev/null || true
+	chmod 0750 $(TEMP_DIR)/bin/maxmind/GeoIP2-ISP.mmdb 2>/dev/null || true
+	chmod 0750 $(TEMP_DIR)/bin/maxmind/GeoLite2-City.mmdb 2>/dev/null || true
+	chmod 0750 $(TEMP_DIR)/bin/maxmind/GeoLite2-Country.mmdb 2>/dev/null || true
+	chmod 0750 $(TEMP_DIR)/bin/maxmind/version.json 2>/dev/null || true
+	chmod 0550 $(TEMP_DIR)/bin/maxmind/cidr.db 2>/dev/null || true
 
-	find $(TEMP_DIR)/bin/nginx -type d -exec chmod 750 {} \ 2>/dev/null || [ $$? -eq 1 ];
-	find $(TEMP_DIR)/bin/nginx -type f -exec chmod 550 {} \ 2>/dev/null || [ $$? -eq 1 ];
-	chmod 0755 $(TEMP_DIR)/bin/nginx/conf 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0755 $(TEMP_DIR)/bin/nginx/conf/server.crt 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0755 $(TEMP_DIR)/bin/nginx/conf/server.key 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0755 $(TEMP_DIR)/bin/nginx_rtmp/conf 2>/dev/null || [ $$? -eq 1 ]
+	find $(TEMP_DIR)/bin/nginx -type d -exec chmod 750 {} \; 2>/dev/null || true
+	find $(TEMP_DIR)/bin/nginx -type f -exec chmod 550 {} \; 2>/dev/null || true
+	chmod 0755 $(TEMP_DIR)/bin/nginx/conf 2>/dev/null || true
+	chmod 0644 $(TEMP_DIR)/bin/nginx/conf/server.crt 2>/dev/null || true
+	chmod 0600 $(TEMP_DIR)/bin/nginx/conf/server.key 2>/dev/null || true
+	chmod 0755 $(TEMP_DIR)/bin/nginx_rtmp/conf 2>/dev/null || true
 
-	find $(TEMP_DIR)/bin/php -exec chmod 550 {} \ 2>/dev/null || [ $$? -eq 1 ];
-	chmod 0750 $(TEMP_DIR)/bin/php/etc 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0644 $(TEMP_DIR)/bin/php/etc/1.conf 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0644 $(TEMP_DIR)/bin/php/etc/2.conf 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0644 $(TEMP_DIR)/bin/php/etc/3.conf 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0644 $(TEMP_DIR)/bin/php/etc/4.conf 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0750 $(TEMP_DIR)/bin/php/sessions 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0750 $(TEMP_DIR)/bin/php/sockets 2>/dev/null || [ $$? -eq 1 ]
-	find $(TEMP_DIR)/bin/php/var -type d -exec chmod 750 {} \ 2>/dev/null || [ $$? -eq 1 ];
-	chmod 0551 $(TEMP_DIR)/bin/php/bin/php 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0551 $(TEMP_DIR)/bin/php/bin/php 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0551 $(TEMP_DIR)/bin/php/sbin/php-fpm 2>/dev/null || [ $$? -eq 1 ]
+	find $(TEMP_DIR)/bin/php -type d -exec chmod 750 {} \; 2>/dev/null || true
+	find $(TEMP_DIR)/bin/php -type f -exec chmod 550 {} \; 2>/dev/null || true
+	chmod 0750 $(TEMP_DIR)/bin/php/etc 2>/dev/null || true
+	chmod 0644 $(TEMP_DIR)/bin/php/etc/1.conf 2>/dev/null || true
+	chmod 0644 $(TEMP_DIR)/bin/php/etc/2.conf 2>/dev/null || true
+	chmod 0644 $(TEMP_DIR)/bin/php/etc/3.conf 2>/dev/null || true
+	chmod 0644 $(TEMP_DIR)/bin/php/etc/4.conf 2>/dev/null || true
+	chmod 0750 $(TEMP_DIR)/bin/php/sessions 2>/dev/null || true
+	chmod 0750 $(TEMP_DIR)/bin/php/sockets 2>/dev/null || true
+	find $(TEMP_DIR)/bin/php/var -type d -exec chmod 750 {} \; 2>/dev/null || true
+	chmod 0551 $(TEMP_DIR)/bin/php/bin/php 2>/dev/null || true
+	chmod 0551 $(TEMP_DIR)/bin/php/sbin/php-fpm 2>/dev/null || true
 
-	chmod 0755 $(TEMP_DIR)/bin/php/lib/php/extensions/no-debug-non-zts-20210902 2>/dev/null || [ $$? -eq 1 ]
+	chmod 0755 $(TEMP_DIR)/bin/php/lib/php/extensions/no-debug-non-zts-20210902 2>/dev/null || true
 
-	chmod 0755 $(TEMP_DIR)/bin/redis 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0755 $(TEMP_DIR)/bin/redis/redis-server 2>/dev/null || [ $$? -eq 1 ]
+	chmod 0755 $(TEMP_DIR)/bin/redis 2>/dev/null || true
+	chmod 0755 $(TEMP_DIR)/bin/redis/redis-server 2>/dev/null || true
 
-	chmod 0771 $(TEMP_DIR)/bin/daemons.sh 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0755 $(TEMP_DIR)/bin/guess 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0550 $(TEMP_DIR)/bin/free-sans.ttf 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0550 $(TEMP_DIR)/bin/network 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0550 $(TEMP_DIR)/bin/network.py 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0755 $(TEMP_DIR)/bin/yt-dlp 2>/dev/null || [ $$? -eq 1 ]
+	chmod 0750 $(TEMP_DIR)/bin/daemons.sh 2>/dev/null || true
+	chmod 0755 $(TEMP_DIR)/bin/guess 2>/dev/null || true
+	chmod 0550 $(TEMP_DIR)/bin/free-sans.ttf 2>/dev/null || true
+	chmod 0550 $(TEMP_DIR)/bin/network 2>/dev/null || true
+	chmod 0550 $(TEMP_DIR)/bin/network.py 2>/dev/null || true
+	chmod 0755 $(TEMP_DIR)/bin/yt-dlp 2>/dev/null || true
 
-	chmod 0750 $(TEMP_DIR)/content 2>/dev/null || [ $$? -eq 1 ]
-	find $(TEMP_DIR)/content -exec chmod 750 {} \ 2>/dev/null || [ $$? -eq 1 ];
-	chmod 0755 $(TEMP_DIR)/content/epg 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0755 $(TEMP_DIR)/content/playlists 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0777 $(TEMP_DIR)/content/streams 2>/dev/null || [ $$? -eq 1 ]
+	# /content
+	chmod 0750 $(TEMP_DIR)/content 2>/dev/null || true
+	find $(TEMP_DIR)/content -exec chmod 750 {} \; 2>/dev/null || true
+	chmod 0755 $(TEMP_DIR)/content/epg 2>/dev/null || true
+	chmod 0755 $(TEMP_DIR)/content/playlists 2>/dev/null || true
+	chmod 0770 $(TEMP_DIR)/content/streams 2>/dev/null || true
 
-	chmod 0755 $(TEMP_DIR)/includes 2>/dev/null || [ $$? -eq 1 ]
-	find $(TEMP_DIR)/includes -type f -exec chmod 777 {} \ 2>/dev/null || [ $$? -eq 1 ];
+	# /includes (PHP read by php-fpm)
+	chmod 0755 $(TEMP_DIR)/includes 2>/dev/null || true
+	find $(TEMP_DIR)/includes -type d -exec chmod 755 {} \; 2>/dev/null || true
+	find $(TEMP_DIR)/includes -type f -exec chmod 644 {} \; 2>/dev/null || true
 
 	# New architecture directories (PHP code: 644, dirs: 755)
-	@for arch_dir in core domain streaming infrastructure resources; do \
+	@for arch_dir in core domain streaming infrastructure resources cli crons modules migrations; do \
 		if [ -d "$(TEMP_DIR)/$$arch_dir" ]; then \
 			find "$(TEMP_DIR)/$$arch_dir" -type d -exec chmod 755 {} +; \
 			find "$(TEMP_DIR)/$$arch_dir" -type f -exec chmod 644 {} +; \
@@ -366,71 +368,53 @@ set_permissions:
 	# Root-level PHP files
 	chmod 0644 $(TEMP_DIR)/autoload.php 2>/dev/null || true
 	chmod 0644 $(TEMP_DIR)/bootstrap.php 2>/dev/null || true
+	chmod 0644 $(TEMP_DIR)/console.php 2>/dev/null || true
 
 	@if [ -d "$(TEMP_DIR)/ministra" ]; then \
-		# /ministra \
-		chmod 0755 $(TEMP_DIR)/ministra;  \
+		chmod 0755 $(TEMP_DIR)/ministra; \
 		find $(TEMP_DIR)/ministra -type d -exec chmod 755 {} +; \
 		find $(TEMP_DIR)/ministra -type f -exec chmod 644 {} +; \
-		chmod 0777 $(TEMP_DIR)/ministra/portal.php 2>/dev/null || [ $$? -eq 1 ]; \
+		chmod 0644 $(TEMP_DIR)/ministra/portal.php 2>/dev/null || true; \
 	fi
 
 	@if [ -d "$(TEMP_DIR)/player" ]; then \
-		# /player \
-		find $(TEMP_DIR)/player -type f -exec chmod 644 {} +; \
 		find $(TEMP_DIR)/player -type d -exec chmod 755 {} +; \
+		find $(TEMP_DIR)/player -type f -exec chmod 644 {} +; \
 	fi
 
 	@if [ -d "$(TEMP_DIR)/reseller" ]; then \
 		chmod 0755 $(TEMP_DIR)/reseller; \
-		find $(TEMP_DIR)/reseller -type f -exec chmod 777 {} +; \
+		find $(TEMP_DIR)/reseller -type d -exec chmod 755 {} +; \
+		find $(TEMP_DIR)/reseller -type f -exec chmod 644 {} +; \
 	fi
 
-	find $(TEMP_DIR)/tmp -type d -exec chmod 755 {} \ 2>/dev/null || [ $$? -eq 1 ];
-	
-	chmod 0755 $(TEMP_DIR)/www 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0755 $(TEMP_DIR)/www/images 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0755 $(TEMP_DIR)/www/images/admin 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0755 $(TEMP_DIR)/www/images/enigma2 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0750 $(TEMP_DIR)/www/images/admin/index.html 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0750 $(TEMP_DIR)/www/images/enigma2/index.html 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0750 $(TEMP_DIR)/www/images/index.html 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0777 $(TEMP_DIR)/www/api.php 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0777 $(TEMP_DIR)/www/constants.php 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0777 $(TEMP_DIR)/www/enigma2.php 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0777 $(TEMP_DIR)/www/epg.php 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0777 $(TEMP_DIR)/www/index.html 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0777 $(TEMP_DIR)/www/init.php 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0777 $(TEMP_DIR)/www/player_api.php 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0777 $(TEMP_DIR)/www/playlist.php 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0777 $(TEMP_DIR)/www/probe.php 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0777 $(TEMP_DIR)/www/progress.php 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0777 $(TEMP_DIR)/www/stream 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0777 $(TEMP_DIR)/www/stream/auth.php 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0777 $(TEMP_DIR)/www/stream/index.php 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0777 $(TEMP_DIR)/www/stream/init.php 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0777 $(TEMP_DIR)/www/stream/key.php 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0777 $(TEMP_DIR)/www/stream/live.php 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0777 $(TEMP_DIR)/www/stream/rtmp.php 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0777 $(TEMP_DIR)/www/stream/segment.php 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0777 $(TEMP_DIR)/www/stream/subtitle.php 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0777 $(TEMP_DIR)/www/stream/thumb.php 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0777 $(TEMP_DIR)/www/stream/timeshift.php 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0777 $(TEMP_DIR)/www/stream/vod.php 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0777 $(TEMP_DIR)/www/xplugin.php 2>/dev/null || [ $$? -eq 1 ]
+	find $(TEMP_DIR)/tmp -type d -exec chmod 755 {} \; 2>/dev/null || true
 
-	chmod 0777 $(TEMP_DIR)/service 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0777 $(TEMP_DIR)/status 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0777 $(TEMP_DIR)/tmp 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0777 $(TEMP_DIR)/tools 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0777 $(TEMP_DIR)/update 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0750 $(TEMP_DIR)/signals 2>/dev/null || [ $$? -eq 1 ]
+	# /www — web entry points (read by php-fpm, dirs traversable)
+	chmod 0755 $(TEMP_DIR)/www 2>/dev/null || true
+	find $(TEMP_DIR)/www -type d -exec chmod 755 {} \; 2>/dev/null || true
+	find $(TEMP_DIR)/www -type f -name '*.php' -exec chmod 0644 {} \; 2>/dev/null || true
+	find $(TEMP_DIR)/www -type f -name '*.html' -exec chmod 0644 {} \; 2>/dev/null || true
+	chmod 0755 $(TEMP_DIR)/www/images 2>/dev/null || true
+	chmod 0755 $(TEMP_DIR)/www/images/admin 2>/dev/null || true
+	chmod 0755 $(TEMP_DIR)/www/images/enigma2 2>/dev/null || true
+	chmod 0644 $(TEMP_DIR)/www/images/admin/index.html 2>/dev/null || true
+	chmod 0644 $(TEMP_DIR)/www/images/enigma2/index.html 2>/dev/null || true
+	chmod 0644 $(TEMP_DIR)/www/images/index.html 2>/dev/null || true
 
-	chmod 0750 $(TEMP_DIR)/config 2>/dev/null || [ $$? -eq 1 ]
-	chmod 0550 $(TEMP_DIR)/config/rclone.conf 2>/dev/null || [ $$? -eq 1 ]
+	# Root-level executables
+	chmod 0750 $(TEMP_DIR)/service 2>/dev/null || true
+	chmod 0750 $(TEMP_DIR)/status 2>/dev/null || true
+	chmod 0755 $(TEMP_DIR)/tmp 2>/dev/null || true
+	chmod 0750 $(TEMP_DIR)/tools 2>/dev/null || true
+	chmod 0750 $(TEMP_DIR)/update 2>/dev/null || true
+	chmod 0750 $(TEMP_DIR)/signals 2>/dev/null || true
 
-	chmod a+x $(TEMP_DIR)/status 2>/dev/null || [ $$? -eq 1 ]
-	sudo chmod +x $(TEMP_DIR)/bin/nginx_rtmp/sbin/nginx_rtmp 2>/dev/null || [ $$? -eq 1 ]
+	chmod 0750 $(TEMP_DIR)/config 2>/dev/null || true
+	chmod 0640 $(TEMP_DIR)/config/modules.php 2>/dev/null || true
+	chmod 0550 $(TEMP_DIR)/config/rclone.conf 2>/dev/null || true
+
+	chmod 0750 $(TEMP_DIR)/bin/nginx_rtmp/sbin/nginx_rtmp 2>/dev/null || true
 
 create_archive:
 	@echo "==> Creating final archive: ${TEMP_ARCHIVE_NAME}"
