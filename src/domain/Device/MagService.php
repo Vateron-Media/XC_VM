@@ -188,7 +188,12 @@ class MagService {
 								$rPrepare['data'][] = $rUserID;
 								$rQuery = 'UPDATE `lines` SET ' . $rPrepare['update'] . ' WHERE `id` = ?;';
 								$db->query($rQuery, ...$rPrepare['data']);
-									LineService::updateLineSignal($rUserID);
+											LineService::updateLineSignal($rUserID);
+										}
+									}
+								}
+							}
+						}
 
 			return array('status' => STATUS_SUCCESS);
 		} else {
