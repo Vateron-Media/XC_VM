@@ -40,7 +40,9 @@ if (!isset($_SESSION['hash'])) {
 		exit();
 	}
 
-	header('Location: ./login?referrer=' . urlencode(basename($_SERVER['REQUEST_URI'], '.php')));
+	if (!headers_sent()) {
+		header('Location: ./login?referrer=' . urlencode(basename($_SERVER['REQUEST_URI'], '.php')));
+	}
 
 	exit();
 }
