@@ -38,3 +38,10 @@ Evaluate:
 - Identify potential future degradation points
 
 Be precise. Avoid vague statements.
+
+## Mandatory Syntax Verification
+After ANY file change, run the project syntax checker:
+```bash
+bash tools/php_syntax_check.sh
+```
+Do NOT commit or declare completion if any syntax errors remain.
