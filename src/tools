@@ -4,4 +4,4 @@
 // Logic moved to src/cli/Commands/ToolsCommand.php (rescue/access/ports subcommands)
 $argv = array_merge(array('console.php', 'tools'), array_slice($argv, 1));
 $argc = count($argv);
-require str_replace('\\', '/', dirname($argv[0])) . '/console.php';
+require __DIR__ . '/console.php';

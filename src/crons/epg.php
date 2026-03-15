@@ -326,7 +326,7 @@ print_log("Mode: " . ($rEPGID ? "Single EPG ID: $rEPGID" : "Full update"));
 set_time_limit(0);
 ini_set('memory_limit', -1);
 register_shutdown_function('shutdown');
-require str_replace('\\', '/', dirname($argv[0])) . '/../www/init.php';
+require __DIR__ . '/../www/init.php';
 require INCLUDES_PATH . 'libs/XmlStringStreamer.php';
 
 shell_exec('kill -9 `ps -ef | grep \'XC_VM\\[EPG\\]\' | grep -v grep | awk \'{print $2}\'`;');
