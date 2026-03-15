@@ -370,7 +370,8 @@ class ConnectionTracker {
 
 	public static function getConnection($rUUID) {
 		$rRedis = RedisManager::instance();
-		return igbinary_unserialize($rRedis->get($rUUID));
+		$raw = $rRedis->get($rUUID);
+		return ($raw !== false) ? igbinary_unserialize($raw) : null;
 	}
 
 	public static function createConnection($rData) {
@@ -442,7 +443,8 @@ class ConnectionTracker {
 					}
 					$rActivityInfo = $db->get_row();
 				} else {
-					$rActivityInfo = igbinary_unserialize($rRedisObj->get($rActivityInfo));
+					$raw = $rRedisObj->get($rActivityInfo);
+					$rActivityInfo = ($raw !== false) ? igbinary_unserialize($raw) : null;
 				}
 			}
 			if (is_array($rActivityInfo)) {

@@ -148,7 +148,8 @@ if ($action == 'line_activity') {
 
         if ($rSub == 'kill') {
             if (SettingsManager::getAll()['redis_handler']) {
-                $rActivityInfo = igbinary_unserialize(RedisManager::instance()->get(RequestManager::getAll()['uuid']));
+                $raw = RedisManager::instance()->get(RequestManager::getAll()['uuid']);
+                $rActivityInfo = ($raw !== false) ? igbinary_unserialize($raw) : null;
                 if ($rActivityInfo) {
                     if (Authorization::check('line', $rActivityInfo['user_id'])) {
                         ConnectionTracker::closeConnection($rActivityInfo);

@@ -469,7 +469,10 @@ class UsersCronJob implements CommandInterface {
                 }
 
                 if (count($rUUIDs) > 0) {
-                    $rConnections = array_map('igbinary_unserialize', RedisManager::instance()->mGet($rUUIDs));
+                    $rConnections = array_map(
+                        static fn($v) => ($v !== false) ? igbinary_unserialize($v) : null,
+                        RedisManager::instance()->mGet($rUUIDs)
+                    );
 
                     foreach ($rConnections as $rConnection) {
                         if (!is_array($rConnection)) {
