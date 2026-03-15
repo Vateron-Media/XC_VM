@@ -42,3 +42,10 @@ Evaluate:
 - Highlight systemic design flaws
 
 Be strict. Avoid generic praise.
+
+## Mandatory Syntax Verification
+After ANY file change, run the project syntax checker:
+```bash
+bash tools/php_syntax_check.sh
+```
+Do NOT commit or declare completion if any syntax errors remain.
