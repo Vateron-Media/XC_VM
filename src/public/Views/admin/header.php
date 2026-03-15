@@ -33,7 +33,7 @@
         <link href="assets/css/icons.css" rel="stylesheet" type="text/css" />
         <link href="assets/libs/jquery-vectormap/jquery-jvectormap-1.2.2.css" rel="stylesheet" type="text/css" />
         <link href="assets/libs/bootstrap-colorpicker/bootstrap-colorpicker.min.css" rel="stylesheet" type="text/css" />
-        <?php if (isset($_SETUP) || !$rThemes[$rUserInfo['theme']]['dark']): ?>
+        <?php if (!empty($_SETUP) || !($rThemes[$rUserInfo['theme'] ?? ''] ?? ['dark' => false])['dark']): ?>
             <link href="assets/css/bootstrap.css" rel="stylesheet" type="text/css" />
             <link href="assets/css/app.css" rel="stylesheet" type="text/css" />
             <link href="assets/css/listings.css" rel="stylesheet" type="text/css" />
