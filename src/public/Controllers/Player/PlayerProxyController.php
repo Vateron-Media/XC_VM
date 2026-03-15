@@ -25,6 +25,8 @@ class PlayerProxyController extends BasePlayerController
 				header('Content-Description: File Transfer');
 				header('Content-type: application/octet-stream');
 				header('Content-Disposition: attachment; filename="' . md5($rURL . SettingsManager::getAll()['live_streaming_pass']) . '.vtt"');
+				header('X-Content-Type-Options: nosniff');
+				header('Content-Length: ' . strlen($rData));
 				echo $rData;
 				exit();
 			}

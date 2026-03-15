@@ -78,6 +78,7 @@ $rMaxH = 0;
 		if (!file_exists($rImagePath)) {
 		} else {
 			header('Content-Type: image/png');
+			header('X-Content-Type-Options: nosniff');
 			echo file_get_contents($rImagePath);
 
 			exit();
@@ -85,6 +86,7 @@ $rMaxH = 0;
 	}
 
 	header('Content-Type: image/png');
+	header('X-Content-Type-Options: nosniff');
 	$rImage = imagecreatetruecolor(1, 1);
 	imagesavealpha($rImage, true);
 	imagefill($rImage, 0, 0, imagecolorallocatealpha($rImage, 0, 0, 0, 127));
