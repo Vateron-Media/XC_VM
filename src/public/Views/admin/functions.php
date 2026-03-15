@@ -26,11 +26,15 @@ if (isset($_SESSION['hash'])) {
 	}
 
 	if (!empty($rUserInfo['hue']) && (!isset($_COOKIE['hue']) || $_COOKIE['hue'] != $rUserInfo['hue'])) {
-		setcookie('hue', $rUserInfo['hue'], time() + 604800);
+		if (!headers_sent()) {
+			setcookie('hue', $rUserInfo['hue'], time() + 604800);
+		}
 	}
 
 	if (!isset($_COOKIE['theme']) || $_COOKIE['theme'] != $rUserInfo['theme']) {
-		setcookie('theme', $rUserInfo['theme'], time() + 604800);
+		if (!headers_sent()) {
+			setcookie('theme', $rUserInfo['theme'], time() + 604800);
+		}
 	}
 
 	if (!isset($_COOKIE['lang']) || $_COOKIE['lang'] != $rUserInfo['lang']) {
@@ -46,7 +50,9 @@ if (isset($_SESSION['hash'])) {
 		unset($rUserInfo, $rPermissions);
 
 		destroySession();
-		header('Location: index');
+		if (!headers_sent()) {
+			header('Location: index');
+		}
 
 		exit();
 	}
