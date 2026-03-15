@@ -10,7 +10,7 @@
  */
 
 define('AUTO_RESTART_MARIADB', true);  // Test function
-define('DEVELOPMENT', true);          // It will be deleted in the future.
+define('DEVELOPMENT', false);          // It will be deleted in the future.
 
 // ── Версия и Git ──────────────────────────────────────────────
 define('XC_VM_VERSION',   '2.0.0');
