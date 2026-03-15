@@ -692,7 +692,7 @@ class DumperFacade
 	}
 }
 
-interface StreamInterface implements Iterator
+interface StreamInterface extends Iterator
 {
 	public function add($line);
 }
