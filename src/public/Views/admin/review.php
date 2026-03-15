@@ -351,7 +351,7 @@
                                                                 <input type="text" class="form-control"
                                                                     id="name_<?php echo $i; ?>"
                                                                     value="<?php echo htmlspecialchars($rStream['title']); ?>">
-                                                                <? if ($rType != 1) { ?>
+                                                                <?php if ($rType != 1) { ?>
                                                                     <div class="input-group-append">
                                                                         <a href="javascript:void(0);"
                                                                             onClick="<?php echo 'scanTMDb(' . $i . ');'; ?>"
