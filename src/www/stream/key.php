@@ -17,6 +17,8 @@ if (isset($_GET['token'])) {
 	$rIPMatch = ($rSettings['ip_subnet_match'] ? implode('.', array_slice(explode('.', $rTokenArray[0]), 0, -1)) == implode('.', array_slice(explode('.', $rIP), 0, -1)) : $rTokenArray[0] == $rIP);
 
 	if (is_array($rTokenArray) && ($rIPMatch || !$rSettings['restrict_same_ip'])) {
+		header('Content-Type: application/octet-stream');
+		header('X-Content-Type-Options: nosniff');
 		echo file_get_contents(STREAMS_PATH . intval($rTokenArray[1]) . '_.key');
 		exit();
 	}

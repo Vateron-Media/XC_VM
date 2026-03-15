@@ -1,6 +1,7 @@
 <?php
 
 header('Access-Control-Allow-Origin: *');
+header('X-Content-Type-Options: nosniff');
 set_time_limit(0);
 require_once 'init.php';
 
