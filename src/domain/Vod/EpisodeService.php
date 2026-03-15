@@ -53,7 +53,7 @@ class EpisodeService {
 		if (isset($rData['multi'])) {
 			if (Authorization::check('adv', 'import_episodes')) {
 				set_time_limit(0);
-				include INCLUDES_PATH . 'libs/tmdb.php';
+				require_once INCLUDES_PATH . 'libs/tmdb.php';
 				$rSeries = getSerie(intval($rData['series']));
 
 				if (0 < strlen($rSettings['tmdb_language'])) {
