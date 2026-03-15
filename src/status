@@ -4,4 +4,4 @@
 // Logic moved to src/cli/Commands/StatusCommand.php
 $argv = array_merge(array('console.php', 'status'), array_slice($argv, 1));
 $argc = count($argv);
-require str_replace('\\', '/', dirname($argv[0])) . '/console.php';
+require __DIR__ . '/console.php';
