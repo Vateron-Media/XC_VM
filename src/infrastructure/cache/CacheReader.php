@@ -11,8 +11,12 @@ class CacheReader {
 	 * @return mixed|null
 	 */
 	public static function get($rCache) {
-		$rData = (file_get_contents(CACHE_TMP_PATH . $rCache) ?: null);
-		return igbinary_unserialize($rData);
+		$rPath = CACHE_TMP_PATH . $rCache;
+		if (!is_file($rPath)) {
+			return null;
+		}
+		$rData = file_get_contents($rPath);
+		return $rData !== false ? igbinary_unserialize($rData) : null;
 	}
 
 	/**
