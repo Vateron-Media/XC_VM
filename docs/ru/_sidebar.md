@@ -19,6 +19,7 @@
 
 - 🧰 **Разработка**
   - [🖥 CLI-инструменты и миграции БД](ru-ru/development/cli-tools.md)
+  - [⚙️ Автозагрузчик и регистрация классов](ru-ru/development/autoloader.md)
 
 - 📦 **Дополнительно**
   - [🎬 Watchfolder](ru-ru/info/watch_folder.md)
