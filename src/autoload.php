@@ -1,95 +1,104 @@
 <?php
 
 /**
- * Автозагрузчик классов
+ * Lightweight class autoloader for legacy PHP projects without namespaces.
  *
- * Загружает классы по имени без namespace и без Composer.
- * Работает в двух режимах:
+ * The loader builds a runtime map of `ClassName → filePath` by scanning
+ * registered directories and extracting class definitions using the PHP
+ * tokenizer (`token_get_all`).
  *
- *   1. Карта классов (class map) — явное соответствие ClassName → file path.
- *      Приоритетный режим. Гарантирует предсказуемость и скорость.
+ * On first run the class map is generated and stored in a binary cache
+ * using igbinary serialization. On subsequent runs the cache is loaded
+ * directly into memory providing O(1) class resolution.
  *
- *   2. Поиск по директориям (fallback) — если класса нет в карте,
- *      ищет файл {ClassName}.php в зарегистрированных директориях.
- *      Используется для новых классов, добавляемых при миграции.
+ * Resolution order:
  *
- * Кэширование:
- *   Результаты поиска по директориям кэшируются в runtime массив,
- *   чтобы повторный autoload того же класса не сканировал файловую систему.
- *   Опционально можно включить файловый кэш через XC_Autoloader::enableFileCache().
+ * 1. Explicit class map registered via addClass()
+ * 2. Cached class map loaded from disk
+ * 3. Runtime directory scan fallback
  *
- * Использование:
- *   require_once '/home/xc_vm/autoload.php';
- *   // Всё. Классы из карты и зарегистрированных директорий загружаются автоматически.
+ * Cache is automatically persisted during shutdown if new classes were
+ * discovered during execution.
  *
- * Добавление новых директорий для поиска:
- *   XC_Autoloader::addDirectory('/home/xc_vm/core/Config');
- *   XC_Autoloader::addDirectory('/home/xc_vm/domain/Stream');
+ * This loader is designed for projects without Composer or namespaces.
  *
- * Добавление новых классов в карту (при необходимости):
- *   XC_Autoloader::addClass('MyNewService', '/home/xc_vm/core/MyNewService.php');
+ * @package XC_VM
  */
 
 class XC_Autoloader {
-    /**
-     * Корневая директория проекта (/home/xc_vm/)
-     */
+
+    /** @var string Project root directory (e.g. /home/xc_vm/) */
     private static $basePath = '';
 
-    /**
-     * Явная карта: имя класса → абсолютный путь к файлу
-     * @var array<string, string>
-     */
+    /** @var array<string, string> Explicit map: class name → absolute file path */
     private static $classMap = [];
 
-    /**
-     * Директории для fallback-поиска (абсолютные пути)
-     * @var string[]
-     */
+    /** @var string[] Directories registered for recursive class scanning */
     private static $directories = [];
 
-    /**
-     * Runtime-кэш найденных через fallback классов
-     * @var array<string, string>
-     */
+    /** @var array<string, string> Runtime cache of resolved classes (populated from file cache or fallback) */
     private static $resolved = [];
 
-    /**
-     * Путь к файлу кэша (null = файловый кэш отключён)
-     * @var string|null
-     */
+    /** @var string|null Path to the on-disk cache file (null = cache disabled) */
     private static $cacheFile = null;
 
-    /**
-     * Флаг: были ли новые разрешения с момента загрузки кэша
-     */
+    /** @var bool Whether new entries were added since the cache was loaded */
     private static $cacheDirty = false;
 
+    /** @var array<string, true> Negative cache: class names confirmed missing after full scan */
+    private static $notFound = [];
+
+    // ─────────────────────────────────────────────────────────────
+    //  Public API
+    // ─────────────────────────────────────────────────────────────
+
     /**
-     * Инициализация автозагрузчика
+     * Initialize the autoloader.
      *
-     * @param string $basePath Корневая директория проекта
+     * Registers default project directories, attaches the autoload callback
+     * to the SPL autoload stack, and schedules cache persistence on shutdown.
+     *
+     * This method must be called once during application bootstrap.
+     *
+     * @param string $basePath Absolute project root path
+     *
+     * @return void
      */
     public static function init($basePath) {
         self::$basePath = rtrim($basePath, '/') . '/';
 
-        self::buildClassMap();
         self::registerDirectories();
 
         spl_autoload_register([__CLASS__, 'load'], true, true);
 
-        // Сохранение файлового кэша при завершении, если он изменился
+        // Persist file cache on shutdown if it was modified
         register_shutdown_function([__CLASS__, 'saveCache']);
     }
 
     /**
-     * Основной метод загрузки класса
+     * SPL autoload callback responsible for resolving and loading a class.
      *
-     * @param string $className Имя класса
+     * Resolution strategy:
+     *
+     * 1. Explicit class map registered via addClass()
+     * 2. Cached class map (loaded from disk or previously resolved)
+     * 3. Negative cache — instant reject for previously missing classes
+     * 4. Flat directory lookup (Dir/ClassName.php)
+     * 5. Full cache rebuild via warmCache() + retry
+     * 6. Negative cache registration on definitive miss
+     *
+     * Recursive filesystem traversal is never performed per-request.
+     * If a class is not found in the prebuilt cache, a single full
+     * rebuild is triggered instead.
+     *
+     * @param string $className Class name requested by the runtime
+     *
      * @return bool
+     *      TRUE  if the class file was found and loaded
+     *      FALSE if the class could not be resolved
      */
     public static function load($className) {
-        // 1. Проверяем явную карту
+        // 1. Check explicit class map
         if (isset(self::$classMap[$className])) {
             $file = self::$classMap[$className];
             if (file_exists($file)) {
@@ -98,7 +107,7 @@ class XC_Autoloader {
             }
         }
 
-        // 2. Проверяем runtime-кэш (уже находили через fallback)
+        // 2. Check resolved cache (file cache or previous runtime lookup)
         if (isset(self::$resolved[$className])) {
             $file = self::$resolved[$className];
             if (file_exists($file)) {
@@ -107,7 +116,12 @@ class XC_Autoloader {
             }
         }
 
-        // 3. Fallback: поиск по зарегистрированным директориям
+        // 3. Negative cache — class was previously confirmed missing
+        if (isset(self::$notFound[$className])) {
+            return false;
+        }
+
+        // 4. Fast path: direct file in a registered directory
         $file = self::findInDirectories($className);
         if ($file !== null) {
             self::$resolved[$className] = $file;
@@ -116,24 +130,52 @@ class XC_Autoloader {
             return true;
         }
 
-        // Класс не найден — возвращаем false, пусть следующий autoloader попробует
+        // 5. Rebuild full cache and retry
+        self::warmCache();
+        if (isset(self::$resolved[$className])) {
+            $file = self::$resolved[$className];
+            if (file_exists($file)) {
+                require_once $file;
+                return true;
+            }
+        }
+
+        // 6. Confirmed missing — remember for future calls
+        self::$notFound[$className] = true;
         return false;
     }
 
     /**
-     * Добавить класс в карту вручную
+     * Manually register a class-to-file mapping.
      *
-     * @param string $className Имя класса
-     * @param string $filePath  Абсолютный путь к файлу
+     * Entries added via this method have the highest priority and override
+     * any automatically discovered mappings.
+     *
+     * Useful for:
+     *  - legacy classes with non-standard file names
+     *  - files containing multiple class definitions
+     *  - temporary overrides
+     *
+     * @param string $className Class name
+     * @param string $filePath  Absolute path to the class file
+     *
+     * @return void
      */
     public static function addClass($className, $filePath) {
         self::$classMap[$className] = $filePath;
     }
 
     /**
-     * Добавить директорию для fallback-поиска
+     * Register a directory for class discovery.
      *
-     * @param string $directory Абсолютный путь к директории
+     * The directory will be scanned recursively when building the class map
+     * during cache warm-up.
+     *
+     * Duplicate directories are ignored.
+     *
+     * @param string $directory Absolute directory path
+     *
+     * @return void
      */
     public static function addDirectory($directory) {
         $dir = rtrim($directory, '/');
@@ -143,9 +185,18 @@ class XC_Autoloader {
     }
 
     /**
-     * Включить файловый кэш для ускорения повторных запросов
+     * Enable persistent class map caching.
      *
-     * @param string|null $path Путь к файлу кэша (null = отключить)
+     * If the cache file exists it will be loaded into memory. If the file
+     * is missing or corrupted a full cache warm-up scan will be triggered.
+     *
+     * Cache is stored using igbinary serialization for improved
+     * performance and reduced memory footprint.
+     *
+     * @param string|null $path Absolute path to cache file.
+     *                          NULL disables persistent caching.
+     *
+     * @return void
      */
     public static function enableFileCache($path) {
         self::$cacheFile = $path;
@@ -155,13 +206,25 @@ class XC_Autoloader {
                 $cached = @igbinary_unserialize($data);
                 if (is_array($cached)) {
                     self::$resolved = $cached;
+                    return;
                 }
             }
+        }
+
+        // Cache missing or corrupted — warm on first run
+        if ($path !== null) {
+            self::warmCache();
         }
     }
 
     /**
-     * Сохранить файловый кэш (вызывается автоматически при shutdown)
+     * Persist the resolved class map to disk.
+     *
+     * This method is normally executed automatically via the registered
+     * shutdown handler. The cache will only be written if new class
+     * entries were discovered during execution.
+     *
+     * @return void
      */
     public static function saveCache() {
         if (self::$cacheFile !== null && self::$cacheDirty) {
@@ -169,16 +232,50 @@ class XC_Autoloader {
             if (!is_dir($dir)) {
                 @mkdir($dir, 0755, true);
             }
-            @file_put_contents(self::$cacheFile, igbinary_serialize(self::$resolved), LOCK_EX);
+            @file_put_contents(
+                self::$cacheFile,
+                igbinary_serialize(self::$resolved),
+                LOCK_EX
+            );
             self::$cacheDirty = false;
         }
     }
 
     /**
-     * Сбросить файловый кэш
+     * Perform full cache warm-up.
+     *
+     * All registered directories are recursively scanned and PHP files
+     * are parsed using the tokenizer to extract class, interface, trait,
+     * and enum declarations.
+     *
+     * The resulting class map is stored in memory and immediately written
+     * to the persistent cache. The negative cache is cleared so that
+     * previously missing classes are re-evaluated.
+     *
+     * This method is typically executed automatically when the cache
+     * file is missing or a class is not found in the existing cache.
+     *
+     * @return void
+     */
+    public static function warmCache() {
+        self::$notFound = [];
+        foreach (self::$directories as $dir) {
+            self::scanDirectoryForClasses($dir);
+        }
+        self::$cacheDirty = true;
+        self::saveCache();
+    }
+
+    /**
+     * Clear all caches: runtime, persistent, and negative.
+     *
+     * This forces the autoloader to rebuild the class map on the next run.
+     *
+     * @return void
      */
     public static function clearCache() {
         self::$resolved = [];
+        self::$notFound = [];
         self::$cacheDirty = false;
         if (self::$cacheFile !== null && file_exists(self::$cacheFile)) {
             @unlink(self::$cacheFile);
@@ -186,49 +283,53 @@ class XC_Autoloader {
     }
 
     /**
-     * Получить текущую карту классов (для отладки)
+     * Retrieve the manually registered class map.
      *
-     * @return array
+     * Intended for debugging and diagnostics.
+     *
+     * @return array<string, string>
+     *      Array of ClassName => filePath mappings
      */
     public static function getClassMap() {
         return self::$classMap;
     }
 
     /**
-     * Получить список зарегистрированных директорий (для отладки)
+     * Retrieve the list of directories registered for class discovery.
+     *
+     * Intended for debugging and diagnostics.
      *
      * @return string[]
+     *      List of absolute directory paths
      */
     public static function getDirectories() {
         return self::$directories;
     }
 
     // ─────────────────────────────────────────────────────────────
-    //  Приватные методы
+    //  Private methods
     // ─────────────────────────────────────────────────────────────
 
     /**
-     * Поиск файла класса в зарегистрированных директориях
+     * Attempt a flat (non-recursive) class file lookup.
      *
-     * @param string $className
-     * @return string|null Абсолютный путь или null
+     * Checks each registered directory for Dir/ClassName.php.
+     * No recursive traversal is performed — if the file is not at the
+     * top level of a registered directory, the caller should trigger
+     * a full cache rebuild via warmCache().
+     *
+     * @param string $className Class name
+     *
+     * @return string|null
+     *      Absolute path to the file or NULL if not found
      */
     private static function findInDirectories($className) {
         $fileName = $className . '.php';
 
         foreach (self::$directories as $dir) {
-            // Прямой поиск: directory/ClassName.php
             $path = $dir . '/' . $fileName;
             if (file_exists($path)) {
                 return $path;
-            }
-        }
-
-        // Рекурсивный поиск по зарегистрированным корневым директориям
-        foreach (self::$directories as $dir) {
-            $found = self::findRecursive($dir, $fileName);
-            if ($found !== null) {
-                return $found;
             }
         }
 
@@ -236,16 +337,19 @@ class XC_Autoloader {
     }
 
     /**
-     * Рекурсивный поиск файла в поддиректориях
+     * Recursively scan a directory for PHP files and extract class
+     * declarations using the tokenizer.
      *
-     * @param string $dir      Директория для поиска
-     * @param string $fileName Имя файла (ClassName.php)
-     * @return string|null
+     * All discovered classes are registered in the runtime class map.
+     *
+     * @param string $dir Directory to scan
+     *
+     * @return void
      */
-    private static function findRecursive($dir, $fileName) {
+    private static function scanDirectoryForClasses($dir) {
         $items = @scandir($dir);
         if ($items === false) {
-            return null;
+            return;
         }
 
         foreach ($items as $item) {
@@ -254,257 +358,100 @@ class XC_Autoloader {
             }
             $fullPath = $dir . '/' . $item;
             if (is_dir($fullPath)) {
-                $found = self::findRecursive($fullPath, $fileName);
-                if ($found !== null) {
-                    return $found;
-                }
-            } elseif ($item === $fileName) {
-                return $fullPath;
+                self::scanDirectoryForClasses($fullPath);
+            } elseif (str_ends_with($item, '.php')) {
+                self::extractAndRegister($fullPath);
             }
         }
-
-        return null;
     }
 
     /**
-     * Карта существующих классов проекта
+     * Parse a PHP file and extract declared class-like structures.
      *
-     * Содержит ВСЕ текущие классы с явными путями.
-     * При миграции: новый класс переносится → обновляется путь здесь.
-     * Когда старый класс удаляется → удаляется строка отсюда.
+     * The tokenizer is used to identify the following constructs:
+     *
+     *  - classes
+     *  - interfaces
+     *  - traits
+     *  - enums (PHP 8.1+)
+     *
+     * If a declaration is found and no existing mapping exists, the
+     * class name is registered in the runtime class map.
+     *
+     * @param string $filePath Absolute path to PHP file
+     *
+     * @return void
      */
-    private static function buildClassMap() {
-        $base = self::$basePath;
+    private static function extractAndRegister($filePath) {
+        $code = @file_get_contents($filePath);
+        if ($code === false) {
+            return;
+        }
 
-        self::$classMap = [
-            // ── Ядро (новая архитектура) ──────────────────────────
-            'ServiceContainer'      => $base . 'core/Container/ServiceContainer.php',
-            'DatabaseHandler'       => $base . 'core/Database/DatabaseHandler.php',
-            'MigrationRunner'       => $base . 'core/Database/MigrationRunner.php',
-            'DatabaseFactory'       => $base . 'infrastructure/database/DatabaseFactory.php',
-            'CacheReader'           => $base . 'infrastructure/cache/CacheReader.php',
-            'CacheInterface'        => $base . 'core/Cache/CacheInterface.php',
-            'FileCache'             => $base . 'core/Cache/FileCache.php',
-            'RedisCache'            => $base . 'core/Cache/RedisCache.php',
-            'Request'               => $base . 'core/Http/Request.php',
-            'RequestManager'        => $base . 'core/Http/RequestManager.php',
-            'Response'              => $base . 'core/Http/Response.php',
-            'CurlClient'            => $base . 'core/Http/CurlClient.php',
-            'DomainResolver'        => $base . 'core/Config/DomainResolver.php',
-            'SettingsRepository'    => $base . 'core/Config/SettingsRepository.php',
-            'SettingsManager'       => $base . 'core/Config/SettingsManager.php',
-            'ConfigReader'          => $base . 'core/Config/ConfigReader.php',
-            'SessionManager'        => $base . 'core/Auth/SessionManager.php',
-            'BruteforceGuard'       => $base . 'core/Auth/BruteforceGuard.php',
-            'Authorization'         => $base . 'core/Auth/Authorization.php',
-            'Authenticator'         => $base . 'core/Auth/Authenticator.php',
-            'ProcessManager'        => $base . 'core/Process/ProcessManager.php',
-            'LegacyInitializer'     => $base . 'core/Init/LegacyInitializer.php',
-            'Encryption'            => $base . 'core/Util/Encryption.php',
-            'TimeUtils'             => $base . 'core/Util/TimeUtils.php',
-            'GeoIP'                 => $base . 'core/Util/GeoIP.php',
-            'NetworkUtils'          => $base . 'core/Util/NetworkUtils.php',
-            'ImageUtils'            => $base . 'core/Util/ImageUtils.php',
-            'StreamUtils'           => $base . 'core/Util/StreamUtils.php',
-            'BackupService'         => $base . 'core/Backup/BackupService.php',
-            'DiagnosticsService'    => $base . 'core/Diagnostics/DiagnosticsService.php',
-            'InputValidator'        => $base . 'core/Validation/InputValidator.php',
-            'GeoIPService'          => $base . 'core/GeoIP/GeoIPService.php',
-            'ConnectionTracker'     => $base . 'domain/Stream/ConnectionTracker.php',
-            'StreamSorter'          => $base . 'domain/Stream/StreamSorter.php',
-            'ChannelService'        => $base . 'domain/Stream/ChannelService.php',
-            'StreamService'         => $base . 'domain/Stream/StreamService.php',
-            'StreamProcess'         => $base . 'domain/Stream/StreamProcess.php',
-            'PlaylistGenerator'     => $base . 'domain/Stream/PlaylistGenerator.php',
-            'CronGenerator'         => $base . 'domain/Stream/CronGenerator.php',
-            'CategoryService'       => $base . 'domain/Stream/CategoryService.php',
-            'StreamRepository'      => $base . 'domain/Stream/StreamRepository.php',
-            'StreamConfigRepository' => $base . 'domain/Stream/StreamConfigRepository.php',
-            'M3UParser'             => $base . 'domain/Stream/M3UParser.php',
-            'RadioService'          => $base . 'domain/Stream/RadioService.php',
-            'ProfileService'        => $base . 'domain/Stream/ProfileService.php',
-            'ProviderService'       => $base . 'domain/Stream/ProviderService.php',
-            'MovieService'          => $base . 'domain/Vod/MovieService.php',
-            'SeriesService'         => $base . 'domain/Vod/SeriesService.php',
-            'EpisodeService'        => $base . 'domain/Vod/EpisodeService.php',
-            'LineService'           => $base . 'domain/Line/LineService.php',
-            'LineRepository'        => $base . 'domain/Line/LineRepository.php',
-            'OutputFormatRepository' => $base . 'domain/Line/OutputFormatRepository.php',
-            'PackageService'        => $base . 'domain/Line/PackageService.php',
-            'UserService'           => $base . 'domain/User/UserService.php',
-            'GroupService'          => $base . 'domain/User/GroupService.php',
-            'UserRepository'        => $base . 'domain/User/UserRepository.php',
-            'EpgService'            => $base . 'domain/Epg/EpgService.php',
-            'SettingsService'       => $base . 'domain/Server/SettingsService.php',
-            'BlocklistService'      => $base . 'domain/Security/BlocklistService.php',
-            'ServerService'         => $base . 'domain/Server/ServerService.php',
-            'MagService'            => $base . 'domain/Device/MagService.php',
-            'EnigmaService'         => $base . 'domain/Device/EnigmaService.php',
-            'BouquetService'        => $base . 'domain/Bouquet/BouquetService.php',
-            'ServerRepository'      => $base . 'domain/Server/ServerRepository.php',
-            'AuthService'           => $base . 'domain/Auth/AuthService.php',
-            'AuthRepository'        => $base . 'domain/Auth/AuthRepository.php',
-            'SystemInfo'            => $base . 'core/Util/SystemInfo.php',
-            'EventInterface'        => $base . 'core/Events/EventInterface.php',
-            'EventDispatcher'       => $base . 'core/Events/EventDispatcher.php',
-            'LoggerInterface'       => $base . 'core/Logging/LoggerInterface.php',
-            'FileLogger'            => $base . 'core/Logging/FileLogger.php',
-            'DatabaseLogger'        => $base . 'core/Logging/DatabaseLogger.php',
-            'RedisManager'          => $base . 'infrastructure/redis/RedisManager.php',
-            'StreamAuth'            => $base . 'streaming/Auth/StreamAuth.php',
-            'TokenAuth'             => $base . 'streaming/Auth/TokenAuth.php',
-            'DeviceLock'            => $base . 'streaming/Auth/DeviceLock.php',
-            'ConnectionLimiter'     => $base . 'streaming/Protection/ConnectionLimiter.php',
-            'StreamRedirector'      => $base . 'streaming/Delivery/StreamRedirector.php',
-            'OffAirHandler'         => $base . 'streaming/Delivery/OffAirHandler.php',
-            'HLSGenerator'          => $base . 'streaming/Delivery/HLSGenerator.php',
-            'SegmentReader'         => $base . 'streaming/Delivery/SegmentReader.php',
-            'SignalSender'          => $base . 'streaming/Delivery/SignalSender.php',
-            'ProxySelector'         => $base . 'streaming/Balancer/ProxySelector.php',
-            'FFprobeRunner'         => $base . 'streaming/Codec/FFprobeRunner.php',
-            'FFmpegCommand'         => $base . 'streaming/Codec/FFmpegCommand.php',
-            'FfmpegPaths'           => $base . 'streaming/Codec/FfmpegPaths.php',
-            'SubtitleExtractor'     => $base . 'streaming/Codec/SubtitleExtractor.php',
-            'HealthChecker'         => $base . 'streaming/Health/HealthChecker.php',
-            'ProcessChecker'        => $base . 'streaming/Health/ProcessChecker.php',
-            'WatchdogMonitor'       => $base . 'streaming/Health/WatchdogMonitor.php',
-            'StreamingBootstrap'    => $base . 'streaming/StreamingBootstrap.php',
+        $tokens = @token_get_all($code);
+        if (!is_array($tokens)) {
+            return;
+        }
 
-            // ── Ядро: HTTP Router + Module System ─────────────────
-            'Router'                => $base . 'core/Http/Router.php',
-            'ModuleInterface'       => $base . 'core/Module/ModuleInterface.php',
-            'ModuleLoader'          => $base . 'core/Module/ModuleLoader.php',
+        $count = count($tokens);
+        for ($i = 0; $i < $count; $i++) {
+            if (!is_array($tokens[$i])) {
+                continue;
+            }
+            $type = $tokens[$i][0];
+            if (
+                $type !== T_CLASS && $type !== T_INTERFACE && $type !== T_TRAIT
+                && !(defined('T_ENUM') && $type === T_ENUM)
+            ) {
+                continue;
+            }
 
-            // ── Ядро: Process (Thread/Multithread) ────────────────
-            'Thread'                => $base . 'core/Process/Thread.php',
-            'Multithread'           => $base . 'core/Process/Multithread.php',
+            // Skip ::class expression
+            $prev = $i - 1;
+            while ($prev >= 0 && is_array($tokens[$prev]) && $tokens[$prev][0] === T_WHITESPACE) {
+                $prev--;
+            }
+            if ($prev >= 0 && is_array($tokens[$prev]) && $tokens[$prev][0] === T_DOUBLE_COLON) {
+                continue;
+            }
 
-            // ── Модуль: Plex ──────────────────────────────────────
-            'PlexAuth'              => $base . 'modules/plex/PlexAuth.php',
-            'PlexRepository'        => $base . 'modules/plex/PlexRepository.php',
-            'PlexService'           => $base . 'modules/plex/PlexService.php',
-            'PlexCron'              => $base . 'modules/plex/PlexCron.php',
-            'PlexItem'              => $base . 'modules/plex/PlexItem.php',
-            'PlexController'        => $base . 'modules/plex/PlexController.php',
-            'PlexModule'            => $base . 'modules/plex/PlexModule.php',
-
-            // ── Модуль: Watch ─────────────────────────────────────
-            'WatchService'          => $base . 'modules/watch/WatchService.php',
-            'RecordingService'      => $base . 'modules/watch/RecordingService.php',
-            'WatchController'       => $base . 'modules/watch/WatchController.php',
-            'WatchCron'             => $base . 'modules/watch/WatchCron.php',
-            'WatchItem'             => $base . 'modules/watch/WatchItem.php',
-            'WatchModule'           => $base . 'modules/watch/WatchModule.php',
-
-            // ── Модуль: TMDB ──────────────────────────────────────
-            'TmdbModule'            => $base . 'modules/tmdb/TmdbModule.php',
-            'TmdbService'           => $base . 'modules/tmdb/TmdbService.php',
-            'TmdbCron'              => $base . 'modules/tmdb/TmdbCron.php',
-            'TmdbPopularCron'       => $base . 'modules/tmdb/TmdbPopularCron.php',
-
-            // ── Модуль: Ministra ──────────────────────────────────
-            'MinistraModule'        => $base . 'modules/ministra/MinistraModule.php',
-            'PortalHandler'         => $base . 'modules/ministra/PortalHandler.php',
-            'PortalHelpers'         => $base . 'modules/ministra/PortalHelpers.php',
-
-            // ── Модуль: Fingerprint ───────────────────────────────
-            'FingerprintModule'     => $base . 'modules/fingerprint/FingerprintModule.php',
-
-            // ── Модуль: Theft Detection ───────────────────────────
-            'TheftDetectionModule'  => $base . 'modules/theft-detection/TheftDetectionModule.php',
-
-            // ── Модуль: MAGSCAN ───────────────────────────────────
-            'MagscanModule'         => $base . 'modules/magscan/MagscanModule.php',
-
-            // ── Ядро (legacy) ─────────────────────────────────────
-            'Database'              => $base . 'core/Database/Database.php',
-            // CoreUtilities removed (Phase 8.10) — init() inlined to LegacyInitializer::initCore()
-            // API class removed (Phase 8.1) — methods migrated to domain services
-            'ResellerAPI'           => $base . 'includes/reseller_api.php',
-            'TS'                    => $base . 'includes/ts.php',
-
-            // ── Библиотеки ────────────────────────────────────────
-            'AsyncFileOperations'   => $base . 'includes/libs/AsyncFileOperations.php',
-            'DropboxClient'         => $base . 'includes/libs/Dropbox.php',
-            'DropboxException'      => $base . 'includes/libs/Dropbox.php',
-            'GitHubReleases'        => $base . 'includes/libs/GithubReleases.php',
-            'Mobile_Detect'         => $base . 'includes/libs/mobiledetect.php',
-            'Translator'            => $base . 'includes/libs/Translator.php',
-            'XmlStringStreamer'      => $base . 'includes/libs/XmlStringStreamer.php',
-            'TMDB'                  => $base . 'includes/libs/tmdb.php',
-            'Release'               => $base . 'includes/libs/tmdb_release.php',
-            'Logger'                => $base . 'includes/libs/Logger.php',
-
-            // ── Библиотеки: iptables ──────────────────────────────
-            'Chain'                 => $base . 'includes/libs/iptables.php',
-            'Rule'                  => $base . 'includes/libs/iptables.php',
-            'IptablesService'       => $base . 'includes/libs/iptables.php',
-            'Command'               => $base . 'includes/libs/iptables.php',
-            'Table'                 => $base . 'includes/libs/iptables.php',
-            'TableFactory'          => $base . 'includes/libs/iptables.php',
-            'FilterTable'           => $base . 'includes/libs/iptables.php',
-            'MangleTable'           => $base . 'includes/libs/iptables.php',
-            'NatTable'              => $base . 'includes/libs/iptables.php',
-            'RawTable'              => $base . 'includes/libs/iptables.php',
-            'SecurityTable'         => $base . 'includes/libs/iptables.php',
-
-            // ── Библиотеки: m3u ───────────────────────────────────
-            'M3uEntry'              => $base . 'includes/libs/m3u.php',
-            'M3uParser'             => $base . 'includes/libs/m3u.php',
-            'M3uData'               => $base . 'includes/libs/m3u.php',
-            'ExtInf'                => $base . 'includes/libs/m3u.php',
-            'ExtLogo'               => $base . 'includes/libs/m3u.php',
-            'ExtTv'                 => $base . 'includes/libs/m3u.php',
-
-            // ── Библиотеки: m3u v2 ───────────────────────────────
-            'ParserFacade'          => $base . 'includes/libs/m3u_v2.php',
-            'DumperFacade'          => $base . 'includes/libs/m3u_v2.php',
-            'DataBuilder'           => $base . 'includes/libs/m3u_v2.php',
-
-            // ── Библиотеки: TMDb ──────────────────────────────────
-            'Collection'            => $base . 'includes/libs/TMDb/Collection.php',
-            'Company'               => $base . 'includes/libs/TMDb/Company.php',
-            'APIConfiguration'      => $base . 'includes/libs/TMDb/config/APIConfiguration.php',
-            'Episode'               => $base . 'includes/libs/TMDb/Episode.php',
-            'Genre'                 => $base . 'includes/libs/TMDb/Genre.php',
-            'Movie'                 => $base . 'includes/libs/TMDb/Movie.php',
-            'Person'                => $base . 'includes/libs/TMDb/Person.php',
-            'Review'                => $base . 'includes/libs/TMDb/Review.php',
-            'Role'                  => $base . 'includes/libs/TMDb/Role.php',
-            'MovieRole'             => $base . 'includes/libs/TMDb/roles/MovieRole.php',
-            'TVShowRole'            => $base . 'includes/libs/TMDb/roles/TVShowRole.php',
-            'Season'                => $base . 'includes/libs/TMDb/Season.php',
-            'TVShow'                => $base . 'includes/libs/TMDb/TVShow.php',
-
-            // ── Domain ────────────────────────────────────────────
-            'EPG'                   => $base . 'domain/Epg/EPG.php',
-
-            // ── WWW ───────────────────────────────────────────────
-            'SimpleXMLExtended'        => $base . 'public/Controllers/Api/Enigma2ApiController.php',
-            'AdminAPIWrapper'          => $base . 'public/Controllers/Api/AdminApiController.php',
-            'ResellerRestApiController' => $base . 'public/Controllers/Api/ResellerRestApiController.php',
-            'ResellerAPIWrapper'       => $base . 'public/Controllers/Api/ResellerRestApiController.php',
-            'ResellerApiController'    => $base . 'public/Controllers/Reseller/ResellerApiController.php',
-        ];
+            // Next non-whitespace token = class name
+            for ($j = $i + 1; $j < $count; $j++) {
+                if (is_array($tokens[$j]) && $tokens[$j][0] === T_WHITESPACE) {
+                    continue;
+                }
+                if (is_array($tokens[$j]) && $tokens[$j][0] === T_STRING) {
+                    $className = $tokens[$j][1];
+                    // First-found wins; never overwrite classMap or earlier entries
+                    if (!isset(self::$classMap[$className]) && !isset(self::$resolved[$className])) {
+                        self::$resolved[$className] = $filePath;
+                    }
+                }
+                break;
+            }
+        }
     }
 
     /**
-     * Регистрация директорий для fallback-поиска
+     * Register default project directories containing PHP classes.
      *
-     * Сюда добавляются директории новой архитектуры по мере миграции.
-     * При создании нового класса в одной из этих директорий
-     * он будет найден автоматически (без добавления в classMap).
+     * All directories will be scanned recursively during cache warm-up.
+     * Adding a new top-level source directory here is sufficient to make
+     * its classes discoverable by the autoloader.
+     *
+     * @return void
      */
     private static function registerDirectories() {
         $base = self::$basePath;
 
-        // Текущие директории с классами
+        // Legacy directories
         self::addDirectory($base . 'includes');
         self::addDirectory($base . 'includes/libs');
 
-        // ── Новая архитектура ──────────────────────────────────────
+        // New architecture directories
         self::addDirectory($base . 'core');
         self::addDirectory($base . 'domain');
+        self::addDirectory($base . 'infrastructure');
         self::addDirectory($base . 'streaming');
         self::addDirectory($base . 'modules');
         self::addDirectory($base . 'public');
@@ -512,15 +459,15 @@ class XC_Autoloader {
 }
 
 // ─────────────────────────────────────────────────────────────────
-//  Автоматическая инициализация при подключении файла
+//  Bootstrap: auto-initialize when this file is included
 // ─────────────────────────────────────────────────────────────────
 
 if (!defined('MAIN_HOME')) {
-    // Динамический fallback: autoload.php лежит в src/, значит __DIR__ == src/
+    // autoload.php lives in src/, so __DIR__ == src/
     define('MAIN_HOME', __DIR__ . '/');
 }
 
 XC_Autoloader::init(MAIN_HOME);
 
-// Файловый кэш (опционально, ускоряет fallback-поиск в production)
-// XC_Autoloader::enableFileCache(MAIN_HOME . 'tmp/cache/autoload_map');
+// File cache: warm on first run, O(1) on subsequent requests
+XC_Autoloader::enableFileCache(MAIN_HOME . 'tmp/cache/autoload_map');
