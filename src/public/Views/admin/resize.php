@@ -11,7 +11,7 @@ if (isset($_SESSION['hash'])) {
 	if (!defined('TMP_PATH')) define('TMP_PATH', MAIN_HOME . 'tmp/');
 	if (!defined('CACHE_TMP_PATH')) define('CACHE_TMP_PATH', TMP_PATH . 'cache/');
 	$rServers = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'servers'));
-	$rURL = $_GET['url'];
+	$rURL = $_GET['url'] ?? '';
 	$rMaxW = 0;
 	$rMaxH = 0;
 
@@ -81,6 +81,7 @@ if (isset($_SESSION['hash'])) {
 		if (!file_exists($rImagePath)) {
 		} else {
 			header('Content-Type: image/png');
+			header('X-Content-Type-Options: nosniff');
 			echo file_get_contents($rImagePath);
 
 			exit();
@@ -88,6 +89,7 @@ if (isset($_SESSION['hash'])) {
 	}
 
 	header('Content-Type: image/png');
+	header('X-Content-Type-Options: nosniff');
 	$rImage = imagecreatetruecolor(1, 1);
 	imagesavealpha($rImage, true);
 	imagefill($rImage, 0, 0, imagecolorallocatealpha($rImage, 0, 0, 0, 127));

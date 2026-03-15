@@ -36,7 +36,7 @@ if (isset($_GET['max'])) {
 }
 
 if (isset($_GET['h']) && isset($_GET['w'])) {
-	$rImageSize = ['width' => $_GET['w'], 'height' => $_GET['h']];
+	$rImageSize = ['width' => intval($_GET['w']), 'height' => intval($_GET['h'])];
 }
 
 if (isset($_GET['icon'])) {
@@ -54,6 +54,7 @@ if (substr($rURL, 0, 2) === 's:') {
 }
 
 header('Content-Type: image/png');
+header('X-Content-Type-Options: nosniff');
 
 if ($rURL && ($rMaxW > 0 && $rMaxH > 0 || isset($rImageSize))) {
 	$rImagePath = IMAGES_PATH . md5($rURL) . '_' . $rMaxW . '_' . $rMaxH . '.png';
