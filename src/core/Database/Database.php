@@ -129,7 +129,8 @@ class Database {
 			$this->result = $this->dbh->prepare($query);
 			$this->result->execute($next_arg_list);
 		} catch (Exception $e) {
-			$actual_query = trim(explode("\n", explode('Sent SQL:', $this->debugString($this->result))[1])[0]);
+			$rDebugParts = explode('Sent SQL:', $this->debugString($this->result));
+			$actual_query = isset($rDebugParts[1]) ? trim(explode("\n", $rDebugParts[1])[0]) : '';
 
 			if (strlen($actual_query) == 0) {
 				$actual_query = $query;
