@@ -24,6 +24,11 @@ class UpdateCronJob implements CommandInterface {
 
         global $db, $gitRelease;
 
+        if (!$gitRelease) {
+            FileLogger::log('cron', 'GitRelease service not initialized', 'cron:update');
+            return 1;
+        }
+
         $rConfig = parse_ini_string(file_get_contents('/home/xc_vm/config/config.ini'));
         if (!isset($rConfig['is_lb']) || !$rConfig['is_lb']) {
             $rPort = (intval(explode(';', explode(' ', trim(explode('listen ', file_get_contents('/home/xc_vm/bin/nginx/conf/ports/http.conf'))[1]))[0])[0]) ?: 80);
