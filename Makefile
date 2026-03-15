@@ -72,12 +72,12 @@ LB_FILES_TO_REMOVE := \
 
 EXCLUDE_ARGS := $(addprefix --exclude=,$(EXCLUDES))
 
-.PHONY: new lb main main_update lb_update lb_copy_files lb_update_copy_files main_copy_files main_update_copy_files set_permissions create_archive lb_archive_move lb_update_archive_move main_archive_move main_update_archive_move main_install_archive clean delete_files_list
+.PHONY: new lb main main_update lb_update lb_copy_files lb_update_copy_files main_copy_files main_update_copy_files set_permissions create_archive lb_archive_move lb_update_archive_move main_archive_move main_update_archive_move main_install_archive clean delete_files_list lb_delete_files_list
 
 lb: lb_copy_files set_permissions create_archive lb_archive_move clean
 main: main_copy_files set_permissions create_archive main_archive_move main_install_archive clean
 main_update: main_update_copy_files delete_files_list set_permissions create_archive main_update_archive_move clean
-lb_update: lb_update_copy_files delete_files_list set_permissions create_archive lb_update_archive_move clean
+lb_update: lb_update_copy_files lb_delete_files_list set_permissions create_archive lb_update_archive_move clean
 
 lb_copy_files:
 	@echo "==> [LB] Creating distribution directory: $(DIST_DIR)"
@@ -99,7 +99,7 @@ lb_copy_files:
 	@echo "==> [LB] Copying root files from $(MAIN_DIR)"
 	@for root_file in $(LB_ROOT_FILES); do \
 		if git ls-files --error-unmatch "src/$$root_file" >/dev/null 2>&1; then \
-			printf "   → Copying: %s\n" "$$root_file"; \
+# 			printf "   → Copying: %s\n" "$$root_file"; \
 			cp "$(MAIN_DIR)/$$root_file" "$(TEMP_DIR)/$$root_file"; \
 		else \
 			printf "   ⚠ Not tracked: %s\n" "$$root_file"; \
@@ -228,14 +228,42 @@ main_update_copy_files:
 
 delete_files_list:
 	@echo "[INFO] Generating deleted files list from $(LAST_TAG) to HEAD"
+	@if [ -z "$(LAST_TAG)" ]; then \
+		echo "[ERROR] LAST_TAG is empty — cannot generate deleted files list"; \
+		exit 1; \
+	fi
 	@mkdir -p $(TEMP_DIR)/migrations
-	@git diff --name-status $(LAST_TAG)..HEAD | grep '^D' | cut -f2 | grep '^src/' | sed 's|^src/||' \
+	@git diff --name-status --diff-filter=DR $(LAST_TAG)..HEAD \
+		| cut -f2 | grep '^src/' | sed 's|^src/||' | sort -u \
 		> $(TEMP_DIR)/migrations/deleted_files.txt
 	@if [ -s $(TEMP_DIR)/migrations/deleted_files.txt ]; then \
 		echo "[INFO] Files to delete on update:"; \
 		cat $(TEMP_DIR)/migrations/deleted_files.txt; \
 	else \
 		echo "[INFO] No deleted files found"; \
+		rm -f $(TEMP_DIR)/migrations/deleted_files.txt; \
+	fi
+
+lb_delete_files_list:
+	@echo "[INFO] Generating LB-scoped deleted files list from $(LAST_TAG) to HEAD"
+	@if [ -z "$(LAST_TAG)" ]; then \
+		echo "[ERROR] LAST_TAG is empty — cannot generate deleted files list"; \
+		exit 1; \
+	fi
+	@mkdir -p $(TEMP_DIR)/migrations
+	@git diff --name-status --diff-filter=DR $(LAST_TAG)..HEAD \
+		| cut -f2 | grep '^src/' | sed 's|^src/||' | sort -u \
+		| awk -v dirs="$(LB_DIRS)" -v files="$(LB_ROOT_FILES)" ' \
+			BEGIN { n=split(dirs,d," "); m=split(files,f," ") } \
+			{ ok=0; for(i=1;i<=n;i++) if(index($$0,d[i]"/")==1){ok=1;break} \
+			  if(!ok) for(i=1;i<=m;i++) if($$0==f[i]){ok=1;break} \
+			  if(ok) print }' \
+		> $(TEMP_DIR)/migrations/deleted_files.txt
+	@if [ -s $(TEMP_DIR)/migrations/deleted_files.txt ]; then \
+		echo "[INFO] LB files to delete on update:"; \
+		cat $(TEMP_DIR)/migrations/deleted_files.txt; \
+	else \
+		echo "[INFO] No LB-scoped deleted files found"; \
 		rm -f $(TEMP_DIR)/migrations/deleted_files.txt; \
 	fi
 
