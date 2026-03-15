@@ -3,6 +3,12 @@ name: Build Release Assets
 on:
   release:
     types: [released]
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release tag (e.g., 1.2.3)'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -12,16 +18,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Resolve tag name
+        id: tag
+        run: |
+          TAG="${{ github.event.inputs.tag_name || github.event.release.tag_name }}"
+          echo "name=${TAG}" >> "$GITHUB_OUTPUT"
+
       - name: Checkout code
         uses: actions/checkout@v5
         with:
+          ref: ${{ steps.tag.outputs.name }}
           fetch-depth: 0
 
       - name: Determine previous tag
         id: prev_tag
         run: |
-          CURRENT_TAG="${{ github.event.release.tag_name }}"
-          # Find the tag right before the current one (sorted by version descending)
+          CURRENT_TAG="${{ steps.tag.outputs.name }}"
           PREV_TAG=$(git tag --sort=-v:refname | awk -v cur="$CURRENT_TAG" 'found { print; exit } $0 == cur { found=1 }')
           if [ -z "$PREV_TAG" ]; then
             echo "No previous tag found — update archives will be skipped"
@@ -52,5 +64,6 @@ jobs:
       - name: Upload assets to release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.release.tag_name }}
+          tag_name: ${{ steps.tag.outputs.name }}
+          files: dist/*
           files: dist/*
