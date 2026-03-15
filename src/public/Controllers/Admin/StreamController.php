@@ -10,6 +10,8 @@ class StreamController extends BaseAdminController
 
         global $db, $rServers;
 
+        $rStream = null;
+
         if (isset(RequestManager::getAll()['id'])) {
             if (!isset(RequestManager::getAll()['import']) && Authorization::check('adv', 'edit_stream')) {
                 $rStream = StreamRepository::getById(RequestManager::getAll()['id']);
@@ -26,7 +28,6 @@ class StreamController extends BaseAdminController
         $rStreamArguments = StreamConfigRepository::getStreamArguments();
         $rTranscodeProfiles = StreamConfigRepository::getTranscodeProfiles();
         $rOnDemand = [];
-        $rStream = null;
         $rStreamOptions = null;
         $rStreamSys = null;
         $rEPGJS = [[]];
