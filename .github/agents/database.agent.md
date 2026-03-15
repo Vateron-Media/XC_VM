@@ -39,3 +39,10 @@ You are a MariaDB/MySQL specialist analyzing database interactions in the XC_VM 
 - Identification of N+1 patterns with fix suggestions
 - Transaction boundary recommendations
 - Estimated impact of suggested changes
+
+## Mandatory Syntax Verification
+After ANY file change, run the project syntax checker:
+```bash
+bash tools/php_syntax_check.sh
+```
+Do NOT commit or declare completion if any syntax errors remain.
