@@ -1,6 +1,6 @@
 <?php
 
-class LogoutController extends BasePlayerController
+class PlayerLogoutController extends BasePlayerController
 {
     public function index()
     {

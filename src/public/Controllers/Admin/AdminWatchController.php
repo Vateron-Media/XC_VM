@@ -1,8 +1,8 @@
 <?php
 /**
- * WatchController — Watch Folder listing.
+ * AdminWatchController — Watch Folder listing (admin wrapper).
  */
-class WatchController extends BaseAdminController
+class AdminWatchController extends BaseAdminController
 {
     public function index()
     {

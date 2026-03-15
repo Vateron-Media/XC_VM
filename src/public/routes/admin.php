@@ -169,7 +169,7 @@ $router->get('asns', [AsnsController::class, 'index']);
 
 // ─── Phase 10: Formerly unrouted pages ─────────────────────────
 
-$router->get('logout', [LogoutController::class, 'index']);
+$router->get('logout', [AdminLogoutController::class, 'index']);
 $router->any('player', [PlayerEmbedController::class, 'index']);
 $router->any('post', [PostController::class, 'index']);
 $router->any('api', [AjaxController::class, 'index']);

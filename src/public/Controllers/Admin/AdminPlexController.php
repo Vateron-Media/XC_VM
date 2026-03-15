@@ -1,8 +1,8 @@
 <?php
 /**
- * PlexController — Plex Sync listing.
+ * AdminPlexController — Plex Sync listing (admin wrapper).
  */
-class PlexController extends BaseAdminController
+class AdminPlexController extends BaseAdminController
 {
     public function index()
     {
