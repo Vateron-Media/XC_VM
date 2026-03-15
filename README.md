@@ -76,7 +76,7 @@ It enables:
 
 | Component | Version    | Description                     |
 | --------- | ---------- | ------------------------------- |
-| PHP       | 8.1.333        | Backend runtime                 |
+| PHP       | 8.1.33        | Backend runtime                 |
 | Nginx     | 1.24       | Web server & reverse proxy      |
 | FFmpeg    | 8.0, 7.1, 5.1, 4.4, 4.3, 4.0        | Media transcoding & processing  |
 | MariaDB   | 11.4      | SQL database engine             |
