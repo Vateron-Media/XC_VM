@@ -8,58 +8,45 @@
  * Его можно удалить, и система продолжит работать.
  *
  * ──────────────────────────────────────────────────────────────────
+ * Источник истины — PHP-класс:
+ * ──────────────────────────────────────────────────────────────────
+ *
+ *   module.json — только метаданные (name, description, version, requires_core).
+ *   Вся runtime-конфигурация — ЗДЕСЬ, в PHP-методах:
+ *     - boot()               — регистрация сервисов
+ *     - registerRoutes()     — HTTP-маршруты
+ *     - registerCommands()   — CLI-команды и кроны
+ *     - getEventSubscribers() — подписки на события
+ *
+ * ──────────────────────────────────────────────────────────────────
  * Жизненный цикл:
  * ──────────────────────────────────────────────────────────────────
  *
- *   1. ModuleLoader сканирует config/modules.php
- *   2. Для каждого модуля: require module.json → проверка зависимостей
+ *   1. ModuleLoader сканирует modules/star/module.json
+ *   2. config/modules.php проверяется на overrides (enabled => false)
  *   3. boot(ServiceContainer) — регистрация сервисов
- *   4. registerRoutes(Router) — регистрация маршрутов и API-действий
- *   5. registerCrons() — возвращает массив крон-задач
- *   6. getEventSubscribers() — подписки на события ядра
+ *   4. registerRoutes(Router) — регистрация маршрутов
+ *   5. registerCommands(CommandRegistry) — CLI-команды и кроны
+ *   6. getEventSubscribers() — подписки на события
  *
- * ──────────────────────────────────────────────────────────────────
- * Пример:
- * ──────────────────────────────────────────────────────────────────
- *
- *   class WatchModule implements ModuleInterface {
- *       public function getName(): string { return 'watch'; }
- *       public function getVersion(): string { return '1.0.0'; }
- *
- *       public function boot(ServiceContainer $container): void {
- *           $container->set('watch.service', function($c) {
- *               return new WatchService($c->get('db'));
- *           });
- *       }
- *
- *       public function registerRoutes(Router $router): void {
- *           $router->group('watch', function(Router $r) {
- *               $r->get('', [WatchController::class, 'index']);
- *               $r->get('add', [WatchController::class, 'add']);
- *           });
- *       }
- *
- *       public function registerCrons(): array { return []; }
- *       public function getEventSubscribers(): array { return []; }
- *   }
+ *   Установка/удаление:
+ *   7. install() — создание таблиц, начальные данные
+ *   8. uninstall() — удаление таблиц, очистка данных
  *
  * @see Router::group()
  * @see ServiceContainer::set()
+ * @see CommandRegistry::register()
  */
 
 interface ModuleInterface {
 
     /**
      * Уникальное имя модуля (совпадает с именем директории)
-     *
-     * @return string Напр. 'watch', 'plex', 'ministra'
      */
     public function getName(): string;
 
     /**
      * Версия модуля (semver)
-     *
-     * @return string Напр. '1.0.0'
      */
     public function getVersion(): string;
 
@@ -67,14 +54,13 @@ interface ModuleInterface {
      * Инициализация модуля: регистрация сервисов в DI-контейнере
      *
      * Вызывается один раз при загрузке модуля.
-     * Модуль может регистрировать свои сервисы, фабрики и значения.
      *
      * @param ServiceContainer $container DI-контейнер
      */
     public function boot(ServiceContainer $container): void;
 
     /**
-     * Регистрация маршрутов модуля
+     * Регистрация HTTP-маршрутов модуля
      *
      * Вызывается после boot(). Модуль регистрирует:
      * - GET/POST маршруты для страниц
@@ -85,26 +71,37 @@ interface ModuleInterface {
     public function registerRoutes(Router $router): void;
 
     /**
-     * Получить список крон-задач модуля
+     * Регистрация CLI-команд и крон-задач модуля
      *
-     * Возвращает массив крон-конфигураций:
-     *   [
-     *       ['class' => WatchCron::class, 'method' => 'run', 'interval' => 60],
-     *   ]
+     * Модуль явно создаёт и регистрирует экземпляры CommandInterface.
+     * Никакого filesystem scanning — вся регистрация в PHP.
      *
-     * @return array Массив крон-задач
+     * Пример:
+     *   $registry->register(new MyCronCommand());
+     *   $registry->register(new MyToolCommand());
+     *
+     * @param CommandRegistry $registry Реестр CLI-команд
      */
-    public function registerCrons(): array;
+    public function registerCommands(CommandRegistry $registry): void;
 
     /**
      * Получить массив подписок на события ядра
      *
-     * Формат:
-     *   [
-     *       EventClass::class => [HandlerClass::class, 'onEvent'],
-     *   ]
-     *
      * @return array Подписки: EventClass => handler
      */
     public function getEventSubscribers(): array;
+
+    /**
+     * Установка модуля (создание таблиц, начальные данные)
+     *
+     * Вызывается один раз при включении модуля.
+     */
+    public function install(): void;
+
+    /**
+     * Удаление модуля (очистка таблиц, записей в settings, cron)
+     *
+     * Вызывается при отключении/удалении модуля.
+     */
+    public function uninstall(): void;
 }
