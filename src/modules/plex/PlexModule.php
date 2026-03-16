@@ -120,18 +120,13 @@ class PlexModule implements ModuleInterface {
     }
 
     /**
-     * Крон-задачи модуля
+     * CLI-команды модуля
      *
-     * @return array
+     * @param CommandRegistry $registry
      */
-    public function registerCrons(): array {
-        return [
-            [
-                'class'    => PlexCron::class,
-                'method'   => 'run',
-                'interval' => 60,
-            ],
-        ];
+    public function registerCommands(CommandRegistry $registry): void {
+        $registry->register(new PlexCronJob());
+        $registry->register(new PlexItemCommand());
     }
 
     /**
@@ -141,5 +136,17 @@ class PlexModule implements ModuleInterface {
      */
     public function getEventSubscribers(): array {
         return [];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function install(): void {
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function uninstall(): void {
     }
 }

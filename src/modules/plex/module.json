@@ -1,7 +1,6 @@
 {
     "name": "plex",
+    "description": "Plex integration module",
     "version": "1.0.0",
-    "description": "Plex Media Server integration and sync",
-    "requires_core": ">=2.0",
-    "dependencies": []
+    "requires_core": ">=2.0"
 }

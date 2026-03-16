@@ -62,14 +62,13 @@ class MagscanModule implements ModuleInterface {
     }
 
     /**
-     * Крон-задачи модуля
+     * CLI-команды модуля
      *
-     * MAGSCAN не имеет собственных крон-задач.
+     * MAGSCAN не имеет CLI-команд.
      *
-     * @return array
+     * @param CommandRegistry $registry
      */
-    public function registerCrons(): array {
-        return [];
+    public function registerCommands(CommandRegistry $registry): void {
     }
 
     /**
@@ -79,5 +78,17 @@ class MagscanModule implements ModuleInterface {
      */
     public function getEventSubscribers(): array {
         return [];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function install(): void {
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function uninstall(): void {
     }
 }

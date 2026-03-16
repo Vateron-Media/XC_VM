@@ -1,7 +1,6 @@
 {
     "name": "fingerprint",
+    "description": "Stream fingerprint overlay module",
     "version": "1.0.0",
-    "description": "Stream fingerprinting for viewer identification",
-    "requires_core": ">=2.0",
-    "dependencies": []
+    "requires_core": ">=2.0"
 }
