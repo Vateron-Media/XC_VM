@@ -18,6 +18,8 @@ EXCLUDES := \
 	.git
 
 # Directories to copy from MAIN to LB
+# NOTE: modules/ is intentionally excluded — all modules are MAIN-only.
+# Modules: tmdb, plex, watch, ministra, fingerprint, theft-detection, magscan
 LB_DIRS := bin cli config content core domain includes \
 	infrastructure resources signals streaming tmp www
 
@@ -65,8 +67,6 @@ LB_FILES_TO_REMOVE := \
 	cli/CronJobs/UpdateCronJob.php \
 	cli/CronJobs/ProvidersCronJob.php \
 	cli/CronJobs/SeriesCronJob.php \
-	cli/CronJobs/TmdbCronJob.php \
-	cli/CronJobs/TmdbPopularCronJob.php \
 	domain/Epg/EPG.php \
 	bin/nginx/conf/gzip.conf
 

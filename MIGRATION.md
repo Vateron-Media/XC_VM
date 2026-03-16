@@ -523,8 +523,8 @@ PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:name args'
 | `cli/CronJobs/UpdateCronJob.php` | ✅ `file_exists()` | — |
 | `cli/CronJobs/ProvidersCronJob.php` | ✅ `file_exists()` | — |
 | `cli/CronJobs/SeriesCronJob.php` | ✅ `file_exists()` | — |
-| `cli/CronJobs/TmdbCronJob.php` | ✅ `file_exists()` | — |
-| `cli/CronJobs/TmdbPopularCronJob.php` | ✅ `file_exists()` | — |
+| `modules/tmdb/TmdbCronJob.php` | ✅ auto-discovery | Moved to module dir |
+| `modules/tmdb/TmdbPopularCronJob.php` | ✅ auto-discovery | Moved to module dir |
 | `domain/Epg/EPG.php` | — | — (autoload) |
 
 **Makefile `LB_FILES_TO_REMOVE`:**
@@ -539,8 +539,6 @@ cli/CronJobs/EpgCronJob.php
 cli/CronJobs/UpdateCronJob.php
 cli/CronJobs/ProvidersCronJob.php
 cli/CronJobs/SeriesCronJob.php
-cli/CronJobs/TmdbCronJob.php
-cli/CronJobs/TmdbPopularCronJob.php
 domain/Epg/EPG.php
 ```
 
