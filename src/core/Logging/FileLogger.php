@@ -68,6 +68,13 @@ class FileLogger implements LoggerInterface {
     public static function log(string $type, string $message, $extra = '', int $line = 0): void {
         $extra = (string) $extra;
 
+        $rTrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2);
+        $rCaller = $rTrace[1] ?? [];
+        $rFile = (string) ($rCaller['file'] ?? '');
+        if ($line <= 0 && isset($rCaller['line'])) {
+            $line = (int) $rCaller['line'];
+        }
+
         // Фильтрация шумных / рекурсивных записей
         if (self::shouldSkip($message, $extra)) {
             return;
@@ -77,6 +84,7 @@ class FileLogger implements LoggerInterface {
             'type'    => $type,
             'message' => $message,
             'extra'   => $extra,
+            'file'    => $rFile,
             'line'    => $line,
             'time'    => time(),
             'env'     => php_sapi_name(),

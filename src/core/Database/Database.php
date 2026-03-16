@@ -136,7 +136,7 @@ class Database {
 				$actual_query = $query;
 			}
 
-			FileLogger::log('pdo', $e->getMessage(), $actual_query);
+			FileLogger::log('pdo', $e->getMessage(), $actual_query, (int) $e->getLine());
 
 			return false;
 		}
@@ -148,7 +148,7 @@ class Database {
 		try {
 			$this->result = $this->dbh->query($query);
 		} catch (Exception $e) {
-			FileLogger::log('pdo', $e->getMessage(), $query);
+			FileLogger::log('pdo', $e->getMessage(), $query, (int) $e->getLine());
 			return false;
 		}
 
