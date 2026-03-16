@@ -594,8 +594,8 @@ class TmdbCron {
     public static function run(): void {
         global $db;
 
-        require INCLUDES_PATH . 'libs/tmdb.php';
-        require INCLUDES_PATH . 'libs/tmdb_release.php';
+        require_once INCLUDES_PATH . 'libs/tmdb.php';
+        require_once INCLUDES_PATH . 'libs/tmdb_release.php';
 
         $rUpdateSeries = array();
 
