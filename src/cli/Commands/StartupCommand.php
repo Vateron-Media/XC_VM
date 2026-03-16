@@ -14,6 +14,10 @@ class StartupCommand implements CommandInterface {
 	}
 
 	public function execute(array $rArgs): int {
+		// Сброс кэша автозагрузки — гарантирует актуальную карту классов после обновления
+		XC_Autoloader::clearCache();
+		XC_Autoloader::warmCache();
+
 		$rFixCron = false;
 		if (!empty($rArgs[0]) && intval($rArgs[0]) == 1) {
 			$rFixCron = true;
