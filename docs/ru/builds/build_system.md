@@ -118,8 +118,8 @@ signals/    streaming/  tmp/        www/
 | `cli/CronJobs/UpdateCronJob.php` | Проверка обновлений (только MAIN) |
 | `cli/CronJobs/ProvidersCronJob.php` | Синхронизация провайдеров (только MAIN) |
 | `cli/CronJobs/SeriesCronJob.php` | Метаданные сериалов (только MAIN) |
-| `cli/CronJobs/TmdbCronJob.php` | Получение данных TMDB (только MAIN) |
-| `cli/CronJobs/TmdbPopularCronJob.php` | Популярный контент TMDB (только MAIN) |
+
+> **Примечание:** Кроны модулей (TMDB, Plex, Watch) теперь находятся в `modules/<name>/` и автоматически исключены из LB-сборок, так как `modules/` не входит в `LB_DIRS`.
 
 ### Сборка LB — заменяемые конфиги
 

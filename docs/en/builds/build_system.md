@@ -118,8 +118,8 @@ After copying, admin-specific content is **removed** from the LB build:
 | `cli/CronJobs/UpdateCronJob.php` | Update check (MAIN-only) |
 | `cli/CronJobs/ProvidersCronJob.php` | Provider sync (MAIN-only) |
 | `cli/CronJobs/SeriesCronJob.php` | Series metadata (MAIN-only) |
-| `cli/CronJobs/TmdbCronJob.php` | TMDB fetch (MAIN-only) |
-| `cli/CronJobs/TmdbPopularCronJob.php` | TMDB popular (MAIN-only) |
+
+> **Note:** Module-related crons (TMDB, Plex, Watch) now live inside `modules/<name>/` and are excluded from LB builds automatically since `modules/` is not in `LB_DIRS`.
 
 ### LB Build — Replaced Configs
 
