@@ -70,14 +70,13 @@ class MinistraModule implements ModuleInterface {
     }
 
     /**
-     * Крон-задачи модуля
+     * CLI-команды модуля
      *
-     * Ministra не имеет собственных крон-задач.
+     * Ministra не имеет CLI-команд.
      *
-     * @return array
+     * @param CommandRegistry $registry
      */
-    public function registerCrons(): array {
-        return [];
+    public function registerCommands(CommandRegistry $registry): void {
     }
 
     /**
@@ -87,5 +86,17 @@ class MinistraModule implements ModuleInterface {
      */
     public function getEventSubscribers(): array {
         return [];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function install(): void {
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function uninstall(): void {
     }
 }
