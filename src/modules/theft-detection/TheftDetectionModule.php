@@ -63,16 +63,11 @@ class TheftDetectionModule implements ModuleInterface {
     }
 
     /**
-     * Крон-задачи модуля
+     * CLI-команды модуля
      *
-     * Кеш theft_detection генерируется крон-задачей ядра
-     * (cache_engine.php → generateTheftDetection()), а не модулем.
-     *
-     * @return array
+     * @param CommandRegistry $registry
      */
-    public function registerCrons(): array {
-        // Данные генерируются core cache_engine.php — модуль только отображает
-        return [];
+    public function registerCommands(CommandRegistry $registry): void {
     }
 
     /**
@@ -82,5 +77,17 @@ class TheftDetectionModule implements ModuleInterface {
      */
     public function getEventSubscribers(): array {
         return [];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function install(): void {
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function uninstall(): void {
     }
 }

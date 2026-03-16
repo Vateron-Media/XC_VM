@@ -1,7 +1,6 @@
 {
     "name": "theft-detection",
+    "description": "Stream theft detection module",
     "version": "1.0.0",
-    "description": "VOD theft detection and usage monitoring",
-    "requires_core": ">=2.0",
-    "dependencies": []
+    "requires_core": ">=2.0"
 }

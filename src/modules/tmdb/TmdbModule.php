@@ -69,23 +69,13 @@ class TmdbModule implements ModuleInterface {
     }
 
     /**
-     * Крон-задачи модуля
+     * CLI-команды модуля
      *
-     * @return array
+     * @param CommandRegistry $registry
      */
-    public function registerCrons(): array {
-        return [
-            [
-                'class'    => TmdbCron::class,
-                'method'   => 'run',
-                'interval' => 3600,
-            ],
-            [
-                'class'    => TmdbPopularCron::class,
-                'method'   => 'run',
-                'interval' => 86400,
-            ],
-        ];
+    public function registerCommands(CommandRegistry $registry): void {
+        $registry->register(new TmdbCronJob());
+        $registry->register(new TmdbPopularCronJob());
     }
 
     /**
@@ -95,5 +85,17 @@ class TmdbModule implements ModuleInterface {
      */
     public function getEventSubscribers(): array {
         return [];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function install(): void {
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function uninstall(): void {
     }
 }
