@@ -64,20 +64,29 @@ class ErrorsCronJob implements CommandInterface {
             $row = json_decode(base64_decode($line), true);
             if (!is_array($row)) continue;
 
+            // Поддержка обоих форматов: legacy (log_*) и текущий (message/extra)
+            $rLogMessage = (string) ($row['log_message'] ?? ($row['message'] ?? ''));
+            $rLogExtra = (string) ($row['log_extra'] ?? ($row['extra'] ?? ''));
+            $rLogType = (string) ($row['type'] ?? 'unknown');
+            $rLogLine = (int) ($row['line'] ?? 0);
+            $rLogTime = (int) ($row['time'] ?? time());
+            $rLogFile = (string) ($row['file'] ?? '');
+            $rLogEnv = (string) ($row['env'] ?? php_sapi_name());
+
             if (
-                stripos($row['log_message'] ?? '', 'server has gone away') !== false ||
-                stripos($row['log_message'] ?? '', 'socket error on read socket') !== false ||
-                stripos($row['log_message'] ?? '', 'connection lost') !== false
+                stripos($rLogMessage, 'server has gone away') !== false ||
+                stripos($rLogMessage, 'socket error on read socket') !== false ||
+                stripos($rLogMessage, 'connection lost') !== false
             ) {
                 continue;
             }
 
             $hash = md5(
-                ($row['type'] ?? '') .
-                ($row['log_message'] ?? '') .
-                ($row['log_extra'] ?? '') .
-                ($row['file'] ?? '') .
-                ($row['line'] ?? '')
+                $rLogType .
+                $rLogMessage .
+                $rLogExtra .
+                $rLogFile .
+                $rLogLine
             );
 
             if (isset($hashes[$hash])) {
@@ -88,13 +97,13 @@ class ErrorsCronJob implements CommandInterface {
             $query .= sprintf(
                 "(%d,%s,%s,%s,%s,%s,%s,%s,%s),",
                 SERVER_ID,
-                $this->sqlValue($row['type'] ?? null),
-                $this->sqlValue($row['log_message'] ?? null),
-                $this->sqlValue($row['log_extra'] ?? null),
-                $this->sqlValue($row['line'] ?? null, true),
-                $this->sqlValue($row['time'] ?? null, true),
-                $this->sqlValue($row['file'] ?? null),
-                $this->sqlValue($row['env'] ?? null),
+                $this->sqlValue($rLogType),
+                $this->sqlValue($rLogMessage),
+                $this->sqlValue($rLogExtra),
+                $this->sqlValue($rLogLine, true),
+                $this->sqlValue($rLogTime, true),
+                $this->sqlValue($rLogFile),
+                $this->sqlValue($rLogEnv),
                 $this->sqlValue($hash)
             );
         }
