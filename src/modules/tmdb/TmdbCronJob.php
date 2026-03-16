@@ -1,6 +1,6 @@
 <?php
 
-require_once __DIR__ . '/../CronTrait.php';
+require_once MAIN_HOME . 'cli/CronTrait.php';
 
 class TmdbCronJob implements CommandInterface {
     use CronTrait;
@@ -20,8 +20,8 @@ class TmdbCronJob implements CommandInterface {
 
         require INCLUDES_PATH . 'admin.php';
         require_once INCLUDES_PATH . 'libs/tmdb.php';
-        require INCLUDES_PATH . 'libs/tmdb_release.php';
-        require MAIN_HOME . 'modules/tmdb/TmdbCron.php';
+        require_once INCLUDES_PATH . 'libs/tmdb_release.php';
+        require_once __DIR__ . '/TmdbCron.php';
 
         $this->initCron('XC_VM[TMDB]');
 
