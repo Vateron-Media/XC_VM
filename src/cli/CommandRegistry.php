@@ -6,7 +6,9 @@
  * Хранит маппинг имя → экземпляр CommandInterface.
  * Dispatch: ищет команду по имени из $argv и вызывает execute().
  *
- * Команды регистрируются явно — никакой авто-магии с директориями.
+ * Команды обнаруживаются автоматически: console.php сканирует
+ * cli/Commands/ и cli/CronJobs/ и регистрирует все классы,
+ * реализующие CommandInterface.
  */
 class CommandRegistry {
 
