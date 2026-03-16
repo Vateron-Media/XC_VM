@@ -1,6 +1,6 @@
 <?php
 
-require_once __DIR__ . '/../CronTrait.php';
+require_once MAIN_HOME . 'cli/CronTrait.php';
 
 class WatchCronJob implements CommandInterface {
     use CronTrait;
@@ -24,7 +24,7 @@ class WatchCronJob implements CommandInterface {
 
         $this->registerShutdown();
 
-        require_once MAIN_HOME . 'modules/watch/WatchCron.php';
+        require_once __DIR__ . '/WatchCron.php';
 
         $rForce = null;
         if (!empty($rArgs[0])) {

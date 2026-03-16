@@ -1,6 +1,6 @@
 <?php
 
-require_once __DIR__ . '/../CronTrait.php';
+require_once MAIN_HOME . 'cli/CronTrait.php';
 
 class PlexCronJob implements CommandInterface {
     use CronTrait;
