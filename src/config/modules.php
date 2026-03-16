@@ -1,51 +1,28 @@
 <?php
 
 /**
- * Конфигурация модулей
+ * Overrides модулей
  *
- * Определяет, какие модули включены в системе.
- * ModuleLoader читает этот файл и загружает модули при bootstrap.
+ * ModuleLoader автоматически обнаруживает все модули из modules/&lt;name&gt;/module.json.
+ * По умолчанию все обнаруженные модули включены.
  *
- * Формат:
- *   'module_name' => [
- *       'enabled' => true|false,    // Включён ли модуль
- *       'class'   => 'ClassName',   // Класс модуля (implements ModuleInterface)
- *   ]
+ * Этот файл содержит только переопределения:
+ *   - Отключение модуля:  'module-name' => ['enabled' => false]
+ *   - Свой класс модуля:  'module-name' => ['class' => 'CustomModule']
  *
- * При удалении модуля из этого списка (или enabled => false),
- * система продолжает работать без него.
+ * Пример:
+ *   return [
+ *       'theft-detection' => ['enabled' => false],
+ *       'custom-module'   => ['class' => 'MyCustomModule'],
+ *   ];
+ *
+ * Если массив пуст — все обнаруженные модули будут загружены.
  *
  * @see ModuleInterface
  * @see ModuleLoader
  */
 
 return [
-    'plex' => [
-        'enabled' => true,
-        'class'   => 'PlexModule',
-    ],
-    'watch' => [
-        'enabled' => true,
-        'class'   => 'WatchModule',
-    ],
-    'tmdb' => [
-        'enabled' => true,
-        'class'   => 'TmdbModule',
-    ],
-    'ministra' => [
-        'enabled' => true,
-        'class'   => 'MinistraModule',
-    ],
-    'fingerprint' => [
-        'enabled' => true,
-        'class'   => 'FingerprintModule',
-    ],
-    'theft-detection' => [
-        'enabled' => true,
-        'class'   => 'TheftDetectionModule',
-    ],
-    'magscan' => [
-        'enabled' => true,
-        'class'   => 'MagscanModule',
-    ],
+    // Пример отключения модуля:
+    // 'theft-detection' => ['enabled' => false],
 ];
