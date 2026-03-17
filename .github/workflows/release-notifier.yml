@@ -1,8 +1,24 @@
 name: Release Notifier
 
 on:
-  release:
-    types: [published, prereleased]
+  workflow_call:
+    inputs:
+      tag_name:
+        required: true
+        type: string
+      release_name:
+        required: true
+        type: string
+      is_prerelease:
+        required: true
+        type: boolean
+    secrets:
+      TELEGRAM_BOT_TOKEN:
+        required: true
+      TELEGRAM_CHAT_ID:
+        required: true
+      TELEGRAM_TOPIC_ID:
+        required: true
 
 jobs:
   notify-telegram:
@@ -14,8 +30,7 @@ jobs:
           CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           TOPIC_ID: ${{ secrets.TELEGRAM_TOPIC_ID }}
         run: |
-          # Определяем тип релиза и соответствующий эмодзи
-          if [ "${{ github.event.release.prerelease }}" == "true" ]; then
+          if [ "${{ inputs.is_prerelease }}" == "true" ]; then
             RELEASE_TYPE="Prerelease"
             RELEASE_EMOJI="🧪"
             RELEASE_BADGE="BETA"
@@ -25,13 +40,14 @@ jobs:
             RELEASE_BADGE="STABLE"
           fi
 
-          RELEASE_TAG=${GITHUB_REF#refs/tags/}
-          
+          RELEASE_TAG="${{ inputs.tag_name }}"
+          RELEASE_NAME="${{ inputs.release_name }}"
+
           MESSAGE=$(cat <<EOF
           ${RELEASE_EMOJI} *${RELEASE_TYPE} Published* ${RELEASE_EMOJI}
           📍 *Status:* \`${RELEASE_BADGE}\`
 
-          🔗 *Release:* [${{ github.event.release.name }}](https://github.com/${{ github.repository }}/releases/tag/${RELEASE_TAG})
+          🔗 *Release:* [${RELEASE_NAME}](https://github.com/${{ github.repository }}/releases/tag/${RELEASE_TAG})
           📦 *Repository:* [${{ github.repository }}](https://github.com/${{ github.repository }})
           🏷 *Version:* \`${RELEASE_TAG}\`
           EOF
