@@ -20,7 +20,7 @@
 
 * Set the **new `XC_VM_VERSION` value** in the following files:
 
-**Files to edit:**
+**File to edit:**
 
 ```
 src/core/Config/AppConfig.php
@@ -29,8 +29,7 @@ src/core/Config/AppConfig.php
 **Auto-update command:**
 
 ```bash
-find -type f -name "*.php" -exec sed -i \
-"s/define('XC_VM_VERSION', '[0-9]\+\.[0-9]\+\.[0-9]\+');/define('XC_VM_VERSION', 'X.Y.Z');/g" {} \;
+sed -i "s/define('XC_VM_VERSION', *'[0-9]\+\.[0-9]\+\.[0-9]\+');/define('XC_VM_VERSION', 'X.Y.Z');/" src/core/Config/AppConfig.php
 ```
 
 **Commit the changes with a message:**
@@ -96,10 +95,13 @@ After building, `dist/` should contain:
 
 ## 📝 4. Changelog
 
-Generate the changelog from git first:
+Fetch the previous release tag via GitHub API and generate the changelog:
 
 ```bash
-git log --pretty=format:"- %s (%h)" X.Y.Z..main > dist/changes.md
+PREV_TAG=$(curl -s https://api.github.com/repos/Vateron-Media/XC_VM/releases/latest \
+  | grep -Po '"tag_name":\s*"\K[^"]+')
+echo "Previous release: $PREV_TAG"
+git log --pretty=format:"- %s (%h)" "$PREV_TAG"..main > dist/changes.md
 ```
 
 * **Then add current release changes** using this JSON:

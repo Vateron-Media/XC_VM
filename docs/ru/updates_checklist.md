@@ -20,7 +20,7 @@
 
 * Установить **новое значение `XC_VM_VERSION`** в следующих файлах:
 
-**Файлы для редактирования:**
+**Файл для редактирования:**
 
 ```
 src/core/Config/AppConfig.php
@@ -29,8 +29,7 @@ src/core/Config/AppConfig.php
 **Auto-update команда:**
 
 ```bash
-find -type f -name "*.php" -exec sed -i \
-"s/define('XC_VM_VERSION', '[0-9]\+\.[0-9]\+\.[0-9]\+');/define('XC_VM_VERSION', 'X.Y.Z');/g" {} \;
+sed -i "s/define('XC_VM_VERSION', *'[0-9]\+\.[0-9]\+\.[0-9]\+');/define('XC_VM_VERSION', 'X.Y.Z');/" src/core/Config/AppConfig.php
 ```
 
 **Закоммитить изменения с сообщением:**
@@ -94,10 +93,13 @@ make lb_update
 
 ## 📝 4. Changelog
 
-Сначала сгенерируйте файл с изменениями из git:
+Получите тег предыдущего релиза через GitHub API и сгенерируйте changelog:
 
 ```bash
-git log --pretty=format:"- %s (%h)" X.Y.Z..main > dist/changes.md
+PREV_TAG=$(curl -s https://api.github.com/repos/Vateron-Media/XC_VM/releases/latest \
+  | grep -Po '"tag_name":\s*"\K[^"]+')
+echo "Предыдущий релиз: $PREV_TAG"
+git log --pretty=format:"- %s (%h)" "$PREV_TAG"..main > dist/changes.md
 ```
 
 *   **Перейдите по ссылке и добавьте изменения текущего релиза:**
