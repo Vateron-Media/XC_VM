@@ -137,7 +137,7 @@ lb_update_copy_files:
 	@mkdir -p $(TEMP_DIR)
 
 	@echo "[INFO] Copying modified or added files from 'src/' that are in LB scope..."
-	@for file in $$(git diff --name-only --diff-filter=AMR $(LAST_TAG)..HEAD | grep '^src/'); do \
+	@for file in $$(git diff --no-renames --name-only --diff-filter=AM $(LAST_TAG)..HEAD | grep '^src/'); do \
 		rel_path=$$(echo "$$file" | sed 's|^src/||'); \
 		allowed=0; \
 		for lb_item in $(LB_DIRS); do \
@@ -211,7 +211,7 @@ main_update_copy_files:
 	@mkdir -p $(TEMP_DIR)
 
 	@echo "[INFO] Copying modified or added files from 'src/'..."
-	@for file in $$(git diff --name-only --diff-filter=AMR $(LAST_TAG)..HEAD | grep '^src/'); do \
+	@for file in $$(git diff --no-renames --name-only --diff-filter=AM $(LAST_TAG)..HEAD | grep '^src/'); do \
 		rel_path=$$(echo "$$file" | sed 's|^src/||'); \
 		if [ -f "$$file" ]; then \
 			echo "[COPY] $$file -> $(TEMP_DIR)/$$rel_path"; \
@@ -233,7 +233,7 @@ delete_files_list:
 		exit 1; \
 	fi
 	@mkdir -p $(TEMP_DIR)/migrations
-	@git diff --name-status --diff-filter=DR $(LAST_TAG)..HEAD \
+	@git diff --no-renames --name-status --diff-filter=D $(LAST_TAG)..HEAD \
 		| cut -f2 | grep '^src/' | sed 's|^src/||' | sort -u \
 		> $(TEMP_DIR)/migrations/deleted_files.txt
 	@if [ -s $(TEMP_DIR)/migrations/deleted_files.txt ]; then \
@@ -251,7 +251,7 @@ lb_delete_files_list:
 		exit 1; \
 	fi
 	@mkdir -p $(TEMP_DIR)/migrations
-	@git diff --name-status --diff-filter=DR $(LAST_TAG)..HEAD \
+	@git diff --no-renames --name-status --diff-filter=D $(LAST_TAG)..HEAD \
 		| cut -f2 | grep '^src/' | sed 's|^src/||' | sort -u \
 		| awk -v dirs="$(LB_DIRS)" -v files="$(LB_ROOT_FILES)" ' \
 			BEGIN { n=split(dirs,d," "); m=split(files,f," ") } \
