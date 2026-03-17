@@ -16,6 +16,9 @@ permissions:
 jobs:
   pre-release:
     runs-on: ubuntu-latest
+    outputs:
+      tag_name: ${{ steps.tag.outputs.name }}
+      release_name: ${{ github.event.release.name || steps.tag.outputs.name }}
     
     steps:
     - name: Resolve tag name
@@ -67,3 +70,12 @@ jobs:
       with:
         tag_name: ${{ steps.tag.outputs.name }}
         files: dist/*
+
+  notify:
+    needs: pre-release
+    uses: ./.github/workflows/release-notifier.yml
+    with:
+      tag_name: ${{ needs.pre-release.outputs.tag_name }}
+      release_name: ${{ needs.pre-release.outputs.release_name }}
+      is_prerelease: true
+    secrets: inherit
