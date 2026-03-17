@@ -691,7 +691,7 @@ if (1 < $rICount) { ?>
 					}
 
 					if (count($rStreamIDs) > 0) {
-						$rRet = APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs));
+						$rRet = APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs), 120);
 					}
 
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
@@ -712,7 +712,7 @@ if (1 < $rICount) { ?>
 					}
 
 					if (count($rStreamIDs) > 0) {
-						$rRet = APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs));
+						$rRet = APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs), 120);
 					}
 
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
@@ -733,7 +733,7 @@ if (1 < $rICount) { ?>
 					}
 
 					if (count($rStreamIDs) > 0) {
-						$rRet = APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs));
+						$rRet = APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs), 120);
 					}
 
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
@@ -754,7 +754,7 @@ if (1 < $rICount) { ?>
 					}
 
 					if (count($rStreamIDs) > 0) {
-						$rRet = APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs));
+						$rRet = APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs), 120);
 					}
 
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
@@ -775,7 +775,7 @@ if (1 < $rICount) { ?>
 					}
 
 					if (count($rStreamIDs) > 0) {
-						$rRet = APIRequest(array('action' => 'stream', 'sub' => 'stop', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs));
+						$rRet = APIRequest(array('action' => 'stream', 'sub' => 'stop', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs), 120);
 					}
 
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
@@ -796,7 +796,7 @@ if (1 < $rICount) { ?>
 					}
 
 					if (count($rStreamIDs) > 0) {
-						$rRet = APIRequest(array('action' => 'stream', 'sub' => 'stop', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs));
+						$rRet = APIRequest(array('action' => 'stream', 'sub' => 'stop', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs), 120);
 					}
 
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
