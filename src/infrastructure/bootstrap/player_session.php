@@ -13,6 +13,8 @@ if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
 // Not logged in → redirect to login
 if (!isset($_SESSION['phash'])) {
     $referrer = defined('PAGE_NAME') ? PAGE_NAME : '';
-    header('Location: login' . ($referrer ? '?referrer=' . urlencode($referrer) : ''));
+    $code = $_SERVER['XC_CODE'] ?? '';
+    $loginUrl = $code ? '/' . $code . '/login' : 'login';
+    header('Location: ' . $loginUrl . ($referrer ? '?referrer=' . urlencode($referrer) : ''));
     exit();
 }
