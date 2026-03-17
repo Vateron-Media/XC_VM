@@ -248,10 +248,13 @@ class MonitorCommand implements CommandInterface {
 		if ((is_numeric($rData) && ($rData == 0))) {
 			$E9d347a502b13abd = true;
 			$rMaxFails++;
-			if (((0 < SettingsManager::getAll()['stop_failures']) && ($rMaxFails == SettingsManager::getAll()['stop_failures']))) {
+			if (((0 < SettingsManager::getAll()['stop_failures']) && ($rMaxFails >= SettingsManager::getAll()['stop_failures']))) {
 				echo "Failure limit reached, exiting.\n";
 				return 0;
 			}
+			echo 'Stream start failed (attempt ' . $rMaxFails . '). Sleeping ' . SettingsManager::getAll()['stream_fail_sleep'] . " seconds...\n";
+			sleep(SettingsManager::getAll()['stream_fail_sleep']);
+			goto label76;
 		}
 		if (!$rData) {
 			return 0;
@@ -575,7 +578,7 @@ class MonitorCommand implements CommandInterface {
 		}
 
 		if (empty($rPID)) {
-			shell_exec("kill -9 `ps -ef | grep 'XC_VM\\[" . intval($rStreamID) . "\\]' | grep -v grep | awk '{print \$2}'`;");
+			shell_exec("ps -ef | grep 'XC_VM\\[" . intval($rStreamID) . "\\]' | grep -v grep | awk '{print \$2}' | xargs -r kill -9 2>/dev/null");
 		} else {
 			if (file_exists('/proc/' . $rPID)) {
 				$rCommand = trim(file_get_contents('/proc/' . $rPID . '/cmdline'));
