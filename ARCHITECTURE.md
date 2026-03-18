@@ -1102,10 +1102,6 @@ includes/
 ├── CoreUtilities.php        # ~135 статических методов -> proxy к core/ и domain/
 ├── StreamingUtilities.php   # ~66 статических методов -> proxy к streaming/
 ├── ts.php                   # Timeshift утилиты
-├── bootstrap/               # Старые файлы инициализации admin
-│   ├── admin_bootstrap.php
-│   ├── admin_runtime.php
-│   └── admin_session.php
 ├── api/                     # API-обработчики
 │   ├── admin/
 │   └── reseller/
@@ -1200,7 +1196,6 @@ LB_DIRS_TO_REMOVE := \
     bin/nginx/conf/codes \
     includes/api \
     includes/libs/resources \
-    includes/bootstrap \
     domain/User \
     domain/Device \
     domain/Auth \

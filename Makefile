@@ -33,7 +33,6 @@ LB_DIRS_TO_REMOVE := \
 	bin/nginx/conf/codes \
 	includes/api \
 	includes/libs/resources \
-	includes/bootstrap \
 	domain/User \
 	domain/Device \
 	domain/Auth \

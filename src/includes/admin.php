@@ -5,8 +5,8 @@
 global $db, $rSettings, $rMobile, $rServers, $rProxyServers, $rDetect,
        $rTimeout, $rProtocol, $allServers, $rPermissions, $language, $allowedLangs, $_INFO;
 
-require_once __DIR__ . '/bootstrap/admin_bootstrap.php';
-bootstrapAdminInclude();
+require_once __DIR__ . '/../bootstrap.php';
+XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_ADMIN);
 
 if (is_array($rServers)) {
 	uasort(

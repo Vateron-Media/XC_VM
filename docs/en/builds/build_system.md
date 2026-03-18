@@ -82,7 +82,6 @@ After copying, admin-specific content is **removed** from the LB build:
 | `resources/langs/` | Admin UI language files |
 | `includes/api/` | Admin API routes |
 | `includes/libs/resources/` | Admin resource libraries |
-| `includes/bootstrap/` | Admin bootstrap |
 | `domain/User/` | User management |
 | `domain/Device/` | Device registration |
 | `domain/Auth/` | Auth management (panel auth) |
