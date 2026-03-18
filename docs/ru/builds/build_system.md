@@ -79,7 +79,7 @@ signals/    streaming/  tmp/        www/
 | `bin/install/` | Скрипты установки (не нужны на LB) |
 | `bin/redis/` | Бинарник Redis (LB не запускает свой Redis) |
 | `bin/nginx/conf/codes/` | Страницы кодов ошибок (админ UI) |
-| `includes/langs/` | Языковые файлы админ-панели |
+| `resources/langs/` | Языковые ресурсы |
 | `includes/api/` | Маршруты админ API |
 | `includes/libs/resources/` | Библиотеки ресурсов админки |
 | `includes/bootstrap/` | Бутстрап админки |

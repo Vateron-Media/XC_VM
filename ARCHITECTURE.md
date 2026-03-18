@@ -837,7 +837,7 @@ interface ModuleInterface {
 **Ответственность:** Переводы, данные-справочники (страны, таймзоны), сторонние PHP-библиотеки.
 
 **Откуда берётся код:**
-- `includes/langs/*.ini` → `langs/`
+- `includes/langs/*.ini` → `langs/` ✅ ВЫПОЛНЕНО
 - Inline-массивы стран из `admin.php` → `data/countries.php`
 - `$rErrorCodes` из `constants.php` → `data/error_codes.php`
 - `includes/libs/*` → `libs/`
@@ -1198,7 +1198,6 @@ LB_DIRS_TO_REMOVE := \
     bin/install \
     bin/redis \
     bin/nginx/conf/codes \
-    includes/langs \
     includes/api \
     includes/libs/resources \
     includes/bootstrap \

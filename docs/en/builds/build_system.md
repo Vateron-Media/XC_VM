@@ -79,7 +79,7 @@ After copying, admin-specific content is **removed** from the LB build:
 | `bin/install/` | Installer scripts (not needed on LB) |
 | `bin/redis/` | Redis binary (LB doesn't run its own Redis) |
 | `bin/nginx/conf/codes/` | Error code pages (admin UI) |
-| `includes/langs/` | Admin UI language files |
+| `resources/langs/` | Admin UI language files |
 | `includes/api/` | Admin API routes |
 | `includes/libs/resources/` | Admin resource libraries |
 | `includes/bootstrap/` | Admin bootstrap |
