@@ -281,7 +281,7 @@
 												<i class="timeline-icon bg-warning"></i>
 												<div class="timeline-item-info">
 													<a href="javascript:void(0);" class="text-body font-weight-semibold mb-1 d-block bg"><strong>Database Incomplete</strong></a>
-													<small>Your database is outdated, please run <strong>/home/xc_vm/status</strong> as root user to update your tables.</small><br />
+													<small>Your database is outdated, please run <strong>sudo <?php echo PHP_BIN; ?> /home/xc_vm/console.php status</strong> as root user to update your tables.</small><br />
 													<p><br /></p>
 												</div>
 											</div>
@@ -295,7 +295,7 @@
 												<i class="timeline-icon bg-dark"></i>
 												<div class="timeline-item-info">
 													<a href="javascript:void(0);" class="text-body font-weight-semibold mb-1 d-block bg"><strong>Root Crons Missing</strong></a>
-													<small>Root cronjob hasn't run recently, please check root crontab or run <strong>/home/xc_vm/status</strong></small><br />
+													<small>Root cronjob hasn't run recently, please check root crontab or run <strong>sudo <?php echo PHP_BIN; ?> /home/xc_vm/console.php status</strong></small><br />
 													<p><br /></p>
 												</div>
 											</div>

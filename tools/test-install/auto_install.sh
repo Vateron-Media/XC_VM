@@ -48,7 +48,7 @@ echo ""
 # Проверяем что ключевые файлы на месте
 echo "==> Post-install verification:"
 CHECKS=(
-    "/home/xc_vm/status"
+    "/home/xc_vm/console.php"
     "/home/xc_vm/console.php"
     "/home/xc_vm/autoload.php"
     "/home/xc_vm/bootstrap.php"

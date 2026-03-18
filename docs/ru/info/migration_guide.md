@@ -111,13 +111,13 @@ sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php tools migration "/tmp/b
 ### Создание резервного кода доступа
 
 ```bash
-/home/xc_vm/tools access
+php /home/xc_vm/console.php tools access
 ```
 
 ### Создание администратора
 
 ```bash
-/home/xc_vm/tools user
+php /home/xc_vm/console.php tools user
 ```
 
 > ⚠️ После восстановления доступа **немедленно смените** код доступа и учётные данные администратора.

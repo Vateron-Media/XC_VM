@@ -1,7 +1,0 @@
-#!/home/xc_vm/bin/php/bin/php
-<?php
-// @legacy-proxy — redirect to console.php status
-// Logic moved to src/cli/Commands/StatusCommand.php
-$argv = array_merge(array('console.php', 'status'), array_slice($argv, 1));
-$argc = count($argv);
-require __DIR__ . '/console.php';

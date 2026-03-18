@@ -291,7 +291,7 @@ if __name__ == "__main__":
     printc("Installing XC_VM")
     if os.path.exists("./xc_vm.tar.gz"):
         os.system('sudo tar -zxvf "./xc_vm.tar.gz" -C "/home/xc_vm/"')
-        if not os.path.exists("/home/xc_vm/status"):
+        if not os.path.exists("/home/xc_vm/console.php"):
             printc("Failed to extract! Exiting")
             sys.exit(1)
 
@@ -520,7 +520,7 @@ if __name__ == "__main__":
 
     time.sleep(10)
 
-    os.system("sudo /home/xc_vm/status 1")
+    os.system("sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php status 1")
     os.system("sudo chown xc_vm:xc_vm -R /home/xc_vm/config/")
     os.system(
         "sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php startup >/dev/null 2>&1"

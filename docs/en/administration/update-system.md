@@ -121,7 +121,7 @@ Final steps are executed in the `post-update` phase of `UpdateCommand`:
 6. Verify panel status:
 
    ```bash
-   sudo /home/xc_vm/status
+   sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php status
    ```
 7. Mark the update process as complete.
 

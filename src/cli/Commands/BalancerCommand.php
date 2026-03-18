@@ -139,9 +139,10 @@ class BalancerCommand implements CommandInterface {
 		if ($rType == 1) {
 			if ($this->sendFileSSH($rConn, $rInstallDir . $rInstallFiles, '/tmp/' . $rInstallFiles, true)) {
 				echo "Extracting to directory\n";
-				$this->runSSH($rConn, 'sudo rm -rf ' . MAIN_HOME . 'status');
+				$this->runSSH($rConn, 'sudo rm -rf ' . MAIN_HOME . 'console.php');
 				$this->runSSH($rConn, 'sudo tar -zxvf "/tmp/' . $rInstallFiles . '" -C "' . MAIN_HOME . '"');
-				if (!file_exists(MAIN_HOME . 'status')) {
+				$rRemoteCheck = trim($this->runSSH($rConn, 'test -f ' . MAIN_HOME . 'console.php && echo OK')['output']);
+				if ($rRemoteCheck !== 'OK') {
 					$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
 					echo "Failed to extract files! Exiting\n";
 					return 1;
@@ -157,9 +158,10 @@ class BalancerCommand implements CommandInterface {
 			$fileHash = $this->runSSH($rConn, 'md5=($(md5sum /tmp/XC_VM.tar.gz)); echo $md5;');
 			if (!empty($fileHash['output']) && $hash == trim($fileHash['output'])) {
 				echo "Extracting to directory\n";
-				$this->runSSH($rConn, 'sudo rm -rf ' . MAIN_HOME . 'status');
+				$this->runSSH($rConn, 'sudo rm -rf ' . MAIN_HOME . 'console.php');
 				$this->runSSH($rConn, 'sudo tar -zxvf "/tmp/XC_VM.tar.gz" -C "' . MAIN_HOME . '"');
-				if (file_exists(MAIN_HOME . 'status')) {
+				$rRemoteCheck = trim($this->runSSH($rConn, 'test -f ' . MAIN_HOME . 'console.php && echo OK')['output']);
+				if ($rRemoteCheck === 'OK') {
 					$this->runSSH($rConn, 'sudo rm -f "/tmp/XC_VM.tar.gz"');
 				} else {
 					$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
@@ -174,7 +176,7 @@ class BalancerCommand implements CommandInterface {
 		}
 
 		if ($rType == 2) {
-			if (stripos($this->runSSH($rConn, 'sudo cat /etc/fstab')['output'], STREAMS_PATH) !== true) {
+			if (stripos($this->runSSH($rConn, 'sudo cat /etc/fstab')['output'], STREAMS_PATH) === false) {
 				echo "Adding ramdisk mounts\n";
 				$this->runSSH($rConn, 'sudo echo "tmpfs ' . STREAMS_PATH . ' tmpfs defaults,noatime,nosuid,nodev,noexec,mode=1777,size=90% 0 0" >> /etc/fstab');
 				$this->runSSH($rConn, 'sudo echo "tmpfs ' . TMP_PATH . ' tmpfs defaults,noatime,nosuid,nodev,noexec,mode=1777,size=2G 0 0" >> /etc/fstab');
@@ -300,7 +302,7 @@ class BalancerCommand implements CommandInterface {
 		$this->runSSH($rConn, 'sudo service xc_vm restart');
 
 		if ($rType == 2) {
-			$this->runSSH($rConn, 'sudo ' . MAIN_HOME . 'status 1');
+			$this->runSSH($rConn, 'sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php status 1');
 			$this->runSSH($rConn, 'sudo -u xc_vm ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php startup');
 			$this->runSSH($rConn, 'sudo -u xc_vm ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:servers');
 		} else {

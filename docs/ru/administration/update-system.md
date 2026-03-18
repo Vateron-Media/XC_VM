@@ -124,7 +124,7 @@ sudo /usr/bin/python3 /home/xc_vm/update "/home/xc_vm/tmp/.update.tar.gz" "HASH"
 6. Проверка статуса панели:
 
    ```bash
-   sudo /home/xc_vm/status
+   sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php status
    ```
 7. Завершение процесса обновления.
 
