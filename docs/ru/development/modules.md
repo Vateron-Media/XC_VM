@@ -158,8 +158,65 @@ return [
 В web-контексте (bootstrap.php):
 - `bootAll($container, $router)` → вызывает `boot()`, `registerRoutes()`, `getEventSubscribers()`
 
+> ⚠️ **Текущее ограничение:** `ModuleLoader::bootAll()` ещё не вызывается во фронт-контроллере. Маршруты модулей пока зарегистрированы **статически** в `public/routes/admin.php`. Это будет исправлено в будущем обновлении. Подробности: `specs/MODULE_SYSTEM_SPEC.md` §0.3.
+
 В CLI-контексте (console.php):
 - `registerAllCommands($registry)` → вызывает `registerCommands()` у каждого модуля
+
+---
+
+## Шаг 4а. Создать контроллер (опционально)
+
+Если модуль имеет страницы в админке, создайте класс контроллера. Контроллер использует **глобальную систему layout** через `renderUnifiedLayoutHeader()` / `renderUnifiedLayoutFooter()`.
+
+Файл `src/modules/my-module/MyController.php`:
+
+```php
+<?php
+
+class MyController {
+
+	protected $viewsPath;
+	protected $layoutsPath;
+
+	public function __construct() {
+		$this->viewsPath = __DIR__ . '/views';
+		$this->layoutsPath = MAIN_HOME . 'public/Views/layouts/';
+		require_once $this->layoutsPath . 'admin.php';
+		require_once $this->layoutsPath . 'footer.php';
+	}
+
+	public function index(): void {
+		$_TITLE = 'My Module';
+		renderUnifiedLayoutHeader('admin', ['_TITLE' => $_TITLE]);
+		include $this->viewsPath . '/my_page.php';
+		renderUnifiedLayoutFooter('admin');
+		include $this->viewsPath . '/my_page_scripts.php';
+	}
+
+	public function apiAction(): void {
+		// API-действия (POST) — layout не нужен
+		$action = $_GET['sub'] ?? '';
+		// ...
+		echo json_encode(['result' => true]);
+		exit;
+	}
+}
+```
+
+### Правила layout
+
+| Правило | Описание |
+|---------|----------|
+| **viewsPath** | Всегда `__DIR__ . '/views'` — контроллер уже находится внутри директории модуля |
+| **layoutsPath** | `MAIN_HOME . 'public/Views/layouts/'` — общий для всех модулей |
+| **GET-страницы** | Обязательно вызвать `renderUnifiedLayoutHeader()` до и `renderUnifiedLayoutFooter()` после view |
+| **API-действия** | Без layout — возвращаем JSON напрямую |
+| **Скрипты** | JS модуля загружается через `<module>_scripts.php` после footer |
+
+> **Важно:** Используйте `__DIR__ . '/views'` для viewsPath — **не** `dirname(__DIR__) . '/modules/...'`. Файл контроллера уже внутри директории модуля.
+
+> `renderUnifiedLayoutHeader('admin', [...])` и `renderUnifiedLayoutFooter('admin')` определены в `public/Views/layouts/admin.php` и `footer.php`. Они извлекают необходимые глобальные переменные (`$rSettings`, `$rUserInfo`, `$db` и др.) и рендерят общий header/footer админки.
 
 ---
 
@@ -295,6 +352,8 @@ modules/my-module/
 
 Все файлы модуля живут внутри его директории. CronJob-обёртки регистрируются через `registerCommands()`.
 
+Контроллеры используют глобальную систему layout — см. [Шаг 4а](#шаг-4а-создать-контроллер-опционально) для паттерна.
+
 ### Модуль с событиями
 
 ```php
@@ -317,6 +376,9 @@ public function getEventSubscribers(): array {
 - [ ] (Если есть кроны) Создать `<Name>Cron.php` + `<Name>CronJob.php` в модуле
 - [ ] (Если есть кроны) Зарегистрировать в `registerCommands()`
 - [ ] (Если есть кроны) Добавить в crontab через `StartupCommand`
+- [ ] (Если есть страницы) Создать контроллер с `renderUnifiedLayoutHeader/Footer`
+- [ ] (Если есть страницы) Создать директорию `views/` с шаблонами страниц
+- [ ] (Если есть страницы) Зарегистрировать маршруты в `registerRoutes()` (и временно в `public/routes/admin.php`)
 - [ ] Проверить: `php -l src/modules/<name>/<Name>Module.php`
 - [ ] Проверить: модуль загружается при `php console.php --list`
 - [ ] Проверить: удаление директории модуля не вызывает fatal error
