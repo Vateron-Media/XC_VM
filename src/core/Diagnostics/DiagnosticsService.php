@@ -21,24 +21,31 @@ class DiagnosticsService {
 		if (!$certificate) {
 			$config = explode("\n", file_get_contents(BIN_PATH . 'nginx/conf/ssl.conf'));
 			foreach ($config as $line) {
-				if (stripos($line, 'ssl_certificate ') !== false) {
-					$certificate = rtrim(trim(explode('ssl_certificate ', $line)[1]), ';');
+				$rTrimmed = trim($line);
+				if (strncasecmp($rTrimmed, 'ssl_certificate ', 16) === 0) {
+					$certificate = trim(explode(';', substr($rTrimmed, 16), 2)[0]);
 					break;
 				}
 			}
 		}
 
-		if ($certificate) {
-			$result['path'] = pathinfo($certificate)['dirname'];
-			exec('openssl x509 -serial -enddate -subject -noout -in ' . escapeshellarg($certificate), $output, $returnVar);
-			foreach ($output as $line) {
-				if (stripos($line, 'serial=') !== false) {
-					$result['serial'] = trim(explode('serial=', $line)[1]);
-				} elseif (stripos($line, 'subject=') !== false) {
-					$result['subject'] = trim(explode('subject=', $line)[1]);
-				} elseif (stripos($line, 'notAfter=') !== false) {
-					$result['expiration'] = strtotime(trim(explode('notAfter=', $line)[1]));
-				}
+		if (!$certificate || !file_exists($certificate)) {
+			return null;
+		}
+
+		$result['path'] = pathinfo($certificate)['dirname'];
+		$output = [];
+		exec('openssl x509 -serial -enddate -subject -noout -in ' . escapeshellarg($certificate), $output, $returnVar);
+		if ($returnVar !== 0) {
+			return null;
+		}
+		foreach ($output as $line) {
+			if (stripos($line, 'serial=') !== false) {
+				$result['serial'] = trim(explode('serial=', $line)[1]);
+			} elseif (stripos($line, 'subject=') !== false) {
+				$result['subject'] = trim(explode('subject=', $line)[1]);
+			} elseif (stripos($line, 'notAfter=') !== false) {
+				$result['expiration'] = strtotime(trim(explode('notAfter=', $line)[1]));
 			}
 		}
 

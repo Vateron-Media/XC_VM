@@ -60,7 +60,7 @@ class CertbotCronJob implements CommandInterface {
                 list($rCertificate) = explode(';', explode(' ', $rLine)[1]);
                 if ($rCertificate != 'server.crt') {
                     $rCertInfoFile = DiagnosticsService::getCertificateInfo($rCertificate);
-                    if ($rCertInfo['serial'] != $rCertInfoFile['serial'] || !ServerRepository::getAll()[SERVER_ID]['certbot_ssl'] || $rDBCertInfo['serial'] != $rCertInfoFile['serial']) {
+                    if ($rCertInfoFile && ($rCertInfo === null || $rCertInfo['serial'] != $rCertInfoFile['serial'] || !ServerRepository::getAll()[SERVER_ID]['certbot_ssl'] || $rDBCertInfo['serial'] != $rCertInfoFile['serial'])) {
                         $db->query('UPDATE `servers` SET `certbot_ssl` = ? WHERE `id` = ?;', json_encode($rCertInfoFile), SERVER_ID);
                         echo 'Updated ssl configuration in database' . "\n";
                         $db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', SERVER_ID, time(), json_encode(array('action' => 'reload_nginx')));
