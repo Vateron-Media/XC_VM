@@ -79,7 +79,7 @@ class UpdateCommand implements CommandInterface {
 				exec('sudo chown -R xc_vm:xc_vm ' . MAIN_HOME);
 				exec('sudo systemctl daemon-reload');
 				exec("sudo echo 'net.ipv4.ip_unprivileged_port_start=0' > /etc/sysctl.d/50-allports-nonroot.conf && sudo sysctl --system");
-				exec('sudo ' . MAIN_HOME . 'status');
+				exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php status');
 				break;
 		}
 

@@ -29,9 +29,7 @@ class StartupCommand implements CommandInterface {
 		ini_set('display_startup_errors', 1);
 		error_reporting(32767);
 
-		if (file_exists(MAIN_HOME . 'status')) {
-			exec('sudo ' . MAIN_HOME . 'status 1');
-		}
+		exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php status 1');
 
 		// ── Восстановление daemons.sh при повреждении ────────
 		if (filesize(MAIN_HOME . 'bin/daemons.sh') == 0) {
