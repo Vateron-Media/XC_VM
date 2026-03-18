@@ -31,7 +31,6 @@ LB_DIRS_TO_REMOVE := \
 	bin/install \
 	bin/redis \
 	bin/nginx/conf/codes \
-	includes/langs \
 	includes/api \
 	includes/libs/resources \
 	includes/bootstrap \

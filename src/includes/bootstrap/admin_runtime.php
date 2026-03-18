@@ -120,7 +120,7 @@ if (!function_exists('bootstrapAdminRuntime')) {
 			});
 
 			$language = Translator::class;
-			$language::init(MAIN_HOME . 'includes/langs/');
+			$language::init(MAIN_HOME . 'resources/langs/');
 		}
 
 		if (defined('SERVER_ID') === false) {
