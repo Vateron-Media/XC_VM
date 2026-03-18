@@ -1473,13 +1473,13 @@ endif; // !$__settingsViewMode
 												<div class="form-group row mb-4">
 													<label class="col-md-4 col-form-label" for="ffmpeg_cpu">FFMPEG
 														Version
-														<i title="Which version of FFMPEG to use for movies, created channels and normal streams.<br/><br/>v4.0 - Legacy version from 2018, shipped with XC_VM originally.<br/>v4.3.2 & v4.4 compiled by XC_VM with all libraries from v4.0 plus many more. Compatible with DASH and NVENC."
+														<i title="Which version of FFMPEG to use for movies, created channels and normal streams.<br/><br/>v4.0 - Legacy version from 2018, shipped with XC_VM originally.<br/>v7.1 & v8.0 - Modern versions with full codec support, DASH and NVENC."
 															class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-2">
 														<select name="ffmpeg_cpu" id="ffmpeg_cpu" class="form-control"
 															data-toggle="select2">
 															<?php
-															foreach (["8.0", "7.1", "5.1", "4.4", "4.3", "4.0"] as $rValue) {
+															foreach (["8.0", "7.1", "4.0"] as $rValue) {
 																echo '<option ';
 
 																if ($rSettings["ffmpeg_cpu"] == $rValue) {

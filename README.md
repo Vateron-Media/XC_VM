@@ -78,7 +78,7 @@ It enables:
 | --------- | ---------- | ------------------------------- |
 | PHP       | 8.1.33        | Backend runtime                 |
 | Nginx     | 1.24       | Web server & reverse proxy      |
-| FFmpeg    | 8.0, 7.1, 5.1, 4.4, 4.3, 4.0        | Media transcoding & processing  |
+| FFmpeg    | 8.0, 7.1, 4.0                        | Media transcoding & processing  |
 | MariaDB   | 11.4      | SQL database engine             |
 | KeyDB     | 6.3.4      | Cache & session storage (Redis) |
 | yt-dlp    | 2025.07.21 | Audio/Video downloader          |

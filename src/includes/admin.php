@@ -1269,8 +1269,7 @@ function getTickets($rID = null, $rAdmin = false) {
 }
 
 function cryptPassword($rPassword, $rSalt = 'xc_vm', $rRounds = 20000) {
-	if ($rSalt != '') {
-	} else {
+	if ($rSalt == '') {
 		$rSalt = substr(bin2hex(openssl_random_pseudo_bytes(16)), 0, 16);
 	}
 
