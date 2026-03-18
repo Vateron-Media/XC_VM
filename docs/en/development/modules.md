@@ -157,8 +157,65 @@ return [
 In web context (bootstrap.php):
 - `bootAll($container, $router)` → calls `boot()`, `registerRoutes()`, `getEventSubscribers()`
 
+> ⚠️ **Current limitation:** `ModuleLoader::bootAll()` is not yet invoked in the web front controller. Module routes are currently registered **statically** in `public/routes/admin.php`. This will be addressed in a future update. See `specs/MODULE_SYSTEM_SPEC.md` §0.3 for details.
+
 In CLI context (console.php):
 - `registerAllCommands($registry)` → calls `registerCommands()` on each module
+
+---
+
+## Step 4a. Create a controller (optional)
+
+If the module has admin pages, create a controller class. The controller uses the **global layout system** via `renderUnifiedLayoutHeader()` / `renderUnifiedLayoutFooter()`.
+
+File `src/modules/my-module/MyController.php`:
+
+```php
+<?php
+
+class MyController {
+
+	protected $viewsPath;
+	protected $layoutsPath;
+
+	public function __construct() {
+		$this->viewsPath = __DIR__ . '/views';
+		$this->layoutsPath = MAIN_HOME . 'public/Views/layouts/';
+		require_once $this->layoutsPath . 'admin.php';
+		require_once $this->layoutsPath . 'footer.php';
+	}
+
+	public function index(): void {
+		$_TITLE = 'My Module';
+		renderUnifiedLayoutHeader('admin', ['_TITLE' => $_TITLE]);
+		include $this->viewsPath . '/my_page.php';
+		renderUnifiedLayoutFooter('admin');
+		include $this->viewsPath . '/my_page_scripts.php';
+	}
+
+	public function apiAction(): void {
+		// API actions (POST) — no layout needed
+		$action = $_GET['sub'] ?? '';
+		// ...
+		echo json_encode(['result' => true]);
+		exit;
+	}
+}
+```
+
+### Layout rules
+
+| Rule | Description |
+|------|-------------|
+| **viewsPath** | Always `__DIR__ . '/views'` — the controller is inside the module directory |
+| **layoutsPath** | `MAIN_HOME . 'public/Views/layouts/'` — shared across all modules |
+| **GET pages** | Must call `renderUnifiedLayoutHeader()` before and `renderUnifiedLayoutFooter()` after the view |
+| **API actions** | No layout — return JSON directly |
+| **Scripts include** | Module-specific JS is loaded via `<module>_scripts.php` after the footer |
+
+> **Important:** Use `__DIR__ . '/views'` for viewsPath — **not** `dirname(__DIR__) . '/modules/...'`. The controller file is already inside the module directory.
+
+> `renderUnifiedLayoutHeader('admin', [...])` and `renderUnifiedLayoutFooter('admin')` are defined in `public/Views/layouts/admin.php` and `footer.php`. They extract the necessary global variables (`$rSettings`, `$rUserInfo`, `$db`, etc.) and render the shared admin header/footer.
 
 ---
 
@@ -294,6 +351,8 @@ modules/my-module/
 
 All module files live inside its directory. CronJob wrappers are registered via `registerCommands()`.
 
+Controllers use the global layout system — see [Step 4a](#step-4a-create-a-controller-optional) for the pattern.
+
 ### Module with events
 
 ```php
@@ -316,6 +375,9 @@ public function getEventSubscribers(): array {
 - [ ] (If crons) Create `<Name>Cron.php` + `<Name>CronJob.php` in the module
 - [ ] (If crons) Register in `registerCommands()`
 - [ ] (If crons) Add to crontab via `StartupCommand`
+- [ ] (If pages) Create controller with `renderUnifiedLayoutHeader/Footer`
+- [ ] (If pages) Create `views/` directory with page templates
+- [ ] (If pages) Register routes in `registerRoutes()` (and temporarily in `public/routes/admin.php`)
 - [ ] Verify: `php -l src/modules/<name>/<Name>Module.php`
 - [ ] Verify: module loads with `php console.php --list`
 - [ ] Verify: removing module directory causes no fatal error
