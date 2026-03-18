@@ -35,7 +35,7 @@ docker exec -it xcvm-test-install bash
 1. Распаковывает `XC_VM.zip`
 2. Запускает `python3 install` с автоматическими ответами на интерактивные вопросы
 3. Проверяет наличие ключевых файлов после установки:
-   - `/home/xc_vm/status`, `console.php`, `autoload.php`, `bootstrap.php`
+   - `/home/xc_vm/console.php`, `autoload.php`, `bootstrap.php`
    - `/home/xc_vm/config/config.ini`
    - `/home/xc_vm/bin/nginx/sbin/nginx`
    - `/home/xc_vm/bin/php/bin/php`

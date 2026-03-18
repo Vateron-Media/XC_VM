@@ -24,7 +24,7 @@ LB_DIRS := bin cli config content core domain includes \
 	infrastructure resources signals streaming tmp www
 
 # Root-level files to copy from MAIN to LB (not inside directories)
-LB_ROOT_FILES := autoload.php bootstrap.php console.php service status update
+LB_ROOT_FILES := autoload.php bootstrap.php console.php service update
 
 # Directories to remove from LB (admin-only content)
 LB_DIRS_TO_REMOVE := \
@@ -404,9 +404,7 @@ set_permissions:
 
 	# Root-level executables
 	chmod 0750 $(TEMP_DIR)/service 2>/dev/null || true
-	chmod 0750 $(TEMP_DIR)/status 2>/dev/null || true
 	chmod 0755 $(TEMP_DIR)/tmp 2>/dev/null || true
-	chmod 0750 $(TEMP_DIR)/tools 2>/dev/null || true
 	chmod 0750 $(TEMP_DIR)/update 2>/dev/null || true
 	chmod 0750 $(TEMP_DIR)/signals 2>/dev/null || true
 
