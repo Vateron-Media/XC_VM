@@ -471,7 +471,7 @@ class XC_Bootstrap {
         require_once INCLUDES_PATH . 'libs/Translator.php';
 
         $language = Translator::class;
-        $language::init(MAIN_HOME . 'includes/langs/');
+        $language::init(MAIN_HOME . 'resources/langs/');
     }
 
     /**
