@@ -15,7 +15,7 @@ if (!defined('MAIN_HOME')) {
 }
 
 // Импорт глобальных переменных bootstrap'а.
-// bootstrapAdminRuntime() использует `global` для записи переменных.
+// XC_Bootstrap::boot(CONTEXT_ADMIN) использует `global` для записи переменных.
 // Когда этот файл включается из FC (4b bootstrap в scope index.php),
 // переменные доступны без global. Но при включении из метода контроллера —
 // нужен явный global.
