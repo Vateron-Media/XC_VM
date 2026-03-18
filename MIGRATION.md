@@ -15,6 +15,7 @@
 8. [Фаза 15: Удаление includes/admin.php](#8-фаза-15-удаление-includesadminphp)
 9. [Порядок выполнения и риск-матрица](#9-порядок-выполнения-и-риск-матрица)
 10. [Стратегия миграции по рискам](#10-стратегия-миграции-по-рискам)
+11. [Известные пробелы и TODO](#11-известные-пробелы-и-todo)
 
 ---
 
@@ -371,36 +372,37 @@ php /home/xc_vm/console.php cron:servers
 
 #### Шаг 12.2 — Миграция includes/cli/ → cli/Commands/ ✅
 
-**Результат:** 24 файла из `includes/cli/` → 26 Command-классов в `cli/Commands/`. Вся логика перенесена, proxy-файлы были созданы, затем удалены (шаг 12.6).
+**Результат:** 24 файла из `includes/cli/` → 24 Command-класса в `cli/Commands/` + 2 модульных команды + 2 новых. Итого 26 команд (24 core + 2 module). Вся логика перенесена, proxy-файлы были созданы, затем удалены (шаг 12.6).
 
-| Legacy файл | → Command | Тип |
-|---|---|---|
-| `startup.php` | `Commands/StartupCommand` | daemon |
-| `watchdog.php` | `Commands/WatchdogCommand` | daemon |
-| `signals.php` | `Commands/SignalsCommand` | daemon |
-| `queue.php` | `Commands/QueueCommand` | daemon |
-| `cache_handler.php` | `Commands/CacheHandlerCommand` | daemon |
-| `connection_sync.php` | `Commands/ConnectionSyncCommand` | daemon |
-| `monitor.php` | `Commands/MonitorCommand` | CLI |
-| `scanner.php` | `Commands/ScannerCommand` | CLI |
-| `balancer.php` | `Commands/BalancerCommand` | CLI |
-| `migrate.php` | `Commands/MigrateCommand` | CLI |
-| `tools.php` | `Commands/ToolsCommand` | CLI |
-| `update.php` | `Commands/UpdateCommand` | CLI |
-| `binaries.php` | `Commands/BinariesCommand` | CLI |
-| `archive.php` | `Commands/ArchiveCommand` | CLI |
-| `created.php` | `Commands/CreatedCommand` | CLI |
-| `delay.php` | `Commands/DelayCommand` | CLI |
-| `loopback.php` | `Commands/LoopbackCommand` | CLI |
-| `llod.php` | `Commands/LlodCommand` | CLI |
-| `ondemand.php` | `Commands/OndemandCommand` | CLI |
-| `plex_item.php` | `Commands/PlexItemCommand` | CLI |
-| `proxy.php` | `Commands/ProxyCommand` | CLI |
-| `record.php` | `Commands/RecordCommand` | CLI |
-| `thumbnail.php` | `Commands/ThumbnailCommand` | CLI |
-| `watch_item.php` | `Commands/WatchItemCommand` | CLI |
-| — | `Commands/CertbotCommand` | CLI |
-| — | `Commands/ServiceCommand` | CLI |
+| Legacy файл | → Command | Тип | Заметки |
+|---|---|---|---|
+| `startup.php` | `Commands/StartupCommand` | daemon | |
+| `watchdog.php` | `Commands/WatchdogCommand` | daemon | |
+| `signals.php` | `Commands/SignalsCommand` | daemon | |
+| `queue.php` | `Commands/QueueCommand` | daemon | |
+| `cache_handler.php` | `Commands/CacheHandlerCommand` | daemon | |
+| ~~`connection_sync.php`~~ | — | — | Логика поглощена `MonitorCommand`, файл не создан |
+| `monitor.php` | `Commands/MonitorCommand` | CLI | Включает connection sync |
+| `scanner.php` | `Commands/ScannerCommand` | CLI | |
+| `balancer.php` | `Commands/BalancerCommand` | CLI | |
+| `migrate.php` | `Commands/MigrateCommand` | CLI | |
+| `tools.php` | `Commands/ToolsCommand` | CLI | |
+| `update.php` | `Commands/UpdateCommand` | CLI | |
+| `binaries.php` | `Commands/BinariesCommand` | CLI | |
+| `archive.php` | `Commands/ArchiveCommand` | CLI | |
+| `created.php` | `Commands/CreatedCommand` | CLI | |
+| `delay.php` | `Commands/DelayCommand` | CLI | |
+| `loopback.php` | `Commands/LoopbackCommand` | CLI | |
+| `llod.php` | `Commands/LlodCommand` | CLI | |
+| `ondemand.php` | `Commands/OndemandCommand` | CLI | |
+| `plex_item.php` | `modules/plex/PlexItemCommand` | CLI | Перемещён в модуль |
+| `proxy.php` | `Commands/ProxyCommand` | CLI | |
+| `record.php` | `Commands/RecordCommand` | CLI | |
+| `thumbnail.php` | `Commands/ThumbnailCommand` | CLI | |
+| `watch_item.php` | `modules/watch/WatchItemCommand` | CLI | Перемещён в модуль |
+| — | `Commands/CertbotCommand` | CLI | Новый |
+| — | `Commands/ServiceCommand` | CLI | Новый |
+| `src/status` | `Commands/StatusCommand` | CLI | Из root-level скрипта (12.4) |
 
 #### Шаг 12.3 — Миграция crons/ → cli/CronJobs/ ✅
 
@@ -439,8 +441,8 @@ php /home/xc_vm/console.php cron:servers
 | Legacy | → | Статус |
 |---|---|---|
 | `src/service` (shell) | `console.php service:{start\|stop\|restart\|reload}` | ✅ ServiceCommand |
-| `src/status` (PHP) | `console.php status` | ✅ StatusCommand |
-| `src/tools` (PHP) | `console.php tools:{rescue\|access\|ports}` | ✅ ToolsCommand |
+| `src/status` (PHP) | `console.php status` | ✅ StatusCommand — proxy удалён |
+| `src/tools` (PHP) | `console.php tools:{rescue\|access\|ports}` | ✅ ToolsCommand — proxy удалён |
 | `src/update` (Python) | Остаётся Python-скриптом | Без изменений |
 
 #### Шаг 12.5 — Обновление daemons.sh и crontab ✅
@@ -457,7 +459,8 @@ php /home/xc_vm/console.php cron:servers
 3. ✅ `includes/cli/` — **папка удалена** (24 файла)
 4. ✅ Makefile: 3 старые записи `includes/cli/` удалены из EXCLUDES
 5. ✅ `php -l` — все 14 файлов проверены, синтаксис ОК
-6. ✅ `crons/` — **папка удалена** (25 proxy-файлов), см. шаг 12.8
+6. ✅ `crons/` — все 25 файлов удалены, директория удалена
+7. ✅ `src/status`, `src/tools` — legacy-proxy файлы удалены, все вызовы заменены на `console.php`
 
 **Паттерн замены:**
 ```
@@ -480,7 +483,7 @@ PHP_BIN . ' ' . MAIN_HOME . 'console.php command args'
 2. ✅ Константа `CRON_PATH` удалена из `core/Config/Paths.php`
 3. ✅ Мёртвый autoload-маппинг `EPG → crons/epg.php` удалён
 4. ✅ Класс `EPG` восстановлен в `domain/Epg/EPG.php` (был потерян при proxy-конвертации)
-5. ✅ `src/crons/` — **папка удалена** (25 proxy-файлов)
+5. ✅ `src/crons/` — все 25 proxy-файлов удалены, директория `crons/` удалена. Класс `EPG` загружается из `domain/Epg/EPG.php`
 6. ✅ Makefile: `crons` убран из `LB_DIRS`, 9 записей `crons/*.php` из `LB_FILES_TO_REMOVE`, 2 строки permissions
 7. ✅ 8 CronJob-файлов (MAIN-only) добавлены в `LB_FILES_TO_REMOVE` + `file_exists()` guards в `console.php`
 8. ✅ `MigrationRunner::runFileCleanup()` — теперь удаляет опустевшие директории
@@ -700,7 +703,7 @@ Overhead < 0.1ms (один array lookup).
 |-------|----------|------|
 | **v2.2** | Фаза 10 (удаление admin/) | ✅ Завершена |
 | **v2.3** | Фаза 11 (API controllers) + Фаза 12 (CLI runner) + Фаза 13 (streaming) | ✅ Завершена |
-| **v2.4** | Фаза 11 (API deletion) + Фаза 14 (CSS/JS partials) | 🟢 + 🟢 |
+| **v2.4** | Фаза 11 (API deletion) + Фаза 14 (CSS/JS partials) + пробелы §11.1–11.3 | 🟢 + 🟢 + 🟡 |
 | **v3.0** | Фаза 15 (удаление legacy bootstrap) | 🔴 Финальный milestone |
 
 ---
@@ -777,3 +780,70 @@ bootstrap.php (новый)          includes/admin.php (старый legacy)
 use_legacy_bootstrap = false    ; true = откат на admin.php
 use_legacy_api = false          ; true = откат на admin_api.php switch
 ```
+
+> **Статус:** `use_legacy_fallback` реализован в `public/index.php`. `use_legacy_bootstrap` и `use_legacy_api` — **только в документации**, в коде не реализованы. Будут добавлены при выполнении Фазы 15.
+
+---
+
+## 11. Известные пробелы и TODO
+
+> Пробелы, обнаруженные при аудите (2026-03-17). Не входят в конкретную фазу, но блокируют полноценную работу модульной системы и чистоту кодовой базы.
+
+### 11.1. ~~Legacy-остатки: `crons/epg.php`~~ ✅ RESOLVED
+
+**Статус:** ✅ **Решено.** Файл `crons/epg.php` удалён, директория `crons/` удалена. Proxy-файлы `src/status` и `src/tools` также удалены. Все вызовы заменены на `console.php`. Класс `EPG` загружается из `domain/Epg/EPG.php` через autoload.
+
+**Удалённые файлы:** `src/crons/epg.php`, `src/status`, `src/tools`.
+**Обновлённые call sites:** `StartupCommand`, `UpdateCommand`, `BalancerCommand`, `dashboard.php`, `install`, `test_installer`, `Makefile`, docs (6 файлов).
+
+### 11.2. EventDispatcher не зарегистрирован в ServiceContainer
+
+**Проблема:** `core/Events/EventDispatcher.php` существует как статический класс, но НЕ зарегистрирован в `bootstrap.php::populateContainer()` как сервис `events`.
+
+**Следствие:** `ModuleInterface::getEventSubscribers()` не может быть реализован модулями — подписки не будут подхвачены, т.к. диспетчер не доступен через контейнер.
+
+**Зарегистрированные сервисы:** `db`, `config`, `settings`, `servers`, `bouquets`, `categories`, `redis`, `translator`.
+
+**TODO:** Зарегистрировать `events` в `populateContainer()` и вызывать `getEventSubscribers()` в `ModuleLoader::bootAll()`.
+
+### 11.3. Navbar.php — модульная навигация
+
+**Проблема:** `MODULE_SYSTEM_SPEC.md §6` описывает `core/Http/Navbar.php` (статический класс с `::registerFromModule()` и `::renderModuleItems()`). Файл **не создан**.
+
+**Следствие:** Пункты навигации модулей (watch, plex, fingerprint, theft-detection) хардкодированы в `public/Views/admin/header.php` строки 273–700. Новый модуль не может добавить себя в меню через `ModuleInterface`.
+
+**TODO:** Создать `core/Http/Navbar.php`, добавить injection point в `header.php`, перенести хардкод навигации модулей в `modules/*/navbar.php`.
+
+### 11.4. Module routes не загружаются в Front Controller
+
+**Проблема:** `ModuleInterface::registerRoutes(Router $router)` объявлен в контракте, но `public/index.php` **не вызывает** `ModuleLoader::bootAll()` для регистрации маршрутов модулей. Модули могут регистрировать только CLI-команды (через `console.php`).
+
+**Статус:** По текущему дизайну модули не добавляют admin-страницы — только CLI и API. Если это изменится, потребуется вызов `$moduleLoader->registerRoutes($router)` в FC.
+
+### 11.5. Ministra JS — 84 файла не перемещены
+
+**Проблема:** 84 JS-файла Ministra-портала остаются в `src/ministra/` корне (не в `modules/ministra/assets/`). Симлинк `www/c → ministra/` (создаётся `RootSignalsCronJob::enable_ministra`) ломается при перемещении.
+
+**Зависимости:** Требуется nginx alias + изменения в signal handler. Отложено как 13.4.
+
+### 11.6. BalancerCommand — sentinel проверяется на локальном сервере
+
+**Проблема:** `BalancerCommand` после SSH-извлечения tar-архива на *удалённом* LB-сервере проверяет `file_exists(MAIN_HOME . 'console.php')` на *локальном* сервере. Проверка всегда `true` на MAIN, поэтому не обнаруживает реальные сбои деплоя на удалённой машине.
+
+**Затронутые строки:** `cli/Commands/BalancerCommand.php` — два блока `if (file_exists(...))` после `ssh ... tar xzf`.
+
+**TODO:** Заменить `file_exists()` на `ssh $host "test -f /home/xc_vm/console.php"` или проверять exit code SSH-команды tar.
+
+### 11.7. Сводная таблица
+
+| # | Пробел | Приоритет | Блокирует | Усилия |
+|---|--------|-----------|-----------|--------|
+| 11.1 | ~~`crons/epg.php` не удалён~~ ✅ | — | — | — |
+| 11.2 | EventDispatcher не в контейнере | 🟡 Средний | Module event subscribers | 30 мин |
+| 11.3 | Navbar.php не создан | 🟡 Средний | Module navigation | 2–4 ч |
+| 11.4 | Module routes в FC | 🟢 Низкий | Ничего (by design) | — |
+| 11.5 | Ministra JS не перемещены | 🟢 Низкий | Ничего | 2–4 ч |
+| 11.6 | BalancerCommand sentinel на локальном хосте | 🟡 Средний | Ложный success при деплое LB | 30 мин |
+| 11.5–11.6 (Phase 11) | Admin/Reseller REST API extraction | 🟡 Средний | Удаление `www/*.php` thin proxies | 8–16 ч |
+| Phase 14 | CSS/JS partials (footer.php) | 🟢 Низкий | Ничего (frontend-only) | 4–8 ч |
+| Phase 15 | Удаление `includes/admin.php` (~3060 стр.) | 🔴 Высокий | Финальный milestone v3.0 | 16–32 ч |
