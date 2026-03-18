@@ -8,7 +8,7 @@ class UserRepository {
 		if ($db->num_rows() == 1) {
 			$rRow = $db->get_row();
 
-			if (cryptPassword($rPassword, $rRow['password']) == $rRow['password']) {
+			if (verifyPassword($rPassword, $rRow['password'])) {
 				return $rRow;
 			}
 		}

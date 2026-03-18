@@ -1268,17 +1268,20 @@ function getTickets($rID = null, $rAdmin = false) {
 	return $rReturn;
 }
 
-function cryptPassword($rPassword, $rSalt = 'xc_vm', $rRounds = 20000) {
-	if ($rSalt == '') {
+function cryptPassword($rPassword, $rSalt = null, $rRounds = 20000) {
+	if ($rSalt === null || $rSalt === '') {
 		$rSalt = substr(bin2hex(openssl_random_pseudo_bytes(16)), 0, 16);
 	}
 
-	if (stripos($rSalt, 'rounds=')) {
-	} else {
+	if (!stripos($rSalt, 'rounds=')) {
 		$rSalt = sprintf('$6$rounds=%d$%s$', $rRounds, $rSalt);
 	}
 
 	return crypt($rPassword, $rSalt);
+}
+
+function verifyPassword($rPassword, $rStoredHash) {
+	return hash_equals($rStoredHash, crypt($rPassword, $rStoredHash));
 }
 
 function getPermissions($rID) {

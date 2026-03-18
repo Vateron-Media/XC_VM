@@ -186,6 +186,7 @@ class XC_Bootstrap {
                 self::initAdminAPI();
                 self::initTranslator();
                 self::registerAdminShutdown();
+                self::defineStatusConstants();
                 self::initAdminGlobals();
                 break;
         }
