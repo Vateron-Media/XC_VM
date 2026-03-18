@@ -16,7 +16,7 @@ class FfmpegPaths {
 	 *
 	 * Called once during bootstrap; subsequent calls are no-ops.
 	 *
-	 * @param string $version  e.g. '8.0', '7.1', '5.1', '4.4', '4.3', '4.0'
+	 * @param string $version  e.g. '8.0', '7.1', '4.0'
 	 */
 	public static function resolve($version) {
 		if (self::$resolved) {
@@ -32,21 +32,6 @@ class FfmpegPaths {
 				self::$cpu   = FFMPEG_BIN_71;
 				self::$probe = FFPROBE_BIN_71;
 				self::$gpu   = FFMPEG_BIN_71;
-				break;
-			case '5.1':
-				self::$cpu   = FFMPEG_BIN_51;
-				self::$probe = FFPROBE_BIN_51;
-				self::$gpu   = FFMPEG_BIN_40;
-				break;
-			case '4.4':
-				self::$cpu   = FFMPEG_BIN_44;
-				self::$probe = FFPROBE_BIN_44;
-				self::$gpu   = FFMPEG_BIN_40;
-				break;
-			case '4.3':
-				self::$cpu   = FFMPEG_BIN_43;
-				self::$probe = FFPROBE_BIN_43;
-				self::$gpu   = FFMPEG_BIN_40;
 				break;
 			default:
 				self::$cpu   = FFMPEG_BIN_40;

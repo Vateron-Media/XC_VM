@@ -282,19 +282,10 @@ set_permissions:
 
 	chmod 0755 $(TEMP_DIR)/bin/ffmpeg_bin 2>/dev/null || true
 	chmod 0755 $(TEMP_DIR)/bin/ffmpeg_bin/4.0 2>/dev/null || true
-	chmod 0755 $(TEMP_DIR)/bin/ffmpeg_bin/4.3 2>/dev/null || true
-	chmod 0755 $(TEMP_DIR)/bin/ffmpeg_bin/4.4 2>/dev/null || true
-	chmod 0755 $(TEMP_DIR)/bin/ffmpeg_bin/5.1 2>/dev/null || true
 	chmod 0755 $(TEMP_DIR)/bin/ffmpeg_bin/7.1 2>/dev/null || true
 	chmod 0755 $(TEMP_DIR)/bin/ffmpeg_bin/8.0 2>/dev/null || true
 	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/4.0/ffmpeg 2>/dev/null || true
 	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/4.0/ffprobe 2>/dev/null || true
-	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/4.3/ffmpeg 2>/dev/null || true
-	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/4.3/ffprobe 2>/dev/null || true
-	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/4.4/ffmpeg 2>/dev/null || true
-	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/4.4/ffprobe 2>/dev/null || true
-	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/5.1/ffmpeg 2>/dev/null || true
-	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/5.1/ffprobe 2>/dev/null || true
 	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/7.1/ffmpeg 2>/dev/null || true
 	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/7.1/ffprobe 2>/dev/null || true
 	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/8.0/ffmpeg 2>/dev/null || true
