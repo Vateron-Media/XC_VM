@@ -186,6 +186,7 @@ class XC_Bootstrap {
                 self::initAdminAPI();
                 self::initTranslator();
                 self::registerAdminShutdown();
+                self::initAdminGlobals();
                 break;
         }
 
@@ -572,6 +573,56 @@ class XC_Bootstrap {
                     'shutdown' => null,
                 ];
         }
+    }
+
+    /**
+     * Инициализация admin-глобалов: MobileDetect, таймауты, серверы,
+     * протокол, admin_constants.
+     *
+     * Логика из includes/bootstrap/admin_runtime.php (post-bootstrap block)
+     * + includes/bootstrap/admin_bootstrap.php (admin_constants.php).
+     */
+    private static function initAdminGlobals(): void {
+        global $rDetect, $rMobile, $rTimeout, $rSQLTimeout, $rProtocol,
+               $allServers, $rServers, $rSettings, $rProxyServers,
+               $rPermissions, $language, $allowedLangs;
+
+        if (!defined('SERVER_ID')) {
+            define('SERVER_ID', intval(ConfigReader::get('server_id')));
+        }
+
+        require_once INCLUDES_PATH . 'libs/mobiledetect.php';
+        $rDetect = new \Mobile_Detect();
+        $rMobile = $rDetect->isMobile();
+
+        $rTimeout    = 15;
+        $rSQLTimeout = 10;
+        set_time_limit($rTimeout);
+        ini_set('mysql.connect_timeout', (string) $rSQLTimeout);
+        ini_set('max_execution_time', (string) $rTimeout);
+        ini_set('default_socket_timeout', (string) $rTimeout);
+
+        $rProtocol    = self::detectProtocol();
+        $allServers   = ServerRepository::getAllSimple();
+        $rServers     = ServerRepository::getStreamingSimple($rPermissions);
+        $rSettings    = SettingsManager::getAll();
+        $rProxyServers = ServerRepository::getProxySimple($rPermissions);
+
+        $language     = Translator::class;
+        $allowedLangs = $language::available();
+
+        require_once MAIN_HOME . 'resources/data/admin_constants.php';
+    }
+
+    /**
+     * Определить HTTP-протокол (http/https).
+     *
+     * Перенесено из includes/admin.php (issecure + getProtocol).
+     */
+    private static function detectProtocol(): string {
+        $https  = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+        $port443 = isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443;
+        return ($https || $port443) ? 'https' : 'http';
     }
 
     // ─────────────────────────────────────────────────────────

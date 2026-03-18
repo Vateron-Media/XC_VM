@@ -82,7 +82,6 @@ signals/    streaming/  tmp/        www/
 | `resources/langs/` | Языковые ресурсы |
 | `includes/api/` | Маршруты админ API |
 | `includes/libs/resources/` | Библиотеки ресурсов админки |
-| `includes/bootstrap/` | Бутстрап админки |
 | `domain/User/` | Управление пользователями |
 | `domain/Device/` | Регистрация устройств |
 | `domain/Auth/` | Авторизация (панельная) |

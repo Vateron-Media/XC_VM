@@ -4,7 +4,7 @@ if (!defined('MAIN_HOME')) {
 }
 
 // Импорт глобальных переменных bootstrap'а.
-// bootstrapAdminRuntime() использует `global` для записи переменных.
+// XC_Bootstrap::boot(CONTEXT_ADMIN) использует `global` для записи переменных.
 // Когда functions.php включается из метода контроллера (не из глобального scope),
 // эти переменные без `global` не видны в текущем scope.
 // В глобальном scope (прямой вызов через nginx) — это no-op.
