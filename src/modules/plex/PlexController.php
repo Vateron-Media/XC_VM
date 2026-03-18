@@ -46,8 +46,14 @@ class PlexController {
      */
     protected $viewsPath;
 
+    /** @var string Путь к layout-файлам */
+    protected $layoutsPath;
+
     public function __construct() {
-        $this->viewsPath = dirname(__DIR__) . '/modules/plex/views';
+        $this->viewsPath = __DIR__ . '/views';
+        $this->layoutsPath = MAIN_HOME . 'public/Views/layouts/';
+        require_once $this->layoutsPath . 'admin.php';
+        require_once $this->layoutsPath . 'footer.php';
     }
 
     // ───────────────────────────────────────────────────────────
@@ -64,9 +70,9 @@ class PlexController {
         $rPlexServers = PlexRepository::getPlexServers();
         $_TITLE = 'Plex Sync';
 
-        include 'header.php';
+        renderUnifiedLayoutHeader('admin', ['_TITLE' => $_TITLE]);
         include $this->viewsPath . '/index.php';
-        include 'footer.php';
+        renderUnifiedLayoutFooter('admin');
         include $this->viewsPath . '/library_scripts.php';
     }
 
@@ -88,9 +94,9 @@ class PlexController {
         $rBouquets = BouquetService::getAllSimple();
         $_TITLE = isset($rFolder) ? 'Edit Library' : 'Add Library';
 
-        include 'header.php';
+        renderUnifiedLayoutHeader('admin', ['_TITLE' => $_TITLE]);
         include $this->viewsPath . '/library_edit.php';
-        include 'footer.php';
+        renderUnifiedLayoutFooter('admin');
         include $this->viewsPath . '/library_edit_scripts.php';
     }
 
@@ -104,9 +110,9 @@ class PlexController {
         $rBouquets = BouquetService::getAllSimple();
         $_TITLE = 'Plex Settings';
 
-        include 'header.php';
+        renderUnifiedLayoutHeader('admin', ['_TITLE' => $_TITLE]);
         include $this->viewsPath . '/settings.php';
-        include 'footer.php';
+        renderUnifiedLayoutFooter('admin');
         include $this->viewsPath . '/settings_scripts.php';
     }
 
