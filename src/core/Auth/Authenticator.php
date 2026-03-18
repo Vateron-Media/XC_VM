@@ -45,11 +45,7 @@ class Authenticator {
 
 		if ($rUserInfo['status'] == 1) {
 			$rCrypt = cryptPassword($rData['password']);
-			if ($rUserInfo['password'] != $rCrypt) {
-				$db->query('UPDATE `users` SET `password` = ?, `last_login` = UNIX_TIMESTAMP(), `ip` = ? WHERE `id` = ?;', $rCrypt, $rIP, $rUserInfo['id']);
-			} else {
-				$db->query('UPDATE `users` SET `last_login` = UNIX_TIMESTAMP(), `ip` = ? WHERE `id` = ?;', $rIP, $rUserInfo['id']);
-			}
+			$db->query('UPDATE `users` SET `password` = ?, `last_login` = UNIX_TIMESTAMP(), `ip` = ? WHERE `id` = ?;', $rCrypt, $rIP, $rUserInfo['id']);
 
 			$_SESSION['hash'] = $rUserInfo['id'];
 			$_SESSION['ip'] = $rIP;
@@ -109,11 +105,7 @@ class Authenticator {
 
 		if ($rUserInfo['status'] == 1) {
 			$rCrypt = cryptPassword($rData['password']);
-			if ($rUserInfo['password'] != $rCrypt) {
-				$db->query('UPDATE `users` SET `password` = ?, `last_login` = UNIX_TIMESTAMP(), `ip` = ? WHERE `id` = ?;', $rCrypt, $rIP, $rUserInfo['id']);
-			} else {
-				$db->query('UPDATE `users` SET `last_login` = UNIX_TIMESTAMP(), `ip` = ? WHERE `id` = ?;', $rIP, $rUserInfo['id']);
-			}
+			$db->query('UPDATE `users` SET `password` = ?, `last_login` = UNIX_TIMESTAMP(), `ip` = ? WHERE `id` = ?;', $rCrypt, $rIP, $rUserInfo['id']);
 
 			$_SESSION['reseller'] = $rUserInfo['id'];
 			$_SESSION['rip'] = $rIP;
