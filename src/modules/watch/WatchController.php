@@ -51,8 +51,14 @@ class WatchController {
      */
     protected $viewsPath;
 
+    /** @var string Путь к layout-файлам */
+    protected $layoutsPath;
+
     public function __construct() {
-        $this->viewsPath = dirname(__DIR__) . '/modules/watch/views';
+        $this->viewsPath = __DIR__ . '/views';
+        $this->layoutsPath = MAIN_HOME . 'public/Views/layouts/';
+        require_once $this->layoutsPath . 'admin.php';
+        require_once $this->layoutsPath . 'footer.php';
     }
 
     // ───────────────────────────────────────────────────────────
@@ -65,7 +71,12 @@ class WatchController {
      * Заменяет admin/watch.php
      */
     public function index() {
+        $_TITLE = 'Watch Folder';
+
+        renderUnifiedLayoutHeader('admin', ['_TITLE' => $_TITLE]);
         include $this->viewsPath . '/watch.php';
+        renderUnifiedLayoutFooter('admin');
+        include $this->viewsPath . '/watch_scripts.php';
     }
 
     /**
@@ -88,8 +99,10 @@ class WatchController {
         $rBouquets = BouquetService::getAllSimple();
         $_TITLE = isset($rFolder) ? 'Edit Folder' : 'Add Folder';
 
-        include 'header.php';
+        renderUnifiedLayoutHeader('admin', ['_TITLE' => $_TITLE]);
         include $this->viewsPath . '/watch_add.php';
+        renderUnifiedLayoutFooter('admin');
+        include $this->viewsPath . '/watch_add_scripts.php';
     }
 
     /**
@@ -102,8 +115,10 @@ class WatchController {
         $rBouquets = BouquetService::getAllSimple();
         $_TITLE = 'Watch Settings';
 
-        include 'header.php';
+        renderUnifiedLayoutHeader('admin', ['_TITLE' => $_TITLE]);
         include $this->viewsPath . '/settings_watch.php';
+        renderUnifiedLayoutFooter('admin');
+        include $this->viewsPath . '/settings_watch_scripts.php';
     }
 
     /**
@@ -114,8 +129,10 @@ class WatchController {
     public function output() {
         $_TITLE = 'Watch Folder Logs';
 
-        include 'header.php';
+        renderUnifiedLayoutHeader('admin', ['_TITLE' => $_TITLE]);
         include $this->viewsPath . '/watch_output.php';
+        renderUnifiedLayoutFooter('admin');
+        include $this->viewsPath . '/watch_output_scripts.php';
     }
 
     /**
@@ -181,8 +198,10 @@ class WatchController {
 
         $_TITLE = 'Schedule Recording';
 
-        include 'header.php';
+        renderUnifiedLayoutHeader('admin', ['_TITLE' => $_TITLE]);
         include $this->viewsPath . '/record.php';
+        renderUnifiedLayoutFooter('admin');
+        include $this->viewsPath . '/record_scripts.php';
     }
 
     // ───────────────────────────────────────────────────────────
