@@ -43,7 +43,7 @@ class ServerViewController extends BaseAdminController
             'dates'  => [null, null],
         ];
 
-        foreach (WatchdogMonitor::getWatchdog($rServer['id']) as $rData) {
+        foreach (ProcessChecker::getWatchdog($rServer['id']) as $rData) {
             if (!$rStats['dates'][0] || $rData['time'] * 1000 <= $rStats['dates'][0]) {
                 $rStats['dates'][0] = $rData['time'] * 1000;
             }

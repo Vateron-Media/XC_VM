@@ -110,7 +110,7 @@
                 $_STATUS = STATUS_INVALID_FILE;
             } else {
                 $rImport = array();
-                $rResults = M3UParser::parse($_FILES['m3u_file']['tmp_name']);
+                $rResults = StreamService::parseM3U($_FILES['m3u_file']['tmp_name']);
 
                 foreach ($rResults as $rResult) {
                     list($rTag) = $rResult->getExtTags();

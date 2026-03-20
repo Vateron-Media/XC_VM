@@ -128,7 +128,7 @@ Source-level fixes: `getPermissions()` → `[]` fallback, defensive defaults в 
 40 proxy-определений удалены, 560+ call-sites заменены на прямые вызовы domain-сервисов. `admin.php` сокращён с ~4448 до ~3050 строк.
 
 #### Шаг 7.3.1 — Миграция getCategories/getOutputs ✅
-`getCategories()` → `CategoryService::getAllByType()` (~75+ call-sites). `getOutputs()` → `OutputFormatRepository::getAll()` (3 call-sites). Создан `domain/Line/OutputFormatRepository.php`.
+`getCategories()` → `CategoryService::getAllByType()` (~75+ call-sites). `getOutputs()` → `LineRepository::getOutputFormats()` (3 call-sites). Метод перенесён из удалённого `OutputFormatRepository` в `LineRepository`.
 
 #### Шаг 7.4 — Устранение параметра `$db` из Domain-классов ✅
 28 классов (100 методов) → `global $db` внутри. ~357 call-sites обновлены.

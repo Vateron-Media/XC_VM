@@ -20,8 +20,7 @@ class MagService {
 			$rUserArray = array();
 
 			foreach (array('lock_device') as $rItem) {
-				if (!isset($rData['c_' . $rItem])) {
-				} else {
+				if (isset($rData['c_' . $rItem])) {
 					if (isset($rData[$rItem])) {
 						$rArray[$rItem] = 1;
 					} else {
@@ -31,8 +30,7 @@ class MagService {
 			}
 
 			foreach (array('is_isplock', 'is_trial') as $rItem) {
-				if (!isset($rData['c_' . $rItem])) {
-				} else {
+				if (isset($rData['c_' . $rItem])) {
 					if (isset($rData[$rItem])) {
 						$rUserArray[$rItem] = 1;
 					} else {
@@ -41,8 +39,7 @@ class MagService {
 				}
 			}
 
-			if (!isset($rData['c_modern_theme'])) {
-			} else {
+			if (isset($rData['c_modern_theme'])) {
 				if (isset($rData['modern_theme'])) {
 					$rArray['theme_type'] = 0;
 				} else {
@@ -50,38 +47,31 @@ class MagService {
 				}
 			}
 
-			if (!isset($rData['c_parent_password'])) {
-			} else {
+			if (isset($rData['c_parent_password'])) {
 				$rArray['parent_password'] = $rData['parent_password'];
 			}
 
-			if (!isset($rData['c_admin_notes'])) {
-			} else {
+			if (isset($rData['c_admin_notes'])) {
 				$rUserArray['admin_notes'] = $rData['admin_notes'];
 			}
 
-			if (!isset($rData['c_reseller_notes'])) {
-			} else {
+			if (isset($rData['c_reseller_notes'])) {
 				$rUserArray['reseller_notes'] = $rData['reseller_notes'];
 			}
 
-			if (!isset($rData['c_forced_country'])) {
-			} else {
+			if (isset($rData['c_forced_country'])) {
 				$rUserArray['forced_country'] = $rData['forced_country'];
 			}
 
-			if (!isset($rData['c_member_id'])) {
-			} else {
+			if (isset($rData['c_member_id'])) {
 				$rUserArray['member_id'] = intval($rData['member_id']);
 			}
 
-			if (!isset($rData['c_force_server_id'])) {
-			} else {
+			if (isset($rData['c_force_server_id'])) {
 				$rUserArray['force_server_id'] = intval($rData['force_server_id']);
 			}
 
-			if (!isset($rData['c_exp_date'])) {
-			} else {
+			if (isset($rData['c_exp_date'])) {
 				if (isset($rData['no_expire'])) {
 					$rUserArray['exp_date'] = null;
 				} else {
@@ -93,13 +83,11 @@ class MagService {
 				}
 			}
 
-			if (!isset($rData['c_bouquets'])) {
-			} else {
+			if (isset($rData['c_bouquets'])) {
 				$rUserArray['bouquet'] = array();
 
 				foreach (json_decode($rData['bouquets_selected'], true) as $rBouquet) {
-					if (!is_numeric($rBouquet)) {
-					} else {
+					if (is_numeric($rBouquet)) {
 						$rUserArray['bouquet'][] = $rBouquet;
 					}
 				}
@@ -107,14 +95,12 @@ class MagService {
 				$rUserArray['bouquet'] = '[' . implode(',', array_map('intval', $rUserArray['bouquet'])) . ']';
 			}
 
-			if (!isset($rData['reset_isp_lock'])) {
-			} else {
+			if (isset($rData['reset_isp_lock'])) {
 				$rUserArray['isp_desc'] = '';
 				$rUserArray['as_number'] = $rUserArray['isp_desc'];
 			}
 
-			if (!isset($rData['reset_device_lock'])) {
-			} else {
+			if (isset($rData['reset_device_lock'])) {
 				$rArray['ver'] = '';
 				$rArray['device_id2'] = $rArray['ver'];
 				$rArray['device_id'] = $rArray['device_id2'];
@@ -124,8 +110,7 @@ class MagService {
 				$rArray['sn'] = $rArray['stb_type'];
 			}
 
-			if (empty($rData['message_type'])) {
-			} else {
+			if (!empty($rData['message_type'])) {
 				$rEvent = array('event' => $rData['message_type'], 'need_confirm' => 0, 'msg' => '', 'reboot_after_ok' => intval(isset($rData['reboot_portal'])));
 
 				if ($rData['message_type'] == 'send_msg') {
@@ -147,53 +132,45 @@ class MagService {
 			foreach ($rDevices as $rDevice) {
 				$rDeviceInfo = getMag($rDevice);
 
-				if (!$rDeviceInfo) {
-				} else {
-					if (empty($rData['message_type'])) {
-					} else {
+				if ($rDeviceInfo) {
+					if (!empty($rData['message_type'])) {
 						$db->query('INSERT INTO `mag_events`(`status`, `mag_device_id`, `event`, `need_confirm`, `msg`, `reboot_after_ok`, `send_time`) VALUES (0, ?, ?, ?, ?, ?, ?);', $rDevice, $rEvent['event'], $rEvent['need_confirm'], $rEvent['msg'], $rEvent['reboot_after_ok'], time());
 					}
 
-					if (0 >= count($rArray)) {
-					} else {
+					if (count($rArray) > 0) {
 						$rPrepare = prepareArray($rArray);
 
-						if (0 >= count($rPrepare['data'])) {
-						} else {
+						if (count($rPrepare['data']) > 0) {
 							$rPrepare['data'][] = $rDevice;
 							$rQuery = 'UPDATE `mag_devices` SET ' . $rPrepare['update'] . ' WHERE `mag_id` = ?;';
 							$db->query($rQuery, ...$rPrepare['data']);
 						}
 					}
 
-					if (0 >= count($rUserArray)) {
-					} else {
+					if (count($rUserArray) > 0) {
 						$rUserIDs = array();
 
-						if (!isset($rDeviceInfo['user']['id'])) {
-						} else {
+						if (isset($rDeviceInfo['user']['id'])) {
 							$rUserIDs[] = $rDeviceInfo['user']['id'];
 						}
 
-						if (!isset($rDeviceInfo['user']['paired'])) {
-						} else {
+						if (isset($rDeviceInfo['user']['paired'])) {
 							$rUserIDs[] = $rDeviceInfo['paired']['id'];
 						}
 
 						foreach ($rUserIDs as $rUserID) {
 							$rPrepare = prepareArray($rUserArray);
 
-							if (0 >= count($rPrepare['data'])) {
-							} else {
+							if (count($rPrepare['data']) > 0) {
 								$rPrepare['data'][] = $rUserID;
 								$rQuery = 'UPDATE `lines` SET ' . $rPrepare['update'] . ' WHERE `id` = ?;';
 								$db->query($rQuery, ...$rPrepare['data']);
-											LineService::updateLineSignal($rUserID);
-										}
-									}
-								}
+								LineService::updateLineSignal($rUserID);
 							}
 						}
+					}
+				}
+			}
 
 			return array('status' => STATUS_SUCCESS);
 		} else {
@@ -231,18 +208,15 @@ class MagService {
 				}
 			}
 
-			if (strlen($rUserArray['username']) != 0) {
-			} else {
+			if (strlen($rUserArray['username']) == 0) {
 				$rUserArray['username'] = generateString(32);
 			}
 
-			if (strlen($rUserArray['password']) != 0) {
-			} else {
+			if (strlen($rUserArray['password']) == 0) {
 				$rUserArray['password'] = generateString(32);
 			}
 
-			if (strlen($rData['isp_clear']) != 0) {
-			} else {
+			if (strlen($rData['isp_clear']) == 0) {
 				$rUserArray['isp_desc'] = '';
 				$rUserArray['as_number'] = null;
 			}
@@ -274,8 +248,7 @@ class MagService {
 			$rUserArray['bouquet'] = '[' . implode(',', array_map('intval', $rUserArray['bouquet'])) . ']';
 
 			if (isset($rData['exp_date']) && !isset($rData['no_expire'])) {
-				if (!(0 < strlen($rData['exp_date']) && $rData['exp_date'] != '1970-01-01')) {
-				} else {
+				if (0 < strlen($rData['exp_date']) && $rData['exp_date'] != '1970-01-01') {
 					try {
 						$rDate = new DateTime($rData['exp_date']);
 						$rUserArray['exp_date'] = $rDate->format('U');
@@ -287,14 +260,12 @@ class MagService {
 				$rUserArray['exp_date'] = null;
 			}
 
-			if ($rUserArray['member_id']) {
-			} else {
+			if (!$rUserArray['member_id']) {
 				$rUserArray['member_id'] = $GLOBALS['rAdminUserInfo']['id'];
 			}
 
 			if (isset($rData['allowed_ips'])) {
-				if (is_array($rData['allowed_ips'])) {
-				} else {
+				if (!is_array($rData['allowed_ips'])) {
 					$rData['allowed_ips'] = array($rData['allowed_ips']);
 				}
 
@@ -313,12 +284,10 @@ class MagService {
 			$rDevice = $rArray;
 			$rDevice['user'] = $rUserArray;
 
-			if (0 >= $rDevice['user']['pair_id']) {
-			} else {
+			if ($rDevice['user']['pair_id'] > 0) {
 				$rUserCheck = UserRepository::getLineById($rDevice['user']['pair_id']);
 
-				if ($rUserCheck) {
-				} else {
+				if (!$rUserCheck) {
 					return array('status' => STATUS_INVALID_USER, 'data' => $rData);
 				}
 			}
@@ -335,13 +304,11 @@ class MagService {
 
 					$rQuery = 'REPLACE INTO `lines`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
-					if (!$db->query($rQuery, ...$rPrepare['data'])) {
-					} else {
+					if ($db->query($rQuery, ...$rPrepare['data'])) {
 						$rInsertID = $db->last_insert_id();
 						$rArray['user_id'] = $rInsertID;
-					LineService::updateLineSignal($rArray['user_id']);
-						if (isset($rData['edit'])) {
-						} else {
+						LineService::updateLineSignal($rArray['user_id']);
+						if (!isset($rData['edit'])) {
 							$rArray['ver'] = '';
 							$rArray['device_id2'] = $rArray['ver'];
 							$rArray['device_id'] = $rArray['device_id2'];
@@ -357,17 +324,15 @@ class MagService {
 						if ($db->query($rQuery, ...$rPrepare['data'])) {
 							$rInsertID = $db->last_insert_id();
 
-							if (0 >= $rDevice['user']['pair_id']) {
-							} else {
+							if ($rDevice['user']['pair_id'] > 0) {
 								MagService::syncLineDevices($rDevice['user']['pair_id'], $rInsertID);
-										LineService::updateLineSignal($rDevice['user']['pair_id']);
+								LineService::updateLineSignal($rDevice['user']['pair_id']);
 							}
 
 							return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
 						}
 
-						if (isset($rData['edit'])) {
-						} else {
+						if (!isset($rData['edit'])) {
 							$db->query('DELETE FROM `lines` WHERE `id` = ?;', $rInsertID);
 						}
 					}
@@ -384,14 +349,11 @@ class MagService {
 		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 	}
 
-	// ──────────── Из DeviceSync ────────────
-
 	public static function syncLineDevices($rUserID, $rDeviceID = null) {
 		global $db;
 		$rUser = UserRepository::getLineById($rUserID);
 
-		if (!$rUser) {
-		} else {
+		if ($rUser) {
 			unset($rUser['id']);
 
 			if ($rDeviceID) {
@@ -409,8 +371,7 @@ class MagService {
 					$rUpdateDevice[$rKey] = $rDevice[$rKey];
 				}
 
-				if (!isset($rUpdateDevice['id'])) {
-				} else {
+				if (isset($rUpdateDevice['id'])) {
 					$rPrepare = prepareArray($rUpdateDevice);
 					$rQuery = 'REPLACE INTO `lines`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 					$db->query($rQuery, ...$rPrepare['data']);

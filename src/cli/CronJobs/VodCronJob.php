@@ -122,7 +122,7 @@ class VodCronJob implements CommandInterface {
                             if (isset($rFFProbee['codecs']['subtitle']) && SettingsManager::getAll()['extract_subtitles']) {
                                 $i = 0;
                                 foreach ($rFFProbee['codecs']['subtitle'] as $rSubtitle) {
-                                    SubtitleExtractor::extractSubtitle($rRow['stream_id'], $rMoviePath, $i);
+                                    FFmpegCommand::extractSubtitle($rRow['stream_id'], $rMoviePath, $i);
                                     $i++;
                                 }
                             }
