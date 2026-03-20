@@ -15,6 +15,16 @@ class ServerService {
 		$rArray = verifyPostTable('servers', $rData, true);
 		$rPorts = array('http' => array(), 'https' => array());
 
+		if (!isset($rData['http_broadcast_ports']) || !is_array($rData['http_broadcast_ports'])) {
+			$rData['http_broadcast_ports'] = array();
+		}
+		if (!isset($rData['https_broadcast_ports']) || !is_array($rData['https_broadcast_ports'])) {
+			$rData['https_broadcast_ports'] = array();
+		}
+		if (!isset($rData['rtmp_port']) || !is_numeric($rData['rtmp_port'])) {
+			$rData['rtmp_port'] = $rServer['rtmp_port'] ?? 8880;
+		}
+
 		foreach ($rData['http_broadcast_ports'] as $rPort) {
 			if (is_numeric($rPort) && 80 <= $rPort && $rPort <= 65535 && !in_array($rPort, ($rPorts['http'] ?: array())) && $rPort != $rData['rtmp_port']) {
 				$rPorts['http'][] = $rPort;
@@ -133,9 +143,10 @@ class ServerService {
 			}
 		}
 
-		if ($rData['disable_ramdisk'] && $rMounted) {
+		$rDisableRamdisk = !empty($rData['disable_ramdisk']);
+		if ($rDisableRamdisk && $rMounted) {
 			$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rInsertID, time(), json_encode(array('action' => 'disable_ramdisk')));
-		} else if (!$rData['disable_ramdisk'] && !$rMounted) {
+		} else if (!$rDisableRamdisk && !$rMounted) {
 			$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rInsertID, time(), json_encode(array('action' => 'enable_ramdisk')));
 		}
 
