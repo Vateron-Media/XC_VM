@@ -1,80 +1,64 @@
 <?php
 
 /**
- * Единая точка инициализации (bootstrap)
+ * Unified initialization entry point (bootstrap)
  *
- * Заменяет три дублированных bootstrap-файла:
- *   1. includes/admin.php       (строки 1-100: session, defines, DB, API init)
- *   2. www/init.php             (DB + CoreUtilities для crons и www)
- *   3. www/stream/init.php      (constants + LegacyInitializer для стриминга)
- *
- * Каждый из этих файлов дублирует: загрузку констант, подключение к БД,
- * flood-protection, Logger, error-функции. bootstrap.php объединяет общую
- * часть и предоставляет контекстно-зависимую инициализацию.
+ * Provides context-dependent initialization for the entire application.
+ * Handles: constant loading, DB connection, flood-protection, Logger,
+ * error functions, session, Redis, Translator, and admin globals.
  *
  * ──────────────────────────────────────────────────────────────────
- * Контексты инициализации:
+ * Initialization contexts:
  * ──────────────────────────────────────────────────────────────────
  *
- *   CONTEXT_MINIMAL  — только autoload + константы + config + Logger.
- *                      Без подключения к БД. Для скриптов, которым
- *                      нужны только пути и конфигурация.
+ *   CONTEXT_MINIMAL  — autoload + constants + config + Logger only.
+ *                      No DB connection. For scripts that only need
+ *                      paths and configuration.
  *
- *   CONTEXT_CLI      — + Database + CoreUtilities::init().
- *                      Для cron-задач и CLI-скриптов.
+ *   CONTEXT_CLI      — + Database + LegacyInitializer.
+ *                      For cron jobs and CLI scripts.
  *
- *   CONTEXT_STREAM   — + Database + LegacyInitializer (лёгкий путь).
- *                      Для стриминг-эндпоинтов (live, vod, timeshift).
- *                      Не загружает admin_api, Translator и т.д.
+ *   CONTEXT_STREAM   — + Database + LegacyInitializer (lightweight path).
+ *                      For streaming endpoints (live, vod, timeshift).
+ *                      Does not load admin_api, Translator, etc.
  *
- *   CONTEXT_ADMIN    — + Database + CoreUtilities + API + ResellerAPI
+ *   CONTEXT_ADMIN    — + Database + LegacyInitializer + API + ResellerAPI
  *                      + Translator + MobileDetect + session.
- *                      Полная инициализация для admin/reseller-панели.
+ *                      Full initialization for admin/reseller panel.
  *
  * ──────────────────────────────────────────────────────────────────
- * Использование:
+ * Usage:
  * ──────────────────────────────────────────────────────────────────
  *
- *   // В admin-контроллере:
+ *   // In an admin controller:
  *   require_once '/home/xc_vm/bootstrap.php';
  *   XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_ADMIN);
  *
- *   // В cron-задаче:
+ *   // In a cron job:
  *   require_once '/home/xc_vm/bootstrap.php';
  *   XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_CLI);
  *
- *   // В стриминг-эндпоинте:
+ *   // In a streaming endpoint:
  *   require_once '/home/xc_vm/bootstrap.php';
  *   XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_STREAM, ['cached' => true]);
  *
- *   // Только константы (без БД):
+ *   // Constants only (no DB):
  *   require_once '/home/xc_vm/bootstrap.php';
  *   XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_MINIMAL);
- *
- * ──────────────────────────────────────────────────────────────────
- * Обратная совместимость:
- * ──────────────────────────────────────────────────────────────────
- *
- *   $db остаётся глобальной переменной.
- *   Все статические свойства CoreUtilities
- *   инициализируются как раньше.
- *   Старые файлы (admin.php, init.php, stream/init.php) продолжают
- *   работать — bootstrap.php используется параллельно, а не вместо.
- *   По мере миграции старые bootstrap-файлы будут делегировать сюда.
  */
 
 declare(strict_types=0);
 
 // ─────────────────────────────────────────────────────────────────
-//  1. Автозагрузчик классов
+//  1. Class autoloader
 // ─────────────────────────────────────────────────────────────────
 
 require_once __DIR__ . '/autoload.php';
-// После этого: MAIN_HOME определён, XC_Autoloader инициализирован
+// After this: MAIN_HOME is defined, XC_Autoloader is initialized
 
 
 // ─────────────────────────────────────────────────────────────────
-//  2. Полифиллы (нужны до любой обработки HTTP)
+//  2. Polyfills (required before any HTTP processing)
 // ─────────────────────────────────────────────────────────────────
 
 if (!function_exists('getallheaders')) {
@@ -92,23 +76,23 @@ if (!function_exists('getallheaders')) {
 
 
 // ─────────────────────────────────────────────────────────────────
-//  3. Класс XC_Bootstrap
+//  3. XC_Bootstrap class
 // ─────────────────────────────────────────────────────────────────
 
 class XC_Bootstrap {
 
-    // ── Контексты ─────────────────────────────────────────────
+    // ── Contexts ──────────────────────────────────────────────
     const CONTEXT_MINIMAL  = 'minimal';
     const CONTEXT_CLI      = 'cli';
     const CONTEXT_STREAM   = 'stream';
     const CONTEXT_ADMIN    = 'admin';
 
-    // ── Внутреннее состояние ──────────────────────────────────
+    // ── Internal state ───────────────────────────────────────
     private static $booted = false;
     private static $context = null;
     private static $options = [];
 
-    // ── Флаги инициализации подсистем ─────────────────────────
+    // ── Subsystem initialization flags ────────────────────────
     private static $constantsLoaded  = false;
     private static $configLoaded     = false;
     private static $loggerStarted    = false;
@@ -119,14 +103,14 @@ class XC_Bootstrap {
     private static $redisReady       = false;
 
     /**
-     * Основная точка входа.
+     * Main entry point.
      *
-     * @param string $context  Контекст: CONTEXT_MINIMAL | CONTEXT_CLI | CONTEXT_STREAM | CONTEXT_ADMIN
-     * @param array  $options  Дополнительные параметры:
-     *   'cached'      => bool   Использовать кэш настроек (для stream/cli, default: false)
-     *   'redis'       => bool   Подключать Redis (default: true для admin, false для остальных)
-     *   'process'     => string Имя процесса для cli_set_process_title()
-     *   'shutdown'    => callable Callback при shutdown (заменяет register_shutdown_function)
+     * @param string $context  Context: CONTEXT_MINIMAL | CONTEXT_CLI | CONTEXT_STREAM | CONTEXT_ADMIN
+     * @param array  $options  Additional options:
+     *   'cached'      => bool   Use settings cache (for stream/cli, default: false)
+     *   'redis'       => bool   Connect Redis (default: true for admin, false for others)
+     *   'process'     => string Process name for cli_set_process_title()
+     *   'shutdown'    => callable Shutdown callback (replaces register_shutdown_function)
      */
     public static function boot(string $context = self::CONTEXT_CLI, array $options = []): void {
         if (self::$booted) {
@@ -136,36 +120,36 @@ class XC_Bootstrap {
         self::$context = $context;
         self::$options = array_merge(self::defaults($context), $options);
 
-        // ── Создание контейнера ─────────────────────────────────
+        // ── Create container ────────────────────────────────────
         $container = ServiceContainer::getInstance();
         $container->set('context', $context);
         $container->set('options', self::$options);
 
-        // ── Общее для всех контекстов ──────────────────────────
+        // ── Common for all contexts ────────────────────────────
 
-        // Константы и пути (MAIN_HOME, INCLUDES_PATH, CONFIG_PATH, ...) + $_INFO + Logger + error functions
+        // Constants and paths (MAIN_HOME, INCLUDES_PATH, CONFIG_PATH, ...) + $_INFO + Logger + error functions
         self::loadConstants();
 
-        // Регистрируем конфигурацию в контейнере
+        // Register config in the container
         global $_INFO;
         $container->set('config', $_INFO);
 
-        // ── Flood-protection (только HTTP) ─────────────────────
+        // ── Flood-protection (HTTP only) ───────────────────────
         if (!self::isCli()) {
             self::floodProtection();
             self::hostVerification();
         }
 
-        // ── Контекстно-зависимая инициализация ─────────────────
+        // ── Context-dependent initialization ───────────────────
 
         switch ($context) {
             case self::CONTEXT_MINIMAL:
-                // Только константы + config. Готово.
+                // Constants + config only. Done.
                 break;
 
             case self::CONTEXT_CLI:
                 self::initDatabase(self::$options['cached']);
-                self::initCoreUtilities(self::$options['cached']);
+                self::initLegacyCore(self::$options['cached']);
                 if (self::$options['redis']) {
                     self::initRedis();
                 }
@@ -181,7 +165,7 @@ class XC_Bootstrap {
             case self::CONTEXT_ADMIN:
                 self::initSession();
                 self::initDatabase(false);
-                self::initCoreUtilities(false);
+                self::initLegacyCore(false);
                 self::initRedis();
                 self::initAdminAPI();
                 self::initTranslator();
@@ -191,32 +175,32 @@ class XC_Bootstrap {
                 break;
         }
 
-        // ── Регистрация сервисов в контейнере ──────────────────
+        // ── Register services in the container ──────────────────
         self::populateContainer($container);
 
         self::$booted = true;
     }
 
     // ─────────────────────────────────────────────────────────
-    //  Публичные геттеры
+    //  Public getters
     // ─────────────────────────────────────────────────────────
 
     /**
-     * Текущий контекст boot
+     * Current boot context.
      */
     public static function getContext(): ?string {
         return self::$context;
     }
 
     /**
-     * Был ли bootstrap выполнен
+     * Whether bootstrap has been executed.
      */
     public static function isBooted(): bool {
         return self::$booted;
     }
 
     /**
-     * Ссылка на Database (для обратной совместимости)
+     * Database reference (backward compatibility).
      */
     public static function getDatabase(): ?Database {
         global $db;
@@ -224,7 +208,7 @@ class XC_Bootstrap {
     }
 
     /**
-     * Получить ServiceContainer.
+     * Get the ServiceContainer.
      *
      * @return ServiceContainer
      */
@@ -233,14 +217,14 @@ class XC_Bootstrap {
     }
 
     /**
-     * Проверка: работает ли в CLI-режиме
+     * Check whether running in CLI mode.
      */
     public static function isCli(): bool {
         return php_sapi_name() === 'cli' || defined('STDIN');
     }
 
     /**
-     * Принудительный сброс (для тестирования)
+     * Force reset (for testing).
      */
     public static function reset(): void {
         self::$booted          = false;
@@ -259,23 +243,20 @@ class XC_Bootstrap {
     }
 
     // ─────────────────────────────────────────────────────────
-    //  Инициализация подсистем (вызываются макс. 1 раз)
+    //  Subsystem initialization (each called at most once)
     // ─────────────────────────────────────────────────────────
 
     /**
-     * Загрузка констант, путей, $_INFO, Logger, error-функций.
+     * Load constants, paths, $_INFO, Logger, error functions.
      *
-     * Делегирует в www/constants.php — фасад, который подключает:
+     * Delegates to www/constants.php which includes:
      *   core/Error/ErrorCodes.php      — $rErrorCodes
      *   core/Error/ErrorHandler.php    — generateError(), generate404()
-     *   core/Config/Paths.php          — *_PATH константы
-     *   core/Config/AppConfig.php      — версия, Git, флаги
+     *   core/Config/Paths.php          — *_PATH constants
+     *   core/Config/AppConfig.php      — version, Git, flags
      *   core/Config/Binaries.php       — FFMPEG, FFPROBE, GeoIP
-     *   core/Config/ConfigLoader.php   — $_INFO из config.ini
+     *   core/Config/ConfigLoader.php   — $_INFO from config.ini
      *   core/Http/RequestGuard.php     — flood/host check + Logger
-     *
-     * autoload.php уже загружен в bootstrap.php строкой выше,
-     * constants.php повторно вызовет require_once — повторно не загрузится.
      */
     private static function loadConstants(): void {
         if (self::$constantsLoaded) {
@@ -285,15 +266,14 @@ class XC_Bootstrap {
         require_once MAIN_HOME . 'www/constants.php';
 
         self::$constantsLoaded = true;
-        self::$configLoaded    = true;  // $_INFO загружен внутри ConfigLoader.php
-        self::$loggerStarted   = true;  // Logger::init() вызван внутри RequestGuard.php
+        self::$configLoaded    = true;  // $_INFO loaded inside ConfigLoader.php
+        self::$loggerStarted   = true;  // Logger::init() called inside RequestGuard.php
     }
 
     /**
-     * Flood-protection: блокировка забаненных IP.
+     * Flood-protection: block banned IPs.
      *
-     * Вызывается только для HTTP-контекстов.
-     * Логика из constants.php / stream/init.php — проверка файла block_{IP}.
+     * Called for HTTP contexts only.
      */
     private static function floodProtection(): void {
         if (self::isCli()) {
@@ -308,9 +288,7 @@ class XC_Bootstrap {
     }
 
     /**
-     * Проверка хоста: запрос пришёл с разрешённого домена.
-     *
-     * Логика из constants.php / stream/init.php — verify_host + allowed_domains.
+     * Host verification: ensure request comes from an allowed domain.
      */
     private static function hostVerification(): void {
         if (self::isCli()) {
@@ -322,7 +300,7 @@ class XC_Bootstrap {
             define('HOST', $host);
         }
 
-        // Проверка домена через кэш настроек
+        // Domain check via settings cache
         if (file_exists(CACHE_TMP_PATH . 'settings')) {
             $rData = @file_get_contents(CACHE_TMP_PATH . 'settings');
             if ($rData !== false) {
@@ -344,10 +322,9 @@ class XC_Bootstrap {
     }
 
     /**
-     * Старт PHP-сессии с безопасными параметрами.
+     * Start PHP session with secure parameters.
      *
-     * Логика из admin.php строки 3-8.
-     * Только для HTTP-контекстов (admin/reseller).
+     * HTTP contexts only (admin/reseller).
      */
     private static function initSession(): void {
         if (self::$sessionStarted || self::isCli()) {
@@ -365,12 +342,12 @@ class XC_Bootstrap {
     }
 
     /**
-     * Подключение к MySQL/MariaDB.
+     * Connect to MySQL/MariaDB.
      *
-     * Создаёт глобальную переменную $db (обратная совместимость).
+     * Creates the global $db variable (backward compatibility).
      *
-     * @param bool $cached Если true, CoreUtilities::init(true) будет использовать
-     *                     файловый кэш вместо SQL-запросов для настроек.
+     * @param bool $cached If true, LegacyInitializer will use
+     *                     file cache instead of SQL queries for settings.
      */
     private static function initDatabase(bool $cached = false): void {
         if (self::$databaseReady) {
@@ -393,15 +370,15 @@ class XC_Bootstrap {
     }
 
     /**
-     * Инициализация CoreUtilities.
+     * Initialize legacy core subsystems.
      *
-     * Очищает глобалы ($_GET, $_POST, $_SESSION, $_COOKIE),
-     * парсит конфиг, определяет SERVER_ID, выбирает FFmpeg-бинарники,
-     * загружает настройки (из БД или кэша).
+     * Sanitizes globals ($_GET, $_POST, $_SESSION, $_COOKIE),
+     * parses config, defines SERVER_ID, selects FFmpeg binaries,
+     * loads settings (from DB or cache).
      *
-     * @param bool $cached Использовать кэш для настроек (для высоко-нагруженных путей)
+     * @param bool $cached Use cache for settings (for high-load paths)
      */
-    private static function initCoreUtilities(bool $cached = false): void {
+    private static function initLegacyCore(bool $cached = false): void {
         if (self::$coreReady) {
             return;
         }
@@ -413,7 +390,7 @@ class XC_Bootstrap {
         DatabaseFactory::set($db);
         LegacyInitializer::initCore($cached);
 
-        // Если использовался кэш и кэш неполный — переподключаемся к БД
+        // If cache was used and is incomplete — reconnect to DB
         if ($cached && !SettingsManager::getAll()['enable_cache']) {
             global $_INFO;
             $db = new DatabaseHandler(
@@ -430,7 +407,7 @@ class XC_Bootstrap {
     }
 
     /**
-     * Подключение к Redis.
+     * Connect to Redis.
      */
     private static function initRedis(): void {
         if (self::$redisReady) {
@@ -442,10 +419,10 @@ class XC_Bootstrap {
     }
 
     /**
-     * Инициализация Admin API + Reseller API.
+     * Initialize Admin API + Reseller API.
      *
-     * Загружает reseller_api.php,
-     * инициализирует класс ResellerAPI и admin user info.
+     * Loads reseller_api.php,
+     * initializes ResellerAPI class and admin user info.
      */
     private static function initAdminAPI(): void {
         if (self::$adminReady) {
@@ -456,7 +433,7 @@ class XC_Bootstrap {
 
         require_once INCLUDES_PATH . 'reseller_api.php';
 
-        // Admin user info (formerly API::$rUserInfo)
+        // Admin user info
         if (isset($_SESSION['hash'])) {
             $GLOBALS['rAdminUserInfo'] = UserRepository::getRegisteredUserById($_SESSION['hash']);
         }
@@ -467,7 +444,7 @@ class XC_Bootstrap {
     }
 
     /**
-     * Инициализация Translator (мультиязычность).
+     * Initialize Translator (i18n).
      */
     private static function initTranslator(): void {
         require_once INCLUDES_PATH . 'libs/Translator.php';
@@ -477,9 +454,9 @@ class XC_Bootstrap {
     }
 
     /**
-     * Регистрация shutdown-функции для admin-контекста.
+     * Register shutdown function for admin context.
      *
-     * Закрывает MySQL-подключение при завершении скрипта.
+     * Closes the MySQL connection on script termination.
      */
     private static function registerAdminShutdown(): void {
         register_shutdown_function(function () {
@@ -491,31 +468,31 @@ class XC_Bootstrap {
     }
 
     /**
-     * Заполнить контейнер инициализированными сервисами.
+     * Populate the container with initialized services.
      *
-     * Вызывается в конце boot() — все подсистемы уже запущены,
-     * можно безопасно ссылаться на $db, CoreUtilities и т.д.
+     * Called at the end of boot() — all subsystems are already running,
+     * so it is safe to reference $db, SettingsManager, etc.
      *
-     * Контейнер хранит:
-     *   'db'           => Database       — PDO-обёртка
-     *   'config'       => array          — $_INFO из config.ini
-     *   'settings'     => array          — настройки панели
-     *   'redis'        => Redis|null     — подключение к Redis
-     *   'servers'      => array          — список серверов
-     *   'bouquets'     => array          — букеты
-     *   'categories'   => array          — категории
-     *   'translator'   => string         — класс Translator
+     * Container stores:
+     *   'db'           => Database       — PDO wrapper
+     *   'config'       => array          — $_INFO from config.ini
+     *   'settings'     => array          — panel settings
+     *   'redis'        => Redis|null     — Redis connection
+     *   'servers'      => array          — server list
+     *   'bouquets'     => array          — bouquets
+     *   'categories'   => array          — categories
+     *   'translator'   => string         — Translator class
      *
      * @param ServiceContainer $container
      */
     private static function populateContainer(ServiceContainer $container): void {
-        // База данных
+        // Database
         if (self::$databaseReady) {
             global $db;
             $container->set('db', $db);
         }
 
-        // Настройки и данные CoreUtilities
+        // Settings and core data
         if (self::$coreReady) {
             $container->set('settings',   SettingsManager::getAll());
             $container->set('servers',    ServerRepository::getAll());
@@ -534,7 +511,7 @@ class XC_Bootstrap {
     }
 
     /**
-     * Дефолтные значения опций для каждого контекста.
+     * Default option values for each context.
      *
      * @param string $context
      * @return array
@@ -577,11 +554,8 @@ class XC_Bootstrap {
     }
 
     /**
-     * Инициализация admin-глобалов: MobileDetect, таймауты, серверы,
-     * протокол, admin_constants.
-     *
-     * Логика из includes/bootstrap/admin_runtime.php (post-bootstrap block)
-     * + includes/bootstrap/admin_bootstrap.php (admin_constants.php).
+     * Initialize admin globals: MobileDetect, timeouts, servers,
+     * protocol, admin_constants.
      */
     private static function initAdminGlobals(): void {
         global $rDetect, $rMobile, $rTimeout, $rSQLTimeout, $rProtocol,
@@ -616,9 +590,7 @@ class XC_Bootstrap {
     }
 
     /**
-     * Определить HTTP-протокол (http/https).
-     *
-     * Перенесено из includes/admin.php (issecure + getProtocol).
+     * Detect HTTP protocol (http/https).
      */
     private static function detectProtocol(): string {
         $https  = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
@@ -627,19 +599,18 @@ class XC_Bootstrap {
     }
 
     // ─────────────────────────────────────────────────────────
-    //  Вспомогательные статусные константы (из admin.php)
+    //  Status constants (from admin.php)
     // ─────────────────────────────────────────────────────────
 
     /**
-     * Определить status-константы (STATUS_FAILURE, STATUS_SUCCESS, ...).
+     * Define status constants (STATUS_FAILURE, STATUS_SUCCESS, ...).
      *
-     * Эти константы определены в admin.php (строки 10-55) и используются
-     * повсеместно в admin_api.php / reseller_api.php.
-     * Вызывается автоматически при CONTEXT_ADMIN.
-     * Может быть вызван вручную при необходимости.
+     * Used throughout admin and reseller API handlers.
+     * Called automatically in CONTEXT_ADMIN.
+     * Can be called manually when needed.
      */
     public static function defineStatusConstants(): void {
-        // Защита от повторного определения
+        // Guard against duplicate definition
         if (defined('STATUS_FAILURE')) {
             return;
         }
