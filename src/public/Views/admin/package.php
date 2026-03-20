@@ -219,7 +219,7 @@
                                                 <div class="form-group row mb-4">
                                                     <label class="col-md-4 col-form-label" for="output_formats"><?php echo $language::get('access_output'); ?></label>
                                                     <div class="col-md-8">
-                                                        <?php foreach (OutputFormatRepository::getAll() as $rOutput) { ?>
+                                                        <?php foreach (LineRepository::getOutputFormats() as $rOutput) { ?>
                                                             <div class="checkbox form-check-inline">
                                                                 <input data-size="large" type="checkbox"
                                                                     id="output_formats_<?php echo $rOutput['access_output_id']; ?>"
