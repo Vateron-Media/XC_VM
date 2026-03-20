@@ -40,11 +40,34 @@ class LegacyInitializer {
 
 		if (!$rUseCache) {
 			ServerRepository::getAll();
-			CronGenerator::generate();
+			self::generateCron();
 		}
 
 		self::exportGlobals();
 		self::syncCoreContainer();
+	}
+
+	private static function generateCron() {
+		global $db;
+		if (file_exists(TMP_PATH . 'crontab')) {
+			return false;
+		}
+
+		$rJobs = array();
+		$db->query('SELECT * FROM `crontab` WHERE `enabled` = 1;');
+		foreach ($db->get_rows() as $rRow) {
+			$rJobs[] = $rRow['time'] . ' ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:' . $rRow['filename'] . ' # XC_VM';
+		}
+
+		shell_exec('crontab -r');
+		$rTempName = tempnam('/tmp', 'crontab');
+		$rHandle = fopen($rTempName, 'w');
+		fwrite($rHandle, implode("\n", $rJobs) . "\n");
+		fclose($rHandle);
+		shell_exec('crontab -u xc_vm ' . $rTempName);
+		@unlink($rTempName);
+		@file_put_contents(TMP_PATH . 'crontab', '1', LOCK_EX);
+		return true;
 	}
 
 	public static function initStreaming() {
@@ -110,24 +133,6 @@ class LegacyInitializer {
 		self::syncStreamingContainer();
 	}
 
-	/**
-	 * Экспортирует данные singleton-менеджеров в глобальные переменные.
-	 *
-	 * Позволяет использовать `global $rSettings;` внутри функций
-	 * вместо повторного вызова SettingsManager::getAll().
-	 *
-	 * Вызывается один раз в конце initCore() / initStreaming().
-	 * Глобалы — read-only snapshot. Для мутаций использовать Manager.
-	 *
-	 * Экспортируемые переменные:
-	 *   $rSettings   — настройки панели (SettingsManager)
-	 *   $rRequest    — параметры HTTP-запроса (RequestManager)
-	 *   $rConfig     — config.ini данные (ConfigReader)
-	 *   $rServers    — все серверы (ServerRepository)
-	 *   $rFFPROBE    — путь к ffprobe (FfmpegPaths)
-	 *   $rFFMPEG_CPU     — путь к ffmpeg CPU (FfmpegPaths)
-	 *   $rFFMPEG_GPU — путь к ffmpeg GPU (FfmpegPaths)
-	 */
 	public static function exportGlobals(): void {
 		$GLOBALS['rSettings']   = SettingsManager::getAll();
 		$GLOBALS['rRequest']    = RequestManager::getAll();

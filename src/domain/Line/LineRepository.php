@@ -17,18 +17,22 @@ class LineRepository {
 		$db->query('SELECT `id` FROM `lines` WHERE `pair_id` IN (' . implode(',', $rIDs) . ');');
 
 		foreach ($db->get_rows() as $rRow) {
-			if (0 >= $rRow['id'] || in_array($rRow['id'], $rPairIDs)) {
-			} else {
+			if ($rRow['id'] > 0 && !in_array($rRow['id'], $rPairIDs)) {
 				$rPairIDs[] = $rRow['id'];
 			}
 		}
 
-		if (0 >= count($rPairIDs)) {
-		} else {
+		if (count($rPairIDs) > 0) {
 			$db->query('UPDATE `lines` SET `pair_id` = null WHERE `id` = (' . implode(',', $rPairIDs) . ');');
 			LineService::updateLinesSignal($rPairIDs);
 		}
 
 		return true;
+	}
+
+	public static function getOutputFormats() {
+		global $db;
+		$db->query('SELECT * FROM `output_formats` ORDER BY `access_output_id` ASC;');
+		return (0 < $db->num_rows() ? $db->get_rows() : array());
 	}
 }

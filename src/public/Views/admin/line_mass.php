@@ -247,7 +247,7 @@ endif;
                                                     </div>
                                                     <label class="col-md-2 col-form-label" for="access_output">Access Output</label>
                                                     <div class="col-md-3">
-                                                        <?php foreach (OutputFormatRepository::getAll() as $rOutput) : ?>
+                                                        <?php foreach (LineRepository::getOutputFormats() as $rOutput) : ?>
                                                             <div class="checkbox form-check-inline">
                                                                 <input disabled class="output" data-size="large" type="checkbox" id="access_output_<?= $rOutput['access_output_id']; ?>" name="access_output[]" value="<?= $rOutput['access_output_id']; ?>" checked>
                                                                 <label for="access_output_<?= $rOutput['access_output_id']; ?>"> <?= $rOutput['output_name']; ?> </label>

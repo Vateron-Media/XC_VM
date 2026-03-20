@@ -23,7 +23,7 @@
     $rServer['gpu_info'] = json_decode($rServer['gpu_info'], true);
     $rStats = array('cpu' => array(), 'memory' => array(), 'io' => array(), 'input' => array(), 'output' => array(), 'dates' => array(null, null));
 
-    foreach (WatchdogMonitor::getWatchdog($rServer['id']) as $rData) {
+    foreach (ProcessChecker::getWatchdog($rServer['id']) as $rData) {
         if ($rStats['dates'][0] && $rData['time'] * 1000 > $rStats['dates'][0]) {
         } else {
             $rStats['dates'][0] = $rData['time'] * 1000;

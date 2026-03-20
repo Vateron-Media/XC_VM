@@ -19,8 +19,7 @@ class UserService {
 			$rArray = array();
 
 			foreach (array('status') as $rItem) {
-				if (!isset($rData['c_' . $rItem])) {
-				} else {
+				if (isset($rData['c_' . $rItem])) {
 					if (isset($rData[$rItem])) {
 						$rArray[$rItem] = 1;
 					} else {
@@ -29,28 +28,23 @@ class UserService {
 				}
 			}
 
-			if (!isset($rData['c_owner_id'])) {
-			} else {
+			if (isset($rData['c_owner_id'])) {
 				$rArray['owner_id'] = intval($rData['owner_id']);
 			}
 
-			if (!isset($rData['c_member_group_id'])) {
-			} else {
+			if (isset($rData['c_member_group_id'])) {
 				$rArray['member_group_id'] = intval($rData['member_group_id']);
 			}
 
-			if (!isset($rData['c_reseller_dns'])) {
-			} else {
+			if (isset($rData['c_reseller_dns'])) {
 				$rArray['reseller_dns'] = $rData['reseller_dns'];
 			}
 
-			if (!isset($rData['c_override'])) {
-			} else {
+			if (isset($rData['c_override'])) {
 				$rOverride = array();
 
 				foreach ($rData as $rKey => $rCredits) {
-					if (substr($rKey, 0, 9) != 'override_') {
-					} else {
+					if (substr($rKey, 0, 9) == 'override_') {
 						$rID = intval(explode('override_', $rKey)[1]);
 
 						if (0 < strlen($rCredits)) {
@@ -59,8 +53,7 @@ class UserService {
 							$rCredits = null;
 						}
 
-						if (!$rCredits) {
-						} else {
+						if ($rCredits) {
 							$rOverride[$rID] = array('assign' => 1, 'official_credits' => $rCredits);
 						}
 					}
@@ -70,17 +63,14 @@ class UserService {
 
 			$rUsers = confirmIDs(json_decode($rData['users_selected'], true));
 
-			if (0 >= count($rUsers)) {
-			} else {
-				if (!(isset($rData['c_owner_id']) && $rUser == $rArray['owner_id'])) {
-				} else {
+			if (count($rUsers) > 0) {
+				if (isset($rData['c_owner_id']) && $rUser == $rArray['owner_id']) {
 					unset($rArray['owner_id']);
 				}
 
 				$rPrepare = prepareArray($rArray);
 
-				if (0 >= count($rPrepare['data'])) {
-				} else {
+				if (count($rPrepare['data']) > 0) {
 					$rQuery = 'UPDATE `users` SET ' . $rPrepare['update'] . ' WHERE `id` IN (' . implode(',', $rUsers) . ');';
 					$db->query($rQuery, ...$rPrepare['data']);
 				}
@@ -140,15 +130,13 @@ class UserService {
 						}
 					}
 
-					if (ctype_xdigit($rArray['api_key']) && strlen($rArray['api_key']) == 32) {
-					} else {
+					if (!ctype_xdigit($rArray['api_key']) || strlen($rArray['api_key']) != 32) {
 						$rArray['api_key'] = '';
 					}
 
 					$rArray['override_packages'] = json_encode($rOverride);
 
-					if (!(isset($rUser) && $rUser['credits'] != $rData['credits'])) {
-					} else {
+					if (isset($rUser) && $rUser['credits'] != $rData['credits']) {
 						$rCreditsAdjustment = $rData['credits'] - $rUser['credits'];
 						$rReason = $rData['credits_reason'];
 					}
@@ -159,8 +147,7 @@ class UserService {
 					if ($db->query($rQuery, ...$rPrepare['data'])) {
 						$rInsertID = $db->last_insert_id();
 
-						if (!isset($rCreditsAdjustment)) {
-						} else {
+						if (isset($rCreditsAdjustment)) {
 							$db->query('INSERT INTO `users_credits_logs`(`target_id`, `admin_id`, `amount`, `date`, `reason`) VALUES(?, ?, ?, ?, ?);', $rInsertID, $GLOBALS['rAdminUserInfo']['id'], $rCreditsAdjustment, time(), $rReason);
 						}
 
@@ -178,8 +165,6 @@ class UserService {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 	}
-
-	// ──────────── Из ProfileService ────────────
 
 	public static function editAdminProfile($rData, $rUserInfo, $allowedLangs) {
 		global $db;
@@ -205,8 +190,6 @@ class UserService {
 
 		return array('status' => STATUS_SUCCESS);
 	}
-
-	// ──────────── Из TicketService ────────────
 
 	public static function submitTicket($rData, $rUserInfo) {
 		global $db;
