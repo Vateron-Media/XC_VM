@@ -1508,6 +1508,21 @@ if (isset($_SESSION['hash'])) {
 				$rServers = ServerRepository::getAll(true);
 				$rReturn = array('cpu' => 0, 'mem' => 0, 'io' => 0, 'fs' => 0, 'uptime' => '--', 'bytes_sent' => 0, 'bytes_received' => 0, 'open_connections' => 0, 'total_connections' => 0, 'online_users' => 0, 'total_users' => 0, 'total_streams' => 0, 'total_running_streams' => 0, 'offline_streams' => 0, 'requests_per_second' => 0, 'servers' => array());
 
+				$rUptimeFallbackCache = array();
+				$getFallbackUptime = function ($rServerID) use (&$db, &$rUptimeFallbackCache) {
+					$rServerID = intval($rServerID);
+					if (array_key_exists($rServerID, $rUptimeFallbackCache)) {
+						return $rUptimeFallbackCache[$rServerID];
+					}
+					$db->query('SELECT `uptime` FROM `servers_stats` WHERE `server_id` = ? AND `uptime` IS NOT NULL AND `uptime` <> \'\'  ORDER BY `id` DESC LIMIT 1;', $rServerID);
+					if (0 < $db->num_rows()) {
+						$rUptimeFallbackCache[$rServerID] = strval($db->get_row()['uptime']);
+					} else {
+						$rUptimeFallbackCache[$rServerID] = '';
+					}
+					return $rUptimeFallbackCache[$rServerID];
+				};
+
 				if (SettingsManager::getAll()['redis_handler']) {
 					$rReturn['total_users'] = SettingsManager::getAll()['total_users'];
 				} else {
@@ -1524,8 +1539,13 @@ if (isset($_SESSION['hash'])) {
 					$rWatchDog = json_decode($rServers[$rServerID]['watchdog_data'], true);
 
 					if (!is_array($rWatchDog)) {
+						$rFallback = $getFallbackUptime($rServerID);
+						if ($rFallback !== '') {
+							$rReturn['uptime'] = $rFallback;
+						}
 					} else {
-						$rReturn['uptime'] = $rWatchDog['uptime'];
+						$rWatchdogUptime = trim(strval($rWatchDog['uptime'] ?? ''));
+						$rReturn['uptime'] = $rWatchdogUptime !== '' ? $rWatchdogUptime : ($getFallbackUptime($rServerID) ?: '--');
 						$rReturn['mem'] = round($rWatchDog['total_mem_used_percent'], 0);
 						$rReturn['cpu'] = round($rWatchDog['cpu'], 0);
 
@@ -1677,7 +1697,8 @@ if (isset($_SESSION['hash'])) {
 							$rWatchDog = json_decode($rServers[$rServerID]['watchdog_data'], true);
 
 							if (is_array($rWatchDog)) {
-								$rArray['uptime'] = $rWatchDog['uptime'];
+								$rWatchdogUptime = trim(strval($rWatchDog['uptime'] ?? ''));
+								$rArray['uptime'] = $rWatchdogUptime !== '' ? $rWatchdogUptime : ($getFallbackUptime($rServerID) ?: '--');
 								$rArray['mem'] = round($rWatchDog['total_mem_used_percent'], 0);
 								$rArray['cpu'] = round($rWatchDog['cpu'], 0);
 
@@ -1693,6 +1714,9 @@ if (isset($_SESSION['hash'])) {
 								$rArray['bytes_sent'] = intval($rWatchDog['bytes_sent']);
 								$rReturn['bytes_received'] += intval($rWatchDog['bytes_received']);
 								$rReturn['bytes_sent'] += intval($rWatchDog['bytes_sent']);
+							} else {
+								$rFallback = $getFallbackUptime($rServerID);
+								$rArray['uptime'] = $rFallback !== '' ? $rFallback : '--';
 							}
 
 							$rArray['server_id'] = $rServerID;
@@ -2974,7 +2998,7 @@ if (isset($_SESSION['hash'])) {
 				$rID = intval(RequestManager::getAll()['id']);
 
 				if (isset($rServers[$rID])) {
-					$rWatchdog = WatchdogMonitor::getWatchdog($rID);
+					$rWatchdog = ProcessChecker::getWatchdog($rID);
 					$rReturn = array();
 
 					foreach ($rWatchdog as $rData) {
