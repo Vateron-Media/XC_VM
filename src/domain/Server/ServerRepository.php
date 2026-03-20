@@ -148,6 +148,10 @@ class ServerRepository {
 		$rReturn = array();
 		$rLines = json_decode(systemapirequest($rServerID, array('action' => 'get_free_space')), true);
 
+		if (!is_array($rLines)) {
+			return $rReturn;
+		}
+
 		if (!empty($rLines)) {
 			array_shift($rLines);
 		}
@@ -193,8 +197,16 @@ class ServerRepository {
 
 	public static function getSSLLog($rServerID) {
 		global $rServers;
-		$rAPI = $rServers[intval($rServerID)]['api_url_ip'] . '&action=getFile&filename=' . urlencode(BIN_PATH . 'certbot/logs/xc_vm.log');
-		return json_decode(file_get_contents($rAPI), true);
+		$rServer = $rServers[intval($rServerID)] ?? null;
+		if (!$rServer || empty($rServer['api_url_ip'])) {
+			return null;
+		}
+		$rAPI = $rServer['api_url_ip'] . '&action=getFile&filename=' . urlencode(BIN_PATH . 'certbot/logs/xc_vm.log');
+		$rResponse = @file_get_contents($rAPI);
+		if ($rResponse === false) {
+			return null;
+		}
+		return json_decode($rResponse, true);
 	}
 
 	public static function freeTemp($rServerID) {
