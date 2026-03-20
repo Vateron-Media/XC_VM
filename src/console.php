@@ -1,6 +1,5 @@
 #!/usr/bin/env php
 <?php
-
 /**
  * XC_VM Console — единая точка входа для CLI-команд и cron-задач.
  *

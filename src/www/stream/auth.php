@@ -350,42 +350,6 @@ if ($rExtension) {
 				}
 			}
 
-			// if (($rUserInfo['is_stalker'] && in_array($rType, array('live', 'movie', 'series', 'timeshift')))) {
-			// 	if ((empty($rRequest['stalker_key']) || $rExtension != 'ts')) {
-			// 		generateError('STALKER_INVALID_KEY');
-			// 	}
-
-			// 	$rStalkerKey = base64_decode(urldecode($rRequest['stalker_key']));
-
-			// 	if ($rDecryptKey = Encryption::mc_decrypt($rStalkerKey, md5($rSettings['live_streaming_pass']))) {
-			// 		$rStalkerData = explode('=', $rDecryptKey);
-
-			// 		if ($rStalkerData[2] != $rStreamID) {
-			// 			DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'STALKER_CHANNEL_MISMATCH', $rIP);
-			// 			generateError('STALKER_CHANNEL_MISMATCH');
-			// 		}
-
-			// 		$rIPMatch = ($rSettings['ip_subnet_match'] ? implode('.', array_slice(explode('.', $rStalkerData[1]), 0, -1)) == implode('.', array_slice(explode('.', $rIP), 0, -1)) : $rStalkerData[1] == $rIP);
-
-			// 		if (!$rIPMatch && $rSettings['restrict_same_ip']) {
-			// 			DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'STALKER_IP_MISMATCH', $rIP);
-			// 			generateError('STALKER_IP_MISMATCH');
-			// 		}
-
-			// 		$rCreateExpiration = ($rSettings['create_expiration'] ?: 5);
-
-			// 		if ($rStalkerData[3] < time() - $rCreateExpiration) {
-			// 			DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'STALKER_KEY_EXPIRED', $rIP);
-			// 			generateError('STALKER_KEY_EXPIRED');
-			// 		}
-
-			// 		$rExternalDevice = $rStalkerData[0];
-			// 	} else {
-			// 		DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'STALKER_DECRYPT_FAILED', $rIP);
-			// 		generateError('STALKER_DECRYPT_FAILED');
-			// 	}
-			// }
-
 			if (!in_array($rType, array('thumb', 'subtitle'))) {
 				if (!($rUserInfo['is_restreamer'] || in_array($rIP, $rAllowedIPs))) {
 					if (($rSettings['block_streaming_servers'] || $rSettings['block_proxies'])) {
