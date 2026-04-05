@@ -6,7 +6,14 @@
  * GET /server_install?proxy (type=1) или GET /server_install (type=2)
  * Опционально: ?id=N (reinstall), ?update (update).
  * Форма: 1–2 таба (Details + Server Coverage для proxy).
+ *
+ * @package XC_VM_Public_Controllers_Admin
+ * @author  Divarion_D <https://github.com/Divarion-D>
+ * @copyright 2025-2026 Vateron Media
+ * @link    https://github.com/Vateron-Media/XC_VM
+ * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
+
 class ServerInstallController extends BaseAdminController
 {
     public function index(): void

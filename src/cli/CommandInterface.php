@@ -5,7 +5,14 @@
  *
  * Каждая команда — один класс, реализующий этот интерфейс.
  * Регистрируется в CommandRegistry по имени (например 'startup', 'cron:servers').
+ *
+ * @package XC_VM_CLI
+ * @author  Divarion_D <https://github.com/Divarion-D>
+ * @copyright 2025-2026 Vateron Media
+ * @link    https://github.com/Vateron-Media/XC_VM
+ * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
+
 interface CommandInterface {
 
 	/**
