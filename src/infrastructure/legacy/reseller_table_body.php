@@ -3,7 +3,14 @@
  * Legacy reseller table data handler.
  * Extracted from reseller/table.php (lines 50+).
  * Variables expected from caller: $rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rSettings, $db
+ *
+ * @package XC_VM_Infrastructure_Legacy
+ * @author  Divarion_D <https://github.com/Divarion-D>
+ * @copyright 2025-2026 Vateron Media
+ * @link    https://github.com/Vateron-Media/XC_VM
+ * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
+
 if (isset($rUserInfo['reports'])) {
     $rType = RequestManager::getAll()['id'];
     $rStart = intval(RequestManager::getAll()['start']);

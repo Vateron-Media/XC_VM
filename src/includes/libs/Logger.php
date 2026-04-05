@@ -3,7 +3,14 @@
 /**
  * A centralized logger class for handling PHP errors, exceptions, and fatal errors.
  * Logs all events to a file in base64-encoded JSON format and optionally displays them on screen in development mode.
+ *
+ * @package XC_VM_Includes_Libs
+ * @author  Divarion_D <https://github.com/Divarion-D>
+ * @copyright 2025-2026 Vateron Media
+ * @link    https://github.com/Vateron-Media/XC_VM
+ * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
+
 final class Logger {
     /** @var bool Whether development mode is enabled (errors are displayed on screen) */
     private static bool $development = false;

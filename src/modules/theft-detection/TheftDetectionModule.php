@@ -20,6 +20,12 @@
  *       генерирует кеш-файл (igbinary) в CACHE_TMP_PATH/theft_detection
  *
  * @see admin/theft_detection.php
+ *
+ * @package XC_VM_Module_TheftDetection
+ * @author  Divarion_D <https://github.com/Divarion-D>
+ * @copyright 2025-2026 Vateron Media
+ * @link    https://github.com/Vateron-Media/XC_VM
+ * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
 class TheftDetectionModule implements ModuleInterface {

@@ -1,5 +1,15 @@
 <?php
 
+/**
+ * RTMP stream handler
+ *
+ * @package XC_VM_Web_Stream
+ * @author  Divarion_D <https://github.com/Divarion-D>
+ * @copyright 2025-2026 Vateron Media
+ * @link    https://github.com/Vateron-Media/XC_VM
+ * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
+ */
+
 if (!($_GET['addr'] == '127.0.0.1' && $_GET['call'] == 'publish')) {
 	register_shutdown_function('shutdown');
 	set_time_limit(0);

@@ -1,5 +1,14 @@
 <?php
 
+/**
+ * Stream authentication and session handler
+ *
+ * @package XC_VM_Web_Stream
+ * @author  Divarion_D <https://github.com/Divarion-D>
+ * @copyright 2025-2026 Vateron Media
+ * @link    https://github.com/Vateron-Media/XC_VM
+ * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
+ */
 
 header('Cache-Control: no-store, no-cache, must-revalidate');
 ini_set('display_errors', 0);

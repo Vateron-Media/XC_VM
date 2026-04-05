@@ -23,6 +23,12 @@
  *   6. Binaries         → FFMPEG_*, FFPROBE_*, GeoIP, PHP_BIN
  *   7. ConfigLoader     → $_INFO из config.ini
  *   8. RequestGuard     → flood/host check + Logger::init()
+ *
+ * @package XC_VM_Web
+ * @author  Divarion_D <https://github.com/Divarion-D>
+ * @copyright 2025-2026 Vateron Media
+ * @link    https://github.com/Vateron-Media/XC_VM
+ * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
 // ─────────────────────────────────────────────────────────────────
