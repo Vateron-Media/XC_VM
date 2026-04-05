@@ -4,7 +4,14 @@
  * RedisManager — управление жизненным циклом Redis-подключения.
  *
  * Singleton хранит активный экземпляр Redis.
+ *
+ * @package XC_VM_Infrastructure_Redis
+ * @author  Divarion_D <https://github.com/Divarion-D>
+ * @copyright 2025-2026 Vateron Media
+ * @link    https://github.com/Vateron-Media/XC_VM
+ * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
+
 class RedisManager {
 	/** @var Redis|null Singleton-экземпляр */
 	private static $instance = null;

@@ -5,6 +5,12 @@
  * Extracted from reseller/functions.php for Front Controller use.
  * Loads includes/admin.php, then sets up $rUserInfo, $rPermissions
  * and validates reseller session integrity.
+ *
+ * @package XC_VM_Infrastructure_Bootstrap
+ * @author  Divarion_D <https://github.com/Divarion-D>
+ * @copyright 2025-2026 Vateron Media
+ * @link    https://github.com/Vateron-Media/XC_VM
+ * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
 if (!defined('MAIN_HOME')) {

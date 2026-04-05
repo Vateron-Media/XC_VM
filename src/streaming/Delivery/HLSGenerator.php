@@ -1,5 +1,15 @@
 <?php
 
+/**
+ * HLSGenerator — h l s generator
+ *
+ * @package XC_VM_Streaming_Delivery
+ * @author  Divarion_D <https://github.com/Divarion-D>
+ * @copyright 2025-2026 Vateron Media
+ * @link    https://github.com/Vateron-Media/XC_VM
+ * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
+ */
+
 class HLSGenerator {
 	public static function generateHLS($rSettings, $rM3U8, $rUsername, $rPassword, $rStreamID, $rUUID, $rIP, $rIsHMAC = null, $rIdentifier = '', $rVideoCodec = 'h264', $rOnDemand = 0, $rServerID = null, $rProxyID = null) {
 		if (!file_exists($rM3U8)) {

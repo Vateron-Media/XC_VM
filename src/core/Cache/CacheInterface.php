@@ -31,6 +31,12 @@
  *   CoreUtilities::setCache() and CoreUtilities::getCache() will
  *   delegate to FileCache. No changes needed in existing code.
  *   New code should use the CacheInterface via ServiceContainer.
+ *
+ * @package XC_VM_Core_Cache
+ * @author  Divarion_D <https://github.com/Divarion-D>
+ * @copyright 2025-2026 Vateron Media
+ * @link    https://github.com/Vateron-Media/XC_VM
+ * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
 interface CacheInterface {

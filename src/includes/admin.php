@@ -1,5 +1,15 @@
 <?php
 
+/**
+ * Admin panel legacy functions
+ *
+ * @package XC_VM_Includes
+ * @author  Divarion_D <https://github.com/Divarion-D>
+ * @copyright 2025-2026 Vateron Media
+ * @link    https://github.com/Vateron-Media/XC_VM
+ * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
+ */
+
 // Импорт глобальных переменных — нужен когда файл включается
 // из метода контроллера (не из глобального scope).
 global $db, $rSettings, $rMobile, $rServers, $rProxyServers, $rDetect,
