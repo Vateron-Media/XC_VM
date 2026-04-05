@@ -280,6 +280,9 @@ if (0 < $db->num_rows()) {
 				}
 			}
 	}
+	if (!is_resource($rFP)) {
+		exit();
+	}
 	$rRestSize = $rSegmentSize - ftell($rFP);
 
 	if (0 >= $rRestSize) {

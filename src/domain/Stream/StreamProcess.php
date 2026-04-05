@@ -1010,9 +1010,9 @@ class StreamProcess {
 
 				if (isset($rFFProbeOutput) && is_array($rFFProbeOutput) && isset($rFFProbeOutput['codecs']) && is_array($rFFProbeOutput['codecs'])) {
 					$rCompatible = intval(DiagnosticsService::checkCompatibility($rFFProbeOutput, SettingsManager::getAll()['player_allow_hevc']));
-					$rAudioCodec = ($rFFProbeOutput['codecs']['audio']['codec_name'] ?: null);
-					$rVideoCodec = ($rFFProbeOutput['codecs']['video']['codec_name'] ?: null);
-					$rResolution = ($rFFProbeOutput['codecs']['video']['height'] ?: null);
+					$rAudioCodec = isset($rFFProbeOutput['codecs']['audio']['codec_name']) ? $rFFProbeOutput['codecs']['audio']['codec_name'] : null;
+					$rVideoCodec = isset($rFFProbeOutput['codecs']['video']['codec_name']) ? $rFFProbeOutput['codecs']['video']['codec_name'] : null;
+					$rResolution = isset($rFFProbeOutput['codecs']['video']['height']) ? $rFFProbeOutput['codecs']['video']['height'] : null;
 
 					if ($rResolution) {
 						$rResolution = StreamSorter::getNearest(array(240, 360, 480, 576, 720, 1080, 1440, 2160), $rResolution);

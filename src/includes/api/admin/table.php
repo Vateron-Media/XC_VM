@@ -1020,6 +1020,7 @@ if ($rType == 'streams') {
             if (!isset(RequestManager::getAll()['refresh'])) {
             } else {
                 $rWhere = array('`streams`.`id` IN (' . implode(',', array_map('intval', explode(',', RequestManager::getAll()['refresh']))) . ')');
+                $rWhereV = array();
                 $rStart = 0;
                 $rLimit = 1000;
             }
@@ -1627,6 +1628,7 @@ if ($rType == 'radios') {
             if (!isset(RequestManager::getAll()['refresh'])) {
             } else {
                 $rWhere = array('`streams`.`id` IN (' . implode(',', array_map('intval', explode(',', RequestManager::getAll()['refresh']))) . ')');
+                $rWhereV = array();
                 $rStart = 0;
                 $rLimit = 1000;
             }
@@ -1993,6 +1995,7 @@ if ($rType == 'movies') {
                 if (!isset(RequestManager::getAll()['refresh'])) {
                 } else {
                     $rWhere = array('`streams`.`id` IN (' . implode(',', array_map('intval', explode(',', RequestManager::getAll()['refresh']))) . ')');
+                    $rWhereV = array();
                     $rStart = 0;
                     $rLimit = 1000;
                 }
@@ -2963,9 +2966,9 @@ if ($rType == 'live_connections') {
                 $rWhere[] = '`lines_live`.`user_id` = ?';
                 $rWhereV[] = RequestManager::getAll()['user_id'];
             }
-            if (!isset(RequestManager::getAll()['refresh'])) {
-            } else {
+            if (isset(RequestManager::getAll()['refresh'])) {
                 $rWhere = array('`lines_live`.`activity_id` IN (' . implode(',', array_map('intval', explode(',', RequestManager::getAll()['refresh']))) . ') AND `hls_end` = 0');
+                $rWhereV = array();
                 $rStart = 0;
                 $rLimit = 1000;
             }
@@ -4911,6 +4914,7 @@ if ($rType == 'episodes') {
                 if (!isset(RequestManager::getAll()['refresh'])) {
                 } else {
                     $rWhere = array('`streams`.`id` IN (' . implode(',', array_map('intval', explode(',', RequestManager::getAll()['refresh']))) . ')');
+                    $rWhereV = array();
                     $rStart = 0;
                     $rLimit = 1000;
                 }

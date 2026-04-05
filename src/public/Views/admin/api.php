@@ -3892,7 +3892,7 @@ if (isset($_SESSION['hash'])) {
 						case 'streams':
 							$rServerItem = ($rServerItems[$rItem['id']][0] ?: null);
 							$rCategoryIDs = json_decode($rItem['category_id'], true);
-							$rProperties = json_decode($rItem['movie_properties'], true);
+							$rProperties = json_decode($rItem['movie_properties'], true) ?: array();
 
 							if ($rItem['type'] != 5) {
 								if (Authorization::check('adv', 'manage_streams')) {

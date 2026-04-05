@@ -370,6 +370,9 @@ class ConnectionTracker {
 
 	public static function getConnection($rUUID) {
 		$rRedis = RedisManager::instance();
+		if (!$rRedis) {
+			return null;
+		}
 		$raw = $rRedis->get($rUUID);
 		return ($raw !== false) ? igbinary_unserialize($raw) : null;
 	}

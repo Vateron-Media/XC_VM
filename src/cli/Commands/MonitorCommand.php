@@ -362,9 +362,11 @@ class MonitorCommand implements CommandInterface {
 			if ($rStreamInfo['stream_info']) {
 				$rStreamJSON = json_decode($rStreamInfo['stream_info'], true);
 				$rCompatible = is_array($rStreamJSON) ? intval(DiagnosticsService::checkCompatibility($rStreamJSON, SettingsManager::getAll()['player_allow_hevc'])) : 0;
-				$rAudioCodec = $rStreamJSON['codecs']['audio']['codec_name'] ?: null;
-				$rVideoCodec = $rStreamJSON['codecs']['video']['codec_name'] ?: null;
-				$rResolution = $rStreamJSON['codecs']['video']['height'] ?: null;
+				if (is_array($rStreamJSON) && isset($rStreamJSON['codecs']) && is_array($rStreamJSON['codecs'])) {
+					$rAudioCodec = isset($rStreamJSON['codecs']['audio']['codec_name']) ? $rStreamJSON['codecs']['audio']['codec_name'] : null;
+					$rVideoCodec = isset($rStreamJSON['codecs']['video']['codec_name']) ? $rStreamJSON['codecs']['video']['codec_name'] : null;
+					$rResolution = isset($rStreamJSON['codecs']['video']['height']) ? $rStreamJSON['codecs']['video']['height'] : null;
+				}
 				if ($rResolution) {
 					$rResolution = StreamSorter::getNearest(array(240, 360, 480, 576, 720, 1080, 1440, 2160), $rResolution);
 				}
@@ -529,7 +531,7 @@ class MonitorCommand implements CommandInterface {
 							}
 						}
 					}
-					if ((count(json_decode($rStreamInfo['stream_info'], true)) == 0)) {
+					if ((!is_array(json_decode($rStreamInfo['stream_info'], true)) || count(json_decode($rStreamInfo['stream_info'], true)) == 0)) {
 						$rStreamProbe = true;
 					}
 					$rCheckedTime = time();

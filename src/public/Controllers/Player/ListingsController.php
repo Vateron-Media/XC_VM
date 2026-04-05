@@ -117,7 +117,7 @@ class ListingsController extends BasePlayerController
                     $db->query('SELECT `id`, `stream_icon`, `stream_display_name`, `tv_archive_duration`, `tv_archive_server_id`, `category_id` FROM `streams` WHERE `id` IN (' . implode(',', $rChannels) . ') ORDER BY FIELD(`id`, ' . implode(',', $rChannels) . ') ASC;');
 
                     foreach ($db->get_rows() as $rStream) {
-                        if ($rHideEmpty && 0 >= count($rListings[$rStream['id']])) {
+                        if ($rHideEmpty && 0 >= count($rListings[$rStream['id']] ?? [])) {
                         } else {
                             if (0 < $rStream['tv_archive_duration'] && 0 < $rStream['tv_archive_server_id']) {
                                 $rArchive = $rStream['tv_archive_duration'];

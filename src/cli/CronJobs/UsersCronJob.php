@@ -559,7 +559,13 @@ class UsersCronJob implements CommandInterface {
 
         if ($rServers[SERVER_ID]['is_main']) {
             if (SettingsManager::getAll()['redis_handler']) {
-                $db->query("DELETE FROM `lines_divergence` WHERE `uuid` NOT IN ('" . implode("','", $rLiveKeys) . "');");
+                $rDeleteQuery = "DELETE FROM `lines_divergence` WHERE `uuid` NOT IN ('" . implode("','", $rLiveKeys) . "');";
+                for ($rRetry = 0; $rRetry < 3; $rRetry++) {
+                    if ($db->query($rDeleteQuery)) {
+                        break;
+                    }
+                    usleep(200000);
+                }
             } else {
                 $db->query('DELETE FROM `lines_divergence` WHERE `uuid` NOT IN (SELECT `uuid` FROM `lines_live`);');
             }

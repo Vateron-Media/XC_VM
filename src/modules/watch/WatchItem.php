@@ -648,7 +648,7 @@ class WatchItem {
                             }
                             if (count($rBouquetIDs) == 0) {
                                 if (0 < $rThreadData['max_genres']) {
-                                    $rParsed = array_slice($rMovieData['genres'], 0, $rThreadData['max_genres']);
+                                    $rParsed = array_slice($rMovieData['genres'] ?? [], 0, $rThreadData['max_genres']);
                                 } else {
                                     $rParsed = $rMovieData['genres'];
                                 }

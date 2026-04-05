@@ -40,7 +40,7 @@ switch ($rAction) {
 	case 'vod':
 		switch ($rSubAction) {
 			case 'start':
-				$rStreamIDs = array_map('intval', RequestManager::getAll()['stream_ids']);
+				$rStreamIDs = array_map('intval', RequestManager::getAll()['stream_ids'] ?? array());
 				$rForce = (RequestManager::getAll()['force'] ?: false);
 				$rServerIDs = (empty(RequestManager::getAll()['servers']) ? array_keys($rAllServers) : array_map('intval', RequestManager::getAll()['servers']));
 				$rURLs = array();
@@ -54,7 +54,7 @@ switch ($rAction) {
 				exit();
 
 			case 'stop':
-				$rStreamIDs = array_map('intval', RequestManager::getAll()['stream_ids']);
+				$rStreamIDs = array_map('intval', RequestManager::getAll()['stream_ids'] ?? array());
 				$rServerIDs = (empty(RequestManager::getAll()['servers']) ? array_keys($rAllServers) : array_map('intval', RequestManager::getAll()['servers']));
 				$rURLs = array();
 
@@ -72,7 +72,7 @@ switch ($rAction) {
 	case 'stream':
 		switch ($rSubAction) {
 			case 'start':
-				$rStreamIDs = array_map('intval', RequestManager::getAll()['stream_ids']);
+				$rStreamIDs = array_map('intval', RequestManager::getAll()['stream_ids'] ?? array());
 				$rServerIDs = (empty(RequestManager::getAll()['servers']) ? array_keys($rAllServers) : array_map('intval', RequestManager::getAll()['servers']));
 				$rURLs = array();
 
@@ -85,7 +85,7 @@ switch ($rAction) {
 				exit();
 
 			case 'stop':
-				$rStreamIDs = array_map('intval', RequestManager::getAll()['stream_ids']);
+				$rStreamIDs = array_map('intval', RequestManager::getAll()['stream_ids'] ?? array());
 				$rServerIDs = (empty(RequestManager::getAll()['servers']) ? array_keys($rAllServers) : array_map('intval', RequestManager::getAll()['servers']));
 				$rURLs = array();
 

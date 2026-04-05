@@ -167,7 +167,7 @@ class ResellerAPI {
 
 							$rBouquets = array_values(json_decode($rPackage['bouquets'], true));
 
-							if (!(self::$rPermissions['allow_change_bouquets'] && 0 < count($rData['bouquets_selected']))) {
+							if (!(self::$rPermissions['allow_change_bouquets'] && 0 < count($rData['bouquets_selected'] ?? []))) {
 							} else {
 								$rNewBouquets = array();
 
@@ -219,7 +219,7 @@ class ResellerAPI {
 					$rPackage = getPackage($rUserArray['package_id']);
 					$rBouquets = array_values(json_decode($rPackage['bouquets'], true));
 
-					if (!(self::$rPermissions['allow_change_bouquets'] && 0 < count($rData['bouquets_selected']))) {
+					if (!(self::$rPermissions['allow_change_bouquets'] && 0 < count($rData['bouquets_selected'] ?? []))) {
 					} else {
 						$rNewBouquets = array();
 
@@ -447,7 +447,7 @@ class ResellerAPI {
 
 							$rBouquets = array_values(json_decode($rPackage['bouquets'], true));
 
-							if (!(self::$rPermissions['allow_change_bouquets'] && 0 < count($rData['bouquets_selected']))) {
+							if (!(self::$rPermissions['allow_change_bouquets'] && 0 < count($rData['bouquets_selected'] ?? []))) {
 							} else {
 								$rNewBouquets = array();
 
@@ -499,7 +499,7 @@ class ResellerAPI {
 					$rPackage = getPackage($rUserArray['package_id']);
 					$rBouquets = array_values(json_decode($rPackage['bouquets'], true));
 
-					if (!(self::$rPermissions['allow_change_bouquets'] && 0 < count($rData['bouquets_selected']))) {
+					if (!(self::$rPermissions['allow_change_bouquets'] && 0 < count($rData['bouquets_selected'] ?? []))) {
 					} else {
 						$rNewBouquets = array();
 
@@ -903,7 +903,7 @@ class ResellerAPI {
 
 							$rBouquets = array_values(json_decode($rPackage['bouquets'], true));
 
-							if (!(self::$rPermissions['allow_change_bouquets'] && 0 < count($rData['bouquets_selected']))) {
+							if (!(self::$rPermissions['allow_change_bouquets'] && 0 < count($rData['bouquets_selected'] ?? []))) {
 							} else {
 								$rNewBouquets = array();
 
@@ -947,7 +947,7 @@ class ResellerAPI {
 					$rPackage = getPackage($rArray['package_id']);
 					$rBouquets = array_values(json_decode($rPackage['bouquets'], true));
 
-					if (!(self::$rPermissions['allow_change_bouquets'] && 0 < count($rData['bouquets_selected']))) {
+					if (!(self::$rPermissions['allow_change_bouquets'] && 0 < count($rData['bouquets_selected'] ?? []))) {
 					} else {
 						$rNewBouquets = array();
 

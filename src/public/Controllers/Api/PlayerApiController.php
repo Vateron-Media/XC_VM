@@ -261,9 +261,12 @@ class PlayerApiController {
 					$rURL = '';
 				}
 
-				$rProperties = (!empty($rEpisodeData['movie_properties']) ? json_decode($rEpisodeData['movie_properties'], true) : '');
-				$rProperties['cover_big'] = ImageUtils::validateURL($rProperties['cover_big']);
-				$rProperties['movie_image'] = ImageUtils::validateURL($rProperties['movie_image']);
+				$rProperties = (!empty($rEpisodeData['movie_properties']) ? json_decode($rEpisodeData['movie_properties'], true) : array());
+				if (!is_array($rProperties)) {
+					$rProperties = array();
+				}
+				$rProperties['cover_big'] = ImageUtils::validateURL($rProperties['cover_big'] ?? '');
+				$rProperties['movie_image'] = ImageUtils::validateURL($rProperties['movie_image'] ?? '');
 
 				if (!$rProperties['cover_big']) {
 					$rProperties['cover_big'] = $rProperties['movie_image'];
