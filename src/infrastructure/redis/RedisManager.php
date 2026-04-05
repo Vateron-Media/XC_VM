@@ -56,7 +56,12 @@ class RedisManager {
 
 	public static function connect($rRedis, $rConfig, $rSettings) {
 		if (is_object($rRedis)) {
-			return $rRedis;
+			try {
+				$rRedis->ping();
+				return $rRedis;
+			} catch (RedisException $e) {
+				$rRedis = null;
+			}
 		}
 
 		if (empty($rConfig['hostname']) || empty($rSettings['redis_password'])) {
@@ -65,8 +70,10 @@ class RedisManager {
 
 		try {
 			$rRedis = new Redis();
-			$rRedis->connect($rConfig['hostname'], 6379);
+			$rRedis->connect($rConfig['hostname'], 6379, 2.0);
 			$rRedis->auth($rSettings['redis_password']);
+			$rRedis->setOption(Redis::OPT_READ_TIMEOUT, 2.0);
+			$rRedis->setOption(Redis::OPT_TCP_KEEPALIVE, 60);
 			return $rRedis;
 		} catch (Exception $e) {
 			return null;
