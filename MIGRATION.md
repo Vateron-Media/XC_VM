@@ -774,14 +774,7 @@ bootstrap.php (новый)          includes/admin.php (старый legacy)
 ```
 
 Для Фазы 15 (удаление legacy) — **feature flag:**
-```php
-// config.ini
-[migration]
-use_legacy_bootstrap = false    ; true = откат на admin.php
-use_legacy_api = false          ; true = откат на admin_api.php switch
-```
-
-> **Статус:** `use_legacy_fallback` реализован в `public/index.php`. `use_legacy_bootstrap` и `use_legacy_api` — **только в документации**, в коде не реализованы. Будут добавлены при выполнении Фазы 15.
+> **Статус:** `use_legacy_fallback` реализован в `public/index.php`.
 
 ---
 

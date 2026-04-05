@@ -224,7 +224,7 @@ If the command should NOT be included in Load Balancer builds, add its path to `
 The `tools` command provides system maintenance utilities.
 
 ```bash
-console.php tools <subcommand>
+/home/xc_vm/bin/php/bin/php /home/xc_vm/console.php  tools <subcommand>
 ```
 
 ### Subcommands (run as `root`)

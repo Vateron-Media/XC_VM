@@ -130,7 +130,7 @@ Using these versions is still *possible*, but:
 sudo apt update && sudo apt full-upgrade -y
 
 # 2. Install dependencies
-sudo apt install -y python3-pip unzip
+sudo apt install -y curl wget python3-pip unzip
 
 # 3. Download latest release
 latest_version=$(curl -s https://api.github.com/repos/Vateron-Media/XC_VM/releases/latest | grep '"tag_name":' | cut -d '"' -f 4)
@@ -140,6 +140,28 @@ wget "https://github.com/Vateron-Media/XC_VM/releases/download/${latest_version}
 unzip XC_VM.zip
 sudo python3 install
 ```
+
+### 🧪 Beta Install
+
+To install the latest **beta** (pre-release) version:
+
+```bash
+# 1. Update system
+sudo apt update && sudo apt full-upgrade -y
+
+# 2. Install dependencies
+sudo apt install -y curl wget python3-pip unzip
+
+# 3. Download latest beta release
+beta_version=$(curl -s https://api.github.com/repos/Vateron-Media/XC_VM/releases | grep -m1 '"tag_name":' | cut -d '"' -f 4)
+wget "https://github.com/Vateron-Media/XC_VM/releases/download/${beta_version}/XC_VM.zip"
+
+# 4. Unpack and install
+unzip XC_VM.zip
+sudo python3 install
+```
+
+> ⚠️ Beta versions may contain unstable features. Use on test servers only.
 
 ---
 
