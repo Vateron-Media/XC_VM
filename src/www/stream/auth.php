@@ -148,7 +148,7 @@ if ($rExtension) {
 		}
 
 		if (count($rAvailableServers) == 0) {
-			OffAirHandler::showVideoServer($rSettings, $rServers, 'show_not_on_air_video', 'not_on_air_video_path', $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo['con_isp_name'], SERVER_ID);
+			OffAirHandler::showVideoServer($rSettings, $rServers, 'show_not_on_air_video', 'not_on_air_video_path', $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo['con_isp_name'], defined('SERVER_ID') ? SERVER_ID : 0);
 		}
 	}
 
@@ -180,7 +180,8 @@ if ($rExtension) {
 	$rPID = getmypid();
 	$rUUID = md5(uniqid());
 	$rIP = $_SERVER['REMOTE_ADDR'];
-	$rCountryCode = GeoIPService::getIPInfo($rIP)['country']['iso_code'];
+	$rCountryCode = GeoIPService::getIPInfo($rIP);
+	$rCountryCode = (empty($rCountryCode) ? "" : $rCountryCode['country']['iso_code']);
 	$rUserAgent = (empty($_SERVER['HTTP_USER_AGENT']) ? '' : htmlentities(trim($_SERVER['HTTP_USER_AGENT'])));
 	$rDeny = true;
 	$rExternalDevice = null;
@@ -370,7 +371,7 @@ if ($rExtension) {
 
 					if ($rRestreamDetect) {
 						if ($rSettings['detect_restream_block_user']) {
-						if ($rCached) {
+							if ($rCached) {
 								RedisManager::setSignal('restream_block_user/' . $rUserInfo['id'] . '/' . $rStreamID . '/' . $rIP, 1);
 							} else {
 								$db->query('UPDATE `lines` SET `admin_enabled` = 0 WHERE `id` = ?;', $rUserInfo['id']);

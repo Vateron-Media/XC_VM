@@ -2526,7 +2526,10 @@ function getGroupPermissions($rUserID, $rStreams = true, $rUsers = true) {
 	} else {
 		if (!file_exists(CACHE_TMP_PATH . 'permissions_' . intval($rUser['member_group_id']))) {
 		} else {
-			$rReturn = array_merge($rReturn, igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'permissions_' . intval($rUser['member_group_id']))));
+			$rPermData = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'permissions_' . intval($rUser['member_group_id'])));
+			if (is_array($rPermData)) {
+				$rReturn = array_merge($rReturn, $rPermData);
+			}
 		}
 
 		$db->query("SELECT * FROM `users_packages` WHERE JSON_CONTAINS(`groups`, ?, '\$');", $rUser['member_group_id']);

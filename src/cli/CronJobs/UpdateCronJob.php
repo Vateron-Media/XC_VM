@@ -25,6 +25,12 @@ class UpdateCronJob implements CommandInterface {
         global $db, $gitRelease;
 
         if (!$gitRelease) {
+            if (defined('GIT_OWNER') && defined('GIT_REPO_MAIN')) {
+                $gitRelease = new GitHubReleases(GIT_OWNER, GIT_REPO_MAIN, SettingsManager::getAll()['update_channel']);
+            }
+        }
+
+        if (!$gitRelease) {
             FileLogger::log('cron', 'GitRelease service not initialized', 'cron:update');
             return 1;
         }
