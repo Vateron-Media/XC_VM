@@ -132,9 +132,11 @@ class StreamsCronJob implements CommandInterface {
                         if ($rStreamInfo) {
                             $rStreamJSON = json_decode($rStreamInfo, true);
                             $rCompatible = intval(DiagnosticsService::checkCompatibility($rStreamJSON, SettingsManager::getAll()['player_allow_hevc']));
-                            $rAudioCodec = ($rStreamJSON['codecs']['audio']['codec_name'] ?: null);
-                            $rVideoCodec = ($rStreamJSON['codecs']['video']['codec_name'] ?: null);
-                            $rResolution = ($rStreamJSON['codecs']['video']['height'] ?: null);
+                            if (is_array($rStreamJSON) && isset($rStreamJSON['codecs']) && is_array($rStreamJSON['codecs'])) {
+                                $rAudioCodec = isset($rStreamJSON['codecs']['audio']['codec_name']) ? $rStreamJSON['codecs']['audio']['codec_name'] : null;
+                                $rVideoCodec = isset($rStreamJSON['codecs']['video']['codec_name']) ? $rStreamJSON['codecs']['video']['codec_name'] : null;
+                                $rResolution = isset($rStreamJSON['codecs']['video']['height']) ? $rStreamJSON['codecs']['video']['height'] : null;
+                            }
                             if ($rResolution) {
                                 $rResolution = StreamSorter::getNearest(array(240, 360, 480, 576, 720, 1080, 1440, 2160), $rResolution);
                             }
@@ -162,9 +164,11 @@ class StreamsCronJob implements CommandInterface {
                     if ($rFFProbeOutput) {
                         $rBitrate = $rFFProbeOutput['bitrate'] / 1024;
                         $rCompatible = intval(DiagnosticsService::checkCompatibility($rFFProbeOutput, SettingsManager::getAll()['player_allow_hevc']));
-                        $rAudioCodec = ($rFFProbeOutput['codecs']['audio']['codec_name'] ?: null);
-                        $rVideoCodec = ($rFFProbeOutput['codecs']['video']['codec_name'] ?: null);
-                        $rResolution = ($rFFProbeOutput['codecs']['video']['height'] ?: null);
+                        if (is_array($rFFProbeOutput) && isset($rFFProbeOutput['codecs']) && is_array($rFFProbeOutput['codecs'])) {
+                            $rAudioCodec = isset($rFFProbeOutput['codecs']['audio']['codec_name']) ? $rFFProbeOutput['codecs']['audio']['codec_name'] : null;
+                            $rVideoCodec = isset($rFFProbeOutput['codecs']['video']['codec_name']) ? $rFFProbeOutput['codecs']['video']['codec_name'] : null;
+                            $rResolution = isset($rFFProbeOutput['codecs']['video']['height']) ? $rFFProbeOutput['codecs']['video']['height'] : null;
+                        }
                         if ($rResolution) {
                             $rResolution = StreamSorter::getNearest(array(240, 360, 480, 576, 720, 1080, 1440, 2160), $rResolution);
                         }

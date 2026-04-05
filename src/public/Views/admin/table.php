@@ -917,6 +917,7 @@ if ($rType == "lines") {
         }
         if (isset(RequestManager::getAll()["refresh"])) {
             $rWhere = ["`streams`.`id` IN (" . implode(",", array_map("intval", explode(",", RequestManager::getAll()["refresh"]))) . ")"];
+            $rWhereV = [];
             $rStart = 0;
             $rLimit = 1000;
         }
@@ -1486,6 +1487,7 @@ if ($rType == "lines") {
         }
         if (isset(RequestManager::getAll()["refresh"])) {
             $rWhere = ["`streams`.`id` IN (" . implode(",", array_map("intval", explode(",", RequestManager::getAll()["refresh"]))) . ")"];
+            $rWhereV = [];
             $rStart = 0;
             $rLimit = 1000;
         }
@@ -1795,6 +1797,7 @@ if ($rType == "lines") {
         }
         if (isset(RequestManager::getAll()["refresh"])) {
             $rWhere = ["`streams`.`id` IN (" . implode(",", array_map("intval", explode(",", RequestManager::getAll()["refresh"]))) . ")"];
+            $rWhereV = [];
             $rStart = 0;
             $rLimit = 1000;
         }
@@ -2603,6 +2606,7 @@ if ($rType == "lines") {
         }
         if (isset(RequestManager::getAll()["refresh"])) {
             $rWhere = ["`lines_live`.`activity_id` IN (" . implode(",", array_map("intval", explode(",", RequestManager::getAll()["refresh"]))) . ") AND `hls_end` = 0"];
+            $rWhereV = [];
             $rStart = 0;
             $rLimit = 1000;
         }
@@ -4281,6 +4285,7 @@ if ($rType == "lines") {
         }
         if (isset(RequestManager::getAll()["refresh"])) {
             $rWhere = ["`streams`.`id` IN (" . implode(",", array_map("intval", explode(",", RequestManager::getAll()["refresh"]))) . ")"];
+            $rWhereV = [];
             $rStart = 0;
             $rLimit = 1000;
         }

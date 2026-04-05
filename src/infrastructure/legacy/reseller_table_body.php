@@ -123,7 +123,10 @@ if (isset($rUserInfo['reports'])) {
                                 }
                             }
                             foreach (array_keys($rConnectionMap) as $rUserID) {
-                                array_multisort(array_column($rConnectionMap[$rUserID], 'date_start'), SORT_DESC, $rConnectionMap[$rUserID]);
+                                $rDates = array_column($rConnectionMap[$rUserID], 'date_start');
+                                if (count($rDates) === count($rConnectionMap[$rUserID])) {
+                                    array_multisort($rDates, SORT_DESC, $rConnectionMap[$rUserID]);
+                                }
                                 $rLineInfo[$rUserID]['stream_display_name'] = $rStreamMap[$rConnectionMap[$rUserID][0]['stream_id']];
                                 $rLineInfo[$rUserID]['stream_id'] = $rConnectionMap[$rUserID][0]['stream_id'];
                                 $rLineInfo[$rUserID]['last_active'] = $rConnectionMap[$rUserID][0]['date_start'];

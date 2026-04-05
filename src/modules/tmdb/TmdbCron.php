@@ -183,7 +183,7 @@ class TmdbCron {
                     $rTitle = $rStreamTitle;
                 }
 
-                $rTMDBID = self::findBestMatch($rTMDB, $rTitle, $rAltTitle, $rYear, 'movie');
+                $rTMDBID = self::findBestMatch($rTMDB, $rTitle ?? '', $rAltTitle, $rYear, 'movie');
                 if ($rTMDBID > 0) {
                     break;
                 }

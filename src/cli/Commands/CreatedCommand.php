@@ -147,7 +147,7 @@ class CreatedCommand implements CommandInterface {
 		file_put_contents(CREATED_PATH . $rStreamID . '_.info', json_encode($rReturn, JSON_UNESCAPED_UNICODE));
 
 		echo 'Completed!' . "\n";
-		@unlink(CREATED_PATH . $rStreamID . '_.create', getmypid());
+		@unlink(CREATED_PATH . $rStreamID . '_.create');
 
 		return 0;
 	}
