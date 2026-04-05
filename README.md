@@ -33,8 +33,8 @@
 * ⭐ [Features](#-features)
 * 🐞 [Known Limitations](#-known-limitations)
 * 🤝 [Contributing](#-contributing)
-* 📜 [License](#-license)
-* ⚖️ [Legal Disclaimer](#-legal-disclaimer)
+* ⚠️ [Legal & Licensing Notice](#️-legal--licensing-notice)
+* 📜 [License (AGPL-3.0)](#-license-agpl-30)
 
 </details>
 
@@ -257,15 +257,30 @@ We welcome community help!
 
 ---
 
-## 📝 License
+### ⚠️ Legal & Project Independence Notice
 
-[AGPL v3.0](LICENSE)
+**XC_VM** is an independent software project and is **not affiliated with or endorsed by XUI.one**.
+
+All backend systems, core logic, and infrastructure of XC_VM have been **independently developed** without using source code from XUI.one or related projects.
+
+The administrative interface (UI/UX) is **inspired by general industry practices and partially by XUI.one in terms of usability concepts only**.
+No proprietary source code or protected assets have been intentionally reused.
 
 ---
 
-## ⚠️ Legal Disclaimer
+### 📜 License Enforcement (AGPL-3.0)
 
-> 🚫 **This software is for educational purposes only.**
+XC_VM is distributed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
+
+Under this license:
+
+* Redistribution or modification is permitted **only under the same license (AGPL-3.0)**
+* Any modified version **must remain open-source**
+* Providing XC_VM as a service **requires making the source code available**
+* **Copyright and attribution must be preserved**
+
+Any attempt to redistribute this software under a different license, remove attribution, or obscure the origin of the project constitutes a violation of the license terms.
+
 > ⚖️ You are solely responsible for how it is used.
 > We take no responsibility for misuse or illegal deployments.
 
