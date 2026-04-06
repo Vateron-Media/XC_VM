@@ -1,7 +1,7 @@
 # ✅ Чеклист подготовки релиза XC_VM
 
 <p align="center">
-  В этом документе описан процесс создания релиза <b>XC_VM</b> — пошаговое руководство для разработчиков по обновлению версии, сборке архивов и публикации на GitHub.
+  Пошаговое руководство по подготовке и публикации релиза <b>XC_VM</b>.
 </p>
 
 ---
@@ -9,69 +9,89 @@
 ## 📚 Навигация
 
 - [🔢 1. Обновить версию](#1-обновить-версию)
-- [🧹 2. Удалённые файлы](#2-удалённые-файлы)
-- [⚙️ 3. Сборка архивов](#3-сборка-архивов)
-- [📝 4. Changelog](#4-changelog)
-- [🚀 5. GitHub релиз](#5-github-релиз)
+- [🧹 2. Удалённые файлы (автоматически)](#2-удалённые-файлы-автоматически)
+- [🧪 3. Предрелизная проверка](#3-предрелизная-проверка)
+- [⚙️ 4. Сборка архивов](#4-сборка-архивов)
+- [📝 5. Changelog](#5-changelog)
+- [🚀 6. GitHub релиз](#6-github-релиз)
+- [📢 7. После релиза](#7-после-релиза)
 
 ---
 
 ## 🔢 1. Обновить версию
 
-* Установить **новое значение `XC_VM_VERSION`** в следующих файлах:
-
-**Файл для редактирования:**
+Изменить константу версии в:
 
 ```
 src/core/Config/AppConfig.php
 ```
 
-**Auto-update команда:**
+**Быстрая команда:**
 
 ```bash
 sed -i "s/define('XC_VM_VERSION', *'[0-9]\+\.[0-9]\+\.[0-9]\+');/define('XC_VM_VERSION', 'X.Y.Z');/" src/core/Config/AppConfig.php
 ```
 
-**Закоммитить изменения с сообщением:**
+**Закоммитить:**
 
 ```bash
-git add .
+git add src/core/Config/AppConfig.php
 git commit -m "Bump version to X.Y.Z"
 git push
 ```
 
-> 💡 **Совет:** Замените `X.Y.Z` на актуальную версию, например, `1.2.3`.
+> 💡 Замените `X.Y.Z` на актуальную версию.
 
 ---
 
-## 🧹 2. Удалённые файлы
+## 🧹 2. Удалённые файлы (автоматически)
 
-* Выполнить команду для генерации списка удаленных файлов:
+Очистка файлов **полностью автоматизирована**. Ручных шагов не требуется.
 
-  ```bash
-  make delete_files_list
-  ```
+**Как это работает:**
+1. `make main_update` / `make lb_update` внутри вызывает `make delete_files_list`
+2. Генерируется `dist/migrations/deleted_files.txt` (diff удалённых файлов с последнего тега)
+3. Файл упаковывается в архив обновления как `migrations/deleted_files.txt`
+4. При `php console.php update post-update` вызывается `MigrationRunner::runFileCleanup()`, который автоматически удаляет перечисленные файлы
 
-* Открыть файл `dist/deleted_files.txt`.
-* Скопировать содержимое в `src/cli/Commands/UpdateCommand.php` в массив `$rCleanupFiles` внутри фазы `post-update`.
+> ⚠️ **Только проверка:** после сборки просмотрите `dist/migrations/deleted_files.txt` — убедитесь, что в списке нет критичных файлов.
 
-> ⚠️ **Важно:** Убедитесь, что пути указаны корректно, чтобы избежать удаления важных файлов.
+---
 
-**Закоммитить изменения с сообщением:**
+## 🧪 3. Предрелизная проверка
+
+Перед публикацией убедитесь, что сборка работает:
+
+**Проверка синтаксиса PHP:**
 
 ```bash
-git add .
-git commit -m "Added deletion of old files before release"
-git push
+make syntax_check
+```
+
+**Тестовая установка в Docker** (см. `tools/test-install/`):
+
+```bash
+cd tools/test-install
+docker compose up -d --build
+docker exec -it xc_test bash /opt/auto_install.sh
+```
+
+> ✅ Убедитесь, что панель открывается по `http://localhost:8880` и вход в админку работает.
+
+**Security-сканирование** (запускается автоматически при push через `.github/workflows/security-scan.yml`):
+
+```bash
+tools/php_syntax_check.sh
+tools/run_scan.sh
 ```
 
 ---
 
-## ⚙️ 3. Сборка архивов
+## ⚙️ 4. Сборка архивов
 
-> 🤖 **Автоматически:** Сборка выполняется через GitHub Actions workflow `.github/workflows/build-release.yml` при публикации релиза. Файлы автоматически прикрепляются к релизу.
+> 🤖 **Production-сборки** выполняются через GitHub Actions (`.github/workflows/build-release.yml`) при публикации релиза. Файлы прикрепляются автоматически.
 
-При необходимости **локальной сборки** выполните команды:
+**Для локальной сборки:**
 
 ```bash
 make new
@@ -81,19 +101,27 @@ make main_update
 make lb_update
 ```
 
-После сборки в директории `dist/` должны быть:
+После сборки в `dist/` должны быть:
 
-  - `loadbalancer.tar.gz` — установочный архив LB
-  - `loadbalancer_update.tar.gz` — архив обновления LB
-  - `XC_VM.zip` — установочный архив MAIN
-  - `update.tar.gz` — архив обновления MAIN
-  - `hashes.md5` — файл с хеш-суммами
+| Файл | Описание |
+|------|----------|
+| `XC_VM.zip` | Установочный архив MAIN |
+| `update.tar.gz` | Архив обновления MAIN |
+| `loadbalancer.tar.gz` | Установочный архив LB |
+| `loadbalancer_update.tar.gz` | Архив обновления LB |
+| `hashes.md5` | Контрольные суммы MD5 |
+
+**Проверка целостности:**
+
+```bash
+cd dist && md5sum -c hashes.md5
+```
 
 ---
 
-## 📝 4. Changelog
+## 📝 5. Changelog
 
-Получите тег предыдущего релиза через GitHub API и сгенерируйте changelog:
+**Сгенерировать лог коммитов:**
 
 ```bash
 PREV_TAG=$(curl -s https://api.github.com/repos/Vateron-Media/XC_VM/releases/latest \
@@ -102,39 +130,43 @@ echo "Предыдущий релиз: $PREV_TAG"
 git log --pretty=format:"- %s (%h)" "$PREV_TAG"..main > dist/changes.md
 ```
 
-*   **Перейдите по ссылке и добавьте изменения текущего релиза:**
-    [https://github.com/Vateron-Media/XC_VM_Update/blob/main/changelog.json](https://github.com/Vateron-Media/XC_VM_Update/blob/main/changelog.json)
+**Обновить публичный changelog** по ссылке:
+[XC_VM_Update/changelog.json](https://github.com/Vateron-Media/XC_VM_Update/blob/main/changelog.json)
 
-* Добавить изменения текущего релиза в формате JSON:
+```json
+{
+    "version": "X.Y.Z",
+    "changes": [
+      "Описание изменения 1",
+      "Описание изменения 2"
+    ]
+}
+```
 
-  ```json
-  [
-    {
-        "version": "X.Y.Z",
-        "changes": [
-          "Описание изменения 1",
-          "Описание изменения 2"
-        ]
-    }
-  ]
-  ```
-
-> 💬 **Рекомендация:** Держите описания изменений краткими и информативными, фокусируясь на ключевых улучшениях и фиксах.
+> 💬 Описания должны быть краткими — фокус на пользовательских улучшениях и исправлениях.
 
 ---
 
-## 🚀 5. GitHub релиз
+## 🚀 6. GitHub релиз
 
-* Создать новый релиз на [GitHub Releases](https://github.com/Vateron-Media/XC_VM/releases) **без прикрепления файлов**.
-* Указать changelog в описании релиза.
-* После публикации GitHub Actions автоматически соберёт и прикрепит к релизу:
+1. Перейти на [GitHub Releases](https://github.com/Vateron-Media/XC_VM/releases)
+2. Создать новый релиз с тегом `X.Y.Z`
+3. Вставить changelog в описание релиза
+4. Опубликовать **без прикрепления файлов** — GitHub Actions соберёт и прикрепит их
 
-  - `loadbalancer.tar.gz` — установочный архив LB
-  - `loadbalancer_update.tar.gz` — архив обновления LB
-  - `XC_VM.zip` — установочный архив MAIN
-  - `update.tar.gz` — архив обновления MAIN
-  - `hashes.md5` — файл с хеш-суммами
+После публикации workflow автоматически:
+- Соберёт все 4 архива + контрольные суммы
+- Прикрепит их к релизу
+- Отправит Telegram-уведомление через `release-notifier.yml`
 
-> ✅ **Завершение:** Дождитесь завершения workflow (вкладка Actions) и проверьте, что все файлы доступны для скачивания и хеш-суммы совпадают.
+> ✅ Дождитесь завершения Actions и проверьте, что все файлы доступны для скачивания.
 
 ---
+
+## 📢 7. После релиза
+
+- [ ] Проверить, что все 5 файлов прикреплены к релизу
+- [ ] Скачать и проверить `md5sum -c hashes.md5`
+- [ ] Убедиться, что Telegram-уведомление отправлено
+- [ ] Обновить `changelog.json` в репозитории `XC_VM_Update` (если ещё не сделано)
+- [ ] Закрыть связанные GitHub issues/milestones
