@@ -9,20 +9,167 @@
   <meta name="description" content="XC_VM IPTV Panel Documentation">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
 
-  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify@4/lib/themes/buble.css" title="buble">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify@4/lib/themes/dark.css" title="dark">
   <style>
-    nav.app-nav li ul {
-      min-width: 100px;
+    :root {
+      --base-background-color: #1a1a2e;
+      --sidebar-background: #16213e;
+      --theme-color: #e94560;
+      --text-color-base: #dcdcdc;
+      --sidebar-nav-link-color--active: #e94560;
     }
-  </style>
-  <style>
+
+    body {
+      background-color: var(--base-background-color);
+    }
+
     .sidebar {
       padding-top: 0;
+      background-color: var(--sidebar-background);
+      border-right: 1px solid #0f3460;
+    }
+
+    /* Sidebar: top-level sections (categories) */
+    .sidebar-nav>ul>li>p,
+    .sidebar-nav>ul>li>a {
+      font-weight: 700;
+      font-size: 0.95em;
+      color: #e0e0f0;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-top: 12px;
+    }
+
+    /* Sidebar: sub-items */
+    .sidebar-nav>ul>li>ul {
+      padding-left: 4px;
+      margin: 4px 0 8px 0;
+      border-left: 2px solid #0f3460;
+    }
+
+    .sidebar-nav>ul>li>ul>li>a {
+      font-weight: 500;
+      font-size: 0.88em;
+      color: #a8a8c0;
+      padding: 3px 0 3px 12px;
+      display: block;
+      border-left: 2px solid transparent;
+      margin-left: -2px;
+      transition: all 0.15s ease;
+    }
+
+    .sidebar-nav>ul>li>ul>li>a:hover {
+      color: #e94560;
+      border-left-color: #e94560;
+    }
+
+    .sidebar-nav>ul>li>ul>li>a.active {
+      color: #e94560;
+      font-weight: 600;
+      border-left-color: #e94560;
+    }
+
+    .sidebar-nav li {
+      line-height: 1.7;
     }
 
     .app-name.hide,
     .sidebar-nav.hide {
       display: none;
+    }
+
+    /* Navbar base */
+    nav.app-nav {
+      margin: 0;
+      padding: 10px 0;
+    }
+
+    nav.app-nav>ul>li>a {
+      color: #dcdcdc;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.85em;
+      letter-spacing: 0.5px;
+    }
+
+    /* Dropdown container */
+    nav.app-nav li ul {
+      min-width: 160px;
+      background-color: #16213e;
+      border: 1px solid #0f3460;
+      border-radius: 6px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      padding: 6px 0;
+      top: 100%;
+    }
+
+    /* Dropdown items */
+    nav.app-nav li ul li {
+      margin: 0;
+    }
+
+    nav.app-nav li ul li a {
+      color: #b8b8cc;
+      padding: 6px 16px;
+      display: block;
+      font-size: 0.9em;
+      border-left: 3px solid transparent;
+      transition: all 0.15s ease;
+    }
+
+    nav.app-nav li ul li a:hover {
+      color: #e94560;
+      background-color: rgba(233, 69, 96, 0.08);
+      border-left-color: #e94560;
+    }
+
+    .markdown-section {
+      max-width: 900px;
+    }
+
+    /* Code blocks */
+    .markdown-section pre {
+      padding: 12px;
+    }
+
+    .markdown-section code {
+      background-color: #0f3460;
+      color: #e2e2e2;
+    }
+
+    .markdown-section pre>code {
+      background-color: #0d1b2a;
+      color: #d4d4d4;
+    }
+
+    /* Search input */
+    .search input {
+      background-color: #0f3460;
+      color: #dcdcdc;
+      border-color: #1a1a40;
+    }
+
+    /* Links */
+    a {
+      color: #e94560;
+    }
+
+    a:hover {
+      color: #ff6b81;
+    }
+
+    /* Tables */
+    .markdown-section table {
+      border-collapse: collapse;
+    }
+
+    .markdown-section table td,
+    .markdown-section table th {
+      border-color: #0f3460;
+    }
+
+    .markdown-section table tr:nth-child(2n) {
+      background-color: #16213e;
     }
   </style>
 </head>
