@@ -7,7 +7,7 @@ ENV TZ=UTC
 
 # systemd — необходим для инсталлятора (systemctl enable/start xc_vm)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    systemd systemd-sysv dbus \
+    systemd systemd-sysv dbus cron \
     lsb-release sudo python3 python3-pip wget curl unzip \
     iproute2 net-tools apt-utils ca-certificates gnupg \
     && apt-get clean \
@@ -22,6 +22,9 @@ RUN rm -f /lib/systemd/system/multi-user.target.wants/* \
     /lib/systemd/system/anaconda.target.wants/* \
     /lib/systemd/system/plymouth* \
     /lib/systemd/system/systemd-update-utmp*
+
+# Включаем cron.service обратно (удалён вместе с multi-user.target.wants/*)
+RUN systemctl enable cron.service
 
 STOPSIGNAL SIGRTMIN+3
 

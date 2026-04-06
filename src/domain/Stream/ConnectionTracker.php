@@ -82,7 +82,9 @@ class ConnectionTracker {
 			}
 		}
 
-		file_put_contents(CACHE_TMP_PATH . $rFile, json_encode($rRows), LOCK_EX);
+		if (defined('CACHE_TMP_PATH') && is_dir(CACHE_TMP_PATH)) {
+			file_put_contents(CACHE_TMP_PATH . $rFile, json_encode($rRows), LOCK_EX);
+		}
 		return $rRows;
 	}
 

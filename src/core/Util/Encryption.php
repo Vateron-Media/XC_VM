@@ -137,6 +137,6 @@ class Encryption {
      * @return string 15-символьный хеш
      */
     public static function generateUniqueCode($pass) {
-        return substr(md5($pass), 0, 15);
+        return substr(md5($pass ?? ''), 0, 15);
     }
 }
