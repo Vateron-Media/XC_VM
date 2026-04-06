@@ -50,5 +50,11 @@ if (!function_exists('renderUnifiedLayoutHeader')) {
         }
 
         require dirname(__DIR__) . '/admin/header.php';
+
+        // header.php sets $rModal in local scope; propagate to $GLOBALS
+        // so that renderUnifiedLayoutFooter() can read it later.
+        if (isset($rModal)) {
+            $GLOBALS['rModal'] = $rModal;
+        }
     }
 }
