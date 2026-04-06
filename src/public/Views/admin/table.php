@@ -912,7 +912,7 @@ if ($rType == "lines") {
         if (0 < (int)(RequestManager::getAll()["category"] ?? 0)) {
             $rWhere[] = "JSON_CONTAINS(`streams`.`category_id`, ?, '\$')";
             $rWhereV[] = RequestManager::getAll()["category"];
-        } elseif ((int)(RequestManager::getAll()["category"] ?? 0)== -1) {
+        } elseif ((int)(RequestManager::getAll()["category"] ?? 0) == -1) {
             $rWhere[] = "(`streams`.`category_id` = '[]' OR `streams`.`category_id` IS NULL)";
         }
         if (isset(RequestManager::getAll()["refresh"])) {
@@ -1485,7 +1485,7 @@ if ($rType == "lines") {
         if (0 < (int)(RequestManager::getAll()["category"] ?? 0)) {
             $rWhere[] = "JSON_CONTAINS(`streams`.`category_id`, ?, '\$')";
             $rWhereV[] = RequestManager::getAll()["category"];
-        } elseif ((int)(RequestManager::getAll()["category"] ?? 0)== -1) {
+        } elseif ((int)(RequestManager::getAll()["category"] ?? 0) == -1) {
             $rWhere[] = "(`streams`.`category_id` = '[]' OR `streams`.`category_id` IS NULL)";
         }
         if (isset(RequestManager::getAll()["refresh"])) {
@@ -1512,7 +1512,7 @@ if ($rType == "lines") {
         if (0 < (int)(RequestManager::getAll()["server"] ?? 0)) {
             $rWhere[] = "`streams_servers`.`server_id` = ?";
             $rWhereV[] = (int)(RequestManager::getAll()["server"] ?? 0);
-        } elseif ((int)(RequestManager::getAll()["server"] ?? 0)== -1) {
+        } elseif ((int)(RequestManager::getAll()["server"] ?? 0) == -1) {
             $rWhere[] = "`streams_servers`.`server_id` IS NULL";
         }
         if ($rOrder[$rOrderRow]) {
@@ -1798,7 +1798,7 @@ if ($rType == "lines") {
         if (0 < (int)(RequestManager::getAll()["category"] ?? 0)) {
             $rWhere[] = "JSON_CONTAINS(`streams`.`category_id`, ?, '\$')";
             $rWhereV[] = RequestManager::getAll()["category"];
-        } elseif ((int)(RequestManager::getAll()["category"] ?? 0)== -1) {
+        } elseif ((int)(RequestManager::getAll()["category"] ?? 0) == -1) {
             $rWhere[] = "(`streams`.`category_id` = '[]' OR `streams`.`category_id` IS NULL)";
         }
         if (isset(RequestManager::getAll()["refresh"])) {
@@ -2089,10 +2089,10 @@ if ($rType == "lines") {
                             $rStreamInfo = [];
                         }
                         if ($rActualStatus == 1) {
-                            if (!isset($rStreamInfo["codecs"]["video"])) {
+                            if (!isset($rStreamInfo["codecs"]["video"]) || !is_array($rStreamInfo["codecs"]["video"])) {
                                 $rStreamInfo["codecs"]["video"] = ["width" => "?", "height" => "?", "codec_name" => "N/A", "r_frame_rate" => "--"];
                             }
-                            if (!isset($rStreamInfo["codecs"]["audio"])) {
+                            if (!isset($rStreamInfo["codecs"]["audio"]) || !is_array($rStreamInfo["codecs"]["audio"])) {
                                 $rStreamInfo["codecs"]["audio"] = ["codec_name" => "N/A"];
                             }
                             if ($rRow["bitrate"] == 0) {
@@ -2147,7 +2147,7 @@ if ($rType == "lines") {
     if (0 < (int)(RequestManager::getAll()["server"] ?? 0)) {
         $rWhere[] = "`streams_servers`.`server_id` = ?";
         $rWhereV[] = (int)(RequestManager::getAll()["server"] ?? 0);
-    } elseif ((int)(RequestManager::getAll()["server"] ?? 0)== -1) {
+    } elseif ((int)(RequestManager::getAll()["server"] ?? 0) == -1) {
         $rWhere[] = "`streams_servers`.`server_id` IS NULL";
     }
     if (0 < strlen(RequestManager::getAll()["series"] ?? '')) {
@@ -2460,9 +2460,9 @@ if ($rType == "lines") {
             $rLimit = 1000;
             $rKeys = explode(",", RequestManager::getAll()["refresh"]);
         } else {
-            $rServerID = 0 < (int)(RequestManager::getAll()["server_id"] ?? 0)? (int)(RequestManager::getAll()["server_id"] ?? 0): NULL;
-            $rStreamID = 0 < (int)(RequestManager::getAll()["stream_id"] ?? 0)? (int)(RequestManager::getAll()["stream_id"] ?? 0): NULL;
-            $rUserID = 0 < (int)(RequestManager::getAll()["user_id"] ?? 0)? (int)(RequestManager::getAll()["user_id"] ?? 0): NULL;
+            $rServerID = 0 < (int)(RequestManager::getAll()["server_id"] ?? 0) ? (int)(RequestManager::getAll()["server_id"] ?? 0) : NULL;
+            $rStreamID = 0 < (int)(RequestManager::getAll()["stream_id"] ?? 0) ? (int)(RequestManager::getAll()["stream_id"] ?? 0) : NULL;
+            $rUserID = 0 < (int)(RequestManager::getAll()["user_id"] ?? 0) ? (int)(RequestManager::getAll()["user_id"] ?? 0) : NULL;
             if ($rUserID) {
                 if ($rServerID || $rStreamID) {
                     $rKeys = $rRedis->zRevRangeByScore("LINE#" . $rUserID, "+inf", "-inf");
@@ -2786,13 +2786,13 @@ if ($rType == "lines") {
     if (0 < (int)(RequestManager::getAll()["category"] ?? 0)) {
         $rWhere[] = "JSON_CONTAINS(`streams`.`category_id`, ?, '\$')";
         $rWhereV[] = RequestManager::getAll()["category"];
-    } elseif ((int)(RequestManager::getAll()["category"] ?? 0)== -1) {
+    } elseif ((int)(RequestManager::getAll()["category"] ?? 0) == -1) {
         $rWhere[] = "(`streams`.`category_id` = '[]' OR `streams`.`category_id` IS NULL)";
     }
     if (0 < (int)(RequestManager::getAll()["server"] ?? 0)) {
         $rWhere[] = "`streams_servers`.`server_id` = ?";
         $rWhereV[] = (int)(RequestManager::getAll()["server"] ?? 0);
-    } elseif ((int)(RequestManager::getAll()["server"] ?? 0)== -1) {
+    } elseif ((int)(RequestManager::getAll()["server"] ?? 0) == -1) {
         $rWhere[] = "`streams_servers`.`server_id` IS NULL";
     }
     if (0 < strlen(RequestManager::getAll()["filter"] ?? '')) {
@@ -2956,13 +2956,13 @@ if ($rType == "lines") {
     if (0 < (int)(RequestManager::getAll()["category"] ?? 0)) {
         $rWhere[] = "JSON_CONTAINS(`streams`.`category_id`, ?, '\$')";
         $rWhereV[] = RequestManager::getAll()["category"];
-    } elseif ((int)(RequestManager::getAll()["category"] ?? 0)== -1) {
+    } elseif ((int)(RequestManager::getAll()["category"] ?? 0) == -1) {
         $rWhere[] = "(`streams`.`category_id` = '[]' OR `streams`.`category_id` IS NULL)";
     }
     if (0 < (int)(RequestManager::getAll()["server"] ?? 0)) {
         $rWhere[] = "`streams_servers`.`server_id` = ?";
         $rWhereV[] = (int)(RequestManager::getAll()["server"] ?? 0);
-    } elseif ((int)(RequestManager::getAll()["server"] ?? 0)== -1) {
+    } elseif ((int)(RequestManager::getAll()["server"] ?? 0) == -1) {
         $rWhere[] = "`streams_servers`.`server_id` IS NULL";
     }
     if (0 < strlen(RequestManager::getAll()["search"]["value"])) {
@@ -3119,13 +3119,13 @@ if ($rType == "lines") {
     if (0 < (int)(RequestManager::getAll()["category"] ?? 0)) {
         $rWhere[] = "JSON_CONTAINS(`streams`.`category_id`, ?, '\$')";
         $rWhereV[] = RequestManager::getAll()["category"];
-    } elseif ((int)(RequestManager::getAll()["category"] ?? 0)== -1) {
+    } elseif ((int)(RequestManager::getAll()["category"] ?? 0) == -1) {
         $rWhere[] = "(`streams`.`category_id` = '[]' OR `streams`.`category_id` IS NULL)";
     }
     if (0 < (int)(RequestManager::getAll()["server"] ?? 0)) {
         $rWhere[] = "`streams_servers`.`server_id` = ?";
         $rWhereV[] = (int)(RequestManager::getAll()["server"] ?? 0);
-    } elseif ((int)(RequestManager::getAll()["server"] ?? 0)== -1) {
+    } elseif ((int)(RequestManager::getAll()["server"] ?? 0) == -1) {
         $rWhere[] = "`streams_servers`.`server_id` IS NULL";
     }
     if (0 < strlen(RequestManager::getAll()["filter"] ?? '')) {
@@ -4548,10 +4548,10 @@ if ($rType == "lines") {
                             $rStreamInfo = [];
                         }
                         if ($rActualStatus == 1) {
-                            if (!isset($rStreamInfo["codecs"]["video"])) {
+                            if (!isset($rStreamInfo["codecs"]["video"]) || !is_array($rStreamInfo["codecs"]["video"])) {
                                 $rStreamInfo["codecs"]["video"] = ["width" => "?", "height" => "?", "codec_name" => "N/A", "r_frame_rate" => "--"];
                             }
-                            if (!isset($rStreamInfo["codecs"]["audio"])) {
+                            if (!isset($rStreamInfo["codecs"]["audio"]) || !is_array($rStreamInfo["codecs"]["audio"])) {
                                 $rStreamInfo["codecs"]["audio"] = ["codec_name" => "N/A"];
                             }
                             if ($rRow["bitrate"] == 0) {
@@ -5593,7 +5593,7 @@ if ($rType == "lines") {
     }
     $rWhere = $rWhereV = [];
     $rWhere[] = "`stream_source` LIKE ?";
-    $rWhereV[] = "%s:" . (int)(RequestManager::getAll()["server_id"] ?? 0). ":%";
+    $rWhereV[] = "%s:" . (int)(RequestManager::getAll()["server_id"] ?? 0) . ":%";
     if (isset(RequestManager::getAll()["category_id"]) && 0 < strlen(RequestManager::getAll()["category_id"])) {
         $rSplit = explode(":", RequestManager::getAll()["category_id"]);
         if ((int) $rSplit[0] == 0) {
