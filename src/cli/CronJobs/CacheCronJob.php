@@ -67,7 +67,14 @@ class CacheCronJob implements CommandInterface {
 
         foreach (array(EPG_PATH, VOD_PATH, ARCHIVE_PATH, CREATED_PATH, DELAY_PATH, VIDEO_PATH, PLAYLIST_PATH, CONS_TMP_PATH, CRONS_TMP_PATH, PLAYER_TMP_PATH, CACHE_TMP_PATH, DIVERGENCE_TMP_PATH, FLOOD_TMP_PATH, MINISTRA_TMP_PATH, SIGNALS_TMP_PATH, LOGS_TMP_PATH, WATCH_TMP_PATH, CIDR_TMP_PATH, STREAMS_TMP_PATH, LINES_TMP_PATH, SERIES_TMP_PATH) as $rPath) {
             if (!file_exists($rPath)) {
-                mkdir($rPath);
+                mkdir($rPath, 0755, true);
+                if (function_exists('posix_getpwnam')) {
+                    $rUser = posix_getpwnam('xc_vm');
+                    if ($rUser) {
+                        chown($rPath, $rUser['uid']);
+                        chgrp($rPath, $rUser['gid']);
+                    }
+                }
             }
         }
 
