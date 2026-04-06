@@ -31,15 +31,12 @@ body:
     validations:
       required: true
 
-  - type: dropdown
+  - type: input
     id: version
     attributes:
       label: XC_VM Version (if applicable)
-      options:
-        - "2.0.1"
-        - "2.0.0"
-        - "1.x (legacy)"
-        - "N/A"
+      description: "Leave empty if not relevant."
+      placeholder: "e.g. 2.0.1"
     validations:
       required: false
 
