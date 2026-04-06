@@ -41,8 +41,8 @@ class WatchdogCommand implements CommandInterface {
 		$this->rLastCheck = null;
 
 		$rServers = ServerRepository::getAll();
-		$rWatchdog = json_decode($rServers[SERVER_ID]['watchdog_data'], true);
-		$rCPUAverage = ($rWatchdog['cpu_average_array'] ?: array());
+		$rWatchdog = json_decode($rServers[SERVER_ID]['watchdog_data'] ?? '{}', true) ?: [];
+		$rCPUAverage = ($rWatchdog['cpu_average_array'] ?? []);
 
 		while (true && $db && $db->ping()) {
 			if (!$this->checkRedisHealth()) {
