@@ -1,36 +1,136 @@
 name: Bug Report
 description: Create a report to help us improve
-title: '[BUG]: bug name'
-labels: [bug]
+title: "[BUG]: "
+labels: [bug, "awaiting triage"]
 body:
   - type: markdown
     attributes:
-      value: "## Before you continue, please search our open/closed issues to see if a similar issue has been addressed."
+      value: |
+        ## Before you continue
+        Please search our [open/closed issues](https://github.com/AAAAAEXQOSyIpN2JZ0ehUQ/XC_VM/issues?q=is%3Aissue) to see if a similar issue has been addressed.
 
   - type: checkboxes
     attributes:
-      label: I have searched through the issues and didn't find my problem.
+      label: Pre-submission checklist
       options:
-        - label: Confirm
+        - label: I have searched existing issues and confirmed this is not a duplicate.
           required: true
 
-  - type: textarea
-    id: description
+  - type: dropdown
+    id: version
     attributes:
-      label: Bug description
-      description: Short description of the bug. Provide images/code if applicable.
+      label: XC_VM Version
+      description: Which version of XC_VM are you running? Check with `cat /home/xc_vm/core/Config/AppConfig.php | grep VERSION`.
+      options:
+        - "2.0.1"
+        - "2.0.0"
+        - "1.x (legacy)"
+        - "Unknown"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: build_type
+    attributes:
+      label: Build Type
+      description: Which build configuration are you using?
+      options:
+        - "MAIN (single server)"
+        - "LoadBalancer (multi-server)"
+        - "Unknown"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How severe is this bug?
+      options:
+        - "Critical — system down, data loss, security issue"
+        - "High — major feature broken, no workaround"
+        - "Medium — feature broken, workaround exists"
+        - "Low — minor issue, cosmetic"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected Area
+      description: Which part of the system is affected?
+      options:
+        - "Admin Panel"
+        - "Streaming (live/VOD/timeshift)"
+        - "Player API"
+        - "Reseller Panel"
+        - "EPG"
+        - "Nginx / Load Balancer"
+        - "Installation / Update"
+        - "Other"
     validations:
       required: true
 
   - type: textarea
-    id: howtoreplicate
+    id: description
     attributes:
-      label: Possible fixes or solutions
-      description: List any possible fixes/suggestions that you have in mind that could solve this issue.
-
+      label: Bug Description
+      description: A clear and concise description of the bug.
+      placeholder: "Describe what happened..."
+    validations:
+      required: true
 
   - type: textarea
-    id: extrainformation
+    id: steps_to_reproduce
     attributes:
-      label: Additional information
-      description: Is there anything else we should know about this bug?
+      label: Steps to Reproduce
+      description: Detailed steps to reproduce the behavior.
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Scroll down to '...'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual_behavior
+    attributes:
+      label: Actual Behavior
+      description: What actually happened? Include error messages, screenshots, or logs if applicable.
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Provide your environment details.
+      placeholder: |
+        OS: Ubuntu 22.04
+        PHP: 8.1.x
+        Database: MySQL 8.0
+        Browser (if UI bug): Chrome 120
+      render: text
+    validations:
+      required: false
+
+  - type: textarea
+    id: possible_fix
+    attributes:
+      label: Possible Fix or Workaround
+      description: If you have an idea of what might fix this, or a workaround you're using.
+
+  - type: textarea
+    id: extra_information
+    attributes:
+      label: Additional Information
+      description: Any other context — logs, screenshots, related issues.

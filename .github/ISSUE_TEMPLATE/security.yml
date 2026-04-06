@@ -1,62 +1,120 @@
-name: "Security Issue"
-description: "Report a security vulnerability in the project."
-title: "[SECURITY] Brief description of the issue"
+name: "Security Vulnerability Report"
+description: "Report a security vulnerability. For critical issues, prefer private disclosure."
+title: "[SECURITY]: "
 labels: ["security", "bug"]
 
 body:
   - type: markdown
     attributes:
       value: |
-        Thank you for taking the time to report a security vulnerability.  
-        Please ensure that you provide as much detail as possible to help us address the issue efficiently.
+        ## ⚠️ Important Notice
+        
+        **This issue will be PUBLIC.** If the vulnerability is critical (RCE, auth bypass, data leak),
+        please consider reporting it privately instead:
+        - Use [GitHub Security Advisories](https://github.com/AAAAAEXQOSyIpN2JZ0ehUQ/XC_VM/security/advisories/new)
+        
+        Only use this form for lower-severity security issues that are safe to disclose publicly.
 
-        **Do not disclose the details of this issue publicly until it has been resolved.**
+  - type: checkboxes
+    id: disclosure_ack
+    attributes:
+      label: Disclosure Acknowledgment
+      options:
+        - label: "I understand this issue will be **publicly visible** and have confirmed it is safe to disclose."
+          required: true
+        - label: "I have searched existing issues and confirmed this is not a duplicate."
+          required: true
+
+  - type: dropdown
+    id: version
+    attributes:
+      label: "Affected Version(s)"
+      description: "Which version(s) of XC_VM are affected?"
+      multiple: true
+      options:
+        - "2.0.1"
+        - "2.0.0"
+        - "1.x (legacy)"
+        - "Unknown"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: "Severity (CVSS-like)"
+      description: "Estimate the severity of this vulnerability."
+      options:
+        - "Critical — RCE, authentication bypass, full data access"
+        - "High — privilege escalation, significant data exposure"
+        - "Medium — limited data exposure, requires authentication"
+        - "Low — information disclosure, minimal impact"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: affected_component
+    attributes:
+      label: "Affected Component"
+      description: "Which part of the system is affected?"
+      options:
+        - "Authentication / Authorization"
+        - "Admin Panel"
+        - "Player API"
+        - "Reseller API"
+        - "Streaming Engine"
+        - "Nginx Configuration"
+        - "Database"
+        - "File System / Permissions"
+        - "Other"
+    validations:
+      required: true
+
   - type: textarea
     id: vulnerability_description
     attributes:
       label: "Describe the Vulnerability"
-      description: "Provide a clear and concise description of the vulnerability."
-      placeholder: "What is the issue? How can it be exploited?"
+      description: "Provide a clear and concise description. Do NOT include working exploits for critical issues."
+      placeholder: "What is the issue? What could an attacker achieve?"
     validations:
       required: true
+
   - type: textarea
     id: reproduction_steps
     attributes:
       label: "Steps to Reproduce"
-      description: "List the steps to reproduce the vulnerability."
+      description: "Minimal steps to demonstrate the vulnerability."
       placeholder: |
         1. Go to...
-        2. Click on...
+        2. Send request...
         3. Observe...
     validations:
       required: true
+
   - type: textarea
     id: expected_behavior
     attributes:
       label: "Expected Behavior"
-      description: "Describe what should happen if the vulnerability did not exist."
-      placeholder: "What should have happened instead?"
+      description: "What should happen if the vulnerability did not exist?"
     validations:
       required: true
+
   - type: textarea
     id: impact
     attributes:
-      label: "Impact"
-      description: "Describe the potential impact of this vulnerability (e.g., data loss, unauthorized access)."
-      placeholder: "What is the potential damage caused by this vulnerability?"
+      label: "Impact Assessment"
+      description: "Describe the potential real-world impact (data loss, unauthorized access, service disruption)."
     validations:
       required: true
+
+  - type: textarea
+    id: suggested_fix
+    attributes:
+      label: "Suggested Fix"
+      description: "If you have a proposed fix or mitigation, describe it here."
+
   - type: textarea
     id: additional_information
     attributes:
       label: "Additional Information"
-      description: "Include any other relevant information, such as affected versions or related issues."
-      placeholder: "Version numbers, configurations, or related vulnerabilities."
-  - type: checkboxes
-    id: confidentiality
-    attributes:
-      label: "Confidentiality Acknowledgment"
-      description: "By submitting this report, you agree not to disclose the details of this vulnerability until it has been addressed."
-      options:
-        - label: "I agree to keep the details of this vulnerability confidential."
-          required: true
+      description: "Environment details, configurations, related CVEs, etc."
