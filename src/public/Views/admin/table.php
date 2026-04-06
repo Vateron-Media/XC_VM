@@ -1363,7 +1363,10 @@ if ($rType == "lines") {
                         $rButtons .= "</div>";
                     }
                     $rStreamInfoText = "<table style='font-size: 10px;' class='table-data nowrap' align='center'><tbody><tr><td colspan='5'>No information available</td></tr></tbody></table>";
-                    $rStreamInfo   = json_decode($rRow['stream_info'] ?? '', true) ?: [];
+                    $rStreamInfo   = json_decode($rRow['stream_info'] ?? '', true);
+                    if (!is_array($rStreamInfo)) {
+                        $rStreamInfo = [];
+                    }
                     $rProgressInfo = json_decode($rRow['progress_info'] ?? '', true) ?: [];
                     if ($rActualStatus == 1) {
                         if (!isset($rStreamInfo["codecs"]["video"])) {
@@ -1725,7 +1728,10 @@ if ($rType == "lines") {
                         $rButtons .= "</div>";
                     }
                     $rStreamInfoText = "<table style='font-size: 10px;' class='table-data nowrap' align='center'><tbody><tr><td colspan='5'>No information available</td></tr></tbody></table>";
-                    $rStreamInfo   = json_decode($rRow['stream_info'] ?? '', true) ?: [];
+                    $rStreamInfo   = json_decode($rRow['stream_info'] ?? '', true);
+                    if (!is_array($rStreamInfo)) {
+                        $rStreamInfo = [];
+                    }
                     $rProgressInfo = json_decode($rRow['progress_info'] ?? '', true) ?: [];
                     if ($rActualStatus == 1) {
                         if (!isset($rStreamInfo["codecs"]["video"])) {
@@ -2078,7 +2084,10 @@ if ($rType == "lines") {
                         $rStreamInfoText = "<a href='javascript: void(0);' onClick=\"viewDuplicates('" . str_replace("'", "\\'", $rRow["stream_display_name"]) . "', '" . $rRow["source"] . "');\">Duplicate of <strong>" . $rDupeCount . "</strong> other movie" . ($rDupeCount == 1 ? "" : "s") . "</a>";
                     } else {
                         $rStreamInfoText = "<table style='font-size: 10px;' class='table-data nowrap' align='center'><tbody><tr><td colspan='3'>No information available</td></tr></tbody></table>";
-                        $rStreamInfo   = json_decode($rRow['stream_info'] ?? '', true) ?: [];
+                        $rStreamInfo   = json_decode($rRow['stream_info'] ?? '', true);
+                        if (!is_array($rStreamInfo)) {
+                            $rStreamInfo = [];
+                        }
                         if ($rActualStatus == 1) {
                             if (!isset($rStreamInfo["codecs"]["video"])) {
                                 $rStreamInfo["codecs"]["video"] = ["width" => "?", "height" => "?", "codec_name" => "N/A", "r_frame_rate" => "--"];
@@ -4534,7 +4543,10 @@ if ($rType == "lines") {
                         $rStreamInfoText = "<a href='javascript: void(0);' onClick=\"viewDuplicates('" . str_replace("'", "\\'", $rRow["stream_display_name"]) . "', '" . $rRow["source"] . "');\">Duplicate of <strong>" . $rDupeCount . "</strong> other episode" . ($rDupeCount == 1 ? "" : "s") . "</a>";
                     } else {
                         $rStreamInfoText = "<table style='font-size: 10px;' class='table-data nowrap' align='center'><tbody><tr><td colspan='3'>No information available</td></tr></tbody></table>";
-                        $rStreamInfo   = json_decode($rRow['stream_info'] ?? '', true) ?: [];
+                        $rStreamInfo   = json_decode($rRow['stream_info'] ?? '', true);
+                        if (!is_array($rStreamInfo)) {
+                            $rStreamInfo = [];
+                        }
                         if ($rActualStatus == 1) {
                             if (!isset($rStreamInfo["codecs"]["video"])) {
                                 $rStreamInfo["codecs"]["video"] = ["width" => "?", "height" => "?", "codec_name" => "N/A", "r_frame_rate" => "--"];
