@@ -69,7 +69,7 @@ class RadioService {
 				if (0 < count($rImportStreams)) {
 					$rBouquetCreate = array();
 
-					foreach (json_decode($rData['bouquet_create_list'], true) as $rBouquet) {
+					foreach (json_decode($rData['bouquet_create_list'] ?? '[]', true) ?: [] as $rBouquet) {
 						$rPrepare = prepareArray(array('bouquet_name' => $rBouquet, 'bouquet_channels' => array(), 'bouquet_movies' => array(), 'bouquet_series' => array(), 'bouquet_radios' => array()));
 						$rQuery = 'INSERT INTO `bouquets`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
@@ -81,7 +81,7 @@ class RadioService {
 					}
 					$rCategoryCreate = array();
 
-					foreach (json_decode($rData['category_create_list'], true) as $rCategory) {
+					foreach (json_decode($rData['category_create_list'] ?? '[]', true) ?: [] as $rCategory) {
 						$rPrepare = prepareArray(array('category_type' => 'radio', 'category_name' => $rCategory, 'parent_id' => 0, 'cat_order' => 99, 'is_adult' => 0));
 						$rQuery = 'INSERT INTO `streams_categories`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
@@ -107,7 +107,7 @@ class RadioService {
 						}
 						$rCategories = array();
 
-						foreach ($rData['category_id'] as $rCategory) {
+						foreach ($rData['category_id'] ?? [] as $rCategory) {
 							if (isset($rCategoryCreate[$rCategory])) {
 								$rCategories[] = $rCategoryCreate[$rCategory];
 							} else {
@@ -158,7 +158,7 @@ class RadioService {
 								} else {
 									$rServerID = intval($rServer['id']);
 									$rStreamsAdded[] = $rServerID;
-									$rOD = intval(in_array($rServerID, ($rData['on_demand'] ?: array())));
+									$rOD = intval(in_array($rServerID, ($rData['on_demand'] ?? [])));
 
 									if ($rServer['parent'] == 'source') {
 										$rParent = null;
