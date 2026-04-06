@@ -749,7 +749,9 @@ function systemapirequest($rServerID, $rData, $rTimeout = 5) {
 		curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $rTimeout);
 		curl_setopt($ch, CURLOPT_TIMEOUT, $rTimeout);
 
-		return curl_exec($ch);
+		$rResult = curl_exec($ch);
+
+		return $rResult;
 	}
 	return null;
 }
