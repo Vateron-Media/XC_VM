@@ -2516,19 +2516,19 @@ if (isset($_SESSION['hash'])) {
 
 					foreach ($rStreamInfo['streams'] as $rCodec) {
 						if ($rCodec['codec_type'] == 'video') {
-							$rInfo['width'] = intval($rCodec['width']);
-							$rInfo['height'] = intval($rCodec['height']);
-							$rInfo['vbitrate'] = intval($rCodec['bit_rate']);
-							$rInfo['vcodec'] = $rCodec['codec_name'];
-							$rInfo['fps'] = intval(explode('/', $rCodec['r_frame_rate'])[0]);
+							$rInfo['width'] = intval($rCodec['width'] ?? 0);
+							$rInfo['height'] = intval($rCodec['height'] ?? 0);
+							$rInfo['vbitrate'] = intval($rCodec['bit_rate'] ?? 0);
+							$rInfo['vcodec'] = $rCodec['codec_name'] ?? '';
+							$rInfo['fps'] = intval(explode('/', $rCodec['r_frame_rate'] ?? '0/0')[0]);
 
 							if (!$rInfo['fps']) {
 								$rInfo['fps'] = intval(explode('/', $rCodec['avg_frame_rate'])[0]);
 							}
 						} else {
 							if ($rCodec['codec_type'] == 'audio') {
-								$rInfo['abitrate'] = intval($rCodec['bit_rate']);
-								$rInfo['acodec'] = $rCodec['codec_name'];
+								$rInfo['abitrate'] = intval($rCodec['bit_rate'] ?? 0);
+								$rInfo['acodec'] = $rCodec['codec_name'] ?? '';
 							}
 						}
 					}
