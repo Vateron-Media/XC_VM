@@ -20,7 +20,7 @@ define('DEVELOPMENT', true);          // Development mode (planned for removal)
 
 // ── Version & Git Configuration ────────────────────────────────
 
-define('XC_VM_VERSION', '2.0.1');
+define('XC_VM_VERSION', '2.0.2');
 
 define('GIT_OWNER',       'Vateron-Media');
 define('GIT_REPO_MAIN',   'XC_VM');
