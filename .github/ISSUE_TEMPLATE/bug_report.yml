@@ -16,16 +16,12 @@ body:
         - label: I have searched existing issues and confirmed this is not a duplicate.
           required: true
 
-  - type: dropdown
+  - type: input
     id: version
     attributes:
       label: XC_VM Version
-      description: Which version of XC_VM are you running? Check with `cat /home/xc_vm/core/Config/AppConfig.php | grep VERSION`.
-      options:
-        - "2.0.1"
-        - "2.0.0"
-        - "1.x (legacy)"
-        - "Unknown"
+      description: "Which version are you running? Check with: `grep VERSION /home/xc_vm/core/Config/AppConfig.php`"
+      placeholder: "e.g. 2.0.1"
     validations:
       required: true
 

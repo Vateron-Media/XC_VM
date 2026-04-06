@@ -25,17 +25,12 @@ body:
         - label: "I have searched existing issues and confirmed this is not a duplicate."
           required: true
 
-  - type: dropdown
+  - type: input
     id: version
     attributes:
       label: "Affected Version(s)"
-      description: "Which version(s) of XC_VM are affected?"
-      multiple: true
-      options:
-        - "2.0.1"
-        - "2.0.0"
-        - "1.x (legacy)"
-        - "Unknown"
+      description: "Which version(s) of XC_VM are affected? Comma-separate if multiple."
+      placeholder: "e.g. 2.0.1, 2.0.0"
     validations:
       required: true
 
