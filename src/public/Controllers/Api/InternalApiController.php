@@ -495,19 +495,19 @@ class InternalApiController {
 		$rURL = $rRequest['url'];
 		$rFetchArguments = array();
 
-		if ($rRequest['user_agent']) {
+		if (!empty($rRequest['user_agent'])) {
 			$rFetchArguments[] = sprintf("-user_agent '%s'", escapeshellcmd($rRequest['user_agent']));
 		}
 
-		if ($rRequest['http_proxy']) {
+		if (!empty($rRequest['http_proxy'])) {
 			$rFetchArguments[] = sprintf("-http_proxy '%s'", escapeshellcmd($rRequest['http_proxy']));
 		}
 
-		if ($rRequest['cookies']) {
+		if (!empty($rRequest['cookies'])) {
 			$rFetchArguments[] = sprintf("-cookies '%s'", escapeshellcmd($rRequest['cookies']));
 		}
 
-		$rHeaders = $rRequest['headers'] ? rtrim($rRequest['headers'], "\r\n") . "\r\n" : '';
+		$rHeaders = !empty($rRequest['headers']) ? rtrim($rRequest['headers'], "\r\n") . "\r\n" : '';
 		$rHeaders .= 'X-XC_VM-Prebuffer:1' . "\r\n";
 		$rFetchArguments[] = sprintf('-headers %s', escapeshellarg($rHeaders));
 
