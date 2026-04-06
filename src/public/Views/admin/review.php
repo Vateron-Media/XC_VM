@@ -113,12 +113,11 @@
                 $rResults = StreamService::parseM3U($_FILES['m3u_file']['tmp_name']);
 
                 foreach ($rResults as $rResult) {
-                    list($rTag) = $rResult->getExtTags();
+                    $rTags = $rResult->getExtTags();
+                    $rTag = $rTags[0] ?? null;
+                    $rURL = $rResult->getPath();
 
-                    if (!$rTag) {
-                    } else {
-                        $rURL = $rResult->getPath();
-
+                    if ($rURL) {
                         if ($rType == 1) {
                             $rExtensions = array('ts', 'm3u8', 'm3u', 'mpd', 'ism', '');
                         } else {
@@ -133,9 +132,9 @@
                             } else {
                                 if (count($rImport) < 500) {
                                     if ($rType == 1) {
-                                        $rImport[] = array('url' => $rURL, 'logo' => ($rTag->getAttribute('tvg-logo') ?: ''), 'tvg_id' => ($rTag->getAttribute('tvg-id') ?: ''), 'title' => ($rTag->getTitle() ?: ''), 'category' => ($rTag->getAttribute('group-title') ?: ''), 'exists' => $rExists);
+                                        $rImport[] = array('url' => $rURL, 'logo' => ($rTag ? ($rTag->getAttribute('tvg-logo') ?: '') : ''), 'tvg_id' => ($rTag ? ($rTag->getAttribute('tvg-id') ?: '') : ''), 'title' => ($rTag ? ($rTag->getTitle() ?: basename(parse_url($rURL, PHP_URL_PATH) ?: $rURL)) : basename(parse_url($rURL, PHP_URL_PATH) ?: $rURL)), 'category' => ($rTag ? ($rTag->getAttribute('group-title') ?: '') : ''), 'exists' => $rExists);
                                     } else {
-                                        $rImport[] = array('url' => $rURL, 'title' => ($rTag->getTitle() ?: ''), 'category' => ($rTag->getAttribute('group-title') ?: ''), 'exists' => $rExists);
+                                        $rImport[] = array('url' => $rURL, 'title' => ($rTag ? ($rTag->getTitle() ?: basename(parse_url($rURL, PHP_URL_PATH) ?: $rURL)) : basename(parse_url($rURL, PHP_URL_PATH) ?: $rURL)), 'category' => ($rTag ? ($rTag->getAttribute('group-title') ?: '') : ''), 'exists' => $rExists);
                                     }
                                 } else {
                                     $_STATUS = STATUS_TOO_MANY_RESULTS;

@@ -404,6 +404,21 @@ class ExtInf implements ExtTagInterface {
 		$dataLineStr = substr($lineStr, strlen('#EXTINF:'));
 		$dataLineStr = trim($dataLineStr);
 		preg_match('/^(-?\\d+)\\s*(?:(?:[^=]+=["\'][^"\']*["\'])|(?:[^=]+=[^ ]*))*,(.*)$/', $dataLineStr, $matches);
+
+		if (!isset($matches[1], $matches[2])) {
+			$commaPos = strpos($dataLineStr, ',');
+
+			if ($commaPos !== false) {
+				$this->setDuration(intval($dataLineStr));
+				$this->setTitle(trim(substr($dataLineStr, $commaPos + 1)));
+			} else {
+				$this->setDuration(0);
+				$this->setTitle(trim($dataLineStr));
+			}
+
+			return;
+		}
+
 		$this->setDuration((int) $matches[1]);
 		$this->setTitle(trim($matches[2]));
 		$attributes = preg_replace('/^' . preg_quote($matches[1], '/') . '(.*)' . preg_quote($matches[2], '/') . '$/', '$1', $dataLineStr);
