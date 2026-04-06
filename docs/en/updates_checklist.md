@@ -1,7 +1,7 @@
 <h1 align="center">✅ XC_VM Release Preparation Checklist</h1>
 
 <p align="center">
-  This document describes the process of creating an <b>XC_VM</b> release — a step-by-step guide for developers on updating the version, building archives, and publishing on GitHub.
+  Step-by-step guide for preparing and publishing an <b>XC_VM</b> release.
 </p>
 
 ---
@@ -9,69 +9,90 @@
 ## 📚 Navigation
 
 * [🔢 1. Update Version](#1-update-version)
-* [🧹 2. Deleted Files](#2-deleted-files)
-* [⚙️ 3. Build Archives](#3-build-archives)
-* [📝 4. Changelog](#4-changelog)
-* [🚀 5. GitHub Release](#5-github-release)
+* [🧹 2. Deleted Files (Automated)](#2-deleted-files-automated)
+* [🧪 3. Pre-Release Validation](#3-pre-release-validation)
+* [⚙️ 4. Build Archives](#4-build-archives)
+* [📝 5. Changelog](#5-changelog)
+* [🚀 6. GitHub Release](#6-github-release)
+* [📢 7. Post-Release](#7-post-release)
 
 ---
 
 ## 🔢 1. Update Version
 
-* Set the **new `XC_VM_VERSION` value** in the following files:
-
-**File to edit:**
+Edit the version constant in:
 
 ```
 src/core/Config/AppConfig.php
 ```
 
-**Auto-update command:**
+**Quick command:**
 
 ```bash
 sed -i "s/define('XC_VM_VERSION', *'[0-9]\+\.[0-9]\+\.[0-9]\+');/define('XC_VM_VERSION', 'X.Y.Z');/" src/core/Config/AppConfig.php
 ```
 
-**Commit the changes with a message:**
+**Commit:**
 
 ```bash
-git add .
+git add src/core/Config/AppConfig.php
 git commit -m "Bump version to X.Y.Z"
 git push
 ```
 
-> 💡 **Tip:** Replace `X.Y.Z` with the actual version, e.g., `1.2.3`.
+> 💡 Replace `X.Y.Z` with the actual version.
 
 ---
 
-## 🧹 2. Deleted Files
+## 🧹 2. Deleted Files (Automated)
 
-* Generate a list of deleted files:
+File cleanup is **fully automated**. No manual steps required.
+
+**How it works:**
+
+1. `make main_update` / `make lb_update` internally runs `make delete_files_list`
+2. This generates `dist/migrations/deleted_files.txt` (diff of deleted files since last tag)
+3. The file is packed into the update archive at `migrations/deleted_files.txt`
+4. During `php console.php update post-update`, `MigrationRunner::runFileCleanup()` reads it and deletes the listed files automatically
+
+> ⚠️ **Review only:** After building, inspect `dist/migrations/deleted_files.txt` to verify no critical files are listed by mistake.
+
+---
+
+## 🧪 3. Pre-Release Validation
+
+Before publishing, verify the build works:
+
+**PHP syntax check:**
 
 ```bash
-make delete_files_list
+make syntax_check
 ```
 
-* Open the file `dist/deleted_files.txt`.
-* Copy the contents to `src/cli/Commands/UpdateCommand.php` in the `$rCleanupFiles` array inside the `post-update` case.
-
-> ⚠️ **Important:** Ensure paths are correct to avoid deleting critical files.
-
-**Commit changes with a message:**
+**Docker test install** (see `tools/test-install/`):
 
 ```bash
-git add .
-git commit -m "Added deletion of old files before release"
-git push
+cd tools/test-install
+docker compose up -d --build
+docker exec -it xc_test bash /opt/auto_install.sh
+```
+
+> ✅ Verify the panel loads at `http://localhost:8880` and admin login works.
+
+**Security scan** (runs automatically on push via `.github/workflows/security-scan.yml`):
+
+```bash
+tools/php_syntax_check.sh
+tools/run_scan.sh
 ```
 
 ---
 
-## ⚙️ 3. Build Archives
+## ⚙️ 4. Build Archives
 
-> 🤖 **Automated:** Building is handled by GitHub Actions workflow `.github/workflows/build-release.yml` when a release is published. Assets are automatically attached to the release.
+> 🤖 **Production builds** are handled by GitHub Actions (`.github/workflows/build-release.yml`) when a release is published. Assets are attached automatically.
 
-For **local builds**, run the following commands:
+**For local builds:**
 
 ```bash
 make new
@@ -83,19 +104,25 @@ make lb_update
 
 After building, `dist/` should contain:
 
-  - `loadbalancer.tar.gz` — LB installation archive
-  - `loadbalancer_update.tar.gz` — LB update archive
-  - `XC_VM.zip` — MAIN installation archive
-  - `update.tar.gz` — MAIN update archive
-  - `hashes.md5` — file with checksums
+| File | Description |
+|------|-------------|
+| `XC_VM.zip` | MAIN installation archive |
+| `update.tar.gz` | MAIN update archive |
+| `loadbalancer.tar.gz` | LB installation archive |
+| `loadbalancer_update.tar.gz` | LB update archive |
+| `hashes.md5` | MD5 checksums |
 
-> 🧰 **Check:** After building, verify archive integrity with `md5sum -c hashes.md5`.
+**Verify integrity:**
+
+```bash
+cd dist && md5sum -c hashes.md5
+```
 
 ---
 
-## 📝 4. Changelog
+## 📝 5. Changelog
 
-Fetch the previous release tag via GitHub API and generate the changelog:
+**Generate commit log:**
 
 ```bash
 PREV_TAG=$(curl -s https://api.github.com/repos/Vateron-Media/XC_VM/releases/latest \
@@ -104,40 +131,43 @@ echo "Previous release: $PREV_TAG"
 git log --pretty=format:"- %s (%h)" "$PREV_TAG"..main > dist/changes.md
 ```
 
-* **Then add current release changes** using this JSON:
-
-[https://github.com/Vateron-Media/XC_VM_Update/blob/main/changelog.json](https://github.com/Vateron-Media/XC_VM_Update/blob/main/changelog.json)
-
-* Add current release changes in JSON format:
+**Update the public changelog** at:
+[XC_VM_Update/changelog.json](https://github.com/Vateron-Media/XC_VM_Update/blob/main/changelog.json)
 
 ```json
-[
-  {
-      "version": "X.Y.Z",
-      "changes": [
-        "Description of change 1",
-        "Description of change 2"
-      ]
-  }
-]
+{
+    "version": "X.Y.Z",
+    "changes": [
+      "Description of change 1",
+      "Description of change 2"
+    ]
+}
 ```
 
-> 💬 **Recommendation:** Keep descriptions concise and informative, focusing on key improvements and fixes.
+> 💬 Keep descriptions concise — focus on user-facing improvements and fixes.
 
 ---
 
-## 🚀 5. GitHub Release
+## 🚀 6. GitHub Release
 
-* Create a new release on [GitHub Releases](https://github.com/Vateron-Media/XC_VM/releases) **without attaching files**.
-* Include the changelog in the release description.
-* After publishing, GitHub Actions will automatically build and attach:
+1. Go to [GitHub Releases](https://github.com/Vateron-Media/XC_VM/releases)
+2. Create a new release with tag `X.Y.Z`
+3. Paste the changelog as the release description
+4. Publish **without attaching files** — GitHub Actions will build and attach them
 
-  - `loadbalancer.tar.gz` — LB installation archive
-  - `loadbalancer_update.tar.gz` — LB update archive
-  - `XC_VM.zip` — MAIN installation archive
-  - `update.tar.gz` — MAIN update archive
-  - `hashes.md5` — file with checksums
+After publishing, the workflow will automatically:
+* Build all 4 archives + checksums
+* Attach them to the release
+* Send a Telegram notification via `release-notifier.yml`
 
-> ✅ **Completion:** Wait for the workflow to finish (Actions tab), then verify that all files are downloadable and checksums match.
+> ✅ Wait for the Actions workflow to finish, then verify all files are downloadable.
 
 ---
+
+## 📢 7. Post-Release
+
+* [ ] Verify all 5 assets are attached to the release
+* [ ] Run `md5sum -c hashes.md5` on downloaded files
+* [ ] Check Telegram notification was sent
+* [ ] Update `changelog.json` in `XC_VM_Update` repo if not done yet
+* [ ] Close related GitHub issues/milestones
