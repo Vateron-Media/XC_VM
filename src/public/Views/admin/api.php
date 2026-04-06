@@ -2500,7 +2500,7 @@ if (isset($_SESSION['hash'])) {
 					}
 
 					if (!$rStreamInfo) {
-						$rStreamInfo = ServerRepository::probeSource($rServerID, RequestManager::getAll()['url'], (RequestManager::getAll()['user_agent'] ?: null), (RequestManager::getAll()['http_proxy'] ?: null), (RequestManager::getAll()['cookies'] ?: null), (RequestManager::getAll()['headers'] ?: null))['data'];
+						$rStreamInfo = ServerRepository::probeSource($rServerID, RequestManager::getAll()['url'], (RequestManager::getAll()['user_agent'] ?? null), (RequestManager::getAll()['http_proxy'] ?? null), (RequestManager::getAll()['cookies'] ?? null), (RequestManager::getAll()['headers'] ?? null))['data'];
 						$rStreamInfo['container'] = $rStreamInfo['format']['format_name'];
 					}
 				}
