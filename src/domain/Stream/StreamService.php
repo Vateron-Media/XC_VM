@@ -93,7 +93,7 @@ class StreamService {
 		} else {
 			if (isset($_FILES['m3u_file'])) {
 				if (Authorization::check('adv', 'import_streams')) {
-					if (!(empty($_FILES['m3u_file']['tmp_name']) || strtolower(pathinfo(explode('?', $_FILES['m3u_file']['name'])[0], PATHINFO_EXTENSION)) != 'm3u')) {
+					if (!(empty($_FILES['m3u_file']['tmp_name']) || !in_array(strtolower(pathinfo(explode('?', $_FILES['m3u_file']['name'])[0], PATHINFO_EXTENSION)), array('m3u', 'm3u8')))) {
 						$rResults = self::parseM3U($_FILES['m3u_file']['tmp_name']);
 
 						if (count($rResults) > 0) {
@@ -119,13 +119,12 @@ class StreamService {
 							$i = 0;
 
 							foreach ($rResults as $rResult) {
-								list($rTag) = $rResult->getExtTags();
+								$rTags = $rResult->getExtTags();
+								$rTag = $rTags[0] ?? null;
 
-								if ($rTag) {
-									if ($rTag->getAttribute('tvg-id')) {
-										$rID = $rTag->getAttribute('tvg-id');
-										$rEPGScan[$rID][] = $i;
-									}
+								if ($rTag && $rTag->getAttribute('tvg-id')) {
+									$rID = $rTag->getAttribute('tvg-id');
+									$rEPGScan[$rID][] = $i;
 								}
 
 								$i++;
@@ -156,14 +155,15 @@ class StreamService {
 							$i = 0;
 
 							foreach ($rResults as $rResult) {
-								list($rTag) = $rResult->getExtTags();
+								$rTags = $rResult->getExtTags();
+								$rTag = $rTags[0] ?? null;
+								$rURL = $rResult->getPath();
 
-								if ($rTag) {
-									$rURL = $rResult->getPath();
-									$rImportArray = array('stream_source' => array($rURL), 'stream_icon' => ($rTag->getAttribute('tvg-logo') ?: ''), 'stream_display_name' => ($rTag->getTitle() ?: ''), 'epg_id' => null, 'epg_lang' => null, 'channel_id' => null);
+								if ($rURL) {
+									$rImportArray = array('stream_source' => array($rURL), 'stream_icon' => ($rTag ? ($rTag->getAttribute('tvg-logo') ?: '') : ''), 'stream_display_name' => ($rTag ? ($rTag->getTitle() ?: basename(parse_url($rURL, PHP_URL_PATH) ?: $rURL)) : basename(parse_url($rURL, PHP_URL_PATH) ?: $rURL)), 'epg_id' => null, 'epg_lang' => null, 'channel_id' => null);
 
-									if ($rTag->getAttribute('tvg-id')) {
-										$rEPG = ($rEPGMatch[$i] ?: null);
+									if ($rTag && $rTag->getAttribute('tvg-id')) {
+										$rEPG = ($rEPGMatch[$i] ?? null);
 
 										if (isset($rEPG)) {
 											$rImportArray['epg_id'] = $rEPG['epg_id'];
@@ -182,7 +182,7 @@ class StreamService {
 										$rExistsID = $rSourceDatabase[$rSourceID];
 									}
 
-									$rName = preg_replace('/[^A-Za-z0-9 ]/', '', strtolower($rTag->getTitle()));
+									$rName = preg_replace('/[^A-Za-z0-9 ]/', '', strtolower($rImportArray['stream_display_name']));
 
 									if (!empty($rName) && isset($rStreamDatabase[$rName])) {
 										$rBackupID = $rStreamDatabase[$rName];
@@ -215,6 +215,8 @@ class StreamService {
 
 								$i++;
 							}
+						} else {
+							return array('status' => STATUS_INVALID_FILE, 'data' => $rData);
 						}
 					} else {
 						return array('status' => STATUS_INVALID_FILE, 'data' => $rData);
@@ -242,7 +244,8 @@ class StreamService {
 			$rCategoryCreate = array();
 
 			if (!$rReview) {
-				foreach (json_decode($rData['bouquet_create_list'], true) as $rBouquet) {
+				$rBouquetList = json_decode($rData['bouquet_create_list'] ?? '[]', true) ?: [];
+				foreach ($rBouquetList as $rBouquet) {
 					$rPrepare = prepareArray(array('bouquet_name' => $rBouquet, 'bouquet_channels' => array(), 'bouquet_movies' => array(), 'bouquet_series' => array(), 'bouquet_radios' => array()));
 					$rQuery = 'INSERT INTO `bouquets`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
@@ -252,7 +255,8 @@ class StreamService {
 					}
 				}
 
-				foreach (json_decode($rData['category_create_list'], true) as $rCategory) {
+				$rCategoryList = json_decode($rData['category_create_list'] ?? '[]', true) ?: [];
+				foreach ($rCategoryList as $rCategory) {
 					$rPrepare = prepareArray(array('category_type' => 'live', 'category_name' => $rCategory, 'parent_id' => 0, 'cat_order' => 99, 'is_adult' => 0));
 					$rQuery = 'INSERT INTO `streams_categories`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
@@ -264,7 +268,7 @@ class StreamService {
 			}
 
 			foreach ($rImportStreams as $rImportStream) {
-				if (!$rImportStream['update']) {
+				if (!($rImportStream['update'] ?? false)) {
 					$rImportArray = $rArray;
 
 					if ($rSettings['download_images']) {
@@ -278,7 +282,7 @@ class StreamService {
 					} else {
 						$rBouquets = array();
 
-						foreach ($rData['bouquets'] as $rBouquet) {
+						foreach (($rData['bouquets'] ?? []) as $rBouquet) {
 							if (isset($rBouquetCreate[$rBouquet])) {
 								$rBouquets[] = $rBouquetCreate[$rBouquet];
 							} else {
@@ -289,7 +293,7 @@ class StreamService {
 						}
 						$rCategories = array();
 
-						foreach ($rData['category_id'] as $rCategory) {
+						foreach (($rData['category_id'] ?? []) as $rCategory) {
 							if (isset($rCategoryCreate[$rCategory])) {
 								$rCategories[] = $rCategoryCreate[$rCategory];
 							} else {
@@ -315,7 +319,7 @@ class StreamService {
 						$rImportArray['order'] = StreamRepository::getNextOrder();
 					}
 
-					$rImportArray['title_sync'] = ($rData['title_sync'] ?: null);
+					$rImportArray['title_sync'] = ($rData['title_sync'] ?? null);
 
 					if ($rImportArray['title_sync']) {
 						list($rSyncID, $rSyncStream) = array_map('intval', explode('_', $rImportArray['title_sync']));
@@ -348,7 +352,7 @@ class StreamService {
 							if ($rServer['parent'] != '#') {
 								$rServerID = intval($rServer['id']);
 								$rStreamsAdded[] = $rServerID;
-								$rOD = intval(in_array($rServerID, ($rData['on_demand'] ?: array())));
+								$rOD = intval(in_array($rServerID, ($rData['on_demand'] ?? array())));
 
 								if ($rServer['parent'] == 'source') {
 									$rParent = null;
@@ -568,8 +572,7 @@ class StreamService {
 							$rServerID = intval($rServer['id']);
 
 							if (in_array($rData['server_type'], array('ADD', 'SET'))) {
-								$rOD = intval(in_array($rServerID, ($rData['on_demand'] ?: array())));
-
+							$rOD = intval(in_array($rServerID, ($rData['on_demand'] ?? array())));
 								if ($rServer['parent'] == 'source') {
 									$rParent = null;
 								} else {
