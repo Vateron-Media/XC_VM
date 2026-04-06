@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         ## Before you continue
-        Please search our [open/closed issues](https://github.com/AAAAAEXQOSyIpN2JZ0ehUQ/XC_VM/issues?q=is%3Aissue+label%3Aenhancement) to see if a similar request already exists.
+        Please search our [open/closed issues](https://github.com/Vateron-Media/XC_VM/issues?q=is%3Aissue+label%3Aenhancement) to see if a similar request already exists.
 
   - type: checkboxes
     attributes:

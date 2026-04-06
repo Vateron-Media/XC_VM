@@ -11,7 +11,7 @@ body:
         
         **This issue will be PUBLIC.** If the vulnerability is critical (RCE, auth bypass, data leak),
         please consider reporting it privately instead:
-        - Use [GitHub Security Advisories](https://github.com/AAAAAEXQOSyIpN2JZ0ehUQ/XC_VM/security/advisories/new)
+        - Use [GitHub Security Advisories](https://github.com/Vateron-Media/XC_VM/security/advisories/new)
         
         Only use this form for lower-severity security issues that are safe to disclose publicly.
 
