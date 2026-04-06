@@ -172,6 +172,7 @@ $router->any('record', [RecordController::class, 'index']);
 $router->any('review', [ReviewController::class, 'index']);
 $router->any('archive', [ArchiveController::class, 'index']);
 $router->get('asns', [AsnsController::class, 'index']);
+$router->get('resize', [AdminResizeController::class, 'index']);
 
 // ─── Phase 10: Formerly unrouted pages ─────────────────────────
 

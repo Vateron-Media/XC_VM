@@ -23,6 +23,12 @@ class PlayerResizeController extends BasePlayerController
 			exit();
 		}
 
-		require MAIN_HOME . 'infrastructure/legacy/player_resize_body.php';
+		if (!defined('IMAGES_PATH')) {
+			define('IMAGES_PATH', MAIN_HOME . 'public/assets/player/images/thumbs/');
+		}
+		$rResizeCacheDir = IMAGES_PATH;
+		$rResizePlaceholder = MAIN_HOME . 'public/assets/player/images/placeholder.png';
+		$rResizeSupportExtras = true;
+		require MAIN_HOME . 'infrastructure/legacy/resize_body.php';
 	}
 }

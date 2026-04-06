@@ -229,7 +229,7 @@ src/
 │   ├── bootstrap/                   # Функции/сессии для admin, reseller, player (facade layer)
 │   ├── cache/                       # CacheReader
 │   ├── database/                    # DatabaseFactory
-│   ├── legacy/                      # player_resize_body, reseller_api_actions и др.
+│   ├── legacy/                      # resize_body, reseller_api_actions и др.
 │   ├── nginx/                       # templates/
 │   ├── redis/                       # RedisManager
 │   └── service/                     # (bash-скрипты демонов)
