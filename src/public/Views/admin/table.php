@@ -1369,10 +1369,10 @@ if ($rType == "lines") {
                     }
                     $rProgressInfo = json_decode($rRow['progress_info'] ?? '', true) ?: [];
                     if ($rActualStatus == 1) {
-                        if (!isset($rStreamInfo["codecs"]["video"])) {
+                        if (!isset($rStreamInfo["codecs"]["video"]) || !is_array($rStreamInfo["codecs"]["video"])) {
                             $rStreamInfo["codecs"]["video"] = ["width" => "?", "height" => "?", "codec_name" => "N/A", "r_frame_rate" => "--"];
                         }
-                        if (!isset($rStreamInfo["codecs"]["audio"])) {
+                        if (!isset($rStreamInfo["codecs"]["audio"]) || !is_array($rStreamInfo["codecs"]["audio"])) {
                             $rStreamInfo["codecs"]["audio"] = ["codec_name" => "N/A"];
                         }
                         if ($rRow["bitrate"] == 0) {
@@ -1734,10 +1734,10 @@ if ($rType == "lines") {
                     }
                     $rProgressInfo = json_decode($rRow['progress_info'] ?? '', true) ?: [];
                     if ($rActualStatus == 1) {
-                        if (!isset($rStreamInfo["codecs"]["video"])) {
+                        if (!isset($rStreamInfo["codecs"]["video"]) || !is_array($rStreamInfo["codecs"]["video"])) {
                             $rStreamInfo["codecs"]["video"] = ["width" => "?", "height" => "?", "codec_name" => "N/A", "r_frame_rate" => "--"];
                         }
-                        if (!isset($rStreamInfo["codecs"]["audio"])) {
+                        if (!isset($rStreamInfo["codecs"]["audio"]) || !is_array($rStreamInfo["codecs"]["audio"])) {
                             $rStreamInfo["codecs"]["audio"] = ["codec_name" => "N/A"];
                         }
                         if ($rRow["bitrate"] == 0) {
