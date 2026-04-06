@@ -23,6 +23,7 @@ class ResellerResizeController extends BaseResellerController
             exit();
         }
 
-        require MAIN_HOME . 'infrastructure/legacy/reseller_resize_body.php';
+        $rResizeCacheDir = IMAGES_PATH . 'admin/';
+        require MAIN_HOME . 'infrastructure/legacy/resize_body.php';
     }
 }
