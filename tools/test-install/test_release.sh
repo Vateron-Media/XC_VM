@@ -117,14 +117,53 @@ cmd_logs() {
     docker exec "$CONTAINER" cat /var/log/xcvm_install.log 2>/dev/null || echo "No install log found."
 }
 
+cmd_sync() {
+    if ! docker ps --format '{{.Names}}' | grep -q "^${CONTAINER}$"; then
+        echo "ERROR: Container '$CONTAINER' is not running."
+        echo "Run '$0 install' first."
+        exit 1
+    fi
+
+    local DEST="/home/xc_vm"
+    local SRC_DIR="$PROJECT_ROOT/src"
+
+    echo "==> Syncing src/ → $CONTAINER:$DEST (one-way, host → container)"
+
+    # Собираем все файлы из src/ (tracked + untracked, respecting .gitignore)
+    # Исключаем бинарники, конфиг инсталлятора, кэш, контент
+    cd "$SRC_DIR"
+    tar cf - \
+        --exclude='bin' \
+        --exclude='config/config.ini' \
+        --exclude='content' \
+        --exclude='tmp' \
+        --exclude='.gitkeep' \
+        . | docker exec -i "$CONTAINER" tar xf - -C "$DEST"
+
+    local count
+    count=$(find . -type f \
+        -not -path './bin/*' \
+        -not -path './config/config.ini' \
+        -not -path './content/*' \
+        -not -path './tmp/*' \
+        -not -name '.gitkeep' | wc -l)
+    cd "$PROJECT_ROOT"
+
+    echo "==> Synced ~$count files."
+    echo ""
+    echo "To apply changes, restart the service:"
+    echo "  docker exec $CONTAINER systemctl restart xc_vm"
+}
+
 case "${1:-install}" in
     build)   cmd_build ;;
     run)     cmd_run ;;
     install) cmd_build && cmd_run && cmd_install ;;
     clean)   cmd_clean ;;
     logs)    cmd_logs ;;
+    sync)    cmd_sync ;;
     *)
-        echo "Usage: $0 {build|run|install|clean|logs}"
+        echo "Usage: $0 {build|run|install|clean|logs|sync}"
         exit 1
         ;;
 esac
