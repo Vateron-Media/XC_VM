@@ -629,6 +629,9 @@ class WatchItem {
                             $rImportArray['movie_symlink'] = $rThreadData['movie_symlink'];
                             $rImportArray['remove_subtitles'] = $rThreadData['remove_subtitles'];
                             $rImportArray['transcode_profile_id'] = $rThreadData['transcode_profile_id'];
+                            if ($rThreadData['transcode_profile_id'] > 0) {
+                                $rImportArray['enable_transcode'] = 1;
+                            }
                             if ($rThreadData['import']) {
                                 $rImportArray['direct_source'] = $rThreadData['direct_source'];
                                 $rImportArray['direct_proxy'] = $rThreadData['direct_proxy'];
@@ -890,6 +893,9 @@ class WatchItem {
                         $rImportArray['movie_symlink'] = $rThreadData['movie_symlink'];
                         $rImportArray['remove_subtitles'] = $rThreadData['remove_subtitles'];
                         $rImportArray['transcode_profile_id'] = $rThreadData['transcode_profile_id'];
+                        if ($rThreadData['transcode_profile_id'] > 0) {
+                            $rImportArray['enable_transcode'] = 1;
+                        }
                         if ($rThreadData['import']) {
                             $rImportArray['direct_source'] = $rThreadData['direct_source'];
                             $rImportArray['direct_proxy'] = $rThreadData['direct_proxy'];
