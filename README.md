@@ -18,14 +18,14 @@
 
 # 📑 Table of Contents
 
-<details open>
+<details>
 <summary><strong>📘 Contents</strong></summary>
 
 * 🏁 [Overview](#-overview)
 * ⚠️ [Status](#️-status)
 * 📚 [Documentation](#-documentation)
 * 🧱 [Technology Stack](#-technology-stack)
-* 🧩 [Ubuntu Support](#-supported-ubuntu-versions)
+* 🧩 [Supported OS](#-supported-operating-systems)
 * 📥 [Quick Install](#-quick-install)
 * 🧰 [Service Management](#-service-management)
 * 📂 [Project Structure](#-project-structure)
@@ -37,7 +37,6 @@
 * 📜 [License (AGPL-3.0)](#-license-agpl-30)
 
 </details>
-
 
 ---
 
@@ -85,52 +84,59 @@ It enables:
 
 ---
 
-## 🐧 Supported Ubuntu Versions
+## 🐧 Supported Operating Systems
 
-XC_VM **officially supports** the following Ubuntu LTS and interim releases:
+XC_VM supports multiple Linux distributions. Distribution-specific binaries (PHP, Nginx) are downloaded automatically from [XC_VM_Binaries](https://github.com/Vateron-Media/XC_VM_Binaries) during installation.
 
-| Ubuntu Version | Codename        | Status                |
-| -------------- | --------------- | --------------------- |
-| **20.04**      | Focal Fossa     | ⚠️ *Outdated*         |
-| **20.10**      | Groovy Gorilla  | ⚠️ *Outdated*         |
-| **22.04**      | Jammy Jellyfish | ✅ **Fully Supported** |
-| **22.10**      | Kinetic Kudu    | ⚙️ *Compatible*       |
-| **24.04**      | Noble Numbat    | ✅ **Fully Supported** |
-| **24.10**      | Oracular Oriole | 🧪 *Under Testing*    |
+### Ubuntu
+
+| Version    | Codename        | Status                |
+| ---------- | --------------- | --------------------- |
+| **18.04**  | Bionic Beaver   | ⚠️ *Legacy*           |
+| **20.04**  | Focal Fossa     | ✅ Supported           |
+| **22.04**  | Jammy Jellyfish | ✅ **Recommended**     |
+| **24.04**  | Noble Numbat    | ✅ **Recommended**     |
+
+### Debian
+
+| Version    | Codename   | Status                |
+| ---------- | ---------- | --------------------- |
+| **11**     | Bullseye   | ✅ Supported           |
+| **12**     | Bookworm   | ✅ **Recommended**     |
+| **13**     | Trixie     | ✅ Supported           |
+
+### RHEL-compatible (Rocky Linux, AlmaLinux, CentOS, RHEL)
+
+| Version | Status             |
+| ------- | ------------------ |
+| **8**   | 🚧 *Not yet supported* |
+| **9**   | 🚧 *Not yet supported* |
+
+> ⚠️ RHEL-family support is planned but not yet available. The installer recognizes these distributions, but pre-built binaries are not provided yet.
 
 ---
 
 ### 💡 Recommendations
 
-For new installations, the **strongly recommended** Ubuntu versions are:
+For new installations:
 
-* 🟢 **Ubuntu 22.04 LTS**
-* 🟢 **Ubuntu 24.04 LTS**
+* 🟢 **Ubuntu 22.04 / 24.04 LTS**
+* 🟢 **Debian 12**
 
-These versions receive full support, active security updates, and provide the stability required for XC_VM.
-
----
-
-### ⚠️ Important Note About Ubuntu 20.x
-
-Ubuntu 20.04 and 20.10 are **outdated** and no longer receive updates for most essential system packages.
-Using these versions is still *possible*, but:
-
-* 🛠️ **Official support is discontinued** — any issues must be resolved by the user.
-* 🚫 Bugs caused by outdated dependencies or libraries **will not be addressed** by the XC_VM project.
+> ⚠️ Ubuntu 18.04 is in legacy mode — it works but receives no priority fixes.
 
 ---
 
 ## 📥 Quick Install
 
-> ✅ Ubuntu 22.04 or newer
+> ✅ Ubuntu 22.04+, Debian 11+
 
 ```bash
 # 1. Update system
 sudo apt update && sudo apt full-upgrade -y
 
 # 2. Install dependencies
-sudo apt install -y curl wget python3-pip unzip
+sudo apt install -y curl wget python3 unzip
 
 # 3. Download latest release
 latest_version=$(curl -s https://api.github.com/repos/Vateron-Media/XC_VM/releases/latest | grep '"tag_name":' | cut -d '"' -f 4)
@@ -198,7 +204,7 @@ journalctl -u xc_vm -f         # Live logs
 | RAM       | 16–32 GB                      |
 | Disk      | SSD/NVMe, 480+ GB             |
 | Network   | Dedicated 1 Gbps port         |
-| OS        | Ubuntu 22.04+ (clean install) |
+| OS        | Ubuntu 22.04+, Debian 12+ (clean install) |
 
 ---
 
