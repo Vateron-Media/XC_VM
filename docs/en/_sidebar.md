@@ -21,6 +21,7 @@
   - [🖥 CLI Tools & DB Migrations](en-us/development/cli-tools.md)
   - [⚙️ Autoloader & Class Registration](en-us/development/autoloader.md)
   - [🧩 Module System](en-us/development/modules.md)
+  - [📂 Development Workflow (SFTP)](en-us/development/dev-workflow.md)
 
 - 📦 **Additional**
   - [🎬 Watchfolder](en-us/info/watch_folder.md)
