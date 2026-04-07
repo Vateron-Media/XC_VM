@@ -15,7 +15,6 @@
 
 // ── Development & Experimental Flags ───────────────────────────
 
-define('AUTO_RESTART_MARIADB', true); // Enables automatic MariaDB restart (experimental)
 define('DEVELOPMENT', true);          // Development mode (planned for removal)
 
 // ── Version & Git Configuration ────────────────────────────────
