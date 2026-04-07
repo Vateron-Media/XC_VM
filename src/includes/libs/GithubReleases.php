@@ -166,16 +166,35 @@ class GitHubReleases {
      *
      * @param string $current_version The current version tag (e.g., "1.0.0").
      * @return string|null The next version tag, or null if it's the latest or not found.
+     * @deprecated Use getLatestVersion() instead — sequential updates are no longer required.
      */
     public function getNextVersion(string $current_version): ?string {
+        return $this->getLatestVersion($current_version);
+    }
+
+    /**
+     * Get the latest available version that is newer than the current one.
+     *
+     * Unlike getNextVersion(), this skips intermediate versions and returns
+     * the newest release directly, allowing jump updates.
+     *
+     * @param string $current_version The current version tag (e.g., "1.0.0").
+     * @return string|null The latest version tag, or null if already up-to-date or version not found.
+     */
+    public function getLatestVersion(string $current_version): ?string {
         $releases = $this->getReleases();
 
-        $index = array_search($current_version, $releases);
-        if ($index === false) {
-            error_log("Version {$current_version} not found in channel '{$this->channel}'");
+        if (empty($releases)) {
             return null;
         }
-        return $index > 0 ? $releases[$index - 1] : null;
+
+        $latest = $releases[0];
+
+        if (version_compare($latest, $current_version, '<=')) {
+            return null;
+        }
+
+        return $latest;
     }
 
     /**
@@ -367,12 +386,12 @@ class GitHubReleases {
             default:
                 throw new Exception("Not valid file type");
         }
-        $next_version = $this->getNextVersion($version);
-        if (is_null($next_version)) {
-            $next_version = $version;
+        $target_version = $this->getLatestVersion($version);
+        if (is_null($target_version)) {
+            $target_version = $version;
         }
-        $upd_archive_url = "https://github.com/{$this->owner}/{$this->repo}/releases/download/{$next_version}/{$update_file}";
-        $hash_md5 = $this->getAssetHash($next_version, $update_file);
+        $upd_archive_url = "https://github.com/{$this->owner}/{$this->repo}/releases/download/{$target_version}/{$update_file}";
+        $hash_md5 = $this->getAssetHash($target_version, $update_file);
 
         $data = ["url" => $upd_archive_url, "md5" => $hash_md5];
         return $data;
@@ -387,8 +406,8 @@ class GitHubReleases {
      */
     public function getUpdate(string $version): ?array {
         try {
-            $next_version = $this->getNextVersion($version);
-            if ($next_version === null) {
+            $latest_version = $this->getLatestVersion($version);
+            if ($latest_version === null) {
                 error_log("No update available for version {$version} on channel '{$this->channel}'");
                 return null;
             }
@@ -396,10 +415,10 @@ class GitHubReleases {
             $changelogUrl = "https://raw.githubusercontent.com/{$this->owner}/{$this->repo}_Update/refs/heads/main/changelog.json";
             $changelog = $this->getChangelog($changelogUrl);
 
-            $url = "https://github.com/{$this->owner}/{$this->repo}/releases/tag/{$next_version}";
+            $url = "https://github.com/{$this->owner}/{$this->repo}/releases/tag/{$latest_version}";
 
             return [
-                "version" => $next_version,
+                "version" => $latest_version,
                 "changelog" => $changelog,
                 "url" => $url
             ];
@@ -478,25 +497,6 @@ class GitHubReleases {
     }
 
     /**
-     * Check if a version tag is a prerelease.
-     *
-     * @param string $version
-     * @return bool
-     */
-    private function isPrerelease(string $version): bool {
-        $cache = $this->loadCache();
-        if ($cache === null) {
-            return false;
-        }
-        foreach ($cache as $release) {
-            if (($release['tag_name'] ?? '') === $version) {
-                return !empty($release['prerelease']);
-            }
-        }
-        return false;
-    }
-
-    /**
      * Change the update channel and clear cache.
      *
      * @param string $channel 'stable' or 'unstable'
@@ -530,10 +530,15 @@ class GitHubReleases {
  *   print_r($releases);
  *
  * ------------------------------------------------------------
- * 2. Проверить следующую версию после текущей:
+ * 2. Получить последнюю доступную версию (прыжок на latest):
  *
- *   $next = $gh->getNextVersion("1.0.0");
- *   echo $next;
+ *   $latest = $gh->getLatestVersion("1.0.0");
+ *   echo $latest; // e.g. "2.0.2" — пропускает промежуточные версии
+ *
+ * ------------------------------------------------------------
+ * 3. getNextVersion() — алиас getLatestVersion() (deprecated):
+ *
+ *   $next = $gh->getNextVersion("1.0.0"); // то же что getLatestVersion()
  *
  * ------------------------------------------------------------
  * 3. Проверить хэш файла из релиза:
