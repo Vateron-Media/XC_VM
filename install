@@ -2315,7 +2315,7 @@ if __name__ == "__main__":
 
     # Run status command
     if os.path.exists("/home/xc_vm/console.php"):
-        run_command("/home/xc_vm/bin/php/bin/php /home/xc_vm/console.php status 1")
+        run_command("/home/xc_vm/console.php status 1")
 
     # Set config permissions
     run_command("chown -R xc_vm:xc_vm /home/xc_vm/config/")

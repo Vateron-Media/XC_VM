@@ -33,14 +33,14 @@ The process begins when the administrator clicks the **"Update"** button in the 
 Every **minute**, the following CRON job runs:
 
 ```bash
-/home/xc_vm/bin/php/bin/php /home/xc_vm/console.php cron:root_signals
+/home/xc_vm/console.php cron:root_signals
 ```
 
 The `root_signals` cron job checks for new signals.
 When it detects an `update` signal, it launches:
 
 ```bash
-/home/xc_vm/bin/php/bin/php /home/xc_vm/console.php update update
+/home/xc_vm/console.php update update
 
 ---
 
@@ -95,7 +95,7 @@ It performs privileged system operations:
 5. Run post-update tasks:
 
    ```bash
-   /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php update post-update
+   /home/xc_vm/console.php update post-update
    ```
 6. **Restart** the panel in normal operating mode.
 
@@ -121,7 +121,7 @@ Final steps are executed in the `post-update` phase of `UpdateCommand`:
 6. Verify panel status:
 
    ```bash
-   sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php status
+   sudo /home/xc_vm/console.php status
    ```
 7. Mark the update process as complete.
 

@@ -108,10 +108,10 @@ Watch Folder is an automated content import system. It monitors local directorie
 
 ```bash
 # Normal cron execution (usually triggered automatically)
-sudo -u xc_vm /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php cron:watch
+sudo -u xc_vm /home/xc_vm/console.php cron:watch
 
 # Force scan a specific folder (by ID)
-sudo -u xc_vm /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php cron:watch 5
+sudo -u xc_vm /home/xc_vm/console.php cron:watch 5
 ```
 
 ---

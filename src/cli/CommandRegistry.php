@@ -77,7 +77,7 @@ class CommandRegistry {
 	private function printHelp(): void {
 		echo "XC_VM Console\n";
 		echo "\n";
-		echo "Usage: php console.php <command> [arguments]\n";
+		echo "Usage: /home/xc_vm/console.php <command> [arguments]\n";
 		echo "\n";
 		echo "  --list    Show all available commands\n";
 		echo "  --help    Show this help message\n";

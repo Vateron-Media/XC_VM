@@ -362,12 +362,12 @@ console.php                  # Единая точка входа (root-level)
 **Запуск:**
 ```bash
 # Было:
-php /home/xc_vm/includes/cli/startup.php
-php /home/xc_vm/crons/servers.php
+/home/xc_vm/includes/cli/startup.php
+/home/xc_vm/crons/servers.php
 
 # Стало:
-php /home/xc_vm/console.php startup
-php /home/xc_vm/console.php cron:servers
+/home/xc_vm/console.php startup
+/home/xc_vm/console.php cron:servers
 ```
 
 #### Шаг 12.2 — Миграция includes/cli/ → cli/Commands/ ✅
