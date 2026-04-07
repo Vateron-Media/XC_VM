@@ -16,8 +16,8 @@ echo "==> Распаковка XC_VM.zip..."
 unzip -o XC_VM.zip
 
 # Проверяем что инсталлятор и архив на месте
-if [[ ! -f test_installer ]]; then
-    echo "ERROR: test_installer script not found after unzip"
+if [[ ! -f install ]]; then
+    echo "ERROR: install script not found after unzip"
     exit 1
 fi
 if [[ ! -f xc_vm.tar.gz ]]; then
@@ -33,7 +33,7 @@ echo "==> Запуск инсталлятора..."
 #   3) "HTTPS port (default 443):" — пустая строка (default 443)
 #   4) "Overwrite sysctl configuration? Recommended! (Y / N):" — Y
 
-printf '\n\n\nY\n' | python3 test_installer 2>&1 | tee /var/log/xcvm_install.log
+printf '\n\n\nY\n' | python3 install 2>&1 | tee /var/log/xcvm_install.log
 EXIT_CODE=${PIPESTATUS[1]}
 
 echo ""
