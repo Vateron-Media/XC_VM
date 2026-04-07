@@ -107,12 +107,12 @@
                             <?php if (Authorization::check('adv', 'live_connections')): ?>
                                 <a href="./live_connections?server_id=<?= $rServer['id']; ?>">
                                 <?php endif; ?>
-                                <div class="card cta-box <?php if (!$rSettings['dark_mode']) echo 'bg-purple'; ?> text-white">
+                                <div class="card cta-box <?php if (!($rSettings['dark_mode'] ?? false)) echo 'bg-purple'; ?> text-white">
                                     <div class="card-body active-connections">
                                         <div class="media align-items-center">
                                             <div class="col-3">
                                                 <div class="avatar-sm bg-light">
-                                                    <i class="fe-zap avatar-title font-22 <?= $rSettings['dark_mode'] ? 'text-white' : 'text-purple'; ?>"></i>
+                                                    <i class="fe-zap avatar-title font-22 <?= ($rSettings['dark_mode'] ?? false) ? 'text-white' : 'text-purple'; ?>"></i>
                                                 </div>
                                             </div>
                                             <div class="col-9">
@@ -136,12 +136,12 @@
                                     <?php if (Authorization::check('adv', 'live_connections')): ?>
                                         <a href="./live_connections?server_id=<?= $rServer['id']; ?>">
                                         <?php endif; ?>
-                                        <div class="card cta-box <?php if (!$rSettings['dark_mode']) echo 'bg-success'; ?> text-white">
+                                        <div class="card cta-box <?php if (!($rSettings['dark_mode'] ?? false)) echo 'bg-success'; ?> text-white">
                                             <div class="card-body active-connections">
                                                 <div class="media align-items-center">
                                                     <div class="col-3">
                                                         <div class="avatar-sm bg-light">
-                                                            <i class="fe-users avatar-title font-22 <?= $rSettings['dark_mode'] ? 'text-white' : 'text-success'; ?>"></i>
+                                                            <i class="fe-users avatar-title font-22 <?= ($rSettings['dark_mode'] ?? false) ? 'text-white' : 'text-success'; ?>"></i>
                                                         </div>
                                                     </div>
                                                     <div class="col-9">
@@ -162,12 +162,12 @@
                                             <?php if (Authorization::check('adv', 'streams')): ?>
                                                 <a href="./streams?filter=1&server=<?= $rServer['id']; ?>">
                                                 <?php endif; ?>
-                                                <div class="card cta-box <?php if (!$rSettings['dark_mode']) echo 'bg-pink'; ?> text-white">
+                                                <div class="card cta-box <?php if (!($rSettings['dark_mode'] ?? false)) echo 'bg-pink'; ?> text-white">
                                                     <div class="card-body active-connections">
                                                         <div class="media align-items-center">
                                                             <div class="col-3">
                                                                 <div class="avatar-sm bg-light">
-                                                                    <i class="fe-play avatar-title font-22 <?= $rSettings['dark_mode'] ? 'text-white' : 'text-pink'; ?>"></i>
+                                                                    <i class="fe-play avatar-title font-22 <?= ($rSettings['dark_mode'] ?? false) ? 'text-white' : 'text-pink'; ?>"></i>
                                                                 </div>
                                                             </div>
                                                             <div class="col-9">
@@ -187,12 +187,12 @@
                                             <?php if (Authorization::check('adv', 'streams')): ?>
                                                 <a href="./streams?filter=2&server=<?= $rServer['id']; ?>">
                                                 <?php endif; ?>
-                                                <div class="card cta-box <?php if (!$rSettings['dark_mode']) echo 'bg-info'; ?> text-white">
+                                                <div class="card cta-box <?php if (!($rSettings['dark_mode'] ?? false)) echo 'bg-info'; ?> text-white">
                                                     <div class="card-body active-connections">
                                                         <div class="media align-items-center">
                                                             <div class="col-3">
                                                                 <div class="avatar-sm bg-light">
-                                                                    <i class="fe-pause avatar-title font-22 <?= $rSettings['dark_mode'] ? 'text-white' : 'text-info'; ?>"></i>
+                                                                    <i class="fe-pause avatar-title font-22 <?= ($rSettings['dark_mode'] ?? false) ? 'text-white' : 'text-info'; ?>"></i>
                                                                 </div>
                                                             </div>
                                                             <div class="col-9">
@@ -275,7 +275,7 @@
                                     </div>
                                 </div>
                                 <?php
-                                if (is_array($rServer['gpu_info'])):
+                                if (is_array($rServer['gpu_info']) && !empty($rServer['gpu_info']['gpus'])):
                                     $rGPUNumber = 0;
                                     foreach ($rServer['gpu_info']['gpus'] as $rGPU):
                                         $D325c5780b273117 = number_format(intval(explode(' ', $rGPU['memory_usage']['used'])[0]) / intval(explode(' ', $rGPU['memory_usage']['total'])[0]) * 100, 0);
