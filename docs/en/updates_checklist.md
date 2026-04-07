@@ -20,17 +20,20 @@
 
 ## 🔢 1. Update Version
 
-Edit the version constant in:
+Edit the version constant and disable development mode in:
 
 ```
 src/core/Config/AppConfig.php
 ```
 
-**Quick command:**
+**Quick commands:**
 
 ```bash
 sed -i "s/define('XC_VM_VERSION', *'[0-9]\+\.[0-9]\+\.[0-9]\+');/define('XC_VM_VERSION', 'X.Y.Z');/" src/core/Config/AppConfig.php
+sed -i "s/define('DEVELOPMENT', true);/define('DEVELOPMENT', false);/" src/core/Config/AppConfig.php
 ```
+
+> ⚠️ Make sure `DEVELOPMENT` is set to `false` before every release.
 
 **Commit:**
 

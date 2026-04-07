@@ -20,17 +20,20 @@
 
 ## 🔢 1. Обновить версию
 
-Изменить константу версии в:
+Изменить константу версии и отключить режим разработки в:
 
 ```
 src/core/Config/AppConfig.php
 ```
 
-**Быстрая команда:**
+**Быстрые команды:**
 
 ```bash
 sed -i "s/define('XC_VM_VERSION', *'[0-9]\+\.[0-9]\+\.[0-9]\+');/define('XC_VM_VERSION', 'X.Y.Z');/" src/core/Config/AppConfig.php
+sed -i "s/define('DEVELOPMENT', true);/define('DEVELOPMENT', false);/" src/core/Config/AppConfig.php
 ```
+
+> ⚠️ Убедитесь, что `DEVELOPMENT` установлен в `false` перед каждым релизом.
 
 **Закоммитить:**
 
