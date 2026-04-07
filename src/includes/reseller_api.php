@@ -1,7 +1,16 @@
 <?php
 
+/**
+ * Reseller API handler
+ *
+ * @package XC_VM_Includes
+ * @author  Divarion_D <https://github.com/Divarion-D>
+ * @copyright 2025-2026 Vateron Media
+ * @link    https://github.com/Vateron-Media/XC_VM
+ * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
+ */
+
 class ResellerAPI {
-	public static $db = null;
 	public static $rSettings = array();
 	public static $rServers = array();
 	public static $rProxyServers = array();
@@ -22,9 +31,11 @@ class ResellerAPI {
 	}
 
 	public static function init($rUserID = null) {
+		global $db;
+		global $rPermissions;
 		self::$rSettings = getSettings();
-		self::$rServers = getStreamingServers();
-		self::$rProxyServers = getProxyServers();
+		self::$rServers = ServerRepository::getStreamingSimple($rPermissions);
+		self::$rProxyServers = ServerRepository::getProxySimple($rPermissions);
 
 		if ($rUserID || !isset($_SESSION['reseller'])) {
 		} else {
@@ -33,12 +44,13 @@ class ResellerAPI {
 
 		if (!$rUserID) {
 		} else {
-			self::$rUserInfo = getRegisteredUser($rUserID);
+			self::$rUserInfo = UserRepository::getRegisteredUserById($rUserID);
 			self::$rPermissions = array_merge((getPermissions(self::$rUserInfo['member_group_id']) ?: array()), (getGroupPermissions(self::$rUserInfo['id']) ?: array()));
 		}
 	}
 
 	public static function editResellerProfile($rData) {
+		global $db;
 		global $rHues;
 		global $allowedLangs;
 		$rData = self::processData('profile', $rData);
@@ -73,7 +85,7 @@ class ResellerAPI {
 				$rData['lang'] = 'en';
 			}
 
-			self::$db->query('UPDATE `users` SET `password` = ?, `email` = ?, `reseller_dns` = ?, `theme` = ?, `hue` = ?, `timezone` = ?, `api_key` = ?, `lang` = ? WHERE `id` = ?;', $rPassword, $rData['email'], $rData['reseller_dns'], $rData['theme'], $rData['hue'], $rData['timezone'], $rData['api_key'], $rData['lang'], self::$rUserInfo['id']);
+			$db->query('UPDATE `users` SET `password` = ?, `email` = ?, `reseller_dns` = ?, `theme` = ?, `hue` = ?, `timezone` = ?, `api_key` = ?, `lang` = ? WHERE `id` = ?;', $rPassword, $rData['email'], $rData['reseller_dns'], $rData['theme'], $rData['hue'], $rData['timezone'], $rData['api_key'], $rData['lang'], self::$rUserInfo['id']);
 
 			return array('status' => STATUS_SUCCESS);
 		}
@@ -82,83 +94,11 @@ class ResellerAPI {
 	}
 
 	public static function processLogin($rData) {
-		if (!self::$rSettings['recaptcha_enable']) {
-		} else {
-			$rResponse = json_decode(file_get_contents('https://www.google.com/recaptcha/api/siteverify?secret=' . self::$rSettings['recaptcha_v2_secret_key'] . '&response=' . $rData['g-recaptcha-response']), true);
-
-			if ($rResponse['success']) {
-			} else {
-				return array('status' => STATUS_INVALID_CAPTCHA);
-			}
-		}
-
-		$rIP = getIP();
-		$rUserInfo = getUserInfo($rData['username'], $rData['password']);
-		$rAccessCode = getCurrentCode(true);
-
-		if (isset($rUserInfo)) {
-			if (in_array($rUserInfo['member_group_id'], json_decode($rAccessCode['groups'], true)) || count(getActiveCodes()) == 0) {
-				$rPermissions = getPermissions($rUserInfo['member_group_id']);
-
-				if ($rPermissions['is_reseller']) {
-					if ($rUserInfo['status'] == 1) {
-						$rCrypt = cryptPassword($rData['password']);
-
-						if ($rUserInfo['password'] != $rCrypt) {
-							self::$db->query('UPDATE `users` SET `password` = ?, `last_login` = UNIX_TIMESTAMP(), `ip` = ? WHERE `id` = ?;', $rCrypt, $rIP, $rUserInfo['id']);
-						} else {
-							self::$db->query('UPDATE `users` SET `last_login` = UNIX_TIMESTAMP(), `ip` = ? WHERE `id` = ?;', $rIP, $rUserInfo['id']);
-						}
-
-						$_SESSION['reseller'] = $rUserInfo['id'];
-						$_SESSION['rip'] = $rIP;
-						$_SESSION['rcode'] = getCurrentCode();
-						$_SESSION['rverify'] = md5($rUserInfo['username'] . '||' . $rCrypt);
-
-						if (!self::$rSettings['save_login_logs']) {
-						} else {
-							self::$db->query("INSERT INTO `login_logs`(`type`, `access_code`, `user_id`, `status`, `login_ip`, `date`) VALUES('RESELLER', ?, ?, ?, ?, ?);", $rAccessCode['id'], $rUserInfo['id'], 'SUCCESS', $rIP, time());
-						}
-
-						return array('status' => STATUS_SUCCESS);
-					}
-
-					if (!($rPermissions && ($rPermissions['is_admin'] || $rPermissions['is_reseller']) && !$rUserInfo['status'])) {
-					} else {
-						if (!self::$rSettings['save_login_logs']) {
-						} else {
-							self::$db->query("INSERT INTO `login_logs`(`type`, `access_code`, `user_id`, `status`, `login_ip`, `date`) VALUES('RESELLER', ?, ?, ?, ?, ?);", $rAccessCode['id'], $rUserInfo['id'], 'DISABLED', $rIP, time());
-						}
-
-						return array('status' => STATUS_DISABLED);
-					}
-				} else {
-					if (!self::$rSettings['save_login_logs']) {
-					} else {
-						self::$db->query("INSERT INTO `login_logs`(`type`, `access_code`, `user_id`, `status`, `login_ip`, `date`) VALUES('RESELLER', ?, ?, ?, ?, ?);", $rAccessCode['id'], $rUserInfo['id'], 'NOT_ADMIN', $rIP, time());
-					}
-
-					return array('status' => STATUS_NOT_RESELLER);
-				}
-			} else {
-				if (!self::$rSettings['save_login_logs']) {
-				} else {
-					self::$db->query("INSERT INTO `login_logs`(`type`, `access_code`, `user_id`, `status`, `login_ip`, `date`) VALUES('RESELLER', ?, ?, ?, ?, ?);", $rAccessCode['id'], $rUserInfo['id'], 'INVALID_CODE', $rIP, time());
-				}
-
-				return array('status' => STATUS_INVALID_CODE);
-			}
-		} else {
-			if (!self::$rSettings['save_login_logs']) {
-			} else {
-				self::$db->query("INSERT INTO `login_logs`(`type`, `access_code`, `user_id`, `status`, `login_ip`, `date`) VALUES('RESELLER', ?, 0, ?, ?, ?);", $rAccessCode['id'], 'INVALID_LOGIN', $rIP, time());
-			}
-
-			return array('status' => STATUS_FAILURE);
-		}
+		return Authenticator::resellerLogin($rData);
 	}
 
 	public static function processMAG($rData) {
+		global $db;
 		$rData = self::processData('mag', $rData);
 
 		if (self::$rPermissions['create_mag']) {
@@ -167,10 +107,10 @@ class ResellerAPI {
 			if (isset($rData['edit'])) {
 				$rArray = getMag($rData['edit']);
 
-				if ($rArray && hasPermissions('line', $rArray['user_id'])) {
+				if ($rArray && Authorization::check('line', $rArray['user_id'])) {
 
 
-					$rUserArray = getUser($rArray['user_id']);
+					$rUserArray = UserRepository::getLineById($rArray['user_id']);
 				} else {
 					return false;
 				}
@@ -237,7 +177,7 @@ class ResellerAPI {
 
 							$rBouquets = array_values(json_decode($rPackage['bouquets'], true));
 
-							if (!(self::$rPermissions['allow_change_bouquets'] && 0 < count($rData['bouquets_selected']))) {
+							if (!(self::$rPermissions['allow_change_bouquets'] && 0 < count($rData['bouquets_selected'] ?? []))) {
 							} else {
 								$rNewBouquets = array();
 
@@ -254,7 +194,7 @@ class ResellerAPI {
 								}
 							}
 
-							$rUserArray['bouquet'] = sortArrayByArray($rBouquets, array_keys(getBouquetOrder()));
+							$rUserArray['bouquet'] = sortArrayByArray($rBouquets, array_keys(BouquetService::getOrder()));
 							$rUserArray['bouquet'] = '[' . implode(',', array_map('intval', $rUserArray['bouquet'])) . ']';
 							$rUserArray['max_connections'] = $rPackage['max_connections'];
 							$rUserArray['is_restreamer'] = $rPackage['is_restreamer'];
@@ -289,7 +229,7 @@ class ResellerAPI {
 					$rPackage = getPackage($rUserArray['package_id']);
 					$rBouquets = array_values(json_decode($rPackage['bouquets'], true));
 
-					if (!(self::$rPermissions['allow_change_bouquets'] && 0 < count($rData['bouquets_selected']))) {
+					if (!(self::$rPermissions['allow_change_bouquets'] && 0 < count($rData['bouquets_selected'] ?? []))) {
 					} else {
 						$rNewBouquets = array();
 
@@ -306,7 +246,7 @@ class ResellerAPI {
 						}
 					}
 
-					$rUserArray['bouquet'] = sortArrayByArray($rBouquets, array_keys(getBouquetOrder()));
+					$rUserArray['bouquet'] = sortArrayByArray($rBouquets, array_keys(BouquetService::getOrder()));
 					$rUserArray['bouquet'] = '[' . implode(',', array_map('intval', $rUserArray['bouquet'])) . ']';
 				}
 			}
@@ -317,7 +257,7 @@ class ResellerAPI {
 			$rUserArray['reseller_notes'] = $rData['reseller_notes'];
 			$rOwner = $rData['member_id'];
 
-			if (hasPermissions('user', $rOwner)) {
+			if (Authorization::check('user', $rOwner)) {
 				$rUserArray['member_id'] = $rOwner;
 			} else {
 				$rUserArray['member_id'] = self::$rUserInfo['id'];
@@ -353,17 +293,17 @@ class ResellerAPI {
 
 
 				if (isset($rData['edit'])) {
-					self::$db->query('SELECT `mag_id` FROM `mag_devices` WHERE mac = ? AND `mag_id` <> ? LIMIT 1;', $rArray['mac'], $rData['edit']);
+					$db->query('SELECT `mag_id` FROM `mag_devices` WHERE mac = ? AND `mag_id` <> ? LIMIT 1;', $rArray['mac'], $rData['edit']);
 				} else {
-					self::$db->query('SELECT `mag_id` FROM `mag_devices` WHERE mac = ? LIMIT 1;', $rArray['mac']);
+					$db->query('SELECT `mag_id` FROM `mag_devices` WHERE mac = ? LIMIT 1;', $rArray['mac']);
 				}
 
-				if (0 >= self::$db->num_rows()) {
+				if (0 >= $db->num_rows()) {
 
 
 					$rArray['mac'] = $rData['mac'];
 
-					if (isset($rData['pair_id']) && hasPermissions('line', $rData['pair_id'])) {
+					if (isset($rData['pair_id']) && Authorization::check('line', $rData['pair_id'])) {
 						$rUserArray['pair_id'] = intval($rData['pair_id']);
 					} else {
 						$rUserArray['pair_id'] = null;
@@ -372,11 +312,11 @@ class ResellerAPI {
 					$rPrepare = prepareArray($rUserArray);
 					$rQuery = 'REPLACE INTO `lines`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
-					if (!self::$db->query($rQuery, ...$rPrepare['data'])) {
+					if (!$db->query($rQuery, ...$rPrepare['data'])) {
 					} else {
-						$rInsertID = self::$db->last_insert_id();
-						syncDevices($rInsertID);
-						self::$db->query('INSERT INTO `signals`(`server_id`, `cache`, `time`, `custom_data`) VALUES(?, 1, ?, ?);', SERVER_ID, time(), json_encode(array('type' => 'update_line', 'id' => $rInsertID)));
+						$rInsertID = $db->last_insert_id();
+						MagService::syncLineDevices($rInsertID);
+						$db->query('INSERT INTO `signals`(`server_id`, `cache`, `time`, `custom_data`) VALUES(?, 1, ?, ?);', SERVER_ID, time(), json_encode(array('type' => 'update_line', 'id' => $rInsertID)));
 						$rArray['user_id'] = $rInsertID;
 						unset($rArray['user'], $rArray['paired']);
 
@@ -394,12 +334,12 @@ class ResellerAPI {
 						$rPrepare = prepareArray($rArray);
 						$rQuery = 'REPLACE INTO `mag_devices`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
-						if (self::$db->query($rQuery, ...$rPrepare['data'])) {
-							$rInsertID = self::$db->last_insert_id();
+						if ($db->query($rQuery, ...$rPrepare['data'])) {
+							$rInsertID = $db->last_insert_id();
 
 							if (isset($rPackage)) {
 								$rNewCredits = intval(self::$rUserInfo['credits']) - intval($rCost);
-								self::$db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $rNewCredits, self::$rUserInfo['id']);
+								$db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $rNewCredits, self::$rUserInfo['id']);
 
 								if (isset($rArray['id'])) {
 									if ($rUserArray['package_id']) {
@@ -412,9 +352,9 @@ class ResellerAPI {
 								}
 
 								$rData = getMag($rInsertID);
-								self::$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'mag', ?, ?, ?, ?, ?, ?, ?);", self::$rUserInfo['id'], $rType, $rInsertID, $rPackage['id'], $rCost, $rNewCredits, time(), json_encode($rData));
+								$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'mag', ?, ?, ?, ?, ?, ?, ?);", self::$rUserInfo['id'], $rType, $rInsertID, $rPackage['id'], $rCost, $rNewCredits, time(), json_encode($rData));
 							} else {
-								self::$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'mag', ?, ?, null, ?, ?, ?, ?);", self::$rUserInfo['id'], 'edit', $rInsertID, 0, self::$rUserInfo['credits'], time(), json_encode($rData));
+								$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'mag', ?, ?, null, ?, ?, ?, ?);", self::$rUserInfo['id'], 'edit', $rInsertID, 0, self::$rUserInfo['credits'], time(), json_encode($rData));
 							}
 
 							return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
@@ -422,7 +362,7 @@ class ResellerAPI {
 
 						if (isset($rData['edit'])) {
 						} else {
-							self::$db->query('DELETE FROM `lines` WHERE `id` = ?;', $rInsertID);
+							$db->query('DELETE FROM `lines` WHERE `id` = ?;', $rInsertID);
 						}
 					}
 
@@ -439,6 +379,7 @@ class ResellerAPI {
 	}
 
 	public static function processEnigma($rData) {
+		global $db;
 		$rData = self::processData('enigma', $rData);
 
 		if (self::$rPermissions['create_enigma']) {
@@ -447,10 +388,10 @@ class ResellerAPI {
 			if (isset($rData['edit'])) {
 				$rArray = getEnigma($rData['edit']);
 
-				if ($rArray && hasPermissions('line', $rArray['user_id'])) {
+				if ($rArray && Authorization::check('line', $rArray['user_id'])) {
 
 
-					$rUserArray = getUser($rArray['user_id']);
+					$rUserArray = UserRepository::getLineById($rArray['user_id']);
 				} else {
 					return false;
 				}
@@ -516,7 +457,7 @@ class ResellerAPI {
 
 							$rBouquets = array_values(json_decode($rPackage['bouquets'], true));
 
-							if (!(self::$rPermissions['allow_change_bouquets'] && 0 < count($rData['bouquets_selected']))) {
+							if (!(self::$rPermissions['allow_change_bouquets'] && 0 < count($rData['bouquets_selected'] ?? []))) {
 							} else {
 								$rNewBouquets = array();
 
@@ -533,7 +474,7 @@ class ResellerAPI {
 								}
 							}
 
-							$rUserArray['bouquet'] = sortArrayByArray($rBouquets, array_keys(getBouquetOrder()));
+							$rUserArray['bouquet'] = sortArrayByArray($rBouquets, array_keys(BouquetService::getOrder()));
 							$rUserArray['bouquet'] = '[' . implode(',', array_map('intval', $rUserArray['bouquet'])) . ']';
 							$rUserArray['max_connections'] = $rPackage['max_connections'];
 							$rUserArray['is_restreamer'] = $rPackage['is_restreamer'];
@@ -568,7 +509,7 @@ class ResellerAPI {
 					$rPackage = getPackage($rUserArray['package_id']);
 					$rBouquets = array_values(json_decode($rPackage['bouquets'], true));
 
-					if (!(self::$rPermissions['allow_change_bouquets'] && 0 < count($rData['bouquets_selected']))) {
+					if (!(self::$rPermissions['allow_change_bouquets'] && 0 < count($rData['bouquets_selected'] ?? []))) {
 					} else {
 						$rNewBouquets = array();
 
@@ -585,7 +526,7 @@ class ResellerAPI {
 						}
 					}
 
-					$rUserArray['bouquet'] = sortArrayByArray($rBouquets, array_keys(getBouquetOrder()));
+					$rUserArray['bouquet'] = sortArrayByArray($rBouquets, array_keys(BouquetService::getOrder()));
 					$rUserArray['bouquet'] = '[' . implode(',', array_map('intval', $rUserArray['bouquet'])) . ']';
 				}
 			}
@@ -596,7 +537,7 @@ class ResellerAPI {
 			$rUserArray['reseller_notes'] = $rData['reseller_notes'];
 			$rOwner = $rData['member_id'];
 
-			if (hasPermissions('user', $rOwner)) {
+			if (Authorization::check('user', $rOwner)) {
 				$rUserArray['member_id'] = $rOwner;
 			} else {
 				$rUserArray['member_id'] = self::$rUserInfo['id'];
@@ -632,17 +573,17 @@ class ResellerAPI {
 
 
 				if (isset($rData['edit'])) {
-					self::$db->query('SELECT `device_id` FROM `enigma2_devices` WHERE mac = ? AND `device_id` <> ? LIMIT 1;', $rArray['mac'], $rData['edit']);
+					$db->query('SELECT `device_id` FROM `enigma2_devices` WHERE mac = ? AND `device_id` <> ? LIMIT 1;', $rArray['mac'], $rData['edit']);
 				} else {
-					self::$db->query('SELECT `device_id` FROM `enigma2_devices` WHERE mac = ? LIMIT 1;', $rArray['mac']);
+					$db->query('SELECT `device_id` FROM `enigma2_devices` WHERE mac = ? LIMIT 1;', $rArray['mac']);
 				}
 
-				if (0 >= self::$db->num_rows()) {
+				if (0 >= $db->num_rows()) {
 
 
 					$rArray['mac'] = $rData['mac'];
 
-					if (isset($rData['pair_id']) && hasPermissions('line', $rData['pair_id'])) {
+					if (isset($rData['pair_id']) && Authorization::check('line', $rData['pair_id'])) {
 						$rUserArray['pair_id'] = intval($rData['pair_id']);
 					} else {
 						$rUserArray['pair_id'] = null;
@@ -651,11 +592,11 @@ class ResellerAPI {
 					$rPrepare = prepareArray($rUserArray);
 					$rQuery = 'REPLACE INTO `lines`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
-					if (!self::$db->query($rQuery, ...$rPrepare['data'])) {
+					if (!$db->query($rQuery, ...$rPrepare['data'])) {
 					} else {
-						$rInsertID = self::$db->last_insert_id();
-						syncDevices($rInsertID);
-						self::$db->query('INSERT INTO `signals`(`server_id`, `cache`, `time`, `custom_data`) VALUES(?, 1, ?, ?);', SERVER_ID, time(), json_encode(array('type' => 'update_line', 'id' => $rInsertID)));
+						$rInsertID = $db->last_insert_id();
+						MagService::syncLineDevices($rInsertID);
+						$db->query('INSERT INTO `signals`(`server_id`, `cache`, `time`, `custom_data`) VALUES(?, 1, ?, ?);', SERVER_ID, time(), json_encode(array('type' => 'update_line', 'id' => $rInsertID)));
 						$rArray['user_id'] = $rInsertID;
 						unset($rArray['user'], $rArray['paired']);
 
@@ -672,12 +613,12 @@ class ResellerAPI {
 						$rPrepare = prepareArray($rArray);
 						$rQuery = 'REPLACE INTO `enigma2_devices`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
-						if (self::$db->query($rQuery, ...$rPrepare['data'])) {
-							$rInsertID = self::$db->last_insert_id();
+						if ($db->query($rQuery, ...$rPrepare['data'])) {
+							$rInsertID = $db->last_insert_id();
 
 							if (isset($rPackage)) {
 								$rNewCredits = intval(self::$rUserInfo['credits']) - intval($rCost);
-								self::$db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $rNewCredits, self::$rUserInfo['id']);
+								$db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $rNewCredits, self::$rUserInfo['id']);
 
 								if (isset($rArray['id'])) {
 									if ($rArray['package_id']) {
@@ -690,9 +631,9 @@ class ResellerAPI {
 								}
 
 								$rData = getEnigma($rInsertID);
-								self::$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'enigma', ?, ?, ?, ?, ?, ?, ?);", self::$rUserInfo['id'], $rType, $rInsertID, $rPackage['id'], $rCost, $rNewCredits, time(), json_encode($rData));
+								$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'enigma', ?, ?, ?, ?, ?, ?, ?);", self::$rUserInfo['id'], $rType, $rInsertID, $rPackage['id'], $rCost, $rNewCredits, time(), json_encode($rData));
 							} else {
-								self::$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'enigma', ?, ?, null, ?, ?, ?, ?);", self::$rUserInfo['id'], 'edit', $rInsertID, 0, self::$rUserInfo['credits'], time(), json_encode($rData));
+								$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'enigma', ?, ?, null, ?, ?, ?, ?);", self::$rUserInfo['id'], 'edit', $rInsertID, 0, self::$rUserInfo['credits'], time(), json_encode($rData));
 							}
 
 							return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
@@ -700,7 +641,7 @@ class ResellerAPI {
 
 						if (isset($rData['edit'])) {
 						} else {
-							self::$db->query('DELETE FROM `lines` WHERE `id` = ?;', $rInsertID);
+							$db->query('DELETE FROM `lines` WHERE `id` = ?;', $rInsertID);
 						}
 					}
 
@@ -717,15 +658,16 @@ class ResellerAPI {
 	}
 
 	public static function processUser($rData) {
+		global $db;
 		$rData = self::processData('user', $rData);
 
 		if (self::$rPermissions['create_sub_resellers']) {
 
 
 			if (isset($rData['edit'])) {
-				$rArray = getRegisteredUser($rData['edit']);
+				$rArray = UserRepository::getRegisteredUserById($rData['edit']);
 
-				if ($rArray && hasPermissions('user', $rArray['id'])) {
+				if ($rArray && Authorization::check('user', $rArray['id'])) {
 
 
 					if ($rArray['id'] != self::$rUserInfo['id']) {
@@ -807,16 +749,16 @@ class ResellerAPI {
 						$rPrepare = prepareArray($rArray);
 						$rQuery = 'REPLACE INTO `users`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
-						if (self::$db->query($rQuery, ...$rPrepare['data'])) {
-							$rInsertID = self::$db->last_insert_id();
-							$rData = getRegisteredUser($rInsertID);
+						if ($db->query($rQuery, ...$rPrepare['data'])) {
+							$rInsertID = $db->last_insert_id();
+							$rData = UserRepository::getRegisteredUserById($rInsertID);
 
 							if (isset($rCost)) {
 								$rNewCredits = intval(self::$rUserInfo['credits']) - intval($rCost);
-								self::$db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $rNewCredits, self::$rUserInfo['id']);
-								self::$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'user', ?, ?, null, ?, ?, ?, ?);", self::$rUserInfo['id'], 'new', $rInsertID, $rCost, $rNewCredits, time(), json_encode($rData));
+								$db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $rNewCredits, self::$rUserInfo['id']);
+								$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'user', ?, ?, null, ?, ?, ?, ?);", self::$rUserInfo['id'], 'new', $rInsertID, $rCost, $rNewCredits, time(), json_encode($rData));
 							} else {
-								self::$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'user', ?, ?, null, ?, ?, ?, ?);", self::$rUserInfo['id'], 'edit', $rInsertID, 0, self::$rUserInfo['credits'], time(), json_encode($rData));
+								$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'user', ?, ?, null, ?, ?, ?, ?);", self::$rUserInfo['id'], 'edit', $rInsertID, 0, self::$rUserInfo['credits'], time(), json_encode($rData));
 							}
 
 							return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
@@ -838,12 +780,13 @@ class ResellerAPI {
 	}
 
 	public static function submitTicket($rData) {
+		global $db;
 		$rData = self::processData('ticket', $rData);
 
 		if (isset($rData['edit'])) {
 			$rArray = getTicket($rData['edit']);
 
-			if ($rArray && hasPermissions('user', $rArray['member_id'])) {
+			if ($rArray && Authorization::check('user', $rArray['member_id'])) {
 			} else {
 				return false;
 			}
@@ -866,9 +809,9 @@ class ResellerAPI {
 				$rPrepare = prepareArray($rArray);
 				$rQuery = 'REPLACE INTO `tickets`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
-				if (self::$db->query($rQuery, ...$rPrepare['data'])) {
-					$rInsertID = self::$db->last_insert_id();
-					self::$db->query('INSERT INTO `tickets_replies`(`ticket_id`, `admin_reply`, `message`, `date`) VALUES(?, 0, ?, ?);', $rInsertID, $rData['message'], time());
+				if ($db->query($rQuery, ...$rPrepare['data'])) {
+					$rInsertID = $db->last_insert_id();
+					$db->query('INSERT INTO `tickets_replies`(`ticket_id`, `admin_reply`, `message`, `date`) VALUES(?, 0, ?, ?);', $rInsertID, $rData['message'], time());
 
 					return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
 				}
@@ -880,11 +823,11 @@ class ResellerAPI {
 
 			if ($rTicket) {
 				if (intval(self::$rUserInfo['id']) == intval($rTicket['member_id'])) {
-					self::$db->query('UPDATE `tickets` SET `admin_read` = 0, `user_read` = 1 WHERE `id` = ?;', $rData['respond']);
-					self::$db->query('INSERT INTO `tickets_replies`(`ticket_id`, `admin_reply`, `message`, `date`) VALUES(?, 0, ?, ?);', $rData['respond'], $rData['message'], time());
+					$db->query('UPDATE `tickets` SET `admin_read` = 0, `user_read` = 1 WHERE `id` = ?;', $rData['respond']);
+					$db->query('INSERT INTO `tickets_replies`(`ticket_id`, `admin_reply`, `message`, `date`) VALUES(?, 0, ?, ?);', $rData['respond'], $rData['message'], time());
 				} else {
-					self::$db->query('UPDATE `tickets` SET `admin_read` = 0, `user_read` = 0 WHERE `id` = ?;', $rData['respond']);
-					self::$db->query('INSERT INTO `tickets_replies`(`ticket_id`, `admin_reply`, `message`, `date`) VALUES(?, 1, ?, ?);', $rData['respond'], $rData['message'], time());
+					$db->query('UPDATE `tickets` SET `admin_read` = 0, `user_read` = 0 WHERE `id` = ?;', $rData['respond']);
+					$db->query('INSERT INTO `tickets_replies`(`ticket_id`, `admin_reply`, `message`, `date`) VALUES(?, 1, ?, ?);', $rData['respond'], $rData['message'], time());
 				}
 
 				return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rData['respond']));
@@ -897,16 +840,17 @@ class ResellerAPI {
 	}
 
 	public static function processLine($rData) {
+		global $db;
 		$rData = self::processData('line', $rData);
 
 		if (self::$rPermissions['create_line']) {
 
 
 			if (isset($rData['edit'])) {
-				$rArray = getUser($rData['edit']);
+				$rArray = UserRepository::getLineById($rData['edit']);
 				$rOrigCredentials = array('username' => $rArray['username'], 'password' => $rArray['password']);
 
-				if ($rArray && hasPermissions('line', $rArray['id'])) {
+				if ($rArray && Authorization::check('line', $rArray['id'])) {
 				} else {
 					return false;
 				}
@@ -969,7 +913,7 @@ class ResellerAPI {
 
 							$rBouquets = array_values(json_decode($rPackage['bouquets'], true));
 
-							if (!(self::$rPermissions['allow_change_bouquets'] && 0 < count($rData['bouquets_selected']))) {
+							if (!(self::$rPermissions['allow_change_bouquets'] && 0 < count($rData['bouquets_selected'] ?? []))) {
 							} else {
 								$rNewBouquets = array();
 
@@ -986,7 +930,7 @@ class ResellerAPI {
 								}
 							}
 
-							$rArray['bouquet'] = sortArrayByArray($rBouquets, array_keys(getBouquetOrder()));
+							$rArray['bouquet'] = sortArrayByArray($rBouquets, array_keys(BouquetService::getOrder()));
 							$rArray['bouquet'] = '[' . implode(',', array_map('intval', $rArray['bouquet'])) . ']';
 							$rArray['max_connections'] = $rPackage['max_connections'];
 							$rArray['is_restreamer'] = $rPackage['is_restreamer'];
@@ -1013,7 +957,7 @@ class ResellerAPI {
 					$rPackage = getPackage($rArray['package_id']);
 					$rBouquets = array_values(json_decode($rPackage['bouquets'], true));
 
-					if (!(self::$rPermissions['allow_change_bouquets'] && 0 < count($rData['bouquets_selected']))) {
+					if (!(self::$rPermissions['allow_change_bouquets'] && 0 < count($rData['bouquets_selected'] ?? []))) {
 					} else {
 						$rNewBouquets = array();
 
@@ -1030,7 +974,7 @@ class ResellerAPI {
 						}
 					}
 
-					$rArray['bouquet'] = sortArrayByArray($rBouquets, array_keys(getBouquetOrder()));
+					$rArray['bouquet'] = sortArrayByArray($rBouquets, array_keys(BouquetService::getOrder()));
 					$rArray['bouquet'] = '[' . implode(',', array_map('intval', $rArray['bouquet'])) . ']';
 				}
 			}
@@ -1039,7 +983,7 @@ class ResellerAPI {
 			$rArray['reseller_notes'] = $rData['reseller_notes'];
 			$rOwner = $rData['member_id'];
 
-			if (hasPermissions('user', $rOwner)) {
+			if (Authorization::check('user', $rOwner)) {
 				$rArray['member_id'] = $rOwner;
 			} else {
 				$rArray['member_id'] = self::$rUserInfo['id'];
@@ -1165,14 +1109,12 @@ class ResellerAPI {
 				$rPrepare = prepareArray($rArray);
 				$rQuery = 'REPLACE INTO `lines`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
-				if (self::$db->query($rQuery, ...$rPrepare['data'])) {
-					$rInsertID = self::$db->last_insert_id();
-					syncDevices($rInsertID);
-					self::$db->query('INSERT INTO `signals`(`server_id`, `cache`, `time`, `custom_data`) VALUES(?, 1, ?, ?);', SERVER_ID, time(), json_encode(array('type' => 'update_line', 'id' => $rInsertID)));
-
+				if ($db->query($rQuery, ...$rPrepare['data'])) {
+					$rInsertID = $db->last_insert_id();
+					MagService::syncLineDevices($rInsertID);
 					if (isset($rPackage)) {
 						$rNewCredits = intval(self::$rUserInfo['credits']) - intval($rCost);
-						self::$db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $rNewCredits, self::$rUserInfo['id']);
+						$db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $rNewCredits, self::$rUserInfo['id']);
 
 						if (isset($rArray['id'])) {
 							if ($rArray['package_id']) {
@@ -1184,10 +1126,10 @@ class ResellerAPI {
 							$rType = 'new';
 						}
 
-						$rData = getUser($rInsertID);
-						self::$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'line', ?, ?, ?, ?, ?, ?, ?);", self::$rUserInfo['id'], $rType, $rInsertID, $rPackage['id'], $rCost, $rNewCredits, time(), json_encode($rData));
+						$rData = UserRepository::getLineById($rInsertID);
+						$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'line', ?, ?, ?, ?, ?, ?, ?);", self::$rUserInfo['id'], $rType, $rInsertID, $rPackage['id'], $rCost, $rNewCredits, time(), json_encode($rData));
 					} else {
-						self::$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'line', ?, ?, null, ?, ?, ?, ?);", self::$rUserInfo['id'], 'edit', $rInsertID, 0, self::$rUserInfo['credits'], time(), json_encode($rData));
+						$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'line', ?, ?, null, ?, ?, ?, ?);", self::$rUserInfo['id'], 'edit', $rInsertID, 0, self::$rUserInfo['credits'], time(), json_encode($rData));
 					}
 
 					return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));

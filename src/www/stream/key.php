@@ -1,5 +1,15 @@
 <?php
 
+/**
+ * HLS encryption key endpoint
+ *
+ * @package XC_VM_Web_Stream
+ * @author  Divarion_D <https://github.com/Divarion-D>
+ * @copyright 2025-2026 Vateron Media
+ * @link    https://github.com/Vateron-Media/XC_VM
+ * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
+ */
+
 header('Access-Control-Allow-Origin: *');
 require_once 'init.php';
 $rSettings = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'settings'));
@@ -13,10 +23,12 @@ if (empty($rSettings['live_streaming_pass'])) {
 
 if (isset($_GET['token'])) {
 	$rIP = getuserip();
-	$rTokenArray = explode('/', StreamingUtilities::decryptData($_GET['token'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA));
+	$rTokenArray = explode('/', Encryption::decrypt($_GET['token'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA));
 	$rIPMatch = ($rSettings['ip_subnet_match'] ? implode('.', array_slice(explode('.', $rTokenArray[0]), 0, -1)) == implode('.', array_slice(explode('.', $rIP), 0, -1)) : $rTokenArray[0] == $rIP);
 
 	if (is_array($rTokenArray) && ($rIPMatch || !$rSettings['restrict_same_ip'])) {
+		header('Content-Type: application/octet-stream');
+		header('X-Content-Type-Options: nosniff');
 		echo file_get_contents(STREAMS_PATH . intval($rTokenArray[1]) . '_.key');
 		exit();
 	}

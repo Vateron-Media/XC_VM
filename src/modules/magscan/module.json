@@ -1,0 +1,6 @@
+{
+    "name": "magscan",
+    "description": "MAG device scanning module",
+    "version": "1.0.0",
+    "requires_core": ">=2.0"
+}

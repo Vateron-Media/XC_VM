@@ -24,16 +24,11 @@ start() {
   sudo -u xc_vm $SCRIPT/bin/nginx/sbin/nginx >/dev/null 2>/dev/null
   sudo -u xc_vm $SCRIPT/bin/nginx_rtmp/sbin/nginx_rtmp >/dev/null 2>/dev/null
   sudo -u xc_vm $SCRIPT/bin/daemons.sh
-  sudo $SCRIPT/bin/php/bin/php $SCRIPT/includes/cli/startup.php
-  sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/includes/cli/signals.php >/dev/null 2>/dev/null &
-  sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/includes/cli/watchdog.php >/dev/null 2>/dev/null &
-  sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/includes/cli/queue.php >/dev/null 2>/dev/null &
-  if [ -f $SCRIPT/includes/cli/cache_handler.php ]; then
-    sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/includes/cli/cache_handler.php >/dev/null 2>/dev/null &
-  fi
-  if [ -f $SCRIPT/includes/cli/connection_sync.php ]; then
-    sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/includes/cli/connection_sync.php >/dev/null 2>/dev/null &
-  fi
+  sudo $SCRIPT/bin/php/bin/php $SCRIPT/console.php startup
+  sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/console.php signals >/dev/null 2>/dev/null &
+  sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/console.php watchdog >/dev/null 2>/dev/null &
+  sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/console.php queue >/dev/null 2>/dev/null &
+  sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/console.php cache_handler >/dev/null 2>/dev/null &
   echo 'Running in foreground...'
   sleep infinity
 }

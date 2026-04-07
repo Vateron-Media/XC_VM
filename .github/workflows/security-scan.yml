@@ -1,0 +1,67 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**/*.php'
+      - 'src/**/*.sh'
+      - '.github/workflows/security-scan.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**/*.php'
+      - 'src/**/*.sh'
+  schedule:
+    - cron: '0 6 * * 1'
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  php-syntax:
+    name: PHP Syntax Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+
+      - name: Check syntax
+        run: bash tools/php_syntax_check.sh
+
+  semgrep:
+    name: Semgrep Security Scan
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Run Semgrep
+        run: |
+          semgrep scan \
+            --config "p/php" \
+            --config "p/security-audit" \
+            --config "p/command-injection" \
+            --config "p/sql-injection" \
+            --config "p/xss" \
+            --sarif \
+            --output semgrep-results.sarif \
+            --error \
+            --severity ERROR \
+            src/
+        continue-on-error: true
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: semgrep-results.sarif
+          category: semgrep

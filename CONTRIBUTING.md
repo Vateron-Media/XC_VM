@@ -44,6 +44,17 @@ To install the panel, follow these steps:
 - Follow best practices for Python and Bash scripts.
 - Avoid unused functions and redundant code.
 
+## 🔍 Pre-Commit Checks
+Before committing, run the PHP syntax checker:
+```sh
+bash tools/php_syntax_check.sh
+```
+This is the same check that CI runs. You can also check a single file:
+```sh
+bash tools/php_syntax_check.sh src/domain/Device/EnigmaService.php
+```
+Do not submit PRs with syntax errors — CI will reject them.
+
 <!-- ## 🧪 Writing and Running Tests
 - Write unit tests for PHP scripts.
 - To run tests:

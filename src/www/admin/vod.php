@@ -1,25 +1,35 @@
 <?php
 
+/**
+ * Admin VOD handler
+ *
+ * @package XC_VM_Web_Admin
+ * @author  Divarion_D <https://github.com/Divarion-D>
+ * @copyright 2025-2026 Vateron Media
+ * @link    https://github.com/Vateron-Media/XC_VM
+ * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
+ */
+
 register_shutdown_function('shutdown');
 header('Access-Control-Allow-Origin: *');
 set_time_limit(0);
 require '../init.php';
-$rIP = CoreUtilities::getUserIP();
+$rIP = NetworkUtils::getUserIP();
 
-if (!empty(CoreUtilities::$rRequest['uitoken'])) {
-	$rTokenData = json_decode(CoreUtilities::decryptData(CoreUtilities::$rRequest['uitoken'], CoreUtilities::$rSettings['live_streaming_pass'], OPENSSL_EXTRA), true);
-	CoreUtilities::$rRequest['stream'] = $rTokenData['stream_id'] . '.' . $rTokenData['container'];
-	$rIPMatch = (CoreUtilities::$rSettings['ip_subnet_match'] ? implode('.', array_slice(explode('.', $rTokenData['ip']), 0, -1)) == implode('.', array_slice(explode('.', CoreUtilities::getUserIP()), 0, -1)) : $rTokenData['ip'] == CoreUtilities::getUserIP());
+if (!empty(RequestManager::getAll()['uitoken'])) {
+	$rTokenData = json_decode(Encryption::decrypt(RequestManager::getAll()['uitoken'], SettingsManager::getAll()['live_streaming_pass'], OPENSSL_EXTRA), true);
+	RequestManager::update('stream', $rTokenData['stream_id'] . '.' . $rTokenData['container']);
+	$rIPMatch = (SettingsManager::getAll()['ip_subnet_match'] ? implode('.', array_slice(explode('.', $rTokenData['ip']), 0, -1)) == implode('.', array_slice(explode('.', NetworkUtils::getUserIP()), 0, -1)) : $rTokenData['ip'] == NetworkUtils::getUserIP());
 
 	if ($rTokenData['expires'] >= time() && $rIPMatch) {
 	} else {
 		generate404();
 	}
 } else {
-	if (!in_array($rIP, CoreUtilities::getAllowedIPs())) {
+	if (!in_array($rIP, ServerRepository::getAllowedIPs())) {
 		generate404();
 	} else {
-		if (!(empty(CoreUtilities::$rRequest['password']) || CoreUtilities::$rSettings['live_streaming_pass'] != CoreUtilities::$rRequest['password'])) {
+		if (!(empty(RequestManager::getAll()['password']) || SettingsManager::getAll()['live_streaming_pass'] != RequestManager::getAll()['password'])) {
 		} else {
 
 
@@ -29,19 +39,19 @@ if (!empty(CoreUtilities::$rRequest['uitoken'])) {
 	}
 }
 
-if (!empty(CoreUtilities::$rRequest['stream'])) {
+if (!empty(RequestManager::getAll()['stream'])) {
 } else {
 	generate404();
 }
 
-$db = new Database($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
-CoreUtilities::$db = &$db;
-$rStream = pathinfo(CoreUtilities::$rRequest['stream']);
+$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
+DatabaseFactory::set($db);
+$rStream = pathinfo(RequestManager::getAll()['stream']);
 $rStreamID = intval($rStream['filename']);
 $rExtension = $rStream['extension'];
 $db->query("SELECT t1.* FROM `streams` t1 INNER JOIN `streams_servers` t2 ON t2.stream_id = t1.id AND t2.pid IS NOT NULL AND t2.server_id = ? INNER JOIN `streams_types` t3 ON t3.type_id = t1.type AND t3.type_key IN ('movie', 'series') WHERE t1.`id` = ?", SERVER_ID, $rStreamID);
 
-if (CoreUtilities::$rSettings['use_buffer'] != 0) {
+if (SettingsManager::getAll()['use_buffer'] != 0) {
 } else {
 	header('X-Accel-Buffering: no');
 }
