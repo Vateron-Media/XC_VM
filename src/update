@@ -3,7 +3,7 @@ import os, sys, hashlib, time
 
 rBaseDir = os.path.dirname(os.path.realpath(__file__)) + "/"
 rPHPDir = rBaseDir + "bin/php/bin/php"
-rCLIDir = rBaseDir + "includes/cli/"
+rConsole = rBaseDir + "console.php"
 
 
 def md5(rFilename):
@@ -18,7 +18,7 @@ def doUpdate(rFilename):
     os.system("sudo systemctl stop xc_vm")
     os.system('sudo tar -zxvf "%s" -C "%s"' % (rFilename, rBaseDir))
     os.system('sudo chown -R xc_vm:xc_vm "%s"' % rBaseDir)
-    os.system('sudo %s %supdate.php "post-update"' % (rPHPDir, rCLIDir))
+    os.system('sudo %s %s update "post-update"' % (rPHPDir, rConsole))
     os.system("sudo systemctl start xc_vm")
     os.remove(rFilename)
     return True

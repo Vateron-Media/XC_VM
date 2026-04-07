@@ -3,7 +3,14 @@
 /**
  * A centralized logger class for handling PHP errors, exceptions, and fatal errors.
  * Logs all events to a file in base64-encoded JSON format and optionally displays them on screen in development mode.
+ *
+ * @package XC_VM_Includes_Libs
+ * @author  Divarion_D <https://github.com/Divarion-D>
+ * @copyright 2025-2026 Vateron Media
+ * @link    https://github.com/Vateron-Media/XC_VM
+ * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
+
 final class Logger {
     /** @var bool Whether development mode is enabled (errors are displayed on screen) */
     private static bool $development = false;
@@ -28,7 +35,7 @@ final class Logger {
 
         if ($showErrors) {
             // In development mode, show all errors
-            error_reporting(E_ALL);
+            error_reporting(E_ERROR | E_WARNING);
             ini_set('display_errors', '1');
             ini_set('display_startup_errors', '1');
         } else {
@@ -142,6 +149,12 @@ final class Logger {
             'time'    => time(),                  // Unix timestamp
             'env'     => php_sapi_name()          // SAPI name (cli, fpm-fcgi, etc.)
         ];
+
+        // Ensure log directory exists
+        $logDir = dirname(self::$logFile);
+        if (!is_dir($logDir)) {
+            @mkdir($logDir, 0775, true);
+        }
 
         // Write to file as base64-encoded JSON (easy to parse and prevents line corruption)
         file_put_contents(

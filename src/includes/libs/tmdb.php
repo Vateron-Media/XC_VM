@@ -93,7 +93,7 @@ class TMDB {
 	 *  @param boolean $debug The flag for debug output
 	 */
 	public function __construct($apikey = null, $lang = null, $adult = null, $debug = null) {
-		require_once 'TMDb/config/config.php';
+		require __DIR__ . '/TMDb/config/config.php';
 		$this->setConfig($cnf);
 		$this->setApikey(isset($apikey) ? $apikey : $cnf['apikey']);
 		$this->setLang(isset($lang) ? $lang : $cnf['lang']);
@@ -796,15 +796,15 @@ class TMDB {
 	}
 }
 
-include 'TMDb/Movie.php';
-include 'TMDb/TVShow.php';
-include 'TMDb/Season.php';
-include 'TMDb/Episode.php';
-include 'TMDb/Person.php';
-include 'TMDb/Role.php';
-include 'TMDb/roles/MovieRole.php';
-include 'TMDb/roles/TVShowRole.php';
-include 'TMDb/Collection.php';
-include 'TMDb/Company.php';
-include 'TMDb/Genre.php';
-include 'TMDb/config/APIConfiguration.php';
+include_once 'TMDb/Movie.php';
+include_once 'TMDb/TVShow.php';
+include_once 'TMDb/Season.php';
+include_once 'TMDb/Episode.php';
+include_once 'TMDb/Person.php';
+include_once 'TMDb/Role.php';
+include_once 'TMDb/roles/MovieRole.php';
+include_once 'TMDb/roles/TVShowRole.php';
+include_once 'TMDb/Collection.php';
+include_once 'TMDb/Company.php';
+include_once 'TMDb/Genre.php';
+include_once 'TMDb/config/APIConfiguration.php';
