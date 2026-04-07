@@ -68,10 +68,10 @@ class BalancerCommand implements CommandInterface {
 		$rInstallDir = BIN_PATH . 'install/';
 
 		if ($rType == 1) {
-			$rPackages = array('iproute2', 'net-tools', 'libcurl4', 'libxslt1-dev', 'libonig-dev', 'e2fsprogs', 'wget', 'sysstat', 'mcrypt', 'python3', 'certbot', 'iptables-persistent', 'libjpeg-dev', 'libpng-dev', 'php-ssh2', 'xz-utils', 'zip', 'unzip', 'cron');
+			$rPackages = array('iproute2', 'net-tools', 'libcurl4', 'libxslt1-dev', 'libonig-dev', 'e2fsprogs', 'wget', 'sysstat', 'mcrypt', 'python3', 'certbot', 'iptables-persistent', 'libjpeg-dev', 'libpng-dev', 'libssh2-1', 'xz-utils', 'zip', 'unzip', 'cron');
 			$rInstallFiles = 'proxy.tar.gz';
 		} elseif ($rType == 2) {
-			$rPackages = array('cpufrequtils', 'iproute2', 'python', 'net-tools', 'dirmngr', 'gpg-agent', 'software-properties-common', 'libmaxminddb0', 'libmaxminddb-dev', 'mmdb-bin', 'libcurl4', 'libgeoip-dev', 'libxslt1-dev', 'libonig-dev', 'e2fsprogs', 'wget', 'sysstat', 'alsa-utils', 'v4l-utils', 'mcrypt', 'python3', 'certbot', 'iptables-persistent', 'libjpeg-dev', 'libpng-dev', 'php-ssh2', 'xz-utils', 'zip', 'unzip', 'cron', 'libfribidi-dev', 'libharfbuzz-dev', 'libogg0');
+			$rPackages = array('cpufrequtils', 'iproute2', 'python', 'net-tools', 'dirmngr', 'gpg-agent', 'software-properties-common', 'libmaxminddb0', 'libmaxminddb-dev', 'mmdb-bin', 'libcurl4', 'libgeoip-dev', 'libxslt1-dev', 'libonig-dev', 'e2fsprogs', 'wget', 'sysstat', 'alsa-utils', 'v4l-utils', 'mcrypt', 'python3', 'certbot', 'iptables-persistent', 'libjpeg-dev', 'libpng-dev', 'libssh2-1', 'xz-utils', 'zip', 'unzip', 'cron', 'libfribidi-dev', 'libharfbuzz-dev', 'libogg0');
 			$UpdateData = $gitRelease->getUpdateFile("lb", XC_VM_VERSION);
 			$rInstallFiles = $UpdateData['url'];
 			$hash = $UpdateData['md5'];
@@ -107,11 +107,12 @@ class BalancerCommand implements CommandInterface {
 			return 1;
 		}
 
-		// 1. Detect remote OS version
+		// 1. Detect remote OS version and distribution
 		echo "Detecting remote OS version...\n";
 		$rOS = $this->runSSH($rConn, 'lsb_release -rs');
 		$rVersion = trim($rOS['output']);
-		echo "\nRemote OS version: {$rVersion}\n";
+		$rDistID = strtolower(trim($this->runSSH($rConn, 'lsb_release -is 2>/dev/null || (. /etc/os-release && echo $ID)')['output']));
+		echo "\nRemote OS: {$rDistID} {$rVersion}\n";
 
 		echo "\nStopping any previous version of XC_VM\n";
 		$this->runSSH($rConn, 'sudo systemctl stop xc_vm');
@@ -183,6 +184,11 @@ class BalancerCommand implements CommandInterface {
 		}
 
 		if ($rType == 2) {
+			echo "Installing distribution-specific binaries\n";
+			if (!$this->installDistributionBinaries($rConn, $rDistID, $rVersion)) {
+				echo "Warning: Failed to install distribution binaries, using defaults\n";
+			}
+
 			if (stripos($this->runSSH($rConn, 'sudo cat /etc/fstab')['output'], STREAMS_PATH) === false) {
 				echo "Adding ramdisk mounts\n";
 				$this->runSSH($rConn, 'sudo echo "tmpfs ' . STREAMS_PATH . ' tmpfs defaults,noatime,nosuid,nodev,noexec,mode=1777,size=90% 0 0" >> /etc/fstab');
@@ -324,6 +330,79 @@ class BalancerCommand implements CommandInterface {
 		unlink($rInstallDir . $rServerID . '.json');
 
 		return 0;
+	}
+
+	private function getDistributionBinaryName(string $rDistID, string $rVersion): ?string {
+		$rMajor = explode('.', $rVersion)[0];
+		switch ($rDistID) {
+			case 'ubuntu':
+				if (in_array($rMajor, ['18', '20', '22', '24'])) {
+					return 'ubuntu_' . $rMajor . '.tar.gz';
+				}
+				break;
+			case 'debian':
+				if (in_array($rMajor, ['11', '12', '13'])) {
+					return 'debian_' . $rMajor . '.tar.gz';
+				}
+				break;
+			case 'rocky':
+			case 'almalinux':
+			case 'rhel':
+			case 'centos':
+				if (in_array($rMajor, ['8', '9'])) {
+					return 'rhel_' . $rMajor . '.tar.gz';
+				}
+				break;
+		}
+		return null;
+	}
+
+	private function installDistributionBinaries($rConn, string $rDistID, string $rVersion): bool {
+		$rBinaryName = $this->getDistributionBinaryName($rDistID, $rVersion);
+		if ($rBinaryName === null) {
+			echo "Unsupported distribution for binaries: {$rDistID} {$rVersion}\n";
+			return false;
+		}
+
+		$rTagCmd = 'curl -s https://api.github.com/repos/' . GIT_OWNER . '/' . GIT_REPO_BIN . '/releases/latest';
+		$rTag = trim($this->runSSH($rConn, $rTagCmd . ' | grep \'"tag_name"\' | sed -E \'s/.*"([^"]+)".*/\\1/\'')['output']);
+		if (empty($rTag)) {
+			echo "Failed to get latest binaries release tag\n";
+			return false;
+		}
+
+		$rURL = 'https://github.com/' . GIT_OWNER . '/' . GIT_REPO_BIN . '/releases/download/' . $rTag . '/' . $rBinaryName;
+		echo "Downloading {$rBinaryName} from release {$rTag}\n";
+		$this->runSSH($rConn, 'wget -q --timeout=30 -O /tmp/xc_vm_bin.tar.gz "' . $rURL . '"');
+
+		$rCheck = trim($this->runSSH($rConn, 'test -s /tmp/xc_vm_bin.tar.gz && echo OK')['output']);
+		if ($rCheck !== 'OK') {
+			echo "Failed to download distribution binaries\n";
+			return false;
+		}
+
+		echo "Extracting distribution binaries\n";
+		$this->runSSH($rConn, 'sudo rm -rf /tmp/xc_vm_bin && mkdir -p /tmp/xc_vm_bin');
+		$this->runSSH($rConn, 'sudo tar -xzf /tmp/xc_vm_bin.tar.gz -C /tmp/xc_vm_bin');
+
+		$rSourceDir = trim($this->runSSH($rConn, 'find /tmp/xc_vm_bin -maxdepth 3 -type d -name php -print -quit 2>/dev/null | xargs dirname 2>/dev/null')['output']);
+		if (empty($rSourceDir) || $rSourceDir === '.') {
+			echo "Could not find binary structure in archive\n";
+			$this->runSSH($rConn, 'sudo rm -rf /tmp/xc_vm_bin.tar.gz /tmp/xc_vm_bin');
+			return false;
+		}
+
+		echo "Installing binaries from {$rSourceDir}\n";
+		$this->runSSH($rConn, 'sudo cp -rf ' . $rSourceDir . '/* ' . BIN_PATH);
+
+		$this->runSSH($rConn, 'sudo chmod 0551 ' . MAIN_HOME . 'bin/php/bin/php');
+		$this->runSSH($rConn, 'sudo chmod 0551 ' . MAIN_HOME . 'bin/php/sbin/php-fpm');
+		$this->runSSH($rConn, 'sudo chmod 0550 ' . MAIN_HOME . 'bin/nginx/sbin/nginx');
+		$this->runSSH($rConn, 'sudo chmod 0750 ' . MAIN_HOME . 'bin/nginx_rtmp/sbin/nginx_rtmp');
+
+		$this->runSSH($rConn, 'sudo rm -rf /tmp/xc_vm_bin.tar.gz /tmp/xc_vm_bin');
+		echo "Distribution binaries installed successfully\n";
+		return true;
 	}
 
 	private function sendFileSSH($rConn, string $rPath, string $rOutput, bool $rWarn = false): bool {
