@@ -488,6 +488,7 @@ class XC_Bootstrap {
      *   'bouquets'     => array          — bouquets
      *   'categories'   => array          — categories
      *   'translator'   => string         — Translator class
+     *   'events'       => string         — EventDispatcher class
      *
      * @param ServiceContainer $container
      */
@@ -513,6 +514,11 @@ class XC_Bootstrap {
         // Translator
         if (class_exists('Translator', false) && Translator::available()) {
             $container->set('translator', Translator::class);
+        }
+
+        // Events
+        if (class_exists('EventDispatcher', false)) {
+            $container->set('events', EventDispatcher::class);
         }
     }
 
