@@ -40,7 +40,6 @@ rPackages = [
     "zip",
     "unzip",
     "libssh2-1t64",
-    "php-ssh2",
     "cron"
 ]
 rRemove = ["mysql-server"]
