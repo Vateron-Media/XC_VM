@@ -145,9 +145,8 @@ class ModuleLoader {
 
             $subscribers = $module->getEventSubscribers();
             if (!empty($subscribers) && $container->has('events')) {
-                $dispatcher = $container->get('events');
                 foreach ($subscribers as $event => $handler) {
-                    $dispatcher->listen($event, $handler);
+                    EventDispatcher::subscribe($event, $handler);
                 }
             }
         }
