@@ -76,7 +76,7 @@ Example location:
 Clear the migration database and restore the backup:
 
 ```bash
-sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php tools migration "/tmp/backup.sql"
+sudo /home/xc_vm/console.php tools migration "/tmp/backup.sql"
 ```
 
 Ensure the restore completes **without errors** before proceeding.
@@ -90,7 +90,7 @@ Once the backup is restored, start the migration using one of the following meth
 #### 🧩 Option 1 — Command Line (Recommended)
 
 ```bash
-/home/xc_vm/bin/php/bin/php /home/xc_vm/console.php migrate
+/home/xc_vm/console.php migrate
 ```
 
 #### 🌐 Option 2 — Web Installer

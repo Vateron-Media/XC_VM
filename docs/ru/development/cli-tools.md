@@ -24,7 +24,7 @@
 Все CLI-команды выполняются через `console.php`:
 
 ```bash
-/home/xc_vm/bin/php/bin/php /home/xc_vm/console.php <command> [args...]
+/home/xc_vm/console.php <command> [args...]
 ```
 
 Консоль поддерживает три типа команд:
@@ -40,7 +40,7 @@
 Для просмотра всех доступных команд:
 
 ```bash
-/home/xc_vm/bin/php/bin/php /home/xc_vm/console.php list
+/home/xc_vm/console.php list
 ```
 
 ---
@@ -211,10 +211,10 @@ if (file_exists(CLI_PATH . 'Commands/MyNewCommand.php')) {
 
 ```bash
 # Проверьте, что команда отображается в списке
-/home/xc_vm/bin/php/bin/php /home/xc_vm/console.php list
+/home/xc_vm/console.php list
 
 # Запустите
-/home/xc_vm/bin/php/bin/php /home/xc_vm/console.php my_command
+/home/xc_vm/console.php my_command
 ```
 
 ---
@@ -252,40 +252,40 @@ console.php tools <subcommand>
 
 ```bash
 # Экстренный доступ к панели (root)
-sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php tools rescue
+sudo /home/xc_vm/console.php tools rescue
 
 # Перегенерация кодов доступа (root) — требуется после изменения шаблона nginx
-sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php tools access
+sudo /home/xc_vm/console.php tools access
 
 # Перегенерация конфигурации портов (root)
-sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php tools ports
+sudo /home/xc_vm/console.php tools ports
 
 # Очистить базу миграций (root)
-sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php tools migration
+sudo /home/xc_vm/console.php tools migration
 
 # Очистить базу миграций и восстановить бэкап (root)
-sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php tools migration /path/to/backup.sql
+sudo /home/xc_vm/console.php tools migration /path/to/backup.sql
 
 # Создать rescue-администратора (root)
-sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php tools user
+sudo /home/xc_vm/console.php tools user
 
 # Переавторизовать MySQL на всех серверах (root)
-sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php tools mysql
+sudo /home/xc_vm/console.php tools mysql
 
 # Восстановить чистую базу данных (root) — ДЕСТРУКТИВНАЯ ОПЕРАЦИЯ!
-sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php tools database --confirm
+sudo /home/xc_vm/console.php tools database --confirm
 
 # Сбросить все заблокированные IP (root)
-sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php tools flush
+sudo /home/xc_vm/console.php tools flush
 
 # Скачать недостающие изображения (xc_vm)
-su - xc_vm -c '/home/xc_vm/bin/php/bin/php /home/xc_vm/console.php tools images'
+su - xc_vm -c '/home/xc_vm/console.php tools images'
 
 # Удалить дубликаты VOD (xc_vm)
-su - xc_vm -c '/home/xc_vm/bin/php/bin/php /home/xc_vm/console.php tools duplicates'
+su - xc_vm -c '/home/xc_vm/console.php tools duplicates'
 
 # Очистить ссылки в букетах (xc_vm)
-su - xc_vm -c '/home/xc_vm/bin/php/bin/php /home/xc_vm/console.php tools bouquets'
+su - xc_vm -c '/home/xc_vm/console.php tools bouquets'
 ```
 
 > ⚠️ **Внимание:** `duplicates` безвозвратно удаляет стримы и все связанные данные (логи, статистика, эпизоды, записи). Всегда делайте бэкап перед запуском.
@@ -418,7 +418,7 @@ WHERE NOT EXISTS (SELECT 1 FROM `streams_arguments` WHERE argument_key = 'my_key
 Запустите команду status для применения ожидающих миграций:
 
 ```bash
-sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php status first-run
+sudo /home/xc_vm/console.php status first-run
 ```
 
 Ожидаемый вывод:
@@ -439,7 +439,7 @@ Migrations
 ### Проверка статуса
 
 ```bash
-sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php status
+sudo /home/xc_vm/console.php status
 ```
 
 Проверяет, запущен ли XC_VM, подключается к БД, выполняет ожидающие миграции, исправляет права доступа и валидирует конфигурацию nginx. Требуется после установки или восстановления.
@@ -447,19 +447,19 @@ sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php status
 С аргументом `first-run` пропускает проверку статуса — используется при первоначальной настройке:
 
 ```bash
-sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php status first-run
+sudo /home/xc_vm/console.php status first-run
 ```
 
 ### Управление сервисом
 
 ```bash
-sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php service start|stop|restart|reload
+sudo /home/xc_vm/console.php service start|stop|restart|reload
 ```
 
 ### Ручное обновление
 
 ```bash
-sudo -u xc_vm /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php update update
+sudo -u xc_vm /home/xc_vm/console.php update update
 ```
 
 Скачивает и применяет последнее обновление с GitHub. Обычно запускается автоматически через веб-панель.
@@ -467,7 +467,7 @@ sudo -u xc_vm /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php update update
 ### Диагностика стримов
 
 ```bash
-sudo -u xc_vm /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php monitor <stream_id>
+sudo -u xc_vm /home/xc_vm/console.php monitor <stream_id>
 ```
 
 Запускает стрим вручную и отображает ошибки. Полезно для диагностики проблем запуска стримов.
@@ -475,13 +475,13 @@ sudo -u xc_vm /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php monitor <strea
 ### SSL-сертификат
 
 ```bash
-sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php certbot
+sudo /home/xc_vm/console.php certbot
 ```
 
 ### Миграция (с других систем)
 
 ```bash
-/home/xc_vm/bin/php/bin/php /home/xc_vm/console.php migrate
+/home/xc_vm/console.php migrate
 ```
 
 Переносит данные из базы миграции. Подробности в [Руководстве по миграции](ru-ru/info/migration_guide.md).

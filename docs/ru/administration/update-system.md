@@ -33,13 +33,13 @@
 Каждую **минуту** выполняется системное задание CRON:
 
 ```bash
-/home/xc_vm/bin/php/bin/php /home/xc_vm/console.php cron:root_signals
+/home/xc_vm/console.php cron:root_signals
 ```
 
 Крон-задача `root_signals` проверяет наличие новых сигналов и при обнаружении `update` запускает:
 
 ```bash
-/home/xc_vm/bin/php/bin/php /home/xc_vm/console.php update update
+/home/xc_vm/console.php update update
 ```
 
 > ⚙️ Этот механизм позволяет выполнять обновления **автоматически**, без ручного вмешательства администратора.
@@ -96,7 +96,7 @@ sudo /usr/bin/python3 /home/xc_vm/update "/home/xc_vm/tmp/.update.tar.gz" "HASH"
 5. **Запуск пост-обновления:**
 
    ```bash
-   /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php update post-update
+   /home/xc_vm/console.php update post-update
    ```
 6. **Перезапуск панели** в рабочем режиме.
 
@@ -124,7 +124,7 @@ sudo /usr/bin/python3 /home/xc_vm/update "/home/xc_vm/tmp/.update.tar.gz" "HASH"
 6. Проверка статуса панели:
 
    ```bash
-   sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php status
+   sudo /home/xc_vm/console.php status
    ```
 7. Завершение процесса обновления.
 

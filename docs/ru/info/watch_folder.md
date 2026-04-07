@@ -108,10 +108,10 @@ Watch Folder — система автоматического импорта к
 
 ```bash
 # Обычный запуск крона (обычно запускается автоматически)
-sudo -u xc_vm /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php cron:watch
+sudo -u xc_vm /home/xc_vm/console.php cron:watch
 
 # Принудительное сканирование конкретной папки (по ID)
-sudo -u xc_vm /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php cron:watch 5
+sudo -u xc_vm /home/xc_vm/console.php cron:watch 5
 ```
 
 ---
