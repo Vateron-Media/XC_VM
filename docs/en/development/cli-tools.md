@@ -24,7 +24,7 @@
 All CLI commands are executed through `console.php`:
 
 ```bash
-/home/xc_vm/bin/php/bin/php /home/xc_vm/console.php <command> [args...]
+/home/xc_vm/console.php <command> [args...]
 ```
 
 The console supports three types of commands:
@@ -40,7 +40,7 @@ The console supports three types of commands:
 To see all available commands:
 
 ```bash
-/home/xc_vm/bin/php/bin/php /home/xc_vm/console.php list
+/home/xc_vm/console.php list
 ```
 
 ---
@@ -211,10 +211,10 @@ If the command should NOT be included in Load Balancer builds, add its path to `
 
 ```bash
 # Verify it appears in the list
-/home/xc_vm/bin/php/bin/php /home/xc_vm/console.php list
+/home/xc_vm/console.php list
 
 # Run it
-/home/xc_vm/bin/php/bin/php /home/xc_vm/console.php my_command
+/home/xc_vm/console.php my_command
 ```
 
 ---
@@ -224,7 +224,7 @@ If the command should NOT be included in Load Balancer builds, add its path to `
 The `tools` command provides system maintenance utilities.
 
 ```bash
-/home/xc_vm/bin/php/bin/php /home/xc_vm/console.php  tools <subcommand>
+/home/xc_vm/console.php  tools <subcommand>
 ```
 
 ### Subcommands (run as `root`)
@@ -252,40 +252,40 @@ The `tools` command provides system maintenance utilities.
 
 ```bash
 # Emergency panel access (root)
-sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php tools rescue
+sudo /home/xc_vm/console.php tools rescue
 
 # Regenerate access codes (root) — required after nginx template changes
-sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php tools access
+sudo /home/xc_vm/console.php tools access
 
 # Regenerate port configuration (root)
-sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php tools ports
+sudo /home/xc_vm/console.php tools ports
 
 # Clear migration database (root)
-sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php tools migration
+sudo /home/xc_vm/console.php tools migration
 
 # Clear migration database and restore a backup (root)
-sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php tools migration /path/to/backup.sql
+sudo /home/xc_vm/console.php tools migration /path/to/backup.sql
 
 # Create rescue admin user (root)
-sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php tools user
+sudo /home/xc_vm/console.php tools user
 
 # Reauthorise MySQL privileges on all servers (root)
-sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php tools mysql
+sudo /home/xc_vm/console.php tools mysql
 
 # Restore blank database (root) — DESTRUCTIVE!
-sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php tools database --confirm
+sudo /home/xc_vm/console.php tools database --confirm
 
 # Flush all blocked IPs (root)
-sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php tools flush
+sudo /home/xc_vm/console.php tools flush
 
 # Download missing images (xc_vm)
-su - xc_vm -c '/home/xc_vm/bin/php/bin/php /home/xc_vm/console.php tools images'
+su - xc_vm -c '/home/xc_vm/console.php tools images'
 
 # Remove duplicate VOD entries (xc_vm)
-su - xc_vm -c '/home/xc_vm/bin/php/bin/php /home/xc_vm/console.php tools duplicates'
+su - xc_vm -c '/home/xc_vm/console.php tools duplicates'
 
 # Clean orphaned bouquet references (xc_vm)
-su - xc_vm -c '/home/xc_vm/bin/php/bin/php /home/xc_vm/console.php tools bouquets'
+su - xc_vm -c '/home/xc_vm/console.php tools bouquets'
 ```
 
 > ⚠️ **Warning:** `duplicates` permanently deletes streams and all associated data (logs, stats, episodes, recordings). Always back up before running.
@@ -418,7 +418,7 @@ Copy the migration file to:
 Run the status command to apply pending migrations:
 
 ```bash
-sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php status first-run
+sudo /home/xc_vm/console.php status first-run
 ```
 
 Expected output:
@@ -439,7 +439,7 @@ If a statement fails, the migration will still be recorded but show `[WARN]` —
 ### Status Check
 
 ```bash
-sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php status
+sudo /home/xc_vm/console.php status
 ```
 
 Checks if XC_VM is running, connects to the database, runs pending migrations, fixes permissions, and validates nginx configuration. Required after installation or recovery.
@@ -447,19 +447,19 @@ Checks if XC_VM is running, connects to the database, runs pending migrations, f
 With `first-run` argument, skips the running check — used for initial setup:
 
 ```bash
-sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php status first-run
+sudo /home/xc_vm/console.php status first-run
 ```
 
 ### Service Management
 
 ```bash
-sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php service start|stop|restart|reload
+sudo /home/xc_vm/console.php service start|stop|restart|reload
 ```
 
 ### Manual Update
 
 ```bash
-sudo -u xc_vm /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php update update
+sudo -u xc_vm /home/xc_vm/console.php update update
 ```
 
 Downloads and applies the latest update from GitHub. Usually triggered automatically through the web panel.
@@ -467,7 +467,7 @@ Downloads and applies the latest update from GitHub. Usually triggered automatic
 ### Stream Diagnostics
 
 ```bash
-sudo -u xc_vm /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php monitor <stream_id>
+sudo -u xc_vm /home/xc_vm/console.php monitor <stream_id>
 ```
 
 Starts a stream manually and displays any errors. Useful for diagnosing stream startup failures.
@@ -475,13 +475,13 @@ Starts a stream manually and displays any errors. Useful for diagnosing stream s
 ### SSL Certificate
 
 ```bash
-sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php certbot
+sudo /home/xc_vm/console.php certbot
 ```
 
 ### Migration (from Other Systems)
 
 ```bash
-/home/xc_vm/bin/php/bin/php /home/xc_vm/console.php migrate
+/home/xc_vm/console.php migrate
 ```
 
 Transfers data from a migration database. See the [Migration Guide](en-us/info/migration_guide.md) for details.

@@ -140,6 +140,7 @@ src/
 ├── autoload.php                     # PSR-подобный автозагрузчик (class map)
 ├── bootstrap.php                    # Единый bootstrap: DI container, config, контексты
 ├── console.php                      # CLI entry point (php console.php cron:*, cmd:*)
+├── console                          # Shell wrapper: console <command> [arguments]
 ├── service                          # Bash: управление демонами
 ├── update                           # Bash: процесс обновления
 │

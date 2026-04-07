@@ -1,17 +1,17 @@
-#!/usr/bin/env php
+#!/home/xc_vm/bin/php/bin/php
 <?php
 /**
  * XC_VM Console — единая точка входа для CLI-команд и cron-задач.
  *
  * Использование:
- *   php console.php <command> [arguments]
- *   php console.php --list              # список всех команд
- *   php console.php --help              # справка
+ *   /home/xc_vm/console.php <command> [arguments]
+ *   /home/xc_vm/console.php --list              # список всех команд
+ *   /home/xc_vm/console.php --help              # справка
  *
  * Примеры:
- *   php console.php startup             # запуск демона startup
- *   php console.php cron:servers        # запуск cron servers
- *   php console.php watchdog            # запуск демона watchdog
+ *   /home/xc_vm/console.php startup             # запуск демона startup
+ *   /home/xc_vm/console.php cron:servers        # запуск cron servers
+ *   /home/xc_vm/console.php watchdog            # запуск демона watchdog
  *
  * Команды регистрируются ниже явно — добавьте свою команду в секцию
  * "Register commands" после создания класса, реализующего CommandInterface.
