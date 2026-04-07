@@ -346,7 +346,7 @@ main_update_archive_move:
 main_install_archive:
 	@echo "==> Creating installer archive: ${DIST_DIR}/${MAIN_ARCHIVE_INSTALLER}"
 	@rm -f ${DIST_DIR}/${MAIN_ARCHIVE_INSTALLER}
-	@zip -r ${DIST_DIR}/${MAIN_ARCHIVE_INSTALLER} install test_installer && zip -j ${DIST_DIR}/${MAIN_ARCHIVE_INSTALLER} ${DIST_DIR}/${MAIN_ARCHIVE_NAME}
+	@zip -r ${DIST_DIR}/${MAIN_ARCHIVE_INSTALLER} install && zip -j ${DIST_DIR}/${MAIN_ARCHIVE_INSTALLER} ${DIST_DIR}/${MAIN_ARCHIVE_NAME}
 	@echo "==> Remove archive: ${DIST_DIR}/${MAIN_ARCHIVE_NAME}"
 	rm -rf ${DIST_DIR}/${MAIN_ARCHIVE_NAME}
 

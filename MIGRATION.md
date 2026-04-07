@@ -787,7 +787,7 @@ bootstrap.php (новый)          includes/admin.php (старый legacy)
 **Статус:** ✅ **Решено.** Файл `crons/epg.php` удалён, директория `crons/` удалена. Proxy-файлы `src/status` и `src/tools` также удалены. Все вызовы заменены на `console.php`. Класс `EPG` загружается из `domain/Epg/EPG.php` через autoload.
 
 **Удалённые файлы:** `src/crons/epg.php`, `src/status`, `src/tools`.
-**Обновлённые call sites:** `StartupCommand`, `UpdateCommand`, `BalancerCommand`, `dashboard.php`, `install`, `test_installer`, `Makefile`, docs (6 файлов).
+**Обновлённые call sites:** `StartupCommand`, `UpdateCommand`, `BalancerCommand`, `dashboard.php`, `install`, `Makefile`, docs (6 файлов).
 
 ### 11.2. EventDispatcher не зарегистрирован в ServiceContainer
 

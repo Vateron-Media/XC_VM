@@ -1,132 +1,542 @@
 #!/usr/bin/python3
-import subprocess, os, random, string, sys, shutil, socket, time, io, math
+import io
+import json
+import os
+import random
+import shutil
+import socket
+import subprocess
+import sys
+import tarfile
+import time
+import urllib.request
+import zipfile
 
 if sys.version_info.major != 3:
     print("Please run with python3.")
     sys.exit(1)
 
 rPath = os.path.dirname(os.path.realpath(__file__))
-rPackages = [
-    "cpufrequtils",
-    "iproute2",
-    "net-tools",
-    "dirmngr",
-    "gpg-agent",
-    "software-properties-common",
-    "libmaxminddb0",
-    "libmaxminddb-dev",
-    "mmdb-bin",
-    "libcurl4",
-    "libgeoip-dev",
-    "libxslt1-dev",
-    "libonig-dev",
-    "e2fsprogs",
-    "wget",
-    "mariadb-server",
-    "mariadb-client",
-    "sysstat",
-    "alsa-utils",
-    "v4l-utils",
-    "mcrypt",
-    "certbot",
-    "iptables-persistent",
-    "libjpeg-dev",
-    "libpng-dev",
-    "libharfbuzz-dev",
-    "libfribidi-dev",
-    "libogg0",
-    "libnuma1",
-    "xz-utils",
-    "zip",
-    "unzip",
-    "libssh2-1t64",
-    "cron"
-]
-rRemove = ["mysql-server"]
-rMySQLCnfTemplate = """# XC_VM\n[client]\nport                            = 3306\n\n[mysqld_safe]\nnice                            = 0\n\n[mysqld]\nuser                            = mysql\nport                            = 3306\nbasedir                         = /usr\ndatadir                         = /var/lib/mysql\ntmpdir                          = /tmp\nlc-messages-dir                 = /usr/share/mysql\nskip-external-locking\nskip-name-resolve\nbind-address                    = *\n\n# MyISAM\nkey_buffer_size                 = {{KEY_BUFFER}}M\nmyisam_sort_buffer_size         = 4M\nmyisam-recover-options          = BACKUP\nmax_length_for_sort_data        = 4096\n\n# Connections\nmax_connections                 = {{MAX_CONNECTIONS}}\nback_log                        = {{BACK_LOG}}\nmax_connect_errors              = 1000\n\n# Packet and cache\nmax_allowed_packet              = 16M\nopen_files_limit                = 2048\ninnodb_open_files               = 1024\ntable_open_cache                = 1024\ntable_definition_cache          = 1024\n\n# Temp tables\ntmp_table_size                  = {{TMP_TABLE_SIZE}}M\nmax_heap_table_size             = {{TMP_TABLE_SIZE}}M\n\n# InnoDB\ninnodb_buffer_pool_size         = {{BUFFER_POOL_SIZE}}\ninnodb_buffer_pool_instances    = {{BUFFER_POOL_INSTANCES}}\ninnodb_read_io_threads          = 4\ninnodb_write_io_threads         = 4\ninnodb_flush_log_at_trx_commit  = 1\ninnodb_flush_method             = O_DIRECT\ninnodb_file_per_table           = 1\ninnodb_io_capacity              = 1000\ninnodb_table_locks              = 1\ninnodb_lock_wait_timeout        = 30\n\n# Logging\nexpire_logs_days                = 7\nmax_binlog_size                 = 64M\n\n# Query cache – disabled\nquery_cache_limit               = 0\nquery_cache_size                = 0\nquery_cache_type                = 0\n\nperformance_schema              = 0\n\nsql_mode                        = "NO_ENGINE_SUBSTITUTION"\n\n[mariadb]\nthread_cache_size               = {{THREAD_CACHE}}\nthread_handling                 = pool-of-threads\nthread_pool_size                = 4\nthread_pool_idle_timeout        = 20\nthread_pool_max_threads         = 256\n\n[mysqldump]\nquick\nquote-names\nmax_allowed_packet              = 16M\n\n[mysql]\n\n[isamchk]\nkey_buffer_size                 = 8M"""
-rConfig = '; XC_VM Configuration\n; -----------------\n; To change your username or password, modify BOTH\n; below and XC_VM will read and re-encrypt them.\n\n[XC_VM]\nhostname    =   "127.0.0.1"\ndatabase    =   "xc_vm"\nport        =   3306\nserver_id   =   1\n\n[Encrypted]\nusername    =   "%s"\npassword    =   "%s"'
-rRedisConfig = 'bind *\nprotected-mode yes\nport 6379\ntcp-backlog 4096\ntimeout 300\ntcp-keepalive 60\ndaemonize yes\nsupervised no\npidfile /home/xc_vm/bin/redis/redis-server.pid\nloglevel warning\nlogfile /home/xc_vm/bin/redis/redis-server.log\ndatabases 1\nalways-show-logo yes\nstop-writes-on-bgsave-error no\nrdbcompression no\nrdbchecksum no\ndbfilename dump.rdb\ndir /home/xc_vm/bin/redis/\nslave-serve-stale-data yes\nslave-read-only yes\nrepl-diskless-sync no\nrepl-diskless-sync-delay 5\nrepl-disable-tcp-nodelay no\nslave-priority 100\nrequirepass #PASSWORD#\nmaxclients 655350\nlazyfree-lazy-eviction yes\nlazyfree-lazy-expire yes\nlazyfree-lazy-server-delay no\nslave-lazy-flush no\nappendonly no\nappendfilename "appendonly.aof"\nappendfsync everysec\nno-appendfsync-on-rewrite no\nauto-aof-rewrite-percentage 100\nauto-aof-rewrite-min-size 64mb\naof-load-truncated yes\naof-use-rdb-preamble no\nlua-time-limit 5000\nslowlog-log-slower-than 10000\nslowlog-max-len 128\nlatency-monitor-threshold 0\nnotify-keyspace-events ""\nhash-max-ziplist-entries 512\nhash-max-ziplist-value 64\nlist-max-ziplist-size -2\nlist-compress-depth 0\nset-max-intset-entries 512\nzset-max-ziplist-entries 128\nzset-max-ziplist-value 64\nhll-sparse-max-bytes 3000\nactiverehashing yes\nclient-output-buffer-limit normal 0 0 0\nclient-output-buffer-limit slave 256mb 64mb 60\nclient-output-buffer-limit pubsub 32mb 8mb 60\nhz 100\naof-rewrite-incremental-fsync yes\nsave ""'
-rSysCtl = "# XC_VM\n\nnet.ipv4.tcp_congestion_control = bbr\nnet.core.default_qdisc = fq\nnet.ipv4.tcp_rmem = 8192 87380 134217728\nnet.ipv4.udp_rmem_min = 16384\nnet.core.rmem_default = 262144\nnet.core.rmem_max = 268435456\nnet.ipv4.tcp_wmem = 8192 65536 134217728\nnet.ipv4.udp_wmem_min = 16384\nnet.core.wmem_default = 262144\nnet.core.wmem_max = 268435456\nnet.core.somaxconn = 1000000\nnet.core.netdev_max_backlog = 250000\nnet.core.optmem_max = 65535\nnet.ipv4.tcp_max_tw_buckets = 1440000\nnet.ipv4.tcp_max_orphans = 16384\nnet.ipv4.ip_local_port_range = 2000 65000\nnet.ipv4.tcp_no_metrics_save = 1\nnet.ipv4.tcp_slow_start_after_idle = 0\nnet.ipv4.tcp_fin_timeout = 15\nnet.ipv4.tcp_keepalive_time = 300\nnet.ipv4.tcp_keepalive_probes = 5\nnet.ipv4.tcp_keepalive_intvl = 15\nfs.file-max=20970800\nfs.nr_open=20970800\nfs.aio-max-nr=20970800\nnet.ipv4.tcp_timestamps = 1\nnet.ipv4.tcp_window_scaling = 1\nnet.ipv4.tcp_mtu_probing = 1\nnet.ipv4.route.flush = 1\nnet.ipv6.route.flush = 1"
-rSystemd = "[Unit]\nSourcePath=/home/xc_vm/service\nDescription=XC_VM Service\nAfter=network.target\nStartLimitIntervalSec=0\n\n[Service]\nType=simple\nUser=root\nRestart=always\nRestartSec=1\nExecStart=/bin/bash /home/xc_vm/service start\nExecStop=/bin/bash /home/xc_vm/service stop\n\n[Install]\nWantedBy=multi-user.target"
-rChoice = "23456789abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ"
-rConfigPath = "/home/xc_vm/config/config.ini"
 
-rVersions = {
-    "20.04": "focal",
-    "20.10": "groovy",
-    "22.04": "jammy",
-    "22.10": "kinetic",
-    "24.04": "noble",
-    "24.10": "oracular",
+# Distribuciones soportadas
+SUPPORTED_DISTROS = {
+    "ubuntu": ["18.04", "20.04", "22.04", "24.04"],
+    "debian": ["11", "12", "13"],
+    "rocky": ["8", "9"],
+    "almalinux": ["8", "9"],
+    "centos": ["7", "8"],
+    "rhel": ["8", "9"],
 }
 
+PACKAGES = {
+    "debian": [
+        "iproute2",
+        "net-tools",
+        "dirmngr",
+        "gpg-agent",
+        "software-properties-common",
+        "libmaxminddb0",
+        "libmaxminddb-dev",
+        "mmdb-bin",
+        "libcurl4",
+        "libgeoip-dev",
+        "libxslt1-dev",
+        "libonig-dev",
+        "e2fsprogs",
+        "wget",
+        "mariadb-server",
+        "mariadb-client",
+        "sysstat",
+        "alsa-utils",
+        "v4l-utils",
+        "certbot",
+        "iptables-persistent",
+        "libjpeg-dev",
+        "libpng-dev",
+        "libharfbuzz-dev",
+        "libfribidi-dev",
+        "libogg0",
+        "libnuma1",
+        "xz-utils",
+        "zip",
+        "unzip",
+        "libssh2-1",
+        "cpufrequtils",
+        "mcrypt",
+        "cron",
+        "git",
+        "curl",
+    ],
+    "debian13": [
+        "iproute2",
+        "net-tools",
+        "dirmngr",
+        "gpg-agent",
+        "software-properties-common",
+        "libmaxminddb0",
+        "libmaxminddb-dev",
+        "mmdb-bin",
+        "libcurl4",
+        "wget",
+        "unzip",
+        "zip",
+        "xz-utils",
+        "cron",
+        "git",
+        "sysstat",
+        "perl",
+        "gawk",
+        "socat",
+        "libxml2-dev",
+        "libxslt1-dev",
+        "libonig5",
+        "libonig-dev",
+        "zlib1g-dev",
+        "libssl-dev",
+        "pkg-config",
+        "autoconf",
+        "automake",
+        "alsa-utils",
+        "v4l-utils",
+        "e2fsprogs",
+        "certbot",
+        "iptables-persistent",
+        "libssh2-1",
+        "libssh2-1-dev",
+        "mariadb-server",
+        "mariadb-client",
+        "mariadb-common",
+        "libjpeg-dev",
+        "libpng-dev",
+        "libharfbuzz-dev",
+        "libfribidi-dev",
+        "libgeoip1",
+        "geoip-bin",
+        "cpufrequtils",
+        "mcrypt",
+        "libnuma1",
+    ],
+    "ubuntu20": [
+        "iproute2",
+        "net-tools",
+        "dirmngr",
+        "gpg-agent",
+        "software-properties-common",
+        "wget",
+        "curl",
+        "unzip",
+        "zip",
+        "xz-utils",
+        "cron",
+        "git",
+        "sysstat",
+        "ca-certificates",
+        "libmaxminddb0",
+        "mmdb-bin",
+        "libcurl4-openssl-dev",
+        "libxml2-dev",
+        "libxslt1-dev",
+        "libonig5",
+        "libonig-dev",
+        "libjpeg-dev",
+        "libpng-dev",
+        "zlib1g-dev",
+        "alsa-utils",
+        "v4l-utils",
+        "e2fsprogs",
+        "iptables-persistent",
+        "certbot",
+        "python3-certbot",
+        "libssh2-1",
+        "libssh2-1-dev",
+        "mariadb-server",
+        "mariadb-client",
+        "mariadb-common",
+        "cpufrequtils",
+        "mcrypt",
+        "libnuma1",
+    ],
+    "ubuntu22": [
+        "iproute2",
+        "net-tools",
+        "dirmngr",
+        "gpg-agent",
+        "software-properties-common",
+        "libmaxminddb0",
+        "libmaxminddb-dev",
+        "mmdb-bin",
+        "libcurl4",
+        "libgeoip-dev",
+        "libxslt1-dev",
+        "libonig-dev",
+        "e2fsprogs",
+        "wget",
+        "curl",
+        "unzip",
+        "zip",
+        "xz-utils",
+        "cron",
+        "git",
+        "sysstat",
+        "ca-certificates",
+        "libxml2-dev",
+        "libonig5",
+        "zlib1g-dev",
+        "mariadb-server",
+        "mariadb-client",
+        "mariadb-common",
+        "alsa-utils",
+        "v4l-utils",
+        "certbot",
+        "python3-certbot",
+        "iptables-persistent",
+        "libjpeg-dev",
+        "libpng-dev",
+        "libharfbuzz-dev",
+        "libfribidi-dev",
+        "libogg0",
+        "libnuma1",
+        "libssh2-1",
+        "libssh2-1-dev",
+        "cpufrequtils",
+        "mcrypt",
+    ],
+    "ubuntu24": [
+        "iproute2",
+        "net-tools",
+        "dirmngr",
+        "gpg-agent",
+        "software-properties-common",
+        "libmaxminddb0",
+        "libmaxminddb-dev",
+        "mmdb-bin",
+        "libcurl4t64",
+        "wget",
+        "unzip",
+        "zip",
+        "xz-utils",
+        "cron",
+        "git",
+        "sysstat",
+        "perl",
+        "gawk",
+        "socat",
+        "libxml2-dev",
+        "libxslt1-dev",
+        "libonig5",
+        "libonig-dev",
+        "zlib1g-dev",
+        "libssl-dev",
+        "pkg-config",
+        "autoconf",
+        "automake",
+        "alsa-utils",
+        "v4l-utils",
+        "e2fsprogs",
+        "certbot",
+        "python3-certbot",
+        "ufw",
+        "libssh2-1t64",
+        "libssh2-1-dev",
+        "mariadb-server",
+        "mariadb-client",
+        "mariadb-common",
+        "libjpeg-dev",
+        "libpng16-dev",
+        "libharfbuzz-dev",
+        "libfribidi-dev",
+        "libgeoip1t64",
+        "geoip-bin",
+        "cpufrequtils",
+        "mcrypt",
+        "libnuma1",
+    ],
+    "debian11": [
+        "iproute2",
+        "net-tools",
+        "dirmngr",
+        "gpg-agent",
+        "software-properties-common",
+        "libmaxminddb0",
+        "libmaxminddb-dev",
+        "mmdb-bin",
+        "libcurl4",
+        "libgeoip-dev",
+        "libxslt1-dev",
+        "libonig-dev",
+        "e2fsprogs",
+        "wget",
+        "curl",
+        "unzip",
+        "zip",
+        "xz-utils",
+        "cron",
+        "git",
+        "sysstat",
+        "mariadb-server",
+        "mariadb-client",
+        "mariadb-common",
+        "alsa-utils",
+        "v4l-utils",
+        "certbot",
+        "iptables-persistent",
+        "libjpeg-dev",
+        "libpng-dev",
+        "libharfbuzz-dev",
+        "libfribidi-dev",
+        "libogg0",
+        "libnuma1",
+        "libssh2-1",
+        "libssh2-1-dev",
+        "cpufrequtils",
+        "mcrypt",
+    ],
+    "redhat": [
+        "epel-release",
+        "wget",
+        "mariadb-server",
+        "mariadb",
+        "sysstat",
+        "alsa-utils",
+        "v4l-utils",
+        "libmaxminddb",
+        "libmaxminddb-devel",
+        "libcurl-devel",
+        "geoip-devel",
+        "libxslt-devel",
+        "oniguruma-devel",
+        "e2fsprogs",
+        "libjpeg-turbo-devel",
+        "libpng-devel",
+        "harfbuzz-devel",
+        "fribidi-devel",
+        "libogg",
+        "xz",
+        "zip",
+        "unzip",
+        "libssh2-devel",
+        "cronie",
+        "certbot",
+        "iptables-services",
+        "GeoIP-update",
+        "git",
+        "curl",
+        "numactl",
+        "kernel-tools",
+    ],
+}
 
-def get_system_ram_mb():
-    """Get total system RAM in MB"""
-    try:
-        with open('/proc/meminfo', 'r') as f:
-            for line in f:
-                if line.startswith('MemTotal:'):
-                    mem_kb = int(line.split()[1])
-                    return mem_kb // 1024  # Convert to MB
-    except:
-        pass
-    return 1024  # Value by default if unable to determine
+rRemove = ["mysql-server"]
+rMySQLCnfTemplate = """\
+# XC_VM
+[client]
+port                            = 3306
 
+[mysqld_safe]
+nice                            = 0
 
-def generate_mysql_config(total_ram_mb):
-    """Generate MySQL configuration based on total RAM"""
+[mysqld]
+user                            = mysql
+port                            = 3306
+basedir                         = /usr
+datadir                         = /var/lib/mysql
+tmpdir                          = /tmp
+lc-messages-dir                 = /usr/share/mysql
+skip-external-locking
+skip-name-resolve
+bind-address                    = *
 
-    buffer_pool_mb = int(total_ram_mb * 0.25)
+# MyISAM
+key_buffer_size                 = {{KEY_BUFFER}}M
+myisam_sort_buffer_size         = 4M
+myisam-recover-options          = BACKUP
+max_length_for_sort_data        = 4096
 
-    if total_ram_mb < 512:
-        buffer_pool_mb = 64
-        max_connections = 30
-    elif total_ram_mb < 1024:
-        buffer_pool_mb = min(buffer_pool_mb, 128)
-        max_connections = 50
-    elif total_ram_mb < 2048:
-        buffer_pool_mb = min(buffer_pool_mb, 256)
-        max_connections = 80
-    elif total_ram_mb < 4096:
-        buffer_pool_mb = min(buffer_pool_mb, 512)
-        max_connections = 120
-    elif total_ram_mb < 8192:
-        buffer_pool_mb = min(buffer_pool_mb, 1024)
-        max_connections = 150
-    else:
-        buffer_pool_mb = min(buffer_pool_mb, 2048)
-        max_connections = 200
+# Connections
+max_connections                 = {{MAX_CONNECTIONS}}
+back_log                        = {{BACK_LOG}}
+max_connect_errors              = 1000
 
-    buffer_pool_size = (
-        f"{buffer_pool_mb // 1024}G"
-        if buffer_pool_mb >= 1024 else f"{buffer_pool_mb}M"
-    )
+# Packet and cache
+max_allowed_packet              = 16M
+open_files_limit                = 2048
+innodb_open_files               = 1024
+table_open_cache                = 1024
+table_definition_cache          = 1024
 
-    key_buffer = min(buffer_pool_mb // 8, 32)
-    tmp_table_size = min(buffer_pool_mb // 4, 64)
+# Temp tables
+tmp_table_size                  = {{TMP_TABLE_SIZE}}M
+max_heap_table_size             = {{TMP_TABLE_SIZE}}M
 
-    config = rMySQLCnfTemplate
-    config = config.replace("{{TOTAL_RAM}}", str(total_ram_mb))
-    config = config.replace("{{KEY_BUFFER}}", str(key_buffer))
-    config = config.replace("{{MAX_CONNECTIONS}}", str(max_connections))
-    config = config.replace("{{BACK_LOG}}", str(min(max_connections // 2, 256)))
-    config = config.replace("{{TMP_TABLE_SIZE}}", str(tmp_table_size))
-    config = config.replace("{{BUFFER_POOL_SIZE}}", buffer_pool_size)
-    config = config.replace(
-        "{{BUFFER_POOL_INSTANCES}}",
-        "1" if buffer_pool_mb < 1024 else "2"
-    )
-    config = config.replace(
-        "{{THREAD_CACHE}}",
-        str(min(max_connections // 4, 64))
-    )
+# InnoDB
+innodb_buffer_pool_size         = {{BUFFER_POOL_SIZE}}
+innodb_buffer_pool_instances    = {{BUFFER_POOL_INSTANCES}}
+innodb_read_io_threads          = 4
+innodb_write_io_threads         = 4
+innodb_flush_log_at_trx_commit  = 1
+innodb_flush_method             = O_DIRECT
+innodb_file_per_table           = 1
+innodb_io_capacity              = 1000
+innodb_table_locks              = 1
+innodb_lock_wait_timeout        = 30
 
-    printc(f"RAM detected: {total_ram_mb}MB", col.OKGREEN)
-    printc(f"Buffer pool configured: {buffer_pool_size} ({buffer_pool_mb}MB)", col.OKGREEN)
-    printc(f"Max connections: {max_connections}", col.OKGREEN)
+# Logging
+expire_logs_days                = 7
+max_binlog_size                 = 64M
 
-    return config
+# Query cache - disabled
+query_cache_limit               = 0
+query_cache_size                = 0
+query_cache_type                = 0
+
+performance_schema              = 0
+
+sql_mode                        = "NO_ENGINE_SUBSTITUTION"
+
+[mariadb]
+thread_cache_size               = {{THREAD_CACHE}}
+thread_handling                 = pool-of-threads
+thread_pool_size                = 4
+thread_pool_idle_timeout        = 20
+thread_pool_max_threads         = 256
+
+[mysqldump]
+quick
+quote-names
+max_allowed_packet              = 16M
+
+[mysql]
+
+[isamchk]
+key_buffer_size                 = 8M"""
+rConfig = """\
+; XC_VM Configuration
+; -----------------
+; To change your username or password, modify BOTH
+; below and XC_VM will read and re-encrypt them.
+
+[XC_VM]
+hostname    =   "127.0.0.1"
+database    =   "xc_vm"
+port        =   3306
+server_id   =   1
+
+[Encrypted]
+username    =   "%s"
+password    =   "%s"
+"""
+rRedisConfig = """\
+bind *
+protected-mode yes
+port 6379
+tcp-backlog 4096
+timeout 300
+tcp-keepalive 60
+daemonize yes
+supervised no
+pidfile /home/xc_vm/bin/redis/redis-server.pid
+loglevel warning
+logfile /home/xc_vm/bin/redis/redis-server.log
+databases 1
+always-show-logo yes
+stop-writes-on-bgsave-error no
+rdbcompression no
+rdbchecksum no
+dbfilename dump.rdb
+dir /home/xc_vm/bin/redis/
+slave-serve-stale-data yes
+slave-read-only yes
+repl-diskless-sync no
+repl-diskless-sync-delay 5
+repl-disable-tcp-nodelay no
+slave-priority 100
+requirepass #PASSWORD#
+maxclients 655350
+lazyfree-lazy-eviction yes
+lazyfree-lazy-expire yes
+lazyfree-lazy-server-delay no
+slave-lazy-flush no
+appendonly no
+appendfilename "appendonly.aof"
+appendfsync everysec
+no-appendfsync-on-rewrite no
+auto-aof-rewrite-percentage 100
+auto-aof-rewrite-min-size 64mb
+aof-load-truncated yes
+aof-use-rdb-preamble no
+lua-time-limit 5000
+slowlog-log-slower-than 10000
+slowlog-max-len 128
+latency-monitor-threshold 0
+notify-keyspace-events ""
+hash-max-ziplist-entries 512
+hash-max-ziplist-value 64
+list-max-ziplist-size -2
+list-compress-depth 0
+set-max-intset-entries 512
+zset-max-ziplist-entries 128
+zset-max-ziplist-value 64
+hll-sparse-max-bytes 3000
+activerehashing yes
+client-output-buffer-limit normal 0 0 0
+client-output-buffer-limit slave 256mb 64mb 60
+client-output-buffer-limit pubsub 32mb 8mb 60
+hz 100
+aof-rewrite-incremental-fsync yes
+save \"\""""
+rSysCtl = """\
+# XC_VM
+
+net.ipv4.tcp_congestion_control = bbr
+net.core.default_qdisc = fq
+net.ipv4.tcp_rmem = 8192 87380 134217728
+net.ipv4.udp_rmem_min = 16384
+net.core.rmem_default = 262144
+net.core.rmem_max = 268435456
+net.ipv4.tcp_wmem = 8192 65536 134217728
+net.ipv4.udp_wmem_min = 16384
+net.core.wmem_default = 262144
+net.core.wmem_max = 268435456
+net.core.somaxconn = 1000000
+net.core.netdev_max_backlog = 250000
+net.core.optmem_max = 65535
+net.ipv4.tcp_max_tw_buckets = 1440000
+net.ipv4.tcp_max_orphans = 16384
+net.ipv4.ip_local_port_range = 2000 65000
+net.ipv4.tcp_no_metrics_save = 1
+net.ipv4.tcp_slow_start_after_idle = 0
+net.ipv4.tcp_fin_timeout = 15
+net.ipv4.tcp_keepalive_time = 300
+net.ipv4.tcp_keepalive_probes = 5
+net.ipv4.tcp_keepalive_intvl = 15
+fs.file-max=20970800
+fs.nr_open=20970800
+fs.aio-max-nr=20970800
+net.ipv4.tcp_timestamps = 1
+net.ipv4.tcp_window_scaling = 1
+net.ipv4.tcp_mtu_probing = 1
+net.ipv4.route.flush = 1
+net.ipv6.route.flush = 1"""
+rSystemd = """\
+[Unit]
+SourcePath=/home/xc_vm/service
+Description=XC_VM Service
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=root
+Restart=always
+RestartSec=1
+LimitNOFILE=655350
+ExecStart=/bin/bash /home/xc_vm/service start
+ExecStop=/bin/bash /home/xc_vm/service stop
+
+[Install]
+WantedBy=multi-user.target"""
+rChoice = "23456789abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ"
+rConfigPath = "/home/xc_vm/config/config.ini"
 
 
 class col:
@@ -140,14 +550,879 @@ class col:
     UNDERLINE = "\033[4m"
 
 
-def generate(length=32):
-    return "".join(random.choice(rChoice) for i in range(length))
+# Check if running as root
+def check_root():
+    """Check if script is running as root"""
+    if os.geteuid() != 0:
+        printc("This script must be run as root.", col.FAIL)
+        printc("Please use: su -c 'python3 your_script_name.py'", col.OKBLUE)
+        sys.exit(1)
+
+
+# Install prerequisites
+def install_prerequisites(dist_info):
+    """Install prerequisites like sudo and curl if they are missing"""
+    if dist_info["family"] == "debian":
+        printc("Checking for prerequisites (sudo, curl)...", col.OKBLUE)
+
+        # Check if sudo exists
+        ret, _, _ = run_command("which sudo", capture_output=True)
+        sudo_missing = ret != 0
+
+        # Check if curl exists
+        ret, _, _ = run_command("which curl", capture_output=True)
+        curl_missing = ret != 0
+
+        if sudo_missing or curl_missing:
+            printc("Installing missing prerequisites...", col.WARNING)
+            printc("Updating package lists...", col.OKBLUE)
+            run_command("apt-get update -y")
+
+            packages_to_install = []
+            if sudo_missing:
+                packages_to_install.append("sudo")
+            if curl_missing:
+                packages_to_install.append("curl")
+
+            if packages_to_install:
+                packages_str = " ".join(packages_to_install)
+                printc(f"Installing {packages_str}...", col.OKBLUE)
+                run_command(f"apt-get install -y {packages_str}")
+                printc("Prerequisites installed successfully.", col.OKGREEN)
+        else:
+            printc("Prerequisites (sudo, curl) are already installed.", col.OKGREEN)
+
+    elif dist_info["family"] == "redhat":
+        printc("Checking for prerequisites (sudo, curl, wget)...", col.OKBLUE)
+
+        ret, _, _ = run_command("which sudo", capture_output=True)
+        sudo_missing = ret != 0
+
+        ret, _, _ = run_command("which curl", capture_output=True)
+        curl_missing = ret != 0
+
+        ret, _, _ = run_command("which wget", capture_output=True)
+        wget_missing = ret != 0
+
+        if sudo_missing or curl_missing or wget_missing:
+            printc("Installing missing prerequisites...", col.WARNING)
+            packages_to_install = []
+            if sudo_missing:
+                packages_to_install.append("sudo")
+            if curl_missing:
+                packages_to_install.append("curl")
+            if wget_missing:
+                packages_to_install.append("wget")
+
+            if packages_to_install:
+                packages_str = " ".join(packages_to_install)
+                printc(f"Installing {packages_str}...", col.OKBLUE)
+                run_command(
+                    f"yum install -y {packages_str} || dnf install -y {packages_str}"
+                )
+                printc("Prerequisites installed successfully.", col.OKGREEN)
+        else:
+            printc("Prerequisites are already installed.", col.OKGREEN)
+
+
+def get_latest_binaries_tag():
+    """Get the latest release tag from XC_VM_Binaries GitHub repo"""
+    api_url = (
+        "https://api.github.com/repos/Vateron-Media/XC_VM_Binaries/releases/latest"
+    )
+    try:
+        req = urllib.request.Request(api_url)
+        req.add_header("User-Agent", "XC_VM-Installer/1.0")
+        with urllib.request.urlopen(req, timeout=15) as response:
+            data = json.loads(response.read().decode())
+            return data["tag_name"]
+    except Exception as e:
+        printc(f"Failed to get latest binaries release tag: {e}", col.WARNING)
+        return None
+
+
+# Install distribution-specific binaries
+def install_distribution_binaries(dist_id, version):
+    """Download and install distribution-specific binaries from GitHub releases"""
+    printc(f"Installing {dist_id} {version} specific binaries...", col.OKBLUE)
+
+    # Determinar el nombre del archivo en GitHub releases
+    major = version.split(".")[0]
+    if dist_id == "ubuntu":
+        if major in ["18", "20", "22", "24"]:
+            patch_name = f"ubuntu_{major}.tar.gz"
+            display_name = f"Ubuntu {major}"
+        else:
+            printc(f"Ubuntu version {version} not supported for patches", col.WARNING)
+            return False
+    elif dist_id == "debian":
+        if major in ["11", "12", "13"]:
+            patch_name = f"debian_{major}.tar.gz"
+            display_name = f"Debian {major}"
+        else:
+            printc(f"Debian version {version} not supported for patches", col.WARNING)
+            return False
+    elif dist_id in ["rocky", "almalinux", "rhel", "centos"]:
+        if major in ["8", "9"]:
+            patch_name = f"rhel_{major}.tar.gz"
+            display_name = f"RHEL/Rocky/Alma {major}"
+        else:
+            printc(
+                f"{dist_id} version {version} not supported for patches", col.WARNING
+            )
+            return False
+    else:
+        printc(f"Distribution {dist_id} not supported for patches", col.WARNING)
+        return False
+
+    # Get latest release tag from GitHub
+    release_tag = get_latest_binaries_tag()
+    if not release_tag:
+        printc("Could not determine latest binaries release, skipping", col.WARNING)
+        return False
+
+    remote_url = f"https://github.com/Vateron-Media/XC_VM_Binaries/releases/download/{release_tag}/{patch_name}"
+    temp_tar_file = f"/tmp/{patch_name}"
+    temp_extract_dir = f"/tmp/{patch_name.replace('.tar.gz', '_extract')}"
+
+    try:
+        # Always download fresh binaries from GitHub
+        printc(
+            f"Downloading {display_name} binaries from GitHub release {release_tag}...",
+            col.OKBLUE,
+        )
+        printc(f"URL: {remote_url}", col.OKBLUE)
+
+        # Remove old file if exists
+        if os.path.exists(temp_tar_file):
+            os.remove(temp_tar_file)
+
+        urllib.request.urlretrieve(remote_url, temp_tar_file)
+
+        if not (os.path.exists(temp_tar_file) and os.path.getsize(temp_tar_file) > 0):
+            printc(f"Failed to download {display_name} binaries", col.FAIL)
+            return False
+
+        file_size_mb = os.path.getsize(temp_tar_file) / (1024 * 1024)
+        printc(
+            f"{display_name} binaries downloaded: {file_size_mb:.1f} MB", col.OKGREEN
+        )
+
+        # 2. Clean previous extraction directory if exists
+        if os.path.exists(temp_extract_dir):
+            shutil.rmtree(temp_extract_dir)
+
+        # 3. Extract to temporary directory
+        printc(
+            f"Extracting {display_name} binaries to temporary location...", col.OKBLUE
+        )
+        with tarfile.open(temp_tar_file, "r:gz") as tar:
+            tar.extractall(
+                path=temp_extract_dir, members=_safe_tar_members(tar, temp_extract_dir)
+            )
+
+        # Auto-detect directory structure
+        major = version.split(".")[0]
+        # Variants: debian11, debian_11, ubuntu20, ubuntu_20
+        distro_variants = [
+            f"{dist_id}{major}",
+            f"{dist_id}_{major}",
+        ]
+
+        # Possible paths where binaries might be
+        possible_paths = []
+        for dname in distro_variants:
+            possible_paths.append(os.path.join(temp_extract_dir, dname, "bin"))
+            possible_paths.append(os.path.join(temp_extract_dir, dname))
+        possible_paths.append(os.path.join(temp_extract_dir, "bin"))
+        possible_paths.append(temp_extract_dir)
+
+        source_bin_dir = None
+        for path in possible_paths:
+            if os.path.exists(path):
+                # Check if it contains binary files or typical directories
+                contents = os.listdir(path)
+                has_binaries = any(
+                    item in contents for item in ["php", "nginx", "nginx_rtmp", "bin"]
+                )
+
+                if has_binaries or path.endswith("/bin"):
+                    source_bin_dir = path
+                    printc(f"Structure found: {source_bin_dir}", col.OKGREEN)
+                    break
+
+        # If not found in expected paths, search recursively
+        if not source_bin_dir:
+            printc("Searching directory structure recursively...", col.OKBLUE)
+            for root, dirs, files in os.walk(temp_extract_dir):
+                # Search for directories containing typical binaries
+                if any(item in dirs for item in ["php", "nginx", "nginx_rtmp", "bin"]):
+                    source_bin_dir = root
+                    printc(
+                        f"Estructura encontrada recursivamente: {source_bin_dir}",
+                        col.OKGREEN,
+                    )
+                    break
+
+        target_bin_dir = "/home/xc_vm/bin"
+
+        if not source_bin_dir:
+            printc(
+                "Error: No se pudo encontrar la estructura de binarios en el parche.",
+                col.FAIL,
+            )
+            printc(
+                f"Contenido de {temp_extract_dir}: {os.listdir(temp_extract_dir)}",
+                col.WARNING,
+            )
+            # Show full structure for debugging
+            printc("Full structure of extracted directory:", col.WARNING)
+            for root, dirs, files in os.walk(temp_extract_dir):
+                level = root.replace(temp_extract_dir, "").count(os.sep)
+                indent = " " * 2 * level
+                printc(f"{indent}{os.path.basename(root)}/", col.WARNING)
+                subindent = " " * 2 * (level + 1)
+                for file in files[:10]:  # Limit to 10 files to avoid clutter
+                    printc(f"{subindent}{file}", col.WARNING)
+                if len(files) > 10:
+                    printc(
+                        f"{subindent}... and {len(files) - 10} more files", col.WARNING
+                    )
+            return False
+
+        # 4. Replace specific files, not the entire directory
+        printc(
+            f"Replacing specific binaries with {display_name} versions...",
+            col.OKBLUE,
+        )
+
+        # Recursively walk source directory files
+        for root, dirs, files in os.walk(source_bin_dir):
+            # Calculate relative path from source directory
+            rel_path = os.path.relpath(root, source_bin_dir)
+
+            # Create corresponding target directories if they don't exist
+            if rel_path != ".":
+                target_dir = os.path.join(target_bin_dir, rel_path)
+                os.makedirs(target_dir, exist_ok=True)
+
+            # Copy files
+            for file in files:
+                source_file = os.path.join(root, file)
+                if rel_path == ".":
+                    target_file = os.path.join(target_bin_dir, file)
+                else:
+                    target_file = os.path.join(target_bin_dir, rel_path, file)
+
+                # Create directories if needed
+                os.makedirs(os.path.dirname(target_file), exist_ok=True)
+
+                # Copy file (overwriting if exists)
+                shutil.copy2(source_file, target_file)
+                # printc(f"Updated: {target_file}", col.OKBLUE)
+
+        printc(f"{display_name} binaries updated successfully", col.OKGREEN)
+
+        # 5. Set permissions on key executables
+        printc(f"Setting permissions for {display_name} binaries...", col.OKBLUE)
+        executables_to_chmod = [
+            "/home/xc_vm/bin/php/bin/php",
+            "/home/xc_vm/bin/php/sbin/php-fpm",
+            "/home/xc_vm/bin/nginx/sbin/nginx",
+            "/home/xc_vm/bin/nginx_rtmp/sbin/nginx_rtmp",
+        ]
+        for exe_path in executables_to_chmod:
+            if os.path.exists(exe_path):
+                run_command(f"chmod +x {exe_path}")
+
+        # 6. Clean up temporary files
+        printc("Cleaning up temporary files...", col.OKBLUE)
+        if os.path.exists(temp_tar_file):
+            os.remove(temp_tar_file)
+        if os.path.exists(temp_extract_dir):
+            shutil.rmtree(temp_extract_dir)
+
+        printc(
+            f"{display_name} specific binary installation completed",
+            col.OKGREEN,
+        )
+        return True
+
+    except Exception as e:
+        printc(f"Error installing {display_name} binaries: {e}", col.FAIL)
+        # Clean up archive files on error
+        if os.path.exists(temp_tar_file):
+            os.remove(temp_tar_file)
+        if os.path.exists(temp_extract_dir):
+            shutil.rmtree(temp_extract_dir)
+        return False
+
+
+def detect_distribution():
+    """Detect Linux distribution and version without external modules"""
+    dist_id = "unknown"
+    version = "unknown"
+    family = "unknown"
+
+    # Try /etc/os-release first (standard method)
+    if os.path.exists("/etc/os-release"):
+        try:
+            with open("/etc/os-release", "r") as f:
+                lines = f.readlines()
+                for line in lines:
+                    line = line.strip()
+                    if line.startswith("ID="):
+                        dist_id = line.split("=")[1].strip().strip('"')
+                    elif line.startswith("VERSION_ID="):
+                        version = line.split("=")[1].strip().strip('"')
+        except Exception:
+            pass
+
+    # Try older methods
+    if dist_id == "unknown":
+        if os.path.exists("/etc/redhat-release"):
+            dist_id = "centos"
+            try:
+                with open("/etc/redhat-release", "r") as f:
+                    content = f.read().lower()
+                    if "rocky" in content:
+                        dist_id = "rocky"
+                    elif "alma" in content:
+                        dist_id = "almalinux"
+                    elif "rhel" in content:
+                        dist_id = "rhel"
+                    elif "fedora" in content:
+                        dist_id = "fedora"
+            except Exception:
+                pass
+        elif os.path.exists("/etc/debian_version"):
+            dist_id = "debian"
+            try:
+                with open("/etc/debian_version", "r") as f:
+                    version = f.read().strip()
+            except Exception:
+                pass
+        elif os.path.exists("/etc/lsb-release"):
+            try:
+                with open("/etc/lsb-release", "r") as f:
+                    lines = f.readlines()
+                    for line in lines:
+                        if line.startswith("DISTRIB_ID="):
+                            dist_id = line.split("=")[1].strip().lower().strip('"')
+                        elif line.startswith("DISTRIB_RELEASE="):
+                            version = line.split("=")[1].strip().strip('"')
+            except Exception:
+                pass
+
+    # Determine family
+    if dist_id in ["centos", "rhel", "rocky", "almalinux", "fedora"]:
+        family = "redhat"
+    elif dist_id in ["ubuntu", "debian"]:
+        family = "debian"
+    else:
+        family = dist_id
+
+    return {
+        "id": dist_id,
+        "family": family,
+        "version": version,
+        "full_version": version,
+    }
+
+
+def check_supported_distro(dist_info):
+    """Check if distribution is supported"""
+    dist_id = dist_info["id"]
+    version = dist_info["version"]
+
+    if dist_id in SUPPORTED_DISTROS:
+        if version in SUPPORTED_DISTROS[dist_id]:
+            return True
+        else:
+            # Check if any supported version starts with the same major version
+            for supported_version in SUPPORTED_DISTROS[dist_id]:
+                if supported_version.startswith(version.split(".")[0]):
+                    return True
+
+    # If not in list but is a known family, we'll try anyway
+    if dist_info["family"] in ["debian", "redhat"]:
+        return True
+
+    return False
+
+
+def run_command(cmd, shell=True, capture_output=False):
+    """Run shell command with error handling"""
+    try:
+        if capture_output:
+            result = subprocess.run(cmd, shell=shell, capture_output=True, text=True)
+            return result.returncode, result.stdout, result.stderr
+        else:
+            result = subprocess.run(cmd, shell=shell)
+            return result.returncode, None, None
+    except Exception as e:
+        return 1, None, str(e)
+
+
+def _safe_tar_members(tar, dest):
+    """Filter tar members to prevent path traversal attacks (CVE-2007-4559)"""
+    dest = os.path.realpath(dest)
+    for member in tar.getmembers():
+        member_path = os.path.realpath(os.path.join(dest, member.name))
+        if not member_path.startswith(dest + os.sep) and member_path != dest:
+            printc(f"Skipping unsafe tar member: {member.name}", col.WARNING)
+            continue
+        yield member
+
+
+def is_valid_zip(file_path):
+    """Check if a file is a valid ZIP archive"""
+    try:
+        with zipfile.ZipFile(file_path, "r") as zip_ref:
+            # Try to list contents
+            zip_ref.namelist()
+            return True
+    except Exception:
+        return False
+
+
+def is_valid_tar(file_path):
+    """Check if a file is a valid TAR archive"""
+    try:
+        with tarfile.open(file_path, "r:*") as tar_ref:
+            # Try to list contents
+            tar_ref.getmembers()
+            return True
+    except Exception:
+        return False
+
+
+def download_xc_vm():
+    """Download XC_VM from GitHub releases"""
+    printc("Checking for XC_VM installation files...", col.OKBLUE)
+
+    # Check if valid files already exist locally
+    if os.path.exists("./xc_vm.tar.gz") and is_valid_tar("./xc_vm.tar.gz"):
+        printc("Valid xc_vm.tar.gz found locally", col.OKGREEN)
+        return True
+
+    if os.path.exists("./XC_VM.zip") and is_valid_zip("./XC_VM.zip"):
+        printc("Valid XC_VM.zip found locally", col.OKGREEN)
+        return True
+
+    printc("Not found. Trying to download from GitHub...", col.OKBLUE)
+
+    try:
+        # 1. Get latest version from GitHub API
+        printc("Getting latest version from GitHub API...", col.OKBLUE)
+        api_url = "https://api.github.com/repos/Vateron-Media/XC_VM/releases/latest"
+        req = urllib.request.Request(api_url)
+        req.add_header("User-Agent", "XC_VM-Installer/1.0")
+
+        with urllib.request.urlopen(req, timeout=10) as response:
+            data = json.loads(response.read().decode())
+            latest_version = data["tag_name"]
+            printc(f"Latest version: {latest_version}", col.OKGREEN)
+
+        # 2. Download XC_VM.zip directly from GitHub releases
+        download_url = f"https://github.com/Vateron-Media/XC_VM/releases/download/{latest_version}/XC_VM.zip"
+        printc(f"Downloading: {download_url}", col.OKBLUE)
+
+        # Download using urllib
+        urllib.request.urlretrieve(download_url, "XC_VM.zip")
+
+        # Verify download
+        if os.path.exists("XC_VM.zip") and os.path.getsize("XC_VM.zip") > 0:
+            file_size = os.path.getsize("XC_VM.zip")
+            printc(f"Download successful: XC_VM.zip ({file_size} bytes)", col.OKGREEN)
+
+            # Validate ZIP file
+            if is_valid_zip("XC_VM.zip"):
+                printc("ZIP archive validated successfully", col.OKGREEN)
+                return True
+            else:
+                printc("Downloaded file is not a valid ZIP archive", col.WARNING)
+                os.remove("XC_VM.zip")
+                return False
+        else:
+            printc("Download failed or file is empty", col.FAIL)
+            return False
+
+    except Exception as e:
+        printc(f"Download error: {e}", col.FAIL)
+
+        # Try alternative methods if download fails
+        printc("Trying alternative download methods...", col.WARNING)
+
+        # Alternative method: Direct download from latest
+        try:
+            alt_url = "https://github.com/Vateron-Media/XC_VM/releases/latest/download/XC_VM.zip"
+            printc(f"Trying alternative: {alt_url}", col.OKBLUE)
+            urllib.request.urlretrieve(alt_url, "XC_VM.zip")
+
+            if os.path.exists("XC_VM.zip") and is_valid_zip("XC_VM.zip"):
+                printc("Alternative download successful", col.OKGREEN)
+                return True
+        except Exception:
+            pass
+
+        return False
+
+
+def install_mariadb_repo(dist_info):
+    """Install MariaDB repository based on distribution"""
+    dist_id = dist_info["id"]
+    version = dist_info["version"]
+    family = dist_info["family"]
+
+    printc(f"Configuring MariaDB repository for {dist_id} {version}", col.OKBLUE)
+
+    if family == "debian":
+        # Debian/Ubuntu
+        if dist_id == "ubuntu":
+            # Try to get codename from /etc/os-release
+            codename = "jammy"  # Default for Ubuntu 22.04
+            try:
+                with open("/etc/os-release", "r") as f:
+                    for line in f:
+                        if line.startswith("UBUNTU_CODENAME="):
+                            codename = line.split("=")[1].strip().strip('"')
+                            break
+                        elif line.startswith("VERSION_CODENAME="):
+                            codename = line.split("=")[1].strip().strip('"')
+                            break
+            except Exception:
+                # Fallback based on version
+                if version.startswith("20"):
+                    codename = "focal"
+                elif version.startswith("22"):
+                    codename = "jammy"
+                elif version.startswith("24"):
+                    codename = "noble"
+
+            printc(f"Using Ubuntu codename: {codename}", col.OKGREEN)
+
+        # Install prerequisites
+        run_command(
+            "apt-get install -y apt-transport-https curl gnupg software-properties-common"
+        )
+
+        # Special handling for Ubuntu 20.04 LTS (EOL)
+        if dist_id == "ubuntu" and version.startswith("20"):
+            printc(
+                "Ubuntu 20.04 LTS detected, using system MariaDB packages...",
+                col.WARNING,
+            )
+            printc(
+                "MariaDB 11.4 is not compatible with Ubuntu 20.04 (libc6 incompatibility)",
+                col.OKBLUE,
+            )
+            printc(
+                "Using Ubuntu 20.04 default MariaDB packages for compatibility",
+                col.OKGREEN,
+            )
+
+            # For Ubuntu 20.04, we'll use the system MariaDB packages
+            # Ubuntu 20.04 default repositories have MariaDB 10.3 which is compatible
+            try:
+                # Remove any existing MariaDB repository files
+                if os.path.exists("/etc/apt/sources.list.d/mariadb.list"):
+                    os.remove("/etc/apt/sources.list.d/mariadb.list")
+                    printc("Removed incompatible MariaDB repository", col.OKBLUE)
+
+                if os.path.exists("/usr/share/keyrings/mariadb.gpg"):
+                    os.remove("/usr/share/keyrings/mariadb.gpg")
+
+                printc(
+                    "Will use Ubuntu 20.04 default MariaDB packages (10.3.x)",
+                    col.OKGREEN,
+                )
+                # Skip external repository setup for Ubuntu 20.04
+
+            except Exception as e:
+                printc(f"Error cleaning up MariaDB repositories: {e}", col.WARNING)
+                printc("Continuing with system packages...", col.WARNING)
+
+        else:
+            # For other versions, use the official script
+            printc(
+                "Adding MariaDB repository using official setup script...", col.OKBLUE
+            )
+            run_command(
+                "curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup | bash -s -- --mariadb-server-version='mariadb-11.4'"
+            )
+
+        # Add MaxMind repository for Ubuntu (with error handling)
+        if dist_id == "ubuntu":
+            printc("Adding MaxMind repository for GeoIP...", col.OKBLUE)
+            try:
+                run_command("add-apt-repository -y ppa:maxmind/ppa")
+                printc("MaxMind repository added successfully", col.OKGREEN)
+            except Exception as e:
+                printc(f"MaxMind PPA failed to add: {e}", col.WARNING)
+                printc(
+                    "Continuing without MaxMind PPA (not critical for functionality)",
+                    col.OKBLUE,
+                )
+        else:
+            printc("Skipping MaxMind PPA (not available for Debian)", col.OKBLUE)
+
+        # Update package list
+        printc("Updating package list...", col.OKBLUE)
+        run_command("apt-get update")
+
+    elif family == "redhat":
+        # RedHat based distributions
+        run_command("yum install -y curl")
+
+        # Install MariaDB repository using official script
+        printc("Adding MariaDB repository...", col.OKBLUE)
+        run_command(
+            "curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup | bash -s -- --mariadb-server-version='mariadb-11.4'"
+        )
+
+    else:
+        printc(f"Unsupported distribution: {dist_id}", col.WARNING)
+        return False
+
+    return True
+
+
+def secure_mariadb_installation(root_password, dist_info=None):
+    """Secure MariaDB installation with root password (from bash script)"""
+    printc("Securing MariaDB installation", col.OKBLUE)
+
+    # Check if MariaDB is running
+    ret, out, err = run_command("systemctl is-active mariadb", capture_output=True)
+
+    if ret != 0:
+        printc("Starting MariaDB service", col.OKBLUE)
+        run_command("systemctl start mariadb")
+        time.sleep(5)
+
+    # Get MariaDB version to determine syntax
+    printc("Checking MariaDB version...", col.OKBLUE)
+    version_cmd = "mariadb --version 2>/dev/null | head -n 1 || mysql --version 2>/dev/null | head -n 1"
+    ret, out, err = run_command(version_cmd, capture_output=True)
+
+    mariadb_version = out.strip() if out else ""
+    is_mariadb_103 = (
+        "10.3" in mariadb_version
+        or "5.7" in mariadb_version
+        or "5.6" in mariadb_version
+    )
+
+    if is_mariadb_103:
+        printc("MariaDB 10.3 detected, using legacy password syntax", col.OKBLUE)
+    else:
+        printc("MariaDB 11.x detected, using modern password syntax", col.OKBLUE)
+
+    # Determine authentication plugin
+    printc("Checking MariaDB authentication plugin...", col.OKBLUE)
+    auth_cmd = "mariadb -u root -e \"SELECT plugin FROM mysql.user WHERE User='root' AND Host='localhost';\" 2>/dev/null | tail -n +2"
+    ret, out, err = run_command(auth_cmd, capture_output=True)
+
+    auth_plugin = out.strip() if out else ""
+
+    if ret == 0 and auth_plugin == "unix_socket":
+        printc(
+            "Using unix_socket authentication, converting to password...", col.OKBLUE
+        )
+        # Convert from unix_socket to password authentication with version-specific syntax
+        if is_mariadb_103:
+            # MariaDB 10.3 and older syntax
+            sql_commands = [
+                "FLUSH PRIVILEGES;",
+                f"SET PASSWORD FOR 'root'@'localhost' = PASSWORD('{root_password}');",
+                "DELETE FROM mysql.user WHERE User='';",
+                "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');",
+                "DROP DATABASE IF EXISTS test;",
+                "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\\\_%';",
+                "FLUSH PRIVILEGES;",
+            ]
+        else:
+            # MariaDB 10.4+ and MariaDB 11.x syntax
+            sql_commands = [
+                "FLUSH PRIVILEGES;",
+                f"ALTER USER 'root'@'localhost' IDENTIFIED VIA mysql_native_password USING PASSWORD('{root_password}');",
+                "DELETE FROM mysql.user WHERE User='';",
+                "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');",
+                "DROP DATABASE IF EXISTS test;",
+                "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\\\_%';",
+                "FLUSH PRIVILEGES;",
+            ]
+
+        for sql in sql_commands:
+            if is_mariadb_103 and "SET PASSWORD" in sql:
+                # Special handling for SET PASSWORD command
+                run_command(f'mariadb -u root -e "{sql}"', shell=True)
+            else:
+                run_command(f'mariadb -u root -e "{sql}"')
+
+        printc("MariaDB secured with password authentication", col.OKGREEN)
+    else:
+        printc("Setting MariaDB root password...", col.OKBLUE)
+        # Try to set password with version-specific syntax
+        if is_mariadb_103:
+            # MariaDB 10.3 syntax
+            set_cmd = f"mariadb -u root -e \"SET PASSWORD FOR 'root'@'localhost' = PASSWORD('{root_password}');\" 2>/dev/null || true"
+        else:
+            # MariaDB 11.x syntax
+            set_cmd = f"mariadb -u root -e \"ALTER USER 'root'@'localhost' IDENTIFIED BY '{root_password}';\" 2>/dev/null || true"
+        run_command(set_cmd)
+
+    # Create custom security configuration (like 99-custom.cnf from bash script)
+    printc("Creating custom MariaDB security configuration...", col.OKBLUE)
+    custom_conf = """[mysqld]
+bind-address = 0.0.0.0
+skip-name-resolve
+local-infile = 0
+symbolic-links = 0
+slow_query_log = 1
+slow_query_log_file = /var/log/mysql/mariadb-slow.log
+long_query_time = 2
+log_error = /var/log/mysql/error.log"""
+
+    conf_dir = "/etc/mysql/mariadb.conf.d/"
+    if not os.path.exists(conf_dir):
+        conf_dir = "/etc/my.cnf.d/"
+        if not os.path.exists(conf_dir):
+            os.makedirs(conf_dir, exist_ok=True)
+
+    custom_path = os.path.join(conf_dir, "99-custom.cnf")
+    with open(custom_path, "w") as f:
+        f.write(custom_conf)
+
+    # Create log directory and set permissions
+    run_command("mkdir -p /var/log/mysql && chown mysql:mysql /var/log/mysql")
+
+    # Restart MariaDB
+    run_command("systemctl restart mariadb")
+    time.sleep(3)
+
+    # Don't create /root/mariadb_root_password.txt, only use /root/credentials.txt
+    printc("MariaDB security hardening completed", col.OKGREEN)
+    return root_password
+
+
+def get_system_ram_mb():
+    """Get total system RAM in MB"""
+    try:
+        with open("/proc/meminfo", "r") as f:
+            for line in f:
+                if line.startswith("MemTotal:"):
+                    mem_kb = int(line.split()[1])
+                    return mem_kb // 1024  # Convert to MB
+    except Exception:
+        pass
+    return 1024  # Value by default if unable to determine
+
+
+def generate_mysql_config(total_ram_mb):
+    """Generate MySQL configuration based on total RAM (from bash script logic)"""
+
+    # Calculate based on RAM (similar to bash script)
+    buffer_pool_mb = int(total_ram_mb * 0.25)
+
+    if total_ram_mb < 512:
+        buffer_pool_mb = 64
+        max_connections = 30
+    elif total_ram_mb < 1024:
+        if buffer_pool_mb > 128:
+            buffer_pool_mb = 128
+        max_connections = 50
+    elif total_ram_mb < 2048:
+        if buffer_pool_mb > 256:
+            buffer_pool_mb = 256
+        max_connections = 80
+    elif total_ram_mb < 4096:
+        if buffer_pool_mb > 512:
+            buffer_pool_mb = 512
+        max_connections = 120
+    elif total_ram_mb < 8192:
+        if buffer_pool_mb > 1024:
+            buffer_pool_mb = 1024
+        max_connections = 150
+    else:
+        if buffer_pool_mb > 2048:
+            buffer_pool_mb = 2048
+        max_connections = 200
+
+    # Format buffer pool size
+    if buffer_pool_mb >= 1024:
+        buffer_pool_size = f"{buffer_pool_mb // 1024}G"
+    else:
+        buffer_pool_size = f"{buffer_pool_mb}M"
+
+    # Calculate other values
+    key_buffer = min(buffer_pool_mb // 8, 32)
+    tmp_table_size = min(buffer_pool_mb // 4, 64)
+    back_log = min(max_connections // 2, 256)
+    thread_cache = min(max_connections // 4, 64)
+    buffer_pool_instances = "1" if buffer_pool_mb < 1024 else "2"
+
+    # Generate config from template
+    config = rMySQLCnfTemplate
+    config = config.replace("{{KEY_BUFFER}}", str(key_buffer))
+    config = config.replace("{{MAX_CONNECTIONS}}", str(max_connections))
+    config = config.replace("{{BACK_LOG}}", str(back_log))
+    config = config.replace("{{TMP_TABLE_SIZE}}", str(tmp_table_size))
+    config = config.replace("{{BUFFER_POOL_SIZE}}", buffer_pool_size)
+    config = config.replace("{{BUFFER_POOL_INSTANCES}}", buffer_pool_instances)
+    config = config.replace("{{THREAD_CACHE}}", str(thread_cache))
+
+    printc(f"RAM detected: {total_ram_mb}MB", col.OKGREEN)
+    printc(
+        f"Buffer pool configured: {buffer_pool_size} ({buffer_pool_mb}MB)", col.OKGREEN
+    )
+    printc(f"Max connections: {max_connections}", col.OKGREEN)
+
+    return config
+
+
+def generate_random_password(length=32):
+    """Generate random password (similar to bash script)"""
+    chars = "23456789abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ"
+    return "".join(random.choice(chars) for _ in range(length))
+
+
+def generate_root_password():
+    """Generate secure root password of 20 characters (SQL/shell safe)"""
+    # Only use characters safe for SQL literals and shell quoting
+    chars = "23456789abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ_-+.@"
+    return "".join(random.choice(chars) for _ in range(20))
+
+
+def sanitize_password_for_sql(password):
+    """Escape single quotes for safe use in SQL strings"""
+    return password.replace("'", "''")
+
+
+def sanitize_password_for_shell(password):
+    """Escape password for safe use in shell double-quoted strings"""
+    # Escape characters special to bash inside double quotes
+    for ch in ("\\", '"', "$", "`", "!"):
+        password = password.replace(ch, "\\" + ch)
+    return password
 
 
 def getIP():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(("8.8.8.8", 80))
-    return s.getsockname()[0]
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        # Fallback method
+        try:
+            hostname = socket.gethostname()
+            ip = socket.gethostbyname(hostname)
+            if ip and ip != "127.0.0.1":
+                return ip
+        except Exception:
+            pass
+        return "127.0.0.1"
 
 
 def printc(rText, rColour=col.OKBLUE, rPadding=0):
@@ -175,228 +1450,632 @@ def printc(rText, rColour=col.OKBLUE, rPadding=0):
     print(" ")
 
 
+def extract_archive(archive_path):
+    """Extract archive with proper validation and error handling"""
+    printc(f"Extracting {archive_path}...", col.OKBLUE)
+
+    if archive_path.endswith(".tar.gz") or archive_path.endswith(".tgz"):
+        try:
+            with tarfile.open(archive_path, "r:gz") as tar:
+                # Get member list for debugging
+                members = tar.getmembers()
+                printc(
+                    f"Archive contains {len(members)} files/directories", col.OKGREEN
+                )
+
+                # Extract with path traversal protection
+                safe = list(_safe_tar_members(tar, "/home/xc_vm/"))
+                tar.extractall(path="/home/xc_vm/", members=safe)
+                printc("Extraction successful", col.OKGREEN)
+                return True
+        except Exception as e:
+            printc(f"Failed to extract tar.gz: {e}", col.FAIL)
+            return False
+
+    elif archive_path.endswith(".zip"):
+        try:
+            with zipfile.ZipFile(archive_path, "r") as zip_ref:
+                # Get file list for debugging
+                file_list = zip_ref.namelist()
+                printc(f"Archive contains {len(file_list)} files", col.OKGREEN)
+
+                # Extract all files
+                zip_ref.extractall(path="/home/xc_vm/")
+                printc("Extraction successful", col.OKGREEN)
+
+                # Check if zip contains nested tar.gz
+                for file in file_list:
+                    if file.endswith("xc_vm.tar.gz") or file.endswith(".tar.gz"):
+                        nested_path = os.path.join("/home/xc_vm", file)
+                        if os.path.exists(nested_path):
+                            printc(
+                                f"Found nested archive: {file}, extracting...",
+                                col.OKBLUE,
+                            )
+                            return extract_archive(nested_path)
+                return True
+        except Exception as e:
+            printc(f"Failed to extract zip: {e}", col.FAIL)
+            return False
+
+    else:
+        printc(f"Unsupported archive format: {archive_path}", col.FAIL)
+        return False
+
+
+def fix_ssh2_library_issue():
+    """Fix SSH2 library issue by creating proper symlinks"""
+    printc("Configuring SSH2 libraries for PHP", col.OKBLUE)
+
+    # List of possible libssh2.so.1 locations
+    libssh2_paths = [
+        "/usr/lib/x86_64-linux-gnu/libssh2.so.1",
+        "/usr/lib/x86_64-linux-gnu/libssh2.so.1.0.1",
+        "/usr/lib/x86_64-linux-gnu/libssh2.so",
+        "/usr/lib64/libssh2.so.1",
+        "/usr/lib/libssh2.so.1",
+        "/usr/local/lib/libssh2.so.1",
+    ]
+
+    found_lib = None
+    for lib_path in libssh2_paths:
+        if os.path.exists(lib_path):
+            found_lib = lib_path
+            printc(f"Found SSH2 library: {lib_path}", col.OKGREEN)
+            break
+
+    if found_lib:
+        # Create symlinks in common locations
+        symlink_targets = [
+            "/usr/lib/libssh2.so.1",
+            "/usr/local/lib/libssh2.so.1",
+            "/lib/libssh2.so.1",
+        ]
+
+        for target in symlink_targets:
+            if not os.path.exists(target):
+                try:
+                    run_command(f"ln -sf {found_lib} {target}")
+                    printc(f"Created symlink: {found_lib} -> {target}", col.OKGREEN)
+                except Exception:
+                    printc(f"Failed to create symlink for {target}", col.WARNING)
+
+        # Also check if we need to symlink in PHP extensions directory
+        php_ext_dir = "/home/xc_vm/bin/php/lib/php/extensions/"
+        if os.path.exists(php_ext_dir):
+            # Find the actual extensions directory
+            for dirpath, dirnames, filenames in os.walk(php_ext_dir):
+                if "ssh2.so" in filenames:
+                    ssh2_so_path = os.path.join(dirpath, "ssh2.so")
+                    printc(f"Found PHP ssh2.so at: {ssh2_so_path}", col.OKGREEN)
+                    break
+    else:
+        printc(
+            "Warning: libssh2.so.1 not found. SSH2 may not work properly.", col.WARNING
+        )
+
+        # Try to find any libssh2 version
+        try:
+            ret, out, err = run_command(
+                "find /usr -name 'libssh2.so*' 2>/dev/null", capture_output=True
+            )
+            if ret == 0 and out:
+                libs = out.strip().split("\n")
+                if libs:
+                    found_lib = libs[0]
+                    printc(f"Found alternative SSH2 library: {found_lib}", col.OKGREEN)
+
+                    # Create symlink
+                    run_command(f"ln -sf {found_lib} /usr/lib/libssh2.so.1")
+                    printc(
+                        f"Created symlink: {found_lib} -> /usr/lib/libssh2.so.1",
+                        col.OKGREEN,
+                    )
+        except Exception:
+            pass
+
+    # Don't disable ssh2 extension - only create symlinks
+
+
+# Mapping: (dist_id, major_version) -> PACKAGES key
+_PACKAGE_KEY_MAP = {
+    ("ubuntu", "18"): "ubuntu20",
+    ("ubuntu", "20"): "ubuntu20",
+    ("ubuntu", "22"): "ubuntu22",
+    ("ubuntu", "24"): "ubuntu24",
+    ("debian", "11"): "debian11",
+    ("debian", "12"): "debian",
+    ("debian", "13"): "debian13",
+}
+
+# Distros that need OpenSSL 3 compatibility library
+_NEEDS_OPENSSL3 = {"ubuntu_18", "ubuntu_20", "debian_11"}
+
+
+def _install_openssl3_compat(dist_id, major):
+    """Download and install OpenSSL 3 compatibility .deb for older distros."""
+    label = f"{dist_id}_{major}"
+    tmp_file = f"/tmp/libssl3_{label}.deb"
+    printc("Installing OpenSSL 3 compatibility library for PHP binaries...", col.OKBLUE)
+    try:
+        run_command(
+            f"wget -qO {tmp_file} "
+            '"http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl3_3.0.2-0ubuntu1_amd64.deb"'
+        )
+        run_command(
+            f"dpkg --force-depends -i {tmp_file} 2>/dev/null "
+            f"|| dpkg -i {tmp_file} 2>/dev/null || true"
+        )
+        run_command(f"rm -f {tmp_file}")
+        printc("OpenSSL 3 library installation completed", col.OKGREEN)
+    except Exception as e:
+        printc(f"OpenSSL 3 installation warning: {e}", col.WARNING)
+        printc("PHP binaries may not work without libssl.so.3", col.WARNING)
+
+
+def install_deb_packages(dist_info):
+    """Install Debian/Ubuntu packages based on detected distribution."""
+    dist_id = dist_info["id"]
+    version = dist_info["version"]
+    major = version.split(".")[0]
+    label = f"{dist_id.capitalize()} {version}"
+
+    package_key = _PACKAGE_KEY_MAP.get((dist_id, major), "debian")
+    printc(f"Using {label} compatible package installation", col.OKBLUE)
+
+    # Fix broken packages first
+    printc("Fixing any broken packages...", col.OKBLUE)
+    run_command("apt --fix-broken install -y || true")
+    run_command("apt-get autoremove -y || true")
+    run_command("apt-get autoclean || true")
+
+    # Install OpenSSL 3 compat for older distros
+    ssl3_key = f"{dist_id}_{major}"
+    if ssl3_key in _NEEDS_OPENSSL3:
+        _install_openssl3_compat(dist_id, major)
+
+    # Install packages
+    packages = PACKAGES.get(package_key, [])
+    if packages:
+        packages_str = " ".join(packages)
+        printc(
+            f"Installing {label} packages ({len(packages)} packages)...", col.OKBLUE
+        )
+        run_command(
+            f"DEBIAN_FRONTEND=noninteractive apt-get -yq install {packages_str} "
+            f"|| echo 'Some packages may not be available'"
+        )
+
+    # For unknown distros, also try installing SSH2 libraries
+    if (dist_id, major) not in _PACKAGE_KEY_MAP:
+        printc("Installing SSH2 libraries...", col.OKBLUE)
+        run_command(
+            "apt-get install -y libssh2-1 libssh2-1-dev "
+            "|| apt-get install -y libssh2-1 libssh2-1t64 || true"
+        )
+
+    # Fix broken packages after installation
+    printc("Final fix for any remaining broken packages...", col.OKBLUE)
+    run_command("apt --fix-broken install -y || true")
+
+
 if __name__ == "__main__":
     ##################################################
     # START                                          #
     ##################################################
 
-    try:
-        rVersion = os.popen("lsb_release -sr").read().strip()
-    except:
-        rVersion = None
-    if not rVersion in rVersions:
-        printc("Unsupported Operating System")
-        sys.exit(1)
+    printc("XC_VM Multi-Distribution Installer", col.OKGREEN, 2)
 
-    if not os.path.exists("./xc_vm.tar.gz"):
-        print(
-            "Fatal Error: xc_vm.tar.gz is missing. Please download it from XC_VM billing panel."
+    # Check root
+    check_root()
+
+    # Detect distribution
+    dist_info = detect_distribution()
+    printc(
+        f"Detected: {dist_info['id']} {dist_info['version']} ({dist_info['family']} family)",
+        col.OKGREEN,
+    )
+
+    # Install prerequisites before continuing
+    install_prerequisites(dist_info)
+
+    if not check_supported_distro(dist_info):
+        printc(
+            f"Warning: {dist_info['id']} {dist_info['version']} is not officially supported",
+            col.WARNING,
+        )
+        response = input("Continue anyway? (Y/N): ").strip().upper()
+        if response != "Y":
+            sys.exit(1)
+        printc("Continuing with installation...", col.WARNING)
+
+    # Try to download XC_VM if not present
+    has_valid_archive = False
+    archive_path = None
+
+    # Check for existing valid archives
+    if os.path.exists("./xc_vm.tar.gz") and is_valid_tar("./xc_vm.tar.gz"):
+        has_valid_archive = True
+        archive_path = "./xc_vm.tar.gz"
+        printc("Found valid xc_vm.tar.gz", col.OKGREEN)
+    elif os.path.exists("./XC_VM.zip") and is_valid_zip("./XC_VM.zip"):
+        has_valid_archive = True
+        archive_path = "./XC_VM.zip"
+        printc("Found valid XC_VM.zip", col.OKGREEN)
+
+    # Download if needed
+    if not has_valid_archive:
+        if download_xc_vm():
+            # Check what was downloaded
+            if os.path.exists("./xc_vm.tar.gz") and is_valid_tar("./xc_vm.tar.gz"):
+                has_valid_archive = True
+                archive_path = "./xc_vm.tar.gz"
+            elif os.path.exists("./XC_VM.zip") and is_valid_zip("./XC_VM.zip"):
+                has_valid_archive = True
+                archive_path = "./XC_VM.zip"
+
+    if not has_valid_archive or not archive_path:
+        printc(
+            "XC_VM package not found or invalid. Please download manually.", col.FAIL
+        )
+        printc(
+            "You can download from: https://github.com/Vateron-Media/XC_VM/releases",
+            col.OKBLUE,
         )
         sys.exit(1)
 
-    printc("XC_VM", col.OKGREEN, 2)
     rHost = "127.0.0.1"
     rServerID = 1
-    rUsername = generate()
-    rPassword = generate()
+    rUsername = generate_random_password(32)  # Username de 32 caracteres
+    rPassword = generate_random_password(32)  # Password de 32 caracteres
     rDatabase = "xc_vm"
     rPort = 3306
 
+    # Ask for MariaDB root password (or generate)
+    printc("MariaDB Root Password Configuration", col.OKBLUE)
+    print("For security, you should set a strong root password for MariaDB.")
+    print("Leave empty to generate a random password.")
+
+    root_password = input(
+        "MariaDB root password (or press Enter to generate): "
+    ).strip()
+    if not root_password:
+        root_password = generate_root_password()
+        printc(f"Generated root password: {root_password}", col.OKGREEN)
+    else:
+        # Reject characters that break SQL/shell quoting
+        forbidden = set("'\"`$;")
+        if forbidden & set(root_password):
+            printc(
+                "Password contains unsafe characters (' \" ` $ ;). Generating a safe one.",
+                col.WARNING,
+            )
+            root_password = generate_root_password()
+            printc(f"Generated root password: {root_password}", col.OKGREEN)
+        elif len(root_password) < 12:
+            printc(
+                f"Warning: Password is only {len(root_password)} chars. Minimum recommended: 12.",
+                col.WARNING,
+            )
+            response = input("Continue with provided password? (Y/N): ").strip().upper()
+            if response != "Y":
+                root_password = generate_root_password()
+                printc(f"Using generated root password: {root_password}", col.OKGREEN)
+        else:
+            printc("Using provided root password", col.OKGREEN)
+
     if os.path.exists("/home/xc_vm/"):
-        printc("XC_VM Directory Exists!")
+        printc("XC_VM Directory Exists!", col.WARNING)
         while True:
-            rAnswer = input("Continue and overwrite? (Y / N) : ")
-            if rAnswer.upper() in ["Y", "N"]:
+            rAnswer = input("Continue and overwrite? (Y / N) : ").strip().upper()
+            if rAnswer in ["Y", "N"]:
                 break
         if rAnswer == "N":
             sys.exit(1)
-    
-    with io.open(rPath + "/credentials.txt", "w", encoding="utf-8") as rFile:
-        rFile.write("MariaDB Username: {}\nMariaDB Password: {}".format(rUsername, rPassword))
 
     ##################################################
-    # UPGRADE                                        #
+    # SYSTEM PREPARATION                             #
     ##################################################
 
-    # printc("Patching OpenSSL")
-    # os.system(
-    #     "wget -O /tmp/libssl1.1_1.1.1f-1ubuntu2_amd64.deb http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2_amd64.deb"
-    # )
-    # os.system("sudo dpkg -i /tmp/libssl1.1_1.1.1f-1ubuntu2_amd64.deb")
-    # os.remove("/tmp/libssl1.1_1.1.1f-1ubuntu2_amd64.deb")
+    printc("Preparing System", col.OKBLUE)
 
-    if rVersion.startswith("20."):
-        printc("Installing OpenSSL 3 for compatibility with PHP binaries (Ubuntu 20.x)")
-        os.system(
-            "wget -O /tmp/libssl3_3.0.2-0ubuntu1_amd64.deb "
-            "http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl3_3.0.2-0ubuntu1_amd64.deb"
-        )
-        os.system("sudo dpkg -i /tmp/libssl3_3.0.2-0ubuntu1_amd64.deb || true")
-        os.remove("/tmp/libssl3_3.0.2-0ubuntu1_amd64.deb")
+    if dist_info["family"] == "debian":
+        # Debian/Ubuntu
+        printc("Cleaning package locks", col.OKBLUE)
+        for rFile in [
+            "/var/lib/dpkg/lock-frontend",
+            "/var/cache/apt/archives/lock",
+            "/var/lib/dpkg/lock",
+            "/var/lib/apt/lists/lock",
+        ]:
+            if os.path.exists(rFile):
+                try:
+                    os.remove(rFile)
+                except Exception:
+                    pass
 
-    ##################################################
-    # UPGRADE                                        #
-    ##################################################
+        printc("Updating system", col.OKBLUE)
+        run_command("apt-get update -y")
 
-    printc("Preparing Installation")
-    for rFile in [
-        "/var/lib/dpkg/lock-frontend",
-        "/var/cache/apt/archives/lock",
-        "/var/lib/dpkg/lock",
-        "/var/lib/apt/lists/lock",
-    ]:
-        if os.path.exists(rFile):
-            try:
-                os.remove(rFile)
-            except:
-                pass
-    printc("Updating system")
-    os.system("sudo apt-get update")
-    os.system(
-        "sudo DEBIAN_FRONTEND=noninteractive apt-get -yq install software-properties-common"
-    )
-    if rVersion in rVersions:
-        printc("Adding repo: Ubuntu %s" % rVersion)
-        os.system(
-            "sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xF1656F24C74CD1D8"
-        )
-        os.system('curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup | sudo bash -s -- --mariadb-server-version="mariadb-11.4"')
+        # Install MariaDB repository
+        if not install_mariadb_repo(dist_info):
+            printc("Using system MariaDB repository", col.WARNING)
+
+        # Stop conflicting services
+        printc("Stopping conflicting services (Apache/System Nginx)...", col.OKBLUE)
+        run_command("systemctl stop apache2 nginx 2>/dev/null || true")
+        run_command("systemctl disable apache2 nginx 2>/dev/null || true")
+
+        # Remove conflicting packages
+        for rPackage in rRemove:
+            printc(f"Removing {rPackage}", col.OKBLUE)
+            run_command(f"apt-get remove {rPackage} -y")
+
+        # Install packages
+        printc("Installing system packages", col.OKBLUE)
+        install_deb_packages(dist_info)
+
+        # Fix SSH2 library issue
+        printc("Configuring SSH2 libraries", col.OKBLUE)
+        fix_ssh2_library_issue()
+
+    elif dist_info["family"] == "redhat":
+        # RedHat based distributions
+        printc("Configuring repositories", col.OKBLUE)
+
+        # Install EPEL
+        run_command("yum install -y epel-release")
+
+        # Install MariaDB repository
+        if not install_mariadb_repo(dist_info):
+            printc("Using system MariaDB repository", col.WARNING)
+
+        printc("Updating system", col.OKBLUE)
+        run_command("yum update -y")
+
+        # Install system packages from PACKAGES['redhat']
+        redhat_packages = PACKAGES.get("redhat", [])
+        if redhat_packages:
+            packages_str = " ".join(redhat_packages)
+            printc(
+                f"Installing RedHat packages ({len(redhat_packages)} packages)...",
+                col.OKBLUE,
+            )
+            run_command(
+                f"yum install -y {packages_str} || echo 'Some packages may not be available'"
+            )
+
+        # Ensure libssh2 libraries are installed
+        printc("Verifying SSH2 libraries for RedHat...", col.OKBLUE)
+        run_command("yum install -y libssh2 libssh2-devel || true")
+
+        # Enable services
+        run_command("systemctl enable mariadb")
+        run_command("systemctl enable crond")
+
+        # Fix SSH2 library issue
+        printc("Configuring SSH2 libraries", col.OKBLUE)
+        fix_ssh2_library_issue()
     else:
-        print("Installing system version of MariaDB")
-    os.system("sudo add-apt-repository -y ppa:maxmind/ppa")
-    os.system("sudo apt-get update")
-    for rPackage in rRemove:
-        printc("Removing %s" % rPackage)
-        os.system("sudo apt-get remove %s -y" % rPackage)
-    for rPackage in rPackages:
-        printc("Installing %s" % rPackage)
-        os.system(
-            "sudo DEBIAN_FRONTEND=noninteractive apt-get -yq install %s" % rPackage
-        )
+        printc(f"Unsupported distribution family: {dist_info['family']}", col.FAIL)
+        sys.exit(1)
+
+    # Create user if doesn't exist
+    printc("Creating/verifying xc_vm user", col.OKBLUE)
     try:
-        subprocess.check_output("getent passwd xc_vm".split())
-    except:
-        printc("Creating user")
-        os.system(
-            "sudo adduser --system --shell /bin/false --group --disabled-login xc_vm"
-        )
+        ret, out, err = run_command("getent passwd xc_vm", capture_output=True)
+        if ret == 0:
+            printc("User xc_vm already exists", col.OKGREEN)
+        else:
+            raise Exception("User not found")
+    except Exception:
+        printc("Creating user xc_vm", col.OKBLUE)
+        if dist_info["family"] == "debian":
+            run_command(
+                "adduser --system --shell /bin/false --no-create-home --home /nonexistent --group --disabled-login xc_vm"
+            )
+        else:  # redhat
+            run_command("groupadd -r xc_vm")
+            run_command("useradd -r -g xc_vm -s /bin/false -M -d /nonexistent xc_vm")
+
     if not os.path.exists("/home/xc_vm"):
-        os.mkdir("/home/xc_vm")
+        os.makedirs("/home/xc_vm", exist_ok=True)
+        run_command("chown xc_vm:xc_vm /home/xc_vm")
 
     ##################################################
-    # INSTALL                                        #
+    # INSTALL XC_VM                                  #
     ##################################################
 
-    printc("Installing XC_VM")
-    if os.path.exists("./xc_vm.tar.gz"):
-        os.system('sudo tar -zxvf "./xc_vm.tar.gz" -C "/home/xc_vm/"')
-        if not os.path.exists("/home/xc_vm/console.php"):
-            printc("Failed to extract! Exiting")
-            sys.exit(1)
+    printc("Installing XC_VM", col.OKBLUE)
+
+    # Extract the archive
+    if not extract_archive(archive_path):
+        printc("Failed to extract archive! Exiting", col.FAIL)
+        sys.exit(1)
+
+    # Verify extraction
+    if not os.path.exists("/home/xc_vm/console.php"):
+        printc("Extraction failed: /home/xc_vm/console.php not found", col.FAIL)
+        sys.exit(1)
+    else:
+        printc("XC_VM extracted successfully", col.OKGREEN)
+
+    # Install distribution-specific binaries for supported distros
+    dist_id = dist_info["id"]
+    version = dist_info["version"]
+
+    # Check if distribution has patches available
+    if dist_id in ["ubuntu", "debian"]:
+        # Ubuntu: 20, 22, 24
+        if dist_id == "ubuntu" and any(
+            version.startswith(v) for v in ["20", "22", "24"]
+        ):
+            if not install_distribution_binaries(dist_id, version):
+                printc(
+                    f"Warning: Failed to install {dist_id} {version} specific binaries",
+                    col.WARNING,
+                )
+
+        # Debian: 11, 12, 13
+        elif dist_id == "debian" and any(
+            version.startswith(v) for v in ["11", "12", "13"]
+        ):
+            if not install_distribution_binaries(dist_id, version):
+                printc(
+                    f"Warning: Failed to install {dist_id} {version} specific binaries",
+                    col.WARNING,
+                )
+
+        else:
+            printc(
+                f"No specific patches available for {dist_id} {version}, using default binaries",
+                col.OKBLUE,
+            )
+
+    elif dist_id in ["rocky", "almalinux", "rhel", "centos"]:
+        major = version.split(".")[0]
+        if major in ["8", "9"]:
+            if not install_distribution_binaries(dist_id, version):
+                printc(
+                    f"Warning: Failed to install {dist_id} {version} specific binaries",
+                    col.WARNING,
+                )
+        else:
+            printc(
+                f"No specific patches available for {dist_id} {version}, using default binaries",
+                col.OKBLUE,
+            )
+    else:
+        printc(
+            f"No patches available for {dist_id} {version}, using default binaries",
+            col.OKBLUE,
+        )
 
     ##################################################
-    # MariaDB                                          #
+    # MariaDB CONFIGURATION                          #
     ##################################################
 
-    printc("Configuring MariaDB")
-    
-    # Get total system RAM
+    printc("Configuring MariaDB", col.OKBLUE)
+
+    # Secure MariaDB installation (using bash script logic)
+    secure_mariadb_installation(root_password, dist_info)
+
+    # Get total system RAM and generate config
     total_ram_mb = get_system_ram_mb()
     rMySQLCnf = generate_mysql_config(total_ram_mb)
-    
-    rCreate = True
-    if os.path.exists("/etc/mysql/my.cnf"):
-        if open("/etc/mysql/my.cnf", "r").read(5) == "# XC_VM":
-            rCreate = False
-    
-    if rCreate:
-        rFile = io.open("/etc/mysql/my.cnf", "w", encoding="utf-8")
+
+    # Write MySQL configuration
+    printc("Writing MySQL performance configuration", col.OKBLUE)
+    if dist_info["family"] == "debian":
+        mysql_conf_path = "/etc/mysql/mariadb.conf.d/50-server.cnf"
+    else:
+        mysql_conf_path = "/etc/my.cnf.d/server.cnf"
+
+    # Ensure directory exists
+    os.makedirs(os.path.dirname(mysql_conf_path), exist_ok=True)
+
+    with io.open(mysql_conf_path, "w", encoding="utf-8") as rFile:
         rFile.write(rMySQLCnf)
-        rFile.close()
-        os.system("sudo systemctl restart mariadb || sudo service mariadb restart")
-    
-    rExtra = ""
-    rRet = os.system('mariadb -u root -e "SELECT VERSION();"')
-    if rRet != 0:
-        while True:
-            rExtra = " -p%s" % input("Root MariaDB Password: ")
-            rRet = os.system('mariadb -u root%s -e "SELECT VERSION();"' % rExtra)
-            if rRet == 0:
-                break
-            else:
-                printc("Invalid password! Please try again.")
-    
-    os.system(
-        'sudo mariadb -u root%s -e "DROP DATABASE IF EXISTS xc_vm; CREATE DATABASE IF NOT EXISTS xc_vm;"'
-        % rExtra
+
+    # Restart MariaDB
+    run_command("systemctl restart mariadb")
+    time.sleep(5)
+
+    # Connect to MariaDB and configure databases
+    printc("Setting up databases and users", col.OKBLUE)
+
+    # Create databases
+    run_command(
+        f'mariadb -u root -p"{root_password}" -e "CREATE DATABASE IF NOT EXISTS xc_vm; CREATE DATABASE IF NOT EXISTS xc_vm_migrate;"'
     )
-    os.system(
-        'sudo mariadb -u root%s -e "DROP DATABASE IF EXISTS xc_vm_migrate; CREATE DATABASE IF NOT EXISTS xc_vm_migrate;"'
-        % rExtra
-    )
-    os.system(
-        'sudo mariadb -u root%s xc_vm < "/home/xc_vm/bin/install/database.sql"' % rExtra
-    )
-    os.system(
-        "sudo mariadb -u root%s -e \"CREATE USER '%s'@'localhost' IDENTIFIED BY '%s';\""
-        % (rExtra, rUsername, rPassword)
-    )
-    os.system(
-        "sudo mariadb -u root%s -e \"GRANT ALL PRIVILEGES ON xc_vm.* TO '%s'@'localhost';\""
-        % (rExtra, rUsername)
-    )
-    os.system(
-        "sudo mariadb -u root%s -e \"GRANT ALL PRIVILEGES ON xc_vm_migrate.* TO '%s'@'localhost';\""
-        % (rExtra, rUsername)
-    )
-    os.system(
-        "sudo mariadb -u root%s -e \"GRANT ALL PRIVILEGES ON mysql.* TO '%s'@'localhost';\""
-        % (rExtra, rUsername)
-    )
-    os.system(
-        "sudo mariadb -u root%s -e \"GRANT GRANT OPTION ON xc_vm.* TO '%s'@'localhost';\""
-        % (rExtra, rUsername)
-    )
-    os.system(
-        "sudo mariadb -u root%s -e \"CREATE USER '%s'@'127.0.0.1' IDENTIFIED BY '%s';\""
-        % (rExtra, rUsername, rPassword)
-    )
-    os.system(
-        "sudo mariadb -u root%s -e \"GRANT ALL PRIVILEGES ON xc_vm.* TO '%s'@'127.0.0.1';\""
-        % (rExtra, rUsername)
-    )
-    os.system(
-        "sudo mariadb -u root%s -e \"GRANT ALL PRIVILEGES ON xc_vm_migrate.* TO '%s'@'127.0.0.1';\""
-        % (rExtra, rUsername)
-    )
-    os.system(
-        "sudo mariadb -u root%s -e \"GRANT ALL PRIVILEGES ON mysql.* TO '%s'@'127.0.0.1';\""
-        % (rExtra, rUsername)
-    )
-    os.system(
-        "sudo mariadb -u root%s -e \"GRANT GRANT OPTION ON xc_vm.* TO '%s'@'127.0.0.1';\""
-        % (rExtra, rUsername)
-    )
-    os.system('sudo mariadb -u root%s -e "FLUSH PRIVILEGES;"' % rExtra)
+
+    # Import database schema
+    printc("Importing database schema", col.OKBLUE)
+    db_schema_path = "/home/xc_vm/bin/install/database.sql"
+    if os.path.exists(db_schema_path):
+        run_command(f'mariadb -u root -p"{root_password}" xc_vm < "{db_schema_path}"')
+    else:
+        printc(f"Database schema not found at {db_schema_path}", col.WARNING)
+
+    # Create XC_VM user with all privileges
+    printc("Creating database user", col.OKBLUE)
+
+    # Localhost grants
+    commands_localhost = [
+        f"CREATE USER IF NOT EXISTS '{rUsername}'@'localhost' IDENTIFIED BY '{rPassword}';",
+        f"GRANT ALL PRIVILEGES ON xc_vm.* TO '{rUsername}'@'localhost';",
+        f"GRANT ALL PRIVILEGES ON xc_vm_migrate.* TO '{rUsername}'@'localhost';",
+        f"GRANT ALL PRIVILEGES ON mysql.* TO '{rUsername}'@'localhost';",
+        f"GRANT GRANT OPTION ON xc_vm.* TO '{rUsername}'@'localhost';",
+    ]
+
+    # 127.0.0.1 grants (REQUIRED for startup.php)
+    commands_127 = [
+        f"CREATE USER IF NOT EXISTS '{rUsername}'@'127.0.0.1' IDENTIFIED BY '{rPassword}';",
+        f"GRANT ALL PRIVILEGES ON xc_vm.* TO '{rUsername}'@'127.0.0.1';",
+        f"GRANT ALL PRIVILEGES ON xc_vm_migrate.* TO '{rUsername}'@'127.0.0.1';",
+        f"GRANT ALL PRIVILEGES ON mysql.* TO '{rUsername}'@'127.0.0.1';",
+        f"GRANT GRANT OPTION ON xc_vm.* TO '{rUsername}'@'127.0.0.1';",
+        "FLUSH PRIVILEGES;",
+    ]
+
+    all_commands = commands_localhost + commands_127
+
+    for cmd in all_commands:
+        run_command(f'mariadb -u root -p"{root_password}" -e "{cmd}"')
+
+    # Write XC_VM configuration
+    printc("Writing XC_VM configuration", col.OKBLUE)
+    os.makedirs(os.path.dirname(rConfigPath), exist_ok=True)
     rConfigData = rConfig % (rUsername, rPassword)
-    rFile = io.open(rConfigPath, "w", encoding="utf-8")
-    rFile.write(rConfigData)
-    rFile.close()
+    with io.open(rConfigPath, "w", encoding="utf-8") as rFile:
+        rFile.write(rConfigData)
+
+    printc("MariaDB configuration completed", col.OKGREEN)
 
     ##################################################
-    # CONFIGURE                                      #
+    # SYSTEM CONFIGURATION                           #
     ##################################################
 
-    printc("Configuring System")
-    if not "/home/xc_vm/" in open("/etc/fstab").read():
-        rFile = io.open("/etc/fstab", "a", encoding="utf-8")
-        rFile.write(
-            "\ntmpfs /home/xc_vm/content/streams tmpfs defaults,noatime,nosuid,nodev,noexec,mode=1777,size=90% 0 0\ntmpfs /home/xc_vm/tmp tmpfs defaults,noatime,nosuid,nodev,noexec,mode=1777,size=6G 0 0"
-        )
-        rFile.close()
+    printc("Configuring System", col.OKBLUE)
 
-    printc("If you want to change the ports, enter new values, or leave empty to use the default ports")
-    
+    # Configure tmpfs mounts
+    if not os.path.exists("/etc/fstab"):
+        printc("/etc/fstab not found", col.WARNING)
+    else:
+        try:
+            with open("/etc/fstab", "r") as f:
+                fstab_content = f.read()
+
+            if "/home/xc_vm/" not in fstab_content:
+                printc("Adding tmpfs mounts to /etc/fstab", col.OKBLUE)
+                # Create directories first
+                run_command("mkdir -p /home/xc_vm/content/streams")
+                run_command("mkdir -p /home/xc_vm/tmp")
+
+                with io.open("/etc/fstab", "a", encoding="utf-8") as rFile:
+                    rFile.write(
+                        "\ntmpfs /home/xc_vm/content/streams tmpfs defaults,noatime,nosuid,nodev,noexec,mode=1777,size=90% 0 0\ntmpfs /home/xc_vm/tmp tmpfs defaults,noatime,nosuid,nodev,noexec,mode=1777,size=6G 0 0"
+                    )
+
+                # Mount immediately
+                run_command("mount -a")
+                printc("Reloading systemd to recognize fstab changes", col.OKBLUE)
+                run_command("systemctl daemon-reload")
+        except Exception as e:
+            printc(f"Error updating /etc/fstab: {e}", col.WARNING)
+
+    # Remove any restrictive sudoers rules
+    sudoers_file = "/etc/sudoers.d/xc_vm"
+    if os.path.exists(sudoers_file):
+        run_command(f"rm -f {sudoers_file}")
+
+    # Configure HTTP/HTTPS ports
+    printc("Port Configuration", col.OKBLUE)
+    print(
+        "If you want to change the ports, enter new values, or leave empty to use the default ports"
+    )
+
     while True:
         http_port = input("HTTP port (default 80): ").strip()
         if not http_port:
@@ -404,7 +2083,7 @@ if __name__ == "__main__":
             break
         if http_port.isdigit() and 1 <= int(http_port) <= 65535:
             break
-        printc("Error: port must be a number between 1 and 65535")
+        printc("Error: port must be a number between 1 and 65535", col.FAIL)
 
     while True:
         https_port = input("HTTPS port (default 443): ").strip()
@@ -413,32 +2092,23 @@ if __name__ == "__main__":
             break
         if https_port.isdigit() and 1 <= int(https_port) <= 65535:
             break
-        printc("Error: port must be a number between 1 and 65535")
+        printc("Error: port must be a number between 1 and 65535", col.FAIL)
 
     # Write HTTP ports configuration
     http_conf_path = "/home/xc_vm/bin/nginx/conf/ports/http.conf"
+    os.makedirs(os.path.dirname(http_conf_path), exist_ok=True)
     with io.open(http_conf_path, "w", encoding="utf-8") as rFile:
         rFile.write(f"listen {http_port};")
 
     # Write HTTPS ports configuration
     https_conf_path = "/home/xc_vm/bin/nginx/conf/ports/https.conf"
+    os.makedirs(os.path.dirname(https_conf_path), exist_ok=True)
     with io.open(https_conf_path, "w", encoding="utf-8") as rFile:
         rFile.write(f"listen {https_port} ssl;")
 
-    print(f"Ports configured: HTTP - {http_port}, HTTPS - {https_port}")
+    printc(f"Ports configured: HTTP - {http_port}, HTTPS - {https_port}", col.OKGREEN)
 
-    if os.path.exists("/etc/init.d/xc_vm"):
-        os.remove("/etc/init.d/xc_vm")
-    if os.path.exists("/etc/systemd/system/xc_vm.service"):
-        os.remove("/etc/systemd/system/xc_vm.service")
-    if not os.path.exists("/etc/systemd/system/xc_vm.service"):
-        rFile = io.open("/etc/systemd/system/xc_vm.service", "w", encoding="utf-8")
-        rFile.write(rSystemd)
-        rFile.close()
-        os.system("sudo chmod +x /etc/systemd/system/xc_vm.service")
-        os.system("sudo systemctl daemon-reload")
-        os.system("sudo systemctl enable xc_vm")
-    
+    # Configure sysctl
     print(
         "Custom sysctl.conf - If you have your own custom sysctl.conf, type N or it will be overwritten. If you don't know what a sysctl configuration is, type Y as it will correctly set your TCP settings and open file limits."
     )
@@ -447,95 +2117,239 @@ if __name__ == "__main__":
         rAnswer = input("Overwrite sysctl configuration? Recommended! (Y / N): ")
         if rAnswer.upper() in ["Y", "N"]:
             break
-    
+
     if rAnswer.upper() == "Y":
         try:
-            os.system("sudo modprobe ip_conntrack")
-        except:
+            run_command("modprobe ip_conntrack 2>/dev/null || true")
+        except Exception:
             pass
         try:
-            rFile = io.open("/etc/sysctl.conf", "w", encoding="utf-8")
-            rFile.write(rSysCtl)
-            rFile.close()
-            os.system("sudo sysctl -p >/dev/null 2>&1")
-            rFile = open("/home/xc_vm/config/sysctl.on", "w")
-            rFile.close()
-        except:
-            print("Failed to write to sysctl file.")
+            with io.open("/etc/sysctl.conf", "w", encoding="utf-8") as rFile:
+                rFile.write(rSysCtl)
+            run_command("sysctl -p > /dev/null 2>&1")
+            with open("/home/xc_vm/config/sysctl.on", "w") as rFile:
+                pass
+        except Exception:
+            printc("Failed to write to sysctl file.", col.WARNING)
     else:
         if os.path.exists("/home/xc_vm/config/sysctl.on"):
             os.remove("/home/xc_vm/config/sysctl.on")
-    
-    if not "DefaultLimitNOFILE=655350" in open("/etc/systemd/system.conf").read():
-        os.system(
-            'sudo echo "\nDefaultLimitNOFILE=655350" >> "/etc/systemd/system.conf"'
-        )
-        os.system('sudo echo "\nDefaultLimitNOFILE=655350" >> "/etc/systemd/user.conf"')
-    
-    if not os.path.exists("/home/xc_vm/bin/redis/redis.conf"):
-        rFile = io.open("/home/xc_vm/bin/redis/redis.conf", "w", encoding="utf-8")
-        rFile.write(rRedisConfig)
-        rFile.close()
+
+    # Configure systemd limits
+    printc("Configuring systemd file limits", col.OKBLUE)
+    systemd_conf = "/etc/systemd/system.conf"
+    if os.path.exists(systemd_conf):
+        with open(systemd_conf, "r") as f:
+            systemd_content = f.read()
+
+        if "DefaultLimitNOFILE=655350" not in systemd_content:
+            with open(systemd_conf, "a") as f:
+                f.write("\nDefaultLimitNOFILE=655350\n")
+
+    user_conf = "/etc/systemd/user.conf"
+    if os.path.exists(user_conf):
+        with open(user_conf, "r") as f:
+            user_content = f.read()
+
+        if "DefaultLimitNOFILE=655350" not in user_content:
+            with open(user_conf, "a") as f:
+                f.write("\nDefaultLimitNOFILE=655350\n")
+
+    # Configure systemd service (always, like etalon)
+    printc("Configuring systemd service", col.OKBLUE)
+    if os.path.exists("/etc/init.d/xc_vm"):
+        os.remove("/etc/init.d/xc_vm")
+    if os.path.exists("/etc/systemd/system/xc_vm.service"):
+        os.remove("/etc/systemd/system/xc_vm.service")
+    service_path = "/etc/systemd/system/xc_vm.service"
+    with io.open(service_path, "w", encoding="utf-8") as rFile:
+        rFile.write(rSystemd)
+    run_command("chmod +x /etc/systemd/system/xc_vm.service")
+    run_command("systemctl daemon-reload")
+    run_command("systemctl enable xc_vm")
+
+    # Configure Redis
+    printc("Configuring Redis", col.OKBLUE)
+    redis_conf_path = "/home/xc_vm/bin/redis/redis.conf"
+    os.makedirs(os.path.dirname(redis_conf_path), exist_ok=True)
+    if not os.path.exists(redis_conf_path):
+        with io.open(redis_conf_path, "w", encoding="utf-8") as rFile:
+            rFile.write(rRedisConfig)
+        printc("Redis configuration created", col.OKGREEN)
+    else:
+        printc("Redis configuration already exists", col.OKGREEN)
 
     ##################################################
     # ACCESS CODE                                    #
     ##################################################
 
+    printc("Generating access code", col.OKBLUE)
     rCodeDir = "/home/xc_vm/bin/nginx/conf/codes/"
-    rHasAdmin = None
-    for rCode in os.listdir(rCodeDir):
-        if rCode.endswith(".conf"):
-            if rCode.split(".")[0] == "setup":
-                os.remove(rCodeDir + "setup.conf")
-            elif "/home/xc_vm/admin" in open(rCodeDir + rCode, "r").read():
-                rHasAdmin = rCode
-    
-    if not rHasAdmin:
-        rCode = generate(8)
-        os.system(
-            "sudo mariadb -u root%s -e \"USE xc_vm; INSERT INTO access_codes(code, type, enabled, groups) VALUES('%s', 0, 1, '[1]');\""
-            % (rExtra, rCode)
-        )
-        rTemplate = open(rCodeDir + "template").read()
-        rTemplate = rTemplate.replace("#WHITELIST#", "")
-        rTemplate = rTemplate.replace("#TYPE#", "admin")
-        rTemplate = rTemplate.replace("#CODE#", rCode)
-        rTemplate = rTemplate.replace("#BURST#", "500")
-        rFile = io.open("%s%s.conf" % (rCodeDir, rCode), "w", encoding="utf-8")
-        rFile.write(rTemplate)
-        rFile.close()
+
+    # Ensure access codes directory exists
+    os.makedirs(rCodeDir, exist_ok=True)
+
+    admin_code = None
+
+    if os.path.exists(rCodeDir):
+        for filename in os.listdir(rCodeDir):
+            if filename.endswith(".conf"):
+                filepath = os.path.join(rCodeDir, filename)
+                if filename.split(".")[0] == "setup":
+                    os.remove(filepath)
+                else:
+                    try:
+                        with open(filepath, "r") as f:
+                            content = f.read()
+                            if "/home/xc_vm/admin" in content:
+                                admin_code = filename.split(".")[0]
+                                break
+                    except Exception:
+                        pass
+
+    if not admin_code:
+        admin_code = generate_random_password(8)
+        printc(f"Generated access code: {admin_code}", col.OKGREEN)
+
+        # Insert into database
+        insert_cmd = f"mariadb -u root -p\"{root_password}\" -e \"USE xc_vm; INSERT INTO access_codes(code, type, enabled, groups) VALUES('{admin_code}', 0, 1, '[1]');\""
+        run_command(insert_cmd)
+
+        # Create nginx configuration
+        template_path = os.path.join(rCodeDir, "template")
+        if os.path.exists(template_path):
+            with open(template_path, "r") as f:
+                template_content = f.read()
+
+            # Replace placeholders
+            template_content = template_content.replace("#WHITELIST#", "")
+            template_content = template_content.replace("#TYPE#", "admin")
+            template_content = template_content.replace("#CODE#", admin_code)
+            template_content = template_content.replace("#BURST#", "500")
+
+            code_conf_path = os.path.join(rCodeDir, f"{admin_code}.conf")
+            with io.open(code_conf_path, "w", encoding="utf-8") as rFile:
+                rFile.write(template_content)
+            printc(f"Access code configuration created: {admin_code}.conf", col.OKGREEN)
+        else:
+            printc("Template file not found, creating basic configuration", col.WARNING)
+            # Fallback configuration
+            fallback_config = f"location /{admin_code} {{ include /home/xc_vm/bin/nginx/conf/proxy.conf; proxy_pass http://127.0.0.1:8080/admin; }}"
+            code_conf_path = os.path.join(rCodeDir, f"{admin_code}.conf")
+            with io.open(code_conf_path, "w", encoding="utf-8") as rFile:
+                rFile.write(fallback_config)
     else:
-        rCode = rHasAdmin.split(".")[0]
+        printc(f"Using existing access code: {admin_code}", col.OKGREEN)
 
     ##################################################
-    # FINISHED                                       #
+    # FINAL CONFIGURATION                            #
     ##################################################
 
-    os.system("sudo mount -a  >/dev/null 2>&1")
-    os.system("sudo chown xc_vm:xc_vm -R /home/xc_vm  >/dev/null 2>&1")
-    os.system("sudo systemctl daemon-reload")
-    os.system("sudo setcap 'cap_net_bind_service=+ep' /home/xc_vm/bin/nginx/sbin/nginx")
-    os.system("sudo systemctl start xc_vm")
+    printc("Finalizing installation", col.OKBLUE)
 
+    # Set permissions
+    run_command("chown -R xc_vm:xc_vm /home/xc_vm")
+
+    # Set executable permissions on key files
+    run_command("chmod +x /home/xc_vm/service")
+    run_command("chmod +x /home/xc_vm/console.php")
+    run_command("chmod +x /home/xc_vm/bin/nginx/sbin/nginx")
+
+    # Check for RTMP nginx
+    nginx_rtmp_path = "/home/xc_vm/bin/nginx_rtmp/sbin/nginx_rtmp"
+    if os.path.exists(nginx_rtmp_path):
+        run_command(f"chmod +x {nginx_rtmp_path}")
+
+    # Set capabilities for binding to privileged ports
+    nginx_bin = "/home/xc_vm/bin/nginx/sbin/nginx"
+    if os.path.exists(nginx_bin):
+        run_command(
+            f"setcap 'cap_net_bind_service=+ep' {nginx_bin} 2>/dev/null || true"
+        )
+
+    if os.path.exists(nginx_rtmp_path):
+        run_command(
+            f"setcap 'cap_net_bind_service=+ep' {nginx_rtmp_path} 2>/dev/null || true"
+        )
+
+    # Save credentials in the format you requested
+    printc("Saving credentials", col.OKBLUE)
+
+    # Save to /root/credentials.txt
+    with io.open("/root/credentials.txt", "w", encoding="utf-8") as rFile:
+        rFile.write("MariaDB Root \n")
+        rFile.write("Username: root\n")
+        rFile.write(f"Password: {root_password}\n\n")
+        rFile.write(f"XC_VM Username: {rUsername}\n")
+        rFile.write(f"XC_VM Password: {rPassword}\n")
+        rFile.write(f"Database: {rDatabase}\n")
+
+    # Also save to installer directory (like original install script)
+    local_creds_path = os.path.join(rPath, "credentials.txt")
+    with io.open(local_creds_path, "w", encoding="utf-8") as rFile:
+        rFile.write(f"MariaDB Root Password: {root_password}\n")
+        rFile.write(f"MariaDB Username: {rUsername}\n")
+        rFile.write(f"MariaDB Password: {rPassword}\n")
+        rFile.write(f"Database: {rDatabase}\n")
+        rFile.write(f"Admin Access Code: {admin_code}\n")
+
+    # Remove the old mariadb_root_password.txt file if it exists
+    if os.path.exists("/root/mariadb_root_password.txt"):
+        os.remove("/root/mariadb_root_password.txt")
+
+    printc("Credentials saved to /root/credentials.txt", col.OKGREEN)
+    printc(f"Credentials also saved to {local_creds_path}", col.OKGREEN)
+
+    # Mount tmpfs filesystems (like original install script)
+    run_command("mount -a >/dev/null 2>&1 || true")
+
+    # Reload systemd daemon
+    run_command("systemctl daemon-reload")
+
+    # Start service
+    run_command("systemctl start xc_vm")
+
+    # Post-install startup
+    printc("Starting XC_VM processes...", col.OKBLUE)
     time.sleep(10)
 
-    os.system("sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php status 1")
-    os.system("sudo chown xc_vm:xc_vm -R /home/xc_vm/config/")
-    os.system(
-        "sudo /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php startup >/dev/null 2>&1"
-    )
+    # Run status command
+    if os.path.exists("/home/xc_vm/console.php"):
+        run_command("/home/xc_vm/bin/php/bin/php /home/xc_vm/console.php status 1")
+
+    # Set config permissions
+    run_command("chown -R xc_vm:xc_vm /home/xc_vm/config/")
+
+    # Run startup command via console.php
+    startup_cmd = "/home/xc_vm/console.php"
+    if os.path.exists(startup_cmd):
+        run_command(
+            f"/home/xc_vm/bin/php/bin/php {startup_cmd} startup >/dev/null 2>&1"
+        )
 
     time.sleep(3)
-    os.system("service xc_vm restart")
 
-    printc("Installation completed!", col.OKGREEN, 2)
-    printc("Continue Setup: http://%s:%s/%s" % (getIP(),http_port, rCode))
-    print(" ")
-    printc("Your MariaDB credentials have been saved to:")
-    printc(rPath + "/credentials.txt")
-    print(" ")
-    printc("MariaDB Configuration Summary:")
-    printc(f"  Total RAM: {total_ram_mb}MB")
+    # Final restart
+    run_command("service xc_vm restart")
 
-    print(" ")
-    printc("Please move this file somewhere safe!")
+    # Get server IP
+    server_ip = getIP()
+
+    ##################################################
+    # FINISHED - SHOW SUMMARY                        #
+    ##################################################
+
+    printc("=" * 60, col.OKGREEN)
+    printc("INSTALLATION COMPLETED SUCCESSFULLY!", col.OKGREEN, 1)
+
+    printc(f"Distribution: {dist_info['id']} {dist_info['version']}", col.OKGREEN)
+    printc(f"Continue Setup: http://{server_ip}:{http_port}/{admin_code}", col.OKBLUE)
+    printc(f"Total RAM: {total_ram_mb}MB", col.OKGREEN)
+
+    printc("Credentials have been saved to:", col.OKBLUE)
+    printc("/root/credentials.txt", col.OKGREEN)
+    printc(f"{local_creds_path}", col.OKGREEN)
+
+    printc("IMPORTANT: Move the credentials file to a secure location!", col.WARNING)
+
+    printc("=" * 60, col.OKGREEN)
