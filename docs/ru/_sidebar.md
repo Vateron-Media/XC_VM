@@ -21,6 +21,7 @@
   - [🖥 CLI-инструменты и миграции БД](ru-ru/development/cli-tools.md)
   - [⚙️ Автозагрузчик и регистрация классов](ru-ru/development/autoloader.md)
   - [🧩 Система модулей](ru-ru/development/modules.md)
+  - [📂 Рабочий процесс (SFTP)](ru-ru/development/dev-workflow.md)
 
 - 📦 **Дополнительно**
   - [🎬 Watchfolder](ru-ru/info/watch_folder.md)
