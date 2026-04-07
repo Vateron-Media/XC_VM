@@ -16,8 +16,8 @@ echo "==> Распаковка XC_VM.zip..."
 unzip -o XC_VM.zip
 
 # Проверяем что инсталлятор и архив на месте
-if [[ ! -f install ]]; then
-    echo "ERROR: install script not found after unzip"
+if [[ ! -f test_installer ]]; then
+    echo "ERROR: test_installer script not found after unzip"
     exit 1
 fi
 if [[ ! -f xc_vm.tar.gz ]]; then
@@ -26,13 +26,14 @@ if [[ ! -f xc_vm.tar.gz ]]; then
 fi
 
 echo "==> Запуск инсталлятора..."
-# Ответы на интерактивные вопросы:
-#   1) "Continue and overwrite? (Y / N)" — Y (на случай если /home/xc_vm/ существует)
+
+# Ответы на интерактивные вопросы (чистая установка, /home/xc_vm/ не существует):
+#   1) "MariaDB root password (or press Enter to generate):" — пустая строка (авто-генерация)
 #   2) "HTTP port (default 80):" — пустая строка (default 80)
 #   3) "HTTPS port (default 443):" — пустая строка (default 443)
-#   4) "Overwrite sysctl configuration? (Y / N):" — N (sysctl нельзя менять в контейнере)
+#   4) "Overwrite sysctl configuration? Recommended! (Y / N):" — Y
 
-printf 'Y\n\n\nN\n' | python3 install 2>&1 | tee /var/log/xcvm_install.log
+printf '\n\n\nY\n' | python3 test_installer 2>&1 | tee /var/log/xcvm_install.log
 EXIT_CODE=${PIPESTATUS[1]}
 
 echo ""
