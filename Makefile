@@ -13,9 +13,14 @@ LB_UPDATE_ARCHIVE_NAME := loadbalancer_update.tar.gz
 LAST_TAG := $(shell curl -s https://api.github.com/repos/Vateron-Media/XC_VM/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
 HASH_FILE := hashes.md5
 
-# Directories and files to exclude (can be easily edited)
+# Directories and files to exclude from archives
 EXCLUDES := \
 	.git
+
+# Subdirectories of src/ excluded from update archives
+# (compiled binaries, user data, installation-only files)
+UPDATE_EXCLUDE_DIRS := bin/ffmpeg_bin bin/nginx bin/nginx_rtmp bin/php bin/redis \
+	bin/install bin/maxmind bin/certbot content backups tmp config signals \
 
 # Directories to copy from MAIN to LB
 # NOTE: modules/ is intentionally excluded — all modules are MAIN-only.
@@ -127,38 +132,35 @@ lb_copy_files:
 	@echo "All files gitkeep deleted"
 
 lb_update_copy_files:
-	@echo "[INFO] Using last tag: $(LAST_TAG)"
-	@echo "[INFO] Checking for changes in 'src/' from $(LAST_TAG) to HEAD..."
-
-	@echo "[INFO] Preparing output directories"
+	@echo "[INFO] Preparing full LB update"
 	@mkdir -p $(DIST_DIR)
 	@mkdir -p $(TEMP_DIR)
 
-	@echo "[INFO] Copying modified or added files from 'src/' that are in LB scope..."
-	@for file in $$(git diff --no-renames --name-only --diff-filter=AM $(LAST_TAG)..HEAD | grep '^src/'); do \
-		rel_path=$$(echo "$$file" | sed 's|^src/||'); \
+	@echo "[INFO] Copying all tracked LB-scope files (excluding binaries and user data)..."
+	@git ls-files src | while read -r file; do \
+		rel=$${file#src/}; \
 		allowed=0; \
 		for lb_item in $(LB_DIRS); do \
-			if echo "$$rel_path" | grep -q "^$$lb_item/"; then \
-				allowed=1; \
-				break; \
-			fi; \
+			case "$$rel" in "$$lb_item"/*) allowed=1; break;; esac; \
 		done; \
 		if [ "$$allowed" -eq 0 ]; then \
 			for root_file in $(LB_ROOT_FILES); do \
-				if [ "$$rel_path" = "$$root_file" ]; then \
+				if [ "$$rel" = "$$root_file" ]; then \
 					allowed=1; \
 					break; \
 				fi; \
 			done; \
 		fi; \
-		if [ "$$allowed" -eq 1 ] && [ -f "$$file" ]; then \
-			echo "[COPY] $$file -> $(TEMP_DIR)/$$rel_path"; \
-			mkdir -p "$(TEMP_DIR)/$$(dirname $$rel_path)"; \
-			cp "$$file" "$(TEMP_DIR)/$$rel_path"; \
-		else \
-			echo "[SKIP] $$file (not in LB scope)"; \
-		fi \
+		if [ "$$allowed" -eq 1 ]; then \
+			skip=0; \
+			for excl in $(UPDATE_EXCLUDE_DIRS); do \
+				case "$$rel" in "$$excl"/*) skip=1; break;; esac; \
+			done; \
+			if [ "$$skip" -eq 0 ] && [ -f "$$file" ]; then \
+				mkdir -p "$(TEMP_DIR)/$$(dirname $$rel)"; \
+				cp "$$file" "$(TEMP_DIR)/$$rel"; \
+			fi; \
+		fi; \
 	done
 
 	@echo "==> [LB] Removing excluded directories"
@@ -201,21 +203,21 @@ main_copy_files:
 	@echo "All files gitkeep deleted"
 
 main_update_copy_files:
-	@echo "[INFO] Using last tag: $(LAST_TAG)"
-	@echo "[INFO] Checking for changes in 'src/' from $(LAST_TAG) to HEAD..."
-
-	@echo "[INFO] Preparing output directories"
+	@echo "[INFO] Preparing full MAIN update"
 	@mkdir -p $(DIST_DIR)
 	@mkdir -p $(TEMP_DIR)
 
-	@echo "[INFO] Copying modified or added files from 'src/'..."
-	@for file in $$(git diff --no-renames --name-only --diff-filter=AM $(LAST_TAG)..HEAD | grep '^src/'); do \
-		rel_path=$$(echo "$$file" | sed 's|^src/||'); \
-		if [ -f "$$file" ]; then \
-			echo "[COPY] $$file -> $(TEMP_DIR)/$$rel_path"; \
-			mkdir -p "$(TEMP_DIR)/$$(dirname "$$rel_path")"; \
-			cp "$$file" "$(TEMP_DIR)/$$rel_path"; \
-		fi \
+	@echo "[INFO] Copying all tracked files from src/ (excluding binaries and user data)..."
+	@git ls-files src | while read -r file; do \
+		rel=$${file#src/}; \
+		skip=0; \
+		for excl in $(UPDATE_EXCLUDE_DIRS); do \
+			case "$$rel" in "$$excl"/*) skip=1; break;; esac; \
+		done; \
+		if [ "$$skip" -eq 0 ] && [ -f "$$file" ]; then \
+			mkdir -p "$(TEMP_DIR)/$$(dirname $$rel)"; \
+			cp "$$file" "$(TEMP_DIR)/$$rel"; \
+		fi; \
 	done
 
 	@echo "Remove all .gitkeep files..."
@@ -268,140 +270,51 @@ lb_delete_files_list:
 set_permissions:
 	@echo "==> Setting file and directory permissions"
 
-	@if [ -d "$(TEMP_DIR)/public" ]; then \
-		find "$(TEMP_DIR)/public" -type d -exec chmod 755 {} +; \
-		find "$(TEMP_DIR)/public" -type f -exec chmod 644 {} +; \
-	fi
+	# Global defaults: directories 755, regular files 644
+	@find $(TEMP_DIR) -type d -exec chmod 755 {} +
+	@find $(TEMP_DIR) -type f -exec chmod 644 {} +
 
-	# /backups
-	chmod 0750 $(TEMP_DIR)/backups 2>/dev/null || true
-
-	# /bin
-	chmod 0750 $(TEMP_DIR)/bin 2>/dev/null || true
-	chmod 0775 $(TEMP_DIR)/bin/certbot 2>/dev/null || true
-
-	chmod 0755 $(TEMP_DIR)/bin/ffmpeg_bin 2>/dev/null || true
-	chmod 0755 $(TEMP_DIR)/bin/ffmpeg_bin/4.0 2>/dev/null || true
-	chmod 0755 $(TEMP_DIR)/bin/ffmpeg_bin/7.1 2>/dev/null || true
-	chmod 0755 $(TEMP_DIR)/bin/ffmpeg_bin/8.0 2>/dev/null || true
-	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/4.0/ffmpeg 2>/dev/null || true
-	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/4.0/ffprobe 2>/dev/null || true
-	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/7.1/ffmpeg 2>/dev/null || true
-	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/7.1/ffprobe 2>/dev/null || true
-	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/8.0/ffmpeg 2>/dev/null || true
-	chmod 0551 $(TEMP_DIR)/bin/ffmpeg_bin/8.0/ffprobe 2>/dev/null || true
-
-	chmod 0775 $(TEMP_DIR)/bin/install 2>/dev/null || true
-	chmod 0644 $(TEMP_DIR)/bin/install/database.sql 2>/dev/null || true
-	chmod 0644 $(TEMP_DIR)/bin/install/proxy.tar.gz 2>/dev/null || true
-
-	chmod 0750 $(TEMP_DIR)/bin/maxmind 2>/dev/null || true
-	chmod 0750 $(TEMP_DIR)/bin/maxmind/GeoIP2-ISP.mmdb 2>/dev/null || true
-	chmod 0750 $(TEMP_DIR)/bin/maxmind/GeoLite2-City.mmdb 2>/dev/null || true
-	chmod 0750 $(TEMP_DIR)/bin/maxmind/GeoLite2-Country.mmdb 2>/dev/null || true
-	chmod 0750 $(TEMP_DIR)/bin/maxmind/version.json 2>/dev/null || true
-	chmod 0550 $(TEMP_DIR)/bin/maxmind/cidr.db 2>/dev/null || true
-
-	find $(TEMP_DIR)/bin/nginx -type d -exec chmod 750 {} \; 2>/dev/null || true
-	find $(TEMP_DIR)/bin/nginx -type f -exec chmod 550 {} \; 2>/dev/null || true
-	chmod 0755 $(TEMP_DIR)/bin/nginx/conf 2>/dev/null || true
-	chmod 0644 $(TEMP_DIR)/bin/nginx/conf/server.crt 2>/dev/null || true
-	chmod 0600 $(TEMP_DIR)/bin/nginx/conf/server.key 2>/dev/null || true
-	chmod 0755 $(TEMP_DIR)/bin/nginx_rtmp/conf 2>/dev/null || true
-
-	find $(TEMP_DIR)/bin/php -type d -exec chmod 750 {} \; 2>/dev/null || true
-	find $(TEMP_DIR)/bin/php -type f -exec chmod 550 {} \; 2>/dev/null || true
-	chmod 0750 $(TEMP_DIR)/bin/php/etc 2>/dev/null || true
-	chmod 0644 $(TEMP_DIR)/bin/php/etc/1.conf 2>/dev/null || true
-	chmod 0644 $(TEMP_DIR)/bin/php/etc/2.conf 2>/dev/null || true
-	chmod 0644 $(TEMP_DIR)/bin/php/etc/3.conf 2>/dev/null || true
-	chmod 0644 $(TEMP_DIR)/bin/php/etc/4.conf 2>/dev/null || true
-	chmod 0750 $(TEMP_DIR)/bin/php/sessions 2>/dev/null || true
-	chmod 0750 $(TEMP_DIR)/bin/php/sockets 2>/dev/null || true
-	find $(TEMP_DIR)/bin/php/var -type d -exec chmod 750 {} \; 2>/dev/null || true
-	chmod 0551 $(TEMP_DIR)/bin/php/bin/php 2>/dev/null || true
-	chmod 0551 $(TEMP_DIR)/bin/php/sbin/php-fpm 2>/dev/null || true
-
-	chmod 0755 $(TEMP_DIR)/bin/php/lib/php/extensions/no-debug-non-zts-20210902 2>/dev/null || true
-
-	chmod 0755 $(TEMP_DIR)/bin/redis 2>/dev/null || true
-	chmod 0755 $(TEMP_DIR)/bin/redis/redis-server 2>/dev/null || true
-
-	chmod 0750 $(TEMP_DIR)/bin/daemons.sh 2>/dev/null || true
-	chmod 0755 $(TEMP_DIR)/bin/guess 2>/dev/null || true
-	chmod 0550 $(TEMP_DIR)/bin/free-sans.ttf 2>/dev/null || true
-	chmod 0550 $(TEMP_DIR)/bin/network 2>/dev/null || true
-	chmod 0550 $(TEMP_DIR)/bin/network.py 2>/dev/null || true
-	chmod 0755 $(TEMP_DIR)/bin/yt-dlp 2>/dev/null || true
-
-	# /content
-	chmod 0750 $(TEMP_DIR)/content 2>/dev/null || true
-	find $(TEMP_DIR)/content -exec chmod 750 {} \; 2>/dev/null || true
-	chmod 0755 $(TEMP_DIR)/content/epg 2>/dev/null || true
-	chmod 0755 $(TEMP_DIR)/content/playlists 2>/dev/null || true
-	chmod 0770 $(TEMP_DIR)/content/streams 2>/dev/null || true
-
-	# /includes (PHP read by php-fpm)
-	chmod 0755 $(TEMP_DIR)/includes 2>/dev/null || true
-	find $(TEMP_DIR)/includes -type d -exec chmod 755 {} \; 2>/dev/null || true
-	find $(TEMP_DIR)/includes -type f -exec chmod 644 {} \; 2>/dev/null || true
-
-	# New architecture directories (PHP code: 644, dirs: 755)
-	@for arch_dir in core domain streaming infrastructure resources cli crons modules migrations; do \
-		if [ -d "$(TEMP_DIR)/$$arch_dir" ]; then \
-			find "$(TEMP_DIR)/$$arch_dir" -type d -exec chmod 755 {} +; \
-			find "$(TEMP_DIR)/$$arch_dir" -type f -exec chmod 644 {} +; \
-		fi; \
+	# Restricted root directories (750)
+	@for d in backups bin config content signals; do \
+		chmod 0750 "$(TEMP_DIR)/$$d" 2>/dev/null || true; \
 	done
+	@chmod 0770 $(TEMP_DIR)/content/streams 2>/dev/null || true
 
-	# Root-level PHP files
-	chmod 0644 $(TEMP_DIR)/autoload.php 2>/dev/null || true
-	chmod 0644 $(TEMP_DIR)/bootstrap.php 2>/dev/null || true
-	chmod 0644 $(TEMP_DIR)/console.php 2>/dev/null || true
+	# Executable scripts
+	@chmod 0750 $(TEMP_DIR)/service 2>/dev/null || true
+	@chmod 0750 $(TEMP_DIR)/update 2>/dev/null || true
+	@chmod 0750 $(TEMP_DIR)/bin/daemons.sh 2>/dev/null || true
+	@chmod 0755 $(TEMP_DIR)/bin/guess 2>/dev/null || true
+	@chmod 0755 $(TEMP_DIR)/bin/yt-dlp 2>/dev/null || true
+	@chmod 0550 $(TEMP_DIR)/bin/network 2>/dev/null || true
+	@chmod 0550 $(TEMP_DIR)/bin/network.py 2>/dev/null || true
 
-	@if [ -d "$(TEMP_DIR)/ministra" ]; then \
-		chmod 0755 $(TEMP_DIR)/ministra; \
-		find $(TEMP_DIR)/ministra -type d -exec chmod 755 {} +; \
-		find $(TEMP_DIR)/ministra -type f -exec chmod 644 {} +; \
-		chmod 0644 $(TEMP_DIR)/ministra/portal.php 2>/dev/null || true; \
-	fi
+	# FFmpeg executables
+	@find $(TEMP_DIR)/bin/ffmpeg_bin -type f \( -name 'ffmpeg' -o -name 'ffprobe' \) \
+		-exec chmod 0551 {} + 2>/dev/null || true
 
-	@if [ -d "$(TEMP_DIR)/player" ]; then \
-		find $(TEMP_DIR)/player -type d -exec chmod 755 {} +; \
-		find $(TEMP_DIR)/player -type f -exec chmod 644 {} +; \
-	fi
+	# Nginx binaries
+	@find $(TEMP_DIR)/bin/nginx -type d -exec chmod 750 {} + 2>/dev/null || true
+	@find $(TEMP_DIR)/bin/nginx -type f -exec chmod 550 {} + 2>/dev/null || true
+	@chmod 0755 $(TEMP_DIR)/bin/nginx/conf 2>/dev/null || true
+	@chmod 0600 $(TEMP_DIR)/bin/nginx/conf/server.key 2>/dev/null || true
+	@chmod 0750 $(TEMP_DIR)/bin/nginx_rtmp/sbin/nginx_rtmp 2>/dev/null || true
 
-	@if [ -d "$(TEMP_DIR)/reseller" ]; then \
-		chmod 0755 $(TEMP_DIR)/reseller; \
-		find $(TEMP_DIR)/reseller -type d -exec chmod 755 {} +; \
-		find $(TEMP_DIR)/reseller -type f -exec chmod 644 {} +; \
-	fi
+	# PHP binaries
+	@find $(TEMP_DIR)/bin/php -type d -exec chmod 750 {} + 2>/dev/null || true
+	@find $(TEMP_DIR)/bin/php -type f -exec chmod 550 {} + 2>/dev/null || true
+	@for conf in 1.conf 2.conf 3.conf 4.conf; do \
+		chmod 0644 "$(TEMP_DIR)/bin/php/etc/$$conf" 2>/dev/null || true; \
+	done
+	@chmod 0551 $(TEMP_DIR)/bin/php/bin/php 2>/dev/null || true
+	@chmod 0551 $(TEMP_DIR)/bin/php/sbin/php-fpm 2>/dev/null || true
 
-	find $(TEMP_DIR)/tmp -type d -exec chmod 755 {} \; 2>/dev/null || true
+	# Redis executable
+	@chmod 0755 $(TEMP_DIR)/bin/redis/redis-server 2>/dev/null || true
 
-	# /www — web entry points (read by php-fpm, dirs traversable)
-	chmod 0755 $(TEMP_DIR)/www 2>/dev/null || true
-	find $(TEMP_DIR)/www -type d -exec chmod 755 {} \; 2>/dev/null || true
-	find $(TEMP_DIR)/www -type f -name '*.php' -exec chmod 0644 {} \; 2>/dev/null || true
-	find $(TEMP_DIR)/www -type f -name '*.html' -exec chmod 0644 {} \; 2>/dev/null || true
-	chmod 0755 $(TEMP_DIR)/www/images 2>/dev/null || true
-	chmod 0755 $(TEMP_DIR)/www/images/admin 2>/dev/null || true
-	chmod 0755 $(TEMP_DIR)/www/images/enigma2 2>/dev/null || true
-	chmod 0644 $(TEMP_DIR)/www/images/admin/index.html 2>/dev/null || true
-	chmod 0644 $(TEMP_DIR)/www/images/enigma2/index.html 2>/dev/null || true
-	chmod 0644 $(TEMP_DIR)/www/images/index.html 2>/dev/null || true
-
-	# Root-level executables
-	chmod 0750 $(TEMP_DIR)/service 2>/dev/null || true
-	chmod 0755 $(TEMP_DIR)/tmp 2>/dev/null || true
-	chmod 0750 $(TEMP_DIR)/update 2>/dev/null || true
-	chmod 0750 $(TEMP_DIR)/signals 2>/dev/null || true
-
-	chmod 0750 $(TEMP_DIR)/config 2>/dev/null || true
-	chmod 0640 $(TEMP_DIR)/config/modules.php 2>/dev/null || true
-	chmod 0550 $(TEMP_DIR)/config/rclone.conf 2>/dev/null || true
-
-	chmod 0750 $(TEMP_DIR)/bin/nginx_rtmp/sbin/nginx_rtmp 2>/dev/null || true
+	# Sensitive config files
+	@chmod 0640 $(TEMP_DIR)/config/modules.php 2>/dev/null || true
+	@chmod 0550 $(TEMP_DIR)/config/rclone.conf 2>/dev/null || true
 
 create_archive:
 	@echo "==> Creating final archive: ${TEMP_ARCHIVE_NAME}"
