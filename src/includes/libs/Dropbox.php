@@ -5,12 +5,10 @@
  *
  * http://fabi.me/en/php-projects/dropphp-dropbox-api-client/
  *
- *
  * @author     Fabian Schlieper <fabian@fabi.me>
  * @copyright  Fabian Schlieper 2017
  * @version    2.0.0
  * @license    See LICENSE
- *
  */
 class DropboxClient {
 	public const API_URL = 'https://api.dropboxapi.com/';

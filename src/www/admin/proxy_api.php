@@ -1,13 +1,23 @@
 <?php
 
+/**
+ * Proxy API handler
+ *
+ * @package XC_VM_Web_Admin
+ * @author  Divarion_D <https://github.com/Divarion-D>
+ * @copyright 2025-2026 Vateron Media
+ * @link    https://github.com/Vateron-Media/XC_VM
+ * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
+ */
+
 set_time_limit(0);
 require '../init.php';
 $rSignals = array();
 
-if (CoreUtilities::isProxy($_SERVER['REMOTE_ADDR'])) {
-	$db = new Database($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
-	CoreUtilities::$db = &$db;
-	$rServers = CoreUtilities::$rServers;
+if (BlocklistService::isProxy($_SERVER['REMOTE_ADDR'])) {
+	$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
+	DatabaseFactory::set($db);
+	$rServers = ServerRepository::getAll();
 	$rServerID = intval($_POST['server_id']);
 	$rStats = $_POST['stats'];
 	$db->query('SELECT `bytes_sent_total`, `bytes_received_total`, `time` FROM `servers_stats` WHERE `server_id` = ? ORDER BY `id` DESC LIMIT 1;', $rServerID);
@@ -29,7 +39,7 @@ if (CoreUtilities::isProxy($_SERVER['REMOTE_ADDR'])) {
 		$rPing = 0;
 	}
 
-	if (CoreUtilities::$rSettings['redis_handler']) {
+	if (SettingsManager::getAll()['redis_handler']) {
 		$rConnections = $rServers[$rServerID]['connections'];
 		$rUsers = $rServers[$rServerID]['users'];
 		$rAllUsers = 0;

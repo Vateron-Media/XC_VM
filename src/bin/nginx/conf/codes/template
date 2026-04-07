@@ -1,11 +1,14 @@
+location ^~ /#CODE#/assets/ {
+    alias /home/xc_vm/public/assets/#TYPE#/;
+}
+
 location ^~ /#CODE# {
-    alias /home/xc_vm/#TYPE#;
-    index index.php index.html index.htm;
-    try_files $uri $uri.html $uri/ @extensionless-php;
+    alias /home/xc_vm/#ALIAS#;
+    try_files $uri $uri.html @fc_#CODE#;
     #WHITELIST#
     location ~ \.php$ {
         limit_req zone=one burst=#BURST# nodelay;
-        try_files $uri =404;
+        try_files $uri @fc_#CODE#;
         fastcgi_index index.php;
         fastcgi_pass php;
         include fastcgi_params;
@@ -17,4 +20,19 @@ location ^~ /#CODE# {
         fastcgi_param SCRIPT_FILENAME $request_filename;
         fastcgi_param SCRIPT_NAME $fastcgi_script_name;
     }
+}
+
+location @fc_#CODE# {
+    fastcgi_index index.php;
+    fastcgi_pass php;
+    include fastcgi_params;
+    fastcgi_param SCRIPT_FILENAME /home/xc_vm/public/index.php;
+    fastcgi_param SCRIPT_NAME /public/index.php;
+    fastcgi_param XC_SCOPE #TYPE#;
+    fastcgi_param XC_CODE  #CODE#;
+    fastcgi_buffering on;
+    fastcgi_buffers 96 32k;
+    fastcgi_buffer_size 32k;
+    fastcgi_max_temp_file_size 0;
+    fastcgi_keep_conn on;
 }

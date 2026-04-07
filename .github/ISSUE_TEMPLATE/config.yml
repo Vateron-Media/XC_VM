@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security Vulnerability (Private)
+    url: https://github.com/Vateron-Media/XC_VM/security/advisories/new
+    about: For critical security vulnerabilities, please use private disclosure via GitHub Security Advisories.
+  - name: Documentation
+    url: https://Vateron-Media.github.io/XC_VM/
+    about: Check the documentation before opening an issue — your answer might already be there.

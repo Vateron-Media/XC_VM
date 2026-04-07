@@ -33,8 +33,8 @@
 * ⭐ [Features](#-features)
 * 🐞 [Known Limitations](#-known-limitations)
 * 🤝 [Contributing](#-contributing)
-* 📜 [License](#-license)
-* ⚖️ [Legal Disclaimer](#-legal-disclaimer)
+* ⚠️ [Legal & Licensing Notice](#️-legal--licensing-notice)
+* 📜 [License (AGPL-3.0)](#-license-agpl-30)
 
 </details>
 
@@ -65,10 +65,10 @@ It enables:
 ## 📚 Documentation
 
 * 🇬🇧 **English Guide**
-  [https://vateron-media.github.io/XC_VM_Docs/#/en-us/](https://vateron-media.github.io/XC_VM_Docs/#/en-us/)
+  [https://vateron-media.github.io/XC_VM/#/en-us/](https://vateron-media.github.io/XC_VM/#/en-us/)
 
 * 🇷🇺 **Руководство на русском**
-  [https://vateron-media.github.io/XC_VM_Docs/#/ru-ru/](https://vateron-media.github.io/XC_VM_Docs/#/ru-ru/)
+  [https://vateron-media.github.io/XC_VM/#/ru-ru/](https://vateron-media.github.io/XC_VM/#/ru-ru/)
 
 ---
 
@@ -76,9 +76,9 @@ It enables:
 
 | Component | Version    | Description                     |
 | --------- | ---------- | ------------------------------- |
-| PHP       | 8.2        | Backend runtime                 |
+| PHP       | 8.1.33        | Backend runtime                 |
 | Nginx     | 1.24       | Web server & reverse proxy      |
-| FFmpeg    | 8.0, 7.1, 5.1, 4.4, 4.3, 4.0        | Media transcoding & processing  |
+| FFmpeg    | 8.0, 7.1, 4.0                        | Media transcoding & processing  |
 | MariaDB   | 11.4      | SQL database engine             |
 | KeyDB     | 6.3.4      | Cache & session storage (Redis) |
 | yt-dlp    | 2025.07.21 | Audio/Video downloader          |
@@ -130,7 +130,7 @@ Using these versions is still *possible*, but:
 sudo apt update && sudo apt full-upgrade -y
 
 # 2. Install dependencies
-sudo apt install -y python3-pip unzip
+sudo apt install -y curl wget python3-pip unzip
 
 # 3. Download latest release
 latest_version=$(curl -s https://api.github.com/repos/Vateron-Media/XC_VM/releases/latest | grep '"tag_name":' | cut -d '"' -f 4)
@@ -140,6 +140,28 @@ wget "https://github.com/Vateron-Media/XC_VM/releases/download/${latest_version}
 unzip XC_VM.zip
 sudo python3 install
 ```
+
+### 🧪 Beta Install
+
+To install the latest **beta** (pre-release) version:
+
+```bash
+# 1. Update system
+sudo apt update && sudo apt full-upgrade -y
+
+# 2. Install dependencies
+sudo apt install -y curl wget python3-pip unzip
+
+# 3. Download latest beta release
+beta_version=$(curl -s https://api.github.com/repos/Vateron-Media/XC_VM/releases | grep -m1 '"tag_name":' | cut -d '"' -f 4)
+wget "https://github.com/Vateron-Media/XC_VM/releases/download/${beta_version}/XC_VM.zip"
+
+# 4. Unpack and install
+unzip XC_VM.zip
+sudo python3 install
+```
+
+> ⚠️ Beta versions may contain unstable features. Use on test servers only.
 
 ---
 
@@ -235,15 +257,30 @@ We welcome community help!
 
 ---
 
-## 📝 License
+### ⚠️ Legal & Project Independence Notice
 
-[AGPL v3.0](LICENSE)
+**XC_VM** is an independent software project and is **not affiliated with or endorsed by XUI.one**.
+
+All backend systems, core logic, and infrastructure of XC_VM have been **independently developed** without using source code from XUI.one or related projects.
+
+The administrative interface (UI/UX) is **inspired by general industry practices and partially by XUI.one in terms of usability concepts only**.
+No proprietary source code or protected assets have been intentionally reused.
 
 ---
 
-## ⚠️ Legal Disclaimer
+### 📜 License Enforcement (AGPL-3.0)
 
-> 🚫 **This software is for educational purposes only.**
+XC_VM is distributed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
+
+Under this license:
+
+* Redistribution or modification is permitted **only under the same license (AGPL-3.0)**
+* Any modified version **must remain open-source**
+* Providing XC_VM as a service **requires making the source code available**
+* **Copyright and attribution must be preserved**
+
+Any attempt to redistribute this software under a different license, remove attribution, or obscure the origin of the project constitutes a violation of the license terms.
+
 > ⚖️ You are solely responsible for how it is used.
 > We take no responsibility for misuse or illegal deployments.
 

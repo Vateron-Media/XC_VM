@@ -1,9 +1,19 @@
 <?php
 
+/**
+ * HLS segment delivery endpoint
+ *
+ * @package XC_VM_Web_Stream
+ * @author  Divarion_D <https://github.com/Divarion-D>
+ * @copyright 2025-2026 Vateron Media
+ * @link    https://github.com/Vateron-Media/XC_VM
+ * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
+ */
+
 header('Access-Control-Allow-Origin: *');
+header('X-Content-Type-Options: nosniff');
 set_time_limit(0);
 require_once 'init.php';
-require_once INCLUDES_PATH . 'StreamingUtilities.php';
 
 $rSettings = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'settings'));
 $rServers = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'servers'));
@@ -40,7 +50,7 @@ $rIsHMAC = null;
 
 if (isset($_GET['token'])) {
 	$rOffset = 0;
-	$rTokenArray = explode('/', StreamingUtilities::decryptData($_GET['token'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA));
+	$rTokenArray = explode('/', Encryption::decrypt($_GET['token'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA));
 
 	if (6 > count($rTokenArray)) {
 	} else {
@@ -118,15 +128,15 @@ if (isset($_GET['token'])) {
 					$rSignalData = json_decode(file_get_contents(SIGNALS_PATH . $rUUID), true);
 
 					if ($rSignalData['type'] == 'signal') {
-						StreamingUtilities::init(false);
+						LegacyInitializer::initStreaming();
 
 						if ($rSettings['encrypt_hls']) {
 							$rKey = file_get_contents(STREAMS_PATH . $rStreamID . '_.key');
 							$rIV = file_get_contents(STREAMS_PATH . $rStreamID . '_.iv');
-							$rData = StreamingUtilities::sendSignal($rSignalData, basename($rSegment), $rVideoCodec, true);
+							$rData = SignalSender::sendSignal($rFFMPEG_CPU, $rSignalData, basename($rSegment), $rVideoCodec, true);
 							echo openssl_encrypt($rData, 'aes-128-cbc', $rKey, OPENSSL_RAW_DATA, $rIV);
 						} else {
-							StreamingUtilities::sendSignal($rSignalData, basename($rSegment), $rVideoCodec);
+							SignalSender::sendSignal($rFFMPEG_CPU, $rSignalData, basename($rSegment), $rVideoCodec);
 						}
 
 						unlink(SIGNALS_PATH . $rUUID);
@@ -145,17 +155,23 @@ if (isset($_GET['token'])) {
 					}
 
 					if (file_exists($rSegment . '.enc_write')) {
-						$rChecks = 0;
-
 						if (file_exists(STREAMS_PATH . $rStreamID . '_.dur')) {
 							$b73e9a5cd67eae9b = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.dur')) * 2;
 						} else {
 							$b73e9a5cd67eae9b = $rSettings['seg_time'] * 2;
 						}
 
-						while (file_exists($rSegment . '.enc_write') && !file_exists($rSegment . '.enc') && $rChecks <= $b73e9a5cd67eae9b * 10) {
-							usleep(100000);
-							$rChecks++;
+						// Wait for encryption to complete using async file monitoring
+						$maxWaitTime = max(1, $b73e9a5cd67eae9b * 10);
+						$encWaitFile = $rSegment . '.enc_write';
+						$encCompleteFile = $rSegment . '.enc';
+
+						// Monitor for completion - use inotify if available
+						$startTime = microtime(true);
+						$timeout = $maxWaitTime / 10; // Convert to seconds
+
+						while (file_exists($encWaitFile) && !file_exists($encCompleteFile) && (microtime(true) - $startTime) < $timeout) {
+							AsyncFileOperations::efficientSleep(100000); // 0.1 seconds
 						}
 					} else {
 						ignore_user_abort(true);

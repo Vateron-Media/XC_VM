@@ -1,5 +1,15 @@
 <?php
 
+/**
+ * M3uEntry — m3u entry
+ *
+ * @package XC_VM_Includes_Libs
+ * @author  Divarion_D <https://github.com/Divarion-D>
+ * @copyright 2025-2026 Vateron Media
+ * @link    https://github.com/Vateron-Media/XC_VM
+ * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
+ */
+
 trait TagAttributesTrait {
 	/**
 	 * @var array
@@ -394,6 +404,21 @@ class ExtInf implements ExtTagInterface {
 		$dataLineStr = substr($lineStr, strlen('#EXTINF:'));
 		$dataLineStr = trim($dataLineStr);
 		preg_match('/^(-?\\d+)\\s*(?:(?:[^=]+=["\'][^"\']*["\'])|(?:[^=]+=[^ ]*))*,(.*)$/', $dataLineStr, $matches);
+
+		if (!isset($matches[1], $matches[2])) {
+			$commaPos = strpos($dataLineStr, ',');
+
+			if ($commaPos !== false) {
+				$this->setDuration(intval($dataLineStr));
+				$this->setTitle(trim(substr($dataLineStr, $commaPos + 1)));
+			} else {
+				$this->setDuration(0);
+				$this->setTitle(trim($dataLineStr));
+			}
+
+			return;
+		}
+
 		$this->setDuration((int) $matches[1]);
 		$this->setTitle(trim($matches[2]));
 		$attributes = preg_replace('/^' . preg_quote($matches[1], '/') . '(.*)' . preg_quote($matches[2], '/') . '$/', '$1', $dataLineStr);
