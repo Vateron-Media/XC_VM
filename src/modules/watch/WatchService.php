@@ -33,7 +33,7 @@ class WatchService {
 		$fallbackParser = isset($rData['fallback_parser']);
 		$db->query('UPDATE `settings` SET `percentage_match` = ?, `scan_seconds` = ?, `thread_count` = ?, `max_genres` = ?, `max_items` = ?, `alternative_titles` = ?, `fallback_parser` = ?;', $rData['percentage_match'], $rData['scan_seconds'], $rData['thread_count'], $rData['max_genres'], $rData['max_items'], $altTitles, $fallbackParser);
 
-		clearSettingsCache();
+		SettingsManager::clearCache();
 
 		return array('status' => STATUS_SUCCESS);
 	}
@@ -41,9 +41,9 @@ class WatchService {
 	public static function processWatchFolder($rData) {
 		global $db;
 		if (isset($rData['edit'])) {
-			$rArray = overwriteData(getWatchFolder($rData['edit']), $rData);
+			$rArray = AdminHelpers::overwriteData(StreamRepository::getWatchFolder($rData['edit']), $rData);
 		} else {
-			$rArray = verifyPostTable('watch_folders', $rData);
+			$rArray = QueryHelper::verifyPostTable('watch_folders', $rData);
 			unset($rArray['id']);
 		}
 
@@ -78,7 +78,7 @@ class WatchService {
 			$rArray[$rKey] = isset($rData[$rKey]) ? 1 : 0;
 		}
 
-		$rPrepare = prepareArray($rArray);
+		$rPrepare = QueryHelper::prepareArray($rArray);
 		$rQuery = 'REPLACE INTO `watch_folders`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
 		if ($db->query($rQuery, ...$rPrepare['data'])) {
@@ -117,7 +117,7 @@ class WatchService {
 	}
 
 	public static function forceWatch($rServerID, $rWatchID) {
-		return systemapirequest($rServerID, array('action' => 'watch_force', 'id' => $rWatchID));
+		return ApiClient::systemRequest($rServerID, array('action' => 'watch_force', 'id' => $rWatchID));
 	}
 
 	public static function enableWatch() {
@@ -135,7 +135,7 @@ class WatchService {
 		$db->query("SELECT DISTINCT(`server_id`) AS `server_id` FROM `watch_folders` WHERE `active` = 11 AND `type` <> 'plex';");
 		foreach ($db->get_rows() as $rRow) {
 			if (ServerRepository::getAll()[$rRow['server_id']]['server_online']) {
-				systemapirequest($rRow['server_id'], array('action' => 'kill_watch'));
+				ApiClient::systemRequest($rRow['server_id'], array('action' => 'kill_watch'));
 			}
 		}
 		return true;
@@ -157,7 +157,7 @@ class WatchService {
 		if ($db->num_rows() > 0) {
 			$rRecording = $db->get_row();
 			if ($rRecording['created_id']) {
-				deleteStream($rRecording['created_id'], $rRecording['source_id'], true, true);
+				StreamRepository::deleteStream($rRecording['created_id'], $rRecording['source_id'], true, true);
 			}
 			shell_exec("kill -9 `ps -ef | grep 'Record[" . intval($rID) . "]' | grep -v grep | awk '{print $2}'`");
 			$db->query('DELETE FROM `recordings` WHERE `id` = ?;', $rID);

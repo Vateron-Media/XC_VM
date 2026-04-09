@@ -23,8 +23,9 @@ if (!defined('MAIN_HOME')) {
     define('MAIN_HOME', dirname(__DIR__, 2) . '/');
 }
 
-require_once MAIN_HOME . 'includes/admin.php';
-require_once INCLUDES_PATH . 'libs/tmdb.php';
+require_once MAIN_HOME . 'bootstrap.php';
+XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_ADMIN);
+require_once MAIN_HOME . 'modules/tmdb/lib/TmdbClient.php';
 
 if (!defined('SERVER_ID')) {
     define('SERVER_ID', ConnectionTracker::getMainID());
@@ -52,7 +53,7 @@ if (isset($_SESSION['phash'])) {
         || $rUserInfo['admin_enabled'] == 0
         || $rUserInfo['enabled'] == 0
     ) {
-        destroySession('player');
+        SessionManager::clearContext('player');
         $code = $_SERVER['XC_CODE'] ?? '';
         header('Location: ' . ($code ? '/' . $code . '/login' : 'login'));
         exit();

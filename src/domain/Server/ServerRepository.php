@@ -156,7 +156,7 @@ class ServerRepository {
 
 	public static function getFreeSpace($rServerID) {
 		$rReturn = array();
-		$rLines = json_decode(systemapirequest($rServerID, array('action' => 'get_free_space')), true);
+		$rLines = json_decode(ApiClient::systemRequest($rServerID, array('action' => 'get_free_space')), true);
 
 		if (!is_array($rLines)) {
 			return $rReturn;
@@ -177,7 +177,7 @@ class ServerRepository {
 	}
 
 	public static function getStreamsRamdisk($rServerID) {
-		$response = systemapirequest($rServerID, array('action' => 'streams_ramdisk'));
+		$response = ApiClient::systemRequest($rServerID, array('action' => 'streams_ramdisk'));
 		$rReturn = json_decode($response, true);
 
 		if (!is_array($rReturn)) {
@@ -192,11 +192,11 @@ class ServerRepository {
 	}
 
 	public static function killPID($rServerID, $rPID) {
-		systemapirequest($rServerID, array('action' => 'kill_pid', 'pid' => $rPID));
+		ApiClient::systemRequest($rServerID, array('action' => 'kill_pid', 'pid' => $rPID));
 	}
 
 	public static function getRTMPStats($rServerID) {
-		return json_decode(systemapirequest($rServerID, array('action' => 'rtmp_stats')), true);
+		return json_decode(ApiClient::systemRequest($rServerID, array('action' => 'rtmp_stats')), true);
 	}
 
 	public static function checkSource($rServers, $rFFProbe, $rServerID, $rFilename) {
@@ -220,20 +220,20 @@ class ServerRepository {
 	}
 
 	public static function freeTemp($rServerID) {
-		systemapirequest($rServerID, array('action' => 'free_temp'));
+		ApiClient::systemRequest($rServerID, array('action' => 'free_temp'));
 	}
 
 	public static function freeStreams($rServerID) {
-		systemapirequest($rServerID, array('action' => 'free_streams'));
+		ApiClient::systemRequest($rServerID, array('action' => 'free_streams'));
 	}
 
 	public static function probeSource($rServerID, $rURL, $rUserAgent = null, $rProxy = null, $rCookies = null, $rHeaders = null) {
-		return json_decode(systemapirequest($rServerID, array('action' => 'probe', 'url' => $rURL, 'user_agent' => $rUserAgent, 'http_proxy' => $rProxy, 'cookies' => $rCookies, 'headers' => $rHeaders), 30), true);
+		return json_decode(ApiClient::systemRequest($rServerID, array('action' => 'probe', 'url' => $rURL, 'user_agent' => $rUserAgent, 'http_proxy' => $rProxy, 'cookies' => $rCookies, 'headers' => $rHeaders), 30), true);
 	}
 
 	public static function deleteById($rID, $rReplaceWith = null) {
 		global $db, $rSettings;
-		$rServer = getStreamingServersByID($rID);
+		$rServer = ServerRepository::getById($rID);
 
 		if (!$rServer || $rServer['is_main']) {
 			return false;
@@ -390,5 +390,16 @@ class ServerRepository {
 			}
 			return $rServerURL;
 		}
+	}
+
+	public static function getById($rID) {
+		global $db;
+		$db->query('SELECT * FROM `servers` WHERE `id` = ?;', $rID);
+
+		if ($db->num_rows() != 1) {
+			return false;
+		}
+
+		return $db->get_row();
 	}
 }

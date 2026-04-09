@@ -4,13 +4,13 @@
     include 'session.php';
     include 'functions.php';
 
-    if (!checkPermissions()) {
-        goHome();
+    if (!PageAuthorization::checkPermissions()) {
+        AdminHelpers::goHome();
     }
 
     if (isset(RequestManager::getAll()['id']) && ($rServerArr = $allServers[RequestManager::getAll()['id']])) {
     } else {
-        goHome();
+        AdminHelpers::goHome();
     }
 
     $rWatchdog = !empty($rServerArr['watchdog_data']) ? json_decode($rServerArr['watchdog_data'], true) : [];

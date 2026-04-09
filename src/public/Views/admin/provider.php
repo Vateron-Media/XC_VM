@@ -3,11 +3,11 @@
     include 'session.php';
     include 'functions.php';
 
-    if (!checkPermissions()) {
-        goHome();
+    if (!PageAuthorization::checkPermissions()) {
+        AdminHelpers::goHome();
     }
 
-    if (isset(RequestManager::getAll()['id']) && !($rProvider = getStreamProvider(RequestManager::getAll()['id']))) {
+    if (isset(RequestManager::getAll()['id']) && !($rProvider = ProviderService::getById(RequestManager::getAll()['id']))) {
         exit();
     }
 

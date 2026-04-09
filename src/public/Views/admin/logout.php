@@ -1,7 +1,7 @@
 <?php
 
 include 'functions.php';
-destroySession();
+SessionManager::clearContext('admin');
 header('Location: ./login');
 
 exit();

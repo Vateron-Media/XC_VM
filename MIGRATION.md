@@ -6,12 +6,13 @@
 ## Содержание
 
 1. [Принцип миграции](#1-принцип-миграции)
-2. [Завершённые фазы (0–13)](#2-завершённые-фазы-013)
+2. [Завершённые фазы (0–14, 16)](#2-завершённые-фазы-014-16)
 3. [Фаза 14: CSS/JS partials](#3-фаза-14-cssjs-partials)
-4. [Фаза 15: Удаление includes/admin.php](#4-фаза-15-удаление-includesadminphp)
-5. [Отложенные подшаги](#5-отложенные-подшаги)
-6. [Известные пробелы и TODO](#6-известные-пробелы-и-todo)
-7. [Стратегия и релизы](#7-стратегия-и-релизы)
+4. [Фаза 15: Ликвидация src/includes/](#4-фаза-15-ликвидация-srcincludes)
+5. [Фаза 16: Удаление includes/admin.php](#5-фаза-16-удаление-includesadminphp)
+6. [Отложенные подшаги](#6-отложенные-подшаги)
+7. [Известные пробелы и TODO](#7-известные-пробелы-и-todo)
+8. [Стратегия и релизы](#8-стратегия-и-релизы)
 
 ---
 
@@ -30,7 +31,7 @@
 
 ---
 
-## 2. Завершённые фазы (0–13)
+## 2. Завершённые фазы (0–14, 16)
 
 | Фаза | Суть | Ключевой результат |
 |------|------|--------------------|
@@ -48,6 +49,8 @@
 | **11** | Унификация API (11.1–11.4) | 7 API-контроллеров (2313 стр.), 6 thin proxies в www/. PlayerApi, Enigma2, XPlugin, Playlist, Epg, InternalApi |
 | **12** | CLI runner | console.php + 26 Commands + 25 CronJobs. includes/cli/ и crons/ удалены. LB guards |
 | **13** | Streaming (13.1–13.3) | ShutdownHandler, StreamAuthMiddleware, micro-router. Hot path не затронут |
+| **14** | CSS/JS partials | footer.php: 810→85 строк, common.js (730 стр.), XC_VM.Config bridge |
+| **16** | Удаление admin.php | 121 функция → 17 классов, admin_proxies.php, loadLegacyProxies(), unified bootstrap |
 
 **Новые классы (Phase 8):** SettingsManager, RequestManager, ConfigReader, DatabaseFactory, RedisManager, FfmpegPaths, FileCache, DataEncryptor, InputSanitizer, IpUtils, UrlBuilder, ImageUtils, Helpers, ProcessManager, ConnectionManager, BackupService, ProviderService, ProfileService, RadioService, SystemCheck, InputValidator.
 
@@ -78,47 +81,128 @@
 3. **PHP → JS bridge:** 6 вызовов `$language::get()` + `$rSettings['js_navigate']` → `window.XC_VM.Config`
 4. Глобальные переменные (`rSwitches`, `jBoxes`, etc.) → `window.*` для совместимости со страничными скриптами
 
-#### 14.3 — Минификация (отложено)
+---
 
-1. `make js-minify` target
-2. terser для `assets/js/*.js`
-3. Версионирование: `?v={hash}`
+## 4. Фаза 15: Ликвидация src/includes/ — распределение по архитектуре
+
+> **Цель:** Полностью удалить директорию `src/includes/`, распределив содержимое по `core/`, `domain/`, `modules/`, `streaming/`, `config/`, `bin/`. Стратегия: proxy-redirect (переместить + оставить тонкий `require_once` на старом месте → потом удалить proxy).
+
+> **Статус:** ✅ Фаза 15 полностью завершена (15.0–15.6). Директория `src/includes/` удалена. Константа `INCLUDES_PATH` удалена.
+
+#### 15.0 — Удаление пустых файлов ✅
+
+| Файл | Действие |
+|------|----------|
+| `admin_new.php` | N/A — уже не существует |
+| `.do_swap.sh` | N/A — уже не существует |
+
+#### 15.1 — Перенос библиотек (libs/) ✅
+
+| Файл | Новое расположение | Обоснование |
+|------|-------------------|-------------|
+| `libs/Translator.php` | `core/Localization/Translator.php` | Core i18n |
+| `libs/Logger.php` | `core/Logging/Logger.php` | Уже есть `core/Logging/` |
+| `libs/GithubReleases.php` | `core/Updates/GithubReleases.php` | Обновления = core |
+| `libs/AsyncFileOperations.php` | `streaming/AsyncFileOperations.php` | Используется только streaming |
+| `libs/Dropbox.php` | `core/Storage/DropboxClient.php` | Backup storage |
+| `libs/XmlStringStreamer.php` | `core/Parsing/XmlStringStreamer.php` | XML парсинг = core utility |
+| `libs/mobiledetect.php` | `core/Device/MobileDetect.php` | Device detection |
+| `libs/m3u.php` | `domain/Stream/M3UEntry.php` | M3U парсинг |
+| `libs/m3u_v2.php` | `domain/Stream/M3UParser.php` | M3U v2 (✅ hardcoded paths исправлены на `__DIR__`) |
+| `libs/resources/*` | `domain/Stream/resources/` | Данные для M3U-парсера |
+
+#### 15.2 — Перенос TMDb-пакета в модуль ✅
+
+| Файл | Новое расположение |
+|------|-------------------|
+| `libs/tmdb.php` | `modules/tmdb/lib/TmdbClient.php` |
+| `libs/tmdb_release.php` | `modules/tmdb/lib/Release.php` |
+| `libs/TMDb/*.php` (10 entity) | `modules/tmdb/lib/Entities/` |
+| `libs/TMDb/config/` | `modules/tmdb/lib/config/` |
+| `libs/TMDb/roles/` | `modules/tmdb/lib/roles/` |
+
+#### 15.3 — Перенос API-контроллеров и данных ✅
+
+| Файл | Новое расположение | Обоснование |
+|------|-------------------|-------------|
+| `api/admin/table.php` | `public/Controllers/Admin/TableController.php` | Presentation layer |
+| `api/reseller/table.php` | `public/Controllers/Reseller/TableController.php` | Presentation layer |
+| `reseller_api.php` | `infrastructure/legacy/reseller_api.php` | Утилитарный класс `ResellerAPI` (не контроллер) |
+| `data/permissions.php` | `config/permissions.php` | Конфигурация |
+| `ts.php` | `streaming/TimeshiftClient.php` | Streaming domain |
+
+#### 15.4 — Перенос Python-утилит ✅
+
+| Файл | Новое расположение |
+|------|-------------------|
+| `python/release.py` | `bin/python/release.py` |
+| `python/PTN/` | `bin/python/PTN/` |
+
+#### 15.5 — admin.php → infrastructure/legacy/ ✅
+
+| Файл | Новое расположение | Причина |
+|------|-------------------|---------|
+| `admin.php` | `infrastructure/legacy/admin.php` | Legacy bootstrap, 70+ callers |
+| `admin_functions.php` | N/A — не существует | Упоминался в плане, но файл отсутствует |
+
+> После 15.5: на старых местах остаются proxy-файлы (32 шт.). Proxy удаляются в Фазе 16.
+> Makefile обновлён: `infrastructure/legacy/admin.php` и `infrastructure/legacy/reseller_api.php` добавлены в `LB_FILES_TO_REMOVE`.
+
+#### 15.6 — Удаление src/includes/ ✅
+
+> **Завершено:** 2025-07-06. Директория `src/includes/` полностью удалена (40 файлов: 34 proxy + 6 оригиналов).
+
+Выполнено:
+
+1. 7 мёртвых `shell_exec()` вызовов (`INCLUDES_PATH . 'cli/...'`) заменены на `MAIN_HOME . 'console.php ...'` в:
+   `VodCronJob`, `SeriesService`, `MovieService`, `RootSignalsCronJob`, `WatchCron`, `PlexCron`
+2. `INCLUDES_PATH` define удалён из `LoopbackCommand`, `LlodCommand`
+3. Autoloader: убраны `addDirectory('includes')` и `addDirectory('includes/libs')`
+4. Константа `INCLUDES_PATH` удалена из `core/Config/Paths.php`
+5. `rm -rf src/includes/` — удалены все 40 файлов
+6. Makefile: убраны `includes/admin_api.php`, `includes/admin.php`, `includes/reseller_api.php` из `LB_FILES_TO_REMOVE`
+7. `php -l` всех 10 модифицированных файлов — 0 ошибок
+
+> **Сохранены** маршрутные идентификаторы nginx: `includes/api/admin` и `includes/api/reseller` в `index.php` и `AuthRepository.php` — это протокольные значения, не файловые пути.
 
 ---
 
-## 4. Фаза 15: Удаление includes/admin.php — финальный legacy bootstrap
+## 5. Фаза 16: Удаление includes/admin.php — финальный legacy bootstrap ✅
 
-> **Цель:** `includes/admin.php` (~3060 стр.) удалён. Весь bootstrap через `XC_Bootstrap::boot()`.
+> **Завершено:** 2026-04-08. `infrastructure/legacy/admin.php` удалён. Весь bootstrap через `XC_Bootstrap::boot()`.
+> admin.php: 3060 → 2641 → 2135 → 1131 → 518 → 27 → **удалён**.
 
-#### 15.1 — Аудит зависимостей
+#### 16.1 — Аудит зависимостей ✅
 
-1. `grep -rn "include.*admin\.php\|require.*admin\.php" src/`
+1. `grep -rn "include.*admin\.php\|require.*admin\.php" src/` — найдено 18 callers
 2. Для каждого подключения: что ожидается (переменные, функции, сессия)?
-3. Что живёт ТОЛЬКО в admin.php и не имеет замены?
+3. Что живёт ТОЛЬКО в admin.php и не имеет замены? → Ничего. Все 121 функция извлечены.
 
-#### 15.2 — Перенос оставшихся функций
+#### 16.2 — Перенос оставшихся функций ✅
 
-- глобальные утилиты → `includes/admin_functions.php` или domain-сервисы
-- `$language` → `core/I18n/Translator.php`
-- session → `core/Auth/SessionManager.php`
-- `$rPermissions` → `domain/Auth/AuthorizationService.php`
+- 121 функция извлечена в 17 целевых классов (core/, domain/)
+- Новые файлы: `core/Database/QueryHelper.php`, `core/Util/AdminHelpers.php`, `core/Auth/PageAuthorization.php`, `core/Http/ApiClient.php`, `domain/Vod/TMDbService.php`, `domain/User/TicketRepository.php`
+- 11 существующих файлов расширены: ServerService, ServerRepository, BackupService, BlocklistService, DiagnosticsService, StreamService, ConnectionTracker, SettingsManager, CategoryService, ProviderService, EpgService и др.
+- admin.php: 3060 → 518 строк (все функции → one-liner proxies)
 
-#### 15.3 — Переключение bootstrap
+#### 16.3 — Переключение bootstrap ✅
 
-1. `BaseAdminController::before()` / `BaseResellerController::before()` → только `XC_Bootstrap::boot(CONTEXT_ADMIN)`
-2. Feature flag: `use_legacy_bootstrap = false`
-3. Тестирование всех 134 страниц
+1. Создан `infrastructure/legacy/admin_proxies.php` (121 proxy, 508 строк)
+2. Добавлен `XC_Bootstrap::loadLegacyProxies()` — идемпотентный метод, вызывается в конце CONTEXT_ADMIN boot
+3. Переключены все 18 callers: 3 bootstrap + 5 CronJobs/CLI + 10 FC/Controllers/Views
+4. admin.php: 518 → 27 строк (backward-compat wrapper)
 
-#### 15.4 — Удаление
+#### 16.4 — Удаление ✅
 
-1. `rm src/includes/admin.php`
-2. Удалить все `require 'admin.php'`
-3. Убрать dual bootstrap ветку из `bootstrap.php`
-4. `php -l` + smoke test
+1. `rm src/infrastructure/legacy/admin.php` — файл удалён (0 runtime callers)
+2. Все `require 'admin.php'` заменены в Phase 16.3
+3. BaseAdminController / BaseResellerController: `function_exists()` guards → прямые вызовы `PageAuthorization`, `AdminHelpers`, `Authorization`
+4. Makefile: `admin.php` → `admin_proxies.php` в `LB_FILES_TO_REMOVE`
+5. `php -l` — all pass
 
 ---
 
-## 5. Отложенные подшаги
+## 6. Отложенные подшаги
 
 | Шаг | Суть | Блокер | Усилия |
 |-----|------|--------|--------|
@@ -128,7 +212,7 @@
 
 ---
 
-## 6. Известные пробелы и TODO
+## 7. Известные пробелы и TODO
 
 > Актуализировано: 2026-04-07.
 
@@ -170,27 +254,30 @@
 | 6.6 | BalancerCommand sentinel | ✅ | — | — |
 | §11.5 | Admin/Reseller REST API | ⏳ | Удаление www/ proxies | 8–16 ч |
 | Phase 14 | CSS/JS partials (common.js) | ✅ | — | — |
-| Phase 15 | Удаление admin.php | ⏳ | Финальный milestone | 16–32 ч |
+| Phase 15 | Ликвидация src/includes/ | ✅ | — | — |
+| Phase 16 | Удаление admin.php (legacy bootstrap) | ✅ | — | — |
 
 ---
 
-## 7. Стратегия и релизы
+## 8. Стратегия и релизы
 
-### Dual bootstrap (текущее состояние)
+### Unified bootstrap (текущее состояние)
 
 ```
-bootstrap.php          includes/admin.php (legacy)
-  ├── autoload.php       ├── ~3060 строк legacy init
-  ├── ServiceContainer   ├── session, permissions
-  └── core/domain/       └── global $db, define()
+bootstrap.php (единственный entry point)
+  ├── autoload.php
+  ├── ServiceContainer
+  ├── core/domain/
+  └── loadLegacyProxies() → admin_proxies.php (121 proxy функций)
 ```
 
-`bootstrap.php` загружается первым. `includes/admin.php` — для ещё не мигрированного legacy-кода. Удаляется в Фазе 15.
+`bootstrap.php` — единственный bootstrap. `infrastructure/legacy/admin.php` удалён (Phase 16.4).
+`admin_proxies.php` содержит 121 deprecated proxy-функцию; постепенно заменяются прямыми вызовами классов.
+`includes/admin.php` — минимальный proxy (5 строк), перенаправляет на `bootstrap.php` + `boot(CONTEXT_ADMIN)`.
 
 ### Feature flags
 
 - `use_legacy_fallback` — FC legacy routing (реализован в `public/index.php`)
-- `use_legacy_bootstrap` — для Фазы 15 (планируется)
 
 ### Rollback plan
 
@@ -206,15 +293,18 @@ bootstrap.php          includes/admin.php (legacy)
 Phase 14 ─── CSS/JS partials (footer.php)          ✅ Завершено
     │
     ▼
-Phase 11 ─── API deletion (11.5 + 11.6)            🟡 Средний риск
+Phase 16 ─── Удаление legacy admin.php             ✅ Завершено
     │
     ▼
-Phase 15 ─── Удаление includes/admin.php            🔴 Высокий риск
+Phase 15 ─── Ликвидация src/includes/              ✅ Завершено
+    │
+    ▼
+Phase 11 ─── API deletion (11.5 + 11.6)            🟡 Средний риск
 ```
 
 ### Релизы
 
 | Релиз | Содержит | Риск |
 |-------|----------|------|
-| **v2.4** | ~~Phase 14 (CSS/JS)~~ ✅ + Phase 11 (API deletion) + пробелы 6.3 | 🟡 |
-| **v3.0** | Phase 15 (удаление legacy bootstrap) | 🔴 Финальный |
+| **v2.4** | ~~Phase 14 (CSS/JS)~~ ✅ + ~~Phase 16 (admin.php)~~ ✅ + ~~Phase 15 (ликвидация includes/)~~ ✅ | ✅ |
+| **v2.5** | Phase 11 (API deletion) + пробелы 6.3 | 🟡 |

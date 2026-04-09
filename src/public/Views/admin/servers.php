@@ -4,8 +4,8 @@
     include 'session.php';
     include 'functions.php';
 
-    if (!checkPermissions()) {
-        goHome();
+    if (!PageAuthorization::checkPermissions()) {
+        AdminHelpers::goHome();
     }
 
     $rServers = ServerRepository::getAll(true);
@@ -127,7 +127,7 @@
                                                 if (SettingsManager::getAll()['redis_handler']) {
                                                     $rClients = $rServer['connections'];
                                                 } else {
-                                                    $rClients = getLiveConnections($rServer['id']);
+                                                    $rClients = ConnectionTracker::getLiveConnections($rServer['id']);
                                                 }
                                                 if (Authorization::check('adv', 'live_connections')) {
                                                     $rClients = '<a href="./live_connections?server=' . $rServer['id'] . "\"><button type='button' class='btn btn-dark bg-animate btn-xs waves-effect waves-light no-border'>" . number_format($rClients, 0) . '</button></a>';

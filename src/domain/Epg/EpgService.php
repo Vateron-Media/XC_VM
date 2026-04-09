@@ -17,16 +17,16 @@ class EpgService {
 			if (!Authorization::check('adv', 'epg_edit')) {
 				exit();
 			}
-			$rArray = overwriteData(self::getById($rData['edit']), $rData);
+			$rArray = AdminHelpers::overwriteData(self::getById($rData['edit']), $rData);
 		} else {
 			if (!Authorization::check('adv', 'add_epg')) {
 				exit();
 			}
-			$rArray = verifyPostTable('epg', $rData);
+			$rArray = QueryHelper::verifyPostTable('epg', $rData);
 			unset($rArray['id']);
 		}
 
-		$rPrepare = prepareArray($rArray);
+		$rPrepare = QueryHelper::prepareArray($rArray);
 		$rQuery = 'REPLACE INTO `epg`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
 		if ($db->query($rQuery, ...$rPrepare['data'])) {
@@ -128,5 +128,34 @@ class EpgService {
 		if (isset($rData[$rProgrammeID])) {
 			return $rData[$rProgrammeID];
 		}
+	}
+
+	public static function getAll() {
+		global $db;
+		$rReturn = array();
+		$db->query('SELECT * FROM `epg` ORDER BY `id` ASC;');
+
+		if ($db->num_rows() > 0) {
+			foreach ($db->get_rows() as $rRow) {
+				$rReturn[intval($rRow['id'])] = $rRow;
+			}
+		}
+
+		return $rReturn;
+	}
+
+	public static function deleteEpgById($rID) {
+		global $db;
+		$rEPG = self::getById($rID);
+
+		if (!$rEPG) {
+			return false;
+		}
+
+		$db->query('DELETE FROM `epg` WHERE `id` = ?;', $rID);
+		$db->query('DELETE FROM `epg_channels` WHERE `epg_id` = ?;', $rID);
+		$db->query('UPDATE `streams` SET `epg_id` = null, `channel_id` = null, `epg_lang` = null WHERE `epg_id` = ?;', $rID);
+
+		return true;
 	}
 }

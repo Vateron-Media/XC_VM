@@ -16,11 +16,11 @@ class ResellerEditProfileController extends BaseResellerController
         $this->setTitle('Edit Profile');
 
         $data = [
-            'timezones' => TimeZoneList(),
+            'timezones' => AdminHelpers::TimeZoneList(),
         ];
 
         // Find API code for this user's group
-        foreach (getcodes() as $rCode) {
+        foreach (AuthRepository::getAllCodes() as $rCode) {
             if ($rCode['type'] == 4 && in_array($GLOBALS['rUserInfo']['member_group_id'], json_decode($rCode['groups'], true) ?: [])) {
                 $data['apiCode'] = $rCode;
                 $servers = ServerRepository::getAll();

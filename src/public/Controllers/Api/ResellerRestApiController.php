@@ -266,7 +266,7 @@ class ResellerAPIWrapper {
         }
         $rPackages = array();
         $rOverride = json_decode($rUserInfo['override_packages'], true);
-        foreach (getPackages($rUserInfo['member_group_id']) as $rPackage) {
+        foreach (PackageService::getAll($rUserInfo['member_group_id']) as $rPackage) {
             if (isset($rOverride[$rPackage['id']]['official_credits']) && 0 < strlen($rOverride[$rPackage['id']]['official_credits'])) {
                 $rPackage['official_credits'] = intval($rOverride[$rPackage['id']]['official_credits']);
             } else {
@@ -313,7 +313,7 @@ class ResellerAPIWrapper {
     public static function deleteLine($rID) {
         if (!UserRepository::getLineById($rID)) {
         } else {
-            if (!deleteLine($rID)) {
+            if (!LineService::deleteLineById($rID)) {
             } else {
                 return array('status' => 'STATUS_SUCCESS');
             }
@@ -335,7 +335,7 @@ class ResellerAPIWrapper {
         return array('status' => 'STATUS_SUCCESS');
     }
     public static function getMAG($rID) {
-        if (!($rDevice = getMag($rID))) {
+        if (!($rDevice = MagService::getById($rID))) {
         } else {
             if (!Authorization::check('line', $rDevice['user_id'])) {
             } else {
@@ -357,7 +357,7 @@ class ResellerAPIWrapper {
         return $rReturn;
     }
     public static function editMAG($rID, $rData) {
-        if (!getMag($rID)) {
+        if (!MagService::getById($rID)) {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
@@ -373,9 +373,9 @@ class ResellerAPIWrapper {
         return $rReturn;
     }
     public static function deleteMAG($rID) {
-        if (!getMag($rID)) {
+        if (!MagService::getById($rID)) {
         } else {
-            if (!deleteMAG($rID)) {
+            if (!MagService::deleteDevice($rID)) {
             } else {
                 return array('status' => 'STATUS_SUCCESS');
             }
@@ -383,14 +383,14 @@ class ResellerAPIWrapper {
         return array('status' => 'STATUS_FAILURE');
     }
     public static function disableMAG($rID) {
-        if (!($rDevice = getMag($rID))) {
+        if (!($rDevice = MagService::getById($rID))) {
             return array('status' => 'STATUS_FAILURE');
         }
         self::$db->query('UPDATE `lines` SET `enabled` = 0 WHERE `id` = ?;', $rDevice['user_id']);
         return array('status' => 'STATUS_SUCCESS');
     }
     public static function enableMAG($rID) {
-        if (!($rDevice = getMag($rID))) {
+        if (!($rDevice = MagService::getById($rID))) {
             return array('status' => 'STATUS_FAILURE');
         }
         self::$db->query('UPDATE `lines` SET `enabled` = 1 WHERE `id` = ?;', $rDevice['user_id']);
@@ -398,14 +398,14 @@ class ResellerAPIWrapper {
     }
     public static function convertMAG($rID) {
         global $db;
-        if (!($rDevice = getMag($rID))) {
+        if (!($rDevice = MagService::getById($rID))) {
             return array('status' => 'STATUS_FAILURE');
         }
-        deleteMAG($rID, false, false, true);
+        MagService::deleteDevice($rID, false, false, true);
         return array('status' => 'STATUS_SUCCESS', 'data' => UserRepository::getLineById($rDevice['user_id']));
     }
     public static function getEnigma($rID) {
-        if (!($rDevice = getEnigma($rID))) {
+        if (!($rDevice = EnigmaService::getById($rID))) {
         } else {
             if (!Authorization::check('line', $rDevice['user_id'])) {
             } else {
@@ -427,7 +427,7 @@ class ResellerAPIWrapper {
         return $rReturn;
     }
     public static function editEnigma($rID, $rData) {
-        if (!getEnigma($rID)) {
+        if (!EnigmaService::getById($rID)) {
             return array('status' => 'STATUS_FAILURE');
         }
         $rData['edit'] = $rID;
@@ -443,9 +443,9 @@ class ResellerAPIWrapper {
         return $rReturn;
     }
     public static function deleteEnigma($rID) {
-        if (!getEnigma($rID)) {
+        if (!EnigmaService::getById($rID)) {
         } else {
-            if (!deleteEnigma($rID)) {
+            if (!EnigmaService::deleteDevice($rID)) {
             } else {
                 return array('status' => 'STATUS_SUCCESS');
             }
@@ -453,14 +453,14 @@ class ResellerAPIWrapper {
         return array('status' => 'STATUS_FAILURE');
     }
     public static function disableEnigma($rID) {
-        if (!($rDevice = getEnigma($rID))) {
+        if (!($rDevice = EnigmaService::getById($rID))) {
             return array('status' => 'STATUS_FAILURE');
         }
         self::$db->query('UPDATE `lines` SET `enabled` = 0 WHERE `id` = ?;', $rDevice['user_id']);
         return array('status' => 'STATUS_SUCCESS');
     }
     public static function enableEnigma($rID) {
-        if (!($rDevice = getEnigma($rID))) {
+        if (!($rDevice = EnigmaService::getById($rID))) {
             return array('status' => 'STATUS_FAILURE');
         }
         self::$db->query('UPDATE `lines` SET `enabled` = 1 WHERE `id` = ?;', $rDevice['user_id']);
@@ -468,10 +468,10 @@ class ResellerAPIWrapper {
     }
     public static function convertEnigma($rID) {
         global $db;
-        if (!($rDevice = getEnigma($rID))) {
+        if (!($rDevice = EnigmaService::getById($rID))) {
             return array('status' => 'STATUS_FAILURE');
         }
-        deleteEnigma($rID, false, false, true);
+        EnigmaService::deleteDevice($rID, false, false, true);
         return array('status' => 'STATUS_SUCCESS', 'data' => UserRepository::getLineById($rDevice['user_id']));
     }
     public static function getUser($rID) {
@@ -507,7 +507,7 @@ class ResellerAPIWrapper {
     public static function deleteUser($rID) {
         if (!(($rUser = self::getUser($rID)) && isset($rUser['data']))) {
         } else {
-            if (!deleteUser($rID)) {
+            if (!UserService::deleteRegisteredUser($rID)) {
             } else {
                 return array('status' => 'STATUS_SUCCESS');
             }

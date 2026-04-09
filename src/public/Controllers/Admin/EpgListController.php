@@ -23,7 +23,7 @@ class EpgListController extends BaseAdminController
         $this->requirePermission();
         $this->setTitle('EPG Files');
 
-        $epgs = function_exists('getEPGs') ? getEPGs() : [];
+        $epgs = EpgService::getAll();
 
         $this->render('epgs', [
             'epgs' => $epgs,

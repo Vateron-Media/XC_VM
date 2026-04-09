@@ -27,7 +27,7 @@ class ArchiveController extends BaseAdminController
                 return;
             }
 
-            $rArchive = getArchive($rStream['id']);
+            $rArchive = StreamService::getArchive($rStream['id']);
         } else {
             $rRecordings = WatchService::getRecordings();
         }

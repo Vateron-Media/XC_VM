@@ -17,7 +17,7 @@ class TicketViewController extends BaseAdminController {
 
         $rTicketInfo = null;
         if (isset(RequestManager::getAll()['id'])) {
-            $rTicketInfo = getTicket(RequestManager::getAll()['id']);
+            $rTicketInfo = TicketRepository::getById(RequestManager::getAll()['id']);
         }
         if (!$rTicketInfo) {
             $this->redirect('tickets');

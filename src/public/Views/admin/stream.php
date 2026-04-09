@@ -5,8 +5,8 @@
 	include 'functions.php';
 
 
-	if (!checkPermissions()) {
-		goHome();
+	if (!PageAuthorization::checkPermissions()) {
+		AdminHelpers::goHome();
 	}
 
 	if (isset(RequestManager::getAll()['id'])) {
@@ -14,14 +14,14 @@
 			$rStream = StreamRepository::getById(RequestManager::getAll()['id']);
 
 			if (!$rStream && $rStream['type'] != 1) {
-				goHome();
+				AdminHelpers::goHome();
 			}
 		} else {
 			exit();
 		}
 	}
 
-	$rEPGSources = getEPGSources();
+	$rEPGSources = EpgService::getAll();
 	$rStreamArguments = StreamConfigRepository::getStreamArguments();
 	$rTranscodeProfiles = StreamConfigRepository::getTranscodeProfiles();
 	$rOnDemand = array();
@@ -274,7 +274,7 @@ endif;
 														echo $rServer['id'];
 														echo '"';
 
-														if (!(isset($rStream) && $rStream['capture_server_id'] == $rServer['id'])) {
+														if (!(isset($rStream) && ($rStream['capture_server_id'] ?? null) == $rServer['id'])) {
 														} else {
 															echo ' selected';
 														}
@@ -702,7 +702,8 @@ endif;
 									echo '                                                                </select>                                                            </div>                                                        </div>                                                        <div class="form-group row mb-4">                                                            <label class="col-md-4 col-form-label" for="channel_id">EPG Channel ID</label>                                                            <div class="col-md-8">                                                                <select name="channel_id" id="channel_id" class="form-control" data-toggle="select2">                                                                ';
 
 									if (isset($rStream)) {
-										foreach (json_decode($rEPGSources[intval($rStream['epg_id'])]['data'], true) as $rKey => $rEPGChannel) {
+										$rEPGData = json_decode($rEPGSources[intval($rStream['epg_id'])]['data'] ?? '[]', true) ?: [];
+										foreach ($rEPGData as $rKey => $rEPGChannel) {
 											echo '
 																			<option value="';
 											echo $rKey;
@@ -721,7 +722,8 @@ endif;
 									echo '                                                                </select>                                                            </div>                                                        </div>                                                        <div class="form-group row mb-4">                                                            <label class="col-md-4 col-form-label" for="epg_lang">EPG Language</label>                                                            <div class="col-md-4">                                                                <select name="epg_lang" id="epg_lang" class="form-control" data-toggle="select2">                                                                ';
 
 									if (isset($rStream)) {
-										foreach (json_decode($rEPGSources[intval($rStream['epg_id'])]['data'], true)[$rStream['channel_id']]['langs'] as $rID => $rLang) {
+										$rEPGData = json_decode($rEPGSources[intval($rStream['epg_id'])]['data'] ?? '[]', true) ?: [];
+										foreach (($rEPGData[$rStream['channel_id']]['langs'] ?? []) as $rID => $rLang) {
 											echo '
 																			<option value="';
 											echo $rLang;

@@ -4,12 +4,12 @@
     include 'session.php';
     include 'functions.php';
 
-    if (!checkPermissions()) {
-        goHome();
+    if (!PageAuthorization::checkPermissions()) {
+        AdminHelpers::goHome();
         exit;
     }
 
-    $rSeries = getSeries();
+    $rSeries = SeriesService::getAll();
     $rServerTree = array(
         array(
             'id' => 'source',

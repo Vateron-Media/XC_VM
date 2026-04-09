@@ -29,7 +29,7 @@ class PlayerMovieController extends BasePlayerController
 
             if ($rProperties['tmdb_id']) {
                 if (!file_exists(TMP_PATH . 'tmdb_' . $rProperties['tmdb_id'])) {
-                    $rTMDB = json_decode(json_encode(getMovieTMDB($rProperties['tmdb_id'])), true);
+                    $rTMDB = json_decode(json_encode(TMDbService::getMovie($rProperties['tmdb_id'])), true);
 
                     if ($rTMDB) {
                         file_put_contents(TMP_PATH . 'tmdb_' . $rProperties['tmdb_id'], igbinary_serialize($rTMDB));

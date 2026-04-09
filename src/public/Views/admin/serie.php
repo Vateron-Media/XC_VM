@@ -4,12 +4,12 @@
 	include 'session.php';
 	include 'functions.php';
 
-	if (!checkPermissions()) {
-		goHome();
+	if (!PageAuthorization::checkPermissions()) {
+		AdminHelpers::goHome();
 	}
 
-	if (isset(RequestManager::getAll()['id']) && !($rSeriesArr = getSerie(RequestManager::getAll()['id']))) {
-		goHome();
+	if (isset(RequestManager::getAll()['id']) && !($rSeriesArr = SeriesService::getById(RequestManager::getAll()['id']))) {
+		AdminHelpers::goHome();
 	}
 
 	if (isset($rSeriesArr) && isset(RequestManager::getAll()['import'])) {

@@ -32,8 +32,6 @@ class BackupsCronJob implements CommandInterface {
         ini_set('display_startup_errors', 1);
         error_reporting(32757);
 
-        require INCLUDES_PATH . 'admin.php';
-
         if (!ServerRepository::getAll()[SERVER_ID]['is_main']) {
             echo 'Please run on main server.' . "\n";
             return 1;
@@ -74,7 +72,7 @@ class BackupsCronJob implements CommandInterface {
                 if (0 < filesize($rFilename)) {
                     if (SettingsManager::getAll()['dropbox_remote']) {
                         file_put_contents($rFilename . '.uploading', time());
-                        $rResponse = uploadRemoteBackup(basename($rFilename), $rFilename);
+                        $rResponse = BackupService::uploadRemote(basename($rFilename), $rFilename);
                         if (!isset($rResponse->error)) {
                             $rResponse = json_decode(json_encode($rResponse, JSON_UNESCAPED_UNICODE), true);
                             if (!(isset($rResponse['size']) && intval($rResponse['size']) == filesize($rFilename))) {
@@ -97,7 +95,7 @@ class BackupsCronJob implements CommandInterface {
             }
         }
 
-        $rBackups = getBackups();
+        $rBackups = BackupService::getLocal();
         if (intval(SettingsManager::getAll()['backups_to_keep']) < count($rBackups) && 0 < intval(SettingsManager::getAll()['backups_to_keep'])) {
             $rDelete = array_slice($rBackups, 0, count($rBackups) - intval(SettingsManager::getAll()['backups_to_keep']));
             foreach ($rDelete as $rItem) {
@@ -108,12 +106,12 @@ class BackupsCronJob implements CommandInterface {
         }
 
         if (SettingsManager::getAll()['dropbox_remote']) {
-            $rRemoteBackups = getRemoteBackups();
+            $rRemoteBackups = BackupService::getRemote();
             if (intval(SettingsManager::getAll()['dropbox_keep']) < count($rRemoteBackups) && 0 < intval(SettingsManager::getAll()['dropbox_keep'])) {
                 $rDelete = array_slice($rRemoteBackups, 0, count($rRemoteBackups) - intval(SettingsManager::getAll()['dropbox_keep']));
                 foreach ($rDelete as $rItem) {
                     try {
-                        deleteRemoteBackup($rItem['path']);
+                        BackupService::deleteRemote($rItem['path']);
                     } catch (exception $e) {
                     }
                 }

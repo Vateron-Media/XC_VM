@@ -37,9 +37,10 @@ class PlayerLoginController
 			'You are not allowed to access this player.',
 		];
 
-		// Bootstrap: загружаем includes/admin.php для БД, settings,
+		// Bootstrap: загружаем ядро для БД, settings,
 		// destroySession() и других глобальных зависимостей.
-		require_once MAIN_HOME . 'includes/admin.php';
+		require_once MAIN_HOME . 'bootstrap.php';
+		XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_ADMIN);
 
 		// Start session
 		if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
@@ -47,7 +48,7 @@ class PlayerLoginController
 		}
 
 		// Destroy existing session
-		destroySession('player');
+		SessionManager::clearContext('player');
 
 		$_STATUS = null;
 

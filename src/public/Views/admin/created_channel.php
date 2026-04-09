@@ -4,8 +4,8 @@
     include 'session.php';
     include 'functions.php';
 
-    if (!checkPermissions()) {
-        goHome();
+    if (!PageAuthorization::checkPermissions()) {
+        AdminHelpers::goHome();
     }
 
     $rCategories = CategoryService::getAllByType('live');
@@ -17,7 +17,7 @@
         $rChannel = StreamRepository::getById(RequestManager::getAll()['id']);
 
         if (!$rChannel || $rChannel['type'] != 3) {
-            goHome();
+            AdminHelpers::goHome();
         }
     }
 
@@ -100,7 +100,7 @@ endif;
             <div class="col-xl-12">
                 <?php
                 if (isset($rChannel)) {
-                    $rEncodeErrors = getEncodeErrors($rChannel['id']);
+                    $rEncodeErrors = StreamRepository::getEncodeErrors($rChannel['id']);
 
                     foreach ($rEncodeErrors as $rServerID => $rEncodeError) {
                 ?>
@@ -227,7 +227,7 @@ endif;
                                                     <div class="col-md-8">
                                                         <select name="series_no" id="series_no" class="form-control select2" data-toggle="select2">
                                                             <option value="0">Select a series...</option>
-                                                            <?php foreach (getSeries() as $rSeries): ?>
+                                                            <?php foreach (SeriesService::getAll() as $rSeries): ?>
                                                                 <option <?php if (isset($rChannel) && intval($rChannel['series_no']) == intval($rSeries['id'])): ?>selected<?php endif; ?> value="<?php echo $rSeries['id']; ?>"><?php echo $rSeries['title']; ?></option>
                                                             <?php endforeach; ?>
                                                         </select>
@@ -709,7 +709,7 @@ renderUnifiedLayoutFooter('admin');
 
     if (isset($rChannel) && $rProperties['type'] == 2) {
         echo "\t\t" . 'var rSelection = ';
-        echo json_encode(getSelections(json_decode($rChannel['stream_source'], true)));
+        echo json_encode(StreamRepository::getSelections(json_decode($rChannel['stream_source'], true)));
         echo ';' . "\r\n\t\t";
     } else {
         echo "\t\t" . 'var rSelection = [];' . "\r\n\t\t";

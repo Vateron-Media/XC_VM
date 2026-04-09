@@ -19,7 +19,7 @@ class StreamViewController extends BaseAdminController
 
         if (isset(RequestManager::getAll()['id']) && ($rStream = StreamRepository::getById(RequestManager::getAll()['id']))) {
         } else {
-            goHome();
+            AdminHelpers::goHome();
         }
 
         $rTypeString = array(1 => 'Stream', 2 => 'Movie', 3 => 'Channel', 4 => 'Station', 5 => 'Episode')[$rStream['type']];
@@ -42,7 +42,7 @@ class StreamViewController extends BaseAdminController
                 $rTokenData = array('session_id' => session_id(), 'expires' => $rExpires, 'stream_id' => intval(RequestManager::getAll()['id']), 'ip' => NetworkUtils::getUserIP());
                 $rUIToken = Encryption::encrypt(json_encode($rTokenData), SettingsManager::getAll()['live_streaming_pass'], OPENSSL_EXTRA);
 
-                if (issecure()) {
+                if (AdminHelpers::issecure()) {
                     $rVServer = ServerRepository::getAll()[$rStream['vframes_server_id']];
                     $rImage = 'https://' . (($rVServer['domain_name'] ? $rVServer['domain_name'] : $rVServer['server_ip'])) . ':' . intval($rVServer['https_broadcast_port']) . '/admin/thumb?uitoken=' . $rUIToken;
                 } else {
@@ -55,7 +55,7 @@ class StreamViewController extends BaseAdminController
         } else {
             if ($rStream['type'] == 2 || $rStream['type'] == 5) {
                 $rProperties = json_decode($rStream['movie_properties'], true);
-                $rImage = (!empty($rProperties['backdrop_path'][0]) ? ImageUtils::validateURL($rProperties['backdrop_path'][0], (issecure() ? 'https' : 'http')) : ImageUtils::validateURL($rProperties['movie_image'], (issecure() ? 'https' : 'http')));
+                $rImage = (!empty($rProperties['backdrop_path'][0]) ? ImageUtils::validateURL($rProperties['backdrop_path'][0], (AdminHelpers::issecure() ? 'https' : 'http')) : ImageUtils::validateURL($rProperties['movie_image'], (AdminHelpers::issecure() ? 'https' : 'http')));
 
                 if (empty($rImage)) {
                 } else {

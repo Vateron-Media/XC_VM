@@ -247,4 +247,102 @@ class DiagnosticsService {
 
 		return $data['ip'];
 	}
+
+	public static function getPIDs($rServerID) {
+		$rReturn = array();
+		$rProcesses = json_decode(ApiClient::systemRequest($rServerID, array('action' => 'get_pids')), true);
+		if (!is_array($rProcesses)) {
+			return $rReturn;
+		}
+		array_shift($rProcesses);
+
+		foreach ($rProcesses as $rProcess) {
+			$rSplit = explode(' ', preg_replace('!\\s+!', ' ', trim($rProcess)));
+
+			if ($rSplit[0] == 'xc_vm') {
+				$rUsage = array(0, 0, 0);
+				$rTimer = explode('-', $rSplit[9]);
+
+				if (1 < count($rTimer)) {
+					$rDays = intval($rTimer[0]);
+					$rTime = $rTimer[1];
+				} else {
+					$rDays = 0;
+					$rTime = $rTimer[0];
+				}
+
+				$rTime = explode(':', $rTime);
+
+				if (count($rTime) == 3) {
+					$rSeconds = intval($rTime[0]) * 3600 + intval($rTime[1]) * 60 + intval($rTime[2]);
+				} else {
+					if (count($rTime) == 2) {
+						$rSeconds = intval($rTime[0]) * 60 + intval($rTime[1]);
+					} else {
+						$rSeconds = intval($rTime[2]);
+					}
+				}
+
+				$rUsage[0] = $rSeconds + $rDays * 86400;
+				$rTimer = explode('-', $rSplit[8]);
+
+				if (1 < count($rTimer)) {
+					$rDays = intval($rTimer[0]);
+					$rTime = $rTimer[1];
+				} else {
+					$rDays = 0;
+					$rTime = $rTimer[0];
+				}
+
+				$rTime = explode(':', $rTime);
+
+				if (count($rTime) == 3) {
+					$rSeconds = intval($rTime[0]) * 3600 + intval($rTime[1]) * 60 + intval($rTime[2]);
+				} else {
+					if (count($rTime) == 2) {
+						$rSeconds = intval($rTime[0]) * 60 + intval($rTime[1]);
+					} else {
+						$rSeconds = intval($rTime[2]);
+					}
+				}
+
+				$rUsage[1] = $rSeconds + $rDays * 86400;
+				if ($rUsage[0] != 0) {
+					$rUsage[2] = $rUsage[1] / $rUsage[0] * 100;
+				} else {
+					$rUsage[2] = 0;
+				}
+
+				$rReturn[] = array('user' => $rSplit[0], 'pid' => $rSplit[1], 'cpu' => $rSplit[2], 'mem' => $rSplit[3], 'vsz' => $rSplit[4], 'rss' => $rSplit[5], 'tty' => $rSplit[6], 'stat' => $rSplit[7], 'time' => $rUsage[1], 'etime' => $rUsage[0], 'load_average' => $rUsage[2], 'command' => implode(' ', array_splice($rSplit, 10, count($rSplit) - 10)));
+			}
+		}
+
+		return $rReturn;
+	}
+
+	public static function getNVENCProcesses($rServerID) {
+		global $db;
+		$rProcesses = array();
+		$rServer = ServerRepository::getById($rServerID);
+		$rGPUInfo = json_decode($rServer['gpu_info'], true);
+
+		if (!is_array($rGPUInfo)) {
+		} else {
+			foreach ($rGPUInfo['gpus'] as $rGPU) {
+				foreach ($rGPU['processes'] as $rProcess) {
+					$rArray = array('pid' => $rProcess['pid'], 'memory' => $rProcess['memory'], 'stream_id' => null);
+					$db->query('SELECT `stream_id` FROM `streams_servers` WHERE `pid` = ? AND `server_id` = ?;', $rProcess['pid'], $rServerID);
+
+					if (0 >= $db->num_rows()) {
+					} else {
+						$rArray['stream_id'] = $db->get_row()['stream_id'];
+					}
+
+					$rProcesses[] = $rArray;
+				}
+			}
+		}
+
+		return $rProcesses;
+	}
 }

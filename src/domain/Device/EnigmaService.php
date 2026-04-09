@@ -18,7 +18,7 @@ class EnigmaService {
 		ini_set('default_socket_timeout', 0);
 
 		$rEnigmas = json_decode($rData['enigmas'], true);
-		deleteEnigmas($rEnigmas);
+		EnigmaService::deleteDevices($rEnigmas);
 
 		return array('status' => STATUS_SUCCESS);
 	}
@@ -88,7 +88,7 @@ class EnigmaService {
 						$rUserArray['bouquet'][] = $rBouquet;
 					}
 				}
-				$rUserArray['bouquet'] = sortArrayByArray($rUserArray['bouquet'], array_keys(BouquetService::getOrder()));
+				$rUserArray['bouquet'] = AdminHelpers::sortArrayByArray($rUserArray['bouquet'], array_keys(BouquetService::getOrder()));
 				$rUserArray['bouquet'] = '[' . implode(',', array_map('intval', $rUserArray['bouquet'])) . ']';
 			}
 
@@ -111,13 +111,13 @@ class EnigmaService {
 			$rDevices = json_decode($rData['devices_selected'], true);
 
 			foreach ($rDevices as $rDevice) {
-				$rDeviceInfo = getEnigma($rDevice);
+				$rDeviceInfo = EnigmaService::getById($rDevice);
 
 				if (!$rDeviceInfo) {
 				} else {
 					if (0 >= count($rArray)) {
 					} else {
-						$rPrepare = prepareArray($rArray);
+						$rPrepare = QueryHelper::prepareArray($rArray);
 
 						if (0 >= count($rPrepare['data'])) {
 						} else {
@@ -142,7 +142,7 @@ class EnigmaService {
 						}
 
 						foreach ($rUserIDs as $rUserID) {
-							$rPrepare = prepareArray($rUserArray);
+							$rPrepare = QueryHelper::prepareArray($rUserArray);
 
 							if (0 >= count($rPrepare['data'])) {
 							} else {
@@ -167,13 +167,13 @@ class EnigmaService {
 		if (InputValidator::validate('processEnigma', $rData)) {
 			if (isset($rData['edit'])) {
 				if (Authorization::check('adv', 'edit_e2')) {
-					$rArray = overwriteData(getEnigma($rData['edit']), $rData);
+					$rArray = AdminHelpers::overwriteData(EnigmaService::getById($rData['edit']), $rData);
 					$rUser = UserRepository::getLineById($rArray['user_id']);
 
 					if ($rUser) {
-						$rUserArray = overwriteData($rUser, $rData);
+						$rUserArray = AdminHelpers::overwriteData($rUser, $rData);
 					} else {
-						$rUserArray = verifyPostTable('lines', $rData);
+						$rUserArray = QueryHelper::verifyPostTable('lines', $rData);
 						$rUserArray['created_at'] = time();
 						unset($rUserArray['id']);
 					}
@@ -182,8 +182,8 @@ class EnigmaService {
 				}
 			} else {
 				if (Authorization::check('adv', 'add_e2')) {
-					$rArray = verifyPostTable('enigma2_devices', $rData);
-					$rUserArray = verifyPostTable('lines', $rData);
+					$rArray = QueryHelper::verifyPostTable('enigma2_devices', $rData);
+					$rUserArray = QueryHelper::verifyPostTable('lines', $rData);
 					$rUserArray['created_at'] = time();
 					unset($rArray['device_id'], $rUserArray['id']);
 				} else {
@@ -193,12 +193,12 @@ class EnigmaService {
 
 			if (strlen($rUserArray['username']) != 0) {
 			} else {
-				$rUserArray['username'] = generateString(32);
+				$rUserArray['username'] = AdminHelpers::generateString(32);
 			}
 
 			if (strlen($rUserArray['password']) != 0) {
 			} else {
-				$rUserArray['password'] = generateString(32);
+				$rUserArray['password'] = AdminHelpers::generateString(32);
 			}
 
 			if (strlen($rData['isp_clear']) != 0) {
@@ -230,7 +230,7 @@ class EnigmaService {
 				$rArray['lock_device'] = 0;
 			}
 
-			$rUserArray['bouquet'] = sortArrayByArray(array_values(json_decode($rData['bouquets_selected'], true)), array_keys(BouquetService::getOrder()));
+			$rUserArray['bouquet'] = AdminHelpers::sortArrayByArray(array_values(json_decode($rData['bouquets_selected'], true)), array_keys(BouquetService::getOrder()));
 			$rUserArray['bouquet'] = '[' . implode(',', array_map('intval', $rUserArray['bouquet'])) . ']';
 
 			if (isset($rData['exp_date']) && !isset($rData['no_expire'])) {
@@ -291,7 +291,7 @@ class EnigmaService {
 				}
 
 				if (0 >= $db->num_rows()) {
-					$rPrepare = prepareArray($rUserArray);
+					$rPrepare = QueryHelper::prepareArray($rUserArray);
 
 					$rQuery = 'REPLACE INTO `lines`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
@@ -310,7 +310,7 @@ class EnigmaService {
 							$rArray['modem_mac'] = $rArray['local_ip'];
 						}
 
-						$rPrepare = prepareArray($rArray);
+						$rPrepare = QueryHelper::prepareArray($rArray);
 						$rQuery = 'REPLACE INTO `enigma2_devices`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
 						if ($db->query($rQuery, ...$rPrepare['data'])) {
@@ -341,5 +341,95 @@ class EnigmaService {
 		}
 
 		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
+	}
+
+	public static function getById($rID) {
+		global $db;
+		$db->query('SELECT * FROM `enigma2_devices` WHERE `device_id` = ?;', $rID);
+
+		if ($db->num_rows() != 1) {
+			return array();
+		}
+
+		$rRow = $db->get_row();
+		$rRow['user'] = UserRepository::getLineById($rRow['user_id']);
+
+		$db->query('SELECT `pair_id` FROM `lines` WHERE `id` = ?;', $rRow['user_id']);
+
+		if ($db->num_rows() != 1) {
+		} else {
+			$rRow['paired'] = UserRepository::getLineById($rRow['user']['pair_id']);
+		}
+
+		return $rRow;
+	}
+
+	public static function getByUserId($rID) {
+		global $db;
+		$db->query('SELECT * FROM `enigma2_devices` WHERE `user_id` = ?;', $rID);
+
+		if ($db->num_rows() != 1) {
+			return '';
+		}
+
+		return $db->get_row();
+	}
+
+	public static function deleteDevice($rID, $rDeletePaired = false, $rCloseCons = true, $rConvert = false) {
+		global $db;
+		$rEnigma = self::getById($rID);
+
+		if (!$rEnigma) {
+			return false;
+		}
+
+		$db->query('DELETE FROM `enigma2_devices` WHERE `device_id` = ?;', $rID);
+		$db->query('DELETE FROM `enigma2_actions` WHERE `device_id` = ?;', $rID);
+
+		if (!$rEnigma['user']) {
+		} else {
+			if ($rConvert) {
+				$db->query('UPDATE `lines` SET `is_e2` = 0 WHERE `id` = ?;', $rEnigma['user']['id']);
+				LineService::updateLineSignal($rEnigma['user']['id']);
+			} else {
+				$rCount = 0;
+				$db->query('SELECT `mag_id` FROM `mag_devices` WHERE `user_id` = ?;', $rEnigma['user']['id']);
+				$rCount += $db->num_rows();
+				$db->query('SELECT `device_id` FROM `enigma2_devices` WHERE `user_id` = ?;', $rEnigma['user']['id']);
+				$rCount += $db->num_rows();
+
+				if ($rCount != 0) {
+				} else {
+					LineService::deleteLineById($rEnigma['user']['id'], $rDeletePaired, $rCloseCons);
+				}
+			}
+		}
+
+		return true;
+	}
+
+	public static function deleteDevices($rIDs) {
+		global $db;
+		$rIDs = AdminHelpers::confirmIDs($rIDs);
+
+		if (0 >= count($rIDs)) {
+			return false;
+		}
+
+		$rUserIDs = array();
+		$db->query('SELECT `user_id` FROM `enigma2_devices` WHERE `device_id` IN (' . implode(',', $rIDs) . ');');
+
+		foreach ($db->get_rows() as $rRow) {
+			$rUserIDs[] = $rRow['user_id'];
+		}
+		$db->query('DELETE FROM `enigma2_devices` WHERE `device_id` IN (' . implode(',', $rIDs) . ');');
+		$db->query('DELETE FROM `enigma2_actions` WHERE `device_id` IN (' . implode(',', $rIDs) . ');');
+
+		if (0 >= count($rUserIDs)) {
+		} else {
+			LineRepository::deleteMany($rUserIDs);
+		}
+
+		return true;
 	}
 }

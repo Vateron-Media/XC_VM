@@ -12,7 +12,7 @@
 include "functions.php";
 
 if (!DEVELOPMENT) {
-    goHome();
+    AdminHelpers::goHome();
 }
 
 if (!isset($_SESSION['hash'])) {

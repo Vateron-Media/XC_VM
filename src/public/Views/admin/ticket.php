@@ -4,16 +4,16 @@ if (!isset($__viewMode)):
 	include 'session.php';
 	include 'functions.php';
 
-	if (checkPermissions()) {
+	if (PageAuthorization::checkPermissions()) {
 	} else {
-		goHome();
+		AdminHelpers::goHome();
 	}
 
-	$rTicket = getTicket(RequestManager::getAll()['id']);
+	$rTicket = TicketRepository::getById(RequestManager::getAll()['id']);
 
 	if ($rTicket) {
 	} else {
-		goHome();
+		AdminHelpers::goHome();
 	}
 
 	$_TITLE = 'Ticket';

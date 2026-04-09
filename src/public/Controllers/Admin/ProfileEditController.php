@@ -24,11 +24,9 @@ class ProfileEditController extends BaseAdminController
 
         $id = $this->input('id');
         if ($id !== null) {
-            $rProfileArr = function_exists('getTranscodeProfile') ? getTranscodeProfile($id) : null;
+            $rProfileArr = StreamConfigRepository::getTranscodeProfile($id);
             if (!$rProfileArr) {
-                if (function_exists('goHome')) {
-                    goHome();
-                }
+                AdminHelpers::goHome();
                 return;
             }
         }

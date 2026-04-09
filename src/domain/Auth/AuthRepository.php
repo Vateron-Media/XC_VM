@@ -12,10 +12,6 @@
  */
 
 class AuthRepository {
-	// ──────────────────────────────────────────────
-	// Из CodeRepository
-	// ──────────────────────────────────────────────
-
 	public static function getAllCodes($rType = null) {
 		global $db;
 		$rReturn = array();
@@ -71,6 +67,9 @@ class AuthRepository {
 					$rWhitelist[] = 'deny all;';
 				}
 
+				// NOTE: 'includes/api/admin' and 'includes/api/reseller' are legacy nginx route
+				// identifiers baked into generated access-code configs — NOT filesystem paths.
+				// Do not rename without regenerating all deployed nginx configs.
 				$rType = array('admin', 'reseller', 'ministra', 'includes/api/admin', 'includes/api/reseller', 'ministra/new', 'player')[$rCode['type']];
 				$rAlias = array('public/Views/admin', 'reseller', 'ministra', 'includes/api/admin', 'includes/api/reseller', 'ministra/new', 'public/assets/player')[$rCode['type']];
 				$rBurst = array(500, 50, 50, 1000, 1000, 50, 500)[$rCode['type']];
@@ -93,9 +92,7 @@ class AuthRepository {
 			}
 		}
 
-		if (function_exists('systemapirequest')) {
-			systemapirequest($rServerId, array('action' => 'reload_nginx'));
-		}
+		ApiClient::systemRequest($rServerId, array('action' => 'reload_nginx'));
 	}
 
 	public static function getCurrentCode($rInfo = false) {
@@ -117,10 +114,6 @@ class AuthRepository {
 		return $rCode;
 	}
 
-	// ──────────────────────────────────────────────
-	// Из HMACRepository
-	// ──────────────────────────────────────────────
-
 	public static function getAllHMAC() {
 		global $db;
 		$rReturn = array();
@@ -141,5 +134,118 @@ class AuthRepository {
 		if ($db->num_rows() == 1) {
 			return $db->get_row();
 		}
+	}
+
+	// ──────────────────────────────────────────────
+	// Permissions
+	// ──────────────────────────────────────────────
+
+	public static function getPermissions($rID) {
+		global $db;
+		$db->query('SELECT * FROM `users_groups` WHERE `group_id` = ?;', $rID);
+
+		if ($db->num_rows() == 1) {
+			$rRow = $db->get_row();
+			$rRow['subresellers'] = !empty($rRow['subresellers']) ? json_decode($rRow['subresellers'], true) : [];
+
+			if (count($rRow['subresellers'] ?? []) == 0) {
+				$rRow['create_sub_resellers'] = 0;
+			}
+
+			return $rRow;
+		}
+
+		return [];
+	}
+
+	public static function getGroupPermissions($rUserID, $rStreams = true, $rUsers = true) {
+		global $db;
+		$rStart = round(microtime(true) * 1000);
+		$rReturn = array('create_line' => false, 'create_mag' => false, 'create_enigma' => false, 'stream_ids' => array(), 'series_ids' => array(), 'category_ids' => array(), 'users' => array(), 'direct_reports' => array(), 'all_reports' => array(), 'report_map' => array());
+		$rUser = UserRepository::getRegisteredUserById($rUserID);
+
+		if (!$rUser) {
+		} else {
+			if (!file_exists(CACHE_TMP_PATH . 'permissions_' . intval($rUser['member_group_id']))) {
+			} else {
+				$rPermData = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'permissions_' . intval($rUser['member_group_id'])));
+				if (is_array($rPermData)) {
+					$rReturn = array_merge($rReturn, $rPermData);
+				}
+			}
+
+			$db->query("SELECT * FROM `users_packages` WHERE JSON_CONTAINS(`groups`, ?, '\$');", $rUser['member_group_id']);
+
+			foreach ($db->get_rows() as $rRow) {
+				if (!$rRow['is_line']) {
+				} else {
+					$rReturn['create_line'] = true;
+				}
+
+				if (!$rRow['is_mag']) {
+				} else {
+					$rReturn['create_mag'] = true;
+				}
+
+				if (!$rRow['is_e2']) {
+				} else {
+					$rReturn['create_enigma'] = true;
+				}
+			}
+
+			if (!$rUsers) {
+			} else {
+				$rReturn['users'] = UserRepository::getSubUsers($rUser['id']);
+
+				foreach ($rReturn['users'] as $rUserID => $rUserData) {
+					if ($rUser['id'] != $rUserData['parent']) {
+					} else {
+						$rReturn['direct_reports'][] = $rUserID;
+					}
+
+					$rReturn['all_reports'][] = $rUserID;
+				}
+			}
+		}
+
+		return $rReturn;
+	}
+
+	public static function getCodeById($rID) {
+		global $db;
+		$db->query('SELECT * FROM `access_codes` WHERE `id` = ?;', $rID);
+
+		if ($db->num_rows() != 1) {
+			return null;
+		}
+
+		return $db->get_row();
+	}
+
+	public static function deleteCode($rID) {
+		global $db;
+		$db->query('SELECT `id` FROM `access_codes` WHERE `id` = ?;', $rID);
+
+		if (0 >= $db->num_rows()) {
+			return false;
+		}
+
+		$db->query('DELETE FROM `access_codes` WHERE `id` = ?;', $rID);
+		self::updateCodes();
+
+		return true;
+	}
+
+	public static function deleteHMAC($rID) {
+		global $db;
+		$db->query('SELECT `id` FROM `hmac_keys` WHERE `id` = ?;', $rID);
+
+		if (0 >= $db->num_rows()) {
+			return false;
+		}
+
+		$db->query('DELETE FROM `hmac_keys` WHERE `id` = ?;', $rID);
+
+		return true;
 	}
 }

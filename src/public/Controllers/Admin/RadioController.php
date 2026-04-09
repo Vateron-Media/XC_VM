@@ -20,7 +20,7 @@ class RadioController extends BaseAdminController
         if (isset(RequestManager::getAll()['id'])) {
             $rStation = StreamRepository::getById(RequestManager::getAll()['id']);
             if (!$rStation || $rStation['type'] != 4) {
-                goHome();
+                AdminHelpers::goHome();
             }
         }
 

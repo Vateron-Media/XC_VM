@@ -15,7 +15,7 @@ class MagController extends BaseAdminController {
 
         $rDevice = null;
         if (isset(RequestManager::getAll()['id'])) {
-            $rDevice = getMag(RequestManager::getAll()['id']);
+            $rDevice = MagService::getById(RequestManager::getAll()['id']);
             if (!$rDevice['user_id']) {
                 exit();
             }

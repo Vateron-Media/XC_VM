@@ -47,4 +47,10 @@ class SettingsManager {
 	public static function update(string $key, $value): void {
 		self::$settings[$key] = $value;
 	}
+
+	public static function clearCache() {
+		if (file_exists(CACHE_TMP_PATH . 'settings')) {
+			unlink(CACHE_TMP_PATH . 'settings');
+		}
+	}
 }

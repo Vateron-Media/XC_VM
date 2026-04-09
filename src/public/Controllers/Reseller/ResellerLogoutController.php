@@ -13,7 +13,7 @@ class ResellerLogoutController extends BaseResellerController
 {
     public function index()
     {
-        destroySession('reseller');
+        SessionManager::clearContext('reseller');
         $this->redirect('./login');
     }
 }

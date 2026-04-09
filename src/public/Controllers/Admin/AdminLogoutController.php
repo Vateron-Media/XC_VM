@@ -14,8 +14,8 @@ class AdminLogoutController extends BaseAdminController
 {
 	public function index()
 	{
-		if (function_exists('destroySession')) {
-			destroySession();
+		if (class_exists('SessionManager')) {
+			SessionManager::clearContext('admin');
 		}
 		$this->redirect('./login');
 	}

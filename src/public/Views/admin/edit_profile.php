@@ -61,7 +61,7 @@
                                                             <option <?php if (empty($rUserInfo['timezone'])) {
                                                                         echo 'selected ';
                                                                     } ?>value="">Server Default</option>
-                                                            <?php foreach (TimeZoneList() as $rValue) { ?>
+                                                            <?php foreach (AdminHelpers::TimeZoneList() as $rValue) { ?>
                                                                 <option <?php if ($rUserInfo['timezone'] == $rValue['zone']) {
                                                                             echo 'selected ';
                                                                         } ?>value="<?php echo $rValue['zone']; ?>"><?php echo $rValue['zone'] . " " . $rValue['diff_from_GMT']; ?></option>
@@ -105,7 +105,7 @@
                                                         </select>
                                                     </div>
                                                 </div>
-                                                <?php foreach (getcodes() as $rCode) {
+                                                <?php foreach (AuthRepository::getAllCodes() as $rCode) {
                                                     if ($rCode['type'] == 3 && in_array($rUserInfo['member_group_id'], json_decode($rCode['groups'], true))) { ?>
                                                         <div class="form-group row mb-4">
                                                             <label class="col-md-4 col-form-label" for="api_key">API Key <i title="API URL:<br/><?php echo ServerRepository::getAll()[SERVER_ID]['site_url'] . $rCode['code']; ?>/" class="tooltip text-secondary far fa-circle"></i></label>

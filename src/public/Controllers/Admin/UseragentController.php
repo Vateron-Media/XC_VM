@@ -15,7 +15,7 @@ class UseragentController extends BaseAdminController {
 
         $rUAArr = null;
         if (isset(RequestManager::getAll()['id'])) {
-            $rUAArr = getUserAgent(RequestManager::getAll()['id']);
+            $rUAArr = BlocklistService::getUserAgentById(RequestManager::getAll()['id']);
             if (!$rUAArr) {
                 $this->redirect('useragents');
                 return;

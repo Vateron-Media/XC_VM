@@ -450,10 +450,6 @@ class XC_Autoloader {
     private static function registerDirectories() {
         $base = self::$basePath;
 
-        // Legacy directories
-        self::addDirectory($base . 'includes');
-        self::addDirectory($base . 'includes/libs');
-
         // New architecture directories
         self::addDirectory($base . 'core');
         self::addDirectory($base . 'domain');

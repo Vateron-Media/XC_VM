@@ -23,7 +23,7 @@ class PackageController extends BaseAdminController
 
         $this->setTitle('Packages');
 
-        $allPackages = function_exists('getPackages') ? getPackages() : [];
+        $allPackages = PackageService::getAll();
         // Фильтруем addon-пакеты (показываем только обычные)
         $packages = array_filter($allPackages, function ($p) {
             return empty($p['is_addon']);

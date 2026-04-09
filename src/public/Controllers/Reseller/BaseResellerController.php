@@ -22,21 +22,19 @@ class BaseResellerController extends BaseAdminController
     protected $scope = 'reseller';
 
     /**
-     * Проверка прав доступа реселлера (checkResellerPermissions).
-     * При отказе — goHome() + exit.
+     * Проверка прав доступа реселлера.
+     * При отказе — redirect на главную + exit.
      */
     protected function requirePermission()
     {
-        if (function_exists('checkResellerPermissions') && !checkResellerPermissions()) {
-            if (function_exists('goHome')) {
-                goHome();
-            }
+        if (!PageAuthorization::checkResellerPermissions()) {
+            AdminHelpers::goHome();
             exit;
         }
     }
 
     /**
-     * Проверка расширенных прав реселлера (hasPermissions).
+     * Проверка расширенных прав реселлера.
      * Reseller permissions загружены через getGroupPermissions().
      *
      * @param string $type Тип прав
@@ -44,10 +42,8 @@ class BaseResellerController extends BaseAdminController
      */
     protected function requireAdvPermission($type, $key)
     {
-        if (class_exists('Authorization') && !Authorization::check($type, $key)) {
-            if (function_exists('goHome')) {
-                goHome();
-            }
+        if (!Authorization::check($type, $key)) {
+            AdminHelpers::goHome();
             exit;
         }
     }

@@ -4,14 +4,14 @@ if (!isset($__viewMode)):
 	include 'session.php';
 	include 'functions.php';
 
-	if (checkPermissions()) {
+	if (PageAuthorization::checkPermissions()) {
 	} else {
-		goHome();
+		AdminHelpers::goHome();
 	}
 
 	if (!isset(RequestManager::getAll()['id'])) {
 	} else {
-		$rDevice = getEnigma(RequestManager::getAll()['id']);
+		$rDevice = EnigmaService::getById(RequestManager::getAll()['id']);
 
 		if ($rDevice['user_id']) {
 		} else {

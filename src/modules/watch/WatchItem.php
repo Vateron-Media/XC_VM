@@ -131,7 +131,7 @@ class WatchItem {
         if ($rType == 'guessit') {
             $rCommand = MAIN_HOME . 'bin/guess ' . escapeshellarg($rRelease . '.mkv');
         } else {
-            $rCommand = '/usr/bin/python3 ' . MAIN_HOME . 'includes/python/release.py ' . escapeshellarg(str_replace('-', '_', $rRelease));
+            $rCommand = '/usr/bin/python3 ' . MAIN_HOME . 'bin/python/release.py ' . escapeshellarg(str_replace('-', '_', $rRelease));
         }
         return json_decode(shell_exec($rCommand), true);
     }

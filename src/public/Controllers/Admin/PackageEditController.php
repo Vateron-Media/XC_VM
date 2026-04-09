@@ -20,11 +20,9 @@ class PackageEditController extends BaseAdminController
         $rPackage = null;
         $id = $this->input('id');
         if ($id !== null) {
-            $rPackage = function_exists('getPackage') ? getPackage($id) : null;
+            $rPackage = PackageService::getById($id);
             if (!$rPackage) {
-                if (function_exists('goHome')) {
-                    goHome();
-                }
+                AdminHelpers::goHome();
                 return;
             }
         }

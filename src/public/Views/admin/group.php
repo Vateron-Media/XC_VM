@@ -8,16 +8,16 @@ if (!isset($__viewMode)):
 	include 'session.php';
 	include 'functions.php';
 
-	if (checkPermissions()) {
+	if (PageAuthorization::checkPermissions()) {
 	} else {
 
 
-		goHome();
+		AdminHelpers::goHome();
 	}
 
 	if (!isset(RequestManager::getAll()['id']) || ($rGroup = GroupService::getById(RequestManager::getAll()['id']))) {
 	} else {
-		goHome();
+		AdminHelpers::goHome();
 	}
 
 	$rGroupIDs = $rPackageIDs = array();
@@ -158,7 +158,7 @@ echo '</th>' . "\n" . '                                                         
 echo $language::get('official');
 echo '</th>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</thead>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<tbody>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
 
-foreach (getPackages() as $rPackage) {
+foreach (PackageService::getAll() as $rPackage) {
 	echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<tr';
 
 	if (!in_array($rPackage['id'], $rPackageIDs)) {

@@ -15,13 +15,13 @@ class EpisodeService {
 		global $db, $rSettings;
 		if (isset($rData['edit'])) {
 			if (Authorization::check('adv', 'edit_episode')) {
-				$rArray = overwriteData(StreamRepository::getById($rData['edit']), $rData);
+				$rArray = AdminHelpers::overwriteData(StreamRepository::getById($rData['edit']), $rData);
 			} else {
 				exit();
 			}
 		} else {
 			if (Authorization::check('adv', 'add_episode')) {
-				$rArray = verifyPostTable('streams', $rData);
+				$rArray = QueryHelper::verifyPostTable('streams', $rData);
 				$rArray['type'] = 5;
 				$rArray['added'] = time();
 				$rArray['series_no'] = intval($rData['series']);
@@ -63,8 +63,8 @@ class EpisodeService {
 		if (isset($rData['multi'])) {
 			if (Authorization::check('adv', 'import_episodes')) {
 				set_time_limit(0);
-				require_once INCLUDES_PATH . 'libs/tmdb.php';
-				$rSeries = getSerie(intval($rData['series']));
+				require_once MAIN_HOME . 'modules/tmdb/lib/TmdbClient.php';
+				$rSeries = SeriesService::getById(intval($rData['series']));
 
 				if (0 < strlen($rSettings['tmdb_language'])) {
 					$rTMDB = new TMDB($rSettings['tmdb_api_key'], $rSettings['tmdb_language']);
@@ -169,7 +169,7 @@ class EpisodeService {
 				$rArray['target_container'] = $rData['target_container'];
 			}
 
-			$rPrepare = prepareArray($rArray);
+			$rPrepare = QueryHelper::prepareArray($rArray);
 			$rQuery = 'REPLACE INTO `streams`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
 			if ($db->query($rQuery, ...$rPrepare['data'])) {
@@ -203,7 +203,7 @@ class EpisodeService {
 
 				foreach ($rStreamExists as $rServerID => $rDBID) {
 					if (!in_array($rServerID, $rStreamsAdded)) {
-						deleteStream($rInsertID, $rServerID, true, false);
+						StreamRepository::deleteStream($rInsertID, $rServerID, true, false);
 					}
 				}
 
@@ -219,7 +219,7 @@ class EpisodeService {
 		}
 
 		if ($rRestart) {
-			APIRequest(array('action' => 'vod', 'sub' => 'start', 'stream_ids' => $rRestartIDs));
+			ApiClient::request(array('action' => 'vod', 'sub' => 'start', 'stream_ids' => $rRestartIDs));
 		}
 
 		if (isset($rData['multi'])) {
@@ -236,7 +236,7 @@ class EpisodeService {
 		ini_set('default_socket_timeout', 0);
 
 		$rEpisodes = json_decode($rData['episodes'], true);
-		deleteStreams($rEpisodes, true);
+		StreamRepository::deleteStreams($rEpisodes, true);
 
 		return array('status' => STATUS_SUCCESS);
 	}
@@ -306,7 +306,7 @@ class EpisodeService {
 			}
 		}
 
-		$rStreamIDs = confirmIDs(json_decode($rData['streams'], true));
+		$rStreamIDs = AdminHelpers::confirmIDs(json_decode($rData['streams'], true));
 
 		if (0 < count($rStreamIDs)) {
 			if (isset($rData['c_serie_name'])) {
@@ -314,7 +314,7 @@ class EpisodeService {
 				$db->query('UPDATE `streams` SET `series_no` = ? WHERE `id` IN (' . implode(',', array_map('intval', $rStreamIDs)) . ');', $rData['serie_name']);
 			}
 
-			$rPrepare = prepareArray($rArray);
+			$rPrepare = QueryHelper::prepareArray($rArray);
 
 			if (0 < count($rPrepare['data'])) {
 				$rQuery = 'UPDATE `streams` SET ' . $rPrepare['update'] . ' WHERE `id` IN (' . implode(',', array_map('intval', $rStreamIDs)) . ');';
@@ -373,7 +373,7 @@ class EpisodeService {
 			}
 
 			foreach ($rDeleteServers as $rServerID => $rDeleteIDs) {
-				deleteStreamsByServer($rDeleteIDs, $rServerID, true);
+				StreamRepository::deleteStreamsByServer($rDeleteIDs, $rServerID, true);
 			}
 
 			if (!empty($rAddQuery)) {

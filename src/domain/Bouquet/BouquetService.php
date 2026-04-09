@@ -18,13 +18,13 @@ class BouquetService {
 				exit();
 			}
 
-			$rArray = overwriteData(getBouquet($rData['edit']), $rData);
+			$rArray = AdminHelpers::overwriteData(BouquetService::getById($rData['edit']), $rData);
 		} else {
 			if (!Authorization::check('adv', 'add_bouquet')) {
 				exit();
 			}
 
-			$rArray = verifyPostTable('bouquets', $rData);
+			$rArray = QueryHelper::verifyPostTable('bouquets', $rData);
 			unset($rArray['id']);
 		}
 
@@ -34,7 +34,7 @@ class BouquetService {
 			$rBouquetMovies = $rBouquetData['movies'];
 			$rBouquetRadios = $rBouquetData['radios'];
 			$rBouquetSeries = $rBouquetData['series'];
-			$rRequiredIDs = confirmIDs(array_merge($rBouquetStreams, $rBouquetMovies, $rBouquetRadios));
+			$rRequiredIDs = AdminHelpers::confirmIDs(array_merge($rBouquetStreams, $rBouquetMovies, $rBouquetRadios));
 			$rStreams = array();
 
 			if (count($rRequiredIDs) > 0) {
@@ -70,7 +70,7 @@ class BouquetService {
 			$rArray['bouquet_order'] = intval($db->get_row()['max']) + 1;
 		}
 
-		$rPrepare = prepareArray($rArray);
+		$rPrepare = QueryHelper::prepareArray($rArray);
 		$rQuery = 'REPLACE INTO `bouquets`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
 		if ($db->query($rQuery, ...$rPrepare['data'])) {
@@ -86,10 +86,10 @@ class BouquetService {
 	public static function reorder($rData) {
 		global $db;
 		$rOrder = json_decode($rData['stream_order_array'], true);
-		$rOrder['stream'] = confirmIDs($rOrder['stream']);
-		$rOrder['series'] = confirmIDs($rOrder['series']);
-		$rOrder['movie'] = confirmIDs($rOrder['movie']);
-		$rOrder['radio'] = confirmIDs($rOrder['radio']);
+		$rOrder['stream'] = AdminHelpers::confirmIDs($rOrder['stream']);
+		$rOrder['series'] = AdminHelpers::confirmIDs($rOrder['series']);
+		$rOrder['movie'] = AdminHelpers::confirmIDs($rOrder['movie']);
+		$rOrder['radio'] = AdminHelpers::confirmIDs($rOrder['radio']);
 		$db->query('UPDATE `bouquets` SET `bouquet_channels` = ?, `bouquet_series` = ?, `bouquet_movies` = ?, `bouquet_radios` = ? WHERE `id` = ?;', '[' . implode(',', array_map('intval', $rOrder['stream'])) . ']', '[' . implode(',', array_map('intval', $rOrder['series'])) . ']', '[' . implode(',', array_map('intval', $rOrder['movie'])) . ']', '[' . implode(',', array_map('intval', $rOrder['radio'])) . ']', $rData['reorder']);
 
 		return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rData['reorder']));
@@ -114,15 +114,15 @@ class BouquetService {
 
 			foreach ($rUsers as $rUser) {
 				$rBouquet = json_decode($rUser['bouquet'], true);
-				$rBouquet = array_map('intval', sortArrayByArray($rBouquet, $rOrder));
+				$rBouquet = array_map('intval', AdminHelpers::sortArrayByArray($rBouquet, $rOrder));
 				$db->query('UPDATE `lines` SET `bouquet` = ? WHERE `id` = ?;', '[' . implode(',', $rBouquet) . ']', $rUser['id']);
 				LineService::updateLineSignal($rUser['id']);
 			}
 
-			$rPackages = getPackages();
+			$rPackages = PackageService::getAll();
 			foreach ($rPackages as $rPackage) {
 				$rBouquet = json_decode($rPackage['bouquets'], true);
-				$rBouquet = array_map('intval', sortArrayByArray($rBouquet, $rOrder));
+				$rBouquet = array_map('intval', AdminHelpers::sortArrayByArray($rBouquet, $rOrder));
 				$db->query('UPDATE `users_packages` SET `bouquets` = ? WHERE `id` = ?;', '[' . implode(',', $rBouquet) . ']', $rPackage['id']);
 			}
 
@@ -138,7 +138,7 @@ class BouquetService {
 
 	public static function scanOne($rID) {
 		global $db;
-		$rBouquet = getBouquet($rID);
+		$rBouquet = BouquetService::getById($rID);
 		if (!$rBouquet) {
 			return;
 		}
@@ -160,10 +160,10 @@ class BouquetService {
 		}
 
 		$updateData = [
-			'channels' => filterIDs(json_decode($rBouquet['bouquet_channels'] ?? '[]', true), $availableStreams, true),
-			'movies' => filterIDs(json_decode($rBouquet['bouquet_movies'] ?? '[]', true), $availableStreams, true),
-			'radios' => filterIDs(json_decode($rBouquet['bouquet_radios'] ?? '[]', true), $availableStreams, true),
-			'series' => filterIDs(json_decode($rBouquet['bouquet_series'] ?? '[]', true), $availableSeries, false)
+			'channels' => AdminHelpers::filterIDs(json_decode($rBouquet['bouquet_channels'] ?? '[]', true), $availableStreams, true),
+			'movies' => AdminHelpers::filterIDs(json_decode($rBouquet['bouquet_movies'] ?? '[]', true), $availableStreams, true),
+			'radios' => AdminHelpers::filterIDs(json_decode($rBouquet['bouquet_radios'] ?? '[]', true), $availableStreams, true),
+			'series' => AdminHelpers::filterIDs(json_decode($rBouquet['bouquet_series'] ?? '[]', true), $availableSeries, false)
 		];
 
 		$db->query(
@@ -247,5 +247,162 @@ class BouquetService {
 	public static function getOrder() {
 		global $db;
 		return self::getAllSimple();
+	}
+
+	public static function getById($rID) {
+		global $db;
+		$db->query('SELECT * FROM `bouquets` WHERE `id` = ?;', $rID);
+
+		if ($db->num_rows() != 1) {
+			return null;
+		}
+
+		return $db->get_row();
+	}
+
+	public static function deleteById($rID) {
+		global $db;
+		$rBouquet = self::getById($rID);
+
+		if (!$rBouquet) {
+			return false;
+		}
+
+		$db->query("SELECT `id`, `bouquet` FROM `lines` WHERE JSON_CONTAINS(`bouquet`, ?, '\$');", $rID);
+
+		foreach ($db->get_rows() as $rRow) {
+			$rRow['bouquet'] = json_decode($rRow['bouquet'], true);
+
+			if (($rKey = array_search($rID, $rRow['bouquet'])) === false) {
+			} else {
+				unset($rRow['bouquet'][$rKey]);
+			}
+
+			$db->query("UPDATE `lines` SET `bouquet` = ? WHERE `id` = ?;", '[' . implode(',', array_map('intval', $rRow['bouquet'])) . ']', $rRow['id']);
+			LineService::updateLineSignal($rRow['id']);
+		}
+		$db->query("SELECT `id`, `bouquets` FROM `users_packages` WHERE JSON_CONTAINS(`bouquets`, ?, '\$');", $rID);
+
+		foreach ($db->get_rows() as $rRow) {
+			$rRow['bouquets'] = json_decode($rRow['bouquets'], true);
+
+			if (($rKey = array_search($rID, $rRow['bouquets'])) === false) {
+			} else {
+				unset($rRow['bouquets'][$rKey]);
+			}
+
+			$db->query("UPDATE `users_packages` SET `bouquets` = ? WHERE `id` = ?;", '[' . implode(',', array_map('intval', $rRow['bouquets'])) . ']', $rRow['id']);
+		}
+		$db->query("SELECT `id`, `bouquets` FROM `watch_folders` WHERE JSON_CONTAINS(`bouquets`, ?, '\$') OR JSON_CONTAINS(`fb_bouquets`, ?, '\$');", $rID, $rID);
+
+		foreach ($db->get_rows() as $rRow) {
+			$rRow['bouquets'] = json_decode($rRow['bouquets'], true);
+
+			if (($rKey = array_search($rID, $rRow['bouquets'])) === false) {
+			} else {
+				unset($rRow['bouquets'][$rKey]);
+			}
+
+			$rRow['fb_bouquets'] = json_decode($rRow['fb_bouquets'], true);
+
+			if (($rKey = array_search($rID, $rRow['fb_bouquets'])) === false) {
+			} else {
+				unset($rRow['fb_bouquets'][$rKey]);
+			}
+
+			$db->query("UPDATE `watch_folders` SET `bouquets` = ?, `fb_bouquets` = ? WHERE `id` = ?;", '[' . implode(',', array_map('intval', $rRow['bouquets'])) . ']', '[' . implode(',', array_map('intval', $rRow['fb_bouquets'])) . ']', $rRow['id']);
+		}
+		$db->query('DELETE FROM `bouquets` WHERE `id` = ?;', $rID);
+		self::scan();
+
+		return true;
+	}
+
+	public static function addItems($rType, $rBouquetID, $rIDs) {
+		global $db;
+
+		if (!is_array($rIDs)) {
+			$rIDs = array($rIDs);
+		}
+
+		$rBouquet = self::getById($rBouquetID);
+
+		if (!$rBouquet) {
+			return;
+		}
+
+		if ($rType == 'stream') {
+			$rColumn = 'bouquet_channels';
+		} else {
+			if ($rType == 'movie') {
+				$rColumn = 'bouquet_movies';
+			} else {
+				if ($rType == 'radio') {
+					$rColumn = 'bouquet_radios';
+				} else {
+					$rColumn = 'bouquet_series';
+				}
+			}
+		}
+
+		$rChanged = false;
+		$rChannels = AdminHelpers::confirmIDs(json_decode($rBouquet[$rColumn], true));
+
+		foreach ($rIDs as $rID) {
+			if (0 >= intval($rID) || in_array($rID, $rChannels)) {
+			} else {
+				$rChannels[] = $rID;
+				$rChanged = true;
+			}
+		}
+
+		if (!$rChanged) {
+		} else {
+			$db->query('UPDATE `bouquets` SET `' . $rColumn . '` = ? WHERE `id` = ?;', '[' . implode(',', array_map('intval', $rChannels)) . ']', $rBouquetID);
+		}
+	}
+
+	public static function removeItems($rType, $rBouquetID, $rIDs) {
+		global $db;
+
+		if (!is_array($rIDs)) {
+			$rIDs = array($rIDs);
+		}
+
+		$rBouquet = self::getById($rBouquetID);
+
+		if (!$rBouquet) {
+			return;
+		}
+
+		if ($rType == 'stream') {
+			$rColumn = 'bouquet_channels';
+		} else {
+			if ($rType == 'movie') {
+				$rColumn = 'bouquet_movies';
+			} else {
+				if ($rType == 'radio') {
+					$rColumn = 'bouquet_radios';
+				} else {
+					$rColumn = 'bouquet_series';
+				}
+			}
+		}
+
+		$rChanged = false;
+		$rChannels = AdminHelpers::confirmIDs(json_decode($rBouquet[$rColumn], true));
+
+		foreach ($rIDs as $rID) {
+			if (($rKey = array_search($rID, $rChannels)) === false) {
+			} else {
+				unset($rChannels[$rKey]);
+				$rChanged = true;
+			}
+		}
+
+		if (!$rChanged) {
+		} else {
+			$db->query('UPDATE `bouquets` SET `' . $rColumn . '` = ? WHERE `id` = ?;', '[' . implode(',', array_map('intval', $rChannels)) . ']', $rBouquetID);
+		}
 	}
 }

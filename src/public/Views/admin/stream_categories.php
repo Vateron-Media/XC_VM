@@ -3,8 +3,8 @@
 	include 'session.php';
 	include 'functions.php';
 
-	if (!checkPermissions()) {
-		goHome();
+	if (!PageAuthorization::checkPermissions()) {
+		AdminHelpers::goHome();
 	}
 
 	$rCategories = array(1 => CategoryService::getAllByType(), 2 => CategoryService::getAllByType('movie'), 3 => CategoryService::getAllByType('series'), 4 => CategoryService::getAllByType('radio'));

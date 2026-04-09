@@ -4,8 +4,8 @@
     include 'session.php';
     include 'functions.php';
 
-    if (!checkPermissions()) {
-        goHome();
+    if (!PageAuthorization::checkPermissions()) {
+        AdminHelpers::goHome();
     }
 
     $rRecordings = null;
@@ -14,10 +14,10 @@
         $rStream = StreamRepository::getById(RequestManager::getAll()['id']);
 
         if (!$rStream || $rStream['type'] != 1 || $rStream['tv_archive_duration'] == 0 || $rStream['tv_archive_server_id'] == 0) {
-            goHome();
+            AdminHelpers::goHome();
         }
 
-        $rArchive = getArchive($rStream['id']);
+        $rArchive = StreamService::getArchive($rStream['id']);
     } else {
         $rRecordings = WatchService::getRecordings();
     }

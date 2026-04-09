@@ -202,7 +202,7 @@ if ($pageName === 'index' && $accessCode && in_array($scope, ['admin', 'reseller
 }
 
 // Делаем имя страницы доступным глобально для legacy вспомогательных функций
-// (например, getPageName() в includes/admin.php), которые иначе видят только index.php.
+// (например, AdminHelpers::getPageName() в includes/admin.php), которые иначе видят только index.php.
 if (!defined('PAGE_NAME')) {
     define('PAGE_NAME', $pageName);
 }
@@ -227,7 +227,8 @@ if (in_array($ext, ['css', 'js', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'ico', 'wof
 // ─────────────────────────────────────────────────────────────────
 
 if (isset($rawScope) && in_array($rawScope, ['includes/api/admin', 'includes/api/reseller'], true)) {
-	require_once MAIN_HOME . 'includes/admin.php';
+	require_once MAIN_HOME . 'bootstrap.php';
+	XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_ADMIN);
 	if ($rawScope === 'includes/api/admin') {
 		$controller = new AdminApiController();
 	} else {

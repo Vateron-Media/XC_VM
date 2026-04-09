@@ -38,7 +38,6 @@ if (!defined('TMP_PATH')) {
 
 define('CONFIG_PATH',   MAIN_HOME . 'config/');
 define('BIN_PATH',      MAIN_HOME . 'bin/');
-define('INCLUDES_PATH', MAIN_HOME . 'includes/');
 define('WWW_PATH',      MAIN_HOME . 'www/');
 define('SIGNALS_PATH',  MAIN_HOME . 'signals/');
 

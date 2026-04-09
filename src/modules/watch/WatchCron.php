@@ -230,7 +230,7 @@ class WatchCron {
             }
             $cacheDataKey = array();
             foreach ($rThreadData as $rData) {
-                $rCommand = '/usr/bin/timeout 60 ' . PHP_BIN . ' ' . INCLUDES_PATH . 'cli/watch_item.php "' . base64_encode(json_encode($rData, JSON_UNESCAPED_UNICODE)) . '"';
+                $rCommand = '/usr/bin/timeout 60 ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php watch_item "' . base64_encode(json_encode($rData, JSON_UNESCAPED_UNICODE)) . '"';
                 $cacheDataKey[] = $rCommand;
             }
             $db->close_mysql();

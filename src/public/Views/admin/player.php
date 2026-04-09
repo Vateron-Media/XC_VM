@@ -4,7 +4,7 @@ include 'session.php';
 include 'functions.php';
 
 if (isset(RequestManager::getAll()['id'])) {
-    if (checkPermissions()) {
+    if (PageAuthorization::checkPermissions()) {
         $rExpires = time() + 14400;
         $rTokenData = array('session_id' => session_id(), 'expires' => $rExpires, 'stream_id' => intval(RequestManager::getAll()['id']), 'ip' => NetworkUtils::getUserIP());
 
@@ -50,7 +50,7 @@ if (isset(RequestManager::getAll()['id'])) {
                 }
             }
 
-            $rURL = $rProtocol . '://' . (($rServers[$rServerID]['domain_name'] ? explode(',', $rServers[$rServerID]['domain_name'])[0] : $rServers[$rServerID]['server_ip'])) . ':' . ((issecure() ? $rServers[$rServerID]['https_broadcast_port'] : $rServers[$rServerID]['http_broadcast_port'])) . '/admin/' . ((RequestManager::getAll()['type'] == 'live' ? 'live' : (RequestManager::getAll()['type'] == 'timeshift' ? 'timeshift' : 'vod'))) . '?uitoken=' . $rUIToken . ((RequestManager::getAll()['type'] == 'live' ? '&extension=.m3u8' : ''));
+            $rURL = $rProtocol . '://' . (($rServers[$rServerID]['domain_name'] ? explode(',', $rServers[$rServerID]['domain_name'])[0] : $rServers[$rServerID]['server_ip'])) . ':' . ((AdminHelpers::issecure() ? $rServers[$rServerID]['https_broadcast_port'] : $rServers[$rServerID]['http_broadcast_port'])) . '/admin/' . ((RequestManager::getAll()['type'] == 'live' ? 'live' : (RequestManager::getAll()['type'] == 'timeshift' ? 'timeshift' : 'vod'))) . '?uitoken=' . $rUIToken . ((RequestManager::getAll()['type'] == 'live' ? '&extension=.m3u8' : ''));
 
 ?>
             <html>
@@ -87,7 +87,7 @@ if (isset(RequestManager::getAll()['id'])) {
             exit();
         }
     } else {
-        goHome();
+        AdminHelpers::goHome();
     }
 } else {
     exit();
