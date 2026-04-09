@@ -4,12 +4,12 @@
 	include 'session.php';
 	include 'functions.php';
 
-	if (!checkPermissions()) {
-		goHome();
+	if (!PageAuthorization::checkPermissions()) {
+		AdminHelpers::goHome();
 	}
 
 	if (isset(RequestManager::getAll()['flush'])) {
-		flushIPs();
+		BlocklistService::flushIPs();
 		header('Location: ./ips?status=' . STATUS_FLUSH);
 		exit;
 	}

@@ -1,7 +1,10 @@
 <?php
 
 if (count(get_included_files()) != 1) {
-	$rPage = getPageName();
+	if (!isset($rMobile)) {
+		$rMobile = $GLOBALS['rMobile'] ?? false;
+	}
+	$rPage = AdminHelpers::getPageName();
 	$rID = (isset(RequestManager::getAll()['id']) ? intval(RequestManager::getAll()['id']) : null);
 	$rSID = (isset(RequestManager::getAll()['sid']) ? intval(RequestManager::getAll()['sid']) : null);
 	$rDropdown = array(

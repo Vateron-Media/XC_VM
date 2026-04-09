@@ -16,13 +16,13 @@ class GroupService {
 		if (InputValidator::validate('processGroup', $rData)) {
 			if (isset($rData['edit'])) {
 				if (Authorization::check('adv', 'edit_group')) {
-					$rArray = overwriteData(self::getById($rData['edit']), $rData);
+					$rArray = AdminHelpers::overwriteData(self::getById($rData['edit']), $rData);
 				} else {
 					exit();
 				}
 			} else {
 				if (Authorization::check('adv', 'add_group')) {
-					$rArray = verifyPostTable('users_groups', $rData);
+					$rArray = QueryHelper::verifyPostTable('users_groups', $rData);
 					unset($rArray['id']);
 				} else {
 					exit();
@@ -49,7 +49,7 @@ class GroupService {
 			if (strlen($rData['group_name']) != 0) {
 				$rArray['subresellers'] = '[' . implode(',', array_map('intval', json_decode($rData['groups_selected'], true))) . ']';
 				$rArray['notice_html'] = htmlentities($rData['notice_html']);
-				$rPrepare = prepareArray($rArray);
+				$rPrepare = QueryHelper::prepareArray($rArray);
 				$rQuery = 'REPLACE INTO `users_groups`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
 				if ($db->query($rQuery, ...$rPrepare['data'])) {

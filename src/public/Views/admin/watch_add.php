@@ -5,13 +5,13 @@ if (!isset($__viewMode)):
 	include 'session.php';
 	include 'functions.php';
 
-	if (!checkPermissions()) {
-		goHome();
+	if (!PageAuthorization::checkPermissions()) {
+		AdminHelpers::goHome();
 	}
 
-	if (!isset(RequestManager::getAll()['id']) || ($rFolder = getWatchFolder(RequestManager::getAll()['id']))) {
+	if (!isset(RequestManager::getAll()['id']) || ($rFolder = StreamRepository::getWatchFolder(RequestManager::getAll()['id']))) {
 	} else {
-		goHome();
+		AdminHelpers::goHome();
 	}
 
 	$rBouquets = BouquetService::getAllSimple();

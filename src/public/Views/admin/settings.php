@@ -5,11 +5,11 @@ if (!isset($__settingsViewMode)):
 	include "session.php";
 	include "functions.php";
 
-	if (!checkPermissions()) {
-		goHome();
+	if (!PageAuthorization::checkPermissions()) {
+		AdminHelpers::goHome();
 	}
 
-	$rSettings = getSettings();
+	$rSettings = SettingsManager::getAll();
 	$rStreamArguments = StreamConfigRepository::getStreamArguments();
 
 	$GeoLite2 = json_decode(file_get_contents(BIN_PATH . "maxmind/version.json"), true)["geolite2_version"];
@@ -159,7 +159,7 @@ endif; // !$__settingsViewMode
 														<select name="default_timezone" id="default_timezone"
 															class="form-control" data-toggle="select2">
 															<?php
-															foreach (TimeZoneList() as $rValue) {
+															foreach (AdminHelpers::TimeZoneList() as $rValue) {
 																echo '<option ';
 
 																if ($rSettings["default_timezone"] == $rValue['zone']) {
@@ -173,23 +173,23 @@ endif; // !$__settingsViewMode
 																echo '</option>';
 															}
 															echo '</select></div>
-												</div> <!-- <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="language">Interface Language <i title="Default language for the Admin & Reseller Interface, this will be the default for all users unless they change their profile language." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-8"> <select name="language" id="language" class="form-control" data-toggle="select2">';
-
-															foreach (getLanguages() as $rLanguage) {
+												</div>
+												<div class="form-group row mb-4">
+													<label class="col-md-4 col-form-label" for="language">Interface Language
+														<i title="Default language for the Admin &amp; Reseller Interface, this will be the default for all users unless they change their profile language."
+															class="tooltip text-secondary far fa-circle"></i></label>
+													<div class="col-md-8">
+														<select name="language" id="language" class="form-control" data-toggle="select2">';
+															foreach (Translator::available() as $rLangCode) {
 																echo '<option';
-
-																if ($rSettings["language"] != $rLanguage["key"]) {
-																} else {
+																if (($rSettings["language"] ?? 'en') === $rLangCode) {
 																	echo ' selected';
 																}
-
-																echo ' value="';
-																echo $rLanguage["key"];
-																echo '">';
-																echo $rLanguage["language"];
+																echo ' value="' . htmlspecialchars($rLangCode) . '">';
+																echo htmlspecialchars($rLangCode);
 																echo '</option>';
 															}
-															echo '</select></div></div> -->
+															echo '</select></div></div>
 												<div class="form-group row mb-4"><label class="col-md-4 col-form-label"
 														for="message_of_day">Message of the Day <i
 															title="Message to show in the player API. Used by some android apps."

@@ -4,8 +4,8 @@
 	include 'session.php';
 	include 'functions.php';
 
-	if (!checkPermissions()) {
-		goHome();
+	if (!PageAuthorization::checkPermissions()) {
+		AdminHelpers::goHome();
 	}
 
 	$_TITLE = 'Stream Providers';
@@ -56,7 +56,7 @@
 								</tr>
 							</thead>
 							<tbody>
-								<?php foreach (getStreamProviders() as $rProvider):
+								<?php foreach (ProviderService::getAll() as $rProvider):
 									$rData = json_decode($rProvider['data'], true);
 									$rStatus = !$rProvider['enabled'] ? '<i class="text-secondary fas fa-square"></i>' : ($rProvider['enabled'] && $rProvider['status'] ? '<i class="text-success fas fa-square"></i>' : '<i class="text-danger fas fa-square"></i>');
 								?>

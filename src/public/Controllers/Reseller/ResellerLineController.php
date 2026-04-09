@@ -24,15 +24,15 @@ class ResellerLineController extends BaseResellerController
         if (isset($rRequest['id'])) {
             $rLine = UserRepository::getLineById($rRequest['id']);
             if (!$rLine || $rLine['is_mag'] || $rLine['is_e2'] || !Authorization::check('line', $rLine['id'])) {
-                goHome();
+                AdminHelpers::goHome();
                 return;
             }
             if ($rLine['package_id'] > 0) {
-                $rOrigPackage = getPackage($rLine['package_id']);
+                $rOrigPackage = PackageService::getById($rLine['package_id']);
             }
         }
 
-        $rPackages = getPackages($rUserInfo['member_group_id'], 'line') ?: [];
+        $rPackages = PackageService::getAll($rUserInfo['member_group_id'], 'line') ?: [];
 
         $this->render('line', [
             'rLine'        => $rLine,

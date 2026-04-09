@@ -1,11 +1,11 @@
 <?php if (!isset($__viewMode)): ?>
     <?php include 'session.php';
     include 'functions.php';
-    if (checkPermissions()) {
+    if (PageAuthorization::checkPermissions()) {
     } else {
-        goHome();
+        AdminHelpers::goHome();
     }
-    if (isset(RequestManager::getAll()['id']) && !($rCode = getCode(RequestManager::getAll()['id']))) {
+    if (isset(RequestManager::getAll()['id']) && !($rCode = AuthRepository::getCodeById(RequestManager::getAll()['id']))) {
         exit();
     }
     $_TITLE = 'Access Code';

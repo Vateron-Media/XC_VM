@@ -12,7 +12,8 @@ global $db, $rSettings, $rMobile, $rServers, $rProxyServers, $rDetect,
        $rTimeout, $rProtocol, $allServers, $rPermissions, $language, $allowedLangs,
        $rServerError, $allServersHealthy, $updateRequired, $rUserInfo, $_INFO;
 
-require_once MAIN_HOME . 'includes/admin.php';
+require_once MAIN_HOME . 'bootstrap.php';
+XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_ADMIN);
 
 if ($rMobile) {
 	$rSettings['js_navigate'] = 0;
@@ -41,7 +42,7 @@ if (isset($_SESSION['hash'])) {
 		$language::setLanguage($rUserInfo['lang']);
 	}
 
-	$rPermissions = getPermissions($rUserInfo['member_group_id']);
+	$rPermissions = AuthRepository::getPermissions($rUserInfo['member_group_id']);
 	$rPermissions['advanced'] = json_decode($rPermissions['allowed_pages'], true);
 	$rIP = NetworkUtils::getUserIP();
 	$rIPMatch = ($rSettings['ip_subnet_match'] ? implode('.', array_slice(explode('.', $_SESSION['ip']), 0, -1)) == implode('.', array_slice(explode('.', $rIP), 0, -1)) : $_SESSION['ip'] == $rIP);
@@ -49,7 +50,7 @@ if (isset($_SESSION['hash'])) {
 	if (!$rUserInfo || !$rPermissions || !$rPermissions['is_admin'] || !$rIPMatch && $rSettings['ip_logout'] || $_SESSION['verify'] != md5($rUserInfo['username'] . '||' . $rUserInfo['password'])) {
 		unset($rUserInfo, $rPermissions);
 
-		destroySession();
+		SessionManager::clearContext('admin');
 		if (!headers_sent()) {
 			header('Location: index');
 		}
@@ -87,10 +88,10 @@ if (isset(RequestManager::getAll()['status'])) {
 	$_STATUS = intval(RequestManager::getAll()['status']);
 	$rArgs = RequestManager::getAll();
 	unset($rArgs['status']);
-	$customScript = setArgs($rArgs);
+	$customScript = AdminHelpers::setArgs($rArgs);
 }
 
-if (getPageName() != 'setup') {
+if (AdminHelpers::getPageName() != 'setup') {
 	$db->query('SELECT COUNT(`id`) AS `count` FROM `users` LEFT JOIN `users_groups` ON `users_groups`.`group_id` = `users`.`member_group_id` WHERE `users_groups`.`is_admin` = 1;');
 
 	if ($db->get_row()['count'] == 0) {

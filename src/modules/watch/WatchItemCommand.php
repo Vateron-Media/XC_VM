@@ -49,8 +49,8 @@ class WatchItemCommand implements CommandInterface {
 			@unlink(WATCH_TMP_PATH . @getmypid() . '.wpid');
 		});
 
-		require_once INCLUDES_PATH . 'libs/tmdb.php';
-		require INCLUDES_PATH . 'libs/tmdb_release.php';
+		require_once MAIN_HOME . 'modules/tmdb/lib/TmdbClient.php';
+		require MAIN_HOME . 'modules/tmdb/lib/Release.php';
 
 		$rThreadData = json_decode(base64_decode($rArgs[0]), true);
 		if (!$rThreadData) {

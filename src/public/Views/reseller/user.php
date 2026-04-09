@@ -55,14 +55,14 @@
                                                 <div class="form-group row mb-4">
                                                     <label class="col-md-4 col-form-label" for="username">Username</label>
                                                     <div class="col-md-8">
-                                                        <input <?php if (!$rPermissions['allow_change_username'] && isset($rUser)) echo 'disabled '; ?>type="text" class="form-control" id="username" name="username" value="<?php if (isset($rUser)) { echo htmlspecialchars($rUser['username']); } else { echo ($rPermissions['allow_change_username'] ? generateString(10) : ''); } ?>" required data-parsley-trigger="change">
+                                                        <input <?php if (!$rPermissions['allow_change_username'] && isset($rUser)) echo 'disabled '; ?>type="text" class="form-control" id="username" name="username" value="<?php if (isset($rUser)) { echo htmlspecialchars($rUser['username']); } else { echo ($rPermissions['allow_change_username'] ? AdminHelpers::generateString(10) : ''); } ?>" required data-parsley-trigger="change">
                                                     </div>
                                                 </div>
                                                 <?php if ($rPermissions['allow_change_password'] || !isset($rUser)): ?>
                                                 <div class="form-group row mb-4">
                                                     <label class="col-md-4 col-form-label" for="password"><?php if (isset($rUser)) echo 'Change '; ?>Password</label>
                                                     <div class="col-md-8">
-                                                        <input type="text" class="form-control" id="password" name="password"<?php if (isset($rUser)) echo ' placeholder="Enter a new password here to change it"'; ?> value="<?= isset($rUser) ? '' : ($rPermissions['allow_change_username'] ? generateString(max(10, SettingsManager::getAll()['pass_length'])) : '') ?>" data-indicator="pwindicator">
+                                                        <input type="text" class="form-control" id="password" name="password"<?php if (isset($rUser)) echo ' placeholder="Enter a new password here to change it"'; ?> value="<?= isset($rUser) ? '' : ($rPermissions['allow_change_username'] ? AdminHelpers::generateString(max(10, SettingsManager::getAll()['pass_length'])) : '') ?>" data-indicator="pwindicator">
                                                         <div id="pwindicator">
                                                             <div class="bar"></div>
                                                             <div class="label"></div>

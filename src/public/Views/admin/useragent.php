@@ -1,23 +1,16 @@
 <?php
 if (!isset($__viewMode)):
-
-
-
-
-
-
-
 	include 'session.php';
 	include 'functions.php';
 
-	if (checkPermissions()) {
+	if (PageAuthorization::checkPermissions()) {
 	} else {
-		goHome();
+		AdminHelpers::goHome();
 	}
 
-	if (!isset(RequestManager::getAll()['id']) || ($rUAArr = getUserAgent(RequestManager::getAll()['id']))) {
+	if (!isset(RequestManager::getAll()['id']) || ($rUAArr = BlocklistService::getUserAgentById(RequestManager::getAll()['id']))) {
 	} else {
-		goHome();
+		AdminHelpers::goHome();
 	}
 
 	$_TITLE = 'Block User-Agent';

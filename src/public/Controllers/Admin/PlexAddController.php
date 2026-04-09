@@ -18,7 +18,7 @@ class PlexAddController extends BaseAdminController
         $rFolder = null;
         $id = $this->input('id');
         if (isset($id)) {
-            $rFolder = getWatchFolder($id);
+            $rFolder = StreamRepository::getWatchFolder($id);
             if (!$rFolder) {
                 $this->redirect('plex');
                 return;

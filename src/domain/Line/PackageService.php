@@ -17,12 +17,12 @@ class PackageService {
 			if (!Authorization::check('adv', 'edit_package')) {
 				exit();
 			}
-			$rArray = overwriteData(getPackage($rData['edit']), $rData);
+			$rArray = AdminHelpers::overwriteData(PackageService::getById($rData['edit']), $rData);
 		} else {
 			if (!Authorization::check('adv', 'add_packages')) {
 				exit();
 			}
-			$rArray = verifyPostTable('users_packages', $rData);
+			$rArray = QueryHelper::verifyPostTable('users_packages', $rData);
 			unset($rArray['id']);
 		}
 
@@ -39,7 +39,7 @@ class PackageService {
 		}
 
 		$rArray['groups'] = '[' . implode(',', array_map('intval', json_decode($rData['groups_selected'], true))) . ']';
-		$rArray['bouquets'] = sortArrayByArray(array_values(json_decode($rData['bouquets_selected'], true)), array_keys(BouquetService::getOrder()));
+		$rArray['bouquets'] = AdminHelpers::sortArrayByArray(array_values(json_decode($rData['bouquets_selected'], true)), array_keys(BouquetService::getOrder()));
 		$rArray['bouquets'] = '[' . implode(',', array_map('intval', $rArray['bouquets'])) . ']';
 
 		if (isset($rData['output_formats'])) {
@@ -50,7 +50,7 @@ class PackageService {
 			$rArray['output_formats'] = '[' . implode(',', array_map('intval', $rArray['output_formats'])) . ']';
 		}
 
-		$rPrepare = prepareArray($rArray);
+		$rPrepare = QueryHelper::prepareArray($rArray);
 		$rQuery = 'REPLACE INTO `users_packages`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
 		if ($db->query($rQuery, ...$rPrepare['data'])) {
@@ -61,11 +61,9 @@ class PackageService {
 		return array('status' => STATUS_FAILURE, 'data' => $rData);
 	}
 
-	// ──────────── Из PackageRepository ────────────
-
 	public static function deleteById($rID) {
 		global $db;
-		$rPackage = getPackage($rID);
+		$rPackage = self::getById($rID);
 
 		if (!$rPackage) {
 			return false;
@@ -75,5 +73,61 @@ class PackageService {
 		$db->query('DELETE FROM `users_packages` WHERE `id` = ?;', $rID);
 
 		return true;
+	}
+
+	public static function getAll($rGroup = null, $rType = null) {
+		global $db;
+		$rReturn = array();
+		$db->query('SELECT * FROM `users_packages` ORDER BY `id` ASC;');
+
+		if ($db->num_rows() > 0) {
+			foreach ($db->get_rows() as $rRow) {
+				if (isset($rGroup) && !in_array(intval($rGroup), json_decode($rRow['groups'], true))) {
+				} else {
+					if ($rType && !$rRow['is_' . $rType]) {
+					} else {
+						$rReturn[intval($rRow['id'])] = $rRow;
+					}
+				}
+			}
+		}
+
+		return $rReturn;
+	}
+
+	public static function getById($rID) {
+		global $db;
+		$db->query('SELECT * FROM `users_packages` WHERE `id` = ?;', $rID);
+
+		if ($db->num_rows() != 1) {
+			return null;
+		}
+
+		return $db->get_row();
+	}
+
+	public static function checkCompatible($rIDA, $rIDB) {
+		$rPackageA = self::getById($rIDA);
+		$rPackageB = self::getById($rIDB);
+		$rCompatible = true;
+
+		if (!($rPackageA && $rPackageB)) {
+		} else {
+			foreach (array('bouquets', 'output_formats') as $rKey) {
+				if (json_decode($rPackageA[$rKey], true) == json_decode($rPackageB[$rKey], true)) {
+				} else {
+					$rCompatible = false;
+				}
+			}
+
+			foreach (array('is_restreamer', 'is_isplock', 'max_connections', 'force_server_id', 'forced_country', 'lock_device') as $rKey) {
+				if ($rPackageA[$rKey] == $rPackageB[$rKey]) {
+				} else {
+					$rCompatible = false;
+				}
+			}
+		}
+
+		return $rCompatible;
 	}
 }

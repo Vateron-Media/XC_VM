@@ -79,6 +79,10 @@ class SessionManager {
             'code'     => 'rcode',
             'verify'   => 'rverify',
         ],
+        'player' => [
+            'auth'     => 'phash',
+            'verify'   => 'pverify',
+        ],
     ];
 
     /**
@@ -221,6 +225,21 @@ class SessionManager {
         }
 
         self::$started = false;
+    }
+
+    /**
+     * Clear session keys for a specific context without destroying the session.
+     * Drop-in replacement for legacy destroySession($type).
+     *
+     * @param string $context 'admin', 'reseller', or 'player'
+     */
+    public static function clearContext($context) {
+        if (!isset(self::$keyMap[$context])) {
+            return;
+        }
+        foreach (self::$keyMap[$context] as $key) {
+            unset($_SESSION[$key]);
+        }
     }
 
     /**

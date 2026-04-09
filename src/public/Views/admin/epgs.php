@@ -4,8 +4,8 @@
 	include 'session.php';
 	include 'functions.php';
 
-	if (!checkPermissions()) {
-		goHome();
+	if (!PageAuthorization::checkPermissions()) {
+		AdminHelpers::goHome();
 		exit;
 	}
 
@@ -51,7 +51,7 @@
 								</tr>
 							</thead>
 							<tbody>
-								<?php foreach (getEPGs() as $rEPG) { ?>
+								<?php foreach (EpgService::getAll() as $rEPG) { ?>
 									<tr id="epg-<?php echo $rEPG['id']; ?>">
 										<td class="text-center"><?php echo $rEPG['id']; ?></td>
 										<td><?php echo $rEPG['epg_name']; ?></td>

@@ -20,20 +20,20 @@ class ResellerMagController extends BaseResellerController
         $rOrigPackage = null;
 
         if (isset($GLOBALS['rRequest']['id'])) {
-            $rDevice = getMag($GLOBALS['rRequest']['id']);
+            $rDevice = MagService::getById($GLOBALS['rRequest']['id']);
 
             if (!$rDevice || !$rDevice['user'] || !$rDevice['user']['is_mag'] || !Authorization::check('line', $rDevice['user']['id'])) {
-                goHome();
+                AdminHelpers::goHome();
             }
 
             $rLine = $rDevice['user'];
 
             if ($rLine['package_id'] > 0) {
-                $rOrigPackage = getPackage($rLine['package_id']);
+                $rOrigPackage = PackageService::getById($rLine['package_id']);
             }
         }
 
-        $rPackages = getPackages($GLOBALS['rUserInfo']['member_group_id'], 'mag') ?: [];
+        $rPackages = PackageService::getAll($GLOBALS['rUserInfo']['member_group_id'], 'mag') ?: [];
 
         $this->setTitle('MAG Device');
         $this->render('mag', [

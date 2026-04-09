@@ -76,7 +76,7 @@ class TmdbService {
         }
 
         // Текстовый поиск
-        $rRelease = parserelease($term);
+        $rRelease = AdminHelpers::parserelease($term);
         $searchTerm = $rRelease['title'];
         $rJSON = [];
 
@@ -123,7 +123,7 @@ class TmdbService {
             $rSeries = $rTMDB->getTVShow($id);
             $rResult = json_decode($rSeries->getJSON(), true);
             $settingsLang = SettingsManager::getAll()['tmdb_language'] ?? '';
-            $rResult['trailer'] = getSeriesTrailer($id, ($language ?: $settingsLang));
+            $rResult['trailer'] = TMDbService::getSeriesTrailer($id, ($language ?: $settingsLang));
         }
 
         if (!$rResult) {
@@ -168,7 +168,7 @@ class TmdbService {
     private static function requireLibrary(): void {
         static $loaded = false;
         if (!$loaded) {
-            require_once INCLUDES_PATH . 'libs/tmdb.php';
+            require_once MAIN_HOME . 'modules/tmdb/lib/TmdbClient.php';
             $loaded = true;
         }
     }

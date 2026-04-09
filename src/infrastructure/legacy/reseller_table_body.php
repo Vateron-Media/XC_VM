@@ -1550,7 +1550,7 @@ if (isset($rUserInfo['reports'])) {
             $rReturn['recordsFiltered'] = $rReturn['recordsTotal'];
             if (0 >= $rReturn['recordsTotal']) {
             } else {
-                $rPackages = getPackages();
+                $rPackages = PackageService::getAll();
                 $rQuery = 'SELECT `users`.`username`, `users_logs`.`id`, `users_logs`.`owner`, `users_logs`.`type`, `users_logs`.`action`, `users_logs`.`log_id`, `users_logs`.`package_id`, `users_logs`.`cost`, `users_logs`.`credits_after`, `users_logs`.`date`, `users_logs`.`deleted_info` FROM `users_logs` LEFT JOIN `users` ON `users`.`id` = `users_logs`.`owner` ' . $rWhereString . ' ' . $rOrderBy . ' LIMIT ' . $rStart . ', ' . $rLimit . ';';
                 $db->query($rQuery, ...$rWhereV);
                 if (0 >= $db->num_rows()) {
@@ -1614,14 +1614,14 @@ if (isset($rUserInfo['reports'])) {
                                     }
                                     break;
                                 case 'mag':
-                                    $rLine = getMag($rRow['log_id']);
+                                    $rLine = MagService::getById($rRow['log_id']);
                                     if (!$rLine) {
                                     } else {
                                         $rLineInfo = "<a href='mag?id=" . $rRow['log_id'] . "'>" . $rLine['mac'] . '</a>';
                                     }
                                     break;
                                 case 'enigma':
-                                    $rLine = getEnigma($rRow['log_id']);
+                                    $rLine = EnigmaService::getById($rRow['log_id']);
                                     if (!$rLine) {
                                     } else {
                                         $rLineInfo = "<a href='enigma?id=" . $rRow['log_id'] . "'>" . $rLine['mac'] . '</a>';

@@ -13,7 +13,7 @@
 class LineRepository {
 	public static function deleteMany($rIDs) {
 		global $db;
-		$rIDs = confirmIDs($rIDs);
+		$rIDs = AdminHelpers::confirmIDs($rIDs);
 
 		if (0 >= count($rIDs)) {
 			return false;

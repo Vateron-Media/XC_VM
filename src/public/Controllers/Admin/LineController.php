@@ -21,7 +21,7 @@ class LineController extends BaseAdminController
             $rLine = UserRepository::getLineById(RequestManager::getAll()['id']);
 
             if (!$rLine || !Authorization::check('adv', 'edit_user')) {
-                goHome();
+                AdminHelpers::goHome();
             }
 
             if ($rLine['is_mag']) {
@@ -30,7 +30,7 @@ class LineController extends BaseAdminController
                     header('Location: mag?id=' . intval($db->get_row()['mag_id']));
                     exit;
                 } else {
-                    goHome();
+                    AdminHelpers::goHome();
                 }
             }
 
@@ -40,12 +40,12 @@ class LineController extends BaseAdminController
                     header('Location: enigma?id=' . intval($db->get_row()['device_id']));
                     exit;
                 } else {
-                    goHome();
+                    AdminHelpers::goHome();
                 }
             }
         } else {
             if (!Authorization::check('adv', 'add_user')) {
-                goHome();
+                AdminHelpers::goHome();
             }
             $rLine = null;
         }

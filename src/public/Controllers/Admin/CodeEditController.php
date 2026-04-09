@@ -20,7 +20,7 @@ class CodeEditController extends BaseAdminController
         $rCode = null;
         $id = $this->input('id');
         if ($id !== null) {
-            $rCode = function_exists('getCode') ? getCode($id) : null;
+            $rCode = AuthRepository::getCodeById($id);
             if (!$rCode) {
                 exit();
             }

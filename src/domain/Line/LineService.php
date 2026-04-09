@@ -102,7 +102,7 @@ class LineService {
 						$rArray['bouquet'][] = $rBouquet;
 					}
 				}
-				$rArray['bouquet'] = sortArrayByArray($rArray['bouquet'], array_keys(BouquetService::getOrder()));
+				$rArray['bouquet'] = AdminHelpers::sortArrayByArray($rArray['bouquet'], array_keys(BouquetService::getOrder()));
 				$rArray['bouquet'] = '[' . implode(',', array_map('intval', $rArray['bouquet'])) . ']';
 			}
 
@@ -112,11 +112,11 @@ class LineService {
 				$rArray['as_number'] = $rArray['isp_desc'];
 			}
 
-			$rUsers = confirmIDs(json_decode($rData['users_selected'], true));
+			$rUsers = AdminHelpers::confirmIDs(json_decode($rData['users_selected'], true));
 
 			if (0 >= count($rUsers)) {
 			} else {
-				$rPrepare = prepareArray($rArray);
+				$rPrepare = QueryHelper::prepareArray($rArray);
 
 				if (0 >= count($rPrepare['data'])) {
 				} else {
@@ -143,13 +143,13 @@ class LineService {
 		if (InputValidator::validate('processLine', $rData)) {
 			if (isset($rData['edit'])) {
 				if (Authorization::check('adv', 'edit_user')) {
-					$rArray = overwriteData(UserRepository::getLineById($rData['edit']), $rData);
+					$rArray = AdminHelpers::overwriteData(UserRepository::getLineById($rData['edit']), $rData);
 				} else {
 					exit();
 				}
 			} else {
 				if (Authorization::check('adv', 'add_user')) {
-					$rArray = verifyPostTable('lines', $rData);
+					$rArray = QueryHelper::verifyPostTable('lines', $rData);
 					$rArray['created_at'] = time();
 					unset($rArray['id']);
 				} else {
@@ -159,12 +159,12 @@ class LineService {
 
 			if (strlen($rData['username']) != 0) {
 			} else {
-				$rArray['username'] = generateString(10);
+				$rArray['username'] = AdminHelpers::generateString(10);
 			}
 
 			if (strlen($rData['password']) != 0) {
 			} else {
-				$rArray['password'] = generateString(10);
+				$rArray['password'] = AdminHelpers::generateString(10);
 			}
 
 			foreach (array('max_connections', 'enabled', 'admin_enabled') as $rSelection) {
@@ -189,7 +189,7 @@ class LineService {
 				$rArray['as_number'] = null;
 			}
 
-			$rArray['bouquet'] = sortArrayByArray(array_values(json_decode($rData['bouquets_selected'], true)), array_keys(BouquetService::getOrder()));
+			$rArray['bouquet'] = AdminHelpers::sortArrayByArray(array_values(json_decode($rData['bouquets_selected'], true)), array_keys(BouquetService::getOrder()));
 			$rArray['bouquet'] = '[' . implode(',', array_map('intval', $rArray['bouquet'])) . ']';
 
 			if (isset($rData['exp_date']) && !isset($rData['no_expire'])) {
@@ -244,8 +244,8 @@ class LineService {
 
 			$rArray['allowed_outputs'] = '[' . implode(',', array_map('intval', $rOutputs)) . ']';
 
-			if (!checkExists('lines', 'username', $rArray['username'], 'id', $rData['edit'])) {
-				$rPrepare = prepareArray($rArray);
+			if (!QueryHelper::checkExists('lines', 'username', $rArray['username'], 'id', $rData['edit'])) {
+				$rPrepare = QueryHelper::prepareArray($rArray);
 
 				$rQuery = 'REPLACE INTO `lines`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
@@ -302,5 +302,99 @@ class LineService {
 			return true;
 		}
 		return false;
+	}
+
+	public static function deleteLineById($rID, $rDeletePaired = false, $rCloseCons = true) {
+		global $db;
+		$rLine = UserRepository::getLineById($rID);
+
+		if (!$rLine) {
+			return false;
+		}
+
+		self::deleteLineSignal($rID);
+		$db->query('DELETE FROM `lines` WHERE `id` = ?;', $rID);
+		$db->query('DELETE FROM `lines_logs` WHERE `user_id` = ?;', $rID);
+		$db->query('UPDATE `lines_activity` SET `user_id` = 0 WHERE `user_id` = ?;', $rID);
+
+		if (!$rCloseCons) {
+		} else {
+			if (SettingsManager::getAll()['redis_handler']) {
+				foreach (ConnectionTracker::getRedisConnections($rID, null, null, true, false, false) as $rConnection) {
+					ConnectionTracker::closeConnection($rConnection);
+				}
+			} else {
+				$db->query('SELECT * FROM `lines_live` WHERE `user_id` = ?;', $rID);
+
+				foreach ($db->get_rows() as $rRow) {
+					ConnectionTracker::closeConnection($rRow);
+				}
+			}
+		}
+
+		$db->query('SELECT `id` FROM `lines` WHERE `pair_id` = ?;', $rID);
+
+		foreach ($db->get_rows() as $rRow) {
+			if ($rDeletePaired) {
+				self::deleteLineById($rRow['id'], true, $rCloseCons);
+			} else {
+				$db->query('UPDATE `lines` SET `pair_id` = null WHERE `id` = ?;', $rRow['id']);
+				self::updateLineSignal($rRow['id']);
+			}
+		}
+
+		return true;
+	}
+
+	public static function getExpiring($rLimit = 2419200) {
+		global $db;
+		global $rUserInfo;
+		global $rPermissions;
+		$rReturn = array();
+		$rReports = array_map('intval', array_merge(array($rUserInfo['id']), $rPermissions['all_reports']));
+
+		if (0 >= count($rReports)) {
+		} else {
+			$db->query('SELECT `is_mag`, `is_e2`, `lines`.`id` AS `line_id`, `lines`.`reseller_notes`, `mag_devices`.`mag_id`, `enigma2_devices`.`device_id` AS `e2_id`, `member_id`, `username`, `password`, `exp_date`, `mag_devices`.`mac` AS `mag_mac`, `enigma2_devices`.`mac` AS `e2_mac` FROM `lines` LEFT JOIN `mag_devices` ON `mag_devices`.`user_id` = `lines`.`id` LEFT JOIN `enigma2_devices` ON `enigma2_devices`.`user_id` = `lines`.`id` WHERE `member_id` IN (' . implode(',', $rReports) . ') AND `exp_date` IS NOT NULL AND `exp_date` >= ? AND `exp_date` < ? ORDER BY `exp_date` ASC LIMIT 250;', time(), time() + $rLimit);
+
+			foreach ($db->get_rows() as $rRow) {
+				$rReturn[] = $rRow;
+			}
+		}
+
+		return $rReturn;
+	}
+
+	public static function canGenerateTrials($rUserID) {
+		global $db;
+		global $rSettings;
+		$rUser = UserRepository::getRegisteredUserById($rUserID);
+		$rPermissions = AuthRepository::getPermissions($rUser['member_group_id']);
+
+		if ($rSettings['disable_trial']) {
+			return false;
+		}
+
+		if (floatval($rUser['credits']) < floatval($rPermissions['minimum_trial_credits'])) {
+			return false;
+		}
+
+		$rTotal = $rPermissions['total_allowed_gen_trials'];
+
+		if (0 >= $rTotal) {
+			return false;
+		}
+
+		$rTotalIn = $rPermissions['total_allowed_gen_in'];
+
+		if ($rTotalIn == 'hours') {
+			$rTime = time() - intval($rTotal) * 3600;
+		} else {
+			$rTime = time() - intval($rTotal) * 3600 * 24;
+		}
+
+		$db->query('SELECT COUNT(`id`) AS `count` FROM `lines` WHERE `member_id` = ? AND `created_at` >= ? AND `is_trial` = 1;', $rUser['id'], $rTime);
+
+		return $db->get_row()['count'] < $rTotal;
 	}
 }

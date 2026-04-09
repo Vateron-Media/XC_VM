@@ -30,7 +30,7 @@ class TmdbPopularCronJob implements CommandInterface {
 
         $this->initCron('XC_VM[Popular]');
 
-        require_once INCLUDES_PATH . 'libs/tmdb.php';
+        require_once MAIN_HOME . 'modules/tmdb/lib/TmdbClient.php';
         require_once __DIR__ . '/TmdbPopularCron.php';
 
         TmdbPopularCron::run();

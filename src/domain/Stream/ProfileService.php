@@ -313,7 +313,7 @@ class ProfileService {
 				$rArray['profile_id'] = $rData['edit'];
 			}
 
-			$rPrepare = prepareArray($rArray);
+			$rPrepare = QueryHelper::prepareArray($rArray);
 			$rQuery = 'REPLACE INTO `profiles`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
 			if ($db->query($rQuery, ...$rPrepare['data'])) {

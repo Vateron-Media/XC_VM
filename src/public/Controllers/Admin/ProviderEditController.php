@@ -20,7 +20,7 @@ class ProviderEditController extends BaseAdminController
         $rProvider = null;
         $id = $this->input('id');
         if ($id !== null) {
-            $rProvider = function_exists('getStreamProvider') ? getStreamProvider($id) : null;
+            $rProvider = ProviderService::getById($id);
             if (!$rProvider) {
                 exit();
             }

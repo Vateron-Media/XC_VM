@@ -3,7 +3,7 @@
 $rICount = !empty($GLOBALS['__forcePostMode']) ? 1 : count(get_included_files());
 include 'session.php';
 include 'functions.php';
-$_PAGE = getPageName();
+$_PAGE = AdminHelpers::getPageName();
 $_ERRORS = array();
 
 foreach (get_defined_constants(true)['user'] as $rKey => $rValue) {
@@ -351,7 +351,7 @@ if (1 < $rICount) { ?>
 
 <?php
 } else {
-	if (checkPermissions($_PAGE)) {
+	if (PageAuthorization::checkPermissions($_PAGE)) {
 		if (isset(RequestManager::getAll()['referer'])) {
 			$rReferer = RequestManager::getAll()['referer'];
 			unset(RequestManager::getAll()['referer']);
@@ -609,7 +609,7 @@ if (1 < $rICount) { ?>
 				}
 
 				if (isset($rData['flush_blocked_ips'])) {
-					flushIPs();
+					BlocklistService::flushIPs();
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 					exit();
 				}
@@ -672,7 +672,9 @@ if (1 < $rICount) { ?>
 				}
 
 				if (isset($rData['reauthorise_mysql'])) {
-					grantPrivilegesToAllServers();
+					foreach ($rServers as $rServerID => $rServerArray) {
+						BackupService::grantPrivileges($rServerArray['server_ip'], DatabaseFactory::get(), ConfigReader::getAll());
+					}
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 					exit();
 				}
@@ -691,7 +693,7 @@ if (1 < $rICount) { ?>
 					}
 
 					if (count($rStreamIDs) > 0) {
-						$rRet = APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs), 120);
+						$rRet = ApiClient::request(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs), 120);
 					}
 
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
@@ -712,7 +714,7 @@ if (1 < $rICount) { ?>
 					}
 
 					if (count($rStreamIDs) > 0) {
-						$rRet = APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs), 120);
+						$rRet = ApiClient::request(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs), 120);
 					}
 
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
@@ -733,7 +735,7 @@ if (1 < $rICount) { ?>
 					}
 
 					if (count($rStreamIDs) > 0) {
-						$rRet = APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs), 120);
+						$rRet = ApiClient::request(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs), 120);
 					}
 
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
@@ -754,7 +756,7 @@ if (1 < $rICount) { ?>
 					}
 
 					if (count($rStreamIDs) > 0) {
-						$rRet = APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs), 120);
+						$rRet = ApiClient::request(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs), 120);
 					}
 
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
@@ -775,7 +777,7 @@ if (1 < $rICount) { ?>
 					}
 
 					if (count($rStreamIDs) > 0) {
-						$rRet = APIRequest(array('action' => 'stream', 'sub' => 'stop', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs), 120);
+						$rRet = ApiClient::request(array('action' => 'stream', 'sub' => 'stop', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs), 120);
 					}
 
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
@@ -796,7 +798,7 @@ if (1 < $rICount) { ?>
 					}
 
 					if (count($rStreamIDs) > 0) {
-						$rRet = APIRequest(array('action' => 'stream', 'sub' => 'stop', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs), 120);
+						$rRet = ApiClient::request(array('action' => 'stream', 'sub' => 'stop', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs), 120);
 					}
 
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
@@ -944,7 +946,7 @@ if (1 < $rICount) { ?>
 				}
 
 				if (isset($rData['restore_images'])) {
-					restoreImages();
+					ServerService::restoreImages();
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 					exit();
 				}
@@ -1149,7 +1151,7 @@ if (1 < $rICount) { ?>
 				$rReturn = StreamService::process($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
-					if (isset($rData['edit']) && getPageFromURL($rReferer) == 'streams') {
+					if (isset($rData['edit']) && AdminHelpers::getPageFromURL($rReferer) == 'streams') {
 						echo json_encode(array('result' => true, 'location' => $rReferer, 'status' => $rReturn['status']));
 
 						exit();
@@ -1178,7 +1180,7 @@ if (1 < $rICount) { ?>
 				$rReturn = MovieService::process($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
-					if (isset($rData['edit']) && getPageFromURL($rReferer) == 'movies') {
+					if (isset($rData['edit']) && AdminHelpers::getPageFromURL($rReferer) == 'movies') {
 						echo json_encode(array('result' => true, 'location' => $rReferer, 'status' => $rReturn['status']));
 
 						exit();
@@ -1262,7 +1264,7 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					if (AuthRepository::getCurrentCode() == $rReturn['data']['orig_code']) {
-						echo json_encode(array('result' => true, 'location' => getProtocol() . '://' . $rServers[SERVER_ID]['server_ip'] . ':' . $_SERVER['SERVER_PORT'] . '/' . $rReturn['data']['new_code'] . '/codes?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
+						echo json_encode(array('result' => true, 'location' => AdminHelpers::getProtocol() . '://' . $rServers[SERVER_ID]['server_ip'] . ':' . $_SERVER['SERVER_PORT'] . '/' . $rReturn['data']['new_code'] . '/codes?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
 
 						exit();
 					}
@@ -1300,7 +1302,7 @@ if (1 < $rICount) { ?>
 				$rReturn = ChannelService::process($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
-					if (isset($rData['edit']) && getPageFromURL($rReferer) == 'created_channels') {
+					if (isset($rData['edit']) && AdminHelpers::getPageFromURL($rReferer) == 'created_channels') {
 						echo json_encode(array('result' => true, 'location' => $rReferer, 'status' => $rReturn['status']));
 
 						exit();
@@ -1354,7 +1356,7 @@ if (1 < $rICount) { ?>
 				$rReturn = EpisodeService::process($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
-					if (isset($rData['edit']) && getPageFromURL($rReferer) == 'episodes') {
+					if (isset($rData['edit']) && AdminHelpers::getPageFromURL($rReferer) == 'episodes') {
 						echo json_encode(array('result' => true, 'location' => $rReferer, 'status' => $rReturn['status']));
 
 						exit();
@@ -1365,7 +1367,7 @@ if (1 < $rICount) { ?>
 				}
 
 				if ($rReturn['status'] == STATUS_SUCCESS_MULTI) {
-					if (isset($rData['edit']) && getPageFromURL($rReferer) == 'episodes') {
+					if (isset($rData['edit']) && AdminHelpers::getPageFromURL($rReferer) == 'episodes') {
 						echo json_encode(array('result' => true, 'location' => $rReferer, 'status' => $rReturn['status']));
 
 						exit();
@@ -1525,7 +1527,7 @@ if (1 < $rICount) { ?>
 				$rReturn = LineService::process($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
-					if (isset($rData['edit']) && getPageFromURL($rReferer) == 'lines') {
+					if (isset($rData['edit']) && AdminHelpers::getPageFromURL($rReferer) == 'lines') {
 						echo json_encode(array('result' => true, 'location' => $rReferer, 'status' => $rReturn['status']));
 
 						exit();
@@ -1542,7 +1544,7 @@ if (1 < $rICount) { ?>
 				$rReturn = MagService::process($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
-					if (isset($rData['edit']) && getPageFromURL($rReferer) == 'mags') {
+					if (isset($rData['edit']) && AdminHelpers::getPageFromURL($rReferer) == 'mags') {
 						echo json_encode(array('result' => true, 'location' => $rReferer, 'status' => $rReturn['status']));
 
 						exit();
@@ -1559,7 +1561,7 @@ if (1 < $rICount) { ?>
 				$rReturn = EnigmaService::process($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
-					if (isset($rData['edit']) && getPageFromURL($rReferer) == 'enigmas') {
+					if (isset($rData['edit']) && AdminHelpers::getPageFromURL($rReferer) == 'enigmas') {
 						echo json_encode(array('result' => true, 'location' => $rReferer, 'status' => $rReturn['status']));
 
 						exit();
@@ -1697,7 +1699,7 @@ if (1 < $rICount) { ?>
 				$rReturn = RadioService::process($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
-					if (isset($rData['edit']) && getPageFromURL($rReferer) == 'radios') {
+					if (isset($rData['edit']) && AdminHelpers::getPageFromURL($rReferer) == 'radios') {
 						echo json_encode(array('result' => true, 'location' => $rReferer, 'status' => $rReturn['status']));
 
 						exit();
@@ -1731,7 +1733,7 @@ if (1 < $rICount) { ?>
 				$rReturn = SeriesService::process($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
-					if (isset($rData['edit']) && getPageFromURL($rReferer) == 'series') {
+					if (isset($rData['edit']) && AdminHelpers::getPageFromURL($rReferer) == 'series') {
 						echo json_encode(array('result' => true, 'location' => $rReferer, 'status' => $rReturn['status']));
 
 						exit();
@@ -1852,7 +1854,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'import_tmdb_categories':
-				if (addTMDbCategories()) {
+				if (TMDbService::addCategories()) {
 					echo json_encode(array('result' => true, 'location' => 'stream_categories?status=' . STATUS_SUCCESS_REPLACE, 'status' => STATUS_SUCCESS));
 					exit();
 				}
@@ -1894,7 +1896,7 @@ if (1 < $rICount) { ?>
 				$rReturn = UserService::process($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
-					if (isset($rData['edit']) && getPageFromURL($rReferer) == 'users') {
+					if (isset($rData['edit']) && AdminHelpers::getPageFromURL($rReferer) == 'users') {
 						echo json_encode(array('result' => true, 'location' => $rReferer, 'status' => $rReturn['status']));
 
 						exit();

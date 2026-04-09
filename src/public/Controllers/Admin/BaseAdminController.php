@@ -43,32 +43,28 @@ class BaseAdminController
     }
 
     /**
-     * Проверка общих прав доступа (checkPermissions).
-     * При отказе — goHome() + exit.
+     * Проверка общих прав доступа.
+     * При отказе — redirect на главную + exit.
      */
     protected function requirePermission()
     {
-        if (function_exists('checkPermissions') && !checkPermissions()) {
-            if (function_exists('goHome')) {
-                goHome();
-            }
+        if (!PageAuthorization::checkPermissions()) {
+            AdminHelpers::goHome();
             exit;
         }
     }
 
     /**
      * Проверка расширенных прав (hasPermissions).
-     * При отказе — goHome() + exit.
+     * При отказе — redirect на главную + exit.
      *
      * @param string $type Тип прав ('adv' и т.д.)
      * @param string $key  Ключ прав ('edit_user' и т.д.)
      */
     protected function requireAdvPermission($type, $key)
     {
-        if (class_exists('Authorization') && !Authorization::check($type, $key)) {
-            if (function_exists('goHome')) {
-                goHome();
-            }
+        if (!Authorization::check($type, $key)) {
+            AdminHelpers::goHome();
             exit;
         }
     }

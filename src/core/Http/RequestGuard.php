@@ -61,7 +61,7 @@ define('PHP_ERRORS', $rShowErrors);
 
 // ── Logger ─────────────────────────────────────────────────────
 // After fixing all the warnings, replace DEVELOPMENT with PHP_ERRORS
-require_once INCLUDES_PATH . 'libs/Logger.php';
+require_once MAIN_HOME . 'core/Logging/Logger.php';
 Logger::init(
     DEVELOPMENT,
     LOGS_TMP_PATH . 'error_log.log'

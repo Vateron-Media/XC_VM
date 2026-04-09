@@ -16,13 +16,13 @@ class RadioService {
 		if (InputValidator::validate('processRadio', $rData)) {
 			if (isset($rData['edit'])) {
 				if (Authorization::check('adv', 'edit_radio')) {
-					$rArray = overwriteData(StreamRepository::getById($rData['edit']), $rData);
+					$rArray = AdminHelpers::overwriteData(StreamRepository::getById($rData['edit']), $rData);
 				} else {
 					exit();
 				}
 			} else {
 				if (Authorization::check('adv', 'add_radio')) {
-					$rArray = verifyPostTable('streams', $rData);
+					$rArray = QueryHelper::verifyPostTable('streams', $rData);
 					$rArray['type'] = 4;
 					$rArray['added'] = time();
 					unset($rArray['id']);
@@ -70,7 +70,7 @@ class RadioService {
 					$rBouquetCreate = array();
 
 					foreach (json_decode($rData['bouquet_create_list'] ?? '[]', true) ?: [] as $rBouquet) {
-						$rPrepare = prepareArray(array('bouquet_name' => $rBouquet, 'bouquet_channels' => array(), 'bouquet_movies' => array(), 'bouquet_series' => array(), 'bouquet_radios' => array()));
+						$rPrepare = QueryHelper::prepareArray(array('bouquet_name' => $rBouquet, 'bouquet_channels' => array(), 'bouquet_movies' => array(), 'bouquet_series' => array(), 'bouquet_radios' => array()));
 						$rQuery = 'INSERT INTO `bouquets`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
 						if (!$db->query($rQuery, ...$rPrepare['data'])) {
@@ -82,7 +82,7 @@ class RadioService {
 					$rCategoryCreate = array();
 
 					foreach (json_decode($rData['category_create_list'] ?? '[]', true) ?: [] as $rCategory) {
-						$rPrepare = prepareArray(array('category_type' => 'radio', 'category_name' => $rCategory, 'parent_id' => 0, 'cat_order' => 99, 'is_adult' => 0));
+						$rPrepare = QueryHelper::prepareArray(array('category_type' => 'radio', 'category_name' => $rCategory, 'parent_id' => 0, 'cat_order' => 99, 'is_adult' => 0));
 						$rQuery = 'INSERT INTO `streams_categories`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
 						if (!$db->query($rQuery, ...$rPrepare['data'])) {
@@ -134,7 +134,7 @@ class RadioService {
 							$rImportArray['order'] = StreamRepository::getNextOrder();
 						}
 
-						$rPrepare = prepareArray($rImportArray);
+						$rPrepare = QueryHelper::prepareArray($rImportArray);
 						$rQuery = 'REPLACE INTO `streams`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
 						if ($db->query($rQuery, ...$rPrepare['data'])) {
@@ -177,7 +177,7 @@ class RadioService {
 							foreach ($rStationExists as $rServerID => $rDBID) {
 								if (in_array($rServerID, $rStreamsAdded)) {
 								} else {
-									deleteStream($rInsertID, $rServerID, false, false);
+									StreamRepository::deleteStream($rInsertID, $rServerID, false, false);
 								}
 							}
 							$db->query('DELETE FROM `streams_options` WHERE `stream_id` = ?;', $rInsertID);
@@ -212,11 +212,11 @@ class RadioService {
 
 							if (!$rRestart) {
 							} else {
-								APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => array($rInsertID)));
+								ApiClient::request(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => array($rInsertID)));
 							}
 
 							foreach ($rBouquets as $rBouquet) {
-								addToBouquet('radio', $rBouquet, $rInsertID);
+								BouquetService::addItems('radio', $rBouquet, $rInsertID);
 							}
 
 							if (!isset($rData['edit'])) {
@@ -224,7 +224,7 @@ class RadioService {
 								foreach (BouquetService::getAllSimple() as $rBouquet) {
 									if (in_array($rBouquet['id'], $rBouquets)) {
 									} else {
-										removeFromBouquet('radio', $rBouquet['id'], $rInsertID);
+										BouquetService::removeItems('radio', $rBouquet['id'], $rInsertID);
 									}
 								}
 							}
@@ -334,7 +334,7 @@ class RadioService {
 						$rArray['category_id'] = '[' . implode(',', $rCategories) . ']';
 					}
 
-					$rPrepare = prepareArray($rArray);
+					$rPrepare = QueryHelper::prepareArray($rArray);
 
 					if (0 >= count($rPrepare['data'])) {
 					} else {
@@ -421,15 +421,15 @@ class RadioService {
 				}
 
 				foreach ($rDeleteServers as $rServerID => $rDeleteIDs) {
-					deleteStreamsByServer($rDeleteIDs, $rServerID, false);
+					StreamRepository::deleteStreamsByServer($rDeleteIDs, $rServerID, false);
 				}
 
 				foreach ($rAddBouquet as $rBouquetID => $rAddIDs) {
-					addToBouquet('radio', $rBouquetID, $rAddIDs);
+					BouquetService::addItems('radio', $rBouquetID, $rAddIDs);
 				}
 
 				foreach ($rDelBouquet as $rBouquetID => $rRemIDs) {
-					removeFromBouquet('radio', $rBouquetID, $rRemIDs);
+					BouquetService::removeItems('radio', $rBouquetID, $rRemIDs);
 				}
 
 				if (empty($rAddQuery)) {
@@ -442,7 +442,7 @@ class RadioService {
 
 				if (!isset($rData['restart_on_edit'])) {
 				} else {
-					APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => array_values($rStreamIDs)));
+					ApiClient::request(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => array_values($rStreamIDs)));
 				}
 			}
 
@@ -460,7 +460,7 @@ class RadioService {
 
 		if (InputValidator::validate('massDeleteStations', $rData)) {
 			$rStreams = json_decode($rData['radios'], true);
-			deleteStreams($rStreams, false);
+			StreamRepository::deleteStreams($rStreams, false);
 			return array('status' => STATUS_SUCCESS);
 		}
 

@@ -29,7 +29,7 @@ class PlayerProfileController extends BasePlayerController
             if (!isset(RequestManager::getAll()['bouquet_order'])) {
             } else {
                 $rBouquetOrder = json_decode(RequestManager::getAll()['bouquet_order'], true);
-                $rUserInfo['bouquet'] = array_map('intval', sortArrayByArray($rUserInfo['bouquet'], $rBouquetOrder));
+                $rUserInfo['bouquet'] = array_map('intval', AdminHelpers::sortArrayByArray($rUserInfo['bouquet'], $rBouquetOrder));
                 $db->query('UPDATE `lines` SET `bouquet` = ? WHERE `id` = ?;', '[' . implode(',', $rUserInfo['bouquet']) . ']', $rUserInfo['id']);
 
                 if (!SettingsManager::getAll()['enable_cache']) {

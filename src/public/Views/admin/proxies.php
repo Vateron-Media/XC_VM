@@ -4,8 +4,8 @@
 	include 'session.php';
 	include 'functions.php';
 
-	if (!checkPermissions()) {
-		goHome();
+	if (!PageAuthorization::checkPermissions()) {
+		AdminHelpers::goHome();
 	}
 
 	$rServers = ServerRepository::getAll(true);
@@ -110,7 +110,7 @@
 										echo "');\" href=\"javascript: void(0);\">";
 										echo $rServer['server_ip'];
 										echo '</a></td>' . "\n\t\t\t\t\t\t\t\t\t" . '<td class="text-center">' . "\n\t\t\t\t\t\t\t\t\t";
-										$rClients = getLiveConnections($rServer['id'], true);
+										$rClients = ConnectionTracker::getLiveConnections($rServer['id'], true);
 
 										if (Authorization::check('adv', 'live_connections')) {
 											$rClients = '<a href="./live_connections?server=' . $rServer['id'] . "\"><button type='button' class='btn btn-dark bg-animate btn-xs waves-effect waves-light no-border'>" . number_format($rClients, 0) . '</button></a>';

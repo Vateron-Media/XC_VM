@@ -54,7 +54,7 @@ class StreamReviewController extends BaseAdminController
                     foreach ($rHasBouquets as $rBouquetID) {
                         if (in_array($rBouquetID, $rStream['bouquets'])) {
                         } else {
-                            removeFromBouquet('stream', $rBouquetID, $rID);
+                            BouquetService::removeItems('stream', $rBouquetID, $rID);
                         }
                     }
 
@@ -62,7 +62,7 @@ class StreamReviewController extends BaseAdminController
                         if (in_array($rBouquetID, $rHasBouquets)) {
                         } else {
                             $rAddBouquet[] = $rBouquetID;
-                            addToBouquet('stream', $rBouquetID, $rID);
+                            BouquetService::addItems('stream', $rBouquetID, $rID);
                         }
                     }
                 }

@@ -4,8 +4,8 @@ if (!isset($__viewMode)):
     include 'session.php';
     include 'functions.php';
 
-    if (!checkPermissions()) {
-        goHome();
+    if (!PageAuthorization::checkPermissions()) {
+        AdminHelpers::goHome();
     }
 
     $rAvailableServers = array();
@@ -17,7 +17,7 @@ if (!isset($__viewMode)):
 
         if ($rStream && $rStream['type'] == 1 && $rProgramme) {
         } else {
-            goHome();
+            AdminHelpers::goHome();
         }
     } else {
         if (isset(RequestManager::getAll()['archive'])) {
@@ -27,7 +27,7 @@ if (!isset($__viewMode)):
 
             if ($rStream && $rStream['type'] == 1 && $rProgramme) {
             } else {
-                goHome();
+                AdminHelpers::goHome();
             }
         } else {
             if (!isset(RequestManager::getAll()['stream_id'])) {

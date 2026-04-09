@@ -3,7 +3,7 @@
  * DashboardController — Dashboard page.
  *
  * Complex data-prep: theme colours, connection map queries, server stats.
- * Dashboard has NO checkPermissions() — it uses server_id validation instead.
+ * Dashboard has NO PageAuthorization::checkPermissions() — it uses server_id validation instead.
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>

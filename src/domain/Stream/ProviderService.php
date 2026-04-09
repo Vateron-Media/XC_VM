@@ -16,13 +16,13 @@ class ProviderService {
 		if (InputValidator::validate('processProvider', $rData)) {
 			if (isset($rData['edit'])) {
 				if (Authorization::check('adv', 'streams')) {
-					$rArray = overwriteData(getStreamProvider($rData['edit']), $rData);
+					$rArray = AdminHelpers::overwriteData(ProviderService::getById($rData['edit']), $rData);
 				} else {
 					exit();
 				}
 			} else {
 				if (Authorization::check('adv', 'streams')) {
-					$rArray = verifyPostTable('providers', $rData);
+					$rArray = QueryHelper::verifyPostTable('providers', $rData);
 					unset($rArray['id']);
 				} else {
 					exit();
@@ -44,7 +44,7 @@ class ProviderService {
 			}
 
 			if (0 >= $db->num_rows()) {
-				$rPrepare = prepareArray($rArray);
+				$rPrepare = QueryHelper::prepareArray($rArray);
 				$rQuery = 'REPLACE INTO `providers`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
 				if ($db->query($rQuery, ...$rPrepare['data'])) {
@@ -59,5 +59,44 @@ class ProviderService {
 		} else {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
+	}
+
+	public static function getById($rID) {
+		global $db;
+		$db->query('SELECT * FROM `providers` WHERE `id` = ?;', $rID);
+
+		if ($db->num_rows() != 1) {
+			return null;
+		}
+
+		return $db->get_row();
+	}
+
+	public static function getAll() {
+		global $db;
+		$rReturn = array();
+		$db->query('SELECT * FROM `providers` ORDER BY `last_changed` DESC;');
+
+		if ($db->num_rows() > 0) {
+			foreach ($db->get_rows() as $rRow) {
+				$rReturn[] = $rRow;
+			}
+		}
+
+		return $rReturn;
+	}
+
+	public static function deleteById($rID) {
+		global $db;
+		$rProvider = self::getById($rID);
+
+		if (!$rProvider) {
+			return false;
+		}
+
+		$db->query('DELETE FROM `providers` WHERE `id` = ?;', $rID);
+		$db->query('DELETE FROM `providers_streams` WHERE `provider_id` = ?;', $rID);
+
+		return true;
 	}
 }

@@ -1,18 +1,11 @@
 <?php if (!isset($__viewMode)): ?>
 <?php
-
-
-
-
-
-
-
 	include 'session.php';
 	include 'functions.php';
 
-	if (checkPermissions()) {
+	if (PageAuthorization::checkPermissions()) {
 	} else {
-		goHome();
+		AdminHelpers::goHome();
 	}
 
 	if (!empty(RequestManager::getAll()['sid']) || empty(RequestManager::getAll()['id'])) {
@@ -25,9 +18,9 @@
 		}
 	}
 
-	if ($rSeriesArr = getSerie(RequestManager::getAll()['sid'])) {
+	if ($rSeriesArr = SeriesService::getById(RequestManager::getAll()['sid'])) {
 	} else {
-		goHome();
+		AdminHelpers::goHome();
 	}
 
 	if (!isset(RequestManager::getAll()['id'])) {
@@ -36,7 +29,7 @@
 
 		if ($rEpisode && $rEpisode['type'] == 5) {
 		} else {
-			goHome();
+			AdminHelpers::goHome();
 		}
 	}
 
@@ -114,7 +107,7 @@ echo '</h4>' . "\n\t\t\t\t" . '</div>' . "\n\t\t\t" . '</div>' . "\n\t\t" . '</d
 if (!isset($rEpisode)) {
 } else {
 	echo "\t\t\t\t";
-	$rEncodeErrors = getEncodeErrors($rEpisode['id']);
+	$rEncodeErrors = StreamRepository::getEncodeErrors($rEpisode['id']);
 
 	foreach ($rEncodeErrors as $rServerID => $rEncodeError) {
 		echo "\t\t\t\t" . '<div class="alert alert-warning alert-dismissible fade show" role="alert">' . "\n\t\t\t\t\t" . '<button type="button" class="close" data-dismiss="alert" aria-label="Close">' . "\n\t\t\t\t\t\t" . '<span aria-hidden="true">&times;</span>' . "\n\t\t\t\t\t" . '</button>' . "\n\t\t\t\t\t" . '<strong>';

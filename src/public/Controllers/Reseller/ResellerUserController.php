@@ -24,7 +24,7 @@ class ResellerUserController extends BaseResellerController
             $rUser = UserRepository::getRegisteredUserById($rRequest['id']);
 
             if (!$rUser || $rRequest['id'] == $rUserInfo['id']) {
-                goHome();
+                AdminHelpers::goHome();
             }
 
             // Remove edited user from reports arrays so they don't appear in owner dropdown

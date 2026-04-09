@@ -28,9 +28,9 @@ class CategoryService {
 	public static function process($rData) {
 		global $db;
 		if (isset($rData['edit'])) {
-			$rArray = overwriteData(getCategory($rData['edit']), $rData);
+			$rArray = AdminHelpers::overwriteData(CategoryService::getById($rData['edit']), $rData);
 		} else {
-			$rArray = verifyPostTable('streams_categories', $rData);
+			$rArray = QueryHelper::verifyPostTable('streams_categories', $rData);
 			$rArray['cat_order'] = 99;
 			unset($rArray['id']);
 		}
@@ -41,7 +41,7 @@ class CategoryService {
 			$rArray['is_adult'] = 0;
 		}
 
-		$rPrepare = prepareArray($rArray);
+		$rPrepare = QueryHelper::prepareArray($rArray);
 		$rQuery = 'REPLACE INTO `streams_categories`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
 		if ($db->query($rQuery, ...$rPrepare['data'])) {
@@ -117,5 +117,55 @@ class CategoryService {
 			}
 		}
 		return $rReturn;
+	}
+
+	public static function getById($rID) {
+		global $db;
+		$db->query('SELECT * FROM `streams_categories` WHERE `id` = ?;', $rID);
+
+		if ($db->num_rows() != 1) {
+			return false;
+		}
+
+		return $db->get_row();
+	}
+
+	public static function deleteById($rID) {
+		global $db;
+		$rCategory = self::getById($rID);
+
+		if (!$rCategory) {
+			return false;
+		}
+
+		$db->query("SELECT `id`, `category_id` FROM `streams` WHERE JSON_CONTAINS(`category_id`, ?, '\$');", $rID);
+
+		foreach ($db->get_rows() as $rRow) {
+			$rRow['category_id'] = json_decode($rRow['category_id'], true);
+
+			if (($rKey = array_search($rID, $rRow['category_id'])) === false) {
+			} else {
+				unset($rRow['category_id'][$rKey]);
+			}
+
+			$db->query("UPDATE `streams` SET `category_id` = ? WHERE `id` = ?;", '[' . implode(',', array_map('intval', $rRow['category_id'])) . ']', $rRow['id']);
+		}
+		$db->query("SELECT `id`, `category_id` FROM `streams_series` WHERE JSON_CONTAINS(`category_id`, ?, '\$');", $rID);
+
+		foreach ($db->get_rows() as $rRow) {
+			$rRow['category_id'] = json_decode($rRow['category_id'], true);
+
+			if (($rKey = array_search($rID, $rRow['category_id'])) === false) {
+			} else {
+				unset($rRow['category_id'][$rKey]);
+			}
+
+			$db->query("UPDATE `streams_series` SET `category_id` = ? WHERE `id` = ?;", '[' . implode(',', array_map('intval', $rRow['category_id'])) . ']', $rRow['id']);
+		}
+		$db->query('DELETE FROM `streams_categories` WHERE `id` = ?;', $rID);
+		$db->query('UPDATE `watch_folders` SET `category_id` = null WHERE `category_id` = ?;', $rID);
+		$db->query('UPDATE `watch_folders` SET `fb_category_id` = null WHERE `fb_category_id` = ?;', $rID);
+
+		return true;
 	}
 }

@@ -4,8 +4,8 @@
 	include 'session.php';
 	include 'functions.php';
 
-	if (!checkPermissions()) {
-		goHome();
+	if (!PageAuthorization::checkPermissions()) {
+		AdminHelpers::goHome();
 	}
 
 	$_TITLE = "Blocked ISP's";
@@ -47,7 +47,7 @@
 								</tr>
 							</thead>
 							<tbody>
-								<?php foreach (getISPs() as $rISP): ?>
+								<?php foreach (BlocklistService::getAllISPs() as $rISP): ?>
 									<tr id="isp-<?php echo $rISP['id']; ?>">
 										<td class="text-center"><?php echo $rISP['id']; ?></td>
 										<td><?php echo $rISP['isp']; ?></td>

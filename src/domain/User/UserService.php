@@ -18,7 +18,7 @@ class UserService {
 		ini_set('default_socket_timeout', 0);
 
 		$rUsers = json_decode($rData['users'], true);
-		deleteUser($rUsers);
+		UserService::deleteRegisteredUser($rUsers);
 
 		return array('status' => STATUS_SUCCESS);
 	}
@@ -71,14 +71,14 @@ class UserService {
 				$rArray['override_packages'] = json_encode($rOverride);
 			}
 
-			$rUsers = confirmIDs(json_decode($rData['users_selected'], true));
+			$rUsers = AdminHelpers::confirmIDs(json_decode($rData['users_selected'], true));
 
 			if (count($rUsers) > 0) {
 				if (isset($rData['c_owner_id']) && $rUser == $rArray['owner_id']) {
 					unset($rArray['owner_id']);
 				}
 
-				$rPrepare = prepareArray($rArray);
+				$rPrepare = QueryHelper::prepareArray($rArray);
 
 				if (count($rPrepare['data']) > 0) {
 					$rQuery = 'UPDATE `users` SET ' . $rPrepare['update'] . ' WHERE `id` IN (' . implode(',', $rUsers) . ');';
@@ -98,13 +98,13 @@ class UserService {
 			if (isset($rData['edit'])) {
 				if (Authorization::check('adv', 'edit_reguser') || $rBypassAuth) {
 					$rUser = UserRepository::getRegisteredUserById($rData['edit']);
-					$rArray = overwriteData($rUser, $rData, array('password'));
+					$rArray = AdminHelpers::overwriteData($rUser, $rData, array('password'));
 				} else {
 					exit();
 				}
 			} else {
 				if (Authorization::check('adv', 'add_reguser') || $rBypassAuth) {
-					$rArray = verifyPostTable('users', $rData);
+					$rArray = QueryHelper::verifyPostTable('users', $rData);
 					$rArray['date_registered'] = time();
 					unset($rArray['id']);
 				} else {
@@ -114,12 +114,12 @@ class UserService {
 
 			if (!empty($rData['member_group_id'])) {
 				if (strlen($rData['username']) == 0) {
-					$rArray['username'] = generateString(10);
+					$rArray['username'] = AdminHelpers::generateString(10);
 				}
 
-				if (!checkExists('users', 'username', $rArray['username'], 'id', $rData['edit'] ?? null)) {
+				if (!QueryHelper::checkExists('users', 'username', $rArray['username'], 'id', $rData['edit'] ?? null)) {
 					if (strlen($rData['password']) > 0) {
-						$rArray['password'] = cryptPassword($rData['password']);
+						$rArray['password'] = Authenticator::hashPassword($rData['password']);
 					}
 
 					$rOverride = array();
@@ -151,7 +151,7 @@ class UserService {
 						$rReason = $rData['credits_reason'];
 					}
 
-					$rPrepare = prepareArray($rArray);
+					$rPrepare = QueryHelper::prepareArray($rArray);
 					$rQuery = 'REPLACE INTO `users`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
 					if ($db->query($rQuery, ...$rPrepare['data'])) {
@@ -183,7 +183,7 @@ class UserService {
 		}
 
 		if (0 < strlen($rData['password'])) {
-			$rPassword = cryptPassword($rData['password']);
+			$rPassword = Authenticator::hashPassword($rData['password']);
 		} else {
 			$rPassword = $rUserInfo['password'];
 		}
@@ -204,9 +204,9 @@ class UserService {
 	public static function submitTicket($rData, $rUserInfo) {
 		global $db;
 		if (isset($rData['edit'])) {
-			$rArray = overwriteData(getTicket($rData['edit']), $rData);
+			$rArray = AdminHelpers::overwriteData(TicketRepository::getById($rData['edit']), $rData);
 		} else {
-			$rArray = verifyPostTable('tickets', $rData);
+			$rArray = QueryHelper::verifyPostTable('tickets', $rData);
 			unset($rArray['id']);
 		}
 
@@ -215,7 +215,7 @@ class UserService {
 		}
 
 		if (!isset($rData['respond'])) {
-			$rPrepare = prepareArray($rArray);
+			$rPrepare = QueryHelper::prepareArray($rArray);
 			$rQuery = 'REPLACE INTO `tickets`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
 			if ($db->query($rQuery, ...$rPrepare['data'])) {
@@ -227,7 +227,7 @@ class UserService {
 			return array('status' => STATUS_FAILURE, 'data' => $rData);
 		}
 
-		$rTicket = getTicket($rData['respond']);
+		$rTicket = TicketRepository::getById($rData['respond']);
 		if (!$rTicket) {
 			return array('status' => STATUS_FAILURE, 'data' => $rData);
 		}
@@ -241,5 +241,61 @@ class UserService {
 		}
 
 		return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rData['respond']));
+	}
+
+	public static function deleteRegisteredUser($rID, $rDeleteSubUsers = false, $rDeleteLines = false, $rReplaceWith = null) {
+		global $db;
+		$rUser = UserRepository::getRegisteredUserById($rID);
+
+		if (!$rUser) {
+			return false;
+		}
+
+		$db->query('DELETE FROM `users` WHERE `id` = ?;', $rID);
+		$db->query('DELETE FROM `users_credits_logs` WHERE `admin_id` = ?;', $rID);
+		$db->query('DELETE FROM `users_logs` WHERE `owner` = ?;', $rID);
+		$db->query('DELETE FROM `tickets_replies` WHERE `ticket_id` IN (SELECT `id` FROM `tickets` WHERE `member_id` = ?);', $rID);
+		$db->query('DELETE FROM `tickets` WHERE `member_id` = ?;', $rID);
+
+		if ($rDeleteSubUsers) {
+			$db->query('SELECT `id` FROM `users` WHERE `owner_id` = ?;', $rID);
+
+			foreach ($db->get_rows() as $rRow) {
+				self::deleteRegisteredUser($rRow['id'], $rDeleteSubUsers, $rDeleteLines, $rReplaceWith);
+			}
+		} else {
+			$db->query('UPDATE `users` SET `owner_id` = ? WHERE `owner_id` = ?;', $rReplaceWith, $rID);
+		}
+
+		if ($rDeleteLines) {
+			$db->query('SELECT `id` FROM `lines` WHERE `member_id` = ?;', $rID);
+
+			foreach ($db->get_rows() as $rRow) {
+				LineService::deleteLineById($rRow['id']);
+			}
+		} else {
+			$db->query('UPDATE `lines` SET `member_id` = ? WHERE `member_id` = ?;', $rReplaceWith, $rID);
+		}
+
+		return true;
+	}
+
+	public static function deleteRegisteredUsers($rIDs) {
+		global $db;
+		$rIDs = AdminHelpers::confirmIDs($rIDs);
+
+		if (0 >= count($rIDs)) {
+			return false;
+		}
+
+		$db->query('DELETE FROM `users` WHERE `id` IN (' . implode(',', $rIDs) . ');');
+		$db->query('DELETE FROM `users_credits_logs` WHERE `admin_id` IN (' . implode(',', $rIDs) . ');');
+		$db->query('DELETE FROM `users_logs` WHERE `owner` IN (' . implode(',', $rIDs) . ');');
+		$db->query('DELETE FROM `tickets_replies` WHERE `ticket_id` IN (SELECT `id` FROM `tickets` WHERE `member_id` IN (' . implode(',', $rIDs) . '));');
+		$db->query('DELETE FROM `tickets` WHERE `member_id` IN (' . implode(',', $rIDs) . ');');
+		$db->query('UPDATE `users` SET `owner_id` = NULL WHERE `owner_id` IN (' . implode(',', $rIDs) . ');');
+		$db->query('UPDATE `lines` SET `member_id` = NULL WHERE `member_id` IN (' . implode(',', $rIDs) . ');');
+
+		return true;
 	}
 }

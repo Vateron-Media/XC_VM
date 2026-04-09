@@ -20,7 +20,7 @@ class ResellerTicketsController extends BaseResellerController
 
         $this->render('tickets', [
             'statusArray' => $statusArray,
-            'tickets'     => getTickets($GLOBALS['rUserInfo']['id']),
+            'tickets'     => TicketRepository::getAll($GLOBALS['rUserInfo']['id']),
         ]);
     }
 }

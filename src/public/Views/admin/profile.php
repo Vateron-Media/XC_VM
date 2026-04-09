@@ -4,13 +4,13 @@
     include 'session.php';
     include 'functions.php';
 
-    if (!checkPermissions()) {
-        goHome();
+    if (!PageAuthorization::checkPermissions()) {
+        AdminHelpers::goHome();
     }
 
-    if (!isset(RequestManager::getAll()['id']) || ($rProfileArr = getTranscodeProfile(RequestManager::getAll()['id']))) {
+    if (!isset(RequestManager::getAll()['id']) || ($rProfileArr = StreamConfigRepository::getTranscodeProfile(RequestManager::getAll()['id']))) {
     } else {
-        goHome();
+        AdminHelpers::goHome();
     }
 
     if (isset($rProfileArr)) {

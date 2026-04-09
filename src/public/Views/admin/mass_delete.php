@@ -4,8 +4,8 @@
     include 'session.php';
     include 'functions.php';
 
-    if (!checkPermissions()) {
-        goHome();
+    if (!PageAuthorization::checkPermissions()) {
+        AdminHelpers::goHome();
     }
 
     set_time_limit(0);
@@ -382,7 +382,7 @@
                                             <div class="col-md-3 col-6">
                                                 <select id="episode_series" class="form-control" data-toggle="select2">
                                                     <option value=""><?= $language::get('all_series') ?></option>
-                                                    <?php foreach (getSeries() as $rSerie): ?>
+                                                    <?php foreach (SeriesService::getAll() as $rSerie): ?>
                                                         <option value="<?= $rSerie['id'] ?>"><?= $rSerie['title'] ?></option>
                                                     <?php endforeach; ?>
                                                 </select>

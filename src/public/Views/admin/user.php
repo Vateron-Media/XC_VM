@@ -3,16 +3,16 @@
 	include 'session.php';
 	include 'functions.php';
 
-	if (!checkPermissions()) {
-		goHome();
+	if (!PageAuthorization::checkPermissions()) {
+		AdminHelpers::goHome();
 	}
 
 	$rUser = isset(RequestManager::getAll()['id']) ? UserRepository::getRegisteredUserById(RequestManager::getAll()['id']) : null;
 	if ($rUser === false) {
-		goHome();
+		AdminHelpers::goHome();
 	}
 
-	$rPackages = $rUser ? getPackages($rUser['member_group_id']) : [];
+	$rPackages = $rUser ? PackageService::getAll($rUser['member_group_id']) : [];
 	$_TITLE = 'User';
 	require_once __DIR__ . '/../layouts/admin.php';
 	renderUnifiedLayoutHeader('admin');
@@ -66,7 +66,7 @@
 												<div class="form-group row mb-4">
 													<label class="col-md-4 col-form-label" for="username">Username</label>
 													<div class="col-md-8">
-														<input type="text" class="form-control" id="username" name="username" value="<?= $rUser ? htmlspecialchars($rUser['username']) : generateString(10) ?>">
+														<input type="text" class="form-control" id="username" name="username" value="<?= $rUser ? htmlspecialchars($rUser['username']) : AdminHelpers::generateString(10) ?>">
 													</div>
 												</div>
 												<div class="form-group row mb-4">
@@ -76,7 +76,7 @@
 													<div class="col-md-8">
 														<input type="text" class="form-control" id="password" name="password"
 															<?= $rUser ? 'placeholder="Enter a new password here to change it"' : '' ?>
-															value="<?= $rUser ? '' : generateString(max(10, $rPermissions['minimum_password_length'])) ?>"
+															value="<?= $rUser ? '' : AdminHelpers::generateString(max(10, $rPermissions['minimum_password_length'])) ?>"
 															data-indicator="pwindicator">
 														<div id="pwindicator">
 															<div class="bar"></div>

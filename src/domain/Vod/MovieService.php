@@ -21,13 +21,13 @@ class MovieService {
 
 			if (isset($rData['edit'])) {
 				if (Authorization::check('adv', 'edit_movie')) {
-					$rArray = overwriteData(StreamRepository::getById($rData['edit']), $rData);
+					$rArray = AdminHelpers::overwriteData(StreamRepository::getById($rData['edit']), $rData);
 				} else {
 					exit();
 				}
 			} else {
 				if (Authorization::check('adv', 'add_movie')) {
-					$rArray = verifyPostTable('streams', $rData);
+					$rArray = QueryHelper::verifyPostTable('streams', $rData);
 					$rArray['added'] = time();
 					$rArray['type'] = 2;
 					unset($rArray['id']);
@@ -71,7 +71,7 @@ class MovieService {
 			$rImportStreams = array();
 
 			if (isset($rData['review'])) {
-				require_once MAIN_HOME . 'includes/libs/tmdb.php';
+				require_once MAIN_HOME . 'modules/tmdb/lib/TmdbClient.php';
 
 				if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
 					$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
@@ -232,11 +232,11 @@ class MovieService {
 							if (!is_numeric($rParts[1])) {
 							} else {
 								if (isset($rData['scan_recursive'])) {
-									$rFiles = scanRecursive(intval($rParts[1]), $rParts[2], array('mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts'));
+									$rFiles = ApiClient::scanRecursive(intval($rParts[1]), $rParts[2], array('mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts'));
 								} else {
 									$rFiles = array();
 
-									foreach (listDir(intval($rParts[1]), rtrim($rParts[2], '/'), array('mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts'))['files'] as $rFile) {
+										foreach (ApiClient::listDir(intval($rParts[1]), rtrim($rParts[2], '/'), array('mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts'))['files'] as $rFile) {
 										$rFiles[] = rtrim($rParts[2], '/') . '/' . $rFile;
 									}
 								}
@@ -302,7 +302,7 @@ class MovieService {
 				if ($rReview) {
 				} else {
 					foreach (json_decode($rData['bouquet_create_list'], true) as $rBouquet) {
-						$rPrepare = prepareArray(array('bouquet_name' => $rBouquet, 'bouquet_channels' => array(), 'bouquet_movies' => array(), 'bouquet_series' => array(), 'bouquet_radios' => array()));
+						$rPrepare = QueryHelper::prepareArray(array('bouquet_name' => $rBouquet, 'bouquet_channels' => array(), 'bouquet_movies' => array(), 'bouquet_series' => array(), 'bouquet_radios' => array()));
 						$rQuery = 'INSERT INTO `bouquets`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
 						if (!$db->query($rQuery, ...$rPrepare['data'])) {
@@ -313,7 +313,7 @@ class MovieService {
 					}
 
 					foreach (json_decode($rData['category_create_list'], true) as $rCategory) {
-						$rPrepare = prepareArray(array('category_type' => 'movie', 'category_name' => $rCategory, 'parent_id' => 0, 'cat_order' => 99, 'is_adult' => 0));
+						$rPrepare = QueryHelper::prepareArray(array('category_type' => 'movie', 'category_name' => $rCategory, 'parent_id' => 0, 'cat_order' => 99, 'is_adult' => 0));
 						$rQuery = 'INSERT INTO `streams_categories`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
 						if (!$db->query($rQuery, ...$rPrepare['data'])) {
@@ -378,7 +378,7 @@ class MovieService {
 					$rImportArray['tmdb_id'] = ($rImportStream['movie_properties']['tmdb_id'] ?: null);
 					$rSync = $rImportArray['async'];
 					unset($rImportArray['async']);
-					$rPrepare = prepareArray($rImportArray);
+					$rPrepare = QueryHelper::prepareArray($rImportArray);
 					$rQuery = 'REPLACE INTO `streams`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
 					if ($db->query($rQuery, ...$rPrepare['data'])) {
@@ -422,7 +422,7 @@ class MovieService {
 						foreach ($rStreamExists as $rServerID => $rDBID) {
 							if (in_array($rServerID, $rStreamsAdded)) {
 							} else {
-								deleteStream($rInsertID, $rServerID, true, false);
+								StreamRepository::deleteStream($rInsertID, $rServerID, true, false);
 							}
 						}
 
@@ -431,13 +431,13 @@ class MovieService {
 						}
 
 						foreach ($rBouquets as $rBouquet) {
-							addToBouquet('movie', $rBouquet, $rInsertID);
+							BouquetService::addItems('movie', $rBouquet, $rInsertID);
 						}
 
 						foreach (BouquetService::getAllSimple() as $rBouquet) {
 							if (in_array($rBouquet['id'], $rBouquets)) {
 							} else {
-								removeFromBouquet('movie', $rBouquet['id'], $rInsertID);
+								BouquetService::removeItems('movie', $rBouquet['id'], $rInsertID);
 							}
 						}
 
@@ -462,7 +462,7 @@ class MovieService {
 
 				if (!$rRestart) {
 				} else {
-					APIRequest(array('action' => 'vod', 'sub' => 'start', 'stream_ids' => $rRestartIDs));
+					ApiClient::request(array('action' => 'vod', 'sub' => 'start', 'stream_ids' => $rRestartIDs));
 				}
 
 				return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
@@ -572,11 +572,11 @@ class MovieService {
 						if (!is_numeric($rParts[1])) {
 						} else {
 							if (isset($rData['scan_recursive'])) {
-								$rFiles = scanRecursive(intval($rParts[1]), $rParts[2], array('mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts'));
+								$rFiles = ApiClient::scanRecursive(intval($rParts[1]), $rParts[2], array('mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts'));
 							} else {
 								$rFiles = array();
 
-								foreach (listDir(intval($rParts[1]), rtrim($rParts[2], '/'), array('mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts'))['files'] as $rFile) {
+								foreach (ApiClient::listDir(intval($rParts[1]), rtrim($rParts[2], '/'), array('mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts'))['files'] as $rFile) {
 									$rFiles[] = rtrim($rParts[2], '/') . '/' . $rFile;
 								}
 							}
@@ -606,7 +606,7 @@ class MovieService {
 					$rBouquets = array();
 
 					foreach (json_decode($rData['bouquet_create_list'], true) as $rBouquet) {
-						$rPrepare = prepareArray(array('bouquet_name' => $rBouquet, 'bouquet_channels' => array(), 'bouquet_movies' => array(), 'bouquet_series' => array(), 'bouquet_radios' => array()));
+						$rPrepare = QueryHelper::prepareArray(array('bouquet_name' => $rBouquet, 'bouquet_channels' => array(), 'bouquet_movies' => array(), 'bouquet_series' => array(), 'bouquet_radios' => array()));
 						$rQuery = 'INSERT INTO `bouquets`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
 						if (!$db->query($rQuery, ...$rPrepare['data'])) {
@@ -626,7 +626,7 @@ class MovieService {
 					$rCategories = array();
 
 					foreach (json_decode($rData['category_create_list'], true) as $rCategory) {
-						$rPrepare = prepareArray(array('category_type' => 'movie', 'category_name' => $rCategory, 'parent_id' => 0, 'cat_order' => 99, 'is_adult' => 0));
+						$rPrepare = QueryHelper::prepareArray(array('category_type' => 'movie', 'category_name' => $rCategory, 'parent_id' => 0, 'cat_order' => 99, 'is_adult' => 0));
 						$rQuery = 'INSERT INTO `streams_categories`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
 						if (!$db->query($rQuery, ...$rPrepare['data'])) {
@@ -655,7 +655,7 @@ class MovieService {
 
 					foreach ($rImportStreams as $rImportStream) {
 						$rData = array('import' => true, 'type' => 'movie', 'title' => $rImportStream['title'], 'file' => $rImportStream['url'], 'subtitles' => array(), 'servers' => $rServerIDs, 'fb_category_id' => $rCategories, 'fb_bouquets' => $rBouquets, 'disable_tmdb' => $rDisableTMDB, 'ignore_no_match' => $rIgnoreMatch, 'bouquets' => array(), 'category_id' => array(), 'language' => SettingsManager::getAll()['tmdb_language'], 'watch_categories' => $rWatchCategories, 'read_native' => $rData['read_native'], 'movie_symlink' => $rData['movie_symlink'], 'remove_subtitles' => $rData['remove_subtitles'], 'direct_source' => $rData['direct_source'], 'direct_proxy' => $rData['direct_proxy'], 'auto_encode' => $rRestart, 'auto_upgrade' => false, 'fallback_title' => false, 'ffprobe_input' => false, 'transcode_profile_id' => $rData['transcode_profile_id'], 'target_container' => $rImportStream['container'], 'max_genres' => intval(SettingsManager::getAll()['max_genres']), 'duplicate_tmdb' => true);
-						$rCommand = '/usr/bin/timeout 300 ' . PHP_BIN . ' ' . INCLUDES_PATH . 'cli/watch_item.php "' . base64_encode(json_encode($rData, JSON_UNESCAPED_UNICODE)) . '" > /dev/null 2>/dev/null &';
+						$rCommand = '/usr/bin/timeout 300 ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php watch_item "' . base64_encode(json_encode($rData, JSON_UNESCAPED_UNICODE)) . '" > /dev/null 2>/dev/null &';
 						shell_exec($rCommand);
 					}
 
@@ -678,7 +678,7 @@ class MovieService {
 		ini_set('default_socket_timeout', 0);
 
 		$rMovies = json_decode($rData['movies'], true);
-		deleteStreams($rMovies, true);
+		StreamRepository::deleteStreams($rMovies, true);
 
 		return array('status' => STATUS_SUCCESS);
 	}
@@ -796,7 +796,7 @@ class MovieService {
 					$rArray['category_id'] = '[' . implode(',', $rCategories) . ']';
 				}
 
-				$rPrepare = prepareArray($rArray);
+				$rPrepare = QueryHelper::prepareArray($rArray);
 
 				if (0 < count($rPrepare['data'])) {
 					$rPrepare['data'][] = $rStreamID;
@@ -868,15 +868,15 @@ class MovieService {
 			}
 
 			foreach ($rDeleteServers as $rServerID => $rDeleteIDs) {
-				deleteStreamsByServer($rDeleteIDs, $rServerID, true);
+				StreamRepository::deleteStreamsByServer($rDeleteIDs, $rServerID, true);
 			}
 
 			foreach ($rAddBouquet as $rBouquetID => $rAddIDs) {
-				addToBouquet('movie', $rBouquetID, $rAddIDs);
+				BouquetService::addItems('movie', $rBouquetID, $rAddIDs);
 			}
 
 			foreach ($rDelBouquet as $rBouquetID => $rRemIDs) {
-				removeFromBouquet('movie', $rBouquetID, $rRemIDs);
+				BouquetService::removeItems('movie', $rBouquetID, $rRemIDs);
 			}
 
 			if (!empty($rAddQuery)) {
@@ -903,7 +903,7 @@ class MovieService {
 	// ──────────── Из MovieRepository ────────────
 
 	public static function getSimilar($rID, $rPage = 1) {
-		require_once MAIN_HOME . 'includes/libs/tmdb.php';
+		require_once MAIN_HOME . 'modules/tmdb/lib/TmdbClient.php';
 
 		if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
 			$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);

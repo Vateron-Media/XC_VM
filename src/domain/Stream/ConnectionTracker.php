@@ -551,4 +551,37 @@ class ConnectionTracker {
 			return null;
 		}
 	}
+
+	public static function getLiveConnections($rServerID, $rProxy = false) {
+		global $db;
+
+		if (SettingsManager::getAll()['redis_handler']) {
+			$rCount = 0;
+
+			if ($rProxy) {
+				$rParentIDs = ServerRepository::getAll()[$rServerID]['parent_id'];
+
+				foreach ($rParentIDs as $rParentID) {
+					foreach (self::getRedisConnections(null, $rParentID, null, true, false, false) as $rConnection) {
+						if ($rConnection['proxy_id'] != $rServerID) {
+						} else {
+							$rCount++;
+						}
+					}
+				}
+			} else {
+				list($rCount) = self::getRedisConnections(null, $rServerID, null, true, true, false);
+			}
+
+			return $rCount;
+		} else {
+			if ($rProxy) {
+				$db->query('SELECT COUNT(*) AS `count` FROM `lines_live` WHERE `proxy_id` = ? AND `hls_end` = 0;', $rServerID);
+			} else {
+				$db->query('SELECT COUNT(*) AS `count` FROM `lines_live` WHERE `server_id` = ? AND `hls_end` = 0;', $rServerID);
+			}
+
+			return $db->get_row()['count'];
+		}
+	}
 }

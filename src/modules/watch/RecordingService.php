@@ -20,10 +20,10 @@ class RecordingService {
 			return array('status' => STATUS_NO_SOURCE);
 		}
 
-		$rArray = verifyPostTable('recordings', $rData);
+		$rArray = QueryHelper::verifyPostTable('recordings', $rData);
 		$rArray['bouquets'] = '[' . implode(',', array_map('intval', $rData['bouquets'])) . ']';
 		$rArray['category_id'] = '[' . implode(',', array_map('intval', $rData['category_id'])) . ']';
-		$rPrepare = prepareArray($rArray);
+		$rPrepare = QueryHelper::prepareArray($rArray);
 		$rQuery = 'REPLACE INTO `recordings`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
 		if ($db->query($rQuery, ...$rPrepare['data'])) {

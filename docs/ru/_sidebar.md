@@ -22,6 +22,7 @@
   - [⚙️ Автозагрузчик и регистрация классов](ru-ru/development/autoloader.md)
   - [🧩 Система модулей](ru-ru/development/modules.md)
   - [📂 Рабочий процесс (SFTP)](ru-ru/development/dev-workflow.md)
+  - [🌐 Добавление своего языка](ru-ru/development/translations.md)
 
 - 📦 **Дополнительно**
   - [🎬 Watchfolder](ru-ru/info/watch_folder.md)

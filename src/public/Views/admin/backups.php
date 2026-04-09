@@ -4,8 +4,8 @@
     include 'session.php';
     include 'functions.php';
 
-    if (!checkPermissions()) {
-        goHome();
+    if (!PageAuthorization::checkPermissions()) {
+        AdminHelpers::goHome();
     }
 
     $_TITLE = 'Backups';
@@ -90,7 +90,7 @@
                                                         <input type="text" class="form-control" id="dropbox_token" name="dropbox_token" value="<?php echo htmlspecialchars($rSettings['dropbox_token']); ?>">
                                                     </div>
                                                 </div>
-                                                <?php if (strlen($rSettings['dropbox_token']) > 0 && !checkRemote()) : ?>
+                                                <?php if (strlen($rSettings['dropbox_token']) > 0 && !BackupService::checkRemoteConnection()) : ?>
                                                     <div class="alert alert-danger text-center" role="alert">
                                                         Could not access your Dropbox through the API key provided above. Please generate a new one or check that your key is correct.
                                                     </div>

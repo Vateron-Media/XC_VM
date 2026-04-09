@@ -4,9 +4,9 @@
 	include 'session.php';
 	include 'functions.php';
 
-	if (checkPermissions()) {
+	if (PageAuthorization::checkPermissions()) {
 	} else {
-		goHome();
+		AdminHelpers::goHome();
 	}
 
 	$rAudioCodecs = $rVideoCodecs = array();
@@ -85,7 +85,7 @@ foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer) {
 }
 echo '                                </select>' . "\n" . '                            </div>' . "\n" . '                            <label class="col-md-1 col-form-label text-center" for="episodes_series">Series &nbsp; <button type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="clearSeries();"><i class="mdi mdi-close"></i></button></label>' . "\n" . '                            <div class="col-md-2">' . "\n" . '                                <select id="episodes_series" class="form-control" data-toggle="select2">' . "\n" . '                                    ';
 
-if (!(isset(RequestManager::getAll()['series']) && ($rSeries = getSerie(intval(RequestManager::getAll()['series']))))) {
+if (!(isset(RequestManager::getAll()['series']) && ($rSeries = SeriesService::getById(intval(RequestManager::getAll()['series']))))) {
 } else {
 	echo '                                    <option value="';
 	echo intval($rSeries['id']);

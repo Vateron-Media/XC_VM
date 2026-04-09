@@ -128,7 +128,7 @@ if ($rChannelInfo) {
                 OffAirHandler::showVideoServer($rSettings, $rServers, "show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
             }
         } else {
-            if ($rChannelInfo["proxy"]) {
+            if (!empty($rChannelInfo["proxy"])) {
                 if (!($rChannelInfo["monitor_pid"] && ProcessManager::isMonitorAlive($rChannelInfo["monitor_pid"], $rStreamID))) {
                     @unlink(STREAMS_PATH . $rStreamID . "_.pid");
                     ProcessManager::startProxy($rStreamID);

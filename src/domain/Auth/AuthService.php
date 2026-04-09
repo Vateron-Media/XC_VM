@@ -19,10 +19,10 @@ class AuthService {
 	public static function processCode($rData) {
 		global $db;
 		if (isset($rData['edit'])) {
-			$rArray = overwriteData(getCode($rData['edit']), $rData);
+			$rArray = AdminHelpers::overwriteData(AuthRepository::getCodeById($rData['edit']), $rData);
 			$rOrigCode = $rArray['code'];
 		} else {
-			$rArray = verifyPostTable('access_codes', $rData);
+			$rArray = QueryHelper::verifyPostTable('access_codes', $rData);
 			$rOrigCode = null;
 			unset($rArray['id']);
 		}
@@ -72,7 +72,7 @@ class AuthService {
 			return array('status' => STATUS_EXISTS_CODE, 'data' => $rData);
 		}
 
-		$rPrepare = prepareArray($rArray);
+		$rPrepare = QueryHelper::prepareArray($rArray);
 		$rQuery = 'REPLACE INTO `access_codes`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
 		if ($db->query($rQuery, ...$rPrepare['data'])) {
@@ -91,9 +91,9 @@ class AuthService {
 	public static function processHMAC($rData) {
 		global $db, $rSettings;
 		if (isset($rData['edit'])) {
-			$rArray = overwriteData(AuthRepository::getHMACById($rData['edit']), $rData);
+			$rArray = AdminHelpers::overwriteData(AuthRepository::getHMACById($rData['edit']), $rData);
 		} else {
-			$rArray = verifyPostTable('hmac_keys', $rData);
+			$rArray = QueryHelper::verifyPostTable('hmac_keys', $rData);
 			unset($rArray['id']);
 		}
 
@@ -129,7 +129,7 @@ class AuthService {
 			$rArray['key'] = Encryption::encrypt($rData['keygen'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 		}
 
-		$rPrepare = prepareArray($rArray);
+		$rPrepare = QueryHelper::prepareArray($rArray);
 		$rQuery = 'REPLACE INTO `hmac_keys`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
 		if ($db->query($rQuery, ...$rPrepare['data'])) {

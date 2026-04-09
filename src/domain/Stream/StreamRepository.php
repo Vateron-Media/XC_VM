@@ -147,6 +147,171 @@ class StreamRepository {
 			return 0;
 		}
 
+
 		return intval($db->get_row()['order']) + 1;
+	}
+
+	public static function getEncodeErrors($rID) {
+		global $db;
+		$rErrors = array();
+		$db->query('SELECT `server_id`, `error` FROM `streams_errors` WHERE `stream_id` = ?;', $rID);
+
+		foreach ($db->get_rows() as $rRow) {
+			$rErrors[intval($rRow['server_id'])] = $rRow['error'];
+		}
+
+		return $rErrors;
+	}
+
+	public static function getSelections($rSources) {
+		global $db;
+		$rReturn = array();
+
+		foreach ($rSources as $rSource) {
+			$db->query("SELECT `id` FROM `streams` WHERE `type` IN (2,5) AND `stream_source` LIKE ? ESCAPE '|' LIMIT 1;", '%' . str_replace('/', '\\/', $rSource) . '"%');
+
+			if ($db->num_rows() != 1) {
+			} else {
+				$rReturn[] = intval($db->get_row()['id']);
+			}
+		}
+
+		return $rReturn;
+	}
+
+	public static function deleteStream($rID, $rServerID = -1, $rDeleteFiles = true, $f2d619cb38696890 = true) {
+		global $db;
+		$db->query('SELECT `id`, `type` FROM `streams` WHERE `id` = ?;', $rID);
+
+		if (0 >= $db->num_rows()) {
+			return false;
+		}
+
+		$rType = $db->get_row()['type'];
+		$rRemaining = 0;
+
+		if ($rServerID == -1) {
+		} else {
+			$db->query('SELECT `server_stream_id` FROM `streams_servers` WHERE `stream_id` = ? AND `server_id` <> ?;', $rID, $rServerID);
+			$rRemaining = $db->num_rows();
+		}
+
+		if ($rRemaining == 0 && $f2d619cb38696890) {
+			$db->query('DELETE FROM `lines_logs` WHERE `stream_id` = ?;', $rID);
+			$db->query('DELETE FROM `mag_claims` WHERE `stream_id` = ?;', $rID);
+			$db->query('DELETE FROM `streams` WHERE `id` = ?;', $rID);
+			$db->query('DELETE FROM `streams_episodes` WHERE `stream_id` = ?;', $rID);
+			$db->query('DELETE FROM `streams_errors` WHERE `stream_id` = ?;', $rID);
+			$db->query('DELETE FROM `streams_logs` WHERE `stream_id` = ?;', $rID);
+			$db->query('DELETE FROM `streams_options` WHERE `stream_id` = ?;', $rID);
+			$db->query('DELETE FROM `streams_stats` WHERE `stream_id` = ?;', $rID);
+			$db->query('DELETE FROM `watch_refresh` WHERE `stream_id` = ?;', $rID);
+			$db->query('DELETE FROM `watch_logs` WHERE `stream_id` = ?;', $rID);
+			$db->query('DELETE FROM `recordings` WHERE `created_id` = ? OR `stream_id` = ?;', $rID, $rID);
+			$db->query('UPDATE `lines_activity` SET `stream_id` = 0 WHERE `stream_id` = ?;', $rID);
+			$db->query('SELECT `server_id` FROM `streams_servers` WHERE `stream_id` = ?;', $rID);
+			$rServerIDs = array();
+
+			foreach ($db->get_rows() as $rRow) {
+				$rServerIDs[] = $rRow['server_id'];
+			}
+
+			if (!($rDeleteFiles && 0 < count($rServerIDs) && in_array($rType, array(2, 5)))) {
+			} else {
+				MovieService::deleteFile($rServerIDs, $rID);
+			}
+
+			$db->query('DELETE FROM `streams_servers` WHERE `stream_id` = ?;', $rID);
+		} else {
+			$rServerIDs = array($rServerID);
+			$db->query('DELETE FROM `streams_servers` WHERE `stream_id` = ? AND `server_id` = ?;', $rID, $rServerID);
+
+			if (!($rDeleteFiles && in_array($rType, array(2, 5)))) {
+			} else {
+				MovieService::deleteFile(array($rServerID), $rID);
+			}
+		}
+
+		$db->query('DELETE FROM `streams_servers` WHERE `parent_id` IS NOT NULL AND `parent_id` > 0 AND `parent_id` NOT IN (SELECT `id` FROM `servers` WHERE `server_type` = 0);');
+		StreamProcess::updateStream($rID);
+		BouquetService::scan();
+
+		return true;
+	}
+
+	public static function deleteStreams($rIDs, $rDeleteFiles = false) {
+		global $db;
+		$rIDs = AdminHelpers::confirmIDs($rIDs);
+
+		if (0 >= count($rIDs)) {
+		} else {
+			$db->query('DELETE FROM `lines_logs` WHERE `stream_id` IN (' . implode(',', $rIDs) . ');');
+			$db->query('DELETE FROM `mag_claims` WHERE `stream_id` IN (' . implode(',', $rIDs) . ');');
+			$db->query('DELETE FROM `streams` WHERE `id` IN (' . implode(',', $rIDs) . ');');
+			$db->query('DELETE FROM `streams_episodes` WHERE `stream_id` IN (' . implode(',', $rIDs) . ');');
+			$db->query('DELETE FROM `streams_errors` WHERE `stream_id` IN (' . implode(',', $rIDs) . ');');
+			$db->query('DELETE FROM `streams_logs` WHERE `stream_id` IN (' . implode(',', $rIDs) . ');');
+			$db->query('DELETE FROM `streams_options` WHERE `stream_id` IN (' . implode(',', $rIDs) . ');');
+			$db->query('DELETE FROM `streams_stats` WHERE `stream_id` IN (' . implode(',', $rIDs) . ');');
+			$db->query('DELETE FROM `watch_refresh` WHERE `stream_id` IN (' . implode(',', $rIDs) . ');');
+			$db->query('DELETE FROM `watch_logs` WHERE `stream_id` IN (' . implode(',', $rIDs) . ');');
+			$db->query('DELETE FROM `lines_live` WHERE `stream_id` IN (' . implode(',', $rIDs) . ');');
+			$db->query('DELETE FROM `recordings` WHERE `created_id` IN (' . implode(',', $rIDs) . ') OR `stream_id` IN (' . implode(',', $rIDs) . ');');
+			$db->query('UPDATE `lines_activity` SET `stream_id` = 0 WHERE `stream_id` IN (' . implode(',', $rIDs) . ');');
+			$db->query('SELECT `server_id` FROM `streams_servers` WHERE `stream_id` IN (' . implode(',', $rIDs) . ');');
+			$db->query('DELETE FROM `streams_servers` WHERE `stream_id` IN (' . implode(',', $rIDs) . ');');
+			$db->query('DELETE FROM `streams_servers` WHERE `parent_id` IS NOT NULL AND `parent_id` > 0 AND `parent_id` NOT IN (SELECT `id` FROM `servers` WHERE `server_type` = 0);');
+			$db->query('INSERT INTO `signals`(`server_id`, `cache`, `time`, `custom_data`) VALUES(?, 1, ?, ?);', SERVER_ID, time(), json_encode(array('type' => 'update_streams', 'id' => $rIDs)));
+
+			if ($rDeleteFiles) {
+				foreach (array_keys(ServerRepository::getAll()) as $rServerID) {
+					$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`, `cache`) VALUES(?, ?, ?, 1);', $rServerID, time(), json_encode(array('type' => 'delete_vods', 'id' => $rIDs)));
+				}
+			}
+
+			BouquetService::scan();
+		}
+
+		return true;
+	}
+
+	public static function deleteStreamsByServer($rIDs, $rServerID, $rDeleteFiles = false) {
+		global $db;
+		$rIDs = AdminHelpers::confirmIDs($rIDs);
+
+		if (0 >= count($rIDs)) {
+		} else {
+			$db->query('DELETE FROM `streams_servers` WHERE `server_id` = ? AND `stream_id` IN (' . implode(',', $rIDs) . ');', $rServerID);
+			$db->query('UPDATE `streams_servers` SET `parent_id` = NULL WHERE `parent_id` = ? AND `stream_id` IN (' . implode(',', $rIDs) . ');', $rServerID);
+
+			if ($rDeleteFiles) {
+				$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`, `cache`) VALUES(?, ?, ?, 1);', $rServerID, time(), json_encode(array('type' => 'delete_vods', 'id' => $rIDs)));
+			}
+		}
+
+		return true;
+	}
+
+	public static function getWatchFolder($rID) {
+		global $db;
+		$db->query('SELECT * FROM `watch_folders` WHERE `id` = ?;', $rID);
+
+		if ($db->num_rows() != 1) {
+		} else {
+			return $db->get_row();
+		}
+	}
+
+	public static function deleteWatchFolder($rID) {
+		global $db;
+		$db->query('SELECT `id` FROM `watch_folders` WHERE `id` = ?;', $rID);
+
+		if (0 >= $db->num_rows()) {
+			return false;
+		}
+
+		$db->query('DELETE FROM `watch_folders` WHERE `id` = ?;', $rID);
+
+		return true;
 	}
 }

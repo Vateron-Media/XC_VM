@@ -13,13 +13,13 @@
 class BlocklistService {
 	public static function blockIP($rData) {
 		global $db;
-		if (!validateCIDR($rData['ip'])) {
+		if (!AdminHelpers::validateCIDR($rData['ip'])) {
 			return array('status' => STATUS_INVALID_IP, 'data' => $rData);
 		}
 
 		$rArray = array('ip' => $rData['ip'], 'notes' => $rData['notes'], 'date' => time());
 		touch(FLOOD_TMP_PATH . 'block_' . $rData['ip']);
-		$rPrepare = prepareArray($rArray);
+		$rPrepare = QueryHelper::prepareArray($rArray);
 		$rQuery = 'REPLACE INTO `blocked_ips`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
 		if ($db->query($rQuery, ...$rPrepare['data'])) {
@@ -36,12 +36,12 @@ class BlocklistService {
 			if (!Authorization::check('adv', 'block_isps')) {
 				exit();
 			}
-			$rArray = overwriteData(getISP($rData['edit']), $rData);
+			$rArray = AdminHelpers::overwriteData(BlocklistService::getISPById($rData['edit']), $rData);
 		} else {
 			if (!Authorization::check('adv', 'block_isps')) {
 				exit();
 			}
-			$rArray = verifyPostTable('blocked_isps', $rData);
+			$rArray = QueryHelper::verifyPostTable('blocked_isps', $rData);
 			unset($rArray['id']);
 		}
 
@@ -55,7 +55,7 @@ class BlocklistService {
 			return array('status' => STATUS_INVALID_NAME, 'data' => $rData);
 		}
 
-		$rPrepare = prepareArray($rArray);
+		$rPrepare = QueryHelper::prepareArray($rArray);
 		$rQuery = 'REPLACE INTO `blocked_isps`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
 		if ($db->query($rQuery, ...$rPrepare['data'])) {
@@ -69,9 +69,9 @@ class BlocklistService {
 	public static function processRTMPIP($rData) {
 		global $db;
 		if (isset($rData['edit'])) {
-			$rArray = overwriteData(getRTMPIP($rData['edit']), $rData);
+			$rArray = AdminHelpers::overwriteData(BlocklistService::getRTMPIPById($rData['edit']), $rData);
 		} else {
-			$rArray = verifyPostTable('rtmp_ips', $rData);
+			$rArray = QueryHelper::verifyPostTable('rtmp_ips', $rData);
 			unset($rArray['id']);
 		}
 
@@ -87,15 +87,15 @@ class BlocklistService {
 			return array('status' => STATUS_INVALID_IP, 'data' => $rData);
 		}
 
-		if (checkExists('rtmp_ips', 'ip', $rData['ip'], 'id', $rArray['id'])) {
+		if (QueryHelper::checkExists('rtmp_ips', 'ip', $rData['ip'], 'id', $rArray['id'])) {
 			return array('status' => STATUS_EXISTS_IP, 'data' => $rData);
 		}
 
 		if (strlen($rData['password']) == 0) {
-			$rArray['password'] = generateString(16);
+			$rArray['password'] = AdminHelpers::generateString(16);
 		}
 
-		$rPrepare = prepareArray($rArray);
+		$rPrepare = QueryHelper::prepareArray($rArray);
 		$rQuery = 'REPLACE INTO `rtmp_ips`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
 		if ($db->query($rQuery, ...$rPrepare['data'])) {
@@ -109,9 +109,9 @@ class BlocklistService {
 	public static function processUA($rData) {
 		global $db;
 		if (isset($rData['edit'])) {
-			$rArray = overwriteData(getUserAgent($rData['edit']), $rData);
+			$rArray = AdminHelpers::overwriteData(BlocklistService::getUserAgentById($rData['edit']), $rData);
 		} else {
-			$rArray = verifyPostTable('blocked_uas', $rData);
+			$rArray = QueryHelper::verifyPostTable('blocked_uas', $rData);
 			unset($rArray['id']);
 		}
 
@@ -121,7 +121,7 @@ class BlocklistService {
 			$rArray['exact_match'] = false;
 		}
 
-		$rPrepare = prepareArray($rArray);
+		$rPrepare = QueryHelper::prepareArray($rArray);
 		$rQuery = 'REPLACE INTO `blocked_uas`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
 		if ($db->query($rQuery, ...$rPrepare['data'])) {
@@ -332,5 +332,141 @@ class BlocklistService {
 			$rReturn[gethostbyname($rRow['ip'])] = array('password' => $rRow['password'], 'push' => boolval($rRow['push']), 'pull' => boolval($rRow['pull']));
 		}
 		return $rReturn;
+	}
+
+	public static function deleteBlockedIP($rID) {
+		global $db;
+		$db->query('SELECT `id`, `ip` FROM `blocked_ips` WHERE `id` = ?;', $rID);
+
+		if (0 >= $db->num_rows()) {
+			return false;
+		}
+
+		$rRow = $db->get_row();
+		$db->query('DELETE FROM `blocked_ips` WHERE `id` = ?;', $rID);
+
+		if (!file_exists(FLOOD_TMP_PATH . 'block_' . $rRow['ip'])) {
+		} else {
+			unlink(FLOOD_TMP_PATH . 'block_' . $rRow['ip']);
+		}
+
+		return true;
+	}
+
+	public static function deleteBlockedISP($rID) {
+		global $db;
+		$db->query('SELECT `id` FROM `blocked_isps` WHERE `id` = ?;', $rID);
+
+		if (0 >= $db->num_rows()) {
+			return false;
+		}
+
+		$db->query('DELETE FROM `blocked_isps` WHERE `id` = ?;', $rID);
+
+		return true;
+	}
+
+	public static function deleteBlockedUA($rID) {
+		global $db;
+		$db->query('SELECT `id` FROM `blocked_uas` WHERE `id` = ?;', $rID);
+
+		if (0 >= $db->num_rows()) {
+			return false;
+		}
+
+		$db->query('DELETE FROM `blocked_uas` WHERE `id` = ?;', $rID);
+
+		return true;
+	}
+
+	public static function flushIPs() {
+		global $db;
+		global $rServers;
+		global $rProxyServers;
+		$db->query('TRUNCATE `blocked_ips`;');
+		shell_exec('rm ' . FLOOD_TMP_PATH . 'block_*');
+
+		foreach ($rServers as $rServer) {
+			$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rServer['id'], time(), json_encode(array('action' => 'flush')));
+		}
+
+		foreach ($rProxyServers as $rServer) {
+			$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rServer['id'], time(), json_encode(array('action' => 'flush')));
+		}
+
+		return true;
+	}
+
+	public static function getAllUserAgents() {
+		global $db;
+		$rReturn = array();
+		$db->query('SELECT * FROM `blocked_uas` ORDER BY `id` ASC;');
+
+		if (0 >= $db->num_rows()) {
+		} else {
+			foreach ($db->get_rows() as $rRow) {
+				$rReturn[] = $rRow;
+			}
+		}
+
+		return $rReturn;
+	}
+
+	public static function getAllISPs() {
+		global $db;
+		$rReturn = array();
+		$db->query('SELECT * FROM `blocked_isps` ORDER BY `id` ASC;');
+
+		if (0 >= $db->num_rows()) {
+		} else {
+			foreach ($db->get_rows() as $rRow) {
+				$rReturn[] = $rRow;
+			}
+		}
+
+		return $rReturn;
+	}
+
+	public static function getUserAgentById($rID) {
+		global $db;
+		$db->query('SELECT * FROM `blocked_uas` WHERE `id` = ?;', $rID);
+
+		if ($db->num_rows() != 1) {
+		} else {
+			return $db->get_row();
+		}
+	}
+
+	public static function getISPById($rID) {
+		global $db;
+		$db->query('SELECT * FROM `blocked_isps` WHERE `id` = ?;', $rID);
+
+		if ($db->num_rows() != 1) {
+		} else {
+			return $db->get_row();
+		}
+	}
+
+	public static function deleteRTMPIP($rID) {
+		global $db;
+		$db->query('SELECT `id` FROM `rtmp_ips` WHERE `id` = ?;', $rID);
+
+		if (0 >= $db->num_rows()) {
+			return false;
+		}
+
+		$db->query('DELETE FROM `rtmp_ips` WHERE `id` = ?;', $rID);
+
+		return true;
+	}
+
+	public static function getRTMPIPById($rID) {
+		global $db;
+		$db->query('SELECT * FROM `rtmp_ips` WHERE `id` = ?;', $rID);
+
+		if ($db->num_rows() != 1) {
+		} else {
+			return $db->get_row();
+		}
 	}
 }

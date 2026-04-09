@@ -47,9 +47,7 @@ LB_DIRS_TO_REMOVE := \
 # Files to remove from LB
 LB_FILES_TO_REMOVE := \
 	bin/maxmind/GeoLite2-City.mmdb \
-	includes/admin_api.php \
-	includes/admin.php \
-	includes/reseller_api.php \
+	infrastructure/legacy/reseller_api.php \
 	www/xplugin.php \
 	www/probe.php \
 	www/playlist.php \

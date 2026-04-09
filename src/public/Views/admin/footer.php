@@ -4,7 +4,7 @@ if (count(get_included_files()) == 1) {
 	exit();
 }
 
-$_PAGE = getPageName();
+$_PAGE = AdminHelpers::getPageName();
 include 'modals.php';
 
 if (!isset($rModal) || !$rModal): ?>
@@ -17,7 +17,7 @@ if (!isset($rModal) || !$rModal): ?>
 		<div class="container-fluid">
 			<div class="row">
 				<div class="col-md-12 copyright text-center">
-					<?php echo getFooter(); ?>
+					<?php echo AdminHelpers::getFooter(); ?>
 				</div>
 			</div>
 		</div>

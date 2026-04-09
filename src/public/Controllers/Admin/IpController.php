@@ -24,9 +24,7 @@ class IpController extends BaseAdminController
 
         // Обработка flush перед рендером
         if ($this->input('flush') !== null) {
-            if (function_exists('flushIPs')) {
-                flushIPs();
-            }
+            BlocklistService::flushIPs();
             $this->redirect('./ips?status=' . STATUS_FLUSH);
         }
 

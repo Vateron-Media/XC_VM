@@ -18,7 +18,7 @@ class ProviderController extends BaseAdminController
         $this->setTitle('Stream Providers');
 
         $this->render('providers', [
-            'providers' => getStreamProviders(),
+            'providers' => ProviderService::getAll(),
         ]);
     }
 }

@@ -4,19 +4,19 @@ if (!isset($__viewMode)):
 	include 'session.php';
 	include 'functions.php';
 
-	if (checkPermissions()) {
+	if (PageAuthorization::checkPermissions()) {
 	} else {
-		goHome();
+		AdminHelpers::goHome();
 	}
 
 	if (!isset(RequestManager::getAll()['id'])) {
 	} else {
-		$rBouquetArr = getBouquet(RequestManager::getAll()['id']);
+		$rBouquetArr = BouquetService::getById(RequestManager::getAll()['id']);
 	}
 
 	if (!isset(RequestManager::getAll()['duplicate'])) {
 	} else {
-		$rBouquetArr = getBouquet(RequestManager::getAll()['duplicate']);
+		$rBouquetArr = BouquetService::getById(RequestManager::getAll()['duplicate']);
 		$rBouquetArr['bouquet_name'] .= ' - Copy';
 		unset($rBouquetArr['id']);
 	}
@@ -29,7 +29,7 @@ if (!isset($__viewMode)):
 		$rBouquetMovies = json_decode($rBouquetArr['bouquet_movies'], true);
 		$rBouquetRadios = json_decode($rBouquetArr['bouquet_radios'], true);
 		$rBouquetSeries = json_decode($rBouquetArr['bouquet_series'], true);
-		$rRequiredIDs = confirmIDs(array_merge($rBouquetChannels, $rBouquetMovies, $rBouquetRadios));
+		$rRequiredIDs = AdminHelpers::confirmIDs(array_merge($rBouquetChannels, $rBouquetMovies, $rBouquetRadios));
 
 		if (0 >= count($rRequiredIDs)) {
 		} else {

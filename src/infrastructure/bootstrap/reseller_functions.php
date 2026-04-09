@@ -17,7 +17,8 @@ if (!defined('MAIN_HOME')) {
 	define('MAIN_HOME', '/home/xc_vm/');
 }
 
-require_once MAIN_HOME . 'includes/admin.php';
+require_once MAIN_HOME . 'bootstrap.php';
+XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_ADMIN);
 
 if ($rMobile) {
 	$rSettings['js_navigate'] = 0;
@@ -34,7 +35,7 @@ if (isset($_SESSION['reseller'])) {
 	setcookie('theme', $rUserInfo['theme'], time() + 604800);
 	$language::setLanguage($rUserInfo['lang']);
 
-	$rPermissions = array_merge(getPermissions($rUserInfo['member_group_id']), getGroupPermissions($rUserInfo['id']));
+	$rPermissions = array_merge(AuthRepository::getPermissions($rUserInfo['member_group_id']), AuthRepository::getGroupPermissions($rUserInfo['id']));
 	$rPermissions['direct_reports'] = $rPermissions['direct_reports'] ?? [];
 	$rPermissions['all_reports'] = $rPermissions['all_reports'] ?? [];
 	$rPermissions['stream_ids'] = $rPermissions['stream_ids'] ?? [];
@@ -48,7 +49,7 @@ if (isset($_SESSION['reseller'])) {
 	if (!$rUserInfo || !$rPermissions || !$rPermissions['is_reseller'] || !$rIPMatch && $rSettings['ip_logout'] || $_SESSION['rverify'] != md5($rUserInfo['username'] . '||' . $rUserInfo['password'])) {
 		unset($rUserInfo, $rPermissions);
 
-		destroySession('reseller');
+		SessionManager::clearContext('reseller');
 		header('Location: ./index');
 
 		exit();
@@ -62,5 +63,5 @@ if (isset(RequestManager::getAll()['status'])) {
 	$_STATUS = intval(RequestManager::getAll()['status']);
 	$rArgs = RequestManager::getAll();
 	unset($rArgs['status']);
-	$customScript = setArgs($rArgs);
+	$customScript = AdminHelpers::setArgs($rArgs);
 }

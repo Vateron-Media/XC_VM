@@ -38,7 +38,6 @@ class LoopbackCommand implements CommandInterface {
 
 		if (!defined('MAIN_HOME')) define('MAIN_HOME', '/home/xc_vm/');
 		if (!defined('STREAMS_PATH')) define('STREAMS_PATH', MAIN_HOME . 'content/streams/');
-		if (!defined('INCLUDES_PATH')) define('INCLUDES_PATH', MAIN_HOME . 'includes/');
 		if (!defined('FFMPEG')) define('FFMPEG', MAIN_HOME . 'bin/ffmpeg_bin/4.0/ffmpeg');
 		if (!defined('FFPROBE')) define('FFPROBE', MAIN_HOME . 'bin/ffmpeg_bin/4.0/ffprobe');
 		if (!defined('CACHE_TMP_PATH')) define('CACHE_TMP_PATH', MAIN_HOME . 'tmp/cache/');
@@ -86,7 +85,7 @@ class LoopbackCommand implements CommandInterface {
 
 		set_time_limit(0);
 		cli_set_process_title('Loopback[' . $rStreamID . ']');
-		require INCLUDES_PATH . 'ts.php';
+		require MAIN_HOME . 'streaming/TimeshiftClient.php';
 
 		$rSettings = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'settings'));
 		$rServers = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'servers'));

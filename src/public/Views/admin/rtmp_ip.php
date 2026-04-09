@@ -3,12 +3,12 @@
 	include 'session.php';
 	include 'functions.php';
 
-	if (!checkPermissions()) {
-		goHome();
+	if (!PageAuthorization::checkPermissions()) {
+		AdminHelpers::goHome();
 	}
 
-	if (isset(RequestManager::getAll()['id']) && !($rIPArr = getRTMPIP(RequestManager::getAll()['id']))) {
-		goHome();
+	if (isset(RequestManager::getAll()['id']) && !($rIPArr = BlocklistService::getRTMPIPById(RequestManager::getAll()['id']))) {
+		AdminHelpers::goHome();
 	}
 
 	$_TITLE = 'RTMP IP';

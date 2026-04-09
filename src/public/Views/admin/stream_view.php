@@ -10,14 +10,14 @@
 	include 'session.php';
 	include 'functions.php';
 
-	if (checkPermissions()) {
+	if (PageAuthorization::checkPermissions()) {
 	} else {
-		goHome();
+		AdminHelpers::goHome();
 	}
 
 	if (isset(RequestManager::getAll()['id']) && ($rStream = StreamRepository::getById(RequestManager::getAll()['id']))) {
 	} else {
-		goHome();
+		AdminHelpers::goHome();
 	}
 
 	$rTypeString = array(1 => 'Stream', 2 => 'Movie', 3 => 'Channel', 4 => 'Station', 5 => 'Episode')[$rStream['type']];
@@ -33,7 +33,7 @@
 			$rTokenData = array('session_id' => session_id(), 'expires' => $rExpires, 'stream_id' => intval(RequestManager::getAll()['id']), 'ip' => NetworkUtils::getUserIP());
 			$rUIToken = Encryption::encrypt(json_encode($rTokenData), SettingsManager::getAll()['live_streaming_pass'], OPENSSL_EXTRA);
 
-			if (issecure()) {
+			if (AdminHelpers::issecure()) {
 				$rVServer = ServerRepository::getAll()[$rStream['vframes_server_id']];
 				$rImage = 'https://' . (($rVServer['domain_name'] ? $rVServer['domain_name'] : $rVServer['server_ip'])) . ':' . intval($rVServer['https_broadcast_port']) . '/admin/thumb?uitoken=' . $rUIToken;
 			} else {
@@ -46,7 +46,7 @@
 	} else {
 		if ($rStream['type'] == 2 || $rStream['type'] == 5) {
 			$rProperties = json_decode($rStream['movie_properties'], true);
-			$rImage = (!empty($rProperties['backdrop_path'][0]) ? ImageUtils::validateURL($rProperties['backdrop_path'][0], (issecure() ? 'https' : 'http')) : ImageUtils::validateURL($rProperties['movie_image'], (issecure() ? 'https' : 'http')));
+			$rImage = (!empty($rProperties['backdrop_path'][0]) ? ImageUtils::validateURL($rProperties['backdrop_path'][0], (AdminHelpers::issecure() ? 'https' : 'http')) : ImageUtils::validateURL($rProperties['movie_image'], (AdminHelpers::issecure() ? 'https' : 'http')));
 
 			if (empty($rImage)) {
 			} else {
@@ -131,7 +131,7 @@ if ($rStream['type'] == 1) {
 		}
 
 		echo '</p>' . "\r\n\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t" . '<div class="col-md-3">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<h4 class="header-title">Time Played</h4>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<p class="sub-header" id="s_users">';
-		echo formatUptime($rStreamStats[$rType]['time']);
+		echo AdminHelpers::formatUptime($rStreamStats[$rType]['time']);
 		echo '</p>' . "\r\n\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t" . '<div class="col-md-3">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<h4 class="header-title">Total Streams</h4>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<p class="sub-header" id="s_online">';
 		echo number_format($rStreamStats[$rType]['connections'], 0);
 		echo '</p>' . "\r\n\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t" . '<div class="col-md-3">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<h4 class="header-title">Total Users</h4>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<p class="sub-header" id="s_online">';
@@ -384,7 +384,7 @@ if ($rStream['type'] == 1) {
 	}
 
 	if (0 < $rStream['tv_archive_server_id'] && 0 < $rStream['tv_archive_duration']) {
-		$rArchive = getArchive($rStream['id']);
+		$rArchive = StreamService::getArchive($rStream['id']);
 		echo '                        <div class="tab-pane" id="archive">' . "\r\n\t\t\t\t\t\t\t" . '<div class="table">' . "\r\n\t\t\t\t\t\t\t\t" . '<table id="datatable-archive" class="table table-striped table-borderless mb-0">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<thead>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<tr>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th class="text-center">Date</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th>Title</th>' . "\r\n" . '                                            <th class="text-center">Status</th>' . "\r\n" . '                                            <th class="text-center">Player</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</thead>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<tbody>' . "\r\n" . '                                        ';
 
 		foreach ($rArchive as $rItem) {

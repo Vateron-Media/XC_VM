@@ -1,8 +1,8 @@
 <?php if (!isset($__viewMode)): ?>
 	<?php include 'session.php';
 	include 'functions.php';
-	if (!checkPermissions()) {
-		goHome();
+	if (!PageAuthorization::checkPermissions()) {
+		AdminHelpers::goHome();
 	}
 	$_TITLE = 'Credit Logs';
 	require_once __DIR__ . '/../layouts/admin.php';

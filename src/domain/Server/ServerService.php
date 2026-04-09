@@ -17,12 +17,12 @@ class ServerService {
 			exit();
 		}
 
-		$rServer = getStreamingServersByID($rData['edit']);
+		$rServer = ServerRepository::getById($rData['edit']);
 		if (!$rServer) {
 			return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 		}
 
-		$rArray = verifyPostTable('servers', $rData, true);
+		$rArray = QueryHelper::verifyPostTable('servers', $rData, true);
 		$rPorts = array('http' => array(), 'https' => array());
 
 		if (!isset($rData['http_broadcast_ports']) || !is_array($rData['http_broadcast_ports'])) {
@@ -109,7 +109,7 @@ class ServerService {
 		}
 
 		$rArray['total_services'] = $rData['total_services'];
-		$rPrepare = prepareArray($rArray);
+		$rPrepare = QueryHelper::prepareArray($rArray);
 		$rPrepare['data'][] = $rData['edit'];
 		$rQuery = 'UPDATE `servers` SET ' . $rPrepare['update'] . ' WHERE `id` = ?;';
 
@@ -129,16 +129,16 @@ class ServerService {
 				$rPorts['https'][] = intval($rPort);
 			}
 		}
-		changePort($rInsertID, 0, $rPorts['http'], false);
-		changePort($rInsertID, 1, $rPorts['https'], false);
-		changePort($rInsertID, 2, array($rArray['rtmp_port']), false);
-		setServices($rInsertID, intval($rArray['total_services']), true);
+		ServerService::changePort($rInsertID, 0, $rPorts['http'], false);
+		ServerService::changePort($rInsertID, 1, $rPorts['https'], false);
+		ServerService::changePort($rInsertID, 2, array($rArray['rtmp_port']), false);
+		ServerService::setServices($rInsertID, intval($rArray['total_services']), true);
 
 		if (!empty($rArray['governor'])) {
-			setGovernor($rInsertID, $rArray['governor']);
+			ServerService::setGovernor($rInsertID, $rArray['governor']);
 		}
 		if (!empty($rArray['sysctl'])) {
-			setSysctl($rInsertID, $rArray['sysctl']);
+			ServerService::setSysctl($rInsertID, $rArray['sysctl']);
 		}
 		if (file_exists(CACHE_TMP_PATH . 'servers')) {
 			unlink(CACHE_TMP_PATH . 'servers');
@@ -169,7 +169,7 @@ class ServerService {
 			exit();
 		}
 
-		$rArray = overwriteData(getStreamingServersByID($rData['edit']), $rData);
+		$rArray = AdminHelpers::overwriteData(ServerRepository::getById($rData['edit']), $rData);
 		foreach (array('enable_https', 'random_ip', 'enable_geoip', 'enabled') as $rKey) {
 			$rArray[$rKey] = isset($rData[$rKey]);
 		}
@@ -192,12 +192,12 @@ class ServerService {
 		if (strlen($rData['server_ip']) == 0 || !filter_var($rData['server_ip'], FILTER_VALIDATE_IP)) {
 			return array('status' => STATUS_INVALID_IP, 'data' => $rData);
 		}
-		if (checkExists('servers', 'server_ip', $rData['server_ip'], 'id', $rArray['id'])) {
+		if (QueryHelper::checkExists('servers', 'server_ip', $rData['server_ip'], 'id', $rArray['id'])) {
 			return array('status' => STATUS_EXISTS_IP, 'data' => $rData);
 		}
 
 		$rArray['server_type'] = 1;
-		$rPrepare = prepareArray($rArray);
+		$rPrepare = QueryHelper::prepareArray($rArray);
 		$rQuery = 'REPLACE INTO `servers`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
 		if ($db->query($rQuery, ...$rPrepare['data'])) {
@@ -252,7 +252,7 @@ class ServerService {
 			return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rServer['id']));
 		}
 
-		$rArray = verifyPostTable('servers', $rData);
+		$rArray = QueryHelper::verifyPostTable('servers', $rData);
 		$rArray['status'] = 3;
 		unset($rArray['id']);
 
@@ -268,7 +268,7 @@ class ServerService {
 		}
 
 		$rArray['network_interface'] = 'auto';
-		$rPrepare = prepareArray($rArray);
+		$rPrepare = QueryHelper::prepareArray($rArray);
 		$rQuery = 'INSERT INTO `servers`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
 		if (!$db->query($rQuery, ...$rPrepare['data'])) {
@@ -300,5 +300,53 @@ class ServerService {
 		}
 
 		return array('status' => STATUS_SUCCESS);
+	}
+
+	public static function changePort($rServerID, $rType, $rPorts, $rReload = false) {
+		global $db;
+		$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rServerID, time(), json_encode(array('action' => 'set_port', 'type' => intval($rType), 'ports' => $rPorts, 'reload' => $rReload)));
+	}
+
+	public static function setServices($rServerID, $rNumServices, $rReload = true) {
+		global $db;
+		$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rServerID, time(), json_encode(array('action' => 'set_services', 'count' => intval($rNumServices), 'reload' => $rReload)));
+	}
+
+	public static function setGovernor($rServerID, $rGovernor) {
+		global $db;
+		$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rServerID, time(), json_encode(array('action' => 'set_governor', 'data' => $rGovernor)));
+	}
+
+	public static function setSysctl($rServerID, $rSysCtl) {
+		global $db;
+		$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rServerID, time(), json_encode(array('action' => 'set_sysctl', 'data' => $rSysCtl)));
+	}
+
+	public static function restoreImages() {
+		global $db;
+		global $rServers;
+		foreach (array_keys($rServers) as $rServerID) {
+			if (!$rServers[$rServerID]['server_online']) {
+			} else {
+				ApiClient::systemRequest($rServerID, array('action' => 'restore_images'));
+			}
+		}
+
+		return true;
+	}
+
+	public static function killPlexSync() {
+		global $db;
+		$db->query("SELECT DISTINCT(`server_id`) AS `server_id` FROM `watch_folders` WHERE `active` = 1 AND `type` = 'plex';");
+
+		global $rServers;
+		foreach ($db->get_rows() as $rRow) {
+			if (!$rServers[$rRow['server_id']]['server_online']) {
+			} else {
+				ApiClient::systemRequest($rRow['server_id'], array('action' => 'kill_plex'));
+			}
+		}
+
+		return true;
 	}
 }

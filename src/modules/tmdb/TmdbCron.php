@@ -70,10 +70,11 @@ class TmdbCron {
             foreach ($rResults as $rResultArr) {
                 $rPercentage = 0;
                 $rPercentageAlt = 0;
+                $rResultName = (string)($rResultArr->get('title') ?: $rResultArr->get('name'));
 
                 similar_text(
                     strtoupper($title),
-                    strtoupper(($rResultArr->get('title') ?: $rResultArr->get('name'))),
+                    strtoupper($rResultName),
                     $rPercentage
                 );
 
@@ -81,7 +82,7 @@ class TmdbCron {
                 } else {
                     similar_text(
                         strtoupper($altTitle),
-                        strtoupper(($rResultArr->get('title') ?: $rResultArr->get('name'))),
+                        strtoupper($rResultName),
                         $rPercentageAlt
                     );
                 }
@@ -90,15 +91,15 @@ class TmdbCron {
                     || SettingsManager::getAll()['percentage_match'] <= $rPercentageAlt)) {
                 } else {
                     if ($year && !in_array(
-                        intval(substr(($rResultArr->get('release_date') ?: $rResultArr->get('first_air_date')), 0, 4)),
+                        intval(substr((string)($rResultArr->get('release_date') ?: $rResultArr->get('first_air_date')), 0, 4)),
                         range(intval($year) - 1, intval($year) + 1)
                     )) {
                     } else {
-                        if ($altTitle && strtolower(($rResultArr->get('title') ?: $rResultArr->get('name'))) == strtolower($altTitle)) {
+                        if ($altTitle && strtolower($rResultName) == strtolower($altTitle)) {
                             $rMatches = array(array('percentage' => 100, 'data' => $rResultArr));
                             break;
                         }
-                        if (strtolower(($rResultArr->get('title') ?: $rResultArr->get('name'))) == strtolower($title) && !$altTitle) {
+                        if (strtolower($rResultName) == strtolower($title) && !$altTitle) {
                             $rMatches = array(array('percentage' => 100, 'data' => $rResultArr));
                             break;
                         }
@@ -161,7 +162,7 @@ class TmdbCron {
         if ($rTMDBID == 0) {
             $rFilename = pathinfo(json_decode($rStream['stream_source'], true)[0])['filename'];
             foreach (array($rFilename, $rStream['stream_display_name']) as $rStreamTitle) {
-                $rRelease = parserelease($rStreamTitle);
+                $rRelease = AdminHelpers::parserelease($rStreamTitle);
                 $rTitle = $rRelease['title'];
 
                 if (!isset($rRelease['excess'])) {
@@ -340,7 +341,7 @@ class TmdbCron {
         /* --- Если TMDB ID неизвестен — ищем --- */
         if ($rTMDBID == 0) {
             $rFilename = $rStream['title'];
-            $rRelease = parserelease($rFilename);
+            $rRelease = AdminHelpers::parserelease($rFilename);
             $rTitle = $rRelease['title'];
 
             if (!isset($rRelease['excess'])) {
@@ -378,7 +379,7 @@ class TmdbCron {
             $rSeriesArray['plot']            = $rShowData['overview'];
             $rSeriesArray['rating']          = $rShowData['vote_average'];
             $rSeriesArray['release_date']    = $rShowData['first_air_date'];
-            $rSeriesArray['youtube_trailer'] = getSeriesTrailer($rShowData['id']);
+            $rSeriesArray['youtube_trailer'] = TMDbService::getSeriesTrailer($rShowData['id']);
             $rSeriesArray['cover']           = ($rShowData['poster_path']
                 ? 'https://image.tmdb.org/t/p/w600_and_h900_bestv2' . $rShowData['poster_path']
                 : '');
@@ -439,7 +440,7 @@ class TmdbCron {
 
             $rSeriesArray['episode_run_time'] = intval($rShowData['episode_run_time'][0]);
 
-            $rPrepare = prepareArray($rSeriesArray);
+            $rPrepare = QueryHelper::prepareArray($rSeriesArray);
             $rQuery = 'REPLACE INTO `streams_series`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
             if ($db->query($rQuery, ...$rPrepare['data'])) {
@@ -502,7 +503,7 @@ class TmdbCron {
         }
 
         $rFilename = pathinfo(json_decode($rStream['stream_source'], true)[0])['filename'];
-        $rRelease = parserelease($rFilename);
+        $rRelease = AdminHelpers::parserelease($rFilename);
         $rReleaseSeason = $rRelease['season'];
 
         if (is_array($rRelease['episode'])) {
@@ -601,8 +602,8 @@ class TmdbCron {
     public static function run(): void {
         global $db;
 
-        require_once INCLUDES_PATH . 'libs/tmdb.php';
-        require_once INCLUDES_PATH . 'libs/tmdb_release.php';
+        require_once MAIN_HOME . 'modules/tmdb/lib/TmdbClient.php';
+        require_once MAIN_HOME . 'modules/tmdb/lib/Release.php';
 
         $rUpdateSeries = array();
 

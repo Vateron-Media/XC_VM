@@ -3,14 +3,14 @@
     include 'session.php';
     include 'functions.php';
 
-    if (!checkPermissions()) {
-        goHome();
+    if (!PageAuthorization::checkPermissions()) {
+        AdminHelpers::goHome();
     }
 
     if (isset(RequestManager::getAll()['id'])) {
         $rStation = StreamRepository::getById(RequestManager::getAll()['id']);
         if (!$rStation || $rStation['type'] != 4) {
-            goHome();
+            AdminHelpers::goHome();
         }
     }
 

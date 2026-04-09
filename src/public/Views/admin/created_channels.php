@@ -1,9 +1,9 @@
 <?php if (!isset($__viewMode)): ?>
 	<?php include 'session.php';
 	include 'functions.php';
-	if (checkPermissions()) {
+	if (PageAuthorization::checkPermissions()) {
 	} else {
-		goHome();
+		AdminHelpers::goHome();
 	}
 	$_TITLE = 'Created Channels';
 	require_once __DIR__ . '/../layouts/admin.php';

@@ -437,7 +437,7 @@ class XC_Bootstrap {
 
         global $db;
 
-        require_once INCLUDES_PATH . 'reseller_api.php';
+        require_once MAIN_HOME . 'infrastructure/legacy/reseller_api.php';
 
         // Admin user info
         if (isset($_SESSION['hash'])) {
@@ -453,7 +453,7 @@ class XC_Bootstrap {
      * Initialize Translator (i18n).
      */
     private static function initTranslator(): void {
-        require_once INCLUDES_PATH . 'libs/Translator.php';
+        require_once MAIN_HOME . 'core/Localization/Translator.php';
 
         $language = Translator::class;
         $language::init(MAIN_HOME . 'resources/langs/');
@@ -578,7 +578,7 @@ class XC_Bootstrap {
             define('SERVER_ID', intval(ConfigReader::get('server_id')));
         }
 
-        require_once INCLUDES_PATH . 'libs/mobiledetect.php';
+        require_once MAIN_HOME . 'core/Device/MobileDetect.php';
         $rDetect = new \Mobile_Detect();
         $rMobile = $rDetect->isMobile();
 
@@ -597,6 +597,16 @@ class XC_Bootstrap {
 
         $language     = Translator::class;
         $allowedLangs = $language::available();
+
+        // Sort servers by order (moved from infrastructure/legacy/admin.php)
+        if (is_array($rServers)) {
+            uasort(
+                $rServers,
+                function ($a, $b) {
+                    return $a['order'] - $b['order'];
+                }
+            );
+        }
 
         require_once MAIN_HOME . 'resources/data/admin_constants.php';
     }

@@ -102,4 +102,108 @@ class BackupService {
 	public static function revokePrivileges($host, $db, $config) {
 		$db->query("REVOKE ALL PRIVILEGES ON `" . $config['database'] . "`.* FROM '" . $config['username'] . "'@'" . $host . "';");
 	}
+
+	public static function getLocal() {
+		$rBackups = array();
+
+		foreach (scandir(MAIN_HOME . 'backups/') as $rBackup) {
+			$rInfo = pathinfo(MAIN_HOME . 'backups/' . $rBackup);
+
+			if ($rInfo['extension'] != 'sql') {
+			} else {
+				$rBackups[] = array('filename' => $rBackup, 'timestamp' => filemtime(MAIN_HOME . 'backups/' . $rBackup), 'date' => date('Y-m-d H:i:s', filemtime(MAIN_HOME . 'backups/' . $rBackup)), 'filesize' => filesize(MAIN_HOME . 'backups/' . $rBackup));
+			}
+		}
+		usort(
+			$rBackups,
+			function ($a, $b) {
+				return $a['timestamp'];
+			}
+		);
+
+		return $rBackups;
+	}
+
+	public static function checkRemoteConnection() {
+		require_once MAIN_HOME . 'core/Storage/DropboxClient.php';
+
+		try {
+			$rClient = new DropboxClient();
+			$rClient->SetBearerToken(array('t' => SettingsManager::getAll()['dropbox_token']));
+			$rClient->GetFiles();
+
+			return true;
+		} catch (exception $e) {
+			return false;
+		}
+	}
+
+	public static function getRemote() {
+		require_once MAIN_HOME . 'core/Storage/DropboxClient.php';
+
+		try {
+			$rClient = new DropboxClient();
+			$rClient->SetBearerToken(array('t' => SettingsManager::getAll()['dropbox_token']));
+			$rFiles = $rClient->GetFiles();
+		} catch (exception $e) {
+			$rFiles = array();
+		}
+		$rBackups = array();
+
+		foreach ($rFiles as $rFile) {
+			try {
+				if (!(!$rFile->isDir && strtolower(pathinfo($rFile->name)['extension']) == 'sql' && 0 < $rFile->size)) {
+				} else {
+					$rJSON = json_decode(json_encode($rFile, JSON_UNESCAPED_UNICODE), true);
+					$rJSON['time'] = strtotime($rFile->server_modified);
+					$rBackups[] = $rJSON;
+				}
+			} catch (exception $e) {
+			}
+		}
+		array_multisort(array_column($rBackups, 'time'), SORT_ASC, $rBackups);
+
+		return $rBackups;
+	}
+
+	public static function downloadRemote($rPath, $rFilename) {
+		require_once MAIN_HOME . 'core/Storage/DropboxClient.php';
+		$rClient = new DropboxClient();
+
+		try {
+			$rClient->SetBearerToken(array('t' => SettingsManager::getAll()['dropbox_token']));
+			$rClient->downloadFile($rPath, $rFilename);
+
+			return true;
+		} catch (exception $e) {
+			return false;
+		}
+	}
+
+	public static function uploadRemote($rPath, $rFilename, $rOverwrite = true) {
+		require_once MAIN_HOME . 'core/Storage/DropboxClient.php';
+		$rClient = new DropboxClient();
+
+		try {
+			$rClient->SetBearerToken(array('t' => SettingsManager::getAll()['dropbox_token']));
+
+			return $rClient->UploadFile($rFilename, $rPath, $rOverwrite);
+		} catch (exception $e) {
+			return (object) array('error' => $e);
+		}
+	}
+
+	public static function deleteRemote($rPath) {
+		require_once MAIN_HOME . 'core/Storage/DropboxClient.php';
+		$rClient = new DropboxClient();
+
+		try {
+			$rClient->SetBearerToken(array('t' => SettingsManager::getAll()['dropbox_token']));
+			$rClient->Delete($rPath);
+
+			return true;
+		} catch (exception $e) {
+			return false;
+		}
+	}
 }

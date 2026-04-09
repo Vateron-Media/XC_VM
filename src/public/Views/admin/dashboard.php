@@ -13,7 +13,7 @@
 
 	if (!isset(RequestManager::getAll()['server_id']) || isset($rServers[RequestManager::getAll()['server_id']])) {
 	} else {
-		goHome();
+		AdminHelpers::goHome();
 	}
 
 	$rConnectionMap = array();

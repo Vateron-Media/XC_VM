@@ -23,7 +23,7 @@ class IspController extends BaseAdminController
 
         $this->setTitle("Blocked ISP's");
 
-        $isps = function_exists('getISPs') ? getISPs() : [];
+        $isps = BlocklistService::getAllISPs();
 
         $this->render('isps', [
             'isps' => $isps,

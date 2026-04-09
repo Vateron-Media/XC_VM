@@ -41,9 +41,10 @@ class ResellerTableController extends BaseResellerController
             if ($db->num_rows() != 0) {
                 $rUserID = $db->get_row()['id'];
                 $rIsAPI = true;
-                require_once MAIN_HOME . 'includes/admin.php';
+                require_once MAIN_HOME . 'bootstrap.php';
+                XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_ADMIN);
                 $rUserInfo = UserRepository::getRegisteredUserById($rUserID);
-                $rPermissions = array_merge(getPermissions($rUserInfo['member_group_id']), getGroupPermissions($rUserInfo['id']));
+                $rPermissions = array_merge(AuthRepository::getPermissions($rUserInfo['member_group_id']), AuthRepository::getGroupPermissions($rUserInfo['id']));
                 $rPermissions['direct_reports'] = $rPermissions['direct_reports'] ?? [];
                 $rPermissions['all_reports'] = $rPermissions['all_reports'] ?? [];
                 $rPermissions['stream_ids'] = $rPermissions['stream_ids'] ?? [];
