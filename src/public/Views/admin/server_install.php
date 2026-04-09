@@ -4,8 +4,8 @@ if (!isset($__viewMode)):
     include 'session.php';
     include 'functions.php';
 
-    if (!checkPermissions()) {
-        goHome();
+    if (!PageAuthorization::checkPermissions()) {
+        AdminHelpers::goHome();
     }
 
     $rType = isset(RequestManager::getAll()['proxy']) ? 1 : 2;
@@ -19,7 +19,7 @@ if (!isset($__viewMode)):
         }
 
         if (!$rServerArr) {
-            goHome();
+            AdminHelpers::goHome();
         }
     }
 

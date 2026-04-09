@@ -44,4 +44,30 @@ class StreamConfigRepository {
 
 		return $rReturn;
 	}
+
+	public static function getTranscodeProfile($rID) {
+		global $db;
+		$db->query('SELECT * FROM `profiles` WHERE `profile_id` = ?;', $rID);
+
+		if ($db->num_rows() != 1) {
+			return null;
+		}
+
+		return $db->get_row();
+	}
+
+	public static function deleteProfile($rID) {
+		global $db;
+		$rProfile = self::getTranscodeProfile($rID);
+
+		if (!$rProfile) {
+			return false;
+		}
+
+		$db->query('DELETE FROM `profiles` WHERE `profile_id` = ?;', $rID);
+		$db->query('UPDATE `streams` SET `transcode_profile_id` = 0 WHERE `transcode_profile_id` = ?;', $rID);
+		$db->query('UPDATE `watch_folders` SET `transcode_profile_id` = 0 WHERE `transcode_profile_id` = ?;', $rID);
+
+		return true;
+	}
 }

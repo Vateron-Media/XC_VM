@@ -3,9 +3,9 @@
     include 'session.php';
     include 'functions.php';
 
-    if (checkPermissions()) {
+    if (PageAuthorization::checkPermissions()) {
     } else {
-        goHome();
+        AdminHelpers::goHome();
     }
 
     if (isset(RequestManager::getAll()['save_changes'])) {
@@ -45,7 +45,7 @@
                 foreach ($rHasBouquets as $rBouquetID) {
                     if (in_array($rBouquetID, $rStream['bouquets'])) {
                     } else {
-                        removeFromBouquet('stream', $rBouquetID, $rID);
+                        BouquetService::removeItems('stream', $rBouquetID, $rID);
                     }
                 }
 
@@ -53,7 +53,7 @@
                     if (in_array($rBouquetID, $rHasBouquets)) {
                     } else {
                         $rAddBouquet[] = $rBouquetID;
-                        addToBouquet('stream', $rBouquetID, $rID);
+                        BouquetService::addItems('stream', $rBouquetID, $rID);
                     }
                 }
             }

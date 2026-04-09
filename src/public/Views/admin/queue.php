@@ -2,8 +2,8 @@
 	<?php include 'session.php'; ?>
 	<?php include 'functions.php'; ?>
 
-	<?php if (!checkPermissions()) {
-		goHome();
+	<?php if (!PageAuthorization::checkPermissions()) {
+		AdminHelpers::goHome();
 	} ?>
 
 	<?php $_TITLE = 'Encoding Queue'; ?>

@@ -509,7 +509,7 @@ class RootSignalsCronJob implements CommandInterface {
                         case 'certbot_generate':
                             echo 'Generating certbot certificate.' . "\n";
                             $db->query("INSERT INTO `mysql_syslog`(`server_id`, `type`, `error`, `username`, `ip`, `database`, `date`) VALUES(?, 'CERTBOT', 'Attempting to generate certbot certificate on request.', 'root', 'localhost', NULL, ?);", SERVER_ID, time());
-                            shell_exec('sudo ' . PHP_BIN . ' ' . INCLUDES_PATH . 'cli/certbot.php "' . base64_encode(json_encode($rData)) . '" 2>&1 &');
+                            shell_exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php certbot "' . base64_encode(json_encode($rData)) . '" 2>&1 &');
                             break;
                         case 'update_binaries':
                             echo 'Updating binaries...' . "\n";

@@ -92,7 +92,7 @@ if ($action == 'line') {
 
         if (Authorization::check('line', $rUserID) && $rLine) {
             if ($rSub == 'delete') {
-                deleteLine($rUserID);
+                LineService::deleteLineById($rUserID);
                 $db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'line', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'delete', RequestManager::getAll()['user_id'], 0, $rUserInfo['credits'], time(), json_encode($rLine));
                 echo json_encode(array('result' => true));
                 exit();
@@ -225,7 +225,7 @@ if ($action == 'reg_user') {
                 if ($rPermissions['delete_users']) {
                     $rOwnerCredits = intval($rUserInfo['credits']) + intval($rUser['credits']);
                     $db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $rOwnerCredits, $rUserInfo['id']);
-                    deleteUser(RequestManager::getAll()['user_id'], false, false, $rUserInfo['id']);
+                    UserService::deleteRegisteredUser(RequestManager::getAll()['user_id'], false, false, $rUserInfo['id']);
                     $db->query('INSERT INTO `users_credits_logs`(`target_id`, `admin_id`, `amount`, `date`, `reason`) VALUES(?, ?, ?, ?, ?);', $rUserInfo['id'], $rUserInfo['id'], intval($rUser['credits']), time(), 'Deleted user: ' . $rUser['username']);
                     $db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'user', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'delete', RequestManager::getAll()['user_id'], intval($rUser['credits']), $rOwnerCredits, time(), json_encode($rUser));
                     echo json_encode(array('result' => true));
@@ -259,7 +259,7 @@ if ($action == 'reg_user') {
 }
 
 if ($action == 'ticket') {
-    $rTicket = getTicket(RequestManager::getAll()['ticket_id']);
+    $rTicket = TicketRepository::getById(RequestManager::getAll()['ticket_id']);
 
     if ($rTicket) {
         if (Authorization::check('user', $rTicket['member_id'])) {
@@ -292,12 +292,12 @@ if ($action == 'ticket') {
 if ($action == 'mag') {
     if ($rPermissions['create_mag']) {
         $rSub = RequestManager::getAll()['sub'];
-        $rMagDetails = getMag(intval(RequestManager::getAll()['mag_id']));
+        $rMagDetails = MagService::getById(intval(RequestManager::getAll()['mag_id']));
 
         if ($rMagDetails) {
             if (Authorization::check('line', $rMagDetails['user_id'])) {
                 if ($rSub == 'delete') {
-                    deleteMAG(RequestManager::getAll()['mag_id']);
+                    MagService::deleteDevice(RequestManager::getAll()['mag_id']);
                     $db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'mag', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'delete', RequestManager::getAll()['mag_id'], 0, $rUserInfo['credits'], time(), json_encode($rMagDetails));
                     echo json_encode(array('result' => true));
                     exit();
@@ -318,7 +318,7 @@ if ($action == 'mag') {
                 }
 
                 if ($rSub == 'convert') {
-                    deleteMAG(RequestManager::getAll()['mag_id'], false, false, true);
+                    MagService::deleteDevice(RequestManager::getAll()['mag_id'], false, false, true);
                     $db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'line', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'convert', $rMagDetails['user']['id'], 0, $rUserInfo['credits'], time(), json_encode($rMagDetails['user']));
                     echo json_encode(array('result' => true, 'line_id' => $rMagDetails['user']['id']));
                     exit();
@@ -364,12 +364,12 @@ if ($action == 'mag') {
 if ($action == 'enigma') {
     if ($rPermissions['create_enigma']) {
         $rSub = RequestManager::getAll()['sub'];
-        $rE2Details = getEnigma(intval(RequestManager::getAll()['e2_id']));
+        $rE2Details = EnigmaService::getById(intval(RequestManager::getAll()['e2_id']));
 
         if ($rE2Details) {
             if (Authorization::check('line', $rE2Details['user_id'])) {
                 if ($rSub == 'delete') {
-                    deleteEnigma(RequestManager::getAll()['e2_id']);
+                    EnigmaService::deleteDevice(RequestManager::getAll()['e2_id']);
                     $db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'enigma', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'delete', RequestManager::getAll()['e2_id'], 0, $rUserInfo['credits'], time(), json_encode($rE2Details));
                     echo json_encode(array('result' => true));
                     exit();
@@ -390,7 +390,7 @@ if ($action == 'enigma') {
                 }
 
                 if ($rSub == 'convert') {
-                    deleteEnigma(RequestManager::getAll()['e2_id'], false, false, true);
+                    EnigmaService::deleteDevice(RequestManager::getAll()['e2_id'], false, false, true);
                     $db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'line', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'convert', $rE2Details['user']['id'], 0, $rUserInfo['credits'], time(), json_encode($rE2Details['user']));
                     echo json_encode(array('result' => true, 'line_id' => $rE2Details['user']['id']));
                     exit();
@@ -446,7 +446,7 @@ if ($action == 'get_package') {
         }
 
         if (isset(RequestManager::getAll()['orig_id']) && $rData['check_compatible']) {
-            $rData['compatible'] = checkCompatible(RequestManager::getAll()['package_id'], RequestManager::getAll()['orig_id']);
+            $rData['compatible'] = PackageService::checkCompatible(RequestManager::getAll()['package_id'], RequestManager::getAll()['orig_id']);
         } else {
             $rData['compatible'] = true;
         }
@@ -591,7 +591,7 @@ if ($action == 'userlist') {
 if ($action == 'send_event') {
     if ($rPermissions['create_mag']) {
         $rData = json_decode(RequestManager::getAll()['data'], true);
-        $rMag = getMag($rData['id']);
+        $rMag = MagService::getById($rData['id']);
 
         if ($rMag) {
             if (Authorization::check('line', $rMag['user_id'])) {
@@ -602,7 +602,7 @@ if ($action == 'send_event') {
                     $rData['reboot_portal'] = 0;
                     $rData['message'] = intval($rData['channel']);
                 } else if ($rData['type'] == 'reset_stb_lock') {
-                    resetSTB($rData['id']);
+                    MagService::resetSTB($rData['id']);
                     echo json_encode(array('result' => true));
                     exit();
                 } else {

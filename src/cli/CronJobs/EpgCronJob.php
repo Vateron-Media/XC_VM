@@ -39,7 +39,7 @@ class EpgCronJob implements CommandInterface {
         set_time_limit(0);
         ini_set('memory_limit', -1);
 
-        require INCLUDES_PATH . 'libs/XmlStringStreamer.php';
+        require MAIN_HOME . 'core/Parsing/XmlStringStreamer.php';
 
         shell_exec('kill -9 `ps -ef | grep \'XC_VM\\[EPG\\]\' | grep -v grep | awk \'{print $2}\'`;');
         cli_set_process_title('XC_VM[EPG]');

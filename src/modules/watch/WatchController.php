@@ -95,9 +95,9 @@ class WatchController {
         global $db;
 
         if (isset(RequestManager::getAll()['id'])) {
-            $rFolder = getWatchFolder(RequestManager::getAll()['id']);
+            $rFolder = StreamRepository::getWatchFolder(RequestManager::getAll()['id']);
             if (!$rFolder) {
-                goHome();
+                AdminHelpers::goHome();
                 return;
             }
         }
@@ -160,7 +160,7 @@ class WatchController {
                 RequestManager::getAll()['programme']
             );
             if (!$rStream || $rStream['type'] != 1 || !$rProgramme) {
-                goHome();
+                AdminHelpers::goHome();
                 return;
             }
         } elseif (isset(RequestManager::getAll()['archive'])) {
@@ -174,7 +174,7 @@ class WatchController {
                 'archive'     => true,
             ];
             if (!$rStream || $rStream['type'] != 1 || !$rProgramme) {
-                goHome();
+                AdminHelpers::goHome();
                 return;
             }
         } elseif (isset(RequestManager::getAll()['stream_id'])) {
@@ -261,13 +261,13 @@ class WatchController {
         $rFolderID = RequestManager::getAll()['folder_id'] ?? 0;
 
         if ($rSub === 'delete') {
-            deleteWatchFolder($rFolderID);
+            StreamRepository::deleteWatchFolder($rFolderID);
             echo json_encode(['result' => true]);
             exit();
         }
 
         if ($rSub === 'force') {
-            $rFolder = getWatchFolder($rFolderID);
+            $rFolder = StreamRepository::getWatchFolder($rFolderID);
             if ($rFolder) {
                 WatchService::forceWatch($rFolder['server_id'], $rFolder['id']);
                 echo json_encode(['result' => true]);

@@ -173,7 +173,7 @@ class TmdbPopularCron {
     public static function run(): void {
         global $db;
 
-        require_once MAIN_HOME . 'includes/libs/tmdb.php';
+        require_once MAIN_HOME . 'modules/tmdb/lib/TmdbClient.php';
 
         if (strlen(SettingsManager::getAll()['tmdb_api_key'] ?? '') > 0) {
             $lang = SettingsManager::getAll()['tmdb_language'] ?? '';

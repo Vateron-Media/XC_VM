@@ -2,8 +2,8 @@
 <?php include 'session.php'; ?>
 <?php include 'functions.php'; ?>
 
-<?php if (!checkPermissions()): ?>
-	<?php goHome(); ?>
+<?php if (!PageAuthorization::checkPermissions()): ?>
+	<?php AdminHelpers::goHome(); ?>
 <?php endif; ?>
 
 <?php $_TITLE = 'Access Codes'; ?>
@@ -53,7 +53,7 @@ renderUnifiedLayoutHeader('admin');
 								</tr>
 							</thead>
 							<tbody>
-								<?php foreach (getcodes() as $rCode): ?>
+								<?php foreach (AuthRepository::getAllCodes() as $rCode): ?>
 									<tr id="code-<?= $rCode['id']; ?>">
 										<td class="text-center"><?= $rCode['id']; ?></td>
 										<td><?= $rCode['code']; ?></td>

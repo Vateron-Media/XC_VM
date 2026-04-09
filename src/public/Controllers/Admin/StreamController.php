@@ -31,7 +31,7 @@ class StreamController extends BaseAdminController
             }
         }
 
-        $rEPGSources = getEPGSources();
+        $rEPGSources = EpgService::getAll();
         $rStreamArguments = StreamConfigRepository::getStreamArguments();
         $rTranscodeProfiles = StreamConfigRepository::getTranscodeProfiles();
         $rOnDemand = [];

@@ -28,8 +28,6 @@ class SeriesCronJob implements CommandInterface {
             return 1;
         }
 
-        require INCLUDES_PATH . 'admin.php';
-
         $this->setProcessTitle('XC_VM[Series]');
         $this->acquireCronLock();
 

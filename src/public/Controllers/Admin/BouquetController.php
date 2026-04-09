@@ -37,9 +37,9 @@ class BouquetController extends BaseAdminController
         $duplicateId = $this->input('duplicate');
 
         if ($editId !== null) {
-            $rBouquetArr = function_exists('getBouquet') ? getBouquet($editId) : null;
+            $rBouquetArr = BouquetService::getById($editId);
         } elseif ($duplicateId !== null) {
-            $rBouquetArr = function_exists('getBouquet') ? getBouquet($duplicateId) : null;
+            $rBouquetArr = BouquetService::getById($duplicateId);
             if ($rBouquetArr) {
                 $rBouquetArr['bouquet_name'] .= ' - Copy';
                 unset($rBouquetArr['id']);
@@ -54,9 +54,7 @@ class BouquetController extends BaseAdminController
             $rBouquetSeries = json_decode($rBouquetArr['bouquet_series'], true) ?: [];
 
             // Имена потоков/фильмов/радио
-            $rRequiredIDs = function_exists('confirmIDs')
-                ? confirmIDs(array_merge($rBouquetChannels, $rBouquetMovies, $rBouquetRadios))
-                : array_map('intval', array_merge($rBouquetChannels, $rBouquetMovies, $rBouquetRadios));
+            $rRequiredIDs = AdminHelpers::confirmIDs(array_merge($rBouquetChannels, $rBouquetMovies, $rBouquetRadios));
 
             if (count($rRequiredIDs) > 0) {
                 global $db;

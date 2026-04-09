@@ -1,23 +1,16 @@
 <?php
 if (!isset($__viewMode)):
-
-
-
-
-
-
-
 	include 'session.php';
 	include 'functions.php';
 
-	if (checkPermissions()) {
+	if (PageAuthorization::checkPermissions()) {
 	} else {
-		goHome();
+		AdminHelpers::goHome();
 	}
 
-	if (isset(RequestManager::getAll()['id']) && ($rTicketInfo = getTicket(RequestManager::getAll()['id']))) {
+	if (isset(RequestManager::getAll()['id']) && ($rTicketInfo = TicketRepository::getById(RequestManager::getAll()['id']))) {
 	} else {
-		goHome();
+		AdminHelpers::goHome();
 	}
 
 	if ($rUserInfo['id'] == $rTicketInfo['member_id']) {

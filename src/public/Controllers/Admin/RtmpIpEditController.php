@@ -20,11 +20,9 @@ class RtmpIpEditController extends BaseAdminController
         $rIPArr = null;
         $id = $this->input('id');
         if ($id !== null) {
-            $rIPArr = function_exists('getRTMPIP') ? getRTMPIP($id) : null;
+            $rIPArr = BlocklistService::getRTMPIPById($id);
             if (!$rIPArr) {
-                if (function_exists('goHome')) {
-                    goHome();
-                }
+                AdminHelpers::goHome();
                 return;
             }
         }

@@ -22,6 +22,7 @@
   - [⚙️ Autoloader & Class Registration](en-us/development/autoloader.md)
   - [🧩 Module System](en-us/development/modules.md)
   - [📂 Development Workflow (SFTP)](en-us/development/dev-workflow.md)
+  - [🌐 Adding a Custom Language](en-us/development/translations.md)
 
 - 📦 **Additional**
   - [🎬 Watchfolder](en-us/info/watch_folder.md)

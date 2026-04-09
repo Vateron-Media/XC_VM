@@ -4,8 +4,8 @@
     include 'session.php';
     include 'functions.php';
 
-    if (!checkPermissions()) {
-        goHome();
+    if (!PageAuthorization::checkPermissions()) {
+        AdminHelpers::goHome();
     }
 
     if (!isset(RequestManager::getAll()['server']) || !isset($rServers[RequestManager::getAll()['server']])) {
@@ -27,7 +27,7 @@
 
     $rStreams = StreamRepository::getPIDs(RequestManager::getAll()['server']) ?: array();
     $rFS = ServerRepository::getFreeSpace(RequestManager::getAll()['server']) ?: array();
-    $rProcesses = getPIDs(RequestManager::getAll()['server']) ?: array();
+    $rProcesses = DiagnosticsService::getPIDs(RequestManager::getAll()['server']) ?: array();
     $rStatus = array('D' => 'Uninterruptible Sleep', 'I' => 'Idle', 'R' => 'Running', 'S' => 'Interruptible Sleep', 'T' => 'Stopped', 'W' => 'Paging', 'X' => 'Dead', 'Z' => 'Zombie');
     $_TITLE = 'Process Monitor';
     require_once __DIR__ . '/../layouts/admin.php';

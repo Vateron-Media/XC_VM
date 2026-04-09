@@ -18,7 +18,7 @@ class MagService {
 		ini_set('default_socket_timeout', 0);
 
 		$rMags = json_decode($rData['mags'], true);
-		deleteMAGs($rMags);
+		self::deleteDevices($rMags);
 
 		return array('status' => STATUS_SUCCESS);
 	}
@@ -101,7 +101,7 @@ class MagService {
 						$rUserArray['bouquet'][] = $rBouquet;
 					}
 				}
-				$rUserArray['bouquet'] = sortArrayByArray($rUserArray['bouquet'], array_keys(BouquetService::getOrder()));
+				$rUserArray['bouquet'] = AdminHelpers::sortArrayByArray($rUserArray['bouquet'], array_keys(BouquetService::getOrder()));
 				$rUserArray['bouquet'] = '[' . implode(',', array_map('intval', $rUserArray['bouquet'])) . ']';
 			}
 
@@ -140,7 +140,7 @@ class MagService {
 			$rDevices = json_decode($rData['devices_selected'], true);
 
 			foreach ($rDevices as $rDevice) {
-				$rDeviceInfo = getMag($rDevice);
+				$rDeviceInfo = MagService::getById($rDevice);
 
 				if ($rDeviceInfo) {
 					if (!empty($rData['message_type'])) {
@@ -148,7 +148,7 @@ class MagService {
 					}
 
 					if (count($rArray) > 0) {
-						$rPrepare = prepareArray($rArray);
+						$rPrepare = QueryHelper::prepareArray($rArray);
 
 						if (count($rPrepare['data']) > 0) {
 							$rPrepare['data'][] = $rDevice;
@@ -169,7 +169,7 @@ class MagService {
 						}
 
 						foreach ($rUserIDs as $rUserID) {
-							$rPrepare = prepareArray($rUserArray);
+							$rPrepare = QueryHelper::prepareArray($rUserArray);
 
 							if (count($rPrepare['data']) > 0) {
 								$rPrepare['data'][] = $rUserID;
@@ -193,13 +193,13 @@ class MagService {
 		if (InputValidator::validate('processMAG', $rData)) {
 			if (isset($rData['edit'])) {
 				if (Authorization::check('adv', 'edit_mag')) {
-					$rArray = overwriteData(getMag($rData['edit']), $rData);
+					$rArray = AdminHelpers::overwriteData(MagService::getById($rData['edit']), $rData);
 					$rUser = UserRepository::getLineById($rArray['user_id']);
 
 					if ($rUser) {
-						$rUserArray = overwriteData($rUser, $rData);
+						$rUserArray = AdminHelpers::overwriteData($rUser, $rData);
 					} else {
-						$rUserArray = verifyPostTable('lines', $rData);
+						$rUserArray = QueryHelper::verifyPostTable('lines', $rData);
 						$rUserArray['created_at'] = time();
 						unset($rUserArray['id']);
 					}
@@ -208,9 +208,9 @@ class MagService {
 				}
 			} else {
 				if (Authorization::check('adv', 'add_mag')) {
-					$rArray = verifyPostTable('mag_devices', $rData);
+					$rArray = QueryHelper::verifyPostTable('mag_devices', $rData);
 					$rArray['theme_type'] = SettingsManager::getAll()['mag_default_type'];
-					$rUserArray = verifyPostTable('lines', $rData);
+					$rUserArray = QueryHelper::verifyPostTable('lines', $rData);
 					$rUserArray['created_at'] = time();
 					unset($rArray['mag_id'], $rUserArray['id']);
 				} else {
@@ -219,11 +219,11 @@ class MagService {
 			}
 
 			if (strlen($rUserArray['username']) == 0) {
-				$rUserArray['username'] = generateString(32);
+				$rUserArray['username'] = AdminHelpers::generateString(32);
 			}
 
 			if (strlen($rUserArray['password']) == 0) {
-				$rUserArray['password'] = generateString(32);
+				$rUserArray['password'] = AdminHelpers::generateString(32);
 			}
 
 			if (strlen($rData['isp_clear']) == 0) {
@@ -254,7 +254,7 @@ class MagService {
 				$rArray['lock_device'] = 0;
 			}
 
-			$rUserArray['bouquet'] = sortArrayByArray(array_values(json_decode($rData['bouquets_selected'], true)), array_keys(BouquetService::getOrder()));
+			$rUserArray['bouquet'] = AdminHelpers::sortArrayByArray(array_values(json_decode($rData['bouquets_selected'], true)), array_keys(BouquetService::getOrder()));
 			$rUserArray['bouquet'] = '[' . implode(',', array_map('intval', $rUserArray['bouquet'])) . ']';
 
 			if (isset($rData['exp_date']) && !isset($rData['no_expire'])) {
@@ -310,7 +310,7 @@ class MagService {
 				}
 
 				if (0 >= $db->num_rows()) {
-					$rPrepare = prepareArray($rUserArray);
+					$rPrepare = QueryHelper::prepareArray($rUserArray);
 
 					$rQuery = 'REPLACE INTO `lines`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
@@ -328,7 +328,7 @@ class MagService {
 							$rArray['sn'] = $rArray['image_version'];
 						}
 
-						$rPrepare = prepareArray($rArray);
+						$rPrepare = QueryHelper::prepareArray($rArray);
 						$rQuery = 'REPLACE INTO `mag_devices`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
 						if ($db->query($rQuery, ...$rPrepare['data'])) {
@@ -382,12 +382,99 @@ class MagService {
 				}
 
 				if (isset($rUpdateDevice['id'])) {
-					$rPrepare = prepareArray($rUpdateDevice);
+					$rPrepare = QueryHelper::prepareArray($rUpdateDevice);
 					$rQuery = 'REPLACE INTO `lines`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 					$db->query($rQuery, ...$rPrepare['data']);
 					LineService::updateLineSignal($rUpdateDevice['id']);
 				}
 			}
 		}
+	}
+
+	public static function getById($rID) {
+		global $db;
+		$db->query('SELECT * FROM `mag_devices` WHERE `mag_id` = ?;', $rID);
+
+		if ($db->num_rows() != 1) {
+			return array();
+		}
+
+		$rRow = $db->get_row();
+		$rRow['user'] = UserRepository::getLineById($rRow['user_id']);
+		$db->query('SELECT `pair_id` FROM `lines` WHERE `id` = ?;', $rRow['user_id']);
+
+		if ($db->num_rows() != 1) {
+		} else {
+			$rRow['paired'] = UserRepository::getLineById($rRow['user']['pair_id']);
+		}
+
+		return $rRow;
+	}
+
+	public static function deleteDevice($rID, $rDeletePaired = false, $rCloseCons = true, $rConvert = false) {
+		global $db;
+		$rMag = self::getById($rID);
+
+		if (!$rMag) {
+			return false;
+		}
+
+		$db->query('DELETE FROM `mag_devices` WHERE `mag_id` = ?;', $rID);
+		$db->query('DELETE FROM `mag_claims` WHERE `mag_id` = ?;', $rID);
+		$db->query('DELETE FROM `mag_events` WHERE `mag_device_id` = ?;', $rID);
+		$db->query('DELETE FROM `mag_logs` WHERE `mag_id` = ?;', $rID);
+
+		if (!$rMag['user']) {
+		} else {
+			if ($rConvert) {
+				$db->query('UPDATE `lines` SET `is_mag` = 0 WHERE `id` = ?;', $rMag['user']['id']);
+				LineService::updateLineSignal($rMag['user']['id']);
+			} else {
+				$rCount = 0;
+				$db->query('SELECT `mag_id` FROM `mag_devices` WHERE `user_id` = ?;', $rMag['user']['id']);
+				$rCount += $db->num_rows();
+				$db->query('SELECT `device_id` FROM `enigma2_devices` WHERE `user_id` = ?;', $rMag['user']['id']);
+				$rCount += $db->num_rows();
+
+				if ($rCount != 0) {
+				} else {
+					LineService::deleteLineById($rMag['user']['id'], $rDeletePaired, $rCloseCons);
+				}
+			}
+		}
+
+		return true;
+	}
+
+	public static function deleteDevices($rIDs) {
+		global $db;
+		$rIDs = AdminHelpers::confirmIDs($rIDs);
+
+		if (0 >= count($rIDs)) {
+			return false;
+		}
+
+		$rUserIDs = array();
+		$db->query('SELECT `user_id` FROM `mag_devices` WHERE `mag_id` IN (' . implode(',', $rIDs) . ');');
+
+		foreach ($db->get_rows() as $rRow) {
+			$rUserIDs[] = $rRow['user_id'];
+		}
+		$db->query('DELETE FROM `mag_devices` WHERE `mag_id` IN (' . implode(',', $rIDs) . ');');
+		$db->query('DELETE FROM `mag_claims` WHERE `mag_id` IN (' . implode(',', $rIDs) . ');');
+		$db->query('DELETE FROM `mag_events` WHERE `mag_device_id` IN (' . implode(',', $rIDs) . ');');
+		$db->query('DELETE FROM `mag_logs` WHERE `mag_id` IN (' . implode(',', $rIDs) . ');');
+
+		if (0 >= count($rUserIDs)) {
+		} else {
+			LineRepository::deleteMany($rUserIDs);
+		}
+
+		return true;
+	}
+
+	public static function resetSTB($rID) {
+		global $db;
+		$db->query("UPDATE `mag_devices` SET `ip` = '', `ver` = '', `image_version` = '', `stb_type` = '', `sn` = '', `device_id` = '', `device_id2` = '', `hw_version` = '', `token` = '' WHERE `mag_id` = ?;", $rID);
 	}
 }

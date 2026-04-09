@@ -23,12 +23,10 @@ class BouquetSortController extends BaseAdminController
         $this->requirePermission();
 
         $bouquetId = $this->input('id');
-        $rBouquet = ($bouquetId && function_exists('getBouquet')) ? getBouquet($bouquetId) : null;
+        $rBouquet = $bouquetId ? BouquetService::getById($bouquetId) : null;
 
         if (!$rBouquet) {
-            if (function_exists('goHome')) {
-                goHome();
-            }
+            AdminHelpers::goHome();
             exit;
         }
 

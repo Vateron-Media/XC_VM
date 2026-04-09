@@ -39,7 +39,7 @@ class ResellerDashboardController extends BaseResellerController
         $rNotice = preg_replace("#(<[^>]+?)style[\\x00-\\x20]*=[\\x00-\\x20]*[`'\"]*.*?s[\\x00-\\x20]*c[\\x00-\\x20]*r[\\x00-\\x20]*i[\\x00-\\x20]*p[\\x00-\\x20]*t[\\x00-\\x20]*:*[^>]*+>#iu", '$1>', $rNotice);
 
         // Recent activity
-        $rPackages = getPackages();
+        $rPackages = PackageService::getAll();
         global $db;
         $rAllReports = array_merge(array($rUserInfo['id']), $rPermissions['all_reports'] ?? []);
         $db->query('SELECT * FROM `users_logs` LEFT JOIN `users` ON `users`.`id` = `users_logs`.`owner` WHERE `users_logs`.`owner` IN (' . implode(',', array_map('intval', $rAllReports)) . ') ORDER BY `date` DESC LIMIT 250;');
@@ -86,7 +86,7 @@ class ResellerDashboardController extends BaseResellerController
         }
 
         // Expiring lines
-        $rExpiringLines = getExpiring() ?: [];
+        $rExpiringLines = LineService::getExpiring() ?: [];
 
         $this->render('dashboard', [
             'rRegisteredUsers' => $rRegisteredUsers,

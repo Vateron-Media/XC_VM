@@ -4,12 +4,12 @@
     include 'session.php';
     include 'functions.php';
 
-    if (!checkPermissions()) {
-        goHome();
+    if (!PageAuthorization::checkPermissions()) {
+        AdminHelpers::goHome();
     }
 
     if (isset(RequestManager::getAll()['id'])) {
-        $rDevice = getMag(RequestManager::getAll()['id']);
+        $rDevice = MagService::getById(RequestManager::getAll()['id']);
 
         if (!$rDevice['user_id']) {
             exit();

@@ -4,8 +4,8 @@
     include 'session.php';
     include 'functions.php';
 
-    if (!checkPermissions()) {
-        goHome();
+    if (!PageAuthorization::checkPermissions()) {
+        AdminHelpers::goHome();
     }
 
     if (!isset(RequestManager::getAll()['id'])) {
@@ -287,28 +287,28 @@
                                                 <div class="progress-w-percent">
                                                     <span class="progress-value font-weight-bold"><?= intval(explode(' ', $rGPU['utilisation']['gpu_util'])[0]); ?>% </span>
                                                     <div class="progress progress-sm">
-                                                        <div class="progress-bar <?= getBarColour(intval(explode(' ', $rGPU['utilisation']['gpu_util'])[0])); ?>" role="progressbar" style="width: <?= intval(explode(' ', $rGPU['utilisation']['gpu_util'])[0]); ?>%;" aria-valuenow="<?= intval(explode(' ', $rGPU['utilisation']['gpu_util'])[0]); ?>" aria-valuemin="0" aria-valuemax="100"></div>
+                                                        <div class="progress-bar <?= AdminHelpers::getBarColour(intval(explode(' ', $rGPU['utilisation']['gpu_util'])[0])); ?>" role="progressbar" style="width: <?= intval(explode(' ', $rGPU['utilisation']['gpu_util'])[0]); ?>%;" aria-valuenow="<?= intval(explode(' ', $rGPU['utilisation']['gpu_util'])[0]); ?>" aria-valuemin="0" aria-valuemax="100"></div>
                                                     </div>
                                                 </div>
                                                 <h5 class="mb-1 mt-0">GPU<?= $rGPUNumber; ?> Memory Usage<small class="text-muted ml-2"> <?= number_format(explode(' ', $rGPU['memory_usage']['used'])[0], 0); ?>MB / <?= number_format(explode(' ', $rGPU['memory_usage']['total'])[0], 0); ?>MB</small></h5>
                                                 <div class="progress-w-percent">
                                                     <span class="progress-value font-weight-bold"><?= $D325c5780b273117; ?>% </span>
                                                     <div class="progress progress-sm">
-                                                        <div class="progress-bar <?= getBarColour($D325c5780b273117); ?>" role="progressbar" style="width: <?= $D325c5780b273117; ?>%;" aria-valuenow="<?= $D325c5780b273117; ?>" aria-valuemin="0" aria-valuemax="100"></div>
+                                                        <div class="progress-bar <?= AdminHelpers::getBarColour($D325c5780b273117); ?>" role="progressbar" style="width: <?= $D325c5780b273117; ?>%;" aria-valuenow="<?= $D325c5780b273117; ?>" aria-valuemin="0" aria-valuemax="100"></div>
                                                     </div>
                                                 </div>
                                                 <h5 class="mb-1 mt-0">GPU<?= $rGPUNumber; ?> Encoder Usage</h5>
                                                 <div class="progress-w-percent">
                                                     <span class="progress-value font-weight-bold"> <?= intval(explode(' ', $rGPU['utilisation']['encoder_util'])[0]); ?>% </span>
                                                     <div class="progress progress-sm">
-                                                        <div class="progress-bar <?= getBarColour(intval(explode(' ', $rGPU['utilisation']['encoder_util'])[0])); ?>" role="progressbar" style="width: <?= intval(explode(' ', $rGPU['utilisation']['encoder_util'])[0]); ?>%;" aria-valuenow="<?= intval(explode(' ', $rGPU['utilisation']['encoder_util'])[0]); ?>" aria-valuemin="0" aria-valuemax="100"></div>
+                                                        <div class="progress-bar <?= AdminHelpers::getBarColour(intval(explode(' ', $rGPU['utilisation']['encoder_util'])[0])); ?>" role="progressbar" style="width: <?= intval(explode(' ', $rGPU['utilisation']['encoder_util'])[0]); ?>%;" aria-valuenow="<?= intval(explode(' ', $rGPU['utilisation']['encoder_util'])[0]); ?>" aria-valuemin="0" aria-valuemax="100"></div>
                                                     </div>
                                                 </div>
                                                 <h5 class="mb-1 mt-0">GPU<?= $rGPUNumber; ?> Decoder Usage</h5>
                                                 <div class="progress-w-percent">
                                                     <span class="progress-value font-weight-bold"><?= intval(explode(' ', $rGPU['utilisation']['decoder_util'])[0]); ?>% </span>
                                                     <div class="progress progress-sm">
-                                                        <div class="progress-bar <?= getBarColour(intval(explode(' ', $rGPU['utilisation']['decoder_util'])[0])); ?>" role="progressbar" style="width: <?= intval(explode(' ', $rGPU['utilisation']['decoder_util'])[0]); ?>%;" aria-valuenow="<?= intval(explode(' ', $rGPU['utilisation']['decoder_util'])[0]); ?>" aria-valuemin="0" aria-valuemax="100"></div>
+                                                        <div class="progress-bar <?= AdminHelpers::getBarColour(intval(explode(' ', $rGPU['utilisation']['decoder_util'])[0])); ?>" role="progressbar" style="width: <?= intval(explode(' ', $rGPU['utilisation']['decoder_util'])[0]); ?>%;" aria-valuenow="<?= intval(explode(' ', $rGPU['utilisation']['decoder_util'])[0]); ?>" aria-valuemin="0" aria-valuemax="100"></div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -584,7 +584,8 @@
             });
 
             <?php
-            if (in_array($allServers[intval(RequestManager::getAll()['id'])]['status'], array(3, 4)) || in_array($rProxyServers[intval(RequestManager::getAll()['id'])]['status'], array(3, 4))): ?>
+            $rViewServerId = intval(RequestManager::getAll()['id']);
+            if (in_array($allServers[$rViewServerId]['status'] ?? 0, array(3, 4)) || in_array($rProxyServers[$rViewServerId]['status'] ?? 0, array(3, 4))): ?>
 
                 function getInstallStatus() {
                     $.getJSON("./api?action=install_status&server_id=<?= intval(RequestManager::getAll()['id']); ?>", function(data) {
@@ -767,7 +768,7 @@
                 }
             }
             $(document).ready(function() {
-                <?php if (in_array($allServers[intval(RequestManager::getAll()['id'])]['status'], array(3, 4)) || in_array($rProxyServers[intval(RequestManager::getAll()['id'])]['status'], array(3, 4))): ?>
+                <?php if (in_array($allServers[$rViewServerId]['status'] ?? 0, array(3, 4)) || in_array($rProxyServers[$rViewServerId]['status'] ?? 0, array(3, 4))): ?>
                     getInstallStatus();
                 <?php endif; ?>
                 getStats();

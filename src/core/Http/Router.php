@@ -461,7 +461,7 @@ class Router {
      */
     protected function denyAccess() {
         if (function_exists('goHome')) {
-            goHome();
+            AdminHelpers::goHome();
         } else {
             http_response_code(403);
             echo 'Access denied';

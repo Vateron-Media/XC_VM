@@ -18,7 +18,7 @@ class SerieController extends BaseAdminController
         global $rServers;
 
         $rSeriesArr = null;
-        if (isset(RequestManager::getAll()['id']) && !($rSeriesArr = getSerie(RequestManager::getAll()['id']))) {
+        if (isset(RequestManager::getAll()['id']) && !($rSeriesArr = SeriesService::getById(RequestManager::getAll()['id']))) {
             $this->redirect('series');
             return;
         }

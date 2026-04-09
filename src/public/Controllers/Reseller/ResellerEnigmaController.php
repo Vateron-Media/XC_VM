@@ -23,18 +23,18 @@ class ResellerEnigmaController extends BaseResellerController
         $rOrigPackage = null;
 
         if (isset($rRequest['id'])) {
-            $rDevice = getEnigma($rRequest['id']);
+            $rDevice = EnigmaService::getById($rRequest['id']);
             if (!($rDevice && $rDevice['user'] && $rDevice['user']['is_e2'] && Authorization::check('line', $rDevice['user']['id']))) {
-                goHome();
+                AdminHelpers::goHome();
                 return;
             }
             $rLine = $rDevice['user'];
             if ($rLine['package_id'] > 0) {
-                $rOrigPackage = getPackage($rLine['package_id']);
+                $rOrigPackage = PackageService::getById($rLine['package_id']);
             }
         }
 
-        $rPackages = getPackages($rUserInfo['member_group_id'], 'e2') ?: [];
+        $rPackages = PackageService::getAll($rUserInfo['member_group_id'], 'e2') ?: [];
 
         $this->render('enigma', [
             'rDevice'      => $rDevice,

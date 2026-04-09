@@ -2,13 +2,13 @@
 <?php include 'session.php'; ?>
 <?php include 'functions.php'; ?>
 
-<?php if (!checkPermissions()) {
-    goHome();
+<?php if (!PageAuthorization::checkPermissions()) {
+    AdminHelpers::goHome();
 } ?>
 
 <?php
-if (!isset(RequestManager::getAll()['id']) || !($rBouquet = getBouquet(RequestManager::getAll()['id']))) {
-    goHome();
+if (!isset(RequestManager::getAll()['id']) || !($rBouquet = BouquetService::getById(RequestManager::getAll()['id']))) {
+    AdminHelpers::goHome();
 }
 
 $rListings = ['stream' => [], 'movie' => [], 'radio' => [], 'series' => []];

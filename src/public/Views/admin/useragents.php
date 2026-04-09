@@ -4,9 +4,9 @@ if (!isset($__viewMode)):
 	include 'session.php';
 	include 'functions.php';
 
-	if (checkPermissions()) {
+	if (PageAuthorization::checkPermissions()) {
 	} else {
-		goHome();
+		AdminHelpers::goHome();
 	}
 
 	$_TITLE = 'Blocked User-Agents';
@@ -33,7 +33,7 @@ if (!(isset($_STATUS) && $_STATUS == STATUS_SUCCESS)) {
 
 echo "\t\t\t\t" . '<div class="card">' . "\n\t\t\t\t\t" . '<div class="card-body" style="overflow-x:auto;">' . "\n\t\t\t\t\t\t" . '<table id="datatable" class="table table-striped table-borderless dt-responsive nowrap">' . "\n\t\t\t\t\t\t\t" . '<thead>' . "\n\t\t\t\t\t\t\t\t" . '<tr>' . "\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">ID</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th>User-Agent</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">Exact Match</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">Actions</th>' . "\n\t\t\t\t\t\t\t\t" . '</tr>' . "\n\t\t\t\t\t\t\t" . '</thead>' . "\n\t\t\t\t\t\t\t" . '<tbody>' . "\n\t\t\t\t\t\t\t\t";
 
-foreach (getUserAgents() as $rUserAgent) {
+foreach (BlocklistService::getAllUserAgents() as $rUserAgent) {
 	echo "\t\t\t\t\t\t\t\t" . '<tr id="ua-';
 	echo intval($rUserAgent['id']);
 	echo '">' . "\n\t\t\t\t\t\t\t\t\t" . '<td class="text-center">';

@@ -18,7 +18,7 @@ class UserRepository {
 		if ($db->num_rows() == 1) {
 			$rRow = $db->get_row();
 
-			if (verifyPassword($rPassword, $rRow['password'])) {
+			if (Authenticator::checkPassword($rPassword, $rRow['password'])) {
 				return $rRow;
 			}
 		}

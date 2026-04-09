@@ -22,8 +22,6 @@ class MigrateCommand implements CommandInterface {
 
 	public function execute(array $rArgs): int {
 		// migrate requires admin bootstrap (CONTEXT_ADMIN) for $_INFO credentials
-		require INCLUDES_PATH . 'admin.php';
-
 		// Expose $argc/$argv for migration_logic.php compatibility
 		global $argc, $argv;
 

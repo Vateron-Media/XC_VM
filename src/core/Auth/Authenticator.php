@@ -45,7 +45,7 @@ class Authenticator {
 			return array('status' => STATUS_INVALID_CODE);
 		}
 
-		$rPermissions = getPermissions($rUserInfo['member_group_id']);
+		$rPermissions = AuthRepository::getPermissions($rUserInfo['member_group_id']);
 		if (!$rPermissions['is_admin']) {
 			if (!empty($rSettings['save_login_logs'])) {
 				$db->query("INSERT INTO `login_logs`(`type`, `access_code`, `user_id`, `status`, `login_ip`, `date`) VALUES('ADMIN', ?, ?, ?, ?, ?);", $rAccessCode['id'], $rUserInfo['id'], 'NOT_ADMIN', $rIP, time());
@@ -54,7 +54,7 @@ class Authenticator {
 		}
 
 		if ($rUserInfo['status'] == 1) {
-			$rCrypt = cryptPassword($rData['password']);
+			$rCrypt = self::hashPassword($rData['password']);
 			$db->query('UPDATE `users` SET `password` = ?, `last_login` = UNIX_TIMESTAMP(), `ip` = ? WHERE `id` = ?;', $rCrypt, $rIP, $rUserInfo['id']);
 
 			$_SESSION['hash'] = $rUserInfo['id'];
@@ -105,7 +105,7 @@ class Authenticator {
 			return array('status' => STATUS_INVALID_CODE);
 		}
 
-		$rPermissions = getPermissions($rUserInfo['member_group_id']);
+		$rPermissions = AuthRepository::getPermissions($rUserInfo['member_group_id']);
 		if (!$rPermissions['is_reseller']) {
 			if (!empty($rSettings['save_login_logs'])) {
 				$db->query("INSERT INTO `login_logs`(`type`, `access_code`, `user_id`, `status`, `login_ip`, `date`) VALUES('RESELLER', ?, ?, ?, ?, ?);", $rAccessCode['id'], $rUserInfo['id'], 'NOT_ADMIN', $rIP, time());
@@ -114,7 +114,7 @@ class Authenticator {
 		}
 
 		if ($rUserInfo['status'] == 1) {
-			$rCrypt = cryptPassword($rData['password']);
+			$rCrypt = self::hashPassword($rData['password']);
 			$db->query('UPDATE `users` SET `password` = ?, `last_login` = UNIX_TIMESTAMP(), `ip` = ? WHERE `id` = ?;', $rCrypt, $rIP, $rUserInfo['id']);
 
 			$_SESSION['reseller'] = $rUserInfo['id'];
@@ -136,5 +136,19 @@ class Authenticator {
 		}
 
 		return array('status' => STATUS_FAILURE);
+	}
+
+	public static function hashPassword($password, $salt = null, $rounds = 20000) {
+		if ($salt === null || $salt === '') {
+			$salt = substr(bin2hex(openssl_random_pseudo_bytes(16)), 0, 16);
+		}
+		if (strpos($salt, 'rounds=') === false) {
+			$salt = sprintf('$6$rounds=%d$%s$', $rounds, $salt);
+		}
+		return crypt($password, $salt);
+	}
+
+	public static function checkPassword($password, $storedHash) {
+		return hash_equals($storedHash, crypt($password, $storedHash));
 	}
 }

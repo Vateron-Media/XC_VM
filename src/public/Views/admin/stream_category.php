@@ -3,14 +3,14 @@
 	include 'session.php';
 	include 'functions.php';
 
-	if (checkPermissions()) {
+	if (PageAuthorization::checkPermissions()) {
 	} else {
-		goHome();
+		AdminHelpers::goHome();
 	}
 
 	if (!isset(RequestManager::getAll()['id'])) {
 	} else {
-		$rCategoryArr = getCategory(RequestManager::getAll()['id']);
+		$rCategoryArr = CategoryService::getById(RequestManager::getAll()['id']);
 
 		if ($rCategoryArr && Authorization::check('adv', 'edit_cat')) {
 		} else {

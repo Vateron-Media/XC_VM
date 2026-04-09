@@ -4,8 +4,8 @@
 	include 'session.php';
 	include 'functions.php';
 
-	if (!checkPermissions()) {
-		goHome();
+	if (!PageAuthorization::checkPermissions()) {
+		AdminHelpers::goHome();
 	}
 
 	$_TITLE = 'Packages';
@@ -50,7 +50,7 @@
 								</tr>
 							</thead>
 							<tbody>
-								<?php foreach (getPackages() as $rPackage): ?>
+								<?php foreach (PackageService::getAll() as $rPackage): ?>
 									<?php if (!$rPackage['is_addon']): ?>
 										<tr id="package-<?php echo $rPackage['id']; ?>">
 											<td class="text-center"><?php echo $rPackage['id']; ?></td>

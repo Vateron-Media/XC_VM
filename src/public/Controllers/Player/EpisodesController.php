@@ -16,13 +16,13 @@ class EpisodesController extends BasePlayerController
     {
         global $db, $rUserInfo;
 
-        if (($rSeries = getSerie(RequestManager::getAll()['id'])) && in_array(RequestManager::getAll()['id'], $rUserInfo['series_ids'])) {
+        if (($rSeries = SeriesService::getById(RequestManager::getAll()['id'])) && in_array(RequestManager::getAll()['id'], $rUserInfo['series_ids'])) {
             $rDomainName = DomainResolver::resolve(SERVER_ID, !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443);
             $rTMDB = null;
 
             if ($rSeries['tmdb_id']) {
                 if (!file_exists(TMP_PATH . 'tmdb_' . $rSeries['tmdb_id'])) {
-                    $rTMDB = getSeriesTMDB($rSeries['tmdb_id']);
+                    $rTMDB = TMDbService::getSeries($rSeries['tmdb_id']);
 
                     if ($rTMDB) {
                         file_put_contents(TMP_PATH . 'tmdb_' . $rSeries['tmdb_id'], igbinary_serialize($rTMDB));
@@ -84,7 +84,7 @@ class EpisodesController extends BasePlayerController
             if (!$rSeries['tmdb_id']) {
             } else {
                 if (!file_exists(TMP_PATH . 'tmdb_' . $rSeries['tmdb_id'] . '_' . $rSeasonNo)) {
-                    $rSeason = getSeasonTMDB($rSeries['tmdb_id'], $rSeasonNo);
+                    $rSeason = TMDbService::getSeason($rSeries['tmdb_id'], $rSeasonNo);
 
                     if (!$rSeason) {
                     } else {

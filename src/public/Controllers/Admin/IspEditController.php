@@ -20,7 +20,7 @@ class IspEditController extends BaseAdminController
         $rISPArr = null;
         $id = $this->input('id');
         if ($id !== null) {
-            $rISPArr = function_exists('getISP') ? getISP($id) : null;
+            $rISPArr = BlocklistService::getISPById($id);
         }
 
         $this->setTitle('Blocked ISP');

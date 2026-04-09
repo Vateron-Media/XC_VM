@@ -335,9 +335,9 @@ class PlexCron {
             $cacheDataKey = array();
             foreach ($rThreadData as $rData) {
                 if ($rData['type'] == 'movie') {
-                    $rCommand = '/usr/bin/timeout 20 ' . PHP_BIN . ' ' . INCLUDES_PATH . 'cli/plex_item.php "' . base64_encode(json_encode($rData, JSON_UNESCAPED_UNICODE)) . '"';
+                    $rCommand = '/usr/bin/timeout 20 ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php plex_item "' . base64_encode(json_encode($rData, JSON_UNESCAPED_UNICODE)) . '"';
                 } else {
-                    $rCommand = '/usr/bin/timeout 300 ' . PHP_BIN . ' ' . INCLUDES_PATH . 'cli/plex_item.php "' . base64_encode(json_encode($rData, JSON_UNESCAPED_UNICODE)) . '"';
+                    $rCommand = '/usr/bin/timeout 300 ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php plex_item "' . base64_encode(json_encode($rData, JSON_UNESCAPED_UNICODE)) . '"';
                 }
                 $cacheDataKey[] = $rCommand;
             }

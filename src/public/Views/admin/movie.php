@@ -4,8 +4,8 @@
 	include 'session.php';
 	include 'functions.php';
 
-	if (!checkPermissions()) {
-		goHome();
+	if (!PageAuthorization::checkPermissions()) {
+		AdminHelpers::goHome();
 	}
 
 	$rCategories = CategoryService::getAllByType('movie');
@@ -16,7 +16,7 @@
 
 		if ($rMovie && $rMovie['type'] == 2) {
 		} else {
-			goHome();
+			AdminHelpers::goHome();
 		}
 	}
 
@@ -116,7 +116,7 @@
 				<?php endif; ?>
 				<?php if (isset($rMovie['id'])): ?>
 					<?php
-					$rEncodeErrors = getEncodeErrors($rMovie['id']);
+					$rEncodeErrors = StreamRepository::getEncodeErrors($rMovie['id']);
 					foreach ($rEncodeErrors as $rServerID => $rEncodeError):
 						if (in_array(intval($rServerID), $activeStreamingServers)):
 					?>
@@ -131,7 +131,7 @@
 					<?php endforeach; ?>
 				<?php endif; ?>
 				<?php if (isset($rMovie['id'])): ?>
-					<?php $rEncodeErrors = getEncodeErrors($rMovie['id']); ?>
+					<?php $rEncodeErrors = StreamRepository::getEncodeErrors($rMovie['id']); ?>
 					<?php foreach ($rEncodeErrors as $rServerID => $rEncodeError): ?>
 						<?php if (in_array(intval($rServerID), $activeStreamingServers)): ?>
 							<div class="alert alert-warning alert-dismissible fade show" role="alert">

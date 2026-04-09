@@ -2,8 +2,8 @@
     <?php include 'session.php';
     include 'functions.php'; ?>
 
-    <?php if (checkPermissions()): ?>
-    <?php else: goHome();
+    <?php if (PageAuthorization::checkPermissions()): ?>
+    <?php else: AdminHelpers::goHome();
     endif; ?>
 
     <?php

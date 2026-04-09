@@ -4,8 +4,8 @@
 	include 'functions.php';
 
 	// Check permissions
-	if (!checkPermissions()) {
-		goHome();
+	if (!PageAuthorization::checkPermissions()) {
+		AdminHelpers::goHome();
 	}
 
 	$_TITLE = 'Users';

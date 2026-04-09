@@ -38,16 +38,16 @@ class PlexService {
 		}
 
 		$db->query('UPDATE `settings` SET `scan_seconds` = ?, `max_genres` = ?, `thread_count_movie` = ?, `thread_count_show` = ?;', $rData['scan_seconds'], $rData['max_genres'], $rData['thread_count_movie'], $rData['thread_count_show']);
-		clearSettingsCache();
+		SettingsManager::clearCache();
 		return array('status' => STATUS_SUCCESS);
 	}
 
 	public static function processPlexSync($rData) {
 		global $db;
 		if (isset($rData['edit'])) {
-			$rArray = overwriteData(getWatchFolder($rData['edit']), $rData);
+			$rArray = AdminHelpers::overwriteData(StreamRepository::getWatchFolder($rData['edit']), $rData);
 		} else {
-			$rArray = verifyPostTable('watch_folders', $rData);
+			$rArray = QueryHelper::verifyPostTable('watch_folders', $rData);
 			unset($rArray['id']);
 		}
 
@@ -92,7 +92,7 @@ class PlexService {
 		$rArray['bouquets'] = '[' . implode(',', array_map('intval', $overrideBouquets)) . ']';
 		$rArray['fb_bouquets'] = '[' . implode(',', array_map('intval', $fallbackBouquets)) . ']';
 		$rArray['target_container'] = ($rData['target_container'] == 'auto' ? null : $rData['target_container']);
-		$rPrepare = prepareArray($rArray);
+		$rPrepare = QueryHelper::prepareArray($rArray);
 		$rQuery = 'REPLACE INTO `watch_folders`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
 		if ($db->query($rQuery, ...$rPrepare['data'])) {
@@ -103,6 +103,6 @@ class PlexService {
 	}
 
 	public static function forcePlex($rServerID, $rPlexID) {
-		systemapirequest($rServerID, array('action' => 'plex_force', 'id' => $rPlexID));
+		ApiClient::systemRequest($rServerID, array('action' => 'plex_force', 'id' => $rPlexID));
 	}
 }

@@ -20,7 +20,7 @@ class StreamingBootstrap {
 			return null;
 		}
 
-		require_once INCLUDES_PATH . 'libs/AsyncFileOperations.php';
+		require_once MAIN_HOME . 'streaming/AsyncFileOperations.php';
 		require_once MAIN_HOME . 'core/Database/DatabaseHandler.php';
 
 		$GLOBALS['rSettings'] = $rSettings;

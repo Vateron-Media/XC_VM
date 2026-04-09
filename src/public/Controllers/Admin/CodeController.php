@@ -23,7 +23,7 @@ class CodeController extends BaseAdminController
 
         $this->setTitle('Access Codes');
 
-        $codes = function_exists('getcodes') ? getcodes() : [];
+        $codes = AuthRepository::getAllCodes();
 
         $this->render('codes', [
             'codes' => $codes,

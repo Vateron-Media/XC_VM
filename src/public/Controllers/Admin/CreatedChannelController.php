@@ -26,7 +26,7 @@ class CreatedChannelController extends BaseAdminController
             $rChannel = StreamRepository::getById(RequestManager::getAll()['id']);
 
             if (!$rChannel || $rChannel['type'] != 3) {
-                goHome();
+                AdminHelpers::goHome();
             }
         }
 

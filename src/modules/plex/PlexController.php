@@ -90,9 +90,9 @@ class PlexController {
      */
     public function add() {
         if (isset(RequestManager::getAll()['id'])) {
-            $rFolder = getWatchFolder(RequestManager::getAll()['id']);
+            $rFolder = StreamRepository::getWatchFolder(RequestManager::getAll()['id']);
             if (!$rFolder) {
-                goHome();
+                AdminHelpers::goHome();
                 return;
             }
         }
@@ -156,7 +156,7 @@ class PlexController {
      * Заменяет admin/api.php action=kill_plex
      */
     public function apiKill() {
-        killPlexSync();
+        ServerService::killPlexSync();
         echo json_encode(['result' => true]);
         exit();
     }
@@ -171,13 +171,13 @@ class PlexController {
         $rFolderID = RequestManager::getAll()['folder_id'] ?? 0;
 
         if ($rSub === 'delete') {
-            deleteWatchFolder($rFolderID);
+            StreamRepository::deleteWatchFolder($rFolderID);
             echo json_encode(['result' => true]);
             exit();
         }
 
         if ($rSub === 'force') {
-            $rFolder = getWatchFolder($rFolderID);
+            $rFolder = StreamRepository::getWatchFolder($rFolderID);
             if ($rFolder) {
                 PlexService::forcePlex($rFolder['server_id'], $rFolder['id']);
                 echo json_encode(['result' => true]);

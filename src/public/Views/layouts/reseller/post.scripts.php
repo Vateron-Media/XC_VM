@@ -8,7 +8,7 @@
  * для каждой reseller-страницы (edit_profile, line, mag, enigma, ticket, user).
  *
  * Зависимости (доступны через bootstrap):
- *   - getPageName()              → текущая страница
+ *   - AdminHelpers::getPageName()              → текущая страница
  *   - get_defined_constants()    → STATUS_* коды ошибок
  *   - SettingsManager::getAll()  → настройки (pass_length)
  *   - $rPermissions              → минимальные длины логина/пароля
@@ -16,7 +16,7 @@
  * @see src/reseller/post.php  (POST handler — вызывается напрямую через nginx)
  */
 
-$_PAGE = getPageName();
+$_PAGE = AdminHelpers::getPageName();
 $_ERRORS = array();
 
 foreach (get_defined_constants(true)['user'] as $rKey => $rValue) {

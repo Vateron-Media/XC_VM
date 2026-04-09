@@ -35,7 +35,7 @@ class ProcessMonitorController extends BaseAdminController
 
         $rStreams = StreamRepository::getPIDs(RequestManager::getAll()['server']) ?: array();
         $rFS = ServerRepository::getFreeSpace(RequestManager::getAll()['server']) ?: array();
-        $rProcesses = getPIDs(RequestManager::getAll()['server']) ?: array();
+        $rProcesses = DiagnosticsService::getPIDs(RequestManager::getAll()['server']) ?: array();
         $rStatus = array('D' => 'Uninterruptible Sleep', 'I' => 'Idle', 'R' => 'Running', 'S' => 'Interruptible Sleep', 'T' => 'Stopped', 'W' => 'Paging', 'X' => 'Dead', 'Z' => 'Zombie');
 
         $this->setTitle('Process Monitor');

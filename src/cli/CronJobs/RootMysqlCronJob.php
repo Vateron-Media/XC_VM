@@ -28,8 +28,6 @@ class RootMysqlCronJob implements CommandInterface {
             return 1;
         }
 
-        require INCLUDES_PATH . 'admin.php';
-
         if (!$this->checkMariaDB()) {
             return 1;
         }

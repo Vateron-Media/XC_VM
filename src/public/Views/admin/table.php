@@ -24,18 +24,20 @@ if (isset(RequestManager::getAll()["api_key"])) {
     }
     $rUserID = $db->get_row()["id"];
     $rIsAPI = true;
-    require_once MAIN_HOME . "includes/admin.php";
+    require_once MAIN_HOME . "bootstrap.php";
+    XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_ADMIN);
     $rUserInfo = UserRepository::getRegisteredUserById($rUserID);
-    $rPermissions = getPermissions($rUserInfo["member_group_id"]);
+    $rPermissions = AuthRepository::getPermissions($rUserInfo["member_group_id"]);
     $rPermissions["advanced"] = json_decode($rPermissions["allowed_pages"], true);
     if (0 < strlen($rUserInfo["timezone"])) {
         date_default_timezone_set($rUserInfo["timezone"]);
     }
 } elseif ($_SERVER["REMOTE_ADDR"] == "127.0.0.1" && isset(RequestManager::getAll()["api_user_id"])) {
     $rIsAPI = true;
-    require_once MAIN_HOME . "includes/admin.php";
+    require_once MAIN_HOME . "bootstrap.php";
+    XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_ADMIN);
     $rUserInfo = UserRepository::getRegisteredUserById(RequestManager::getAll()["api_user_id"]);
-    $rPermissions = getPermissions($rUserInfo["member_group_id"]);
+    $rPermissions = AuthRepository::getPermissions($rUserInfo["member_group_id"]);
     $rPermissions["advanced"] = json_decode($rPermissions["allowed_pages"], true);
     if (0 < strlen($rUserInfo["timezone"])) {
         date_default_timezone_set($rUserInfo["timezone"]);
@@ -3581,7 +3583,7 @@ if ($rType == "lines") {
     }
     $rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
     if (0 < $rReturn["recordsTotal"]) {
-        $rPackages = getPackages();
+        $rPackages = PackageService::getAll();
         $rQuery = "SELECT `users`.`username`, `users_logs`.`id`, `users_logs`.`owner`, `users_logs`.`type`, `users_logs`.`action`, `users_logs`.`log_id`, `users_logs`.`package_id`, `users_logs`.`cost`, `users_logs`.`credits_after`, `users_logs`.`date`, `users_logs`.`deleted_info` FROM `users_logs` LEFT JOIN `users` ON `users`.`id` = `users_logs`.`owner` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
         if (0 < $db->num_rows()) {
@@ -3651,13 +3653,13 @@ if ($rType == "lines") {
                                     }
                                     break;
                                 case "mag":
-                                    $rLine = getMag($rRow["log_id"]);
+                                    $rLine = MagService::getById($rRow["log_id"]);
                                     if ($rLine) {
                                         $rLineInfo = "<a href='mag?id=" . $rRow["log_id"] . "'>" . $rLine["mac"] . "</a>";
                                     }
                                     break;
                                 case "enigma":
-                                    $rLine = getEnigma($rRow["log_id"]);
+                                    $rLine = EnigmaService::getById($rRow["log_id"]);
                                     if ($rLine) {
                                         $rLineInfo = "<a href='enigma?id=" . $rRow["log_id"] . "'>" . $rLine["mac"] . "</a>";
                                     }
@@ -4594,10 +4596,10 @@ if ($rType == "lines") {
     if (!Authorization::check("adv", "database")) {
         exit;
     }
-    $rBackups = array_reverse(getBackups());
+    $rBackups = array_reverse(BackupService::getLocal());
     $rRemoteBackups = [];
     if (0 < strlen($rSettings["dropbox_token"])) {
-        foreach (array_reverse(getRemoteBackups()) as $rBackup) {
+        foreach (array_reverse(BackupService::getRemote()) as $rBackup) {
             $rRemoteBackups[$rBackup["name"]] = $rBackup;
         }
     }

@@ -17,8 +17,8 @@ class ResellerTicketViewController extends BaseResellerController
 
         $rRequest = RequestManager::getAll();
 
-        if (!isset($rRequest['id']) || !($rTicketInfo = getTicket($rRequest['id']))) {
-            goHome();
+        if (!isset($rRequest['id']) || !($rTicketInfo = TicketRepository::getById($rRequest['id']))) {
+            AdminHelpers::goHome();
             return;
         }
 

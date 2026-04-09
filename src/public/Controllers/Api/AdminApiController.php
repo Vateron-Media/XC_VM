@@ -708,7 +708,7 @@ class AdminAPIWrapper {
         $GLOBALS['rAdminUserInfo'] = UserRepository::getRegisteredUserById($rUserID);
         unset($GLOBALS['rAdminUserInfo']['password']);
         $rUserInfo = $GLOBALS['rAdminUserInfo'];
-        $rPermissions = getPermissions($rUserInfo['member_group_id']);
+        $rPermissions = AuthRepository::getPermissions($rUserInfo['member_group_id']);
         $rPermissions['advanced'] = array();
         if (0 >= strlen($rUserInfo['timezone'])) {
         } else {
@@ -758,7 +758,7 @@ class AdminAPIWrapper {
     public static function deleteLine($rID) {
         if (!(($rLine = self::getLine($rID)) && isset($rLine['data']))) {
         } else {
-            if (!deleteLine($rID)) {
+            if (!LineService::deleteLineById($rID)) {
             } else {
                 return array('status' => 'STATUS_SUCCESS');
             }
@@ -826,7 +826,7 @@ class AdminAPIWrapper {
     public static function deleteUser($rID) {
         if (!(($rUser = self::getUser($rID)) && isset($rUser['data']))) {
         } else {
-            if (!deleteUser($rID)) {
+            if (!UserService::deleteRegisteredUser($rID)) {
             } else {
                 return array('status' => 'STATUS_SUCCESS');
             }
@@ -848,7 +848,7 @@ class AdminAPIWrapper {
         return array('status' => 'STATUS_SUCCESS');
     }
     public static function getMAG($rID) {
-        if (!($rDevice = getMag($rID))) {
+        if (!($rDevice = MagService::getById($rID))) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS', 'data' => $rDevice);
@@ -884,7 +884,7 @@ class AdminAPIWrapper {
     public static function deleteMAG($rID) {
         if (!(($rDevice = self::getMAG($rID)) && isset($rDevice['data']))) {
         } else {
-            if (!deleteMAG($rID)) {
+            if (!MagService::deleteDevice($rID)) {
             } else {
                 return array('status' => 'STATUS_SUCCESS');
             }
@@ -923,11 +923,11 @@ class AdminAPIWrapper {
         if (!(($rDevice = self::getMAG($rID)) && isset($rDevice['data']))) {
             return array('status' => 'STATUS_FAILURE');
         }
-        deleteMAG($rID, false, false, true);
+        MagService::deleteDevice($rID, false, false, true);
         return array('status' => 'STATUS_SUCCESS', 'data' => self::getLine($rDevice['user_id']));
     }
     public static function getEnigma($rID) {
-        if (!($rDevice = getEnigma($rID))) {
+        if (!($rDevice = EnigmaService::getById($rID))) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS', 'data' => $rDevice);
@@ -963,7 +963,7 @@ class AdminAPIWrapper {
     public static function deleteEnigma($rID) {
         if (!(($rDevice = self::getEnigma($rID)) && isset($rDevice['data']))) {
         } else {
-            if (!deleteEnigma($rID)) {
+            if (!EnigmaService::deleteDevice($rID)) {
             } else {
                 return array('status' => 'STATUS_SUCCESS');
             }
@@ -1002,14 +1002,14 @@ class AdminAPIWrapper {
         if (!(($rDevice = self::getEnigma($rID)) && isset($rDevice['data']))) {
             return array('status' => 'STATUS_FAILURE');
         }
-        deleteEnigma($rID, false, false, true);
+        EnigmaService::deleteDevice($rID, false, false, true);
         return array('status' => 'STATUS_SUCCESS', 'data' => self::getLine($rDevice['user_id']));
     }
     public static function getBouquets() {
         return array('status' => 'STATUS_SUCCESS', 'data' => BouquetService::getAllSimple());
     }
     public static function getBouquet($rID) {
-        if (!($rBouquet = getBouquet($rID))) {
+        if (!($rBouquet = BouquetService::getById($rID))) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS', 'data' => $rBouquet);
@@ -1039,20 +1039,18 @@ class AdminAPIWrapper {
         return $rReturn;
     }
     public static function deleteBouquet($rID) {
-        if (!(($rBouquet = self::getBouquet($rID)) && isset($rBouquet['data']))) {
-        } else {
-            if (!deleteBouquet($rID)) {
-            } else {
+        if (($rBouquet = self::getBouquet($rID)) && isset($rBouquet['data'])) {
+            if (BouquetService::deleteById($rID)) {
                 return array('status' => 'STATUS_SUCCESS');
             }
         }
         return array('status' => 'STATUS_FAILURE');
     }
     public static function getAccessCodes() {
-        return array('status' => 'STATUS_SUCCESS', 'data' => getcodes());
+        return array('status' => 'STATUS_SUCCESS', 'data' => AuthRepository::getAllCodes());
     }
     public static function getAccessCode($rID) {
-        if (!($rCode = getCode($rID))) {
+        if (!($rCode = AuthRepository::getCodeById($rID))) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS', 'data' => $rCode);
@@ -1084,7 +1082,7 @@ class AdminAPIWrapper {
     public static function deleteAccessCode($rID) {
         if (!(($rCode = self::getAccessCode($rID)) && isset($rCode['data']))) {
         } else {
-            if (!removeAccessEntry($rID)) {
+            if (!AuthRepository::deleteCode($rID)) {
             } else {
                 return array('status' => 'STATUS_SUCCESS');
             }
@@ -1125,17 +1123,15 @@ class AdminAPIWrapper {
         return $rReturn;
     }
     public static function deleteHMAC($rID) {
-        if (!(($rToken = self::getHMAC($rID)) && isset($rToken['data']))) {
-        } else {
-            if (!validateHMAC($rID)) {
-            } else {
+        if (($rToken = self::getHMAC($rID)) && isset($rToken['data'])) {
+            if (AuthRepository::deleteHMAC($rID)) {
                 return array('status' => 'STATUS_SUCCESS');
             }
         }
         return array('status' => 'STATUS_FAILURE');
     }
     public static function getEPGs() {
-        return array('status' => 'STATUS_SUCCESS', 'data' => getEPGs());
+        return array('status' => 'STATUS_SUCCESS', 'data' => EpgService::getAll());
     }
     public static function getEPG($rID) {
         if (!($rEPG = EpgService::getById($rID))) {
@@ -1170,7 +1166,7 @@ class AdminAPIWrapper {
     public static function deleteEPG($rID) {
         if (!(($rEPG = self::getEPG($rID)) && isset($rEPG['data']))) {
         } else {
-            if (!deleteEPG($rID)) {
+            if (!EpgService::deleteEpgById($rID)) {
             } else {
                 return array('status' => 'STATUS_SUCCESS');
             }
@@ -1186,10 +1182,10 @@ class AdminAPIWrapper {
         return array('status' => 'STATUS_SUCCESS');
     }
     public static function getProviders() {
-        return array('status' => 'STATUS_SUCCESS', 'data' => getStreamProviders());
+        return array('status' => 'STATUS_SUCCESS', 'data' => ProviderService::getAll());
     }
     public static function getProvider($rID) {
-        if (!($rProvider = getStreamProvider($rID))) {
+        if (!($rProvider = ProviderService::getById($rID))) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS', 'data' => $rProvider);
@@ -1221,7 +1217,7 @@ class AdminAPIWrapper {
     public static function deleteProvider($rID) {
         if (!(($rProvider = self::getProvider($rID)) && isset($rProvider['data']))) {
         } else {
-            if (!deleteProvider($rID)) {
+            if (!ProviderService::deleteById($rID)) {
             } else {
                 return array('status' => 'STATUS_SUCCESS');
             }
@@ -1280,10 +1276,10 @@ class AdminAPIWrapper {
         return array('status' => 'STATUS_FAILURE');
     }
     public static function getPackages() {
-        return array('status' => 'STATUS_SUCCESS', 'data' => getPackages());
+        return array('status' => 'STATUS_SUCCESS', 'data' => PackageService::getAll());
     }
     public static function getPackage($rID) {
-        if (!($rPackage = getPackage($rID))) {
+        if (!($rPackage = PackageService::getById($rID))) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS', 'data' => $rPackage);
@@ -1326,7 +1322,7 @@ class AdminAPIWrapper {
         return array('status' => 'STATUS_SUCCESS', 'data' => StreamConfigRepository::getTranscodeProfiles());
     }
     public static function getTranscodeProfile($rID) {
-        if (!($rProfile = getTranscodeProfile($rID))) {
+        if (!($rProfile = StreamConfigRepository::getTranscodeProfile($rID))) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS', 'data' => $rProfile);
@@ -1358,7 +1354,7 @@ class AdminAPIWrapper {
     public static function deleteTranscodeProfile($rID) {
         if (!(($rProfile = self::getTranscodeProfile($rID)) && isset($rProfile['data']))) {
         } else {
-            if (!deleteProfile($rID)) {
+            if (!StreamConfigRepository::deleteProfile($rID)) {
             } else {
                 return array('status' => 'STATUS_SUCCESS');
             }
@@ -1369,7 +1365,7 @@ class AdminAPIWrapper {
         return array('status' => 'STATUS_SUCCESS', 'data' => BlocklistService::getRTMPIPsSimple());
     }
     public static function getRTMPIP($rID) {
-        if (!($rIP = getRTMPIP($rID))) {
+        if (!($rIP = BlocklistService::getRTMPIPById($rID))) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS', 'data' => $rIP);
@@ -1401,7 +1397,7 @@ class AdminAPIWrapper {
     public static function deleteRTMPIP($rID) {
         if (!(($rIP = self::getRTMPIP($rID)) && isset($rIP['data']))) {
         } else {
-            if (!deleteRTMPIP($rID)) {
+            if (!BlocklistService::deleteRTMPIP($rID)) {
             } else {
                 return array('status' => 'STATUS_SUCCESS');
             }
@@ -1412,7 +1408,7 @@ class AdminAPIWrapper {
         return array('status' => 'STATUS_SUCCESS', 'data' => CategoryService::getAllByType());
     }
     public static function getCategory($rID) {
-        if (!($rCategory = getCategory($rID))) {
+        if (!($rCategory = CategoryService::getById($rID))) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS', 'data' => $rCategory);
@@ -1444,7 +1440,7 @@ class AdminAPIWrapper {
     public static function deleteCategory($rID) {
         if (!(($rCategory = self::getCategory($rID)) && isset($rCategory['data']))) {
         } else {
-            if (!deleteCategory($rID)) {
+            if (!CategoryService::deleteById($rID)) {
             } else {
                 return array('status' => 'STATUS_SUCCESS');
             }
@@ -1455,7 +1451,7 @@ class AdminAPIWrapper {
         return array('status' => 'STATUS_SUCCESS', 'data' => WatchService::getWatchFolders());
     }
     public static function getWatchFolder($rID) {
-        if (!($rFolder = getWatchFolder($rID))) {
+        if (!($rFolder = StreamRepository::getWatchFolder($rID))) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS', 'data' => $rFolder);
@@ -1487,7 +1483,7 @@ class AdminAPIWrapper {
     public static function deleteWatchFolder($rID) {
         if (!(($rFolder = self::getWatchFolder($rID)) && isset($rFolder['data']))) {
         } else {
-            if (!deleteWatchFolder($rID)) {
+            if (!StreamRepository::deleteWatchFolder($rID)) {
             } else {
                 return array('status' => 'STATUS_SUCCESS');
             }
@@ -1499,7 +1495,7 @@ class AdminAPIWrapper {
         return array('status' => 'STATUS_SUCCESS');
     }
     public static function getBlockedISPs() {
-        return array('status' => 'STATUS_SUCCESS', 'data' => getISPs());
+        return array('status' => 'STATUS_SUCCESS', 'data' => BlocklistService::getAllISPs());
     }
     public static function addBlockedISP($rData) {
         if (!isset($rData['edit'])) {
@@ -1514,13 +1510,13 @@ class AdminAPIWrapper {
         return $rReturn;
     }
     public static function deleteBlockedISP($rID) {
-        if (!rdeleteBlockedISP($rID)) {
+        if (!BlocklistService::deleteBlockedISP($rID)) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS');
     }
     public static function getBlockedUAs() {
-        return array('status' => 'STATUS_SUCCESS', 'data' => getUserAgents());
+        return array('status' => 'STATUS_SUCCESS', 'data' => BlocklistService::getAllUserAgents());
     }
     public static function addBlockedUA($rData) {
         if (!isset($rData['edit'])) {
@@ -1535,7 +1531,7 @@ class AdminAPIWrapper {
         return $rReturn;
     }
     public static function deleteBlockedUA($rID) {
-        if (!rdeleteBlockedUA($rID)) {
+        if (!BlocklistService::deleteBlockedUA($rID)) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS');
@@ -1556,13 +1552,13 @@ class AdminAPIWrapper {
         return $rReturn;
     }
     public static function deleteBlockedIP($rID) {
-        if (!rdeleteBlockedIP($rID)) {
+        if (!BlocklistService::deleteBlockedIP($rID)) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS');
     }
     public static function flushBlockedIPs() {
-        flushIPs();
+        BlocklistService::flushIPs();
         return array('status' => 'STATUS_SUCCESS');
     }
     public static function getStream($rID) {
@@ -1598,7 +1594,7 @@ class AdminAPIWrapper {
     public static function deleteStream($rID, $rServerID = -1) {
         if (!(($rStream = self::getStream($rID)) && isset($rStream['data']))) {
         } else {
-            if (!deleteStream($rID, $rServerID)) {
+            if (!StreamRepository::deleteStream($rID, $rServerID)) {
             } else {
                 return array('status' => 'STATUS_SUCCESS');
             }
@@ -1607,9 +1603,9 @@ class AdminAPIWrapper {
     }
     public static function startStream($rID, $rServerID = -1) {
         if ($rServerID == -1) {
-            $rData = json_decode(APIRequest(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => array($rID), 'servers' => array_keys(ServerRepository::getAll()))), true);
+            $rData = json_decode(ApiClient::request(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => array($rID), 'servers' => array_keys(ServerRepository::getAll()))), true);
         } else {
-            $rData = json_decode(systemapirequest($rServerID, array('action' => 'stream', 'stream_ids' => array($rID), 'function' => 'start')), true);
+            $rData = json_decode(ApiClient::systemRequest($rServerID, array('action' => 'stream', 'stream_ids' => array($rID), 'function' => 'start')), true);
         }
         if (!$rData['result']) {
             return array('status' => 'STATUS_FAILURE');
@@ -1618,9 +1614,9 @@ class AdminAPIWrapper {
     }
     public static function stopStream($rID, $rServerID = -1) {
         if ($rServerID == -1) {
-            $rData = json_decode(APIRequest(array('action' => 'stream', 'sub' => 'stop', 'stream_ids' => array($rID), 'servers' => array_keys(ServerRepository::getAll()))), true);
+            $rData = json_decode(ApiClient::request(array('action' => 'stream', 'sub' => 'stop', 'stream_ids' => array($rID), 'servers' => array_keys(ServerRepository::getAll()))), true);
         } else {
-            $rData = json_decode(systemapirequest($rServerID, array('action' => 'stream', 'stream_ids' => array($rID), 'function' => 'stop')), true);
+            $rData = json_decode(ApiClient::systemRequest($rServerID, array('action' => 'stream', 'stream_ids' => array($rID), 'function' => 'stop')), true);
         }
         if (!$rData['result']) {
             return array('status' => 'STATUS_FAILURE');
@@ -1660,7 +1656,7 @@ class AdminAPIWrapper {
     public static function deleteChannel($rID, $rServerID = -1) {
         if (!(($rStream = self::getChannel($rID)) && isset($rStream['data']))) {
         } else {
-            if (!deleteStream($rID, $rServerID)) {
+            if (!StreamRepository::deleteStream($rID, $rServerID)) {
             } else {
                 return array('status' => 'STATUS_SUCCESS');
             }
@@ -1700,7 +1696,7 @@ class AdminAPIWrapper {
     public static function deleteStation($rID, $rServerID = -1) {
         if (!(($rStream = self::getStation($rID)) && isset($rStream['data']))) {
         } else {
-            if (!deleteStream($rID, $rServerID)) {
+            if (!StreamRepository::deleteStream($rID, $rServerID)) {
             } else {
                 return array('status' => 'STATUS_SUCCESS');
             }
@@ -1740,7 +1736,7 @@ class AdminAPIWrapper {
     public static function deleteMovie($rID, $rServerID = -1) {
         if (!(($rStream = self::getMovie($rID)) && isset($rStream['data']))) {
         } else {
-            if (!deleteStream($rID, $rServerID)) {
+            if (!StreamRepository::deleteStream($rID, $rServerID)) {
             } else {
                 return array('status' => 'STATUS_SUCCESS');
             }
@@ -1749,9 +1745,9 @@ class AdminAPIWrapper {
     }
     public static function startMovie($rID, $rServerID = -1) {
         if ($rServerID == -1) {
-            $rData = json_decode(APIRequest(array('action' => 'vod', 'sub' => 'start', 'stream_ids' => array($rID), 'servers' => array_keys(ServerRepository::getAll()))), true);
+            $rData = json_decode(ApiClient::request(array('action' => 'vod', 'sub' => 'start', 'stream_ids' => array($rID), 'servers' => array_keys(ServerRepository::getAll()))), true);
         } else {
-            $rData = json_decode(systemapirequest($rServerID, array('action' => 'vod', 'stream_ids' => array($rID), 'function' => 'start')), true);
+            $rData = json_decode(ApiClient::systemRequest($rServerID, array('action' => 'vod', 'stream_ids' => array($rID), 'function' => 'start')), true);
         }
         if (!$rData['result']) {
             return array('status' => 'STATUS_FAILURE');
@@ -1760,9 +1756,9 @@ class AdminAPIWrapper {
     }
     public static function stopMovie($rID, $rServerID = -1) {
         if ($rServerID == -1) {
-            $rData = json_decode(APIRequest(array('action' => 'vod', 'sub' => 'stop', 'stream_ids' => array($rID), 'servers' => array_keys(ServerRepository::getAll()))), true);
+            $rData = json_decode(ApiClient::request(array('action' => 'vod', 'sub' => 'stop', 'stream_ids' => array($rID), 'servers' => array_keys(ServerRepository::getAll()))), true);
         } else {
-            $rData = json_decode(systemapirequest($rServerID, array('action' => 'vod', 'stream_ids' => array($rID), 'function' => 'stop')), true);
+            $rData = json_decode(ApiClient::systemRequest($rServerID, array('action' => 'vod', 'stream_ids' => array($rID), 'function' => 'stop')), true);
         }
         if (!$rData['result']) {
             return array('status' => 'STATUS_FAILURE');
@@ -1802,7 +1798,7 @@ class AdminAPIWrapper {
     public static function deleteEpisode($rID, $rServerID = -1) {
         if (!(($rStream = self::getEpisode($rID)) && isset($rStream['data']))) {
         } else {
-            if (!deleteStream($rID, $rServerID)) {
+            if (!StreamRepository::deleteStream($rID, $rServerID)) {
             } else {
                 return array('status' => 'STATUS_SUCCESS');
             }
@@ -1810,7 +1806,7 @@ class AdminAPIWrapper {
         return array('status' => 'STATUS_FAILURE');
     }
     public static function getSeries($rID) {
-        if (!($rSeries = getSerie($rID))) {
+        if (!($rSeries = SeriesService::getById($rID))) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS', 'data' => $rSeries);
@@ -1842,7 +1838,7 @@ class AdminAPIWrapper {
     public static function deleteSeries($rID) {
         if (!(($rStream = self::getSeries($rID)) && isset($rStream['data']))) {
         } else {
-            if (!deleteSeries($rID)) {
+            if (!SeriesService::deleteSeriesById($rID)) {
             } else {
                 return array('status' => 'STATUS_SUCCESS');
             }
@@ -1850,15 +1846,17 @@ class AdminAPIWrapper {
         return array('status' => 'STATUS_FAILURE');
     }
     public static function getServers() {
+        global $rPermissions;
         return array('status' => 'STATUS_SUCCESS', 'data' => ServerRepository::getStreamingSimple($rPermissions));
     }
     public static function getServer($rID) {
-        if (!($rServer = getStreamingServersByID($rID))) {
+        if (!($rServer = ServerRepository::getById($rID))) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS', 'data' => $rServer);
     }
     public static function installServer($rData) {
+        global $rPermissions;
         if (!(empty($rData['type']) || empty($rData['ssh_port']) || empty($rData['root_username']) || empty($rData['root_password']))) {
             if (!($rData['type'] == 1 && (empty($rData['type']) || empty($rData['ssh_port'])))) {
                 $rReturn = parseerror(ServerService::install($rData, ServerRepository::getStreamingSimple($rPermissions, 'all'), ServerRepository::getProxySimple($rPermissions)));
@@ -1908,7 +1906,7 @@ class AdminAPIWrapper {
         return array('status' => 'STATUS_FAILURE');
     }
     public static function getSettings() {
-        return array('status' => 'STATUS_SUCCESS', 'data' => getSettings());
+        return array('status' => 'STATUS_SUCCESS', 'data' => SettingsManager::getAll());
     }
     public static function editSettings($rData) {
         $rReturn = parseerror(SettingsService::edit($rData));
@@ -1917,7 +1915,7 @@ class AdminAPIWrapper {
     }
     public static function getStats($rServerID) {
         global $db;
-        $rData = json_decode(systemapirequest($rServerID, array('action' => 'stats')), true);
+        $rData = json_decode(ApiClient::systemRequest($rServerID, array('action' => 'stats')), true);
         if (!$rData) {
             return array('status' => 'STATUS_FAILURE');
         }
@@ -1961,60 +1959,60 @@ class AdminAPIWrapper {
         return array('status' => 'STATUS_SUCCESS', 'data' => $rData);
     }
     public static function getFPMStatus($rServerID) {
-        $rData = systemapirequest($rServerID, array('action' => 'fpm_status'));
+        $rData = ApiClient::systemRequest($rServerID, array('action' => 'fpm_status'));
         if (!$rData) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS', 'data' => $rData);
     }
     public static function getRTMPStats($rServerID) {
-        $rData = json_decode(systemapirequest($rServerID, array('action' => 'rtmp_stats')), true);
+        $rData = json_decode(ApiClient::systemRequest($rServerID, array('action' => 'rtmp_stats')), true);
         if (!$rData) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS', 'data' => $rData);
     }
     public static function getFreeSpace($rServerID) {
-        $rData = json_decode(systemapirequest($rServerID, array('action' => 'get_free_space')), true);
+        $rData = json_decode(ApiClient::systemRequest($rServerID, array('action' => 'get_free_space')), true);
         if (!$rData) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS', 'data' => $rData);
     }
     public static function getPIDs($rServerID) {
-        $rData = json_decode(systemapirequest($rServerID, array('action' => 'get_pids')), true);
+        $rData = json_decode(ApiClient::systemRequest($rServerID, array('action' => 'get_pids')), true);
         if (!$rData) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS', 'data' => $rData);
     }
     public static function getCertificateInfo($rServerID) {
-        $rData = json_decode(systemapirequest($rServerID, array('action' => 'get_certificate_info')), true);
+        $rData = json_decode(ApiClient::systemRequest($rServerID, array('action' => 'get_certificate_info')), true);
         if (!$rData) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS', 'data' => $rData);
     }
     public static function reloadNGINX($rServerID) {
-        systemapirequest($rServerID, array('action' => 'reload_nginx'));
+        ApiClient::systemRequest($rServerID, array('action' => 'reload_nginx'));
         return array('status' => 'STATUS_SUCCESS');
     }
     public static function clearTemp($rServerID) {
-        $rData = json_decode(systemapirequest($rServerID, array('action' => 'free_temp')), true);
+        $rData = json_decode(ApiClient::systemRequest($rServerID, array('action' => 'free_temp')), true);
         if (!$rData['result']) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS');
     }
     public static function clearStreams($rServerID) {
-        $rData = json_decode(systemapirequest($rServerID, array('action' => 'free_streams')), true);
+        $rData = json_decode(ApiClient::systemRequest($rServerID, array('action' => 'free_streams')), true);
         if (!$rData['result']) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS');
     }
     public static function getDirectory($rServerID, $rDirectory) {
-        $rData = json_decode(systemapirequest($rServerID, array('action' => 'scandir', 'dir' => $rDirectory)), true);
+        $rData = json_decode(ApiClient::systemRequest($rServerID, array('action' => 'scandir', 'dir' => $rDirectory)), true);
         if (!$rData) {
             return array('status' => 'STATUS_FAILURE');
         }
@@ -2025,14 +2023,14 @@ class AdminAPIWrapper {
         return array('status' => 'STATUS_FAILURE');
     }
     public static function killPID($rServerID, $rPID) {
-        $rData = json_decode(systemapirequest($rServerID, array('action' => 'kill_pid', 'pid' => intval($rPID))), true);
+        $rData = json_decode(ApiClient::systemRequest($rServerID, array('action' => 'kill_pid', 'pid' => intval($rPID))), true);
         if (!$rData['result']) {
             return array('status' => 'STATUS_FAILURE');
         }
         return array('status' => 'STATUS_SUCCESS');
     }
     public static function killConnection($rServerID, $rActivityID) {
-        $rData = json_decode(systemapirequest($rServerID, array('action' => 'closeConnection', 'activity_id' => intval($rActivityID))), true);
+        $rData = json_decode(ApiClient::systemRequest($rServerID, array('action' => 'closeConnection', 'activity_id' => intval($rActivityID))), true);
         if (!$rData['result']) {
             return array('status' => 'STATUS_FAILURE');
         }

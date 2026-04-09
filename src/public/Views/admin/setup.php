@@ -9,8 +9,8 @@ if (!isset(RequestManager::getAll()['update'])):
         $rFirstRun = false;
         include 'session.php';
 
-        if (!checkPermissions()) {
-            goHome();
+        if (!PageAuthorization::checkPermissions()) {
+            AdminHelpers::goHome();
         }
     }
 
@@ -55,16 +55,16 @@ if (!isset(RequestManager::getAll()['update'])):
                 RequestManager::update('new', 1);
                 $_STATUS = STATUS_FAILURE;
             } else {
-                $rArray = verifyPostTable('users');
+                $rArray = QueryHelper::verifyPostTable('users');
                 $rArray['username'] = RequestManager::getAll()['username'];
-                $rArray['password'] = cryptPassword(RequestManager::getAll()['password']);
+                $rArray['password'] = Authenticator::hashPassword(RequestManager::getAll()['password']);
                 $rArray['email'] = RequestManager::getAll()['email'];
                 $rArray['last_login'] = time();
                 $rArray['date_registered'] = $rArray['last_login'];
                 $rArray['member_group_id'] = 1;
                 $rArray['ip'] = NetworkUtils::getUserIP();
                 $rArray['last_login'] = time();
-                $rPrepare = prepareArray($rArray);
+                $rPrepare = QueryHelper::prepareArray($rArray);
                 $rQuery = 'INSERT INTO `users`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
                 if ($db->query($rQuery, ...$rPrepare['data'])) {
@@ -73,7 +73,7 @@ if (!isset(RequestManager::getAll()['update'])):
                     $_SESSION['code'] = AuthRepository::getCurrentCode();
                     $_SESSION['verify'] = md5($rArray['username'] . '||' . $rArray['password']);
                     $db->query('UPDATE `servers` SET `server_ip` = ? WHERE `is_main` = 1 AND `server_type` = 0 LIMIT 1;', $_SERVER['SERVER_ADDR']);
-                    $db->query('UPDATE `settings` SET `live_streaming_pass` = ? WHERE `id` = 1', generateString(25));
+                    $db->query('UPDATE `settings` SET `live_streaming_pass` = ? WHERE `id` = 1', AdminHelpers::generateString(25));
 
                     if ($_SESSION['code'] == 'setup') {
                         header('Location: ./codes');
@@ -126,8 +126,8 @@ if (!isset(RequestManager::getAll()['update'])):
         ksort($rCount);
     }
 
-    if (!($rFirstRun || checkPermissions())) {
-        goHome();
+    if (!($rFirstRun || PageAuthorization::checkPermissions())) {
+        AdminHelpers::goHome();
     }
 
     $_TITLE = 'Database Migration';

@@ -2,8 +2,8 @@
     <?php include 'session.php'; ?>
     <?php include 'functions.php'; ?>
 
-    <?php if (!checkPermissions()): ?>
-        <?php goHome(); ?>
+    <?php if (!PageAuthorization::checkPermissions()): ?>
+        <?php AdminHelpers::goHome(); ?>
     <?php endif; ?>
 
     <?php $_TITLE = 'Lines'; ?>

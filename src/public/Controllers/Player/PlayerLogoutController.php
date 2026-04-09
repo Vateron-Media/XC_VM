@@ -14,7 +14,7 @@ class PlayerLogoutController extends BasePlayerController
 {
     public function index()
     {
-        destroySession('player');
+        SessionManager::clearContext('player');
         header('Location: login');
         exit();
     }

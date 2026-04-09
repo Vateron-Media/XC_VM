@@ -28,9 +28,7 @@ class GroupEditController extends BaseAdminController
         if ($id !== null) {
             $rGroup = GroupService::getById($id);
             if (!$rGroup) {
-                if (function_exists('goHome')) {
-                    goHome();
-                }
+                AdminHelpers::goHome();
                 return;
             }
         }
