@@ -62,7 +62,9 @@ class Translator {
         self::loadLanguage($lang);
 
         // Cookie for one year
-        setcookie('lang', $lang, time() + 365 * 24 * 3600, '/');
+        if (!headers_sent()) {
+            setcookie('lang', $lang, time() + 365 * 24 * 3600, '/');
+        }
 
         return true;
     }
