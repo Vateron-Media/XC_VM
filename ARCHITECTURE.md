@@ -104,7 +104,7 @@ class StreamService {
 ```
 
 **Исключения (временные, фаза миграции):**
-Legacy-код в `includes/` может обращаться к контейнеру напрямую. Каждое такое обращение помечается `// @legacy-container`.
+Legacy-код в `infrastructure/legacy/` может обращаться к контейнеру напрямую. Каждое такое обращение помечается `// @legacy-container`.
 
 ### 1.3. Консолидация мелких классов
 
@@ -140,30 +140,35 @@ src/
 ├── autoload.php                     # PSR-подобный автозагрузчик (class map)
 ├── bootstrap.php                    # Единый bootstrap: DI container, config, контексты
 ├── console.php                      # CLI entry point (php console.php cron:*, cmd:*)
-├── console                          # Shell wrapper: console <command> [arguments]
 ├── service                          # Bash: управление демонами
 ├── update                           # Bash: процесс обновления
 │
 ├── core/                            # ═══ ЯДРО (инфраструктурные сервисы) ═══
-│   ├── Auth/                        # SessionManager, Authenticator, Authorization, BruteforceGuard
+│   ├── Auth/                        # SessionManager, Authenticator, Authorization,
+│   │                                #   BruteforceGuard, PageAuthorization
 │   ├── Backup/                      # BackupService
 │   ├── Cache/                       # CacheInterface, FileCache, RedisCache
 │   ├── Config/                      # AppConfig, ConfigLoader, ConfigReader, Paths, Binaries,
 │   │                                #   DomainResolver, SettingsManager, SettingsRepository
 │   ├── Container/                   # ServiceContainer (DI)
-│   ├── Database/                    # Database (PDO), DatabaseHandler, MigrationRunner
+│   ├── Database/                    # Database (PDO), DatabaseHandler, MigrationRunner, QueryHelper
+│   ├── Device/                      # MobileDetect
 │   ├── Diagnostics/                 # DiagnosticsService
 │   ├── Error/                       # ErrorHandler, ErrorCodes
 │   ├── Events/                      # EventDispatcher, EventInterface
 │   ├── GeoIP/                       # GeoIPService
-│   ├── Http/                        # Request, Response, Router, CurlClient, RequestGuard,
-│   │                                #   RequestManager, Middleware/
+│   ├── Http/                        # Request, Response, Router, ApiClient, CurlClient,
+│   │                                #   RequestGuard, RequestManager, Middleware/
 │   ├── Init/                        # LegacyInitializer
-│   ├── Logging/                     # LoggerInterface, FileLogger, DatabaseLogger
+│   ├── Localization/                # Translator
+│   ├── Logging/                     # LoggerInterface, FileLogger, DatabaseLogger, Logger
 │   ├── Module/                      # ModuleInterface, ModuleLoader
+│   ├── Parsing/                     # XmlStringStreamer
 │   ├── Process/                     # ProcessManager, Multithread, Thread
+│   ├── Storage/                     # DropboxClient
+│   ├── Updates/                     # GithubReleases
 │   ├── Util/                        # Encryption, GeoIP, ImageUtils, NetworkUtils,
-│   │                                #   StreamUtils, SystemInfo, TimeUtils
+│   │                                #   StreamUtils, SystemInfo, TimeUtils, AdminHelpers
 │   └── Validation/                  # InputValidator
 │
 ├── domain/                          # ═══ БИЗНЕС-ЛОГИКА (сервисы и репозитории) ═══
@@ -176,14 +181,16 @@ src/
 │   ├── Server/                      # ServerService, ServerRepository, SettingsService
 │   ├── Stream/                      # StreamService, StreamRepository, StreamProcess,
 │   │                                #   ChannelService, CategoryService, ConnectionTracker,
-│   │                                #   StreamSorter, PlaylistGenerator,
+│   │                                #   StreamSorter, PlaylistGenerator, M3UEntry, M3UParser,
 │   │                                #   ProfileService, ProviderService, RadioService,
 │   │                                #   StreamConfigRepository
-│   ├── User/                        # UserService, UserRepository, GroupService
-│   └── Vod/                         # MovieService, SeriesService, EpisodeService
+│   ├── User/                        # UserService, UserRepository, GroupService, TicketRepository
+│   └── Vod/                         # MovieService, SeriesService, EpisodeService, TMDbService
 │
 ├── streaming/                       # ═══ СТРИМИНГ-ДВИЖОК (hot path) ═══
 │   ├── StreamingBootstrap.php       # Лёгкий init для стриминг-контекста
+│   ├── AsyncFileOperations.php      # Асинхронные файловые операции
+│   ├── TimeshiftClient.php          # Клиент для timeshift-запросов
 │   ├── Auth/                        # StreamAuth, StreamAuthMiddleware
 │   ├── Balancer/                    # ProxySelector
 │   ├── Codec/                       # FFmpegCommand, FFprobeRunner, FfmpegPaths
@@ -198,11 +205,11 @@ src/
 │   ├── routes/                      # admin.php, reseller.php, player.php
 │   ├── Controllers/
 │   │   ├── Admin/                   # 96 контроллеров (BaseAdminController + по одному на страницу)
-│   │   ├── Reseller/                # 30 контроллеров
+│   │   ├── Reseller/                # 31 контроллер (BaseResellerController + по одному на страницу)
 │   │   ├── Api/                     # 9 контроллеров (Admin, Reseller, Player, Internal, Enigma2...)
 │   │   └── Player/                  # 13 контроллеров
 │   ├── Views/
-│   │   ├── admin/                   # 149 шаблонов
+│   │   ├── admin/                   # 127 шаблонов
 │   │   ├── reseller/                # 24 шаблона
 │   │   ├── player/                  # 7 шаблонов
 │   │   └── layouts/                 # admin.php, footer.php, player/, reseller/
@@ -235,15 +242,6 @@ src/
 │   ├── redis/                       # RedisManager
 │   └── service/                     # (bash-скрипты демонов)
 │
-├── includes/                        # ═══ LEGACY (в процессе удаления) ═══
-│   ├── admin.php                    # Legacy bootstrap — proxy к domain/core (Phase 15: удалить)
-│   ├── reseller_api.php             # Legacy API
-│   ├── ts.php                       # Timeshift утилиты
-│   ├── api/                         # admin/table.php, reseller/table.php
-│   ├── data/                        # permissions.php
-│   ├── libs/                        # TMDb/, Translator, Logger, XmlStringStreamer и др.
-│   └── python/                      # PTN/, release.py
-│
 ├── resources/                       # ═══ РЕСУРСЫ ═══
 │   ├── data/                        # admin_constants.php
 │   ├── langs/                       # bg, de, en, es, fr, pt, ru (.ini)
@@ -251,6 +249,7 @@ src/
 │
 ├── config/                          # ═══ КОНФИГУРАЦИЯ ═══
 │   ├── modules.php                  # Список включённых модулей
+│   ├── permissions.php              # Определения прав доступа
 │   └── rclone.conf
 │
 ├── www/                             # ═══ WEB ENTRY POINTS ═══
@@ -284,20 +283,28 @@ src/
 
 | Подкаталог | Что даёт |
 |------------|----------|
-| `Config/` | Загрузка конфигурации, резолв путей, управление настройками |
-| `Database/` | PDO-обёртка (Database + DatabaseHandler), миграции |
+| `Auth/` | Единая авторизация (admin + reseller), RBAC, brute-force защита, авторизация страниц |
+| `Backup/` | Бэкапы (BackupService) |
 | `Cache/` | Унифицированный кэш (File + Redis) через `CacheInterface` |
-| `Auth/` | Единая авторизация (admin + reseller), RBAC, brute-force защита |
-| `Http/` | Абстракция запросов, роутинг, middleware pipeline |
-| `Process/` | Управление PID, потоками (Multithread, Thread) |
-| `Logging/` | Унифицированное логирование (File + Database) |
-| `Events/` | Event bus для модульных хуков |
+| `Config/` | Загрузка конфигурации, резолв путей, управление настройками |
 | `Container/` | DI-контейнер (composition root only — §1.2) |
+| `Database/` | PDO-обёртка (Database + DatabaseHandler + QueryHelper), миграции |
+| `Device/` | Определение устройства (MobileDetect) |
+| `Diagnostics/` | Диагностика системы |
 | `Error/` | Обработчик ошибок, коды ошибок |
+| `Events/` | Event bus для модульных хуков |
 | `GeoIP/` | Гео-определение по IP |
-| `Util/` | Утилиты без состояния (Encryption, Network, Time, Image, Stream) |
-| `Validation/` | Валидация входных данных |
+| `Http/` | Абстракция запросов, роутинг, ApiClient, CurlClient, middleware pipeline |
+| `Init/` | Legacy-инициализация (LegacyInitializer) |
+| `Localization/` | Перевод интерфейса (Translator) |
+| `Logging/` | Унифицированное логирование (File + Database + Logger) |
 | `Module/` | Загрузчик модулей, `ModuleInterface` |
+| `Parsing/` | Парсинг XML (XmlStringStreamer) |
+| `Process/` | Управление PID, потоками (Multithread, Thread) |
+| `Storage/` | Облачное хранилище (DropboxClient) |
+| `Updates/` | Обновления (GithubReleases) |
+| `Util/` | Утилиты без состояния (Encryption, Network, Time, Image, Stream, AdminHelpers) |
+| `Validation/` | Валидация входных данных |
 
 ### 3.2. `domain/` — Бизнес-логика
 
@@ -413,14 +420,15 @@ Streaming вызывает **только read-методы** Repository. Зап
 | `theft-detection/` | Anti-theft detection |
 | `magscan/` | MAG device scanning |
 
-### 3.7. `includes/` — Legacy-код (в процессе удаления)
+### 3.7. `infrastructure/legacy/` — Остаточный legacy-код
 
-Оставшийся legacy-код, который ещё не полностью мигрирован:
-- `admin.php` — legacy bootstrap (proxy к `domain/` и `core/`)
-- `reseller_api.php` — legacy API-обработчик
-- `libs/` — сторонние библиотеки (TMDb, Translator, XmlStringStreamer)
+Остаточный legacy-код, вынесенный из удалённого `includes/`:
+- `resize_body.php` — логика resize для admin
+- `reseller_api.php` — legacy reseller API-обработчик
+- `reseller_api_actions.php` — действия reseller API
+- `reseller_table_body.php` — формирование таблиц для reseller
 
-**Статус:** Удаление запланировано в Phase 15 (см. MIGRATION.md).
+**Статус:** Директория `includes/` полностью удалена (Phase 15 завершена). Оставшийся код в `infrastructure/legacy/` подлежит дальнейшей миграции в `domain/` сервисы.
 
 ### 3.8. Bootstrap — контексты инициализации
 
@@ -521,7 +529,7 @@ LB собирается из следующих директорий и файл
 
 **Исключения (`LB_DIRS_TO_REMOVE`):** `bin/install`, `bin/redis`, `bin/nginx/conf/codes`, `includes/api`, `includes/libs/resources`, `domain/User`, `domain/Device`, `domain/Auth`, `resources/langs`, `resources/libs`
 
-**Отдельные файлы, удаляемые из LB (`LB_FILES_TO_REMOVE`):** `includes/admin.php`, `includes/reseller_api.php`, `www/probe.php`, `config/rclone.conf`, ряд CLI-команд и CronJob'ов (admin-only), `domain/Epg/EPG.php`
+**Отдельные файлы, удаляемые из LB (`LB_FILES_TO_REMOVE`):** `infrastructure/legacy/reseller_api.php`, `www/probe.php`, `www/playlist.php`, `www/player_api.php`, `www/epg.php`, `www/enigma2.php`, `www/stream/auth.php`, `www/admin/proxy_api.php`, `www/admin/api.php`, `config/rclone.conf`, ряд CLI-команд и CronJob'ов (admin-only), `domain/Epg/EPG.php`, `bin/nginx/conf/gzip.conf`
 
 **Полностью исключены из LB:** `public/`, `modules/`, `ministra/`
 
