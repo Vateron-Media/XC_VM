@@ -188,7 +188,7 @@ class UserService {
 			$rPassword = $rUserInfo['password'];
 		}
 
-		if (!(ctype_xdigit($rData['api_key']) && strlen($rData['api_key']) == 32)) {
+		if (!isset($rData['api_key']) || !(ctype_xdigit($rData['api_key']) && strlen($rData['api_key']) == 32)) {
 			$rData['api_key'] = '';
 		}
 
