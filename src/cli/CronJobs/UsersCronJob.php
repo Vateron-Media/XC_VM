@@ -285,7 +285,7 @@ class UsersCronJob implements CommandInterface {
 
                 foreach ($rConnections as $rKey => $rConnection) {
                     if ($rConnection['server_id'] == SERVER_ID || SettingsManager::getAll()['redis_handler']) {
-                        if (is_null($rConnection['exp_date']) || $rConnection['exp_date'] >= $rStartTime) {
+                        if (!isset($rConnection['exp_date']) || is_null($rConnection['exp_date']) || $rConnection['exp_date'] >= $rStartTime) {
                             $rTotalTime = $rStartTime - $rConnection['date_start'];
 
                             if (!($rAutoKick != 0 && $rAutoKick <= $rTotalTime) || $rIsRestreamer) {
