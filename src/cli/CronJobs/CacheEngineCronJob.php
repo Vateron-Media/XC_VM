@@ -439,7 +439,7 @@ class CacheEngineCronJob implements CommandInterface {
                             if (!$rStreamInfo['direct_source']) {
                                 unset($rStreamInfo['stream_source']);
                             }
-                            $rOutput = ['info' => $rStreamInfo, 'bouquets' => ($rBouquetMap[intval($rStreamInfo['id'])] ?: []), 'servers' => (isset($rStreamMap[intval($rStreamInfo['id'])]) ? $rStreamMap[intval($rStreamInfo['id'])] : [])];
+                            $rOutput = ['info' => $rStreamInfo, 'bouquets' => ($rBouquetMap[intval($rStreamInfo['id'])] ?? []), 'servers' => ($rStreamMap[intval($rStreamInfo['id'])] ?? [])];
                             file_put_contents(STREAMS_TMP_PATH . 'stream_' . $rStreamInfo['id'], igbinary_serialize($rOutput));
                         }
                         unset($rRows, $rStreamMap, $rStreamIDs);
