@@ -13,6 +13,9 @@ class ModulesController extends BaseAdminController {
         $flash = null;
 
         if (strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+            $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
+                && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+
             try {
                 $action = (string) $this->input('module_action', '');
                 $name = (string) $this->input('module_name', '');
@@ -63,6 +66,11 @@ class ModulesController extends BaseAdminController {
                 }
             } catch (Throwable $e) {
                 $flash = ['type' => 'danger', 'message' => $e->getMessage()];
+            }
+
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                exit(json_encode($flash ?: ['type' => 'info', 'message' => 'No action taken']));
             }
         }
 
