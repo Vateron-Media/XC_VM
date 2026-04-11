@@ -1,9 +1,11 @@
 <?php
 
 /**
- * RedisManager — управление жизненным циклом Redis-подключения.
+ * RedisManager — Redis connection lifecycle management.
  *
- * Singleton хранит активный экземпляр Redis.
+ * Singleton that holds the active Redis instance. Provides health-check
+ * via ping (debounced to 30s), auto-reconnect on failure, and low-level
+ * connect/close helpers for non-singleton usage.
  *
  * @package XC_VM_Infrastructure_Redis
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -13,55 +15,99 @@
  */
 
 class RedisManager {
-	/** @var Redis|null Singleton-экземпляр */
+	/** @var Redis|null Singleton instance */
 	private static $instance = null;
+	/** @var int Last ping health-check timestamp */
+	private static $lastPingCheck = 0;
 
 	// ──────── Singleton API ────────
 
 	/**
-	 * Возвращает активный Redis, при необходимости подключаясь.
-	 * @return Redis|null
+	 * Get the active Redis instance, connecting if necessary.
+	 *
+	 * Performs a ping health-check no more than once every 30 seconds.
+	 * If the connection is dead, attempts to reconnect automatically.
+	 *
+	 * @return Redis|null Active Redis instance, or null on connection failure.
 	 */
-	public static function instance() {
+	public static function instance(): ?Redis {
+		if (is_object(self::$instance)) {
+			$rNow = time();
+			if ($rNow - self::$lastPingCheck > 30) {
+				try {
+					self::$instance->ping();
+					self::$lastPingCheck = $rNow;
+				} catch (RedisException $e) {
+					self::$instance = null;
+				}
+			}
+		}
 		if (!is_object(self::$instance)) {
 			self::ensureConnected();
+			self::$lastPingCheck = time();
 		}
 		return self::$instance;
 	}
 
 	/**
-	 * Подключается к Redis, если ещё нет соединения.
-	 * @return bool
+	 * Connect to Redis if not already connected.
+	 *
+	 * Uses ConfigReader and SettingsManager for hostname and password.
+	 *
+	 * @return bool True if connected, false otherwise.
 	 */
-	public static function ensureConnected() {
+	public static function ensureConnected(): bool {
 		self::$instance = self::connect(self::$instance, ConfigReader::getAll(), SettingsManager::getAll());
 		return is_object(self::$instance);
 	}
 
 	/**
-	 * Закрывает singleton-подключение.
-	 * @return bool
+	 * Close the singleton connection.
+	 *
+	 * @return bool Always returns true.
 	 */
-	public static function closeInstance() {
+	public static function closeInstance(): bool {
 		self::$instance = self::close(self::$instance);
 		return true;
 	}
 
 	/**
-	 * Проверяет, подключён ли singleton.
-	 * @return bool
+	 * Check whether the singleton is connected.
+	 *
+	 * @return bool True if connected.
 	 */
-	public static function isConnected() {
+	public static function isConnected(): bool {
 		return is_object(self::$instance);
 	}
 
-	// ──────── Low-level API (без singleton) ────────
 
-	public static function setSignal($rKey, $rData) {
+
+	/**
+	 * Write a signal to the filesystem cache.
+	 *
+	 * Stores a JSON-encoded [key, data] pair in SIGNALS_TMP_PATH.
+	 *
+	 * @param string $rKey  Signal key.
+	 * @param mixed  $rData Signal payload.
+	 * @return void
+	 */
+	public static function setSignal(string $rKey, $rData): void {
 		file_put_contents(SIGNALS_TMP_PATH . 'cache_' . md5($rKey), json_encode(array($rKey, $rData)));
 	}
 
-	public static function connect($rRedis, $rConfig, $rSettings) {
+	/**
+	 * Connect to Redis (low-level, non-singleton).
+	 *
+	 * If $rRedis is already a live connection, returns it as-is.
+	 * Otherwise creates a new connection using hostname from $rConfig
+	 * and password from $rSettings.
+	 *
+	 * @param Redis|null $rRedis   Existing Redis instance or null.
+	 * @param array      $rConfig   Config array (must contain 'hostname').
+	 * @param array      $rSettings Settings array (must contain 'redis_password').
+	 * @return Redis|null Connected Redis instance, or null on failure.
+	 */
+	public static function connect(?Redis $rRedis, array $rConfig, array $rSettings): ?Redis {
 		if (is_object($rRedis)) {
 			try {
 				$rRedis->ping();
@@ -87,7 +133,13 @@ class RedisManager {
 		}
 	}
 
-	public static function close($rRedis) {
+	/**
+	 * Close a Redis connection.
+	 *
+	 * @param Redis|null $rRedis Redis instance to close.
+	 * @return null Always returns null (for assignment: $redis = close($redis)).
+	 */
+	public static function close(?Redis $rRedis): ?Redis {
 		if (is_object($rRedis)) {
 			$rRedis->close();
 		}
