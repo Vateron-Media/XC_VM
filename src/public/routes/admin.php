@@ -56,6 +56,7 @@ $router->get('server_install', [ServerInstallController::class, 'index']);
 // ─── Group F: Settings (Phase 6.3) ─────────────────────────────
 
 $router->get('settings', [SettingsController::class, 'index']);
+$router->any('modules', [ModulesController::class, 'index']);
 $router->get('settings_watch', [SettingsWatchController::class, 'index']);
 $router->get('settings_plex', [SettingsPlexController::class, 'index']);
 $router->get('magscan_settings', [MagscanSettingsController::class, 'index']);

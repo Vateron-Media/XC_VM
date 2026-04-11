@@ -163,6 +163,11 @@
                                                 <span><?= $language::get('cache_redis'); ?></span>
                                             </a>
                                         <?php endif; ?>
+                                        <?php if (Authorization::check('adv', 'settings')): ?>
+                                            <a href="modules" class="dropdown-item notify-item">
+                                                <span>Modules</span>
+                                            </a>
+                                        <?php endif; ?>
 
                                         <?php if (Authorization::check('adv', 'folder_watch_settings')): ?>
                                             <div class="dropdown-divider"></div>
