@@ -1,190 +1,182 @@
 <?php
 
 /**
- * Translator PHP class - multilingual support system with auto-key generation
+ * Translator — XC_VM multilingual support system.
  *
- * @package VateronMedia_Translator
+ * Loads translations from INI files, switches language via cookie,
+ * automatically copies missing keys from en.ini into the current language.
+ *
+ * @package XC_VM\Core\Localization
  * @author Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
- * @link https://github.com/Vateron-Media/XC_VM
- * @version 1.0.0
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
- *
- * A PHP class created specifically for the XC_VM project to provide multilingual support.
- * Features automatic translation key generation, INI file management, language switching,
- * and missing key auto-creation with file locking for concurrent access.
  */
-
 class Translator {
-    /** @var array<string, string> Currently loaded translations */
-    private static array $translations = [];
+	/** @var array<string, string> */
+	private static array $translations = [];
 
-    /** @var string Current language */
-    private static string $currentLang = 'en';
+	/** @var string */
+	private static string $currentLang = 'en';
 
-    /** @var string Path to translations folder (with trailing slash) */
-    private static string $langsDir = __DIR__ . '/lang/';
+	/** @var string */
+	private static string $langsDir = __DIR__ . '/lang/';
 
-    /** @var array<string> Cache of available languages */
-    private static array $availableLanguages = [];
+	/** @var string[] */
+	private static array $availableLanguages = [];
 
-    /**
-     * Initialize translator
-     *
-     * @param string|null $langsDir Path to .ini files folder (e.g., /var/www/lang/)
-     */
-    public static function init(?string $langsDir = null): void {
-        if ($langsDir !== null) {
-            self::$langsDir = rtrim($langsDir, '/') . '/';
-        }
+	/**
+	 * Initialize translator: scans available languages, detects current from cookie.
+	 *
+	 * @param string|null $langsDir Path to .ini files directory
+	 */
+	public static function init(?string $langsDir = null): void {
+		if ($langsDir !== null) {
+			self::$langsDir = rtrim($langsDir, '/') . '/';
+		}
 
-        // Get and cache list of languages
-        self::$availableLanguages = self::scanAvailableLanguages();
+		self::$availableLanguages = self::scanAvailableLanguages();
 
-        // Detect user language
-        $requestedLang = $_COOKIE['lang'] ?? 'en';
-        self::$currentLang = in_array($requestedLang, self::$availableLanguages)
-            ? $requestedLang
-            : 'en';
+		$requestedLang = $_COOKIE['lang'] ?? 'en';
+		self::$currentLang = in_array($requestedLang, self::$availableLanguages)
+			? $requestedLang
+			: 'en';
 
-        self::loadLanguage(self::$currentLang);
-    }
+		self::loadLanguage(self::$currentLang);
+	}
 
-    /**
-     * Change language at runtime + update cookie
-     */
-    public static function setLanguage(string $lang): bool {
-        if (!in_array($lang, self::$availableLanguages)) {
-            return false;
-        }
+	/**
+	 * Switch language at runtime and set cookie for 1 year.
+	 *
+	 * @param string $lang Language code (en, ru, de, ...)
+	 * @return bool true if language exists and was switched
+	 */
+	public static function setLanguage(string $lang): bool {
+		if (!in_array($lang, self::$availableLanguages)) {
+			return false;
+		}
 
-        self::$currentLang = $lang;
-        self::loadLanguage($lang);
+		self::$currentLang = $lang;
+		self::loadLanguage($lang);
 
-        // Cookie for one year
-        if (!headers_sent()) {
-            setcookie('lang', $lang, time() + 365 * 24 * 3600, '/');
-        }
+		if (!headers_sent()) {
+			setcookie('lang', $lang, time() + 365 * 24 * 3600, '/');
+		}
 
-        return true;
-    }
+		return true;
+	}
 
-    /**
-     * Get translation by key
-     * If key doesn't exist — it will be automatically added to all language files
-     */
-    public static function get(string $key, array $replace = []): string {
-        $text = self::$translations[$key] ?? null;
+	/**
+	 * Get translation by key. If missing — copies from en.ini into current language.
+	 *
+	 * @param string $key Translation key
+	 * @param array<string, string> $replace Substitutions for strtr()
+	 * @return string Translated string or key as fallback
+	 */
+	public static function get(string $key, array $replace = []): string {
+		$text = self::$translations[$key] ?? null;
 
-        if ($text === null) {
-            $enFallback = self::addMissingKeyToAllLanguages($key);
+		if ($text === null) {
+			$enFallback = self::copyMissingKeyFromEnglish($key);
+			$text = $enFallback ?? $key;
+			self::$translations[$key] = $text;
+		}
 
-            // For non-English: use English value as fallback; for English: key name
-            $text = (self::$currentLang !== 'en' && $enFallback !== null)
-                ? $enFallback
-                : $key;
+		return !empty($replace) ? strtr($text, $replace) : $text;
+	}
 
-            // Update current loaded array so subsequent calls see the value immediately
-            self::$translations[$key] = $text;
-        }
+	/**
+	 * @return string Current language code
+	 */
+	public static function current(): string {
+		return self::$currentLang;
+	}
 
-        return !empty($replace) ? strtr($text, $replace) : $text;
-    }
+	/**
+	 * @return string[] List of available language codes
+	 */
+	public static function available(): array {
+		return self::$availableLanguages;
+	}
 
-    /**
-     * Current language
-     */
-    public static function current(): string {
-        return self::$currentLang;
-    }
+	/**
+	 * Scan langs directory for .ini files.
+	 *
+	 * @return string[]
+	 */
+	private static function scanAvailableLanguages(): array {
+		$languages = [];
+		$files = glob(self::$langsDir . '*.ini');
 
-    /**
-     * All available languages
-     */
-    public static function available(): array {
-        return self::$availableLanguages;
-    }
+		foreach ($files as $file) {
+			if (is_file($file) && is_readable($file)) {
+				$languages[] = pathinfo($file, PATHINFO_FILENAME);
+			}
+		}
 
-    // ═════════════════════════════════════════════════════════════════
-    // Internal methods
-    // ═════════════════════════════════════════════════════════════════
+		$languages = array_unique($languages);
+		if (empty($languages)) {
+			$languages = ['en'];
+		}
 
-    private static function scanAvailableLanguages(): array {
-        $languages = [];
-        $files = glob(self::$langsDir . '*.ini');
+		return $languages;
+	}
 
-        foreach ($files as $file) {
-            if (is_file($file) && is_readable($file)) {
-                $code = pathinfo($file, PATHINFO_FILENAME);
-                // Optionally filter by valid language codes if needed
-                $languages[] = $code;
-            }
-        }
+	/**
+	 * Load translations from .ini file into $translations. Falls back to en.ini.
+	 *
+	 * @param string $lang Language code
+	 */
+	private static function loadLanguage(string $lang): void {
+		$file = self::$langsDir . $lang . '.ini';
 
-        // If nothing found at all — guarantee at least en
-        $languages = array_unique($languages);
-        if (empty($languages)) {
-            $languages = ['en'];
-        }
+		if (!is_readable($file)) {
+			$file = self::$langsDir . 'en.ini';
+		}
 
-        return $languages;
-    }
+		$data = parse_ini_file($file, false, INI_SCANNER_RAW);
+		self::$translations = ($data !== false) ? $data : [];
+	}
 
-    private static function loadLanguage(string $lang): void {
-        $file = self::$langsDir . $lang . '.ini';
+	/**
+	 * Copy a missing key from en.ini into the current language file.
+	 * Uses file locking to prevent race conditions on concurrent requests.
+	 *
+	 * @param string $key Translation key
+	 * @return string|null Value from en.ini, or null if key not found
+	 */
+	private static function copyMissingKeyFromEnglish(string $key): ?string {
+		$enFile = self::$langsDir . 'en.ini';
+		$enValue = null;
+		if (is_readable($enFile)) {
+			$enData = parse_ini_file($enFile, false, INI_SCANNER_RAW);
+			if ($enData !== false && isset($enData[$key])) {
+				$enValue = $enData[$key];
+			}
+		}
 
-        // If current language file is not readable — fallback to en
-        if (!is_readable($file)) {
-            $file = self::$langsDir . 'en.ini';
-        }
+		$file = self::$langsDir . self::$currentLang . '.ini';
 
-        $data = parse_ini_file($file, false, INI_SCANNER_RAW);
-        self::$translations = ($data !== false) ? $data : [];
-    }
+		if (!file_exists($file)) {
+			file_put_contents($file, "; " . self::$currentLang . " language file\n");
+		}
 
-    /**
-     * Add missing key to all language files.
-     * Returns the English value for the key (or null if not found in en.ini).
-     */
-    private static function addMissingKeyToAllLanguages(string $key): ?string {
-        // Load English values to use as default for non-English languages
-        $enFile = self::$langsDir . 'en.ini';
-        $enValue = $key; // fallback to key name
-        if (is_readable($enFile)) {
-            $enData = parse_ini_file($enFile, false, INI_SCANNER_RAW);
-            if ($enData !== false && isset($enData[$key])) {
-                $enValue = $enData[$key];
-            }
-        }
+		$content = file_get_contents($file);
+		if (str_contains($content, "\n{$key} =") || str_contains($content, "\r{$key} =")) {
+			return $enValue;
+		}
 
-        foreach (self::$availableLanguages as $lang) {
-            $file = self::$langsDir . $lang . '.ini';
+		$value = $enValue ?? $key;
+		$escapedValue = str_replace('"', '\\"', $value);
+		$endsWithNewline = str_ends_with($content, "\n");
+		$lineToAdd = ($endsWithNewline ? '' : "\n") . "{$key} = \"{$escapedValue}\"\n";
 
-            // If file doesn't exist — create empty one
-            if (!file_exists($file)) {
-                file_put_contents($file, "; {$lang} language file\n");
-            }
+		$fp = fopen($file, 'a');
+		if ($fp && flock($fp, LOCK_EX)) {
+			fwrite($fp, $lineToAdd);
+			flock($fp, LOCK_UN);
+			fclose($fp);
+		}
 
-            // Check if key already exists
-            $content = file_get_contents($file);
-            if (str_contains($content, "\n{$key} =") || str_contains($content, "\r{$key} =")) {
-                continue; // key already exists
-            }
-
-            // For English: use key name as value; for others: use English value
-            $value = ($lang === 'en') ? $key : $enValue;
-            $escapedValue = str_replace('"', '\\"', $value);
-            $lineToAdd = "\n{$key} = \"{$escapedValue}\"\n";
-
-            // Safe write with locking
-            $fp = fopen($file, 'a');
-            if ($fp && flock($fp, LOCK_EX)) {
-                fwrite($fp, $lineToAdd);
-                flock($fp, LOCK_UN);
-                fclose($fp);
-            }
-        }
-
-        return ($enValue !== $key) ? $enValue : null;
-    }
+		return $enValue;
+	}
 }
