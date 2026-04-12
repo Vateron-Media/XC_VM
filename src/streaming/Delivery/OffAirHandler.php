@@ -11,7 +11,8 @@
  */
 
 class OffAirHandler {
-	public static function getOffAirVideo($rSettings, $rPathKey) {
+	public static function getOffAirVideo($rPathKey) {
+		global $rSettings;
 		if (!(isset($rSettings[$rPathKey]) && 0 < strlen($rSettings[$rPathKey]))) {
 			switch ($rPathKey) {
 				case 'connected_video_path':
@@ -45,8 +46,9 @@ class OffAirHandler {
 		}
 	}
 
-	public static function showVideoServer($rSettings, $rServers, $rShowOptionKey, $rVideoPathKey, $rExtension, $rUserInfo, $rIP, $rCountryCode, $rISP, $rServerID = null, $rProxyID = null) {
-		$rVideoPath = self::getOffAirVideo($rSettings, $rVideoPathKey);
+	public static function showVideoServer($rShowOptionKey, $rVideoPathKey, $rExtension, $rUserInfo, $rIP, $rCountryCode, $rISP, $rServerID = null, $rProxyID = null) {
+		global $rSettings, $rServers;
+		$rVideoPath = self::getOffAirVideo($rVideoPathKey);
 		if (!(!$rUserInfo['is_restreamer'] && $rSettings[$rShowOptionKey] && 0 < strlen($rVideoPath))) {
 			switch ($rShowOptionKey) {
 				case 'show_expired_video':
@@ -64,7 +66,7 @@ class OffAirHandler {
 			}
 		}
 		if (!$rServerID) {
-			$rServerID = StreamAuth::checkAccess($rServers, $rSettings, $rUserInfo, $rIP, $rCountryCode, $rISP);
+			$rServerID = StreamAuth::checkAccess($rUserInfo, $rIP, $rCountryCode, $rISP);
 		}
 		if (!$rServerID) {
 			$rServerID = SERVER_ID;
@@ -72,7 +74,7 @@ class OffAirHandler {
 		$rOriginatorID = null;
 		if ($rServers[$rServerID]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy'])) {
 			$rProxies = ConnectionTracker::getProxies($rServerID);
-			$rProxyID = ProxySelector::availableProxy($rServers, array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name'], $rSettings);
+			$rProxyID = ProxySelector::availableProxy(array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name']);
 			if (!$rProxyID) {
 				generate404();
 			}

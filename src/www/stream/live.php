@@ -115,7 +115,7 @@ if ($rChannelInfo) {
 
             if (!$rChannelInfo["monitor_pid"]) {
                 // print('show_not_on_air_video_1');
-                OffAirHandler::showVideoServer($rSettings, $rServers, "show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
+                OffAirHandler::showVideoServer("show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
             }
 
             for ($rRetries = 0; !AsyncFileOperations::awaitFileExists(STREAMS_PATH . intval($rStreamID) . "_.pid", 1, 10) && $rRetries < 300; $rRetries++) {
@@ -125,7 +125,7 @@ if ($rChannelInfo) {
 
             if (!$rChannelInfo["pid"]) {
                 // print('show_not_on_air_video_2');
-                OffAirHandler::showVideoServer($rSettings, $rServers, "show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
+                OffAirHandler::showVideoServer("show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
             }
         } else {
             if (!empty($rChannelInfo["proxy"])) {
@@ -140,13 +140,13 @@ if ($rChannelInfo) {
 
                 if (!$rChannelInfo["monitor_pid"]) {
                     // print('show_not_on_air_video_3');
-                    OffAirHandler::showVideoServer($rSettings, $rServers, "show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
+                    OffAirHandler::showVideoServer("show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
                 }
 
                 $rChannelInfo["pid"] = $rChannelInfo["monitor_pid"];
             } else {
                 // print('show_not_on_air_video_4');
-                OffAirHandler::showVideoServer($rSettings, $rServers, "show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
+                OffAirHandler::showVideoServer("show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
             }
         }
     }
@@ -168,7 +168,7 @@ if ($rChannelInfo) {
                 } else {
                     // Verify stream is still running
                     if (!(ProcessManager::isMonitorAlive($rChannelInfo["monitor_pid"], $rStreamID) && ProcessManager::isStreamAlive($rChannelInfo["pid"], $rStreamID))) {
-                        OffAirHandler::showVideoServer($rSettings, $rServers, "show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
+                        OffAirHandler::showVideoServer("show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
                     }
                 }
             }
@@ -219,7 +219,7 @@ if ($rChannelInfo) {
 
         if ($rAcceptIP && !$rIPMatch) {
             DatabaseLogger::clientLog($rStreamID, $rUserInfo["id"], "USER_ALREADY_CONNECTED", $rIP);
-            OffAirHandler::showVideoServer($rSettings, $rServers, "show_connected_video", "connected_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
+            OffAirHandler::showVideoServer("show_connected_video", "connected_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
         }
     }
 
@@ -306,7 +306,7 @@ if ($rChannelInfo) {
                 echo $rHLS;
             } else {
                 // print('show_not_on_air_video_6');
-                OffAirHandler::showVideoServer($rSettings, $rServers, "show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
+                OffAirHandler::showVideoServer("show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
             }
 
             exit();
@@ -638,5 +638,5 @@ if ($rChannelInfo) {
     }
 } else {
     // print('show_not_on_air_video_7');
-    OffAirHandler::showVideoServer($rSettings, $rServers, "show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
+    OffAirHandler::showVideoServer("show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
 }
