@@ -82,22 +82,34 @@ It performs privileged system operations:
 
 1. **Re-verify** the archive checksum.
 2. **Stop the panel** to prevent conflicts during update.
-3. **Extract** the new version into:
+3. **Extract** the archive into a temporary directory:
 
    ```bash
-   /home/xc_vm/
+   /tmp/xc_vm_update_*/
    ```
-4. **Fix ownership**:
+4. **Remove excluded directories** from the temp copy — binaries, configs, and user data that must not be overwritten:
+
+   `bin/ffmpeg_bin`, `bin/nginx`, `bin/nginx_rtmp`, `bin/php`, `bin/redis`, `bin/install`, `bin/maxmind`, `bin/certbot`, `content`, `backups`, `tmp`, `config`, `signals`
+
+5. **Copy remaining files** over the live installation:
+
+   ```bash
+   cp -a /tmp/xc_vm_update_*/. /home/xc_vm/
+   ```
+6. **Fix ownership**:
 
    ```bash
    chown -R xc_vm:xc_vm /home/xc_vm/
    ```
-5. Run post-update tasks:
+7. Run post-update tasks:
 
    ```bash
    /home/xc_vm/console.php update post-update
    ```
-6. **Restart** the panel in normal operating mode.
+8. **Restart** the panel in normal operating mode.
+9. **Cleanup** the temporary directory and delete the archive.
+
+> ℹ️ The same archive is used for both installation and update. Filtering happens on the server at update time — the exclude list is defined directly in `src/update`.
 
 ---
 
@@ -139,13 +151,13 @@ Final steps are executed in the `post-update` phase of `UpdateCommand`:
 [ CRON → console.php cron:root_signals ]
         │
         ▼
-[ update.php (PHP) ]
+[ UpdateCommand (PHP): download + verify hash ]
         │
         ▼
-[ update (Python) ]
+[ update (Python): extract to /tmp → remove excluded → copy over ]
         │
         ▼
-[ post-update → update.php ]
+[ post-update → UpdateCommand ]
         │
         ▼
 [ Finalize, restart daemons, update version in DB ]

@@ -52,10 +52,9 @@ git push
 Очистка файлов **полностью автоматизирована**. Ручных шагов не требуется.
 
 **Как это работает:**
-1. `make main_update` / `make lb_update` внутри вызывает `make delete_files_list`
-2. Генерируется `dist/migrations/deleted_files.txt` (diff удалённых файлов с последнего тега)
-3. Файл упаковывается в архив обновления как `migrations/deleted_files.txt`
-4. При `php console.php update post-update` вызывается `MigrationRunner::runFileCleanup()`, который автоматически удаляет перечисленные файлы
+1. `make main` / `make lb` внутри вызывает `delete_files_list` / `lb_delete_files_list`
+2. Генерируется `migrations/deleted_files.txt` внутри архива (diff удалённых файлов с последнего тега)
+3. При `php console.php update post-update` вызывается `MigrationRunner::runFileCleanup()`, который автоматически удаляет перечисленные файлы
 
 > ⚠️ **Только проверка:** после сборки просмотрите `dist/migrations/deleted_files.txt` — убедитесь, что в списке нет критичных файлов.
 
@@ -100,19 +99,19 @@ tools/run_scan.sh
 make new
 make lb
 make main
-make main_update
-make lb_update
 ```
 
 После сборки в `dist/` должны быть:
 
 | Файл | Описание |
 |------|----------|
-| `XC_VM.zip` | Установочный архив MAIN |
-| `update.tar.gz` | Архив обновления MAIN |
-| `loadbalancer.tar.gz` | Установочный архив LB |
-| `loadbalancer_update.tar.gz` | Архив обновления LB |
+| `XC_VM.zip` | Установочный пакет MAIN (install скрипт + xc_vm.tar.gz) |
+| `xc_vm.tar.gz` | Архив MAIN (установка и обновление) |
+| `loadbalancer.tar.gz` | Архив LB (установка и обновление) |
 | `hashes.md5` | Контрольные суммы MD5 |
+
+> Один и тот же архив используется как для чистой установки, так и для обновлений.
+> Скрипт обновления (`src/update`) исключает каталоги бинарников/конфигов во время выполнения, используя `migrations/update_exclude_dirs.txt` внутри архива.
 
 **Проверка целостности:**
 
@@ -157,7 +156,7 @@ git log --pretty=format:"- %s (%h)" "$PREV_TAG"..main > dist/changes.md
 4. Опубликовать **без прикрепления файлов** — GitHub Actions соберёт и прикрепит их
 
 После публикации workflow автоматически:
-- Соберёт все 4 архива + контрольные суммы
+- Соберёт все архивы + контрольные суммы
 - Прикрепит их к релизу
 - Отправит Telegram-уведомление через `release-notifier.yml`
 
@@ -167,7 +166,7 @@ git log --pretty=format:"- %s (%h)" "$PREV_TAG"..main > dist/changes.md
 
 ## 📢 7. После релиза
 
-- [ ] Проверить, что все 5 файлов прикреплены к релизу
+- [ ] Проверить, что все 4 файла прикреплены к релизу
 - [ ] Скачать и проверить `md5sum -c hashes.md5`
 - [ ] Убедиться, что Telegram-уведомление отправлено
 - [ ] Обновить `changelog.json` в репозитории `XC_VM_Update` (если ещё не сделано)

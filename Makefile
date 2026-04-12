@@ -6,21 +6,14 @@ DIST_DIR = ./dist
 CONFIG_DIR := ./lb_configs
 TEMP_ARCHIVE_NAME := $(TIMESTAMP).tar.gz
 MAIN_ARCHIVE_NAME := xc_vm.tar.gz
-MAIN_UPDATE_ARCHIVE_NAME := update.tar.gz
 MAIN_ARCHIVE_INSTALLER := XC_VM.zip
 LB_ARCHIVE_NAME := loadbalancer.tar.gz
-LB_UPDATE_ARCHIVE_NAME := loadbalancer_update.tar.gz
 LAST_TAG := $(shell curl -s https://api.github.com/repos/Vateron-Media/XC_VM/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
 HASH_FILE := hashes.md5
 
 # Directories and files to exclude from archives
 EXCLUDES := \
 	.git
-
-# Subdirectories of src/ excluded from update archives
-# (compiled binaries, user data, installation-only files)
-UPDATE_EXCLUDE_DIRS := bin/ffmpeg_bin bin/nginx bin/nginx_rtmp bin/php bin/redis \
-	bin/install bin/maxmind bin/certbot content backups tmp config signals \
 
 # Directories to copy from MAIN to LB
 # NOTE: modules/ is intentionally excluded — all modules are MAIN-only.
@@ -73,12 +66,17 @@ LB_FILES_TO_REMOVE := \
 
 EXCLUDE_ARGS := $(addprefix --exclude=,$(EXCLUDES))
 
-.PHONY: new lb main main_update lb_update lb_copy_files lb_update_copy_files main_copy_files main_update_copy_files set_permissions create_archive lb_archive_move lb_update_archive_move main_archive_move main_update_archive_move main_install_archive clean delete_files_list lb_delete_files_list
+.PHONY: new lb main lb_copy_files main_copy_files set_permissions create_archive \
+	lb_archive_move main_archive_move main_install_archive clean \
+	delete_files_list lb_delete_files_list
 
-lb: lb_copy_files set_permissions create_archive lb_archive_move clean
-main: main_copy_files set_permissions create_archive main_archive_move main_install_archive clean
-main_update: main_update_copy_files delete_files_list set_permissions create_archive main_update_archive_move clean
-lb_update: lb_update_copy_files lb_delete_files_list set_permissions create_archive lb_update_archive_move clean
+# ─── MAIN targets ────────────────────────────────────────────────
+# Single archive: used for both clean install and update.
+# The update script (src/update) filters out excluded dirs at runtime.
+main: main_copy_files delete_files_list set_permissions create_archive main_archive_move main_install_archive clean
+
+# ─── LoadBalancer targets ────────────────────────────────────────
+lb: lb_copy_files lb_delete_files_list set_permissions create_archive lb_archive_move clean
 
 lb_copy_files:
 	@echo "==> [LB] Creating distribution directory: $(DIST_DIR)"
@@ -100,7 +98,6 @@ lb_copy_files:
 	@echo "==> [LB] Copying root files from $(MAIN_DIR)"
 	@for root_file in $(LB_ROOT_FILES); do \
 		if git ls-files --error-unmatch "src/$$root_file" >/dev/null 2>&1; then \
-# 			printf "   → Copying: %s\n" "$$root_file"; \
 			cp "$(MAIN_DIR)/$$root_file" "$(TEMP_DIR)/$$root_file"; \
 		else \
 			printf "   ⚠ Not tracked: %s\n" "$$root_file"; \
@@ -129,56 +126,6 @@ lb_copy_files:
 		-delete
 	@echo "All files gitkeep deleted"
 
-lb_update_copy_files:
-	@echo "[INFO] Preparing full LB update"
-	@mkdir -p $(DIST_DIR)
-	@mkdir -p $(TEMP_DIR)
-
-	@echo "[INFO] Copying all tracked LB-scope files (excluding binaries and user data)..."
-	@git ls-files src | while read -r file; do \
-		rel=$${file#src/}; \
-		allowed=0; \
-		for lb_item in $(LB_DIRS); do \
-			case "$$rel" in "$$lb_item"/*) allowed=1; break;; esac; \
-		done; \
-		if [ "$$allowed" -eq 0 ]; then \
-			for root_file in $(LB_ROOT_FILES); do \
-				if [ "$$rel" = "$$root_file" ]; then \
-					allowed=1; \
-					break; \
-				fi; \
-			done; \
-		fi; \
-		if [ "$$allowed" -eq 1 ]; then \
-			skip=0; \
-			for excl in $(UPDATE_EXCLUDE_DIRS); do \
-				case "$$rel" in "$$excl"/*) skip=1; break;; esac; \
-			done; \
-			if [ "$$skip" -eq 0 ] && [ -f "$$file" ]; then \
-				mkdir -p "$(TEMP_DIR)/$$(dirname $$rel)"; \
-				cp "$$file" "$(TEMP_DIR)/$$rel"; \
-			fi; \
-		fi; \
-	done
-
-	@echo "==> [LB] Removing excluded directories"
-	@for dir in $(LB_DIRS_TO_REMOVE); do \
-		echo "   → Removing directory: $$dir"; \
-		rm -rf "$(TEMP_DIR)/$$dir"; \
-	done
-
-	@echo "==> [LB] Removing excluded files"
-	@for file in $(LB_FILES_TO_REMOVE); do \
-		echo "   → Removing file: $$file"; \
-		rm -f "$(TEMP_DIR)/$$file"; \
-	done
-
-	@echo "Remove all .gitkeep files..."
-	@find $(TEMP_DIR) -name .gitkeep \
-		-not -path "*/.git/*" \
-		-delete
-	@echo "All files gitkeep deleted"
-
 main_copy_files:
 	@echo "==> [MAIN] Creating distribution directory: $(DIST_DIR)"
 	mkdir -p ${DIST_DIR}
@@ -186,7 +133,6 @@ main_copy_files:
 	mkdir -p $(TEMP_DIR)
 
 	@echo "==> [MAIN] Copying tracked files from $(MAIN_DIR)"
-	@# Copy only files tracked by git under src/
 	@git ls-files src | while read -r file; do \
 		rel=$${file#src/}; \
 		printf "   → Copying: %s\n" "$$file"; \
@@ -200,69 +146,45 @@ main_copy_files:
 		-delete
 	@echo "All files gitkeep deleted"
 
-main_update_copy_files:
-	@echo "[INFO] Preparing full MAIN update"
-	@mkdir -p $(DIST_DIR)
-	@mkdir -p $(TEMP_DIR)
-
-	@echo "[INFO] Copying all tracked files from src/ (excluding binaries and user data)..."
-	@git ls-files src | while read -r file; do \
-		rel=$${file#src/}; \
-		skip=0; \
-		for excl in $(UPDATE_EXCLUDE_DIRS); do \
-			case "$$rel" in "$$excl"/*) skip=1; break;; esac; \
-		done; \
-		if [ "$$skip" -eq 0 ] && [ -f "$$file" ]; then \
-			mkdir -p "$(TEMP_DIR)/$$(dirname $$rel)"; \
-			cp "$$file" "$(TEMP_DIR)/$$rel"; \
-		fi; \
-	done
-
-	@echo "Remove all .gitkeep files..."
-	@find $(TEMP_DIR) -name .gitkeep \
-		-not -path "*/.git/*" \
-		-delete
-	@echo "All files gitkeep deleted"
-
 delete_files_list:
 	@echo "[INFO] Generating deleted files list from $(LAST_TAG) to HEAD"
 	@if [ -z "$(LAST_TAG)" ]; then \
-		echo "[ERROR] LAST_TAG is empty — cannot generate deleted files list"; \
-		exit 1; \
-	fi
-	@mkdir -p $(TEMP_DIR)/migrations
-	@git diff --no-renames --name-status --diff-filter=D $(LAST_TAG)..HEAD \
-		| cut -f2 | grep '^src/' | sed 's|^src/||' | sort -u \
-		> $(TEMP_DIR)/migrations/deleted_files.txt
-	@if [ -s $(TEMP_DIR)/migrations/deleted_files.txt ]; then \
-		echo "[INFO] Files to delete on update:"; \
-		cat $(TEMP_DIR)/migrations/deleted_files.txt; \
+		echo "[WARN] LAST_TAG is empty — skipping deleted files list"; \
 	else \
-		echo "[INFO] No deleted files found"; \
-		rm -f $(TEMP_DIR)/migrations/deleted_files.txt; \
+		mkdir -p "$(TEMP_DIR)/migrations"; \
+		git diff --no-renames --name-status --diff-filter=D "$(LAST_TAG)..HEAD" \
+			| cut -f2 | grep '^src/' | sed 's|^src/||' | sort -u \
+			> "$(TEMP_DIR)/migrations/deleted_files.txt"; \
+		if [ -s "$(TEMP_DIR)/migrations/deleted_files.txt" ]; then \
+			echo "[INFO] Files to delete on update:"; \
+			cat "$(TEMP_DIR)/migrations/deleted_files.txt"; \
+		else \
+			echo "[INFO] No deleted files found"; \
+			rm -f "$(TEMP_DIR)/migrations/deleted_files.txt"; \
+		fi; \
 	fi
 
 lb_delete_files_list:
 	@echo "[INFO] Generating LB-scoped deleted files list from $(LAST_TAG) to HEAD"
 	@if [ -z "$(LAST_TAG)" ]; then \
-		echo "[ERROR] LAST_TAG is empty — cannot generate deleted files list"; \
-		exit 1; \
-	fi
-	@mkdir -p $(TEMP_DIR)/migrations
-	@git diff --no-renames --name-status --diff-filter=D $(LAST_TAG)..HEAD \
-		| cut -f2 | grep '^src/' | sed 's|^src/||' | sort -u \
-		| awk -v dirs="$(LB_DIRS)" -v files="$(LB_ROOT_FILES)" ' \
-			BEGIN { n=split(dirs,d," "); m=split(files,f," ") } \
-			{ ok=0; for(i=1;i<=n;i++) if(index($$0,d[i]"/")==1){ok=1;break} \
-			  if(!ok) for(i=1;i<=m;i++) if($$0==f[i]){ok=1;break} \
-			  if(ok) print }' \
-		> $(TEMP_DIR)/migrations/deleted_files.txt
-	@if [ -s $(TEMP_DIR)/migrations/deleted_files.txt ]; then \
-		echo "[INFO] LB files to delete on update:"; \
-		cat $(TEMP_DIR)/migrations/deleted_files.txt; \
+		echo "[WARN] LAST_TAG is empty — skipping deleted files list"; \
 	else \
-		echo "[INFO] No LB-scoped deleted files found"; \
-		rm -f $(TEMP_DIR)/migrations/deleted_files.txt; \
+		mkdir -p "$(TEMP_DIR)/migrations"; \
+		git diff --no-renames --name-status --diff-filter=D "$(LAST_TAG)..HEAD" \
+			| cut -f2 | grep '^src/' | sed 's|^src/||' | sort -u \
+			| awk -v dirs="$(LB_DIRS)" -v files="$(LB_ROOT_FILES)" ' \
+				BEGIN { n=split(dirs,d," "); m=split(files,f," ") } \
+				{ ok=0; for(i=1;i<=n;i++) if(index($$0,d[i]"/")==1){ok=1;break} \
+				  if(!ok) for(i=1;i<=m;i++) if($$0==f[i]){ok=1;break} \
+				  if(ok) print }' \
+			> "$(TEMP_DIR)/migrations/deleted_files.txt"; \
+		if [ -s "$(TEMP_DIR)/migrations/deleted_files.txt" ]; then \
+			echo "[INFO] LB files to delete on update:"; \
+			cat "$(TEMP_DIR)/migrations/deleted_files.txt"; \
+		else \
+			echo "[INFO] No LB-scoped deleted files found"; \
+			rm -f "$(TEMP_DIR)/migrations/deleted_files.txt"; \
+		fi; \
 	fi
 
 set_permissions:
@@ -324,37 +246,24 @@ lb_archive_move:
 	@mv ${DIST_DIR}/${TEMP_ARCHIVE_NAME} ${DIST_DIR}/${LB_ARCHIVE_NAME}
 	md5sum "${DIST_DIR}/${LB_ARCHIVE_NAME}" | awk -v name="${LB_ARCHIVE_NAME}" '{print $$1, name}' >> "${DIST_DIR}/${HASH_FILE}"
 
-lb_update_archive_move:
-	@echo "==> Moving LB update archive to: ${DIST_DIR}/${LB_UPDATE_ARCHIVE_NAME}"
-	@rm -f ${DIST_DIR}/${LB_UPDATE_ARCHIVE_NAME}
-	@mv ${DIST_DIR}/${TEMP_ARCHIVE_NAME} ${DIST_DIR}/${LB_UPDATE_ARCHIVE_NAME}
-	md5sum "${DIST_DIR}/${LB_UPDATE_ARCHIVE_NAME}" | awk -v name="${LB_UPDATE_ARCHIVE_NAME}" '{print $$1, name}' >> "${DIST_DIR}/${HASH_FILE}"
-
 main_archive_move:
 	@echo "==> Moving MAIN archive to: ${DIST_DIR}/${MAIN_ARCHIVE_NAME}"
 	@rm -f ${DIST_DIR}/${MAIN_ARCHIVE_NAME}
 	@mv ${DIST_DIR}/${TEMP_ARCHIVE_NAME} ${DIST_DIR}/${MAIN_ARCHIVE_NAME}
-
-main_update_archive_move:
-	@echo "==> Moving MAIN update archive to: ${DIST_DIR}/${MAIN_UPDATE_ARCHIVE_NAME}"
-	@rm -f ${DIST_DIR}/${MAIN_UPDATE_ARCHIVE_NAME}
-	@mv ${DIST_DIR}/${TEMP_ARCHIVE_NAME} ${DIST_DIR}/${MAIN_UPDATE_ARCHIVE_NAME}
-	md5sum "${DIST_DIR}/${MAIN_UPDATE_ARCHIVE_NAME}" | awk -v name="${MAIN_UPDATE_ARCHIVE_NAME}" '{print $$1, name}' >> "${DIST_DIR}/${HASH_FILE}"
+	md5sum "${DIST_DIR}/${MAIN_ARCHIVE_NAME}" | awk -v name="${MAIN_ARCHIVE_NAME}" '{print $$1, name}' >> "${DIST_DIR}/${HASH_FILE}"
 
 main_install_archive:
 	@echo "==> Creating installer archive: ${DIST_DIR}/${MAIN_ARCHIVE_INSTALLER}"
 	@rm -f ${DIST_DIR}/${MAIN_ARCHIVE_INSTALLER}
 	@zip -r ${DIST_DIR}/${MAIN_ARCHIVE_INSTALLER} install && zip -j ${DIST_DIR}/${MAIN_ARCHIVE_INSTALLER} ${DIST_DIR}/${MAIN_ARCHIVE_NAME}
-	@echo "==> Remove archive: ${DIST_DIR}/${MAIN_ARCHIVE_NAME}"
-	rm -rf ${DIST_DIR}/${MAIN_ARCHIVE_NAME}
 
 clean:
 	@echo "==> Cleaning up temporary directory: $(TEMP_DIR)"
 	@rm -rf $(TEMP_DIR)
 	@echo "✅ Project build complete"
-	
+
 new:
-	@echo "==> Cleaning up temporary directory: $(DIST_DIR)"
+	@echo "==> Cleaning up distribution directory: $(DIST_DIR)"
 	@rm -rf $(DIST_DIR)
-	@echo "==> [LB] Creating distribution directory: $(DIST_DIR)"
+	@echo "==> Creating distribution directory: $(DIST_DIR)"
 	@mkdir -p ${DIST_DIR}
