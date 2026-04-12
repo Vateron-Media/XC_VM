@@ -53,10 +53,9 @@ File cleanup is **fully automated**. No manual steps required.
 
 **How it works:**
 
-1. `make main_update` / `make lb_update` internally runs `make delete_files_list`
-2. This generates `dist/migrations/deleted_files.txt` (diff of deleted files since last tag)
-3. The file is packed into the update archive at `migrations/deleted_files.txt`
-4. During `php console.php update post-update`, `MigrationRunner::runFileCleanup()` reads it and deletes the listed files automatically
+1. `make main` / `make lb` internally runs `delete_files_list` / `lb_delete_files_list`
+2. This generates `migrations/deleted_files.txt` inside the archive (diff of deleted files since last tag)
+3. During `php console.php update post-update`, `MigrationRunner::runFileCleanup()` reads it and deletes the listed files automatically
 
 > ⚠️ **Review only:** After building, inspect `dist/migrations/deleted_files.txt` to verify no critical files are listed by mistake.
 
@@ -101,19 +100,19 @@ tools/run_scan.sh
 make new
 make lb
 make main
-make main_update
-make lb_update
 ```
 
 After building, `dist/` should contain:
 
 | File | Description |
 |------|-------------|
-| `XC_VM.zip` | MAIN installation archive |
-| `update.tar.gz` | MAIN update archive |
-| `loadbalancer.tar.gz` | LB installation archive |
-| `loadbalancer_update.tar.gz` | LB update archive |
+| `XC_VM.zip` | MAIN installer (install script + xc_vm.tar.gz) |
+| `xc_vm.tar.gz` | MAIN archive (install & update) |
+| `loadbalancer.tar.gz` | LB archive (install & update) |
 | `hashes.md5` | MD5 checksums |
+
+> The same archive is used for both clean installation and updates.
+> The update script (`src/update`) filters out binary/config directories at runtime using `migrations/update_exclude_dirs.txt` packed inside the archive.
 
 **Verify integrity:**
 
@@ -158,7 +157,7 @@ git log --pretty=format:"- %s (%h)" "$PREV_TAG"..main > dist/changes.md
 4. Publish **without attaching files** — GitHub Actions will build and attach them
 
 After publishing, the workflow will automatically:
-* Build all 4 archives + checksums
+* Build all archives + checksums
 * Attach them to the release
 * Send a Telegram notification via `release-notifier.yml`
 
@@ -168,7 +167,7 @@ After publishing, the workflow will automatically:
 
 ## 📢 7. Post-Release
 
-* [ ] Verify all 5 assets are attached to the release
+* [ ] Verify all 4 assets are attached to the release
 * [ ] Run `md5sum -c hashes.md5` on downloaded files
 * [ ] Check Telegram notification was sent
 * [ ] Update `changelog.json` in `XC_VM_Update` repo if not done yet
