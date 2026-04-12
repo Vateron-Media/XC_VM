@@ -231,46 +231,27 @@ class GitHubReleases {
     }
 
     /**
-     * Retrieve the changelog for all releases from changelog.json files in JSON format.
+     * Retrieve the changelog for a specific release from its changelog.json.
      *
-     * @param string $changelog_file_url Link to file with changelog.
-     * @return array A JSON-compatible array containing the changelog.
+     * The file is fetched from the repository at the given tag via raw.githubusercontent.
+     * It contains a single object: {"version": "X.Y.Z", "changes": [...]}.
+     *
+     * @param string $version The release tag to fetch the changelog for.
+     * @return array A JSON-compatible array containing the changelog entry wrapped in an array.
      */
-    public function getChangelog(string $changelog_file_url): array {
+    public function getChangelog(string $version): array {
         try {
-            if (!$this->isCacheValid()) {
-                $response = $this->makeRequest($this->api_url);
-                $data = json_decode($response, true);
-                if ($data === null) {
-                    throw new Exception("Failed to parse API response: " . json_last_error_msg());
-                }
-                $this->saveCache($data);
-                error_log("Updated cache for {$this->owner}/{$this->repo}");
-            }
-            $releases = $this->loadCache();
-            if ($releases === null) {
-                error_log("Invalid cache, unable to proceed");
-                return [];
-            }
-
-            $response = $this->makeRequest($changelog_file_url);
+            $url = "https://raw.githubusercontent.com/{$this->owner}/{$this->repo}/refs/tags/{$version}/changelog.json";
+            $response = $this->makeRequest($url);
             $changelog = json_decode($response, true);
             if ($changelog === null) {
-                error_log("Failed to parse changelog JSON");
+                error_log("Failed to parse changelog JSON for version {$version}");
                 return [];
             }
-
-            $valid_versions = array_map(function ($release) {
-                return $release['tag_name'] ?? '';
-            }, $releases);
-            $filtered_changelog = array_filter($changelog, function ($entry) use ($valid_versions) {
-                return in_array($entry['version'] ?? '', $valid_versions);
-            });
-            $filtered_changelog = array_values($filtered_changelog);
-            error_log("Successfully retrieved changelog with " . count($filtered_changelog) . " versions after filtering (original: " . count($changelog) . " versions)");
-            return $filtered_changelog;
+            error_log("Successfully retrieved changelog for version {$version} with " . count($changelog['changes'] ?? []) . " changes");
+            return [$changelog];
         } catch (Exception $e) {
-            error_log("Failed to fetch changelog: " . $e->getMessage());
+            error_log("Failed to fetch changelog for version {$version}: " . $e->getMessage());
             return [];
         }
     }
@@ -412,8 +393,7 @@ class GitHubReleases {
                 return null;
             }
 
-            $changelogUrl = "https://raw.githubusercontent.com/{$this->owner}/{$this->repo}_Update/refs/heads/main/changelog.json";
-            $changelog = $this->getChangelog($changelogUrl);
+            $changelog = $this->getChangelog($latest_version);
 
             $url = "https://github.com/{$this->owner}/{$this->repo}/releases/tag/{$latest_version}";
 
@@ -549,7 +529,7 @@ class GitHubReleases {
  * ------------------------------------------------------------
  * 4. Загрузить changelog:
  *
- *   $changelog = $gh->getChangelog("https://raw.githubusercontent.com/Vateron-Media/XC_VM_Update/refs/heads/main/changelog.json");
+ *   $changelog = $gh->getChangelog("1.2.0");
  *   print_r($changelog);
  *
  * ------------------------------------------------------------

@@ -132,18 +132,19 @@ echo "Previous release: $PREV_TAG"
 git log --pretty=format:"- %s (%h)" "$PREV_TAG"..main > dist/changes.md
 ```
 
-**Update the public changelog** at:
-[XC_VM_Update/changelog.json](https://github.com/Vateron-Media/XC_VM_Update/blob/main/changelog.json)
+**Update `changelog.json`** in the repository root — this file contains only the changes for the upcoming release:
 
 ```json
 {
     "version": "X.Y.Z",
     "changes": [
-      "Description of change 1",
-      "Description of change 2"
+        "Description of change 1",
+        "Description of change 2"
     ]
 }
 ```
+
+The panel fetches this file from the release tag automatically via `GithubReleases::getChangelog()`.
 
 > 💬 Keep descriptions concise — focus on user-facing improvements and fixes.
 
@@ -170,5 +171,4 @@ After publishing, the workflow will automatically:
 * [ ] Verify all 4 assets are attached to the release
 * [ ] Run `md5sum -c hashes.md5` on downloaded files
 * [ ] Check Telegram notification was sent
-* [ ] Update `changelog.json` in `XC_VM_Update` repo if not done yet
 * [ ] Close related GitHub issues/milestones
