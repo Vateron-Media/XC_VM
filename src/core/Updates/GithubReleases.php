@@ -205,8 +205,8 @@ class GitHubReleases {
      * @return string|null The MD5 hash string, or null if not found or invalid.
      */
     public function getAssetHash(string $version, string $asset_name): ?string {
+        $hashURL = "https://github.com/{$this->owner}/{$this->repo}/releases/download/{$version}/{$this->hash_file}";
         try {
-            $hashURL = "https://github.com/{$this->owner}/{$this->repo}/releases/download/{$version}/{$this->hash_file}";
             $hash_response = $this->makeRequest($hashURL);
 
             $hash_text = trim($hash_response);
@@ -223,9 +223,10 @@ class GitHubReleases {
                     return $parts[0];
                 }
             }
+            error_log("Asset '{$asset_name}' not found in hash file for version {$version}");
             return null;
         } catch (Exception $e) {
-            error_log("Failed to fetch asset hash: " . $e->getMessage());
+            error_log("Failed to fetch asset hash from {$hashURL}: " . $e->getMessage());
             return null;
         }
     }
@@ -356,13 +357,13 @@ class GitHubReleases {
     public function getUpdateFile(string $file_type, string $version) {
         switch ($file_type) {
             case "main":
-                $update_file = "update.tar.gz";
+                $update_file = "xc_vm.tar.gz";
                 break;
             case "lb":
                 $update_file = "loadbalancer.tar.gz";
                 break;
             case "lb_update":
-                $update_file = "loadbalancer_update.tar.gz";
+                $update_file = "loadbalancer.tar.gz";
                 break;
             default:
                 throw new Exception("Not valid file type");
@@ -474,6 +475,15 @@ class GitHubReleases {
         return array_filter($releases, function ($release) {
             return empty($release['prerelease']);
         });
+    }
+
+    /**
+     * Set the request timeout for cURL operations.
+     *
+     * @param int $seconds Timeout in seconds
+     */
+    public function setTimeout(int $seconds): void {
+        $this->timeout = max(1, $seconds);
     }
 
     /**
