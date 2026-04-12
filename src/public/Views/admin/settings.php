@@ -895,7 +895,7 @@ endif; // !$__settingsViewMode
 															class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-8">
 														<input type="text" class="form-control" id="api_ips" name="api_ips"
-															value="<?= htmlspecialchars($rSettings["api_ips"] ?? '') ?>">
+															value="<?= htmlspecialchars(is_array($rSettings["api_ips"] ?? '') ? implode(',', $rSettings["api_ips"]) : ($rSettings["api_ips"] ?? '')) ?>">
 													</div>
 												</div>
 												<div class="form-group row mb-4">
@@ -1653,7 +1653,7 @@ endif; // !$__settingsViewMode
 																										foreach ($rGeoCountries as $rValue => $rText) {
 																											echo '<option ';
 
-																											if (in_array($rValue, json_decode($rSettings["allow_countries"], true))) {
+																											if (in_array($rValue, is_array($rSettings["allow_countries"]) ? $rSettings["allow_countries"] : json_decode($rSettings["allow_countries"], true))) {
 																												echo 'selected ';
 																											}
 																											echo 'value=" ';
@@ -1876,7 +1876,8 @@ endif; // !$__settingsViewMode
 															data-toggle="select2" multiple="multiple"
 															data-placeholder="Choose...">
 															<?php
-															foreach (json_decode($rSettings["allowed_stb_types"], true) as $rMAG) {
+															$rAllowedSTB = is_array($rSettings["allowed_stb_types"]) ? $rSettings["allowed_stb_types"] : json_decode($rSettings["allowed_stb_types"], true);
+															foreach ($rAllowedSTB as $rMAG) {
 																echo '        <option selected value=" ';
 																echo $rMAG;
 																echo '">';
@@ -1884,7 +1885,7 @@ endif; // !$__settingsViewMode
 																echo '</option>        ';
 															}
 
-															foreach (array_udiff($rMAGs, json_decode($rSettings["allowed_stb_types"], true), "strcasecmp") as $rMAG) {
+															foreach (array_udiff($rMAGs, $rAllowedSTB, "strcasecmp") as $rMAG) {
 																echo '<option value=" ';
 																echo $rMAG;
 																echo '">';
