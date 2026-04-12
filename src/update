@@ -4,6 +4,7 @@ import os, sys, hashlib, time
 rBaseDir = os.path.dirname(os.path.realpath(__file__)) + "/"
 rPHPDir = rBaseDir + "bin/php/bin/php"
 rConsole = rBaseDir + "console.php"
+LOG_FILE = rBaseDir + "update.log"
 
 # Directories excluded during update (binaries, user data, config).
 # These are removed from the temp copy before overwriting the live installation.
@@ -24,6 +25,17 @@ UPDATE_EXCLUDE_DIRS = [
 ]
 
 
+def log_msg(level, message):
+    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+    line = "[%s] [%s] %s" % (timestamp, level, message)
+    print(line, flush=True)
+    try:
+        with open(LOG_FILE, "a") as f:
+            f.write(line + "\n")
+    except Exception:
+        pass
+
+
 def md5(rFilename):
     rMD5 = hashlib.md5()
     with open(rFilename, "rb") as rFile:
@@ -36,25 +48,43 @@ def doUpdate(rFilename):
     import tempfile
 
     rTmpDir = tempfile.mkdtemp(prefix="xc_vm_update_")
+    log_msg("INFO", "Temporary directory created: %s" % rTmpDir)
 
     try:
+        log_msg("INFO", "Stopping xc_vm service...")
         os.system("sudo systemctl stop xc_vm")
 
-        # Extract full archive to a temporary directory
+        log_msg("INFO", "Extracting archive...")
         os.system('sudo tar -zxf "%s" -C "%s"' % (rFilename, rTmpDir))
 
-        # Remove excluded directories from the temp copy
+        log_msg("INFO", "Removing excluded directories from temp copy...")
         for rExclude in UPDATE_EXCLUDE_DIRS:
             rPath = os.path.join(rTmpDir, rExclude)
             if os.path.exists(rPath):
                 os.system('sudo rm -rf "%s"' % rPath)
 
-        # Copy remaining files over the live installation
+        # Protect update.log from being overwritten by archive contents
+        rUpdateLog = os.path.join(rTmpDir, "update.log")
+        if os.path.exists(rUpdateLog):
+            os.remove(rUpdateLog)
+
+        log_msg("INFO", "Copying files to live installation...")
         os.system('sudo cp -a "%s/." "%s"' % (rTmpDir, rBaseDir))
+
+        log_msg("INFO", "Fixing file permissions...")
         os.system('sudo chown -R xc_vm:xc_vm "%s"' % rBaseDir)
+
+        log_msg("INFO", "Running post-update...")
         os.system('sudo %s %s update "post-update"' % (rPHPDir, rConsole))
+
+        log_msg("INFO", "Starting xc_vm service...")
         os.system("sudo systemctl start xc_vm")
+
+        log_msg("INFO", "System update completed successfully")
+    except Exception as e:
+        log_msg("ERROR", "Update failed: %s" % str(e))
     finally:
+        log_msg("INFO", "Cleaning up temporary files...")
         os.system('sudo rm -rf "%s"' % rTmpDir)
         if os.path.exists(rFilename):
             os.remove(rFilename)
@@ -69,8 +99,11 @@ if __name__ == "__main__":
     except:
         print("Please run the update from the XC_VM Admin Interface.")
         sys.exit(1)
+
+    log_msg("INFO", "Verifying archive MD5...")
     if md5(rFilename) == rMD5:
+        log_msg("INFO", "MD5 verified OK")
         doUpdate(rFilename)
     else:
-        print("CRC ERROR")
+        log_msg("ERROR", "CRC ERROR — archive MD5 mismatch")
     sys.exit(1)
