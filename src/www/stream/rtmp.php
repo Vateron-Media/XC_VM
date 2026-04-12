@@ -252,7 +252,7 @@ if (!($_GET['addr'] == '127.0.0.1' && $_GET['call'] == 'publish')) {
 		$rDeny = false;
 
 	if ($rSettings['redis_handler']) {
-			ConnectionLimiter::closeConnection(RedisManager::instance(), $rSettings, $rServers, md5($rRequest['clientid']));
+			ConnectionLimiter::closeConnection(md5($rRequest['clientid']));
 		} else {
 			ConnectionLimiter::closeRTMP($rRequest['clientid']);
 		}

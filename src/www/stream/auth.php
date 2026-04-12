@@ -157,7 +157,7 @@ if ($rExtension) {
 		}
 
 		if (count($rAvailableServers) == 0) {
-			OffAirHandler::showVideoServer($rSettings, $rServers, 'show_not_on_air_video', 'not_on_air_video_path', $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo['con_isp_name'], defined('SERVER_ID') ? SERVER_ID : 0);
+			OffAirHandler::showVideoServer('show_not_on_air_video', 'not_on_air_video_path', $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo['con_isp_name'], defined('SERVER_ID') ? SERVER_ID : 0);
 		}
 	}
 
@@ -262,10 +262,10 @@ if ($rExtension) {
 				DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'USER_EXPIRED', $rIP);
 
 				if (in_array($rType, array('live', 'timeshift'))) {
-					OffAirHandler::showVideoServer($rSettings, $rServers, 'show_expired_video', 'expired_video_path', $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo['con_isp_name'], SERVER_ID);
+					OffAirHandler::showVideoServer('show_expired_video', 'expired_video_path', $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo['con_isp_name'], SERVER_ID);
 				} else {
 					if (in_array($rType, array('movie', 'series'))) {
-						OffAirHandler::showVideoServer($rSettings, $rServers, 'show_expired_video', 'expired_video_path', 'ts', $rUserInfo, $rIP, $rCountryCode, $rUserInfo['con_isp_name'], SERVER_ID);
+						OffAirHandler::showVideoServer('show_expired_video', 'expired_video_path', 'ts', $rUserInfo, $rIP, $rCountryCode, $rUserInfo['con_isp_name'], SERVER_ID);
 					} else {
 						generateError('EXPIRED');
 					}
@@ -276,10 +276,10 @@ if ($rExtension) {
 				DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'USER_BAN', $rIP);
 
 				if (in_array($rType, array('live', 'timeshift'))) {
-					OffAirHandler::showVideoServer($rSettings, $rServers, 'show_banned_video', 'banned_video_path', $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo['con_isp_name'], SERVER_ID);
+					OffAirHandler::showVideoServer('show_banned_video', 'banned_video_path', $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo['con_isp_name'], SERVER_ID);
 				} else {
 					if (in_array($rType, array('movie', 'series'))) {
-						OffAirHandler::showVideoServer($rSettings, $rServers, 'show_banned_video', 'banned_video_path', 'ts', $rUserInfo, $rIP, $rCountryCode, $rUserInfo['con_isp_name'], SERVER_ID);
+						OffAirHandler::showVideoServer('show_banned_video', 'banned_video_path', 'ts', $rUserInfo, $rIP, $rCountryCode, $rUserInfo['con_isp_name'], SERVER_ID);
 					} else {
 						generateError('BANNED');
 					}
@@ -290,10 +290,10 @@ if ($rExtension) {
 				DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'USER_DISABLED', $rIP);
 
 				if (in_array($rType, array('live', 'timeshift'))) {
-					OffAirHandler::showVideoServer($rSettings, $rServers, 'show_banned_video', 'banned_video_path', $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo['con_isp_name'], SERVER_ID);
+					OffAirHandler::showVideoServer('show_banned_video', 'banned_video_path', $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo['con_isp_name'], SERVER_ID);
 				} else {
 					if (in_array($rType, array('movie', 'series'))) {
-						OffAirHandler::showVideoServer($rSettings, $rServers, 'show_banned_video', 'banned_video_path', 'ts', $rUserInfo, $rIP, $rCountryCode, $rUserInfo['con_isp_name'], SERVER_ID);
+						OffAirHandler::showVideoServer('show_banned_video', 'banned_video_path', 'ts', $rUserInfo, $rIP, $rCountryCode, $rUserInfo['con_isp_name'], SERVER_ID);
 					} else {
 						generateError('DISABLED');
 					}
@@ -409,7 +409,7 @@ if ($rExtension) {
 					$db->query('UPDATE `lines` SET `last_expiration_video` = ? WHERE `id` = ?;', time(), $rUserInfo['id']);
 				}
 
-				OffAirHandler::showVideoServer($rSettings, $rServers, 'show_expiring_video', 'expiring_video_path', $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo['con_isp_name'], SERVER_ID);
+				OffAirHandler::showVideoServer('show_expiring_video', 'expiring_video_path', $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo['con_isp_name'], SERVER_ID);
 			}
 		}
 	} else {
@@ -443,7 +443,7 @@ if ($rExtension) {
 
 				if (($rServers[$rChannelInfo['redirect_id']]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))) {
 					$rProxies = ConnectionTracker::getProxies($rChannelInfo['redirect_id']);
-					$rProxyID = ProxySelector::availableProxy($rServers, array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name'], $rSettings);
+					$rProxyID = ProxySelector::availableProxy(array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name']);
 
 					if (!$rProxyID) {
 						generateError('NO_SERVERS_AVAILABLE');
@@ -478,8 +478,7 @@ if ($rExtension) {
 
 									if (($rServers[$rAdaptiveInfo['redirect_id']]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))) {
 										$rProxies = ConnectionTracker::getProxies($rAdaptiveInfo['redirect_id']);
-										$rProxyID = ProxySelector::availableProxy($rServers, array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name'], $rSettings);
-
+											$rProxyID = ProxySelector::availableProxy(array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name']);
 										if (!$rProxyID) {
 											generateError('NO_SERVERS_AVAILABLE');
 										}
@@ -516,7 +515,7 @@ if ($rExtension) {
 								exit();
 							}
 
-							OffAirHandler::showVideoServer($rSettings, $rServers, 'show_not_on_air_video', 'not_on_air_video_path', 'ts', $rUserInfo, $rIP, $rCountryCode, $rUserInfo['con_isp_name'], ($rChannelInfo['originator_id'] ?? $rChannelInfo['redirect_id']), (!empty($rChannelInfo['originator_id']) ? $rChannelInfo['redirect_id'] : null));
+							OffAirHandler::showVideoServer('show_not_on_air_video', 'not_on_air_video_path', 'ts', $rUserInfo, $rIP, $rCountryCode, $rUserInfo['con_isp_name'], ($rChannelInfo['originator_id'] ?? $rChannelInfo['redirect_id']), (!empty($rChannelInfo['originator_id']) ? $rChannelInfo['redirect_id'] : null));
 
 							exit();
 						} else {
@@ -562,7 +561,7 @@ if ($rExtension) {
 						exit();
 				}
 			} else {
-				OffAirHandler::showVideoServer($rSettings, $rServers, 'show_not_on_air_video', 'not_on_air_video_path', $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo['con_isp_name'], SERVER_ID);
+				OffAirHandler::showVideoServer('show_not_on_air_video', 'not_on_air_video_path', $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo['con_isp_name'], SERVER_ID);
 			}
 
 			break;
@@ -574,7 +573,7 @@ if ($rExtension) {
 			if ($rChannelInfo) {
 				if (($rServers[$rChannelInfo['redirect_id']]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))) {
 					$rProxies = ConnectionTracker::getProxies($rChannelInfo['redirect_id']);
-					$rProxyID = ProxySelector::availableProxy($rServers, array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name'], $rSettings);
+					$rProxyID = ProxySelector::availableProxy(array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name']);
 
 					if (!$rProxyID) {
 						generateError('NO_SERVERS_AVAILABLE');
@@ -613,7 +612,7 @@ if ($rExtension) {
 				exit();
 			}
 
-			OffAirHandler::showVideoServer($rSettings, $rServers, 'show_not_on_air_video', 'not_on_air_video_path', 'ts', $rUserInfo, $rIP, $rCountryCode, $rUserInfo['con_isp_name'], SERVER_ID);
+			OffAirHandler::showVideoServer('show_not_on_air_video', 'not_on_air_video_path', 'ts', $rUserInfo, $rIP, $rCountryCode, $rUserInfo['con_isp_name'], SERVER_ID);
 
 			break;
 
@@ -622,18 +621,14 @@ if ($rExtension) {
 			$rRedirectID = StreamRedirector::redirectStream($rCached, $rSettings, $rServers, $rStreamID, $rExtension, $rUserInfo, $rCountryCode, $rUserInfo['con_isp_name'], 'archive');
 
 			if (!$rRedirectID) {
-				OffAirHandler::showVideoServer($rSettings, $rServers, 'show_not_on_air_video', 'not_on_air_video_path', $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo['con_isp_name'], SERVER_ID);
+				OffAirHandler::showVideoServer('show_not_on_air_video', 'not_on_air_video_path', $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo['con_isp_name'], SERVER_ID);
 
 				break;
 			}
 
 			if (($rServers[$rChannelInfo['redirect_id']]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))) {
 				$rProxies = ConnectionTracker::getProxies($rChannelInfo['redirect_id']);
-				$rProxyID = ProxySelector::availableProxy($rServers, array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name'], $rSettings);
-
-				if (!$rProxyID) {
-					generateError('NO_SERVERS_AVAILABLE');
-				}
+				$rProxyID = ProxySelector::availableProxy(array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name']);
 
 				$rOriginatorID = $rChannelInfo['redirect_id'];
 				$rRedirectID = $rProxyID;
@@ -708,7 +703,7 @@ if ($rExtension) {
 
 			if (($rServers[$rStreamInfo['info']['vframes_server_id']]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))) {
 				$rProxies = ConnectionTracker::getProxies($rStreamInfo['info']['vframes_server_id']);
-				$rProxyID = ProxySelector::availableProxy($rServers, array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name'], $rSettings);
+				$rProxyID = ProxySelector::availableProxy(array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name']);
 
 				if (!$rProxyID) {
 					generateError('THUMBNAILS_NOT_ENABLED');
@@ -730,7 +725,7 @@ if ($rExtension) {
 			if ($rChannelInfo) {
 				if (($rServers[$rChannelInfo['redirect_id']]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))) {
 					$rProxies = ConnectionTracker::getProxies($rChannelInfo['redirect_id']);
-					$rProxyID = ProxySelector::availableProxy($rServers, array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name'], $rSettings);
+					$rProxyID = ProxySelector::availableProxy(array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name']);
 
 					if (!$rProxyID) {
 						generateError('NO_SERVERS_AVAILABLE');
