@@ -176,7 +176,7 @@ if (!(isset(RequestManager::getAll()['audio']) && RequestManager::getAll()['audi
 	echo ' selected';
 }
 
-echo '>' . $language::get('none') . '</option>' . "\n" . '                                    ';
+echo '>' . $language::get('label_none') . '</option>' . "\n" . '                                    ';
 
 foreach ($rAudioCodecs as $rCodec) {
 	echo '                                    <option value="';
@@ -206,7 +206,7 @@ if (!(isset(RequestManager::getAll()['video']) && RequestManager::getAll()['vide
 	echo ' selected';
 }
 
-echo '>' . $language::get('none') . '</option>' . "\n" . '                                    ';
+echo '>' . $language::get('label_none') . '</option>' . "\n" . '                                    ';
 
 foreach ($rVideoCodecs as $rCodec) {
 	echo '                                    <option value="';

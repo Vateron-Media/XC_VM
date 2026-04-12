@@ -176,8 +176,8 @@ endif;
                                                     <label class="col-md-2 col-form-label" for="example-email-input"><?= $language::get('allow_comments') ?></label>
                                                     <div class="col-md-9">
                                                         <select class="form-control" data-toggle="select2" id="c_allow_comments" name="c_allow_comments">
-                                                            <option value="1"><?= $language::get('yes') ?></option>
-                                                            <option value="0"><?= $language::get('no') ?></option>
+                                                            <option value="1"><?= $language::get('label_yes') ?></option>
+                                                            <option value="0"><?= $language::get('label_no') ?></option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -189,8 +189,8 @@ endif;
                                                     <label class="col-md-2 col-form-label" for="example-email-input"><?= $language::get('autoplay') ?></label>
                                                     <div class="col-md-9">
                                                         <select class="form-control" data-toggle="select2" id="c_autoplay" name="c_autoplay">
-                                                            <option value="1"><?= $language::get('yes') ?></option>
-                                                            <option value="0"><?= $language::get('no') ?></option>
+                                                            <option value="1"><?= $language::get('label_yes') ?></option>
+                                                            <option value="0"><?= $language::get('label_no') ?></option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -202,8 +202,8 @@ endif;
                                                     <label class="col-md-2 col-form-label" for="example-email-input"><?= $language::get('email_on_new_comment') ?></label>
                                                     <div class="col-md-9">
                                                         <select class="form-control" data-toggle="select2" id="c_email_on_new_comment" name="c_email_on_new_comment">
-                                                            <option value="1"><?= $language::get('yes') ?></option>
-                                                            <option value="0"><?= $language::get('no') ?></option>
+                                                            <option value="1"><?= $language::get('label_yes') ?></option>
+                                                            <option value="0"><?= $language::get('label_no') ?></option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -224,8 +224,8 @@ endif;
                                                     <label class="col-md-2 col-form-label" for="example-email-input"><?= $language::get('load_balancing') ?></label>
                                                     <div class="col-md-9">
                                                         <select class="form-control" data-toggle="select2" id="c_load_balancing" name="c_load_balancing">
-                                                            <option value="1"><?= $language::get('yes') ?></option>
-                                                            <option value="0"><?= $language::get('no') ?></option>
+                                                            <option value="1"><?= $language::get('label_yes') ?></option>
+                                                            <option value="0"><?= $language::get('label_no') ?></option>
                                                         </select>
                                                     </div>
                                                 </div>

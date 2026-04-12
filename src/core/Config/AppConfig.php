@@ -15,7 +15,7 @@
 
 // ── Development & Experimental Flags ───────────────────────────
 
-define('DEVELOPMENT', false);          // Development mode (planned for removal)
+define('DEVELOPMENT', true);          // Development mode (planned for removal)
 
 // ── Version & Git Configuration ────────────────────────────────
 
