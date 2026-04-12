@@ -51,19 +51,11 @@ jobs:
       - name: Clean dist directory
         run: make new
 
-      - name: Build LB install archive
-        run: make lb
+      - name: Build LB archive
+        run: make lb${{ steps.prev_tag.outputs.found == 'true' && format(' LAST_TAG="{0}"', steps.prev_tag.outputs.tag) || '' }}
 
-      - name: Build MAIN install archive
-        run: make main
-
-      - name: Build MAIN update archive
-        if: steps.prev_tag.outputs.found == 'true'
-        run: make main_update LAST_TAG="${{ steps.prev_tag.outputs.tag }}"
-
-      - name: Build LB update archive
-        if: steps.prev_tag.outputs.found == 'true'
-        run: make lb_update LAST_TAG="${{ steps.prev_tag.outputs.tag }}"
+      - name: Build MAIN archive
+        run: make main${{ steps.prev_tag.outputs.found == 'true' && format(' LAST_TAG="{0}"', steps.prev_tag.outputs.tag) || '' }}
 
       - name: Upload assets to release
         uses: softprops/action-gh-release@v2

@@ -5,6 +5,24 @@ rBaseDir = os.path.dirname(os.path.realpath(__file__)) + "/"
 rPHPDir = rBaseDir + "bin/php/bin/php"
 rConsole = rBaseDir + "console.php"
 
+# Directories excluded during update (binaries, user data, config).
+# These are removed from the temp copy before overwriting the live installation.
+UPDATE_EXCLUDE_DIRS = [
+    "bin/ffmpeg_bin",
+    "bin/nginx",
+    "bin/nginx_rtmp",
+    "bin/php",
+    "bin/redis",
+    "bin/install",
+    "bin/maxmind",
+    "bin/certbot",
+    "content",
+    "backups",
+    "tmp",
+    "config",
+    "signals",
+]
+
 
 def md5(rFilename):
     rMD5 = hashlib.md5()
@@ -15,12 +33,32 @@ def md5(rFilename):
 
 
 def doUpdate(rFilename):
-    os.system("sudo systemctl stop xc_vm")
-    os.system('sudo tar -zxvf "%s" -C "%s"' % (rFilename, rBaseDir))
-    os.system('sudo chown -R xc_vm:xc_vm "%s"' % rBaseDir)
-    os.system('sudo %s %s update "post-update"' % (rPHPDir, rConsole))
-    os.system("sudo systemctl start xc_vm")
-    os.remove(rFilename)
+    import tempfile
+
+    rTmpDir = tempfile.mkdtemp(prefix="xc_vm_update_")
+
+    try:
+        os.system("sudo systemctl stop xc_vm")
+
+        # Extract full archive to a temporary directory
+        os.system('sudo tar -zxf "%s" -C "%s"' % (rFilename, rTmpDir))
+
+        # Remove excluded directories from the temp copy
+        for rExclude in UPDATE_EXCLUDE_DIRS:
+            rPath = os.path.join(rTmpDir, rExclude)
+            if os.path.exists(rPath):
+                os.system('sudo rm -rf "%s"' % rPath)
+
+        # Copy remaining files over the live installation
+        os.system('sudo cp -a "%s/." "%s"' % (rTmpDir, rBaseDir))
+        os.system('sudo chown -R xc_vm:xc_vm "%s"' % rBaseDir)
+        os.system('sudo %s %s update "post-update"' % (rPHPDir, rConsole))
+        os.system("sudo systemctl start xc_vm")
+    finally:
+        os.system('sudo rm -rf "%s"' % rTmpDir)
+        if os.path.exists(rFilename):
+            os.remove(rFilename)
+
     return True
 
 
