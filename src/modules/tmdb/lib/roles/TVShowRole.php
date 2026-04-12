@@ -57,13 +57,4 @@ class TVShowRole extends Role {
 	public function getTVShowFirstAirDate() {
 		return $this->_data['first_air_date'];
 	}
-
-	/**
-	 *  Get the JSON representation of the Episode
-	 *
-	 *  @return string
-	 */
-	public function getJSON() {
-		return json_encode($this->_data, JSON_PRETTY_PRINT);
-	}
 }
