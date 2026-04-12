@@ -724,7 +724,7 @@ class ConnectionTracker {
 						$db->query('DELETE FROM `lines_live` WHERE `activity_id` = ?', $rActivityInfo['activity_id']);
 					}
 				}
-				self::writeOfflineActivity($rSettings, $rActivityInfo['server_id'], $rActivityInfo['proxy_id'], $rActivityInfo['user_id'], $rActivityInfo['stream_id'], $rActivityInfo['date_start'], $rActivityInfo['user_agent'], $rActivityInfo['user_ip'], $rActivityInfo['container'], $rActivityInfo['geoip_country_code'], $rActivityInfo['isp'], $rActivityInfo['external_device'] ?? '', $rActivityInfo['divergence'] ?? 0, $rActivityInfo['hmac_id'] ?? null, $rActivityInfo['hmac_identifier'] ?? '');
+				self::writeOfflineActivity($rSettings, $rActivityInfo['server_id'], intval($rActivityInfo['proxy_id'] ?? 0), $rActivityInfo['user_id'], $rActivityInfo['stream_id'], $rActivityInfo['date_start'], $rActivityInfo['user_agent'], $rActivityInfo['user_ip'], $rActivityInfo['container'], $rActivityInfo['geoip_country_code'], $rActivityInfo['isp'], $rActivityInfo['external_device'] ?? '', $rActivityInfo['divergence'] ?? 0, $rActivityInfo['hmac_id'] ?? null, $rActivityInfo['hmac_identifier'] ?? '');
 				return true;
 			}
 			return false;
@@ -757,8 +757,7 @@ class ConnectionTracker {
 	 */
 	public static function writeOfflineActivity(array $rSettings, int $rServerID, int $rProxyID, int $rUserID, int $rStreamID, int $rStart, string $rUserAgent, string $rIP, string $rExtension, string $rGeoIP, string $rISP, string $rExternalDevice = '', int $rDivergence = 0, ?int $rIsHMAC = null, string $rIdentifier = ''): void {
 		if ($rSettings['save_closed_connection'] != 0) {
-			if (!($rServerID && $rUserID && $rStreamID)) {
-			} else {
+			if ($rServerID && $rUserID && $rStreamID) {
 				$rActivityInfo = array('user_id' => intval($rUserID), 'stream_id' => intval($rStreamID), 'server_id' => intval($rServerID), 'proxy_id' => intval($rProxyID), 'date_start' => intval($rStart), 'user_agent' => $rUserAgent, 'user_ip' => htmlentities($rIP), 'date_end' => time(), 'container' => $rExtension, 'geoip_country_code' => $rGeoIP, 'isp' => $rISP, 'external_device' => htmlentities($rExternalDevice), 'divergence' => intval($rDivergence), 'hmac_id' => $rIsHMAC, 'hmac_identifier' => $rIdentifier);
 				file_put_contents(LOGS_TMP_PATH . 'activity', base64_encode(json_encode($rActivityInfo)) . "\n", FILE_APPEND | LOCK_EX);
 			}
