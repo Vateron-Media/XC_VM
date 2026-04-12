@@ -11,7 +11,8 @@
  */
 
 class ProxySelector {
-	public static function availableProxy($rServers, $rProxies, $rCountryCode, $rUserISP = '', $rSettings = null) {
+	public static function availableProxy($rProxies, $rCountryCode, $rUserISP = '') {
+		global $rServers;
 		if (empty($rProxies)) {
 			return null;
 		}

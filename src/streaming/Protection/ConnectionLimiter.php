@@ -13,16 +13,12 @@
 class ConnectionLimiter {
 	public static function writeOfflineActivity($rServerID, $rProxyID, $rUserID, $rStreamID, $rStart, $rUserAgent, $rIP, $rExtension, $rGeoIP, $rISP, $rExternalDevice = '', $rDivergence = 0, $rIsHMAC = null, $rIdentifier = '') {
 		global $rSettings;
-		if ($rSettings['save_closed_connection'] != 0) {
-			if ($rServerID && $rUserID && $rStreamID) {
-				$rActivityInfo = array('user_id' => intval($rUserID), 'stream_id' => intval($rStreamID), 'server_id' => intval($rServerID), 'proxy_id' => intval($rProxyID), 'date_start' => intval($rStart), 'user_agent' => $rUserAgent, 'user_ip' => htmlentities($rIP), 'date_end' => time(), 'container' => $rExtension, 'geoip_country_code' => $rGeoIP, 'isp' => $rISP, 'external_device' => htmlentities($rExternalDevice), 'divergence' => intval($rDivergence), 'hmac_id' => $rIsHMAC, 'hmac_identifier' => $rIdentifier);
-				file_put_contents(LOGS_TMP_PATH . 'activity', base64_encode(json_encode($rActivityInfo)) . "\n", FILE_APPEND | LOCK_EX);
-			}
-		}
+		ConnectionTracker::writeOfflineActivity($rSettings, intval($rServerID), intval($rProxyID ?? 0), intval($rUserID), intval($rStreamID), intval($rStart), strval($rUserAgent), strval($rIP), strval($rExtension), strval($rGeoIP), strval($rISP), $rExternalDevice, intval($rDivergence), $rIsHMAC, $rIdentifier);
 	}
 
-	public static function closeConnections($redis, $rSettings, $rServers, $rUserID, $rMaxConnections, $rIsHMAC = null, $rIdentifier = '', $rIP = null, $rUserAgent = null) {
-		global $db;
+	public static function closeConnections($rUserID, $rMaxConnections, $rIsHMAC = null, $rIdentifier = '', $rIP = null, $rUserAgent = null) {
+		global $rSettings, $rServers, $db;
+		$redis = RedisManager::instance();
 		if ($rSettings['redis_handler']) {
 			$rConnections = array();
 			$rKeys = ConnectionTracker::getLineConnections($rUserID, true, true);
@@ -73,7 +69,7 @@ class ConnectionLimiter {
 				if ($rKilled != $rToKill) {
 					if ($rConnections[$i]['pid'] != getmypid()) {
 						if ($rConnections[$i]['user_ip'] == $rIP && $rConnections[$i]['user_agent'] == $rUserAgent && $rKillOwnIP == 2 || $rConnections[$i]['user_ip'] == $rIP && $rKillOwnIP == 1 || $rKillOwnIP == 0) {
-							if (self::closeConnection($redis, $rSettings, $rServers, $rConnections[$i])) {
+							if (self::closeConnection($rConnections[$i])) {
 								$rKilled++;
 								if ($rConnections[$i]['container'] != 'hls') {
 									if ($rSettings['redis_handler']) {
@@ -136,8 +132,9 @@ class ConnectionLimiter {
 		return $rKilled;
 	}
 
-	public static function closeConnection($redis, $rSettings, $rServers, $rActivityInfo) {
-		global $db;
+	public static function closeConnection($rActivityInfo) {
+		global $rSettings, $rServers, $db;
+		$redis = RedisManager::instance();
 		if (empty($rActivityInfo)) {
 			return false;
 		}
