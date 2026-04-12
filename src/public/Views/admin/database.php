@@ -228,7 +228,7 @@ and TABLE_SCHEMA=" . dbq($DB['db']) . "ORDER BY TABLE_NAME ASC";
 }
 
 function display_select($sth, $q) {
-    global $dbh, $SRV, $DB, $sqldr, $reccount, $is_sht, $xurl, $is_sm;
+    global $dbh, $SRV, $DB, $sqldr, $reccount, $is_sht, $xurl, $is_sm, $language;
     $rc = ["o", "e"];
     $srvn = ue($SRV);
     $dbn = ue($DB['db']);
@@ -289,10 +289,10 @@ function display_select($sth, $q) {
         $headers .= "<th><div>" . hs($meta->name) . "</div></th>";
     }
     if ($is_shd) {
-        $headers .= "<th>' . $language::get('show_create_database') . '</th><th>' . $language::get('show_table_status') . '</th><th>' . $language::get('show_triggers') . '</th>";
+        $headers .= "<th>" . $language::get('show_create_database') . "</th><th>" . $language::get('show_table_status') . "</th><th>" . $language::get('show_triggers') . "</th>";
     }
     if ($is_sht) {
-        $headers .= "<th>' . $language::get('engine') . '</th><th>' . $language::get('rows') . '</th><th>' . $language::get('data_size') . '</th><th>' . $language::get('index_size') . '</th><th>' . $language::get('show_create_table') . '</th><th>' . $language::get('explain') . '</th><th>' . $language::get('indexes') . '</th><th>' . $language::get('export') . '</th><th>' . $language::get('drop') . '</th><th>' . $language::get('truncate') . '</th><th>' . $language::get('optimize') . '</th><th>' . $language::get('repair') . '</th><th>' . $language::get('comment') . '</th>";
+        $headers .= "<th>" . $language::get('engine') . "</th><th>" . $language::get('rows') . "</th><th>" . $language::get('data_size') . "</th><th>" . $language::get('index_size') . "</th><th>" . $language::get('show_create_table') . "</th><th>" . $language::get('explain') . "</th><th>" . $language::get('indexes') . "</th><th>" . $language::get('export') . "</th><th>" . $language::get('drop') . "</th><th>" . $language::get('truncate') . "</th><th>" . $language::get('optimize') . "</th><th>" . $language::get('repair') . "</th><th>" . $language::get('comment') . "</th>";
     }
     $headers .= "</tr>\n";
     $sqldr .= $headers;
@@ -352,7 +352,7 @@ function display_select($sth, $q) {
 }
 
 function print_header() {
-    global $err_msg, $VERSION, $DBSERVERS, $SRV, $DB, $dbh, $self, $is_sht, $xurl, $SHOW_T;
+    global $err_msg, $VERSION, $DBSERVERS, $SRV, $DB, $dbh, $self, $is_sht, $xurl, $SHOW_T, $language;
     $dbn = $DB['db'] ?? '';
 ?>
     <!DOCTYPE html>
@@ -766,7 +766,7 @@ function print_header() {
     }
 
     function print_screen() {
-        global $out_message, $SQLq, $err_msg, $reccount, $time_all, $sqldr, $page, $MAX_ROWS_PER_PAGE, $is_limited_sql, $last_count, $is_sm;
+        global $out_message, $SQLq, $err_msg, $reccount, $time_all, $sqldr, $page, $MAX_ROWS_PER_PAGE, $is_limited_sql, $last_count, $is_sm, $language;
 
         $nav = '';
         if ($is_limited_sql && ($page || $reccount >= $MAX_ROWS_PER_PAGE)) {
@@ -1209,7 +1209,7 @@ $show_all=$_[5];           #print Totals?
     }
 
     function print_export() {
-        global $self, $xurl, $SRV, $DB, $DUMP_FILE;
+        global $self, $xurl, $SRV, $DB, $DUMP_FILE, $language;
         $t = $_REQUEST['rt'];
         $l = ($t) ? "Table $t" : "whole DB";
         print_header();
