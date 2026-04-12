@@ -68,7 +68,38 @@ EXCLUDE_ARGS := $(addprefix --exclude=,$(EXCLUDES))
 
 .PHONY: new lb main lb_copy_files main_copy_files set_permissions create_archive \
 	lb_archive_move main_archive_move main_install_archive clean \
-	delete_files_list lb_delete_files_list
+	delete_files_list lb_delete_files_list generate_deleted_files
+
+# ─── Generate deleted_files.txt from git diff ───────────────────
+# Usage: make generate_deleted_files [LAST_TAG=v1.2.3]
+# Writes to src/migrations/deleted_files.txt for manual review.
+generate_deleted_files:
+	@if [ -z "$(LAST_TAG)" ]; then \
+		echo "[ERROR] LAST_TAG is empty — cannot detect latest release."; \
+		echo "        Pass it manually: make generate_deleted_files LAST_TAG=v1.2.3"; \
+		exit 1; \
+	fi
+	@if ! git rev-parse "$(LAST_TAG)" >/dev/null 2>&1; then \
+		echo "[ERROR] Tag '$(LAST_TAG)' not found locally. Run: git fetch --tags"; \
+		exit 1; \
+	fi
+	@echo "[INFO] Generating deleted_files.txt: $(LAST_TAG)..HEAD"
+	@{ \
+		echo '# Files to delete during update (relative to MAIN_HOME)'; \
+		echo '# Auto-generated from: git diff $(LAST_TAG)..HEAD'; \
+		echo '# One file per line. Lines starting with # are comments.'; \
+		echo '#'; \
+		git diff --name-status "$(LAST_TAG)"..HEAD -- src/ \
+			| awk '$$1 == "D" { sub(/^src\//, "", $$2); print $$2 }'; \
+	} > "$(MAIN_DIR)/migrations/deleted_files.txt"
+	@rCount=$$(grep -cv '^#\|^$$' "$(MAIN_DIR)/migrations/deleted_files.txt" 2>/dev/null || echo 0); \
+		echo "[INFO] Generated $(MAIN_DIR)/migrations/deleted_files.txt ($$rCount files)"; \
+		if [ "$$rCount" -gt 0 ]; then \
+			echo "[INFO] Files to delete:"; \
+			grep -v '^#' "$(MAIN_DIR)/migrations/deleted_files.txt" | grep -v '^$$'; \
+		else \
+			echo "[INFO] No deleted files detected since $(LAST_TAG)"; \
+		fi
 
 # ─── MAIN targets ────────────────────────────────────────────────
 # Single archive: used for both clean install and update.
@@ -147,31 +178,21 @@ main_copy_files:
 	@echo "All files gitkeep deleted"
 
 delete_files_list:
-	@echo "[INFO] Generating deleted files list from $(LAST_TAG) to HEAD"
-	@if [ -z "$(LAST_TAG)" ]; then \
-		echo "[WARN] LAST_TAG is empty — skipping deleted files list"; \
-	else \
+	@echo "[INFO] Checking for manual deleted files list"
+	@if [ -f "$(MAIN_DIR)/migrations/deleted_files.txt" ]; then \
 		mkdir -p "$(TEMP_DIR)/migrations"; \
-		git diff --no-renames --name-status --diff-filter=D "$(LAST_TAG)..HEAD" \
-			| cut -f2 | grep '^src/' | sed 's|^src/||' | sort -u \
-			> "$(TEMP_DIR)/migrations/deleted_files.txt"; \
-		if [ -s "$(TEMP_DIR)/migrations/deleted_files.txt" ]; then \
-			echo "[INFO] Files to delete on update:"; \
-			cat "$(TEMP_DIR)/migrations/deleted_files.txt"; \
-		else \
-			echo "[INFO] No deleted files found"; \
-			rm -f "$(TEMP_DIR)/migrations/deleted_files.txt"; \
-		fi; \
+		cp "$(MAIN_DIR)/migrations/deleted_files.txt" "$(TEMP_DIR)/migrations/deleted_files.txt"; \
+		echo "[INFO] Files to delete on update:"; \
+		grep -v '^#' "$(TEMP_DIR)/migrations/deleted_files.txt" | grep -v '^$$' || true; \
+	else \
+		echo "[INFO] No deleted_files.txt found — skipping"; \
 	fi
 
 lb_delete_files_list:
-	@echo "[INFO] Generating LB-scoped deleted files list from $(LAST_TAG) to HEAD"
-	@if [ -z "$(LAST_TAG)" ]; then \
-		echo "[WARN] LAST_TAG is empty — skipping deleted files list"; \
-	else \
+	@echo "[INFO] Checking for manual deleted files list (LB-scoped)"
+	@if [ -f "$(MAIN_DIR)/migrations/deleted_files.txt" ]; then \
 		mkdir -p "$(TEMP_DIR)/migrations"; \
-		git diff --no-renames --name-status --diff-filter=D "$(LAST_TAG)..HEAD" \
-			| cut -f2 | grep '^src/' | sed 's|^src/||' | sort -u \
+		grep -v '^#' "$(MAIN_DIR)/migrations/deleted_files.txt" | grep -v '^$$' \
 			| awk -v dirs="$(LB_DIRS)" -v files="$(LB_ROOT_FILES)" ' \
 				BEGIN { n=split(dirs,d," "); m=split(files,f," ") } \
 				{ ok=0; for(i=1;i<=n;i++) if(index($$0,d[i]"/")==1){ok=1;break} \
@@ -185,6 +206,8 @@ lb_delete_files_list:
 			echo "[INFO] No LB-scoped deleted files found"; \
 			rm -f "$(TEMP_DIR)/migrations/deleted_files.txt"; \
 		fi; \
+	else \
+		echo "[INFO] No deleted_files.txt found — skipping"; \
 	fi
 
 set_permissions:
