@@ -131,18 +131,19 @@ echo "Предыдущий релиз: $PREV_TAG"
 git log --pretty=format:"- %s (%h)" "$PREV_TAG"..main > dist/changes.md
 ```
 
-**Обновить публичный changelog** по ссылке:
-[XC_VM_Update/changelog.json](https://github.com/Vateron-Media/XC_VM_Update/blob/main/changelog.json)
+**Обновить `changelog.json`** в корне репозитория — этот файл содержит только изменения для предстоящего релиза:
 
 ```json
 {
     "version": "X.Y.Z",
     "changes": [
-      "Описание изменения 1",
-      "Описание изменения 2"
+        "Описание изменения 1",
+        "Описание изменения 2"
     ]
 }
 ```
+
+Панель получает этот файл из тега релиза автоматически через `GithubReleases::getChangelog()`.
 
 > 💬 Описания должны быть краткими — фокус на пользовательских улучшениях и исправлениях.
 
@@ -169,5 +170,4 @@ git log --pretty=format:"- %s (%h)" "$PREV_TAG"..main > dist/changes.md
 - [ ] Проверить, что все 4 файла прикреплены к релизу
 - [ ] Скачать и проверить `md5sum -c hashes.md5`
 - [ ] Убедиться, что Telegram-уведомление отправлено
-- [ ] Обновить `changelog.json` в репозитории `XC_VM_Update` (если ещё не сделано)
 - [ ] Закрыть связанные GitHub issues/milestones
