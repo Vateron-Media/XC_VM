@@ -44,7 +44,7 @@
 									<th><?php echo $language::get('group_name'); ?></th>
 									<th class="text-center"><?php echo $language::get('is_admin'); ?></th>
 									<th class="text-center"><?php echo $language::get('is_reseller'); ?></th>
-									<th class="text-center">Subresellers</th>
+									<th class="text-center"><?= $language::get('subresellers') ?></th>
 									<th class="text-center"><?php echo $language::get('actions'); ?></th>
 								</tr>
 							</thead>

@@ -23,7 +23,7 @@
                     <div class="page-title-right">
                         <?php include 'topbar.php'; ?>
                     </div>
-                    <h4 class="page-title">Panel Errors</h4>
+                    <h4 class="page-title"><?= $language::get('panel_errors') ?></h4>
                 </div>
             </div>
         </div>
@@ -38,7 +38,7 @@
                                     <th class="text-center"><?php echo $language::get('server'); ?></th>
                                     <th class="text-center"><?php echo $language::get('type'); ?></th>
                                     <th><?php echo $language::get('error'); ?></th>
-                                    <th>Line</th>
+                                    <th><?= $language::get('line') ?></th>
                                 </tr>
                             </thead>
                             <tbody></tbody>

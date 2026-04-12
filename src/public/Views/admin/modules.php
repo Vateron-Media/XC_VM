@@ -27,7 +27,7 @@
                     <div class="page-title-right">
                         <?php include 'topbar.php'; ?>
                     </div>
-                    <h4 class="page-title">Modules</h4>
+                    <h4 class="page-title"><?= $language::get('modules') ?></h4>
                 </div>
             </div>
         </div>
@@ -53,13 +53,13 @@
                                 <p class="text-muted mb-2">Drag & drop a <code>.zip</code> module here or click to browse</p>
                                 <div class="custom-file mx-auto" style="max-width: 400px;">
                                     <input type="file" class="custom-file-input" name="module_zip" id="module_zip_input" accept=".zip" required>
-                                    <label class="custom-file-label" for="module_zip_input" data-browse="Browse">Choose file...</label>
+                                    <label class="custom-file-label" for="module_zip_input" data-browse="Browse"><?= $language::get('choose_file') ?></label>
                                 </div>
                                 <small class="text-muted d-block mt-2">Only <code>.zip</code> packages are accepted</small>
                             </div>
                             <div class="text-right mt-3">
                                 <button type="submit" class="btn btn-primary" id="module_upload_btn" disabled>
-                                    <i class="mdi mdi-upload mr-1"></i> Upload &amp; Install
+                                    <i class="mdi mdi-upload mr-1"></i> <?= $language::get('upload_andamp_install') ?>
                                 </button>
                             </div>
                         </form>
@@ -67,12 +67,12 @@
                             <table class="table table-striped table-borderless mb-0">
                                 <thead>
                                     <tr>
-                                        <th>Name</th>
-                                        <th>Description</th>
-                                        <th>Version</th>
-                                        <th>Requires Core</th>
-                                        <th>Status</th>
-                                        <th class="text-right">Actions</th>
+                                        <th><?= $language::get('name') ?></th>
+                                        <th><?= $language::get('description') ?></th>
+                                        <th><?= $language::get('version') ?></th>
+                                        <th><?= $language::get('requires_core') ?></th>
+                                        <th><?= $language::get('status') ?></th>
+                                        <th class="text-right"><?= $language::get('actions') ?></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -114,7 +114,7 @@
                                                             <?= !empty($module['enabled']) ? 'Disable' : 'Enable' ?>
                                                         </button>
 
-                                                        <form action="#" method="POST" onsubmit="return confirm('Uninstall module <?= htmlspecialchars($module['name']) ?>?');">
+                                                        <form action="#" method="POST" onsubmit="return confirm('<?= $language::get('confirm_uninstall_module', [':name' => htmlspecialchars($module['name'])]) ?>');">
                                                             <input type="hidden" name="module_name" value="<?= htmlspecialchars($module['name']) ?>">
                                                             <input type="hidden" name="module_action" value="uninstall">
                                                             <button type="submit" class="btn btn-sm btn-danger"></i>Uninstall</button>
@@ -216,7 +216,7 @@
         xhr.onerror = function() {
             btn.disabled = false;
             btn.innerHTML = (isEnabled ? 'Disable' : 'Enable');
-            alert('Failed to toggle module. Please try again.');
+            alert('<?= $language::get('failed_toggle_module') ?>');
         };
         xhr.send(formData);
     });

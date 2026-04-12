@@ -144,7 +144,7 @@ if (!isset(RequestManager::getAll()['update'])):
             <div class="row">
                 <div class="col-12">
                     <div class="page-title-box">
-                        <h4 class="page-title">Database Migration</h4>
+                        <h4 class="page-title"><?= $language::get('database_migration') ?></h4>
                     </div>
                 </div>
             </div>
@@ -162,7 +162,7 @@ if (!isset(RequestManager::getAll()['update'])):
                                     <ul class="list-inline wizard mb-4">
                                         <li class="float-right">
                                             <button disabled onClick="migrateServer();" class="btn btn-info"
-                                                id="migrate_button">Try Again</button>
+                                                id="migrate_button"><?= $language::get('try_again') ?></button>
                                         </li>
                                     </ul>
                                 </div>
@@ -185,21 +185,21 @@ if (!isset(RequestManager::getAll()['update'])):
                                                 </div>
                                             <?php } ?>
                                             <div class="form-group row mb-4">
-                                                <label class="col-md-4 col-form-label" for="username">Admin Username</label>
+                                                <label class="col-md-4 col-form-label" for="username"><?= $language::get('admin_username') ?></label>
                                                 <div class="col-md-8">
                                                     <input type="text" class="form-control" id="username" name="username" value=""
                                                         required data-parsley-trigger="change">
                                                 </div>
                                             </div>
                                             <div class="form-group row mb-4">
-                                                <label class="col-md-4 col-form-label" for="password">Admin Password</label>
+                                                <label class="col-md-4 col-form-label" for="password"><?= $language::get('admin_password') ?></label>
                                                 <div class="col-md-8">
                                                     <input type="password" class="form-control" id="password" name="password"
                                                         value="" required data-parsley-trigger="change">
                                                 </div>
                                             </div>
                                             <div class="form-group row mb-4">
-                                                <label class="col-md-4 col-form-label" for="email">Email Address</label>
+                                                <label class="col-md-4 col-form-label" for="email"><?= $language::get('email_address') ?></label>
                                                 <div class="col-md-8">
                                                     <input type="text" class="form-control" id="email" name="email" value="">
                                                 </div>
@@ -245,10 +245,10 @@ if (!isset(RequestManager::getAll()['update'])):
                                                 <table class="table table-striped table-borderless mb-4">
                                                     <thead>
                                                         <tr>
-                                                            <th>Description</th>
-                                                            <th>Table Name</th>
-                                                            <th class="text-center">Records</th>
-                                                            <th class="text-center">Migrate</th>
+                                                            <th><?= $language::get('description') ?></th>
+                                                            <th><?= $language::get('table_name') ?></th>
+                                                            <th class="text-center"><?= $language::get('records') ?></th>
+                                                            <th class="text-center"><?= $language::get('migrate') ?></th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -282,7 +282,7 @@ if (!isset(RequestManager::getAll()['update'])):
                                                 <?php if ($rFirstRun) { ?>
                                                     <li class="list-inline-item">
                                                         <a href="./setup?new"><button name="dont_migrate" class="btn btn-danger"
-                                                                type="button">Don't Migrate</button></a>
+                                                                type="button"><?= $language::get('dont_migrate') ?></button></a>
                                                     </li>
                                                 <?php }
                                                 if ($rMigrateConnection && $rTotalCount > 0) { ?>

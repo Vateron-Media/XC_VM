@@ -67,7 +67,7 @@ if (!(isset(RequestManager::getAll()['server']) && RequestManager::getAll()['ser
 	echo ' selected';
 }
 
-echo '>No Servers</option>' . "\n" . '                                    ';
+echo '>' . $language::get('no_servers') . '</option>' . "\n" . '                                    ';
 
 foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer) {
 	echo '                                    <option value="';
@@ -155,28 +155,28 @@ if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['fil
 	echo ' selected';
 }
 
-echo '>Duplicate</option>' . "\n\t\t\t\t\t\t\t\t\t" . '<option value="7"';
+echo '>' . $language::get('duplicate') . '</option>' . "\n\t\t\t\t\t\t\t\t\t" . '<option value="7"';
 
 if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 7)) {
 } else {
 	echo ' selected';
 }
 
-echo '>Transcoding</option>' . "\n" . '                                </select>' . "\n" . '                            </div>' . "\n" . '                            <div class="col-md-1">' . "\n" . '                                <select id="episodes_audio" class="form-control" data-toggle="select2">' . "\n" . '                                    <option value=""';
+echo '>' . $language::get('transcoding') . '</option>' . "\n" . '                                </select>' . "\n" . '                            </div>' . "\n" . '                            <div class="col-md-1">' . "\n" . '                                <select id="episodes_audio" class="form-control" data-toggle="select2">' . "\n" . '                                    <option value=""';
 
 if (isset(RequestManager::getAll()['audio'])) {
 } else {
 	echo ' selected';
 }
 
-echo '>Audio</option>' . "\n" . '                                    <option value="-1"';
+echo '>' . $language::get('audio') . '</option>' . "\n" . '                                    <option value="-1"';
 
 if (!(isset(RequestManager::getAll()['audio']) && RequestManager::getAll()['audio'] == '-1')) {
 } else {
 	echo ' selected';
 }
 
-echo '>None</option>' . "\n" . '                                    ';
+echo '>' . $language::get('none') . '</option>' . "\n" . '                                    ';
 
 foreach ($rAudioCodecs as $rCodec) {
 	echo '                                    <option value="';
@@ -199,14 +199,14 @@ if (isset(RequestManager::getAll()['video'])) {
 	echo ' selected';
 }
 
-echo '>Video</option>' . "\n" . '                                    <option value="-1"';
+echo '>' . $language::get('video') . '</option>' . "\n" . '                                    <option value="-1"';
 
 if (!(isset(RequestManager::getAll()['video']) && RequestManager::getAll()['video'] == '-1')) {
 } else {
 	echo ' selected';
 }
 
-echo '>None</option>' . "\n" . '                                    ';
+echo '>' . $language::get('none') . '</option>' . "\n" . '                                    ';
 
 foreach ($rVideoCodecs as $rCodec) {
 	echo '                                    <option value="';
@@ -229,7 +229,7 @@ if (isset(RequestManager::getAll()['resolution'])) {
 	echo ' selected';
 }
 
-echo '>Quality</option>' . "\n" . '                                    ';
+echo '>' . $language::get('quality') . '</option>' . "\n" . '                                    ';
 
 foreach (array(240, 360, 480, 576, 720, 1080, 1440, 2160) as $rResolution) {
 	echo '                                    <option value="';
@@ -270,7 +270,7 @@ foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) {
 }
 echo '                                </select>' . "\n" . '                            </div>' . "\n" . '                        </div>' . "\n" . '                        <table id="datatable-streampage" class="table table-striped table-borderless dt-responsive nowrap font-normal">' . "\n" . '                            <thead>' . "\n" . '                                <tr>' . "\n" . '                                    <th class="text-center">';
 echo $language::get('id');
-echo '</th>' . "\n" . '                                    <th class="text-center">Image</th>' . "\n" . '                                    <th>';
+echo '</th>' . "\n" . '                                    <th class="text-center">' . $language::get('image') . '</th>' . "\n" . '                                    <th>';
 echo $language::get('name');
 echo '</th>' . "\n" . '                                    ';
 

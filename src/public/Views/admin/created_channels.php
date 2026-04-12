@@ -20,7 +20,7 @@
 					<div class="page-title-right">
 						<?php include 'topbar.php'; ?>
 					</div>
-					<h4 class="page-title">Created Channels</h4>
+					<h4 class="page-title"><?= $language::get('created_channels') ?></h4>
 				</div>
 			</div>
 		</div>
@@ -36,11 +36,11 @@
 								<input type="text" class="form-control" id="stream_search" value="<?php if (!isset(RequestManager::getAll()['search'])) {
 																									} else {
 																										echo htmlspecialchars(RequestManager::getAll()['search']);
-																									} ?>" placeholder="Search Channels...">
+																									} ?>" placeholder="<?= $language::get('search_channels') ?>">
 							</div>
 							<div class="col-md-3">
 								<select id="stream_server_id" class="form-control" data-toggle="select2">
-									<option value="" selected>All Servers</option>
+									<option value="" selected><?= $language::get('all_servers') ?></option>
 									<option value="-1" <?php if (!(isset(RequestManager::getAll()['server']) && RequestManager::getAll()['server'] == -1)) {
 														} else {
 															echo ' selected';
@@ -55,7 +55,7 @@
 							</div>
 							<div class="col-md-3">
 								<select id="stream_category_id" class="form-control" data-toggle="select2">
-									<option value="" selected>All Categories</option>
+									<option value="" selected><?= $language::get('all_categories') ?></option>
 									<option value="-1" <?php if (!(isset(RequestManager::getAll()['category']) && RequestManager::getAll()['category'] == -1)) {
 														} else {
 															echo ' selected';
@@ -92,7 +92,7 @@
 														} ?>>Transcoding</option>
 								</select>
 							</div>
-							<label class="col-md-1 col-form-label text-center" for="stream_show_entries">Show</label>
+							<label class="col-md-1 col-form-label text-center" for="stream_show_entries"><?= $language::get('show') ?></label>
 							<div class="col-md-1">
 								<select id="stream_show_entries" class="form-control" data-toggle="select2">
 									<?php foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) { ?>
@@ -108,19 +108,19 @@
 						<table id="datatable-streampage" class="table table-borderless table-striped dt-responsive nowrap font-normal">
 							<thead>
 								<tr>
-									<th class="text-center">ID</th>
-									<th class="text-center">Icon</th>
-									<th>Name</th>
+									<th class="text-center"><?= $language::get('id') ?></th>
+									<th class="text-center"><?= $language::get('icon') ?></th>
+									<th><?= $language::get('name') ?></th>
 									<?php if ($rSettings['streams_grouped'] == 1) { ?>
-										<th>Servers</th>
+										<th><?= $language::get('servers') ?></th>
 									<?php } else { ?>
-										<th>Server</th>
+										<th><?= $language::get('server') ?></th>
 									<?php } ?>
-									<th class="text-center">Clients</th>
-									<th class="text-center">Uptime</th>
-									<th class="text-center">Actions</th>
-									<th class="text-center">Player</th>
-									<th class="text-center">Channel Info</th>
+									<th class="text-center"><?= $language::get('clients') ?></th>
+									<th class="text-center"><?= $language::get('uptime') ?></th>
+									<th class="text-center"><?= $language::get('actions') ?></th>
+									<th class="text-center"><?= $language::get('player') ?></th>
+									<th class="text-center"><?= $language::get('channel_info') ?></th>
 								</tr>
 							</thead>
 							<tbody></tbody>

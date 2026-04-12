@@ -38,7 +38,7 @@
                         <?php include 'topbar.php'; ?>
                     </div>
                     <?php if (!is_null($rRecordings)) : ?>
-                        <h4 class="page-title">Recordings</h4>
+                        <h4 class="page-title"><?= $language::get('recordings') ?></h4>
                     <?php else : ?>
                         <h4 class="page-title"><?php echo $rStream['stream_display_name']; ?><small> - TV Archive</small></h4>
                     <?php endif; ?>
@@ -61,13 +61,13 @@
                             <table id="datatable" class="table table-striped table-borderless mb-0">
                                 <thead>
                                     <tr>
-                                        <th class="text-center">ID</th>
-                                        <th class="text-center">Date</th>
-                                        <th class="text-center">Duration</th>
-                                        <th>Title</th>
-                                        <th class="text-center">Status</th>
-                                        <th class="text-center">Player</th>
-                                        <th class="text-center">Actions</th>
+                                        <th class="text-center"><?= $language::get('id') ?></th>
+                                        <th class="text-center"><?= $language::get('date') ?></th>
+                                        <th class="text-center"><?= $language::get('duration') ?></th>
+                                        <th><?= $language::get('title') ?></th>
+                                        <th class="text-center"><?= $language::get('status') ?></th>
+                                        <th class="text-center"><?= $language::get('player') ?></th>
+                                        <th class="text-center"><?= $language::get('actions') ?></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -82,13 +82,13 @@
                                                 <td><?php echo $rItem['title']; ?></td>
                                                 <td class="text-center">
                                                     <?php if ($rItem['status'] == 0) : ?>
-                                                        <button type='button' class='btn btn-light btn-xs waves-effect waves-light'>WAITING</button>
+                                                        <button type='button' class='btn btn-light btn-xs waves-effect waves-light'><?= $language::get('waiting') ?></button>
                                                     <?php elseif ($rItem['status'] == 1) : ?>
-                                                        <button type='button' class='btn btn-info btn-xs waves-effect waves-light'>RECORDING</button>
+                                                        <button type='button' class='btn btn-info btn-xs waves-effect waves-light'><?= $language::get('recording') ?></button>
                                                     <?php elseif ($rItem['status'] == 2) : ?>
-                                                        <button type='button' class='btn btn-success btn-xs waves-effect waves-light'>COMPLETE</button>
+                                                        <button type='button' class='btn btn-success btn-xs waves-effect waves-light'><?= $language::get('complete') ?></button>
                                                     <?php else : ?>
-                                                        <button type='button' class='btn btn-danger btn-xs waves-effect waves-light'>FAILED</button>
+                                                        <button type='button' class='btn btn-danger btn-xs waves-effect waves-light'><?= $language::get('failed') ?></button>
                                                     <?php endif; ?>
                                                 </td>
                                                 <td class="text-center">
@@ -101,11 +101,11 @@
                                                 <td class="text-center">
                                                     <div class="btn-group">
                                                         <?php if ($rItem['created_id']) : ?>
-                                                            <a href="stream_view?id=<?php echo intval($rItem['created_id']); ?>"><button title="View Movie" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-movie-outline"></i></button></a>
+                                                            <a href="stream_view?id=<?php echo intval($rItem['created_id']); ?>"><button title="<?= $language::get('view_movie') ?>" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-movie-outline"></i></button></a>
                                                         <?php else : ?>
                                                             <button disabled type="button" class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-movie-outline"></i></button>
                                                         <?php endif; ?>
-                                                        <button title="Delete Recording" onClick="deleteRecording(<?php echo intval($rItem['id']); ?>)" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-close"></i></button>
+                                                        <button title="<?= $language::get('delete_recording') ?>" onClick="deleteRecording(<?php echo intval($rItem['id']); ?>)" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-close"></i></button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -123,11 +123,11 @@
                                                 <td><?php echo $rItem['title']; ?></td>
                                                 <td class="text-center">
                                                     <?php if ($rItem['in_progress']) : ?>
-                                                        <button type='button' class='btn btn-info btn-xs waves-effect waves-light'>IN PROGRESS</button>
+                                                        <button type='button' class='btn btn-info btn-xs waves-effect waves-light'><?= $language::get('in_progress') ?></button>
                                                     <?php elseif ($rItem['complete']) : ?>
-                                                        <button type='button' class='btn btn-success btn-xs waves-effect waves-light'>COMPLETE</button>
+                                                        <button type='button' class='btn btn-success btn-xs waves-effect waves-light'><?= $language::get('complete') ?></button>
                                                     <?php else : ?>
-                                                        <button type='button' class='btn btn-warning btn-xs waves-effect waves-light'>INCOMPLETE</button>
+                                                        <button type='button' class='btn btn-warning btn-xs waves-effect waves-light'><?= $language::get('incomplete') ?></button>
                                                     <?php endif; ?>
                                                 </td>
                                                 <td class="text-center"><button type="button" class="btn btn-info waves-effect waves-light btn-xs" onclick="player(<?php echo intval($rStream['id']); ?>, <?php echo intval($rItem['start']); ?>, <?php echo intval($rDuration / 60); ?>);"><i class="mdi mdi-play"></i></button></td>

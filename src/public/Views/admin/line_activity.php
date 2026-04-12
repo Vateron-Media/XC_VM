@@ -35,7 +35,7 @@ endif;
 					<div class="page-title-right">
 						<?php include 'topbar.php'; ?>
 					</div>
-					<h4 class="page-title">Activity Logs</h4>
+					<h4 class="page-title"><?= $language::get('activity_logs') ?></h4>
 				</div>
 			</div>
 		</div>
@@ -86,7 +86,7 @@ endif;
 								<input type="text" class="form-control text-center date" id="act_range" name="range" value="<?php if (!isset(RequestManager::getAll()['range'])) {
 																															} else {
 																																echo htmlspecialchars(RequestManager::getAll()['range']);
-																															} ?>" data-toggle="date-picker" data-single-date-picker="true" placeholder="All Dates">
+																															} ?>" data-toggle="date-picker" data-single-date-picker="true" placeholder="<?= $language::get('all_dates') ?>">
 							</div>
 							<label class="col-md-1 col-form-label text-center" for="act_show_entries"><?php echo $language::get('show'); ?></label>
 							<div class="col-md-1">
@@ -102,17 +102,17 @@ endif;
 						<table id="datatable-activity" class="table table-striped table-borderless dt-responsive nowrap">
 							<thead>
 								<tr>
-									<th>Line</th>
-									<th>Stream</th>
-									<th>Server</th>
-									<th>Player</th>
-									<th>ISP</th>
-									<th class="text-center">IP</th>
-									<th class="text-center">Start</th>
-									<th class="text-center">Stop</th>
-									<th class="text-center">Duration</th>
-									<th class="text-center">Output</th>
-									<th class="text-center">Restreamer</th>
+									<th><?= $language::get('line') ?></th>
+									<th><?= $language::get('stream') ?></th>
+									<th><?= $language::get('server') ?></th>
+									<th><?= $language::get('player') ?></th>
+									<th><?= $language::get('isp') ?></th>
+									<th class="text-center"><?= $language::get('ip') ?></th>
+									<th class="text-center"><?= $language::get('start') ?></th>
+									<th class="text-center"><?= $language::get('stop') ?></th>
+									<th class="text-center"><?= $language::get('duration') ?></th>
+									<th class="text-center"><?= $language::get('output') ?></th>
+									<th class="text-center"><?= $language::get('restreamer') ?></th>
 								</tr>
 							</thead>
 							<tbody></tbody>

@@ -131,39 +131,39 @@ endif;
                                     <li class="nav-item">
                                         <a href="#stream-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-account-card-details-outline mr-1"></i>
-                                            <span class="d-none d-sm-inline">Details</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('details') ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item" id="selection_nav">
                                         <a href="#selection" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-movie mr-1"></i>
-                                            <span class="d-none d-sm-inline">Selection</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('selection') ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item" id="review_nav">
                                         <a href="#review" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-marker mr-1"></i>
-                                            <span class="d-none d-sm-inline">Review</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('review') ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item" id="videos_nav">
                                         <a href="#videos" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-movie mr-1"></i>
-                                            <span class="d-none d-sm-inline">Videos</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('videos') ?></span>
                                         </a>
                                     </li>
                                     <?php if (!$rMobile): ?>
                                         <li class="nav-item">
                                             <a href="#rtmp-push" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                                 <i class="mdi mdi-upload-network-outline mr-1"></i>
-                                                <span class="d-none d-sm-inline">RTMP Push</span>
+                                                <span class="d-none d-sm-inline"><?= $language::get('rtmp_push') ?></span>
                                             </a>
                                         </li>
                                     <?php endif; ?>
                                     <li class="nav-item">
                                         <a href="#load-balancing" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-server-network mr-1"></i>
-                                            <span class="d-none d-sm-inline">Servers</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('servers') ?></span>
                                         </a>
                                     </li>
                                 </ul>
@@ -172,13 +172,13 @@ endif;
                                         <div class="row">
                                             <div class="col-12">
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="stream_display_name">Channel Name</label>
+                                                    <label class="col-md-4 col-form-label" for="stream_display_name"><?= $language::get('channel_name') ?></label>
                                                     <div class="col-md-8">
                                                         <input type="text" class="form-control" id="stream_display_name" name="stream_display_name" value="<?php echo isset($rChannel) ? htmlspecialchars($rChannel['stream_display_name']) : ''; ?>" required data-parsley-trigger="change">
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="stream_icon">Channel Logo</label>
+                                                    <label class="col-md-4 col-form-label" for="stream_icon"><?= $language::get('channel_logo') ?></label>
                                                     <div class="col-md-8 input-group">
                                                         <input type="text" class="form-control" id="stream_icon" name="stream_icon" value="<?php echo isset($rChannel) ? htmlspecialchars($rChannel['stream_icon']) : ''; ?>">
                                                         <div class="input-group-append">
@@ -187,9 +187,9 @@ endif;
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="category_id">Categories</label>
+                                                    <label class="col-md-4 col-form-label" for="category_id"><?= $language::get('categories') ?></label>
                                                     <div class="col-md-8">
-                                                        <select name="category_id[]" id="category_id" class="form-control select2 select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">
+                                                        <select name="category_id[]" id="category_id" class="form-control select2 select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="<?= $language::get('choose_placeholder') ?>">
                                                             <?php foreach (CategoryService::getAllByType('live') as $rCategory): ?>
                                                                 <option <?php if (isset($rChannel) && in_array(intval($rCategory['id']), json_decode($rChannel['category_id'], true))): ?>selected<?php endif; ?> value="<?php echo $rCategory['id']; ?>"><?php echo $rCategory['category_name']; ?></option>
                                                             <?php endforeach; ?>
@@ -200,9 +200,9 @@ endif;
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="bouquets">Bouquets</label>
+                                                    <label class="col-md-4 col-form-label" for="bouquets"><?= $language::get('bouquets') ?></label>
                                                     <div class="col-md-8">
-                                                        <select name="bouquets[]" id="bouquets" class="form-control select2-multiple select2" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">
+                                                        <select name="bouquets[]" id="bouquets" class="form-control select2-multiple select2" data-toggle="select2" multiple="multiple" data-placeholder="<?= $language::get('choose_placeholder') ?>">
                                                             <?php foreach (BouquetService::getAllSimple() as $rBouquet): ?>
                                                                 <option <?php if (isset($rChannel) && in_array($rChannel['id'], json_decode($rBouquet['bouquet_channels'], true))): ?>selected<?php endif; ?> value="<?php echo $rBouquet['id']; ?>"><?php echo $rBouquet['bouquet_name']; ?></option>
                                                             <?php endforeach; ?>
@@ -213,7 +213,7 @@ endif;
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="channel_type">Selection Type <i title="You can create a channel by either syncing it to an existing series, selecting VOD you already have on your servers or by individually selecting files." class="tooltip text-secondary far fa-circle"></i></label>
+                                                    <label class="col-md-4 col-form-label" for="channel_type">Selection Type <i title="<?= $language::get('you_can_create_a_channel_tooltip') ?>" class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-8">
                                                         <select name="channel_type" id="channel_type" class="form-control select2" data-toggle="select2">
                                                             <?php foreach (array('Series', 'File Browser', 'VOD Selection') as $rID => $rType): ?>
@@ -223,10 +223,10 @@ endif;
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4" id="series_nav">
-                                                    <label class="col-md-4 col-form-label" for="series_no">24/7 Series <i title="Select a series to sync with." class="tooltip text-secondary far fa-circle"></i></label>
+                                                    <label class="col-md-4 col-form-label" for="series_no">24/7 Series <i title="<?= $language::get('select_a_series_to_sync_with') ?>" class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-8">
                                                         <select name="series_no" id="series_no" class="form-control select2" data-toggle="select2">
-                                                            <option value="0">Select a series...</option>
+                                                            <option value="0"><?= $language::get('select_a_series') ?></option>
                                                             <?php foreach (SeriesService::getAll() as $rSeries): ?>
                                                                 <option <?php if (isset($rChannel) && intval($rChannel['series_no']) == intval($rSeries['id'])): ?>selected<?php endif; ?> value="<?php echo $rSeries['id']; ?>"><?php echo $rSeries['title']; ?></option>
                                                             <?php endforeach; ?>
@@ -240,11 +240,11 @@ endif;
                                                             Symlink's will only be created on the server the file originates from, if you're streaming to another server it will be downloaded normally.
                                                         </div>
                                                     </div>
-                                                    <label class="col-md-4 col-form-label" for="transcode_profile_id">Transcoding Profile <i title="Transcode videos using a profile, copy them or symlink them directly." class="tooltip text-secondary far fa-circle"></i></label>
+                                                    <label class="col-md-4 col-form-label" for="transcode_profile_id">Transcoding Profile <i title="<?= $language::get('transcode_videos_using_a_profile_tooltip') ?>" class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-8">
                                                         <select name="transcode_profile_id" id="transcode_profile_id" class="form-control select2" data-toggle="select2">
-                                                            <option <?php if (!isset($rChannel) || (isset($rChannel) && intval($rChannel['transcode_profile_id']) == 0)) echo 'selected'; ?> value="0">Quick Transcode - Copy Codecs</option>
-                                                            <option <?php if (isset($rChannel) && intval($rChannel['transcode_profile_id']) == -1) echo 'selected'; ?> value="-1">Don't Transcode - Symlink Files</option>
+                                                            <option <?php if (!isset($rChannel) || (isset($rChannel) && intval($rChannel['transcode_profile_id']) == 0)) echo 'selected'; ?><?= $language::get('value0quick_transcode_copy_codecs') ?></option>
+                                                            <option <?php if (isset($rChannel) && intval($rChannel['transcode_profile_id']) == -1) echo 'selected'; ?><?= $language::get('value_1dont_transcode_symlink_files') ?></option>
                                                             <?php foreach ($rTranscodeProfiles as $rProfile): ?>
                                                                 <option <?php if (isset($rChannel) && intval($rChannel['transcode_profile_id']) == intval($rProfile['profile_id'])) echo 'selected'; ?> value="<?php echo $rProfile['profile_id']; ?>"><?php echo $rProfile['profile_name']; ?></option>
                                                             <?php endforeach; ?>
@@ -252,23 +252,23 @@ endif;
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="rtmp_output">Output RTMP <i title="Feed stream to the RTMP server for output to RTMP clients." class="tooltip text-secondary far fa-circle"></i></label>
+                                                    <label class="col-md-4 col-form-label" for="rtmp_output">Output RTMP <i title="<?= $language::get('feed_stream_to_the_rtmp_server_for_output_to_rtmp_clients') ?>" class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-3">
                                                         <input name="rtmp_output" id="rtmp_output" type="checkbox" <?php if (isset($rChannel) && $rChannel['rtmp_output'] == 1) echo 'checked'; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                     </div>
-                                                    <label class="col-md-3 col-form-label" for="allow_record">Allow Recording <i title="Allow MAG devices to record this channel." class="tooltip text-secondary far fa-circle"></i></label>
+                                                    <label class="col-md-3 col-form-label" for="allow_record">Allow Recording <i title="<?= $language::get('allow_mag_devices_to_record_this_channel') ?>" class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-2">
                                                         <input name="allow_record" id="allow_record" type="checkbox" <?php if (!isset($rChannel) || (isset($rChannel) && $rChannel['allow_record'] == 1)) echo 'checked'; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="custom_sid">Custom Channel SID <i title="Here you can specify the SID of the channel in order to work with the epg on the enigma2 devices. You have to specify the code with the ':' but without the first number, 1 or 4097. Example: if we have this code: '1:0:1:13f:157c:13e:820000:0:0:0:2097' then you have to add on this field: ':0:1:13f:157c:13e:820000:0:0:0:'" class="tooltip text-secondary far fa-circle"></i></label>
+                                                    <label class="col-md-4 col-form-label" for="custom_sid">Custom Channel SID <i title="<?= $language::get('here_you_can_specify_the_tooltip') ?>" class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-8">
                                                         <input type="text" class="form-control" id="custom_sid" name="custom_sid" value="<?php if (isset($rChannel)) echo htmlspecialchars($rChannel['custom_sid']); ?>">
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="notes">Notes</label>
+                                                    <label class="col-md-4 col-form-label" for="notes"><?= $language::get('notes') ?></label>
                                                     <div class="col-md-8">
                                                         <textarea id="notes" name="notes" class="form-control" rows="3"><?php if (isset($rChannel)) echo htmlspecialchars($rChannel['notes']); ?></textarea>
                                                     </div>
@@ -281,7 +281,7 @@ endif;
                                         <div class="row">
                                             <div class="col-12">
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="server_idc">Server Name</label>
+                                                    <label class="col-md-4 col-form-label" for="server_idc"><?= $language::get('server_name') ?></label>
                                                     <div class="col-md-8">
                                                         <select id="server_idc" class="form-control select2" data-toggle="select2">
                                                             <?php foreach ($rServers as $rServer): ?>
@@ -291,10 +291,10 @@ endif;
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="category_name">Category / Series</label>
+                                                    <label class="col-md-4 col-form-label" for="category_name"><?= $language::get('category_series') ?></label>
                                                     <div class="col-md-8">
                                                         <select id="category_idv" class="form-control select2" data-toggle="select2">
-                                                            <option value="" selected>No Filter</option>
+                                                            <option value="" selected><?= $language::get('no_filter') ?></option>
                                                             <?php foreach (CategoryService::getAllByType('movie') as $rCategory): ?>
                                                                 <option value="0:<?php echo $rCategory['id']; ?>">
                                                                     <?php echo $rCategory['category_name']; ?>
@@ -309,7 +309,7 @@ endif;
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="vod_search">Search</label>
+                                                    <label class="col-md-4 col-form-label" for="vod_search"><?= $language::get('search') ?></label>
                                                     <div class="col-md-8">
                                                         <input type="text" class="form-control" id="vod_search" value="">
                                                     </div>
@@ -318,10 +318,10 @@ endif;
                                                     <table id="datatable-movies" class="table table-striped table-borderless nowrap">
                                                         <thead>
                                                             <tr>
-                                                                <th class="text-center">ID</th>
-                                                                <th>Name</th>
-                                                                <th>Category / Series</th>
-                                                                <th class="text-center">Actions</th>
+                                                                <th class="text-center"><?= $language::get('id') ?></th>
+                                                                <th><?= $language::get('name') ?></th>
+                                                                <th><?= $language::get('category_series') ?></th>
+                                                                <th class="text-center"><?= $language::get('actions') ?></th>
                                                             </tr>
                                                         </thead>
                                                         <tbody></tbody>
@@ -335,7 +335,7 @@ endif;
                                             </li>
                                             <span class="float-right">
                                                 <li class="nextb list-inline-item">
-                                                    <a href="javascript: void(0);" class="btn btn-secondary">Next</a>
+                                                    <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('next') ?></a>
                                                 </li>
                                             </span>
                                         </ul>
@@ -362,10 +362,10 @@ endif;
                                                 <a href="javascript: void(0);" class="prevb btn btn-secondary"><?php echo $language::get('prev'); ?></a>
                                                 <a href="javascript: void(0);" onClick="MoveUp('review')" class="btn btn-purple"><i class="mdi mdi-chevron-up"></i></a>
                                                 <a href="javascript: void(0);" onClick="MoveDown('review')" class="btn btn-purple"><i class="mdi mdi-chevron-down"></i></a>
-                                                <a href="javascript: void(0);" onClick="AtoZ('review')" class="btn btn-info">A to Z</a>
+                                                <a href="javascript: void(0);" onClick="AtoZ('review')" class="btn btn-info"><?= $language::get('a_to_z') ?></a>
                                             </li>
                                             <li class="nextb list-inline-item float-right">
-                                                <a href="javascript: void(0);" class="btn btn-secondary">Next</a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('next') ?></a>
                                             </li>
                                         </ul>
                                     </div>
@@ -373,7 +373,7 @@ endif;
                                         <div class="row">
                                             <div class="col-12">
                                                 <div class="form-group row mb-4 stream-url">
-                                                    <label class="col-md-3 col-form-label" for="import_folder">Import Folder</label>
+                                                    <label class="col-md-3 col-form-label" for="import_folder"><?= $language::get('import_folder') ?></label>
                                                     <div class="col-md-9 input-group">
                                                         <input type="text" id="import_folder" name="import_folder" readonly class="form-control" value="">
                                                         <div class="input-group-append">
@@ -399,10 +399,10 @@ endif;
                                                 <a href="javascript: void(0);" onClick="MoveUp('videos')" class="btn btn-purple"><i class="mdi mdi-chevron-up"></i></a>
                                                 <a href="javascript: void(0);" onClick="MoveDown('videos')" class="btn btn-purple"><i class="mdi mdi-chevron-down"></i></a>
                                                 <a href="javascript: void(0);" onClick="Remove('videos')" class="btn btn-warning"><i class="mdi mdi-close"></i></a>
-                                                <a href="javascript: void(0);" onClick="AtoZ('videos')" class="btn btn-info">A to Z</a>
+                                                <a href="javascript: void(0);" onClick="AtoZ('videos')" class="btn btn-info"><?= $language::get('a_to_z') ?></a>
                                             </li>
                                             <li class="nextb list-inline-item float-right">
-                                                <a href="javascript: void(0);" class="btn btn-secondary">Next</a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('next') ?></a>
                                             </li>
                                         </ul>
                                     </div>
@@ -415,8 +415,8 @@ endif;
                                                 <table id="datatable-rtmp" class="table table-striped table-borderless mb-0">
                                                     <thead>
                                                         <tr>
-                                                            <th>Push From</th>
-                                                            <th>RTMP URL</th>
+                                                            <th><?= $language::get('push_from') ?></th>
+                                                            <th><?= $language::get('rtmp_url') ?></th>
                                                         </tr>
                                                     </thead>
                                                     <tbody class="rtmp">
@@ -462,8 +462,8 @@ endif;
                                                 <a href="javascript: void(0);" class="btn btn-secondary"><?php echo $language::get('prev'); ?></a>
                                             </li>
                                             <li class="list-inline-item float-right">
-                                                <a onClick="addRTMP();" class="btn btn-info btn-pointer">Add RTMP URL</a>
-                                                <a href="javascript: void(0);" class="btn nextb btn-secondary">Next</a>
+                                                <a onClick="addRTMP();" class="btn btn-info btn-pointer"><?= $language::get('add_rtmp_url') ?></a>
+                                                <a href="javascript: void(0);" class="btn nextb btn-secondary"><?= $language::get('next') ?></a>
                                             </li>
                                         </ul>
                                     </div>
@@ -471,15 +471,15 @@ endif;
                                         <div class="row">
                                             <div class="col-12">
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="servers">Server Tree</label>
+                                                    <label class="col-md-4 col-form-label" for="servers"><?= $language::get('server_tree') ?></label>
                                                     <div class="col-md-8">
                                                         <div id="server_tree"></div>
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="on_demand">On-Demand Servers</label>
+                                                    <label class="col-md-4 col-form-label" for="on_demand"><?= $language::get('on_demand_servers') ?></label>
                                                     <div class="col-md-8">
-                                                        <select name="on_demand[]" id="on_demand" class="form-control select2-multiple select2" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">
+                                                        <select name="on_demand[]" id="on_demand" class="form-control select2-multiple select2" data-toggle="select2" multiple="multiple" data-placeholder="<?= $language::get('choose_placeholder') ?>">
                                                             <?php foreach ($rServers as $rServer): ?>
                                                                 <option value="<?php echo $rServer['id']; ?>" <?php echo (isset($rStream) && in_array($rServer['id'], $rOnDemand)) ? ' selected' : ''; ?>>
                                                                     <?php echo $rServer['server_name']; ?>
@@ -490,7 +490,7 @@ endif;
                                                 </div>
                                                 <div class="form-group row mb-4">
                                                     <?php if (isset($rChannel)): ?>
-                                                        <label class="col-md-4 col-form-label" for="reencode_on_edit">Full re-encode on Edit</label>
+                                                        <label class="col-md-4 col-form-label" for="reencode_on_edit"><?= $language::get('full_re_encode_on_edit') ?></label>
                                                         <div class="col-md-2">
                                                             <input name="reencode_on_edit" id="reencode_on_edit" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                         </div>
@@ -519,7 +519,7 @@ endif;
                         <div id="file-browser" class="mfp-hide white-popup-block">
                             <div class="col-12">
                                 <div class="form-group row mb-4">
-                                    <label class="col-md-4 col-form-label" for="server_id">Server Name</label>
+                                    <label class="col-md-4 col-form-label" for="server_id"><?= $language::get('server_name') ?></label>
                                     <div class="col-md-8">
                                         <select id="server_id" class="form-control select2" data-toggle="select2">
                                             <?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer): ?>
@@ -531,7 +531,7 @@ endif;
                                     </div>
                                 </div>
                                 <div class="form-group row mb-4">
-                                    <label class="col-md-4 col-form-label" for="current_path">Current Path</label>
+                                    <label class="col-md-4 col-form-label" for="current_path"><?= $language::get('current_path') ?></label>
                                     <div class="col-md-8 input-group">
                                         <input type="text" id="current_path" name="current_path" class="form-control" value="/">
                                         <div class="input-group-append">
@@ -545,7 +545,7 @@ endif;
                                             <thead>
                                                 <tr>
                                                     <th width="20px"></th>
-                                                    <th>Directory</th>
+                                                    <th><?= $language::get('directory') ?></th>
                                                 </tr>
                                             </thead>
                                             <tbody></tbody>
@@ -556,7 +556,7 @@ endif;
                                             <thead>
                                                 <tr>
                                                     <th width="20px"></th>
-                                                    <th>Filename</th>
+                                                    <th><?= $language::get('filename') ?></th>
                                                 </tr>
                                             </thead>
                                             <tbody></tbody>

@@ -67,7 +67,7 @@
                     <div class="alert alert-danger" role="alert">
                         You have <?php echo number_format($rCount, 0); ?> streams in your database! This is far too many to manually order on this page and will crash your browser attempting to display them in a list, therefore manual channel ordering has been disabled.
                         <?php if (!$rOverride) { ?>
-                            <br /><br /><a href="channel_order?override=1" class="btn btn-danger">Continue Anyway</a>
+                            <br /><br /><a href="channel_order?override=1" class="btn btn-danger"><?= $language::get('continue_anyway') ?></a>
                         <?php } ?>
                     </div>
                     <?php } else {

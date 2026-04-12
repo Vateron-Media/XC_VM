@@ -22,7 +22,7 @@
 					<div class="page-title-right">
 						<?php include 'topbar.php'; ?>
 					</div>
-					<h4 class="page-title">Users</h4>
+					<h4 class="page-title"><?= $language::get('users') ?></h4>
 				</div>
 			</div>
 		</div>
@@ -44,7 +44,7 @@
 							<div class="col-md-3">
 								<input type="text" class="form-control" id="reg_search"
 									value="<?= isset(RequestManager::getAll()['search']) ? htmlspecialchars(RequestManager::getAll()['search']) : '' ?>"
-									placeholder="Search Users...">
+									placeholder="<?= $language::get('search_users') ?>">
 							</div>
 
 							<label class="col-md-2 col-form-label text-center" for="reg_reseller">
@@ -79,7 +79,7 @@
 								</select>
 							</div>
 
-							<label class="col-md-1 col-form-label text-center" for="reg_show_entries">Show</label>
+							<label class="col-md-1 col-form-label text-center" for="reg_show_entries"><?= $language::get('show') ?></label>
 							<div class="col-md-1">
 								<select id="reg_show_entries" class="form-control" data-toggle="select2">
 									<?php foreach ([10, 25, 50, 250, 500, 1000] as $rShow): ?>
@@ -97,19 +97,19 @@
 						<table id="datatable-users" class="table table-striped table-borderless dt-responsive nowrap font-normal">
 							<thead>
 								<tr>
-									<th class="text-center">ID</th>
-									<th>Username</th>
-									<th>Owner</th>
-									<th class="text-center">IP</th>
-									<th class="text-center">Status</th>
-									<th class="text-center">Type</th>
-									<th class="text-center">Credits</th>
-									<th class="text-center">Users</th>
-									<th class="text-center">Lines</th>
-									<th class="text-center">MAGs</th>
-									<th class="text-center">Enigmas</th>
-									<th class="text-center">Last Login</th>
-									<th class="text-center">Actions</th>
+									<th class="text-center"><?= $language::get('id') ?></th>
+									<th><?= $language::get('username') ?></th>
+									<th><?= $language::get('owner') ?></th>
+									<th class="text-center"><?= $language::get('ip') ?></th>
+									<th class="text-center"><?= $language::get('status') ?></th>
+									<th class="text-center"><?= $language::get('type') ?></th>
+									<th class="text-center"><?= $language::get('credits') ?></th>
+									<th class="text-center"><?= $language::get('users') ?></th>
+									<th class="text-center"><?= $language::get('lines') ?></th>
+									<th class="text-center"><?= $language::get('mags') ?></th>
+									<th class="text-center"><?= $language::get('enigmas') ?></th>
+									<th class="text-center"><?= $language::get('last_login') ?></th>
+									<th class="text-center"><?= $language::get('actions') ?></th>
 								</tr>
 							</thead>
 							<tbody></tbody>

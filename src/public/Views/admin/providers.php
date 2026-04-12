@@ -23,7 +23,7 @@
 					<div class="page-title-right">
 						<?php include 'topbar.php'; ?>
 					</div>
-					<h4 class="page-title">Stream Providers</h4>
+					<h4 class="page-title"><?= $language::get('stream_providers') ?></h4>
 				</div>
 			</div>
 		</div>
@@ -43,16 +43,16 @@
 							<thead>
 								<tr>
 									<th class="text-center"><?php echo $language::get('id'); ?></th>
-									<th class="text-center">Status</th>
-									<th>Provider</th>
-									<th class="text-center">Username</th>
-									<th class="text-center">Connections</th>
-									<th class="text-center">Streams</th>
-									<th class="text-center">Movies</th>
-									<th class="text-center">Series</th>
-									<th class="text-center">Expires</th>
-									<th class="text-center">Last Changed</th>
-									<th class="text-center">Actions</th>
+									<th class="text-center"><?= $language::get('status') ?></th>
+									<th><?= $language::get('provider') ?></th>
+									<th class="text-center"><?= $language::get('username') ?></th>
+									<th class="text-center"><?= $language::get('connections') ?></th>
+									<th class="text-center"><?= $language::get('streams') ?></th>
+									<th class="text-center"><?= $language::get('movies') ?></th>
+									<th class="text-center"><?= $language::get('series') ?></th>
+									<th class="text-center"><?= $language::get('expires') ?></th>
+									<th class="text-center"><?= $language::get('last_changed') ?></th>
+									<th class="text-center"><?= $language::get('actions') ?></th>
 								</tr>
 							</thead>
 							<tbody>
@@ -93,7 +93,7 @@
 										<td class="text-center">
 											<div class="btn-group">
 												<a href="provider?id=<?php echo $rProvider['id']; ?>"><button type="button" class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-pencil"></i></button></a>
-												<button type="button" title="Force Reload" class="tooltip btn btn-light waves-effect waves-light btn-xs" onClick="api(<?php echo $rProvider['id']; ?>, 'reload');"><i class="mdi mdi-refresh"></i></button>
+												<button type="button" title="<?= $language::get('force_reload') ?>" class="tooltip btn btn-light waves-effect waves-light btn-xs" onClick="api(<?php echo $rProvider['id']; ?>, 'reload');"><i class="mdi mdi-refresh"></i></button>
 												<button type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="api(<?php echo $rProvider['id']; ?>, 'delete');"><i class="mdi mdi-close"></i></button>
 											</div>
 										</td>

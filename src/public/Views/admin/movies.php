@@ -145,7 +145,7 @@
 							<thead>
 								<tr>
 									<th class="text-center"><?php echo $language::get('id'); ?></th>
-									<th class="text-center">Image</th>
+									<th class="text-center"><?= $language::get('image') ?></th>
 									<th><?php echo $language::get('name'); ?></th>
 									<?php if ($rSettings['streams_grouped'] == 1): ?>
 										<th><?php echo $language::get('servers'); ?></th>
@@ -154,7 +154,7 @@
 									<?php endif; ?>
 									<th class="text-center"><?php echo $language::get('clients'); ?></th>
 									<th class="text-center"><?php echo $language::get('status'); ?></th>
-									<th class="text-center">TMDb</th>
+									<th class="text-center"><?= $language::get('tmdb') ?></th>
 									<th class="text-center"><?php echo $language::get('actions'); ?></th>
 									<th class="text-center"><?php echo $language::get('player'); ?></th>
 									<th class="text-center"><?php echo $language::get('stream_info'); ?></th>

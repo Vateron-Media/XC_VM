@@ -219,7 +219,7 @@
                                     <div class="col-md-12">
                                         <select name="category_selection[]" id="category_selection"
                                             class="form-control col-md-12 select2-multiple" data-toggle="select2"
-                                            multiple="multiple" data-placeholder="Choose...">
+                                            multiple="multiple" data-placeholder="<?= $language::get('choose_placeholder') ?>">
                                             <?php foreach ($rCategories as $rCategory) { ?>
                                                 <option selected value="<?php echo $rCategory['id']; ?>">
                                                     <?php echo $rCategory['category_name']; ?></option>
@@ -300,17 +300,17 @@
                                             class="table table-striped table-borderless dt-responsive nowrap">
                                             <thead>
                                                 <tr>
-                                                    <th class="text-center">Add</th>
+                                                    <th class="text-center"><?= $language::get('add') ?></th>
                                                     <th class="text-center"><?php echo $rType == 1 ? "Icon" : "Image"; ?>
                                                     </th>
                                                     <th><?php echo $rType == 1 ? "Stream Name" : "Movie Name"; ?></th>
-                                                    <th>Category</th>
-                                                    <th>Bouquets</th>
+                                                    <th><?= $language::get('category') ?></th>
+                                                    <th><?= $language::get('bouquets') ?></th>
                                                     <?php if ($rType == 1) { ?>
-                                                        <th>EPG Search</th>
-                                                        <th class="text-center">Language</th>
+                                                        <th><?= $language::get('epg_search') ?></th>
+                                                        <th class="text-center"><?= $language::get('language') ?></th>
                                                     <?php } else { ?>
-                                                        <th>TMDb Results</th>
+                                                        <th><?= $language::get('tmdb_results') ?></th>
                                                     <?php } ?>
                                                     <th></th>
                                                 </tr>
@@ -365,7 +365,7 @@
                                                             <select id="category_id_<?php echo $i; ?>"
                                                                 class="form-control select2-multiple category_id"
                                                                 data-id="<?php echo $i; ?>" data-toggle="select2"
-                                                                multiple="multiple" data-placeholder="Choose...">
+                                                                multiple="multiple" data-placeholder="<?= $language::get('choose_placeholder') ?>">
                                                                 <?php foreach ($rCategories as $rCategory) { ?>
                                                                     <option
                                                                         <?php if (isset($rGroup) && intval($rGroup['id']) == $rCategory['id']) {
@@ -380,7 +380,7 @@
                                                             <select id="bouquets_<?php echo $i; ?>" data-id="<?php echo $i; ?>"
                                                                 class="form-control select2-multiple bouquet"
                                                                 data-toggle="select2" multiple="multiple"
-                                                                data-placeholder="Choose...">
+                                                                data-placeholder="<?= $language::get('choose_placeholder') ?>">
                                                                 <?php foreach ($rBouquets as $rBouquet) { ?>
                                                                     <option value="<?php echo $rBouquet['id']; ?>">
                                                                         <?php echo $rBouquet['bouquet_name']; ?></option>
@@ -394,7 +394,7 @@
                                                             </td>
                                                             <td class="text-center">
                                                                 <button onClick="clearEPG(this);" id="clear_epg_<?php echo $i; ?>"
-                                                                    data-id="<?php echo $i; ?>" type="button" title="Clear EPG"
+                                                                    data-id="<?php echo $i; ?>" type="button" title="<?= $language::get('clear_epg') ?>"
                                                                     class="tooltip btn btn-secondary btn-xs waves-effect waves-light"><i
                                                                         class="text-white fas fa-times"></i></button>
                                                                 <a href="javascript:void(0);"
@@ -433,14 +433,14 @@
                                             <a href="#advanced-options" data-toggle="tab"
                                                 class="nav-link rounded-0 pt-2 pb-2">
                                                 <i class="mdi mdi-folder-alert-outline mr-1"></i>
-                                                <span class="d-none d-sm-inline">Options</span>
+                                                <span class="d-none d-sm-inline"><?= $language::get('options') ?></span>
                                             </a>
                                         </li>
                                         <li class="nav-item">
                                             <a href="#load-balancing" data-toggle="tab"
                                                 class="nav-link rounded-0 pt-2 pb-2">
                                                 <i class="mdi mdi-server-network mr-1"></i>
-                                                <span class="d-none d-sm-inline">Servers</span>
+                                                <span class="d-none d-sm-inline"><?= $language::get('servers') ?></span>
                                             </a>
                                         </li>
                                     </ul>
@@ -451,7 +451,7 @@
                                                     <div class="form-group row mb-4">
                                                         <label class="col-md-3 col-form-label" for="duplicates">Show
                                                             Potential Duplicates <i
-                                                                title="This option will remove all potential duplicate results from the review page, if you do not select this, duplicates will be unchecked by default so you are able to check them to include them anyway."
+                                                                title="<?= $language::get('this_option_will_remove_all_tooltip') ?>"
                                                                 class="tooltip text-secondary far fa-circle"></i></label>
                                                         <div class="col-md-3">
                                                             <input name="duplicates" id="duplicates" type="checkbox"
@@ -467,7 +467,7 @@
                                                         <div class="form-group row mb-4">
                                                             <label class="col-md-3 col-form-label" for="gen_timestamps">Generate
                                                                 PTS <i
-                                                                    title="Allow FFmpeg to generate presentation timestamps for you to achieve better synchronization with the stream codecs. In some streams this can cause de-sync."
+                                                                    title="<?= $language::get('allow_ffmpeg_to_generate_presentation_tooltip') ?>"
                                                                     class="tooltip text-secondary far fa-circle"></i></label>
                                                             <div class="col-md-3">
                                                                 <input name="gen_timestamps" id="gen_timestamps" type="checkbox"
@@ -476,7 +476,7 @@
                                                             </div>
                                                             <label class="col-md-4 col-form-label" for="read_native">Native
                                                                 Frames <i
-                                                                    title="You should always read live streams as non-native frames. However if you are streaming static video files, set this to true otherwise the encoding process will fail."
+                                                                    title="<?= $language::get('you_should_always_read_live_tooltip') ?>"
                                                                     class="tooltip text-secondary far fa-circle"></i></label>
                                                             <div class="col-md-2">
                                                                 <input name="read_native" id="read_native" type="checkbox"
@@ -487,7 +487,7 @@
                                                         <div class="form-group row mb-4">
                                                             <label class="col-md-3 col-form-label" for="stream_all">Stream All
                                                                 Codecs <i
-                                                                    title="This option will stream all codecs from your stream. Some streams have more than one audio/video/subtitles channels."
+                                                                    title="<?= $language::get('this_option_will_stream_all_tooltip') ?>"
                                                                     class="tooltip text-secondary far fa-circle"></i></label>
                                                             <div class="col-md-3">
                                                                 <input name="stream_all" id="stream_all" type="checkbox"
@@ -505,7 +505,7 @@
                                                         <div class="form-group row mb-4">
                                                             <label class="col-md-3 col-form-label" for="direct_source">Direct
                                                                 Source <i
-                                                                    title="Redirect clients to the source directly. Do not use if you want to keep your source secure."
+                                                                    title="<?= $language::get('redirect_clients_to_the_source_tooltip') ?>"
                                                                     class="tooltip text-secondary far fa-circle"></i></label>
                                                             <div class="col-md-3">
                                                                 <input name="direct_source" id="direct_source" type="checkbox"
@@ -514,7 +514,7 @@
                                                             </div>
                                                             <label class="col-md-4 col-form-label" for="direct_proxy">Direct
                                                                 Stream <i
-                                                                    title="When using direct source, hide the original URL by proxying the live stream through your servers via UDP. MPEG-TS and HLS is supported as an input format, however only MPEG-TS is supported as an output format to clients.<br/><br/>Experimental! This may not work for all streams."
+                                                                    title="<?= $language::get('when_using_direct_source_hide_tooltip_title') ?>"
                                                                     class="tooltip text-secondary far fa-circle"></i></label>
                                                             <div class="col-md-2">
                                                                 <input name="direct_proxy" id="direct_proxy" type="checkbox"
@@ -524,7 +524,7 @@
                                                         </div>
                                                         <div class="form-group row mb-4">
                                                             <label class="col-md-3 col-form-label" for="rtmp_output">Output RTMP
-                                                                <i title="Enable RTMP output for this channel."
+                                                                <i title="<?= $language::get('enable_rtmp_output_for_this_channel') ?>"
                                                                     class="tooltip text-secondary far fa-circle"></i></label>
                                                             <div class="col-md-3">
                                                                 <input name="rtmp_output" id="rtmp_output" type="checkbox"
@@ -533,7 +533,7 @@
                                                             </div>
                                                             <label class="col-md-4 col-form-label" for="probesize_ondemand">On
                                                                 Demand Probesize <i
-                                                                    title="Adjustable probesize for ondemand streams. Adjust this setting if you experience issues with no audio."
+                                                                    title="<?= $language::get('adjustable_probesize_for_ondemand_streams_tooltip') ?>"
                                                                     class="tooltip text-secondary far fa-circle"></i></label>
                                                             <div class="col-md-2">
                                                                 <input type="text" class="form-control" id="probesize_ondemand"
@@ -543,12 +543,12 @@
                                                         <div class="form-group row mb-4">
                                                             <label class="col-md-3 col-form-label"
                                                                 for="transcode_profile_id">Transcoding Profile <i
-                                                                    title="Sometimes, in order to make a stream compatible with most devices, it must be transcoded. Please note that the transcode will only be applied to the server(s) that take the stream directly from the source, all other servers attached to the transcoding server will not transcode the stream."
+                                                                    title="<?= $language::get('episode_tooltip_7') ?>"
                                                                     class="tooltip text-secondary far fa-circle"></i></label>
                                                             <div class="col-md-3">
                                                                 <select name="transcode_profile_id" id="transcode_profile_id"
                                                                     class="form-control" data-toggle="select2">
-                                                                    <option selected value="0">Transcoding Disabled</option>
+                                                                    <option selected value="0"><?= $language::get('transcoding_disabled') ?></option>
                                                                     <?php foreach ($rTranscodeProfiles as $rProfile) { ?>
                                                                         <option value="<?php echo $rProfile['profile_id']; ?>">
                                                                             <?php echo $rProfile['profile_name']; ?></option>
@@ -557,7 +557,7 @@
                                                             </div>
                                                             <label class="col-md-4 col-form-label" for="delay_minutes">Minute
                                                                 Delay <i
-                                                                    title="Delay stream by X minutes. Will not work with on demand streams."
+                                                                    title="<?= $language::get('delay_stream_by_x_minutes_tooltip') ?>"
                                                                     class="tooltip text-secondary far fa-circle"></i></label>
                                                             <div class="col-md-2">
                                                                 <input type="text" class="form-control" id="delay_minutes"
@@ -574,7 +574,7 @@
                                                         </div>
                                                         <div class="form-group row mb-4">
                                                             <label class="col-md-3 col-form-label" for="http_proxy">HTTP Proxy
-                                                                <i title="Format: ip:port"
+                                                                <i title="<?= $language::get('format_ipport') ?>"
                                                                     class="tooltip text-secondary far fa-circle"></i></label>
                                                             <div class="col-md-9">
                                                                 <input type="text" class="form-control" id="http_proxy"
@@ -583,7 +583,7 @@
                                                         </div>
                                                         <div class="form-group row mb-4">
                                                             <label class="col-md-3 col-form-label" for="cookie">Cookie <i
-                                                                    title="Format: key=value;"
+                                                                    title="<?= $language::get('format_keyvalue') ?>"
                                                                     class="tooltip text-secondary far fa-circle"></i></label>
                                                             <div class="col-md-9">
                                                                 <input type="text" class="form-control" id="cookie"
@@ -592,7 +592,7 @@
                                                         </div>
                                                         <div class="form-group row mb-4">
                                                             <label class="col-md-3 col-form-label" for="headers">Headers <i
-                                                                    title="FFmpeg -headers command."
+                                                                    title="<?= $language::get('ffmpeg_headers_command') ?>"
                                                                     class="tooltip text-secondary far fa-circle"></i></label>
                                                             <div class="col-md-9">
                                                                 <input type="text" class="form-control" id="headers"
@@ -604,10 +604,10 @@
                                             </div>
                                             <ul class="list-inline wizard mb-0">
                                                 <li class="prevb list-inline-item">
-                                                    <a href="javascript:void(0);" class="btn btn-secondary">Previous</a>
+                                                    <a href="javascript:void(0);" class="btn btn-secondary"><?= $language::get('prev') ?></a>
                                                 </li>
                                                 <li class="nextb list-inline-item float-right">
-                                                    <a href="javascript:void(0);" class="btn btn-secondary">Next</a>
+                                                    <a href="javascript:void(0);" class="btn btn-secondary"><?= $language::get('next') ?></a>
                                                 </li>
                                             </ul>
                                         </div>
@@ -630,7 +630,7 @@
                                                             <div class="col-md-9">
                                                                 <select name="on_demand[]" id="on_demand"
                                                                     class="form-control select2-multiple" data-toggle="select2"
-                                                                    multiple="multiple" data-placeholder="Choose...">
+                                                                    multiple="multiple" data-placeholder="<?= $language::get('choose_placeholder') ?>">
                                                                     <?php foreach ($rServers as $rServer): ?>
                                                                         <option value="<?= $rServer['id']; ?>">
                                                                             <?= $rServer['server_name']; ?></option>
@@ -644,7 +644,7 @@
                                                             <div class="col-md-3">
                                                                 <select name="tv_archive_server_id" id="tv_archive_server_id"
                                                                     class="form-control" data-toggle="select2">
-                                                                    <option value="0">Disabled</option>
+                                                                    <option value="0"><?= $language::get('disabled') ?></option>
                                                                 </select>
                                                             </div>
                                                             <label class="col-md-3 col-form-label"
@@ -660,7 +660,7 @@
                                                             <div class="col-md-3">
                                                                 <select name="vframes_server_id" id="vframes_server_id"
                                                                     class="form-control" data-toggle="select2">
-                                                                    <option value="0">Disabled</option>
+                                                                    <option value="0"><?= $language::get('disabled') ?></option>
                                                                 </select>
                                                             </div>
                                                             <label class="col-md-3 col-form-label" for="llod">Low Latency
@@ -688,7 +688,7 @@
                                             </div>
                                             <ul class="list-inline wizard mb-0">
                                                 <li class="prevb list-inline-item">
-                                                    <a href="javascript: void(0);" class="btn btn-secondary">Previous</a>
+                                                    <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('prev') ?></a>
                                                 </li>
                                                 <li class="nextb list-inline-item float-right">
                                                     <input name="submit_stream" type="submit" class="btn btn-primary"

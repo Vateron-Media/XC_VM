@@ -33,7 +33,7 @@
                     <div class="page-title-right">
                         <?php include 'topbar.php'; ?>
                     </div>
-                    <h4 class="page-title"><?= isset($rDevice) ? 'Edit' : 'Add'; ?> MAG Device</h4>
+                    <h4 class="page-title"><?= isset($rDevice) ? 'Edit' : 'Add'; ?> <?= $language::get('mag_device') ?></h4>
                 </div>
             </div>
         </div>
@@ -51,27 +51,27 @@
                                     <li class="nav-item">
                                         <a href="#user-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-account-card-details-outline mr-1"></i>
-                                            <span class="d-none d-sm-inline">Details</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('details') ?></span>
                                         </a>
                                     </li>
                                     <?php if (isset($rDevice['mag_id'])): ?>
                                         <li class="nav-item">
                                             <a href="#device-info" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                                 <i class="mdi mdi mdi-cellphone-key mr-1"></i>
-                                                <span class="d-none d-sm-inline">Device Info</span>
+                                                <span class="d-none d-sm-inline"><?= $language::get('device_info') ?></span>
                                             </a>
                                         </li>
                                     <?php endif; ?>
                                     <li class="nav-item">
                                         <a href="#advanced-options" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-folder-alert-outline mr-1"></i>
-                                            <span class="d-none d-sm-inline">Advanced</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('advanced') ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
                                         <a href="#bouquets" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-flower-tulip mr-1"></i>
-                                            <span class="d-none d-sm-inline">Bouquets</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('bouquets') ?></span>
                                         </a>
                                     </li>
                                 </ul>
@@ -80,7 +80,7 @@
                                         <div class="row">
                                             <div class="col-12">
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="mac">MAC Address</label>
+                                                    <label class="col-md-4 col-form-label" for="mac"><?= $language::get('mac_address') ?></label>
                                                     <div class="col-md-8">
                                                         <input type="text" class="form-control" id="mac" name="mac" value="<?= isset($rDevice) ? htmlspecialchars($rDevice['mac']) : '00:1A:79:'; ?>">
                                                     </div>
@@ -95,12 +95,12 @@
                                                         </select>
                                                     </div>
                                                     <div class="col-md-2">
-                                                        <a href="javascript: void(0);" onClick="unpairUser();" class="btn btn-warning" style="width: 100%">Unpair</a>
+                                                        <a href="javascript: void(0);" onClick="unpairUser();" class="btn btn-warning" style="width: 100%"><?= $language::get('unpair') ?></a>
                                                     </div>
                                                 </div>
                                                 <div id="linked_info">
                                                     <div class="form-group row mb-4">
-                                                        <label class="col-md-4 col-form-label" for="member_id">Owner</label>
+                                                        <label class="col-md-4 col-form-label" for="member_id"><?= $language::get('owner') ?></label>
                                                         <div class="col-md-6">
                                                             <select name="member_id" id="member_id" class="form-control select2" data-toggle="select2">
                                                                 <?php if (isset($rDevice['user']['member_id']) && ($rOwner = UserRepository::getRegisteredUserById(intval($rDevice['user']['member_id'])))): ?>
@@ -111,21 +111,21 @@
                                                             </select>
                                                         </div>
                                                         <div class="col-md-2">
-                                                            <a href="javascript: void(0);" onClick="clearOwner();" class="btn btn-warning" style="width: 100%">Clear</a>
+                                                            <a href="javascript: void(0);" onClick="clearOwner();" class="btn btn-warning" style="width: 100%"><?= $language::get('clear') ?></a>
                                                         </div>
                                                     </div>
                                                     <div class="form-group row mb-4">
-                                                        <label class="col-md-4 col-form-label" for="is_trial">Trial Device</label>
+                                                        <label class="col-md-4 col-form-label" for="is_trial"><?= $language::get('trial_device') ?></label>
                                                         <div class="col-md-3">
                                                             <input name="is_trial" id="is_trial" type="checkbox" <?= isset($rDevice) && $rDevice['user']['is_trial'] == 1 ? 'checked' : '' ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                         </div>
-                                                        <label class="col-md-3 col-form-label" for="is_isplock">Lock to ISP</label>
+                                                        <label class="col-md-3 col-form-label" for="is_isplock"><?= $language::get('lock_to_isp') ?></label>
                                                         <div class="col-md-2">
                                                             <input name="is_isplock" id="is_isplock" type="checkbox" <?= isset($rDevice) && $rDevice['user']['is_isplock'] == 1 ? 'checked' : '' ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                         </div>
                                                     </div>
                                                     <div class="form-group row mb-4">
-                                                        <label class="col-md-4 col-form-label" for="exp_date">Expiry</label>
+                                                        <label class="col-md-4 col-form-label" for="exp_date"><?= $language::get('expiry') ?></label>
                                                         <div class="col-md-3">
                                                             <input type="text" class="form-control text-center date" id="exp_date" name="exp_date" value="<?php if (isset($rDevice)) {
                                                                                                                                                                 if (!empty($rDevice['user']['exp_date'])) {
@@ -137,18 +137,18 @@
                                                                                                                                                                 echo date('Y-m-d H:i:s', time() + 2592000);
                                                                                                                                                             } ?>" data-toggle="date-picker" data-single-date-picker="true">
                                                         </div>
-                                                        <label class="col-md-3 col-form-label" for="exp_date">Never Expire</label>
+                                                        <label class="col-md-3 col-form-label" for="exp_date"><?= $language::get('never_expire') ?></label>
                                                         <div class="col-md-2">
                                                             <input name="no_expire" id="no_expire" type="checkbox" <?= isset($rDevice) && is_null($rDevice['user']['exp_date']) ? 'checked' : '' ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="parent_password">Adult Pin</label>
+                                                    <label class="col-md-4 col-form-label" for="parent_password"><?= $language::get('adult_pin') ?></label>
                                                     <div class="col-md-3">
                                                         <input type="text" class="form-control text-center" id="parent_password" name="parent_password" value="<?= isset($rDevice) ? htmlspecialchars($rDevice['parent_password']) : '0000' ?>">
                                                     </div>
-                                                    <label class="col-md-3 col-form-label" for="lock_device">Device Lock</label>
+                                                    <label class="col-md-3 col-form-label" for="lock_device"><?= $language::get('device_lock') ?></label>
                                                     <div class="col-md-2">
                                                         <input name="lock_device" id="lock_device" type="checkbox" <?php if (isset($rDevice)) {
                                                                                                                         if ($rDevice['lock_device'] == 1) {
@@ -160,13 +160,13 @@
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="admin_notes">Admin Notes</label>
+                                                    <label class="col-md-4 col-form-label" for="admin_notes"><?= $language::get('admin_notes') ?></label>
                                                     <div class="col-md-8">
                                                         <textarea id="admin_notes" name="admin_notes" class="form-control" rows="3" placeholder=""><?= isset($rDevice) ? htmlspecialchars($rDevice['user']['admin_notes']) : '' ?></textarea>
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="reseller_notes">Reseller Notes</label>
+                                                    <label class="col-md-4 col-form-label" for="reseller_notes"><?= $language::get('reseller_notes') ?></label>
                                                     <div class="col-md-8">
                                                         <textarea id="reseller_notes" name="reseller_notes" class="form-control" rows="3" placeholder=""><?= isset($rDevice) ? htmlspecialchars($rDevice['user']['reseller_notes']) : '' ?></textarea>
                                                     </div>
@@ -175,7 +175,7 @@
                                         </div>
                                         <ul class="list-inline wizard mb-0">
                                             <li class="nextb list-inline-item float-right">
-                                                <a href="javascript: void(0);" class="btn btn-secondary">Next</a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('next') ?></a>
                                             </li>
                                         </ul>
                                     </div>
@@ -184,51 +184,51 @@
                                             <div class="row">
                                                 <div class="col-12">
                                                     <div class="form-group row mb-4">
-                                                        <label class="col-md-4 col-form-label" for="username">Line Username</label>
+                                                        <label class="col-md-4 col-form-label" for="username"><?= $language::get('line_username') ?></label>
                                                         <div class="col-md-8">
                                                             <input type="text" class="form-control sticky" id="username" name="username" value="<?= $rDevice['user']['username'] ?>">
                                                         </div>
                                                     </div>
                                                     <div class="form-group row mb-4">
-                                                        <label class="col-md-4 col-form-label" for="username">Line Password</label>
+                                                        <label class="col-md-4 col-form-label" for="username"><?= $language::get('line_password') ?></label>
                                                         <div class="col-md-8">
                                                             <input type="text" class="form-control sticky" id="password" name="password" value="<?= $rDevice['user']['password'] ?>">
                                                         </div>
                                                     </div>
                                                     <div class="form-group row mb-4">
-                                                        <label class="col-md-4 col-form-label" for="sn">Serial Number</label>
+                                                        <label class="col-md-4 col-form-label" for="sn"><?= $language::get('serial_number') ?></label>
                                                         <div class="col-md-3">
                                                             <input type="text" class="form-control" id="sn" name="sn" value="<?= $rDevice['sn'] ?>">
                                                         </div>
-                                                        <label class="col-md-2 col-form-label" for="stb_type">STB Type</label>
+                                                        <label class="col-md-2 col-form-label" for="stb_type"><?= $language::get('stb_type') ?></label>
                                                         <div class="col-md-3">
                                                             <input type="text" class="form-control" id="stb_type" name="stb_type" value="<?= $rDevice['stb_type'] ?>">
                                                         </div>
                                                     </div>
                                                     <div class="form-group row mb-4">
-                                                        <label class="col-md-4 col-form-label" for="image_version">Image Version</label>
+                                                        <label class="col-md-4 col-form-label" for="image_version"><?= $language::get('image_version') ?></label>
                                                         <div class="col-md-3">
                                                             <input type="text" class="form-control" id="image_version" name="image_version" value="<?= $rDevice['image_version'] ?>">
                                                         </div>
-                                                        <label class="col-md-2 col-form-label" for="hw_version">HW Version</label>
+                                                        <label class="col-md-2 col-form-label" for="hw_version"><?= $language::get('hw_version') ?></label>
                                                         <div class="col-md-3">
                                                             <input type="text" class="form-control" id="hw_version" name="hw_version" value="<?= $rDevice['hw_version'] ?>">
                                                         </div>
                                                     </div>
                                                     <div class="form-group row mb-4">
-                                                        <label class="col-md-4 col-form-label" for="device_id">Primary Device ID</label>
+                                                        <label class="col-md-4 col-form-label" for="device_id"><?= $language::get('primary_device_id') ?></label>
                                                         <div class="col-md-8">
                                                             <input type="text" class="form-control" id="device_id" name="device_id" value="<?= $rDevice['device_id'] ?>">
                                                         </div>
                                                     </div>
                                                     <div class="form-group row mb-4">
-                                                        <label class="col-md-4 col-form-label" for="device_id2">Secondary Device ID</label>
+                                                        <label class="col-md-4 col-form-label" for="device_id2"><?= $language::get('secondary_device_id') ?></label>
                                                         <div class="col-md-8">
                                                             <input type="text" class="form-control" id="device_id2" name="device_id2" value="<?= $rDevice['device_id2'] ?>">
                                                         </div>
                                                     </div>
                                                     <div class="form-group row mb-4">
-                                                        <label class="col-md-4 col-form-label" for="ver">Version</label>
+                                                        <label class="col-md-4 col-form-label" for="ver"><?= $language::get('version') ?></label>
                                                         <div class="col-md-8">
                                                             <input type="text" class="form-control" id="ver" name="ver" value="<?= $rDevice['ver'] ?>">
                                                         </div>
@@ -237,13 +237,13 @@
                                             </div>
                                             <ul class="list-inline wizard mb-0">
                                                 <li class="prevb list-inline-item">
-                                                    <a href="javascript: void(0);" class="btn btn-secondary">Previous</a>
+                                                    <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('prev') ?></a>
                                                 </li>
                                                 <li class="list-inline-item">
-                                                    <a href="javascript: void(0);" onClick="clearDevice();" class="btn btn-warning">Clear Device Info</a>
+                                                    <a href="javascript: void(0);" onClick="clearDevice();" class="btn btn-warning"><?= $language::get('clear_device_info') ?></a>
                                                 </li>
                                                 <li class="nextb list-inline-item float-right">
-                                                    <a href="javascript: void(0);" class="btn btn-secondary">Next</a>
+                                                    <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('next') ?></a>
                                                 </li>
                                             </ul>
                                         </div>
@@ -256,10 +256,10 @@
                                                 </div>
                                                 <div id="advanced_info">
                                                     <div class="form-group row mb-4">
-                                                        <label class="col-md-4 col-form-label" for="force_server_id">Forced Connection <i title="Force this user to connect to a specific server. Otherwise, the server with the lowest load will be selected." class="tooltip text-secondary far fa-circle"></i></label>
+                                                        <label class="col-md-4 col-form-label" for="force_server_id">Forced Connection <i title="<?= $language::get('force_this_user_to_connect_tooltip') ?>" class="tooltip text-secondary far fa-circle"></i></label>
                                                         <div class="col-md-8">
                                                             <select name="force_server_id" id="force_server_id" class="form-control select2" data-toggle="select2">
-                                                                <option <?= isset($rDevice) && intval($rDevice['user']['force_server_id']) == 0 ? 'selected' : '' ?> value="0">Disabled</option>
+                                                                <option <?= isset($rDevice) && intval($rDevice['user']['force_server_id']) == 0 ? 'selected' : '' ?><?= $language::get('value0disabled') ?></option>
                                                                 <?php foreach ($rServers as $rServer): ?>
                                                                     <option <?= (isset($rDevice) && intval($rDevice['user']['force_server_id']) == intval($rServer['id'])) ? 'selected' : '' ?> value="<?= $rServer['id'] ?>"><?= htmlspecialchars($rServer['server_name']) ?></option>
                                                                 <?php endforeach; ?>
@@ -267,7 +267,7 @@
                                                         </div>
                                                     </div>
                                                     <div class="form-group row mb-4">
-                                                        <label class="col-md-4 col-form-label" for="forced_country">Forced Country <i title="Force user to connect to loadbalancer associated with the selected country." class="tooltip text-secondary far fa-circle"></i></label>
+                                                        <label class="col-md-4 col-form-label" for="forced_country">Forced Country <i title="<?= $language::get('force_user_to_connect_to_tooltip') ?>" class="tooltip text-secondary far fa-circle"></i></label>
                                                         <div class="col-md-8">
                                                             <select name="forced_country" id="forced_country" class="form-control select2" data-toggle="select2">
                                                                 <?php foreach ($rCountries as $rCountry): ?>
@@ -277,7 +277,7 @@
                                                         </div>
                                                     </div>
                                                     <div class="form-group row mb-4">
-                                                        <label class="col-md-4 col-form-label" for="isp_clear">Current ISP</label>
+                                                        <label class="col-md-4 col-form-label" for="isp_clear"><?= $language::get('current_isp') ?></label>
                                                         <div class="col-md-8 input-group">
                                                             <input type="text" class="form-control" readonly id="isp_clear" name="isp_clear" value="<?= isset($rDevice['user']) ? htmlspecialchars($rDevice['user']['isp_desc']) : '' ?>">
                                                             <div class="input-group-append">
@@ -286,7 +286,7 @@
                                                         </div>
                                                     </div>
                                                     <div class="form-group row mb-4">
-                                                        <label class="col-md-4 col-form-label" for="ip_field">Allowed IP Addresses</label>
+                                                        <label class="col-md-4 col-form-label" for="ip_field"><?= $language::get('allowed_ip_addresses') ?></label>
                                                         <div class="col-md-8 input-group">
                                                             <input type="text" id="ip_field" class="form-control" value="">
                                                             <div class="input-group-append">
@@ -312,10 +312,10 @@
                                         </div>
                                         <ul class="list-inline wizard mb-0">
                                             <li class="prevb list-inline-item">
-                                                <a href="javascript: void(0);" class="btn btn-secondary">Previous</a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('prev') ?></a>
                                             </li>
                                             <li class="nextb list-inline-item float-right">
-                                                <a href="javascript: void(0);" class="btn btn-secondary">Next</a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('next') ?></a>
                                             </li>
                                         </ul>
                                     </div>
@@ -329,8 +329,8 @@
                                                     <table id="datatable-bouquets" class="table table-borderless mb-0">
                                                         <thead class="bg-light">
                                                             <tr>
-                                                                <th class="text-center">ID</th>
-                                                                <th>Bouquet Name</th>
+                                                                <th class="text-center"><?= $language::get('id') ?></th>
+                                                                <th><?= $language::get('bouquet_name') ?></th>
                                                                 <th class="text-center"><?= $language::get('streams') ?></th>
                                                                 <th class="text-center"><?= $language::get('movies') ?></th>
                                                                 <th class="text-center"><?= $language::get('series') ?></th>
@@ -355,10 +355,10 @@
                                         </div>
                                         <ul class="list-inline wizard mb-0">
                                             <li class="prevb list-inline-item">
-                                                <a href="javascript: void(0);" class="btn btn-secondary">Previous</a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('prev') ?></a>
                                             </li>
                                             <li class="list-inline-item float-right">
-                                                <a href="javascript: void(0);" onClick="toggleBouquets()" class="btn btn-info" id="toggle_bouquets">Toggle All</a>
+                                                <a href="javascript: void(0);" onClick="toggleBouquets()" class="btn btn-info" id="toggle_bouquets"><?= $language::get('toggle_all') ?></a>
                                                 <input name="submit_device" type="submit" class="btn btn-primary" value="<?= isset($rDevice) ? 'Edit' : 'Add'; ?>" />
                                             </li>
                                         </ul>

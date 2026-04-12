@@ -66,14 +66,14 @@
 					<div class="page-title-right">
 						<?php include 'topbar.php'; ?>
 					</div>
-					<h4 class="page-title">TV Guide</h4>
+					<h4 class="page-title"><?= $language::get('tv_guide') ?></h4>
 				</div>
 				<form method="GET" action="epg_view">
 					<div class="card">
 						<div class="card-body">
 							<div id="collapse_filters" class="form-group row" style="margin-bottom: 0;">
 								<div class="col-md-3">
-									<input type="text" class="form-control" id="search" name="search" value="<?php echo isset(RequestManager::getAll()['search']) ? htmlspecialchars(RequestManager::getAll()['search']) : ''; ?>" placeholder="Search Streams...">
+									<input type="text" class="form-control" id="search" name="search" value="<?php echo isset(RequestManager::getAll()['search']) ? htmlspecialchars(RequestManager::getAll()['search']) : ''; ?>" placeholder="<?= $language::get('search_streams_placeholder') ?>">
 								</div>
 								<div class="col-md-3">
 									<select id="category" name="category" class="form-control" data-toggle="select2">
@@ -96,7 +96,7 @@
 										<?php } ?>
 									</select>
 								</div>
-								<label class="col-md-1 col-form-label text-center" for="user_show_entries">Show</label>
+								<label class="col-md-1 col-form-label text-center" for="user_show_entries"><?= $language::get('show') ?></label>
 								<div class="col-md-1">
 									<select id="entries" name="entries" class="form-control" data-toggle="select2">
 										<?php foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) { ?>
@@ -107,7 +107,7 @@
 									</select>
 								</div>
 								<div class="btn-group col-md-2">
-									<button type="submit" class="btn btn-info">Search</button>
+									<button type="submit" class="btn btn-info"><?= $language::get('search') ?></button>
 									<button type="button" onClick="clearForm()" class="btn btn-warning"><i class="mdi mdi-filter-remove"></i></button>
 								</div>
 							</div>
@@ -129,7 +129,7 @@
 				<div class="listings-grid-inner">
 					<div class="time-nav-bar cf js-time-nav-bar">
 						<div class="listings-mobile-nav">
-							<a class="listings-now-btn js-now-btn" href="#">NOW</a>
+							<a class="listings-now-btn js-now-btn" href="#"><?= $language::get('now') ?></a>
 						</div>
 						<div class="listings-times-wrapper">
 							<a href="#" class="listings-direction-link left js-time-nav-arrow" data-direction="prev"><span class="isvg isvg-left-dir text-white"></span></a>

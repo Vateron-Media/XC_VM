@@ -81,7 +81,7 @@
 						<div class="page-title-right" <?php if ($rMobile): ?>style="width: 100%" <?php endif; ?>>
 							<ol class="breadcrumb m-0" style="width: <?php echo $rMobile ? '100%' : '250px'; ?>;">
 								<select id="server_id" class="form-control">
-									<option <?php if (!isset(RequestManager::getAll()['server_id'])) echo 'selected'; ?> value="">All Servers</option>
+									<option <?php if (!isset(RequestManager::getAll()['server_id'])) echo 'selected'; ?><?= $language::get('valueall_servers') ?></option>
 									<?php foreach ($rServers as $rServerItem): ?>
 										<?php if ($rServerItem['enabled']): ?>
 											<option value="<?php echo $rServerItem['id']; ?>" <?php if (isset(RequestManager::getAll()['server_id']) && RequestManager::getAll()['server_id'] == $rServerItem['id']) echo 'selected'; ?>>

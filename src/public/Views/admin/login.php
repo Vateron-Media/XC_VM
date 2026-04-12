@@ -357,14 +357,14 @@ if (!isset($_SESSION['hash'])) {
                                     <div class="form-group mb-3" id="username_group">
                                         <label for="username"><?= $language::get('username') ?></label>
                                         <input class="form-control" autocomplete="off" type="text" id="username" name="username" required
-                                            data-parsley-trigger="change" placeholder="Enter your username">
+                                            data-parsley-trigger="change" placeholder="<?= $language::get('enter_your_username') ?>">
                                     </div>
 
                                     <div class="form-group mb-3">
                                         <label for="password"><?= $language::get('password') ?></label>
                                         <input class="form-control" autocomplete="off" type="password" required
                                             data-parsley-trigger="change" id="password" name="password"
-                                            placeholder="Enter your password">
+                                            placeholder="<?= $language::get('enter_your_password') ?>">
                                     </div>
 
                                     <?php if ($rSettings['recaptcha_enable'] ?? false): ?>

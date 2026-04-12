@@ -48,13 +48,13 @@
                                 <li class="nav-item">
                                     <a href="#view-streams" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                         <i class="mdi mdi-play mr-1"></i>
-                                        <span class="d-none d-sm-inline">Available Streams</span>
+                                        <span class="d-none d-sm-inline"><?= $language::get('available_streams') ?></span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href="#view-movies" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                         <i class="mdi mdi-movie mr-1"></i>
-                                        <span class="d-none d-sm-inline">Available Movies</span>
+                                        <span class="d-none d-sm-inline"><?= $language::get('available_movies') ?></span>
                                     </a>
                                 </li>
                             <?php endif; ?>
@@ -64,47 +64,47 @@
                                     <div class="row">
                                         <div class="col-12">
                                             <div class="form-group row mb-4">
-                                                <label class="col-md-3 col-form-label" for="name">Provider Name</label>
+                                                <label class="col-md-3 col-form-label" for="name"><?= $language::get('provider_name') ?></label>
                                                 <div class="col-md-9">
                                                     <input type="text" class="form-control" id="name" name="name" value="<?php if (!isset($rProvider)) : ?><?php else : ?><?php echo htmlspecialchars($rProvider['name']); ?><?php endif; ?>" required data-parsley-trigger="change">
                                                 </div>
                                             </div>
                                             <div class="form-group row mb-4">
-                                                <label class="col-md-3 col-form-label" for="ip">Server IP / Domain</label>
+                                                <label class="col-md-3 col-form-label" for="ip"><?= $language::get('server_ip_domain') ?></label>
                                                 <div class="col-md-3">
                                                     <input type="text" class="form-control" id="ip" name="ip" value="<?php if (!isset($rProvider)) : ?><?php else : ?><?php echo htmlspecialchars($rProvider['ip']); ?><?php endif; ?>" required data-parsley-trigger="change">
                                                 </div>
-                                                <label class="col-md-3 col-form-label" for="port">Broadcast Port</label>
+                                                <label class="col-md-3 col-form-label" for="port"><?= $language::get('broadcast_port') ?></label>
                                                 <div class="col-md-3">
                                                     <input type="text" class="form-control text-center" id="port" name="port" value="<?php if (isset($rProvider)) : ?><?php echo htmlspecialchars($rProvider['port']); ?><?php else : ?>80<?php endif; ?>" required data-parsley-trigger="change">
                                                 </div>
                                             </div>
                                             <div class="form-group row mb-4">
-                                                <label class="col-md-3 col-form-label" for="username">Username</label>
+                                                <label class="col-md-3 col-form-label" for="username"><?= $language::get('username') ?></label>
                                                 <div class="col-md-3">
                                                     <input type="text" class="form-control" id="username" name="username" value="<?php if (!isset($rProvider)) : ?><?php else : ?><?php echo htmlspecialchars($rProvider['username']); ?><?php endif; ?>" required data-parsley-trigger="change">
                                                 </div>
-                                                <label class="col-md-3 col-form-label" for="password">Password</label>
+                                                <label class="col-md-3 col-form-label" for="password"><?= $language::get('password') ?></label>
                                                 <div class="col-md-3">
                                                     <input type="text" class="form-control" id="password" name="password" value="<?php if (!isset($rProvider)) : ?><?php else : ?><?php echo htmlspecialchars($rProvider['password']); ?><?php endif; ?>" required data-parsley-trigger="change">
                                                 </div>
                                             </div>
                                             <div class="form-group row mb-4">
-                                                <label class="col-md-3 col-form-label" for="enabled">Enabled</label>
+                                                <label class="col-md-3 col-form-label" for="enabled"><?= $language::get('enabled') ?></label>
                                                 <div class="col-md-3">
                                                     <input name="enabled" id="enabled" type="checkbox" <?php if (isset($rProvider)) : ?><?php if ($rProvider['enabled'] == 1) : ?>checked<?php endif; ?><?php else : ?>checked<?php endif; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                 </div>
-                                                <label class="col-md-3 col-form-label" for="ssl">SSL</label>
+                                                <label class="col-md-3 col-form-label" for="ssl"><?= $language::get('ssl') ?></label>
                                                 <div class="col-md-3">
                                                     <input name="ssl" id="ssl" type="checkbox" <?php if (isset($rProvider) && $rProvider['ssl'] == 1) : ?>checked<?php endif; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                 </div>
                                             </div>
                                             <div class="form-group row mb-4">
-                                                <label class="col-md-3 col-form-label" for="legacy">Legacy XC</label>
+                                                <label class="col-md-3 col-form-label" for="legacy"><?= $language::get('legacy_xc') ?></label>
                                                 <div class="col-md-3">
                                                     <input name="legacy" id="legacy" type="checkbox" <?php if (isset($rProvider) && $rProvider['legacy'] == 1) : ?>checked<?php endif; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                 </div>
-                                                <label class="col-md-3 col-form-label" for="hls">Use HLS</label>
+                                                <label class="col-md-3 col-form-label" for="hls"><?= $language::get('use_hls') ?></label>
                                                 <div class="col-md-3">
                                                     <input name="hls" id="hls" type="checkbox" <?php if (isset($rProvider) && $rProvider['hls'] == 1) : ?>checked<?php endif; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                 </div>
@@ -125,11 +125,11 @@
                                                 <table id="datatable-streams" class="table table-striped table-borderless dt-responsive nowrap">
                                                     <thead>
                                                         <tr>
-                                                            <th class="text-center">ID</th>
-                                                            <th>Stream Name</th>
-                                                            <th>Categories</th>
-                                                            <th class="text-center">Modified</th>
-                                                            <th class="text-center">Actions</th>
+                                                            <th class="text-center"><?= $language::get('id') ?></th>
+                                                            <th><?= $language::get('stream_name') ?></th>
+                                                            <th><?= $language::get('categories') ?></th>
+                                                            <th class="text-center"><?= $language::get('modified') ?></th>
+                                                            <th class="text-center"><?= $language::get('actions') ?></th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -145,7 +145,7 @@
                                                                 <td class="text-center"><?php echo date('Y-m-d', $rRow['modified']) . "<br/><small class='text-secondary'>" . date('H:i:s', $rRow['modified']) . '</small>'; ?></td>
                                                                 <td class="text-center">
                                                                     <a href="stream?title=<?php echo urlencode($rRow['stream_display_name']); ?>&url=<?php echo urlencode($rStreamURL); ?>&icon=<?php echo urlencode($rRow['stream_icon']); ?>"><button type="button" class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-plus"></i></button></a>
-                                                                    <button type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" title="Copy URL" onClick="copyURL('<?php echo $rStreamURL; ?>');"><i class="mdi mdi-clipboard"></i></button>
+                                                                    <button type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" title="<?= $language::get('copy_url') ?>" onClick="copyURL('<?php echo $rStreamURL; ?>');"><i class="mdi mdi-clipboard"></i></button>
                                                                 </td>
                                                             </tr>
                                                         <?php endforeach; ?>
@@ -162,11 +162,11 @@
                                                 <table id="datatable-movies" class="table table-striped table-borderless dt-responsive nowrap">
                                                     <thead>
                                                         <tr>
-                                                            <th class="text-center">ID</th>
-                                                            <th>Movie Name</th>
-                                                            <th>Categories</th>
-                                                            <th class="text-center">Modified</th>
-                                                            <th class="text-center">Actions</th>
+                                                            <th class="text-center"><?= $language::get('id') ?></th>
+                                                            <th><?= $language::get('movie_name') ?></th>
+                                                            <th><?= $language::get('categories') ?></th>
+                                                            <th class="text-center"><?= $language::get('modified') ?></th>
+                                                            <th class="text-center"><?= $language::get('actions') ?></th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -182,7 +182,7 @@
                                                                 <td class="text-center"><?php echo date('Y-m-d', $rRow['modified']) . "<br/><small class='text-secondary'>" . date('H:i:s', $rRow['modified']) . '</small>'; ?></td>
                                                                 <td class="text-center">
                                                                     <a href="movie?title=<?php echo urlencode($rRow['stream_display_name']); ?>&path=<?php echo urlencode($rStreamURL); ?>"><button type="button" class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-plus"></i></button></a>
-                                                                    <button type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" title="Copy URL" onClick="copyURL('<?php echo $rStreamURL; ?>');"><i class="mdi mdi-clipboard"></i></button>
+                                                                    <button type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" title="<?= $language::get('copy_url') ?>" onClick="copyURL('<?php echo $rStreamURL; ?>');"><i class="mdi mdi-clipboard"></i></button>
                                                                 </td>
                                                             </tr>
                                                         <?php endforeach; ?>

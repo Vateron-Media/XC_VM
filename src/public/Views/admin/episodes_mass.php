@@ -109,8 +109,8 @@
                                             </div>
                                             <div class="col-md-3 col-6">
                                                 <select id="episode_server_id" class="form-control" data-toggle="select2">
-                                                    <option value="" selected>All Servers</option>
-                                                    <option value="-1">No Servers</option>
+                                                    <option value="" selected><?= $language::get('all_servers') ?></option>
+                                                    <option value="-1"><?= $language::get('no_servers') ?></option>
                                                     <?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer) { ?>
                                                         <option value="<?php echo intval($rServer['id']); ?>"><?php echo $rServer['server_name']; ?></option>
                                                     <?php } ?>
@@ -124,7 +124,7 @@
                                                     <option value="3"><?php echo $language::get('down'); ?></option>
                                                     <option value="4"><?php echo $language::get('ready'); ?></option>
                                                     <option value="5"><?php echo $language::get('direct'); ?></option>
-                                                    <option value="7">Transcoding</option>
+                                                    <option value="7"><?= $language::get('transcoding') ?></option>
                                                 </select>
                                             </div>
                                             <div class="col-md-1 col-6">
@@ -138,7 +138,7 @@
                                             <thead class="bg-light">
                                                 <tr>
                                                     <th class="text-center"><?php echo $language::get('id'); ?></th>
-                                                    <th class="text-center">Image</th>
+                                                    <th class="text-center"><?= $language::get('image') ?></th>
                                                     <th><?php echo $language::get('name'); ?></th>
                                                     <th><?php echo $language::get('server'); ?></th>
                                                     <th class="text-center"><?php echo $language::get('status'); ?></th>
@@ -282,7 +282,7 @@
                                                 <!-- Server Type Selection -->
                                                 <div class="form-group row mb-4">
                                                     <div class="col-md-1"></div>
-                                                    <label class="col-md-3 col-form-label" for="server_type">Server Type</label>
+                                                    <label class="col-md-3 col-form-label" for="server_type"><?= $language::get('server_type') ?></label>
                                                     <div class="col-md-2">
                                                         <select disabled name="server_type" id="server_type" class="form-control" data-toggle="select2">
                                                             <?php foreach (array('SET' => 'SET SERVERS', 'ADD' => 'ADD SELECTED', 'DEL' => 'DELETE SELECTED') as $rValue => $rType) { ?>

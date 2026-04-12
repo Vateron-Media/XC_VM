@@ -23,7 +23,7 @@
 					<div class="page-title-right">
 						<?php include 'topbar.php'; ?>
 					</div>
-					<h4 class="page-title">Proxy Servers</h4>
+					<h4 class="page-title"><?= $language::get('proxy_servers') ?></h4>
 				</div>
 			</div>
 		</div>
@@ -34,17 +34,17 @@
 						<table id="datatable" class="table table-striped table-borderless dt-responsive nowrap">
 							<thead>
 								<tr>
-									<th class="text-center">ID</th>
-									<th class="text-center">Status</th>
-									<th>Proxy Name</th>
-									<th>Proxied Server</th>
-									<th class="text-center">Proxy IP</th>
-									<th class="text-center">Network</th>
-									<th class="text-center">Connections</th>
-									<th class="text-center">CPU %</th>
-									<th class="text-center">MEM %</th>
-									<th class="text-center">Ping</th>
-									<th class="text-center">Actions</th>
+									<th class="text-center"><?= $language::get('id') ?></th>
+									<th class="text-center"><?= $language::get('status') ?></th>
+									<th><?= $language::get('proxy_name') ?></th>
+									<th><?= $language::get('proxied_server') ?></th>
+									<th class="text-center"><?= $language::get('proxy_ip') ?></th>
+									<th class="text-center"><?= $language::get('network') ?></th>
+									<th class="text-center"><?= $language::get('connections') ?></th>
+									<th class="text-center"><?= $language::get('cpu_header') ?></th>
+									<th class="text-center"><?= $language::get('mem') ?></th>
+									<th class="text-center"><?= $language::get('ping') ?></th>
+									<th class="text-center"><?= $language::get('actions') ?></th>
 								</tr>
 							</thead>
 							<tbody>
@@ -66,19 +66,19 @@
 
 										<?php
 										if (!$rServer['enabled']) {
-											echo '<i class="text-secondary fas fa-square tooltip" title="Disabled"></i>';
+											echo '<i class="text-secondary fas fa-square tooltip" title="' . $language::get('disabled') . '"></i>';
 										} else {
 											if ($rServer['server_online']) {
-												echo '<i class="text-success fas fa-square tooltip" title="Online"></i>';
+												echo '<i class="text-success fas fa-square tooltip" title="' . $language::get('online') . '"></i>';
 											} else {
 												$rLastCheck = $rServer['last_check_ago'] > 0 ? date($rSettings['datetime_format'], $rServer['last_check_ago']) : 'Never';
 
 												if ($rServer['status'] == 3) {
-													echo '<i class="text-info fas fa-square tooltip" title="Installing..."></i>';
+													echo '<i class="text-info fas fa-square tooltip" title="' . $language::get('installing') . '"></i>';
 												} elseif ($rServer['status'] == 4) {
-													echo '<i class="text-warning fas fa-square tooltip" title="Installation Failed!"></i>';
+													echo '<i class="text-warning fas fa-square tooltip" title="' . $language::get('installation_failed') . '"></i>';
 												} elseif ($rServer['status'] == 5) {
-													echo '<i class="text-info fas fa-square tooltip" title="Updating..."></i>';
+													echo '<i class="text-info fas fa-square tooltip" title="' . $language::get('updating') . '"></i>';
 												} else {
 													echo '<i class="text-danger fas fa-square tooltip" title="Last Ping: ' . $rLastCheck . '"></i>';
 												}
@@ -98,7 +98,7 @@
 
 										if (1 >= count($rServer['parent_id'])) {
 										} else {
-											echo '&nbsp; <button title="View All Servers" onClick="viewServers(';
+											echo '&nbsp; <button title="' . $language::get('view_all_servers') . '" onClick="viewServers(';
 											echo intval($rServer['id']);
 											echo ");\" type='button' class='tooltip-left btn btn-info btn-xs waves-effect waves-light'>+ ";
 											echo count($rServer['parent_id']) - 1;
@@ -181,7 +181,7 @@
 											if (SettingsManager::getAll()['group_buttons']) {
 												echo "\t\t\t\t\t\t\t\t\t\t" . '<div class="btn-group dropdown">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" class="table-action-btn dropdown-toggle arrow-none btn btn-light btn-sm" data-toggle="dropdown" aria-expanded="false"><i class="mdi mdi-menu"></i></a>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<div class="dropdown-menu dropdown-menu-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a class="dropdown-item btn-reboot-server" href="javascript:void(0);" data-id="';
 												echo $rServer['id'];
-												echo '">Proxy Tools</a>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a class="dropdown-item" href="javascript:void(0);" onClick="api(';
+												echo '">' . $language::get('proxy_tools') . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a class="dropdown-item" href="javascript:void(0);" onClick="api(';
 												echo $rServer['id'];
 												echo ", 'kill');\">Kill Connections</a>" . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a class="dropdown-item" href="./proxy?id=';
 												echo $rServer['id'];
@@ -201,25 +201,25 @@
 												echo $rServer['id'];
 												echo ", 'delete');\">Delete Proxy</a>" . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t";
 											} else {
-												echo "\t\t\t\t\t\t\t\t\t\t" . '<div class="btn-group">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<button type="button" title="Proxy Tools" class="btn btn-light waves-effect waves-light btn-xs btn-reboot-server tooltip" data-id="';
+												echo "\t\t\t\t\t\t\t\t\t\t" . '<div class="btn-group">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<button type="button" title="' . $language::get('proxy_tools') . '" class="btn btn-light waves-effect waves-light btn-xs btn-reboot-server tooltip" data-id="';
 												echo $rServer['id'];
-												echo '"><i class="mdi mdi-creation"></i></button>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<button type="button" title="Kill All Connections" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(';
+												echo '"><i class="mdi mdi-creation"></i></button>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<button type="button" title="' . $language::get('kill_all_connections') . '" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(';
 												echo $rServer['id'];
 												echo ", 'kill');\"><i class=\"fas fa-hammer\"></i></button>" . "\n" . '                                            <a href="./proxy?id=';
 												echo $rServer['id'];
-												echo '"><button type="button" title="Edit Proxy" class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-pencil-outline"></i></button></a>' . "\n" . '                                            ';
+												echo '"><button type="button" title="' . $language::get('edit_proxy') . '" class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-pencil-outline"></i></button></a>' . "\n" . '                                            ';
 
 												if ($rServer['enabled']) {
-													echo '                                            <button type="button" title="Disable Proxy" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(';
+													echo '                                            <button type="button" title="' . $language::get('disable_proxy') . '" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(';
 													echo $rServer['id'];
 													echo ", 'disable');\"><i class=\"mdi mdi-close-network-outline\"></i></button>" . "\n" . '                                            ';
 												} else {
-													echo '                                            <button type="button" title="Enable Proxy" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(';
+													echo '                                            <button type="button" title="' . $language::get('enable_proxy') . '" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(';
 													echo $rServer['id'];
 													echo ", 'enable');\"><i class=\"mdi mdi-access-point-network\"></i></button>" . "\n" . '                                            ';
 												}
 
-												echo '                                            <button type="button" title="Delete Proxy" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(';
+												echo '                                            <button type="button" title="' . $language::get('delete_proxy') . '" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(';
 												echo $rServer['id'];
 												echo ", 'delete');\"><i class=\"mdi mdi-close\"></i></button>" . "\n\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t";
 											}

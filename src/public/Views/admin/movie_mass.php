@@ -83,12 +83,12 @@
 									<div class="tab-pane" id="stream-selection">
 										<div class="row">
 											<div class="col-md-2 col-6">
-												<input type="text" class="form-control" id="stream_search" value="" placeholder="Search Movies...">
+												<input type="text" class="form-control" id="stream_search" value="" placeholder="<?= $language::get('search_movies_placeholder') ?>">
 											</div>
 											<div class="col-md-3 col-6">
 												<select id="movie_server_id" class="form-control" data-toggle="select2">
-													<option value="" selected>All Servers</option>
-													<option value="-1">No Servers</option>
+													<option value="" selected><?= $language::get('all_servers') ?></option>
+													<option value="-1"><?= $language::get('no_servers') ?></option>
 													<?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer):
 														echo '<option value="' . intval($rServer['id']) . '">' . $rServer['server_name'] . '</option>' . "\n";
 													endforeach;
@@ -98,7 +98,7 @@
 											<div class="col-md-3 col-6">
 												<select id="category_search" class="form-control" data-toggle="select2">
 													<option value="" selected><?= $language::get('all_categories'); ?></option>
-													<option value="-1">No Categories</option>
+													<option value="-1"><?= $language::get('no_categories') ?></option>
 													<?php foreach ($rCategories as $cat):
 														echo '<option value="' . $cat['id'] . '"' .
 															((isset(RequestManager::getAll()['category']) && RequestManager::getAll()['category'] == $cat['id']) ? ' selected' : '') .
@@ -115,7 +115,7 @@
 													<option value="4"><?= $language::get('ready'); ?></option>
 													<option value="5"><?= $language::get('direct'); ?></option>
 													<option value="6"><?= $language::get('no_tmdb_match'); ?></option>
-													<option value="8">Transcoding</option>
+													<option value="8"><?= $language::get('transcoding') ?></option>
 												</select>
 											</div>
 											<div class="col-md-1 col-6">
@@ -134,12 +134,12 @@
 												<thead class="bg-light">
 													<tr>
 														<th class="text-center"><?= $language::get('id'); ?></th>
-														<th class="text-center">Image</th>
+														<th class="text-center"><?= $language::get('image') ?></th>
 														<th><?= $language::get('name'); ?></th>
 														<th><?= $language::get('category'); ?></th>
 														<th><?= $language::get('servers'); ?></th>
 														<th class="text-center"><?= $language::get('status'); ?></th>
-														<th class="text-center">TMDb</th>
+														<th class="text-center"><?= $language::get('tmdb') ?></th>
 													</tr>
 												</thead>
 												<tbody></tbody>
@@ -155,9 +155,9 @@
 														<input type="checkbox" class="activate" data-name="category_id" name="c_category_id">
 														<label></label>
 													</div>
-													<label class="col-md-3 col-form-label" for="category_id">Select Categories</label>
+													<label class="col-md-3 col-form-label" for="category_id"><?= $language::get('select_categories') ?></label>
 													<div class="col-md-6">
-														<select disabled name="category_id[]" id="category_id" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">
+														<select disabled name="category_id[]" id="category_id" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="<?= $language::get('choose_placeholder') ?>">
 															<?php foreach ($rCategories as $cat) echo '<option value="' . intval($cat['id']) . '">' . htmlspecialchars($cat['category_name']) . '</option>' . "\n"; ?>
 														</select>
 													</div>
@@ -174,7 +174,7 @@
 													</div>
 													<label class="col-md-3 col-form-label" for="bouquets"><?= $language::get('select_bouquets'); ?></label>
 													<div class="col-md-6">
-														<select disabled name="bouquets[]" id="bouquets" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">
+														<select disabled name="bouquets[]" id="bouquets" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="<?= $language::get('choose_placeholder') ?>">
 															<?php foreach (BouquetService::getAllSimple() as $bouquet) echo '<option value="' . $bouquet['id'] . '">' . $bouquet['bouquet_name'] . '</option>' . "\n"; ?>
 														</select>
 													</div>
@@ -193,7 +193,7 @@
 													<div class="col-md-2">
 														<input name="direct_source" id="direct_source" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 													</div>
-													<label class="col-md-3 col-form-label" for="direct_proxy">Direct Stream</label>
+													<label class="col-md-3 col-form-label" for="direct_proxy"><?= $language::get('direct_stream') ?></label>
 													<div class="col-md-2">
 														<input name="direct_proxy" id="direct_proxy" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 													</div>
@@ -279,7 +279,7 @@
 												</div>
 												<div class="form-group row mb-4">
 													<div class="col-md-1"></div>
-													<label class="col-md-3 col-form-label" for="server_type">Server Type</label>
+													<label class="col-md-3 col-form-label" for="server_type"><?= $language::get('server_type') ?></label>
 													<div class="col-md-2">
 														<select disabled name="server_type" id="server_type" class="form-control" data-toggle="select2">
 															<?php foreach (['SET' => 'SET SERVERS', 'ADD' => 'ADD SELECTED', 'DEL' => 'DELETE SELECTED'] as $value => $label) echo '<option value="' . $value . '">' . $label . '</option>' . "\n"; ?>

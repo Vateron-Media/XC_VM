@@ -24,7 +24,7 @@
                     <div class="page-title-right">
                         <?php include __DIR__ . '/topbar.php'; ?>
                     </div>
-                    <h4 class="page-title">Mass Edit Devices <small id="selected_count"></small></h4>
+                    <h4 class="page-title"><?= $language::get('mass_edit_devices') ?> <small id="selected_count"></small></h4>
                 </div>
             </div>
         </div>
@@ -49,25 +49,25 @@
                                     <li class="nav-item">
                                         <a href="#user-selection" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-account-group mr-1"></i>
-                                            <span class="d-none d-sm-inline">Devices</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('devices') ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
                                         <a href="#user-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-account-card-details-outline mr-1"></i>
-                                            <span class="d-none d-sm-inline">Details</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('details') ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
                                         <a href="#events" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-email mr-1"></i>
-                                            <span class="d-none d-sm-inline">Events</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('events') ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
                                         <a href="#bouquets" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-flower-tulip mr-1"></i>
-                                            <span class="d-none d-sm-inline">Bouquets</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('bouquets') ?></span>
                                         </a>
                                     </li>
                                 </ul>
@@ -75,7 +75,7 @@
                                     <div class="tab-pane" id="user-selection">
                                         <div class="row">
                                             <div class="col-md-3 col-6">
-                                                <input type="text" class="form-control" id="user_search" value="" placeholder="Search Devices...">
+                                                <input type="text" class="form-control" id="user_search" value="" placeholder="<?= $language::get('search_devices_placeholder') ?>">
                                             </div>
                                             <div class="col-md-3">
                                                 <select id="reseller_search" class="form-control" data-toggle="select2">
@@ -85,15 +85,15 @@
                                                     <?php } ?>
                                                 </select>
                                             </div>
-                                            <label class="col-md-1 col-form-label text-center" for="reseller_search"><button type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="clearOwner();">CLEAR</button></label>
+                                            <label class="col-md-1 col-form-label text-center" for="reseller_search"><button type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="clearOwner();"><?= $language::get('clear_btn') ?></button></label>
                                             <div class="col-md-2">
                                                 <select id="filter" class="form-control" data-toggle="select2">
-                                                    <option value="" selected>No Filter</option>
-                                                    <option value="1">Active</option>
-                                                    <option value="2">Disabled</option>
-                                                    <option value="3">Banned</option>
-                                                    <option value="4">Expired</option>
-                                                    <option value="5">Trial</option>
+                                                    <option value="" selected><?= $language::get('no_filter') ?></option>
+                                                    <option value="1"><?= $language::get('active') ?></option>
+                                                    <option value="2"><?= $language::get('disabled') ?></option>
+                                                    <option value="3"><?= $language::get('banned') ?></option>
+                                                    <option value="4"><?= $language::get('expired') ?></option>
+                                                    <option value="5"><?= $language::get('trial') ?></option>
                                                 </select>
                                             </div>
                                             <div class="col-md-2 col-8">
@@ -114,7 +114,7 @@
                                                         <th class="text-center"><?php echo $language::get('id'); ?></th>
                                                         <th><?php echo $language::get('username'); ?></th>
                                                         <th class="text-center"><?php echo $language::get('mac_address'); ?></th>
-                                                        <th class="text-center">Device</th>
+                                                        <th class="text-center"><?= $language::get('device') ?></th>
                                                         <th><?php echo $language::get('owner'); ?></th>
                                                         <th class="text-center"><?php echo $language::get('status'); ?></th>
                                                         <th class="text-center"><?php echo $language::get('online'); ?></th>
@@ -138,7 +138,7 @@
                                                         <input type="checkbox" class="activate" data-name="member_id" name="c_member_id">
                                                         <label></label>
                                                     </div>
-                                                    <label class="col-md-3 col-form-label" for="member_id">Owner</label>
+                                                    <label class="col-md-3 col-form-label" for="member_id"><?= $language::get('owner') ?></label>
                                                     <div class="col-md-8">
                                                         <select disabled name="member_id" id="member_id" class="form-control select2" data-toggle="select2">
                                                             <?php foreach (UserRepository::getRegisteredUsers() as $rRegisteredUser) { ?>
@@ -152,18 +152,18 @@
                                                         <input type="checkbox" class="activate" data-name="parent_password" name="c_parent_password">
                                                         <label></label>
                                                     </div>
-                                                    <label class="col-md-3 col-form-label" for="parent_password">Adult Pin</label>
+                                                    <label class="col-md-3 col-form-label" for="parent_password"><?= $language::get('adult_pin') ?></label>
                                                     <div class="col-md-2">
                                                         <input disabled type="text" class="form-control text-center" id="parent_password" name="parent_password" value="0000">
                                                     </div>
-                                                    <label class="col-md-1 col-form-label" for="exp_date">Expiry</label>
+                                                    <label class="col-md-1 col-form-label" for="exp_date"><?= $language::get('expiry') ?></label>
                                                     <div class="col-md-3">
                                                         <input disabled type="text" class="form-control text-center date" id="exp_date" name="exp_date" value="" data-toggle="date-picker" data-single-date-picker="true">
                                                     </div>
                                                     <div class="col-md-1">
                                                         <div class="custom-control custom-checkbox mt-1">
                                                             <input disabled type="checkbox" class="custom-control-input" id="no_expire" name="no_expire">
-                                                            <label class="custom-control-label" for="no_expire">Never</label>
+                                                            <label class="custom-control-label" for="no_expire"><?= $language::get('never') ?></label>
                                                         </div>
                                                     </div>
                                                     <div class="checkbox checkbox-single col-md-1 checkbox-offset checkbox-primary">
@@ -176,7 +176,7 @@
                                                         <input type="checkbox" class="activate" data-name="admin_notes" name="c_admin_notes">
                                                         <label></label>
                                                     </div>
-                                                    <label class="col-md-3 col-form-label" for="admin_notes">Admin Notes</label>
+                                                    <label class="col-md-3 col-form-label" for="admin_notes"><?= $language::get('admin_notes') ?></label>
                                                     <div class="col-md-8">
                                                         <textarea disabled id="admin_notes" name="admin_notes" class="form-control" rows="3" placeholder=""></textarea>
                                                     </div>
@@ -186,7 +186,7 @@
                                                         <input type="checkbox" class="activate" data-name="reseller_notes" name="c_reseller_notes">
                                                         <label></label>
                                                     </div>
-                                                    <label class="col-md-3 col-form-label" for="reseller_notes">Reseller Notes</label>
+                                                    <label class="col-md-3 col-form-label" for="reseller_notes"><?= $language::get('reseller_notes') ?></label>
                                                     <div class="col-md-8">
                                                         <textarea disabled id="reseller_notes" name="reseller_notes" class="form-control" rows="3" placeholder=""></textarea>
                                                     </div>
@@ -196,10 +196,10 @@
                                                         <input type="checkbox" class="activate" data-name="force_server_id" name="c_force_server_id">
                                                         <label></label>
                                                     </div>
-                                                    <label class="col-md-3 col-form-label" for="force_server_id">Forced Connection</label>
+                                                    <label class="col-md-3 col-form-label" for="force_server_id"><?= $language::get('forced_connection') ?></label>
                                                     <div class="col-md-8">
                                                         <select disabled name="force_server_id" id="force_server_id" class="form-control select2" data-toggle="select2">
-                                                            <option selected value="0">Disabled</option>
+                                                            <option selected value="0"><?= $language::get('disabled') ?></option>
                                                             <?php foreach ($rServers as $rServer) { ?>
                                                                 <option value="<?php echo $rServer['id']; ?>"><?php echo $rServer['server_name']; ?></option>
                                                             <?php } ?>
@@ -211,7 +211,7 @@
                                                         <input type="checkbox" class="activate" data-name="forced_country" name="c_forced_country">
                                                         <label></label>
                                                     </div>
-                                                    <label class="col-md-3 col-form-label" for="forced_country">Forced Country</label>
+                                                    <label class="col-md-3 col-form-label" for="forced_country"><?= $language::get('forced_country') ?></label>
                                                     <div class="col-md-8">
                                                         <select disabled name="forced_country" id="forced_country" class="form-control select2" data-toggle="select2">
                                                             <?php foreach ($rCountries as $rCountry) { ?>
@@ -225,11 +225,11 @@
                                                         <input type="checkbox" class="activate" data-name="is_isplock" data-type="switch" name="c_is_isplock">
                                                         <label></label>
                                                     </div>
-                                                    <label class="col-md-3 col-form-label" for="is_isplock">Lock to ISP</label>
+                                                    <label class="col-md-3 col-form-label" for="is_isplock"><?= $language::get('lock_to_isp') ?></label>
                                                     <div class="col-md-2">
                                                         <input disabled name="is_isplock" id="is_isplock" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                     </div>
-                                                    <label class="col-md-5 col-form-label" for="reset_isp_lock">Reset Current ISP</label>
+                                                    <label class="col-md-5 col-form-label" for="reset_isp_lock"><?= $language::get('reset_current_isp') ?></label>
                                                     <div class="checkbox checkbox-single col-md-1 checkbox-offset checkbox-primary">
                                                         <input type="checkbox" name="reset_isp_lock">
                                                         <label></label>
@@ -240,11 +240,11 @@
                                                         <input type="checkbox" class="activate" data-name="lock_device" data-type="switch" name="c_lock_device">
                                                         <label></label>
                                                     </div>
-                                                    <label class="col-md-3 col-form-label" for="lock_device">Device Lock</label>
+                                                    <label class="col-md-3 col-form-label" for="lock_device"><?= $language::get('device_lock') ?></label>
                                                     <div class="col-md-2">
                                                         <input disabled name="lock_device" id="lock_device" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                     </div>
-                                                    <label class="col-md-5 col-form-label" for="reset_device_lock">Reset Device Lock</label>
+                                                    <label class="col-md-5 col-form-label" for="reset_device_lock"><?= $language::get('reset_device_lock') ?></label>
                                                     <div class="checkbox checkbox-single col-md-1 checkbox-offset checkbox-primary">
                                                         <input type="checkbox" name="reset_device_lock">
                                                         <label></label>
@@ -255,11 +255,11 @@
                                                         <input type="checkbox" class="activate" data-name="is_trial" data-type="switch" name="c_is_trial">
                                                         <label></label>
                                                     </div>
-                                                    <label class="col-md-3 col-form-label" for="is_trial">Trial Device</label>
+                                                    <label class="col-md-3 col-form-label" for="is_trial"><?= $language::get('trial_device') ?></label>
                                                     <div class="col-md-2">
                                                         <input disabled name="is_trial" id="is_trial" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                     </div>
-                                                    <label class="col-md-3 col-form-label" for="modern_theme">Modern Theme</label>
+                                                    <label class="col-md-3 col-form-label" for="modern_theme"><?= $language::get('modern_theme') ?></label>
                                                     <div class="col-md-2">
                                                         <input disabled name="modern_theme" id="modern_theme" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                     </div>
@@ -272,10 +272,10 @@
                                         </div>
                                         <ul class="list-inline wizard mb-0">
                                             <li class="prevb list-inline-item">
-                                                <a href="javascript: void(0);" class="btn btn-secondary">Previous</a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('prev') ?></a>
                                             </li>
                                             <li class="nextb list-inline-item float-right">
-                                                <a href="javascript: void(0);" class="btn btn-secondary">Next</a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('next') ?></a>
                                             </li>
                                         </ul>
                                     </div>
@@ -283,7 +283,7 @@
                                         <div class="row">
                                             <div class="col-12">
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label" for="m_message_type">Event Type</label>
+                                                    <label class="col-md-3 col-form-label" for="m_message_type"><?= $language::get('event_type') ?></label>
                                                     <div class="col-9">
                                                         <select id="m_message_type" name="message_type" class="form-control" data-toggle="select2">
                                                             <option value="" selected><?php echo $language::get('select_an_event'); ?>:</option>
@@ -298,7 +298,7 @@
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4" id="m_send_msg_form">
-                                                    <label class="col-md-3 col-form-label" for="m_message">Message</label>
+                                                    <label class="col-md-3 col-form-label" for="m_message"><?= $language::get('message') ?></label>
                                                     <div class="col-md-9">
                                                         <textarea id="m_message" name="message" class="form-control" rows="3" placeholder="<?php echo $language::get('enter_a_custom_message'); ?>..."></textarea>
                                                     </div>
@@ -319,10 +319,10 @@
                                         </div>
                                         <ul class="list-inline wizard mb-0">
                                             <li class="prevb list-inline-item">
-                                                <a href="javascript: void(0);" class="btn btn-secondary">Previous</a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('prev') ?></a>
                                             </li>
                                             <li class="nextb list-inline-item float-right">
-                                                <a href="javascript: void(0);" class="btn btn-secondary">Next</a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('next') ?></a>
                                             </li>
                                         </ul>
                                     </div>
@@ -333,12 +333,12 @@
                                                     <table id="datatable-bouquets" class="table table-borderless mb-0">
                                                         <thead class="bg-light">
                                                             <tr>
-                                                                <th class="text-center">ID</th>
-                                                                <th>Bouquet Name</th>
-                                                                <th class="text-center">Streams</th>
-                                                                <th class="text-center">Movies</th>
-                                                                <th class="text-center">Series</th>
-                                                                <th class="text-center">Stations</th>
+                                                                <th class="text-center"><?= $language::get('id') ?></th>
+                                                                <th><?= $language::get('bouquet_name') ?></th>
+                                                                <th class="text-center"><?= $language::get('streams') ?></th>
+                                                                <th class="text-center"><?= $language::get('movies') ?></th>
+                                                                <th class="text-center"><?= $language::get('series') ?></th>
+                                                                <th class="text-center"><?= $language::get('stations') ?></th>
                                                             </tr>
                                                         </thead>
                                                         <tbody>
@@ -356,17 +356,17 @@
                                                     </table>
                                                     <div class="custom-control col-md-12 custom-checkbox text-center" style="margin-top:20px;">
                                                         <input type="checkbox" class="custom-control-input" id="c_bouquets" data-name="bouquets" data-type="bouquet" name="c_bouquets">
-                                                        <label class="custom-control-label" for="c_bouquets">Tick this box to apply the above bouquets to all selected devices. Selecting none will remove bouquets from devices.</label>
+                                                        <label class="custom-control-label" for="c_bouquets"><?= $language::get('apply_bouquets_devices_hint') ?></label>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                         <ul class="list-inline wizard mb-0">
                                             <li class="prevb list-inline-item">
-                                                <a href="javascript: void(0);" class="btn btn-secondary">Previous</a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('prev') ?></a>
                                             </li>
                                             <li class="nextb list-inline-item float-right">
-                                                <a href="javascript: void(0);" onClick="toggleBouquets()" class="btn btn-info">Toggle Bouquets</a>
+                                                <a href="javascript: void(0);" onClick="toggleBouquets()" class="btn btn-info"><?= $language::get('toggle_bouquets') ?></a>
                                                 <input name="submit_device" type="submit" class="btn btn-primary" value="Mass Edit" />
                                             </li>
                                         </ul>

@@ -21,7 +21,7 @@ renderUnifiedLayoutHeader('admin');
 					<div class="page-title-right">
 						<?php include 'topbar.php'; ?>
 					</div>
-					<h4 class="page-title">Access Codes</h4>
+					<h4 class="page-title"><?= $language::get('access_codes') ?></h4>
 				</div>
 			</div>
 		</div>
@@ -46,9 +46,9 @@ renderUnifiedLayoutHeader('admin');
 							<thead>
 								<tr>
 									<th class="text-center"><?= $language::get('id'); ?></th>
-									<th>Access Code</th>
-									<th class="text-center">Type</th>
-									<th class="text-center">Enabled</th>
+									<th><?= $language::get('access_code') ?></th>
+									<th class="text-center"><?= $language::get('type') ?></th>
+									<th class="text-center"><?= $language::get('enabled') ?></th>
 									<th class="text-center"><?= $language::get('actions'); ?></th>
 								</tr>
 							</thead>
@@ -67,8 +67,8 @@ renderUnifiedLayoutHeader('admin');
 										</td>
 										<td class="text-center">
 											<div class="btn-group">
-												<a href="./code?id=<?= $rCode['id']; ?>"><button type="button" data-toggle="tooltip" data-placement="top" title="Edit Code" class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-pencil-outline"></i></button></a>
-												<button type="button" data-toggle="tooltip" data-placement="top" title="Delete Code" class="btn btn-light waves-effect waves-light btn-xs" onClick="api(<?= $rCode['id']; ?>, 'delete');"><i class="mdi mdi-close"></i></button>
+												<a href="./code?id=<?= $rCode['id']; ?>"><button type="button" data-toggle="tooltip" data-placement="top" title="<?= $language::get('edit_code') ?>" class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-pencil-outline"></i></button></a>
+												<button type="button" data-toggle="tooltip" data-placement="top" title="<?= $language::get('delete_code') ?>" class="btn btn-light waves-effect waves-light btn-xs" onClick="api(<?= $rCode['id']; ?>, 'delete');"><i class="mdi mdi-close"></i></button>
 											</div>
 										</td>
 									</tr>

@@ -28,7 +28,7 @@ endif;
 					<div class="page-title-right">
 						<?php include 'topbar.php'; ?>
 					</div>
-					<h4 class="page-title"><?php echo isset($rIPArr['id']) ? 'Edit' : 'Add'; ?> RTMP IP</h4>
+					<h4 class="page-title"><?php echo isset($rIPArr['id']) ? 'Edit' : 'Add'; ?> <?= $language::get('rtmp_ip') ?></h4>
 				</div>
 			</div>
 		</div>
@@ -45,7 +45,7 @@ endif;
 									<li class="nav-item">
 										<a href="#ip-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
 											<i class="mdi mdi-account-card-details-outline mr-1"></i>
-											<span class="d-none d-sm-inline">Details</span>
+											<span class="d-none d-sm-inline"><?= $language::get('details') ?></span>
 										</a>
 									</li>
 								</ul>
@@ -54,7 +54,7 @@ endif;
 										<div class="row">
 											<div class="col-12">
 												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="ip">IP Address</label>
+													<label class="col-md-4 col-form-label" for="ip"><?= $language::get('ip_address') ?></label>
 													<div class="col-md-8">
 														<input type="text" class="form-control" id="ip" name="ip"
 															value="<?php echo isset($rIPArr) ? htmlspecialchars($rIPArr['ip']) : ''; ?>"
@@ -66,7 +66,7 @@ endif;
 														for="password">Password</label>
 													<div class="col-md-8">
 														<input type="text" class="form-control" id="password"
-															name="password" placeholder="Auto-generate if blank"
+															name="password" placeholder="<?= $language::get('auto_generate_if_blank') ?>"
 															value="<?php echo isset($rIPArr) ? htmlspecialchars($rIPArr['password']) : ''; ?>"
 															data-indicator="pwindicator">
 														<div id="pwindicator">
@@ -76,7 +76,7 @@ endif;
 													</div>
 												</div>
 												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="notes">Notes</label>
+													<label class="col-md-4 col-form-label" for="notes"><?= $language::get('notes') ?></label>
 													<div class="col-md-8">
 														<textarea class="form-control" id="notes"
 															name="notes"><?php echo isset($rIPArr) ? htmlspecialchars($rIPArr['notes']) : ''; ?></textarea>
@@ -84,7 +84,7 @@ endif;
 												</div>
 												<div class="form-group row mb-4">
 													<label class="col-md-4 col-form-label" for="push">Push <i
-															title="Allow this IP to publish RTMP streams to your service."
+															title="<?= $language::get('allow_this_ip_to_publish_rtmp_streams_to_your_service') ?>"
 															class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-2">
 														<input name="push" id="push" type="checkbox"
@@ -95,7 +95,7 @@ endif;
 															data-color="#039cfd" />
 													</div>
 													<label class="col-md-4 col-form-label" for="pull">Pull <i
-															title="Allow this IP to request RTMP streams from your service."
+															title="<?= $language::get('allow_this_ip_to_request_rtmp_streams_from_your_service') ?>"
 															class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-2">
 														<input name="pull" id="pull" type="checkbox"

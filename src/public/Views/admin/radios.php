@@ -22,7 +22,7 @@
 					<div class="page-title-right">
 						<?php include 'topbar.php'; ?>
 					</div>
-					<h4 class="page-title">Radio Stations</h4>
+					<h4 class="page-title"><?= $language::get('radio_stations') ?></h4>
 				</div>
 			</div>
 		</div>
@@ -36,7 +36,7 @@
 							<div class="col-md-2">
 								<input type="text" class="form-control" id="station_search" value="<?php if (isset(RequestManager::getAll()['search'])) {
 																										echo htmlspecialchars(RequestManager::getAll()['search']);
-																									} ?>" placeholder="Search Stations...">
+																									} ?>" placeholder="<?= $language::get('search_stations') ?>">
 							</div>
 							<div class="col-md-3">
 								<select id="station_server_id" class="form-control" data-toggle="select2">
@@ -89,7 +89,7 @@
 														} ?>>Direct</option>
 								</select>
 							</div>
-							<label class="col-md-1 col-form-label text-center" for="station_show_entries">Show</label>
+							<label class="col-md-1 col-form-label text-center" for="station_show_entries"><?= $language::get('show') ?></label>
 							<div class="col-md-1">
 								<select id="station_show_entries" class="form-control" data-toggle="select2">
 									<?php foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) { ?>
@@ -103,18 +103,18 @@
 						<table id="datatable-streampage" class="table table-striped table-borderless dt-responsive nowrap font-normal">
 							<thead>
 								<tr>
-									<th class="text-center">ID</th>
-									<th class="text-center">Icon</th>
-									<th>Name</th>
+									<th class="text-center"><?= $language::get('id') ?></th>
+									<th class="text-center"><?= $language::get('icon') ?></th>
+									<th><?= $language::get('name') ?></th>
 									<?php if ($rSettings['streams_grouped'] == 1) { ?>
 										<th><?php echo $language::get('servers'); ?></th>
 									<?php } else { ?>
 										<th><?php echo $language::get('server'); ?></th>
 									<?php } ?>
-									<th class="text-center">Clients</th>
-									<th class="text-center">Uptime</th>
-									<th class="text-center">Actions</th>
-									<th class="text-center">Stream Info</th>
+									<th class="text-center"><?= $language::get('clients') ?></th>
+									<th class="text-center"><?= $language::get('uptime') ?></th>
+									<th class="text-center"><?= $language::get('actions') ?></th>
+									<th class="text-center"><?= $language::get('stream_info') ?></th>
 								</tr>
 							</thead>
 							<tbody></tbody>

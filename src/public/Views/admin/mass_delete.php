@@ -79,19 +79,19 @@
                                 <li class="nav-item">
                                     <a href="#user-selection" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                         <i class="mdi mdi-account mr-1"></i>
-                                        <span class="d-none d-sm-inline">Users</span>
+                                        <span class="d-none d-sm-inline"><?= $language::get('users') ?></span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href="#mag-selection" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                         <i class="mdi mdi-monitor mr-1"></i>
-                                        <span class="d-none d-sm-inline">MAGs</span>
+                                        <span class="d-none d-sm-inline"><?= $language::get('mags') ?></span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href="#enigma-selection" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                         <i class="mdi mdi-desktop-tower-monitor mr-1"></i>
-                                        <span class="d-none d-sm-inline">Enigmas</span>
+                                        <span class="d-none d-sm-inline"><?= $language::get('enigmas') ?></span>
                                     </a>
                                 </li>
                             </ul>
@@ -105,8 +105,8 @@
                                             </div>
                                             <div class="col-md-3 col-6">
                                                 <select id="stream_server_id" class="form-control" data-toggle="select2">
-                                                    <option value="" selected>All Servers</option>
-                                                    <option value="-1">No Servers</option>
+                                                    <option value="" selected><?= $language::get('all_servers') ?></option>
+                                                    <option value="-1"><?= $language::get('no_servers') ?></option>
                                                     <?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer): ?>
                                                         <option value="<?= intval($rServer['id']) ?>"><?= $rServer['server_name'] ?></option>
                                                     <?php endforeach; ?>
@@ -115,7 +115,7 @@
                                             <div class="col-md-3 col-6">
                                                 <select id="stream_category_search" class="form-control" data-toggle="select2">
                                                     <option value="" selected><?= $language::get('all_categories') ?></option>
-                                                    <option value="-1">No Categories</option>
+                                                    <option value="-1"><?= $language::get('no_categories') ?></option>
                                                     <?php foreach (CategoryService::getAllByType('live') as $rCategory): ?>
                                                         <option value="<?= $rCategory['id'] ?>"><?= $rCategory['category_name'] ?></option>
                                                     <?php endforeach; ?>
@@ -123,20 +123,20 @@
                                             </div>
                                             <div class="col-md-2 col-6">
                                                 <select id="stream_filter" class="form-control" data-toggle="select2">
-                                                    <option value="">No Filter</option>
-                                                    <option value="1">Online</option>
-                                                    <option value="2">Down</option>
-                                                    <option value="3">Stopped</option>
-                                                    <option value="4">Starting</option>
-                                                    <option value="5">On Demand</option>
-                                                    <option value="6">Direct</option>
-                                                    <option value="7">Timeshift</option>
-                                                    <option value="8">Looping</option>
-                                                    <option value="9">Has EPG</option>
-                                                    <option value="10">No EPG</option>
-                                                    <option value="11">Adaptive Link</option>
-                                                    <option value="12">Title Sync</option>
-                                                    <option value="13">Transcoding</option>
+                                                    <option value=""><?= $language::get('no_filter') ?></option>
+                                                    <option value="1"><?= $language::get('online') ?></option>
+                                                    <option value="2"><?= $language::get('down') ?></option>
+                                                    <option value="3"><?= $language::get('stopped') ?></option>
+                                                    <option value="4"><?= $language::get('starting') ?></option>
+                                                    <option value="5"><?= $language::get('on_demand') ?></option>
+                                                    <option value="6"><?= $language::get('direct') ?></option>
+                                                    <option value="7"><?= $language::get('timeshift') ?></option>
+                                                    <option value="8"><?= $language::get('looping') ?></option>
+                                                    <option value="9"><?= $language::get('has_epg') ?></option>
+                                                    <option value="10"><?= $language::get('no_epg') ?></option>
+                                                    <option value="11"><?= $language::get('adaptive_link') ?></option>
+                                                    <option value="12"><?= $language::get('title_sync') ?></option>
+                                                    <option value="13"><?= $language::get('transcoding') ?></option>
                                                 </select>
                                             </div>
                                             <div class="col-md-1 col-6">
@@ -156,12 +156,12 @@
                                             <table id="datatable-md1" class="table table-borderless mb-0">
                                                 <thead class="bg-light">
                                                     <tr>
-                                                        <th class="text-center">ID</th>
-                                                        <th class="text-center">Icon</th>
-                                                        <th>Stream Name</th>
-                                                        <th>Category</th>
-                                                        <th>Server</th>
-                                                        <th class="text-center">Status</th>
+                                                        <th class="text-center"><?= $language::get('id') ?></th>
+                                                        <th class="text-center"><?= $language::get('icon') ?></th>
+                                                        <th><?= $language::get('stream_name') ?></th>
+                                                        <th><?= $language::get('category') ?></th>
+                                                        <th><?= $language::get('server') ?></th>
+                                                        <th class="text-center"><?= $language::get('status') ?></th>
                                                     </tr>
                                                 </thead>
                                                 <tbody></tbody>
@@ -183,8 +183,8 @@
                                             </div>
                                             <div class="col-md-3 col-6">
                                                 <select id="movie_server_id" class="form-control" data-toggle="select2">
-                                                    <option value="" selected>All Servers</option>
-                                                    <option value="-1">No Servers</option>
+                                                    <option value="" selected><?= $language::get('all_servers') ?></option>
+                                                    <option value="-1"><?= $language::get('no_servers') ?></option>
                                                     <?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer): ?>
                                                         <option value="<?= intval($rServer['id']) ?>"><?= $rServer['server_name'] ?></option>
                                                     <?php endforeach; ?>
@@ -193,7 +193,7 @@
                                             <div class="col-md-3 col-6">
                                                 <select id="movie_category_search" class="form-control" data-toggle="select2">
                                                     <option value="" selected><?= $language::get('all_categories') ?></option>
-                                                    <option value="-1">No Categories</option>
+                                                    <option value="-1"><?= $language::get('no_categories') ?></option>
                                                     <?php foreach (CategoryService::getAllByType('movie') as $rCategory): ?>
                                                         <option value="<?= $rCategory['id'] ?>"><?= $rCategory['category_name'] ?></option>
                                                     <?php endforeach; ?>
@@ -228,12 +228,12 @@
                                                 <thead class="bg-light">
                                                     <tr>
                                                         <th class="text-center"><?= $language::get('id') ?></th>
-                                                        <th class="text-center">Image</th>
+                                                        <th class="text-center"><?= $language::get('image') ?></th>
                                                         <th><?= $language::get('name') ?></th>
                                                         <th><?= $language::get('category') ?></th>
                                                         <th><?= $language::get('servers') ?></th>
                                                         <th class="text-center"><?= $language::get('status') ?></th>
-                                                        <th class="text-center">TMDb</th>
+                                                        <th class="text-center"><?= $language::get('tmdb') ?></th>
                                                     </tr>
                                                 </thead>
                                                 <tbody></tbody>
@@ -251,12 +251,12 @@
                                         <input type="hidden" name="radios" id="radios" value="" />
                                         <div class="row">
                                             <div class="col-md-2 col-6">
-                                                <input type="text" class="form-control" id="radio_search" value="" placeholder="Search Stations...">
+                                                <input type="text" class="form-control" id="radio_search" value="" placeholder="<?= $language::get('search_stations') ?>">
                                             </div>
                                             <div class="col-md-3 col-6">
                                                 <select id="station_server_id" class="form-control" data-toggle="select2">
-                                                    <option value="" selected>All Servers</option>
-                                                    <option value="-1">No Servers</option>
+                                                    <option value="" selected><?= $language::get('all_servers') ?></option>
+                                                    <option value="-1"><?= $language::get('no_servers') ?></option>
                                                     <?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer): ?>
                                                         <option value="<?= intval($rServer['id']) ?>"><?= $rServer['server_name'] ?></option>
                                                     <?php endforeach; ?>
@@ -265,7 +265,7 @@
                                             <div class="col-md-3 col-6">
                                                 <select id="radio_category_search" class="form-control" data-toggle="select2">
                                                     <option value="" selected><?= $language::get('all_categories') ?></option>
-                                                    <option value="-1">No Categories</option>
+                                                    <option value="-1"><?= $language::get('no_categories') ?></option>
                                                     <?php foreach (CategoryService::getAllByType('radio') as $rCategory): ?>
                                                         <option value="<?= $rCategory['id'] ?>"><?= $rCategory['category_name'] ?></option>
                                                     <?php endforeach; ?>
@@ -273,13 +273,13 @@
                                             </div>
                                             <div class="col-md-2 col-6">
                                                 <select id="radio_filter" class="form-control" data-toggle="select2">
-                                                    <option value="">No Filter</option>
-                                                    <option value="1">Online</option>
-                                                    <option value="2">Down</option>
-                                                    <option value="3">Stopped</option>
-                                                    <option value="4">Starting</option>
-                                                    <option value="5">On Demand</option>
-                                                    <option value="6">Direct</option>
+                                                    <option value=""><?= $language::get('no_filter') ?></option>
+                                                    <option value="1"><?= $language::get('online') ?></option>
+                                                    <option value="2"><?= $language::get('down') ?></option>
+                                                    <option value="3"><?= $language::get('stopped') ?></option>
+                                                    <option value="4"><?= $language::get('starting') ?></option>
+                                                    <option value="5"><?= $language::get('on_demand') ?></option>
+                                                    <option value="6"><?= $language::get('direct') ?></option>
                                                 </select>
                                             </div>
                                             <div class="col-md-1 col-6">
@@ -299,12 +299,12 @@
                                             <table id="datatable-md6" class="table table-borderless mb-0">
                                                 <thead class="bg-light">
                                                     <tr>
-                                                        <th class="text-center">ID</th>
-                                                        <th class="text-center">Icon</th>
-                                                        <th>Station Name</th>
-                                                        <th>Category</th>
+                                                        <th class="text-center"><?= $language::get('id') ?></th>
+                                                        <th class="text-center"><?= $language::get('icon') ?></th>
+                                                        <th><?= $language::get('station_name') ?></th>
+                                                        <th><?= $language::get('category') ?></th>
                                                         <th><?= $language::get('servers') ?></th>
-                                                        <th class="text-center">Status</th>
+                                                        <th class="text-center"><?= $language::get('status') ?></th>
                                                     </tr>
                                                 </thead>
                                                 <tbody></tbody>
@@ -328,7 +328,7 @@
                                                 <select id="series_category_search" class="form-control" data-toggle="select2">
                                                     <option value="" selected><?= $language::get('all_categories') ?></option>
                                                     <option value="-1"><?= $language::get('no_tmdb_match') ?></option>
-                                                    <option value="-2">No Categories</option>
+                                                    <option value="-2"><?= $language::get('no_categories') ?></option>
                                                     <?php foreach (CategoryService::getAllByType('series') as $rCategory): ?>
                                                         <option value="<?= $rCategory['id'] ?>"><?= $rCategory['category_name'] ?></option>
                                                     <?php endforeach; ?>
@@ -351,15 +351,15 @@
                                             <table id="datatable-md4" class="table table-borderless mb-0">
                                                 <thead class="bg-light">
                                                     <tr>
-                                                        <th class="text-center">ID</th>
-                                                        <th class="text-center">Image</th>
-                                                        <th>Name</th>
-                                                        <th>Category</th>
-                                                        <th class="text-center">Seasons</th>
-                                                        <th class="text-center">Episodes</th>
-                                                        <th class="text-center">TMDb</th>
-                                                        <th class="text-center">First Aired</th>
-                                                        <th class="text-center">Last Updated</th>
+                                                        <th class="text-center"><?= $language::get('id') ?></th>
+                                                        <th class="text-center"><?= $language::get('image') ?></th>
+                                                        <th><?= $language::get('name') ?></th>
+                                                        <th><?= $language::get('category') ?></th>
+                                                        <th class="text-center"><?= $language::get('seasons') ?></th>
+                                                        <th class="text-center"><?= $language::get('episodes') ?></th>
+                                                        <th class="text-center"><?= $language::get('tmdb') ?></th>
+                                                        <th class="text-center"><?= $language::get('first_aired') ?></th>
+                                                        <th class="text-center"><?= $language::get('last_updated') ?></th>
                                                     </tr>
                                                 </thead>
                                                 <tbody></tbody>
@@ -389,8 +389,8 @@
                                             </div>
                                             <div class="col-md-3 col-6">
                                                 <select id="episode_server_id" class="form-control" data-toggle="select2">
-                                                    <option value="" selected>All Servers</option>
-                                                    <option value="-1">No Servers</option>
+                                                    <option value="" selected><?= $language::get('all_servers') ?></option>
+                                                    <option value="-1"><?= $language::get('no_servers') ?></option>
                                                     <?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer): ?>
                                                         <option value="<?= intval($rServer['id']) ?>"><?= $rServer['server_name'] ?></option>
                                                     <?php endforeach; ?>
@@ -404,7 +404,7 @@
                                                     <option value="3"><?php echo $language::get('down'); ?></option>
                                                     <option value="4"><?php echo $language::get('ready'); ?></option>
                                                     <option value="5"><?php echo $language::get('direct'); ?></option>
-                                                    <option value="7">Transcoding</option>
+                                                    <option value="7"><?= $language::get('transcoding') ?></option>
                                                 </select>
                                             </div>
                                             <div class="col-md-1 col-6">
@@ -425,7 +425,7 @@
                                                 <thead class="bg-light">
                                                     <tr>
                                                         <th class="text-center"><?= $language::get('id') ?></th>
-                                                        <th class="text-center">Image</th>
+                                                        <th class="text-center"><?= $language::get('image') ?></th>
                                                         <th><?= $language::get('name') ?></th>
                                                         <th><?= $language::get('server') ?></th>
                                                         <th class="text-center"><?= $language::get('status') ?></th>
@@ -446,7 +446,7 @@
                                         <input type="hidden" name="lines" id="lines" value="" />
                                         <div class="row">
                                             <div class="col-md-3 col-6">
-                                                <input type="text" class="form-control" id="line_search" value="" placeholder="Search Lines...">
+                                                <input type="text" class="form-control" id="line_search" value="" placeholder="<?= $language::get('search_lines') ?>">
                                             </div>
                                             <div class="col-md-3">
                                                 <select id="reseller_search" class="form-control" data-toggle="select2">
@@ -456,18 +456,18 @@
                                                 </select>
                                             </div>
                                             <label class="col-md-1 col-form-label text-center" for="reseller_search">
-                                                <button type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="clearOwner();">CLEAR</button>
+                                                <button type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="clearOwner();"><?= $language::get('clear_btn') ?></button>
                                             </label>
                                             <div class="col-md-2">
                                                 <select id="line_filter" class="form-control" data-toggle="select2">
-                                                    <option value="" selected>No Filter</option>
-                                                    <option value="1">Active</option>
-                                                    <option value="2">Disabled</option>
-                                                    <option value="3">Banned</option>
-                                                    <option value="4">Expired</option>
-                                                    <option value="5">Trial</option>
-                                                    <option value="6">Restreamer</option>
-                                                    <option value="7">Ministra</option>
+                                                    <option value="" selected><?= $language::get('no_filter') ?></option>
+                                                    <option value="1"><?= $language::get('active') ?></option>
+                                                    <option value="2"><?= $language::get('disabled') ?></option>
+                                                    <option value="3"><?= $language::get('banned') ?></option>
+                                                    <option value="4"><?= $language::get('expired') ?></option>
+                                                    <option value="5"><?= $language::get('trial') ?></option>
+                                                    <option value="6"><?= $language::get('restreamer') ?></option>
+                                                    <option value="7"><?= $language::get('ministra') ?></option>
                                                 </select>
                                             </div>
                                             <div class="col-md-2 col-8">
@@ -487,17 +487,17 @@
                                             <table id="datatable-md3" class="table table-borderless mb-0">
                                                 <thead class="bg-light">
                                                     <tr>
-                                                        <th class="text-center">ID</th>
-                                                        <th>Username</th>
+                                                        <th class="text-center"><?= $language::get('id') ?></th>
+                                                        <th><?= $language::get('username') ?></th>
                                                         <th></th>
-                                                        <th>Owner</th>
-                                                        <th class="text-center">Status</th>
+                                                        <th><?= $language::get('owner') ?></th>
+                                                        <th class="text-center"><?= $language::get('status') ?></th>
                                                         <th></th>
-                                                        <th class="text-center">Trial</th>
-                                                        <th class="text-center">Restreamer</th>
+                                                        <th class="text-center"><?= $language::get('trial') ?></th>
+                                                        <th class="text-center"><?= $language::get('restreamer') ?></th>
                                                         <th></th>
-                                                        <th class="text-center">Connections</th>
-                                                        <th class="text-center">Expiration</th>
+                                                        <th class="text-center"><?= $language::get('connections') ?></th>
+                                                        <th class="text-center"><?= $language::get('expiration') ?></th>
                                                         <th></th>
                                                         <th></th>
                                                     </tr>
@@ -517,7 +517,7 @@
                                         <input type="hidden" name="users" id="users" value="" />
                                         <div class="row">
                                             <div class="col-md-3 col-6">
-                                                <input type="text" class="form-control" id="user_search" value="" placeholder="Search Users...">
+                                                <input type="text" class="form-control" id="user_search" value="" placeholder="<?= $language::get('search_users') ?>">
                                             </div>
                                             <div class="col-md-3">
                                                 <select id="user_reseller_search" class="form-control" data-toggle="select2">
@@ -527,13 +527,13 @@
                                                 </select>
                                             </div>
                                             <label class="col-md-1 col-form-label text-center" for="user_reseller_search">
-                                                <button type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="clearUserOwner();">CLEAR</button>
+                                                <button type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="clearUserOwner();"><?= $language::get('clear_btn') ?></button>
                                             </label>
                                             <div class="col-md-2">
                                                 <select id="user_filter" class="form-control" data-toggle="select2">
-                                                    <option value="" selected>No Filter</option>
-                                                    <option value="-1">Active</option>
-                                                    <option value="-2">Disabled</option>
+                                                    <option value="" selected><?= $language::get('no_filter') ?></option>
+                                                    <option value="-1"><?= $language::get('active') ?></option>
+                                                    <option value="-2"><?= $language::get('disabled') ?></option>
                                                 </select>
                                             </div>
                                             <div class="col-md-2 col-8">
@@ -553,16 +553,16 @@
                                             <table id="datatable-md7" class="table table-borderless mb-0">
                                                 <thead class="bg-light">
                                                     <tr>
-                                                        <th class="text-center">ID</th>
-                                                        <th>Username</th>
-                                                        <th>Owner</th>
-                                                        <th class="text-center">IP</th>
-                                                        <th class="text-center">Type</th>
-                                                        <th class="text-center">Status</th>
-                                                        <th class="text-center">Credits</th>
-                                                        <th class="text-center">Users</th>
-                                                        <th class="text-center">Last Login</th>
-                                                        <th class="text-center">Actions</th>
+                                                        <th class="text-center"><?= $language::get('id') ?></th>
+                                                        <th><?= $language::get('username') ?></th>
+                                                        <th><?= $language::get('owner') ?></th>
+                                                        <th class="text-center"><?= $language::get('ip') ?></th>
+                                                        <th class="text-center"><?= $language::get('type') ?></th>
+                                                        <th class="text-center"><?= $language::get('status') ?></th>
+                                                        <th class="text-center"><?= $language::get('credits') ?></th>
+                                                        <th class="text-center"><?= $language::get('users') ?></th>
+                                                        <th class="text-center"><?= $language::get('last_login') ?></th>
+                                                        <th class="text-center"><?= $language::get('actions') ?></th>
                                                     </tr>
                                                 </thead>
                                                 <tbody></tbody>
@@ -580,7 +580,7 @@
                                         <input type="hidden" name="mags" id="mags" value="" />
                                         <div class="row">
                                             <div class="col-md-3 col-6">
-                                                <input type="text" class="form-control" id="mag_search" value="" placeholder="Search Devices...">
+                                                <input type="text" class="form-control" id="mag_search" value="" placeholder="<?= $language::get('search_devices_placeholder') ?>">
                                             </div>
                                             <div class="col-md-3">
                                                 <select id="mag_reseller_search" class="form-control" data-toggle="select2">
@@ -590,16 +590,16 @@
                                                 </select>
                                             </div>
                                             <label class="col-md-1 col-form-label text-center" for="mag_reseller_search">
-                                                <button type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="clearMagOwner();">CLEAR</button>
+                                                <button type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="clearMagOwner();"><?= $language::get('clear_btn') ?></button>
                                             </label>
                                             <div class="col-md-2">
                                                 <select id="mag_filter" class="form-control" data-toggle="select2">
-                                                    <option value="" selected>No Filter</option>
-                                                    <option value="1">Active</option>
-                                                    <option value="2">Disabled</option>
-                                                    <option value="3">Banned</option>
-                                                    <option value="4">Expired</option>
-                                                    <option value="5">Trial</option>
+                                                    <option value="" selected><?= $language::get('no_filter') ?></option>
+                                                    <option value="1"><?= $language::get('active') ?></option>
+                                                    <option value="2"><?= $language::get('disabled') ?></option>
+                                                    <option value="3"><?= $language::get('banned') ?></option>
+                                                    <option value="4"><?= $language::get('expired') ?></option>
+                                                    <option value="5"><?= $language::get('trial') ?></option>
                                                 </select>
                                             </div>
                                             <div class="col-md-2 col-8">
@@ -622,7 +622,7 @@
                                                         <th class="text-center"><?= $language::get('id') ?></th>
                                                         <th><?= $language::get('username') ?></th>
                                                         <th class="text-center"><?= $language::get('mac_address') ?></th>
-                                                        <th class="text-center">Device</th>
+                                                        <th class="text-center"><?= $language::get('device') ?></th>
                                                         <th><?= $language::get('owner') ?></th>
                                                         <th class="text-center"><?= $language::get('status') ?></th>
                                                         <th class="text-center"><?= $language::get('online') ?></th>
@@ -646,7 +646,7 @@
                                         <input type="hidden" name="enigmas" id="enigmas" value="" />
                                         <div class="row">
                                             <div class="col-md-3 col-6">
-                                                <input type="text" class="form-control" id="enigma_search" value="" placeholder="Search Devices...">
+                                                <input type="text" class="form-control" id="enigma_search" value="" placeholder="<?= $language::get('search_devices_placeholder') ?>">
                                             </div>
                                             <div class="col-md-3">
                                                 <select id="enigma_reseller_search" class="form-control" data-toggle="select2">
@@ -655,15 +655,15 @@
                                                     <?php endif; ?>
                                                 </select>
                                             </div>
-                                            <label class="col-md-1 col-form-label text-center" for="enigma_reseller_search"><button type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="clearE2Owner();">CLEAR</button></label>
+                                            <label class="col-md-1 col-form-label text-center" for="enigma_reseller_search"><button type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="clearE2Owner();"><?= $language::get('clear_btn') ?></button></label>
                                             <div class="col-md-2">
                                                 <select id="enigma_filter" class="form-control" data-toggle="select2">
-                                                    <option value="" selected>No Filter</option>
-                                                    <option value="1">Active</option>
-                                                    <option value="2">Disabled</option>
-                                                    <option value="3">Banned</option>
-                                                    <option value="4">Expired</option>
-                                                    <option value="5">Trial</option>
+                                                    <option value="" selected><?= $language::get('no_filter') ?></option>
+                                                    <option value="1"><?= $language::get('active') ?></option>
+                                                    <option value="2"><?= $language::get('disabled') ?></option>
+                                                    <option value="3"><?= $language::get('banned') ?></option>
+                                                    <option value="4"><?= $language::get('expired') ?></option>
+                                                    <option value="5"><?= $language::get('trial') ?></option>
                                                 </select>
                                             </div>
                                             <div class="col-md-2 col-8">
@@ -686,7 +686,7 @@
                                                         <th class="text-center"><?= $language::get('id') ?></th>
                                                         <th><?= $language::get('username') ?></th>
                                                         <th class="text-center"><?= $language::get('mac_address') ?></th>
-                                                        <th class="text-center">Device</th>
+                                                        <th class="text-center"><?= $language::get('device') ?></th>
                                                         <th><?= $language::get('owner') ?></th>
                                                         <th class="text-center"><?= $language::get('status') ?></th>
                                                         <th class="text-center"><?= $language::get('online') ?></th>
