@@ -77,10 +77,15 @@ class Translator {
         $text = self::$translations[$key] ?? null;
 
         if ($text === null) {
-            self::addMissingKeyToAllLanguages($key);
-            $text = $key; // fallback to the key itself
-            // Update current loaded array so subsequent calls see the key immediately
-            self::$translations[$key] = $key;
+            $enFallback = self::addMissingKeyToAllLanguages($key);
+
+            // For non-English: use English value as fallback; for English: key name
+            $text = (self::$currentLang !== 'en' && $enFallback !== null)
+                ? $enFallback
+                : $key;
+
+            // Update current loaded array so subsequent calls see the value immediately
+            self::$translations[$key] = $text;
         }
 
         return !empty($replace) ? strtr($text, $replace) : $text;
@@ -137,8 +142,20 @@ class Translator {
         self::$translations = ($data !== false) ? $data : [];
     }
 
-    private static function addMissingKeyToAllLanguages(string $key): void {
-        $lineToAdd = "\n{$key} = \"{$key}\"\n";
+    /**
+     * Add missing key to all language files.
+     * Returns the English value for the key (or null if not found in en.ini).
+     */
+    private static function addMissingKeyToAllLanguages(string $key): ?string {
+        // Load English values to use as default for non-English languages
+        $enFile = self::$langsDir . 'en.ini';
+        $enValue = $key; // fallback to key name
+        if (is_readable($enFile)) {
+            $enData = parse_ini_file($enFile, false, INI_SCANNER_RAW);
+            if ($enData !== false && isset($enData[$key])) {
+                $enValue = $enData[$key];
+            }
+        }
 
         foreach (self::$availableLanguages as $lang) {
             $file = self::$langsDir . $lang . '.ini';
@@ -154,6 +171,11 @@ class Translator {
                 continue; // key already exists
             }
 
+            // For English: use key name as value; for others: use English value
+            $value = ($lang === 'en') ? $key : $enValue;
+            $escapedValue = str_replace('"', '\\"', $value);
+            $lineToAdd = "\n{$key} = \"{$escapedValue}\"\n";
+
             // Safe write with locking
             $fp = fopen($file, 'a');
             if ($fp && flock($fp, LOCK_EX)) {
@@ -162,22 +184,7 @@ class Translator {
                 fclose($fp);
             }
         }
+
+        return ($enValue !== $key) ? $enValue : null;
     }
 }
-
-
-
-
-// // At the beginning of the application (once)
-// Translator::init('/path/to/your/lang/'); // or just Translator::init(); if lang folder is nearby
-
-// // Anywhere in the code
-// echo Translator::get('welcome_title');
-// echo Translator::get('users_online', [':count' => 153]);
-
-// // Change language
-// Translator::setLanguage('de');
-
-// // Utility methods
-// echo Translator::current();     // → "de"
-// print_r(Translator::available()); // → ['en', 'ru', 'de', 'fr', ...]
