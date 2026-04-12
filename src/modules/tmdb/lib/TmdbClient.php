@@ -93,7 +93,7 @@ class TMDB {
 	 *  @param boolean $debug The flag for debug output
 	 */
 	public function __construct($apikey = null, $lang = null, $adult = null, $debug = null) {
-		require __DIR__ . '/TMDb/config/config.php';
+		require __DIR__ . '/config/config.php';
 		$this->setConfig($cnf);
 		$this->setApikey(isset($apikey) ? $apikey : $cnf['apikey']);
 		$this->setLang(isset($lang) ? $lang : $cnf['lang']);
@@ -796,15 +796,15 @@ class TMDB {
 	}
 }
 
-include_once 'TMDb/Movie.php';
-include_once 'TMDb/TVShow.php';
-include_once 'TMDb/Season.php';
-include_once 'TMDb/Episode.php';
-include_once 'TMDb/Person.php';
-include_once 'TMDb/Role.php';
-include_once 'TMDb/roles/MovieRole.php';
-include_once 'TMDb/roles/TVShowRole.php';
-include_once 'TMDb/Collection.php';
-include_once 'TMDb/Company.php';
-include_once 'TMDb/Genre.php';
-include_once 'TMDb/config/APIConfiguration.php';
+include_once __DIR__ . '/Entities/Movie.php';
+include_once __DIR__ . '/Entities/TVShow.php';
+include_once __DIR__ . '/Entities/Season.php';
+include_once __DIR__ . '/Entities/Episode.php';
+include_once __DIR__ . '/Entities/Person.php';
+include_once __DIR__ . '/Entities/Role.php';
+include_once __DIR__ . '/roles/MovieRole.php';
+include_once __DIR__ . '/roles/TVShowRole.php';
+include_once __DIR__ . '/Entities/Collection.php';
+include_once __DIR__ . '/Entities/Company.php';
+include_once __DIR__ . '/Entities/Genre.php';
+include_once __DIR__ . '/config/APIConfiguration.php';

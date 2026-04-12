@@ -57,13 +57,4 @@ class MovieRole extends Role {
 	public function getMovieReleaseDate() {
 		return $this->_data['release_date'];
 	}
-
-	/**
-	 *  Get the JSON representation of the Episode
-	 *
-	 *  @return string
-	 */
-	public function getJSON() {
-		return json_encode($this->_data, JSON_PRETTY_PRINT);
-	}
 }
