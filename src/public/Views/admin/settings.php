@@ -1155,7 +1155,7 @@ endif; // !$__settingsViewMode
 																	} else {
 																		echo ' selected';
 																	}
-																	echo ' value="manual"><?= $language::get('manual') ?></option></select></div><label class="col-md-4 col-form-label" for="vod_sort_newest">Sort VOD by Date <i title="' . $language::get('change_default_sorting_for_vod_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="vod_sort_newest" id="vod_sort_newest" type="checkbox"';
+																	echo ' value="manual">'. $language::get('manual') .'</option></select></div><label class="col-md-4 col-form-label" for="vod_sort_newest">Sort VOD by Date <i title="' . $language::get('change_default_sorting_for_vod_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="vod_sort_newest" id="vod_sort_newest" type="checkbox"';
 																	if ($rSettings["vod_sort_newest"] == 1) {
 																		echo ' checked ';
 																	}
