@@ -33,8 +33,18 @@ class MovieController extends BaseAdminController
             ['id' => 'offline', 'parent' => '#', 'text' => "<strong class='btn btn-secondary waves-effect waves-light btn-xs'>Offline</strong>", 'icon' => 'mdi mdi-stop', 'state' => ['opened' => true]],
         ];
         $activeStreamingServers = [];
+        $rMovie = null;
+        $rStreamSys = [];
+        $rMovieSource = [''];
+        $rSource = '';
+        $rPathSources = '';
 
-        if (isset($rMovie)) {
+        if (isset(RequestManager::getAll()['id'])) {
+            $rMovie = StreamRepository::getById(RequestManager::getAll()['id']);
+            if (!$rMovie || $rMovie['type'] != 2) {
+                $this->redirect('movies');
+                return;
+            }
             $rMovie['properties'] = json_decode($rMovie['movie_properties'], true);
             $rStreamSys = StreamRepository::getSystemRows(RequestManager::getAll()['id']);
 
@@ -52,7 +62,7 @@ class MovieController extends BaseAdminController
             }
 
             foreach ($rServers as $rServer) {
-                if ($rServer['direct_source'] == 0 && $rServer['stream_status'] == 1) {
+                if (($rServer['direct_source'] ?? 0) == 0 && ($rServer['stream_status'] ?? 0) == 1) {
                     $activeStreamingServers[] = intval($rServer['id']);
                 }
                 if (isset($rStreamSys[intval($rServer['id'])])) {

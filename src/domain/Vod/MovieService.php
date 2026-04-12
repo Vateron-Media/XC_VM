@@ -278,7 +278,7 @@ class MovieService {
 							unset($rImportArray['movie_properties']['backdrop_path']);
 						}
 
-						if ($rData['movie_symlink'] || $rData['direct_proxy']) {
+						if (($rData['movie_symlink'] ?? false) || ($rData['direct_proxy'] ?? false)) {
 							$rExtension = pathinfo(explode('?', $rData['stream_source'])[0])['extension'];
 
 							if ($rExtension) {
@@ -301,7 +301,7 @@ class MovieService {
 
 				if ($rReview) {
 				} else {
-					foreach (json_decode($rData['bouquet_create_list'], true) as $rBouquet) {
+					foreach (json_decode($rData['bouquet_create_list'] ?? '[]', true) ?? [] as $rBouquet) {
 						$rPrepare = QueryHelper::prepareArray(array('bouquet_name' => $rBouquet, 'bouquet_channels' => array(), 'bouquet_movies' => array(), 'bouquet_series' => array(), 'bouquet_radios' => array()));
 						$rQuery = 'INSERT INTO `bouquets`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
@@ -312,7 +312,7 @@ class MovieService {
 						}
 					}
 
-					foreach (json_decode($rData['category_create_list'], true) as $rCategory) {
+					foreach (json_decode($rData['category_create_list'] ?? '[]', true) ?? [] as $rCategory) {
 						$rPrepare = QueryHelper::prepareArray(array('category_type' => 'movie', 'category_name' => $rCategory, 'parent_id' => 0, 'cat_order' => 99, 'is_adult' => 0));
 						$rQuery = 'INSERT INTO `streams_categories`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
@@ -336,7 +336,7 @@ class MovieService {
 					} else {
 						$rBouquets = array();
 
-						foreach ($rData['bouquets'] as $rBouquet) {
+						foreach ($rData['bouquets'] ?? [] as $rBouquet) {
 							if (isset($rBouquetCreate[$rBouquet])) {
 								$rBouquets[] = $rBouquetCreate[$rBouquet];
 							} else {
@@ -348,7 +348,7 @@ class MovieService {
 						}
 						$rCategories = array();
 
-						foreach ($rData['category_id'] as $rCategory) {
+						foreach ($rData['category_id'] ?? [] as $rCategory) {
 							if (isset($rCategoryCreate[$rCategory])) {
 								$rCategories[] = $rCategoryCreate[$rCategory];
 							} else {

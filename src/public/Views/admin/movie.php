@@ -280,7 +280,7 @@
 													</div>
 												<?php endif; ?>
 												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="category_id"><?php if (RequestManager::getAll()['import']) {
+													<label class="col-md-4 col-form-label" for="category_id"><?php if (!empty(RequestManager::getAll()['import'])) {
 																													echo 'Fallback ';
 																												} ?>Categories</label>
 													<div class="col-md-8">
@@ -298,7 +298,7 @@
 												</div>
 												<div class="form-group row mb-4">
 													<label class="col-md-4 col-form-label"
-														for="bouquets"><?php if (RequestManager::getAll()['import']) {
+														for="bouquets"><?php if (!empty(RequestManager::getAll()['import'])) {
 																			echo 'Fallback ';
 																		} ?><?php echo $language::get('bouquets'); ?></label>
 													<div class="col-md-8">
