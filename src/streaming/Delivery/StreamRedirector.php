@@ -185,7 +185,11 @@ class StreamRedirector {
 		if ($rDomain) {
 			$rURL = $rProtocol . '://' . $rDomain . ':' . $rServers[$rServerID][$rProtocol . '_broadcast_port'];
 		} else {
-			$rURL = rtrim($rServers[$rServerID][$rProtocol . '_url'], '/');
+			if (defined('HOST') && strlen(HOST) > 0 && filter_var(HOST, FILTER_VALIDATE_IP)) {
+				$rURL = $rProtocol . '://' . $rServers[$rServerID]['server_ip'] . ':' . $rServers[$rServerID][$rProtocol . '_broadcast_port'];
+			} else {
+				$rURL = rtrim($rServers[$rServerID][$rProtocol . '_url'], '/');
+			}
 		}
 		if ($rServers[$rServerID]['server_type'] == 1 && $rOriginatorID && $rServers[$rOriginatorID]['is_main'] == 0) {
 			$rURL .= '/' . md5($rServerID . '_' . $rOriginatorID . '_' . OPENSSL_EXTRA);

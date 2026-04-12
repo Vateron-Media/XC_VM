@@ -50,6 +50,8 @@ class DomainResolver {
 			if (!(strlen($rDomain) > 0 && in_array(strtolower($rDomain), $rResellerDomains))) {
 				if (empty($rServers[$rServerID]['domain_name'])) {
 					$rDomain = escapeshellcmd($rServers[$rServerID]['server_ip']);
+				} else if (filter_var($rDomain, FILTER_VALIDATE_IP)) {
+					$rDomain = escapeshellcmd($rServers[$rServerID]['server_ip']);
 				} else {
 					$rDomain = str_replace(array('http://', '/', 'https://'), '', escapeshellcmd(explode(',', $rServers[$rServerID]['domain_name'])[0]));
 				}
