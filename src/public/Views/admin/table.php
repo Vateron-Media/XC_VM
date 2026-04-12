@@ -1086,9 +1086,9 @@ if ($rType == "lines") {
             foreach ($rRows as $rRow) {
                 if (SettingsManager::getAll()["redis_handler"]) {
                     if ($rSettings["streams_grouped"] == 1) {
-                        $rRow["clients"] = $rConnectionCount[$rRow["id"]] ?: 0;
+                        $rRow["clients"] = $rConnectionCount[$rRow["id"]] ?? 0;
                     } else {
-                        $rRow["clients"] = count($rConnectionCount[$rRow["id"]][$rRow["server_id"]]) ?: 0;
+                        $rRow["clients"] = count($rConnectionCount[$rRow["id"]][$rRow["server_id"]] ?? []);
                     }
                 }
                 if ($rIsAPI) {
@@ -1571,9 +1571,9 @@ if ($rType == "lines") {
             foreach ($rRows as $rRow) {
                 if (SettingsManager::getAll()["redis_handler"]) {
                     if ($rSettings["streams_grouped"] == 1) {
-                        $rRow["clients"] = $rConnectionCount[$rRow["id"]] ?: 0;
+                        $rRow["clients"] = $rConnectionCount[$rRow["id"]] ?? 0;
                     } else {
-                        $rRow["clients"] = count($rConnectionCount[$rRow["id"]][$rRow["server_id"]]) ?: 0;
+                        $rRow["clients"] = count($rConnectionCount[$rRow["id"]][$rRow["server_id"]] ?? []);
                     }
                 }
                 if ($rIsAPI) {
@@ -1918,9 +1918,9 @@ if ($rType == "lines") {
             foreach ($rRows as $rRow) {
                 if (SettingsManager::getAll()["redis_handler"]) {
                     if ($rSettings["streams_grouped"] == 1) {
-                        $rRow["clients"] = $rConnectionCount[$rRow["id"]] ?: 0;
+                        $rRow["clients"] = $rConnectionCount[$rRow["id"]] ?? 0;
                     } else {
-                        $rRow["clients"] = count($rConnectionCount[$rRow["id"]][$rRow["server_id"]]) ?: 0;
+                        $rRow["clients"] = count($rConnectionCount[$rRow["id"]][$rRow["server_id"]] ?? []);
                     }
                 }
                 if ($rIsAPI) {
@@ -2516,7 +2516,8 @@ if ($rType == "lines") {
         if (!$rFilterBefore) {
             $rKeyCount = count($rKeys);
         }
-        foreach ($rRedis->mGet($rKeys) as $rRow) {
+        $rMGetResult = !empty($rKeys) ? $rRedis->mGet($rKeys) : [];
+        foreach (($rMGetResult ?: []) as $rRow) {
             $rRow = igbinary_unserialize($rRow);
             if (!is_array($rRow)) {
                 $rKeyCount--;
@@ -3823,7 +3824,7 @@ if ($rType == "lines") {
             }
             foreach ($rRows as $rRow) {
                 if (SettingsManager::getAll()["redis_handler"]) {
-                    $rRow["active_count"] = $rConnectionCount[$rRow["id"]] ?: 0;
+                    $rRow["active_count"] = $rConnectionCount[$rRow["id"]] ?? 0;
                 }
                 if ($rRow["active_count"] == 0) {
                     $rReturn["recordsTotal"]--;
@@ -4408,9 +4409,9 @@ if ($rType == "lines") {
             foreach ($rRows as $rRow) {
                 if (SettingsManager::getAll()["redis_handler"]) {
                     if ($rSettings["streams_grouped"] == 1) {
-                        $rRow["clients"] = $rConnectionCount[$rRow["id"]] ?: 0;
+                        $rRow["clients"] = $rConnectionCount[$rRow["id"]] ?? 0;
                     } else {
-                        $rRow["clients"] = count($rConnectionCount[$rRow["id"]][$rRow["server_id"]]) ?: 0;
+                        $rRow["clients"] = count($rConnectionCount[$rRow["id"]][$rRow["server_id"]] ?? []);
                     }
                 }
                 if ($rIsAPI) {
