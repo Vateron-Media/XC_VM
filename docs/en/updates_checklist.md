@@ -9,7 +9,7 @@
 ## 📚 Navigation
 
 * [🔢 1. Update Version](#1-update-version)
-* [🧹 2. Deleted Files (Automated)](#2-deleted-files-automated)
+* [🧹 2. Deleted Files](#2-deleted-files)
 * [🧪 3. Pre-Release Validation](#3-pre-release-validation)
 * [⚙️ 4. Build Archives](#4-build-archives)
 * [📝 5. Changelog](#5-changelog)
@@ -47,17 +47,33 @@ git push
 
 ---
 
-## 🧹 2. Deleted Files (Automated)
+## 🧹 2. Deleted Files
 
-File cleanup is **fully automated**. No manual steps required.
+Before building, generate the list of files to delete on update:
 
-**How it works:**
+```bash
+make generate_deleted_files
+```
 
-1. `make main` / `make lb` internally runs `delete_files_list` / `lb_delete_files_list`
-2. This generates `migrations/deleted_files.txt` inside the archive (diff of deleted files since last tag)
-3. During `php console.php update post-update`, `MigrationRunner::runFileCleanup()` reads it and deletes the listed files automatically
+This runs `git diff` between `LAST_TAG` and `HEAD`, extracts deleted files under `src/`, strips the `src/` prefix, and writes the result to `src/migrations/deleted_files.txt`.
 
-> ⚠️ **Review only:** After building, inspect `dist/migrations/deleted_files.txt` to verify no critical files are listed by mistake.
+If `LAST_TAG` cannot be auto-detected (no network / no releases), pass it explicitly:
+
+```bash
+make generate_deleted_files LAST_TAG=1.2.16
+```
+
+**Review the generated file** — verify no critical files are listed by mistake:
+
+```bash
+cat src/migrations/deleted_files.txt
+```
+
+After validation, `make main` / `make lb` will pack the file into the archive via `delete_files_list` / `lb_delete_files_list`.
+
+During `php console.php update post-update`, `MigrationRunner::runFileCleanup()` reads it and deletes the listed files automatically.
+
+> ⚠️ Lines starting with `#` are comments and will be ignored. You can comment out files you want to keep.
 
 ---
 
