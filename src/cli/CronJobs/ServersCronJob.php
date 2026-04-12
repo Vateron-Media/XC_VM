@@ -129,8 +129,8 @@ class ServersCronJob implements CommandInterface {
         }
 
         $rStats = SystemInfo::getStats();
-        $rWatchdog = json_decode($rServers[SERVER_ID]['watchdog_data'], true);
-        $rCPUAverage = ($rWatchdog['cpu_average_array'] ?: array());
+        $rWatchdog = json_decode($rServers[SERVER_ID]['watchdog_data'] ?? '', true);
+        $rCPUAverage = ($rWatchdog['cpu_average_array'] ?? []) ?: [];
         if (count($rCPUAverage) > 0) {
             $rStats['cpu'] = round(array_sum($rCPUAverage) / count($rCPUAverage), 2);
         }

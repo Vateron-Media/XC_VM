@@ -118,7 +118,8 @@ class UsersCronJob implements CommandInterface {
             $this->rServers = ServerRepository::getAll(true);
 
             foreach ($this->rServers as $rServer) {
-                $this->rPHPPIDs[$rServer['id']] = (array_map('intval', json_decode($rServer['php_pids'], true)) ?: array());
+                $rDecodedPids = json_decode($rServer['php_pids'] ?? '', true);
+                $this->rPHPPIDs[$rServer['id']] = is_array($rDecodedPids) ? array_map('intval', $rDecodedPids) : [];
             }
         }
 
