@@ -10,6 +10,7 @@
 
 * [⚙️ Before You Start](#before-you-start)
 * [🪜 Step-by-Step Instructions](#step-by-step-instructions)
+* [💻 Update via CLI](#update-via-cli)
 * [🧠 Notes and Recommendations](#notes-and-recommendations)
 
 ---
@@ -66,6 +67,35 @@ Follow these steps to update via the panel. Each step is illustrated with a scre
 
 ---
 
+## 💻 Update via CLI
+
+If the web panel is unavailable or you prefer the command line, the update can be triggered directly via SSH.
+
+### Connect and Run
+
+1. Connect to the server via SSH.
+2. If needed, make the console script executable:
+
+```bash
+sudo chmod +x /home/xc_vm/console.php
+```
+
+3. Run the command:
+
+```bash
+sudo -u xc_vm /home/xc_vm/console.php update update
+```
+
+> ⚠️ **Important:** The command must run as the `xc_vm` user. Do not run it as `root` directly.
+
+### What Happens
+
+- The system checks GitHub for a new version.
+- The update archive is downloaded and its checksum (MD5) is verified.
+- The system update script stops services, applies files, and runs post-update tasks.
+
+---
+
 ## 🧠 Notes and Recommendations
 
 > 🕒 **Update Duration**
@@ -75,6 +105,6 @@ Follow these steps to update via the panel. Each step is illustrated with a scre
 > After completion, verify server status, restart services, and ensure everything is working correctly.
 
 > ⚠️ **Update Errors**
-> If errors occur, check server logs (e.g., in `/home/xc_vm/logs/`). If the problem persists, create an issue in the [repository](https://github.com/Vateron-Media/XC_VM/issues).
+> If errors occur, check server logs (e.g., in `/home/xc_vm/update.log`). If the problem persists, create an issue in the [repository](https://github.com/Vateron-Media/XC_VM/issues).
 
 ---
