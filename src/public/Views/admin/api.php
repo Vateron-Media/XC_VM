@@ -1,4 +1,5 @@
 <?php
+/** @var \Database $db */
 
 include 'functions.php';
 session_write_close();
@@ -1510,6 +1511,7 @@ if (isset($_SESSION['hash'])) {
 
 				$rUptimeFallbackCache = array();
 				$getFallbackUptime = function ($rServerID) use (&$db, &$rUptimeFallbackCache) {
+					/** @var Database $db */
 					$rServerID = intval($rServerID);
 					if (array_key_exists($rServerID, $rUptimeFallbackCache)) {
 						return $rUptimeFallbackCache[$rServerID];
@@ -1522,6 +1524,8 @@ if (isset($_SESSION['hash'])) {
 					}
 					return $rUptimeFallbackCache[$rServerID];
 				};
+
+				/** @var Database $db */
 
 				if (SettingsManager::getAll()['redis_handler']) {
 					$rReturn['total_users'] = SettingsManager::getAll()['total_users'];
@@ -2193,7 +2197,7 @@ if (isset($_SESSION['hash'])) {
 					}
 
 					$rRelease = AdminHelpers::parserelease($rTerm);
-					$rTerm = $rRelease['title'];
+					$rTerm = $rRelease['title'] ?? $rTerm;
 					$rJSON = array();
 
 					if (RequestManager::getAll()['type'] == 'movie') {
