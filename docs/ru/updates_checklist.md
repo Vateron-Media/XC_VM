@@ -127,8 +127,7 @@ cd dist && md5sum -c hashes.md5
 **Сгенерировать лог коммитов:**
 
 ```bash
-PREV_TAG=$(curl -s https://api.github.com/repos/Vateron-Media/XC_VM/releases/latest \
-  | grep -Po '"tag_name":\s*"\K[^"]+')
+PREV_TAG=$(git describe --tags --abbrev=0)
 echo "Предыдущий релиз: $PREV_TAG"
 git log --pretty=format:"- %s (%h)" "$PREV_TAG"..main > dist/changes.md
 ```
