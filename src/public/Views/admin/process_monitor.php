@@ -139,10 +139,10 @@
                                         <table class="table table-borderless mb-0">
                                             <thead class="thead-light">
                                                 <tr>
-                                                    <th class="text-center">Stream ID</th>
-                                                    <th>Stream Name</th>
-                                                    <th class="text-center">Bitrate</th>
-                                                    <th class="text-center">Mount Usage</th>
+                                                    <th class="text-center"><?= $language::get('stream_id') ?></th>
+                                                    <th><?= $language::get('stream_name') ?></th>
+                                                    <th class="text-center"><?= $language::get('bitrate') ?></th>
+                                                    <th class="text-center"><?= $language::get('mount_usage') ?></th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -163,10 +163,10 @@
                                         <table class="table table-borderless mb-0">
                                             <thead class="thead-light">
                                                 <tr>
-                                                    <th class="text-center">Stream ID</th>
-                                                    <th>Stream Name</th>
-                                                    <th class="text-center">Bitrate</th>
-                                                    <th class="text-center">Mount Usage</th>
+                                                    <th class="text-center"><?= $language::get('stream_id') ?></th>
+                                                    <th><?= $language::get('stream_name') ?></th>
+                                                    <th class="text-center"><?= $language::get('bitrate') ?></th>
+                                                    <th class="text-center"><?= $language::get('mount_usage') ?></th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -224,8 +224,8 @@
                                         <th style="max-width: 100px !important;"><?= $language::get('process') ?></th>
                                         <th><?= $language::get('cpu_%') ?></th>
                                         <th><?= $language::get('mem_mb') ?></th>
-                                        <th>Runtime</th>
-                                        <th>CPU Time</th>
+                                        <th><?= $language::get('runtime') ?></th>
+                                        <th><?= $language::get('cpu_time') ?></th>
                                         <th><?= $language::get('actions') ?></th>
                                     </tr>
                                 </thead>

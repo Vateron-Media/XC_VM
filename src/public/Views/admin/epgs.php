@@ -46,7 +46,7 @@
 									<th><?php echo $language::get('source'); ?></th>
 									<th class="text-center"><?php echo $language::get('days_to_keep'); ?></th>
 									<th class="text-center"><?php echo $language::get('last_updated'); ?></th>
-									<th class="text-center">Channels</th>
+									<th class="text-center"><?= $language::get('channels') ?></th>
 									<th class="text-center"><?php echo $language::get('actions'); ?></th>
 								</tr>
 							</thead>
@@ -63,7 +63,7 @@
 											<?php if (Authorization::check('adv', 'epg_edit')) { ?>
 												<div class="btn-group">
 													<a href="./epg?id=<?php echo $rEPG['id']; ?>"><button type="button" title="<?php echo $language::get('edit_epg'); ?>" class="tooltip btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-pencil-outline"></i></button></a>
-													<button type="button" title="Force Reload" class="tooltip btn btn-light waves-effect waves-light btn-xs" onClick="api(<?php echo $rEPG['id']; ?>, 'reload');"><i class="mdi mdi-refresh"></i></button>
+													<button type="button" title="<?= $language::get('force_reload') ?>" class="tooltip btn btn-light waves-effect waves-light btn-xs" onClick="api(<?php echo $rEPG['id']; ?>, 'reload');"><i class="mdi mdi-refresh"></i></button>
 													<button type="button" title="<?php echo $language::get('delete_epg'); ?>" class="tooltip btn btn-light waves-effect waves-light btn-xs" onClick="api(<?php echo $rEPG['id']; ?>, 'delete');"><i class="mdi mdi-close"></i></button>
 												</div>
 											<?php } else {

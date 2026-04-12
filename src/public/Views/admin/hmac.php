@@ -56,20 +56,20 @@ endif;
 										<div class="row">
 											<div class="col-12">
 												<div class="form-group row mb-4">
-													<label class="col-md-3 col-form-label" for="notes">Description</label>
+													<label class="col-md-3 col-form-label" for="notes"><?= $language::get('description') ?></label>
 													<div class="col-md-9">
 														<input type="text" class="form-control" id="notes" name="notes" value="<?php echo isset($rHMAC) ? htmlspecialchars($rHMAC['notes']) : ''; ?>">
 													</div>
 												</div>
 												<div class="form-group row mb-4">
-													<label class="col-md-3 col-form-label" for="keygen">HMAC Key</label>
+													<label class="col-md-3 col-form-label" for="keygen"><?= $language::get('hmac_key') ?></label>
 													<div class="col-md-5 input-group">
 														<input readonly type="text" maxlength="32" class="form-control" id="keygen" name="keygen" value="<?php echo isset($rHMAC) ? 'HMAC KEY HIDDEN' : ''; ?>" required data-parsley-trigger="change">
 														<div class="input-group-append">
 															<button class="btn btn-info waves-effect waves-light" onClick="generateCode();" type="button"><i class="mdi mdi-refresh"></i></button>
 														</div>
 													</div>
-													<label class="col-md-2 col-form-label" for="enabled">Enabled</label>
+													<label class="col-md-2 col-form-label" for="enabled"><?= $language::get('enabled') ?></label>
 													<div class="col-md-2">
 														<input name="enabled" id="enabled" type="checkbox" <?php echo isset($rHMAC) && $rHMAC['enabled'] == 1 ? 'checked' : 'checked'; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 													</div>

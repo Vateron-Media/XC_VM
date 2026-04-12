@@ -255,7 +255,7 @@ if (!isset($rBouquetArr)) {
 		echo $rChannel;
 		echo '">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td class="text-center">';
 		echo $rChannel;
-		echo '</td>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td>Stream</td>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td>';
+		echo '</td>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td>' . $language::get('stream') . '</td>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td>';
 		echo $rNames[$rChannel];
 		echo '</td>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td class="text-center">' . "\n" . '                                                                    <button type="button" class="btn-remove btn btn-warning waves-effect waves-warning btn-xs" onClick="toggleBouquet(';
 		echo $rChannel;
@@ -267,7 +267,7 @@ if (!isset($rBouquetArr)) {
 		echo $rChannel;
 		echo '">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td class="text-center">';
 		echo $rChannel;
-		echo '</td>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td>Movies</td>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td>';
+		echo '</td>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td>' . $language::get('movies') . '</td>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td>';
 		echo $rNames[$rChannel];
 		echo '</td>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td class="text-center">' . "\n" . '                                                                    <button type="button" class="btn-remove btn btn-warning waves-effect waves-warning btn-xs" onClick="toggleBouquet(';
 		echo $rChannel;
@@ -279,7 +279,7 @@ if (!isset($rBouquetArr)) {
 		echo $rChannel;
 		echo '">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td class="text-center">';
 		echo $rChannel;
-		echo '</td>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td>Radios</td>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td>';
+		echo '</td>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td>' . $language::get('radios') . '</td>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td>';
 		echo $rNames[$rChannel];
 		echo '</td>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td class="text-center">' . "\n" . '                                                                    <button type="button" class="btn-remove btn btn-warning waves-effect waves-warning btn-xs" onClick="toggleBouquet(';
 		echo $rChannel;
@@ -291,7 +291,7 @@ if (!isset($rBouquetArr)) {
 		echo $rChannel;
 		echo '">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td class="text-center">';
 		echo $rChannel;
-		echo '</td>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td>Series</td>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td>';
+		echo '</td>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td>' . $language::get('series') . '</td>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td>';
 		echo $rSeriesNames[$rChannel];
 		echo '</td>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td class="text-center">' . "\n" . '                                                                    <button type="button" class="btn-remove btn btn-warning waves-effect waves-warning btn-xs" onClick="toggleBouquet(';
 		echo $rChannel;

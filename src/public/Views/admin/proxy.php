@@ -30,7 +30,7 @@
                     <div class="page-title-right">
                         <?php include 'topbar.php'; ?>
                     </div>
-                    <h4 class="page-title">Edit Proxy</h4>
+                    <h4 class="page-title"><?= $language::get('edit_proxy') ?></h4>
                 </div>
             </div>
         </div>
@@ -45,19 +45,19 @@
                                     <li class="nav-item">
                                         <a href="#server-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-account-card-details-outline mr-1"></i>
-                                            <span class="d-none d-sm-inline">Details</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('details') ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
                                         <a href="#additional_ips" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-web"></i>
-                                            <span class="d-none d-sm-inline">Domains & IP's</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('domains_and_ips') ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
                                         <a href="#advanced-options" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-folder-alert-outline mr-1"></i>
-                                            <span class="d-none d-sm-inline">Advanced</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('advanced') ?></span>
                                         </a>
                                     </li>
                                 </ul>
@@ -66,23 +66,23 @@
                                         <div class="row">
                                             <div class="col-12">
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="server_name">Server Name</label>
+                                                    <label class="col-md-4 col-form-label" for="server_name"><?= $language::get('server_name') ?></label>
                                                     <div class="col-md-8">
                                                         <input type="text" class="form-control" id="server_name" name="server_name" value="<?= htmlspecialchars($rServerArr['server_name']); ?>" required data-parsley-trigger="change">
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="server_ip">Server IP <i title="This IP will be used for internal connections as well as broadcast if no domains are allocated." class="tooltip text-secondary far fa-circle"></i></label>
+                                                    <label class="col-md-4 col-form-label" for="server_ip">Server IP <i title="<?= $language::get('this_ip_will_be_used_tooltip') ?>" class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-8">
                                                         <input type="text" class="form-control" id="server_ip" name="server_ip" value="<?= htmlspecialchars($rServerArr['server_ip']); ?>" required data-parsley-trigger="change">
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="total_clients">Max Clients <i title="Maximum number of simultaneous connections to allow on this server." class="tooltip text-secondary far fa-circle"></i></label>
+                                                    <label class="col-md-4 col-form-label" for="total_clients">Max Clients <i title="<?= $language::get('maximum_number_of_simultaneous_connections_tooltip') ?>" class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-2">
                                                         <input type="text" class="form-control text-center" id="total_clients" name="total_clients" value="<?= htmlspecialchars($rServerArr['total_clients']); ?>" required data-parsley-trigger="change">
                                                     </div>
-                                                    <label class="col-md-4 col-form-label" for="enabled">Enabled <i title="Utilise this server for connections and streams." class="tooltip text-secondary far fa-circle"></i></label>
+                                                    <label class="col-md-4 col-form-label" for="enabled">Enabled <i title="<?= $language::get('utilise_this_server_for_connections_and_streams') ?>" class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-2">
                                                         <input name="enabled" id="enabled" type="checkbox" <?php if ($rServerArr['enabled'] == 1) echo 'checked'; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                     </div>
@@ -91,7 +91,7 @@
                                         </div>
                                         <ul class="list-inline wizard mb-0">
                                             <li class="nextb list-inline-item float-right">
-                                                <a href="javascript: void(0);" class="btn btn-secondary">Next</a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('next') ?></a>
                                             </li>
                                         </ul>
                                     </div>
@@ -105,7 +105,7 @@
                                                     By default, clients will be directed to the Server IP on the Details tab. You can add IP's or Domain Names here to force clients to be directed to those instead. If random IP / domain is selected, each client will be directed to a random entry in the list, otherwise the first entry in the list will be used to serve content.
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="ip_field">Domains & IP's</label>
+                                                    <label class="col-md-4 col-form-label" for="ip_field"><?= $language::get('domains_and_ips') ?></label>
                                                     <div class="col-md-8 input-group">
                                                         <input type="text" id="ip_field" class="form-control" value="">
                                                         <div class="input-group-append">
@@ -130,7 +130,7 @@
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="random_ip">Serve Random IP / Domain</label>
+                                                    <label class="col-md-4 col-form-label" for="random_ip"><?= $language::get('serve_random_ip_domain') ?></label>
                                                     <div class="col-md-2">
                                                         <input name="random_ip" id="random_ip" type="checkbox" <?php if ($rServerArr['random_ip'] == 1) echo 'checked '; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                     </div>
@@ -148,10 +148,10 @@
                                         </div>
                                         <ul class="list-inline wizard mb-0">
                                             <li class="prevb list-inline-item">
-                                                <a href="javascript: void(0);" class="btn btn-secondary">Previous</a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('prev') ?></a>
                                             </li>
                                             <li class="nextb list-inline-item float-right">
-                                                <a href="javascript: void(0);" class="btn btn-secondary">Next</a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('next') ?></a>
                                             </li>
                                         </ul>
                                     </div>
@@ -159,27 +159,27 @@
                                         <div class="row">
                                             <div class="col-12">
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="http_broadcast_port">HTTP Port <i title="Modifying this will not change the port on the proxy end, you would need to do this manually." class="tooltip text-secondary far fa-circle"></i></label>
+                                                    <label class="col-md-4 col-form-label" for="http_broadcast_port">HTTP Port <i title="<?= $language::get('modifying_this_will_not_change_tooltip') ?>" class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-2">
                                                         <input type="text" class="form-control text-center" id="http_broadcast_port" name="http_broadcast_port" value="<?= htmlspecialchars($rServerArr['http_broadcast_port']); ?>" required data-parsley-trigger="change">
                                                     </div>
-                                                    <label class="col-md-4 col-form-label" for="https_broadcast_port">HTTPS Ports <i title="Modifying this will not change the port on the proxy end, you would need to do this manually." class="tooltip text-secondary far fa-circle"></i></label>
+                                                    <label class="col-md-4 col-form-label" for="https_broadcast_port">HTTPS Ports <i title="<?= $language::get('modifying_this_will_not_change_tooltip') ?>" class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-2">
                                                         <input type="text" class="form-control text-center" id="https_broadcast_port" name="https_broadcast_port" value="<?= htmlspecialchars($rServerArr['https_broadcast_port']); ?>" required data-parsley-trigger="change">
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="network_guaranteed_speed">Network Speed - Mbps <i title="Port speed to consider when connecting clients." class="tooltip text-secondary far fa-circle"></i></label>
+                                                    <label class="col-md-4 col-form-label" for="network_guaranteed_speed">Network Speed - Mbps <i title="<?= $language::get('port_speed_to_consider_when_connecting_clients') ?>" class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-2">
                                                         <input type="text" class="form-control text-center" id="network_guaranteed_speed" name="network_guaranteed_speed" value="<?= htmlspecialchars($rServerArr['network_guaranteed_speed']); ?>" required data-parsley-trigger="change">
                                                     </div>
-                                                    <label class="col-md-4 col-form-label" for="enable_https">Enable SSL <i title="Allow HTTPS connections. You will have to configure this on the server manually." class="tooltip text-secondary far fa-circle"></i></label>
+                                                    <label class="col-md-4 col-form-label" for="enable_https">Enable SSL <i title="<?= $language::get('allow_https_connections_you_will_tooltip') ?>" class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-2">
                                                         <input name="enable_https" id="enable_https" type="checkbox" <?php if ($rServerArr['enable_https'] == 1) echo 'checked '; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="enable_geoip">GeoIP Load Balancing <i title="Route connections to the nearest server based on the location of the client." class="tooltip text-secondary far fa-circle"></i></label>
+                                                    <label class="col-md-4 col-form-label" for="enable_geoip">GeoIP Load Balancing <i title="<?= $language::get('route_connections_to_the_nearest_tooltip') ?>" class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-2">
                                                         <input name="enable_geoip" id="enable_geoip" type="checkbox" <?php if ($rServerArr['enable_geoip'] == 1) echo 'checked '; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                     </div>
@@ -192,9 +192,9 @@
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="geoip_countries">GeoIP Countries <i title="Select which countries should be prioritised to this server." class="tooltip text-secondary far fa-circle"></i></label>
+                                                    <label class="col-md-4 col-form-label" for="geoip_countries">GeoIP Countries <i title="<?= $language::get('select_which_countries_should_be_prioritised_to_this_server') ?>" class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-8">
-                                                        <select name="geoip_countries[]" id="geoip_countries" class="form-control select2 select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">
+                                                        <select name="geoip_countries[]" id="geoip_countries" class="form-control select2 select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="<?= $language::get('choose_placeholder') ?>">
                                                             <?php
                                                             $selectedCountries = json_decode($rServerArr['geoip_countries'] ?? '[]', true);
                                                             foreach ($rCountries as $country): ?>
@@ -207,7 +207,7 @@
                                         </div>
                                         <ul class="list-inline wizard mb-0">
                                             <li class="prevb list-inline-item">
-                                                <a href="javascript: void(0);" class="btn btn-secondary">Previous</a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('prev') ?></a>
                                             </li>
                                             <li class="nextb list-inline-item float-right">
                                                 <input name="submit_server" id="submit_button" type="submit" class="btn btn-primary" value="Save" />

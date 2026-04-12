@@ -29,7 +29,7 @@ endif;
                     <div class="page-title-right">
                         <?php include 'topbar.php'; ?>
                     </div>
-                    <h4 class="page-title">Mass Edit Stations <small id="selected_count"></small></h4>
+                    <h4 class="page-title"><?= $language::get('mass_edit_stations') ?> <small id="selected_count"></small></h4>
                 </div>
             </div>
         </div>
@@ -55,19 +55,19 @@ endif;
                                     <li class="nav-item">
                                         <a href="#stream-selection" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-play mr-1"></i>
-                                            <span class="d-none d-sm-inline">Stations</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('stations') ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
                                         <a href="#stream-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-account-card-details-outline mr-1"></i>
-                                            <span class="d-none d-sm-inline">Details</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('details') ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
                                         <a href="#load-balancing" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-server-network mr-1"></i>
-                                            <span class="d-none d-sm-inline">Servers</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('servers') ?></span>
                                         </a>
                                     </li>
                                 </ul>
@@ -75,12 +75,12 @@ endif;
                                     <div class="tab-pane" id="stream-selection">
                                         <div class="row">
                                             <div class="col-md-2 col-6">
-                                                <input type="text" class="form-control" id="stream_search" value="" placeholder="Search Stations...">
+                                                <input type="text" class="form-control" id="stream_search" value="" placeholder="<?= $language::get('search_stations') ?>">
                                             </div>
                                             <div class="col-md-3 col-6">
                                                 <select id="station_server_id" class="form-control" data-toggle="select2">
-                                                    <option value="" selected>All Servers</option>
-                                                    <option value="-1">No Servers</option>
+                                                    <option value="" selected><?= $language::get('all_servers') ?></option>
+                                                    <option value="-1"><?= $language::get('no_servers') ?></option>
                                                     <?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer) { ?>
                                                         <option value="<?php echo intval($rServer['id']); ?>"><?php echo $rServer['server_name']; ?></option>
                                                     <?php } ?>
@@ -88,8 +88,8 @@ endif;
                                             </div>
                                             <div class="col-md-3 col-6">
                                                 <select id="category_search" class="form-control" data-toggle="select2">
-                                                    <option value="" selected>All Categories</option>
-                                                    <option value="-1">No Categories</option>
+                                                    <option value="" selected><?= $language::get('all_categories') ?></option>
+                                                    <option value="-1"><?= $language::get('no_categories') ?></option>
                                                     <?php foreach ($rCategories as $rCategory) { ?>
                                                         <option value="<?php echo $rCategory['id']; ?>"><?php echo $rCategory['category_name']; ?></option>
                                                     <?php } ?>
@@ -98,12 +98,12 @@ endif;
                                             <div class="col-md-2 col-6">
                                                 <select id="station_filter" class="form-control" data-toggle="select2">
                                                     <option value=""><?php echo $language::get('no_filter'); ?></option>
-                                                    <option value="1">Online</option>
-                                                    <option value="2">Down</option>
-                                                    <option value="3">Stopped</option>
-                                                    <option value="4">Starting</option>
-                                                    <option value="5">On Demand</option>
-                                                    <option value="6">Direct</option>
+                                                    <option value="1"><?= $language::get('online') ?></option>
+                                                    <option value="2"><?= $language::get('down') ?></option>
+                                                    <option value="3"><?= $language::get('stopped') ?></option>
+                                                    <option value="4"><?= $language::get('starting') ?></option>
+                                                    <option value="5"><?= $language::get('on_demand') ?></option>
+                                                    <option value="6"><?= $language::get('direct') ?></option>
                                                 </select>
                                             </div>
                                             <div class="col-md-1 col-6">
@@ -122,12 +122,12 @@ endif;
                                             <table id="datatable-mass" class="table table-borderless mb-0">
                                                 <thead class="bg-light">
                                                     <tr>
-                                                        <th class="text-center">ID</th>
-                                                        <th class="text-center">Icon</th>
-                                                        <th>Station Name</th>
-                                                        <th>Category</th>
+                                                        <th class="text-center"><?= $language::get('id') ?></th>
+                                                        <th class="text-center"><?= $language::get('icon') ?></th>
+                                                        <th><?= $language::get('station_name') ?></th>
+                                                        <th><?= $language::get('category') ?></th>
                                                         <th><?php echo $language::get('servers'); ?></th>
-                                                        <th class="text-center">Status</th>
+                                                        <th class="text-center"><?= $language::get('status') ?></th>
                                                     </tr>
                                                 </thead>
                                                 <tbody></tbody>
@@ -145,9 +145,9 @@ endif;
                                                         <input type="checkbox" class="activate" data-name="category_id" name="c_category_id">
                                                         <label></label>
                                                     </div>
-                                                    <label class="col-md-2 col-form-label" for="example-email-input">Category</label>
+                                                    <label class="col-md-2 col-form-label" for="example-email-input"><?= $language::get('category') ?></label>
                                                     <div class="col-md-9">
-                                                        <select class="form-control select2" multiple="multiple" data-toggle="select2" id="c_category_id" name="c_category_id[]" data-placeholder="Choose Categories">
+                                                        <select class="form-control select2" multiple="multiple" data-toggle="select2" id="c_category_id" name="c_category_id[]" data-placeholder="<?= $language::get('choose_categories') ?>">
                                                             <?php foreach ($rCategories as $rCategory) { ?>
                                                                 <option value="<?php echo $rCategory['id']; ?>"><?php echo $rCategory['category_name']; ?></option>
                                                             <?php } ?>
@@ -159,9 +159,9 @@ endif;
                                                         <input type="checkbox" class="activate" data-name="station_server_id" name="c_server_id">
                                                         <label></label>
                                                     </div>
-                                                    <label class="col-md-2 col-form-label" for="example-email-input">Server</label>
+                                                    <label class="col-md-2 col-form-label" for="example-email-input"><?= $language::get('server') ?></label>
                                                     <div class="col-md-9">
-                                                        <select class="form-control select2" multiple="multiple" data-toggle="select2" id="c_server_id" name="c_server_id[]" data-placeholder="Choose Servers">
+                                                        <select class="form-control select2" multiple="multiple" data-toggle="select2" id="c_server_id" name="c_server_id[]" data-placeholder="<?= $language::get('choose_servers') ?>">
                                                             <?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer) { ?>
                                                                 <option value="<?php echo intval($rServer['id']); ?>"><?php echo $rServer['server_name']; ?></option>
                                                             <?php } ?>
@@ -173,11 +173,11 @@ endif;
                                                         <input type="checkbox" class="activate" data-name="allow_comments" name="c_allow_comments">
                                                         <label></label>
                                                     </div>
-                                                    <label class="col-md-2 col-form-label" for="example-email-input">Allow Comments</label>
+                                                    <label class="col-md-2 col-form-label" for="example-email-input"><?= $language::get('allow_comments') ?></label>
                                                     <div class="col-md-9">
                                                         <select class="form-control" data-toggle="select2" id="c_allow_comments" name="c_allow_comments">
-                                                            <option value="1">Yes</option>
-                                                            <option value="0">No</option>
+                                                            <option value="1"><?= $language::get('yes') ?></option>
+                                                            <option value="0"><?= $language::get('no') ?></option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -186,11 +186,11 @@ endif;
                                                         <input type="checkbox" class="activate" data-name="autoplay" name="c_autoplay">
                                                         <label></label>
                                                     </div>
-                                                    <label class="col-md-2 col-form-label" for="example-email-input">Autoplay</label>
+                                                    <label class="col-md-2 col-form-label" for="example-email-input"><?= $language::get('autoplay') ?></label>
                                                     <div class="col-md-9">
                                                         <select class="form-control" data-toggle="select2" id="c_autoplay" name="c_autoplay">
-                                                            <option value="1">Yes</option>
-                                                            <option value="0">No</option>
+                                                            <option value="1"><?= $language::get('yes') ?></option>
+                                                            <option value="0"><?= $language::get('no') ?></option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -199,11 +199,11 @@ endif;
                                                         <input type="checkbox" class="activate" data-name="email_on_new_comment" name="c_email_on_new_comment">
                                                         <label></label>
                                                     </div>
-                                                    <label class="col-md-2 col-form-label" for="example-email-input">Email on New Comment</label>
+                                                    <label class="col-md-2 col-form-label" for="example-email-input"><?= $language::get('email_on_new_comment') ?></label>
                                                     <div class="col-md-9">
                                                         <select class="form-control" data-toggle="select2" id="c_email_on_new_comment" name="c_email_on_new_comment">
-                                                            <option value="1">Yes</option>
-                                                            <option value="0">No</option>
+                                                            <option value="1"><?= $language::get('yes') ?></option>
+                                                            <option value="0"><?= $language::get('no') ?></option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -221,11 +221,11 @@ endif;
                                                         <input type="checkbox" class="activate" data-name="load_balancing" name="c_load_balancing">
                                                         <label></label>
                                                     </div>
-                                                    <label class="col-md-2 col-form-label" for="example-email-input">Load Balancing</label>
+                                                    <label class="col-md-2 col-form-label" for="example-email-input"><?= $language::get('load_balancing') ?></label>
                                                     <div class="col-md-9">
                                                         <select class="form-control" data-toggle="select2" id="c_load_balancing" name="c_load_balancing">
-                                                            <option value="1">Yes</option>
-                                                            <option value="0">No</option>
+                                                            <option value="1"><?= $language::get('yes') ?></option>
+                                                            <option value="0"><?= $language::get('no') ?></option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -234,7 +234,7 @@ endif;
                                                         <input type="checkbox" class="activate" data-name="total_listeners" name="c_total_listeners">
                                                         <label></label>
                                                     </div>
-                                                    <label class="col-md-2 col-form-label" for="example-email-input">Total Listeners</label>
+                                                    <label class="col-md-2 col-form-label" for="example-email-input"><?= $language::get('total_listeners') ?></label>
                                                     <div class="col-md-9">
                                                         <input type="text" class="form-control" id="c_total_listeners" name="c_total_listeners">
                                                     </div>
@@ -244,7 +244,7 @@ endif;
                                                         <input type="checkbox" class="activate" data-name="current_listeners" name="c_current_listeners">
                                                         <label></label>
                                                     </div>
-                                                    <label class="col-md-2 col-form-label" for="example-email-input">Current Listeners</label>
+                                                    <label class="col-md-2 col-form-label" for="example-email-input"><?= $language::get('current_listeners') ?></label>
                                                     <div class="col-md-9">
                                                         <input type="text" class="form-control" id="c_current_listeners" name="c_current_listeners">
                                                     </div>
@@ -254,7 +254,7 @@ endif;
                                                         <input type="checkbox" class="activate" data-name="bitrate" name="c_bitrate">
                                                         <label></label>
                                                     </div>
-                                                    <label class="col-md-2 col-form-label" for="example-email-input">Bitrate</label>
+                                                    <label class="col-md-2 col-form-label" for="example-email-input"><?= $language::get('bitrate') ?></label>
                                                     <div class="col-md-9">
                                                         <input type="text" class="form-control" id="c_bitrate" name="c_bitrate">
                                                     </div>
@@ -266,7 +266,7 @@ endif;
                                                     </div>
                                                     <label class="col-md-2 col-form-label" for="example
                                                     </div>
-                                                        <label class=" col-md-2 col-form-label">Category</label>
+                                                        <label class=" col-md-2 col-form-label"><?= $language::get('category') ?></label>
                                                     <div class="col-md-9">
                                                         <select id="c_category_id" class="form-control" data-toggle="select2" multiple>
                                                             <?php foreach ($rCategories as $rCategory) { ?>
@@ -280,7 +280,7 @@ endif;
                                                         <input type="checkbox" class="activate" data-name="server_id" name="c_server_id">
                                                         <label></label>
                                                     </div>
-                                                    <label class="col-md-2 col-form-label">Server</label>
+                                                    <label class="col-md-2 col-form-label"><?= $language::get('server') ?></label>
                                                     <div class="col-md-9">
                                                         <select id="c_server_id" class="form-control" data-toggle="select2" multiple>
                                                             <?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer) { ?>
@@ -294,7 +294,7 @@ endif;
                                                         <input type="checkbox" class="activate" data-name="stream_username" name="c_stream_username">
                                                         <label></label>
                                                     </div>
-                                                    <label class="col-md-2 col-form-label">Username</label>
+                                                    <label class="col-md-2 col-form-label"><?= $language::get('username') ?></label>
                                                     <div class="col-md-9">
                                                         <input type="text" class="form-control" id="c_stream_username" name="c_stream_username" value="" />
                                                     </div>
@@ -304,7 +304,7 @@ endif;
                                                         <input type="checkbox" class="activate" data-name="stream_password" name="c_stream_password">
                                                         <label></label>
                                                     </div>
-                                                    <label class="col-md-2 col-form-label">Password</label>
+                                                    <label class="col-md-2 col-form-label"><?= $language::get('password') ?></label>
                                                     <div class="col-md-9">
                                                         <input type="text" class="form-control" id="c_stream_password" name="c_stream_password" value="" />
                                                     </div>
@@ -314,11 +314,11 @@ endif;
                                                         <input type="checkbox" class="activate" data-name="stream_allow_transcode" name="c_stream_allow_transcode">
                                                         <label></label>
                                                     </div>
-                                                    <label class="col-md-2 col-form-label">Transcode</label>
+                                                    <label class="col-md-2 col-form-label"><?= $language::get('transcode') ?></label>
                                                     <div class="col-md-9">
                                                         <select id="c_stream_allow_transcode" class="form-control" data-toggle="select2">
-                                                            <option value="1">Enabled</option>
-                                                            <option value="0">Disabled</option>
+                                                            <option value="1"><?= $language::get('enabled') ?></option>
+                                                            <option value="0"><?= $language::get('disabled') ?></option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -337,11 +337,11 @@ endif;
                                                     <input type="checkbox" class="activate" data-name="load_balancer_enabled" name="c_load_balancer_enabled">
                                                     <label></label>
                                                 </div>
-                                                <label class="col-md-2 col-form-label">Load Balancer</label>
+                                                <label class="col-md-2 col-form-label"><?= $language::get('load_balancer') ?></label>
                                                 <div class="col-md-9">
                                                     <select id="c_load_balancer_enabled" class="form-control" data-toggle="select2">
-                                                        <option value="1">Enabled</option>
-                                                        <option value="0">Disabled</option>
+                                                        <option value="1"><?= $language::get('enabled') ?></option>
+                                                        <option value="0"><?= $language::get('disabled') ?></option>
                                                     </select>
                                                 </div>
                                             </div>
@@ -350,10 +350,10 @@ endif;
                                                     <input type="checkbox" class="activate" data-name="load_balancer_server_id" name="c_load_balancer_server_id">
                                                     <label></label>
                                                 </div>
-                                                <label class="col-md-2 col-form-label">Load Balancer Server</label>
+                                                <label class="col-md-2 col-form-label"><?= $language::get('load_balancer_server') ?></label>
                                                 <div class="col-md-9">
                                                     <select id="c_load_balancer_server_id" class="form-control" data-toggle="select2">
-                                                        <option value="">No Server</option>
+                                                        <option value=""><?= $language::get('no_server') ?></option>
                                                         <?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer) { ?>
                                                             <option value="<?php echo $rServer['id']; ?>"><?php echo $rServer['server_name']; ?></option>
                                                         <?php } ?>
@@ -366,10 +366,10 @@ endif;
                             </div>
                             <ul class="list-inline mb-0 wizard">
                                 <li class="previous list-inline-item">
-                                    <a href="javascript: void(0);" class="btn btn-secondary">Previous</a>
+                                    <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('prev') ?></a>
                                 </li>
                                 <li class="next list-inline-item float-right">
-                                    <a href="javascript: void(0);" class="btn btn-secondary">Next</a>
+                                    <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('next') ?></a>
                                 </li>
                             </ul>
                     </div>

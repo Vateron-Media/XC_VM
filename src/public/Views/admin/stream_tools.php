@@ -25,7 +25,7 @@ endif;
                     <div class="page-title-right">
                         <?php include 'topbar.php'; ?>
                     </div>
-                    <h4 class="page-title">Stream Tools</h4>
+                    <h4 class="page-title"><?= $language::get('stream_tools') ?></h4>
                 </div>
             </div>
         </div>
@@ -53,19 +53,19 @@ endif;
                                 <li class="nav-item">
                                     <a href="#dns-replacement" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                         <i class="mdi mdi-dns mr-1"></i>
-                                        <span class="d-none d-sm-inline">DNS Replacement</span>
+                                        <span class="d-none d-sm-inline"><?= $language::get('dns_replacement') ?></span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href="#move-streams" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                         <i class="mdi mdi-folder-move mr-1"></i>
-                                        <span class="d-none d-sm-inline">Move Streams</span>
+                                        <span class="d-none d-sm-inline"><?= $language::get('move_streams') ?></span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href="#url-decrypt" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                         <i class="mdi mdi-lock-open mr-1"></i>
-                                        <span class="d-none d-sm-inline">URL Decrypt</span>
+                                        <span class="d-none d-sm-inline"><?= $language::get('url_decrypt') ?></span>
                                     </a>
                                 </li>
                             </ul>
@@ -81,7 +81,7 @@ endif;
                                                     as username and password.
                                                 </p>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="old_dns">Old DNS</label>
+                                                    <label class="col-md-4 col-form-label" for="old_dns"><?= $language::get('old_dns') ?></label>
                                                     <div class="col-md-8">
                                                         <input type="text" class="form-control" id="old_dns"
                                                             name="old_dns" value="" placeholder="http://example.com"
@@ -89,7 +89,7 @@ endif;
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="new_dns">New DNS</label>
+                                                    <label class="col-md-4 col-form-label" for="new_dns"><?= $language::get('new_dns') ?></label>
                                                     <div class="col-md-8">
                                                         <input type="text" class="form-control" id="new_dns"
                                                             name="new_dns" value="" placeholder="http://newdns.com"

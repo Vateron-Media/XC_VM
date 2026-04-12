@@ -74,7 +74,7 @@
 													<div class="col-md-2">
 														<input type="text" class="form-control text-center" id="days_keep" name="days_keep" value="<?php echo isset($rEPGArr) ? htmlspecialchars($rEPGArr['days_keep']) : '7'; ?>" required data-parsley-trigger="change">
 													</div>
-													<label class="col-md-4 col-form-label" for="offset">Minute Offset</label>
+													<label class="col-md-4 col-form-label" for="offset"><?= $language::get('minute_offset') ?></label>
 													<div class="col-md-2">
 														<input type="text" class="form-control text-center" id="offset" name="offset" value="<?php echo isset($rEPGArr) ? intval($rEPGArr['offset']) : '0'; ?>" required data-parsley-trigger="change">
 													</div>

@@ -43,7 +43,7 @@ endif;
                                     <li class="nav-item">
                                         <a href="#isp-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-account-card-details-outline mr-1"></i>
-                                            <span class="d-none d-sm-inline">Details</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('details') ?></span>
                                         </a>
                                     </li>
                                 </ul>
@@ -52,13 +52,13 @@ endif;
                                         <div class="row">
                                             <div class="col-12">
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="isp">ISP Name</label>
+                                                    <label class="col-md-4 col-form-label" for="isp"><?= $language::get('isp_name') ?></label>
                                                     <div class="col-md-8">
                                                         <input type="text" class="form-control" id="isp" name="isp" value="<?php echo isset($rISPArr) ? htmlspecialchars($rISPArr['isp']) : ''; ?>" required data-parsley-trigger="change">
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="blocked">Blocked</label>
+                                                    <label class="col-md-4 col-form-label" for="blocked"><?= $language::get('blocked') ?></label>
                                                     <div class="col-md-2">
                                                         <input name="blocked" id="blocked" type="checkbox" <?php echo isset($rISPArr) && $rISPArr['blocked'] == 1 ? 'checked' : ''; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                     </div>

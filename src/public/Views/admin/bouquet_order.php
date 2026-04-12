@@ -63,7 +63,7 @@
                                                 </select>
                                                 <div class="custom-control custom-checkbox add-margin-top-20">
                                                     <input type="checkbox" class="custom-control-input" name="confirmReplace" id="confirmReplace">
-                                                    <label class="custom-control-label" for="confirmReplace">Replace bouquet order for all users and packages retrospectively. This can take a while.</label>
+                                                    <label class="custom-control-label" for="confirmReplace"><?= $language::get('bouquet_order_retroactive_hint') ?></label>
                                                 </div>
                                             </div>
                                         </div>

@@ -21,7 +21,7 @@
 					<div class="page-title-right">
 						<?php include 'topbar.php'; ?>
 					</div>
-					<h4 class="page-title">HMAC Keys</h4>
+					<h4 class="page-title"><?= $language::get('hmac_keys') ?></h4>
 				</div>
 			</div>
 		</div>
@@ -41,8 +41,8 @@
 							<thead>
 								<tr>
 									<th class="text-center"><?= $language::get('id'); ?></th>
-									<th>Description</th>
-									<th class="text-center">Enabled</th>
+									<th><?= $language::get('description') ?></th>
+									<th class="text-center"><?= $language::get('enabled') ?></th>
 									<th class="text-center"><?= $language::get('actions'); ?></th>
 								</tr>
 							</thead>
@@ -61,11 +61,11 @@
 										<td class="text-center">
 											<div class="btn-group">
 												<a href="./hmac?id=<?= $rHMAC['id']; ?>">
-													<button type="button" data-toggle="tooltip" data-placement="top" title="" data-original-title="Edit Key" class="btn btn-light waves-effect waves-light btn-xs">
+													<button type="button" data-toggle="tooltip" data-placement="top" title="" data-original-title="<?= $language::get('edit_key') ?>" class="btn btn-light waves-effect waves-light btn-xs">
 														<i class="mdi mdi-pencil-outline"></i>
 													</button>
 												</a>
-												<button type="button" data-toggle="tooltip" data-placement="top" title="" data-original-title="Delete Key" class="btn btn-light waves-effect waves-light btn-xs" onClick="api(<?= $rHMAC['id']; ?>, 'delete');"">
+												<button type="button" data-toggle="tooltip" data-placement="top" title="" data-original-title="<?= $language::get('delete_key') ?>" class="btn btn-light waves-effect waves-light btn-xs" onClick="api(<?= $rHMAC['id']; ?>, 'delete');"">
 													<i class=" mdi mdi-close"></i>
 												</button>
 											</div>

@@ -55,12 +55,12 @@
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="timezone">Timezone</label>
+                                                    <label class="col-md-4 col-form-label" for="timezone"><?= $language::get('timezone') ?></label>
                                                     <div class="col-md-8">
                                                         <select name="timezone" id="timezone" class="form-control" data-toggle="select2">
                                                             <option <?php if (empty($rUserInfo['timezone'])) {
                                                                         echo 'selected ';
-                                                                    } ?>value="">Server Default</option>
+                                                                    } ?><?= $language::get('valueserver_default') ?></option>
                                                             <?php foreach (AdminHelpers::TimeZoneList() as $rValue) { ?>
                                                                 <option <?php if ($rUserInfo['timezone'] == $rValue['zone']) {
                                                                             echo 'selected ';
@@ -70,7 +70,7 @@
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="theme">System Theme</label>
+                                                    <label class="col-md-4 col-form-label" for="theme"><?= $language::get('system_theme') ?></label>
                                                     <div class="col-md-8">
                                                         <select name="theme" id="theme" class="form-control" data-toggle="select2">
                                                             <?php foreach ((is_array($rThemes ?? null) ? $rThemes : []) as $rValue => $rArray) { ?>
@@ -82,7 +82,7 @@
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="hue">Topbar Theme</label>
+                                                    <label class="col-md-4 col-form-label" for="hue"><?= $language::get('topbar_theme') ?></label>
                                                     <div class="col-md-8">
                                                         <select name="hue" id="hue" class="form-control" data-toggle="select2">
                                                             <?php foreach ((is_array($rHues ?? null) ? $rHues : []) as $rValue => $rText) { ?>
@@ -94,7 +94,7 @@
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="lang">Language</label>
+                                                    <label class="col-md-4 col-form-label" for="lang"><?= $language::get('language') ?></label>
                                                     <div class="col-md-8">
                                                         <select name="lang" id="lang" class="form-control" data-toggle="select2">
                                                             <?php foreach ((is_array($allowedLangs ?? null) ? $allowedLangs : []) as $rText) { ?>

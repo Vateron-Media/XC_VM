@@ -145,13 +145,13 @@
                                                 <tr>
                                                     <th></th>
                                                     <th></th>
-                                                    <th>Username</th>
-                                                    <th>Stream</th>
+                                                    <th><?= $language::get('username') ?></th>
+                                                    <th><?= $language::get('stream') ?></th>
                                                     <th></th>
                                                     <th></th>
                                                     <th></th>
-                                                    <th class="text-center">IP</th>
-                                                    <th class="text-center">Duration</th>
+                                                    <th class="text-center"><?= $language::get('ip') ?></th>
+                                                    <th class="text-center"><?= $language::get('duration') ?></th>
                                                     <th></th>
                                                     <th></th>
                                                     <th class="text-center"><?php echo $language::get('actions'); ?></th>

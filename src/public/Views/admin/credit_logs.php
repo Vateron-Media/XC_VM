@@ -28,17 +28,17 @@
 					<div class="card-body" style="overflow-x:auto;">
 						<div class="form-group row mb-4">
 							<div class="col-md-3">
-								<input type="text" class="form-control" id="log_search" value="" placeholder="Search Logs...">
+								<input type="text" class="form-control" id="log_search" value="" placeholder="<?= $language::get('search_logs_placeholder') ?>">
 							</div>
 							<label class="col-md-1 col-form-label text-center" for="reseller">Reseller &nbsp; <button type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="clearOwner();"><i class="mdi mdi-close"></i></button></label>
 							<div class="col-md-3">
 								<select id="reseller" class="form-control" data-toggle="select2"></select>
 							</div>
-							<label class="col-md-1 col-form-label text-center" for="range">Dates</label>
+							<label class="col-md-1 col-form-label text-center" for="range"><?= $language::get('dates') ?></label>
 							<div class="col-md-2">
-								<input type="text" class="form-control text-center date" id="range" name="range" data-toggle="date-picker" data-single-date-picker="true" autocomplete="off" placeholder="Dates">
+								<input type="text" class="form-control text-center date" id="range" name="range" data-toggle="date-picker" data-single-date-picker="true" autocomplete="off" placeholder="<?= $language::get('dates') ?>">
 							</div>
-							<label class="col-md-1 col-form-label text-center" for="show_entries">Show</label>
+							<label class="col-md-1 col-form-label text-center" for="show_entries"><?= $language::get('show') ?></label>
 							<div class="col-md-1">
 								<select id="show_entries" class="form-control" data-toggle="select2">
 									<?php foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) { ?>

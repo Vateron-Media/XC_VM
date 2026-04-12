@@ -57,7 +57,7 @@
 										<a href="#category-details" data-toggle="tab"
 											class="nav-link rounded-0 pt-2 pb-2">
 											<i class="mdi mdi-account-card-details-outline mr-1"></i>
-											<span class="d-none d-sm-inline">Details</span>
+											<span class="d-none d-sm-inline"><?= $language::get('details') ?></span>
 										</a>
 									</li>
 									<?php if (!isset($rCategoryArr)) {
@@ -65,7 +65,7 @@
 										<li class="nav-item">
 											<a href="#view-channels" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
 												<i class="mdi mdi-play mr-1"></i>
-												<span class="d-none d-sm-inline">View Streams</span>
+												<span class="d-none d-sm-inline"><?= $language::get('permission_streams') ?></span>
 											</a>
 										</li>
 									<?php } ?>
@@ -139,9 +139,9 @@
 													class="table table-striped table-borderless dt-responsive nowrap">
 													<thead>
 														<tr>
-															<th class="text-center">Stream ID</th>
-															<th>Stream Name</th>
-															<th class="text-center">Actions</th>
+															<th class="text-center"><?= $language::get('stream_id') ?></th>
+															<th><?= $language::get('stream_name') ?></th>
+															<th class="text-center"><?= $language::get('actions') ?></th>
 														</tr>
 													</thead>
 													<tbody></tbody>

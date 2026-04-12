@@ -31,7 +31,7 @@ endif;
 					<div class="page-title-right">
 						<?php include 'topbar.php'; ?>
 					</div>
-					<h4 class="page-title">Categories</h4>
+					<h4 class="page-title"><?= $language::get('categories') ?></h4>
 				</div>
 			</div>
 		</div>
@@ -66,25 +66,25 @@ endif;
 								<li class="nav-item">
 									<a href="#category-order-1" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
 										<i class="mdi mdi-play mr-1"></i>
-										<span class="d-none d-sm-inline">Streams</span>
+										<span class="d-none d-sm-inline"><?= $language::get('streams') ?></span>
 									</a>
 								</li>
 								<li class="nav-item">
 									<a href="#category-order-2" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
 										<i class="mdi mdi-movie mr-1"></i>
-										<span class="d-none d-sm-inline">Movies</span>
+										<span class="d-none d-sm-inline"><?= $language::get('movies') ?></span>
 									</a>
 								</li>
 								<li class="nav-item">
 									<a href="#category-order-3" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
 										<i class="mdi mdi-youtube-tv mr-1"></i>
-										<span class="d-none d-sm-inline">Series</span>
+										<span class="d-none d-sm-inline"><?= $language::get('series') ?></span>
 									</a>
 								</li>
 								<li class="nav-item">
 									<a href="#category-order-4" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
 										<i class="mdi mdi-radio mr-1"></i>
-										<span class="d-none d-sm-inline">Radio</span>
+										<span class="d-none d-sm-inline"><?= $language::get('radio') ?></span>
 									</a>
 								</li>
 							</ul>

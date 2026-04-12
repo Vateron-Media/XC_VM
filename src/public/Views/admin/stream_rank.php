@@ -29,7 +29,7 @@ endif;
 					<div class="page-title-right">
 						<?php include 'topbar.php'; ?>
 					</div>
-					<h4 class="page-title">Stream Rank</h4>
+					<h4 class="page-title"><?= $language::get('stream_rank') ?></h4>
 				</div>
 			</div>
 		</div>
@@ -40,7 +40,7 @@ endif;
 						<div class="form-group row mb-4">
 							<div class="col-md-7">
 								<input type="text" class="form-control" id="log_search" value=""
-									placeholder="Search Logs...">
+									placeholder="<?= $language::get('search_logs_placeholder') ?>">
 							</div>
 							<div class="col-md-3">
 								<select id="period" class="form-control" data-toggle="select2">
@@ -67,11 +67,11 @@ endif;
 							class="table table-striped table-borderless dt-responsive nowrap">
 							<thead>
 								<tr>
-									<th class="text-center">Rank #</th>
-									<th>Stream Name</th>
-									<th class="text-center">Time Watched</th>
-									<th class="text-center">Total Connections</th>
-									<th class="text-center">Total Users</th>
+									<th class="text-center"><?= $language::get('rank') ?></th>
+									<th><?= $language::get('stream_name') ?></th>
+									<th class="text-center"><?= $language::get('time_watched') ?></th>
+									<th class="text-center"><?= $language::get('total_connections') ?></th>
+									<th class="text-center"><?= $language::get('total_users') ?></th>
 								</tr>
 							</thead>
 							<tbody>

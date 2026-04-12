@@ -25,7 +25,7 @@ endif;
 					<div class="page-title-right">
 						<?php include 'topbar.php'; ?>
 					</div>
-					<h4 class="page-title">Line IP Usage</h4>
+					<h4 class="page-title"><?= $language::get('line_ip_usage') ?></h4>
 				</div>
 			</div>
 		</div>
@@ -35,7 +35,7 @@ endif;
 					<div class="card-body" style="overflow-x:auto;">
 						<div class="form-group row mb-4">
 							<div class="col-md-7">
-								<input type="text" class="form-control" id="log_search" value="" placeholder="Search Logs...">
+								<input type="text" class="form-control" id="log_search" value="" placeholder="<?= $language::get('search_logs_placeholder') ?>">
 							</div>
 							<div class="col-md-3">
 								<select id="range" class="form-control" data-toggle="select2">
@@ -56,17 +56,17 @@ endif;
 						<table id="datatable-activity" class="table table-striped table-borderless dt-responsive nowrap">
 							<thead>
 								<tr>
-									<th class="text-center">User ID</th>
-									<th>Username</th>
-									<th class="text-center">IP Count</th>
-									<th class="text-center">Actions</th>
+									<th class="text-center"><?= $language::get('user_id') ?></th>
+									<th><?= $language::get('username') ?></th>
+									<th class="text-center"><?= $language::get('ip_count') ?></th>
+									<th class="text-center"><?= $language::get('actions') ?></th>
 								</tr>
 							</thead>
 							<tbody>
 								<?php foreach ($rLineIPs[$rRange] as $rRow) {
 									$rButtons = $rRange == 0 ?
-										'<a href="line_activity?user_id=' . $rRow['user_id'] . '"><button type="button" class="btn btn-light waves-effect waves-light btn-xs">View Logs</button></a>' :
-										'<a href="line_activity?user_id=' . $rRow['user_id'] . '&range=' . date($rSettings['date_format'], time() - $rRange) . ' - ' . date($rSettings['date_format'], time()) . '"><button type="button" class="btn btn-light waves-effect waves-light btn-xs">View Logs</button></a>';
+										'<a href="line_activity?user_id=' . $rRow['user_id'] . '"><button type="button" class="btn btn-light waves-effect waves-light btn-xs">' . $language::get('view_logs') . '</button></a>' :
+										'<a href="line_activity?user_id=' . $rRow['user_id'] . '&range=' . date($rSettings['date_format'], time() - $rRange) . ' - ' . date($rSettings['date_format'], time()) . '"><button type="button" class="btn btn-light waves-effect waves-light btn-xs">' . $language::get('view_logs') . '</button></a>';
 
 									if (Authorization::check('adv', 'edit_user')) {
 										$rID = "<a href='line?id=" . $rRow['user_id'] . "'>" . $rRow['user_id'] . "</a>";

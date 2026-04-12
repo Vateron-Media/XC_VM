@@ -33,7 +33,7 @@ if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQU
 
 echo '>' . "\n" . '    <div class="container-fluid">' . "\n\t\t" . '<div class="row">' . "\n\t\t\t" . '<div class="col-12">' . "\n\t\t\t\t" . '<div class="page-title-box">' . "\n\t\t\t\t\t" . '<div class="page-title-right">' . "\n" . '                        ';
 include 'topbar.php';
-echo "\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t" . '<h4 class="page-title">Streams</h4>' . "\n\t\t\t\t" . '</div>' . "\n\t\t\t" . '</div>' . "\n\t\t" . '</div>' . "\n\t\t" . '<div class="row">' . "\n\t\t\t" . '<div class="col-12">' . "\n" . '                ';
+echo "\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t" . '<h4 class="page-title">' . $language::get('streams') . '</h4>' . "\n\t\t\t\t" . '</div>' . "\n\t\t\t" . '</div>' . "\n\t\t" . '</div>' . "\n\t\t" . '<div class="row">' . "\n\t\t\t" . '<div class="col-12">' . "\n" . '                ';
 
 if (!(isset($_STATUS) && $_STATUS == STATUS_SUCCESS)) {
 } else {
@@ -56,7 +56,7 @@ if (!isset(RequestManager::getAll()['search'])) {
 	echo htmlspecialchars(RequestManager::getAll()['search']);
 }
 
-echo '" placeholder="Search Streams...">' . "\n" . '                            </div>' . "\n" . '                            <div class="col-md-2">' . "\n" . '                                <select id="stream_server_id" class="form-control" data-toggle="select2">' . "\n" . '                                    <option value=""';
+echo '" placeholder="' . $language::get('search_streams_placeholder') . '">' . "\n" . '                            </div>' . "\n" . '                            <div class="col-md-2">' . "\n" . '                                <select id="stream_server_id" class="form-control" data-toggle="select2">' . "\n" . '                                    <option value=""';
 
 if (isset(RequestManager::getAll()['server'])) {
 } else {
@@ -72,7 +72,7 @@ if (!(isset(RequestManager::getAll()['server']) && RequestManager::getAll()['ser
 	echo ' selected';
 }
 
-echo '>No Servers</option>' . "\n" . '                                    ';
+echo '>' . $language::get('no_servers') . '</option>' . "\n" . '                                    ';
 
 foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer) {
 	echo '                                    <option value="';
@@ -104,7 +104,7 @@ if (!(isset(RequestManager::getAll()['category']) && RequestManager::getAll()['c
 	echo ' selected';
 }
 
-echo '>No Categories</option>' . "\n" . '                                    ';
+echo '>' . $language::get('no_categories') . '</option>' . "\n" . '                                    ';
 
 foreach (CategoryService::getAllByType('live') as $rCategory) {
 	echo '                                    <option value="';
@@ -127,112 +127,112 @@ if (isset(RequestManager::getAll()['filter'])) {
 	echo ' selected';
 }
 
-echo '>No Filter</option>' . "\n" . '                                    <option value="1"';
+echo '>' . $language::get('no_filter') . '</option>' . "\n" . '                                    <option value="1"';
 
 if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 1)) {
 } else {
 	echo ' selected';
 }
 
-echo '>Online</option>' . "\n" . '                                    <option value="2"';
+echo '>' . $language::get('online') . '</option>' . "\n" . '                                    <option value="2"';
 
 if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 2)) {
 } else {
 	echo ' selected';
 }
 
-echo '>Down</option>' . "\n" . '                                    <option value="3"';
+echo '>' . $language::get('down') . '</option>' . "\n" . '                                    <option value="3"';
 
 if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 3)) {
 } else {
 	echo ' selected';
 }
 
-echo '>Stopped</option>' . "\n" . '                                    <option value="4"';
+echo '>' . $language::get('stopped') . '</option>' . "\n" . '                                    <option value="4"';
 
 if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 4)) {
 } else {
 	echo ' selected';
 }
 
-echo '>Starting</option>' . "\n" . '                                    <option value="5"';
+echo '>' . $language::get('starting') . '</option>' . "\n" . '                                    <option value="5"';
 
 if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 5)) {
 } else {
 	echo ' selected';
 }
 
-echo '>On Demand</option>' . "\n" . '                                    <option value="6"';
+echo '>' . $language::get('on_demand') . '</option>' . "\n" . '                                    <option value="6"';
 
 if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 6)) {
 } else {
 	echo ' selected';
 }
 
-echo '>Direct</option>' . "\n" . '                                    <option value="7"';
+echo '>' . $language::get('direct') . '</option>' . "\n" . '                                    <option value="7"';
 
 if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 7)) {
 } else {
 	echo ' selected';
 }
 
-echo '>Timeshift</option>' . "\n" . '                                    <option value="8"';
+echo '>' . $language::get('timeshift') . '</option>' . "\n" . '                                    <option value="8"';
 
 if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 8)) {
 } else {
 	echo ' selected';
 }
 
-echo '>Looping</option>' . "\n" . '                                    <option value="9"';
+echo '>' . $language::get('looping') . '</option>' . "\n" . '                                    <option value="9"';
 
 if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 9)) {
 } else {
 	echo ' selected';
 }
 
-echo '>Has EPG</option>' . "\n" . '                                    <option value="10"';
+echo '>' . $language::get('has_epg') . '</option>' . "\n" . '                                    <option value="10"';
 
 if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 10)) {
 } else {
 	echo ' selected';
 }
 
-echo '>No EPG</option>' . "\n" . '                                    <option value="11"';
+echo '>' . $language::get('no_epg') . '</option>' . "\n" . '                                    <option value="11"';
 
 if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 11)) {
 } else {
 	echo ' selected';
 }
 
-echo '>Adaptive Link</option>' . "\n\t\t\t\t\t\t\t\t\t" . '<option value="12"';
+echo '>' . $language::get('adaptive_link') . '</option>' . "\n\t\t\t\t\t\t\t\t\t" . '<option value="12"';
 
 if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 12)) {
 } else {
 	echo ' selected';
 }
 
-echo '>Title Sync</option>' . "\n\t\t\t\t\t\t\t\t\t" . '<option value="13"';
+echo '>' . $language::get('title_sync') . '</option>' . "\n\t\t\t\t\t\t\t\t\t" . '<option value="13"';
 
 if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 13)) {
 } else {
 	echo ' selected';
 }
 
-echo '>Transcoding</option>' . "\n" . '                                </select>' . "\n" . '                            </div>' . "\n" . '                            <div class="col-md-1">' . "\n" . '                                <select id="stream_audio" class="form-control" data-toggle="select2">' . "\n" . '                                    <option value=""';
+echo '>' . $language::get('transcoding') . '</option>' . "\n" . '                                </select>' . "\n" . '                            </div>' . "\n" . '                            <div class="col-md-1">' . "\n" . '                                <select id="stream_audio" class="form-control" data-toggle="select2">' . "\n" . '                                    <option value=""';
 
 if (isset(RequestManager::getAll()['audio'])) {
 } else {
 	echo ' selected';
 }
 
-echo '>Audio</option>' . "\n" . '                                    <option value="-1"';
+echo '>' . $language::get('audio') . '</option>' . "\n" . '                                    <option value="-1"';
 
 if (!(isset(RequestManager::getAll()['audio']) && RequestManager::getAll()['audio'] == '-1')) {
 } else {
 	echo ' selected';
 }
 
-echo '>None</option>' . "\n" . '                                    ';
+echo '>' . $language::get('none') . '</option>' . "\n" . '                                    ';
 
 foreach ($rAudioCodecs as $rCodec) {
 	echo '                                    <option value="';
@@ -255,14 +255,14 @@ if (isset(RequestManager::getAll()['video'])) {
 	echo ' selected';
 }
 
-echo '>Video</option>' . "\n" . '                                    <option value="-1"';
+echo '>' . $language::get('video') . '</option>' . "\n" . '                                    <option value="-1"';
 
 if (!(isset(RequestManager::getAll()['video']) && RequestManager::getAll()['video'] == '-1')) {
 } else {
 	echo ' selected';
 }
 
-echo '>None</option>' . "\n" . '                                    ';
+echo '>' . $language::get('none') . '</option>' . "\n" . '                                    ';
 
 foreach ($rVideoCodecs as $rCodec) {
 	echo '                                    <option value="';
@@ -285,7 +285,7 @@ if (isset(RequestManager::getAll()['resolution'])) {
 	echo ' selected';
 }
 
-echo '>Quality</option>' . "\n" . '                                    ';
+echo '>' . $language::get('quality') . '</option>' . "\n" . '                                    ';
 
 foreach (array(240, 360, 480, 576, 720, 1080, 1440, 2160) as $rResolution) {
 	echo '                                    <option value="';
@@ -324,15 +324,15 @@ foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) {
 	echo $rShow;
 	echo '</option>' . "\n" . '                                    ';
 }
-echo '                                </select>' . "\n" . '                            </div>' . "\n" . '                        </div>' . "\n\t\t\t\t\t\t" . '<table id="datatable-streampage" class="table table-borderless table-striped dt-responsive nowrap font-normal">' . "\n\t\t\t\t\t\t\t" . '<thead>' . "\n\t\t\t\t\t\t\t\t" . '<tr>' . "\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">ID</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">Icon</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th>Name</th>' . "\n" . '                                    ';
+echo '                                </select>' . "\n" . '                            </div>' . "\n" . '                        </div>' . "\n\t\t\t\t\t\t" . '<table id="datatable-streampage" class="table table-borderless table-striped dt-responsive nowrap font-normal">' . "\n\t\t\t\t\t\t\t" . '<thead>' . "\n\t\t\t\t\t\t\t\t" . '<tr>' . "\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">' . $language::get('id') . '</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">' . $language::get('icon') . '</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th>' . $language::get('name') . '</th>' . "\n" . '                                    ';
 
 if ($rSettings['streams_grouped'] == 1) {
-	echo "\t\t\t\t\t\t\t\t\t" . '<th>Servers</th>' . "\n" . '                                    ';
+	echo "\t\t\t\t\t\t\t\t\t" . '<th>' . $language::get('servers') . '</th>' . "\n" . '                                    ';
 } else {
-	echo '                                    <th>Source</th>' . "\n\t\t\t\t\t\t\t\t\t";
+	echo '                                    <th>' . $language::get('source') . '</th>' . "\n\t\t\t\t\t\t\t\t\t";
 }
 
-echo "\t\t\t\t\t\t\t\t\t" . '<th class="text-center">Clients</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">Uptime</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">Actions</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">Player</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">EPG</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">Stream Info</th>' . "\n\t\t\t\t\t\t\t\t" . '</tr>' . "\n\t\t\t\t\t\t\t" . '</thead>' . "\n\t\t\t\t\t\t\t" . '<tbody></tbody>' . "\n\t\t\t\t\t\t" . '</table>' . "\n\t\t\t\t\t" . '</div>' . "\n\t\t\t\t" . '</div>' . "\n\t\t\t" . '</div>' . "\n\t\t" . '</div>' . "\n\t" . '</div>' . "\n" . '</div>' . "\n";
+echo "\t\t\t\t\t\t\t\t\t" . '<th class="text-center">' . $language::get('clients') . '</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">' . $language::get('uptime') . '</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">' . $language::get('actions') . '</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">' . $language::get('player') . '</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">' . $language::get('epg') . '</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">' . $language::get('stream_info') . '</th>' . "\n\t\t\t\t\t\t\t\t" . '</tr>' . "\n\t\t\t\t\t\t\t" . '</thead>' . "\n\t\t\t\t\t\t\t" . '<tbody></tbody>' . "\n\t\t\t\t\t\t" . '</table>' . "\n\t\t\t\t\t" . '</div>' . "\n\t\t\t\t" . '</div>' . "\n\t\t\t" . '</div>' . "\n\t\t" . '</div>' . "\n\t" . '</div>' . "\n" . '</div>' . "\n";
 require_once __DIR__ . '/../layouts/footer.php';
 renderUnifiedLayoutFooter('admin'); ?>
 <script id="scripts">

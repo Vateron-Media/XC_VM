@@ -47,11 +47,11 @@
 								<tr>
 									<th class="text-center"><?php echo $language::get('id'); ?></th>
 									<th><?php echo $language::get('profile_name'); ?></th>
-									<th class="text-center">GPU</th>
-									<th class="text-center">Video</th>
-									<th class="text-center">Audio</th>
-									<th class="text-center">Resolution</th>
-									<th class="text-center">Logo</th>
+									<th class="text-center"><?= $language::get('gpu') ?></th>
+									<th class="text-center"><?= $language::get('video') ?></th>
+									<th class="text-center"><?= $language::get('audio') ?></th>
+									<th class="text-center"><?= $language::get('resolution') ?></th>
+									<th class="text-center"><?= $language::get('logo') ?></th>
 									<th class="text-center"><?php echo $language::get('actions'); ?></th>
 								</tr>
 							</thead>

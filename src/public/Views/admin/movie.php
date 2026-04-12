@@ -199,7 +199,7 @@
 																																								} ?>" required data-parsley-trigger="change">
 														</div>
 														<div class="col-md-2">
-															<input type="text" placeholder="Year" class="form-control text-center" id="year" name="year" value="<?php if (isset($rMovie)) {
+															<input type="text" placeholder="<?= $language::get('year') ?>" class="form-control text-center" id="year" name="year" value="<?php if (isset($rMovie)) {
 																																									echo htmlspecialchars($rMovie['year']);
 																																								} ?>">
 														</div>
@@ -314,11 +314,11 @@
 												</div>
 												<?php if (isset(RequestManager::getAll()['import'])): ?>
 													<div class="form-group row mb-4">
-														<label class="col-md-4 col-form-label" for="disable_tmdb">Disable TMDb <i title="Do not use TMDb to match the content." class="tooltip text-secondary far fa-circle"></i></label>
+														<label class="col-md-4 col-form-label" for="disable_tmdb">Disable TMDb <i title="<?= $language::get('do_not_use_tmdb_to_match_the_content') ?>" class="tooltip text-secondary far fa-circle"></i></label>
 														<div class="col-md-2">
 															<input name="disable_tmdb" id="disable_tmdb" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 														</div>
-														<label class="col-md-4 col-form-label" for="ignore_no_match">Ignore No Match <i title="Add to database even if no TMDb match is found." class="tooltip text-secondary far fa-circle"></i></label>
+														<label class="col-md-4 col-form-label" for="ignore_no_match">Ignore No Match <i title="<?= $language::get('add_to_database_even_if_no_tmdb_match_is_found') ?>" class="tooltip text-secondary far fa-circle"></i></label>
 														<div class="col-md-2">
 															<input name="ignore_no_match" id="ignore_no_match" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 														</div>
@@ -450,7 +450,7 @@
 																															echo 'checked ';
 																														} ?>data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 													</div>
-													<label class="col-md-4 col-form-label" for="direct_proxy">Direct Stream <i title="When using direct source, hide the original URL by proxying the movie through your servers. This will consume bandwidth but won't require the movie to be saved to your servers permanently. Make sure to set the correct target container." class="tooltip text-secondary far fa-circle"></i></label>
+													<label class="col-md-4 col-form-label" for="direct_proxy">Direct Stream <i title="<?= $language::get('when_using_direct_source_hide_tooltip') ?>" class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-2">
 														<input name="direct_proxy" id="direct_proxy" type="checkbox" <?php if (isset($rMovie) && $rMovie['direct_proxy'] == 1) {
 																															echo 'checked ';

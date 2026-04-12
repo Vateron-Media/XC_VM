@@ -26,7 +26,7 @@
                     <div class="page-title-right">
                         <?php include 'topbar.php'; ?>
                     </div>
-                    <h4 class="page-title">Mass Edit Series <small id="selected_count"></small></h4>
+                    <h4 class="page-title"><?= $language::get('permission_mass_sedits') ?> <small id="selected_count"></small></h4>
                 </div>
             </div>
         </div>
@@ -50,14 +50,14 @@
                                         <a href="#stream-selection" data-toggle="tab"
                                             class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-youtube-tv mr-1"></i>
-                                            <span class="d-none d-sm-inline">Series</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('series') ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
                                         <a href="#stream-details" data-toggle="tab"
                                             class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-account-card-details-outline mr-1"></i>
-                                            <span class="d-none d-sm-inline">Details</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('details') ?></span>
                                         </a>
                                     </li>
                                 </ul>
@@ -66,13 +66,13 @@
                                         <div class="row">
                                             <div class="col-md-5 col-6">
                                                 <input type="text" class="form-control" id="stream_search" value=""
-                                                    placeholder="Search Series...">
+                                                    placeholder="<?= $language::get('search_series_placeholder') ?>">
                                             </div>
                                             <div class="col-md-4 col-6">
                                                 <select id="category_search" class="form-control" data-toggle="select2">
-                                                    <option value="" selected>All Categories</option>
-                                                    <option value="-1">No TMDb Match</option>
-                                                    <option value="-2">No Categories</option>
+                                                    <option value="" selected><?= $language::get('all_categories') ?></option>
+                                                    <option value="-1"><?= $language::get('no_tmdb_match') ?></option>
+                                                    <option value="-2"><?= $language::get('no_categories') ?></option>
                                                     <?php foreach ($rCategories as $rCategory) : ?>
                                                         <option value="<?= $rCategory['id'] ?>"
                                                             <?php if (isset(RequestManager::getAll()['category']) && RequestManager::getAll()['category'] == $rCategory['id']) {
@@ -101,15 +101,15 @@
                                             <table id="datatable-mass" class="table table-borderless mb-0">
                                                 <thead class="bg-light">
                                                     <tr>
-                                                        <th class="text-center">ID</th>
-                                                        <th class="text-center">Image</th>
-                                                        <th>Name</th>
-                                                        <th>Category</th>
-                                                        <th class="text-center">Seasons</th>
-                                                        <th class="text-center">Episodes</th>
-                                                        <th class="text-center">TMDb</th>
-                                                        <th class="text-center">First Aired</th>
-                                                        <th class="text-center">Last Updated</th>
+                                                        <th class="text-center"><?= $language::get('id') ?></th>
+                                                        <th class="text-center"><?= $language::get('image') ?></th>
+                                                        <th><?= $language::get('name') ?></th>
+                                                        <th><?= $language::get('category') ?></th>
+                                                        <th class="text-center"><?= $language::get('seasons') ?></th>
+                                                        <th class="text-center"><?= $language::get('episodes') ?></th>
+                                                        <th class="text-center"><?= $language::get('tmdb') ?></th>
+                                                        <th class="text-center"><?= $language::get('first_aired') ?></th>
+                                                        <th class="text-center"><?= $language::get('last_updated') ?></th>
                                                     </tr>
                                                 </thead>
                                                 <tbody></tbody>
@@ -135,7 +135,7 @@
                                                     <div class="col-md-6">
                                                         <select disabled name="category_id[]" id="category_id"
                                                             class="form-control select2-multiple" data-toggle="select2"
-                                                            multiple="multiple" data-placeholder="Choose...">
+                                                            multiple="multiple" data-placeholder="<?= $language::get('choose_placeholder') ?>">
                                                             <?php foreach ($rCategories as $rCategory) : ?>
                                                                 <option value="<?= intval($rCategory['id']) ?>">
                                                                     <?= htmlspecialchars($rCategory['category_name']) ?>
@@ -164,7 +164,7 @@
                                                     <div class="col-md-6">
                                                         <select disabled name="bouquets[]" id="bouquets"
                                                             class="form-control select2-multiple" data-toggle="select2"
-                                                            multiple="multiple" data-placeholder="Choose...">
+                                                            multiple="multiple" data-placeholder="<?= $language::get('choose_placeholder') ?>">
                                                             <?php foreach (BouquetService::getAllSimple() as $rBouquet) : ?>
                                                                 <option value="<?= $rBouquet['id'] ?>">
                                                                     <?= $rBouquet['bouquet_name'] ?></option>
@@ -194,7 +194,7 @@
                                         </div>
                                         <ul class="list-inline wizard mb-0">
                                             <li class="prevb list-inline-item">
-                                                <a href="javascript: void(0);" class="btn btn-secondary">Previous</a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('prev') ?></a>
                                             </li>
                                             <li class="nextb list-inline-item float-right">
                                                 <input name="submit_series" type="submit" class="btn btn-primary"

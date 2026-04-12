@@ -80,13 +80,13 @@
 									<th class="text-center"><?= $language::get('id'); ?></th>
 									<th><?= $language::get('username'); ?></th>
 									<th class="text-center"><?= $language::get('mac_address'); ?></th>
-									<th class="text-center">Device</th>
+									<th class="text-center"><?= $language::get('device') ?></th>
 									<th><?= $language::get('owner'); ?></th>
 									<th class="text-center"><?= $language::get('status'); ?></th>
 									<th class="text-center"><?= $language::get('online'); ?></th>
 									<th class="text-center"><?= $language::get('trial'); ?></th>
 									<th class="text-center"><?= $language::get('expiration'); ?></th>
-									<th class="text-center">Last Connection</th>
+									<th class="text-center"><?= $language::get('last_connection') ?></th>
 									<th class="text-center"><?= $language::get('actions'); ?></th>
 								</tr>
 							</thead>

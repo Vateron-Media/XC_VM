@@ -23,7 +23,7 @@
                     <div class="page-title-right">
                         <?php include 'topbar.php'; ?>
                     </div>
-                    <h4 class="page-title">Servers</h4>
+                    <h4 class="page-title"><?= $language::get('servers') ?></h4>
                 </div>
             </div>
         </div>
@@ -34,18 +34,18 @@
                         <table id="datatable" class="table table-striped table-borderless dt-responsive nowrap">
                             <thead>
                                 <tr>
-                                    <th class="text-center">Order</th>
-                                    <th class="text-center">Status</th>
-                                    <th class="text-center">Proxied</th>
-                                    <th>Server Name</th>
-                                    <th class="text-center">Server IP</th>
-                                    <th class="text-center">Connections</th>
-                                    <th class="text-center">Network</th>
-                                    <th class="text-center">CPU %</th>
-                                    <th class="text-center">MEM %</th>
-                                    <th class="text-center">Ping</th>
-                                    <th class="text-center">Version</th>
-                                    <th class="text-center">Actions</th>
+                                    <th class="text-center"><?= $language::get('order') ?></th>
+                                    <th class="text-center"><?= $language::get('status') ?></th>
+                                    <th class="text-center"><?= $language::get('proxied') ?></th>
+                                    <th><?= $language::get('server_name') ?></th>
+                                    <th class="text-center"><?= $language::get('server_ip') ?></th>
+                                    <th class="text-center"><?= $language::get('connections') ?></th>
+                                    <th class="text-center"><?= $language::get('network') ?></th>
+                                    <th class="text-center"><?= $language::get('cpu_header') ?></th>
+                                    <th class="text-center"><?= $language::get('mem') ?></th>
+                                    <th class="text-center"><?= $language::get('ping') ?></th>
+                                    <th class="text-center"><?= $language::get('version') ?></th>
+                                    <th class="text-center"><?= $language::get('actions') ?></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -69,25 +69,25 @@
                                             </td>
                                             <td class="text-center">
                                                 <?php if (!$rServer['enabled']): ?>
-                                                    <i class="text-secondary fas fa-square tooltip" title="Disabled"></i>
+                                                    <i class="text-secondary fas fa-square tooltip" title="<?= $language::get('disabled') ?>"></i>
                                                 <?php elseif ($rServer['server_online']): ?>
                                                     <?php if ($rServer['xc_vm_version'] && ($rServer['xc_vm_version'] != $rServers[SERVER_ID]['xc_vm_version'])): ?>
                                                         <a href="javascript: void(0);" onClick="api(<?= intval($rServer['id']) ?>, 'update');">
                                                             <i class="text-success mdi mdi-download tooltip" style="font-size:14pt;" title="An update is available! v<?= $rServers[SERVER_ID]['xc_vm_version'] ?>"></i>
                                                         </a>
                                                     <?php else: ?>
-                                                        <i class="text-success fas fa-square tooltip" title="Online"></i>
+                                                        <i class="text-success fas fa-square tooltip" title="<?= $language::get('online') ?>"></i>
                                                     <?php endif; ?>
                                                 <?php else: ?>
                                                     <?php
                                                     $rPing = $rServer['last_check_ago'] > 0 ? date($rSettings['datetime_format'], $rServer['last_check_ago']) : 'Never';
                                                     ?>
                                                     <?php if ($rServer['status'] == 3): ?>
-                                                        <i class="text-info fas fa-square tooltip" title="Installing..."></i>
+                                                        <i class="text-info fas fa-square tooltip" title="<?= $language::get('installing') ?>"></i>
                                                     <?php elseif ($rServer['status'] == 4): ?>
-                                                        <i class="text-warning fas fa-square tooltip" title="Installation Failed!"></i>
+                                                        <i class="text-warning fas fa-square tooltip" title="<?= $language::get('installation_failed') ?>"></i>
                                                     <?php elseif ($rServer['status'] == 5): ?>
-                                                        <i class="text-info fas fa-square tooltip" title="Updating..."></i>
+                                                        <i class="text-info fas fa-square tooltip" title="<?= $language::get('updating') ?>"></i>
                                                     <?php elseif (!$rServer['remote_status']): ?>
                                                         <i class="text-danger fas fa-square tooltip" title="Can't connect on <?= htmlentities($rServer['server_ip']) ?>:<?= intval($rServer['http_broadcast_port']) ?><br/>Last Ping: <?= $rPing ?>"></i>
                                                     <?php else: ?>
@@ -224,46 +224,46 @@
                                                         </div>
                                                     <?php else: ?>
                                                         <div class="btn-group">
-                                                            <button type="button" title="Server Tools" class="btn btn-light waves-effect waves-light btn-xs btn-reboot-server tooltip" data-id="<?= $rServer['id'] ?>">
+                                                            <button type="button" title="<?= $language::get('server_tools') ?>" class="btn btn-light waves-effect waves-light btn-xs btn-reboot-server tooltip" data-id="<?= $rServer['id'] ?>">
                                                                 <i class="mdi mdi-creation"></i>
                                                             </button>
-                                                            <button type="button" title="Restart Live Streams" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(<?= $rServer['id'] ?>, 'restart');">
+                                                            <button type="button" title="<?= $language::get('restart_live_streams') ?>" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(<?= $rServer['id'] ?>, 'restart');">
                                                                 <i class="mdi mdi-refresh"></i>
                                                             </button>
-                                                            <button type="button" title="Start All Streams" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(<?= $rServer['id'] ?>, 'start');">
+                                                            <button type="button" title="<?= $language::get('start_all_streams') ?>" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(<?= $rServer['id'] ?>, 'start');">
                                                                 <i class="mdi mdi-play"></i>
                                                             </button>
-                                                            <button type="button" title="Stop All Streams" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(<?= $rServer['id'] ?>, 'stop');">
+                                                            <button type="button" title="<?= $language::get('stop_all_streams') ?>" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(<?= $rServer['id'] ?>, 'stop');">
                                                                 <i class="mdi mdi-stop"></i>
                                                             </button>
-                                                            <button type="button" title="Kill All Connections" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(<?= $rServer['id'] ?>, 'kill');">
+                                                            <button type="button" title="<?= $language::get('kill_all_connections') ?>" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(<?= $rServer['id'] ?>, 'kill');">
                                                                 <i class="fas fa-hammer"></i>
                                                             </button>
                                                             <a href="./server?id=<?= $rServer['id'] ?>">
-                                                                <button type="button" title="Edit Server" class="btn btn-light waves-effect waves-light btn-xs tooltip">
+                                                                <button type="button" title="<?= $language::get('permission_edit_server') ?>" class="btn btn-light waves-effect waves-light btn-xs tooltip">
                                                                     <i class="mdi mdi-pencil-outline"></i>
                                                                 </button>
                                                             </a>
                                                             <?php if ($rServer['enable_proxy']): ?>
-                                                                <button type="button" title="Disable Proxy" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(<?= $rServer['id'] ?>, 'disable_proxy');">
+                                                                <button type="button" title="<?= $language::get('disable_proxy') ?>" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(<?= $rServer['id'] ?>, 'disable_proxy');">
                                                                     <i class="mdi mdi-shield-off-outline"></i>
                                                                 </button>
                                                             <?php else: ?>
-                                                                <button type="button" title="Enable Proxy" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(<?= $rServer['id'] ?>, 'enable_proxy');">
+                                                                <button type="button" title="<?= $language::get('enable_proxy') ?>" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(<?= $rServer['id'] ?>, 'enable_proxy');">
                                                                     <i class="mdi mdi-shield-check-outline"></i>
                                                                 </button>
                                                             <?php endif; ?>
                                                             <?php if ($rServer['is_main'] == 0): ?>
                                                                 <?php if ($rServer['enabled']): ?>
-                                                                    <button type="button" title="Disable Server" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(<?= $rServer['id'] ?>, 'disable');">
+                                                                    <button type="button" title="<?= $language::get('disable_server') ?>" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(<?= $rServer['id'] ?>, 'disable');">
                                                                         <i class="mdi mdi-close-network-outline"></i>
                                                                     </button>
                                                                 <?php else: ?>
-                                                                    <button type="button" title="Enable Server" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(<?= $rServer['id'] ?>, 'enable');">
+                                                                    <button type="button" title="<?= $language::get('enable_server') ?>" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(<?= $rServer['id'] ?>, 'enable');">
                                                                         <i class="mdi mdi-access-point-network"></i>
                                                                     </button>
                                                                 <?php endif; ?>
-                                                                <button type="button" title="Delete Server" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(<?= $rServer['id'] ?>, 'delete');">
+                                                                <button type="button" title="<?= $language::get('delete_server') ?>" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(<?= $rServer['id'] ?>, 'delete');">
                                                                     <i class="mdi mdi-close"></i>
                                                                 </button>
                                                             <?php else: ?>

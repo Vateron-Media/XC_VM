@@ -6,16 +6,16 @@
 					<table id="datatable-sources" class="table table-striped table-borderless mb-0" style="width:100%;">
 						<thead>
 							<tr>
-								<th>ID</th>
+								<th><?= $language::get('id') ?></th>
 								<th></th>
-								<th>Name</th>
-								<th>Server</th>
-								<th>Clients</th>
-								<th>Uptime</th>
-								<th>Actions</th>
-								<th>Actions</th>
-								<th>Stream Info</th>
-								<th>Stream Info</th>
+								<th><?= $language::get('name') ?></th>
+								<th><?= $language::get('server') ?></th>
+								<th><?= $language::get('clients') ?></th>
+								<th><?= $language::get('uptime') ?></th>
+								<th><?= $language::get('actions') ?></th>
+								<th><?= $language::get('actions') ?></th>
+								<th><?= $language::get('stream_info') ?></th>
+								<th><?= $language::get('stream_info') ?></th>
 							</tr>
 						</thead>
 						<tbody>
@@ -44,9 +44,9 @@
 					<table id="datatable-epg" class="table table-striped table-borderless dt-responsive nowrap" style="width:100%;">
 						<thead>
 							<tr>
-								<th class="text-center">Time</th>
-								<th>Title</th>
-								<th>Description</th>
+								<th class="text-center"><?= $language::get('time') ?></th>
+								<th><?= $language::get('title') ?></th>
+								<th><?= $language::get('description') ?></th>
 							</tr>
 						</thead>
 						<tbody>
@@ -68,17 +68,17 @@
 					<table id="datatable-live" class="table table-striped table-borderless mb-0" style="width:100%;">
 						<thead>
 							<tr>
-								<th class="text-center">ID</th>
-								<th class="text-center">Quality</th>
-								<th>Line</th>
-								<th>Stream</th>
-								<th>Server</th>
-								<th>Player</th>
-								<th>ISP</th>
-								<th class="text-center">IP</th>
-								<th class="text-center">Duration</th>
-								<th class="text-center">Output</th>
-								<th class="text-center">Restreamer</th>
+								<th class="text-center"><?= $language::get('id') ?></th>
+								<th class="text-center"><?= $language::get('quality') ?></th>
+								<th><?= $language::get('line') ?></th>
+								<th><?= $language::get('stream') ?></th>
+								<th><?= $language::get('server') ?></th>
+								<th><?= $language::get('player') ?></th>
+								<th><?= $language::get('isp') ?></th>
+								<th class="text-center"><?= $language::get('ip') ?></th>
+								<th class="text-center"><?= $language::get('duration') ?></th>
+								<th class="text-center"><?= $language::get('output') ?></th>
+								<th class="text-center"><?= $language::get('restreamer') ?></th>
 								<th class="text-center"><?php echo $language::get('actions'); ?></th>
 							</tr>
 						</thead>
@@ -114,56 +114,56 @@
 					<table class="table mb-0" id="whois-table">
 						<tbody>
 							<tr>
-								<th scope="row" class="bg-secondary text-center text-white" colspan="2">GEOLOCATION</th>
+								<th scope="row" class="bg-secondary text-center text-white" colspan="2"><?= $language::get('geolocation') ?></th>
 							</tr>
 							<tr>
-								<th scope="row">Continent</th>
+								<th scope="row"><?= $language::get('continent') ?></th>
 								<td></td>
 							</tr>
 							<tr>
-								<th scope="row">Country</th>
+								<th scope="row"><?= $language::get('country') ?></th>
 								<td></td>
 							</tr>
 							<tr>
-								<th scope="row">City</th>
+								<th scope="row"><?= $language::get('city') ?></th>
 								<td></td>
 							</tr>
 							<tr>
-								<th scope="row">Postcode</th>
+								<th scope="row"><?= $language::get('postcode') ?></th>
 								<td></td>
 							</tr>
 							<tr>
-								<th scope="row">Lat Lng</th>
+								<th scope="row"><?= $language::get('lat_lng') ?></th>
 								<td></td>
 							</tr>
 							<tr>
-								<th scope="row" class="bg-secondary text-center text-white" colspan="2">ISP</th>
+								<th scope="row" class="bg-secondary text-center text-white" colspan="2"><?= $language::get('isp') ?></th>
 							</tr>
 							<tr>
-								<th scope="row">ISP Name</th>
+								<th scope="row"><?= $language::get('isp_name') ?></th>
 								<td></td>
 							</tr>
 							<tr>
-								<th scope="row">Organisation</th>
+								<th scope="row"><?= $language::get('organisation') ?></th>
 								<td></td>
 							</tr>
 							<tr>
-								<th scope="row">AS Number</th>
+								<th scope="row"><?= $language::get('as_number') ?></th>
 								<td></td>
 							</tr>
 							<tr>
-								<th scope="row">Type</th>
+								<th scope="row"><?= $language::get('type') ?></th>
 								<td></td>
 							</tr>
 							<tr>
-								<th scope="row" class="bg-secondary text-center text-white" colspan="2">LOCALE</th>
+								<th scope="row" class="bg-secondary text-center text-white" colspan="2"><?= $language::get('locale') ?></th>
 							</tr>
 							<tr>
-								<th scope="row">Timezone</th>
+								<th scope="row"><?= $language::get('timezone') ?></th>
 								<td></td>
 							</tr>
 							<tr>
-								<th scope="row">Local Time</th>
+								<th scope="row"><?= $language::get('local_time') ?></th>
 								<td></td>
 							</tr>
 						</tbody>
@@ -228,7 +228,7 @@
 				</div>
 				<div class="modal-body">
 					<div class="form-group row">
-						<label class="col-md-4 col-form-label" for="download_type">Format</label>
+						<label class="col-md-4 col-form-label" for="download_type"><?= $language::get('format') ?></label>
 						<div class="col-8">
 							<select id="download_type" class="form-control" data-toggle="select2">
 								<?php
@@ -255,14 +255,14 @@
 					</div>
 				</div>
 				<div class="form-group row">
-					<label class="col-md-4 col-form-label" for="output_type">Limit Output</label>
+					<label class="col-md-4 col-form-label" for="output_type"><?= $language::get('limit_output') ?></label>
 					<div class="col-8">
-						<select id="output_type" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">
-							<option value="live">Live Streams</option>
-							<option value="movie">Movies</option>
-							<option value="created_live">Created Channels</option>
-							<option value="radio_streams">Radio Stations</option>
-							<option value="series">TV Series</option>
+						<select id="output_type" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="<?= $language::get('choose_placeholder') ?>">
+							<option value="live"><?= $language::get('live_streams') ?></option>
+							<option value="movie"><?= $language::get('movies') ?></option>
+							<option value="created_live"><?= $language::get('created_channels') ?></option>
+							<option value="radio_streams"><?= $language::get('radio_stations') ?></option>
+							<option value="series"><?= $language::get('tv_series') ?></option>
 						</select>
 					</div>
 				</div>
@@ -372,20 +372,20 @@
 						<table class="table mb-0">
 							<thead>
 								<tr>
-									<th>Type / Reseller</th>
-									<th>Domain Name</th>
+									<th><?= $language::get('type_reseller') ?></th>
+									<th><?= $language::get('domain_name') ?></th>
 								</tr>
 							</thead>
 							<tbody>
 								<?php if (strlen($rServers[SERVER_ID]['server_ip']) > 0): ?>
 									<tr>
-										<td>Server IP</td>
+										<td><?= $language::get('server_ip') ?></td>
 										<td><?php echo $rServers[SERVER_ID]['server_ip']; ?></td>
 									</tr>
 								<?php endif; ?>
 								<?php if (strlen($rServers[SERVER_ID]['domain_name']) > 0): ?>
 									<tr>
-										<td>Server Domain</td>
+										<td><?= $language::get('server_domain') ?></td>
 										<td><?php echo $rServers[SERVER_ID]['domain_name']; ?></td>
 									</tr>
 								<?php endif; ?>
@@ -421,10 +421,10 @@
 					<table id="datatable-provider-streams" class="table table-striped table-borderless dt-responsive">
 						<thead>
 							<tr>
-								<th class="text-center">Icon</th>
-								<th>Stream Name</th>
-								<th>Provider</th>
-								<th class="text-center">Actions</th>
+								<th class="text-center"><?= $language::get('icon') ?></th>
+								<th><?= $language::get('stream_name') ?></th>
+								<th><?= $language::get('provider') ?></th>
+								<th class="text-center"><?= $language::get('actions') ?></th>
 							</tr>
 						</thead>
 						<tbody></tbody>
@@ -444,9 +444,9 @@
 					<table id="datatable-provider-movies" class="table table-striped table-borderless dt-responsive">
 						<thead>
 							<tr>
-								<th>Stream Name</th>
-								<th>Provider</th>
-								<th class="text-center">Actions</th>
+								<th><?= $language::get('stream_name') ?></th>
+								<th><?= $language::get('provider') ?></th>
+								<th class="text-center"><?= $language::get('actions') ?></th>
 							</tr>
 						</thead>
 						<tbody></tbody>
@@ -466,8 +466,8 @@
 					<img id="epg-picon" src="" class="img-thumbnail" style="max-width: 400px; max-height: 250px;"><br /><br />
 				</div>
 				<div class="modal-footer">
-					<button type="button" class="btn btn-secondary waves-effect" data-dismiss="modal">Cancel</button>
-					<button type="button" class="btn btn-success waves-effect waves-light" id="epg_picon_save">Use Icon</button>
+					<button type="button" class="btn btn-secondary waves-effect" data-dismiss="modal"><?= $language::get('cancel') ?></button>
+					<button type="button" class="btn btn-success waves-effect waves-light" id="epg_picon_save"><?= $language::get('use_icon') ?></button>
 				</div>
 			</div>
 		</div>
@@ -481,19 +481,19 @@
 				</div>
 				<div class="modal-body">
 					<div class="form-group row">
-						<label class="col-md-8 col-form-label" for="credits">Credits</label>
+						<label class="col-md-8 col-form-label" for="credits"><?= $language::get('credits') ?></label>
 						<div class="col-md-4">
 							<input type="text" class="form-control text-center" id="credits" onkeypress="return isNumberKey(event)" name="credits" value="">
 						</div>
 					</div>
 					<div class="form-group row">
 						<div class="col-md-12">
-							<input type="text" class="form-control" id="credits_reason" name="credits_reason" placeholder="Reason for Adjustment..." value="">
+							<input type="text" class="form-control" id="credits_reason" name="credits_reason" placeholder="<?= $language::get('reason_for_adjustment') ?>" value="">
 						</div>
 					</div>
 					<div class="form-group row">
 						<div class="col-md-12">
-							<button class="btn btn-info waves-effect waves-light" style="width:100%;" type="button" onClick="submitCredits();">Adjust Credits</button>
+							<button class="btn btn-info waves-effect waves-light" style="width:100%;" type="button" onClick="submitCredits();"><?= $language::get('adjust_credits') ?></button>
 						</div>
 					</div>
 				</div>
@@ -509,7 +509,7 @@
 				</div>
 				<div class="modal-body">
 					<p class="sub-header" id="programmeDescription"></p>
-					<button type="button" id="programmeRecord" class="btn btn-danger waves-effect"><i class="mdi mdi-record"></i> Record</button>
+					<button type="button" id="programmeRecord" class="btn btn-danger waves-effect"><i class="mdi mdi-record"></i> <?= $language::get('record') ?></button>
 				</div>
 			</div>
 		</div>
@@ -563,17 +563,17 @@
 		<div class="modal-dialog modal-dialog-centered modal-xl">
 			<div class="modal-content">
 				<div class="modal-header">
-					<h4 class="modal-title" id="failuresLabel"><button onClick='clearLogs()' type='button' class='btn btn-secondary btn-xs waves-effect waves-light'>Clear Stream Logs</button></h4>
+					<h4 class="modal-title" id="failuresLabel"><button onClick='clearLogs()' type='button' class='btn btn-secondary btn-xs waves-effect waves-light'><?= $language::get('clear_stream_logs') ?></button></h4>
 					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
 				</div>
 				<div class="modal-body">
 					<table id="datatable-stream" class="table table-striped table-borderless dt-responsive">
 						<thead>
 							<tr>
-								<th>Server Name</th>
-								<th class="text-center">Source</th>
-								<th class="text-center">Action</th>
-								<th class="text-center">Date</th>
+								<th><?= $language::get('server_name') ?></th>
+								<th class="text-center"><?= $language::get('source') ?></th>
+								<th class="text-center"><?= $language::get('action') ?></th>
+								<th class="text-center"><?= $language::get('date') ?></th>
 							</tr>
 						</thead>
 						<tbody>
@@ -596,9 +596,9 @@
 					<table id="datatable-sources" class="table table-striped table-borderless dt-responsive">
 						<thead>
 							<tr>
-								<th class="text-center">ID</th>
-								<th>Server Name</th>
-								<th class="text-center">Server IP</th>
+								<th class="text-center"><?= $language::get('id') ?></th>
+								<th><?= $language::get('server_name') ?></th>
+								<th class="text-center"><?= $language::get('server_ip') ?></th>
 							</tr>
 						</thead>
 						<tbody>

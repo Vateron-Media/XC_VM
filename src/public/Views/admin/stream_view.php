@@ -182,18 +182,18 @@ if ($rStream['type'] == 1) {
 	}
 }
 
-echo "\t\t\t\t\t" . '</ul>' . "\r\n\t\t\t\t\t" . '<div class="tab-content">' . "\r\n\t\t\t\t\t\t" . '<div class="tab-pane active" id="servers">' . "\r\n\t\t\t\t\t\t\t" . '<div class="table">' . "\r\n\t\t\t\t\t\t\t\t" . '<table id="datatable" class="table table-striped table-borderless mb-0">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<thead>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<tr>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th></th>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th></th>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th></th>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th>Source</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th>Clients</th>' . "\r\n" . '                                            ';
+echo "\t\t\t\t\t" . '</ul>' . "\r\n\t\t\t\t\t" . '<div class="tab-content">' . "\r\n\t\t\t\t\t\t" . '<div class="tab-pane active" id="servers">' . "\r\n\t\t\t\t\t\t\t" . '<div class="table">' . "\r\n\t\t\t\t\t\t\t\t" . '<table id="datatable" class="table table-striped table-borderless mb-0">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<thead>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<tr>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th></th>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th></th>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th></th>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th>' . $language::get('source') . '</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th>' . $language::get('clients') . '</th>' . "\r\n" . '                                            ';
 
 if ($rStream['type'] == 2) {
-	echo "\t\t\t\t\t\t\t\t\t\t\t" . '<th>Status</th>' . "\r\n" . '                                            ';
+	echo "\t\t\t\t\t\t\t\t\t\t\t" . '<th>' . $language::get('status') . '</th>' . "\r\n" . '                                            ';
 } else {
-	echo '                                            <th>Uptime</th>' . "\r\n" . '                                            ';
+	echo '                                            <th>' . $language::get('uptime') . '</th>' . "\r\n" . '                                            ';
 }
 
-echo "\t\t\t\t\t\t\t\t\t\t\t" . '<th>Actions</th>' . "\r\n" . '                                            ';
+echo "\t\t\t\t\t\t\t\t\t\t\t" . '<th>' . $language::get('actions') . '</th>' . "\r\n" . '                                            ';
 
 if ($rStream['type'] == 2) {
-	echo '                                            <th>Actions</th>' . "\r\n" . '                                            ';
+	echo '                                            <th>' . $language::get('actions') . '</th>' . "\r\n" . '                                            ';
 } else {
 	echo '                                            <th>';
 	echo $rTypeString;
@@ -207,7 +207,7 @@ echo $rTypeString;
 echo ' Info</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</thead>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<tbody>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<tr>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<td colspan="8" class="text-center">Loading information...</td>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</tbody>' . "\r\n\t\t\t\t\t\t\t\t" . '</table>' . "\r\n\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t" . '</div>' . "\r\n" . '                        ';
 
 if ($rStream['type'] == 1) {
-	echo "\t\t\t\t\t\t" . '<div class="tab-pane" id="sources">' . "\r\n\t\t\t\t\t\t\t" . '<div class="table">' . "\r\n\t\t\t\t\t\t\t\t" . '<table id="datatable-sources" class="table table-striped table-borderless mb-0">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<thead>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<tr>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th class="text-center">Order</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th>Source</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th class="text-center" style="width:300px;">Stream Info &nbsp;<button onClick="scanSources();" type="button" class="btn btn-xs btn-outline-secondary waves-effect waves-light"><i class="mdi mdi-refresh"></i></button></th>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</thead>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<tbody>' . "\r\n\t\t\t\t\t\t\t\t\t\t";
+	echo "\t\t\t\t\t\t" . '<div class="tab-pane" id="sources">' . "\r\n\t\t\t\t\t\t\t" . '<div class="table">' . "\r\n\t\t\t\t\t\t\t\t" . '<table id="datatable-sources" class="table table-striped table-borderless mb-0">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<thead>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<tr>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th class="text-center">' . $language::get('order') . '</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th>' . $language::get('source') . '</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th class="text-center" style="width:300px;">Stream Info &nbsp;<button onClick="scanSources();" type="button" class="btn btn-xs btn-outline-secondary waves-effect waves-light"><i class="mdi mdi-refresh"></i></button></th>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</thead>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<tbody>' . "\r\n\t\t\t\t\t\t\t\t\t\t";
 	$i = 0;
 
 	foreach (json_decode($rStream['stream_source'], true) as $rSource) {
@@ -230,7 +230,7 @@ if ($rStream['type'] == 1) {
 		echo intval(RequestManager::getAll()['id']);
 		echo ', ';
 		echo $i - 1;
-		echo ');" type="button" title="Override Source" class="tooltip btn btn-info btn-xs waves-effect waves-light btn-fixed-xs">';
+		echo ');" type="button" title="' . $language::get('override_source') . '" class="tooltip btn btn-info btn-xs waves-effect waves-light btn-fixed-xs">';
 		echo $i;
 		echo '</button>' . "\r\n" . '                                            </td>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<td><span>';
 		echo $rHost;
@@ -254,7 +254,7 @@ if ($rStream['type'] == 1) {
 		foreach ($db->get_rows() as $rRow) {
 			$rAdaptiveInfo[$rRow['stream_id']] = array(json_decode($rRow['stream_info'], true), json_decode($rRow['progress_info'], true));
 		}
-		echo '                        <div class="tab-pane" id="adaptive">' . "\r\n\t\t\t\t\t\t\t" . '<div class="table">' . "\r\n\t\t\t\t\t\t\t\t" . '<table id="datatable-adaptive" class="table table-striped table-borderless mb-0">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<thead>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<tr>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th class="text-center">ID</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th>Stream Name</th>' . "\r\n" . '                                            <th class="text-center">Bandwidth</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th class="text-center" style="width:300px;">Stream Info</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</thead>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<tbody>' . "\r\n\t\t\t\t\t\t\t\t\t\t";
+		echo '                        <div class="tab-pane" id="adaptive">' . "\r\n\t\t\t\t\t\t\t" . '<div class="table">' . "\r\n\t\t\t\t\t\t\t\t" . '<table id="datatable-adaptive" class="table table-striped table-borderless mb-0">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<thead>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<tr>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th class="text-center">' . $language::get('id') . '</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th>' . $language::get('stream_name') . '</th>' . "\r\n" . '                                            <th class="text-center">' . $language::get('bandwidth') . '</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th class="text-center" style="width:300px;">' . $language::get('stream_info') . '</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</thead>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<tbody>' . "\r\n\t\t\t\t\t\t\t\t\t\t";
 
 		foreach ($rAdaptiveLink as $rAdaptiveID) {
 			list($rStreamInfo, $rProgressInfo) = ($rAdaptiveInfo[$rAdaptiveID] ?: array());
@@ -375,7 +375,7 @@ if ($rStream['type'] == 1) {
 				echo intval($rStream['id']);
 				echo '&programme=';
 				echo intval($rEPGItem['id']);
-				echo '"><button class="btn btn-danger btn-xs waves-effect waves-light tooltip" title="Record"><i class="mdi mdi-record"></i></button></a>' . "\r\n" . '                                        ';
+				echo '"><button class="btn btn-danger btn-xs waves-effect waves-light tooltip" title="' . $language::get('record') . '"><i class="mdi mdi-record"></i></button></a>' . "\r\n" . '                                        ';
 			}
 
 			echo "\t\t\t\t\t\t\t\t\t" . '</p><br/>' . "\r\n\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t";
@@ -385,7 +385,7 @@ if ($rStream['type'] == 1) {
 
 	if (0 < $rStream['tv_archive_server_id'] && 0 < $rStream['tv_archive_duration']) {
 		$rArchive = StreamService::getArchive($rStream['id']);
-		echo '                        <div class="tab-pane" id="archive">' . "\r\n\t\t\t\t\t\t\t" . '<div class="table">' . "\r\n\t\t\t\t\t\t\t\t" . '<table id="datatable-archive" class="table table-striped table-borderless mb-0">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<thead>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<tr>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th class="text-center">Date</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th>Title</th>' . "\r\n" . '                                            <th class="text-center">Status</th>' . "\r\n" . '                                            <th class="text-center">Player</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</thead>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<tbody>' . "\r\n" . '                                        ';
+		echo '                        <div class="tab-pane" id="archive">' . "\r\n\t\t\t\t\t\t\t" . '<div class="table">' . "\r\n\t\t\t\t\t\t\t\t" . '<table id="datatable-archive" class="table table-striped table-borderless mb-0">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<thead>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<tr>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th class="text-center">' . $language::get('date') . '</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th>' . $language::get('title') . '</th>' . "\r\n" . '                                            <th class="text-center">' . $language::get('status') . '</th>' . "\r\n" . '                                            <th class="text-center">' . $language::get('player') . '</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</thead>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<tbody>' . "\r\n" . '                                        ';
 
 		foreach ($rArchive as $rItem) {
 			$rDuration = $rItem['end'] - $rItem['start'];
@@ -401,18 +401,18 @@ if ($rStream['type'] == 1) {
 			echo '</td>' . "\r\n" . '                                            <td class="text-center">' . "\r\n" . '                                                ';
 
 			if ($rItem['in_progress']) {
-				echo "                                                <button type='button' class='btn btn-info btn-xs waves-effect waves-light'>IN PROGRESS</button>" . "\r\n" . '                                                ';
+				echo "                                                <button type='button' class='btn btn-info btn-xs waves-effect waves-light'>' . $language::get('in_progress') . '</button>" . "\r\n" . '                                                ';
 			} else {
 				if ($rItem['complete']) {
-					echo "                                                <button type='button' class='btn btn-success btn-xs waves-effect waves-light'>COMPLETE</button>" . "\r\n" . '                                                ';
+					echo "                                                <button type='button' class='btn btn-success btn-xs waves-effect waves-light'>' . $language::get('complete') . '</button>" . "\r\n" . '                                                ';
 				} else {
-					echo "                                                <button type='button' class='btn btn-warning btn-xs waves-effect waves-light'>INCOMPLETE</button>" . "\r\n" . '                                                ';
+					echo "                                                <button type='button' class='btn btn-warning btn-xs waves-effect waves-light'>' . $language::get('incomplete') . '</button>" . "\r\n" . '                                                ';
 				}
 			}
 
 			echo '                                                <a href="record?archive=';
 			echo urlencode(base64_encode(json_encode($rItem)));
-			echo '"><button class="btn btn-danger btn-xs waves-effect waves-light tooltip" title="Save to VOD"><i class="mdi mdi-record"></i></button></a>' . "\r\n" . '                                            </td>' . "\r\n" . '                                            <td class="text-center"><button type="button" class="btn btn-info waves-effect waves-light btn-xs" onclick="player(';
+			echo '"><button class="btn btn-danger btn-xs waves-effect waves-light tooltip" title="' . $language::get('save_to_vod') . '"><i class="mdi mdi-record"></i></button></a>' . "\r\n" . '                                            </td>' . "\r\n" . '                                            <td class="text-center"><button type="button" class="btn btn-info waves-effect waves-light btn-xs" onclick="player(';
 			echo intval($rStream['id']);
 			echo ', ';
 			echo intval($rItem['start']);
@@ -423,7 +423,7 @@ if ($rStream['type'] == 1) {
 		echo "\t\t\t\t\t\t\t\t\t" . '</tbody>' . "\r\n\t\t\t\t\t\t\t\t" . '</table>' . "\r\n\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t" . '</div>' . "\r\n" . '                        ';
 	}
 
-	echo '                        <div class="tab-pane" id="errors">' . "\r\n\t\t\t\t\t\t\t" . '<div class="table">' . "\r\n\t\t\t\t\t\t\t\t" . '<table id="datatable-errors" class="table table-striped table-borderless mb-0">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<thead>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<tr>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th class="text-center">Date</th>' . "\r\n" . '                                            <th>Message</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</thead>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<tbody>' . "\r\n" . '                                        ';
+	echo '                        <div class="tab-pane" id="errors">' . "\r\n\t\t\t\t\t\t\t" . '<div class="table">' . "\r\n\t\t\t\t\t\t\t\t" . '<table id="datatable-errors" class="table table-striped table-borderless mb-0">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<thead>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<tr>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th class="text-center">' . $language::get('date') . '</th>' . "\r\n" . '                                            <th>' . $language::get('message') . '</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</thead>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<tbody>' . "\r\n" . '                                        ';
 
 	foreach (StreamRepository::getErrors($rStream['id']) as $rItem) {
 		echo "\t\t\t\t\t\t\t\t\t\t" . '<tr>' . "\r\n" . '                                            <td style="width: 80px;" class="text-center">';
@@ -476,21 +476,21 @@ if ($rStream['type'] == 1) {
 		if ($rStream['type'] == 5) {
 			if (!$rSeries) {
 			} else {
-				echo '                        <div class="tab-pane" id="s-information">' . "\r\n" . '                            <div class="row">' . "\r\n" . '                                <div class="col-12 input-view">' . "\r\n" . '                                    <div class="form-group row mb-4">' . "\r\n" . '                                        <label class="col-md-2 col-form-label" for="plot">Plot</label>' . "\r\n" . '                                        <div class="col-md-10">' . "\r\n" . '                                            <textarea readonly rows="6" class="form-control" id="plot" name="plot">';
+				echo '                        <div class="tab-pane" id="s-information">' . "\r\n" . '                            <div class="row">' . "\r\n" . '                                <div class="col-12 input-view">' . "\r\n" . '                                    <div class="form-group row mb-4">' . "\r\n" . '                                        <label class="col-md-2 col-form-label" for="plot">' . $language::get('plot') . '</label>' . "\r\n" . '                                        <div class="col-md-10">' . "\r\n" . '                                            <textarea readonly rows="6" class="form-control" id="plot" name="plot">';
 				echo htmlspecialchars($rSeries['plot']);
-				echo '</textarea>' . "\r\n" . '                                        </div>' . "\r\n" . '                                    </div>' . "\r\n" . '                                    <div class="form-group row mb-4">' . "\r\n" . '                                        <label class="col-md-2 col-form-label" for="cast">Cast</label>' . "\r\n" . '                                        <div class="col-md-10">' . "\r\n" . '                                            <input readonly type="text" class="form-control" id="cast" name="cast" value="';
+				echo '</textarea>' . "\r\n" . '                                        </div>' . "\r\n" . '                                    </div>' . "\r\n" . '                                    <div class="form-group row mb-4">' . "\r\n" . '                                        <label class="col-md-2 col-form-label" for="cast">' . $language::get('cast') . '</label>' . "\r\n" . '                                        <div class="col-md-10">' . "\r\n" . '                                            <input readonly type="text" class="form-control" id="cast" name="cast" value="';
 				echo htmlspecialchars($rSeries['cast']);
-				echo '">' . "\r\n" . '                                        </div>' . "\r\n" . '                                    </div>' . "\r\n" . '                                    <div class="form-group row mb-4">' . "\r\n" . '                                        <label class="col-md-2 col-form-label" for="director">Director</label>' . "\r\n" . '                                        <div class="col-md-4">' . "\r\n" . '                                            <input readonly type="text" class="form-control text-center" id="director" name="director" value="';
+				echo '">' . "\r\n" . '                                        </div>' . "\r\n" . '                                    </div>' . "\r\n" . '                                    <div class="form-group row mb-4">' . "\r\n" . '                                        <label class="col-md-2 col-form-label" for="director">' . $language::get('director') . '</label>' . "\r\n" . '                                        <div class="col-md-4">' . "\r\n" . '                                            <input readonly type="text" class="form-control text-center" id="director" name="director" value="';
 				echo htmlspecialchars($rSeries['director']);
-				echo '">' . "\r\n" . '                                        </div>' . "\r\n" . '                                        <label class="col-md-2 col-form-label" for="genre">Genres</label>' . "\r\n" . '                                        <div class="col-md-4">' . "\r\n" . '                                            <input readonly type="text" class="form-control text-center " id="genre" name="genre" value="';
+				echo '">' . "\r\n" . '                                        </div>' . "\r\n" . '                                        <label class="col-md-2 col-form-label" for="genre">' . $language::get('genres') . '</label>' . "\r\n" . '                                        <div class="col-md-4">' . "\r\n" . '                                            <input readonly type="text" class="form-control text-center " id="genre" name="genre" value="';
 				echo htmlspecialchars($rSeries['genre']);
-				echo '">' . "\r\n" . '                                        </div>' . "\r\n" . '                                    </div>' . "\r\n" . '                                    <div class="form-group row mb-4">' . "\r\n" . '                                        <label class="col-md-2 col-form-label" for="release_date">Release Date</label>' . "\r\n" . '                                        <div class="col-md-4">' . "\r\n" . '                                            <input readonly type="text" class="form-control text-center" id="release_date" name="release_date" value="';
+				echo '">' . "\r\n" . '                                        </div>' . "\r\n" . '                                    </div>' . "\r\n" . '                                    <div class="form-group row mb-4">' . "\r\n" . '                                        <label class="col-md-2 col-form-label" for="release_date">' . $language::get('release_date') . '</label>' . "\r\n" . '                                        <div class="col-md-4">' . "\r\n" . '                                            <input readonly type="text" class="form-control text-center" id="release_date" name="release_date" value="';
 				echo htmlspecialchars($rSeries['release_date']);
-				echo '">' . "\r\n" . '                                        </div>' . "\r\n" . '                                        <label class="col-md-2 col-form-label" for="episode_run_time">Runtime</label>' . "\r\n" . '                                        <div class="col-md-4">' . "\r\n" . '                                            <input readonly type="text" class="form-control text-center" id="episode_run_time" name="episode_run_time" value="';
+				echo '">' . "\r\n" . '                                        </div>' . "\r\n" . '                                        <label class="col-md-2 col-form-label" for="episode_run_time">' . $language::get('runtime') . '</label>' . "\r\n" . '                                        <div class="col-md-4">' . "\r\n" . '                                            <input readonly type="text" class="form-control text-center" id="episode_run_time" name="episode_run_time" value="';
 				echo TimeUtils::secondsToTime(intval($rProperties['episode_run_time']) * 60, false);
-				echo '">' . "\r\n" . '                                        </div>' . "\r\n" . '                                    </div>' . "\r\n" . '                                    <div class="form-group row mb-4">' . "\r\n" . '                                        <label class="col-md-2 col-form-label" for="youtube_trailer">Youtube Trailer</label>' . "\r\n" . '                                        <div class="col-md-4">' . "\r\n" . '                                            <input readonly type="text" class="form-control text-center" id="youtube_trailer" name="youtube_trailer" value="';
+				echo '">' . "\r\n" . '                                        </div>' . "\r\n" . '                                    </div>' . "\r\n" . '                                    <div class="form-group row mb-4">' . "\r\n" . '                                        <label class="col-md-2 col-form-label" for="youtube_trailer">' . $language::get('youtube_trailer_label') . '</label>' . "\r\n" . '                                        <div class="col-md-4">' . "\r\n" . '                                            <input readonly type="text" class="form-control text-center" id="youtube_trailer" name="youtube_trailer" value="';
 				echo htmlspecialchars($rSeries['youtube_trailer']);
-				echo '">' . "\r\n" . '                                        </div>' . "\r\n" . '                                        <label class="col-md-2 col-form-label" for="rating">Rating</label>' . "\r\n" . '                                        <div class="col-md-4">' . "\r\n" . '                                            <input readonly type="text" class="form-control text-center" id="rating" name="rating" value="';
+				echo '">' . "\r\n" . '                                        </div>' . "\r\n" . '                                        <label class="col-md-2 col-form-label" for="rating">' . $language::get('rating') . '</label>' . "\r\n" . '                                        <div class="col-md-4">' . "\r\n" . '                                            <input readonly type="text" class="form-control text-center" id="rating" name="rating" value="';
 				echo htmlspecialchars($rSeries['rating']);
 				echo '">' . "\r\n" . '                                        </div>' . "\r\n" . '                                    </div>' . "\r\n" . '                                </div> ' . "\r\n" . '                            </div>' . "\r\n" . '                        </div>' . "\r\n" . '                        ';
 			}
@@ -517,7 +517,7 @@ if ($rStream['type'] == 1) {
 			} else {
 				if (!$rCCInfo) {
 				} else {
-					echo '                        <div class="tab-pane" id="sources">' . "\r\n\t\t\t\t\t\t\t" . '<div class="table">' . "\r\n\t\t\t\t\t\t\t\t" . '<table id="datatable-sources" class="table table-striped table-borderless mb-0">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<thead>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<tr>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th class="text-center">Position</th>' . "\r\n" . '                                            <th>Filename</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th class="text-center">Start</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th class="text-center">Finish</th>' . "\r\n" . '                                            <th class="text-center">Duration</th>' . "\r\n" . '                                            <th class="text-center">Stream Info</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</thead>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<tbody>' . "\r\n" . '                                        ';
+					echo '                        <div class="tab-pane" id="sources">' . "\r\n\t\t\t\t\t\t\t" . '<div class="table">' . "\r\n\t\t\t\t\t\t\t\t" . '<table id="datatable-sources" class="table table-striped table-borderless mb-0">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<thead>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<tr>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th class="text-center">' . $language::get('position_header') . '</th>' . "\r\n" . '                                            <th>' . $language::get('filename') . '</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th class="text-center">' . $language::get('start') . '</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<th class="text-center">' . $language::get('finish') . '</th>' . "\r\n" . '                                            <th class="text-center">' . $language::get('duration') . '</th>' . "\r\n" . '                                            <th class="text-center">' . $language::get('stream_info') . '</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</thead>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<tbody>' . "\r\n" . '                                        ';
 
 					foreach ($rCCInfo as $rTrack) {
 						$rFilename = pathinfo(json_decode($rStream['stream_source'], true)[$rTrack['position']])['filename'];
@@ -572,7 +572,7 @@ if ($rStream['type'] == 1) {
 						$rStreamInfoText .= '<td>' . $rFPS . '</td></tr></tbody></table>';
 
 						if ($rTrack['start'] <= $rSeconds && $rSeconds < $rTrack['finish']) {
-							$rPosition = '<button type="button" title="Playing Now" class="tooltip btn btn-info btn-xs waves-effect waves-light btn-fixed-xs">' . ($rTrack['position'] + 1) . '</button>';
+							$rPosition = '<button type="button" title="' . $language::get('playing_now') . '" class="tooltip btn btn-info btn-xs waves-effect waves-light btn-fixed-xs">' . ($rTrack['position'] + 1) . '</button>';
 						} else {
 							$rPosition = '<button type="button" class="btn btn-secondary btn-xs waves-effect waves-light btn-fixed-xs">' . ($rTrack['position'] + 1) . '</button>';
 						}

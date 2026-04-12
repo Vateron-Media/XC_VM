@@ -85,13 +85,13 @@
 									<th class="text-center"><?php echo $language::get('id'); ?></th>
 									<th><?php echo $language::get('username'); ?></th>
 									<th class="text-center"><?php echo $language::get('mac_address'); ?></th>
-									<th class="text-center">Public IP</th>
+									<th class="text-center"><?= $language::get('public_ip') ?></th>
 									<th><?php echo $language::get('owner'); ?></th>
 									<th class="text-center"><?php echo $language::get('status'); ?></th>
 									<th class="text-center"><?php echo $language::get('online'); ?></th>
 									<th class="text-center"><?php echo $language::get('trial'); ?></th>
 									<th class="text-center"><?php echo $language::get('expiration'); ?></th>
-									<th class="text-center">Last Connection</th>
+									<th class="text-center"><?= $language::get('last_connection') ?></th>
 									<th class="text-center"><?php echo $language::get('actions'); ?></th>
 								</tr>
 							</thead>

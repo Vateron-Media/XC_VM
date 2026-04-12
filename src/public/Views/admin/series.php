@@ -24,7 +24,7 @@
 					<div class="page-title-right">
 						<?php include 'topbar.php'; ?>
 					</div>
-					<h4 class="page-title">TV Series</h4>
+					<h4 class="page-title"><?= $language::get('tv_series') ?></h4>
 				</div>
 			</div>
 		</div>
@@ -52,11 +52,11 @@
 							<div class="col-md-6">
 								<input type="text" class="form-control" id="series_search"
 									value="<?php if (isset(RequestManager::getAll()['search'])) echo htmlspecialchars(RequestManager::getAll()['search']); ?>"
-									placeholder="Search Series...">
+									placeholder="<?= $language::get('search_series_placeholder') ?>">
 							</div>
 							<div class="col-md-3">
 								<select id="series_category_id" class="form-control" data-toggle="select2">
-									<option value="">All Categories</option>
+									<option value=""><?= $language::get('all_categories') ?></option>
 									<option value="-1"
 										<?php if (isset(RequestManager::getAll()['category']) && RequestManager::getAll()['category'] == -1) echo 'selected'; ?>>
 										No TMDb Match</option>
@@ -71,7 +71,7 @@
 									<?php endforeach; ?>
 								</select>
 							</div>
-							<label class="col-md-1 col-form-label text-center" for="series_show_entries">Show</label>
+							<label class="col-md-1 col-form-label text-center" for="series_show_entries"><?= $language::get('show') ?></label>
 							<div class="col-md-2">
 								<select id="series_show_entries" class="form-control" data-toggle="select2">
 									<?php foreach (array(10, 25, 50, 250, 500, 1000) as $rShow): ?>
@@ -87,16 +87,16 @@
 							class="table table-striped table-borderless dt-responsive nowrap font-normal">
 							<thead>
 								<tr>
-									<th class="text-center">ID</th>
-									<th class="text-center">Image</th>
-									<th>Name</th>
-									<th>Category</th>
-									<th class="text-center">Seasons</th>
-									<th class="text-center">Episodes</th>
-									<th class="text-center">TMDb</th>
-									<th class="text-center">First Aired</th>
-									<th class="text-center">Last Updated</th>
-									<th class="text-center">Actions</th>
+									<th class="text-center"><?= $language::get('id') ?></th>
+									<th class="text-center"><?= $language::get('image') ?></th>
+									<th><?= $language::get('name') ?></th>
+									<th><?= $language::get('category') ?></th>
+									<th class="text-center"><?= $language::get('seasons') ?></th>
+									<th class="text-center"><?= $language::get('episodes') ?></th>
+									<th class="text-center"><?= $language::get('tmdb') ?></th>
+									<th class="text-center"><?= $language::get('first_aired') ?></th>
+									<th class="text-center"><?= $language::get('last_updated') ?></th>
+									<th class="text-center"><?= $language::get('actions') ?></th>
 								</tr>
 							</thead>
 							<tbody>

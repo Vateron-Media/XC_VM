@@ -23,7 +23,7 @@
                     <div class="page-title-right">
                         <?php include 'topbar.php'; ?>
                     </div>
-                    <h4 class="page-title">Autonomous System Numbers</h4>
+                    <h4 class="page-title"><?= $language::get('autonomous_system_numbers') ?></h4>
                 </div>
             </div>
         </div>
@@ -34,26 +34,26 @@
                         <form id="asn_search">
                             <div class="form-group row mb-4">
                                 <div class="col-md-3">
-                                    <input type="text" class="form-control" id="asn_search_box" placeholder="Search ASN's...">
+                                    <input type="text" class="form-control" id="asn_search_box" placeholder="<?= $language::get('search_asns') ?>">
                                 </div>
-                                <label class="col-md-2 col-form-label text-center" for="asn_type">Filter Results</label>
+                                <label class="col-md-2 col-form-label text-center" for="asn_type"><?= $language::get('filter_results') ?></label>
                                 <div class="col-md-3">
                                     <select id="asn_type" class="form-control" data-toggle="select2">
-                                        <option value="" selected>All Types</option>
-                                        <option value="isp">ISP</option>
-                                        <option value="hosting">Hosting Server</option>
-                                        <option value="education">Education</option>
-                                        <option value="business">Business</option>
+                                        <option value="" selected><?= $language::get('all_types') ?></option>
+                                        <option value="isp"><?= $language::get('isp') ?></option>
+                                        <option value="hosting"><?= $language::get('hosting_server') ?></option>
+                                        <option value="education"><?= $language::get('education') ?></option>
+                                        <option value="business"><?= $language::get('business') ?></option>
                                     </select>
                                 </div>
                                 <div class="col-md-2">
                                     <select id="asn_filter" class="form-control" data-toggle="select2">
-                                        <option value="" selected>No Filter</option>
-                                        <option value="0">Allowed</option>
-                                        <option value="1">Blocked</option>
+                                        <option value="" selected><?= $language::get('no_filter') ?></option>
+                                        <option value="0"><?= $language::get('allowed_option') ?></option>
+                                        <option value="1"><?= $language::get('blocked') ?></option>
                                     </select>
                                 </div>
-                                <label class="col-md-1 col-form-label text-center" for="asn_show_entries">Show</label>
+                                <label class="col-md-1 col-form-label text-center" for="asn_show_entries"><?= $language::get('show') ?></label>
                                 <div class="col-md-1">
                                     <select id="asn_show_entries" class="form-control" data-toggle="select2">
                                         <?php foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) : ?>
@@ -66,14 +66,14 @@
                         <table id="datatable-users" class="table table-striped table-borderless dt-responsive nowrap font-normal">
                             <thead>
                                 <tr>
-                                    <th class="text-center">ASN</th>
-                                    <th>Name</th>
-                                    <th>Domain</th>
-                                    <th class="text-center">Country</th>
-                                    <th class="text-center">IP Count</th>
-                                    <th class="text-center">Type</th>
-                                    <th class="text-center">Status</th>
-                                    <th class="text-center">Actions</th>
+                                    <th class="text-center"><?= $language::get('asn') ?></th>
+                                    <th><?= $language::get('name') ?></th>
+                                    <th><?= $language::get('domain') ?></th>
+                                    <th class="text-center"><?= $language::get('country') ?></th>
+                                    <th class="text-center"><?= $language::get('ip_count') ?></th>
+                                    <th class="text-center"><?= $language::get('type') ?></th>
+                                    <th class="text-center"><?= $language::get('status') ?></th>
+                                    <th class="text-center"><?= $language::get('actions') ?></th>
                                 </tr>
                             </thead>
                             <tbody></tbody>

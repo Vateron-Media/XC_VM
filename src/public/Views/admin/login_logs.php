@@ -24,7 +24,7 @@
 					<div class="page-title-right">
 						<?php include __DIR__ . '/topbar.php'; ?>
 					</div>
-					<h4 class="page-title">Login Logs</h4>
+					<h4 class="page-title"><?= $language::get('login_logs') ?></h4>
 				</div>
 			</div>
 		</div>

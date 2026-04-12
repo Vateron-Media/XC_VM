@@ -21,7 +21,7 @@
 					<div class="page-title-right">
 						<?php include 'topbar.php'; ?>
 					</div>
-					<h4 class="page-title">Blocked ISP's</h4>
+					<h4 class="page-title"><?= $language::get('blocked_isps') ?></h4>
 				</div>
 			</div>
 		</div>
@@ -40,10 +40,10 @@
 						<table id="datatable" class="table table-striped table-borderless dt-responsive nowrap">
 							<thead>
 								<tr>
-									<th class="text-center">ID</th>
-									<th>ISP Name</th>
-									<th class="text-center">Blocked</th>
-									<th class="text-center">Actions</th>
+									<th class="text-center"><?= $language::get('id') ?></th>
+									<th><?= $language::get('isp_name') ?></th>
+									<th class="text-center"><?= $language::get('blocked') ?></th>
+									<th class="text-center"><?= $language::get('actions') ?></th>
 								</tr>
 							</thead>
 							<tbody>
