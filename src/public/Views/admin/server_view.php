@@ -320,20 +320,20 @@
                                         <div class="card-box">
                                             <div class="col-md-12 align-self-center">
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="expiration_date">Certificate Expiration Date</label>
+                                                    <label class="col-md-4 col-form-label" for="expiration_date"><?= $language::get('certificate_expiration_date') ?></label>
                                                     <div class="col-md-8">
                                                         <input type="text" class="form-control" id="expiration_date" value="<?= $rExpiration; ?>" readonly>
                                                     </div>
                                                 </div>
                                                 <?php if ($rCertValid): ?>
                                                     <div class="form-group row mb-4">
-                                                        <label class="col-md-4 col-form-label" for="cert_serial">Certificate Serial</label>
+                                                        <label class="col-md-4 col-form-label" for="cert_serial"><?= $language::get('certificate_serial') ?></label>
                                                         <div class="col-md-8">
                                                             <input type="text" class="form-control" id="cert_serial" value="<?= $rCertificate['serial']; ?>" readonly>
                                                         </div>
                                                     </div>
                                                     <div class="form-group row">
-                                                        <label class="col-md-4 col-form-label" for="cert_subject">Certificate Subject</label>
+                                                        <label class="col-md-4 col-form-label" for="cert_subject"><?= $language::get('certificate_subject') ?></label>
                                                         <div class="col-md-8">
                                                             <input type="text" class="form-control" id="cert_subject" value="<?= $rCertificate['subject']; ?>" readonly>
                                                         </div>
@@ -397,13 +397,13 @@
                                                     <table id="datatable_streams" class="table table-striped table-borderless mb-0">
                                                         <thead>
                                                             <tr>
-                                                                <th>ID</th>
+                                                                <th><?= $language::get('id') ?></th>
                                                                 <th></th>
-                                                                <th>Name</th>
+                                                                <th><?= $language::get('name') ?></th>
                                                                 <th></th>
-                                                                <th>Clients</th>
-                                                                <th>Uptime</th>
-                                                                <th>Actions</th>
+                                                                <th><?= $language::get('clients') ?></th>
+                                                                <th><?= $language::get('uptime') ?></th>
+                                                                <th><?= $language::get('actions') ?></th>
                                                                 <th></th>
                                                                 <th></th>
                                                                 <th></th>
@@ -423,17 +423,17 @@
                                                 <table id="datatable_connections" class="table table-striped table-borderless mb-0">
                                                     <thead>
                                                         <tr>
-                                                            <th class="text-center">ID</th>
-                                                            <th class="text-center">Quality</th>
-                                                            <th>Username</th>
-                                                            <th>Stream</th>
-                                                            <th>Server</th>
-                                                            <th>Player</th>
-                                                            <th>ISP</th>
-                                                            <th class="text-center">IP</th>
-                                                            <th class="text-center">Duration</th>
-                                                            <th class="text-center">Output</th>
-                                                            <th class="text-center">Restreamer</th>
+                                                            <th class="text-center"><?= $language::get('id') ?></th>
+                                                            <th class="text-center"><?= $language::get('quality') ?></th>
+                                                            <th><?= $language::get('username') ?></th>
+                                                            <th><?= $language::get('stream') ?></th>
+                                                            <th><?= $language::get('server') ?></th>
+                                                            <th><?= $language::get('player') ?></th>
+                                                            <th><?= $language::get('isp') ?></th>
+                                                            <th class="text-center"><?= $language::get('ip') ?></th>
+                                                            <th class="text-center"><?= $language::get('duration') ?></th>
+                                                            <th class="text-center"><?= $language::get('output') ?></th>
+                                                            <th class="text-center"><?= $language::get('restreamer') ?></th>
                                                             <th class="text-center"><?= $language::get('actions'); ?></th>
                                                         </tr>
                                                     </thead>

@@ -16,7 +16,7 @@
 					<div class="page-title-right">
 						<?php include __DIR__ . '/topbar.php'; ?>
 					</div>
-					<h4 class="page-title">On-Demand Scanner</h4>
+					<h4 class="page-title"><?= $language::get('ondemand_scanner') ?></h4>
 				</div>
 			</div>
 		</div>
@@ -34,11 +34,11 @@
 					<div class="card-body" style="overflow-x:auto;">
 						<div class="form-group row mb-4">
 							<div class="col-md-3">
-								<input type="text" class="form-control" id="search" value="" placeholder="Search Streams...">
+								<input type="text" class="form-control" id="search" value="" placeholder="<?= $language::get('search_streams_placeholder') ?>">
 							</div>
 							<div class="col-md-3">
 								<select id="server" class="form-control" data-toggle="select2">
-									<option value="" selected>All Servers</option>
+									<option value="" selected><?= $language::get('all_servers') ?></option>
 									<?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer): ?>
 										<option value="<?php echo $rServer['id']; ?>" <?php if (isset(RequestManager::getAll()['server']) && RequestManager::getAll()['server'] == $rServer['id']): ?> selected<?php endif; ?>><?php echo $rServer['server_name']; ?></option>
 									<?php endforeach; ?>
@@ -46,7 +46,7 @@
 							</div>
 							<div class="col-md-2">
 								<select id="category" class="form-control" data-toggle="select2">
-									<option value="" selected>All Categories</option>
+									<option value="" selected><?= $language::get('all_categories') ?></option>
 									<?php foreach (CategoryService::getAllByType('live') as $rCategory): ?>
 										<option value="<?php echo $rCategory['id']; ?>" <?php if (isset(RequestManager::getAll()['category']) && RequestManager::getAll()['category'] == $rCategory['id']): ?> selected<?php endif; ?>><?php echo $rCategory['category_name']; ?></option>
 									<?php endforeach; ?>
@@ -60,7 +60,7 @@
 									<option value="3" <?php if (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 3): ?> selected<?php endif; ?>>Not Scanned</option>
 								</select>
 							</div>
-							<label class="col-md-1 col-form-label text-center" for="show_entries">Show</label>
+							<label class="col-md-1 col-form-label text-center" for="show_entries"><?= $language::get('show') ?></label>
 							<div class="col-md-1">
 								<select id="show_entries" class="form-control" data-toggle="select2">
 									<?php foreach (array(10, 25, 50, 250, 500, 1000) as $rShow): ?>
@@ -72,14 +72,14 @@
 						<table id="datatable-activity" class="table table-striped table-borderless dt-responsive nowrap">
 							<thead>
 								<tr>
-									<th class="text-center">ID</th>
-									<th class="text-center">Icon</th>
-									<th>Stream</th>
-									<th>Server</th>
-									<th class="text-center">Status</th>
-									<th class="text-center">Response</th>
-									<th class="text-center">Stream Info</th>
-									<th class="text-center">Last Scanned</th>
+									<th class="text-center"><?= $language::get('id') ?></th>
+									<th class="text-center"><?= $language::get('icon') ?></th>
+									<th><?= $language::get('stream') ?></th>
+									<th><?= $language::get('server') ?></th>
+									<th class="text-center"><?= $language::get('status') ?></th>
+									<th class="text-center"><?= $language::get('response') ?></th>
+									<th class="text-center"><?= $language::get('stream_info') ?></th>
+									<th class="text-center"><?= $language::get('last_scanned') ?></th>
 								</tr>
 							</thead>
 							<tbody></tbody>

@@ -65,7 +65,7 @@
                                     <li class="nav-item">
                                         <a href="#restrictions" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-hazard-lights mr-1"></i>
-                                            <span class="d-none d-sm-inline">Restrictions</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('restrictions') ?></span>
                                         </a>
                                     </li>
                                 </ul>
@@ -75,7 +75,7 @@
                                             <div class="col-12">
                                                 <div class="form-group row mb-4">
                                                     <label class="col-md-3 col-form-label" for="code">Access Code <i
-                                                            title="Enter a secure access code that cannot be guessed. It needs to be at least 8 characters and should be random."
+                                                            title="<?= $language::get('enter_a_secure_access_code_tooltip') ?>"
                                                             class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-9 input-group">
                                                         <input type="text" maxlength="16" class="form-control" id="code"
@@ -93,7 +93,7 @@
                                                 </div>
                                                 <div class="form-group row mb-4">
                                                     <label class="col-md-3 col-form-label" for="type">Access Type <i
-                                                            title="Select what access to grant."
+                                                            title="<?= $language::get('select_what_access_to_grant') ?>"
                                                             class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-4">
                                                         <select id="type" name="type" class="form-control select2">
@@ -166,7 +166,7 @@
                                                     class="btn btn-secondary"><?php echo $language::get('deselect_all'); ?></a>
                                             </li>
                                             <li class="nextb list-inline-item float-right">
-                                                <a href="javascript: void(0);" class="btn btn-secondary">Next</a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('next') ?></a>
                                             </li>
                                         </ul>
                                     </div>
@@ -176,7 +176,7 @@
                                                 <div class="form-group row mb-4">
                                                     <label class="col-md-4 col-form-label" for="ip_field">Allowed IP
                                                         Addresses <i
-                                                            title="Restrict access to specific IP addresses."
+                                                            title="<?= $language::get('restrict_access_to_specific_ip_addresses') ?>"
                                                             class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-8 input-group">
                                                         <input type="text" id="ip_field" class="form-control"
@@ -211,7 +211,7 @@
                                         </select>
 
                                         <ul class="list-inline wizard mb-0">
-                                            <li class="prevb list-inline-item"><a href="javascript: void(0);" class="btn btn-secondary">Previous</a></li>
+                                            <li class="prevb list-inline-item"><a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('prev') ?></a></li>
                                             <li class="list-inline-item float-right"><input name="submit" type="submit" class="btn btn-primary" value="Save"></li>
                                         </ul>
                                     </div>

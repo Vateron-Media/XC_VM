@@ -65,7 +65,7 @@
 												<div class="btn-group">
 													<a href="./bouquet_sort?id=<?php echo intval($rBouquet['id']); ?>"><button type="button" title="<?php echo $language::get('reorder_bouquet'); ?>" class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-format-line-spacing"></i></button></a>
 													<a href="./bouquet?id=<?php echo intval($rBouquet['id']); ?>"><button type="button" title="<?php echo $language::get('edit_bouquet'); ?>" class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-pencil-outline"></i></button></a>
-													<a href="./bouquet?duplicate=<?php echo intval($rBouquet['id']); ?>"><button type="button" title="Duuplicate Bouquet" class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-content-copy"></i></button></a>
+													<a href="./bouquet?duplicate=<?php echo intval($rBouquet['id']); ?>"><button type="button" title="<?= $language::get('duuplicate_bouquet') ?>" class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-content-copy"></i></button></a>
 													<button type="button" title="<?php echo $language::get('delete_bouquet'); ?>" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(<?php echo intval($rBouquet['id']); ?>, 'delete');"><i class="mdi mdi-close"></i></button>
 												</div>
 												<?php else: ?>--

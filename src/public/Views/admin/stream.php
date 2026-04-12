@@ -130,27 +130,27 @@ endif;
 							<input type="hidden" name="category_create_list" id="category_create_list" value="" />
 							<div id="basicwizard">
 								<ul class="nav nav-pills bg-light nav-justified form-wizard-header mb-4">
-									<li class="nav-item"><a href="#stream-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"> <i class="mdi mdi-account-card-details-outline mr-1"></i><span class="d-none d-sm-inline">Details</span></a></li>
+									<li class="nav-item"><a href="#stream-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"> <i class="mdi mdi-account-card-details-outline mr-1"></i><span class="d-none d-sm-inline"><?= $language::get('details') ?></span></a></li>
 
 									<?php
 									if (!isset(RequestManager::getAll()['import'])) {
-										echo ' <li class="nav-item"><a href="#stream-sources" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"><i class="mdi mdi-arrow-up-down-bold-outline mr-1"></i><span class="d-none d-sm-inline">Sources</span></a></li> ';
+										echo ' <li class="nav-item"><a href="#stream-sources" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"><i class="mdi mdi-arrow-up-down-bold-outline mr-1"></i><span class="d-none d-sm-inline">' . $language::get('sources') . '</span></a></li> ';
 									}
 
-									echo '<li class="nav-item"><a href="#advanced-options" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"><i class="mdi mdi-folder-alert-outline mr-1"></i><span class="d-none d-sm-inline">Advanced</span></a></li>';
+									echo '<li class="nav-item"><a href="#advanced-options" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"><i class="mdi mdi-folder-alert-outline mr-1"></i><span class="d-none d-sm-inline">' . $language::get('advanced') . '</span></a></li>';
 
 									if (isset(RequestManager::getAll()['import'])) {
 									} else {
-										echo '<li class="nav-item"><a href="#stream-map" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"><i class="mdi mdi-map mr-1"></i><span class="d-none d-sm-inline">Map</span></a></li>
-									<li class="nav-item"><a href="#epg-options" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"><i class="mdi mdi-television-guide mr-1"></i><span class="d-none d-sm-inline">EPG</span></a></li> ';
+										echo '<li class="nav-item"><a href="#stream-map" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"><i class="mdi mdi-map mr-1"></i><span class="d-none d-sm-inline">' . $language::get('map') . '</span></a></li>
+									<li class="nav-item"><a href="#epg-options" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"><i class="mdi mdi-television-guide mr-1"></i><span class="d-none d-sm-inline">' . $language::get('epg') . '</span></a></li> ';
 
 										if (!$rMobile) {
-											echo ' <li class="nav-item"><a href="#rtmp-push" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"><i class="mdi mdi-upload-network-outline mr-1"></i><span class="d-none d-sm-inline">RTMP Push</span></a></li> ';
+											echo ' <li class="nav-item"><a href="#rtmp-push" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"><i class="mdi mdi-upload-network-outline mr-1"></i><span class="d-none d-sm-inline">' . $language::get('rtmp_push') . '</span></a></li> ';
 										}
 									}
 									?>
 
-									<li class=" nav-item"><a href="#load-balancing" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"><i class="mdi mdi-server-network mr-1"></i><span class="d-none d-sm-inline">Servers</span></a></li>
+									<li class=" nav-item"><a href="#load-balancing" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"><i class="mdi mdi-server-network mr-1"></i><span class="d-none d-sm-inline"><?= $language::get('servers') ?></span></a></li>
 								</ul>
 								<div class="tab-content b-0 mb-0 pt-0">
 									<div class="tab-pane" id="stream-details">
@@ -158,7 +158,7 @@ endif;
 											<div class="col-12">
 												<?php
 												if (!isset(RequestManager::getAll()['import'])) {
-													echo "\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="stream_display_name">Stream Name</label>
+													echo "\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="stream_display_name">' . $language::get('stream_name') . '</label>
 													<div class="col-md-9"><input type="text" class="form-control" id="stream_display_name" name="stream_display_name" value="';
 
 													if (isset($rStream)) {
@@ -169,7 +169,7 @@ endif;
 														}
 													}
 
-													echo '" required data-parsley-trigger="change"></div></div><div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="stream_icon">Stream Logo</label>                                                    <div class="col-md-9 input-group"><input type="text" class="form-control" id="stream_icon" name="stream_icon" value="';
+													echo '" required data-parsley-trigger="change"></div></div><div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="stream_icon">' . $language::get('stream_logo') . '</label>                                                    <div class="col-md-9 input-group"><input type="text" class="form-control" id="stream_icon" name="stream_icon" value="';
 
 													if (isset($rStream)) {
 														echo htmlspecialchars($rStream['stream_icon']);
@@ -181,10 +181,10 @@ endif;
 
 													echo '"><div class="input-group-append"><a href="javascript:void(0)" onclick="openImage(this)" class="btn btn-primary waves-effect waves-light"><i class="mdi mdi-eye"></i></a></div></div></div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t";
 												} else {
-													echo "\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="m3u_file">M3U</label><div class="col-md-9"><input type="file" id="m3u_file" name="m3u_file" style="padding-top: 5px;" /></div></div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t";
+													echo "\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="m3u_file">' . $language::get('m3u') . '</label><div class="col-md-9"><input type="file" id="m3u_file" name="m3u_file" style="padding-top: 5px;" /></div></div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t";
 												}
 
-												echo "\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="category_id">Categories</label><div class="col-md-9">                                                        <select name="category_id[]" id="category_id" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
+												echo "\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="category_id">' . $language::get('categories') . '</label><div class="col-md-9">                                                        <select name="category_id[]" id="category_id" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="' . $language::get('choose_placeholder') . '">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
 
 												foreach (CategoryService::getAllByType('live') as $rCategory) {
 													echo '                                                            <option ';
@@ -201,7 +201,7 @@ endif;
 													echo $rCategory['category_name'];
 													echo '</option>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
 												}
-												echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</select>                                                        <div id="category_create" class="alert bg-dark text-white border-0 mt-2 mb-0" role="alert" style="display: none;">                                                            <strong>New Categories:</strong> <span id="category_new"></span>                                                        </div></div>                                                </div>                                                <div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="bouquets">Bouquets</label><div class="col-md-9"><select name="bouquets[]" id="bouquets" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
+												echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</select>                                                        <div id="category_create" class="alert bg-dark text-white border-0 mt-2 mb-0" role="alert" style="display: none;">                                                            <strong>New Categories:</strong> <span id="category_new"></span>                                                        </div></div>                                                </div>                                                <div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="bouquets">' . $language::get('bouquets') . '</label><div class="col-md-9"><select name="bouquets[]" id="bouquets" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="' . $language::get('choose_placeholder') . '">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
 
 												foreach (BouquetService::getAllSimple() as $rBouquet) {
 													echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<option ';
@@ -218,22 +218,22 @@ endif;
 													echo $rBouquet['bouquet_name'];
 													echo '</option>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
 												}
-												echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</select>                                                        <div id="bouquet_create" class="alert bg-dark text-white border-0 mt-2 mb-0" role="alert" style="display: none;">                                                            <strong>New Bouquets:</strong> <span id="bouquet_new"></span>                                                        </div></div></div><div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="notes">Notes</label><div class="col-md-9"><textarea id="notes" name="notes" class="form-control" rows="3" placeholder="">';
+												echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</select>                                                        <div id="bouquet_create" class="alert bg-dark text-white border-0 mt-2 mb-0" role="alert" style="display: none;">                                                            <strong>New Bouquets:</strong> <span id="bouquet_new"></span>                                                        </div></div></div><div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="notes">' . $language::get('notes') . '</label><div class="col-md-9"><textarea id="notes" name="notes" class="form-control" rows="3" placeholder="">';
 
 												if (!isset($rStream)) {
 												} else {
 													echo htmlspecialchars($rStream['notes']);
 												}
 
-												echo '</textarea></div></div></div> </div> <ul class="list-inline wizard mb-0"><li class="nextb list-inline-item float-right"><a href="javascript: void(0);" class="btn btn-secondary">Next</a></li></ul></div>                                    ';
+												echo '</textarea></div></div></div> </div> <ul class="list-inline wizard mb-0"><li class="nextb list-inline-item float-right"><a href="javascript: void(0);" class="btn btn-secondary">' . $language::get('next') . '</a></li></ul></div>                                    ';
 
 												if (isset(RequestManager::getAll()['import'])) {
 												} else {
-													echo '                                    <div class="tab-pane" id="stream-sources"><div class="row"><div class="col-12">                                                <table id="datatable-sources" class="table table-striped table-borderless mb-0">                                                    <thead>                                                        <tr>                                                            <th>URL</th>                                                            ';
+													echo '                                    <div class="tab-pane" id="stream-sources"><div class="row"><div class="col-12">                                                <table id="datatable-sources" class="table table-striped table-borderless mb-0">                                                    <thead>                                                        <tr>                                                            <th>' . $language::get('url') . '</th>                                                            ';
 
 													if ($rMobile) {
 													} else {
-														echo '                                                            <th class="text-center">Stream Info</th>                                                            ';
+														echo '                                                            <th class="text-center">' . $language::get('stream_info') . '</th>                                                            ';
 													}
 
 													echo '                                                        </tr>                                                    </thead>                                                    <tbody class="streams">                                                        ';
@@ -267,7 +267,7 @@ endif;
 
 														echo '                                                        </tr>                                                        ';
 													}
-													echo '                                                    </tbody>                                                </table><div id="capture_form" style="display: none;"><div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="capture_server_id">Capture Server</label><div class="col-md-9"><select name="capture_server_id" id="capture_server_id" class="form-control" data-toggle="select2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
+													echo '                                                    </tbody>                                                </table><div id="capture_form" style="display: none;"><div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="capture_server_id">' . $language::get('capture_server') . '</label><div class="col-md-9"><select name="capture_server_id" id="capture_server_id" class="form-control" data-toggle="select2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
 
 													foreach ($rServers as $rServer) {
 														echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<option value="';
@@ -283,17 +283,17 @@ endif;
 														echo $rServer['server_name'];
 														echo '</option>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
 													}
-													echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</select></div></div><div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="video_device_id">Video Input</label><div class="col-md-9"><select name="video_device_id" id="video_device_id" class="form-control" data-toggle="select2"></select></div></div><div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="audio_device_id">Audio Input</label><div class="col-md-9"><select name="audio_device_id" id="audio_device_id" class="form-control" data-toggle="select2"></select></div></div></div>                                            </div>                                        </div>                                        <ul class="list-inline wizard mb-0" style="padding-top: 30px;"><li class="prevb list-inline-item"><a href="javascript: void(0);" class="btn btn-secondary">Previous</a>                                            </li><span id="source_form"><li class="list-inline-item"><a onClick="addStream();" class="btn btn-primary btn-pointer">Add Row</a></li>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t";
+													echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</select></div></div><div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="video_device_id">' . $language::get('video_input') . '</label><div class="col-md-9"><select name="video_device_id" id="video_device_id" class="form-control" data-toggle="select2"></select></div></div><div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="audio_device_id">' . $language::get('audio_input') . '</label><div class="col-md-9"><select name="audio_device_id" id="audio_device_id" class="form-control" data-toggle="select2"></select></div></div></div>                                            </div>                                        </div>                                        <ul class="list-inline wizard mb-0" style="padding-top: 30px;"><li class="prevb list-inline-item"><a href="javascript: void(0);" class="btn btn-secondary">' . $language::get('prev') . '</a>                                            </li><span id="source_form"><li class="list-inline-item"><a onClick="addStream();" class="btn btn-primary btn-pointer">' . $language::get('add_row') . '</a></li>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t";
 
 													if ($rMobile) {
 													} else {
-														echo '                                                <li class="list-inline-item">                                                    <button type="button" style="width: 100%" class="btn btn-pink btn-pointer" id="provider-streams">Providers</button></li><li class="list-inline-item"><a onClick="scanSources();" class="btn btn-info btn-pointer">Scan Sources</a></li>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t";
+														echo '                                                <li class="list-inline-item">                                                    <button type="button" style="width: 100%" class="btn btn-pink btn-pointer" id="provider-streams">' . $language::get('providers') . '</button></li><li class="list-inline-item"><a onClick="scanSources();" class="btn btn-info btn-pointer">' . $language::get('scan_sources') . '</a></li>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t";
 													}
 
-													echo "\t\t\t\t\t\t\t\t\t\t\t" . '</span><li class="list-inline-item float-right"><!--<a onClick="toggleCapture();" class="btn btn-info btn-pointer">Toggle Mode</a>--><a href="javascript: void(0);" class="btn btn-secondary nextb">Next</a></li></ul>                                    </div>                                    ';
+													echo "\t\t\t\t\t\t\t\t\t\t\t" . '</span><li class="list-inline-item float-right"><!--<a onClick="toggleCapture();" class="btn btn-info btn-pointer">' . $language::get('toggle_mode') . '</a>--><a href="javascript: void(0);" class="btn btn-secondary nextb">' . $language::get('next') . '</a></li></ul>                                    </div>                                    ';
 												}
 
-												echo '<div class="tab-pane" id="advanced-options"><div class="row"><div class="col-12"><div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="gen_timestamps">Generate PTS <i title="Allow FFmpeg to generate presentation timestamps for you to achieve better synchronization with the stream codecs. In some streams this can cause de-sync." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-3"><input name="gen_timestamps" id="gen_timestamps" type="checkbox" ';
+												echo '<div class="tab-pane" id="advanced-options"><div class="row"><div class="col-12"><div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="gen_timestamps">Generate PTS <i title="' . $language::get('allow_ffmpeg_to_generate_presentation_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-3"><input name="gen_timestamps" id="gen_timestamps" type="checkbox" ';
 
 												if (isset($rStream)) {
 													if ($rStream['gen_timestamps'] != 1) {
@@ -304,7 +304,7 @@ endif;
 													echo 'checked ';
 												}
 
-												echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="read_native">Native Frames <i title="You should always read live streams as non-native frames. However if you are streaming static video files, set this to true otherwise the encoding process will fail." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="read_native" id="read_native" type="checkbox" ';
+												echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="read_native">Native Frames <i title="' . $language::get('you_should_always_read_live_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="read_native" id="read_native" type="checkbox" ';
 
 												if (!isset($rStream)) {
 												} else {
@@ -314,7 +314,7 @@ endif;
 													}
 												}
 
-												echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div><div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="stream_all">Stream All Codecs <i title="This option will stream all codecs from your stream. Some streams have more than one audio/video/subtitles channels." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-3"><input name="stream_all" id="stream_all" type="checkbox" ';
+												echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div><div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="stream_all">Stream All Codecs <i title="' . $language::get('this_option_will_stream_all_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-3"><input name="stream_all" id="stream_all" type="checkbox" ';
 
 												if (!isset($rStream)) {
 												} else {
@@ -324,7 +324,7 @@ endif;
 													}
 												}
 
-												echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="allow_record">Allow Recording</label><div class="col-md-2"><input name="allow_record" id="allow_record" type="checkbox" ';
+												echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="allow_record">' . $language::get('allow_recording') . '</label><div class="col-md-2"><input name="allow_record" id="allow_record" type="checkbox" ';
 
 												if (isset($rStream)) {
 													if ($rStream['allow_record'] != 1) {
@@ -345,7 +345,7 @@ endif;
 													}
 												}
 
-												echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div>                                                    <label class="col-md-4 col-form-label" for="direct_proxy">Direct Stream <i title="When using direct source, hide the original URL by proxying the live stream through your servers via UDP. MPEG-TS and HLS is supported as an input format, however only MPEG-TS is supported as an output format to clients.<br/><br/>Experimental! This may not work for all streams." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="direct_proxy" id="direct_proxy" type="checkbox" ';
+												echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div>                                                    <label class="col-md-4 col-form-label" for="direct_proxy">Direct Stream <i title="' . $language::get('when_using_direct_source_hide_tooltip_title') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="direct_proxy" id="direct_proxy" type="checkbox" ';
 
 												if (!isset($rStream)) {
 												} else {
@@ -359,10 +359,10 @@ endif;
 
 												if (!isset(RequestManager::getAll()['import'])) {
 												} else {
-													echo '                                                <div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="add_source_as_backup">Add Source as Backup <i title="If an identical stream name is found, or the XMLTV ID matches an existing stream, the source will be added as a backup. The existing stream options will be kept." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-3"><input name="add_source_as_backup" id="add_source_as_backup" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="update_existing">Update Existing <i title="If the source exists, overwrite it with the new title and stream options." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="update_existing" id="update_existing" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div>                                                ';
+													echo '                                                <div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="add_source_as_backup">Add Source as Backup <i title="' . $language::get('if_an_identical_stream_name_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-3"><input name="add_source_as_backup" id="add_source_as_backup" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="update_existing">Update Existing <i title="' . $language::get('if_the_source_exists_overwrite_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="update_existing" id="update_existing" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div>                                                ';
 												}
 
-												echo '                                                <div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="fps_restart">Restart on FPS Drop <i title="Enable restart on FPS drop, set the threshold accordingly." class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-3"><input name="fps_restart" id="fps_restart" type="checkbox" ';
+												echo '                                                <div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="fps_restart">Restart on FPS Drop <i title="' . $language::get('enable_restart_on_fps_drop_set_the_threshold_accordingly') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-3"><input name="fps_restart" id="fps_restart" type="checkbox" ';
 
 												if (!isset($rStream)) {
 												} else {
@@ -391,7 +391,7 @@ endif;
 
 												echo '"></div>
 													</div>
-													<div class="form-group row mb-4"> <label class="col-md-3 col-form-label" for="probesize_ondemand">On Demand Probesize <i title="Adjustable probesize for ondemand streams. Adjust this setting if you experience issues with no audio." class="tooltip text-secondary far fa-circle"></i></label>
+													<div class="form-group row mb-4"> <label class="col-md-3 col-form-label" for="probesize_ondemand">On Demand Probesize <i title="' . $language::get('adjustable_probesize_for_ondemand_streams_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label>
 														<div class="col-md-3"><input type="text" class="form-control text-center" id="probesize_ondemand" name="probesize_ondemand" value="';
 
 												if (isset($rStream)) {
@@ -400,7 +400,7 @@ endif;
 													echo $rSettings['probesize_ondemand'];
 												}
 
-												echo '"></div> <label class="col-md-4 col-form-label" for="delay_minutes">Minute Delay <i title="Delay stream by X minutes. Will not work with on demand streams." class="tooltip text-secondary far fa-circle"></i></label>
+												echo '"></div> <label class="col-md-4 col-form-label" for="delay_minutes">Minute Delay <i title="' . $language::get('delay_stream_by_x_minutes_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label>
 														<div class="col-md-2"><input type="text" class="form-control text-center" id="delay_minutes" name="delay_minutes" value="';
 
 												if (isset($rStream)) {
@@ -411,7 +411,7 @@ endif;
 
 												echo '"></div>
 													</div>
-													<div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="user_agent">User Agent</label>
+													<div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="user_agent">' . $language::get('user_agent') . '</label>
 														<div class="col-md-9"><input type="text" class="form-control" id="user_agent" name="user_agent" value="';
 
 												if (isset($rStreamOptions[1])) {
@@ -422,7 +422,7 @@ endif;
 
 												echo '"></div>
 													</div>
-													<div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="http_proxy">HTTP Proxy <i title="Format: ip:port" class="tooltip text-secondary far fa-circle"></i></label>
+													<div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="http_proxy">HTTP Proxy <i title="' . $language::get('format_ipport') . '" class="tooltip text-secondary far fa-circle"></i></label>
 														<div class="col-md-9"><input type="text" class="form-control" id="http_proxy" name="http_proxy" value="';
 
 												if (isset($rStreamOptions[2])) {
@@ -433,7 +433,7 @@ endif;
 
 												echo '"></div>
 													</div>
-													<div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="cookie">Cookie <i title="Format: key=value;" class="tooltip text-secondary far fa-circle"></i></label>
+													<div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="cookie">Cookie <i title="' . $language::get('format_keyvalue') . '" class="tooltip text-secondary far fa-circle"></i></label>
 														<div class="col-md-9"><input type="text" class="form-control" id="cookie" name="cookie" value="';
 
 												if (isset($rStreamOptions[17])) {
@@ -444,7 +444,7 @@ endif;
 
 												echo '"></div>
 													</div>
-													<div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="headers">Headers <i title="FFmpeg -headers command." class="tooltip text-secondary far fa-circle"></i></label>
+													<div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="headers">Headers <i title="' . $language::get('ffmpeg_headers_command') . '" class="tooltip text-secondary far fa-circle"></i></label>
 														<div class="col-md-9"><input type="text" class="form-control" id="headers" name="headers" value="';
 
 												if (isset($rStreamOptions[19])) {
@@ -455,7 +455,7 @@ endif;
 
 												echo '"></div>
 													</div>
-													<div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="skip_ffprobe">Skip FFProbe <i title="Skip codec detection via ffprobe. Assumes h264 video and AAC audio. Use for streams with corrupted PMT where ffprobe misdetects codecs." class="tooltip text-secondary far fa-circle"></i></label>
+													<div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="skip_ffprobe">Skip FFProbe <i title="' . $language::get('skip_codec_detection_via_ffprobe_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label>
 														<div class="col-md-9"><input name="skip_ffprobe" id="skip_ffprobe" type="checkbox" ';
 
 												if (isset($rStreamOptions[21])) {
@@ -466,8 +466,8 @@ endif;
 
 												echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd" /></div>
 													</div>
-													<div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="force_input_acodec">Force Input Audio Codec <i title="Force FFmpeg to interpret the input audio stream as a specific codec (e.g., aac, ac3). Useful for streams with corrupted PMT metadata." class="tooltip text-secondary far fa-circle"></i></label>
-														<div class="col-md-9"><input name="force_input_acodec" id="force_input_acodec" type="text" class="form-control" placeholder="e.g., aac, ac3" value="';
+													<div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="force_input_acodec">Force Input Audio Codec <i title="' . $language::get('force_ffmpeg_to_interpret_the_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-9"><input name="force_input_acodec" id="force_input_acodec" type="text" class="form-control" placeholder="' . $language::get('eg_aac_ac3') . '" value="';
 
 												if (isset($rStreamOptions[20])) {
 													echo htmlspecialchars($rStreamOptions[20]['value']);
@@ -475,7 +475,7 @@ endif;
 
 												echo '" /></div>
 													</div>
-													<div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="transcode_profile_id">Transcoding Profile <i title="Sometimes, in order to make a stream compatible with most devices, it must be transcoded. Please note that the transcode will only be applied to the server(s) that take the stream directly from the source, all other servers attached to the transcoding server will not transcode the stream." class="tooltip text-secondary far fa-circle"></i></label>
+													<div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="transcode_profile_id">Transcoding Profile <i title="' . $language::get('episode_tooltip_7') . '" class="tooltip text-secondary far fa-circle"></i></label>
 														<div class="col-md-9"><select name="transcode_profile_id" id="transcode_profile_id" class="form-control" data-toggle="select2"><option ';
 
 												if (!isset($rStream)) {
@@ -486,7 +486,7 @@ endif;
 													}
 												}
 
-												echo 'value="0">Transcoding Disabled</option>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
+												echo 'value="0">' . $language::get('transcoding_disabled') . '</option>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
 
 												foreach ($rTranscodeProfiles as $rProfile) {
 													echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<option ';
@@ -505,7 +505,7 @@ endif;
 													echo $rProfile['profile_name'];
 													echo '</option>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
 												}
-												echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</select></div></div>                                                <div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="days_to_restart">Auto-Restart</label><div class="col-md-7">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
+												echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</select></div></div>                                                <div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="days_to_restart">' . $language::get('auto_restart_label') . '</label><div class="col-md-7">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
 												$rAutoRestart = array('days' => array(), 'at' => '06:00');
 
 												if (!isset($rStream)) {
@@ -526,7 +526,7 @@ endif;
 													}
 												}
 
-												echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<select id="days_to_restart" name="days_to_restart[]" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose ...">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
+												echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<select id="days_to_restart" name="days_to_restart[]" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="' . $language::get('choose_placeholder') . '">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
 
 												foreach (array('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday') as $rDay) {
 													echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<option value="';
@@ -555,8 +555,8 @@ endif;
 													}
 												}
 												?>
-												<label class="col-md-3 col-form-label" for="adaptive_link">Adaptive Link <i title="Link multiple streams together when HLS is requested, the player will select a suitable stream based on the available bandwidth. The selected streams do not need to be in the line's bouquet, or any bouquet at all. MPEG-TS will play this stream normally." class="tooltip text-secondary far fa-circle"></i></label>
-												<div class="col-md-9"><select name="adaptive_link[]" id="adaptive_link" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose ...">
+												<label class="col-md-3 col-form-label" for="adaptive_link">Adaptive Link <i title="<?= $language::get('link_multiple_streams_together_when_tooltip') ?>" class="tooltip text-secondary far fa-circle"></i></label>
+												<div class="col-md-9"><select name="adaptive_link[]" id="adaptive_link" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="<?= $language::get('choose_placeholder') ?>">
 
 														<?php foreach ($rAdaptiveLink as $rAdaptiveID): ?>
 															<option value="<?= htmlspecialchars($rAdaptiveID, ENT_QUOTES) ?>" selected="selected">
@@ -567,7 +567,7 @@ endif;
 
 													</select></div>
 											</div>
-											<div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="title_sync">Sync Title <i title="Synchronise stream title with a provider stream. You need to add your strema providers to XC_VM in order for this to work, the title will be updated every time the cron runs." class="tooltip text-secondary far fa-circle"></i></label>
+											<div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="title_sync">Sync Title <i title="<?= $language::get('synchronise_stream_title_with_a_tooltip') ?>" class="tooltip text-secondary far fa-circle"></i></label>
 												<div class="col-md-7"><select id="title_sync" name="title_sync" class="form-control" data-toggle="select2">
 
 														<?php
@@ -581,13 +581,13 @@ endif;
 														}
 														?>
 													</select></div>
-												<div class="col-md-2"> <a href="javascript: void(0);" onClick="clearTitle();" class="btn btn-warning" style="width: 100%">Clear</a> </div>
+												<div class="col-md-2"> <a href="javascript: void(0);" onClick="clearTitle();" class="btn btn-warning" style="width: 100%"><?= $language::get('clear') ?></a> </div>
 											</div>
 										</div>
 									</div>
 									<ul class="list-inline wizard mb-0">
-										<li class="prevb list-inline-item"><a href="javascript: void(0);" class="btn btn-secondary">Previous</a></li>
-										<li class="nextb list-inline-item float-right"><a href="javascript: void(0);" class="btn btn-secondary">Next</a></li>
+										<li class="prevb list-inline-item"><a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('prev') ?></a></li>
+										<li class="nextb list-inline-item float-right"><a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('next') ?></a></li>
 									</ul>
 								</div>
 								<?php
@@ -600,7 +600,7 @@ endif;
 														<table class="table table-striped table-borderless mb-4">
 															<thead>
 																<tr>
-																	<th>Custom Map</th>
+																	<th>' . $language::get('custom_map') . '</th>
 																</tr>
 															</thead>
 															<tbody>
@@ -618,15 +618,15 @@ endif;
 															</tbody>
 														</table>
 														<table id="datatable-map" class="table table-striped table-borderless mb-0">
-															<thead><tr><th>#</th><th>Type</th><th>Information</th></tr>
+															<thead><tr><th>#</th><th>' . $language::get('type') . '</th><th>' . $language::get('information') . '</th></tr>
 															</thead>
 															<tbody></tbody>
 														</table>
 													</div>
 												</div>
 												<ul class="list-inline wizard mb-0">
-													<li class="prevb list-inline-item"><a href="javascript: void(0);" class="btn btn-secondary">Previous</a></li>
-													<li class="nextb list-inline-item float-right"><a href="javascript: void(0);" class="btn btn-secondary">Next</a></li>
+													<li class="prevb list-inline-item"><a href="javascript: void(0);" class="btn btn-secondary">' . $language::get('prev') . '</a></li>
+													<li class="nextb list-inline-item float-right"><a href="javascript: void(0);" class="btn btn-secondary">' . $language::get('next') . '</a></li>
 												</ul>
 											</div>
 											<div class="tab-pane" id="epg-options">
@@ -656,7 +656,7 @@ endif;
 									}
 
 									echo '" id="quick-search">
-																<div class="form-group row mb-4"> <label class="col-md-3 col-form-label" for="quick_search">Search EPG</label>
+																<div class="form-group row mb-4"> <label class="col-md-3 col-form-label" for="quick_search">' . $language::get('search_epg') . '</label>
 																	<div class="col-md-9"> <select id="quick_search" class="form-control" data-toggle="select2"></select> </div>
 																</div>
 															</div>
@@ -668,7 +668,7 @@ endif;
 									}
 
 									echo '" id="xmltv-epg">
-																<div class="form-group row mb-4"> <label class="col-md-4 col-form-label" for="epg_id">EPG Source</label>
+																<div class="form-group row mb-4"> <label class="col-md-4 col-form-label" for="epg_id">' . $language::get('epg_source') . '</label>
 																	<div class="col-md-8"> <select name="epg_id" id="epg_id" class="form-control" data-toggle="select2">
 																			<option ';
 
@@ -680,7 +680,7 @@ endif;
 										}
 									}
 
-									echo 'value="0">No EPG</option>                                                                    ';
+									echo 'value="0">' . $language::get('no_epg') . '</option>                                                                    ';
 
 									foreach ($rEPGSources as $rEPG) {
 										echo '                                                                    <option ';
@@ -699,7 +699,7 @@ endif;
 										echo $rEPG['epg_name'];
 										echo '</option>                                                                    ';
 									}
-									echo '                                                                </select>                                                            </div>                                                        </div>                                                        <div class="form-group row mb-4">                                                            <label class="col-md-4 col-form-label" for="channel_id">EPG Channel ID</label>                                                            <div class="col-md-8">                                                                <select name="channel_id" id="channel_id" class="form-control" data-toggle="select2">                                                                ';
+									echo '                                                                </select>                                                            </div>                                                        </div>                                                        <div class="form-group row mb-4">                                                            <label class="col-md-4 col-form-label" for="channel_id">' . $language::get('epg_channel_id') . '</label>                                                            <div class="col-md-8">                                                                <select name="channel_id" id="channel_id" class="form-control" data-toggle="select2">                                                                ';
 
 									if (isset($rStream)) {
 										$rEPGData = json_decode($rEPGSources[intval($rStream['epg_id'])]['data'] ?? '[]', true) ?: [];
@@ -719,7 +719,7 @@ endif;
 										}
 									}
 
-									echo '                                                                </select>                                                            </div>                                                        </div>                                                        <div class="form-group row mb-4">                                                            <label class="col-md-4 col-form-label" for="epg_lang">EPG Language</label>                                                            <div class="col-md-4">                                                                <select name="epg_lang" id="epg_lang" class="form-control" data-toggle="select2">                                                                ';
+									echo '                                                                </select>                                                            </div>                                                        </div>                                                        <div class="form-group row mb-4">                                                            <label class="col-md-4 col-form-label" for="epg_lang">' . $language::get('epg_language') . '</label>                                                            <div class="col-md-4">                                                                <select name="epg_lang" id="epg_lang" class="form-control" data-toggle="select2">                                                                ';
 
 									if (isset($rStream)) {
 										$rEPGData = json_decode($rEPGSources[intval($rStream['epg_id'])]['data'] ?? '[]', true) ?: [];
@@ -739,7 +739,7 @@ endif;
 										}
 									}
 
-									echo '                                                                </select>                                                            </div>                                                            <label class="col-md-2 col-form-label" for="epg_offset">Minute Offset</label>                                                            <div class="col-md-2">                                                                <input type="text" class="form-control text-center" id="epg_offset" name="epg_offset" value="';
+									echo '                                                                </select>                                                            </div>                                                            <label class="col-md-2 col-form-label" for="epg_offset">' . $language::get('minute_offset') . '</label>                                                            <div class="col-md-2">                                                                <input type="text" class="form-control text-center" id="epg_offset" name="epg_offset" value="';
 
 									if (isset($rStream)) {
 										echo (intval($rStream['epg_offset']) ?: 0);
@@ -747,7 +747,7 @@ endif;
 										echo '0';
 									}
 
-									echo '" required data-parsley-trigger="change">                                                            </div>                                                        </div>                                                    </div>                                                </div></div> </div> <ul class="list-inline wizard mb-0"><li class="prevb list-inline-item"><a href="javascript: void(0);" class="btn btn-secondary">Previous</a></li><li class="nextb list-inline-item float-right"><a href="javascript: void(0);" class="btn btn-secondary">Next</a></li></ul></div>                                    <div class="tab-pane" id="rtmp-push"><div class="row"><div class="col-12">                                                <div class="form-group row mb-4">                                                    <label class="col-md-9 col-form-label" for="rtmp_output">Output RTMP <i title="Feed stream to the RTMP server for output to RTMP clients." class="tooltip text-secondary far fa-circle"></i></label>                                                    <div class="col-md-3">                                                        <input name="rtmp_output" id="rtmp_output" type="checkbox" ';
+									echo '" required data-parsley-trigger="change">                                                            </div>                                                        </div>                                                    </div>                                                </div></div> </div> <ul class="list-inline wizard mb-0"><li class="prevb list-inline-item"><a href="javascript: void(0);" class="btn btn-secondary">' . $language::get('prev') . '</a></li><li class="nextb list-inline-item float-right"><a href="javascript: void(0);" class="btn btn-secondary">' . $language::get('next') . '</a></li></ul></div>                                    <div class="tab-pane" id="rtmp-push"><div class="row"><div class="col-12">                                                <div class="form-group row mb-4">                                                    <label class="col-md-9 col-form-label" for="rtmp_output">Output RTMP <i title="' . $language::get('feed_stream_to_the_rtmp_server_for_output_to_rtmp_clients') . '" class="tooltip text-secondary far fa-circle"></i></label>                                                    <div class="col-md-3">                                                        <input name="rtmp_output" id="rtmp_output" type="checkbox" ';
 
 									if (!isset($rStream)) {
 									} else {
@@ -757,7 +757,7 @@ endif;
 										}
 									}
 
-									echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/>                                                    </div>                                                </div>                                                <div class="alert bg-info text-white border-0" role="alert">RTMP Push will allow you to push your streams to RTMP servers, such as the one that runs with XC_VM. The `Push From` server needs to be enabled in the servers tab for this to be activated.</div>                                                <table id="datatable-rtmp" class="table table-striped table-borderless mb-0">                                                    <thead>                                                        <tr>                                                            <th>Push From</th>                                                            <th>RTMP URL</th>                                                        </tr>                                                    </thead>                                                    <tbody class="rtmp">                                                        ';
+									echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/>                                                    </div>                                                </div>                                                <div class="alert bg-info text-white border-0" role="alert">RTMP Push will allow you to push your streams to RTMP servers, such as the one that runs with XC_VM. The `Push From` server needs to be enabled in the servers tab for this to be activated.</div>                                                <table id="datatable-rtmp" class="table table-striped table-borderless mb-0">                                                    <thead>                                                        <tr>                                                            <th>' . $language::get('push_from') . '</th>                                                            <th>' . $language::get('rtmp_url') . '</th>                                                        </tr>                                                    </thead>                                                    <tbody class="rtmp">                                                        ';
 
 									if (isset($rStream)) {
 										$rRTMPPush = json_decode($rStream['external_push'], true);
@@ -799,10 +799,10 @@ endif;
 											$i++;
 										}
 									}
-									echo '                                                    </tbody>                                                </table>                                            </div>                                        </div>                                        <ul class="list-inline wizard mb-0" style="padding-top: 30px;"><li class="prevb list-inline-item"><a href="javascript: void(0);" class="btn btn-secondary">Previous</a>                                            </li><li class="list-inline-item float-right">                                                <a onClick="addRTMP();" class="btn btn-info btn-pointer">Add RTMP URL</a><a href="javascript: void(0);" class="btn nextb btn-secondary">Next</a></li></ul>                                    </div>';
+									echo '                                                    </tbody>                                                </table>                                            </div>                                        </div>                                        <ul class="list-inline wizard mb-0" style="padding-top: 30px;"><li class="prevb list-inline-item"><a href="javascript: void(0);" class="btn btn-secondary">' . $language::get('prev') . '</a>                                            </li><li class="list-inline-item float-right">                                                <a onClick="addRTMP();" class="btn btn-info btn-pointer">' . $language::get('add_rtmp_url') . '</a><a href="javascript: void(0);" class="btn nextb btn-secondary">' . $language::get('next') . '</a></li></ul>                                    </div>';
 								}
 
-								echo '<div class="tab-pane" id="load-balancing"><div class="row"><div class="col-12"><div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="servers">Server Tree</label><div class="col-md-9"><div id="server_tree"></div></div></div><div class="form-group row mb-4">                                                    <label class="col-md-3 col-form-label" for="on_demand">On-Demand Servers</label><div class="col-md-3">                                                        <select name="on_demand[]" id="on_demand" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
+								echo '<div class="tab-pane" id="load-balancing"><div class="row"><div class="col-12"><div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="servers">' . $language::get('server_tree') . '</label><div class="col-md-9"><div id="server_tree"></div></div></div><div class="form-group row mb-4">                                                    <label class="col-md-3 col-form-label" for="on_demand">' . $language::get('on_demand_servers') . '</label><div class="col-md-3">                                                        <select name="on_demand[]" id="on_demand" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="' . $language::get('choose_placeholder') . '">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
 
 								foreach ($rServers as $rServer) {
 									echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<option value="';
@@ -834,7 +834,7 @@ endif;
 									echo $rText;
 									echo '</option>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
 								}
-								echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</select></div></div><div class="form-group row mb-4">                                                    <label class="col-md-3 col-form-label" for="tv_archive_server_id">Timeshift Server</label><div class="col-md-3"><select name="tv_archive_server_id" id="tv_archive_server_id" class="form-control" data-toggle="select2"><option value="0">Disabled</option>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
+								echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</select></div></div><div class="form-group row mb-4">                                                    <label class="col-md-3 col-form-label" for="tv_archive_server_id">' . $language::get('timeshift_server') . '</label><div class="col-md-3"><select name="tv_archive_server_id" id="tv_archive_server_id" class="form-control" data-toggle="select2"><option value="0">' . $language::get('disabled') . '</option>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
 
 								foreach ($rServers as $rServer) {
 									echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<option value="';
@@ -850,7 +850,7 @@ endif;
 									echo $rServer['server_name'];
 									echo '</option>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
 								}
-								echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</select></div>                                                    <label class="col-md-3 col-form-label" for="tv_archive_duration">Timeshift Days</label><div class="col-md-3"><input type="text" class="form-control text-center" id="tv_archive_duration" name="tv_archive_duration" value="';
+								echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</select></div>                                                    <label class="col-md-3 col-form-label" for="tv_archive_duration">' . $language::get('timeshift_days') . '</label><div class="col-md-3"><input type="text" class="form-control text-center" id="tv_archive_duration" name="tv_archive_duration" value="';
 
 								if (isset($rStream)) {
 									echo $rStream['tv_archive_duration'];
@@ -858,7 +858,7 @@ endif;
 									echo '0';
 								}
 
-								echo '"></select></div>                                                </div><div class="form-group row mb-4">                                                    <label class="col-md-3 col-form-label" for="vframes_server_id">Thumbnail Server</label><div class="col-md-3"><select name="vframes_server_id" id="vframes_server_id" class="form-control" data-toggle="select2"><option value="0">Disabled</option>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
+								echo '"></select></div>                                                </div><div class="form-group row mb-4">                                                    <label class="col-md-3 col-form-label" for="vframes_server_id">' . $language::get('thumbnail_server') . '</label><div class="col-md-3"><select name="vframes_server_id" id="vframes_server_id" class="form-control" data-toggle="select2"><option value="0">' . $language::get('disabled') . '</option>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
 
 								foreach ($rServers as $rServer) {
 									echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<option value="';
@@ -893,7 +893,7 @@ endif;
 				</div>
 			</div>
 			<ul class="list-inline wizard mb-0">
-				<li class="prevb list-inline-item"><a href="javascript: void(0);" class="btn btn-secondary">Previous</a></li>
+				<li class="prevb list-inline-item"><a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('prev') ?></a></li>
 				<li class="list-inline-item float-right"><input name="submit_stream" type="submit" class="btn btn-primary" value="Save" /></li>
 			</ul>
 		</div>

@@ -39,7 +39,7 @@ endif;
                             </li>
                         </ol>
                     </div>
-                    <h4 class="page-title">RTMP Monitor</h4>
+                    <h4 class="page-title"><?= $language::get('rtmp_monitor') ?></h4>
                 </div>
             </div>
         </div>
@@ -50,12 +50,12 @@ endif;
                         <table class="table table-borderless mb-0">
                             <thead class="thead-light">
                                 <tr>
-                                    <th class="text-center">RTMP PID</th>
-                                    <th class="text-center">NGINX Version</th>
-                                    <th class="text-center">FLV Version</th>
-                                    <th class="text-center">Uptime</th>
-                                    <th class="text-center">Input Mbps</th>
-                                    <th class="text-center">Output Mbps</th>
+                                    <th class="text-center"><?= $language::get('rtmp_pid') ?></th>
+                                    <th class="text-center"><?= $language::get('nginx_version') ?></th>
+                                    <th class="text-center"><?= $language::get('flv_version') ?></th>
+                                    <th class="text-center"><?= $language::get('uptime') ?></th>
+                                    <th class="text-center"><?= $language::get('input_mbps') ?></th>
+                                    <th class="text-center"><?= $language::get('output_mbps') ?></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -89,7 +89,7 @@ endif;
                             <div class="form-group row mb-4">
                                 <div class="col-md-4">
                                     <input type="text" class="form-control" id="live_search" value=""
-                                        placeholder="Search Streams...">
+                                        placeholder="<?= $language::get('search_streams_placeholder') ?>">
                                 </div>
                                 <label class="col-md-1 col-form-label text-center"
                                     for="live_filter"><?php echo $language::get('server'); ?></label>
@@ -123,13 +123,13 @@ endif;
                             class="table table-striped table-borderless dt-responsive nowrap">
                             <thead>
                                 <tr>
-                                    <th class="text-center">ID</th>
-                                    <th>RTMP URL</th>
-                                    <th class="text-center">Publisher IP</th>
-                                    <th class="text-center">Uptime</th>
-                                    <th class="text-center">Clients</th>
-                                    <th class="text-center">Stream Info</th>
-                                    <th class="text-center">Actions</th>
+                                    <th class="text-center"><?= $language::get('id') ?></th>
+                                    <th><?= $language::get('rtmp_url') ?></th>
+                                    <th class="text-center"><?= $language::get('publisher_ip') ?></th>
+                                    <th class="text-center"><?= $language::get('uptime') ?></th>
+                                    <th class="text-center"><?= $language::get('clients') ?></th>
+                                    <th class="text-center"><?= $language::get('stream_info') ?></th>
+                                    <th class="text-center"><?= $language::get('actions') ?></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -182,7 +182,7 @@ endif;
                                             </div>
                                         </td>
                                         <td class="text-center">
-                                            <button data-toggle="tooltip" title="Kill Stream" type="button"
+                                            <button data-toggle="tooltip" title="<?= $language::get('kill_stream') ?>" type="button"
                                                 class="btn tooltip btn-light waves-effect waves-light btn-xs"
                                                 onClick="kill(<?php echo intval(RequestManager::getAll()['server']); ?>, '<?php echo $rStream['name']; ?>');"><i
                                                     class="mdi mdi-close"></ i></button>

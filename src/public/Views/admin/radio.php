@@ -154,7 +154,7 @@ endif;
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="stream_icon">Station Logo</label>
+                                                    <label class="col-md-4 col-form-label" for="stream_icon"><?= $language::get('station_logo') ?></label>
                                                     <div class="col-md-8 input-group">
                                                         <input type="text" class="form-control" id="stream_icon" name="stream_icon" value="<?= isset($rStation) ? htmlspecialchars($rStation['stream_icon']) : ''; ?>">
                                                         <div class="input-group-append">
@@ -170,9 +170,9 @@ endif;
                                                 </div>
                                                 <!-- Additional fields for categories, bouquets, notes, etc. go here -->
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="category_id">Categories</label>
+                                                    <label class="col-md-4 col-form-label" for="category_id"><?= $language::get('categories') ?></label>
                                                     <div class="col-md-8">
-                                                        <select name="category_id[]" id="category_id" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">
+                                                        <select name="category_id[]" id="category_id" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="<?= $language::get('choose_placeholder') ?>">
                                                             <?php foreach (CategoryService::getAllByType('radio') as $rCategory): ?>
                                                                 <option <?php if (isset($rStation) && in_array(intval($rCategory['id']), json_decode($rStation['category_id'], true))) {
                                                                             echo 'selected';
@@ -188,7 +188,7 @@ endif;
                                                 <div class="form-group row mb-4">
                                                     <label class="col-md-4 col-form-label" for="bouquets"><?= $language::get('bouquets'); ?></label>
                                                     <div class="col-md-8">
-                                                        <select name="bouquets[]" id="bouquets" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">
+                                                        <select name="bouquets[]" id="bouquets" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="<?= $language::get('choose_placeholder') ?>">
                                                             <?php foreach (BouquetService::getAllSimple() as $rBouquet): ?>
                                                                 <option <?php if (isset($rStation) && in_array($rStation['id'], json_decode($rBouquet['bouquet_radios'], true))) {
                                                                             echo 'selected';
@@ -224,13 +224,13 @@ endif;
                                         <div class="row">
                                             <div class="col-12">
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="direct_source"><?= $language::get('direct_source'); ?> <i title="Don't run source through XC_VM, just redirect instead." class="tooltip text-secondary far fa-circle"></i></label>
+                                                    <label class="col-md-4 col-form-label" for="direct_source"><?= $language::get('direct_source'); ?> <i title="<?= $language::get('dont_run_source_through_xc_vm_just_redirect_instead') ?>" class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-2">
                                                         <input name="direct_source" id="direct_source" type="checkbox" <?php if (isset($rStation) && $rStation['direct_source'] == 1) {
                                                                                                                             echo 'checked';
                                                                                                                         } ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                     </div>
-                                                    <label class="col-md-4 col-form-label" for="probesize_ondemand"><?= $language::get('on_demand_probesize'); ?> <i title="Adjustable probesize for ondemand streams. Adjust this setting if you experience issues with no audio." class="tooltip text-secondary far fa-circle"></i></label>
+                                                    <label class="col-md-4 col-form-label" for="probesize_ondemand"><?= $language::get('on_demand_probesize'); ?> <i title="<?= $language::get('adjustable_probesize_for_ondemand_streams_tooltip') ?>" class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-2">
                                                         <input type="text" class="form-control" id="probesize_ondemand" name="probesize_ondemand" value="<?php if (isset($rStation)) {
                                                                                                                                                                 echo htmlspecialchars($rStation['probesize_ondemand']);
@@ -240,7 +240,7 @@ endif;
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="custom_sid"><?= $language::get('custom_channel_sid'); ?> <i title="Here you can specify the SID of the channel in order to work with the epg on the enigma2 devices. You have to specify the code with the ':' but without the first number, 1 or 4097. Example: if we have this code: '1:0:1:13f:157c:13e:820000:0:0:0:2097' then you have to add on this field: ':0:1:13f:157c:13e:820000:0:0:0:'" class="tooltip text-secondary far fa-circle"></i></label>
+                                                    <label class="col-md-4 col-form-label" for="custom_sid"><?= $language::get('custom_channel_sid'); ?> <i title="<?= $language::get('here_you_can_specify_the_tooltip') ?>" class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-8">
                                                         <input type="text" class="form-control" id="custom_sid" name="custom_sid" value="<?php if (isset($rStation)) {
                                                                                                                                                 echo htmlspecialchars($rStation['custom_sid']);
@@ -248,7 +248,7 @@ endif;
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="custom_ffmpeg"><?= $language::get('custom_ffmpeg_command'); ?> <i title="In this field you can write your own custom FFmpeg command. Please note that this command will be placed after the input and before the output. If the command you will specify here is about to do changes in the output video or audio, it may require to transcode the stream. In this case, you have to use and change at least the Video/Audio Codecs using the transcoding attributes below. The custom FFmpeg command will only be used by the server(s) that take the stream from the Source." class="tooltip text-secondary far fa-circle"></i></label>
+                                                    <label class="col-md-4 col-form-label" for="custom_ffmpeg"><?= $language::get('custom_ffmpeg_command'); ?> <i title="<?= $language::get('in_this_field_you_can_tooltip') ?>" class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-8">
                                                         <input type="text" class="form-control" id="custom_ffmpeg" name="custom_ffmpeg" value="<?php if (isset($rStation)) {
                                                                                                                                                     echo htmlspecialchars($rStation['custom_ffmpeg']);
@@ -266,7 +266,7 @@ endif;
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="http_proxy"><?= $language::get('http_proxy'); ?> <i title="Format: ip:port" class="tooltip text-secondary far fa-circle"></i></label>
+                                                    <label class="col-md-4 col-form-label" for="http_proxy"><?= $language::get('http_proxy'); ?> <i title="<?= $language::get('format_ipport') ?>" class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-8">
                                                         <input type="text" class="form-control" id="http_proxy" name="http_proxy" value="<?php if (isset($rStationOptions[2])) {
                                                                                                                                                 echo htmlspecialchars($rStationOptions[2]['value']);
@@ -276,7 +276,7 @@ endif;
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="cookie"><?= $language::get('cookie'); ?> <i title="Format: key=value;" class="tooltip text-secondary far fa-circle"></i></label>
+                                                    <label class="col-md-4 col-form-label" for="cookie"><?= $language::get('cookie'); ?> <i title="<?= $language::get('format_keyvalue') ?>" class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-8">
                                                         <input type="text" class="form-control" id="cookie" name="cookie" value="<?php if (isset($rStationOptions[17])) {
                                                                                                                                         echo htmlspecialchars($rStationOptions[17]['value']);
@@ -286,7 +286,7 @@ endif;
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="headers"><?= $language::get('headers'); ?> <i title="FFmpeg -headers command." class="tooltip text-secondary far fa-circle"></i></label>
+                                                    <label class="col-md-4 col-form-label" for="headers"><?= $language::get('headers'); ?> <i title="<?= $language::get('ffmpeg_headers_command') ?>" class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-8">
                                                         <input type="text" class="form-control" id="headers" name="headers" value="<?php if (isset($rStreamOptions[19])) {
                                                                                                                                         echo htmlspecialchars($rStreamOptions[19]['value']);
@@ -347,9 +347,9 @@ endif;
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="on_demand">On-Demand Servers</label>
+                                                    <label class="col-md-4 col-form-label" for="on_demand"><?= $language::get('on_demand_servers') ?></label>
                                                     <div class="col-md-8">
-                                                        <select name="on_demand[]" id="on_demand" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">
+                                                        <select name="on_demand[]" id="on_demand" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="<?= $language::get('choose_placeholder') ?>">
                                                             <?php foreach ($rServers as $rServer): ?>
                                                                 <option value="<?= $rServer['id']; ?>" <?php if (isset($rStation) && in_array($rServer['id'], $rOnDemand)) {
                                                                                                             echo ' selected';

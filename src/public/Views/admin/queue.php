@@ -21,7 +21,7 @@
 					<div class="page-title-right">
 						<?php include 'topbar.php'; ?>
 					</div>
-					<h4 class="page-title">Encoding Queue</h4>
+					<h4 class="page-title"><?= $language::get('encoding_queue') ?></h4>
 				</div>
 			</div>
 		</div>
@@ -32,12 +32,12 @@
 						<table id="datatable" class="table table-striped table-borderless dt-responsive nowrap">
 							<thead>
 								<tr>
-									<th class="text-center">Position</th>
-									<th>Stream</th>
-									<th>Server</th>
-									<th class="text-center">Status</th>
-									<th class="text-center">Added</th>
-									<th class="text-center">Actions</th>
+									<th class="text-center"><?= $language::get('position_header') ?></th>
+									<th><?= $language::get('stream') ?></th>
+									<th><?= $language::get('server') ?></th>
+									<th class="text-center"><?= $language::get('status') ?></th>
+									<th class="text-center"><?= $language::get('added') ?></th>
+									<th class="text-center"><?= $language::get('actions') ?></th>
 								</tr>
 							</thead>
 							<tbody></tbody>

@@ -25,7 +25,7 @@ endif;
 					<div class="page-title-right">
 						<?php include 'topbar.php'; ?>
 					</div>
-					<h4 class="page-title">Stream Logs</h4>
+					<h4 class="page-title"><?= $language::get('stream_logs') ?></h4>
 				</div>
 			</div>
 		</div>
@@ -36,25 +36,25 @@ endif;
 						<div class="form-group row mb-4">
 							<div class="col-md-3">
 								<input type="text" class="form-control" id="log_search" value=""
-									placeholder="Search Logs...">
+									placeholder="<?= $language::get('search_logs_placeholder') ?>">
 							</div>
-							<label class="col-md-1 col-form-label text-center" for="reseller">Server</label>
+							<label class="col-md-1 col-form-label text-center" for="reseller"><?= $language::get('server') ?></label>
 							<div class="col-md-3">
 								<select id="reseller" class="form-control" data-toggle="select2">
-									<option value="" selected>All Servers</option>
+									<option value="" selected><?= $language::get('all_servers') ?></option>
 									<?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer) { ?>
 										<option value="<?= intval($rServer['id']); ?>"><?= $rServer['server_name']; ?>
 										</option>
 									<?php } ?>
 								</select>
 							</div>
-							<label class="col-md-1 col-form-label text-center" for="range">Dates</label>
+							<label class="col-md-1 col-form-label text-center" for="range"><?= $language::get('dates') ?></label>
 							<div class="col-md-2">
 								<input type="text" class="form-control text-center date" id="range" name="range"
 									data-toggle="date-picker" data-single-date-picker="true" autocomplete="off"
-									placeholder="All Dates">
+									placeholder="<?= $language::get('all_dates') ?>">
 							</div>
-							<label class="col-md-1 col-form-label text-center" for="show_entries">Show</label>
+							<label class="col-md-1 col-form-label text-center" for="show_entries"><?= $language::get('show') ?></label>
 							<div class="col-md-1">
 								<select id="show_entries" class="form-control" data-toggle="select2">
 									<?php foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) { ?>
@@ -70,11 +70,11 @@ endif;
 							class="table table-striped table-borderless dt-responsive nowrap">
 							<thead>
 								<tr>
-									<th class="text-center">ID</th>
-									<th>Stream</th>
-									<th>Server</th>
-									<th>Error</th>
-									<th class="text-center">Date</th>
+									<th class="text-center"><?= $language::get('id') ?></th>
+									<th><?= $language::get('stream') ?></th>
+									<th><?= $language::get('server') ?></th>
+									<th><?= $language::get('error') ?></th>
+									<th class="text-center"><?= $language::get('date') ?></th>
 								</tr>
 							</thead>
 							<tbody></tbody>

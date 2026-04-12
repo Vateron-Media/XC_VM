@@ -65,7 +65,7 @@
                     <div class="page-title-right">
                         <?php include 'topbar.php'; ?>
                     </div>
-                    <h4 class="page-title">Edit Server</h4>
+                    <h4 class="page-title"><?= $language::get('permission_edit_server') ?></h4>
                 </div>
             </div>
         </div>
@@ -82,7 +82,7 @@
                                         <a href="#server-details" data-toggle="tab"
                                             class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-account-card-details-outline mr-1"></i>
-                                            <span class="d-none d-sm-inline">Details</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('details') ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
@@ -90,9 +90,9 @@
                                             class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-web"></i>
                                             <?php if (!$rServerArr['is_main']) {
-                                                echo '<span class="d-none d-sm-inline">Domains & IP\'s</span>';
+                                                echo '<span class="d-none d-sm-inline">' . $language::get('domains_and_ips_span') . '</span>';
                                             } else {
-                                                echo '<span class="d-none d-sm-inline">Domains</span>';
+                                                echo '<span class="d-none d-sm-inline">' . $language::get('domains') . '</span>';
                                             } ?>
                                         </a>
                                     </li>
@@ -100,20 +100,20 @@
                                         <a href="#advanced-options" data-toggle="tab"
                                             class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-folder-alert-outline mr-1"></i>
-                                            <span class="d-none d-sm-inline">Advanced</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('advanced') ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
                                         <a href="#performance" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-flash mr-1"></i>
-                                            <span class="d-none d-sm-inline">Performance</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('performance') ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
                                         <a href="#ssl-certificate" data-toggle="tab"
                                             class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-certificate mr-1"></i>
-                                            <span class="d-none d-sm-inline">SSL Certificate</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('ssl_certificate') ?></span>
                                         </a>
                                     </li>
                                 </ul>
@@ -133,7 +133,7 @@
                                                 </div>
                                                 <div class="form-group row mb-4">
                                                     <label class="col-md-4 col-form-label" for="server_ip">Server IP <i
-                                                            title="This IP will be used for internal connections as well as broadcast if no domains are allocated."
+                                                            title="<?= $language::get('this_ip_will_be_used_tooltip') ?>"
                                                             class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-8">
                                                         <input type="text" class="form-control" id="server_ip"
@@ -144,7 +144,7 @@
                                                 </div>
                                                 <div class="form-group row mb-4">
                                                     <label class="col-md-4 col-form-label" for="private_ip">Private IP
-                                                        <i title="Enter a private IP to route internal traffic between load balancers through the internal network."
+                                                        <i title="<?= $language::get('enter_a_private_ip_to_tooltip') ?>"
                                                             class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-8">
                                                         <input type="text" class="form-control" id="private_ip"
@@ -155,7 +155,7 @@
                                                 <div class="form-group row mb-4">
                                                     <label class="col-md-4 col-form-label" for="total_clients">Max
                                                         Clients <i
-                                                            title="Maximum number of simultaneous connections to allow on this server."
+                                                            title="<?= $language::get('maximum_number_of_simultaneous_connections_tooltip') ?>"
                                                             class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-2">
                                                         <input type="text" class="form-control text-center"
@@ -165,7 +165,7 @@
                                                     </div>
                                                     <label class="col-md-4 col-form-label"
                                                         for="timeshift_only">Timeshift Only <i
-                                                            title="Don't allow connections to this server unless they are for timeshift."
+                                                            title="<?= $language::get('dont_allow_connections_to_this_tooltip') ?>"
                                                             class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-2">
                                                         <input name="timeshift_only" id="timeshift_only" type="checkbox"
@@ -178,7 +178,7 @@
                                                 </div>
                                                 <div class="form-group row mb-4">
                                                     <label class="col-md-4 col-form-label" for="enabled">Enabled <i
-                                                            title="Utilise this server for connections and streams."
+                                                            title="<?= $language::get('utilise_this_server_for_connections_and_streams') ?>"
                                                             class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-2">
                                                         <input <?php if ($rServerArr['is_main']) {
@@ -192,7 +192,7 @@
                                                             data-color="#039cfd" />
                                                     </div>
                                                     <label class="col-md-4 col-form-label" for="enable_proxy">Proxied <i
-                                                            title="Route connections through allocated proxies."
+                                                            title="<?= $language::get('route_connections_through_allocated_proxies') ?>"
                                                             class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-2">
                                                         <input name="enable_proxy" id="enable_proxy" type="checkbox"
@@ -207,7 +207,7 @@
                                         </div>
                                         <ul class="list-inline wizard mb-0">
                                             <li class="nextb list-inline-item float-right">
-                                                <a href="javascript: void(0);" class="btn btn-secondary">Next</a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('next') ?></a>
                                             </li>
                                         </ul>
                                     </div>
@@ -287,10 +287,10 @@
                                         </div>
                                         <ul class="list-inline wizard mb-0">
                                             <li class="prevb list-inline-item">
-                                                <a href="javascript: void(0);" class="btn btn-secondary">Previous</a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('prev') ?></a>
                                             </li>
                                             <li class="nextb list-inline-item float-right">
-                                                <a href="javascript: void(0);" class="btn btn-secondary">Next</a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('next') ?></a>
                                             </li>
                                         </ul>
                                     </div>
@@ -301,13 +301,13 @@
                                                 <div class="form-group row mb-4">
                                                     <label class="col-md-4 col-form-label"
                                                         for="http_broadcast_ports">HTTP Ports <i
-                                                            title="Enter one or more port numbers between 80 and 65535."
+                                                            title="<?= $language::get('enter_one_or_more_port_numbers_between_80_and_65535') ?>"
                                                             class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-8">
                                                         <select name="http_broadcast_ports[]" id="http_broadcast_ports"
                                                             class="form-control col-md-12 select2-multiple"
                                                             data-toggle="select2" multiple="multiple"
-                                                            data-placeholder="Choose...">
+                                                            data-placeholder="<?= $language::get('choose_placeholder') ?>">
                                                             <?php if (is_numeric($rServerArr['http_broadcast_port']) && $rServerArr['http_broadcast_port'] >= 80 && $rServerArr['http_broadcast_port'] <= 65535): ?>
                                                                 <option selected
                                                                     value="<?= $rServerArr['http_broadcast_port']; ?>">
@@ -325,14 +325,14 @@
                                                 <div class="form-group row mb-4">
                                                     <label class="col-md-4 col-form-label"
                                                         for="https_broadcast_ports">HTTPS Ports <i
-                                                            title="Enter one or more port numbers between 80 and 65535."
+                                                            title="<?= $language::get('enter_one_or_more_port_numbers_between_80_and_65535') ?>"
                                                             class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-8">
                                                         <select name="https_broadcast_ports[]"
                                                             id="https_broadcast_ports"
                                                             class="form-control col-md-12 select2-multiple"
                                                             data-toggle="select2" multiple="multiple"
-                                                            data-placeholder="Choose...">
+                                                            data-placeholder="<?= $language::get('choose_placeholder') ?>">
                                                             <?php if (is_numeric($rServerArr['https_broadcast_port']) && $rServerArr['https_broadcast_port'] >= 80 && $rServerArr['https_broadcast_port'] <= 65535): ?>
                                                                 <option selected
                                                                     value="<?= $rServerArr['https_broadcast_port']; ?>">
@@ -349,7 +349,7 @@
                                                 </div>
                                                 <div class="form-group row mb-4">
                                                     <label class="col-md-4 col-form-label" for="rtmp_port">RTMP Port <i
-                                                            title="Enter the port to run the RTMP server on."
+                                                            title="<?= $language::get('enter_the_port_to_run_the_rtmp_server_on') ?>"
                                                             class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-2">
                                                         <input type="text" class="form-control text-center"
@@ -359,7 +359,7 @@
                                                     </div>
                                                     <label class="col-md-4 col-form-label" for="disable_ramdisk">Disable
                                                         Ramdisk <i
-                                                            title="If you have a fast NVMe SSD, you can disable ramdisk to allow streams to be run and output from your disk. Faster than you'd think, but you could hit a IO bottleneck depending on your connections. This setting will take a minute or so to update as it requires root access."
+                                                            title="<?= $language::get('if_you_have_a_fast_tooltip') ?>"
                                                             class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-2">
                                                         <input name="disable_ramdisk" id="disable_ramdisk"
@@ -371,7 +371,7 @@
                                                 <div class="form-group row mb-4">
                                                     <label class="col-md-4 col-form-label"
                                                         for="network_interface">Network Interface <i
-                                                            title="Which network interface to use for statistics."
+                                                            title="<?= $language::get('which_network_interface_to_use_for_statistics') ?>"
                                                             class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-2">
                                                         <select name="network_interface" id="network_interface"
@@ -386,7 +386,7 @@
                                                     </div>
                                                     <label class="col-md-4 col-form-label"
                                                         for="network_guaranteed_speed">Network Speed - Mbps <i
-                                                            title="Port speed to consider when connecting clients."
+                                                            title="<?= $language::get('port_speed_to_consider_when_connecting_clients') ?>"
                                                             class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-2">
                                                         <input type="text" class="form-control text-center"
@@ -413,13 +413,13 @@
                                                 <div class="form-group row mb-4">
                                                     <label class="col-md-4 col-form-label" for="geoip_countries">GeoIP
                                                         Countries <i
-                                                            title="Select which countries should be prioritised to this server."
+                                                            title="<?= $language::get('select_which_countries_should_be_prioritised_to_this_server') ?>"
                                                             class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-8">
                                                         <select name="geoip_countries[]" id="geoip_countries"
                                                             class="form-control select2 select2-multiple"
                                                             data-toggle="select2" multiple="multiple"
-                                                            data-placeholder="Choose...">
+                                                            data-placeholder="<?= $language::get('choose_placeholder') ?>">
                                                             <?php $rSelected = json_decode($rServerArr['geoip_countries'], true) ?? []; ?>
                                                             <?php foreach ($rCountries as $rCountry): ?>
                                                                 <option
@@ -433,7 +433,7 @@
                                                 <div class="form-group row mb-4">
                                                     <label class="col-md-4 col-form-label" for="enable_geoip">GeoIP Load
                                                         Balancing <i
-                                                            title="Route connections to the nearest server based on the location of the client."
+                                                            title="<?= $language::get('route_connections_to_the_nearest_tooltip') ?>"
                                                             class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-2">
                                                         <input name="enable_geoip" id="enable_geoip" type="checkbox"
@@ -447,10 +447,10 @@
                                         </div>
                                         <ul class="list-inline wizard mb-0">
                                             <li class="prevb list-inline-item">
-                                                <a href="javascript: void(0);" class="btn btn-secondary">Previous</a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('prev') ?></a>
                                             </li>
                                             <li class="nextb list-inline-item float-right">
-                                                <a href="javascript: void(0);" class="btn btn-secondary">Next</a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('next') ?></a>
                                             </li>
                                         </ul>
                                     </div>
@@ -461,7 +461,7 @@
                                                 <div class="form-group row mb-4">
                                                     <label class="col-md-4 col-form-label" for="total_services">PHP
                                                         Services <i
-                                                            title="How many PHP-FPM daemons to run on this server. You can use up to a maximum of one per core."
+                                                            title="<?= $language::get('how_many_phpfpm_daemons_to_tooltip') ?>"
                                                             class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-2">
                                                         <select name="total_services" id="total_services"
@@ -477,7 +477,7 @@
                                                     <?php if ($rServerArr['is_main']): ?>
                                                         <label class="col-md-4 col-form-label" for="enable_gzip">GZIP
                                                             Compression <i
-                                                                title="Compressing server output on your main server will reduce network output significantly, but will increase CPU usage. If you have CPU to spare but your network usage is high, you should enable this."
+                                                                title="<?= $language::get('compressing_server_output_on_your_tooltip') ?>"
                                                                 class="tooltip text-secondary far fa-circle"></i></label>
                                                         <div class="col-md-2">
                                                             <input name="enable_gzip" id="enable_gzip" type="checkbox"
@@ -489,7 +489,7 @@
                                                 <div class="form-group row mb-4">
                                                     <label class="col-md-4 col-form-label" for="limit_requests">Rate
                                                         Limit - Per Second <i
-                                                            title="Limit requests per second. This can be enabled if your server can't keep up with the incoming requests. Set to 0 to disable."
+                                                            title="<?= $language::get('limit_requests_per_second_this_tooltip') ?>"
                                                             class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-2">
                                                         <input type="text" class="form-control text-center"
@@ -499,7 +499,7 @@
                                                     </div>
                                                     <label class="col-md-4 col-form-label" for="limit_burst">Rate Limit
                                                         - Burst Queue <i
-                                                            title="When the request limit is reached, excess requests will be dropped by default. You can push these requests into a queue which will be fulfilled in order rather than concurrently. This will help ease the flow of traffic and make sure service isn't disrupted by the rate limiting."
+                                                            title="<?= $language::get('when_the_request_limit_is_tooltip') ?>"
                                                             class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-2">
                                                         <input type="text" class="form-control text-center"
@@ -513,7 +513,7 @@
                                                     $rCurrentGovernor[3] = '* ' . $rCurrentGovernor[2] . ' - Freq: ' . round($rCurrentGovernor[0] / 1000000, 1) . 'GHz - ' . round($rCurrentGovernor[1] / 1000000, 1) . 'GHz'; ?>
                                                     <div class="form-group row mb-4">
                                                         <label class="col-md-4 col-form-label" for="governor">CPU Governor
-                                                            <i title="Change default CPU governor for all cores. Default for Ubuntu is ondemand, with performance governor giving the best theoretical results. This may take a minute or so to change."
+                                                            <i title="<?= $language::get('change_default_cpu_governor_for_tooltip') ?>"
                                                                 class="tooltip text-secondary far fa-circle"></i></label>
                                                         <div class="col-md-8">
                                                             <select name="governor" id="governor"
@@ -536,7 +536,7 @@
                                                 <div class="form-group row mb-4">
                                                     <label class="col-md-4 col-form-label" for="sysctl">Custom
                                                         Sysctl.conf <i
-                                                            title="Write a custom sysctl.conf to the server. You can break your server by inputting incorrect values here, this is for advanced usage only. The Default template is provided for restorative and informative purposes."
+                                                            title="<?= $language::get('write_a_custom_sysctlconf_to_tooltip') ?>"
                                                             class="tooltip text-secondary far fa-circle"></i><br /><br /><input
                                                             onClick="setDefault();" type="button"
                                                             class="btn btn-light btn-xs" value="Default" /></label>
@@ -549,10 +549,10 @@
                                         </div>
                                         <ul class="list-inline wizard mb-0">
                                             <li class="prevb list-inline-item">
-                                                <a href="javascript: void(0);" class="btn btn-secondary">Previous</a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('prev') ?></a>
                                             </li>
                                             <li class="nextb list-inline-item float-right">
-                                                <a href="javascript: void(0);" class="btn btn-secondary">Next</a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('next') ?></a>
                                             </li>
                                         </ul>
                                     </div>
@@ -589,7 +589,7 @@
                                                 <div class="form-group row mb-4">
                                                     <label class="col-md-4 col-form-label" for="enable_https">Enable
                                                         HTTPS <i
-                                                            title="Allow SSL connections to this server. Ensure the certificate is valid for the domains beforehand. Reseller DNS would probably fail under these circumstances as they would not have a valid certificate."
+                                                            title="<?= $language::get('allow_ssl_connections_to_this_tooltip') ?>"
                                                             class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-2">
                                                         <input name="enable_https" id="enable_https" type="checkbox"
@@ -625,7 +625,7 @@
                                         </div>
                                         <ul class="list-inline wizard mb-0">
                                             <li class="prevb list-inline-item">
-                                                <a href="javascript: void(0);" class="btn btn-secondary">Previous</a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('prev') ?></a>
                                             </li>
                                             <li class="list-inline-item float-right">
                                                 <?php if (!$rCertValid && count(explode(',', $rServerArr['domain_name'])) > 0): ?>

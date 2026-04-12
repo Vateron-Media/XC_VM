@@ -31,7 +31,7 @@
                     <div class="page-title-right">
                         <?php include 'topbar.php'; ?>
                     </div>
-                    <h4 class="page-title">Mass Edit Channels <small id="selected_count"></small></h4>
+                    <h4 class="page-title"><?= $language::get('mass_edit_channels') ?> <small id="selected_count"></small></h4>
                 </div>
             </div>
         </div>
@@ -57,19 +57,19 @@
                                     <li class="nav-item">
                                         <a href="#stream-selection" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-play mr-1"></i>
-                                            <span class="d-none d-sm-inline">Channels</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('channels') ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
                                         <a href="#stream-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-account-card-details-outline mr-1"></i>
-                                            <span class="d-none d-sm-inline">Details</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('details') ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
                                         <a href="#load-balancing" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-server-network mr-1"></i>
-                                            <span class="d-none d-sm-inline">Servers</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('servers') ?></span>
                                         </a>
                                     </li>
                                 </ul>
@@ -77,12 +77,12 @@
                                     <div class="tab-pane" id="stream-selection">
                                         <div class="row">
                                             <div class="col-md-2 col-6">
-                                                <input type="text" class="form-control" id="stream_search" value="" placeholder="Search Channels...">
+                                                <input type="text" class="form-control" id="stream_search" value="" placeholder="<?= $language::get('search_channels') ?>">
                                             </div>
                                             <div class="col-md-3 col-6">
                                                 <select id="stream_server_id" class="form-control" data-toggle="select2">
-                                                    <option value="" selected>All Servers</option>
-                                                    <option value="-1">No Servers</option>
+                                                    <option value="" selected><?= $language::get('all_servers') ?></option>
+                                                    <option value="-1"><?= $language::get('no_servers') ?></option>
                                                     <?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer) { ?>
                                                         <option value="<?php echo intval($rServer['id']); ?>"><?php echo $rServer['server_name']; ?></option>
                                                     <?php } ?>
@@ -90,8 +90,8 @@
                                             </div>
                                             <div class="col-md-3 col-6">
                                                 <select id="category_search" class="form-control" data-toggle="select2">
-                                                    <option value="" selected>All Categories</option>
-                                                    <option value="-1">No Categories</option>
+                                                    <option value="" selected><?= $language::get('all_categories') ?></option>
+                                                    <option value="-1"><?= $language::get('no_categories') ?></option>
                                                     <?php foreach ($rCategories as $rCategory) { ?>
                                                         <option value="<?php echo intval($rCategory['id']); ?>" <?php if (isset(RequestManager::getAll()['category']) && RequestManager::getAll()['category'] == $rCategory['id']) {
                                                                                                                     echo ' selected';
@@ -103,11 +103,11 @@
                                             </div>
                                             <div class="col-md-2 col-6">
                                                 <select id="stream_filter" class="form-control" data-toggle="select2">
-                                                    <option value="">No Filter</option>
-                                                    <option value="1">Online</option>
-                                                    <option value="2">Stopped</option>
-                                                    <option value="3">Creating</option>
-                                                    <option value="4">Transcoding</option>
+                                                    <option value=""><?= $language::get('no_filter') ?></option>
+                                                    <option value="1"><?= $language::get('online') ?></option>
+                                                    <option value="2"><?= $language::get('stopped') ?></option>
+                                                    <option value="3"><?= $language::get('creating') ?></option>
+                                                    <option value="4"><?= $language::get('transcoding') ?></option>
                                                 </select>
                                             </div>
                                             <div class="col-md-1 col-8">
@@ -129,12 +129,12 @@
                                             <table id="datatable-mass" class="table table-borderless mb-0">
                                                 <thead class="bg-light">
                                                     <tr>
-                                                        <th class="text-center">ID</th>
-                                                        <th class="text-center">Icon</th>
-                                                        <th>Stream Name</th>
-                                                        <th>Category</th>
-                                                        <th>Server</th>
-                                                        <th class="text-center">Status</th>
+                                                        <th class="text-center"><?= $language::get('id') ?></th>
+                                                        <th class="text-center"><?= $language::get('icon') ?></th>
+                                                        <th><?= $language::get('stream_name') ?></th>
+                                                        <th><?= $language::get('category') ?></th>
+                                                        <th><?= $language::get('server') ?></th>
+                                                        <th class="text-center"><?= $language::get('status') ?></th>
                                                     </tr>
                                                 </thead>
                                                 <tbody></tbody>
@@ -149,9 +149,9 @@
                                                         <input type="checkbox" class="activate" data-name="category_id" name="c_category_id">
                                                         <label></label>
                                                     </div>
-                                                    <label class="col-md-3 col-form-label" for="category_id">Select Categories</label>
+                                                    <label class="col-md-3 col-form-label" for="category_id"><?= $language::get('select_categories') ?></label>
                                                     <div class="col-md-6">
-                                                        <select disabled name="category_id[]" id="category_id" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">
+                                                        <select disabled name="category_id[]" id="category_id" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="<?= $language::get('choose_placeholder') ?>">
                                                             <?php foreach ($rCategories as $rCategory) { ?>
                                                                 <option value="<?php echo intval($rCategory['id']); ?>"><?php echo htmlspecialchars($rCategory['category_name']); ?></option>
                                                             <?php } ?>
@@ -170,9 +170,9 @@
                                                         <input type="checkbox" class="activate" data-name="bouquets" name="c_bouquets">
                                                         <label></label>
                                                     </div>
-                                                    <label class="col-md-3 col-form-label" for="bouquets">Select Bouquets</label>
+                                                    <label class="col-md-3 col-form-label" for="bouquets"><?= $language::get('select_bouquets') ?></label>
                                                     <div class="col-md-6">
-                                                        <select disabled name="bouquets[]" id="bouquets" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">
+                                                        <select disabled name="bouquets[]" id="bouquets" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="<?= $language::get('choose_placeholder') ?>">
                                                             <?php foreach (BouquetService::getAllSimple() as $rBouquet) { ?>
                                                                 <option value="<?php echo intval($rBouquet['id']); ?>"><?php echo htmlspecialchars($rBouquet['bouquet_name']); ?></option>
                                                             <?php } ?>
@@ -191,11 +191,11 @@
                                                         <input type="checkbox" class="activate" data-name="rtmp_output" data-type="switch" name="c_rtmp_output">
                                                         <label></label>
                                                     </div>
-                                                    <label class="col-md-3 col-form-label" for="rtmp_output">Output RTMP</label>
+                                                    <label class="col-md-3 col-form-label" for="rtmp_output"><?= $language::get('output_rtmp') ?></label>
                                                     <div class="col-md-2">
                                                         <input name="rtmp_output" id="rtmp_output" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                     </div>
-                                                    <label class="col-md-3 col-form-label" for="allow_record">Allow Recording</label>
+                                                    <label class="col-md-3 col-form-label" for="allow_record"><?= $language::get('allow_recording') ?></label>
                                                     <div class="col-md-2">
                                                         <input name="allow_record" id="allow_record" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                     </div>
@@ -209,10 +209,10 @@
                                                         <input type="checkbox" class="activate" data-name="transcode_profile_id" name="c_transcode_profile_id">
                                                         <label></label>
                                                     </div>
-                                                    <label class="col-md-3 col-form-label" for="transcode_profile_id">Transcoding Profile</label>
+                                                    <label class="col-md-3 col-form-label" for="transcode_profile_id"><?= $language::get('transcoding_profile') ?></label>
                                                     <div class="col-md-8">
                                                         <select name="transcode_profile_id" disabled id="transcode_profile_id" class="form-control" data-toggle="select2">
-                                                            <option selected value="0">Transcoding Disabled</option>
+                                                            <option selected value="0"><?= $language::get('transcoding_disabled') ?></option>
                                                             <?php foreach ($rTranscodeProfiles as $rProfile) { ?>
                                                                 <option value="<?php echo intval($rProfile['profile_id']); ?>"><?php echo $rProfile['profile_name']; ?></option>
                                                             <?php } ?>
@@ -223,10 +223,10 @@
                                         </div>
                                         <ul class="list-inline wizard mb-0">
                                             <li class="prevb list-inline-item">
-                                                <a href="javascript: void(0);" class="btn btn-secondary">Previous</a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('prev') ?></a>
                                             </li>
                                             <li class="nextb list-inline-item float-right">
-                                                <a href="javascript: void(0);" class="btn btn-secondary">Next</a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('next') ?></a>
                                             </li>
                                         </ul>
                                     </div>
@@ -238,14 +238,14 @@
                                                         <input type="checkbox" data-name="server_tree" class="activate" name="c_server_tree" id="c_server_tree">
                                                         <label></label>
                                                     </div>
-                                                    <label class="col-md-3 col-form-label" for="server_tree">Server Tree</label>
+                                                    <label class="col-md-3 col-form-label" for="server_tree"><?= $language::get('server_tree') ?></label>
                                                     <div class="col-md-8">
                                                         <div id="server_tree"></div>
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
                                                     <div class="col-md-1"></div>
-                                                    <label class="col-md-3 col-form-label" for="server_type">Server Type</label>
+                                                    <label class="col-md-3 col-form-label" for="server_type"><?= $language::get('server_type') ?></label>
                                                     <div class="col-md-2">
                                                         <select disabled name="server_type" id="server_type" class="form-control" data-toggle="select2">
                                                             <?php foreach (array('SET' => 'SET SERVERS', 'ADD' => 'ADD SELECTED', 'DEL' => 'DELETE SELECTED') as $rValue => $rType) { ?>
@@ -256,9 +256,9 @@
                                                 </div>
                                                 <div class="form-group row mb-4">
                                                     <div class="col-md-1"></div>
-                                                    <label class="col-md-3 col-form-label" for="on_demand">On-Demand Servers</label>
+                                                    <label class="col-md-3 col-form-label" for="on_demand"><?= $language::get('on_demand_servers') ?></label>
                                                     <div class="col-md-8">
-                                                        <select disabled name="on_demand[]" id="on_demand" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">
+                                                        <select disabled name="on_demand[]" id="on_demand" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="<?= $language::get('choose_placeholder') ?>">
                                                             <?php foreach ($rServers as $rServer) { ?>
                                                                 <option value="<?php echo $rServer['id']; ?>"><?php echo $rServer['server_name']; ?></option>
                                                             <?php } ?>
@@ -272,7 +272,7 @@
                                                         <input name="reencode_on_edit" id="reencode_on_edit" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                     </div>
                                                     <div class="col-md-1"></div>
-                                                    <label class="col-md-3 col-form-label" for="restart_on_edit">Restart on Edit</label>
+                                                    <label class="col-md-3 col-form-label" for="restart_on_edit"><?= $language::get('restart_on_edit') ?></label>
                                                     <div class="col-md-2">
                                                         <input name="restart_on_edit" id="restart_on_edit" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                     </div>
@@ -281,7 +281,7 @@
                                         </div>
                                         <ul class="list-inline wizard mb-0">
                                             <li class="prevb list-inline-item">
-                                                <a href="javascript: void(0);" class="btn btn-secondary">Previous</a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('prev') ?></a>
                                             </li>
                                             <li class="nextb list-inline-item float-right">
                                                 <input name="submit_stream" type="submit" class="btn btn-primary" value="Edit Channels" />

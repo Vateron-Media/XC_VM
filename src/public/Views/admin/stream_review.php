@@ -134,7 +134,7 @@ endif;
                         <div class="page-title-right">
                             <?php include 'topbar.php'; ?>
                         </div>
-                        <h4 class="page-title">Mass Edit & Review <small id="selected_count"></small></h4>
+                        <h4 class="page-title"><?= $language::get('mass_edit_review') ?> <small id="selected_count"></small></h4>
                     </div>
                 </div>
             </div>
@@ -169,7 +169,7 @@ endif;
                                             <a href="#stream-selection" data-toggle="tab"
                                                 class="nav-link rounded-0 pt-2 pb-2">
                                                 <i class="mdi mdi-play mr-1"></i>
-                                                <span class="d-none d-sm-inline">Stream Selection</span>
+                                                <span class="d-none d-sm-inline"><?= $language::get('stream_selection') ?></span>
                                             </a>
                                         </li>
                                     </ul>
@@ -189,7 +189,7 @@ endif;
                                                     <input name="edit_bouquets" id="edit_bouquets" type="checkbox" checked
                                                         data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                 </div>
-                                                <label class="col-md-2 col-form-label" for="edit_epg">Edit EPG</label>
+                                                <label class="col-md-2 col-form-label" for="edit_epg"><?= $language::get('edit_epg') ?></label>
                                                 <div class="col-md-2">
                                                     <input name="edit_epg" id="edit_epg" type="checkbox" checked
                                                         data-plugin="switchery" class="js-switch" data-color="#039cfd" />
@@ -198,11 +198,11 @@ endif;
                                             <div class="row">
                                                 <div class="col-md-3 col-6">
                                                     <input type="text" class="form-control" id="stream_search" value=""
-                                                        placeholder="Search Streams...">
+                                                        placeholder="<?= $language::get('search_streams_placeholder') ?>">
                                                 </div>
                                                 <div class="col-md-3 col-6">
                                                     <select id="category_search" class="form-control" data-toggle="select2">
-                                                        <option value="" selected>All Categories</option>
+                                                        <option value="" selected><?= $language::get('all_categories') ?></option>
                                                         <?php foreach (CategoryService::getAllByType('live') as $rCategory): ?>
                                                             <option value="<?= intval($rCategory['id']) ?>"
                                                                 <?= isset(RequestManager::getAll()['category']) && RequestManager::getAll()['category'] == $rCategory['id'] ? ' selected' : '' ?>>
@@ -213,17 +213,17 @@ endif;
                                                 </div>
                                                 <div class="col-md-3 col-6">
                                                     <select id="stream_filter" class="form-control" data-toggle="select2">
-                                                        <option value="">No Filter</option>
-                                                        <option value="1">Online</option>
-                                                        <option value="2">Down</option>
-                                                        <option value="3">Stopped</option>
-                                                        <option value="4">Starting</option>
-                                                        <option value="5">On Demand</option>
-                                                        <option value="6">Direct</option>
-                                                        <option value="7">Timeshift</option>
-                                                        <option value="8">Looping</option>
-                                                        <option value="9">Has EPG</option>
-                                                        <option value="10">No EPG</option>
+                                                        <option value=""><?= $language::get('no_filter') ?></option>
+                                                        <option value="1"><?= $language::get('online') ?></option>
+                                                        <option value="2"><?= $language::get('down') ?></option>
+                                                        <option value="3"><?= $language::get('stopped') ?></option>
+                                                        <option value="4"><?= $language::get('starting') ?></option>
+                                                        <option value="5"><?= $language::get('on_demand') ?></option>
+                                                        <option value="6"><?= $language::get('direct') ?></option>
+                                                        <option value="7"><?= $language::get('timeshift') ?></option>
+                                                        <option value="8"><?= $language::get('looping') ?></option>
+                                                        <option value="9"><?= $language::get('has_epg') ?></option>
+                                                        <option value="10"><?= $language::get('no_epg') ?></option>
                                                     </select>
                                                 </div>
                                                 <div class="col-md-2 col-8">
@@ -246,10 +246,10 @@ endif;
                                                 <table id="datatable-mass" class="table table-borderless mb-0">
                                                     <thead class="bg-light">
                                                         <tr>
-                                                            <th class="text-center">ID</th>
-                                                            <th>Stream Name</th>
-                                                            <th>Category</th>
-                                                            <th class="text-center">Status</th>
+                                                            <th class="text-center"><?= $language::get('id') ?></th>
+                                                            <th><?= $language::get('stream_name') ?></th>
+                                                            <th><?= $language::get('category') ?></th>
+                                                            <th class="text-center"><?= $language::get('status') ?></th>
                                                         </tr>
                                                     </thead>
                                                     <tbody></tbody>

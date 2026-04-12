@@ -329,11 +329,11 @@ switch ($rPage) {
 		echo '<div class="btn-group">';
 
 		if ($rStream['type'] == 1 || $rStream['type'] == 3) {
-			echo '<a href="javascript:void(0);" onClick="player(' . intval($rStream['id']) . ');">' . "\r\n" . '                    <button type="button" title="Play" class="tooltip btn btn-info waves-effect waves-light btn-sm">' . "\r\n" . '                        <i class="mdi mdi-play"></i>' . "\r\n" . '                    </button>' . "\r\n" . '                </a>';
+			echo '<a href="javascript:void(0);" onClick="player(' . intval($rStream['id']) . ');">' . "\r\n" . '                    <button type="button" title="' . $language::get('play') . '" class="tooltip btn btn-info waves-effect waves-light btn-sm">' . "\r\n" . '                        <i class="mdi mdi-play"></i>' . "\r\n" . '                    </button>' . "\r\n" . '                </a>';
 		} else {
 			if (!($rStream['type'] == 2 || $rStream['type'] == 5)) {
 			} else {
-				echo '<a href="javascript:void(0);" onClick="player(' . intval($rStream['id']) . ", '" . htmlspecialchars($rStream['target_container']) . "');\">" . "\r\n" . '                    <button type="button" title="Play" class="tooltip btn btn-info waves-effect waves-light btn-sm">' . "\r\n" . '                        <i class="mdi mdi-play"></i>' . "\r\n" . '                    </button>' . "\r\n" . '                </a>';
+				echo '<a href="javascript:void(0);" onClick="player(' . intval($rStream['id']) . ", '" . htmlspecialchars($rStream['target_container']) . "');\">" . "\r\n" . '                    <button type="button" title="' . $language::get('play') . '" class="tooltip btn btn-info waves-effect waves-light btn-sm">' . "\r\n" . '                        <i class="mdi mdi-play"></i>' . "\r\n" . '                    </button>' . "\r\n" . '                </a>';
 			}
 		}
 
@@ -371,7 +371,7 @@ switch ($rPage) {
 		}
 
 		if (!$rMobile && strlen($rSettings["tmdb_api_key"]) > 0) {
-			echo "<span class=\"gap\"></span><button type=\"button\" onclick=\"importTmdbCategories();\" class=\"btn btn-sm btn-info waves-effect waves-light\">Import TMDB Genres</button>";
+			echo "<span class=\"gap\"></span><button type=\"button\" onclick=\"importTmdbCategories();\" class=\"btn btn-sm btn-info waves-effect waves-light\">' . $language::get('import_tmdb_genres') . '</button>";
 		}
 
 		if (0 >= count(array_slice($rDropdownPage, ($rMobile ? 0 : 1), count($rDropdownPage)))) {

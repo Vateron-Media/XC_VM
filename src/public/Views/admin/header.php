@@ -130,7 +130,7 @@
                                         <div class="app-search"
                                             data-theme="bg-animate<?= (0 < strlen($rUserInfo['hue']) && in_array($rUserInfo['hue'], array_keys($rHues))) ? '-' . $rUserInfo['hue'] : ''; ?>">
                                             <div class="app-search-box">
-                                                <select placeholder="Search..."
+                                                <select placeholder="<?= $language::get('search_placeholder') ?>"
                                                     class="quick_search form-control bg-animate<?= (0 < strlen($rUserInfo['hue']) && in_array($rUserInfo['hue'], array_keys($rHues))) ? '-' . $rUserInfo['hue'] : ''; ?>"
                                                     data-toggle="select2"></select>
                                             </div>
@@ -239,7 +239,7 @@
                                         </a>
                                         <div class="dropdown-menu dropdown-menu-right dropdown-lg">
                                             <div class="dropdown-item noti-title">
-                                                <h5 class="m-0">Tickets</h5>
+                                                <h5 class="m-0"><?= $language::get('tickets') ?></h5>
                                             </div>
                                             <div class="slimscroll noti-scroll">
                                                 <?php foreach ($rTickets as $rTicket): ?>

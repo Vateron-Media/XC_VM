@@ -74,14 +74,14 @@
 									<li class="nav-item">
 										<a href="#stream-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
 											<i class="mdi mdi-account-card-details-outline mr-1"></i>
-											<span class="d-none d-sm-inline">Details</span>
+											<span class="d-none d-sm-inline"><?= $language::get('details') ?></span>
 										</a>
 									</li>
 									<?php if (!isset(RequestManager::getAll()['import'])): ?>
 										<li class="nav-item">
 											<a href="#movie-information" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
 												<i class="mdi mdi-movie-outline mr-1"></i>
-												<span class="d-none d-sm-inline">Information</span>
+												<span class="d-none d-sm-inline"><?= $language::get('information') ?></span>
 											</a>
 										</li>
 									<?php else: ?>
@@ -109,17 +109,17 @@
 											<div class="col-12">
 												<?php if (!isset(RequestManager::getAll()['import'])): ?>
 													<div class="form-group row mb-4">
-														<label class="col-md-4 col-form-label" for="title">Series Name</label>
+														<label class="col-md-4 col-form-label" for="title"><?= $language::get('series_name') ?></label>
 														<div class="col-md-5">
 															<input type="text" class="form-control" id="title" name="title" value="<?= isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['title']) : ''; ?>" required data-parsley-trigger="change">
 														</div>
 														<div class="col-md-3">
-															<input type="text" class="form-control text-center" placeholder="Year" id="year" name="year" value="<?= isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['year']) : ''; ?>">
+															<input type="text" class="form-control text-center" placeholder="<?= $language::get('year') ?>" id="year" name="year" value="<?= isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['year']) : ''; ?>">
 														</div>
 													</div>
 													<?php if (strlen(SettingsManager::getAll()['tmdb_api_key']) > 0): ?>
 														<div class="form-group row mb-4">
-															<label class="col-md-4 col-form-label" for="tmdb_search">TMDb Results</label>
+															<label class="col-md-4 col-form-label" for="tmdb_search"><?= $language::get('tmdb_results') ?></label>
 															<div class="col-md-5">
 																<select id="tmdb_search" class="form-control" data-toggle="select2"></select>
 															</div>
@@ -189,7 +189,7 @@
 												<div class="form-group row mb-4">
 													<label class="col-md-4 col-form-label" for="category_id"><?= (isset(RequestManager::getAll()['import']) ? 'Fallback ' : ''); ?>Categories</label>
 													<div class="col-md-8">
-														<select name="category_id[]" id="category_id" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">
+														<select name="category_id[]" id="category_id" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="<?= $language::get('choose_placeholder') ?>">
 															<?php foreach (CategoryService::getAllByType('series') as $category): ?>
 																<?php
 																$selected = '';
@@ -213,7 +213,7 @@
 												<div class="form-group row mb-4">
 													<label class="col-md-4 col-form-label" for="bouquets"><?= (isset(RequestManager::getAll()['import']) ? 'Fallback ' : ''); ?>Bouquets</label>
 													<div class="col-md-8">
-														<select name="bouquets[]" id="bouquets" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose...">
+														<select name="bouquets[]" id="bouquets" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="<?= $language::get('choose_placeholder') ?>">
 															<?php foreach (BouquetService::getAllSimple() as $bouquet): ?>
 																<?php
 																$selected = '';
@@ -238,7 +238,7 @@
 										</div>
 										<ul class="list-inline wizard mb-0">
 											<li class="nextb list-inline-item float-right">
-												<a href="javascript: void(0);" class="btn btn-secondary">Next</a>
+												<a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('next') ?></a>
 											</li>
 										</ul>
 									</div>
@@ -247,7 +247,7 @@
 											<div class="row">
 												<div class="col-12">
 													<div class="form-group row mb-4">
-														<label class="col-md-4 col-form-label" for="cover">Poster URL</label>
+														<label class="col-md-4 col-form-label" for="cover"><?= $language::get('poster_url') ?></label>
 														<div class="col-md-8 input-group">
 															<input type="text" class="form-control" id="cover" name="cover" value="<?= isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['cover']) : ''; ?>">
 															<div class="input-group-append">
@@ -256,7 +256,7 @@
 														</div>
 													</div>
 													<div class="form-group row mb-4">
-														<label class="col-md-4 col-form-label" for="backdrop_path">Backdrop URL</label>
+														<label class="col-md-4 col-form-label" for="backdrop_path"><?= $language::get('backdrop_url') ?></label>
 														<div class="col-md-8 input-group">
 															<input type="text" class="form-control" id="backdrop_path" name="backdrop_path" value="<?= isset($rSeriesArr) ? htmlspecialchars(json_decode($rSeriesArr['backdrop_path'], true)[0] ?? '') : ''; ?>">
 															<div class="input-group-append">
@@ -265,43 +265,43 @@
 														</div>
 													</div>
 													<div class="form-group row mb-4">
-														<label class="col-md-4 col-form-label" for="plot">Plot</label>
+														<label class="col-md-4 col-form-label" for="plot"><?= $language::get('plot') ?></label>
 														<div class="col-md-8">
 															<textarea rows="6" class="form-control" id="plot" name="plot"><?= isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['plot']) : ''; ?></textarea>
 														</div>
 													</div>
 													<div class="form-group row mb-4">
-														<label class="col-md-4 col-form-label" for="cast">Cast</label>
+														<label class="col-md-4 col-form-label" for="cast"><?= $language::get('cast') ?></label>
 														<div class="col-md-8">
 															<input type="text" class="form-control" id="cast" name="cast" value="<?= isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['cast']) : ''; ?>">
 														</div>
 													</div>
 													<div class="form-group row mb-4">
-														<label class="col-md-4 col-form-label" for="director">Director</label>
+														<label class="col-md-4 col-form-label" for="director"><?= $language::get('director') ?></label>
 														<div class="col-md-3">
 															<input type="text" class="form-control text-center" id="director" name="director" value="<?= isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['director']) : ''; ?>">
 														</div>
-														<label class="col-md-2 col-form-label" for="genre">Genres</label>
+														<label class="col-md-2 col-form-label" for="genre"><?= $language::get('genres') ?></label>
 														<div class="col-md-3">
 															<input type="text" class="form-control text-center" id="genre" name="genre" value="<?= isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['genre']) : ''; ?>">
 														</div>
 													</div>
 													<div class="form-group row mb-4">
-														<label class="col-md-4 col-form-label" for="release_date">Release Date</label>
+														<label class="col-md-4 col-form-label" for="release_date"><?= $language::get('release_date') ?></label>
 														<div class="col-md-3">
 															<input type="text" class="form-control text-center" id="release_date" name="release_date" value="<?= isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['release_date']) : ''; ?>">
 														</div>
-														<label class="col-md-2 col-form-label" for="episode_run_time">Runtime</label>
+														<label class="col-md-2 col-form-label" for="episode_run_time"><?= $language::get('runtime') ?></label>
 														<div class="col-md-3">
 															<input type="text" class="form-control text-center" id="episode_run_time" name="episode_run_time" value="<?= isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['episode_run_time']) : ''; ?>">
 														</div>
 													</div>
 													<div class="form-group row mb-4">
-														<label class="col-md-4 col-form-label" for="youtube_trailer">Youtube Trailer</label>
+														<label class="col-md-4 col-form-label" for="youtube_trailer"><?= $language::get('youtube_trailer_label') ?></label>
 														<div class="col-md-3">
 															<input type="text" class="form-control text-center" id="youtube_trailer" name="youtube_trailer" value="<?= isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['youtube_trailer']) : ''; ?>">
 														</div>
-														<label class="col-md-2 col-form-label" for="rating">Rating</label>
+														<label class="col-md-2 col-form-label" for="rating"><?= $language::get('rating') ?></label>
 														<div class="col-md-3">
 															<input type="text" class="form-control text-center" id="rating" name="rating" value="<?= isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['rating']) : ''; ?>">
 														</div>
@@ -310,7 +310,7 @@
 											</div>
 											<ul class="list-inline wizard mb-0">
 												<li class="prevb list-inline-item">
-													<a href="javascript: void(0);" class="btn btn-secondary">Previous</a>
+													<a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('prev') ?></a>
 												</li>
 												<li class="list-inline-item float-right">
 													<input name="submit_series" type="submit" class="btn btn-primary" value="<?= isset($rSeriesArr) ? 'Edit' : 'Add'; ?>" />
@@ -389,7 +389,7 @@
 														</div>
 													</div>
 													<div class="form-group row mb-4">
-														<label class="col-md-4 col-form-label" for="restart_on_edit">Process Episodes</label>
+														<label class="col-md-4 col-form-label" for="restart_on_edit"><?= $language::get('process_episodes') ?></label>
 														<div class="col-md-2">
 															<input name="restart_on_edit" id="restart_on_edit" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 														</div>
@@ -398,7 +398,7 @@
 											</div>
 											<ul class="list-inline wizard mb-0">
 												<li class="prevb list-inline-item">
-													<a href="javascript: void(0);" class="btn btn-secondary">Previous</a>
+													<a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('prev') ?></a>
 												</li>
 												<li class="list-inline-item float-right">
 													<input name="submit_series" type="submit" class="btn btn-primary" value="Import" />

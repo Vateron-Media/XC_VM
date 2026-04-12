@@ -25,7 +25,7 @@
 					<div class="page-title-right">
 						<?php include 'topbar.php'; ?>
 					</div>
-					<h4 class="page-title">Server Order</h4>
+					<h4 class="page-title"><?= $language::get('server_order') ?></h4>
 				</div>
 			</div>
 		</div>
@@ -46,7 +46,7 @@
 								<li class="nav-item">
 									<a href="#servers" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
 										<i class="mdi mdi-server mr-1"></i>
-										<span class="d-none d-sm-inline">Servers</span>
+										<span class="d-none d-sm-inline"><?= $language::get('servers') ?></span>
 									</a>
 								</li>
 							</ul>

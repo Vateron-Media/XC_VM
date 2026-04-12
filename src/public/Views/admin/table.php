@@ -1226,7 +1226,7 @@ if ($rType == "lines") {
                         }
                         $rUptime = "<button type='button' class='btn btn-success btn-xs waves-effect waves-light " . $rBtnLength . "'>" . $rUptime . "</button>";
                     } elseif ($rActualStatus == 3) {
-                        $rUptime = "<button type='button' class='btn btn-danger btn-xs waves-effect waves-light " . $rBtnLength . "'>DOWN</button>";
+                        $rUptime = "<button type='button' class='btn btn-danger btn-xs waves-effect waves-light " . $rBtnLength . "'>' . $language::get('down_btn') . '</button>";
                     } elseif ($rActualStatus == 6) {
                         $rSources = json_decode($rRow["stream_source"], true);
                         $rLeft = count(array_diff($rSources, json_decode($rRow["cchannel_rsources"], true)));
@@ -1667,7 +1667,7 @@ if ($rType == "lines") {
                         }
                         $rUptime = "<button type='button' class='btn btn-success btn-xs waves-effect waves-light btn-fixed-xl'>" . $rUptime . "</button>";
                     } elseif ($rActualStatus == 3) {
-                        $rUptime = "<button type='button' class='btn btn-danger btn-xs waves-effect waves-light btn-fixed-xl'>DOWN</button>";
+                        $rUptime = "<button type='button' class='btn btn-danger btn-xs waves-effect waves-light btn-fixed-xl'>' . $language::get('down_btn') . '</button>";
                     } else {
                         $rUptime = $rStatusArray[$rActualStatus];
                     }
@@ -2726,7 +2726,7 @@ if ($rType == "lines") {
                 $rDuration = (int) time() - (int) $rRow["date_start"];
                 $rColour = "success";
                 if ($rRow["hls_end"]) {
-                    $rDuration = "<button type='button' class='btn btn-secondary btn-xs waves-effect waves-light btn-fixed'>CLOSED</button>";
+                    $rDuration = "<button type='button' class='btn btn-secondary btn-xs waves-effect waves-light btn-fixed'>' . $language::get('closed') . '</button>";
                 } else {
                     if (86400 <= $rDuration) {
                         $rDuration = sprintf("%02dd %02dh", $rDuration / 86400, $rDuration / 3600 % 24);
@@ -4095,9 +4095,9 @@ if ($rType == "lines") {
                     }
                     $rButtons .= "</div>";
                     if ($rRow["blocked"]) {
-                        $rStatus = "<button type=\"button\" class=\"btn btn-danger btn-xs waves-effect waves-light btn-fixed\">BLOCKED</button>";
+                        $rStatus = "<button type=\"button\" class=\"btn btn-danger btn-xs waves-effect waves-light btn-fixed\">' . $language::get('blocked_btn') . '</button>";
                     } else {
-                        $rStatus = "<button type=\"button\" class=\"btn btn-success btn-xs waves-effect waves-light btn-fixed\">ALLOWED</button>";
+                        $rStatus = "<button type=\"button\" class=\"btn btn-success btn-xs waves-effect waves-light btn-fixed\">' . $language::get('allowed') . '</button>";
                     }
                     $rType = strtoupper($rRow["type"]);
                     $rReturn["data"][] = [$rRow["asn"], $rRow["isp"], $rRow["domain"], "<img loading=\"lazy\" src=\"assets/images/countries/" . strtolower($rRow["country"]) . ".png\">", number_format($rRow["num_ips"], 0), $rType, $rStatus, $rButtons];

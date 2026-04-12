@@ -19,7 +19,7 @@
 					<div class="page-title-right">
 						<?php include 'topbar.php'; ?>
 					</div>
-					<h4 class="page-title">System Logs</h4>
+					<h4 class="page-title"><?= $language::get('system_logs') ?></h4>
 				</div>
 			</div>
 		</div>

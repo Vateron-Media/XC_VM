@@ -99,7 +99,7 @@ endif;
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label" for="gpu_device">GPU Accelerated Transcoding</label>
+                                                    <label class="col-md-3 col-form-label" for="gpu_device"><?= $language::get('gpu_accelerated_transcoding') ?></label>
                                                     <div class="col-md-9">
                                                         <select id="gpu_device" name="gpu_device" class="form-control" data-toggle="select2">
                                                             <?php foreach ($rDevices as $rDeviceID => $rDeviceName): ?>
@@ -227,7 +227,7 @@ endif;
                                                 <div id="gpu_options" style="display:none;">
                                                     <div class="form-group row mb-4">
                                                         <label class="col-md-3 col-form-label" for="resize">
-                                                            Resize <i title="Resize command for GPU acceleration. Example: 1920x1080" class="tooltip text-secondary far fa-circle"></i>
+                                                            Resize <i title="<?= $language::get('resize_command_for_gpu_acceleration_example_1920x1080') ?>" class="tooltip text-secondary far fa-circle"></i>
                                                         </label>
                                                         <div class="col-md-3">
                                                             <input type="text" class="form-control" id="resize" name="resize"
@@ -235,7 +235,7 @@ endif;
                                                         </div>
 
                                                         <label class="col-md-3 col-form-label" for="deint">
-                                                            Deinterlace <i title="Set deinterlacing mode." class="tooltip text-secondary far fa-circle"></i>
+                                                            Deinterlace <i title="<?= $language::get('set_deinterlacing_mode') ?>" class="tooltip text-secondary far fa-circle"></i>
                                                         </label>
                                                         <div class="col-md-3">
                                                             <select name="deint" class="form-control" data-toggle="select2">
@@ -290,7 +290,7 @@ endif;
                                                         </div>
                                                         <label class="col-md-3 col-form-label" for="yadif_filter">
                                                             Enable Deinterlace Filter
-                                                            <i title="De-interlace video using yadif filter. May be incompatible with other options that occupy the video filter. For GPU transcoding you should use the NVENC deinterlacing options."
+                                                            <i title="<?= $language::get('deinterlace_video_using_yadif_filter_tooltip') ?>"
                                                                 class="tooltip text-secondary far fa-circle"></i>
                                                         </label>
                                                         <div class="col-md-3">
@@ -415,7 +415,7 @@ endif;
                                                         <div class="col-md-3">
                                                             <input type="text" class="form-control text-center" id="logo_pos" name="logo_pos"
                                                                 value="<?= isset($rProfileArr) ? htmlspecialchars($rProfileOptions[16]['pos'] ?: '10:10') : '10:10' ?>"
-                                                                placeholder="pos x:x">
+                                                                placeholder="<?= $language::get('pos_xx') ?>">
                                                         </div>
                                                     </div>
                                                 </div>

@@ -24,7 +24,7 @@
                     <div class="page-title-right">
                         <?php include 'topbar.php'; ?>
                     </div>
-                    <h4 class="page-title">Lines</h4>
+                    <h4 class="page-title"><?= $language::get('lines') ?></h4>
                 </div>
             </div>
         </div>
@@ -48,7 +48,7 @@
                                 <input type="text" class="form-control" id="user_search" value="<?php if (!isset(RequestManager::getAll()['search'])) {
                                                                                                 } else {
                                                                                                     echo htmlspecialchars(RequestManager::getAll()['search']);
-                                                                                                } ?>" placeholder="Search Lines...">
+                                                                                                } ?>" placeholder="<?= $language::get('search_lines') ?>">
                             </div>
                             <label class="col-md-2 col-form-label text-center" for="user_reseller">Filter Results &nbsp; <button type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="clearOwner();"><i class="mdi mdi-close"></i></button></label>
                             <div class="col-md-3">
@@ -82,7 +82,7 @@
                                     ?>
                                 </select>
                             </div>
-                            <label class="col-md-1 col-form-label text-center" for="user_show_entries">Show</label>
+                            <label class="col-md-1 col-form-label text-center" for="user_show_entries"><?= $language::get('show') ?></label>
                             <div class="col-md-1">
                                 <select id="user_show_entries" class="form-control" data-toggle="select2">
                                     <?php
@@ -98,19 +98,19 @@
                         <table id="datatable-users" class="table table-striped table-borderless dt-responsive nowrap font-normal">
                             <thead>
                                 <tr>
-                                    <th class="text-center">ID</th>
-                                    <th>Username</th>
-                                    <th>Password</th>
-                                    <th>Owner</th>
-                                    <th class="text-center">Status</th>
-                                    <th class="text-center">Online</th>
-                                    <th class="text-center">Trial</th>
-                                    <th class="text-center">Restreamer</th>
-                                    <th class="text-center">Active</th>
-                                    <th class="text-center">Connections</th>
-                                    <th class="text-center">Expiration</th>
-                                    <th class="text-center">Last Connection</th>
-                                    <th class="text-center">Actions</th>
+                                    <th class="text-center"><?= $language::get('id') ?></th>
+                                    <th><?= $language::get('username') ?></th>
+                                    <th><?= $language::get('password') ?></th>
+                                    <th><?= $language::get('owner') ?></th>
+                                    <th class="text-center"><?= $language::get('status') ?></th>
+                                    <th class="text-center"><?= $language::get('online') ?></th>
+                                    <th class="text-center"><?= $language::get('trial') ?></th>
+                                    <th class="text-center"><?= $language::get('restreamer') ?></th>
+                                    <th class="text-center"><?= $language::get('active') ?></th>
+                                    <th class="text-center"><?= $language::get('connections') ?></th>
+                                    <th class="text-center"><?= $language::get('expiration') ?></th>
+                                    <th class="text-center"><?= $language::get('last_connection') ?></th>
+                                    <th class="text-center"><?= $language::get('actions') ?></th>
                                 </tr>
                             </thead>
                             <tbody></tbody>
@@ -306,7 +306,7 @@ renderUnifiedLayoutFooter('admin');
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label for="wa_language">Select Language / Sprache wählen / Dil Seçin</label>
+                    <label for="wa_language"><?= $language::get('select_language_sprache_whlen_dil_sein') ?></label>
                     <select id="wa_language" class="form-control">
                         <option value="de">🇩🇪 Deutsch</option>
                         <option value="en">🇬🇧 English</option>
@@ -314,7 +314,7 @@ renderUnifiedLayoutFooter('admin');
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Preview / Vorschau / Önizleme</label>
+                    <label><?= $language::get('preview_vorschau_nizleme') ?></label>
                     <textarea id="wa_message_preview" class="form-control" rows="5" readonly></textarea>
                 </div>
                 <input type="hidden" id="wa_phone" value="">
@@ -323,8 +323,8 @@ renderUnifiedLayoutFooter('admin');
                 <input type="hidden" id="wa_daysremaining" value="">
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                <a id="wa_send_btn" href="#" target="_blank" class="btn btn-success"><i class="mdi mdi-whatsapp"></i> Send via WhatsApp</a>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal"><?= $language::get('cancel') ?></button>
+                <a id="wa_send_btn" href="#" target="_blank" class="btn btn-success"><i class="mdi mdi-whatsapp"></i> <?= $language::get('send_via_whatsapp') ?></a>
             </div>
         </div>
     </div>

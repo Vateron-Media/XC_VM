@@ -28,7 +28,7 @@
                         <div class="page-title-right">
                             <?php include 'topbar.php'; ?>
                         </div>
-                        <h4 class="page-title">Cache & Redis Settings</h4>
+                        <h4 class="page-title"><?= $language::get('cache_redis_settings') ?></h4>
                     </div>
                 </div>
             </div>
@@ -84,13 +84,13 @@
                                     <li class="nav-item">
                                         <a href="#cache" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-cached mr-1"></i>
-                                            <span class="d-none d-sm-inline">XC_VM Caching System</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('xc_vm_caching_system') ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
                                         <a href="#connections" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-lan-connect mr-1"></i>
-                                            <span class="d-none d-sm-inline">Redis Connection Handler</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('redis_connection_handler') ?></span>
                                         </a>
                                     </li>
                                 </ul>
@@ -127,7 +127,7 @@
                                                         </div>
                                                     <?php endif; ?>
 
-                                                    <h5 class="card-title">Cache Cron Execution</h5>
+                                                    <h5 class="card-title"><?= $language::get('cache_cron_execution') ?></h5>
                                                     <p>Your last cron execution was at <strong><?= date($rSettings['datetime_format'], $rSettings['last_cache']) ?></strong>. If it takes longer to run a cron than the time between executions, you will have issues as the caching will be cut off before completion.<br /><br />The default is to run the cron every 5 minutes, but when your Streams and Lines tables grow larger it can take a fair amount of time to grab and cache this data. You can change the time to achieve a better balance between performance and data accuracy.<br /><br /><strong>Please ensure the cron format is correct, otherwise it won't run.</strong></p>
                                                     <div class="form-group row mb-4">
                                                         <table class="table table-striped table-borderless mb-0" id="datatable-cache">
@@ -170,22 +170,22 @@
                                                         </table>
                                                     </div>
                                                 <?php else: ?>
-                                                    <h5 class="card-title">Cache is Disabled</h5>
+                                                    <h5 class="card-title"><?= $language::get('cache_is_disabled') ?></h5>
                                                     <p>You have chosen to disable Cache system. You can re-enable it by clicking the Enable Cache box below, however when doing so you would get best results restarting XC_VM on this server.</p>
                                                 <?php endif; ?>
 
                                                 <ul class="list-inline wizard mb-0" style="margin-top:30px;">
                                                     <?php if ($rSettings['enable_cache']): ?>
                                                         <li class="list-inline-item">
-                                                            <button id="disable_cache" onClick="api('disable_cache')" class="btn btn-danger" type="button">Disable Cache</button>
-                                                            <button id="regenerate_cache" onClick="api('regenerate_cache')" class="btn btn-info" type="button">Regenerate Cache</button>
+                                                            <button id="disable_cache" onClick="api('disable_cache')" class="btn btn-danger" type="button"><?= $language::get('disable_cache') ?></button>
+                                                            <button id="regenerate_cache" onClick="api('regenerate_cache')" class="btn btn-info" type="button"><?= $language::get('regenerate_cache') ?></button>
                                                         </li>
                                                         <li class="list-inline-item float-right">
                                                             <input name="submit_settings" type="submit" class="btn btn-primary" value="Save Cron" />
                                                         </li>
                                                     <?php else: ?>
                                                         <li class="list-inline-item">
-                                                            <button id="enable_cache" onClick="api('enable_cache')" class="btn btn-success" type="button">Enable Cache</button>
+                                                            <button id="enable_cache" onClick="api('enable_cache')" class="btn btn-success" type="button"><?= $language::get('enable_cache') ?></button>
                                                         </li>
                                                     <?php endif; ?>
                                                 </ul>
@@ -195,9 +195,9 @@
                                     <div class="tab-pane" id="connections">
                                         <div class="row">
                                             <div class="col-12">
-                                                <h5 class="card-title">Redis Connection Handler</h5>
+                                                <h5 class="card-title"><?= $language::get('redis_connection_handler') ?></h5>
                                                 <p>The handler will allow all connections from clients to load balancers to be verified and managed using Redis rather than through mysql connections.<br /><br /><strong>Disabling Redis handler will disconnect all of your active clients, enabling it however should move the live connections from MySQL to Redis without disconnects.</strong></p>
-                                                <h5 class="card-title mt-4">Pros & Cons</h5>
+                                                <h5 class="card-title mt-4"><?= $language::get('pros_and_cons') ?></h5>
                                                 <p>Before deciding whether Redis Connection Handler is right for you, you should know a few things. Firstly, enabling Redis will significantly increase XC_VM's ability to handle connections as the previous bottleneck would be from MySQL not being able to handle the amount of incoming client requests. You'll also find that zap time will be quicker, CPU should be lower and things will generally run quite smoothly.<br /><br />The drawbacks from using Redis is that the live connection database is stored in memory, although a backup is periodically written, restarting XC_VM can result in connection losses. In addition to this, your ability to filter or search some content in the Admin or Reseller interface will be diminished. For example, with Redis on you can only sort Live Connections by Time Active ascending or descending and you cannot search the live connection list. You also lose the ability to sort by Active Connections in Lines or Content pages etc.<br /><br />The best way to decide if Redis is right for you is to try it for yourself.</p>
 
                                                 <?php if ($rSettings['redis_handler']): ?>
@@ -225,17 +225,17 @@
                                                                     <td class="text-center">Server Status</td>
                                                                     <td class="text-center">
                                                                         <?php if ($rStatus): ?>
-                                                                            <button type="button" class="btn btn-success btn-xs waves-effect waves-light btn-fixed-xl">ONLINE</button>
+                                                                            <button type="button" class="btn btn-success btn-xs waves-effect waves-light btn-fixed-xl"><?= $language::get('online_btn') ?></button>
                                                                         <?php else: ?>
-                                                                            <button type="button" class="btn btn-danger btn-xs waves-effect waves-light btn-fixed-xl">OFFLINE</button>
+                                                                            <button type="button" class="btn btn-danger btn-xs waves-effect waves-light btn-fixed-xl"><?= $language::get('offline') ?></button>
                                                                         <?php endif; ?>
                                                                     </td>
                                                                     <td class="text-center">Authentication</td>
                                                                     <td class="text-center">
                                                                         <?php if ($rAuth): ?>
-                                                                            <button type="button" class="btn btn-success btn-xs waves-effect waves-light btn-fixed-xl">AUTHENTICATED</button>
+                                                                            <button type="button" class="btn btn-success btn-xs waves-effect waves-light btn-fixed-xl"><?= $language::get('authenticated') ?></button>
                                                                         <?php else: ?>
-                                                                            <button type="button" class="btn btn-danger btn-xs waves-effect waves-light btn-fixed-xl">INVALID PASSWORD</button>
+                                                                            <button type="button" class="btn btn-danger btn-xs waves-effect waves-light btn-fixed-xl"><?= $language::get('invalid_password') ?></button>
                                                                         <?php endif; ?>
                                                                     </td>
                                                                 </tr>
@@ -250,12 +250,12 @@
                                         <ul class="list-inline wizard mb-0" style="margin-top:30px;">
                                             <?php if ($rSettings['redis_handler']): ?>
                                                 <li class="list-inline-item">
-                                                    <button id="disable_handler" onClick="api('disable_handler')" class="btn btn-danger" type="button">Disable Handler</button>
-                                                    <button id="clear_redis" onClick="api('clear_redis')" class="btn btn-info" type="button">Clear Database</button>
+                                                    <button id="disable_handler" onClick="api('disable_handler')" class="btn btn-danger" type="button"><?= $language::get('disable_handler') ?></button>
+                                                    <button id="clear_redis" onClick="api('clear_redis')" class="btn btn-info" type="button"><?= $language::get('clear_database') ?></button>
                                                 </li>
                                             <?php else: ?>
                                                 <li class="list-inline-item">
-                                                    <button id="enable_handler" onClick="api('enable_handler')" class="btn btn-success" type="button">Enable Handler</button>
+                                                    <button id="enable_handler" onClick="api('enable_handler')" class="btn btn-success" type="button"><?= $language::get('enable_handler') ?></button>
                                                 </li>
                                             <?php endif; ?>
                                         </ul>

@@ -23,7 +23,7 @@
 					<div class="page-title-right">
 						<?php include 'topbar.php'; ?>
 					</div>
-					<h4 class="page-title">RTMP IP Addresses</h4>
+					<h4 class="page-title"><?= $language::get('rtmp_ip_addresses') ?></h4>
 				</div>
 			</div>
 		</div>
@@ -42,12 +42,12 @@
 						<table id="datatable" class="table table-striped table-borderless dt-responsive nowrap">
 							<thead>
 								<tr>
-									<th class="text-center">ID</th>
-									<th class="text-center">IP Address</th>
-									<th class="text-center">Password</th>
-									<th class="text-center">Push</th>
-									<th class="text-center">Pull</th>
-									<th class="text-center">Actions</th>
+									<th class="text-center"><?= $language::get('id') ?></th>
+									<th class="text-center"><?= $language::get('ip_address') ?></th>
+									<th class="text-center"><?= $language::get('password') ?></th>
+									<th class="text-center"><?= $language::get('push') ?></th>
+									<th class="text-center"><?= $language::get('pull') ?></th>
+									<th class="text-center"><?= $language::get('actions') ?></th>
 								</tr>
 							</thead>
 							<tbody>

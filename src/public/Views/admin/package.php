@@ -60,7 +60,7 @@
                                     <li class="nav-item">
                                         <a href="#options" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-folder-alert-outline mr-1"></i>
-                                            <span class="d-none d-sm-inline">Options</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('options') ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
@@ -88,19 +88,19 @@
                                                 </div>
                                                 <h4 class="m-t-0 header-title mb-4">Trial Package</h4>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="is_trial">Enabled</label>
+                                                    <label class="col-md-4 col-form-label" for="is_trial"><?= $language::get('enabled') ?></label>
                                                     <div class="col-md-2">
                                                         <input name="is_trial" id="is_trial" type="checkbox" <?php if (isset($rPackage) && $rPackage['is_trial'] == 1) {
                                                                                                                     echo 'checked ';
                                                                                                                 } ?>data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                     </div>
-                                                    <label class="col-md-4 col-form-label" for="trial_credits">Credit Cost</label>
+                                                    <label class="col-md-4 col-form-label" for="trial_credits"><?= $language::get('credit_cost') ?></label>
                                                     <div class="col-md-2">
                                                         <input type="text" class="form-control text-center" id="trial_credits" name="trial_credits" value="<?php echo isset($rPackage) ? htmlspecialchars($rPackage['trial_credits']) : '0'; ?>">
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="trial_duration">Duration</label>
+                                                    <label class="col-md-4 col-form-label" for="trial_duration"><?= $language::get('duration') ?></label>
                                                     <div class="col-md-2">
                                                         <input type="text" class="form-control text-center" id="trial_duration" name="trial_duration" value="<?php echo isset($rPackage) ? htmlspecialchars($rPackage['trial_duration']) : '0'; ?>">
                                                     </div>
@@ -116,19 +116,19 @@
                                                 </div>
                                                 <h4 class="m-t-0 header-title mb-4">Standard Package</h4>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="is_official">Enabled</label>
+                                                    <label class="col-md-4 col-form-label" for="is_official"><?= $language::get('enabled') ?></label>
                                                     <div class="col-md-2">
                                                         <input name="is_official" id="is_official" type="checkbox" <?php if (isset($rPackage) && $rPackage['is_official'] == 1) {
                                                                                                                         echo 'checked ';
                                                                                                                     } ?>data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                     </div>
-                                                    <label class="col-md-4 col-form-label" for="official_credits">Credit Cost</label>
+                                                    <label class="col-md-4 col-form-label" for="official_credits"><?= $language::get('credit_cost') ?></label>
                                                     <div class="col-md-2">
                                                         <input type="text" class="form-control text-center" id="official_credits" name="official_credits" value="<?php echo isset($rPackage) ? htmlspecialchars($rPackage['official_credits']) : '0'; ?>">
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="official_duration">Duration</label>
+                                                    <label class="col-md-4 col-form-label" for="official_duration"><?= $language::get('duration') ?></label>
                                                     <div class="col-md-2">
                                                         <input type="text" class="form-control text-center" id="official_duration" name="official_duration" value="<?php echo isset($rPackage) ? htmlspecialchars($rPackage['official_duration']) : '0'; ?>">
                                                     </div>
@@ -154,13 +154,13 @@
                                         <div class="row">
                                             <div class="col-12">
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="is_mag">MAG Device</label>
+                                                    <label class="col-md-4 col-form-label" for="is_mag"><?= $language::get('mag_device') ?></label>
                                                     <div class="col-md-2">
                                                         <input name="is_mag" id="is_mag" type="checkbox" <?php if (isset($rPackage) && $rPackage['is_mag'] == 1) {
                                                                                                                 echo 'checked ';
                                                                                                             } ?>data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                     </div>
-                                                    <label class="col-md-4 col-form-label" for="is_e2">Enigma Device</label>
+                                                    <label class="col-md-4 col-form-label" for="is_e2"><?= $language::get('enigma_device') ?></label>
                                                     <div class="col-md-2">
                                                         <input name="is_e2" id="is_e2" type="checkbox" <?php if (isset($rPackage) && $rPackage['is_e2'] == 1) {
                                                                                                             echo 'checked ';
@@ -168,13 +168,13 @@
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="is_line">Standard Line</label>
+                                                    <label class="col-md-4 col-form-label" for="is_line"><?= $language::get('standard_line') ?></label>
                                                     <div class="col-md-2">
                                                         <input name="is_line" id="is_line" type="checkbox" <?php if (isset($rPackage) ? $rPackage['is_line'] == 1 : true) {
                                                                                                                 echo 'checked ';
                                                                                                             } ?>data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                     </div>
-                                                    <label class="col-md-4 col-form-label" for="is_isplock">Lock to ISP</label>
+                                                    <label class="col-md-4 col-form-label" for="is_isplock"><?= $language::get('lock_to_isp') ?></label>
                                                     <div class="col-md-2">
                                                         <input name="is_isplock" id="is_isplock" type="checkbox" <?php if (isset($rPackage) && $rPackage['is_isplock'] == 1) {
                                                                                                                         echo 'checked ';
@@ -182,13 +182,13 @@
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="is_restreamer">Restreamer</label>
+                                                    <label class="col-md-4 col-form-label" for="is_restreamer"><?= $language::get('restreamer') ?></label>
                                                     <div class="col-md-2">
                                                         <input name="is_restreamer" id="is_restreamer" type="checkbox" <?php if (isset($rPackage) && $rPackage['is_restreamer'] == 1) {
                                                                                                                             echo 'checked ';
                                                                                                                         } ?>data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                     </div>
-                                                    <label class="col-md-4 col-form-label" for="check_compatible">Verify Compatibility</label>
+                                                    <label class="col-md-4 col-form-label" for="check_compatible"><?= $language::get('verify_compatibility') ?></label>
                                                     <div class="col-md-2">
                                                         <input name="check_compatible" id="check_compatible" type="checkbox" <?php if (isset($rPackage) ? $rPackage['check_compatible'] == 1 : true) {
                                                                                                                                     echo 'checked ';
@@ -196,12 +196,12 @@
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="force_server_id">Forced Connection</label>
+                                                    <label class="col-md-4 col-form-label" for="force_server_id"><?= $language::get('forced_connection') ?></label>
                                                     <div class="col-md-8">
                                                         <select name="force_server_id" id="force_server_id" class="form-control select2" data-toggle="select2">
                                                             <option <?php if (!isset($rPackage) || intval($rPackage['force_server_id']) == 0) {
                                                                         echo 'selected ';
-                                                                    } ?>value="0">Disabled</option>
+                                                                    } ?><?= $language::get('value0disabled') ?></option>
                                                             <?php foreach ($rServers as $rServer) { ?>
                                                                 <option <?php if (isset($rPackage) && intval($rPackage['force_server_id']) == intval($rServer['id'])) {
                                                                             echo 'selected ';
@@ -231,7 +231,7 @@
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="forced_country">Forced Country</label>
+                                                    <label class="col-md-4 col-form-label" for="forced_country"><?= $language::get('forced_country') ?></label>
                                                     <div class="col-md-8">
                                                         <select name="forced_country" id="forced_country" class="form-control select2" data-toggle="select2">
                                                             <?php foreach ($rCountries as $rCountry) { ?>

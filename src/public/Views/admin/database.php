@@ -289,10 +289,10 @@ function display_select($sth, $q) {
         $headers .= "<th><div>" . hs($meta->name) . "</div></th>";
     }
     if ($is_shd) {
-        $headers .= "<th>show create database</th><th>show table status</th><th>show triggers</th>";
+        $headers .= "<th>' . $language::get('show_create_database') . '</th><th>' . $language::get('show_table_status') . '</th><th>' . $language::get('show_triggers') . '</th>";
     }
     if ($is_sht) {
-        $headers .= "<th>engine</th><th>~rows</th><th>data size</th><th>index size</th><th>show create table</th><th>explain</th><th>indexes</th><th>export</th><th>drop</th><th>truncate</th><th>optimize</th><th>repair</th><th>comment</th>";
+        $headers .= "<th>' . $language::get('engine') . '</th><th>' . $language::get('rows') . '</th><th>' . $language::get('data_size') . '</th><th>' . $language::get('index_size') . '</th><th>' . $language::get('show_create_table') . '</th><th>' . $language::get('explain') . '</th><th>' . $language::get('indexes') . '</th><th>' . $language::get('export') . '</th><th>' . $language::get('drop') . '</th><th>' . $language::get('truncate') . '</th><th>' . $language::get('optimize') . '</th><th>' . $language::get('repair') . '</th><th>' . $language::get('comment') . '</th>";
     }
     $headers .= "</tr>\n";
     $sqldr .= $headers;
@@ -574,7 +574,7 @@ function print_header() {
             }
 
             function ays() {
-                return confirm('Are you sure to continue?');
+                return confirm('<?= $language::get('are_you_sure_to_continue') ?>');
             }
 
             function chksql() {
@@ -777,7 +777,7 @@ function print_header() {
         ?>
 
             <div class="dot" style="padding:3px 20px">
-                <label for="qraw">SQL-query (or multiple queries separated by ";"):</label>&nbsp;<button type="button"
+                <label for="qraw"><?= $language::get('sql_query_hint') ?></label>&nbsp;<button type="button"
                     class="qnav" onclick="q_prev()">&lt;</button><button type="button" class="qnav"
                     onclick="q_next()">&gt;</button><br>
                 <textarea id="qraw" cols="70" rows="10"><?php eo($SQLq) ?></textarea><br>
@@ -1225,7 +1225,7 @@ $show_all=$_[5];           #print Totals?
                     <label><input type="radio" name="et" value="csv"> .csv (Excel style, data only and for one table
                         only)</label>
                 <?php } else { ?>
-                    <label>&nbsp;( ) .csv</label> <small>(to export as csv - go to 'show tables' and export just ONE
+                    <label><?= $language::get('andnbsp_csv') ?></label> <small>(to export as csv - go to 'show tables' and export just ONE
                         table)</small>
                 <?php } ?>
             </div>

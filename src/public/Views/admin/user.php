@@ -27,7 +27,7 @@
 					<div class="page-title-right">
 						<?php include 'topbar.php'; ?>
 					</div>
-					<h4 class="page-title"> <?= $rUser ? 'Edit' : 'Add' ?> User</h4>
+					<h4 class="page-title"> <?= $rUser ? 'Edit' : 'Add' ?> <?= $language::get('user') ?></h4>
 				</div>
 			</div>
 		</div>
@@ -46,14 +46,14 @@
 									<li class="nav-item">
 										<a href="#user-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
 											<i class="mdi mdi-account-card-details-outline mr-1"></i>
-											<span class="d-none d-sm-inline">Details</span>
+											<span class="d-none d-sm-inline"><?= $language::get('details') ?></span>
 										</a>
 									</li>
 									<?php if ($rUser): ?>
 										<li class="nav-item">
 											<a href="#override" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
 												<i class="mdi mdi-pencil-plus mr-1"></i>
-												<span class="d-none d-sm-inline">Overrides</span>
+												<span class="d-none d-sm-inline"><?= $language::get('overrides') ?></span>
 											</a>
 										</li>
 									<?php endif; ?>
@@ -64,7 +64,7 @@
 										<div class="row">
 											<div class="col-12">
 												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="username">Username</label>
+													<label class="col-md-4 col-form-label" for="username"><?= $language::get('username') ?></label>
 													<div class="col-md-8">
 														<input type="text" class="form-control" id="username" name="username" value="<?= $rUser ? htmlspecialchars($rUser['username']) : AdminHelpers::generateString(10) ?>">
 													</div>
@@ -75,7 +75,7 @@
 													</label>
 													<div class="col-md-8">
 														<input type="text" class="form-control" id="password" name="password"
-															<?= $rUser ? 'placeholder="Enter a new password here to change it"' : '' ?>
+															<?= $rUser ? 'placeholder="' . $language::get('enter_a_new_password_here_to_change_it') . '"' : '' ?>
 															value="<?= $rUser ? '' : AdminHelpers::generateString(max(10, $rPermissions['minimum_password_length'])) ?>"
 															data-indicator="pwindicator">
 														<div id="pwindicator">
@@ -85,7 +85,7 @@
 													</div>
 												</div>
 												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="member_group_id">Member Group</label>
+													<label class="col-md-4 col-form-label" for="member_group_id"><?= $language::get('member_group') ?></label>
 													<div class="col-md-8">
 														<select name="member_group_id" id="member_group_id" class="form-control select2" data-toggle="select2">
 															<?php foreach (GroupService::getAll() as $rGroup): ?>
@@ -98,7 +98,7 @@
 													</div>
 												</div>
 												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="email">Email Address</label>
+													<label class="col-md-4 col-form-label" for="email"><?= $language::get('email_address') ?></label>
 													<div class="col-md-8">
 														<input type="email" id="email" class="form-control" name="email" value="<?= $rUser ? htmlspecialchars($rUser['email']) : '' ?>">
 													</div>
@@ -117,9 +117,9 @@
 															<thead>
 																<tr>
 																	<th class="text-center">#</th>
-																	<th>Package</th>
-																	<th class="text-center">Credits</th>
-																	<th class="text-center">Override</th>
+																	<th><?= $language::get('package') ?></th>
+																	<th class="text-center"><?= $language::get('credits') ?></th>
+																	<th class="text-center"><?= $language::get('override') ?></th>
 																</tr>
 															</thead>
 															<tbody>

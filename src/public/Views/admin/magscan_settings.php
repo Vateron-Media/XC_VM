@@ -21,7 +21,7 @@
 					<div class="page-title-right">
 						<?php include 'topbar.php'; ?>
 					</div>
-					<h4 class="page-title">MAGSCAN Settings</h4>
+					<h4 class="page-title"><?= $language::get('magscan_settings') ?></h4>
 				</div>
 			</div>
 		</div>
@@ -35,19 +35,19 @@
 									<li class="nav-item">
 										<a href="#scan_nav_2" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
 											<i class="mdi mdi-face-profile mr-1"></i>
-											<span class="d-none d-sm-inline">WhiteList MAC</span>
+											<span class="d-none d-sm-inline"><?= $language::get('whitelist_mac') ?></span>
 										</a>
 									</li>
 									<li class="nav-item">
 										<a href="#scan_nav_3" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
 											<i class="mdi mdi-checkbox-marked-circle-outline mr-1"></i>
-											<span class="d-none d-sm-inline">BlackList MAC</span>
+											<span class="d-none d-sm-inline"><?= $language::get('blacklist_mac') ?></span>
 										</a>
 									</li>
 									<li class="nav-item">
 										<a href="#scan_nav_4" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
 											<i class="mdi mdi-checkbox-marked-circle-outline mr-1"></i>
-											<span class="d-none d-sm-inline">WhiteList IP</span>
+											<span class="d-none d-sm-inline"><?= $language::get('whitelist_ip') ?></span>
 										</a>
 									</li>
 								</ul>
@@ -59,7 +59,7 @@
 										<div class="row">
 											<div class="col-12">
 												<div class="form-group row mb-4">
-													<label class="col-4 col-form-label" for="whitelist_mac">MAC Address</label>
+													<label class="col-4 col-form-label" for="whitelist_mac"><?= $language::get('mac_address') ?></label>
 													<div class="col-8 input-group">
 														<input type="text" id="whitelist_mac" class="form-control" value="" maxlength="17">
 														<div class="input-group-append">
@@ -90,7 +90,7 @@
 										<div class="row">
 											<div class="col-12">
 												<div class="form-group row mb-4">
-													<label class="col-4 col-form-label" for="blacklist_mac">MAC Address</label>
+													<label class="col-4 col-form-label" for="blacklist_mac"><?= $language::get('mac_address') ?></label>
 													<div class="col-8 input-group">
 														<input type="text" id="blacklist_mac" class="form-control" value="" maxlength="17">
 														<div class="input-group-append">
@@ -121,7 +121,7 @@
 										<div class="row">
 											<div class="col-12">
 												<div class="form-group row mb-4">
-													<label class="col-4 col-form-label" for="whitelist_ip">IP Address</label>
+													<label class="col-4 col-form-label" for="whitelist_ip"><?= $language::get('ip_address') ?></label>
 													<div class="col-8 input-group">
 														<input type="text" id="whitelist_ip" class="form-control" value="">
 														<div class="input-group-append">

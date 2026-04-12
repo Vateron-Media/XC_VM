@@ -20,7 +20,7 @@
 		<div class="row">
 			<div class="col-12">
 				<div class="page-title-box">
-					<h4 class="page-title">Restream Detection Logs</h4>
+					<h4 class="page-title"><?= $language::get('restream_detection_logs') ?></h4>
 				</div>
 			</div>
 		</div>

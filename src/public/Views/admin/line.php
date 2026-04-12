@@ -58,7 +58,7 @@ endif;
                     <div class="page-title-right">
                         <?php include 'topbar.php'; ?>
                     </div>
-                    <h4 class="page-title"><?php echo isset($rLine) ? 'Edit' : 'Add'; ?> Line</h4>
+                    <h4 class="page-title"><?php echo isset($rLine) ? 'Edit' : 'Add'; ?> <?= $language::get('line') ?></h4>
                 </div>
             </div>
         </div>
@@ -76,25 +76,25 @@ endif;
                                     <li class="nav-item">
                                         <a href="#user-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-account-card-details-outline mr-1"></i>
-                                            <span class="d-none d-sm-inline">Details</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('details') ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
                                         <a href="#advanced-options" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-folder-alert-outline mr-1"></i>
-                                            <span class="d-none d-sm-inline">Advanced</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('advanced') ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
                                         <a href="#restrictions" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-hazard-lights mr-1"></i>
-                                            <span class="d-none d-sm-inline">Restrictions</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('restrictions') ?></span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
                                         <a href="#bouquets" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                             <i class="mdi mdi-flower-tulip mr-1"></i>
-                                            <span class="d-none d-sm-inline">Bouquets</span>
+                                            <span class="d-none d-sm-inline"><?= $language::get('bouquets') ?></span>
                                         </a>
                                     </li>
                                 </ul>
@@ -103,9 +103,9 @@ endif;
                                         <div class="row">
                                             <div class="col-12">
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="username">Username</label>
+                                                    <label class="col-md-4 col-form-label" for="username"><?= $language::get('username') ?></label>
                                                     <div class="col-md-8">
-                                                        <input type="text" class="form-control" id="username" name="username" placeholder="Auto-generate if blank" value="<?php echo isset($rLine) ? htmlspecialchars($rLine['username']) : ''; ?>" data-indicator="unindicator">
+                                                        <input type="text" class="form-control" id="username" name="username" placeholder="<?= $language::get('auto_generate_if_blank') ?>" value="<?php echo isset($rLine) ? htmlspecialchars($rLine['username']) : ''; ?>" data-indicator="unindicator">
                                                         <div id="unindicator">
                                                             <div class="bar"></div>
                                                             <div class="label"></div>
@@ -113,9 +113,9 @@ endif;
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="password">Password</label>
+                                                    <label class="col-md-4 col-form-label" for="password"><?= $language::get('password') ?></label>
                                                     <div class="col-md-8">
-                                                        <input type="text" class="form-control" id="password" name="password" placeholder="Auto-generate if blank" value="<?php echo isset($rLine) ? htmlspecialchars($rLine['password']) : ''; ?>" data-indicator="pwindicator">
+                                                        <input type="text" class="form-control" id="password" name="password" placeholder="<?= $language::get('auto_generate_if_blank') ?>" value="<?php echo isset($rLine) ? htmlspecialchars($rLine['password']) : ''; ?>" data-indicator="pwindicator">
                                                         <div id="pwindicator">
                                                             <div class="bar"></div>
                                                             <div class="label"></div>
@@ -123,7 +123,7 @@ endif;
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="member_id">Owner</label>
+                                                    <label class="col-md-4 col-form-label" for="member_id"><?= $language::get('owner') ?></label>
                                                     <div class="col-md-6">
                                                         <select name="member_id" id="member_id" class="form-control select2" data-toggle="select2">
                                                             <?php
@@ -136,46 +136,46 @@ endif;
                                                         </select>
                                                     </div>
                                                     <div class="col-md-2">
-                                                        <a href="javascript: void(0);" onClick="clearOwner();" class="btn btn-warning" style="width: 100%">Clear</a>
+                                                        <a href="javascript: void(0);" onClick="clearOwner();" class="btn btn-warning" style="width: 100%"><?= $language::get('clear') ?></a>
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="exp_date">Expiry</label>
+                                                    <label class="col-md-4 col-form-label" for="exp_date"><?= $language::get('expiry') ?></label>
                                                     <div class="col-md-3">
                                                         <input type="text" class="form-control text-center date" id="exp_date" name="exp_date" value="<?php echo isset($rLine) ? (is_null($rLine['exp_date']) ? '' : date('Y-m-d H:i:s', $rLine['exp_date'])) : date('Y-m-d H:i:s', time() + 2592000); ?>" data-toggle="date-picker" data-single-date-picker="true">
                                                     </div>
-                                                    <label class="col-md-3 col-form-label" for="exp_date">Never Expire</label>
+                                                    <label class="col-md-3 col-form-label" for="exp_date"><?= $language::get('never_expire') ?></label>
                                                     <div class="col-md-2">
                                                         <input name="no_expire" id="no_expire" type="checkbox" <?php echo isset($rLine) && is_null($rLine['exp_date']) ? 'checked' : ''; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="max_connections">Max Connections</label>
+                                                    <label class="col-md-4 col-form-label" for="max_connections"><?= $language::get('max_connections') ?></label>
                                                     <div class="col-md-3">
                                                         <input type="text" class="form-control text-center" id="max_connections" name="max_connections" value="<?php echo isset($rLine) ? htmlspecialchars($rLine['max_connections']) : '1'; ?>" required data-parsley-trigger="change">
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="contact">WhatsApp <i title="Enter WhatsApp number with country code (e.g. +491234567890)" class="tooltip text-secondary far fa-circle"></i></label>
+                                                    <label class="col-md-4 col-form-label" for="contact">WhatsApp <i title="<?= $language::get('enter_whatsapp_number_with_country_code_eg_491234567890') ?>" class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-8">
                                                         <input type="text" class="form-control" id="contact" name="contact" placeholder="+491234567890" value="<?php echo isset($rLine) ? htmlspecialchars($rLine['contact']) : ''; ?>">
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="admin_notes">Admin Notes</label>
+                                                    <label class="col-md-4 col-form-label" for="admin_notes"><?= $language::get('admin_notes') ?></label>
                                                     <div class="col-md-8">
                                                         <textarea id="admin_notes" name="admin_notes" class="form-control" rows="3"><?php echo isset($rLine) ? htmlspecialchars($rLine['admin_notes']) : ''; ?></textarea>
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="reseller_notes">Reseller Notes</label>
+                                                    <label class="col-md-4 col-form-label" for="reseller_notes"><?= $language::get('reseller_notes') ?></label>
                                                     <div class="col-md-8">
                                                         <textarea id="reseller_notes" name="reseller_notes" class="form-control" rows="3"><?php echo isset($rLine) ? htmlspecialchars($rLine['reseller_notes']) : ''; ?></textarea>
                                                     </div>
                                                 </div>
                                                 <ul class="list-inline wizard mb-0">
                                                     <li class="nextb list-inline-item float-right">
-                                                        <a href="javascript: void(0);" class="btn btn-secondary">Next</a>
+                                                        <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('next') ?></a>
                                                     </li>
                                                 </ul>
                                             </div>
@@ -185,10 +185,10 @@ endif;
                                         <div class="row">
                                             <div class="col-12">
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="force_server_id">Forced Connection <i title="Force this user to connect to a specific server. Otherwise, the server with the lowest load will be selected." class="tooltip text-secondary far fa-circle"></i></label>
+                                                    <label class="col-md-4 col-form-label" for="force_server_id">Forced Connection <i title="<?= $language::get('force_this_user_to_connect_tooltip') ?>" class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-8">
                                                         <select name="force_server_id" id="force_server_id" class="form-control select2" data-toggle="select2">
-                                                            <option <?php echo !isset($rLine) || intval($rLine['force_server_id']) == 0 ? 'selected' : ''; ?> value="0">Disabled</option>
+                                                            <option <?php echo !isset($rLine) || intval($rLine['force_server_id']) == 0 ? 'selected' : ''; ?><?= $language::get('value0disabled') ?></option>
                                                             <?php
                                                             foreach ($rServers as $rServer) {
                                                                 echo '<option ' . (isset($rLine) && intval($rLine['force_server_id']) == intval($rServer['id']) ? 'selected' : '') . ' value="' . $rServer['id'] . '">' . htmlspecialchars($rServer['server_name']) . '</option>';
@@ -198,27 +198,27 @@ endif;
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="is_stalker">Ministra Portal <i title="Select this option if you intend to use this account with your Ministra portal. Output formats, expiration and connections below will be ignored. Only MPEG-TS output is allowed." class="tooltip text-secondary far fa-circle"></i></label>
+                                                    <label class="col-md-4 col-form-label" for="is_stalker">Ministra Portal <i title="<?= $language::get('select_this_option_if_you_tooltip') ?>" class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-2">
                                                         <input name="is_stalker" id="is_stalker" type="checkbox" <?php echo isset($rLine) && $rLine['is_stalker'] == 1 ? 'checked' : ''; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                     </div>
-                                                    <label class="col-md-4 col-form-label" for="is_restreamer">Restreamer <i title="If selected, this user will not be blocked for restreaming channels." class="tooltip text-secondary far fa-circle"></i></label>
+                                                    <label class="col-md-4 col-form-label" for="is_restreamer">Restreamer <i title="<?= $language::get('if_selected_this_user_will_tooltip') ?>" class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-2">
                                                         <input name="is_restreamer" id="is_restreamer" type="checkbox" <?php echo isset($rLine) && $rLine['is_restreamer'] == 1 ? 'checked' : ''; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="is_trial">Trial Account</label>
+                                                    <label class="col-md-4 col-form-label" for="is_trial"><?= $language::get('trial_account') ?></label>
                                                     <div class="col-md-2">
                                                         <input name="is_trial" id="is_trial" type="checkbox" <?php echo isset($rLine) && $rLine['is_trial'] == 1 ? 'checked' : ''; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                     </div>
-                                                    <label class="col-md-4 col-form-label" for="is_isplock">Lock to ISP</label>
+                                                    <label class="col-md-4 col-form-label" for="is_isplock"><?= $language::get('lock_to_isp') ?></label>
                                                     <div class="col-md-2">
                                                         <input name="is_isplock" id="is_isplock" type="checkbox" <?php echo isset($rLine) && $rLine['is_isplock'] == 1 ? 'checked' : ''; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="isp_clear">Current ISP</label>
+                                                    <label class="col-md-4 col-form-label" for="isp_clear"><?= $language::get('current_isp') ?></label>
                                                     <div class="col-md-8 input-group">
                                                         <input type="text" class="form-control" readonly id="isp_clear" name="isp_clear" value="<?php echo isset($rLine) ? htmlspecialchars($rLine['isp_desc']) : ''; ?>">
                                                         <div class="input-group-append">
@@ -227,7 +227,7 @@ endif;
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="access_token">Access Token <i title="Generate an access token that can be used in place of username and password. If you use this option, playlists generated will contain the access token as auth." class="tooltip text-secondary far fa-circle"></i></label>
+                                                    <label class="col-md-4 col-form-label" for="access_token">Access Token <i title="<?= $language::get('generate_an_access_token_that_tooltip') ?>" class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-8 input-group">
                                                         <input type="text" readonly class="form-control" id="access_token" name="access_token" value="<?php echo isset($rLine) ? htmlspecialchars($rLine['access_token']) : ''; ?>">
                                                         <div class="input-group-append">
@@ -237,7 +237,7 @@ endif;
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="forced_country">Forced Country <i title="Force user to connect to loadbalancer associated with the selected country." class="tooltip text-secondary far fa-circle"></i></label>
+                                                    <label class="col-md-4 col-form-label" for="forced_country">Forced Country <i title="<?= $language::get('force_user_to_connect_to_tooltip') ?>" class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-8">
                                                         <select name="forced_country" id="forced_country" class="form-control select2" data-toggle="select2">
                                                             <?php
@@ -249,7 +249,7 @@ endif;
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="access_output">Access Output</label>
+                                                    <label class="col-md-4 col-form-label" for="access_output"><?= $language::get('access_output') ?></label>
                                                     <div class="col-md-8">
                                                         <?php
                                                         foreach (LineRepository::getOutputFormats() as $rOutput) {
@@ -261,10 +261,10 @@ endif;
                                                 </div>
                                                 <ul class="list-inline wizard mb-0">
                                                     <li class="prevb list-inline-item">
-                                                        <a href="javascript: void(0);" class="btn btn-secondary">Previous</a>
+                                                        <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('prev') ?></a>
                                                     </li>
                                                     <li class="nextb list-inline-item float-right">
-                                                        <a href="javascript: void(0);" class="btn btn-secondary">Next</a>
+                                                        <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('next') ?></a>
                                                     </li>
                                                 </ul>
                                             </div>
@@ -274,7 +274,7 @@ endif;
                                         <div class="row">
                                             <div class="col-12">
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="ip_field">Allowed IP Addresses</label>
+                                                    <label class="col-md-4 col-form-label" for="ip_field"><?= $language::get('allowed_ip_addresses') ?></label>
                                                     <div class="col-md-8 input-group">
                                                         <input type="text" id="ip_field" class="form-control" value="">
                                                         <div class="input-group-append">
@@ -298,7 +298,7 @@ endif;
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="ua_field">Allowed User-Agents</label>
+                                                    <label class="col-md-4 col-form-label" for="ua_field"><?= $language::get('allowed_user_agents') ?></label>
                                                     <div class="col-md-8 input-group">
                                                         <input type="text" id="ua_field" class="form-control" value="">
                                                         <div class="input-group-append">
@@ -322,17 +322,17 @@ endif;
                                                     </div>
                                                 </div>
                                                 <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="bypass_ua">Bypass UA Restrictions</label>
+                                                    <label class="col-md-4 col-form-label" for="bypass_ua"><?= $language::get('bypass_ua_restrictions') ?></label>
                                                     <div class="col-md-2">
                                                         <input name="bypass_ua" id="bypass_ua" type="checkbox" <?php echo isset($rLine) && $rLine['bypass_ua'] == 1 ? 'checked' : ''; ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
                                                     </div>
                                                 </div>
                                                 <ul class="list-inline wizard mb-0">
                                                     <li class="prevb list-inline-item">
-                                                        <a href="javascript: void(0);" class="btn btn-secondary">Previous</a>
+                                                        <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('prev') ?></a>
                                                     </li>
                                                     <li class="nextb list-inline-item float-right">
-                                                        <a href="javascript: void(0);" class="btn btn-secondary">Next</a>
+                                                        <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('next') ?></a>
                                                     </li>
                                                 </ul>
                                             </div>
@@ -345,12 +345,12 @@ endif;
                                                     <table id="datatable-bouquets" class="table table-borderless mb-0">
                                                         <thead class="bg-light">
                                                             <tr>
-                                                                <th class="text-center">ID</th>
-                                                                <th>Bouquet Name</th>
-                                                                <th class="text-center">Streams</th>
-                                                                <th class="text-center">Movies</th>
-                                                                <th class="text-center">Series</th>
-                                                                <th class="text-center">Stations</th>
+                                                                <th class="text-center"><?= $language::get('id') ?></th>
+                                                                <th><?= $language::get('bouquet_name') ?></th>
+                                                                <th class="text-center"><?= $language::get('streams') ?></th>
+                                                                <th class="text-center"><?= $language::get('movies') ?></th>
+                                                                <th class="text-center"><?= $language::get('series') ?></th>
+                                                                <th class="text-center"><?= $language::get('stations') ?></th>
                                                             </tr>
                                                         </thead>
                                                         <tbody>
@@ -367,10 +367,10 @@ endif;
                                         </div>
                                         <ul class="list-inline wizard mb-0">
                                             <li class="prevb list-inline-item">
-                                                <a href="javascript: void(0);" class="btn btn-secondary">Previous</a>
+                                                <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('prev') ?></a>
                                             </li>
                                             <li class="list-inline-item float-right">
-                                                <a href="javascript: void(0);" onClick="toggleBouquets()" class="btn btn-info">Toggle All</a>
+                                                <a href="javascript: void(0);" onClick="toggleBouquets()" class="btn btn-info"><?= $language::get('toggle_all') ?></a>
                                                 <input name="submit_line" type="submit" class="btn btn-primary" value="<?php echo isset($rLine) ? 'Edit' : 'Add'; ?>" />
                                             </li>
                                         </ul>
