@@ -15,11 +15,11 @@
 
 // ── Development & Experimental Flags ───────────────────────────
 
-define('DEVELOPMENT', true);          // Development mode (planned for removal)
+define('DEVELOPMENT', false);          // Development mode (planned for removal)
 
 // ── Version & Git Configuration ────────────────────────────────
 
-define('XC_VM_VERSION', '2.1.0');
+define('XC_VM_VERSION', '2.1.1');
 
 define('GIT_OWNER',       'Vateron-Media');
 define('GIT_REPO_MAIN',   'XC_VM');
