@@ -381,6 +381,34 @@ class BalancerCommand implements CommandInterface {
 			return false;
 		}
 
+		// MD5 verification from hashes.md5
+		$rHashURL = 'https://github.com/' . GIT_OWNER . '/' . GIT_REPO_BIN . '/releases/download/' . $rTag . '/hashes.md5';
+		$rHashContent = trim($this->runSSH($rConn, 'curl -sL --timeout=15 "' . $rHashURL . '"')['output']);
+		$rExpectedHash = null;
+		if (!empty($rHashContent)) {
+			foreach (explode("\n", $rHashContent) as $rLine) {
+				$rLine = trim($rLine);
+				if (empty($rLine)) continue;
+				$rParts = preg_split('/\s+/', $rLine, 2);
+				if (count($rParts) === 2 && $rParts[1] === $rBinaryName) {
+					$rExpectedHash = $rParts[0];
+					break;
+				}
+			}
+		}
+
+		if ($rExpectedHash !== null) {
+			$rActualHash = trim(explode(' ', $this->runSSH($rConn, 'md5sum /tmp/xc_vm_bin.tar.gz')['output'])[0]);
+			if ($rActualHash !== $rExpectedHash) {
+				echo "MD5 verification failed for {$rBinaryName}: expected {$rExpectedHash}, got {$rActualHash}\n";
+				$this->runSSH($rConn, 'rm -f /tmp/xc_vm_bin.tar.gz');
+				return false;
+			}
+			echo "MD5 verification passed for {$rBinaryName}\n";
+		} else {
+			echo "Warning: Could not retrieve MD5 hash for {$rBinaryName}, skipping verification\n";
+		}
+
 		echo "Extracting distribution binaries\n";
 		$this->runSSH($rConn, 'sudo rm -rf /tmp/xc_vm_bin && mkdir -p /tmp/xc_vm_bin');
 		$this->runSSH($rConn, 'sudo tar -xzf /tmp/xc_vm_bin.tar.gz -C /tmp/xc_vm_bin');
