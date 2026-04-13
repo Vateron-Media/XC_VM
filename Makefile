@@ -19,7 +19,7 @@ EXCLUDES := \
 # NOTE: modules/ is intentionally excluded — all modules are MAIN-only.
 # Modules: tmdb, plex, watch, ministra, fingerprint, theft-detection, magscan
 LB_DIRS := bin cli config content core domain includes \
-	infrastructure resources signals streaming tmp www
+	infrastructure public resources signals streaming tmp www
 
 # Root-level files to copy from MAIN to LB (not inside directories)
 LB_ROOT_FILES := autoload.php bootstrap.php console.php service update
@@ -34,6 +34,12 @@ LB_DIRS_TO_REMOVE := \
 	domain/User \
 	domain/Device \
 	domain/Auth \
+	public/Controllers/Admin \
+	public/Controllers/Player \
+	public/Controllers/Reseller \
+	public/Views \
+	public/assets \
+	public/routes \
 	resources/langs \
 	resources/libs
 
@@ -41,6 +47,8 @@ LB_DIRS_TO_REMOVE := \
 LB_FILES_TO_REMOVE := \
 	bin/maxmind/GeoLite2-City.mmdb \
 	infrastructure/legacy/reseller_api.php \
+	public/Controllers/Api/AdminApiController.php \
+	public/Controllers/Api/ResellerRestApiController.php \
 	www/xplugin.php \
 	www/probe.php \
 	www/playlist.php \
