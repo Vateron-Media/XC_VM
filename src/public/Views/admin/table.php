@@ -1262,7 +1262,7 @@ if ($rType == "lines") {
                             if ($rSettings["streams_grouped"] == 1) {
                                 $rFailRow = $rFails[$rRow['id']] ?? [];
                             } else {
-                                $rFailRow = $rFailsPS[$rRow["id"]][$rRow["server_id"]];
+                                $rFailRow = $rFailsPS[$rRow["id"]][$rRow["server_id"]] ?? [];
                             }
                             if (!$rFailRow) {
                                 $rFailRow = [0, 0];
@@ -2455,6 +2455,10 @@ if ($rType == "lines") {
     $rRows = [];
     if (SettingsManager::getAll()["redis_handler"]) {
         $rRedis = RedisManager::instance();
+        if (!$rRedis) {
+            echo json_encode(["draw" => intval(RequestManager::getAll()["draw"] ?? 0), "recordsTotal" => 0, "recordsFiltered" => 0, "data" => []]);
+            exit;
+        }
         $rOrderDirection = strtolower(RequestManager::getAll()["order"][0]["dir"]) === "desc" ? false : true;
         $rFilterBefore = true;
         if (isset(RequestManager::getAll()["refresh"])) {

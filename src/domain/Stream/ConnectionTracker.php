@@ -34,7 +34,7 @@ class ConnectionTracker {
 			$rSettings['split_by'] == 'guar_band';
 		}
 
-		if ($rSettings['redis_handler']) {
+		if ($rSettings['redis_handler'] && $rRedis) {
 			$rRows = array();
 			$rMulti = $rRedis->multi();
 			foreach (array_keys($rServers) as $rServerID) {
@@ -120,7 +120,7 @@ class ConnectionTracker {
 	public static function getConnections(?int $rServerID = null, ?int $rUserID = null, ?int $rStreamID = null): array {
 		global $rSettings, $db;
 		$rRedis = RedisManager::instance();
-		if ($rSettings['redis_handler']) {
+		if ($rSettings['redis_handler'] && $rRedis) {
 			if ($rServerID) {
 				$rKeys = $rRedis->zRangeByScore('SERVER#' . $rServerID, '-inf', '+inf');
 			} elseif ($rUserID) {
@@ -234,6 +234,9 @@ class ConnectionTracker {
 	 */
 	public static function updateConnection(array $rData, array $rChanges = [], ?string $rOption = null): ?array {
 		$rRedis = RedisManager::instance();
+		if (!$rRedis) {
+			return null;
+		}
 		$rOrigData = $rData;
 		foreach ($rChanges as $rKey => $rValue) {
 			$rData[$rKey] = $rValue;
@@ -293,6 +296,9 @@ class ConnectionTracker {
 	 */
 	public static function redisSignal(int $rPID, int $rServerID, int $rRTMP, $rCustomData = null) {
 		$rRedis = RedisManager::instance();
+		if (!$rRedis) {
+			return false;
+		}
 		$rKey = 'SIGNAL#' . md5($rServerID . '#' . $rPID . '#' . $rRTMP);
 		$rData = array('pid' => $rPID, 'server_id' => $rServerID, 'rtmp' => $rRTMP, 'time' => time(), 'custom_data' => $rCustomData, 'key' => $rKey);
 		return $rRedis->multi()->sAdd('SIGNALS#' . $rServerID, $rKey)->set($rKey, igbinary_serialize($rData))->exec();
@@ -310,6 +316,9 @@ class ConnectionTracker {
 	 */
 	public static function getUserConnections(array $rUserIDs, bool $rCount = false, bool $rKeysOnly = false): array {
 		$rRedis = RedisManager::instance();
+		if (!$rRedis) {
+			return [];
+		}
 		$rMulti = $rRedis->multi();
 		foreach ($rUserIDs as $rUserID) {
 			$rMulti->zRevRangeByScore('LINE#' . $rUserID, '+inf', '-inf');
@@ -354,6 +363,9 @@ class ConnectionTracker {
 	 */
 	public static function getServerConnections(array $rServerIDs, bool $rProxy = false, bool $rCount = false, bool $rKeysOnly = false): array {
 		$rRedis = RedisManager::instance();
+		if (!$rRedis) {
+			return [];
+		}
 		$rMulti = $rRedis->multi();
 		foreach ($rServerIDs as $rServerID) {
 			$rMulti->zRevRangeByScore(($rProxy ? 'PROXY#' . $rServerID : 'SERVER#' . $rServerID), '+inf', '-inf');
@@ -395,6 +407,9 @@ class ConnectionTracker {
 	 */
 	public static function getFirstConnection(array $rUserIDs): array {
 		$rRedis = RedisManager::instance();
+		if (!$rRedis) {
+			return [];
+		}
 		$rMulti = $rRedis->multi();
 		foreach ($rUserIDs as $rUserID) {
 			$rMulti->zRevRangeByScore('LINE#' . $rUserID, '+inf', '-inf', array('limit' => array(0, 1)));
@@ -431,6 +446,9 @@ class ConnectionTracker {
 	 */
 	public static function getStreamConnections(array $rStreamIDs, bool $rGroup = true, bool $rCount = false): array {
 		$rRedis = RedisManager::instance();
+		if (!$rRedis) {
+			return [];
+		}
 		$rMulti = $rRedis->multi();
 		foreach ($rStreamIDs as $rStreamID) {
 			$rMulti->zRevRangeByScore('STREAM#' . $rStreamID, '+inf', '-inf');
@@ -479,6 +497,9 @@ class ConnectionTracker {
 	 */
 	public static function getRedisConnections(?int $rUserID = null, ?int $rServerID = null, ?int $rStreamID = null, bool $rOpenOnly = false, bool $rCountOnly = false, bool $rGroup = true, bool $rHLSOnly = false): array {
 		$rRedis = RedisManager::instance();
+		if (!$rRedis) {
+			return ($rCountOnly ? array(0, 0) : array());
+		}
 		$rReturn = ($rCountOnly ? array(0, 0) : array());
 		$rUniqueUsers = array();
 		$rUserID = (0 < intval($rUserID) ? intval($rUserID) : null);
@@ -554,6 +575,9 @@ class ConnectionTracker {
 	 */
 	public static function createConnection(array $rData) {
 		$rRedis = RedisManager::instance();
+		if (!$rRedis) {
+			return false;
+		}
 		$rMulti = $rRedis->multi();
 		$rMulti->zAdd('LINE#' . $rData['identity'], $rData['date_start'], $rData['uuid']);
 		$rMulti->zAdd('LINE_ALL#' . $rData['identity'], $rData['date_start'], $rData['uuid']);
@@ -581,6 +605,9 @@ class ConnectionTracker {
 	 */
 	public static function getLineConnections(int $rUserID, bool $rActive = false, bool $rKeys = false): array {
 		$rRedis = RedisManager::instance();
+		if (!$rRedis) {
+			return [];
+		}
 		$rKeys = $rRedis->zRangeByScore((($rActive ? 'LINE#' : 'LINE_ALL#')) . $rUserID, '-inf', '+inf');
 		if ($rKeys) {
 			return $rKeys;
@@ -600,6 +627,9 @@ class ConnectionTracker {
 	 */
 	public static function getEnded(): array {
 		$rRedis = RedisManager::instance();
+		if (!$rRedis) {
+			return [];
+		}
 		$rKeys = $rRedis->sMembers('ENDED');
 		if (0 >= count($rKeys)) {
 			return array();
@@ -645,6 +675,9 @@ class ConnectionTracker {
 				RedisManager::ensureConnected();
 			}
 			$rRedisObj = RedisManager::instance();
+			if (!$rRedisObj && $rSettings['redis_handler']) {
+				return false;
+			}
 			if (is_array($rActivityInfo)) {
 			} else {
 				if (!$rSettings['redis_handler']) {

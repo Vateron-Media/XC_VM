@@ -218,7 +218,9 @@ class UsersCronJob implements CommandInterface {
             if (SettingsManager::getAll()['redis_handler']) {
                 $rRedisDelete = array('line' => array(), 'server' => array(), 'server_lines' => array(), 'proxy' => array(), 'stream' => array(), 'uuid' => array(), 'count' => 0);
                 $rUsers = array();
-                list($rKeys, $rConnections) = ConnectionTracker::getConnections();
+                $rResult = ConnectionTracker::getConnections();
+                $rKeys = $rResult[0] ?? [];
+                $rConnections = $rResult[1] ?? [];
                 $i = 0;
 
                 for ($rSize = count($rConnections); $i < $rSize; $i++) {
