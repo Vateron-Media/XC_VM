@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import hashlib
 import io
 import json
 import os
@@ -566,6 +567,35 @@ def install_prerequisites(dist_info):
             printc("Prerequisites are already installed.", col.OKGREEN)
 
 
+def compute_md5(file_path):
+    """Compute MD5 hash of a file"""
+    md5 = hashlib.md5()
+    with open(file_path, "rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
+            md5.update(chunk)
+    return md5.hexdigest()
+
+
+def download_release_hash(repo, release_tag, file_name):
+    """Download hashes.md5 from a GitHub release and return the hash for file_name"""
+    hash_url = f"https://github.com/Vateron-Media/{repo}/releases/download/{release_tag}/hashes.md5"
+    try:
+        req = urllib.request.Request(hash_url)
+        req.add_header("User-Agent", "XC_VM-Installer/1.0")
+        with urllib.request.urlopen(req, timeout=15) as response:
+            content = response.read().decode().strip()
+            for line in content.split("\n"):
+                line = line.strip()
+                if not line:
+                    continue
+                parts = line.split(None, 1)
+                if len(parts) == 2 and parts[1] == file_name:
+                    return parts[0]
+    except Exception as e:
+        printc(f"Warning: Could not download hash file: {e}", col.WARNING)
+    return None
+
+
 def get_latest_binaries_tag():
     """Get the latest release tag from XC_VM_Binaries GitHub repo"""
     api_url = (
@@ -643,6 +673,18 @@ def install_distribution_binaries(dist_id, version):
         if not (os.path.exists(temp_tar_file) and os.path.getsize(temp_tar_file) > 0):
             printc(f"Failed to download {display_name} binaries", col.FAIL)
             return False
+
+        # MD5 verification
+        expected_hash = download_release_hash("XC_VM_Binaries", release_tag, patch_name)
+        if expected_hash:
+            actual_hash = compute_md5(temp_tar_file)
+            if actual_hash != expected_hash:
+                printc(f"MD5 verification failed for {patch_name}: expected {expected_hash}, got {actual_hash}", col.FAIL)
+                os.remove(temp_tar_file)
+                return False
+            printc(f"MD5 verification passed for {patch_name}", col.OKGREEN)
+        else:
+            printc(f"Warning: Could not retrieve MD5 hash for {patch_name}, skipping verification", col.WARNING)
 
         file_size_mb = os.path.getsize(temp_tar_file) / (1024 * 1024)
         printc(
@@ -976,6 +1018,18 @@ def download_xc_vm():
         if os.path.exists("XC_VM.zip") and os.path.getsize("XC_VM.zip") > 0:
             file_size = os.path.getsize("XC_VM.zip")
             printc(f"Download successful: XC_VM.zip ({file_size} bytes)", col.OKGREEN)
+
+            # MD5 verification
+            expected_hash = download_release_hash("XC_VM", latest_version, "XC_VM.zip")
+            if expected_hash:
+                actual_hash = compute_md5("XC_VM.zip")
+                if actual_hash != expected_hash:
+                    printc(f"MD5 verification failed for XC_VM.zip: expected {expected_hash}, got {actual_hash}", col.FAIL)
+                    os.remove("XC_VM.zip")
+                    return False
+                printc("MD5 verification passed for XC_VM.zip", col.OKGREEN)
+            else:
+                printc("Warning: Could not retrieve MD5 hash for XC_VM.zip, skipping verification", col.WARNING)
 
             # Validate ZIP file
             if is_valid_zip("XC_VM.zip"):
