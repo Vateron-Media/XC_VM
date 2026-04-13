@@ -76,7 +76,11 @@ EXCLUDE_ARGS := $(addprefix --exclude=,$(EXCLUDES))
 
 .PHONY: new lb main lb_copy_files main_copy_files set_permissions create_archive \
 	lb_archive_move main_archive_move main_install_archive clean \
-	delete_files_list lb_delete_files_list generate_deleted_files
+	delete_files_list lb_delete_files_list generate_deleted_files syntax_check
+
+# ─── Syntax check ───────────────────────────────────────────────
+syntax_check:
+	@bash ./tools/php_syntax_check.sh
 
 # ─── Generate deleted_files.txt from git diff ───────────────────
 # Usage: make generate_deleted_files [LAST_TAG=v1.2.3]
