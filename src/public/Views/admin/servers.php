@@ -54,11 +54,14 @@
                                         <?php
                                         $rWatchDog = json_decode($rServer['watchdog_data'], true);
                                         if (!is_array($rWatchDog)) {
-                                            $rWatchDog = array('total_mem_used_percent' => '0', 'cpu' => '0');
+                                            $rWatchDog = array();
                                         }
+                                        $rWatchDog += array('total_mem_used_percent' => 0, 'cpu' => 0, 'bytes_sent' => 0, 'bytes_received' => 0);
                                         if (!$rServers[$rServer['id']]['server_online']) {
                                             $rWatchDog['cpu'] = 0;
                                             $rWatchDog['total_mem_used_percent'] = 0;
+                                            $rWatchDog['bytes_sent'] = 0;
+                                            $rWatchDog['bytes_received'] = 0;
                                         }
                                         ?>
                                         <tr id="server-<?= $rServer['id'] ?>">

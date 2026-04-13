@@ -14,15 +14,12 @@
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-class ServerListController extends BaseAdminController
-{
-    public function index(): void
-    {
+class ServerListController extends BaseAdminController {
+    public function index(): void {
         $this->requirePermission();
         $this->setTitle('Servers');
 
-        \ServerRepository::getAll(true);
-
-        $this->render('servers');
+        $rServers = ServerRepository::getAll(true);
+        $this->render('servers', compact('rServers'));
     }
 }

@@ -116,7 +116,7 @@ class BaseAdminController
         }
         unset($_g);
 
-        extract($data);
+        extract($data, EXTR_SKIP);
 
         $__viewsDir = MAIN_HOME . 'public/Views/' . $this->scope . '/';
 
