@@ -292,6 +292,24 @@ class ProcessManager {
         if (!is_dir($lockDir)) {
             @mkdir($lockDir, 0775, true);
         }
+
+        // When running as root, chown created dirs to xc_vm so other
+        // crons (cache, streams, etc.) can write into tmp/ subtree.
+        if (posix_geteuid() === 0 && function_exists('posix_getpwnam') && defined('MAIN_HOME')) {
+            $rUser = posix_getpwnam('xc_vm');
+            if ($rUser) {
+                $rMainHome = rtrim(MAIN_HOME, '/');
+                $rDir = $lockDir;
+                while ($rDir && $rDir !== $rMainHome && strlen($rDir) > strlen($rMainHome)) {
+                    if (is_dir($rDir) && fileowner($rDir) === 0) {
+                        @chown($rDir, $rUser['uid']);
+                        @chgrp($rDir, $rUser['gid']);
+                    }
+                    $rDir = dirname($rDir);
+                }
+            }
+        }
+
         file_put_contents($lockFile, getmypid());
 
         return true;

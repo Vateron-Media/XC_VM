@@ -100,21 +100,27 @@ class CacheCronJob implements CommandInterface {
         foreach ($db->get_rows() as $rRow) {
             $rOutputFormats[] = $rRow;
         }
-        file_put_contents(CACHE_TMP_PATH . 'output_formats', igbinary_serialize($rOutputFormats));
+        if (is_dir(CACHE_TMP_PATH) && is_writable(CACHE_TMP_PATH)) {
+            file_put_contents(CACHE_TMP_PATH . 'output_formats', igbinary_serialize($rOutputFormats), LOCK_EX);
+        }
 
         $rHMACKeys = array();
         $db->query('SELECT `id`, `key` FROM `hmac_keys` WHERE `enabled` = 1;');
         foreach ($db->get_rows() as $rRow) {
             $rHMACKeys[] = $rRow;
         }
-        file_put_contents(CACHE_TMP_PATH . 'hmac_keys', igbinary_serialize($rHMACKeys));
+        if (is_dir(CACHE_TMP_PATH) && is_writable(CACHE_TMP_PATH)) {
+            file_put_contents(CACHE_TMP_PATH . 'hmac_keys', igbinary_serialize($rHMACKeys), LOCK_EX);
+        }
 
         $rRTMPIPs = array();
         $db->query('SELECT `ip`, `password`, `push`, `pull` FROM `rtmp_ips`');
         foreach ($db->get_rows() as $rRow) {
             $rRTMPIPs[gethostbyname($rRow['ip'])] = array('password' => $rRow['password'], 'push' => boolval($rRow['push']), 'pull' => boolval($rRow['pull']));
         }
-        file_put_contents(CACHE_TMP_PATH . 'rtmp_ips', igbinary_serialize($rRTMPIPs));
+        if (is_dir(CACHE_TMP_PATH) && is_writable(CACHE_TMP_PATH)) {
+            file_put_contents(CACHE_TMP_PATH . 'rtmp_ips', igbinary_serialize($rRTMPIPs), LOCK_EX);
+        }
 
         if (file_exists(BIN_PATH . 'maxmind/cidr.db')) {
             exec('ls ' . CIDR_TMP_PATH . ' | wc -l', $rOutput);
