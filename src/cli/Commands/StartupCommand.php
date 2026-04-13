@@ -61,6 +61,12 @@ class StartupCommand implements CommandInterface {
 			file_put_contents(MAIN_HOME . 'bin/nginx/conf/balance.conf', $rNewBalance);
 		}
 
+		// ── Права на console.php (могут сброситься после обновления) ──
+		$rConsolePath = MAIN_HOME . 'console.php';
+		if (file_exists($rConsolePath) && !is_executable($rConsolePath)) {
+			@chmod($rConsolePath, 0755);
+		}
+
 		// ── Установка crontab и запуск кэша ──────────────────
 		if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 			$this->installRootCrontab();
