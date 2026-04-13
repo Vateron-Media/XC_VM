@@ -243,6 +243,30 @@ class XC_Autoloader {
                 igbinary_serialize(self::$resolved),
                 LOCK_EX
             );
+
+            // When running as root, chown cache dir + file to xc_vm
+            // so that non-root processes can write to tmp/cache/.
+            if (function_exists('posix_geteuid') && posix_geteuid() === 0 && function_exists('posix_getpwnam')) {
+                $rUser = posix_getpwnam('xc_vm');
+                if ($rUser) {
+                    // Walk up from cache dir, chown any root-owned dirs up to MAIN_HOME
+                    $rStop = defined('MAIN_HOME') ? rtrim(MAIN_HOME, '/') : null;
+                    $rWalk = $dir;
+                    while ($rWalk && $rStop && $rWalk !== $rStop && strlen($rWalk) > strlen($rStop)) {
+                        if (is_dir($rWalk) && fileowner($rWalk) === 0) {
+                            @chown($rWalk, $rUser['uid']);
+                            @chgrp($rWalk, $rUser['gid']);
+                        }
+                        $rWalk = dirname($rWalk);
+                    }
+                    // Chown the cache file itself
+                    if (file_exists(self::$cacheFile) && fileowner(self::$cacheFile) === 0) {
+                        @chown(self::$cacheFile, $rUser['uid']);
+                        @chgrp(self::$cacheFile, $rUser['gid']);
+                    }
+                }
+            }
+
             self::$cacheDirty = false;
         }
     }
