@@ -1,6 +1,6 @@
 # Test Install Container
 
-Тестовый Docker-контейнер Ubuntu 22.04 для проверки установки XC_VM из `dist/XC_VM.zip`.
+Тестовый Docker-контейнер Ubuntu 24.04 для проверки установки XC_VM из `dist/XC_VM.zip`.
 
 ## Требования
 
