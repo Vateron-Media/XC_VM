@@ -62,6 +62,7 @@ PACKAGES = {
         "zip",
         "unzip",
         "libssh2-1",
+        "libsodium23",
         "cpufrequtils",
         "mcrypt",
         "cron",
@@ -113,6 +114,7 @@ PACKAGES = {
         "libfribidi-dev",
         "libgeoip1",
         "geoip-bin",
+        "libsodium23",
         "cpufrequtils",
         "mcrypt",
         "libnuma1",
@@ -153,6 +155,7 @@ PACKAGES = {
         "mariadb-server",
         "mariadb-client",
         "mariadb-common",
+        "libsodium23",
         "cpufrequtils",
         "mcrypt",
         "libnuma1",
@@ -199,6 +202,7 @@ PACKAGES = {
         "libnuma1",
         "libssh2-1",
         "libssh2-1-dev",
+        "libsodium23",
         "cpufrequtils",
         "mcrypt",
     ],
@@ -243,11 +247,12 @@ PACKAGES = {
         "mariadb-client",
         "mariadb-common",
         "libjpeg-dev",
-        "libpng16-dev",
+        "libpng-dev",
         "libharfbuzz-dev",
         "libfribidi-dev",
         "libgeoip1t64",
         "geoip-bin",
+        "libsodium23",
         "cpufrequtils",
         "mcrypt",
         "libnuma1",
@@ -289,6 +294,7 @@ PACKAGES = {
         "libnuma1",
         "libssh2-1",
         "libssh2-1-dev",
+        "libsodium23",
         "cpufrequtils",
         "mcrypt",
     ],
@@ -322,6 +328,7 @@ PACKAGES = {
         "GeoIP-update",
         "git",
         "curl",
+        "libsodium",
         "numactl",
         "kernel-tools",
     ],
@@ -1143,9 +1150,20 @@ def install_mariadb_repo(dist_info):
             printc(
                 "Adding MariaDB repository using official setup script...", col.OKBLUE
             )
-            run_command(
-                "curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup | bash -s -- --mariadb-server-version='mariadb-11.4'"
+            ret, _, _ = run_command(
+                "curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup | bash -s -- --mariadb-server-version='mariadb-11.4'",
+                capture_output=True,
             )
+            if ret != 0:
+                printc(
+                    "MariaDB repo setup script failed, will use system packages",
+                    col.WARNING,
+                )
+                # Clean up any partial repo configuration
+                run_command(
+                    "rm -f /etc/apt/sources.list.d/mariadb.list "
+                    "/etc/apt/sources.list.d/mariadb.sources || true"
+                )
 
         # Add MaxMind repository for Ubuntu (with error handling)
         if dist_id == "ubuntu":
@@ -1384,7 +1402,7 @@ def generate_random_password(length=32):
 def generate_root_password():
     """Generate secure root password of 20 characters (SQL/shell safe)"""
     # Only use characters safe for SQL literals and shell quoting
-    chars = "23456789abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ_-+.@"
+    chars = "23456789abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ"
     return "".join(random.choice(chars) for _ in range(20))
 
 
@@ -1519,6 +1537,19 @@ def fix_ssh2_library_issue():
             printc(f"Found SSH2 library: {lib_path}", col.OKGREEN)
             break
 
+    # If not found in static list, search dynamically (handles t64 suffix on 24.04+)
+    if not found_lib:
+        try:
+            ret, out, err = run_command(
+                "find /usr/lib -name 'libssh2.so*' -type f -o -name 'libssh2.so*' -type l 2>/dev/null | head -5",
+                capture_output=True,
+            )
+            if ret == 0 and out and out.strip():
+                found_lib = out.strip().split("\n")[0]
+                printc(f"Found SSH2 library via search: {found_lib}", col.OKGREEN)
+        except Exception:
+            pass
+
     if found_lib:
         # Create symlinks in common locations
         symlink_targets = [
@@ -1544,30 +1575,13 @@ def fix_ssh2_library_issue():
                     ssh2_so_path = os.path.join(dirpath, "ssh2.so")
                     printc(f"Found PHP ssh2.so at: {ssh2_so_path}", col.OKGREEN)
                     break
+
+        # Update dynamic linker cache
+        run_command("ldconfig 2>/dev/null || true")
     else:
         printc(
             "Warning: libssh2.so.1 not found. SSH2 may not work properly.", col.WARNING
         )
-
-        # Try to find any libssh2 version
-        try:
-            ret, out, err = run_command(
-                "find /usr -name 'libssh2.so*' 2>/dev/null", capture_output=True
-            )
-            if ret == 0 and out:
-                libs = out.strip().split("\n")
-                if libs:
-                    found_lib = libs[0]
-                    printc(f"Found alternative SSH2 library: {found_lib}", col.OKGREEN)
-
-                    # Create symlink
-                    run_command(f"ln -sf {found_lib} /usr/lib/libssh2.so.1")
-                    printc(
-                        f"Created symlink: {found_lib} -> /usr/lib/libssh2.so.1",
-                        col.OKGREEN,
-                    )
-        except Exception:
-            pass
 
     # Don't disable ssh2 extension - only create symlinks
 
@@ -1632,14 +1646,62 @@ def install_deb_packages(dist_info):
     # Install packages
     packages = PACKAGES.get(package_key, [])
     if packages:
-        packages_str = " ".join(packages)
-        printc(
-            f"Installing {label} packages ({len(packages)} packages)...", col.OKBLUE
-        )
-        run_command(
-            f"DEBIAN_FRONTEND=noninteractive apt-get -yq install {packages_str} "
-            f"|| echo 'Some packages may not be available'"
-        )
+        # Separate MariaDB packages from the rest to avoid atomic apt-get failure
+        _mariadb_pkgs = {"mariadb-server", "mariadb-client", "mariadb-common"}
+        db_packages = [p for p in packages if p in _mariadb_pkgs]
+        other_packages = [p for p in packages if p not in _mariadb_pkgs]
+
+        # Install non-DB packages first
+        if other_packages:
+            other_str = " ".join(other_packages)
+            printc(
+                f"Installing {label} system packages ({len(other_packages)})...",
+                col.OKBLUE,
+            )
+            ret, _, _ = run_command(
+                f"DEBIAN_FRONTEND=noninteractive apt-get -yq install {other_str}",
+                capture_output=True,
+            )
+            if ret != 0:
+                printc(
+                    "Some system packages failed to install, retrying one by one...",
+                    col.WARNING,
+                )
+                for pkg in other_packages:
+                    run_command(
+                        f"DEBIAN_FRONTEND=noninteractive apt-get -yq install {pkg} || true"
+                    )
+
+        # Install MariaDB packages separately with fallback
+        if db_packages:
+            db_str = " ".join(db_packages)
+            printc(
+                f"Installing MariaDB packages ({len(db_packages)})...", col.OKBLUE
+            )
+            ret, _, stderr = run_command(
+                f"DEBIAN_FRONTEND=noninteractive apt-get -yq install {db_str}",
+                capture_output=True,
+            )
+            if ret != 0:
+                printc(
+                    "MariaDB from configured repo failed, trying system packages...",
+                    col.WARNING,
+                )
+                # Remove broken MariaDB repo and retry with system packages
+                run_command(
+                    "rm -f /etc/apt/sources.list.d/mariadb.list "
+                    "/etc/apt/sources.list.d/mariadb.sources || true"
+                )
+                run_command("apt-get update -y")
+                ret2, _, _ = run_command(
+                    f"DEBIAN_FRONTEND=noninteractive apt-get -yq install {db_str}",
+                    capture_output=True,
+                )
+                if ret2 != 0:
+                    printc(
+                        "CRITICAL: MariaDB packages could not be installed!",
+                        col.FAIL,
+                    )
 
     # For unknown distros, also try installing SSH2 libraries
     if (dist_id, major) not in _PACKAGE_KEY_MAP:
@@ -1809,6 +1871,22 @@ if __name__ == "__main__":
         # Install packages
         printc("Installing system packages", col.OKBLUE)
         install_deb_packages(dist_info)
+
+        # Verify MariaDB was actually installed
+        ret, _, _ = run_command("dpkg -l mariadb-server 2>/dev/null | grep -q '^ii'", capture_output=True)
+        if ret != 0:
+            printc("MariaDB not installed after package step, retrying...", col.WARNING)
+            run_command("apt-get update -y")
+            ret2, _, _ = run_command(
+                "DEBIAN_FRONTEND=noninteractive apt-get -yq install mariadb-server mariadb-client",
+                capture_output=True,
+            )
+            if ret2 != 0:
+                printc("CRITICAL: Could not install MariaDB!", col.FAIL)
+                sys.exit(1)
+
+        # Enable MariaDB
+        run_command("systemctl enable mariadb")
 
         # Fix SSH2 library issue
         printc("Configuring SSH2 libraries", col.OKBLUE)
