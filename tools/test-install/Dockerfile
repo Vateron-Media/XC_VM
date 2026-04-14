@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV container=docker
@@ -8,7 +8,7 @@ ENV TZ=UTC
 # systemd — необходим для инсталлятора (systemctl enable/start xc_vm)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     systemd systemd-sysv dbus cron \
-    lsb-release sudo python3 python3-pip wget curl unzip \
+    lsb-release sudo python3 wget curl unzip \
     iproute2 net-tools apt-utils ca-certificates gnupg \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
