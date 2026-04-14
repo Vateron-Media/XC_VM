@@ -54,7 +54,7 @@ restart() {
 
 reload() {
   pids=$(pgrep -u xc_vm nginx | wc -l)
-  if [ $pids = 0 ]]; then
+  if [ $pids = 0 ]; then
     echo 'XC_VM is not running'
     return 1
   fi
