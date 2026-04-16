@@ -1,25 +1,3 @@
-<?php
-if (!isset($__viewMode)):
-
-	include 'session.php';
-	include 'functions.php';
-
-	if (PageAuthorization::checkPermissions()) {
-	} else {
-		AdminHelpers::goHome();
-	}
-
-	$rTicket = TicketRepository::getById(RequestManager::getAll()['id']);
-
-	if ($rTicket) {
-	} else {
-		AdminHelpers::goHome();
-	}
-
-	$_TITLE = 'Ticket';
-	require_once __DIR__ . '/../layouts/admin.php';
-	renderUnifiedLayoutHeader('admin');
-endif; // !$__viewMode
 echo '<div class="wrapper boxed-layout"';
 
 if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {

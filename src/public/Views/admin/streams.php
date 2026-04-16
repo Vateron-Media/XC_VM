@@ -1,29 +1,4 @@
-<?php if (!isset($__viewMode)): ?>
 <?php
-
-	include 'session.php';
-	include 'functions.php';
-
-	if (PageAuthorization::checkPermissions()) {
-	} else {
-		AdminHelpers::goHome();
-	}
-
-	$rAudioCodecs = $rVideoCodecs = array();
-	$db->query('SELECT DISTINCT(`audio_codec`) FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `audio_codec` IS NOT NULL AND `type` = 1 ORDER BY `audio_codec` ASC;');
-
-	foreach ($db->get_rows() as $rRow) {
-		$rAudioCodecs[] = $rRow['audio_codec'];
-	}
-	$db->query('SELECT DISTINCT(`video_codec`) FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `video_codec` IS NOT NULL AND `type` = 1 ORDER BY `video_codec` ASC;');
-
-	foreach ($db->get_rows() as $rRow) {
-		$rVideoCodecs[] = $rRow['video_codec'];
-	}
-	$_TITLE = 'Streams';
-	require_once __DIR__ . '/../layouts/admin.php';
-	renderUnifiedLayoutHeader('admin');
-endif;
 echo '<div class="wrapper"';
 
 if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {

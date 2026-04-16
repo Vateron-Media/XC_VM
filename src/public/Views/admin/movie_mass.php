@@ -1,36 +1,3 @@
-<?php if (!isset($__viewMode)): ?>
-	<?php
-
-	include 'session.php';
-	include 'functions.php';
-
-	if (!PageAuthorization::checkPermissions()) {
-		AdminHelpers::goHome();
-	}
-
-	$rCategories = CategoryService::getAllByType('movie');
-
-	if (isset(RequestManager::getAll()['submit_stream'])) {
-		$rReturn = MovieService::massEdit(RequestManager::getAll());
-		$_STATUS = $rReturn['status'];
-
-		if ($_STATUS == 0) {
-			header('Location: ./movies_mass?status=0');
-			exit();
-		}
-	}
-
-	$rTranscodeProfiles = StreamConfigRepository::getTranscodeProfiles();
-	$rServerTree = array(array('id' => 'source', 'parent' => '#', 'text' => "<strong class='btn btn-success waves-effect waves-light btn-xs'>Active</strong>", 'icon' => 'mdi mdi-play', 'state' => array('opened' => true)), array('id' => 'offline', 'parent' => '#', 'text' => "<strong class='btn btn-secondary waves-effect waves-light btn-xs'>Offline</strong>", 'icon' => 'mdi mdi-stop', 'state' => array('opened' => true)));
-
-	foreach ($rServers as $rServer) {
-		$rServerTree[] = array('id' => $rServer['id'], 'parent' => 'offline', 'text' => $rServer['server_name'], 'icon' => 'mdi mdi-server-network', 'state' => array('opened' => true));
-	}
-	$_TITLE = 'Mass Edit Movies';
-	require_once __DIR__ . '/../layouts/admin.php';
-	renderUnifiedLayoutHeader('admin');
-	?>
-<?php endif; ?>
 <div class="wrapper boxed-layout-xl" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') echo ' style="display: none;"'; ?>>
 	<div class="container-fluid">
 		<div class="row">

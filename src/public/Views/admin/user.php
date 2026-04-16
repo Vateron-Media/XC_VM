@@ -1,24 +1,3 @@
-<?php if (!isset($__viewMode)): ?>
-	<?php
-	include 'session.php';
-	include 'functions.php';
-
-	if (!PageAuthorization::checkPermissions()) {
-		AdminHelpers::goHome();
-	}
-
-	$rUser = isset(RequestManager::getAll()['id']) ? UserRepository::getRegisteredUserById(RequestManager::getAll()['id']) : null;
-	if ($rUser === false) {
-		AdminHelpers::goHome();
-	}
-
-	$rPackages = $rUser ? PackageService::getAll($rUser['member_group_id']) : [];
-	$_TITLE = 'User';
-	require_once __DIR__ . '/../layouts/admin.php';
-	renderUnifiedLayoutHeader('admin');
-	?>
-<?php endif; ?>
-
 <div class="wrapper boxed-layout" <?= empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest' ? '' : 'style="display: none;"' ?>>
 	<div class="container-fluid">
 		<div class="row">

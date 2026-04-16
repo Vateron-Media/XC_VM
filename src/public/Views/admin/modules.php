@@ -1,22 +1,3 @@
-<?php if (!isset($__viewMode)): ?>
-    <?php include 'session.php'; ?>
-    <?php include 'functions.php'; ?>
-
-    <?php if (!PageAuthorization::checkPermissions()) {
-        AdminHelpers::goHome();
-    } ?>
-
-    <?php
-    $_TITLE = 'Modules';
-    require_once __DIR__ . '/../layouts/admin.php';
-    renderUnifiedLayoutHeader('admin');
-
-    $manager = new ModuleManager();
-    $modules = $manager->listModules();
-    $moduleFlash = null;
-    ?>
-<?php endif; ?>
-
 <div class="wrapper boxed-layout-ext" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
                                             echo ' style="display: none;"';
                                         } ?>>
@@ -222,9 +203,7 @@
     });
 </script>
 
-<?php if (!isset($__viewMode)): ?>
     <?php
     require_once __DIR__ . '/../layouts/footer.php';
     renderUnifiedLayoutFooter('admin');
     ?>
-<?php endif; ?>

@@ -1,24 +1,3 @@
-<?php if (!isset($__viewMode)): ?>
-<?php
-	include 'session.php';
-	include 'functions.php';
-
-	if (!PageAuthorization::checkPermissions()) {
-		AdminHelpers::goHome();
-	}
-
-	$rCategories = array(1 => CategoryService::getAllByType(), 2 => CategoryService::getAllByType('movie'), 3 => CategoryService::getAllByType('series'), 4 => CategoryService::getAllByType('radio'));
-	$rMainCategories = array(1 => array(), 2 => array(), 3 => array());
-
-	foreach (array(1, 2, 3, 4) as $rID) {
-		foreach ($rCategories[$rID] as $rCategoryID => $rCategoryData) {
-			$rMainCategories[$rID][] = $rCategoryData;
-		}
-	}
-	$_TITLE = 'Stream Categories';
-	require_once __DIR__ . '/../layouts/admin.php';
-	renderUnifiedLayoutHeader('admin');
-endif;
 ?>
 <div class="wrapper boxed-layout" <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
 									} else {

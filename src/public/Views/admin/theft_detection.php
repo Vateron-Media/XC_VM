@@ -1,20 +1,5 @@
 <?php
 
-if (!isset($__viewMode)):
-	include 'session.php';
-	include 'functions.php';
-
-	if (PageAuthorization::checkPermissions()) {
-	} else {
-		AdminHelpers::goHome();
-	}
-
-	$rRange = (intval(RequestManager::getAll()['range']) ?: 0);
-	$rTheftDetection = (igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'theft_detection')) ?: array());
-	$_TITLE = 'VOD Theft Detection';
-	require_once __DIR__ . '/../layouts/admin.php';
-	renderUnifiedLayoutHeader('admin');
-endif; // !$__viewMode
 echo '<div class="wrapper boxed-layout-ext"';
 
 if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {

@@ -1,18 +1,3 @@
-<?php if (!isset($__viewMode)): ?>
-    <?php
-
-    include 'session.php';
-    include 'functions.php';
-
-    if (!PageAuthorization::checkPermissions()) {
-        AdminHelpers::goHome();
-    }
-
-    $_TITLE = 'Panel Errors';
-    require_once __DIR__ . '/../layouts/admin.php';
-    renderUnifiedLayoutHeader('admin');
-    ?>
-<?php endif; ?>
 <div class="wrapper" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
                             echo ' style="display: none;"';
                         } ?>>
@@ -282,8 +267,6 @@ renderUnifiedLayoutFooter('admin');
     <?php endif; ?>
 </script>
 <script src="assets/js/listings.js"></script>
-<?php if (!isset($__viewMode)): ?>
     </body>
 
     </html>
-<?php endif; ?>

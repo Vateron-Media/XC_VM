@@ -1,24 +1,3 @@
-<?php if (!isset($__viewMode)): ?>
-	<?php
-
-	include 'session.php';
-	include 'functions.php';
-
-	if (!PageAuthorization::checkPermissions()) {
-		AdminHelpers::goHome();
-	}
-
-	if (isset(RequestManager::getAll()['flush'])) {
-		BlocklistService::flushIPs();
-		header('Location: ./ips?status=' . STATUS_FLUSH);
-		exit;
-	}
-
-	$_TITLE = "Blocked IP's";
-	require_once __DIR__ . '/../layouts/admin.php';
-	renderUnifiedLayoutHeader('admin');
-	?>
-<?php endif; ?>
 <div class="wrapper boxed-layout-ext" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') echo ' style="display: none;"'; ?>>
 	<div class="container-fluid">
 		<div class="row">

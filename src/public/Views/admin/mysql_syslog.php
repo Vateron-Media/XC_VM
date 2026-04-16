@@ -1,16 +1,3 @@
-<?php if (!isset($__viewMode)): ?>
-	<?php include 'session.php'; ?>
-	<?php include 'functions.php'; ?>
-
-	<?php if (!PageAuthorization::checkPermissions()) {
-		AdminHelpers::goHome();
-	} ?>
-
-	<?php $_TITLE = 'System Logs'; ?>
-	<?php require_once __DIR__ . '/../layouts/admin.php'; ?>
-	<?php renderUnifiedLayoutHeader('admin'); ?>
-<?php endif; ?>
-
 <div class="wrapper" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest'): ?> style="display: none;" <?php endif; ?>>
 	<div class="container-fluid">
 		<div class="row">

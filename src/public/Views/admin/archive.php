@@ -1,32 +1,3 @@
-<?php if (!isset($__viewMode)): ?>
-    <?php
-
-    include 'session.php';
-    include 'functions.php';
-
-    if (!PageAuthorization::checkPermissions()) {
-        AdminHelpers::goHome();
-    }
-
-    $rRecordings = null;
-
-    if (isset(RequestManager::getAll()['id'])) {
-        $rStream = StreamRepository::getById(RequestManager::getAll()['id']);
-
-        if (!$rStream || $rStream['type'] != 1 || $rStream['tv_archive_duration'] == 0 || $rStream['tv_archive_server_id'] == 0) {
-            AdminHelpers::goHome();
-        }
-
-        $rArchive = StreamService::getArchive($rStream['id']);
-    } else {
-        $rRecordings = WatchService::getRecordings();
-    }
-
-    $_TITLE = (!is_null($rRecordings) ? 'Recordings' : 'TV Archive');
-    require_once __DIR__ . '/../layouts/admin.php';
-    renderUnifiedLayoutHeader('admin');
-    ?>
-<?php endif; ?>
 <div class="wrapper boxed-layout-ext" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
                                             echo ' style="display: none;"';
                                         } ?>>
