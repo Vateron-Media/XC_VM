@@ -1,6 +1,9 @@
 <?php
+
 /**
  * Контроллер просмотра TV Guide (admin/epg_view.php)
+ *
+ * @renders Views/admin/epg_view.php
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -62,8 +65,15 @@ class EpgViewController extends BaseAdminController {
 
         $this->setTitle('TV Guide');
         $this->render('epg_view', compact(
-            'rPageInt', 'rLimit', 'rStart', 'rStreamIDs',
-            'rCount', 'rPages', 'rPagination', 'rWhereString', 'rOrderBy'
+            'rPageInt',
+            'rLimit',
+            'rStart',
+            'rStreamIDs',
+            'rCount',
+            'rPages',
+            'rPagination',
+            'rWhereString',
+            'rOrderBy'
         ));
     }
 }

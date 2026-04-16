@@ -7,6 +7,8 @@
  * Massive multi-tab form with ~80+ switchery toggles, select2 dropdowns,
  * 9 tabs (General, Security, API, Streaming, MAG, Web Player, Logs, Info, Database).
  *
+ * @renders Views/admin/settings.php
+ *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
@@ -14,10 +16,8 @@
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-class SettingsController extends BaseAdminController
-{
-    public function index(): void
-    {
+class SettingsController extends BaseAdminController {
+    public function index(): void {
         $this->requirePermission();
 
         $rSettings = SettingsManager::getAll();

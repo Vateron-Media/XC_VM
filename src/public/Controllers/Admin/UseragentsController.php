@@ -1,6 +1,9 @@
 <?php
+
 /**
  * Контроллер списка заблокированных User-Agent (admin/useragents.php)
+ *
+ * @renders Views/admin/useragents.php
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>

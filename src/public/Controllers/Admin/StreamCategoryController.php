@@ -1,6 +1,9 @@
 <?php
+
 /**
  * StreamCategoryController — редактирование категории стрима.
+ *
+ * @renders Views/admin/stream_category.php
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -9,10 +12,8 @@
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-class StreamCategoryController extends BaseAdminController
-{
-    public function index()
-    {
+class StreamCategoryController extends BaseAdminController {
+    public function index() {
         $this->requirePermission();
 
         if (isset(RequestManager::getAll()['id'])) {

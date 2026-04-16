@@ -10,6 +10,8 @@
  * @see admin/api.php
  * @since Phase 10.4
  *
+ * @renders public/Views/admin/api.php
+ *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media

@@ -1,6 +1,9 @@
 <?php
+
 /**
  * StreamController — редактирование/добавление стрима.
+ *
+ * @renders Views/admin/stream.php
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -9,10 +12,8 @@
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-class StreamController extends BaseAdminController
-{
-    public function index()
-    {
+class StreamController extends BaseAdminController {
+    public function index() {
         $this->requirePermission();
 
         global $db, $rServers;
@@ -84,9 +85,17 @@ class StreamController extends BaseAdminController
 
         $this->setTitle('Stream');
         $this->render('stream', compact(
-            'rStream', 'rEPGSources', 'rStreamArguments', 'rTranscodeProfiles',
-            'rOnDemand', 'rEPGJS', 'rServerTree', 'rAudioDevices', 'rVideoDevices',
-            'rStreamOptions', 'rStreamSys'
+            'rStream',
+            'rEPGSources',
+            'rStreamArguments',
+            'rTranscodeProfiles',
+            'rOnDemand',
+            'rEPGJS',
+            'rServerTree',
+            'rAudioDevices',
+            'rVideoDevices',
+            'rStreamOptions',
+            'rStreamSys'
         ));
     }
 }

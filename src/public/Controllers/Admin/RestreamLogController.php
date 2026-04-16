@@ -8,6 +8,8 @@
  * Legacy: admin/restream_logs.php (197 строк)
  * Route:  GET /admin/restream_logs → index()
  *
+ * @renders Views/admin/restream_logs.php
+ *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
@@ -15,10 +17,8 @@
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-class RestreamLogController extends BaseAdminController
-{
-    public function index()
-    {
+class RestreamLogController extends BaseAdminController {
+    public function index() {
         $this->requirePermission();
         $this->setTitle('Restream Detection Logs');
         $this->render('restream_logs');

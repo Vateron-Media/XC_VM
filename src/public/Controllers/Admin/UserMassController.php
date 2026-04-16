@@ -1,6 +1,9 @@
 <?php
+
 /**
  * Контроллер массового редактирования пользователей (admin/user_mass.php)
+ *
+ * @renders Views/admin/user_mass.php
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>

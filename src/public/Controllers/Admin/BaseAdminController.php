@@ -25,8 +25,7 @@
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-class BaseAdminController
-{
+class BaseAdminController {
     /** @var string Scope: 'admin' или 'reseller' */
     protected $scope = 'admin';
 
@@ -36,8 +35,7 @@ class BaseAdminController
     /**
      * Установить заголовок страницы ($_TITLE для legacy header).
      */
-    protected function setTitle($title)
-    {
+    protected function setTitle($title) {
         $this->title = $title;
         $GLOBALS['_TITLE'] = $title;
     }
@@ -46,8 +44,7 @@ class BaseAdminController
      * Проверка общих прав доступа.
      * При отказе — redirect на главную + exit.
      */
-    protected function requirePermission()
-    {
+    protected function requirePermission() {
         if (!PageAuthorization::checkPermissions()) {
             AdminHelpers::goHome();
             exit;
@@ -61,8 +58,7 @@ class BaseAdminController
      * @param string $type Тип прав ('adv' и т.д.)
      * @param string $key  Ключ прав ('edit_user' и т.д.)
      */
-    protected function requireAdvPermission($type, $key)
-    {
+    protected function requireAdvPermission($type, $key) {
         if (!Authorization::check($type, $key)) {
             AdminHelpers::goHome();
             exit;
@@ -75,8 +71,7 @@ class BaseAdminController
      * @param string $view Имя view-файла (без .php), напр. 'ips'
      * @param array  $data Данные для view (extract'd в scope)
      */
-    protected function render($view, array $data = [])
-    {
+    protected function render($view, array $data = []) {
         // Layout functions
         require_once MAIN_HOME . 'public/Views/layouts/admin.php';
         require_once MAIN_HOME . 'public/Views/layouts/footer.php';
@@ -86,26 +81,51 @@ class BaseAdminController
         // и admin_constants.php, чтобы legacy body code мог их использовать.
         $viewGlobals = [
             // Core rendering
-            'language', 'db', 'rSettings', 'rMobile', 'rUserInfo',
-            'rPermissions', '_TITLE', '_STATUS', '_PAGE', 'rRequest',
+            'language',
+            'db',
+            'rSettings',
+            'rMobile',
+            'rUserInfo',
+            'rPermissions',
+            '_TITLE',
+            '_STATUS',
+            '_PAGE',
+            'rRequest',
             // Theme/UI
-            'rThemes', 'rHues',
+            'rThemes',
+            'rHues',
             // Servers
-            'rServers', 'allServers', 'rProxyServers',
-            'rServerError', 'allServersHealthy', 'updateRequired',
+            'rServers',
+            'allServers',
+            'rProxyServers',
+            'rServerError',
+            'allServersHealthy',
+            'updateRequired',
             // Locale/Geo
-            'allowedLangs', 'rTMDBLanguages', 'rGeoCountries',
-            'rCountryCodes', 'rCountries',
+            'allowedLangs',
+            'rTMDBLanguages',
+            'rGeoCountries',
+            'rCountryCodes',
+            'rCountries',
             // Devices & constants
-            'rMAGs', 'rTimezones',
+            'rMAGs',
+            'rTimezones',
             // Status arrays (admin_constants.php)
-            'rStatusArray', 'rSearchStatusArray', 'rVODStatusArray',
-            'rWatchStatusArray', 'rFailureStatusArray', 'rStreamLogsArray',
-            'rResellerActions', 'rClientFilters',
+            'rStatusArray',
+            'rSearchStatusArray',
+            'rVODStatusArray',
+            'rWatchStatusArray',
+            'rFailureStatusArray',
+            'rStreamLogsArray',
+            'rResellerActions',
+            'rClientFilters',
             // Permissions
-            'rPermissionKeys', 'rAdvPermissions',
+            'rPermissionKeys',
+            'rAdvPermissions',
             // Misc from bootstrap
-            'rDetect', 'rTimeout', 'rProtocol',
+            'rDetect',
+            'rTimeout',
+            'rProtocol',
             // Reseller-specific
             'rGenTrials',
         ];
@@ -137,26 +157,21 @@ class BaseAdminController
         $__hasScriptsFile = file_exists($__scriptsFile);
 
         if (file_exists($__viewFile)) {
-            $__viewMode = true;
             require $__viewFile;
         }
 
         // Split mode: separate .scripts.php exists → footer + scripts handled here.
-        // Clean mode: no .scripts.php + no $__viewMode → controller renders footer.
-        // Unified (proxy) mode: no .scripts.php + $__viewMode set → proxy view handles footer itself.
+        // Otherwise: view handles its own footer/closing HTML.
         if ($__hasScriptsFile) {
             renderUnifiedLayoutFooter($this->scope);
             require $__scriptsFile;
-        } elseif (!isset($__viewMode)) {
-            renderUnifiedLayoutFooter($this->scope);
         }
     }
 
     /**
      * JSON-ответ.
      */
-    protected function json(array $data, $code = 200)
-    {
+    protected function json(array $data, $code = 200) {
         http_response_code($code);
         header('Content-Type: application/json');
         echo json_encode($data);
@@ -166,8 +181,7 @@ class BaseAdminController
     /**
      * Редирект.
      */
-    protected function redirect($url)
-    {
+    protected function redirect($url) {
         header('Location: ' . $url);
         exit;
     }
@@ -179,8 +193,7 @@ class BaseAdminController
      * @param mixed  $default
      * @return mixed
      */
-    protected function input($key, $default = null)
-    {
+    protected function input($key, $default = null) {
         // Приоритет: RequestManager → $_REQUEST
         if (isset(RequestManager::getAll()[$key])) {
             return RequestManager::getAll()[$key];
@@ -193,8 +206,7 @@ class BaseAdminController
      *
      * @return mixed|null
      */
-    protected function getStatus()
-    {
+    protected function getStatus() {
         return isset($GLOBALS['_STATUS']) ? $GLOBALS['_STATUS'] : $this->input('status');
     }
 }

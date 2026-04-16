@@ -1,6 +1,9 @@
 <?php
+
 /**
  * StreamErrorsController — ошибки стримов.
+ *
+ * @renders Views/admin/stream_errors.php
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -9,10 +12,8 @@
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-class StreamErrorsController extends BaseAdminController
-{
-    public function index()
-    {
+class StreamErrorsController extends BaseAdminController {
+    public function index() {
         $this->requirePermission();
 
         $this->setTitle('Stream Errors');

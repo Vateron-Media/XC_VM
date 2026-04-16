@@ -3,6 +3,8 @@
 /**
  * ModulesController — admin module management page.
  *
+ * @renders Views/admin/modules.php
+ *
  * @package XC_VM_Public_Controllers_Admin
  */
 class ModulesController extends BaseAdminController {

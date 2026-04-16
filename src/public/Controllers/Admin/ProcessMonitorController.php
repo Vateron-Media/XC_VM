@@ -1,6 +1,9 @@
 <?php
+
 /**
  * ProcessMonitorController — Process Monitor.
+ *
+ * @renders Views/admin/process_monitor.php
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -9,10 +12,8 @@
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-class ProcessMonitorController extends BaseAdminController
-{
-    public function index()
-    {
+class ProcessMonitorController extends BaseAdminController {
+    public function index() {
         global $rServers;
 
         $this->requirePermission();
