@@ -1,6 +1,9 @@
 <?php
+
 /**
  * SeriesListController — список сериалов.
+ *
+ * @renders Views/admin/series.php
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -9,10 +12,8 @@
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-class SeriesListController extends BaseAdminController
-{
-    public function index()
-    {
+class SeriesListController extends BaseAdminController {
+    public function index() {
         $this->requirePermission();
 
         $rCategories = CategoryService::getAllByType('series');

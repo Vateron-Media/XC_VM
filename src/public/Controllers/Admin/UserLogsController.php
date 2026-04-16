@@ -1,6 +1,9 @@
 <?php
+
 /**
  * Контроллер логов пользователей (admin/user_logs.php)
+ *
+ * @renders Views/admin/user_logs.php
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>

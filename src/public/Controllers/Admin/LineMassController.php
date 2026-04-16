@@ -1,6 +1,9 @@
 <?php
+
 /**
  * LineMassController — массовое редактирование линий.
+ *
+ * @renders Views/admin/line_mass.php
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -9,10 +12,8 @@
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-class LineMassController extends BaseAdminController
-{
-    public function index()
-    {
+class LineMassController extends BaseAdminController {
+    public function index() {
         $this->requirePermission();
         $this->render('line_mass');
     }

@@ -8,6 +8,8 @@
  * ApexCharts (CPU/Memory/IO, Network).
  * Progress bars + GPU info.
  *
+ * @renders Views/admin/server_view.php
+ *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
@@ -15,10 +17,8 @@
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-class ServerViewController extends BaseAdminController
-{
-    public function index(): void
-    {
+class ServerViewController extends BaseAdminController {
+    public function index(): void {
         $this->requirePermission();
 
         global $allServers, $rProxyServers, $db;

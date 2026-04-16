@@ -7,6 +7,8 @@
  * Client-side DataTable — PHP рендерит <tbody>.
  * Данные: ServerRepository::getAll(true).
  *
+ * @renders Views/admin/servers.php
+ *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media

@@ -1,6 +1,9 @@
 <?php
+
 /**
  * Контроллер редактирования User-Agent (admin/useragent.php)
+ *
+ * @renders Views/admin/useragent.php
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>

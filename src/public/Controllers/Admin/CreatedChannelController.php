@@ -1,6 +1,9 @@
 <?php
+
 /**
  * CreatedChannelController — редактирование/добавление канала.
+ *
+ * @renders Views/admin/created_channel.php
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -9,10 +12,8 @@
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-class CreatedChannelController extends BaseAdminController
-{
-    public function index()
-    {
+class CreatedChannelController extends BaseAdminController {
+    public function index() {
         $this->requirePermission();
 
         global $db, $rServers;
@@ -92,8 +93,13 @@ class CreatedChannelController extends BaseAdminController
 
         $this->setTitle('Created Channel');
         $this->render('created_channel', compact(
-            'rCategories', 'rTranscodeProfiles', 'rChannel', 'rOnDemand',
-            'rServerTree', 'rProperties', 'rChannelSys'
+            'rCategories',
+            'rTranscodeProfiles',
+            'rChannel',
+            'rOnDemand',
+            'rServerTree',
+            'rProperties',
+            'rChannelSys'
         ));
     }
 }

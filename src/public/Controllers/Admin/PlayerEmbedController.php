@@ -6,6 +6,8 @@
  * Плеер открывается из admin UI (stream_view, live_connections и т.д.)
  * в popup/iframe. Имеет собственный HTML-документ (не layout header/footer).
  *
+ * @renders public/Views/admin/player.php
+ *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
@@ -13,10 +15,8 @@
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-class PlayerEmbedController extends BaseAdminController
-{
-	public function index()
-	{
+class PlayerEmbedController extends BaseAdminController {
+	public function index() {
 		$this->requirePermission();
 		@chdir(MAIN_HOME . 'public/Views/admin/');
 		require MAIN_HOME . 'public/Views/admin/player.php';
