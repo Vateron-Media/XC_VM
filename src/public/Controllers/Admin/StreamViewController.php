@@ -1,6 +1,9 @@
 <?php
+
 /**
  * StreamViewController — просмотр стрима.
+ *
+ * @renders Views/admin/stream_view.php
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -9,10 +12,8 @@
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-class StreamViewController extends BaseAdminController
-{
-    public function index()
-    {
+class StreamViewController extends BaseAdminController {
+    public function index() {
         $this->requirePermission();
 
         global $db;
@@ -97,9 +98,18 @@ class StreamViewController extends BaseAdminController
 
         $this->setTitle('View ' . $rTypeString);
         $this->render('stream_view', compact(
-            'rStream', 'rTypeString', 'rEPGData', 'rImage', 'rUIToken',
-            'rAdaptiveLink', 'rProperties', 'rSeries', 'rSeriesID',
-            'rStreamStats', 'rCCInfo', 'rSeconds'
+            'rStream',
+            'rTypeString',
+            'rEPGData',
+            'rImage',
+            'rUIToken',
+            'rAdaptiveLink',
+            'rProperties',
+            'rSeries',
+            'rSeriesID',
+            'rStreamStats',
+            'rCCInfo',
+            'rSeconds'
         ));
     }
 }

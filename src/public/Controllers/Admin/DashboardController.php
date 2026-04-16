@@ -1,9 +1,12 @@
 <?php
+
 /**
  * DashboardController — Dashboard page.
  *
  * Complex data-prep: theme colours, connection map queries, server stats.
  * Dashboard has NO PageAuthorization::checkPermissions() — it uses server_id validation instead.
+ *
+ * @renders Views/admin/dashboard.php
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -12,10 +15,8 @@
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-class DashboardController extends BaseAdminController
-{
-    public function index()
-    {
+class DashboardController extends BaseAdminController {
+    public function index() {
         global $db, $rThemes, $rUserInfo, $rServers, $rCountryCodes;
 
         // Theme colour map
@@ -83,8 +84,12 @@ class DashboardController extends BaseAdminController
 
         $this->setTitle('Dashboard');
         $this->render('dashboard', compact(
-            'rColours', 'rColourMap', 'rConnectionMap', 'rConnectionCount',
-            'rServerStats', 'rOrderedServers'
+            'rColours',
+            'rColourMap',
+            'rConnectionMap',
+            'rConnectionCount',
+            'rServerStats',
+            'rOrderedServers'
         ));
     }
 }

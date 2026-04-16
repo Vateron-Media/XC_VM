@@ -1,6 +1,9 @@
 <?php
+
 /**
  * Контроллер массового редактирования Enigma-устройств (admin/enigma_mass.php)
+ *
+ * @renders Views/admin/enigma_mass.php
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>

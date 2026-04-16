@@ -1,6 +1,9 @@
 <?php
+
 /**
  * Контроллер редактирования Enigma-устройства (admin/enigma.php)
+ *
+ * @renders Views/admin/enigma.php
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>

@@ -6,6 +6,8 @@
  * GET /server?id=N
  * Форма: 5 табов (Details, Domains & IPs, Advanced, Performance, SSL Certificate).
  *
+ * @renders Views/admin/server.php
+ *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
@@ -13,10 +15,8 @@
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-class ServerController extends BaseAdminController
-{
-    public function index(): void
-    {
+class ServerController extends BaseAdminController {
+    public function index(): void {
         $this->requirePermission();
 
         global $allServers;

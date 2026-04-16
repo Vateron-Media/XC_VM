@@ -1,6 +1,9 @@
 <?php
+
 /**
  * Контроллер редактирования MAG-устройства (admin/mag.php)
+ *
+ * @renders Views/admin/mag.php
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>
