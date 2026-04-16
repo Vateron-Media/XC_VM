@@ -1,38 +1,3 @@
-<?php if (!isset($__viewMode)): ?>
-    <?php
-
-    include 'session.php';
-    include 'functions.php';
-
-    if (!PageAuthorization::checkPermissions()) {
-        AdminHelpers::goHome();
-    }
-
-    if (!isset(RequestManager::getAll()['server']) || !isset($rServers[RequestManager::getAll()['server']])) {
-        RequestManager::update('server', SERVER_ID);
-    }
-
-    if (isset(RequestManager::getAll()['clear'])) {
-        ServerRepository::freeTemp(RequestManager::getAll()['server']);
-        header('Location: ./process_monitor?server=' . RequestManager::getAll()['server']);
-        exit();
-    }
-
-    if (isset(RequestManager::getAll()['clear_s'])) {
-        ServerRepository::freeStreams(RequestManager::getAll()['server']);
-        header('Location: ./process_monitor?server=' . RequestManager::getAll()['server']);
-        exit();
-    }
-
-
-    $rStreams = StreamRepository::getPIDs(RequestManager::getAll()['server']) ?: array();
-    $rFS = ServerRepository::getFreeSpace(RequestManager::getAll()['server']) ?: array();
-    $rProcesses = DiagnosticsService::getPIDs(RequestManager::getAll()['server']) ?: array();
-    $rStatus = array('D' => 'Uninterruptible Sleep', 'I' => 'Idle', 'R' => 'Running', 'S' => 'Interruptible Sleep', 'T' => 'Stopped', 'W' => 'Paging', 'X' => 'Dead', 'Z' => 'Zombie');
-    $_TITLE = 'Process Monitor';
-    require_once __DIR__ . '/../layouts/admin.php';
-    renderUnifiedLayoutHeader('admin'); ?>
-<?php endif; ?>
 <div class="wrapper" <?= empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest' ? '' : ' style="display: none;"' ?>>
     <div class="container-fluid">
         <div class="row">

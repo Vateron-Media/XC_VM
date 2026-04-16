@@ -1,11 +1,3 @@
-<?php if (!isset($__viewMode)): ?>
-    <?php include 'session.php';
-    include 'functions.php'; ?>
-
-    <?php if (PageAuthorization::checkPermissions()): ?>
-    <?php else: AdminHelpers::goHome();
-    endif; ?>
-
     <?php
     if (isset(RequestManager::getAll()['type'])) {
         $rType = intval(RequestManager::getAll()['type']);
@@ -170,7 +162,6 @@
     require_once __DIR__ . '/../layouts/admin.php';
     renderUnifiedLayoutHeader('admin');
     ?>
-<?php endif; ?>
 
 <div class="wrapper<?php if (!isset($rImport)) {
                         echo ' boxed-layout-ext';

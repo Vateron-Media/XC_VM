@@ -1,33 +1,5 @@
 <?php
 
-if (!isset($__viewMode)):
-    include 'session.php';
-    include 'functions.php';
-
-    if (!PageAuthorization::checkPermissions()) {
-        AdminHelpers::goHome();
-    }
-
-    $rType = isset(RequestManager::getAll()['proxy']) ? 1 : 2;
-
-
-    if (isset(RequestManager::getAll()['id'])) {
-        if ($rType == 1) {
-            $rServerArr = $rProxyServers[intval(RequestManager::getAll()['id'])];
-        } else {
-            $rServerArr = $allServers[intval(RequestManager::getAll()['id'])];
-        }
-
-        if (!$rServerArr) {
-            AdminHelpers::goHome();
-        }
-    }
-
-    $_TITLE = $rType == 1 ? 'Install Proxy' : 'Install Server';
-
-    require_once __DIR__ . '/../layouts/admin.php';
-    renderUnifiedLayoutHeader('admin');
-endif; // !$__viewMode
 echo '<div class="wrapper boxed-layout"';
 
 if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {

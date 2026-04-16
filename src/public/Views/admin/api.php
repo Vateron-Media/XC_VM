@@ -1458,9 +1458,9 @@ if (isset($_SESSION['hash'])) {
 				$rTotalUsers = 0;
 
 				if (isset(RequestManager::getAll()['server_id'])) {
-					$rTotalUsers = $rServerStats[$rTime][RequestManager::getAll()['server_id']]['users'];
+					$rTotalUsers = $rServerStats[$rTime][RequestManager::getAll()['server_id']]['users'] ?? 0;
 				} else {
-					$rTotalUsers = $rServerStats[$rTime][SERVER_ID]['total_users'];
+					$rTotalUsers = $rServerStats[$rTime][SERVER_ID]['total_users'] ?? 0;
 				}
 
 				foreach ($rServerStats[$rTime] as $rServerID => $rData) {
@@ -1491,9 +1491,9 @@ if (isset($_SESSION['hash'])) {
 					$rStats['dates'][1] = $rTime * 1000;
 				}
 
-				$rStats['cpu'][] = array($rTime * 1000, round($rTotalCPU / $rCPUCount, 2));
-				$rStats['memory'][] = array($rTime * 1000, round($rTotalMem / $rMemCount, 2));
-				$rStats['io'][] = array($rTime * 1000, round($rTotalIO / $rIOCount, 2));
+				$rStats['cpu'][] = array($rTime * 1000, $rCPUCount ? round($rTotalCPU / $rCPUCount, 2) : 0);
+				$rStats['memory'][] = array($rTime * 1000, $rMemCount ? round($rTotalMem / $rMemCount, 2) : 0);
+				$rStats['io'][] = array($rTime * 1000, $rIOCount ? round($rTotalIO / $rIOCount, 2) : 0);
 				$rStats['connections'][] = array($rTime * 1000, $rTotalConnections);
 				$rStats['streams'][] = array($rTime * 1000, $rTotalStreams);
 				$rStats['users'][] = array($rTime * 1000, $rTotalUsers);

@@ -1,37 +1,3 @@
-<?php if (!isset($__viewMode)): ?>
-	<?php
-
-	include 'session.php';
-	include 'functions.php';
-
-	if (!PageAuthorization::checkPermissions()) {
-		AdminHelpers::goHome();
-	}
-
-	if (isset(RequestManager::getAll()['id']) && !($rSeriesArr = SeriesService::getById(RequestManager::getAll()['id']))) {
-		AdminHelpers::goHome();
-	}
-
-	if (isset($rSeriesArr) && isset(RequestManager::getAll()['import'])) {
-		unset(RequestManager::getAll()['import']);
-	}
-
-	$rTranscodeProfiles = StreamConfigRepository::getTranscodeProfiles();
-
-	$rServerTree = [
-		['id' => 'source', 'parent' => '#', 'text' => "<strong class='btn btn-success waves-effect waves-light btn-xs'>Active</strong>", 'icon' => 'mdi mdi-play', 'state' => ['opened' => true]],
-		['id' => 'offline', 'parent' => '#', 'text' => "<strong class='btn btn-secondary waves-effect waves-light btn-xs'>Offline</strong>", 'icon' => 'mdi mdi-stop', 'state' => ['opened' => true]]
-	];
-
-	foreach ($rServers as $rServer) {
-		$rServerTree[] = array('id' => $rServer['id'], 'parent' => 'offline', 'text' => $rServer['server_name'], 'icon' => 'mdi mdi-server-network', 'state' => array('opened' => true));
-	}
-	$_TITLE = 'TV Series';
-	require_once __DIR__ . '/../layouts/admin.php';
-	renderUnifiedLayoutHeader('admin');
-	?>
-<?php endif; ?>
-
 <div class="wrapper boxed-layout" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') == 'xmlhttprequest') echo ' style="display: none;"'; ?>>
 	<div class="container-fluid">
 		<div class="row">

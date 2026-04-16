@@ -1,11 +1,20 @@
 <?php
-session_start();
-session_write_close();
-if (file_exists("../www/init.php")) {
-    require_once "../www/init.php";
+// При вызове через Front Controller bootstrap уже выполнен
+if (!defined('MAIN_HOME')) {
+    session_start();
+    session_write_close();
+    if (file_exists("../www/init.php")) {
+        require_once "../www/init.php";
+    } else {
+        require_once "../../../www/init.php";
+    }
 } else {
-    require_once "../../../www/init.php";
+    session_write_close();
 }
+
+global $db, $rSettings, $rServers, $rPermissions, $language,
+	$rStatusArray, $rVODStatusArray, $rWatchStatusArray,
+	$rFailureStatusArray, $rStreamLogsArray;
 
 if (!PHP_ERRORS) {
     if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {

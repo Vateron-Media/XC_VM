@@ -1,16 +1,3 @@
-<?php if (!isset($__viewMode)): ?>
-	<?php include 'session.php'; ?>
-	<?php include 'functions.php'; ?>
-
-	<?php if (!PageAuthorization::checkPermissions()) {
-		AdminHelpers::goHome();
-	} ?>
-
-	<?php $_TITLE = 'Encoding Queue'; ?>
-	<?php require_once __DIR__ . '/../layouts/admin.php';
-	renderUnifiedLayoutHeader('admin'); ?>
-<?php endif; ?>
-
 <div class="wrapper" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
 							echo ' style="display: none;"';
 						} ?>>

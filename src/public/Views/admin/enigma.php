@@ -1,33 +1,3 @@
-<?php
-if (!isset($__viewMode)):
-
-	include 'session.php';
-	include 'functions.php';
-
-	if (PageAuthorization::checkPermissions()) {
-	} else {
-		AdminHelpers::goHome();
-	}
-
-	if (!isset(RequestManager::getAll()['id'])) {
-	} else {
-		$rDevice = EnigmaService::getById(RequestManager::getAll()['id']);
-
-		if ($rDevice['user_id']) {
-		} else {
-			exit();
-		}
-	}
-
-	if (!isset($rDevice) || isset($rDevice['user'])) {
-	} else {
-		$rDevice['user'] = array('bouquet' => array());
-	}
-
-	$_TITLE = 'Enigma Device';
-	require_once __DIR__ . '/../layouts/admin.php';
-	renderUnifiedLayoutHeader('admin');
-endif; // !$__viewMode
 echo '<div class="wrapper boxed-layout"';
 
 if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
