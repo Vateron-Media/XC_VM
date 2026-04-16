@@ -24,11 +24,11 @@ foreach (get_defined_constants(true)['user'] as $rKey => $rValue) {
 }
 $rData = RequestManager::getAll();
 AdminAPIWrapper::$db = &$db;
-AdminAPIWrapper::$rKey = $rData['api_key'];
-if (!empty(RequestManager::getAll()['api_key']) && AdminAPIWrapper::createSession()) {
-    $rAction = $rData['action'];
-    $rStart = (intval($rData['start']) ?: 0);
-    $rLimit = (intval($rData['limit']) ?: 50);
+AdminAPIWrapper::$rKey = $rData['api_key'] ?? '';
+if (!empty($rData['api_key']) && AdminAPIWrapper::createSession()) {
+    $rAction = $rData['action'] ?? '';
+    $rStart = intval($rData['start'] ?? 0);
+    $rLimit = intval($rData['limit'] ?? 50) ?: 50;
     unset($rData['api_key'], $rData['action'], $rData['start'], $rData['limit']);
     if (isset(RequestManager::getAll()['show_columns'])) {
         $rShowColumns = explode(',', RequestManager::getAll()['show_columns']);
