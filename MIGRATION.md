@@ -41,7 +41,7 @@
 | **6** | Контроллеры + Views | 112 admin + 22 reseller страниц, Router, Front Controller, BaseAdminController |
 | **7** | admin.php bootstrap | Вынос данных, замена процедурного bootstrap → XC_Bootstrap, удаление 40 proxy, admin.php: 4448→3050 строк |
 | **8** | Ликвидация god-объектов | admin_api.php (3686 стр.), StreamingUtilities (659 стр.), CoreUtilities (1971 стр.) — все три удалены. ~7400 вызовов заменены |
-| **9** | Стабилизация сборки | Makefile LB-сборка, PHP-заголовки ($__viewMode), unified layout, экспорт глобалов |
+| **9** | Стабилизация сборки | Makefile LB-сборка, PHP-заголовки, unified layout, экспорт глобалов |
 | **10** | Удаление admin/ | 127 PHP + 423 static → public/Views/admin/ + public/assets/admin/. Директория src/admin/ удалена |
 | **11** | Унификация API (11.1–11.4) | 7 API-контроллеров (2313 стр.), 6 thin proxies в www/. PlayerApi, Enigma2, XPlugin, Playlist, Epg, InternalApi |
 | **12** | CLI runner | console.php + 26 Commands + 25 CronJobs. includes/cli/ и crons/ удалены. LB guards |
@@ -104,10 +104,6 @@ bootstrap.php (единственный entry point)
 - `includes/admin.php` — удалён (Phase 15.6)
 
 Proxy-функций больше нет. Весь код использует прямые вызовы классов.
-
-### Feature flags
-
-- `use_legacy_fallback` — FC legacy routing (реализован в `public/index.php`)
 
 ### Rollback plan
 

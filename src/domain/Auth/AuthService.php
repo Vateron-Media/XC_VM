@@ -38,6 +38,8 @@ class AuthService {
 			foreach ($rData['groups'] as $rGroupID) {
 				$rArray['groups'][] = intval($rGroupID);
 			}
+		} elseif (!is_array($rArray['groups'] ?? null)) {
+			$rArray['groups'] = is_string($rArray['groups'] ?? null) ? (json_decode($rArray['groups'], true) ?: []) : [];
 		}
 
 		if (in_array($rData['type'], array(0, 1, 3, 4))) {
