@@ -1,27 +1,3 @@
-<?php
-if (!isset($__viewMode)):
-	include 'session.php';
-	include 'functions.php';
-
-	if (PageAuthorization::checkPermissions()) {
-	} else {
-		AdminHelpers::goHome();
-	}
-
-	if (isset(RequestManager::getAll()['id']) && ($rTicketInfo = TicketRepository::getById(RequestManager::getAll()['id']))) {
-	} else {
-		AdminHelpers::goHome();
-	}
-
-	if ($rUserInfo['id'] == $rTicketInfo['member_id']) {
-	} else {
-		$db->query('UPDATE `tickets` SET `admin_read` = 1 WHERE `id` = ?;', RequestManager::getAll()['id']);
-	}
-
-	$_TITLE = 'View Ticket';
-	require_once __DIR__ . '/../layouts/admin.php';
-	renderUnifiedLayoutHeader('admin');
-endif; // !$__viewMode
 echo '<div class="wrapper boxed-layout-ext"';
 
 if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {

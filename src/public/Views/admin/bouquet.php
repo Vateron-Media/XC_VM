@@ -1,59 +1,5 @@
 <?php
 
-if (!isset($__viewMode)):
-	include 'session.php';
-	include 'functions.php';
-
-	if (PageAuthorization::checkPermissions()) {
-	} else {
-		AdminHelpers::goHome();
-	}
-
-	if (!isset(RequestManager::getAll()['id'])) {
-	} else {
-		$rBouquetArr = BouquetService::getById(RequestManager::getAll()['id']);
-	}
-
-	if (!isset(RequestManager::getAll()['duplicate'])) {
-	} else {
-		$rBouquetArr = BouquetService::getById(RequestManager::getAll()['duplicate']);
-		$rBouquetArr['bouquet_name'] .= ' - Copy';
-		unset($rBouquetArr['id']);
-	}
-
-	$rSeriesNames = $rNames = array();
-
-	if (!isset($rBouquetArr)) {
-	} else {
-		$rBouquetChannels = json_decode($rBouquetArr['bouquet_channels'], true);
-		$rBouquetMovies = json_decode($rBouquetArr['bouquet_movies'], true);
-		$rBouquetRadios = json_decode($rBouquetArr['bouquet_radios'], true);
-		$rBouquetSeries = json_decode($rBouquetArr['bouquet_series'], true);
-		$rRequiredIDs = AdminHelpers::confirmIDs(array_merge($rBouquetChannels, $rBouquetMovies, $rBouquetRadios));
-
-		if (0 >= count($rRequiredIDs)) {
-		} else {
-			$db->query('SELECT `id`, `stream_display_name` FROM `streams` WHERE `id` IN (' . implode(',', $rRequiredIDs) . ');');
-
-			foreach ($db->get_rows() as $rRow) {
-				$rNames[$rRow['id']] = $rRow['stream_display_name'];
-			}
-		}
-
-		if (0 >= count($rBouquetSeries)) {
-		} else {
-			$db->query('SELECT `id`, `title` FROM `streams_series` WHERE `id` IN (' . implode(',', $rBouquetSeries) . ');');
-
-			foreach ($db->get_rows() as $rRow) {
-				$rSeriesNames[$rRow['id']] = $rRow['title'];
-			}
-		}
-	}
-
-	$_TITLE = 'Bouquets';
-	require_once __DIR__ . '/../layouts/admin.php';
-	renderUnifiedLayoutHeader('admin');
-endif; // !$__viewMode
 echo '<div class="wrapper boxed-layout"';
 
 if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {

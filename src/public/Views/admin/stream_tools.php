@@ -1,17 +1,3 @@
-<?php if (!isset($__viewMode)): ?>
-<?php
-
-    include 'session.php';
-    include 'functions.php';
-
-    if (!PageAuthorization::checkPermissions()) {
-        AdminHelpers::goHome();
-    }
-
-    $_TITLE = 'Stream Tools';
-    require_once __DIR__ . '/../layouts/admin.php';
-    renderUnifiedLayoutHeader('admin');
-endif;
 ?>
 <div class="wrapper boxed-layout"
     <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {

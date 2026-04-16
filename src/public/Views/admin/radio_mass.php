@@ -1,24 +1,3 @@
-<?php if (!isset($__viewMode)): ?>
-<?php
-
-    include 'session.php';
-    include 'functions.php';
-
-    if (PageAuthorization::checkPermissions()) {
-    } else {
-        AdminHelpers::goHome();
-    }
-
-    $rCategories = CategoryService::getAllByType('radio');
-    $rServerTree = array(array('id' => 'source', 'parent' => '#', 'text' => "<strong class='btn btn-success waves-effect waves-light btn-xs'>Active</strong>", 'icon' => 'mdi mdi-play', 'state' => array('opened' => true)), array('id' => 'offline', 'parent' => '#', 'text' => "<strong class='btn btn-secondary waves-effect waves-light btn-xs'>Offline</strong>", 'icon' => 'mdi mdi-stop', 'state' => array('opened' => true)));
-
-    foreach ($rServers as $rServer) {
-        $rServerTree[] = array('id' => $rServer['id'], 'parent' => 'offline', 'text' => $rServer['server_name'], 'icon' => 'mdi mdi-server-network', 'state' => array('opened' => true));
-    }
-    $_TITLE = 'Mass Edit Stations';
-    require_once __DIR__ . '/../layouts/admin.php';
-    renderUnifiedLayoutHeader('admin');
-endif;
 ?>
 <div class="wrapper boxed-layout-xl" <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
                                         } else { ?> style="display: none;" <?php } ?>>

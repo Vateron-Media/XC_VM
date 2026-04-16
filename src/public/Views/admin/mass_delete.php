@@ -1,19 +1,3 @@
-<?php if (!isset($__viewMode)): ?>
-    <?php
-
-    include 'session.php';
-    include 'functions.php';
-
-    if (!PageAuthorization::checkPermissions()) {
-        AdminHelpers::goHome();
-    }
-
-    set_time_limit(0);
-    ini_set('max_execution_time', 0);
-    $_TITLE = 'Mass Delete';
-    require_once __DIR__ . '/../layouts/admin.php';
-    renderUnifiedLayoutHeader('admin'); ?>
-<?php endif; ?>
 <div class="wrapper boxed-layout-xl" <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest'): ?><?php else: ?> style="display: none;" <?php endif; ?>>
     <div class="container-fluid">
         <div class="row">

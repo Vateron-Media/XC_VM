@@ -1,22 +1,3 @@
-<?php if (!isset($__viewMode)): ?>
-<?php
-
-    include 'session.php';
-    include 'functions.php';
-
-    if (!PageAuthorization::checkPermissions()) {
-        AdminHelpers::goHome();
-    }
-
-    if (!isset(RequestManager::getAll()['server']) || !isset($rServers[RequestManager::getAll()['server']])) {
-        RequestManager::update('server', SERVER_ID);
-    }
-
-    $rRTMPInfo = ServerRepository::getRTMPStats(RequestManager::getAll()['server']);
-    $_TITLE = 'RTMP Monitor';
-    require_once __DIR__ . '/../layouts/admin.php';
-    renderUnifiedLayoutHeader('admin');
-endif;
 ?>
 
 <div class="wrapper"

@@ -1,27 +1,3 @@
-<?php if (!isset($__viewMode)): ?>
-	<?php
-	include 'session.php';
-	include 'functions.php';
-
-	if (PageAuthorization::checkPermissions()) {
-	} else {
-		AdminHelpers::goHome();
-	}
-
-	if (!isset(RequestManager::getAll()['id'])) {
-	} else {
-		$rCategoryArr = CategoryService::getById(RequestManager::getAll()['id']);
-
-		if ($rCategoryArr && Authorization::check('adv', 'edit_cat')) {
-		} else {
-			exit();
-		}
-	}
-
-	$_TITLE = 'Stream Category';
-	require_once __DIR__ . '/../layouts/admin.php';
-	renderUnifiedLayoutHeader('admin'); ?>
-<?php endif; ?>
 <div class="wrapper boxed-layout" <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
 									} else { ?> style="display: none;" <?php } ?>>
 	<div class="container-fluid">

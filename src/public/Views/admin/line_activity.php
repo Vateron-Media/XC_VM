@@ -1,27 +1,3 @@
-<?php if (!isset($__viewMode)):
-
-	include 'session.php';
-	include 'functions.php';
-
-	if (PageAuthorization::checkPermissions()) {
-	} else {
-		AdminHelpers::goHome();
-	}
-
-	if (!isset(RequestManager::getAll()['user_id'])) {
-	} else {
-		$rSearchUser = UserRepository::getLineById(RequestManager::getAll()['user_id']);
-	}
-
-	if (!isset(RequestManager::getAll()['stream_id'])) {
-	} else {
-		$rSearchStream = StreamRepository::getById(RequestManager::getAll()['stream_id']);
-	}
-
-	$_TITLE = 'Activity Logs';
-	require_once __DIR__ . '/../layouts/admin.php';
-	renderUnifiedLayoutHeader('admin');
-endif;
 ?>
 
 <div class="wrapper" <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {

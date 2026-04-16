@@ -1,18 +1,3 @@
-<?php if (!isset($__viewMode)): ?>
-	<?php
-	include 'session.php';
-	include 'functions.php';
-
-	if (!PageAuthorization::checkPermissions()) {
-		AdminHelpers::goHome();
-		exit;
-	}
-
-	$_TITLE = 'MAG Devices';
-	require_once __DIR__ . '/../layouts/admin.php';
-	renderUnifiedLayoutHeader('admin');
-	?>
-<?php endif; ?>
 <div class="wrapper" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') echo 'style="display: none;"'; ?>>
 	<div class="container-fluid">
 		<div class="row">

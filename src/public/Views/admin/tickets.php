@@ -1,19 +1,3 @@
-<?php
-if (!isset($__viewMode)):
-
-	include 'session.php';
-	include 'functions.php';
-
-	if (!PageAuthorization::checkPermissions()) {
-		AdminHelpers::goHome();
-	}
-
-	$rStatusArray = array('CLOSED', 'OPEN', 'RESPONDED TO', 'READ BY USER', 'NEW RESPONSE', 'READ BY ME', 'READ BY USER');
-	$_TITLE = 'Tickets';
-	require_once __DIR__ . '/../layouts/admin.php';
-	renderUnifiedLayoutHeader('admin');
-endif; // !$__viewMode
-
 echo '<div class="wrapper"';
 
 if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {

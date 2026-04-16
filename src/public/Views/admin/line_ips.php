@@ -1,18 +1,3 @@
-<?php if (!isset($__viewMode)):
-
-	include 'session.php';
-	include 'functions.php';
-
-	if (!PageAuthorization::checkPermissions()) {
-		AdminHelpers::goHome();
-	}
-
-	$rRange = (intval(RequestManager::getAll()['range']) ?: 0);
-	$rLineIPs = (igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'lines_per_ip')) ?: array());
-	$_TITLE = 'Line IP Usage';
-	require_once __DIR__ . '/../layouts/admin.php';
-	renderUnifiedLayoutHeader('admin');
-endif;
 ?>
 
 <div class="wrapper boxed-layout-ext" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {

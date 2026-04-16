@@ -1,33 +1,3 @@
-<?php if (!isset($__viewMode)): ?>
-	<?php
-
-	include 'session.php';
-	include 'functions.php';
-
-	if (!PageAuthorization::checkPermissions()) {
-		AdminHelpers::goHome();
-		exit; // Ensure script execution stops if permissions are not met
-	}
-
-	$rCategories = CategoryService::getAllByType('movie');
-	$rAudioCodecs = $rVideoCodecs = array();
-
-	$db->query('SELECT DISTINCT(`audio_codec`) FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `audio_codec` IS NOT NULL AND `type` = 2 ORDER BY `audio_codec` ASC;');
-	foreach ($db->get_rows() as $rRow) {
-		$rAudioCodecs[] = $rRow['audio_codec'];
-	}
-
-	$db->query('SELECT DISTINCT(`video_codec`) FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `video_codec` IS NOT NULL AND `type` = 2 ORDER BY `video_codec` ASC;');
-	foreach ($db->get_rows() as $rRow) {
-		$rVideoCodecs[] = $rRow['video_codec'];
-	}
-
-	$_TITLE = 'Movies';
-	require_once __DIR__ . '/../layouts/admin.php';
-	renderUnifiedLayoutHeader('admin');
-	?>
-<?php endif; ?>
-
 <div class="wrapper" <?php if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') echo 'style="display: none;"'; ?>>
 	<div class="container-fluid">
 		<div class="row">

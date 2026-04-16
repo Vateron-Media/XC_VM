@@ -1,19 +1,3 @@
-<?php if (!isset($__viewMode)): ?>
-	<?php
-	include 'session.php';
-	include 'functions.php';
-
-	// Check permissions
-	if (!PageAuthorization::checkPermissions()) {
-		AdminHelpers::goHome();
-	}
-
-	$_TITLE = 'Users';
-	require_once __DIR__ . '/../layouts/admin.php';
-	renderUnifiedLayoutHeader('admin');
-	?>
-<?php endif; ?>
-
 <div class="wrapper" <?= (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') ? '' : 'style="display: none;"' ?>>
 	<div class="container-fluid">
 		<div class="row">
