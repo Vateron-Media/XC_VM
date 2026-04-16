@@ -103,7 +103,8 @@ class CertbotCommand implements CommandInterface {
 								$rError = 0;
 							}
 						} else {
-							if (stripos(implode("\n", $rOutput), 'cert not yet due for renewal') !== false) {
+							$rOutBlob = implode("\n", $rOutput);
+							if (stripos($rOutBlob, 'not yet due for renewal') !== false) {
 								echo 'Warning: Certificate not due for renewal!' . "\n";
 								$rError = 1;
 							} else {
