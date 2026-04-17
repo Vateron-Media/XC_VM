@@ -33,6 +33,7 @@
   - [⚙️ Process Management Patterns](en-us/development/process-management.md)
   - [🎚 Development Feature Flags](en-us/development/feature-flags.md)
   - [🩺 Diagnostics Service](en-us/development/diagnostics-api.md)
+  - [🧪 PHPUnit PHAR Setup](en-us/development/phpunit-phar.md)
 
 - 📦 **Additional**
   - [🎬 Watchfolder](en-us/info/watch_folder.md)
