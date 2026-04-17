@@ -1,7 +1,6 @@
-# Architecture Overview (EN)
+# Architecture Overview
 
-> Sync-ID: `architecture-sync-2026-04-17`
-> Language: English
+
 > Canonical runtime details: [ARCHITECTURE.md](../../../ARCHITECTURE.md)
 > Current migration roadmap: [MIGRATION.md](../../../MIGRATION.md)
 
