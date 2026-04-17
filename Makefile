@@ -18,7 +18,7 @@ EXCLUDES := \
 # Directories to copy from MAIN to LB
 # NOTE: modules/ is intentionally excluded — all modules are MAIN-only.
 # Modules: tmdb, plex, watch, ministra, fingerprint, theft-detection, magscan
-LB_DIRS := bin cli config content core domain includes \
+LB_DIRS := bin cli config content core domain \
 	infrastructure public resources signals streaming tmp www
 
 # Root-level files to copy from MAIN to LB (not inside directories)
@@ -29,8 +29,6 @@ LB_DIRS_TO_REMOVE := \
 	bin/install \
 	bin/redis \
 	bin/nginx/conf/codes \
-	includes/api \
-	includes/libs/resources \
 	domain/User \
 	domain/Device \
 	domain/Auth \

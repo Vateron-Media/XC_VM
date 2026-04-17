@@ -63,7 +63,7 @@ MAIN-сборка содержит **всю** директорию `src/` цел
 
 ```
 bin/        cli/        config/     content/    core/
-domain/     includes/   infrastructure/         resources/
+domain/     infrastructure/         public/     resources/
 signals/    streaming/  tmp/        www/
 ```
 
@@ -79,9 +79,12 @@ signals/    streaming/  tmp/        www/
 | `bin/install/` | Скрипты установки (не нужны на LB) |
 | `bin/redis/` | Бинарник Redis (LB не запускает свой Redis) |
 | `bin/nginx/conf/codes/` | Страницы кодов ошибок (админ UI) |
-| `resources/langs/` | Языковые ресурсы |
-| `includes/api/` | Маршруты админ API |
-| `includes/libs/resources/` | Библиотеки ресурсов админки |
+| `public/Controllers/Admin/` | Контроллеры админ-панели |
+| `public/Controllers/Player/` | Контроллеры player-панели |
+| `public/Controllers/Reseller/` | Контроллеры reseller-панели |
+| `public/Views/` | Шаблоны панелей |
+| `public/assets/` | Статические ресурсы панелей |
+| `public/routes/` | Карты маршрутов панелей |
 | `domain/User/` | Управление пользователями |
 | `domain/Device/` | Регистрация устройств |
 | `domain/Auth/` | Авторизация (панельная) |
@@ -91,11 +94,14 @@ signals/    streaming/  tmp/        www/
 **Удаляемые файлы:**
 | Файл | Причина |
 |---|---|
-| `includes/admin.php`, `includes/admin_api.php` | Логика админ-панели |
-| `includes/reseller_api.php` | API реселлеров |
+| `public/Controllers/Api/AdminApiController.php` | Полный admin API удалён из LB |
+| `public/Controllers/Api/ResellerRestApiController.php` | Reseller API удалён из LB |
+| `infrastructure/legacy/reseller_api.php` | Legacy bootstrap reseller API не нужен на LB |
 | `www/xplugin.php`, `www/probe.php`, `www/playlist.php` | Эндпоинты админки |
 | `www/player_api.php`, `www/epg.php`, `www/enigma2.php` | Клиентское API (обслуживается MAIN) |
+| `www/stream/auth.php` | Auth-эндпоинт удаляется из LB-пакета |
 | `www/admin/api.php`, `www/admin/proxy_api.php` | Админ API |
+| `bin/maxmind/GeoLite2-City.mmdb` | GeoIP-база поставляется отдельно |
 | `config/rclone.conf` | Конфиг бэкапов |
 | `domain/Epg/EPG.php` | Класс обработки EPG |
 | `bin/nginx/conf/gzip.conf` | Gzip-конфиг (LB использует свой) |
@@ -194,9 +200,10 @@ if (file_exists(__DIR__ . '/cli/Commands/CacheHandlerCommand.php')) {
 LB-серверы сохраняют полный стриминг-пайплайн:
 
 ```
-www/stream.php
+www/stream/*.php
+  ├── www/stream/init.php
   ├── autoload.php
-  ├── bootstrap.php (CONTEXT_STREAM)
+  ├── bootstrap.php (облегчённый stream/bootstrap path)
   ├── core/* (Config, Database, Cache, Auth, Http, Logging, Util)
   ├── domain/Stream, domain/Server, domain/Vod, domain/Bouquet
   ├── streaming/* (Auth, Delivery, Codec, Protection)

@@ -63,7 +63,7 @@ Only these directories are copied into the LB archive:
 
 ```
 bin/        cli/        config/     content/    core/
-domain/     includes/   infrastructure/         resources/
+domain/     infrastructure/         public/     resources/
 signals/    streaming/  tmp/        www/
 ```
 
@@ -79,9 +79,12 @@ After copying, admin-specific content is **removed** from the LB build:
 | `bin/install/` | Installer scripts (not needed on LB) |
 | `bin/redis/` | Redis binary (LB doesn't run its own Redis) |
 | `bin/nginx/conf/codes/` | Error code pages (admin UI) |
-| `resources/langs/` | Admin UI language files |
-| `includes/api/` | Admin API routes |
-| `includes/libs/resources/` | Admin resource libraries |
+| `public/Controllers/Admin/` | Admin panel controllers |
+| `public/Controllers/Player/` | Player panel controllers |
+| `public/Controllers/Reseller/` | Reseller panel controllers |
+| `public/Views/` | Panel templates |
+| `public/assets/` | Panel static assets |
+| `public/routes/` | Panel route maps |
 | `domain/User/` | User management |
 | `domain/Device/` | Device registration |
 | `domain/Auth/` | Auth management (panel auth) |
@@ -91,11 +94,14 @@ After copying, admin-specific content is **removed** from the LB build:
 **Files removed:**
 | File | Reason |
 |---|---|
-| `includes/admin.php`, `includes/admin_api.php` | Admin panel logic |
-| `includes/reseller_api.php` | Reseller API |
+| `public/Controllers/Api/AdminApiController.php` | Full admin API removed from LB |
+| `public/Controllers/Api/ResellerRestApiController.php` | Reseller API removed from LB |
+| `infrastructure/legacy/reseller_api.php` | Legacy reseller API bootstrap not needed on LB |
 | `www/xplugin.php`, `www/probe.php`, `www/playlist.php` | Admin endpoints |
 | `www/player_api.php`, `www/epg.php`, `www/enigma2.php` | Client API endpoints (served by MAIN) |
+| `www/stream/auth.php` | Auth endpoint removed from LB package |
 | `www/admin/api.php`, `www/admin/proxy_api.php` | Admin API |
+| `bin/maxmind/GeoLite2-City.mmdb` | GeoIP DB shipped separately |
 | `config/rclone.conf` | Backup config |
 | `domain/Epg/EPG.php` | EPG processing class |
 | `bin/nginx/conf/gzip.conf` | Gzip config (LB uses own) |
@@ -194,9 +200,10 @@ This prevents crashes when LB attempts to register a command whose file was remo
 LB servers retain the full streaming pipeline:
 
 ```
-www/stream.php
+www/stream/*.php
+  ├── www/stream/init.php
   ├── autoload.php
-  ├── bootstrap.php (CONTEXT_STREAM)
+  ├── bootstrap.php (lightweight stream/bootstrap path)
   ├── core/* (Config, Database, Cache, Auth, Http, Logging, Util)
   ├── domain/Stream, domain/Server, domain/Vod, domain/Bouquet
   ├── streaming/* (Auth, Delivery, Codec, Protection)
