@@ -424,6 +424,23 @@ Residual legacy code moved from removed `includes/`:
 
 `nginx -> www/stream/{endpoint}.php -> www/stream/init.php -> StreamingBootstrap::bootstrap() -> streaming/* + global-state helpers`
 
+### 3.10. What the DEVELOPMENT flag is for
+
+`DEVELOPMENT` is defined in `src/core/Config/AppConfig.php` and currently acts as a feature flag for dev-only behavior.
+
+What it actually changes in code:
+
+1. Grants access to the built-in DB admin tool in panel UI (`public/Views/admin/database.php`). With `DEVELOPMENT=false`, that page immediately redirects to home.
+2. Shows the `database` tab in settings only when `DEVELOPMENT=true` (`public/Views/admin/settings.php`).
+3. In certbot cron, panel logs are submitted via `DiagnosticsService::submitPanelLogs(...)` only when `DEVELOPMENT=false`; this step is skipped in dev mode (`src/cli/CronJobs/CertbotCronJob.php`).
+
+Practical rule:
+
+- `DEVELOPMENT=true` - local development and debugging.
+- `DEVELOPMENT=false` - production/release builds.
+
+Note: in `AppConfig.php` this flag is marked as temporary (`planned for removal`), so its behavior should eventually be replaced by more explicit flags (for example, dedicated `PHP_ERRORS`/debug config).
+
 ---
 
 ## 4. Module System
