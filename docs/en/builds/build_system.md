@@ -1,22 +1,19 @@
-<h1 align="center">📦 XC_VM — Build System (MAIN vs LB)</h1>
+# 📦 XC_VM Build System (MAIN vs LB)
 
-<p align="center">
-  How XC_VM produces two build variants from a single codebase:<br>
-  a full MAIN server and a lightweight Load Balancer (LB) server.
-</p>
+How XC_VM produces two build variants from a single codebase: a full MAIN server and a lightweight Load Balancer (LB) server.
 
 ---
 
 ## 📚 Navigation
 
-* [🏗 Build Variants](#build-variants)
-* [⚙️ Makefile Targets](#makefile-targets)
-* [📂 What Goes Into Each Build](#what-goes-into-each-build)
-* [🔀 MAIN vs LB — Key Differences](#main-vs-lb--key-differences)
-* [🌐 LB Nginx Configuration](#lb-nginx-configuration)
-* [🔧 Runtime Behavior on LB](#runtime-behavior-on-lb)
-* [➕ Adding New Code to Builds](#adding-new-code-to-builds)
-* [✅ Build Verification](#build-verification)
+- 🏗 Build Variants
+- ⚙️ Makefile Targets
+- 📂 What Goes Into Each Build
+- 🔀 MAIN vs LB - Key Differences
+- 🌐 LB Nginx Configuration
+- 🔧 Runtime Behavior on LB
+- ➕ Adding New Code to Builds
+- ✅ Build Verification
 
 ---
 
@@ -25,7 +22,7 @@
 XC_VM supports two deployment roles from a single source tree:
 
 | Variant | Archive | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | **MAIN** | `xc_vm.tar.gz` | Full application — admin panel, streaming, all modules, cron jobs |
 | **LB** (Load Balancer) | `loadbalancer.tar.gz` | Streaming-only server — no admin panel, no user management |
 
@@ -38,7 +35,7 @@ XC_VM supports two deployment roles from a single source tree:
 ## ⚙️ Makefile Targets
 
 | Target | Output | Description |
-|---|---|---|
+| --- | --- | --- |
 | `make main` | `dist/xc_vm.tar.gz` | Full MAIN build |
 | `make lb` | `dist/loadbalancer.tar.gz` | LB build (streaming-only subset) |
 | `make main_update` | `dist/update.tar.gz` | Incremental MAIN update |
@@ -46,6 +43,7 @@ XC_VM supports two deployment roles from a single source tree:
 | `make new` | Both full builds | Shortcut: `main` + `lb` |
 
 Additional outputs:
+
 - `XC_VM.zip` — installer package (`install/` + `xc_vm.tar.gz`)
 - `hashes.md5` — MD5 checksums for integrity verification
 
@@ -61,7 +59,7 @@ The MAIN build contains the **entire** `src/` directory.
 
 Only these directories are copied into the LB archive:
 
-```
+```text
 bin/        cli/        config/     content/    core/
 domain/     infrastructure/         public/     resources/
 signals/    streaming/  tmp/        www/
@@ -74,8 +72,9 @@ Plus root files: `autoload.php`, `bootstrap.php`, `console.php`, `service`, `sta
 After copying, admin-specific content is **removed** from the LB build:
 
 **Directories removed:**
+
 | Path | Reason |
-|---|---|
+| --- | --- |
 | `bin/install/` | Installer scripts (not needed on LB) |
 | `bin/redis/` | Redis binary (LB doesn't run its own Redis) |
 | `bin/nginx/conf/codes/` | Error code pages (admin UI) |
@@ -92,8 +91,9 @@ After copying, admin-specific content is **removed** from the LB build:
 | `resources/libs/` | Admin library resources |
 
 **Files removed:**
+
 | File | Reason |
-|---|---|
+| --- | --- |
 | `public/Controllers/Api/AdminApiController.php` | Full admin API removed from LB |
 | `public/Controllers/Api/ResellerRestApiController.php` | Reseller API removed from LB |
 | `infrastructure/legacy/reseller_api.php` | Legacy reseller API bootstrap not needed on LB |
@@ -107,15 +107,17 @@ After copying, admin-specific content is **removed** from the LB build:
 | `bin/nginx/conf/gzip.conf` | Gzip config (LB uses own) |
 
 **CLI commands removed:**
+
 | File | Reason |
-|---|---|
+| --- | --- |
 | `cli/Commands/MigrateCommand.php` | Migration is MAIN-only |
 | `cli/Commands/CacheHandlerCommand.php` | Cache handler is MAIN-only |
 | `cli/Commands/BalancerCommand.php` | LB installer (not needed on LB itself) |
 
 **Cron jobs removed:**
+
 | File | Reason |
-|---|---|
+| --- | --- |
 | `cli/CronJobs/RootMysqlCronJob.php` | DB maintenance (MAIN-only) |
 | `cli/CronJobs/BackupsCronJob.php` | Backups (MAIN-only) |
 | `cli/CronJobs/CacheEngineCronJob.php` | Full cache rebuild (MAIN-only) |
@@ -131,7 +133,7 @@ After copying, admin-specific content is **removed** from the LB build:
 These files from `lb_configs/` **replace** the MAIN versions:
 
 | Source | Target | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `lb_configs/nginx.conf` | `bin/nginx/conf/nginx.conf` | Performance-tuned nginx for streaming |
 | `lb_configs/live.conf` | `bin/nginx_rtmp/conf/live.conf` | RTMP callback hooks |
 
@@ -140,7 +142,7 @@ These files from `lb_configs/` **replace** the MAIN versions:
 ## 🔀 MAIN vs LB — Key Differences
 
 | Aspect | MAIN | LB |
-|---|---|---|
+| --- | --- | --- |
 | Admin panel | ✅ Full UI | ❌ Not included |
 | Database role | Read + Write | Read-only consumer |
 | User/device management | ✅ | ❌ |
@@ -161,7 +163,7 @@ These files from `lb_configs/` **replace** the MAIN versions:
 The LB build uses a specialized nginx config optimized for high-throughput streaming:
 
 | Setting | Value | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | Worker processes | `auto` | Scale to CPU cores |
 | Worker connections | 16,000 | High concurrency per worker |
 | Max file descriptors | 300,000 | System resource limit |
@@ -199,7 +201,7 @@ This prevents crashes when LB attempts to register a command whose file was remo
 
 LB servers retain the full streaming pipeline:
 
-```
+```text
 www/stream/*.php
   ├── www/stream/init.php
   ├── autoload.php

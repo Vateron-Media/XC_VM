@@ -1,21 +1,19 @@
-<h1 align="center">Generating SSL Certificate for Nginx in XC_VM</h1>
+# 🔒 Generating SSL Certificate for Nginx in XC_VM
 
-<p align="center">
-  This guide explains how to <b>create a self-signed SSL certificate</b> to enable secure HTTPS connections for the built-in Nginx server in the <b>XC_VM</b> project.
-</p>
+This guide explains how to create a self-signed SSL certificate to enable secure HTTPS connections for the built-in Nginx server in the XC_VM project.
 
 ---
 
 ## Navigation
 
-* [Introduction](#introduction)
-* [Configuration Location](#configuration-location)
-* [Step 1. Generate Private Key](#step-1-generate-private-key)
-* [Step 2. Create server.cnf Configuration File](#step-2-create-servercnf-configuration-file)
-* [Step 3. Generate Self-Signed SSL Certificate](#step-3-generate-self-signed-ssl-certificate)
-* [Final Files](#final-files)
-* [Result](#result)
-* [Notes](#notes)
+- [Introduction](#introduction)
+- [Configuration Location](#configuration-location)
+- [Step 1. Generate Private Key](#step-1-generate-private-key)
+- [Step 2. Create server.cnf Configuration File](#step-2-create-servercnf-configuration-file)
+- [Step 3. Generate Self-Signed SSL Certificate](#step-3-generate-self-signed-ssl-certificate)
+- [Final Files](#final-files)
+- [Result](#result)
+- [Notes](#notes)
 
 ---
 
@@ -86,15 +84,15 @@ EOF
 
 **Parameter explanation:**
 
-| Field   | Value    | Purpose                          |
-| ------- | -------- | --------------------------------- |
-| `C`     | RU       | Country                           |
-| `ST`    | Moscow   | State/Province                    |
-| `L`     | Moscow   | City/Locality                     |
-| `O`     | XC_VM    | Organization                      |
-| `OU`    | XC_VM    | Organizational Unit               |
-| `CN`    | XC_VM    | Common Name (primary hostname)    |
-| `DNS.1` | XC_VM    | Subject Alternative Name (SAN)    |
+| Field | Value | Purpose |
+| --- | --- | --- |
+| `C` | RU | Country |
+| `ST` | Moscow | State/Province |
+| `L` | Moscow | City/Locality |
+| `O` | XC_VM | Organization |
+| `OU` | XC_VM | Organizational Unit |
+| `CN` | XC_VM | Common Name (primary hostname) |
+| `DNS.1` | XC_VM | Subject Alternative Name (SAN) |
 
 > **Tip:** For real domain names, replace `DNS.1 = XC_VM` with your actual domain (e.g., `DNS.1 = panel.example.com`) to avoid browser warnings.
 
@@ -110,10 +108,10 @@ openssl req -new -x509 -key server.key -out server.crt -days 3650 -config server
 
 **Explanation:**
 
-* `-new -x509` — creates a new self-signed certificate
-* `-days 3650` — certificate validity period (10 years)
-* `-config server.cnf` — uses the custom configuration
-* Result: `server.crt` file containing the public certificate
+- `-new -x509` — creates a new self-signed certificate
+- `-days 3650` — certificate validity period (10 years)
+- `-config server.cnf` — uses the custom configuration
+- Result: `server.crt` file containing the public certificate
 
 ---
 
@@ -121,11 +119,11 @@ openssl req -new -x509 -key server.key -out server.crt -days 3650 -config server
 
 After completing all steps, the following files should be present in `/home/xc_vm/bin/nginx/conf`:
 
-| File          | Purpose                          |
-| ------------- | --------------------------------- |
-| `server.key`  | Private key                       |
-| `server.crt`  | Self-signed SSL certificate      |
-| `server.cnf`  | Certificate configuration file   |
+| File | Purpose |
+| --- | --- |
+| `server.key` | Private key |
+| `server.crt` | Self-signed SSL certificate |
+| `server.cnf` | Certificate configuration file |
 
 ---
 
@@ -138,10 +136,10 @@ Browsers will display a “not trusted” warning — this is expected behavior 
 
 ## Notes
 
-* Self-signed certificates are suitable **for internal use or testing only**.
-* For public-facing domains, use certificates from trusted CAs (e.g., [Let's Encrypt](https://letsencrypt.org/)).
-* If you change the domain/hostname (`CN` or `DNS.1`), you **must regenerate** the certificate.
-* To inspect the generated certificate:
+- Self-signed certificates are suitable **for internal use or testing only**.
+- For public-facing domains, use certificates from trusted CAs (e.g., [Let's Encrypt](https://letsencrypt.org/)).
+- If you change the domain/hostname (`CN` or `DNS.1`), you **must regenerate** the certificate.
+- To inspect the generated certificate:
 
 ```bash
 openssl x509 -in server.crt -text -noout

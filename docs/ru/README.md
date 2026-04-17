@@ -1,13 +1,8 @@
-<p align="center">
-  <img src="https://avatars.githubusercontent.com/u/149707645?s=400&v=4" width="180" alt="Vateron Media Logo"/>
-</p>
+# 📺 XC_VM IPTV Panel
 
-<h1 align="center">📺 XC_VM IPTV Panel</h1>
+![Vateron Media Logo](https://avatars.githubusercontent.com/u/149707645?s=400&v=4)
 
-<p align="center">
-  A modern, open-source IPTV panel inspired by Xtream Codes.<br>
-  Lightweight. Fast. Community-driven.
-</p>
+Современная open-source IPTV-панель, вдохновленная Xtream Codes. Легкая, быстрая и ориентированная на сообщество.
 
 ---
 
@@ -58,7 +53,7 @@ XC_VM официально поддерживает Ubuntu 22.04 и тестир
 
 XC_VM — полностью управляемый сообществом проект.
 
-- 💬 Issues: https://github.com/Vateron-Media/XC_VM/issues  
+- 💬 [Issues](https://github.com/Vateron-Media/XC_VM/issues)  
 - ⭐ GitHub Stars: поддержите проект звездой  
 - 🔧 Pull Requests: принимаются  
 

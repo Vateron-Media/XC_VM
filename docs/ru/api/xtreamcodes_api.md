@@ -1,8 +1,6 @@
-<h1 align="center">📡 XtreamCodes API</h1>
+# 📡 XtreamCodes API
 
-<p align="center">
-  API предоставляет доступ к IPTV-потокам (Live TV, Радио), VOD (фильмы), сериалам и EPG (телепрограмма) в приложениях, совместимых с XtreamCodes. Это ключевой компонент для интеграции с XC_VM.
-</p>
+API предоставляет доступ к IPTV-потокам (Live TV, Радио), VOD (фильмы), сериалам и EPG (телепрограмма) в приложениях, совместимых с XtreamCodes. Это ключевой компонент для интеграции с XC_VM.
 
 ---
 
@@ -19,23 +17,23 @@
 
 ---
 
-## 📂 Расположение файлов
+## Расположение файлов
 
 Основной API обрабатывается `PlayerApiController`:
 
-```
+```text
 src/public/Controllers/Api/PlayerApiController.php
 ```
 
 ---
 
-## 📑 Содержание
+## Содержание
 
 API разделен на ключевые разделы для удобства интеграции. Каждый эндпоинт описан с примерами запросов и ответов.
 
 ---
 
-## 🔑 Авторизация
+## Авторизация
 
 Авторизация — первый шаг для доступа к контенту. Она подтверждает учетные данные пользователя и возвращает информацию о сервере.
 
@@ -84,7 +82,7 @@ GET /player_api?username={username}&password={password}
 
 ---
 
-## 📺 Live TV (ТВ и Радио)
+## Live TV (ТВ и Радио)
 
 Раздел для работы с живыми трансляциями, включая категории, стримы и EPG.
 
@@ -94,7 +92,7 @@ GET /player_api?username={username}&password={password}
 GET /player_api?username={username}&password={password}&action=get_live_categories
 ```
 
-**Пример ответа**
+#### Пример ответа
 
 ```json
 [
@@ -117,7 +115,7 @@ GET /player_api?username={username}&password={password}&action=get_live_categori
 GET /player_api?username={username}&password={password}&action=get_live_streams
 ```
 
-**Пример ответа**
+#### Пример ответа
 
 ```json
 [
@@ -150,7 +148,7 @@ GET /player_api?username={username}&password={password}&action=get_live_streams&
 GET /player_api?username={username}&password={password}&action=get_short_epg&stream_id={id}&limit={N}
 ```
 
-**Пример ответа**
+#### Пример ответа
 
 ```json
 {
@@ -178,7 +176,7 @@ GET /player_api?username={username}&password={password}&action=get_simple_data_t
 GET /xmltv.php?username={username}&password={password}
 ```
 
-**Пример ответа (XMLTV)**
+#### Пример ответа (XMLTV)
 
 ```xml
 <tv>
@@ -194,7 +192,7 @@ GET /xmltv.php?username={username}&password={password}
 
 ---
 
-## 🎬 VOD (Фильмы)
+## VOD (Фильмы)
 
 Раздел для видео по запросу, включая категории и информацию о фильмах.
 
@@ -204,7 +202,7 @@ GET /xmltv.php?username={username}&password={password}
 GET /player_api?username={username}&password={password}&action=get_vod_categories
 ```
 
-**Пример ответа**
+#### Пример ответа
 
 ```json
 [
@@ -229,7 +227,7 @@ GET /player_api?username={username}&password={password}&action=get_vod_categorie
 GET /player_api?username={username}&password={password}&action=get_vod_streams
 ```
 
-**Пример ответа**
+#### Пример ответа
 
 ```json
 [
@@ -274,7 +272,7 @@ GET /player_api?username={username}&password={password}&action=get_vod_streams&c
 GET /player_api?username={username}&password={password}&action=get_vod_info&vod_id={id}
 ```
 
-**Пример ответа**
+#### Пример ответа
 
 ```json
 {
@@ -325,7 +323,7 @@ GET /player_api?username={username}&password={password}&action=get_vod_info&vod_
 
 ---
 
-## 📽 Сериалы
+## Сериалы
 
 Раздел для работы с сериалами, включая категории, сезоны и эпизоды.
 
@@ -335,7 +333,7 @@ GET /player_api?username={username}&password={password}&action=get_vod_info&vod_
 GET /player_api?username={username}&password={password}&action=get_series_categories
 ```
 
-**Пример ответа**
+#### Пример ответа
 
 ```json
 [
@@ -355,7 +353,7 @@ GET /player_api?username={username}&password={password}&action=get_series_catego
 GET /player_api?username={username}&password={password}&action=get_series
 ```
 
-**Пример ответа**
+#### Пример ответа
 
 ```json
 [
@@ -401,7 +399,7 @@ GET /player_api?username={username}&password={password}&action=get_series&catego
 GET /player_api?username={username}&password={password}&action=get_series_info&series_id={id}
 ```
 
-**Пример ответа**
+#### Пример ответа
 
 ```json
 {
@@ -472,23 +470,23 @@ GET /player_api?username={username}&password={password}&action=get_series_info&s
 
 ---
 
-## 🎞 Получение медиаконтента
+## Получение медиаконтента
 
 Получите прямые ссылки на медиафайлы после авторизации.
 
-* **Live TV (канал):**
+- **Live TV (канал):**
 
 ```http
 http://176.124.192.118/live/{username}/{password}/{stream_id}.ts
 ```
 
-* **Фильм (VOD):**
+- **Фильм (VOD):**
 
 ```http
 http://176.124.192.118/movie/{username}/{password}/{vod_id}.mp4
 ```
 
-* **Серия:**
+- **Серия:**
 
 ```http
 http://176.124.192.118/series/{username}/{password}/{episode_id}.mp4
@@ -498,12 +496,11 @@ http://176.124.192.118/series/{username}/{password}/{episode_id}.mp4
 
 ---
 
-## 🧾 Примечания
+## Примечания
 
 - **Форматы вывода:** Поддерживаются m3u8, ts, rtmp — выбирайте в зависимости от устройства.
 - **Безопасность:** Все запросы требуют авторизации; мониторьте логи на предмет ошибок.
 - **Интеграция:** Для тестирования используйте инструменты вроде Postman. В приложении реализуйте кэширование ответов для оптимизации.
-
 
 > 💬 Если возникнут вопросы по интеграции, создайте issue в [репозитории](https://github.com/Vateron-Media/XC_VM/issues).
 
