@@ -20,6 +20,7 @@
 - 🧰 **Development**
   - [🖥 CLI Tools & DB Migrations](en-us/development/cli-tools.md)
   - [⚙️ Autoloader & Class Registration](en-us/development/autoloader.md)
+  - [🏛 Architecture Overview](en-us/development/architecture.md)
   - [🧩 Module System](en-us/development/modules.md)
   - [📂 Development Workflow (SFTP)](en-us/development/dev-workflow.md)
   - [🌐 Adding a Custom Language](en-us/development/translations.md)
