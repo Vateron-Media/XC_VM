@@ -423,23 +423,6 @@ class StreamRepository {
 
 `nginx -> www/stream/{endpoint}.php -> www/stream/init.php -> StreamingBootstrap::bootstrap() -> streaming/* + global-state helpers`
 
-### 3.10. Для чего нужен флаг DEVELOPMENT
-
-`DEVELOPMENT` объявляется в `src/core/Config/AppConfig.php` и сейчас выполняет роль feature-flag для dev-only поведения.
-
-Что он реально меняет в коде:
-
-1. Разрешает доступ к встроенному DB-админ инструменту в панели (`public/Views/admin/database.php`). При `DEVELOPMENT=false` страница сразу редиректит на главную.
-2. Показывает вкладку `database` в настройках только при `DEVELOPMENT=true` (`public/Views/admin/settings.php`).
-3. В certbot-cron при `DEVELOPMENT=false` отправляются panel logs через `DiagnosticsService::submitPanelLogs(...)`; в dev-режиме этот шаг пропускается (`src/cli/CronJobs/CertbotCronJob.php`).
-
-Практическое правило:
-
-- `DEVELOPMENT=true` — локальная разработка и отладка.
-- `DEVELOPMENT=false` — production/release-сборки.
-
-Примечание: в `AppConfig.php` флаг помечен как временный (`planned for removal`), то есть в будущем его поведение должно быть заменено более явными флагами (например, через отдельный `PHP_ERRORS`/debug-конфиг).
-
 ---
 
 ## 4. Система модулей

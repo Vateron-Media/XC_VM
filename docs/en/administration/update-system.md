@@ -1,21 +1,18 @@
-<h1 align="center">Update Mechanism in XC_VM</h1>
+# ⚙️ Update Mechanism in XC_VM
 
-<p align="center">
-  The <b>XC_VM</b> update system is implemented as a multi-layered process — from the web interface to system-level scripts.  
-  This approach ensures <b>reliability, automation, and data integrity</b> during panel updates.
-</p>
+The XC_VM update system is implemented as a multi-layered process, from the web interface to system-level scripts. This approach ensures reliability, automation, and data integrity during panel updates.
 
 ---
 
 ## Navigation
 
-* [1. Update Initiation](#1-update-initiation)
-* [2. CRON Trigger](#2-cron-trigger)
-* [3. Update Management (PHP Layer)](#3-update-management-php-layer)
-* [4. System-Level Update (Python Layer)](#4-system-level-update-python-layer)
-* [5. Update Completion](#5-update-completion)
-* [6. Full Workflow Diagram](#6-full-workflow-diagram)
-* [Key Features](#key-features)
+- [1. Update Initiation](#1-update-initiation)
+- [2. CRON Trigger](#2-cron-trigger)
+- [3. Update Management (PHP Layer)](#3-update-management-php-layer)
+- [4. System-Level Update (Python Layer)](#4-system-level-update-python-layer)
+- [5. Update Completion](#5-update-completion)
+- [6. Full Workflow Diagram](#6-full-workflow-diagram)
+- [Key Features](#key-features)
 
 ---
 
@@ -23,8 +20,8 @@
 
 The process begins when the administrator clicks the **"Update"** button in the web interface.
 
-* A signal named `update` is inserted into the `signals` table in the database.
-* This signal acts as a **trigger** for the entire update procedure.
+- A signal named `update` is inserted into the `signals` table in the database.
+- This signal acts as a **trigger** for the entire update procedure.
 
 ---
 
@@ -41,6 +38,7 @@ When it detects an `update` signal, it launches:
 
 ```bash
 /home/xc_vm/console.php update update
+```
 
 ---
 
@@ -48,7 +46,7 @@ When it detects an `update` signal, it launches:
 
 Core logic resides in the `UpdateCommand` class:
 
-```
+```text
 src/cli/Commands/UpdateCommand.php
 ```
 
@@ -56,8 +54,8 @@ At this stage the following actions are performed:
 
 1. Detect the **current panel type** (`MAIN` or `LB`).
 2. Fetch update metadata from **GitHub**:
-   * Direct link to the update archive.
-   * SHA checksum for integrity verification.
+   - Direct link to the update archive.
+   - SHA checksum for integrity verification.
 3. Download the archive to a temporary directory.
 4. Verify the downloaded file matches the expected hash.
 5. Hand over control to the system-level updater (Python):
@@ -74,7 +72,7 @@ sudo /usr/bin/python3 /home/xc_vm/update "/home/xc_vm/tmp/.update.tar.gz" "HASH"
 
 Control is transferred to the Python script:
 
-```
+```text
 /home/xc_vm/update
 ```
 
@@ -87,6 +85,7 @@ It performs privileged system operations:
    ```bash
    /tmp/xc_vm_update_*/
    ```
+
 4. **Remove excluded directories** from the temp copy — binaries, configs, and user data that must not be overwritten:
 
    `bin/ffmpeg_bin`, `bin/nginx`, `bin/nginx_rtmp`, `bin/php`, `bin/redis`, `bin/install`, `bin/maxmind`, `bin/certbot`, `content`, `backups`, `tmp`, `config`, `signals`
@@ -96,16 +95,19 @@ It performs privileged system operations:
    ```bash
    cp -a /tmp/xc_vm_update_*/. /home/xc_vm/
    ```
+
 6. **Fix ownership**:
 
    ```bash
    chown -R xc_vm:xc_vm /home/xc_vm/
    ```
+
 7. Run post-update tasks:
 
    ```bash
    /home/xc_vm/console.php update post-update
    ```
+
 8. **Restart** the panel in normal operating mode.
 9. **Cleanup** the temporary directory and delete the archive.
 
@@ -125,16 +127,19 @@ Final steps are executed in the `post-update` phase of `UpdateCommand`:
    ```bash
    chown -R xc_vm:xc_vm /home/xc_vm/
    ```
+
 5. Reload systemd daemons:
 
    ```bash
    sudo systemctl daemon-reload
    ```
+
 6. Verify panel status:
 
    ```bash
    sudo /home/xc_vm/console.php status
    ```
+
 7. Mark the update process as complete.
 
 ---
@@ -167,10 +172,10 @@ Final steps are executed in the `post-update` phase of `UpdateCommand`:
 
 ## Key Features
 
-* **Double integrity check** (both PHP and Python layers verify the hash).
-* **Automatic propagation** of updates from MAIN to all Load Balancers.
-* **Cleanup** of deprecated files and permission normalization.
-* **Safe panel restart** after installation.
-* **Flexibility & autonomy** thanks to CRON + signal-based triggering.
+- **Double integrity check** (both PHP and Python layers verify the hash).
+- **Automatic propagation** of updates from MAIN to all Load Balancers.
+- **Cleanup** of deprecated files and permission normalization.
+- **Safe panel restart** after installation.
+- **Flexibility & autonomy** thanks to CRON + signal-based triggering.
 
 ---

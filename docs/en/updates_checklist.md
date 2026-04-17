@@ -1,20 +1,6 @@
-<h1 align="center">✅ XC_VM Release Preparation Checklist</h1>
+# ✅ XC_VM Release Preparation Checklist
 
-<p align="center">
-  Step-by-step guide for preparing and publishing an <b>XC_VM</b> release.
-</p>
-
----
-
-## 📚 Navigation
-
-* [🔢 1. Update Version](#1-update-version)
-* [🧹 2. Deleted Files](#2-deleted-files)
-* [🧪 3. Pre-Release Validation](#3-pre-release-validation)
-* [⚙️ 4. Build Archives](#4-build-archives)
-* [📝 5. Changelog](#5-changelog)
-* [🚀 6. GitHub Release](#6-github-release)
-* [📢 7. Post-Release](#7-post-release)
+Step-by-step guide for preparing and publishing an XC_VM release.
 
 ---
 
@@ -22,7 +8,7 @@
 
 Edit the version constant and disable development mode in:
 
-```
+```text
 src/core/Config/AppConfig.php
 ```
 
@@ -121,7 +107,7 @@ make main
 After building, `dist/` should contain:
 
 | File | Description |
-|------|-------------|
+| --- | --- |
 | `XC_VM.zip` | MAIN installer (install script + xc_vm.tar.gz) |
 | `xc_vm.tar.gz` | MAIN archive (install & update) |
 | `loadbalancer.tar.gz` | LB archive (install & update) |
@@ -174,9 +160,10 @@ The panel fetches this file from the release tag automatically via `GithubReleas
 4. Publish **without attaching files** — GitHub Actions will build and attach them
 
 After publishing, the workflow will automatically:
-* Build all archives + checksums
-* Attach them to the release
-* Send a Telegram notification via `release-notifier.yml`
+
+- Build all archives + checksums
+- Attach them to the release
+- Send a Telegram notification via `release-notifier.yml`
 
 > ✅ Wait for the Actions workflow to finish, then verify all files are downloadable.
 
@@ -184,7 +171,7 @@ After publishing, the workflow will automatically:
 
 ## 📢 7. Post-Release
 
-* [ ] Verify all 4 assets are attached to the release
-* [ ] Run `md5sum -c hashes.md5` on downloaded files
-* [ ] Check Telegram notification was sent
-* [ ] Close related GitHub issues/milestones
+- [ ] Verify all 4 assets are attached to the release
+- [ ] Run `md5sum -c hashes.md5` on downloaded files
+- [ ] Check Telegram notification was sent
+- [ ] Close related GitHub issues/milestones

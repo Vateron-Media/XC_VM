@@ -1,8 +1,6 @@
-<h1 align="center">❓ FAQ — Frequently Asked Questions</h1>
+# ❓ FAQ - Frequently Asked Questions
 
-<p align="center">
-  Here you’ll find answers to the most common questions and issues when working with <b>XC_VM</b>.
-</p>
+Here you will find answers to the most common questions and issues when working with XC_VM.
 
 ---
 
