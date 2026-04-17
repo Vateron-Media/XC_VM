@@ -128,7 +128,7 @@ After building, `dist/` should contain:
 | `hashes.md5` | MD5 checksums |
 
 > The same archive is used for both clean installation and updates.
-> The update script (`src/update`) filters out binary/config directories at runtime using `migrations/update_exclude_dirs.txt` packed inside the archive.
+> The update script (`src/update`) filters out binary/config directories at runtime using the hardcoded `UPDATE_EXCLUDE_DIRS` list inside the Python script itself.
 
 **Verify integrity:**
 

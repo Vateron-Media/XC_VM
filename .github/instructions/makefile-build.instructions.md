@@ -17,13 +17,13 @@ applyTo: "Makefile"
 
 ## Update Architecture
 - A single archive is used for both clean install and update
-- The archive contains `migrations/update_exclude_dirs.txt` — list of dirs to skip during update
+- Dirs skipped during update are defined by the hardcoded `UPDATE_EXCLUDE_DIRS` list inside `src/update`
 - The update script (`src/update`) extracts to /tmp, removes excluded dirs, then copies remaining files over the live installation
 - `migrations/deleted_files.txt` (generated from git diff) lists files removed since last release
 
 ## Key Variables
 - `MAIN_DIR = ./src` — full application source
-- `UPDATE_EXCLUDE_DIRS` — dirs excluded at update runtime (binaries, user data, config)
+- `UPDATE_EXCLUDE_DIRS` — runtime list in `src/update` for dirs excluded during update (binaries, user data, config)
 - `LB_DIRS` — subset of directories included in LoadBalancer build
 - `LB_DIRS_TO_REMOVE` — admin-only paths stripped from LB builds
 
