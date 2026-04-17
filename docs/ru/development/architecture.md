@@ -1,7 +1,6 @@
-# Обзор архитектуры (RU)
+# Обзор архитектуры
 
-> Sync-ID: `architecture-sync-2026-04-17`
-> Язык: русский
+
 > Каноничные детали рантайма: [ARCHITECTURE.md](../../../ARCHITECTURE.md)
 > Актуальный план миграции: [MIGRATION.md](../../../MIGRATION.md)
 
