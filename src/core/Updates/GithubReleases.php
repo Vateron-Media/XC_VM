@@ -496,8 +496,22 @@ class GitHubReleases {
             throw new InvalidArgumentException("Channel must be 'stable' or 'unstable'");
         }
         if ($this->channel !== $channel) {
+            $oldCacheFile = $this->cache_file;
+            $baseCacheFile = preg_replace('/_(stable|unstable)$/', '', $this->cache_file);
+            if (!is_string($baseCacheFile) || $baseCacheFile === '') {
+                $baseCacheFile = $this->cache_file;
+            }
+
             $this->channel = $channel;
-            $this->cache_file = str_replace("_{$this->channel}", '', $this->cache_file) . "_{$channel}";
+
+            // Remove old-channel cache explicitly before switching file path.
+            if (file_exists($oldCacheFile)) {
+                unlink($oldCacheFile);
+            }
+
+            $this->cache_file = $baseCacheFile . "_{$channel}";
+
+            // Ensure target-channel cache is also reset.
             $this->clearCache();
             error_log("Update channel changed to '{$channel}' and cache cleared");
         }
