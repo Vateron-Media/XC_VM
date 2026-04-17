@@ -33,6 +33,7 @@
   - [⚙️ Паттерны управления процессами](ru-ru/development/process-management.md)
   - [🎚 Флаги разработки](ru-ru/development/feature-flags.md)
   - [🩺 Сервис диагностики](ru-ru/development/diagnostics-api.md)
+  - [🧪 Настройка PHPUnit PHAR](ru-ru/development/phpunit-phar.md)
 
 - 📦 **Дополнительно**
   - [🎬 Watchfolder](ru-ru/info/watch_folder.md)
