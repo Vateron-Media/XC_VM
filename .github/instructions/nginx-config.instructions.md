@@ -1,6 +1,6 @@
 ---
 description: "Use when editing nginx configuration files in lb_configs/ or src/infrastructure/nginx/. Covers XC_VM nginx conventions."
-applyTo: "lb_configs/**"
+applyTo: "{lb_configs/**,src/infrastructure/nginx/**}"
 ---
 # Nginx Configuration — XC_VM
 
