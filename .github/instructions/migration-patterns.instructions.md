@@ -62,7 +62,7 @@ class StreamRepository {
 ### Pattern: Extract SQL from presentation
 
 ```php
-// BEFORE (in admin/streams.php):
+// BEFORE (legacy page/template logic):
 global $db;
 $rStreams = $db->query('SELECT * FROM streams;');
 foreach ($rStreams as $rStream) {
@@ -71,8 +71,8 @@ foreach ($rStreams as $rStream) {
 
 // AFTER:
 // In StreamRepository: getAllStreams() method
-// In admin/streams.php: $rStreams = StreamRepository::getAll();
-// HTML stays in the admin file (presentation layer)
+// In Admin controller/View: $rStreams = StreamRepository::getAll();
+// HTML stays in public/Views/admin/* (presentation layer)
 ```
 
 ## Batch Migration Script Pattern
