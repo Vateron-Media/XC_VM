@@ -47,7 +47,7 @@ When editing legacy files that use globals, preserve the pattern. Do NOT refacto
 
 ## File Structure
 - No autoloading via Composer — project uses custom `src/autoload.php`
-- Admin pages: `src/admin/*.php` — mixed PHP/HTML (legacy)
+- Admin pages: `src/public/Views/admin/*.php` — mixed PHP/HTML templates (legacy-compatible)
 - Domain services: `src/domain/{Context}/{ContextService}.php`
 - Core utilities: `src/core/{Subsystem}/*.php`
 
