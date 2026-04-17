@@ -1,8 +1,6 @@
-<h1 align="center">📡 System API (Method Verification Required)</h1>
+# 📡 System API (Method Verification Required)
 
-<p align="center">
- This API provides various system functionalities, including log viewing, video-on-demand (VOD) and stream management, statistics retrieval, background command execution, and more.
-</p>
+This API provides various system functionalities, including log viewing, video-on-demand (VOD) and stream management, statistics retrieval, background command execution, and more.
 
 ---
 
@@ -10,7 +8,7 @@
 
 The System API is handled by the controller:
 
-```
+```text
 src/public/Controllers/Api/AdminApiController.php
 ```
 
@@ -207,5 +205,5 @@ HTTP entry-point: `/api.php` → routed by nginx to `public/index.php` with `XC_
 
 ## Notes
 
-- All requests must be authenticated using the correct API password.
-- Some actions may require additional permissions or may be restricted depending on the server configuration.
+* All requests must be authenticated using the correct API password.
+* Some actions may require additional permissions or may be restricted depending on the server configuration.

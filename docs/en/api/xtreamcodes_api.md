@@ -1,43 +1,40 @@
-<h1 align="center">📡 XtreamCodes API</h1>
+# 📡 XtreamCodes API
 
-<p align="center">
-  The API provides access to IPTV streams (Live TV, Radio), VOD (Movies), Series, and EPG (TV guide) for applications compatible with XtreamCodes.  
-  It is a core component for integration with <b>XC_VM</b>.
-</p>
+The API provides access to IPTV streams (Live TV, Radio), VOD (Movies), Series, and EPG (TV guide) for applications compatible with XtreamCodes. It is a core component for integration with XC_VM.
 
 ---
 
 ## 📚 Navigation
 
-* [📂 File Location](#file-location)
-* [📑 Overview](#overview)
-* [🔑 Authorization](#authorization)
-* [📺 Live TV (TV & Radio)](#live-tv-tv--radio)
-* [🎬 VOD (Movies)](#vod-movies)
-* [📽 Series](#series)
-* [🎞 Media Access](#media-access)
-* [🧾 Notes](#notes)
+- [📂 File Location](#file-location)
+- [📑 Overview](#overview)
+- [🔑 Authorization](#authorization)
+- [📺 Live TV (TV & Radio)](#live-tv-tv--radio)
+- [🎬 VOD (Movies)](#vod-movies)
+- [📽 Series](#series)
+- [🎞 Media Access](#media-access)
+- [🧾 Notes](#notes)
 
 ---
 
-## 📂 File Location
+## File Location
 
 The main API is handled by `PlayerApiController`:
 
-```
+```text
 src/public/Controllers/Api/PlayerApiController.php
 ```
 
 ---
 
-## 📑 Overview
+## Overview
 
 The API is divided into key sections for easier integration.
 Each endpoint includes example requests and responses.
 
 ---
 
-## 🔑 Authorization
+## Authorization
 
 Authorization is the first step to access content.
 It validates user credentials and returns server information.
@@ -87,7 +84,7 @@ GET /player_api?username={username}&password={password}
 
 ---
 
-## 📺 Live TV (TV & Radio)
+## Live TV (TV & Radio)
 
 Endpoints for working with live streams, including categories, streams, and EPG.
 
@@ -97,7 +94,7 @@ Endpoints for working with live streams, including categories, streams, and EPG.
 GET /player_api?username={username}&password={password}&action=get_live_categories
 ```
 
-**Example Response**
+#### Example Response
 
 ```json
 [
@@ -120,7 +117,7 @@ GET /player_api?username={username}&password={password}&action=get_live_categori
 GET /player_api?username={username}&password={password}&action=get_live_streams
 ```
 
-**Example Response**
+#### Example Response
 
 ```json
 [
@@ -153,7 +150,7 @@ GET /player_api?username={username}&password={password}&action=get_live_streams&
 GET /player_api?username={username}&password={password}&action=get_short_epg&stream_id={id}&limit={N}
 ```
 
-**Example Response**
+#### Example Response
 
 ```json
 {
@@ -181,7 +178,7 @@ GET /player_api?username={username}&password={password}&action=get_simple_data_t
 GET /xmltv.php?username={username}&password={password}
 ```
 
-**Example Response (XMLTV)**
+#### Example Response (XMLTV)
 
 ```xml
 <tv>
@@ -197,7 +194,7 @@ GET /xmltv.php?username={username}&password={password}
 
 ---
 
-## 🎬 VOD (Movies)
+## VOD (Movies)
 
 Endpoints for Video on Demand, including categories and movie details.
 
@@ -207,7 +204,7 @@ Endpoints for Video on Demand, including categories and movie details.
 GET /player_api?username={username}&password={password}&action=get_vod_categories
 ```
 
-**Example Response**
+#### Example Response
 
 ```json
 [
@@ -232,7 +229,7 @@ GET /player_api?username={username}&password={password}&action=get_vod_categorie
 GET /player_api?username={username}&password={password}&action=get_vod_streams
 ```
 
-**Example Response**
+#### Example Response
 
 ```json
 [
@@ -275,7 +272,7 @@ GET /player_api?username={username}&password={password}&action=get_vod_streams&c
 GET /player_api?username={username}&password={password}&action=get_vod_info&vod_id={id}
 ```
 
-**Response example**
+#### Response example
 
 ```json
 {
@@ -326,7 +323,7 @@ GET /player_api?username={username}&password={password}&action=get_vod_info&vod_
 
 ---
 
-## 📽 Series
+## Series
 
 Endpoints for managing TV shows, including categories, seasons, and episodes.
 
@@ -336,7 +333,7 @@ Endpoints for managing TV shows, including categories, seasons, and episodes.
 GET /player_api?username={username}&password={password}&action=get_series_categories
 ```
 
-**Response example**
+#### Response example
 
 ```json
 [
@@ -356,7 +353,7 @@ GET /player_api?username={username}&password={password}&action=get_series_catego
 GET /player_api?username={username}&password={password}&action=get_series
 ```
 
-**Example Response**
+#### Example Response
 
 ```json
 [
@@ -402,7 +399,7 @@ GET /player_api?username={username}&password={password}&action=get_series&catego
 GET /player_api?username={username}&password={password}&action=get_series_info&series_id={id}
 ```
 
-**Example Response**
+#### Example Response
 
 ```json
 {
@@ -473,23 +470,23 @@ GET /player_api?username={username}&password={password}&action=get_series_info&s
 
 ---
 
-## 🎞 Media Access
+## Media Access
 
 After authorization, you can access direct links to media files.
 
-* **Live TV (channel):**
+- **Live TV (channel):**
 
 ```http
 http://176.124.192.118/live/{username}/{password}/{stream_id}.ts
 ```
 
-* **Movie (VOD):**
+- **Movie (VOD):**
 
 ```http
 http://176.124.192.118/movie/{username}/{password}/{vod_id}.mp4
 ```
 
-* **Episode:**
+- **Episode:**
 
 ```http
 http://176.124.192.118/series/{username}/{password}/{episode_id}.mp4
@@ -499,11 +496,11 @@ http://176.124.192.118/series/{username}/{password}/{episode_id}.mp4
 
 ---
 
-## 🧾 Notes
+## Notes
 
-* **Output Formats:** Supported formats — `m3u8`, `ts`, `rtmp`. Choose based on your device.
-* **Security:** All requests require valid authorization; monitor logs for access errors.
-* **Integration:** Use tools like Postman for testing.
+- **Output Formats:** Supported formats — `m3u8`, `ts`, `rtmp`. Choose based on your device.
+- **Security:** All requests require valid authorization; monitor logs for access errors.
+- **Integration:** Use tools like Postman for testing.
   Implement response caching in your application for better performance.
 
 > 💬 If you have integration issues, please open an issue in the [repository](https://github.com/Vateron-Media/XC_VM/issues).

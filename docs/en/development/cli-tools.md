@@ -1,25 +1,22 @@
-<h1 align="center">🛠 CLI Tools & Database Migrations</h1>
+# 🛠 CLI Tools & Database Migrations
 
-<p align="center">
-  Reference for XC_VM command-line interface, system tools, and the database migration system.<br>
-  Covers daily operations, emergency access, and creating new DB migrations.
-</p>
+Reference for XC_VM command-line interface, system tools, and the database migration system. Covers daily operations, emergency access, and creating new DB migrations.
 
 ---
 
 ## 📚 Navigation
 
-* [🖥 Console Entry Point](#console-entry-point)
-* [� Full Command Registry](#full-command-registry)
-* [🆕 Registering a New Command](#registering-a-new-command)
-* [🔧 Tools Command](#tools-command)
-* [🗃 Database Migrations](#database-migrations)
-* [📝 Creating a New Migration](#creating-a-new-migration)
-* [⚙️ Common CLI Operations](#common-cli-operations)
+- [🖥 Console Entry Point](#console-entry-point)
+- [📋 Full Command Registry](#full-command-registry)
+- [🆕 Registering a New Command](#registering-a-new-command)
+- [🔧 Tools Command](#tools-command)
+- [🗃 Database Migrations](#database-migrations)
+- [📝 Creating a New Migration](#creating-a-new-migration)
+- [⚙️ Common CLI Operations](#common-cli-operations)
 
 ---
 
-## 🖥 Console Entry Point
+## Console Entry Point
 
 All CLI commands are executed through `console.php`:
 
@@ -30,7 +27,7 @@ All CLI commands are executed through `console.php`:
 The console supports three types of commands:
 
 | Type | Count | Description |
-|---|---|---|
+| --- | --- | --- |
 | **Commands** | 26 | One-time operations (update, status, tools, etc.) |
 | **CronJobs** | 25 | Scheduled tasks (auto-invoked by crontab) |
 | **Daemons** | 8 | Long-running background processes (Commands using `DaemonTrait`) |
@@ -45,16 +42,16 @@ To see all available commands:
 
 ---
 
-## 📋 Full Command Registry
+## Full Command Registry
 
 ### Utility Commands
 
 | Command | Class | Description | User |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `status` | `StatusCommand` | System status, DB migrations, configuration check | root |
 | `update` | `UpdateCommand` | System update (update / post-update) | xc_vm |
 | `service` | `ServiceCommand` | Manage XC_VM service: start, stop, restart, reload | root |
-| `tools` | `ToolsCommand` | Maintenance utilities (see [Tools Command](#tools-command)) | root/xc_vm |
+| `tools` | `ToolsCommand` | Maintenance utilities (see Tools Command section) | root/xc_vm |
 | `certbot` | `CertbotCommand` | Generate SSL certificate via certbot | root |
 | `binaries` | `BinariesCommand` | Update binaries and GeoLite DB from GitHub | xc_vm |
 | `startup` | `StartupCommand` | System initialization: daemons.sh, crontab, cache | root |
@@ -72,7 +69,7 @@ To see all available commands:
 These commands use `DaemonTrait` and run continuously via `while(true)` loops:
 
 | Command | Class | Description |
-|---|---|---|
+| --- | --- | --- |
 | `signals` | `SignalsCommand` | Process kill/cache signals from DB and Redis |
 | `watchdog` | `WatchdogCommand` | System monitoring: CPU, connections, server updates |
 | `queue` | `QueueCommand` | Process background queue tasks |
@@ -82,7 +79,7 @@ These commands use `DaemonTrait` and run continuously via `while(true)` loops:
 ### Stream Processing Commands
 
 | Command | Class | Description |
-|---|---|---|
+| --- | --- | --- |
 | `proxy` | `ProxyCommand` | MPEG-TS stream proxying via sockets |
 | `archive` | `ArchiveCommand` | TV Archive — record stream into segments |
 | `created` | `CreatedCommand` | Created Channel — compose channel from sources |
@@ -97,7 +94,7 @@ These commands use `DaemonTrait` and run continuously via `while(true)` loops:
 All cron job names are prefixed with `cron:`. They use `CronTrait` and are invoked by the system crontab.
 
 | Command | Class | Description |
-|---|---|---|
+| --- | --- | --- |
 | `cron:activity` | `ActivityCronJob` | Import user activity logs into DB |
 | `cron:backups` | `BackupsCronJob` | Manage backups (optional) |
 | `cron:cache` | `CacheCronJob` | Cache management |
@@ -128,7 +125,7 @@ All cron job names are prefixed with `cron:`. They use `CronTrait` and are invok
 
 ---
 
-## 🆕 Registering a New Command
+## Registering a New Command
 
 All CLI commands implement `CommandInterface` and are explicitly registered in `console.php`.
 
@@ -219,7 +216,7 @@ If the command should NOT be included in Load Balancer builds, add its path to `
 
 ---
 
-## 🔧 Tools Command
+## Tools Command
 
 The `tools` command provides system maintenance utilities.
 
@@ -230,7 +227,7 @@ The `tools` command provides system maintenance utilities.
 ### Subcommands (run as `root`)
 
 | Subcommand | Description |
-|---|---|
+| --- | --- |
 | `rescue` | Create a temporary rescue access code for emergency panel access. Prints the URL. **Delete this code after use!** |
 | `access` | Regenerate all nginx access code configs and reload nginx. Prints URLs for all admin panel codes. |
 | `ports` | Regenerate nginx port configs (HTTP, HTTPS, RTMP) from the database and reload nginx. |
@@ -243,7 +240,7 @@ The `tools` command provides system maintenance utilities.
 ### Subcommands (run as `xc_vm`)
 
 | Subcommand | Description |
-|---|---|
+| --- | --- |
 | `images` | Download missing stream/movie/series images from TMDB. Scans DB for image URLs and downloads missing files. |
 | `duplicates` | Find and remove duplicate VOD streams. Groups by identical source, keeps first, deletes rest. **Destructive!** |
 | `bouquets` | Clean stale references from bouquets. Removes IDs that no longer exist in the database. |
@@ -288,39 +285,34 @@ su - xc_vm -c '/home/xc_vm/console.php tools duplicates'
 su - xc_vm -c '/home/xc_vm/console.php tools bouquets'
 ```
 
-> ⚠️ **Warning:** `duplicates` permanently deletes streams and all associated data (logs, stats, episodes, recordings). Always back up before running.
-
-> ⚠️ **Warning:** `database --confirm` erases the entire database and replaces it with a blank schema. This is irreversible.
-
-> 💡 **Tip:** After running `rescue`, always delete the code through the admin panel or by running `tools access` once you have regained access.
-
-> 💡 **Tip:** After running `user`, change the password immediately and delete the rescue user when done.
+- ⚠️ **Warning:** `duplicates` permanently deletes streams and all associated data (logs, stats, episodes, recordings). Always back up before running.
+- ⚠️ **Warning:** `database --confirm` erases the entire database and replaces it with a blank schema. This is irreversible.
+- 💡 **Tip:** After running `rescue`, always delete the code through the admin panel or by running `tools access` once you have regained access.
+- 💡 **Tip:** After running `user`, change the password immediately and delete the rescue user when done.
 
 ---
 
-## 🗃 Database Migrations
+## Database Migrations
 
 XC_VM uses a file-based migration system to manage database schema changes between versions. Migrations are executed automatically during updates and system status checks.
 
 ### How It Works
 
-1. Migration files are stored as `.sql` files in:
-   ```
-   /home/xc_vm/migrations/
-   ```
+- Migration files are stored as `.sql` files in `/home/xc_vm/migrations/`.
 
-2. Each file is named with a sequential number prefix:
-   ```
-   001_drop_watch_folders_plex_token.sql
-   002_panel_logs_add_file_env.sql
-   003_drop_settings_segment_type.sql
-   ```
+- Each file is named with a sequential number prefix, for example:
 
-3. Applied migrations are tracked in the `migrations` database table. Each migration runs **exactly once** — if a migration has already been applied, it is skipped.
+```text
+001_drop_watch_folders_plex_token.sql
+002_panel_logs_add_file_env.sql
+003_drop_settings_segment_type.sql
+```
 
-4. Migrations are executed automatically by:
-   - `console.php update post-update` — after a panel update
-   - `console.php status` — during system status check (MAIN server only)
+- Applied migrations are tracked in the `migrations` database table. Each migration runs **exactly once** - if a migration has already been applied, it is skipped.
+
+- Migrations are executed automatically by:
+  - `console.php update post-update` - after a panel update
+  - `console.php status` - during system status check (MAIN server only)
 
 ### Migration Execution Flow
 
@@ -342,7 +334,7 @@ XC_VM uses a file-based migration system to manage database schema changes betwe
 
 ---
 
-## 📝 Creating a New Migration
+## Creating a New Migration
 
 When you need to modify the database schema (add columns, create tables, insert data, etc.), create a new SQL migration file.
 
@@ -350,18 +342,20 @@ When you need to modify the database schema (add columns, create tables, insert 
 
 Use the next sequential number and a descriptive name:
 
-```
+```text
 NNN_short_description.sql
 ```
 
 **Format rules:**
+
 - Number prefix: 3 digits, zero-padded (e.g., `006`, `007`)
 - Separator: underscore `_`
 - Name: lowercase, underscores, describing what the migration does
 - Extension: `.sql`
 
 **Examples:**
-```
+
+```text
 006_add_user_timezone.sql
 007_create_audit_log_table.sql
 008_insert_default_codec_settings.sql
@@ -373,7 +367,7 @@ Place raw SQL statements in the file. Multiple statements are separated by `;`.
 
 **Rules for migration SQL:**
 
-1. **Use `IF EXISTS` / `IF NOT EXISTS`** to make migrations idempotent:
+- **Use `IF EXISTS` / `IF NOT EXISTS`** to make migrations idempotent:
 
 ```sql
 -- Adding a column (safe)
@@ -390,7 +384,7 @@ CREATE TABLE IF NOT EXISTS `audit_log` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 ```
 
-2. **Use conditional `INSERT`** to avoid duplicates:
+- **Use conditional `INSERT`** to avoid duplicates:
 
 ```sql
 INSERT INTO `streams_arguments` (argument_key, argument_name, argument_cmd)
@@ -399,21 +393,21 @@ FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM `streams_arguments` WHERE argument_key = 'my_key');
 ```
 
-3. **Do not mix DDL and DML** that depend on each other in the same file. If you need to add a column and then populate it — use two migration files.
+- **Do not mix DDL and DML** that depend on each other in the same file. If you need to add a column and then populate it, use two migration files.
 
-4. **Comments** are supported with `--` prefix (they are skipped during execution).
+- **Comments** are supported with `--` prefix (they are skipped during execution).
 
 ### Step 3. Place the File
 
 Copy the migration file to:
 
-```
+```text
 /home/xc_vm/migrations/
 ```
 
 > 💡 In the source repository, this is `src/migrations/`.
 
-### Step 4. Test
+### Step 4. Validate Migration
 
 Run the status command to apply pending migrations:
 
@@ -423,7 +417,7 @@ sudo /home/xc_vm/console.php status first-run
 
 Expected output:
 
-```
+```text
 Migrations
 ------------------------------
   [OK]   006_add_user_timezone.sql
@@ -434,7 +428,7 @@ If a statement fails, the migration will still be recorded but show `[WARN]` —
 
 ---
 
-## ⚙️ Common CLI Operations
+## Common CLI Operations
 
 ### Status Check
 

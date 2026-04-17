@@ -1,19 +1,6 @@
-<h1 align="center">📺 Get Playlist</h1>
+# 📺 Get Playlist
 
-<p align="center">
-  This API provides authentication and playlist generation features for <b>XC_VM</b>.  
-  Clients can authenticate using a username/password or token, after which a personalized playlist is generated.
-</p>
-
----
-
-## 📚 Navigation
-
-* [📂 File Location](#file-location)
-* [🔑 Authentication](#authentication)
-* [🚀 Endpoints](#endpoints)
-* [❌ Error Codes](#error-codes)
-* [🧾 Notes](#notes)
+This API provides authentication and playlist generation features for XC_VM. Clients can authenticate using a username/password or token, after which a personalized playlist is generated.
 
 ---
 
@@ -21,7 +8,7 @@
 
 The playlist API is handled by `PlaylistApiController`:
 
-```
+```text
 src/public/Controllers/Api/PlaylistApiController.php
 ```
 
@@ -76,7 +63,7 @@ curl -X GET "http://<your-domain>:80/playlist/token/type&output=hls&key=live"
 
 **Response:**
 
-* Playlist file in the requested format (M3U or HLS).
+- Playlist file in the requested format (M3U or HLS).
 
 ---
 
@@ -108,10 +95,10 @@ If an error occurs, the API returns the corresponding error codes for easier tro
 
 ## 🧾 Notes
 
-* **Query Parameters:** Make sure all parameters are provided correctly to avoid authentication errors.
-* **Restrictions:** The API applies filters by user agent, IP address, and country to enhance security.
-* **Rate Limiting:** Request limits are enforced to prevent server overload.
-* **Recommendations:** Use tools like cURL or Postman for testing. In production, integrate this API into your application for automated playlist generation.
+- **Query Parameters:** Make sure all parameters are provided correctly to avoid authentication errors.
+- **Restrictions:** The API applies filters by user agent, IP address, and country to enhance security.
+- **Rate Limiting:** Request limits are enforced to prevent server overload.
+- **Recommendations:** Use tools like cURL or Postman for testing. In production, integrate this API into your application for automated playlist generation.
 
 > 💬 If you have integration questions, open an issue in the [repository](https://github.com/Vateron-Media/XC_VM/issues).
 

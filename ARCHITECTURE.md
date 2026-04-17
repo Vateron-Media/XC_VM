@@ -3,7 +3,7 @@
 ## Table of Contents
 
 1. [Architectural Style and Principles](#1-architectural-style-and-principles)
-2. [Structure of `/src`](#2-structure-src)
+2. [Structure of src](#2-structure-of-src)
 3. [Component Overview](#3-component-overview)
 4. [Module System](#4-module-system)
 5. [Build Variants: MAIN vs LoadBalancer](#5-build-variants-main-vs-loadbalancer)
@@ -27,7 +27,7 @@ A simple PHP monolith, split by contexts with minimal abstractions.
 
 Each context (Streams, VOD, Lines, Users...) is organized the same way:
 
-```
+```text
 domain/Stream/
   ├── StreamService.php       # Business logic + orchestration
   ├── StreamRepository.php    # SQL queries (SELECT/INSERT/UPDATE/DELETE)
@@ -39,7 +39,7 @@ public/Controllers/Admin/
 
 #### Dependency rules
 
-```
+```text
 Controller  ->  Service  ->  Repository  ->  Database
                   │
                   v
@@ -47,12 +47,14 @@ Controller  ->  Service  ->  Repository  ->  Database
 ```
 
 │ Layer │ Can depend on │ MUST NOT depend on │
-├──-----├──------------------├──-------------------│
-│ `public/` │ `domain/` (Service + Repository), `core/` │ `streaming/`, `modules/` directly │
-│ `domain/` │ `core/` (Database, Cache, Events) │ `public/`, `streaming/`, `modules/`, `infrastructure/` │
-│ `core/` │ Only other `core/` subdirectories │ Everything else │
-│ `streaming/` │ `core/` (subset), `domain/` (read-only queries) │ `public/`, `modules/` │
-│ `modules/` │ `domain/` (Service, Repository), `core/` │ Other modules (without explicit dependency), `public/`, `streaming/` │
+
+| Layer | Can depend on | MUST NOT depend on |
+| --- | --- | --- |
+| `public/` | `domain/` (Service + Repository), `core/` | `streaming/`, `modules/` directly |
+| `domain/` | `core/` (Database, Cache, Events) | `public/`, `streaming/`, `modules/`, `infrastructure/` |
+| `core/` | Only other `core/` subdirectories | Everything else |
+| `streaming/` | `core/` (subset), `domain/` (read-only queries) | `public/`, `modules/` |
+| `modules/` | `domain/` (Service, Repository), `core/` | Other modules (without explicit dependency), `public/`, `streaming/` |
 
 ### 1.2. Constructor Injection - target standard, but not the current global state
 
@@ -95,9 +97,9 @@ A module is a directory with a known contract. It can be removed, and the system
 
 ---
 
-## 2. Structure of `/src`
+## 2. Structure of `src`
 
-```
+```text
 src/
 ├── autoload.php                     # PSR-like autoloader (class map)
 ├── bootstrap.php                    # Unified bootstrap: DI container, config, contexts
@@ -276,6 +278,7 @@ Infrastructure services for any execution context. Does not contain business log
 2. Legacy classes that still work through `global $db`, `global $rSettings`, and procedural helper flows.
 
 **Actual rules at the current stage:**
+
 1. Service/Repository separation exists in many contexts, but is not applied equally strictly in all folders.
 2. Repository is not the only SQL access point: part of Service classes and legacy components execute queries directly.
 3. Source of truth for DB schema is SQL files in `src/migrations/` plus runtime table `migrations`, created by `MigrationRunner`.
@@ -388,6 +391,7 @@ Each module is a directory with `module.json` and a PHP class implementing `Modu
 ### 3.7. `infrastructure/legacy/` - Residual legacy code
 
 Residual legacy code moved from removed `includes/`:
+
 - `resize_body.php` - resize logic for admin
 - `reseller_api.php` - legacy reseller API handler
 - `reseller_api_actions.php` - reseller API actions
@@ -423,23 +427,6 @@ Residual legacy code moved from removed `includes/`:
 #### Streaming endpoints `www/stream/*.php`
 
 `nginx -> www/stream/{endpoint}.php -> www/stream/init.php -> StreamingBootstrap::bootstrap() -> streaming/* + global-state helpers`
-
-### 3.10. What the DEVELOPMENT flag is for
-
-`DEVELOPMENT` is defined in `src/core/Config/AppConfig.php` and currently acts as a feature flag for dev-only behavior.
-
-What it actually changes in code:
-
-1. Grants access to the built-in DB admin tool in panel UI (`public/Views/admin/database.php`). With `DEVELOPMENT=false`, that page immediately redirects to home.
-2. Shows the `database` tab in settings only when `DEVELOPMENT=true` (`public/Views/admin/settings.php`).
-3. In certbot cron, panel logs are submitted via `DiagnosticsService::submitPanelLogs(...)` only when `DEVELOPMENT=false`; this step is skipped in dev mode (`src/cli/CronJobs/CertbotCronJob.php`).
-
-Practical rule:
-
-- `DEVELOPMENT=true` - local development and debugging.
-- `DEVELOPMENT=false` - production/release builds.
-
-Note: in `AppConfig.php` this flag is marked as temporary (`planned for removal`), so its behavior should eventually be replaced by more explicit flags (for example, dedicated `PHP_ERRORS`/debug config).
 
 ---
 
@@ -486,7 +473,7 @@ interface ModuleInterface {
 
 ### 4.3. Isolation rules
 
-```
+```text
 OK - Module MAY:
     - Use services from core/ and domain/
    - Call Service/Repository from domain/
@@ -543,7 +530,7 @@ LB is assembled from the following directories and files (source of truth: `Make
 
 ### 5.4. Package dependency diagram
 
-```
+```text
                     +--------------+
                     │   public/    │   <- HTTP (Controllers, Views, Routes)
                     +------+-------+
@@ -628,7 +615,7 @@ Operation "create stream + start ffmpeg + update nginx" is non-atomic. FFmpeg/ng
 
 ### 6.4. Hot path budget
 
-```
+```text
 Bootstrap:     < 5ms  (autoload + constants + DB)
 Auth:          < 10ms (token + Redis + bruteforce)
 Stream lookup: < 5ms  (Redis cache) │ < 15ms (DB fallback)

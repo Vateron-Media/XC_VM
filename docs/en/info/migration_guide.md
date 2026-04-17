@@ -1,21 +1,19 @@
-<h1 align="center">🧭 XC_VM Migration Guide</h1>
+# 🧭 XC_VM Migration Guide
 
-<p align="center">
-  Safely migrate from compatible IPTV systems using the built-in XC_VM migration tools.
-</p>
+Safely migrate from compatible IPTV systems using the built-in XC_VM migration tools.
 
 ---
 
 ## 📚 Navigation
 
-* [⚠️ Critical Migration Notice](#️-critical-migration-notice)
-* [⚙️ Before You Start](#️-before-you-start)
-* [🚀 Migration Steps](#-migration-steps)
-* [🔑 Restoring Access After Migration](#-restoring-access-after-migration)
-* [🖥️ Load Balancer Preparation](#️-load-balancer-preparation)
-* [🧩 Post-Migration (Required)](#-post-migration-required)
-* [❗ Common Post-Migration Issues](#-common-post-migration-issues)
-* [✅ Summary](#-summary)
+- [⚠️ Critical Migration Notice](#️-critical-migration-notice)
+- [⚙️ Before You Start](#️-before-you-start)
+- [🚀 Migration Steps](#-migration-steps)
+- [🔑 Restoring Access After Migration](#-restoring-access-after-migration)
+- [🖥️ Load Balancer Preparation](#️-load-balancer-preparation)
+- [🧩 Post-Migration (Required)](#-post-migration-required)
+- [❗ Common Post-Migration Issues](#-common-post-migration-issues)
+- [✅ Summary](#-summary)
 
 ---
 
@@ -28,11 +26,11 @@ XC_VM migration transfers **data only**.
 
 This includes (but is not limited to):
 
-* API keys (e.g. **TMDb**)
-* External service credentials
-* Environment-specific settings
-* Panel and system configuration
-* Runtime and stream state
+- API keys (e.g. **TMDb**)
+- External service credentials
+- Environment-specific settings
+- Panel and system configuration
+- Runtime and stream state
 
 These values **must be reconfigured manually after migration**.
 
@@ -45,15 +43,15 @@ Skipping reconfiguration will **break metadata fetching, stream title updates, a
 
 > 💡 **Recommendation:**
 > Perform migration on a **fresh XC_VM installation**.
-
+>
 > ⚠️ **Important:**
 > System and panel settings are **NOT migrated**.
 > Only database data supported by the migration process is transferred.
 
 If you choose to migrate into an **existing installation**, be aware:
 
-* XC_VM will **delete all tables** in the main database that match data from the migration database.
-* **Backups are mandatory.** No automatic rollback is provided.
+- XC_VM will **delete all tables** in the main database that match data from the migration database.
+- **Backups are mandatory.** No automatic rollback is provided.
 
 ---
 
@@ -95,9 +93,9 @@ Once the backup is restored, start the migration using one of the following meth
 
 #### 🌐 Option 2 — Web Installer
 
-* Return to the **web installer** (link shown during panel setup)
-* Select **Migration**
-* Follow the on-screen instructions
+- Return to the **web installer** (link shown during panel setup)
+- Select **Migration**
+- Follow the on-screen instructions
 
 You will see real-time progress updates.
 Once completed, the system will be accessible.
@@ -128,9 +126,9 @@ php /home/xc_vm/console.php tools user
 
 Load balancers are **not migrated**.
 
-* Reinstall the operating system if required
-* Reconfigure networking and routing
-* Reconnect them to the main server
+- Reinstall the operating system if required
+- Reconfigure networking and routing
+- Reconnect them to the main server
 
 ---
 
@@ -144,8 +142,8 @@ Skipping them will result in **expected but broken behavior**.
 
 ### 1. Reinitialize Runtime State
 
-* Start all streams manually
-* Verify streams are accessible and stable
+- Start all streams manually
+- Verify streams are accessible and stable
 
 > Stream runtime state is **never preserved** during migration.
 
@@ -155,10 +153,10 @@ Skipping them will result in **expected but broken behavior**.
 
 Review and restore all environment-specific configuration:
 
-* File paths
-* Limits and quotas
-* Networking and reverse proxy settings
-* Performance tuning
+- File paths
+- Limits and quotas
+- Networking and reverse proxy settings
+- Performance tuning
 
 > Do **not** assume default values match your previous setup.
 > Defaults are applied intentionally.
@@ -171,7 +169,7 @@ Review and restore all environment-specific configuration:
 
 The following **must be reconfigured manually**:
 
-* **TMDb API key**
+- **TMDb API key**
 
 This is **expected behavior**.
 
@@ -195,9 +193,9 @@ Re-add the TMDb API key and enable the provider in main server settings.
 
 ## ✅ Summary
 
-* Migration transfers **core application data only**
-* Configuration is **excluded by design**
-* API keys and environment-specific settings **must be restored manually**
-* Missing functionality after migration is **expected until reconfiguration is complete**
+- Migration transfers **core application data only**
+- Configuration is **excluded by design**
+- API keys and environment-specific settings **must be restored manually**
+- Missing functionality after migration is **expected until reconfiguration is complete**
 
 ---
