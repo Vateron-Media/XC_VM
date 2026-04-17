@@ -2,7 +2,6 @@
 
 ## Содержание
 
-0. [Стратегические цели](#0-стратегические-цели)
 1. [Архитектурный стиль и принципы](#1-архитектурный-стиль-и-принципы)
 2. [Структура `/src`](#2-структура-src)
 3. [Описание компонентов](#3-описание-компонентов)
@@ -12,32 +11,6 @@
 
 > **План миграции** (фазы, стратегия рисков, порядок выполнения) — см. [MIGRATION.md](MIGRATION.md).
 > **Правила для контрибьюторов** — см. [CONTRIBUTING.md](CONTRIBUTING.md).
-
----
-
-## 0. Стратегические цели
-
-| # | Цель | Приоритет | Метрика успеха |
-|---|------|-----------|----------------|
-| 1 | **Контрибьюторская доступность** | 🔴 Критический | PHP-разработчик среднего уровня делает первый PR за 2 часа, не зная DDD |
-| 2 | **Поддерживаемость** | 🔴 Критический | Типичное изменение (добавить поток, изменить лимиты) < 1 час без риска сайд-эффектов |
-| 3 | **Изоляция отказов** | 🔴 Критический | Баг в admin-панели не ломает стриминг. Баг в модуле не ломает ядро |
-| 4 | **Multi-node** | 🟡 Важный | LB-сервер собирается из подмножества кода. Streaming-путь не загружает admin-логику |
-| 5 | **Open-core коммерция** | 🟡 Важный | Коммерческие модули подключаются без модификации ядра. Удаление модуля не ломает систему |
-| 6 | **Тестируемость** | 🟢 Поддерживающий | Любой сервис можно тестировать, подставив mock зависимости |
-
-### Чем это НЕ является
-
-- **Не DDD.** Нет Event Sourcing, CQRS, Aggregate Root. Простой паттерн: Controller → Service → Repository.
-- **Не академический проект.** Архитектура оптимизирована под понятность, а не под теоретическую чистоту.
-
-### Принцип принятия решений
-
-1. **Контрибьютор поймёт за 5 минут?** → если нет — упростить
-2. **Не ломает streaming hot path?** → если ломает — отклонить
-3. **Можно изолировать в модуль?** → если нет — обосновать
-
-Если решение улучшает «красоту кода», но повышает барьер входа — **отклонить**.
 
 ---
 
@@ -80,10 +53,15 @@ Controller  →  Service  →  Repository  →  Database
 | `streaming/` | `core/` (subset), `domain/` (read-only queries) | `public/`, `modules/` |
 | `modules/` | `domain/` (Service, Repository), `core/` | Другие модули (без явной зависимости), `public/`, `streaming/` |
 
-### 1.2. Strict Constructor Injection
+### 1.2. Constructor Injection — целевой стандарт, но не текущее глобальное состояние
 
-`ServiceContainer` используется **ТОЛЬКО** на этапе bootstrap (composition root).
-После bootstrap все зависимости передаются **через конструктор**. Ни один сервис не вызывает `$container->get()` внутри своих методов.
+`ServiceContainer` задуман как composition root, и новый код по возможности должен получать зависимости через конструктор. Однако текущее состояние системы смешанное:
+
+- `bootstrap.php` создаёт и наполняет `ServiceContainer`
+- `Router` и часть legacy-инициализации всё ещё получают зависимости через контейнер во время dispatch/bootstrap
+- Значительная часть `domain/` и часть `streaming/` по-прежнему используют `global $db`, `global $rSettings` и совместимость с legacy bootstrap
+
+Иными словами, constructor injection уже используется как направление миграции, но не является жёстко соблюдаемым правилом для всего дерева `src/`.
 
 ```php
 // ✅ ПРАВИЛЬНО — constructor injection:
@@ -103,31 +81,14 @@ class StreamService {
 }
 ```
 
-**Исключения (временные, фаза миграции):**
-Legacy-код в `infrastructure/legacy/` может обращаться к контейнеру напрямую. Каждое такое обращение помечается `// @legacy-container`.
+**Фактические исключения:**
+Legacy-слой в `infrastructure/legacy/`, часть bootstrap-кода, `Router`, а также значительная часть `domain/` пока ещё не приведены к чистому constructor injection.
 
-### 1.3. Консолидация мелких классов
-
-Не создавать отдельный файл/класс, если в нём < 150 строк **и** < 5 публичных методов.
-
-| Ситуация | Что делать |
-|----------|-----------|
-| Repository < 5 методов | Объединить Service + Repository в один файл |
-| Контекст = Service с 1-2 методами | Влить в ближайший родственный контекст |
-| Отдельный «Validator» с 1 методом | Сделать private-методом в Service |
-| Service + Repository > 300 строк суммарно | Разделить в отдельные файлы |
-
-**Когда МОЖНО создавать отдельный файл:**
-- Класс > 150 строк
-- Класс имеет ≥ 5 публичных методов
-- Класс используется из 3+ разных контекстов
-- Интерфейс для DI (`CacheInterface`, `LoggerInterface`)
-
-### 1.4. Нет Entity-классов
+### 1.3. Нет Entity-классов
 
 Данные передаются как `array`. Это PHP — массивы проще и понятнее, чем анемичные DTO-объекты.
 
-### 1.5. Модуль = изолированная директория
+### 1.4. Модуль = изолированная директория
 
 Модуль — это директория с известным контрактом. Его можно удалить, и система продолжит работать (деградируя в функциональности, но не падая). Ядро (`core/`) не содержит проверок лицензий, шифрования или скрытых ограничений.
 
@@ -204,14 +165,14 @@ src/
 │   ├── index.php                    # Единый front controller
 │   ├── routes/                      # admin.php, reseller.php, player.php
 │   ├── Controllers/
-│   │   ├── Admin/                   # 96 контроллеров (BaseAdminController + по одному на страницу)
-│   │   ├── Reseller/                # 31 контроллер (BaseResellerController + по одному на страницу)
-│   │   ├── Api/                     # 9 контроллеров (Admin, Reseller, Player, Internal, Enigma2...)
-│   │   └── Player/                  # 13 контроллеров
+│   │   ├── Admin/                   # Админ-контроллеры и fallback-обработчики
+│   │   ├── Reseller/                # Контроллеры reseller-панели
+│   │   ├── Api/                     # API-контроллеры (Admin, Reseller, Player, Internal, Enigma2...)
+│   │   └── Player/                  # Контроллеры player-панели
 │   ├── Views/
-│   │   ├── admin/                   # 127 шаблонов
-│   │   ├── reseller/                # 24 шаблона
-│   │   ├── player/                  # 7 шаблонов
+│   │   ├── admin/                   # Admin templates и partials
+│   │   ├── reseller/                # Reseller templates
+│   │   ├── player/                  # Player templates
 │   │   └── layouts/                 # admin.php, footer.php, player/, reseller/
 │   └── assets/                      # admin/, player/, reseller/ (CSS/JS/images/fonts)
 │
@@ -221,8 +182,8 @@ src/
 │   ├── CronTrait.php
 │   ├── DaemonTrait.php
 │   ├── migration_logic.php
-│   ├── Commands/                    # 24 команды (Monitor, Watchdog, Startup, Scanner, Queue...)
-│   └── CronJobs/                    # 21 крон (StreamsCronJob, ServersCronJob, CacheCronJob...)
+│   ├── Commands/                    # CLI-команды демонов и служебных операций
+│   └── CronJobs/                    # Cron-задачи панели
 │
 ├── modules/                         # ═══ ОПЦИОНАЛЬНЫЕ МОДУЛИ ═══
 │   ├── ministra/                    # Ministra/Stalker Portal middleware
@@ -306,16 +267,19 @@ src/
 | `Util/` | Утилиты без состояния (Encryption, Network, Time, Image, Stream, AdminHelpers) |
 | `Validation/` | Валидация входных данных |
 
-### 3.2. `domain/` — Бизнес-логика
+### 3.2. `domain/` — Бизнес-логика и слой совместимости
 
-Сервисы и репозитории, организованные по контекстам.
+`domain/` организован по контекстам, но внутри него одновременно сосуществуют два стиля:
 
-**Правила:**
-1. **Service** = вся бизнес-логика контекста (валидация, транзакции, side-effects)
-2. **Repository** = только SQL. Принимает массивы, возвращает массивы
-3. Если Repository < 5 методов и < 150 строк — живёт в одном файле с Service (§1.3)
+1. Новый код с отдельными Service/Repository-классами и явными зависимостями.
+2. Legacy-классы, которые продолжают работать через `global $db`, `global $rSettings` и процедурные helper-потоки.
 
-> **Текущее состояние:** Часть domain-классов уже использует constructor injection (как показано ниже). Другая часть (StreamService, StreamRepository и др.) ещё работает через `global $db` и статические методы — миграция в процессе.
+**Фактические правила на текущий момент:**
+1. Service/Repository-разделение есть во многих контекстах, но не применяется одинаково строго во всех папках.
+2. Repository не является единственной точкой доступа к SQL: часть Service-классов и legacy-компонентов выполняют запросы напрямую.
+3. Источник истины для схемы БД — SQL-файлы в `src/migrations/` плюс runtime-таблица `migrations`, которую создаёт `MigrationRunner`.
+
+> **Текущее состояние:** `global $db` массово используется во всех крупных доменных контекстах (`Stream`, `Vod`, `User`, `Server`, `Line`, `Auth`, `Bouquet`, `Security` и др.). Миграция в сторону constructor injection ещё не завершена.
 
 ```php
 // ═══ ЦЕЛЕВОЙ ПАТТЕРН (новый код) ═══
@@ -356,9 +320,8 @@ class StreamRepository {
 ```
 
 ```php
-// ═══ LEGACY-ПАТТЕРН (ещё не мигрировано) ═══
-// StreamService, StreamRepository — статические методы + global $db
-// Миграция на constructor injection запланирована (см. MIGRATION.md)
+// ═══ РЕАЛЬНЫЙ LEGACY-ПАТТЕРН (широко используется в текущем коде) ═══
+// Многие domain-классы продолжают обращаться к global $db
 
 class StreamRepository {
     public static function getById($rID) {
@@ -369,36 +332,35 @@ class StreamRepository {
 }
 ```
 
-### 3.3. `streaming/` — Стриминг-движок
+### 3.3. `streaming/` — Hot path доставки, но не единственная точка стриминг-логики
 
-Весь hot path доставки видео. Выделен отдельно от `domain/` по причинам:
-- Критичен к производительности (нельзя загружать всю бизнес-логику)
-- Имеет собственный лёгкий bootstrap (`StreamingBootstrap.php`)
-- Работает на уровне байтов/сегментов, а не CRUD
+`streaming/` содержит специализированные классы hot path, однако фактический runtime-поток распределён между двумя слоями:
 
-**Изоляция:**
+- `www/stream/*.php` и `www/stream/init.php` выполняют procedural bootstrap стриминг-эндпоинтов
+- `streaming/StreamingBootstrap.php` и соседние классы завершают инициализацию и обработку доставки
 
-```
-streaming/ зависит от:
-  ✅ core/ (Database, Redis, Logging, GeoIP, Encryption, NetworkUtils)
-  ✅ domain/ (Repository — только SELECT-запросы)
+**Ключевой факт:** текущие web streaming endpoints **не используют** `XC_Bootstrap::CONTEXT_STREAM`. Этот контекст объявлен в `bootstrap.php`, но hot path реально стартует через `www/stream/init.php`.
 
-  ❌ НЕ зависит от:
-     - public/ (контроллеры)
-     - modules/
-     - domain/*Service.php (бизнес-мутации)
-```
+**Что реально делает hot path:**
 
-Streaming вызывает **только read-методы** Repository. Запись — через собственные классы (`ConnectionTracker`).
+1. Загружает constants/error/config/bin helpers из `www/stream/init.php`
+2. Читает `settings` из файлового кэша
+3. Вызывает `StreamingBootstrap::bootstrap($endpoint, $settings)`
+4. Выполняет дальнейшую обработку через классы `streaming/` и часть legacy/global-state логики
 
-### 3.4. `public/` — HTTP точки входа
+Часть классов в `streaming/` до сих пор использует `global $db`, поэтому изоляция от legacy достигнута не полностью.
 
-Получение запроса → вызов Service → формирование ответа. Никакой бизнес-логики.
+### 3.4. `public/` — Основной HTTP-вход, но не единственный runtime-path
 
-- Один front controller `public/index.php` + `Router`
-- Контроллеры вызывают **Service** для мутаций, **Repository** для чтения
-- Шаблоны (`Views/`) — HTML с минимумом PHP-вставок
-- Admin и Reseller — разные контроллеры, общие шаблоны
+`public/index.php` является front controller для admin/reseller/player страниц, однако в проекте одновременно используются несколько HTTP-потоков.
+
+**Текущий расклад:**
+
+- Admin/Reseller/Player страницы идут через `public/index.php` → `public/routes/{scope}.php` → `Router` → controller
+- REST-путь для `includes/api/admin` и `includes/api/reseller` short-circuit'ится в `public/index.php` и вызывает `AdminApiController` / `ResellerRestApiController` напрямую
+- Streaming/API путь с `XC_SCOPE=api` и `XC_API=*` загружает `www/init.php` или `www/stream/init.php`, после чего вызывает API-контроллер напрямую
+
+Это означает, что Router покрывает панельные страницы, но не является единым диспетчером для всех HTTP-запросов в системе.
 
 ### 3.5. `cli/` — CLI точки входа
 
@@ -408,7 +370,7 @@ Streaming вызывает **только read-методы** Repository. Зап
 
 ### 3.6. `modules/` — Опциональные модули
 
-Каждый модуль — самодостаточная директория с `module.json` + класс, реализующий `ModuleInterface`.
+Каждый модуль — директория с `module.json` и PHP-классом, реализующим `ModuleInterface`.
 
 | Модуль | Назначение |
 |--------|-----------|
@@ -419,6 +381,8 @@ Streaming вызывает **только read-методы** Repository. Зап
 | `fingerprint/` | Watermarking |
 | `theft-detection/` | Anti-theft detection |
 | `magscan/` | MAG device scanning |
+
+**Текущее ограничение:** `console.php` действительно вызывает `ModuleLoader::loadAll()` и `registerAllCommands()`, поэтому CLI-интеграция модулей активна. `public/index.php` **не вызывает** `ModuleLoader::bootAll()`, поэтому `boot()` и `registerRoutes()` не участвуют в текущем web runtime-path. Модульные страницы, которые уже доступны в админке, заведены статически в `public/routes/admin.php`.
 
 ### 3.7. `infrastructure/legacy/` — Остаточный legacy-код
 
@@ -438,8 +402,26 @@ Streaming вызывает **только read-методы** Repository. Зап
 |----------|--------------|----------|
 | `CONTEXT_MINIMAL` | autoload + constants + config + Logger | Скрипты, которым нужны только пути и конфиг |
 | `CONTEXT_CLI` | + Database + LegacyInitializer (+ Redis опционально) | Cron-задачи, CLI-скрипты |
-| `CONTEXT_STREAM` | + Database (lightweight, cached) | Стриминг-эндпоинты (hot path) |
+| `CONTEXT_STREAM` | + Database (cached) | Объявлен для лёгкого стриминг/bootstrap-сценария, но текущие web streaming endpoints его не используют |
 | `CONTEXT_ADMIN` | + Database + LegacyInitializer + Redis + API + ResellerAPI + Translator + MobileDetect + session | Админ/реселлер-панель |
+
+### 3.9. Фактические runtime-потоки
+
+#### Admin/Reseller/Player страницы
+
+`nginx -> public/index.php -> scope/pageName resolution -> optional session/functions bootstrap -> public/routes/{scope}.php -> Router::dispatch() -> controller -> domain/core`
+
+#### Admin/Reseller REST API
+
+`nginx -> public/index.php -> rawScope=includes/api/* -> XC_Bootstrap::CONTEXT_ADMIN -> AdminApiController|ResellerRestApiController -> legacy/domain calls`
+
+#### Streaming API через `XC_SCOPE=api`
+
+`nginx -> public/index.php -> XC_API dispatch -> www/init.php | www/stream/init.php -> ApiController -> legacy/domain/streaming`
+
+#### Streaming endpoints `www/stream/*.php`
+
+`nginx -> www/stream/{endpoint}.php -> www/stream/init.php -> StreamingBootstrap::bootstrap() -> streaming/* + global-state helpers`
 
 ---
 
@@ -482,17 +464,20 @@ interface ModuleInterface {
 8. Установка: `install()` — создание таблиц, начальные данные
 9. Удаление: `uninstall()` → убрать из `modules.php` → удалить папку
 
+> **Важно:** пункты 4–7 выполняются только там, где вызывается `ModuleLoader::bootAll()`. В текущем репозитории это не происходит в `public/index.php`, поэтому web-интеграция модулей остаётся частично декларативной.
+
 ### 4.3. Правила изоляции
 
 ```
 ✅ Модуль МОЖЕТ:
-   - Использовать сервисы из core/ через constructor injection
+    - Использовать сервисы из core/ и domain/
    - Вызывать Service/Repository из domain/
    - Регистрировать свои маршруты, команды, кроны
    - Подписываться на события ядра
    - Иметь свои views, assets, конфиги
 
 ❌ Модуль НЕ МОЖЕТ:
+   - Модифицировать файлы core/ или domain/
    - Обращаться к БД мимо Repository
    - Зависеть от другого модуля без декларации в module.json
    - Переопределять маршруты или сервисы ядра
@@ -513,32 +498,30 @@ interface ModuleInterface {
 
 | Артефакт | Назначение | Что включает | Что исключает |
 |----------|-----------|--------------|---------------|
-| **MAIN** (`xc_vm.tar.gz`) | Основной сервер (admin + streaming) | Всё содержимое `src/` | Ничего |
-| **LoadBalancer** (`loadbalancer.tar.gz`) | Стриминг-сервер без управления | Только стриминг + инфраструктура | Админ-панель, модули, player |
-| **Installer** (`XC_VM.zip`) | Пакет для первой установки | install-скрипт + `xc_vm.tar.gz` | — |
+| **MAIN** (`xc_vm.tar.gz`, installer: `XC_VM.zip`) | Основной сервер | Полное содержимое `src/` | Ничего |
+| **LoadBalancer (LB)** (`loadbalancer.tar.gz`) | Streaming-focused сборка для LB-узлов | Подмножество `src/`, нужное для стриминга, CLI и служебных endpoint'ов | Модули, `ministra/`, большая часть admin UI и часть admin-only API/cron |
 
-**Принцип:** Один архив используется и для чистой установки, и для обновления. LB — подмножество MAIN. Код не форкается, а фильтруется при сборке.
+**Принцип:** LB — подмножество MAIN. Код не форкается, а фильтруется при сборке.
 
 ### 5.2. Конфигурация сборки
 
-LB собирается из следующих директорий и файлов (определены в `Makefile`):
+LB собирается из следующих директорий и файлов (источник истины — `Makefile`):
 
-**Директории (`LB_DIRS`):** `bin`, `cli`, `config`, `content`, `core`, `domain`, `includes`, `infrastructure`, `resources`, `signals`, `streaming`, `tmp`, `www`
+**Директории (`LB_DIRS`):** `bin`, `cli`, `config`, `content`, `core`, `domain`, `includes`, `infrastructure`, `public`, `resources`, `signals`, `streaming`, `tmp`, `www`
 
 **Root-файлы (`LB_ROOT_FILES`):** `autoload.php`, `bootstrap.php`, `console.php`, `service`, `update`
 
-**Исключения (`LB_DIRS_TO_REMOVE`):** `bin/install`, `bin/redis`, `bin/nginx/conf/codes`, `includes/api`, `includes/libs/resources`, `domain/User`, `domain/Device`, `domain/Auth`, `resources/langs`, `resources/libs`
+**Директории, удаляемые из LB (`LB_DIRS_TO_REMOVE`):** `bin/install`, `bin/redis`, `bin/nginx/conf/codes`, `includes/api`, `includes/libs/resources`, `domain/User`, `domain/Device`, `domain/Auth`, `public/Controllers/Admin`, `public/Controllers/Player`, `public/Controllers/Reseller`, `public/Views`, `public/assets`, `public/routes`, `resources/langs`, `resources/libs`
 
-**Отдельные файлы, удаляемые из LB (`LB_FILES_TO_REMOVE`):** `infrastructure/legacy/reseller_api.php`, `www/probe.php`, `www/playlist.php`, `www/player_api.php`, `www/epg.php`, `www/enigma2.php`, `www/stream/auth.php`, `www/admin/proxy_api.php`, `www/admin/api.php`, `config/rclone.conf`, ряд CLI-команд и CronJob'ов (admin-only), `domain/Epg/EPG.php`, `bin/nginx/conf/gzip.conf`
+**Файлы, удаляемые из LB (`LB_FILES_TO_REMOVE`):** среди прочего `bin/maxmind/GeoLite2-City.mmdb`, `infrastructure/legacy/reseller_api.php`, отдельные API-контроллеры и `www/*` endpoints, `config/rclone.conf`, admin-only CLI-команды/cronjobs, `domain/Epg/EPG.php`, `bin/nginx/conf/gzip.conf`
 
-**Полностью исключены из LB:** `public/`, `modules/`, `ministra/`
 
 ### 5.3. Правила для разработки с учётом LB
 
 1. Код в `domain/`, используемый через streaming, **не должен** тянуть admin-only зависимости
 2. При добавлении новых root-директорий — обновить `LB_DIRS` в Makefile
 3. `domain/` частично нужен LB — нельзя целиком исключать, только admin-specific поддомены
-4. Все модули — это admin-функциональность, в LB не попадают
+4. Все модули и директория `ministra/` не попадают в LB
 5. Проверка сборки: `make new && make lb`
 
 ### 5.4. Пакетная диаграмма зависимостей
@@ -570,38 +553,31 @@ LB собирается из следующих директорий и файл
 
 ### 5.5. Архитектура обновления
 
-Один и тот же архив используется для установки и обновления. Разделение логики происходит на **сервере при обновлении**, а не при сборке.
+Обновление реализовано в двух слоях:
 
-#### Что содержит архив
+1. `php console.php update update` скачивает нужный архив (`xc_vm.tar.gz` для MAIN или `loadbalancer.tar.gz` для LB), проверяет MD5 и запускает `src/update` в фоне.
+2. `src/update` — Python-скрипт, который выполняет файловое обновление на сервере.
 
-| Файл | Описание |
-|------|----------|
-| `migrations/update_exclude_dirs.txt` | Список каталогов, исключаемых при обновлении |
-| `migrations/deleted_files.txt` | Список файлов, удалённых с прошлого релиза (git diff) |
-| Все остальные файлы | Полный состав `src/` |
+#### Что делает `src/update`
 
-#### Процесс обновления (`src/update`)
-
-1. Останавливает сервис `xc_vm`
-2. Распаковывает архив во временную директорию `/tmp/xc_vm_update_*/`
-3. Читает `migrations/update_exclude_dirs.txt` и удаляет перечисленные каталоги из временной копии (бинарники, конфиги, пользовательские данные)
-4. Копирует оставшиеся файлы поверх `/home/xc_vm/` (`cp -a`)
-5. Восстанавливает владельца: `chown -R xc_vm:xc_vm`
-6. Запускает `php console.php update post-update` → `MigrationRunner::runFileCleanup()` удаляет файлы из `deleted_files.txt`
+1. Останавливает systemd-сервис `xc_vm`
+2. Распаковывает архив во временную директорию `xc_vm_update_*`
+3. Удаляет из временной копии пути из hardcoded-константы `UPDATE_EXCLUDE_DIRS`
+4. Копирует оставшиеся файлы поверх live installation
+5. Выполняет `chown -R xc_vm:xc_vm`
+6. Запускает `php console.php update post-update`
 7. Запускает сервис обратно
-8. Чистит временную директорию и удаляет архив
+8. Удаляет временную директорию и архив
 
-#### Исключаемые каталоги (`UPDATE_EXCLUDE_DIRS`)
+#### Что делает `update post-update`
 
-Эти каталоги **не заменяются** при обновлении, так как содержат бинарники, пользовательские данные или конфигурацию:
+- На MAIN запускает `MigrationRunner::run()` для SQL-миграций
+- На всех ролях запускает `MigrationRunner::runFileCleanup()`, который читает `migrations/deleted_files.txt`, удаляет перечисленные файлы и затем удаляет сам список
+- На MAIN при `auto_update_lbs` рассылает сигнал обновления LB-серверам
 
-`bin/ffmpeg_bin`, `bin/nginx`, `bin/nginx_rtmp`, `bin/php`, `bin/redis`, `bin/install`, `bin/maxmind`, `bin/certbot`, `content`, `backups`, `tmp`, `config`, `signals`
+#### Важное отличие от старой документации
 
-#### Почему один архив, а не два
-
-- **Простота:** один артефакт = один хеш, одна загрузка, один CI-шаг
-- **Консистентность:** установка и обновление всегда получают идентичный набор файлов
-- **Фильтрация на месте:** update-скрипт знает что пропустить, Makefile не дублирует логику
+Список исключаемых директорий **не** берётся из `migrations/update_exclude_dirs.txt`. В текущей реализации он жёстко задан в Python-константе `UPDATE_EXCLUDE_DIRS` внутри `src/update`.
 
 ---
 
@@ -609,7 +585,7 @@ LB собирается из следующих директорий и файл
 
 ### 6.1. Кто управляет транзакциями
 
-**Правило:** Транзакцией управляет **Service**. Контроллер и Repository не открывают транзакции.
+**Целевое правило:** транзакцией управляет Service. **Фактическое состояние:** это соблюдается только в мигрированных участках; legacy-код и часть domain-сервисов всё ещё выполняют SQL-операции напрямую через `global $db`.
 
 | Контекст | Транзакция | Кто управляет |
 |----------|-----------|---------------|

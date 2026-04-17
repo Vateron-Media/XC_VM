@@ -33,7 +33,7 @@
 | Загрузчик модулей | `src/core/Module/ModuleLoader.php` | ⚠️ Работает в CLI, **НЕ вызывается в web** |
 | Конфигурация overrides | `src/config/modules.php` | ✅ Работает (enabled/disabled/class override) |
 | DI-контейнер | `src/core/Container/ServiceContainer.php` | ✅ Singleton, set/get/factory/tag |
-| Event Dispatcher | `src/core/Events/EventDispatcher.php` | ⚠️ Полностью static, API mismatch (см. §9.1) |
+| Event Dispatcher | `src/core/Events/EventDispatcher.php` | ⚠️ Полностью static; подписки работают через `subscribe()`, но web bootstrap модулей не подключён |
 | HTTP Router | `src/core/Http/Router.php` | ✅ get/post/api/group/dispatch/dispatchApi |
 | CLI Registry | `src/cli/CommandRegistry.php` | ✅ Модули регистрируют команды через `console.php` |
 | 7 модулей | `src/modules/{name}/` | ⚠️ Только CLI-команды работают, веб-маршруты — мёртвый код |
@@ -56,7 +56,7 @@
 
 2. **Модульные маршруты продублированы в статических файлах.** Маршруты watch, plex, fingerprint и т.д. зарегистрированы и в `WatchModule::registerRoutes()`, и в `public/routes/admin.php`. Модульная регистрация — мёртвый код.
 
-3. **EventDispatcher API mismatch.** `ModuleLoader::bootAll()` (строка 141) вызывает `$dispatcher->listen()`, но `EventDispatcher` имеет метод `subscribe()`, а не `listen()`. Первый модуль с event subscribers вызовет Fatal Error.
+3. **Event subscribers зависят от `bootAll()`.** Подписки модулей подключаются в `ModuleLoader::bootAll()` через `EventDispatcher::subscribe()`, но пока `bootAll()` не вызывается в web-пути, механизм событий для HTTP-контекста остаётся декларативным.
 
 4. **Navbar — hardcoded HTML.** Навигация в `public/Views/admin/header.php` (~500 строк HTML) полностью статическая. Модули не могут добавить пункты меню динамически. Пункты watch/plex/fingerprint зашиты прямо в HTML header.php.
 
@@ -199,8 +199,6 @@ interface ModuleInterface {
 |------|----------|:----:|
 | `src/public/index.php` | Добавить вызов `ModuleLoader::loadAll()` + `bootAll()` | M-1 |
 | `src/bootstrap.php` :: `populateContainer()` | Зарегистрировать `events` в контейнере | M-1 |
-| `src/core/Module/ModuleLoader.php` :: `bootAll()` | Исправить `listen` → `subscribe` | M-1 |
-| `src/core/Events/EventDispatcher.php` | Добавить alias `listen()` → `subscribe()` | M-1 |
 | `src/core/Http/NavbarPositions.php` | Создать: константы injection points (NEW) | M-3 |
 | `src/core/Http/NavbarBuilder.php` | Создать: builder с FileCache + validation (NEW) | M-3 |
 | `src/public/Views/admin/header.php` | Добавить 4 injection points `NavbarBuilder::render()` | M-3 |
@@ -1174,27 +1172,11 @@ class PlexModule implements ModuleInterface {
 
 ## 9. Обнаруженные проблемы и баги
 
-### 9.1. EventDispatcher: `listen()` vs `subscribe()`
+### 9.1. Исторический баг: `listen()` vs `subscribe()`
 
-**Файл:** `src/core/Module/ModuleLoader.php`, строка 141
-**Баг:** `$dispatcher->listen($event, $handler)` — метод `listen()` не существует в `EventDispatcher`. Правильный метод: `subscribe()`.
+Этот баг относился к ранней версии `ModuleLoader::bootAll()`. В текущем коде `ModuleLoader` уже использует `EventDispatcher::subscribe()`, поэтому fatal error из-за `listen()` больше не актуален.
 
-**Исправление:**
-```php
-// ModuleLoader.php, строка 141, БЫЛО:
-$dispatcher->listen($event, $handler);
-
-// СТАЛО:
-$dispatcher->subscribe($event, $handler);
-```
-
-**Альтернативно** (менее инвазивно): добавить alias в `EventDispatcher`:
-```php
-// EventDispatcher.php — добавить метод:
-public static function listen($eventName, $listener) {
-    return self::subscribe($eventName, $listener);
-}
-```
+Оставшийся практический разрыв другой: `bootAll()` не вызывается в web-пути, поэтому модульные event subscribers не подключаются для HTTP-контекста.
 
 ### 9.2. `events` не зарегистрирован в ServiceContainer
 
@@ -1406,7 +1388,7 @@ $moduleLoader->bootAll(ServiceContainer::getInstance(), $router);
 
 ### 11.3. Слабость: static EventDispatcher
 
-`EventDispatcher` полностью static → нельзя инжектировать через конструктор → нельзя mockить в тестах → нарушает §2.3 ARCHITECTURE.md (strict constructor injection). **Это осознанный компромисс** — рефактор EventDispatcher на instance-based потребует изменения всех подписчиков. Откладывается до появления реальной потребности в тестировании событий.
+`EventDispatcher` полностью static → нельзя инжектировать через конструктор → нельзя mockить в тестах → расходится с целевым направлением из §1.2 [ARCHITECTURE.md](ARCHITECTURE.md). **Это осознанный компромисс** — рефактор EventDispatcher на instance-based потребует изменения всех подписчиков. Откладывается до появления реальной потребности в тестировании событий.
 
 ### 11.4. Слабость: отсутствие версионной совместимости
 
