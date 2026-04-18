@@ -4,3 +4,14 @@ services:
       context: .
       dockerfile: Dockerfile
     image: xcvm-test:latest
+    container_name: xcvm-test-install
+    hostname: xcvm-test
+    privileged: true
+    cgroup: host
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      - ../../dist/XC_VM.zip:/opt/xcvm-install/XC_VM.zip:ro
+    ports:
+      - "8880:80"
+      - "8443:443"
+    stop_signal: SIGRTMIN+3

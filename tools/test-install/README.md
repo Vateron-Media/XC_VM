@@ -7,30 +7,38 @@
 - Docker + Docker Compose
 - Собранный `dist/XC_VM.zip` (через `make main`)
 
+## Структура
+
+```
+tools/test-install/
+├── Dockerfile          # образ Ubuntu 24.04 + systemd + встроенный install-скрипт
+├── docker-compose.yml  # runtime-конфиг (volumes, ports, privileged, cgroup)
+├── test_release.sh     # управляющий скрипт (install / clean / logs / sync)
+└── README.md
+```
+
 ## Использование
 
 ```bash
-# Собрать, запустить и установить (всё сразу)
+# Собрать образ, запустить контейнер и выполнить установку (всё сразу)
 ./tools/test-install/test_release.sh
 
-# Или по шагам:
-./tools/test-install/test_release.sh build     # собрать образ
-./tools/test-install/test_release.sh run       # запустить контейнер
-./tools/test-install/test_release.sh install   # выполнить установку
-
-# Войти в контейнер вручную
-docker exec -it xcvm-test-install bash
+# Удалить контейнер и образ
+./tools/test-install/test_release.sh clean
 
 # Посмотреть лог установки
 ./tools/test-install/test_release.sh logs
 
-# Очистить
-./tools/test-install/test_release.sh clean
+# Синхронизировать src/ в работающий контейнер
+./tools/test-install/test_release.sh sync
+
+# Войти в контейнер вручную
+docker exec -it xcvm-test-install bash
 ```
 
 ## Что проверяется
 
-Автоматический скрипт (`auto_install.sh`):
+Встроенный в Dockerfile install-скрипт:
 
 1. Распаковывает `XC_VM.zip`
 2. Запускает `python3 install` с автоматическими ответами на интерактивные вопросы
@@ -50,6 +58,5 @@ docker exec -it xcvm-test-install bash
 
 ## Примечания
 
-- Контейнер запускается с `--privileged` и systemd (PID 1) — необходимо для `systemctl`, `mount`, tmpfs
-- sysctl НЕ перезаписывается (ответ N) — в контейнере это не работает
+- Контейнер запускается с `--privileged` и systemd (PID 1) — необходимо для `systemctl`
 - MariaDB устанавливается и настраивается внутри контейнера
