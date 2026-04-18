@@ -100,6 +100,13 @@ class BackupService {
 	 * @param array  $config Database config
 	 */
 	public static function revokePrivileges($host, $db, $config) {
+		if ($db->query('SELECT COUNT(*) AS `count` FROM `mysql`.`db` WHERE `User` = ? AND `Host` = ? AND `Db` = ?;', $config['username'], $host, $config['database'])) {
+			$rGrantRow = $db->get_row();
+			if (empty($rGrantRow) || intval($rGrantRow['count']) === 0) {
+				return;
+			}
+		}
+
 		$db->query("REVOKE ALL PRIVILEGES ON `" . $config['database'] . "`.* FROM '" . $config['username'] . "'@'" . $host . "';");
 	}
 
