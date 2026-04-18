@@ -68,7 +68,7 @@ class BalancerCommand implements CommandInterface {
 		$rInstallDir = BIN_PATH . 'install/';
 
 		if ($rType == 1) {
-			$rPackages = array('iproute2', 'net-tools', 'libcurl4', 'libxslt1-dev', 'libonig-dev', 'e2fsprogs', 'wget', 'sysstat', 'mcrypt', 'python3', 'certbot', 'iptables-persistent', 'libjpeg-dev', 'libpng-dev', 'libssh2-1', 'xz-utils', 'zip', 'unzip', 'cron');
+			$rPackages = array('iproute2', 'net-tools', 'libcurl4', 'libcurl3-gnutls', 'libxslt1-dev', 'libonig-dev', 'e2fsprogs', 'wget', 'sysstat', 'mcrypt', 'python3', 'certbot', 'iptables-persistent', 'libjpeg-dev', 'libpng-dev', 'libssh2-1', 'xz-utils', 'zip', 'unzip', 'cron');
 			$rInstallFiles = 'proxy.tar.gz';
 		} elseif ($rType == 2) {
 			$rPackages = array('cpufrequtils', 'iproute2', 'python', 'net-tools', 'dirmngr', 'gpg-agent', 'software-properties-common', 'libmaxminddb0', 'libmaxminddb-dev', 'mmdb-bin', 'libcurl4', 'libgeoip-dev', 'libxslt1-dev', 'libonig-dev', 'e2fsprogs', 'wget', 'sysstat', 'alsa-utils', 'v4l-utils', 'mcrypt', 'python3', 'certbot', 'iptables-persistent', 'libjpeg-dev', 'libpng-dev', 'libssh2-1', 'xz-utils', 'zip', 'unzip', 'cron', 'libfribidi-dev', 'libharfbuzz-dev', 'libogg0');
@@ -147,9 +147,9 @@ class BalancerCommand implements CommandInterface {
 		if ($rType == 1) {
 			if ($this->sendFileSSH($rConn, $rInstallDir . $rInstallFiles, '/tmp/' . $rInstallFiles, true)) {
 				echo "Extracting to directory\n";
-				$this->runSSH($rConn, 'sudo rm -rf ' . MAIN_HOME . 'console.php');
+				$this->runSSH($rConn, 'sudo rm -rf ' . MAIN_HOME . 'service');
 				$this->runSSH($rConn, 'sudo tar -zxvf "/tmp/' . $rInstallFiles . '" -C "' . MAIN_HOME . '"');
-				$rRemoteCheck = trim($this->runSSH($rConn, 'test -f ' . MAIN_HOME . 'console.php && echo OK')['output']);
+				$rRemoteCheck = trim($this->runSSH($rConn, 'test -f ' . MAIN_HOME . 'service && echo OK')['output']);
 				if ($rRemoteCheck !== 'OK') {
 					$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
 					echo "Failed to extract files! Exiting\n";
