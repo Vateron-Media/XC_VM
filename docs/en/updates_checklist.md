@@ -76,10 +76,11 @@ make syntax_check
 **Docker test install** (see `tools/test-install/`):
 
 ```bash
-cd tools/test-install
-docker compose up -d --build
-docker exec -it xc_test bash /opt/auto_install.sh
+bash tools/test-install/test_release.sh
 ```
+
+This builds the image, starts the container with systemd, and runs the installer automatically.
+`dist/XC_VM.zip` is mounted into the container as a read-only volume.
 
 > ✅ Verify the panel loads at `http://localhost:8880` and admin login works.
 

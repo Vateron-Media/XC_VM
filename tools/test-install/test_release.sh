@@ -1,115 +1,58 @@
 #!/bin/bash
-# test_release.sh — сборка и запуск тестового контейнера для проверки установки XC_VM
+# test_release.sh — управление тестовым контейнером XC_VM
 #
 # Использование:
-#   ./tools/test-install/test_release.sh          — собрать и запустить
-#   ./tools/test-install/test_release.sh build     — только собрать образ
-#   ./tools/test-install/test_release.sh run       — запустить контейнер (интерактивно)
-#   ./tools/test-install/test_release.sh install   — запустить и выполнить автоустановку
-#   ./tools/test-install/test_release.sh clean     — удалить контейнер и образ
+#   ./tools/test-install/test_release.sh            — собрать и установить
+#   ./tools/test-install/test_release.sh install    — то же самое
+#   ./tools/test-install/test_release.sh clean      — удалить контейнер и образ
+#   ./tools/test-install/test_release.sh logs       — показать лог установки
+#   ./tools/test-install/test_release.sh sync       — синхронизировать src/ в контейнер
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 COMPOSE="docker compose -f $SCRIPT_DIR/docker-compose.yml"
 CONTAINER="xcvm-test-install"
-IMAGE="xcvm-test:latest"
 
-cd "$PROJECT_ROOT"
-
-# Проверяем наличие dist/XC_VM.zip
 check_zip() {
-    if [[ ! -f dist/XC_VM.zip ]]; then
+    if [[ ! -f "$PROJECT_ROOT/dist/XC_VM.zip" ]]; then
         echo "ERROR: dist/XC_VM.zip not found."
         echo "Run 'make main' first to build the release archive."
         exit 1
     fi
-    echo "Found: dist/XC_VM.zip ($(du -h dist/XC_VM.zip | cut -f1))"
-}
-
-cmd_build() {
-    check_zip
-    echo "==> Building test container..."
-    $COMPOSE build
-    echo "==> Build complete."
+    echo "Found: dist/XC_VM.zip ($(du -h "$PROJECT_ROOT/dist/XC_VM.zip" | cut -f1))"
 }
 
 wait_for_container() {
-    local retries=15
     local i=0
-    while (( i < retries )); do
+    while (( i < 15 )); do
         if docker exec "$CONTAINER" systemctl is-system-running --wait 2>/dev/null | grep -qE 'running|degraded'; then
             return 0
         fi
         if ! docker ps --format '{{.Names}}' | grep -q "^${CONTAINER}$"; then
             echo "ERROR: Container exited unexpectedly."
-            echo "Logs:"
             docker logs "$CONTAINER" 2>&1 | tail -30
             return 1
         fi
         sleep 2
         (( i++ ))
     done
-    echo "WARNING: systemd did not reach 'running' in 30s, container may still be booting."
+    echo "WARNING: systemd did not reach 'running' in 30s."
     return 0
-}
-
-cmd_run() {
-    check_zip
-    echo "==> Starting container with systemd..."
-    docker run -d \
-        --name "$CONTAINER" \
-        --hostname xcvm-test \
-        --privileged \
-        --cgroupns=host \
-        -v /sys/fs/cgroup:/sys/fs/cgroup:rw \
-        -v "$PROJECT_ROOT/dist/XC_VM.zip:/opt/xcvm-install/XC_VM.zip:ro" \
-        -p 8880:80 \
-        -p 8443:443 \
-        --stop-signal SIGRTMIN+3 \
-        "$IMAGE"
-    echo "==> Container started. Waiting for systemd init..."
-    wait_for_container || exit 1
-
-    echo ""
-    echo "Container is running. You can:"
-    echo "  docker exec -it $CONTAINER bash                     # shell"
-    echo "  docker exec -it $CONTAINER /opt/xcvm-install/auto_install.sh  # auto-install"
-    echo "  $0 install                                          # auto-install shortcut"
-    echo "  $0 clean                                            # stop and remove"
 }
 
 cmd_install() {
     check_zip
-
-    # Проверяем запущен ли контейнер
-    if ! docker ps --format '{{.Names}}' | grep -q "^${CONTAINER}$"; then
-        echo "==> Container not running, starting..."
-        # Удаляем старый остановленный контейнер если есть
-        docker rm -f "$CONTAINER" 2>/dev/null || true
-        docker run -d \
-            --name "$CONTAINER" \
-            --hostname xcvm-test \
-            --privileged \
-            --cgroupns=host \
-            -v /sys/fs/cgroup:/sys/fs/cgroup:rw \
-            -v "$PROJECT_ROOT/dist/XC_VM.zip:/opt/xcvm-install/XC_VM.zip:ro" \
-            -p 8880:80 \
-            -p 8443:443 \
-            --stop-signal SIGRTMIN+3 \
-            "$IMAGE"
-        echo "==> Waiting for systemd init..."
-        wait_for_container || exit 1
-    fi
-
+    docker rm -f "$CONTAINER" 2>/dev/null || true
+    $COMPOSE up -d --build
+    echo "==> Waiting for systemd init..."
+    wait_for_container || exit 1
     echo "==> Running auto-install inside container..."
     docker exec -it "$CONTAINER" /opt/xcvm-install/auto_install.sh
 }
 
 cmd_clean() {
-    echo "==> Stopping and removing container..."
-    docker rm -f "$CONTAINER" 2>/dev/null || true
-    docker rmi "$IMAGE" 2>/dev/null || true
+    $COMPOSE down --rmi local 2>/dev/null || true
     echo "==> Cleaned."
 }
 
@@ -124,21 +67,15 @@ cmd_sync() {
         exit 1
     fi
 
-    local DEST="/home/xc_vm"
-    local SRC_DIR="$PROJECT_ROOT/src"
-
-    echo "==> Syncing src/ → $CONTAINER:$DEST (one-way, host → container)"
-
-    # Собираем все файлы из src/ (tracked + untracked, respecting .gitignore)
-    # Исключаем бинарники, конфиг инсталлятора, кэш, контент
-    cd "$SRC_DIR"
+    echo "==> Syncing src/ → $CONTAINER:/home/xc_vm"
+    cd "$PROJECT_ROOT/src"
     tar cf - \
         --exclude='bin' \
         --exclude='config/config.ini' \
         --exclude='content' \
         --exclude='tmp' \
         --exclude='.gitkeep' \
-        . | docker exec -i "$CONTAINER" tar xf - -C "$DEST"
+        . | docker exec -i "$CONTAINER" tar xf - -C /home/xc_vm
 
     local count
     count=$(find . -type f \
@@ -150,20 +87,17 @@ cmd_sync() {
     cd "$PROJECT_ROOT"
 
     echo "==> Synced ~$count files."
-    echo ""
-    echo "To apply changes, restart the service:"
-    echo "  docker exec $CONTAINER systemctl restart xc_vm"
+    echo "To apply: docker exec $CONTAINER systemctl restart xc_vm"
 }
 
 case "${1:-install}" in
-    build)   cmd_build ;;
-    run)     cmd_run ;;
-    install) cmd_build && cmd_run && cmd_install ;;
+    install) cmd_install ;;
     clean)   cmd_clean ;;
     logs)    cmd_logs ;;
     sync)    cmd_sync ;;
     *)
-        echo "Usage: $0 {build|run|install|clean|logs|sync}"
+        echo "Usage: $0 {install|clean|logs|sync}"
         exit 1
         ;;
 esac
+
