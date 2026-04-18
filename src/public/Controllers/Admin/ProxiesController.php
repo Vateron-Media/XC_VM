@@ -16,9 +16,9 @@ class ProxiesController extends BaseAdminController {
     public function index() {
         $this->requirePermission();
 
-        ServerRepository::getAll(true);
+        $rServers = ServerRepository::getAll(true);
 
         $this->setTitle('Proxy Servers');
-        $this->render('proxies');
+        $this->render('proxies', compact('rServers'));
     }
 }
