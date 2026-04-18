@@ -1,10 +1,24 @@
 {
-    "version": "2.1.1",
+    "version": "2.1.2",
     "changes": [
-        "Included public directory in LB build",
-        "Added MD5 hash verification for downloads",
-        "Fixed render and view safety issues",
-        "Improved Redis null-safety handling",
-        "Fixed permission issues when running as root"
+        "Streamlined Docker installation process and updated documentation",
+        "Added EPG/XMLTV endpoint information to XtreamCodes API documentation",
+        "Improved package handling and privilege revocation logic",
+        "Normalized database host and improved migration command output",
+        "Added targeted PHPUnit setup and fixed GitHubReleases cache switching",
+        "Synchronized Russian and English documentation",
+        "Added Copilot guidelines to reduce common LLM coding mistakes",
+        "Added and updated architecture documentation in English",
+        "Improved and aligned architecture and migration documentation",
+        "Fixed outdated paths and nginx-related documentation",
+        "Updated build and LB documentation to match current Makefile",
+        "Fixed undefined array key warnings in AdminApiController",
+        "Added data preparation logic to admin controllers",
+        "Simplified admin views by removing unnecessary guards",
+        "Fixed REST API dispatch logic in Front Controller",
+        "Added support for Certbot 2.x renewal detection",
+        "Improved installation process with missing libsodium dependency",
+        "Updated test container to Ubuntu 24.04",
+        "Fixed syntax error in service reload function"
     ]
 }

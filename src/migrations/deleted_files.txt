@@ -1,4 +1,4 @@
 # Files to delete during update (relative to MAIN_HOME)
-# Auto-generated from: git diff 2.1.0..HEAD
+# Auto-generated from: git diff 2.1.1..HEAD
 # One file per line. Lines starting with # are comments.
 #

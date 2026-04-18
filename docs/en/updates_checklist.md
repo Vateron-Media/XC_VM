@@ -4,32 +4,18 @@ Step-by-step guide for preparing and publishing an XC_VM release.
 
 ---
 
-## 🔢 1. Update Version
+## 1. Prepare Release Baseline
 
-Edit the version constant and disable development mode in:
+First, finish all feature/fix/docs work and make sure it is already in `main`.
 
-```text
-src/core/Config/AppConfig.php
-```
-
-**Quick commands:**
+Set the version variable once and reuse it in all commands below:
 
 ```bash
-sed -i "s/define('DEVELOPMENT', true);/define('DEVELOPMENT', false);/" src/core/Config/AppConfig.php
-sed -i "s/define('XC_VM_VERSION', *'[0-9]\+\.[0-9]\+\.[0-9]\+');/define('XC_VM_VERSION', 'X.Y.Z');/" src/core/Config/AppConfig.php
+VERSION="X.Y.Z"
 ```
 
-> ⚠️ Make sure `DEVELOPMENT` is set to `false` before every release.
-
-**Commit:**
-
-```bash
-git add src/core/Config/AppConfig.php
-git commit -m "Bump version to X.Y.Z"
-git push
-```
-
-> 💡 Replace `X.Y.Z` with the actual version.
+> ⚠️ Do not create a separate version-bump commit/push at this step.
+> Otherwise `dist/changes.md` will include extra release commits and force additional edits.
 
 ---
 
@@ -93,7 +79,61 @@ tools/run_scan.sh
 
 ---
 
-## ⚙️ 4. Build Archives
+## 📝 4. Changelog
+
+**Generate commit log (work commits only):**
+
+```bash
+PREV_TAG=$(git describe --tags --abbrev=0)
+git log --pretty=format:"- %s (%h)" "$PREV_TAG"..main > dist/changes.md
+```
+
+**Update `changelog.json`** in the repository root — this file contains only the changes for the upcoming release:
+
+```json
+{
+    "version": "X.Y.Z",
+    "changes": [
+        "Description of change 1",
+        "Description of change 2"
+    ]
+}
+```
+
+The panel fetches this file from the release tag automatically via `GithubReleases::getChangelog()`.
+
+> 💬 Keep descriptions concise — focus on user-facing improvements and fixes.
+
+---
+
+## 🔢 5. Update Version and Create a Single Release Commit
+
+Edit the version constant and disable development mode in:
+
+```text
+src/core/Config/AppConfig.php
+```
+
+**Quick commands:**
+
+```bash
+sed -i "s/define('DEVELOPMENT', true);/define('DEVELOPMENT', false);/" src/core/Config/AppConfig.php
+sed -i "s/define('XC_VM_VERSION', *'[0-9]\+\.[0-9]\+\.[0-9]\+');/define('XC_VM_VERSION', '${VERSION}');/" src/core/Config/AppConfig.php
+```
+
+**Create one final release commit/push:**
+
+```bash
+git add src/core/Config/AppConfig.php changelog.json src/migrations/deleted_files.txt
+git commit -m "Prepare release ${VERSION}"
+git push
+```
+
+> ⚠️ This removes the need for multiple release commits.
+
+---
+
+## ⚙️ 6. Build Archives
 
 > 🤖 **Production builds** are handled by GitHub Actions (`.github/workflows/build-release.yml`) when a release is published. Assets are attached automatically.
 
@@ -125,38 +165,10 @@ cd dist && md5sum -c hashes.md5
 
 ---
 
-## 📝 5. Changelog
-
-**Generate commit log:**
-
-```bash
-PREV_TAG=$(git describe --tags --abbrev=0)
-echo "Previous release: $PREV_TAG"
-git log --pretty=format:"- %s (%h)" "$PREV_TAG"..main > dist/changes.md
-```
-
-**Update `changelog.json`** in the repository root — this file contains only the changes for the upcoming release:
-
-```json
-{
-    "version": "X.Y.Z",
-    "changes": [
-        "Description of change 1",
-        "Description of change 2"
-    ]
-}
-```
-
-The panel fetches this file from the release tag automatically via `GithubReleases::getChangelog()`.
-
-> 💬 Keep descriptions concise — focus on user-facing improvements and fixes.
-
----
-
-## 🚀 6. GitHub Release
+## 🚀 7. GitHub Release
 
 1. Go to [GitHub Releases](https://github.com/Vateron-Media/XC_VM/releases)
-2. Create a new release with tag `X.Y.Z`
+2. Create a new release with the tag from the first step
 3. Paste the changelog as the release description
 4. Publish **without attaching files** — GitHub Actions will build and attach them
 
@@ -170,7 +182,7 @@ After publishing, the workflow will automatically:
 
 ---
 
-## 📢 7. Post-Release
+## 📢 8. Post-Release
 
 - [ ] Verify all 4 assets are attached to the release
 - [ ] Run `md5sum -c hashes.md5` on downloaded files
