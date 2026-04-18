@@ -36,9 +36,17 @@ class Database {
 		$this->dbuser = $db_user;
 		$this->dbpassword = $db_pass;
 		$this->dbname = $db_name;
-		$this->dbhost = $host;
+		$this->dbhost = $this->normalizeHost($host);
 		$this->dbport = $db_port;
 		$this->db_connect($migrate);
+	}
+
+	private function normalizeHost($rHost) {
+		if ($rHost === 'localhost') {
+			return '127.0.0.1';
+		}
+
+		return $rHost;
 	}
 
 	public function close_mysql() {
@@ -86,7 +94,7 @@ class Database {
 
 	public function db_explicit_connect($rHost, $rPort, $rDatabase, $rUsername, $rPassword) {
 		try {
-			$this->dbh = new PDO('mysql:host=' . $rHost . ';port=' . $rPort . ';dbname=' . $rDatabase, $rUsername, $rPassword);
+			$this->dbh = new PDO('mysql:host=' . $this->normalizeHost($rHost) . ';port=' . $rPort . ';dbname=' . $rDatabase, $rUsername, $rPassword);
 
 			if (!$this->dbh) {
 				return false;

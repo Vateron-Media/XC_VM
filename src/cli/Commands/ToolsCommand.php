@@ -103,6 +103,7 @@ class ToolsCommand implements CommandInterface {
 		$db->query('DROP DATABASE IF EXISTS `xc_vm_migrate`;');
 		$db->query('CREATE DATABASE IF NOT EXISTS `xc_vm_migrate`;');
 		echo "Migration database has been cleared.\n";
+		$rConfig = ConfigReader::getAll();
 
 		$database = (!empty($rArgs[1]) ? $rArgs[1] : null);
 
@@ -110,17 +111,20 @@ class ToolsCommand implements CommandInterface {
 			$rExtension = strtolower(pathinfo($database, PATHINFO_EXTENSION));
 			if ($rExtension === 'sql') {
 				echo 'Restoring: ' . $database . "\n";
-				shell_exec('sudo mysql xc_vm_migrate < ' . escapeshellarg($database));
+				$rCommand = 'mariadb -h 127.0.0.1 -P ' . intval($rConfig['port']) . ' -u ' . escapeshellarg($rConfig['username']) . ' -p' . escapeshellarg($rConfig['password']) . ' xc_vm_migrate < ' . escapeshellarg($database) . ' 2>&1';
+				$rOutput = shell_exec($rCommand);
+				if (!empty($rOutput)) {
+					echo $rOutput;
+				}
 				echo "If no errors were shown above, restore was completed.\n\n";
 			} else {
 				echo "Error: File must have .sql extension\n";
 			}
 		} else {
 			echo "You can restore a database to it using:\n";
-			echo "sudo mysql xc_vm_migrate < backup.sql\n\n";
+			echo 'mariadb -h 127.0.0.1 -P ' . intval($rConfig['port']) . ' -u ' . $rConfig['username'] . ' -p*** xc_vm_migrate < backup.sql' . "\n\n";
 		}
 
-		$rConfig = ConfigReader::getAll();
 		foreach ($rServers as $rServer) {
 			BackupService::grantPrivileges($rServer['server_ip'], DatabaseFactory::get(), $rConfig);
 		}
