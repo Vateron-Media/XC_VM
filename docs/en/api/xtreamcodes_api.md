@@ -25,6 +25,12 @@ The main API is handled by `PlayerApiController`:
 src/public/Controllers/Api/PlayerApiController.php
 ```
 
+The EPG/XMLTV endpoint (`/xmltv.php`) is handled by `EpgApiController`:
+
+```text
+src/public/Controllers/Api/EpgApiController.php
+```
+
 ---
 
 ## Overview
