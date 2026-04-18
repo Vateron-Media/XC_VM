@@ -4,32 +4,18 @@
 
 ---
 
-##  1. Обновить версию
+## 1. Подготовить базу для релиза
 
-Изменить константу версии и отключить режим разработки в:
+Сначала завершите все рабочие изменения (feature/fix/docs) и убедитесь, что они уже в `main`.
 
-```text
-src/core/Config/AppConfig.php
-```
-
-**Быстрые команды:**
+Задайте переменную версии один раз и используйте её во всех командах ниже:
 
 ```bash
-sed -i "s/define('DEVELOPMENT', true);/define('DEVELOPMENT', false);/" src/core/Config/AppConfig.php
-sed -i "s/define('XC_VM_VERSION', *'[0-9]\+\.[0-9]\+\.[0-9]\+');/define('XC_VM_VERSION', 'X.Y.Z');/" src/core/Config/AppConfig.php
+VERSION="X.Y.Z"
 ```
 
-> ⚠️ Убедитесь, что `DEVELOPMENT` установлен в `false` перед каждым релизом.
-
-**Закоммитить:**
-
-```bash
-git add src/core/Config/AppConfig.php
-git commit -m "Bump version to X.Y.Z"
-git push
-```
-
-> 💡 Замените `X.Y.Z` на актуальную версию.
+> ⚠️ Не делайте отдельный commit/push с bump версии на этом шаге.
+> Иначе `dist/changes.md` будет включать лишние релизные коммиты, и вам придётся делать дополнительные правки.
 
 ---
 
@@ -93,7 +79,61 @@ tools/run_scan.sh
 
 ---
 
-## ⚙️ 4. Сборка архивов
+## 📝 4. Changelog
+
+**Сгенерировать лог коммитов (только рабочие изменения):**
+
+```bash
+PREV_TAG=$(git describe --tags --abbrev=0)
+git log --pretty=format:"- %s (%h)" "$PREV_TAG"..main > dist/changes.md
+```
+
+**Обновить `changelog.json`** в корне репозитория — этот файл содержит только изменения для предстоящего релиза:
+
+```json
+{
+    "version": "X.Y.Z",
+    "changes": [
+        "Описание изменения 1",
+        "Описание изменения 2"
+    ]
+}
+```
+
+Панель получает этот файл из тега релиза автоматически через `GithubReleases::getChangelog()`.
+
+> 💬 Описания должны быть краткими — фокус на пользовательских улучшениях и исправлениях.
+
+---
+
+## 🔢 5. Обновить версию и сделать единый release commit
+
+Изменить константу версии и отключить режим разработки в:
+
+```text
+src/core/Config/AppConfig.php
+```
+
+**Быстрые команды:**
+
+```bash
+sed -i "s/define('DEVELOPMENT', true);/define('DEVELOPMENT', false);/" src/core/Config/AppConfig.php
+sed -i "s/define('XC_VM_VERSION', *'[0-9]\+\.[0-9]\+\.[0-9]\+');/define('XC_VM_VERSION', '${VERSION}');/" src/core/Config/AppConfig.php
+```
+
+**Сделать один финальный commit/push для релиза:**
+
+```bash
+git add src/core/Config/AppConfig.php changelog.json src/migrations/deleted_files.txt
+git commit -m "Prepare release ${VERSION}"
+git push
+```
+
+> ⚠️ Это устраняет необходимость в нескольких релизных коммитах.
+
+---
+
+## ⚙️ 6. Сборка архивов
 
 > 🤖 **Production-сборки** выполняются через GitHub Actions (`.github/workflows/build-release.yml`) при публикации релиза. Файлы прикрепляются автоматически.
 
@@ -125,38 +165,10 @@ cd dist && md5sum -c hashes.md5
 
 ---
 
-## 📝 5. Changelog
-
-**Сгенерировать лог коммитов:**
-
-```bash
-PREV_TAG=$(git describe --tags --abbrev=0)
-echo "Предыдущий релиз: $PREV_TAG"
-git log --pretty=format:"- %s (%h)" "$PREV_TAG"..main > dist/changes.md
-```
-
-**Обновить `changelog.json`** в корне репозитория — этот файл содержит только изменения для предстоящего релиза:
-
-```json
-{
-    "version": "X.Y.Z",
-    "changes": [
-        "Описание изменения 1",
-        "Описание изменения 2"
-    ]
-}
-```
-
-Панель получает этот файл из тега релиза автоматически через `GithubReleases::getChangelog()`.
-
-> 💬 Описания должны быть краткими — фокус на пользовательских улучшениях и исправлениях.
-
----
-
-## 🚀 6. GitHub релиз
+## 🚀 7. GitHub релиз
 
 1. Перейти на [GitHub Releases](https://github.com/Vateron-Media/XC_VM/releases)
-2. Создать новый релиз с тегом `X.Y.Z`
+2. Создать новый релиз с тегом из первого шага
 3. Вставить changelog в описание релиза
 4. Опубликовать **без прикрепления файлов** — GitHub Actions соберёт и прикрепит их
 
@@ -170,7 +182,7 @@ git log --pretty=format:"- %s (%h)" "$PREV_TAG"..main > dist/changes.md
 
 ---
 
-## 📢 7. После релиза
+## 📢 8. После релиза
 
 - [ ] Проверить, что все 4 файла прикреплены к релизу
 - [ ] Скачать и проверить `md5sum -c hashes.md5`
