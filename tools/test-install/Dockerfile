@@ -30,9 +30,26 @@ STOPSIGNAL SIGRTMIN+3
 
 WORKDIR /opt/xcvm-install
 
-# Скрипт автоматической установки (подаёт ответы на интерактивные вопросы)
-COPY auto_install.sh /opt/xcvm-install/auto_install.sh
+# Скрипт автоматической установки (инлайн — отдельный файл не нужен)
+RUN cat > /opt/xcvm-install/auto_install.sh << 'INSTALL_SCRIPT'
+#!/bin/bash
+# Автоматическая установка XC_VM в контейнере
+# XC_VM.zip монтируется через volume из dist/XC_VM.zip
+set -e
+
+cd /opt/xcvm-install
+
+# 1. Распаковываем
+unzip -o XC_VM.zip
+
+# 2. Устанавливаем (ответы на интерактивные вопросы):
+#   - MariaDB root password: пусто (авто-генерация)
+#   - HTTP port: пусто (80)
+#   - HTTPS port: пусто (443)
+#   - Overwrite sysctl: Y
+printf '\n\n\nY\n' | python3 install 2>&1 | tee /var/log/xcvm_install.log
+INSTALL_SCRIPT
 RUN chmod +x /opt/xcvm-install/auto_install.sh
 
-# Точка входа — systemd (PID 1), установка запускается вручную или через скрипт
+# Точка входа — systemd (PID 1), установка запускается через: docker exec ... auto_install.sh
 CMD ["/sbin/init"]

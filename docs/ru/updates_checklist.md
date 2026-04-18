@@ -76,10 +76,11 @@ make syntax_check
 **Тестовая установка в Docker** (см. `tools/test-install/`):
 
 ```bash
-cd tools/test-install
-docker compose up -d --build
-docker exec -it xc_test bash /opt/auto_install.sh
+bash tools/test-install/test_release.sh
 ```
+
+Скрипт собирает образ, запускает контейнер с systemd и автоматически выполняет установку.
+`dist/XC_VM.zip` монтируется в контейнер как read-only volume.
 
 > ✅ Убедитесь, что панель открывается по `http://localhost:8880` и вход в админку работает.
 
