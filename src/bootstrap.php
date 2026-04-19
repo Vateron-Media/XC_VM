@@ -255,25 +255,39 @@ class XC_Bootstrap {
     /**
      * Load constants, paths, $_INFO, Logger, error functions.
      *
-     * Delegates to www/constants.php which includes:
+     * Loads core configuration directly (without www/constants.php):
      *   core/Error/ErrorCodes.php      — $rErrorCodes
      *   core/Error/ErrorHandler.php    — generateError(), generate404()
      *   core/Config/Paths.php          — *_PATH constants
      *   core/Config/AppConfig.php      — version, Git, flags
      *   core/Config/Binaries.php       — FFMPEG, FFPROBE, GeoIP
      *   core/Config/ConfigLoader.php   — $_INFO from config.ini
-     *   core/Http/RequestGuard.php     — flood/host check + Logger
      */
     private static function loadConstants(): void {
         if (self::$constantsLoaded) {
             return;
         }
 
-        require_once MAIN_HOME . 'www/constants.php';
+        require_once MAIN_HOME . 'core/Error/ErrorCodes.php';
+        require_once MAIN_HOME . 'core/Error/ErrorHandler.php';
+        require_once MAIN_HOME . 'core/Config/Paths.php';
+        require_once MAIN_HOME . 'core/Config/AppConfig.php';
+        require_once MAIN_HOME . 'core/Config/Binaries.php';
+        require_once MAIN_HOME . 'core/Config/ConfigLoader.php';
+        require_once MAIN_HOME . 'core/Logging/Logger.php';
+
+        if (!defined('PHP_ERRORS')) {
+            define('PHP_ERRORS', false);
+        }
+
+        Logger::init(
+            PHP_ERRORS,
+            LOGS_TMP_PATH . 'error_log.log'
+        );
 
         self::$constantsLoaded = true;
         self::$configLoaded    = true;  // $_INFO loaded inside ConfigLoader.php
-        self::$loggerStarted   = true;  // Logger::init() called inside RequestGuard.php
+        self::$loggerStarted   = true;
     }
 
     /**

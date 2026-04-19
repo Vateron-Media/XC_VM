@@ -19,7 +19,7 @@
  *   2. ErrorCodes       → $rErrorCodes (нужен для ErrorHandler)
  *   3. ErrorHandler     → generate404() (нужен для access guard ниже)
  *   4. Paths            → все *_PATH константы (нужны для Binaries, ConfigLoader)
- *   5. AppConfig        → XC_VM_VERSION, DEVELOPMENT, etc.
+ *   5. AppConfig        → XC_VM_VERSION, app flags, etc.
  *   6. Binaries         → FFMPEG_*, FFPROBE_*, GeoIP, PHP_BIN
  *   7. ConfigLoader     → $_INFO из config.ini
  *   8. RequestGuard     → flood/host check + Logger::init()

@@ -13,9 +13,10 @@
  * including versioning, Git repositories, and feature flags.
  */
 
-// ── Development & Experimental Flags ───────────────────────────
+// ── Runtime Safety Flags ───────────────────────────────────────
 
-define('DEVELOPMENT', false);          // Development mode (planned for removal)
+// Enables phpMiniAdmin access from admin panel.
+define('DB_ACCESS_ENABLED', false);
 
 // ── Version & Git Configuration ────────────────────────────────
 

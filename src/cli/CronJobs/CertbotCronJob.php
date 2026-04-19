@@ -39,7 +39,7 @@ class CertbotCronJob implements CommandInterface {
         $rCertInfo = null;
 
         if (!$rCheck) {
-            if (!DEVELOPMENT) {
+            if (!PHP_ERRORS) {
                 DiagnosticsService::submitPanelLogs(DatabaseFactory::get());
             }
             $rCertInfo = DiagnosticsService::getCertificateInfo();
