@@ -61,7 +61,7 @@
 ### Инициализация Logger
 
 ```php
-Logger::init(DEVELOPMENT, LOGS_TMP_PATH . 'error_log.log');
+Logger::init(PHP_ERRORS, LOGS_TMP_PATH . 'error_log.log');
 ```
 
 После RequestGuard Logger доступен во всех последующих компонентах.

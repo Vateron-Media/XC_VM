@@ -3,7 +3,7 @@
 > Архитектурные принципы, структура проекта и описание компонентов — см. [ARCHITECTURE.md](ARCHITECTURE.md).
 > Этот файл содержит только незавершённые изменения.
 > История завершённых фаз фиксируется в git-истории и release notes.
-> Обновлено: 2026-04-17
+> Обновлено: 2026-04-19
 
 ## Содержание
 
@@ -44,7 +44,6 @@
 | Узел | Текущая зависимость | Риск удаления |
 | ----- | -------------------- | ------------- |
 | `public/index.php` | Прямой `require` `www/init.php` и `www/stream/init.php` для API-path | Ломает API и streaming dispatch |
-| `bootstrap.php` | Загружает `www/constants.php` | Ломает константы, config-loader и bootstrap |
 | `bin/nginx/conf/nginx.conf` | `root /home/xc_vm/www/` и rewrite на `/stream/*.php`, `/playlist.php`, `/epg.php`, `/player_api.php`, `/probe.php` | Ломает внешний HTTP-трафик |
 | `console.php status` / service tooling | Использует `www/stream/init.php` | Ломает часть статуса и диагностики |
 | certbot / nginx ops | Используют `/home/xc_vm/www/` как webroot | Ломает выпуск и продление сертификатов |
@@ -100,8 +99,7 @@
 
 | ID | Задача | Основные файлы | Блокер | Результат |
 | -- | ------ | -------------- | ------ | --------- |
-| `L-1` | Вынести bootstrap-константы из `www/constants.php` в устойчивый `core/` bootstrap-layer | `src/bootstrap.php`, `src/www/constants.php`, `src/core/Config/*`, `src/core/Error/*` | Нет | `bootstrap.php` больше не зависит от `www/constants.php` |
-| `L-2` | Заменить `www/init.php` и `www/stream/init.php` на нормализованные bootstrap-сервисы | `src/public/index.php`, `src/www/init.php`, `src/www/stream/init.php`, `src/streaming/StreamingBootstrap.php` | `L-1` | HTTP/API/streaming path больше не требуют `www/*init.php` |
+| `L-2` | Заменить `www/init.php` и `www/stream/init.php` на нормализованные bootstrap-сервисы | `src/public/index.php`, `src/www/init.php`, `src/www/stream/init.php`, `src/streaming/StreamingBootstrap.php` | Нет | HTTP/API/streaming path больше не требуют `www/*init.php` |
 | `L-3` | Переписать thin-wrapper контроллеры на service/repository flow | `src/public/Controllers/Admin/AdminTableController.php`, `src/public/Controllers/Admin/TableController.php`, `src/public/Controllers/Reseller/*`, `src/public/Controllers/Player/PlayerResizeController.php`, `src/public/Views/admin/table.php` | `L-2` | Ни один контроллер не требует `www/init.php` или `infrastructure/legacy/*` |
 | `L-4` | Заменить содержимое `infrastructure/legacy/` на доменные сервисы и специализированные action classes | `src/infrastructure/legacy/*`, `src/domain/**`, `src/public/Controllers/**` | `L-3` | `infrastructure/legacy/` больше не участвует в runtime |
 | `L-5` | Перевести внешний HTTP routing с `www` на `public` или новые endpoints | `src/bin/nginx/conf/nginx.conf`, `src/public/index.php`, `src/www/admin/*`, `src/www/stream/*` | `L-2` | nginx больше не маршрутизирует запросы в `www/*.php` |
@@ -124,15 +122,7 @@
 2. Добавить отдельный CI-check: новые вызовы `require ... 'www/*.php'` и `require ... 'infrastructure/legacy/*.php'` запрещены.
 3. Прекратить добавление новых nginx rewrite на `www/*.php`.
 
-### Этап 1. Отвязка bootstrap от `www/constants.php`
-
-1. Перенести загрузку констант, путей и error bootstrap в `core/Config` и `core/Error`.
-2. Оставить `www/constants.php` только как compatibility shim на время перехода.
-3. Переключить `bootstrap.php` на новый источник.
-
-**Критерий завершения:** `bootstrap.php` больше не делает `require_once MAIN_HOME . 'www/constants.php'`.
-
-### Этап 2. Замена `www/init.php` и `www/stream/init.php`
+### Этап 1. Замена `www/init.php` и `www/stream/init.php`
 
 1. Создать два явных bootstrap-сценария: `WebApiBootstrap` и `StreamingRequestBootstrap`.
 2. Перенести в них логику из `www/init.php` и `www/stream/init.php` без сохранения procedural entry-point API.
@@ -141,7 +131,7 @@
 
 **Критерий завершения:** ни один runtime path не требует `www/init.php` и `www/stream/init.php` напрямую.
 
-### Этап 3. Ликвидация исполняемого legacy в `public/Controllers/`
+### Этап 2. Ликвидация исполняемого legacy в `public/Controllers/`
 
 1. Переписать admin/reseller table endpoints без включения `public/Views/admin/table.php` и `reseller_table_body.php`.
 2. Вытащить resize-логику из `resize_body.php` в отдельный сервис `ImageResizeService`.
@@ -150,7 +140,7 @@
 
 **Критерий завершения:** `public/Controllers/**` больше не содержат `require ... www/init.php` и `require ... infrastructure/legacy/*.php`.
 
-### Этап 4. Удаление `infrastructure/legacy/`
+### Этап 3. Удаление `infrastructure/legacy/`
 
 1. После миграции каждого файла включить runtime guard: попытка require legacy-файла должна падать в dev-режиме.
 2. Удалить `resize_body.php` после перехода Admin/Reseller/Player на новый сервис.
@@ -159,7 +149,7 @@
 
 **Критерий завершения:** директория `src/infrastructure/legacy/` либо пуста, либо удалена полностью.
 
-### Этап 5. Cutover внешнего HTTP-трафика
+### Этап 4. Cutover внешнего HTTP-трафика
 
 1. Перенастроить nginx rewrite так, чтобы внешние маршруты указывали на `public/index.php` или новые специализированные endpoints.
 2. Убрать `root /home/xc_vm/www/` как обязательный runtime-root.
@@ -168,7 +158,7 @@
 
 **Критерий завершения:** nginx больше не обращается к `www/playlist.php`, `www/epg.php`, `www/player_api.php`, `www/probe.php`, `www/stream/*.php`, `www/admin/*.php`.
 
-### Этап 6. Развязка Ministra
+### Этап 5. Развязка Ministra
 
 1. Убрать зависимость `mag_legacy_redirect` от наличия `www/c` и `www/portal.php` symlink'ов.
 2. Перевести Ministra routing на отдельный location/alias либо модульный runtime path.
@@ -176,7 +166,7 @@
 
 **Критерий завершения:** включение и отключение Ministra больше не создаёт и не удаляет файлы в `www/`.
 
-### Этап 7. Финальное удаление `www/`
+### Этап 6. Финальное удаление `www/`
 
 1. На один релиз оставить `www/` в режиме compatibility-only shim.
 2. Снять продовые метрики по всем старым URL и убедиться, что трафик ушёл на новые точки входа.
@@ -221,10 +211,9 @@
 
 ### Волна A. Подготовка к удалению `www/`
 
-1. `L-1` — отвязка bootstrap от `www/constants.php`
-2. `L-2` — замена `www/init.php` и `www/stream/init.php`
-3. `L-3` — переписывание thin-wrapper контроллеров
-4. `L-4` — удаление исполняемого legacy в `infrastructure/legacy/`
+1. `L-2` — замена `www/init.php` и `www/stream/init.php`
+2. `L-3` — переписывание thin-wrapper контроллеров
+3. `L-4` — удаление исполняемого legacy в `infrastructure/legacy/`
 
 ### Волна B. Модульный cutover
 

@@ -1,10 +1,12 @@
-# Фичефлаги разработки
+# Флаги разработки
 
-XC_VM использует набор констант в `src/core/Config/AppConfig.php` для управления поведением системы в разных окружениях.
+XC_VM использует константы и флаги из настроек для управления поведением системы.
+
+Константы приложения хранятся в `src/core/Config/AppConfig.php`.
 
 ---
 
-## Текущие флаги
+## Активные runtime-флаги
 
 ### `PHP_ERRORS`
 
@@ -20,9 +22,18 @@ Logger::init(PHP_ERRORS, LOGS_TMP_PATH . 'error_log.log');
 
 При `PHP_ERRORS=true` логгер выводит расширенные сообщения на экран.
 
+### `DB_ACCESS_ENABLED`
+
+```php
+define('DB_ACCESS_ENABLED', false); // включает вкладку/страницу phpMiniAdmin в админ-панели
+```
+
+`DB_ACCESS_ENABLED` управляет только доступом к phpMiniAdmin из admin UI.
+Этот флаг не блокирует основные подключения приложения к базе данных.
+
 ---
 
-## Настройки из `config.ini` (`$rSettings`)
+## Флаги из настроек (`$rSettings`)
 
 Ряд поведенческих флагов хранится в настройках панели и загружается в `$rSettings`:
 
@@ -33,39 +44,22 @@ Logger::init(PHP_ERRORS, LOGS_TMP_PATH . 'error_log.log');
 | `verify_host` | `bool` | Проверять домен из `allowed_domains` при каждом запросе |
 | `save_login_logs` | `bool` | Записывать все попытки входа в `login_logs` |
 
-Эти настройки загружаются из файлового кеша (`CACHE_TMP_PATH/settings`) через `RequestGuard`, без обращения к БД на каждом запросе.
+Эти настройки загружаются из файлового кеша (`CACHE_TMP_PATH/settings`) через `RequestGuard`.
 
 ---
 
-## Константы версии
+## Статические константы приложения
 
 ```php
-define('XC_VM_VERSION', '2.1.1');
-```
-
-Используется в UI панели и при проверке обновлений.
-
----
-
-## Git-репозитории
-
-```php
-define('GIT_OWNER',       'Vateron-Media');
-define('GIT_REPO_MAIN',   'XC_VM');
+define('DB_ACCESS_ENABLED', false);
+define('XC_VM_VERSION', '2.1.2');
+define('GIT_OWNER', 'Vateron-Media');
+define('GIT_REPO_MAIN', 'XC_VM');
 define('GIT_REPO_UPDATE', 'XC_VM_Update');
-define('GIT_REPO_BIN',    'XC_VM_Binaries');
+define('GIT_REPO_BIN', 'XC_VM_Binaries');
+define('MONITOR_CALLS', 3);
+define('OPENSSL_EXTRA', '...');
 ```
-
-Используются системой обновлений для формирования URL к GitHub API и загрузки бинарных файлов.
-
----
-
-## Прочие константы
-
-| Константа       | Значение         | Описание                                         |
-| --------------- | ---------------- | ------------------------------------------------ |
-| `MONITOR_CALLS` | `3`              | Количество попыток повтора для задач мониторинга |
-| `OPENSSL_EXTRA` | строка           | Дополнительная энтропия для OpenSSL-операций     |
 
 ---
 

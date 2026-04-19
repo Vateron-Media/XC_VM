@@ -108,7 +108,7 @@ git log --pretty=format:"- %s (%h)" "$PREV_TAG"..main > dist/changes.md
 
 ## 🔢 5. Обновить версию и сделать единый release commit
 
-Изменить константу версии и отключить режим разработки в:
+Изменить константу версии и отключить флаг доступа к phpMiniAdmin в:
 
 ```text
 src/core/Config/AppConfig.php
@@ -117,7 +117,7 @@ src/core/Config/AppConfig.php
 **Быстрые команды:**
 
 ```bash
-sed -i "s/define('DEVELOPMENT', true);/define('DEVELOPMENT', false);/" src/core/Config/AppConfig.php
+sed -i "s/define('DB_ACCESS_ENABLED', true);/define('DB_ACCESS_ENABLED', false);/" src/core/Config/AppConfig.php
 sed -i "s/define('XC_VM_VERSION', *'[0-9]\+\.[0-9]\+\.[0-9]\+');/define('XC_VM_VERSION', '${VERSION}');/" src/core/Config/AppConfig.php
 ```
 

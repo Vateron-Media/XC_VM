@@ -108,7 +108,7 @@ The panel fetches this file from the release tag automatically via `GithubReleas
 
 ## 🔢 5. Update Version and Create a Single Release Commit
 
-Edit the version constant and disable development mode in:
+Edit the version constant and disable phpMiniAdmin access flag in:
 
 ```text
 src/core/Config/AppConfig.php
@@ -117,7 +117,7 @@ src/core/Config/AppConfig.php
 **Quick commands:**
 
 ```bash
-sed -i "s/define('DEVELOPMENT', true);/define('DEVELOPMENT', false);/" src/core/Config/AppConfig.php
+sed -i "s/define('DB_ACCESS_ENABLED', true);/define('DB_ACCESS_ENABLED', false);/" src/core/Config/AppConfig.php
 sed -i "s/define('XC_VM_VERSION', *'[0-9]\+\.[0-9]\+\.[0-9]\+');/define('XC_VM_VERSION', '${VERSION}');/" src/core/Config/AppConfig.php
 ```
 
