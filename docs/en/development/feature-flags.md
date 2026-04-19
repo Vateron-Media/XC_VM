@@ -2,6 +2,8 @@
 
 XC_VM uses constants and settings-driven flags to control environment behavior.
 
+Application constants are stored in `src/core/Config/AppConfig.php`.
+
 ---
 
 ## Active Runtime Flag
@@ -17,6 +19,15 @@ define('PHP_ERRORS', $rShowErrors); // derived from $rSettings['debug_show_error
 ```php
 Logger::init(PHP_ERRORS, LOGS_TMP_PATH . 'error_log.log');
 ```
+
+### `DB_ACCESS_ENABLED`
+
+```php
+define('DB_ACCESS_ENABLED', false); // enables phpMiniAdmin tab/page in admin panel
+```
+
+`DB_ACCESS_ENABLED` controls access to phpMiniAdmin from admin UI only.
+It does not block core application database connections.
 
 ---
 
@@ -40,7 +51,8 @@ These values are loaded from `CACHE_TMP_PATH/settings` by request guards.
 From `src/core/Config/AppConfig.php`:
 
 ```php
-define('XC_VM_VERSION', '2.1.1');
+define('DB_ACCESS_ENABLED', false);
+define('XC_VM_VERSION', '2.1.2');
 define('GIT_OWNER', 'Vateron-Media');
 define('GIT_REPO_MAIN', 'XC_VM');
 define('GIT_REPO_UPDATE', 'XC_VM_Update');

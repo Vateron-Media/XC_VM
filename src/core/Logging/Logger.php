@@ -2,7 +2,7 @@
 
 /**
  * A centralized logger class for handling PHP errors, exceptions, and fatal errors.
- * Logs all events to a file in base64-encoded JSON format and optionally displays them on screen in development mode.
+ * Logs all events to a file in base64-encoded JSON format and optionally displays them on screen.
  *
  * @package XC_VM_Includes_Libs
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -12,8 +12,8 @@
  */
 
 final class Logger {
-    /** @var bool Whether development mode is enabled (errors are displayed on screen) */
-    private static bool $development = false;
+    /** @var bool Whether errors should be displayed on screen */
+    private static bool $showErrors = false;
 
     /** @var string Full path to the log file */
     private static string $logFile;
@@ -21,11 +21,11 @@ final class Logger {
     /**
      * Initializes error, exception, and fatal error handlers.
      *
-     * @param bool   $showErrors true for development mode (display errors), false for production
+     * @param bool   $showErrors true to display errors, false to hide UI output
      * @param string $logFile    Full path to the file where logs will be written
      */
     public static function init(bool $showErrors, string $logFile): void {
-        self::$development = $showErrors;
+        self::$showErrors = $showErrors;
         self::$logFile     = $logFile;
 
         // Set custom handlers
@@ -33,15 +33,15 @@ final class Logger {
         set_exception_handler([self::class, 'handleException']);
         register_shutdown_function([self::class, 'handleFatal']);
 
+        // Always collect all errors for logging; UI visibility is controlled separately.
+        error_reporting(E_ALL);
+
         if ($showErrors) {
-            // In development mode, show all errors
-            error_reporting(E_ERROR | E_WARNING);
             ini_set('display_errors', '1');
             ini_set('display_startup_errors', '1');
         } else {
-            // In production, hide errors from the user
-            error_reporting(0);
             ini_set('display_errors', '0');
+            ini_set('display_startup_errors', '0');
         }
     }
 
@@ -125,7 +125,7 @@ final class Logger {
     /* ================= CORE LOG ================= */
 
     /**
-     * Core logging method. Writes the event to the log file and optionally outputs it in development mode.
+     * Core logging method. Writes the event to the log file and optionally outputs it on screen.
      *
      * @param string $type    Event type (ERROR, WARNING, NOTICE, EXCEPTION, FATAL, etc.)
      * @param string $message Message text
@@ -170,8 +170,8 @@ final class Logger {
             @chmod(self::$logFile, 0664);
         }
 
-        // In development mode, display a readable message on screen
-        if (self::$development) {
+        // If UI output is enabled, display a readable message on screen
+        if (self::$showErrors) {
             self::output($data);
         }
     }

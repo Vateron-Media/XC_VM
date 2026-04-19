@@ -12,7 +12,6 @@
  *
  * Зависимости:
  *   FLOOD_TMP_PATH, CACHE_TMP_PATH, INCLUDES_PATH (из Paths.php)
- *   DEVELOPMENT (из AppConfig.php)
  *   LOGS_TMP_PATH (из Paths.php)
  *   generateError() (из ErrorHandler.php)
  *
@@ -60,9 +59,8 @@ if (!isset($_SERVER['argc'])) {
 define('PHP_ERRORS', $rShowErrors);
 
 // ── Logger ─────────────────────────────────────────────────────
-// After fixing all the warnings, replace DEVELOPMENT with PHP_ERRORS
 require_once MAIN_HOME . 'core/Logging/Logger.php';
 Logger::init(
-    DEVELOPMENT,
+    PHP_ERRORS,
     LOGS_TMP_PATH . 'error_log.log'
 );
