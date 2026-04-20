@@ -17,15 +17,14 @@ class ResellerLoginController
 {
     public function index()
     {
+        // Bootstrap (login page is in noBootstrapPages, so FC skips bootstrap)
+        require_once MAIN_HOME . 'bootstrap.php';
+        XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_ADMIN);
+
         // Already logged in → dashboard
         if (isset($_SESSION['reseller'])) {
             header('Location: dashboard');
             exit();
-        }
-
-        // Start session if needed
-        if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
-            session_start();
         }
 
         $rIP = NetworkUtils::getUserIP();

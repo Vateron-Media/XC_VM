@@ -48,7 +48,6 @@ class ResellerApiController extends BaseResellerController
 
         $action = RequestManager::getAll()['action'] ?? '';
 
-        // Delegate to the legacy API logic file
-        require MAIN_HOME . 'infrastructure/legacy/reseller_api_actions.php';
+        ResellerApiDispatcher::dispatch($action, $rUserInfo, $rPermissions);
     }
 }

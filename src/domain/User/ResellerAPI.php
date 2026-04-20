@@ -3,7 +3,7 @@
 /**
  * Reseller API handler
  *
- * @package XC_VM_Includes
+ * @package XC_VM_Domain_User
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
  * @link    https://github.com/Vateron-Media/XC_VM

@@ -23,7 +23,7 @@ class ResellerDashboardController extends BaseResellerController
         $rGroups = GroupService::getAll();
 
         // Sanitize notice HTML
-        $rNotice = html_entity_decode($rGroups[$rUserInfo['member_group_id']]['notice_html']);
+        $rNotice = html_entity_decode($rGroups[$rUserInfo['member_group_id']]['notice_html'] ?? '');
         $rNotice = preg_replace('#</*(?:applet|b(?:ase|gsound|link)|embed|frame(?:set)?|i(?:frame|layer)|l(?:ayer|ink)|meta|object|s(?:cript|tyle)|title|xml)[^>]*+>#i', '', $rNotice);
         $rNotice = preg_replace('#</*\\w+:\\w[^>]*+>#i', '', $rNotice);
         $rNotice = str_replace(array('&amp;', '&lt;', '&gt;'), array('&amp;amp;', '&amp;lt;', '&amp;gt;'), $rNotice);
