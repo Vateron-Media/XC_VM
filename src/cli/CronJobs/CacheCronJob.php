@@ -262,7 +262,7 @@ class CacheCronJob implements CommandInterface {
         if ($db->dbh && $db->result) {
             if ($db->result->rowCount() > 0) {
                 foreach ($db->result->fetchAll(PDO::FETCH_ASSOC) as $rStreamInfo) {
-                    $rCategoryChannels[$rStreamInfo['id']] = json_decode($rStreamInfo['category_id'], true);
+                    $rCategoryChannels[$rStreamInfo['id']] = json_decode($rStreamInfo['category_id'] ?? '[]', true);
                 }
             }
         }

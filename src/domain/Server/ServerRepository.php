@@ -51,7 +51,7 @@ class ServerRepository {
 			$rRow['http_url'] = 'http://' . $rURL . ':' . intval($rRow['http_broadcast_port']) . '/';
 			$rRow['https_url'] = 'https://' . $rURL . ':' . intval($rRow['https_broadcast_port']) . '/';
 			$rRow['rtmp_server'] = 'rtmp://' . $rURL . ':' . intval($rRow['rtmp_port']) . '/live/';
-			$rRow['domains'] = array('protocol' => $rProtocol, 'port' => $rPort, 'urls' => array_filter(array_map('escapeshellcmd', explode(',', $rRow['domain_name']))));
+			$rRow['domains'] = array('protocol' => $rProtocol, 'port' => $rPort, 'urls' => array_filter(array_map('escapeshellcmd', explode(',', $rRow['domain_name'] ?? ''))));
 			$rRow['rtmp_mport_url'] = 'http://127.0.0.1:31210/';
 			$rRow['api_url_ip'] = 'http://' . escapeshellcmd($rRow['server_ip']) . ':' . intval($rRow['http_broadcast_port']) . '/api?password=' . urlencode($rSettings['live_streaming_pass']);
 			$rRow['api_url'] = $rRow['api_url_ip'];
@@ -322,7 +322,7 @@ class ServerRepository {
 			} else {
 				$rIPs[] = $rServerInfo['private_ip'];
 			}
-			foreach (explode(',', $rServerInfo['domain_name']) as $rIP) {
+			foreach (explode(',', $rServerInfo['domain_name'] ?? '') as $rIP) {
 				if (!filter_var($rIP, FILTER_VALIDATE_IP)) {
 				} else {
 					$rIPs[] = $rIP;

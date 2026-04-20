@@ -222,7 +222,7 @@ class SystemInfo {
         $rReturn = array();
         $rID = 0;
         try {
-            $rDevices = array_values(array_filter(explode("\n", shell_exec('v4l2-ctl --list-devices'))));
+            $rDevices = array_values(array_filter(explode("\n", shell_exec('v4l2-ctl --list-devices') ?? '')));
             if (is_array($rDevices)) {
                 foreach ($rDevices as $rKey => $rValue) {
                     if ($rKey % 2 == 0) {
@@ -244,7 +244,7 @@ class SystemInfo {
      */
     public static function getAudioDevices() {
         try {
-            return array_filter(explode("\n", shell_exec('arecord -L | grep "hw:CARD="')));
+            return array_filter(explode("\n", shell_exec('arecord -L | grep "hw:CARD="') ?? ''));
         } catch (Exception $e) {
             return array();
         }
