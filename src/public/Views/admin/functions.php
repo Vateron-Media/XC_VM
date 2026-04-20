@@ -22,8 +22,9 @@ if ($rMobile) {
 if (isset($_SESSION['hash'])) {
 	$rUserInfo = UserRepository::getRegisteredUserById($_SESSION['hash']);
 
-	if (!empty($rUserInfo['timezone'])) {
-		date_default_timezone_set($rUserInfo['timezone']);
+	$__tz = trim($rUserInfo['timezone'] ?? '', '" ');
+	if ($__tz !== '' && in_array($__tz, timezone_identifiers_list())) {
+		date_default_timezone_set($__tz);
 	}
 
 	if (!empty($rUserInfo['hue']) && (!isset($_COOKIE['hue']) || $_COOKIE['hue'] != $rUserInfo['hue'])) {

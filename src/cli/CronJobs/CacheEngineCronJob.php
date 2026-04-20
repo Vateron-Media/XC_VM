@@ -90,7 +90,8 @@ class CacheEngineCronJob implements CommandInterface {
         }
         $rExisting = array_flip($rExisting);
         foreach (glob(STREAMS_TMP_PATH . 'stream_*') as $rFile) {
-            $rStreamID = intval(end(explode('_', $rFile)));
+            $rParts = explode('_', $rFile);
+            $rStreamID = intval(end($rParts));
             if (!isset($rExisting[$rStreamID])) {
                 $rReturn['delete'][] = $rStreamID;
             }
