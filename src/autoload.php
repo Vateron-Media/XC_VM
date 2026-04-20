@@ -288,6 +288,7 @@ class XC_Autoloader {
      * @return void
      */
     public static function warmCache() {
+        self::$resolved = [];
         self::$notFound = [];
         foreach (self::$directories as $dir) {
             self::scanDirectoryForClasses($dir);
