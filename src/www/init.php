@@ -3,6 +3,11 @@
 /**
  * Web request initialization
  *
+ * @deprecated Используй WebApiBootstrap::init() напрямую.
+ *             Этот файл оставлен как shim на один релиз для обратной совместимости
+ *             с legacy call sites (TableController, Reseller/TableController, admin/table.php).
+ *             Будет удалён в рамках L-3.
+ *
  * @package XC_VM_Web
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media

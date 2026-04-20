@@ -37,7 +37,7 @@ class StatusCommand implements CommandInterface {
 		$rFirstRun = isset($rArgs[0]);
 		$rReload = false;
 
-		require_once MAIN_HOME . 'www/stream/init.php';
+		StreamingRequestBootstrap::init('status');
 		ini_set('display_startup_errors', 1);
 		ini_set('display_errors', 1);
 		error_reporting(E_ALL);
@@ -134,8 +134,6 @@ class StatusCommand implements CommandInterface {
 
 		return $rServers;
 	}
-
-
 
 	private function fixPermissions(): void {
 		shell_exec('sudo chmod 0660 ' . MAIN_HOME . 'bin/php/sockets/*');
