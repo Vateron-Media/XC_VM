@@ -136,11 +136,10 @@ if (isset($rawScope) && $rawScope === 'api' && !empty($_SERVER['XC_API'])) {
 
 	$rFilename = ($rApiName === 'internal') ? 'api' : $rApiName;
 
-	chdir(MAIN_HOME . 'www/');
 	if ($rApiName === 'player_api') {
-		require MAIN_HOME . 'www/stream/init.php';
+		StreamingRequestBootstrap::init($rFilename);
 	} else {
-		require MAIN_HOME . 'www/init.php';
+		WebApiBootstrap::init($rFilename);
 	}
 
 	$rControllerClass = $rApiControllerMap[$rApiName];

@@ -441,8 +441,7 @@ class XC_Bootstrap {
     /**
      * Initialize Admin API + Reseller API.
      *
-     * Loads reseller_api.php,
-     * initializes ResellerAPI class and admin user info.
+     * Initializes ResellerAPI class and admin user info.
      */
     private static function initAdminAPI(): void {
         if (self::$adminReady) {
@@ -451,7 +450,6 @@ class XC_Bootstrap {
 
         global $db;
 
-        require_once MAIN_HOME . 'infrastructure/legacy/reseller_api.php';
 
         // Admin user info
         if (isset($_SESSION['hash'])) {
@@ -612,7 +610,7 @@ class XC_Bootstrap {
         $language     = Translator::class;
         $allowedLangs = $language::available();
 
-        // Sort servers by order (moved from infrastructure/legacy/admin.php)
+        // Sort servers by order
         if (is_array($rServers)) {
             uasort(
                 $rServers,

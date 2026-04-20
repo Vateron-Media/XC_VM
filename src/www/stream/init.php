@@ -3,6 +3,11 @@
 /**
  * XC_VM - Stream initialization (stream/init.php)
  *
+ * @deprecated Используй StreamingRequestBootstrap::init() напрямую.
+ *             Этот файл оставлен как shim на один релиз для обратной совместимости
+ *             с legacy call sites (ministra/portal.php).
+ *             Будет удалён в рамках L-5/L-6.
+ *
  * Bootstrap for streaming endpoints (live, vod, timeshift, thumb, subtitle, rtmp, portal).
  * High-load path - does not load config.ini, does not connect to DB directly.
  *
