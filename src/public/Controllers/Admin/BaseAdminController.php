@@ -7,7 +7,6 @@
  *   1. renderUnifiedLayoutHeader('admin')
  *   2. require Views/admin/{view}.php — HTML-контент
  *   3. renderUnifiedLayoutFooter('admin')
- *   4. require Views/admin/{view}.scripts.php — page-specific JS
  *
  * Контроллер-наследник:
  *   - Вызывает requirePermission() для проверки доступа
@@ -153,18 +152,9 @@ class BaseAdminController {
 
         // 2. View content
         $__viewFile = $__viewsDir . $view . '.php';
-        $__scriptsFile = $__viewsDir . $view . '.scripts.php';
-        $__hasScriptsFile = file_exists($__scriptsFile);
 
         if (file_exists($__viewFile)) {
             require $__viewFile;
-        }
-
-        // Split mode: separate .scripts.php exists → footer + scripts handled here.
-        // Otherwise: view handles its own footer/closing HTML.
-        if ($__hasScriptsFile) {
-            renderUnifiedLayoutFooter($this->scope);
-            require $__scriptsFile;
         }
     }
 
