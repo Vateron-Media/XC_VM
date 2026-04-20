@@ -11,7 +11,7 @@
 
 include "functions.php";
 
-if (!DB_ACCESS_ENABLED) {
+if (!defined('DB_ACCESS_ENABLED') || !DB_ACCESS_ENABLED) {
     AdminHelpers::goHome();
 }
 

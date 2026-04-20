@@ -127,7 +127,7 @@ endif; // !$__settingsViewMode
 												class="mdi mdi-file-document-outline mr-1"></i><span
 												class="d-none d-sm-inline"><?= $language::get('info') ?></span></a>
 									</li>
-									<?php if (Authorization::check("adv", "database") && DB_ACCESS_ENABLED) { ?>
+									<?php if (Authorization::check("adv", "database") && defined('DB_ACCESS_ENABLED') && DB_ACCESS_ENABLED) { ?>
 										<li class="nav-item">
 											<a href="#database" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"> <i
 													class="mdi mdi-file-document-outline mr-1"></i><span
@@ -2296,7 +2296,7 @@ endif; // !$__settingsViewMode
 										</div>
 									</div>
 									<?php
-									if (Authorization::check("adv", "database") && DB_ACCESS_ENABLED) { ?>
+									if (Authorization::check("adv", "database") && defined('DB_ACCESS_ENABLED') && DB_ACCESS_ENABLED) { ?>
 										<div class="tab-pane" id="database">
 											<div class="row">
 												<iframe width="100%" height="650px" src="./database.php"
