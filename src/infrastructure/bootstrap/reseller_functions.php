@@ -27,12 +27,12 @@ if ($rMobile) {
 if (isset($_SESSION['reseller'])) {
 	$rUserInfo = UserRepository::getRegisteredUserById($_SESSION['reseller']);
 
-	if (strlen($rUserInfo['timezone']) > 0) {
+	if (strlen($rUserInfo['timezone'] ?? '') > 0) {
 		date_default_timezone_set($rUserInfo['timezone']);
 	}
 
-	setcookie('hue', $rUserInfo['hue'], time() + 604800);
-	setcookie('theme', $rUserInfo['theme'], time() + 604800);
+	setcookie('hue', $rUserInfo['hue'] ?? '', time() + 604800);
+	setcookie('theme', $rUserInfo['theme'] ?? '', time() + 604800);
 	$language::setLanguage($rUserInfo['lang']);
 
 	$rPermissions = array_merge(AuthRepository::getPermissions($rUserInfo['member_group_id']), AuthRepository::getGroupPermissions($rUserInfo['id']));

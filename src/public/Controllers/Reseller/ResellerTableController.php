@@ -75,7 +75,7 @@ class ResellerTableController extends BaseResellerController
             exit();
         }
 
-        // Delegate to the legacy table logic file
-        require MAIN_HOME . 'infrastructure/legacy/reseller_table_body.php';
+        // Delegate to the legacy table renderer
+        ResellerTableRenderer::render($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rSettings);
     }
 }

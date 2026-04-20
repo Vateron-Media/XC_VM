@@ -13,7 +13,178 @@ if (count(get_included_files()) != 1) {
 	echo '            <div class="container-fluid">' . "\r\n" . '                <div class="row">' . "\r\n" . '                    <div class="col-md-12 copyright text-center">';
 	echo AdminHelpers::getFooter();
 	echo '</div>' . "\r\n" . '                </div>' . "\r\n" . '            </div>' . "\r\n" . '        </footer>' . "\r\n" . '        <script src="assets/js/vendor.min.js"></script>' . "\r\n" . '        <script src="assets/libs/jquery-toast/jquery.toast.min.js"></script>' . "\r\n" . '        <script src="assets/libs/jquery-nice-select/jquery.nice-select.min.js"></script>' . "\r\n" . '        <script src="assets/libs/switchery/switchery.min.js"></script>' . "\r\n" . '        <script src="assets/libs/select2/select2.min.js"></script>' . "\r\n" . '        <script src="assets/libs/nestable2/jquery.nestable.min.js"></script>' . "\r\n" . '        <script src="assets/libs/bootstrap-touchspin/jquery.bootstrap-touchspin.min.js"></script>' . "\r\n" . '        <script src="assets/libs/bootstrap-maxlength/bootstrap-maxlength.min.js"></script>' . "\r\n" . '        <script src="assets/libs/clockpicker/bootstrap-clockpicker.min.js"></script>' . "\r\n" . '        <script src="assets/libs/moment/moment.min.js"></script>' . "\r\n" . '        <script src="assets/libs/daterangepicker/daterangepicker.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/jquery.dataTables.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/dataTables.bootstrap4.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/dataTables.responsive.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/responsive.bootstrap4.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/dataTables.buttons.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/buttons.bootstrap4.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/buttons.html5.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/buttons.flash.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/buttons.print.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/dataTables.keyTable.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/dataTables.select.min.js"></script>' . "\r\n" . '        <script src="assets/libs/datatables/dataTables.rowReorder.js"></script>' . "\r\n" . '        <script src="assets/libs/twitter-bootstrap-wizard/jquery.bootstrap.wizard.min.js"></script>' . "\r\n" . '        <script src="assets/libs/treeview/jstree.min.js"></script>' . "\r\n" . '        <script src="assets/libs/magnific-popup/jquery.magnific-popup.min.js"></script>' . "\r\n" . '        <script src="assets/libs/jbox/jBox.all.min.js"></script>' . "\r\n" . '        <script src="assets/libs/jquery-knob/jquery.knob.min.js"></script>' . "\r\n" . '        <script src="assets/libs/apexcharts/apexcharts.min.js"></script>' . "\r\n" . '        <script src="assets/libs/jquery-number/jquery.number.js"></script>' . "\r\n" . '        <script src="assets/libs/jquery-vectormap/jquery-jvectormap-1.2.2.min.js"></script>' . "\r\n" . '        <script src="assets/libs/jquery-vectormap/jquery-jvectormap-world-mill-en.js"></script>' . "\r\n" . '        <script src="assets/libs/jquery-ui/jquery-ui.min.js"></script>' . "\r\n" . '        <script src="assets/libs/peity/jquery.peity.min.js"></script>' . "\r\n" . '        <script src="assets/libs/bootstrap-colorpicker/bootstrap-colorpicker.min.js"></script>' . "\r\n" . '        <script src="assets/libs/lazyload/lazyload.min.js"></script>' . "\r\n" . '        <script src="assets/libs/parsleyjs/parsley.min.js"></script>' . "\r\n" . '        <script src="assets/js/app.min.js"></script>' . "\r\n" . '        ';
-	include __DIR__ . '/post.scripts.php';
+	$_ERRORS = array();
+	foreach (get_defined_constants(true)['user'] as $rKey => $rValue) {
+		if (substr($rKey, 0, 7) != 'STATUS_') {
+		} else {
+			$_ERRORS[intval($rValue)] = $rKey;
+		}
+	}
+?>
+<script>
+var rCurrentPage = "<?php echo $_PAGE; ?>";
+var rErrors = <?php echo json_encode($_ERRORS); ?>;
+function submitForm(rType, rData, rCallback=callbackForm) {
+    $.ajax({
+        type: "POST",
+        url: "post.php?action=" + encodeURIComponent(rType),
+        data: rData,
+        processData: false,
+        contentType: false,
+        success: function(rReturn) {
+            try {
+                var rJSON = $.parseJSON(rReturn);
+            } catch (e) {
+                var rJSON = {"status": 0, "result": false};
+            }
+            rCallback(rJSON);
+        }
+    });
+}
+function callbackForm(rData) {
+    if (rData.location) {
+        if (rData.reload) {
+            window.location.href = rData.location;
+        } else {
+            navigate(rData.location);
+        }
+    } else {
+        $(':input[type="submit"]').prop('disabled', false);
+
+        switch (window.rCurrentPage) {
+            case "edit_profile":
+                switch (window.rErrors[rData.status]) {
+                    case "STATUS_INVALID_EMAIL":
+                        showError("Please enter a valid email address.");
+                        break;
+
+                    case "STATUS_INVALID_PASSWORD":
+                        showError("Your password must be at least <?php echo SettingsManager::getAll()['pass_length'] ?? 6; ?> characters long.");
+                        break;
+
+                    default:
+                        showError("An error occured while processing your request.");
+                        break;
+                }
+                break;
+
+            case "mag":
+            case "enigma":
+                switch (window.rErrors[rData.status]) {
+                    case "STATUS_INVALID_TYPE":
+                        showError("This package is not supported.");
+                        break;
+
+                    case "STATUS_NO_TRIALS":
+                        showError("You cannot generate trials at this time.");
+                        break;
+
+                    case "STATUS_INSUFFICIENT_CREDITS":
+                        showError("You do not have enough credits to make this purchase.");
+                        break;
+
+                    case "STATUS_INVALID_PACKAGE":
+                        showError("Please select a valid package.");
+                        break;
+
+                    case "STATUS_INVALID_MAC":
+                        showError("Please enter a valid MAC address.");
+                        break;
+
+                    case "STATUS_EXISTS_MAC":
+                        showError("The MAC address you entered is already in use.");
+                        break;
+
+                    default:
+                        showError("An error occured while processing your request.");
+                        break;
+                }
+                break;
+
+            case "ticket":
+                switch (window.rErrors[rData.status]) {
+                    case "STATUS_INVALID_DATA":
+                        showError("Please ensure you enter both a title and message.");
+                        break;
+
+                    default:
+                        showError("An error occured while processing your request.");
+                        break;
+                }
+                break;
+
+            case "line":
+                switch (window.rErrors[rData.status]) {
+                    case "STATUS_INVALID_TYPE":
+                        showError("This package is not supported.");
+                        break;
+
+                    case "STATUS_NO_TRIALS":
+                        showError("You cannot generate trials at this time.");
+                        break;
+
+                    case "STATUS_INSUFFICIENT_CREDITS":
+                        showError("You do not have enough credits to make this purchase.");
+                        break;
+
+                    case "STATUS_INVALID_PACKAGE":
+                        showError("Please select a valid package.");
+                        break;
+
+                    case "STATUS_INVALID_USERNAME":
+                        showError("Username is too short! It must be at least <?php echo $rPermissions['minimum_username_length']; ?> characters long.");
+                        break;
+
+                    case "STATUS_INVALID_PASSWORD":
+                        showError("Password is too short! It must be at least <?php echo $rPermissions['minimum_password_length']; ?> characters long.");
+                        break;
+
+                    case "STATUS_EXISTS_USERNAME":
+                        showError("The username you selected already exists. Please use another.");
+                        break;
+
+                    default:
+                        showError("An error occured while processing your request.");
+                        break;
+                }
+                break;
+
+            case "user":
+                switch (window.rErrors[rData.status]) {
+                    case "STATUS_INVALID_PASSWORD":
+                        showError("Password is too short! It must be at least <?php echo $rPermissions['minimum_password_length']; ?> characters long.");
+                        break;
+
+                    case "STATUS_INVALID_USERNAME":
+                        showError("Username is too short! It must be at least <?php echo $rPermissions['minimum_username_length']; ?> characters long.");
+                        break;
+
+                    case "STATUS_INSUFFICIENT_CREDITS":
+                        showError("You do not have enough credits to make this purchase.");
+                        break;
+
+                    case "STATUS_INVALID_SUBRESELLER":
+                        showError("You are not set up to create subresellers. Please open a ticket.");
+                        break;
+
+                    case "STATUS_EXISTS_USERNAME":
+                        showError("The username you selected already exists. Please use another.");
+                        break;
+
+                    default:
+                        showError("An error occured while processing your request.");
+                        break;
+                }
+                break;
+
+            default:
+                showError("An error occured while processing your request.");
+                break;
+        }
+    }
+}
+</script>
+<?php
 	echo '        <script>' . "\r\n" . '        var rRealURL = undefined;' . "\r\n" . '        var jBoxes = [];' . "\r\n" . '        var rSwitches = [];' . "\r\n" . '        ' . "\r\n\t\t" . 'window.XC_VM = window.XC_VM || {};' . "\r\n\t\t" . 'window.XC_VM.Listings = window.XC_VM.Listings || {};' . "\r\n\t\t\r\n" . '        $.fn.serializeObject = function() {' . "\r\n" . '            var o = {};' . "\r\n" . '            var a = this.serializeArray();' . "\r\n" . '            $.each(a, function() {' . "\r\n" . '                if (o[this.name]) {' . "\r\n" . '                    if (!o[this.name].push) {' . "\r\n" . '                        o[this.name] = [o[this.name]];' . "\r\n" . '                    }' . "\r\n" . "                    o[this.name].push(this.value || '');" . "\r\n" . '                } else {' . "\r\n" . "                    o[this.name] = this.value || '';" . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            return o;' . "\r\n" . '        };' . "\r\n" . '        function showError(rText) {' . "\r\n" . '            $.toast({' . "\r\n" . '                text: rText,' . "\r\n" . "                icon: 'warning'," . "\r\n" . '                loader: true,' . "\r\n" . "                loaderBg: '#c62828'," . "\r\n" . '                hideAfter: 8000' . "\r\n" . '            })' . "\r\n" . '        }' . "\r\n" . '        function showSuccess(rText) {' . "\r\n" . '            $.toast({' . "\r\n" . '                text: rText,' . "\r\n" . "                icon: 'success'," . "\r\n" . '                loader: true,' . "\r\n" . '                hideAfter: 5000' . "\r\n" . '            })' . "\r\n" . '        }' . "\r\n" . '        function refreshCredits() {' . "\r\n" . '            $.getJSON("api?action=stats", function(data) {' . "\r\n" . '                if (data.owner_credits) {' . "\r\n" . '                    $("#owner_credits").html(parseInt(data.owner_credits).toLocaleString());' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '        }' . "\r\n" . '        function findRowByID(rTable, rColumn, rID) {' . "\r\n" . '            for (rRow in rTable.rows()[0]) {' . "\r\n" . '                if (rTable.row(rRow).data()[rColumn] == rID) {' . "\r\n" . '                    return rRow;' . "\r\n" . '                }' . "\r\n" . '            }' . "\r\n" . '            return null;' . "\r\n" . '        }' . "\r\n" . '        function isValidDomain(domain) { ' . "\r\n\t\t\t" . 'var re = new RegExp(/^((?:(?:(?:\\w[\\.\\-\\+]?)*)\\w)+)((?:(?:(?:\\w[\\.\\-\\+]?){0,62})\\w)+)\\.(\\w{2,16})$/); ' . "\r\n\t\t\t" . 'return domain.match(re);' . "\r\n\t\t" . '} ' . "\r\n" . '        function isValidIP(rIP) {' . "\r\n\t\t\t" . 'if (/^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(rIP)) {' . "\r\n\t\t\t\t" . 'return true;' . "\r\n\t\t\t" . '} else {' . "\r\n\t\t\t\t" . 'return false;' . "\r\n\t\t\t" . '}' . "\r\n\t\t" . '}' . "\r\n" . '        function isValidDate(dateString) {' . "\r\n\t\t\t" . '  var regEx = /^\\d{4}-\\d{2}-\\d{2}$/;' . "\r\n\t\t\t" . '  if(!dateString.match(regEx)) return false;  // Invalid format' . "\r\n\t\t\t" . '  var d = new Date(dateString);' . "\r\n\t\t\t" . '  var dNum = d.getTime();' . "\r\n\t\t\t" . '  if(!dNum && dNum !== 0) return false; // NaN value, Invalid date' . "\r\n\t\t\t" . '  return d.toISOString().slice(0,10) === dateString;' . "\r\n\t\t" . '}' . "\r\n" . '        function isNumberKey(evt) {' . "\r\n\t\t\t" . 'var charCode = (evt.which) ? evt.which : evt.keyCode;' . "\r\n\t\t\t" . 'if (charCode != 46 && charCode != 45 && charCode > 31 && (charCode < 48 || charCode > 57)) {' . "\r\n\t\t\t\t" . 'return false;' . "\r\n\t\t\t" . '} else {' . "\r\n\t\t\t\t" . 'return true;' . "\r\n\t\t\t" . '}' . "\r\n\t\t" . '}' . "\r\n" . '        function pingSession() {' . "\r\n" . '            $.getJSON("./session", function(data) {' . "\r\n" . '                if (!data.result) {' . "\r\n" . "                    window.location.href = './login?referrer=' + encodeURIComponent(location.href.split(\"/\").slice(-1)[0]);" . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            setTimeout(pingSession, 30000);' . "\r\n" . '        }' . "\r\n" . '        function setSwitch(switchElement, checkedBool) {' . "\r\n\t\t\t" . 'if((checkedBool && !switchElement.isChecked()) || (!checkedBool && switchElement.isChecked())) {' . "\r\n\t\t\t\t" . 'switchElement.setPosition(true);' . "\r\n\t\t\t\t" . 'switchElement.handleOnchange(true);' . "\r\n\t\t\t" . '}' . "\r\n\t\t" . '}' . "\r\n" . '        function headerStats() {' . "\r\n" . '            rURL = "./api?action=header_stats";' . "\r\n" . '            $.getJSON(rURL, function(data) {' . "\r\n" . '                $("#header_connections").html($.number(data.total_connections, 0));' . "\r\n" . '                $("#header_users").html($.number(data.total_users, 0));' . "\r\n" . '                setTimeout(headerStats, 1000);' . "\r\n" . '            }).fail(function() {' . "\r\n" . '                setTimeout(headerStats, 1000);' . "\r\n" . '            });' . "\r\n" . '        }' . "\r\n" . '        ';
 
 	if ($rSettings['js_navigate']) {
@@ -53,7 +224,7 @@ if (count(get_included_files()) != 1) {
 		if ($_PAGE == 'dashboard') {
 			echo '        ' . "\r\n" . '        function getStats() {' . "\r\n" . '            var rStart = Date.now();' . "\r\n" . '            $.getJSON("./api?action=dashboard", function(data) {' . "\r\n" . '                $(".active-connections .entry").html($.number(data.open_connections, 0));' . "\r\n" . '                $(".online-users .entry").html($.number(data.online_users, 0));' . "\r\n" . '                $(".active-accounts .entry").html($.number(data.active_accounts, 0));' . "\r\n" . '                ';
 
-			if (1 < count($rRegisteredUsers)) {
+			if (1 < count($rRegisteredUsers ?? [])) {
 				echo '                $(".credits .entry").html($.number(data.credits_assigned, 0));' . "\r\n" . '                ';
 			} else {
 				echo '                $(".credits .entry").html($.number(data.credits, 0));' . "\r\n" . '                ';
