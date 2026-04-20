@@ -32,6 +32,7 @@ if (!function_exists('renderUnifiedLayoutFooter')) {
             'rStreamIDs', 'rFilterBy', 'rSortArray', 'rFilterArray',
             'rSearchBy', 'rURLs', 'rSubtitles', 'rLegacy', 'rSeries',
             'rYearStart', 'rYearEnd', 'rRatingStart', 'rRatingEnd',
+            'rRegisteredUsers', 'rLine',
         ] as $_g) {
             if (array_key_exists($_g, $GLOBALS)) {
                 $$_g = $GLOBALS[$_g];
