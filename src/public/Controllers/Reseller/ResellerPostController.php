@@ -7,7 +7,7 @@
  *
  * Called via: POST post?action=line (or via submitForm/callbackForm JS).
  *
- * @see Views/layouts/reseller/post.scripts.php (JS functions)
+ * @see Views/layouts/reseller/footer.php (JS functions: submitForm/callbackForm)
  *
  * @package XC_VM_Public_Controllers_Reseller
  * @author  Divarion_D <https://github.com/Divarion-D>

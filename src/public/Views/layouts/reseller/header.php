@@ -43,7 +43,7 @@ if (count(get_included_files()) != 1) {
 
 	echo '    </head>' . "\r\n" . '    <body>' . "\r\n" . '        <header id="topnav">' . "\r\n" . '            <div class="navbar-overlay bg-animate';
 
-	if (0 >= strlen($rUserInfo['hue'])) {
+	if (0 >= strlen($rUserInfo['hue'] ?? '')) {
 	} else {
 		echo '-' . $rUserInfo['hue'];
 	}
@@ -125,14 +125,14 @@ if (count(get_included_files()) != 1) {
 	}
 	echo '                                </div>' . "\r\n" . '                                <a href="tickets" class="dropdown-item text-center text-primary notify-item notify-all">' . "\r\n" . '                                    View Tickets' . "\r\n" . '                                    <i class="fi-arrow-right"></i>' . "\r\n" . '                                </a>' . "\r\n" . '                            </div>' . "\r\n" . '                        </li>' . "\r\n" . '                    </ul>' . "\r\n" . '                    <div class="logo-box">' . "\r\n" . '                        <a href="dashboard" class="logo text-center">' . "\r\n" . '                            <span class="logo-lg';
 
-	if (0 >= strlen($rUserInfo['hue'])) {
+	if (0 >= strlen($rUserInfo['hue'] ?? '')) {
 	} else {
 		echo ' whiteout';
 	}
 
 	echo '">' . "\r\n" . '                                <img src="assets/images/logo-topbar.png" alt="" height="50">' . "\r\n" . '                            </span>' . "\r\n" . '                            <span class="logo-sm';
 
-	if (0 >= strlen($rUserInfo['hue'])) {
+	if (0 >= strlen($rUserInfo['hue'] ?? '')) {
 	} else {
 		echo ' whiteout';
 	}
@@ -143,14 +143,14 @@ if (count(get_included_files()) != 1) {
 	} else {
 		echo '                    <ul class="list-unstyled topnav-menu topnav-menu-left m-0" style="opacity: 80%" id="header_stats">' . "\r\n" . '                        <li class="dropdown notification-list">' . "\r\n" . '                            <a class="nav-link dropdown-toggle nav-user mr-0 waves-effect pd-left pd-right" data-toggle="dropdown" href="./live_connections" role="button" aria-haspopup="false" aria-expanded="false">' . "\r\n" . '                                <span class="pro-user-name text-white ml-1">' . "\r\n" . '                                    <i class="fe-zap text-white"></i> &nbsp; <button type="button" class="btn btn-dark bg-animate';
 
-		if (!(0 < strlen($rUserInfo['hue']) && in_array($rUserInfo['hue'], array_keys($rHues)))) {
+		if (!(0 < strlen($rUserInfo['hue'] ?? '') && in_array($rUserInfo['hue'], array_keys($rHues)))) {
 		} else {
 			echo '-' . $rUserInfo['hue'];
 		}
 
 		echo ' btn-xs waves-effect waves-light no-border"><span id="header_connections">0</span></button>' . "\r\n" . '                                </span>' . "\r\n" . '                            </a>' . "\r\n" . '                        </li>' . "\r\n" . '                        <li class="dropdown notification-list">' . "\r\n" . '                            <a class="nav-link dropdown-toggle nav-user mr-0 waves-effect pd-left pd-right" data-toggle="dropdown" href="./live_connections" role="button" aria-haspopup="false" aria-expanded="false">' . "\r\n" . '                                <span class="pro-user-name text-white ml-1">' . "\r\n" . '                                    <i class="fe-users text-white"></i> &nbsp; <button type="button" class="btn btn-dark bg-animate';
 
-		if (!(0 < strlen($rUserInfo['hue']) && in_array($rUserInfo['hue'], array_keys($rHues)))) {
+		if (!(0 < strlen($rUserInfo['hue'] ?? '') && in_array($rUserInfo['hue'], array_keys($rHues)))) {
 		} else {
 			echo '-' . $rUserInfo['hue'];
 		}
