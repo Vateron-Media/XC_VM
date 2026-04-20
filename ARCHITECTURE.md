@@ -85,7 +85,7 @@ class StreamService {
 ```
 
 **Actual exceptions:**
-The legacy layer in `infrastructure/legacy/`, part of bootstrap code, `Router`, and also a significant portion of `domain/` are not yet migrated to pure constructor injection.
+Part of bootstrap code, `Router`, and also a significant portion of `domain/` are not yet migrated to pure constructor injection.
 
 ### 1.3. No Entity classes
 
@@ -388,16 +388,13 @@ Each module is a directory with `module.json` and a PHP class implementing `Modu
 
 **Current limitation:** `console.php` does call `ModuleLoader::loadAll()` and `registerAllCommands()`, so CLI module integration is active. `public/index.php` **does not call** `ModuleLoader::bootAll()`, therefore `boot()` and `registerRoutes()` do not participate in the current web runtime path. Module pages that are currently available in admin are statically wired in `public/routes/admin.php`.
 
-### 3.7. `infrastructure/legacy/` - Residual legacy code
+### 3.7. Legacy code migration (completed)
 
-Residual legacy code moved from removed `includes/`:
-
-- `resize_body.php` - resize logic for admin
-- `reseller_api.php` - legacy reseller API handler
-- `reseller_api_actions.php` - reseller API actions
-- `reseller_table_body.php` - reseller table rendering
-
-**Status:** Directory `includes/` was fully removed (Phase 15 completed). Remaining code in `infrastructure/legacy/` is planned for further migration into `domain/` services.
+Directory `infrastructure/legacy/` has been fully removed. All code has been migrated:
+- `resize_body.php` → `ImageResizeService` (`core/Util/`)
+- `reseller_api.php` → `ResellerAPI` (`domain/User/`)
+- `reseller_api_actions.php` → `ResellerApiDispatcher` (`infrastructure/`)
+- `reseller_table_body.php` → `ResellerTableRenderer` (`infrastructure/`)
 
 ### 3.8. Bootstrap - initialization contexts
 
@@ -512,13 +509,13 @@ Events are used **only for module hooks**, not inside regular CRUD.
 
 LB is assembled from the following directories and files (source of truth: `Makefile`):
 
-**Directories (`LB_DIRS`):** `bin`, `cli`, `config`, `content`, `core`, `domain`, `includes`, `infrastructure`, `public`, `resources`, `signals`, `streaming`, `tmp`, `www`
+**Directories (`LB_DIRS`):** `bin`, `cli`, `config`, `content`, `core`, `domain`, `infrastructure`, `public`, `resources`, `signals`, `streaming`, `tmp`, `www`
 
 **Root files (`LB_ROOT_FILES`):** `autoload.php`, `bootstrap.php`, `console.php`, `service`, `update`
 
-**Directories removed from LB (`LB_DIRS_TO_REMOVE`):** `bin/install`, `bin/redis`, `bin/nginx/conf/codes`, `includes/api`, `includes/libs/resources`, `domain/User`, `domain/Device`, `domain/Auth`, `public/Controllers/Admin`, `public/Controllers/Player`, `public/Controllers/Reseller`, `public/Views`, `public/assets`, `public/routes`, `resources/langs`, `resources/libs`
+**Directories removed from LB (`LB_DIRS_TO_REMOVE`):** `bin/install`, `bin/redis`, `bin/nginx/conf/codes`, `domain/User`, `domain/Device`, `domain/Auth`, `public/Controllers/Admin`, `public/Controllers/Player`, `public/Controllers/Reseller`, `public/Views`, `public/assets`, `public/routes`, `resources/langs`, `resources/libs`
 
-**Files removed from LB (`LB_FILES_TO_REMOVE`):** including `bin/maxmind/GeoLite2-City.mmdb`, `infrastructure/legacy/reseller_api.php`, selected API controllers and `www/*` endpoints, `config/rclone.conf`, admin-only CLI commands/cronjobs, `domain/Epg/EPG.php`, `bin/nginx/conf/gzip.conf`
+**Files removed from LB (`LB_FILES_TO_REMOVE`):** including `bin/maxmind/GeoLite2-City.mmdb`, selected API controllers and `www/*` endpoints, `config/rclone.conf`, admin-only CLI commands/cronjobs, `domain/Epg/EPG.php`, `bin/nginx/conf/gzip.conf`
 
 ### 5.3. Development rules considering LB
 
