@@ -82,7 +82,7 @@ class StreamService {
 ```
 
 **Фактические исключения:**
-Legacy-слой в `infrastructure/legacy/`, часть bootstrap-кода, `Router`, а также значительная часть `domain/` пока ещё не приведены к чистому constructor injection.
+Часть bootstrap-кода, `Router`, а также значительная часть `domain/` пока ещё не приведены к чистому constructor injection.
 
 ### 1.3. Нет Entity-классов
 
@@ -384,15 +384,13 @@ class StreamRepository {
 
 **Текущее ограничение:** `console.php` действительно вызывает `ModuleLoader::loadAll()` и `registerAllCommands()`, поэтому CLI-интеграция модулей активна. `public/index.php` **не вызывает** `ModuleLoader::bootAll()`, поэтому `boot()` и `registerRoutes()` не участвуют в текущем web runtime-path. Модульные страницы, которые уже доступны в админке, заведены статически в `public/routes/admin.php`.
 
-### 3.7. `infrastructure/legacy/` — Остаточный legacy-код
+### 3.7. Миграция legacy-кода (завершена)
 
-Остаточный legacy-код, вынесенный из удалённого `includes/`:
-- `resize_body.php` — логика resize для admin
-- `reseller_api.php` — legacy reseller API-обработчик
-- `reseller_api_actions.php` — действия reseller API
-- `reseller_table_body.php` — формирование таблиц для reseller
-
-**Статус:** Директория `includes/` полностью удалена (Phase 15 завершена). Оставшийся код в `infrastructure/legacy/` подлежит дальнейшей миграции в `domain/` сервисы.
+Директория `infrastructure/legacy/` полностью удалена. Весь код мигрирован:
+- `resize_body.php` → `ImageResizeService` (`core/Util/`)
+- `reseller_api.php` → `ResellerAPI` (`domain/User/`)
+- `reseller_api_actions.php` → `ResellerApiDispatcher` (`infrastructure/`)
+- `reseller_table_body.php` → `ResellerTableRenderer` (`infrastructure/`)
 
 ### 3.8. Bootstrap — контексты инициализации
 
@@ -507,13 +505,13 @@ interface ModuleInterface {
 
 LB собирается из следующих директорий и файлов (источник истины — `Makefile`):
 
-**Директории (`LB_DIRS`):** `bin`, `cli`, `config`, `content`, `core`, `domain`, `includes`, `infrastructure`, `public`, `resources`, `signals`, `streaming`, `tmp`, `www`
+**Директории (`LB_DIRS`):** `bin`, `cli`, `config`, `content`, `core`, `domain`, `infrastructure`, `public`, `resources`, `signals`, `streaming`, `tmp`, `www`
 
 **Root-файлы (`LB_ROOT_FILES`):** `autoload.php`, `bootstrap.php`, `console.php`, `service`, `update`
 
-**Директории, удаляемые из LB (`LB_DIRS_TO_REMOVE`):** `bin/install`, `bin/redis`, `bin/nginx/conf/codes`, `includes/api`, `includes/libs/resources`, `domain/User`, `domain/Device`, `domain/Auth`, `public/Controllers/Admin`, `public/Controllers/Player`, `public/Controllers/Reseller`, `public/Views`, `public/assets`, `public/routes`, `resources/langs`, `resources/libs`
+**Директории, удаляемые из LB (`LB_DIRS_TO_REMOVE`):** `bin/install`, `bin/redis`, `bin/nginx/conf/codes`, `domain/User`, `domain/Device`, `domain/Auth`, `public/Controllers/Admin`, `public/Controllers/Player`, `public/Controllers/Reseller`, `public/Views`, `public/assets`, `public/routes`, `resources/langs`, `resources/libs`
 
-**Файлы, удаляемые из LB (`LB_FILES_TO_REMOVE`):** среди прочего `bin/maxmind/GeoLite2-City.mmdb`, `infrastructure/legacy/reseller_api.php`, отдельные API-контроллеры и `www/*` endpoints, `config/rclone.conf`, admin-only CLI-команды/cronjobs, `domain/Epg/EPG.php`, `bin/nginx/conf/gzip.conf`
+**Файлы, удаляемые из LB (`LB_FILES_TO_REMOVE`):** среди прочего `bin/maxmind/GeoLite2-City.mmdb`, отдельные API-контроллеры и `www/*` endpoints, `config/rclone.conf`, admin-only CLI-команды/cronjobs, `domain/Epg/EPG.php`, `bin/nginx/conf/gzip.conf`
 
 
 ### 5.3. Правила для разработки с учётом LB

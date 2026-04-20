@@ -3,7 +3,7 @@
 > Архитектурные принципы, структура проекта и описание компонентов — см. [ARCHITECTURE.md](ARCHITECTURE.md).
 > Этот файл содержит только незавершённые изменения.
 > История завершённых фаз фиксируется в git-истории и release notes.
-> Обновлено: 2026-04-19
+> Обновлено: 2026-04-20 (L-2, L-3, L-4 основная часть выполнены; L-4a полностью выполнено)
 
 ## Содержание
 
@@ -21,7 +21,7 @@
 Цель текущего этапа — убрать остаточный legacy-слой и полностью вывести проект из зависимости от:
 
 - `src/www/` как runtime bootstrap и webroot-логики
-- `src/infrastructure/legacy/` как исполняемого application-кода
+- ~~`src/infrastructure/legacy/` как исполняемого application-кода~~ (**✅ Удалена**)
 - procedural entry-point'ов, которые требуют `www/init.php` или `www/stream/init.php`
 - hardcoded-интеграции модулей в `public/routes/admin.php` и `public/Views/admin/header.php`
 
@@ -49,16 +49,16 @@
 | certbot / nginx ops | Используют `/home/xc_vm/www/` как webroot | Ломает выпуск и продление сертификатов |
 | Ministra integration | Управляет `www/c` и `www/portal.php` symlink'ами | Ломает MAG legacy redirect |
 
-### 2.2. Исполняемый legacy-код в `infrastructure/legacy/`
+### 2.2. Исполняемый legacy-код в `infrastructure/legacy/` (✅ Ликвидировано)
 
-Остаточные файлы, которые всё ещё исполняются из production flow:
+Директория полностью удалена. Весь код мигрирован:
 
-| Файл | Кто использует | Что блокирует |
-| ----- | -------------- | ------------- |
-| `resize_body.php` | Admin/Reseller/Player resize controllers | Полное удаление legacy resize flow |
-| `reseller_api.php` | `bootstrap.php` admin context | Чистый admin bootstrap |
-| `reseller_api_actions.php` | `ResellerApiController` | Полная миграция reseller AJAX/API |
-| `reseller_table_body.php` | `ResellerTableController` | Полная миграция reseller table endpoints |
+| Файл | Куда мигрирован | Статус |
+| ----- | --------------- | ------ |
+| `resize_body.php` | `ImageResizeService` (`core/Util/`) | ✅ |
+| `reseller_api.php` | `ResellerAPI` (`domain/User/`) | ✅ |
+| `reseller_api_actions.php` | `ResellerApiDispatcher` (`infrastructure/`) | ✅ |
+| `reseller_table_body.php` | `ResellerTableRenderer` (`infrastructure/`) | ✅ |
 
 ### 2.3. Переходные контроллеры и procedural handlers
 
@@ -66,9 +66,9 @@
 
 - `AdminTableController` делегирует в `public/Views/admin/table.php`
 - `TableController` и `Reseller/TableController` требуют `www/init.php`
-- `ResellerApiController` требует `infrastructure/legacy/reseller_api_actions.php`
-- `ResellerTableController` требует `infrastructure/legacy/reseller_table_body.php`
-- `AdminResizeController`, `ResellerResizeController`, `PlayerResizeController` требуют `infrastructure/legacy/resize_body.php`
+- ~~`ResellerApiController` требует `reseller_api_actions.php`~~ — **✅ Выполнено** (L-4, через `ResellerApiDispatcher`)
+- ~~`ResellerTableController` требует `reseller_table_body.php`~~ — **✅ Выполнено** (L-4, через `ResellerTableRenderer`)
+- ~~`AdminResizeController`, `ResellerResizeController`, `PlayerResizeController` требуют `resize_body.php`~~ — **✅ Выполнено** (L-4)
 
 ### 2.4. Незавершённая интеграция модулей
 
@@ -99,9 +99,10 @@
 
 | ID | Задача | Основные файлы | Блокер | Результат |
 | -- | ------ | -------------- | ------ | --------- |
-| `L-2` | Заменить `www/init.php` и `www/stream/init.php` на нормализованные bootstrap-сервисы | `src/public/index.php`, `src/www/init.php`, `src/www/stream/init.php`, `src/streaming/StreamingBootstrap.php` | Нет | HTTP/API/streaming path больше не требуют `www/*init.php` |
-| `L-3` | Переписать thin-wrapper контроллеры на service/repository flow | `src/public/Controllers/Admin/AdminTableController.php`, `src/public/Controllers/Admin/TableController.php`, `src/public/Controllers/Reseller/*`, `src/public/Controllers/Player/PlayerResizeController.php`, `src/public/Views/admin/table.php` | `L-2` | Ни один контроллер не требует `www/init.php` или `infrastructure/legacy/*` |
-| `L-4` | Заменить содержимое `infrastructure/legacy/` на доменные сервисы и специализированные action classes | `src/infrastructure/legacy/*`, `src/domain/**`, `src/public/Controllers/**` | `L-3` | `infrastructure/legacy/` больше не участвует в runtime |
+| ~~`L-4`~~ | ~~Заменить содержимое `infrastructure/legacy/` на доменные сервисы и специализированные action classes~~ | — | — | **✅ Выполнено:** директория `infrastructure/legacy/` полностью удалена. `ImageResizeService` (3 контроллера мигрированы); `ResellerAPI` в `domain/User/`; `ResellerApiDispatcher` (19 actions); `ResellerTableRenderer` (11 handlers) |
+| ~~`L-4a`~~ (class move) | ~~Физически переместить `ResellerAPI` → `domain/User/ResellerAPI.php`~~ | `src/domain/User/ResellerAPI.php` | — | **✅ Выполнено:** класс перенесён; legacy-файл удалён |
+| ~~`L-4a`~~ | ~~Рефакторировать `reseller_api_actions.php` на action classes~~ | `src/infrastructure/ResellerApiDispatcher.php` | — | **✅ Выполнено:** 19 action-методов встроены в `ResellerApiDispatcher` как private static методы; `reseller_api_actions.php` → tombstone-шим; orphaned-код в `reseller_api.php` обёрнут в блочный комментарий |
+| ~~`L-4b`~~ | ~~Рефакторировать `reseller_table_body.php` на DataTables service layer~~ | `src/infrastructure/ResellerTableRenderer.php` | — | **✅ Выполнено:** 11 `$rType`-обработчиков встроены в `ResellerTableRenderer` как private static методы; `reseller_table_body.php` → tombstone-шим; `src/domain/Reseller/Table/` не создан (код presentation-layer, не domain) |
 | `L-5` | Перевести внешний HTTP routing с `www` на `public` или новые endpoints | `src/bin/nginx/conf/nginx.conf`, `src/public/index.php`, `src/www/admin/*`, `src/www/stream/*` | `L-2` | nginx больше не маршрутизирует запросы в `www/*.php` |
 | `L-6` | Развязать Ministra от `www/c` и `www/portal.php` | `src/cli/CronJobs/RootSignalsCronJob.php`, `src/domain/Server/SettingsService.php`, `src/ministra/*`, nginx-конфиги | `L-5` | MAG legacy redirect управляется без symlink'ов в `www` |
 | `L-7` | Удалить `src/www/` после cutover и smoke-check | `src/www/**`, nginx, certbot, status tooling | `L-5`, `L-6` | `www/` больше не нужен ни коду, ни инфраструктуре |
@@ -118,8 +119,8 @@
 
 ### Этап 0. Заморозка входных точек
 
-1. Зафиксировать полный список runtime-зависимостей от `www/` и `infrastructure/legacy/` в smoke-check матрице.
-2. Добавить отдельный CI-check: новые вызовы `require ... 'www/*.php'` и `require ... 'infrastructure/legacy/*.php'` запрещены.
+1. Зафиксировать полный список runtime-зависимостей от `www/` в smoke-check матрице.
+2. Добавить отдельный CI-check: новые вызовы `require ... 'www/*.php'` запрещены.
 3. Прекратить добавление новых nginx rewrite на `www/*.php`.
 
 ### Этап 1. Замена `www/init.php` и `www/stream/init.php`
@@ -138,16 +139,11 @@
 3. Разделить reseller API actions на action classes и application services.
 4. Удалить thin-wrapper контроллеры, оставив только реальные controller classes.
 
-**Критерий завершения:** `public/Controllers/**` больше не содержат `require ... www/init.php` и `require ... infrastructure/legacy/*.php`.
+**Критерий завершения:** `public/Controllers/**` больше не содержат `require ... www/init.php`.
 
-### Этап 3. Удаление `infrastructure/legacy/`
+### Этап 3. Удаление `infrastructure/legacy/` (✅ Завершено)
 
-1. После миграции каждого файла включить runtime guard: попытка require legacy-файла должна падать в dev-режиме.
-2. Удалить `resize_body.php` после перехода Admin/Reseller/Player на новый сервис.
-3. Удалить `reseller_api_actions.php` и `reseller_table_body.php` после переписывания контроллеров.
-4. Удалить `reseller_api.php` после разборки admin bootstrap.
-
-**Критерий завершения:** директория `src/infrastructure/legacy/` либо пуста, либо удалена полностью.
+Директория полностью удалена. Все файлы мигрированы в соответствующие классы (L-4, L-4a, L-4b).
 
 ### Этап 4. Cutover внешнего HTTP-трафика
 
@@ -211,8 +207,8 @@
 
 ### Волна A. Подготовка к удалению `www/`
 
-1. `L-2` — замена `www/init.php` и `www/stream/init.php`
-2. `L-3` — переписывание thin-wrapper контроллеров
+1. ~~`L-2` — замена `www/init.php` и `www/stream/init.php`~~ ✅
+2. ~~`L-3` — переписывание thin-wrapper контроллеров~~ ✅
 3. `L-4` — удаление исполняемого legacy в `infrastructure/legacy/`
 
 ### Волна B. Модульный cutover
