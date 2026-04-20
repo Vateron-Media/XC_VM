@@ -3,11 +3,8 @@
 if (!defined('MAIN_HOME')) {
     session_start();
     session_write_close();
-    if (file_exists("../www/init.php")) {
-        require_once "../www/init.php";
-    } else {
-        require_once "../../../www/init.php";
-    }
+    require_once dirname(__DIR__, 3) . '/autoload.php';
+    WebApiBootstrap::init('admin');
 } else {
     session_write_close();
 }
