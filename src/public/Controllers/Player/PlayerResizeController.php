@@ -26,9 +26,10 @@ class PlayerResizeController extends BasePlayerController
 		if (!defined('IMAGES_PATH')) {
 			define('IMAGES_PATH', MAIN_HOME . 'public/assets/player/images/thumbs/');
 		}
-		$rResizeCacheDir = IMAGES_PATH;
-		$rResizePlaceholder = MAIN_HOME . 'public/assets/player/images/placeholder.png';
-		$rResizeSupportExtras = true;
-		require MAIN_HOME . 'infrastructure/legacy/resize_body.php';
+		ImageResizeService::serve([
+			'cacheDir'    => IMAGES_PATH,
+			'placeholder' => MAIN_HOME . 'public/assets/player/images/placeholder.png',
+			'extraParams' => true,
+		]);
 	}
 }

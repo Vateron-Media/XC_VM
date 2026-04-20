@@ -7,8 +7,6 @@
  * Resizes remote/local images and caches the result as PNG.
  * Requires authenticated admin session (bootstrap handles this).
  *
- * @renders infrastructure/legacy/resize_body.php
- *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
@@ -24,7 +22,6 @@ class AdminResizeController extends BaseAdminController {
 			exit();
 		}
 
-		$rResizeCacheDir = IMAGES_PATH . 'admin/';
-		require MAIN_HOME . 'infrastructure/legacy/resize_body.php';
+		ImageResizeService::serve(['cacheDir' => IMAGES_PATH . 'admin/']);
 	}
 }
