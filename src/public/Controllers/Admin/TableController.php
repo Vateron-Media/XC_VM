@@ -12,11 +12,10 @@
 
 session_start();
 session_write_close();
-if (file_exists('../www/init.php')) {
-    require_once '../www/init.php';
-} else {
-    require_once '../../../www/init.php';
+if (!defined('MAIN_HOME')) {
+    require_once dirname(__DIR__, 3) . '/autoload.php';
 }
+WebApiBootstrap::init('admin');
 if (!PHP_ERRORS) {
     if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
         exit();
