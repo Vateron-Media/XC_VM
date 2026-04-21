@@ -57,4 +57,17 @@ if (!isset($_FILES)) {
 	$_FILES = array();
 }
 
+if (!function_exists('igbinary_serialize')) {
+	function igbinary_serialize($value) {
+		return serialize($value);
+	}
+}
+if (!function_exists('igbinary_unserialize')) {
+	function igbinary_unserialize($value) {
+		return unserialize($value);
+	}
+}
+
 require_once MAIN_HOME . 'autoload.php';
+require_once MAIN_HOME . 'core/Parsing/M3uParser/bootstrap.php';
+require_once __DIR__ . '/Unit/M3uParser/ExtCustomTag.php';
