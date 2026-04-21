@@ -209,9 +209,14 @@ class CacheEngineCronJob implements CommandInterface {
                         } else {
                             $db->query('SELECT COUNT(*) AS `count` FROM `lines`;');
                             $rLinesCount = $db->get_row()['count'];
-                            $cacheValidityCheck = $this->rSplit > $rLinesCount ? [0, $rLinesCount] : range(0, $rLinesCount, $this->rSplit);
+                            $cacheValidityCheck = array();
+                            if ($this->rSplit > 0) {
+                                for ($rStart = 0; $rStart <= $rLinesCount; $rStart += $this->rSplit) {
+                                    $cacheValidityCheck[] = $rStart;
+                                }
+                            }
                             if (!$cacheValidityCheck) {
-                                $cacheValidityCheck = [0];
+                                $cacheValidityCheck = array(0);
                             }
                             foreach ($cacheValidityCheck as $rStart) {
                                 $rMax = $this->rSplit;
@@ -244,9 +249,14 @@ class CacheEngineCronJob implements CommandInterface {
                         } else {
                             $db->query('SELECT COUNT(*) AS `count` FROM `streams`;');
                             $cacheDeleteMethod = (int) $db->get_row()['count'];
-                            $cacheCleanupTrigger = range(0, $cacheDeleteMethod, $this->rSplit);
+                            $cacheCleanupTrigger = array();
+                            if ($this->rSplit > 0) {
+                                for ($rStart = 0; $rStart <= $cacheDeleteMethod; $rStart += $this->rSplit) {
+                                    $cacheCleanupTrigger[] = $rStart;
+                                }
+                            }
                             if (!$cacheCleanupTrigger) {
-                                $cacheCleanupTrigger = [0];
+                                $cacheCleanupTrigger = array(0);
                             }
                             foreach ($cacheCleanupTrigger as $rStart) {
                                 $rMax = $this->rSplit;

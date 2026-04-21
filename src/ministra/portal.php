@@ -271,9 +271,11 @@ if (!$rSettings['disable_ministra']) {
 function getSeriesItems($rUserID, $rType = 'series', $rCategoryID = null, $rFav = null, $rOrderBy = null, $rSearchBy = null, $rPicking = array()) {
 	global $rDevice;
 	global $db;
+	$rSeriesIDs = (is_array($rDevice['series_ids'] ?? null) ? $rDevice['series_ids'] : array());
+	$rSeriesFav = (is_array($rDevice['fav_channels']['series'] ?? null) ? $rDevice['fav_channels']['series'] : array());
 
-	if (0 < count($rDevice['series_ids'])) {
-		$db->query('SELECT *, (SELECT MAX(`streams`.`added`) FROM `streams_episodes` LEFT JOIN `streams` ON `streams`.`id` = `streams_episodes`.`stream_id` WHERE `streams_episodes`.`series_id` = `streams_series`.`id`) AS `last_modified_stream` FROM `streams_series` WHERE `id` IN (' . implode(',', array_map('intval', $rDevice['series_ids'])) . ') ORDER BY `last_modified_stream` DESC, `last_modified` DESC;');
+	if (0 < count($rSeriesIDs)) {
+		$db->query('SELECT *, (SELECT MAX(`streams`.`added`) FROM `streams_episodes` LEFT JOIN `streams` ON `streams`.`id` = `streams_episodes`.`stream_id` WHERE `streams_episodes`.`series_id` = `streams_series`.`id`) AS `last_modified_stream` FROM `streams_series` WHERE `id` IN (' . implode(',', array_map('intval', $rSeriesIDs)) . ') ORDER BY `last_modified_stream` DESC, `last_modified` DESC;');
 		$rSeries = $db->get_rows(true, 'id');
 	} else {
 		$rSeries = array();
@@ -283,13 +285,17 @@ function getSeriesItems($rUserID, $rType = 'series', $rCategoryID = null, $rFav 
 
 	foreach ($rSeries as $rSeriesID => $rSeriesO) {
 		$rSeriesO['last_modified'] = $rSeriesO['last_modified_stream'];
+		$rSeriesCategories = json_decode($rSeriesO['category_id'], true);
+		if (!is_array($rSeriesCategories)) {
+			$rSeriesCategories = array();
+		}
 
-		if (!empty($rCategoryID) && !in_array($rCategoryID, json_decode($rSeriesO['category_id'], true))) {
+		if (!empty($rCategoryID) && !in_array($rCategoryID, $rSeriesCategories)) {
 		} else {
-			if (in_array($rCategoryID, json_decode($rSeriesO['category_id'], true))) {
+			if (in_array($rCategoryID, $rSeriesCategories)) {
 				$rSeriesO['category_id'] = $rCategoryID;
 			} else {
-				list($rSeriesO['category_id']) = json_decode($rSeriesO['category_id'], true);
+				$rSeriesO['category_id'] = ($rSeriesCategories[0] ?? 0);
 			}
 
 			if ((empty($rSearchBy) || stristr($rSeriesO['title'], $rSearchBy)) && !(!empty($rPicking['abc']) && $rPicking['abc'] != '*' && strtoupper(substr($rSeriesO['title'], 0, 1)) != $rPicking['abc']) && !(!empty($rPicking['genre']) && $rPicking['genre'] != '*' && $rSeriesO['category_id'] != $rPicking['genre']) && !(!empty($rPicking['years']) && $rPicking['years'] != '*' && $rSeriesO['year'] != $rPicking['years'])) {
@@ -297,7 +303,7 @@ function getSeriesItems($rUserID, $rType = 'series', $rCategoryID = null, $rFav 
 				} else {
 					$rFound = false;
 
-					if (empty($rDevice['fav_channels'][$rType]) || !in_array($rSeriesID, $rDevice['fav_channels'][$rType])) {
+					if (empty($rSeriesFav) || !in_array($rSeriesID, $rSeriesFav)) {
 					} else {
 						$rFound = true;
 					}
@@ -360,21 +366,21 @@ function getItems($rTypes = array(), $rCategoryID = null, $rFav = null, $rOrderB
 			case 'live':
 			case 'created_live':
 				if (!$rAdded) {
-					$rChannels = array_merge($rChannels, $rDevice['live_ids']);
+					$rChannels = array_merge($rChannels, (is_array($rDevice['live_ids'] ?? null) ? $rDevice['live_ids'] : array()));
 					$rAdded = true;
 				}
 				break;
 
 			case 'movie':
-				$rChannels = array_merge($rChannels, $rDevice['vod_ids']);
+				$rChannels = array_merge($rChannels, (is_array($rDevice['vod_ids'] ?? null) ? $rDevice['vod_ids'] : array()));
 				break;
 
 			case 'radio_streams':
-				$rChannels = array_merge($rChannels, $rDevice['radio_ids']);
+				$rChannels = array_merge($rChannels, (is_array($rDevice['radio_ids'] ?? null) ? $rDevice['radio_ids'] : array()));
 				break;
 
 			case 'series':
-				$rChannels = array_merge($rChannels, $rDevice['episode_ids']);
+				$rChannels = array_merge($rChannels, (is_array($rDevice['episode_ids'] ?? null) ? $rDevice['episode_ids'] : array()));
 				break;
 		}
 	}
@@ -407,7 +413,8 @@ function getItems($rTypes = array(), $rCategoryID = null, $rFav = null, $rOrderB
 		$favoriteChannelIds = array();
 
 		foreach ($rTypes as $rType) {
-			foreach ($rDevice['fav_channels'][$rType] as $rStreamID) {
+			$rTypeFav = (is_array($rDevice['fav_channels'][$rType] ?? null) ? $rDevice['fav_channels'][$rType] : array());
+			foreach ($rTypeFav as $rStreamID) {
 				$favoriteChannelIds[] = intval($rStreamID);
 			}
 		}
@@ -576,6 +583,9 @@ function getDevice($rID = null, $rMAC = null) {
 		} else {
 			$rDevice = $db->get_row();
 			$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, $rDevice['user_id'], null, null, true, false, $rIP);
+			if (!is_array($rUserInfo)) {
+				$rUserInfo = array();
+			}
 			$rDevice = array_merge($rDevice, $rUserInfo);
 			if (is_string($rDevice['allowed_ips'])) {
 				$rDevice['allowed_ips'] = json_decode($rDevice['allowed_ips'], true);
@@ -595,6 +605,11 @@ function getDevice($rID = null, $rMAC = null) {
 			if (!empty($rDevice['fav_channels']['radio_streams'])) {
 			} else {
 				$rDevice['fav_channels']['radio_streams'] = array();
+			}
+
+			if (!empty($rDevice['fav_channels']['series']) && is_array($rDevice['fav_channels']['series'])) {
+			} else {
+				$rDevice['fav_channels']['series'] = array();
 			}
 
 			$rDevice['mag_player'] = trim($rDevice['mag_player']);
@@ -774,6 +789,10 @@ function getSeries($rMovieID = null, $rCategoryID = null, $rFav = null, $rOrderB
 		$db->query('SELECT * FROM `streams_series` WHERE `id` = ?', $rMovieID);
 		$rSeriesInfo = $db->get_row();
 	}
+	if (!is_array($rItems)) {
+		$rItems = array();
+	}
+	$rSeriesFav = (is_array($rDevice['fav_channels']['series'] ?? null) ? $rDevice['fav_channels']['series'] : array());
 
 	$rCounter = count($rItems);
 	$rChannelIDx = 0;
@@ -795,7 +814,7 @@ function getSeries($rMovieID = null, $rCategoryID = null, $rFav = null, $rOrderB
 	foreach ($rItems as $rKey => $rMovie) {
 		if (is_null($rFav) || $rFav != 1) {
 		} else {
-			if (in_array($rMovie['id'], $rDevice['fav_channels']['series'])) {
+			if (in_array($rMovie['id'], $rSeriesFav)) {
 			} else {
 				$rCounter--;
 			}
@@ -854,7 +873,7 @@ function getSeries($rMovieID = null, $rCategoryID = null, $rFav = null, $rOrderB
 			$rTitle = $rMovie['title'];
 		}
 
-		$rDatas[] = array('id' => $rProperties['id'], 'owner' => '', 'name' => $rTitle, 'tmdb_id' => $rProperties['tmdb_id'], 'old_name' => '', 'o_name' => $rTitle, 'fname' => '', 'description' => (empty($rProperties['plot']) ? 'N/A' : $rProperties['plot']), 'pic' => '', 'cost' => 0, 'time' => 'N/a', 'file' => '', 'path' => str_replace(' ', '_', $rProperties['title']), 'protocol' => '', 'rtsp_url' => '', 'censored' => 0, 'series' => (!empty($rSeriesInfo) ? range(1, count($rMovie)) : array()), 'volume_correction' => 0, 'category_id' => $rProperties['category_id'], 'genre_id' => 0, 'genre_id_1' => 0, 'genre_id_2' => 0, 'genre_id_3' => 0, 'hd' => 1, 'genre_id_4' => 0, 'cat_genre_id_1' => $rProperties['category_id'], 'cat_genre_id_2' => 0, 'cat_genre_id_3' => 0, 'cat_genre_id_4' => 0, 'director' => (empty($rProperties['director']) ? 'N/A' : $rProperties['director']), 'actors' => (empty($rProperties['cast']) ? 'N/A' : $rProperties['cast']), 'year' => (empty($rProperties['release_date']) ? 'N/A' : $rProperties['release_date']), 'accessed' => 1, 'status' => 1, 'disable_for_hd_devices' => 0, 'added' => date('Y-m-d H:i:s', $rMaxAdded), 'count' => 0, 'count_first_0_5' => 0, 'count_second_0_5' => 0, 'vote_sound_good' => 0, 'vote_sound_bad' => 0, 'vote_video_good' => 0, 'vote_video_bad' => 0, 'rate' => '', 'last_rate_update' => '', 'last_played' => '', 'for_sd_stb' => 0, 'rating_im' => (empty($rProperties['rating']) ? 'N/A' : $rProperties['rating']), 'rating_count_im' => '', 'rating_last_update' => '0000-00-00 00:00:00', 'age' => '12+', 'high_quality' => 0, 'rating_kinopoisk' => (empty($rProperties['rating']) ? 'N/A' : $rProperties['rating']), 'comments' => '', 'low_quality' => 0, 'is_series' => 1, 'year_end' => 0, 'autocomplete_provider' => 'im', 'screenshots' => '', 'is_movie' => 1, 'lock' => 0, 'fav' => (in_array($rProperties['id'], $rDevice['fav_channels']['series']) ? 1 : 0), 'for_rent' => 0, 'screenshot_uri' => (empty($rProperties['cover']) ? '' : ImageUtils::validateURL($rProperties['cover'], $rForceProtocol)), 'genres_str' => (empty($rProperties['genre']) ? 'N/A' : $rProperties['genre']), 'cmd' => (!empty($rSeriesInfo) ? base64_encode(json_encode($rPostData, JSON_PARTIAL_OUTPUT_ON_ERROR)) : ''), $rAddedKey => $rAddedVal, 'has_files' => (empty($rMovieID) ? 1 : 0));
+		$rDatas[] = array('id' => $rProperties['id'], 'owner' => '', 'name' => $rTitle, 'tmdb_id' => $rProperties['tmdb_id'], 'old_name' => '', 'o_name' => $rTitle, 'fname' => '', 'description' => (empty($rProperties['plot']) ? 'N/A' : $rProperties['plot']), 'pic' => '', 'cost' => 0, 'time' => 'N/a', 'file' => '', 'path' => str_replace(' ', '_', $rProperties['title']), 'protocol' => '', 'rtsp_url' => '', 'censored' => 0, 'series' => (!empty($rSeriesInfo) ? range(1, count($rMovie)) : array()), 'volume_correction' => 0, 'category_id' => $rProperties['category_id'], 'genre_id' => 0, 'genre_id_1' => 0, 'genre_id_2' => 0, 'genre_id_3' => 0, 'hd' => 1, 'genre_id_4' => 0, 'cat_genre_id_1' => $rProperties['category_id'], 'cat_genre_id_2' => 0, 'cat_genre_id_3' => 0, 'cat_genre_id_4' => 0, 'director' => (empty($rProperties['director']) ? 'N/A' : $rProperties['director']), 'actors' => (empty($rProperties['cast']) ? 'N/A' : $rProperties['cast']), 'year' => (empty($rProperties['release_date']) ? 'N/A' : $rProperties['release_date']), 'accessed' => 1, 'status' => 1, 'disable_for_hd_devices' => 0, 'added' => date('Y-m-d H:i:s', $rMaxAdded), 'count' => 0, 'count_first_0_5' => 0, 'count_second_0_5' => 0, 'vote_sound_good' => 0, 'vote_sound_bad' => 0, 'vote_video_good' => 0, 'vote_video_bad' => 0, 'rate' => '', 'last_rate_update' => '', 'last_played' => '', 'for_sd_stb' => 0, 'rating_im' => (empty($rProperties['rating']) ? 'N/A' : $rProperties['rating']), 'rating_count_im' => '', 'rating_last_update' => '0000-00-00 00:00:00', 'age' => '12+', 'high_quality' => 0, 'rating_kinopoisk' => (empty($rProperties['rating']) ? 'N/A' : $rProperties['rating']), 'comments' => '', 'low_quality' => 0, 'is_series' => 1, 'year_end' => 0, 'autocomplete_provider' => 'im', 'screenshots' => '', 'is_movie' => 1, 'lock' => 0, 'fav' => (in_array($rProperties['id'], $rSeriesFav) ? 1 : 0), 'for_rent' => 0, 'screenshot_uri' => (empty($rProperties['cover']) ? '' : ImageUtils::validateURL($rProperties['cover'], $rForceProtocol)), 'genres_str' => (empty($rProperties['genre']) ? 'N/A' : $rProperties['genre']), 'cmd' => (!empty($rSeriesInfo) ? base64_encode(json_encode($rPostData, JSON_PARTIAL_OUTPUT_ON_ERROR)) : ''), $rAddedKey => $rAddedVal, 'has_files' => (empty($rMovieID) ? 1 : 0));
 	}
 
 	if ($rDefaultPage) {
@@ -888,6 +907,7 @@ function getStations($rCategoryID = null, $rFav = null, $rOrderBy = null) {
 	global $rDevice;
 	global $rPlayer;
 	global $rPageItems;
+	global $rRequest;
 	global $rSettings;
 	global $rServers;
 	$rDefaultPage = false;
@@ -902,6 +922,8 @@ function getStations($rCategoryID = null, $rFav = null, $rOrderBy = null) {
 	$rStart = ($rPage - 1) * $rPageItems;
 	$rStreams = getitems(array('radio_streams'), $rCategoryID, $rFav, $rOrderBy, null, null, $rStart, $rPageItems);
 	$rDatas = array();
+	$i = $rStart + 1;
+	$rFavRadioStreams = $rDevice['fav_channels']['radio_streams'] ?? array();
 
 	foreach ($rStreams['streams'] as $rStream) {
 		if ($rSettings['mag_security'] == 0) {
@@ -920,7 +942,7 @@ function getStations($rCategoryID = null, $rFav = null, $rOrderBy = null) {
 			$rStreamSourceSt = 1;
 		}
 
-		$rDatas[] = array('id' => $rStream['id'], 'name' => $rStream['stream_display_name'], 'number' => $i++, 'cmd' => $rPlayer . $rStreamURL, 'count' => 0, 'open' => 1, 'status' => 1, 'volume_correction' => 0, 'use_http_tmp_link' => (string) $rStreamSourceSt, 'fav' => (in_array($rStream['id'], $rDevice['fav_channels']['radio_streams']) ? 1 : 0));
+		$rDatas[] = array('id' => $rStream['id'], 'name' => $rStream['stream_display_name'], 'number' => $i++, 'cmd' => $rPlayer . $rStreamURL, 'count' => 0, 'open' => 1, 'status' => 1, 'volume_correction' => 0, 'use_http_tmp_link' => (string) $rStreamSourceSt, 'fav' => (in_array($rStream['id'], $rFavRadioStreams) ? 1 : 0));
 	}
 
 	if ($rDefaultPage) {
@@ -937,6 +959,8 @@ function getStreams($rCategoryID = null, $rAll = false, $rFav = null, $rOrderBy 
 	global $rDevice;
 	global $rPlayer;
 	global $rPageItems;
+	global $rRequest;
+	global $rSettings;
 	global $rTimezone;
 	global $rForceProtocol;
 	global $rServers;

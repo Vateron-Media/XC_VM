@@ -63,12 +63,15 @@ class StreamsCronJob implements CommandInterface {
                     if ($rStream['on_demand'] == 1 && $rStream['attached'] == 0) {
                         if (SettingsManager::getAll()['redis_handler']) {
                             $rCount = 0;
-                            $rKeys = RedisManager::instance()->zRangeByScore('STREAM#' . $rStream['stream_id'], '-inf', '+inf');
-                            if (count($rKeys) > 0) {
-                                $rConnections = array_map('igbinary_unserialize', RedisManager::instance()->mGet($rKeys));
-                                foreach ($rConnections as $rConnection) {
-                                    if ($rConnection && $rConnection['server_id'] == SERVER_ID) {
-                                        $rCount++;
+                            $rRedis = RedisManager::instance();
+                            if ($rRedis) {
+                                $rKeys = $rRedis->zRangeByScore('STREAM#' . $rStream['stream_id'], '-inf', '+inf');
+                                if (count($rKeys) > 0) {
+                                    $rConnections = array_map('igbinary_unserialize', $rRedis->mGet($rKeys));
+                                    foreach ($rConnections as $rConnection) {
+                                        if ($rConnection && $rConnection['server_id'] == SERVER_ID) {
+                                            $rCount++;
+                                        }
                                     }
                                 }
                             }
