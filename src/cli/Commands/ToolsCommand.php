@@ -370,22 +370,22 @@ class ToolsCommand implements CommandInterface {
 		if ($db->num_rows() > 0) {
 			foreach ($db->get_rows() as $rBouquet) {
 				$UpdateData = array(array(), array(), array(), array());
-				foreach (json_decode($rBouquet['bouquet_channels'], true) as $rID) {
+				foreach ((json_decode($rBouquet['bouquet_channels'], true) ?: array()) as $rID) {
 					if (0 < intval($rID) && in_array(intval($rID), $rStreamIDs[0])) {
 						$UpdateData[0][] = intval($rID);
 					}
 				}
-				foreach (json_decode($rBouquet['bouquet_movies'], true) as $rID) {
+				foreach ((json_decode($rBouquet['bouquet_movies'], true) ?: array()) as $rID) {
 					if (0 < intval($rID) && in_array(intval($rID), $rStreamIDs[0])) {
 						$UpdateData[1][] = intval($rID);
 					}
 				}
-				foreach (json_decode($rBouquet['bouquet_radios'], true) as $rID) {
+				foreach ((json_decode($rBouquet['bouquet_radios'], true) ?: array()) as $rID) {
 					if (0 < intval($rID) && in_array(intval($rID), $rStreamIDs[0])) {
 						$UpdateData[2][] = intval($rID);
 					}
 				}
-				foreach (json_decode($rBouquet['bouquet_series'], true) as $rID) {
+				foreach ((json_decode($rBouquet['bouquet_series'], true) ?: array()) as $rID) {
 					if (0 < intval($rID) && in_array(intval($rID), $rStreamIDs[1])) {
 						$UpdateData[3][] = intval($rID);
 					}
