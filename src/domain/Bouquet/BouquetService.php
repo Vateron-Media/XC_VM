@@ -181,16 +181,12 @@ class BouquetService {
 		);
 	}
 
-	// ──────────── Из BouquetMapper ────────────
-
 	public static function getMapEntry($rStreamID) {
 		$rBouquetMap = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'bouquet_map'));
 		$rReturn = ($rBouquetMap[$rStreamID] ?: array());
 		unset($rBouquetMap);
 		return $rReturn;
 	}
-
-	// ──────────── Из BouquetRepository ────────────
 
 	public static function getAll($rForce = false) {
 		global $db;
@@ -204,11 +200,21 @@ class BouquetService {
 		$rOutput = array();
 		$db->query('SELECT *, IF(`bouquet_order` > 0, `bouquet_order`, 999) AS `order` FROM `bouquets` ORDER BY `order` ASC;');
 		foreach ($db->get_rows(true, 'id') as $rID => $rChannels) {
-			$rOutput[$rID]['streams'] = array_merge(json_decode($rChannels['bouquet_channels'], true), json_decode($rChannels['bouquet_movies'], true), json_decode($rChannels['bouquet_radios'], true));
-			$rOutput[$rID]['series'] = json_decode($rChannels['bouquet_series'], true);
-			$rOutput[$rID]['channels'] = json_decode($rChannels['bouquet_channels'], true);
-			$rOutput[$rID]['movies'] = json_decode($rChannels['bouquet_movies'], true);
-			$rOutput[$rID]['radios'] = json_decode($rChannels['bouquet_radios'], true);
+			$rChannelsList = json_decode($rChannels['bouquet_channels'], true);
+			$rMoviesList = json_decode($rChannels['bouquet_movies'], true);
+			$rRadiosList = json_decode($rChannels['bouquet_radios'], true);
+			$rSeriesList = json_decode($rChannels['bouquet_series'], true);
+
+			$rChannelsList = is_array($rChannelsList) ? $rChannelsList : array();
+			$rMoviesList = is_array($rMoviesList) ? $rMoviesList : array();
+			$rRadiosList = is_array($rRadiosList) ? $rRadiosList : array();
+			$rSeriesList = is_array($rSeriesList) ? $rSeriesList : array();
+
+			$rOutput[$rID]['streams'] = array_merge($rChannelsList, $rMoviesList, $rRadiosList);
+			$rOutput[$rID]['series'] = $rSeriesList;
+			$rOutput[$rID]['channels'] = $rChannelsList;
+			$rOutput[$rID]['movies'] = $rMoviesList;
+			$rOutput[$rID]['radios'] = $rRadiosList;
 		}
 
 		FileCache::setCache('bouquets', $rOutput);
@@ -245,7 +251,6 @@ class BouquetService {
 	}
 
 	public static function getOrder() {
-		global $db;
 		return self::getAllSimple();
 	}
 
@@ -333,16 +338,12 @@ class BouquetService {
 
 		if ($rType == 'stream') {
 			$rColumn = 'bouquet_channels';
+		} elseif ($rType == 'movie') {
+			$rColumn = 'bouquet_movies';
+		} elseif ($rType == 'radio') {
+			$rColumn = 'bouquet_radios';
 		} else {
-			if ($rType == 'movie') {
-				$rColumn = 'bouquet_movies';
-			} else {
-				if ($rType == 'radio') {
-					$rColumn = 'bouquet_radios';
-				} else {
-					$rColumn = 'bouquet_series';
-				}
-			}
+			$rColumn = 'bouquet_series';
 		}
 
 		$rChanged = false;
@@ -356,8 +357,7 @@ class BouquetService {
 			}
 		}
 
-		if (!$rChanged) {
-		} else {
+		if ($rChanged) {
 			$db->query('UPDATE `bouquets` SET `' . $rColumn . '` = ? WHERE `id` = ?;', '[' . implode(',', array_map('intval', $rChannels)) . ']', $rBouquetID);
 		}
 	}
@@ -377,16 +377,12 @@ class BouquetService {
 
 		if ($rType == 'stream') {
 			$rColumn = 'bouquet_channels';
+		} elseif ($rType == 'movie') {
+			$rColumn = 'bouquet_movies';
+		} elseif ($rType == 'radio') {
+			$rColumn = 'bouquet_radios';
 		} else {
-			if ($rType == 'movie') {
-				$rColumn = 'bouquet_movies';
-			} else {
-				if ($rType == 'radio') {
-					$rColumn = 'bouquet_radios';
-				} else {
-					$rColumn = 'bouquet_series';
-				}
-			}
+			$rColumn = 'bouquet_series';
 		}
 
 		$rChanged = false;
@@ -400,8 +396,7 @@ class BouquetService {
 			}
 		}
 
-		if (!$rChanged) {
-		} else {
+		if ($rChanged) {
 			$db->query('UPDATE `bouquets` SET `' . $rColumn . '` = ? WHERE `id` = ?;', '[' . implode(',', array_map('intval', $rChannels)) . ']', $rBouquetID);
 		}
 	}

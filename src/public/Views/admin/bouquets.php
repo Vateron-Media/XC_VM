@@ -40,10 +40,10 @@
 									<tr id="bouquet-<?php echo intval($rBouquet['id']); ?>">
 										<td class="text-center"><?php echo intval($rBouquet['id']); ?></td>
 										<td><?php echo htmlspecialchars($rBouquet['bouquet_name']); ?></td>
-										<td class="text-center"><button type="button" class="btn btn-light btn-xs waves-effect waves-light"><?php echo number_format(count(json_decode($rBouquet['bouquet_channels'], true)), 0); ?></button></td>
-										<td class="text-center"><button type="button" class="btn btn-light btn-xs waves-effect waves-light"><?php echo number_format(count(json_decode($rBouquet['bouquet_movies'], true)), 0); ?></button></td>
-										<td class="text-center"><button type="button" class="btn btn-light btn-xs waves-effect waves-light"><?php echo number_format(count(json_decode($rBouquet['bouquet_series'], true)), 0); ?></button></td>
-										<td class="text-center"><button type="button" class="btn btn-light btn-xs waves-effect waves-light"><?php echo number_format(count(json_decode($rBouquet['bouquet_radios'], true)), 0); ?></button></td>
+										<td class="text-center"><button type="button" class="btn btn-light btn-xs waves-effect waves-light"><?php echo number_format(count(json_decode($rBouquet['bouquet_channels'], true) ?: array()), 0); ?></button></td>
+										<td class="text-center"><button type="button" class="btn btn-light btn-xs waves-effect waves-light"><?php echo number_format(count(json_decode($rBouquet['bouquet_movies'], true) ?: array()), 0); ?></button></td>
+										<td class="text-center"><button type="button" class="btn btn-light btn-xs waves-effect waves-light"><?php echo number_format(count(json_decode($rBouquet['bouquet_series'], true) ?: array()), 0); ?></button></td>
+										<td class="text-center"><button type="button" class="btn btn-light btn-xs waves-effect waves-light"><?php echo number_format(count(json_decode($rBouquet['bouquet_radios'], true) ?: array()), 0); ?></button></td>
 										<td class="text-center">
 											<?php if (Authorization::check('adv', 'edit_bouquet')): ?>
 												<div class="btn-group">

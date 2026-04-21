@@ -148,7 +148,7 @@ class CacheCronJob implements CommandInterface {
         foreach ($db->get_rows(true, 'id') as $rID => $rChannels) {
             $rAllowedCategories = array();
 
-            foreach (json_decode($rChannels['bouquet_channels'], true) as $rStreamID) {
+            foreach ((json_decode($rChannels['bouquet_channels'], true) ?: array()) as $rStreamID) {
                 if (!(0 >= intval($rStreamID) || in_array($rStreamID, $rStreamIDs['channels']))) {
                     $rStreamIDs['channels'][] = $rStreamID;
                 }
@@ -158,7 +158,7 @@ class CacheCronJob implements CommandInterface {
                 $rBouquetMap[intval($rStreamID)][] = $rID;
             }
 
-            foreach (json_decode($rChannels['bouquet_radios'], true) as $rStreamID) {
+            foreach ((json_decode($rChannels['bouquet_radios'], true) ?: array()) as $rStreamID) {
                 if (!(0 >= intval($rStreamID) || in_array($rStreamID, $rStreamIDs['radios']))) {
                     $rStreamIDs['radios'][] = $rStreamID;
                 }
@@ -168,7 +168,7 @@ class CacheCronJob implements CommandInterface {
                 $rBouquetMap[intval($rStreamID)][] = $rID;
             }
 
-            foreach (json_decode($rChannels['bouquet_movies'], true) as $rStreamID) {
+            foreach ((json_decode($rChannels['bouquet_movies'], true) ?: array()) as $rStreamID) {
                 if (!(0 >= intval($rStreamID) || in_array($rStreamID, $rStreamIDs['movies']))) {
                     $rStreamIDs['movies'][] = $rStreamID;
                 }
@@ -178,7 +178,7 @@ class CacheCronJob implements CommandInterface {
                 $rBouquetMap[intval($rStreamID)][] = $rID;
             }
 
-            foreach (json_decode($rChannels['bouquet_series'], true) as $rSeriesID) {
+            foreach ((json_decode($rChannels['bouquet_series'], true) ?: array()) as $rSeriesID) {
                 if (!(0 >= intval($rSeriesID) || in_array($rSeriesID, $rStreamIDs['series']))) {
                     $db->query('SELECT `stream_id` FROM `streams_episodes` WHERE `series_id` = ? ORDER BY `season_num` ASC, `episode_num` ASC;', $rSeriesID);
                     foreach ($db->get_rows() as $rEpisode) {
