@@ -160,7 +160,7 @@ class StreamService {
 								$rURL = $rResult->getPath();
 
 								if ($rURL) {
-									$rImportArray = array('stream_source' => array($rURL), 'stream_icon' => ($rTag ? ($rTag->getAttribute('tvg-logo') ?: '') : ''), 'stream_display_name' => ($rTag ? ($rTag->getTitle() ?: basename(parse_url($rURL, PHP_URL_PATH) ?: $rURL)) : basename(parse_url($rURL, PHP_URL_PATH) ?: $rURL)), 'epg_id' => null, 'epg_lang' => null, 'channel_id' => null);
+									$rImportArray = array('stream_source' => array($rURL), 'stream_icon' => ($rTag ? ($rTag->getAttribute('tvg-logo') ?: ($rTag->getAttribute('logo') ?: '')) : ''), 'stream_display_name' => ($rTag ? ($rTag->getTitle() ?: basename(parse_url($rURL, PHP_URL_PATH) ?: $rURL)) : basename(parse_url($rURL, PHP_URL_PATH) ?: $rURL)), 'epg_id' => null, 'epg_lang' => null, 'channel_id' => null);
 
 									if ($rTag && $rTag->getAttribute('tvg-id')) {
 										$rEPG = ($rEPGMatch[$i] ?? null);
@@ -760,8 +760,8 @@ class StreamService {
 	}
 
 	public static function parseM3U($rData, $rFile = true) {
-		require_once MAIN_HOME . 'domain/Stream/M3UEntry.php';
-		$rParser = new M3uParser();
+		require_once MAIN_HOME . 'core/Parsing/M3uParser/bootstrap.php';
+		$rParser = new \M3uParser\M3uParser();
 		$rParser->addDefaultTags();
 
 		if ($rFile) {

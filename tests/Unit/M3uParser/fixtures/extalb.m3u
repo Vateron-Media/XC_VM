@@ -1,0 +1,4 @@
+#EXTM3U
+
+#EXTALB:some album
+rtp://@127.0.0.1:5003

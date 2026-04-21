@@ -1,0 +1,18 @@
+#EXTM3U
+#EXTINF:233,Everclear - So Much For The Afterglow
+Alternative\everclear_SMFTA.mp3
+
+#EXTINF:-1,Первый канал HD
+http://176.51.55.8:1234/udp/233.7.70.200:5000
+
+#EXTINF:-1 tvg-name=Первый_HD tvg-logo="Первый канал" deinterlace=4 group-title="Эфирные каналы",Первый канал HD
+http://109.225.233.1:30000/udp/239.255.10.160:5500
+
+#EXTINF:-1 tvg-name="Test with, comma 1/2" tvg-logo="https://pngimage.net/wp-content/uploads/2018/05/iptv-png.png" group-title="===test group title 1/2",Test with, comma 1/2
+http://117.210.233.1:3000/tcp/2
+
+#EXTINF: -1 tvg-name="Test with space" , Test with space
+http://127.0.0.1:3000
+
+#EXTINF:-1 tvg-name="Test empty name",
+name.mp3
