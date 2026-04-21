@@ -70,4 +70,5 @@ if (!function_exists('igbinary_unserialize')) {
 
 require_once MAIN_HOME . 'autoload.php';
 require_once MAIN_HOME . 'core/Parsing/M3uParser/bootstrap.php';
+require_once MAIN_HOME . 'core/Parsing/PhpM3u8/bootstrap.php';
 require_once __DIR__ . '/Unit/M3uParser/ExtCustomTag.php';
