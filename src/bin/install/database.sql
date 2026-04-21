@@ -70090,7 +70090,7 @@ CREATE TABLE IF NOT EXISTS `servers` (
 --
 
 INSERT INTO `servers` (`id`, `server_type`, `xc_vm_version`, `server_name`, `domain_name`, `server_ip`, `private_ip`, `is_main`, `enabled`, `parent_id`, `http_broadcast_port`, `https_broadcast_port`, `http_ports_add`, `https_ports_add`, `total_clients`, `network_interface`, `status`, `enable_geoip`, `geoip_countries`, `last_check_ago`, `server_hardware`, `total_services`, `persistent_connections`, `rtmp_port`, `geoip_type`, `isp_names`, `isp_type`, `enable_isp`, `network_guaranteed_speed`, `timeshift_only`, `whitelist_ips`, `watchdog_data`, `video_devices`, `audio_devices`, `gpu_info`, `interfaces`, `random_ip`, `enable_proxy`, `enable_https`, `certbot_renew`, `certbot_ssl`, `uuid`, `use_disk`, `last_status`, `time_offset`, `ping`, `requests_per_second`, `php_pids`, `connections`, `users`, `remote_status`, `governors`, `governor`, `sysctl`, `order`, `enable_gzip`, `limit_requests`, `limit_burst`) VALUES
-(1, 0, '1.5.8', 'Main Server', '', '127.0.0.1', '', 1, 1, '0', 80, 443, NULL, NULL, 1000, 'auto', 1, 0, '[]', 0, NULL, 4, 0, 8880, 'low_priority', '', 'low_priority', 0, 1000, 0, '[\"127.0.0.1\"]', NULL, '[]', '[]', '[]', '[\"eth0\"]', 0, 0, 0, 0, NULL, NULL, 0, 0, 0, 0, 0, NULL, 0, 0, 1, NULL, NULL, NULL, NULL, 0, 0, 0);
+(1, 0, '2.0.0', 'Main Server', '', '127.0.0.1', '', 1, 1, '0', 80, 443, NULL, NULL, 1000, 'auto', 1, 0, '[]', 0, NULL, 4, 0, 8880, 'low_priority', '', 'low_priority', 0, 1000, 0, '[\"127.0.0.1\"]', NULL, '[]', '[]', '[]', '[\"eth0\"]', 0, 0, 0, 0, NULL, NULL, 0, 0, 0, 0, 0, NULL, 0, 0, 1, NULL, NULL, NULL, NULL, 0, 0, 0);
 
 -- --------------------------------------------------------
 

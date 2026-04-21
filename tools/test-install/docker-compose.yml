@@ -12,6 +12,6 @@ services:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
       - ../../dist/XC_VM.zip:/opt/xcvm-install/XC_VM.zip:ro
     ports:
-      - "8880:80"
-      - "8443:443"
+      - "${XCVM_HTTP_PORT:-8880}:${XCVM_INSTALL_HTTP_PORT:-80}"
+      - "${XCVM_HTTPS_PORT:-8443}:${XCVM_INSTALL_HTTPS_PORT:-443}"
     stop_signal: SIGRTMIN+3
