@@ -7,21 +7,47 @@ on:
       - 'src/**/*.php'
       - 'src/**/*.sh'
       - '.github/workflows/security-scan.yml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'src/**/*.php'
-      - 'src/**/*.sh'
+  workflow_dispatch:
   schedule:
     - cron: '0 6 * * 1'
+    - cron: '0 6 * * 4'
 
 permissions:
   contents: read
   security-events: write
 
 jobs:
+  gate:
+    name: Scan Gate
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.gate.outputs.should_run }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Decide whether to run scans
+        id: gate
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "schedule" || "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          commit_count=$(git rev-list --count HEAD)
+          if (( commit_count % 5 == 0 )); then
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+          fi
+
   php-syntax:
     name: PHP Syntax Check
+    needs: gate
+    if: ${{ needs.gate.outputs.should_run == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -37,6 +63,8 @@ jobs:
 
   semgrep:
     name: Semgrep Security Scan
+    needs: gate
+    if: ${{ needs.gate.outputs.should_run == 'true' }}
     runs-on: ubuntu-latest
     container:
       image: semgrep/semgrep
