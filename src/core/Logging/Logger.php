@@ -34,7 +34,7 @@ final class Logger {
         register_shutdown_function([self::class, 'handleFatal']);
 
         // Always collect all errors for logging; UI visibility is controlled separately.
-        error_reporting(E_ALL);
+        error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED);
 
         if ($showErrors) {
             ini_set('display_errors', '1');
