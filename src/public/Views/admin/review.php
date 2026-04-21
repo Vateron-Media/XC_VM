@@ -124,7 +124,7 @@
                             } else {
                                 if (count($rImport) < 500) {
                                     if ($rType == 1) {
-                                        $rImport[] = array('url' => $rURL, 'logo' => ($rTag ? ($rTag->getAttribute('tvg-logo') ?: '') : ''), 'tvg_id' => ($rTag ? ($rTag->getAttribute('tvg-id') ?: '') : ''), 'title' => ($rTag ? ($rTag->getTitle() ?: basename(parse_url($rURL, PHP_URL_PATH) ?: $rURL)) : basename(parse_url($rURL, PHP_URL_PATH) ?: $rURL)), 'category' => ($rTag ? ($rTag->getAttribute('group-title') ?: '') : ''), 'exists' => $rExists);
+                                        $rImport[] = array('url' => $rURL, 'logo' => ($rTag ? ($rTag->getAttribute('tvg-logo') ?: ($rTag->getAttribute('logo') ?: '')) : ''), 'tvg_id' => ($rTag ? ($rTag->getAttribute('tvg-id') ?: '') : ''), 'title' => ($rTag ? ($rTag->getTitle() ?: basename(parse_url($rURL, PHP_URL_PATH) ?: $rURL)) : basename(parse_url($rURL, PHP_URL_PATH) ?: $rURL)), 'category' => ($rTag ? ($rTag->getAttribute('group-title') ?: '') : ''), 'exists' => $rExists);
                                     } else {
                                         $rImport[] = array('url' => $rURL, 'title' => ($rTag ? ($rTag->getTitle() ?: basename(parse_url($rURL, PHP_URL_PATH) ?: $rURL)) : basename(parse_url($rURL, PHP_URL_PATH) ?: $rURL)), 'category' => ($rTag ? ($rTag->getAttribute('group-title') ?: '') : ''), 'exists' => $rExists);
                                     }
