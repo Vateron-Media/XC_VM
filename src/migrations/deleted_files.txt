@@ -1,4 +1,16 @@
 # Files to delete during update (relative to MAIN_HOME)
-# Auto-generated from: git diff 2.1.1..HEAD
+# Auto-generated from: git diff 2.1.2..HEAD
 # One file per line. Lines starting with # are comments.
 #
+domain/Stream/M3UEntry.php
+domain/Stream/M3UParser.php
+domain/Stream/resources/attributeValueDumpers.php
+domain/Stream/resources/attributeValueParsers.php
+domain/Stream/resources/tagValueDumpers.php
+domain/Stream/resources/tagValueParsers.php
+domain/Stream/resources/tags.php
+infrastructure/legacy/reseller_api_actions.php
+infrastructure/legacy/reseller_table_body.php
+infrastructure/legacy/resize_body.php
+public/Views/layouts/reseller/post.scripts.php
+public/Views/reseller/lines.scripts.php
