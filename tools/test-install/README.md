@@ -9,7 +9,7 @@
 
 ## Структура
 
-```
+```text
 tools/test-install/
 ├── Dockerfile          # образ Ubuntu 24.04 + systemd + встроенный install-скрипт
 ├── docker-compose.yml  # runtime-конфиг (volumes, ports, privileged, cgroup)
@@ -22,6 +22,15 @@ tools/test-install/
 ```bash
 # Собрать образ, запустить контейнер и выполнить установку (всё сразу)
 ./tools/test-install/test_release.sh
+
+# Запустить на нестандартном host-порту (пример: HTTP 18080, HTTPS 18443)
+XCVM_HTTP_PORT=18080 XCVM_HTTPS_PORT=18443 ./tools/test-install/test_release.sh
+
+# Задать нестандартные внутренние порты панели (те, что пишет install в nginx)
+XCVM_INSTALL_HTTP_PORT=8081 XCVM_INSTALL_HTTPS_PORT=4443 ./tools/test-install/test_release.sh
+
+# Комбинированно: внешние и внутренние порты одновременно
+XCVM_HTTP_PORT=18080 XCVM_HTTPS_PORT=18443 XCVM_INSTALL_HTTP_PORT=8081 XCVM_INSTALL_HTTPS_PORT=4443 ./tools/test-install/test_release.sh
 
 # Удалить контейнер и образ
 ./tools/test-install/test_release.sh clean
@@ -51,10 +60,15 @@ docker exec -it xcvm-test-install bash
 
 ## Порты
 
-| Host  | Container | Назначение |
-|-------|-----------|-----------|
-| 8880  | 80        | HTTP      |
-| 8443  | 443       | HTTPS     |
+- `XCVM_HTTP_PORT` (по умолчанию `8880`) → container `XCVM_INSTALL_HTTP_PORT` (или `80`)
+- `XCVM_HTTPS_PORT` (по умолчанию `8443`) → container `XCVM_INSTALL_HTTPS_PORT` (или `443`)
+
+Внутренние порты, которые настраивает `install` в контейнере:
+
+- `XCVM_INSTALL_HTTP_PORT` (по умолчанию пусто → `80`)
+- `XCVM_INSTALL_HTTPS_PORT` (по умолчанию пусто → `443`)
+
+Важно: маппинг target-порта теперь синхронизирован автоматически с `XCVM_INSTALL_HTTP_PORT`/`XCVM_INSTALL_HTTPS_PORT`.
 
 ## Примечания
 
