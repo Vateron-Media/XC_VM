@@ -16,8 +16,10 @@ class EpgApiController extends BaseApiController {
 	public function index() {
 		set_time_limit(0);
 		header('Access-Control-Allow-Origin: *');
+		$rRequestPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+		$rLegacyAction = strtolower(explode('.', ltrim((string) $rRequestPath, '/'))[0] ?? '');
 
-		if (strtolower(explode('.', ltrim(parse_url($_SERVER['REQUEST_URI'])['path'], '/'))[0]) == 'xmltv' && !SettingsManager::getAll()['legacy_xmltv']) {
+		if ($rLegacyAction == 'xmltv' && !SettingsManager::getAll()['legacy_xmltv']) {
 			$this->deny = false;
 			generateError('LEGACY_EPG_DISABLED');
 		}

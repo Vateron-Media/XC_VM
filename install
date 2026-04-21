@@ -406,7 +406,7 @@ thread_cache_size               = {{THREAD_CACHE}}
 thread_handling                 = pool-of-threads
 thread_pool_size                = 4
 thread_pool_idle_timeout        = 20
-thread_pool_max_threads         = 256
+thread_pool_max_threads         = {{THREAD_POOL_MAX_THREADS}}
 
 [mysqldump]
 quick
@@ -1219,11 +1219,7 @@ def secure_mariadb_installation(root_password, dist_info=None):
     ret, out, err = run_command(version_cmd, capture_output=True)
 
     mariadb_version = out.strip() if out else ""
-    is_mariadb_103 = (
-        "10.3" in mariadb_version
-        or "5.7" in mariadb_version
-        or "5.6" in mariadb_version
-    )
+    is_mariadb_103 = ("10.3" in mariadb_version or "5.7" in mariadb_version or "5.6" in mariadb_version)
 
     if is_mariadb_103:
         printc("MariaDB 10.3 detected, using legacy password syntax", col.OKBLUE)
@@ -1339,27 +1335,31 @@ def generate_mysql_config(total_ram_mb):
 
     if total_ram_mb < 512:
         buffer_pool_mb = 64
-        max_connections = 30
+        max_connections = 40
     elif total_ram_mb < 1024:
         if buffer_pool_mb > 128:
             buffer_pool_mb = 128
-        max_connections = 50
+        max_connections = 80
     elif total_ram_mb < 2048:
         if buffer_pool_mb > 256:
             buffer_pool_mb = 256
-        max_connections = 80
+        max_connections = 120
     elif total_ram_mb < 4096:
         if buffer_pool_mb > 512:
             buffer_pool_mb = 512
-        max_connections = 120
+        max_connections = 200
     elif total_ram_mb < 8192:
         if buffer_pool_mb > 1024:
             buffer_pool_mb = 1024
-        max_connections = 150
-    else:
+        max_connections = 300
+    elif total_ram_mb < 16384:
         if buffer_pool_mb > 2048:
             buffer_pool_mb = 2048
-        max_connections = 200
+        max_connections = 450
+    else:
+        if buffer_pool_mb > 4096:
+            buffer_pool_mb = 4096
+        max_connections = 600
 
     # Format buffer pool size
     if buffer_pool_mb >= 1024:
@@ -1370,8 +1370,9 @@ def generate_mysql_config(total_ram_mb):
     # Calculate other values
     key_buffer = min(buffer_pool_mb // 8, 32)
     tmp_table_size = min(buffer_pool_mb // 4, 64)
-    back_log = min(max_connections // 2, 256)
-    thread_cache = min(max_connections // 4, 64)
+    back_log = min(max(max_connections // 2, 128), 1024)
+    thread_cache = min(max(max_connections // 4, 32), 256)
+    thread_pool_max_threads = min(max(max_connections, 256), 1024)
     buffer_pool_instances = "1" if buffer_pool_mb < 1024 else "2"
 
     # Generate config from template
@@ -1383,12 +1384,14 @@ def generate_mysql_config(total_ram_mb):
     config = config.replace("{{BUFFER_POOL_SIZE}}", buffer_pool_size)
     config = config.replace("{{BUFFER_POOL_INSTANCES}}", buffer_pool_instances)
     config = config.replace("{{THREAD_CACHE}}", str(thread_cache))
+    config = config.replace("{{THREAD_POOL_MAX_THREADS}}", str(thread_pool_max_threads))
 
     printc(f"RAM detected: {total_ram_mb}MB", col.OKGREEN)
     printc(
         f"Buffer pool configured: {buffer_pool_size} ({buffer_pool_mb}MB)", col.OKGREEN
     )
     printc(f"Max connections: {max_connections}", col.OKGREEN)
+    printc(f"Thread pool max threads: {thread_pool_max_threads}", col.OKGREEN)
 
     return config
 

@@ -23,6 +23,7 @@ class StreamRedirector {
 		}
 
 		$rStream['info']['bouquets'] = $rStream['bouquets'];
+		$rStreamServers = (is_array($rStream['servers'] ?? null) ? $rStream['servers'] : array());
 		$rAvailableServers = array();
 		if ($rType == 'archive') {
 			if (0 < $rStream['info']['tv_archive_duration'] && 0 < $rStream['info']['tv_archive_server_id'] && array_key_exists($rStream['info']['tv_archive_server_id'], $rServers)) {
@@ -31,18 +32,18 @@ class StreamRedirector {
 		} else {
 			if (!($rStream['info']['direct_source'] == 1 && $rStream['info']['direct_proxy'] == 0)) {
 				foreach ($rServers as $rServerID => $rServerInfo) {
-					if (!array_key_exists($rServerID, $rStream['servers']) || !$rServerInfo['server_online'] || $rServerInfo['server_type'] != 0) {
+					if (!array_key_exists($rServerID, $rStreamServers) || !$rServerInfo['server_online'] || $rServerInfo['server_type'] != 0) {
 						continue;
 					}
-					if (!isset($rStream['servers'][$rServerID])) {
+					if (!isset($rStreamServers[$rServerID])) {
 						continue;
 					}
 					if ($rType == 'movie') {
-						if ((!empty($rStream['servers'][$rServerID]['pid']) && $rStream['servers'][$rServerID]['to_analyze'] == 0 && $rStream['servers'][$rServerID]['stream_status'] == 0 || $rStream['info']['direct_source'] == 1 && $rStream['info']['direct_proxy'] == 1) && ($rStream['info']['target_container'] == $rExtension || $rExtension == 'srt' || $rExtension == 'm3u8' || $rExtension == 'ts') && $rServerInfo['timeshift_only'] == 0) {
+						if ((!empty($rStreamServers[$rServerID]['pid']) && $rStreamServers[$rServerID]['to_analyze'] == 0 && $rStreamServers[$rServerID]['stream_status'] == 0 || $rStream['info']['direct_source'] == 1 && $rStream['info']['direct_proxy'] == 1) && ($rStream['info']['target_container'] == $rExtension || $rExtension == 'srt' || $rExtension == 'm3u8' || $rExtension == 'ts') && $rServerInfo['timeshift_only'] == 0) {
 							$rAvailableServers[] = $rServerID;
 						}
 					} else {
-						if (($rStream['servers'][$rServerID]['on_demand'] == 1 && $rStream['servers'][$rServerID]['stream_status'] != 1 || 0 < $rStream['servers'][$rServerID]['pid'] && $rStream['servers'][$rServerID]['stream_status'] == 0) && $rStream['servers'][$rServerID]['to_analyze'] == 0 && (int) $rStream['servers'][$rServerID]['delay_available_at'] <= time() && $rServerInfo['timeshift_only'] == 0 || $rStream['info']['direct_source'] == 1 && $rStream['info']['direct_proxy'] == 1) {
+						if (($rStreamServers[$rServerID]['on_demand'] == 1 && $rStreamServers[$rServerID]['stream_status'] != 1 || 0 < $rStreamServers[$rServerID]['pid'] && $rStreamServers[$rServerID]['stream_status'] == 0) && $rStreamServers[$rServerID]['to_analyze'] == 0 && (int) $rStreamServers[$rServerID]['delay_available_at'] <= time() && $rServerInfo['timeshift_only'] == 0 || $rStream['info']['direct_source'] == 1 && $rStream['info']['direct_proxy'] == 1) {
 							$rAvailableServers[] = $rServerID;
 						}
 					}
@@ -94,7 +95,7 @@ class StreamRedirector {
 						if ($rServers[$rServerID]['geoip_type'] == 'strict') {
 							unset($rAcceptServers[$rServerID]);
 						} else {
-							if (isset($rStream) && !$rSettings['ondemand_balance_equal'] && $rStream['servers'][$rServerID]['on_demand']) {
+							if (isset($rStream) && !$rSettings['ondemand_balance_equal'] && ($rStreamServers[$rServerID]['on_demand'] ?? 0)) {
 								$rPriorityServers[$rServerID] = ($rServers[$rServerID]['geoip_type'] == 'low_priority' ? 3 : 2);
 							} else {
 								$rPriorityServers[$rServerID] = ($rServers[$rServerID]['geoip_type'] == 'low_priority' ? 2 : 1);
@@ -109,14 +110,14 @@ class StreamRedirector {
 							if ($rServers[$rServerID]['isp_type'] == 'strict') {
 								unset($rAcceptServers[$rServerID]);
 							} else {
-								if (isset($rStream) && !$rSettings['ondemand_balance_equal'] && $rStream['servers'][$rServerID]['on_demand']) {
+								if (isset($rStream) && !$rSettings['ondemand_balance_equal'] && ($rStreamServers[$rServerID]['on_demand'] ?? 0)) {
 									$rPriorityServers[$rServerID] = ($rServers[$rServerID]['isp_type'] == 'low_priority' ? 3 : 2);
 								} else {
 									$rPriorityServers[$rServerID] = ($rServers[$rServerID]['isp_type'] == 'low_priority' ? 2 : 1);
 								}
 							}
 						} else {
-							if (isset($rStream) && !$rSettings['ondemand_balance_equal'] && $rStream['servers'][$rServerID]['on_demand']) {
+							if (isset($rStream) && !$rSettings['ondemand_balance_equal'] && ($rStreamServers[$rServerID]['on_demand'] ?? 0)) {
 								$rPriorityServers[$rServerID] = 2;
 							} else {
 								$rPriorityServers[$rServerID] = 1;
