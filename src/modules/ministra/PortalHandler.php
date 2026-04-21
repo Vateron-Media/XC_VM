@@ -535,6 +535,7 @@ class PortalHandler {
      */
     public static function handleItv($rReqAction, &$ctx) {
         global $db, $rSettings, $rServers, $rRequest, $rCategories;
+        $rCategoryIDs = (is_array($ctx['device']['category_ids'] ?? null) ? $ctx['device']['category_ids'] : array());
 
         switch ($rReqAction) {
             case 'create_link':
@@ -687,7 +688,7 @@ class PortalHandler {
                 }
 
                 foreach ($rCategories as $rCategoryID => $rCategory) {
-                    if ($rCategory['category_type'] == 'live' && in_array($rCategory['id'], $ctx['device']['category_ids'])) {
+                    if ($rCategory['category_type'] == 'live' && in_array($rCategory['id'], $rCategoryIDs)) {
                         $rOutput['js'][] = array('id' => $rCategory['id'], 'title' => $rCategory['category_name'], 'modified' => '', 'number' => $rNumber++, 'alias' => strtolower($rCategory['category_name']), 'censored' => intval($rCategory['is_adult']));
                     }
                 }
@@ -706,6 +707,7 @@ class PortalHandler {
      */
     public static function handleVod($rReqAction, &$ctx) {
         global $db, $rSettings, $rServers, $rRequest, $rCategories;
+        $rCategoryIDs = (is_array($ctx['device']['category_ids'] ?? null) ? $ctx['device']['category_ids'] : array());
 
         switch ($rReqAction) {
             case 'set_claim':
@@ -765,7 +767,7 @@ class PortalHandler {
                 }
 
                 foreach ($rCategories as $rCategoryID => $rCategory) {
-                    if ($rCategory['category_type'] == 'movie' && in_array($rCategory['id'], $ctx['device']['category_ids'])) {
+                    if ($rCategory['category_type'] == 'movie' && in_array($rCategory['id'], $rCategoryIDs)) {
                         $rOutput['js'][] = array('id' => $rCategory['id'], 'title' => $rCategory['category_name'], 'alias' => $rCategory['category_name'], 'censored' => intval($rCategory['is_adult']));
                     }
                 }
@@ -777,7 +779,7 @@ class PortalHandler {
                 $rOutput['js'][] = array('id' => '*', 'title' => '*');
 
                 foreach ($rCategories as $rCategoryID => $rCategory) {
-                    if ($rCategory['category_type'] == 'movie' && in_array($rCategory['id'], $ctx['device']['category_ids'])) {
+                    if ($rCategory['category_type'] == 'movie' && in_array($rCategory['id'], $rCategoryIDs)) {
                         $rOutput['js'][] = array('id' => $rCategory['id'], 'title' => $rCategory['category_name']);
                     }
                 }
@@ -868,6 +870,7 @@ class PortalHandler {
      */
     public static function handleSeries($rReqAction, &$ctx) {
         global $db, $rSettings, $rRequest, $rCategories;
+        $rCategoryIDs = (is_array($ctx['device']['category_ids'] ?? null) ? $ctx['device']['category_ids'] : array());
 
         switch ($rReqAction) {
             case 'set_claim':
@@ -927,7 +930,7 @@ class PortalHandler {
                 }
 
                 foreach ($rCategories as $rCategoryID => $rCategory) {
-                    if ($rCategory['category_type'] == 'series' && in_array($rCategory['id'], $ctx['device']['category_ids'])) {
+                    if ($rCategory['category_type'] == 'series' && in_array($rCategory['id'], $rCategoryIDs)) {
                         $rOutput['js'][] = array('id' => $rCategory['id'], 'title' => $rCategory['category_name'], 'alias' => $rCategory['category_name'], 'censored' => intval($rCategory['is_adult']));
                     }
                 }
@@ -939,7 +942,7 @@ class PortalHandler {
                 $rOutput['js'][] = array('id' => '*', 'title' => '*');
 
                 foreach ($rCategories as $rCategoryID => $rCategory) {
-                    if ($rCategory['category_type'] == 'series' && in_array($rCategory['id'], $ctx['device']['category_ids'])) {
+                    if ($rCategory['category_type'] == 'series' && in_array($rCategory['id'], $rCategoryIDs)) {
                         $rOutput['js'][] = array('id' => $rCategory['id'], 'title' => $rCategory['category_name']);
                     }
                 }

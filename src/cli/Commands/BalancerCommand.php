@@ -444,17 +444,27 @@ class BalancerCommand implements CommandInterface {
 			echo "Failed to write using SCP, reverting to SFTP transfer... This will be take significantly longer!\n";
 		}
 		$rSFTP = ssh2_sftp($rConn);
+		if (!$rSFTP) {
+			return false;
+		}
 		$rSuccess = true;
 		$rStream = @fopen('ssh2.sftp://' . $rSFTP . $rOutput, 'wb');
+		if (!$rStream) {
+			return false;
+		}
 		try {
 			$rData = @file_get_contents($rPath);
-			if (@fwrite($rStream, $rData) === false) {
+			if ($rData === false || @fwrite($rStream, $rData) === false) {
 				$rSuccess = false;
 			}
-			fclose($rStream);
+			if (is_resource($rStream)) {
+				fclose($rStream);
+			}
 		} catch (Exception $e) {
 			$rSuccess = false;
-			fclose($rStream);
+			if (is_resource($rStream)) {
+				fclose($rStream);
+			}
 		}
 		return $rSuccess;
 	}
