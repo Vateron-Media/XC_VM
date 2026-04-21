@@ -13,5 +13,5 @@ declare(strict_types=1);
 
 namespace Chrisyue\PhpM3u8\Dumper;
 
-class DumpingException extends \RumtimeException {
+class DumpingException extends \RuntimeException {
 }
