@@ -1,167 +1,167 @@
-    <?php
+<?php
+if (isset(RequestManager::getAll()['type'])) {
+    $rType = intval(RequestManager::getAll()['type']);
+} else {
     if (isset(RequestManager::getAll()['type'])) {
         $rType = intval(RequestManager::getAll()['type']);
     } else {
-        if (isset(RequestManager::getAll()['type'])) {
-            $rType = intval(RequestManager::getAll()['type']);
+        $rType = 1;
+    }
+}
+
+if (isset(RequestManager::getAll()['post_data'])) {
+    $rPostData = json_decode(base64_decode(RequestManager::getAll()['post_data']), true);
+    $rPostData['review'] = array();
+    $rPostData['notes'] = '';
+    $rPostData['custom_sid'] = $rPostData['notes'];
+    $rCategoryIDs = array();
+
+    foreach (CategoryService::getAllByType(array(1 => 'live', 2 => 'movie')[intval($rType)]) as $rCategory) {
+        $rCategoryIDs[] = $rCategory['id'];
+    }
+    $rNewCategories = array();
+
+    foreach (RequestManager::getAll()['category_selection'] as $rCategory) {
+        if (in_array($rCategory, $rCategoryIDs) || is_numeric($rCategory)) {
         } else {
-            $rType = 1;
+            $rReturn = CategoryService::process(array('category_type' => array(1 => 'live', 2 => 'movie')[intval($rType)], 'category_name' => $rCategory));
+            $rNewCategories[$rCategory] = $rReturn['data']['insert_id'];
         }
     }
 
-    if (isset(RequestManager::getAll()['post_data'])) {
-        $rPostData = json_decode(base64_decode(RequestManager::getAll()['post_data']), true);
-        $rPostData['review'] = array();
-        $rPostData['notes'] = '';
-        $rPostData['custom_sid'] = $rPostData['notes'];
-        $rCategoryIDs = array();
+    foreach (RequestManager::getAll() as $rKey => $rValue) {
+        if (substr($rKey, 0, 7) != 'import_') {
+        } else {
+            $rID = intval(explode('import_', $rKey)[1]);
 
-        foreach (CategoryService::getAllByType(array(1 => 'live', 2 => 'movie')[intval($rType)]) as $rCategory) {
-            $rCategoryIDs[] = $rCategory['id'];
-        }
-        $rNewCategories = array();
-
-        foreach (RequestManager::getAll()['category_selection'] as $rCategory) {
-            if (in_array($rCategory, $rCategoryIDs) || is_numeric($rCategory)) {
+            if (!RequestManager::getAll()['import_' . $rID]) {
             } else {
-                $rReturn = CategoryService::process(array('category_type' => array(1 => 'live', 2 => 'movie')[intval($rType)], 'category_name' => $rCategory));
-                $rNewCategories[$rCategory] = $rReturn['data']['insert_id'];
-            }
-        }
+                $rCategories = array();
 
-        foreach (RequestManager::getAll() as $rKey => $rValue) {
-            if (substr($rKey, 0, 7) != 'import_') {
-            } else {
-                $rID = intval(explode('import_', $rKey)[1]);
+                foreach (json_decode(RequestManager::getAll()['category_id_' . $rID], true) as $rCategory) {
+                    if (!is_numeric($rCategory) && isset($rNewCategories[$rCategory])) {
+                        $rCategories[] = intval($rNewCategories[$rCategory]);
+                    } else {
+                        if (!is_numeric($rCategory)) {
+                        } else {
+                            $rCategories[] = intval($rCategory);
+                        }
+                    }
+                }
 
-                if (!RequestManager::getAll()['import_' . $rID]) {
+                if ($rType == 1) {
+                    $rPostData['review'][] = array('stream_source' => array(RequestManager::getAll()['url_' . $rID]), 'stream_icon' => RequestManager::getAll()['icon_' . $rID], 'stream_display_name' => RequestManager::getAll()['name_' . $rID], 'epg_lang' => null, 'channel_id' => (!empty(RequestManager::getAll()['channel_id_' . $rID]) ? RequestManager::getAll()['channel_id_' . $rID] : null), 'epg_api' => (!empty(RequestManager::getAll()['epg_type_' . $rID]) ? RequestManager::getAll()['epg_type_' . $rID] : 0), 'epg_id' => (!empty(RequestManager::getAll()['epg_id_' . $rID]) ? RequestManager::getAll()['epg_id_' . $rID] : 0), 'bouquets' => json_decode(RequestManager::getAll()['bouquets_' . $rID], true), 'category_id' => $rCategories);
                 } else {
-                    $rCategories = array();
+                    $rPostData['review'][] = array('stream_source' => array(RequestManager::getAll()['url_' . $rID]), 'stream_display_name' => RequestManager::getAll()['name_' . $rID], 'tmdb_id' => (!empty(RequestManager::getAll()['tmdb_id_' . $rID]) ? RequestManager::getAll()['tmdb_id_' . $rID] : null), 'bouquets' => json_decode(RequestManager::getAll()['bouquets_' . $rID], true), 'category_id' => $rCategories);
+                }
+            }
+        }
+    }
 
-                    foreach (json_decode(RequestManager::getAll()['category_id_' . $rID], true) as $rCategory) {
-                        if (!is_numeric($rCategory) && isset($rNewCategories[$rCategory])) {
-                            $rCategories[] = intval($rNewCategories[$rCategory]);
-                        } else {
-                            if (!is_numeric($rCategory)) {
-                            } else {
-                                $rCategories[] = intval($rCategory);
-                            }
-                        }
-                    }
+    if ($rType == 1) {
+        $rReturn = StreamService::process($rPostData);
+        $_STATUS = $rReturn['status'];
 
+        if ($_STATUS != STATUS_SUCCESS) {
+        } else {
+            header('Location: ./streams?status=' . STATUS_SUCCESS);
+            exit();
+        }
+    } else {
+        $rReturn = MovieService::process($rPostData);
+        $_STATUS = $rReturn['status'];
+
+        if ($_STATUS != STATUS_SUCCESS) {
+        } else {
+            header('Location: ./movies?status=' . STATUS_SUCCESS);
+            exit();
+        }
+    }
+} else {
+    if (!isset($_FILES['m3u_file'])) {
+    } else {
+        unset(RequestManager::getAll()['submit_stream']);
+        $rPostData = base64_encode(json_encode(RequestManager::getAll()));
+        $rCategories = CategoryService::getAllByType(array(1 => 'live', 2 => 'movie')[intval($rType)]);
+        $rBouquets = BouquetService::getAllSimple();
+        $rSources = array();
+        $rDuplicates = array();
+        $db->query('SELECT `stream_source` FROM `streams` WHERE `type` = ?;', $rType);
+
+        foreach ($db->get_rows() as $rRow) {
+            foreach (json_decode($rRow['stream_source'], true) as $rURL) {
+                if (in_array($rURL, $rSources)) {
+                } else {
+                    $rSources[] = str_replace('https://', 'http://', $rURL);
+                }
+            }
+        }
+        $rStreamDatabase = array();
+
+        if (empty($_FILES['m3u_file']['tmp_name']) || !in_array(strtolower(pathinfo($_FILES['m3u_file']['name'], PATHINFO_EXTENSION)), array('m3u', 'm3u8'))) {
+            $_STATUS = STATUS_INVALID_FILE;
+        } else {
+            $rImport = array();
+            $rResults = StreamService::parseM3U($_FILES['m3u_file']['tmp_name']);
+
+            foreach ($rResults as $rResult) {
+                $rTags = $rResult->getExtTags();
+                $rTag = $rTags[0] ?? null;
+                $rURL = $rResult->getPath();
+
+                if ($rURL) {
                     if ($rType == 1) {
-                        $rPostData['review'][] = array('stream_source' => array(RequestManager::getAll()['url_' . $rID]), 'stream_icon' => RequestManager::getAll()['icon_' . $rID], 'stream_display_name' => RequestManager::getAll()['name_' . $rID], 'epg_lang' => null, 'channel_id' => (!empty(RequestManager::getAll()['channel_id_' . $rID]) ? RequestManager::getAll()['channel_id_' . $rID] : null), 'epg_api' => (!empty(RequestManager::getAll()['epg_type_' . $rID]) ? RequestManager::getAll()['epg_type_' . $rID] : 0), 'epg_id' => (!empty(RequestManager::getAll()['epg_id_' . $rID]) ? RequestManager::getAll()['epg_id_' . $rID] : 0), 'bouquets' => json_decode(RequestManager::getAll()['bouquets_' . $rID], true), 'category_id' => $rCategories);
+                        $rExtensions = array('ts', 'm3u8', 'm3u', 'mpd', 'ism', '');
                     } else {
-                        $rPostData['review'][] = array('stream_source' => array(RequestManager::getAll()['url_' . $rID]), 'stream_display_name' => RequestManager::getAll()['name_' . $rID], 'tmdb_id' => (!empty(RequestManager::getAll()['tmdb_id_' . $rID]) ? RequestManager::getAll()['tmdb_id_' . $rID] : null), 'bouquets' => json_decode(RequestManager::getAll()['bouquets_' . $rID], true), 'category_id' => $rCategories);
+                        $rExtensions = array('mp4', 'mkv', 'mov', 'avi', 'mpg', 'mpeg', 'flv', 'wmv', 'm4v');
                     }
-                }
-            }
-        }
 
-        if ($rType == 1) {
-            $rReturn = StreamService::process($rPostData);
-            $_STATUS = $rReturn['status'];
-
-            if ($_STATUS != STATUS_SUCCESS) {
-            } else {
-                header('Location: ./streams?status=' . STATUS_SUCCESS);
-                exit();
-            }
-        } else {
-            $rReturn = MovieService::process($rPostData);
-            $_STATUS = $rReturn['status'];
-
-            if ($_STATUS != STATUS_SUCCESS) {
-            } else {
-                header('Location: ./movies?status=' . STATUS_SUCCESS);
-                exit();
-            }
-        }
-    } else {
-        if (!isset($_FILES['m3u_file'])) {
-        } else {
-            unset(RequestManager::getAll()['submit_stream']);
-            $rPostData = base64_encode(json_encode(RequestManager::getAll()));
-            $rCategories = CategoryService::getAllByType(array(1 => 'live', 2 => 'movie')[intval($rType)]);
-            $rBouquets = BouquetService::getAllSimple();
-            $rSources = array();
-            $rDuplicates = array();
-            $db->query('SELECT `stream_source` FROM `streams` WHERE `type` = ?;', $rType);
-
-            foreach ($db->get_rows() as $rRow) {
-                foreach (json_decode($rRow['stream_source'], true) as $rURL) {
-                    if (in_array($rURL, $rSources)) {
+                    if (!in_array(strtolower(pathinfo(explode('?', $rURL)[0])['extension']), $rExtensions)) {
                     } else {
-                        $rSources[] = str_replace('https://', 'http://', $rURL);
-                    }
-                }
-            }
-            $rStreamDatabase = array();
+                        $rExists = in_array(str_replace('https://', 'http://', $rURL), $rSources);
 
-            if (empty($_FILES['m3u_file']['tmp_name']) || !in_array(strtolower(pathinfo($_FILES['m3u_file']['name'], PATHINFO_EXTENSION)), array('m3u', 'm3u8'))) {
-                $_STATUS = STATUS_INVALID_FILE;
-            } else {
-                $rImport = array();
-                $rResults = StreamService::parseM3U($_FILES['m3u_file']['tmp_name']);
-
-                foreach ($rResults as $rResult) {
-                    $rTags = $rResult->getExtTags();
-                    $rTag = $rTags[0] ?? null;
-                    $rURL = $rResult->getPath();
-
-                    if ($rURL) {
-                        if ($rType == 1) {
-                            $rExtensions = array('ts', 'm3u8', 'm3u', 'mpd', 'ism', '');
+                        if ($rExists && !RequestManager::getAll()['duplicates']) {
                         } else {
-                            $rExtensions = array('mp4', 'mkv', 'mov', 'avi', 'mpg', 'mpeg', 'flv', 'wmv', 'm4v');
-                        }
-
-                        if (!in_array(strtolower(pathinfo(explode('?', $rURL)[0])['extension']), $rExtensions)) {
-                        } else {
-                            $rExists = in_array(str_replace('https://', 'http://', $rURL), $rSources);
-
-                            if ($rExists && !RequestManager::getAll()['duplicates']) {
-                            } else {
-                                if (count($rImport) < 500) {
-                                    if ($rType == 1) {
-                                        $rImport[] = array('url' => $rURL, 'logo' => ($rTag ? ($rTag->getAttribute('tvg-logo') ?: ($rTag->getAttribute('logo') ?: '')) : ''), 'tvg_id' => ($rTag ? ($rTag->getAttribute('tvg-id') ?: '') : ''), 'title' => ($rTag ? ($rTag->getTitle() ?: basename(parse_url($rURL, PHP_URL_PATH) ?: $rURL)) : basename(parse_url($rURL, PHP_URL_PATH) ?: $rURL)), 'category' => ($rTag ? ($rTag->getAttribute('group-title') ?: '') : ''), 'exists' => $rExists);
-                                    } else {
-                                        $rImport[] = array('url' => $rURL, 'title' => ($rTag ? ($rTag->getTitle() ?: basename(parse_url($rURL, PHP_URL_PATH) ?: $rURL)) : basename(parse_url($rURL, PHP_URL_PATH) ?: $rURL)), 'category' => ($rTag ? ($rTag->getAttribute('group-title') ?: '') : ''), 'exists' => $rExists);
-                                    }
+                            if (count($rImport) < 500) {
+                                if ($rType == 1) {
+                                    $rImport[] = array('url' => $rURL, 'logo' => ($rTag ? ($rTag->getAttribute('tvg-logo') ?: ($rTag->getAttribute('logo') ?: '')) : ''), 'tvg_id' => ($rTag ? ($rTag->getAttribute('tvg-id') ?: '') : ''), 'title' => ($rTag ? ($rTag->getTitle() ?: basename(parse_url($rURL, PHP_URL_PATH) ?: $rURL)) : basename(parse_url($rURL, PHP_URL_PATH) ?: $rURL)), 'category' => ($rTag ? ($rTag->getAttribute('group-title') ?: '') : ''), 'exists' => $rExists);
                                 } else {
-                                    $_STATUS = STATUS_TOO_MANY_RESULTS;
-                                    break;
+                                    $rImport[] = array('url' => $rURL, 'title' => ($rTag ? ($rTag->getTitle() ?: basename(parse_url($rURL, PHP_URL_PATH) ?: $rURL)) : basename(parse_url($rURL, PHP_URL_PATH) ?: $rURL)), 'category' => ($rTag ? ($rTag->getAttribute('group-title') ?: '') : ''), 'exists' => $rExists);
                                 }
+                            } else {
+                                $_STATUS = STATUS_TOO_MANY_RESULTS;
+                                break;
                             }
                         }
                     }
                 }
+            }
 
-                if (count($rImport) == 0) {
-                    $_STATUS = STATUS_NO_SOURCES;
-                    $rImport = null;
-                }
+            if (count($rImport) == 0) {
+                $_STATUS = STATUS_NO_SOURCES;
+                $rImport = null;
             }
         }
     }
+}
 
-    if (isset($rImport) && $rImport) {
-        // Code for processing $rImport
-    } else {
-        $rServerTree = array(array('id' => 'source', 'parent' => '#', 'text' => "<strong class='btn btn-success waves-effect waves-light btn-xs'>Live Stream</strong>", 'icon' => 'mdi mdi-play', 'state' => array('opened' => true)), array('id' => 'offline', 'parent' => '#', 'text' => "<strong class='btn btn-secondary waves-effect waves-light btn-xs'>Offline</strong>", 'icon' => 'mdi mdi-stop', 'state' => array('opened' => true)));
+if (isset($rImport) && $rImport) {
+    // Code for processing $rImport
+} else {
+    $rServerTree = array(array('id' => 'source', 'parent' => '#', 'text' => "<strong class='btn btn-success waves-effect waves-light btn-xs'>Live Stream</strong>", 'icon' => 'mdi mdi-play', 'state' => array('opened' => true)), array('id' => 'offline', 'parent' => '#', 'text' => "<strong class='btn btn-secondary waves-effect waves-light btn-xs'>Offline</strong>", 'icon' => 'mdi mdi-stop', 'state' => array('opened' => true)));
 
-        foreach ($rServers as $rServer) {
-            $rServerTree[] = array('id' => $rServer['id'], 'parent' => 'offline', 'text' => $rServer['server_name'], 'icon' => 'mdi mdi-server-network', 'state' => array('opened' => true));
-        }
-        $rStreamArguments = StreamConfigRepository::getStreamArguments();
-        $rTranscodeProfiles = StreamConfigRepository::getTranscodeProfiles();
+    foreach ($rServers as $rServer) {
+        $rServerTree[] = array('id' => $rServer['id'], 'parent' => 'offline', 'text' => $rServer['server_name'], 'icon' => 'mdi mdi-server-network', 'state' => array('opened' => true));
     }
+    $rStreamArguments = StreamConfigRepository::getStreamArguments();
+    $rTranscodeProfiles = StreamConfigRepository::getTranscodeProfiles();
+}
 
-    $rLogoSet = $rCategorySet = array();
-    $_TITLE = 'Review';
-    require_once __DIR__ . '/../layouts/admin.php';
-    renderUnifiedLayoutHeader('admin');
-    ?>
+$rLogoSet = $rCategorySet = array();
+$_TITLE = 'Review';
+require_once __DIR__ . '/../layouts/admin.php';
+renderUnifiedLayoutHeader('admin');
+?>
 
 <div class="wrapper<?php if (!isset($rImport)) {
                         echo ' boxed-layout-ext';

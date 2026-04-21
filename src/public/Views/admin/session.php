@@ -1,11 +1,5 @@
 <?php
 
-
-
-
-
-
-
 $rSessionTimeout = 60;
 
 if (defined('TMP_PATH')) {
