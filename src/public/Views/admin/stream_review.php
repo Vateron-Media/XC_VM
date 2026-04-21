@@ -1,5 +1,3 @@
-?>
-
 <div class="wrapper<?= $rImport ? '' : ' boxed-layout-ext' ?>"
     <?= empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest' ? '' : ' style="display: none;"' ?>>
     <div class="container-fluid">

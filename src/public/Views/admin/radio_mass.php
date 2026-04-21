@@ -1,4 +1,3 @@
-?>
 <div class="wrapper boxed-layout-xl" <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
                                         } else { ?> style="display: none;" <?php } ?>>
     <div class="container-fluid">
