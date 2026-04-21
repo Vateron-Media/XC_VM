@@ -2184,6 +2184,13 @@ if __name__ == "__main__":
 
     printc(f"Ports configured: HTTP - {http_port}, HTTPS - {https_port}", col.OKGREEN)
 
+    # Update Main Server broadcast ports in database
+    run_command(
+        f'mariadb -u root -p"{root_password}" xc_vm -e '
+        f'"UPDATE servers SET http_broadcast_port={int(http_port)}, https_broadcast_port={int(https_port)} WHERE is_main=1;"'
+    )
+    printc("Main Server broadcast ports updated in database", col.OKGREEN)
+
     # Configure sysctl
     print(
         "Custom sysctl.conf - If you have your own custom sysctl.conf, type N or it will be overwritten. If you don't know what a sysctl configuration is, type Y as it will correctly set your TCP settings and open file limits."

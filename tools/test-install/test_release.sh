@@ -48,7 +48,12 @@ cmd_install() {
     echo "==> Waiting for systemd init..."
     wait_for_container || exit 1
     echo "==> Running auto-install inside container..."
-    docker exec -it "$CONTAINER" /opt/xcvm-install/auto_install.sh
+    docker exec -it \
+        -e XCVM_INSTALL_HTTP_PORT="${XCVM_INSTALL_HTTP_PORT:-}" \
+        -e XCVM_INSTALL_HTTPS_PORT="${XCVM_INSTALL_HTTPS_PORT:-}" \
+        -e XCVM_INSTALL_DB_ROOT_PASSWORD="${XCVM_INSTALL_DB_ROOT_PASSWORD:-}" \
+        -e XCVM_INSTALL_OVERWRITE_SYSCTL="${XCVM_INSTALL_OVERWRITE_SYSCTL:-Y}" \
+        "$CONTAINER" /opt/xcvm-install/auto_install.sh
 }
 
 cmd_clean() {
