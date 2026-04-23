@@ -99,7 +99,9 @@ class CacheHandlerCommand implements CommandInterface {
 							touch(FLOOD_TMP_PATH . 'block_' . $rIP);
 							break;
 					}
-					unlink($rFileMD5);
+					if (file_exists($rFileMD5)) {
+						unlink($rFileMD5);
+					}
 				}
 				$rUpdatedLines = array_unique($rUpdatedLines);
 				foreach ($rUpdatedLines as $rUserID) {

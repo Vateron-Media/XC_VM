@@ -1102,6 +1102,9 @@ if ($rType == "lines") {
                     $rReturn["data"][] = filterrow($rRow, RequestManager::getAll()["show_columns"] ?? '', RequestManager::getAll()["hide_columns"] ?? '');
                 } else {
                     $rCategoryIDs = json_decode($rRow["category_id"], true);
+                    if (!is_array($rCategoryIDs)) {
+                        $rCategoryIDs = [];
+                    }
                     if (0 < strlen(RequestManager::getAll()["category"] ?? '')) {
                         $rCategory = $rCategories[(int)(RequestManager::getAll()["category"] ?? 0)]["category_name"] ?: "No Category";
                     } else {
@@ -1452,7 +1455,8 @@ if ($rType == "lines") {
                         $rIcon = "";
                     }
                     $rID = $rRow["id"];
-                    if (!$rSettings["streams_grouped"] && 1 < $rServerCount[$rRow["id"]]) {
+                    $rStreamServerCount = (isset($rServerCount[$rRow["id"]]) ? $rServerCount[$rRow["id"]] : 0);
+                    if (!$rSettings["streams_grouped"] && 1 < $rStreamServerCount) {
                         $rID .= "-" . $rRow["server_id"];
                     }
                     if ($rCreated) {
@@ -2893,8 +2897,12 @@ if ($rType == "lines") {
                     $rReturn["data"][] = filterrow($rRow, RequestManager::getAll()["show_columns"] ?? '', RequestManager::getAll()["hide_columns"] ?? '');
                 } else {
                     $rCategoryIDs = json_decode($rRow["category_id"], true);
+                    if (!is_array($rCategoryIDs)) {
+                        $rCategoryIDs = [];
+                    }
                     if (0 < strlen(RequestManager::getAll()["category"] ?? '')) {
-                        $rCategory = $rCategories[(int)(RequestManager::getAll()["category"] ?? 0)]["category_name"] ?: "No Category";
+                        $rRequestedCategoryID = (int) (RequestManager::getAll()["category"] ?? 0);
+                        $rCategory = $rCategories[$rRequestedCategoryID]["category_name"] ?? "No Category";
                     } else {
                         $rCategory = $rCategoryIDs[0] ?? null;
                         $rCategory = $rCategories[$rCategory]['category_name'] ?? "No Category";
@@ -2904,9 +2912,10 @@ if ($rType == "lines") {
                     }
                     $rStreamName = $rRow["stream_display_name"];
                     if ($rRow["server_name"]) {
+                        $rServerCountForStream = intval($rServerCount[$rRow["id"]] ?? 0);
                         $rServerName = $rRow["server_name"];
-                        if (1 < $rServerCount[$rRow["id"]]) {
-                            $rServerName .= " &nbsp; <button type='button' class='btn btn-info btn-xs waves-effect waves-light'>+ " . ($rServerCount[$rRow["id"]] - 1) . "</button>";
+                        if (1 < $rServerCountForStream) {
+                            $rServerName .= " &nbsp; <button type='button' class='btn btn-info btn-xs waves-effect waves-light'>+ " . ($rServerCountForStream - 1) . "</button>";
                         }
                     } else {
                         $rServerName = "No Server Selected";
@@ -2946,7 +2955,8 @@ if ($rType == "lines") {
                     } else {
                         $rIcon = "";
                     }
-                    $rReturn["data"][] = [$rRow["id"], $rIcon, $rStreamName, $rCategory, $rServerName, $rStatusArray[$rActualStatus]];
+                    $rStatusText = $rStatusArray[$rActualStatus] ?? ($rStatusArray[0] ?? 'Offline');
+                    $rReturn["data"][] = [$rRow["id"], $rIcon, $rStreamName, $rCategory, $rServerName, $rStatusText];
                 }
             }
         }
@@ -3507,6 +3517,7 @@ if ($rType == "lines") {
         $rQuery = "SELECT `lines_logs`.`id`, `lines_logs`.`user_id`, `lines_logs`.`stream_id`, `streams`.`stream_display_name`, `streams`.`type`, `lines`.`username`, `lines_logs`.`client_status`, `lines_logs`.`query_string`, `lines_logs`.`user_agent`, `lines_logs`.`ip`, FROM_UNIXTIME(`lines_logs`.`date`) AS `date` FROM `lines_logs` LEFT JOIN `streams` ON `streams`.`id` = `lines_logs`.`stream_id` LEFT JOIN `lines` ON `lines`.`id` = `lines_logs`.`user_id` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
         $db->query($rQuery, ...$rWhereV);
         if (0 < $db->num_rows()) {
+            $rClientFilters = (isset($rClientFilters) && is_array($rClientFilters) ? $rClientFilters : []);
             foreach ($db->get_rows() as $rRow) {
                 if ($rIsAPI) {
                     $rReturn["data"][] = filterrow($rRow, RequestManager::getAll()["show_columns"] ?? '', RequestManager::getAll()["hide_columns"] ?? '');
@@ -3518,18 +3529,21 @@ if ($rType == "lines") {
                     }
                     $rPermission = ["1" => "streams", "2" => "movies", "3" => "streams", "4" => "radio", "5" => "series"];
                     $rURLs = ["1" => "stream_view", "2" => "stream_view", "3" => "stream_view", "4" => "stream_view"];
-                    if (Authorization::check("adv", $rPermission[$rRow["type"]])) {
-                        if ($rRow["type"] == 5) {
-                            $rChannel = "<a href='serie?id=" . $rRow["series_no"] . "'>" . $rRow["stream_display_name"] . "</a>";
+                    $rType = strval($rRow["type"] ?? '');
+                    if (isset($rPermission[$rType]) && Authorization::check("adv", $rPermission[$rType])) {
+                        if ($rType == "5") {
+                            $rSeriesID = ($rRow["series_no"] ?? $rRow["stream_id"] ?? 0);
+                            $rChannel = "<a href='serie?id=" . intval($rSeriesID) . "'>" . $rRow["stream_display_name"] . "</a>";
                         } else {
-                            $rChannel = "<a href='" . $rURLs[$rRow["type"]] . "?id=" . $rRow["stream_id"] . "'>" . $rRow["stream_display_name"] . "</a>";
+                            $rChannel = "<a href='" . ($rURLs[$rType] ?? "stream_view") . "?id=" . $rRow["stream_id"] . "'>" . $rRow["stream_display_name"] . "</a>";
                         }
                     } else {
                         $rChannel = $rRow["stream_display_name"];
                     }
                     $rExplode = explode(":", $rRow["ip"]);
                     $rIP = "<a onClick=\"whois('" . $rRow["ip"] . "');\" href='javascript: void(0);'>" . (1 < count($rExplode) ? implode(":", array_slice($rExplode, 0, 4)) . ":<br/>" . implode(":", array_slice($rExplode, 4, 8)) : $rRow["ip"]) . "</a>";
-                    $rReturn["data"][] = [$rRow["id"], $rUsername, $rChannel, $rClientFilters[$rRow["client_status"]], $rRow["user_agent"], $rIP, $rRow["date"]];
+                    $rClientStatus = ($rClientFilters[$rRow["client_status"]] ?? $rRow["client_status"] ?? "");
+                    $rReturn["data"][] = [$rRow["id"], $rUsername, $rChannel, $rClientStatus, $rRow["user_agent"], $rIP, $rRow["date"]];
                 }
             }
         }
@@ -4588,7 +4602,10 @@ if ($rType == "lines") {
                     }
                     $rImage = "";
                     $rProperties = json_decode($rRow["movie_properties"], true);
-                    if (0 < strlen($rProperties["movie_image"]) && SettingsManager::getAll()["show_images"]) {
+                    if (!is_array($rProperties)) {
+                        $rProperties = [];
+                    }
+                    if (!empty($rProperties["movie_image"]) && SettingsManager::getAll()["show_images"]) {
                         $rImage = "<a href='javascript: void(0);' onClick='openImage(this);' data-src='resize?maxw=512&maxh=512&url=" . $rProperties["movie_image"] . "'><img loading='lazy' src='resize?maxh=32&maxw=64&url=" . $rProperties["movie_image"] . "' /></a>";
                     }
                     $rID = $rRow["id"];

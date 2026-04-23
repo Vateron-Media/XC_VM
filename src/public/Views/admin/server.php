@@ -454,7 +454,13 @@
                                                 </div>
                                                 <?php if (!empty($rServerArr['governors']) && count(json_decode($rServerArr['governors'], true) ?: []) > 0):
                                                     $rCurrentGovernor = json_decode($rServerArr['governor'], true);
-                                                    $rCurrentGovernor[3] = '* ' . $rCurrentGovernor[2] . ' - Freq: ' . round($rCurrentGovernor[0] / 1000000, 1) . 'GHz - ' . round($rCurrentGovernor[1] / 1000000, 1) . 'GHz'; ?>
+                                                    if (!is_array($rCurrentGovernor)) {
+                                                        $rCurrentGovernor = array();
+                                                    }
+                                                    $rGovernorMin = floatval($rCurrentGovernor[0] ?? 0);
+                                                    $rGovernorMax = floatval($rCurrentGovernor[1] ?? 0);
+                                                    $rCurrentGovernor[2] = ($rCurrentGovernor[2] ?? '');
+                                                    $rCurrentGovernor[3] = '* ' . $rCurrentGovernor[2] . ' - Freq: ' . round($rGovernorMin / 1000000, 1) . 'GHz - ' . round($rGovernorMax / 1000000, 1) . 'GHz'; ?>
                                                     <div class="form-group row mb-4">
                                                         <label class="col-md-4 col-form-label" for="governor">CPU Governor
                                                             <i title="<?= $language::get('change_default_cpu_governor_for_tooltip') ?>"

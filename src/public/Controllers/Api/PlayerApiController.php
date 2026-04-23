@@ -69,6 +69,7 @@ class PlayerApiController {
 		if ($this->panelAPI && empty($rAction) || in_array($rAction, array('get_vod_categories', 'get_series_categories', 'get_live_categories'))) {
 			$rCategories = CacheReader::get('categories');
 		}
+		$rUserInfo = null;
 
 		if (isset($rRequest['username']) && isset($rRequest['password'])) {
 			$rUsername = $rRequest['username'];

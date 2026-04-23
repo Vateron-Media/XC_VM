@@ -1354,30 +1354,32 @@ if (1 < $rICount) { ?>
 
 			case 'episode':
 				$rReturn = EpisodeService::process($rData);
+				$rStatus = (is_array($rReturn) ? ($rReturn['status'] ?? STATUS_FAILURE) : STATUS_FAILURE);
+				$rReturnData = (is_array($rReturn) && isset($rReturn['data']) && is_array($rReturn['data']) ? $rReturn['data'] : array());
 
-				if ($rReturn['status'] == STATUS_SUCCESS) {
+				if ($rStatus == STATUS_SUCCESS) {
 					if (isset($rData['edit']) && AdminHelpers::getPageFromURL($rReferer) == 'episodes') {
-						echo json_encode(array('result' => true, 'location' => $rReferer, 'status' => $rReturn['status']));
+						echo json_encode(array('result' => true, 'location' => $rReferer, 'status' => $rStatus));
 
 						exit();
 					}
 
-					echo json_encode(array('result' => true, 'location' => 'stream_view?sid=' . intval($rReturn['data']['series_id']) . '&id=' . intval($rReturn['data']['insert_id']) . '&status=' . intval($rReturn['status'])));
+					echo json_encode(array('result' => true, 'location' => 'stream_view?sid=' . intval($rReturnData['series_id'] ?? 0) . '&id=' . intval($rReturnData['insert_id'] ?? 0) . '&status=' . intval($rStatus)));
 					exit();
 				}
 
-				if ($rReturn['status'] == STATUS_SUCCESS_MULTI) {
+				if ($rStatus == STATUS_SUCCESS_MULTI) {
 					if (isset($rData['edit']) && AdminHelpers::getPageFromURL($rReferer) == 'episodes') {
-						echo json_encode(array('result' => true, 'location' => $rReferer, 'status' => $rReturn['status']));
+						echo json_encode(array('result' => true, 'location' => $rReferer, 'status' => $rStatus));
 
 						exit();
 					}
 
-					echo json_encode(array('result' => true, 'location' => 'episodes?series=' . intval($rReturn['data']['series_id']) . '&status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
+					echo json_encode(array('result' => true, 'location' => 'episodes?series=' . intval($rReturnData['series_id'] ?? 0) . '&status=' . intval($rStatus), 'status' => $rStatus));
 					exit();
 				}
 
-				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
+				echo json_encode(array('result' => false, 'data' => $rReturnData, 'status' => $rStatus));
 				exit();
 
 			case 'episodes_mass':
