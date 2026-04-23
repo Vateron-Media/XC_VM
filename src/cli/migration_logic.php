@@ -14,6 +14,7 @@
 // Requires admin.php already loaded, $db available
 set_time_limit(0);
 ini_set('memory_limit', -1);
+global $_INFO, $db;
 $rXUITableList = array('access_codes', 'users', 'blocked_ips', 'blocked_uas', 'blocked_isps', 'bouquets', 'enigma2_devices', 'mag_devices', 'epg', 'users_groups', 'users_packages', 'rtmp_ips', 'streams_series', 'streams_episodes', 'servers', 'streams', 'streams_options', 'streams_servers', 'streams_categories', 'tickets', 'tickets_replies', 'profiles', 'lines', 'watch_folders');
 $rTableList = array('reg_users', 'users', 'enigma2_devices', 'mag_devices', 'user_output', 'streaming_servers', 'series', 'series_episodes', 'streams', 'streams_sys', 'streams_options', 'stream_categories', 'bouquets', 'member_groups', 'packages', 'rtmp_ips', 'epg', 'blocked_ips', 'blocked_user_agents', 'isp_addon', 'tickets', 'tickets_replies', 'transcoding_profiles', 'watch_folders', 'categories', 'epg_sources', 'members', 'blocked_isps', 'groups', 'servers', 'stream_servers');
 $rMigrateOptions = (json_decode(file_get_contents(TMP_PATH . '.migration.options'), true) ?: array());
