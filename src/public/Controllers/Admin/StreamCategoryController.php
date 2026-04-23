@@ -15,6 +15,7 @@
 class StreamCategoryController extends BaseAdminController {
     public function index() {
         $this->requirePermission();
+        $rCategoryArr = null;
 
         if (isset(RequestManager::getAll()['id'])) {
             $rCategoryArr = CategoryService::getById(RequestManager::getAll()['id']);

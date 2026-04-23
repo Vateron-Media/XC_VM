@@ -65,7 +65,17 @@ class RootMysqlCronJob implements CommandInterface {
 
         exec('sudo tail -n 1000 /var/log/syslog | grep mysqld', $rOutput, $rRetVal);
         foreach ($rOutput as $rError) {
-            $rStrip = trim(explode(']:', explode('mysqld[', $rError)[1])[1]);
+            $rMySQLDParts = explode('mysqld[', $rError, 2);
+            if (count($rMySQLDParts) < 2) {
+                continue;
+            }
+
+            $rErrorParts = explode(']:', $rMySQLDParts[1], 2);
+            if (count($rErrorParts) < 2) {
+                continue;
+            }
+
+            $rStrip = trim($rErrorParts[1]);
             $rTime = strtotime(substr($rStrip, 0, 19));
 
             if ($rMaxTime >= $rTime) {

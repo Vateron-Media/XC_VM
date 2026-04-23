@@ -31,6 +31,9 @@ class EpisodeController extends BaseAdminController {
             return;
         }
 
+        $rEpisode = null;
+        $rStreamSys = [];
+
         if (isset(RequestManager::getAll()['id'])) {
             $rEpisode = StreamRepository::getById(RequestManager::getAll()['id']);
             if (!$rEpisode || $rEpisode['type'] != 5) {

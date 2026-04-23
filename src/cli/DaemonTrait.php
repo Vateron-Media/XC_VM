@@ -107,7 +107,7 @@ trait DaemonTrait {
 		if (is_object($db)) {
 			$db->close_mysql();
 		}
-		shell_exec('(sleep 1; ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php ' . escapeshellarg($rCommandName) . ') > /dev/null 2>/dev/null &');
+		@shell_exec('(sleep 1; ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php ' . escapeshellarg($rCommandName) . ') > /dev/null 2>/dev/null &');
 	}
 
 	/**
