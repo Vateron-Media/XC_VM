@@ -244,7 +244,9 @@ class LineService {
 
 			$rArray['allowed_outputs'] = '[' . implode(',', array_map('intval', $rOutputs)) . ']';
 
-			if (!QueryHelper::checkExists('lines', 'username', $rArray['username'], 'id', $rData['edit'])) {
+			$rEditID = (isset($rData['edit']) ? intval($rData['edit']) : null);
+
+			if (!QueryHelper::checkExists('lines', 'username', $rArray['username'], 'id', $rEditID)) {
 				$rPrepare = QueryHelper::prepareArray($rArray);
 
 				$rQuery = 'REPLACE INTO `lines`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';

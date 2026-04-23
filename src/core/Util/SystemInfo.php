@@ -26,9 +26,9 @@ class SystemInfo {
     public static function getStats() {
         $rJSON = array();
         $rJSON['cpu'] = round(self::getTotalCPU(), 2);
-        $rJSON['cpu_cores'] = intval(shell_exec('cat /proc/cpuinfo | grep "^processor" | wc -l'));
+        $rJSON['cpu_cores'] = intval(@shell_exec('cat /proc/cpuinfo | grep "^processor" | wc -l') ?? '0');
         $rJSON['cpu_avg'] = round((sys_getloadavg()[0] * 100) / (($rJSON['cpu_cores'] ?: 1)), 2);
-        $rJSON['cpu_name'] = trim(shell_exec("cat /proc/cpuinfo | grep 'model name' | uniq | awk -F: '{print \$2}'"));
+        $rJSON['cpu_name'] = trim(@shell_exec("cat /proc/cpuinfo | grep 'model name' | uniq | awk -F: '{print \$2}'") ?? '');
         if ($rJSON['cpu_avg'] > 100) {
             $rJSON['cpu_avg'] = 100;
         }
@@ -39,9 +39,9 @@ class SystemInfo {
         $rJSON['total_mem_used_percent'] = round(($rJSON['total_mem_used'] / $rJSON['total_mem']) * 100, 2);
         $rJSON['total_disk_space'] = disk_total_space(MAIN_HOME);
         $rJSON['free_disk_space'] = disk_free_space(MAIN_HOME);
-        $rJSON['kernel'] = trim(shell_exec('uname -r'));
+        $rJSON['kernel'] = trim(@shell_exec('uname -r') ?? '');
         $rJSON['uptime'] = self::getUptime();
-        $rJSON['total_running_streams'] = (int) trim(shell_exec('ps ax | grep -v grep | grep -c ffmpeg'));
+        $rJSON['total_running_streams'] = (int) trim(@shell_exec('ps ax | grep -v grep | grep -c ffmpeg') ?? '0');
         $rJSON['bytes_sent'] = 0;
         $rJSON['bytes_sent_total'] = 0;
         $rJSON['bytes_received'] = 0;
@@ -84,16 +84,16 @@ class SystemInfo {
         $rJSON['video_devices'] = $rJSON['audio_devices'];
         $rJSON['gpu_info'] = $rJSON['video_devices'];
         $rJSON['iostat_info'] = $rJSON['gpu_info'];
-        if (shell_exec('which iostat')) {
+        if (@shell_exec('which iostat')) {
             $rJSON['iostat_info'] = self::getIO();
         }
-        if (shell_exec('which nvidia-smi')) {
+        if (@shell_exec('which nvidia-smi')) {
             $rJSON['gpu_info'] = self::getGPUInfo();
         }
-        if (shell_exec('which v4l2-ctl')) {
+        if (@shell_exec('which v4l2-ctl')) {
             $rJSON['video_devices'] = self::getVideoDevices();
         }
-        if (shell_exec('which arecord')) {
+        if (@shell_exec('which arecord')) {
             $rJSON['audio_devices'] = self::getAudioDevices();
         }
         list($rJSON['cpu_load_average']) = sys_getloadavg();
@@ -107,7 +107,8 @@ class SystemInfo {
      */
     public static function getTotalCPU() {
         $rTotalLoad = 0;
-        exec('ps -Ao pid,pcpu', $processes);
+        $processes = array();
+        @exec('ps -Ao pid,pcpu', $processes);
         foreach ($processes as $process) {
             $cols = explode(' ', preg_replace('!\\s+!', ' ', trim($process)));
             if (count($cols) >= 2 && is_numeric($cols[1])) {
@@ -116,7 +117,7 @@ class SystemInfo {
         }
 
         $cpuCores = 1;
-        $coreCount = intval(shell_exec("grep -P '^processor' /proc/cpuinfo|wc -l"));
+        $coreCount = intval(@shell_exec("grep -P '^processor' /proc/cpuinfo|wc -l") ?? '0');
         if ($coreCount > 0) {
             $cpuCores = $coreCount;
         }
@@ -183,7 +184,8 @@ class SystemInfo {
      */
     public static function getNetworkInterfaces() {
         $rReturn = array();
-        exec('ls /sys/class/net/', $rOutput, $rReturnVar);
+        $rOutput = array();
+        @exec('ls /sys/class/net/', $rOutput, $rReturnVar);
         foreach ($rOutput as $rInterface) {
             $rInterface = trim(rtrim($rInterface, ':'));
             if (!($rInterface != 'lo' && substr($rInterface, 0, 4) != 'bond')) {
@@ -222,7 +224,7 @@ class SystemInfo {
         $rReturn = array();
         $rID = 0;
         try {
-            $rDevices = array_values(array_filter(explode("\n", shell_exec('v4l2-ctl --list-devices') ?? '')));
+            $rDevices = array_values(array_filter(explode("\n", @shell_exec('v4l2-ctl --list-devices') ?? '')));
             if (is_array($rDevices)) {
                 foreach ($rDevices as $rKey => $rValue) {
                     if ($rKey % 2 == 0) {
@@ -244,7 +246,7 @@ class SystemInfo {
      */
     public static function getAudioDevices() {
         try {
-            return array_filter(explode("\n", shell_exec('arecord -L | grep "hw:CARD="') ?? ''));
+            return array_filter(explode("\n", @shell_exec('arecord -L | grep "hw:CARD="') ?? ''));
         } catch (Exception $e) {
             return array();
         }
@@ -256,7 +258,8 @@ class SystemInfo {
      * @return array
      */
     public static function getIO() {
-        exec('iostat -o JSON -m', $rOutput, $rReturnVar);
+        $rOutput = array();
+        @exec('iostat -o JSON -m', $rOutput, $rReturnVar);
         $rOutput = implode('', $rOutput);
         $rJSON = json_decode($rOutput, true);
         if (isset($rJSON['sysstat'])) {
@@ -271,7 +274,8 @@ class SystemInfo {
      * @return array
      */
     public static function getGPUInfo() {
-        exec('nvidia-smi -x -q', $rOutput, $rReturnVar);
+        $rOutput = array();
+        @exec('nvidia-smi -x -q', $rOutput, $rReturnVar);
         $rOutput = implode('', $rOutput);
         if (stripos($rOutput, '<?xml') === false) {
         } else {

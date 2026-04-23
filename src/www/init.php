@@ -42,6 +42,8 @@ if (!isset($rFilename)) {
 	$rFilename = strtolower(basename(get_included_files()[0], '.php'));
 }
 
+$rSettings = SettingsManager::getAll();
+
 if (!in_array($rFilename, array('enigma2', 'epg', 'playlist', 'api', 'xplugin', 'live', 'proxy_api', 'thumb', 'timeshift', 'vod')) || isset($argc)) {
 	$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
 	DatabaseFactory::set($db);
@@ -51,10 +53,10 @@ if (!in_array($rFilename, array('enigma2', 'epg', 'playlist', 'api', 'xplugin', 
 	DatabaseFactory::set($db);
 	LegacyInitializer::initCore(true);
 
-	if (!SettingsManager::getAll()['enable_cache']) {
+	if (!($rSettings['enable_cache'] ?? false)) {
 		$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
 		DatabaseFactory::set($db);
 	}
 }
 
-$gitRelease = new GitHubReleases(GIT_OWNER, GIT_REPO_MAIN, SettingsManager::getAll()['update_channel']);
+$gitRelease = new GitHubReleases(GIT_OWNER, GIT_REPO_MAIN, ($rSettings['update_channel'] ?? 'stable'));

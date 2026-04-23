@@ -211,7 +211,8 @@ class StreamProcess {
 			$rMonitor = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.monitor'));
 		} else {
 			$db->query('SELECT `monitor_pid` FROM `streams_servers` WHERE `server_id` = ? AND `stream_id` = ? LIMIT 1;', SERVER_ID, $rStreamID);
-			$rMonitor = intval($db->get_row()['monitor_pid']);
+			$rStreamServer = $db->get_row();
+			$rMonitor = intval($rStreamServer['monitor_pid'] ?? 0);
 		}
 
 		if (0 < $rMonitor && ProcessChecker::checkPID($rMonitor, array('XC_VM[' . $rStreamID . ']', 'XC_VMProxy[' . $rStreamID . ']')) && is_numeric($rMonitor)) {
@@ -222,7 +223,8 @@ class StreamProcess {
 			$rPID = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.pid'));
 		} else {
 			$db->query('SELECT `pid` FROM `streams_servers` WHERE `server_id` = ? AND `stream_id` = ? LIMIT 1;', SERVER_ID, $rStreamID);
-			$rPID = intval($db->get_row()['pid']);
+			$rStreamServer = $db->get_row();
+			$rPID = intval($rStreamServer['pid'] ?? 0);
 		}
 
 		if (0 < $rPID && ProcessChecker::checkPID($rPID, array($rStreamID . '_.m3u8', $rStreamID . '_%d.ts', 'LLOD[' . $rStreamID . ']', 'XC_VMProxy[' . $rStreamID . ']', 'Loopback[' . $rStreamID . ']')) && is_numeric($rPID)) {
