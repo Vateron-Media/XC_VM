@@ -134,16 +134,20 @@ class UserRepository {
 		if ($rCached) {
 			if (empty($rPassword) && empty($rUserID) && strlen($rUsername) == 32) {
 				if ($rSettings['case_sensitive_line']) {
-					$rUserID = intval(file_get_contents(LINES_TMP_PATH . 'line_t_' . $rUsername));
+					$rTokenPath = LINES_TMP_PATH . 'line_t_' . $rUsername;
+					$rUserID = (file_exists($rTokenPath) ? intval(file_get_contents($rTokenPath)) : 0);
 				} else {
-					$rUserID = intval(file_get_contents(LINES_TMP_PATH . 'line_t_' . strtolower($rUsername)));
+					$rTokenPath = LINES_TMP_PATH . 'line_t_' . strtolower($rUsername);
+					$rUserID = (file_exists($rTokenPath) ? intval(file_get_contents($rTokenPath)) : 0);
 				}
 			} else {
 				if (!empty($rUsername) && !empty($rPassword)) {
 					if ($rSettings['case_sensitive_line']) {
-						$rUserID = intval(file_get_contents(LINES_TMP_PATH . 'line_c_' . $rUsername . '_' . $rPassword));
+						$rCachePath = LINES_TMP_PATH . 'line_c_' . $rUsername . '_' . $rPassword;
+						$rUserID = (file_exists($rCachePath) ? intval(file_get_contents($rCachePath)) : 0);
 					} else {
-						$rUserID = intval(file_get_contents(LINES_TMP_PATH . 'line_c_' . strtolower($rUsername) . '_' . strtolower($rPassword)));
+						$rCachePath = LINES_TMP_PATH . 'line_c_' . strtolower($rUsername) . '_' . strtolower($rPassword);
+						$rUserID = (file_exists($rCachePath) ? intval(file_get_contents($rCachePath)) : 0);
 					}
 				} else {
 					if (empty($rUserID)) {
@@ -153,7 +157,12 @@ class UserRepository {
 			}
 
 			if ($rUserID) {
-				$rUserInfo = igbinary_unserialize(file_get_contents(LINES_TMP_PATH . 'line_i_' . $rUserID));
+				$rInfoPath = LINES_TMP_PATH . 'line_i_' . $rUserID;
+				if (file_exists($rInfoPath)) {
+					$rUserInfo = igbinary_unserialize(file_get_contents($rInfoPath));
+				} else {
+					return false;
+				}
 			}
 		} else {
 			if (empty($rPassword) && empty($rUserID) && strlen($rUsername) == 32) {
@@ -309,16 +318,20 @@ class UserRepository {
 		if ($rCached) {
 			if (empty($rPassword) && empty($rUserID) && strlen($rUsername) == 32) {
 				if ($rSettings['case_sensitive_line']) {
-					$rUserID = intval(file_get_contents(LINES_TMP_PATH . 'line_t_' . $rUsername));
+					$rTokenPath = LINES_TMP_PATH . 'line_t_' . $rUsername;
+					$rUserID = (file_exists($rTokenPath) ? intval(file_get_contents($rTokenPath)) : 0);
 				} else {
-					$rUserID = intval(file_get_contents(LINES_TMP_PATH . 'line_t_' . strtolower($rUsername)));
+					$rTokenPath = LINES_TMP_PATH . 'line_t_' . strtolower($rUsername);
+					$rUserID = (file_exists($rTokenPath) ? intval(file_get_contents($rTokenPath)) : 0);
 				}
 			} else {
 				if (!empty($rUsername) && !empty($rPassword)) {
 					if ($rSettings['case_sensitive_line']) {
-						$rUserID = intval(file_get_contents(LINES_TMP_PATH . 'line_c_' . $rUsername . '_' . $rPassword));
+						$rCachePath = LINES_TMP_PATH . 'line_c_' . $rUsername . '_' . $rPassword;
+						$rUserID = (file_exists($rCachePath) ? intval(file_get_contents($rCachePath)) : 0);
 					} else {
-						$rUserID = intval(file_get_contents(LINES_TMP_PATH . 'line_c_' . strtolower($rUsername) . '_' . strtolower($rPassword)));
+						$rCachePath = LINES_TMP_PATH . 'line_c_' . strtolower($rUsername) . '_' . strtolower($rPassword);
+						$rUserID = (file_exists($rCachePath) ? intval(file_get_contents($rCachePath)) : 0);
 					}
 				} else {
 					if (!empty($rUserID)) {
@@ -329,7 +342,12 @@ class UserRepository {
 			}
 			if (!$rUserID) {
 			} else {
-				$rUserInfo = igbinary_unserialize(file_get_contents(LINES_TMP_PATH . 'line_i_' . $rUserID));
+				$rInfoPath = LINES_TMP_PATH . 'line_i_' . $rUserID;
+				if (file_exists($rInfoPath)) {
+					$rUserInfo = igbinary_unserialize(file_get_contents($rInfoPath));
+				} else {
+					return false;
+				}
 			}
 		} else {
 			if (empty($rPassword) && empty($rUserID) && strlen($rUsername) == 32) {

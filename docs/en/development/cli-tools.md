@@ -1,6 +1,6 @@
-# 🛠 CLI Tools & Database Migrations
+# 🛠 CLI Tools & Database Updates
 
-Reference for XC_VM command-line interface, system tools, and the database migration system. Covers daily operations, emergency access, and creating new DB migrations.
+Reference for XC_VM command-line interface, system tools, and the database update process after version upgrades. Covers daily operations, emergency access, and creating new DB update steps.
 
 ---
 
@@ -10,8 +10,8 @@ Reference for XC_VM command-line interface, system tools, and the database migra
 - [📋 Full Command Registry](#full-command-registry)
 - [🆕 Registering a New Command](#registering-a-new-command)
 - [🔧 Tools Command](#tools-command)
-- [🗃 Database Migrations](#database-migrations)
-- [📝 Creating a New Migration](#creating-a-new-migration)
+- [🗃 Database Updates After Version Upgrade](#database-updates-after-version-upgrade)
+- [📝 Creating a New DB Update Step](#creating-a-new-db-update-step)
 - [⚙️ Common CLI Operations](#common-cli-operations)
 
 ---
@@ -48,7 +48,7 @@ To see all available commands:
 
 | Command | Class | Description | User |
 | --- | --- | --- | --- |
-| `status` | `StatusCommand` | System status, DB migrations, configuration check | root |
+| `status` | `StatusCommand` | System status, DB updates, configuration check | root |
 | `update` | `UpdateCommand` | System update (update / post-update) | xc_vm |
 | `service` | `ServiceCommand` | Manage XC_VM service: start, stop, restart, reload | root |
 | `tools` | `ToolsCommand` | Maintenance utilities (see Tools Command section) | root/xc_vm |
@@ -59,7 +59,7 @@ To see all available commands:
 | `thumbnail` | `ThumbnailCommand` | Generate thumbnail frames for a stream | xc_vm |
 | `plex_item` | `PlexItemCommand` | Process single Plex item (movie/series) | xc_vm |
 | `watch_item` | `WatchItemCommand` | Process single Watch item (TMDB search/update) | xc_vm |
-| `migrate` | `MigrateCommand` | Migrate data from `xc_vm_migrate` database | xc_vm |
+| `migrate` | `MigrateCommand` | Transfer data from `xc_vm_migrate` database | xc_vm |
 | `balancer` | `BalancerCommand` | Install/configure load balancer via SSH | root |
 
 > Commands marked **optional** are conditionally registered via `file_exists()` guard: `cache_handler`, `balancer`, `migrate`.
@@ -231,7 +231,7 @@ The `tools` command provides system maintenance utilities.
 | `rescue` | Create a temporary rescue access code for emergency panel access. Prints the URL. **Delete this code after use!** |
 | `access` | Regenerate all nginx access code configs and reload nginx. Prints URLs for all admin panel codes. |
 | `ports` | Regenerate nginx port configs (HTTP, HTTPS, RTMP) from the database and reload nginx. |
-| `migration` | Clear the migration database (`xc_vm_migrate`) and optionally restore a `.sql` backup into it. |
+| `migration` | Clear the staging database (`xc_vm_migrate`) and optionally restore a `.sql` backup into it. |
 | `user` | Create a rescue admin user with random credentials. Prints username and password. **Delete this user after use!** |
 | `mysql` | Reauthorise MySQL privileges for all load balancer servers. |
 | `database` | Restore a blank XC_VM database from `database.sql`. **Erases ALL data!** Requires `--confirm` flag. |
@@ -257,10 +257,10 @@ sudo /home/xc_vm/console.php tools access
 # Regenerate port configuration (root)
 sudo /home/xc_vm/console.php tools ports
 
-# Clear migration database (root)
+# Clear staging database (root)
 sudo /home/xc_vm/console.php tools migration
 
-# Clear migration database and restore a backup (root)
+# Clear staging database and restore a backup (root)
 sudo /home/xc_vm/console.php tools migration /path/to/backup.sql
 
 # Create rescue admin user (root)
@@ -292,13 +292,13 @@ su - xc_vm -c '/home/xc_vm/console.php tools bouquets'
 
 ---
 
-## Database Migrations
+## Database Updates After Version Upgrade
 
-XC_VM uses a file-based migration system to manage database schema changes between versions. Migrations are executed automatically during updates and system status checks.
+XC_VM uses a file-based DB update system to manage schema changes between versions. DB updates are executed automatically during updates and system status checks.
 
 ### How It Works
 
-- Migration files are stored as `.sql` files in `/home/xc_vm/migrations/`.
+- SQL files for DB updates are stored in `/home/xc_vm/migrations/`.
 
 - Each file is named with a sequential number prefix, for example:
 
@@ -308,16 +308,16 @@ XC_VM uses a file-based migration system to manage database schema changes betwe
 003_drop_settings_segment_type.sql
 ```
 
-- Applied migrations are tracked in the `migrations` database table. Each migration runs **exactly once** - if a migration has already been applied, it is skipped.
+- Applied DB update steps are tracked in the `migrations` database table. Each step runs **exactly once** - if a step has already been applied, it is skipped.
 
-- Migrations are executed automatically by:
+- DB updates are executed automatically by:
   - `console.php update post-update` - after a panel update
   - `console.php status` - during system status check (MAIN server only)
 
-### Migration Execution Flow
+### DB Update Execution Flow
 
 ```text
-[ MigrationRunner::run() ]
+[ MigrationRunner::run() — DB update execution ]
         │
         ▼
 [ CREATE TABLE IF NOT EXISTS `migrations` ]
@@ -334,9 +334,9 @@ XC_VM uses a file-based migration system to manage database schema changes betwe
 
 ---
 
-## Creating a New Migration
+## Creating a New DB Update Step
 
-When you need to modify the database schema (add columns, create tables, insert data, etc.), create a new SQL migration file.
+When you need to modify the database schema (add columns, create tables, insert data, etc.), create a new SQL file for a DB update step.
 
 ### Step 1. Choose a File Name
 
@@ -350,7 +350,7 @@ NNN_short_description.sql
 
 - Number prefix: 3 digits, zero-padded (e.g., `006`, `007`)
 - Separator: underscore `_`
-- Name: lowercase, underscores, describing what the migration does
+- Name: lowercase, underscores, describing what the update step does
 - Extension: `.sql`
 
 **Examples:**
@@ -365,9 +365,9 @@ NNN_short_description.sql
 
 Place raw SQL statements in the file. Multiple statements are separated by `;`.
 
-**Rules for migration SQL:**
+**Rules for SQL DB update steps:**
 
-- **Use `IF EXISTS` / `IF NOT EXISTS`** to make migrations idempotent:
+- **Use `IF EXISTS` / `IF NOT EXISTS`** to make DB update steps idempotent:
 
 ```sql
 -- Adding a column (safe)
@@ -393,13 +393,13 @@ FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM `streams_arguments` WHERE argument_key = 'my_key');
 ```
 
-- **Do not mix DDL and DML** that depend on each other in the same file. If you need to add a column and then populate it, use two migration files.
+- **Do not mix DDL and DML** that depend on each other in the same file. If you need to add a column and then populate it, use two DB update step files.
 
 - **Comments** are supported with `--` prefix (they are skipped during execution).
 
 ### Step 3. Place the File
 
-Copy the migration file to:
+Copy the SQL file for the DB update step to:
 
 ```text
 /home/xc_vm/migrations/
@@ -407,9 +407,9 @@ Copy the migration file to:
 
 > 💡 In the source repository, this is `src/migrations/`.
 
-### Step 4. Validate Migration
+### Step 4. Validate DB Update
 
-Run the status command to apply pending migrations:
+Run the status command to apply pending DB update steps:
 
 ```bash
 sudo /home/xc_vm/console.php status first-run
@@ -424,7 +424,7 @@ Migrations
 
 ```
 
-If a statement fails, the migration will still be recorded but show `[WARN]` — review the SQL and fix any issues.
+If a statement fails, the step will still be recorded but show `[WARN]` — review the SQL and fix any issues.
 
 ---
 
@@ -436,7 +436,7 @@ If a statement fails, the migration will still be recorded but show `[WARN]` —
 sudo /home/xc_vm/console.php status
 ```
 
-Checks if XC_VM is running, connects to the database, runs pending migrations, fixes permissions, and validates nginx configuration. Required after installation or recovery.
+Checks if XC_VM is running, connects to the database, runs pending DB update steps, fixes permissions, and validates nginx configuration. Required after installation or recovery.
 
 With `first-run` argument, skips the running check — used for initial setup:
 
@@ -472,12 +472,12 @@ Starts a stream manually and displays any errors. Useful for diagnosing stream s
 sudo /home/xc_vm/console.php certbot
 ```
 
-### Migration (from Other Systems)
+### Database Update with Data from Other Systems
 
 ```bash
 /home/xc_vm/console.php migrate
 ```
 
-Transfers data from a migration database. See the [Migration Guide](en-us/info/migration_guide.md) for details.
+Transfers data from the staging database `xc_vm_migrate`. See the [Database Update Guide](en-us/info/migration_guide.md) for details.
 
 ---

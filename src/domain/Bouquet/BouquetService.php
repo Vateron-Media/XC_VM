@@ -182,8 +182,17 @@ class BouquetService {
 	}
 
 	public static function getMapEntry($rStreamID) {
-		$rBouquetMap = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'bouquet_map'));
-		$rReturn = ($rBouquetMap[$rStreamID] ?: array());
+		$rBouquetMap = array();
+		$rMapPath = CACHE_TMP_PATH . 'bouquet_map';
+
+		if (file_exists($rMapPath) && 0 < filesize($rMapPath)) {
+			$rData = @igbinary_unserialize(file_get_contents($rMapPath));
+			if (is_array($rData)) {
+				$rBouquetMap = $rData;
+			}
+		}
+
+		$rReturn = ($rBouquetMap[$rStreamID] ?? array());
 		unset($rBouquetMap);
 		return $rReturn;
 	}

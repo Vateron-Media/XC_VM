@@ -102,7 +102,7 @@ class WatchdogCommand implements CommandInterface {
 
 			// ── PHP PIDs ─────────────────────────────────────────
 			$rPHPPIDs = array();
-			exec("ps -u xc_vm | grep php-fpm | awk {'print \$1'}", $rPHPPIDs);
+			@exec("ps -u xc_vm | grep php-fpm | awk {'print \$1'}", $rPHPPIDs);
 
 			// ── Update servers table ─────────────────────────────
 			$rConnections = $rUsers = 0;

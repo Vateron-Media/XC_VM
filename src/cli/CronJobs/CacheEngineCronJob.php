@@ -315,8 +315,12 @@ class CacheEngineCronJob implements CommandInterface {
                         } else {
                             foreach ([STREAMS_TMP_PATH, LINES_TMP_PATH, SERIES_TMP_PATH] as $rTmpPath) {
                                 foreach (scandir($rTmpPath) as $rFile) {
-                                    if (filemtime($rTmpPath . $rFile) < $rStartTime - 1) {
-                                        unlink($rTmpPath . $rFile);
+                                    if ($rFile === '.' || $rFile === '..') {
+                                        continue;
+                                    }
+                                    $rFilePath = $rTmpPath . $rFile;
+                                    if (is_file($rFilePath) && filemtime($rFilePath) < $rStartTime - 1) {
+                                        unlink($rFilePath);
                                     }
                                 }
                             }
@@ -337,7 +341,13 @@ class CacheEngineCronJob implements CommandInterface {
                 echo 'Clearing old data...' . "\n";
                 foreach ([STREAMS_TMP_PATH, LINES_TMP_PATH, SERIES_TMP_PATH] as $rTmpPath) {
                     foreach (scandir($rTmpPath) as $rFile) {
-                        unlink($rTmpPath . $rFile);
+                        if ($rFile === '.' || $rFile === '..') {
+                            continue;
+                        }
+                        $rFilePath = $rTmpPath . $rFile;
+                        if (is_file($rFilePath)) {
+                            unlink($rFilePath);
+                        }
                     }
                 }
                 file_put_contents(CACHE_TMP_PATH . 'cache_complete', time());
@@ -406,7 +416,14 @@ class CacheEngineCronJob implements CommandInterface {
             $rCount = count($cacheLockMechanism);
         }
         if ($rCount > 0) {
-            $rBouquetMap = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'bouquet_map'));
+            $rBouquetMap = [];
+            $rBouquetMapPath = CACHE_TMP_PATH . 'bouquet_map';
+            if (file_exists($rBouquetMapPath) && 0 < filesize($rBouquetMapPath)) {
+                $rBouquetData = @igbinary_unserialize(file_get_contents($rBouquetMapPath));
+                if (is_array($rBouquetData)) {
+                    $rBouquetMap = $rBouquetData;
+                }
+            }
             if (!is_null($rStart)) {
                 $rEnd = $rStart + $rCount - 1;
                 if ($this->rSplit >= ($rEnd - $rStart + 1)) {

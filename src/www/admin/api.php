@@ -51,7 +51,7 @@ switch ($rAction) {
 		switch ($rSubAction) {
 			case 'start':
 				$rStreamIDs = array_map('intval', RequestManager::getAll()['stream_ids'] ?? array());
-				$rForce = (RequestManager::getAll()['force'] ?: false);
+				$rForce = (RequestManager::getAll()['force'] ?? false);
 				$rServerIDs = (empty(RequestManager::getAll()['servers']) ? array_keys($rAllServers) : array_map('intval', RequestManager::getAll()['servers']));
 				$rURLs = array();
 

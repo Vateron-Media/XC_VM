@@ -31,11 +31,24 @@ class EpisodeService {
 			}
 		}
 
-		$rArray['stream_source'] = array($rData['stream_source']);
+		$rFallbackStreamSource = '';
+		if (isset($rArray['stream_source'])) {
+			if (is_array($rArray['stream_source'])) {
+				$rFallbackStreamSource = $rArray['stream_source'][0] ?? '';
+			} else {
+				$rFallbackStreamSource = $rArray['stream_source'];
+			}
+		}
+		$rArray['stream_source'] = array($rData['stream_source'] ?? $rFallbackStreamSource);
 
-		if (0 < strlen($rData['movie_subtitles'])) {
-			$rSplit = explode(':', $rData['movie_subtitles']);
-			$rArray['movie_subtitles'] = array('files' => array($rSplit[2]), 'names' => array('Subtitles'), 'charset' => array('UTF-8'), 'location' => intval($rSplit[1]));
+		$rMovieSubtitles = $rData['movie_subtitles'] ?? '';
+		if (0 < strlen($rMovieSubtitles)) {
+			$rSplit = explode(':', $rMovieSubtitles);
+			if (2 < count($rSplit) && 0 < strlen($rSplit[2])) {
+				$rArray['movie_subtitles'] = array('files' => array($rSplit[2]), 'names' => array('Subtitles'), 'charset' => array('UTF-8'), 'location' => intval($rSplit[1] ?? 0));
+			} else {
+				$rArray['movie_subtitles'] = null;
+			}
 		} else {
 			$rArray['movie_subtitles'] = null;
 		}
@@ -108,7 +121,7 @@ class EpisodeService {
 									$rSeconds = intval($rSeries['episode_run_time']) * 60;
 									$rImportArray['properties'] = array('tmdb_id' => $rEpisode['id'], 'release_date' => $rEpisode['air_date'], 'plot' => $rEpisode['overview'], 'duration_secs' => $rSeconds, 'duration' => sprintf('%02d:%02d:%02d', $rSeconds / 3600, ($rSeconds / 60) % 60, $rSeconds % 60), 'movie_image' => $rImage, 'video' => array(), 'audio' => array(), 'bitrate' => 0, 'rating' => $rEpisode['vote_average'], 'season' => $rData['season_num']);
 
-									if (strlen($rImportArray['properties']['movie_image'][0]) == 0) {
+									if (empty($rImportArray['properties']['movie_image'])) {
 										unset($rImportArray['properties']['movie_image']);
 									}
 								}
@@ -130,14 +143,15 @@ class EpisodeService {
 		} else {
 			$rImportArray = array('filename' => $rArray['stream_source'][0], 'properties' => array(), 'name' => $rArray['stream_display_name'], 'episode' => $rData['episode'], 'target_container' => $rData['target_container']);
 
-			if ($rSettings['download_images']) {
-				$rData['movie_image'] = ImageUtils::downloadImage($rData['movie_image'], 5);
+			$rMovieImage = $rData['movie_image'] ?? '';
+			if ($rSettings['download_images'] && 0 < strlen($rMovieImage)) {
+				$rMovieImage = ImageUtils::downloadImage($rMovieImage, 5);
 			}
 
 			$rSeconds = intval($rData['episode_run_time']) * 60;
-			$rImportArray['properties'] = array('release_date' => $rData['release_date'], 'plot' => $rData['plot'], 'duration_secs' => $rSeconds, 'duration' => sprintf('%02d:%02d:%02d', $rSeconds / 3600, ($rSeconds / 60) % 60, $rSeconds % 60), 'movie_image' => $rData['movie_image'], 'video' => array(), 'audio' => array(), 'bitrate' => 0, 'rating' => $rData['rating'], 'season' => $rData['season_num'], 'tmdb_id' => $rData['tmdb_id']);
+			$rImportArray['properties'] = array('release_date' => $rData['release_date'], 'plot' => $rData['plot'], 'duration_secs' => $rSeconds, 'duration' => sprintf('%02d:%02d:%02d', $rSeconds / 3600, ($rSeconds / 60) % 60, $rSeconds % 60), 'movie_image' => $rMovieImage, 'video' => array(), 'audio' => array(), 'bitrate' => 0, 'rating' => $rData['rating'], 'season' => $rData['season_num'], 'tmdb_id' => $rData['tmdb_id']);
 
-			if (strlen($rImportArray['properties']['movie_image'][0]) == 0) {
+			if (empty($rImportArray['properties']['movie_image'])) {
 				unset($rImportArray['properties']['movie_image']);
 			}
 
@@ -211,7 +225,10 @@ class EpisodeService {
 					$rRestartIDs[] = $rInsertID;
 				}
 
-				$db->query('UPDATE `streams_series` SET `last_modified` = ? WHERE `id` = ?;', time(), $rData['streams_series']);
+				$rSeriesID = intval($rData['streams_series'] ?? $rData['series'] ?? 0);
+				if (0 < $rSeriesID) {
+					$db->query('UPDATE `streams_series` SET `last_modified` = ? WHERE `id` = ?;', time(), $rSeriesID);
+				}
 				StreamProcess::updateStream($rInsertID);
 			} else {
 				return array('status' => STATUS_FAILURE);
