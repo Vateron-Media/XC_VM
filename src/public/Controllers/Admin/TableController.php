@@ -5414,7 +5414,7 @@ if ($rType == 'watch_output') {
                         }
                         if (!(1 < $rRow['status'] && $rRow['type'] == 1)) {
                         } else {
-                            $rButtons .= '<a href="movie.php?path=' . urlencode('s:' . $rRow['server_id'] . ':' . $rRow['filename']) . '"><button type="button" title="Manual Match" class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-plus"></i></button></a>';
+                            $rButtons .= '<a href="movie?path=' . urlencode('s:' . $rRow['server_id'] . ':' . $rRow['filename']) . '"><button type="button" title="Manual Match" class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-plus"></i></button></a>';
                         }
                         $rButtons .= '<button type="button" title="Delete" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(' . $rRow['id'] . ", 'delete');\"><i class=\"mdi mdi-close\"></i></button>";
                         $rButtons .= '</div>';

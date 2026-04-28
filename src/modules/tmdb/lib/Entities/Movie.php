@@ -83,7 +83,13 @@ class Movie {
 	 */
 	public function getTrailer() {
 		$trailers = $this->getTrailers();
-		return $trailers['youtube'][0]['source'];
+		if (isset($trailers['youtube'][0]['source'])) {
+			return $trailers['youtube'][0]['source'];
+		}
+		if (isset($trailers['results'][0]['key'])) {
+			return $trailers['results'][0]['key'];
+		}
+		return '';
 	}
 	/**
 	 * 	Get the Movie's genres
