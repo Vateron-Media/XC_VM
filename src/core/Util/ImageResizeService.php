@@ -81,7 +81,13 @@ class ImageResizeService {
 				$rDomain   = empty($rSrv['domain_name'])
 					? $rSrv['server_ip']
 					: explode(',', $rSrv['domain_name'])[0];
-				$rServerURL = $rSrv['server_protocol'] . '://' . $rDomain . ':' . $rSrv['request_port'] . '/';
+				$rProtocol = (!empty($rSrv['server_protocol']) ? $rSrv['server_protocol'] : 'http');
+				$rPort = intval($rSrv['request_port'] ?? 0);
+				$rServerURL = $rProtocol . '://' . $rDomain;
+				if (0 < $rPort) {
+					$rServerURL .= ':' . $rPort;
+				}
+				$rServerURL .= '/';
 				$rURL = $rServerURL . 'images/' . basename($rURL);
 			}
 		}

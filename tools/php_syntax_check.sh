@@ -9,26 +9,32 @@ set -euo pipefail
 #   ./tools/php_syntax_check.sh          # check all src/*.php
 #   ./tools/php_syntax_check.sh src/domain/Device/EnigmaService.php  # check one file
 
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
 ERRORS=0
 CHECKED=0
 
+check_file() {
+    local file="$1"
+    ((++CHECKED))
+
+    if ! php_output="$(php -l "$file" 2>&1)"; then
+        echo "$php_output"
+        ((++ERRORS))
+    fi
+}
+
 if [[ $# -gt 0 ]]; then
     for file in "$@"; do
-        if ! php -l "$file" 2>&1 | grep -q "No syntax errors"; then
-            php -l "$file"
-            ERRORS=$((ERRORS + 1))
-        fi
-        CHECKED=$((CHECKED + 1))
+        check_file "$file"
     done
 else
     while IFS= read -r -d '' file; do
-        if ! php -l "$file" 2>&1 | grep -q "No syntax errors"; then
-            php -l "$file"
-            ERRORS=$((ERRORS + 1))
-        fi
-        CHECKED=$((CHECKED + 1))
-    done < <(find src -name '*.php' -not -path 'src/bin/*' -print0)
+        check_file "$file"
+    done < <(find "$PROJECT_ROOT/src" -name '*.php' -not -path '*/bin/*' -print0)
 fi
 
 echo "Checked $CHECKED files, $ERRORS errors"
-[[ "$ERRORS" -eq 0 ]]
+exit $ERRORS
