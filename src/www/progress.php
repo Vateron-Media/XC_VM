@@ -24,7 +24,11 @@ $rData = array_filter(array_map('trim', explode("\n", $rPost)));
 $rOutput = array();
 
 foreach ($rData as $rRow) {
-	list($rKey, $rValue) = explode('=', $rRow);
+	$rParts = explode('=', $rRow, 2);
+	if (count($rParts) !== 2) {
+		continue;
+	}
+	list($rKey, $rValue) = $rParts;
 	$rOutput[trim($rKey)] = trim($rValue);
 }
 file_put_contents(STREAMS_PATH . $rStreamID . '_.progress', json_encode($rOutput));

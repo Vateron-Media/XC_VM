@@ -27,6 +27,7 @@ class WatchItemCommand implements CommandInterface {
 		}
 
 		if (empty($rArgs[0])) {
+			echo "watch_item: empty payload\n";
 			return 0;
 		}
 
@@ -48,17 +49,24 @@ class WatchItemCommand implements CommandInterface {
 			}
 			@unlink(WATCH_TMP_PATH . @getmypid() . '.wpid');
 		});
-
 		require_once MAIN_HOME . 'modules/tmdb/lib/TmdbClient.php';
 		require MAIN_HOME . 'modules/tmdb/lib/Release.php';
 
-		$rThreadData = json_decode(base64_decode($rArgs[0]), true);
-		if (!$rThreadData) {
+		$rPayload = trim((string) $rArgs[0]);
+		$rDecodedPayload = base64_decode($rPayload, true);
+		if ($rDecodedPayload === false) {
+			echo "watch_item: invalid payload base64\n";
+			return 0;
+		}
+
+		$rThreadData = json_decode($rDecodedPayload, true);
+		if (!is_array($rThreadData)) {
+			echo "watch_item: payload must be JSON object\n";
 			return 0;
 		}
 
 		file_put_contents(WATCH_TMP_PATH . getmypid() . '.wpid', time());
-		WatchItem::run();
+		WatchItem::run($rThreadData);
 
 		return 0;
 	}

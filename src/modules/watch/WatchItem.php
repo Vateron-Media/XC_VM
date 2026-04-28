@@ -287,16 +287,48 @@ class WatchItem {
         }
     }
 
-    /**
-     * Основная точка входа обработки Watch Item.
-     * Заменяет loadcli().
-     */
-    public static function run() {
+    public static function run($rThreadData = null) {
         global $db;
-        global $rThreadData;
         global $rTimeout;
+
+        if (!is_array($rThreadData)) {
+            echo "watch_item: invalid thread data\n";
+            return;
+        }
+
+        $rThreadData['file'] = strval($rThreadData['file'] ?? '');
+        $rThreadData['directory'] = strval($rThreadData['directory'] ?? '');
+        $rThreadData['import'] = !empty($rThreadData['import']);
+        $rThreadData['type'] = strval($rThreadData['type'] ?? '');
+        $rThreadData['extract_metadata'] = !empty($rThreadData['extract_metadata']);
+        $rThreadData['ffprobe_input'] = !empty($rThreadData['ffprobe_input']);
+        $rThreadData['fallback_parser'] = !empty($rThreadData['fallback_parser']);
+        $rThreadData['fallback_title'] = !empty($rThreadData['fallback_title']);
+        $rThreadData['disable_tmdb'] = !empty($rThreadData['disable_tmdb']);
+        $rThreadData['ignore_no_match'] = !empty($rThreadData['ignore_no_match']);
+        $rThreadData['alternative_titles'] = !empty($rThreadData['alternative_titles']);
+
+        // Keep legacy helpers working: addToBouquet relies on global $rThreadData.
+        $GLOBALS['rThreadData'] = $rThreadData;
+
+        if (($rThreadData['file'] === '') || (!$rThreadData['import'] && $rThreadData['directory'] === '')) {
+            echo "watch_item: missing file or directory\n";
+            return;
+        }
+
+        if (!in_array($rThreadData['type'], array('movie', 'series'), true)) {
+            echo "watch_item: unsupported type\n";
+            return;
+        }
+
         if (strpos($rThreadData['file'], $rThreadData['directory']) === 0 || $rThreadData['import']) {
-            $rWatchCategories = $rThreadData['watch_categories'];
+            $rWatchCategories = (is_array($rThreadData['watch_categories'] ?? null) ? $rThreadData['watch_categories'] : array());
+            if (!isset($rWatchCategories[1]) || !is_array($rWatchCategories[1])) {
+                $rWatchCategories[1] = array();
+            }
+            if (!isset($rWatchCategories[2]) || !is_array($rWatchCategories[2])) {
+                $rWatchCategories[2] = array();
+            }
             $rLanguage = null;
             $rReleaseSeason = NULL;
             $rReleaseEpisode = NULL;
@@ -316,6 +348,10 @@ class WatchItem {
                 $rThreadData['extract_metadata'] = false;
             }
             $rImportArray = self::verifyPostTable('streams');
+            if (!is_array($rImportArray)) {
+                echo "watch_item: failed to prepare import schema\n";
+                return;
+            }
             $rImportArray['type'] = array('movie' => 2, 'series' => 5)[$rThreadData['type']];
             if ($rImportArray['type']) {
                 $rThreadType = array('movie' => 1, 'series' => 2)[$rThreadData['type']];
@@ -341,8 +377,10 @@ class WatchItem {
                 if (!$rThreadData['ffprobe_input'] || isset($rSourceData['streams'])) {
                     $rMatch = $rPaths = null;
                     $rMetaMatch = false;
-                    if ($rThreadData['extract_metadata'] && isset($rSourceData['format']) && $rSourceData['tags']['title']) {
-                        $rYear = (intval(explode('-', $rSourceData['tags']['date'])[0]));
+                    if ($rThreadData['extract_metadata'] && isset($rSourceData['format']) && !empty($rSourceData['tags']['title'])) {
+                        if (!empty($rSourceData['tags']['date'])) {
+                            $rYear = (intval(explode('-', $rSourceData['tags']['date'])[0]));
+                        }
                         $rPaths = array($rSourceData['tags']['title']);
                         $rMetaMatch = true;
                     }
@@ -453,8 +491,10 @@ class WatchItem {
                                             if ($rAltTitle) {
                                                 similar_text(self::parseTitle($rAltTitle), self::parseTitle(($rResultArr->get('title') ?: $rResultArr->get('name'))), $rPercentageAlt);
                                             }
+                                            $rReleaseDate = (string) ($rResultArr->get('release_date') ?: $rResultArr->get('first_air_date'));
+                                            $rReleaseYear = intval(substr($rReleaseDate, 0, 4));
                                             if (SettingsManager::getAll()['percentage_match'] <= $rPercentage || SettingsManager::getAll()['percentage_match'] <= $rPercentageAlt) {
-                                                if ($rSearchYear && !in_array(intval(substr(($rResultArr->get('release_date') ?: $rResultArr->get('first_air_date')), 0, 4)), range(intval($rSearchYear) - 1, intval($rSearchYear) + 1))) {
+                                                if ($rSearchYear && !in_array($rReleaseYear, range(intval($rSearchYear) - 1, intval($rSearchYear) + 1))) {
                                                 } else {
                                                     if ($rAltTitle && self::parseTitle(($rResultArr->get('title') ?: $rResultArr->get('name'))) == self::parseTitle($rAltTitle)) {
                                                         $rMatches = array(array('percentage' => 100, 'data' => $rResultArr));
@@ -474,7 +514,7 @@ class WatchItem {
                                                     $rMatches[] = array('percentage' => $rPercentage, 'data' => $rResultArr);
                                                 }
                                             } else {
-                                                if ($rThreadData['alternative_titles'] && in_array(intval(substr(($rResultArr->get('release_date') ?: $rResultArr->get('first_air_date')), 0, 4)), range(intval($rSearchYear) - 1, intval($rSearchYear) + 1))) {
+                                                if ($rThreadData['alternative_titles'] && in_array($rReleaseYear, range(intval($rSearchYear) - 1, intval($rSearchYear) + 1))) {
                                                     $rPartialMatch = false;
 
                                                     foreach ($tmdbTitles as $tmdbTitle) {
@@ -490,10 +530,11 @@ class WatchItem {
                                                     }
                                                     if ($rPartialMatch) {
                                                         if ($rThreadData['type'] == 'movie') {
-                                                            $rAlternativeTitles = $rTMDB->getMovieTitles($rResultArr->get('id'))['titles'];
+                                                            $rTitleData = $rTMDB->getMovieTitles($rResultArr->get('id'));
                                                         } else {
-                                                            $rAlternativeTitles = $rTMDB->getSeriesTitles($rResultArr->get('id'))['titles'];
+                                                            $rTitleData = $rTMDB->getSeriesTitles($rResultArr->get('id'));
                                                         }
+                                                        $rAlternativeTitles = (is_array($rTitleData) && isset($rTitleData['titles']) && is_array($rTitleData['titles']) ? $rTitleData['titles'] : array());
                                                         foreach ($rAlternativeTitles as $rAlternativeTitle) {
                                                             if ($rAltTitle && self::parseTitle($rAlternativeTitle['title']) == self::parseTitle($rAltTitle)) {
                                                                 $rMatches = array(array('percentage' => 100, 'data' => $rResultArr));

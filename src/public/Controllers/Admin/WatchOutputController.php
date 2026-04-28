@@ -16,6 +16,7 @@ class WatchOutputController extends BaseAdminController {
     public function index() {
         $this->requirePermission();
 
+        $rPermissions = (isset($GLOBALS['rPermissions']) && is_array($GLOBALS['rPermissions']) ? $GLOBALS['rPermissions'] : array());
         $rServers = ServerRepository::getStreamingSimple($rPermissions);
         if (!is_array($rServers)) {
             $rServers = [];
