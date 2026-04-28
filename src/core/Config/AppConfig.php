@@ -20,7 +20,7 @@ define('DB_ACCESS_ENABLED', false);
 
 // ── Version & Git Configuration ────────────────────────────────
 
-define('XC_VM_VERSION', '2.1.3');
+define('XC_VM_VERSION', '2.1.4');
 
 define('GIT_OWNER',       'Vateron-Media');
 define('GIT_REPO_MAIN',   'XC_VM');
