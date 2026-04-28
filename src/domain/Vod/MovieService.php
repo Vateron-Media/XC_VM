@@ -236,7 +236,7 @@ class MovieService {
 								} else {
 									$rFiles = array();
 
-										foreach (ApiClient::listDir(intval($rParts[1]), rtrim($rParts[2], '/'), array('mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts'))['files'] as $rFile) {
+									foreach (ApiClient::listDir(intval($rParts[1]), rtrim($rParts[2], '/'), array('mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts'))['files'] as $rFile) {
 										$rFiles[] = rtrim($rParts[2], '/') . '/' . $rFile;
 									}
 								}
@@ -605,19 +605,24 @@ class MovieService {
 				if (0 < count($rImportStreams)) {
 					$rBouquets = array();
 
-					foreach (json_decode($rData['bouquet_create_list'], true) as $rBouquet) {
+					$rBouquetCreateList = json_decode(($rData['bouquet_create_list'] ?? '[]'), true);
+					if (!is_array($rBouquetCreateList)) {
+						$rBouquetCreateList = array();
+					}
+
+					foreach ($rBouquetCreateList as $rBouquet) {
 						$rPrepare = QueryHelper::prepareArray(array('bouquet_name' => $rBouquet, 'bouquet_channels' => array(), 'bouquet_movies' => array(), 'bouquet_series' => array(), 'bouquet_radios' => array()));
 						$rQuery = 'INSERT INTO `bouquets`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
-						if (!$db->query($rQuery, ...$rPrepare['data'])) {
-						} else {
+						if ($db->query($rQuery, ...$rPrepare['data'])) {
 							$rBouquets[] = $db->last_insert_id();
 						}
 					}
 
-					foreach ($rData['bouquets'] as $rBouquetID) {
-						if (!(is_numeric($rBouquetID) && in_array($rBouquetID, array_keys(BouquetService::getAll())))) {
-						} else {
+					$rSelectedBouquets = (isset($rData['bouquets']) && is_array($rData['bouquets']) ? $rData['bouquets'] : array());
+
+					foreach ($rSelectedBouquets as $rBouquetID) {
+						if (is_numeric($rBouquetID) && in_array($rBouquetID, array_keys(BouquetService::getAll()))) {
 							$rBouquets[] = intval($rBouquetID);
 						}
 					}
@@ -625,17 +630,23 @@ class MovieService {
 
 					$rCategories = array();
 
-					foreach (json_decode($rData['category_create_list'], true) as $rCategory) {
+					$rCategoryCreateList = json_decode(($rData['category_create_list'] ?? '[]'), true);
+					if (!is_array($rCategoryCreateList)) {
+						$rCategoryCreateList = array();
+					}
+
+					foreach ($rCategoryCreateList as $rCategory) {
 						$rPrepare = QueryHelper::prepareArray(array('category_type' => 'movie', 'category_name' => $rCategory, 'parent_id' => 0, 'cat_order' => 99, 'is_adult' => 0));
 						$rQuery = 'INSERT INTO `streams_categories`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
-						if (!$db->query($rQuery, ...$rPrepare['data'])) {
-						} else {
+						if ($db->query($rQuery, ...$rPrepare['data'])) {
 							$rCategories[] = $db->last_insert_id();
 						}
 					}
 
-					foreach ($rData['category_id'] as $rCategoryID) {
+					$rSelectedCategories = (isset($rData['category_id']) && is_array($rData['category_id']) ? $rData['category_id'] : array());
+
+					foreach ($rSelectedCategories as $rCategoryID) {
 						if (!(is_numeric($rCategoryID) && in_array($rCategoryID, $rMovieCategories))) {
 						} else {
 							$rCategories[] = intval($rCategoryID);
@@ -645,10 +656,18 @@ class MovieService {
 
 					$rServerIDs = array();
 
-					foreach (json_decode($rData['server_tree_data'], true) as $rServer) {
-						if ($rServer['parent'] == '#') {
+					$rServerTreeData = json_decode(($rData['server_tree_data'] ?? '[]'), true);
+					if (!is_array($rServerTreeData)) {
+						$rServerTreeData = array();
+					}
+
+					foreach ($rServerTreeData as $rServer) {
+						if (!is_array($rServer) || ($rServer['parent'] ?? '#') == '#') {
 						} else {
-							$rServerIDs[] = intval($rServer['id']);
+							$rServerID = intval($rServer['id'] ?? 0);
+							if (0 < $rServerID) {
+								$rServerIDs[] = $rServerID;
+							}
 						}
 					}
 					$rWatchCategories = array(1 => WatchService::getWatchCategories(1), 2 => WatchService::getWatchCategories(2));
