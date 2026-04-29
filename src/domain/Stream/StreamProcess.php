@@ -537,8 +537,8 @@ class StreamProcess {
 				$rStream['stream_arguments'] = $db->get_rows();
 
 				if ($rStream['server_info']['on_demand'] == 1) {
-					$rProbesize = intval($rStream['stream_info']['probesize_ondemand']);
-					$rAnalyseDuration = '10000000';
+					$rProbesize = intval($rStream['stream_info']['probesize_ondemand']) ?: 1000000;
+					$rAnalyseDuration = ($rLLOD ? '500000' : '10000000');
 				} else {
 					$rAnalyseDuration = abs(intval($rSettings['stream_max_analyze']));
 					$rProbesize = abs(intval($rSettings['probesize']));
@@ -775,6 +775,7 @@ class StreamProcess {
 				$externalPushJson = $rStream['stream_info']['external_push'] ?? '[]';
 				$rExternalPush = json_decode($externalPushJson, true);
 				$rProgressURL = 'http://127.0.0.1:' . intval($rServers[SERVER_ID]['http_broadcast_port']) . '/progress?stream_id=' . intval($rStreamID);
+				$rLLODInputFlags = ($rLLOD && !$rLoopback ? '-fflags +discardcorrupt ' : '');
 
 				if (empty($rStream['stream_info']['custom_ffmpeg'])) {
 					if ($rLoopback) {
@@ -826,7 +827,7 @@ class StreamProcess {
 						$rStream['stream_info']['transcode_attributes'] = array();
 					}
 
-					$rFFMPEG = ((isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rFFMPEG_GPU : $rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err ' . $rOptions . ' {GEN_PTS} {READ_NATIVE} -probesize ' . $rProbesize . ' -analyzeduration ' . $rAnalyseDuration . ' -progress "' . $rProgressURL . '" {CONCAT} -i {STREAM_SOURCE} {LOGO} ';
+					$rFFMPEG = ((isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rFFMPEG_GPU : $rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err ' . $rOptions . ' {GEN_PTS} {READ_NATIVE} ' . $rLLODInputFlags . '-probesize ' . $rProbesize . ' -analyzeduration ' . $rAnalyseDuration . ' -progress "' . $rProgressURL . '" {CONCAT} -i {STREAM_SOURCE} {LOGO} ';
 
 					if (!array_key_exists('-acodec', $rStream['stream_info']['transcode_attributes'])) {
 						$rStream['stream_info']['transcode_attributes']['-acodec'] = 'copy';
