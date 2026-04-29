@@ -54,6 +54,7 @@ Want to see your name here? [Open a PR](https://github.com/Vateron-Media/XC_VM/p
 * [@icleitoncosta](https://github.com/icleitoncosta) — EPG cron crash on invalid bouquet data, Dropbox token truncation
 * [@siffdk](https://github.com/siffdk) — VOD direct stream mode failing with multiple redirects
 * [@eoghan2t9](https://github.com/eoghan2t9) — Redis misconfiguration causing 500 error in v1.2.16
+* [@Xuioneitvymas](https://github.com/Kondoooo) — Proposed fix for LLOD v2 (FFmpeg) startup delay on on-demand streams
 
 ### 🎨 Design
 
