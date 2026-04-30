@@ -427,15 +427,12 @@ class UserRepository {
 		if ($rSettings['show_isps'] != 1 || empty($rIP)) {
 		} else {
 			$rISPLock = GeoIP::getISP($rIP);
-			if (!is_array($rISPLock)) {
-			} else {
-				if (empty($rISPLock['isp'])) {
-				} else {
+			if (is_array($rISPLock)) {
+				if (!empty($rISPLock['isp'])) {
 					$rUserInfo['con_isp_name'] = $rISPLock['isp'];
 					$rUserInfo['isp_asn'] = $rISPLock['autonomous_system_number'];
 					$rUserInfo['isp_violate'] = GeoIP::isISPBlocked($rUserInfo['con_isp_name'], BlocklistService::getBlockedISP());
-					if ($rSettings['block_svp'] != 1) {
-					} else {
+					if ($rSettings['block_svp'] == 1) {
 						$rUserInfo['isp_is_server'] = intval(GeoIP::isASNBlocked($rUserInfo['isp_asn'], BlocklistService::getBlockedServers()));
 					}
 				}
