@@ -33,9 +33,6 @@ class BinariesCommand implements CommandInterface {
 			}
 		});
 
-		$rBaseDir = '/home/xc_vm/bin/';
-		$geolitejsonFile = '/home/xc_vm/bin/maxmind/version.json';
-
 		// Check if apparmor_status command exists
 		if (shell_exec('which apparmor_status')) {
 			exec('sudo apparmor_status', $rAppArmor);
@@ -51,52 +48,7 @@ class BinariesCommand implements CommandInterface {
 			}
 		}
 
-		$rUpdated = false;
-		$repo = new GitHubReleases(GIT_OWNER, GIT_REPO_UPDATE, SettingsManager::getAll()['update_channel']);
-
-		$datageolite = $repo->getGeolite();
-		if (is_array($datageolite)) {
-			foreach ($datageolite['files'] as $rFile) {
-				if (!file_exists($rFile['path']) || md5_file($rFile['path']) != $rFile['md5']) {
-					$rFolderPath = pathinfo($rFile['path'])['dirname'] . '/';
-
-					if (!file_exists($rFolderPath)) {
-						shell_exec('sudo mkdir -p "' . $rFolderPath . '"');
-					}
-
-					$ch = curl_init();
-					curl_setopt($ch, CURLOPT_URL, $rFile['fileurl']);
-					curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-					curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 30);
-					curl_setopt($ch, CURLOPT_TIMEOUT, 300);
-					curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-					curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
-					$rData = curl_exec($ch);
-					$rMD5 = md5($rData);
-
-					if ($rFile['md5'] == $rMD5) {
-						echo 'Updated binary: ' . $rFile['path'] . "\n";
-						file_put_contents($rFile['path'], $rData);
-
-						shell_exec('sudo chown xc_vm:xc_vm "' . $rFile['path'] . '"');
-						shell_exec('sudo chmod ' . $rFile["permission"] . ' "' . $rFile['path'] . '"');
-						$rUpdated = true;
-					}
-				}
-			}
-
-			$jsonData = file_get_contents($geolitejsonFile);
-			$data = json_decode($jsonData, true);
-
-			if (isset($data['geolite2_version'])) {
-				$data['geolite2_version'] = $datageolite["version"];
-				file_put_contents($geolitejsonFile, json_encode($data, JSON_PRETTY_PRINT));
-			}
-		}
-
-		if ($rUpdated) {
-			shell_exec('sudo chown -R xc_vm:xc_vm "' . $rBaseDir . '"');
-		}
+		// The logic for updating binary files, which is not currently implemented, will be added here.
 
 		return 0;
 	}

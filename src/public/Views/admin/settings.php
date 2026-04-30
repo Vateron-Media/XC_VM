@@ -1155,7 +1155,7 @@ endif; // !$__settingsViewMode
 																	} else {
 																		echo ' selected';
 																	}
-																	echo ' value="manual">'. $language::get('manual') .'</option></select></div><label class="col-md-4 col-form-label" for="vod_sort_newest">Sort VOD by Date <i title="' . $language::get('change_default_sorting_for_vod_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="vod_sort_newest" id="vod_sort_newest" type="checkbox"';
+																	echo ' value="manual">' . $language::get('manual') . '</option></select></div><label class="col-md-4 col-form-label" for="vod_sort_newest">Sort VOD by Date <i title="' . $language::get('change_default_sorting_for_vod_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="vod_sort_newest" id="vod_sort_newest" type="checkbox"';
 																	if ($rSettings["vod_sort_newest"] == 1) {
 																		echo ' checked ';
 																	}
@@ -1166,1151 +1166,1182 @@ endif; // !$__settingsViewMode
 																data-plugin="switchery" class="js-switch"
 																data-color="#039cfd" />
 													</div>
-													<label class="col-md-4 col-form-label" for="show_isps">Log Client
-														ISP's
-														<i title="<?= $language::get('grab_isp_information_for_each_tooltip') ?>"
+													<label class="col-md-4 col-form-label" for="show_isps">Log Client ISP's
+															<i title="<?= $language::get('grab_isp_information_for_each_tooltip') ?>"
 															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input name="show_isps" id="show_isps" type="checkbox" <?php if ($rSettings["show_isps"] == 1) {
+														<div class="col-md-2">
+															<input name="show_isps" id="show_isps" type="checkbox" <?php if ($rSettings["show_isps"] == 1) {
+																														echo ' checked ';
+																													} ?>
+																data-plugin="switchery" class="js-switch"
+																data-color="#039cfd" />
+														</div>
+													</div>
+													<div class="form-group row mb-4">
+														<label class="col-md-4 col-form-label"
+															for="online_capacity_interval">Online Capacity Interval <i
+																title="<?= $language::get('interval_at_which_to_check_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<input type="text" class="form-control text-center"
+																id="online_capacity_interval" name="online_capacity_interval"
+																value="<?= htmlspecialchars($rSettings["online_capacity_interval"] ?? '') ?>">
+														</div>
+														<label class="col-md-4 col-form-label"
+															for="monitor_connection_status">Monitor Connection Status <i
+																title="<?= $language::get('monitor_phps_connectionstatus_return_while_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<input name="monitor_connection_status"
+																id="monitor_connection_status" type="checkbox" <?php if ($rSettings["monitor_connection_status"] == 1) {
 																													echo ' checked ';
-																												} ?>
-															data-plugin="switchery" class="js-switch"
-															data-color="#039cfd" />
+																												} ?> data-plugin="switchery" class="js-switch"
+																data-color="#039cfd" />
+														</div>
 													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label"
-														for="online_capacity_interval">Online Capacity Interval <i
-															title="<?= $language::get('interval_at_which_to_check_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input type="text" class="form-control text-center"
-															id="online_capacity_interval" name="online_capacity_interval"
-															value="<?= htmlspecialchars($rSettings["online_capacity_interval"] ?? '') ?>">
+													<div class="form-group row mb-4">
+														<label class="col-md-4 col-form-label"
+															for="restart_php_fpm">Auto-Restart Crashed PHP-FPM <i
+																title="<?= $language::get('run_a_cron_that_restarts_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<input name="restart_php_fpm" id="restart_php_fpm" type="checkbox"
+																<?php if ($rSettings["restart_php_fpm"] == 1) {
+																	echo ' checked ';
+																} ?> data-plugin="switchery" class="js-switch"
+																data-color="#039cfd" />
+														</div>
+														<label class="col-md-4 col-form-label" for="kill_rogue_ffmpeg">Kill
+															Rogue FFMPEG PID's <i
+																title="<?= $language::get('when_enabled_ffmpeg_pids_will_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<input name="kill_rogue_ffmpeg" id="kill_rogue_ffmpeg"
+																type="checkbox" <?php if ($rSettings["kill_rogue_ffmpeg"] == 1) {
+																					echo ' checked ';
+																				} ?> data-plugin="switchery" class="js-switch"
+																data-color="#039cfd" />
+														</div>
 													</div>
-													<label class="col-md-4 col-form-label"
-														for="monitor_connection_status">Monitor Connection Status <i
-															title="<?= $language::get('monitor_phps_connectionstatus_return_while_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input name="monitor_connection_status"
-															id="monitor_connection_status" type="checkbox" <?php if ($rSettings["monitor_connection_status"] == 1) {
-																												echo ' checked ';
-																											} ?> data-plugin="switchery" class="js-switch"
-															data-color="#039cfd" />
+													<div class="form-group row mb-4">
+														<label class="col-md-4 col-form-label" for="create_expiration">Redirect
+															Expiration <i
+																title="<?= $language::get('how_long_in_seconds_before_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<input type="text" class="form-control text-center"
+																id="create_expiration" name="create_expiration"
+																value="<?= htmlspecialchars($rSettings["create_expiration"] ?? '') ?>">
+														</div>
+														<label class="col-md-4 col-form-label" for="read_native_hls">HLS
+															Read
+															Native <i
+																title="<?= $language::get('force_read_native_on_for_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<input name="read_native_hls" id="read_native_hls" type="checkbox"
+																<?php if ($rSettings["read_native_hls"] == 1) {
+																	echo ' checked ';
+																} ?> data-plugin="switchery" class="js-switch"
+																data-color="#039cfd" />
+														</div>
 													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label"
-														for="restart_php_fpm">Auto-Restart Crashed PHP-FPM <i
-															title="<?= $language::get('run_a_cron_that_restarts_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input name="restart_php_fpm" id="restart_php_fpm" type="checkbox"
-															<?php if ($rSettings["restart_php_fpm"] == 1) {
-																echo ' checked ';
-															} ?> data-plugin="switchery" class="js-switch"
-															data-color="#039cfd" />
+													<div class="form-group row mb-4">
+														<label class="col-md-4 col-form-label" for="read_buffer_size">Read Buffer Size <i
+																title="<?= $language::get('amount_of_buffer_to_use_when_reading_files_in_chunks') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<input type="text" class="form-control text-center"
+																id="read_buffer_size" name="read_buffer_size"
+																value="<?= htmlspecialchars($rSettings["read_buffer_size"] ?? ''); ?>">
+														</div>
+														<label class="col-md-4 col-form-label" for="connection_sync_timer">Redis Connection Sync Timer <i
+																title="<?= $language::get('time_between_runs_of_the_redis_connection_sync_script') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<input type="text" class="form-control text-center"
+																id="connection_sync_timer" name="connection_sync_timer" value="<?= htmlspecialchars($rSettings["connection_sync_timer"] ?? ''); ?>">
+														</div>
 													</div>
-													<label class="col-md-4 col-form-label" for="kill_rogue_ffmpeg">Kill
-														Rogue FFMPEG PID's <i
-															title="<?= $language::get('when_enabled_ffmpeg_pids_will_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input name="kill_rogue_ffmpeg" id="kill_rogue_ffmpeg"
-															type="checkbox" <?php if ($rSettings["kill_rogue_ffmpeg"] == 1) {
-																				echo ' checked ';
-																			} ?> data-plugin="switchery" class="js-switch"
-															data-color="#039cfd" />
+													<div class="form-group row mb-4">
+														<label class="col-md-4 col-form-label" for="allow_cdn_access">Allow CDN / Forwarding <i
+																title="<?= $language::get('allow_xforwardedfor_to_forward_the_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<input name="allow_cdn_access" id="allow_cdn_access" type="checkbox"
+																<?php if ($rSettings["allow_cdn_access"] == 1) {
+																	echo ' checked ';
+																}
+																echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="stop_failures">Max Failures <i title="' . $language::get('how_many_failures_before_exiting_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="stop_failures" name="stop_failures" value="';
+																echo htmlspecialchars($rSettings["stop_failures"] ?? '');
+																echo '"></div>    </div>    <h5 class="card-title mb-4">' . $language::get('on_demand_settings') . '</h5>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="on_demand_instant_off">Instant Off <i title="' . $language::get('when_a_client_disconnects_from_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="on_demand_instant_off" id="on_demand_instant_off" type="checkbox"';
+																if ($rSettings["on_demand_instant_off"] == 1) {
+																	echo ' checked ';
+																} ?> data-plugin="switchery" class="js-switch"
+																data-color="#039cfd" />
+														</div>
+														<label class="col-md-4 col-form-label" for="on_demand_failure_exit">Exit
+															on Failure <i
+																title="<?= $language::get('if_an_ondemand_stream_fails_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<input name="on_demand_failure_exit" id="on_demand_failure_exit"
+																type="checkbox" <?php if ($rSettings["on_demand_failure_exit"] == 1) {
+																					echo ' checked ';
+																				} ?> data-plugin="switchery" class="js-switch"
+																data-color="#039cfd" />
+														</div>
 													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="create_expiration">Redirect
-														Expiration <i
-															title="<?= $language::get('how_long_in_seconds_before_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input type="text" class="form-control text-center"
-															id="create_expiration" name="create_expiration"
-															value="<?= htmlspecialchars($rSettings["create_expiration"] ?? '') ?>">
+													<div class="form-group row mb-4">
+														<label class="col-md-4 col-form-label" for="on_demand_wait_time">Wait
+															Timeout <i
+																title="<?= $language::get('how_long_should_the_client_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<input type="text" class="form-control text-center"
+																id="on_demand_wait_time" name="on_demand_wait_time"
+																value="<?= htmlspecialchars($rSettings["on_demand_wait_time"] ?? '') ?>">
+														</div>
+														<label class="col-md-4 col-form-label" for="request_prebuffer">Request
+															Prebuffer <i
+																title="<?= $language::get('when_you_request_a_stream_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<input name="request_prebuffer" id="request_prebuffer"
+																type="checkbox" <? if ($rSettings["request_prebuffer"] == 1) {
+																					echo ' checked ';
+																				} ?> data-plugin="switchery" class="js-switch"
+																data-color="#039cfd" />
+														</div>
 													</div>
-													<label class="col-md-4 col-form-label" for="read_native_hls">HLS
-														Read
-														Native <i
-															title="<?= $language::get('force_read_native_on_for_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input name="read_native_hls" id="read_native_hls" type="checkbox"
-															<?php if ($rSettings["read_native_hls"] == 1) {
-																echo ' checked ';
-															} ?> data-plugin="switchery" class="js-switch"
-															data-color="#039cfd" />
+													<div class="form-group row mb-4">
+														<label class="col-md-4 col-form-label"
+															for="ondemand_balance_equal">Balance As Live <i
+																title="<?= $language::get('treat_ondemand_servers_equal_to_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<input name="ondemand_balance_equal" id="ondemand_balance_equal"
+																type="checkbox" <?php if ($rSettings["ondemand_balance_equal"] == 1) {
+																					echo ' checked ';
+																				} ?> data-plugin="switchery" class="js-switch"
+																data-color="#039cfd" />
+														</div>
 													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="read_buffer_size">Read Buffer Size <i
-															title="<?= $language::get('amount_of_buffer_to_use_when_reading_files_in_chunks') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input type="text" class="form-control text-center"
-															id="read_buffer_size" name="read_buffer_size"
-															value="<?= htmlspecialchars($rSettings["read_buffer_size"] ?? ''); ?>">
+													<h5 class="card-title mb-4"><?= $language::get('ondemand_scanner') ?></h5>
+													<div class="form-group row mb-4">
+														<label class="col-md-4 col-form-label" for="on_demand_checker">Enable
+															Scanner <i
+																title="<?= $language::get('periodically_probe_ondemand_streams_to_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<input name="on_demand_checker" id="on_demand_checker"
+																type="checkbox" <?php if ($rSettings["on_demand_checker"] == 1) {
+																					echo ' checked ';
+																				} ?> data-plugin="switchery" class="js-switch"
+																data-color="#039cfd" />
+														</div>
+														<label class="col-md-4 col-form-label" for="on_demand_scan_time">Scan
+															Time <i title="<?= $language::get('how_often_to_scan_a_stream_in_seconds') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<input type="text" class="form-control text-center"
+																id="on_demand_scan_time" name="on_demand_scan_time"
+																value="<?= htmlspecialchars($rSettings["on_demand_scan_time"] ?? '') ?>">
+														</div>
 													</div>
-													<label class="col-md-4 col-form-label" for="connection_sync_timer">Redis Connection Sync Timer <i
-															title="<?= $language::get('time_between_runs_of_the_redis_connection_sync_script') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input type="text" class="form-control text-center"
-															id="connection_sync_timer" name="connection_sync_timer" value="<?= htmlspecialchars($rSettings["connection_sync_timer"] ?? ''); ?>">
+													<div class="form-group row mb-4">
+														<label class="col-md-4 col-form-label" for="on_demand_max_probe">Max
+															Probe Time <i
+																title="<?= $language::get('how_many_seconds_to_probe_the_stream_for_before_cancelling') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<input type="text" class="form-control text-center"
+																id="on_demand_max_probe" name="on_demand_max_probe"
+																value="<?= htmlspecialchars($rSettings["on_demand_max_probe"] ?? '') ?>">
+														</div>
+														<label class="col-md-4 col-form-label" for="on_demand_scan_keep">Keep
+															Logs For <i
+																title="<?= $language::get('how_many_seconds_to_keep_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<input type="text" class="form-control text-center"
+																id="on_demand_scan_keep" name="on_demand_scan_keep"
+																value="<?= htmlspecialchars($rSettings["on_demand_scan_keep"] ?? '') ?>">
+														</div>
 													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="allow_cdn_access">Allow CDN / Forwarding <i
-															title="<?= $language::get('allow_xforwardedfor_to_forward_the_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input name="allow_cdn_access" id="allow_cdn_access" type="checkbox"
-															<?php if ($rSettings["allow_cdn_access"] == 1) {
-																echo ' checked ';
-															}
-															echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="stop_failures">Max Failures <i title="' . $language::get('how_many_failures_before_exiting_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input type="text" class="form-control text-center" id="stop_failures" name="stop_failures" value="';
-															echo htmlspecialchars($rSettings["stop_failures"] ?? '');
-															echo '"></div>    </div>    <h5 class="card-title mb-4">' . $language::get('on_demand_settings') . '</h5>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="on_demand_instant_off">Instant Off <i title="' . $language::get('when_a_client_disconnects_from_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="on_demand_instant_off" id="on_demand_instant_off" type="checkbox"';
-															if ($rSettings["on_demand_instant_off"] == 1) {
-																echo ' checked ';
-															} ?> data-plugin="switchery" class="js-switch"
-															data-color="#039cfd" />
+													<h5 class="card-title mb-4"><?= $language::get('encoding_queue_settings') ?></h5>
+													<div class="form-group row mb-4">
+														<label class="col-md-4 col-form-label" for="max_encode_movies">Max
+															Movie
+															Encodes <i
+																title="<?= $language::get('maximum_number_of_movies_to_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<input type="text" class="form-control text-center"
+																id="max_encode_movies" name="max_encode_movies"
+																value="<?= htmlspecialchars($rSettings["max_encode_movies"] ?? '') ?>">
+														</div>
+														<label class="col-md-4 col-form-label" for="max_encode_cc">Max
+															Channel
+															Encodes <i
+																title="<?= $language::get('maximum_number_of_created_channels_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<input type="text" class="form-control text-center"
+																id="max_encode_cc" name="max_encode_cc"
+																value="<?= htmlspecialchars($rSettings["max_encode_cc"] ?? '') ?>">
+														</div>
 													</div>
-													<label class="col-md-4 col-form-label" for="on_demand_failure_exit">Exit
-														on Failure <i
-															title="<?= $language::get('if_an_ondemand_stream_fails_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input name="on_demand_failure_exit" id="on_demand_failure_exit"
-															type="checkbox" <?php if ($rSettings["on_demand_failure_exit"] == 1) {
-																				echo ' checked ';
-																			} ?> data-plugin="switchery" class="js-switch"
-															data-color="#039cfd" />
+													<div class="form-group row mb-4">
+														<label class="col-md-4 col-form-label" for="queue_loop">Queue Loop
+															Timer
+															<i title="<?= $language::get('how_long_to_wait_between_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<input type="text" class="form-control text-center" id="queue_loop"
+																name="queue_loop"
+																value="<?= htmlspecialchars($rSettings["queue_loop"] ?? '') ?>">
+														</div>
 													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="on_demand_wait_time">Wait
-														Timeout <i
-															title="<?= $language::get('how_long_should_the_client_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input type="text" class="form-control text-center"
-															id="on_demand_wait_time" name="on_demand_wait_time"
-															value="<?= htmlspecialchars($rSettings["on_demand_wait_time"] ?? '') ?>">
+													<h5 class="card-title mb-4"><?= $language::get('segment_settings') ?></h5>
+													<div class="form-group row mb-4">
+														<label class="col-md-4 col-form-label" for="seg_time">Segment
+															Duration
+															<i title="<?= $language::get('duration_of_individual_segments_when_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<input type="text" class="form-control text-center" id="seg_time"
+																name="seg_time"
+																value="<?= htmlspecialchars($rSettings["seg_time"] ?? '') ?>">
+														</div>
+														<label class="col-md-4 col-form-label" for="seg_list_size">List Size
+															<i title="<?= $language::get('number_of_segments_in_the_hls_playlist') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<input type="text" class="form-control text-center"
+																id="seg_list_size" name="seg_list_size"
+																value="<?= htmlspecialchars($rSettings["seg_list_size"] ?? '') ?>">
+														</div>
 													</div>
-													<label class="col-md-4 col-form-label" for="request_prebuffer">Request
-														Prebuffer <i
-															title="<?= $language::get('when_you_request_a_stream_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input name="request_prebuffer" id="request_prebuffer"
-															type="checkbox" <? if ($rSettings["request_prebuffer"] == 1) {
-																				echo ' checked ';
-																			} ?> data-plugin="switchery" class="js-switch"
-															data-color="#039cfd" />
+													<div class="form-group row mb-4">
+														<label class="col-md-4 col-form-label" for="seg_delete_threshold">Delete
+															Threshold <i
+																title="<?= $language::get('how_many_old_segments_to_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<input type="text" class="form-control text-center"
+																id="seg_delete_threshold" name="seg_delete_threshold"
+																value="<?= htmlspecialchars($rSettings["seg_delete_threshold"] ?? '') ?>">
+														</div>
+														<label class="col-md-4 col-form-label" for="segment_wait_time">Max
+															Segment Wait Time <i
+																title="<?= $language::get('maximum_amount_of_seconds_to_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<input type="text" class="form-control text-center"
+																id="segment_wait_time" name="segment_wait_time" value="<?= htmlspecialchars($rSettings["segment_wait_time"] ?? '') ?>">
+														</div>
 													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label"
-														for="ondemand_balance_equal">Balance As Live <i
-															title="<?= $language::get('treat_ondemand_servers_equal_to_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input name="ondemand_balance_equal" id="ondemand_balance_equal"
-															type="checkbox" <?php if ($rSettings["ondemand_balance_equal"] == 1) {
-																				echo ' checked ';
-																			} ?> data-plugin="switchery" class="js-switch"
-															data-color="#039cfd" />
+													<div class="form-group row mb-4">
+														<label class="col-md-4 col-form-label" for="stream_max_analyze">Analysis
+															Duration <i
+																title="<?= $language::get('how_long_to_analyse_a_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<input type="text" class="form-control text-center"
+																id="stream_max_analyze" name="stream_max_analyze"
+																value="<?= htmlspecialchars($rSettings["stream_max_analyze"] ?? '') ?>">
+														</div>
+														<label class="col-md-4 col-form-label" for="probesize">Probe Size <i
+																title="<?= $language::get('amount_of_data_to_be_probed_in_bytes') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<input type="text" class="form-control text-center" id="probesize"
+																name="probesize"
+																value="<?= htmlspecialchars($rSettings["probesize"] ?? '') ?>">
+														</div>
 													</div>
-												</div>
-												<h5 class="card-title mb-4"><?= $language::get('ondemand_scanner') ?></h5>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="on_demand_checker">Enable
-														Scanner <i
-															title="<?= $language::get('periodically_probe_ondemand_streams_to_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input name="on_demand_checker" id="on_demand_checker"
-															type="checkbox" <?php if ($rSettings["on_demand_checker"] == 1) {
-																				echo ' checked ';
-																			} ?> data-plugin="switchery" class="js-switch"
-															data-color="#039cfd" />
-													</div>
-													<label class="col-md-4 col-form-label" for="on_demand_scan_time">Scan
-														Time <i title="<?= $language::get('how_often_to_scan_a_stream_in_seconds') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input type="text" class="form-control text-center"
-															id="on_demand_scan_time" name="on_demand_scan_time"
-															value="<?= htmlspecialchars($rSettings["on_demand_scan_time"] ?? '') ?>">
-													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="on_demand_max_probe">Max
-														Probe Time <i
-															title="<?= $language::get('how_many_seconds_to_probe_the_stream_for_before_cancelling') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input type="text" class="form-control text-center"
-															id="on_demand_max_probe" name="on_demand_max_probe"
-															value="<?= htmlspecialchars($rSettings["on_demand_max_probe"] ?? '') ?>">
-													</div>
-													<label class="col-md-4 col-form-label" for="on_demand_scan_keep">Keep
-														Logs For <i
-															title="<?= $language::get('how_many_seconds_to_keep_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input type="text" class="form-control text-center"
-															id="on_demand_scan_keep" name="on_demand_scan_keep"
-															value="<?= htmlspecialchars($rSettings["on_demand_scan_keep"] ?? '') ?>">
-													</div>
-												</div>
-												<h5 class="card-title mb-4"><?= $language::get('encoding_queue_settings') ?></h5>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="max_encode_movies">Max
-														Movie
-														Encodes <i
-															title="<?= $language::get('maximum_number_of_movies_to_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input type="text" class="form-control text-center"
-															id="max_encode_movies" name="max_encode_movies"
-															value="<?= htmlspecialchars($rSettings["max_encode_movies"] ?? '') ?>">
-													</div>
-													<label class="col-md-4 col-form-label" for="max_encode_cc">Max
-														Channel
-														Encodes <i
-															title="<?= $language::get('maximum_number_of_created_channels_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input type="text" class="form-control text-center"
-															id="max_encode_cc" name="max_encode_cc"
-															value="<?= htmlspecialchars($rSettings["max_encode_cc"] ?? '') ?>">
-													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="queue_loop">Queue Loop
-														Timer
-														<i title="<?= $language::get('how_long_to_wait_between_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input type="text" class="form-control text-center" id="queue_loop"
-															name="queue_loop"
-															value="<?= htmlspecialchars($rSettings["queue_loop"] ?? '') ?>">
-													</div>
-												</div>
-												<h5 class="card-title mb-4"><?= $language::get('segment_settings') ?></h5>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="seg_time">Segment
-														Duration
-														<i title="<?= $language::get('duration_of_individual_segments_when_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input type="text" class="form-control text-center" id="seg_time"
-															name="seg_time"
-															value="<?= htmlspecialchars($rSettings["seg_time"] ?? '') ?>">
-													</div>
-													<label class="col-md-4 col-form-label" for="seg_list_size">List Size
-														<i title="<?= $language::get('number_of_segments_in_the_hls_playlist') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input type="text" class="form-control text-center"
-															id="seg_list_size" name="seg_list_size"
-															value="<?= htmlspecialchars($rSettings["seg_list_size"] ?? '') ?>">
-													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="seg_delete_threshold">Delete
-														Threshold <i
-															title="<?= $language::get('how_many_old_segments_to_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input type="text" class="form-control text-center"
-															id="seg_delete_threshold" name="seg_delete_threshold"
-															value="<?= htmlspecialchars($rSettings["seg_delete_threshold"] ?? '') ?>">
-													</div>
-													<label class="col-md-4 col-form-label" for="segment_wait_time">Max
-														Segment Wait Time <i
-															title="<?= $language::get('maximum_amount_of_seconds_to_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input type="text" class="form-control text-center"
-															id="segment_wait_time" name="segment_wait_time" value="<?= htmlspecialchars($rSettings["segment_wait_time"] ?? '') ?>">
-													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="stream_max_analyze">Analysis
-														Duration <i
-															title="<?= $language::get('how_long_to_analyse_a_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input type="text" class="form-control text-center"
-															id="stream_max_analyze" name="stream_max_analyze"
-															value="<?= htmlspecialchars($rSettings["stream_max_analyze"] ?? '') ?>">
-													</div>
-													<label class="col-md-4 col-form-label" for="probesize">Probe Size <i
-															title="<?= $language::get('amount_of_data_to_be_probed_in_bytes') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input type="text" class="form-control text-center" id="probesize"
-															name="probesize"
-															value="<?= htmlspecialchars($rSettings["probesize"] ?? '') ?>">
-													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="ffmpeg_cpu">FFMPEG
-														Version
-														<i title="<?= $language::get('which_version_of_ffmpeg_to_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<select name="ffmpeg_cpu" id="ffmpeg_cpu" class="form-control"
-															data-toggle="select2">
-															<?php
-															foreach (["8.0", "7.1", "4.0"] as $rValue) {
-																echo '<option ';
+													<div class="form-group row mb-4">
+														<label class="col-md-4 col-form-label" for="ffmpeg_cpu">FFMPEG
+															Version
+															<i title="<?= $language::get('which_version_of_ffmpeg_to_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<select name="ffmpeg_cpu" id="ffmpeg_cpu" class="form-control"
+																data-toggle="select2">
+																<?php
+																foreach (["8.0", "7.1", "4.0"] as $rValue) {
+																	echo '<option ';
 
-																if ($rSettings["ffmpeg_cpu"] == $rValue) {
-																	echo 'selected ';
+																	if ($rSettings["ffmpeg_cpu"] == $rValue) {
+																		echo 'selected ';
+																	}
+
+																	echo 'value="';
+																	echo $rValue;
+																	echo '">v';
+																	echo $rValue;
+																	echo '</option>';
+																}
+																echo '</select></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="ffmpeg_warnings">FFMPEG Show Warnings <i title="' . $language::get('instruct_ffmpeg_to_save_warnings_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="ffmpeg_warnings" id="ffmpeg_warnings" type="checkbox"';
+
+																if ($rSettings["ffmpeg_warnings"] == 1) {
+																	echo ' checked ';
 																}
 
-																echo 'value="';
-																echo $rValue;
-																echo '">v';
-																echo $rValue;
-																echo '</option>';
-															}
-															echo '</select></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="ffmpeg_warnings">FFMPEG Show Warnings <i title="' . $language::get('instruct_ffmpeg_to_save_warnings_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="ffmpeg_warnings" id="ffmpeg_warnings" type="checkbox"';
+																echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="ignore_keyframes">Ignore Keyframes <i title="' . $language::get('allow_segments_to_start_on_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="ignore_keyframes" id="ignore_keyframes" type="checkbox"';
 
-															if ($rSettings["ffmpeg_warnings"] == 1) {
-																echo ' checked ';
-															}
+																if ($rSettings["ignore_keyframes"] == 1) {
+																	echo ' checked ';
+																}
 
-															echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="ignore_keyframes">Ignore Keyframes <i title="' . $language::get('allow_segments_to_start_on_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="ignore_keyframes" id="ignore_keyframes" type="checkbox"';
+																echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="dts_legacy_ffmpeg">DTS - Use FFMPEG v4.0 <i title="' . $language::get('automatically_switch_to_legacy_ffmpeg_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="dts_legacy_ffmpeg" id="dts_legacy_ffmpeg" type="checkbox"';
 
-															if ($rSettings["ignore_keyframes"] == 1) {
-																echo ' checked ';
-															}
-
-															echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="dts_legacy_ffmpeg">DTS - Use FFMPEG v4.0 <i title="' . $language::get('automatically_switch_to_legacy_ffmpeg_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="dts_legacy_ffmpeg" id="dts_legacy_ffmpeg" type="checkbox"';
-
-															if ($rSettings["dts_legacy_ffmpeg"] == 1) {
-																echo ' checked ';
-															}
-															?> data-plugin="switchery" class="js-switch" data-color="#039cfd"/>
+																if ($rSettings["dts_legacy_ffmpeg"] == 1) {
+																	echo ' checked ';
+																}
+																?> data-plugin="switchery" class="js-switch" data-color="#039cfd"/>
+														</div>
+														<label class="col-md-4 col-form-label" for="php_loopback">Loopback
+															Streams via PHP <i
+																title="<?= $language::get('dont_use_ffmpeg_to_handle_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<input name="php_loopback" id="php_loopback" type="checkbox" <?php if ($rSettings["php_loopback"] == 1) {
+																																echo ' checked ';
+																															} ?>
+																data-plugin="switchery" class="js-switch"
+																data-color="#039cfd" />
+														</div>
 													</div>
-													<label class="col-md-4 col-form-label" for="php_loopback">Loopback
-														Streams via PHP <i
-															title="<?= $language::get('dont_use_ffmpeg_to_handle_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input name="php_loopback" id="php_loopback" type="checkbox" <?php if ($rSettings["php_loopback"] == 1) {
-																															echo ' checked ';
-																														} ?>
-															data-plugin="switchery" class="js-switch"
-															data-color="#039cfd" />
+													<h5 class="card-title mb-4"><?= $language::get('stream_monitor_settings') ?></h5>
+													<div class="form-group row mb-4"><label class="col-md-4 col-form-label"
+															for="audio_restart_loss">Restart on Audio Loss <i
+																title="<?= $language::get('restart_stream_periodically_if_no_audio_is_detected') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2"><input name="audio_restart_loss"
+																id="audio_restart_loss" type="checkbox" <?
+																										if ($rSettings["audio_restart_loss"] == 1) {
+																											echo ' checked ';
+																										} ?>
+																data-plugin="switchery" class="js-switch"
+																data-color="#039cfd" /></div><label
+															class="col-md-4 col-form-label" for="priority_backup">Priority
+															Backup <i
+																title="<?= $language::get('switch_back_to_the_first_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2"><input name="priority_backup" id="priority_backup"
+																type="checkbox" <? if ($rSettings["priority_backup"] == 1) {
+																					echo ' checked ';
+																				} ?> data-plugin="switchery" class="js-switch"
+																data-color="#039cfd" /></div>
 													</div>
-												</div>
-												<h5 class="card-title mb-4"><?= $language::get('stream_monitor_settings') ?></h5>
-												<div class="form-group row mb-4"><label class="col-md-4 col-form-label"
-														for="audio_restart_loss">Restart on Audio Loss <i
-															title="<?= $language::get('restart_stream_periodically_if_no_audio_is_detected') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2"><input name="audio_restart_loss"
-															id="audio_restart_loss" type="checkbox" <?
-																									if ($rSettings["audio_restart_loss"] == 1) {
-																										echo ' checked ';
-																									} ?>
-															data-plugin="switchery" class="js-switch"
-															data-color="#039cfd" /></div><label
-														class="col-md-4 col-form-label" for="priority_backup">Priority
-														Backup <i
-															title="<?= $language::get('switch_back_to_the_first_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2"><input name="priority_backup" id="priority_backup"
-															type="checkbox" <? if ($rSettings["priority_backup"] == 1) {
-																				echo ' checked ';
-																			} ?> data-plugin="switchery" class="js-switch"
-															data-color="#039cfd" /></div>
-												</div>
-												<div class="form-group row mb-4"><label class="col-md-4 col-form-label"
-														for="probe_extra_wait">Probe Duration <i
-															title="<?= $language::get('how_long_to_wait_after_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2"><input type="text"
-															class="form-control text-center" id="probe_extra_wait"
-															name="probe_extra_wait" value="<?= htmlspecialchars($rSettings["probe_extra_wait"] ?? ''); ?>">
-													</div><label class=" col-md-4 col-form-label"
-														for="stream_fail_sleep">Stream Failure Sleep <i
-															title="<?= $language::get('how_long_to_wait_in_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2"><input type="text"
-															class="form-control text-center" id="stream_fail_sleep"
-															name="stream_fail_sleep" value="<?= htmlspecialchars($rSettings["stream_fail_sleep"] ?? '') ?>"></div>
-												</div>
-												<div class=" form-group row
+													<div class="form-group row mb-4"><label class="col-md-4 col-form-label"
+															for="probe_extra_wait">Probe Duration <i
+																title="<?= $language::get('how_long_to_wait_after_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2"><input type="text"
+																class="form-control text-center" id="probe_extra_wait"
+																name="probe_extra_wait" value="<?= htmlspecialchars($rSettings["probe_extra_wait"] ?? ''); ?>">
+														</div><label class=" col-md-4 col-form-label"
+															for="stream_fail_sleep">Stream Failure Sleep <i
+																title="<?= $language::get('how_long_to_wait_in_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2"><input type="text"
+																class="form-control text-center" id="stream_fail_sleep"
+																name="stream_fail_sleep" value="<?= htmlspecialchars($rSettings["stream_fail_sleep"] ?? '') ?>"></div>
+													</div>
+													<div class=" form-group row
 														mb-4"><label class="col-md-4 col-form-label" for="fps_delay">FPS
-														Start Delay <i
-															title="<?= $language::get('how_long_in_seconds_to_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2"><input type="text"
-															class="form-control text-center" id="fps_delay" name="fps_delay"
-															value="<?= htmlspecialchars($rSettings["fps_delay"] ?? '') ?>"></div><label class=" col-md-4 col-form-label"
-														for="fps_check_type">FPS Check Type <i
-															title="<?= $language::get('whether_to_use_progress_info_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2"><select name="fps_check_type" id="fps_check_type"
-															class="form-control" data-toggle="select2">
+															Start Delay <i
+																title="<?= $language::get('how_long_in_seconds_to_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2"><input type="text"
+																class="form-control text-center" id="fps_delay" name="fps_delay"
+																value="<?= htmlspecialchars($rSettings["fps_delay"] ?? '') ?>"></div><label class=" col-md-4 col-form-label"
+															for="fps_check_type">FPS Check Type <i
+																title="<?= $language::get('whether_to_use_progress_info_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2"><select name="fps_check_type" id="fps_check_type"
+																class="form-control" data-toggle="select2">
 
-															<?php foreach (["Progress Info", "avg_frame_rate"] as $rValue => $rText) {
-																echo '
+																<?php foreach (["Progress Info", "avg_frame_rate"] as $rValue => $rText) {
+																	echo '
 																<option ';
 
-																if ($rSettings["fps_check_type"] != $rValue) {
-																} else {
-																	echo 'selected ';
-																}
+																	if ($rSettings["fps_check_type"] != $rValue) {
+																	} else {
+																		echo 'selected ';
+																	}
 
-															?> value="<?= $rValue ?>"><?= $rText ?></option><?php
+																?> value="<?= $rValue ?>"><?= $rText ?></option><?php
 																										}
 																											?>
-														</select>
+															</select>
+														</div>
 													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="api_probe">Probe
-														via API <i title="<?= $language::get('use_api_calls_to_probe_sources_from_xc_vm_servers') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input name="api_probe" id="api_probe" type="checkbox" <?php
-																												if ($rSettings["api_probe"] == 1) {
-																													echo ' checked ';
-																												}
-																												?>
-															data-plugin="switchery" class="js-switch"
-															data-color="#039cfd" />
+													<div class="form-group row mb-4">
+														<label class="col-md-4 col-form-label" for="api_probe">Probe
+															via API <i title="<?= $language::get('use_api_calls_to_probe_sources_from_xc_vm_servers') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<input name="api_probe" id="api_probe" type="checkbox" <?php
+																													if ($rSettings["api_probe"] == 1) {
+																														echo ' checked ';
+																													}
+																													?>
+																data-plugin="switchery" class="js-switch"
+																data-color="#039cfd" />
+														</div>
 													</div>
-												</div>
-												<h5 class="card-title mb-4"><?= $language::get('off_air_videos') ?></h5>
-												<div class="form-group row mb-4"><label class="col-md-4 col-form-label"
-														for="show_not_on_air_video">Stream Down Video <i
-															title="<?= $language::get('show_this_video_when_a_stream_isnt_on_air') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2"><input name="show_not_on_air_video"
-															id="show_not_on_air_video" type="checkbox" <?php
-																										if ($rSettings["show_not_on_air_video"] == 1) {
-																											echo ' checked ';
-																										}
-
-																										echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><div class="col-md-6"><input type="text" class="form-control" id="not_on_air_video_path" name="not_on_air_video_path" value=" ';
-																										echo htmlspecialchars($rSettings["not_on_air_video_path"] ?? '');
-																										echo '" placeholder="' . $language::get('leave_blank_to_use_default_xc_vm_video') . '"></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="show_banned_video">Banned Video <i title="' . $language::get('show_this_video_when_a_banned_line_accesses_a_stream') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="show_banned_video" id="show_banned_video" type="checkbox"';
-
-																										if ($rSettings["show_banned_video"] == 1) {
-																											echo ' checked ';
-																										}
-
-																										echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><div class="col-md-6"><input type="text" class="form-control" id="banned_video_path" name="banned_video_path" value=" ';
-																										echo htmlspecialchars($rSettings["banned_video_path"] ?? '');
-																										echo '" placeholder="' . $language::get('leave_blank_to_use_default_xc_vm_video') . '"></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="show_expired_video">Expired Video <i title="' . $language::get('show_this_video_when_an_expired_line_accesses_a_stream') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="show_expired_video" id="show_expired_video" type="checkbox"';
-
-																										if ($rSettings["show_expired_video"] == 1) {
-																											echo ' checked ';
-																										}
-
-																										echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><div class="col-md-6"><input type="text" class="form-control" id="expired_video_path" name="expired_video_path" value=" ';
-																										echo htmlspecialchars($rSettings["expired_video_path"] ?? '');
-																										echo '" placeholder="' . $language::get('leave_blank_to_use_default_xc_vm_video') . '"></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="show_expiring_video">Expiring Video <i title="' . $language::get('show_this_video_once_per_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="show_expiring_video" id="show_expiring_video" type="checkbox"';
-
-																										if ($rSettings["show_expiring_video"] == 1) {
-																											echo ' checked ';
-																										}
-
-																										echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><div class="col-md-6"><input type="text" class="form-control" id="expiring_video_path" name="expiring_video_path" value=" ';
-																										echo htmlspecialchars($rSettings["expiring_video_path"] ?? '');
-																										echo '" placeholder="' . $language::get('leave_blank_to_use_default_xc_vm_video') . '"></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="show_connected_video">2nd IP Connected Video <i title="' . $language::get('show_this_video_when_a_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="show_connected_video" id="show_connected_video" type="checkbox"';
-
-																										if ($rSettings["show_connected_video"] == 1) {
-																											echo ' checked ';
-																										}
-
-																										echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><div class="col-md-6"><input type="text" class="form-control" id="connected_video_path" name="connected_video_path" value=" ';
-																										echo htmlspecialchars($rSettings["connected_video_path"] ?? '');
-																										echo '" placeholder="' . $language::get('leave_blank_to_use_default_xc_vm_video') . '"></div></div>    <h5 class="card-title mb-4">Allowed Countries <i title="' . $language::get('select_individual_countries_to_allow_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></h5>    <div class="form-group row mb-4"><div class="col-md-12">    <select name="allow_countries[]" id="allow_countries" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="' . $language::get('choose_placeholder') . '">';
-
-																										foreach ($rGeoCountries as $rValue => $rText) {
-																											echo '<option ';
-
-																											if (in_array($rValue, is_array($rSettings["allow_countries"]) ? $rSettings["allow_countries"] : json_decode($rSettings["allow_countries"], true))) {
-																												echo 'selected ';
+													<h5 class="card-title mb-4"><?= $language::get('off_air_videos') ?></h5>
+													<div class="form-group row mb-4"><label class="col-md-4 col-form-label"
+															for="show_not_on_air_video">Stream Down Video <i
+																title="<?= $language::get('show_this_video_when_a_stream_isnt_on_air') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2"><input name="show_not_on_air_video"
+																id="show_not_on_air_video" type="checkbox" <?php
+																											if ($rSettings["show_not_on_air_video"] == 1) {
+																												echo ' checked ';
 																											}
-																											echo 'value=" ';
-																											echo $rValue;
-																											echo '">';
-																											echo $rText;
-																											echo '</option>';
-																										}
-																										?> </select></div>
+
+																											echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><div class="col-md-6"><input type="text" class="form-control" id="not_on_air_video_path" name="not_on_air_video_path" value=" ';
+																											echo htmlspecialchars($rSettings["not_on_air_video_path"] ?? '');
+																											echo '" placeholder="' . $language::get('leave_blank_to_use_default_xc_vm_video') . '"></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="show_banned_video">Banned Video <i title="' . $language::get('show_this_video_when_a_banned_line_accesses_a_stream') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="show_banned_video" id="show_banned_video" type="checkbox"';
+
+																											if ($rSettings["show_banned_video"] == 1) {
+																												echo ' checked ';
+																											}
+
+																											echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><div class="col-md-6"><input type="text" class="form-control" id="banned_video_path" name="banned_video_path" value=" ';
+																											echo htmlspecialchars($rSettings["banned_video_path"] ?? '');
+																											echo '" placeholder="' . $language::get('leave_blank_to_use_default_xc_vm_video') . '"></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="show_expired_video">Expired Video <i title="' . $language::get('show_this_video_when_an_expired_line_accesses_a_stream') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="show_expired_video" id="show_expired_video" type="checkbox"';
+
+																											if ($rSettings["show_expired_video"] == 1) {
+																												echo ' checked ';
+																											}
+
+																											echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><div class="col-md-6"><input type="text" class="form-control" id="expired_video_path" name="expired_video_path" value=" ';
+																											echo htmlspecialchars($rSettings["expired_video_path"] ?? '');
+																											echo '" placeholder="' . $language::get('leave_blank_to_use_default_xc_vm_video') . '"></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="show_expiring_video">Expiring Video <i title="' . $language::get('show_this_video_once_per_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="show_expiring_video" id="show_expiring_video" type="checkbox"';
+
+																											if ($rSettings["show_expiring_video"] == 1) {
+																												echo ' checked ';
+																											}
+
+																											echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><div class="col-md-6"><input type="text" class="form-control" id="expiring_video_path" name="expiring_video_path" value=" ';
+																											echo htmlspecialchars($rSettings["expiring_video_path"] ?? '');
+																											echo '" placeholder="' . $language::get('leave_blank_to_use_default_xc_vm_video') . '"></div></div>    <div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="show_connected_video">2nd IP Connected Video <i title="' . $language::get('show_this_video_when_a_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="show_connected_video" id="show_connected_video" type="checkbox"';
+
+																											if ($rSettings["show_connected_video"] == 1) {
+																												echo ' checked ';
+																											}
+
+																											echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><div class="col-md-6"><input type="text" class="form-control" id="connected_video_path" name="connected_video_path" value=" ';
+																											echo htmlspecialchars($rSettings["connected_video_path"] ?? '');
+																											echo '" placeholder="' . $language::get('leave_blank_to_use_default_xc_vm_video') . '"></div></div>    <h5 class="card-title mb-4">Allowed Countries <i title="' . $language::get('select_individual_countries_to_allow_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></h5>    <div class="form-group row mb-4"><div class="col-md-12">    <select name="allow_countries[]" id="allow_countries" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="' . $language::get('choose_placeholder') . '">';
+
+																											foreach ($rGeoCountries as $rValue => $rText) {
+																												echo '<option ';
+
+																												if (in_array($rValue, is_array($rSettings["allow_countries"]) ? $rSettings["allow_countries"] : json_decode($rSettings["allow_countries"], true))) {
+																													echo 'selected ';
+																												}
+																												echo 'value=" ';
+																												echo $rValue;
+																												echo '">';
+																												echo $rText;
+																												echo '</option>';
+																											}
+																											?> </select></div>
+													</div>
+
+													<h5 class="card-title mb-4">MaxMind GeoIP API</h5>
+
+													<div class="form-group row mb-4">
+														<label class="col-md-4 col-form-label" for="maxmind_account_id">Account ID <i title="Your MaxMind account number (found at maxmind.com -> My Account)" class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2"><input type="text" class="form-control" id="maxmind_account_id" name="maxmind_account_id" value="<?= htmlspecialchars($rSettings["maxmind_account_id"] ?? '') ?>" placeholder="123456" autocomplete="off"></div>
+														<label class="col-md-4 col-form-label" for="maxmind_license_key">License Key <i title="MaxMind license key with GeoIP Download permissions" class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2"><input type="password" class="form-control" id="maxmind_license_key" name="maxmind_license_key" value="<?= htmlspecialchars($rSettings["maxmind_license_key"] ?? '') ?>" placeholder="****************" autocomplete="new-password"></div>
+													</div>
+
+													<div class="form-group row mb-4">
+														<label class="col-md-4 col-form-label" for="maxmind_editions">Editions <i title="GeoIP database editions to download. Leave empty to use GitHub fallback (GeoLite2 only)" class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-8">
+															<?php
+															$rSelectedEditions = json_decode($rSettings["maxmind_editions"] ?? '[]', true) ?: ["GeoLite2-Country", "GeoLite2-City"];
+															$rAvailableEditions = class_exists("MaxMindUpdater")
+																? MaxMindUpdater::availableEditions()
+																: ["GeoLite2-Country" => "GeoLite2 Country", "GeoLite2-City" => "GeoLite2 City"];
+															?>
+															<select name="maxmind_editions[]" id="maxmind_editions" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="<?= $language::get('choose_placeholder') ?>">
+																<?php foreach ($rAvailableEditions as $rEditionKey => $rEditionLabel) { ?>
+																	<option value="<?= htmlspecialchars($rEditionKey) ?>" <?php if (in_array($rEditionKey, $rSelectedEditions)) {
+																																echo ' selected';
+																															} ?>><?= htmlspecialchars($rEditionLabel) ?></option>
+																<?php } ?>
+															</select>
+														</div>
+													</div>
+
+													<div class="form-group row mb-4">
+														<div class="col-md-12 text-muted"><small><i class="mdi mdi-information-outline mr-1"></i>When credentials are set, <code>binaries</code> and the weekly Tuesday cron use the MaxMind API instead of GitHub. Free GeoLite2 editions require a free MaxMind account. Paid editions require an active subscription.</small></div>
+													</div>
 												</div>
 											</div>
 										</div>
-									</div>
-									<div class="tab-pane" id="mag">
-										<div class="row">
-											<div class="col-12">
-												<h5 class="card-title mb-4"><?= $language::get('preferences') ?></h5>
-												<div class="form-group row mb-4"><label class="col-md-4 col-form-label"
-														for="show_all_category_mag">Show All Categories <i
-															title="<?= $language::get('show_all_category_on_mag_devices') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2"><input name="show_all_category_mag"
-															id="show_all_category_mag" type="checkbox" <?php
-																										if ($rSettings["show_all_category_mag"] == 1) {
-																											echo ' checked ';
-																										}
-
-																										echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="mag_container">' . $language::get('default_container') . '</label><div class="col-md-2"><select name="mag_container" id="mag_container" class="form-control" data-toggle="select2">';
-
-																										foreach (["ts" => "TS", "m3u8" => "M3U8"] as $rValue => $rText) {
-																											echo '<option ';
-
-																											if ($rSettings["mag_container"] != $rValue) {
-																											} else {
-																												echo 'selected ';
+										<div class="tab-pane" id="mag">
+											<div class="row">
+												<div class="col-12">
+													<h5 class="card-title mb-4"><?= $language::get('preferences') ?></h5>
+													<div class="form-group row mb-4"><label class="col-md-4 col-form-label"
+															for="show_all_category_mag">Show All Categories <i
+																title="<?= $language::get('show_all_category_on_mag_devices') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2"><input name="show_all_category_mag"
+																id="show_all_category_mag" type="checkbox" <?php
+																											if ($rSettings["show_all_category_mag"] == 1) {
+																												echo ' checked ';
 																											}
 
-																											echo 'value=" ';
-																											echo $rValue;
-																											echo '">';
-																											echo $rText;
-																											echo '</option>';
-																										}
-																										echo '</select></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="always_enabled_subtitles">Always Enabled Subtitles <i title="' . $language::get('force_subtitles_to_be_enabled_at_all_times') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="always_enabled_subtitles" id="always_enabled_subtitles" type="checkbox"';
+																											echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="mag_container">' . $language::get('default_container') . '</label><div class="col-md-2"><select name="mag_container" id="mag_container" class="form-control" data-toggle="select2">';
 
-																										if ($rSettings["always_enabled_subtitles"] == 1) {
-																											echo ' checked ';
-																										}
+																											foreach (["ts" => "TS", "m3u8" => "M3U8"] as $rValue => $rText) {
+																												echo '<option ';
 
-																										echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="enable_connection_problem_indication">' . $language::get('connection_problem_indiciation') . '</label><div class="col-md-2"><input name="enable_connection_problem_indication" id="enable_connection_problem_indication" type="checkbox"';
+																												if ($rSettings["mag_container"] != $rValue) {
+																												} else {
+																													echo 'selected ';
+																												}
 
-																										if ($rSettings["enable_connection_problem_indication"] == 1) {
-																											echo ' checked ';
-																										}
+																												echo 'value=" ';
+																												echo $rValue;
+																												echo '">';
+																												echo $rText;
+																												echo '</option>';
+																											}
+																											echo '</select></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="always_enabled_subtitles">Always Enabled Subtitles <i title="' . $language::get('force_subtitles_to_be_enabled_at_all_times') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="always_enabled_subtitles" id="always_enabled_subtitles" type="checkbox"';
 
-																										echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="show_tv_channel_logo">' . $language::get('show_channel_logos') . '</label><div class="col-md-2"><input name="show_tv_channel_logo" id="show_tv_channel_logo" type="checkbox"';
+																											if ($rSettings["always_enabled_subtitles"] == 1) {
+																												echo ' checked ';
+																											}
 
-																										if ($rSettings["show_tv_channel_logo"] == 1) {
-																											echo ' checked ';
-																										}
+																											echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="enable_connection_problem_indication">' . $language::get('connection_problem_indiciation') . '</label><div class="col-md-2"><input name="enable_connection_problem_indication" id="enable_connection_problem_indication" type="checkbox"';
 
-																										echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="show_channel_logo_in_preview">' . $language::get('show_preview_channel_logos') . '</label><div class="col-md-2"><input name="show_channel_logo_in_preview" id="show_channel_logo_in_preview" type="checkbox"';
+																											if ($rSettings["enable_connection_problem_indication"] == 1) {
+																												echo ' checked ';
+																											}
 
-																										if ($rSettings["show_channel_logo_in_preview"] == 1) {
-																											echo ' checked ';
-																										}
-																										?> data-plugin="switchery" class="js-switch"
-															data-color="#039cfd" /></div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="playback_limit">Playback
-														Limit <i
-															title="<?= $language::get('show_warning_message_and_stop_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2"><input type="text"
-															class="form-control text-center" id="playback_limit"
-															name="playback_limit"
-															value="<?= htmlspecialchars($rSettings["playback_limit"] ?? '') ?>">
+																											echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="show_tv_channel_logo">' . $language::get('show_channel_logos') . '</label><div class="col-md-2"><input name="show_tv_channel_logo" id="show_tv_channel_logo" type="checkbox"';
+
+																											if ($rSettings["show_tv_channel_logo"] == 1) {
+																												echo ' checked ';
+																											}
+
+																											echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="show_channel_logo_in_preview">' . $language::get('show_preview_channel_logos') . '</label><div class="col-md-2"><input name="show_channel_logo_in_preview" id="show_channel_logo_in_preview" type="checkbox"';
+
+																											if ($rSettings["show_channel_logo_in_preview"] == 1) {
+																												echo ' checked ';
+																											}
+																											?> data-plugin="switchery" class="js-switch"
+																data-color="#039cfd" /></div>
 													</div>
-													<label class="col-md-4 col-form-label"
-														for="tv_channel_default_aspect">Default Aspect Ratio <i
-															title="<?= $language::get('set_the_default_aspect_ratio_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i>
-													</label>
-													<div class="col-md-2"><select name="tv_channel_default_aspect"
-															id="tv_channel_default_aspect" class="form-control"
-															data-toggle="select2"><?php
-																					foreach (["fit", "big", "opt", "exp", "cmb"] as $rValue) {
-																						echo '<option ';
-																						if ($rSettings["tv_channel_default_aspect"] == $rValue) {
-																							echo 'selected ';
+													<div class="form-group row mb-4">
+														<label class="col-md-4 col-form-label" for="playback_limit">Playback
+															Limit <i
+																title="<?= $language::get('show_warning_message_and_stop_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2"><input type="text"
+																class="form-control text-center" id="playback_limit"
+																name="playback_limit"
+																value="<?= htmlspecialchars($rSettings["playback_limit"] ?? '') ?>">
+														</div>
+														<label class="col-md-4 col-form-label"
+															for="tv_channel_default_aspect">Default Aspect Ratio <i
+																title="<?= $language::get('set_the_default_aspect_ratio_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i>
+														</label>
+														<div class="col-md-2"><select name="tv_channel_default_aspect"
+																id="tv_channel_default_aspect" class="form-control"
+																data-toggle="select2"><?php
+																						foreach (["fit", "big", "opt", "exp", "cmb"] as $rValue) {
+																							echo '<option ';
+																							if ($rSettings["tv_channel_default_aspect"] == $rValue) {
+																								echo 'selected ';
+																							}
+
+																							echo 'value=" ';
+																							echo $rValue;
+																							echo '">';
+																							echo $rValue;
+																							echo '</option>';
 																						}
-
-																						echo 'value=" ';
-																						echo $rValue;
-																						echo '">';
-																						echo $rValue;
-																						echo '</option>';
-																					}
-																					?>
-														</select>
+																						?>
+															</select>
+														</div>
 													</div>
-												</div>
-												<div class="form-group row mb-4"><label class="col-md-4 col-form-label"
-														for="mag_default_type">Default Theme Type <i
-															title="<?= $language::get('whether_to_use_modern_or_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2"><select name="mag_default_type"
-															id="mag_default_type" class="form-control"
-															data-toggle="select2">
-															<?php
-															foreach (["Modern", "Legacy"] as $rValue => $rText) {
-																echo '<option ';
+													<div class="form-group row mb-4"><label class="col-md-4 col-form-label"
+															for="mag_default_type">Default Theme Type <i
+																title="<?= $language::get('whether_to_use_modern_or_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2"><select name="mag_default_type"
+																id="mag_default_type" class="form-control"
+																data-toggle="select2">
+																<?php
+																foreach (["Modern", "Legacy"] as $rValue => $rText) {
+																	echo '<option ';
 
-																if ($rSettings["mag_default_type"] != $rValue) {
-																} else {
-																	echo 'selected ';
+																	if ($rSettings["mag_default_type"] != $rValue) {
+																	} else {
+																		echo 'selected ';
+																	}
+
+																	echo 'value=" ';
+																	echo $rValue;
+																	echo '">';
+																	echo $rText;
+																	echo '</option>';
 																}
+																?> </select></div>
+														<label class="col-md-4 col-form-label" for="stalker_theme">Legacy
+															Theme <i title="<?= $language::get('default_ministra_theme_to_be_used_by_mag_devices') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2"><select name="stalker_theme" id="stalker_theme"
+																class="form-control" data-toggle="select2">
+																<?php
+																foreach (["default" => "Default", "digital" => "Digital", "emerald" => "Emerald", "cappucino" => "Cappucino", "ocean_blue" => "Ocean Blue",] as $rValue => $rText) {
+																	echo '<option ';
 
-																echo 'value=" ';
-																echo $rValue;
-																echo '">';
-																echo $rText;
-																echo '</option>';
-															}
-															?> </select></div>
-													<label class="col-md-4 col-form-label" for="stalker_theme">Legacy
-														Theme <i title="<?= $language::get('default_ministra_theme_to_be_used_by_mag_devices') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2"><select name="stalker_theme" id="stalker_theme"
-															class="form-control" data-toggle="select2">
-															<?php
-															foreach (["default" => "Default", "digital" => "Digital", "emerald" => "Emerald", "cappucino" => "Cappucino", "ocean_blue" => "Ocean Blue",] as $rValue => $rText) {
-																echo '<option ';
+																	if ($rSettings["stalker_theme"] != $rValue) {
+																	} else {
+																		echo 'selected ';
+																	}
 
-																if ($rSettings["stalker_theme"] != $rValue) {
-																} else {
-																	echo 'selected ';
+																	echo 'value=" ';
+																	echo $rValue;
+																	echo '">';
+																	echo $rText;
+																	echo '</option>';
 																}
-
-																echo 'value=" ';
-																echo $rValue;
-																echo '">';
-																echo $rText;
-																echo '</option>';
-															}
-															?>
-														</select></div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="mag_legacy_redirect">Legacy
-														URL Redirect <i
-															title="<?= $language::get('redirect_c_to_ministra_folder_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2"><input name="mag_legacy_redirect"
-															id="mag_legacy_redirect" type="checkbox" <?php
-																										if ($rSettings["mag_legacy_redirect"] == 1) {
+																?>
+															</select></div>
+													</div>
+													<div class="form-group row mb-4">
+														<label class="col-md-4 col-form-label" for="mag_legacy_redirect">Legacy
+															URL Redirect <i
+																title="<?= $language::get('redirect_c_to_ministra_folder_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2"><input name="mag_legacy_redirect"
+																id="mag_legacy_redirect" type="checkbox" <?php
+																											if ($rSettings["mag_legacy_redirect"] == 1) {
+																												echo ' checked ';
+																											}
+																											?>
+																data-plugin="switchery" class="js-switch"
+																data-color="#039cfd" />
+														</div>
+														<label class="col-md-4 col-form-label" for="mag_keep_extension">Keep
+															URL Extension <i
+																title="<?= $language::get('keep_extension_of_live_streams_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2"><input name="mag_keep_extension"
+																id="mag_keep_extension" type="checkbox" <?php
+																										if ($rSettings["mag_keep_extension"] == 1) {
 																											echo ' checked ';
 																										}
 																										?>
-															data-plugin="switchery" class="js-switch"
-															data-color="#039cfd" />
+																data-plugin="switchery" class="js-switch"
+																data-color="#039cfd" /></div>
 													</div>
-													<label class="col-md-4 col-form-label" for="mag_keep_extension">Keep
-														URL Extension <i
-															title="<?= $language::get('keep_extension_of_live_streams_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2"><input name="mag_keep_extension"
-															id="mag_keep_extension" type="checkbox" <?php
-																									if ($rSettings["mag_keep_extension"] == 1) {
-																										echo ' checked ';
-																									}
-																									?>
-															data-plugin="switchery" class="js-switch"
-															data-color="#039cfd" /></div>
-												</div>
-												<div class="form-group row mb-4"><label class="col-md-4 col-form-label"
-														for="mag_disable_ssl">Disable
-														SSL <i
-															title="<?= $language::get('force_mag_s_to_use_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2"><input name="mag_disable_ssl" id="mag_disable_ssl"
-															type="checkbox" <?php
-																			if ($rSettings["mag_disable_ssl"] == 1) {
-																				echo ' checked ';
-																			}
-																			?> data-plugin="switchery" class="js-switch"
-															data-color="#039cfd" /></div>
-													<label class="col-md-4 col-form-label" for="mag_load_all_channels">Load
-														Channels on Startup <i
-															title="<?= $language::get('load_all_channel_listings_on_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2"><input name="mag_load_all_channels"
-															id="mag_load_all_channels" type="checkbox" <?php
-																										if ($rSettings["mag_load_all_channels"] == 1) {
+													<div class="form-group row mb-4"><label class="col-md-4 col-form-label"
+															for="mag_disable_ssl">Disable
+															SSL <i
+																title="<?= $language::get('force_mag_s_to_use_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2"><input name="mag_disable_ssl" id="mag_disable_ssl"
+																type="checkbox" <?php
+																				if ($rSettings["mag_disable_ssl"] == 1) {
+																					echo ' checked ';
+																				}
+																				?> data-plugin="switchery" class="js-switch"
+																data-color="#039cfd" /></div>
+														<label class="col-md-4 col-form-label" for="mag_load_all_channels">Load
+															Channels on Startup <i
+																title="<?= $language::get('load_all_channel_listings_on_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2"><input name="mag_load_all_channels"
+																id="mag_load_all_channels" type="checkbox" <?php
+																											if ($rSettings["mag_load_all_channels"] == 1) {
+																												echo ' checked ';
+																											}
+																											?> data-plugin="switchery" class="js-switch"
+																data-color="#039cfd" /></div>
+													</div>
+													<div class="form-group row mb-4"><label class="col-md-4 col-form-label"
+															for="disable_mag_token">Disable
+															MAG Token <i
+																title="<?= $language::get('disable_verification_of_mag_token_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2"><input name="disable_mag_token"
+																id="disable_mag_token" type="checkbox" <?php
+																										if ($rSettings["disable_mag_token"] == 1) {
 																											echo ' checked ';
 																										}
-																										?> data-plugin="switchery" class="js-switch"
-															data-color="#039cfd" /></div>
-												</div>
-												<div class="form-group row mb-4"><label class="col-md-4 col-form-label"
-														for="disable_mag_token">Disable
-														MAG Token <i
-															title="<?= $language::get('disable_verification_of_mag_token_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2"><input name="disable_mag_token"
-															id="disable_mag_token" type="checkbox" <?php
-																									if ($rSettings["disable_mag_token"] == 1) {
-																										echo ' checked ';
-																									}
-																									?>
-															data-plugin="switchery" class="js-switch"
-															data-color="#039cfd" /></div>
-												</div>
-												<div class="form-group row mb-4"><label class="col-md-4 col-form-label"
-														for="allowed_stb_types">Allowed
-														STB Types</label>
-													<div class="col-md-8"><select name="allowed_stb_types[]"
-															id="allowed_stb_types" class="form-control select2-multiple"
-															data-toggle="select2" multiple="multiple"
-															data-placeholder="<?= $language::get('choose_placeholder') ?>">
-															<?php
-															$rAllowedSTB = is_array($rSettings["allowed_stb_types"]) ? $rSettings["allowed_stb_types"] : json_decode($rSettings["allowed_stb_types"], true);
-															foreach ($rAllowedSTB as $rMAG) {
-																echo '        <option selected value=" ';
-																echo $rMAG;
-																echo '">';
-																echo $rMAG;
-																echo '</option>        ';
-															}
-
-															foreach (array_udiff($rMAGs, $rAllowedSTB, "strcasecmp") as $rMAG) {
-																echo '<option value=" ';
-																echo $rMAG;
-																echo '">';
-																echo $rMAG;
-																echo '</option>';
-															}
-															echo '</select></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="allowed_stb_types_for_local_recording">' . $language::get('allowed_stb_recording') . '</label><div class="col-md-8"><select name="allowed_stb_types_for_local_recording[]" id="allowed_stb_types_for_local_recording" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="' . $language::get('choose_placeholder') . '">        ';
-
-															foreach (json_decode($rSettings["allowed_stb_types_for_local_recording"], true) as $rMAG) {
-																echo '        <option selected value=" ';
-																echo $rMAG;
-																echo '">';
-																echo $rMAG;
-																echo '</option>        ';
-															}
-
-															foreach (array_udiff($rMAGs, json_decode($rSettings["allowed_stb_types_for_local_recording"], true), "strcasecmp") as $rMAG) {
-																echo '<option value=" ';
-																echo $rMAG;
-																echo '">';
-																echo $rMAG;
-																echo '</option>';
-															}
-															?>
-														</select></div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="test_download_url">Speedtest
-														URL <i
-															title="<?= $language::get('url_to_a_file_to_download_during_speedtest_on_mag_devices') ?>"
-															class="tooltip text-secondary far fa-circle"></i>
-													</label>
-													<div class="col-md-8"><input type="text" class="form-control"
-															id="test_download_url" name="test_download_url"
-															value="<?= htmlspecialchars($rSettings["test_download_url"] ?? '') ?>">
+																										?>
+																data-plugin="switchery" class="js-switch"
+																data-color="#039cfd" /></div>
 													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="mag_message">Information
-														Message <i
-															title="<?= $language::get('message_to_display_when_a_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i>
-													</label>
-													<div class="col-md-8">
-														<textarea rows="6" class="form-control" id="mag_message"
-															name="mag_message">
+													<div class="form-group row mb-4"><label class="col-md-4 col-form-label"
+															for="allowed_stb_types">Allowed
+															STB Types</label>
+														<div class="col-md-8"><select name="allowed_stb_types[]"
+																id="allowed_stb_types" class="form-control select2-multiple"
+																data-toggle="select2" multiple="multiple"
+																data-placeholder="<?= $language::get('choose_placeholder') ?>">
+																<?php
+																$rAllowedSTB = is_array($rSettings["allowed_stb_types"]) ? $rSettings["allowed_stb_types"] : json_decode($rSettings["allowed_stb_types"], true);
+																foreach ($rAllowedSTB as $rMAG) {
+																	echo '        <option selected value=" ';
+																	echo $rMAG;
+																	echo '">';
+																	echo $rMAG;
+																	echo '</option>        ';
+																}
+
+																foreach (array_udiff($rMAGs, $rAllowedSTB, "strcasecmp") as $rMAG) {
+																	echo '<option value=" ';
+																	echo $rMAG;
+																	echo '">';
+																	echo $rMAG;
+																	echo '</option>';
+																}
+																echo '</select></div></div><div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="allowed_stb_types_for_local_recording">' . $language::get('allowed_stb_recording') . '</label><div class="col-md-8"><select name="allowed_stb_types_for_local_recording[]" id="allowed_stb_types_for_local_recording" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="' . $language::get('choose_placeholder') . '">        ';
+
+																foreach (json_decode($rSettings["allowed_stb_types_for_local_recording"], true) as $rMAG) {
+																	echo '        <option selected value=" ';
+																	echo $rMAG;
+																	echo '">';
+																	echo $rMAG;
+																	echo '</option>        ';
+																}
+
+																foreach (array_udiff($rMAGs, json_decode($rSettings["allowed_stb_types_for_local_recording"], true), "strcasecmp") as $rMAG) {
+																	echo '<option value=" ';
+																	echo $rMAG;
+																	echo '">';
+																	echo $rMAG;
+																	echo '</option>';
+																}
+																?>
+															</select></div>
+													</div>
+													<div class="form-group row mb-4">
+														<label class="col-md-4 col-form-label" for="test_download_url">Speedtest
+															URL <i
+																title="<?= $language::get('url_to_a_file_to_download_during_speedtest_on_mag_devices') ?>"
+																class="tooltip text-secondary far fa-circle"></i>
+														</label>
+														<div class="col-md-8"><input type="text" class="form-control"
+																id="test_download_url" name="test_download_url"
+																value="<?= htmlspecialchars($rSettings["test_download_url"] ?? '') ?>">
+														</div>
+													</div>
+													<div class="form-group row mb-4">
+														<label class="col-md-4 col-form-label" for="mag_message">Information
+															Message <i
+																title="<?= $language::get('message_to_display_when_a_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i>
+														</label>
+														<div class="col-md-8">
+															<textarea rows="6" class="form-control" id="mag_message"
+																name="mag_message">
 															<?= htmlspecialchars(str_replace(["&lt;", "&gt;"], ["
 																		<", ">"], $rSettings["mag_message"])) ?> </textarea>
+														</div>
 													</div>
 												</div>
 											</div>
 										</div>
-									</div>
-									<div class="tab-pane" id="webplayer">
-										<div class="row">
-											<div class="col-12">
-												<h5 class="card-title mb-4"><?= $language::get('preferences') ?></h5>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="player_allow_playlist">Allow
-														Playlist Download <i
-															title="<?= $language::get('allow_clients_to_generate_playlist_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input name="player_allow_playlist" id="player_allow_playlist"
-															type="checkbox" <?php if ($rSettings["player_allow_playlist"] == 1) {
-																				echo ' checked ';
-																			}
-																			echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="player_allow_bouquet">Allow Bouquet Ordering <i title="' . $language::get('allow_clients_to_reorder_their_bouquets_from_the_web_player') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="player_allow_bouquet" id="player_allow_bouquet" type="checkbox"';
-																			if ($rSettings["player_allow_bouquet"] == 1) {
-																				echo ' checked ';
-																			} ?> data-plugin="switchery" class="js-switch"
-															data-color="#039cfd" />
-													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label"
-														for="player_hide_incompatible">Hide Incompatible Streams
-														<i title="<?= $language::get('hide_streams_that_arent_compatible_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input name="player_hide_incompatible" id="player_hide_incompatible"
-															type="checkbox" <?php if ($rSettings["player_hide_incompatible"] == 1) {
-																				echo ' checked ';
-																			}
-																			echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="player_allow_hevc">Mark HEVC as Compatible <i title="' . $language::get('mark_hevc_as_compatible_there_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="player_allow_hevc" id="player_allow_hevc" type="checkbox"';
-																			if ($rSettings["player_allow_hevc"] == 1) {
-																				echo ' checked ';
-																			} ?>
-															data-plugin="switchery" class="js-switch"
-															data-color="#039cfd" />
-													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="player_blur">Background
-														Blur
-														px <i title="<?= $language::get('blur_the_background_images_by_x_pixels') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input type="text" class="form-control text-center" id="player_blur"
-															name="player_blur"
-															value="<?= intval($rSettings["player_blur"]) ?>">
-													</div>
-													<label class="col-md-4 col-form-label" for="player_opacity">Background
-														Opacity % <i
-															title="<?= $language::get('adjust_the_background_image_opacity_default_is_10') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input type="text" class="form-control text-center"
-															id="player_opacity" name="player_opacity" value="<?= intval($rSettings["player_opacity"]) ?>">
-													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="extract_subtitles">Extract
-														Subtitles <i
-															title="<?= $language::get('automatically_extract_subtitles_from_movies_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input name="extract_subtitles" id="extract_subtitles"
-															type="checkbox" <?php if ($rSettings["extract_subtitles"] == 1) {
-																				echo ' checked ';
-																			}
-																			?> data-plugin="switchery" class="js-switch"
-															data-color="#039cfd" />
-													</div>
-												</div>
-											</div>
-										</div>
-									</div>
-									<div class="tab-pane" id="logs">
-										<div class="row">
-											<div class="col-12">
-												<h5 class="card-title mb-4"><?= $language::get('preferences') ?></h5>
-												<div class="form-group row mb-4">
-													<label class="col-md-3 col-form-label"
-														for="save_closed_connection">Activity Logs <i
-															title="<?= $language::get('activity_logs_are_saved_when_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i>
-													</label>
-													<div class="col-md-3"><input name="save_closed_connection"
-															id="save_closed_connection" type="checkbox" <?php if ($rSettings["save_closed_connection"] == 1) {
-																											echo ' checked ';
-																										}
-																										?> data-plugin="switchery" class="js-switch"
-															data-color="#039cfd" />
-													</div>
-													<label class="col-md-3 col-form-label" for="keep_activity">Keep Logs
-														For</label>
-													<div class="col-md-3"><select name="keep_activity" id="keep_activity"
-															class="form-control" data-toggle="select2">
-															<?php
-															foreach (["Forever", 3600 => "1 Hour", 21600 => "6 Hours", 43200 => "12 Hours", 86400 => "1 Day", 259200 => "3 Days", 604800 => "7 Days", 1209600 => "14 Days", 16934400 => "28 Days", 15552000 => "180 Days", 31536000 => "365 Days",] as $rValue => $rText) {
-																echo '<option ';
-
-																if ($rSettings["keep_activity"] == $rValue) {
-																	echo 'selected ';
-																}
-
-															?> value="<?= $rValue ?>"><?= $rText ?>
-																</option>
-															<?php
-															}
-															?>
-														</select>
-													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-3 col-form-label" for="client_logs_save">Client
-														Logs <i
-															title="<?= $language::get('activity_logs_are_saved_when_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-3">
-														<input name="client_logs_save" id="client_logs_save" type="checkbox"
-															<?php
-															if ($rSettings["client_logs_save"] == 1) {
-																echo ' checked ';
-															}
-															?> data-plugin="switchery" class="js-switch"
-															data-color="#039cfd" />
-													</div>
-													<label class="col-md-3 col-form-label" for="keep_client">Keep Logs
-														For</label>
-													<div class="col-md-3">
-														<select name="keep_client" id="keep_client" class="form-control"
-															data-toggle="select2">
-															<?php
-															foreach (["Forever", 3600 => "1 Hour", 21600 => "6 Hours", 43200 => "12 Hours", 86400 => "1 Day", 259200 => "3 Days", 604800 => "7 Days", 1209600 => "14 Days", 16934400 => "28 Days", 15552000 => "180 Days", 31536000 => "365 Days",] as $rValue => $rText) {
-																echo '
-																		<option ';
-
-																if ($rSettings["keep_client"] != $rValue) {
-																} else {
-																	echo 'selected ';
-																}
-
-															?> value="<?= $rValue ?>"><?= $rText ?>
-																</option>
-															<?php
-															} ?>
-														</select>
-													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-3 col-form-label" for="save_login_logs">Login Logs
-														<i title="<?= $language::get('activity_logs_are_saved_when_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-3">
-														<input name="save_login_logs" id="save_login_logs" type="checkbox"
-															<?php
-															if ($rSettings["save_login_logs"] == 1) {
-																echo ' checked ';
-															}
-															?> data-plugin="switchery" class="js-switch"
-															data-color="#039cfd" />
-													</div>
-													<label class="col-md-3 col-form-label" for="keep_login">Keep Logs
-														For</label>
-													<div class="col-md-3">
-														<select name="keep_login" id="keep_login" class="form-control"
-															data-toggle="select2">
-															<?php
-															foreach (["Forever", 3600 => "1 Hour", 21600 => "6 Hours", 43200 => "12 Hours", 86400 => "1 Day", 259200 => "3 Days", 604800 => "7 Days", 1209600 => "14 Days", 16934400 => "28 Days", 15552000 => "180 Days", 31536000 => "365 Days",] as $rValue => $rText) {
-																echo '
-																		<option ';
-
-																if ($rSettings["keep_login"] != $rValue) {
-																} else {
-																	echo 'selected ';
-																}
-
-															?> value="<?= $rValue ?>"><?= $rText ?>
-																</option><?php
-																		} ?>
-														</select>
-													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-3 col-form-label" for="stream_logs_save">Stream
-														Error Logs <i
-															title="<?= $language::get('activity_logs_are_saved_when_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-3">
-														<input name="stream_logs_save" id="stream_logs_save" type="checkbox"
-															<?php
-															if ($rSettings["stream_logs_save"] == 1) {
-																echo ' checked ';
-															}
-															?> data-plugin="switchery" class="js-switch"
-															data-color="#039cfd" />
-													</div>
-													<label class="col-md-3 col-form-label" for="keep_errors">Keep Logs
-														For</label>
-													<div class="col-md-3">
-														<select name="keep_errors" id="keep_errors" class="form-control"
-															data-toggle="select2">
-															<?php
-															foreach (["Forever", 3600 => "1 Hour", 21600 => "6 Hours", 43200 => "12 Hours", 86400 => "1 Day", 259200 => "3 Days", 604800 => "7 Days", 1209600 => "14 Days", 16934400 => "28 Days", 15552000 => "180 Days", 31536000 => "365 Days",] as $rValue => $rText) {
-																echo '
-																		<option ';
-
-																if ($rSettings["keep_errors"] == $rValue) {
-																	echo 'selected ';
-																}
-															?> value="<?= $rValue ?>"><?= $rText ?>
-																</option>
-															<?php
-															} ?>
-														</select>
-													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-3 col-form-label" for="save_restart_logs">Stream
-														Restart Logs <i
-															title="<?= $language::get('activity_logs_are_saved_when_tooltip') ?>"
-															class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-3">
-														<input name="save_restart_logs" id="save_restart_logs"
-															type="checkbox" <?php if ($rSettings["save_restart_logs"] == 1) {
-																				echo ' checked ';
-																			} ?> data-plugin="switchery"
-															class="js-switch" data-color="#039cfd" />
-													</div>
-													<label class="col-md-3 col-form-label" for="keep_restarts">Keep
-														Logs For</label>
-													<div class="col-md-3"><select name="keep_restarts" id="keep_restarts"
-															class="form-control" data-toggle="select2">
-															<?php
-															foreach (["Forever", 3600 => "1 Hour", 21600 => "6 Hours", 43200 => "12 Hours", 86400 => "1 Day", 259200 => "3 Days", 604800 => "7 Days", 1209600 => "14 Days", 16934400 => "28 Days", 15552000 => "180 Days", 31536000 => "365 Days",] as $rValue => $rText) {
-																echo '<option ';
-
-																if ($rSettings["keep_restarts"] == $rValue) {
-																	echo 'selected ';
-																}
-															?> value="<?= $rValue; ?>"><?= $rText ?></option>
-															<?php
-															}
-															?>
-														</select>
-													</div>
-												</div>
-											</div>
-										</div>
-									</div>
-									<div class="tab-pane" id="info">
-										<div class="row">
-											<div class="col-12">
-												<h4 class="card-title mb-4"><?= $language::get('versions') ?></h4>
-												<table class="table table-striped table-bordered">
-													<tbody>
-														<tr>
-															<td class="text-center" style="font-size: 0.85rem;">Geolite2 Version</td>
-															<td class="text-center">
-																<button type="button" class="btn btn-pink btn-sm" style="font-size: 0.85rem;"><?= $GeoLite2 ?></button>
-															</td>
-															<td class="text-center" style="font-size: 0.85rem;">GeoIP2-ISP Version</td>
-															<td class="text-center">
-																<button type="button" class="btn btn-warning btn-sm" style="font-size: 0.85rem;"><?= $GeoISP ?></button>
-															</td>
-														</tr>
-														<tr>
-															<td class="text-center" style="font-size: 0.85rem;">PHP</td>
-															<td class="text-center">
-																<button type="button" class="btn btn-info btn-sm" style="font-size: 0.85rem;"><?= phpversion() ?></button>
-															</td>
-															<td class="text-center" style="font-size: 0.85rem;">Nginx</td>
-															<td class="text-center">
-																<button type="button" class="btn btn-danger btn-sm" style="font-size: 0.85rem;"><?= $Nginx ?></button>
-															</td>
-														</tr>
-													</tbody>
-												</table>
-
-												<h4 class="card-title mb-4"><?= $language::get('support_project') ?></h4>
-												<table class="table table-striped table-bordered text-center">
-													<thead class="thead-light">
-														<tr>
-															<th><?= $language::get('name') ?></th>
-															<th><?= $language::get('address') ?></th>
-															<th style="width:90px;"><?= $language::get('qr') ?></th>
-															<th style="width:90px;"><?= $language::get('copy') ?></th>
-														</tr>
-													</thead>
-													<tbody>
-														<tr>
-															<td><i class="fab fa-bitcoin text-warning"></i> Bitcoin (BTC)</td>
-															<td class="text-monospace small">1EP3XFHVk1fF3kV6zSg7whZzQdUpVMcAQz</td>
-															<td>
-																<button type="button" class="btn btn-sm btn-outline-primary"
-																	data-toggle="modal"
-																	data-target="#qrModal"
-																	onclick="showQR(this)">
-																	<i class="fas fa-qrcode"></i>
-																</button>
-															</td>
-															<td>
-																<button type="button" class="btn btn-sm btn-outline-success"
-																	onclick="copyAddr(this)">
-																	<i class="fas fa-copy"></i>
-																</button>
-															</td>
-														</tr>
-
-														<tr>
-															<td><i class="fab fa-ethereum text-info"></i> Ethereum (ETH)</td>
-															<td class="text-monospace small">0x613411dB8cFbaeaCC3A075EF39F41DFaaab4E1B8</td>
-															<td>
-																<button type="button" class="btn btn-sm btn-outline-primary"
-																	onclick="showQR(this)">
-																	<i class="fas fa-qrcode"></i>
-																</button>
-															</td>
-															<td>
-																<button type="button" class="btn btn-sm btn-outline-success"
-																	onclick="copyAddr(this)">
-																	<i class="fas fa-copy"></i>
-																</button>
-															</td>
-														</tr>
-
-														<tr>
-															<td><i class="fas fa-coins text-secondary"></i> Litecoin (LTC)</td>
-															<td class="text-monospace small">MFmn43WF2k2bsAQJe8rRmq2sKke95JmqC4</td>
-															<td>
-																<button type="button" class="btn btn-sm btn-outline-primary"
-																	onclick="showQR(this)">
-																	<i class="fas fa-qrcode"></i>
-																</button>
-															</td>
-															<td>
-																<button type="button" class="btn btn-sm btn-outline-success"
-																	onclick="copyAddr(this)">
-																	<i class="fas fa-copy"></i>
-																</button>
-															</td>
-														</tr>
-
-														<tr>
-															<td><i class="fas fa-dollar-sign text-success"></i> USDT (ERC-20)</td>
-															<td class="text-monospace small">0x034a2263a15Ade8606cC60181f12E5c2f0Ac59C6</td>
-															<td>
-																<button type="button" class="btn btn-sm btn-outline-primary"
-																	onclick="showQR(this)">
-																	<i class="fas fa-qrcode"></i>
-																</button>
-															</td>
-															<td>
-																<button type="button" class="btn btn-sm btn-outline-success"
-																	onclick="copyAddr(this)">
-																	<i class="fas fa-copy"></i>
-																</button>
-															</td>
-														</tr>
-													</tbody>
-
-												</table>
-											</div>
-										</div>
-									</div>
-									<?php
-									if (Authorization::check("adv", "database") && defined('DB_ACCESS_ENABLED') && DB_ACCESS_ENABLED) { ?>
-										<div class="tab-pane" id="database">
+										<div class="tab-pane" id="webplayer">
 											<div class="row">
-												<iframe width="100%" height="650px" src="./database.php"
-													style="overflow-x:hidden;border:0px;"></iframe>
-											</div> <!-- end row -->
+												<div class="col-12">
+													<h5 class="card-title mb-4"><?= $language::get('preferences') ?></h5>
+													<div class="form-group row mb-4">
+														<label class="col-md-4 col-form-label" for="player_allow_playlist">Allow
+															Playlist Download <i
+																title="<?= $language::get('allow_clients_to_generate_playlist_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<input name="player_allow_playlist" id="player_allow_playlist"
+																type="checkbox" <?php if ($rSettings["player_allow_playlist"] == 1) {
+																					echo ' checked ';
+																				}
+																				echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="player_allow_bouquet">Allow Bouquet Ordering <i title="' . $language::get('allow_clients_to_reorder_their_bouquets_from_the_web_player') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="player_allow_bouquet" id="player_allow_bouquet" type="checkbox"';
+																				if ($rSettings["player_allow_bouquet"] == 1) {
+																					echo ' checked ';
+																				} ?> data-plugin="switchery" class="js-switch"
+																data-color="#039cfd" />
+														</div>
+													</div>
+													<div class="form-group row mb-4">
+														<label class="col-md-4 col-form-label"
+															for="player_hide_incompatible">Hide Incompatible Streams
+															<i title="<?= $language::get('hide_streams_that_arent_compatible_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<input name="player_hide_incompatible" id="player_hide_incompatible"
+																type="checkbox" <?php if ($rSettings["player_hide_incompatible"] == 1) {
+																					echo ' checked ';
+																				}
+																				echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="player_allow_hevc">Mark HEVC as Compatible <i title="' . $language::get('mark_hevc_as_compatible_there_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="player_allow_hevc" id="player_allow_hevc" type="checkbox"';
+																				if ($rSettings["player_allow_hevc"] == 1) {
+																					echo ' checked ';
+																				} ?>
+																data-plugin="switchery" class="js-switch"
+																data-color="#039cfd" />
+														</div>
+													</div>
+													<div class="form-group row mb-4">
+														<label class="col-md-4 col-form-label" for="player_blur">Background
+															Blur
+															px <i title="<?= $language::get('blur_the_background_images_by_x_pixels') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<input type="text" class="form-control text-center" id="player_blur"
+																name="player_blur"
+																value="<?= intval($rSettings["player_blur"]) ?>">
+														</div>
+														<label class="col-md-4 col-form-label" for="player_opacity">Background
+															Opacity % <i
+																title="<?= $language::get('adjust_the_background_image_opacity_default_is_10') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<input type="text" class="form-control text-center"
+																id="player_opacity" name="player_opacity" value="<?= intval($rSettings["player_opacity"]) ?>">
+														</div>
+													</div>
+													<div class="form-group row mb-4">
+														<label class="col-md-4 col-form-label" for="extract_subtitles">Extract
+															Subtitles <i
+																title="<?= $language::get('automatically_extract_subtitles_from_movies_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-2">
+															<input name="extract_subtitles" id="extract_subtitles"
+																type="checkbox" <?php if ($rSettings["extract_subtitles"] == 1) {
+																					echo ' checked ';
+																				}
+																				?> data-plugin="switchery" class="js-switch"
+																data-color="#039cfd" />
+														</div>
+													</div>
+												</div>
+											</div>
 										</div>
-									<?php
-									} ?>
+										<div class="tab-pane" id="logs">
+											<div class="row">
+												<div class="col-12">
+													<h5 class="card-title mb-4"><?= $language::get('preferences') ?></h5>
+													<div class="form-group row mb-4">
+														<label class="col-md-3 col-form-label"
+															for="save_closed_connection">Activity Logs <i
+																title="<?= $language::get('activity_logs_are_saved_when_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i>
+														</label>
+														<div class="col-md-3"><input name="save_closed_connection"
+																id="save_closed_connection" type="checkbox" <?php if ($rSettings["save_closed_connection"] == 1) {
+																												echo ' checked ';
+																											}
+																											?> data-plugin="switchery" class="js-switch"
+																data-color="#039cfd" />
+														</div>
+														<label class="col-md-3 col-form-label" for="keep_activity">Keep Logs
+															For</label>
+														<div class="col-md-3"><select name="keep_activity" id="keep_activity"
+																class="form-control" data-toggle="select2">
+																<?php
+																foreach (["Forever", 3600 => "1 Hour", 21600 => "6 Hours", 43200 => "12 Hours", 86400 => "1 Day", 259200 => "3 Days", 604800 => "7 Days", 1209600 => "14 Days", 16934400 => "28 Days", 15552000 => "180 Days", 31536000 => "365 Days",] as $rValue => $rText) {
+																	echo '<option ';
+
+																	if ($rSettings["keep_activity"] == $rValue) {
+																		echo 'selected ';
+																	}
+
+																?> value="<?= $rValue ?>"><?= $rText ?>
+																	</option>
+																<?php
+																}
+																?>
+															</select>
+														</div>
+													</div>
+													<div class="form-group row mb-4">
+														<label class="col-md-3 col-form-label" for="client_logs_save">Client
+															Logs <i
+																title="<?= $language::get('activity_logs_are_saved_when_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-3">
+															<input name="client_logs_save" id="client_logs_save" type="checkbox"
+																<?php
+																if ($rSettings["client_logs_save"] == 1) {
+																	echo ' checked ';
+																}
+																?> data-plugin="switchery" class="js-switch"
+																data-color="#039cfd" />
+														</div>
+														<label class="col-md-3 col-form-label" for="keep_client">Keep Logs
+															For</label>
+														<div class="col-md-3">
+															<select name="keep_client" id="keep_client" class="form-control"
+																data-toggle="select2">
+																<?php
+																foreach (["Forever", 3600 => "1 Hour", 21600 => "6 Hours", 43200 => "12 Hours", 86400 => "1 Day", 259200 => "3 Days", 604800 => "7 Days", 1209600 => "14 Days", 16934400 => "28 Days", 15552000 => "180 Days", 31536000 => "365 Days",] as $rValue => $rText) {
+																	echo '
+																		<option ';
+
+																	if ($rSettings["keep_client"] != $rValue) {
+																	} else {
+																		echo 'selected ';
+																	}
+
+																?> value="<?= $rValue ?>"><?= $rText ?>
+																	</option>
+																<?php
+																} ?>
+															</select>
+														</div>
+													</div>
+													<div class="form-group row mb-4">
+														<label class="col-md-3 col-form-label" for="save_login_logs">Login Logs
+															<i title="<?= $language::get('activity_logs_are_saved_when_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-3">
+															<input name="save_login_logs" id="save_login_logs" type="checkbox"
+																<?php
+																if ($rSettings["save_login_logs"] == 1) {
+																	echo ' checked ';
+																}
+																?> data-plugin="switchery" class="js-switch"
+																data-color="#039cfd" />
+														</div>
+														<label class="col-md-3 col-form-label" for="keep_login">Keep Logs
+															For</label>
+														<div class="col-md-3">
+															<select name="keep_login" id="keep_login" class="form-control"
+																data-toggle="select2">
+																<?php
+																foreach (["Forever", 3600 => "1 Hour", 21600 => "6 Hours", 43200 => "12 Hours", 86400 => "1 Day", 259200 => "3 Days", 604800 => "7 Days", 1209600 => "14 Days", 16934400 => "28 Days", 15552000 => "180 Days", 31536000 => "365 Days",] as $rValue => $rText) {
+																	echo '
+																		<option ';
+
+																	if ($rSettings["keep_login"] != $rValue) {
+																	} else {
+																		echo 'selected ';
+																	}
+
+																?> value="<?= $rValue ?>"><?= $rText ?>
+																	</option><?php
+																			} ?>
+															</select>
+														</div>
+													</div>
+													<div class="form-group row mb-4">
+														<label class="col-md-3 col-form-label" for="stream_logs_save">Stream
+															Error Logs <i
+																title="<?= $language::get('activity_logs_are_saved_when_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-3">
+															<input name="stream_logs_save" id="stream_logs_save" type="checkbox"
+																<?php
+																if ($rSettings["stream_logs_save"] == 1) {
+																	echo ' checked ';
+																}
+																?> data-plugin="switchery" class="js-switch"
+																data-color="#039cfd" />
+														</div>
+														<label class="col-md-3 col-form-label" for="keep_errors">Keep Logs
+															For</label>
+														<div class="col-md-3">
+															<select name="keep_errors" id="keep_errors" class="form-control"
+																data-toggle="select2">
+																<?php
+																foreach (["Forever", 3600 => "1 Hour", 21600 => "6 Hours", 43200 => "12 Hours", 86400 => "1 Day", 259200 => "3 Days", 604800 => "7 Days", 1209600 => "14 Days", 16934400 => "28 Days", 15552000 => "180 Days", 31536000 => "365 Days",] as $rValue => $rText) {
+																	echo '
+																		<option ';
+
+																	if ($rSettings["keep_errors"] == $rValue) {
+																		echo 'selected ';
+																	}
+																?> value="<?= $rValue ?>"><?= $rText ?>
+																	</option>
+																<?php
+																} ?>
+															</select>
+														</div>
+													</div>
+													<div class="form-group row mb-4">
+														<label class="col-md-3 col-form-label" for="save_restart_logs">Stream
+															Restart Logs <i
+																title="<?= $language::get('activity_logs_are_saved_when_tooltip') ?>"
+																class="tooltip text-secondary far fa-circle"></i></label>
+														<div class="col-md-3">
+															<input name="save_restart_logs" id="save_restart_logs"
+																type="checkbox" <?php if ($rSettings["save_restart_logs"] == 1) {
+																					echo ' checked ';
+																				} ?> data-plugin="switchery"
+																class="js-switch" data-color="#039cfd" />
+														</div>
+														<label class="col-md-3 col-form-label" for="keep_restarts">Keep
+															Logs For</label>
+														<div class="col-md-3"><select name="keep_restarts" id="keep_restarts"
+																class="form-control" data-toggle="select2">
+																<?php
+																foreach (["Forever", 3600 => "1 Hour", 21600 => "6 Hours", 43200 => "12 Hours", 86400 => "1 Day", 259200 => "3 Days", 604800 => "7 Days", 1209600 => "14 Days", 16934400 => "28 Days", 15552000 => "180 Days", 31536000 => "365 Days",] as $rValue => $rText) {
+																	echo '<option ';
+
+																	if ($rSettings["keep_restarts"] == $rValue) {
+																		echo 'selected ';
+																	}
+																?> value="<?= $rValue; ?>"><?= $rText ?></option>
+																<?php
+																}
+																?>
+															</select>
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+										<div class="tab-pane" id="info">
+											<div class="row">
+												<div class="col-12">
+													<h4 class="card-title mb-4"><?= $language::get('versions') ?></h4>
+													<table class="table table-striped table-bordered">
+														<tbody>
+															<tr>
+																<td class="text-center" style="font-size: 0.85rem;">Geolite2 Version</td>
+																<td class="text-center">
+																	<button type="button" class="btn btn-pink btn-sm" style="font-size: 0.85rem;"><?= $GeoLite2 ?></button>
+																</td>
+																<td class="text-center" style="font-size: 0.85rem;">GeoIP2-ISP Version</td>
+																<td class="text-center">
+																	<button type="button" class="btn btn-warning btn-sm" style="font-size: 0.85rem;"><?= $GeoISP ?></button>
+																</td>
+															</tr>
+															<tr>
+																<td class="text-center" style="font-size: 0.85rem;">PHP</td>
+																<td class="text-center">
+																	<button type="button" class="btn btn-info btn-sm" style="font-size: 0.85rem;"><?= phpversion() ?></button>
+																</td>
+																<td class="text-center" style="font-size: 0.85rem;">Nginx</td>
+																<td class="text-center">
+																	<button type="button" class="btn btn-danger btn-sm" style="font-size: 0.85rem;"><?= $Nginx ?></button>
+																</td>
+															</tr>
+														</tbody>
+													</table>
+
+													<h4 class="card-title mb-4"><?= $language::get('support_project') ?></h4>
+													<table class="table table-striped table-bordered text-center">
+														<thead class="thead-light">
+															<tr>
+																<th><?= $language::get('name') ?></th>
+																<th><?= $language::get('address') ?></th>
+																<th style="width:90px;"><?= $language::get('qr') ?></th>
+																<th style="width:90px;"><?= $language::get('copy') ?></th>
+															</tr>
+														</thead>
+														<tbody>
+															<tr>
+																<td><i class="fab fa-bitcoin text-warning"></i> Bitcoin (BTC)</td>
+																<td class="text-monospace small">1EP3XFHVk1fF3kV6zSg7whZzQdUpVMcAQz</td>
+																<td>
+																	<button type="button" class="btn btn-sm btn-outline-primary"
+																		data-toggle="modal"
+																		data-target="#qrModal"
+																		onclick="showQR(this)">
+																		<i class="fas fa-qrcode"></i>
+																	</button>
+																</td>
+																<td>
+																	<button type="button" class="btn btn-sm btn-outline-success"
+																		onclick="copyAddr(this)">
+																		<i class="fas fa-copy"></i>
+																	</button>
+																</td>
+															</tr>
+
+															<tr>
+																<td><i class="fab fa-ethereum text-info"></i> Ethereum (ETH)</td>
+																<td class="text-monospace small">0x613411dB8cFbaeaCC3A075EF39F41DFaaab4E1B8</td>
+																<td>
+																	<button type="button" class="btn btn-sm btn-outline-primary"
+																		onclick="showQR(this)">
+																		<i class="fas fa-qrcode"></i>
+																	</button>
+																</td>
+																<td>
+																	<button type="button" class="btn btn-sm btn-outline-success"
+																		onclick="copyAddr(this)">
+																		<i class="fas fa-copy"></i>
+																	</button>
+																</td>
+															</tr>
+
+															<tr>
+																<td><i class="fas fa-coins text-secondary"></i> Litecoin (LTC)</td>
+																<td class="text-monospace small">MFmn43WF2k2bsAQJe8rRmq2sKke95JmqC4</td>
+																<td>
+																	<button type="button" class="btn btn-sm btn-outline-primary"
+																		onclick="showQR(this)">
+																		<i class="fas fa-qrcode"></i>
+																	</button>
+																</td>
+																<td>
+																	<button type="button" class="btn btn-sm btn-outline-success"
+																		onclick="copyAddr(this)">
+																		<i class="fas fa-copy"></i>
+																	</button>
+																</td>
+															</tr>
+
+															<tr>
+																<td><i class="fas fa-dollar-sign text-success"></i> USDT (ERC-20)</td>
+																<td class="text-monospace small">0x034a2263a15Ade8606cC60181f12E5c2f0Ac59C6</td>
+																<td>
+																	<button type="button" class="btn btn-sm btn-outline-primary"
+																		onclick="showQR(this)">
+																		<i class="fas fa-qrcode"></i>
+																	</button>
+																</td>
+																<td>
+																	<button type="button" class="btn btn-sm btn-outline-success"
+																		onclick="copyAddr(this)">
+																		<i class="fas fa-copy"></i>
+																	</button>
+																</td>
+															</tr>
+														</tbody>
+
+													</table>
+												</div>
+											</div>
+										</div>
+										<?php
+										if (Authorization::check("adv", "database") && defined('DB_ACCESS_ENABLED') && DB_ACCESS_ENABLED) { ?>
+											<div class="tab-pane" id="database">
+												<div class="row">
+													<iframe width="100%" height="650px" src="./database.php"
+														style="overflow-x:hidden;border:0px;"></iframe>
+												</div> <!-- end row -->
+											</div>
+										<?php
+										} ?>
+									</div>
 								</div>
 							</div>
 						</div>
 					</div>
 				</div>
-			</div>
 		</form>
 	</div>
 </div>
