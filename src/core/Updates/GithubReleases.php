@@ -445,7 +445,6 @@ class GitHubReleases {
             $data_files[] = [
                 "fileurl"   => $file_url,                                // Remote file URL
                 "path"      => "/home/xc_vm/bin/maxmind/{$file}",        // Local path where the file should be stored
-                "permission" => "0750",                                   // File permission
                 "md5"       => $hash_md5                                // File hash (MD5)
             ];
         }

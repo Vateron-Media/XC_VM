@@ -69227,7 +69227,7 @@ CREATE TABLE IF NOT EXISTS `crontab` (
   PRIMARY KEY (`id`),
   KEY `enabled` (`enabled`),
   KEY `filename` (`filename`)
-) ENGINE=InnoDB AUTO_INCREMENT=28 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=29 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 --
 -- Dumping data for table `crontab`
@@ -69256,7 +69256,8 @@ INSERT INTO `crontab` (`id`, `filename`, `time`, `enabled`) VALUES
 (24, 'cache_engine', '*/5 * * * *', 1),
 (25, 'providers', '0 * * * *', 1),
 (26, 'tmdb_popular', '0 * * * *', 1),
-(27, 'plex', '*/5 * * * *', 1);
+(27, 'plex', '*/5 * * * *', 1),
+(28, 'maxmind', '0 4 * * 2', 1);
 
 -- --------------------------------------------------------
 
@@ -70389,6 +70390,9 @@ CREATE TABLE IF NOT EXISTS `settings` (
   `status_uuid` varchar(512) COLLATE utf8_unicode_ci DEFAULT NULL,
   `live_streaming_pass` varchar(512) COLLATE utf8_unicode_ci DEFAULT NULL,
   `update_channel` varchar(12) COLLATE utf8_unicode_ci DEFAULT 'stable',
+  `maxmind_account_id` varchar(20) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `maxmind_license_key` varchar(64) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `maxmind_editions` mediumtext COLLATE utf8_unicode_ci,
   `threshold_cpu` tinyint(3) DEFAULT '67',
   `threshold_mem` tinyint(3) DEFAULT '67',
   `threshold_disk` tinyint(3) DEFAULT '67',

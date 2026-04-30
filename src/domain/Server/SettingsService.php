@@ -36,6 +36,10 @@ class SettingsService {
 			$rArray['allowed_stb_types'] = array();
 		}
 
+		if (!isset($rData['maxmind_editions'])) {
+			$rArray['maxmind_editions'] = array();
+		}
+
 		if (!isset($rData['allow_countries'])) {
 			$rArray['allow_countries'] = array('ALL');
 		}
