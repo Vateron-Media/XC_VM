@@ -50,9 +50,10 @@ class ShutdownHandler {
                 );
             }
 
-            // Только live: очистка tmp-файлов соединения
+            // live: clean up both connection tmp files
+            // vod/timeshift: clean up the token touch file so it can't be reused after expiry
+            @unlink(CONS_TMP_PATH . $rTokenData['uuid']);
             if ($rContext === 'live') {
-                @unlink(CONS_TMP_PATH . $rTokenData['uuid']);
                 @unlink(CONS_TMP_PATH . $rStreamID . '/' . $rTokenData['uuid']);
             }
         }

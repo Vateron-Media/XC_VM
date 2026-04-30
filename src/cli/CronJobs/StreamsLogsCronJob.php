@@ -58,10 +58,9 @@ class StreamsLogsCronJob implements CommandInterface {
             if (!empty($rLine)) {
                 $rLine = json_decode(base64_decode($rLine), true);
                 if (!$rLine['stream_id']) {
-                    break;
+                    continue;
                 }
-                $rQuery .= '(' . $rLine['stream_id'] . ',' . SERVER_ID . ",'" . $rLine['action'] . "','" . $rLine['source'] . "','" . $rLine['time'] . "'),";
-                break;
+                $rQuery .= '(' . intval($rLine['stream_id']) . ',' . SERVER_ID . ",'" . addslashes($rLine['action']) . "','" . addslashes($rLine['source']) . "','" . addslashes($rLine['time']) . "'),";
             }
         }
         fclose($rFP);
