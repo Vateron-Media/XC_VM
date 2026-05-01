@@ -11,7 +11,7 @@
  */
 
 register_shutdown_function('shutdown');
-include './stream/init.php';
+include __DIR__ . '/stream/init.php';
 
 if (isset($rRequest['data'])) {
 	$rIP = $_SERVER['REMOTE_ADDR'];
