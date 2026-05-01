@@ -190,7 +190,7 @@ class EPG {
 			$rDecompress = ' | unxz -c';
 		}
 
-		$rCommand = 'wget -U "Mozilla/5.0" --timeout=30 --tries=3 -O - ' . escapeshellarg($rSource) . $rDecompress . ' > ' . escapeshellarg($rFilename);
+		$rCommand = 'wget -U "Mozilla/5.0" --connect-timeout=30 --read-timeout=120 --tries=2 -O - ' . escapeshellarg($rSource) . $rDecompress . ' > ' . escapeshellarg($rFilename);
 		$rResult = shell_exec($rCommand);
 
 		if (file_exists($rFilename) && filesize($rFilename) > 0) {
