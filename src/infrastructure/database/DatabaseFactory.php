@@ -35,6 +35,17 @@ class DatabaseFactory {
 	 */
 	public static function connect() {
 		global $db;
+
+		if (is_object($db) && method_exists($db, 'ping') && $db->ping()) {
+			self::$instance = $db;
+			return;
+		}
+
+		if (is_object($db)) {
+			$db->close_mysql();
+			$db = null;
+		}
+
 		$_INFO = array();
 
 		if (file_exists(MAIN_HOME . 'config')) {
@@ -43,7 +54,13 @@ class DatabaseFactory {
 			die('no config found');
 		}
 
-		$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
+		$db = new DatabaseHandler(
+			$_INFO['username'],
+			$_INFO['password'],
+			$_INFO['database'],
+			$_INFO['hostname'],
+			($_INFO['port'] ?: 3306)
+		);
 		self::$instance = $db;
 	}
 
@@ -52,7 +69,7 @@ class DatabaseFactory {
 	 */
 	public static function close() {
 		global $db;
-		if ($db) {
+		if (is_object($db)) {
 			$db->close_mysql();
 			$db = null;
 		}
