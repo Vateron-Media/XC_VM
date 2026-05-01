@@ -50,10 +50,10 @@ class Database {
 	}
 
 	public function close_mysql() {
-		if ($this->connected) {
-			$this->connected = false;
-			$this->dbh = null;
-		}
+		$this->connected = false;
+		$this->dbh = null;
+		$this->result = null;
+		$this->last_query = null;
 
 		return true;
 	}
@@ -63,6 +63,10 @@ class Database {
 	}
 
 	public function ping() {
+		if (!$this->dbh) {
+			return false;
+		}
+
 		try {
 			$this->dbh->query('SELECT 1');
 		} catch (Exception $e) {
