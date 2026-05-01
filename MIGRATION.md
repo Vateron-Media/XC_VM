@@ -1,229 +1,260 @@
-# XC_VM — Актуальный план миграции
+# XC_VM - Рабочий план миграции
 
-> Архитектурные принципы, структура проекта и описание компонентов — см. [ARCHITECTURE.md](ARCHITECTURE.md).
-> Этот файл содержит только незавершённые изменения.
-> История завершённых фаз фиксируется в git-истории и release notes.
-> Обновлено: 2026-04-20 (L-2, L-3, L-4 основная часть выполнены; L-4a полностью выполнено)
+> Архитектурные правила: см. [ARCHITECTURE.md](ARCHITECTURE.md).
+> Этот файл хранит только незавершенные задачи и фактический статус на сегодня.
+> Последнее обновление: 2026-05-01.
 
-## Содержание
+## 1. Почему файл переписан
 
-1. [Цель миграции](#1-цель-миграции)
-2. [Текущий технический долг](#2-текущий-технический-долг)
-3. [Актуальный backlog](#3-актуальный-backlog)
-4. [Пошаговый план ликвидации legacy и `www/`](#4-пошаговый-план-ликвидации-legacy-и-www)
-5. [Правила безопасности и проверки](#5-правила-безопасности-и-проверки)
-6. [Порядок выполнения](#6-порядок-выполнения)
+Предыдущая версия была полезной как исторический контекст, но в текущем виде она опасна для исполнения:
 
----
+1. В ней есть устаревшие факты по runtime-зависимостям (часть уже мигрирована, часть нет).
+2. В ней есть противоречия по статусам (например, L-4 одновременно закрыта и фигурирует в активной волне).
+3. В ней нет жесткого критического пути с измеримыми gate-критериями по каждой волне.
 
-## 1. Цель миграции
+Итог: такой документ провоцирует неверный порядок работ и регрессии.
 
-Цель текущего этапа — убрать остаточный legacy-слой и полностью вывести проект из зависимости от:
+## 2. Проверенный текущий статус (факты)
 
-- `src/www/` как runtime bootstrap и webroot-логики
-- ~~`src/infrastructure/legacy/` как исполняемого application-кода~~ (**✅ Удалена**)
-- procedural entry-point'ов, которые требуют `www/init.php` или `www/stream/init.php`
-- hardcoded-интеграции модулей в `public/routes/admin.php` и `public/Views/admin/header.php`
+### 2.1. Что реально сделано
 
-Миграция должна выполняться без потери работоспособности:
+1. L-4 выполнена: `src/infrastructure/legacy/` отсутствует.
+2. L-2 выполнена частично и стабилизирована.
+3. Есть `WebApiBootstrap` и `StreamingRequestBootstrap`.
+4. Front controller использует новые bootstrap-классы для API path.
+5. `status`-команда использует `StreamingRequestBootstrap::init('status')`.
+6. `src/www/init.php` и `src/www/stream/init.php` пока остаются compatibility-слоем.
+7. L-3R закрыта: `AdminTableController` больше не подключает procedural `table.php` напрямую.
 
-- admin/reseller/player панелей
-- streaming hot path
-- REST/API endpoint'ов
-- Ministra-совместимости
-- certbot/nginx/service-инфраструктуры
+### 2.2. Что все еще блокирует удаление `src/www/`
 
----
+| Зона | Факт | Риск |
+| --- | --- | --- |
+| Nginx MAIN | `src/bin/nginx/conf/nginx.conf` использует `root /home/xc_vm/www/` и rewrite на `www/*.php`/`www/stream/*.php` | Нельзя удалить `www` без outage |
+| Nginx LB | `lb_configs/nginx.conf` использует `root /home/xc_vm/www/` и rewrite на `/stream/*.php` | LB останется привязан к `www` |
+| Certbot | `src/cli/Commands/CertbotCommand.php` использует `--webroot -w /home/xc_vm/www/` | Поломка issue/renew при cutover |
+| Ministra runtime | `src/ministra/portal.php` делает `require '/home/xc_vm/www/stream/init.php'` | Прямая hard-зависимость от `www` |
+| Ministra lifecycle | `RootSignalsCronJob` и `SettingsService` управляют symlink `www/c` и `www/portal.php` | Нельзя убрать `www` без переезда схемы |
 
-## 2. Текущий технический долг
+### 2.3. Модули: состояние интеграции
 
-### 2.1. Прямые зависимости от `www/`
+1. `ModuleLoader` реализован, но web boot модулей в front controller не подключен.
+2. В web-контексте нет вызова `loadAll() + bootAll(...)` до dispatch.
+3. Маршрут `modules` хардкодится в `src/public/routes/admin.php`.
+4. Пункт `Modules` хардкодится в `src/public/Views/admin/header.php`.
+5. В `module.json` фактически только базовые поля (`requires_core` без v2-метаданных).
+6. `CoreCodePatchableModuleInterface` и `CoreCodePatcher` остаются рабочим механизмом (временный stopgap не выведен из эксплуатации).
 
-На момент обновления файла `www/` всё ещё используется как рабочий runtime-слой:
+### 2.4. Статус L-3R и остаточный долг
 
-| Узел | Текущая зависимость | Риск удаления |
-| ----- | -------------------- | ------------- |
-| `public/index.php` | Прямой `require` `www/init.php` и `www/stream/init.php` для API-path | Ломает API и streaming dispatch |
-| `bin/nginx/conf/nginx.conf` | `root /home/xc_vm/www/` и rewrite на `/stream/*.php`, `/playlist.php`, `/epg.php`, `/player_api.php`, `/probe.php` | Ломает внешний HTTP-трафик |
-| `console.php status` / service tooling | Использует `www/stream/init.php` | Ломает часть статуса и диагностики |
-| certbot / nginx ops | Используют `/home/xc_vm/www/` как webroot | Ломает выпуск и продление сертификатов |
-| Ministra integration | Управляет `www/c` и `www/portal.php` symlink'ами | Ломает MAG legacy redirect |
+1. Маршрут `table` идет напрямую в `TableController`, без дополнительной прослойки `AdminTableController`/`AdminTableRenderer`.
+2. `public/Views/admin/table.php` удален, procedural endpoint временно размещен в `TableController::index()`.
+3. Вспомогательная прослойка `AdminTableRequestContext` удалена как лишняя после консолидации.
 
-### 2.2. Исполняемый legacy-код в `infrastructure/legacy/` (✅ Ликвидировано)
+Вывод: L-3R закрыта, L-3D в прогрессе. Основной остаточный долг: декомпозиция query/branch-логики.
 
-Директория полностью удалена. Весь код мигрирован:
+## 3. Активный backlog (приоритизирован)
 
-| Файл | Куда мигрирован | Статус |
-| ----- | --------------- | ------ |
-| `resize_body.php` | `ImageResizeService` (`core/Util/`) | ✅ |
-| `reseller_api.php` | `ResellerAPI` (`domain/User/`) | ✅ |
-| `reseller_api_actions.php` | `ResellerApiDispatcher` (`infrastructure/`) | ✅ |
-| `reseller_table_body.php` | `ResellerTableRenderer` (`infrastructure/`) | ✅ |
+| ID | Приоритет | Задача | Блокер | Definition of Done |
+| --- | --- | --- | --- | --- |
+| ~~L-3D~~ | ~~P2~~ | ~~Декомпозировать procedural admin table endpoint~~ | ~~Нет~~ | **Закрыто.** `TableController::index()` — thin switch-dispatcher. 45 веток → private-методы. `filterRow` → `private static`. |
+| L-5 | P0 | Cutover HTTP routing и certbot c `www` | Нет | Nginx не роутит в `www/*.php`; certbot не использует `/home/xc_vm/www/` |
+| L-6 | P0 | Развязка Ministra от `www/c` и `www/portal.php` | L-5 | Включение/выключение Ministra не создает/удаляет файлы в `www` |
+| M-1 | P1 | Включить web boot модулей | Нет | В web-контексте реально вызываются `loadAll()` и `bootAll()` |
+| M-2 | P1 | Убрать хардкод модульных маршрутов и меню | M-1 | Ядро не содержит статических route/menu для модулей |
+| M-3 | P1 | Ввести navbar extension points | M-2 | Модули добавляют навигацию декларативно |
+| M-4 | P1 | Manifest v2 и порядок загрузки | M-1 | Поддерживаются `environment`, `dependencies`, `has_navbar`, `has_settings` |
+| M-5 | P2 | Убрать core patching как основной путь расширения | M-2, M-3 | Новые модули не используют patching для core/public |
+| M-6 | P2 | Перевести Ministra в модульные runtime/assets правила | L-6, M-4 | Ministra не отдельный legacy-остров |
+| L-7 | P0 | Финальное удаление `src/www/` | L-5, L-6 | В репозитории нет `src/www/`; smoke-check чистый |
 
-### 2.3. Переходные контроллеры и procedural handlers
+## 4. Критический путь (обязательный порядок)
 
-В `public/Controllers/` часть контроллеров остаётся thin-wrapper над legacy/procedural кодом:
+1. L-5
+2. L-6
+3. M-1
+4. M-2
+5. M-3 и M-4 (параллельно после M-2/M-1)
+6. M-5
+7. M-6
+8. L-7
 
-- `AdminTableController` делегирует в `public/Views/admin/table.php`
-- `TableController` и `Reseller/TableController` требуют `www/init.php`
-- ~~`ResellerApiController` требует `reseller_api_actions.php`~~ — **✅ Выполнено** (L-4, через `ResellerApiDispatcher`)
-- ~~`ResellerTableController` требует `reseller_table_body.php`~~ — **✅ Выполнено** (L-4, через `ResellerTableRenderer`)
-- ~~`AdminResizeController`, `ResellerResizeController`, `PlayerResizeController` требуют `resize_body.php`~~ — **✅ Выполнено** (L-4)
+Запрет: удалять `src/www/` до закрытия L-5 и L-6.
 
-### 2.4. Незавершённая интеграция модулей
+## 5. План исполнения по волнам
 
-Что уже реализовано и не должно оставаться в backlog как “не сделано”:
+## Волна A - Infra cutover (`www` как runtime должен перестать быть обязательным)
 
-- `ModuleInterface`
-- `ModuleLoader`
-- `ModuleManager`
-- `ModulesController`
-- `public/Views/admin/modules.php`
-- `config/modules.php`
-- регистрация `events` в контейнере
+### L-5. HTTP + certbot cutover
 
-Что всё ещё не доведено до целевого состояния:
+Изменения:
 
-| Проблема | Текущее состояние |
-| -------- | ----------------- |
-| Web boot модулей | `public/index.php` не вызывает `ModuleLoader::bootAll()` |
-| Маршруты модулей | Продублированы статически в `public/routes/admin.php` |
-| Навигация модулей | Жёстко зашита в `public/Views/admin/header.php` |
-| `module.json` | Содержит только `name`, `description`, `version`, `requires_core` |
-| Порядок загрузки модулей | Нет dependency sort и environment filter |
-| Core patching | Есть временный stopgap через `CoreCodePatchableModuleInterface`, но это не целевой механизм расширения |
+1. Перевести rewrite/location в `src/bin/nginx/conf/nginx.conf` с прямых `www/*.php` на front controller или новые owner endpoints.
+2. Синхронизировать эквивалентные правки в `lb_configs/nginx.conf`.
+3. Вынести certbot webroot из `/home/xc_vm/www/` в техническую директорию (`certbot-webroot`) и обновить `CertbotCommand`.
+4. Проверить, что legacy rewrite больше не указывают на `www/playlist.php`, `www/epg.php`, `www/player_api.php`, `www/probe.php`, `www/stream/*.php`, `www/admin/*.php`.
 
----
+Проверка:
 
-## 3. Актуальный backlog
+1. `nginx -t` для MAIN и LB.
+2. smoke API: `player_api`, `epg`, `playlist`, `enigma2`, `probe`.
+3. smoke streaming: `live`, `vod`, `timeshift`, `subtitle`, `thumb`, `auth`, `key`, `segment`.
+4. dry-run certbot и реальный renew path.
 
-| ID | Задача | Основные файлы | Блокер | Результат |
-| -- | ------ | -------------- | ------ | --------- |
-| ~~`L-4`~~ | ~~Заменить содержимое `infrastructure/legacy/` на доменные сервисы и специализированные action classes~~ | — | — | **✅ Выполнено:** директория `infrastructure/legacy/` полностью удалена. `ImageResizeService` (3 контроллера мигрированы); `ResellerAPI` в `domain/User/`; `ResellerApiDispatcher` (19 actions); `ResellerTableRenderer` (11 handlers) |
-| ~~`L-4a`~~ (class move) | ~~Физически переместить `ResellerAPI` → `domain/User/ResellerAPI.php`~~ | `src/domain/User/ResellerAPI.php` | — | **✅ Выполнено:** класс перенесён; legacy-файл удалён |
-| ~~`L-4a`~~ | ~~Рефакторировать `reseller_api_actions.php` на action classes~~ | `src/infrastructure/ResellerApiDispatcher.php` | — | **✅ Выполнено:** 19 action-методов встроены в `ResellerApiDispatcher` как private static методы; `reseller_api_actions.php` → tombstone-шим; orphaned-код в `reseller_api.php` обёрнут в блочный комментарий |
-| ~~`L-4b`~~ | ~~Рефакторировать `reseller_table_body.php` на DataTables service layer~~ | `src/infrastructure/ResellerTableRenderer.php` | — | **✅ Выполнено:** 11 `$rType`-обработчиков встроены в `ResellerTableRenderer` как private static методы; `reseller_table_body.php` → tombstone-шим; `src/domain/Reseller/Table/` не создан (код presentation-layer, не domain) |
-| `L-5` | Перевести внешний HTTP routing с `www` на `public` или новые endpoints | `src/bin/nginx/conf/nginx.conf`, `src/public/index.php`, `src/www/admin/*`, `src/www/stream/*` | `L-2` | nginx больше не маршрутизирует запросы в `www/*.php` |
-| `L-6` | Развязать Ministra от `www/c` и `www/portal.php` | `src/cli/CronJobs/RootSignalsCronJob.php`, `src/domain/Server/SettingsService.php`, `src/ministra/*`, nginx-конфиги | `L-5` | MAG legacy redirect управляется без symlink'ов в `www` |
-| `L-7` | Удалить `src/www/` после cutover и smoke-check | `src/www/**`, nginx, certbot, status tooling | `L-5`, `L-6` | `www/` больше не нужен ни коду, ни инфраструктуре |
-| `M-1` | Включить web boot модулей | `src/public/index.php`, `src/core/Module/ModuleLoader.php` | Нет | `boot()` и `registerRoutes()` реально работают в web-контексте |
-| `M-2` | Убрать дублирование модульных маршрутов и зашитых меню | `src/public/routes/admin.php`, `src/public/Views/admin/header.php`, module controllers | `M-1` | Маршруты и пункты меню модулей больше не хардкодятся в ядре |
-| `M-3` | Ввести navbar extension points и builder | `src/core/Http/*`, `src/public/Views/admin/header.php`, `src/modules/*` | `M-2` | Модули добавляют навигацию декларативно |
-| `M-4` | Расширить manifest и порядок загрузки модулей | `src/core/Module/ModuleLoader.php`, `src/modules/*/module.json` | `M-1` | Поддержка `environment`, `dependencies`, `has_navbar`, `has_settings` |
-| `M-5` | Убрать временный core patching как основной путь расширения | `src/core/Module/CoreCodePatchableModuleInterface.php`, `src/core/Module/CoreCodePatcher.php`, hook points в core/public | `M-2` | Новые модули расширяют систему только через контракты и hook points |
-| `M-6` | Перевести Ministra в модульные assets/runtime правила | `src/ministra/*`, `src/modules/ministra/*`, nginx | `L-6`, `M-4` | Ministra перестаёт быть отдельным legacy-островом |
+Rollback:
 
----
+1. Вернуть предыдущие nginx-конфиги.
+2. Вернуть старый certbot webroot.
 
-## 4. Пошаговый план ликвидации legacy и `www/`
+## Волна B - Ministra развязка
 
-### Этап 0. Заморозка входных точек
+### L-6. Убрать файловые symlink-зависимости от `www`
 
-1. Зафиксировать полный список runtime-зависимостей от `www/` в smoke-check матрице.
-2. Добавить отдельный CI-check: новые вызовы `require ... 'www/*.php'` запрещены.
-3. Прекратить добавление новых nginx rewrite на `www/*.php`.
+Изменения:
 
-### Этап 1. Замена `www/init.php` и `www/stream/init.php`
+1. Убрать прямой `require '/home/xc_vm/www/stream/init.php'` в `src/ministra/portal.php`; перейти на новый bootstrap path.
+2. Удалить логику создания/удаления `www/c` и `www/portal.php` из `RootSignalsCronJob` и `SettingsService`.
+3. Перенести MAG legacy redirect в nginx/location/alias или модульный runtime path без файловых операций в `www`.
 
-1. Создать два явных bootstrap-сценария: `WebApiBootstrap` и `StreamingRequestBootstrap`.
-2. Перенести в них логику из `www/init.php` и `www/stream/init.php` без сохранения procedural entry-point API.
-3. Переключить `public/index.php`, `console.php status` и прочие call sites на новые bootstrap-классы.
-4. Оставить старые `www/*init.php` как временные shim-файлы на один релиз.
+Проверка:
 
-**Критерий завершения:** ни один runtime path не требует `www/init.php` и `www/stream/init.php` напрямую.
+1. `/c/portal.php` работает.
+2. MAG redirect работает при `mag_legacy_redirect=1`.
+3. Переключение настройки не создает/удаляет объекты внутри `www`.
 
-### Этап 2. Ликвидация исполняемого legacy в `public/Controllers/`
+Rollback:
 
-1. Переписать admin/reseller table endpoints без включения `public/Views/admin/table.php` и `reseller_table_body.php`.
-2. Вытащить resize-логику из `resize_body.php` в отдельный сервис `ImageResizeService`.
-3. Разделить reseller API actions на action classes и application services.
-4. Удалить thin-wrapper контроллеры, оставив только реальные controller classes.
+1. Временно вернуть старую symlink-схему через сигнал.
+2. Сохранить предыдущее поведение до следующего релиза.
 
-**Критерий завершения:** `public/Controllers/**` больше не содержат `require ... www/init.php`.
+## Волна C - Модульный cutover
 
-### Этап 3. Удаление `infrastructure/legacy/` (✅ Завершено)
+### M-1. Web boot модулей
 
-Директория полностью удалена. Все файлы мигрированы в соответствующие классы (L-4, L-4a, L-4b).
+Изменения:
 
-### Этап 4. Cutover внешнего HTTP-трафика
+1. Подключить `ModuleLoader` в web flow до dispatch.
+2. Вызывать `loadAll()` и `bootAll($container, $router)` в корректной точке инициализации.
 
-1. Перенастроить nginx rewrite так, чтобы внешние маршруты указывали на `public/index.php` или новые специализированные endpoints.
-2. Убрать `root /home/xc_vm/www/` как обязательный runtime-root.
-3. Вынести certbot webroot в отдельную техническую директорию, не связанную с legacy runtime.
-4. Перевести health/status/probe endpoints на новые контроллеры или CLI-backed endpoints.
+Проверка:
 
-**Критерий завершения:** nginx больше не обращается к `www/playlist.php`, `www/epg.php`, `www/player_api.php`, `www/probe.php`, `www/stream/*.php`, `www/admin/*.php`.
+1. Маршруты модулей реально регистрируются без ручного route-хардкода.
+2. Event subscribers модулей реально подписаны.
 
-### Этап 5. Развязка Ministra
+### M-2. Удалить хардкод module routes/menu в ядре
 
-1. Убрать зависимость `mag_legacy_redirect` от наличия `www/c` и `www/portal.php` symlink'ов.
-2. Перевести Ministra routing на отдельный location/alias либо модульный runtime path.
-3. Перенести lifecycle-операции из `RootSignalsCronJob` и `SettingsService` на новую схему без файлового управления в `www/`.
+Изменения:
 
-**Критерий завершения:** включение и отключение Ministra больше не создаёт и не удаляет файлы в `www/`.
+1. Убрать статический `modules` route из `src/public/routes/admin.php`.
+2. Убрать статический пункт `Modules` из `src/public/Views/admin/header.php`.
+3. Обеспечить добавление через модульный контракт.
 
-### Этап 6. Финальное удаление `www/`
+Проверка:
 
-1. На один релиз оставить `www/` в режиме compatibility-only shim.
-2. Снять продовые метрики по всем старым URL и убедиться, что трафик ушёл на новые точки входа.
-3. Удалить содержимое в следующем порядке: `www/admin/*`, затем `www/stream/*`, затем `playlist.php`, `epg.php`, `player_api.php`, `probe.php`, `progress.php`, `init.php`, `constants.php`, и только после этого symlink'и Ministra.
-4. Удалить директорию `src/www/` только после чистого smoke-check и nginx cutover.
+1. Отключение модуля не требует правки ядра.
+2. Включение модуля добавляет route/menu автоматически.
 
-**Критерий завершения:** в репозитории отсутствует `src/www/`, а все сервисы проходят smoke-check.
+### M-3. Navbar extension points
 
----
+Изменения:
 
-## 5. Правила безопасности и проверки
+1. Ввести контракт/DTO для navbar entries.
+2. Добавить builder в core/http слой.
+3. Перевести текущие модульные пункты на декларативный путь.
 
-### 5.1. Жёсткие правила
+### M-4. Manifest v2 + dependency sort
 
-1. Никакие секреты, токены, внутренние API-ключи и учётные данные не попадают в клиентский код, HTML, JS, CSS и шаблоны модулей.
-2. Новые модули не расширяют систему через прямую запись в `core/` и `domain/`.
-3. Любой новый HTTP-path должен иметь явный владелец: `public/`, `streaming/` или отдельный infrastructure entrypoint. Больше не допускается “временный файл в `www/`”.
-4. Любой этап удаления должен быть обратимым в пределах одного релиза.
+Изменения:
 
-### 5.2. Обязательные проверки перед удалением каждого слоя
+1. Расширить `module.json` до полей: `environment`, `dependencies`, `has_navbar`, `has_settings`.
+2. Добавить сортировку загрузки по зависимостям.
+3. Добавить fail-fast при циклических зависимостях.
 
-| Слой | Минимальная проверка |
-| ---- | -------------------- |
+Проверка M-3/M-4:
+
+1. Модуль с unmet dependency не загружается и дает явную ошибку.
+2. Порядок boot детерминирован и повторяем.
+
+### M-5. Вывод CoreCodePatcher из основного пути расширения
+
+Изменения:
+
+1. Для текущих модулей заменить patching на новые hook points.
+2. Ограничить patching как временный legacy-only путь.
+
+Проверка:
+
+1. Новые модули проходят review без `CoreCodePatchableModuleInterface`.
+
+### M-6. Ministra как модуль
+
+Изменения:
+
+1. Перевести runtime/assets Ministra на модульные правила.
+2. Исключить отдельный legacy owner path.
+
+Проверка:
+
+1. Ministra включается/отключается через модульный lifecycle, без вмешательства в `www`.
+
+## Волна D - Финальное удаление `src/www/`
+
+### L-7. Удаление compatibility-слоя
+
+Изменения:
+
+1. Один релиз держать `www` в compatibility-only режиме.
+2. Подтвердить, что продовый трафик ушел со старых URL.
+3. Удалять по порядку: `www/admin/*`, `www/stream/*`, затем корневые legacy endpoints.
+4. Удалить директорию `src/www/`.
+
+Проверка:
+
+1. Нет call sites на `src/www/**`.
+2. smoke-check по всем контурам зеленый.
+3. `php src/console.php --list` и критичные cron-команды работают.
+
+Rollback:
+
+1. В рамках релиза вернуть compatibility layer из release branch.
+
+## 6. Обязательная smoke-check матрица
+
+| Контур | Минимум проверки |
+| --- | --- |
 | bootstrap | admin login, reseller login, player login, `console.php --list` |
 | API | `player_api`, `epg`, `playlist`, `enigma2`, reseller AJAX |
 | streaming | live, vod, timeshift, subtitle, thumb, auth, key, segment |
 | Ministra | `/c/portal.php`, MAG redirect, portal auth |
-| infra | nginx reload, certbot issue/renew path, status endpoint |
+| infra | `nginx -t`, nginx reload, certbot issue/renew |
 
-### 5.3. Правило удаления
+## 7. Gate-критерии между волнами
 
-Файл удаляется только если соблюдены все условия:
+1. Gate A (после L-5): нет nginx rewrite в `www/*.php`; certbot не использует `/home/xc_vm/www/`.
+2. Gate B (после L-6): Ministra работает без symlink в `www`.
+3. Gate C (после M-4): web boot модулей активен, route/menu модулей не хардкодятся.
+4. Gate D (после L-7): `src/www/` отсутствует, smoke-check полностью зеленый.
 
-- у него есть новый владелец или замена
-- все call sites переключены
-- smoke-check пройден
-- rollback понятен и документирован
+## 8. Текущее целевое окно работ
 
----
+### Итерация 1 (сейчас)
 
-## 6. Порядок выполнения
+1. Закрыть L-5 полностью.
+2. Подготовить PR только по infra/certbot cutover.
+3. Отдельно прогнать smoke-check и зафиксировать отчёт.
 
-### Волна A. Подготовка к удалению `www/`
+### Итерация 2
 
-1. ~~`L-2` — замена `www/init.php` и `www/stream/init.php`~~ ✅
-2. ~~`L-3` — переписывание thin-wrapper контроллеров~~ ✅
-3. `L-4` — удаление исполняемого legacy в `infrastructure/legacy/`
+1. Закрыть L-6 (Ministra отвязка от `www`).
+2. После успешного gate перейти к модульной волне M-1/M-2.
 
-### Волна B. Модульный cutover
+## 9. Жесткие правила удаления
 
-1. `M-1` — включение web boot модулей
-2. `M-2` — удаление hardcoded маршрутов модулей и меню
-3. `M-3` — navbar extension points
-4. `M-4` — manifest v2 и dependency sort
-5. `M-5` — отказ от core patching как основного пути расширения
+Любой legacy-файл удаляется только если одновременно выполнены все условия:
 
-### Волна C. Финальный infra cutover
+1. Есть новый владелец или прямой заменяющий path.
+2. Все call sites переключены.
+3. Smoke-check пройден.
+4. Есть рабочий rollback на один релиз.
 
-1. `L-5` — nginx/certbot/status cutover
-2. `L-6` — Ministra без `www/` symlink'ов
-3. `M-6` — модульная интеграция Ministra
-4. `L-7` — физическое удаление `src/www/`
-
-> До завершения волны C удаление `src/www/` запрещено.
+Если хотя бы одно условие не выполнено, удаление запрещено.

@@ -340,19 +340,19 @@
 				<div class="modal-body">
 					<div class="form-group row">
 						<div class="col-md-3">
-							<input id="reinstall_server" type="submit" class="btn btn-light" value="Reinstall Server" style="width:100%" />
+							<button id="reinstall_server" type="button" class="btn btn-light" style="width:100%; white-space:normal; height:auto;">Reinstall Server</button>
 						</div>
 						<div class="col-md-2">
-							<input id="restart_services_ssh" type="submit" class="btn btn-light" value="Restart Services" style="width:100%" />
+							<button id="restart_services_ssh" type="button" class="btn btn-light" style="width:100%; white-space:normal; height:auto;">Restart Services</button>
 						</div>
 						<div class="col-md-2">
-							<input id="reboot_server_ssh" type="submit" class="btn btn-light" value="Reboot Server" style="width:100%" />
+							<button id="reboot_server_ssh" type="button" class="btn btn-light" style="width:100%; white-space:normal; height:auto;">Reboot Server</button>
 						</div>
 						<div class="col-md-2">
-							<input id="update_binaries" type="submit" class="btn btn-light" value="Update Binaries" style="width:100%" />
+							<button id="update_binaries" type="button" class="btn btn-light" style="width:100%; white-space:normal; height:auto;">Update Binaries (Does nothing)</button>
 						</div>
 						<div class="col-md-3">
-							<input id="update_server" type="submit" class="btn btn-light" value="Update Server" style="width:100%" />
+							<button id="update_server" type="button" class="btn btn-light" style="width:100%; white-space:normal; height:auto;">Update Server</button>
 						</div>
 					</div>
 				</div>

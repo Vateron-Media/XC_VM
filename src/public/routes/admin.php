@@ -181,7 +181,7 @@ $router->get('resize', [AdminResizeController::class, 'index']);
 $router->get('logout', [AdminLogoutController::class, 'index']);
 $router->any('player', [PlayerEmbedController::class, 'index']);
 $router->any('post', [PostController::class, 'index']);
-$router->any('table', [AdminTableController::class, 'index']);
+$router->any('table', [TableController::class, 'index']);
 $router->any('api', [AjaxController::class, 'index']);
 
 // ─── No-bootstrap pages (login, setup, database, session) ────
