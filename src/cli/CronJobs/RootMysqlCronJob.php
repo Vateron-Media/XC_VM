@@ -62,7 +62,18 @@ class RootMysqlCronJob implements CommandInterface {
                 }
             }
         }
+        
+        // Fast-path: skip expensive syslog tail/grep when file size has not changed.
+        $rSyslogMarker = CRONS_TMP_PATH . 'mysql_syslog_size';
+        $rCurrentSize = @filesize('/var/log/syslog') ?: 0;
+        $rLastSize = file_exists($rSyslogMarker) ? intval(@file_get_contents($rSyslogMarker)) : -1;
 
+        if ($rCurrentSize === $rLastSize) {
+            @unlink($this->rIdentifier);
+            return 0;
+        }
+
+        @file_put_contents($rSyslogMarker, $rCurrentSize);
         exec('sudo tail -n 1000 /var/log/syslog | grep mysqld', $rOutput, $rRetVal);
         foreach ($rOutput as $rError) {
             $rMySQLDParts = explode('mysqld[', $rError, 2);
@@ -142,10 +153,7 @@ class RootMysqlCronJob implements CommandInterface {
         exec('systemctl is-active mariadb 2>/dev/null', $out, $code);
         $isActive = isset($out[0]) && trim($out[0]) === 'active';
 
-        exec('pgrep -x mariadbd', $pids, $pidCode);
-        $hasProcess = !empty($pids);
-
-        if (!$isActive || !$hasProcess) {
+        if (!$isActive) {
             echo "[MYSQL] MariaDB is DOWN, restarting...\n";
             exec('systemctl restart mariadb 2>&1', $restartOut, $restartCode);
             sleep(3);

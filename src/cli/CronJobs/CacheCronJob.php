@@ -95,6 +95,12 @@ class CacheCronJob implements CommandInterface {
             return;
         }
 
+        // Skip expensive heavy cache rebuild for 5 minutes; lightweight caches above still refresh every run.
+        $rHeavyMarker = CACHE_TMP_PATH . 'heavy_cache_built';
+        if (!$rStartup && file_exists($rHeavyMarker) && (time() - filemtime($rHeavyMarker)) < 300) {
+            return;
+        }
+
         $rOutputFormats = array();
         $db->query('SELECT `access_output_id`, `output_key` FROM `output_formats`;');
         foreach ($db->get_rows() as $rRow) {
@@ -278,5 +284,6 @@ class CacheCronJob implements CommandInterface {
         file_put_contents(CACHE_TMP_PATH . 'bouquet_map', igbinary_serialize($rBouquetMap));
         file_put_contents(CACHE_TMP_PATH . 'category_map', igbinary_serialize($rCategoryMap));
         file_put_contents(STREAMS_TMP_PATH . 'channels_categories', igbinary_serialize($rCategoryChannels));
+        @touch($rHeavyMarker);
     }
 }
