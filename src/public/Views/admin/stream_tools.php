@@ -1,4 +1,8 @@
-<div class="wrapper boxed-layout"
+<?php
+$xmIsDark = ($rThemes[$rUserInfo['theme']]['dark'] ?? false);
+$xmTheme  = $xmIsDark ? 'xm-dark' : 'xm-light';
+?>
+<div class="wrapper xm-mag <?= $xmTheme ?>"
     <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
     } else {
         echo ' style="display: none;"';
@@ -51,6 +55,12 @@
                                     <a href="#url-decrypt" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
                                         <i class="mdi mdi-lock-open mr-1"></i>
                                         <span class="d-none d-sm-inline"><?= $language::get('url_decrypt') ?></span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="#epg-auto-assign" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
+                                        <i class="mdi mdi-calendar-check mr-1"></i>
+                                        <span class="d-none d-sm-inline">Auto-assign EPG</span>
                                     </a>
                                 </li>
                             </ul>
@@ -185,6 +195,46 @@
                                             </li>
                                         </ul>
                                     </form>
+                                </div>
+                                <div class="tab-pane" id="epg-auto-assign">
+                                    <div class="row mb-3">
+                                        <div class="col-12">
+                                            <p class="text-muted mb-3">Automatically assigns EPG to live streams with no EPG configured. Suffixes like HD, FHD, SD, 4K are ignored during matching. Streams below the threshold are left unchanged.</p>
+                                            <div class="alert alert-info mb-3" style="border-left:4px solid #5b8dee;">
+                                                <p class="mb-2"><strong><i class="mdi mdi-information-outline mr-1"></i>Don't have EPG yet? Use your providers' guide in 3 steps:</strong></p>
+                                                <ol class="mb-0 pl-3" style="line-height:1.9;">
+                                                    <li>Go to <strong>Providers</strong>, open a provider and click <strong><i class="mdi mdi-calendar-import"></i> Import EPG Source</strong> — this saves the provider's XML guide URL automatically.</li>
+                                                    <li>Go to <strong>EPG</strong> and click <strong>Force Reload</strong> on the newly added source to download the channel list.</li>
+                                                    <li>Come back here, select a category (optional) and click <strong>Auto-assign EPG</strong>.</li>
+                                                </ol>
+                                            </div>
+                                            <div class="form-group mb-3">
+                                                <label for="epg_category_id" style="font-weight:600;">Category</label>
+                                                <select id="epg_category_id" class="form-control select2" style="width:100%;">
+                                                    <option value="">All categories</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group mb-2">
+                                                <label for="epg_threshold" style="font-weight:600;">
+                                                    Match threshold: <span id="epg_threshold_val">80</span>%
+                                                </label>
+                                                <div class="d-flex align-items-center" style="gap:10px;">
+                                                    <span class="text-muted" style="font-size:12px;">50%</span>
+                                                    <input type="range" id="epg_threshold" min="50" max="100" value="80" step="5" class="form-control-range" style="flex:1;" oninput="document.getElementById('epg_threshold_val').textContent=this.value">
+                                                    <span class="text-muted" style="font-size:12px;">100%</span>
+                                                </div>
+                                                <small class="text-muted">Higher = safer but fewer matches. 80% recommended.</small>
+                                            </div>
+                                            <div id="epg_assign_result" style="display:none;" class="alert mb-0"></div>
+                                        </div>
+                                    </div>
+                                    <ul class="list-inline wizard mb-0">
+                                        <li class="list-inline-item float-right">
+                                            <button type="button" id="epg_auto_assign_btn" class="btn btn-primary" onclick="epgAutoAssign();">
+                                                <i class="mdi mdi-calendar-check mr-1"></i> Auto-assign EPG
+                                            </button>
+                                        </li>
+                                    </ul>
                                 </div>
                             </div>
                         </div>
@@ -360,6 +410,84 @@ renderUnifiedLayoutFooter('admin');
             initSearch();
         });
     <?php endif; ?>
+
+    function epgLoadCategories() {
+        var $sel = $("#epg_category_id");
+        if ($sel.find("option").length > 1) return;
+        $.getJSON("./api?action=epg_categories", function(rData) {
+            if (rData.status === 1 && rData.data) {
+                $.each(rData.data, function(i, cat) {
+                    $sel.append($('<option>').val(cat.id).text(cat.category_name));
+                });
+                try { $sel.select2('destroy'); } catch(e) {}
+                $sel.select2({ width: '100%' });
+            }
+        });
+    }
+
+    function epgAutoAssign() {
+        var $btn         = $("#epg_auto_assign_btn");
+        var $result      = $("#epg_assign_result");
+        var totalAssigned  = 0;
+        var totalSkipped   = 0;
+        var totalProcessed = 0;
+        var grandTotal     = 0;
+        var threshold      = $("#epg_threshold").val() || 80;
+        var categoryId     = $("#epg_category_id").val() || "";
+
+        $btn.prop("disabled", true);
+        $result.removeClass("alert-danger alert-success")
+               .addClass("alert alert-info")
+               .html('<i class="mdi mdi-loading mdi-spin mr-1"></i> Starting...')
+               .show();
+
+        function runBatch(lastId) {
+            var url = "./api?action=epg_auto_assign&last_id=" + lastId + "&threshold=" + threshold;
+            if (categoryId !== "") url += "&category_id=" + encodeURIComponent(categoryId);
+            $.getJSON(url, function(rData) {
+                if (rData.status !== 1) {
+                    $result.removeClass("alert-info").addClass("alert-danger")
+                           .html("Error during processing. Please try again.");
+                    $btn.prop("disabled", false).html('<i class="mdi mdi-calendar-check mr-1"></i> Auto-assign EPG');
+                    return;
+                }
+
+                if (grandTotal === 0) grandTotal = rData.data.total;
+                totalAssigned  += rData.data.assigned;
+                totalSkipped   += rData.data.skipped;
+                totalProcessed += rData.data.batch_size;
+
+                var pct = grandTotal > 0 ? Math.min(100, Math.round(totalProcessed / grandTotal * 100)) : 100;
+                $result.html(
+                    '<i class="mdi mdi-loading mdi-spin mr-1"></i> Processing... ' + pct + '% &nbsp;' +
+                    '(<strong>' + totalProcessed + '</strong> / <strong>' + grandTotal + '</strong>)'
+                );
+
+                if (rData.data.has_more) {
+                    runBatch(rData.data.next_last_id);
+                } else {
+                    $result.removeClass("alert-info").addClass("alert-success").html(
+                        '<i class="mdi mdi-check mr-1"></i> Done! &nbsp;' +
+                        '<strong>' + totalAssigned + '</strong> assigned &mdash; ' +
+                        '<strong>' + totalSkipped  + '</strong> below threshold'
+                    );
+                    $btn.prop("disabled", false).html('<i class="mdi mdi-calendar-check mr-1"></i> Auto-assign EPG');
+                }
+            }).fail(function() {
+                $result.removeClass("alert-info").addClass("alert-danger")
+                       .html("Request failed. Please try again.");
+                $btn.prop("disabled", false).html('<i class="mdi mdi-calendar-check mr-1"></i> Auto-assign EPG');
+            });
+        }
+
+        runBatch(0);
+    }
+
+    $(document).ready(function() {
+        $('a[href="#epg-auto-assign"]').on("shown.bs.tab", function() {
+            epgLoadCategories();
+        });
+    });
 </script>
 <script src="assets/js/listings.js"></script>
 </body>
