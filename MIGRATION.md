@@ -58,7 +58,7 @@
 | ID | Приоритет | Задача | Блокер | Definition of Done |
 | --- | --- | --- | --- | --- |
 | ~~L-3D~~ | ~~P2~~ | ~~Декомпозировать procedural admin table endpoint~~ | ~~Нет~~ | **Закрыто.** `TableController::index()` — thin switch-dispatcher. 45 веток → private-методы. `filterRow` → `private static`. |
-| L-5 | P0 | Cutover HTTP routing и certbot c `www` | Нет | Nginx не роутит в `www/*.php`; certbot не использует `/home/xc_vm/www/` |
+| ~~L-5~~ | ~~P0~~ | ~~Cutover HTTP routing и certbot c `www`~~ | ~~Нет~~ | **Закрыто.** Nginx не роутит в `www/*.php`; certbot не использует `/home/xc_vm/www/`. |
 | L-6 | P0 | Развязка Ministra от `www/c` и `www/portal.php` | L-5 | Включение/выключение Ministra не создает/удаляет файлы в `www` |
 | M-1 | P1 | Включить web boot модулей | Нет | В web-контексте реально вызываются `loadAll()` и `bootAll()` |
 | M-2 | P1 | Убрать хардкод модульных маршрутов и меню | M-1 | Ядро не содержит статических route/menu для модулей |
@@ -239,7 +239,7 @@ Rollback:
 
 ### Итерация 1 (сейчас)
 
-1. Закрыть L-5 полностью.
+1. ~~Закрыть L-5 полностью.~~
 2. Подготовить PR только по infra/certbot cutover.
 3. Отдельно прогнать smoke-check и зафиксировать отчёт.
 

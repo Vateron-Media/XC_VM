@@ -25,7 +25,8 @@ class PlaylistApiController extends BaseApiController {
 		}
 
 		$rIP = NetworkUtils::getUserIP();
-		$rCountryCode = GeoIP::getCountry($rIP)['country']['iso_code'];
+		$rCountry = GeoIP::getCountry($rIP);
+		$rCountryCode = (is_array($rCountry) && isset($rCountry['country']['iso_code']) ? $rCountry['country']['iso_code'] : null);
 		$rUserAgent = (empty($_SERVER['HTTP_USER_AGENT']) ? '' : htmlentities(trim($_SERVER['HTTP_USER_AGENT'])));
 		$rDeviceKey = (empty(RequestManager::getAll()['type']) ? 'm3u_plus' : RequestManager::getAll()['type']);
 		$rTypeKey = (empty(RequestManager::getAll()['key']) ? null : explode(',', RequestManager::getAll()['key']));
