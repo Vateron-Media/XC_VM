@@ -1,7 +1,13 @@
 {
-    "version": "2.1.4",
+    "version": "2.1.5",
     "changes": [
-        "Refactored various components for improved error handling and code clarity",
-        "Fixed missing global declarations for $_INFO and $db in migration logic"
+        "Added auto-assign feature for EPG to live streams",
+        "Added MaxMind GeoIP updater with weekly cron integration",
+        "Reduced database connection churn in streaming and improved DB lifecycle",
+        "Optimized cron performance by throttling heavy checks and increasing queue loop default",
+        "Fixed spurious TS disconnects by updating hls_last_read during streaming sessions",
+        "Fixed LLOD v2 FFmpeg startup delay on on-demand streams",
+        "Improved URL construction in ImageResizeService",
+        "Fixed multiple import-related issues"
     ]
 }
