@@ -1,4 +1,8 @@
-<div class="wrapper boxed-layout-ext" <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') : ?><?php else : ?> style="display: none;" <?php endif; ?>>
+<?php
+$xmIsDark = ($rThemes[$rUserInfo['theme']]['dark'] ?? false);
+$xmTheme  = $xmIsDark ? 'xm-dark' : 'xm-light';
+?>
+<div class="wrapper xm-mag <?= $xmTheme ?>" <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') : ?><?php else : ?> style="display: none;" <?php endif; ?>>
     <div class="container-fluid">
         <div class="row">
             <div class="col-12">
@@ -93,6 +97,13 @@
                                                 </div>
                                             </div>
                                             <ul class="list-inline wizard mb-0">
+                                                <?php if (isset($rProvider)): ?>
+                                                <li class="list-inline-item">
+                                                    <button type="button" id="import_epg_btn" class="btn btn-info waves-effect" onclick="importProviderEPG(<?php echo intval($rProvider['id']); ?>);">
+                                                        <i class="mdi mdi-calendar-import mr-1"></i> Import EPG Source
+                                                    </button>
+                                                </li>
+                                                <?php endif; ?>
                                                 <li class="list-inline-item float-right">
                                                     <input name="submit_provider" type="submit" class="btn btn-primary" value="<?php if (isset($rProvider)) : ?><?php echo $language::get('edit'); ?><?php else : ?><?php echo $language::get('add'); ?><?php endif; ?>" />
                                                 </li>
@@ -115,24 +126,7 @@
                                                             <th class="text-center"><?= $language::get('actions') ?></th>
                                                         </tr>
                                                     </thead>
-                                                    <tbody>
-                                                        <?php $db->query('SELECT `stream_id`, `category_array`, `stream_display_name`, `modified`, `stream_icon` FROM `providers_streams` WHERE `provider_id` = ? AND `type` = \'live\' ORDER BY `modified` DESC, `stream_id` ASC;', RequestManager::getAll()['id']); ?>
-                                                        <?php foreach ($db->get_rows() as $rRow) : ?>
-                                                            <?php
-                                                            $rStreamURL = (($rProvider['ssl'] ? 'https' : 'http')) . '://' . $rProvider['ip'] . ':' . $rProvider['port'] . '/live/' . $rProvider['username'] . '/' . $rProvider['password'] . '/' . $rRow['stream_id'] . (($rProvider['hls'] ? '.m3u8' : ($rProvider['legacy'] ? '.ts' : '')));
-                                                            ?>
-                                                            <tr>
-                                                                <td class="text-center"><?php echo $rRow['stream_id']; ?></td>
-                                                                <td><?php echo $rRow['stream_display_name']; ?></td>
-                                                                <td><?php echo implode(', ', json_decode($rRow['category_array'], true)); ?></td>
-                                                                <td class="text-center"><?php echo date('Y-m-d', $rRow['modified']) . "<br/><small class='text-secondary'>" . date('H:i:s', $rRow['modified']) . '</small>'; ?></td>
-                                                                <td class="text-center">
-                                                                    <a href="stream?title=<?php echo urlencode($rRow['stream_display_name']); ?>&url=<?php echo urlencode($rStreamURL); ?>&icon=<?php echo urlencode($rRow['stream_icon']); ?>"><button type="button" class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-plus"></i></button></a>
-                                                                    <button type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" title="<?= $language::get('copy_url') ?>" onClick="copyURL('<?php echo $rStreamURL; ?>');"><i class="mdi mdi-clipboard"></i></button>
-                                                                </td>
-                                                            </tr>
-                                                        <?php endforeach; ?>
-                                                    </tbody>
+                                                    <tbody></tbody>
                                                 </table>
                                             </div>
                                         </div>
@@ -152,28 +146,26 @@
                                                             <th class="text-center"><?= $language::get('actions') ?></th>
                                                         </tr>
                                                     </thead>
-                                                    <tbody>
-                                                        <?php $db->query('SELECT `stream_id`, `category_array`, `stream_display_name`, `modified`, `stream_icon`, `channel_id` FROM `providers_streams` WHERE `provider_id` = ? AND `type` = \'movie\' ORDER BY `modified` DESC, `stream_id` ASC;', RequestManager::getAll()['id']); ?>
-                                                        <?php foreach ($db->get_rows() as $rRow) : ?>
-                                                            <?php
-                                                            $rStreamURL = (($rRow['ssl'] ? 'https' : 'http')) . '://' . $rProvider['ip'] . ':' . $rProvider['port'] . '/movie/' . $rProvider['username'] . '/' . $rProvider['password'] . '/' . $rRow['stream_id'] . '.' . $rRow['channel_id'];
-                                                            ?>
-                                                            <tr>
-                                                                <td class="text-center"><?php echo $rRow['stream_id']; ?></td>
-                                                                <td><?php echo $rRow['stream_display_name']; ?></td>
-                                                                <td><?php echo implode(', ', json_decode($rRow['category_array'], true)); ?></td>
-                                                                <td class="text-center"><?php echo date('Y-m-d', $rRow['modified']) . "<br/><small class='text-secondary'>" . date('H:i:s', $rRow['modified']) . '</small>'; ?></td>
-                                                                <td class="text-center">
-                                                                    <a href="movie?title=<?php echo urlencode($rRow['stream_display_name']); ?>&path=<?php echo urlencode($rStreamURL); ?>"><button type="button" class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-plus"></i></button></a>
-                                                                    <button type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" title="<?= $language::get('copy_url') ?>" onClick="copyURL('<?php echo $rStreamURL; ?>');"><i class="mdi mdi-clipboard"></i></button>
-                                                                </td>
-                                                            </tr>
-                                                        <?php endforeach; ?>
-                                                    </tbody>
+                                                    <tbody></tbody>
                                                 </table>
                                             </div>
                                         </div>
                                     </div>
+                                    <?php
+                                    // Pass provider data to JS for AJAX DataTable
+                                    $rProvScheme = $rProvider['ssl'] ? 'https' : 'http';
+                                    $rProvBase   = $rProvScheme . '://' . $rProvider['ip'] . ':' . $rProvider['port'];
+                                    $rProvExt    = $rProvider['hls'] ? '.m3u8' : ($rProvider['legacy'] ? '.ts' : '');
+                                    ?>
+                                    <script>
+                                    window.rProviderData = {
+                                        id:       <?php echo intval($rProvider['id']); ?>,
+                                        base:     <?php echo json_encode($rProvBase); ?>,
+                                        user:     <?php echo json_encode($rProvider['username']); ?>,
+                                        pass:     <?php echo json_encode($rProvider['password']); ?>,
+                                        ext:      <?php echo json_encode($rProvExt); ?>
+                                    };
+                                    </script>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -316,6 +308,26 @@ renderUnifiedLayoutFooter('admin');
 
 
 
+    function importProviderEPG(providerId) {
+        var $btn = $("#import_epg_btn");
+        $btn.prop("disabled", true).html('<i class="mdi mdi-loading mdi-spin mr-1"></i> Importing...');
+        $.getJSON("./api?action=provider_import_epg&provider_id=" + providerId, function(rData) {
+            if (rData.status === 1) {
+                $.toast("EPG source \"" + rData.data.name + "\" added successfully (ID: " + rData.data.id + ").");
+                $btn.html('<i class="mdi mdi-check mr-1"></i> EPG Imported').removeClass("btn-info").addClass("btn-success");
+            } else if (rData.status === 2) {
+                $.toast("EPG source already exists (ID: " + rData.data.id + ").");
+                $btn.prop("disabled", false).html('<i class="mdi mdi-calendar-import mr-1"></i> Import EPG Source');
+            } else {
+                $.toast("Error: " + (rData.data || "Could not import EPG source."));
+                $btn.prop("disabled", false).html('<i class="mdi mdi-calendar-import mr-1"></i> Import EPG Source');
+            }
+        }).fail(function() {
+            $.toast("Request failed. Please try again.");
+            $btn.prop("disabled", false).html('<i class="mdi mdi-calendar-import mr-1"></i> Import EPG Source');
+        });
+    }
+
     function copyURL(rURL) {
         $("#stream_url").val(rURL);
         $("#stream_url").select();
@@ -324,42 +336,56 @@ renderUnifiedLayoutFooter('admin');
     }
 
     $(document).ready(function() {
-        $("#datatable-streams").DataTable({
-            language: {
-                paginate: {
-                    previous: "<i class='mdi mdi-chevron-left'>",
-                    next: "<i class='mdi mdi-chevron-right'>"
-                }
-            },
-            drawCallback: function() {
-                bindHref();
-                refreshTooltips();
-            },
-            order: [
-                [3, "desc"]
-            ],
-            responsive: false,
-            bAutoWidth: false,
-            bInfo: false
-        });
-        $("#datatable-movies").DataTable({
-            language: {
-                paginate: {
-                    previous: "<i class='mdi mdi-chevron-left'>",
-                    next: "<i class='mdi mdi-chevron-right'>"
-                }
-            },
-            drawCallback: function() {
-                bindHref();
-                refreshTooltips();
-            },
-            order: [
-                [3, "desc"]
-            ],
-            responsive: false,
-            bAutoWidth: false,
-            bInfo: false
-        });
+        if (window.rProviderData) {
+            var p = window.rProviderData;
+
+            function makeStreamUrl(row) {
+                return p.base + '/live/' + p.user + '/' + p.pass + '/' + row.stream_id + p.ext;
+            }
+            function makeMovieUrl(row) {
+                return p.base + '/movie/' + p.user + '/' + p.pass + '/' + row.stream_id + '.' + row.channel_id;
+            }
+            function fmtDate(ts) {
+                var d = new Date(ts * 1000);
+                return d.toISOString().slice(0,10) + '<br><small class="text-secondary">' + d.toISOString().slice(11,19) + '</small>';
+            }
+            function fmtCats(json) {
+                try { return JSON.parse(json).join(', '); } catch(e) { return ''; }
+            }
+
+            function initProviderTable(tableId, streamType, urlFn, addHref) {
+                $("#" + tableId).DataTable({
+                    processing: true,
+                    serverSide: true,
+                    ajax: {
+                        url: "./api?action=provider_streams&provider_id=" + p.id + "&stream_type=" + streamType,
+                        type: "GET"
+                    },
+                    columns: [
+                        { data: "stream_id", className: "text-center" },
+                        { data: "stream_display_name" },
+                        { data: "category_array", orderable: false, render: function(d) { return fmtCats(d); } },
+                        { data: "modified", render: function(d) { return fmtDate(d); }, className: "text-center" },
+                        { data: null, orderable: false, className: "text-center", render: function(d, t, row) {
+                            var url = urlFn(row);
+                            var addBtn = addHref
+                                ? '<a href="' + addHref + '?title=' + encodeURIComponent(row.stream_display_name) + '&url=' + encodeURIComponent(url) + '&icon=' + encodeURIComponent(row.stream_icon || '') + '"><button type="button" class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-plus"></i></button></a>'
+                                : '<a href="movie?title=' + encodeURIComponent(row.stream_display_name) + '&path=' + encodeURIComponent(url) + '"><button type="button" class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-plus"></i></button></a>';
+                            return addBtn + ' <button type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" title="Copy URL" onclick="copyURL(\'' + url.replace(/'/g, "\\'") + '\');"><i class="mdi mdi-clipboard"></i></button>';
+                        }}
+                    ],
+                    order: [[3, "desc"]],
+                    language: { paginate: { previous: "<i class='mdi mdi-chevron-left'>", next: "<i class='mdi mdi-chevron-right'>" } },
+                    drawCallback: function() { bindHref(); refreshTooltips(); },
+                    responsive: false,
+                    bAutoWidth: false,
+                    bInfo: true
+                });
+            }
+
+            initProviderTable("datatable-streams", "live",  makeStreamUrl, "stream");
+            initProviderTable("datatable-movies",  "movie", makeMovieUrl,  null);
+        }
         $("#port").inputFilter(function(value) {
             return /^\d*$/.test(value);
         });
