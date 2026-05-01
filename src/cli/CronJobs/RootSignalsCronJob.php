@@ -171,47 +171,64 @@ class RootSignalsCronJob implements CommandInterface {
             $db->query("INSERT INTO `mysql_syslog`(`server_id`, `type`, `error`, `username`, `ip`, `database`, `date`) VALUES(?, 'FLUSH', 'Flushed blocked IP\\'s from iptables.', 'root', 'localhost', NULL, ?);", SERVER_ID, time());
             $db->query("DELETE FROM `signals` WHERE `server_id` = ? AND `custom_data` = '{\"action\":\"flush\"}' AND `cache` = 0;", SERVER_ID);
         } else {
-            $rActualBlocked = $this->getBlockedIPs();
-            $rActualBlockedFlip = array_flip($rActualBlocked);
-            $db->query('SELECT `ip` FROM `blocked_ips`;');
-            $rBlocked = array_keys($db->get_rows(true, 'ip'));
-            $rBlockedFlip = array_flip($rBlocked);
-            $rAdd = $rDel = [];
-            foreach (array_count_values($rActualBlocked) as $rIP => $rCount) {
-                if ($rCount > 1) {
-                    echo $rCount . "\n";
-                    foreach (range(1, $rCount - 1) as $i) {
-                        $rDel[] = $rIP;
+            $rSyncMarker = CRONS_TMP_PATH . 'blocked_ips_sync_marker';
+            $rRunFullSync = true;
+            $db->query('SELECT COUNT(*) AS `count` FROM `blocked_ips`;');
+            $rCurrentIPCount = intval($db->get_row()['count']);
+
+            if (file_exists($rSyncMarker)) {
+                $rLastSyncData = json_decode(@file_get_contents($rSyncMarker), true);
+                if (is_array($rLastSyncData) && isset($rLastSyncData['count'], $rLastSyncData['time'])) {
+                    if (intval($rLastSyncData['count']) == $rCurrentIPCount && (time() - intval($rLastSyncData['time'])) < 300) {
+                        $rRunFullSync = false;
                     }
                 }
             }
-            foreach ($rBlocked as $rIP) {
-                if (!isset($rActualBlockedFlip[$rIP])) {
-                    $rAdd[] = $rIP;
+
+            if ($rRunFullSync) {
+                $rActualBlocked = $this->getBlockedIPs();
+                $rActualBlockedFlip = array_flip($rActualBlocked);
+                $db->query('SELECT `ip` FROM `blocked_ips`;');
+                $rBlocked = array_keys($db->get_rows(true, 'ip'));
+                $rBlockedFlip = array_flip($rBlocked);
+                $rAdd = $rDel = [];
+                foreach (array_count_values($rActualBlocked) as $rIP => $rCount) {
+                    if ($rCount > 1) {
+                        echo $rCount . "\n";
+                        foreach (range(1, $rCount - 1) as $i) {
+                            $rDel[] = $rIP;
+                        }
+                    }
                 }
-            }
-            foreach ($rActualBlocked as $rIP) {
-                if (!isset($rBlockedFlip[$rIP])) {
-                    $rDel[] = $rIP;
+                foreach ($rBlocked as $rIP) {
+                    if (!isset($rActualBlockedFlip[$rIP])) {
+                        $rAdd[] = $rIP;
+                    }
                 }
-            }
-            if (count($rDel) > 0) {
-                $this->rSaveIPTables = true;
-                foreach ($rDel as $rIP) {
-                    echo 'Unblock IP: ' . $rIP . "\n";
-                    $this->unblockip($rIP);
+                foreach ($rActualBlocked as $rIP) {
+                    if (!isset($rBlockedFlip[$rIP])) {
+                        $rDel[] = $rIP;
+                    }
                 }
-            }
-            if (count($rAdd) > 0) {
-                $this->rSaveIPTables = true;
-                foreach ($rAdd as $rIP) {
-                    echo 'Block IP: ' . $rIP . "\n";
-                    $this->blockip($rIP);
+                if (count($rDel) > 0) {
+                    $this->rSaveIPTables = true;
+                    foreach ($rDel as $rIP) {
+                        echo 'Unblock IP: ' . $rIP . "\n";
+                        $this->unblockip($rIP);
+                    }
                 }
-            }
-            if ($this->rSaveIPTables) {
-                $this->saveiptables();
-                $this->rSaveIPTables = false;
+                if (count($rAdd) > 0) {
+                    $this->rSaveIPTables = true;
+                    foreach ($rAdd as $rIP) {
+                        echo 'Block IP: ' . $rIP . "\n";
+                        $this->blockip($rIP);
+                    }
+                }
+                if ($this->rSaveIPTables) {
+                    $this->saveiptables();
+                    $this->rSaveIPTables = false;
+                }
+                @file_put_contents($rSyncMarker, json_encode(['count' => $rCurrentIPCount, 'time' => time()]));
             }
         }
         $rReload = false;
@@ -299,14 +316,11 @@ class RootSignalsCronJob implements CommandInterface {
             shell_exec('sudo ' . BIN_PATH . 'nginx/sbin/nginx -s reload');
         }
         if (SettingsManager::getAll()['restart_php_fpm']) {
-            $rPHP = $rNginx = 0;
-            exec('ps -fp ' . trim(shell_exec('pgrep -u xc_vm | tr "\n" "," | sed "s/,$//"')), $rOutput, $rReturnVar);
-            foreach ($rOutput as $rProcess) {
-                $rSplit = explode(' ', preg_replace('!\\s+!', ' ', trim($rProcess)));
-                if (isset($rSplit[8], $rSplit[9]) && $rSplit[8] == 'php-fpm:' && $rSplit[9] == 'master') {
-                    $rPHP++;
-                }
-                if (isset($rSplit[8], $rSplit[9]) && $rSplit[8] == 'nginx:' && $rSplit[9] == 'master') {
+            $rPHP = count(glob(BIN_PATH . 'php/sockets/*.pid') ?: []);
+            $rNginx = 0;
+            foreach (glob('/proc/*/cmdline') ?: [] as $rCmdFile) {
+                $rRaw = @file_get_contents($rCmdFile);
+                if ($rRaw && strpos(str_replace("\0", ' ', $rRaw), 'nginx: master') !== false) {
                     $rNginx++;
                 }
             }
@@ -319,18 +333,22 @@ class RootSignalsCronJob implements CommandInterface {
                     exit();
                 }
             }
-            $rHandle = curl_init('http://127.0.0.1:' . $rServers[SERVER_ID]['http_broadcast_port'] . '/init');
-            curl_setopt($rHandle, CURLOPT_RETURNTRANSFER, true);
-            $rResponse = curl_exec($rHandle);
-            $rCode = curl_getinfo($rHandle, CURLINFO_HTTP_CODE);
-            if (!in_array($rCode, [500, 502])) {
-                curl_close($rHandle);
-            } else {
-                echo $rCode . ' ERROR - Restarting...';
-                $db->query("INSERT INTO `mysql_syslog`(`server_id`, `type`, `error`, `username`, `ip`, `database`, `date`) VALUES(?, 'PHP-FPM', 'Restarted services due to " . $rCode . " error.', 'root', 'localhost', NULL, ?);", SERVER_ID, time());
-                shell_exec('sudo systemctl stop xc_vm');
-                shell_exec('sudo systemctl start xc_vm');
-                exit();
+            $rCurlMarker = CRONS_TMP_PATH . 'fpm_curl_check';
+            if (!file_exists($rCurlMarker) || (time() - filemtime($rCurlMarker)) >= 300) {
+                @touch($rCurlMarker);
+                $rHandle = curl_init('http://127.0.0.1:' . $rServers[SERVER_ID]['http_broadcast_port'] . '/init');
+                curl_setopt($rHandle, CURLOPT_RETURNTRANSFER, true);
+                $rResponse = curl_exec($rHandle);
+                $rCode = curl_getinfo($rHandle, CURLINFO_HTTP_CODE);
+                if (!in_array($rCode, [500, 502])) {
+                    curl_close($rHandle);
+                } else {
+                    echo $rCode . ' ERROR - Restarting...';
+                    $db->query("INSERT INTO `mysql_syslog`(`server_id`, `type`, `error`, `username`, `ip`, `database`, `date`) VALUES(?, 'PHP-FPM', 'Restarted services due to " . $rCode . " error.', 'root', 'localhost', NULL, ?);", SERVER_ID, time());
+                    shell_exec('sudo systemctl stop xc_vm');
+                    shell_exec('sudo systemctl start xc_vm');
+                    exit();
+                }
             }
         }
         if ($db->query("SELECT `signal_id`, `custom_data` FROM `signals` WHERE `server_id` = ? AND `custom_data` <> '' AND `cache` = 0 ORDER BY signal_id ASC;", SERVER_ID)) {
