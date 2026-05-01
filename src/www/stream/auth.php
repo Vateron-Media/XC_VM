@@ -164,10 +164,6 @@ if ($rExtension) {
 	$rAccess = 'auth';
 	LegacyInitializer::initStreaming();
 
-	if (!$rCached) {
-		DatabaseFactory::connect();
-	}
-
 	header('Access-Control-Allow-Origin: *');
 	register_shutdown_function('shutdown');
 	$rRestreamDetect = false;
