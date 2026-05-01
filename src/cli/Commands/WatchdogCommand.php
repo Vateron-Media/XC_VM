@@ -102,7 +102,12 @@ class WatchdogCommand implements CommandInterface {
 
 			// ── PHP PIDs ─────────────────────────────────────────
 			$rPHPPIDs = array();
-			@exec("ps -u xc_vm | grep php-fpm | awk {'print \$1'}", $rPHPPIDs);
+			foreach (glob(MAIN_HOME . 'bin/php/sockets/*.pid') ?: array() as $rPidFile) {
+				$rPid = trim(@file_get_contents($rPidFile) ?: '');
+				if (is_numeric($rPid) && 0 < intval($rPid)) {
+					$rPHPPIDs[] = intval($rPid);
+				}
+			}
 
 			// ── Update servers table ─────────────────────────────
 			$rConnections = $rUsers = 0;
