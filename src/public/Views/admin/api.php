@@ -1,4 +1,5 @@
 <?php
+
 /** @var \Database $db */
 
 include 'functions.php';
@@ -3347,6 +3348,234 @@ if (isset($_SESSION['hash'])) {
 				exit();
 			}
 		}
+		if (RequestManager::getAll()['action'] == 'epg_auto_assign') {
+			if (Authorization::check('adv', 'stream_tools')) {
+				set_time_limit(120);
+				$rLastId    = max(0, intval(RequestManager::getAll()['last_id'] ?? 0));
+				$rThreshold = min(100, max(50, intval(RequestManager::getAll()['threshold'] ?? 80)));
+				$rCatId     = intval(RequestManager::getAll()['category_id'] ?? 0);
+				$rLimit     = 300;
+
+				$fnNormalize = function (string $name): string {
+					$name = strtolower($name);
+					$name = preg_replace('/\b(fhd|uhd|4k|hd|sd|hq|lq|\+1|plus)\b/i', '', $name);
+					$name = preg_replace('/[^a-z0-9]/i', '', $name);
+					return trim($name);
+				};
+
+				// Base WHERE clause — optionally filter by category
+				$rCatWhere = $rCatId > 0
+					? ' AND JSON_CONTAINS(`category_id`, \'' . $rCatId . '\')'
+					: '';
+
+				$db->query('SELECT COUNT(*) AS `cnt` FROM `streams` WHERE `type` = 1' . $rCatWhere . ' AND (`epg_id` IS NULL OR `channel_id` IS NULL OR `channel_id` = ?);', '');
+				$rTotal = intval($db->get_row()['cnt']);
+
+				// --- Lookup 1: EPG channels by name ---
+				$db->query('SELECT `epg_id`, `channel_id`, `name`, `langs` FROM `epg_channels`;');
+				$rEpgLookup = [];
+				// Also build channel_id → epg info map for provider cross-reference
+				$rEpgByChannelId = [];
+				foreach ($db->get_rows() as $rEpgCh) {
+					$rNorm = $fnNormalize($rEpgCh['name']);
+					$rLang = json_decode($rEpgCh['langs'] ?? '[]', true)[0] ?? '';
+					if ($rNorm !== '') {
+						$rEpgLookup[] = [
+							'epg_id'     => intval($rEpgCh['epg_id']),
+							'channel_id' => $rEpgCh['channel_id'],
+							'norm'       => $rNorm,
+							'lang'       => $rLang,
+						];
+					}
+					if (!isset($rEpgByChannelId[$rEpgCh['channel_id']])) {
+						$rEpgByChannelId[$rEpgCh['channel_id']] = [
+							'epg_id' => intval($rEpgCh['epg_id']),
+							'lang'   => $rLang,
+						];
+					}
+				}
+
+				// --- Lookup 2: Provider streams that have a channel_id present in epg_channels ---
+				$db->query(
+					'SELECT DISTINCT `ps`.`stream_display_name`, `ps`.`channel_id` FROM `providers_streams` `ps`
+					 INNER JOIN (SELECT DISTINCT `channel_id` FROM `epg_channels`) `ec` ON `ps`.`channel_id` = `ec`.`channel_id`
+					 WHERE `ps`.`type` = ? AND `ps`.`channel_id` IS NOT NULL AND `ps`.`channel_id` != ?;',
+					'live',
+					''
+				);
+				$rProviderLookup = [];
+				foreach ($db->get_rows() as $rPs) {
+					$rNorm = $fnNormalize($rPs['stream_display_name']);
+					if ($rNorm === '') continue;
+					// Keep first occurrence per norm name
+					if (!isset($rProviderLookup[$rNorm])) {
+						$rProviderLookup[$rNorm] = $rPs['channel_id'];
+					}
+				}
+
+				// --- Batch of streams to process ---
+				$db->query(
+					'SELECT `id`, `stream_display_name` FROM `streams` WHERE `type` = 1' . $rCatWhere . ' AND `id` > ? AND (`epg_id` IS NULL OR `channel_id` IS NULL OR `channel_id` = ?) ORDER BY `id` ASC LIMIT ' . $rLimit . ';',
+					$rLastId,
+					''
+				);
+				$rStreams     = $db->get_rows();
+				$rAssigned   = 0;
+				$rSkipped    = 0;
+				$rNextLastId = $rLastId;
+
+				foreach ($rStreams as $rStream) {
+					$rNextLastId = max($rNextLastId, intval($rStream['id']));
+					$rNorm = $fnNormalize($rStream['stream_display_name']);
+					if ($rNorm === '') {
+						$rSkipped++;
+						continue;
+					}
+
+					$rMatch = null;
+
+					// --- Step 1: match against EPG channel names ---
+					$rBestScore = 0;
+					$rBestEpg   = null;
+					foreach ($rEpgLookup as $rEpgCh) {
+						similar_text($rNorm, $rEpgCh['norm'], $rPct);
+						if ($rPct > $rBestScore) {
+							$rBestScore = $rPct;
+							$rBestEpg   = $rEpgCh;
+						}
+					}
+					if ($rBestScore >= $rThreshold && $rBestEpg !== null) {
+						$rMatch = $rBestEpg;
+					}
+
+					// --- Step 2: if no match, cross-reference via provider streams ---
+					if ($rMatch === null) {
+						$rBestScore   = 0;
+						$rBestChId    = null;
+						$rBestProvNorm = null;
+						foreach ($rProviderLookup as $rProvNorm => $rChId) {
+							similar_text($rNorm, $rProvNorm, $rPct);
+							if ($rPct > $rBestScore) {
+								$rBestScore    = $rPct;
+								$rBestChId     = $rChId;
+								$rBestProvNorm = $rProvNorm;
+							}
+						}
+						if ($rBestScore >= $rThreshold && $rBestChId !== null && isset($rEpgByChannelId[$rBestChId])) {
+							$rMatch = [
+								'epg_id'     => $rEpgByChannelId[$rBestChId]['epg_id'],
+								'channel_id' => $rBestChId,
+								'lang'       => $rEpgByChannelId[$rBestChId]['lang'],
+							];
+						}
+					}
+
+					if ($rMatch !== null) {
+						$db->query(
+							'UPDATE `streams` SET `epg_id` = ?, `channel_id` = ?, `epg_lang` = ? WHERE `id` = ?;',
+							$rMatch['epg_id'],
+							$rMatch['channel_id'],
+							$rMatch['lang'],
+							intval($rStream['id'])
+						);
+						$rAssigned++;
+					} else {
+						$rSkipped++;
+					}
+				}
+
+				echo json_encode([
+					'status' => STATUS_SUCCESS,
+					'data'   => [
+						'assigned'     => $rAssigned,
+						'skipped'      => $rSkipped,
+						'batch_size'   => count($rStreams),
+						'total'        => $rTotal,
+						'has_more'     => count($rStreams) === $rLimit,
+						'next_last_id' => $rNextLastId,
+					],
+				]);
+			} else {
+				echo json_encode(['status' => STATUS_FAILURE]);
+			}
+			exit();
+		}
+		if (RequestManager::getAll()['action'] == 'epg_categories') {
+			if (Authorization::check('adv', 'stream_tools')) {
+				$db->query('SELECT `id`, `category_name` FROM `streams_categories` WHERE `category_type` = ? ORDER BY `cat_order` ASC;', 'live');
+				echo json_encode(['status' => STATUS_SUCCESS, 'data' => $db->get_rows()]);
+			} else {
+				echo json_encode(['status' => STATUS_FAILURE]);
+			}
+			exit();
+		}
+		if (RequestManager::getAll()['action'] == 'provider_streams') {
+			if (Authorization::check('adv', 'providers')) {
+				$rProviderId = intval(RequestManager::getAll()['provider_id'] ?? 0);
+				$rType       = (RequestManager::getAll()['stream_type'] ?? 'live') === 'movie' ? 'movie' : 'live';
+				$rSearch     = trim(RequestManager::getAll()['search']['value'] ?? '');
+				$rStart      = intval(RequestManager::getAll()['start'] ?? 0);
+				$rLength     = min(intval(RequestManager::getAll()['length'] ?? 100), 500);
+				$rDraw       = intval(RequestManager::getAll()['draw'] ?? 1);
+
+				if ($rSearch !== '') {
+					$rLike = '%' . $rSearch . '%';
+					$db->query('SELECT COUNT(*) as cnt FROM `providers_streams` WHERE `provider_id` = ? AND `type` = ? AND `stream_display_name` LIKE ?;', $rProviderId, $rType, $rLike);
+					$rTotal = intval($db->get_row()['cnt'] ?? 0);
+					$db->query('SELECT `stream_id`, `category_array`, `stream_display_name`, `modified`, `stream_icon`, `channel_id` FROM `providers_streams` WHERE `provider_id` = ? AND `type` = ? AND `stream_display_name` LIKE ? ORDER BY `modified` DESC, `stream_id` ASC LIMIT ' . $rStart . ', ' . $rLength . ';', $rProviderId, $rType, $rLike);
+				} else {
+					$db->query('SELECT COUNT(*) as cnt FROM `providers_streams` WHERE `provider_id` = ? AND `type` = ?;', $rProviderId, $rType);
+					$rTotal = intval($db->get_row()['cnt'] ?? 0);
+					$db->query('SELECT `stream_id`, `category_array`, `stream_display_name`, `modified`, `stream_icon`, `channel_id` FROM `providers_streams` WHERE `provider_id` = ? AND `type` = ? ORDER BY `modified` DESC, `stream_id` ASC LIMIT ' . $rStart . ', ' . $rLength . ';', $rProviderId, $rType);
+				}
+				$rRows = $db->get_rows();
+
+				echo json_encode([
+					'draw'            => $rDraw,
+					'recordsTotal'    => $rTotal,
+					'recordsFiltered' => $rTotal,
+					'data'            => $rRows,
+				]);
+			} else {
+				echo json_encode(['draw' => 1, 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => []]);
+			}
+			exit();
+		}
+		if (RequestManager::getAll()['action'] == 'provider_import_epg') {
+			if (Authorization::check('adv', 'providers')) {
+				$rProviderId = intval(RequestManager::getAll()['provider_id'] ?? 0);
+				if ($rProviderId <= 0) {
+					echo json_encode(['status' => STATUS_FAILURE, 'data' => 'Invalid provider']);
+					exit();
+				}
+				$db->query('SELECT `id`, `name`, `ip`, `port`, `username`, `password`, `ssl`, `enabled` FROM `providers` WHERE `id` = ? LIMIT 1;', $rProviderId);
+				$rProv = $db->get_row();
+				if (!$rProv) {
+					echo json_encode(['status' => STATUS_FAILURE, 'data' => 'Provider not found']);
+					exit();
+				}
+				if (!$rProv['enabled']) {
+					echo json_encode(['status' => STATUS_FAILURE, 'data' => 'Provider is disabled']);
+					exit();
+				}
+				$rScheme = $rProv['ssl'] ? 'https' : 'http';
+				$rEpgUrl = $rScheme . '://' . $rProv['ip'] . ':' . $rProv['port'] . '/xmltv.php?username=' . urlencode($rProv['username']) . '&password=' . urlencode($rProv['password']);
+				$db->query('SELECT `id` FROM `epg` WHERE `epg_file` = ? LIMIT 1;', $rEpgUrl);
+				$rExisting = $db->get_row();
+				if ($rExisting) {
+					echo json_encode(['status' => 2, 'data' => ['id' => $rExisting['id'], 'url' => $rEpgUrl]]);
+					exit();
+				}
+				$rRawName = $rProv['name'];
+				$rEpgName = (filter_var($rRawName, FILTER_VALIDATE_URL) ? $rProv['ip'] : $rRawName) . ' (Provider EPG)';
+				$db->query('INSERT INTO `epg` (`epg_name`, `epg_file`, `days_keep`, `last_updated`, `data`, `offset`) VALUES (?, ?, 7, 0, NULL, 0);', $rEpgName, $rEpgUrl);
+				$rNewId = $db->last_insert_id();
+				echo json_encode(['status' => STATUS_SUCCESS, 'data' => ['id' => $rNewId, 'name' => $rEpgName, 'url' => $rEpgUrl]]);
+			} else {
+				echo json_encode(['status' => STATUS_FAILURE]);
+			}
+			exit();
+		}
 		if (RequestManager::getAll()['action'] == 'decrypt_text') {
 			if (Authorization::check('adv', 'stream_tools')) {
 				$rDecryptedArray = array();
@@ -4361,7 +4590,7 @@ if (isset($_SESSION['hash'])) {
 								}
 							}
 
-							$rLastInfo = (isset($rLinesInfo[$rItem['id']]) ? $rLinesInfo[$rItem['id']] : json_decode($rItem['last_activity_array'], true));
+							$rLastInfo = (isset($rLinesInfo[$rItem['id']]) ? $rLinesInfo[$rItem['id']] : json_decode($rItem['last_activity_array'], true) ?? []);
 
 							if (is_array($rLastInfo)) {
 								$rLastInfo['stream_display_name'] = $rStreamNames[$rLastInfo['stream_id']];
@@ -4437,7 +4666,7 @@ if (isset($_SESSION['hash'])) {
 									}
 								}
 
-								$rLastInfo = (isset($rLinesInfo[$rLineInfo['id']]) ? $rLinesInfo[$rLineInfo['id']] : json_decode($rLineInfo['last_activity_array'], true));
+								$rLastInfo = (isset($rLinesInfo[$rLineInfo['id']]) ? $rLinesInfo[$rLineInfo['id']] : json_decode($rLineInfo['last_activity_array'], true) ?? []);
 
 								if (is_array($rLastInfo)) {
 									$rLastInfo['stream_display_name'] = $rStreamNames[$rLastInfo['stream_id']];
