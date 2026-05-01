@@ -59,9 +59,13 @@ class CertbotCommand implements CommandInterface {
 			$rOutput = array();
 			$rResult = false;
 			if (0 < count($rActiveDomains)) {
+				$rCertbotWebroot = MAIN_HOME . 'certbot-webroot';
+				if (!is_dir($rCertbotWebroot)) {
+					mkdir($rCertbotWebroot, 0775, true);
+				}
 				foreach (array('--dry-run ', '') as $rDry) {
 					if (ServerRepository::getAll()[SERVER_ID]['http_broadcast_port'] == 80) {
-						$rCommand = 'sudo certbot ' . $rDry . '--config-dir ' . BIN_PATH . 'certbot/config --work-dir ' . BIN_PATH . 'certbot/work --logs-dir ' . BIN_PATH . 'certbot/logs certonly --agree-tos --expand --non-interactive --register-unsafely-without-email --webroot -w /home/xc_vm/www/';
+						$rCommand = 'sudo certbot ' . $rDry . '--config-dir ' . BIN_PATH . 'certbot/config --work-dir ' . BIN_PATH . 'certbot/work --logs-dir ' . BIN_PATH . 'certbot/logs certonly --agree-tos --expand --non-interactive --register-unsafely-without-email --webroot -w ' . $rCertbotWebroot;
 					} else {
 						$rCommand = 'sudo certbot ' . $rDry . '--config-dir ' . BIN_PATH . 'certbot/config --work-dir ' . BIN_PATH . 'certbot/work --logs-dir ' . BIN_PATH . 'certbot/logs certonly --agree-tos --expand --non-interactive --register-unsafely-without-email --standalone';
 					}
