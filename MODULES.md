@@ -46,7 +46,7 @@
 | `ModuleInterface` | `ГОТОВО` | Базовый контракт присутствует |
 | `ModuleLoader::loadAll()` | `ГОТОВО` | Auto-discovery по `module.json` |
 | `ModuleLoader::registerAllCommands()` | `ГОТОВО` | CLI-команды модулей реально подключаются |
-| `ModuleLoader::bootAll()` | `ЧАСТИЧНО` | Реализован, но не встроен в `public/index.php` |
+| `ModuleLoader::bootAll()` | `ЧАСТИЧНО` | Реализован; остаются legacy-узлы web bootstrap вне модульного lifecycle |
 | `config/modules.php` | `ГОТОВО` | Overrides для enabled/class |
 | `ModuleManager` | `ГОТОВО` | Список, install, uninstall, enable, disable, update, upload |
 | Админ-страница модулей | `ГОТОВО` | `ModulesController` + `Views/admin/modules.php` |
@@ -73,10 +73,11 @@
 - `watch`, `plex`, `fingerprint`, `theft_detection` и связанные страницы зарегистрированы статически в `public/routes/admin.php`
 - это делает модульную маршрутизацию вторичной и неавторитетной
 
-### 3.3. Навигация модулей хардкодится в `header.php`
+### 3.3. Legacy-остатки в навигации и web bootstrap
 
-- пункты `Plex Sync`, `Watch`, `Fingerprint` и часть связанных ссылок зашиты в `public/Views/admin/header.php`
-- модуль не может сам заявить навигацию как контракт
+- модульные пункты меню уже регистрируются через `registerNavbar()` + `NavbarRegistry`
+- рендер в `public/Views/admin/header.php` выполняется из дерева `NavbarRegistry`, без hardcoded ссылок конкретных модулей
+- остаются точки legacy-сцепления вне navbar (в отдельных route/bootstrap участках), которые ещё нужно довести до полной целевой модели
 
 ### 3.4. `module.json` слишком бедный
 
@@ -185,10 +186,10 @@ PHASE M-2  /  ROUTE CUTOVER
 PHASE M-3  /  NAVBAR API
 ```
 
-1. Создать extension points для header navigation.
-2. Вынести builder/render слой модульной навигации из `header.php`.
-3. Добавить декларацию navbar items на стороне модулей.
-4. Удалить hardcoded ссылки `plex`, `watch`, `fingerprint` из header runtime.
+1. Создать extension points для header navigation. ✅
+2. Вынести builder/render слой модульной навигации из `header.php`. ✅
+3. Добавить декларацию navbar items на стороне модулей. ✅
+4. Удалить hardcoded ссылки `plex`, `watch`, `fingerprint` из header runtime. ✅
 
 **Результат:** ядро перестаёт знать о конкретных модулях на уровне меню.
 

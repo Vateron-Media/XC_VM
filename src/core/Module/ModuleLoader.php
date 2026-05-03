@@ -136,12 +136,16 @@ class ModuleLoader {
      * @param Router|null $router HTTP-роутер (null для CLI)
      */
     public function bootAll(ServiceContainer $container, Router $router = null) {
+        CoreNavbarProvider::register();
+
         foreach ($this->modules as $name => $module) {
             $module->boot($container);
 
             if ($router !== null) {
                 $module->registerRoutes($router);
             }
+
+            $module->registerNavbar();
 
             $subscribers = $module->getEventSubscribers();
             if (!empty($subscribers) && $container->has('events')) {
