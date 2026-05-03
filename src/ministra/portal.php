@@ -13,7 +13,16 @@ require __DIR__ . '/../modules/ministra/PortalHandler.php';
 PortalHandler::handlePreInit($rReqType, $rReqAction);
 
 register_shutdown_function('shutdown');
-require '/home/xc_vm/www/stream/init.php';
+require_once dirname(__DIR__) . '/autoload.php';
+StreamingRequestBootstrap::init('portal');
+
+$rRequestPath = parse_url(($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH);
+$rLegacyPortalRequest = in_array($rRequestPath, array('/c/portal.php', '/portal.php'));
+
+if ($rLegacyPortalRequest && empty($rSettings['mag_legacy_redirect'])) {
+	http_response_code(404);
+	exit();
+}
 
 if (!$rSettings['disable_ministra']) {
 	if (!in_array($rReqAction, array('get_categories', 'get_genres', 'get_ordered_list', 'get_all_channels', 'get_all_fav_channels', 'get_all_fav_radio'))) {
@@ -21,9 +30,10 @@ if (!$rSettings['disable_ministra']) {
 		$rCategories = CacheReader::get('categories');
 	}
 
-	$rIP = $_SERVER['REMOTE_ADDR'];
-	$rCountryCode = GeoIPService::getIPInfo($rIP)['country']['iso_code'];
-	$rMAC = (!empty($rRequest['mac']) ? $rRequest['mac'] : $_COOKIE['mac']);
+	$rIP = ($_SERVER['REMOTE_ADDR'] ?? '');
+	$rGeoIPInfo = GeoIPService::getIPInfo($rIP);
+	$rCountryCode = (is_array($rGeoIPInfo) && !empty($rGeoIPInfo['country']['iso_code']) ? $rGeoIPInfo['country']['iso_code'] : null);
+	$rMAC = (!empty($rRequest['mac']) ? $rRequest['mac'] : (!empty($_COOKIE['mac']) ? $_COOKIE['mac'] : null));
 	$rUserAgent = (!empty($_SERVER['HTTP_X_USER_AGENT']) ? $_SERVER['HTTP_X_USER_AGENT'] : null);
 	$rGMode = (!empty($rRequest['gmode']) ? intval($rRequest['gmode']) : null);
 	$rDebug = $rSettings['enable_debug_stalker'];
@@ -42,23 +52,44 @@ if (!$rSettings['disable_ministra']) {
 		}
 
 		$rAuthToken = null;
-		$rAuthHeader = (!empty($rHeaders['Authorization']) ? $rHeaders['Authorization'] : null);
+		$rAuthHeader = null;
 
-		if (!($rAuthHeader && preg_match('/Bearer\\s+(.*)$/i', $rAuthHeader, $rMatches))) {
-		} else {
+		if (is_array($rHeaders) && !empty($rHeaders['Authorization'])) {
+			$rAuthHeader = $rHeaders['Authorization'];
+		} else if (is_array($rHeaders) && !empty($rHeaders['authorization'])) {
+			$rAuthHeader = $rHeaders['authorization'];
+		}
+
+		if (empty($rAuthHeader) && !empty($_SERVER['HTTP_AUTHORIZATION'])) {
+			$rAuthHeader = $_SERVER['HTTP_AUTHORIZATION'];
+		} else if (empty($rAuthHeader) && !empty($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
+			$rAuthHeader = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
+		}
+
+		if ($rAuthHeader && preg_match('/Bearer\\s+(.*)$/i', $rAuthHeader, $rMatches)) {
 			$rAuthToken = trim($rMatches[1]);
+		} else if (!empty($rRequest['token'])) {
+			$rAuthToken = trim($rRequest['token']);
 		}
 
 		if (!$rAuthToken) {
 		} else {
 			$rVerify = igbinary_unserialize(Encryption::decrypt($rAuthToken, $rSettings['live_streaming_pass'], OPENSSL_EXTRA));
-			$rDevice = (isset($rVerify['id']) ? getdevice($rVerify['id']) : array());
 
-			if ($rDevice['token'] != $rVerify['token']) {
-				$rDevice = array();
+			if (is_array($rVerify) && isset($rVerify['id']) && isset($rVerify['token'])) {
+				$rDevice = getdevice($rVerify['id']);
+				if (!is_array($rDevice)) {
+					$rDevice = array();
+				}
+
+				if (!isset($rDevice['token']) || $rDevice['token'] != $rVerify['token']) {
+					$rDevice = array();
+				} else {
+					$rDevice['authenticated'] = true;
+					updatecache();
+				}
 			} else {
-				$rDevice['authenticated'] = true;
-				updatecache();
+				$rDevice = array();
 			}
 		}
 
@@ -145,12 +176,15 @@ if (!$rSettings['disable_ministra']) {
 				$db->query('UPDATE `mag_devices` SET `ip` = ?, `stb_type` = ?, `sn` = ?, `ver` = ?, `image_version` = ?, `device_id` = ?, `device_id2` = ?, `hw_version` = ? WHERE `mag_id` = ?;', $rIP, $rSTBType, $rSerialNumber, $rVersion, $rImageVersion, $rDeviceID, $rDeviceID2, $rHWVersion, $rDevice['mag_id']);
 				updatecache();
 			} else {
-				unlink(MINISTRA_TMP_PATH . 'ministra_' . $rDevice['id']);
+				if (!empty($rDevice['id']) && file_exists(MINISTRA_TMP_PATH . 'ministra_' . $rDevice['id'])) {
+					unlink(MINISTRA_TMP_PATH . 'ministra_' . $rDevice['id']);
+				}
 				$rDevice = array();
 			}
 		}
 
-		$rAuthenticated = ($rDevice['authenticated'] ?: false);
+		$rAuthenticated = !empty($rDevice['authenticated']);
+		$rMagID = (!empty($rDevice['mag_id']) ? intval($rDevice['mag_id']) : 0);
 
 		if (empty($rDevice['locale']) && !empty($_COOKIE['locale'])) {
 			$rDevice['locale'] = $_COOKIE['locale'];
@@ -159,7 +193,7 @@ if (!$rSettings['disable_ministra']) {
 		}
 
 		$rMagData = array();
-		$rProfile = array('id' => $rDevice['mag_id'], 'name' => $rDevice['mag_id'], 'sname' => '', 'pass' => '', 'use_embedded_settings' => '', 'parent_password' => '0000', 'bright' => '200', 'contrast' => '127', 'saturation' => '127', 'video_out' => '', 'volume' => '70', 'playback_buffer_bytes' => '0', 'playback_buffer_size' => '0', 'audio_out' => '1', 'mac' => $rMAC, 'ip' => '127.0.0.1', 'ls' => '', 'version' => '', 'lang' => '', 'locale' => $rDevice['locale'], 'city_id' => '0', 'hd' => '1', 'main_notify' => '1', 'fav_itv_on' => '0', 'now_playing_start' => '2018-02-18 17:33:43', 'now_playing_type' => '1', 'now_playing_content' => 'Test channel', 'additional_services_on' => '1', 'time_last_play_tv' => '0000-00-00 00:00:00', 'time_last_play_video' => '0000-00-00 00:00:00', 'operator_id' => '0', 'storage_name' => '', 'hd_content' => '0', 'image_version' => 'undefined', 'last_change_status' => '0000-00-00 00:00:00', 'last_start' => '2018-02-18 17:33:38', 'last_active' => '2018-02-18 17:33:43', 'keep_alive' => '2018-02-18 17:33:43', 'screensaver_delay' => '10', 'phone' => '', 'fname' => '', 'login' => '', 'password' => '', 'stb_type' => '', 'num_banks' => '0', 'tariff_plan_id' => '0', 'comment' => null, 'now_playing_link_id' => '0', 'now_playing_streamer_id' => '0', 'just_started' => '1', 'last_watchdog' => '2018-02-18 17:33:39', 'created' => '2018-02-18 14:40:12', 'plasma_saving' => '0', 'ts_enabled' => '0', 'ts_enable_icon' => '1', 'ts_path' => '', 'ts_max_length' => '3600', 'ts_buffer_use' => 'cyclic', 'ts_action_on_exit' => 'no_save', 'ts_delay' => 'on_pause', 'video_clock' => 'Off', 'verified' => '0', 'hdmi_event_reaction' => 1, 'pri_audio_lang' => '', 'sec_audio_lang' => '', 'pri_subtitle_lang' => '', 'sec_subtitle_lang' => '', 'subtitle_color' => '16777215', 'subtitle_size' => '20', 'show_after_loading' => '', 'play_in_preview_by_ok' => null, 'hw_version' => 'undefined', 'openweathermap_city_id' => '0', 'theme' => '', 'settings_password' => '0000', 'expire_billing_date' => '0000-00-00 00:00:00', 'reseller_id' => null, 'account_balance' => '', 'client_type' => 'STB', 'hw_version_2' => '62', 'blocked' => '0', 'units' => 'metric', 'tariff_expired_date' => null, 'tariff_id_instead_expired' => null, 'activation_code_auto_issue' => '1', 'last_itv_id' => 0, 'updated' => array('id' => '1', 'uid' => '1', 'anec' => '0', 'vclub' => '0'), 'rtsp_type' => '4', 'rtsp_flags' => '0', 'stb_lang' => 'en', 'display_menu_after_loading' => '', 'record_max_length' => 180, 'web_proxy_host' => '', 'web_proxy_port' => '', 'web_proxy_user' => '', 'web_proxy_pass' => '', 'web_proxy_exclude_list' => '', 'demo_video_url' => '', 'tv_quality' => 'high', 'tv_quality_filter' => '', 'is_moderator' => false, 'timeslot_ratio' => 0.33333333333333, 'timeslot' => 40, 'kinopoisk_rating' => '1', 'enable_tariff_plans' => '', 'strict_stb_type_check' => '', 'cas_type' => 0, 'cas_params' => null, 'cas_web_params' => null, 'cas_additional_params' => array(), 'cas_hw_descrambling' => 0, 'cas_ini_file' => '', 'logarithm_volume_control' => '', 'allow_subscription_from_stb' => '1', 'deny_720p_gmode_on_mag200' => '1', 'enable_arrow_keys_setpos' => '1', 'show_purchased_filter' => '', 'timezone_diff' => 0, 'enable_connection_problem_indication' => '1', 'invert_channel_switch_direction' => '', 'play_in_preview_only_by_ok' => false, 'enable_stream_error_logging' => '', 'always_enabled_subtitles' => ($rSettings['always_enabled_subtitles'] == 1 ? '1' : ''), 'enable_service_button' => '', 'enable_setting_access_by_pass' => '', 'tv_archive_continued' => '', 'plasma_saving_timeout' => '600', 'show_tv_only_hd_filter_option' => '', 'tv_playback_retry_limit' => '0', 'fading_tv_retry_timeout' => '1', 'epg_update_time_range' => 0.6, 'store_auth_data_on_stb' => false, 'account_page_by_password' => '', 'tester' => false, 'enable_stream_losses_logging' => '', 'external_payment_page_url' => '', 'max_local_recordings' => '10', 'tv_channel_default_aspect' => 'fit', 'default_led_level' => '10', 'standby_led_level' => '90', 'show_version_in_main_menu' => '1', 'disable_youtube_for_mag200' => '1', 'auth_access' => false, 'epg_data_block_period_for_stb' => '5', 'standby_on_hdmi_off' => '1', 'force_ch_link_check' => '', 'stb_ntp_server' => 'pool.ntp.org', 'overwrite_stb_ntp_server' => '', 'hide_tv_genres_in_fullscreen' => null, 'advert' => null);
+		$rProfile = array('id' => $rMagID, 'name' => $rMagID, 'sname' => '', 'pass' => '', 'use_embedded_settings' => '', 'parent_password' => '0000', 'bright' => '200', 'contrast' => '127', 'saturation' => '127', 'video_out' => '', 'volume' => '70', 'playback_buffer_bytes' => '0', 'playback_buffer_size' => '0', 'audio_out' => '1', 'mac' => $rMAC, 'ip' => '127.0.0.1', 'ls' => '', 'version' => '', 'lang' => '', 'locale' => $rDevice['locale'], 'city_id' => '0', 'hd' => '1', 'main_notify' => '1', 'fav_itv_on' => '0', 'now_playing_start' => '2018-02-18 17:33:43', 'now_playing_type' => '1', 'now_playing_content' => 'Test channel', 'additional_services_on' => '1', 'time_last_play_tv' => '0000-00-00 00:00:00', 'time_last_play_video' => '0000-00-00 00:00:00', 'operator_id' => '0', 'storage_name' => '', 'hd_content' => '0', 'image_version' => 'undefined', 'last_change_status' => '0000-00-00 00:00:00', 'last_start' => '2018-02-18 17:33:38', 'last_active' => '2018-02-18 17:33:43', 'keep_alive' => '2018-02-18 17:33:43', 'screensaver_delay' => '10', 'phone' => '', 'fname' => '', 'login' => '', 'password' => '', 'stb_type' => '', 'num_banks' => '0', 'tariff_plan_id' => '0', 'comment' => null, 'now_playing_link_id' => '0', 'now_playing_streamer_id' => '0', 'just_started' => '1', 'last_watchdog' => '2018-02-18 17:33:39', 'created' => '2018-02-18 14:40:12', 'plasma_saving' => '0', 'ts_enabled' => '0', 'ts_enable_icon' => '1', 'ts_path' => '', 'ts_max_length' => '3600', 'ts_buffer_use' => 'cyclic', 'ts_action_on_exit' => 'no_save', 'ts_delay' => 'on_pause', 'video_clock' => 'Off', 'verified' => '0', 'hdmi_event_reaction' => 1, 'pri_audio_lang' => '', 'sec_audio_lang' => '', 'pri_subtitle_lang' => '', 'sec_subtitle_lang' => '', 'subtitle_color' => '16777215', 'subtitle_size' => '20', 'show_after_loading' => '', 'play_in_preview_by_ok' => null, 'hw_version' => 'undefined', 'openweathermap_city_id' => '0', 'theme' => '', 'settings_password' => '0000', 'expire_billing_date' => '0000-00-00 00:00:00', 'reseller_id' => null, 'account_balance' => '', 'client_type' => 'STB', 'hw_version_2' => '62', 'blocked' => '0', 'units' => 'metric', 'tariff_expired_date' => null, 'tariff_id_instead_expired' => null, 'activation_code_auto_issue' => '1', 'last_itv_id' => 0, 'updated' => array('id' => '1', 'uid' => '1', 'anec' => '0', 'vclub' => '0'), 'rtsp_type' => '4', 'rtsp_flags' => '0', 'stb_lang' => 'en', 'display_menu_after_loading' => '', 'record_max_length' => 180, 'web_proxy_host' => '', 'web_proxy_port' => '', 'web_proxy_user' => '', 'web_proxy_pass' => '', 'web_proxy_exclude_list' => '', 'demo_video_url' => '', 'tv_quality' => 'high', 'tv_quality_filter' => '', 'is_moderator' => false, 'timeslot_ratio' => 0.33333333333333, 'timeslot' => 40, 'kinopoisk_rating' => '1', 'enable_tariff_plans' => '', 'strict_stb_type_check' => '', 'cas_type' => 0, 'cas_params' => null, 'cas_web_params' => null, 'cas_additional_params' => array(), 'cas_hw_descrambling' => 0, 'cas_ini_file' => '', 'logarithm_volume_control' => '', 'allow_subscription_from_stb' => '1', 'deny_720p_gmode_on_mag200' => '1', 'enable_arrow_keys_setpos' => '1', 'show_purchased_filter' => '', 'timezone_diff' => 0, 'enable_connection_problem_indication' => '1', 'invert_channel_switch_direction' => '', 'play_in_preview_only_by_ok' => false, 'enable_stream_error_logging' => '', 'always_enabled_subtitles' => ($rSettings['always_enabled_subtitles'] == 1 ? '1' : ''), 'enable_service_button' => '', 'enable_setting_access_by_pass' => '', 'tv_archive_continued' => '', 'plasma_saving_timeout' => '600', 'show_tv_only_hd_filter_option' => '', 'tv_playback_retry_limit' => '0', 'fading_tv_retry_timeout' => '1', 'epg_update_time_range' => 0.6, 'store_auth_data_on_stb' => false, 'account_page_by_password' => '', 'tester' => false, 'enable_stream_losses_logging' => '', 'external_payment_page_url' => '', 'max_local_recordings' => '10', 'tv_channel_default_aspect' => 'fit', 'default_led_level' => '10', 'standby_led_level' => '90', 'show_version_in_main_menu' => '1', 'disable_youtube_for_mag200' => '1', 'auth_access' => false, 'epg_data_block_period_for_stb' => '5', 'standby_on_hdmi_off' => '1', 'force_ch_link_check' => '', 'stb_ntp_server' => 'pool.ntp.org', 'overwrite_stb_ntp_server' => '', 'hide_tv_genres_in_fullscreen' => null, 'advert' => null);
 		$rLocales['get_locales']['English'] = 'en_GB.utf8';
 		$rLocales['get_locales']['Ελληνικά'] = 'el_GR.utf8';
 		$rMagData['get_years'] = array('js' => array(array('id' => '*', 'title' => '*')));
@@ -496,11 +530,16 @@ function getItems($rTypes = array(), $rCategoryID = null, $rFav = null, $rOrderB
 	foreach ($rRows as $rStream) {
 		$rStream["snumber"] = $rKey;
 		$rStream["number"] = $rStream["snumber"];
+		$rStreamCategories = json_decode($rStream["category_id"], true);
 
-		if (in_array($rCategoryID, json_decode($rStream["category_id"], true))) {
+		if (!is_array($rStreamCategories)) {
+			$rStreamCategories = array();
+		}
+
+		if (in_array($rCategoryID, $rStreamCategories)) {
 			$rStream["category_id"] = $rCategoryID;
 		} else {
-			list($rStream["category_id"]) = json_decode($rStream["category_id"], true);
+			$rStream["category_id"] = (isset($rStreamCategories[0]) ? $rStreamCategories[0] : 0);
 		}
 
 		if (in_array($rStream["category_id"], $rAdultCategories)) {
@@ -509,7 +548,8 @@ function getItems($rTypes = array(), $rCategoryID = null, $rFav = null, $rOrderB
 			$rStream["is_adult"] = 0;
 		}
 
-		$rStream["now_playing"] = getEPG($rStream["id"], time(), time() + 86400)[0] ?: NULL;
+		$rEPGNow = getEPG($rStream["id"], time(), time() + 86400);
+		$rStream["now_playing"] = (isset($rEPGNow[0]) ? $rEPGNow[0] : NULL);
 		$rStream["stream_info"] = json_decode($rStream["stream_info"], true);
 		$rStreams["streams"][$rStream["id"]] = $rStream;
 		$rKey++;
@@ -518,8 +558,7 @@ function getItems($rTypes = array(), $rCategoryID = null, $rFav = null, $rOrderB
 }
 
 function sortArrayStreamRating($a, $b) {
-	if (isset($a['rating'])) {
-	} else {
+	if (!isset($a['rating'])) {
 		if (isset($a['movie_properties']) && isset($b['movie_properties'])) {
 			if (!is_array($a['movie_properties'])) {
 				$a = json_decode($a['movie_properties'], true);
@@ -699,7 +738,12 @@ function getProgramme($rStreamID, $rProgrammeID) {
 
 function updateCache() {
 	global $rDevice;
-	file_put_contents(MINISTRA_TMP_PATH . 'ministra_' . $rDevice['mag_id'], igbinary_serialize($rDevice));
+
+	if (!is_array($rDevice) || empty($rDevice['mag_id'])) {
+		return;
+	}
+
+	file_put_contents(MINISTRA_TMP_PATH . 'ministra_' . intval($rDevice['mag_id']), igbinary_serialize($rDevice));
 }
 
 function getMovies($rCategoryID = null, $rFav = null, $rOrderBy = null, $rSearchBy = null, $rPicking = array()) {
@@ -965,13 +1009,13 @@ function getStreams($rCategoryID = null, $rAll = false, $rFav = null, $rOrderBy 
 	global $rForceProtocol;
 	global $rServers;
 	$rDefaultPage = false;
-	$rPage = (isset($rRequest['p']) ? intval($rRequest['p']) : 0);
+	$rPage = (!empty($rRequest['p']) ? intval($rRequest['p']) : 0);
+	$rPosition = 0;
 
-	if (!($rPage == 0 && $rCategoryID != -1)) {
-	} else {
+	if ($rPage == 0 && $rCategoryID != -1) {
 		$rDefaultPage = true;
 
-		if ($rRequest['p'] != 0 || empty($rDevice['last_itv_id'])) {
+		if ($rPage != 0 || empty($rDevice['last_itv_id'])) {
 		} else {
 			$rPosition = getitems(array('live', 'created_live'), $rCategoryID, $rFav, $rOrderBy, $rSearchBy, null, 0, 0, $rDevice['last_itv_id']);
 
