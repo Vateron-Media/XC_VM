@@ -1326,7 +1326,7 @@ class PortalHandler {
      * @param string $rMAC
      */
     public static function handleHandshake($rMAC) {
-        global $db, $rSettings;
+        global $db, $rSettings, $rDevice;
 
         $rDevice = getdevice(null, $rMAC);
         $rVerifyToken = null;

@@ -327,6 +327,8 @@ function common_xpcom() {
 
                     var login = self.auth_dialog.getItemByName("login").getValue();
                     var password = self.auth_dialog.getItemByName("password").getValue();
+                    var device_id = self.get_device_id();
+                    var device_id2 = self.get_device_id2();
 
                     _debug("login", login);
                     _debug("password", password);
@@ -337,8 +339,8 @@ function common_xpcom() {
                             "action": "do_auth",
                             "login": login,
                             "password": password,
-                            'device_id': stb.GetUID ? stb.GetUID() : '',
-                            'device_id2': stb.GetUID ? (stb.GetUID(self.access_token) == stb.GetUID(self.access_token, self.access_token) ? '' : stb.GetUID('device_id', self.access_token)) : ''
+                            'device_id': device_id,
+                            'device_id2': device_id2
                         },
                         function (result) {
                             _debug('auth result', result);
@@ -619,15 +621,49 @@ function common_xpcom() {
 
         if (debug) {
 
-            if (_GET['mac']) {
-                this.mac = _GET['mac'];
+            var debugMac = this.get_debug_param('mac');
+
+            if (debugMac) {
+                this.mac = debugMac;
                 this.set_cookie('mac_emu', 1);
+            }
+
+            var debugSerialNumber = this.get_debug_param('sn');
+
+            if (debugSerialNumber) {
+                this.serial_number = debugSerialNumber;
+            }
+
+            var debugStbType = this.get_debug_param('stb_type');
+
+            if (debugStbType) {
+                this.type = debugStbType;
+            }
+
+            var debugHwVersion = this.get_debug_param('hw_version');
+
+            if (debugHwVersion) {
+                this.hw_version = debugHwVersion;
+            }
+
+            var debugVersion = this.get_debug_param('ver');
+
+            if (debugVersion) {
+                this.version = debugVersion;
+            }
+
+            var debugImageVersion = this.get_debug_param('image_version');
+
+            if (debugImageVersion) {
+                this.image_version = debugImageVersion;
             }
 
             this.set_cookie('debug', 1);
 
-            if (_GET['debug_key']) {
-                this.set_cookie('debug_key', _GET['debug_key']);
+            var debugKey = this.get_debug_param('debug_key');
+
+            if (debugKey) {
+                this.set_cookie('debug_key', debugKey);
             }
 
         }
@@ -651,6 +687,38 @@ function common_xpcom() {
 
     this.set_cookie = function (name, val) {
         document.cookie = name + '=' + encodeURIComponent(val) + '; path=/;';
+    };
+
+    this.get_debug_param = function (name) {
+        if (!_GET || !_GET.hasOwnProperty(name) || typeof _GET[name] == 'undefined' || _GET[name] === '') {
+            return '';
+        }
+
+        try {
+            return decodeURIComponent(_GET[name]);
+        } catch (e) {
+            return _GET[name];
+        }
+    };
+
+    this.get_device_id = function () {
+        var debugDeviceId = this.get_debug_param('device_id');
+
+        if (debugDeviceId) {
+            return debugDeviceId;
+        }
+
+        return stb.GetUID ? stb.GetUID() : '';
+    };
+
+    this.get_device_id2 = function () {
+        var debugDeviceId2 = this.get_debug_param('device_id2');
+
+        if (debugDeviceId2) {
+            return debugDeviceId2;
+        }
+
+        return stb.GetUID ? (stb.GetUID(this.access_token) == stb.GetUID(this.access_token, this.access_token) ? '' : stb.GetUID('device_id', this.access_token)) : '';
     };
 
     this.delete_cookie = function (name) {
@@ -687,6 +755,10 @@ function common_xpcom() {
     this.load = function (params, var_args) {
         _debug('stb.load()');
         _debug('params:', params);
+
+        if (params && this.access_token && params.action != 'handshake' && this.get_debug_param('auth_via_query') == '1' && !params.hasOwnProperty('token')) {
+            params.token = this.access_token;
+        }
 
         var callback = arguments[1];
 
@@ -912,11 +984,13 @@ function common_xpcom() {
         _debug('stb.handshake');
 
         var prehash = stb.GetHashVersion1 ? stb.GetHashVersion1(this.type, this.version.substr(0, 56)) : 0;
+        var currentMac = this.mac || this.get_debug_param('mac') || '';
 
         this.load(
             {
                 "type": "stb",
                 "action": "handshake",
+                "mac": currentMac,
                 "token": this.get_saved_access_token() || '',
                 "prehash": prehash
             },
@@ -946,12 +1020,20 @@ function common_xpcom() {
     this.get_user_profile = function (auth_second_step, prehash) {
         _debug('this.get_user_profile', auth_second_step, prehash);
 
-        var device_id2 = stb.GetUID ? (stb.GetUID(this.access_token) == stb.GetUID(this.access_token, this.access_token) ? '' : stb.GetUID('device_id', this.access_token)) : '';
+        var currentMac = this.mac || this.get_debug_param('mac') || '';
+        var serial_number = this.serial_number || this.get_debug_param('sn') || '';
+        var stb_type = this.type || this.get_debug_param('stb_type') || '';
+        var version = (typeof this.version == 'undefined' || this.version === null ? '' : this.version);
+        var num_banks = (typeof this.num_banks == 'undefined' || this.num_banks === null ? 0 : this.num_banks);
+        var image_version = this.image_version || this.get_debug_param('image_version') || '';
+        var hw_version = this.hw_version || this.get_debug_param('hw_version') || '';
+        var device_id = this.get_device_id();
+        var device_id2 = this.get_device_id2();
 
         var metrics = {
-            mac: this.mac,
-            sn: this.serial_number,
-            model: this.type,
+            mac: currentMac,
+            sn: serial_number,
+            model: stb_type,
             type: "STB",
             uid: device_id2,
             random: this.random
@@ -963,19 +1045,20 @@ function common_xpcom() {
             {
                 'type': 'stb',
                 'action': 'get_profile',
+                'mac': currentMac,
                 'hd': this.hd,
-                'ver': this.version,
-                'num_banks': this.num_banks,
-                'sn': this.serial_number,
-                'stb_type': this.type,
+                'ver': version,
+                'num_banks': num_banks,
+                'sn': serial_number,
+                'stb_type': stb_type,
                 'client_type': 'STB',
-                'image_version': this.image_version,
+                'image_version': image_version,
                 'video_out': (stb.GetHDMIConnectionState ? (stb.GetHDMIConnectionState() == 0 && window.innerHeight <= 576 ? "rca" : "hdmi") : ""),
-                'device_id': stb.GetUID ? stb.GetUID() : '',
+                'device_id': device_id,
                 'device_id2': device_id2,
                 'signature': stb.GetUID ? stb.GetUID(this.random) : '',
                 'auth_second_step': auth_second_step ? 1 : 0,
-                'hw_version': this.hw_version,
+                'hw_version': hw_version,
                 'not_valid_token': this.not_valid_token ? 1 : 0,
                 'metrics': encodeURIComponent(JSON.stringify(metrics)),
                 'hw_version_2': stb.GetHashVersion1 ? stb.GetHashVersion1(JSON.stringify(metrics), this.random) : '',
