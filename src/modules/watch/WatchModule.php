@@ -159,4 +159,21 @@ class WatchModule implements ModuleInterface {
      */
     public function uninstall(): void {
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function registerNavbar(): void {
+        NavbarRegistry::add((new NavbarItem('topbar.settings.divider_modules'))
+            ->parent('topbar.settings')->makeDivider()->order(45));
+        NavbarRegistry::add((new NavbarItem('topbar.settings.watch_settings'))
+            ->parent('topbar.settings')->url('settings_watch')
+            ->label('watch_settings')->permissions(['folder_watch_settings'])->order(50));
+        NavbarRegistry::add((new NavbarItem('management.service_setup.watch'))
+            ->parent('management.service_setup')->url('watch')
+            ->label('folder_watch')->permissions(['folder_watch'])->order(60));
+        NavbarRegistry::add((new NavbarItem('management.logs.watch_output'))
+            ->parent('management.logs')->url('watch_output')
+            ->label('watch_folder_logs')->permissions(['folder_watch'])->order(170));
+    }
 }

@@ -275,394 +275,106 @@
                     <div class="topbar-menu">
                         <div class="container-fluid">
                             <div id="navigation">
+                                <?php
+                                /**
+                                 * Nav rendering helpers.
+                                 * All nav items are registered in CoreNavbarProvider (and modules'
+                                 * registerNavbar()) via NavbarRegistry::add(NavbarItem).
+                                 *
+                                 * To inject a button anywhere, add a NavbarItem with the desired
+                                 * parent key and order, e.g.:
+                                 *   NavbarRegistry::add((new NavbarItem('management.service_setup.watch'))
+                                 *       ->parent('management.service_setup')
+                                 *       ->url('watch')->label('folder_watch')
+                                 *       ->permissions(['folder_watch'])->order(60));
+                                 */
+                                if (!function_exists('_xc_nav_visible')) {
+                                    function _xc_nav_visible(NavbarItem $item, bool $mobile, array $settings): bool {
+                                        if ($item->desktopOnly && $mobile) return false;
+                                        if ($item->settingDisabled !== '' && !empty($settings[$item->settingDisabled])) return false;
+                                        if ($item->divider) return true;
+                                        if (!empty($item->permissions)) {
+                                            foreach ($item->permissions as $_p) {
+                                                if (Authorization::check('adv', $_p)) return true;
+                                            }
+                                            return false;
+                                        }
+                                        if ($item->url === '#') {
+                                            foreach (NavbarRegistry::getChildren($item->key) as $_child) {
+                                                if (_xc_nav_visible($_child, $mobile, $settings)) return true;
+                                            }
+                                            return false;
+                                        }
+                                        return true;
+                                    }
+                                }
+
+                                if (!function_exists('_xc_nav_label')) {
+                                    function _xc_nav_label(NavbarItem $item, string $language): string {
+                                        return $item->translationKey
+                                            ? $language::get($item->translationKey)
+                                            : htmlspecialchars($item->fallbackTitle, ENT_QUOTES);
+                                    }
+                                }
+
+                                if (!function_exists('_xc_nav_children')) {
+                                    function _xc_nav_children(NavbarItem $parent, bool $mobile, array $settings, string $language): void {
+                                        $visible = [];
+                                        foreach (NavbarRegistry::getChildren($parent->key) as $_c) {
+                                            if (_xc_nav_visible($_c, $mobile, $settings)) $visible[] = $_c;
+                                        }
+                                        if (empty($visible)) return;
+
+                                        $cls = 'submenu' . ($parent->submenuClass !== '' ? ' ' . $parent->submenuClass : '');
+                                        echo '<ul class="' . $cls . '">';
+
+                                        if ($parent->submenuClass === 'megamenu') {
+                                            $total = count($visible);
+                                            $split = $total > 8 ? (int)ceil($total / 2) : null;
+                                            echo '<li><ul>';
+                                            foreach ($visible as $_i => $_c) {
+                                                if ($_c->divider) continue;
+                                                if ($split !== null && $_i === $split) echo '</ul></li><li><ul>';
+                                                echo '<li><a href="' . htmlspecialchars($_c->url, ENT_QUOTES) . '">'
+                                                    . _xc_nav_label($_c, $language) . '</a></li>';
+                                            }
+                                            echo '</ul></li>';
+                                        } else {
+                                            foreach ($visible as $_c) {
+                                                if ($_c->divider) {
+                                                    echo '<div class="dropdown-divider"></div>';
+                                                    continue;
+                                                }
+                                                $_hasKids = NavbarRegistry::hasChildren($_c->key) && !($_c->noMobileSubmenu && $mobile);
+                                                echo '<li' . ($_hasKids ? ' class="has-submenu"' : '') . '>';
+                                                echo '<a href="' . htmlspecialchars($_c->url, ENT_QUOTES) . '">'
+                                                    . _xc_nav_label($_c, $language);
+                                                if ($_hasKids) echo ' <div class="arrow-down"></div>';
+                                                echo '</a>';
+                                                if ($_hasKids) _xc_nav_children($_c, $mobile, $settings, $language);
+                                                echo '</li>';
+                                            }
+                                        }
+                                        echo '</ul>';
+                                    }
+                                }
+                                ?>
                                 <ul class="navigation-menu">
-                                    <li class="has-submenu">
-                                        <a href="index"><i class="fe-activity"></i><?= $language::get('dashboard'); ?>
-                                            <?php if (!$rMobile): ?>
-                                                <div class="arrow-down"></div>
-                                        </a>
-                                        <ul class="submenu">
-                                            <?php if (Authorization::check('adv', 'live_connections')): ?>
-                                                <li><a href="live_connections"><?= $language::get('live_connections'); ?></a></li>
-                                            <?php endif; ?>
-                                        </ul>
-                                    <?php else: ?>
-                                        </a>
-                                    <?php endif; ?>
-                                    </li>
-                                    <?php if (Authorization::check('adv', 'servers') || Authorization::check('adv', 'process_monitor')): ?>
-                                        <li class="has-submenu">
-                                            <a href="#"><i class="fas fa-server"></i><?= $language::get('servers'); ?> <div class="arrow-down">
-                                                </div></a>
-                                            <ul class="submenu">
-                                                <?php if (Authorization::check('adv', 'servers')): ?>
-                                                    <li><a href="server_install"><?= $language::get('install_load_balancer'); ?></a></li>
-                                                    <li><a href="servers"><?= $language::get('manage_servers'); ?></a></li>
-                                                    <li><a href="proxies"><?= $language::get('manage_proxies'); ?></a></li>
-                                                    <li><a href="server_order"><?= $language::get('server_order'); ?></a></li>
-                                                <?php endif; ?>
-                                                <?php if (Authorization::check('adv', 'process_monitor')): ?>
-                                                    <li><a href="process_monitor"><?= $language::get('process_monitor'); ?></a></li>
-                                                <?php endif; ?>
-                                            </ul>
-                                        </li>
-                                    <?php endif; ?>
-                                    <?php if (Authorization::check('adv', 'add_user') || Authorization::check('adv', 'users') || Authorization::check('adv', 'add_mag') || Authorization::check('adv', 'manage_mag') || Authorization::check('adv', 'add_e2') || Authorization::check('adv', 'manage_e2')): ?>
-                                        <li class="has-submenu">
-                                            <a href="#"> <i class="fas fa-desktop"></i><?= $language::get('users'); ?> <div class="arrow-down">
-                                                </div></a>
-                                            <ul class="submenu">
-                                                <?php if (Authorization::check('adv', 'add_user') || Authorization::check('adv', 'users')): ?>
-                                                    <li class="has-submenu">
-                                                        <a href="#"><?= $language::get('user_lines'); ?> <div class="arrow-down"></div></a>
-                                                        <ul class="submenu">
-                                                            <?php if (Authorization::check('adv', 'add_user')): ?>
-                                                                <li><a href="line"><?= $language::get('add_users'); ?></a></li>
-                                                            <?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'users')): ?>
-                                                                <li><a href="lines"><?= $language::get('manage_users'); ?></a></li>
-                                                            <?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'mass_edit_lines')): ?>
-                                                                <li><a href="line_mass"><?= $language::get('mass_edit_users'); ?></a></li>
-                                                            <?php endif; ?>
-                                                        </ul>
-                                                    </li>
-                                                <?php endif; ?>
-                                                <?php if (Authorization::check('adv', 'add_mag') || Authorization::check('adv', 'manage_mag')): ?>
-                                                    <li class="has-submenu">
-                                                        <a href="#"><?= $language::get('mag_devices'); ?> <div class="arrow-down"></div></a>
-                                                        <ul class="submenu">
-                                                            <?php if (Authorization::check('adv', 'add_mag')): ?>
-                                                                <li><a href="mag"><?= $language::get('add_mag'); ?></a></li>
-                                                            <?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'manage_mag')): ?>
-                                                                <li><a href="mags"><?= $language::get('manage_mag_devices'); ?></a></li>
-                                                            <?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'mass_edit_mags')): ?>
-                                                                <li><a href="mag_mass">Mass Edit Mags</a></li>
-                                                            <?php endif; ?>
-                                                        </ul>
-                                                    </li>
-                                                <?php endif; ?>
-                                                <?php if (Authorization::check('adv', 'add_e2') || Authorization::check('adv', 'manage_e2')): ?>
-                                                    <li class="has-submenu">
-                                                        <a href="#"><?= $language::get('enigma_devices'); ?> <div class="arrow-down"></div></a>
-                                                        <ul class="submenu">
-                                                            <?php if (Authorization::check('adv', 'add_e2')): ?>
-                                                                <li><a href="enigma"><?= $language::get('add_enigma'); ?></a></li>
-                                                            <?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'manage_e2')): ?>
-                                                                <li><a href="enigmas"><?= $language::get('manage_enigma_devices'); ?></a></li>
-                                                            <?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'mass_edit_enigmas')): ?>
-                                                                <li><a href="enigma_mass">Mass Edit Enigmas</a></li>
-                                                            <?php endif; ?>
-                                                        </ul>
-                                                    </li>
-                                                <?php endif; ?>
-                                                <?php if (Authorization::check('adv', 'add_reguser') || Authorization::check('adv', 'mng_regusers')): ?>
-                                                    <li class="has-submenu">
-                                                        <a href="#"><?= $language::get('reseller'); ?> <div class="arrow-down"></div></a>
-                                                        <ul class="submenu">
-                                                            <?php if (Authorization::check('adv', 'add_reguser')): ?>
-                                                                <li><a href="user"><?= $language::get('add_registered_user'); ?></a></li>
-                                                            <?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'mng_regusers')): ?>
-                                                                <li><a href="users"><?= $language::get('manage_registered_user'); ?></a></li>
-                                                            <?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'mass_edit_users')): ?>
-                                                                <li><a href="user_mass"><?= $language::get('mass_edit_resellers'); ?></a></li>
-                                                            <?php endif; ?>
-                                                        </ul>
-                                                    </li>
-                                                <?php endif; ?>
-                                            </ul>
-                                        </li>
-                                    <?php endif; ?>
-                                    <?php if (Authorization::check('adv', 'add_stream') || Authorization::check('adv', 'create_channel') || Authorization::check('adv', 'import_streams') || Authorization::check('adv', 'streams') || Authorization::check('adv', 'add_movie') || Authorization::check('adv', 'import_movies') || Authorization::check('adv', 'movies') || Authorization::check('adv', 'series') || Authorization::check('adv', 'episodes') || Authorization::check('adv', 'add_series') || Authorization::check('adv', 'radio') || Authorization::check('adv', 'add_radio')): ?>
-                                        <li class="has-submenu">
-                                            <a href="#"> <i class="fas fa-play"></i><?= $language::get('content'); ?> <div class="arrow-down"></div>
+                                    <?php foreach (NavbarRegistry::getTopLevel() as $_navTop): ?>
+                                        <?php
+                                        if (!_xc_nav_visible($_navTop, $rMobile, $rSettings)) continue;
+                                        $_topKids = NavbarRegistry::hasChildren($_navTop->key) && !($_navTop->noMobileSubmenu && $rMobile);
+                                        ?>
+                                        <li<?= $_topKids ? ' class="has-submenu"' : ''; ?>>
+                                            <a href="<?= htmlspecialchars($_navTop->url, ENT_QUOTES); ?>">
+                                                <?php if ($_navTop->icon): ?><i class="<?= htmlspecialchars($_navTop->icon, ENT_QUOTES); ?>"></i><?php endif; ?>
+                                                <?= _xc_nav_label($_navTop, $language); ?>
+                                                <?php if ($_topKids && !$rMobile): ?><div class="arrow-down"></div><?php endif; ?>
                                             </a>
-                                            <ul class="submenu">
-                                                <?php if (Authorization::check('adv', 'add_stream') || Authorization::check('adv', 'import_streams') || Authorization::check('adv', 'streams')): ?>
-                                                    <li class="has-submenu">
-                                                        <a href="#"><?= $language::get('streams'); ?> <div class="arrow-down"></div></a>
-                                                        <ul class="submenu">
-                                                            <?php if (Authorization::check('adv', 'add_stream')): ?><li><a
-                                                                        href="stream"><?= $language::get('add_stream'); ?></a></li><?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'import_streams') && !$rMobile): ?>
-                                                                <li><a href="stream?import=1"><?= $language::get('import_multiple_stream'); ?></a></li>
-                                                                <li><a href="review?type=1"><?= $language::get('import_review_stream'); ?></a></li>
-                                                            <?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'streams')): ?><li><a
-                                                                        href="streams"><?= $language::get('manage_streams'); ?></a></li>
-                                                            <?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'streams')): ?><li><a
-                                                                        href="stream_mass"><?= $language::get('mass_edit_streams'); ?></a></li>
-                                                            <?php endif; ?>
-                                                        </ul>
-                                                    </li>
-                                                <?php endif; ?>
-
-                                                <?php if (Authorization::check('adv', 'create_channel') || Authorization::check('adv', 'streams')): ?>
-                                                    <li class="has-submenu">
-                                                        <a href="#"><?= $language::get('created_channels'); ?> <div class="arrow-down"></div>
-                                                        </a>
-                                                        <ul class="submenu">
-                                                            <?php if (Authorization::check('adv', 'create_channel')): ?><li><a
-                                                                        href="created_channel"><?= $language::get('create_channel'); ?></a></li>
-                                                            <?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'streams')): ?><li><a
-                                                                        href="created_channels"><?= $language::get('manage_created_channels'); ?></a>
-                                                                </li><?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'streams')): ?><li><a
-                                                                        href="created_channel_mass"><?= $language::get('mass_edit_created_channels'); ?></a>
-                                                                </li><?php endif; ?>
-                                                        </ul>
-                                                    </li>
-                                                <?php endif; ?>
-
-                                                <?php if (Authorization::check('adv', 'add_movie') || Authorization::check('adv', 'import_movies') || Authorization::check('adv', 'movies')): ?>
-                                                    <li class="has-submenu">
-                                                        <a href="#"><?= $language::get('movies'); ?> <div class="arrow-down"></div></a>
-                                                        <ul class="submenu">
-                                                            <?php if (Authorization::check('adv', 'add_movie')): ?><li><a
-                                                                        href="movie"><?= $language::get('add_movie'); ?></a></li><?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'import_movies') && !$rMobile): ?>
-                                                                <li><a href="movie?import=1"><?= $language::get('import_multiple_movies'); ?></a></li>
-                                                                <li><a href="review?type=2"><?= $language::get('import_review_movies'); ?></a></li>
-                                                            <?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'movies')): ?><li><a
-                                                                        href="movies"><?= $language::get('manage_movies'); ?></a></li>
-                                                            <?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'mass_sedits_vod')): ?>
-                                                                <li><a href="movie_mass"><?= $language::get('mass_edit_movies'); ?></a></li>
-                                                            <?php endif; ?>
-                                                        </ul>
-                                                    </li>
-                                                <?php endif; ?>
-
-                                                <?php if (Authorization::check('adv', 'add_series') || Authorization::check('adv', 'series') || Authorization::check('adv', 'episodes')): ?>
-                                                    <li class="has-submenu">
-                                                        <a href="#"><?= $language::get('series'); ?> <div class="arrow-down"></div></a>
-                                                        <ul class="submenu">
-                                                            <?php if (Authorization::check('adv', 'add_series')): ?><li><a
-                                                                        href="serie"><?= $language::get('add_series'); ?></a></li><?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'series')): ?><li><a
-                                                                        href="series"><?= $language::get('manage_series'); ?></a></li>
-                                                            <?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'episodes')): ?><li><a
-                                                                        href="episodes"><?= $language::get('manage_episodes'); ?></a></li>
-                                                            <?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'mass_sedits')): ?>
-                                                                <li><a href="series_mass">Mass Edit Series</a></li>
-                                                            <?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'mass_sedits')): ?>
-                                                                <li><a href="episodes_mass">Mass Edit Episodes</a></li>
-                                                            <?php endif; ?>
-                                                        </ul>
-                                                    </li>
-                                                <?php endif; ?>
-
-                                                <?php if (Authorization::check('adv', 'add_radio') || Authorization::check('adv', 'radio')): ?>
-                                                    <li class="has-submenu">
-                                                        <a href="#"><?= $language::get('stations'); ?> <div class="arrow-down"></div></a>
-                                                        <ul class="submenu">
-                                                            <?php if (Authorization::check('adv', 'add_radio')): ?><li><a
-                                                                        href="radio"><?= $language::get('add_station'); ?></a></li><?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'radio')): ?><li><a
-                                                                        href="radios"><?= $language::get('manage_stations'); ?></a></li>
-                                                            <?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'mass_edit_radio')): ?>
-                                                                <li><a href="radio_mass"><?= $language::get('mass_edit_stations'); ?></a></li>
-                                                            <?php endif; ?>
-                                                        </ul>
-                                                    </li>
-                                                <?php endif; ?>
-
-                                                <?php if (Authorization::check('adv', 'movies')): ?><li><a href="archive"><?= $language::get('recordings'); ?></a></li>
-                                                <?php endif; ?>
-                                                <?php if (!$rMobile && Authorization::check('adv', 'streams')): ?><li><a href="epg_view"><?= $language::get('tv_guide'); ?></a></li><?php endif; ?>
-                                            </ul>
-                                        </li>
-                                    <?php endif; ?>
-                                    <?php if (Authorization::check('adv', 'add_bouquet') || Authorization::check('adv', 'bouquets') || Authorization::check('adv', 'edit_bouquet')): ?>
-                                        <li class="has-submenu">
-                                            <a href="#"> <i class="fas fa-spa"></i><?= $language::get('bouquets'); ?> <div class="arrow-down"></div>
-                                            </a>
-                                            <ul class="submenu">
-                                                <?php if (Authorization::check('adv', 'add_bouquet')): ?>
-                                                    <li><a href="bouquet"><?= $language::get('add_bouquet'); ?></a></li>
-                                                <?php endif; ?>
-                                                <?php if (Authorization::check('adv', 'bouquets')): ?>
-                                                    <li><a href="bouquets"><?= $language::get('manage_bouquets'); ?></a></li>
-                                                <?php endif; ?>
-                                                <?php if (Authorization::check('adv', 'edit_bouquet') && !$rMobile): ?>
-                                                    <li><a href="bouquet_order"><?= $language::get('order_bouquets'); ?></a></li>
-                                                <?php endif; ?>
-                                            </ul>
-                                        </li>
-                                    <?php endif; ?>
-                                    <?php if (Authorization::check('adv', 'streams') || Authorization::check('adv', 'episodes') || Authorization::check('adv', 'series') || Authorization::check('adv', 'categories') || Authorization::check('adv', 'epg') || Authorization::check('adv', 'mng_groups') || Authorization::check('adv', 'mng_packages') || Authorization::check('adv', 'tprofiles') || Authorization::check('adv', 'folder_watch') || Authorization::check('adv', 'add_code') || Authorization::check('adv', 'block_asns') || Authorization::check('adv', 'block_ips') || Authorization::check('adv', 'block_isps') || Authorization::check('adv', 'block_uas') || Authorization::check('adv', 'rtmp') || Authorization::check('adv', 'channel_order') || Authorization::check('adv', 'fingerprint') || Authorization::check('adv', 'mass_delete') || Authorization::check('adv', 'stream_tools') || Authorization::check('adv', 'mass_edit_enigmas') || Authorization::check('adv', 'mass_edit_lines') || Authorization::check('adv', 'mass_edit_mags') || Authorization::check('adv', 'mass_sedits_vod') || Authorization::check('adv', 'mass_sedits') || Authorization::check('adv', 'mass_edit_radio') || Authorization::check('adv', 'mass_edit_streams') || Authorization::check('adv', 'mass_edit_users') || Authorization::check('adv', 'connection_logs') || Authorization::check('adv', 'client_request_log') || Authorization::check('adv', 'login_logs') || Authorization::check('adv', 'panel_logs') || Authorization::check('adv', 'credits_log') || Authorization::check('adv', 'live_connections') || Authorization::check('adv', 'manage_events') || Authorization::check('adv', 'reg_userlog') || Authorization::check('adv', 'stream_errors') || Authorization::check('adv', 'folder_watch') || Authorization::check('adv', 'add_hmac') || Authorization::check('adv', 'quick_tools') || Authorization::check('adv', 'manage_tickets')): ?>
-                                        <li class="has-submenu">
-                                            <a href="#"> <i class="fas fa-wrench"></i><?= $language::get('management'); ?> <div class="arrow-down">
-                                                </div></a>
-                                            <ul class="submenu">
-                                                <?php if (Authorization::check('adv', 'categories') || Authorization::check('adv', 'epg') || Authorization::check('adv', 'mng_groups') || Authorization::check('adv', 'mng_packages') || Authorization::check('adv', 'tprofiles') || Authorization::check('adv', 'folder_watch')): ?>
-                                                    <li class="has-submenu">
-                                                        <a href="#"><?= $language::get('service_setup'); ?> <div class="arrow-down"></div></a>
-                                                        <ul class="submenu">
-                                                            <?php if (Authorization::check('adv', 'mng_packages')): ?>
-                                                                <li><a href="packages"><?= $language::get('packages'); ?></a></li>
-                                                            <?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'categories')): ?>
-                                                                <li><a href="stream_categories"><?= $language::get('categories'); ?></a></li>
-                                                            <?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'mng_groups')): ?>
-                                                                <li><a href="groups"><?= $language::get('groups'); ?></a></li>
-                                                            <?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'epg')): ?>
-                                                                <li><a href="epgs"><?= $language::get('epgs'); ?></a></li>
-                                                            <?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'tprofiles')): ?>
-                                                                <li><a href="profiles"><?= $language::get('transcode_profiles'); ?></a></li>
-                                                            <?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'folder_watch')): ?>
-                                                                <li><a href="plex">Plex Sync</a></li>
-                                                                <li><a href="watch"><?= $language::get('folder_watch'); ?></a></li>
-                                                            <?php endif; ?>
-                                                        </ul>
-                                                    </li>
-                                                <?php endif; ?>
-                                                <?php if (Authorization::check('adv', 'add_code') || Authorization::check('adv', 'block_asns') || Authorization::check('adv', 'block_ips') || Authorization::check('adv', 'block_isps') || Authorization::check('adv', 'block_uas') || Authorization::check('adv', 'rtmp') || Authorization::check('adv', 'add_hmac')): ?>
-                                                    <li class="has-submenu">
-                                                        <a href="#">Access Codes <div class="arrow-down"></div></a>
-                                                        <ul class="submenu">
-                                                            <?php if (Authorization::check('adv', 'add_code')): ?>
-                                                                <li><a href="code"><?= $language::get('add_access_codes'); ?></a></li>
-                                                            <?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'add_code')): ?>
-                                                                <li><a href="codes"><?= $language::get('menage_access_codes'); ?></a></li>
-                                                            <?php endif; ?>
-                                                        </ul>
-                                                    </li>
-                                                <?php endif; ?>
-                                                <?php if (Authorization::check('adv', 'add_code') || Authorization::check('adv', 'block_asns') || Authorization::check('adv', 'block_ips') || Authorization::check('adv', 'block_isps') || Authorization::check('adv', 'block_uas') || Authorization::check('adv', 'rtmp') || Authorization::check('adv', 'add_hmac')): ?>
-                                                    <li class="has-submenu">
-                                                        <a href="#">Security <div class="arrow-down"></div></a>
-                                                        <ul class="submenu">
-                                                            <?php if (Authorization::check('adv', 'block_asns')): ?>
-                                                                <li><a href="asns"><?= $language::get('blocked_asns'); ?></a></li>
-                                                            <?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'block_ips')): ?>
-                                                                <li><a href="ips"><?= $language::get('blocked_ips'); ?></a></li>
-                                                            <?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'block_isps')): ?>
-                                                                <li><a href="isps"><?= $language::get('blocked_isps'); ?></a></li>
-                                                            <?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'block_uas')): ?>
-                                                                <li><a href="useragents"><?= $language::get('blocked_uas'); ?></a></li>
-                                                            <?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'add_hmac')): ?>
-                                                                <li><a href="hmacs"><?= $language::get('hmac_keys'); ?></a></li>
-                                                            <?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'rtmp')): ?>
-                                                                <li><a href="rtmp_ips"><?= $language::get('rtmp_ips'); ?></a></li>
-                                                            <?php endif; ?>
-                                                        </ul>
-                                                    </li>
-                                                <?php endif; ?>
-                                                <?php if (Authorization::check('adv', 'channel_order') || Authorization::check('adv', 'rtmp') || Authorization::check('adv', 'fingerprint') || Authorization::check('adv', 'mass_delete') || Authorization::check('adv', 'stream_tools') || Authorization::check('adv', 'quick_tools')): ?>
-                                                    <li class="has-submenu">
-                                                        <a href="#"><?= $language::get('tools'); ?> <div class="arrow-down"></div></a>
-                                                        <ul class="submenu">
-                                                            <?php if (Authorization::check('adv', 'channel_order') && !$rMobile): ?>
-                                                                <li><a href="channel_order"><?= $language::get('channel_order'); ?></a></li>
-                                                            <?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'fingerprint')): ?>
-                                                                <li><a href="fingerprint"><?= $language::get('fingerprint'); ?></a></li>
-                                                            <?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'mass_delete')): ?>
-                                                                <li><a href="mass_delete"><?= $language::get('mass_delete'); ?></a></li>
-                                                            <?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'quick_tools')): ?>
-                                                                <li><a href="quick_tools"><?= $language::get('quick_tools'); ?></a></li>
-                                                            <?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'rtmp')): ?>
-                                                                <li><a href="rtmp_monitor">RTMP Monitor</a></li>
-                                                            <?php endif; ?>
-                                                            <?php if (Authorization::check('adv', 'stream_tools')): ?>
-                                                                <li><a href="stream_tools"><?= $language::get('stream_tools'); ?></a></li>
-                                                            <?php endif; ?>
-                                                        </ul>
-                                                    </li>
-                                                <?php endif; ?>
-                                                <?php if (Authorization::check('adv', 'movies') || Authorization::check('adv', 'streams') || Authorization::check('adv', 'connection_logs') || Authorization::check('adv', 'client_request_log') || Authorization::check('adv', 'login_logs') || Authorization::check('adv', 'panel_logs') || Authorization::check('adv', 'credits_log') || Authorization::check('adv', 'live_connections') || Authorization::check('adv', 'manage_events') || Authorization::check('adv', 'reg_userlog') || Authorization::check('adv', 'streams') || Authorization::check('adv', 'episodes') || Authorization::check('adv', 'series') || Authorization::check('adv', 'stream_errors') || Authorization::check('adv', 'folder_watch')): ?>
-                                                    <li class="has-submenu">
-                                                        <a href="#"><?= $language::get('logs'); ?> <div class="arrow-down"></div></a>
-                                                        <ul class="submenu megamenu">
-                                                            <li>
-                                                                <ul>
-                                                                    <?php
-                                                                    $logs = [
-                                                                        ['url' => 'line_activity', 'title' => $language::get('activity_logs'), 'permissions' => ['connection_logs']],
-                                                                        ['url' => 'client_logs', 'title' => $language::get('client_logs'), 'permissions' => ['client_request_log']],
-                                                                        ['url' => 'credit_logs', 'title' => $language::get('credit_logs'), 'permissions' => ['credits_log']],
-                                                                        ['url' => 'queue', 'title' => 'Encoding Queue', 'permissions' => ['streams', 'episodes', 'series']],
-                                                                        ['url' => 'line_ips', 'title' => $language::get('ips_per_line'), 'permissions' => ['connection_logs']],
-                                                                        ['url' => 'live_connections', 'title' => $language::get('live_connections'), 'permissions' => ['live_connections']],
-                                                                        ['url' => 'login_logs', 'title' => 'Login Logs', 'permissions' => ['login_logs']],
-                                                                        ['url' => 'mag_events', 'title' => $language::get('mag_event_logs'), 'permissions' => ['manage_events']],
-                                                                        ['url' => 'ondemand', 'title' => 'On-Demand Scanner', 'permissions' => ['streams']],
-                                                                        ['url' => 'panel_logs', 'title' => 'Panel Errors', 'permissions' => ['panel_logs']],
-                                                                        ['url' => 'user_logs', 'title' => $language::get('reseller_logs'), 'permissions' => ['reg_userlog']],
-                                                                        ['url' => 'restream_logs', 'title' => 'Restream Detection', 'permissions' => ['restream_logs']],
-                                                                        ['url' => 'stream_errors', 'title' => $language::get('stream_errors'), 'permissions' => ['stream_errors']],
-                                                                        ['url' => 'stream_rank', 'title' => 'Stream Rank', 'permissions' => ['streams']],
-                                                                        ['url' => 'mysql_syslog', 'title' => 'System Logs', 'permissions' => ['panel_logs']],
-                                                                        ['url' => 'theft_detection', 'title' => 'VOD Theft Detection', 'permissions' => ['movies']],
-                                                                        ['url' => 'watch_output', 'title' => $language::get('watch_folder_logs'), 'permissions' => ['folder_watch']]
-                                                                    ];
-                                                                    $filteredLogs = array_filter($logs, function ($log) {
-                                                                        return array_reduce($log['permissions'], function ($carry, $permission) {
-                                                                            return $carry || Authorization::check('adv', $permission);
-                                                                        }, false);
-                                                                    });
-                                                                    $splitIndex = count($filteredLogs) > 8 ? ceil(count($filteredLogs) / 2) : null;
-                                                                    $i = 0;
-                                                                    foreach ($filteredLogs as $log) {
-                                                                        if ($splitIndex && $i == $splitIndex) {
-                                                                            echo '</ul></li><li><ul>';
-                                                                        }
-                                                                        echo '<li><a href="' . $log['url'] . '">' . $log['title'] . '</a></li>';
-                                                                        $i++;
-                                                                    }
-                                                                    ?>
-                                                                </ul>
-                                                            </li>
-                                                        </ul>
-                                                    </li>
-                                                <?php endif; ?>
-                                                <?php if (!$rSettings['show_tickets'] && Authorization::check('adv', 'manage_tickets')): ?>
-                                                    <li><a href="tickets"><?= $language::get('tickets'); ?></a></li>
-                                                <?php endif; ?>
-                                            </ul>
-                                        </li>
-                                    <?php endif; ?>
-                                    <?php if (Authorization::check('adv', 'add_bouquet') || Authorization::check('adv', 'streams') || Authorization::check('adv', 'categories')): ?>
-                                        <li class="has-submenu">
-                                            <a href="#"> <i class="fas fa-users"></i><?= $language::get('supplirs'); ?> <div class="arrow-down"></div>
-                                            </a>
-                                            <ul class="submenu">
-                                                <?php if (Authorization::check('adv', 'streams')): ?>
-                                                    <li><a href="provider"><?= $language::get('add_providers'); ?></a></li>
-                                                <?php endif; ?>
-                                                <?php if (Authorization::check('adv', 'streams')): ?>
-                                                    <li><a href="providers"><?= $language::get('stream_providers'); ?></a></li>
-                                                <?php endif; ?>
-                                            </ul>
-                                        </li>
-                                    <?php endif; ?>
+                                            <?php if ($_topKids): _xc_nav_children($_navTop, $rMobile, $rSettings, $language);
+                                            endif; ?>
+                                            </li>
+                                        <?php endforeach; ?>
                                 </ul>
                                 <div class="clearfix"></div>
                             </div>
