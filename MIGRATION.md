@@ -2,7 +2,7 @@
 
 > Архитектурные правила: см. [ARCHITECTURE.md](ARCHITECTURE.md).
 > Этот файл хранит только незавершенные задачи и фактический статус на сегодня.
-> Последнее обновление: 2026-05-01.
+> Последнее обновление: 2026-05-03.
 
 ## 1. Почему файл переписан
 
@@ -38,12 +38,13 @@
 
 ### 2.3. Модули: состояние интеграции
 
-1. `ModuleLoader` реализован, но web boot модулей в front controller не подключен.
-2. В web-контексте нет вызова `loadAll() + bootAll(...)` до dispatch.
-3. Маршрут `modules` хардкодится в `src/public/routes/admin.php`.
-4. Пункт `Modules` хардкодится в `src/public/Views/admin/header.php`.
-5. В `module.json` фактически только базовые поля (`requires_core` без v2-метаданных).
-6. `CoreCodePatchableModuleInterface` и `CoreCodePatcher` остаются рабочим механизмом (временный stopgap не выведен из эксплуатации).
+1. ~~`ModuleLoader` реализован, но web boot модулей в front controller не подключен.~~ **M-1 закрыта.**
+2. ~~В web-контексте нет вызова `loadAll() + bootAll(...)` до dispatch.~~ `index.php` вызывает `loadAll() + bootAll()` для `admin`/`reseller`; `dispatchApi` перехватывает модульные API до AjaxController.
+3. ~~Статические маршруты watch/plex/record в `src/public/routes/admin.php`.~~ Удалены. **M-2 (маршруты) закрыта.**
+4. ~~Статические legacy action-блоки watch/plex в `admin/api.php`.~~ Удалены. **M-2 (API) закрыта.**
+5. Пункт `Modules` хардкодится в `src/public/Views/admin/header.php`. *(M-3)*
+6. В `module.json` фактически только базовые поля (`requires_core` без v2-метаданных). *(M-4)*
+7. `CoreCodePatchableModuleInterface` и `CoreCodePatcher` остаются рабочим механизмом (временный stopgap не выведен из эксплуатации). *(M-5)*
 
 ### 2.4. Статус L-3R и остаточный долг
 
@@ -60,8 +61,8 @@
 | ~~L-3D~~ | ~~P2~~ | ~~Декомпозировать procedural admin table endpoint~~ | ~~Нет~~ | **Закрыто.** `TableController::index()` — thin switch-dispatcher. 45 веток → private-методы. `filterRow` → `private static`. |
 | ~~L-5~~ | ~~P0~~ | ~~Cutover HTTP routing и certbot c `www`~~ | ~~Нет~~ | **Закрыто.** Nginx не роутит в `www/*.php`; certbot не использует `/home/xc_vm/www/`. |
 | ~~L-6~~ | ~~P0~~ | ~~Развязка Ministra от `www/c` и `www/portal.php`~~ | ~~L-5~~ | **Закрыто.** `portal.php` использует `StreamingRequestBootstrap::init('portal')`. Symlink-операции удалены из `RootSignalsCronJob` и `SettingsService`. |
-| M-1 | P1 | Включить web boot модулей | Нет | В web-контексте реально вызываются `loadAll()` и `bootAll()` |
-| M-2 | P1 | Убрать хардкод модульных маршрутов и меню | M-1 | Ядро не содержит статических route/menu для модулей |
+| ~~M-1~~ | ~~P1~~ | ~~Включить web boot модулей~~ | ~~Нет~~ | **Закрыто.** `index.php` вызывает `loadAll()` + `bootAll()` для admin/reseller; `dispatchApi` перехватывает модульные API-actions до AjaxController. |
+| ~~M-2~~ | ~~P1~~ | ~~Убрать хардкод модульных маршрутов~~ | ~~M-1~~ | **Закрыто.** Статические маршруты watch/plex/record удалены из `routes/admin.php`; legacy watch/plex action-блоки удалены из `admin/api.php`. |
 | M-3 | P1 | Ввести navbar extension points | M-2 | Модули добавляют навигацию декларативно |
 | M-4 | P1 | Manifest v2 и порядок загрузки | M-1 | Поддерживаются `environment`, `dependencies`, `has_navbar`, `has_settings` |
 | M-5 | P2 | Убрать core patching как основной путь расширения | M-2, M-3 | Новые модули не используют patching для core/public |

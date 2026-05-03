@@ -77,6 +77,7 @@ class WatchController {
      * Заменяет admin/watch.php
      */
     public function index() {
+        global $rMobile, $rSettings, $rServers;
         $_TITLE = 'Watch Folder';
 
         renderUnifiedLayoutHeader('admin', ['_TITLE' => $_TITLE]);
@@ -92,7 +93,7 @@ class WatchController {
      * Подготавливает данные: $rFolder (при edit), $rBouquets
      */
     public function add() {
-        global $db;
+        global $db, $rMobile, $rSettings, $rPermissions, $language;
 
         if (isset(RequestManager::getAll()['id'])) {
             $rFolder = StreamRepository::getWatchFolder(RequestManager::getAll()['id']);
@@ -118,6 +119,7 @@ class WatchController {
      * Подготавливает: $rBouquets, категории
      */
     public function settings() {
+        global $db, $rMobile, $rSettings;
         $rBouquets = BouquetService::getAllSimple();
         $_TITLE = 'Watch Settings';
 
@@ -133,6 +135,7 @@ class WatchController {
      * Заменяет admin/watch_output.php
      */
     public function output() {
+        global $rMobile, $rSettings, $rServers, $language;
         $_TITLE = 'Watch Folder Logs';
 
         renderUnifiedLayoutHeader('admin', ['_TITLE' => $_TITLE]);
@@ -148,7 +151,7 @@ class WatchController {
      * Подготавливает: $rStream, $rProgramme, $rAvailableServers
      */
     public function record() {
-        global $db;
+        global $db, $rMobile, $rSettings;
 
         $rAvailableServers = $rServers = array();
         $rStream = $rProgramme = null;
