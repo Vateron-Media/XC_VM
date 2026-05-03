@@ -27,6 +27,7 @@
   - [🔐 Права доступа и RBAC](ru-ru/development/permissions-and-rbac.md)
   - [🧱 Контексты bootstrap](ru-ru/development/bootstrap-contexts.md)
   - [🌐 Обработка HTTP-запросов](ru-ru/development/http-request-handling.md)
+  - [🧪 Ministra: браузерная эмуляция STB](ru-ru/development/ministra-browser-emulation.md)
   - [🚨 Модель обработки ошибок](ru-ru/development/error-handling.md)
   - [✅ Стратегия валидации входных данных](ru-ru/development/input-validation.md)
   - [🔑 Аутентификация и сессии](ru-ru/development/authentication-and-sessions.md)
