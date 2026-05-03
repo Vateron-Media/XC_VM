@@ -58,8 +58,6 @@ $router->get('server_install', [ServerInstallController::class, 'index']);
 
 $router->get('settings', [SettingsController::class, 'index']);
 $router->any('modules', [ModulesController::class, 'index']);
-$router->get('settings_watch', [SettingsWatchController::class, 'index']);
-$router->get('settings_plex', [SettingsPlexController::class, 'index']);
 $router->get('magscan_settings', [MagscanSettingsController::class, 'index']);
 
 // ─── Group C: Lines ────────────────────────────────
@@ -144,14 +142,6 @@ $router->get('ticket_view', [TicketViewController::class, 'index']);
 $router->any('epg', [EpgController::class, 'index']);
 $router->get('epg_view', [EpgViewController::class, 'index']);
 
-// ─── Group L: Watch / Plex ────────────────────────
-
-$router->get('watch', [WatchController::class, 'index']);
-$router->any('watch_add', [WatchAddController::class, 'index']);
-$router->get('watch_output', [WatchOutputController::class, 'index']);
-$router->get('plex', [PlexController::class, 'index']);
-$router->any('plex_add', [PlexAddController::class, 'index']);
-
 // ─── Group M: System ──────────────────────────────
 
 $router->get('dashboard', [DashboardController::class, 'index']);
@@ -170,7 +160,6 @@ $router->get('edit_profile', [EditProfileController::class, 'index']);
 $router->get('fingerprint', [FingerprintController::class, 'index']);
 $router->get('proxies', [ProxiesController::class, 'index']);
 $router->any('proxy', [ProxyController::class, 'index']);
-$router->any('record', [RecordController::class, 'index']);
 $router->any('review', [ReviewController::class, 'index']);
 $router->any('archive', [ArchiveController::class, 'index']);
 $router->get('asns', [AsnsController::class, 'index']);

@@ -214,21 +214,45 @@ if (file_exists($apiRouteFile)) {
     require_once $apiRouteFile;
 }
 
+// 5b. Module web boot (M-1)
+if (in_array($scope, ['admin', 'reseller'], true) && class_exists('ModuleLoader')) {
+    $moduleLoader = new ModuleLoader();
+    $router->beginModuleRegistration();
+    $moduleLoader->loadAll();
+    $moduleLoader->bootAll(XC_Bootstrap::getContainer(), $router);
+    $router->endModuleRegistration();
+
+    $routeCollisions = $router->drainRouteCollisions();
+    if (!empty($routeCollisions)) {
+        $isDevelopment = defined('DEVELOPMENT') ? (bool) constant('DEVELOPMENT') : false;
+        if ($isDevelopment) {
+            $collisionKeys = [];
+            foreach ($routeCollisions as $routeCollision) {
+                $collisionKeys[] = $routeCollision['type'] . ':' . $routeCollision['key'];
+            }
+
+            $collisionMessage = 'Module route collisions detected (core priority preserved): ' . implode(', ', $collisionKeys);
+            error_log($collisionMessage);
+
+            trigger_error($collisionMessage, E_USER_WARNING);
+        }
+    }
+}
+
 // 6. Dispatch
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
-if ($router->dispatch($pageName, $method)) {
-    exit;
-}
-
+// Module API routes take priority over legacy AjaxController.
+// dispatchApi must run BEFORE dispatch('api') because dispatch() exits inside AjaxController.
 if ($pageName === 'api' && !empty($_REQUEST['action'])) {
     $action = $_REQUEST['action'];
-
     if ($router->dispatchApi($action)) {
         exit;
     }
+}
 
-    Response::jsonError('Unknown action: ' . $action, 404);
+if ($router->dispatch($pageName, $method)) {
+    exit;
 }
 
 // 7. 404

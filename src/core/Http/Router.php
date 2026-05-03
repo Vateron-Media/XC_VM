@@ -89,6 +89,19 @@ class Router {
     protected $apiRoutes = [];
 
     /**
+     * Preserve existing routes during module registration phase.
+     * When enabled, duplicate route keys are skipped instead of overwritten.
+     * @var bool
+     */
+    protected $preserveExistingRoutes = false;
+
+    /**
+     * Collected route/API collisions during preserve phase.
+     * @var array<int, array{type:string,key:string}>
+     */
+    protected $routeCollisions = [];
+
+    /**
      * Текущий префикс группы
      * @var string
      */
@@ -145,6 +158,12 @@ class Router {
      */
     public function get($route, $handler, array $options = []) {
         $fullRoute = $this->buildRoute($route);
+
+        if ($this->preserveExistingRoutes && isset($this->getRoutes[$fullRoute])) {
+            $this->routeCollisions[] = ['type' => 'get', 'key' => $fullRoute];
+            return $this;
+        }
+
         $this->getRoutes[$fullRoute] = $this->buildRouteEntry($handler, $options);
         return $this;
     }
@@ -159,6 +178,12 @@ class Router {
      */
     public function post($route, $handler, array $options = []) {
         $fullRoute = $this->buildRoute($route);
+
+        if ($this->preserveExistingRoutes && isset($this->postRoutes[$fullRoute])) {
+            $this->routeCollisions[] = ['type' => 'post', 'key' => $fullRoute];
+            return $this;
+        }
+
         $this->postRoutes[$fullRoute] = $this->buildRouteEntry($handler, $options);
         return $this;
     }
@@ -191,8 +216,46 @@ class Router {
      */
     public function api($action, $handler, array $options = []) {
         $fullAction = $this->groupPrefix ? $this->groupPrefix . '_' . $action : $action;
+
+        if ($this->preserveExistingRoutes && isset($this->apiRoutes[$fullAction])) {
+            $this->routeCollisions[] = ['type' => 'api', 'key' => $fullAction];
+            return $this;
+        }
+
         $this->apiRoutes[$fullAction] = $this->buildRouteEntry($handler, $options);
         return $this;
+    }
+
+    /**
+     * Enable safe module registration mode.
+     * Existing routes keep priority, duplicates are collected as collisions.
+     *
+     * @return $this
+     */
+    public function beginModuleRegistration() {
+        $this->preserveExistingRoutes = true;
+        return $this;
+    }
+
+    /**
+     * Disable safe module registration mode.
+     *
+     * @return $this
+     */
+    public function endModuleRegistration() {
+        $this->preserveExistingRoutes = false;
+        return $this;
+    }
+
+    /**
+     * Return and clear collected route collisions.
+     *
+     * @return array<int, array{type:string,key:string}>
+     */
+    public function drainRouteCollisions() {
+        $collisions = $this->routeCollisions;
+        $this->routeCollisions = [];
+        return $collisions;
     }
 
     /**
