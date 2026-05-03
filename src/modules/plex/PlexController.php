@@ -73,6 +73,7 @@ class PlexController {
      * Подготавливает: $rPlexServers
      */
     public function index() {
+        global $rMobile, $rSettings, $rServers;
         $rPlexServers = PlexRepository::getPlexServers();
         $_TITLE = 'Plex Sync';
 
@@ -89,6 +90,8 @@ class PlexController {
      * Подготавливает: $rFolder (при edit), $rBouquets
      */
     public function add() {
+        global $rMobile, $rSettings, $rPermissions, $language;
+
         if (isset(RequestManager::getAll()['id'])) {
             $rFolder = StreamRepository::getWatchFolder(RequestManager::getAll()['id']);
             if (!$rFolder) {
@@ -113,6 +116,7 @@ class PlexController {
      * Подготавливает: $rBouquets
      */
     public function settings() {
+        global $db, $rMobile, $rSettings;
         $rBouquets = BouquetService::getAllSimple();
         $_TITLE = 'Plex Settings';
 
