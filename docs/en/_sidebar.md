@@ -27,6 +27,7 @@
   - [🔐 Permissions and RBAC](en-us/development/permissions-and-rbac.md)
   - [🧱 Bootstrap Contexts](en-us/development/bootstrap-contexts.md)
   - [🌐 HTTP Request Handling](en-us/development/http-request-handling.md)
+  - [🧪 Ministra: Browser STB Emulation](en-us/development/ministra-browser-emulation.md)
   - [🚨 Error Handling Model](en-us/development/error-handling.md)
   - [✅ Input Validation Strategy](en-us/development/input-validation.md)
   - [🔑 Authentication and Sessions](en-us/development/authentication-and-sessions.md)
