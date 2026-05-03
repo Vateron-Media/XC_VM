@@ -104,4 +104,10 @@ class TmdbModule implements ModuleInterface {
      */
     public function uninstall(): void {
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function registerNavbar(): void {
+    }
 }
