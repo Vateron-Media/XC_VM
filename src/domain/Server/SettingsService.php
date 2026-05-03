@@ -44,16 +44,6 @@ class SettingsService {
 			$rArray['allow_countries'] = array('ALL');
 		}
 
-		if ($rArray['mag_legacy_redirect']) {
-			if (!file_exists(MAIN_HOME . 'www/c/')) {
-				$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', SERVER_ID, time(), json_encode(array('action' => 'enable_ministra')));
-			}
-		} else {
-			if (file_exists(MAIN_HOME . 'www/c/')) {
-				$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', SERVER_ID, time(), json_encode(array('action' => 'disable_ministra')));
-			}
-		}
-
 		if (100 < $rArray['search_items']) {
 			$rArray['search_items'] = 100;
 		}

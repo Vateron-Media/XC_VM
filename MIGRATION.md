@@ -33,8 +33,8 @@
 | Nginx MAIN | `src/bin/nginx/conf/nginx.conf` использует `root /home/xc_vm/www/` и rewrite на `www/*.php`/`www/stream/*.php` | Нельзя удалить `www` без outage |
 | Nginx LB | `lb_configs/nginx.conf` использует `root /home/xc_vm/www/` и rewrite на `/stream/*.php` | LB останется привязан к `www` |
 | Certbot | `src/cli/Commands/CertbotCommand.php` использует `--webroot -w /home/xc_vm/www/` | Поломка issue/renew при cutover |
-| Ministra runtime | `src/ministra/portal.php` делает `require '/home/xc_vm/www/stream/init.php'` | Прямая hard-зависимость от `www` |
-| Ministra lifecycle | `RootSignalsCronJob` и `SettingsService` управляют symlink `www/c` и `www/portal.php` | Нельзя убрать `www` без переезда схемы |
+| Ministra runtime | `src/ministra/portal.php` использует `StreamingRequestBootstrap::init('portal')` напрямую | ~~Закрыто L-6~~ |
+| Ministra lifecycle | `RootSignalsCronJob` и `SettingsService` больше не управляют symlink `www/c` и `www/portal.php` | ~~Закрыто L-6~~ |
 
 ### 2.3. Модули: состояние интеграции
 
@@ -59,7 +59,7 @@
 | --- | --- | --- | --- | --- |
 | ~~L-3D~~ | ~~P2~~ | ~~Декомпозировать procedural admin table endpoint~~ | ~~Нет~~ | **Закрыто.** `TableController::index()` — thin switch-dispatcher. 45 веток → private-методы. `filterRow` → `private static`. |
 | ~~L-5~~ | ~~P0~~ | ~~Cutover HTTP routing и certbot c `www`~~ | ~~Нет~~ | **Закрыто.** Nginx не роутит в `www/*.php`; certbot не использует `/home/xc_vm/www/`. |
-| L-6 | P0 | Развязка Ministra от `www/c` и `www/portal.php` | L-5 | Включение/выключение Ministra не создает/удаляет файлы в `www` |
+| ~~L-6~~ | ~~P0~~ | ~~Развязка Ministra от `www/c` и `www/portal.php`~~ | ~~L-5~~ | **Закрыто.** `portal.php` использует `StreamingRequestBootstrap::init('portal')`. Symlink-операции удалены из `RootSignalsCronJob` и `SettingsService`. |
 | M-1 | P1 | Включить web boot модулей | Нет | В web-контексте реально вызываются `loadAll()` и `bootAll()` |
 | M-2 | P1 | Убрать хардкод модульных маршрутов и меню | M-1 | Ядро не содержит статических route/menu для модулей |
 | M-3 | P1 | Ввести navbar extension points | M-2 | Модули добавляют навигацию декларативно |
@@ -245,8 +245,8 @@ Rollback:
 
 ### Итерация 2
 
-1. Закрыть L-6 (Ministra отвязка от `www`).
-2. После успешного gate перейти к модульной волне M-1/M-2.
+1. ~~Закрыть L-6 (Ministra отвязка от `www`).~~
+2. Перейти к модульной волне M-1/M-2.
 
 ## 9. Жесткие правила удаления
 

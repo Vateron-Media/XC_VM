@@ -51,6 +51,7 @@ class AuthRepository {
 		$rMainHome = MAIN_HOME;
 		$rServerId = SERVER_ID;
 		$rTemplate = file_get_contents($rMainHome . 'bin/nginx/conf/codes/template');
+		$rMinistraTemplate = file_get_contents($rMainHome . 'bin/nginx/conf/codes/template_ministra');
 		shell_exec('rm -f ' . $rMainHome . 'bin/nginx/conf/codes/*.conf');
 
 		foreach (self::getAllCodes() as $rCode) {
@@ -73,11 +74,12 @@ class AuthRepository {
 				$rType = array('admin', 'reseller', 'ministra', 'includes/api/admin', 'includes/api/reseller', 'ministra/new', 'player')[$rCode['type']];
 				$rAlias = array('public/Views/admin', 'reseller', 'ministra', 'includes/api/admin', 'includes/api/reseller', 'ministra/new', 'public/assets/player')[$rCode['type']];
 				$rBurst = array(500, 50, 50, 1000, 1000, 50, 500)[$rCode['type']];
+				$rCurrentTemplate = in_array($rType, array('ministra', 'ministra/new')) ? $rMinistraTemplate : $rTemplate;
 
-				if (strlen($rCode['code']) >= 4) {
-					file_put_contents($rMainHome . 'bin/nginx/conf/codes/' . $rCode['code'] . '.conf', str_replace(array('#WHITELIST#', '#CODE#', '#TYPE#', '#BURST#', '#ALIAS#'), array(implode(' ', $rWhitelist), $rCode['code'], $rType, $rBurst, $rAlias), $rTemplate));
+				if (in_array($rType, array('ministra', 'ministra/new')) || strlen($rCode['code']) >= 4) {
+					file_put_contents($rMainHome . 'bin/nginx/conf/codes/' . $rCode['code'] . '.conf', str_replace(array('#WHITELIST#', '#CODE#', '#TYPE#', '#BURST#', '#ALIAS#'), array(implode(' ', $rWhitelist), $rCode['code'], $rType, $rBurst, $rAlias), $rCurrentTemplate));
 				} else {
-					file_put_contents($rMainHome . 'bin/nginx/conf/codes/' . $rCode['code'] . '.conf', str_replace(array('#WHITELIST#', '#CODE#', '#TYPE#', '#BURST#', '#ALIAS#'), array(implode(' ', $rWhitelist), $rCode['code'] . '/', $rType . '/', $rBurst, $rAlias . '/'), $rTemplate));
+					file_put_contents($rMainHome . 'bin/nginx/conf/codes/' . $rCode['code'] . '.conf', str_replace(array('#WHITELIST#', '#CODE#', '#TYPE#', '#BURST#', '#ALIAS#'), array(implode(' ', $rWhitelist), $rCode['code'] . '/', $rType . '/', $rBurst, $rAlias . '/'), $rCurrentTemplate));
 				}
 			}
 		}

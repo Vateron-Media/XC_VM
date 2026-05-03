@@ -318,6 +318,7 @@ class MagService {
 						$rInsertID = $db->last_insert_id();
 						$rArray['user_id'] = $rInsertID;
 						LineService::updateLineSignal($rArray['user_id']);
+						unset($rArray['user'], $rArray['paired']);
 						if (!isset($rData['edit'])) {
 							$rArray['ver'] = '';
 							$rArray['device_id2'] = $rArray['ver'];

@@ -232,6 +232,13 @@ class RootSignalsCronJob implements CommandInterface {
             }
         }
         $rReload = false;
+        $rMinistraLegacyConf = 'set $ministra_legacy_redirect ' . (SettingsManager::getAll()['mag_legacy_redirect'] ? '1' : '0') . ';';
+        $rCurrentMinistraLegacyConf = (trim(@file_get_contents(BIN_PATH . 'nginx/conf/ministra_legacy.conf')) ?: '');
+        if ($rMinistraLegacyConf != $rCurrentMinistraLegacyConf) {
+            echo 'Updating Ministra legacy /c toggle...' . "\n";
+            file_put_contents(BIN_PATH . 'nginx/conf/ministra_legacy.conf', $rMinistraLegacyConf);
+            $rReload = true;
+        }
         $rAllowedIPs = ServerRepository::getAllowedIPs();
         $rXC_VMList = [];
         foreach ($rAllowedIPs as $rIP) {
@@ -353,7 +360,7 @@ class RootSignalsCronJob implements CommandInterface {
         }
         if ($db->query("SELECT `signal_id`, `custom_data` FROM `signals` WHERE `server_id` = ? AND `custom_data` <> '' AND `cache` = 0 ORDER BY signal_id ASC;", SERVER_ID)) {
             $rRows = $db->get_rows();
-            $rCheck = ['mag' => false, 'php' => false, 'services' => false, 'ports' => false, 'ramdisk' => false];
+            $rCheck = ['php' => false, 'services' => false, 'ports' => false, 'ramdisk' => false];
             foreach ($rRows as $rRow) {
                 $rData = json_decode($rRow['custom_data'], true);
                 switch ($rData['action']) {
@@ -361,27 +368,12 @@ class RootSignalsCronJob implements CommandInterface {
                     case 'enable_ramdisk':
                         $rCheck['ramdisk'] = true;
                         break;
-                    case 'enable_ministra':
-                    case 'disable_ministra':
-                        $rCheck['mag'] = true;
-                        break;
                     case 'set_services':
                         $rCheck['services'] = true;
                         break;
                     case 'set_port':
                         $rCheck['ports'] = true;
                         break;
-                }
-            }
-            if ($rCheck['mag']) {
-                if (SettingsManager::getAll()['mag_legacy_redirect']) {
-                    if (!file_exists(MAIN_HOME . 'www/c')) {
-                        array_unshift($rRows, ['custom_data' => json_encode(['action' => 'enable_ministra'])]);
-                    }
-                } else {
-                    if (file_exists(MAIN_HOME . 'www/c')) {
-                        array_unshift($rRows, ['custom_data' => json_encode(['action' => 'disable_ministra'])]);
-                    }
                 }
             }
             if ($rCheck['services']) {
@@ -538,16 +530,6 @@ class RootSignalsCronJob implements CommandInterface {
                             echo 'Updating...' . "\n";
                             $db->query("INSERT INTO `mysql_syslog`(`server_id`, `type`, `error`, `username`, `ip`, `database`, `date`) VALUES(?, 'UPDATE', 'Updating XC_VM...', 'root', 'localhost', NULL, ?);", SERVER_ID, time());
                             shell_exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php update update 2>&1 &');
-                            break;
-                        case 'enable_ministra':
-                            echo 'Enabling ministra /c...';
-                            shell_exec('sudo ln -sfn ' . MAIN_HOME . 'ministra ' . MAIN_HOME . 'www/c');
-                            shell_exec('sudo ln -sfn ' . MAIN_HOME . 'ministra/portal.php ' . MAIN_HOME . 'www/portal.php');
-                            break;
-                        case 'disable_ministra':
-                            echo 'Disabling ministra /c...';
-                            shell_exec('sudo rm ' . MAIN_HOME . 'www/c');
-                            shell_exec('sudo rm ' . MAIN_HOME . 'www/portal.php');
                             break;
                         case 'set_services':
                             echo 'Setting PHP Services' . "\n";

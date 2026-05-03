@@ -35,8 +35,8 @@ $pageName   = '';
 $accessCode = null;
 $rawScope   = null;
 
-// Режим A: access code (nginx XC_SCOPE/XC_CODE)
 if (!empty($_SERVER['XC_SCOPE'])) {
+    // Режим A: access code (nginx XC_SCOPE/XC_CODE)
     $rawScope   = $_SERVER['XC_SCOPE'];
     $accessCode = $_SERVER['XC_CODE'] ?? null;
 
@@ -59,14 +59,12 @@ if (!empty($_SERVER['XC_SCOPE'])) {
         $parts = explode('/', $pageName, 2);
         $pageName = $parts[1] ?? '';
     }
-}
-// Режим B: прямой URL /admin/... или /reseller/...
-elseif (preg_match('#^/(admin|reseller)(?:/(.*))?$#', $urlPath, $m)) {
+} elseif (preg_match('#^/(admin|reseller)(?:/(.*))?$#', $urlPath, $m)) {
+    // Режим B: прямой URL /admin/... или /reseller/...
     $scope    = $m[1];
     $pageName = isset($m[2]) ? trim($m[2], '/') : '';
-}
-// Режим C: access code без XC_SCOPE (fallback admin)
-else {
+} else {
+    // Режим C: access code без XC_SCOPE (fallback admin)
     $selfDir = basename(dirname($_SERVER['PHP_SELF'] ?? ''));
 
     if (!in_array($selfDir, ['admin', 'reseller'], true)) {
@@ -88,20 +86,22 @@ if ($pageName === '') {
 
 // 3. REST API (access code type 3/4) — dispatch до редиректа и роутера
 if (isset($rawScope) && in_array($rawScope, ['includes/api/admin', 'includes/api/reseller'], true)) {
-	require_once MAIN_HOME . 'bootstrap.php';
-	XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_ADMIN);
-	if ($rawScope === 'includes/api/admin') {
-		$controller = new AdminApiController();
-	} else {
-		$controller = new ResellerRestApiController();
-	}
-	$controller->index();
-	exit;
+    require_once MAIN_HOME . 'bootstrap.php';
+    XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_ADMIN);
+    if ($rawScope === 'includes/api/admin') {
+        $controller = new AdminApiController();
+    } else {
+        $controller = new ResellerRestApiController();
+    }
+    $controller->index();
+    exit;
 }
 
 // 4. Redirect /CODE/ → /CODE/login (иначе relative assets ломаются)
-if ($pageName === 'index' && $accessCode && in_array($scope, ['admin', 'reseller'], true)
-    && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
+if (
+    $pageName === 'index' && $accessCode && in_array($scope, ['admin', 'reseller'], true)
+    && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET'
+) {
     header('Location: /' . $accessCode . '/login');
     exit;
 }
@@ -119,34 +119,34 @@ if (in_array($ext, ['css', 'js', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'ico', 'wof
 
 // 6. Streaming API (XC_SCOPE=api, XC_API={endpoint})
 if (isset($rawScope) && $rawScope === 'api' && !empty($_SERVER['XC_API'])) {
-	$rApiName = $_SERVER['XC_API'];
-	$rApiControllerMap = [
-		'player_api' => 'PlayerApiController',
-		'enigma2'    => 'Enigma2ApiController',
-		'xplugin'    => 'XPluginApiController',
-		'epg'        => 'EpgApiController',
-		'playlist'   => 'PlaylistApiController',
-		'internal'   => 'InternalApiController',
-	];
+    $rApiName = $_SERVER['XC_API'];
+    $rApiControllerMap = [
+        'player_api' => 'PlayerApiController',
+        'enigma2'    => 'Enigma2ApiController',
+        'xplugin'    => 'XPluginApiController',
+        'epg'        => 'EpgApiController',
+        'playlist'   => 'PlaylistApiController',
+        'internal'   => 'InternalApiController',
+    ];
 
-	if (!isset($rApiControllerMap[$rApiName])) {
-		http_response_code(404);
-		exit;
-	}
+    if (!isset($rApiControllerMap[$rApiName])) {
+        http_response_code(404);
+        exit;
+    }
 
-	$rFilename = ($rApiName === 'internal') ? 'api' : $rApiName;
+    $rFilename = ($rApiName === 'internal') ? 'api' : $rApiName;
 
-	if ($rApiName === 'player_api') {
-		StreamingRequestBootstrap::init($rFilename);
-	} else {
-		WebApiBootstrap::init($rFilename);
-	}
+    if ($rApiName === 'player_api') {
+        StreamingRequestBootstrap::init($rFilename);
+    } else {
+        WebApiBootstrap::init($rFilename);
+    }
 
-	$rControllerClass = $rApiControllerMap[$rApiName];
-	$controller = new $rControllerClass();
-	register_shutdown_function([$controller, 'shutdown']);
-	$controller->index();
-	exit;
+    $rControllerClass = $rApiControllerMap[$rApiName];
+    $controller = new $rControllerClass();
+    register_shutdown_function([$controller, 'shutdown']);
+    $controller->index();
+    exit;
 }
 
 // 4. Bootstrap
