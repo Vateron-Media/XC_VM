@@ -383,14 +383,23 @@ class BalancerCommand implements CommandInterface {
 
 		// MD5 verification from hashes.md5
 		$rHashURL = 'https://github.com/' . GIT_OWNER . '/' . GIT_REPO_BIN . '/releases/download/' . $rTag . '/hashes.md5';
-		$rHashContent = trim($this->runSSH($rConn, 'curl -sL --timeout=15 "' . $rHashURL . '"')['output']);
+		$rHashContent = trim($this->runSSH($rConn, 'curl -sL --max-time 15 "' . $rHashURL . '"')['output']);
 		$rExpectedHash = null;
 		if (!empty($rHashContent)) {
 			foreach (explode("\n", $rHashContent) as $rLine) {
 				$rLine = trim($rLine);
 				if (empty($rLine)) continue;
 				$rParts = preg_split('/\s+/', $rLine, 2);
-				if (count($rParts) === 2 && $rParts[1] === $rBinaryName) {
+				if (count($rParts) !== 2) {
+					continue;
+				}
+
+				$rAssetName = ltrim(trim($rParts[1]), '*');
+				if (strpos($rAssetName, './') === 0) {
+					$rAssetName = substr($rAssetName, 2);
+				}
+
+				if ($rAssetName === $rBinaryName) {
 					$rExpectedHash = $rParts[0];
 					break;
 				}
