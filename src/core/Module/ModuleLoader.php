@@ -1,98 +1,96 @@
 <?php
 
 /**
- * Загрузчик модулей
+ * ModuleLoader — automatic system module loader and dependency resolver.
  *
- * Автоматически обнаруживает модули из modules/star/module.json.
- * config/modules.php хранит только overrides (enabled => false).
+ * Modules are discovered by presence of modules/{name}/module.json manifest.
+ * Single source of truth is the PHP class implementing ModuleInterface.
+ * The module.json file is used exclusively for metadata and dependency declarations.
  *
- * Источник истины — PHP-класс модуля (ModuleInterface), не JSON.
- * module.json содержит только метаданные: name, description, version, requires_core.
+ * Override configuration (including module disabling) is stored in config/modules.php.
  *
- * ──────────────────────────────────────────────────────────────────
- * Использование (web):
- * ──────────────────────────────────────────────────────────────────
- *
- *   $loader = new ModuleLoader();
- *   $loader->loadAll();
- *   $loader->bootAll($container, $router);
- *
- * ──────────────────────────────────────────────────────────────────
- * Использование (CLI):
- * ──────────────────────────────────────────────────────────────────
- *
- *   $loader = new ModuleLoader();
- *   $loader->loadAll();
- *   $loader->registerAllCommands($registry);
- *
- * @see ModuleInterface
+ * Features:
+ * - Automatic discovery of modules in modules/ directory
+ * - Environment filtering (main / lb environments with 'any' as universal)
+ * - Topological dependency resolution with cycle detection
+ * - Fail-fast validation of manifests
+ * - Module booting and command registration
  *
  * @package XC_VM_Core_Module
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
- * @link    https://github.com/Vateron-Media/XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
 class ModuleLoader {
+    /** @var ModuleInterface[] Loaded module instances, keyed by module name */
+    protected array $modules = [];
 
-    /** @var ModuleInterface[] Загруженные модули: name => instance */
-    protected $modules = [];
+    /** @var array Module overrides from config/modules.php (enabled/disabled, class names) */
+    protected array $overrides = [];
 
-    /** @var array Overrides из config/modules.php */
-    protected $overrides = [];
+    /** @var array Normalized manifest data from module.json files (name => manifest array) */
+    protected array $manifests = [];
 
     /**
-     * Обнаружить и загрузить все модули из modules/star
+     * Loads all discovered modules from modules/ directory.
      *
-     * Сканирует modules/star/module.json, проверяет overrides в config/modules.php.
-     * Создаёт экземпляры ModuleInterface, но НЕ вызывает boot/registerRoutes.
+     * Performs automatic discovery, dependency validation, load order resolution,
+     * and environment filtering (main / lb / any). Modules are loaded in topological
+     * order to satisfy dependencies.
      *
-     * @param string|null $modulesDir Путь к директории modules/
-     * @return $this
+     * @param string|null $modulesDir Path to modules directory. If null, auto-detected via MAIN_HOME or src/modules.
+     * @return self Fluent interface for chaining.
+     * @throws RuntimeException If a module fails to load, dependency is missing, or manifest is invalid.
      */
-    public function loadAll($modulesDir = null) {
+    public function loadAll(?string $modulesDir = null): self {
         if ($modulesDir === null) {
-            $modulesDir = defined('MAIN_HOME') ? MAIN_HOME . 'modules' : dirname(__DIR__, 2) . '/modules';
+            $modulesDir = defined('MAIN_HOME')
+                ? MAIN_HOME . 'modules'
+                : dirname(__DIR__, 2) . '/modules';
         }
 
-        // Overrides — только отключение модулей
-        $overridesPath = defined('CONFIG_PATH') ? CONFIG_PATH . 'modules.php' : dirname(__DIR__, 2) . '/config/modules.php';
-        if (file_exists($overridesPath)) {
-            $this->overrides = require $overridesPath;
-            if (!is_array($this->overrides)) {
-                $this->overrides = [];
-            }
-        }
+        $this->modules = [];
+        $this->manifests = [];
 
-        // Auto-discover модулей
+        $this->loadOverrides();
+
         $jsonFiles = glob($modulesDir . '/*/module.json');
-        if (!$jsonFiles) {
+        if (empty($jsonFiles)) {
             return $this;
         }
 
-        foreach ($jsonFiles as $jsonFile) {
-            $name = basename(dirname($jsonFile));
+        sort($jsonFiles, SORT_STRING);
 
-            // Проверяем override: disabled
-            if (isset($this->overrides[$name]['enabled']) && !$this->overrides[$name]['enabled']) {
-                continue;
+        $currentEnvironment = $this->getCurrentEnvironment();
+        $discovered = $this->discoverModules($jsonFiles, $currentEnvironment);
+
+        $loadOrder = $this->resolveLoadOrder($discovered);
+
+        foreach ($loadOrder as $name) {
+            $modulePath = $discovered[$name]['path'];
+
+            if (!$this->load($name, $modulePath)) {
+                throw new RuntimeException("ModuleLoader: failed to load module '{$name}'");
             }
 
-            $this->load($name, dirname($jsonFile));
+            $this->manifests[$name] = $discovered[$name]['manifest'];
         }
 
         return $this;
     }
 
     /**
-     * Загрузить один модуль
+     * Loads a single module by name.
      *
-     * @param string $name Имя модуля (имя директории)
-     * @param string|null $modulePath Абсолютный путь к директории модуля
-     * @return bool
+     * Resolves the class name from module name (or override config), includes the class file,
+     * and instantiates the module. Verifies that the module implements ModuleInterface.
+     *
+     * @param string $name Module name (directory name in modules/).
+     * @param string|null $modulePath Full path to module directory. If null, auto-detected via getModulePath().
+     * @return bool True if successfully loaded, false if class not found or doesn't implement ModuleInterface.
      */
-    public function load($name, $modulePath = null) {
+    public function load(string $name, ?string $modulePath = null): bool {
         if (isset($this->modules[$name])) {
             return true;
         }
@@ -101,10 +99,8 @@ class ModuleLoader {
             $modulePath = $this->getModulePath($name);
         }
 
-        // Определяем имя класса по соглашению: kebab-case → PascalCase + Module
         $className = $this->resolveClassName($name);
 
-        // Пытаемся загрузить класс
         if (!class_exists($className)) {
             $classFile = $modulePath . '/' . $className . '.php';
             if (file_exists($classFile)) {
@@ -118,7 +114,8 @@ class ModuleLoader {
         }
 
         $module = new $className();
-        if (!($module instanceof ModuleInterface)) {
+
+        if (!$module instanceof ModuleInterface) {
             error_log("ModuleLoader: class '{$className}' does not implement ModuleInterface");
             return false;
         }
@@ -128,17 +125,19 @@ class ModuleLoader {
     }
 
     /**
-     * Выполнить boot() и registerRoutes() для всех загруженных модулей
+     * Boots all loaded modules in web context.
      *
-     * Используется в web-контексте (bootstrap.php).
+     * Registers core navbar, calls boot() method on each module, registers module routes,
+     * registers navbar items, and subscribes to events. Called after all modules are loaded.
      *
-     * @param ServiceContainer $container DI-контейнер
-     * @param Router|null $router HTTP-роутер (null для CLI)
+     * @param ServiceContainer $container Service container for dependency injection.
+     * @param Router|null $router Optional router for module route registration.
+     * @return void
      */
-    public function bootAll(ServiceContainer $container, Router $router = null) {
+    public function bootAll(ServiceContainer $container, ?Router $router = null): void {
         CoreNavbarProvider::register();
 
-        foreach ($this->modules as $name => $module) {
+        foreach ($this->modules as $module) {
             $module->boot($container);
 
             if ($router !== null) {
@@ -147,79 +146,330 @@ class ModuleLoader {
 
             $module->registerNavbar();
 
-            $subscribers = $module->getEventSubscribers();
-            if (!empty($subscribers) && $container->has('events')) {
-                foreach ($subscribers as $event => $handler) {
-                    EventDispatcher::subscribe($event, $handler);
-                }
-            }
+            $this->registerEventSubscribers($module, $container);
         }
     }
 
     /**
-     * Зарегистрировать CLI-команды всех загруженных модулей
+     * Registers CLI commands for all loaded modules.
      *
-     * Используется в console.php. Каждый модуль сам определяет
-     * свои команды в registerCommands() — без filesystem scanning.
+     * Calls registerCommands() on each module to allow them to register custom CLI commands.
+     * Used in CLI context (console.php).
      *
-     * @param CommandRegistry $registry Реестр CLI-команд
+     * @param CommandRegistry $registry Command registry for registering module commands.
+     * @return void
      */
-    public function registerAllCommands(CommandRegistry $registry) {
+    public function registerAllCommands(CommandRegistry $registry): void {
         foreach ($this->modules as $module) {
             $module->registerCommands($registry);
         }
     }
 
     /**
-     * Проверить, загружен ли модуль
+     * Checks whether a module is loaded.
+     *
+     * @param string $name Module name to check.
+     * @return bool True if module is loaded and instantiated, false otherwise.
      */
-    public function isLoaded($name) {
+    public function isLoaded(string $name): bool {
         return isset($this->modules[$name]);
     }
 
     /**
-     * Получить экземпляр загруженного модуля
+     * Retrieves a loaded module instance by name.
      *
-     * @return ModuleInterface|null
+     * @param string $name Module name.
+     * @return ModuleInterface|null Module instance if loaded, null otherwise.
      */
-    public function getModule($name) {
+    public function getModule(string $name): ?ModuleInterface {
         return $this->modules[$name] ?? null;
     }
 
     /**
-     * Получить все загруженные модули
+     * Retrieves all loaded module instances.
      *
-     * @return ModuleInterface[]
+     * @return ModuleInterface[] Associative array of loaded modules (name => instance).
      */
-    public function getModules() {
+    public function getModules(): array {
         return $this->modules;
     }
 
     /**
-     * Получить путь к директории модуля
+     * Retrieves the normalized manifest for a loaded module.
+     *
+     * @param string $name Module name.
+     * @return array|null Manifest array (name, description, version, requires_core, environment, dependencies, has_navbar, has_settings) if loaded, null otherwise.
      */
-    public function getModulePath($name) {
+    public function getManifest(string $name): ?array {
+        return $this->manifests[$name] ?? null;
+    }
+
+    /**
+     * Retrieves all manifests for loaded modules.
+     *
+     * @return array Associative array of normalized manifests (name => manifest array).
+     */
+    public function getManifests(): array {
+        return $this->manifests;
+    }
+
+    /**
+     * Constructs the full path to a module directory.
+     *
+     * @param string $name Module name.
+     * @return string Full path to module directory (modules/{name}).
+     */
+    public function getModulePath(string $name): string {
         $base = defined('MAIN_HOME') ? MAIN_HOME : dirname(__DIR__, 2) . '/';
         return $base . 'modules/' . $name;
     }
 
     /**
-     * Преобразовать имя модуля в имя класса
+     * Loads module override configuration from config/modules.php.
      *
-     * kebab-case → PascalCase + 'Module'
-     * Примеры: 'plex' → 'PlexModule', 'theft-detection' → 'TheftDetectionModule'
+     * Overrides can disable modules, override class names, or provide other module-specific settings.
      *
-     * @param string $name
-     * @return string
+     * @return void
      */
-    protected function resolveClassName($name) {
-        // Override из config: 'class' => 'CustomModule'
+    protected function loadOverrides(): void {
+        $overridesPath = defined('CONFIG_PATH')
+            ? CONFIG_PATH . 'modules.php'
+            : dirname(__DIR__, 2) . '/config/modules.php';
+
+        if (file_exists($overridesPath)) {
+            $this->overrides = require $overridesPath;
+            if (!is_array($this->overrides)) {
+                $this->overrides = [];
+            }
+        }
+    }
+
+    /**
+     * Discovers and filters modules based on manifest files and environment.
+     *
+     * Reads all module.json manifests, normalizes manifest data, checks override disabling,
+     * and filters modules to current environment (main/lb). Returns discovered modules
+     * with their paths and normalized manifest data.
+     *
+     * @param array $jsonFiles Array of full paths to module.json files.
+     * @param string $currentEnvironment Current environment ('main' or 'lb').
+     * @return array Associative array of discovered modules: name => [path, manifest].
+     * @throws RuntimeException If manifest has invalid environment value or JSON is malformed.
+     */
+    protected function discoverModules(array $jsonFiles, string $currentEnvironment): array {
+        $discovered = [];
+
+        foreach ($jsonFiles as $jsonFile) {
+            $name = basename(dirname($jsonFile));
+
+            // Check if module is disabled via overrides
+            if (isset($this->overrides[$name]['enabled']) && !$this->overrides[$name]['enabled']) {
+                continue;
+            }
+
+            $manifest = $this->readManifest($jsonFile, $name);
+
+            if (!in_array($manifest['environment'], ['main', 'lb', 'any'], true)) {
+                throw new RuntimeException("ModuleLoader: invalid environment in module.json for module {$name}");
+            }
+
+            // Filter by environment: skip if module is for different environment (skip lb-only on main, etc)
+            if ($manifest['environment'] !== 'any' && $manifest['environment'] !== $currentEnvironment) {
+                continue;
+            }
+
+            $discovered[$name] = [
+                'path'     => dirname($jsonFile),
+                'manifest' => $manifest,
+            ];
+        }
+
+        return $discovered;
+    }
+
+    /**
+     * Resolves the class name for a module from its name.
+     *
+     * Checks for override in config first. If not overridden, converts kebab-case name to PascalCase
+     * and appends 'Module' suffix.
+     *
+     * Example: 'watch-manager' -> 'WatchManagerModule'
+     *
+     * @param string $name Module name (kebab-case).
+     * @return string Resolved class name (PascalCase).
+     */
+    protected function resolveClassName(string $name): string {
+        // Check for class name override in config
         if (isset($this->overrides[$name]['class'])) {
             return $this->overrides[$name]['class'];
         }
 
-        // Конвенция: kebab-case → PascalCase + Module
+        // Convert kebab-case to PascalCase and append 'Module' suffix
         $parts = explode('-', $name);
         return implode('', array_map('ucfirst', $parts)) . 'Module';
+    }
+
+    /**
+     * Detects the current environment (main or load-balancer).
+     *
+     * Checks SERVER_TYPE constant. Returns 'lb' if set to 'lb' (case-insensitive), otherwise 'main'.
+     *
+     * @return string Current environment: 'main' or 'lb'.
+     */
+    protected function getCurrentEnvironment(): string {
+        if (defined('SERVER_TYPE') && strtolower((string) constant('SERVER_TYPE')) === 'lb') {
+            return 'lb';
+        }
+        return 'main';
+    }
+
+    /**
+     * Reads and normalizes a module manifest from JSON file.
+     *
+     * Parses module.json, validates all fields, normalizes dependency array (trim, dedup, sort),
+     * and fills in default values. Performs strict type checking to catch configuration errors early.
+     *
+     * @param string $jsonFile Full path to module.json file.
+     * @param string $name Module name (used for error messages).
+     * @return array Normalized manifest: name, description, version, requires_core, environment, dependencies, has_navbar, has_settings.
+     * @throws RuntimeException If JSON is invalid, dependencies not array, or dependency names not strings.
+     */
+    protected function readManifest(string $jsonFile, string $name): array {
+        $raw = @file_get_contents($jsonFile);
+        $manifest = json_decode((string) $raw, true);
+
+        if (!is_array($manifest)) {
+            throw new RuntimeException("ModuleLoader: invalid JSON in module manifest for module {$name}");
+        }
+
+        // Validate and normalize dependencies array
+        $dependencies = $manifest['dependencies'] ?? [];
+        if (!is_array($dependencies)) {
+            throw new RuntimeException("ModuleLoader: dependencies must be array for module {$name}");
+        }
+
+        $normalizedDependencies = [];
+        foreach ($dependencies as $dependency) {
+            if (!is_string($dependency) || trim($dependency) === '') {
+                throw new RuntimeException("ModuleLoader: dependency names must be non-empty strings for module {$name}");
+            }
+            $normalizedDependencies[] = trim($dependency);
+        }
+
+        // Deduplicate and sort dependencies for deterministic order
+        sort($normalizedDependencies, SORT_STRING);
+
+        return [
+            'name'           => $manifest['name'] ?? $name,
+            'description'    => $manifest['description'] ?? '',
+            'version'        => $manifest['version'] ?? '',
+            'requires_core'  => $manifest['requires_core'] ?? '',
+            'environment'    => strtolower((string) ($manifest['environment'] ?? 'main')),
+            'dependencies'   => array_values(array_unique($normalizedDependencies)),
+            'has_navbar'     => (bool) ($manifest['has_navbar'] ?? false),
+            'has_settings'   => (bool) ($manifest['has_settings'] ?? false),
+        ];
+    }
+
+    /**
+     * Resolves deterministic load order of modules based on dependencies.
+     *
+     * Uses depth-first search (DFS) with topological sort to order modules such that
+     * dependencies are loaded before their dependents. Modules are visited in alphabetical order
+     * for determinism. Detects cyclic dependencies and throws exception.
+     *
+     * @param array $discovered Discovered modules (name => [path, manifest]).
+     * @return array Ordered module names: modules are in dependency-order (dependencies first).
+     * @throws RuntimeException If a cyclic dependency is detected.
+     */
+    protected function resolveLoadOrder(array $discovered): array {
+        $order = [];
+        $state = [];  // 1 = visiting, 2 = visited
+        $names = array_keys($discovered);
+        sort($names, SORT_STRING);
+
+        // Visit each module in alphabetical order (deterministic)
+        foreach ($names as $name) {
+            $this->visitDependencyNode($name, $discovered, $state, $order, []);
+        }
+
+        return $order;
+    }
+
+    /**
+     * DFS traversal to visit a module and its dependencies in dependency order.
+     *
+     * Part of topological sort algorithm. Maintains state machine:
+     * - 1 = currently visiting (used to detect cycles)
+     * - 2 = finished visiting
+     *
+     * Recursively visits all dependencies before adding module to load order.
+     *
+     * @param string $name Module name to visit.
+     * @param array $discovered Discovered modules (name => [path, manifest]).
+     * @param array &$state Visit state for each module (1=visiting, 2=visited).
+     * @param array &$order Load order being built (appends module names).
+     * @param array $stack Call stack trace (used for cycle error message).
+     * @return void
+     * @throws RuntimeException If cyclic dependency detected or dependency not found in discovered modules.
+     */
+    protected function visitDependencyNode(
+        string $name,
+        array $discovered,
+        array &$state,
+        array &$order,
+        array $stack
+    ): void {
+        if (isset($state[$name])) {
+            if ($state[$name] === 2) {
+                // Already fully visited, skip
+                return;
+            }
+            if ($state[$name] === 1) {
+                // Currently visiting = cycle detected
+                $cycle = array_slice($stack, array_search($name, $stack, true) ?: 0);
+                $cycle[] = $name;
+                throw new RuntimeException('ModuleLoader: cyclic module dependency detected: ' . implode(' -> ', $cycle));
+            }
+        }
+
+        if (!isset($discovered[$name])) {
+            throw new RuntimeException("ModuleLoader: unknown module in dependency graph: {$name}");
+        }
+
+        // Mark as currently visiting
+        $state[$name] = 1;
+        $stack[] = $name;
+
+        // Recursively visit all dependencies
+        foreach ($discovered[$name]['manifest']['dependencies'] as $dependency) {
+            if (!isset($discovered[$dependency])) {
+                throw new RuntimeException("ModuleLoader: module {$name} requires missing dependency {$dependency}");
+            }
+            $this->visitDependencyNode($dependency, $discovered, $state, $order, $stack);
+        }
+
+        // Mark as fully visited and add to load order
+        $state[$name] = 2;
+        $order[] = $name;
+    }
+
+    /**
+     * Registers event subscribers declared by a module.
+     *
+     * Calls getEventSubscribers() on module and registers each event handler with EventDispatcher.
+     * Only registers if container has 'events' service.
+     *
+     * @param ModuleInterface $module Module to extract subscribers from.
+     * @param ServiceContainer $container Service container to check for events service.
+     * @return void
+     */
+    private function registerEventSubscribers(ModuleInterface $module, ServiceContainer $container): void {
+        $subscribers = $module->getEventSubscribers();
+        if (!empty($subscribers) && $container->has('events')) {
+            foreach ($subscribers as $event => $handler) {
+                EventDispatcher::subscribe($event, $handler);
+            }
+        }
     }
 }

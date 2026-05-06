@@ -54,7 +54,11 @@ mkdir -p src/modules/my-module
     "name": "my-module",
     "description": "Краткое описание модуля",
     "version": "1.0.0",
-    "requires_core": ">=2.0"
+    "requires_core": ">=2.0",
+    "environment": "main",
+    "dependencies": [],
+    "has_navbar": false,
+    "has_settings": false
 }
 ```
 
@@ -66,8 +70,62 @@ mkdir -p src/modules/my-module
 | `description` | `string` | ⛔ | Краткое человекочитаемое описание модуля |
 | `version` | `string` | ✅ | Версия в формате semver (`1.0.0`) |
 | `requires_core` | `string` | ✅ | Минимальная версия ядра (`>=2.0`) |
+| `environment` | `string` | ✅ | Окружение: `main` (основной сервер), `lb` (load-balancer), `any` (оба) |
+| `dependencies` | `array` | ✅ | Список имён модулей, от которых зависит этот модуль. Пустой массив `[]` если нет зависимостей |
+| `has_navbar` | `boolean` | ✅ | Есть ли пункты навбара в админ-панели |
+| `has_settings` | `boolean` | ✅ | Есть ли страница настроек модуля |
 
-> **Важно:** `module.json` содержит только метаданные. Кроны, команды, маршруты, события, страницы — всё определяется в PHP-классе модуля.
+> **Важно:** 
+> - Все зависимости должны быть строками (имена модулей).
+> - Зависимости должны существовать, иначе ModuleLoader выбросит ошибку при loadAll().
+> - Циклические зависимости детектируются автоматически и приводят к ошибке загрузки.
+> - Модули загружаются в порядке зависимостей: если A зависит от B, то B загружается первым.
+> - `environment` должен быть `main`, `lb` или `any`. Если `main`, модуль загружается только на основных серверах.
+
+**Примеры манифестов:**
+
+```json
+{
+  "name": "watch",
+  "description": "Watch activity tracking and statistics",
+  "version": "1.2.0",
+  "requires_core": ">=2.0",
+  "environment": "main",
+  "dependencies": [],
+  "has_navbar": true,
+  "has_settings": true
+}
+```
+
+```json
+{
+  "name": "plex",
+  "description": "Plex integration module",
+  "version": "2.0.0",
+  "requires_core": ">=2.0",
+  "environment": "any",
+  "dependencies": ["ministra"],
+  "has_navbar": true,
+  "has_settings": true
+}
+```
+
+```json
+{
+  "name": "load-balancer-stats",
+  "description": "Load balancer statistics collector",
+  "version": "1.0.0",
+  "requires_core": ">=2.0",
+  "environment": "lb",
+  "dependencies": [],
+  "has_navbar": false,
+  "has_settings": false
+}
+```
+
+> **Примечание о зависимостях:** Если ваш модуль требует функций другого модуля, перечислите его имя в `dependencies`. ModuleLoader автоматически гарантирует, что требуемый модуль загружен перед вашим, и выбросит ошибку, если требуемый модуль отсутствует или отключен.
+
+> **Примечание об окружении:** По умолчанию используйте `main` для модулей основного сервера, `lb` для load-balancer, `any` если модуль работает везде. На практике `any` используется редко — большинство модулей специфичны для одного окружения.
 
 ---
 
@@ -158,15 +216,19 @@ return [
 
 1. `ModuleLoader::loadAll()` сканирует `modules/*/module.json`
 2. Проверяет overrides в `config/modules.php`
-3. Определяет класс по конвенции: `my-module` → `MyModule` (kebab-case → PascalCase + Module)
-4. Создаёт экземпляр модуля
+3. Фильтрует модули по окружению (main/lb/any)
+4. Сортирует топологически по зависимостям (если циклическая зависимость или missing — error)
+5. Определяет класс по конвенции: `my-module` → `MyModule` (kebab-case → PascalCase + Module)
+6. Создаёт экземпляр модуля
 
-В web-контексте (bootstrap.php):
-- `bootAll($container, $router)` → вызывает `boot()`, `registerRoutes()`, `getEventSubscribers()`
+В web-контексте (`public/index.php` для admin/reseller):
+- `loadAll()` → загружает и инстанцирует все модули
+- `bootAll($container, $router)` → вызывает `boot()`, `registerRoutes()`, `registerNavbar()`, подписывает на события
 
-> ⚠️ **Текущее ограничение:** `ModuleLoader::bootAll()` ещё не вызывается во фронт-контроллере. Маршруты модулей пока зарегистрированы **статически** в `public/routes/admin.php`. Это будет исправлено в будущем обновлении. Подробности: `specs/MODULE_SYSTEM_SPEC.md` §0.3.
+> **Статус M-1:** ✅ Завершена. Web boot модулей полностью включен в front controller.
 
-В CLI-контексте (console.php):
+В CLI-контексте (`console.php`):
+- `loadAll()` → загружает и инстанцирует все модули
 - `registerAllCommands($registry)` → вызывает `registerCommands()` у каждого модуля
 
 ---

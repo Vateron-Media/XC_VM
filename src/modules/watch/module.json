@@ -2,5 +2,9 @@
     "name": "watch",
     "description": "Watch activity tracking module",
     "version": "1.0.0",
-    "requires_core": ">=2.0"
+    "requires_core": ">=2.0",
+    "environment": "main",
+    "dependencies": [],
+    "has_navbar": true,
+    "has_settings": true
 }
