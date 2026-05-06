@@ -99,4 +99,10 @@ class FingerprintModule implements ModuleInterface {
      */
     public function uninstall(): void {
     }
+    
+    /**
+     * {@inheritdoc}
+     */
+    public function registerNavbar(): void {
+    }
 }
