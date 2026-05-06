@@ -7,15 +7,15 @@
   - [📡 XtreamCodes API](en-us/api/xtreamcodes_api.md)
   - [📺 Playlists](en-us/api/playlist.md)
 
+- 🛡 **Administration**
+  - [🔒 SSL Certificate Generation](en-us/administration/ssl-generation.md)
+  - [⚙️ Update Mechanism](en-us/administration/update-system.md)
+
 - 🛠 **Build & Compilation**
   - [📦 Build System (MAIN vs LB)](en-us/builds/build_system.md)
 
 - 🔄 **Updates & Releases**
-  - [🔄 Panel Update](en-us/info/update.md)
   - [✅ Pre-release Checklist](en-us/updates_checklist.md)
-
-- 🔐 **Security & SSL**
-  - [🔒 SSL Certificate Generation](en-us/administration/ssl-generation.md)
 
 - 🧰 **Development**
   - [🖥 CLI Tools & DB Migrations](en-us/development/cli-tools.md)
@@ -36,8 +36,15 @@
   - [🩺 Diagnostics Service](en-us/development/diagnostics-api.md)
   - [🧪 PHPUnit PHAR Setup](en-us/development/phpunit-phar.md)
 
-- 📦 **Additional**
-  - [🎬 Watchfolder](en-us/info/watch_folder.md)
+- 📘 **Info & Operations**
+  - [🔄 Panel Update](en-us/info/update.md)
+  - [🧭 Migration Guide](en-us/info/migration_guide.md)
+  - [❓ FAQ](en-us/info/faq.md)
+  - [🎬 Watch Folder](en-us/info/watch_folder.md)
+  - [🧩 Documentation Gaps Backlog](en-us/info/documentation_gaps.md)
+
+- 🧠 **System Documentation**
+  - [📘 System Documentation Overview](en-us/system/README.md)
   - [⚙️ How the Update System Works](en-us/administration/update-system.md)
   - [🧭 Migration from Other Systems](en-us/info/migration_guide.md)
   - [📋 Documentation Gaps Backlog](en-us/info/documentation_gaps.md)
