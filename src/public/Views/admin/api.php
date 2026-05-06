@@ -653,7 +653,7 @@ if (isset($_SESSION['hash'])) {
 				}
 
 				shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:cache_engine');
-				$rCache = intval(trim(shell_exec('pgrep -U xc_vm | xargs ps -f -p | grep cache_handler | grep -v grep | grep -v pgrep | wc -l')));
+				$rCache = intval(trim(shell_exec('pgrep -U xc_vm | xargs ps -f -p | grep -E "cache_handler|XC_VM\\[CacheHandler\\]" | grep -v grep | grep -v pgrep | wc -l')));
 
 				if ($rCache != 0) {
 				} else {
@@ -3075,7 +3075,7 @@ if (isset($_SESSION['hash'])) {
 
 				shell_exec(MAIN_HOME . 'bin/redis/redis-server ' . MAIN_HOME . '/bin/redis/redis.conf > /dev/null 2>/dev/null &');
 				sleep(1);
-				exec("pgrep -U xc_vm | xargs ps | grep signals | awk '{print \$1}'", $rPID);
+				exec("pgrep -U xc_vm | xargs ps | grep -E 'signals|XC_VM\\[Signals\\]' | awk '{print \$1}'", $rPID);
 
 				if (!(0 < count($rPID) && is_numeric($rPID[0]))) {
 				} else {
@@ -3084,7 +3084,7 @@ if (isset($_SESSION['hash'])) {
 					shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php signals > /dev/null 2>/dev/null &');
 				}
 
-				exec("pgrep -U xc_vm | xargs ps | grep watchdog | awk '{print \$1}'", $rPID);
+				exec("pgrep -U xc_vm | xargs ps | grep -E 'watchdog|XC_VM\\[Watchdog\\]' | awk '{print \$1}'", $rPID);
 
 				if (!(0 < count($rPID) && is_numeric($rPID[0]))) {
 				} else {
@@ -3120,7 +3120,7 @@ if (isset($_SESSION['hash'])) {
 					shell_exec('kill -9 ' . $rPID);
 				}
 
-				exec("pgrep -U xc_vm | xargs ps | grep signals | awk '{print \$1}'", $rPID);
+				exec("pgrep -U xc_vm | xargs ps | grep -E 'signals|XC_VM\\[Signals\\]' | awk '{print \$1}'", $rPID);
 
 				if (!(0 < count($rPID) && is_numeric($rPID[0]))) {
 				} else {
@@ -3129,7 +3129,7 @@ if (isset($_SESSION['hash'])) {
 					shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php signals > /dev/null 2>/dev/null &');
 				}
 
-				exec("pgrep -U xc_vm | xargs ps | grep watchdog | awk '{print \$1}'", $rPID);
+				exec("pgrep -U xc_vm | xargs ps | grep -E 'watchdog|XC_VM\\[Watchdog\\]' | awk '{print \$1}'", $rPID);
 
 				if (!(0 < count($rPID) && is_numeric($rPID[0]))) {
 				} else {
