@@ -155,4 +155,16 @@ class PlexModule implements ModuleInterface {
      */
     public function uninstall(): void {
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function registerNavbar(): void {
+        NavbarRegistry::add((new NavbarItem('topbar.settings.plex_settings'))
+            ->parent('topbar.settings')->url('settings_plex')
+            ->label('plex_settings')->permissions(['folder_watch_settings'])->order(55));
+        NavbarRegistry::add((new NavbarItem('management.service_setup.plex'))
+            ->parent('management.service_setup')->url('plex')
+            ->label('', 'Plex Sync')->permissions(['folder_watch'])->order(70));
+    }
 }

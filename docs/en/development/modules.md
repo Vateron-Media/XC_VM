@@ -115,6 +115,11 @@ class MyModule implements ModuleInterface {
     public function uninstall(): void {
         // Clean up module data
     }
+
+    public function registerNavbar(): void {
+        // Register nav items via NavbarRegistry::add()
+        // Keep this method empty if the module has no nav entries
+    }
 }
 ```
 
@@ -130,6 +135,7 @@ class MyModule implements ModuleInterface {
 | `getEventSubscribers(): array` | Core event subscriptions |
 | `install(): void` | Module installation (migrations, seed data) |
 | `uninstall(): void` | Module data cleanup |
+| `registerNavbar(): void` | Register module items in admin navbar |
 
 ---
 
@@ -161,6 +167,66 @@ In web context (bootstrap.php):
 
 In CLI context (console.php):
 - `registerAllCommands($registry)` → calls `registerCommands()` on each module
+
+---
+
+## Step 4b. Register navbar buttons and menu items
+
+Do not add module menu items directly in `header.php`.
+Each module must register its own entries in `registerNavbar()` using `NavbarRegistry::add()`.
+
+Example (module adds one item to service setup and one item to logs):
+
+```php
+public function registerNavbar(): void {
+    NavbarRegistry::add((new NavbarItem('management.service_setup.my_module'))
+        ->parent('management.service_setup')
+        ->url('my_module')
+        ->label('my_module')
+        ->permissions(['my_module'])
+        ->order(60));
+
+    NavbarRegistry::add((new NavbarItem('management.logs.my_module_log'))
+        ->parent('management.logs')
+        ->url('my_module_logs')
+        ->label('', 'My Module Logs')
+        ->permissions(['my_module'])
+        ->order(170));
+}
+```
+
+Rules for modules:
+
+1. `key` must be unique and stable (prefer `section.group.item`).
+2. `parent` must point to an existing core tree node.
+3. `order` controls position inside the same parent (smaller = higher).
+4. Use `label('translation_key')` for translatable text.
+5. Use `label('', 'Literal Text')` for literal text.
+6. If the module has no menu entries, keep `registerNavbar()` empty.
+
+---
+
+## How navbar rendering works
+
+Rendering is fully declarative and built from `NavbarRegistry`:
+
+1. `ModuleLoader::bootAll()` starts with `CoreNavbarProvider::register()`.
+2. Then each module contributes items via `registerNavbar()`.
+3. In `public/Views/admin/header.php`, top-level items come from `NavbarRegistry::getTopLevel()`.
+4. Child items are rendered recursively via `NavbarRegistry::getChildren()`.
+
+Visibility rules (helper `_xc_nav_visible`):
+
+1. `desktopOnly` hides the item on mobile.
+2. `settingDisabled` hides the item when the corresponding setting flag is enabled.
+3. `permissions` are checked via `Authorization::check('adv', ...)` using OR logic.
+4. A group with `url='#'` is shown only if it has at least one visible child.
+
+Special rendering cases:
+
+1. `divider` renders as a separator without a link.
+2. `submenuClass('megamenu')` switches to two-column rendering for long lists.
+3. `noMobileSubmenu` disables submenu expansion on mobile.
 
 ---
 
