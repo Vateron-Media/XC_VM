@@ -39,7 +39,7 @@ class ModuleManager {
      * Scans the modules directory for module.json files, merges with
      * config/modules.php overrides, and returns sorted results.
      *
-     * @return array<int, array{name: string, description: string, version: string, requires_core: string, enabled: bool, path: string}> Module list.
+    * @return array<int, array{name: string, description: string, version: string, requires_core: string, environment: string, dependencies: array, has_navbar: bool, has_settings: bool, enabled: bool, path: string}> Module list.
      */
     public function listModules(): array {
         $overrides = $this->readOverrides();
@@ -55,6 +55,10 @@ class ModuleManager {
                 'description' => $meta['description'] ?? '',
                 'version' => $meta['version'] ?? '',
                 'requires_core' => $meta['requires_core'] ?? '',
+                'environment' => $meta['environment'] ?? 'main',
+                'dependencies' => is_array($meta['dependencies'] ?? null) ? $meta['dependencies'] : [],
+                'has_navbar' => (bool) ($meta['has_navbar'] ?? false),
+                'has_settings' => (bool) ($meta['has_settings'] ?? false),
                 'enabled' => !(isset($overrides[$name]['enabled']) && $overrides[$name]['enabled'] === false),
                 'path' => dirname($jsonFile),
             ];

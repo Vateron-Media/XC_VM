@@ -2,7 +2,7 @@
 
 > Архитектурные правила: см. [ARCHITECTURE.md](ARCHITECTURE.md).
 > Этот файл хранит только незавершенные задачи и фактический статус на сегодня.
-> Последнее обновление: 2026-05-03.
+> Последнее обновление: 2026-05-06.
 
 ## 1. Почему файл переписан
 
@@ -42,8 +42,8 @@
 2. ~~В web-контексте нет вызова `loadAll() + bootAll(...)` до dispatch.~~ `index.php` вызывает `loadAll() + bootAll()` для `admin`/`reseller`; `dispatchApi` перехватывает модульные API до AjaxController.
 3. ~~Статические маршруты watch/plex/record в `src/public/routes/admin.php`.~~ Удалены. **M-2 (маршруты) закрыта.**
 4. ~~Статические legacy action-блоки watch/plex в `admin/api.php`.~~ Удалены. **M-2 (API) закрыта.**
-5. Пункт `Modules` хардкодится в `src/public/Views/admin/header.php`. *(M-3)*
-6. В `module.json` фактически только базовые поля (`requires_core` без v2-метаданных). *(M-4)*
+5. ~~Пункт `Modules` хардкодится в `src/public/Views/admin/header.php`.~~ Удален из `header.php`; navbar теперь формируется через `NavbarRegistry`/`registerNavbar()`. **M-3 (navbar) закрыта.** `topbar.php` вне scope M-3.
+6. ~~В `module.json` фактически только базовые поля (`requires_core` без v2-метаданных).~~ Переведено на manifest v2: `environment`, `dependencies`, `has_navbar`, `has_settings`; в `ModuleLoader` добавлены environment-фильтр, dependency sort и fail-fast на missing/cyclic dependencies. **M-4 закрыта.**
 7. `CoreCodePatchableModuleInterface` и `CoreCodePatcher` остаются рабочим механизмом (временный stopgap не выведен из эксплуатации). *(M-5)*
 
 ### 2.4. Статус L-3R и остаточный долг
@@ -63,8 +63,8 @@
 | ~~L-6~~ | ~~P0~~ | ~~Развязка Ministra от `www/c` и `www/portal.php`~~ | ~~L-5~~ | **Закрыто.** `portal.php` использует `StreamingRequestBootstrap::init('portal')`. Symlink-операции удалены из `RootSignalsCronJob` и `SettingsService`. |
 | ~~M-1~~ | ~~P1~~ | ~~Включить web boot модулей~~ | ~~Нет~~ | **Закрыто.** `index.php` вызывает `loadAll()` + `bootAll()` для admin/reseller; `dispatchApi` перехватывает модульные API-actions до AjaxController. |
 | ~~M-2~~ | ~~P1~~ | ~~Убрать хардкод модульных маршрутов~~ | ~~M-1~~ | **Закрыто.** Статические маршруты watch/plex/record удалены из `routes/admin.php`; legacy watch/plex action-блоки удалены из `admin/api.php`. |
-| M-3 | P1 | Ввести navbar extension points | M-2 | Модули добавляют навигацию декларативно |
-| M-4 | P1 | Manifest v2 и порядок загрузки | M-1 | Поддерживаются `environment`, `dependencies`, `has_navbar`, `has_settings` |
+| ~~M-3~~ | ~~P1~~ | ~~Ввести navbar extension points~~ | ~~M-2~~ | **Закрыто (scope: navbar).** Контракт/DTO и registry работают; модули добавляют navbar декларативно через `registerNavbar()`. `topbar` не изменяется в рамках M-3. |
+| ~~M-4~~ | ~~P1~~ | ~~Manifest v2 и порядок загрузки~~ | ~~M-1~~ | **Закрыто.** Поддерживаются `environment`, `dependencies`, `has_navbar`, `has_settings`; загрузка детерминирована (topological sort), циклы и отсутствующие зависимости завершаются fail-fast ошибкой. |
 | M-5 | P2 | Убрать core patching как основной путь расширения | M-2, M-3 | Новые модули не используют patching для core/public |
 | M-6 | P2 | Перевести Ministra в модульные runtime/assets правила | L-6, M-4 | Ministra не отдельный legacy-остров |
 | L-7 | P0 | Финальное удаление `src/www/` | L-5, L-6 | В репозитории нет `src/www/`; smoke-check чистый |
@@ -155,21 +155,26 @@ Rollback:
 1. Отключение модуля не требует правки ядра.
 2. Включение модуля добавляет route/menu автоматически.
 
-### M-3. Navbar extension points
+### ~~M-3. Navbar extension points~~
+
+**Закрыто (scope: navbar).**
 
 Изменения:
 
-1. Ввести контракт/DTO для navbar entries.
-2. Добавить builder в core/http слой.
-3. Перевести текущие модульные пункты на декларативный путь.
+1. Введены контракт/DTO для navbar entries.
+2. Добавлен registry/provider слой для сборки navbar.
+3. Модульные пункты navbar переведены на декларативный путь через `registerNavbar()`.
+4. `topbar` намеренно не изменялся и не входит в scope M-3.
 
-### M-4. Manifest v2 + dependency sort
+### ~~M-4. Manifest v2 + dependency sort~~
+
+**Закрыто.**
 
 Изменения:
 
-1. Расширить `module.json` до полей: `environment`, `dependencies`, `has_navbar`, `has_settings`.
-2. Добавить сортировку загрузки по зависимостям.
-3. Добавить fail-fast при циклических зависимостях.
+1. `module.json` расширен полями: `environment`, `dependencies`, `has_navbar`, `has_settings`.
+2. В `ModuleLoader::loadAll()` добавлены фильтрация по `environment` и сортировка загрузки по зависимостям (topological sort).
+3. Добавлен fail-fast для циклических и отсутствующих зависимостей.
 
 Проверка M-3/M-4:
 
