@@ -116,6 +116,11 @@ class MyModule implements ModuleInterface {
     public function uninstall(): void {
         // Очистка данных модуля
     }
+
+    public function registerNavbar(): void {
+        // Регистрируйте пункты навигации через NavbarRegistry::add()
+        // Если пунктов нет — оставьте метод пустым
+    }
 }
 ```
 
@@ -131,6 +136,7 @@ class MyModule implements ModuleInterface {
 | `getEventSubscribers(): array` | Подписки на события ядра |
 | `install(): void` | Установка модуля (миграции, начальные данные) |
 | `uninstall(): void` | Удаление данных модуля |
+| `registerNavbar(): void` | Регистрация пунктов меню в админ-navbar |
 
 ---
 
@@ -162,6 +168,50 @@ return [
 
 В CLI-контексте (console.php):
 - `registerAllCommands($registry)` → вызывает `registerCommands()` у каждого модуля
+
+---
+
+## Шаг 4б. Регистрировать кнопки и пункты меню в navbar
+
+Пункты меню больше не добавляются вручную в `header.php`.
+Каждый модуль добавляет свои кнопки через `registerNavbar()` и `NavbarRegistry::add()`.
+
+Пример (модуль добавляет кнопку в service setup и пункт в logs):
+
+```php
+public function registerNavbar(): void {
+    NavbarRegistry::add((new NavbarItem('management.service_setup.my_module'))
+        ->parent('management.service_setup')
+        ->url('my_module')
+        ->label('my_module')
+        ->permissions(['my_module'])
+        ->order(60));
+
+    NavbarRegistry::add((new NavbarItem('management.logs.my_module_log'))
+        ->parent('management.logs')
+        ->url('my_module_logs')
+        ->label('', 'My Module Logs')
+        ->permissions(['my_module'])
+        ->order(170));
+}
+```
+
+Правила для модулей:
+
+1. `key` должен быть уникальным и стабильным (лучше в формате `section.group.item`).
+2. `parent` должен ссылаться на существующий узел из core-дерева.
+3. `order` управляет позицией внутри одного parent (меньше = выше).
+4. Для переводимого текста используйте `label('translation_key')`.
+5. Для literal-текста используйте `label('', 'Literal Text')`.
+6. Если модулю нечего добавлять в меню — оставьте `registerNavbar()` пустым.
+
+---
+
+## Как рендерится navbar
+
+Подробная техническая документация по рендеру navbar вынесена в отдельный системный раздел:
+
+- [Рендер navbar в панели модулей](../system/modules-navbar-rendering.md)
 
 ---
 
