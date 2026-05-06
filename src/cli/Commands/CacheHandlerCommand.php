@@ -27,11 +27,15 @@ class CacheHandlerCommand implements CommandInterface {
 		if (!$this->assertRunAsXcVm()) {
 			return 1;
 		}
+		if (!$this->acquireDaemonLock('cache_handler')) {
+			return 0;
+		}
 
 		global $db;
 
 		$this->setProcessTitle('XC_VM[CacheHandler]');
 		$this->killStaleProcesses('console.php cache_handler');
+		$this->killStaleProcesses('XC_VM\\[CacheHandler\\]');
 		$this->initDaemonMD5();
 
 		SettingsManager::set(SettingsRepository::getAll(true));
