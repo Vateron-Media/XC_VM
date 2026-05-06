@@ -27,12 +27,16 @@ class WatchdogCommand implements CommandInterface {
 		if (!$this->assertRunAsXcVm()) {
 			return 1;
 		}
+		if (!$this->acquireDaemonLock('watchdog')) {
+			return 0;
+		}
 
 		global $db;
 
 		echo "Start watchdog\n";
 		$this->setProcessTitle('XC_VM[Watchdog]');
 		$this->killStaleProcesses('console.php watchdog');
+		$this->killStaleProcesses('XC_VM\\[Watchdog\\]');
 		$this->initDaemonMD5();
 		$this->initRedisIfEnabled();
 
