@@ -2,5 +2,9 @@
     "name": "fingerprint",
     "description": "Stream fingerprint overlay module",
     "version": "1.0.0",
-    "requires_core": ">=2.0"
+    "requires_core": ">=2.0",
+    "environment": "main",
+    "dependencies": [],
+    "has_navbar": false,
+    "has_settings": false
 }

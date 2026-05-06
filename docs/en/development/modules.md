@@ -53,7 +53,11 @@ Directory name = module name. Use kebab-case: `my-module`, `theft-detection`.
 {
     "name": "my-module",
     "version": "1.0.0",
-    "requires_core": ">=2.0"
+    "requires_core": ">=2.0",
+    "environment": "main",
+    "dependencies": [],
+    "has_navbar": false,
+    "has_settings": false
 }
 ```
 
@@ -65,8 +69,62 @@ Directory name = module name. Use kebab-case: `my-module`, `theft-detection`.
 | `description` | `string` | ⛔ | Short human-readable module description |
 | `version` | `string` | ✅ | Semver version (`1.0.0`) |
 | `requires_core` | `string` | ✅ | Minimum core version (`>=2.0`) |
+| `environment` | `string` | ✅ | Environment: `main` (primary server), `lb` (load-balancer), `any` (both) |
+| `dependencies` | `array` | ✅ | Array of module names that this module depends on. Empty array `[]` if no dependencies |
+| `has_navbar` | `boolean` | ✅ | Whether this module has navbar items in admin panel |
+| `has_settings` | `boolean` | ✅ | Whether this module has a settings page |
 
-> **Important:** `module.json` contains only metadata. Crons, commands, routes, events, pages — everything is defined in the module's PHP class.
+> **Important:**
+> - All dependencies must be strings (module names).
+> - Dependencies must exist or ModuleLoader will throw an error during loadAll().
+> - Cyclic dependencies are automatically detected and cause load failure.
+> - Modules are loaded in dependency order: if A depends on B, then B is loaded first.
+> - `environment` must be `main`, `lb`, or `any`. If `main`, module only loads on primary servers.
+
+**Manifest examples:**
+
+```json
+{
+  "name": "watch",
+  "description": "Watch activity tracking and statistics",
+  "version": "1.2.0",
+  "requires_core": ">=2.0",
+  "environment": "main",
+  "dependencies": [],
+  "has_navbar": true,
+  "has_settings": true
+}
+```
+
+```json
+{
+  "name": "plex",
+  "description": "Plex integration module",
+  "version": "2.0.0",
+  "requires_core": ">=2.0",
+  "environment": "any",
+  "dependencies": ["ministra"],
+  "has_navbar": true,
+  "has_settings": true
+}
+```
+
+```json
+{
+  "name": "load-balancer-stats",
+  "description": "Load balancer statistics collector",
+  "version": "1.0.0",
+  "requires_core": ">=2.0",
+  "environment": "lb",
+  "dependencies": [],
+  "has_navbar": false,
+  "has_settings": false
+}
+```
+
+> **Note on dependencies:** If your module requires functionality from another module, list its name in `dependencies`. ModuleLoader automatically ensures the required module is loaded before yours, and will throw an error if the required module is missing or disabled.
+
+> **Note on environment:** Use `main` by default for modules on primary servers, `lb` for load-balancer, `any` if the module works everywhere. In practice, `any` is rarely used — most modules are specific to one environment.
 
 ---
 
@@ -157,15 +215,19 @@ return [
 
 1. `ModuleLoader::loadAll()` scans `modules/*/module.json`
 2. Checks overrides in `config/modules.php`
-3. Resolves class by convention: `my-module` → `MyModule` (kebab-case → PascalCase + Module)
-4. Creates module instance
+3. Filters modules by environment (main/lb/any)
+4. Sorts topologically by dependencies (throws error if cyclic or missing dependency)
+5. Resolves class by convention: `my-module` → `MyModule` (kebab-case → PascalCase + Module)
+6. Creates module instance
 
-In web context (bootstrap.php):
-- `bootAll($container, $router)` → calls `boot()`, `registerRoutes()`, `getEventSubscribers()`
+In web context (`public/index.php` for admin/reseller):
+- `loadAll()` → loads and instantiates all modules
+- `bootAll($container, $router)` → calls `boot()`, `registerRoutes()`, `registerNavbar()`, subscribes to events
 
-> ⚠️ **Current limitation:** `ModuleLoader::bootAll()` is not yet invoked in the web front controller. Module routes are currently registered **statically** in `public/routes/admin.php`. This will be addressed in a future update. See `specs/MODULE_SYSTEM_SPEC.md` §0.3 for details.
+> **Status M-1:** ✅ Complete. Web module boot is fully integrated in front controller.
 
 In CLI context (console.php):
+- `loadAll()` → loads and instantiates all modules
 - `registerAllCommands($registry)` → calls `registerCommands()` on each module
 
 ---

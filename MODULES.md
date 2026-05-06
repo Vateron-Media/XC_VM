@@ -45,8 +45,10 @@
 | --------- | ------ | ---------- |
 | `ModuleInterface` | `ГОТОВО` | Базовый контракт присутствует |
 | `ModuleLoader::loadAll()` | `ГОТОВО` | Auto-discovery по `module.json` |
+| `ModuleLoader::loadAll()` с dependencies | `ГОТОВО` | Topological sort (DFS) с detection cyclic deps и missing deps |
+| `ModuleLoader::loadAll()` с environment filter | `ГОТОВО` | Фильтрация по SERVER_TYPE (main/lb/any) |
 | `ModuleLoader::registerAllCommands()` | `ГОТОВО` | CLI-команды модулей реально подключаются |
-| `ModuleLoader::bootAll()` | `ЧАСТИЧНО` | Реализован; остаются legacy-узлы web bootstrap вне модульного lifecycle |
+| `ModuleLoader::bootAll()` | `ГОТОВО` | Реализован; остаются legacy-узлы web bootstrap вне модульного lifecycle |
 | `config/modules.php` | `ГОТОВО` | Overrides для enabled/class |
 | `ModuleManager` | `ГОТОВО` | Список, install, uninstall, enable, disable, update, upload |
 | Админ-страница модулей | `ГОТОВО` | `ModulesController` + `Views/admin/modules.php` |
@@ -79,20 +81,20 @@
 - рендер в `public/Views/admin/header.php` выполняется из дерева `NavbarRegistry`, без hardcoded ссылок конкретных модулей
 - остаются точки legacy-сцепления вне navbar (в отдельных route/bootstrap участках), которые ещё нужно довести до полной целевой модели
 
-### 3.4. `module.json` слишком бедный
+### 3.4. `module.json` v2 — готово
 
-Сейчас manifest хранит только:
+**M-4 завершена.** Manifest теперь содержит:
 
-- `name`
-- `description`
-- `version`
-- `requires_core`
+- `name` — имя модуля
+- `description` — описание
+- `version` — версия (semver)
+- `requires_core` — требуемая версия ядра
+- `environment` — окружение (`main` / `lb` / `any`) **NEW**
+- `dependencies` — список зависимостей от других модулей **NEW**
+- `has_navbar` — наличие пунктов навбара (boolean) **NEW**
+- `has_settings` — наличие страницы настроек (boolean) **NEW**
 
-Этого недостаточно для:
-
-- фильтрации по окружению `main` и `lb`
-- декларации зависимостей между модулями
-- описания navbar/settings capabilities
+Все 7 модулей уже переведены на v2 манифест.
 
 ### 3.5. Core patching остаётся аварийным обходным путём
 
@@ -123,7 +125,7 @@
 4. navbar, settings и hooks строятся из декларации модуля
 5. ядро не содержит hardcoded пунктов модульной логики
 
-### 4.2. Целевой manifest v2
+### 4.2. Manifest v2 — уже реализован
 
 ```json
 {
@@ -137,6 +139,30 @@
   "has_settings": true
 }
 ```
+
+**Примеры с зависимостями:**
+
+```json
+{
+  "name": "plex",
+  "version": "1.0.0",
+  "requires_core": ">=2.0",
+  "environment": "any",
+  "dependencies": ["ministra"],
+  "has_navbar": true,
+  "has_settings": true
+}
+```
+
+**Как это работает:**
+
+1. ModuleLoader сканирует `modules/*/module.json`
+2. Для каждого модуля проверяет:
+   - Окружение совпадает с `SERVER_TYPE` (main/lb) или `any`
+   - Все зависимости тоже в списке обнаруженных модулей
+3. Строит граф зависимостей и сортирует топологически (DFS)
+4. Если цикл или отсутствующая зависимость → fail-fast с понятной ошибкой
+5. Загружает модули в правильном порядке: зависимости всегда раньше зависимых
 
 ### 4.3. Целевая интеграция UI
 
@@ -196,14 +222,20 @@ PHASE M-3  /  NAVBAR API
 ---
 
 ```text
-PHASE M-4  /  MANIFEST V2
+PHASE M-4  /  MANIFEST V2  [✅ ЗАВЕРШЕНА]
 ```
 
-1. Расширить `module.json` полями `environment`, `dependencies`, `has_navbar`, `has_settings`.
-2. Научить `ModuleLoader` фильтрации по окружению и dependency sort.
-3. Оставить старый формат manifest backward-compatible на один релиз.
+**Что сделано:**
 
-**Результат:** модульная система получает управляемый порядок загрузки и awareness по окружению.
+1. ✅ `module.json` расширен полями `environment`, `dependencies`, `has_navbar`, `has_settings`
+2. ✅ `ModuleLoader` фильтрует по окружению (main/lb/any)
+3. ✅ `ModuleLoader` сортирует топологически (DFS) с detection циклических и отсутствующих зависимостей
+4. ✅ Все 7 модулей переведены на v2 манифест
+5. ✅ Документированы строгие типы для dependency items (non-empty strings)
+6. ✅ Добавлены unit-тесты для всех сценариев (missing-dep, cyclic-dep, sort-order, env-filter)
+7. ✅ ModuleLoader полностью документирован англоязычными docblocks
+
+**Результат:** модульная система получила управляемый порядок загрузки, awareness по окружению и fail-fast валидацию.
 
 ---
 
