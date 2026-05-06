@@ -27,11 +27,15 @@ class SignalsCommand implements CommandInterface {
 		if (!$this->assertRunAsXcVm()) {
 			return 1;
 		}
+		if (!$this->acquireDaemonLock('signals')) {
+			return 0;
+		}
 
 		global $db;
 
 		$this->setProcessTitle('XC_VM[Signals]');
 		$this->killStaleProcesses('console.php signals');
+		$this->killStaleProcesses('XC_VM\\[Signals\\]');
 		$this->initDaemonMD5();
 		$this->initRedisIfEnabled();
 

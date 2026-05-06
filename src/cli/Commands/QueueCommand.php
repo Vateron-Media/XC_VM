@@ -27,11 +27,15 @@ class QueueCommand implements CommandInterface {
 		if (!$this->assertRunAsXcVm()) {
 			return 1;
 		}
+		if (!$this->acquireDaemonLock('queue')) {
+			return 0;
+		}
 
 		global $db;
 
 		$this->setProcessTitle('XC_VM[Queue]');
 		$this->killStaleProcesses('console.php queue');
+		$this->killStaleProcesses('XC_VM\\[Queue\\]');
 		$this->initDaemonMD5();
 
 		while (true && $db->ping()) {

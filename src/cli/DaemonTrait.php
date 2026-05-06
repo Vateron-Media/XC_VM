@@ -24,6 +24,9 @@ trait DaemonTrait {
 	/** @var int Интервал обновления настроек (секунды) */
 	protected $rRefreshInterval = 60;
 
+	/** @var resource|null Файловый lock для singleton-демона */
+	protected $rDaemonLockHandle;
+
 	/**
 	 * Проверить что процесс запущен от пользователя xc_vm.
 	 */
@@ -118,6 +121,38 @@ trait DaemonTrait {
 	protected function setProcessTitle(string $rTitle): void {
 		set_time_limit(0);
 		cli_set_process_title($rTitle);
+	}
+
+	/**
+	 * Взять singleton-lock для демона.
+	 *
+	 * @param string $rLockName Имя lock-файла без расширения
+	 * @return bool true если lock взят, false если уже запущен другой экземпляр
+	 */
+	protected function acquireDaemonLock(string $rLockName): bool {
+		$rBaseDir = defined('TMP_PATH') ? TMP_PATH . 'crons/' : (defined('MAIN_HOME') ? MAIN_HOME . 'tmp/crons/' : sys_get_temp_dir() . '/');
+		if (!is_dir($rBaseDir)) {
+			@mkdir($rBaseDir, 0775, true);
+		}
+
+		$rLockFile = rtrim($rBaseDir, '/') . '/daemon_' . preg_replace('/[^a-z0-9_\-]/i', '_', $rLockName) . '.lock';
+		$rHandle = @fopen($rLockFile, 'c+');
+		if (!$rHandle) {
+			echo "Cannot open daemon lock file: " . $rLockFile . "\n";
+			return false;
+		}
+
+		if (!@flock($rHandle, LOCK_EX | LOCK_NB)) {
+			echo "Daemon already running (lock busy): " . $rLockName . "\n";
+			@fclose($rHandle);
+			return false;
+		}
+
+		@ftruncate($rHandle, 0);
+		@fwrite($rHandle, (string) getmypid());
+		@fflush($rHandle);
+		$this->rDaemonLockHandle = $rHandle;
+		return true;
 	}
 
 	/**
