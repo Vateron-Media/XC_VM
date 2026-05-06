@@ -110,4 +110,11 @@ interface ModuleInterface {
      * Вызывается при отключении/удалении модуля.
      */
     public function uninstall(): void;
+
+    /**
+     * Зарегистрировать пункты навигации через NavbarRegistry::add()
+     *
+     * Вызывается в bootAll() после boot() всех модулей.
+     */
+    public function registerNavbar(): void;
 }
