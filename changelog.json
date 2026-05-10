@@ -1,13 +1,19 @@
 {
-    "version": "2.1.5",
+    "version": "2.2.0",
     "changes": [
-        "Added auto-assign feature for EPG to live streams",
-        "Added MaxMind GeoIP updater with weekly cron integration",
-        "Reduced database connection churn in streaming and improved DB lifecycle",
-        "Optimized cron performance by throttling heavy checks and increasing queue loop default",
-        "Fixed spurious TS disconnects by updating hls_last_read during streaming sessions",
-        "Fixed LLOD v2 FFmpeg startup delay on on-demand streams",
-        "Improved URL construction in ImageResizeService",
-        "Fixed multiple import-related issues"
+        "Enhanced module manifest structure and module loader functionality",
+        "Added daemon lock mechanism for cache, queue, signals, and watchdog commands",
+        "Introduced dynamic NavbarItem and NavbarRegistry system",
+        "Added module web boot support and migrated Watch/Plex routes",
+        "Improved routing, streaming gateway stability, nginx integration, and service handling",
+        "Added browser STB emulation documentation for Ministra",
+        "Migrated table routing from AdminTableController to TableController",
+        "Decoupled legacy Ministra URLs from www symlinks",
+        "Improved routing architecture and module integration flow",
+        "Fixed missing global variables in Plex and Watch controllers",
+        "Improved MD5 hash verification logic in BalancerCommand",
+        "Added documentation for the dynamic navigation menu system",
+        "Added commit message format and contribution guidelines",
+        "Merged PR #109 for the dynamic navbar system"
     ]
 }
