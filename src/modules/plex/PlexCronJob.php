@@ -60,12 +60,7 @@ class PlexCronJob implements CommandInterface {
         $this->setProcessTitle('XC_VM[Plex Sync]');
 
         set_time_limit(0);
-        if (!empty(SettingsManager::getAll()['tmdb_api_key'])) {
-            PlexCron::run();
-        } else {
-            echo 'No TMDb API key.' . "\n";
-            return 1;
-        }
+        PlexCron::run($rForce);
 
         return 0;
     }

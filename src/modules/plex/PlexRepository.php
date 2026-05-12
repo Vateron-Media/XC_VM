@@ -24,6 +24,10 @@ class PlexRepository {
 	}
 
 	public static function getPlexSections($rIP, $rPort, $rToken) {
+		if (!$rToken) {
+			return array();
+		}
+
 		$URL = 'http://' . $rIP . ':' . $rPort . '/library/sections?X-Plex-Token=' . $rToken;
 		$rSections = json_decode(json_encode(simplexml_load_string(file_get_contents($URL))), true);
 		if (!isset($rSections['Directory'])) {
