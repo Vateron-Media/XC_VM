@@ -18,16 +18,13 @@ class PlexAuth {
 			$rToken = self::checkPlexToken($plexIP, $plexPort, $rToken);
 		}
 		if (!$rToken) {
-			echo "Plex token not found in cache or invalid, logging in for server {$plexIP}:{$plexPort}...\n";
 			$rData = self::getPlexLogin($plexUsername, $plexPassword);
 			if (isset($rData['user']['authToken'])) {
 				$rToken = self::checkPlexToken($plexIP, $plexPort, $rData['user']['authToken']);
 				if ($rToken) {
 					self::cachePlexToken($serverKey, $rToken);
-					echo "New Plex token successfully cached for key: $serverKey\n";
 				}
 			} else {
-				echo "Failed to login to Plex (wrong credentials or network issue)!\n";
 				$rToken = false;
 			}
 		}

@@ -91,12 +91,12 @@ class ImageUtils {
 
 	public static function downloadImage($rImage, $rType = null) {
 		if (0 < strlen($rImage) && substr(strtolower($rImage), 0, 4) == 'http') {
-			$rPathInfo = pathinfo($rImage);
-			$rExt = $rPathInfo['extension'];
+			$rPathInfo = pathinfo(parse_url($rImage, PHP_URL_PATH) ?: $rImage);
+			$rExt = strtolower($rPathInfo['extension'] ?? '');
 			if (!$rExt) {
-				$rImageInfo = getimagesize($rImage);
-				if ($rImageInfo['mime']) {
-					list(, $rExt) = explode('/', $rImageInfo['mime']);
+				$rImageInfo = @getimagesize($rImage);
+				if (is_array($rImageInfo) && !empty($rImageInfo['mime']) && strpos($rImageInfo['mime'], '/') !== false) {
+					list(, $rExt) = explode('/', strtolower($rImageInfo['mime']), 2);
 				}
 			}
 			if (in_array(strtolower($rExt), array('jpg', 'jpeg', 'png'))) {
