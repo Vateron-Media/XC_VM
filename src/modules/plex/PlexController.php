@@ -204,7 +204,12 @@ class PlexController {
         $rUsername  = RequestManager::getAll()['username'] ?? '';
         $rPassword = RequestManager::getAll()['password'] ?? '';
 
-        $rToken = PlexAuth::getPlexToken($rIP, $rPort, $rUsername, $rPassword);
+        $rToken = PlexAuth::getPlexToken($rIP, $rPort, $rUsername, $rPassword, true);
+        if (!$rToken) {
+            echo json_encode(['result' => false]);
+            exit();
+        }
+
         $rSections = PlexRepository::getPlexSections($rIP, $rPort, $rToken);
 
         if ($rSections && count($rSections) > 0) {
