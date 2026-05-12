@@ -112,7 +112,7 @@ signals/    streaming/  tmp/        www/
 | --- | --- |
 | `cli/Commands/MigrateCommand.php` | Миграция только на MAIN |
 | `cli/Commands/CacheHandlerCommand.php` | Обработчик кеша только на MAIN |
-| `cli/Commands/BalancerCommand.php` | Установщик LB (не нужен на самом LB) |
+| `cli/Commands/ServerInstallCommand.php` | Установщик сервера (не нужен на самом LB) |
 
 **Удаляемые крон-задачи:**
 

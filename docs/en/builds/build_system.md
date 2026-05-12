@@ -112,7 +112,7 @@ After copying, admin-specific content is **removed** from the LB build:
 | --- | --- |
 | `cli/Commands/MigrateCommand.php` | Migration is MAIN-only |
 | `cli/Commands/CacheHandlerCommand.php` | Cache handler is MAIN-only |
-| `cli/Commands/BalancerCommand.php` | LB installer (not needed on LB itself) |
+| `cli/Commands/ServerInstallCommand.php` | Server installer (not needed on LB itself) |
 
 **Cron jobs removed:**
 

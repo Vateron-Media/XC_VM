@@ -58,7 +58,9 @@ LB_FILES_TO_REMOVE := \
 	config/rclone.conf \
 	cli/Commands/MigrateCommand.php \
 	cli/Commands/CacheHandlerCommand.php \
-	cli/Commands/BalancerCommand.php \
+	cli/Commands/ServerInstallCommand.php \
+	cli/Commands/LbInstallFlow.php \
+	cli/Commands/ProxyInstallFlow.php \
 	cli/CronJobs/RootMysqlCronJob.php \
 	cli/CronJobs/BackupsCronJob.php \
 	cli/CronJobs/CacheEngineCronJob.php \
