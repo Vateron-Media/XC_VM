@@ -1,10 +1,10 @@
 {
     "name": "plex",
     "description": "Plex integration module",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "requires_core": ">=2.0",
     "environment": "main",
     "dependencies": [],
     "has_navbar": true,
     "has_settings": true
-}
+} 

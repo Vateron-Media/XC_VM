@@ -331,23 +331,28 @@ class PlexItem {
         global $rStreamDatabase;
         $rServers = array(SERVER_ID);
 
-        if (empty($rThreadData['server_add'])) {
-        } else {
-            foreach (json_decode($rThreadData['server_add'], true) as $rServerID) {
+        if (!is_array($rThreadData)) {
+            echo "ERROR: Invalid thread data.\n";
+            return;
+        }
+
+        $rServerAdd = json_decode($rThreadData['server_add'] ?? '[]', true);
+        if (is_array($rServerAdd)) {
+            foreach ($rServerAdd as $rServerID) {
                 $rServers[] = intval($rServerID);
             }
         }
 
         $rBouquetIDs = $rCategoryIDs = array();
 
-        if (0 >= $rThreadData['category_id']) {
-        } else {
-            $rCategoryIDs = array(intval($rThreadData['category_id']));
+        $rCategoryID = intval($rThreadData['category_id'] ?? 0);
+        if (0 < $rCategoryID) {
+            $rCategoryIDs = array($rCategoryID);
         }
 
-        if (0 >= count(json_decode($rThreadData['bouquets'], true))) {
-        } else {
-            $rBouquetIDs = json_decode($rThreadData['bouquets'], true);
+        $rBouquets = json_decode($rThreadData['bouquets'] ?? '[]', true);
+        if (is_array($rBouquets) && 0 < count($rBouquets)) {
+            $rBouquetIDs = $rBouquets;
         }
 
         $rLanguage = null;
@@ -482,6 +487,9 @@ class PlexItem {
 
                         $country = self::makeArray($Video['Country'])[0]['@attributes']['tag'] ?? null;
                         $rSeconds = intval($Video['@attributes']['duration'] / 1000);
+                        $rDurationHours = intdiv($rSeconds, 3600);
+                        $rDurationMinutes = intdiv($rSeconds % 3600, 60);
+                        $rDurationSeconds = $rSeconds % 60;
 
                         $rImportArray['stream_display_name'] = $Video['@attributes']['title'];
                         $rImportArray['year'] = !empty($Video['@attributes']['year']) ? intval($Video['@attributes']['year']) : null;
@@ -491,7 +499,7 @@ class PlexItem {
                             'release_date' => $Video['@attributes']['originallyAvailableAt'] ?? null,
                             'plot' => trim($Video['@attributes']['summary'] ?? ''),
                             'duration_secs' => $rSeconds,
-                            'duration' => sprintf('%02d:%02d:%02d', $rSeconds / 3600, ($rSeconds / 60) % 60, $rSeconds % 60),
+                            'duration' => sprintf('%02d:%02d:%02d', $rDurationHours, $rDurationMinutes, $rDurationSeconds),
                             'movie_image' => $rThumb,
                             'cover_big' => $rThumb,
                             'backdrop_path' => $rBG ? array($rBG) : array(),
@@ -615,7 +623,7 @@ class PlexItem {
                     echo "LOG: No accessible file parts found for this movie\n";
                 }
 
-                if ($rFirstFile) {
+                if (empty($rFileArray['file']) && $rFirstFile) {
                     echo "LOG: Logging inaccessible file (status 5): $rFirstFile\n";
                     $db->query('INSERT INTO `watch_logs`(`type`, `server_id`, `filename`, `status`, `stream_id`) VALUES(?, ?, ?, 5, 0);', $rThreadType, SERVER_ID, htmlspecialchars($rFirstFile, ENT_QUOTES, 'UTF-8'));
                 }

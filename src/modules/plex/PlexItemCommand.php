@@ -45,10 +45,20 @@ class PlexItemCommand implements CommandInterface {
 		ini_set('display_startup_errors', 1);
 		error_reporting(30711);
 
-		$rStreamDatabase = (json_decode(file_get_contents(WATCH_TMP_PATH . 'stream_database.pcache'), true) ?: array());
-		$rThreadData = json_decode(base64_decode($rArgs[0]), true);
+		global $rStreamDatabase;
+		global $rThreadData;
 
-		if (!$rThreadData) {
+		$rCacheContent = @file_get_contents(WATCH_TMP_PATH . 'stream_database.pcache');
+		$rStreamDatabase = (is_string($rCacheContent) ? (json_decode($rCacheContent, true) ?: array()) : array());
+
+		$rDecodedPayload = base64_decode($rArgs[0], true);
+		if ($rDecodedPayload === false) {
+			return 0;
+		}
+
+		$rThreadData = json_decode($rDecodedPayload, true);
+
+		if (!is_array($rThreadData)) {
 			return 0;
 		}
 
