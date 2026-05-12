@@ -60,9 +60,9 @@
 | `plex_item` | `PlexItemCommand` | Обработка элемента Plex (фильм/сериал) | xc_vm |
 | `watch_item` | `WatchItemCommand` | Обработка элемента Watch (поиск/обновление TMDB) | xc_vm |
 | `migrate` | `MigrateCommand` | Перенос данных из БД `xc_vm_migrate` | xc_vm |
-| `balancer` | `BalancerCommand` | Установка/настройка балансировщика по SSH | root |
+| `server:install` | `ServerInstallCommand` | Установка/настройка сервера (Proxy/LB) по SSH | root |
 
-> Опциональные команды (условная регистрация через `file_exists()`): `cache_handler`, `balancer`, `migrate`.
+> Опциональные команды (условная регистрация через `file_exists()`): `cache_handler`, `server:install`, `migrate`.
 
 ### Команды-демоны (фоновые процессы)
 
