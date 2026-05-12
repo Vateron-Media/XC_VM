@@ -352,22 +352,24 @@ if (1 < $rICount) { ?>
 <?php
 } else {
 	if (PageAuthorization::checkPermissions($_PAGE)) {
-		if (isset(RequestManager::getAll()['referer'])) {
-			$rReferer = RequestManager::getAll()['referer'];
-			unset(RequestManager::getAll()['referer']);
+		$rRequest = RequestManager::getAll();
+
+		if (isset($rRequest['referer'])) {
+			$rReferer = $rRequest['referer'];
 		} else {
 			$rReferer = null;
 		}
 
-		$rAction = RequestManager::getAll()['action'];
-		$rData = RequestManager::getAll();
-		unset($rData['action']);
+		$rAction = $rRequest['action'];
+		$rData = $rRequest;
+		unset($rData['action'], $rData['referer']);
 
 		if (count($rData) == 0) {
-			$rData = json_decode(file_get_contents('php://input'), true);
+			$rRawInput = trim((string) file_get_contents('php://input'));
+			$rData = json_decode($rRawInput, true);
 
-			if (!is_array($rData)) {
-				$rData = array(file_get_contents('php://input') => 1);
+			if (!is_array($rData) && $rRawInput !== '') {
+				$rData = array($rRawInput => 1);
 			}
 		}
 
