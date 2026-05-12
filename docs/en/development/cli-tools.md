@@ -60,9 +60,9 @@ To see all available commands:
 | `plex_item` | `PlexItemCommand` | Process single Plex item (movie/series) | xc_vm |
 | `watch_item` | `WatchItemCommand` | Process single Watch item (TMDB search/update) | xc_vm |
 | `migrate` | `MigrateCommand` | Transfer data from `xc_vm_migrate` database | xc_vm |
-| `balancer` | `BalancerCommand` | Install/configure load balancer via SSH | root |
+| `server:install` | `ServerInstallCommand` | Install/configure server (Proxy/LB) via SSH | root |
 
-> Commands marked **optional** are conditionally registered via `file_exists()` guard: `cache_handler`, `balancer`, `migrate`.
+> Commands marked **optional** are conditionally registered via `file_exists()` guard: `cache_handler`, `server:install`, `migrate`.
 
 ### Daemon Commands (persistent processes)
 
