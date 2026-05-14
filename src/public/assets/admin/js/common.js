@@ -264,7 +264,7 @@
 			$(rTables).each(function () {
 				$(this).DataTable().destroy(true);
 			});
-			document.title = $(rData).filter("title").text();
+			document.title = $(rData).filter("title").first().text();
 			$(".wrapper").replaceWith($(rData).filter(".wrapper"));
 			$("#scripts").replaceWith($(rData).filter("#scripts"));
 			$("#topnav-custom").replaceWith($(rData).filter("#topnav").find("#topnav-custom"));
