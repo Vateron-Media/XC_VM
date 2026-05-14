@@ -17,7 +17,7 @@ class BinariesCommand implements CommandInterface {
 	}
 
 	public function getDescription(): string {
-		return 'Update binaries and GeoLite from GitHub';
+		return 'Update binaries';
 	}
 
 	public function execute(array $rArgs): int {
@@ -48,8 +48,86 @@ class BinariesCommand implements CommandInterface {
 			}
 		}
 
-		// The logic for updating binary files, which is not currently implemented, will be added here.
+		$rVersionFile = BIN_PATH . 'bin_version.json';
+		$rCurrentVersion = $this->getInstalledBinaryVersion($rVersionFile);
+
+		$rChannel = 'stable';
+		$rSettings = SettingsManager::getAll();
+		if (is_array($rSettings) && !empty($rSettings['update_channel']) && in_array($rSettings['update_channel'], array('stable', 'unstable'))) {
+			$rChannel = $rSettings['update_channel'];
+		}
+
+		try {
+			$gitRelease = new GitHubReleases(GIT_OWNER, GIT_REPO_BIN, $rChannel);
+			$gitRelease->setTimeout(20);
+			$rReleases = $gitRelease->getReleases();
+		} catch (Exception $e) {
+			echo 'Failed to check binaries releases: ' . $e->getMessage() . "\n";
+			return 1;
+		}
+
+		if (empty($rReleases[0])) {
+			echo "Failed to resolve latest binaries release.\n";
+			return 1;
+		}
+
+		$rLatestVersion = trim($rReleases[0]);
+
+		if (!empty($rCurrentVersion) && $rCurrentVersion === $rLatestVersion) {
+			echo 'Binaries are up to date (' . $rCurrentVersion . '). Skipping update.' . "\n";
+			return 0;
+		}
+
+		if (empty($rCurrentVersion)) {
+			echo 'Current binaries version is unknown (missing/invalid ' . $rVersionFile . '). Update required.' . "\n";
+		} else {
+			echo 'New binaries release available: installed=' . $rCurrentVersion . ', latest=' . $rLatestVersion . ".\n";
+		}
+
+		$rScript = MAIN_HOME . 'bin/install/update_binaries.sh';
+		if (!file_exists($rScript)) {
+			echo 'Updater script not found: ' . $rScript . "\n";
+			return 1;
+		}
+
+		$rCommand = '/bin/bash ' . escapeshellarg($rScript) . ' ' . escapeshellarg(GIT_OWNER) . ' ' . escapeshellarg(GIT_REPO_BIN) . ' ' . escapeshellarg(BIN_PATH) . ' ' . escapeshellarg($rLatestVersion);
+		$rLogDir = MAIN_HOME . 'tmp/';
+		if (!is_dir($rLogDir)) {
+			@mkdir($rLogDir, 0755, true);
+		}
+
+		$rLogFile = $rLogDir . 'binaries_update_' . date('Ymd_His') . '.log';
+		$rDetachedCommand = 'nohup ' . $rCommand . ' > ' . escapeshellarg($rLogFile) . ' 2>&1 < /dev/null & echo $!';
+		echo "Starting binaries updater in background...\n";
+		$rPid = trim((string)shell_exec($rDetachedCommand));
+
+		if (empty($rPid)) {
+			echo "Failed to start binaries updater in background.\n";
+			return 1;
+		}
+
+		echo 'Binaries updater started (PID: ' . $rPid . ').' . "\n";
+		echo 'Log file: ' . $rLogFile . "\n";
 
 		return 0;
+	}
+
+	private function getInstalledBinaryVersion(string $rVersionFile): ?string {
+		if (!file_exists($rVersionFile)) {
+			return null;
+		}
+
+		$rContent = file_get_contents($rVersionFile);
+		if ($rContent === false) {
+			return null;
+		}
+
+		$rData = json_decode($rContent, true);
+		if (!is_array($rData) || empty($rData['release']) || !is_string($rData['release'])) {
+			return null;
+		}
+
+		$rVersion = trim($rData['release']);
+		return strlen($rVersion) ? $rVersion : null;
 	}
 }
