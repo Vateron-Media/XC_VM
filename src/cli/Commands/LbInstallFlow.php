@@ -225,6 +225,25 @@ class LbInstallFlow {
 		call_user_func($rRunSSH, $rConn, 'sudo chmod 0550 ' . MAIN_HOME . 'bin/nginx/sbin/nginx');
 		call_user_func($rRunSSH, $rConn, 'sudo chmod 0750 ' . MAIN_HOME . 'bin/nginx_rtmp/sbin/nginx_rtmp');
 
+		$rVersionFile = BIN_PATH . 'bin_version.json';
+		$rVersionData = array(
+			'owner' => GIT_OWNER,
+			'repository' => GIT_REPO_BIN,
+			'release' => $rTag,
+			'asset' => $rBinaryName,
+			'distribution' => $rDistID,
+			'distribution_version' => $rVersion,
+			'updated_at_utc' => gmdate('Y-m-d\TH:i:s\Z'),
+		);
+		$rVersionJson = json_encode($rVersionData, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+		if ($rVersionJson !== false) {
+			$rEncodedVersion = base64_encode($rVersionJson);
+			call_user_func($rRunSSH, $rConn, 'echo ' . escapeshellarg($rEncodedVersion) . ' | base64 -d | sudo tee ' . escapeshellarg($rVersionFile) . ' > /dev/null');
+			call_user_func($rRunSSH, $rConn, 'sudo chown xc_vm:xc_vm ' . escapeshellarg($rVersionFile));
+		} else {
+			echo "Warning: Failed to encode binaries version metadata\n";
+		}
+
 		call_user_func($rRunSSH, $rConn, 'sudo rm -rf /tmp/xc_vm_bin.tar.gz /tmp/xc_vm_bin');
 		echo "Distribution-specific binaries installed successfully\n";
 		return true;
