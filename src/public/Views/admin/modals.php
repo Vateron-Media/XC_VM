@@ -349,7 +349,7 @@
 							<button id="reboot_server_ssh" type="button" class="btn btn-light" style="width:100%; white-space:normal; height:auto;">Reboot Server</button>
 						</div>
 						<div class="col-md-2">
-							<button id="update_binaries" type="button" class="btn btn-light" style="width:100%; white-space:normal; height:auto;">Update Binaries (Does nothing)</button>
+							<button id="update_binaries" type="button" class="btn btn-light" style="width:100%; white-space:normal; height:auto;">Update Binaries</button>
 						</div>
 						<div class="col-md-3">
 							<button id="update_server" type="button" class="btn btn-light" style="width:100%; white-space:normal; height:auto;">Update Server</button>
