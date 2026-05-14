@@ -619,6 +619,37 @@ def get_latest_binaries_tag():
         return None
 
 
+def write_bin_version_file(release_tag, asset_name, dist_id, version):
+    """Write installed binaries release metadata to /home/xc_vm/bin/bin_version.json"""
+    version_path = "/home/xc_vm/bin/bin_version.json"
+    payload = {
+        "owner": "Vateron-Media",
+        "repository": "XC_VM_Binaries",
+        "release": release_tag,
+        "asset": asset_name,
+        "distribution": dist_id,
+        "distribution_version": version,
+        "updated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
+
+    try:
+        with open(version_path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=4)
+            f.write("\n")
+        try:
+            run_command(f"chown xc_vm:xc_vm {version_path}")
+        except Exception:
+            pass
+        printc(
+            f"Binaries version file updated: {version_path} ({release_tag})",
+            col.OKGREEN,
+        )
+        return True
+    except Exception as e:
+        printc(f"Warning: Failed to update {version_path}: {e}", col.WARNING)
+        return False
+
+
 # Install distribution-specific binaries
 def install_distribution_binaries(dist_id, version):
     """Download and install distribution-specific binaries from GitHub releases"""
@@ -831,6 +862,8 @@ def install_distribution_binaries(dist_id, version):
             os.remove(temp_tar_file)
         if os.path.exists(temp_extract_dir):
             shutil.rmtree(temp_extract_dir)
+
+        write_bin_version_file(release_tag, patch_name, dist_id, version)
 
         printc(
             f"{display_name} specific binary installation completed",
