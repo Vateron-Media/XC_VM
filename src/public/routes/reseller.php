@@ -17,7 +17,7 @@
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-// ─── Dashboard & Profile (Phase 6.4) ───────────────────────────
+// ─── Dashboard & Profile ───────────────────────────
 
 $router->get('dashboard', [ResellerDashboardController::class, 'index']);
 $router->get('edit_profile', [ResellerEditProfileController::class, 'index']);
@@ -36,21 +36,21 @@ $router->get('table', [ResellerTableController::class, 'index']);
 $router->post('table', [ResellerTableController::class, 'index']);
 $router->get('resize', [ResellerResizeController::class, 'index']);
 
-// ─── Lines (Phase 6.4) ─────────────────────────────────────────
+// ─── Lines ─────────────────────────────────────────
 
 $router->get('lines', [ResellerLinesController::class, 'index']);
 $router->get('line', [ResellerLineController::class, 'index']);
 $router->get('line_activity', [ResellerLineActivityController::class, 'index']);
 $router->get('live_connections', [ResellerLiveConnectionsController::class, 'index']);
 
-// ─── Devices MAG / Enigma (Phase 6.4) ──────────────────────────
+// ─── Devices MAG / Enigma ──────────────────────────
 
 $router->get('mags', [ResellerMagsController::class, 'index']);
 $router->get('mag', [ResellerMagController::class, 'index']);
 $router->get('enigmas', [ResellerEnigmasController::class, 'index']);
 $router->get('enigma', [ResellerEnigmaController::class, 'index']);
 
-// ─── Content (Phase 6.4) ───────────────────────────────────────
+// ─── Content ───────────────────────────────────────
 
 $router->get('streams', [ResellerStreamsController::class, 'index']);
 $router->get('movies', [ResellerMoviesController::class, 'index']);
@@ -59,13 +59,13 @@ $router->get('episodes', [ResellerEpisodesController::class, 'index']);
 $router->get('created_channels', [ResellerCreatedChannelsController::class, 'index']);
 $router->get('epg_view', [ResellerEpgViewController::class, 'index']);
 
-// ─── Tickets (Phase 6.4) ───────────────────────────────────────
+// ─── Tickets ───────────────────────────────────────
 
 $router->get('tickets', [ResellerTicketsController::class, 'index']);
 $router->get('ticket', [ResellerTicketController::class, 'index']);
 $router->get('ticket_view', [ResellerTicketViewController::class, 'index']);
 
-// ─── Users (Phase 6.4) ─────────────────────────────────────────
+// ─── Users ─────────────────────────────────────────
 
 $router->get('users', [ResellerUsersController::class, 'index']);
 $router->get('user', [ResellerUserController::class, 'index']);
