@@ -54,3 +54,7 @@
         </div>
     </div>
 </div>
+<?php
+require_once __DIR__ . '/../layouts/footer.php';
+renderUnifiedLayoutFooter('reseller');
+?>
