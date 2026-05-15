@@ -189,9 +189,10 @@ renderUnifiedLayoutFooter('reseller');
         $("#whatsappModal").modal("show");
     }
 
-    $(document).ready(function() {
-        $("#wa_language").change(function() {
-            updateWaPreview();
-        });
+    document.addEventListener("DOMContentLoaded", function() {
+        var rLanguage = document.getElementById("wa_language");
+        if (rLanguage) {
+            rLanguage.addEventListener("change", updateWaPreview);
+        }
     });
 </script>
