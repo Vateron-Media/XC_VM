@@ -311,13 +311,11 @@ if ($rStream['type'] == 1) {
 			echo '</td>' . "\r\n" . '                                            <td class="text-center">' . "\r\n" . '                                                ';
 
 			if ($rItem['in_progress']) {
-				echo "                                                <button type='button' class='btn btn-info btn-xs waves-effect waves-light'>' . $language::get('in_progress') . '</button>" . "\r\n" . '                                                ';
+				echo "                                                <button type='button' class='btn btn-info btn-xs waves-effect waves-light'>" . $language::get('in_progress') . "</button>" . "\r\n" . '                                                ';
+			} elseif ($rItem['complete']) {
+				echo "                                                <button type='button' class='btn btn-success btn-xs waves-effect waves-light'>" . $language::get('complete') . "</button>" . "\r\n" . '                                                ';
 			} else {
-				if ($rItem['complete']) {
-					echo "                                                <button type='button' class='btn btn-success btn-xs waves-effect waves-light'>' . $language::get('complete') . '</button>" . "\r\n" . '                                                ';
-				} else {
-					echo "                                                <button type='button' class='btn btn-warning btn-xs waves-effect waves-light'>' . $language::get('incomplete') . '</button>" . "\r\n" . '                                                ';
-				}
+				echo "                                                <button type='button' class='btn btn-warning btn-xs waves-effect waves-light'>" . $language::get('incomplete') . "</button>" . "\r\n" . '                                                ';
 			}
 
 			echo '                                                <a href="record?archive=';
