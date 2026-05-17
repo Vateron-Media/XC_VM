@@ -1146,7 +1146,7 @@ if (1 < $rICount) { ?>
 					echo json_encode(array('result' => true, 'location' => 'bouquets?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
 					exit();
 				}
-				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
+				echo json_encode(array('result' => false, 'data' => ($rReturn['data'] ?? array()), 'status' => $rReturn['status']));
 				exit();
 
 			case 'stream':
@@ -1169,7 +1169,7 @@ if (1 < $rICount) { ?>
 					exit();
 				}
 
-				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
+				echo json_encode(array('result' => false, 'data' => ($rReturn['data'] ?? array()), 'status' => $rReturn['status']));
 				exit();
 
 			case 'movie':
@@ -1198,7 +1198,7 @@ if (1 < $rICount) { ?>
 					exit();
 				}
 
-				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
+				echo json_encode(array('result' => false, 'data' => ($rReturn['data'] ?? array()), 'status' => $rReturn['status']));
 				exit();
 
 			case 'backups':

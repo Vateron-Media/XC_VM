@@ -78,12 +78,17 @@ class RecordCommand implements CommandInterface {
 		$db->close_mysql();
 
 		while (ProcessManager::isStreamRunning($rPID, $recordingData['stream_id']) && file_exists($rPlaylist)) {
+			if ($recordingData['archive'] && time() < $recordingData['end'] + 65) {
+				sleep(5);
+				continue;
+			}
 			if ($recordingData['archive']) {
 				$rDuration = intval(($recordingData['end'] - $recordingData['start']) / 60);
-				$rFP = @fopen('http://127.0.0.1:' . ServerRepository::getAll()[SERVER_ID]['http_broadcast_port'] . '/admin/timeshift?password=' . SettingsManager::getAll()['live_streaming_pass'] . '&stream=' . $recordingData['stream_id'] . '&start=' . $recordingData['start'] . '&duration=' . $rDuration . '&extension=ts', 'r');
+				$rSource = 'http://127.0.0.1:' . ServerRepository::getAll()[SERVER_ID]['http_broadcast_port'] . '/admin/timeshift?password=' . SettingsManager::getAll()['live_streaming_pass'] . '&stream=' . $recordingData['stream_id'] . '&start=' . $recordingData['start'] . '&duration=' . $rDuration . '&extension=ts';
 			} else {
-				$rFP = @fopen('http://127.0.0.1:' . ServerRepository::getAll()[SERVER_ID]['http_broadcast_port'] . '/admin/live?password=' . SettingsManager::getAll()['live_streaming_pass'] . '&stream=' . $recordingData['stream_id'] . '&extension=ts', 'r');
+				$rSource = 'http://127.0.0.1:' . ServerRepository::getAll()[SERVER_ID]['http_broadcast_port'] . '/admin/live?password=' . SettingsManager::getAll()['live_streaming_pass'] . '&stream=' . $recordingData['stream_id'] . '&extension=ts';
 			}
+			$rFP = @fopen($rSource, 'r');
 			if ($rFP) {
 				echo "Recording...\n";
 				if ($recordingData['archive']) {
@@ -94,7 +99,7 @@ class RecordCommand implements CommandInterface {
 				while (!feof($rFP)) {
 					$rData = stream_get_line($rFP, 4096);
 					if (!empty($rData)) {
-						$totalBytes += $rData;
+						$totalBytes += strlen($rData);
 						fwrite($rWriteFile, $rData);
 						fflush($rWriteFile);
 						$rFails = 0;
@@ -102,12 +107,16 @@ class RecordCommand implements CommandInterface {
 					if (!($recordingData['end'] > time() || $recordingData['archive'])) {
 						$isComplete = true;
 						fclose($rWriteFile);
+						break;
 					}
 				}
 				fclose($rFP);
 				if ($recordingData['archive']) {
 					$isComplete = true;
 				}
+			}
+			if ($isComplete) {
+				break;
 			}
 			$rFails++;
 			if ($rFails == 5) {
@@ -309,7 +318,14 @@ class RecordCommand implements CommandInterface {
 			$rPID = intval(file_get_contents(ARCHIVE_PATH . $recordingID . '_.record'));
 		}
 		if (empty($rPID)) {
-			shell_exec("kill -9 `ps -ef | grep 'Record\\[" . intval($recordingID) . "\\]' | grep -v grep | awk '{print \$2}'`;");
+			$rPIDs = array();
+			exec("ps -ef | grep 'Record\\[" . intval($recordingID) . "\\]' | grep -v grep | awk '{print \$2}'", $rPIDs);
+			foreach ($rPIDs as $rKillPID) {
+				$rKillPID = intval(trim($rKillPID));
+				if ($rKillPID > 0) {
+					@posix_kill($rKillPID, 9);
+				}
+			}
 		} else {
 			if (file_exists('/proc/' . $rPID)) {
 				$rCommand = trim(file_get_contents('/proc/' . $rPID . '/cmdline'));

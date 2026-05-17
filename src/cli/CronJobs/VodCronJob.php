@@ -65,6 +65,7 @@ class VodCronJob implements CommandInterface {
         $db->query('SELECT `id` FROM `recordings` WHERE `status` NOT IN (1,2) AND `source_id` = ? AND ((`start` <= UNIX_TIMESTAMP() AND `end` > UNIX_TIMESTAMP()) OR (`archive` = 1));', SERVER_ID);
         if ($db->num_rows() > 0) {
             foreach ($db->get_rows() as $rRow) {
+                echo 'Start recording ID: ' . intval($rRow['id']) . "\n";
                 shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php record ' . intval($rRow['id']) . ' > /dev/null 2>/dev/null &');
             }
         }

@@ -243,7 +243,7 @@ if (0 < $db->num_rows()) {
 				$rTotalFails = (intval(SettingsManager::getAll()['segment_wait_time']) ?: 20);
 			}
 
-			if (true) {
+			while (true) {
 				$rSegmentFile = sprintf('%d_%d.ts', $rStreamID, $rCurrent + 1);
 				$rNextSegment = sprintf('%d_%d.ts', $rStreamID, $rCurrent + 2);
 				$rChecks = 0;

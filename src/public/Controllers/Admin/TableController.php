@@ -1393,7 +1393,7 @@ class TableController extends BaseAdminController {
 							}
 							$rUptime = "<button type='button' class='btn btn-success btn-xs waves-effect waves-light " . $rBtnLength . "'>" . $rUptime . "</button>";
 						} elseif ($rActualStatus == 3) {
-							$rUptime = "<button type='button' class='btn btn-danger btn-xs waves-effect waves-light " . $rBtnLength . "'>' . $language::get('down_btn') . '</button>";
+							$rUptime = "<button type='button' class='btn btn-danger btn-xs waves-effect waves-light " . $rBtnLength . "'>" . $language::get('down_btn') . "</button>";
 						} elseif ($rActualStatus == 6) {
 							$rSources = json_decode($rRow["stream_source"], true);
 							$rLeft = count(array_diff($rSources, json_decode($rRow["cchannel_rsources"], true)));
@@ -1839,7 +1839,7 @@ class TableController extends BaseAdminController {
 							}
 							$rUptime = "<button type='button' class='btn btn-success btn-xs waves-effect waves-light btn-fixed-xl'>" . $rUptime . "</button>";
 						} elseif ($rActualStatus == 3) {
-							$rUptime = "<button type='button' class='btn btn-danger btn-xs waves-effect waves-light btn-fixed-xl'>' . $language::get('down_btn') . '</button>";
+							$rUptime = "<button type='button' class='btn btn-danger btn-xs waves-effect waves-light btn-fixed-xl'>" . $language::get('down_btn') . "</button>";
 						} else {
 							$rUptime = $rStatusArray[$rActualStatus];
 						}

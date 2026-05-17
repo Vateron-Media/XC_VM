@@ -1943,7 +1943,7 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (RequestManager::getAll()['action'] == 'streamlist') {
-			if (Authorization::check('adv', 'manage_mag')) {
+			if (Authorization::check('adv', 'manage_mag') || Authorization::check('adv', 'streams')) {
 				$rReturn = array('total_count' => 0, 'items' => array(), 'result' => true);
 
 				if (!isset(RequestManager::getAll()['search'])) {

@@ -20,11 +20,12 @@ class RecordController extends BaseAdminController {
         $this->requirePermission();
 
         $rAvailableServers = $rServers = array();
-        $rStream = $rProgramme = null;
+        $rStream = $rProgramme = $rBitrate = null;
+        $rRequestData = RequestManager::getAll();
 
-        if (isset(RequestManager::getAll()['id'])) {
-            $rStream = StreamRepository::getById(RequestManager::getAll()['id']);
-            $rProgramme = EpgService::getProgramme(RequestManager::getAll()['id'], RequestManager::getAll()['programme']);
+        if (isset($rRequestData['id'])) {
+            $rStream = StreamRepository::getById($rRequestData['id']);
+            $rProgramme = EpgService::getProgramme($rRequestData['id'], $rRequestData['programme']);
 
             if ($rStream && $rStream['type'] == 1 && $rProgramme) {
             } else {
@@ -32,8 +33,8 @@ class RecordController extends BaseAdminController {
                 return;
             }
         } else {
-            if (isset(RequestManager::getAll()['archive'])) {
-                $rArchive = json_decode(base64_decode(RequestManager::getAll()['archive']), true);
+            if (isset($rRequestData['archive'])) {
+                $rArchive = json_decode(base64_decode($rRequestData['archive']), true);
                 $rStream = StreamRepository::getById($rArchive['stream_id']);
                 $rProgramme = array('start' => $rArchive['start'], 'end' => $rArchive['end'], 'title' => $rArchive['title'], 'description' => $rArchive['description'], 'archive' => true);
 
@@ -43,10 +44,10 @@ class RecordController extends BaseAdminController {
                     return;
                 }
             } else {
-                if (!isset(RequestManager::getAll()['stream_id'])) {
+                if (!isset($rRequestData['stream_id'])) {
                 } else {
-                    $rStream = StreamRepository::getById(RequestManager::getAll()['stream_id']);
-                    $rProgramme = array('start' => strtotime(RequestManager::getAll()['start_date']), 'end' => strtotime(RequestManager::getAll()['start_date']) + intval(RequestManager::getAll()['duration']) * 60, 'title' => '', 'description' => '');
+                    $rStream = StreamRepository::getById($rRequestData['stream_id']);
+                    $rProgramme = array('start' => strtotime($rRequestData['start_date']), 'end' => strtotime($rRequestData['start_date']) + intval($rRequestData['duration']) * 60, 'title' => '', 'description' => '');
 
                     if (!(!$rStream || $rStream['type'] != 1 || !$rProgramme || $rProgramme['end'] < time())) {
                     } else {
@@ -56,9 +57,7 @@ class RecordController extends BaseAdminController {
             }
         }
 
-        if (!$rStream) {
-        } else {
-            $rBitrate = null;
+        if ($rStream) {
             $db->query('SELECT `server_id`, `bitrate` FROM `streams_servers` WHERE `stream_id` = ?;', $rStream['id']);
 
             foreach ($db->get_rows() as $rRow) {
@@ -68,6 +67,10 @@ class RecordController extends BaseAdminController {
                     $rBitrate = $rRow['bitrate'];
                 }
             }
+        }
+
+        if (is_array($rProgramme) && !isset($rProgramme['archive'])) {
+            $rProgramme['archive'] = false;
         }
 
         $this->setTitle('Record');
