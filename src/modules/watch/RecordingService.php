@@ -21,8 +21,8 @@ class RecordingService {
 		}
 
 		$rArray = QueryHelper::verifyPostTable('recordings', $rData);
-		$rArray['bouquets'] = '[' . implode(',', array_map('intval', $rData['bouquets'])) . ']';
-		$rArray['category_id'] = '[' . implode(',', array_map('intval', $rData['category_id'])) . ']';
+		$rArray['bouquets'] = '[' . implode(',', array_map('intval', (array) ($rData['bouquets'] ?? []))) . ']';
+		$rArray['category_id'] = '[' . implode(',', array_map('intval', (array) ($rData['category_id'] ?? []))) . ']';
 		$rPrepare = QueryHelper::prepareArray($rArray);
 		$rQuery = 'REPLACE INTO `recordings`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 

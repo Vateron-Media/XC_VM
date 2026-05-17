@@ -182,6 +182,7 @@ class StreamUtils {
 		$rPacketSize = 188;
 		$rKeyframe = $rPosition = 0;
 		$rFoundStart = false;
+		$rBuffer = '';
 		if (file_exists($rSegment)) {
 			$rFP = fopen($rSegment, 'rb');
 			if ($rFP) {
@@ -200,6 +201,7 @@ class StreamUtils {
 								$rFoundStart = true;
 								$rPosition = $i;
 								fseek($rFP, $i);
+								break;
 							}
 						}
 					}

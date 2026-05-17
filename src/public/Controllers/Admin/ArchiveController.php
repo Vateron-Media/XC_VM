@@ -19,6 +19,8 @@ class ArchiveController extends BaseAdminController {
         global $db;
 
         $rRecordings = null;
+        $rStream = null;
+        $rArchive = null;
 
         if (isset(RequestManager::getAll()['id'])) {
             $rStream = StreamRepository::getById(RequestManager::getAll()['id']);
