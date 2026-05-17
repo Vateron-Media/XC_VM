@@ -15,24 +15,23 @@ header('Access-Control-Allow-Origin: *');
 set_time_limit(0);
 require '../init.php';
 $rIP = NetworkUtils::getUserIP();
+$rRequestData = RequestManager::getAll();
 
-if (SettingsManager::getAll()['use_buffer'] != 0) {
-} else {
+if (SettingsManager::getAll()['use_buffer'] == 0) {
 	header('X-Accel-Buffering: no');
 }
 
-if (!empty(RequestManager::getAll()['uitoken'])) {
-	$rTokenData = json_decode(Encryption::decrypt(RequestManager::getAll()['uitoken'], SettingsManager::getAll()['live_streaming_pass'], OPENSSL_EXTRA), true);
+
+if (!empty($rRequestData['uitoken'])) {
+	$rTokenData = json_decode(Encryption::decrypt($rRequestData['uitoken'], SettingsManager::getAll()['live_streaming_pass'], OPENSSL_EXTRA), true);
 	RequestManager::update('stream', $rTokenData['stream_id']);
 	RequestManager::update('extension', 'm3u8');
 
-	if (!isset($rTokenData['start'])) {
-	} else {
+	if (isset($rTokenData['start'])) {
 		RequestManager::update('start', $rTokenData['start']);
 	}
 
-	if (!isset($rTokenData['duration'])) {
-	} else {
+	if (isset($rTokenData['duration'])) {
 		RequestManager::update('duration', $rTokenData['duration']);
 	}
 
@@ -42,27 +41,21 @@ if (!empty(RequestManager::getAll()['uitoken'])) {
 	} else {
 		generate404();
 	}
-} else {
-	if (!in_array($rIP, ServerRepository::getAllowedIPs())) {
-		generate404();
-	} else {
-		if (!(empty(RequestManager::getAll()['password']) || SettingsManager::getAll()['live_streaming_pass'] != RequestManager::getAll()['password'])) {
-		} else {
-			generate404();
-		}
-	}
+} elseif (!in_array($rIP, ServerRepository::getAllowedIPs())) {
+	generate404();
+} elseif (empty($rRequestData['password']) || SettingsManager::getAll()['live_streaming_pass'] != $rRequestData['password']) {
+	generate404();
 }
 
 $db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
 DatabaseFactory::set($db);
 $rPassword = SettingsManager::getAll()['live_streaming_pass'];
-$rStreamID = intval(RequestManager::getAll()['stream']);
-$rExtension = RequestManager::getAll()['extension'];
+$rStreamID = intval($rRequestData['stream']);
+$rExtension = $rRequestData['extension'];
 
-if (!empty(RequestManager::getAll()['segment'])) {
-} else {
-	$rStartDate = RequestManager::getAll()['start'];
-	$rDuration = RequestManager::getAll()['duration'];
+if (empty($rRequestData['segment'])) {
+	$rStartDate = $rRequestData['start'];
+	$rDuration = $rRequestData['duration'];
 
 	if (!is_numeric($rStartDate)) {
 		if (substr_count($rStartDate, '-') == 1) {
@@ -90,18 +83,15 @@ if (0 < $db->num_rows()) {
 	$rChannelInfo = $db->get_row();
 	$db->close_mysql();
 
-	if (!empty(RequestManager::getAll()['segment'])) {
-	} else {
+	if (empty($rRequestData['segment'])) {
 		$rQueue = array();
-		$rFile = ARCHIVE_PATH . $rStreamID . '/' . date('Y-m-d:H-i', $rTimestamp) . '.ts';
+		$rFile = ARCHIVE_PATH . $rStreamID . '/' . gmdate('Y-m-d:H-i', $rTimestamp) . '.ts';
 
-		if (!(empty($rStreamID) || empty($rTimestamp) || empty($rDuration))) {
-		} else {
+		if (empty($rStreamID) || empty($rTimestamp) || empty($rDuration)) {
 			generate404();
 		}
 
-		if (file_exists($rFile) && is_readable($rFile)) {
-		} else {
+		if (!file_exists($rFile) || !is_readable($rFile)) {
 			generate404();
 		}
 
@@ -109,25 +99,23 @@ if (0 < $db->num_rows()) {
 		$i = 0;
 
 		while ($i < $rDuration) {
-			$rFile = ARCHIVE_PATH . $rStreamID . '/' . date('Y-m-d:H-i', $rTimestamp + $i * 60) . '.ts';
+			$rFile = ARCHIVE_PATH . $rStreamID . '/' . gmdate('Y-m-d:H-i', $rTimestamp + $i * 60) . '.ts';
 
-			if (!file_exists($rFile)) {
-			} else {
+			if (file_exists($rFile)) {
 				$rQueue[] = array('filename' => $rFile, 'filesize' => filesize($rFile));
 			}
 
 			$i++;
 		}
 
-		if (count($rQueue) != 0) {
-		} else {
+		if (count($rQueue) == 0) {
 			generate404();
 		}
 	}
 
 	switch ($rExtension) {
 		case 'm3u8':
-			if (empty(RequestManager::getAll()['segment'])) {
+			if (empty($rRequestData['segment'])) {
 				$rOutput = '#EXTM3U' . "\n";
 				$rOutput .= '#EXT-X-VERSION:3' . "\n";
 				$rOutput .= '#EXT-X-TARGETDURATION:60' . "\n";
@@ -137,8 +125,8 @@ if (0 < $db->num_rows()) {
 				foreach ($rQueue as $rKey => $rItem) {
 					$rOutput .= '#EXTINF:60.0,' . "\n";
 
-					if (!empty(RequestManager::getAll()['uitoken'])) {
-						$rOutput .= '/admin/timeshift?extension=m3u8&segment=' . basename($rItem['filename']) . '&uitoken=' . RequestManager::getAll()['uitoken'] . "\n";
+					if (!empty($rRequestData['uitoken'])) {
+						$rOutput .= '/admin/timeshift?extension=m3u8&segment=' . basename($rItem['filename']) . '&uitoken=' . $rRequestData['uitoken'] . "\n";
 					} else {
 						$rOutput .= '/admin/timeshift?extension=m3u8&stream=' . $rStreamID . '&segment=' . basename($rItem['filename']) . '&password=' . $rPassword . "\n";
 					}
@@ -151,7 +139,7 @@ if (0 < $db->num_rows()) {
 
 				exit();
 			} else {
-				$rSegment = ARCHIVE_PATH . $rStreamID . '/' . str_replace(array('\\', '/'), '', urldecode(RequestManager::getAll()['segment']));
+				$rSegment = ARCHIVE_PATH . $rStreamID . '/' . str_replace(array('\\', '/'), '', urldecode($rRequestData['segment']));
 
 				if (file_exists($rSegment)) {
 					$rBytes = filesize($rSegment);
@@ -172,8 +160,7 @@ if (0 < $db->num_rows()) {
 			$rStart = 0;
 			$rEnd = $rSize - 1;
 
-			if (!isset($_SERVER['HTTP_RANGE'])) {
-			} else {
+			if (isset($_SERVER['HTTP_RANGE'])) {
 				$rRangeStart = $rStart;
 				$rRangeEnd = $rEnd;
 				list(, $rRange) = explode('=', $_SERVER['HTTP_RANGE'], 2);
@@ -243,8 +230,7 @@ if (0 < $db->num_rows()) {
 					echo $rResponse;
 				}
 
-				if (!is_resource($rFP)) {
-				} else {
+				if (is_resource($rFP)) {
 					fclose($rFP);
 				}
 
@@ -270,8 +256,7 @@ function getLength($rQueue) {
 function shutdown() {
 	global $db;
 
-	if (!is_object($db)) {
-	} else {
+	if (is_object($db)) {
 		$db->close_mysql();
 	}
 }

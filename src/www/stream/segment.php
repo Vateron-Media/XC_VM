@@ -68,8 +68,7 @@ if (isset($_GET['token'])) {
 				$rStreamID = intval($rStreamID);
 				$rSegment = ARCHIVE_PATH . $rStreamID . '/' . $rSegmentID;
 
-				if (file_exists($rSegment)) {
-				} else {
+				if (!file_exists($rSegment)) {
 					generate404();
 				}
 			} else {
