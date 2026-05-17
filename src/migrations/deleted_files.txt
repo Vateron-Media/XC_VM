@@ -1,6 +1,7 @@
 # Files to delete during update (relative to MAIN_HOME)
-# Auto-generated from: git diff 2.1.5..HEAD
+# Auto-generated from: git diff 2.2.0..HEAD
 # One file per line. Lines starting with # are comments.
 #
-public/Controllers/Admin/AdminTableController.php
-public/Views/admin/table.php
+cli/Commands/BalancerCommand.php
+modules/watch/views/record.php
+modules/watch/views/record_scripts.php
