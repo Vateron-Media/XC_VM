@@ -1,19 +1,17 @@
 {
-    "version": "2.2.0",
+    "version": "2.2.1",
     "changes": [
-        "Enhanced module manifest structure and module loader functionality",
-        "Added daemon lock mechanism for cache, queue, signals, and watchdog commands",
-        "Introduced dynamic NavbarItem and NavbarRegistry system",
-        "Added module web boot support and migrated Watch/Plex routes",
-        "Improved routing, streaming gateway stability, nginx integration, and service handling",
-        "Added browser STB emulation documentation for Ministra",
-        "Migrated table routing from AdminTableController to TableController",
-        "Decoupled legacy Ministra URLs from www symlinks",
-        "Improved routing architecture and module integration flow",
-        "Fixed missing global variables in Plex and Watch controllers",
-        "Improved MD5 hash verification logic in BalancerCommand",
-        "Added documentation for the dynamic navigation menu system",
-        "Added commit message format and contribution guidelines",
-        "Merged PR #109 for the dynamic navbar system"
+        "Added binary version tracking and automatic update mechanism",
+        "Added footer layout rendering support for reseller views",
+        "Added new server installation command and improved proxy installation flow",
+        "Improved nginx scalability using reuseport",
+        "Fixed truncated recordings and archive scheduling issues",
+        "Stabilized Plex import and force scan handling",
+        "Updated common.js title assignment logic for consistency",
+        "Improved POST request handling and referer management",
+        "Applied fixes for CVE-2026-42945",
+        "Removed deprecated nginx directives accept_mutex and multi_accept",
+        "Simplified internal request handling and routing behavior",
+        "Merged community pull requests #112 and #113"
     ]
 }
