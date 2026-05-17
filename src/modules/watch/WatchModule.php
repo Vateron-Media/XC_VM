@@ -109,11 +109,6 @@ class WatchModule implements ModuleInterface {
             'permission' => ['adv', 'folder_watch_settings'],
         ]);
 
-        // record → отдельная страница
-        $router->get('record', [WatchController::class, 'record'], [
-            'permission' => ['adv', 'folder_watch'],
-        ]);
-
         // ── API-действия ──────────────────────────────────────
         $router->api('enable_watch', [WatchController::class, 'apiEnable'], [
             'permission' => ['adv', 'folder_watch_settings'],

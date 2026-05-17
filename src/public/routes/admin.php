@@ -103,6 +103,7 @@ $router->get('rtmp_monitor', [RtmpMonitorController::class, 'index']);
 $router->get('radio', [RadioController::class, 'index']);
 $router->get('radios', [RadioListController::class, 'index']);
 $router->get('radio_mass', [RadioMassController::class, 'index']);
+$router->get('record', [RecordController::class, 'index']);
 
 // ─── Group H: Pilot Detail Pages ──────────────────
 

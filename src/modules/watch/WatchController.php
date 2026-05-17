@@ -8,7 +8,6 @@
  * - Добавление/редактирование (add)
  * - Настройки Watch (settings)
  * - Логи Watch (output)
- * - Запись (record)
  * - API: enable/disable/kill/folder actions
  *
  * ──────────────────────────────────────────────────────────────────
@@ -19,7 +18,6 @@
  *   admin/watch_add.php      → add()
  *   admin/settings_watch.php → settings()
  *   admin/watch_output.php   → output()
- *   admin/record.php         → record()
  *   admin/api.php actions:
  *     enable_watch  → apiEnable()
  *     disable_watch → apiDisable()
@@ -35,11 +33,9 @@
  *       $r->get('add',      [WatchController::class, 'add']);
  *       $r->get('settings', [WatchController::class, 'settings']);
  *       $r->get('output',   [WatchController::class, 'output']);
- *       $r->get('record',   [WatchController::class, 'record']);
  *   });
  *
  * @see WatchService
- * @see RecordingService
  * @see WatchModule
  *
  * @package XC_VM_Module_Watch
@@ -142,75 +138,6 @@ class WatchController {
         include $this->viewsPath . '/watch_output.php';
         renderUnifiedLayoutFooter('admin');
         include $this->viewsPath . '/watch_output_scripts.php';
-    }
-
-    /**
-     * Форма записи (Recording)
-     *
-     * Заменяет admin/record.php
-     * Подготавливает: $rStream, $rProgramme, $rAvailableServers
-     */
-    public function record() {
-        global $db, $rMobile, $rSettings;
-
-        $rAvailableServers = $rServers = array();
-        $rStream = $rProgramme = null;
-
-        if (isset(RequestManager::getAll()['id'])) {
-            $rStream = StreamRepository::getById(RequestManager::getAll()['id']);
-            $rProgramme = EpgService::getProgramme(
-                RequestManager::getAll()['id'],
-                RequestManager::getAll()['programme']
-            );
-            if (!$rStream || $rStream['type'] != 1 || !$rProgramme) {
-                AdminHelpers::goHome();
-                return;
-            }
-        } elseif (isset(RequestManager::getAll()['archive'])) {
-            $rArchive = json_decode(base64_decode(RequestManager::getAll()['archive']), true);
-            $rStream = StreamRepository::getById($rArchive['stream_id']);
-            $rProgramme = [
-                'start'       => $rArchive['start'],
-                'end'         => $rArchive['end'],
-                'title'       => $rArchive['title'],
-                'description' => $rArchive['description'],
-                'archive'     => true,
-            ];
-            if (!$rStream || $rStream['type'] != 1 || !$rProgramme) {
-                AdminHelpers::goHome();
-                return;
-            }
-        } elseif (isset(RequestManager::getAll()['stream_id'])) {
-            $rStream = StreamRepository::getById(RequestManager::getAll()['stream_id']);
-            $rProgramme = [
-                'start'       => strtotime(RequestManager::getAll()['start_date']),
-                'end'         => strtotime(RequestManager::getAll()['start_date']) + intval(RequestManager::getAll()['duration']) * 60,
-                'title'       => '',
-                'description' => '',
-            ];
-            if (!$rStream || $rStream['type'] != 1 || !$rProgramme || $rProgramme['end'] < time()) {
-                header('Location: record');
-                return;
-            }
-        }
-
-        if ($rStream) {
-            $rBitrate = null;
-            $db->query('SELECT `server_id`, `bitrate` FROM `streams_servers` WHERE `stream_id` = ?;', $rStream['id']);
-            foreach ($db->get_rows() as $rRow) {
-                $rAvailableServers[] = $rRow['server_id'];
-                if ((!$rBitrate && $rRow['bitrate']) || ($rRow['bitrate'] && $rBitrate < $rRow['bitrate'])) {
-                    $rBitrate = $rRow['bitrate'];
-                }
-            }
-        }
-
-        $_TITLE = 'Schedule Recording';
-
-        renderUnifiedLayoutHeader('admin', ['_TITLE' => $_TITLE]);
-        include $this->viewsPath . '/record.php';
-        renderUnifiedLayoutFooter('admin');
-        include $this->viewsPath . '/record_scripts.php';
     }
 
     // ───────────────────────────────────────────────────────────
