@@ -18,16 +18,17 @@ Want to see your name here? [Open a PR](https://github.com/Vateron-Media/XC_VM/p
 <!-- STARS_TABLE_START -->
 | Contributor | Commits | PRs Merged |
 | ----------- | ------- | ---------- |
-| @Divarion-D | 487 | 23 |
+| @Divarion-D | 604 | 24 |
 | @IPTVEX | 49 | 12 |
+| @brettpetch | 6 | 2 |
 | @eoghan2t9 | 5 | 2 |
 | @icleitoncosta | 3 | 2 |
 | @locka-hd | 3 | 0 |
-| @dixtinn | 1 | 1 |
-| @PerXBit | 1 | 1 |
-| @siffdk | 1 | 1 |
-| @gpechieu | 0 | 2 |
 | @DRM-Lab | 0 | 2 |
+| @PerXBit | 1 | 1 |
+| @gpechieu | 0 | 2 |
+| @siffdk | 1 | 1 |
+| @dixtinn | 1 | 1 |
 <!-- STARS_TABLE_END -->
 
 ---
@@ -43,6 +44,7 @@ Want to see your name here? [Open a PR](https://github.com/Vateron-Media/XC_VM/p
 * [@eoghan2t9](https://github.com/eoghan2t9) — Fixed Redis configuration in install script (v1.2.16 500 error)
 * [@PerXBit](https://github.com/PerXBit) — Fixed missing SQL queries for Stream Providers (Live & Movies)
 * [@dixtinn](https://github.com/dixtinn) — Updated GeoIP databases (Geo2 Lite, Geo2 ISP)
+* [@brettpetch](https://github.com/brettpetch) — Fixed security vulnerability (CVE)
 
 ### 📖 Documentation
 
@@ -55,6 +57,7 @@ Want to see your name here? [Open a PR](https://github.com/Vateron-Media/XC_VM/p
 * [@siffdk](https://github.com/siffdk) — VOD direct stream mode failing with multiple redirects
 * [@eoghan2t9](https://github.com/eoghan2t9) — Redis misconfiguration causing 500 error in v1.2.16
 * [@Xuioneitvymas](https://github.com/Kondoooo) — Proposed fix for LLOD v2 (FFmpeg) startup delay on on-demand streams
+* [@brettpetch](https://github.com/brettpetch) — Reported and fixed security vulnerability (CVE)
 
 ### 🎨 Design
 
