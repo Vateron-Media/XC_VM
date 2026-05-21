@@ -216,9 +216,13 @@ Authentication via API key. Actions:
 | `enable_line` / `disable_line` | toggle line status |
 | `create_mag` / `edit_mag` / `delete_mag` | MAG CRUD |
 | `create_enigma` / `edit_enigma` / `delete_enigma` | Enigma CRUD |
+| `convert_mag` / `convert_enigma` | convert device type |
+| `get_users` / `get_user` | list/view sub-resellers |
 | `create_user` / `edit_user` / `delete_user` | sub-reseller CRUD |
+| `enable_user` / `disable_user` | toggle sub-reseller status |
 | `adjust_credits` | transfer credits to sub-reseller |
 | `activity_logs` / `live_connections` | connection data |
+| `user_logs` | sub-reseller activity logs |
 
 The `ResellerAPIWrapper` class validates the API key, initializes a session via `ResellerAPI`, and returns filtered JSON responses.
 

@@ -82,3 +82,4 @@ Location: `docs/en/development/diagnostics-api.md`
 - It does not change architecture behavior.
 - Update this file as gaps are addressed.
 - All items from the original audit are now addressed.
+- Accuracy audit completed 2026-05-20: all 15 docs verified against source code, inaccuracies corrected, and missing sections added.
