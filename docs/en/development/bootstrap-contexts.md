@@ -128,7 +128,7 @@ XC_Bootstrap::boot(string $context, array $options = []);
 
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
-| `cached` | `bool` | `false` for admin, `true` for stream/cli | Use cached settings |
+| `cached` | `bool` | `true` for stream, `false` for admin/cli/minimal | Use cached settings |
 | `redis` | `bool` | `true` for admin, `false` otherwise | Connect Redis |
 | `process` | `string` | `''` | Process title for CLI |
 | `shutdown` | `callable` | built-in | Override shutdown callback |
