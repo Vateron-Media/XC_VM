@@ -37,8 +37,6 @@ Place your PHP file in any registered directory (or its subdirectory):
 | `src/streaming/` | Streaming subsystem (Auth, Delivery, Codec, Health) |
 | `src/modules/` | Optional modules (Plex, Watch, TMDB, Ministra, etc.) |
 | `src/public/` | Controllers and Views |
-| `src/includes/` | Legacy code |
-| `src/includes/libs/` | Third-party libraries |
 
 ### Example
 
@@ -95,8 +93,6 @@ Edit `registerDirectories()` in `src/autoload.php`:
 private static function registerDirectories() {
     $base = self::$basePath;
 
-    self::addDirectory($base . 'includes');
-    self::addDirectory($base . 'includes/libs');
     self::addDirectory($base . 'core');
     self::addDirectory($base . 'domain');
     self::addDirectory($base . 'infrastructure');
