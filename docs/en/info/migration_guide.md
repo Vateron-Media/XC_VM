@@ -109,13 +109,13 @@ If login fails due to missing credentials or access code, use the rescue tools.
 ### Create a Rescue Access Code
 
 ```bash
-php /home/xc_vm/console.php tools access
+sudo php /home/xc_vm/console.php tools access
 ```
 
 ### Create an Administrator Account
 
 ```bash
-php /home/xc_vm/console.php tools user
+sudo php /home/xc_vm/console.php tools user
 ```
 
 > ⚠️ After regaining access, **immediately change** the access code and administrator credentials.

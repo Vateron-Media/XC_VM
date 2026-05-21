@@ -10,6 +10,8 @@
 - 🛡 **Administration**
   - [🔒 SSL Certificate Generation](en-us/administration/ssl-generation.md)
   - [⚙️ Update Mechanism](en-us/administration/update-system.md)
+  - [👥 Reseller System](en-us/administration/reseller-system.md)
+  - [💾 Backup Strategy](en-us/administration/backup-strategy.md)
 
 - 🛠 **Build & Compilation**
   - [📦 Build System (MAIN vs LB)](en-us/builds/build_system.md)
@@ -33,6 +35,9 @@
   - [🔑 Authentication and Sessions](en-us/development/authentication-and-sessions.md)
   - [⚙️ Process Management Patterns](en-us/development/process-management.md)
   - [🎚 Development Feature Flags](en-us/development/feature-flags.md)
+  - [📡 Streaming Subsystem](en-us/development/streaming-subsystem.md)
+  - [🗃 Caching and Redis Strategy](en-us/development/caching-and-redis.md)
+  - [🌍 GeoIP and Device Detection](en-us/development/geoip-and-device-detection.md)
   - [🩺 Diagnostics Service](en-us/development/diagnostics-api.md)
   - [🧪 PHPUnit PHAR Setup](en-us/development/phpunit-phar.md)
 

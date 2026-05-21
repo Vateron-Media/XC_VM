@@ -51,9 +51,10 @@ Throws `Exception` on DB query failure.
 
 ---
 
-### `submitPanelLogs(object $db): array`
+### `submitPanelLogs(object $db): string|false`
 
 Submits panel logs to remote diagnostics endpoint and clears submitted logs.
+Returns the response string on success, `false` on failure (e.g. API IP resolution fails).
 Used for support/telemetry workflows.
 
 ---
@@ -74,6 +75,18 @@ Returns `null` on network failure.
 | `log_extra` | string | extra context |
 | `line` | int | source line |
 | `date` | int | UNIX timestamp |
+
+---
+
+### `getPIDs(int $rServerID): array`
+
+Parses system process information from server API response. Returns structured process data for monitoring.
+
+---
+
+### `getNVENCProcesses(int $rServerID): array`
+
+Extracts GPU (NVENC) process data from server GPU info. Used for GPU encoding diagnostics.
 
 ---
 
