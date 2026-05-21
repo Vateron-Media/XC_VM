@@ -89,9 +89,11 @@ These commands use `DaemonTrait` and run continuously via `while(true)` loops:
 | `record` | `RecordCommand` | Record stream to MP4 |
 | `ondemand` | `OndemandCommand` | Kill streams with no active viewers |
 
-### Cron Jobs (25 total)
+### Cron Jobs (26 total: 22 core + 4 module)
 
 All cron job names are prefixed with `cron:`. They use `CronTrait` and are invoked by the system crontab.
+
+**Core cron jobs** (in `src/cli/CronJobs/`):
 
 | Command | Class | Description |
 | --- | --- | --- |
@@ -104,7 +106,7 @@ All cron job names are prefixed with `cron:`. They use `CronTrait` and are invok
 | `cron:epg` | `EpgCronJob` | EPG download and processing (optional) |
 | `cron:errors` | `ErrorsCronJob` | Process error logs |
 | `cron:lines_logs` | `LinesLogsCronJob` | Import client request logs into DB |
-| `cron:plex` | `PlexCronJob` | Process Plex updates |
+| `cron:maxmind` | `MaxMindCronJob` | Update MaxMind GeoIP databases |
 | `cron:providers` | `ProvidersCronJob` | Update providers (optional) |
 | `cron:root_mysql` | `RootMysqlCronJob` | Database maintenance (root, optional) |
 | `cron:root_signals` | `RootSignalsCronJob` | Process signals, iptables, nginx, service management (root) |
@@ -113,13 +115,19 @@ All cron job names are prefixed with `cron:`. They use `CronTrait` and are invok
 | `cron:stats` | `StatsCronJob` | Calculate and store statistics |
 | `cron:streams` | `StreamsCronJob` | Verify and update stream status |
 | `cron:streams_logs` | `StreamsLogsCronJob` | Import stream logs |
-| `cron:tmdb` | `TmdbCronJob` | Fetch TMDB metadata (optional) |
-| `cron:tmdb_popular` | `TmdbPopularCronJob` | Fetch popular TMDB content (optional) |
 | `cron:tmp` | `TmpCronJob` | Cleanup temporary files |
 | `cron:update` | `UpdateCronJob` | Check and apply updates (optional) |
 | `cron:users` | `UsersCronJob` | Manage user connections, Redis sync, divergence |
 | `cron:vod` | `VodCronJob` | Process VOD content |
-| `cron:watch` | `WatchCronJob` | Process Watch library updates |
+
+**Module cron jobs** (registered via `ModuleInterface::registerCommands()`):
+
+| Command | Class | Module | Description |
+| --- | --- | --- | --- |
+| `cron:plex` | `PlexCronJob` | plex | Process Plex updates |
+| `cron:tmdb` | `TmdbCronJob` | tmdb | Fetch TMDB metadata (optional) |
+| `cron:tmdb_popular` | `TmdbPopularCronJob` | tmdb | Fetch popular TMDB content (optional) |
+| `cron:watch` | `WatchCronJob` | watch | Process Watch library updates |
 
 > Optional cron jobs (conditionally registered): `cron:backups`, `cron:cache_engine`, `cron:epg`, `cron:providers`, `cron:root_mysql`, `cron:series`, `cron:tmdb`, `cron:tmdb_popular`, `cron:update`.
 
@@ -127,7 +135,7 @@ All cron job names are prefixed with `cron:`. They use `CronTrait` and are invok
 
 ## Registering a New Command
 
-All CLI commands implement `CommandInterface` and are explicitly registered in `console.php`.
+All CLI commands implement `CommandInterface`. Core commands are auto-discovered from `src/cli/` via reflection in `console.php`. Module commands are registered via `ModuleLoader::registerAllCommands()`.
 
 ### CommandInterface
 
