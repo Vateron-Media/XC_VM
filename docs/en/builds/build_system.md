@@ -65,7 +65,7 @@ domain/     infrastructure/         public/     resources/
 signals/    streaming/  tmp/        www/
 ```
 
-Plus root files: `autoload.php`, `bootstrap.php`, `console.php`, `service`, `status`, `update`.
+Plus root files: `autoload.php`, `bootstrap.php`, `console.php`, `service`, `update`.
 
 ### LB Build — Excluded Content
 
@@ -113,6 +113,8 @@ After copying, admin-specific content is **removed** from the LB build:
 | `cli/Commands/MigrateCommand.php` | Migration is MAIN-only |
 | `cli/Commands/CacheHandlerCommand.php` | Cache handler is MAIN-only |
 | `cli/Commands/ServerInstallCommand.php` | Server installer (not needed on LB itself) |
+| `cli/Commands/LbInstallFlow.php` | LB install helper (not needed on LB itself) |
+| `cli/Commands/ProxyInstallFlow.php` | Proxy install helper (not needed on LB itself) |
 
 **Cron jobs removed:**
 

@@ -532,7 +532,7 @@ A: In `src/config/modules.php` add `'module-name' => ['enabled' => false]`.
 A: No. `ModuleLoader` automatically discovers all modules from `modules/*/module.json`. Config is only needed for disabling.
 
 **Q: My module depends on another module — how?**
-A: **Do not allow inter-module dependencies.** A module depends only on `core/` and `domain/`. If shared functionality is needed — extract it to core.
+A: Use the `dependencies` array in `module.json` to declare inter-module dependencies. `ModuleLoader` performs topological sorting and will throw a `RuntimeException` if a declared dependency is missing. That said, prefer depending on `core/` and `domain/` when possible — extract shared functionality to core rather than creating deep inter-module dependency chains.
 
 **Q: Can I use `$db` directly?**
 A: Technically yes (via `global $db`), but architecturally correct is to use `Database` through `ServiceContainer` or Repository.

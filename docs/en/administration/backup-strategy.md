@@ -165,7 +165,7 @@ Methods:
 
 ```php
 BackupService::checkRemoteConnection()        // validate Dropbox token
-BackupService::uploadRemote($path, $filename)  // upload backup
+BackupService::uploadRemote($path, $filename, $overwrite = true)  // upload backup
 BackupService::downloadRemote($path, $filename) // download backup
 BackupService::deleteRemote($path)             // delete remote backup
 BackupService::getRemote()                     // list remote backups

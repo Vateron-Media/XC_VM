@@ -126,7 +126,9 @@ Classifies the endpoint:
 - **Default endpoints:** `live`, `thumb`, `subtitle`, `timeshift`, `vod`, `status`
 - **Privileged endpoints:** `rtmp`, `portal`
 
-Loads `AsyncFileOperations.php` and `DatabaseHandler.php`, stores settings in `$GLOBALS['rSettings']`, then calls `LegacyInitializer::initStreaming()`.
+Loads `AsyncFileOperations.php` and `DatabaseHandler.php`, stores settings in `$GLOBALS['rSettings']` and access data in `$GLOBALS['rAccess']`, then calls `LegacyInitializer::initStreaming()`.
+
+Returns the `$db` database instance (used by legacy entry points).
 
 ### 3. LegacyInitializer::initStreaming()
 
