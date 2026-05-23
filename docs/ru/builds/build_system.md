@@ -65,7 +65,7 @@ domain/     infrastructure/         public/     resources/
 signals/    streaming/  tmp/        www/
 ```
 
-Плюс корневые файлы: `autoload.php`, `bootstrap.php`, `console.php`, `service`, `status`, `update`.
+Плюс корневые файлы: `autoload.php`, `bootstrap.php`, `console.php`, `service`, `update`.
 
 ### Сборка LB — исключённый контент
 
@@ -113,6 +113,8 @@ signals/    streaming/  tmp/        www/
 | `cli/Commands/MigrateCommand.php` | Миграция только на MAIN |
 | `cli/Commands/CacheHandlerCommand.php` | Обработчик кеша только на MAIN |
 | `cli/Commands/ServerInstallCommand.php` | Установщик сервера (не нужен на самом LB) |
+| `cli/Commands/LbInstallFlow.php` | Помощник установки LB (не нужен на самом LB) |
+| `cli/Commands/ProxyInstallFlow.php` | Помощник установки Proxy (не нужен на самом LB) |
 
 **Удаляемые крон-задачи:**
 

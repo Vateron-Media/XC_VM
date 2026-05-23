@@ -50,6 +50,7 @@
 
 - 🧠 **System Documentation**
   - [📘 System Documentation Overview](en-us/system/README.md)
+  - [🧭 Navbar rendering in module panel](en-us/system/modules-navbar-rendering.md)
   - [⚙️ How the Update System Works](en-us/administration/update-system.md)
   - [🧭 Migration from Other Systems](en-us/info/migration_guide.md)
   - [📋 Documentation Gaps Backlog](en-us/info/documentation_gaps.md)

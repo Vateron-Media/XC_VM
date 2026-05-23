@@ -140,7 +140,7 @@ XC_Bootstrap::boot(string $context, array $options = []);
 
 | Опция        | Тип        | Умолчание                    | Описание                              |
 | ------------ | ---------- | ---------------------------- | ------------------------------------- |
-| `cached`     | `bool`     | `false` (admin), `true` (stream/cli) | Загружать настройки из кеша     |
+| `cached`     | `bool`     | `true` (stream), `false` (admin/cli/minimal) | Загружать настройки из кеша     |
 | `redis`      | `bool`     | `true` (admin), `false` (остальные)  | Подключать Redis                |
 | `process`    | `string`   | `''`                         | Имя процесса для `cli_set_process_title()` |
 | `shutdown`   | `callable` | встроенный                   | Замена стандартного shutdown-обработчика |

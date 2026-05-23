@@ -62,7 +62,7 @@
 | `migrate` | `MigrateCommand` | Перенос данных из БД `xc_vm_migrate` | xc_vm |
 | `server:install` | `ServerInstallCommand` | Установка/настройка сервера (Proxy/LB) по SSH | root |
 
-> Опциональные команды (условная регистрация через `file_exists()`): `cache_handler`, `server:install`, `migrate`.
+> Команды, отмеченные как **опциональные**, условно регистрируются через `file_exists()` guard: `cache_handler`, `server:install`, `migrate`.
 
 ### Команды-демоны (фоновые процессы)
 
@@ -89,9 +89,11 @@
 | `record` | `RecordCommand` | Запись стрима в MP4 |
 | `ondemand` | `OndemandCommand` | Завершение стримов без активных зрителей |
 
-### Крон-задачи (25 шт.)
+### Крон-задачи (всего 26: 22 core + 4 модульных)
 
 Имена всех крон-задач имеют префикс `cron:`. Они используют `CronTrait` и вызываются системным crontab.
+
+**Core-крон-задачи** (в `src/cli/CronJobs/`):
 
 | Команда | Класс | Описание |
 | --- | --- | --- |
@@ -104,7 +106,7 @@
 | `cron:epg` | `EpgCronJob` | Загрузка и обработка EPG (опционально) |
 | `cron:errors` | `ErrorsCronJob` | Обработка логов ошибок |
 | `cron:lines_logs` | `LinesLogsCronJob` | Импорт логов клиентских запросов в БД |
-| `cron:plex` | `PlexCronJob` | Обработка обновлений Plex |
+| `cron:maxmind` | `MaxMindCronJob` | Обновление баз MaxMind GeoIP |
 | `cron:providers` | `ProvidersCronJob` | Обновление провайдеров (опционально) |
 | `cron:root_mysql` | `RootMysqlCronJob` | Обслуживание БД (root, опционально) |
 | `cron:root_signals` | `RootSignalsCronJob` | Обработка сигналов, iptables, nginx, управление сервисом (root) |
@@ -113,13 +115,19 @@
 | `cron:stats` | `StatsCronJob` | Подсчёт и сохранение статистики |
 | `cron:streams` | `StreamsCronJob` | Проверка и обновление статуса стримов |
 | `cron:streams_logs` | `StreamsLogsCronJob` | Импорт логов стримов |
-| `cron:tmdb` | `TmdbCronJob` | Получение метаданных TMDB (опционально) |
-| `cron:tmdb_popular` | `TmdbPopularCronJob` | Получение популярного контента TMDB (опционально) |
 | `cron:tmp` | `TmpCronJob` | Очистка временных файлов |
 | `cron:update` | `UpdateCronJob` | Проверка и применение обновлений (опционально) |
 | `cron:users` | `UsersCronJob` | Управление пользовательскими соединениями, синхронизация Redis |
 | `cron:vod` | `VodCronJob` | Обработка VOD-контента |
-| `cron:watch` | `WatchCronJob` | Обработка обновлений Watch-библиотеки |
+
+**Модульные крон-задачи** (регистрируются через `ModuleInterface::registerCommands()`):
+
+| Команда | Класс | Модуль | Описание |
+| --- | --- | --- | --- |
+| `cron:plex` | `PlexCronJob` | plex | Обработка обновлений Plex |
+| `cron:tmdb` | `TmdbCronJob` | tmdb | Получение метаданных TMDB (опционально) |
+| `cron:tmdb_popular` | `TmdbPopularCronJob` | tmdb | Получение популярного контента TMDB (опционально) |
+| `cron:watch` | `WatchCronJob` | watch | Обработка обновлений Watch-библиотеки |
 
 > Опциональные крон-задачи (условная регистрация): `cron:backups`, `cron:cache_engine`, `cron:epg`, `cron:providers`, `cron:root_mysql`, `cron:series`, `cron:tmdb`, `cron:tmdb_popular`, `cron:update`.
 
@@ -127,7 +135,7 @@
 
 ## Регистрация новой команды
 
-Все CLI-команды реализуют `CommandInterface` и явно регистрируются в `console.php`.
+Все CLI-команды реализуют `CommandInterface`. Core-команды автоматически обнаруживаются из `src/cli/` через рефлексию в `console.php`. Команды модулей регистрируются через `ModuleLoader::registerAllCommands()`.
 
 ### CommandInterface
 

@@ -52,7 +52,6 @@ mkdir -p src/modules/my-module
 ```json
 {
     "name": "my-module",
-    "description": "Краткое описание модуля",
     "version": "1.0.0",
     "requires_core": ">=2.0",
     "environment": "main",
