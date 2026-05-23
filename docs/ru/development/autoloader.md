@@ -37,8 +37,6 @@ XC_VM использует собственный автозагрузчик (`s
 | `src/streaming/` | Стриминг-подсистема (Auth, Delivery, Codec, Health) |
 | `src/modules/` | Опциональные модули (Plex, Watch, TMDB, Ministra и т.д.) |
 | `src/public/` | Контроллеры и Views |
-| `src/includes/` | Legacy-код |
-| `src/includes/libs/` | Сторонние библиотеки |
 
 ### Пример
 
@@ -95,8 +93,6 @@ XC_Autoloader::addClass('DropboxException', '/home/xc_vm/includes/libs/Dropbox.p
 private static function registerDirectories() {
     $base = self::$basePath;
 
-    self::addDirectory($base . 'includes');
-    self::addDirectory($base . 'includes/libs');
     self::addDirectory($base . 'core');
     self::addDirectory($base . 'domain');
     self::addDirectory($base . 'infrastructure');
