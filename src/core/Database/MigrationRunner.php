@@ -38,8 +38,7 @@ class MigrationRunner {
 		$rFiles = glob($rPath . '*.sql');
 		sort($rFiles);
 
-		$rAppliedCount = 0;
-		$rFailedCount = 0;
+		$rCount = 0;
 		foreach ($rFiles as $rFile) {
 			$rName = basename($rFile);
 			if (in_array($rName, $rApplied)) {
@@ -63,25 +62,13 @@ class MigrationRunner {
 				}
 			}
 
-			if ($rFailed) {
-				echo "  [WARN] " . $rName . " (not marked as applied)\n";
-				$rFailedCount++;
-				continue;
-			}
-
-			if ($db->query("INSERT INTO `migrations` (`migration`) VALUES (?);", $rName)) {
-				echo "  [OK]   " . $rName . "\n";
-				$rAppliedCount++;
-			} else {
-				echo "  [WARN] " . $rName . " (applied but failed to record)\n";
-				$rFailedCount++;
-			}
+			$db->query("INSERT INTO `migrations` (`migration`) VALUES (?);", $rName);
+			echo ($rFailed ? "  [WARN] " : "  [OK]   ") . $rName . "\n";
+			$rCount++;
 		}
 
-		if ($rAppliedCount === 0 && $rFailedCount === 0) {
+		if ($rCount === 0) {
 			echo "No pending migrations.\n";
-		} elseif ($rFailedCount > 0) {
-			echo "Completed with " . $rFailedCount . " failed migration(s).\n";
 		}
 		echo "\n";
 	}
