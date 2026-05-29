@@ -2914,7 +2914,7 @@ class TableController extends BaseAdminController {
 					$rDuration = (int) time() - (int) $rRow["date_start"];
 					$rColour = "success";
 					if ($rRow["hls_end"]) {
-						$rDuration = "<button type='button' class='btn btn-secondary btn-xs waves-effect waves-light btn-fixed'>' . $language::get('closed') . '</button>";
+						$rDuration = "<button type='button' class='btn btn-secondary btn-xs waves-effect waves-light btn-fixed'>" . $language::get('closed') . "</button>";
 					} else {
 						if (86400 <= $rDuration) {
 							$rDuration = sprintf("%02dd %02dh", $rDuration / 86400, $rDuration / 3600 % 24);
