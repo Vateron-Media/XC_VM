@@ -1301,7 +1301,7 @@ $moduleLoader->bootAll(ServiceContainer::getInstance(), $router);
 |:-:|--------|------|:---------:|
 | 1 | Удалить маршруты watch/* из `routes/admin.php` | `public/routes/admin.php` | Лёгкая |
 | 2 | Удалить маршруты plex/* из `routes/admin.php` | `public/routes/admin.php` | Лёгкая |
-| 3 | Удалить маршруты fingerprint, theft_detection, magscan из `routes/admin.php` | `public/routes/admin.php` | Лёгкая |
+| 3 | Удалить маршруты fingerprint, magscan из `routes/admin.php` | `public/routes/admin.php` | Лёгкая |
 | 4 | Проверить все модульные страницы доступны через Router | Ручной тест | Средняя |
 
 **Предусловия:** M-1, M-3 (navbar должна работать до удаления статических маршрутов)
