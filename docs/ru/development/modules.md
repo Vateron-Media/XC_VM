@@ -43,7 +43,7 @@ modules/
 mkdir -p src/modules/my-module
 ```
 
-Имя директории = имя модуля. Используйте kebab-case: `my-module`, `theft-detection`.
+Имя директории = имя модуля. Используйте kebab-case: `my-module`.
 
 ---
 
@@ -424,7 +424,7 @@ $rCrons[] = '*/5 * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:my_ta
 
 ### Минимальный модуль (без кронов, без маршрутов)
 
-Пример: `fingerprint`, `theft-detection`, `magscan`.
+Пример: `fingerprint`, `magscan`.
 
 ```
 modules/my-module/

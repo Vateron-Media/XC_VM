@@ -193,8 +193,6 @@ src/
 │   ├── plex/                        # Plex integration
 │   ├── tmdb/                        # TMDB metadata fetching
 │   ├── watch/                       # Watch/DVR recording
-│   ├── fingerprint/                 # Watermarking
-│   ├── theft-detection/             # Anti-theft detection
 │   └── magscan/                     # MAG device scanning
 │
 ├── infrastructure/                  # === SYSTEM INFRASTRUCTURE ===
@@ -383,7 +381,6 @@ Each module is a directory with `module.json` and a PHP class implementing `Modu
 │ `tmdb/` │ TMDB metadata fetching │
 │ `watch/` │ Watch/DVR recording │
 │ `fingerprint/` │ Watermarking │
-│ `theft-detection/` │ Anti-theft detection │
 │ `magscan/` │ MAG device scanning │
 
 **Current limitation:** `console.php` does call `ModuleLoader::loadAll()` and `registerAllCommands()`, so CLI module integration is active. `public/index.php` **does not call** `ModuleLoader::bootAll()`, therefore `boot()` and `registerRoutes()` do not participate in the current web runtime path. Module pages that are currently available in admin are statically wired in `public/routes/admin.php`.
