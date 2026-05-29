@@ -18,7 +18,7 @@ EXCLUDES := \
 # Directories to copy from MAIN to LB
 # NOTE: modules/ is intentionally excluded — all modules are MAIN-only.
 # Modules: tmdb, plex, watch, ministra, fingerprint, theft-detection, magscan
-LB_DIRS := bin cli config content core domain \
+LB_DIRS := bin cli config content core domain modules\
 	infrastructure public resources signals streaming tmp www
 
 # Root-level files to copy from MAIN to LB (not inside directories)
