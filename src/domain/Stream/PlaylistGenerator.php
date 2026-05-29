@@ -94,8 +94,13 @@ class PlaylistGenerator {
 		if (count($rUserInfo['series_ids']) > 0) {
 			if ($rCached) {
 				foreach ($rUserInfo['series_ids'] as $rSeriesID) {
-					$rSeriesInfo[$rSeriesID] = igbinary_unserialize(file_get_contents(SERIES_TMP_PATH . 'series_' . intval($rSeriesID)));
-					$rSeriesData = igbinary_unserialize(file_get_contents(SERIES_TMP_PATH . 'episodes_' . intval($rSeriesID)));
+					$__raw_series = @file_get_contents(SERIES_TMP_PATH . 'series_' . intval($rSeriesID));
+					$rSeriesInfo[$rSeriesID] = ($__raw_series !== false ? igbinary_unserialize($__raw_series) : array());
+					$__raw_episodes = @file_get_contents(SERIES_TMP_PATH . 'episodes_' . intval($rSeriesID));
+					$rSeriesData = ($__raw_episodes !== false ? igbinary_unserialize($__raw_episodes) : array());
+					if (!is_array($rSeriesData)) {
+						$rSeriesData = array();
+					}
 					foreach ($rSeriesData as $rSeasonID => $rEpisodes) {
 						foreach ($rEpisodes as $rEpisode) {
 							$rSeriesEpisodes[$rEpisode['stream_id']] = array($rSeasonID, $rEpisode['episode_num']);
@@ -184,23 +189,40 @@ class PlaylistGenerator {
 					$rRows = $db->get_rows();
 				} else {
 					$rRows = array();
-					foreach ($rBlockIDs as $rID) {
-						$rRows[] = igbinary_unserialize(file_get_contents(STREAMS_TMP_PATH . 'stream_' . intval($rID)))['info'];
-					}
+						foreach ($rBlockIDs as $rID) {
+							$__raw_s = @file_get_contents(STREAMS_TMP_PATH . 'stream_' . intval($rID));
+							$__tmp_s = ($__raw_s !== false ? igbinary_unserialize($__raw_s) : null);
+							if (is_array($__tmp_s) && isset($__tmp_s['info'])) {
+								$rRows[] = $__tmp_s['info'];
+							}
+						}
 				}
 				foreach ($rRows as $rChannelInfo) {
+					// normalize keys to avoid undefined index warnings
+					$rChannelInfo['movie_properties'] = $rChannelInfo['movie_properties'] ?? null;
+					$rChannelInfo['type_key'] = $rChannelInfo['type_key'] ?? null;
+					$rChannelInfo['stream_display_name'] = $rChannelInfo['stream_display_name'] ?? '';
+					$rChannelInfo['year'] = $rChannelInfo['year'] ?? null;
+					$rChannelInfo['live'] = $rChannelInfo['live'] ?? 0;
+					$rChannelInfo['category_id'] = $rChannelInfo['category_id'] ?? null;
+					$rChannelInfo['id'] = $rChannelInfo['id'] ?? null;
+					$rChannelInfo['target_container'] = $rChannelInfo['target_container'] ?? null;
+					$rChannelInfo['stream_icon'] = $rChannelInfo['stream_icon'] ?? null;
+					$rChannelInfo['custom_sid'] = $rChannelInfo['custom_sid'] ?? null;
 					if (!$rTypeKey || in_array($rChannelInfo['type_output'], $rTypeKey)) {
 						if (!$rChannelInfo['target_container']) {
 							$rChannelInfo['target_container'] = 'mp4';
 						}
-						$rProperties = (!is_array($rChannelInfo['movie_properties']) ? json_decode($rChannelInfo['movie_properties'], true) : $rChannelInfo['movie_properties']);
+						$rProperties = (!is_array($rChannelInfo['movie_properties']) ? json_decode($rChannelInfo['movie_properties'] ?? '[]', true) : $rChannelInfo['movie_properties']);
 						if ($rChannelInfo['type_key'] == 'series') {
-							$rSeriesID = $rSeriesAllocation[$rChannelInfo['id']];
+							$rSeriesID = $rSeriesAllocation[$rChannelInfo['id']] ?? null;
 							$rChannelInfo['live'] = 0;
-							$rChannelInfo['stream_display_name'] = $rSeriesInfo[$rSeriesID]['title'] . ' S' . sprintf('%02d', $rSeriesEpisodes[$rChannelInfo['id']][0]) . 'E' . sprintf('%02d', $rSeriesEpisodes[$rChannelInfo['id']][1]);
-							$rChannelInfo['movie_properties'] = array('movie_image' => (!empty($rProperties['movie_image']) ? $rProperties['movie_image'] : $rSeriesInfo['cover']));
+							$__season = $rSeriesEpisodes[$rChannelInfo['id']][0] ?? 0;
+							$__episode = $rSeriesEpisodes[$rChannelInfo['id']][1] ?? 0;
+							$rChannelInfo['stream_display_name'] = ($rSeriesInfo[$rSeriesID]['title'] ?? '') . ' S' . sprintf('%02d', $__season) . 'E' . sprintf('%02d', $__episode);
+							$rChannelInfo['movie_properties'] = array('movie_image' => (!empty($rProperties['movie_image']) ? $rProperties['movie_image'] : ($rSeriesInfo[$rSeriesID]['cover'] ?? null)));
 							$rChannelInfo['type_output'] = 'series';
-							$rChannelInfo['category_id'] = $rSeriesInfo[$rSeriesID]['category_id'];
+							$rChannelInfo['category_id'] = $rSeriesInfo[$rSeriesID]['category_id'] ?? null;
 						} else {
 							$rChannelInfo['stream_display_name'] = StreamSorter::formatTitle($rChannelInfo['stream_display_name'], $rChannelInfo['year']);
 						}
@@ -274,12 +296,27 @@ class PlaylistGenerator {
 						$rRows = $db->get_rows();
 					} else {
 						$rRows = array();
-						foreach ($rBlockIDs as $rID) {
-							$rRows[] = igbinary_unserialize(file_get_contents(STREAMS_TMP_PATH . 'stream_' . intval($rID)))['info'];
-						}
+							foreach ($rBlockIDs as $rID) {
+								$__raw_s = @file_get_contents(STREAMS_TMP_PATH . 'stream_' . intval($rID));
+								$__tmp_s = ($__raw_s !== false ? igbinary_unserialize($__raw_s) : null);
+								if (is_array($__tmp_s) && isset($__tmp_s['info'])) {
+									$rRows[] = $__tmp_s['info'];
+								}
+							}
 					}
 
 					foreach ($rRows as $rChannel) {
+						// normalize keys to avoid undefined index warnings
+						$rChannel['movie_properties'] = $rChannel['movie_properties'] ?? null;
+						$rChannel['type_key'] = $rChannel['type_key'] ?? null;
+						$rChannel['stream_display_name'] = $rChannel['stream_display_name'] ?? '';
+						$rChannel['year'] = $rChannel['year'] ?? null;
+						$rChannel['live'] = $rChannel['live'] ?? 0;
+						$rChannel['category_id'] = $rChannel['category_id'] ?? null;
+						$rChannel['id'] = $rChannel['id'] ?? null;
+						$rChannel['target_container'] = $rChannel['target_container'] ?? null;
+						$rChannel['stream_icon'] = $rChannel['stream_icon'] ?? null;
+						$rChannel['custom_sid'] = $rChannel['custom_sid'] ?? null;
 						if ($rTypeKey && !in_array($rChannel['type_output'], $rTypeKey)) {
 							continue;
 						}
@@ -299,14 +336,16 @@ class PlaylistGenerator {
 							}
 						}
 
-						$rProperties = (!is_array($rChannel['movie_properties']) ? json_decode($rChannel['movie_properties'], true) : $rChannel['movie_properties']);
+						$rProperties = (!is_array($rChannel['movie_properties']) ? json_decode($rChannel['movie_properties'] ?? '[]', true) : $rChannel['movie_properties']);
 						if ($rChannel['type_key'] == 'series') {
-							$rSeriesID = $rSeriesAllocation[$rChannel['id']];
+							$rSeriesID = $rSeriesAllocation[$rChannel['id']] ?? null;
 							$rChannel['live'] = 0;
-							$rChannel['stream_display_name'] = $rSeriesInfo[$rSeriesID]['title'] . ' S' . sprintf('%02d', $rSeriesEpisodes[$rChannel['id']][0]) . 'E' . sprintf('%02d', $rSeriesEpisodes[$rChannel['id']][1]);
-							$rChannel['movie_properties'] = array('movie_image' => (!empty($rProperties['movie_image']) ? $rProperties['movie_image'] : $rSeriesInfo['cover']));
+							$__season = $rSeriesEpisodes[$rChannel['id']][0] ?? 0;
+							$__episode = $rSeriesEpisodes[$rChannel['id']][1] ?? 0;
+							$rChannel['stream_display_name'] = ($rSeriesInfo[$rSeriesID]['title'] ?? '') . ' S' . sprintf('%02d', $__season) . 'E' . sprintf('%02d', $__episode);
+							$rChannel['movie_properties'] = array('movie_image' => (!empty($rProperties['movie_image']) ? $rProperties['movie_image'] : ($rSeriesInfo[$rSeriesID]['cover'] ?? null)));
 							$rChannel['type_output'] = 'series';
-							$rChannel['category_id'] = $rSeriesInfo[$rSeriesID]['category_id'];
+							$rChannel['category_id'] = $rSeriesInfo[$rSeriesID]['category_id'] ?? null;
 						} else {
 							$rChannel['stream_display_name'] = StreamSorter::formatTitle($rChannel['stream_display_name'], $rChannel['year']);
 						}
