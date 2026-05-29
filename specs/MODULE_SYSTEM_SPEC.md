@@ -46,8 +46,6 @@
 | `plex` | ✅ | ✅ | Регистрирует 3 сервиса | 3 GET + 5 API | `PlexCronJob`, `PlexItemCommand` | `[]` |
 | `tmdb` | ✅ | ✅ | Регистрирует 1 сервис | Пусто (TODO) | `TmdbCronJob`, `TmdbPopularCronJob` | `[]` |
 | `ministra` | ✅ | ✅ | Пусто | Пусто (standalone) | Пусто | `[]` |
-| `fingerprint` | ✅ | ✅ | Пусто | 1 GET + 1 API | Пусто | `[]` |
-| `magscan` | ✅ | ✅ | Пусто | 1 GET + 1 API | Пусто | `[]` |
 
 ### 0.3. Критические разрывы
 
@@ -274,7 +272,7 @@ if ($env !== 'any' && $env !== $currentEnv) {
 # В будущем — копировать modules/ в LB, удалять main-only:
 LB_DIRS += modules
 LB_MODULE_DIRS_TO_REMOVE := modules/watch modules/plex modules/tmdb \
-    modules/fingerprint modules/magscan
+    modules/fingerprint
 ```
 
 **На данном этапе изменения Makefile не требуются.** Все 7 текущих модулей — `environment: "main"`.
@@ -1023,7 +1021,7 @@ NavbarBuilder::invalidate(new FileCache(CACHE_TMP_PATH));
 
 **Фаза M-3a:** Создать `NavbarPositions.php` и `NavbarBuilder.php`. Добавить 4 injection points в header.php. Подключить в `index.php` после `bootAll()`.
 
-**Фаза M-3b:** Создать `navbar.php` для модулей: watch, plex, magscan. Каждый модуль получает корректную `position` и `order`.
+**Фаза M-3b:** Создать `navbar.php` для модулей: watch, plex. Каждый модуль получает корректную `position` и `order`.
 
 **Фаза M-3c:** Удалить hardcoded пункты модулей из header.php (Plex Sync, Watch Folders, Theft Detection из Management секции). Теперь они приходят через NavbarBuilder.
 
@@ -1074,7 +1072,7 @@ if (isset($this->getRoutes[$fullRoute])) {
 
 ### 7.4. Переходный период (дубликаты)
 
-Сейчас маршруты watch/plex/fingerprint/magscan зарегистрированы в ДВУХ местах:
+Сейчас маршруты watch/plex/ зарегистрированы в ДВУХ местах:
 1. `public/routes/admin.php` (статически)
 2. `{Module}Module::registerRoutes()` (через ModuleInterface)
 
@@ -1276,13 +1274,13 @@ $moduleLoader->bootAll(ServiceContainer::getInstance(), $router);
 | 2 | Создать `NavbarBuilder` — build + cache + validate + render | `core/Http/NavbarBuilder.php` NEW | Высокая |
 | 3 | Добавить 4 injection points в header.php | `public/Views/admin/header.php` | Средняя |
 | 4 | Добавить `NavbarBuilder::getItems()` вызов в `index.php` | `public/index.php` | Лёгкая |
-| 5 | Создать `navbar.php` для watch, plex, magscan | 5 файлов в `modules/*/` | Средняя |
+| 5 | Создать `navbar.php` для watch, plex | 5 файлов в `modules/*/` | Средняя |
 | 6 | Удалить hardcoded модульные пункты из header.php | `public/Views/admin/header.php` | Средняя |
 | 7 | Добавить `NavbarBuilder::invalidate()` в `ModuleManagerController::apiToggle()` | `public/Controllers/Admin/ModuleManagerController.php` | Лёгкая |
 
 **Подфазы:**
 - **M-3a:** Создать `NavbarPositions.php`, `NavbarBuilder.php`. Добавить injection points в header.php. Подключить `getItems()` в index.php. На этом этапе injection points пустые — нет navbar.php в модулях.
-- **M-3b:** Создать `navbar.php` для 5 модулей (watch, plex, magscan). Проверить рендеринг.
+- **M-3b:** Создать `navbar.php` для 5 модулей (watch, plex). Проверить рендеринг.
 - **M-3c:** Удалить hardcoded модульные пункты из header.php. Проверить навигацию.
 
 **Предусловия:** M-1
@@ -1300,8 +1298,7 @@ $moduleLoader->bootAll(ServiceContainer::getInstance(), $router);
 |:-:|--------|------|:---------:|
 | 1 | Удалить маршруты watch/* из `routes/admin.php` | `public/routes/admin.php` | Лёгкая |
 | 2 | Удалить маршруты plex/* из `routes/admin.php` | `public/routes/admin.php` | Лёгкая |
-| 3 | Удалить маршруты magscan из `routes/admin.php` | `public/routes/admin.php` | Лёгкая |
-| 4 | Проверить все модульные страницы доступны через Router | Ручной тест | Средняя |
+| 3 | Проверить все модульные страницы доступны через Router | Ручной тест | Средняя |
 
 **Предусловия:** M-1, M-3 (navbar должна работать до удаления статических маршрутов)
 **Риск:** Средний. При ошибке — модульные страницы вернут 404. Решение: feature flag.

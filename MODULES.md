@@ -53,7 +53,7 @@
 | `ModuleManager` | `ГОТОВО` | Список, install, uninstall, enable, disable, update, upload |
 | Админ-страница модулей | `ГОТОВО` | `ModulesController` + `Views/admin/modules.php` |
 | Регистрация `events` в контейнере | `ГОТОВО` | Это больше не backlog |
-| 7 модулей в `src/modules/` | `ГОТОВО` | `watch`, `plex`, `tmdb`, `ministra`, `fingerprint`, `magscan` |
+| 7 модулей в `src/modules/` | `ГОТОВО` | `watch`, `plex`, `tmdb`, `ministra`, `fingerprint` |
 
 ```text
 ВЫВОД:
