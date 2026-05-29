@@ -47,7 +47,6 @@
 | `tmdb` | ✅ | ✅ | Регистрирует 1 сервис | Пусто (TODO) | `TmdbCronJob`, `TmdbPopularCronJob` | `[]` |
 | `ministra` | ✅ | ✅ | Пусто | Пусто (standalone) | Пусто | `[]` |
 | `fingerprint` | ✅ | ✅ | Пусто | 1 GET + 1 API | Пусто | `[]` |
-| `theft-detection` | ✅ | ✅ | Пусто | 1 GET | Пусто | `[]` |
 | `magscan` | ✅ | ✅ | Пусто | 1 GET + 1 API | Пусто | `[]` |
 
 ### 0.3. Критические разрывы
@@ -275,7 +274,7 @@ if ($env !== 'any' && $env !== $currentEnv) {
 # В будущем — копировать modules/ в LB, удалять main-only:
 LB_DIRS += modules
 LB_MODULE_DIRS_TO_REMOVE := modules/watch modules/plex modules/tmdb \
-    modules/fingerprint modules/theft-detection modules/magscan
+    modules/fingerprint modules/magscan
 ```
 
 **На данном этапе изменения Makefile не требуются.** Все 7 текущих модулей — `environment: "main"`.
@@ -291,7 +290,7 @@ LB_MODULE_DIRS_TO_REMOVE := modules/watch modules/plex modules/tmdb \
 ```php
 // src/config/modules.php
 return [
-    // 'theft-detection' => ['enabled' => false],
+    // 'example-module' => ['enabled' => false],
 ];
 ```
 
@@ -509,12 +508,12 @@ Users → Lines (add/manage/mass), MAG (add/manage/mass), Enigma (add/manage/mas
 Content → Streams, Created Channels, Movies, Series, Radio, Archive, EPG View
 Bouquets → Add, Manage, Order
 Management → Service Setup (Packages, Categories, Groups, EPG, Profiles, Plex, Watch),
-             Access Codes, Security, Tools (Channel Order, Fingerprint, Mass Delete, ...),
+             Access Codes, Security, Tools (Channel Order, Mass Delete, ...),
              Logs (17 пунктов), Tickets
 Providers → Add, Manage
 ```
 
-Каждый пункт обёрнут в `Authorization::check('adv', '...')`. Модульные пункты (Plex, Watch, Fingerprint, Theft Detection) зашиты в HTML напрямую.
+Каждый пункт обёрнут в `Authorization::check('adv', '...')`. Модульные пункты (Plex, Watch, Theft Detection) зашиты в HTML напрямую.
 
 ### 6.2. Почему нужен data-driven подход
 
@@ -1024,9 +1023,9 @@ NavbarBuilder::invalidate(new FileCache(CACHE_TMP_PATH));
 
 **Фаза M-3a:** Создать `NavbarPositions.php` и `NavbarBuilder.php`. Добавить 4 injection points в header.php. Подключить в `index.php` после `bootAll()`.
 
-**Фаза M-3b:** Создать `navbar.php` для модулей: watch, plex, fingerprint, theft-detection, magscan. Каждый модуль получает корректную `position` и `order`.
+**Фаза M-3b:** Создать `navbar.php` для модулей: watch, plex, magscan. Каждый модуль получает корректную `position` и `order`.
 
-**Фаза M-3c:** Удалить hardcoded пункты модулей из header.php (Plex Sync, Watch Folders, Fingerprint, Theft Detection из Management секции). Теперь они приходят через NavbarBuilder.
+**Фаза M-3c:** Удалить hardcoded пункты модулей из header.php (Plex Sync, Watch Folders, Theft Detection из Management секции). Теперь они приходят через NavbarBuilder.
 
 **Что НЕ трогаем:** Core-пункты (Dashboard, Servers, Users, Content, Bouquets, Management каркас, Providers) остаются hardcoded. Они — часть ядра, не модулей.
 ### 7.2. Проблема: маршруты не загружаются в web (будет исправлено в M-1)
@@ -1075,7 +1074,7 @@ if (isset($this->getRoutes[$fullRoute])) {
 
 ### 7.4. Переходный период (дубликаты)
 
-Сейчас маршруты watch/plex/fingerprint/theft-detection/magscan зарегистрированы в ДВУХ местах:
+Сейчас маршруты watch/plex/fingerprint/magscan зарегистрированы в ДВУХ местах:
 1. `public/routes/admin.php` (статически)
 2. `{Module}Module::registerRoutes()` (через ModuleInterface)
 
@@ -1198,7 +1197,7 @@ $container->set('events', EventDispatcher::class);
 ### 9.4. Navbar — нет точки расширения
 
 **Файл:** `src/public/Views/admin/header.php`
-**Описание:** Модульные пункты меню (watch, plex, fingerprint и т.д.) hardcoded в HTML. Нет механизма динамического добавления.
+**Описание:** Модульные пункты меню (watch, plex и т.д.) hardcoded в HTML. Нет механизма динамического добавления.
 
 **Решение:** Описано в §6.3–6.10.
 
@@ -1277,13 +1276,13 @@ $moduleLoader->bootAll(ServiceContainer::getInstance(), $router);
 | 2 | Создать `NavbarBuilder` — build + cache + validate + render | `core/Http/NavbarBuilder.php` NEW | Высокая |
 | 3 | Добавить 4 injection points в header.php | `public/Views/admin/header.php` | Средняя |
 | 4 | Добавить `NavbarBuilder::getItems()` вызов в `index.php` | `public/index.php` | Лёгкая |
-| 5 | Создать `navbar.php` для watch, plex, fingerprint, theft-detection, magscan | 5 файлов в `modules/*/` | Средняя |
+| 5 | Создать `navbar.php` для watch, plex, magscan | 5 файлов в `modules/*/` | Средняя |
 | 6 | Удалить hardcoded модульные пункты из header.php | `public/Views/admin/header.php` | Средняя |
 | 7 | Добавить `NavbarBuilder::invalidate()` в `ModuleManagerController::apiToggle()` | `public/Controllers/Admin/ModuleManagerController.php` | Лёгкая |
 
 **Подфазы:**
 - **M-3a:** Создать `NavbarPositions.php`, `NavbarBuilder.php`. Добавить injection points в header.php. Подключить `getItems()` в index.php. На этом этапе injection points пустые — нет navbar.php в модулях.
-- **M-3b:** Создать `navbar.php` для 5 модулей (watch, plex, fingerprint, theft-detection, magscan). Проверить рендеринг.
+- **M-3b:** Создать `navbar.php` для 5 модулей (watch, plex, magscan). Проверить рендеринг.
 - **M-3c:** Удалить hardcoded модульные пункты из header.php. Проверить навигацию.
 
 **Предусловия:** M-1
@@ -1301,7 +1300,7 @@ $moduleLoader->bootAll(ServiceContainer::getInstance(), $router);
 |:-:|--------|------|:---------:|
 | 1 | Удалить маршруты watch/* из `routes/admin.php` | `public/routes/admin.php` | Лёгкая |
 | 2 | Удалить маршруты plex/* из `routes/admin.php` | `public/routes/admin.php` | Лёгкая |
-| 3 | Удалить маршруты fingerprint, magscan из `routes/admin.php` | `public/routes/admin.php` | Лёгкая |
+| 3 | Удалить маршруты magscan из `routes/admin.php` | `public/routes/admin.php` | Лёгкая |
 | 4 | Проверить все модульные страницы доступны через Router | Ручной тест | Средняя |
 
 **Предусловия:** M-1, M-3 (navbar должна работать до удаления статических маршрутов)

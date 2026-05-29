@@ -190,8 +190,6 @@ src/
 │   ├── plex/                        # Plex integration
 │   ├── tmdb/                        # TMDB metadata fetching
 │   ├── watch/                       # Watch/DVR recording
-│   ├── fingerprint/                 # Watermarking
-│   ├── theft-detection/             # Anti-theft detection
 │   └── magscan/                     # MAG device scanning
 │
 ├── infrastructure/                  # ═══ СИСТЕМНАЯ ИНФРАСТРУКТУРА ═══
@@ -379,7 +377,6 @@ class StreamRepository {
 | `tmdb/` | TMDB metadata fetching |
 | `watch/` | Watch/DVR recording |
 | `fingerprint/` | Watermarking |
-| `theft-detection/` | Anti-theft detection |
 | `magscan/` | MAG device scanning |
 
 **Текущее ограничение:** `console.php` действительно вызывает `ModuleLoader::loadAll()` и `registerAllCommands()`, поэтому CLI-интеграция модулей активна. `public/index.php` **не вызывает** `ModuleLoader::bootAll()`, поэтому `boot()` и `registerRoutes()` не участвуют в текущем web runtime-path. Модульные страницы, которые уже доступны в админке, заведены статически в `public/routes/admin.php`.

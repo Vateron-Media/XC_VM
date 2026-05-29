@@ -43,7 +43,7 @@ modules/
 mkdir -p src/modules/my-module
 ```
 
-Directory name = module name. Use kebab-case: `my-module`, `theft-detection`.
+Directory name = module name. Use kebab-case: `my-module`.
 
 ---
 
@@ -440,7 +440,7 @@ The `modules/` directory is **not** included in `LB_DIRS` — all modules are on
 
 ### Minimal module (no crons, no routes)
 
-Example: `fingerprint`, `theft-detection`, `magscan`.
+Example: `fingerprint`, `magscan`.
 
 ```
 modules/my-module/
