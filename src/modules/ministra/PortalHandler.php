@@ -503,6 +503,7 @@ class PortalHandler {
      */
     public static function handleAudioclub($rReqAction, &$ctx) {
         global $rSettings, $rCategories;
+        $rCategories = (is_array($rCategories ?? null) ? $rCategories : array());
 
         switch ($rReqAction) {
             case 'get_categories':
@@ -535,6 +536,7 @@ class PortalHandler {
      */
     public static function handleItv($rReqAction, &$ctx) {
         global $db, $rSettings, $rServers, $rRequest, $rCategories;
+        $rCategories = (is_array($rCategories ?? null) ? $rCategories : array());
         $rCategoryIDs = (is_array($ctx['device']['category_ids'] ?? null) ? $ctx['device']['category_ids'] : array());
 
         switch ($rReqAction) {
@@ -707,6 +709,7 @@ class PortalHandler {
      */
     public static function handleVod($rReqAction, &$ctx) {
         global $db, $rSettings, $rServers, $rRequest, $rCategories;
+        $rCategories = (is_array($rCategories ?? null) ? $rCategories : array());
         $rCategoryIDs = (is_array($ctx['device']['category_ids'] ?? null) ? $ctx['device']['category_ids'] : array());
 
         switch ($rReqAction) {
@@ -870,6 +873,7 @@ class PortalHandler {
      */
     public static function handleSeries($rReqAction, &$ctx) {
         global $db, $rSettings, $rRequest, $rCategories;
+        $rCategories = (is_array($rCategories ?? null) ? $rCategories : array());
         $rCategoryIDs = (is_array($ctx['device']['category_ids'] ?? null) ? $ctx['device']['category_ids'] : array());
 
         switch ($rReqAction) {

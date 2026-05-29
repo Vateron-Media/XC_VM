@@ -519,7 +519,11 @@ function getItems($rTypes = array(), $rCategoryID = null, $rFav = null, $rOrderB
 		} else {
 			$rWhereV[] = $additionalOptions;
 			$db->query("SELECT * FROM (SELECT @row_number:=@row_number+1 AS `pos`, `id` FROM `streams`, (SELECT @row_number:=0) AS `t` " . $rWhereString . " ORDER BY " . $rOrder . ") `ids` WHERE `ids`.`id` = ?;", ...$rWhereV);
-			return $db->get_row()["pos"] ?: NULL;
+			$row = $db->get_row();
+			if (!is_array($row) || !array_key_exists('pos', $row) || $row['pos'] === null) {
+				return NULL;
+			}
+			return $row['pos'];
 		}
 	} else {
 		if ($additionalOptions) {
@@ -658,33 +662,27 @@ function getDevice($rID = null, $rMAC = null) {
 			$rDevice['generated'] = time();
 		}
 	} else {
-		if (!$rDevice) {
-		} else {
+		if ($rDevice) {
 			$rLiveIDs = $rVODIDs = $rRadioIDs = $rCategoryIDs = $rChannelIDs = $rSeriesIDs = array();
 
 			foreach ($rDevice['bouquet'] as $rID) {
-					if (!isset($rBouquets[$rID]['streams'])) {
-				} else {
+				if (isset($rBouquets[$rID]['streams'])) {
 					$rChannelIDs = array_merge($rChannelIDs, $rBouquets[$rID]['streams']);
 				}
 
-				if (!isset($rBouquets[$rID]['series'])) {
-				} else {
+				if (isset($rBouquets[$rID]['series'])) {
 					$rSeriesIDs = array_merge($rSeriesIDs, $rBouquets[$rID]['series']);
 				}
 
-				if (!isset($rBouquets[$rID]['channels'])) {
-				} else {
+				if (isset($rBouquets[$rID]['channels'])) {
 					$rLiveIDs = array_merge($rLiveIDs, $rBouquets[$rID]['channels']);
 				}
 
-				if (!isset($rBouquets[$rID]['movies'])) {
-				} else {
+				if (isset($rBouquets[$rID]['movies'])) {
 					$rVODIDs = array_merge($rVODIDs, $rBouquets[$rID]['movies']);
 				}
 
-				if (!isset($rBouquets[$rID]['radios'])) {
-				} else {
+				if (isset($rBouquets[$rID]['radios'])) {
 					$rRadioIDs = array_merge($rRadioIDs, $rBouquets[$rID]['radios']);
 				}
 			}
@@ -750,11 +748,11 @@ function getMovies($rCategoryID = null, $rFav = null, $rOrderBy = null, $rSearch
 	global $rDevice;
 	global $rPageItems;
 	global $rForceProtocol;
+	global $rRequest;
 	$rDefaultPage = false;
-	$rPage = (!empty($rRequest['p']) ? $rRequest['p'] : 0);
+	$rPage = (isset($rRequest) && !empty($rRequest['p'])) ? intval($rRequest['p']) : 0;
 
-	if ($rPage != 0) {
-	} else {
+	if ($rPage == 0) {
 		$rDefaultPage = true;
 		$rPage = 1;
 	}
@@ -763,9 +761,11 @@ function getMovies($rCategoryID = null, $rFav = null, $rOrderBy = null, $rSearch
 	$rStreams = getitems(array('movie'), $rCategoryID, $rFav, $rOrderBy, $rSearchBy, $rPicking, $rStart, $rPageItems);
 	$rDatas = array();
 
+	$rFavList = (isset($rDevice['fav_channels']['movie']) && is_array($rDevice['fav_channels']['movie'])) ? $rDevice['fav_channels']['movie'] : array();
+
 	foreach ($rStreams['streams'] as $rMovie) {
 		$rProperties = (!is_array($rMovie['movie_properties']) ? json_decode($rMovie['movie_properties'], true) : $rMovie['movie_properties']);
-		$rHD = intval(1200 < $rMovie['stream_info']['codecs']['video']['width']);
+		$rHD = (isset($rMovie['stream_info']['codecs']['video']['width']) && intval($rMovie['stream_info']['codecs']['video']['width']) > 1200) ? 1 : 0;
 		$rPostData = array('type' => 'movie', 'stream_id' => $rMovie['id'], 'target_container' => $rMovie['target_container']);
 		$rThisMM = date('m');
 		$rThisDD = date('d');
@@ -774,35 +774,30 @@ function getMovies($rCategoryID = null, $rFav = null, $rOrderBy = null, $rSearch
 		if (mktime(0, 0, 0, $rThisMM, $rThisDD, $rThisYY) < $rMovie['added']) {
 			$rAddedKey = 'today';
 			$rAddedVal = 'Today';
-		} else {
-			if (mktime(0, 0, 0, $rThisMM, $rThisDD - 1, $rThisYY) < $rMovie['added']) {
-				$rAddedKey = 'yesterday';
-				$rAddedVal = 'Yesterday';
+		} elseif (mktime(0, 0, 0, $rThisMM, $rThisDD - 1, $rThisYY) < $rMovie['added']) {
+			$rAddedKey = 'yesterday';
+			$rAddedVal = 'Yesterday';
+		} elseif (0 < $rMovie['added']) {
+			$rAddedKey = 'week_and_more';
+			$rDay = date('d', $rMovie['added']);
+
+			if (11 <= $rDay % 100 && $rDay % 100 <= 13) {
+				$rAbb = $rDay . 'th';
 			} else {
-				if (0 < $rMovie['added']) {
-					$rAddedKey = 'week_and_more';
-					$rDay = date('d', $rMovie['added']);
-
-					if (11 <= $rDay % 100 && $rDay % 100 <= 13) {
-						$rAbb = $rDay . 'th';
-					} else {
-						$rAbb = $rDay . array('th', 'st', 'nd', 'rd', 'th', 'th', 'th', 'th', 'th', 'th')[$rDay % 10];
-					}
-
-					$rAddedVal = date('M', $rMovie['added']) . ' ' . $rAbb . ' ' . date('Y', $rMovie['added']);
-				} else {
-					$rAddedKey = 'week_and_more';
-					$rAddedVal = 'Unknown';
-				}
+				$rAbb = $rDay . array('th', 'st', 'nd', 'rd', 'th', 'th', 'th', 'th', 'th', 'th')[$rDay % 10];
 			}
+
+			$rAddedVal = date('M', $rMovie['added']) . ' ' . $rAbb . ' ' . date('Y', $rMovie['added']);
+		} else {
+			$rAddedKey = 'week_and_more';
+			$rAddedVal = 'Unknown';
 		}
 
 		$rDuration = (isset($rProperties['duration_secs']) ? $rProperties['duration_secs'] : 60);
-		$rDatas[] = array('id' => $rMovie['id'], 'owner' => '', 'name' => $rMovie['stream_display_name'], 'tmdb_id' => $rProperties['tmdb_id'], 'old_name' => '', 'o_name' => $rMovie['stream_display_name'], 'fname' => '', 'description' => (empty($rProperties['plot']) ? 'N/A' : $rProperties['plot']), 'pic' => '', 'cost' => 0, 'time' => intval($rDuration / 60), 'file' => '', 'path' => str_replace(' ', '_', $rMovie['stream_display_name']), 'protocol' => '', 'rtsp_url' => '', 'censored' => intval($rMovie['is_adult']), 'series' => array(), 'volume_correction' => 0, 'category_id' => $rMovie['category_id'], 'genre_id' => 0, 'genre_id_1' => 0, 'genre_id_2' => 0, 'genre_id_3' => 0, 'hd' => $rHD, 'genre_id_4' => 0, 'cat_genre_id_1' => $rMovie['category_id'], 'cat_genre_id_2' => 0, 'cat_genre_id_3' => 0, 'cat_genre_id_4' => 0, 'director' => (empty($rProperties['director']) ? 'N/A' : $rProperties['director']), 'actors' => (empty($rProperties['cast']) ? 'N/A' : $rProperties['cast']), 'year' => $rMovie['year'], 'accessed' => 1, 'status' => 1, 'disable_for_hd_devices' => 0, 'added' => date('Y-m-d H:i:s', $rMovie['added']), 'count' => 0, 'count_first_0_5' => 0, 'count_second_0_5' => 0, 'vote_sound_good' => 0, 'vote_sound_bad' => 0, 'vote_video_good' => 0, 'vote_video_bad' => 0, 'rate' => '', 'last_rate_update' => '', 'last_played' => '', 'for_sd_stb' => 0, 'rating_im' => (empty($rProperties['rating']) ? 'N/A' : $rProperties['rating']), 'rating_count_im' => '', 'rating_last_update' => '0000-00-00 00:00:00', 'age' => '12+', 'high_quality' => 0, 'rating_kinopoisk' => (empty($rProperties['rating']) ? 'N/A' : $rProperties['rating']), 'comments' => '', 'low_quality' => 0, 'is_series' => 0, 'year_end' => 0, 'autocomplete_provider' => 'im', 'screenshots' => '', 'is_movie' => 1, 'lock' => $rMovie['is_adult'], 'fav' => (in_array($rMovie['id'], $rDevice['fav_channels']['movie']) ? 1 : 0), 'for_rent' => 0, 'screenshot_uri' => (empty($rProperties['movie_image']) ? '' : ImageUtils::validateURL($rProperties['movie_image'], $rForceProtocol)), 'genres_str' => (empty($rProperties['genre']) ? 'N/A' : $rProperties['genre']), 'cmd' => base64_encode(json_encode($rPostData, JSON_PARTIAL_OUTPUT_ON_ERROR)), $rAddedKey => $rAddedVal, 'has_files' => 0);
+		$rDatas[] = array('id' => $rMovie['id'], 'owner' => '', 'name' => $rMovie['stream_display_name'], 'tmdb_id' => $rProperties['tmdb_id'], 'old_name' => '', 'o_name' => $rMovie['stream_display_name'], 'fname' => '', 'description' => (empty($rProperties['plot']) ? 'N/A' : $rProperties['plot']), 'pic' => '', 'cost' => 0, 'time' => intval($rDuration / 60), 'file' => '', 'path' => str_replace(' ', '_', $rMovie['stream_display_name']), 'protocol' => '', 'rtsp_url' => '', 'censored' => intval($rMovie['is_adult']), 'series' => array(), 'volume_correction' => 0, 'category_id' => $rMovie['category_id'], 'genre_id' => 0, 'genre_id_1' => 0, 'genre_id_2' => 0, 'genre_id_3' => 0, 'hd' => $rHD, 'genre_id_4' => 0, 'cat_genre_id_1' => $rMovie['category_id'], 'cat_genre_id_2' => 0, 'cat_genre_id_3' => 0, 'cat_genre_id_4' => 0, 'director' => (empty($rProperties['director']) ? 'N/A' : $rProperties['director']), 'actors' => (empty($rProperties['cast']) ? 'N/A' : $rProperties['cast']), 'year' => $rMovie['year'], 'accessed' => 1, 'status' => 1, 'disable_for_hd_devices' => 0, 'added' => date('Y-m-d H:i:s', $rMovie['added']), 'count' => 0, 'count_first_0_5' => 0, 'count_second_0_5' => 0, 'vote_sound_good' => 0, 'vote_sound_bad' => 0, 'vote_video_good' => 0, 'vote_video_bad' => 0, 'rate' => '', 'last_rate_update' => '', 'last_played' => '', 'for_sd_stb' => 0, 'rating_im' => (empty($rProperties['rating']) ? 'N/A' : $rProperties['rating']), 'rating_count_im' => '', 'rating_last_update' => '0000-00-00 00:00:00', 'age' => '12+', 'high_quality' => 0, 'rating_kinopoisk' => (empty($rProperties['rating']) ? 'N/A' : $rProperties['rating']), 'comments' => '', 'low_quality' => 0, 'is_series' => 0, 'year_end' => 0, 'autocomplete_provider' => 'im', 'screenshots' => '', 'is_movie' => 1, 'lock' => $rMovie['is_adult'], 'fav' => (in_array($rMovie['id'], $rFavList) ? 1 : 0), 'for_rent' => 0, 'screenshot_uri' => (empty($rProperties['movie_image']) ? '' : ImageUtils::validateURL($rProperties['movie_image'], $rForceProtocol)), 'genres_str' => (empty($rProperties['genre']) ? 'N/A' : $rProperties['genre']), 'cmd' => base64_encode(json_encode($rPostData, JSON_PARTIAL_OUTPUT_ON_ERROR)), $rAddedKey => $rAddedVal, 'has_files' => 0);
 	}
 
-	if ($rDefaultPage) {
-	} else {
+	if (!$rDefaultPage) {
 		$rPage = 0;
 	}
 
@@ -1053,7 +1048,7 @@ function getStreams($rCategoryID = null, $rAll = false, $rFav = null, $rOrderBy 
 	$rTimeDifference = TimeUtils::getDiffTimezone($rTimezone);
 
 	foreach ($rStreams['streams'] as $rStream) {
-		$rHD = intval(1200 < $rStream['stream_info']['codecs']['video']['width']);
+		$rHD = intval(isset($rStream['stream_info']['codecs']['video']['width']) && intval($rStream['stream_info']['codecs']['video']['width']) > 1200);
 
 		if ($rSettings['mag_security'] == 0) {
 			$rEncData = 'ministra::live/' . $rDevice['username'] . '/' . $rDevice['password'] . '/' . $rStream['id'] . '/' . $rSettings['mag_container'] . '/' . $rDevice['token'];
