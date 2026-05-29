@@ -12,7 +12,7 @@
  *
  * Пример:
  *   return [
- *       'theft-detection' => ['enabled' => false],
+ *       'example-module' => ['enabled' => false],
  *       'custom-module'   => ['class' => 'MyCustomModule'],
  *   ];
  *
@@ -30,5 +30,5 @@
 
 return [
     // Пример отключения модуля:
-    // 'theft-detection' => ['enabled' => false],
+    // 'example-module' => ['enabled' => false],
 ];
