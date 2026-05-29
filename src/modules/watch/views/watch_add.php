@@ -174,6 +174,12 @@
 													</div>
 												</div>
 												<div class="form-group row mb-4">
+													<label class="col-md-4 col-form-label" for="delete_missing">Delete Missing <i title="Delete movies from DB when source file no longer exists on disk." class="tooltip text-secondary far fa-circle"></i></label>
+													<div class="col-md-2">
+														<input name="delete_missing" id="delete_missing" type="checkbox" <?php if (isset($rFolder) && $rFolder['delete_missing']) echo 'checked '; ?>data-plugin="switchery" class="js-switch" data-color="#039cfd" />
+													</div>
+												</div>
+												<div class="form-group row mb-4">
 													<label class="col-md-4 col-form-label" for="remove_subtitles">Remove Existing Subtitles <i title="Remove existing subtitles from file before encoding. You can't remove hardcoded subtitles using this method." class="tooltip text-secondary far fa-circle"></i></label>
 													<div class="col-md-2">
 														<input name="remove_subtitles" id="remove_subtitles" type="checkbox" <?php if (isset($rFolder) && $rFolder['remove_subtitles']) echo 'checked '; ?>data-plugin="switchery" class="js-switch" data-color="#039cfd" />

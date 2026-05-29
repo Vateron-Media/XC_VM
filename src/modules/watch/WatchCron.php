@@ -101,6 +101,42 @@ class WatchCron {
     }
 
     /**
+     * Cleanup missing streams for a folder.
+     *
+     * Removes streams from the database when their source files no longer
+     * exist in the scanned file list and the folder is configured with
+     * `delete_missing` enabled.
+     *
+     * @param array $rFolderRow Watch folder row from DB.
+     * @param array $rExistingFiles Array of found file paths for the folder.
+     * @return void
+     */
+    public static function cleanupMissing($rFolderRow, $rExistingFiles) {
+        global $db;
+        $rTypeMap = array('movie' => 2, 'series' => 3);
+        $rType = $rTypeMap[$rFolderRow['type']] ?? 0;
+        if (!$rType) return;
+        $rExistingLookup = array_flip($rExistingFiles);
+        $rDir = rtrim($rFolderRow['directory'], '/') . '/';
+        $db->query('SELECT s.id, s.stream_source FROM streams s LEFT JOIN streams_servers ss ON ss.stream_id = s.id WHERE s.type = ? AND ss.server_id = ?', $rType, SERVER_ID);
+        $rDeleted = 0;
+        foreach ($db->get_rows() as $rStream) {
+            $rSource = json_decode($rStream['stream_source'], true);
+            if (!$rSource || empty($rSource[0])) continue;
+            $rPrefix = 's:' . SERVER_ID . ':';
+            if (substr($rSource[0], 0, strlen($rPrefix)) !== $rPrefix) continue;
+            $rFilePath = substr($rSource[0], strlen($rPrefix));
+            if ($rFilePath && substr($rFilePath, 0, strlen($rDir)) === $rDir && !isset($rExistingLookup[$rFilePath])) {
+                StreamRepository::deleteStream($rStream['id'], SERVER_ID, true, true);
+                $rDeleted++;
+            }
+        }
+        if ($rDeleted > 0) {
+            echo 'Deleted' . $rDeleted . ' missing from ' . $rFolderRow['directory'] . "\n";
+        }
+    }
+
+    /**
      * Run the watch cron.
      *
      * Scans configured watch folders, prepares import jobs for newly
@@ -249,6 +285,9 @@ class WatchCron {
                 $cacheMetadataKey->run();
             }
             $db->db_connect();
+            if (!empty($rRow['delete_missing'])) {
+                self::cleanupMissing($rRow, $rFiles);
+            }
             self::checkBouquets();
         }
     }
