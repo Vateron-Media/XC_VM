@@ -42,6 +42,10 @@ class QueryHelper {
 
 		foreach ($db->get_rows() as $rRow) {
 			if ($rRow['column_default'] != 'NULL') {
+				// strip surrounding quotes returned by some information_schema implementations
+				if (is_string($rRow['column_default']) && preg_match("/^'.*'$/", $rRow['column_default'])) {
+					$rRow['column_default'] = substr($rRow['column_default'], 1, -1);
+				}
 			} else {
 				$rRow['column_default'] = null;
 			}
@@ -60,10 +64,15 @@ class QueryHelper {
 			}
 
 			if (array_key_exists($rRow['column_name'], $rData)) {
-				if (empty($rData[$rRow['column_name']]) && !is_numeric($rData[$rRow['column_name']]) && is_null($rRow['column_default'])) {
+				// coerce empty string for numeric columns to a safe default
+				$rNumericTypes = array('int', 'float', 'tinyint', 'double', 'decimal', 'smallint', 'mediumint', 'bigint', 'bit');
+				$rValue = $rData[$rRow['column_name']];
+				if ($rValue === '' && in_array($rRow['data_type'], $rNumericTypes)) {
+					$rReturn[$rRow['column_name']] = is_null($rRow['column_default']) ? ($rForceDefault ? 0 : null) : $rRow['column_default'];
+				} else if (empty($rValue) && !is_numeric($rValue) && is_null($rRow['column_default'])) {
 					$rReturn[$rRow['column_name']] = ($rForceDefault ? $rRow['column_default'] : null);
 				} else {
-					$rReturn[$rRow['column_name']] = $rData[$rRow['column_name']];
+					$rReturn[$rRow['column_name']] = $rValue;
 				}
 			} else {
 				if ($rOnlyExisting) {
