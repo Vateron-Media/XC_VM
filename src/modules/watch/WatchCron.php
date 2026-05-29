@@ -1,7 +1,12 @@
 <?php
 
 /**
- * WatchCron — крон-задача Watch Folder.
+ * WatchCron — cron task for watch folders.
+ *
+ * This class implements the scheduled job that scans configured watch
+ * directories (local or rclone), detects new media files, prepares
+ * work items and dispatches `watch_item` console jobs to import or
+ * update streams and bouquets.
  *
  * @package XC_VM_Module_Watch
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -13,12 +18,18 @@
 require_once __DIR__ . '/../../core/Process/Thread.php';
 require_once __DIR__ . '/../../core/Process/Multithread.php';
 
+/**
+ * Class WatchCron
+ *
+ * Provides utility methods and the entrypoint for the watch cron job.
+ */
 class WatchCron {
     /**
-     * Получить категории Watch из БД.
-     *
-     * @param int|null $rType Тип категории (1=movie, 2=series)
-     * @return array
+    * Get watch categories from the database.
+    *
+    * @param int|null $rType Category type (1 = movie, 2 = series). When null
+    *                      returns all categories.
+    * @return array Associative array keyed by `genre_id` of category rows.
      */
     public static function getWatchCategories($rType = null) {
         global $db;
@@ -35,22 +46,25 @@ class WatchCron {
     }
 
     /**
-     * Получить букет по ID.
-     *
-     * @param int $rID
-     * @return array|null
+        * Get bouquet by its ID.
+        *
+        * @param int $rID Bouquet identifier.
+        * @return array|null Bouquet row array or null when not found.
      */
     public static function getBouquet($rID) {
         global $db;
         $db->query('SELECT * FROM `bouquets` WHERE `id` = ?;', $rID);
-        if ($db->num_rows() != 1) {
-        } else {
+        if ($db->num_rows() == 1) {
             return $db->get_row();
         }
     }
 
     /**
-     * Обработать файлы букетов во временной директории.
+        * Process bouquet files found in the temporary directory.
+        *
+        * Reads `.bouquet` JSON files from the configured temporary path and
+        * merges their contents into the corresponding bouquets in the
+        * database.
      */
     public static function checkBouquets() {
         global $db;
@@ -58,8 +72,7 @@ class WatchCron {
         $rBouquets = glob(WATCH_TMP_PATH . '*.bouquet');
         foreach ($rBouquets as $D3e2134ebfab5c71) {
             $rBouquet = json_decode(file_get_contents($D3e2134ebfab5c71), true);
-            if (isset($a39a336ad3894348[$rBouquet['bouquet_id']])) {
-            } else {
+            if (!isset($a39a336ad3894348[$rBouquet['bouquet_id']])) {
                 $a39a336ad3894348[$rBouquet['bouquet_id']] = array('movie' => array(), 'series' => array());
             }
             $a39a336ad3894348[$rBouquet['bouquet_id']][$rBouquet['type']][] = $rBouquet['id'];
@@ -67,8 +80,7 @@ class WatchCron {
         }
         foreach ($a39a336ad3894348 as $rBouquetID => $rBouquetData) {
             $rBouquet = self::getBouquet($rBouquetID);
-            if (!$rBouquet) {
-            } else {
+            if ($rBouquet) {
                 foreach (array('movie', 'series') as $rType) {
                     if ($rType == 'movie') {
                         $rColumn = 'bouquet_movies';
@@ -89,18 +101,22 @@ class WatchCron {
     }
 
     /**
-     * Основная точка входа крона Watch Folder.
-     * Заменяет loadCron().
+     * Run the watch cron.
+     *
+     * Scans configured watch folders, prepares import jobs for newly
+     * discovered media files and dispatches processing commands. When
+     * `$rForce` is provided, only the folder with that ID is processed.
+     *
+     * @param int|false $rForce Folder ID to force-run, or false to run normal schedule.
+     * @return void
      */
-    public static function run() {
+    public static function run($rForce) {
         global $db;
         global $rThreadCount;
         global $rScanOffset;
         global $F7fa29461a8a5ee2;
-        global $rForce;
         $rWatchCategories = array(1 => self::getWatchCategories(1), 2 => self::getWatchCategories(2));
-        if (0 >= count(glob(WATCH_TMP_PATH . '*.bouquet'))) {
-        } else {
+        if (count(glob(WATCH_TMP_PATH . '*.bouquet')) > 0) {
             self::checkBouquets();
         }
         if (!$rForce) {
@@ -109,8 +125,7 @@ class WatchCron {
             $db->query("SELECT * FROM `watch_folders` WHERE `type` <> 'plex' AND `server_id` = ? AND `id` = ?;", SERVER_ID, $rForce);
         }
         $rRows = $db->get_rows();
-        if (0 >= count($rRows)) {
-        } else {
+        if (count($rRows) > 0) {
             shell_exec('rm -f ' . WATCH_TMP_PATH . '*.wpid');
             $rSeriesTMDB = $rStreamDatabase = array();
             $rTMDBDatabase = array('movie' => array(), 'series' => array());
@@ -123,8 +138,7 @@ class WatchCron {
             foreach ($db->get_rows() as $rRow) {
                 $rStreamDatabase[] = $rRow['stream_source'];
                 $rTMDBID = $rSeriesTMDB[$rRow['series_id']];
-                if (!$rTMDBID) {
-                } else {
+                if ($rTMDBID) {
                     list($rSource) = json_decode($rRow['stream_source'], true);
                     $rTMDBDatabase['series'][$rTMDBID][$rRow['season_num'] . '_' . $rRow['episode_num']] = array('id' => $rRow['id'], 'source' => $rSource);
                 }
@@ -133,8 +147,7 @@ class WatchCron {
             foreach ($db->get_rows() as $rRow) {
                 $rStreamDatabase[] = $rRow['stream_source'];
                 $rTMDBID = (json_decode($rRow['movie_properties'], true)['tmdb_id'] ?: null);
-                if (!$rTMDBID) {
-                } else {
+                if ($rTMDBID) {
                     list($rSource) = json_decode($rRow['stream_source'], true);
                     $rTMDBDatabase['movie'][$rTMDBID] = array('id' => $rRow['id'], 'source' => $rSource);
                 }
@@ -152,8 +165,7 @@ class WatchCron {
         foreach ($rRows as $rRow) {
             $db->query('UPDATE `watch_folders` SET `last_run` = UNIX_TIMESTAMP() WHERE `id` = ?;', $rRow['id']);
             $rExtensions = json_decode($rRow['allowed_extensions'], true);
-            if ($rExtensions) {
-            } else {
+            if (!$rExtensions) {
                 $rExtensions = array();
             }
             if (count($rExtensions) == 0) {
@@ -171,14 +183,11 @@ class WatchCron {
                 $a364ed03b3639bd1 = json_decode($rData, true);
                 foreach ($a364ed03b3639bd1 as $rFile) {
                     $rFile['Path'] = rtrim($rRow['directory'], '/') . '/' . $rFile['Path'];
-                    if (!(count($rExtensions) == 0 || in_array(strtolower(pathinfo($rFile['Name'])['extension']), $rExtensions))) {
-                    } else {
+                    if (count($rExtensions) == 0 || in_array(strtolower(pathinfo($rFile['Name'])['extension']), $rExtensions)) {
                         $rFiles[] = $rFile['Path'];
                     }
-                    if (!isset($rRow['auto_subtitles'])) {
-                    } else {
-                        if (!in_array(strtolower(pathinfo($rFile['Path'])['extension']), array('srt', 'sub', 'sbv'))) {
-                        } else {
+                    if (isset($rRow['auto_subtitles'])) {
+                        if (in_array(strtolower(pathinfo($rFile['Path'])['extension']), array('srt', 'sub', 'sbv'))) {
                             $rSubtitles[] = $rFile['Path'];
                         }
                     }
@@ -206,20 +215,17 @@ class WatchCron {
                     } else {
                         $rPathInfo = pathinfo($rFile);
                         $d8c5b5dc1e354db6 = array();
-                        if (!isset($rRow['auto_subtitles'])) {
-                        } else {
+                        if (isset($rRow['auto_subtitles'])) {
                             foreach (array('srt', 'sub', 'sbv') as $rExt) {
                                 $rSubtitle = $rPathInfo['dirname'] . '/' . $rPathInfo['filename'] . '.' . $rExt;
-                                if (!in_array($rSubtitle, $rSubtitles)) {
-                                } else {
+                                if (in_array($rSubtitle, $rSubtitles)) {
                                     $d8c5b5dc1e354db6 = array('files' => array($rSubtitle), 'names' => array('Subtitles'), 'charset' => array('UTF-8'), 'location' => SERVER_ID);
                                     break;
                                 }
                             }
                         }
                         $rThreadData[] = array('folder_id' => $rRow['id'], 'type' => $rRow['type'], 'directory' => $rRow['directory'], 'file' => $rFile, 'subtitles' => $d8c5b5dc1e354db6, 'category_id' => $rRow['category_id'], 'bouquets' => $rRow['bouquets'], 'disable_tmdb' => $rRow['disable_tmdb'], 'ignore_no_match' => $rRow['ignore_no_match'], 'fb_bouquets' => $rRow['fb_bouquets'], 'fb_category_id' => $rRow['fb_category_id'], 'language' => $rRow['language'], 'watch_categories' => $rWatchCategories, 'read_native' => $rRow['read_native'], 'movie_symlink' => $rRow['movie_symlink'], 'remove_subtitles' => $rRow['remove_subtitles'], 'auto_encode' => $rRow['auto_encode'], 'auto_upgrade' => $rRow['auto_upgrade'], 'fallback_title' => $rRow['fallback_title'], 'ffprobe_input' => $rRow['ffprobe_input'], 'transcode_profile_id' => $rRow['transcode_profile_id'], 'max_genres' => intval(SettingsManager::getAll()['max_genres']), 'duplicate_tmdb' => $rRow['duplicate_tmdb'], 'target_container' => $rRow['target_container'], 'alternative_titles' => SettingsManager::getAll()['alternative_titles'], 'fallback_parser' => SettingsManager::getAll()['fallback_parser']);
-                        if (!(0 < $F7fa29461a8a5ee2 && count($rThreadData) == $F7fa29461a8a5ee2)) {
-                        } else {
+                        if (0 < $F7fa29461a8a5ee2 && count($rThreadData) == $F7fa29461a8a5ee2) {
                             break;
                         }
                     }

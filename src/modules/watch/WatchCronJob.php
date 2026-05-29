@@ -58,7 +58,7 @@ class WatchCronJob implements CommandInterface {
 
         set_time_limit(0);
         if (strlen(SettingsManager::getAll()['tmdb_api_key']) != 0) {
-            WatchCron::run();
+            WatchCron::run($rForce);
         } else {
             echo 'No TMDb API key.' . "\n";
             return 1;
