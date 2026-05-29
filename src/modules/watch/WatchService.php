@@ -74,7 +74,7 @@ class WatchService {
 		$rArray['category_id'] = intval($rData['category_id_' . $rData['folder_type']]);
 		$rArray['fb_category_id'] = intval($rData['fb_category_id_' . $rData['folder_type']]);
 
-		foreach (array('remove_subtitles', 'duplicate_tmdb', 'extract_metadata', 'fallback_title', 'disable_tmdb', 'ignore_no_match', 'auto_subtitles', 'auto_upgrade', 'read_native', 'movie_symlink', 'auto_encode', 'ffprobe_input', 'active') as $rKey) {
+		foreach (array('remove_subtitles', 'duplicate_tmdb', 'extract_metadata', 'fallback_title', 'disable_tmdb', 'ignore_no_match', 'auto_subtitles', 'auto_upgrade', 'read_native', 'movie_symlink', 'auto_encode', 'ffprobe_input', 'delete_missing', 'active') as $rKey) {
 			$rArray[$rKey] = isset($rData[$rKey]) ? 1 : 0;
 		}
 
