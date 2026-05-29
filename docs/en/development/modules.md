@@ -440,8 +440,6 @@ The `modules/` directory is **not** included in `LB_DIRS` — all modules are on
 
 ### Minimal module (no crons, no routes)
 
-Example: `fingerprint`, `magscan`.
-
 ```
 modules/my-module/
 ├── module.json

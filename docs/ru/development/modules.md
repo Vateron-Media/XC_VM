@@ -424,8 +424,6 @@ $rCrons[] = '*/5 * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:my_ta
 
 ### Минимальный модуль (без кронов, без маршрутов)
 
-Пример: `fingerprint`, `magscan`.
-
 ```
 modules/my-module/
 ├── module.json
