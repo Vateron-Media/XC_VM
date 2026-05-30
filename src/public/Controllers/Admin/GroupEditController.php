@@ -39,7 +39,7 @@ class GroupEditController extends BaseAdminController {
             foreach ($db->get_rows() as $rRow) {
                 $rPackageIDs[] = $rRow['id'];
             }
-            $rGroupIDs = json_decode($rGroup['subresellers'], true);
+            $rGroupIDs = json_decode($rGroup['subresellers'], true) ?: [];
 
             // XSS sanitization of notice_html
             $rNotice = html_entity_decode($rGroup['notice_html']);
