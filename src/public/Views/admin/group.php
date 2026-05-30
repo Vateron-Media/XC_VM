@@ -26,6 +26,13 @@ if (!isset($rGroup)) {
 	echo '" />' . "\n\t\t\t\t\t\t\t";
 }
 
+// Ensure arrays are defined to avoid in_array() TypeErrors when data missing
+if (isset($rGroup)) {
+    $rAllowedPages = json_decode($rGroup['allowed_pages'], true) ?: [];
+} else {
+    $rAllowedPages = [];
+}
+
 echo "\t\t\t\t\t\t\t" . '<input type="hidden" name="permissions_selected" id="permissions_selected" value="" />' . "\n" . '                            <input type="hidden" name="packages_selected" id="packages_selected" value="" />' . "\n" . '                            <input type="hidden" name="groups_selected" id="groups_selected" value="" />' . "\n" . '                            <input type="hidden" name="notice_html" id="notice_html" value="" />' . "\n\t\t\t\t\t\t\t" . '<div id="basicwizard">' . "\n\t\t\t\t\t\t\t\t" . '<ul class="nav nav-pills bg-light nav-justified form-wizard-header mb-4">' . "\n\t\t\t\t\t\t\t\t\t" . '<li class="nav-item">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<a href="#group-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"> ' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<i class="mdi mdi-account-card-details-outline mr-1"></i>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<span class="d-none d-sm-inline">';
 echo $language::get('details');
 echo '</span>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t" . '</li>' . "\n" . '                                    <li class="nav-item" id="package_tab">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<a href="#packages" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"> ' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<i class="mdi mdi-package mr-1"></i>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<span class="d-none d-sm-inline">' . $language::get('packages') . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t" . '<li class="nav-item" id="reseller_tab">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<a href="#reseller" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"> ' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<i class="mdi mdi-account-badge-outline mr-1"></i>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<span class="d-none d-sm-inline">' . $language::get('permissions') . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t" . '</li>' . "\n" . '                                    <li class="nav-item" id="subreseller_tab">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<a href="#subreseller" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"> ' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<i class="mdi mdi-account-multiple-outline mr-1"></i>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<span class="d-none d-sm-inline">' . $language::get('subresellers') . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t" . '</li>' . "\n" . '                                    <li class="nav-item" id="notice_tab">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<a href="#notice" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"> ' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<i class="mdi mdi-note mr-1"></i>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<span class="d-none d-sm-inline">' . $language::get('dashboard') . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t";
@@ -111,7 +118,7 @@ echo '</th>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\n\t\t\t\t\t\t\t\
 foreach (PackageService::getAll() as $rPackage) {
 	echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<tr';
 
-	if (!in_array($rPackage['id'], $rPackageIDs)) {
+	if (!is_array($rPackageIDs) || !in_array($rPackage['id'], $rPackageIDs)) {
 	} else {
 		echo " class='selected selectedfilter ui-selected'";
 	}
@@ -341,7 +348,7 @@ foreach (GroupService::getAll() as $rSubGroup) {
 	if ($rSubGroup['is_reseller'] && !(isset($rGroup) && $rGroup['group_id'] == $rSubGroup['group_id'])) {
 		echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<tr';
 
-		if (!in_array($rSubGroup['group_id'], $rGroupIDs)) {
+		if (!is_array($rGroupIDs) || !in_array($rSubGroup['group_id'], $rGroupIDs)) {
 		} else {
 			echo " class='selected selectedfilter ui-selected'";
 		}
@@ -396,7 +403,7 @@ echo '</th>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\n\t\t\t\t\t\t\t\
 foreach ($rAdvPermissions as $rPermission) {
 	echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<tr';
 
-	if (!(isset($rGroup) && in_array($rPermission[0], json_decode($rGroup['allowed_pages'], true)))) {
+	if (!(isset($rGroup) && is_array($rAllowedPages) && in_array($rPermission[0], $rAllowedPages))) {
 	} else {
 		echo " class='selected selectedfilter ui-selected'";
 	}
