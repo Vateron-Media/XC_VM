@@ -182,14 +182,33 @@ class DiagnosticsService {
 			return false;
 		}
 
-		$db->query("SELECT `type`, `log_message`, `log_extra`, `line`, `date` FROM `panel_logs` WHERE `type` <> 'epg' GROUP BY CONCAT(`type`, `log_message`, `log_extra`) ORDER BY `date` DESC LIMIT 1000;");
+		// Select only logs not yet marked as sent
+		$db->query("SELECT `id`, `type`, `log_message`, `log_extra`, `line`, `date` FROM `panel_logs` WHERE `type` <> 'epg' AND IFNULL(`sent`,0)=0 GROUP BY CONCAT(`type`, `log_message`, `log_extra`) ORDER BY `date` DESC LIMIT 1000;");
+
+		$rows = $db->get_rows() ?: [];
 
 		$rAPI = 'http://' . $apiIP . '/api/v1/report';
 		print("[1] API endpoint: $rAPI\n");
 
+		$errorsForApi = [];
+		$ids = [];
+
+		foreach ($rows as $row) {
+			$errorsForApi[] = [
+				'type' => isset($row['type']) ? $row['type'] : '',
+				'message' => isset($row['log_message']) ? $row['log_message'] : '',
+				'file' => isset($row['log_extra']) ? $row['log_extra'] : '',
+				'line' => isset($row['line']) ? (int)$row['line'] : 0,
+				'date' => isset($row['date']) ? (int)$row['date'] : 0,
+			];
+			if (isset($row['id'])) {
+				$ids[] = (int)$row['id'];
+			}
+		}
+
 		$rData = [
-			'errors'  => $db->get_rows(),
-			'version' => XC_VM_VERSION,
+			'errors'  => $errorsForApi,
+			'version' => defined('XC_VM_VERSION') ? XC_VM_VERSION : 'unknown',
 		];
 
 		$payload = json_encode($rData, JSON_UNESCAPED_UNICODE);
@@ -219,8 +238,10 @@ class DiagnosticsService {
 
 		if ($response !== false) {
 			$responseData = json_decode($response, true);
-			if (isset($responseData['status']) && $responseData['status'] === 'success') {
-				$db->query('TRUNCATE `panel_logs`;');
+			if (isset($responseData['status']) && $responseData['status'] === 'success' && !empty($ids)) {
+				// mark sent logs instead of truncating the whole table
+				$idList = implode(',', array_map('intval', $ids));
+				$db->query("UPDATE `panel_logs` SET `sent` = 1 WHERE `id` IN ($idList);");
 			}
 		}
 
