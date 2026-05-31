@@ -82,6 +82,36 @@
 														<input type="email" id="email" class="form-control" name="email" value="<?= $rUser ? htmlspecialchars($rUser['email']) : '' ?>">
 													</div>
 												</div>
+                                                <div class="form-group row mb-4">
+                                                    <label class="col-md-4 col-form-label" for="owner_id">Owner ID</label>
+                                                    <div class="col-md-6">
+                                                        <input type="text" class="form-control" id="owner_id" name="owner_id" value="<?= isset($rUser) ? htmlspecialchars($rUser['owner_id']) : '0' ?>">
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        <button type="button" class="btn btn-warning px-3" onclick="document.getElementById('owner_id').value = '0'">Clear</button>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group row mb-4">
+                                                    <label class="col-md-4 col-form-label" for="credits">Credits</label>
+                                                    <div class="col-md-2">
+                                                        <input type="text" class="form-control" id="credits" name="credits" value="<?= isset($rUser) ? htmlspecialchars($rUser['credits']) : '0' ?>">
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <input type="text" class="form-control" id="credits_reason" name="credits_reason" placeholder="Reason for Adjustment" value="">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group row mb-4">
+                                                    <label class="col-md-4 col-form-label" for="reseller_dns">Reseller DNS</label>
+                                                    <div class="col-md-8">
+                                                        <input type="text" class="form-control" id="reseller_dns" name="reseller_dns" value="<?= isset($rUser) ? htmlspecialchars($rUser['reseller_dns']) : '' ?>">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group row mb-4">
+                                                    <label class="col-md-4 col-form-label" for="notes">Notes</label>
+                                                    <div class="col-md-8">
+                                                        <textarea id="notes" name="notes" class="form-control" rows="3"><?= isset($rUser) ? $rUser['notes'] : '' ?></textarea>
+                                                    </div>
+                                                </div>
 											</div>
 										</div>
 									</div>
