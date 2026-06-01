@@ -1,7 +1,10 @@
 # Files to delete during update (relative to MAIN_HOME)
-# Auto-generated from: git diff 2.2.0..HEAD
+# Auto-generated from: git diff 2.2.1..HEAD
 # One file per line. Lines starting with # are comments.
 #
-cli/Commands/BalancerCommand.php
-modules/watch/views/record.php
-modules/watch/views/record_scripts.php
+modules/fingerprint/FingerprintModule.php
+modules/fingerprint/module.json
+modules/magscan/MagscanModule.php
+modules/magscan/module.json
+modules/theft-detection/TheftDetectionModule.php
+modules/theft-detection/module.json
