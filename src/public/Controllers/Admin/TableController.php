@@ -4827,7 +4827,16 @@ class TableController extends BaseAdminController {
 							$rID .= "-" . $rRow["server_id"];
 						}
 						$rModded = $rRow["updated"];
-						$rReturn["data"][] = ["<a href='stream_view?id=" . (int) $rRow["id"] . "'>" . $rID . "</a>", $rImage, "<a href='stream_view?id=" . (int) $rRow["id"] . "'>" . $rStreamName . "</a>", $rServerName, $rClients, $rVODStatusArray[$rActualStatus], $rButtons, $rPlayer, $rModded, $rStreamInfoText];
+						// Video episode duration (from movie_properties: duration / duration_secs)
+						$rDurationText = null;
+						if (!empty($rProperties["duration"]) && preg_match('/^\d{1,3}:\d{2}:\d{2}$/', $rProperties["duration"])) {
+							$rDurationText = $rProperties["duration"];
+						} elseif (!empty($rProperties["duration_secs"]) && (int) $rProperties["duration_secs"] > 0) {
+							$rDurationSecs = (int) $rProperties["duration_secs"];
+							$rDurationText = sprintf("%02d:%02d:%02d", intdiv($rDurationSecs, 3600), intdiv($rDurationSecs % 3600, 60), $rDurationSecs % 60);
+						}
+						$rDurationCell = "<table style='font-size: 11px;' class='table-data nowrap' align='center'><tbody><tr><td class='text-success'><i class='mdi mdi-clock-outline'></i> <strong>" . ($rDurationText ?? "--:--:--") . "</strong></td></tr><tr><td><span style='font-size: 10px;' class='text-muted'>" . $rModded . "</span></td></tr></tbody></table>";
+						$rReturn["data"][] = ["<a href='stream_view?id=" . (int) $rRow["id"] . "'>" . $rID . "</a>", $rImage, "<a href='stream_view?id=" . (int) $rRow["id"] . "'>" . $rStreamName . "</a>", $rServerName, $rClients, $rVODStatusArray[$rActualStatus], $rButtons, $rPlayer, $rDurationCell, $rStreamInfoText];
 					}
 				}
 			}
