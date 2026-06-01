@@ -47,7 +47,7 @@ if (!isset($rEpisode)) {
 	echo '" />' . "\n\t\t\t\t\t\t\t";
 }
 
-if (!isset($rMulti)) {
+if (empty($rMulti)) {
 	echo "\t\t\t\t\t\t\t" . '<input type="hidden" id="tmdb_id" name="tmdb_id" value="';
 
 	if (!isset($rEpisode)) {
@@ -70,7 +70,7 @@ echo '" />' . "\n\t\t\t\t\t\t\t" . '<div id="basicwizard">' . "\n\t\t\t\t\t\t\t\
 echo $language::get('details');
 echo '</span>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t";
 
-if (isset($rMulti)) {
+if (!empty($rMulti)) {
 } else {
 	echo "\t\t\t\t\t\t\t\t\t" . '<li class="nav-item">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<a href="#episode-information" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<i class="mdi mdi-movie-outline mr-1"></i>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<span class="d-none d-sm-inline">';
 	echo $language::get('information');
@@ -83,7 +83,7 @@ echo '</span>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t" . '<
 echo $language::get('servers');
 echo '</span>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t" . '</ul>' . "\n\t\t\t\t\t\t\t\t" . '<div class="tab-content b-0 mb-0 pt-0">' . "\n\t\t\t\t\t\t\t\t\t";
 
-if (!isset($rMulti)) {
+if (empty($rMulti)) {
 	echo "\t\t\t\t\t\t\t\t\t" . '<div class="tab-pane" id="stream-details">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div class="row">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-12">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="series_name">';
 	echo $language::get('series_name');
 	echo '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control" id="series_name" name="series_name" value="';
@@ -279,7 +279,7 @@ if (!isset($rEpisode)) {
 
 echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n" . '                                                </div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t";
 
-if (isset($rMulti)) {
+if (!empty($rMulti)) {
 } else {
 	echo "\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="target_container">';
 	echo $language::get('target_container');
@@ -332,7 +332,7 @@ if (!isset($rEpisode)) {
 
 echo "\t\t\t\t\t\t\t\t\t\t\t\t";
 
-if (isset($rMulti)) {
+if (!empty($rMulti)) {
 } else {
 	echo "\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="movie_subtitles">';
 	echo $language::get('subtitle_location');
@@ -429,7 +429,7 @@ echo "\t\t\t\t\t\t\t\t\t\t" . '</select>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . 
 echo $language::get('current_path');
 echo '</label>' . "\n\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8 input-group">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<input type="text" id="current_path" name="current_path" class="form-control" value="/">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div class="input-group-append">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<button class="btn btn-primary waves-effect waves-light" type="button" id="changeDir"><i class="mdi mdi-chevron-right"></i></button>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4"';
 
-if (isset($rMulti)) {
+if (!empty($rMulti)) {
 	echo "style='display:none;'";
 }
 
@@ -443,7 +443,7 @@ echo '</th>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\n\t\t\t\t\t\t\t\t\t\t\
 echo $language::get('filename');
 echo '</th>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</thead>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<tbody></tbody>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</table>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t";
 
-if (isset($rMulti)) {
+if (!empty($rMulti)) {
 	echo "\t\t\t\t\t\t\t\t" . '<div class="float-right">' . "\n\t\t\t\t\t\t\t\t\t" . '<input id="select_folder" type="button" class="btn btn-info" value="';
 	echo $language::get('add_this_directory');
 	echo '" />' . "\n\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t";
@@ -836,7 +836,7 @@ renderUnifiedLayoutFooter('admin'); ?>
 				selectDirectory($(this).find("td").eq(1).html());
 			}
 		});
-		<?php if (!isset($rMulti)): ?>
+		<?php if (empty($rMulti)): ?>
 			$('#datatable-files').on('click', 'tbody > tr', function() {
 				selectFile($(this).find("td").eq(1).html());
 			});
@@ -915,7 +915,7 @@ renderUnifiedLayoutFooter('admin'); ?>
 			$("#current_path").val("/");
 			$("#changeDir").click();
 		});
-		<?php if (!isset($rMulti)): ?>
+		<?php if (empty($rMulti)): ?>
 			$("#season_num").change(function() {
 				if (!window.changeTitle) {
 					$("#tmdb_search").empty().trigger('change');
@@ -980,7 +980,7 @@ renderUnifiedLayoutFooter('admin'); ?>
 		$("form").submit(function(e) {
 			e.preventDefault();
 			rSubmit = true;
-			<?php if (!isset($rMulti)): ?>
+			<?php if (empty($rMulti)): ?>
 				if (!$("#stream_display_name").val()) {
 					$.toast("<?= $language::get('enter_an_episode_name') ?>");
 					rSubmit = false;
