@@ -60,75 +60,61 @@ if (isset($rRequest['data'])) {
 				}
 			}
 
-			if ($rStreamID) {
-			} else {
+			if (!$rStreamID) {
 				$rQuery = '/\\/live\\/(.*)\\/(\\d+)$/m';
 				preg_match($rQuery, $rPath, $rMatches);
-
-				if (count($rMatches) != 3) {
-				} else {
+				if (count($rMatches) == 3) {
 					$rStreamID = intval($rMatches[2]);
 					$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, null, $rMatches[1], null, true);
 				}
 			}
 
-			if ($rStreamID) {
-			} else {
+			if (!$rStreamID) {
 				$rQuery = '/\\/live\\/(.*)\\/(\\d+)\\.(.*)$/m';
 				preg_match($rQuery, $rPath, $rMatches);
 
-				if (count($rMatches) != 4) {
-				} else {
+				if (count($rMatches) == 4) {
 					$rStreamID = intval($rMatches[2]);
 					$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, null, $rMatches[1], null, true);
 				}
 			}
 
-			if ($rStreamID) {
-			} else {
+			if (!$rStreamID) {
 				$rQuery = '/\\/(.*)\\/(.*)\\/(\\d+)\\.(.*)$/m';
 				preg_match($rQuery, $rPath, $rMatches);
 
-				if (count($rMatches) != 5) {
-				} else {
+				if (count($rMatches) == 5) {
 					$rStreamID = intval($rMatches[3]);
 					$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, null, $rMatches[1], $rMatches[2], true);
 				}
 			}
 
-			if ($rStreamID) {
-			} else {
+			if (!$rStreamID) {
 				$rQuery = '/\\/(.*)\\/(.*)\\/(\\d+)$/m';
 				preg_match($rQuery, $rPath, $rMatches);
 
-				if (count($rMatches) != 4) {
-				} else {
+				if (count($rMatches) == 4) {
 					$rStreamID = intval($rMatches[3]);
 					$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, null, $rMatches[1], $rMatches[2], true);
 				}
 			}
 		} else {
-			if ($rPathSize != 5) {
-			} else {
-				if ($rStreamID) {
-				} else {
+			if ($rPathSize == 5) {
+				if (!$rStreamID) {
 					$rQuery = '/\\/live\\/(.*)\\/(.*)\\/(\\d+)\\.(.*)$/m';
 					preg_match($rQuery, $rPath, $rMatches);
 
-					if (count($rMatches) != 5) {
-					} else {
+					if (count($rMatches) == 5) {
 						$rStreamID = intval($rMatches[3]);
 						$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, null, $rMatches[1], $rMatches[2], true);
 					}
 				}
 
-				if ($rStreamID) {
-				} else {
+				if (!$rStreamID) {
 					$rQuery = '/\\/live\\/(.*)\\/(.*)\\/(\\d+)$/m';
 					preg_match($rQuery, $rPath, $rMatches);
 
-					if (count($rMatches) != 4) {
-					} else {
+					if (count($rMatches) == 4) {
 						$rStreamID = intval($rMatches[3]);
 						$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, null, $rMatches[1], $rMatches[2], true);
 					}
@@ -137,25 +123,21 @@ if (isset($rRequest['data'])) {
 		}
 	}
 
-	if (!($rStreamID && $rUserInfo)) {
-	} else {
+	if ($rStreamID && $rUserInfo) {
 		if (is_null($rUserInfo['exp_date']) || $rUserInfo['exp_date'] > time()) {
 		} else {
 			generate404();
 		}
 
-		if ($rUserInfo['admin_enabled'] != 0) {
-		} else {
+		if ($rUserInfo['admin_enabled'] == 0) {
 			generate404();
 		}
 
-		if ($rUserInfo['enabled'] != 0) {
-		} else {
+		if ($rUserInfo['enabled'] == 0) {
 			generate404();
 		}
 
-		if ($rUserInfo['is_restreamer']) {
-		} else {
+		if (!$rUserInfo['is_restreamer']) {
 			generate404();
 		}
 
@@ -167,8 +149,7 @@ if (isset($rRequest['data'])) {
 			$rServerID = SERVER_ID;
 		}
 
-		if (!(0 < $rChannelInfo['monitor_pid'] && 0 < $rChannelInfo['pid'] && $rServers[$rServerID]['last_status'] == 1)) {
-		} else {
+		if (0 < $rChannelInfo['monitor_pid'] && 0 < $rChannelInfo['pid'] && $rServers[$rServerID]['last_status'] == 1) {
 			if (file_exists(STREAMS_PATH . $rStreamID . '_.stream_info')) {
 				$rInfo = file_get_contents(STREAMS_PATH . $rStreamID . '_.stream_info');
 			} else {
