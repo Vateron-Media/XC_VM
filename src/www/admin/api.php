@@ -25,7 +25,7 @@ if (empty(SettingsManager::getAll()['api_pass']) || RequestManager::getAll()['ap
 	generate404();
 }
 
-$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
+$db = new DatabaseHandler();
 DatabaseFactory::set($db);
 $rAction = (!empty(RequestManager::getAll()['action']) ? RequestManager::getAll()['action'] : '');
 $rSubAction = (!empty(RequestManager::getAll()['sub']) ? RequestManager::getAll()['sub'] : '');

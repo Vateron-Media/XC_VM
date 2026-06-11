@@ -23,18 +23,18 @@ if (!$rPermissions["is_admin"]) {
     exit;
 }
 
-$ACCESS_PWD = $_INFO['password']; #!!!IMPORTANT!!! this is script access password, SET IT if you want to protect you DB from public access
+$ACCESS_PWD = ''; #!!!IMPORTANT!!! this is script access password, SET IT if you want to protect you DB from public access
 
 #DEFAULT db connection settings
 # --- WARNING! --- if you set defaults - it's recommended to set $ACCESS_PWD to protect your db!
 $DBSERVERS = []; #array of arrays ['iname'=>'srv name', 'config'=>[see $DBDEF]] - define if you need manage multiple db servers
 $DBDEF = array(
-    'user' => $_INFO['username'], #required
-    'pwd' => $_INFO['password'], #required
+    'user' => '', #required — enter manually; credentials are managed by XC_VM extension
+    'pwd' => '', #required
     #optional:
-    'db' => $_INFO['database'],  #default DB
-    'host' => $_INFO['hostname'],
-    'port' => $_INFO['port'],
+    'db' => 'xc_vm',
+    'host' => '127.0.0.1',
+    'port' => 3306,
     'socket' => "",
     'chset' => "utf8", #optional, default charset
     #optional paths for ssl

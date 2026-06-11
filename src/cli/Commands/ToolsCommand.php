@@ -103,7 +103,6 @@ class ToolsCommand implements CommandInterface {
 		$db->query('DROP DATABASE IF EXISTS `xc_vm_migrate`;');
 		$db->query('CREATE DATABASE IF NOT EXISTS `xc_vm_migrate`;');
 		echo "Migration database has been cleared.\n";
-		$rConfig = ConfigReader::getAll();
 
 		$database = (!empty($rArgs[1]) ? $rArgs[1] : null);
 
@@ -111,22 +110,18 @@ class ToolsCommand implements CommandInterface {
 			$rExtension = strtolower(pathinfo($database, PATHINFO_EXTENSION));
 			if ($rExtension === 'sql') {
 				echo 'Restoring: ' . $database . "\n";
-				$rCommand = 'mariadb -h 127.0.0.1 -P ' . intval($rConfig['port']) . ' -u ' . escapeshellarg($rConfig['username']) . ' -p' . escapeshellarg($rConfig['password']) . ' xc_vm_migrate < ' . escapeshellarg($database) . ' 2>&1';
-				$rOutput = shell_exec($rCommand);
-				if (!empty($rOutput)) {
-					echo $rOutput;
-				}
-				echo "If no errors were shown above, restore was completed.\n\n";
+				XC_VM::db_restore($database, 'xc_vm_migrate');
+				echo "Restore started in the background.\n\n";
 			} else {
 				echo "Error: File must have .sql extension\n";
 			}
 		} else {
 			echo "You can restore a database to it using:\n";
-			echo 'mariadb -h 127.0.0.1 -P ' . intval($rConfig['port']) . ' -u ' . $rConfig['username'] . ' -p*** xc_vm_migrate < backup.sql' . "\n\n";
+			echo "  mariadb -h 127.0.0.1 -P <port> -u <username> -p'<password>' xc_vm_migrate < backup.sql\n";
 		}
 
 		foreach ($rServers as $rServer) {
-			BackupService::grantPrivileges($rServer['server_ip'], DatabaseFactory::get(), $rConfig);
+			BackupService::grantPrivileges($rServer['server_ip']);
 		}
 
 		return 0;
@@ -148,10 +143,9 @@ class ToolsCommand implements CommandInterface {
 	}
 
 	private function processMysql($db, array $rServers): int {
-		$rConfig = ConfigReader::getAll();
 		foreach ($rServers as $rServerID => $rServer) {
 			echo 'Granting privileges to: ' . $rServer['server_ip'] . " (ID: {$rServerID})\n";
-			BackupService::grantPrivileges($rServer['server_ip'], DatabaseFactory::get(), $rConfig);
+			BackupService::grantPrivileges($rServer['server_ip']);
 		}
 		echo "\nMySQL privileges have been reauthorised for all servers.\n";
 		return 0;

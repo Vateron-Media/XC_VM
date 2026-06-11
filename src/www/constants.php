@@ -11,18 +11,16 @@
  *   core/Config/Paths.php          — константы путей (*_PATH, *_TMP_PATH)
  *   core/Config/AppConfig.php      — версия, Git, флаги приложения
  *   core/Config/Binaries.php       — пути к FFmpeg, FFprobe, GeoIP, PHP CLI
- *   core/Config/ConfigLoader.php   — загрузка $_INFO из config.ini
  *   core/Http/RequestGuard.php     — flood-protection, host verify, Logger init
  *
  * Порядок загрузки имеет значение:
- *   1. autoload.php     → MAIN_HOME + XC_Autoloader
- *   2. ErrorCodes       → $rErrorCodes (нужен для ErrorHandler)
- *   3. ErrorHandler     → generate404() (нужен для access guard ниже)
- *   4. Paths            → все *_PATH константы (нужны для Binaries, ConfigLoader)
- *   5. AppConfig        → XC_VM_VERSION, app flags, etc.
- *   6. Binaries         → FFMPEG_*, FFPROBE_*, GeoIP, PHP_BIN
- *   7. ConfigLoader     → $_INFO из config.ini
- *   8. RequestGuard     → flood/host check + Logger::init()
+ *   1. autoload.php  → MAIN_HOME + XC_Autoloader
+ *   2. ErrorCodes    → $rErrorCodes (нужен для ErrorHandler)
+ *   3. ErrorHandler  → generate404() (нужен для access guard ниже)
+ *   4. Paths         → все *_PATH константы (нужны для Binaries)
+ *   5. AppConfig     → XC_VM_VERSION, app flags, etc.
+ *   6. Binaries      → FFMPEG_*, FFPROBE_*, GeoIP, PHP_BIN
+ *   7. RequestGuard  → flood/host check + Logger::init()
  *
  * @package XC_VM_Web
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -68,13 +66,7 @@ require_once MAIN_HOME . 'core/Config/AppConfig.php';
 require_once MAIN_HOME . 'core/Config/Binaries.php';
 
 // ─────────────────────────────────────────────────────────────────
-//  6. Загрузка конфигурации из config.ini
-// ─────────────────────────────────────────────────────────────────
-
-require_once MAIN_HOME . 'core/Config/ConfigLoader.php';
-
-// ─────────────────────────────────────────────────────────────────
-//  7. HTTP: flood protection, host verification, Logger init
+//  6. HTTP: flood protection, host verification, Logger init
 // ─────────────────────────────────────────────────────────────────
 
 require_once MAIN_HOME . 'core/Http/RequestGuard.php';

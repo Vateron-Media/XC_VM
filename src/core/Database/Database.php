@@ -31,7 +31,7 @@ class Database {
 	 * @param string $host Database host
 	 * @param int $db_port Database port number
 	 */
-	public function __construct($db_user, $db_pass, $db_name, $host, $db_port = 3306, $migrate = false) {
+	public function __construct($db_user = null, $db_pass = null, $db_name = null, $host = null, $db_port = 3306, $migrate = false) {
 		$this->dbh = false;
 		$this->dbuser = $db_user;
 		$this->dbpassword = $db_pass;
@@ -78,7 +78,7 @@ class Database {
 
 	public function db_connect($migrate = false) {
 		try {
-			$this->dbh = new PDO('mysql:host=' . $this->dbhost . ';port=' . $this->dbport . ';dbname=' . $this->dbname . ';charset=utf8mb4', $this->dbuser, $this->dbpassword);
+			$this->dbh = XC_VM::db_connect($migrate);
 			if (!$this->dbh) {
 				if (!$migrate) {
 					exit(json_encode(array('error' => 'MySQL: Cannot connect to database! Please check credentials.')));
@@ -87,7 +87,10 @@ class Database {
 				return false;
 			}
 		} catch (PDOException $e) {
-			exit(json_encode(array('error' => 'MySQL: ' . $e->getMessage())));
+			if (!$migrate) {
+				exit(json_encode(array('error' => 'MySQL: ' . $e->getMessage())));
+			}
+			return false;
 		}
 
 		$this->dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);

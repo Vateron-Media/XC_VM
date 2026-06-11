@@ -258,7 +258,7 @@ class ServerRepository {
 		$db->query('DELETE FROM `servers` WHERE `id` = ?;', $rID);
 
 		if ($rServer['server_type'] == 0) {
-			BackupService::revokePrivileges($rServer['server_ip'], DatabaseFactory::get(), ConfigReader::getAll());
+			BackupService::revokePrivileges($rServer['server_ip']);
 		}
 
 		return true;

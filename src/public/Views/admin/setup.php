@@ -93,7 +93,7 @@ if (!isset(RequestManager::getAll()['update'])):
 
     if (!$rMigrating) {
         $rMigrateConnection = false;
-        $odb = new DatabaseHandler($_INFO['username'], $_INFO['password'], "xc_vm_migrate", $_INFO['hostname'], $_INFO['port'], true);
+        $odb = new DatabaseHandler(migrate: true);
 
         if ($odb->connected) {
             $rMigrateConnection = true;

@@ -28,7 +28,7 @@
 
 | Тип | Кол-во | Описание |
 | --- | --- | --- |
-| **Commands** | 26 | Разовые операции (update, status, tools и др.) |
+| **Commands** | 27 | Разовые операции (update, status, tools и др.) |
 | **CronJobs** | 25 | Запланированные задачи (автозапуск через crontab) |
 | **Daemons** | 8 | Фоновые процессы-демоны (Commands, использующие `DaemonTrait`) |
 
@@ -60,6 +60,7 @@
 | `plex_item` | `PlexItemCommand` | Обработка элемента Plex (фильм/сериал) | xc_vm |
 | `watch_item` | `WatchItemCommand` | Обработка элемента Watch (поиск/обновление TMDB) | xc_vm |
 | `migrate` | `MigrateCommand` | Перенос данных из БД `xc_vm_migrate` | xc_vm |
+| `db:migrate` | `DbMigrateCommand` | Применить ожидающие миграции БД из каталога `migrations/` | xc_vm |
 | `server:install` | `ServerInstallCommand` | Установка/настройка сервера (Proxy/LB) по SSH | root |
 
 > Команды, отмеченные как **опциональные**, условно регистрируются через `file_exists()` guard: `cache_handler`, `server:install`, `migrate`.
@@ -417,7 +418,13 @@ WHERE NOT EXISTS (SELECT 1 FROM `streams_arguments` WHERE argument_key = 'my_key
 
 ### Шаг 4. Проверка обновления БД
 
-Запустите команду status для применения ожидающих шагов обновления БД:
+Запустите `db:migrate` для применения ожидающих шагов обновления БД:
+
+```bash
+su - xc_vm -c '/home/xc_vm/console.php db:migrate'
+```
+
+Или через `status first-run` (также запускает миграции):
 
 ```bash
 sudo /home/xc_vm/console.php status first-run
@@ -479,6 +486,14 @@ sudo -u xc_vm /home/xc_vm/console.php monitor <stream_id>
 ```bash
 sudo /home/xc_vm/console.php certbot
 ```
+
+### Применить миграции БД вручную
+
+```bash
+su - xc_vm -c '/home/xc_vm/console.php db:migrate'
+```
+
+Применяет все ожидающие `.sql`-файлы из `/home/xc_vm/migrations/`. Используется когда нужно накатить миграции без полного обновления системы.
 
 ### Обновление БД данными из других систем
 

@@ -377,13 +377,13 @@
 								</tr>
 							</thead>
 							<tbody>
-								<?php if (strlen($rServers[SERVER_ID]['server_ip']) > 0): ?>
+								<?php if (isset($rServers[SERVER_ID]) && strlen($rServers[SERVER_ID]['server_ip']) > 0): ?>
 									<tr>
 										<td><?= $language::get('server_ip') ?></td>
 										<td><?php echo $rServers[SERVER_ID]['server_ip']; ?></td>
 									</tr>
 								<?php endif; ?>
-								<?php if (strlen($rServers[SERVER_ID]['domain_name']) > 0): ?>
+								<?php if (isset($rServers[SERVER_ID]) && strlen($rServers[SERVER_ID]['domain_name']) > 0): ?>
 									<tr>
 										<td><?= $language::get('server_domain') ?></td>
 										<td><?php echo $rServers[SERVER_ID]['domain_name']; ?></td>

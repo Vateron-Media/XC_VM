@@ -47,7 +47,7 @@ if (!empty($rRequestData['uitoken'])) {
 	generate404();
 }
 
-$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
+$db = new DatabaseHandler();
 DatabaseFactory::set($db);
 $rPassword = SettingsManager::getAll()['live_streaming_pass'];
 $rStreamID = intval($rRequestData['stream']);

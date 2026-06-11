@@ -133,12 +133,9 @@ class XC_Bootstrap {
 
         // ── Common for all contexts ────────────────────────────
 
-        // Constants and paths (MAIN_HOME, INCLUDES_PATH, CONFIG_PATH, ...) + $_INFO + Logger + error functions
         self::loadConstants();
 
-        // Register config in the container
-        global $_INFO;
-        $container->set('config', $_INFO);
+        $container->set('config', ConfigReader::getAll());
 
         // ── Flood-protection (HTTP only) ───────────────────────
         if (!self::isCli()) {
@@ -253,15 +250,14 @@ class XC_Bootstrap {
     // ─────────────────────────────────────────────────────────
 
     /**
-     * Load constants, paths, $_INFO, Logger, error functions.
+     * Load constants, paths, Logger, error functions.
      *
      * Loads core configuration directly (without www/constants.php):
-     *   core/Error/ErrorCodes.php      — $rErrorCodes
-     *   core/Error/ErrorHandler.php    — generateError(), generate404()
-     *   core/Config/Paths.php          — *_PATH constants
-     *   core/Config/AppConfig.php      — version, Git, flags
-     *   core/Config/Binaries.php       — FFMPEG, FFPROBE, GeoIP
-     *   core/Config/ConfigLoader.php   — $_INFO from config.ini
+     *   core/Error/ErrorCodes.php  — $rErrorCodes
+     *   core/Error/ErrorHandler.php — generateError(), generate404()
+     *   core/Config/Paths.php      — *_PATH constants
+     *   core/Config/AppConfig.php  — version, Git, flags
+     *   core/Config/Binaries.php   — FFMPEG, FFPROBE, GeoIP
      */
     private static function loadConstants(): void {
         if (self::$constantsLoaded) {
@@ -273,7 +269,6 @@ class XC_Bootstrap {
         require_once MAIN_HOME . 'core/Config/Paths.php';
         require_once MAIN_HOME . 'core/Config/AppConfig.php';
         require_once MAIN_HOME . 'core/Config/Binaries.php';
-        require_once MAIN_HOME . 'core/Config/ConfigLoader.php';
         require_once MAIN_HOME . 'core/Logging/Logger.php';
 
         if (!defined('PHP_ERRORS')) {
@@ -286,7 +281,7 @@ class XC_Bootstrap {
         );
 
         self::$constantsLoaded = true;
-        self::$configLoaded    = true;  // $_INFO loaded inside ConfigLoader.php
+        self::$configLoaded    = true;
         self::$loggerStarted   = true;
     }
 
@@ -374,17 +369,11 @@ class XC_Bootstrap {
             return;
         }
 
-        global $db, $_INFO;
+        global $db;
 
         require_once MAIN_HOME . 'core/Database/DatabaseHandler.php';
 
-        $db = new DatabaseHandler(
-            $_INFO['username'],
-            $_INFO['password'],
-            $_INFO['database'],
-            $_INFO['hostname'],
-            $_INFO['port']
-        );
+        $db = new DatabaseHandler();
 
         self::$databaseReady = true;
     }
@@ -412,14 +401,7 @@ class XC_Bootstrap {
 
         // If cache was used and is incomplete — reconnect to DB
         if ($cached && !SettingsManager::getAll()['enable_cache']) {
-            global $_INFO;
-            $db = new DatabaseHandler(
-                $_INFO['username'],
-                $_INFO['password'],
-                $_INFO['database'],
-                $_INFO['hostname'],
-                $_INFO['port']
-            );
+            $db = new DatabaseHandler();
             DatabaseFactory::set($db);
         }
 

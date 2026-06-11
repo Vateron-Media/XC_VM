@@ -2710,7 +2710,7 @@ if (isset($_SESSION['hash'])) {
 						}
 					}
 
-					BackupService::restore($rFilename, ConfigReader::getAll());
+					BackupService::restore($rFilename);
 					echo json_encode(array('result' => true));
 
 					exit();

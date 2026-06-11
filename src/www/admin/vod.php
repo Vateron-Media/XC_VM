@@ -44,7 +44,7 @@ if (!empty(RequestManager::getAll()['stream'])) {
 	generate404();
 }
 
-$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
+$db = new DatabaseHandler();
 DatabaseFactory::set($db);
 $rStream = pathinfo(RequestManager::getAll()['stream']);
 $rStreamID = intval($rStream['filename']);

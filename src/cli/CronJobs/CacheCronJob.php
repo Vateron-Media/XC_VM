@@ -91,7 +91,8 @@ class CacheCronJob implements CommandInterface {
         FileCache::setCache('allowed_ips', ServerRepository::getAllowedIPs(true));
         FileCache::setCache('categories', CategoryService::getFromDatabase(null, true));
 
-        if (!ServerRepository::getAll()[SERVER_ID]['is_main']) {
+        $rAllServers = ServerRepository::getAll();
+        if (!isset($rAllServers[SERVER_ID]) || !$rAllServers[SERVER_ID]['is_main']) {
             return;
         }
 

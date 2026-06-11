@@ -29,7 +29,7 @@ if (!empty(RequestManager::getAll()['uitoken'])) {
 	generate404();
 }
 
-$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
+$db = new DatabaseHandler();
 DatabaseFactory::set($db);
 $rStreamID = intval(RequestManager::getAll()['stream']);
 $rStream = array();

@@ -67,7 +67,7 @@ class BackupsCronJob implements CommandInterface {
                 $db->close_mysql();
                 $rFilename = MAIN_HOME . 'backups/backup_' . date('Y-m-d_H:i:s') . '.sql';
 
-                BackupService::create($rFilename, ConfigReader::getAll());
+                BackupService::create($rFilename);
 
                 if (0 < filesize($rFilename)) {
                     if (SettingsManager::getAll()['dropbox_remote']) {

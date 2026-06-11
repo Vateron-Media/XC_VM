@@ -241,7 +241,7 @@ class ServerInstallCommand implements CommandInterface {
 		call_user_func($rRunSSH, $rConn, 'sudo chown -R xc_vm:xc_vm ' . MAIN_HOME . 'tmp');
 		call_user_func($rRunSSH, $rConn, 'sudo chown -R xc_vm:xc_vm ' . MAIN_HOME . 'content/streams');
 		call_user_func($rRunSSH, $rConn, 'sudo chown -R xc_vm:xc_vm ' . MAIN_HOME);
-		BackupService::grantPrivileges($rHost, DatabaseFactory::get(), ConfigReader::getAll());
+		BackupService::grantPrivileges($rHost);
 		echo "Installation complete! Starting XC_VM\n";
 		call_user_func($rRunSSH, $rConn, 'sudo service xc_vm restart');
 	}

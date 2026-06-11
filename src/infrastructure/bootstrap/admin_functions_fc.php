@@ -27,7 +27,7 @@ if (!defined('MAIN_HOME')) {
 // нужен явный global.
 global $db, $rSettings, $rMobile, $rServers, $rProxyServers, $rDetect,
        $rTimeout, $rProtocol, $allServers, $rPermissions, $language, $allowedLangs,
-       $rServerError, $allServersHealthy, $updateRequired, $rUserInfo, $_INFO;
+       $rServerError, $allServersHealthy, $updateRequired, $rUserInfo;
 
 require_once MAIN_HOME . 'bootstrap.php';
 XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_ADMIN);
@@ -91,7 +91,7 @@ if (isset($_SESSION['hash'])) {
 	}
 	$updateRequired = false;
 
-	if (!version_compare($rServers[SERVER_ID]['xc_vm_version'], SettingsManager::getAll()['update_version'], '>=')) {
+	if (isset($rServers[SERVER_ID]) && !version_compare($rServers[SERVER_ID]['xc_vm_version'], SettingsManager::getAll()['update_version'], '>=')) {
 		$updateRequired = true;
 	}
 }

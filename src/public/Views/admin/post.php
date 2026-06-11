@@ -675,7 +675,7 @@ if (1 < $rICount) { ?>
 
 				if (isset($rData['reauthorise_mysql'])) {
 					foreach ($rServers as $rServerID => $rServerArray) {
-						BackupService::grantPrivileges($rServerArray['server_ip'], DatabaseFactory::get(), ConfigReader::getAll());
+						BackupService::grantPrivileges($rServerArray['server_ip']);
 					}
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 					exit();

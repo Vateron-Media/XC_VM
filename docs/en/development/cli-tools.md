@@ -28,7 +28,7 @@ The console supports three types of commands:
 
 | Type | Count | Description |
 | --- | --- | --- |
-| **Commands** | 26 | One-time operations (update, status, tools, etc.) |
+| **Commands** | 27 | One-time operations (update, status, tools, etc.) |
 | **CronJobs** | 25 | Scheduled tasks (auto-invoked by crontab) |
 | **Daemons** | 8 | Long-running background processes (Commands using `DaemonTrait`) |
 
@@ -60,6 +60,7 @@ To see all available commands:
 | `plex_item` | `PlexItemCommand` | Process single Plex item (movie/series) | xc_vm |
 | `watch_item` | `WatchItemCommand` | Process single Watch item (TMDB search/update) | xc_vm |
 | `migrate` | `MigrateCommand` | Transfer data from `xc_vm_migrate` database | xc_vm |
+| `db:migrate` | `DbMigrateCommand` | Apply pending database migrations from the `migrations/` directory | xc_vm |
 | `server:install` | `ServerInstallCommand` | Install/configure server (Proxy/LB) via SSH | root |
 
 > Commands marked **optional** are conditionally registered via `file_exists()` guard: `cache_handler`, `server:install`, `migrate`.
@@ -417,7 +418,13 @@ Copy the SQL file for the DB update step to:
 
 ### Step 4. Validate DB Update
 
-Run the status command to apply pending DB update steps:
+Run `db:migrate` to apply pending DB update steps:
+
+```bash
+su - xc_vm -c '/home/xc_vm/console.php db:migrate'
+```
+
+Or via `status first-run` (also runs migrations):
 
 ```bash
 sudo /home/xc_vm/console.php status first-run
@@ -479,6 +486,14 @@ Starts a stream manually and displays any errors. Useful for diagnosing stream s
 ```bash
 sudo /home/xc_vm/console.php certbot
 ```
+
+### Apply Database Migrations Manually
+
+```bash
+su - xc_vm -c '/home/xc_vm/console.php db:migrate'
+```
+
+Applies all pending `.sql` files from `/home/xc_vm/migrations/`. Use this when you need to run migrations without a full system update.
 
 ### Database Update with Data from Other Systems
 

@@ -52,12 +52,10 @@ class RedisManager {
 	/**
 	 * Connect to Redis if not already connected.
 	 *
-	 * Uses ConfigReader and SettingsManager for hostname and password.
-	 *
 	 * @return bool True if connected, false otherwise.
 	 */
 	public static function ensureConnected(): bool {
-		self::$instance = self::connect(self::$instance, ConfigReader::getAll(), SettingsManager::getAll());
+		self::$instance = self::connect(self::$instance);
 		return is_object(self::$instance);
 	}
 
@@ -99,15 +97,12 @@ class RedisManager {
 	 * Connect to Redis (low-level, non-singleton).
 	 *
 	 * If $rRedis is already a live connection, returns it as-is.
-	 * Otherwise creates a new connection using hostname from $rConfig
-	 * and password from $rSettings.
+	 * Otherwise creates a new connection via XC_VM::redis_connect().
 	 *
-	 * @param Redis|null $rRedis   Existing Redis instance or null.
-	 * @param array      $rConfig   Config array (must contain 'hostname').
-	 * @param array      $rSettings Settings array (must contain 'redis_password').
+	 * @param Redis|null $rRedis Existing Redis instance or null.
 	 * @return Redis|null Connected Redis instance, or null on failure.
 	 */
-	public static function connect(?Redis $rRedis, array $rConfig, array $rSettings): ?Redis {
+	public static function connect(?Redis $rRedis = null): ?Redis {
 		if (is_object($rRedis)) {
 			try {
 				$rRedis->ping();
@@ -117,14 +112,11 @@ class RedisManager {
 			}
 		}
 
-		if (empty($rConfig['hostname']) || empty($rSettings['redis_password'])) {
-			return null;
-		}
-
 		try {
-			$rRedis = new Redis();
-			$rRedis->connect($rConfig['hostname'], 6379, 2.0);
-			$rRedis->auth($rSettings['redis_password']);
+			$rRedis = XC_VM::redis_connect();
+			if (!is_object($rRedis)) {
+				return null;
+			}
 			$rRedis->setOption(Redis::OPT_READ_TIMEOUT, 2.0);
 			$rRedis->setOption(Redis::OPT_TCP_KEEPALIVE, 60);
 			return $rRedis;

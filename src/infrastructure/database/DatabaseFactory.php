@@ -46,21 +46,7 @@ class DatabaseFactory {
 			$db = null;
 		}
 
-		$_INFO = array();
-
-		if (file_exists(MAIN_HOME . 'config')) {
-			$_INFO = parse_ini_file(CONFIG_PATH . 'config.ini');
-		} else {
-			die('no config found');
-		}
-
-		$db = new DatabaseHandler(
-			$_INFO['username'],
-			$_INFO['password'],
-			$_INFO['database'],
-			$_INFO['hostname'],
-			($_INFO['port'] ?: 3306)
-		);
+		$db = new DatabaseHandler();
 		self::$instance = $db;
 	}
 

@@ -196,6 +196,33 @@ class ModuleManager {
     }
 
     /**
+     * Download a module from the SaaS platform and install it.
+     *
+     * Delegates the full download → key-unwrap → extract flow to the
+     * XC_VM C extension, then runs installModule() to register it.
+     *
+     * @param string      $slug    Module slug as listed on the platform.
+     * @param string      $version Exact version string (e.g. "1.2.0").
+     * @param string|null $apiKey  API key for the SaaS platform.
+     * @return void
+     * @throws RuntimeException If the C extension is missing, download fails, or install fails.
+     */
+    public function downloadFromPlatform(string $slug, string $version, ?string $apiKey = null): void {
+        if (!class_exists('XC_VM')) {
+            throw new RuntimeException('XC_VM extension is not loaded. Install license_ext.so and enable it in php.ini.');
+        }
+
+        $result = \XC_VM::module_install($slug, $version, $apiKey ?? '');
+
+        if (!is_array($result) || empty($result['ok'])) {
+            $reason = $result['error'] ?? 'unknown';
+            throw new RuntimeException("Platform download failed for module '{$slug}': {$reason}");
+        }
+
+        $this->installModule($slug);
+    }
+
+    /**
      * Load and return a module instance by name.
      *
      * @param string $name Module name.

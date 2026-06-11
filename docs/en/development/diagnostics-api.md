@@ -59,13 +59,6 @@ Used for support/telemetry workflows.
 
 ---
 
-### `getApiIP(): ?string`
-
-Attempts to resolve external/public IP via remote API request.
-Returns `null` on network failure.
-
----
-
 ## `panel_logs` Shape (used fields)
 
 | Column | Type | Meaning |

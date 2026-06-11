@@ -45,16 +45,16 @@ if (!isset($rFilename)) {
 $rSettings = SettingsManager::getAll();
 
 if (!in_array($rFilename, array('enigma2', 'epg', 'playlist', 'api', 'xplugin', 'live', 'proxy_api', 'thumb', 'timeshift', 'vod')) || isset($argc)) {
-	$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
+	$db = new DatabaseHandler();
 	DatabaseFactory::set($db);
 	LegacyInitializer::initCore();
 } else {
-	$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
+	$db = new DatabaseHandler();
 	DatabaseFactory::set($db);
 	LegacyInitializer::initCore(true);
 
 	if (!($rSettings['enable_cache'] ?? false)) {
-		$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
+		$db = new DatabaseHandler();
 		DatabaseFactory::set($db);
 	}
 }
