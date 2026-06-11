@@ -162,17 +162,6 @@ class GitHubReleases {
     }
 
     /**
-     * Get the next version tag that comes after the specified current version.
-     *
-     * @param string $current_version The current version tag (e.g., "1.0.0").
-     * @return string|null The next version tag, or null if it's the latest or not found.
-     * @deprecated Use getLatestVersion() instead — sequential updates are no longer required.
-     */
-    public function getNextVersion(string $current_version): ?string {
-        return $this->getLatestVersion($current_version);
-    }
-
-    /**
      * Get the latest available version that is newer than the current one.
      *
      * Unlike getNextVersion(), this skips intermediate versions and returns
@@ -537,11 +526,6 @@ class GitHubReleases {
  *
  *   $latest = $gh->getLatestVersion("1.0.0");
  *   echo $latest; // e.g. "2.0.2" — пропускает промежуточные версии
- *
- * ------------------------------------------------------------
- * 3. getNextVersion() — алиас getLatestVersion() (deprecated):
- *
- *   $next = $gh->getNextVersion("1.0.0"); // то же что getLatestVersion()
  *
  * ------------------------------------------------------------
  * 3. Проверить хэш файла из релиза:
