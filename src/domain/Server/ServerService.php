@@ -277,7 +277,7 @@ class ServerService {
 
 		$rInsertID = $db->last_insert_id();
 		if ($rArray['server_type'] == 0) {
-			BackupService::grantPrivileges($rArray['server_ip'], DatabaseFactory::get(), ConfigReader::getAll());
+			BackupService::grantPrivileges($rArray['server_ip']);
 		}
 
 		if ($rData['type'] == 1) {

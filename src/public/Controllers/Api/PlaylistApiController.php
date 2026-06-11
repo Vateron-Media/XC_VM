@@ -58,8 +58,8 @@ class PlaylistApiController extends BaseApiController {
 		$this->downloading = true;
 
 		if (NetworkUtils::startDownload('playlist', $rUserInfo, getmypid(), intval(SettingsManager::getAll()['max_simultaneous_downloads']))) {
-			global $_INFO, $db;
-			$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
+			global $db;
+			$db = new DatabaseHandler();
 			DatabaseFactory::set($db);
 			$rProxyIP = ($_SERVER['HTTP_X_IP'] ?? ($_SERVER['REMOTE_ADDR'] ?? ''));
 

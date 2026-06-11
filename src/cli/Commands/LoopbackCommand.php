@@ -50,10 +50,6 @@ class LoopbackCommand implements CommandInterface {
 		if (!defined('TIMEOUT')) define('TIMEOUT', 20);
 		if (!defined('TIMEOUT_READ')) define('TIMEOUT_READ', 1);
 
-		if (!file_exists(CONFIG_PATH . 'config.ini')) {
-			echo "Config file missing!\n";
-			return 0;
-		}
 		if (!file_exists(CACHE_TMP_PATH . 'settings')) {
 			echo "Settings not cached!\n";
 			return 0;
@@ -63,8 +59,7 @@ class LoopbackCommand implements CommandInterface {
 			return 0;
 		}
 
-		$rConfig = parse_ini_file(CONFIG_PATH . 'config.ini');
-		if (!defined('SERVER_ID')) define('SERVER_ID', intval($rConfig['server_id']));
+		if (!defined('SERVER_ID')) define('SERVER_ID', intval(ConfigReader::get('server_id')));
 		$this->checkRunning($rStreamID);
 
 		$rFP = null;

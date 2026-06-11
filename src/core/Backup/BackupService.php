@@ -15,99 +15,51 @@
 
 class BackupService {
 
+	private static array $ignoreTables = [
+		'detect_restream_logs', 'epg_data', 'lines_activity', 'lines_live',
+		'lines_logs', 'login_logs', 'mag_claims', 'mag_logs', 'mysql_syslog',
+		'panel_logs', 'panel_stats', 'servers_stats', 'signals',
+		'streams_errors', 'streams_logs', 'streams_stats', 'syskill_log',
+		'users_credits_logs', 'users_logs', 'watch_logs',
+	];
+
 	/**
-	 * Create a full database backup (structure + data, excluding large log tables)
+	 * Create a full database backup (structure + data, excluding large log tables).
+	 * Credentials are never exposed to PHP — delegated to XC_VM::db_dump().
 	 *
-	 * @param string $filename  Output SQL file path
-	 * @param array  $config    Database config ['username','password','port','database']
+	 * @param string $filename Output SQL file path
 	 */
-	public static function create($filename, $config) {
-		$user = $config['username'];
-		$pass = $config['password'];
-		$port = $config['port'];
-		$db   = $config['database'];
-
-		// Structure only
-		shell_exec("mysqldump -h 127.0.0.1 -u {$user} -p{$pass} -P {$port} --no-data {$db} > " . escapeshellarg($filename));
-
-		// Data (excluding heavy log tables)
-		$ignoreTables = [
-			'detect_restream_logs', 'epg_data', 'lines_activity', 'lines_live',
-			'lines_logs', 'login_logs', 'mag_claims', 'mag_logs', 'mysql_syslog',
-			'panel_logs', 'panel_stats', 'servers_stats', 'signals',
-			'streams_errors', 'streams_logs', 'streams_stats', 'syskill_log',
-			'users_credits_logs', 'users_logs', 'watch_logs',
-		];
-
-		$ignoreArgs = '';
-		foreach ($ignoreTables as $table) {
-			$ignoreArgs .= " --ignore-table xc_vm.{$table}";
-		}
-
-		shell_exec("mysqldump -h 127.0.0.1 -u {$user} -p{$pass} -P {$port} --no-create-info{$ignoreArgs} {$db} >> " . escapeshellarg($filename));
+	public static function create($filename) {
+		XC_VM::db_dump($filename, self::$ignoreTables);
 	}
 
 	/**
-	 * Restore a database backup (drops + recreates DB, then imports)
+	 * Restore a database backup (drops + recreates DB, then imports).
+	 * After import the backup file is refreshed with a clean dump.
 	 *
-	 * @param string $filename  SQL file path to restore
-	 * @param array  $config    Database config
+	 * @param string $filename SQL file path to restore
 	 */
-	public static function restore($filename, $config) {
-		$user = $config['username'];
-		$pass = $config['password'];
-		$port = $config['port'];
-		$db   = $config['database'];
-
-		shell_exec("mysql -u {$user} -p{$pass} -P {$port} {$db} -e \"DROP DATABASE IF EXISTS xc_vm; CREATE DATABASE IF NOT EXISTS xc_vm;\"");
-		shell_exec("mysql -u {$user} -p{$pass} -P {$port} {$db} < " . escapeshellarg($filename) . " > /dev/null 2>/dev/null &");
-
-		// Re-dump structure
-		shell_exec("mysqldump -h 127.0.0.1 -u {$user} -p{$pass} -P {$port} --no-data {$db} > " . escapeshellarg($filename));
-
-		$ignoreTables = [
-			'detect_restream_logs', 'epg_data', 'lines_activity', 'lines_live',
-			'lines_logs', 'login_logs', 'mag_claims', 'mag_logs', 'mysql_syslog',
-			'panel_logs', 'panel_stats', 'servers_stats', 'signals',
-			'streams_errors', 'streams_logs', 'streams_stats', 'syskill_log',
-			'users_credits_logs', 'users_logs', 'watch_logs',
-		];
-
-		$ignoreArgs = '';
-		foreach ($ignoreTables as $table) {
-			$ignoreArgs .= " --ignore-table xc_vm.{$table}";
-		}
-
-		shell_exec("mysqldump -h 127.0.0.1 -u {$user} -p{$pass} -P {$port} --no-create-info{$ignoreArgs} {$db} >> " . escapeshellarg($filename));
+	public static function restore($filename) {
+		XC_VM::db_restore($filename);
+		XC_VM::db_dump($filename, self::$ignoreTables);
 	}
 
 	/**
-	 * Grant SELECT/INSERT/UPDATE/DELETE/DROP/ALTER privileges to a remote host
+	 * Grant SELECT/INSERT/UPDATE/DELETE/DROP/ALTER privileges to a remote host.
 	 *
-	 * @param string $host   Remote host IP
-	 * @param object $db     Database handler (must have ->query())
-	 * @param array  $config Database config
+	 * @param string $host Remote host IP
 	 */
-	public static function grantPrivileges($host, $db, $config) {
-		$db->query("GRANT SELECT, INSERT, UPDATE, DELETE, DROP, ALTER ON `" . $config['database'] . "`.* TO '" . $config['username'] . "'@'" . $host . "' IDENTIFIED BY '" . $config['password'] . "';");
+	public static function grantPrivileges($host) {
+		XC_VM::db_grant($host);
 	}
 
 	/**
-	 * Revoke all privileges from a remote host
+	 * Revoke all privileges from a remote host.
 	 *
-	 * @param string $host   Remote host IP
-	 * @param object $db     Database handler
-	 * @param array  $config Database config
+	 * @param string $host Remote host IP
 	 */
-	public static function revokePrivileges($host, $db, $config) {
-		if ($db->query('SELECT COUNT(*) AS `count` FROM `mysql`.`db` WHERE `User` = ? AND `Host` = ? AND `Db` = ?;', $config['username'], $host, $config['database'])) {
-			$rGrantRow = $db->get_row();
-			if (empty($rGrantRow) || intval($rGrantRow['count']) === 0) {
-				return;
-			}
-		}
-
-		$db->query("REVOKE ALL PRIVILEGES ON `" . $config['database'] . "`.* FROM '" . $config['username'] . "'@'" . $host . "';");
+	public static function revokePrivileges($host) {
+		XC_VM::db_revoke($host);
 	}
 
 	public static function getLocal() {

@@ -26,7 +26,7 @@ class XPluginApiController {
 	}
 
 	public function index() {
-		global $db, $_INFO;
+		global $db;
 		$rSettings = SettingsManager::getAll();
 		$rRequest = RequestManager::getAll();
 
@@ -48,7 +48,7 @@ class XPluginApiController {
 			exit();
 		}
 
-		$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
+		$db = new DatabaseHandler();
 		DatabaseFactory::set($db);
 
 		if (!empty($rRequest['action']) && $rRequest['action'] == 'auth') {

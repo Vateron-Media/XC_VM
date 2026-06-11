@@ -96,10 +96,9 @@ class LegacyInitializer {
 
 		$rInput = @Request::parseIncomingRecursively($_GET, array());
 		$GLOBALS['rRequest'] = @Request::parseIncomingRecursively($_POST, $rInput);
-		$GLOBALS['rConfig'] = parse_ini_file(CONFIG_PATH . 'config.ini');
 
 		if (!defined('SERVER_ID')) {
-			define('SERVER_ID', intval($GLOBALS['rConfig']['server_id']));
+			define('SERVER_ID', intval(ConfigReader::get('server_id')));
 		}
 
 		if (!$GLOBALS['rSettings']) {
@@ -146,7 +145,6 @@ class LegacyInitializer {
 	public static function exportGlobals(): void {
 		$GLOBALS['rSettings']   = SettingsManager::getAll();
 		$GLOBALS['rRequest']    = RequestManager::getAll();
-		$GLOBALS['rConfig']     = ConfigReader::getAll();
 		$GLOBALS['rServers']    = ServerRepository::getAll();
 		$GLOBALS['rFFPROBE']    = FfmpegPaths::probe();
 		$GLOBALS['rFFMPEG_CPU']     = FfmpegPaths::cpu();
@@ -166,7 +164,7 @@ class LegacyInitializer {
 	private static function syncStreamingContainer() {
 		$rContainer = ServiceContainer::getInstance();
 		$rContainer->set('streaming.request', $GLOBALS['rRequest']);
-		$rContainer->set('streaming.config', $GLOBALS['rConfig']);
+		$rContainer->set('streaming.config', ConfigReader::getAll());
 		$rContainer->set('streaming.settings', $GLOBALS['rSettings']);
 		$rContainer->set('streaming.servers', $GLOBALS['rServers']);
 	}

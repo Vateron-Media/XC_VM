@@ -54,7 +54,11 @@ class MigrationRunner {
 			$rFailed = false;
 
 			foreach ($rStatements as $rStatement) {
-				if (empty($rStatement) || strpos($rStatement, '--') === 0) {
+				$rLines = array_filter(explode("\n", $rStatement), function ($l) {
+					return strpos(ltrim($l), '--') !== 0;
+				});
+				$rStatement = trim(implode("\n", $rLines));
+				if (empty($rStatement)) {
 					continue;
 				}
 				if (!$db->query($rStatement . ';')) {
@@ -62,8 +66,12 @@ class MigrationRunner {
 				}
 			}
 
-			$db->query("INSERT INTO `migrations` (`migration`) VALUES (?);", $rName);
-			echo ($rFailed ? "  [WARN] " : "  [OK]   ") . $rName . "\n";
+			if ($rFailed) {
+				echo "  [FAIL] " . $rName . " (not recorded — will retry on next run)\n";
+			} else {
+				$db->query("INSERT INTO `migrations` (`migration`) VALUES (?);", $rName);
+				echo "  [OK]   " . $rName . "\n";
+			}
 			$rCount++;
 		}
 

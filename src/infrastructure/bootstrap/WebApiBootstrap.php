@@ -41,7 +41,6 @@ class WebApiBootstrap {
 		require_once MAIN_HOME . 'core/Config/Paths.php';
 		require_once MAIN_HOME . 'core/Config/AppConfig.php';
 		require_once MAIN_HOME . 'core/Config/Binaries.php';
-		require_once MAIN_HOME . 'core/Config/ConfigLoader.php';
 
 		// ── 4. Flood / host / Logger ─────────────────────────────
 		require_once MAIN_HOME . 'core/Http/RequestGuard.php';
@@ -51,17 +50,17 @@ class WebApiBootstrap {
 		require_once MAIN_HOME . 'core/Database/DatabaseHandler.php';
 		require_once MAIN_HOME . 'core/Updates/GithubReleases.php';
 
-		global $_INFO, $db, $gitRelease;
+		global $db, $gitRelease;
 
 		$rCachedEndpoints = ['enigma2', 'epg', 'playlist', 'api', 'xplugin', 'live', 'proxy_api', 'thumb', 'timeshift', 'vod'];
 		$rUseCache = in_array($rFilename, $rCachedEndpoints, true);
 
-		$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
+		$db = new DatabaseHandler();
 		DatabaseFactory::set($db);
 		LegacyInitializer::initCore($rUseCache);
 
 		if ($rUseCache && !SettingsManager::getAll()['enable_cache']) {
-			$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
+			$db = new DatabaseHandler();
 			DatabaseFactory::set($db);
 		}
 

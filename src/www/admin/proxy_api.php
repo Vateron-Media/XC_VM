@@ -15,7 +15,7 @@ require '../init.php';
 $rSignals = array();
 
 if (BlocklistService::isProxy($_SERVER['REMOTE_ADDR'])) {
-	$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
+	$db = new DatabaseHandler();
 	DatabaseFactory::set($db);
 	$rServers = ServerRepository::getAll();
 	$rServerIDRequest = intval($_POST['server_id']);

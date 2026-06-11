@@ -46,7 +46,7 @@ class Enigma2ApiController {
 	}
 
 	public function index() {
-		global $db, $_INFO;
+		global $db;
 		$rSettings = SettingsManager::getAll();
 		$rRequest = RequestManager::getAll();
 
@@ -78,7 +78,7 @@ class Enigma2ApiController {
 		}
 
 		$this->deny = false;
-		$db = new DatabaseHandler($_INFO['username'], $_INFO['password'], $_INFO['database'], $_INFO['hostname'], $_INFO['port']);
+		$db = new DatabaseHandler();
 		DatabaseFactory::set($db);
 		BruteforceGuard::checkAuthFlood($this->userInfo);
 		$this->liveCategories = CategoryService::getFromDatabase('live');

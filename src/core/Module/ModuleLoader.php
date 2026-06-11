@@ -32,6 +32,9 @@ class ModuleLoader {
     /** @var array Normalized manifest data from module.json files (name => manifest array) */
     protected array $manifests = [];
 
+    /** @var array<string, true> Module paths that already have an autoloader registered */
+    private static array $autoloadedPaths = [];
+
     /**
      * Loads all discovered modules from modules/ directory.
      *
@@ -99,11 +102,19 @@ class ModuleLoader {
             $modulePath = $this->getModulePath($name);
         }
 
+        // Register autoloader before loading so multi-file modules (including
+        // encrypted ones) can reference their own classes via require/include.
+        $this->registerModuleAutoloader($modulePath);
+
         $className = $this->resolveClassName($name);
 
         if (!class_exists($className)) {
             $classFile = $modulePath . '/' . $className . '.php';
             if (file_exists($classFile)) {
+                if ($this->isFileEncrypted($classFile) && !extension_loaded('license_ext')) {
+                    error_log("ModuleLoader: module '{$name}' is encrypted but license_ext is not loaded");
+                    return false;
+                }
                 require_once $classFile;
             }
 
@@ -471,5 +482,53 @@ class ModuleLoader {
                 EventDispatcher::subscribe($event, $handler);
             }
         }
+    }
+
+    /**
+     * Registers a PSR-style autoloader for a module directory (once per path).
+     *
+     * Handles two layouts:
+     *   - modules/{name}/MyClass.php          (flat)
+     *   - modules/{name}/SubDir/MyClass.php   (one level deep)
+     *
+     * Encrypted files are loaded with require_once and transparently decrypted
+     * by the XC_VM zend_compile_file hook.
+     */
+    private function registerModuleAutoloader(string $modulePath): void {
+        if (isset(self::$autoloadedPaths[$modulePath])) {
+            return;
+        }
+        self::$autoloadedPaths[$modulePath] = true;
+
+        spl_autoload_register(function (string $class) use ($modulePath): void {
+            // Strip namespace prefix — use only the short class name for file lookup
+            $short = substr($class, (int) strrpos($class, '\\') + 1);
+
+            // Flat: modules/{name}/MyClass.php
+            $flat = $modulePath . '/' . $short . '.php';
+            if (file_exists($flat)) {
+                require_once $flat;
+                return;
+            }
+
+            // One level deep: modules/{name}/*/MyClass.php
+            foreach (glob($modulePath . '/*/' . $short . '.php') ?: [] as $found) {
+                require_once $found;
+                return;
+            }
+        }, false, false);
+    }
+
+    /**
+     * Returns true if the file starts with the XCVM encrypted-file magic bytes.
+     */
+    private function isFileEncrypted(string $path): bool {
+        $fh = @fopen($path, 'rb');
+        if (!$fh) {
+            return false;
+        }
+        $magic = fread($fh, 4);
+        fclose($fh);
+        return $magic === "\x58\x43\x56\x4D";
     }
 }
