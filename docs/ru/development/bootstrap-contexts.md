@@ -26,7 +26,6 @@
 
 - Автозагрузчик классов (`autoload.php`)
 - Константы путей (`MAIN_HOME`, `INCLUDES_PATH`, `CONFIG_PATH`, …)
-- Конфиг из `config.ini` → `$_INFO`
 - Logger (`Logger::init()`)
 - Функции ошибок (`generateError()`, `generate404()`)
 
@@ -38,7 +37,7 @@
 require_once '/home/xc_vm/bootstrap.php';
 XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_MINIMAL);
 
-// Теперь доступны MAIN_HOME, $_INFO, Logger
+// Теперь доступны MAIN_HOME, Logger
 echo MAIN_HOME;
 ```
 
@@ -119,7 +118,6 @@ XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_ADMIN);
 | Подсистема         | MINIMAL | CLI | STREAM | ADMIN |
 | ------------------ | :-----: | :-: | :----: | :---: |
 | Константы / пути   | ✅      | ✅  | ✅     | ✅    |
-| Конфиг (`$_INFO`)  | ✅      | ✅  | ✅     | ✅    |
 | Logger             | ✅      | ✅  | ✅     | ✅    |
 | Flood-protection   | —       | —   | ✅     | ✅    |
 | Проверка хоста     | —       | —   | ✅     | ✅    |

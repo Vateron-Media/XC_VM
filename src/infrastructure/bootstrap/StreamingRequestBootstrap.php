@@ -3,17 +3,6 @@
 /**
  * StreamingRequestBootstrap — bootstrap для streaming HTTP endpoint'ов
  *
- * Заменяет `www/stream/init.php` для endpoints:
- * player_api, live, thumb, subtitle, timeshift, vod, probe, status, rtmp, portal.
- *
- * Порядок инициализации:
- *   1. Коды ошибок, хэндлер, пути, конфигурация приложения, бинарники
- *   2. Flood-protection (HTTP only)
- *   3. Настройки из файлового кэша (stream-specific defaults при отсутствии)
- *   4. Host verification (HTTP only)
- *   5. Logger
- *   6. Передача управления StreamingBootstrap::bootstrap()
- *
  * @package XC_VM_Infrastructure_Bootstrap
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
@@ -22,12 +11,6 @@
  */
 
 class StreamingRequestBootstrap {
-
-	/**
-	 * Инициализирует streaming контекст.
-	 *
-	 * @param string $rFilename  Имя endpoint'а (player_api, live, vod, status, …)
-	 */
 	public static function init(string $rFilename): void {
 		// ── 1. Базовые модули ────────────────────────────────────
 		require_once MAIN_HOME . 'core/Error/ErrorCodes.php';
