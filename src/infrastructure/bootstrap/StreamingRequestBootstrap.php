@@ -51,6 +51,7 @@ class StreamingRequestBootstrap {
 		}
 
 		// ── 3. Настройки из файлового кэша ───────────────────────
+		global $rSettings;
 		if (file_exists(CACHE_TMP_PATH . 'settings')) {
 			$rSettings = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'settings'));
 		} else {

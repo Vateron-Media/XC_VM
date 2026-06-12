@@ -2,7 +2,7 @@
 
 > Архитектурные правила: см. [ARCHITECTURE.md](ARCHITECTURE.md).
 > Этот файл хранит только незавершенные задачи и фактический статус на сегодня.
-> Последнее обновление: 2026-05-06.
+> Последнее обновление: 2026-06-12.
 
 ## 1. Почему файл переписан
 
@@ -26,15 +26,18 @@
 6. `src/www/init.php` и `src/www/stream/init.php` пока остаются compatibility-слоем.
 7. L-3R закрыта: `AdminTableController` больше не подключает procedural `table.php` напрямую.
 
-### 2.2. Что все еще блокирует удаление `src/www/`
+### 2.2. Статус `src/www/` (L-7 закрыта)
 
-| Зона | Факт | Риск |
+**Все блокеры сняты (L-5, L-6 закрыты).**
+
+| Зона | Факт | Статус |
 | --- | --- | --- |
-| Nginx MAIN | `src/bin/nginx/conf/nginx.conf` использует `root /home/xc_vm/www/` и rewrite на `www/*.php`/`www/stream/*.php` | Нельзя удалить `www` без outage |
-| Nginx LB | `lb_configs/nginx.conf` использует `root /home/xc_vm/www/` и rewrite на `/stream/*.php` | LB останется привязан к `www` |
-| Certbot | `src/cli/Commands/CertbotCommand.php` использует `--webroot -w /home/xc_vm/www/` | Поломка issue/renew при cutover |
+| Nginx MAIN | Rewrite на `www/*.php` убраны; front controller'ы `public/stream/index.php` и `public/admin/index.php` | ~~Закрыто L-5~~ |
+| Nginx LB | `lb_configs/nginx.conf` переведён на front controllers | ~~Закрыто L-5~~ |
+| Certbot | `CertbotCommand.php` использует `certbot-webroot`, не `/home/xc_vm/www/` | ~~Закрыто L-5~~ |
 | Ministra runtime | `src/ministra/portal.php` использует `StreamingRequestBootstrap::init('portal')` напрямую | ~~Закрыто L-6~~ |
-| Ministra lifecycle | `RootSignalsCronJob` и `SettingsService` больше не управляют symlink `www/c` и `www/portal.php` | ~~Закрыто L-6~~ |
+| Ministra lifecycle | `RootSignalsCronJob` и `SettingsService` не управляют symlink `www/c` и `www/portal.php` | ~~Закрыто L-6~~ |
+| PHP-файлы www/ | Перемещены в `public/`; `www/` содержит только `images/` и `index.html` | ~~Закрыто L-7~~ |
 
 ### 2.3. Модули: состояние интеграции
 
@@ -67,20 +70,20 @@
 | ~~M-4~~ | ~~P1~~ | ~~Manifest v2 и порядок загрузки~~ | ~~M-1~~ | **Закрыто.** Поддерживаются `environment`, `dependencies`, `has_navbar`, `has_settings`; загрузка детерминирована (topological sort), циклы и отсутствующие зависимости завершаются fail-fast ошибкой. |
 | M-5 | P2 | Убрать core patching как основной путь расширения | M-2, M-3 | Новые модули не используют patching для core/public |
 | M-6 | P2 | Перевести Ministra в модульные runtime/assets правила | L-6, M-4 | Ministra не отдельный legacy-остров |
-| L-7 | P0 | Финальное удаление `src/www/` | L-5, L-6 | В репозитории нет `src/www/`; smoke-check чистый |
+| ~~L-7~~ | ~~P0~~ | ~~Финальное удаление `src/www/`~~ | ~~L-5, L-6~~ | **Закрыто.** PHP-файлы из `www/` перемещены в `public/`; `www/` содержит только `images/` и `index.html`. |
 
 ## 4. Критический путь (обязательный порядок)
 
-1. L-5
-2. L-6
-3. M-1
-4. M-2
-5. M-3 и M-4 (параллельно после M-2/M-1)
-6. M-5
+1. ~~L-5~~ ✅
+2. ~~L-6~~ ✅
+3. ~~M-1~~ ✅
+4. ~~M-2~~ ✅
+5. ~~M-3 и M-4~~ ✅ (параллельно после M-2/M-1)
+6. **M-5** ← текущий шаг
 7. M-6
-8. L-7
+8. ~~L-7~~ ✅
 
-Запрет: удалять `src/www/` до закрытия L-5 и L-6.
+~~Запрет: удалять `src/www/` до закрытия L-5 и L-6.~~ (снят — L-7 закрыта)
 
 ## 5. План исполнения по волнам
 
@@ -243,16 +246,18 @@ Rollback:
 
 ## 8. Текущее целевое окно работ
 
-### Итерация 1 (сейчас)
+### Завершено
 
-1. ~~Закрыть L-5 полностью.~~
-2. Подготовить PR только по infra/certbot cutover.
-3. Отдельно прогнать smoke-check и зафиксировать отчёт.
+1. ~~L-5: Cutover HTTP routing и certbot.~~
+2. ~~L-6: Ministra отвязка от `www`.~~
+3. ~~M-1/M-2: Web boot модулей, удаление хардкода маршрутов.~~
+4. ~~M-3/M-4: Navbar extension points, manifest v2.~~
+5. ~~L-7: Финальное удаление PHP-файлов из `src/www/`.~~
 
-### Итерация 2
+### Итерация 3 (текущая)
 
-1. ~~Закрыть L-6 (Ministra отвязка от `www`).~~
-2. Перейти к модульной волне M-1/M-2.
+1. **M-5**: Вывод `CoreCodePatcher` из основного пути расширения.
+2. **M-6**: Перевод Ministra на модульные runtime/assets правила.
 
 ## 9. Жесткие правила удаления
 

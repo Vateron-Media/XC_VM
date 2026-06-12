@@ -11,7 +11,6 @@
  */
 
 header('Access-Control-Allow-Origin: *');
-require_once 'init.php';
 $rSettings = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'settings'));
 $rServers = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'servers'));
 if (!defined('SERVER_ID')) define('SERVER_ID', intval(ConfigReader::get('server_id')));

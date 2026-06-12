@@ -13,7 +13,6 @@
 register_shutdown_function('shutdown');
 header('Access-Control-Allow-Origin: *');
 set_time_limit(0);
-require '../init.php';
 $rIP = NetworkUtils::getUserIP();
 
 if (!empty(RequestManager::getAll()['uitoken'])) {
