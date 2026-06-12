@@ -13,7 +13,6 @@
 if (!($_GET['addr'] == '127.0.0.1' && $_GET['call'] == 'publish')) {
 	register_shutdown_function('shutdown');
 	set_time_limit(0);
-	require_once 'init.php';
 	error_reporting(0);
 	ini_set('display_errors', 0);
 	$rAllowed = BlocklistService::getAllowedRTMP();

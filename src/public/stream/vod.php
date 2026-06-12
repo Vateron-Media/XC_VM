@@ -11,7 +11,6 @@
  */
 
 set_time_limit(0);
-require_once 'init.php';
 register_shutdown_function([ShutdownHandler::class, 'handle'], 'vod');
 unset($rSettings['watchdog_data'], $rSettings['server_hardware']);
 

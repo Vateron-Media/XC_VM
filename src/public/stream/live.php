@@ -11,7 +11,6 @@
  */
 
 set_time_limit(0);
-require_once "init.php";
 register_shutdown_function([ShutdownHandler::class, 'handle'], 'live');
 unset($rSettings["watchdog_data"]);
 unset($rSettings["server_hardware"]);

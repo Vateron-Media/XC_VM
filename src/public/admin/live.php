@@ -13,7 +13,6 @@
 register_shutdown_function('shutdown');
 header('Access-Control-Allow-Origin: *');
 set_time_limit(0);
-require '../init.php';
 $rIP = NetworkUtils::getUserIP();
 $rPID = getmypid();
 $rSegmentSettings = array('seg_time' => intval(SettingsManager::getAll()['seg_time']), 'seg_list_size' => intval(SettingsManager::getAll()['seg_list_size']), 'seg_delete_threshold' => intval(SettingsManager::getAll()['seg_delete_threshold']));

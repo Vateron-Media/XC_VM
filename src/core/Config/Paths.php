@@ -8,10 +8,10 @@
  *
  * Группы:
  *   1. Базовые пути (content/, tmp/)
- *   2. Системные директории (config/, bin/, includes/, www/, signals/)
+ *   2. Системные директории (config/, bin/, storage/, signals/)
  *   3. Контент-директории (streams/, epg/, vod/, archive/, ...)
  *   4. Временные директории (cache/, flood/, logs/, ...)
- *   5. Веб-ресурсы (images/, enigma2/)
+ *   5. Хранилище файлов (storage/images/, storage/images/enigma2/)
  *
  * @package XC_VM_Core_Config
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -38,7 +38,7 @@ if (!defined('TMP_PATH')) {
 
 define('CONFIG_PATH',   MAIN_HOME . 'config/');
 define('BIN_PATH',      MAIN_HOME . 'bin/');
-define('WWW_PATH',      MAIN_HOME . 'www/');
+define('STORAGE_PATH',  MAIN_HOME . 'storage/');
 define('SIGNALS_PATH',  MAIN_HOME . 'signals/');
 
 // ─────────────────────────────────────────────────────────────────
@@ -74,8 +74,8 @@ define('LOGS_TMP_PATH',       TMP_PATH . 'logs/');
 define('WATCH_TMP_PATH',      TMP_PATH . 'watch/');
 
 // ─────────────────────────────────────────────────────────────────
-//  5. Веб-ресурсы
+//  5. Хранилище файлов
 // ─────────────────────────────────────────────────────────────────
 
-define('IMAGES_PATH',    WWW_PATH . 'images/');
+define('IMAGES_PATH',    STORAGE_PATH . 'images/');
 define('E2_IMAGES_PATH', IMAGES_PATH . 'enigma2/');

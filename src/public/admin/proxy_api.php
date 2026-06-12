@@ -11,7 +11,6 @@
  */
 
 set_time_limit(0);
-require '../init.php';
 $rSignals = array();
 
 if (BlocklistService::isProxy($_SERVER['REMOTE_ADDR'])) {

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Subtitle delivery endpoint
+ * Stream thumbnail endpoint
  *
  * @package XC_VM_Web_Stream
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -10,7 +10,6 @@
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-require_once 'init.php';
 header('Access-Control-Allow-Origin: *');
 
 if (empty($rSettings['send_server_header'])) {
@@ -41,7 +40,6 @@ if (empty($rSettings['send_unique_header'])) {
 }
 
 $rStreamID = null;
-$rSubID = 0;
 
 if (!isset($rRequest['token'])) {
 } else {
@@ -52,40 +50,15 @@ if (!isset($rRequest['token'])) {
 		generateError('TOKEN_EXPIRED');
 	}
 
-	$rStreamID = $rTokenData['stream_id'];
-	$rSubID = (intval($rTokenData['sub_id']) ?: 0);
-	$rWebVTT = (intval($rTokenData['webvtt']) ?: 0);
+	$rStreamID = $rTokenData['stream'];
 }
 
-if ($rStreamID && file_exists(VOD_PATH . $rStreamID . '_' . $rSubID . '.srt')) {
-	header('Content-Description: File Transfer');
-	header('Content-type: application/octet-stream');
-	header('Content-Disposition: attachment; filename="' . $rStreamID . '_' . $rSubID . '.' . (($rWebVTT ? 'vtt' : 'srt')) . '"');
-	$rOutput = file_get_contents(VOD_PATH . $rStreamID . '_' . $rSubID . '.srt');
-
-	if (!$rWebVTT) {
-	} else {
-		$rOutput = convertVTT($rOutput);
-	}
-
-	header('Content-Length: ' . strlen($rOutput));
-	echo $rOutput;
+if ($rStreamID && file_exists(STREAMS_PATH . $rStreamID . '_.jpg') && time() - filemtime(STREAMS_PATH . $rStreamID . '_.jpg') < 60) {
+	header('Age: ' . intval(time() - filemtime(STREAMS_PATH . $rStreamID . '_.jpg')));
+	header('Content-type: image/jpg');
+	echo file_get_contents(STREAMS_PATH . $rStreamID . '_.jpg');
 
 	exit();
 }
 
 generateError('THUMBNAIL_DOESNT_EXIST');
-function convertVTT($rSubtitle) {
-	$rLines = explode("\n", $rSubtitle);
-	$rLength = count($rLines);
-
-	for ($rIndex = 1; $rIndex < $rLength; $rIndex++) {
-		if (!($rIndex === 1 || trim($rLines[$rIndex - 2]) === '')) {
-		} else {
-			$rLines[$rIndex] = str_replace(',', '.', $rLines[$rIndex]);
-		}
-	}
-	$rHeader = "WEBVTT\n\n";
-
-	return $rHeader . implode("\n", $rLines);
-}

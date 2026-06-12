@@ -12,7 +12,6 @@
 
 register_shutdown_function('shutdown');
 set_time_limit(0);
-require '../init.php';
 $rIP = NetworkUtils::getUserIP();
 
 if (in_array($rIP, ServerRepository::getAllowedIPs()) || in_array($rIP, SettingsManager::getAll()['api_ips'])) {
