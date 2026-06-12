@@ -27,7 +27,6 @@ Includes:
 
 - autoloader (`autoload.php`)
 - path constants (`MAIN_HOME`, `INCLUDES_PATH`, ...)
-- config (`$_INFO`)
 - logger (`Logger::init()`)
 - error helpers (`generateError()`, `generate404()`)
 
@@ -107,7 +106,6 @@ XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_ADMIN);
 | Subsystem | MINIMAL | CLI | STREAM | ADMIN |
 | --- | :---: | :---: | :---: | :---: |
 | Constants/paths | ✅ | ✅ | ✅ | ✅ |
-| Config (`$_INFO`) | ✅ | ✅ | ✅ | ✅ |
 | Logger | ✅ | ✅ | ✅ | ✅ |
 | Flood protection | — | — | ✅ | ✅ |
 | Host verification | — | — | ✅ | ✅ |

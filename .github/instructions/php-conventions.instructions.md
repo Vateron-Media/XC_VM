@@ -31,7 +31,7 @@ applyTo: "**/*.php"
 - `$rSettings` — System settings array
 - `$rUserInfo` — Current user info
 - `$rServers` — Servers configuration
-- `$_INFO` / `$_TITLE` — Page metadata
+- `$_TITLE` — Page metadata
 
 When editing legacy files that use globals, preserve the pattern. Do NOT refactor globals unless explicitly asked.
 

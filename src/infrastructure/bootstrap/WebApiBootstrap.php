@@ -3,17 +3,6 @@
 /**
  * WebApiBootstrap — bootstrap для web API endpoint'ов
  *
- * Заменяет `www/init.php` + `www/constants.php` для endpoints:
- * enigma2, epg, playlist, xplugin, api (internal).
- *
- * Порядок инициализации:
- *   1. Коды ошибок и хэндлер
- *   2. Пути, конфигурация приложения, бинарники
- *   3. Загрузка config.ini ($rSettings)
- *   4. Flood-protection, host verification, Logger (RequestGuard)
- *   5. DB-соединение + LegacyInitializer::initCore()
- *   6. GithubReleases ($gitRelease)
- *
  * @package XC_VM_Infrastructure_Bootstrap
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media

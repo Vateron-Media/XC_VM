@@ -9,30 +9,6 @@
  * - Настройки Plex (settings)
  * - API: enable/disable/kill/library/sections actions
  *
- * ──────────────────────────────────────────────────────────────────
- * Заменяет:
- * ──────────────────────────────────────────────────────────────────
- *
- *   admin/plex.php           → index()
- *   admin/plex_add.php       → add()
- *   admin/settings_plex.php  → settings()
- *   admin/api.php actions:
- *     enable_plex  → apiEnable()
- *     disable_plex → apiDisable()
- *     kill_plex    → apiKill()
- *     library (sub=delete|force) → apiLibrary()
- *     plex_sections → apiSections()
- *
- * ──────────────────────────────────────────────────────────────────
- * Использование (через Router):
- * ──────────────────────────────────────────────────────────────────
- *
- *   $router->group('plex', function(Router $r) {
- *       $r->get('',         [PlexController::class, 'index']);
- *       $r->get('add',      [PlexController::class, 'add']);
- *       $r->get('settings', [PlexController::class, 'settings']);
- *   });
- *
  * @see PlexService
  * @see PlexRepository
  * @see PlexModule
@@ -62,16 +38,6 @@ class PlexController {
         require_once $this->layoutsPath . 'footer.php';
     }
 
-    // ───────────────────────────────────────────────────────────
-    //  Страницы (GET)
-    // ───────────────────────────────────────────────────────────
-
-    /**
-     * Список Plex Sync серверов
-     *
-     * Заменяет admin/plex.php
-     * Подготавливает: $rPlexServers
-     */
     public function index() {
         global $rMobile, $rSettings, $rServers;
         $rPlexServers = PlexRepository::getPlexServers();
@@ -83,12 +49,6 @@ class PlexController {
         include $this->viewsPath . '/library_scripts.php';
     }
 
-    /**
-     * Добавление/редактирование Plex библиотеки
-     *
-     * Заменяет admin/plex_add.php
-     * Подготавливает: $rFolder (при edit), $rBouquets
-     */
     public function add() {
         global $rMobile, $rSettings, $rPermissions, $language;
 
@@ -109,12 +69,6 @@ class PlexController {
         include $this->viewsPath . '/library_edit_scripts.php';
     }
 
-    /**
-     * Настройки Plex Sync
-     *
-     * Заменяет admin/settings_plex.php
-     * Подготавливает: $rBouquets
-     */
     public function settings() {
         global $db, $rMobile, $rSettings;
         $rBouquets = BouquetService::getAllSimple();
@@ -130,11 +84,6 @@ class PlexController {
     //  API-действия (JSON)
     // ───────────────────────────────────────────────────────────
 
-    /**
-     * Включить все Plex Sync серверы
-     *
-     * Заменяет admin/api.php action=enable_plex
-     */
     public function apiEnable() {
         global $db;
         $db->query("UPDATE `watch_folders` SET `active` = 1 WHERE `type` = 'plex';");
@@ -142,11 +91,6 @@ class PlexController {
         exit();
     }
 
-    /**
-     * Отключить все Plex Sync серверы
-     *
-     * Заменяет admin/api.php action=disable_plex
-     */
     public function apiDisable() {
         global $db;
         $db->query("UPDATE `watch_folders` SET `active` = 0 WHERE `type` = 'plex';");
@@ -154,22 +98,12 @@ class PlexController {
         exit();
     }
 
-    /**
-     * Убить все процессы Plex Sync
-     *
-     * Заменяет admin/api.php action=kill_plex
-     */
     public function apiKill() {
         ServerService::killPlexSync();
         echo json_encode(['result' => true]);
         exit();
     }
 
-    /**
-     * Действия с отдельной библиотекой (delete / force)
-     *
-     * Заменяет admin/api.php action=library&sub=delete|force
-     */
     public function apiLibrary() {
         $rSub = RequestManager::getAll()['sub'] ?? '';
         $rFolderID = RequestManager::getAll()['folder_id'] ?? 0;
@@ -193,11 +127,6 @@ class PlexController {
         exit();
     }
 
-    /**
-     * Получить секции Plex сервера (AJAX)
-     *
-     * Заменяет admin/api.php action=plex_sections
-     */
     public function apiSections() {
         $rIP       = RequestManager::getAll()['ip'] ?? '';
         $rPort     = RequestManager::getAll()['port'] ?? '';
