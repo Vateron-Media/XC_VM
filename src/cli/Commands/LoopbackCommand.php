@@ -42,11 +42,21 @@ class LoopbackCommand implements CommandInterface {
 		if (!defined('FFPROBE')) define('FFPROBE', MAIN_HOME . 'bin/ffmpeg_bin/4.0/ffprobe');
 		if (!defined('CACHE_TMP_PATH')) define('CACHE_TMP_PATH', MAIN_HOME . 'tmp/cache/');
 		if (!defined('CONFIG_PATH')) define('CONFIG_PATH', MAIN_HOME . 'config/');
-		if (!defined('PAT_HEADER')) define('PAT_HEADER', "�\r");
+		// PAT_HEADER restored to the real PAT header bytes (0xB0 0x0D) derived from the stream.
+		// The value was corrupted (byte 0xB0 → space/U+FFFD) by a non-binary-safe editor.
+		if (!defined('PAT_HEADER')) define('PAT_HEADER', "\xB0\x0D");
 		if (!defined('KEYFRAME_HEADER')) define('KEYFRAME_HEADER', "\x07P");
 		if (!defined('PACKET_SIZE')) define('PACKET_SIZE', 188);
 		if (!defined('BUFFER_SIZE')) define('BUFFER_SIZE', 12032);
 		if (!defined('PAT_PERIOD')) define('PAT_PERIOD', 2);
+		// Minimum VIDEO duration per segment (90 kHz ticks). ~1.5s guarantees one cut per 2s GOP
+		// and prevents sub-GOP cuts that were producing 8 KB .ts files. Measured in PTS (video time),
+		// so it stays correct even when the source bursts at 400+ Mbps.
+		if (!defined('MIN_SEG_PTS')) define('MIN_SEG_PTS', 135000);
+		// Segment size safety cap. If the source stops delivering keyframes with an advancing PCR
+		// (e.g. re-serving the same chunk to a consumer), we still rotate on the next keyframe to
+		// avoid writing a giant .ts that fills the disk. ~16 MB ≈ ~20s, well above a normal segment (~800 KB).
+		if (!defined('MAX_SEG_BYTES')) define('MAX_SEG_BYTES', 16777216);
 		if (!defined('TIMEOUT')) define('TIMEOUT', 20);
 		if (!defined('TIMEOUT_READ')) define('TIMEOUT_READ', 1);
 
@@ -62,19 +72,34 @@ class LoopbackCommand implements CommandInterface {
 		if (!defined('SERVER_ID')) define('SERVER_ID', intval(ConfigReader::get('server_id')));
 		$this->checkRunning($rStreamID);
 
+		// Single-instance lock per stream. The monitor/watchdog (StreamProcess::startLoopback) can
+		// relaunch loopback while another instance is still running → two processes writing the same
+		// N_*.ts files, corrupting segmentation (one giant segment / uncontrolled segment numbers).
+		// flock is released automatically on process death, so it handles crashes and watchdog races.
+		$rLock = @fopen(STREAMS_PATH . $rStreamID . '_.loopback.lock', 'c');
+		if (!$rLock || !flock($rLock, LOCK_EX | LOCK_NB)) {
+			echo 'Another loopback for stream ' . $rStreamID . " is already running. Exiting.\n";
+			return 0;
+		}
+
 		$rFP = null;
 		$rSegmentFile = null;
 		$rSegmentDuration = array();
 		$rSegmentStatus = array();
 		$rLastPTS = null;
 		$rCurPTS = null;
+		$rSegStartPTS = null;
 
-		register_shutdown_function(function () use (&$rFP, &$rSegmentFile) {
+		register_shutdown_function(function () use (&$rFP, &$rSegmentFile, &$rLock) {
 			if (is_resource($rSegmentFile)) {
 				@fclose($rSegmentFile);
 			}
 			if (is_resource($rFP)) {
 				@fclose($rFP);
+			}
+			if (is_resource($rLock)) {
+				@flock($rLock, LOCK_UN);
+				@fclose($rLock);
 			}
 		});
 
@@ -100,6 +125,8 @@ class LoopbackCommand implements CommandInterface {
 		$rNewSegment = $rPAT = false;
 		$rFirstWrite = true;
 		$rLastPacket = time();
+		$rResyncCount = 0;
+		$rLastResyncLog = 0;
 		$rLastSegment = round(microtime(true) * 1000);
 		$rSegment = 0;
 		$rSegmentFile = fopen(STREAMS_PATH . $rStreamID . '_' . $rSegment . '.ts', 'wb');
@@ -108,39 +135,100 @@ class LoopbackCommand implements CommandInterface {
 
 		while (!feof($rFP)) {
 			stream_set_timeout($rFP, TIMEOUT_READ);
-			$rBuffer = $rBuffer . $rExcessBuffer . fread($rFP, BUFFER_SIZE - strlen($rBuffer . $rExcessBuffer));
+			$rRead = fread($rFP, BUFFER_SIZE - strlen($rBuffer . $rExcessBuffer));
+			// Connection is considered alive whenever raw bytes arrive (even pure 0xFF padding).
+			// Previously the timeout clock only advanced on clean packets, so a period of only padding
+			// fired a false "No data" timeout. The timer must reflect a silent socket, not missing packets.
+			if ($rRead !== false && $rRead !== '') {
+				$rLastPacket = time();
+			}
+			$rBuffer = $rBuffer . $rExcessBuffer . $rRead;
 			$rExcessBuffer = '';
+			// The source (admin/live) interleaves unaligned 0xFF padding between real packets, breaking
+			// sync roughly once per buffer. Sanitize here: keep only valid packets (0x47 + 188 bytes),
+			// skipping junk — without discarding good packets or reading from the socket again.
+			// Any partial packet at the end goes into $rExcessBuffer and is completed on the next read.
+			$rClean = '';
+			$rLen = strlen($rBuffer);
+			$rI = 0;
+			$rSkipped = false;
+			while ($rI < $rLen) {
+				if ($rBuffer[$rI] === "\x47") {
+					if ($rI + PACKET_SIZE > $rLen) {
+						break; // incomplete packet at end → carry over to excess
+					}
+					$rClean .= substr($rBuffer, $rI, PACKET_SIZE);
+					$rI += PACKET_SIZE;
+				} else {
+					$rNext = strpos($rBuffer, "\x47", $rI + 1);
+					if ($rNext === false) {
+						$rI = $rLen; // nothing but junk until end of buffer → discard
+						break;
+					}
+					$rSkipped = true;
+					$rI = $rNext;
+				}
+			}
+			$rExcessBuffer = substr($rBuffer, $rI);
+			$rBuffer = $rClean;
+			if ($rSkipped) {
+				// These gaps are routine for this source; log at most once per 60s to avoid flooding.
+				$rResyncCount++;
+				if (time() - $rLastResyncLog >= 60) {
+					$this->writeError($rStreamID, '[Loopback] Realigned ' . $rResyncCount . ' junk gap(s) in source stream (padding).');
+					$rLastResyncLog = time();
+					$rResyncCount = 0;
+				}
+			}
 			$rPacketNum = floor(strlen($rBuffer) / PACKET_SIZE);
 			if (0 < $rPacketNum) {
-				$rLastPacket = time();
-				if (strlen($rBuffer) != $rPacketNum * PACKET_SIZE) {
-					$rExcessBuffer = substr($rBuffer, $rPacketNum * PACKET_SIZE, strlen($rBuffer) - $rPacketNum * PACKET_SIZE);
-					$rBuffer = substr($rBuffer, 0, $rPacketNum * PACKET_SIZE);
-				}
-				$rPacketNo = 0;
 				foreach (str_split($rBuffer, PACKET_SIZE) as $rPacket) {
 					list(, $rHeader) = unpack('N', substr($rPacket, 0, 4));
 					$rSync = $rHeader >> 24 & 255;
 					if ($rSync == 71) {
-						if (substr($rPacket, 6, 4) == PAT_HEADER) {
+						if (substr($rPacket, 6, 2) == PAT_HEADER) {
 							$rPAT = true;
 							$rPATHeaders = array();
 						} else {
 							$rAdaptationField = $rHeader >> 4 & 3;
 							if (($rAdaptationField & 2) === 2) {
 								if (0 < count($rPATHeaders) && unpack('C', $rPacket[4])[1] == 7 && substr($rPacket, 4, 2) == KEYFRAME_HEADER) {
-									$rPrebuffer = implode('', $rPATHeaders);
-									$rNewSegment = true;
-									$rPAT = false;
-									$rPATHeaders = array();
-									$rHandler = new TS();
-									$rHandler->setPacket($rPacket);
-									$rPacketInfo = $rHandler->parsePacket();
-									if (isset($rPacketInfo['pts'])) {
-										$rLastPTS = $rCurPTS;
-										$rCurPTS = $rPacketInfo['pts'];
+									// Extract PCR directly from the adaptation field. TS::parsePacket() is
+									// unsuitable here — its getBits() only advances on zero bits and returns
+									// garbage PTS, causing the gate to never fire (one giant segment).
+									// Keyframe flags are 0x50, so PCR_flag (0x10) is set: PCR base in the
+									// 5 bytes starting at offset 6.
+									$rKfPTS = null;
+									if ((ord($rPacket[5]) & 0x10) && strlen($rPacket) >= 12) {
+										$rPcrB = array_values(unpack('C6', substr($rPacket, 6, 6)));
+										$rKfPTS = ($rPcrB[0] << 25) | ($rPcrB[1] << 17) | ($rPcrB[2] << 9) | ($rPcrB[3] << 1) | ($rPcrB[4] >> 7);
 									}
-									unset($rHandler);
+									// Open a new segment only when >= MIN_SEG_PTS of VIDEO (PCR) has elapsed
+									// since the start of the current segment. A PCR discontinuity (rollback) forces a cut.
+									$rDoRotate = false;
+									if ($rFirstWrite || is_null($rSegStartPTS) || is_null($rKfPTS)) {
+										$rDoRotate = true;
+									} else {
+										$rDelta = $rKfPTS - $rSegStartPTS;
+										if ($rDelta < 0 || MIN_SEG_PTS <= $rDelta) {
+											$rDoRotate = true;
+										} elseif (is_resource($rSegmentFile) && MAX_SEG_BYTES <= ftell($rSegmentFile)) {
+											$rDoRotate = true; // safety cap: PCR not advancing but segment is already huge
+										}
+									}
+									if ($rDoRotate) {
+										$rPrebuffer = implode('', $rPATHeaders);
+										$rNewSegment = true;
+										$rPAT = false;
+										$rPATHeaders = array();
+										$rLastPTS = $rSegStartPTS;
+										$rCurPTS = $rKfPTS;
+										$rSegStartPTS = $rKfPTS;
+									} else {
+										// Still within the current segment duration: consume the PAT/keyframe pair without rotating.
+										$rPAT = false;
+										$rPATHeaders = array();
+									}
 								}
 							}
 						}
@@ -150,22 +238,10 @@ class LoopbackCommand implements CommandInterface {
 						if ($rNewSegment) {
 							$rPrebuffer .= $rPacket;
 						}
-						$rPacketNo++;
 					} else {
-						$this->writeError($rStreamID, '[Loopback] No sync byte detected! Stream is out of sync.');
-						$i = 0;
-						while ($i < strlen($rPacket)) {
-							if (substr($rPacket, $i, 2) == 'G' . "\x01") {
-								if (strlen(fread($rFP, $i)) == $i) {
-									$this->writeError($rStreamID, '[Loopback] Resynchronised stream. Continuing...');
-									$rLastPacket = time();
-									break;
-								}
-							}
-							$i++;
-						}
-						$this->writeError($rStreamID, "[Loopback] Couldn't rectify out-of-sync data. Exiting.");
-						return 1;
+						// Defensive: the buffer is sanitized on input (only 0x47+188 packets),
+						// so a packet without a sync byte should not occur here; skip as a precaution.
+						continue;
 					}
 				}
 				if ($rNewSegment) {
@@ -194,11 +270,14 @@ class LoopbackCommand implements CommandInterface {
 				}
 				$rBuffer = '';
 			}
-			if (TIMEOUT > time() - $rLastPacket) {
+			// The condition was previously inverted (TIMEOUT > elapsed) — since elapsed is ~0 right after
+			// a packet, TIMEOUT(20) > 0 was always true and the loop broke on the first iteration.
+			// We should only exit when no data has arrived for >= TIMEOUT seconds.
+			if (time() - $rLastPacket >= TIMEOUT) {
+				echo 'No data, timeout reached' . "\n";
+				$this->writeError($rStreamID, '[Loopback] No data received for ' . TIMEOUT . ' seconds, closing source.');
 				break;
 			}
-			echo 'No data, timeout reached' . "\n";
-			$this->writeError($rStreamID, '[Loopback] No data received for ' . TIMEOUT . ' seconds, closing source.');
 		}
 
 		if (time() - $rLastPacket < TIMEOUT) {
