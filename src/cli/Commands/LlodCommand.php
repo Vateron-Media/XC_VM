@@ -157,7 +157,11 @@ class LlodCommand implements CommandInterface {
 
 		echo "Segment #{$segment} opened\n";
 
+		// Enable write buffering for better I/O performance
+		stream_set_write_buffer($rSegmentFile, 8192);
+
 		$buffer = '';
+		$bufferOffset = 0;
 		$lastData = time();
 
 		while (!feof($rFP)) {
@@ -175,11 +179,18 @@ class LlodCommand implements CommandInterface {
 			$lastData = time();
 			$buffer .= $data;
 
-			$packets = floor(strlen($buffer) / PACKET_SIZE);
+			$bufferLen = strlen($buffer);
+			$packets = intdiv($bufferLen - $bufferOffset, PACKET_SIZE);
 			if ($packets > 0) {
 				$writeSize = $packets * PACKET_SIZE;
-				fwrite($rSegmentFile, substr($buffer, 0, $writeSize));
-				$buffer = substr($buffer, $writeSize);
+				fwrite($rSegmentFile, substr($buffer, $bufferOffset, $writeSize));
+				$bufferOffset += $writeSize;
+
+				// Free consumed buffer memory periodically
+				if ($bufferOffset > 65536) {
+					$buffer = substr($buffer, $bufferOffset);
+					$bufferOffset = 0;
+				}
 			}
 
 			if ((microtime(true) - $segmentStart) >= $segmentDuration) {

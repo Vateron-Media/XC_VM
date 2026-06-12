@@ -827,7 +827,8 @@ class StreamProcess {
 						$rStream['stream_info']['transcode_attributes'] = array();
 					}
 
-					$rFFMPEG = ((isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rFFMPEG_GPU : $rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err ' . $rOptions . ' {GEN_PTS} {READ_NATIVE} ' . $rLLODInputFlags . '-probesize ' . $rProbesize . ' -analyzeduration ' . $rAnalyseDuration . ' -progress "' . $rProgressURL . '" {CONCAT} -i {STREAM_SOURCE} {LOGO} ';
+					$rLLODTune = ($rLLOD && !$rLoopback ? '-tune zerolatency ' : '');
+					$rFFMPEG = ((isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rFFMPEG_GPU : $rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err -thread_queue_size 1024 -max_muxing_queue_size 1024 ' . $rOptions . ' {GEN_PTS} {READ_NATIVE} ' . $rLLODInputFlags . $rLLODTune . '-probesize ' . $rProbesize . ' -analyzeduration ' . $rAnalyseDuration . ' -progress "' . $rProgressURL . '" {CONCAT} -i {STREAM_SOURCE} {LOGO} ';
 
 					if (!array_key_exists('-acodec', $rStream['stream_info']['transcode_attributes'])) {
 						$rStream['stream_info']['transcode_attributes']['-acodec'] = 'copy';
@@ -845,7 +846,7 @@ class StreamProcess {
 					$rFFMPEG = ((stripos($rStream['stream_info']['custom_ffmpeg'], 'nvenc') !== false ? $rFFMPEG_GPU : $rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -progress "' . $rProgressURL . '" ' . $rStream['stream_info']['custom_ffmpeg'];
 				}
 
-				$rLLODOptions = ($rLLOD && !$rLoopback ? '-fflags nobuffer -flags low_delay -strict experimental' : '');
+				$rLLODOptions = ($rLLOD && !$rLoopback ? '-fflags nobuffer -flags low_delay -strict experimental -threads 0' : '');
 				$rOutputs = array();
 
 				if ($rLoopback) {
@@ -1001,7 +1002,20 @@ class StreamProcess {
 				$rIVSize = openssl_cipher_iv_length('AES-128-CBC');
 				$rIV = openssl_random_pseudo_bytes($rIVSize);
 				file_put_contents(STREAMS_PATH . $rStreamID . '_.iv', $rIV);
-				$rPID = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.pid'));
+
+				// Wait briefly for PID file to be written, with retry
+				$rPID = 0;
+				$rPIDRetries = 0;
+				while ($rPIDRetries < 10) {
+					usleep(50000); // 50ms
+					if (file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
+						$rPID = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.pid'));
+						if ($rPID > 0) {
+							break;
+						}
+					}
+					$rPIDRetries++;
+				}
 
 				if ($rStream['stream_info']['tv_archive_server_id'] == SERVER_ID) {
 					shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php archive ' . intval($rStreamID) . ' >/dev/null 2>/dev/null & echo $!');
