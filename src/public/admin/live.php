@@ -218,7 +218,9 @@ if (0 < $db->num_rows()) {
 						if (file_exists(STREAMS_PATH . $rSegment)) {
 							$rBytes += readfile(STREAMS_PATH . $rSegment);
 						} else {
-							exit();
+							// Prebuffer segment already rotated out (hls_delete_threshold) → skip instead of
+							// exit(), otherwise the loopback connection drops and restarts in a loop.
+							continue;
 						}
 					}
 					preg_match('/_(.*)\\./', array_pop($rSegments), $rCurrentSegment);
@@ -252,56 +254,72 @@ if (0 < $db->num_rows()) {
 					$rChecks++;
 				}
 
-				if (file_exists(STREAMS_PATH . $rSegmentFile)) {
-					if (!(empty($rChannelInfo['pid']) && file_exists(STREAMS_PATH . $rStreamID . '_.pid'))) {
-					} else {
-						$rChannelInfo['pid'] = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.pid'));
-					}
-
-					$rFails = 0;
-					$rTimeStart = time();
-					$rFP = fopen(STREAMS_PATH . $rSegmentFile, 'r');
-
-					while ($rFails <= $rTotalFails && !file_exists(STREAMS_PATH . $rNextSegment)) {
-						$rData = stream_get_line($rFP, SettingsManager::getAll()['read_buffer_size']);
-
-						if (!empty($rData)) {
-							echo $rData;
-							$rData = '';
-							$rFails = 0;
-
-							break;
-						}
-
-						if (ProcessManager::isStreamRunning($rChannelInfo['pid'], $rStreamID)) {
-							sleep(1);
-							$rFails++;
-						}
-					}
-
-					if (ProcessManager::isStreamRunning($rChannelInfo['pid'], $rStreamID) && $rFails <= $rTotalFails && file_exists(STREAMS_PATH . $rSegmentFile) && is_resource($rFP)) {
-						$rSegmentSize = filesize(STREAMS_PATH . $rSegmentFile);
-					} else {
-						exit();
-					}
-				} else {
+				if (!file_exists(STREAMS_PATH . $rSegmentFile)) {
 					exit();
 				}
+
+				if (!(empty($rChannelInfo['pid']) && file_exists(STREAMS_PATH . $rStreamID . '_.pid'))) {
+				} else {
+					$rChannelInfo['pid'] = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.pid'));
+				}
+
+				$rFP = fopen(STREAMS_PATH . $rSegmentFile, 'r');
+				if (!is_resource($rFP)) {
+					exit();
+				}
+				$rFails = 0;
+
+				// Stream the ENTIRE segment (following it as it grows), then advance $rCurrent.
+				// The original always reopened $rCurrent+1 from offset 0 and had $rCurrent++ outside
+				// while(true) (unreachable), so it re-served the same ~6s segment in a loop → PCR frozen on the consumer.
+				while (true) {
+					$rData = stream_get_line($rFP, SettingsManager::getAll()['read_buffer_size']);
+
+					if ($rData !== '' && $rData !== false) {
+						echo $rData;
+						$rData = '';
+						$rFails = 0;
+
+						continue;
+					}
+
+					// no new data at this moment
+					if (file_exists(STREAMS_PATH . $rNextSegment)) {
+						// next segment already exists → current one is complete; drain the remainder and advance
+						clearstatcache(true, STREAMS_PATH . $rSegmentFile);
+						$rRestSize = filesize(STREAMS_PATH . $rSegmentFile) - ftell($rFP);
+
+						if (0 < $rRestSize) {
+							echo stream_get_line($rFP, $rRestSize);
+						}
+
+						break;
+					}
+
+					if (!ProcessManager::isStreamRunning($rChannelInfo['pid'], $rStreamID)) {
+						fclose($rFP);
+
+						exit();
+					}
+
+					usleep(100000);
+					$rFails++;
+
+					// Allow enough time (>= segment duration). With a 0.1s usleep the limit must be
+					// $rTotalFails*10 (~20s), not $rTotalFails (~2s), otherwise we give up before the next
+					// segment (hls_time=6s) appears → loopback connection drops and restarts every ~5s.
+					if ($rTotalFails * 10 < $rFails) {
+						fclose($rFP);
+
+						exit();
+					}
+				}
+
+				fclose($rFP);
+				$rFails = 0;
+				$rCurrent++;
 			}
 	}
-	if (!is_resource($rFP)) {
-		exit();
-	}
-	$rRestSize = $rSegmentSize - ftell($rFP);
-
-	if (0 >= $rRestSize) {
-	} else {
-		echo stream_get_line($rFP, $rRestSize);
-	}
-
-	fclose($rFP);
-	$rFails = 0;
-	$rCurrent++;
 } else {
 	generate404();
 }
