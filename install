@@ -136,7 +136,7 @@ PACKAGES = {
         "ca-certificates",
         "libmaxminddb0",
         "mmdb-bin",
-        "libcurl4-openssl-dev",
+        "libcurl4-gnutls-dev",
         "libxml2-dev",
         "libxslt1-dev",
         "libonig5",

@@ -3,7 +3,7 @@
 class LbInstallFlow {
 
 	public static function getPackages(): array {
-		return array('cpufrequtils', 'iproute2', 'python', 'net-tools', 'dirmngr', 'gpg-agent', 'software-properties-common', 'libmaxminddb0', 'libmaxminddb-dev', 'mmdb-bin', 'libcurl4', 'libgeoip-dev', 'libxslt1-dev', 'libonig-dev', 'e2fsprogs', 'wget', 'sysstat', 'alsa-utils', 'v4l-utils', 'mcrypt', 'python3', 'certbot', 'iptables-persistent', 'libjpeg-dev', 'libpng-dev', 'libssh2-1', 'xz-utils', 'zip', 'unzip', 'cron', 'libfribidi-dev', 'libharfbuzz-dev', 'libogg0', 'curl');
+		return array('cpufrequtils', 'iproute2', 'python', 'net-tools', 'dirmngr', 'gpg-agent', 'software-properties-common', 'libmaxminddb0', 'libmaxminddb-dev', 'mmdb-bin', 'libcurl4-gnutls-dev', 'libgeoip-dev', 'libxslt1-dev', 'libonig-dev', 'e2fsprogs', 'wget', 'sysstat', 'alsa-utils', 'v4l-utils', 'mcrypt', 'python3', 'certbot', 'iptables-persistent', 'libjpeg-dev', 'libpng-dev', 'libssh2-1', 'libssh2-1-dev', 'libsodium23', 'libnuma1', 'xz-utils', 'zip', 'unzip', 'cron', 'libfribidi-dev', 'libharfbuzz-dev', 'libogg0', 'curl');
 	}
 
 	public static function resolveUpdateData(GitHubReleases $gitRelease): array {
