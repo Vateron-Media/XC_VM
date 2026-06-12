@@ -195,10 +195,11 @@ class WatchItem {
     public static function getSeriesByTMDB($rID) {
         global $db;
         if (!(file_exists(WATCH_TMP_PATH . 'series_' . intval($rID) . '.data') && time() - filemtime(WATCH_TMP_PATH . 'series_' . intval($rID) . '.data') < 360)) {
-            $db->query('SELECT * FROM `streams_series` WHERE `tmdb_id` = ?;', $rID);
-            if ($db->num_rows() == 1) {
+            $db->query('SELECT * FROM `streams_series` WHERE `tmdb_id` = ? ORDER BY `id` ASC LIMIT 1;', $rID);
+            if ($db->num_rows() >= 1) {
                 return $db->get_row();
             }
+            return null;
         } else {
             return json_decode(file_get_contents(WATCH_TMP_PATH . 'series_' . intval($rID) . '.data'), true);
         }
@@ -287,9 +288,8 @@ class WatchItem {
         }
     }
 
-    public static function run($rThreadData = null) {
+    public static function run($rThreadData = null, $rTimeout) {
         global $db;
-        global $rTimeout;
 
         if (!is_array($rThreadData)) {
             echo "watch_item: invalid thread data\n";

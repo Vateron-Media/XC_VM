@@ -66,7 +66,7 @@ class WatchItemCommand implements CommandInterface {
 		}
 
 		file_put_contents(WATCH_TMP_PATH . getmypid() . '.wpid', time());
-		WatchItem::run($rThreadData);
+		WatchItem::run($rThreadData, $rTimeout);
 
 		return 0;
 	}
