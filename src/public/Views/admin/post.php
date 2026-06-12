@@ -352,6 +352,13 @@ if (1 < $rICount) { ?>
 <?php
 } else {
 	if (PageAuthorization::checkPermissions($_PAGE)) {
+		// FIX CSRF: acoes que alteram dados so vem por POST (bloqueia ataques via <img src>, que sao GET)
+		if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+			http_response_code(405);
+			header('Content-Type: application/json');
+			echo json_encode(array('result' => false, 'status' => 0, 'error' => 'Method Not Allowed'));
+			exit();
+		}
 		$rRequest = RequestManager::getAll();
 
 		if (isset($rRequest['referer'])) {
