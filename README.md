@@ -90,12 +90,11 @@ XC_VM supports multiple Linux distributions. Distribution-specific binaries (PHP
 
 ### Ubuntu
 
-| Version    | Codename        | Status                |
-| ---------- | --------------- | --------------------- |
-| **18.04**  | Bionic Beaver   | ⚠️ *Legacy*           |
-| **20.04**  | Focal Fossa     | ✅ Supported           |
-| **22.04**  | Jammy Jellyfish | ✅ **Recommended**     |
-| **24.04**  | Noble Numbat    | ✅ **Recommended**     |
+| Version | Codename | Status |
+| --- | --- | --- |
+| **20.04** | Focal Fossa | ⚠️ *Outdated* — installation possible, but some packages may need to be installed manually |
+| **22.04** | Jammy Jellyfish | ✅ **Recommended** |
+| **24.04** | Noble Numbat | ✅ **Recommended** |
 
 ### Debian
 
@@ -181,6 +180,32 @@ sudo systemctl status xc_vm    # Status
 sudo /home/xc_vm/bin/nginx/sbin/nginx -s reload    # Reload Nginx config
 journalctl -u xc_vm -f         # Live logs
 ```
+
+---
+
+## 🔍 Troubleshooting — Panel Won't Start
+
+If the panel fails to start, check the following logs and commands:
+
+**Nginx error log:**
+
+```bash
+cat /home/xc_vm/bin/nginx/logs/error.log
+```
+
+**PHP-FPM log:**
+
+```bash
+cat /home/xc_vm/bin/php/var/log/php-fpm.log
+```
+
+**Verify PHP binary works:**
+
+```bash
+/home/xc_vm/bin/php/bin/php -v
+```
+
+> If PHP fails to run, the panel cannot start at all — fix PHP issues first before investigating Nginx.
 
 ---
 
