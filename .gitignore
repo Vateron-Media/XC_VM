@@ -5,3 +5,4 @@ dist/
 __pycache__/
 *.pyc
 *.phpunit.result.cache
+EXTENSION.md
