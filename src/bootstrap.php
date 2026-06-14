@@ -572,7 +572,7 @@ class XC_Bootstrap {
             define('SERVER_ID', intval(ConfigReader::get('server_id')));
         }
 
-        require_once MAIN_HOME . 'core/Device/MobileDetect.php';
+        require_once MAIN_HOME . 'core/Util/MobileDetect.php';
         $rDetect = new \Mobile_Detect();
         $rMobile = $rDetect->isMobile();
 
