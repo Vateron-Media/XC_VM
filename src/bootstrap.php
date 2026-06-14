@@ -602,6 +602,17 @@ class XC_Bootstrap {
             );
         }
 
+        // Ensure legacy 'reseller' assets alias exists as a symlink to 'admin'
+        // Some nginx configs and legacy routes expect public/assets/reseller to
+        // point to public/assets/admin. Create the symlink if the target exists
+        // and the link does not.
+        $assetsBase = MAIN_HOME . 'public/assets/';
+        $adminAssets = $assetsBase . 'admin';
+        $resellerLink = $assetsBase . 'reseller';
+        if (is_dir($adminAssets) && !file_exists($resellerLink)) {
+            @symlink($adminAssets, $resellerLink);
+        }
+
         require_once MAIN_HOME . 'resources/data/admin_constants.php';
     }
 
