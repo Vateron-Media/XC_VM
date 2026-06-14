@@ -4,131 +4,119 @@
 
 Модуль — изолированная директория в `src/modules/` с известным контрактом. Удаление модуля **не ломает систему** — она продолжает работать, деградируя в функциональности.
 
-### Архитектура
+Система построена на принципах **Extensible Platform**:
+
+- Ядро (`core/`) ничего не знает о модулях
+- Модули расширяют ядро через интерфейсы-контракты
+- Никакой правки файлов ядра, никакого eval, никакого monkey patching
+- Любой модуль отключается через `config/modules.php` без последствий для ядра
+
+---
+
+## Структура директории модуля
 
 ```
 modules/
-├── my-module/
-│   ├── module.json            # Метаданные (name, description, version, requires_core)
-│   ├── MyModule.php           # Источник истины (implements ModuleInterface)
-│   ├── MyService.php          # Сервисы модуля
-│   ├── MyController.php       # Контроллер (если есть страницы)
-│   ├── MyCron.php             # Крон-логика (если есть)
-│   ├── MyCronJob.php          # CLI-обёртка крона (implements CommandInterface)
-│   ├── views/                 # Шаблоны страниц
-│   │   ├── my_page.php
-│   │   └── my_page_scripts.php
-│   └── migrations/            # SQL-миграции модуля (если есть)
-│       └── 001_create_table.sql
+└── my-module/
+    ├── module.json                # Метаданные + поля загрузки
+    ├── MyModule.php               # Главный класс (implements ModuleInterface)
+    ├── MyService.php              # Сервисы модуля
+    ├── MyController.php           # Контроллер (если есть страницы)
+    ├── MyCron.php                 # Крон-логика
+    ├── MyCronJob.php              # CLI-обёртка (implements CommandInterface)
+    ├── MyStreamMiddleware.php     # Stream-middleware (опционально)
+    ├── views/
+    │   ├── my_page.php
+    │   └── my_page_scripts.php
+    └── migrations/
+        └── 001_create_table.sql
 ```
-
-### Принципы
-
-| Правило | Описание |
-|---------|----------|
-| **PHP — источник истины** | Всё поведение определяется в классе модуля, не в JSON |
-| **module.json — только метаданные** | `name`, `description`, `version`, `requires_core` |
-| **Авто-обнаружение** | `ModuleLoader` сканирует `modules/*/module.json` — регистрация в конфиге не нужна |
-| **Изоляция** | Модуль зависит от `core/` и `domain/`, но НИКОГДА от других модулей |
-| **Graceful degradation** | Удаление директории модуля не вызывает ошибок |
-| **Нет обратных зависимостей** | Ядро (`core/`) не знает о существовании модулей |
-| **DI через контейнер** | Сервисы регистрируются в `boot()`, не через глобалы |
-| **Явная регистрация команд** | Модуль сам регистрирует команды в `registerCommands()`, без filesystem scanning |
 
 ---
 
-## Шаг 1. Создать директорию
-
-```bash
-mkdir -p src/modules/my-module
-```
-
-Имя директории = имя модуля. Используйте kebab-case: `my-module`.
-
----
-
-## Шаг 2. Создать манифест `module.json`
+## Манифест `module.json`
 
 ```json
 {
     "name": "my-module",
+    "description": "Краткое описание модуля",
     "version": "1.0.0",
     "requires_core": ">=2.0",
     "environment": "main",
     "dependencies": [],
+    "optional_dependencies": [],
     "has_navbar": false,
-    "has_settings": false
+    "has_settings": false,
+    "priority": 0
 }
 ```
 
 ### Поля манифеста
 
-| Поле | Тип | Обязательное | Описание |
-|------|-----|:---:|----------|
-| `name` | `string` | ✅ | Уникальное имя модуля (совпадает с именем директории) |
-| `description` | `string` | ⛔ | Краткое человекочитаемое описание модуля |
-| `version` | `string` | ✅ | Версия в формате semver (`1.0.0`) |
-| `requires_core` | `string` | ✅ | Минимальная версия ядра (`>=2.0`) |
-| `environment` | `string` | ✅ | Окружение: `main` (основной сервер), `lb` (load-balancer), `any` (оба) |
-| `dependencies` | `array` | ✅ | Список имён модулей, от которых зависит этот модуль. Пустой массив `[]` если нет зависимостей |
-| `has_navbar` | `boolean` | ✅ | Есть ли пункты навбара в админ-панели |
-| `has_settings` | `boolean` | ✅ | Есть ли страница настроек модуля |
+| Поле | Тип | По умолчанию | Описание |
+| ------ | ----- | :---: | ------------ |
+| `name` | `string` | — | Уникальное имя (совпадает с именем директории, kebab-case) |
+| `description` | `string` | `""` | Краткое человекочитаемое описание |
+| `version` | `string` | — | Semver-версия (`1.0.0`) |
+| `requires_core` | `string` | — | Минимальная версия ядра (`>=2.0`) |
+| `environment` | `string` | `"main"` | `main` — основной сервер, `lb` — load-balancer, `any` — оба |
+| `dependencies` | `array` | `[]` | Обязательные зависимости: при отсутствии — ошибка загрузки |
+| `optional_dependencies` | `array` | `[]` | Мягкие зависимости: при отсутствии модуль загружается без них |
+| `has_navbar` | `bool` | `false` | Есть ли пункты навбара |
+| `has_settings` | `bool` | `false` | Есть ли страница настроек |
+| `priority` | `int` | `0` | Приоритет загрузки: выше значение — раньше загрузится (при топологически равном положении) |
 
-> **Важно:** 
-> - Все зависимости должны быть строками (имена модулей).
-> - Зависимости должны существовать, иначе ModuleLoader выбросит ошибку при loadAll().
-> - Циклические зависимости детектируются автоматически и приводят к ошибке загрузки.
-> - Модули загружаются в порядке зависимостей: если A зависит от B, то B загружается первым.
-> - `environment` должен быть `main`, `lb` или `any`. Если `main`, модуль загружается только на основных серверах.
-
-**Примеры манифестов:**
+### Разница между `dependencies` и `optional_dependencies`
 
 ```json
 {
-  "name": "watch",
-  "description": "Watch activity tracking and statistics",
-  "version": "1.2.0",
-  "requires_core": ">=2.0",
-  "environment": "main",
-  "dependencies": [],
-  "has_navbar": true,
-  "has_settings": true
+    "dependencies": ["tmdb"],
+    "optional_dependencies": ["plex"]
 }
 ```
+
+- `dependencies`: модуль `tmdb` **обязан** быть загружен до `my-module`. Если `tmdb` отсутствует — `loadAll()` выбросит `RuntimeException`.
+- `optional_dependencies`: если `plex` присутствует — он загрузится **до** `my-module`. Если отсутствует — загрузка продолжается без него.
+
+### Приоритет загрузки
+
+При топологически равных позициях (нет зависимости друг от друга), модули с бо́льшим `priority` загружаются и бутятся первыми.
 
 ```json
-{
-  "name": "plex",
-  "description": "Plex integration module",
-  "version": "2.0.0",
-  "requires_core": ">=2.0",
-  "environment": "any",
-  "dependencies": ["ministra"],
-  "has_navbar": true,
-  "has_settings": true
-}
+{ "name": "auth-guard", "priority": 100 }   ← загрузится первым
+{ "name": "tmdb",       "priority": 50  }   ← второй
+{ "name": "watch",      "priority": 0   }   ← третий (по умолчанию)
 ```
 
-```json
-{
-  "name": "load-balancer-stats",
-  "description": "Load balancer statistics collector",
-  "version": "1.0.0",
-  "requires_core": ">=2.0",
-  "environment": "lb",
-  "dependencies": [],
-  "has_navbar": false,
-  "has_settings": false
-}
-```
-
-> **Примечание о зависимостях:** Если ваш модуль требует функций другого модуля, перечислите его имя в `dependencies`. ModuleLoader автоматически гарантирует, что требуемый модуль загружен перед вашим, и выбросит ошибку, если требуемый модуль отсутствует или отключен.
-
-> **Примечание об окружении:** По умолчанию используйте `main` для модулей основного сервера, `lb` для load-balancer, `any` если модуль работает везде. На практике `any` используется редко — большинство модулей специфичны для одного окружения.
+При равных `priority` — алфавитный порядок (детерминированность).
 
 ---
 
-## Шаг 3. Создать класс модуля
+## Интерфейсы модуля
+
+`ModuleInterface` — составной интерфейс, объединяющий 4 суб-интерфейса:
+
+```
+ModuleInterface
+├── ServiceProviderInterface    boot(), getEventSubscribers()
+├── RouteProviderInterface      registerRoutes()
+├── CommandProviderInterface    registerCommands()
+└── NavbarProviderInterface     registerNavbar()
+
++ getName(), getVersion(), install(), uninstall()
+```
+
+Пятый суб-интерфейс — **опциональный**, не входит в `ModuleInterface`:
+
+```
+StreamMiddlewareProviderInterface   getStreamMiddleware()
+```
+
+Модуль реализует его дополнительно, если хочет участвовать в стрим-pipeline.
+
+---
+
+## Класс модуля
 
 Файл `src/modules/my-module/MyModule.php`:
 
@@ -136,6 +124,8 @@ mkdir -p src/modules/my-module
 <?php
 
 class MyModule implements ModuleInterface {
+
+    // ── Идентификация ─────────────────────────────────────────
 
     public function getName(): string {
         return 'my-module';
@@ -145,9 +135,25 @@ class MyModule implements ModuleInterface {
         return '1.0.0';
     }
 
+    // ── ServiceProviderInterface ───────────────────────────────
+
     public function boot(ServiceContainer $container): void {
-        $container->set('my-module.service', 'MyService');
+        $container->set('my-module.service', function (ServiceContainer $c) {
+            return new MyService($c->get('db'));
+        });
     }
+
+    public function getEventSubscribers(): array {
+        return [
+            // Typed PSR-14 event → callable
+            StreamStartedEvent::class => [MyHandler::class, 'onStreamStarted'],
+
+            // С приоритетом: [callable, int]
+            UserAuthenticatedEvent::class => [[MyHandler::class, 'onAuth'], 20],
+        ];
+    }
+
+    // ── RouteProviderInterface ─────────────────────────────────
 
     public function registerRoutes(Router $router): void {
         $router->get('my-module', [MyController::class, 'index'], [
@@ -158,89 +164,248 @@ class MyModule implements ModuleInterface {
         ]);
     }
 
+    // ── CommandProviderInterface ───────────────────────────────
+
     public function registerCommands(CommandRegistry $registry): void {
         $registry->register(new MyCronJob());
     }
 
-    public function getEventSubscribers(): array {
-        return [];
+    // ── NavbarProviderInterface ────────────────────────────────
+
+    public function registerNavbar(): void {
+        NavbarRegistry::add((new NavbarItem('management.service_setup.my_module'))
+            ->parent('management.service_setup')
+            ->url('my_module')
+            ->label('my_module')
+            ->permissions(['my_module'])
+            ->order(60));
     }
 
+    // ── Установка / удаление ──────────────────────────────────
+
     public function install(): void {
-        // Создание таблиц, начальных данных и т.д.
+        // Миграции, seed-данные
     }
 
     public function uninstall(): void {
-        // Очистка данных модуля
-    }
-
-    public function registerNavbar(): void {
-        // Регистрируйте пункты навигации через NavbarRegistry::add()
-        // Если пунктов нет — оставьте метод пустым
+        // Удаление данных модуля
     }
 }
 ```
 
-### Контракт `ModuleInterface`
+### Контракт методов
 
-| Метод | Описание |
-|-------|----------|
-| `getName(): string` | Уникальное имя (совпадает с директорией) |
-| `getVersion(): string` | Semver-версия |
-| `boot(ServiceContainer)` | Регистрация сервисов. Вызывается один раз при загрузке |
-| `registerRoutes(Router)` | HTTP-маршруты и API-действия |
-| `registerCommands(CommandRegistry)` | Явная регистрация CLI-команд и крон-задач |
-| `getEventSubscribers(): array` | Подписки на события ядра |
-| `install(): void` | Установка модуля (миграции, начальные данные) |
-| `uninstall(): void` | Удаление данных модуля |
-| `registerNavbar(): void` | Регистрация пунктов меню в админ-navbar |
+| Метод | Интерфейс | Описание |
+| ------- | ----------- | ---------- |
+| `getName(): string` | `ModuleInterface` | Уникальное имя (совпадает с директорией) |
+| `getVersion(): string` | `ModuleInterface` | Semver-версия |
+| `install(): void` | `ModuleInterface` | Вызывается при установке из Marketplace |
+| `uninstall(): void` | `ModuleInterface` | Вызывается при удалении |
+| `boot(ServiceContainer)` | `ServiceProviderInterface` | Регистрация сервисов в DI-контейнере |
+| `getEventSubscribers(): array` | `ServiceProviderInterface` | Подписки на типизированные события PSR-14 |
+| `registerRoutes(Router)` | `RouteProviderInterface` | HTTP-маршруты и API-экшены |
+| `registerCommands(CommandRegistry)` | `CommandProviderInterface` | Явная регистрация CLI-команд и крон-задач |
+| `registerNavbar(): void` | `NavbarProviderInterface` | Пункты меню в admin navbar |
 
 ---
 
-## Шаг 4. Автоматическая регистрация
+## DI-контейнер и декорирование сервисов
 
-**Регистрация в конфиге не нужна.** `ModuleLoader` автоматически обнаруживает все модули из `modules/*/module.json`.
-
-Для **отключения** модуля — добавьте в `src/config/modules.php`:
+### Регистрация сервисов
 
 ```php
-return [
-    'my-module' => ['enabled' => false],
-];
+public function boot(ServiceContainer $container): void {
+    // Ленивая фабрика (singleton)
+    $container->set('my-module.service', function (ServiceContainer $c) {
+        return new MyService($c->get('db'), $c->get('settings'));
+    });
+
+    // Фабричный сервис (новый экземпляр при каждом get)
+    $container->factory('my-module.request', function (ServiceContainer $c) {
+        return new MyRequest($_GET, $_POST);
+    });
+}
 ```
 
-`config/modules.php` содержит только overrides. Если файл пуст или отсутствует — все обнаруженные модули загружаются.
+### Декорирование чужих сервисов
 
-### Как работает загрузка
+Модуль может обернуть любой незащищённый сервис декоратором без правки его кода:
 
-1. `ModuleLoader::loadAll()` сканирует `modules/*/module.json`
-2. Проверяет overrides в `config/modules.php`
-3. Фильтрует модули по окружению (main/lb/any)
-4. Сортирует топологически по зависимостям (если циклическая зависимость или missing — error)
-5. Определяет класс по конвенции: `my-module` → `MyModule` (kebab-case → PascalCase + Module)
-6. Создаёт экземпляр модуля
+```php
+public function boot(ServiceContainer $container): void {
+    $container->decorate(
+        'stream.service',
+        MyLoggingDecorator::class,  // class-string: new Decorator($inner)
+        priority: 20
+    );
 
-В web-контексте (`public/index.php` для admin/reseller):
-- `loadAll()` → загружает и инстанцирует все модули
-- `bootAll($container, $router)` → вызывает `boot()`, `registerRoutes()`, `registerNavbar()`, подписывает на события
+    // Или callable-форма
+    $container->decorate('stream.service', function ($inner, ServiceContainer $c) {
+        return new MyLoggingDecorator($inner, $c->get('logger'));
+    }, priority: 20);
+}
+```
 
-> **Статус M-1:** ✅ Завершена. Web boot модулей полностью включен в front controller.
+**Защищённые сервисы** — декорировать нельзя: `db`, `settings`, `config`, `auth`.
 
-В CLI-контексте (`console.php`):
-- `loadAll()` → загружает и инстанцирует все модули
-- `registerAllCommands($registry)` → вызывает `registerCommands()` у каждого модуля
+Попытка задекорировать защищённый сервис выбросит `RuntimeException`.
+
+**Порядок применения декораторов:** наибольший `priority` = самый внешний слой (вызывается первым).
 
 ---
 
-## Шаг 4б. Регистрировать кнопки и пункты меню в navbar
+## PSR-14 События
 
-Пункты меню больше не добавляются вручную в `header.php`.
-Каждый модуль добавляет свои кнопки через `registerNavbar()` и `NavbarRegistry::add()`.
+Система событий — типизированные классы, а не строки.
 
-Пример (модуль добавляет кнопку в service setup и пункт в logs):
+### Подписка на события
+
+В `getEventSubscribers()` возвращайте карту `EventClass::class → callable`:
+
+```php
+public function getEventSubscribers(): array {
+    return [
+        // Простой callable
+        StreamStartedEvent::class  => [MyHandler::class, 'onStreamStarted'],
+        StreamStoppedEvent::class  => [MyHandler::class, 'onStreamStopped'],
+
+        // С приоритетом: [callable, int] — больше приоритет = вызывается раньше
+        UserAuthenticatedEvent::class => [
+            [MyHandler::class, 'onAuth'],
+            50
+        ],
+
+        // Замыкание
+        SettingsChangedEvent::class => function (SettingsChangedEvent $e): void {
+            if (in_array('my_setting', $e->changedKeys())) {
+                MyCache::flush();
+            }
+        },
+    ];
+}
+```
+
+### Диспетчеризация событий из модуля
+
+```php
+use EventDispatcher;
+
+EventDispatcher::dispatch(new PackageInstalledEvent(
+    slug:        'my-module',
+    version:     '1.0.0',
+    path:        '/path/to/module',
+    installedAt: time(),
+));
+```
+
+### Прерываемые события (StoppableEventInterface)
+
+Если слушатель вызвал `$event->stopPropagation()`, остальные слушатели **не вызываются**.
+
+```php
+EventDispatcher::listen(StreamStartingEvent::class, function (StreamStartingEvent $e): void {
+    if ($this->isBlocked($e)) {
+        $e->abort('blocked by my-module');  // специфичен для StreamStartingEvent
+        $e->stopPropagation();
+    }
+});
+```
+
+### Встроенные события ядра
+
+| Класс события | Когда диспетчеризуется | Прерываемое |
+| --------------- | ---------------------- | :-----------: |
+| `ModuleLoadedEvent` | После успешной загрузки файла модуля | ❌ |
+| `ModuleBootedEvent` | После вызова `boot()` у модуля | ❌ |
+| `PackageInstalledEvent` | После установки через Marketplace | ❌ |
+| `UserAuthenticatedEvent` | Успешная аутентификация | ❌ |
+| `UserLoggedOutEvent` | Выход пользователя | ❌ |
+| `StreamStartingEvent` | Перед запуском стрима | ✅ |
+| `StreamStartedEvent` | Стрим успешно запущен | ❌ |
+| `StreamStoppedEvent` | Стрим остановлен | ❌ |
+| `SettingsChangedEvent` | Изменение настроек панели | ❌ |
+
+Все типизированные события находятся в `src/core/Events/`.
+
+---
+
+## Stream Middleware (опционально)
+
+Если модуль хочет участвовать в обработке стрим-запросов, он реализует `StreamMiddlewareProviderInterface` (не входит в `ModuleInterface`):
+
+```php
+class MyModule implements ModuleInterface, StreamMiddlewareProviderInterface {
+
+    // ... обязательные методы ModuleInterface ...
+
+    public function getStreamMiddleware(): array {
+        return [
+            new MyAuthMiddleware(),
+            new MyTheftDetectionMiddleware(),
+        ];
+    }
+}
+```
+
+### Реализация middleware
+
+```php
+class MyTheftDetectionMiddleware implements StreamMiddlewareInterface {
+
+    public function handle(StreamContext $ctx, callable $next): StreamContext {
+        if ($this->isTheft($ctx)) {
+            $ctx->abort('theft detected', 403);
+            return $ctx;  // pipeline останавливается
+        }
+
+        // Сохранить данные в context
+        $ctx->set('my-module.fingerprint', $this->getFingerprint($ctx));
+
+        return $next($ctx);  // передать управление следующему
+    }
+
+    public function getPriority(): int {
+        return 60;  // core: 80-100, modules: 0-79, terminal: -1
+    }
+}
+```
+
+### Приоритеты в pipeline
+
+| Диапазон | Кому принадлежит |
+| ---------- | ----------------- |
+| `80–100` | Ядро (Auth, Permission, ConnectionLimit) |
+| `0–79` | Модули |
+| `-1` | Terminal middleware (финальное выполнение стрима) |
+
+### StreamContext
+
+```php
+// Прочитать параметры запроса
+$streamId = $ctx->get('stream_id');
+$userId   = $ctx->get('user_id');
+
+// Записать произвольный атрибут (передаётся по цепочке middleware)
+$ctx->set('my-module.checked', true);
+
+// Прервать выполнение
+$ctx->abort('reason', 403);
+if ($ctx->isAborted()) {
+    return $ctx;
+}
+```
+
+---
+
+## Navbar
+
+### Добавление пунктов меню
+
+Метод `registerNavbar()` вызывается один раз при boot. Используйте `NavbarRegistry::add()`:
 
 ```php
 public function registerNavbar(): void {
+    // Пункт в Service Setup
     NavbarRegistry::add((new NavbarItem('management.service_setup.my_module'))
         ->parent('management.service_setup')
         ->url('my_module')
@@ -248,6 +413,7 @@ public function registerNavbar(): void {
         ->permissions(['my_module'])
         ->order(60));
 
+    // Пункт в Logs (megamenu)
     NavbarRegistry::add((new NavbarItem('management.logs.my_module_log'))
         ->parent('management.logs')
         ->url('my_module_logs')
@@ -257,134 +423,182 @@ public function registerNavbar(): void {
 }
 ```
 
-Правила для модулей:
+### Зарезервированные слоты для модулей
 
-1. `key` должен быть уникальным и стабильным (лучше в формате `section.group.item`).
-2. `parent` должен ссылаться на существующий узел из core-дерева.
-3. `order` управляет позицией внутри одного parent (меньше = выше).
-4. Для переводимого текста используйте `label('translation_key')`.
-5. Для literal-текста используйте `label('', 'Literal Text')`.
-6. Если модулю нечего добавлять в меню — оставьте `registerNavbar()` пустым.
+| Родительский узел | Слоты для модулей |
+| ------------------- | ------------------ |
+| `management.service_setup` | `order` ≥ 60 |
+| `management.logs` | `order` ≥ 170 |
+| Прочие секции | Не зарезервировано, уточняйте с core |
+
+### Правила
+
+1. `key` — уникальный, стабильный, формат `section.group.item`
+2. `parent` — должен ссылаться на существующий узел core-дерева
+3. `order` — позиция внутри одного parent (меньше = выше в списке)
+4. `label('key')` — переводимый текст, `label('', 'Literal')` — фиксированный
+5. `permissions(['perm'])` — видимость по разрешению (OR-логика)
+6. Если нет пунктов меню — оставьте `registerNavbar()` пустым
 
 ---
 
-## Как рендерится navbar
+## Отключение и включение модулей
 
-Подробная техническая документация по рендеру navbar вынесена в отдельный системный раздел:
-
-- [Рендер navbar в панели модулей](../system/modules-navbar-rendering.md)
-
----
-
-## Шаг 4а. Создать контроллер (опционально)
-
-Если модуль имеет страницы в админке, создайте класс контроллера. Контроллер использует **глобальную систему layout** через `renderUnifiedLayoutHeader()` / `renderUnifiedLayoutFooter()`.
-
-Файл `src/modules/my-module/MyController.php`:
+Добавьте в `src/config/modules.php`:
 
 ```php
-<?php
+return [
+    'my-module' => ['enabled' => false],
+];
+```
 
+Файл содержит только overrides. Если пустой или отсутствует — все найденные модули загружаются.
+
+Можно также переопределить класс модуля:
+
+```php
+return [
+    'my-module' => ['class' => 'MyModuleCustom'],
+];
+```
+
+---
+
+## Как работает загрузка
+
+```
+ModuleLoader::loadAll()
+    │
+    ├── glob('modules/*/module.json')
+    ├── читает overrides из config/modules.php
+    ├── фильтрует по environment (main/lb/any)
+    ├── readManifest() → normalizes: dependencies, optional_dependencies, priority
+    │
+    ├── resolveLoadOrder()  — топологическая сортировка DFS
+    │   ├── обязательные deps → RuntimeException если отсутствует
+    │   ├── optional deps → пропускается если отсутствует
+    │   └── при равной позиции: sort по priority desc, затем alphabetically
+    │
+    └── для каждого модуля в порядке:
+        ├── registerModuleAutoloader($path)
+        ├── resolveClassName('my-module') → 'MyModule'
+        └── new MyModule()
+
+ModuleLoader::bootAll($container, $router, $pipeline)
+    ├── (new CoreNavbarProvider())->registerNavbar()   ← core navbar первым
+    │
+    └── для каждого модуля:
+        ├── instanceof ServiceProviderInterface → boot($container)
+        │                                       → registerEventSubscribers()
+        ├── instanceof StreamMiddlewareProviderInterface → pipeline->pipe(middleware)
+        ├── instanceof RouteProviderInterface → registerRoutes($router)
+        └── instanceof NavbarProviderInterface → registerNavbar()
+```
+
+Соглашение по имени класса: `my-module` → `MyModule` (kebab-case → PascalCase + `Module`).
+
+Переопределить класс можно через `config/modules.php`:
+
+```php
+return [
+    'my-module' => ['class' => 'MyModuleV2'],
+];
+```
+
+---
+
+## Marketplace: установка через C-расширение
+
+Модули из платформы устанавливаются через `ModuleManager::downloadFromPlatform()`:
+
+```php
+$manager->downloadFromPlatform(slug: 'my-module', version: '1.2.0', apiKey: $key);
+```
+
+Под капотом:
+
+1. `XC_VM::module_install($slug, $version, $apiKey)` — C-расширение скачивает, дешифрует и распаковывает модуль
+2. `installModule($slug)` — запускает `install()` у модуля
+3. `EventDispatcher::dispatch(new PackageInstalledEvent(...))` — диспетчеризует событие
+4. `hotReload($slug, $path)` — загружает и бутит модуль в текущем запросе **без рестарта PHP-FPM**
+
+---
+
+## Изолированные подсистемы (BoundaryInterface)
+
+Если модуль является изолированной подсистемой с собственным bootstrap (как Ministra), он реализует `BoundaryInterface`:
+
+```php
+class MyModule implements ModuleInterface, BoundaryInterface {
+
+    public function getEntryPoint(): string {
+        return 'ministra/portal.php';
+    }
+
+    public function isIsolated(): bool {
+        return true;
+    }
+}
+```
+
+`BoundaryInterface` — маркер изоляции. `isIsolated() = true` означает, что подсистема запускается через собственный entry point с отдельным bootstrap.
+
+---
+
+## Контроллер (опционально)
+
+```php
 class MyController {
 
-	protected $viewsPath;
-	protected $layoutsPath;
+    private string $viewsPath;
 
-	public function __construct() {
-		$this->viewsPath = __DIR__ . '/views';
-		$this->layoutsPath = MAIN_HOME . 'public/Views/layouts/';
-		require_once $this->layoutsPath . 'admin.php';
-		require_once $this->layoutsPath . 'footer.php';
-	}
+    public function __construct() {
+        $this->viewsPath = __DIR__ . '/views';
+        require_once MAIN_HOME . 'public/Views/layouts/admin.php';
+        require_once MAIN_HOME . 'public/Views/layouts/footer.php';
+    }
 
-	public function index(): void {
-		$_TITLE = 'My Module';
+    public function index(): void {
+        $_TITLE = 'My Module';
 		renderUnifiedLayoutHeader('admin', ['_TITLE' => $_TITLE]);
-		include $this->viewsPath . '/my_page.php';
-		renderUnifiedLayoutFooter('admin');
-		include $this->viewsPath . '/my_page_scripts.php';
-	}
+        include $this->viewsPath . '/my_page.php';
+        renderUnifiedLayoutFooter('admin');
+        include $this->viewsPath . '/my_page_scripts.php';
+    }
 
-	public function apiAction(): void {
-		// API-действия (POST) — layout не нужен
-		$action = $_GET['sub'] ?? '';
-		// ...
-		echo json_encode(['result' => true]);
-		exit;
-	}
+    public function apiAction(): void {
+        echo json_encode(['result' => true]);
+        exit;
+    }
 }
 ```
 
-### Правила layout
-
-| Правило | Описание |
-|---------|----------|
-| **viewsPath** | Всегда `__DIR__ . '/views'` — контроллер уже находится внутри директории модуля |
-| **layoutsPath** | `MAIN_HOME . 'public/Views/layouts/'` — общий для всех модулей |
-| **GET-страницы** | Обязательно вызвать `renderUnifiedLayoutHeader()` до и `renderUnifiedLayoutFooter()` после view |
-| **API-действия** | Без layout — возвращаем JSON напрямую |
-| **Скрипты** | JS модуля загружается через `<module>_scripts.php` после footer |
-
-> **Важно:** Используйте `__DIR__ . '/views'` для viewsPath — **не** `dirname(__DIR__) . '/modules/...'`. Файл контроллера уже внутри директории модуля.
-
-> `renderUnifiedLayoutHeader('admin', [...])` и `renderUnifiedLayoutFooter('admin')` определены в `public/Views/layouts/admin.php` и `footer.php`. Они извлекают необходимые глобальные переменные (`$rSettings`, `$rUserInfo`, `$db` и др.) и рендерят общий header/footer админки.
+| Правило | |
+| --------- | -- |
+| `__DIR__ . '/views'` | viewsPath — контроллер внутри директории модуля |
+| GET-страницы | `renderUnifiedLayoutHeader` до view, `renderUnifiedLayoutFooter` после |
+| API-экшены | Без layout — JSON напрямую |
 
 ---
 
-## Шаг 5. Добавить крон-задачу (опционально)
-
-### 5.1 Крон-класс (логика) — в модуле
-
-Файл `src/modules/my-module/MyCron.php`:
+## Крон-задача (опционально)
 
 ```php
-<?php
-
-class MyCron {
-
-    public static function run(): void {
-        $items = Database::query("SELECT * FROM my_table WHERE status = 'pending'");
-        foreach ($items as $item) {
-            self::processItem($item);
-        }
-    }
-
-    private static function processItem(array $item): void {
-        // Обработка элемента
-    }
-}
-```
-
-### 5.2 CronJob-обёртка — в директории модуля
-
-Файл `src/modules/my-module/MyCronJob.php`:
-
-```php
-<?php
-
-require_once MAIN_HOME . 'cli/CronTrait.php';
+// src/modules/my-module/MyCronJob.php
 
 class MyCronJob implements CommandInterface {
     use CronTrait;
 
-    public function getName(): string {
-        return 'cron:my_task';
-    }
-
-    public function getDescription(): string {
-        return 'Cron: описание задачи';
-    }
+    public function getName(): string    { return 'cron:my_task'; }
+    public function getDescription(): string { return 'My module background task'; }
 
     public function execute(array $rArgs): int {
-        if (!$this->assertRunAsXcVm()) {
-            return 1;
-        }
+        if (!$this->assertRunAsXcVm()) { return 1; }
 
         require INCLUDES_PATH . 'admin.php';
         require_once __DIR__ . '/MyCron.php';
 
         $this->initCron('XC_VM[MyTask]');
-
         MyCron::run();
 
         return 0;
@@ -392,9 +606,7 @@ class MyCronJob implements CommandInterface {
 }
 ```
 
-### 5.3 Регистрация в модуле
-
-Команда регистрируется **явно** в `registerCommands()`:
+Регистрация в модуле:
 
 ```php
 public function registerCommands(CommandRegistry $registry): void {
@@ -402,11 +614,7 @@ public function registerCommands(CommandRegistry $registry): void {
 }
 ```
 
-> **Важно:** Filesystem scanning модулей не используется. Каждый модуль сам знает свои команды и регистрирует их в `registerCommands()`.
-
-### 5.4 Добавить в crontab
-
-В `src/cli/Commands/StartupCommand.php` метод `installCrontab()` добавьте запись:
+Добавить в crontab (`StartupCommand::installCrontab()`):
 
 ```php
 $rCrons[] = '*/5 * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:my_task # XC_VM';
@@ -414,113 +622,65 @@ $rCrons[] = '*/5 * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:my_ta
 
 ---
 
-## Шаг 6. Настройка сборки (Makefile)
+## PSR-11: ContainerInterface
 
-Директория `modules/` **не** входит в `LB_DIRS` — все модули присутствуют только в MAIN-сборках по умолчанию. Файлы модуля (кроны, команды, вьюхи) автоматически исключены из LoadBalancer сборок.
-
----
-
-## Полные примеры
-
-### Минимальный модуль (без кронов, без маршрутов)
-
-```
-modules/my-module/
-├── module.json
-└── MyModule.php
-```
-
-`module.json`:
-```json
-{
-    "name": "my-module",
-    "version": "1.0.0",
-    "requires_core": ">=2.0"
-}
-```
-
-`MyModule.php` — реализует все методы `ModuleInterface`. Методы без поведения остаются пустыми.
-
-### Полный модуль (сервисы + маршруты + команды + события)
-
-Пример: `plex`, `watch`.
-
-```
-modules/my-module/
-├── module.json
-├── MyModule.php
-├── MyService.php
-├── MyRepository.php
-├── MyController.php
-├── MyCron.php
-├── MyCronJob.php
-└── views/
-    ├── my_page.php
-    └── my_page_scripts.php
-```
-
-Все файлы модуля живут внутри его директории. CronJob-обёртки регистрируются через `registerCommands()`.
-
-Контроллеры используют глобальную систему layout — см. [Шаг 4а](#шаг-4а-создать-контроллер-опционально) для паттерна.
-
-### Модуль с событиями
+`ServiceContainer` реализует `ContainerInterface`:
 
 ```php
-public function getEventSubscribers(): array {
-    return [
-        'stream.started'  => [MyHandler::class, 'onStreamStarted'],
-        'stream.stopped'  => [MyHandler::class, 'onStreamStopped'],
-        'user.connected'  => [MyHandler::class, 'onUserConnected'],
-    ];
-}
+public function get(string $id): mixed;  // throws NotFoundException если не найден
+public function has(string $id): bool;
 ```
+
+`NotFoundException` реализует `NotFoundExceptionInterface` → `ContainerExceptionInterface`.
+
+Интерфейсы находятся в `src/core/Container/Psr/`. Composer не используется — файлы включены в проект напрямую.
 
 ---
 
 ## Чеклист добавления модуля
 
-- [ ] Создать директорию `src/modules/<name>/`
-- [ ] Создать `module.json` (`name`, `version`, `requires_core`)
+- [ ] `mkdir -p src/modules/<name>/`
+- [ ] Создать `module.json` (name, version, requires_core, priority, optional_dependencies)
 - [ ] Создать `<Name>Module.php` (implements `ModuleInterface`)
-- [ ] (Если есть кроны) Создать `<Name>Cron.php` + `<Name>CronJob.php` в модуле
-- [ ] (Если есть кроны) Зарегистрировать в `registerCommands()`
-- [ ] (Если есть кроны) Добавить в crontab через `StartupCommand`
-- [ ] (Если есть страницы) Создать контроллер с `renderUnifiedLayoutHeader/Footer`
-- [ ] (Если есть страницы) Создать директорию `views/` с шаблонами страниц
-- [ ] (Если есть страницы) Зарегистрировать маршруты в `registerRoutes()` (и временно в `public/routes/admin.php`)
+- [ ] `boot()` — зарегистрировать сервисы через `$container->set()`
+- [ ] `getEventSubscribers()` — подписки на типизированные события
+- [ ] `registerRoutes()` — маршруты (или пустой метод)
+- [ ] `registerNavbar()` — пункты меню (или пустой метод)
+- [ ] `registerCommands()` — крон-задачи (или пустой метод)
+- [ ] (опц.) `implements StreamMiddlewareProviderInterface` + `getStreamMiddleware()`
+- [ ] (опц.) Контроллер + views/
+- [ ] (опц.) CronJob + регистрация в StartupCommand
 - [ ] Проверить: `php -l src/modules/<name>/<Name>Module.php`
-- [ ] Проверить: модуль загружается при `php console.php --list`
-- [ ] Проверить: удаление директории модуля не вызывает fatal error
-
----
-
-## Доступные события ядра
-
-| Событие | Описание | Данные |
-|---------|----------|--------|
-| `stream.started` | Стрим запущен | `['stream_id' => int]` |
-| `stream.stopped` | Стрим остановлен | `['stream_id' => int]` |
-| `user.connected` | Пользователь подключился | `['user_id' => int, 'stream_id' => int]` |
-| `cache.rebuilt` | Кэш перестроен | `[]` |
+- [ ] Проверить: `php console.php --list` показывает команды модуля
+- [ ] Проверить: удаление директории не вызывает ошибок ядра
 
 ---
 
 ## FAQ
 
 **Q: Как отключить модуль?**
-A: В `src/config/modules.php` добавьте `'module-name' => ['enabled' => false]`.
+A: `src/config/modules.php` → `'my-module' => ['enabled' => false]`.
 
-**Q: Нужно ли регистрировать модуль в конфиге?**
-A: Нет. `ModuleLoader` автоматически обнаруживает все модули из `modules/*/module.json`. Конфиг нужен только для отключения.
+**Q: Нужна ли регистрация в конфиге для загрузки?**
+A: Нет. `ModuleLoader` сам находит все модули по `modules/*/module.json`.
 
-**Q: Модуль зависит от другого модуля — как?**
-A: **Не допускайте зависимостей между модулями.** Модуль зависит только от `core/` и `domain/`. Если нужна общая функциональность — вынесите в ядро.
+**Q: Мой модуль зависит от другого. Как объявить?**
+A: В `module.json` через `dependencies` (обязательно) или `optional_dependencies` (мягко). Предпочитайте выносить общую логику в `core/` вместо межмодульных зависимостей.
 
-**Q: Могу ли я использовать `$db` напрямую?**
-A: Технически да (через `global $db`), но архитектурно правильно использовать `Database` через `ServiceContainer` или Repository.
+**Q: Как задекорировать сервис другого модуля?**
+A: `$container->decorate('service.id', MyDecorator::class, priority: 10)` в своём `boot()`.
 
-**Q: Как модуль получает доступ к настройкам?**
-A: Через `SettingsManager::getAll()['my_key']`. Ключи настроек модуля хранятся в общей таблице `settings`.
+**Q: Как подписаться на событие с приоритетом?**
+A: `[EventClass::class => [[MyHandler::class, 'method'], 50]]` в `getEventSubscribers()`. Можно также вызвать `EventDispatcher::listen()` напрямую.
 
-**Q: Мой модуль нужен только на MAIN — что делать?**
-A: Все модули уже MAIN-only по умолчанию — `modules/` не входит в `LB_DIRS`.
+**Q: Как модуль получает $db?**
+A: `$db = $container->get('db')` в `boot()`. Прямой `global $db` — устарело.
+
+**Q: Как модуль получает настройки?**
+A: `$settings = $container->get('settings')` или `SettingsManager::getAll()['key']`.
+
+**Q: Почему мой middleware не вызывается?**
+A: Проверьте, что модуль реализует `StreamMiddlewareProviderInterface` (не `ModuleInterface` — это разные контракты). `bootAll()` должен быть вызван с `$pipeline` аргументом.
+
+**Q: Мой модуль MAIN-only — что делать?**
+A: Ничего. Все модули MAIN-only по умолчанию — `modules/` не входит в `LB_DIRS`. Для LB используйте `"environment": "lb"` или `"any"`.

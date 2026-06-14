@@ -138,33 +138,41 @@ class ModuleLoader {
     /**
      * Boots all loaded modules in web context.
      *
-     * Registers core navbar, calls boot() method on each module, registers module routes,
-     * registers navbar items, and subscribes to events. Called after all modules are loaded.
+     * Checks each sub-interface via instanceof so modules can implement
+     * only the contracts they need. Core navbar is registered first.
      *
      * @param ServiceContainer $container Service container for dependency injection.
      * @param Router|null $router Optional router for module route registration.
+     * @param StreamPipeline|null $pipeline Optional stream pipeline for middleware registration.
      * @return void
      */
-    public function bootAll(ServiceContainer $container, ?Router $router = null): void {
-        CoreNavbarProvider::register();
+    public function bootAll(ServiceContainer $container, ?Router $router = null, ?StreamPipeline $pipeline = null): void {
+        (new CoreNavbarProvider())->registerNavbar();
 
         foreach ($this->modules as $module) {
-            $module->boot($container);
+            if ($module instanceof ServiceProviderInterface) {
+                $module->boot($container);
+                $this->registerEventSubscribers($module, $container);
+            }
 
-            if ($router !== null) {
+            if ($pipeline !== null) {
+                $this->registerStreamMiddleware($module, $pipeline);
+            }
+
+            if ($module instanceof RouteProviderInterface && $router !== null) {
                 $module->registerRoutes($router);
             }
 
-            $module->registerNavbar();
-
-            $this->registerEventSubscribers($module, $container);
+            if ($module instanceof NavbarProviderInterface) {
+                $module->registerNavbar();
+            }
         }
     }
 
     /**
      * Registers CLI commands for all loaded modules.
      *
-     * Calls registerCommands() on each module to allow them to register custom CLI commands.
+     * Only calls registerCommands() on modules implementing CommandProviderInterface.
      * Used in CLI context (console.php).
      *
      * @param CommandRegistry $registry Command registry for registering module commands.
@@ -172,7 +180,9 @@ class ModuleLoader {
      */
     public function registerAllCommands(CommandRegistry $registry): void {
         foreach ($this->modules as $module) {
-            $module->registerCommands($registry);
+            if ($module instanceof CommandProviderInterface) {
+                $module->registerCommands($registry);
+            }
         }
     }
 
@@ -337,12 +347,17 @@ class ModuleLoader {
     /**
      * Reads and normalizes a module manifest from JSON file.
      *
-     * Parses module.json, validates all fields, normalizes dependency array (trim, dedup, sort),
+     * Parses module.json, validates all fields, normalizes dependency arrays (trim, dedup, sort),
      * and fills in default values. Performs strict type checking to catch configuration errors early.
+     *
+     * Supported fields:
+     *   dependencies          — required; missing dep causes load failure
+     *   optional_dependencies — optional; missing dep is silently skipped
+     *   priority              — load order weight (higher = earlier, default 0)
      *
      * @param string $jsonFile Full path to module.json file.
      * @param string $name Module name (used for error messages).
-     * @return array Normalized manifest: name, description, version, requires_core, environment, dependencies, has_navbar, has_settings.
+     * @return array Normalized manifest.
      * @throws RuntimeException If JSON is invalid, dependencies not array, or dependency names not strings.
      */
     protected function readManifest(string $jsonFile, string $name): array {
@@ -353,32 +368,32 @@ class ModuleLoader {
             throw new RuntimeException("ModuleLoader: invalid JSON in module manifest for module {$name}");
         }
 
-        // Validate and normalize dependencies array
-        $dependencies = $manifest['dependencies'] ?? [];
-        if (!is_array($dependencies)) {
-            throw new RuntimeException("ModuleLoader: dependencies must be array for module {$name}");
-        }
-
-        $normalizedDependencies = [];
-        foreach ($dependencies as $dependency) {
-            if (!is_string($dependency) || trim($dependency) === '') {
-                throw new RuntimeException("ModuleLoader: dependency names must be non-empty strings for module {$name}");
+        $normalizeDepArray = function (mixed $raw, string $field) use ($name): array {
+            if (!is_array($raw)) {
+                throw new RuntimeException("ModuleLoader: {$field} must be array for module {$name}");
             }
-            $normalizedDependencies[] = trim($dependency);
-        }
-
-        // Deduplicate and sort dependencies for deterministic order
-        sort($normalizedDependencies, SORT_STRING);
+            $result = [];
+            foreach ($raw as $dep) {
+                if (!is_string($dep) || trim($dep) === '') {
+                    throw new RuntimeException("ModuleLoader: {$field} names must be non-empty strings for module {$name}");
+                }
+                $result[] = trim($dep);
+            }
+            sort($result, SORT_STRING);
+            return array_values(array_unique($result));
+        };
 
         return [
-            'name'           => $manifest['name'] ?? $name,
-            'description'    => $manifest['description'] ?? '',
-            'version'        => $manifest['version'] ?? '',
-            'requires_core'  => $manifest['requires_core'] ?? '',
-            'environment'    => strtolower((string) ($manifest['environment'] ?? 'main')),
-            'dependencies'   => array_values(array_unique($normalizedDependencies)),
-            'has_navbar'     => (bool) ($manifest['has_navbar'] ?? false),
-            'has_settings'   => (bool) ($manifest['has_settings'] ?? false),
+            'name'                  => $manifest['name'] ?? $name,
+            'description'           => $manifest['description'] ?? '',
+            'version'               => $manifest['version'] ?? '',
+            'requires_core'         => $manifest['requires_core'] ?? '',
+            'environment'           => strtolower((string) ($manifest['environment'] ?? 'main')),
+            'dependencies'          => $normalizeDepArray($manifest['dependencies'] ?? [], 'dependencies'),
+            'optional_dependencies' => $normalizeDepArray($manifest['optional_dependencies'] ?? [], 'optional_dependencies'),
+            'has_navbar'            => (bool) ($manifest['has_navbar'] ?? false),
+            'has_settings'          => (bool) ($manifest['has_settings'] ?? false),
+            'priority'              => (int) ($manifest['priority'] ?? 0),
         ];
     }
 
@@ -397,9 +412,17 @@ class ModuleLoader {
         $order = [];
         $state = [];  // 1 = visiting, 2 = visited
         $names = array_keys($discovered);
-        sort($names, SORT_STRING);
 
-        // Visit each module in alphabetical order (deterministic)
+        // Sort by priority desc, then alphabetically for determinism within same priority
+        usort($names, function (string $a, string $b) use ($discovered): int {
+            $pa = $discovered[$a]['manifest']['priority'] ?? 0;
+            $pb = $discovered[$b]['manifest']['priority'] ?? 0;
+            if ($pa !== $pb) {
+                return $pb <=> $pa; // higher priority first
+            }
+            return strcmp($a, $b);
+        });
+
         foreach ($names as $name) {
             $this->visitDependencyNode($name, $discovered, $state, $order, []);
         }
@@ -452,12 +475,19 @@ class ModuleLoader {
         $state[$name] = 1;
         $stack[] = $name;
 
-        // Recursively visit all dependencies
+        // Required dependencies — throw if missing
         foreach ($discovered[$name]['manifest']['dependencies'] as $dependency) {
             if (!isset($discovered[$dependency])) {
                 throw new RuntimeException("ModuleLoader: module {$name} requires missing dependency {$dependency}");
             }
             $this->visitDependencyNode($dependency, $discovered, $state, $order, $stack);
+        }
+
+        // Optional dependencies — visit only when present, skip silently otherwise
+        foreach ($discovered[$name]['manifest']['optional_dependencies'] ?? [] as $dependency) {
+            if (isset($discovered[$dependency])) {
+                $this->visitDependencyNode($dependency, $discovered, $state, $order, $stack);
+            }
         }
 
         // Mark as fully visited and add to load order
@@ -468,18 +498,46 @@ class ModuleLoader {
     /**
      * Registers event subscribers declared by a module.
      *
-     * Calls getEventSubscribers() on module and registers each event handler with EventDispatcher.
-     * Only registers if container has 'events' service.
+     * Supports both legacy string-keyed handlers and new class-based
+     * [callable, int $priority] tuples from ServiceProviderInterface.
      *
-     * @param ModuleInterface $module Module to extract subscribers from.
-     * @param ServiceContainer $container Service container to check for events service.
+     * @param ServiceProviderInterface $module
+     * @param ServiceContainer $container
      * @return void
      */
-    private function registerEventSubscribers(ModuleInterface $module, ServiceContainer $container): void {
+    private function registerEventSubscribers(ServiceProviderInterface $module, ServiceContainer $container): void {
         $subscribers = $module->getEventSubscribers();
-        if (!empty($subscribers) && $container->has('events')) {
-            foreach ($subscribers as $event => $handler) {
-                EventDispatcher::subscribe($event, $handler);
+        if (empty($subscribers) || !$container->has('events')) {
+            return;
+        }
+
+        foreach ($subscribers as $event => $handler) {
+            if (is_array($handler) && isset($handler[0]) && is_callable($handler[0])) {
+                // [callable, int $priority] tuple — new PSR-14 style
+                EventDispatcher::listen($event, $handler[0], $handler[1] ?? 0);
+            } else {
+                // Legacy: string event name or class-string, plain callable
+                EventDispatcher::listen($event, $handler);
+            }
+        }
+    }
+
+    /**
+     * Registers stream middleware declared by a module into the pipeline.
+     *
+     * Only called for modules implementing StreamMiddlewareProviderInterface.
+     *
+     * @param ModuleInterface $module
+     * @param StreamPipeline $pipeline
+     * @return void
+     */
+    private function registerStreamMiddleware(ModuleInterface $module, StreamPipeline $pipeline): void {
+        if (!$module instanceof StreamMiddlewareProviderInterface) {
+            return;
+        }
+        foreach ($module->getStreamMiddleware() as $middleware) {
+            if ($middleware instanceof StreamMiddlewareInterface) {
+                $pipeline->pipe($middleware);
             }
         }
     }
@@ -516,7 +574,7 @@ class ModuleLoader {
                 require_once $found;
                 return;
             }
-        }, false, false);
+        });
     }
 
     /**

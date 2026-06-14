@@ -35,7 +35,7 @@
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-class MinistraModule implements ModuleInterface {
+class MinistraModule implements ModuleInterface, BoundaryInterface {
 
     /**
      * {@inheritdoc}
@@ -92,6 +92,14 @@ class MinistraModule implements ModuleInterface {
      */
     public function getEventSubscribers(): array {
         return [];
+    }
+
+    public function getEntryPoint(): string {
+        return 'ministra/portal.php';
+    }
+
+    public function isIsolated(): bool {
+        return true;
     }
 
     /**

@@ -14,13 +14,17 @@
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-class CoreNavbarProvider {
+class CoreNavbarProvider implements NavbarProviderInterface {
+
+    /**
+     * NavbarProviderInterface implementation — delegates to register().
+     */
+    public function registerNavbar(): void {
+        self::register();
+    }
 
     /**
      * Register all core navigation items with the NavbarRegistry.
-     * 
-     * This method acts as the main entry point, calling each category-specific
-     * registration method to build the complete admin navigation structure.
      *
      * @return void
      */
