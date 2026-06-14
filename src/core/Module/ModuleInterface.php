@@ -1,41 +1,32 @@
 <?php
 
 /**
- * Контракт модуля
+ * Module contract — composite interface for full lifecycle modules.
  *
- * Каждый модуль в modules/ ДОЛЖЕН реализовать этот интерфейс.
- * Модуль — это изолированная директория с известным контрактом.
- * Его можно удалить, и система продолжит работать.
+ * Extends all sub-interfaces for backward compatibility. Existing modules
+ * implementing ModuleInterface continue to work unchanged.
  *
- * ──────────────────────────────────────────────────────────────────
- * Источник истины — PHP-класс:
- * ──────────────────────────────────────────────────────────────────
+ * New modules can implement only the sub-interfaces they actually need:
+ *   - ServiceProviderInterface   — boot(), getEventSubscribers(), getStreamMiddleware()
+ *   - RouteProviderInterface     — registerRoutes()
+ *   - CommandProviderInterface   — registerCommands()
+ *   - NavbarProviderInterface    — registerNavbar()
  *
- *   module.json — только метаданные (name, description, version, requires_core).
- *   Вся runtime-конфигурация — ЗДЕСЬ, в PHP-методах:
- *     - boot()               — регистрация сервисов
- *     - registerRoutes()     — HTTP-маршруты
- *     - registerCommands()   — CLI-команды и кроны
- *     - getEventSubscribers() — подписки на события
+ * ModuleLoader checks each interface separately via instanceof, so partial
+ * implementations are fully supported.
  *
- * ──────────────────────────────────────────────────────────────────
- * Жизненный цикл:
- * ──────────────────────────────────────────────────────────────────
+ * Lifecycle (web context):
+ *   Discovery → Load → boot() → registerRoutes() → registerNavbar()
+ *               → getEventSubscribers() → getStreamMiddleware()
  *
- *   1. ModuleLoader сканирует modules/star/module.json
- *   2. config/modules.php проверяется на overrides (enabled => false)
- *   3. boot(ServiceContainer) — регистрация сервисов
- *   4. registerRoutes(Router) — регистрация маршрутов
- *   5. registerCommands(CommandRegistry) — CLI-команды и кроны
- *   6. getEventSubscribers() — подписки на события
+ * Lifecycle (install/uninstall):
+ *   install()   — create tables, seed initial data
+ *   uninstall() — drop tables, clean settings, remove cron entries
  *
- *   Установка/удаление:
- *   7. install() — создание таблиц, начальные данные
- *   8. uninstall() — удаление таблиц, очистка данных
- *
- * @see Router::group()
- * @see ServiceContainer::set()
- * @see CommandRegistry::register()
+ * @see ServiceProviderInterface
+ * @see RouteProviderInterface
+ * @see CommandProviderInterface
+ * @see NavbarProviderInterface
  *
  * @package XC_VM_Core_Module
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -43,78 +34,33 @@
  * @link    https://github.com/Vateron-Media/XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
-
-interface ModuleInterface {
-
+interface ModuleInterface extends
+    ServiceProviderInterface,
+    RouteProviderInterface,
+    CommandProviderInterface,
+    NavbarProviderInterface
+{
     /**
-     * Уникальное имя модуля (совпадает с именем директории)
+     * Unique module name — must match the directory name in modules/.
      */
     public function getName(): string;
 
     /**
-     * Версия модуля (semver)
+     * Module version (semver).
      */
     public function getVersion(): string;
 
     /**
-     * Инициализация модуля: регистрация сервисов в DI-контейнере
+     * Run once when the module is enabled.
      *
-     * Вызывается один раз при загрузке модуля.
-     *
-     * @param ServiceContainer $container DI-контейнер
-     */
-    public function boot(ServiceContainer $container): void;
-
-    /**
-     * Регистрация HTTP-маршрутов модуля
-     *
-     * Вызывается после boot(). Модуль регистрирует:
-     * - GET/POST маршруты для страниц
-     * - API-маршруты для AJAX-действий
-     *
-     * @param Router $router HTTP-роутер
-     */
-    public function registerRoutes(Router $router): void;
-
-    /**
-     * Регистрация CLI-команд и крон-задач модуля
-     *
-     * Модуль явно создаёт и регистрирует экземпляры CommandInterface.
-     * Никакого filesystem scanning — вся регистрация в PHP.
-     *
-     * Пример:
-     *   $registry->register(new MyCronCommand());
-     *   $registry->register(new MyToolCommand());
-     *
-     * @param CommandRegistry $registry Реестр CLI-команд
-     */
-    public function registerCommands(CommandRegistry $registry): void;
-
-    /**
-     * Получить массив подписок на события ядра
-     *
-     * @return array Подписки: EventClass => handler
-     */
-    public function getEventSubscribers(): array;
-
-    /**
-     * Установка модуля (создание таблиц, начальные данные)
-     *
-     * Вызывается один раз при включении модуля.
+     * Creates tables, seeds initial data.
      */
     public function install(): void;
 
     /**
-     * Удаление модуля (очистка таблиц, записей в settings, cron)
+     * Run once when the module is disabled or removed.
      *
-     * Вызывается при отключении/удалении модуля.
+     * Drops tables, clears settings entries, removes cron records.
      */
     public function uninstall(): void;
-
-    /**
-     * Зарегистрировать пункты навигации через NavbarRegistry::add()
-     *
-     * Вызывается в bootAll() после boot() всех модулей.
-     */
-    public function registerNavbar(): void;
 }

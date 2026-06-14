@@ -2,60 +2,45 @@
 
 ## Overview
 
-A module is an isolated directory under `src/modules/` with a known contract. Removing a module **does not break the system** — it continues working with degraded functionality.
+A module is an isolated directory under `src/modules/` with a known contract. The system
+is built on **Extensible Platform** principles:
 
-### Architecture
-
-```
-modules/
-├── my-module/
-│   ├── module.json            # Metadata (name, description, version, requires_core)
-│   ├── MyModule.php           # Source of truth (implements ModuleInterface)
-│   ├── MyService.php          # Module services
-│   ├── MyController.php       # Controller (if pages exist)
-│   ├── MyCron.php             # Cron logic (if any)
-│   ├── MyCronJob.php          # CLI cron wrapper (implements CommandInterface)
-│   ├── views/                 # Page templates
-│   │   ├── my_page.php
-│   │   └── my_page_scripts.php
-│   └── migrations/            # SQL migrations (if any)
-│       └── 001_create_table.sql
-```
-
-### Principles
-
-| Rule | Description |
-|------|-------------|
-| **PHP is the source of truth** | All behavior is defined in the module class, not in JSON |
-| **module.json is metadata only** | `name`, `description`, `version`, `requires_core` |
-| **Auto-discovery** | `ModuleLoader` scans `modules/*/module.json` — no config registration needed |
-| **Isolation** | Module depends on `core/` and `domain/`, but NEVER on other modules |
-| **Graceful degradation** | Removing the module directory causes no errors |
-| **No reverse dependencies** | Core (`core/`) is unaware of modules |
-| **DI via container** | Services registered in `boot()`, not via globals |
-| **Explicit command registration** | Module registers commands in `registerCommands()`, no filesystem scanning |
+- Core (`core/`) has no knowledge of modules
+- Modules may depend on `core/` and `domain/`, never on each other (except via declared dependencies)
+- Any module can be disabled from `config/modules.php` without touching core
+- Removing a module directory causes no fatal errors
 
 ---
 
-## Step 1. Create a directory
+## Module directory structure
 
-```bash
-mkdir -p src/modules/my-module
 ```
-
-Directory name = module name. Use kebab-case: `my-module`.
+src/modules/my-module/
+├── module.json          # Metadata and manifest
+├── MyModule.php         # Module class (source of truth)
+├── MyService.php        # Business logic
+├── MyController.php     # Admin pages (optional)
+├── MyCron.php           # Cron logic (optional)
+├── MyCronJob.php        # CLI cron wrapper (optional)
+└── views/               # Page templates (optional)
+    ├── my_page.php
+    └── my_page_scripts.php
+```
 
 ---
 
-## Step 2. Create the manifest `module.json`
+## module.json
 
 ```json
 {
     "name": "my-module",
+    "description": "Short description",
     "version": "1.0.0",
     "requires_core": ">=2.0",
     "environment": "main",
+    "priority": 0,
     "dependencies": [],
+    "optional_dependencies": [],
     "has_navbar": false,
     "has_settings": false
 }
@@ -63,79 +48,64 @@ Directory name = module name. Use kebab-case: `my-module`.
 
 ### Manifest fields
 
-| Field | Type | Required | Description |
-|-------|------|:---:|-------------|
-| `name` | `string` | ✅ | Unique module name (matches directory name) |
-| `description` | `string` | ⛔ | Short human-readable module description |
-| `version` | `string` | ✅ | Semver version (`1.0.0`) |
-| `requires_core` | `string` | ✅ | Minimum core version (`>=2.0`) |
-| `environment` | `string` | ✅ | Environment: `main` (primary server), `lb` (load-balancer), `any` (both) |
-| `dependencies` | `array` | ✅ | Array of module names that this module depends on. Empty array `[]` if no dependencies |
-| `has_navbar` | `boolean` | ✅ | Whether this module has navbar items in admin panel |
-| `has_settings` | `boolean` | ✅ | Whether this module has a settings page |
+| Field | Type | Default | Description |
+| ------ | ----- | :---: | ------------ |
+| `name` | `string` | — | Unique module name (matches directory) |
+| `description` | `string` | `""` | Human-readable description |
+| `version` | `string` | — | Semver version (`1.0.0`) |
+| `requires_core` | `string` | — | Minimum core version (`>=2.0`) |
+| `environment` | `string` | `"main"` | `main`, `lb`, or `any` |
+| `priority` | `int` | `0` | Load priority — higher loads earlier |
+| `dependencies` | `array` | `[]` | Hard dependencies (must exist and be enabled) |
+| `optional_dependencies` | `array` | `[]` | Soft dependencies (loaded before if present) |
+| `has_navbar` | `bool` | `false` | Whether the module registers navbar items |
+| `has_settings` | `bool` | `false` | Whether the module has a settings page |
 
-> **Important:**
-> - All dependencies must be strings (module names).
-> - Dependencies must exist or ModuleLoader will throw an error during loadAll().
-> - Cyclic dependencies are automatically detected and cause load failure.
-> - Modules are loaded in dependency order: if A depends on B, then B is loaded first.
-> - `environment` must be `main`, `lb`, or `any`. If `main`, module only loads on primary servers.
+**Hard vs soft dependencies:**
 
-**Manifest examples:**
+- `dependencies` — if any is missing or disabled, `ModuleLoader` throws `RuntimeException`
+- `optional_dependencies` — loaded before this module if present, silently skipped if absent
 
-```json
-{
-  "name": "watch",
-  "description": "Watch activity tracking and statistics",
-  "version": "1.2.0",
-  "requires_core": ">=2.0",
-  "environment": "main",
-  "dependencies": [],
-  "has_navbar": true,
-  "has_settings": true
-}
-```
+**Priority:**
 
-```json
-{
-  "name": "plex",
-  "description": "Plex integration module",
-  "version": "2.0.0",
-  "requires_core": ">=2.0",
-  "environment": "any",
-  "dependencies": ["ministra"],
-  "has_navbar": true,
-  "has_settings": true
-}
-```
-
-```json
-{
-  "name": "load-balancer-stats",
-  "description": "Load balancer statistics collector",
-  "version": "1.0.0",
-  "requires_core": ">=2.0",
-  "environment": "lb",
-  "dependencies": [],
-  "has_navbar": false,
-  "has_settings": false
-}
-```
-
-> **Note on dependencies:** If your module requires functionality from another module, list its name in `dependencies`. ModuleLoader automatically ensures the required module is loaded before yours, and will throw an error if the required module is missing or disabled.
-
-> **Note on environment:** Use `main` by default for modules on primary servers, `lb` for load-balancer, `any` if the module works everywhere. In practice, `any` is rarely used — most modules are specific to one environment.
+- Topological sort respects the dependency graph first, then within the same group sorts by `priority` descending (higher number = loaded earlier), then alphabetically
 
 ---
 
-## Step 3. Create the module class
+## Sub-interfaces
 
-File `src/modules/my-module/MyModule.php`:
+`ModuleInterface` splits the module's surface area into typed sub-contracts:
+
+```text
+ModuleInterface
+├── ServiceProviderInterface   → boot(ServiceContainer)
+├── RouteProviderInterface     → registerRoutes(Router)
+├── CommandProviderInterface   → registerCommands(CommandRegistry)
+└── NavbarProviderInterface    → registerNavbar()
+```
+
+`StreamMiddlewareProviderInterface` is **optional** — it is NOT part of `ModuleInterface`.
+Implement it only if the module needs to inject itself into the stream pipeline.
+
+```php
+// Optional — not in ModuleInterface
+class MyModule implements ModuleInterface, StreamMiddlewareProviderInterface {
+    public function getStreamMiddleware(): array {
+        return [new MyStreamMiddleware()];
+    }
+}
+```
+
+---
+
+## Module class
 
 ```php
 <?php
 
 class MyModule implements ModuleInterface {
+
+    // ── ModuleInterface ──────────────────────────────────────────
 
     public function getName(): string {
         return 'my-module';
@@ -145,63 +115,182 @@ class MyModule implements ModuleInterface {
         return '1.0.0';
     }
 
+    // ── ServiceProviderInterface ─────────────────────────────────
+
     public function boot(ServiceContainer $container): void {
-        $container->set('my-module.service', 'MyService');
+        $container->set('my-module.service', function (ServiceContainer $c): MyService {
+            return new MyService($c->get('db'));
+        });
     }
 
+    // ── RouteProviderInterface ───────────────────────────────────
+
     public function registerRoutes(Router $router): void {
-        $router->get('my-module', [MyController::class, 'index'], [
-            'permission' => ['adv', 'my_module'],
-        ]);
-        $router->api('my_action', [MyController::class, 'apiAction'], [
+        $router->get('my_page', [MyController::class, 'index'], [
             'permission' => ['adv', 'my_module'],
         ]);
     }
+
+    // ── CommandProviderInterface ─────────────────────────────────
 
     public function registerCommands(CommandRegistry $registry): void {
         $registry->register(new MyCronJob());
     }
 
-    public function getEventSubscribers(): array {
-        return [];
-    }
-
-    public function install(): void {
-        // Create tables, seed data, etc.
-    }
-
-    public function uninstall(): void {
-        // Clean up module data
-    }
+    // ── NavbarProviderInterface ──────────────────────────────────
 
     public function registerNavbar(): void {
-        // Register nav items via NavbarRegistry::add()
-        // Keep this method empty if the module has no nav entries
+        NavbarRegistry::add(
+            (new NavbarItem('management.service_setup.my_module'))
+                ->parent('management.service_setup')
+                ->url('my_page')
+                ->label('my_module')
+                ->permissions(['my_module'])
+                ->order(60)
+        );
+    }
+
+    public function install(): void {}
+    public function uninstall(): void {}
+}
+```
+
+### Method contract
+
+| Method | Interface | Description |
+| ------- | ----------- | ---------- |
+| `getName(): string` | `ModuleInterface` | Unique name (matches directory) |
+| `getVersion(): string` | `ModuleInterface` | Semver version |
+| `boot(ServiceContainer)` | `ServiceProviderInterface` | Register services in DI container |
+| `registerRoutes(Router)` | `RouteProviderInterface` | Register HTTP and API routes |
+| `registerCommands(CommandRegistry)` | `CommandProviderInterface` | Register CLI commands and cron tasks |
+| `registerNavbar()` | `NavbarProviderInterface` | Register navbar items |
+| `install(): void` | `ModuleInterface` | Run on module install (migrations, seed) |
+| `uninstall(): void` | `ModuleInterface` | Run on module remove (cleanup) |
+
+---
+
+## DI container and service decoration
+
+Services are registered in `boot()` via `ServiceContainer`. The container supports:
+
+- **`set(id, factory)`** — lazy singleton via callable, or direct value
+- **`factory(id, callable)`** — new instance on every `get()`
+- **`decorate(id, callable, priority)`** — wrap an existing service
+
+```php
+// Decorate a service (adds behaviour around the original)
+$container->decorate('stream.encoder', function (mixed $inner, ServiceContainer $c): MyEncoder {
+    return new MyEncoder($inner, $c->get('settings'));
+}, priority: 20);
+```
+
+Decorators are chained by priority (highest wraps outermost). Protected services
+(`db`, `settings`, `config`, `auth`) cannot be decorated — any attempt throws `RuntimeException`.
+
+### PSR-11 compliance
+
+`ServiceContainer` implements `ContainerInterface`:
+
+```php
+public function get(string $id): mixed;  // throws NotFoundException if missing
+public function has(string $id): bool;
+```
+
+`NotFoundException` implements `NotFoundExceptionInterface extends ContainerExceptionInterface`.
+
+---
+
+## PSR-14 events
+
+Events are plain PHP classes. Dispatch them via `EventDispatcher`:
+
+```php
+// In any module
+EventDispatcher::dispatch(new MyEvent($payload));
+
+// Subscribe
+EventDispatcher::listen(MyEvent::class, function (MyEvent $e): void {
+    // handle
+}, priority: 10);
+```
+
+**Priority** — higher integer = called first. Default `0`.
+
+**Stoppable events** — extend `AbstractEvent` and call `$e->stopPropagation()`:
+
+```php
+class MyGatingEvent extends AbstractEvent {
+    public bool $allowed = true;
+}
+
+EventDispatcher::listen(MyGatingEvent::class, function (MyGatingEvent $e): void {
+    if (!$this->check()) {
+        $e->allowed = false;
+        $e->stopPropagation();
+    }
+}, priority: 100);
+```
+
+### Built-in core events
+
+| Event class | When dispatched | Stoppable |
+| --------------- | ---------------------- | :-----------: |
+| `ModuleLoadedEvent` | After module file is loaded | ❌ |
+| `ModuleBootedEvent` | After `boot()` is called | ❌ |
+| `PackageInstalledEvent` | After marketplace install | ❌ |
+| `UserAuthenticatedEvent` | After successful login | ✅ |
+| `UserLoggedOutEvent` | After logout | ❌ |
+| `StreamStartingEvent` | Before stream starts | ✅ |
+| `StreamStartedEvent` | After stream started | ❌ |
+| `StreamStoppedEvent` | After stream stopped | ❌ |
+| `SettingsChangedEvent` | After settings saved | ❌ |
+
+---
+
+## Stream Middleware
+
+Modules can inject middleware into the stream pipeline by implementing
+`StreamMiddlewareProviderInterface` (separate from `ModuleInterface`):
+
+```php
+class MyStreamMiddleware implements StreamMiddlewareInterface {
+
+    public function getPriority(): int {
+        return 50;
+    }
+
+    public function process(StreamContext $context, callable $next): StreamContext {
+        // before
+        $context = $next($context);
+        // after
+        return $context;
     }
 }
 ```
 
-### `ModuleInterface` contract
+`StreamContext` is an immutable attribute bag (`get`, `with`, `has`). `StreamPipeline`
+executes middleware sorted by `getPriority()` descending.
 
-| Method | Description |
-|--------|-------------|
-| `getName(): string` | Unique name (matches directory) |
-| `getVersion(): string` | Semver version |
-| `boot(ServiceContainer)` | Register services. Called once on load |
-| `registerRoutes(Router)` | HTTP routes and API actions |
-| `registerCommands(CommandRegistry)` | Explicit registration of CLI commands and cron tasks |
-| `getEventSubscribers(): array` | Core event subscriptions |
-| `install(): void` | Module installation (migrations, seed data) |
-| `uninstall(): void` | Module data cleanup |
-| `registerNavbar(): void` | Register module items in admin navbar |
+### Pipeline priorities
+
+| Range | Owner |
+| ---------- | ----------------- |
+| `80–100` | Core (Auth, Permission, ConnectionLimit) |
+| `0–79` | Modules |
+
+### Reserved navbar slots
+
+| Parent node | Module slots |
+| ------------------- | ------------------ |
+| `management.service_setup` | `order` ≥ 60 |
+| `management.logs` | `order` ≥ 170 |
 
 ---
 
-## Step 4. Automatic registration
+## Enable / disable modules
 
-**No config registration needed.** `ModuleLoader` automatically discovers all modules from `modules/*/module.json`.
-
-To **disable** a module — add to `src/config/modules.php`:
+All discovered modules load by default. To disable one, add to `src/config/modules.php`:
 
 ```php
 return [
@@ -209,187 +298,123 @@ return [
 ];
 ```
 
-`config/modules.php` contains only overrides. If the file is empty or missing — all discovered modules are loaded.
+To override the class resolved for a module:
 
-### How loading works
+```php
+return [
+    'my-module' => ['class' => 'MyModuleV2'],
+];
+```
 
-1. `ModuleLoader::loadAll()` scans `modules/*/module.json`
-2. Checks overrides in `config/modules.php`
-3. Filters modules by environment (main/lb/any)
-4. Sorts topologically by dependencies (throws error if cyclic or missing dependency)
-5. Resolves class by convention: `my-module` → `MyModule` (kebab-case → PascalCase + Module)
-6. Creates module instance
-
-In web context (`public/index.php` for admin/reseller):
-- `loadAll()` → loads and instantiates all modules
-- `bootAll($container, $router)` → calls `boot()`, `registerRoutes()`, `registerNavbar()`, subscribes to events
-
-> **Status M-1:** ✅ Complete. Web module boot is fully integrated in front controller.
-
-In CLI context (console.php):
-- `loadAll()` → loads and instantiates all modules
-- `registerAllCommands($registry)` → calls `registerCommands()` on each module
+`config/modules.php` contains only overrides. An empty or missing file means all discovered
+modules load.
 
 ---
 
-## Step 4b. Register navbar buttons and menu items
+## How loading works
 
-Do not add module menu items directly in `header.php`.
-Each module must register its own entries in `registerNavbar()` using `NavbarRegistry::add()`.
+`ModuleLoader` follows these steps on every request:
 
-Example (module adds one item to service setup and one item to logs):
+1. Scans `src/modules/*/module.json`
+2. Applies overrides from `config/modules.php`
+3. Filters by environment (`main` / `lb` / `any`)
+4. Resolves the load order:
+   - Topological sort (DFS) over the dependency graph
+   - Within the same dependency group, sorts by `priority` descending, then alphabetically
+   - Throws `RuntimeException` on cycles or missing hard dependencies
+   - Missing optional dependencies are silently skipped
+5. Resolves class name: `my-module` → `MyModule`
+   (kebab-case → PascalCase + `Module`; can be overridden in config)
+6. Registers per-module autoloader via `XC_Autoloader`
+7. Instantiates the module class
+
+In web context:
+
+- `bootAll($container, $router)` → calls `boot()`, `registerRoutes()`, `registerNavbar()`,
+  and subscribes to events for every loaded module
+
+In CLI context:
+
+- `registerAllCommands($registry)` → calls `registerCommands()` on every loaded module
+
+---
+
+## Marketplace: install via C extension
+
+Modules from the platform are installed via `ModuleManager::downloadFromPlatform()`:
 
 ```php
-public function registerNavbar(): void {
-    NavbarRegistry::add((new NavbarItem('management.service_setup.my_module'))
-        ->parent('management.service_setup')
-        ->url('my_module')
-        ->label('my_module')
-        ->permissions(['my_module'])
-        ->order(60));
+$manager->downloadFromPlatform(slug: 'my-module', version: '1.2.0', apiKey: $key);
+```
 
-    NavbarRegistry::add((new NavbarItem('management.logs.my_module_log'))
-        ->parent('management.logs')
-        ->url('my_module_logs')
-        ->label('', 'My Module Logs')
-        ->permissions(['my_module'])
-        ->order(170));
+Under the hood:
+
+1. `XC_VM::module_install($slug, $version, $apiKey)` — C extension downloads, decrypts, unpacks
+2. `installModule($slug)` — runs `install()` on the module
+3. `EventDispatcher::dispatch(new PackageInstalledEvent(...))` — dispatches the event
+4. `hotReload($slug, $path)` — loads and boots the module in the current request **without PHP-FPM restart**
+
+---
+
+## Isolated subsystems (BoundaryInterface)
+
+Subsystems that must be fully isolated implement `BoundaryInterface`:
+
+```php
+interface BoundaryInterface {
+    public function boot(ServiceContainer $container): void;
+    public function getExportedServices(): array;
 }
 ```
 
-Rules for modules:
-
-1. `key` must be unique and stable (prefer `section.group.item`).
-2. `parent` must point to an existing core tree node.
-3. `order` controls position inside the same parent (smaller = higher).
-4. Use `label('translation_key')` for translatable text.
-5. Use `label('', 'Literal Text')` for literal text.
-6. If the module has no menu entries, keep `registerNavbar()` empty.
+Example — `MinistraBootstrap` boots the Ministra subsystem and exports
+`['ministra.api', 'ministra.auth']` to the shared container. The Ministra module
+delegates all responsibility to `MinistraBoundary`.
 
 ---
 
-## How navbar rendering works
-
-Rendering is fully declarative and built from `NavbarRegistry`:
-
-1. `ModuleLoader::bootAll()` starts with `CoreNavbarProvider::register()`.
-2. Then each module contributes items via `registerNavbar()`.
-3. In `public/Views/admin/header.php`, top-level items come from `NavbarRegistry::getTopLevel()`.
-4. Child items are rendered recursively via `NavbarRegistry::getChildren()`.
-
-Visibility rules (helper `_xc_nav_visible`):
-
-1. `desktopOnly` hides the item on mobile.
-2. `settingDisabled` hides the item when the corresponding setting flag is enabled.
-3. `permissions` are checked via `Authorization::check('adv', ...)` using OR logic.
-4. A group with `url='#'` is shown only if it has at least one visible child.
-
-Special rendering cases:
-
-1. `divider` renders as a separator without a link.
-2. `submenuClass('megamenu')` switches to two-column rendering for long lists.
-3. `noMobileSubmenu` disables submenu expansion on mobile.
-
----
-
-## Step 4a. Create a controller (optional)
-
-If the module has admin pages, create a controller class. The controller uses the **global layout system** via `renderUnifiedLayoutHeader()` / `renderUnifiedLayoutFooter()`.
-
-File `src/modules/my-module/MyController.php`:
+## Controller
 
 ```php
-<?php
-
 class MyController {
 
-	protected $viewsPath;
-	protected $layoutsPath;
+    protected string $viewsPath;
 
-	public function __construct() {
-		$this->viewsPath = __DIR__ . '/views';
-		$this->layoutsPath = MAIN_HOME . 'public/Views/layouts/';
-		require_once $this->layoutsPath . 'admin.php';
-		require_once $this->layoutsPath . 'footer.php';
-	}
+    public function __construct() {
+        $this->viewsPath = __DIR__ . '/views';
+        require_once MAIN_HOME . 'public/Views/layouts/admin.php';
+        require_once MAIN_HOME . 'public/Views/layouts/footer.php';
+    }
 
-	public function index(): void {
-		$_TITLE = 'My Module';
-		renderUnifiedLayoutHeader('admin', ['_TITLE' => $_TITLE]);
-		include $this->viewsPath . '/my_page.php';
-		renderUnifiedLayoutFooter('admin');
-		include $this->viewsPath . '/my_page_scripts.php';
-	}
-
-	public function apiAction(): void {
-		// API actions (POST) — no layout needed
-		$action = $_GET['sub'] ?? '';
-		// ...
-		echo json_encode(['result' => true]);
-		exit;
-	}
+    public function index(): void {
+        renderUnifiedLayoutHeader('admin', ['_TITLE' => 'My Module']);
+        include $this->viewsPath . '/my_page.php';
+        renderUnifiedLayoutFooter('admin');
+        include $this->viewsPath . '/my_page_scripts.php';
+    }
 }
 ```
 
-### Layout rules
-
-| Rule | Description |
-|------|-------------|
-| **viewsPath** | Always `__DIR__ . '/views'` — the controller is inside the module directory |
-| **layoutsPath** | `MAIN_HOME . 'public/Views/layouts/'` — shared across all modules |
-| **GET pages** | Must call `renderUnifiedLayoutHeader()` before and `renderUnifiedLayoutFooter()` after the view |
-| **API actions** | No layout — return JSON directly |
-| **Scripts include** | Module-specific JS is loaded via `<module>_scripts.php` after the footer |
-
-> **Important:** Use `__DIR__ . '/views'` for viewsPath — **not** `dirname(__DIR__) . '/modules/...'`. The controller file is already inside the module directory.
-
-> `renderUnifiedLayoutHeader('admin', [...])` and `renderUnifiedLayoutFooter('admin')` are defined in `public/Views/layouts/admin.php` and `footer.php`. They extract the necessary global variables (`$rSettings`, `$rUserInfo`, `$db`, etc.) and render the shared admin header/footer.
+| Rule | |
+| --------- | -- |
+| `__DIR__ . '/views'` | viewsPath — the controller is inside the module directory |
+| GET pages | call `renderUnifiedLayoutHeader` before view, `renderUnifiedLayoutFooter` after |
+| API actions | no layout — return JSON and exit |
 
 ---
 
-## Step 5. Add a cron task (optional)
+## Cron task
 
-### 5.1 Cron class (logic) — in the module
+**Cron logic** (`MyCron.php`) — business logic only, no CLI wiring.
 
-File `src/modules/my-module/MyCron.php`:
-
-```php
-<?php
-
-class MyCron {
-
-    public static function run(): void {
-        $items = Database::query("SELECT * FROM my_table WHERE status = 'pending'");
-        foreach ($items as $item) {
-            self::processItem($item);
-        }
-    }
-
-    private static function processItem(array $item): void {
-        // Process item
-    }
-}
-```
-
-### 5.2 CronJob wrapper — in the module directory
-
-File `src/modules/my-module/MyCronJob.php`:
+**CronJob wrapper** (`MyCronJob.php`) — implements `CommandInterface`, uses `CronTrait`:
 
 ```php
-<?php
-
-require_once MAIN_HOME . 'cli/CronTrait.php';
-
 class MyCronJob implements CommandInterface {
     use CronTrait;
 
-    public function getName(): string {
-        return 'cron:my_task';
-    }
-
-    public function getDescription(): string {
-        return 'Cron: task description';
-    }
+    public function getName(): string { return 'cron:my_task'; }
+    public function getDescription(): string { return 'Cron: my task'; }
 
     public function execute(array $rArgs): int {
         if (!$this->assertRunAsXcVm()) {
@@ -400,7 +425,6 @@ class MyCronJob implements CommandInterface {
         require_once __DIR__ . '/MyCron.php';
 
         $this->initCron('XC_VM[MyTask]');
-
         MyCron::run();
 
         return 0;
@@ -408,9 +432,7 @@ class MyCronJob implements CommandInterface {
 }
 ```
 
-### 5.3 Registration in the module
-
-Commands are registered **explicitly** in `registerCommands()`:
+Registration in the module:
 
 ```php
 public function registerCommands(CommandRegistry $registry): void {
@@ -418,11 +440,7 @@ public function registerCommands(CommandRegistry $registry): void {
 }
 ```
 
-> **Important:** Filesystem scanning of modules is not used. Each module knows its own commands and registers them in `registerCommands()`.
-
-### 5.4 Add to crontab
-
-In `src/cli/Commands/StartupCommand.php` method `installCrontab()`, add:
+Add to crontab (`StartupCommand::installCrontab()`):
 
 ```php
 $rCrons[] = '*/5 * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:my_task # XC_VM';
@@ -430,113 +448,44 @@ $rCrons[] = '*/5 * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:my_ta
 
 ---
 
-## Step 6. Build configuration (Makefile)
+## Module checklist
 
-The `modules/` directory is **not** included in `LB_DIRS` — all modules are only present in MAIN builds by default. Module files (crons, commands, views) are automatically excluded from LoadBalancer builds.
-
----
-
-## Complete examples
-
-### Minimal module (no crons, no routes)
-
-```
-modules/my-module/
-├── module.json
-└── MyModule.php
-```
-
-`module.json`:
-```json
-{
-    "name": "my-module",
-    "version": "1.0.0",
-    "requires_core": ">=2.0"
-}
-```
-
-`MyModule.php` — implements all `ModuleInterface` methods. Methods without behavior are left empty.
-
-### Full module (services + routes + commands + events)
-
-Example: `plex`, `watch`.
-
-```
-modules/my-module/
-├── module.json
-├── MyModule.php
-├── MyService.php
-├── MyRepository.php
-├── MyController.php
-├── MyCron.php
-├── MyCronJob.php
-└── views/
-    ├── my_page.php
-    └── my_page_scripts.php
-```
-
-All module files live inside its directory. CronJob wrappers are registered via `registerCommands()`.
-
-Controllers use the global layout system — see [Step 4a](#step-4a-create-a-controller-optional) for the pattern.
-
-### Module with events
-
-```php
-public function getEventSubscribers(): array {
-    return [
-        'stream.started'  => [MyHandler::class, 'onStreamStarted'],
-        'stream.stopped'  => [MyHandler::class, 'onStreamStopped'],
-        'user.connected'  => [MyHandler::class, 'onUserConnected'],
-    ];
-}
-```
-
----
-
-## Module addition checklist
-
-- [ ] Create directory `src/modules/<name>/`
-- [ ] Create `module.json` (`name`, `version`, `requires_core`)
-- [ ] Create `<Name>Module.php` (implements `ModuleInterface`)
-- [ ] (If crons) Create `<Name>Cron.php` + `<Name>CronJob.php` in the module
-- [ ] (If crons) Register in `registerCommands()`
-- [ ] (If crons) Add to crontab via `StartupCommand`
-- [ ] (If pages) Create controller with `renderUnifiedLayoutHeader/Footer`
-- [ ] (If pages) Create `views/` directory with page templates
-- [ ] (If pages) Register routes in `registerRoutes()` (and temporarily in `public/routes/admin.php`)
+- [ ] Create `src/modules/<name>/`
+- [ ] Create `module.json` with `name`, `version`, `requires_core`, `priority`, `dependencies`, `optional_dependencies`
+- [ ] Create `<Name>Module.php` implementing `ModuleInterface`
+- [ ] Implement `boot()` for all services the module provides
+- [ ] Implement `registerRoutes()` for HTTP / API endpoints
+- [ ] Implement `registerNavbar()` for admin panel items (or leave empty)
+- [ ] (If crons) Create `MyCron.php` + `MyCronJob.php`, register in `registerCommands()`
+- [ ] (If crons) Add crontab entry in `StartupCommand::installCrontab()`
+- [ ] (If pages) Create controller using `renderUnifiedLayoutHeader/Footer`
+- [ ] (If stream middleware) Implement `StreamMiddlewareProviderInterface` separately
 - [ ] Verify: `php -l src/modules/<name>/<Name>Module.php`
-- [ ] Verify: module loads with `php console.php --list`
-- [ ] Verify: removing module directory causes no fatal error
-
----
-
-## Available core events
-
-| Event | Description | Data |
-|-------|-------------|------|
-| `stream.started` | Stream started | `['stream_id' => int]` |
-| `stream.stopped` | Stream stopped | `['stream_id' => int]` |
-| `user.connected` | User connected | `['user_id' => int, 'stream_id' => int]` |
-| `cache.rebuilt` | Cache rebuilt | `[]` |
+- [ ] Verify: `php console.php --list` shows the module's commands
+- [ ] Verify: removing the module directory causes no fatal error
 
 ---
 
 ## FAQ
 
 **Q: How do I disable a module?**
-A: In `src/config/modules.php` add `'module-name' => ['enabled' => false]`.
+In `src/config/modules.php` add `'module-name' => ['enabled' => false]`.
 
-**Q: Do I need to register the module in config?**
-A: No. `ModuleLoader` automatically discovers all modules from `modules/*/module.json`. Config is only needed for disabling.
+**Q: How do I declare that my module depends on another?**
+Use `dependencies` in `module.json` for hard deps (must be present) or `optional_dependencies`
+for soft deps (loaded before yours if present, silently skipped if absent).
 
-**Q: My module depends on another module — how?**
-A: Use the `dependencies` array in `module.json` to declare inter-module dependencies. `ModuleLoader` performs topological sorting and will throw a `RuntimeException` if a declared dependency is missing. That said, prefer depending on `core/` and `domain/` when possible — extract shared functionality to core rather than creating deep inter-module dependency chains.
+**Q: Can I decorate a core service?**
+Yes — use `$container->decorate('service-id', callable, priority)` in `boot()`.
+Protected services (`db`, `settings`, `config`, `auth`) cannot be decorated.
 
-**Q: Can I use `$db` directly?**
-A: Technically yes (via `global $db`), but architecturally correct is to use `Database` through `ServiceContainer` or Repository.
+**Q: How do I listen to core events?**
+Call `EventDispatcher::listen(EventClass::class, callable, priority)` anywhere after bootstrap,
+typically inside `boot()` or a dedicated subscriber class.
 
-**Q: How does a module access settings?**
-A: Via `SettingsManager::getAll()['my_key']`. Module settings keys are stored in the shared `settings` table.
+**Q: Can I dispatch custom events from a module?**
+Yes. Create a plain class or extend `AbstractEvent` and call `EventDispatcher::dispatch(new MyEvent(...))`.
 
-**Q: My module is MAIN-only — what do I do?**
-A: All modules are already MAIN-only by default — `modules/` is not included in `LB_DIRS`.
+**Q: What is `StreamMiddlewareProviderInterface` for?**
+It lets the module inject a `StreamMiddlewareInterface` into the stream processing pipeline
+without modifying `StreamProcess.php`. Implement it alongside `ModuleInterface` when needed.

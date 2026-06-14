@@ -77,7 +77,7 @@
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-class ServiceContainer {
+class ServiceContainer implements ContainerInterface {
 
     /**
      * Единственный экземпляр контейнера (singleton)
@@ -114,6 +114,19 @@ class ServiceContainer {
      * @var array<string, string[]>
      */
     private $tags = [];
+
+    /**
+     * Decoration chains: id => priority => decorator[]
+     * Each decorator is a class-string or callable(inner, container): mixed
+     * @var array<string, array<int, array<class-string|callable>>>
+     */
+    private array $decorators = [];
+
+    /**
+     * Services that modules are not allowed to decorate.
+     * @var string[]
+     */
+    private array $protectedServices = ['db', 'settings', 'config', 'auth'];
 
     // ─────────────────────────────────────────────────────────
     //  Singleton
@@ -220,6 +233,54 @@ class ServiceContainer {
         return $this;
     }
 
+    /**
+     * Wrap a service with a decorator.
+     *
+     * The decorator receives the inner service as first constructor argument (class-string)
+     * or as the first callable argument (callable form).
+     *
+     * Multiple decorators on the same service are applied in priority order:
+     * highest priority wraps outermost (called first by callers).
+     *
+     * Example:
+     *   $c->decorate('stream.service', FingerprintDecorator::class, priority: 20);
+     *   $c->decorate('stream.service', LoggingDecorator::class, priority: 10);
+     *   // Call order: FingerprintDecorator → LoggingDecorator → original
+     *
+     * @param string               $id        Service identifier
+     * @param class-string|callable $decorator Class-string or callable($inner, $container): mixed
+     * @param int                  $priority  Higher = outer layer (default 0)
+     * @throws RuntimeException If the service is protected or not registered as a factory
+     */
+    public function decorate(string $id, string|callable $decorator, int $priority = 0): static {
+        if (in_array($id, $this->protectedServices, true)) {
+            throw new RuntimeException(
+                "ServiceContainer: сервис '{$id}' защищён от декорирования модулями."
+            );
+        }
+
+        if (!isset($this->factories[$id]) && !array_key_exists($id, $this->resolved)) {
+            throw new RuntimeException(
+                "ServiceContainer: невозможно декорировать незарегистрированный сервис '{$id}'."
+            );
+        }
+
+        $this->decorators[$id][$priority][] = $decorator;
+        unset($this->resolved[$id]); // rebuild chain on next get()
+
+        return $this;
+    }
+
+    /**
+     * Return decorator layers for a service (for debugging).
+     *
+     * @param string $id
+     * @return array<int, array<class-string|callable>> priority => decorators[]
+     */
+    public function getDecoratorChain(string $id): array {
+        return $this->decorators[$id] ?? [];
+    }
+
     // ─────────────────────────────────────────────────────────
     //  Получение
     // ─────────────────────────────────────────────────────────
@@ -229,9 +290,10 @@ class ServiceContainer {
      *
      * @param string $id Идентификатор
      * @return mixed
-     * @throws RuntimeException Если сервис не найден или обнаружена циклическая зависимость
+     * @throws NotFoundException           Если сервис не зарегистрирован
+     * @throws RuntimeException            Если обнаружена циклическая зависимость или фабрика бросила исключение
      */
-    public function get($id) {
+    public function get(string $id): mixed {
         // 1. Уже разрешён (singleton) — мгновенный возврат
         if (array_key_exists($id, $this->resolved) && empty($this->isFactory[$id])) {
             return $this->resolved[$id];
@@ -251,6 +313,7 @@ class ServiceContainer {
 
             try {
                 $service = call_user_func($this->factories[$id], $this);
+                $service = $this->applyDecorators($id, $service);
             } catch (Exception $e) {
                 unset($this->creating[$id]);
                 throw new RuntimeException(
@@ -270,7 +333,7 @@ class ServiceContainer {
             return $service;
         }
 
-        throw new RuntimeException(
+        throw new NotFoundException(
             "ServiceContainer: сервис '{$id}' не зарегистрирован. "
                 . "Доступные сервисы: " . implode(', ', $this->keys())
         );
@@ -314,7 +377,7 @@ class ServiceContainer {
      * @param string $id Идентификатор
      * @return bool
      */
-    public function has($id) {
+    public function has(string $id): bool {
         return array_key_exists($id, $this->resolved) || isset($this->factories[$id]);
     }
 
@@ -394,6 +457,43 @@ class ServiceContainer {
      */
     public function __isset($id) {
         return $this->has($id);
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  Decoration
+    // ─────────────────────────────────────────────────────────
+
+    /**
+     * Apply registered decorators to a freshly created service.
+     *
+     * Decorators are sorted by priority descending so the highest-priority
+     * decorator becomes the outermost wrapper (first to intercept callers).
+     *
+     * @param string $id      Service identifier
+     * @param mixed  $service The base service instance
+     * @return mixed Decorated service (or original if no decorators registered)
+     */
+    private function applyDecorators(string $id, mixed $service): mixed {
+        if (empty($this->decorators[$id])) {
+            return $service;
+        }
+
+        $buckets = $this->decorators[$id];
+        krsort($buckets); // highest priority first = outermost wrapper last in application order
+
+        // Build inside-out: iterate from lowest to highest priority
+        // so the highest-priority decorator ends up as the outermost layer.
+        $layers = array_merge(...array_reverse(array_values($buckets)));
+
+        foreach ($layers as $decorator) {
+            if (is_string($decorator)) {
+                $service = new $decorator($service);
+            } else {
+                $service = $decorator($service, $this);
+            }
+        }
+
+        return $service;
     }
 
     // ─────────────────────────────────────────────────────────

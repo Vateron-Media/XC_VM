@@ -14,7 +14,8 @@ PortalHandler::handlePreInit($rReqType, $rReqAction);
 
 register_shutdown_function('shutdown');
 require_once dirname(__DIR__) . '/autoload.php';
-StreamingRequestBootstrap::init('portal');
+require_once dirname(__DIR__) . '/ministra/MinistraBootstrap.php';
+MinistraBootstrap::boot();
 
 $rRequestPath = parse_url(($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH);
 $rLegacyPortalRequest = in_array($rRequestPath, array('/c/portal.php', '/portal.php'));

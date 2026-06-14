@@ -39,7 +39,7 @@ class ModuleManager {
      * Scans the modules directory for module.json files, merges with
      * config/modules.php overrides, and returns sorted results.
      *
-    * @return array<int, array{name: string, description: string, version: string, requires_core: string, environment: string, dependencies: array, has_navbar: bool, has_settings: bool, enabled: bool, path: string}> Module list.
+     * @return array<int, array{name: string, description: string, version: string, requires_core: string, environment: string, priority: int, dependencies: array, optional_dependencies: array, has_navbar: bool, has_settings: bool, enabled: bool, path: string}> Module list.
      */
     public function listModules(): array {
         $overrides = $this->readOverrides();
@@ -51,16 +51,18 @@ class ModuleManager {
             $meta = json_decode((string) @file_get_contents($jsonFile), true) ?: [];
 
             $items[] = [
-                'name' => $name,
-                'description' => $meta['description'] ?? '',
-                'version' => $meta['version'] ?? '',
-                'requires_core' => $meta['requires_core'] ?? '',
-                'environment' => $meta['environment'] ?? 'main',
-                'dependencies' => is_array($meta['dependencies'] ?? null) ? $meta['dependencies'] : [],
-                'has_navbar' => (bool) ($meta['has_navbar'] ?? false),
-                'has_settings' => (bool) ($meta['has_settings'] ?? false),
-                'enabled' => !(isset($overrides[$name]['enabled']) && $overrides[$name]['enabled'] === false),
-                'path' => dirname($jsonFile),
+                'name'                  => $name,
+                'description'           => $meta['description'] ?? '',
+                'version'               => $meta['version'] ?? '',
+                'requires_core'         => $meta['requires_core'] ?? '',
+                'environment'           => $meta['environment'] ?? 'main',
+                'priority'              => (int) ($meta['priority'] ?? 0),
+                'dependencies'          => is_array($meta['dependencies'] ?? null) ? $meta['dependencies'] : [],
+                'optional_dependencies' => is_array($meta['optional_dependencies'] ?? null) ? $meta['optional_dependencies'] : [],
+                'has_navbar'            => (bool) ($meta['has_navbar'] ?? false),
+                'has_settings'          => (bool) ($meta['has_settings'] ?? false),
+                'enabled'               => !(isset($overrides[$name]['enabled']) && $overrides[$name]['enabled'] === false),
+                'path'                  => dirname($jsonFile),
             ];
         }
 
@@ -74,8 +76,7 @@ class ModuleManager {
     /**
      * Install a module by name.
      *
-     * Loads the module instance, runs install(), applies core patches
-     * if the module implements CoreCodePatchableModuleInterface, and enables it.
+     * Loads the module instance, runs install(), and enables it.
      *
      * @param string $name Module name (lowercase, alphanumeric + hyphens).
      * @return void
@@ -85,16 +86,13 @@ class ModuleManager {
         $name = $this->sanitizeModuleName($name);
         $module = $this->loadModuleInstance($name);
         $module->install();
-        if ($module instanceof CoreCodePatchableModuleInterface) {
-            CoreCodePatcher::apply($name, $this->modulesPath . '/' . $name, $module->getCoreCodePatches());
-        }
         $this->setEnabled($name, true);
     }
 
     /**
      * Uninstall a module by name.
      *
-     * Reverts core patches if applicable, runs uninstall(), and disables the module.
+     * Runs uninstall() and disables the module.
      *
      * @param string $name Module name.
      * @return void
@@ -103,9 +101,6 @@ class ModuleManager {
     public function uninstallModule(string $name): void {
         $name = $this->sanitizeModuleName($name);
         $module = $this->loadModuleInstance($name);
-        if ($module instanceof CoreCodePatchableModuleInterface) {
-            CoreCodePatcher::revert($name, $this->modulesPath . '/' . $name);
-        }
         $module->uninstall();
         $this->setEnabled($name, false);
     }
@@ -200,6 +195,8 @@ class ModuleManager {
      *
      * Delegates the full download → key-unwrap → extract flow to the
      * XC_VM C extension, then runs installModule() to register it.
+     * Fires PackageInstalledEvent and hot-reloads the module into the
+     * current ServiceContainer without requiring a PHP-FPM restart.
      *
      * @param string      $slug    Module slug as listed on the platform.
      * @param string      $version Exact version string (e.g. "1.2.0").
@@ -220,6 +217,36 @@ class ModuleManager {
         }
 
         $this->installModule($slug);
+
+        EventDispatcher::dispatch(new PackageInstalledEvent(
+            slug:        $result['module'],
+            version:     $result['version'],
+            path:        $result['path'],
+            installedAt: time(),
+        ));
+
+        $this->hotReload($slug, $result['path']);
+    }
+
+    /**
+     * Hot-reload a newly installed module into the running ServiceContainer.
+     *
+     * Loads and boots the module within the current request so it becomes
+     * immediately usable without a PHP-FPM restart.
+     *
+     * @param string $slug       Module name.
+     * @param string $modulePath Absolute path to the module directory.
+     */
+    private function hotReload(string $slug, string $modulePath): void {
+        $container = ServiceContainer::getInstance();
+
+        $loader = new ModuleLoader();
+        if (!$loader->load($slug, $modulePath)) {
+            return;
+        }
+
+        $router = $container->getOrDefault('router');
+        $loader->bootAll($container, $router instanceof Router ? $router : null);
     }
 
     /**

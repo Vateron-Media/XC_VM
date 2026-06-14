@@ -6,3 +6,5 @@ __pycache__/
 *.pyc
 *.phpunit.result.cache
 EXTENSION.md
+src/tmp/cache/autoload_map
+tests/.cache/
