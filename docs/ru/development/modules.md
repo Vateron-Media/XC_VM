@@ -125,8 +125,14 @@ StreamMiddlewareProviderInterface   getStreamMiddleware()
 
 ```php
 <?php
+namespace XcVm\Module\MyModule;
 
-class MyModule extends BaseModule {
+use BaseModule;
+use ServiceContainer;
+use Router;
+use CommandRegistry;
+
+class MyModuleModule extends BaseModule {
 
     public function getName(): string {
         return 'my-module';
@@ -138,29 +144,29 @@ class MyModule extends BaseModule {
 
     public function boot(ServiceContainer $container): void {
         $container->set('my-module.service', function (ServiceContainer $c) {
-            return new MyService($c->get('db'));
+            return new MyModuleService($c->get('db'));
         });
     }
 
     public function getEventSubscribers(): array {
         return [
-            StreamStartedEvent::class => [MyHandler::class, 'onStreamStarted'],
+            StreamStartedEvent::class => [MyModuleHandler::class, 'onStreamStarted'],
             // С приоритетом: [callable, int]
-            UserAuthenticatedEvent::class => [[MyHandler::class, 'onAuth'], 20],
+            UserAuthenticatedEvent::class => [[MyModuleHandler::class, 'onAuth'], 20],
         ];
     }
 
     public function registerRoutes(Router $router): void {
-        $router->get('my-module', [MyController::class, 'index'], [
+        $router->get('my-module', [MyModuleController::class, 'index'], [
             'permission' => ['adv', 'my_module'],
         ]);
-        $router->api('my_action', [MyController::class, 'apiAction'], [
+        $router->api('my_action', [MyModuleController::class, 'apiAction'], [
             'permission' => ['adv', 'my_module'],
         ]);
     }
 
     public function registerCommands(CommandRegistry $registry): void {
-        $registry->register(new MyCronJob());
+        $registry->register(new MyModuleCronJob());
     }
 
     public function registerNavbar(): void {
@@ -192,23 +198,58 @@ class MyModule extends BaseModule {
 
 ---
 
-## Соглашение по именованию классов
+## PHP-пространства имён
 
-Все классы модулей живут в **глобальном PHP-пространстве имён** (без Composer, без PSR-4).
-Чтобы избежать коллизий с другими модулями и классами ядра, **каждый класс должен иметь префикс**
-из PascalCase-имени модуля:
+Каждый модуль живёт в своём PHP-пространстве имён: `XcVm\Module\{Pascal}`, где `{Pascal}` —
+PascalCase-вариант имени директории модуля.
 
-| Модуль | Префикс | Примеры |
-| ------- | ------- | ------- |
-| `my-module` | `MyModule` | `MyModuleService`, `MyModuleController`, `MyModuleCronJob` |
-| `watch` | `Watch` | `WatchService`, `WatchController`, `WatchCronJob` |
+```
+src/modules/my-module/   →  namespace XcVm\Module\MyModule;
+src/modules/watch/       →  namespace XcVm\Module\Watch;
+```
+
+Главный файл модуля обязан объявлять это пространство имён и расширять `BaseModule`:
+
+```php
+<?php
+namespace XcVm\Module\MyModule;
+
+use BaseModule;
+use ServiceContainer;
+
+class MyModuleModule extends BaseModule {
+    // ...
+}
+```
+
+Все вспомогательные классы в том же модуле разделяют одно пространство имён:
+
+```php
+<?php
+namespace XcVm\Module\MyModule;
+
+class MyModuleService { /* ... */ }
+class MyModuleController { /* ... */ }
+class MyModuleCronJob { /* ... */ }
+```
+
+Для каждого используемого класса ядра добавляйте `use`:
+
+```php
+namespace XcVm\Module\MyModule;
+
+use BaseModule;
+use ServiceContainer;
+use NavbarRegistry;
+use NavbarItem;
+```
 
 **Правила:**
 
-- Главный класс: `<ModuleName>Module.php` — обязательно (соглашение ModuleLoader)
-- Остальные классы: `<ModuleName><Purpose>.php`
-- Никаких generic-имён (`Service`, `Controller`, `Helper`) — они гарантированно вызовут коллизию
-- До введения PHP-пространств имён префикс — единственная защита от коллизий
+- Имя файла главного класса: `<PascalName>Module.php` — обязательно (соглашение ModuleLoader)
+- Имена остальных файлов: `<PascalName><Purpose>.php`
+- Добавляйте `use` для каждого класса ядра, на который есть ссылка
+- Никогда не импортируйте классы из других модулей — общайтесь через события или DI-контейнер
 
 ---
 
@@ -451,9 +492,20 @@ public function registerNavbar(): void {
 
 ```php
 return [
+    'my-module' => ['state' => 'disabled'],   // предпочтительно
+    // или legacy-форма (обратная совместимость):
     'my-module' => ['enabled' => false],
 ];
 ```
+
+Допустимые значения `state` (enum `ModuleState`):
+
+| Значение | Смысл |
+| -------- | ----- |
+| `enabled` | Модуль загружается и стартует (по умолчанию) |
+| `disabled` | Обнаружен, но пропускается |
+| `installing` | Переходное состояние при установке |
+| `failed` | Установка завершилась ошибкой; пропускается |
 
 Файл содержит только overrides. Если пустой или отсутствует — все найденные модули загружаются.
 
@@ -461,7 +513,7 @@ return [
 
 ```php
 return [
-    'my-module' => ['class' => 'MyModuleCustom'],
+    'my-module' => ['class' => 'XcVm\\Module\\MyModuleCustom\\MyModuleCustomModule'],
 ];
 ```
 
@@ -498,7 +550,8 @@ ModuleLoader::bootAll($container, $router, $pipeline)
         └── instanceof NavbarProviderInterface → registerNavbar()
 ```
 
-Соглашение по имени класса: `my-module` → `MyModule` (kebab-case → PascalCase + `Module`).
+Соглашение по имени класса: `my-module` → FQN `XcVm\Module\MyModule\MyModuleModule`
+(kebab-case → PascalCase; можно переопределить через ключ `class` в конфиге).
 
 Переопределить класс можно через `config/modules.php`:
 
@@ -620,11 +673,20 @@ public function registerCommands(CommandRegistry $registry): void {
 }
 ```
 
-Добавить в crontab (`StartupCommand::installCrontab()`):
+Объявить расписание через `getCronEntries()` в классе модуля:
 
 ```php
-$rCrons[] = '*/5 * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:my_task # XC_VM';
+public function getCronEntries(): array {
+    return [
+        '*/5 * * * *' => 'cron:my_task',
+    ];
+}
 ```
+
+`ModuleLoader::collectCronEntries()` агрегирует записи всех модулей, `StartupCommand` /
+`StatusCommand` автоматически записывают их в системный crontab — изменять файлы ядра не нужно.
+
+**Формат:** ключ = cron-выражение, значение = имя команды из `registerCommands()`.
 
 ---
 
@@ -665,7 +727,8 @@ public function has(string $id): bool;
 ## FAQ
 
 **Q: Как отключить модуль?**
-A: `src/config/modules.php` → `'my-module' => ['enabled' => false]`.
+A: `src/config/modules.php` → `'my-module' => ['state' => 'disabled']`.
+Legacy-форма `'enabled' => false` тоже принимается для обратной совместимости.
 
 **Q: Нужна ли регистрация в конфиге для загрузки?**
 A: Нет. `ModuleLoader` сам находит все модули по `modules/*/module.json`.

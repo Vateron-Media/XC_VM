@@ -2,23 +2,24 @@
 
 `XC_Bootstrap` is the single entry point for system initialization.
 Each context loads only the subsystems required for its execution path.
+The context is expressed as a `BootContext` enum value.
 
 ---
 
 ## Quick Reference
 
-| Constant | Value | Typical usage |
-| --- | --- | --- |
-| `CONTEXT_MINIMAL` | `minimal` | Scripts that need only paths/config |
-| `CONTEXT_CLI` | `cli` | Cron jobs and CLI commands |
-| `CONTEXT_STREAM` | `stream` | Streaming endpoints (`live`, `vod`, `timeshift`) |
-| `CONTEXT_ADMIN` | `admin` | Admin/reseller panel |
+| Enum case | Typical usage |
+| --- | --- |
+| `BootContext::MINIMAL` | Scripts that need only paths/config |
+| `BootContext::CLI` | Cron jobs and CLI commands |
+| `BootContext::STREAM` | Streaming endpoints (`live`, `vod`, `timeshift`) |
+| `BootContext::ADMIN` | Admin/reseller panel |
 
 ---
 
 ## Context Details
 
-### CONTEXT_MINIMAL
+### BootContext::MINIMAL
 
 Loads constants, paths, config, logger, and error handlers.
 No database connection.
@@ -34,15 +35,15 @@ Excludes: DB, Redis, sessions, translator, admin APIs.
 
 ```php
 require_once '/home/xc_vm/bootstrap.php';
-XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_MINIMAL);
+XC_Bootstrap::boot(BootContext::MINIMAL);
 ```
 
 ---
 
-### CONTEXT_CLI
+### BootContext::CLI
 
 Used for cron and CLI tasks.
-Adds database and legacy core initialization over `CONTEXT_MINIMAL`.
+Adds database and legacy core initialization over `MINIMAL`.
 
 Includes:
 
@@ -53,7 +54,7 @@ Includes:
 
 ```php
 require_once '/home/xc_vm/bootstrap.php';
-XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_CLI, [
+XC_Bootstrap::boot(BootContext::CLI, [
     'cached' => true,
     'process' => 'xc_vm: my-job',
 ]);
@@ -61,7 +62,7 @@ XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_CLI, [
 
 ---
 
-### CONTEXT_STREAM
+### BootContext::STREAM
 
 Lightweight context for high-load streaming endpoints.
 
@@ -74,12 +75,12 @@ Excludes: Redis, translator, admin APIs, sessions.
 
 ```php
 require_once '/home/xc_vm/bootstrap.php';
-XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_STREAM, ['cached' => true]);
+XC_Bootstrap::boot(BootContext::STREAM, ['cached' => true]);
 ```
 
 ---
 
-### CONTEXT_ADMIN
+### BootContext::ADMIN
 
 Full initialization for admin/reseller panel.
 
@@ -96,7 +97,7 @@ Includes:
 
 ```php
 require_once '/home/xc_vm/bootstrap.php';
-XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_ADMIN);
+XC_Bootstrap::boot(BootContext::ADMIN);
 ```
 
 ---
@@ -121,13 +122,13 @@ XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_ADMIN);
 ## `boot()` options
 
 ```php
-XC_Bootstrap::boot(string $context, array $options = []);
+XC_Bootstrap::boot(BootContext $context, array $options = []);
 ```
 
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
-| `cached` | `bool` | `true` for stream, `false` for admin/cli/minimal | Use cached settings |
-| `redis` | `bool` | `true` for admin, `false` otherwise | Connect Redis |
+| `cached` | `bool` | `true` for STREAM, `false` otherwise | Use cached settings |
+| `redis` | `bool` | `true` for ADMIN, `false` otherwise | Connect Redis |
 | `process` | `string` | `''` | Process title for CLI |
 | `shutdown` | `callable` | built-in | Override shutdown callback |
 
@@ -138,8 +139,8 @@ XC_Bootstrap::boot(string $context, array $options = []);
 `boot()` is executed once per process. Repeated calls are ignored.
 
 ```php
-XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_ADMIN);
-XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_CLI); // ignored
+XC_Bootstrap::boot(BootContext::ADMIN);
+XC_Bootstrap::boot(BootContext::CLI); // ignored
 ```
 
 For tests:
@@ -153,7 +154,7 @@ XC_Bootstrap::reset();
 ## Public Methods
 
 ```php
-XC_Bootstrap::getContext(): ?string
+XC_Bootstrap::getContext(): ?BootContext
 XC_Bootstrap::isBooted(): bool
 XC_Bootstrap::isCli(): bool
 XC_Bootstrap::getDatabase(): ?Database

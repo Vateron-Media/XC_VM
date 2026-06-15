@@ -105,8 +105,16 @@ override what the module actually uses. Only `getName()` and `getVersion()` are 
 
 ```php
 <?php
+namespace XcVm\Module\MyModule;
 
-class MyModule extends BaseModule {
+use BaseModule;
+use ServiceContainer;
+use Router;
+use CommandRegistry;
+use NavbarRegistry;
+use NavbarItem;
+
+class MyModuleModule extends BaseModule {
 
     public function getName(): string {
         return 'my-module';
@@ -117,19 +125,19 @@ class MyModule extends BaseModule {
     }
 
     public function boot(ServiceContainer $container): void {
-        $container->set('my-module.service', function (ServiceContainer $c): MyService {
-            return new MyService($c->get('db'));
+        $container->set('my-module.service', function (ServiceContainer $c): MyModuleService {
+            return new MyModuleService($c->get('db'));
         });
     }
 
     public function registerRoutes(Router $router): void {
-        $router->get('my_page', [MyController::class, 'index'], [
+        $router->get('my_page', [MyModuleController::class, 'index'], [
             'permission' => ['adv', 'my_module'],
         ]);
     }
 
     public function registerCommands(CommandRegistry $registry): void {
-        $registry->register(new MyCronJob());
+        $registry->register(new MyModuleCronJob());
     }
 
     public function registerNavbar(): void {
@@ -165,23 +173,65 @@ class MyModule extends BaseModule {
 
 ---
 
-## Class naming convention
+## PHP namespaces
 
-All module classes live in the **global PHP namespace** (no Composer, no PSR-4 autoloader).
-To prevent collisions with other modules and with core classes, prefix every class with the
-PascalCase module name:
+Every module lives in a dedicated PHP namespace: `XcVm\Module\{Pascal}`, where `{Pascal}` is
+the PascalCase conversion of the module directory name.
 
-| Module | Prefix | Examples |
-| ------- | ------- | ------- |
-| `my-module` | `MyModule` | `MyModuleService`, `MyModuleController`, `MyModuleCronJob` |
-| `watch` | `Watch` | `WatchService`, `WatchController`, `WatchCronJob` |
+```
+src/modules/my-module/   →  namespace XcVm\Module\MyModule;
+src/modules/watch/       →  namespace XcVm\Module\Watch;
+```
+
+The main module file must declare this namespace and extend `BaseModule`:
+
+```php
+<?php
+namespace XcVm\Module\MyModule;
+
+use BaseModule;
+use ServiceContainer;
+use Router;
+
+class MyModuleModule extends BaseModule {
+    // ...
+}
+```
+
+All secondary classes in the same module share the same namespace:
+
+```php
+<?php
+namespace XcVm\Module\MyModule;
+
+class MyModuleService { /* ... */ }
+class MyModuleController { /* ... */ }
+class MyModuleCronJob { /* ... */ }
+```
+
+`use` the classes you reference:
+
+```php
+namespace XcVm\Module\MyModule;
+
+use BaseModule;
+use ServiceContainer;
+use NavbarRegistry;
+use NavbarItem;
+
+class MyModuleModule extends BaseModule {
+    public function boot(ServiceContainer $container): void {
+        $container->set('my-module.service', fn () => new MyModuleService());
+    }
+}
+```
 
 **Rules:**
 
-- Main module class: `<ModuleName>Module.php` — required (ModuleLoader convention)
-- All other classes: `<ModuleName><Purpose>.php`
-- Never use generic names (`Service`, `Controller`, `Helper`) — they will collide
-- Until PHP namespaces are introduced, the prefix is the only collision guard
+- Main module class filename: `<PascalName>Module.php` — required (ModuleLoader convention)
+- All other class filenames: `<PascalName><Purpose>.php`
+- Add `use ClassName;` for every core class referenced (BaseModule, ServiceContainer, Router, etc.)
+- Never import classes from other modules — communicate via events or the DI container
 
 ---
 
@@ -306,19 +356,30 @@ executes middleware sorted by `getPriority()` descending.
 
 ## Enable / disable modules
 
-All discovered modules load by default. To disable one, add to `src/config/modules.php`:
+All discovered modules load by default. Use `src/config/modules.php` to override state:
 
 ```php
 return [
+    'my-module' => ['state' => 'disabled'],  // preferred
+    // or legacy boolean (still accepted):
     'my-module' => ['enabled' => false],
 ];
 ```
+
+Available `state` values (backed by `ModuleState` enum):
+
+| Value | Meaning |
+| ----- | ------- |
+| `enabled` | Module loads and boots (default) |
+| `disabled` | Module is discovered but skipped |
+| `installing` | Transient state set by `ModuleManager` during install |
+| `failed` | Install failed; module skipped on next request |
 
 To override the class resolved for a module:
 
 ```php
 return [
-    'my-module' => ['class' => 'MyModuleV2'],
+    'my-module' => ['class' => 'XcVm\\Module\\MyModuleV2\\MyModuleV2Module'],
 ];
 ```
 
@@ -339,8 +400,8 @@ modules load.
    - Within the same dependency group, sorts by `priority` descending, then alphabetically
    - Throws `RuntimeException` on cycles or missing hard dependencies
    - Missing optional dependencies are silently skipped
-5. Resolves class name: `my-module` → `MyModule`
-   (kebab-case → PascalCase + `Module`; can be overridden in config)
+5. Resolves class name: `my-module` → FQN `XcVm\Module\MyModule\MyModuleModule`
+   (kebab-case → PascalCase; can be overridden via `class` key in config)
 6. Registers per-module autoloader via `XC_Autoloader`
 7. Instantiates the module class
 
@@ -470,27 +531,103 @@ public function registerCommands(CommandRegistry $registry): void {
 }
 ```
 
-Add to crontab (`StartupCommand::installCrontab()`):
+Declare the crontab entry by overriding `getCronEntries()` in the module class:
 
 ```php
-$rCrons[] = '*/5 * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:my_task # XC_VM';
+public function getCronEntries(): array {
+    return [
+        '*/5 * * * *' => 'cron:my_task',
+    ];
+}
 ```
+
+`ModuleLoader::collectCronEntries()` aggregates all modules' entries and `StartupCommand` /
+`StatusCommand` write them to the system crontab automatically — no core file changes needed.
+
+**Format:** key = cron expression, value = console command name registered via `registerCommands()`.
+
+---
+
+## Versioned migrations (MigratableInterface)
+
+Modules that change their database schema over time implement `MigratableInterface`:
+
+```php
+namespace XcVm\Module\MyModule;
+
+use BaseModule;
+use MigratableInterface;
+use ServiceContainer;
+
+class MyModuleModule extends BaseModule implements MigratableInterface {
+
+    public function getMigrations(): array {
+        return [
+            '1.1.0' => function (): void {
+                // runs when upgrading from any version < 1.1.0 to >= 1.1.0
+                global $db;
+                $db->query("ALTER TABLE xc_my_table ADD COLUMN new_col INT DEFAULT 0");
+            },
+            '1.2.0' => function (): void {
+                // runs when upgrading from < 1.2.0 to >= 1.2.0
+            },
+        ];
+    }
+}
+```
+
+`ModuleManager::updateModule()` reads `installed_version` from the override store, filters
+the map to only the entries `> fromVersion && <= toVersion`, sorts by semver, and runs each
+callable in its own DB transaction. `installModule()` records `installed_version` after
+a successful install; `uninstallModule()` clears it.
+
+**Key rules:**
+
+- Keys are semver strings (`'1.1.0'`, `'2.0.0'`) — `version_compare` ordering is used
+- Each migration runs in its own transaction — failure rolls back only that step
+- `BaseModule` provides a default `getMigrations(): array { return []; }` so implementing
+  `MigratableInterface` is optional
+
+---
+
+## Composer package discovery
+
+Modules can be distributed as Composer packages with `"type": "xcvm-module"`:
+
+```json
+{
+    "name": "vendor/my-xcvm-module",
+    "type": "xcvm-module",
+    "extra": {
+        "xcvm": {
+            "module-path": "src"
+        }
+    }
+}
+```
+
+`ModuleLoader` automatically scans `vendor/composer/installed.json` (Composer 1 and 2
+formats) and discovers any installed `xcvm-module` packages alongside the built-in
+`src/modules/` directory. Packages are deduplicated — a module in both `modules/` and
+`vendor/` is loaded only once.
 
 ---
 
 ## Module checklist
 
 - [ ] Create `src/modules/<name>/`
+- [ ] Add `namespace XcVm\Module\<PascalName>;` to every class file
 - [ ] Create `module.json` with `name`, `version`, `requires_core`, `priority`, `dependencies`, `optional_dependencies`
-- [ ] Create `<Name>Module.php` extending `BaseModule`
+- [ ] Create `<PascalName>Module.php` extending `BaseModule`
 - [ ] Implement `boot()` for all services the module provides
 - [ ] Implement `registerRoutes()` for HTTP / API endpoints
 - [ ] Implement `registerNavbar()` for admin panel items (or leave empty)
 - [ ] (If crons) Create `MyCron.php` + `MyCronJob.php`, register in `registerCommands()`
-- [ ] (If crons) Add crontab entry in `StartupCommand::installCrontab()`
+- [ ] (If crons) Override `getCronEntries()` in the module class (no core file changes)
+- [ ] (If migrations) Implement `MigratableInterface::getMigrations()`
 - [ ] (If pages) Create controller using `renderUnifiedLayoutHeader/Footer`
 - [ ] (If stream middleware) Implement `StreamMiddlewareProviderInterface` separately
-- [ ] Verify: `php -l src/modules/<name>/<Name>Module.php`
+- [ ] Verify: `php -l src/modules/<name>/<PascalName>Module.php`
 - [ ] Verify: `php console.php --list` shows the module's commands
 - [ ] Verify: removing the module directory causes no fatal error
 
@@ -499,7 +636,8 @@ $rCrons[] = '*/5 * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:my_ta
 ## FAQ
 
 **Q: How do I disable a module?**
-In `src/config/modules.php` add `'module-name' => ['enabled' => false]`.
+In `src/config/modules.php` add `'module-name' => ['state' => 'disabled']`.
+The legacy `'enabled' => false` form is also accepted for backward compatibility.
 
 **Q: How do I declare that my module depends on another?**
 Use `dependencies` in `module.json` for hard deps (must be present) or `optional_dependencies`

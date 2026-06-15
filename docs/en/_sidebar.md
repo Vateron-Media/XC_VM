@@ -1,57 +1,52 @@
 <!-- markdownlint-disable first-line-h1 -->
 
-- [**🏠 Home**](en-us/)
+- [Home](en-us/)
 
-- 🔌 **API Reference**
-  - [📡 System API](en-us/api/system_api.md)
-  - [📡 XtreamCodes API](en-us/api/xtreamcodes_api.md)
-  - [📺 Playlists](en-us/api/playlist.md)
+- **API Reference**
+  - [System API](en-us/api/system_api.md)
+  - [XtreamCodes API](en-us/api/xtreamcodes_api.md)
+  - [Playlists](en-us/api/playlist.md)
 
-- 🛡 **Administration**
-  - [🔒 SSL Certificate Generation](en-us/administration/ssl-generation.md)
-  - [⚙️ Update Mechanism](en-us/administration/update-system.md)
-  - [👥 Reseller System](en-us/administration/reseller-system.md)
-  - [💾 Backup Strategy](en-us/administration/backup-strategy.md)
+- **Administration**
+  - [SSL Certificate Generation](en-us/administration/ssl-generation.md)
+  - [Update Mechanism](en-us/administration/update-system.md)
+  - [Reseller System](en-us/administration/reseller-system.md)
+  - [Backup Strategy](en-us/administration/backup-strategy.md)
 
-- 🛠 **Build & Compilation**
-  - [📦 Build System (MAIN vs LB)](en-us/builds/build_system.md)
+- **Build & Compilation**
+  - [Build System (MAIN vs LB)](en-us/builds/build_system.md)
 
-- 🔄 **Updates & Releases**
-  - [✅ Pre-release Checklist](en-us/updates_checklist.md)
+- **Framework Reference**
+  - [Architecture Overview](en-us/development/architecture.md)
+  - [Autoloader](en-us/development/autoloader.md)
+  - [Bootstrap Contexts](en-us/development/bootstrap-contexts.md)
+  - [Module System](en-us/development/modules.md)
+  - [Event System](en-us/development/event-system.md)
+  - [Exception Hierarchy](en-us/development/exception-hierarchy.md)
+  - [HTTP Request Handling](en-us/development/http-request-handling.md)
+  - [Streaming Subsystem](en-us/development/streaming-subsystem.md)
+  - [Caching and Redis](en-us/development/caching-and-redis.md)
+  - [Navbar Rendering](en-us/development/navbar-rendering.md)
 
-- 🧰 **Development**
-  - [🖥 CLI Tools & DB Migrations](en-us/development/cli-tools.md)
-  - [⚙️ Autoloader & Class Registration](en-us/development/autoloader.md)
-  - [🏛 Architecture Overview](en-us/development/architecture.md)
-  - [🧩 Module System](en-us/development/modules.md)
-  - [📂 Development Workflow (SFTP)](en-us/development/dev-workflow.md)
-  - [🌐 Adding a Custom Language](en-us/development/translations.md)
-  - [🔐 Permissions and RBAC](en-us/development/permissions-and-rbac.md)
-  - [🧱 Bootstrap Contexts](en-us/development/bootstrap-contexts.md)
-  - [🌐 HTTP Request Handling](en-us/development/http-request-handling.md)
-  - [🧪 Ministra: Browser STB Emulation](en-us/development/ministra-browser-emulation.md)
-  - [🚨 Error Handling Model](en-us/development/error-handling.md)
-  - [✅ Input Validation Strategy](en-us/development/input-validation.md)
-  - [🔑 Authentication and Sessions](en-us/development/authentication-and-sessions.md)
-  - [⚙️ Process Management Patterns](en-us/development/process-management.md)
-  - [🎚 Development Feature Flags](en-us/development/feature-flags.md)
-  - [📡 Streaming Subsystem](en-us/development/streaming-subsystem.md)
-  - [🗃 Caching and Redis Strategy](en-us/development/caching-and-redis.md)
-  - [🌍 GeoIP and Device Detection](en-us/development/geoip-and-device-detection.md)
-  - [🩺 Diagnostics Service](en-us/development/diagnostics-api.md)
-  - [🧪 PHPUnit PHAR Setup](en-us/development/phpunit-phar.md)
+- **Developer Guides**
+  - [Development Workflow](en-us/guides/dev-workflow.md)
+  - [CLI Tools & Migrations](en-us/guides/cli-tools.md)
+  - [Authentication and Sessions](en-us/guides/authentication-and-sessions.md)
+  - [Permissions and RBAC](en-us/guides/permissions-and-rbac.md)
+  - [Input Validation](en-us/guides/input-validation.md)
+  - [Error Handling](en-us/guides/error-handling.md)
+  - [Process Management](en-us/guides/process-management.md)
+  - [Translations](en-us/guides/translations.md)
+  - [GeoIP and Device Detection](en-us/guides/geoip-and-device-detection.md)
+  - [Ministra STB Emulation](en-us/guides/ministra-browser-emulation.md)
+  - [PHPUnit Setup](en-us/guides/phpunit-phar.md)
+  - [Diagnostics Service](en-us/guides/diagnostics-api.md)
+  - [Feature Flags](en-us/guides/feature-flags.md)
 
-- 📘 **Info & Operations**
-  - [🔄 Panel Update](en-us/info/update.md)
-  - [🧭 Migration Guide](en-us/info/migration_guide.md)
-  - [❓ FAQ](en-us/info/faq.md)
-  - [🎬 Watch Folder](en-us/info/watch_folder.md)
-  - [🧩 Documentation Gaps Backlog](en-us/info/documentation_gaps.md)
+- **Info & Operations**
+  - [FAQ](en-us/info/faq.md)
+  - [Migration Guide](en-us/info/migration_guide.md)
+  - [Watch Folder](en-us/info/watch_folder.md)
 
-- 🧠 **System Documentation**
-  - [📘 System Documentation Overview](en-us/system/README.md)
-  - [🧭 Navbar rendering in module panel](en-us/system/modules-navbar-rendering.md)
-  - [⚙️ How the Update System Works](en-us/administration/update-system.md)
-  - [🧭 Migration from Other Systems](en-us/info/migration_guide.md)
-  - [📋 Documentation Gaps Backlog](en-us/info/documentation_gaps.md)
-  - [❓ FAQ](en-us/info/faq.md)
+- **Releases**
+  - [Pre-release Checklist](en-us/updates_checklist.md)

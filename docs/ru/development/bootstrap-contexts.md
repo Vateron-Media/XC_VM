@@ -2,23 +2,24 @@
 
 `XC_Bootstrap` — единая точка входа для инициализации системы.
 Каждый контекст загружает ровно тот набор подсистем, который нужен для конкретного типа запроса.
+Контекст передаётся как значение enum `BootContext`.
 
 ---
 
 ## Быстрый справочник
 
-| Константа              | Строка      | Где используется                         |
-| ---------------------- | ----------- | ---------------------------------------- |
-| `CONTEXT_MINIMAL`      | `minimal`   | Скрипты, которым нужны только пути/конфиг |
-| `CONTEXT_CLI`          | `cli`       | Cron-задачи, CLI-команды                 |
-| `CONTEXT_STREAM`       | `stream`    | Стриминговые эндпоинты (live, vod, ts)   |
-| `CONTEXT_ADMIN`        | `admin`     | Панель администратора / реселлера        |
+| Enum-значение         | Где используется                         |
+| --------------------- | ---------------------------------------- |
+| `BootContext::MINIMAL` | Скрипты, которым нужны только пути/конфиг |
+| `BootContext::CLI`     | Cron-задачи, CLI-команды                 |
+| `BootContext::STREAM`  | Стриминговые эндпоинты (live, vod, ts)   |
+| `BootContext::ADMIN`   | Панель администратора / реселлера        |
 
 ---
 
 ## Что загружает каждый контекст
 
-### CONTEXT_MINIMAL
+### BootContext::MINIMAL
 
 Загружает только базовые константы и конфигурацию. База данных не подключается.
 
@@ -35,7 +36,7 @@
 
 ```php
 require_once '/home/xc_vm/bootstrap.php';
-XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_MINIMAL);
+XC_Bootstrap::boot(BootContext::MINIMAL);
 
 // Теперь доступны MAIN_HOME, Logger
 echo MAIN_HOME;
@@ -43,9 +44,9 @@ echo MAIN_HOME;
 
 ---
 
-### CONTEXT_CLI
+### BootContext::CLI
 
-Предназначен для cron-заданий и CLI-команд. Добавляет подключение к БД поверх `CONTEXT_MINIMAL`.
+Предназначен для cron-заданий и CLI-команд. Добавляет подключение к БД поверх `MINIMAL`.
 
 **Включает** (дополнительно к MINIMAL):
 
@@ -58,7 +59,7 @@ echo MAIN_HOME;
 
 ```php
 require_once '/home/xc_vm/bootstrap.php';
-XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_CLI, [
+XC_Bootstrap::boot(BootContext::CLI, [
     'cached'  => true,
     'process' => 'xc_vm: my-cron-job',
 ]);
@@ -66,7 +67,7 @@ XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_CLI, [
 
 ---
 
-### CONTEXT_STREAM
+### BootContext::STREAM
 
 Лёгкий контекст для стриминговых эндпоинтов. Инициализирует только то, что нужно для горячего пути стриминга.
 
@@ -83,12 +84,12 @@ XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_CLI, [
 
 ```php
 require_once '/home/xc_vm/bootstrap.php';
-XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_STREAM, ['cached' => true]);
+XC_Bootstrap::boot(BootContext::STREAM, ['cached' => true]);
 ```
 
 ---
 
-### CONTEXT_ADMIN
+### BootContext::ADMIN
 
 Полная инициализация для панели администратора и реселлера.
 
@@ -108,7 +109,7 @@ XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_STREAM, ['cached' => true]);
 
 ```php
 require_once '/home/xc_vm/bootstrap.php';
-XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_ADMIN);
+XC_Bootstrap::boot(BootContext::ADMIN);
 ```
 
 ---
@@ -133,13 +134,13 @@ XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_ADMIN);
 ## Опции `boot()`
 
 ```php
-XC_Bootstrap::boot(string $context, array $options = []);
+XC_Bootstrap::boot(BootContext $context, array $options = []);
 ```
 
 | Опция        | Тип        | Умолчание                    | Описание                              |
 | ------------ | ---------- | ---------------------------- | ------------------------------------- |
-| `cached`     | `bool`     | `true` (stream), `false` (admin/cli/minimal) | Загружать настройки из кеша     |
-| `redis`      | `bool`     | `true` (admin), `false` (остальные)  | Подключать Redis                |
+| `cached`     | `bool`     | `true` (STREAM), `false` (остальные) | Загружать настройки из кеша     |
+| `redis`      | `bool`     | `true` (ADMIN), `false` (остальные)  | Подключать Redis                |
 | `process`    | `string`   | `''`                         | Имя процесса для `cli_set_process_title()` |
 | `shutdown`   | `callable` | встроенный                   | Замена стандартного shutdown-обработчика |
 
@@ -150,8 +151,8 @@ XC_Bootstrap::boot(string $context, array $options = []);
 `boot()` выполняется **один раз за процесс** — повторные вызовы игнорируются.
 
 ```php
-XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_ADMIN);
-XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_CLI); // проигнорировано
+XC_Bootstrap::boot(BootContext::ADMIN);
+XC_Bootstrap::boot(BootContext::CLI); // проигнорировано
 ```
 
 Для сброса состояния (только в тестах):
@@ -165,9 +166,9 @@ XC_Bootstrap::reset();
 ## Публичные методы
 
 ```php
-XC_Bootstrap::getContext(): ?string   // текущий контекст
-XC_Bootstrap::isBooted(): bool        // выполнен ли boot()
-XC_Bootstrap::isCli(): bool           // работает ли в CLI
+XC_Bootstrap::getContext(): ?BootContext  // текущий контекст
+XC_Bootstrap::isBooted(): bool            // выполнен ли boot()
+XC_Bootstrap::isCli(): bool               // работает ли в CLI
 XC_Bootstrap::getDatabase(): ?Database
 XC_Bootstrap::getContainer(): ServiceContainer
 ```
