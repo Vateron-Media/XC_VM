@@ -16,21 +16,33 @@
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 class ModuleManager {
-    /** @var string */
-    private $modulesPath;
-
-    /** @var string */
-    private $overridesPath;
+    private string $modulesPath;
+    private string $overridesPath;
+    private ?ServiceContainer $container;
 
     /**
      * Initialize the module manager.
      *
      * @param string|null $modulesPath   Path to the modules directory.
      * @param string|null $overridesPath Path to the config/modules.php overrides file.
+     * @param ServiceContainer|null $container Service container for DB access and DI.
      */
-    public function __construct(?string $modulesPath = null, ?string $overridesPath = null) {
-        $this->modulesPath = $modulesPath ?: (defined('MAIN_HOME') ? MAIN_HOME . 'modules' : dirname(__DIR__, 2) . '/modules');
-        $this->overridesPath = $overridesPath ?: (defined('CONFIG_PATH') ? CONFIG_PATH . 'modules.php' : dirname(__DIR__, 2) . '/config/modules.php');
+    public function __construct(
+        ?string $modulesPath = null,
+        ?string $overridesPath = null,
+        ?ServiceContainer $container = null
+    ) {
+        $this->modulesPath   = $modulesPath   ?: (defined('MAIN_HOME')   ? MAIN_HOME   . 'modules'      : dirname(__DIR__, 2) . '/modules');
+        $this->overridesPath = $overridesPath ?: (defined('CONFIG_PATH') ? CONFIG_PATH . 'modules.php'  : dirname(__DIR__, 2) . '/config/modules.php');
+        $this->container     = $container;
+    }
+
+    /** @return object|null Database instance from the container, or null if unavailable. */
+    private function getDb(): ?object {
+        if ($this->container !== null && $this->container->has('db')) {
+            return $this->container->get('db');
+        }
+        return null;
     }
 
     /**
@@ -39,7 +51,7 @@ class ModuleManager {
      * Scans the modules directory for module.json files, merges with
      * config/modules.php overrides, and returns sorted results.
      *
-     * @return array<int, array{name: string, description: string, version: string, requires_core: string, environment: string, priority: int, dependencies: array, optional_dependencies: array, has_navbar: bool, has_settings: bool, enabled: bool, path: string}> Module list.
+     * @return array<int, array{name: string, description: string, version: string, requires_core: string, environment: string, priority: int, dependencies: array, optional_dependencies: array, has_navbar: bool, has_settings: bool, enabled: bool, state: ModuleState, path: string}> Module list.
      */
     public function listModules(): array {
         $overrides = $this->readOverrides();
@@ -47,8 +59,9 @@ class ModuleManager {
 
         $jsonFiles = glob($this->modulesPath . '/*/module.json') ?: [];
         foreach ($jsonFiles as $jsonFile) {
-            $name = basename(dirname($jsonFile));
-            $meta = json_decode((string) @file_get_contents($jsonFile), true) ?: [];
+            $name  = basename(dirname($jsonFile));
+            $meta  = json_decode((string) @file_get_contents($jsonFile), true) ?: [];
+            $state = ModuleState::fromRaw($overrides[$name]['state'] ?? ($overrides[$name]['enabled'] ?? null));
 
             $items[] = [
                 'name'                  => $name,
@@ -61,7 +74,8 @@ class ModuleManager {
                 'optional_dependencies' => is_array($meta['optional_dependencies'] ?? null) ? $meta['optional_dependencies'] : [],
                 'has_navbar'            => (bool) ($meta['has_navbar'] ?? false),
                 'has_settings'          => (bool) ($meta['has_settings'] ?? false),
-                'enabled'               => !(isset($overrides[$name]['enabled']) && $overrides[$name]['enabled'] === false),
+                'enabled'               => $state->isLoadable(),
+                'state'                 => $state,
                 'path'                  => dirname($jsonFile),
             ];
         }
@@ -85,8 +99,26 @@ class ModuleManager {
     public function installModule(string $name): void {
         $name = $this->sanitizeModuleName($name);
         $module = $this->loadModuleInstance($name);
-        $module->install();
-        $this->setEnabled($name, true);
+
+        $this->setState($name, ModuleState::Installing);
+
+        try {
+            $db = $this->getDb();
+            if ($db !== null && method_exists($db, 'transactional')) {
+                // Wrap install() in a DB transaction so partial migrations are rolled back.
+                $db->transactional(function () use ($module) {
+                    $module->install();
+                });
+            } else {
+                $module->install();
+            }
+        } catch (\Throwable $e) {
+            $this->setState($name, ModuleState::Failed);
+            throw $e;
+        }
+
+        $this->setState($name, ModuleState::Enabled);
+        $this->recordInstalledVersion($name, $module->getVersion());
     }
 
     /**
@@ -102,45 +134,91 @@ class ModuleManager {
         $name = $this->sanitizeModuleName($name);
         $module = $this->loadModuleInstance($name);
         $module->uninstall();
-        $this->setEnabled($name, false);
+        $this->clearInstalledVersion($name);
+        $this->setState($name, ModuleState::Disabled);
     }
 
     /**
-     * Update a module by re-installing it.
+     * Update a module, running only the incremental migrations needed.
+     *
+     * Reads the recorded installed_version from config/modules.php.
+     * If no version is recorded (legacy install), falls back to full installModule().
+     * If already at the current version, does nothing.
+     * Otherwise runs all getMigrations() entries with version > installedVersion
+     * and version <= module->getVersion(), in ascending semver order.
      *
      * @param string $name Module name.
      * @return void
      */
     public function updateModule(string $name): void {
-        $this->installModule($name);
+        $name        = $this->sanitizeModuleName($name);
+        $overrides   = $this->readOverrides();
+        $fromVersion = $overrides[$name]['installed_version'] ?? null;
+
+        if ($fromVersion === null) {
+            $this->installModule($name);
+            return;
+        }
+
+        $module    = $this->loadModuleInstance($name);
+        $toVersion = $module->getVersion();
+
+        if (version_compare($fromVersion, $toVersion, '>=')) {
+            return;
+        }
+
+        if ($module instanceof MigratableInterface) {
+            $this->runPendingMigrations($module->getMigrations(), $fromVersion, $toVersion);
+        }
+
+        $this->recordInstalledVersion($name, $toVersion);
+    }
+
+    /**
+     * Set the lifecycle state of a module in config/modules.php.
+     *
+     * When state is Enabled the 'state' key is removed entirely (clean default).
+     * When state is anything else the string value is persisted as 'state'.
+     *
+     * @param string      $name  Module name.
+     * @param ModuleState $state Target lifecycle state.
+     * @return void
+     */
+    public function setState(string $name, ModuleState $state): void {
+        $name      = $this->sanitizeModuleName($name);
+        $overrides = $this->readOverrides();
+
+        if (!isset($overrides[$name]) || !is_array($overrides[$name])) {
+            $overrides[$name] = [];
+        }
+
+        // Remove any legacy bool 'enabled' key — we use 'state' now.
+        unset($overrides[$name]['enabled']);
+
+        if ($state === ModuleState::Enabled) {
+            // Enabled is the default: clean up the key so the file stays minimal.
+            unset($overrides[$name]['state']);
+            if (empty($overrides[$name])) {
+                unset($overrides[$name]);
+            }
+        } else {
+            $overrides[$name]['state'] = $state->value;
+        }
+
+        $this->writeOverrides($overrides);
     }
 
     /**
      * Enable or disable a module in config/modules.php.
+     *
+     * @deprecated Use setState(name, ModuleState::Enabled / ModuleState::Disabled) instead.
      *
      * @param string $name    Module name.
      * @param bool   $enabled True to enable, false to disable.
      * @return void
      */
     public function setEnabled(string $name, bool $enabled): void {
-        $name = $this->sanitizeModuleName($name);
-        $overrides = $this->readOverrides();
-
-        if ($enabled) {
-            if (isset($overrides[$name]['enabled'])) {
-                unset($overrides[$name]['enabled']);
-            }
-            if (isset($overrides[$name]) && count($overrides[$name]) === 0) {
-                unset($overrides[$name]);
-            }
-        } else {
-            if (!isset($overrides[$name]) || !is_array($overrides[$name])) {
-                $overrides[$name] = [];
-            }
-            $overrides[$name]['enabled'] = false;
-        }
-
-        $this->writeOverrides($overrides);
+        $this->setState($name, $enabled ? ModuleState::Enabled : ModuleState::Disabled);
     }
 
     /**
@@ -206,7 +284,7 @@ class ModuleManager {
      */
     public function downloadFromPlatform(string $slug, string $version, ?string $apiKey = null): void {
         if (!class_exists('XC_VM')) {
-            throw new RuntimeException('XC_VM extension is not loaded. Install license_ext.so and enable it in php.ini.');
+            throw new RuntimeException('XC_VM extension is not loaded. Install xcvm_core.so and enable it in php.ini.');
         }
 
         $result = \XC_VM::module_install($slug, $version, $apiKey ?? '');
@@ -216,16 +294,33 @@ class ModuleManager {
             throw new RuntimeException("Platform download failed for module '{$slug}': {$reason}");
         }
 
-        $this->installModule($slug);
+        $modulePath = $result['path'];
+
+        try {
+            $this->installModule($slug);
+        } catch (Throwable $e) {
+            // Install failed (DB rolled back) — remove the partially unpacked directory
+            // only if it sits inside our modules directory (prevent accidental deletion).
+            $realModules = realpath($this->modulesPath);
+            $realModule  = realpath($modulePath) ?: $modulePath;
+            if ($realModules && str_starts_with($realModule, $realModules . '/')) {
+                $this->deleteDirectory($modulePath);
+            }
+            throw new RuntimeException(
+                "Module '{$slug}' install failed and was rolled back: " . $e->getMessage(),
+                0,
+                $e
+            );
+        }
 
         EventDispatcher::dispatch(new PackageInstalledEvent(
             slug:        $result['module'],
             version:     $result['version'],
-            path:        $result['path'],
+            path:        $modulePath,
             installedAt: time(),
         ));
 
-        $this->hotReload($slug, $result['path']);
+        $this->hotReload($slug, $modulePath);
     }
 
     /**
@@ -250,6 +345,68 @@ class ModuleManager {
     }
 
     /**
+     * Run migrations whose target version falls in (fromVersion, toVersion].
+     *
+     * @param array<string, callable> $migrations
+     * @param string $fromVersion Currently installed version (exclusive lower bound).
+     * @param string $toVersion   New version (inclusive upper bound).
+     */
+    private function runPendingMigrations(array $migrations, string $fromVersion, string $toVersion): void {
+        $pending = [];
+        foreach ($migrations as $version => $callable) {
+            if (
+                version_compare($version, $fromVersion, '>') &&
+                version_compare($version, $toVersion, '<=')
+            ) {
+                $pending[$version] = $callable;
+            }
+        }
+
+        uksort($pending, 'version_compare');
+
+        $db = $this->getDb();
+        foreach ($pending as $callable) {
+            if ($db !== null && method_exists($db, 'transactional')) {
+                $db->transactional(fn() => $callable($this->container));
+            } else {
+                $callable($this->container);
+            }
+        }
+    }
+
+    /**
+     * Persist the installed version for a module in config/modules.php.
+     *
+     * @param string $name    Module name.
+     * @param string $version Installed version string.
+     */
+    private function recordInstalledVersion(string $name, string $version): void {
+        $overrides = $this->readOverrides();
+        if (!isset($overrides[$name]) || !is_array($overrides[$name])) {
+            $overrides[$name] = [];
+        }
+        $overrides[$name]['installed_version'] = $version;
+        $this->writeOverrides($overrides);
+    }
+
+    /**
+     * Remove the recorded installed version for a module from config/modules.php.
+     *
+     * @param string $name Module name.
+     */
+    private function clearInstalledVersion(string $name): void {
+        $overrides = $this->readOverrides();
+        if (!isset($overrides[$name]['installed_version'])) {
+            return;
+        }
+        unset($overrides[$name]['installed_version']);
+        if (empty($overrides[$name])) {
+            unset($overrides[$name]);
+        }
+        $this->writeOverrides($overrides);
+    }
+
+    /**
      * Load and return a module instance by name.
      *
      * @param string $name Module name.
@@ -261,12 +418,12 @@ class ModuleManager {
         $loader = new ModuleLoader();
         $ok = $loader->load($name, $this->modulesPath . '/' . $name);
         if (!$ok) {
-            throw new RuntimeException('Cannot load module: ' . $name);
+            throw new ModuleNotFoundException('Cannot load module: ' . $name);
         }
 
         $module = $loader->getModule($name);
         if (!$module) {
-            throw new RuntimeException('Module instance is not available: ' . $name);
+            throw new ModuleNotFoundException('Module instance is not available: ' . $name);
         }
 
         return $module;
@@ -282,7 +439,7 @@ class ModuleManager {
     private function sanitizeModuleName(string $name): string {
         $name = trim((string) $name);
         if (!preg_match('/^[a-z0-9][a-z0-9\-]*$/', $name)) {
-            throw new InvalidArgumentException('Invalid module name.');
+            throw new ModuleException('Invalid module name.');
         }
         return $name;
     }
@@ -302,19 +459,39 @@ class ModuleManager {
     }
 
     /**
-     * Write module overrides to config/modules.php.
+     * Write module overrides to config/modules.php atomically.
+     *
+     * Writes to a sibling temp file then renames into place, so concurrent
+     * requests can never read a partially-written file.
      *
      * @param array $overrides Module overrides to persist.
      * @return void
-     * @throws RuntimeException If the file cannot be written.
+     * @throws RuntimeException If the file cannot be written or renamed.
      */
     private function writeOverrides(array $overrides): void {
         ksort($overrides);
 
         $content = "<?php\n\nreturn " . var_export($overrides, true) . ";\n";
 
-        if (@file_put_contents($this->overridesPath, $content, LOCK_EX) === false) {
-            throw new RuntimeException('Unable to write config/modules.php');
+        $dir  = dirname($this->overridesPath);
+        $tmp  = @tempnam($dir, '.modules_tmp_');
+        if ($tmp === false) {
+            throw new RuntimeException('Unable to create temporary file for config/modules.php');
+        }
+
+        try {
+            if (@file_put_contents($tmp, $content, LOCK_EX) === false) {
+                throw new RuntimeException('Unable to write config/modules.php (temp stage)');
+            }
+
+            @chmod($tmp, 0644);
+
+            if (!@rename($tmp, $this->overridesPath)) {
+                throw new RuntimeException('Unable to atomically replace config/modules.php');
+            }
+        } catch (\Throwable $e) {
+            @unlink($tmp);
+            throw $e;
         }
     }
 
