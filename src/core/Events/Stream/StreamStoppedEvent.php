@@ -8,11 +8,11 @@
  * @copyright 2025-2026 Vateron Media
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
-final readonly class StreamStoppedEvent {
+final class StreamStoppedEvent {
     public function __construct(
-        public int    $streamId,
-        public string $userId,
-        public float  $stoppedAt,
-        public string $reason,
+        public readonly int    $streamId,
+        public readonly string $userId,
+        public readonly float  $stoppedAt,
+        public readonly string $reason,
     ) {}
 }

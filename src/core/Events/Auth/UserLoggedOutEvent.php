@@ -8,10 +8,10 @@
  * @copyright 2025-2026 Vateron Media
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
-final readonly class UserLoggedOutEvent {
+final class UserLoggedOutEvent {
     public function __construct(
-        public int    $userId,
-        public string $username,
-        public float  $loggedOutAt,
+        public readonly int    $userId,
+        public readonly string $username,
+        public readonly float  $loggedOutAt,
     ) {}
 }

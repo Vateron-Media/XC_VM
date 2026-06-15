@@ -11,11 +11,11 @@
  * @copyright 2025-2026 Vateron Media
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
-final readonly class PackageInstalledEvent {
+final class PackageInstalledEvent {
     public function __construct(
-        public string $slug,
-        public string $version,
-        public string $path,
-        public int    $installedAt,
+        public readonly string $slug,
+        public readonly string $version,
+        public readonly string $path,
+        public readonly int    $installedAt,
     ) {}
 }
