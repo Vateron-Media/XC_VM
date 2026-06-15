@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Unified Session Manager
  *
@@ -46,25 +48,14 @@
 
 class SessionManager {
 
-    /** Session timeout in minutes */
-    const DEFAULT_TIMEOUT = 60;
+    public const DEFAULT_TIMEOUT = 60;
 
-    /** @var string Current context: 'admin' or 'reseller' */
-    protected static $context = null;
+    protected static ?string $context = null;
+    protected static int $timeout = self::DEFAULT_TIMEOUT;
+    protected static bool $started = false;
 
-    /** @var int Timeout in minutes */
-    protected static $timeout = self::DEFAULT_TIMEOUT;
-
-    /** @var bool Whether session has been started */
-    protected static $started = false;
-
-    /**
-     * Session key mapping per context
-     *
-     * Maps logical names to actual $_SESSION keys for backward compat
-     * with existing session data.
-     */
-    protected static $keyMap = [
+    /** @var array<string, array<string, string>> */
+    protected static array $keyMap = [
         'admin' => [
             'auth'     => 'hash',
             'activity' => 'last_activity',
@@ -91,7 +82,7 @@ class SessionManager {
      * @param string $context 'admin' or 'reseller'
      * @param int $timeout Timeout in minutes (default: 60)
      */
-    public static function start($context, $timeout = self::DEFAULT_TIMEOUT) {
+    public static function start(string $context, int $timeout = self::DEFAULT_TIMEOUT): void {
         self::$context = $context;
         self::$timeout = $timeout;
 
@@ -111,7 +102,7 @@ class SessionManager {
      *
      * @param string|null $loginUrl Override login redirect URL
      */
-    public static function requireAuth($loginUrl = null) {
+    public static function requireAuth(?string $loginUrl = null): void {
         $authKey = self::getKey('auth');
 
         // Direct access to session.php endpoint — return JSON status
@@ -141,7 +132,7 @@ class SessionManager {
      *
      * @return bool
      */
-    public static function isAuthenticated() {
+    public static function isAuthenticated(): bool {
         if (!self::$started) {
             return false;
         }
@@ -153,9 +144,9 @@ class SessionManager {
     /**
      * Get the auth token/hash for current session
      *
-     * @return string|null
+     * @return mixed
      */
-    public static function getUser() {
+    public static function getUser(): mixed {
         $authKey = self::getKey('auth');
         return isset($_SESSION[$authKey]) ? $_SESSION[$authKey] : null;
     }
@@ -164,9 +155,9 @@ class SessionManager {
      * Get a session value by logical name
      *
      * @param string $name Logical name: 'auth', 'activity', 'ip', 'code', 'verify'
-     * @return mixed|null
+     * @return mixed
      */
-    public static function getValue($name) {
+    public static function getValue(string $name): mixed {
         $key = self::getKey($name);
         return isset($_SESSION[$key]) ? $_SESSION[$key] : null;
     }
@@ -177,7 +168,7 @@ class SessionManager {
      * @param string $name Logical name
      * @param mixed $value Value to store
      */
-    public static function setValue($name, $value) {
+    public static function setValue(string $name, mixed $value): void {
         $key = self::getKey($name);
         $_SESSION[$key] = $value;
     }
@@ -185,10 +176,10 @@ class SessionManager {
     /**
      * Create an authenticated session
      *
-     * @param string $hash Authentication hash/token
+     * @param mixed $hash Authentication hash/token
      * @param string|null $ip Client IP address
      */
-    public static function login($hash, $ip = null) {
+    public static function login(mixed $hash, ?string $ip = null): void {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
@@ -204,7 +195,7 @@ class SessionManager {
     /**
      * Destroy the current session (logout)
      */
-    public static function destroy() {
+    public static function destroy(): void {
         if (!self::$started && session_status() === PHP_SESSION_NONE) {
             session_start();
         }
@@ -233,7 +224,7 @@ class SessionManager {
      *
      * @param string $context 'admin', 'reseller', or 'player'
      */
-    public static function clearContext($context) {
+    public static function clearContext(string $context): void {
         if (!isset(self::$keyMap[$context])) {
             return;
         }
@@ -245,7 +236,7 @@ class SessionManager {
     /**
      * Update the last activity timestamp and close session for writing
      */
-    public static function touch() {
+    public static function touch(): void {
         $activityKey = self::getKey('activity');
         $_SESSION[$activityKey] = time();
         session_write_close();
@@ -256,7 +247,7 @@ class SessionManager {
      *
      * @return string|null
      */
-    public static function getContext() {
+    public static function getContext(): ?string {
         return self::$context;
     }
 
@@ -267,7 +258,7 @@ class SessionManager {
     /**
      * Check for session timeout and expire if needed
      */
-    protected static function checkTimeout() {
+    protected static function checkTimeout(): void {
         $authKey = self::getKey('auth');
         $activityKey = self::getKey('activity');
 
@@ -296,7 +287,7 @@ class SessionManager {
      * @param string $name Logical name: 'auth', 'activity', 'ip', 'code', 'verify'
      * @return string
      */
-    protected static function getKey($name) {
+    protected static function getKey(string $name): string {
         if (self::$context === null) {
             self::$context = 'admin'; // default fallback
         }

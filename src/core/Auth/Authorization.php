@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Authorization — authorization
  *
@@ -11,7 +13,7 @@
  */
 
 class Authorization {
-	public static function hasResellerPermissions($rType) {
+	public static function hasResellerPermissions(string $rType): bool {
 		global $rPermissions;
 		if (!is_array($rPermissions)) {
 			return false;
@@ -19,7 +21,7 @@ class Authorization {
 		return !empty($rPermissions[$rType]);
 	}
 
-	public static function check($rType, $rID) {
+	public static function check(string $rType, string|int $rID): bool {
 		global $rUserInfo;
 		global $db;
 		global $rPermissions;

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * PageAuthorization — page-level permission checks for admin/reseller panels.
  *
@@ -11,7 +13,7 @@
  */
 
 class PageAuthorization {
-	public static function checkResellerPermissions($rPage = null) {
+	public static function checkResellerPermissions(?string $rPage = null): bool {
 		global $rPermissions;
 
 		if ($rPage) {
@@ -52,7 +54,7 @@ class PageAuthorization {
 		return true;
 	}
 
-	public static function checkPermissions($rPage = null) {
+	public static function checkPermissions(?string $rPage = null): bool {
 		if ($rPage) {
 		} else {
 			$rPage = strtolower(basename($_SERVER['SCRIPT_FILENAME'], '.php'));
@@ -420,5 +422,7 @@ class PageAuthorization {
 			default:
 				return true;
 		}
+
+		return false;
 	}
 }

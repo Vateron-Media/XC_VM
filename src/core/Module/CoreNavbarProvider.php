@@ -19,7 +19,7 @@ class CoreNavbarProvider implements NavbarProviderInterface {
     /**
      * NavbarProviderInterface implementation — delegates to register().
      */
-    public function registerNavbar(): void {
+    public function registerNavbar(NavbarRegistry $registry): void {
         self::register();
     }
 

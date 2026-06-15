@@ -18,6 +18,10 @@
 // Enables phpMiniAdmin access from admin panel.
 define('DB_ACCESS_ENABLED', false);
 
+// Forces error display on-screen regardless of the DB setting (debug_show_errors).
+// Set to true locally for development; must be false in production.
+define('DEV_MODE', true);
+
 // ── Version & Git Configuration ────────────────────────────────
 
 define('XC_VM_VERSION', '2.2.2');

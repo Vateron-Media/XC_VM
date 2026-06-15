@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Authenticator — authenticator
  *
@@ -11,7 +13,7 @@
  */
 
 class Authenticator {
-	public static function login($rData, $rBypassRecaptcha = false) {
+	public static function login(array $rData, bool $rBypassRecaptcha = false): array {
 		global $db, $rSettings;
 		if (!empty($rSettings['recaptcha_enable']) && !$rBypassRecaptcha) {
 			$rResponse = json_decode(file_get_contents('https://www.google.com/recaptcha/api/siteverify?secret=' . $rSettings['recaptcha_v2_secret_key'] . '&response=' . $rData['g-recaptcha-response']), true);
@@ -78,7 +80,7 @@ class Authenticator {
 		return array('status' => STATUS_FAILURE);
 	}
 
-	public static function resellerLogin($rData) {
+	public static function resellerLogin(array $rData): array {
 		global $db, $rSettings;
 		if (!empty($rSettings['recaptcha_enable'])) {
 			$rResponse = json_decode(file_get_contents('https://www.google.com/recaptcha/api/siteverify?secret=' . $rSettings['recaptcha_v2_secret_key'] . '&response=' . $rData['g-recaptcha-response']), true);
@@ -138,7 +140,7 @@ class Authenticator {
 		return array('status' => STATUS_FAILURE);
 	}
 
-	public static function hashPassword($password, $salt = null, $rounds = 20000) {
+	public static function hashPassword(string $password, ?string $salt = null, int $rounds = 20000): string {
 		if ($salt === null || $salt === '') {
 			$salt = substr(bin2hex(openssl_random_pseudo_bytes(16)), 0, 16);
 		}
@@ -148,7 +150,7 @@ class Authenticator {
 		return crypt($password, $salt);
 	}
 
-	public static function checkPassword($password, $storedHash) {
+	public static function checkPassword(string $password, string $storedHash): bool {
 		return hash_equals($storedHash, crypt($password, $storedHash));
 	}
 }
