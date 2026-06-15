@@ -91,6 +91,11 @@ class StartupCommand implements CommandInterface {
 		if (file_exists(MAIN_HOME . 'cli/CronJobs/RootMysqlCronJob.php')) {
 			$rCrons[] = '* * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:root_mysql # XC_VM';
 		}
+
+		foreach ((new ModuleLoader())->loadAll()->collectCronEntries() as $rEntry) {
+			$rCrons[] = $rEntry;
+		}
+
 		$rWrite = false;
 		$rOutput = array();
 		exec('sudo crontab -l', $rOutput);
