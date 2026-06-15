@@ -11,8 +11,20 @@
  */
 
 class UserRepository {
+	private static $db = null;
+
+	public static function setDb($db): void {
+		self::$db = $db;
+	}
+
+	private static function db(): object {
+		if (self::$db === null) {
+			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+		}
+		return self::$db;
+	}
 	public static function getAuthUserByCredentials($rUsername, $rPassword) {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT `id`, `username`, `password`, `member_group_id`, `status` FROM `users` WHERE `username` = ? LIMIT 1;', $rUsername);
 
 		if ($db->num_rows() == 1) {
@@ -25,7 +37,7 @@ class UserRepository {
 	}
 
 	public static function getResellers($rOwner, $rIncludeSelf = true) {
-		global $db;
+		$db = self::db();
 		if ($rIncludeSelf) {
 			$db->query('SELECT `id`, `username` FROM `users` WHERE `owner_id` = ? OR `id` = ? ORDER BY `username` ASC;', $rOwner, $rOwner);
 		} else {
@@ -36,7 +48,7 @@ class UserRepository {
 	}
 
 	public static function getDirectReports($rPermissions, $rUserInfo, $rIncludeSelf = true) {
-		global $db;
+		$db = self::db();
 		$rUserIDs = $rPermissions['direct_reports'];
 
 		if (!$rIncludeSelf) {
@@ -70,7 +82,7 @@ class UserRepository {
 	}
 
 	public static function getSubUsers($rUser) {
-		global $db;
+		$db = self::db();
 		$rReturn = array();
 		$db->query('SELECT `id`, `username` FROM `users` WHERE `owner_id` = ?;', $rUser);
 
@@ -86,7 +98,7 @@ class UserRepository {
 	}
 
 	public static function getLineById($rID) {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT * FROM `lines` WHERE `id` = ?;', $rID);
 
 		if ($db->num_rows() != 1) {
@@ -96,7 +108,7 @@ class UserRepository {
 	}
 
 	public static function getRegisteredUserById($rID) {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT * FROM `users` WHERE `id` = ?;', $rID);
 
 		if ($db->num_rows() != 1) {
@@ -106,7 +118,7 @@ class UserRepository {
 	}
 
 	public static function getRegisteredUsers($rOwner = null, $rIncludeSelf = true) {
-		global $db;
+		$db = self::db();
 		$rReturn = array();
 		$db->query('SELECT * FROM `users` ORDER BY `username` ASC;');
 
@@ -128,7 +140,8 @@ class UserRepository {
 	}
 
 	public static function getStreamingUserInfo($rSettings, $rCached, $rBouquets, $rUserID = null, $rUsername = null, $rPassword = null, $rGetChannelIDs = false, $rGetConnections = false, $rIP = '') {
-		global $db, $rBlockedISP, $rBlockedServers;
+		global $rBlockedISP, $rBlockedServers;
+		$db = self::db();
 		$rUserInfo = null;
 
 		if ($rCached) {
@@ -311,7 +324,8 @@ class UserRepository {
 	}
 
 	public static function getUserInfo($rUserID = null, $rUsername = null, $rPassword = null, $rGetChannelIDs = false, $rGetConnections = false, $rIP = '') {
-		global $db, $rSettings;
+		global $rSettings;
+		$db = self::db();
 		$rCached = $rSettings['enable_cache'];
 		$rBouquets = BouquetService::getAll();
 		$rUserInfo = null;
@@ -491,7 +505,7 @@ class UserRepository {
 	}
 
 	public static function getE2Info($rDevice, $rGetChannelIDs = false, $rGetBouquetInfo = false, $rGetConnections = false) {
-		global $db;
+		$db = self::db();
 		if (empty($rDevice['device_id'])) {
 			$db->query('SELECT * FROM `enigma2_devices` WHERE `mac` = ?', $rDevice['mac']);
 		} else {

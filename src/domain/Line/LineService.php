@@ -11,6 +11,18 @@
  */
 
 class LineService {
+	private static $db = null;
+
+	public static function setDb($db): void {
+		self::$db = $db;
+	}
+
+	private static function db(): object {
+		if (self::$db === null) {
+			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+		}
+		return self::$db;
+	}
 	public static function massDelete($rData) {
 		set_time_limit(0);
 		ini_set('mysql.connect_timeout', 0);
@@ -24,7 +36,7 @@ class LineService {
 	}
 
 	public static function massEdit($rData) {
-		global $db;
+		$db = self::db();
 		if (InputValidator::validate('massEditLines', $rData)) {
 			$rArray = array();
 
@@ -139,7 +151,7 @@ class LineService {
 	}
 
 	public static function process($rData) {
-		global $db;
+		$db = self::db();
 		if (InputValidator::validate('processLine', $rData)) {
 			if (isset($rData['edit'])) {
 				if (Authorization::check('adv', 'edit_user')) {
@@ -277,7 +289,7 @@ class LineService {
 	}
 
 	public static function updateLineSignal($rUserID, $rForce = false) {
-		global $db;
+		$db = self::db();
 		$rCached = SettingsManager::getAll()['enable_cache'];
 		$rMainID = ConnectionTracker::getMainID();
 		if ($rCached) {
@@ -292,7 +304,7 @@ class LineService {
 	}
 
 	public static function updateLinesSignal($rUserIDs) {
-		global $db;
+		$db = self::db();
 		$rCached = SettingsManager::getAll()['enable_cache'];
 		$rMainID = ConnectionTracker::getMainID();
 		if ($rCached) {
@@ -307,7 +319,7 @@ class LineService {
 	}
 
 	public static function deleteLineById($rID, $rDeletePaired = false, $rCloseCons = true) {
-		global $db;
+		$db = self::db();
 		$rLine = UserRepository::getLineById($rID);
 
 		if (!$rLine) {
@@ -349,7 +361,7 @@ class LineService {
 	}
 
 	public static function getExpiring($rLimit = 2419200) {
-		global $db;
+		$db = self::db();
 		global $rUserInfo;
 		global $rPermissions;
 		$rReturn = array();
@@ -368,7 +380,7 @@ class LineService {
 	}
 
 	public static function canGenerateTrials($rUserID) {
-		global $db;
+		$db = self::db();
 		global $rSettings;
 		$rUser = UserRepository::getRegisteredUserById($rUserID);
 		$rPermissions = AuthRepository::getPermissions($rUser['member_group_id']);

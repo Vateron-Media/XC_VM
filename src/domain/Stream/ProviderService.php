@@ -11,8 +11,20 @@
  */
 
 class ProviderService {
+	private static $db = null;
+
+	public static function setDb($db): void {
+		self::$db = $db;
+	}
+
+	private static function db(): object {
+		if (self::$db === null) {
+			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+		}
+		return self::$db;
+	}
 	public static function process($rData) {
-		global $db;
+		$db = self::db();
 		if (InputValidator::validate('processProvider', $rData)) {
 			if (isset($rData['edit'])) {
 				if (Authorization::check('adv', 'streams')) {
@@ -62,7 +74,7 @@ class ProviderService {
 	}
 
 	public static function getById($rID) {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT * FROM `providers` WHERE `id` = ?;', $rID);
 
 		if ($db->num_rows() != 1) {
@@ -73,7 +85,7 @@ class ProviderService {
 	}
 
 	public static function getAll() {
-		global $db;
+		$db = self::db();
 		$rReturn = array();
 		$db->query('SELECT * FROM `providers` ORDER BY `last_changed` DESC;');
 
@@ -87,7 +99,7 @@ class ProviderService {
 	}
 
 	public static function deleteById($rID) {
-		global $db;
+		$db = self::db();
 		$rProvider = self::getById($rID);
 
 		if (!$rProvider) {

@@ -11,8 +11,20 @@
  */
 
 class PackageService {
+	private static $db = null;
+
+	public static function setDb($db): void {
+		self::$db = $db;
+	}
+
+	private static function db(): object {
+		if (self::$db === null) {
+			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+		}
+		return self::$db;
+	}
 	public static function process($rData) {
-		global $db;
+		$db = self::db();
 		if (isset($rData['edit'])) {
 			if (!Authorization::check('adv', 'edit_package')) {
 				exit();
@@ -62,7 +74,7 @@ class PackageService {
 	}
 
 	public static function deleteById($rID) {
-		global $db;
+		$db = self::db();
 		$rPackage = self::getById($rID);
 
 		if (!$rPackage) {
@@ -76,7 +88,7 @@ class PackageService {
 	}
 
 	public static function getAll($rGroup = null, $rType = null) {
-		global $db;
+		$db = self::db();
 		$rReturn = array();
 		$db->query('SELECT * FROM `users_packages` ORDER BY `id` ASC;');
 
@@ -96,7 +108,7 @@ class PackageService {
 	}
 
 	public static function getById($rID) {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT * FROM `users_packages` WHERE `id` = ?;', $rID);
 
 		if ($db->num_rows() != 1) {

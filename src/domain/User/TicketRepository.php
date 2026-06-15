@@ -11,8 +11,20 @@
  */
 
 class TicketRepository {
+	private static $db = null;
+
+	public static function setDb($db): void {
+		self::$db = $db;
+	}
+
+	private static function db(): object {
+		if (self::$db === null) {
+			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+		}
+		return self::$db;
+	}
 	public static function getById($rID) {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT * FROM `tickets` WHERE `id` = ?;', $rID);
 
 		if (0 >= $db->num_rows()) {
@@ -39,7 +51,7 @@ class TicketRepository {
 	}
 
 	public static function getAll($rID = null, $rAdmin = false) {
-		global $db;
+		$db = self::db();
 		global $rUserInfo;
 		global $rPermissions;
 		$rReturn = array();
@@ -113,7 +125,7 @@ class TicketRepository {
 	}
 
 	public static function deleteById($rID) {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT `id` FROM `tickets` WHERE `id` = ?;', $rID);
 
 		if (0 >= $db->num_rows()) {

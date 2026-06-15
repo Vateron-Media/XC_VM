@@ -11,11 +11,23 @@
  */
 
 class StreamConfigRepository {
+	private static $db = null;
+
+	public static function setDb($db): void {
+		self::$db = $db;
+	}
+
+	private static function db(): object {
+		if (self::$db === null) {
+			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+		}
+		return self::$db;
+	}
 	/**
 	 * Получить все аргументы потоков (streams_arguments), индексированные по argument_key.
 	 */
 	public static function getStreamArguments() {
-		global $db;
+		$db = self::db();
 		$rReturn = array();
 		$db->query('SELECT * FROM `streams_arguments` ORDER BY `id` ASC;');
 
@@ -32,7 +44,7 @@ class StreamConfigRepository {
 	 * Получить все профили транскодирования (profiles).
 	 */
 	public static function getTranscodeProfiles() {
-		global $db;
+		$db = self::db();
 		$rReturn = array();
 		$db->query('SELECT * FROM `profiles` ORDER BY `profile_id` ASC;');
 
@@ -46,7 +58,7 @@ class StreamConfigRepository {
 	}
 
 	public static function getTranscodeProfile($rID) {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT * FROM `profiles` WHERE `profile_id` = ?;', $rID);
 
 		if ($db->num_rows() != 1) {
@@ -57,7 +69,7 @@ class StreamConfigRepository {
 	}
 
 	public static function deleteProfile($rID) {
-		global $db;
+		$db = self::db();
 		$rProfile = self::getTranscodeProfile($rID);
 
 		if (!$rProfile) {

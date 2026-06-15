@@ -16,6 +16,18 @@
  */
 
 class ConnectionTracker {
+	private static $db = null;
+
+	public static function setDb($db): void {
+		self::$db = $db;
+	}
+
+	private static function db(): object {
+		if (self::$db === null) {
+			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+		}
+		return self::$db;
+	}
 	/**
 	 * Calculate server/proxy load capacity.
 	 *
@@ -27,7 +39,8 @@ class ConnectionTracker {
 	 * @return array<int, array{online_clients: int, capacity?: float}> Map of serverID => load data.
 	 */
 	public static function getCapacity(bool $rProxy = false): array {
-		global $rSettings, $rServers, $db;
+		global $rSettings, $rServers;
+		$db = self::db();
 		$rRedis = RedisManager::instance();
 		$rFile = ($rProxy ? 'proxy_capacity' : 'servers_capacity');
 		if ($rSettings['redis_handler'] && $rProxy && $rSettings['split_by'] == 'maxclients') {
@@ -118,7 +131,8 @@ class ConnectionTracker {
 	 * @return array Connections: [keys[], data[]] for Redis or rows for MySQL.
 	 */
 	public static function getConnections(?int $rServerID = null, ?int $rUserID = null, ?int $rStreamID = null): array {
-		global $rSettings, $db;
+		global $rSettings;
+		$db = self::db();
 		$rRedis = RedisManager::instance();
 		if ($rSettings['redis_handler'] && $rRedis) {
 			if ($rServerID) {
@@ -669,7 +683,8 @@ class ConnectionTracker {
 	 */
 	public static function closeConnection($rActivityInfo, bool $rRemove = true, bool $rEnd = true): bool {
 		if (!empty($rActivityInfo)) {
-			global $rSettings, $rServers, $db;
+			global $rSettings, $rServers;
+			$db = self::db();
 			if (!$rSettings['redis_handler'] || is_object(RedisManager::instance())) {
 			} else {
 				RedisManager::ensureConnected();
@@ -810,7 +825,7 @@ class ConnectionTracker {
 	 * @return int Number of active connections.
 	 */
 	public static function getLiveConnections(int $rServerID, bool $rProxy = false): int {
-		global $db;
+		$db = self::db();
 
 		if (SettingsManager::getAll()['redis_handler']) {
 			$rCount = 0;

@@ -11,8 +11,20 @@
  */
 
 class GroupService {
+	private static $db = null;
+
+	public static function setDb($db): void {
+		self::$db = $db;
+	}
+
+	private static function db(): object {
+		if (self::$db === null) {
+			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+		}
+		return self::$db;
+	}
 	public static function process($rData) {
-		global $db;
+		$db = self::db();
 		if (InputValidator::validate('processGroup', $rData)) {
 			if (isset($rData['edit'])) {
 				if (Authorization::check('adv', 'edit_group')) {
@@ -100,7 +112,7 @@ class GroupService {
 	// ──────────── Из GroupRepository ────────────
 
 	public static function getAll() {
-		global $db;
+		$db = self::db();
 		$rReturn = array();
 		$db->query('SELECT * FROM `users_groups` ORDER BY `group_id` ASC;');
 
@@ -115,7 +127,7 @@ class GroupService {
 	}
 
 	public static function getById($rID) {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT * FROM `users_groups` WHERE `group_id` = ?;', $rID);
 
 		if ($db->num_rows() != 1) {
@@ -125,7 +137,7 @@ class GroupService {
 	}
 
 	public static function deleteById($rID) {
-		global $db;
+		$db = self::db();
 		$rGroup = self::getById($rID);
 
 		if (!($rGroup && $rGroup['can_delete'])) {

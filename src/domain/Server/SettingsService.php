@@ -11,8 +11,20 @@
  */
 
 class SettingsService {
+	private static $db = null;
+
+	public static function setDb($db): void {
+		self::$db = $db;
+	}
+
+	private static function db(): object {
+		if (self::$db === null) {
+			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+		}
+		return self::$db;
+	}
 	public static function edit($rData) {
-		global $db;
+		$db = self::db();
 		foreach (array('user_agent', 'http_proxy', 'cookie', 'headers') as $rKey) {
 			$db->query('UPDATE `streams_arguments` SET `argument_default_value` = ? WHERE `argument_key` = ?;', ($rData[$rKey] ?: null), $rKey);
 			unset($rData[$rKey]);
@@ -73,7 +85,7 @@ class SettingsService {
 	}
 
 	public static function editBackup($rData) {
-		global $db;
+		$db = self::db();
 		$rArray = QueryHelper::verifyPostTable('settings', $rData, true);
 
 		foreach (array('dropbox_remote') as $rSetting) {
@@ -107,7 +119,7 @@ class SettingsService {
 	}
 
 	public static function editCacheCron($rData) {
-		global $db;
+		$db = self::db();
 		$rCheck = array(false, false);
 		$rCron = array('*', '*', '*', '*', '*');
 		$rPattern = '/^[0-9\/*,-]+$/';

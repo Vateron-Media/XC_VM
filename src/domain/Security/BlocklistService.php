@@ -11,8 +11,20 @@
  */
 
 class BlocklistService {
+	private static $db = null;
+
+	public static function setDb($db): void {
+		self::$db = $db;
+	}
+
+	private static function db(): object {
+		if (self::$db === null) {
+			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+		}
+		return self::$db;
+	}
 	public static function blockIP($rData) {
-		global $db;
+		$db = self::db();
 		if (!AdminHelpers::validateCIDR($rData['ip'])) {
 			return array('status' => STATUS_INVALID_IP, 'data' => $rData);
 		}
@@ -31,7 +43,7 @@ class BlocklistService {
 	}
 
 	public static function processISP($rData) {
-		global $db;
+		$db = self::db();
 		if (isset($rData['edit'])) {
 			if (!Authorization::check('adv', 'block_isps')) {
 				exit();
@@ -67,7 +79,7 @@ class BlocklistService {
 	}
 
 	public static function processRTMPIP($rData) {
-		global $db;
+		$db = self::db();
 		if (isset($rData['edit'])) {
 			$rArray = AdminHelpers::overwriteData(BlocklistService::getRTMPIPById($rData['edit']), $rData);
 		} else {
@@ -107,7 +119,7 @@ class BlocklistService {
 	}
 
 	public static function processUA($rData) {
-		global $db;
+		$db = self::db();
 		if (isset($rData['edit'])) {
 			$rArray = AdminHelpers::overwriteData(BlocklistService::getUserAgentById($rData['edit']), $rData);
 		} else {
@@ -149,7 +161,7 @@ class BlocklistService {
 	}
 
 	public static function checkAndBlockUA($rBlockedUA, $rUserAgent, $rReturn = false) {
-		global $db;
+		$db = self::db();
 		$rUserAgent = strtolower($rUserAgent);
 		$rFoundID = false;
 		foreach ($rBlockedUA as $rKey => $rBlocked) {
@@ -223,7 +235,7 @@ class BlocklistService {
 	}
 
 	public static function getBlockedUA($rForce = false) {
-		global $db;
+		$db = self::db();
 		if (!$rForce) {
 			$rCache = FileCache::getCache('blocked_ua', 20);
 			if ($rCache !== false) {
@@ -240,7 +252,7 @@ class BlocklistService {
 	}
 
 	public static function getBlockedIPs($rForce = false) {
-		global $db;
+		$db = self::db();
 		if (!$rForce) {
 			$rCache = FileCache::getCache('blocked_ips', 20);
 			if ($rCache !== false) {
@@ -260,7 +272,7 @@ class BlocklistService {
 	}
 
 	public static function getBlockedISP($rForce = false) {
-		global $db;
+		$db = self::db();
 		if (!$rForce) {
 			$rCache = FileCache::getCache('blocked_isp', 20);
 			if ($rCache !== false) {
@@ -277,7 +289,7 @@ class BlocklistService {
 	}
 
 	public static function getBlockedServers($rForce = false) {
-		global $db;
+		$db = self::db();
 		if (!$rForce) {
 			$rCache = FileCache::getCache('blocked_servers', 20);
 			if ($rCache !== false) {
@@ -297,7 +309,7 @@ class BlocklistService {
 	}
 
 	public static function getBlockedIPsSimple() {
-		global $db;
+		$db = self::db();
 		$rReturn = array();
 		$db->query('SELECT * FROM `blocked_ips` ORDER BY `id` ASC;');
 
@@ -311,7 +323,7 @@ class BlocklistService {
 	}
 
 	public static function getRTMPIPsSimple() {
-		global $db;
+		$db = self::db();
 		$rReturn = array();
 		$db->query('SELECT * FROM `rtmp_ips` ORDER BY `id` ASC;');
 
@@ -325,7 +337,7 @@ class BlocklistService {
 	}
 
 	public static function getAllowedRTMP() {
-		global $db;
+		$db = self::db();
 		$rReturn = array();
 		$db->query('SELECT `ip`, `password`, `push`, `pull` FROM `rtmp_ips`');
 		foreach ($db->get_rows() as $rRow) {
@@ -335,7 +347,7 @@ class BlocklistService {
 	}
 
 	public static function deleteBlockedIP($rID) {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT `id`, `ip` FROM `blocked_ips` WHERE `id` = ?;', $rID);
 
 		if (0 >= $db->num_rows()) {
@@ -354,7 +366,7 @@ class BlocklistService {
 	}
 
 	public static function deleteBlockedISP($rID) {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT `id` FROM `blocked_isps` WHERE `id` = ?;', $rID);
 
 		if (0 >= $db->num_rows()) {
@@ -367,7 +379,7 @@ class BlocklistService {
 	}
 
 	public static function deleteBlockedUA($rID) {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT `id` FROM `blocked_uas` WHERE `id` = ?;', $rID);
 
 		if (0 >= $db->num_rows()) {
@@ -380,7 +392,7 @@ class BlocklistService {
 	}
 
 	public static function flushIPs() {
-		global $db;
+		$db = self::db();
 		global $rServers;
 		global $rProxyServers;
 		$db->query('TRUNCATE `blocked_ips`;');
@@ -398,7 +410,7 @@ class BlocklistService {
 	}
 
 	public static function getAllUserAgents() {
-		global $db;
+		$db = self::db();
 		$rReturn = array();
 		$db->query('SELECT * FROM `blocked_uas` ORDER BY `id` ASC;');
 
@@ -413,7 +425,7 @@ class BlocklistService {
 	}
 
 	public static function getAllISPs() {
-		global $db;
+		$db = self::db();
 		$rReturn = array();
 		$db->query('SELECT * FROM `blocked_isps` ORDER BY `id` ASC;');
 
@@ -428,7 +440,7 @@ class BlocklistService {
 	}
 
 	public static function getUserAgentById($rID) {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT * FROM `blocked_uas` WHERE `id` = ?;', $rID);
 
 		if ($db->num_rows() != 1) {
@@ -438,7 +450,7 @@ class BlocklistService {
 	}
 
 	public static function getISPById($rID) {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT * FROM `blocked_isps` WHERE `id` = ?;', $rID);
 
 		if ($db->num_rows() != 1) {
@@ -448,7 +460,7 @@ class BlocklistService {
 	}
 
 	public static function deleteRTMPIP($rID) {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT `id` FROM `rtmp_ips` WHERE `id` = ?;', $rID);
 
 		if (0 >= $db->num_rows()) {
@@ -461,7 +473,7 @@ class BlocklistService {
 	}
 
 	public static function getRTMPIPById($rID) {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT * FROM `rtmp_ips` WHERE `id` = ?;', $rID);
 
 		if ($db->num_rows() != 1) {
