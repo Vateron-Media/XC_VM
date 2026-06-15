@@ -1,50 +1,101 @@
 # Architecture Overview
 
+## Project type
 
-> Canonical runtime details: [ARCHITECTURE.md](../../../ARCHITECTURE.md)
-> Current migration roadmap: [MIGRATION.md](../../../MIGRATION.md)
+Structured PHP monolith with a modular extension layer.
 
-## Purpose
+- No DDD, no Hexagonal, no Clean Architecture — intentional.
+- Split by context with minimal abstractions: `Controller → Service → Repository`.
+- Two build artifacts from one codebase: **MAIN** (full panel) and **LB** (load balancer subset).
 
-This page is the English architecture mirror for contributors.
-It tracks the same practical state as the Russian architecture docs: mixed legacy + modernized runtime, non-finished migration, and explicit module/runtime boundaries.
+---
 
-## Current Architecture in One View
+## Source tree
 
-- Project type: structured PHP monolith
-- Runtime model: mixed (`ServiceContainer` + constructor injection + legacy globals)
-- Core flow: `public/index.php` for panel pages, plus compatibility paths for API/streaming
-- Streaming: still depends on `www/stream/init.php` in the active hot path
-- Modules: CLI integration is active, web boot integration is incomplete
-- Build model: MAIN (full) and LB (streaming-focused subset)
+| Path | Role |
+| ---- | ---- |
+| `src/core/` | Infrastructure primitives: DI container, events, HTTP, config, auth, logging |
+| `src/domain/` | Business contexts: Stream, VOD, Line, User, Server, Security, etc. |
+| `src/modules/` | Optional extension layer — loaded by `ModuleLoader` |
+| `src/public/` | Front controller, router, controllers, views, assets |
+| `src/cli/` | Console commands and cron entry points |
+| `src/ministra/` | Stalker Portal — isolated subsystem (`BoundaryInterface`) |
 
-## Source Tree Roles
+---
 
-- `src/core/`: infrastructure primitives (DB, HTTP, Events, Config, Logging, Container)
-- `src/domain/`: business contexts (Stream, Vod, Line, User, Server, Auth, etc.)
-- `src/streaming/`: delivery/auth/protection path for stream endpoints
-- `src/public/`: front controller, routes, controllers, templates, assets
-- `src/cli/`: command and cron execution layer
-- `src/modules/`: optional extension layer
-- `src/infrastructure/legacy/`: remaining compatibility code not yet eliminated
-- `src/www/`: legacy runtime surface still required by part of production traffic
+## Runtime model
 
-## Known Gaps (Synchronized with RU)
+Dependencies flow inward — modules may use core and domain, never the reverse.
 
-1. Full constructor injection is still a target, not an everywhere-enforced rule.
-2. `www/` cannot be removed safely yet because nginx/runtime/service tooling still depend on it.
-3. `ModuleLoader::bootAll()` is not connected to `public/index.php`, so web module lifecycle is partial.
-4. Some public controllers still delegate to legacy/procedural handlers.
+```
+public/index.php
+    └── XC_Bootstrap::boot(BootContext::ADMIN)
+            └── ServiceContainer (DI)
+                    ├── EventDispatcher (PSR-14)
+                    ├── ModuleLoader → loadAll() → bootAll()
+                    └── Router → dispatch()
+```
 
-## Contributor Rules
+Domain classes receive the database via `setDb()` injection (called from
+`bootstrap.php::wireDomainDatabase()`). No `global $db` in the web request path.
 
-1. Treat `ARCHITECTURE.md` and `MIGRATION.md` as operational source-of-truth for runtime and migration sequence.
-2. Do not document impossible states (for example, "legacy removed") before code and infra actually match.
-3. Keep EN and RU architecture pages synchronized under the same Sync-ID.
-4. Never expose secrets, API keys, or internal credentials in frontend/client-facing docs or examples.
+---
 
-## Synchronization Checklist
+## Module system
 
-- Update [docs/en/development/architecture.md](architecture.md) and [docs/ru/development/architecture.md](../../ru/development/architecture.md) in the same commit.
-- Keep `Sync-ID` and update date aligned.
-- If runtime changes significantly, update this page and the root [ARCHITECTURE.md](../../../ARCHITECTURE.md).
+Modules are isolated directories under `src/modules/` with a `module.json` manifest
+and a class extending `BaseModule`. See [Module System](modules.md) for the full reference.
+
+```
+src/modules/my-module/
+├── module.json          # metadata
+├── MyModuleModule.php   # extends BaseModule, namespace XcVm\Module\MyModule
+└── ...
+```
+
+---
+
+## Bootstrap contexts
+
+Four contexts control which subsystems initialize. See [Bootstrap Contexts](bootstrap-contexts.md).
+
+| Context | Used for |
+| ------- | -------- |
+| `BootContext::MINIMAL` | Scripts needing only paths/config |
+| `BootContext::CLI` | Cron jobs and CLI commands |
+| `BootContext::STREAM` | Streaming endpoints |
+| `BootContext::ADMIN` | Admin/reseller panel |
+
+---
+
+## Build variants (MAIN vs LB)
+
+| | MAIN | LB |
+| --- | ---- | -- |
+| Admin panel | ✅ | ❌ |
+| Streaming | ✅ | ✅ |
+| Module system | ✅ | subset |
+
+Controlled by `ServerEnvironment` enum and `module.json` `environment` field (`main` / `lb` / `any`).
+
+---
+
+## Key extension points
+
+| Mechanism | How to use |
+| --------- | ---------- |
+| PSR-14 events | `EventDispatcher::listen()` or `#[ListensTo]` attribute |
+| Service decoration | `$container->decorate('id', callable, priority)` |
+| Stream middleware | Implement `StreamMiddlewareProviderInterface` |
+| Cron entries | Override `getCronEntries()` in module class |
+| DB migrations | Implement `MigratableInterface::getMigrations()` |
+
+---
+
+## Contributor rules
+
+1. Modules must not modify core files.
+2. No `eval`, monkey patching, or runtime file replacement.
+3. Any module can be disabled via `config/modules.php` without touching core.
+4. Protected services (`db`, `settings`, `config`, `auth`) cannot be decorated.
+5. Keep EN and RU docs in sync in the same commit.
