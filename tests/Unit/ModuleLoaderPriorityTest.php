@@ -102,7 +102,8 @@ final class ModuleLoaderPriorityTest extends TestCase {
         $modulePath = $root . '/' . $name;
         mkdir($modulePath, 0775, true);
 
-        $className = $this->resolveClassName($name);
+        $pascal    = implode('', array_map('ucfirst', explode('-', $name)));
+        $className = $pascal . 'Module';
 
         $manifest = array_merge([
             'name'                  => $name,
@@ -122,7 +123,15 @@ final class ModuleLoaderPriorityTest extends TestCase {
             json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
         );
 
+        $namespace = 'XcVm\\Module\\' . $pascal;
+
         $php = '<?php' . "\n"
+            . 'namespace ' . $namespace . ';' . "\n"
+            . 'use ModuleInterface;' . "\n"
+            . 'use ServiceContainer;' . "\n"
+            . 'use Router;' . "\n"
+            . 'use CommandRegistry;' . "\n"
+            . 'use NavbarRegistry;' . "\n"
             . 'class ' . $className . ' implements ModuleInterface {' . "\n"
             . "\tpublic function getName(): string { return '{$name}'; }" . "\n"
             . "\tpublic function getVersion(): string { return '1.0.0'; }" . "\n"
@@ -132,14 +141,9 @@ final class ModuleLoaderPriorityTest extends TestCase {
             . "\tpublic function getEventSubscribers(): array { return []; }" . "\n"
             . "\tpublic function install(): void {}" . "\n"
             . "\tpublic function uninstall(): void {}" . "\n"
-            . "\tpublic function registerNavbar(): void {}" . "\n"
+            . "\tpublic function registerNavbar(NavbarRegistry \$registry): void {}" . "\n"
             . '}' . "\n";
 
         file_put_contents($modulePath . '/' . $className . '.php', $php);
-    }
-
-    private function resolveClassName(string $name): string {
-        $parts = explode('-', $name);
-        return implode('', array_map('ucfirst', $parts)) . 'Module';
     }
 }
