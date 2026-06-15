@@ -11,8 +11,20 @@
  */
 
 class ProfileService {
+	private static $db = null;
+
+	public static function setDb($db): void {
+		self::$db = $db;
+	}
+
+	private static function db(): object {
+		if (self::$db === null) {
+			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+		}
+		return self::$db;
+	}
 	public static function process($rData) {
-		global $db;
+		$db = self::db();
 		if (InputValidator::validate('processProfile', $rData)) {
 			$rArray = array('profile_name' => $rData['profile_name'], 'profile_options' => null);
 			$rProfileOptions = array();

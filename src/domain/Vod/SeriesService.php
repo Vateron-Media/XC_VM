@@ -11,8 +11,20 @@
  */
 
 class SeriesService {
+	private static $db = null;
+
+	public static function setDb($db): void {
+		self::$db = $db;
+	}
+
+	private static function db(): object {
+		if (self::$db === null) {
+			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+		}
+		return self::$db;
+	}
 	public static function process($rData) {
-		global $db;
+		$db = self::db();
 		if (InputValidator::validate('processSeries', $rData)) {
 			if (isset($rData['edit'])) {
 				if (Authorization::check('adv', 'edit_series')) {
@@ -129,7 +141,7 @@ class SeriesService {
 	}
 
 	public static function import($rData) {
-		global $db;
+		$db = self::db();
 		if (Authorization::check('adv', 'import_movies')) {
 			if (InputValidator::validate('importSeries', $rData)) {
 				$rPostData = $rData;
@@ -326,7 +338,7 @@ class SeriesService {
 	}
 
 	public static function massEdit($rData) {
-		global $db;
+		$db = self::db();
 		set_time_limit(0);
 		ini_set('mysql.connect_timeout', 0);
 		ini_set('max_execution_time', 0);
@@ -442,7 +454,7 @@ class SeriesService {
 	 * Get all series as id => row array, ordered by title.
 	 */
 	public static function getList() {
-		global $db;
+		$db = self::db();
 		$rReturn = array();
 		$db->query('SELECT `id`, `title` FROM `streams_series` ORDER BY `title` ASC;');
 
@@ -459,7 +471,7 @@ class SeriesService {
 	 * Update series seasons from TMDB.
 	 */
 	public static function updateFromTMDB($rID) {
-		global $db;
+		$db = self::db();
 		require_once MAIN_HOME . 'modules/tmdb/lib/TmdbClient.php';
 		$db->query('SELECT `tmdb_id`, `tmdb_language` FROM `streams_series` WHERE `id` = ?;', $rID);
 
@@ -505,7 +517,7 @@ class SeriesService {
 	 * Queue async series refresh via watch_refresh table.
 	 */
 	public static function queueRefresh($rID) {
-		global $db;
+		$db = self::db();
 		$db->query('INSERT INTO `watch_refresh`(`type`, `stream_id`, `status`) VALUES(4, ?, 0);', $rID);
 	}
 
@@ -513,7 +525,7 @@ class SeriesService {
 	 * Generate playlist of episode sources for a series.
 	 */
 	public static function generatePlaylist($rSeriesNo) {
-		global $db;
+		$db = self::db();
 		$rReturn = array();
 		$db->query('SELECT `stream_id` FROM `streams_episodes` WHERE `series_id` = ? ORDER BY `season_num` ASC, `episode_num` ASC;', $rSeriesNo);
 
@@ -534,7 +546,7 @@ class SeriesService {
 	}
 
 	public static function getById($rID) {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT * FROM `streams_series` WHERE `id` = ?;', $rID);
 
 		if ($db->num_rows() != 1) {
@@ -545,7 +557,7 @@ class SeriesService {
 	}
 
 	public static function getAll() {
-		global $db;
+		$db = self::db();
 		$rReturn = array();
 		$db->query('SELECT * FROM `streams_series` ORDER BY `title` ASC;');
 
@@ -559,7 +571,7 @@ class SeriesService {
 	}
 
 	public static function getByTMDBId($rID) {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT * FROM `streams_series` WHERE `tmdb_id` = ?;', $rID);
 
 		if ($db->num_rows() != 1) {
@@ -570,7 +582,7 @@ class SeriesService {
 	}
 
 	public static function deleteSeriesById($rID, $rDeleteFiles = true) {
-		global $db;
+		$db = self::db();
 		$rSeries = self::getById($rID);
 
 		if (!$rSeries) {
@@ -590,7 +602,7 @@ class SeriesService {
 	}
 
 	public static function deleteSeriesByIds($rIDs) {
-		global $db;
+		$db = self::db();
 		$rIDs = AdminHelpers::confirmIDs($rIDs);
 
 		if (0 >= count($rIDs)) {

@@ -11,6 +11,18 @@
  */
 
 class StreamProcess {
+	private static $db = null;
+
+	public static function setDb($db): void {
+		self::$db = $db;
+	}
+
+	private static function db(): object {
+		if (self::$db === null) {
+			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+		}
+		return self::$db;
+	}
 	/**
 	 * Write stream action log to file
 	 *
@@ -42,7 +54,7 @@ class StreamProcess {
 	}
 
 	public static function queueChannel($rStreamID, $rServerID = null) {
-		global $db;
+		$db = self::db();
 		if ($rServerID) {
 		} else {
 			$rServerID = SERVER_ID;
@@ -75,7 +87,7 @@ class StreamProcess {
 	}
 
 	public static function updateStream($rStreamID, $rForce = false) {
-		global $db;
+		$db = self::db();
 		$rCached = SettingsManager::getAll()['enable_cache'];
 		$rMainID = ConnectionTracker::getMainID();
 		if ($rCached) {
@@ -90,7 +102,7 @@ class StreamProcess {
 	}
 
 	public static function updateStreams($rStreamIDs) {
-		global $db;
+		$db = self::db();
 		$rCached = SettingsManager::getAll()['enable_cache'];
 		$rMainID = ConnectionTracker::getMainID();
 		if ($rCached) {
@@ -105,7 +117,8 @@ class StreamProcess {
 	}
 
 	public static function createChannelItem($rStreamID, $rSource) {
-		global $db, $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU;
+		global $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU;
+		$db = self::db();
 		$rStream = array();
 		$rLoopback = false;
 		$db->query('SELECT * FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.type_id = t1.type AND t1.type = 3 LEFT JOIN `profiles` t4 ON t1.transcode_profile_id = t4.profile_id WHERE t1.direct_source = 0 AND t1.id = ?', $rStreamID);
@@ -206,7 +219,7 @@ class StreamProcess {
 	}
 
 	public static function stopStream($rStreamID, $rStop = false) {
-		global $db;
+		$db = self::db();
 		if (file_exists(STREAMS_PATH . $rStreamID . '_.monitor')) {
 			$rMonitor = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.monitor'));
 		} else {
@@ -246,7 +259,7 @@ class StreamProcess {
 	}
 
 	public static function stopMovie($rStreamID, $rForce = false) {
-		global $db;
+		$db = self::db();
 		shell_exec("kill -9 `ps -ef | grep '/" . intval($rStreamID) . ".' | grep -v grep | awk '{print \$2}'`;");
 		if ($rForce) {
 			exec('rm ' . MAIN_HOME . 'content/vod/' . intval($rStreamID) . '.*');
@@ -258,7 +271,7 @@ class StreamProcess {
 	}
 
 	public static function queueMovie($rStreamID, $rServerID = null) {
-		global $db;
+		$db = self::db();
 		if ($rServerID) {
 		} else {
 			$rServerID = SERVER_ID;
@@ -268,7 +281,7 @@ class StreamProcess {
 	}
 
 	public static function queueMovies($rStreamIDs, $rServerID = null) {
-		global $db;
+		$db = self::db();
 		if ($rServerID) {
 		} else {
 			$rServerID = SERVER_ID;
@@ -292,7 +305,7 @@ class StreamProcess {
 	}
 
 	public static function refreshMovies($rIDs, $rType = 1) {
-		global $db;
+		$db = self::db();
 		if (0 >= count($rIDs)) {
 		} else {
 			$db->query('DELETE FROM `watch_refresh` WHERE `type` = ? AND `stream_id` IN (' . implode(',', array_map('intval', $rIDs)) . ');', $rType);
@@ -312,7 +325,8 @@ class StreamProcess {
 	}
 
 	public static function startMovie($rStreamID) {
-		global $db, $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU;
+		global $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU;
+		$db = self::db();
 		$rStream = array();
 		$rLoopback = false;
 		$db->query('SELECT * FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.type_id = t1.type AND t2.live = 0 LEFT JOIN `profiles` t4 ON t1.transcode_profile_id = t4.profile_id WHERE t1.direct_source = 0 AND t1.id = ?', $rStreamID);
@@ -460,7 +474,8 @@ class StreamProcess {
 	}
 
 	public static function startLoopback($rStreamID) {
-		global $db, $rSettings, $rServers;
+		global $rSettings, $rServers;
+		$db = self::db();
 		shell_exec('rm -f ' . STREAMS_PATH . intval($rStreamID) . '_*.ts');
 		if (!file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
 		} else {
@@ -495,7 +510,7 @@ class StreamProcess {
 	}
 
 	public static function startLLOD($rStreamID, $rStreamInfo, $rStreamArguments, $rForceSource = null) {
-		global $db;
+		$db = self::db();
 		shell_exec('rm -f ' . STREAMS_PATH . intval($rStreamID) . '_*.ts');
 		if (file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
 			unlink(STREAMS_PATH . $rStreamID . '_.pid');
@@ -518,7 +533,8 @@ class StreamProcess {
 	}
 
 	public static function startStream($rStreamID, $rFromCache = false, $rForceSource = null, $rLLOD = false, $rStartPos = 0) {
-		global $db, $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU, $rFFPROBE;
+		global $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU, $rFFPROBE;
+		$db = self::db();
 		$rSegmentSettings = array('seg_time' => intval($rSettings['seg_time']), 'seg_list_size' => intval($rSettings['seg_list_size']), 'seg_delete_threshold' => intval($rSettings['seg_delete_threshold']));
 		if (file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
 			unlink(STREAMS_PATH . $rStreamID . '_.pid');

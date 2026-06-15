@@ -11,6 +11,18 @@
  */
 
 class UserService {
+	private static $db = null;
+
+	public static function setDb($db): void {
+		self::$db = $db;
+	}
+
+	private static function db(): object {
+		if (self::$db === null) {
+			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+		}
+		return self::$db;
+	}
 	public static function massDelete($rData) {
 		set_time_limit(0);
 		ini_set('mysql.connect_timeout', 0);
@@ -24,7 +36,7 @@ class UserService {
 	}
 
 	public static function massEdit($rData) {
-		global $db;
+		$db = self::db();
 		if (InputValidator::validate('massEditUsers', $rData)) {
 			$rArray = array();
 
@@ -93,7 +105,7 @@ class UserService {
 	}
 
 	public static function process($rData, $rBypassAuth = false) {
-		global $db;
+		$db = self::db();
 		if (InputValidator::validate('processUser', $rData)) {
 			if (isset($rData['edit'])) {
 				if (Authorization::check('adv', 'edit_reguser') || $rBypassAuth) {
@@ -177,7 +189,7 @@ class UserService {
 	}
 
 	public static function editAdminProfile($rData, $rUserInfo, $allowedLangs) {
-		global $db;
+		$db = self::db();
 		if (!(0 >= strlen($rData['email']) || filter_var($rData['email'], FILTER_VALIDATE_EMAIL))) {
 			return array('status' => STATUS_INVALID_EMAIL);
 		}
@@ -202,7 +214,7 @@ class UserService {
 	}
 
 	public static function submitTicket($rData, $rUserInfo) {
-		global $db;
+		$db = self::db();
 		if (isset($rData['edit'])) {
 			$rArray = AdminHelpers::overwriteData(TicketRepository::getById($rData['edit']), $rData);
 		} else {
@@ -244,7 +256,7 @@ class UserService {
 	}
 
 	public static function deleteRegisteredUser($rID, $rDeleteSubUsers = false, $rDeleteLines = false, $rReplaceWith = null) {
-		global $db;
+		$db = self::db();
 		$rUser = UserRepository::getRegisteredUserById($rID);
 
 		if (!$rUser) {
@@ -281,7 +293,7 @@ class UserService {
 	}
 
 	public static function deleteRegisteredUsers($rIDs) {
-		global $db;
+		$db = self::db();
 		$rIDs = AdminHelpers::confirmIDs($rIDs);
 
 		if (0 >= count($rIDs)) {

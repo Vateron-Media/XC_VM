@@ -11,8 +11,21 @@
  */
 
 class PlaylistGenerator {
+	private static $db = null;
+
+	public static function setDb($db): void {
+		self::$db = $db;
+	}
+
+	private static function db(): object {
+		if (self::$db === null) {
+			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+		}
+		return self::$db;
+	}
 	public static function generate($rUserInfo, $rDeviceKey, $rOutputKey = 'ts', $rTypeKey = null, $rNoCache = false, $rProxy = false) {
-		global $db, $rSettings, $rServers;
+		global $rSettings, $rServers;
+		$db = self::db();
 		$rCategories = CategoryService::getFromDatabase();
 		$rCached = $rSettings['enable_cache'];
 		if (empty($rDeviceKey)) {

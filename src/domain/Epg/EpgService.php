@@ -11,8 +11,20 @@
  */
 
 class EpgService {
+	private static $db = null;
+
+	public static function setDb($db): void {
+		self::$db = $db;
+	}
+
+	private static function db(): object {
+		if (self::$db === null) {
+			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+		}
+		return self::$db;
+	}
 	public static function process($rData) {
-		global $db;
+		$db = self::db();
 		if (isset($rData['edit'])) {
 			if (!Authorization::check('adv', 'epg_edit')) {
 				exit();
@@ -52,7 +64,7 @@ class EpgService {
 	// ──────────── Из EpgRepository ────────────
 
 	public static function findByName($rEPGName) {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT `id`, `data` FROM `epg`;');
 
 		if ($db->num_rows() > 0) {
@@ -73,7 +85,7 @@ class EpgService {
 	}
 
 	public static function getById($rID) {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT * FROM `epg` WHERE `id` = ?;', $rID);
 
 		if ($db->num_rows() == 1) {
@@ -131,7 +143,7 @@ class EpgService {
 	}
 
 	public static function getAll() {
-		global $db;
+		$db = self::db();
 		$rReturn = array();
 		$db->query('SELECT * FROM `epg` ORDER BY `id` ASC;');
 
@@ -145,7 +157,7 @@ class EpgService {
 	}
 
 	public static function deleteEpgById($rID) {
-		global $db;
+		$db = self::db();
 		$rEPG = self::getById($rID);
 
 		if (!$rEPG) {

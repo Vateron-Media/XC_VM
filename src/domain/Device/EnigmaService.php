@@ -11,6 +11,18 @@
  */
 
 class EnigmaService {
+	private static $db = null;
+
+	public static function setDb($db): void {
+		self::$db = $db;
+	}
+
+	private static function db(): object {
+		if (self::$db === null) {
+			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+		}
+		return self::$db;
+	}
 	public static function massDelete($rData) {
 		set_time_limit(0);
 		ini_set('mysql.connect_timeout', 0);
@@ -24,7 +36,7 @@ class EnigmaService {
 	}
 
 	public static function massEdit($rData) {
-		global $db;
+		$db = self::db();
 		if (InputValidator::validate('massEditEnigmas', $rData)) {
 			$rArray = array();
 			$rUserArray = array();
@@ -163,7 +175,7 @@ class EnigmaService {
 	}
 
 	public static function process($rData) {
-		global $db;
+		$db = self::db();
 		if (InputValidator::validate('processEnigma', $rData)) {
 			if (isset($rData['edit'])) {
 				if (Authorization::check('adv', 'edit_e2')) {
@@ -344,7 +356,7 @@ class EnigmaService {
 	}
 
 	public static function getById($rID) {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT * FROM `enigma2_devices` WHERE `device_id` = ?;', $rID);
 
 		if ($db->num_rows() != 1) {
@@ -365,7 +377,7 @@ class EnigmaService {
 	}
 
 	public static function getByUserId($rID) {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT * FROM `enigma2_devices` WHERE `user_id` = ?;', $rID);
 
 		if ($db->num_rows() != 1) {
@@ -376,7 +388,7 @@ class EnigmaService {
 	}
 
 	public static function deleteDevice($rID, $rDeletePaired = false, $rCloseCons = true, $rConvert = false) {
-		global $db;
+		$db = self::db();
 		$rEnigma = self::getById($rID);
 
 		if (!$rEnigma) {
@@ -409,7 +421,7 @@ class EnigmaService {
 	}
 
 	public static function deleteDevices($rIDs) {
-		global $db;
+		$db = self::db();
 		$rIDs = AdminHelpers::confirmIDs($rIDs);
 
 		if (0 >= count($rIDs)) {

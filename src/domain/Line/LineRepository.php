@@ -11,8 +11,20 @@
  */
 
 class LineRepository {
+	private static $db = null;
+
+	public static function setDb($db): void {
+		self::$db = $db;
+	}
+
+	private static function db(): object {
+		if (self::$db === null) {
+			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+		}
+		return self::$db;
+	}
 	public static function deleteMany($rIDs) {
-		global $db;
+		$db = self::db();
 		$rIDs = AdminHelpers::confirmIDs($rIDs);
 
 		if (0 >= count($rIDs)) {
@@ -41,7 +53,7 @@ class LineRepository {
 	}
 
 	public static function getOutputFormats() {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT * FROM `output_formats` ORDER BY `access_output_id` ASC;');
 		return (0 < $db->num_rows() ? $db->get_rows() : array());
 	}

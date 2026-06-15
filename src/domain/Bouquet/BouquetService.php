@@ -11,8 +11,20 @@
  */
 
 class BouquetService {
+	private static $db = null;
+
+	public static function setDb($db): void {
+		self::$db = $db;
+	}
+
+	private static function db(): object {
+		if (self::$db === null) {
+			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+		}
+		return self::$db;
+	}
 	public static function process($rData) {
-		global $db;
+		$db = self::db();
 		if (isset($rData['edit'])) {
 			if (!Authorization::check('adv', 'edit_bouquet')) {
 				exit();
@@ -84,7 +96,7 @@ class BouquetService {
 	}
 
 	public static function reorder($rData) {
-		global $db;
+		$db = self::db();
 		$rOrder = json_decode($rData['stream_order_array'], true);
 		$rOrder['stream'] = AdminHelpers::confirmIDs($rOrder['stream']);
 		$rOrder['series'] = AdminHelpers::confirmIDs($rOrder['series']);
@@ -96,7 +108,7 @@ class BouquetService {
 	}
 
 	public static function sort($rData) {
-		global $db;
+		$db = self::db();
 		set_time_limit(0);
 		ini_set('mysql.connect_timeout', 0);
 		ini_set('max_execution_time', 0);
@@ -137,7 +149,7 @@ class BouquetService {
 	}
 
 	public static function scanOne($rID) {
-		global $db;
+		$db = self::db();
 		$rBouquet = BouquetService::getById($rID);
 		if (!$rBouquet) {
 			return;
@@ -198,7 +210,7 @@ class BouquetService {
 	}
 
 	public static function getAll($rForce = false) {
-		global $db;
+		$db = self::db();
 		if (!$rForce) {
 			$rCache = FileCache::getCache('bouquets', 60);
 			if (!empty($rCache)) {
@@ -232,7 +244,7 @@ class BouquetService {
 	}
 
 	public static function getUserBouquets() {
-		global $db;
+		$db = self::db();
 		$rReturn = array();
 		$db->query('SELECT `id`, `bouquet` FROM `lines` ORDER BY `id` ASC;');
 
@@ -246,7 +258,7 @@ class BouquetService {
 	}
 
 	public static function getAllSimple() {
-		global $db;
+		$db = self::db();
 		$rReturn = array();
 		$db->query('SELECT * FROM `bouquets` ORDER BY `bouquet_order` ASC;');
 
@@ -264,7 +276,7 @@ class BouquetService {
 	}
 
 	public static function getById($rID) {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT * FROM `bouquets` WHERE `id` = ?;', $rID);
 
 		if ($db->num_rows() != 1) {
@@ -275,7 +287,7 @@ class BouquetService {
 	}
 
 	public static function deleteById($rID) {
-		global $db;
+		$db = self::db();
 		$rBouquet = self::getById($rID);
 
 		if (!$rBouquet) {
@@ -333,7 +345,7 @@ class BouquetService {
 	}
 
 	public static function addItems($rType, $rBouquetID, $rIDs) {
-		global $db;
+		$db = self::db();
 
 		if (!is_array($rIDs)) {
 			$rIDs = array($rIDs);
@@ -372,7 +384,7 @@ class BouquetService {
 	}
 
 	public static function removeItems($rType, $rBouquetID, $rIDs) {
-		global $db;
+		$db = self::db();
 
 		if (!is_array($rIDs)) {
 			$rIDs = array($rIDs);

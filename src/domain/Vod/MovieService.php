@@ -11,8 +11,20 @@
  */
 
 class MovieService {
+	private static $db = null;
+
+	public static function setDb($db): void {
+		self::$db = $db;
+	}
+
+	private static function db(): object {
+		if (self::$db === null) {
+			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+		}
+		return self::$db;
+	}
 	public static function process($rData) {
-		global $db;
+		$db = self::db();
 		if (InputValidator::validate('processMovie', $rData)) {
 			set_time_limit(0);
 			ini_set('mysql.connect_timeout', 0);
@@ -475,7 +487,7 @@ class MovieService {
 	}
 
 	public static function import($rData) {
-		global $db;
+		$db = self::db();
 		if (Authorization::check('adv', 'import_movies')) {
 			if (InputValidator::validate('importMovies', $rData)) {
 				$rPostData = $rData;
@@ -703,7 +715,7 @@ class MovieService {
 	}
 
 	public static function massEdit($rData) {
-		global $db;
+		$db = self::db();
 		set_time_limit(0);
 		ini_set('mysql.connect_timeout', 0);
 		ini_set('max_execution_time', 0);
@@ -937,7 +949,7 @@ class MovieService {
 	 * Send delete signal for movie files on specified servers.
 	 */
 	public static function deleteFile($rServerIDs, $rID) {
-		global $db;
+		$db = self::db();
 		if (is_array($rServerIDs)) {
 		} else {
 			$rServerIDs = array($rServerIDs);

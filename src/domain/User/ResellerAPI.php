@@ -11,6 +11,18 @@
  */
 
 class ResellerAPI {
+	private static $db = null;
+
+	public static function setDb($db): void {
+		self::$db = $db;
+	}
+
+	private static function db(): object {
+		if (self::$db === null) {
+			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+		}
+		return self::$db;
+	}
 	public static $rSettings = array();
 	public static $rServers = array();
 	public static $rProxyServers = array();
@@ -31,7 +43,7 @@ class ResellerAPI {
 	}
 
 	public static function init($rUserID = null) {
-		global $db;
+		$db = self::db();
 		global $rPermissions;
 		self::$rSettings = SettingsManager::getAll();
 		self::$rServers = ServerRepository::getStreamingSimple($rPermissions);
@@ -50,7 +62,7 @@ class ResellerAPI {
 	}
 
 	public static function editResellerProfile($rData) {
-		global $db;
+		$db = self::db();
 		global $rHues;
 		global $allowedLangs;
 		$rData = self::processData('profile', $rData);
@@ -98,7 +110,7 @@ class ResellerAPI {
 	}
 
 	public static function processMAG($rData) {
-		global $db;
+		$db = self::db();
 		$rData = self::processData('mag', $rData);
 
 		if (self::$rPermissions['create_mag']) {
@@ -379,7 +391,7 @@ class ResellerAPI {
 	}
 
 	public static function processEnigma($rData) {
-		global $db;
+		$db = self::db();
 		$rData = self::processData('enigma', $rData);
 
 		if (self::$rPermissions['create_enigma']) {
@@ -658,7 +670,7 @@ class ResellerAPI {
 	}
 
 	public static function processUser($rData) {
-		global $db;
+		$db = self::db();
 		$rData = self::processData('user', $rData);
 
 		if (self::$rPermissions['create_sub_resellers']) {
@@ -780,7 +792,7 @@ class ResellerAPI {
 	}
 
 	public static function submitTicket($rData) {
-		global $db;
+		$db = self::db();
 		$rData = self::processData('ticket', $rData);
 
 		if (isset($rData['edit'])) {
@@ -840,7 +852,7 @@ class ResellerAPI {
 	}
 
 	public static function processLine($rData) {
-		global $db;
+		$db = self::db();
 		$rData = self::processData('line', $rData);
 
 		if (self::$rPermissions['create_line']) {

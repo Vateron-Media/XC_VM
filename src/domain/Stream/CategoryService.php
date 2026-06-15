@@ -11,8 +11,20 @@
  */
 
 class CategoryService {
+	private static $db = null;
+
+	public static function setDb($db): void {
+		self::$db = $db;
+	}
+
+	private static function db(): object {
+		if (self::$db === null) {
+			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+		}
+		return self::$db;
+	}
 	public static function reorder($rData) {
-		global $db;
+		$db = self::db();
 		$rPostCategories = json_decode($rData['categories'], true);
 
 		if (0 >= count($rPostCategories)) {
@@ -26,7 +38,7 @@ class CategoryService {
 	}
 
 	public static function process($rData) {
-		global $db;
+		$db = self::db();
 		if (isset($rData['edit'])) {
 			$rArray = AdminHelpers::overwriteData(CategoryService::getById($rData['edit']), $rData);
 		} else {
@@ -71,7 +83,7 @@ class CategoryService {
 	// ──────────── Из CategoryRepository ────────────
 
 	public static function getFromDatabase($rType = null, $rForce = false) {
-		global $db;
+		$db = self::db();
 		if (is_string($rType)) {
 			$db->query('SELECT t1.* FROM `streams_categories` t1 WHERE t1.category_type = ? GROUP BY t1.id ORDER BY t1.cat_order ASC', $rType);
 			return (0 < $db->num_rows() ? $db->get_rows(true, 'id') : array());
@@ -120,7 +132,7 @@ class CategoryService {
 	}
 
 	public static function getById($rID) {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT * FROM `streams_categories` WHERE `id` = ?;', $rID);
 
 		if ($db->num_rows() != 1) {
@@ -131,7 +143,7 @@ class CategoryService {
 	}
 
 	public static function deleteById($rID) {
-		global $db;
+		$db = self::db();
 		$rCategory = self::getById($rID);
 
 		if (!$rCategory) {

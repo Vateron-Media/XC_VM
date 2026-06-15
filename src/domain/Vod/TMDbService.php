@@ -11,6 +11,18 @@
  */
 
 class TMDbService {
+	private static $db = null;
+
+	public static function setDb($db): void {
+		self::$db = $db;
+	}
+
+	private static function db(): object {
+		if (self::$db === null) {
+			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+		}
+		return self::$db;
+	}
 	public static function getMovie($rID) {
 		require_once MAIN_HOME . 'modules/tmdb/lib/TmdbClient.php';
 
@@ -83,7 +95,7 @@ class TMDbService {
 	}
 
 	public static function addCategories() {
-		global $db;
+		$db = self::db();
 		require_once MAIN_HOME . 'modules/tmdb/lib/TmdbClient.php';
 
 		if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
@@ -124,7 +136,7 @@ class TMDbService {
 	}
 
 	public static function updateCategories() {
-		global $db;
+		$db = self::db();
 		require_once MAIN_HOME . 'modules/tmdb/lib/TmdbClient.php';
 
 		if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {

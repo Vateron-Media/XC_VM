@@ -11,8 +11,21 @@
  */
 
 class ServerRepository {
+	private static $db = null;
+
+	public static function setDb($db): void {
+		self::$db = $db;
+	}
+
+	private static function db(): object {
+		if (self::$db === null) {
+			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+		}
+		return self::$db;
+	}
 	public static function getAll($rForce = false) {
-		global $db, $rSettings;
+		global $rSettings;
+		$db = self::db();
 		if (!$rSettings) {
 			$rSettings = SettingsManager::getAll();
 		}
@@ -94,7 +107,7 @@ class ServerRepository {
 	}
 
 	public static function getAllSimple() {
-		global $db;
+		$db = self::db();
 		$rReturn = array();
 		$db->query('SELECT * FROM `servers` ORDER BY `id` ASC;');
 
@@ -109,7 +122,7 @@ class ServerRepository {
 	}
 
 	public static function getStreamingSimple($rPermissions, $type = 'online') {
-		global $db;
+		$db = self::db();
 		$rReturn = array();
 		$db->query('SELECT * FROM `servers` WHERE `server_type` = 0 ORDER BY `id` ASC;');
 
@@ -133,7 +146,7 @@ class ServerRepository {
 	}
 
 	public static function getProxySimple($rPermissions, $rOnline = false) {
-		global $db;
+		$db = self::db();
 		$rReturn = array();
 		$db->query('SELECT * FROM `servers` WHERE `server_type` = 1 ORDER BY `id` ASC;');
 
@@ -232,7 +245,8 @@ class ServerRepository {
 	}
 
 	public static function deleteById($rID, $rReplaceWith = null) {
-		global $db, $rSettings;
+		global $rSettings;
+		$db = self::db();
 		$rServer = ServerRepository::getById($rID);
 
 		if (!$rServer || $rServer['is_main']) {
@@ -265,7 +279,7 @@ class ServerRepository {
 	}
 
 	public static function getAllowedDomains($rForce = false) {
-		global $db;
+		$db = self::db();
 		if (!$rForce) {
 			$rCache = FileCache::getCache('allowed_domains', 20);
 			if ($rCache !== false) {
@@ -393,7 +407,7 @@ class ServerRepository {
 	}
 
 	public static function getById($rID) {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT * FROM `servers` WHERE `id` = ?;', $rID);
 
 		if ($db->num_rows() != 1) {

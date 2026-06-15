@@ -11,6 +11,18 @@
  */
 
 class MagService {
+	private static $db = null;
+
+	public static function setDb($db): void {
+		self::$db = $db;
+	}
+
+	private static function db(): object {
+		if (self::$db === null) {
+			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+		}
+		return self::$db;
+	}
 	public static function massDelete($rData) {
 		set_time_limit(0);
 		ini_set('mysql.connect_timeout', 0);
@@ -24,7 +36,7 @@ class MagService {
 	}
 
 	public static function massEdit($rData) {
-		global $db;
+		$db = self::db();
 		if (InputValidator::validate('massEditMags', $rData)) {
 			$rArray = array();
 			$rUserArray = array();
@@ -189,7 +201,7 @@ class MagService {
 	}
 
 	public static function process($rData) {
-		global $db;
+		$db = self::db();
 		if (InputValidator::validate('processMAG', $rData)) {
 			if (isset($rData['edit'])) {
 				if (Authorization::check('adv', 'edit_mag')) {
@@ -361,7 +373,7 @@ class MagService {
 	}
 
 	public static function syncLineDevices($rUserID, $rDeviceID = null) {
-		global $db;
+		$db = self::db();
 		$rUser = UserRepository::getLineById($rUserID);
 
 		if ($rUser) {
@@ -393,7 +405,7 @@ class MagService {
 	}
 
 	public static function getById($rID) {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT * FROM `mag_devices` WHERE `mag_id` = ?;', $rID);
 
 		if ($db->num_rows() != 1) {
@@ -413,7 +425,7 @@ class MagService {
 	}
 
 	public static function deleteDevice($rID, $rDeletePaired = false, $rCloseCons = true, $rConvert = false) {
-		global $db;
+		$db = self::db();
 		$rMag = self::getById($rID);
 
 		if (!$rMag) {
@@ -448,7 +460,7 @@ class MagService {
 	}
 
 	public static function deleteDevices($rIDs) {
-		global $db;
+		$db = self::db();
 		$rIDs = AdminHelpers::confirmIDs($rIDs);
 
 		if (0 >= count($rIDs)) {
@@ -475,7 +487,7 @@ class MagService {
 	}
 
 	public static function resetSTB($rID) {
-		global $db;
+		$db = self::db();
 		$db->query("UPDATE `mag_devices` SET `ip` = '', `ver` = '', `image_version` = '', `stb_type` = '', `sn` = '', `device_id` = '', `device_id2` = '', `hw_version` = '', `token` = '' WHERE `mag_id` = ?;", $rID);
 	}
 }

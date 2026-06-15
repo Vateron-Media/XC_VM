@@ -11,8 +11,21 @@
  */
 
 class StreamService {
+	private static $db = null;
+
+	public static function setDb($db): void {
+		self::$db = $db;
+	}
+
+	private static function db(): object {
+		if (self::$db === null) {
+			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+		}
+		return self::$db;
+	}
 	public static function process($rData) {
-		global $db, $rSettings;
+		global $rSettings;
+		$db = self::db();
 		set_time_limit(0);
 		ini_set('mysql.connect_timeout', 0);
 		ini_set('max_execution_time', 0);
@@ -437,7 +450,7 @@ class StreamService {
 	}
 
 	public static function massEdit($rData) {
-		global $db;
+		$db = self::db();
 		set_time_limit(0);
 		ini_set('mysql.connect_timeout', 0);
 		ini_set('max_execution_time', 0);
@@ -698,7 +711,7 @@ class StreamService {
 	}
 
 	public static function move($rData) {
-		global $db;
+		$db = self::db();
 		$rType = intval($rData['content_type']);
 		$rSource = intval($rData['source_server']);
 		$rReplacement = intval($rData['replacement_server']);
@@ -739,7 +752,7 @@ class StreamService {
 	}
 
 	public static function replaceDNS($rData) {
-		global $db;
+		$db = self::db();
 		$rOldDNS = str_replace('/', '\\/', $rData['old_dns']);
 		$rNewDNS = str_replace('/', '\\/', $rData['new_dns']);
 		$db->query('UPDATE `streams` SET `stream_source` = REPLACE(`stream_source`, ?, ?);', $rOldDNS, $rNewDNS);
@@ -776,7 +789,7 @@ class StreamService {
 	}
 
 	public static function getArchive($rStreamID) {
-		global $db;
+		$db = self::db();
 		$rReturn = array();
 		$rStream = StreamRepository::getById($rStreamID);
 		$rEPG = EpgService::getChannelEpg($rStream, true);

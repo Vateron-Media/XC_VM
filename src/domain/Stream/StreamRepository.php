@@ -11,14 +11,26 @@
  */
 
 class StreamRepository {
+	private static $db = null;
+
+	public static function setDb($db): void {
+		self::$db = $db;
+	}
+
+	private static function db(): object {
+		if (self::$db === null) {
+			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+		}
+		return self::$db;
+	}
 	public static function getErrors($rStreamID, $rAmount = 250) {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT * FROM (SELECT MAX(`date`) AS `date`, `error` FROM `streams_errors` WHERE `stream_id` = ? GROUP BY `error`) AS `output` ORDER BY `date` DESC LIMIT ' . intval($rAmount) . ';', $rStreamID);
 		return $db->get_rows();
 	}
 
 	public static function getById($rID) {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT * FROM `streams` WHERE `id` = ?;', $rID);
 
 		if ($db->num_rows() == 1) {
@@ -27,7 +39,7 @@ class StreamRepository {
 	}
 
 	public static function getStats($rStreamID) {
-		global $db;
+		$db = self::db();
 		$rReturn = array();
 		$db->query('SELECT * FROM `streams_stats` WHERE `stream_id` = ?;', $rStreamID);
 
@@ -47,7 +59,8 @@ class StreamRepository {
 	}
 
 	public static function getPIDs($rServerID) {
-		global $db, $rSettings;
+		global $rSettings;
+		$db = self::db();
 		$rReturn = array();
 		$db->query('SELECT `streams`.`id`, `streams`.`stream_display_name`, `streams`.`type`, `streams_servers`.`pid`, `streams_servers`.`monitor_pid`, `streams_servers`.`delay_pid` FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams_servers`.`server_id` = ?;', $rServerID);
 
@@ -112,7 +125,7 @@ class StreamRepository {
 	}
 
 	public static function getOptions($rID) {
-		global $db;
+		$db = self::db();
 		$rReturn = array();
 		$db->query('SELECT * FROM `streams_options` WHERE `stream_id` = ?;', $rID);
 
@@ -126,7 +139,7 @@ class StreamRepository {
 	}
 
 	public static function getSystemRows($rID) {
-		global $db;
+		$db = self::db();
 		$rReturn = array();
 		$db->query('SELECT * FROM `streams_servers` WHERE `stream_id` = ?;', $rID);
 
@@ -140,7 +153,7 @@ class StreamRepository {
 	}
 
 	public static function getNextOrder() {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT MAX(`order`) AS `order` FROM `streams`;');
 
 		if ($db->num_rows() != 1) {
@@ -152,7 +165,7 @@ class StreamRepository {
 	}
 
 	public static function getEncodeErrors($rID) {
-		global $db;
+		$db = self::db();
 		$rErrors = array();
 		$db->query('SELECT `server_id`, `error` FROM `streams_errors` WHERE `stream_id` = ?;', $rID);
 
@@ -164,7 +177,7 @@ class StreamRepository {
 	}
 
 	public static function getSelections($rSources) {
-		global $db;
+		$db = self::db();
 		$rReturn = array();
 
 		foreach ($rSources as $rSource) {
@@ -180,7 +193,7 @@ class StreamRepository {
 	}
 
 	public static function deleteStream($rID, $rServerID = -1, $rDeleteFiles = true, $f2d619cb38696890 = true) {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT `id`, `type` FROM `streams` WHERE `id` = ?;', $rID);
 
 		if (0 >= $db->num_rows()) {
@@ -240,7 +253,7 @@ class StreamRepository {
 	}
 
 	public static function deleteStreams($rIDs, $rDeleteFiles = false) {
-		global $db;
+		$db = self::db();
 		$rIDs = AdminHelpers::confirmIDs($rIDs);
 
 		if (0 >= count($rIDs)) {
@@ -276,7 +289,7 @@ class StreamRepository {
 	}
 
 	public static function deleteStreamsByServer($rIDs, $rServerID, $rDeleteFiles = false) {
-		global $db;
+		$db = self::db();
 		$rIDs = AdminHelpers::confirmIDs($rIDs);
 
 		if (0 >= count($rIDs)) {
@@ -293,7 +306,7 @@ class StreamRepository {
 	}
 
 	public static function getWatchFolder($rID) {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT * FROM `watch_folders` WHERE `id` = ?;', $rID);
 
 		if ($db->num_rows() != 1) {
@@ -303,7 +316,7 @@ class StreamRepository {
 	}
 
 	public static function deleteWatchFolder($rID) {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT `id` FROM `watch_folders` WHERE `id` = ?;', $rID);
 
 		if (0 >= $db->num_rows()) {

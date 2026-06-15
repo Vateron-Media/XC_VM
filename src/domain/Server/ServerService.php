@@ -11,8 +11,20 @@
  */
 
 class ServerService {
+	private static $db = null;
+
+	public static function setDb($db): void {
+		self::$db = $db;
+	}
+
+	private static function db(): object {
+		if (self::$db === null) {
+			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+		}
+		return self::$db;
+	}
 	public static function process($rData) {
-		global $db;
+		$db = self::db();
 		if (!Authorization::check('adv', 'edit_server')) {
 			exit();
 		}
@@ -164,7 +176,7 @@ class ServerService {
 	}
 
 	public static function processProxy($rData) {
-		global $db;
+		$db = self::db();
 		if (!Authorization::check('adv', 'edit_server')) {
 			exit();
 		}
@@ -215,7 +227,7 @@ class ServerService {
 	}
 
 	public static function install($rData, $rServers, $rProxyServers) {
-		global $db;
+		$db = self::db();
 		if (!Authorization::check('adv', 'add_server')) {
 			exit();
 		}
@@ -291,7 +303,7 @@ class ServerService {
 	}
 
 	public static function reorder($rData) {
-		global $db;
+		$db = self::db();
 		$rPostServers = json_decode($rData['server_order'], true);
 		if (count($rPostServers) > 0) {
 			foreach ($rPostServers as $rOrder => $rPostServer) {
@@ -303,27 +315,27 @@ class ServerService {
 	}
 
 	public static function changePort($rServerID, $rType, $rPorts, $rReload = false) {
-		global $db;
+		$db = self::db();
 		$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rServerID, time(), json_encode(array('action' => 'set_port', 'type' => intval($rType), 'ports' => $rPorts, 'reload' => $rReload)));
 	}
 
 	public static function setServices($rServerID, $rNumServices, $rReload = true) {
-		global $db;
+		$db = self::db();
 		$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rServerID, time(), json_encode(array('action' => 'set_services', 'count' => intval($rNumServices), 'reload' => $rReload)));
 	}
 
 	public static function setGovernor($rServerID, $rGovernor) {
-		global $db;
+		$db = self::db();
 		$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rServerID, time(), json_encode(array('action' => 'set_governor', 'data' => $rGovernor)));
 	}
 
 	public static function setSysctl($rServerID, $rSysCtl) {
-		global $db;
+		$db = self::db();
 		$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rServerID, time(), json_encode(array('action' => 'set_sysctl', 'data' => $rSysCtl)));
 	}
 
 	public static function restoreImages() {
-		global $db;
+		$db = self::db();
 		global $rServers;
 		foreach (array_keys($rServers) as $rServerID) {
 			if (!$rServers[$rServerID]['server_online']) {
@@ -336,7 +348,7 @@ class ServerService {
 	}
 
 	public static function killPlexSync() {
-		global $db;
+		$db = self::db();
 		$db->query("SELECT DISTINCT(`server_id`) AS `server_id` FROM `watch_folders` WHERE `active` = 1 AND `type` = 'plex';");
 
 		global $rServers;
