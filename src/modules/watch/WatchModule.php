@@ -1,5 +1,22 @@
 <?php
 
+namespace XcVm\Module\Watch;
+
+use BaseModule;
+use ServiceContainer;
+use Router;
+use CommandRegistry;
+use NavbarRegistry;
+use NavbarItem;
+use WatchService;
+use RecordingService;
+use WatchController;
+use WatchCron;
+use WatchItem;
+use WatchCronJob;
+use WatchItemCommand;
+
+
 /**
  * Watch Module
  *
@@ -41,30 +58,23 @@
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-class WatchModule implements ModuleInterface {
+class WatchModule extends BaseModule {
 
-    /**
-     * {@inheritdoc}
-     */
     public function getName(): string {
         return 'watch';
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getVersion(): string {
         return '1.0.0';
     }
 
-    /**
-     * Регистрация сервисов модуля в DI-контейнере
-     *
-     * @param ServiceContainer $container
-     */
     public function boot(ServiceContainer $container): void {
-        // WatchService и RecordingService — статические классы,
-        // регистрируем их имена для обнаружения
+        $db = $container->get('db');
+        WatchService::setDb($db);
+        RecordingService::setDb($db);
+        WatchCron::setDb($db);
+        WatchItem::setDb($db);
+
         $container->set('watch.service', 'WatchService');
         $container->set('watch.recording', 'RecordingService');
         $container->set('watch.controller', function ($c) {
@@ -72,26 +82,7 @@ class WatchModule implements ModuleInterface {
         });
     }
 
-    /**
-     * Регистрация маршрутов модуля
-     *
-     * Страницы:
-     *   GET watch              → WatchController::index
-     *   GET watch/add          → WatchController::add
-     *   GET settings/watch     → WatchController::settings
-     *   GET watch/output       → WatchController::output
-     *   GET watch/record       → WatchController::record (через record)
-     *
-     * API:
-     *   enable_watch           → WatchController::apiEnable
-     *   disable_watch          → WatchController::apiDisable
-     *   kill_watch             → WatchController::apiKill
-     *   folder                 → WatchController::apiFolder
-     *
-     * @param Router $router
-     */
     public function registerRoutes(Router $router): void {
-        // ── Страницы ──────────────────────────────────────────
         $router->group('watch', function (Router $r) {
             $r->get('', [WatchController::class, 'index'], [
                 'permission' => ['adv', 'folder_watch'],
@@ -104,12 +95,10 @@ class WatchModule implements ModuleInterface {
             ]);
         });
 
-        // settings_watch → settings/watch (через normalizePage)
         $router->get('settings/watch', [WatchController::class, 'settings'], [
             'permission' => ['adv', 'folder_watch_settings'],
         ]);
 
-        // ── API-действия ──────────────────────────────────────
         $router->api('enable_watch', [WatchController::class, 'apiEnable'], [
             'permission' => ['adv', 'folder_watch_settings'],
         ]);
@@ -124,50 +113,21 @@ class WatchModule implements ModuleInterface {
         ]);
     }
 
-    /**
-     * CLI-команды модуля
-     *
-     * @param CommandRegistry $registry
-     */
     public function registerCommands(CommandRegistry $registry): void {
         $registry->register(new WatchCronJob());
         $registry->register(new WatchItemCommand());
     }
 
-    /**
-     * Подписки на события ядра
-     *
-     * @return array
-     */
-    public function getEventSubscribers(): array {
-        return [];
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function install(): void {
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function uninstall(): void {
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function registerNavbar(): void {
-        NavbarRegistry::add((new NavbarItem('topbar.settings.divider_modules'))
+    public function registerNavbar(NavbarRegistry $registry): void {
+        $registry->add((new NavbarItem('topbar.settings.divider_modules'))
             ->parent('topbar.settings')->makeDivider()->order(45));
-        NavbarRegistry::add((new NavbarItem('topbar.settings.watch_settings'))
+        $registry->add((new NavbarItem('topbar.settings.watch_settings'))
             ->parent('topbar.settings')->url('settings_watch')
             ->label('watch_settings')->permissions(['folder_watch_settings'])->order(50));
-        NavbarRegistry::add((new NavbarItem('management.service_setup.watch'))
+        $registry->add((new NavbarItem('management.service_setup.watch'))
             ->parent('management.service_setup')->url('watch')
             ->label('folder_watch')->permissions(['folder_watch'])->order(60));
-        NavbarRegistry::add((new NavbarItem('management.logs.watch_output'))
+        $registry->add((new NavbarItem('management.logs.watch_output'))
             ->parent('management.logs')->url('watch_output')
             ->label('watch_folder_logs')->permissions(['folder_watch'])->order(170));
     }

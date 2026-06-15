@@ -24,6 +24,20 @@ require_once __DIR__ . '/../../core/Process/Multithread.php';
  * Provides utility methods and the entrypoint for the watch cron job.
  */
 class WatchCron {
+    private static $db = null;
+
+    public static function setDb($db): void {
+        self::$db = $db;
+    }
+
+    private static function db(): object {
+        if (self::$db === null) {
+            throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+        }
+        return self::$db;
+    }
+
+
     /**
     * Get watch categories from the database.
     *
@@ -32,7 +46,7 @@ class WatchCron {
     * @return array Associative array keyed by `genre_id` of category rows.
      */
     public static function getWatchCategories($rType = null) {
-        global $db;
+        $db = self::db();
         $rReturn = array();
         if ($rType) {
             $db->query('SELECT * FROM `watch_categories` WHERE `type` = ? ORDER BY `genre_id` ASC;', $rType);
@@ -52,7 +66,7 @@ class WatchCron {
         * @return array|null Bouquet row array or null when not found.
      */
     public static function getBouquet($rID) {
-        global $db;
+        $db = self::db();
         $db->query('SELECT * FROM `bouquets` WHERE `id` = ?;', $rID);
         if ($db->num_rows() == 1) {
             return $db->get_row();
@@ -67,7 +81,7 @@ class WatchCron {
         * database.
      */
     public static function checkBouquets() {
-        global $db;
+        $db = self::db();
         $a39a336ad3894348 = array();
         $rBouquets = glob(WATCH_TMP_PATH . '*.bouquet');
         foreach ($rBouquets as $D3e2134ebfab5c71) {
@@ -112,7 +126,7 @@ class WatchCron {
      * @return void
      */
     public static function cleanupMissing($rFolderRow, $rExistingFiles) {
-        global $db;
+        $db = self::db();
         $rTypeMap = array('movie' => 2, 'series' => 3);
         $rType = $rTypeMap[$rFolderRow['type']] ?? 0;
         if (!$rType) return;
@@ -147,7 +161,7 @@ class WatchCron {
      * @return void
      */
     public static function run($rForce) {
-        global $db;
+        $db = self::db();
         global $rThreadCount;
         global $rScanOffset;
         global $F7fa29461a8a5ee2;

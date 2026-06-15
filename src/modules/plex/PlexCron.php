@@ -14,6 +14,20 @@ require_once __DIR__ . '/../../core/Process/Thread.php';
 require_once __DIR__ . '/../../core/Process/Multithread.php';
 
 class PlexCron {
+    private static $db = null;
+
+    public static function setDb($db): void {
+        self::$db = $db;
+    }
+
+    private static function db(): object {
+        if (self::$db === null) {
+            throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+        }
+        return self::$db;
+    }
+
+
     /**
      * Получить категории Plex из БД.
      *
@@ -21,7 +35,7 @@ class PlexCron {
      * @return array
      */
     public static function getPlexCategories($rType = null) {
-        global $db;
+        $db = self::db();
         $rReturn = array();
         if ($rType) {
             $db->query('SELECT * FROM `watch_categories` WHERE `type` = ? ORDER BY `genre_id` ASC;', $rType);
@@ -68,7 +82,7 @@ class PlexCron {
      * @return array|null
      */
     public static function getBouquet($rID) {
-        global $db;
+        $db = self::db();
         $db->query('SELECT * FROM `bouquets` WHERE `id` = ?;', $rID);
         if ($db->num_rows() == 1) {
             return $db->get_row();
@@ -79,7 +93,7 @@ class PlexCron {
      * Проверить и создать новые категории из временных файлов.
      */
     public static function checkCategories() {
-        global $db;
+        $db = self::db();
         $rPlexCategories = array('movie' => self::getPlexCategories(3), 'show' => self::getPlexCategories(4));
         $rCategories = glob(WATCH_TMP_PATH . '*.pcat');
         $rCatID = array('movie' => 1, 'show' => 1);
@@ -102,7 +116,7 @@ class PlexCron {
      * Обработать файлы букетов во временной директории.
      */
     public static function checkBouquets() {
-        global $db;
+        $db = self::db();
         $a39a336ad3894348 = array();
         $rBouquets = glob(WATCH_TMP_PATH . '*.pbouquet');
         foreach ($rBouquets as $D3e2134ebfab5c71) {
@@ -141,7 +155,7 @@ class PlexCron {
      * Заменяет loadCron().
      */
     public static function run($rForce = null) {
-        global $db;
+        $db = self::db();
         global $rScanOffset;
 
         // Some environments keep scan offset undefined/null; normalize to int.

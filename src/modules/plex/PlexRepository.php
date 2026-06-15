@@ -11,17 +11,39 @@
  */
 
 class PlexRepository {
+
+    private static $db = null;
+
+    public static function setDb($db): void {
+        self::$db = $db;
+    }
+
+    private static function db() {
+        if (self::$db !== null) {
+            return self::$db;
+        }
+        global $db;
+        return $db;
+    }
+
 	public static function getPlexServers() {
-		global $db;
 		$rReturn = array();
-		$db->query("SELECT * FROM `watch_folders` WHERE `type` = 'plex' ORDER BY `id` ASC;");
-		if (0 < $db->num_rows()) {
-			foreach ($db->get_rows() as $rRow) {
+		self::db()->query("SELECT * FROM `watch_folders` WHERE `type` = 'plex' ORDER BY `id` ASC;");
+		if (0 < self::db()->num_rows()) {
+			foreach (self::db()->get_rows() as $rRow) {
 				$rReturn[] = $rRow;
 			}
 		}
 		return $rReturn;
 	}
+
+    public static function enableAll(): void {
+        self::db()->query("UPDATE `watch_folders` SET `active` = 1 WHERE `type` = 'plex';");
+    }
+
+    public static function disableAll(): void {
+        self::db()->query("UPDATE `watch_folders` SET `active` = 0 WHERE `type` = 'plex';");
+    }
 
 	public static function getPlexSections($rIP, $rPort, $rToken) {
 		if (!$rToken) {

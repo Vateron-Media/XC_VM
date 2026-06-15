@@ -70,7 +70,7 @@ class PlexController {
     }
 
     public function settings() {
-        global $db, $rMobile, $rSettings;
+        global $rMobile, $rSettings;
         $rBouquets = BouquetService::getAllSimple();
         $_TITLE = 'Plex Settings';
 
@@ -85,15 +85,13 @@ class PlexController {
     // ───────────────────────────────────────────────────────────
 
     public function apiEnable() {
-        global $db;
-        $db->query("UPDATE `watch_folders` SET `active` = 1 WHERE `type` = 'plex';");
+        PlexRepository::enableAll();
         echo json_encode(['result' => true]);
         exit();
     }
 
     public function apiDisable() {
-        global $db;
-        $db->query("UPDATE `watch_folders` SET `active` = 0 WHERE `type` = 'plex';");
+        PlexRepository::disableAll();
         echo json_encode(['result' => true]);
         exit();
     }

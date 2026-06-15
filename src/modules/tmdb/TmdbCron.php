@@ -18,6 +18,20 @@
  */
 
 class TmdbCron {
+    private static $db = null;
+
+    public static function setDb($db): void {
+        self::$db = $db;
+    }
+
+    private static function db(): object {
+        if (self::$db === null) {
+            throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+        }
+        return self::$db;
+    }
+
+
     /**
      * Создать TMDB-клиент с корректным языком.
      *
@@ -136,7 +150,7 @@ class TmdbCron {
      * @param array $row Строка из watch_refresh
      */
     private static function processMovie(array $row): void {
-        global $db;
+        $db = self::db();
 
         $db->query('SELECT * FROM `streams` WHERE `id` = ?;', $row['stream_id']);
         if ($db->num_rows() != 1) {
@@ -326,7 +340,7 @@ class TmdbCron {
      * @param array &$updateSeries Массив ID сериалов для последующего updateSeries()
      */
     private static function processSeries(array $row, array &$updateSeries): void {
-        global $db;
+        $db = self::db();
 
         $db->query('SELECT * FROM `streams_series` WHERE `id` = ?;', $row['stream_id']);
         if ($db->num_rows() != 1) {
@@ -465,7 +479,7 @@ class TmdbCron {
      * @param array &$updateSeries Массив ID сериалов для последующего updateSeries()
      */
     private static function processEpisode(array $row, array &$updateSeries): void {
-        global $db;
+        $db = self::db();
 
         $db->query('SELECT * FROM `streams` WHERE `id` = ?;', $row['stream_id']);
         if ($db->num_rows() != 1) {
@@ -600,7 +614,7 @@ class TmdbCron {
      * и делегирует обработку по типу.
      */
     public static function run(): void {
-        global $db;
+        $db = self::db();
 
         require_once MAIN_HOME . 'modules/tmdb/lib/TmdbClient.php';
         require_once MAIN_HOME . 'modules/tmdb/lib/Release.php';

@@ -1,5 +1,21 @@
 <?php
 
+namespace XcVm\Module\Plex;
+
+use BaseModule;
+use ServiceContainer;
+use Router;
+use CommandRegistry;
+use NavbarRegistry;
+use NavbarItem;
+use PlexService;
+use PlexRepository;
+use PlexController;
+use PlexCron;
+use PlexItem;
+use PlexCronJob;
+use PlexItemCommand;
+
 /**
  * Plex Module
  *
@@ -44,28 +60,23 @@
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-class PlexModule implements ModuleInterface {
+class PlexModule extends BaseModule {
 
-    /**
-     * {@inheritdoc}
-     */
     public function getName(): string {
         return 'plex';
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getVersion(): string {
         return '1.0.0';
     }
 
-    /**
-     * Регистрация сервисов модуля в DI-контейнере
-     *
-     * @param ServiceContainer $container
-     */
     public function boot(ServiceContainer $container): void {
+        $db = $container->get('db');
+        PlexService::setDb($db);
+        PlexRepository::setDb($db);
+        PlexCron::setDb($db);
+        PlexItem::setDb($db);
+
         $container->set('plex.service', 'PlexService');
         $container->set('plex.repository', 'PlexRepository');
         $container->set('plex.auth', 'PlexAuth');
@@ -74,25 +85,7 @@ class PlexModule implements ModuleInterface {
         });
     }
 
-    /**
-     * Регистрация маршрутов модуля
-     *
-     * Страницы:
-     *   GET plex              → PlexController::index
-     *   GET plex/add          → PlexController::add
-     *   GET settings/plex     → PlexController::settings
-     *
-     * API:
-     *   enable_plex           → PlexController::apiEnable
-     *   disable_plex          → PlexController::apiDisable
-     *   kill_plex             → PlexController::apiKill
-     *   library               → PlexController::apiLibrary
-     *   plex_sections         → PlexController::apiSections
-     *
-     * @param Router $router
-     */
     public function registerRoutes(Router $router): void {
-        // ── Страницы ──────────────────────────────────────────
         $router->group('plex', function (Router $r) {
             $r->get('', [PlexController::class, 'index'], [
                 'permission' => ['adv', 'folder_watch'],
@@ -102,12 +95,10 @@ class PlexModule implements ModuleInterface {
             ]);
         });
 
-        // settings_plex → settings/plex (через normalizePage)
         $router->get('settings/plex', [PlexController::class, 'settings'], [
             'permission' => ['adv', 'folder_watch_settings'],
         ]);
 
-        // ── API-действия ──────────────────────────────────────
         $router->api('enable_plex', [PlexController::class, 'apiEnable'], [
             'permission' => ['adv', 'folder_watch_settings'],
         ]);
@@ -125,45 +116,16 @@ class PlexModule implements ModuleInterface {
         ]);
     }
 
-    /**
-     * CLI-команды модуля
-     *
-     * @param CommandRegistry $registry
-     */
     public function registerCommands(CommandRegistry $registry): void {
         $registry->register(new PlexCronJob());
         $registry->register(new PlexItemCommand());
     }
 
-    /**
-     * Подписки на события ядра
-     *
-     * @return array
-     */
-    public function getEventSubscribers(): array {
-        return [];
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function install(): void {
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function uninstall(): void {
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function registerNavbar(): void {
-        NavbarRegistry::add((new NavbarItem('topbar.settings.plex_settings'))
+    public function registerNavbar(NavbarRegistry $registry): void {
+        $registry->add((new NavbarItem('topbar.settings.plex_settings'))
             ->parent('topbar.settings')->url('settings_plex')
             ->label('plex_settings')->permissions(['folder_watch_settings'])->order(55));
-        NavbarRegistry::add((new NavbarItem('management.service_setup.plex'))
+        $registry->add((new NavbarItem('management.service_setup.plex'))
             ->parent('management.service_setup')->url('plex')
             ->label('', 'Plex Sync')->permissions(['folder_watch'])->order(70));
     }

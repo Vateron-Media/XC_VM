@@ -53,7 +53,7 @@ class WatchController {
     }
 
     public function add() {
-        global $db, $rMobile, $rSettings, $rPermissions, $language;
+        global $rMobile, $rSettings, $rPermissions, $language;
 
         if (isset(RequestManager::getAll()['id'])) {
             $rFolder = StreamRepository::getWatchFolder(RequestManager::getAll()['id']);
@@ -73,7 +73,7 @@ class WatchController {
     }
 
     public function settings() {
-        global $db, $rMobile, $rSettings;
+        global $rMobile, $rSettings;
         $rBouquets = BouquetService::getAllSimple();
         $_TITLE = 'Watch Settings';
 
@@ -98,28 +98,24 @@ class WatchController {
     // ───────────────────────────────────────────────────────────
 
     public function apiEnable() {
-        global $db;
         WatchService::enableWatch();
         echo json_encode(['result' => true]);
         exit();
     }
 
     public function apiDisable() {
-        global $db;
         WatchService::disableWatch();
         echo json_encode(['result' => true]);
         exit();
     }
 
     public function apiKill() {
-        global $db;
         WatchService::killWatch();
         echo json_encode(['result' => true]);
         exit();
     }
 
     public function apiFolder() {
-        global $db;
         $rSub = RequestManager::getAll()['sub'] ?? '';
         $rFolderID = RequestManager::getAll()['folder_id'] ?? 0;
 

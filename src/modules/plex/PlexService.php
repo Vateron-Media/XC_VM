@@ -11,8 +11,22 @@
  */
 
 class PlexService {
+
+    private static $db = null;
+
+    public static function setDb($db): void {
+        self::$db = $db;
+    }
+
+    private static function db() {
+        if (self::$db !== null) {
+            return self::$db;
+        }
+        global $db;
+        return $db;
+    }
+
 	public static function editPlexSettings($rData) {
-		global $db;
 		foreach ($rData as $rKey => $rValue) {
 			$rSplit = explode('_', $rKey);
 			if ($rSplit[0] == 'genre') {
@@ -21,7 +35,7 @@ class PlexService {
 				} else {
 					$rBouquets = '[]';
 				}
-				$db->query('UPDATE `watch_categories` SET `category_id` = ?, `bouquets` = ? WHERE `genre_id` = ? AND `type` = 3;', $rValue, $rBouquets, $rSplit[1]);
+				self::db()->query('UPDATE `watch_categories` SET `category_id` = ?, `bouquets` = ? WHERE `genre_id` = ? AND `type` = 3;', $rValue, $rBouquets, $rSplit[1]);
 			}
 		}
 
@@ -33,17 +47,16 @@ class PlexService {
 				} else {
 					$rBouquets = '[]';
 				}
-				$db->query('UPDATE `watch_categories` SET `category_id` = ?, `bouquets` = ? WHERE `genre_id` = ? AND `type` = 4;', $rValue, $rBouquets, $rSplit[1]);
+				self::db()->query('UPDATE `watch_categories` SET `category_id` = ?, `bouquets` = ? WHERE `genre_id` = ? AND `type` = 4;', $rValue, $rBouquets, $rSplit[1]);
 			}
 		}
 
-		$db->query('UPDATE `settings` SET `scan_seconds` = ?, `max_genres` = ?, `thread_count_movie` = ?, `thread_count_show` = ?;', $rData['scan_seconds'], $rData['max_genres'], $rData['thread_count_movie'], $rData['thread_count_show']);
+		self::db()->query('UPDATE `settings` SET `scan_seconds` = ?, `max_genres` = ?, `thread_count_movie` = ?, `thread_count_show` = ?;', $rData['scan_seconds'], $rData['max_genres'], $rData['thread_count_movie'], $rData['thread_count_show']);
 		SettingsManager::clearCache();
 		return array('status' => STATUS_SUCCESS);
 	}
 
 	public static function processPlexSync($rData) {
-		global $db;
 		if (isset($rData['edit'])) {
 			$rArray = AdminHelpers::overwriteData(StreamRepository::getWatchFolder($rData['edit']), $rData);
 		} else {
@@ -61,12 +74,12 @@ class PlexService {
 		}
 
 		if (isset($rData['edit'])) {
-			$db->query('SELECT COUNT(*) AS `count` FROM `watch_folders` WHERE `directory` = ? AND `server_id` = ? AND `plex_ip` = ? AND `id` <> ?;', $rData['library_id'], $rArray['server_id'], $rData['plex_ip'], $rArray['id']);
+			self::db()->query('SELECT COUNT(*) AS `count` FROM `watch_folders` WHERE `directory` = ? AND `server_id` = ? AND `plex_ip` = ? AND `id` <> ?;', $rData['library_id'], $rArray['server_id'], $rData['plex_ip'], $rArray['id']);
 		} else {
-			$db->query('SELECT COUNT(*) AS `count` FROM `watch_folders` WHERE `directory` = ? AND `server_id` = ? AND `plex_ip` = ?;', $rData['library_id'], $rArray['server_id'], $rData['plex_ip']);
+			self::db()->query('SELECT COUNT(*) AS `count` FROM `watch_folders` WHERE `directory` = ? AND `server_id` = ? AND `plex_ip` = ?;', $rData['library_id'], $rArray['server_id'], $rData['plex_ip']);
 		}
 
-		if (0 < $db->get_row()['count']) {
+		if (0 < self::db()->get_row()['count']) {
 			return array('status' => STATUS_EXISTS_DIR, 'data' => $rData);
 		}
 
@@ -95,8 +108,8 @@ class PlexService {
 		$rPrepare = QueryHelper::prepareArray($rArray);
 		$rQuery = 'REPLACE INTO `watch_folders`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
-		if ($db->query($rQuery, ...$rPrepare['data'])) {
-			$rInsertID = $db->last_insert_id();
+		if (self::db()->query($rQuery, ...$rPrepare['data'])) {
+			$rInsertID = self::db()->last_insert_id();
 			return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
 		}
 		return array('status' => STATUS_FAILURE, 'data' => $rData);

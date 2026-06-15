@@ -77,7 +77,7 @@ class TmdbService {
 
         // Текстовый поиск
         $rRelease = AdminHelpers::parserelease($term);
-        $searchTerm = $rRelease['title'];
+        $searchTerm = $rRelease['title'] ?? $term;
         $rJSON = [];
 
         if ($type === 'movie') {
