@@ -11,7 +11,7 @@ class ModulesController extends BaseAdminController {
     public function index() {
         $this->requirePermission();
 
-        $manager = new ModuleManager();
+        $manager = new ModuleManager(container: ServiceContainer::getInstance());
         $flash = null;
 
         if (strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
