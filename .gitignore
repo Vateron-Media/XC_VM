@@ -1,5 +1,4 @@
 .vscode/
-CLAUDE.md
 dist/
 .DS_Store
 __pycache__/
@@ -8,3 +7,4 @@ __pycache__/
 EXTENSION.md
 src/tmp/cache/autoload_map
 tests/.cache/
+.claude/
