@@ -14,7 +14,7 @@ is built on **Extensible Platform** principles:
 
 ## Module directory structure
 
-```
+```text
 src/modules/my-module/
 ├── module.json          # Metadata and manifest
 ├── MyModule.php         # Module class (source of truth)
@@ -100,12 +100,13 @@ class MyModule implements ModuleInterface, StreamMiddlewareProviderInterface {
 
 ## Module class
 
+Extend `BaseModule` — it provides no-op defaults for every optional method so you only
+override what the module actually uses. Only `getName()` and `getVersion()` are required.
+
 ```php
 <?php
 
-class MyModule implements ModuleInterface {
-
-    // ── ModuleInterface ──────────────────────────────────────────
+class MyModule extends BaseModule {
 
     public function getName(): string {
         return 'my-module';
@@ -115,15 +116,11 @@ class MyModule implements ModuleInterface {
         return '1.0.0';
     }
 
-    // ── ServiceProviderInterface ─────────────────────────────────
-
     public function boot(ServiceContainer $container): void {
         $container->set('my-module.service', function (ServiceContainer $c): MyService {
             return new MyService($c->get('db'));
         });
     }
-
-    // ── RouteProviderInterface ───────────────────────────────────
 
     public function registerRoutes(Router $router): void {
         $router->get('my_page', [MyController::class, 'index'], [
@@ -131,13 +128,9 @@ class MyModule implements ModuleInterface {
         ]);
     }
 
-    // ── CommandProviderInterface ─────────────────────────────────
-
     public function registerCommands(CommandRegistry $registry): void {
         $registry->register(new MyCronJob());
     }
-
-    // ── NavbarProviderInterface ──────────────────────────────────
 
     public function registerNavbar(): void {
         NavbarRegistry::add(
@@ -149,11 +142,13 @@ class MyModule implements ModuleInterface {
                 ->order(60)
         );
     }
-
-    public function install(): void {}
-    public function uninstall(): void {}
 }
 ```
+
+> **Tip:** a module with no routes, no navbar items, and no CLI commands only needs
+> `getName()`, `getVersion()`, and `boot()`.
+> A `BoundaryInterface` module (isolated subsystem with its own entry point) typically
+> leaves `boot()` and `registerRoutes()` inherited as no-ops.
 
 ### Method contract
 
@@ -167,6 +162,26 @@ class MyModule implements ModuleInterface {
 | `registerNavbar()` | `NavbarProviderInterface` | Register navbar items |
 | `install(): void` | `ModuleInterface` | Run on module install (migrations, seed) |
 | `uninstall(): void` | `ModuleInterface` | Run on module remove (cleanup) |
+
+---
+
+## Class naming convention
+
+All module classes live in the **global PHP namespace** (no Composer, no PSR-4 autoloader).
+To prevent collisions with other modules and with core classes, prefix every class with the
+PascalCase module name:
+
+| Module | Prefix | Examples |
+| ------- | ------- | ------- |
+| `my-module` | `MyModule` | `MyModuleService`, `MyModuleController`, `MyModuleCronJob` |
+| `watch` | `Watch` | `WatchService`, `WatchController`, `WatchCronJob` |
+
+**Rules:**
+
+- Main module class: `<ModuleName>Module.php` — required (ModuleLoader convention)
+- All other classes: `<ModuleName><Purpose>.php`
+- Never use generic names (`Service`, `Controller`, `Helper`) — they will collide
+- Until PHP namespaces are introduced, the prefix is the only collision guard
 
 ---
 
@@ -260,16 +275,17 @@ class MyStreamMiddleware implements StreamMiddlewareInterface {
         return 50;
     }
 
-    public function process(StreamContext $context, callable $next): StreamContext {
-        // before
-        $context = $next($context);
+    public function handle(StreamContext $ctx, callable $next): StreamContext {
+        // before — read or set attributes
+        $ctx->set('my.key', 'value');
+        $ctx = $next($ctx);
         // after
-        return $context;
+        return $ctx;
     }
 }
 ```
 
-`StreamContext` is an immutable attribute bag (`get`, `with`, `has`). `StreamPipeline`
+`StreamContext` is an attribute bag (`get`, `set`, `has`, `abort`, `isAborted`). `StreamPipeline`
 executes middleware sorted by `getPriority()` descending.
 
 ### Pipeline priorities
@@ -358,18 +374,32 @@ Under the hood:
 
 ## Isolated subsystems (BoundaryInterface)
 
-Subsystems that must be fully isolated implement `BoundaryInterface`:
+A module that is a fully isolated subsystem with its own entry point and bootstrap
+(like Ministra) implements `BoundaryInterface` alongside `ModuleInterface`:
 
 ```php
-interface BoundaryInterface {
-    public function boot(ServiceContainer $container): void;
-    public function getExportedServices(): array;
+class MyModule implements ModuleInterface, BoundaryInterface {
+
+    public function getName(): string {
+        return 'my-module';
+    }
+
+    public function getEntryPoint(): string {
+        // Path relative to src/ — this file handles its own bootstrap
+        return 'my-module/portal.php';
+    }
+
+    public function isIsolated(): bool {
+        return true;
+    }
 }
 ```
 
-Example — `MinistraBootstrap` boots the Ministra subsystem and exports
-`['ministra.api', 'ministra.auth']` to the shared container. The Ministra module
-delegates all responsibility to `MinistraBoundary`.
+`BoundaryInterface` is an isolation marker. `isIsolated() = true` means the subsystem
+runs through its own entry point with a separate bootstrap path. It shares infrastructure
+(db, cache, config) but does **not** participate in the main `Router`, `ModuleLoader::bootAll()`,
+or `NavbarRegistry`. The `boot()` and `registerRoutes()` implementations may be left as
+no-ops in this case.
 
 ---
 
@@ -452,7 +482,7 @@ $rCrons[] = '*/5 * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:my_ta
 
 - [ ] Create `src/modules/<name>/`
 - [ ] Create `module.json` with `name`, `version`, `requires_core`, `priority`, `dependencies`, `optional_dependencies`
-- [ ] Create `<Name>Module.php` implementing `ModuleInterface`
+- [ ] Create `<Name>Module.php` extending `BaseModule`
 - [ ] Implement `boot()` for all services the module provides
 - [ ] Implement `registerRoutes()` for HTTP / API endpoints
 - [ ] Implement `registerNavbar()` for admin panel items (or leave empty)

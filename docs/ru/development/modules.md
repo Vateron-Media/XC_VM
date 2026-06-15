@@ -118,14 +118,15 @@ StreamMiddlewareProviderInterface   getStreamMiddleware()
 
 ## Класс модуля
 
-Файл `src/modules/my-module/MyModule.php`:
+Файл `src/modules/my-module/MyModule.php`.
+
+Расширяйте `BaseModule` — он предоставляет пустые реализации по умолчанию для всех
+необязательных методов. Обязательны только `getName()` и `getVersion()`.
 
 ```php
 <?php
 
-class MyModule implements ModuleInterface {
-
-    // ── Идентификация ─────────────────────────────────────────
+class MyModule extends BaseModule {
 
     public function getName(): string {
         return 'my-module';
@@ -135,8 +136,6 @@ class MyModule implements ModuleInterface {
         return '1.0.0';
     }
 
-    // ── ServiceProviderInterface ───────────────────────────────
-
     public function boot(ServiceContainer $container): void {
         $container->set('my-module.service', function (ServiceContainer $c) {
             return new MyService($c->get('db'));
@@ -145,15 +144,11 @@ class MyModule implements ModuleInterface {
 
     public function getEventSubscribers(): array {
         return [
-            // Typed PSR-14 event → callable
             StreamStartedEvent::class => [MyHandler::class, 'onStreamStarted'],
-
             // С приоритетом: [callable, int]
             UserAuthenticatedEvent::class => [[MyHandler::class, 'onAuth'], 20],
         ];
     }
-
-    // ── RouteProviderInterface ─────────────────────────────────
 
     public function registerRoutes(Router $router): void {
         $router->get('my-module', [MyController::class, 'index'], [
@@ -164,13 +159,9 @@ class MyModule implements ModuleInterface {
         ]);
     }
 
-    // ── CommandProviderInterface ───────────────────────────────
-
     public function registerCommands(CommandRegistry $registry): void {
         $registry->register(new MyCronJob());
     }
-
-    // ── NavbarProviderInterface ────────────────────────────────
 
     public function registerNavbar(): void {
         NavbarRegistry::add((new NavbarItem('management.service_setup.my_module'))
@@ -181,15 +172,7 @@ class MyModule implements ModuleInterface {
             ->order(60));
     }
 
-    // ── Установка / удаление ──────────────────────────────────
-
-    public function install(): void {
-        // Миграции, seed-данные
-    }
-
-    public function uninstall(): void {
-        // Удаление данных модуля
-    }
+    // override install()/uninstall() only if migrations or cleanup are needed
 }
 ```
 
@@ -206,6 +189,26 @@ class MyModule implements ModuleInterface {
 | `registerRoutes(Router)` | `RouteProviderInterface` | HTTP-маршруты и API-экшены |
 | `registerCommands(CommandRegistry)` | `CommandProviderInterface` | Явная регистрация CLI-команд и крон-задач |
 | `registerNavbar(): void` | `NavbarProviderInterface` | Пункты меню в admin navbar |
+
+---
+
+## Соглашение по именованию классов
+
+Все классы модулей живут в **глобальном PHP-пространстве имён** (без Composer, без PSR-4).
+Чтобы избежать коллизий с другими модулями и классами ядра, **каждый класс должен иметь префикс**
+из PascalCase-имени модуля:
+
+| Модуль | Префикс | Примеры |
+| ------- | ------- | ------- |
+| `my-module` | `MyModule` | `MyModuleService`, `MyModuleController`, `MyModuleCronJob` |
+| `watch` | `Watch` | `WatchService`, `WatchController`, `WatchCronJob` |
+
+**Правила:**
+
+- Главный класс: `<ModuleName>Module.php` — обязательно (соглашение ModuleLoader)
+- Остальные классы: `<ModuleName><Purpose>.php`
+- Никаких generic-имён (`Service`, `Controller`, `Helper`) — они гарантированно вызовут коллизию
+- До введения PHP-пространств имён префикс — единственная защита от коллизий
 
 ---
 
@@ -529,10 +532,13 @@ $manager->downloadFromPlatform(slug: 'my-module', version: '1.2.0', apiKey: $key
 Если модуль является изолированной подсистемой с собственным bootstrap (как Ministra), он реализует `BoundaryInterface`:
 
 ```php
-class MyModule implements ModuleInterface, BoundaryInterface {
+class MyModule extends BaseModule implements BoundaryInterface {
+
+    public function getName(): string { return 'my-module'; }
+    public function getVersion(): string { return '1.0.0'; }
 
     public function getEntryPoint(): string {
-        return 'ministra/portal.php';
+        return 'my-module/portal.php';
     }
 
     public function isIsolated(): bool {
@@ -641,7 +647,7 @@ public function has(string $id): bool;
 
 - [ ] `mkdir -p src/modules/<name>/`
 - [ ] Создать `module.json` (name, version, requires_core, priority, optional_dependencies)
-- [ ] Создать `<Name>Module.php` (implements `ModuleInterface`)
+- [ ] Создать `<Name>Module.php` (extends `BaseModule`)
 - [ ] `boot()` — зарегистрировать сервисы через `$container->set()`
 - [ ] `getEventSubscribers()` — подписки на типизированные события
 - [ ] `registerRoutes()` — маршруты (или пустой метод)
