@@ -79,41 +79,20 @@
 
 class ServiceContainer implements ContainerInterface {
 
-    /**
-     * Единственный экземпляр контейнера (singleton)
-     * @var ServiceContainer|null
-     */
-    private static $instance = null;
+    private static ?self $instance = null;
 
-    /**
-     * Зарегистрированные фабрики: id => callable
-     * @var array<string, callable>
-     */
-    private $factories = [];
+    /** @var array<string, callable> */
+    private array $factories = [];
 
-    /**
-     * Разрешённые (готовые) сервисы: id => mixed
-     * @var array<string, mixed>
-     */
-    private $resolved = [];
+    /** @var array<string, mixed> */
+    private array $resolved = [];
 
-    /**
-     * Сервисы, помеченные как «фабричные» (новый экземпляр каждый раз)
-     * @var array<string, bool>
-     */
-    private $isFactory = [];
+    private array $isFactory = [];
 
-    /**
-     * Флаг: сервис сейчас в процессе создания (для детекции циклов)
-     * @var array<string, bool>
-     */
-    private $creating = [];
+    private array $creating = [];
 
-    /**
-     * Теги для группировки сервисов: tag => [id, id, ...]
-     * @var array<string, string[]>
-     */
-    private $tags = [];
+    /** @var array<string, string[]> */
+    private array $tags = [];
 
     /**
      * Decoration chains: id => priority => decorator[]
@@ -135,9 +114,9 @@ class ServiceContainer implements ContainerInterface {
     /**
      * Получить единственный экземпляр.
      *
-     * @return ServiceContainer
+     * @internal Bootstrap only. Modules receive ServiceContainer via boot(ServiceContainer $c).
      */
-    public static function getInstance() {
+    public static function getInstance(): self {
         if (self::$instance === null) {
             self::$instance = new self();
         }
@@ -147,7 +126,7 @@ class ServiceContainer implements ContainerInterface {
     /**
      * Сбросить контейнер (для тестов).
      */
-    public static function resetInstance() {
+    public static function resetInstance(): void {
         if (self::$instance !== null) {
             self::$instance->factories = [];
             self::$instance->resolved  = [];
@@ -180,7 +159,7 @@ class ServiceContainer implements ContainerInterface {
      * @param mixed  $value Фабрика (callable) или готовое значение
      * @return $this
      */
-    public function set($id, $value) {
+    public function set(string $id, mixed $value): static {
         // Удаляем ранее разрешённый сервис при перерегистрации
         unset($this->resolved[$id]);
         unset($this->isFactory[$id]);
@@ -203,7 +182,7 @@ class ServiceContainer implements ContainerInterface {
      * @param callable $factory Фабрика: function(ServiceContainer $c): mixed
      * @return $this
      */
-    public function factory($id, $factory) {
+    public function factory(string $id, callable $factory): static {
         unset($this->resolved[$id]);
         $this->factories[$id] = $factory;
         $this->isFactory[$id] = true;
@@ -222,7 +201,7 @@ class ServiceContainer implements ContainerInterface {
      * @param string $tag Имя тега (например, 'event.subscriber', 'cron')
      * @return $this
      */
-    public function tag($id, $tag) {
+    public function tag(string $id, string $tag): static {
         if (!isset($this->tags[$tag])) {
             $this->tags[$tag] = [];
         }
@@ -254,13 +233,13 @@ class ServiceContainer implements ContainerInterface {
      */
     public function decorate(string $id, string|callable $decorator, int $priority = 0): static {
         if (in_array($id, $this->protectedServices, true)) {
-            throw new RuntimeException(
+            throw new ContainerException(
                 "ServiceContainer: сервис '{$id}' защищён от декорирования модулями."
             );
         }
 
         if (!isset($this->factories[$id]) && !array_key_exists($id, $this->resolved)) {
-            throw new RuntimeException(
+            throw new ContainerException(
                 "ServiceContainer: невозможно декорировать незарегистрированный сервис '{$id}'."
             );
         }
@@ -303,10 +282,7 @@ class ServiceContainer implements ContainerInterface {
         if (isset($this->factories[$id])) {
             // Детекция циклических зависимостей
             if (isset($this->creating[$id])) {
-                throw new RuntimeException(
-                    "ServiceContainer: циклическая зависимость при создании сервиса '{$id}'. "
-                        . "Цепочка: " . implode(' → ', array_keys($this->creating)) . " → {$id}"
-                );
+                $this->throwCircularDependency($id);
             }
 
             $this->creating[$id] = true;
@@ -314,9 +290,12 @@ class ServiceContainer implements ContainerInterface {
             try {
                 $service = call_user_func($this->factories[$id], $this);
                 $service = $this->applyDecorators($id, $service);
+            } catch (XcVmException $e) {
+                unset($this->creating[$id]);
+                throw $e;
             } catch (Exception $e) {
                 unset($this->creating[$id]);
-                throw new RuntimeException(
+                throw new ServiceCreationException(
                     "ServiceContainer: ошибка при создании сервиса '{$id}': " . $e->getMessage(),
                     0,
                     $e
@@ -346,7 +325,7 @@ class ServiceContainer implements ContainerInterface {
      * @param mixed  $default Значение по умолчанию (если сервис не найден)
      * @return mixed
      */
-    public function getOrDefault($id, $default = null) {
+    public function getOrDefault(string $id, mixed $default = null): mixed {
         if ($this->has($id)) {
             return $this->get($id);
         }
@@ -359,7 +338,7 @@ class ServiceContainer implements ContainerInterface {
      * @param string $tag Имя тега
      * @return array Массив сервисов [id => service]
      */
-    public function getTagged($tag) {
+    public function getTagged(string $tag): array {
         $services = [];
         if (isset($this->tags[$tag])) {
             foreach ($this->tags[$tag] as $id) {
@@ -386,7 +365,7 @@ class ServiceContainer implements ContainerInterface {
      *
      * @return string[]
      */
-    public function keys() {
+    public function keys(): array {
         return array_unique(
             array_merge(
                 array_keys($this->resolved),
@@ -401,7 +380,7 @@ class ServiceContainer implements ContainerInterface {
      * @param string $id Идентификатор
      * @return $this
      */
-    public function remove($id) {
+    public function remove(string $id): static {
         unset(
             $this->factories[$id],
             $this->resolved[$id],
@@ -428,7 +407,7 @@ class ServiceContainer implements ContainerInterface {
      * @param array $services Массив [id => value/callable, ...]
      * @return $this
      */
-    public function register(array $services) {
+    public function register(array $services): static {
         foreach ($services as $id => $value) {
             $this->set($id, $value);
         }
@@ -445,7 +424,7 @@ class ServiceContainer implements ContainerInterface {
      * @param string $id
      * @return mixed
      */
-    public function __get($id) {
+    public function __get(string $id): mixed {
         return $this->get($id);
     }
 
@@ -455,7 +434,7 @@ class ServiceContainer implements ContainerInterface {
      * @param string $id
      * @return bool
      */
-    public function __isset($id) {
+    public function __isset(string $id): bool {
         return $this->has($id);
     }
 
@@ -497,6 +476,17 @@ class ServiceContainer implements ContainerInterface {
     }
 
     // ─────────────────────────────────────────────────────────
+    //  Internal throw helpers (never return type — R2-4)
+    // ─────────────────────────────────────────────────────────
+
+    private function throwCircularDependency(string $id): never {
+        throw new CircularDependencyException(
+            "ServiceContainer: циклическая зависимость при создании сервиса '{$id}'. "
+            . "Цепочка: " . implode(' → ', array_keys($this->creating)) . " → {$id}"
+        );
+    }
+
+    // ─────────────────────────────────────────────────────────
     //  Отладка
     // ─────────────────────────────────────────────────────────
 
@@ -505,7 +495,7 @@ class ServiceContainer implements ContainerInterface {
      *
      * @return array
      */
-    public function dump() {
+    public function dump(): array {
         $result = [];
         foreach ($this->keys() as $id) {
             $status = 'pending';
@@ -538,7 +528,7 @@ class ServiceContainer implements ContainerInterface {
      * @param string $id
      * @return string[]
      */
-    private function getTagsFor($id) {
+    private function getTagsFor(string $id): array {
         $result = [];
         foreach ($this->tags as $tag => $ids) {
             if (in_array($id, $ids, true)) {

@@ -9,9 +9,10 @@
 interface NavbarProviderInterface {
 
     /**
-     * Register navbar items via NavbarRegistry::add().
+     * Register navbar items via the provided NavbarRegistry.
      *
      * Called in bootAll() after all modules have been booted.
+     * Use $registry->add() instead of NavbarRegistry::add() (static).
      */
-    public function registerNavbar(): void;
+    public function registerNavbar(NavbarRegistry $registry): void;
 }

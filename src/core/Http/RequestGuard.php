@@ -56,6 +56,10 @@ if (!isset($_SERVER['argc'])) {
     }
 }
 
+if (defined('DEV_MODE') && DEV_MODE) {
+    $rShowErrors = true;
+}
+
 define('PHP_ERRORS', $rShowErrors);
 
 // ── Logger ─────────────────────────────────────────────────────

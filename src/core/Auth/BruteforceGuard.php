@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Bruteforce / Flood Guard
  *
@@ -14,7 +16,7 @@
  */
 
 class BruteforceGuard {
-    private static function getSettings() {
+    private static function getSettings(): array {
         if (!empty(SettingsManager::getAll())) {
             return SettingsManager::getAll();
         }
@@ -29,7 +31,7 @@ class BruteforceGuard {
      *
      * @return string
      */
-    private static function getUserIP() {
+    private static function getUserIP(): string {
         if (class_exists('NetworkUtils', false)) {
             return NetworkUtils::getUserIP();
         }
@@ -41,7 +43,7 @@ class BruteforceGuard {
      *
      * @return array
      */
-    private static function getAllowedIPs() {
+    private static function getAllowedIPs(): array {
         if (class_exists('ServerRepository', false)) {
             return ServerRepository::getAllowedIPs();
         }
@@ -56,7 +58,7 @@ class BruteforceGuard {
      *
      * @return array
      */
-    private static function getBlockedIPs() {
+    private static function getBlockedIPs(): array {
         if (class_exists('BlocklistService', false)) {
             return BlocklistService::getBlockedIPs();
         }
@@ -69,9 +71,9 @@ class BruteforceGuard {
     /**
      * Get database instance.
      *
-     * @return Database|null
+     * @return object|null
      */
-    private static function getDB() {
+    private static function getDB(): ?object {
         if (class_exists('DatabaseFactory', false) && DatabaseFactory::get() !== null) {
             return DatabaseFactory::get();
         }
@@ -89,7 +91,7 @@ class BruteforceGuard {
      * @param string $reason
      * @param bool   $useCachedMode  Use signal-based blocking
      */
-    private static function blockIP($ip, $reason, $useCachedMode = false) {
+    private static function blockIP(string $ip, string $reason, bool $useCachedMode = false): void {
         if ($useCachedMode && !empty($GLOBALS['rCached'])) {
             $signalKey = (stripos($reason, 'BRUTEFORCE') !== false ? 'bruteforce_attack' : 'flood_attack');
             RedisManager::setSignal($signalKey . '/' . $ip, 1);
@@ -111,12 +113,11 @@ class BruteforceGuard {
      *
      * @param string|null $ip            IP address (auto-detected if null)
      * @param bool        $useCachedMode Use signal-based blocking for streaming context
-     * @return null
      */
-    public static function checkFlood($ip = null, $useCachedMode = false) {
+    public static function checkFlood(?string $ip = null, bool $useCachedMode = false): void {
         $settings = self::getSettings();
         if (empty($settings['flood_limit']) || $settings['flood_limit'] == 0) {
-            return null;
+            return;
         }
 
         if (!$ip) {
@@ -125,12 +126,12 @@ class BruteforceGuard {
 
         $allowedIPs = self::getAllowedIPs();
         if (empty($ip) || in_array($ip, $allowedIPs)) {
-            return null;
+            return;
         }
 
         $floodExclude = array_filter(array_unique(explode(',', $settings['flood_ips_exclude'])));
         if (in_array($ip, $floodExclude)) {
-            return null;
+            return;
         }
 
         $ipFile = FLOOD_TMP_PATH . $ip;
@@ -152,7 +153,7 @@ class BruteforceGuard {
                         touch(FLOOD_TMP_PATH . 'block_' . $ip);
                     }
                     unlink($ipFile);
-                    return null;
+                    return;
                 }
             } else {
                 $floodRow['requests'] = 0;
@@ -171,20 +172,19 @@ class BruteforceGuard {
      * @param string|null $mac           MAC address
      * @param string|null $username      Username
      * @param bool        $useCachedMode Use signal-based blocking for streaming context
-     * @return null
      */
-    public static function checkBruteforce($ip = null, $mac = null, $username = null, $useCachedMode = false) {
+    public static function checkBruteforce(?string $ip = null, ?string $mac = null, ?string $username = null, bool $useCachedMode = false): void {
         if (!$mac && !$username) {
-            return null;
+            return;
         }
 
         $settings = self::getSettings();
 
         if ($mac && $settings['bruteforce_mac_attempts'] == 0) {
-            return null;
+            return;
         }
         if ($username && $settings['bruteforce_username_attempts'] == 0) {
-            return null;
+            return;
         }
 
         if (!$ip) {
@@ -193,12 +193,12 @@ class BruteforceGuard {
 
         $allowedIPs = self::getAllowedIPs();
         if (empty($ip) || in_array($ip, $allowedIPs)) {
-            return null;
+            return;
         }
 
         $floodExclude = array_filter(array_unique(explode(',', $settings['flood_ips_exclude'])));
         if (in_array($ip, $floodExclude)) {
-            return null;
+            return;
         }
 
         $floodType = (!is_null($mac) ? 'mac' : 'user');
@@ -223,7 +223,7 @@ class BruteforceGuard {
                         touch(FLOOD_TMP_PATH . 'block_' . $ip);
                     }
                     unlink($ipFile);
-                    return null;
+                    return;
                 }
             }
         } else {
@@ -237,16 +237,15 @@ class BruteforceGuard {
      *
      * @param array       $user          User info array (must have 'id' and 'is_restreamer')
      * @param string|null $ip            IP address (auto-detected if null)
-     * @return null
      */
-    public static function checkAuthFlood($user, $ip = null) {
+    public static function checkAuthFlood(array $user, ?string $ip = null): void {
         $settings = self::getSettings();
         if (empty($settings['auth_flood_limit']) || $settings['auth_flood_limit'] == 0) {
-            return null;
+            return;
         }
 
         if (!empty($user['is_restreamer'])) {
-            return null;
+            return;
         }
 
         if (!$ip) {
@@ -255,12 +254,12 @@ class BruteforceGuard {
 
         $allowedIPs = self::getAllowedIPs();
         if (empty($ip) || in_array($ip, $allowedIPs)) {
-            return null;
+            return;
         }
 
         $floodExclude = array_filter(array_unique(explode(',', $settings['flood_ips_exclude'])));
         if (in_array($ip, $floodExclude)) {
-            return null;
+            return;
         }
 
         $userFile = FLOOD_TMP_PATH . intval($user['id']) . '_' . $ip;
@@ -294,7 +293,7 @@ class BruteforceGuard {
      * @param bool  $list       If true, treat as indexed array; otherwise as associative
      * @return array Filtered attempts
      */
-    public static function truncateAttempts($attempts, $frequency, $list = false) {
+    public static function truncateAttempts(array $attempts, int $frequency, bool $list = false): array {
         $allowed = array();
         $now = time();
 
