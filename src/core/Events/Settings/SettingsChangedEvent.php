@@ -8,12 +8,12 @@
  * @copyright 2025-2026 Vateron Media
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
-final readonly class SettingsChangedEvent {
+final class SettingsChangedEvent {
     public function __construct(
-        public array  $previous,
-        public array  $current,
-        public int    $changedBy,
-        public float  $changedAt,
+        public readonly array  $previous,
+        public readonly array  $current,
+        public readonly int    $changedBy,
+        public readonly float  $changedAt,
     ) {}
 
     /**

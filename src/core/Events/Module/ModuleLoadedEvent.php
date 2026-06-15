@@ -8,9 +8,9 @@
  * @copyright 2025-2026 Vateron Media
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
-final readonly class ModuleLoadedEvent {
+final class ModuleLoadedEvent {
     public function __construct(
-        public string $name,
-        public string $path,
+        public readonly string $name,
+        public readonly string $path,
     ) {}
 }
