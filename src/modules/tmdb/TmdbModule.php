@@ -1,5 +1,17 @@
 <?php
 
+namespace XcVm\Module\Tmdb;
+
+use BaseModule;
+use ServiceContainer;
+use Router;
+use CommandRegistry;
+use TmdbController;
+use TmdbCron;
+use TmdbPopularCron;
+use TmdbCronJob;
+use TmdbPopularCronJob;
+
 /**
  * TMDB Module
  *
@@ -35,79 +47,31 @@
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-class TmdbModule implements ModuleInterface {
+class TmdbModule extends BaseModule {
 
-    /**
-     * {@inheritdoc}
-     */
     public function getName(): string {
         return 'tmdb';
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getVersion(): string {
         return '1.0.0';
     }
 
-    /**
-     * Регистрация сервисов модуля в DI-контейнере
-     *
-     * @param ServiceContainer $container
-     */
     public function boot(ServiceContainer $container): void {
+        $db = $container->get('db');
+        TmdbCron::setDb($db);
+        TmdbPopularCron::setDb($db);
+
         $container->set('tmdb.service', 'TmdbService');
     }
 
-    /**
-     * Регистрация маршрутов модуля
-     *
-     * TMDB не имеет собственных страниц — только API-действия.
-     * Действия tmdb_search и tmdb пока остаются в admin/api.php
-     * (делегируют в TmdbService) и будут перенесены при рефакторинге api.php.
-     *
-     * @param Router $router
-     */
     public function registerRoutes(Router $router): void {
-        // API-действия tmdb_search и tmdb остаются в api.php
-        // до рефакторинга god-объекта (Шаг 5.2 ARCHITECTURE.md)
+        $router->api('tmdb_search', [TmdbController::class, 'search']);
+        $router->api('tmdb',        [TmdbController::class, 'details']);
     }
 
-    /**
-     * CLI-команды модуля
-     *
-     * @param CommandRegistry $registry
-     */
     public function registerCommands(CommandRegistry $registry): void {
         $registry->register(new TmdbCronJob());
         $registry->register(new TmdbPopularCronJob());
-    }
-
-    /**
-     * Подписки на события ядра
-     *
-     * @return array
-     */
-    public function getEventSubscribers(): array {
-        return [];
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function install(): void {
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function uninstall(): void {
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function registerNavbar(): void {
     }
 }
