@@ -11,8 +11,23 @@
  */
 
 class RecordingService {
+
+    private static $db = null;
+
+    public static function setDb($db): void {
+        self::$db = $db;
+    }
+
+    private static function db() {
+        if (self::$db !== null) {
+            return self::$db;
+        }
+        global $db;
+        return $db;
+    }
+
 	public static function schedule($rData) {
-		global $db;
+		$db = self::db();
 		if (empty($rData['title'])) {
 			return array('status' => STATUS_NO_TITLE);
 		}

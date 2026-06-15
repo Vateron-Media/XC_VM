@@ -11,6 +11,20 @@
  */
 
 class WatchItem {
+    private static $db = null;
+
+    public static function setDb($db): void {
+        self::$db = $db;
+    }
+
+    private static function db(): object {
+        if (self::$db === null) {
+            throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+        }
+        return self::$db;
+    }
+
+
     /**
      * Подготовить имя колонки (только буквы, цифры, подчёркивание).
      *
@@ -52,7 +66,7 @@ class WatchItem {
      * @return array
      */
     public static function verifyPostTable($rTable, $rData = array(), $rOnlyExisting = false) {
-        global $db;
+        $db = self::db();
         $rReturn = array();
         $db->query('SELECT `column_name`, `column_default`, `is_nullable`, `data_type` FROM `information_schema`.`columns` WHERE `table_schema` = (SELECT DATABASE()) AND `table_name` = ? ORDER BY `ordinal_position`;', $rTable);
         foreach ($db->get_rows() as $rRow) {
@@ -92,7 +106,7 @@ class WatchItem {
      * @param int $rID
      */
     public static function addToBouquet($rType, $rBouquetID, $rID) {
-        global $db;
+        $db = self::db();
         global $rThreadData;
         if ($rThreadData['import']) {
             $rBouquet = self::getBouquet($rBouquetID);
@@ -193,7 +207,7 @@ class WatchItem {
      * @return array|null
      */
     public static function getSeriesByTMDB($rID) {
-        global $db;
+        $db = self::db();
         if (!(file_exists(WATCH_TMP_PATH . 'series_' . intval($rID) . '.data') && time() - filemtime(WATCH_TMP_PATH . 'series_' . intval($rID) . '.data') < 360)) {
             $db->query('SELECT * FROM `streams_series` WHERE `tmdb_id` = ? ORDER BY `id` ASC LIMIT 1;', $rID);
             if ($db->num_rows() >= 1) {
@@ -237,7 +251,7 @@ class WatchItem {
      * @return array|null
      */
     public static function getSerie($rID) {
-        global $db;
+        $db = self::db();
         $db->query('SELECT * FROM `streams_series` WHERE `id` = ?;', $rID);
         if ($db->num_rows() == 1) {
             return $db->get_row();
@@ -250,7 +264,7 @@ class WatchItem {
      * @return int
      */
     public static function getNextOrder() {
-        global $db;
+        $db = self::db();
         $db->query('SELECT MAX(`order`) AS `order` FROM `streams`;');
         if ($db->num_rows() != 1) {
             return 0;
@@ -281,7 +295,7 @@ class WatchItem {
      * @return array|null
      */
     public static function getBouquet($rID) {
-        global $db;
+        $db = self::db();
         $db->query('SELECT * FROM `bouquets` WHERE `id` = ?;', $rID);
         if ($db->num_rows() == 1) {
             return $db->get_row();
@@ -289,7 +303,7 @@ class WatchItem {
     }
 
     public static function run($rThreadData = null, $rTimeout) {
-        global $db;
+        $db = self::db();
 
         if (!is_array($rThreadData)) {
             echo "watch_item: invalid thread data\n";

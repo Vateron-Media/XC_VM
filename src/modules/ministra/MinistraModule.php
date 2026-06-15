@@ -1,5 +1,10 @@
 <?php
 
+namespace XcVm\Module\Ministra;
+
+use BaseModule;
+use BoundaryInterface;
+
 /**
  * Ministra (Stalker Portal) Module
  *
@@ -35,63 +40,14 @@
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-class MinistraModule implements ModuleInterface, BoundaryInterface {
+class MinistraModule extends BaseModule implements BoundaryInterface {
 
-    /**
-     * {@inheritdoc}
-     */
     public function getName(): string {
         return 'ministra';
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getVersion(): string {
         return '1.0.0';
-    }
-
-    /**
-     * Регистрация сервисов модуля в DI-контейнере
-     *
-     * Ministra — автономный портал (отдельная точка входа portal.php),
-     * не использует общий DI-контейнер напрямую.
-     *
-     * @param ServiceContainer $container
-     */
-    public function boot(ServiceContainer $container): void {
-        // Ministra — standalone endpoint, сервисы не регистрируются
-    }
-
-    /**
-     * Регистрация маршрутов модуля
-     *
-     * Ministra обслуживается через ministra/portal.php (прямой HTTP),
-     * не через Router admin-панели.
-     *
-     * @param Router $router
-     */
-    public function registerRoutes(Router $router): void {
-        // Маршрутизация Ministra — через portal.php напрямую
-    }
-
-    /**
-     * CLI-команды модуля
-     *
-     * Ministra не имеет CLI-команд.
-     *
-     * @param CommandRegistry $registry
-     */
-    public function registerCommands(CommandRegistry $registry): void {
-    }
-
-    /**
-     * Подписки на события ядра
-     *
-     * @return array
-     */
-    public function getEventSubscribers(): array {
-        return [];
     }
 
     public function getEntryPoint(): string {
@@ -100,23 +56,5 @@ class MinistraModule implements ModuleInterface, BoundaryInterface {
 
     public function isIsolated(): bool {
         return true;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function install(): void {
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function uninstall(): void {
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function registerNavbar(): void {
     }
 }

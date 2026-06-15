@@ -20,6 +20,20 @@
  */
 
 class TmdbPopularCron {
+    private static $db = null;
+
+    public static function setDb($db): void {
+        self::$db = $db;
+    }
+
+    private static function db(): object {
+        if (self::$db === null) {
+            throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+        }
+        return self::$db;
+    }
+
+
     /**
      * Собрать популярные фильмы и сериалы из TMDB.
      *
@@ -62,7 +76,7 @@ class TmdbPopularCron {
      * @param TMDB $tmdb Инстанс клиента
      */
     private static function processSimilarMovies(TMDB $tmdb): void {
-        global $db;
+        $db = self::db();
 
         $db->query(
             'SELECT COUNT(*) AS `count` FROM `streams`
@@ -103,7 +117,7 @@ class TmdbPopularCron {
      * @param TMDB $tmdb Инстанс клиента
      */
     private static function processSimilarSeries(TMDB $tmdb): void {
-        global $db;
+        $db = self::db();
 
         $db->query(
             'SELECT COUNT(*) AS `count` FROM `streams_series`
@@ -142,7 +156,7 @@ class TmdbPopularCron {
      * Собрать популярные live-потоки по активности за 28 дней.
      */
     private static function collectPopularLive(): void {
-        global $db;
+        $db = self::db();
 
         $rPopularLive = [];
         $db->query(
@@ -171,7 +185,7 @@ class TmdbPopularCron {
      *   4. Сбор популярных live-потоков
      */
     public static function run(): void {
-        global $db;
+        $db = self::db();
 
         require_once MAIN_HOME . 'modules/tmdb/lib/TmdbClient.php';
 

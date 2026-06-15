@@ -11,8 +11,25 @@
  */
 
 class WatchService {
+
+    private static $db = null;
+
+    // Called from WatchModule::boot() — wires the DI-provided db connection.
+    // Static methods fall back to global $db when boot() is not invoked (CLI cron context).
+    public static function setDb($db): void {
+        self::$db = $db;
+    }
+
+    private static function db() {
+        if (self::$db !== null) {
+            return self::$db;
+        }
+        global $db;
+        return $db;
+    }
+
 	public static function editWatchSettings($rData) {
-		global $db;
+		$db = self::db();
 		foreach ($rData as $rKey => $rValue) {
 			$rSplit = explode('_', $rKey);
 			if ($rSplit[0] == 'genre') {
@@ -39,7 +56,7 @@ class WatchService {
 	}
 
 	public static function processWatchFolder($rData) {
-		global $db;
+		$db = self::db();
 		if (isset($rData['edit'])) {
 			$rArray = AdminHelpers::overwriteData(StreamRepository::getWatchFolder($rData['edit']), $rData);
 		} else {
@@ -90,7 +107,7 @@ class WatchService {
 	}
 
 	public static function getWatchFolders($rType = null) {
-		global $db;
+		$db = self::db();
 		if ($rType) {
 			$db->query("SELECT * FROM `watch_folders` WHERE `type` = ? AND `type` <> 'plex' ORDER BY `id` ASC;", $rType);
 		} else {
@@ -101,7 +118,7 @@ class WatchService {
 	}
 
 	public static function getWatchCategories($rType = null) {
-		global $db;
+		$db = self::db();
 		$rReturn = array();
 		if ($rType) {
 			$db->query('SELECT * FROM `watch_categories` WHERE `type` = ? ORDER BY `genre_id` ASC;', $rType);
@@ -121,17 +138,15 @@ class WatchService {
 	}
 
 	public static function enableWatch() {
-		global $db;
-		return $db->query("UPDATE `watch_folders` SET `active` = 1 WHERE `type` <> 'plex';");
+		return self::db()->query("UPDATE `watch_folders` SET `active` = 1 WHERE `type` <> 'plex';");
 	}
 
 	public static function disableWatch() {
-		global $db;
-		return $db->query("UPDATE `watch_folders` SET `active` = 0 WHERE `type` <> 'plex';");
+		return self::db()->query("UPDATE `watch_folders` SET `active` = 0 WHERE `type` <> 'plex';");
 	}
 
 	public static function killWatch() {
-		global $db;
+		$db = self::db();
 		$db->query("SELECT DISTINCT(`server_id`) AS `server_id` FROM `watch_folders` WHERE `active` = 11 AND `type` <> 'plex';");
 		foreach ($db->get_rows() as $rRow) {
 			if (ServerRepository::getAll()[$rRow['server_id']]['server_online']) {
@@ -142,7 +157,7 @@ class WatchService {
 	}
 
 	public static function getRecordings() {
-		global $db;
+		$db = self::db();
 		$rRecordings = array();
 		$db->query('SELECT * FROM `recordings` ORDER BY `id` DESC;');
 		foreach ($db->get_rows() as $rRow) {
@@ -152,7 +167,7 @@ class WatchService {
 	}
 
 	public static function deleteRecording($rID) {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT `created_id`, `source_id` FROM `recordings` WHERE `id` = ?;', $rID);
 		if ($db->num_rows() > 0) {
 			$rRecording = $db->get_row();

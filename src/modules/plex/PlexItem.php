@@ -13,6 +13,20 @@
  */
 
 class PlexItem {
+    private static $db = null;
+
+    public static function setDb($db): void {
+        self::$db = $db;
+    }
+
+    private static function db(): object {
+        if (self::$db === null) {
+            throw new \RuntimeException(static::class . '::setDb() must be called before use.');
+        }
+        return self::$db;
+    }
+
+
     /**
      * Подготовить имя колонки (только буквы, цифры, подчёркивание).
      *
@@ -59,7 +73,7 @@ class PlexItem {
      * @return array
      */
     public static function verifyPostTable($rTable, $rData = array(), $rOnlyExisting = false) {
-        global $db;
+        $db = self::db();
         $rReturn = array();
         $db->query('SELECT `column_name`, `column_default`, `is_nullable`, `data_type` FROM `information_schema`.`columns` WHERE `table_schema` = (SELECT DATABASE()) AND `table_name` = ? ORDER BY `ordinal_position`;', $rTable);
 
@@ -107,7 +121,7 @@ class PlexItem {
      * @return array|null
      */
     public static function getSeriesByID($rPlexID, $rTMDBID) {
-        global $db;
+        $db = self::db();
 
         if (!(file_exists(WATCH_TMP_PATH . 'series_' . $rPlexID . '.data') && time() - filemtime(WATCH_TMP_PATH . 'series_' . $rPlexID . '.data') < 360)) {
             if (!(file_exists(WATCH_TMP_PATH . 'series_' . intval($rTMDBID) . '.data') && time() - filemtime(WATCH_TMP_PATH . 'series_' . intval($rTMDBID) . '.data') < 360)) {
@@ -132,7 +146,7 @@ class PlexItem {
      * @return array|null
      */
     public static function getSerie($rID) {
-        global $db;
+        $db = self::db();
         $db->query('SELECT * FROM `streams_series` WHERE `id` = ?;', $rID);
 
         if ($db->num_rows() != 1) {
@@ -147,7 +161,7 @@ class PlexItem {
      * @return int
      */
     public static function getNextOrder() {
-        global $db;
+        $db = self::db();
         $db->query('SELECT MAX(`order`) AS `order` FROM `streams`;');
 
         if ($db->num_rows() != 1) {
@@ -326,7 +340,7 @@ class PlexItem {
      * Заменяет loadcli().
      */
     public static function run() {
-        global $db;
+        $db = self::db();
         global $rThreadData;
         global $rStreamDatabase;
         $rServers = array(SERVER_ID);
