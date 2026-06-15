@@ -87,48 +87,55 @@ if (!function_exists('getallheaders')) {
 
 class XC_Bootstrap {
 
-    // ── Contexts ──────────────────────────────────────────────
+    // ── Contexts (kept for backward compatibility — prefer BootContext enum) ──
+    /** @deprecated Use BootContext::Minimal */
     const CONTEXT_MINIMAL  = 'minimal';
+    /** @deprecated Use BootContext::Cli */
     const CONTEXT_CLI      = 'cli';
+    /** @deprecated Use BootContext::Stream */
     const CONTEXT_STREAM   = 'stream';
+    /** @deprecated Use BootContext::Admin */
     const CONTEXT_ADMIN    = 'admin';
 
     // ── Internal state ───────────────────────────────────────
-    private static $booted = false;
-    private static $context = null;
-    private static $options = [];
+    private static bool    $booted  = false;
+    private static ?string $context = null;
+    private static array   $options = [];
+    private static bool    $devMode = false;
 
     // ── Subsystem initialization flags ────────────────────────
-    private static $constantsLoaded  = false;
-    private static $configLoaded     = false;
-    private static $loggerStarted    = false;
-    private static $databaseReady    = false;
-    private static $coreReady        = false;
-    private static $adminReady       = false;
-    private static $sessionStarted   = false;
-    private static $redisReady       = false;
+    private static bool $constantsLoaded = false;
+    private static bool $configLoaded    = false;
+    private static bool $loggerStarted   = false;
+    private static bool $databaseReady   = false;
+    private static bool $coreReady       = false;
+    private static bool $adminReady      = false;
+    private static bool $sessionStarted  = false;
+    private static bool $redisReady      = false;
 
     /**
      * Main entry point.
      *
-     * @param string $context  Context: CONTEXT_MINIMAL | CONTEXT_CLI | CONTEXT_STREAM | CONTEXT_ADMIN
-     * @param array  $options  Additional options:
+     * @param string|BootContext $context  Boot context. Accepts BootContext enum or legacy string constant.
+     * @param array              $options  Additional options:
      *   'cached'      => bool   Use settings cache (for stream/cli, default: false)
      *   'redis'       => bool   Connect Redis (default: true for admin, false for others)
      *   'process'     => string Process name for cli_set_process_title()
      *   'shutdown'    => callable Shutdown callback (replaces register_shutdown_function)
      */
-    public static function boot(string $context = self::CONTEXT_CLI, array $options = []): void {
+    public static function boot(string|BootContext $context = BootContext::Cli, array $options = []): void {
         if (self::$booted) {
             return;
         }
 
-        self::$context = $context;
-        self::$options = array_merge(self::defaults($context), $options);
+        $ctx = $context instanceof BootContext ? $context : BootContext::from($context);
+
+        self::$context = $ctx->value;
+        self::$options = array_merge(self::defaults($ctx), $options);
 
         // ── Create container ────────────────────────────────────
         $container = ServiceContainer::getInstance();
-        $container->set('context', $context);
+        $container->set('context', $ctx->value);
         $container->set('options', self::$options);
 
         // ── Common for all contexts ────────────────────────────
@@ -145,41 +152,20 @@ class XC_Bootstrap {
 
         // ── Context-dependent initialization ───────────────────
 
-        switch ($context) {
-            case self::CONTEXT_MINIMAL:
-                // Constants + config only. Done.
-                break;
-
-            case self::CONTEXT_CLI:
-                self::initDatabase(self::$options['cached']);
-                self::initLegacyCore(self::$options['cached']);
-                if (self::$options['redis']) {
-                    self::initRedis();
-                }
-                if (!empty(self::$options['process'])) {
-                    cli_set_process_title(self::$options['process']);
-                }
-                break;
-
-            case self::CONTEXT_STREAM:
-                self::initDatabase(true);
-                break;
-
-            case self::CONTEXT_ADMIN:
-                self::initSession();
-                self::initDatabase(false);
-                self::initLegacyCore(false);
-                self::initRedis();
-                self::initAdminAPI();
-                self::initTranslator();
-                self::registerAdminShutdown();
-                self::defineStatusConstants();
-                self::initAdminGlobals();
-                break;
-        }
+        match ($ctx) {
+            BootContext::Minimal => null,
+            BootContext::Cli     => self::bootCli(),
+            BootContext::Stream  => self::bootStream(),
+            BootContext::Admin   => self::bootAdmin(),
+        };
 
         // ── Register services in the container ──────────────────
         self::populateContainer($container);
+
+        // ── Verify that expected services were registered ────────
+        if ($ctx !== BootContext::Minimal) {
+            self::assertContainerHealth($container);
+        }
 
         self::$booted = true;
     }
@@ -200,6 +186,14 @@ class XC_Bootstrap {
      */
     public static function isBooted(): bool {
         return self::$booted;
+    }
+
+    /**
+     * Whether dev mode is active (DEV_MODE constant in AppConfig.php is true).
+     * When true, PHP errors are displayed on-screen regardless of DB settings.
+     */
+    public static function isDevMode(): bool {
+        return self::$devMode;
     }
 
     /**
@@ -246,6 +240,37 @@ class XC_Bootstrap {
     }
 
     // ─────────────────────────────────────────────────────────
+    //  Context boot sequences
+    // ─────────────────────────────────────────────────────────
+
+    private static function bootCli(): void {
+        self::initDatabase(self::$options['cached']);
+        self::initLegacyCore(self::$options['cached']);
+        if (self::$options['redis']) {
+            self::initRedis();
+        }
+        if (!empty(self::$options['process'])) {
+            cli_set_process_title(self::$options['process']);
+        }
+    }
+
+    private static function bootStream(): void {
+        self::initDatabase(true);
+    }
+
+    private static function bootAdmin(): void {
+        self::initSession();
+        self::initDatabase(false);
+        self::initLegacyCore(false);
+        self::initRedis();
+        self::initAdminAPI();
+        self::initTranslator();
+        self::registerAdminShutdown();
+        self::defineStatusConstants();
+        self::initAdminGlobals();
+    }
+
+    // ─────────────────────────────────────────────────────────
     //  Subsystem initialization (each called at most once)
     // ─────────────────────────────────────────────────────────
 
@@ -271,12 +296,14 @@ class XC_Bootstrap {
         require_once MAIN_HOME . 'core/Config/Binaries.php';
         require_once MAIN_HOME . 'core/Logging/Logger.php';
 
+        self::$devMode = DEV_MODE;
+
         if (!defined('PHP_ERRORS')) {
-            define('PHP_ERRORS', false);
+            define('PHP_ERRORS', self::$devMode);
         }
 
         Logger::init(
-            PHP_ERRORS,
+            self::$devMode || PHP_ERRORS,
             LOGS_TMP_PATH . 'error_log.log'
         );
 
@@ -491,6 +518,7 @@ class XC_Bootstrap {
         if (self::$databaseReady) {
             global $db;
             $container->set('db', $db);
+            self::wireDomainDatabase($db);
         }
 
         // Settings and core data
@@ -510,53 +538,117 @@ class XC_Bootstrap {
             $container->set('translator', Translator::class);
         }
 
-        // Events
-        if (class_exists('EventDispatcher', false)) {
-            $container->set('events', EventDispatcher::class);
-        }
+        // Events — create an instance, wire it as the static singleton bridge,
+        // and register it in the container so it can be injected via DI.
+        $dispatcher = new EventDispatcher();
+        EventDispatcher::setInstance($dispatcher);
+        $container->set('events', $dispatcher);
     }
 
     /**
-     * Default option values for each context.
+     * Wire the injected $db instance into every domain service class.
      *
-     * @param string $context
-     * @return array
+     * Domain classes use the static setDb() / db() pattern: setDb() stores
+     * the injected instance; db() returns it. Calling this method removes the
+     * need for the global $db fallback inside each db() helper.
+     *
+     * @param object $db DatabaseHandler instance
      */
-    private static function defaults(string $context): array {
-        switch ($context) {
-            case self::CONTEXT_ADMIN:
-                return [
-                    'cached'   => false,
-                    'redis'    => true,
-                    'process'  => '',
-                    'shutdown' => null,
-                ];
+    private static function wireDomainDatabase(object $db): void {
+        // Bouquet
+        BouquetService::setDb($db);
 
-            case self::CONTEXT_STREAM:
-                return [
-                    'cached'   => true,
-                    'redis'    => false,
-                    'process'  => '',
-                    'shutdown' => null,
-                ];
+        // Device
+        EnigmaService::setDb($db);
+        MagService::setDb($db);
 
-            case self::CONTEXT_CLI:
-                return [
-                    'cached'   => false,
-                    'redis'    => false,
-                    'process'  => '',
-                    'shutdown' => null,
-                ];
+        // Epg
+        EPG::setDb($db);
+        EpgService::setDb($db);
 
-            case self::CONTEXT_MINIMAL:
-            default:
-                return [
-                    'cached'   => false,
-                    'redis'    => false,
-                    'process'  => '',
-                    'shutdown' => null,
-                ];
+        // Line
+        LineRepository::setDb($db);
+        LineService::setDb($db);
+        PackageService::setDb($db);
+
+        // Security
+        BlocklistService::setDb($db);
+
+        // Server
+        ServerRepository::setDb($db);
+        ServerService::setDb($db);
+        SettingsService::setDb($db);
+
+        // Stream
+        CategoryService::setDb($db);
+        ChannelService::setDb($db);
+        ConnectionTracker::setDb($db);
+        PlaylistGenerator::setDb($db);
+        ProfileService::setDb($db);
+        ProviderService::setDb($db);
+        RadioService::setDb($db);
+        StreamConfigRepository::setDb($db);
+        StreamProcess::setDb($db);
+        StreamRepository::setDb($db);
+        StreamService::setDb($db);
+
+        // User
+        GroupService::setDb($db);
+        ResellerAPI::setDb($db);
+        TicketRepository::setDb($db);
+        UserRepository::setDb($db);
+        UserService::setDb($db);
+
+        // Vod
+        EpisodeService::setDb($db);
+        MovieService::setDb($db);
+        SeriesService::setDb($db);
+        TMDbService::setDb($db);
+    }
+
+    /**
+     * Verify that services which should have been registered actually are.
+     *
+     * Called after populateContainer() for every context except CONTEXT_MINIMAL.
+     * Throws RuntimeException on the first missing service so the application
+     * fails loudly instead of silently degrading.
+     *
+     * @param ServiceContainer $container
+     * @throws RuntimeException
+     */
+    private static function assertContainerHealth(ServiceContainer $container): void {
+        $required = ['events'];
+
+        if (self::$databaseReady) {
+            $required[] = 'db';
         }
+
+        if (self::$redisReady) {
+            $required[] = 'redis';
+        }
+
+        $missing = [];
+        foreach ($required as $service) {
+            if (!$container->has($service)) {
+                $missing[] = $service;
+            }
+        }
+
+        if ($missing !== []) {
+            throw new RuntimeException(
+                'ServiceContainer health check failed — missing required services: '
+                . implode(', ', $missing)
+            );
+        }
+    }
+
+    private static function defaults(BootContext $ctx): array {
+        return match ($ctx) {
+            BootContext::Admin   => ['cached' => false, 'redis' => true,  'process' => '', 'shutdown' => null],
+            BootContext::Stream  => ['cached' => true,  'redis' => false, 'process' => '', 'shutdown' => null],
+            BootContext::Cli     => ['cached' => false, 'redis' => false, 'process' => '', 'shutdown' => null],
+            BootContext::Minimal => ['cached' => false, 'redis' => false, 'process' => '', 'shutdown' => null],
+        };
     }
 
     /**
@@ -587,6 +679,9 @@ class XC_Bootstrap {
         $allServers   = ServerRepository::getAllSimple();
         $rServers     = ServerRepository::getStreamingSimple($rPermissions);
         $rSettings    = SettingsManager::getAll();
+        if (self::$devMode) {
+            $rSettings['debug_show_errors'] = true;
+        }
         $rProxyServers = ServerRepository::getProxySimple($rPermissions);
 
         $language     = Translator::class;
