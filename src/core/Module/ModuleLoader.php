@@ -24,13 +24,13 @@
 
 class ModuleLoader {
     /** @var ModuleInterface[] Loaded module instances, keyed by module name */
-    protected array $modules = [];
+    private array $modules = [];
 
     /** @var array Module overrides from config/modules.php (enabled/disabled, class names) */
-    protected array $overrides = [];
+    private array $overrides = [];
 
     /** @var array Normalized manifest data from module.json files (name => manifest array) */
-    protected array $manifests = [];
+    private array $manifests = [];
 
     /** @var array<string, true> Module paths that already have an autoloader registered */
     private static array $autoloadedPaths = [];
@@ -58,7 +58,19 @@ class ModuleLoader {
 
         $this->loadOverrides();
 
-        $jsonFiles = glob($modulesDir . '/*/module.json');
+        $jsonFiles = glob($modulesDir . '/*/module.json') ?: [];
+
+        // Also discover modules installed as Composer packages (type: xcvm-module).
+        // vendor/ is expected to be a sibling of the modules/ directory.
+        $vendorDir = $this->resolveVendorDir($modulesDir);
+        if ($vendorDir !== null) {
+            foreach ($this->collectComposerModuleManifests($vendorDir) as $manifest) {
+                if (!in_array($manifest, $jsonFiles, true)) {
+                    $jsonFiles[] = $manifest;
+                }
+            }
+        }
+
         if (empty($jsonFiles)) {
             return $this;
         }
@@ -74,7 +86,7 @@ class ModuleLoader {
             $modulePath = $discovered[$name]['path'];
 
             if (!$this->load($name, $modulePath)) {
-                throw new RuntimeException("ModuleLoader: failed to load module '{$name}'");
+                throw new ModuleLoadException("ModuleLoader: failed to load module '{$name}'");
             }
 
             $this->manifests[$name] = $discovered[$name]['manifest'];
@@ -109,10 +121,12 @@ class ModuleLoader {
         $className = $this->resolveClassName($name);
 
         if (!class_exists($className)) {
-            $classFile = $modulePath . '/' . $className . '.php';
+            // Strip namespace prefix — the file lives at modulePath/{ShortName}.php
+            $shortName = substr($className, (int) strrpos($className, '\\') + 1);
+            $classFile = $modulePath . '/' . $shortName . '.php';
             if (file_exists($classFile)) {
-                if ($this->isFileEncrypted($classFile) && !extension_loaded('license_ext')) {
-                    error_log("ModuleLoader: module '{$name}' is encrypted but license_ext is not loaded");
+                if ($this->isFileEncrypted($classFile) && !extension_loaded('xcvm_core')) {
+                    error_log("ModuleLoader: module '{$name}' is encrypted but xcvm_core is not loaded");
                     return false;
                 }
                 require_once $classFile;
@@ -147,7 +161,8 @@ class ModuleLoader {
      * @return void
      */
     public function bootAll(ServiceContainer $container, ?Router $router = null, ?StreamPipeline $pipeline = null): void {
-        (new CoreNavbarProvider())->registerNavbar();
+        $navbarRegistry = new NavbarRegistry();
+        (new CoreNavbarProvider())->registerNavbar($navbarRegistry);
 
         foreach ($this->modules as $module) {
             if ($module instanceof ServiceProviderInterface) {
@@ -164,7 +179,7 @@ class ModuleLoader {
             }
 
             if ($module instanceof NavbarProviderInterface) {
-                $module->registerNavbar();
+                $module->registerNavbar($navbarRegistry);
             }
         }
     }
@@ -184,6 +199,32 @@ class ModuleLoader {
                 $module->registerCommands($registry);
             }
         }
+    }
+
+    /**
+     * Collects system crontab entries declared by loaded modules.
+     *
+     * Iterates over all loaded modules implementing CronProviderInterface and
+     * assembles ready-to-write crontab lines. Callers (StartupCommand,
+     * StatusCommand) append these to the crontab without touching module code.
+     *
+     * @return string[] Complete crontab lines, each ending with "# XC_VM".
+     */
+    public function collectCronEntries(): array {
+        if (!defined('PHP_BIN') || !defined('MAIN_HOME')) {
+            return [];
+        }
+
+        $lines = [];
+        foreach ($this->modules as $module) {
+            if (!$module instanceof CronProviderInterface) {
+                continue;
+            }
+            foreach ($module->getCronEntries() as $expression => $command) {
+                $lines[] = $expression . ' ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php ' . $command . ' # XC_VM';
+            }
+        }
+        return $lines;
     }
 
     /**
@@ -272,30 +313,39 @@ class ModuleLoader {
      * and filters modules to current environment (main/lb). Returns discovered modules
      * with their paths and normalized manifest data.
      *
-     * @param array $jsonFiles Array of full paths to module.json files.
-     * @param string $currentEnvironment Current environment ('main' or 'lb').
+     * @param array           $jsonFiles          Array of full paths to module.json files.
+     * @param ServerEnvironment $currentEnvironment Current server environment.
      * @return array Associative array of discovered modules: name => [path, manifest].
      * @throws RuntimeException If manifest has invalid environment value or JSON is malformed.
      */
-    protected function discoverModules(array $jsonFiles, string $currentEnvironment): array {
+    protected function discoverModules(array $jsonFiles, ServerEnvironment $currentEnvironment): array {
         $discovered = [];
 
         foreach ($jsonFiles as $jsonFile) {
-            $name = basename(dirname($jsonFile));
+            // Derive a provisional name from directory — used only as fallback in readManifest().
+            $dirName = basename(dirname($jsonFile));
 
-            // Check if module is disabled via overrides
-            if (isset($this->overrides[$name]['enabled']) && !$this->overrides[$name]['enabled']) {
+            // Check overrides by directory name before spending I/O on the manifest.
+            if (!$this->resolveState($dirName)->isLoadable()) {
                 continue;
             }
 
-            $manifest = $this->readManifest($jsonFile, $name);
+            $manifest = $this->readManifest($jsonFile, $dirName);
+
+            // Canonical name: always from the manifest (handles module-path subdirs in Composer packages).
+            $name = $manifest['name'];
+
+            // Re-check overrides by canonical name (in case it differs from directory name).
+            if (!$this->resolveState($name)->isLoadable()) {
+                continue;
+            }
 
             if (!in_array($manifest['environment'], ['main', 'lb', 'any'], true)) {
-                throw new RuntimeException("ModuleLoader: invalid environment in module.json for module {$name}");
+                throw new ModuleManifestException("ModuleLoader: invalid environment in module.json for module {$name}");
             }
 
             // Filter by environment: skip if module is for different environment (skip lb-only on main, etc)
-            if ($manifest['environment'] !== 'any' && $manifest['environment'] !== $currentEnvironment) {
+            if ($manifest['environment'] !== 'any' && $manifest['environment'] !== $currentEnvironment->value) {
                 continue;
             }
 
@@ -320,28 +370,34 @@ class ModuleLoader {
      * @return string Resolved class name (PascalCase).
      */
     protected function resolveClassName(string $name): string {
-        // Check for class name override in config
         if (isset($this->overrides[$name]['class'])) {
-            return $this->overrides[$name]['class'];
+            $class = $this->overrides[$name]['class'];
+            // Override must be an FQN. If it's a bare class name, build the FQN using convention.
+            if (!str_contains($class, '\\')) {
+                $pascal = implode('', array_map('ucfirst', explode('-', $name)));
+                return 'XcVm\\Module\\' . $pascal . '\\' . $class;
+            }
+            return $class;
         }
 
-        // Convert kebab-case to PascalCase and append 'Module' suffix
-        $parts = explode('-', $name);
-        return implode('', array_map('ucfirst', $parts)) . 'Module';
+        // Convert kebab-case to PascalCase: 'my-module' → 'MyModule'
+        $parts  = explode('-', $name);
+        $pascal = implode('', array_map('ucfirst', $parts));
+
+        // Return fully-qualified class name: XcVm\Module\{Pascal}\{Pascal}Module
+        return 'XcVm\\Module\\' . $pascal . '\\' . $pascal . 'Module';
     }
 
     /**
      * Detects the current environment (main or load-balancer).
      *
-     * Checks SERVER_TYPE constant. Returns 'lb' if set to 'lb' (case-insensitive), otherwise 'main'.
-     *
-     * @return string Current environment: 'main' or 'lb'.
+     * Checks SERVER_TYPE constant. Returns LoadBalancer if set to 'lb' (case-insensitive), else Main.
      */
-    protected function getCurrentEnvironment(): string {
+    protected function getCurrentEnvironment(): ServerEnvironment {
         if (defined('SERVER_TYPE') && strtolower((string) constant('SERVER_TYPE')) === 'lb') {
-            return 'lb';
+            return ServerEnvironment::LoadBalancer;
         }
-        return 'main';
+        return ServerEnvironment::Main;
     }
 
     /**
@@ -365,17 +421,17 @@ class ModuleLoader {
         $manifest = json_decode((string) $raw, true);
 
         if (!is_array($manifest)) {
-            throw new RuntimeException("ModuleLoader: invalid JSON in module manifest for module {$name}");
+            throw new ModuleManifestException("ModuleLoader: invalid JSON in module manifest for module {$name}");
         }
 
         $normalizeDepArray = function (mixed $raw, string $field) use ($name): array {
             if (!is_array($raw)) {
-                throw new RuntimeException("ModuleLoader: {$field} must be array for module {$name}");
+                throw new ModuleManifestException("ModuleLoader: {$field} must be array for module {$name}");
             }
             $result = [];
             foreach ($raw as $dep) {
                 if (!is_string($dep) || trim($dep) === '') {
-                    throw new RuntimeException("ModuleLoader: {$field} names must be non-empty strings for module {$name}");
+                    throw new ModuleManifestException("ModuleLoader: {$field} names must be non-empty strings for module {$name}");
                 }
                 $result[] = trim($dep);
             }
@@ -463,12 +519,12 @@ class ModuleLoader {
                 // Currently visiting = cycle detected
                 $cycle = array_slice($stack, array_search($name, $stack, true) ?: 0);
                 $cycle[] = $name;
-                throw new RuntimeException('ModuleLoader: cyclic module dependency detected: ' . implode(' -> ', $cycle));
+                throw new ModuleCycleException('ModuleLoader: cyclic module dependency detected: ' . implode(' -> ', $cycle));
             }
         }
 
         if (!isset($discovered[$name])) {
-            throw new RuntimeException("ModuleLoader: unknown module in dependency graph: {$name}");
+            throw new ModuleLoadException("ModuleLoader: unknown module in dependency graph: {$name}");
         }
 
         // Mark as currently visiting
@@ -478,7 +534,7 @@ class ModuleLoader {
         // Required dependencies — throw if missing
         foreach ($discovered[$name]['manifest']['dependencies'] as $dependency) {
             if (!isset($discovered[$dependency])) {
-                throw new RuntimeException("ModuleLoader: module {$name} requires missing dependency {$dependency}");
+                throw new ModuleNotFoundException("ModuleLoader: module {$name} requires missing dependency {$dependency}");
             }
             $this->visitDependencyNode($dependency, $discovered, $state, $order, $stack);
         }
@@ -498,19 +554,33 @@ class ModuleLoader {
     /**
      * Registers event subscribers declared by a module.
      *
-     * Supports both legacy string-keyed handlers and new class-based
-     * [callable, int $priority] tuples from ServiceProviderInterface.
+     * Two complementary mechanisms are supported and both run on every boot:
+     *
+     *   1. getEventSubscribers() — legacy array API:
+     *        ['EventClass' => callable]  or  ['EventClass' => [callable, $priority]]
+     *
+     *   2. #[ListensTo] attribute — declarative PHP 8.1 attribute on public methods:
+     *        #[ListensTo(SomeEvent::class, priority: 10)]
+     *        public function onSome(SomeEvent $e): void { ... }
+     *
+     * Both paths are additive — using one does not disable the other.
+     *
+     * If the event class named in a #[ListensTo] attribute does not exist at
+     * registration time the listener is silently skipped (graceful degradation).
      *
      * @param ServiceProviderInterface $module
      * @param ServiceContainer $container
      * @return void
      */
     private function registerEventSubscribers(ServiceProviderInterface $module, ServiceContainer $container): void {
-        $subscribers = $module->getEventSubscribers();
-        if (empty($subscribers) || !$container->has('events')) {
+        // Verify the container holds an actual EventDispatcher instance (not just the class name).
+        // Static calls below route to the same instance via EventDispatcher::getInstance().
+        if (!$container->has('events') || !$container->get('events') instanceof EventDispatcher) {
             return;
         }
 
+        // ── 1. Legacy array API via getEventSubscribers() ─────────────────
+        $subscribers = $module->getEventSubscribers();
         foreach ($subscribers as $event => $handler) {
             if (is_array($handler) && isset($handler[0]) && is_callable($handler[0])) {
                 // [callable, int $priority] tuple — new PSR-14 style
@@ -518,6 +588,30 @@ class ModuleLoader {
             } else {
                 // Legacy: string event name or class-string, plain callable
                 EventDispatcher::listen($event, $handler);
+            }
+        }
+
+        // ── 2. #[ListensTo] attribute scan via Reflection ─────────────────
+        $reflection = new \ReflectionClass($module);
+        foreach ($reflection->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
+            $attributes = $method->getAttributes(ListensTo::class);
+            if (empty($attributes)) {
+                continue;
+            }
+            foreach ($attributes as $attribute) {
+                /** @var ListensTo $listensTo */
+                $listensTo = $attribute->newInstance();
+
+                // Graceful degradation: skip if the event class is not (yet) loadable.
+                if (!class_exists($listensTo->eventClass)) {
+                    continue;
+                }
+
+                EventDispatcher::listen(
+                    $listensTo->eventClass,
+                    [$module, $method->getName()],
+                    $listensTo->priority,
+                );
             }
         }
     }
@@ -578,6 +672,31 @@ class ModuleLoader {
     }
 
     /**
+     * Resolve the effective ModuleState for a module from its overrides entry.
+     *
+     * Reads both the new 'state' key and the legacy 'enabled' bool key so that
+     * existing config/modules.php files continue to work without migration.
+     *
+     * @param string $name Module name or directory name.
+     * @return ModuleState
+     */
+    private function resolveState(string $name): ModuleState {
+        $entry = $this->overrides[$name] ?? null;
+        if ($entry === null) {
+            return ModuleState::Enabled;
+        }
+        // New key takes precedence.
+        if (isset($entry['state'])) {
+            return ModuleState::fromRaw($entry['state']);
+        }
+        // Legacy bool key.
+        if (array_key_exists('enabled', $entry)) {
+            return ModuleState::fromRaw($entry['enabled']);
+        }
+        return ModuleState::Enabled;
+    }
+
+    /**
      * Returns true if the file starts with the XCVM encrypted-file magic bytes.
      */
     private function isFileEncrypted(string $path): bool {
@@ -588,5 +707,77 @@ class ModuleLoader {
         $magic = fread($fh, 4);
         fclose($fh);
         return $magic === "\x58\x43\x56\x4D";
+    }
+
+    /**
+     * Resolves the vendor directory path relative to the modules directory.
+     *
+     * The vendor directory is expected to be a sibling of the modules/ directory
+     * (i.e. at MAIN_HOME/vendor/). Returns null when vendor/composer/ does not exist
+     * or Composer has not been run.
+     *
+     * @param string $modulesDir Absolute path to the modules/ directory.
+     * @return string|null Absolute path to vendor/, or null if not found.
+     */
+    private function resolveVendorDir(string $modulesDir): ?string {
+        $vendorDir = dirname($modulesDir) . '/vendor';
+        return is_dir($vendorDir . '/composer') ? $vendorDir : null;
+    }
+
+    /**
+     * Collects module.json paths from Composer-installed xcvm-module packages.
+     *
+     * Reads vendor/composer/installed.json and returns the module.json path for
+     * every package whose "type" is "xcvm-module". Packages may optionally declare
+     * a subdirectory for the module root via:
+     *
+     *   "extra": { "xcvm": { "module-path": "src/" } }
+     *
+     * When absent, module.json is expected at the package root.
+     *
+     * @param string $vendorDir Absolute path to the vendor/ directory.
+     * @return string[] Absolute paths to discovered module.json files.
+     */
+    private function collectComposerModuleManifests(string $vendorDir): array {
+        $installedJson = $vendorDir . '/composer/installed.json';
+        $raw = @file_get_contents($installedJson);
+        if ($raw === false) {
+            return [];
+        }
+
+        $data = json_decode($raw, true);
+        if (!is_array($data)) {
+            return [];
+        }
+
+        // Composer 2.x wraps packages in {"packages": [...], "dev": ...}
+        // Composer 1.x uses a flat array
+        $packages = isset($data['packages']) && is_array($data['packages'])
+            ? $data['packages']
+            : $data;
+
+        $manifests = [];
+        foreach ($packages as $package) {
+            if (!is_array($package) || ($package['type'] ?? '') !== 'xcvm-module') {
+                continue;
+            }
+
+            // install-path is relative to vendor/composer/
+            $installPath = realpath($vendorDir . '/composer/' . ($package['install-path'] ?? ''));
+            if ($installPath === false) {
+                continue;
+            }
+
+            // Optional subdirectory override
+            $subPath     = trim((string) ($package['extra']['xcvm']['module-path'] ?? ''), '/');
+            $moduleDir   = $subPath !== '' ? $installPath . '/' . $subPath : $installPath;
+            $manifestFile = $moduleDir . '/module.json';
+
+            if (file_exists($manifestFile)) {
+                $manifests[] = $manifestFile;
+            }
+        }
+
+        return $manifests;
     }
 }
