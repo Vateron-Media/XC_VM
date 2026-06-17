@@ -26,6 +26,23 @@
             <div class="col-xl-12">
                 <div class="card">
                     <div class="card-body">
+                        <h5 class="card-title"><i class="mdi mdi-store mr-1"></i> Install from store</h5>
+                        <p class="text-muted mb-2">Paste the module <strong>slug</strong> from the platform store page. The panel always installs the <strong>latest</strong> version with this server's install_id; if the module manifest targets LB, MAIN distributes it to all load balancers automatically. A failed install is rolled back automatically; use the <strong>Rollback</strong> button in the table to revert a store module to its previous version.</p>
+                        <p class="text-muted mb-2"><small><i class="mdi mdi-information-outline mr-1"></i>Set the <strong>Modules API Key</strong> under <a href="settings#api">Settings → API</a> before installing.</small></p>
+                        <form action="#" method="POST" class="mb-4">
+                            <input type="hidden" name="module_action" value="platform_install" />
+                            <div class="form-row">
+                                <div class="col-md-9 mb-2">
+                                    <input type="text" class="form-control" name="module_slug" placeholder="module-slug" required>
+                                </div>
+                                <div class="col-md-3 mb-2 text-right">
+                                    <button type="submit" class="btn btn-primary btn-block">
+                                        <i class="mdi mdi-download mr-1"></i> Install latest
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+
                         <h5 class="card-title"><i class="mdi mdi-package-variant-closed mr-1"></i> Upload Module ZIP</h5>
                         <form action="#" method="POST" enctype="multipart/form-data" class="mb-4">
                             <input type="hidden" name="module_action" value="upload_install" />
@@ -87,6 +104,18 @@
                                                             <input type="hidden" name="module_action" value="update">
                                                             <button type="submit" class="btn btn-sm btn-info"></i>Update</button>
                                                         </form>
+
+                                                        <?php if (($module['source'] ?? '') === 'platform' && !empty($module['previous_version'])): ?>
+                                                            <form action="#" method="POST" class="mr-1"
+                                                                  onsubmit="return confirm('Roll back <?= htmlspecialchars($module['name']) ?> to version <?= htmlspecialchars($module['previous_version']) ?>?');">
+                                                                <input type="hidden" name="module_name" value="<?= htmlspecialchars($module['name']) ?>">
+                                                                <input type="hidden" name="module_action" value="platform_rollback">
+                                                                <button type="submit" class="btn btn-sm btn-secondary"
+                                                                        title="Roll back to v<?= htmlspecialchars($module['previous_version']) ?>">
+                                                                    <i class="mdi mdi-history mr-1"></i>Rollback
+                                                                </button>
+                                                            </form>
+                                                        <?php endif; ?>
 
                                                         <button type="button"
                                                             class="btn btn-sm mr-1 module-toggle-btn <?= !empty($module['enabled']) ? 'btn-warning' : 'btn-success' ?>"
