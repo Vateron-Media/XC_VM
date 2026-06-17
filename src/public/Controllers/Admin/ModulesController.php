@@ -48,6 +48,32 @@ class ModulesController extends BaseAdminController {
                         $flash = ['type' => 'success', 'message' => 'Module updated: ' . $name];
                         break;
 
+                    case 'platform_install':
+                        $slug = trim((string) $this->input('module_slug', ''));
+                        $key  = (string) (SettingsManager::getAll()['platform_api_key'] ?? '');
+
+                        if ($key === '') {
+                            throw new RuntimeException('Set the platform API key before installing from the store.');
+                        }
+                        if ($slug === '') {
+                            throw new RuntimeException('Module slug is required.');
+                        }
+
+                        // Always install the latest approved version (resolved by the
+                        // extension from the platform).
+                        $manager->downloadFromPlatform($slug, '', $key);
+                        $flash = ['type' => 'success', 'message' => 'Module installed from store (latest): ' . $slug];
+                        break;
+
+                    case 'platform_rollback':
+                        $key = (string) (SettingsManager::getAll()['platform_api_key'] ?? '');
+                        if ($key === '') {
+                            throw new RuntimeException('Set the platform API key before rolling back.');
+                        }
+                        $manager->rollbackFromPlatform($name, $key);
+                        $flash = ['type' => 'success', 'message' => 'Module rolled back to previous version: ' . $name];
+                        break;
+
                     case 'upload_install':
                         if (!isset($_FILES['module_zip']) || !is_array($_FILES['module_zip'])) {
                             throw new RuntimeException('Zip file was not uploaded.');

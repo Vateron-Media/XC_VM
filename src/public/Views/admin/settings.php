@@ -1150,6 +1150,17 @@ $isAjaxRequest = (
 												</div>
 
 												<div class="form-group row mb-4">
+													<label class="col-md-4 col-form-label" for="platform_api_key">
+														Modules API Key
+														<i title="Shared XC_VM platform API key for this account. Used by MAIN and all load balancers to download store modules. Get it from your account on the platform website." class="tooltip text-secondary far fa-circle"></i>
+													</label>
+
+													<div class="col-md-8">
+														<input type="text" class="form-control" id="platform_api_key" name="platform_api_key" autocomplete="off" spellcheck="false" value="<?= htmlspecialchars($rSettings["platform_api_key"] ?? '') ?>">
+													</div>
+												</div>
+
+												<div class="form-group row mb-4">
 													<label class="col-md-4 col-form-label" for="disable_xmltv">
 														Disable EPG Download - Line
 														<i title="<?= $language::get('enable_to_disallow_epg_downloads_in_xmltv_format') ?>" class="tooltip text-secondary far fa-circle"></i>

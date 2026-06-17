@@ -70389,6 +70389,7 @@ CREATE TABLE IF NOT EXISTS `settings` (
   `reissues` mediumtext COLLATE utf8_unicode_ci,
   `status_uuid` varchar(512) COLLATE utf8_unicode_ci DEFAULT NULL,
   `live_streaming_pass` varchar(512) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `platform_api_key` varchar(128) COLLATE utf8_unicode_ci DEFAULT NULL,
   `update_channel` varchar(12) COLLATE utf8_unicode_ci DEFAULT 'stable',
   `maxmind_account_id` varchar(20) COLLATE utf8_unicode_ci DEFAULT NULL,
   `maxmind_license_key` varchar(64) COLLATE utf8_unicode_ci DEFAULT NULL,

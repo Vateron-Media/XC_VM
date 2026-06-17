@@ -18,6 +18,7 @@
 class ModuleManager {
     private string $modulesPath;
     private string $overridesPath;
+    private string $archivesPath;
     private ?ServiceContainer $container;
 
     /**
@@ -34,7 +35,23 @@ class ModuleManager {
     ) {
         $this->modulesPath   = $modulesPath   ?: (defined('MAIN_HOME')   ? MAIN_HOME   . 'modules'      : dirname(__DIR__, 2) . '/modules');
         $this->overridesPath = $overridesPath ?: (defined('CONFIG_PATH') ? CONFIG_PATH . 'modules.php'  : dirname(__DIR__, 2) . '/config/modules.php');
+        $this->archivesPath  = defined('MAIN_HOME') ? MAIN_HOME . 'modules_archives' : dirname(__DIR__, 2) . '/modules_archives';
         $this->container     = $container;
+    }
+
+    /**
+     * Absolute path of the stored archive for a custom (non-store) module.
+     *
+     * MAIN keeps a copy of every uploaded module archive named
+     * {name}_{version}.zip so LB servers can pull it back over the internal
+     * system API (action=getFile). Because every server shares the same
+     * MAIN_HOME layout, the LB can reconstruct this exact path from the name +
+     * version carried in the install_module signal.
+     */
+    public function archivePathFor(string $name, string $version): string {
+        $name    = $this->sanitizeModuleName($name);
+        $version = preg_replace('/[^0-9A-Za-z._\-]/', '', (string) $version);
+        return $this->archivesPath . '/' . $name . '_' . $version . '.zip';
     }
 
     /** @return object|null Database instance from the container, or null if unavailable. */
@@ -77,6 +94,9 @@ class ModuleManager {
                 'enabled'               => $state->isLoadable(),
                 'state'                 => $state,
                 'path'                  => dirname($jsonFile),
+                'installed_version'     => $overrides[$name]['installed_version'] ?? '',
+                'source'                => $overrides[$name]['source'] ?? '',
+                'previous_version'      => $overrides[$name]['previous_version'] ?? '',
             ];
         }
 
@@ -262,10 +282,169 @@ class ModuleManager {
 
             $this->installModule($moduleName);
 
+            // Keep a copy of the uploaded archive so it can be redistributed to
+            // LB servers (which have no access to the store for custom modules).
+            $manifest = $this->readModuleManifest($moduleName);
+            $version  = (string) ($manifest['version'] ?? '0.0.0');
+            $this->storeModuleArchive($zipFilePath, $moduleName, $version);
+
+            // Custom (non-store) module — no store rollback available.
+            $this->recordModuleSource($moduleName, 'local');
+
+            // If the manifest targets load balancers, push the archive to every LB.
+            $this->distributeToLoadBalancers($moduleName, $manifest, 'local', $version);
+
             return $moduleName;
         } finally {
             $this->deleteDirectory($tempBase);
         }
+    }
+
+    /**
+     * LB-side: install a custom (non-store) module from a local archive,
+     * deploying its FILES ONLY — no DB migrations (the shared DB was already
+     * migrated by MAIN).
+     *
+     * @param string $zipFilePath Path to the .zip archive fetched from MAIN.
+     * @return string Installed module name.
+     */
+    public function deployFromArchiveFilesOnly(string $zipFilePath): string {
+        if (!class_exists('ZipArchive')) {
+            throw new RuntimeException('ZipArchive extension is not available.');
+        }
+        if (!is_file($zipFilePath)) {
+            throw new InvalidArgumentException('Module archive not found.');
+        }
+
+        $tempBase = rtrim(sys_get_temp_dir(), '/') . '/xc_module_' . bin2hex(random_bytes(8));
+        if (!@mkdir($tempBase, 0755, true) && !is_dir($tempBase)) {
+            throw new RuntimeException('Unable to create temporary directory.');
+        }
+
+        try {
+            $this->extractZipSafely($zipFilePath, $tempBase);
+
+            $moduleDir  = $this->resolveExtractedModuleDir($tempBase);
+            $moduleName = $this->sanitizeModuleName(basename($moduleDir));
+
+            $targetDir = $this->modulesPath . '/' . $moduleName;
+            if (is_dir($targetDir)) {
+                $this->deleteDirectory($targetDir);
+            }
+            $this->copyDirectory($moduleDir, $targetDir);
+
+            // Keep the archive locally too, so this LB can re-seed if needed.
+            $manifest = $this->readModuleManifest($moduleName);
+            $version  = (string) ($manifest['version'] ?? '0.0.0');
+            $this->storeModuleArchive($zipFilePath, $moduleName, $version);
+
+            $this->recordInstalledVersion($moduleName, $version);
+            $this->setState($moduleName, ModuleState::Enabled);
+            $this->hotReloadSafe($moduleName, $targetDir);
+
+            return $moduleName;
+        } finally {
+            $this->deleteDirectory($tempBase);
+        }
+    }
+
+    /**
+     * Copy a module archive into the local archives directory as
+     * {name}_{version}.zip (idempotent — overwrites any previous copy).
+     */
+    private function storeModuleArchive(string $sourceZip, string $name, string $version): void {
+        $dest = $this->archivePathFor($name, $version);
+        $dir  = dirname($dest);
+        if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) {
+            throw new RuntimeException('Unable to create modules archive directory.');
+        }
+        if (realpath($sourceZip) !== realpath($dest) && !@copy($sourceZip, $dest)) {
+            throw new RuntimeException('Unable to store module archive.');
+        }
+        @chmod($dest, 0644);
+    }
+
+    /**
+     * Read a module's manifest (module.json) from the modules directory.
+     *
+     * @return array Decoded manifest, or [] if missing/invalid.
+     */
+    private function readModuleManifest(string $name): array {
+        $name = $this->sanitizeModuleName($name);
+        $file = $this->modulesPath . '/' . $name . '/module.json';
+        if (!is_file($file)) {
+            return [];
+        }
+        $data = json_decode((string) @file_get_contents($file), true);
+        return is_array($data) ? $data : [];
+    }
+
+    /**
+     * Tell every enabled load balancer to install a module, if the manifest
+     * targets the LB environment. Runs only on MAIN.
+     *
+     * Inserts one `signals` row per LB with custom_data:
+     *   {"action":"install_module","source":"platform|local","name":"…","version":"…"}
+     * The LB's root signals daemon picks it up and runs `console.php module:install`.
+     *
+     * @param string $name     Module name / slug.
+     * @param array  $manifest Decoded module.json.
+     * @param string $source   'platform' (pull from store) or 'local' (pull archive from MAIN).
+     * @param string $version  Module version.
+     */
+    private function distributeToLoadBalancers(string $name, array $manifest, string $source, string $version): void {
+        // Only MAIN distributes. LB installs are file-only and never re-dispatch.
+        if ($this->isLoadBalancer()) {
+            return;
+        }
+
+        $environment = strtolower((string) ($manifest['environment'] ?? 'main'));
+        if (!in_array($environment, ['lb', 'any'], true)) {
+            return; // module is MAIN-only — nothing to distribute
+        }
+
+        $db = $this->getDb();
+        if ($db === null) {
+            return;
+        }
+
+        $payload = json_encode([
+            'action'  => 'install_module',
+            'source'  => $source === 'platform' ? 'platform' : 'local',
+            'name'    => $name,
+            'version' => $version,
+        ]);
+
+        // LB servers are streaming servers (server_type = 0) that are not the
+        // main panel and are enabled. Collect ids first so the INSERT loop does
+        // not clobber the active result set.
+        $db->query('SELECT `id` FROM `servers` WHERE `server_type` = 0 AND `is_main` = 0 AND `enabled` = 1;');
+        $rServerIDs = array();
+        foreach ($db->get_rows() as $rRow) {
+            $rServerIDs[] = intval($rRow['id']);
+        }
+
+        foreach ($rServerIDs as $rServerID) {
+            $db->query(
+                'INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);',
+                $rServerID,
+                time(),
+                $payload
+            );
+        }
+    }
+
+    /**
+     * @return bool True when running on a load balancer (is_lb = 1 in config).
+     */
+    private function isLoadBalancer(): bool {
+        if (class_exists('ConfigReader')) {
+            return (bool) ConfigReader::get('is_lb');
+        }
+        if (defined('SERVER_TYPE')) {
+            return SERVER_TYPE === 'lb';
+        }
+        return false;
     }
 
     /**
@@ -277,14 +456,240 @@ class ModuleManager {
      * current ServiceContainer without requiring a PHP-FPM restart.
      *
      * @param string      $slug    Module slug as listed on the platform.
-     * @param string      $version Exact version string (e.g. "1.2.0").
+     * @param string      $version Exact version string (e.g. "1.2.0"), or '' for the latest.
      * @param string|null $apiKey  API key for the SaaS platform.
      * @return void
      * @throws RuntimeException If the C extension is missing, download fails, or install fails.
      */
-    public function downloadFromPlatform(string $slug, string $version, ?string $apiKey = null): void {
+    public function downloadFromPlatform(string $slug, string $version = '', ?string $apiKey = null): void {
+        $slug      = $this->sanitizeModuleName($slug);
+        $targetDir = $this->modulesPath . '/' . $slug;
+
+        // Snapshot current state so a failed (re)install rolls back cleanly. We
+        // MOVE the existing module aside (outside modulesPath so the loader never
+        // scans it) — this both gives a clean dir for the new extract and a
+        // restore point. installed_version is captured for the version record.
+        $prevVersion = $this->readOverrides()[$slug]['installed_version'] ?? null;
+        $backupDir   = $this->backupModuleDir($slug, $targetDir);
+
+        try {
+            $result          = $this->pullFilesFromPlatform($slug, $version, $apiKey);
+            $modulePath      = $result['path'];
+            $resolvedVersion = (string) ($result['version'] ?: $version);
+
+            $this->installModule($slug);
+
+            EventDispatcher::dispatch(new PackageInstalledEvent(
+                slug:        $result['module'],
+                version:     $resolvedVersion,
+                path:        $modulePath,
+                installedAt: time(),
+            ));
+
+            $this->hotReload($slug, $modulePath);
+
+            // Mark as store-installed and remember the version we replaced so the
+            // module list can offer a one-click rollback.
+            $this->recordPlatformSource(
+                $slug,
+                ($prevVersion && $prevVersion !== $resolvedVersion) ? $prevVersion : null
+            );
+
+            // If the manifest targets load balancers, tell every LB to pull the
+            // same module from the platform with its own install_id (MAIN-only).
+            $this->distributeToLoadBalancers($slug, $this->readModuleManifest($slug), 'platform', $resolvedVersion);
+
+            // Success — drop the rollback snapshot.
+            if ($backupDir !== null) {
+                $this->deleteDirectory($backupDir);
+            }
+        } catch (Throwable $e) {
+            $restored = $this->restoreModuleBackup($slug, $targetDir, $backupDir, $prevVersion);
+            throw new RuntimeException(
+                "Platform install of '{$slug}' failed"
+                . ($restored
+                    ? ' — rolled back to previous version' . ($prevVersion ? " {$prevVersion}" : '')
+                    : '')
+                . ': ' . $e->getMessage(),
+                0,
+                $e
+            );
+        }
+    }
+
+    /**
+     * Roll a store-installed module back to its previously installed version.
+     *
+     * Uses the `previous_version` recorded at the last store install (still
+     * available on the platform within its retention window). Re-installs that
+     * exact version, then clears `previous_version` (one-shot rollback). LBs are
+     * re-synced to the rolled-back version via the normal distribution path.
+     *
+     * @param string      $slug   Module slug.
+     * @param string|null $apiKey Platform API key.
+     * @throws RuntimeException If the module was not installed from the store or
+     *                          has no recorded previous version.
+     */
+    public function rollbackFromPlatform(string $slug, ?string $apiKey = null): void {
+        $slug      = $this->sanitizeModuleName($slug);
+        $overrides = $this->readOverrides();
+        $entry     = $overrides[$slug] ?? [];
+
+        if (($entry['source'] ?? '') !== 'platform') {
+            throw new RuntimeException("Module '{$slug}' was not installed from the store; cannot roll back.");
+        }
+        $previous = $entry['previous_version'] ?? '';
+        if ($previous === '') {
+            throw new RuntimeException("No previous version recorded for '{$slug}'.");
+        }
+
+        // Re-installs the previous version (explicit, not "latest").
+        $this->downloadFromPlatform($slug, $previous, $apiKey);
+
+        // One-shot: drop the previous-version marker so the rollback button hides
+        // until the next successful update creates a new restore point.
+        $this->clearPreviousVersion($slug);
+    }
+
+    /** Mark a module as store-installed and (optionally) record the replaced version. */
+    private function recordPlatformSource(string $name, ?string $previousVersion): void {
+        $overrides = $this->readOverrides();
+        if (!isset($overrides[$name]) || !is_array($overrides[$name])) {
+            $overrides[$name] = [];
+        }
+        $overrides[$name]['source'] = 'platform';
+        if ($previousVersion !== null && $previousVersion !== '') {
+            $overrides[$name]['previous_version'] = $previousVersion;
+        }
+        $this->writeOverrides($overrides);
+    }
+
+    /** Record the install source for a module (e.g. 'platform' or 'local'). */
+    private function recordModuleSource(string $name, string $source): void {
+        $overrides = $this->readOverrides();
+        if (!isset($overrides[$name]) || !is_array($overrides[$name])) {
+            $overrides[$name] = [];
+        }
+        $overrides[$name]['source'] = $source;
+        $this->writeOverrides($overrides);
+    }
+
+    /** Remove the recorded previous version for a module. */
+    private function clearPreviousVersion(string $name): void {
+        $overrides = $this->readOverrides();
+        if (isset($overrides[$name]['previous_version'])) {
+            unset($overrides[$name]['previous_version']);
+            $this->writeOverrides($overrides);
+        }
+    }
+
+    /**
+     * Move an installed module directory to a backup location outside the
+     * modules path (so ModuleLoader never scans it). Returns the backup path,
+     * or null if the module was not installed. Falls back to copy+delete if the
+     * move (rename) fails.
+     */
+    private function backupModuleDir(string $slug, string $targetDir): ?string {
+        if (!is_dir($targetDir)) {
+            return null;
+        }
+        $base = dirname($this->modulesPath) . '/.module_backups';
+        if (!is_dir($base) && !@mkdir($base, 0755, true) && !is_dir($base)) {
+            // Cannot create a backup area — copy in place as a last resort is not
+            // possible; proceed without rollback rather than block the install.
+            return null;
+        }
+        $backupDir = $base . '/' . $slug . '_' . bin2hex(random_bytes(4));
+        if (@rename($targetDir, $backupDir)) {
+            return $backupDir;
+        }
+        // rename failed (e.g. cross-device) — copy then remove the original.
+        $this->copyDirectory($targetDir, $backupDir);
+        $this->deleteDirectory($targetDir);
+        return $backupDir;
+    }
+
+    /**
+     * Restore a module backup created by backupModuleDir() after a failed
+     * install, re-recording the previous installed version. Returns true if a
+     * backup was restored.
+     */
+    private function restoreModuleBackup(string $slug, string $targetDir, ?string $backupDir, ?string $prevVersion): bool {
+        // Remove the (possibly partial) failed install first.
+        $realModules = realpath($this->modulesPath);
+        $realTarget  = realpath($targetDir) ?: $targetDir;
+        if ($realModules && str_starts_with($realTarget, $realModules . '/')) {
+            $this->deleteDirectory($targetDir);
+        }
+
+        if ($backupDir === null || !is_dir($backupDir)) {
+            return false;
+        }
+
+        if (!@rename($backupDir, $targetDir)) {
+            $this->copyDirectory($backupDir, $targetDir);
+            $this->deleteDirectory($backupDir);
+        }
+
+        if ($prevVersion !== null) {
+            $this->recordInstalledVersion($slug, $prevVersion);
+        }
+        $this->setState($slug, ModuleState::Enabled);
+        return true;
+    }
+
+    /**
+     * LB-side: download a store module from the platform and deploy its FILES
+     * ONLY — no DB migrations.
+     *
+     * LB servers share MAIN's database, so the module's schema migrations have
+     * already been applied by MAIN. Here we only need the decrypted code on the
+     * LB so it loads under environment=lb/any. Each LB registers and downloads
+     * with its OWN install_id.
+     *
+     * @param string      $slug    Module slug on the platform.
+     * @param string      $version Exact version string.
+     * @param string|null $apiKey  Shared platform API key (from settings).
+     * @return void
+     */
+    public function deployFromPlatformFilesOnly(string $slug, string $version, ?string $apiKey = null): void {
+        $result = $this->pullFilesFromPlatform($slug, $version, $apiKey);
+
+        EventDispatcher::dispatch(new PackageInstalledEvent(
+            slug:        $result['module'],
+            version:     $result['version'],
+            path:        $result['path'],
+            installedAt: time(),
+        ));
+
+        $this->recordInstalledVersion($slug, (string) ($result['version'] ?: $version));
+        $this->setState($slug, ModuleState::Enabled);
+        $this->hotReloadSafe($slug, $result['path']);
+    }
+
+    /**
+     * Register the panel and pull (download + decrypt + extract) a module's
+     * files from the platform via the C extension. Does NOT run installModule().
+     *
+     * @return array{ok: bool, module: string, version: string, path: string}
+     * @throws RuntimeException On a missing extension, registration or download failure.
+     */
+    private function pullFilesFromPlatform(string $slug, string $version, ?string $apiKey): array {
         if (!class_exists('XC_VM')) {
             throw new RuntimeException('XC_VM extension is not loaded. Install xcvm_core.so and enable it in php.ini.');
+        }
+
+        // Ensure this panel is registered with the platform before installing.
+        // module_install() asks the SaaS to wrap the module key in an X25519
+        // SealedBox for *this* panel's public key; if the panel was never
+        // registered the /plugins/key endpoint answers "panel_not_registered"
+        // and the install fails. Registration is an idempotent upsert keyed by
+        // install_id, so running it before every install also guarantees the
+        // server holds the public key matching our current local secret key.
+        $reg = \XC_VM::panel_register($apiKey ?? '');
+        if (!is_array($reg) || empty($reg['ok'])) {
+            $regReason = $reg['message'] ?? ($reg['reason'] ?? 'unknown');
+            throw new RuntimeException("Panel registration with platform failed for module '{$slug}': {$regReason}");
         }
 
         $result = \XC_VM::module_install($slug, $version, $apiKey ?? '');
@@ -294,33 +699,12 @@ class ModuleManager {
             throw new RuntimeException("Platform download failed for module '{$slug}': {$reason}");
         }
 
-        $modulePath = $result['path'];
-
-        try {
-            $this->installModule($slug);
-        } catch (Throwable $e) {
-            // Install failed (DB rolled back) — remove the partially unpacked directory
-            // only if it sits inside our modules directory (prevent accidental deletion).
-            $realModules = realpath($this->modulesPath);
-            $realModule  = realpath($modulePath) ?: $modulePath;
-            if ($realModules && str_starts_with($realModule, $realModules . '/')) {
-                $this->deleteDirectory($modulePath);
-            }
-            throw new RuntimeException(
-                "Module '{$slug}' install failed and was rolled back: " . $e->getMessage(),
-                0,
-                $e
-            );
-        }
-
-        EventDispatcher::dispatch(new PackageInstalledEvent(
-            slug:        $result['module'],
-            version:     $result['version'],
-            path:        $modulePath,
-            installedAt: time(),
-        ));
-
-        $this->hotReload($slug, $modulePath);
+        return [
+            'ok'      => true,
+            'module'  => $result['module']  ?? $slug,
+            'version' => $result['version'] ?? $version,
+            'path'    => $result['path']    ?? ($this->modulesPath . '/' . $slug),
+        ];
     }
 
     /**
@@ -332,6 +716,25 @@ class ModuleManager {
      * @param string $slug       Module name.
      * @param string $modulePath Absolute path to the module directory.
      */
+    /**
+     * Hot-reload only when serving a web request, never crash the caller.
+     *
+     * On an LB the install runs from a root CLI cron where there is no live
+     * request to keep warm and no router/container wired — the module simply
+     * loads from disk on the next request. So skip hot-reload under CLI and
+     * swallow any error.
+     */
+    private function hotReloadSafe(string $slug, string $modulePath): void {
+        if (PHP_SAPI === 'cli') {
+            return;
+        }
+        try {
+            $this->hotReload($slug, $modulePath);
+        } catch (\Throwable $e) {
+            error_log("ModuleManager: hot-reload skipped for '{$slug}': " . $e->getMessage());
+        }
+    }
+
     private function hotReload(string $slug, string $modulePath): void {
         $container = ServiceContainer::getInstance();
 

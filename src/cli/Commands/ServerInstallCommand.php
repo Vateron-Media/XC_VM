@@ -72,7 +72,6 @@ class ServerInstallCommand implements CommandInterface {
 			$rInstallFiles = ProxyInstallFlow::getInstallFile();
 			ProxyInstallFlow::writeInstallMetadata($rInstallDir, $rServerID, $rUsername, $rPassword, $rPort, $rHTTPPort, $rHTTPSPort, $rParentIDs);
 		} elseif ($rType == 2) {
-			$rPackages = LbInstallFlow::getPackages();
 			$rUpdateData = LbInstallFlow::resolveUpdateData($gitRelease);
 			$rInstallFiles = $rUpdateData['url'];
 			$rHash = $rUpdateData['md5'];
@@ -116,6 +115,11 @@ class ServerInstallCommand implements CommandInterface {
 		$rVersion = trim($rOS['output']);
 		$rDistID = strtolower(trim($this->runSSH($rConn, 'lsb_release -is 2>/dev/null || (. /etc/os-release && echo $ID)')['output']));
 		echo "\nRemote OS: {$rDistID} {$rVersion}\n";
+
+		// LB package list is distribution/version-specific, so resolve it after OS detection.
+		if ($rType == 2) {
+			$rPackages = LbInstallFlow::getPackages($rDistID, $rVersion);
+		}
 
 		$this->updateSystemAndInstallPackages($rConn, $rRunSSH, $rPackages, $rType);
 		$this->installUbuntu20Compatibility($rConn, $rRunSSH, $rVersion);
