@@ -120,7 +120,13 @@ class ModuleLoader {
 
         $className = $this->resolveClassName($name);
 
-        if (!class_exists($className)) {
+        // NB: class_exists() with autoload=false. The module's main class file is
+        // at the deterministic path modulePath/{ShortName}.php and is require'd
+        // below — we must NOT let class_exists() trigger the global autoloader,
+        // whose miss-path runs a full recursive directory rescan
+        // (Autoloader::warmCache) on EVERY request (workers are short-lived under
+        // pm=ondemand), which pegged php-fpm at high CPU.
+        if (!class_exists($className, false)) {
             // Strip namespace prefix — the file lives at modulePath/{ShortName}.php
             $shortName = substr($className, (int) strrpos($className, '\\') + 1);
             $classFile = $modulePath . '/' . $shortName . '.php';
@@ -132,7 +138,7 @@ class ModuleLoader {
                 require_once $classFile;
             }
 
-            if (!class_exists($className)) {
+            if (!class_exists($className, false)) {
                 error_log("ModuleLoader: class '{$className}' not found for module '{$name}'");
                 return false;
             }
