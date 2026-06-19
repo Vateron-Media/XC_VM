@@ -34,21 +34,26 @@ start() {
 }
 
 stop() {
-  pids=$(pgrep -u xc_vm nginx | wc -l)
-  if [ $pids = 0 ]; then
-    echo 'XC_VM is not running'
-    return 1
-  fi
   echo 'Stopping XC_VM...'
-  sudo killall -u xc_vm
-  sleep 1
-  sudo killall -u xc_vm
-  sleep 1
-  sudo killall -u xc_vm
+  # PHP-FPM masters daemonize out of systemd's cgroup (start-stop-daemon
+  # --daemonize + per-user sudo session), so a soft/cgroup stop can leave them —
+  # and their OPcache shared memory — alive. Kill EVERYTHING owned by xc_vm by
+  # UID, escalating to SIGKILL, so stop/restart truly recycles FPM and OPcache.
+  # Always returns 0 so systemd's ExecStop never "fails" (which would skip it).
+  pkill -u xc_vm 2>/dev/null || killall -u xc_vm 2>/dev/null || true
+  sleep 2
+  for _ in 1 2 3; do
+    pgrep -u xc_vm >/dev/null 2>&1 || break
+    pkill -9 -u xc_vm 2>/dev/null || killall -9 -u xc_vm 2>/dev/null || true
+    sleep 1
+  done
+  return 0
 }
 
 restart() {
-  ps -U xc_vm | egrep -v "ffmpeg|PID" | awk '{print $1}' | xargs kill -9
+  # Hard-recycle every xc_vm process EXCEPT ffmpeg (keeps active transcodes/
+  # streams running) then start fresh — this is what reliably flushes OPcache.
+  ps -U xc_vm | egrep -v "ffmpeg|PID" | awk '{print $1}' | xargs -r kill -9
   start
 }
 

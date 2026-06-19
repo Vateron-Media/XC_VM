@@ -479,8 +479,11 @@ User=root
 Restart=always
 RestartSec=1
 LimitNOFILE=655350
+TimeoutStopSec=30
+KillMode=mixed
 ExecStart=/bin/bash /home/xc_vm/service start
 ExecStop=/bin/bash /home/xc_vm/service stop
+ExecReload=/bin/bash /home/xc_vm/service restart
 
 [Install]
 WantedBy=multi-user.target"""
