@@ -8,12 +8,9 @@ if [ "$USER" != "root" ]; then
   exit 0
 fi
 
-start() {
-  pids=$(pgrep -u xc_vm nginx | wc -l)
-  if [ $pids != 0 ]; then
-    echo 'XC_VM is already running'
-    return 1
-  fi
+# Launch every XC_VM service. Does NOT block — shared by start (foreground) and
+# restart (returns to the shell).
+boot() {
   echo 'Starting XC_VM...'
   sudo chown -R xc_vm:xc_vm /sys/class/net
   sudo chown -R xc_vm:xc_vm /home/xc_vm/content/streams
@@ -29,6 +26,18 @@ start() {
   sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/console.php watchdog >/dev/null 2>/dev/null &
   sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/console.php queue >/dev/null 2>/dev/null &
   sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/console.php cache_handler >/dev/null 2>/dev/null &
+}
+
+# Foreground entry for systemd (Type=simple): boot, then stay alive so systemd
+# keeps tracking the unit. Holds the terminal BY DESIGN — for a manual,
+# non-blocking restart use `restart` (or `systemctl restart|reload xc_vm`).
+start() {
+  pids=$(pgrep -u xc_vm nginx | wc -l)
+  if [ $pids != 0 ]; then
+    echo 'XC_VM is already running'
+    return 1
+  fi
+  boot
   echo 'Running in foreground...'
   sleep infinity
 }
@@ -52,9 +61,10 @@ stop() {
 
 restart() {
   # Hard-recycle every xc_vm process EXCEPT ffmpeg (keeps active transcodes/
-  # streams running) then start fresh — this is what reliably flushes OPcache.
+  # streams running) then boot fresh — reliably flushes OPcache. Returns to the
+  # shell; does NOT hold the console (boot, not the foreground start).
   ps -U xc_vm | egrep -v "ffmpeg|PID" | awk '{print $1}' | xargs -r kill -9
-  start
+  boot
 }
 
 reload() {
