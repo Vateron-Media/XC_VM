@@ -302,7 +302,7 @@ class WatchItem {
         }
     }
 
-    public static function run($rThreadData = null, $rTimeout) {
+    public static function run($rThreadData = null, $rTimeout = 60) {
         $db = self::db();
 
         if (!is_array($rThreadData)) {
