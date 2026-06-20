@@ -116,7 +116,7 @@ class ModuleManager {
      * @return void
      * @throws RuntimeException If the module cannot be loaded.
      */
-    public function installModule(string $name): void {
+    public function installModule(string $name, ?string $version = null): void {
         $name = $this->sanitizeModuleName($name);
         $module = $this->loadModuleInstance($name);
 
@@ -138,9 +138,13 @@ class ModuleManager {
         }
 
         $this->setState($name, ModuleState::Enabled);
-        // Record the version from module.json (authoritative), not the module's
-        // hardcoded getVersion(), which can drift from the shipped manifest.
-        $this->recordInstalledVersion($name, $this->manifestVersion($name) ?? $module->getVersion());
+        // Version priority: explicit $version (platform installs pass the
+        // authoritative SaaS release version) → module.json manifest → the
+        // module's hardcoded getVersion() (which can drift from the manifest).
+        $this->recordInstalledVersion(
+            $name,
+            $version ?? $this->manifestVersion($name) ?? $module->getVersion()
+        );
     }
 
     /**
@@ -492,7 +496,9 @@ class ModuleManager {
             $modulePath      = $result['path'];
             $resolvedVersion = (string) ($result['version'] ?: $version);
 
-            $this->installModule($slug);
+            // Record the version the PLATFORM served (authoritative for store
+            // installs); the module's module.json/getVersion() may lag behind.
+            $this->installModule($slug, $resolvedVersion);
 
             EventDispatcher::dispatch(new PackageInstalledEvent(
                 slug:        $result['module'],
