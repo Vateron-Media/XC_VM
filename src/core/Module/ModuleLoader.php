@@ -118,7 +118,12 @@ class ModuleLoader {
         // encrypted ones) can reference their own classes via require/include.
         $this->registerModuleAutoloader($modulePath);
 
-        $className = $this->resolveClassName($name);
+        // Resolve the class from the module's OWN manifest name, not the passed
+        // $name. Platform installs use the marketplace slug (e.g. "watch-d2bho")
+        // as the directory, but the module's class follows its canonical manifest
+        // name (e.g. "watch" -> XcVm\Module\Watch\WatchModule). This mirrors
+        // discoverModules(), which already keys class resolution on manifest name.
+        $className = $this->resolveClassName($this->manifestName($modulePath, $name));
 
         // NB: class_exists() with autoload=false. The module's main class file is
         // at the deterministic path modulePath/{ShortName}.php and is require'd
@@ -392,6 +397,30 @@ class ModuleLoader {
 
         // Return fully-qualified class name: XcVm\Module\{Pascal}\{Pascal}Module
         return 'XcVm\\Module\\' . $pascal . '\\' . $pascal . 'Module';
+    }
+
+    /**
+     * The module's canonical name as declared in its module.json ("name"), used
+     * for class resolution. Falls back to $fallback (the directory/slug) when the
+     * manifest is missing or has no usable name. This lets a module installed
+     * under a marketplace slug still resolve to the class the developer authored.
+     *
+     * @param string|null $modulePath Module directory (contains module.json).
+     * @param string      $fallback   Name to use when the manifest has none.
+     * @return string Canonical module name (kebab-case).
+     */
+    private function manifestName(?string $modulePath, string $fallback): string {
+        if ($modulePath === null) {
+            return $fallback;
+        }
+        $jsonFile = $modulePath . '/module.json';
+        if (is_file($jsonFile)) {
+            $meta = json_decode((string) @file_get_contents($jsonFile), true);
+            if (is_array($meta) && isset($meta['name']) && is_string($meta['name']) && $meta['name'] !== '') {
+                return $meta['name'];
+            }
+        }
+        return $fallback;
     }
 
     /**
