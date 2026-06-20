@@ -1272,16 +1272,20 @@ $isAjaxRequest = (
 													<div class="col-md-12 text-muted"><small><i class="mdi mdi-information-outline mr-1"></i>When MaxMind credentials are configured, <code>binaries</code> and <code>cron:maxmind</code> (every Tuesday) download selected databases from the MaxMind API. If credentials are empty, XC_VM falls back to GitHub GeoLite2 files. GeoLite2 editions are free with a MaxMind account; GeoIP2 editions require an active paid subscription.</small></div>
 												</div>
 
-												<h5 class="card-title mb-4"><?= $language::get('ministra') ?></h5>
+												<h5 class="card-title mb-4">Encryption</h5>
 
 												<div class="form-group row mb-4">
 													<label class="col-md-4 col-form-label" for="live_streaming_pass">
-														Streaming Password
+														System API Encryption Key
 													</label>
 
 													<div class="col-md-8">
 														<input type="text" class="form-control" id="live_streaming_pass" name="live_streaming_pass" value="<?= htmlspecialchars(SettingsManager::getAll()["live_streaming_pass"] ?? '') ?>">
 													</div>
+												</div>
+
+												<div class="form-group row mb-4">
+													<div class="col-md-12 text-muted"><small><i class="mdi mdi-information-outline mr-1"></i>Server-wide secret used to encrypt stream access tokens (HLS / RTMP / portal) and stored HMAC API keys. This is not a password and is unrelated to Ministra. Changing it invalidates every existing encrypted token and stored API key.</small></div>
 												</div>
 
 											</div>
