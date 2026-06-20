@@ -138,7 +138,9 @@ class ModuleManager {
         }
 
         $this->setState($name, ModuleState::Enabled);
-        $this->recordInstalledVersion($name, $module->getVersion());
+        // Record the version from module.json (authoritative), not the module's
+        // hardcoded getVersion(), which can drift from the shipped manifest.
+        $this->recordInstalledVersion($name, $this->manifestVersion($name) ?? $module->getVersion());
     }
 
     /**
@@ -181,7 +183,7 @@ class ModuleManager {
         }
 
         $module    = $this->loadModuleInstance($name);
-        $toVersion = $module->getVersion();
+        $toVersion = $this->manifestVersion($name) ?? $module->getVersion();
 
         if (version_compare($fromVersion, $toVersion, '>=')) {
             return;
@@ -380,6 +382,19 @@ class ModuleManager {
     }
 
     /**
+     * The module's version as declared in its module.json, or null if absent.
+     * Authoritative source for the installed version (the module's getVersion()
+     * is hardcoded and may drift from the shipped manifest).
+     *
+     * @param string $name Module name / directory.
+     * @return string|null
+     */
+    private function manifestVersion(string $name): ?string {
+        $v = $this->readModuleManifest($name)['version'] ?? null;
+        return (is_string($v) && $v !== '') ? $v : null;
+    }
+
+    /**
      * Tell every enabled load balancer to install a module, if the manifest
      * targets the LB environment. Runs only on MAIN.
      *
@@ -488,12 +503,12 @@ class ModuleManager {
 
             $this->hotReload($slug, $modulePath);
 
-            // Mark as store-installed and remember the version we replaced so the
-            // module list can offer a one-click rollback.
-            $this->recordPlatformSource(
-                $slug,
-                ($prevVersion && $prevVersion !== $resolvedVersion) ? $prevVersion : null
-            );
+            // Mark as store-installed and remember the version the Rollback
+            // button should target. The previous version is authoritative from
+            // the PLATFORM (it holds release history); it may be null when the
+            // platform has no prior approved version. (NB: $prevVersion below is
+            // the LOCAL pre-install version, used only for failure rollback.)
+            $this->recordPlatformSource($slug, $result['previous_version'] ?? null);
 
             // If the manifest targets load balancers, tell every LB to pull the
             // same module from the platform with its own install_id (MAIN-only).
@@ -700,10 +715,13 @@ class ModuleManager {
         }
 
         return [
-            'ok'      => true,
-            'module'  => $result['module']  ?? $slug,
-            'version' => $result['version'] ?? $version,
-            'path'    => $result['path']    ?? ($this->modulesPath . '/' . $slug),
+            'ok'               => true,
+            'module'           => $result['module']  ?? $slug,
+            'version'          => $result['version'] ?? $version,
+            'path'             => $result['path']    ?? ($this->modulesPath . '/' . $slug),
+            // Previous approved version reported by the platform (for the
+            // Rollback button). May be absent/null when there is no prior version.
+            'previous_version' => $result['previous_version'] ?? null,
         ];
     }
 
@@ -891,6 +909,17 @@ class ModuleManager {
 
             if (!@rename($tmp, $this->overridesPath)) {
                 throw new RuntimeException('Unable to atomically replace config/modules.php');
+            }
+
+            // config/modules.php is read back via require(), which OPcache caches
+            // (validate_timestamps + revalidate_freq). Install does several
+            // read-modify-write cycles in one request (setState → recordInstalled
+            // → recordSource); without invalidation the later reads see a STALE
+            // array and the final write clobbers the module's state, leaving it
+            // not-Enabled until a manual disable/enable. Drop the cached entry so
+            // every readOverrides() in this request sees what we just wrote.
+            if (function_exists('opcache_invalidate')) {
+                opcache_invalidate($this->overridesPath, true);
             }
         } catch (\Throwable $e) {
             @unlink($tmp);

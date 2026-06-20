@@ -132,8 +132,10 @@ class ModuleLoader {
         // (Autoloader::warmCache) on EVERY request (workers are short-lived under
         // pm=ondemand), which pegged php-fpm at high CPU.
         if (!class_exists($className, false)) {
-            // Strip namespace prefix — the file lives at modulePath/{ShortName}.php
-            $shortName = substr($className, (int) strrpos($className, '\\') + 1);
+            // Strip namespace prefix — the file lives at modulePath/{ShortName}.php.
+            // Guard the no-namespace case (strrpos → false) so the first char isn't dropped.
+            $pos       = strrpos($className, '\\');
+            $shortName = $pos === false ? $className : substr($className, $pos + 1);
             $classFile = $modulePath . '/' . $shortName . '.php';
             if (file_exists($classFile)) {
                 if ($this->isFileEncrypted($classFile) && !extension_loaded('xcvm_core')) {
@@ -688,8 +690,11 @@ class ModuleLoader {
         self::$autoloadedPaths[$modulePath] = true;
 
         spl_autoload_register(function (string $class) use ($modulePath): void {
-            // Strip namespace prefix — use only the short class name for file lookup
-            $short = substr($class, (int) strrpos($class, '\\') + 1);
+            // Strip namespace prefix — use only the short class name for file lookup.
+            // NB: for a GLOBAL class (no "\"), strrpos() returns false → (int)false+1
+            // would be 1 and drop the first character ("WatchService" → "atchService").
+            $pos   = strrpos($class, '\\');
+            $short = $pos === false ? $class : substr($class, $pos + 1);
 
             // Flat: modules/{name}/MyClass.php
             $flat = $modulePath . '/' . $short . '.php';
