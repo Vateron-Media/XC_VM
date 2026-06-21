@@ -44,8 +44,22 @@ class EpgViewController extends BaseAdminController {
 
         $rOrderBy = '`stream_display_name` ASC';
         $rOrder = ['name' => '`stream_display_name` ASC', 'added' => '`added` DESC'];
-        if (!empty(RequestManager::getAll()['sort']) && in_array(RequestManager::getAll()['sort'], array('name', 'added'))) {
+        if (!empty(RequestManager::getAll()['sort']) && isset($rOrder[RequestManager::getAll()['sort']])) {
             $rOrderBy = $rOrder[RequestManager::getAll()['sort']];
+        } else {
+            // Honour the configured "Channel Sorting Type" like the playlists and
+            // the reseller guide do: manual => the `order` column, otherwise the
+            // cached bouquet channel order. Without this the guide fell back to
+            // alphabetical and ignored the manual order entirely.
+            $rChannelOrder = array();
+            if (file_exists(CACHE_TMP_PATH . 'channel_order')) {
+                $rChannelOrder = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'channel_order')) ?: array();
+            }
+            if (SettingsManager::getAll()['channel_number_type'] != 'manual' && count($rChannelOrder) > 0) {
+                $rOrderBy = 'FIELD(`id`,' . implode(',', array_map('intval', $rChannelOrder)) . ')';
+            } else {
+                $rOrderBy = '`order` ASC';
+            }
         }
 
         $rStreamIDs = array();
