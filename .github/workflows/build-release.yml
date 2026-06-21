@@ -86,7 +86,7 @@ jobs:
         run: make main${{ steps.prev_tag.outputs.found == 'true' && format(' LAST_TAG="{0}"', steps.prev_tag.outputs.tag) || '' }}
 
       - name: Upload assets to release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.tag.outputs.name }}
           files: dist/*
