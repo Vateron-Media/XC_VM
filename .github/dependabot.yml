@@ -1,0 +1,13 @@
+version: 2
+updates:
+  # The project has no Composer/npm manifests committed, so only GitHub Actions
+  # versions are tracked here. Add more ecosystems if package manifests are added.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci"
+    labels:
+      - "dependencies"
+      - "github-actions"

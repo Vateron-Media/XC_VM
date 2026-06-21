@@ -1,0 +1,20 @@
+# Code owners for XC_VM.
+# These owners are automatically requested for review on matching files.
+# CONTRIBUTING.md requires review by at least 2 maintainers — enforce the count
+# via branch protection settings on `main`.
+#
+# Add co-maintainer handles below as the team grows.
+
+# Default owner for everything in the repo.
+*                       @Divarion-D
+
+# CI / build / governance
+/.github/               @Divarion-D
+/Makefile               @Divarion-D
+
+# Core infrastructure (DI, events, database, auth, module loader)
+/src/core/              @Divarion-D
+
+# Build & install tooling
+/src/bin/install/       @Divarion-D
+/install                @Divarion-D
