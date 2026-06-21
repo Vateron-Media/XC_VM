@@ -27,24 +27,54 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: semgrep/semgrep
+    env:
+      SEMGREP_CONFIGS: >-
+        --config p/php
+        --config p/security-audit
+        --config p/command-injection
+        --config p/sql-injection
+        --config p/xss
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          # Full history is required so --baseline-commit can diff against it.
+          fetch-depth: 0
 
-      - name: Run Semgrep
-        # Blocking on push to main / schedule; informative-only on pull requests
-        # (PR findings still surface in the Security tab via the SARIF upload).
-        continue-on-error: ${{ github.event_name == 'pull_request' }}
+      - name: Resolve baseline commit
+        id: base
+        shell: bash
         run: |
-          semgrep scan \
-            --config "p/php" \
-            --config "p/security-audit" \
-            --config "p/command-injection" \
-            --config "p/sql-injection" \
-            --config "p/xss" \
-            --sarif \
-            --output semgrep-results.sarif \
-            --error \
+          # Diff-aware scanning: only findings NEW relative to the baseline block
+          # the build. The pre-existing backlog stays visible in the Security tab
+          # (full scan on schedule) but does not fail push/PR runs.
+          ref=""
+          case "${{ github.event_name }}" in
+            pull_request) ref="${{ github.event.pull_request.base.sha }}" ;;
+            push)         ref="${{ github.event.before }}" ;;
+          esac
+          # Ignore an empty / all-zero / unreachable baseline (e.g. first push).
+          if [ -z "$ref" ] || [ "$ref" = "0000000000000000000000000000000000000000" ] \
+             || ! git cat-file -e "$ref^{commit}" 2>/dev/null; then
+            ref=""
+          fi
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+
+      - name: Run Semgrep (diff — blocks only NEW findings)
+        if: steps.base.outputs.ref != ''
+        run: |
+          semgrep scan $SEMGREP_CONFIGS \
+            --baseline-commit "${{ steps.base.outputs.ref }}" \
+            --sarif --output semgrep-results.sarif \
+            --error --severity ERROR \
+            src/
+
+      - name: Run Semgrep (full — informational, surfaces the backlog)
+        if: steps.base.outputs.ref == ''
+        continue-on-error: true
+        run: |
+          semgrep scan $SEMGREP_CONFIGS \
+            --sarif --output semgrep-results.sarif \
             --severity ERROR \
             src/
 
