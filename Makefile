@@ -8,7 +8,13 @@ TEMP_ARCHIVE_NAME := $(TIMESTAMP).tar.gz
 MAIN_ARCHIVE_NAME := xc_vm.tar.gz
 MAIN_ARCHIVE_INSTALLER := XC_VM.zip
 LB_ARCHIVE_NAME := loadbalancer.tar.gz
-LAST_TAG := $(shell curl -s https://api.github.com/repos/Vateron-Media/XC_VM/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+# Latest published release tag — consumed only by generate_deleted_files to diff
+# against the previous release. Uses `?=` (lazy) so plain builds (new/main/lb)
+# never evaluate it and thus never hit the network; the GitHub API is queried
+# only when generate_deleted_files actually expands LAST_TAG. Override on the CLI
+# to skip the API call entirely (CI passes it this way):
+#   make generate_deleted_files LAST_TAG=v1.2.3
+LAST_TAG ?= $(shell curl -s https://api.github.com/repos/Vateron-Media/XC_VM/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
 HASH_FILE := hashes.md5
 
 # Directories and files to exclude from archives
@@ -290,6 +296,7 @@ main_install_archive:
 	@echo "==> Creating installer archive: ${DIST_DIR}/${MAIN_ARCHIVE_INSTALLER}"
 	@rm -f ${DIST_DIR}/${MAIN_ARCHIVE_INSTALLER}
 	@zip -r ${DIST_DIR}/${MAIN_ARCHIVE_INSTALLER} install && zip -j ${DIST_DIR}/${MAIN_ARCHIVE_INSTALLER} ${DIST_DIR}/${MAIN_ARCHIVE_NAME}
+	md5sum "${DIST_DIR}/${MAIN_ARCHIVE_INSTALLER}" | awk -v name="${MAIN_ARCHIVE_INSTALLER}" '{print $$1, name}' >> "${DIST_DIR}/${HASH_FILE}"
 
 clean:
 	@echo "==> Cleaning up temporary directory: $(TEMP_DIR)"
