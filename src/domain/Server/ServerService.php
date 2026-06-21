@@ -85,6 +85,11 @@ class ServerService {
 			$rArray[$rKey] = isset($rData[$rKey]) ? 1 : 0;
 		}
 
+		// Persist the ramdisk choice. RootSignalsCronJob reconciles the actual
+		// tmpfs mount to this column, so without saving it the toggle is reverted
+		// on the next cron tick. "Disable Ramdisk" checked => use_disk = 1.
+		$rArray['use_disk'] = !empty($rData['disable_ramdisk']) ? 1 : 0;
+
 		if ($rServer['is_main']) {
 			$rArray['enabled'] = 1;
 		}
