@@ -1,0 +1,61 @@
+name: CI
+
+# Quality gate: runs on every push and pull request.
+# The project has no Composer — tests run via the committed PHAR
+# (tools/.bin/phpunit.phar) and a custom autoloader (src/autoload.php).
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: PHP Syntax Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+
+      - name: Check syntax
+        run: bash tools/php_syntax_check.sh
+
+  test:
+    name: PHPUnit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: pcov
+
+      - name: Run unit tests
+        run: php tools/.bin/phpunit.phar -c tests/phpunit.xml.dist
+
+      - name: Coverage report
+        run: |
+          php tools/.bin/phpunit.phar -c tests/phpunit.xml.dist \
+            --coverage-text \
+            --coverage-clover coverage.xml
+        continue-on-error: true
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.xml
+          if-no-files-found: ignore
