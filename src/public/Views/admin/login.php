@@ -11,7 +11,8 @@ if (!isset($_SESSION['hash'])) {
         session_start();
     }
 
-    if (!($rBypassRecaptcha = in_array(AuthRepository::getCurrentCode(), array('setup', 'rescue')))) {
+    // Bypass reCAPTCHA on rescue/setup access codes so admins can always get in.
+    if (($rBypassRecaptcha = in_array(AuthRepository::getCurrentCode(), array('setup', 'rescue')))) {
         $rSettings['recaptcha_enable'] = false;
     }
 
@@ -370,6 +371,7 @@ if (!isset($_SESSION['hash'])) {
                                     <?php if ($rSettings['recaptcha_enable'] ?? false): ?>
                                         <div class="text-center">
                                             <div class="g-recaptcha" data-callback="recaptchaCallback"
+                                                data-expired-callback="recaptchaExpired"
                                                 id="verification" data-sitekey="<?= $rSettings['recaptcha_v2_site_key'] ?>"></div>
                                         </div>
                                     <?php endif; ?>
@@ -394,12 +396,17 @@ if (!isset($_SESSION['hash'])) {
         <script src="assets/libs/parsleyjs/parsley.min.js"></script>
         <script src="assets/js/app.min.js"></script>
 
-        <?php if ($rSettings['recaptcha_enable']): ?>
+        <?php if ($rSettings['recaptcha_enable'] ?? false): ?>
             <script src="https://www.google.com/recaptcha/api.js" async defer></script>
             <script>
                 function recaptchaCallback() {
-                    $('#login_button').removeAttr('disabled');
-                };
+                    var b = document.getElementById('login_button');
+                    if (b) b.disabled = false;
+                }
+                function recaptchaExpired() {
+                    var b = document.getElementById('login_button');
+                    if (b) b.disabled = true;
+                }
             </script>
         <?php endif; ?>
     </body>

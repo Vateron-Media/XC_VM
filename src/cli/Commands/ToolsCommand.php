@@ -17,7 +17,7 @@ class ToolsCommand implements CommandInterface {
 	}
 
 	public function getDescription(): string {
-		return 'Utilities: images, duplicates, bouquets, rescue, access, ports, migration, user, mysql, database, flush';
+		return 'Utilities: images, duplicates, bouquets, rescue, recaptcha, access, ports, migration, user, mysql, database, flush';
 	}
 
 	public function execute(array $rArgs): int {
@@ -33,8 +33,17 @@ class ToolsCommand implements CommandInterface {
 		$rMethod = (!empty($rArgs[0]) ? $rArgs[0] : null);
 		$rUser = posix_getpwuid(posix_geteuid())['name'];
 
+		$rRootMethods = array('rescue', 'recaptcha', 'access', 'ports', 'migration', 'user', 'mysql', 'database', 'flush');
+		$rUserMethods = array('images', 'duplicates', 'bouquets');
+
+		// No or unknown subcommand → show the full help to any user (root or xc_vm)
+		if ($rMethod === null || (!in_array($rMethod, $rRootMethods, true) && !in_array($rMethod, $rUserMethods, true))) {
+			$this->printUsage();
+			return 1;
+		}
+
 		// root-only subcommands
-		if (in_array($rMethod, array('rescue', 'access', 'ports', 'migration', 'user', 'mysql', 'database', 'flush'), true)) {
+		if (in_array($rMethod, $rRootMethods, true)) {
 			if ($rUser !== 'root') {
 				echo "Please run as root!\n";
 				return 1;
@@ -45,6 +54,8 @@ class ToolsCommand implements CommandInterface {
 			switch ($rMethod) {
 				case 'rescue':
 					return $this->processRescue($db, $rServers);
+				case 'recaptcha':
+					return $this->processRecaptcha($db);
 				case 'access':
 					return $this->processAccess($db, $rServers);
 				case 'ports':
@@ -79,20 +90,7 @@ class ToolsCommand implements CommandInterface {
 				$this->processBouquets($db);
 				break;
 			default:
-				echo "Usage: console.php tools <subcommand>\n\n";
-				echo "Subcommands (run as xc_vm):\n";
-				echo "  images      Download missing stream/movie/series images from TMDB\n";
-				echo "  duplicates  Find and remove duplicate VOD streams\n";
-				echo "  bouquets    Clean stale references from bouquets\n\n";
-				echo "Subcommands (run as root):\n";
-				echo "  rescue      Create temporary rescue access code\n";
-				echo "  access      Regenerate nginx access code configs and reload\n";
-				echo "  ports       Regenerate nginx port configs and reload\n";
-				echo "  migration   Clear migration database and optionally restore .sql backup\n";
-				echo "  user        Create a rescue admin user for the admin panel\n";
-				echo "  mysql       Reauthorise load balancers on MySQL\n";
-				echo "  database    Restore blank XC_VM database (requires --confirm)\n";
-				echo "  flush       Flush all blocked IPs (iptables + database)\n";
+				$this->printUsage();
 				return 1;
 		}
 
@@ -175,6 +173,34 @@ class ToolsCommand implements CommandInterface {
 		exec('sudo iptables-save && sudo ip6tables-save');
 		$db->query('TRUNCATE `blocked_ips`;');
 		echo "All blocked IPs have been flushed (iptables + database).\n";
+		return 0;
+	}
+
+	private function printUsage(): void {
+		echo "Usage: console.php tools <subcommand>\n\n";
+		echo "Subcommands (run as xc_vm):\n";
+		echo "  images      Download missing stream/movie/series images from TMDB\n";
+		echo "  duplicates  Find and remove duplicate VOD streams\n";
+		echo "  bouquets    Clean stale references from bouquets\n\n";
+		echo "Subcommands (run as root):\n";
+		echo "  rescue      Create temporary rescue access code\n";
+		echo "  recaptcha   Disable reCAPTCHA to restore admin panel login\n";
+		echo "  access      Regenerate nginx access code configs and reload\n";
+		echo "  ports       Regenerate nginx port configs and reload\n";
+		echo "  migration   Clear migration database and optionally restore .sql backup\n";
+		echo "  user        Create a rescue admin user for the admin panel\n";
+		echo "  mysql       Reauthorise load balancers on MySQL\n";
+		echo "  database    Restore blank XC_VM database (requires --confirm)\n";
+		echo "  flush       Flush all blocked IPs (iptables + database)\n";
+	}
+
+	private function processRecaptcha($db): int {
+		$db->query('UPDATE `settings` SET `recaptcha_enable` = 0;');
+		if (class_exists('SettingsManager') && method_exists('SettingsManager', 'clearCache')) {
+			SettingsManager::clearCache();
+		}
+		echo "reCAPTCHA has been disabled. You can now log in to the admin panel.\n";
+		echo "Re-enable it in Settings once outbound access to google.com is restored.\n";
 		return 0;
 	}
 
