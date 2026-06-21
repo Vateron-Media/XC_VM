@@ -101,6 +101,16 @@ class ImageUtils {
 			}
 			if (in_array(strtolower($rExt), array('jpg', 'jpeg', 'png'))) {
 				$rFilename = Encryption::encrypt($rImage, SettingsManager::getAll()['live_streaming_pass'], OPENSSL_EXTRA);
+				// A single filename component is capped at 255 bytes on ext4/most
+				// filesystems. Long source URLs produce an encrypted name that
+				// exceeds this, so file_put_contents fails with "File name too
+				// long" and the whole import (e.g. Plex Sync) stalls. Fall back to
+				// a deterministic hash for those — the tools-images self-heal can't
+				// reverse a hash, but the image still downloads and caches. The
+				// "h_" prefix marks these so the self-heal can skip them.
+				if (strlen($rFilename . '.' . $rExt) > 250) {
+					$rFilename = 'h_' . hash('sha256', $rImage);
+				}
 				$rPrevPath = IMAGES_PATH . $rFilename . '.' . $rExt;
 				if (file_exists($rPrevPath)) {
 					return 's:' . SERVER_ID . ':/images/' . $rFilename . '.' . $rExt;
