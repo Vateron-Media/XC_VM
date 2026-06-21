@@ -13,11 +13,72 @@ declare(strict_types=1);
  */
 
 class Authenticator {
+	/**
+	 * Verifies a Google reCAPTCHA v2 token.
+	 *
+	 * Fails closed (returns false) on any transport error — unreachable host,
+	 * timeout, non-string body or malformed JSON — instead of crashing, so a
+	 * blocked outbound route to google.com can never white-screen the login
+	 * page. Admins locked out this way can still sign in via a 'setup'/'rescue'
+	 * access code, which bypasses reCAPTCHA entirely.
+	 */
+	private static function verifyRecaptcha(string $rToken): bool {
+		global $rSettings;
+
+		$rSecret = trim((string) ($rSettings['recaptcha_v2_secret_key'] ?? ''));
+		if ($rSecret === '' || $rToken === '') {
+			self::logRecaptcha($rSecret === '' ? 'empty secret key in settings' : 'empty g-recaptcha-response token (checkbox not solved)');
+			return false;
+		}
+
+		$rPost = http_build_query(array('secret' => $rSecret, 'response' => $rToken));
+		$rUrl  = 'https://www.google.com/recaptcha/api/siteverify';
+		$rRaw  = false;
+		$rErr  = '';
+
+		$rCurl = curl_init($rUrl);
+		curl_setopt($rCurl, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($rCurl, CURLOPT_POST, true);
+		curl_setopt($rCurl, CURLOPT_POSTFIELDS, $rPost);
+		curl_setopt($rCurl, CURLOPT_CONNECTTIMEOUT, 5);
+		curl_setopt($rCurl, CURLOPT_TIMEOUT, 10);
+		curl_setopt($rCurl, CURLOPT_SSL_VERIFYPEER, false);
+		$rRaw = curl_exec($rCurl);
+		if ($rRaw === false) {
+			$rErr = 'curl error: ' . curl_error($rCurl);
+		}
+		curl_close($rCurl);
+
+		if ($rRaw === false) {
+			self::logRecaptcha('could not reach siteverify endpoint — ' . $rErr);
+			return false;
+		}
+
+		$rResponse = json_decode($rRaw, true);
+		if (!is_array($rResponse) || empty($rResponse['success'])) {
+			$rCodes = (is_array($rResponse) && !empty($rResponse['error-codes']))
+				? implode(', ', (array) $rResponse['error-codes'])
+				: 'unknown';
+			self::logRecaptcha('verification rejected by Google (error-codes: ' . $rCodes . '); secret prefix=' . substr($rSecret, 0, 10));
+			return false;
+		}
+
+		return true;
+	}
+
+	/** Writes a reCAPTCHA diagnostic line to the panel log (visible on-screen in DEV_MODE). */
+	private static function logRecaptcha(string $rReason): void {
+		if (class_exists('Logger') && method_exists('Logger', 'log')) {
+			Logger::log('WARNING', '[reCAPTCHA] ' . $rReason, '', __FILE__, __LINE__);
+		} else {
+			error_log('[reCAPTCHA] ' . $rReason);
+		}
+	}
+
 	public static function login(array $rData, bool $rBypassRecaptcha = false): array {
 		global $db, $rSettings;
 		if (!empty($rSettings['recaptcha_enable']) && !$rBypassRecaptcha) {
-			$rResponse = json_decode(file_get_contents('https://www.google.com/recaptcha/api/siteverify?secret=' . $rSettings['recaptcha_v2_secret_key'] . '&response=' . $rData['g-recaptcha-response']), true);
-			if (!$rResponse['success']) {
+			if (!self::verifyRecaptcha($rData['g-recaptcha-response'] ?? '')) {
 				return array('status' => STATUS_INVALID_CAPTCHA);
 			}
 		}
@@ -83,8 +144,7 @@ class Authenticator {
 	public static function resellerLogin(array $rData): array {
 		global $db, $rSettings;
 		if (!empty($rSettings['recaptcha_enable'])) {
-			$rResponse = json_decode(file_get_contents('https://www.google.com/recaptcha/api/siteverify?secret=' . $rSettings['recaptcha_v2_secret_key'] . '&response=' . $rData['g-recaptcha-response']), true);
-			if (!$rResponse['success']) {
+			if (!self::verifyRecaptcha($rData['g-recaptcha-response'] ?? '')) {
 				return array('status' => STATUS_INVALID_CAPTCHA);
 			}
 		}

@@ -79,7 +79,7 @@
                                         </div>
                                         <?php if ($rSettings['recaptcha_enable']): ?>
                                         <h5 class="auth-title text-center" style="margin-bottom:0;">
-                                            <div class="g-recaptcha" data-callback="recaptchaCallback" id="verification" data-sitekey="<?= $rSettings['recaptcha_v2_site_key'] ?>"></div>
+                                            <div class="g-recaptcha" data-callback="recaptchaCallback" data-expired-callback="recaptchaExpired" id="verification" data-sitekey="<?= $rSettings['recaptcha_v2_site_key'] ?>"></div>
                                         </h5>
                                         <?php endif; ?>
                                     </div>
@@ -96,13 +96,18 @@
         <script src="assets/js/vendor.min.js"></script>
         <script src="assets/libs/parsleyjs/parsley.min.js"></script>
         <script src="assets/js/app.min.js"></script>
-        <?php if ($rSettings['recaptcha_enable']): ?>
+        <?php if ($rSettings['recaptcha_enable'] ?? false): ?>
         <script src="https://www.google.com/recaptcha/api.js" async defer></script>
-        <?php endif; ?>
         <script>
         function recaptchaCallback() {
-            $('#login_button').removeAttr('disabled');
-        };
+            var b = document.getElementById('login_button');
+            if (b) b.disabled = false;
+        }
+        function recaptchaExpired() {
+            var b = document.getElementById('login_button');
+            if (b) b.disabled = true;
+        }
         </script>
+        <?php endif; ?>
     </body>
 </html>
