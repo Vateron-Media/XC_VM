@@ -342,6 +342,10 @@ class ToolsCommand implements CommandInterface {
 				$rImageSplit = explode('/', $rSplit[2]);
 				$rPathInfo = pathinfo($rImageSplit[count($rImageSplit) - 1]);
 				$rImage = $rPathInfo['filename'];
+				// Hashed filenames (long URLs) are not reversible — skip them.
+				if (strncmp($rImage, 'h_', 2) === 0) {
+					continue;
+				}
 				$rOriginalURL = Encryption::decrypt($rImage, SettingsManager::getAll()['live_streaming_pass'], OPENSSL_EXTRA);
 				if (!empty($rOriginalURL) && substr($rOriginalURL, 0, 4) == 'http') {
 					if (!file_exists(IMAGES_PATH . $rPathInfo['basename'])) {
