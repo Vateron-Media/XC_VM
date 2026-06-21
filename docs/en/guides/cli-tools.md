@@ -238,6 +238,7 @@ The `tools` command provides system maintenance utilities.
 | Subcommand | Description |
 | --- | --- |
 | `rescue` | Create a temporary rescue access code for emergency panel access. Prints the URL. **Delete this code after use!** |
+| `recaptcha` | Disable reCAPTCHA (`recaptcha_enable = 0`) to restore admin panel login when captcha verification is failing. |
 | `access` | Regenerate all nginx access code configs and reload nginx. Prints URLs for all admin panel codes. |
 | `ports` | Regenerate nginx port configs (HTTP, HTTPS, RTMP) from the database and reload nginx. |
 | `migration` | Clear the staging database (`xc_vm_migrate`) and optionally restore a `.sql` backup into it. |
@@ -259,6 +260,9 @@ The `tools` command provides system maintenance utilities.
 ```bash
 # Emergency panel access (root)
 sudo /home/xc_vm/console.php tools rescue
+
+# Disable reCAPTCHA to recover admin login (root)
+sudo /home/xc_vm/console.php tools recaptcha
 
 # Regenerate access codes (root) — required after nginx template changes
 sudo /home/xc_vm/console.php tools access

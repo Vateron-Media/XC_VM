@@ -238,6 +238,7 @@ console.php tools <subcommand>
 | Подкоманда | Описание |
 | --- | --- |
 | `rescue` | Создать временный код доступа для экстренного входа в панель. Выводит URL. **Удалите код после использования!** |
+| `recaptcha` | Отключить reCAPTCHA (`recaptcha_enable = 0`), чтобы восстановить вход в админ-панель, когда проверка капчи не проходит. |
 | `access` | Перегенерировать все конфигурации кодов доступа nginx и перезагрузить nginx. Выводит URL всех кодов админ-панели. |
 | `ports` | Перегенерировать конфигурации портов nginx (HTTP, HTTPS, RTMP) из базы данных и перезагрузить nginx. |
 | `migration` | Очистить промежуточную БД (`xc_vm_migrate`) и опционально восстановить `.sql`-бэкап. |
@@ -259,6 +260,9 @@ console.php tools <subcommand>
 ```bash
 # Экстренный доступ к панели (root)
 sudo /home/xc_vm/console.php tools rescue
+
+# Отключить reCAPTCHA для восстановления входа в админку (root)
+sudo /home/xc_vm/console.php tools recaptcha
 
 # Перегенерация кодов доступа (root) — требуется после изменения шаблона nginx
 sudo /home/xc_vm/console.php tools access
