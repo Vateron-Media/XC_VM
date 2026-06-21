@@ -8,6 +8,15 @@ applyTo: "**/*.php"
 - **Indentation:** Tabs (1 tab per level), NOT spaces
 - **No trailing whitespace**
 
+## Comment Language
+- **New code:** write all comments and DocBlocks in **English** (keep PHPDoc tags
+  `@param`, `@return`, `@package`, etc. in English as they already are).
+- **Legacy files:** the existing codebase has Russian-language DocBlocks in ~23%
+  of files (notably `src/cli/`, `src/core/Auth/`, `src/public/Controllers/`).
+  Do NOT mass-translate. Translate Russian comments to English only when you are
+  already editing that file for another reason, or when explicitly asked.
+- **Do not mix languages** within a single new comment block.
+
 ## Typing and Declarations
 - Do NOT add `declare(strict_types=1)` — project uses `strict_types=0` or omits it
 - Do NOT add `namespace` declarations — project does not use namespaces

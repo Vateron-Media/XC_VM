@@ -14,7 +14,35 @@ permissions:
   contents: write
 
 jobs:
+  test:
+    name: Quality Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve tag name
+        id: tag
+        run: |
+          TAG="${{ github.event.inputs.tag_name || github.event.release.tag_name }}"
+          echo "name=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.tag.outputs.name }}
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+
+      - name: Check syntax
+        run: bash tools/php_syntax_check.sh
+
+      - name: Run unit tests
+        run: php tools/.bin/phpunit.phar -c tests/phpunit.xml.dist
+
   build:
+    needs: test
     runs-on: ubuntu-latest
     outputs:
       tag_name: ${{ steps.tag.outputs.name }}
