@@ -13,16 +13,34 @@
 class LineRepository {
 	private static $db = null;
 
+	/**
+	 * Inject the database handler (dependency injection).
+	 *
+	 * @param object $db Database handler.
+	 * @return void
+	 */
 	public static function setDb($db): void {
 		self::$db = $db;
 	}
 
+	/**
+	 * Get the injected database handler.
+	 *
+	 * @return object Database handler.
+	 * @throws \RuntimeException If setDb() was not called first.
+	 */
 	private static function db(): object {
 		if (self::$db === null) {
 			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
 		}
 		return self::$db;
 	}
+	/**
+	 * Bulk delete lines by id.
+	 *
+	 * @param int[] $rIDs Line ids.
+	 * @return bool True on success.
+	 */
 	public static function deleteMany($rIDs) {
 		$db = self::db();
 		$rIDs = AdminHelpers::confirmIDs($rIDs);
@@ -52,6 +70,11 @@ class LineRepository {
 		return true;
 	}
 
+	/**
+	 * Get the available line output formats.
+	 *
+	 * @return array Output format definitions.
+	 */
 	public static function getOutputFormats() {
 		$db = self::db();
 		$db->query('SELECT * FROM `output_formats` ORDER BY `access_output_id` ASC;');
