@@ -132,6 +132,18 @@ class NetworkUtils {
         return $_SERVER['REMOTE_ADDR'];
     }
 
+    /**
+     * Register a download against a user's concurrent-download flood limit.
+     *
+     * Prunes finished PIDs and allows the new download only if the limit is not
+     * reached. Restreamers and a zero limit are always allowed.
+     *
+     * @param string $rType        Download type ('epg' or 'playlist').
+     * @param array  $rUser        User row.
+     * @param int    $rDownloadPID PID of this download.
+     * @param int    $rFloodLimit  Max concurrent downloads (0 = unlimited).
+     * @return bool True if the download is allowed.
+     */
     public static function startDownload($rType, $rUser, $rDownloadPID, $rFloodLimit) {
         if ($rFloodLimit != 0) {
             if (!$rUser['is_restreamer']) {
@@ -166,6 +178,15 @@ class NetworkUtils {
         }
     }
 
+    /**
+     * Remove a finished download from the user's flood-limit tracking file.
+     *
+     * @param string $rType        Download type ('epg' or 'playlist').
+     * @param array  $rUser        User row.
+     * @param int    $rDownloadPID PID of the download to remove.
+     * @param int    $rFloodLimit  Configured flood limit (0 = no tracking).
+     * @return null
+     */
     public static function stopDownload($rType, $rUser, $rDownloadPID, $rFloodLimit) {
         if ($rFloodLimit != 0) {
             if (!$rUser['is_restreamer']) {
