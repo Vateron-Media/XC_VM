@@ -631,8 +631,12 @@ class DropboxClient {
 		if (!empty($http_context['content'])) {
 			$curl_opts[CURLOPT_POSTFIELDS] = &$http_context['content'];
 
+			// CURLOPT_POSTFIELDSIZE is not exposed as a PHP constant (PHP derives
+			// the size from CURLOPT_POSTFIELDS automatically). Guard + constant()
+			// lookup keeps this safe on any build that does define it, without
+			// referencing an undefined constant directly.
 			if (defined('CURLOPT_POSTFIELDSIZE')) {
-				$curl_opts[CURLOPT_POSTFIELDSIZE] = strlen($http_context['content']);
+				$curl_opts[constant('CURLOPT_POSTFIELDSIZE')] = strlen($http_context['content']);
 			}
 		}
 
