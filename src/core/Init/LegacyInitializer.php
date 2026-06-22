@@ -11,6 +11,16 @@
  */
 
 class LegacyInitializer {
+	/**
+	 * Bootstrap the admin/core request context.
+	 *
+	 * Sanitizes superglobals, builds the request, defines SERVER_ID, loads
+	 * settings/servers (optionally from cache), resolves ffmpeg paths,
+	 * regenerates cron and exports globals/container bindings.
+	 *
+	 * @param bool $rUseCache Load settings from cache instead of the database.
+	 * @return void
+	 */
 	public static function initCore($rUseCache = false) {
 		if (!empty($_GET)) {
 			InputValidator::cleanGlobals($_GET);
@@ -57,6 +67,13 @@ class LegacyInitializer {
 		self::syncCoreContainer();
 	}
 
+	/**
+	 * Regenerate the xc_vm user crontab from the `crontab` table.
+	 *
+	 * Runs once per boot (guarded by a marker file in TMP_PATH).
+	 *
+	 * @return bool True if the crontab was regenerated, false if skipped.
+	 */
 	private static function generateCron() {
 		global $db;
 		if (file_exists(TMP_PATH . 'crontab')) {
@@ -80,6 +97,15 @@ class LegacyInitializer {
 		return true;
 	}
 
+	/**
+	 * Bootstrap the streaming request context.
+	 *
+	 * Sanitizes superglobals, builds the request, loads cached settings/servers
+	 * and blocklists, resolves ffmpeg paths, connects the database and syncs the
+	 * streaming container bindings.
+	 *
+	 * @return void
+	 */
 	public static function initStreaming() {
 		if (!empty($_GET)) {
 			Request::cleanGlobals($_GET);
@@ -142,6 +168,11 @@ class LegacyInitializer {
 		self::syncStreamingContainer();
 	}
 
+	/**
+	 * Export the singleton managers to legacy superglobals.
+	 *
+	 * @return void
+	 */
 	public static function exportGlobals(): void {
 		$GLOBALS['rSettings']   = SettingsManager::getAll();
 		$GLOBALS['rRequest']    = RequestManager::getAll();
@@ -151,6 +182,11 @@ class LegacyInitializer {
 		$GLOBALS['rFFMPEG_GPU'] = FfmpegPaths::gpu();
 	}
 
+	/**
+	 * Populate the DI container with core-context services.
+	 *
+	 * @return void
+	 */
 	private static function syncCoreContainer() {
 		$rContainer = ServiceContainer::getInstance();
 		$rContainer->set('core.request', RequestManager::getAll());
@@ -161,6 +197,11 @@ class LegacyInitializer {
 		$rContainer->set('core.categories', CategoryService::getFromDatabase());
 	}
 
+	/**
+	 * Populate the DI container with streaming-context services.
+	 *
+	 * @return void
+	 */
 	private static function syncStreamingContainer() {
 		$rContainer = ServiceContainer::getInstance();
 		$rContainer->set('streaming.request', $GLOBALS['rRequest']);

@@ -11,6 +11,17 @@
  */
 
 class DomainResolver {
+	/**
+	 * Build the public broadcast URL for a server.
+	 *
+	 * Resolves protocol (respecting keep_protocol / forced SSL), optionally picks
+	 * an active proxy for the server, and selects the appropriate domain/IP and
+	 * broadcast port; appends an originator hash for chained proxies.
+	 *
+	 * @param int  $rServerID Server id to resolve.
+	 * @param bool $rForceSSL Force the https protocol.
+	 * @return string Public base URL (trailing slash), or '' if no proxy is available.
+	 */
 	public static function resolve($rServerID, $rForceSSL = false) {
 		global $rServers, $rSettings;
 		$rOriginatorID = null;

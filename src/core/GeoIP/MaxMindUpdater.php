@@ -27,12 +27,23 @@ class MaxMindUpdater {
 	/** @var string[] */
 	private array $editions;
 
+	/**
+	 * @param string   $accountId  MaxMind account id.
+	 * @param string   $licenseKey MaxMind license key.
+	 * @param string[] $editions   Edition ids to download (e.g. GeoLite2-City).
+	 */
 	public function __construct(string $accountId, string $licenseKey, array $editions) {
 		$this->accountId  = $accountId;
 		$this->licenseKey = $licenseKey;
 		$this->editions   = $editions;
 	}
 
+	/**
+	 * Build an updater from panel settings.
+	 *
+	 * @param array $settings Panel settings (maxmind_account_id, maxmind_license_key, maxmind_editions).
+	 * @return self|null Configured updater, or null if credentials/editions are missing.
+	 */
 	public static function fromSettings(array $settings): ?self {
 		$accountId  = trim($settings['maxmind_account_id'] ?? '');
 		$licenseKey = trim($settings['maxmind_license_key'] ?? '');
@@ -57,6 +68,15 @@ class MaxMindUpdater {
 		return $results;
 	}
 
+	/**
+	 * Download and install a single MaxMind edition.
+	 *
+	 * Uses If-Modified-Since, extracts the .mmdb from the tar.gz, replaces the
+	 * existing database and updates the version file.
+	 *
+	 * @param string $edition Edition id.
+	 * @return array ['edition' => string, 'updated' => bool, 'error' => string|null].
+	 */
 	private function downloadEdition(string $edition): array {
 		$url      = sprintf(self::DOWNLOAD_URL, $edition);
 		$destPath = self::MAXMIND_DIR . $edition . '.mmdb';
@@ -176,6 +196,12 @@ class MaxMindUpdater {
 		return $tmpDest;
 	}
 
+	/**
+	 * Record today's date as the version for an edition in version.json.
+	 *
+	 * @param string $edition Edition id that was updated.
+	 * @return void
+	 */
 	private function updateVersionFile(string $edition): void {
 		$data  = json_decode(@file_get_contents(self::VERSION_FILE), true) ?: [];
 		$today = date('d.m.y');
@@ -193,6 +219,11 @@ class MaxMindUpdater {
 		file_put_contents(self::VERSION_FILE, json_encode($data, JSON_PRETTY_PRINT));
 	}
 
+	/**
+	 * List the MaxMind editions the panel can manage.
+	 *
+	 * @return array<string,string> Map of edition id => human-readable label.
+	 */
 	public static function availableEditions(): array {
 		return [
 			'GeoLite2-Country'    => 'GeoLite2-Country (free)',

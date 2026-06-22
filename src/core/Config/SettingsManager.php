@@ -48,6 +48,11 @@ class SettingsManager {
 		self::$settings[$key] = $value;
 	}
 
+	/**
+	 * Delete the cached settings file so the next read reloads from source.
+	 *
+	 * @return void
+	 */
 	public static function clearCache() {
 		if (file_exists(CACHE_TMP_PATH . 'settings')) {
 			unlink(CACHE_TMP_PATH . 'settings');

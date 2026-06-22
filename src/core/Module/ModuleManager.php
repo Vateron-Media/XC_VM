@@ -759,6 +759,16 @@ class ModuleManager {
         }
     }
 
+    /**
+     * Hot-reload a freshly installed module without restarting PHP-FPM.
+     *
+     * Loads the module, boots it and registers its routes against the live
+     * container so it becomes usable within the current request lifecycle.
+     *
+     * @param string $slug       Module slug.
+     * @param string $modulePath Filesystem path to the module.
+     * @return void
+     */
     private function hotReload(string $slug, string $modulePath): void {
         $container = ServiceContainer::getInstance();
 

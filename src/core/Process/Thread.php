@@ -38,6 +38,9 @@ class Thread {
     /** @var int Время запуска процесса */
     public $start_time = null;
 
+    /**
+     * Initialize an empty process-thread state.
+     */
     public function __construct() {
         $this->process = 0;
         $this->buffer = '';
