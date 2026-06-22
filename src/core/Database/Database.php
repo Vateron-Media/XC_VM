@@ -41,6 +41,12 @@ class Database {
 		$this->db_connect($migrate);
 	}
 
+	/**
+	 * Normalize a DB host, forcing TCP for 'localhost'.
+	 *
+	 * @param string $rHost Host name.
+	 * @return string '127.0.0.1' for 'localhost', otherwise the host unchanged.
+	 */
 	private function normalizeHost($rHost) {
 		if ($rHost === 'localhost') {
 			return '127.0.0.1';
@@ -49,6 +55,11 @@ class Database {
 		return $rHost;
 	}
 
+	/**
+	 * Close the connection and reset internal state.
+	 *
+	 * @return bool Always true.
+	 */
 	public function close_mysql() {
 		$this->connected = false;
 		$this->dbh = null;
@@ -58,10 +69,18 @@ class Database {
 		return true;
 	}
 
+	/**
+	 * Close the connection when the instance is destroyed.
+	 */
 	public function __destruct() {
 		$this->close_mysql();
 	}
 
+	/**
+	 * Check whether the connection is alive.
+	 *
+	 * @return bool True if a `SELECT 1` succeeds.
+	 */
 	public function ping() {
 		if (!$this->dbh) {
 			return false;
@@ -76,6 +95,14 @@ class Database {
 		return true;
 	}
 
+	/**
+	 * Connect using the panel's configured credentials.
+	 *
+	 * On failure exits with a JSON error unless running in migrate mode.
+	 *
+	 * @param bool $migrate When true, return false on failure instead of exiting.
+	 * @return bool True on success.
+	 */
 	public function db_connect($migrate = false) {
 		try {
 			$this->dbh = XC_VM::db_connect($migrate);
@@ -99,6 +126,16 @@ class Database {
 		return true;
 	}
 
+	/**
+	 * Connect using explicitly supplied credentials (e.g. remote/LB databases).
+	 *
+	 * @param string $rHost     Database host.
+	 * @param int    $rPort     Database port.
+	 * @param string $rDatabase Database name.
+	 * @param string $rUsername Username.
+	 * @param string $rPassword Password.
+	 * @return bool True on success, false on failure.
+	 */
 	public function db_explicit_connect($rHost, $rPort, $rDatabase, $rUsername, $rPassword) {
 		try {
 			$this->dbh = new PDO('mysql:host=' . $this->normalizeHost($rHost) . ';port=' . $rPort . ';dbname=' . $rDatabase, $rUsername, $rPassword);
@@ -116,6 +153,12 @@ class Database {
 		return true;
 	}
 
+	/**
+	 * Capture a PDO statement's debugDumpParams() output as a string.
+	 *
+	 * @param PDOStatement $stmt Prepared statement.
+	 * @return string The dumped parameter/SQL debug text.
+	 */
 	public function debugString($stmt) {
 		ob_start();
 		$stmt->debugDumpParams();
@@ -125,6 +168,17 @@ class Database {
 		return $r;
 	}
 
+	/**
+	 * Run a prepared, parameterized query.
+	 *
+	 * Bind values are passed as additional arguments after $query (the `?`
+	 * placeholders); the literal string 'null' and PHP null bind as SQL NULL.
+	 * Errors are logged via FileLogger and return false.
+	 *
+	 * @param string $query    SQL with `?` placeholders.
+	 * @param bool   $buffered Disable buffered query mode when true.
+	 * @return bool True on success, false on failure.
+	 */
 	public function query($query, $buffered = false) {
 		if (!$this->dbh) {
 			return false;
@@ -169,6 +223,12 @@ class Database {
 		return true;
 	}
 
+	/**
+	 * Run an unprepared query (no bound parameters).
+	 *
+	 * @param string $query Raw SQL.
+	 * @return bool True on success, false on failure.
+	 */
 	public function simple_query($query) {
 		try {
 			$this->result = $this->dbh->query($query);
@@ -180,6 +240,15 @@ class Database {
 		return true;
 	}
 
+	/**
+	 * Fetch all rows from the last query, optionally keyed by a column.
+	 *
+	 * @param bool   $use_id       Key the result by $column_as_id when true.
+	 * @param string $column_as_id Column to use as the top-level key.
+	 * @param bool   $unique_row   When false, group multiple rows under each key.
+	 * @param string $sub_row_id   Optional column used as the sub-key when grouping.
+	 * @return array|false Rows (cleaned), or false if no active result.
+	 */
 	public function get_rows($use_id = false, $column_as_id = '', $unique_row = true, $sub_row_id = '') {
 		if (!($this->dbh && $this->result)) {
 			return false;
@@ -215,6 +284,11 @@ class Database {
 		return $rows;
 	}
 
+	/**
+	 * Fetch a single (cleaned) associative row from the last query.
+	 *
+	 * @return array|false The row, or false if no active result.
+	 */
 	public function get_row() {
 		if (!($this->dbh && $this->result)) {
 			return false;
@@ -232,6 +306,11 @@ class Database {
 		return $this->clean_row($row);
 	}
 
+	/**
+	 * Fetch the first column of the first row.
+	 *
+	 * @return mixed The scalar value, or false if no active result/row.
+	 */
 	public function get_col() {
 		if (!($this->dbh && $this->result)) {
 			return false;
@@ -250,6 +329,11 @@ class Database {
 		return $row;
 	}
 
+	/**
+	 * Fetch the first column from every row.
+	 *
+	 * @return array List of first-column values.
+	 */
 	public function get_column() {
 		$col = [];
 		if ($this->result) {
@@ -262,12 +346,23 @@ class Database {
 		return $col;
 	}
 
+	/**
+	 * Quote a string for safe inclusion in SQL (prefer parameterized queries).
+	 *
+	 * @param string $string Value to quote.
+	 * @return string|null Quoted string, or null if not connected.
+	 */
 	public function escape($string) {
 		if ($this->dbh) {
 			return $this->dbh->quote($string);
 		}
 	}
 
+	/**
+	 * Number of columns in the current result set.
+	 *
+	 * @return int Column count (0 if none).
+	 */
 	public function num_fields() {
 		if (!($this->dbh && $this->result)) {
 			return 0;
@@ -278,6 +373,11 @@ class Database {
 		return (empty($mysqli_num_fields) ? 0 : $mysqli_num_fields);
 	}
 
+	/**
+	 * Id generated by the last INSERT.
+	 *
+	 * @return int|null Insert id (0 if none), or null if not connected.
+	 */
 	public function last_insert_id() {
 		if ($this->dbh) {
 			$mysql_insert_id = $this->dbh->lastInsertId();
@@ -285,6 +385,11 @@ class Database {
 		}
 	}
 
+	/**
+	 * Number of rows in/affected by the current result set.
+	 *
+	 * @return int Row count (0 if none).
+	 */
 	public function num_rows() {
 		if (!($this->dbh && $this->result)) {
 			return 0;
@@ -295,6 +400,12 @@ class Database {
 		return (empty($mysqli_num_rows) ? 0 : $mysqli_num_rows);
 	}
 
+	/**
+	 * Sanitize a single value: normalize newlines and HTML-escape angle brackets/scripts.
+	 *
+	 * @param string $rValue Raw value.
+	 * @return string Cleaned value ('' for empty input).
+	 */
 	public static function parseCleanValue($rValue) {
 		if ($rValue != '') {
 			$rValue = str_replace(array("\r\n", "\n\r", "\r"), "\n", $rValue);
@@ -310,6 +421,12 @@ class Database {
 		return '';
 	}
 
+	/**
+	 * Apply parseCleanValue() to every column of a row.
+	 *
+	 * @param array $row Associative row.
+	 * @return array Row with sanitized values.
+	 */
 	public function clean_row($row) {
 		foreach ($row as $key => $value) {
 			if ($value) {

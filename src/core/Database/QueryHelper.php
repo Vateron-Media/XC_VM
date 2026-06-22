@@ -7,10 +7,24 @@
  */
 
 class QueryHelper {
+	/**
+	 * Sanitize a string into a safe SQL identifier (lowercase, [a-z0-9_]).
+	 *
+	 * @param string $rValue Raw column/table name.
+	 * @return string Sanitized identifier.
+	 */
 	public static function prepareColumn($rValue) {
 		return strtolower(preg_replace('/[^a-z0-9_]+/i', '', $rValue));
 	}
 
+	/**
+	 * Build SQL fragments for a parameterized INSERT/UPDATE from an assoc array.
+	 *
+	 * Array values are JSON-encoded; the literal 'null'/PHP null become SQL NULL.
+	 *
+	 * @param array $rArray Column => value map.
+	 * @return array ['columns' => string, 'placeholder' => string, 'data' => array, 'update' => string].
+	 */
 	public static function prepareArray($rArray) {
 		$UpdateData = $rColumns = $rPlaceholder = $rData = array();
 
@@ -35,6 +49,17 @@ class QueryHelper {
 		return array('placeholder' => implode(',', $rPlaceholder), 'columns' => implode(',', $rColumns), 'data' => $rData, 'update' => implode(',', $UpdateData));
 	}
 
+	/**
+	 * Map submitted data onto a table's real columns, applying defaults/coercion.
+	 *
+	 * Reads column metadata from information_schema, fills missing columns with
+	 * their defaults, and coerces empty values for numeric columns.
+	 *
+	 * @param string $rTable        Target table name.
+	 * @param array  $rData         Submitted column => value map.
+	 * @param bool   $rOnlyExisting When true, skip columns absent from $rData.
+	 * @return array Sanitized column => value map ready for prepareArray().
+	 */
 	public static function verifyPostTable($rTable, $rData = array(), $rOnlyExisting = false) {
 		global $db;
 		$rReturn = array();
@@ -85,6 +110,16 @@ class QueryHelper {
 		return $rReturn;
 	}
 
+	/**
+	 * Check whether a row exists with the given column value.
+	 *
+	 * @param string      $rTable         Table name.
+	 * @param string      $rColumn        Column to match.
+	 * @param mixed       $rValue         Value to match.
+	 * @param string|null $rExcludeColumn Optional column to exclude a row by (e.g. 'id').
+	 * @param mixed       $rExclude       Value to exclude for $rExcludeColumn.
+	 * @return bool True if at least one matching row exists.
+	 */
 	public static function checkExists($rTable, $rColumn, $rValue, $rExcludeColumn = null, $rExclude = null) {
 		global $db;
 
