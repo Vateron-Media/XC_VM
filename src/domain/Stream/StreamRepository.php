@@ -13,22 +13,47 @@
 class StreamRepository {
 	private static $db = null;
 
+	/**
+	 * Inject the database handler (dependency injection).
+	 *
+	 * @param object $db Database handler.
+	 * @return void
+	 */
 	public static function setDb($db): void {
 		self::$db = $db;
 	}
 
+	/**
+	 * Get the injected database handler.
+	 *
+	 * @return object Database handler.
+	 * @throws \RuntimeException If setDb() was not called first.
+	 */
 	private static function db(): object {
 		if (self::$db === null) {
 			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
 		}
 		return self::$db;
 	}
+	/**
+	 * Fetch recent error-log entries for a stream.
+	 *
+	 * @param int $rStreamID Stream id.
+	 * @param int $rAmount    Maximum number of entries.
+	 * @return array Error rows.
+	 */
 	public static function getErrors($rStreamID, $rAmount = 250) {
 		$db = self::db();
 		$db->query('SELECT * FROM (SELECT MAX(`date`) AS `date`, `error` FROM `streams_errors` WHERE `stream_id` = ? GROUP BY `error`) AS `output` ORDER BY `date` DESC LIMIT ' . intval($rAmount) . ';', $rStreamID);
 		return $db->get_rows();
 	}
 
+	/**
+	 * Fetch a single stream by id.
+	 *
+	 * @param int $rID Stream id.
+	 * @return array|false The stream row, or false if not found.
+	 */
 	public static function getById($rID) {
 		$db = self::db();
 		$db->query('SELECT * FROM `streams` WHERE `id` = ?;', $rID);
@@ -38,6 +63,12 @@ class StreamRepository {
 		}
 	}
 
+	/**
+	 * Fetch runtime statistics for a stream.
+	 *
+	 * @param int $rStreamID Stream id.
+	 * @return array Stats data.
+	 */
 	public static function getStats($rStreamID) {
 		$db = self::db();
 		$rReturn = array();
@@ -58,6 +89,12 @@ class StreamRepository {
 		return $rReturn;
 	}
 
+	/**
+	 * Fetch the stream process PIDs running on a server.
+	 *
+	 * @param int $rServerID Server id.
+	 * @return array PID information keyed by stream.
+	 */
 	public static function getPIDs($rServerID) {
 		global $rSettings;
 		$db = self::db();
@@ -124,6 +161,12 @@ class StreamRepository {
 		return $rReturn;
 	}
 
+	/**
+	 * Fetch the per-stream options/configuration.
+	 *
+	 * @param int $rID Stream id.
+	 * @return array Stream options.
+	 */
 	public static function getOptions($rID) {
 		$db = self::db();
 		$rReturn = array();
@@ -138,6 +181,12 @@ class StreamRepository {
 		return $rReturn;
 	}
 
+	/**
+	 * Fetch internal/system rows associated with a stream.
+	 *
+	 * @param int $rID Stream id.
+	 * @return array System rows.
+	 */
 	public static function getSystemRows($rID) {
 		$db = self::db();
 		$rReturn = array();
@@ -152,6 +201,11 @@ class StreamRepository {
 		return $rReturn;
 	}
 
+	/**
+	 * Get the next available channel order number.
+	 *
+	 * @return int Next order value.
+	 */
 	public static function getNextOrder() {
 		$db = self::db();
 		$db->query('SELECT MAX(`order`) AS `order` FROM `streams`;');
@@ -164,6 +218,12 @@ class StreamRepository {
 		return intval($db->get_row()['order']) + 1;
 	}
 
+	/**
+	 * Fetch encoding error records for a stream.
+	 *
+	 * @param int $rID Stream id.
+	 * @return array Encode error rows.
+	 */
 	public static function getEncodeErrors($rID) {
 		$db = self::db();
 		$rErrors = array();
@@ -176,6 +236,12 @@ class StreamRepository {
 		return $rErrors;
 	}
 
+	/**
+	 * Resolve selectable streams from a set of sources.
+	 *
+	 * @param array $rSources Source identifiers.
+	 * @return array Matching stream selections.
+	 */
 	public static function getSelections($rSources) {
 		$db = self::db();
 		$rReturn = array();
@@ -192,6 +258,15 @@ class StreamRepository {
 		return $rReturn;
 	}
 
+	/**
+	 * Delete a single stream and its associated data.
+	 *
+	 * @param int  $rID                Stream id.
+	 * @param int  $rServerID          Restrict deletion to a server (-1 for all).
+	 * @param bool $rDeleteFiles       Also remove on-disk stream files.
+	 * @param bool $f2d619cb38696890   Internal flag controlling cascade behavior.
+	 * @return bool True on success.
+	 */
 	public static function deleteStream($rID, $rServerID = -1, $rDeleteFiles = true, $f2d619cb38696890 = true) {
 		$db = self::db();
 		$db->query('SELECT `id`, `type` FROM `streams` WHERE `id` = ?;', $rID);
@@ -252,6 +327,13 @@ class StreamRepository {
 		return true;
 	}
 
+	/**
+	 * Bulk delete streams.
+	 *
+	 * @param int[] $rIDs         Stream ids.
+	 * @param bool  $rDeleteFiles Also remove on-disk stream files.
+	 * @return bool True on success.
+	 */
 	public static function deleteStreams($rIDs, $rDeleteFiles = false) {
 		$db = self::db();
 		$rIDs = AdminHelpers::confirmIDs($rIDs);
@@ -288,6 +370,14 @@ class StreamRepository {
 		return true;
 	}
 
+	/**
+	 * Delete streams scoped to a specific server.
+	 *
+	 * @param int[] $rIDs         Stream ids.
+	 * @param int   $rServerID    Server id.
+	 * @param bool  $rDeleteFiles Also remove on-disk stream files.
+	 * @return bool True on success.
+	 */
 	public static function deleteStreamsByServer($rIDs, $rServerID, $rDeleteFiles = false) {
 		$db = self::db();
 		$rIDs = AdminHelpers::confirmIDs($rIDs);
@@ -305,6 +395,12 @@ class StreamRepository {
 		return true;
 	}
 
+	/**
+	 * Fetch a watch-folder row by id.
+	 *
+	 * @param int $rID Watch-folder id.
+	 * @return array|false The row, or false if not found.
+	 */
 	public static function getWatchFolder($rID) {
 		$db = self::db();
 		$db->query('SELECT * FROM `watch_folders` WHERE `id` = ?;', $rID);
@@ -315,6 +411,12 @@ class StreamRepository {
 		}
 	}
 
+	/**
+	 * Delete a watch folder.
+	 *
+	 * @param int $rID Watch-folder id.
+	 * @return bool True on success.
+	 */
 	public static function deleteWatchFolder($rID) {
 		$db = self::db();
 		$db->query('SELECT `id` FROM `watch_folders` WHERE `id` = ?;', $rID);

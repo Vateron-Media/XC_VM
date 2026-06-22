@@ -13,10 +13,22 @@
 class StreamProcess {
 	private static $db = null;
 
+	/**
+	 * Inject the database handler (dependency injection).
+	 *
+	 * @param object $db Database handler.
+	 * @return void
+	 */
 	public static function setDb($db): void {
 		self::$db = $db;
 	}
 
+	/**
+	 * Get the injected database handler.
+	 *
+	 * @return object Database handler.
+	 * @throws \RuntimeException If setDb() was not called first.
+	 */
 	private static function db(): object {
 		if (self::$db === null) {
 			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
@@ -40,6 +52,12 @@ class StreamProcess {
 		}
 	}
 
+	/**
+	 * Clear cached runtime data for the given stream sources.
+	 *
+	 * @param array $rSources Source identifiers.
+	 * @return void
+	 */
 	public static function deleteCache($rSources) {
 		if (!empty($rSources)) {
 			foreach ($rSources as $rSource) {
@@ -53,6 +71,13 @@ class StreamProcess {
 		}
 	}
 
+	/**
+	 * Queue a channel to be started (optionally on a specific server).
+	 *
+	 * @param int      $rStreamID Stream id.
+	 * @param int|null $rServerID Target server id, or null for the default.
+	 * @return mixed Queue result.
+	 */
 	public static function queueChannel($rStreamID, $rServerID = null) {
 		$db = self::db();
 		if ($rServerID) {
@@ -66,26 +91,58 @@ class StreamProcess {
 		}
 	}
 
+	/**
+	 * Create the runtime channel entry for a stream.
+	 *
+	 * @param int $rStreamID Stream id.
+	 * @return mixed Creation result.
+	 */
 	public static function createChannel($rStreamID) {
 		shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php created ' . intval($rStreamID) . ' >/dev/null 2>/dev/null &');
 		return true;
 	}
 
+	/**
+	 * Start the monitor process for a stream.
+	 *
+	 * @param int $rStreamID Stream id.
+	 * @param int $rRestart  Restart flag/counter.
+	 * @return mixed Start result.
+	 */
 	public static function startMonitor($rStreamID, $rRestart = 0) {
 		shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php monitor ' . intval($rStreamID) . ' ' . intval($rRestart) . ' >/dev/null 2>/dev/null &');
 		return true;
 	}
 
+	/**
+	 * Start the proxy process for a stream.
+	 *
+	 * @param int $rStreamID Stream id.
+	 * @return mixed Start result.
+	 */
 	public static function startProxy($rStreamID) {
 		shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php proxy ' . intval($rStreamID) . ' >/dev/null 2>/dev/null &');
 		return true;
 	}
 
+	/**
+	 * Start thumbnail generation for a stream.
+	 *
+	 * @param int $rStreamID Stream id.
+	 * @return mixed Start result.
+	 */
 	public static function startThumbnail($rStreamID) {
 		shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php thumbnail ' . intval($rStreamID) . ' >/dev/null 2>/dev/null &');
 		return true;
 	}
 
+	/**
+	 * Push a stream's configuration update to its server.
+	 *
+	 * @param int  $rStreamID Stream id.
+	 * @param bool $rForce    Force the update even if unchanged.
+	 * @return mixed Update result.
+	 */
 	public static function updateStream($rStreamID, $rForce = false) {
 		$db = self::db();
 		$rCached = SettingsManager::getAll()['enable_cache'];
@@ -101,6 +158,12 @@ class StreamProcess {
 		return false;
 	}
 
+	/**
+	 * Push configuration updates for multiple streams.
+	 *
+	 * @param int[] $rStreamIDs Stream ids.
+	 * @return void
+	 */
 	public static function updateStreams($rStreamIDs) {
 		$db = self::db();
 		$rCached = SettingsManager::getAll()['enable_cache'];
@@ -116,6 +179,13 @@ class StreamProcess {
 		return false;
 	}
 
+	/**
+	 * Build the runtime channel item (ffmpeg command/config) for a source.
+	 *
+	 * @param int   $rStreamID Stream id.
+	 * @param mixed $rSource   Source definition.
+	 * @return mixed The constructed channel item.
+	 */
 	public static function createChannelItem($rStreamID, $rSource) {
 		global $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU;
 		$db = self::db();
@@ -218,6 +288,13 @@ class StreamProcess {
 		return false;
 	}
 
+	/**
+	 * Stop a running channel stream.
+	 *
+	 * @param int  $rStreamID Stream id.
+	 * @param bool $rStop     Mark the stream as fully stopped (not just restarting).
+	 * @return mixed Stop result.
+	 */
 	public static function stopStream($rStreamID, $rStop = false) {
 		$db = self::db();
 		if (file_exists(STREAMS_PATH . $rStreamID . '_.monitor')) {
@@ -258,6 +335,13 @@ class StreamProcess {
 		}
 	}
 
+	/**
+	 * Stop a running movie (VOD) stream.
+	 *
+	 * @param int  $rStreamID Stream id.
+	 * @param bool $rForce    Force stop.
+	 * @return mixed Stop result.
+	 */
 	public static function stopMovie($rStreamID, $rForce = false) {
 		$db = self::db();
 		shell_exec("kill -9 `ps -ef | grep '/" . intval($rStreamID) . ".' | grep -v grep | awk '{print \$2}'`;");
@@ -270,6 +354,13 @@ class StreamProcess {
 		self::updateStream($rStreamID);
 	}
 
+	/**
+	 * Queue a movie (VOD) to be started.
+	 *
+	 * @param int      $rStreamID Stream id.
+	 * @param int|null $rServerID Target server id, or null for the default.
+	 * @return mixed Queue result.
+	 */
 	public static function queueMovie($rStreamID, $rServerID = null) {
 		$db = self::db();
 		if ($rServerID) {
@@ -280,6 +371,13 @@ class StreamProcess {
 		$db->query("INSERT INTO `queue`(`type`, `stream_id`, `server_id`, `added`) VALUES('movie', ?, ?, ?);", $rStreamID, $rServerID, time());
 	}
 
+	/**
+	 * Queue multiple movies to be started.
+	 *
+	 * @param int[]    $rStreamIDs Stream ids.
+	 * @param int|null $rServerID  Target server id, or null for the default.
+	 * @return void
+	 */
 	public static function queueMovies($rStreamIDs, $rServerID = null) {
 		$db = self::db();
 		if ($rServerID) {
@@ -304,6 +402,13 @@ class StreamProcess {
 		}
 	}
 
+	/**
+	 * Refresh movie metadata/processing for the given ids.
+	 *
+	 * @param int[] $rIDs  Stream ids.
+	 * @param int   $rType Refresh type.
+	 * @return void
+	 */
 	public static function refreshMovies($rIDs, $rType = 1) {
 		$db = self::db();
 		if (0 >= count($rIDs)) {
@@ -324,6 +429,12 @@ class StreamProcess {
 		}
 	}
 
+	/**
+	 * Start a movie (VOD) stream.
+	 *
+	 * @param int $rStreamID Stream id.
+	 * @return mixed Start result.
+	 */
 	public static function startMovie($rStreamID) {
 		global $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU;
 		$db = self::db();
@@ -473,6 +584,12 @@ class StreamProcess {
 		return false;
 	}
 
+	/**
+	 * Start a loopback stream.
+	 *
+	 * @param int $rStreamID Stream id.
+	 * @return mixed Start result.
+	 */
 	public static function startLoopback($rStreamID) {
 		global $rSettings, $rServers;
 		$db = self::db();
@@ -509,6 +626,15 @@ class StreamProcess {
 		return false;
 	}
 
+	/**
+	 * Start a live-on-demand (LLOD) stream.
+	 *
+	 * @param int         $rStreamID        Stream id.
+	 * @param array       $rStreamInfo      Stream metadata.
+	 * @param array       $rStreamArguments ffmpeg/stream arguments.
+	 * @param string|null $rForceSource     Force a specific source URL.
+	 * @return mixed Start result.
+	 */
 	public static function startLLOD($rStreamID, $rStreamInfo, $rStreamArguments, $rForceSource = null) {
 		$db = self::db();
 		shell_exec('rm -f ' . STREAMS_PATH . intval($rStreamID) . '_*.ts');
@@ -532,6 +658,18 @@ class StreamProcess {
 		return array('main_pid' => $rPID, 'stream_source' => $rSources[0], 'delay_enabled' => false, 'parent_id' => 0, 'delay_start_at' => null, 'playlist' => STREAMS_PATH . $rStreamID . '_.m3u8', 'transcode' => false, 'offset' => 0);
 	}
 
+	/**
+	 * Start a live stream (main entry point for channel start-up).
+	 *
+	 * Selects a source, builds the ffmpeg command and launches the process.
+	 *
+	 * @param int         $rStreamID    Stream id.
+	 * @param bool        $rFromCache   Use cached stream info.
+	 * @param string|null $rForceSource Force a specific source URL.
+	 * @param bool        $rLLOD        Treat as live-on-demand.
+	 * @param int         $rStartPos    Start position/offset.
+	 * @return mixed Start result.
+	 */
 	public static function startStream($rStreamID, $rFromCache = false, $rForceSource = null, $rLLOD = false, $rStartPos = 0) {
 		global $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU, $rFFPROBE;
 		$db = self::db();
