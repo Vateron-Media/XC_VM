@@ -11,6 +11,13 @@
  */
 
 class StreamSorter {
+	/**
+	 * Append the year to a title according to the movie_year_append setting.
+	 *
+	 * @param string     $rTitle Base title.
+	 * @param int|string $rYear  Year (only applied when a valid 1900..next-year value).
+	 * @return string Formatted title.
+	 */
 	public static function formatTitle($rTitle, $rYear) {
 		if (is_numeric($rYear) && 1900 <= $rYear && $rYear <= intval(date('Y') + 1)) {
 			if (SettingsManager::getAll()['movie_year_append'] == 0) {
@@ -23,6 +30,15 @@ class StreamSorter {
 		return $rTitle;
 	}
 
+	/**
+	 * Reorder channel ids by the cached channel order.
+	 *
+	 * Returns the input unchanged when no cached order exists or bouquet
+	 * numbering is in use.
+	 *
+	 * @param int[] $rChannels Channel ids.
+	 * @return int[] Reordered channel ids.
+	 */
 	public static function sortChannels($rChannels) {
 		if (!(0 < count($rChannels) && file_exists(CACHE_TMP_PATH . 'channel_order') && SettingsManager::getAll()['channel_number_type'] != 'bouquet')) {
 			return $rChannels;
@@ -45,6 +61,12 @@ class StreamSorter {
 		return $rChannels;
 	}
 
+	/**
+	 * Reorder series ids by the cached series order.
+	 *
+	 * @param int[] $rSeries Series ids.
+	 * @return int[] Reordered series ids (input unchanged if no cached order).
+	 */
 	public static function sortSeries($rSeries) {
 		if (!(0 < count($rSeries) && file_exists(CACHE_TMP_PATH . 'series_order'))) {
 			return $rSeries;
@@ -67,6 +89,13 @@ class StreamSorter {
 		return $rSeries;
 	}
 
+	/**
+	 * Return the value in an array numerically closest to a target.
+	 *
+	 * @param array     $rArray  Numeric values.
+	 * @param int|float $rSearch Target value.
+	 * @return mixed The closest value, or null if the array is empty.
+	 */
 	public static function getNearest($rArray, $rSearch) {
 		$rClosest = null;
 		foreach ($rArray as $rItem) {
