@@ -18,8 +18,8 @@ applyTo: "**/*.php"
 - **Do not mix languages** within a single new comment block.
 
 ## Typing and Declarations
-- Do NOT add `declare(strict_types=1)` — project uses `strict_types=0` or omits it
-- Do NOT add `namespace` declarations — project does not use namespaces
+- **`declare(strict_types=1)`:** legacy code (controllers, `cli/`, most of `core/`) omits it — do NOT add it there. New code already uses it (e.g. `src/core/Auth/*`, `src/core/Enum/*`, `src/core/Events/ListensTo.php`) — follow the pattern of neighbouring files.
+- **Namespaces:** legacy first-party code has none — do NOT add namespaces to it. The module system *is* namespaced (`src/modules/*/`…`Module.php`), as are bundled parsers (`core/Parsing/M3uParser`, `core/Parsing/PhpM3u8`) — match the surrounding file when working there.
 - Do NOT add PHP docblocks or type annotations to existing code unless explicitly asked
 - Parameter type hints: use when writing new service/repository methods, omit when editing legacy code
 
@@ -27,12 +27,12 @@ applyTo: "**/*.php"
 - **Classes:** PascalCase (`StreamService`, `Database`, `FileLogger`)
 - **Methods:** camelCase (`getById`, `processStream`, `closeConnection`)
 - **Variables:** `$r` prefix for data arrays and results: `$rData`, `$rArray`, `$rReturn`, `$rRow`, `$rStreamID`
-- **Constants:** UPPER_SNAKE_CASE (`CONTEXT_ADMIN`, `STATUS_SUCCESS`)
+- **Constants:** UPPER_SNAKE_CASE (`STATUS_SUCCESS`, `GIT_OWNER`); for typed sets prefer enums (`BootContext`, `ModuleState`) over new string constants
 - **Database columns in queries:** snake_case as stored in DB
 
 ## Class Patterns
 - Services use `public static` methods in current codebase (legacy pattern)
-- New domain code follows Controller → Service → Repository pattern per ARCHITECTURE.md
+- New domain code follows Controller → Service → Repository pattern per `docs/en/development/architecture.md`
 - Constructor injection for new services; legacy code still uses `global $db`, `global $rSettings`
 
 ## Global Variables (legacy — do NOT introduce new ones)
@@ -61,9 +61,9 @@ When editing legacy files that use globals, preserve the pattern. Do NOT refacto
 - Core utilities: `src/core/{Subsystem}/*.php`
 
 ## What NOT to Do
-- Do NOT add `use` / `namespace` / `import` statements
+- Do NOT add `use` / `namespace` to legacy first-party code (controllers, `cli/`, legacy `core/`) — but keep namespaces when editing the module system (`src/modules/*`), which is already namespaced
 - Do NOT introduce Composer dependencies
-- Do NOT restructure files into PSR-4 layout
+- Do NOT restructure legacy files into PSR-4 layout (modules are already namespaced / PSR-4-like)
 - Do NOT convert existing `global` usage to DI without explicit request
 - Do NOT add PHPDoc to unchanged code
 - Do NOT wrap existing code in try-catch "just in case"
