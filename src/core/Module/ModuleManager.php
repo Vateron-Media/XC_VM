@@ -461,7 +461,10 @@ class ModuleManager {
             return (bool) ConfigReader::get('is_lb');
         }
         if (defined('SERVER_TYPE')) {
-            return SERVER_TYPE === 'lb';
+            // SERVER_TYPE is an external runtime constant (not define()d in-tree);
+            // use constant() so static analysis doesn't flag an undefined constant.
+            // Mirrors ModuleLoader::detectEnvironment().
+            return constant('SERVER_TYPE') === 'lb';
         }
         return false;
     }
