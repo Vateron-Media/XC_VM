@@ -13,16 +13,34 @@
 class MovieService {
 	private static $db = null;
 
+	/**
+	 * Inject the database handler (dependency injection).
+	 *
+	 * @param object $db Database handler.
+	 * @return void
+	 */
 	public static function setDb($db): void {
 		self::$db = $db;
 	}
 
+	/**
+	 * Get the injected database handler.
+	 *
+	 * @return object Database handler.
+	 * @throws \RuntimeException If setDb() was not called first.
+	 */
 	private static function db(): object {
 		if (self::$db === null) {
 			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
 		}
 		return self::$db;
 	}
+	/**
+	 * Create or update a movie from admin form data.
+	 *
+	 * @param array $rData Submitted form data (includes `edit` id when updating).
+	 * @return array ['status' => STATUS_* constant, 'data' => insert_id or payload].
+	 */
 	public static function process($rData) {
 		$db = self::db();
 		if (InputValidator::validate('processMovie', $rData)) {
@@ -486,6 +504,12 @@ class MovieService {
 		}
 	}
 
+	/**
+	 * Import movies (e.g. from a source/TMDB) into the catalog.
+	 *
+	 * @param array $rData Import payload (sources, category, options).
+	 * @return array Import result.
+	 */
 	public static function import($rData) {
 		$db = self::db();
 		if (Authorization::check('adv', 'import_movies')) {
@@ -702,6 +726,12 @@ class MovieService {
 		}
 	}
 
+	/**
+	 * Bulk delete selected movies.
+	 *
+	 * @param array $rData Selected movie ids.
+	 * @return array ['status' => STATUS_* constant, ...].
+	 */
 	public static function massDelete($rData) {
 		set_time_limit(0);
 		ini_set('mysql.connect_timeout', 0);
@@ -714,6 +744,12 @@ class MovieService {
 		return array('status' => STATUS_SUCCESS);
 	}
 
+	/**
+	 * Apply bulk edits to selected movies.
+	 *
+	 * @param array $rData Selected ids plus the fields/values to apply.
+	 * @return array ['status' => STATUS_* constant, ...].
+	 */
 	public static function massEdit($rData) {
 		$db = self::db();
 		set_time_limit(0);
@@ -933,6 +969,13 @@ class MovieService {
 
 	// ──────────── Из MovieRepository ────────────
 
+	/**
+	 * Get movies similar to the given one (paged).
+	 *
+	 * @param int $rID   Movie id.
+	 * @param int $rPage Result page.
+	 * @return array Similar movies.
+	 */
 	public static function getSimilar($rID, $rPage = 1) {
 		require_once MAIN_HOME . 'modules/tmdb/lib/TmdbClient.php';
 

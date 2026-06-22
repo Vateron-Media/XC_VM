@@ -13,16 +13,34 @@
 class EpisodeService {
 	private static $db = null;
 
+	/**
+	 * Inject the database handler (dependency injection).
+	 *
+	 * @param object $db Database handler.
+	 * @return void
+	 */
 	public static function setDb($db): void {
 		self::$db = $db;
 	}
 
+	/**
+	 * Get the injected database handler.
+	 *
+	 * @return object Database handler.
+	 * @throws \RuntimeException If setDb() was not called first.
+	 */
 	private static function db(): object {
 		if (self::$db === null) {
 			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
 		}
 		return self::$db;
 	}
+	/**
+	 * Create or update a series episode from admin form data.
+	 *
+	 * @param array $rData Submitted form data (includes `edit` id when updating).
+	 * @return array ['status' => STATUS_* constant, 'data' => insert_id or payload].
+	 */
 	public static function process($rData) {
 		global $rSettings;
 		$db = self::db();
@@ -259,6 +277,12 @@ class EpisodeService {
 		return array('status' => STATUS_SUCCESS, 'data' => array('series_id' => $rData['series'], 'insert_id' => $rInsertID));
 	}
 
+	/**
+	 * Bulk delete selected episodes.
+	 *
+	 * @param array $rData Selected episode ids.
+	 * @return array ['status' => STATUS_* constant, ...].
+	 */
 	public static function massDelete($rData) {
 		set_time_limit(0);
 		ini_set('mysql.connect_timeout', 0);
@@ -271,6 +295,12 @@ class EpisodeService {
 		return array('status' => STATUS_SUCCESS);
 	}
 
+	/**
+	 * Apply bulk edits to selected episodes.
+	 *
+	 * @param array $rData Selected ids plus the fields/values to apply.
+	 * @return array ['status' => STATUS_* constant, ...].
+	 */
 	public static function massEdit($rData) {
 		$db = self::db();
 		set_time_limit(0);

@@ -13,16 +13,34 @@
 class SeriesService {
 	private static $db = null;
 
+	/**
+	 * Inject the database handler (dependency injection).
+	 *
+	 * @param object $db Database handler.
+	 * @return void
+	 */
 	public static function setDb($db): void {
 		self::$db = $db;
 	}
 
+	/**
+	 * Get the injected database handler.
+	 *
+	 * @return object Database handler.
+	 * @throws \RuntimeException If setDb() was not called first.
+	 */
 	private static function db(): object {
 		if (self::$db === null) {
 			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
 		}
 		return self::$db;
 	}
+	/**
+	 * Create or update a series from admin form data.
+	 *
+	 * @param array $rData Submitted form data (includes `edit` id when updating).
+	 * @return array ['status' => STATUS_* constant, 'data' => insert_id or payload].
+	 */
 	public static function process($rData) {
 		$db = self::db();
 		if (InputValidator::validate('processSeries', $rData)) {
@@ -140,6 +158,12 @@ class SeriesService {
 		}
 	}
 
+	/**
+	 * Import series (e.g. from a source/TMDB) into the catalog.
+	 *
+	 * @param array $rData Import payload (sources, category, options).
+	 * @return array Import result.
+	 */
 	public static function import($rData) {
 		$db = self::db();
 		if (Authorization::check('adv', 'import_movies')) {
@@ -325,6 +349,12 @@ class SeriesService {
 		}
 	}
 
+	/**
+	 * Bulk delete selected series.
+	 *
+	 * @param array $rData Selected series ids.
+	 * @return array ['status' => STATUS_* constant, ...].
+	 */
 	public static function massDelete($rData) {
 		set_time_limit(0);
 		ini_set('mysql.connect_timeout', 0);
@@ -337,6 +367,12 @@ class SeriesService {
 		return array('status' => STATUS_SUCCESS);
 	}
 
+	/**
+	 * Apply bulk edits to selected series.
+	 *
+	 * @param array $rData Selected ids plus the fields/values to apply.
+	 * @return array ['status' => STATUS_* constant, ...].
+	 */
 	public static function massEdit($rData) {
 		$db = self::db();
 		set_time_limit(0);
@@ -438,6 +474,13 @@ class SeriesService {
 
 	// ──────────── Из SeriesRepository ────────────
 
+	/**
+	 * Get series similar to the given one (paged).
+	 *
+	 * @param int $rID   Series id.
+	 * @param int $rPage Result page.
+	 * @return array Similar series.
+	 */
 	public static function getSimilar($rID, $rPage = 1) {
 		require_once MAIN_HOME . 'modules/tmdb/lib/TmdbClient.php';
 
@@ -545,6 +588,12 @@ class SeriesService {
 		return $rReturn;
 	}
 
+	/**
+	 * Fetch a single series by id.
+	 *
+	 * @param int $rID Series id.
+	 * @return array|false The series row, or false if not found.
+	 */
 	public static function getById($rID) {
 		$db = self::db();
 		$db->query('SELECT * FROM `streams_series` WHERE `id` = ?;', $rID);
@@ -556,6 +605,11 @@ class SeriesService {
 		return $db->get_row();
 	}
 
+	/**
+	 * Fetch all series.
+	 *
+	 * @return array Series rows.
+	 */
 	public static function getAll() {
 		$db = self::db();
 		$rReturn = array();
@@ -570,6 +624,12 @@ class SeriesService {
 		return $rReturn;
 	}
 
+	/**
+	 * Fetch a series by its TMDB id.
+	 *
+	 * @param int $rID TMDB id.
+	 * @return array|false The series row, or false if not found.
+	 */
 	public static function getByTMDBId($rID) {
 		$db = self::db();
 		$db->query('SELECT * FROM `streams_series` WHERE `tmdb_id` = ?;', $rID);
@@ -581,6 +641,13 @@ class SeriesService {
 		return $db->get_row();
 	}
 
+	/**
+	 * Delete a series and its episodes (optionally the on-disk files).
+	 *
+	 * @param int  $rID          Series id.
+	 * @param bool $rDeleteFiles Also remove on-disk episode files.
+	 * @return bool True on success.
+	 */
 	public static function deleteSeriesById($rID, $rDeleteFiles = true) {
 		$db = self::db();
 		$rSeries = self::getById($rID);
@@ -601,6 +668,12 @@ class SeriesService {
 		return true;
 	}
 
+	/**
+	 * Bulk delete series by ids.
+	 *
+	 * @param int[] $rIDs Series ids.
+	 * @return bool True on success.
+	 */
 	public static function deleteSeriesByIds($rIDs) {
 		$db = self::db();
 		$rIDs = AdminHelpers::confirmIDs($rIDs);

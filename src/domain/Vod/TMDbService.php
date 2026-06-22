@@ -13,16 +13,34 @@
 class TMDbService {
 	private static $db = null;
 
+	/**
+	 * Inject the database handler (dependency injection).
+	 *
+	 * @param object $db Database handler.
+	 * @return void
+	 */
 	public static function setDb($db): void {
 		self::$db = $db;
 	}
 
+	/**
+	 * Get the injected database handler.
+	 *
+	 * @return object Database handler.
+	 * @throws \RuntimeException If setDb() was not called first.
+	 */
 	private static function db(): object {
 		if (self::$db === null) {
 			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
 		}
 		return self::$db;
 	}
+	/**
+	 * Fetch movie metadata from TMDB.
+	 *
+	 * @param int $rID TMDB movie id.
+	 * @return array|null Movie metadata, or null on failure.
+	 */
 	public static function getMovie($rID) {
 		require_once MAIN_HOME . 'modules/tmdb/lib/TmdbClient.php';
 
@@ -35,6 +53,12 @@ class TMDbService {
 		return ($rTMDB->getMovie($rID) ?: null);
 	}
 
+	/**
+	 * Fetch series metadata from TMDB.
+	 *
+	 * @param int $rID TMDB series id.
+	 * @return array|null Series metadata, or null on failure.
+	 */
 	public static function getSeries($rID) {
 		require_once MAIN_HOME . 'modules/tmdb/lib/TmdbClient.php';
 
@@ -47,6 +71,13 @@ class TMDbService {
 		return (json_decode($rTMDB->getTVShow($rID)->getJSON(), true) ?: null);
 	}
 
+	/**
+	 * Fetch season metadata (with episodes) from TMDB.
+	 *
+	 * @param int $rID     TMDB series id.
+	 * @param int $rSeason Season number.
+	 * @return array|null Season metadata, or null on failure.
+	 */
 	public static function getSeason($rID, $rSeason) {
 		require_once MAIN_HOME . 'modules/tmdb/lib/TmdbClient.php';
 
@@ -59,6 +90,13 @@ class TMDbService {
 		return json_decode($rTMDB->getSeason($rID, intval($rSeason))->getJSON(), true);
 	}
 
+	/**
+	 * Fetch a series trailer URL/key from TMDB.
+	 *
+	 * @param int         $rTMDBID   TMDB series id.
+	 * @param string|null $rLanguage Preferred language, or null for default.
+	 * @return string|null Trailer reference, or null if none.
+	 */
 	public static function getSeriesTrailer($rTMDBID, $rLanguage = null) {
 		$rURL = 'https://api.themoviedb.org/3/tv/' . intval($rTMDBID) . '/videos?api_key=' . urlencode(SettingsManager::getAll()['tmdb_api_key']);
 
@@ -83,6 +121,14 @@ class TMDbService {
 		return '';
 	}
 
+	/**
+	 * Fetch episode still images from TMDB.
+	 *
+	 * @param int $rTMDBID  TMDB series id.
+	 * @param int $rSeason  Season number.
+	 * @param int $rEpisode Episode number.
+	 * @return array Still image references.
+	 */
 	public static function getStills($rTMDBID, $rSeason, $rEpisode) {
 		$rURL = 'https://api.themoviedb.org/3/tv/' . intval($rTMDBID) . '/season/' . intval($rSeason) . '/episode/' . intval($rEpisode) . '/images?api_key=' . urlencode(SettingsManager::getAll()['tmdb_api_key']);
 
@@ -94,6 +140,11 @@ class TMDbService {
 		return json_decode(file_get_contents($rURL), true);
 	}
 
+	/**
+	 * Import TMDB genres as VOD categories.
+	 *
+	 * @return void
+	 */
 	public static function addCategories() {
 		$db = self::db();
 		require_once MAIN_HOME . 'modules/tmdb/lib/TmdbClient.php';
@@ -135,6 +186,11 @@ class TMDbService {
 		return true;
 	}
 
+	/**
+	 * Refresh the TMDB genre → category mappings.
+	 *
+	 * @return void
+	 */
 	public static function updateCategories() {
 		$db = self::db();
 		require_once MAIN_HOME . 'modules/tmdb/lib/TmdbClient.php';
