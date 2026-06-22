@@ -94,6 +94,9 @@ class EventDispatcher {
 
     private ListenerProvider $provider;
 
+    /**
+     * Create a dispatcher backed by a fresh ListenerProvider.
+     */
     public function __construct() {
         $this->provider = new ListenerProvider();
     }

@@ -9,6 +9,12 @@
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 final class StreamStoppedEvent {
+    /**
+     * @param int    $streamId  Stream that stopped.
+     * @param string $userId    User the stream belonged to.
+     * @param float  $stoppedAt Unix timestamp (with microseconds) of stop.
+     * @param string $reason    Reason the stream stopped.
+     */
     public function __construct(
         public readonly int    $streamId,
         public readonly string $userId,

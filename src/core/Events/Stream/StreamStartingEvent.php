@@ -15,6 +15,12 @@ final class StreamStartingEvent extends AbstractEvent {
 
     private string $abortReason = '';
 
+    /**
+     * @param int    $streamId Stream being started.
+     * @param string $userId   User requesting the stream.
+     * @param string $protocol Delivery protocol (e.g. hls, mpegts).
+     * @param array  $params   Additional request parameters.
+     */
     public function __construct(
         public readonly int    $streamId,
         public readonly string $userId,
@@ -22,11 +28,22 @@ final class StreamStartingEvent extends AbstractEvent {
         public readonly array  $params,
     ) {}
 
+    /**
+     * Abort the stream start and stop event propagation.
+     *
+     * @param string $reason Human-readable abort reason.
+     * @return void
+     */
     public function abort(string $reason): void {
         $this->abortReason = $reason;
         $this->stopPropagation();
     }
 
+    /**
+     * Reason supplied to abort(), or '' if not aborted.
+     *
+     * @return string
+     */
     public function getAbortReason(): string {
         return $this->abortReason;
     }

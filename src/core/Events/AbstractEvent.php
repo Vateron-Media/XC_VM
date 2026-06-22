@@ -15,10 +15,20 @@ abstract class AbstractEvent implements StoppableEventInterface {
 
     private bool $propagationStopped = false;
 
+    /**
+     * Whether a listener has stopped propagation of this event.
+     *
+     * @return bool True if propagation was stopped.
+     */
     public function isPropagationStopped(): bool {
         return $this->propagationStopped;
     }
 
+    /**
+     * Stop propagation so no further listeners receive this event.
+     *
+     * @return void
+     */
     public function stopPropagation(): void {
         $this->propagationStopped = true;
     }

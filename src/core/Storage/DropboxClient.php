@@ -45,6 +45,13 @@ class DropboxClient {
 		$this->useCurl = function_exists('curl_init');
 	}
 
+	/**
+	 * Reset transient state after unserialization.
+	 *
+	 * Drops any short-lived access token and re-checks cURL availability.
+	 *
+	 * @return void
+	 */
 	public function __wakeup() {
 		if (!empty($this->accessToken['s'])) {
 			$this->accessToken = null;
@@ -301,6 +308,12 @@ class DropboxClient {
 		return $meta;
 	}
 
+	/**
+	 * Normalize a v2 metadata object to legacy fields (is_dir, path, bytes).
+	 *
+	 * @param object $meta Dropbox v2 metadata entry.
+	 * @return object The same object with legacy compatibility fields added.
+	 */
 	public static function compatMeta($meta) {
 		$meta->is_dir = $meta->{'.tag'} == 'folder';
 		$meta->path = $meta->path_display;
@@ -410,6 +423,15 @@ class DropboxClient {
 		return $thumb;
 	}
 
+	/**
+	 * Get a shareable or temporary link for a file.
+	 *
+	 * @param string     $path     Dropbox file path.
+	 * @param bool        $preview  Return a preview link rather than a direct one.
+	 * @param bool        $_short   Request a shortened URL.
+	 * @param string|null $expires  Out-param set to the link expiry, when available.
+	 * @return string The link URL.
+	 */
 	public function GetLink($path, $preview = true, $_short = true, &$expires = null) {
 		$path = self::toPath($path);
 
@@ -439,22 +461,49 @@ class DropboxClient {
 		}
 	}
 
+	/**
+	 * Fetch changes (delta) since the given cursor.
+	 *
+	 * @param string $cursor Cursor from a previous Delta()/LatestCursor() call.
+	 * @return object Delta response (entries + new cursor).
+	 */
 	public function Delta($cursor) {
 		return $this->apiCall('2/files/list_folder/continue', array_merge(compact('cursor'), array()));
 	}
 
+	/**
+	 * Get the latest delta cursor for a path without fetching entries.
+	 *
+	 * @param string $path               Folder path ('' for root).
+	 * @param bool   $include_media_info Include media info in the cursor scope.
+	 * @return object Response containing the cursor.
+	 */
 	public function LatestCursor($path = '', $include_media_info = false) {
 		$res = $this->apiCall('2/files/list_folder/get_latest_cursor', compact('path', 'include_media_info'));
 
 		return $res->cursor;
 	}
 
+	/**
+	 * List revisions of a file.
+	 *
+	 * @param string $path  Dropbox file path.
+	 * @param int    $limit Maximum number of revisions to return.
+	 * @return object Response containing the revision list.
+	 */
 	public function GetRevisions($path, $limit = 10) {
 		$path = self::toPath($path);
 
 		return $this->apiCall('2/files/list_revisions', compact('path', 'limit'))->entries;
 	}
 
+	/**
+	 * Restore a file to a previous revision.
+	 *
+	 * @param string|object $dropbox_file File path or metadata object.
+	 * @param string        $rev          Revision id to restore.
+	 * @return object Metadata of the restored file.
+	 */
 	public function Restore($dropbox_file, $rev) {
 		if (is_object($dropbox_file) && !empty($dropbox_file->path)) {
 			$dropbox_file = $dropbox_file->path;
@@ -463,6 +512,15 @@ class DropboxClient {
 		return $this->apiCall('restore/' . $this->rootPath . '/' . $dropbox_file, compact('rev'));
 	}
 
+	/**
+	 * Search for files/folders under a path.
+	 *
+	 * @param string $path            Folder path to search in.
+	 * @param string $query           Search query.
+	 * @param int    $max_results     Maximum results to return.
+	 * @param bool   $include_deleted Include deleted entries.
+	 * @return object Search response.
+	 */
 	public function Search($path, $query, $max_results = 1000, $include_deleted = false) {
 		$path = self::toPath($path);
 		$mode = ($include_deleted ? 'deleted_filename' : 'filename');
@@ -475,6 +533,13 @@ class DropboxClient {
 		return $meta;
 	}
 
+	/**
+	 * Get a copy reference for a file (for cross-account copies).
+	 *
+	 * @param string|object $dropbox_file File path or metadata object.
+	 * @param string|null   $expires      Out-param set to the reference expiry.
+	 * @return object Copy-reference response.
+	 */
 	public function GetCopyRef($dropbox_file, &$expires = null) {
 		if (is_object($dropbox_file) && !empty($dropbox_file->path)) {
 			$dropbox_file = $dropbox_file->path;
@@ -486,6 +551,14 @@ class DropboxClient {
 		return $ref->copy_ref;
 	}
 
+	/**
+	 * Copy a file or folder.
+	 *
+	 * @param string $from_path Source path (or copy-ref when $copy_ref is true).
+	 * @param string $to_path   Destination path.
+	 * @param bool   $copy_ref  Treat $from_path as a copy reference.
+	 * @return object Metadata of the copy.
+	 */
 	public function Copy($from_path, $to_path, $copy_ref = false) {
 		if (is_object($from_path) && !empty($from_path->path)) {
 			$from_path = $from_path->path;
@@ -528,6 +601,13 @@ class DropboxClient {
 		return self::compatMeta($res->metadata);
 	}
 
+	/**
+	 * Move or rename a file or folder.
+	 *
+	 * @param string $from_path Source path.
+	 * @param string $to_path   Destination path.
+	 * @return object Metadata of the moved entry.
+	 */
 	public function Move($from_path, $to_path) {
 		if (is_object($from_path) && !empty($from_path->path)) {
 			$from_path = $from_path->path;
@@ -536,6 +616,13 @@ class DropboxClient {
 		return $this->apiCall('fileops/move', array('root' => $this->rootPath, 'from_path' => $from_path, 'to_path' => $to_path));
 	}
 
+	/**
+	 * Build a configured cURL handle from an HTTP context array.
+	 *
+	 * @param string $url          Request URL.
+	 * @param array  $http_context Context with method, header and optional content.
+	 * @return \CurlHandle|resource Configured cURL handle.
+	 */
 	private function createCurl($url, $http_context) {
 		$ch = curl_init($url);
 		$curl_opts = array(CURLOPT_HEADER => false, CURLOPT_RETURNTRANSFER => true, CURLOPT_SSL_VERIFYPEER => false, CURLOPT_BINARYTRANSFER => true);
@@ -560,12 +647,27 @@ class DropboxClient {
 		return $ch;
 	}
 
+	/**
+	 * cURL header callback that collects response headers.
+	 *
+	 * @param \CurlHandle|resource $ch     cURL handle.
+	 * @param string               $header A single response header line.
+	 * @return int Number of bytes processed (required by cURL).
+	 */
 	private static function _curlHeaderCallback($ch, $header) {
 		self::$_curlHeadersRef[] = trim($header);
 
 		return strlen($header);
 	}
 
+	/**
+	 * Execute a cURL handle, optionally capture response headers, and close it.
+	 *
+	 * @param \CurlHandle|resource $ch                    cURL handle to run.
+	 * @param array|null           $out_response_headers  Out-param filled with response headers.
+	 * @return mixed The response body (by reference).
+	 * @throws DropboxException On cURL error.
+	 */
 	private static function &execCurlAndClose($ch, &$out_response_headers = null) {
 		if (is_array($out_response_headers)) {
 			self::$_curlHeadersRef = &$out_response_headers;
@@ -724,6 +826,14 @@ class DropboxClient {
 		return $resp;
 	}
 
+	/**
+	 * Parse the `Dropbox-API-Result` metadata from response headers.
+	 *
+	 * @param array $header_array   Response header lines.
+	 * @param bool  $throw_on_error Throw if metadata is missing/invalid.
+	 * @return object Normalized metadata object.
+	 * @throws DropboxException When metadata cannot be parsed and $throw_on_error is true.
+	 */
 	private static function getMetaFromHeaders(&$header_array, $throw_on_error = false) {
 		$obj = json_decode(substr(@array_shift(array_filter($header_array, function ($s) {
 			return stripos($s, 'dropbox-api-result:') === 0;
@@ -740,6 +850,12 @@ class DropboxClient {
 		return self::compatMeta($obj);
 	}
 
+	/**
+	 * Normalize a file object or path string to a Dropbox API path.
+	 *
+	 * @param string|object $file_or_path Path string or metadata object.
+	 * @return string Leading-slash path ('' for root).
+	 */
 	private static function toPath($file_or_path) {
 		if (is_object($file_or_path)) {
 			$file_or_path = $file_or_path->path;
@@ -754,6 +870,12 @@ class DropboxClient {
 		return $file_or_path;
 	}
 
+	/**
+	 * URL-encode a Dropbox URL path while preserving the scheme prefix and slashes.
+	 *
+	 * @param string $url Full URL (scheme + path).
+	 * @return string Encoded URL.
+	 */
 	private static function cleanUrl($url) {
 		$p = substr($url, 0, 8);
 		$url = str_replace('//', '/', str_replace('\\', '/', substr($url, 8)));
@@ -763,6 +885,13 @@ class DropboxClient {
 		return $p . $url;
 	}
 
+	/**
+	 * Compute the Dropbox content hash of a stream (block-wise SHA-256).
+	 *
+	 * @param resource $stream    Readable stream.
+	 * @param int      $chunksize Read chunk size in bytes.
+	 * @return string Hex-encoded Dropbox content hash.
+	 */
 	public static function contentHashStream($stream, $chunksize = 8192) {
 		static $BLOCK_SIZE = 4194304;
 		$streamhasher = hash_init('sha256');
@@ -798,6 +927,12 @@ class DropboxClient {
 		return hash_final($streamhasher);
 	}
 
+	/**
+	 * Compute the Dropbox content hash of a local file.
+	 *
+	 * @param string $localFileName Path to the local file.
+	 * @return string Hex-encoded Dropbox content hash.
+	 */
 	public static function contentHashFile($localFileName) {
 		$handle = fopen($localFileName, 'r');
 		$hash = self::contentHashStream($handle);
@@ -826,6 +961,12 @@ class DropboxClient {
 class DropboxException extends Exception {
 	private $tag;
 
+	/**
+	 * Build an exception from a Dropbox error response, the last PHP error, or a message.
+	 *
+	 * @param object|string|null $resp    Error response object, message string, or null (use last PHP error).
+	 * @param string|null        $context Optional context appended to the message.
+	 */
 	public function __construct($resp = null, $context = null) {
 		if (is_null($resp)) {
 			$el = error_get_last();
@@ -840,6 +981,11 @@ class DropboxException extends Exception {
 		}
 	}
 
+	/**
+	 * Return the Dropbox error tag, when present.
+	 *
+	 * @return string|null Error tag, or null if none was set.
+	 */
 	public function getTag() {
 		return $this->tag;
 	}

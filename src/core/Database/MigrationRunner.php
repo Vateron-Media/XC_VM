@@ -12,6 +12,15 @@
 
 class MigrationRunner {
 
+	/**
+	 * Apply pending SQL migrations from the migrations/ directory.
+	 *
+	 * Ensures the `migrations` tracking table exists, then runs each unapplied
+	 * `*.sql` file (statement by statement) and records successful ones.
+	 *
+	 * @param Database $db Database handle.
+	 * @return void
+	 */
 	public static function run($db): void {
 		echo "Migrations\n------------------------------\n";
 
@@ -81,6 +90,11 @@ class MigrationRunner {
 		echo "\n";
 	}
 
+	/**
+	 * Delete files listed in migrations/deleted_files.txt during an update.
+	 *
+	 * @return void
+	 */
 	public static function runFileCleanup(): void {
 		echo "File Cleanup\n------------------------------\n";
 

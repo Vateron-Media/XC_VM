@@ -12,6 +12,12 @@
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 final class PackageInstalledEvent {
+    /**
+     * @param string $slug        Package slug.
+     * @param string $version     Installed version.
+     * @param string $path        Install path.
+     * @param int    $installedAt Unix timestamp of installation.
+     */
     public function __construct(
         public readonly string $slug,
         public readonly string $version,
