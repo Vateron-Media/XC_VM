@@ -13,16 +13,34 @@
 class BlocklistService {
 	private static $db = null;
 
+	/**
+	 * Inject the database handler (dependency injection).
+	 *
+	 * @param object $db Database handler.
+	 * @return void
+	 */
 	public static function setDb($db): void {
 		self::$db = $db;
 	}
 
+	/**
+	 * Get the injected database handler.
+	 *
+	 * @return object Database handler.
+	 * @throws \RuntimeException If setDb() was not called first.
+	 */
 	private static function db(): object {
 		if (self::$db === null) {
 			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
 		}
 		return self::$db;
 	}
+	/**
+	 * Add an IP (or CIDR) to the blocklist.
+	 *
+	 * @param array $rData Submitted IP/notes data.
+	 * @return array Result status payload.
+	 */
 	public static function blockIP($rData) {
 		$db = self::db();
 		if (!AdminHelpers::validateCIDR($rData['ip'])) {
@@ -42,6 +60,12 @@ class BlocklistService {
 		return array('status' => STATUS_FAILURE, 'data' => $rData);
 	}
 
+	/**
+	 * Create or update a blocked ISP entry.
+	 *
+	 * @param array $rData Submitted ISP data (includes `edit` id when updating).
+	 * @return array Result status payload.
+	 */
 	public static function processISP($rData) {
 		$db = self::db();
 		if (isset($rData['edit'])) {
@@ -78,6 +102,12 @@ class BlocklistService {
 		return array('status' => STATUS_FAILURE, 'data' => $rData);
 	}
 
+	/**
+	 * Create or update an allowed RTMP IP entry.
+	 *
+	 * @param array $rData Submitted RTMP IP data (includes `edit` id when updating).
+	 * @return array Result status payload.
+	 */
 	public static function processRTMPIP($rData) {
 		$db = self::db();
 		if (isset($rData['edit'])) {
@@ -118,6 +148,12 @@ class BlocklistService {
 		return array('status' => STATUS_FAILURE, 'data' => $rData);
 	}
 
+	/**
+	 * Create or update a blocked user-agent entry.
+	 *
+	 * @param array $rData Submitted user-agent data (includes `edit` id when updating).
+	 * @return array Result status payload.
+	 */
 	public static function processUA($rData) {
 		$db = self::db();
 		if (isset($rData['edit'])) {
@@ -144,6 +180,14 @@ class BlocklistService {
 		return array('status' => STATUS_FAILURE, 'data' => $rData);
 	}
 
+	/**
+	 * Check whether a user agent matches the blocked-UA list.
+	 *
+	 * @param array  $rBlockedUA Blocked user-agent patterns.
+	 * @param string $rUserAgent User agent to test.
+	 * @param bool   $rReturn    Return the matched entry instead of a boolean.
+	 * @return bool|mixed True/match if blocked, false otherwise.
+	 */
 	public static function checkBlockedUAs($rBlockedUA, $rUserAgent, $rReturn = false) {
 		$rUserAgent = strtolower($rUserAgent);
 		foreach ($rBlockedUA as $rBlocked) {
@@ -160,6 +204,14 @@ class BlocklistService {
 		return false;
 	}
 
+	/**
+	 * Check a user agent against the blocklist and block the request if matched.
+	 *
+	 * @param array  $rBlockedUA Blocked user-agent patterns.
+	 * @param string $rUserAgent User agent to test.
+	 * @param bool   $rReturn    Return the matched entry instead of acting.
+	 * @return bool|mixed True/match if blocked, false otherwise.
+	 */
 	public static function checkAndBlockUA($rBlockedUA, $rUserAgent, $rReturn = false) {
 		$db = self::db();
 		$rUserAgent = strtolower($rUserAgent);
@@ -187,6 +239,13 @@ class BlocklistService {
 		return false;
 	}
 
+	/**
+	 * Check whether a connection's ISP is blocked.
+	 *
+	 * @param array  $rBlockedISP Blocked ISP list.
+	 * @param string $rConISP     Connection ISP to test.
+	 * @return bool True if blocked.
+	 */
 	public static function checkISP($rBlockedISP, $rConISP) {
 		foreach ($rBlockedISP as $rISP) {
 			if (strtolower($rConISP) == strtolower($rISP['isp'])) {
@@ -196,12 +255,25 @@ class BlocklistService {
 		return 0;
 	}
 
+	/**
+	 * Check whether a server/ASN is blocked.
+	 *
+	 * @param array      $rBlockedServers Blocked server/ASN list.
+	 * @param int|string $rASN            ASN to test.
+	 * @return bool True if blocked.
+	 */
 	public static function checkServer($rBlockedServers, $rASN) {
 		return in_array($rASN, $rBlockedServers);
 	}
 
 	// ──────────── Из BlocklistRepository ────────────
 
+	/**
+	 * Determine whether an IP is a known proxy.
+	 *
+	 * @param string $rIP IP address.
+	 * @return bool True if the IP is a known proxy.
+	 */
 	public static function isProxy($rIP) {
 		$rProxies = self::getProxyIPs();
 		if (isset($rProxies[$rIP])) {
@@ -210,6 +282,12 @@ class BlocklistService {
 		return null;
 	}
 
+	/**
+	 * Get the known proxy IP list (cached).
+	 *
+	 * @param bool $rForce Bypass the cache.
+	 * @return array Proxy IPs.
+	 */
 	public static function getProxyIPs($rForce = false) {
 		global $rServers;
 		if (!$rForce) {
@@ -234,6 +312,12 @@ class BlocklistService {
 		return $rOutput;
 	}
 
+	/**
+	 * Get the blocked user-agent list (cached).
+	 *
+	 * @param bool $rForce Bypass the cache.
+	 * @return array Blocked user agents.
+	 */
 	public static function getBlockedUA($rForce = false) {
 		$db = self::db();
 		if (!$rForce) {
@@ -251,6 +335,12 @@ class BlocklistService {
 		return $rOutput;
 	}
 
+	/**
+	 * Get the blocked IP list (cached).
+	 *
+	 * @param bool $rForce Bypass the cache.
+	 * @return array Blocked IPs.
+	 */
 	public static function getBlockedIPs($rForce = false) {
 		$db = self::db();
 		if (!$rForce) {
@@ -271,6 +361,12 @@ class BlocklistService {
 		return $rOutput;
 	}
 
+	/**
+	 * Get the blocked ISP list (cached).
+	 *
+	 * @param bool $rForce Bypass the cache.
+	 * @return array Blocked ISPs.
+	 */
 	public static function getBlockedISP($rForce = false) {
 		$db = self::db();
 		if (!$rForce) {
@@ -288,6 +384,12 @@ class BlocklistService {
 		return $rOutput;
 	}
 
+	/**
+	 * Get the blocked servers/ASN list (cached).
+	 *
+	 * @param bool $rForce Bypass the cache.
+	 * @return array Blocked servers/ASNs.
+	 */
 	public static function getBlockedServers($rForce = false) {
 		$db = self::db();
 		if (!$rForce) {
@@ -308,6 +410,11 @@ class BlocklistService {
 		return $rOutput;
 	}
 
+	/**
+	 * Get a lightweight blocked-IP list.
+	 *
+	 * @return array Blocked IPs (reduced).
+	 */
 	public static function getBlockedIPsSimple() {
 		$db = self::db();
 		$rReturn = array();
@@ -322,6 +429,11 @@ class BlocklistService {
 		return $rReturn;
 	}
 
+	/**
+	 * Get a lightweight RTMP-IP list.
+	 *
+	 * @return array RTMP IPs (reduced).
+	 */
 	public static function getRTMPIPsSimple() {
 		$db = self::db();
 		$rReturn = array();
@@ -336,6 +448,11 @@ class BlocklistService {
 		return $rReturn;
 	}
 
+	/**
+	 * Get the list of allowed RTMP IPs.
+	 *
+	 * @return array Allowed RTMP IPs.
+	 */
 	public static function getAllowedRTMP() {
 		$db = self::db();
 		$rReturn = array();
@@ -346,6 +463,12 @@ class BlocklistService {
 		return $rReturn;
 	}
 
+	/**
+	 * Delete a blocked IP entry.
+	 *
+	 * @param int $rID Entry id.
+	 * @return bool True on success.
+	 */
 	public static function deleteBlockedIP($rID) {
 		$db = self::db();
 		$db->query('SELECT `id`, `ip` FROM `blocked_ips` WHERE `id` = ?;', $rID);
@@ -365,6 +488,12 @@ class BlocklistService {
 		return true;
 	}
 
+	/**
+	 * Delete a blocked ISP entry.
+	 *
+	 * @param int $rID Entry id.
+	 * @return bool True on success.
+	 */
 	public static function deleteBlockedISP($rID) {
 		$db = self::db();
 		$db->query('SELECT `id` FROM `blocked_isps` WHERE `id` = ?;', $rID);
@@ -378,6 +507,12 @@ class BlocklistService {
 		return true;
 	}
 
+	/**
+	 * Delete a blocked user-agent entry.
+	 *
+	 * @param int $rID Entry id.
+	 * @return bool True on success.
+	 */
 	public static function deleteBlockedUA($rID) {
 		$db = self::db();
 		$db->query('SELECT `id` FROM `blocked_uas` WHERE `id` = ?;', $rID);
@@ -391,6 +526,11 @@ class BlocklistService {
 		return true;
 	}
 
+	/**
+	 * Remove all blocked IP entries.
+	 *
+	 * @return bool True on success.
+	 */
 	public static function flushIPs() {
 		$db = self::db();
 		global $rServers;
@@ -409,6 +549,11 @@ class BlocklistService {
 		return true;
 	}
 
+	/**
+	 * Fetch all blocked user-agent entries.
+	 *
+	 * @return array User-agent rows.
+	 */
 	public static function getAllUserAgents() {
 		$db = self::db();
 		$rReturn = array();
@@ -424,6 +569,11 @@ class BlocklistService {
 		return $rReturn;
 	}
 
+	/**
+	 * Fetch all blocked ISP entries.
+	 *
+	 * @return array ISP rows.
+	 */
 	public static function getAllISPs() {
 		$db = self::db();
 		$rReturn = array();
@@ -439,6 +589,12 @@ class BlocklistService {
 		return $rReturn;
 	}
 
+	/**
+	 * Fetch a blocked user-agent entry by id.
+	 *
+	 * @param int $rID Entry id.
+	 * @return array|null The row, or null if not found.
+	 */
 	public static function getUserAgentById($rID) {
 		$db = self::db();
 		$db->query('SELECT * FROM `blocked_uas` WHERE `id` = ?;', $rID);
@@ -449,6 +605,12 @@ class BlocklistService {
 		}
 	}
 
+	/**
+	 * Fetch a blocked ISP entry by id.
+	 *
+	 * @param int $rID Entry id.
+	 * @return array|null The row, or null if not found.
+	 */
 	public static function getISPById($rID) {
 		$db = self::db();
 		$db->query('SELECT * FROM `blocked_isps` WHERE `id` = ?;', $rID);
@@ -459,6 +621,12 @@ class BlocklistService {
 		}
 	}
 
+	/**
+	 * Delete an RTMP IP entry.
+	 *
+	 * @param int $rID Entry id.
+	 * @return bool True on success.
+	 */
 	public static function deleteRTMPIP($rID) {
 		$db = self::db();
 		$db->query('SELECT `id` FROM `rtmp_ips` WHERE `id` = ?;', $rID);
@@ -472,6 +640,12 @@ class BlocklistService {
 		return true;
 	}
 
+	/**
+	 * Fetch an RTMP IP entry by id.
+	 *
+	 * @param int $rID Entry id.
+	 * @return array|null The row, or null if not found.
+	 */
 	public static function getRTMPIPById($rID) {
 		$db = self::db();
 		$db->query('SELECT * FROM `rtmp_ips` WHERE `id` = ?;', $rID);
