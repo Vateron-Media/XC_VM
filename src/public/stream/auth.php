@@ -238,6 +238,7 @@ if ($rExtension) {
 	if ($rUserInfo || $rIsHMAC) {
 		$rDeny = false;
 		BruteforceGuard::checkAuthFlood($rUserInfo, $rIP);
+		$rUserID = $rUserInfo['id'] ?? null;
 
 		if (($rServers[SERVER_ID]['enable_proxy'] && !($rProxies[$_SERVER['HTTP_X_IP']] ?? null) && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))) {
 			generateError('PROXY_ACCESS_DENIED');
@@ -448,7 +449,7 @@ if ($rExtension) {
 					$rChannelInfo['redirect_id'] = $rProxyID;
 				}
 
-				$rURL = StreamRedirector::getStreamingURL($rSettings, $rServers, $rChannelInfo['redirect_id'], ($rChannelInfo['originator_id'] ?? null), $rForceHTTP);
+				$rURL = StreamRedirector::getStreamingURL($rSettings, $rServers, $rChannelInfo['redirect_id'], ($rChannelInfo['originator_id'] ?? null), $rForceHTTP, $rUserID);
 				$rStreamInfo = json_decode($rChannelInfo['stream_info'] ?? '', true);
 				$rVideoCodec = ($rStreamInfo['codecs']['video']['codec_name'] ?? 'h264');
 
@@ -482,7 +483,7 @@ if ($rExtension) {
 										$rAdaptiveInfo['redirect_id'] = $rProxyID;
 									}
 
-									$rURL = StreamRedirector::getStreamingURL($rSettings, $rServers, $rAdaptiveInfo['redirect_id'], ($rAdaptiveInfo['originator_id'] ?? null), $rForceHTTP);
+									$rURL = StreamRedirector::getStreamingURL($rSettings, $rServers, $rAdaptiveInfo['redirect_id'], ($rAdaptiveInfo['originator_id'] ?? null), $rForceHTTP, $rUserID);
 								} else {
 									$rAdaptiveInfo = $rChannelInfo;
 								}
@@ -578,7 +579,7 @@ if ($rExtension) {
 					$rChannelInfo['redirect_id'] = $rProxyID;
 				}
 
-				$rURL = StreamRedirector::getStreamingURL($rSettings, $rServers, $rChannelInfo['redirect_id'], ($rChannelInfo['originator_id'] ?? null), $rForceHTTP);
+				$rURL = StreamRedirector::getStreamingURL($rSettings, $rServers, $rChannelInfo['redirect_id'], ($rChannelInfo['originator_id'] ?? null), $rForceHTTP, $rUserID);
 
 				if ($rChannelInfo['direct_proxy']) {
 					$rChannelInfo['bitrate'] = (json_decode($rChannelInfo['movie_properties'] ?? '', true)['duration_secs'] ?? 0);
@@ -629,7 +630,7 @@ if ($rExtension) {
 				$rRedirectID = $rProxyID;
 			}
 
-			$rURL = StreamRedirector::getStreamingURL($rSettings, $rServers, $rRedirectID, ($rOriginatorID ?: null), $rForceHTTP);
+			$rURL = StreamRedirector::getStreamingURL($rSettings, $rServers, $rRedirectID, ($rOriginatorID ?: null), $rForceHTTP, $rUserID);
 			$rStartDate = $rRequest['start'];
 			$rDuration = intval($rRequest['duration']);
 
@@ -708,7 +709,7 @@ if ($rExtension) {
 				$rStreamInfo['info']['vframes_server_id'] = $rProxyID;
 			}
 
-			$rURL = StreamRedirector::getStreamingURL($rSettings, $rServers, $rStreamInfo['info']['vframes_server_id'], $rOriginatorID, $rForceHTTP);
+			$rURL = StreamRedirector::getStreamingURL($rSettings, $rServers, $rStreamInfo['info']['vframes_server_id'], $rOriginatorID, $rForceHTTP, $rUserID);
 			$rToken = Encryption::encrypt(json_encode($rTokenData), $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 			header('Location: ' . $rURL . '/thauth/' . $rToken);
 
@@ -730,7 +731,7 @@ if ($rExtension) {
 					$rChannelInfo['redirect_id'] = $rProxyID;
 				}
 
-				$rURL = StreamRedirector::getStreamingURL($rSettings, $rServers, $rChannelInfo['redirect_id'], ($rChannelInfo['originator_id'] ?: null), $rForceHTTP);
+				$rURL = StreamRedirector::getStreamingURL($rSettings, $rServers, $rChannelInfo['redirect_id'], ($rChannelInfo['originator_id'] ?: null), $rForceHTTP, $rUserID);
 				$rTokenData = array('stream_id' => $rStreamID, 'sub_id' => (intval($rRequest['sid']) ?: 0), 'webvtt' => (intval($rRequest['webvtt']) ?: 0), 'expires' => time() + 5);
 				$rToken = Encryption::encrypt(json_encode($rTokenData), $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 				header('Location: ' . $rURL . '/subauth/' . $rToken);
