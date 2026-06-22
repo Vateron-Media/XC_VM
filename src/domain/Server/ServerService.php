@@ -13,16 +13,34 @@
 class ServerService {
 	private static $db = null;
 
+	/**
+	 * Inject the database handler (dependency injection).
+	 *
+	 * @param object $db Database handler.
+	 * @return void
+	 */
 	public static function setDb($db): void {
 		self::$db = $db;
 	}
 
+	/**
+	 * Get the injected database handler.
+	 *
+	 * @return object Database handler.
+	 * @throws \RuntimeException If setDb() was not called first.
+	 */
 	private static function db(): object {
 		if (self::$db === null) {
 			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
 		}
 		return self::$db;
 	}
+	/**
+	 * Create or update a server from admin form data.
+	 *
+	 * @param array $rData Submitted form data (includes `edit` id when updating).
+	 * @return array ['status' => STATUS_* constant, 'data' => insert_id or payload].
+	 */
 	public static function process($rData) {
 		$db = self::db();
 		if (!Authorization::check('adv', 'edit_server')) {
@@ -180,6 +198,12 @@ class ServerService {
 		return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
 	}
 
+	/**
+	 * Create or update a proxy server from admin form data.
+	 *
+	 * @param array $rData Submitted form data (includes `edit` id when updating).
+	 * @return array ['status' => STATUS_* constant, 'data' => insert_id or payload].
+	 */
 	public static function processProxy($rData) {
 		$db = self::db();
 		if (!Authorization::check('adv', 'edit_server')) {
@@ -231,6 +255,14 @@ class ServerService {
 		return array('status' => STATUS_FAILURE, 'data' => $rData);
 	}
 
+	/**
+	 * Trigger installation/provisioning of a server over SSH.
+	 *
+	 * @param array $rData         Install parameters (target, credentials, type).
+	 * @param array $rServers      Existing servers configuration.
+	 * @param array $rProxyServers Existing proxy servers configuration.
+	 * @return array Result status payload.
+	 */
 	public static function install($rData, $rServers, $rProxyServers) {
 		$db = self::db();
 		if (!Authorization::check('adv', 'add_server')) {
@@ -307,6 +339,12 @@ class ServerService {
 		return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
 	}
 
+	/**
+	 * Persist the display order of servers.
+	 *
+	 * @param array $rData Ordered server ids.
+	 * @return array ['status' => STATUS_* constant].
+	 */
 	public static function reorder($rData) {
 		$db = self::db();
 		$rPostServers = json_decode($rData['server_order'], true);
@@ -319,26 +357,62 @@ class ServerService {
 		return array('status' => STATUS_SUCCESS);
 	}
 
+	/**
+	 * Change a server's listening ports.
+	 *
+	 * @param int   $rServerID Server id.
+	 * @param string $rType    Port type (http/https/...).
+	 * @param mixed $rPorts    New port value(s).
+	 * @param bool  $rReload   Reload services after the change.
+	 * @return mixed Result.
+	 */
 	public static function changePort($rServerID, $rType, $rPorts, $rReload = false) {
 		$db = self::db();
 		$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rServerID, time(), json_encode(array('action' => 'set_port', 'type' => intval($rType), 'ports' => $rPorts, 'reload' => $rReload)));
 	}
 
+	/**
+	 * Set the number of service workers on a server.
+	 *
+	 * @param int  $rServerID    Server id.
+	 * @param int  $rNumServices Number of service workers.
+	 * @param bool $rReload      Reload services after the change.
+	 * @return mixed Result.
+	 */
 	public static function setServices($rServerID, $rNumServices, $rReload = true) {
 		$db = self::db();
 		$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rServerID, time(), json_encode(array('action' => 'set_services', 'count' => intval($rNumServices), 'reload' => $rReload)));
 	}
 
+	/**
+	 * Set the CPU frequency governor on a server.
+	 *
+	 * @param int    $rServerID Server id.
+	 * @param string $rGovernor Governor name (e.g. performance).
+	 * @return mixed Result.
+	 */
 	public static function setGovernor($rServerID, $rGovernor) {
 		$db = self::db();
 		$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rServerID, time(), json_encode(array('action' => 'set_governor', 'data' => $rGovernor)));
 	}
 
+	/**
+	 * Apply sysctl settings on a server.
+	 *
+	 * @param int   $rServerID Server id.
+	 * @param mixed $rSysCtl   Sysctl key/values to apply.
+	 * @return mixed Result.
+	 */
 	public static function setSysctl($rServerID, $rSysCtl) {
 		$db = self::db();
 		$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rServerID, time(), json_encode(array('action' => 'set_sysctl', 'data' => $rSysCtl)));
 	}
 
+	/**
+	 * Restore missing UI/asset images.
+	 *
+	 * @return mixed Result.
+	 */
 	public static function restoreImages() {
 		$db = self::db();
 		global $rServers;
@@ -352,6 +426,11 @@ class ServerService {
 		return true;
 	}
 
+	/**
+	 * Kill the running Plex sync process.
+	 *
+	 * @return mixed Result.
+	 */
 	public static function killPlexSync() {
 		$db = self::db();
 		$db->query("SELECT DISTINCT(`server_id`) AS `server_id` FROM `watch_folders` WHERE `active` = 1 AND `type` = 'plex';");
