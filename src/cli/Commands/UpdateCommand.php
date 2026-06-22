@@ -156,6 +156,16 @@ class UpdateCommand implements CommandInterface {
 				exec('sudo systemctl daemon-reload');
 				exec("sudo echo 'net.ipv4.ip_unprivileged_port_start=0' > /etc/sysctl.d/50-allports-nonroot.conf && sudo sysctl --system");
 				exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php status');
+
+				// Ensure GeoLite2 databases are present/refreshed after an update.
+				// They are no longer shipped in the update archive, so fetch them
+				// from the XC_VM_Update release. Best-effort: run in background so a
+				// slow/failed download never blocks or fails the update.
+				if (ServerRepository::getAll()[SERVER_ID]['is_main']) {
+					UpdateLogger::info('Refreshing GeoLite2 databases (background)');
+					exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:maxmind --force >/dev/null 2>&1 &');
+				}
+
 				UpdateLogger::info('Post-update completed successfully');
 				break;
 		}
