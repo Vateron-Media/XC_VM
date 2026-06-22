@@ -13,6 +13,15 @@ declare(strict_types=1);
  */
 
 class PageAuthorization {
+	/**
+	 * Check whether the current reseller may access a given page.
+	 *
+	 * Maps the page name to the reseller permission flag that gates it; defaults
+	 * the page to the current script name when not supplied.
+	 *
+	 * @param string|null $rPage Page key, or null to derive from the request.
+	 * @return bool True if access is allowed (true for ungated pages).
+	 */
 	public static function checkResellerPermissions(?string $rPage = null): bool {
 		global $rPermissions;
 
@@ -54,6 +63,15 @@ class PageAuthorization {
 		return true;
 	}
 
+	/**
+	 * Resolve and enforce page-level access for the current request.
+	 *
+	 * Maps the requested page to the required admin/reseller capability and
+	 * returns whether the current user/access-code is permitted.
+	 *
+	 * @param string|null $rPage Page key, or null to derive from the current script.
+	 * @return bool True if the current user may access the page.
+	 */
 	public static function checkPermissions(?string $rPage = null): bool {
 		if ($rPage) {
 		} else {

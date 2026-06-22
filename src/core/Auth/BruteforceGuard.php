@@ -16,6 +16,11 @@ declare(strict_types=1);
  */
 
 class BruteforceGuard {
+    /**
+     * Resolve panel settings, preferring SettingsManager over the legacy global.
+     *
+     * @return array Settings array, or [] when none are available.
+     */
     private static function getSettings(): array {
         if (!empty(SettingsManager::getAll())) {
             return SettingsManager::getAll();
