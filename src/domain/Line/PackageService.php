@@ -13,16 +13,34 @@
 class PackageService {
 	private static $db = null;
 
+	/**
+	 * Inject the database handler (dependency injection).
+	 *
+	 * @param object $db Database handler.
+	 * @return void
+	 */
 	public static function setDb($db): void {
 		self::$db = $db;
 	}
 
+	/**
+	 * Get the injected database handler.
+	 *
+	 * @return object Database handler.
+	 * @throws \RuntimeException If setDb() was not called first.
+	 */
 	private static function db(): object {
 		if (self::$db === null) {
 			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
 		}
 		return self::$db;
 	}
+	/**
+	 * Create or update a package from admin form data.
+	 *
+	 * @param array $rData Submitted form data (includes `edit` id when updating).
+	 * @return array ['status' => STATUS_* constant, 'data' => insert_id or payload].
+	 */
 	public static function process($rData) {
 		$db = self::db();
 		if (isset($rData['edit'])) {
@@ -73,6 +91,12 @@ class PackageService {
 		return array('status' => STATUS_FAILURE, 'data' => $rData);
 	}
 
+	/**
+	 * Delete a package by id.
+	 *
+	 * @param int $rID Package id.
+	 * @return bool True on deletion, false if not found.
+	 */
 	public static function deleteById($rID) {
 		$db = self::db();
 		$rPackage = self::getById($rID);
@@ -87,6 +111,13 @@ class PackageService {
 		return true;
 	}
 
+	/**
+	 * List packages, optionally filtered by group and type.
+	 *
+	 * @param int|null    $rGroup Group id filter, or null for all.
+	 * @param string|null $rType  Package type filter, or null for all.
+	 * @return array Package rows.
+	 */
 	public static function getAll($rGroup = null, $rType = null) {
 		$db = self::db();
 		$rReturn = array();
@@ -107,6 +138,12 @@ class PackageService {
 		return $rReturn;
 	}
 
+	/**
+	 * Fetch a single package by id.
+	 *
+	 * @param int $rID Package id.
+	 * @return array|null The package row, or null if not found.
+	 */
 	public static function getById($rID) {
 		$db = self::db();
 		$db->query('SELECT * FROM `users_packages` WHERE `id` = ?;', $rID);
@@ -118,6 +155,13 @@ class PackageService {
 		return $db->get_row();
 	}
 
+	/**
+	 * Check whether two packages are compatible (e.g. for upgrades).
+	 *
+	 * @param int $rIDA First package id.
+	 * @param int $rIDB Second package id.
+	 * @return bool True if compatible.
+	 */
 	public static function checkCompatible($rIDA, $rIDB) {
 		$rPackageA = self::getById($rIDA);
 		$rPackageB = self::getById($rIDB);

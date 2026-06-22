@@ -13,16 +13,34 @@
 class EpgService {
 	private static $db = null;
 
+	/**
+	 * Inject the database handler (dependency injection).
+	 *
+	 * @param object $db Database handler.
+	 * @return void
+	 */
 	public static function setDb($db): void {
 		self::$db = $db;
 	}
 
+	/**
+	 * Get the injected database handler.
+	 *
+	 * @return object Database handler.
+	 * @throws \RuntimeException If setDb() was not called first.
+	 */
 	private static function db(): object {
 		if (self::$db === null) {
 			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
 		}
 		return self::$db;
 	}
+	/**
+	 * Create or update an EPG source from admin form data.
+	 *
+	 * @param array $rData Submitted form data (includes `edit` id when updating).
+	 * @return array ['status' => STATUS_* constant, 'data' => insert_id or payload].
+	 */
 	public static function process($rData) {
 		$db = self::db();
 		if (isset($rData['edit'])) {
@@ -49,6 +67,13 @@ class EpgService {
 		return array('status' => STATUS_FAILURE, 'data' => $rData);
 	}
 
+	/**
+	 * Get EPG programmes for a channel/stream.
+	 *
+	 * @param array $rStream  Stream row.
+	 * @param bool  $rArchive Include archive/catch-up programmes.
+	 * @return array EPG programmes.
+	 */
 	public static function getChannelEpg($rStream, $rArchive = false) {
 		if (!$rStream || !$rStream['channel_id']) {
 			return array();
@@ -63,6 +88,12 @@ class EpgService {
 
 	// ──────────── Из EpgRepository ────────────
 
+	/**
+	 * Find an EPG channel by name.
+	 *
+	 * @param string $rEPGName EPG channel name.
+	 * @return mixed Matching EPG channel, or null/false if not found.
+	 */
 	public static function findByName($rEPGName) {
 		$db = self::db();
 		$db->query('SELECT `id`, `data` FROM `epg`;');
@@ -84,6 +115,12 @@ class EpgService {
 		}
 	}
 
+	/**
+	 * Fetch an EPG source by id.
+	 *
+	 * @param int $rID EPG source id.
+	 * @return array|null The EPG source row, or null if not found.
+	 */
 	public static function getById($rID) {
 		$db = self::db();
 		$db->query('SELECT * FROM `epg` WHERE `id` = ?;', $rID);
@@ -93,12 +130,29 @@ class EpgService {
 		}
 	}
 
+	/**
+	 * Search an array for entries whose key matches a value.
+	 *
+	 * @param array  $rArray Array to search.
+	 * @param string $rKey   Key to compare.
+	 * @param mixed  $rValue Value to match.
+	 * @return array Matching entries.
+	 */
 	public static function search($rArray, $rKey, $rValue) {
 		$rResults = array();
 		self::searchRecursive($rArray, $rKey, $rValue, $rResults);
 		return $rResults;
 	}
 
+	/**
+	 * Recursively collect array entries matching a key/value.
+	 *
+	 * @param array  $rArray   Array to search.
+	 * @param string $rKey     Key to compare.
+	 * @param mixed  $rValue   Value to match.
+	 * @param array  $rResults Accumulator (by reference).
+	 * @return void
+	 */
 	private static function searchRecursive($rArray, $rKey, $rValue, &$rResults) {
 		if (is_array($rArray)) {
 			if (isset($rArray[$rKey]) && $rArray[$rKey] == $rValue) {
@@ -110,6 +164,15 @@ class EpgService {
 		}
 	}
 
+	/**
+	 * Get EPG programmes for a stream within a date range.
+	 *
+	 * @param int         $rStreamID  Stream id.
+	 * @param string|null $rStartDate Range start (or null).
+	 * @param string|null $rFinishDate Range end (or null).
+	 * @param bool        $rByID      Key results by programme id.
+	 * @return array EPG programmes.
+	 */
 	public static function getStreamEpg($rStreamID, $rStartDate = null, $rFinishDate = null, $rByID = false) {
 		$rReturn = array();
 		$rData = (file_exists(EPG_PATH . 'stream_' . $rStreamID) ? igbinary_unserialize(file_get_contents(EPG_PATH . 'stream_' . $rStreamID)) : array());
@@ -127,6 +190,14 @@ class EpgService {
 		return $rReturn;
 	}
 
+	/**
+	 * Get EPG programmes for multiple streams within a date range.
+	 *
+	 * @param int[]       $rStreamIDs  Stream ids.
+	 * @param string|null $rStartDate  Range start (or null).
+	 * @param string|null $rFinishDate Range end (or null).
+	 * @return array EPG programmes keyed by stream.
+	 */
 	public static function getStreamsEpg($rStreamIDs, $rStartDate = null, $rFinishDate = null) {
 		$rReturn = array();
 		foreach ($rStreamIDs as $rStreamID) {
@@ -135,6 +206,13 @@ class EpgService {
 		return $rReturn;
 	}
 
+	/**
+	 * Fetch a single EPG programme for a stream.
+	 *
+	 * @param int $rStreamID    Stream id.
+	 * @param int $rProgrammeID Programme id.
+	 * @return array|null The programme, or null if not found.
+	 */
 	public static function getProgramme($rStreamID, $rProgrammeID) {
 		$rData = self::getStreamEpg($rStreamID, null, null, true);
 		if (isset($rData[$rProgrammeID])) {
@@ -142,6 +220,11 @@ class EpgService {
 		}
 	}
 
+	/**
+	 * Fetch all EPG sources.
+	 *
+	 * @return array EPG source rows.
+	 */
 	public static function getAll() {
 		$db = self::db();
 		$rReturn = array();
@@ -156,6 +239,12 @@ class EpgService {
 		return $rReturn;
 	}
 
+	/**
+	 * Delete an EPG source by id.
+	 *
+	 * @param int $rID EPG source id.
+	 * @return bool True on success.
+	 */
 	public static function deleteEpgById($rID) {
 		$db = self::db();
 		$rEPG = self::getById($rID);

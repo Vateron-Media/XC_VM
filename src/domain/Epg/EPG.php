@@ -13,10 +13,22 @@
 class EPG {
 	private static $db = null;
 
+	/**
+	 * Inject the database handler (dependency injection).
+	 *
+	 * @param object $db Database handler.
+	 * @return void
+	 */
 	public static function setDb($db): void {
 		self::$db = $db;
 	}
 
+	/**
+	 * Get the injected database handler.
+	 *
+	 * @return object Database handler.
+	 * @throws \RuntimeException If setDb() was not called first.
+	 */
 	private static function db(): object {
 		if (self::$db === null) {
 			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
@@ -27,14 +39,31 @@ class EPG {
 	public $rEPGSource;
 	public $rFilename;
 
+	/**
+	 * Load an EPG source on construction.
+	 *
+	 * @param string $rSource EPG source URL/path.
+	 * @param bool   $rCache  Use a cached copy when available.
+	 */
 	public function __construct($rSource, $rCache = false) {
 		$this->loadEPG($rSource, $rCache);
 	}
 
+	/**
+	 * Print a timestamped log line.
+	 *
+	 * @param string $rMessage Message to log.
+	 * @return void
+	 */
 	private function log($rMessage) {
 		echo '[' . date('Y-m-d H:i:s') . '] ' . $rMessage . "\n";
 	}
 
+	/**
+	 * Return the parsed EPG data (channels and programmes).
+	 *
+	 * @return array Parsed EPG data.
+	 */
 	public function getData() {
 		$rOutput = [];
 		$channelCount = 0;
@@ -88,6 +117,14 @@ class EPG {
 		return $rOutput;
 	}
 
+	/**
+	 * Parse EPG programmes for a channel from the loaded source.
+	 *
+	 * @param string $rEPGID       EPG channel id.
+	 * @param array  $rChannelInfo Channel mapping info.
+	 * @param int    $rOffset      Time offset (seconds) to apply.
+	 * @return array Parsed programmes.
+	 */
 	public function parseEPG($rEPGID, $rChannelInfo, $rOffset = 0) {
 		$db = self::db();
 
@@ -190,6 +227,13 @@ class EPG {
 		return !empty($rInsertQuery) ? $rInsertQuery : false;
 	}
 
+	/**
+	 * Download an EPG source file to disk.
+	 *
+	 * @param string $rSource   Source URL.
+	 * @param string $rFilename Local destination path.
+	 * @return bool True on success.
+	 */
 	public function downloadFile($rSource, $rFilename) {
 		$this->log("[EPG] Downloading EPG file: $rSource");
 
@@ -214,6 +258,13 @@ class EPG {
 		}
 	}
 
+	/**
+	 * Load and parse an EPG (XMLTV) source, optionally from cache.
+	 *
+	 * @param string $rSource EPG source URL/path.
+	 * @param bool   $rCache  Use a cached copy when available.
+	 * @return void
+	 */
 	public function loadEPG($rSource, $rCache) {
 		try {
 			$this->rFilename = TMP_PATH . md5($rSource) . '.xml';
