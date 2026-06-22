@@ -13,16 +13,34 @@
 class GroupService {
 	private static $db = null;
 
+	/**
+	 * Inject the database handler (dependency injection).
+	 *
+	 * @param object $db Database handler.
+	 * @return void
+	 */
 	public static function setDb($db): void {
 		self::$db = $db;
 	}
 
+	/**
+	 * Get the injected database handler.
+	 *
+	 * @return object Database handler.
+	 * @throws \RuntimeException If setDb() was not called first.
+	 */
 	private static function db(): object {
 		if (self::$db === null) {
 			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
 		}
 		return self::$db;
 	}
+	/**
+	 * Create or update a user group from admin form data.
+	 *
+	 * @param array $rData Submitted form data (includes `edit` id when updating).
+	 * @return array ['status' => STATUS_* constant, 'data' => insert_id or payload].
+	 */
 	public static function process($rData) {
 		$db = self::db();
 		if (InputValidator::validate('processGroup', $rData)) {
@@ -111,6 +129,11 @@ class GroupService {
 
 	// ──────────── Из GroupRepository ────────────
 
+	/**
+	 * Fetch all user groups.
+	 *
+	 * @return array Group rows.
+	 */
 	public static function getAll() {
 		$db = self::db();
 		$rReturn = array();
@@ -126,6 +149,12 @@ class GroupService {
 		return $rReturn;
 	}
 
+	/**
+	 * Fetch a single user group by id.
+	 *
+	 * @param int $rID Group id.
+	 * @return array|false The group row, or false if not found.
+	 */
 	public static function getById($rID) {
 		$db = self::db();
 		$db->query('SELECT * FROM `users_groups` WHERE `group_id` = ?;', $rID);
@@ -136,6 +165,12 @@ class GroupService {
 		}
 	}
 
+	/**
+	 * Delete a user group.
+	 *
+	 * @param int $rID Group id.
+	 * @return bool True on deletion, false if the group does not exist.
+	 */
 	public static function deleteById($rID) {
 		$db = self::db();
 		$rGroup = self::getById($rID);

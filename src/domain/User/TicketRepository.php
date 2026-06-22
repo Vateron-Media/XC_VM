@@ -13,16 +13,34 @@
 class TicketRepository {
 	private static $db = null;
 
+	/**
+	 * Inject the database handler (dependency injection).
+	 *
+	 * @param object $db Database handler.
+	 * @return void
+	 */
 	public static function setDb($db): void {
 		self::$db = $db;
 	}
 
+	/**
+	 * Get the injected database handler.
+	 *
+	 * @return object Database handler.
+	 * @throws \RuntimeException If setDb() was not called first.
+	 */
 	private static function db(): object {
 		if (self::$db === null) {
 			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
 		}
 		return self::$db;
 	}
+	/**
+	 * Fetch a single ticket (with its messages) by id.
+	 *
+	 * @param int $rID Ticket id.
+	 * @return array|false The ticket row, or false if not found.
+	 */
 	public static function getById($rID) {
 		$db = self::db();
 		$db->query('SELECT * FROM `tickets` WHERE `id` = ?;', $rID);
@@ -50,6 +68,13 @@ class TicketRepository {
 		return $rRow;
 	}
 
+	/**
+	 * List tickets, optionally scoped to a user or to the admin view.
+	 *
+	 * @param int|null $rID    Owner user id, or null for all.
+	 * @param bool     $rAdmin Use admin scope (all tickets).
+	 * @return array Ticket rows.
+	 */
 	public static function getAll($rID = null, $rAdmin = false) {
 		$db = self::db();
 		global $rUserInfo;
@@ -124,6 +149,12 @@ class TicketRepository {
 		return $rReturn;
 	}
 
+	/**
+	 * Delete a ticket and its messages.
+	 *
+	 * @param int $rID Ticket id.
+	 * @return bool True on deletion, false if not found.
+	 */
 	public static function deleteById($rID) {
 		$db = self::db();
 		$db->query('SELECT `id` FROM `tickets` WHERE `id` = ?;', $rID);
