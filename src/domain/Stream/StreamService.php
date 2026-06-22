@@ -13,16 +13,34 @@
 class StreamService {
 	private static $db = null;
 
+	/**
+	 * Inject the database handler (dependency injection).
+	 *
+	 * @param object $db Database handler.
+	 * @return void
+	 */
 	public static function setDb($db): void {
 		self::$db = $db;
 	}
 
+	/**
+	 * Get the injected database handler.
+	 *
+	 * @return object Database handler.
+	 * @throws \RuntimeException If setDb() was not called first.
+	 */
 	private static function db(): object {
 		if (self::$db === null) {
 			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
 		}
 		return self::$db;
 	}
+	/**
+	 * Create or update a stream from admin form data.
+	 *
+	 * @param array $rData Submitted form data (includes `edit` id when updating).
+	 * @return array ['status' => STATUS_* constant, 'data' => insert_id or payload].
+	 */
 	public static function process($rData) {
 		global $rSettings;
 		$db = self::db();
@@ -449,6 +467,12 @@ class StreamService {
 		}
 	}
 
+	/**
+	 * Apply bulk edits to a set of selected streams.
+	 *
+	 * @param array $rData Selected ids plus the fields/values to apply.
+	 * @return array ['status' => STATUS_* constant, ...].
+	 */
 	public static function massEdit($rData) {
 		$db = self::db();
 		set_time_limit(0);
@@ -710,6 +734,12 @@ class StreamService {
 		return array('status' => STATUS_SUCCESS);
 	}
 
+	/**
+	 * Move selected streams (e.g. to another category).
+	 *
+	 * @param array $rData Selected ids and target destination.
+	 * @return array ['status' => STATUS_* constant, ...].
+	 */
 	public static function move($rData) {
 		$db = self::db();
 		$rType = intval($rData['content_type']);
@@ -751,6 +781,12 @@ class StreamService {
 		return array('status' => STATUS_SUCCESS);
 	}
 
+	/**
+	 * Replace the DNS/host portion of stream source URLs in bulk.
+	 *
+	 * @param array $rData Search/replace host values and target scope.
+	 * @return array ['status' => STATUS_* constant, ...].
+	 */
 	public static function replaceDNS($rData) {
 		$db = self::db();
 		$rOldDNS = str_replace('/', '\\/', $rData['old_dns']);
@@ -760,6 +796,12 @@ class StreamService {
 		return array('status' => STATUS_SUCCESS);
 	}
 
+	/**
+	 * Bulk delete a set of selected streams.
+	 *
+	 * @param array $rData Selected stream ids.
+	 * @return array ['status' => STATUS_* constant, ...].
+	 */
 	public static function massDelete($rData) {
 		set_time_limit(0);
 		ini_set('mysql.connect_timeout', 0);
@@ -772,6 +814,13 @@ class StreamService {
 		return array('status' => STATUS_SUCCESS);
 	}
 
+	/**
+	 * Parse an M3U playlist (file or raw content) into stream entries.
+	 *
+	 * @param mixed $rData Playlist file path or raw M3U content.
+	 * @param bool  $rFile Treat $rData as a file path (true) or content (false).
+	 * @return array Parsed playlist entries.
+	 */
 	public static function parseM3U($rData, $rFile = true) {
 		require_once MAIN_HOME . 'core/Parsing/M3uParser/bootstrap.php';
 		$rParser = new \M3uParser\M3uParser();
@@ -784,10 +833,23 @@ class StreamService {
 		return $rParser->parse($rData);
 	}
 
+	/**
+	 * List archive (catch-up) files for a stream on a server.
+	 *
+	 * @param int $rServerID Server id.
+	 * @param int $rStreamID Stream id.
+	 * @return array Archive file list.
+	 */
 	public static function getArchiveFiles($rServerID, $rStreamID) {
 		return json_decode(ApiClient::systemRequest($rServerID, array('action' => 'get_archive_files', 'stream_id' => $rStreamID)), true)['data'];
 	}
 
+	/**
+	 * Get archive (catch-up) information for a stream.
+	 *
+	 * @param int $rStreamID Stream id.
+	 * @return array Archive information.
+	 */
 	public static function getArchive($rStreamID) {
 		$db = self::db();
 		$rReturn = array();
