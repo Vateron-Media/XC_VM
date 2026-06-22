@@ -13,16 +13,34 @@
 class BouquetService {
 	private static $db = null;
 
+	/**
+	 * Inject the database handler (dependency injection).
+	 *
+	 * @param object $db Database handler.
+	 * @return void
+	 */
 	public static function setDb($db): void {
 		self::$db = $db;
 	}
 
+	/**
+	 * Get the injected database handler.
+	 *
+	 * @return object Database handler.
+	 * @throws \RuntimeException If setDb() was not called first.
+	 */
 	private static function db(): object {
 		if (self::$db === null) {
 			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
 		}
 		return self::$db;
 	}
+	/**
+	 * Create or update a bouquet from admin form data.
+	 *
+	 * @param array $rData Submitted form data (includes `edit` id when updating).
+	 * @return array ['status' => STATUS_* constant, 'data' => insert_id or payload].
+	 */
 	public static function process($rData) {
 		$db = self::db();
 		if (isset($rData['edit'])) {
@@ -95,6 +113,12 @@ class BouquetService {
 		return array('status' => STATUS_FAILURE, 'data' => $rData);
 	}
 
+	/**
+	 * Persist the display order of bouquets.
+	 *
+	 * @param array $rData Ordered bouquet ids.
+	 * @return array ['status' => STATUS_* constant].
+	 */
 	public static function reorder($rData) {
 		$db = self::db();
 		$rOrder = json_decode($rData['stream_order_array'], true);
@@ -107,6 +131,12 @@ class BouquetService {
 		return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rData['reorder']));
 	}
 
+	/**
+	 * Sort the items within a bouquet.
+	 *
+	 * @param array $rData Bouquet id and desired item order.
+	 * @return array ['status' => STATUS_* constant].
+	 */
 	public static function sort($rData) {
 		$db = self::db();
 		set_time_limit(0);
@@ -144,10 +174,21 @@ class BouquetService {
 		return array('status' => STATUS_SUCCESS);
 	}
 
+	/**
+	 * Rebuild the cached item maps for all bouquets.
+	 *
+	 * @return void
+	 */
 	public static function scan() {
 		shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php tools bouquets > /dev/null 2>/dev/null &');
 	}
 
+	/**
+	 * Rebuild the cached item map for a single bouquet.
+	 *
+	 * @param int $rID Bouquet id.
+	 * @return void
+	 */
 	public static function scanOne($rID) {
 		$db = self::db();
 		$rBouquet = BouquetService::getById($rID);
@@ -193,6 +234,12 @@ class BouquetService {
 		);
 	}
 
+	/**
+	 * Get the bouquet-map entry for a stream.
+	 *
+	 * @param int $rStreamID Stream id.
+	 * @return mixed Map entry (bouquets containing the stream).
+	 */
 	public static function getMapEntry($rStreamID) {
 		$rBouquetMap = array();
 		$rMapPath = CACHE_TMP_PATH . 'bouquet_map';
@@ -209,6 +256,12 @@ class BouquetService {
 		return $rReturn;
 	}
 
+	/**
+	 * Fetch all bouquets (cached unless forced).
+	 *
+	 * @param bool $rForce Bypass the cache.
+	 * @return array Bouquet rows.
+	 */
 	public static function getAll($rForce = false) {
 		$db = self::db();
 		if (!$rForce) {
@@ -243,6 +296,11 @@ class BouquetService {
 		return $rOutput;
 	}
 
+	/**
+	 * Get the bouquets visible to the current user.
+	 *
+	 * @return array Bouquet rows.
+	 */
 	public static function getUserBouquets() {
 		$db = self::db();
 		$rReturn = array();
@@ -257,6 +315,11 @@ class BouquetService {
 		return $rReturn;
 	}
 
+	/**
+	 * Fetch a lightweight list of all bouquets.
+	 *
+	 * @return array Reduced bouquet rows.
+	 */
 	public static function getAllSimple() {
 		$db = self::db();
 		$rReturn = array();
@@ -271,10 +334,21 @@ class BouquetService {
 		return $rReturn;
 	}
 
+	/**
+	 * Get the configured bouquet display order.
+	 *
+	 * @return array Ordered bouquet ids.
+	 */
 	public static function getOrder() {
 		return self::getAllSimple();
 	}
 
+	/**
+	 * Fetch a single bouquet by id.
+	 *
+	 * @param int $rID Bouquet id.
+	 * @return array|null The bouquet row, or null if not found.
+	 */
 	public static function getById($rID) {
 		$db = self::db();
 		$db->query('SELECT * FROM `bouquets` WHERE `id` = ?;', $rID);
@@ -286,6 +360,12 @@ class BouquetService {
 		return $db->get_row();
 	}
 
+	/**
+	 * Delete a bouquet by id.
+	 *
+	 * @param int $rID Bouquet id.
+	 * @return bool True on deletion, false if not found.
+	 */
 	public static function deleteById($rID) {
 		$db = self::db();
 		$rBouquet = self::getById($rID);
@@ -344,6 +424,14 @@ class BouquetService {
 		return true;
 	}
 
+	/**
+	 * Add items of a given type to a bouquet.
+	 *
+	 * @param string $rType      Item type (stream/movie/series/radio).
+	 * @param int    $rBouquetID Bouquet id.
+	 * @param int[]  $rIDs       Item ids to add.
+	 * @return mixed Result.
+	 */
 	public static function addItems($rType, $rBouquetID, $rIDs) {
 		$db = self::db();
 
@@ -383,6 +471,14 @@ class BouquetService {
 		}
 	}
 
+	/**
+	 * Remove items of a given type from a bouquet.
+	 *
+	 * @param string $rType      Item type (stream/movie/series/radio).
+	 * @param int    $rBouquetID Bouquet id.
+	 * @param int[]  $rIDs       Item ids to remove.
+	 * @return mixed Result.
+	 */
 	public static function removeItems($rType, $rBouquetID, $rIDs) {
 		$db = self::db();
 
