@@ -162,7 +162,8 @@ class StreamRedirector {
 		return (!empty($rOutput) ? $rOutput : false);
 	}
 
-	public static function getStreamingURL($rSettings, $rServers, $rServerID = null, $rOriginatorID = null, $rForceHTTP = false) {
+	public static function getStreamingURL($rSettings, $rServers, $rServerID = null, $rOriginatorID = null, $rForceHTTP = false, $rUserID = null) { 
+		//$rUserID is used to redirect clients with different subdomain to the LB server
 		if (!isset($rServerID)) {
 			$rServerID = SERVER_ID;
 		}
@@ -181,6 +182,10 @@ class StreamRedirector {
 		} else {
 			if ($rServers[$rServerID]['random_ip'] && 0 < count($rServers[$rServerID]['domains']['urls'])) {
 				$rDomain = $rServers[$rServerID]['domains']['urls'][array_rand($rServers[$rServerID]['domains']['urls'])];
+				//line_id : 10 => wildcard.lb1.com => 10.lb1.com
+				if($rUserID && strpos($rDomain, 'wildcard.') !== false) { 
+					$rDomain = str_replace('wildcard.', $rUserID . '.', $rDomain);
+				}
 			}
 		}
 		if ($rDomain) {
