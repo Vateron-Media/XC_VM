@@ -13,10 +13,22 @@
 class ResellerAPI {
 	private static $db = null;
 
+	/**
+	 * Inject the database handler (dependency injection).
+	 *
+	 * @param object $db Database handler.
+	 * @return void
+	 */
 	public static function setDb($db): void {
 		self::$db = $db;
 	}
 
+	/**
+	 * Get the injected database handler.
+	 *
+	 * @return object Database handler.
+	 * @throws \RuntimeException If setDb() was not called first.
+	 */
 	private static function db(): object {
 		if (self::$db === null) {
 			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
@@ -29,6 +41,13 @@ class ResellerAPI {
 	public static $rUserInfo = array();
 	public static $rPermissions = array();
 
+	/**
+	 * Dispatch a reseller API action by type.
+	 *
+	 * @param string $rType Action type (line, mag, enigma, user, ticket, ...).
+	 * @param array  $rData Request payload.
+	 * @return array Action result.
+	 */
 	public static function processData($rType, $rData) {
 		$rArray = array('line' => array('edit', 'trial', 'bouquets_selected', 'pair_id', 'username', 'password', 'member_id', 'package', 'contact', 'reseller_notes', 'allowed_ips', 'allowed_ua', 'bypass_ua', 'is_isplock', 'isp_clear'), 'mag' => array('edit', 'trial', 'bouquets_selected', 'pair_id', 'mac', 'member_id', 'package', 'parent_password', 'sn', 'stb_type', 'image_version', 'hw_version', 'device_id', 'device_id2', 'ver', 'reseller_notes', 'allowed_ips', 'is_isplock', 'isp_clear'), 'enigma' => array('edit', 'trial', 'bouquets_selected', 'pair_id', 'mac', 'member_id', 'package', 'modem_mac', 'local_ip', 'enigma_version', 'cpu', 'lversion', 'token', 'reseller_notes', 'allowed_ips', 'is_isplock', 'isp_clear'), 'user' => array('edit', 'username', 'password', 'owner_id', 'email', 'reseller_dns', 'notes', 'member_group_id'), 'ticket' => array('edit', 'message', 'title', 'respond'), 'profile' => array('email', 'password', 'api_key', 'reseller_dns', 'theme', 'hue', 'timezone'));
 
@@ -42,6 +61,12 @@ class ResellerAPI {
 		return $rData;
 	}
 
+	/**
+	 * Initialize the reseller API context (permissions, current user).
+	 *
+	 * @param int|null $rUserID Reseller user id, or null for the current session user.
+	 * @return void
+	 */
 	public static function init($rUserID = null) {
 		$db = self::db();
 		global $rPermissions;
@@ -61,6 +86,12 @@ class ResellerAPI {
 		}
 	}
 
+	/**
+	 * Update the current reseller's own profile.
+	 *
+	 * @param array $rData Submitted profile fields.
+	 * @return array Result status payload.
+	 */
 	public static function editResellerProfile($rData) {
 		$db = self::db();
 		global $rHues;
@@ -105,10 +136,22 @@ class ResellerAPI {
 		return array('status' => STATUS_INVALID_EMAIL);
 	}
 
+	/**
+	 * Handle a reseller login request.
+	 *
+	 * @param array $rData Login payload.
+	 * @return array Result status payload.
+	 */
 	public static function processLogin($rData) {
 		return Authenticator::resellerLogin($rData);
 	}
 
+	/**
+	 * Create or update a MAG device line on behalf of a reseller.
+	 *
+	 * @param array $rData Submitted MAG/line data.
+	 * @return array Result status payload.
+	 */
 	public static function processMAG($rData) {
 		$db = self::db();
 		$rData = self::processData('mag', $rData);
@@ -390,6 +433,12 @@ class ResellerAPI {
 		}
 	}
 
+	/**
+	 * Create or update an Enigma2 device line on behalf of a reseller.
+	 *
+	 * @param array $rData Submitted Enigma2/line data.
+	 * @return array Result status payload.
+	 */
 	public static function processEnigma($rData) {
 		$db = self::db();
 		$rData = self::processData('enigma', $rData);
@@ -669,6 +718,12 @@ class ResellerAPI {
 		}
 	}
 
+	/**
+	 * Create or update a sub-user on behalf of a reseller.
+	 *
+	 * @param array $rData Submitted user data.
+	 * @return array Result status payload.
+	 */
 	public static function processUser($rData) {
 		$db = self::db();
 		$rData = self::processData('user', $rData);
@@ -791,6 +846,12 @@ class ResellerAPI {
 		return false;
 	}
 
+	/**
+	 * Submit a support ticket on behalf of a reseller.
+	 *
+	 * @param array $rData Ticket payload.
+	 * @return array Result status payload.
+	 */
 	public static function submitTicket($rData) {
 		$db = self::db();
 		$rData = self::processData('ticket', $rData);
@@ -851,6 +912,12 @@ class ResellerAPI {
 		return array('status' => STATUS_INVALID_DATA, 'data' => $rData);
 	}
 
+	/**
+	 * Create or update a line on behalf of a reseller.
+	 *
+	 * @param array $rData Submitted line data.
+	 * @return array Result status payload.
+	 */
 	public static function processLine($rData) {
 		$db = self::db();
 		$rData = self::processData('line', $rData);

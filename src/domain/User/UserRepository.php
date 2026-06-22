@@ -13,16 +13,35 @@
 class UserRepository {
 	private static $db = null;
 
+	/**
+	 * Inject the database handler (dependency injection).
+	 *
+	 * @param object $db Database handler.
+	 * @return void
+	 */
 	public static function setDb($db): void {
 		self::$db = $db;
 	}
 
+	/**
+	 * Get the injected database handler.
+	 *
+	 * @return object Database handler.
+	 * @throws \RuntimeException If setDb() was not called first.
+	 */
 	private static function db(): object {
 		if (self::$db === null) {
 			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
 		}
 		return self::$db;
 	}
+	/**
+	 * Fetch an admin/reseller user matching the given login credentials.
+	 *
+	 * @param string $rUsername Username.
+	 * @param string $rPassword Plain-text password.
+	 * @return array|null The user row, or null if credentials are invalid.
+	 */
 	public static function getAuthUserByCredentials($rUsername, $rPassword) {
 		$db = self::db();
 		$db->query('SELECT `id`, `username`, `password`, `member_group_id`, `status` FROM `users` WHERE `username` = ? LIMIT 1;', $rUsername);
@@ -36,6 +55,13 @@ class UserRepository {
 		}
 	}
 
+	/**
+	 * List resellers under a given owner.
+	 *
+	 * @param int  $rOwner       Owner user id.
+	 * @param bool $rIncludeSelf Include the owner in the result.
+	 * @return array Reseller rows.
+	 */
 	public static function getResellers($rOwner, $rIncludeSelf = true) {
 		$db = self::db();
 		if ($rIncludeSelf) {
@@ -47,6 +73,14 @@ class UserRepository {
 		return $db->get_rows(true, 'id');
 	}
 
+	/**
+	 * Get the direct sub-users (reports) of the current user.
+	 *
+	 * @param array $rPermissions Effective permissions.
+	 * @param array $rUserInfo    Current user row.
+	 * @param bool  $rIncludeSelf Include the user themselves.
+	 * @return array Direct report rows.
+	 */
 	public static function getDirectReports($rPermissions, $rUserInfo, $rIncludeSelf = true) {
 		$db = self::db();
 		$rUserIDs = $rPermissions['direct_reports'];
@@ -73,6 +107,14 @@ class UserRepository {
 		return $rReturn;
 	}
 
+	/**
+	 * Resolve the parent of a user within the permission scope.
+	 *
+	 * @param array $rPermissions Effective permissions.
+	 * @param array $rUserInfo    Current user row.
+	 * @param int   $rID          Target user id.
+	 * @return array|null Parent user row, or null.
+	 */
 	public static function getParent($rPermissions, $rUserInfo, $rID) {
 		if (!isset($rPermissions['users'][$rID]['parent']) || $rPermissions['users'][$rID]['parent'] == 0 || $rPermissions['users'][$rID]['parent'] == $rUserInfo['id']) {
 			return $rID;
@@ -81,6 +123,12 @@ class UserRepository {
 		return self::getParent($rPermissions, $rUserInfo, $rPermissions['users'][$rID]['parent']);
 	}
 
+	/**
+	 * Get all descendant sub-users of a user (full report tree).
+	 *
+	 * @param int $rUser User id.
+	 * @return array Sub-user rows keyed by id.
+	 */
 	public static function getSubUsers($rUser) {
 		$db = self::db();
 		$rReturn = array();
@@ -97,6 +145,12 @@ class UserRepository {
 		return $rReturn;
 	}
 
+	/**
+	 * Fetch a line by id.
+	 *
+	 * @param int $rID Line id.
+	 * @return array|null The line row, or null if not found.
+	 */
 	public static function getLineById($rID) {
 		$db = self::db();
 		$db->query('SELECT * FROM `lines` WHERE `id` = ?;', $rID);
@@ -107,6 +161,12 @@ class UserRepository {
 		}
 	}
 
+	/**
+	 * Fetch a registered (panel) user by id.
+	 *
+	 * @param int $rID User id.
+	 * @return array|null The user row, or null if not found.
+	 */
 	public static function getRegisteredUserById($rID) {
 		$db = self::db();
 		$db->query('SELECT * FROM `users` WHERE `id` = ?;', $rID);
@@ -117,6 +177,13 @@ class UserRepository {
 		}
 	}
 
+	/**
+	 * List registered users under an owner.
+	 *
+	 * @param int|null $rOwner       Owner id, or null for all.
+	 * @param bool     $rIncludeSelf Include the owner in the result.
+	 * @return array Registered user rows.
+	 */
 	public static function getRegisteredUsers($rOwner = null, $rIncludeSelf = true) {
 		$db = self::db();
 		$rReturn = array();
@@ -139,6 +206,23 @@ class UserRepository {
 		return $rReturn;
 	}
 
+	/**
+	 * Resolve a streaming user's info (auth + entitlements).
+	 *
+	 * Looks the user up by id or username/password, then assembles their
+	 * bouquets and, optionally, allowed channel ids and active connections.
+	 *
+	 * @param array       $rSettings        Panel settings.
+	 * @param bool        $rCached          Use cached lookups.
+	 * @param array       $rBouquets        Bouquet definitions.
+	 * @param int|null    $rUserID          User id (when known).
+	 * @param string|null $rUsername        Username (credential lookup).
+	 * @param string|null $rPassword        Password (credential lookup).
+	 * @param bool        $rGetChannelIDs   Include allowed channel ids.
+	 * @param bool        $rGetConnections  Include active connections.
+	 * @param string      $rIP              Client IP.
+	 * @return array|null User info, or null if not found.
+	 */
 	public static function getStreamingUserInfo($rSettings, $rCached, $rBouquets, $rUserID = null, $rUsername = null, $rPassword = null, $rGetChannelIDs = false, $rGetConnections = false, $rIP = '') {
 		global $rBlockedISP, $rBlockedServers;
 		$db = self::db();
@@ -323,6 +407,17 @@ class UserRepository {
 		return $rUserInfo;
 	}
 
+	/**
+	 * Resolve user info for streaming endpoints (wrapper over getStreamingUserInfo).
+	 *
+	 * @param int|null    $rUserID         User id (when known).
+	 * @param string|null $rUsername       Username (credential lookup).
+	 * @param string|null $rPassword       Password (credential lookup).
+	 * @param bool        $rGetChannelIDs  Include allowed channel ids.
+	 * @param bool        $rGetConnections Include active connections.
+	 * @param string      $rIP             Client IP.
+	 * @return array|null User info, or null if not found.
+	 */
 	public static function getUserInfo($rUserID = null, $rUsername = null, $rPassword = null, $rGetChannelIDs = false, $rGetConnections = false, $rIP = '') {
 		global $rSettings;
 		$db = self::db();
@@ -504,6 +599,15 @@ class UserRepository {
 		return $rUserInfo;
 	}
 
+	/**
+	 * Resolve Enigma2 device user info.
+	 *
+	 * @param array $rDevice          Device row (MAC etc.).
+	 * @param bool  $rGetChannelIDs   Include allowed channel ids.
+	 * @param bool  $rGetBouquetInfo  Include bouquet info.
+	 * @param bool  $rGetConnections  Include active connections.
+	 * @return array|null Device user info, or null if not found.
+	 */
 	public static function getE2Info($rDevice, $rGetChannelIDs = false, $rGetBouquetInfo = false, $rGetConnections = false) {
 		$db = self::db();
 		if (empty($rDevice['device_id'])) {

@@ -13,16 +13,34 @@
 class UserService {
 	private static $db = null;
 
+	/**
+	 * Inject the database handler (dependency injection).
+	 *
+	 * @param object $db Database handler.
+	 * @return void
+	 */
 	public static function setDb($db): void {
 		self::$db = $db;
 	}
 
+	/**
+	 * Get the injected database handler.
+	 *
+	 * @return object Database handler.
+	 * @throws \RuntimeException If setDb() was not called first.
+	 */
 	private static function db(): object {
 		if (self::$db === null) {
 			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
 		}
 		return self::$db;
 	}
+	/**
+	 * Bulk delete a set of selected users.
+	 *
+	 * @param array $rData Selected user ids.
+	 * @return array ['status' => STATUS_* constant, ...].
+	 */
 	public static function massDelete($rData) {
 		set_time_limit(0);
 		ini_set('mysql.connect_timeout', 0);
@@ -35,6 +53,12 @@ class UserService {
 		return array('status' => STATUS_SUCCESS);
 	}
 
+	/**
+	 * Apply bulk edits to a set of selected users.
+	 *
+	 * @param array $rData Selected ids plus the fields/values to apply.
+	 * @return array ['status' => STATUS_* constant, ...].
+	 */
 	public static function massEdit($rData) {
 		$db = self::db();
 		if (InputValidator::validate('massEditUsers', $rData)) {
@@ -104,6 +128,13 @@ class UserService {
 		}
 	}
 
+	/**
+	 * Create or update a user from admin form data.
+	 *
+	 * @param array $rData       Submitted form data (includes `edit` id when updating).
+	 * @param bool  $rBypassAuth Skip permission checks (internal/trusted callers).
+	 * @return array ['status' => STATUS_* constant, 'data' => insert_id or payload].
+	 */
 	public static function process($rData, $rBypassAuth = false) {
 		$db = self::db();
 		if (InputValidator::validate('processUser', $rData)) {
@@ -188,6 +219,14 @@ class UserService {
 		}
 	}
 
+	/**
+	 * Update the current admin's own profile.
+	 *
+	 * @param array $rData        Submitted profile fields.
+	 * @param array $rUserInfo    Current admin user row.
+	 * @param array $allowedLangs Allowed UI languages.
+	 * @return array Result status payload.
+	 */
 	public static function editAdminProfile($rData, $rUserInfo, $allowedLangs) {
 		$db = self::db();
 		if (!(0 >= strlen($rData['email']) || filter_var($rData['email'], FILTER_VALIDATE_EMAIL))) {
@@ -213,6 +252,13 @@ class UserService {
 		return array('status' => STATUS_SUCCESS);
 	}
 
+	/**
+	 * Submit a support ticket as an admin user.
+	 *
+	 * @param array $rData     Ticket payload.
+	 * @param array $rUserInfo Current admin user row.
+	 * @return array Result status payload.
+	 */
 	public static function submitTicket($rData, $rUserInfo) {
 		$db = self::db();
 		if (isset($rData['edit'])) {
@@ -255,6 +301,15 @@ class UserService {
 		return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rData['respond']));
 	}
 
+	/**
+	 * Delete a registered user with configurable cascade behavior.
+	 *
+	 * @param int      $rID             User id.
+	 * @param bool     $rDeleteSubUsers Also delete the user's sub-users.
+	 * @param bool     $rDeleteLines    Also delete the user's lines.
+	 * @param int|null $rReplaceWith    Reassign sub-users/lines to this owner instead.
+	 * @return bool True on success.
+	 */
 	public static function deleteRegisteredUser($rID, $rDeleteSubUsers = false, $rDeleteLines = false, $rReplaceWith = null) {
 		$db = self::db();
 		$rUser = UserRepository::getRegisteredUserById($rID);
@@ -292,6 +347,12 @@ class UserService {
 		return true;
 	}
 
+	/**
+	 * Bulk delete registered users.
+	 *
+	 * @param int[] $rIDs User ids.
+	 * @return bool True on success.
+	 */
 	public static function deleteRegisteredUsers($rIDs) {
 		$db = self::db();
 		$rIDs = AdminHelpers::confirmIDs($rIDs);
