@@ -423,7 +423,7 @@ class GitHubReleases {
         $data_files = array();
 
         // Iterate over required GeoLite2 database files
-        foreach (["GeoLite2-City.mmdb", "GeoLite2-Country.mmdb"] as $file) {
+        foreach (["GeoLite2-City.mmdb", "GeoLite2-Country.mmdb", "GeoLite2-ASN.mmdb"] as $file) {
             // Construct the GitHub release download URL
             $file_url = "https://github.com/{$this->owner}/{$this->repo}/releases/download/{$latest_version}/{$file}";
 

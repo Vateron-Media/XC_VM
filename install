@@ -2435,6 +2435,16 @@ if __name__ == "__main__":
             f"/home/xc_vm/bin/php/bin/php {startup_cmd} startup >/dev/null 2>&1"
         )
 
+    # Download GeoLite2 GeoIP databases (City/Country/ASN). They are no longer
+    # bundled in the repo/release archive, so fetch them from the XC_VM_Update
+    # release on install. This also refreshes bin/maxmind/version.json.
+    # Non-fatal: run_command never raises, so a download failure won't abort.
+    if os.path.exists(startup_cmd):
+        printc("Downloading GeoLite2 GeoIP databases...", col.OKBLUE)
+        run_command(
+            f"/home/xc_vm/bin/php/bin/php {startup_cmd} cron:maxmind --force"
+        )
+
     time.sleep(3)
 
     # Final restart
