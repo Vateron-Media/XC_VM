@@ -68,6 +68,11 @@ require_once __DIR__ . '/autoload.php';
 // ─────────────────────────────────────────────────────────────────
 
 if (!function_exists('getallheaders')) {
+    /**
+     * Polyfill for getallheaders(): reconstruct request headers from $_SERVER.
+     *
+     * @return array<string,string> Header name => value.
+     */
     function getallheaders() {
         $headers = [];
         foreach ($_SERVER as $name => $value) {
@@ -243,6 +248,12 @@ class XC_Bootstrap {
     //  Context boot sequences
     // ─────────────────────────────────────────────────────────
 
+    /**
+     * Boot sequence for the CLI context: database, legacy core, optional redis
+     * and process title.
+     *
+     * @return void
+     */
     private static function bootCli(): void {
         self::initDatabase(self::$options['cached']);
         self::initLegacyCore(self::$options['cached']);
@@ -254,10 +265,21 @@ class XC_Bootstrap {
         }
     }
 
+    /**
+     * Boot sequence for the streaming context: cached database connection only.
+     *
+     * @return void
+     */
     private static function bootStream(): void {
         self::initDatabase(true);
     }
 
+    /**
+     * Boot sequence for the admin context: session, database, legacy core, redis,
+     * admin API, translator, shutdown handler and status constants.
+     *
+     * @return void
+     */
     private static function bootAdmin(): void {
         self::initSession();
         self::initDatabase(false);
@@ -642,6 +664,12 @@ class XC_Bootstrap {
         }
     }
 
+    /**
+     * Default boot options for a context.
+     *
+     * @param BootContext $ctx Boot context.
+     * @return array Options: cached, redis, process, shutdown.
+     */
     private static function defaults(BootContext $ctx): array {
         return match ($ctx) {
             BootContext::Admin   => ['cached' => false, 'redis' => true,  'process' => '', 'shutdown' => null],

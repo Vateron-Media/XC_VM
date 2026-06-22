@@ -21,6 +21,12 @@ final class StreamContext {
     /** @var array<string, mixed> Arbitrary data bag for middleware communication */
     private array $attributes = [];
 
+    /**
+     * @param int    $streamId Stream being processed.
+     * @param string $userId   User requesting the stream.
+     * @param string $protocol Delivery protocol.
+     * @param array  $params   Request parameters.
+     */
     public function __construct(
         public readonly int    $streamId,
         public readonly string $userId,
@@ -46,14 +52,29 @@ final class StreamContext {
         $this->abortCode   = $code;
     }
 
+    /**
+     * Whether the pipeline has been aborted.
+     *
+     * @return bool
+     */
     public function isAborted(): bool {
         return $this->aborted;
     }
 
+    /**
+     * Reason passed to abort(), or '' if not aborted.
+     *
+     * @return string
+     */
     public function getAbortReason(): string {
         return $this->abortReason;
     }
 
+    /**
+     * Application-level abort code (0 = unspecified).
+     *
+     * @return int
+     */
     public function getAbortCode(): int {
         return $this->abortCode;
     }
@@ -69,10 +90,23 @@ final class StreamContext {
         $this->attributes[$key] = $value;
     }
 
+    /**
+     * Read an attribute set by an earlier middleware.
+     *
+     * @param string $key     Attribute key.
+     * @param mixed  $default Value returned when the key is absent.
+     * @return mixed The stored value, or $default.
+     */
     public function get(string $key, mixed $default = null): mixed {
         return $this->attributes[$key] ?? $default;
     }
 
+    /**
+     * Whether an attribute exists in the bag.
+     *
+     * @param string $key Attribute key.
+     * @return bool
+     */
     public function has(string $key): bool {
         return array_key_exists($key, $this->attributes);
     }

@@ -11,6 +11,13 @@
  */
 
 class ApiClient {
+	/**
+	 * POST a request to the local admin API endpoint.
+	 *
+	 * @param array $rData    Request payload (api_pass is injected if configured).
+	 * @param int   $rTimeout Connect/read timeout in seconds.
+	 * @return string|bool Response body, or false on failure.
+	 */
 	public static function request($rData, $rTimeout = 5) {
 		ini_set('default_socket_timeout', $rTimeout);
 		$rAPI = 'http://127.0.0.1:' . intval(ServerRepository::getAll()[SERVER_ID]['http_broadcast_port']) . '/admin/api';
@@ -31,6 +38,14 @@ class ApiClient {
 		return curl_exec($ch);
 	}
 
+	/**
+	 * POST a request to a remote server's system API (when the server is online).
+	 *
+	 * @param int   $rServerID Target server id.
+	 * @param array $rData     Request payload (live-streaming password injected).
+	 * @param int   $rTimeout  Connect/read timeout in seconds.
+	 * @return string|null Response body, or null if the server is offline/unknown.
+	 */
 	public static function systemRequest($rServerID, $rData, $rTimeout = 5) {
 		ini_set('default_socket_timeout', $rTimeout);
 		global $rServers, $rSettings;
@@ -56,6 +71,13 @@ class ApiClient {
 		return null;
 	}
 
+	/**
+	 * Fire a request to several servers concurrently (fire-and-forget).
+	 *
+	 * @param int[] $rServerIDs Target server ids (offline servers are skipped).
+	 * @param array $rData      Request payload sent to each server.
+	 * @return array ['result' => true].
+	 */
 	public static function asyncRequest($rServerIDs, $rData) {
 		$rURLs = array();
 		global $rServers;
@@ -71,10 +93,26 @@ class ApiClient {
 		return array('result' => true);
 	}
 
+	/**
+	 * Recursively list a directory on a remote server via the system API.
+	 *
+	 * @param int           $rServerID Target server id.
+	 * @param string        $rDirectory Directory to scan.
+	 * @param string[]|null $rAllowed   Allowed file extensions filter.
+	 * @return array|null Decoded directory listing, or null on failure.
+	 */
 	public static function scanRecursive($rServerID, $rDirectory, $rAllowed = null) {
 		return json_decode(self::systemRequest($rServerID, array('action' => 'scandir_recursive', 'dir' => $rDirectory, 'allowed' => implode('|', $rAllowed))), true);
 	}
 
+	/**
+	 * List a directory on a remote server via the system API.
+	 *
+	 * @param int           $rServerID  Target server id.
+	 * @param string        $rDirectory Directory to scan.
+	 * @param string[]|null $rAllowed   Allowed file extensions filter.
+	 * @return array|null Decoded directory listing, or null on failure.
+	 */
 	public static function listDir($rServerID, $rDirectory, $rAllowed = null) {
 		return json_decode(self::systemRequest($rServerID, array('action' => 'scandir', 'dir' => $rDirectory, 'allowed' => implode('|', $rAllowed))), true);
 	}
