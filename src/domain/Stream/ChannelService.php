@@ -13,16 +13,34 @@
 class ChannelService {
 	private static $db = null;
 
+	/**
+	 * Inject the database handler (dependency injection).
+	 *
+	 * @param object $db Database handler.
+	 * @return void
+	 */
 	public static function setDb($db): void {
 		self::$db = $db;
 	}
 
+	/**
+	 * Get the injected database handler.
+	 *
+	 * @return object Database handler.
+	 * @throws \RuntimeException If setDb() was not called first.
+	 */
 	private static function db(): object {
 		if (self::$db === null) {
 			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
 		}
 		return self::$db;
 	}
+	/**
+	 * Create or update a live channel from admin form data.
+	 *
+	 * @param array $rData Submitted form data (includes `edit` id when updating).
+	 * @return array ['status' => STATUS_* constant, 'data' => insert_id or payload].
+	 */
 	public static function process($rData) {
 		global $rSettings;
 		$db = self::db();
@@ -225,6 +243,12 @@ class ChannelService {
 		}
 	}
 
+	/**
+	 * Apply bulk edits to a set of selected channels.
+	 *
+	 * @param array $rData Selected ids plus the fields/values to apply.
+	 * @return array ['status' => STATUS_* constant, ...].
+	 */
 	public static function massEdit($rData) {
 		$db = self::db();
 		set_time_limit(0);
@@ -451,6 +475,12 @@ class ChannelService {
 		return array('status' => STATUS_SUCCESS);
 	}
 
+	/**
+	 * Persist the display order of channels from posted data.
+	 *
+	 * @param array $rData Ordered channel ids.
+	 * @return array ['status' => STATUS_* constant].
+	 */
 	public static function setOrder($rData) {
 		$db = self::db();
 		set_time_limit(0);

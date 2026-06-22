@@ -13,16 +13,36 @@
 class ProviderService {
 	private static $db = null;
 
+	/**
+	 * Inject the database handler (dependency injection).
+	 *
+	 * @param object $db Database handler.
+	 * @return void
+	 */
 	public static function setDb($db): void {
 		self::$db = $db;
 	}
 
+	/**
+	 * Get the injected database handler.
+	 *
+	 * @return object Database handler.
+	 * @throws \RuntimeException If setDb() was not called first.
+	 */
 	private static function db(): object {
 		if (self::$db === null) {
 			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
 		}
 		return self::$db;
 	}
+	/**
+	 * Create or update a provider from admin form data.
+	 *
+	 * Validates input, enforces advanced permissions and IP+username uniqueness.
+	 *
+	 * @param array $rData Submitted form data (includes `edit` id when updating).
+	 * @return array ['status' => STATUS_* constant, 'data' => insert_id or payload].
+	 */
 	public static function process($rData) {
 		$db = self::db();
 		if (InputValidator::validate('processProvider', $rData)) {
@@ -73,6 +93,12 @@ class ProviderService {
 		}
 	}
 
+	/**
+	 * Fetch a single provider by id.
+	 *
+	 * @param int $rID Provider id.
+	 * @return array|null The provider row, or null if not found.
+	 */
 	public static function getById($rID) {
 		$db = self::db();
 		$db->query('SELECT * FROM `providers` WHERE `id` = ?;', $rID);
@@ -84,6 +110,11 @@ class ProviderService {
 		return $db->get_row();
 	}
 
+	/**
+	 * Fetch all providers, most recently changed first.
+	 *
+	 * @return array Provider rows.
+	 */
 	public static function getAll() {
 		$db = self::db();
 		$rReturn = array();
@@ -98,6 +129,12 @@ class ProviderService {
 		return $rReturn;
 	}
 
+	/**
+	 * Delete a provider and its stream associations.
+	 *
+	 * @param int $rID Provider id.
+	 * @return bool True on deletion, false if the provider does not exist.
+	 */
 	public static function deleteById($rID) {
 		$db = self::db();
 		$rProvider = self::getById($rID);

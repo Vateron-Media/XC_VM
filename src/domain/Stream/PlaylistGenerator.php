@@ -13,16 +13,42 @@
 class PlaylistGenerator {
 	private static $db = null;
 
+	/**
+	 * Inject the database handler (dependency injection).
+	 *
+	 * @param object $db Database handler.
+	 * @return void
+	 */
 	public static function setDb($db): void {
 		self::$db = $db;
 	}
 
+	/**
+	 * Get the injected database handler.
+	 *
+	 * @return object Database handler.
+	 * @throws \RuntimeException If setDb() was not called first.
+	 */
 	private static function db(): object {
 		if (self::$db === null) {
 			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
 		}
 		return self::$db;
 	}
+	/**
+	 * Generate a playlist (M3U) for a user/device.
+	 *
+	 * Builds the channel/VOD list honoring the user's bouquets, output format,
+	 * type filter and proxy/caching options.
+	 *
+	 * @param array       $rUserInfo  Authenticated user row.
+	 * @param string      $rDeviceKey Device/output key.
+	 * @param string      $rOutputKey Stream container/output format (default 'ts').
+	 * @param string|null $rTypeKey   Content type filter, or null for all.
+	 * @param bool        $rNoCache   Bypass any cached playlist.
+	 * @param bool        $rProxy     Generate proxied URLs.
+	 * @return string The generated playlist contents.
+	 */
 	public static function generate($rUserInfo, $rDeviceKey, $rOutputKey = 'ts', $rTypeKey = null, $rNoCache = false, $rProxy = false) {
 		global $rSettings, $rServers;
 		$db = self::db();
