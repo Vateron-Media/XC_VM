@@ -14,6 +14,18 @@
 
 class ResellerTableRenderer {
 
+	/**
+	 * Render a reseller DataTables view for the requested type.
+	 *
+	 * Dispatches to the matching private handler based on the request type.
+	 *
+	 * @param array      $rReturn      DataTables request payload.
+	 * @param bool       $rIsAPI       Whether the request came via the API.
+	 * @param array|null $rUserInfo    Authenticated reseller user (or null).
+	 * @param array      $rPermissions Effective permissions.
+	 * @param array      $rSettings    Panel settings.
+	 * @return void
+	 */
 	public static function render(array $rReturn, bool $rIsAPI, ?array $rUserInfo, array $rPermissions, array $rSettings): void {
 		global $db;
 
@@ -66,6 +78,19 @@ class ResellerTableRenderer {
 		}
 	}
 
+	/**
+	 * Render the reseller "lines" table.
+	 *
+	 * @param array  $rReturn      DataTables request/response payload.
+	 * @param bool   $rIsAPI       Whether the request came via the API.
+	 * @param array  $rUserInfo    Authenticated reseller user.
+	 * @param array  $rPermissions Effective permissions.
+	 * @param array  $rSettings    Panel settings.
+	 * @param object $db           Database handler.
+	 * @param int    $rStart       Pagination offset.
+	 * @param int    $rLimit       Page size.
+	 * @return void
+	 */
 	private static function handleLines(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		if (!$rPermissions['create_line']) {
 			exit();
@@ -331,6 +356,19 @@ class ResellerTableRenderer {
 		exit();
 	}
 
+	/**
+	 * Render the reseller "MAG devices" table.
+	 *
+	 * @param array  $rReturn      DataTables request/response payload.
+	 * @param bool   $rIsAPI       Whether the request came via the API.
+	 * @param array  $rUserInfo    Authenticated reseller user.
+	 * @param array  $rPermissions Effective permissions.
+	 * @param array  $rSettings    Panel settings.
+	 * @param object $db           Database handler.
+	 * @param int    $rStart       Pagination offset.
+	 * @param int    $rLimit       Page size.
+	 * @return void
+	 */
 	private static function handleMags(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		if (!$rPermissions['create_mag']) {
 			exit();
@@ -513,6 +551,19 @@ class ResellerTableRenderer {
 		exit();
 	}
 
+	/**
+	 * Render the reseller "Enigma2 devices" table.
+	 *
+	 * @param array  $rReturn      DataTables request/response payload.
+	 * @param bool   $rIsAPI       Whether the request came via the API.
+	 * @param array  $rUserInfo    Authenticated reseller user.
+	 * @param array  $rPermissions Effective permissions.
+	 * @param array  $rSettings    Panel settings.
+	 * @param object $db           Database handler.
+	 * @param int    $rStart       Pagination offset.
+	 * @param int    $rLimit       Page size.
+	 * @return void
+	 */
 	private static function handleEnigmas(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		if (!$rPermissions['create_enigma']) {
 			exit();
@@ -694,6 +745,19 @@ class ResellerTableRenderer {
 		exit();
 	}
 
+	/**
+	 * Render the reseller "streams" table.
+	 *
+	 * @param array  $rReturn      DataTables request/response payload.
+	 * @param bool   $rIsAPI       Whether the request came via the API.
+	 * @param array  $rUserInfo    Authenticated reseller user.
+	 * @param array  $rPermissions Effective permissions.
+	 * @param array  $rSettings    Panel settings.
+	 * @param object $db           Database handler.
+	 * @param int    $rStart       Pagination offset.
+	 * @param int    $rLimit       Page size.
+	 * @return void
+	 */
 	private static function handleStreams(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		if (!$rPermissions['can_view_vod']) {
 			exit();
@@ -817,6 +881,19 @@ class ResellerTableRenderer {
 		exit();
 	}
 
+	/**
+	 * Render the reseller "radios" table.
+	 *
+	 * @param array  $rReturn      DataTables request/response payload.
+	 * @param bool   $rIsAPI       Whether the request came via the API.
+	 * @param array  $rUserInfo    Authenticated reseller user.
+	 * @param array  $rPermissions Effective permissions.
+	 * @param array  $rSettings    Panel settings.
+	 * @param object $db           Database handler.
+	 * @param int    $rStart       Pagination offset.
+	 * @param int    $rLimit       Page size.
+	 * @return void
+	 */
 	private static function handleRadios(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		if (!$rPermissions['can_view_vod']) {
 			exit();
@@ -934,6 +1011,19 @@ class ResellerTableRenderer {
 		exit();
 	}
 
+	/**
+	 * Render the reseller "movies" table.
+	 *
+	 * @param array  $rReturn      DataTables request/response payload.
+	 * @param bool   $rIsAPI       Whether the request came via the API.
+	 * @param array  $rUserInfo    Authenticated reseller user.
+	 * @param array  $rPermissions Effective permissions.
+	 * @param array  $rSettings    Panel settings.
+	 * @param object $db           Database handler.
+	 * @param int    $rStart       Pagination offset.
+	 * @param int    $rLimit       Page size.
+	 * @return void
+	 */
 	private static function handleMovies(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		if (!$rPermissions['can_view_vod']) {
 			exit();
@@ -1052,6 +1142,19 @@ class ResellerTableRenderer {
 		exit();
 	}
 
+	/**
+	 * Render the reseller "episodes" table.
+	 *
+	 * @param array  $rReturn      DataTables request/response payload.
+	 * @param bool   $rIsAPI       Whether the request came via the API.
+	 * @param array  $rUserInfo    Authenticated reseller user.
+	 * @param array  $rPermissions Effective permissions.
+	 * @param array  $rSettings    Panel settings.
+	 * @param object $db           Database handler.
+	 * @param int    $rStart       Pagination offset.
+	 * @param int    $rLimit       Page size.
+	 * @return void
+	 */
 	private static function handleEpisodes(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		if (!$rPermissions['can_view_vod']) {
 			exit();
@@ -1177,6 +1280,19 @@ class ResellerTableRenderer {
 		exit();
 	}
 
+	/**
+	 * Render the reseller "line activity" table.
+	 *
+	 * @param array  $rReturn      DataTables request/response payload.
+	 * @param bool   $rIsAPI       Whether the request came via the API.
+	 * @param array  $rUserInfo    Authenticated reseller user.
+	 * @param array  $rPermissions Effective permissions.
+	 * @param array  $rSettings    Panel settings.
+	 * @param object $db           Database handler.
+	 * @param int    $rStart       Pagination offset.
+	 * @param int    $rLimit       Page size.
+	 * @return void
+	 */
 	private static function handleLineActivity(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		if (!$rPermissions['reseller_client_connection_logs']) {
 			exit();
@@ -1320,6 +1436,19 @@ class ResellerTableRenderer {
 		exit();
 	}
 
+	/**
+	 * Render the reseller "live connections" table.
+	 *
+	 * @param array  $rReturn      DataTables payload (by reference).
+	 * @param bool   $rIsAPI       Whether the request came via the API.
+	 * @param array  $rUserInfo    Authenticated reseller user.
+	 * @param array  $rPermissions Effective permissions.
+	 * @param array  $rSettings    Panel settings.
+	 * @param object $db           Database handler.
+	 * @param int    $rStart       Pagination offset.
+	 * @param int    $rLimit       Page size.
+	 * @return void
+	 */
 	private static function handleLiveConnections(array &$rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		if (!$rPermissions['reseller_client_connection_logs']) {
 			exit();
@@ -1555,6 +1684,19 @@ class ResellerTableRenderer {
 		exit();
 	}
 
+	/**
+	 * Render the reseller "registered user logs" table.
+	 *
+	 * @param array  $rReturn      DataTables payload (by reference).
+	 * @param bool   $rIsAPI       Whether the request came via the API.
+	 * @param array  $rUserInfo    Authenticated reseller user.
+	 * @param array  $rPermissions Effective permissions.
+	 * @param array  $rSettings    Panel settings.
+	 * @param object $db           Database handler.
+	 * @param int    $rStart       Pagination offset.
+	 * @param int    $rLimit       Page size.
+	 * @return void
+	 */
 	private static function handleRegUserLogs(array &$rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		$rOrderBy = '';
 		$rOrder = array('`users_logs`.`id`', '`users`.`username`', '`users_logs`.`log_id`', '`users_logs`.`type`, `users_logs`.`action`', '`users_logs`.`cost`', '`users_logs`.`credits_after`', '`users_logs`.`date`');
@@ -1719,6 +1861,19 @@ class ResellerTableRenderer {
 		exit();
 	}
 
+	/**
+	 * Render the reseller "registered users" table.
+	 *
+	 * @param array  $rReturn      DataTables payload (by reference).
+	 * @param bool   $rIsAPI       Whether the request came via the API.
+	 * @param array  $rUserInfo    Authenticated reseller user.
+	 * @param array  $rPermissions Effective permissions.
+	 * @param array  $rSettings    Panel settings.
+	 * @param object $db           Database handler.
+	 * @param int    $rStart       Pagination offset.
+	 * @param int    $rLimit       Page size.
+	 * @return void
+	 */
 	private static function handleRegUsers(array &$rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		if (!$rPermissions['create_sub_resellers']) {
 			exit();
@@ -1845,6 +2000,14 @@ class ResellerTableRenderer {
 		exit();
 	}
 
+	/**
+	 * Filter a row's columns by show/hide lists.
+	 *
+	 * @param array $rRow  Row data.
+	 * @param array $rShow Columns to keep (whitelist), or empty for all.
+	 * @param array $rHide Columns to remove (blacklist).
+	 * @return array The filtered row.
+	 */
 	private static function filterRow($rRow, $rShow, $rHide) {
 		if ($rShow || $rHide) {
 			$rReturn = array();

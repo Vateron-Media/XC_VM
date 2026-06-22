@@ -50,6 +50,14 @@ class ResellerApiDispatcher {
 		}
 	}
 
+	/**
+	 * Output reseller dashboard data (JSON) and exit.
+	 *
+	 * @param array  $rUserInfo    Authenticated reseller user.
+	 * @param array  $rPermissions Effective permissions.
+	 * @param object $db           Database handler.
+	 * @return void
+	 */
 	private static function handleDashboard(array $rUserInfo, array $rPermissions, $db): void {
 		$rReturn = array('open_connections' => 0, 'online_users' => 0, 'active_accounts' => 0, 'credits' => 0, 'credits_assigned' => 0);
 
@@ -83,6 +91,14 @@ class ResellerApiDispatcher {
 		exit();
 	}
 
+	/**
+	 * Output the reseller's active connections (JSON) and exit.
+	 *
+	 * @param array  $rUserInfo    Authenticated reseller user.
+	 * @param array  $rPermissions Effective permissions.
+	 * @param object $db           Database handler.
+	 * @return void
+	 */
 	private static function handleConnections(array $rUserInfo, array $rPermissions, $db): void {
 		if ($rPermissions['reseller_client_connection_logs']) {
 			$rStreamID = RequestManager::getAll()['stream_id'];
@@ -117,6 +133,14 @@ class ResellerApiDispatcher {
 		exit();
 	}
 
+	/**
+	 * Create/edit a line via the reseller API (JSON) and exit.
+	 *
+	 * @param array  $rUserInfo    Authenticated reseller user.
+	 * @param array  $rPermissions Effective permissions.
+	 * @param object $db           Database handler.
+	 * @return void
+	 */
 	private static function handleLine(array $rUserInfo, array $rPermissions, $db): void {
 		if ($rPermissions['create_line']) {
 			$rSub = RequestManager::getAll()['sub'];
@@ -181,6 +205,14 @@ class ResellerApiDispatcher {
 		exit();
 	}
 
+	/**
+	 * Output a line's activity log (JSON) and exit.
+	 *
+	 * @param array  $rUserInfo    Authenticated reseller user.
+	 * @param array  $rPermissions Effective permissions.
+	 * @param object $db           Database handler.
+	 * @return void
+	 */
 	private static function handleLineActivity(array $rUserInfo, array $rPermissions, $db): void {
 		if ($rPermissions['reseller_client_connection_logs']) {
 			$rSub = RequestManager::getAll()['sub'];
@@ -219,6 +251,14 @@ class ResellerApiDispatcher {
 		exit();
 	}
 
+	/**
+	 * Adjust a sub-reseller's credit balance (JSON) and exit.
+	 *
+	 * @param array  $rUserInfo    Authenticated reseller user.
+	 * @param array  $rPermissions Effective permissions.
+	 * @param object $db           Database handler.
+	 * @return void
+	 */
 	private static function handleAdjustCredits(array $rUserInfo, array $rPermissions, $db): void {
 		if ($rPermissions['create_sub_resellers']) {
 			if (Authorization::check('user', RequestManager::getAll()['id'])) {
@@ -248,6 +288,14 @@ class ResellerApiDispatcher {
 		exit();
 	}
 
+	/**
+	 * Create/edit a registered user (JSON) and exit.
+	 *
+	 * @param array  $rUserInfo    Authenticated reseller user.
+	 * @param array  $rPermissions Effective permissions.
+	 * @param object $db           Database handler.
+	 * @return void
+	 */
 	private static function handleRegUser(array $rUserInfo, array $rPermissions, $db): void {
 		if ($rPermissions['create_sub_resellers']) {
 			if (Authorization::check('user', RequestManager::getAll()['user_id'])) {
@@ -291,6 +339,14 @@ class ResellerApiDispatcher {
 		exit();
 	}
 
+	/**
+	 * Submit/handle a support ticket (JSON) and exit.
+	 *
+	 * @param array  $rUserInfo    Authenticated reseller user.
+	 * @param array  $rPermissions Effective permissions.
+	 * @param object $db           Database handler.
+	 * @return void
+	 */
 	private static function handleTicket(array $rUserInfo, array $rPermissions, $db): void {
 		$rTicket = TicketRepository::getById(RequestManager::getAll()['ticket_id']);
 
@@ -322,6 +378,14 @@ class ResellerApiDispatcher {
 		exit();
 	}
 
+	/**
+	 * Create/edit a MAG device (JSON) and exit.
+	 *
+	 * @param array  $rUserInfo    Authenticated reseller user.
+	 * @param array  $rPermissions Effective permissions.
+	 * @param object $db           Database handler.
+	 * @return void
+	 */
 	private static function handleMag(array $rUserInfo, array $rPermissions, $db): void {
 		if ($rPermissions['create_mag']) {
 			$rSub = RequestManager::getAll()['sub'];
@@ -394,6 +458,14 @@ class ResellerApiDispatcher {
 		exit();
 	}
 
+	/**
+	 * Create/edit an Enigma2 device (JSON) and exit.
+	 *
+	 * @param array  $rUserInfo    Authenticated reseller user.
+	 * @param array  $rPermissions Effective permissions.
+	 * @param object $db           Database handler.
+	 * @return void
+	 */
 	private static function handleEnigma(array $rUserInfo, array $rPermissions, $db): void {
 		if ($rPermissions['create_enigma']) {
 			$rSub = RequestManager::getAll()['sub'];
@@ -466,6 +538,14 @@ class ResellerApiDispatcher {
 		exit();
 	}
 
+	/**
+	 * Output package details/options (JSON) and exit.
+	 *
+	 * @param array  $rUserInfo    Authenticated reseller user.
+	 * @param array  $rPermissions Effective permissions.
+	 * @param object $db           Database handler.
+	 * @return void
+	 */
 	private static function handleGetPackage(array $rUserInfo, array $rPermissions, $db): void {
 		$rReturn = array();
 		$rOverride = json_decode($rUserInfo['override_packages'], true);
@@ -512,6 +592,14 @@ class ResellerApiDispatcher {
 		exit();
 	}
 
+	/**
+	 * Output trial package details (JSON) and exit.
+	 *
+	 * @param array  $rUserInfo    Authenticated reseller user.
+	 * @param array  $rPermissions Effective permissions.
+	 * @param object $db           Database handler.
+	 * @return void
+	 */
 	private static function handleGetPackageTrial(array $rUserInfo, array $rPermissions, $db): void {
 		$rReturn = array();
 		$db->query('SELECT `bouquets`, `trial_credits` AS `cost_credits`, `trial_duration`, `trial_duration_in`, `max_connections`, `is_isplock` FROM `users_packages` WHERE `id` = ?;', RequestManager::getAll()['package_id']);
@@ -536,6 +624,14 @@ class ResellerApiDispatcher {
 		exit();
 	}
 
+	/**
+	 * Output header summary statistics (JSON) and exit.
+	 *
+	 * @param array  $rUserInfo    Authenticated reseller user.
+	 * @param array  $rPermissions Effective permissions.
+	 * @param object $db           Database handler.
+	 * @return void
+	 */
 	private static function handleHeaderStats(array $rUserInfo, array $rPermissions, $db): void {
 		$rReturn = array('total_connections' => 0, 'total_users' => 0);
 
@@ -564,6 +660,14 @@ class ResellerApiDispatcher {
 		exit();
 	}
 
+	/**
+	 * Output reseller statistics (JSON) and exit.
+	 *
+	 * @param array  $rUserInfo    Authenticated reseller user.
+	 * @param array  $rPermissions Effective permissions.
+	 * @param object $db           Database handler.
+	 * @return void
+	 */
 	private static function handleStats(array $rUserInfo, array $rPermissions, $db): void {
 		$rReturn = array('open_connections' => 0, 'online_users' => 0, 'total_lines' => 0, 'total_users' => 0, 'owner_credits' => 0, 'user_credits' => 0, 'total_credits' => 0);
 
@@ -600,6 +704,14 @@ class ResellerApiDispatcher {
 		exit();
 	}
 
+	/**
+	 * Output the reseller's user list (JSON) and exit.
+	 *
+	 * @param array  $rUserInfo    Authenticated reseller user.
+	 * @param array  $rPermissions Effective permissions.
+	 * @param object $db           Database handler.
+	 * @return void
+	 */
 	private static function handleUserList(array $rUserInfo, array $rPermissions, $db): void {
 		$rReturn = array('total_count' => 0, 'items' => array(), 'result' => true);
 
@@ -621,6 +733,14 @@ class ResellerApiDispatcher {
 		exit();
 	}
 
+	/**
+	 * Send an event/signal (JSON) and exit.
+	 *
+	 * @param array  $rUserInfo    Authenticated reseller user.
+	 * @param array  $rPermissions Effective permissions.
+	 * @param object $db           Database handler.
+	 * @return void
+	 */
 	private static function handleSendEvent(array $rUserInfo, array $rPermissions, $db): void {
 		if ($rPermissions['create_mag']) {
 			$rData = json_decode(RequestManager::getAll()['data'], true);
@@ -661,6 +781,14 @@ class ResellerApiDispatcher {
 		exit();
 	}
 
+	/**
+	 * Output the available stream list (JSON) and exit.
+	 *
+	 * @param array  $rUserInfo    Authenticated reseller user.
+	 * @param array  $rPermissions Effective permissions.
+	 * @param object $db           Database handler.
+	 * @return void
+	 */
 	private static function handleStreamList(array $rUserInfo, array $rPermissions, $db): void {
 		if ($rPermissions['create_mag'] || $rPermissions['can_view_vod'] || $rPermissions['reseller_client_connection_logs']) {
 			$rReturn = array('total_count' => 0, 'items' => array(), 'result' => true);
@@ -685,6 +813,14 @@ class ResellerApiDispatcher {
 		exit();
 	}
 
+	/**
+	 * Output WHOIS information for an IP (JSON) and exit.
+	 *
+	 * @param array  $rUserInfo    Authenticated reseller user.
+	 * @param array  $rPermissions Effective permissions.
+	 * @param object $db           Database handler.
+	 * @return void
+	 */
 	private static function handleIpWhois(array $rUserInfo, array $rPermissions, $db): void {
 		$rIP = RequestManager::getAll()['ip'];
 		$rReader = new MaxMind\Db\Reader(GEOLITE2C_BIN);
@@ -716,6 +852,14 @@ class ResellerApiDispatcher {
 		exit();
 	}
 
+	/**
+	 * Output EPG data for a stream (JSON) and exit.
+	 *
+	 * @param array  $rUserInfo    Authenticated reseller user.
+	 * @param array  $rPermissions Effective permissions.
+	 * @param object $db           Database handler.
+	 * @return void
+	 */
 	private static function handleGetEpg(array $rUserInfo, array $rPermissions, $db): void {
 		if ($rPermissions['can_view_vod']) {
 			if (count($rPermissions['stream_ids']) != 0) {
@@ -812,6 +956,14 @@ class ResellerApiDispatcher {
 		exit();
 	}
 
+	/**
+	 * Output a single EPG programme (JSON) and exit.
+	 *
+	 * @param array  $rUserInfo    Authenticated reseller user.
+	 * @param array  $rPermissions Effective permissions.
+	 * @param object $db           Database handler.
+	 * @return void
+	 */
 	private static function handleGetProgramme(array $rUserInfo, array $rPermissions, $db): void {
 		if ($rPermissions['can_view_vod']) {
 			$rTimezone = (RequestManager::getAll()['timezone'] ?: 'Europe/London');

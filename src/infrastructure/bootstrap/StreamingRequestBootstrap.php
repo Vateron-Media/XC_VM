@@ -11,6 +11,15 @@
  */
 
 class StreamingRequestBootstrap {
+	/**
+	 * Bootstrap a streaming HTTP endpoint.
+	 *
+	 * Loads the required core modules and initializes the streaming request
+	 * context for the calling entry script.
+	 *
+	 * @param string $rFilename Entry-script filename invoking the bootstrap.
+	 * @return void
+	 */
 	public static function init(string $rFilename): void {
 		// ── 1. Базовые модули ────────────────────────────────────
 		require_once MAIN_HOME . 'core/Error/ErrorCodes.php';
