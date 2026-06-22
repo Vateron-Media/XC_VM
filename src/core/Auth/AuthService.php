@@ -16,6 +16,15 @@ class AuthService {
 	// Из CodeService
 	// ──────────────────────────────────────────────
 
+	/**
+	 * Create or update an access code from admin form data.
+	 *
+	 * Validates code length, reserved names and uniqueness, normalizes the
+	 * group/whitelist fields, then upserts the row.
+	 *
+	 * @param array $rData Submitted form data (includes `edit` id when updating).
+	 * @return array ['status' => STATUS_* constant, 'data' => payload].
+	 */
 	public static function processCode($rData) {
 		global $db;
 		if (isset($rData['edit'])) {
@@ -90,6 +99,15 @@ class AuthService {
 	// Из HMACService
 	// ──────────────────────────────────────────────
 
+	/**
+	 * Create or update an HMAC key from admin form data.
+	 *
+	 * Validates the 32-char key and description, enforces uniqueness, and stores
+	 * the key encrypted with the live-streaming password.
+	 *
+	 * @param array $rData Submitted form data (includes `edit` id when updating).
+	 * @return array ['status' => STATUS_* constant, 'data' => payload or insert_id].
+	 */
 	public static function processHMAC($rData) {
 		global $db, $rSettings;
 		if (isset($rData['edit'])) {
@@ -146,6 +164,22 @@ class AuthService {
 	// Из HMACValidator
 	// ──────────────────────────────────────────────
 
+	/**
+	 * Validate a streaming HMAC token against all enabled keys.
+	 *
+	 * Recomputes the SHA-256 HMAC over the stream parameters for each enabled key
+	 * (from cache or DB) and returns the id of the first matching key.
+	 *
+	 * @param string     $rHMAC           Token supplied by the client.
+	 * @param int|string $rExpiry         Token expiry component.
+	 * @param int|string $rStreamID       Stream id component.
+	 * @param string     $rExtension      Stream extension component.
+	 * @param string     $rIP             Request IP (must match $rMACIP when both set).
+	 * @param string     $rMACIP          Bound MAC/IP component.
+	 * @param string     $rIdentifier     Optional identifier component.
+	 * @param int        $rMaxConnections Max-connections component.
+	 * @return int|null Matching HMAC key id, or null if no key matches.
+	 */
 	public static function validateHMAC($rHMAC, $rExpiry, $rStreamID, $rExtension, $rIP = '', $rMACIP = '', $rIdentifier = '', $rMaxConnections = 0) {
 		global $db, $rSettings;
 		$rCached = $rSettings['enable_cache'];

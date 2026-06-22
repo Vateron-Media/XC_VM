@@ -13,6 +13,12 @@ declare(strict_types=1);
  */
 
 class Authorization {
+	/**
+	 * Check whether the current reseller holds a given permission flag.
+	 *
+	 * @param string $rType Permission key in the global $rPermissions map.
+	 * @return bool True if the flag is present and truthy.
+	 */
 	public static function hasResellerPermissions(string $rType): bool {
 		global $rPermissions;
 		if (!is_array($rPermissions)) {
@@ -21,6 +27,16 @@ class Authorization {
 		return !empty($rPermissions[$rType]);
 	}
 
+	/**
+	 * Authorize the current user's access to a specific entity.
+	 *
+	 * Scopes the check to the user's own id plus their report tree (for `user`
+	 * and `line`), or to advanced permissions (`adv`) for admins.
+	 *
+	 * @param string     $rType Entity type: 'user', 'line' or 'adv'.
+	 * @param string|int $rID   Target entity id.
+	 * @return bool True if the current user may access the entity.
+	 */
 	public static function check(string $rType, string|int $rID): bool {
 		global $rUserInfo;
 		global $db;

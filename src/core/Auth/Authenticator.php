@@ -75,6 +75,17 @@ class Authenticator {
 		}
 	}
 
+	/**
+	 * Authenticate an admin/reseller user via the login form.
+	 *
+	 * Verifies reCAPTCHA (unless bypassed), credentials, and that the user's
+	 * group is allowed for the current access code; records login attempts when
+	 * logging is enabled.
+	 *
+	 * @param array $rData            Login payload (username, password, captcha token).
+	 * @param bool  $rBypassRecaptcha Skip the reCAPTCHA check (e.g. internal flows).
+	 * @return array ['status' => STATUS_* constant, ...] describing the result.
+	 */
 	public static function login(array $rData, bool $rBypassRecaptcha = false): array {
 		global $db, $rSettings;
 		if (!empty($rSettings['recaptcha_enable']) && !$rBypassRecaptcha) {
@@ -141,6 +152,12 @@ class Authenticator {
 		return array('status' => STATUS_FAILURE);
 	}
 
+	/**
+	 * Authenticate a reseller (reseller login flow).
+	 *
+	 * @param array $rData Login payload (username, password).
+	 * @return array ['status' => STATUS_* constant, ...] describing the result.
+	 */
 	public static function resellerLogin(array $rData): array {
 		global $db, $rSettings;
 		if (!empty($rSettings['recaptcha_enable'])) {
@@ -200,6 +217,14 @@ class Authenticator {
 		return array('status' => STATUS_FAILURE);
 	}
 
+	/**
+	 * Hash a password with a salted, multi-round digest.
+	 *
+	 * @param string      $password Plain-text password.
+	 * @param string|null $salt     Explicit salt, or null to generate one.
+	 * @param int         $rounds   Number of hashing rounds.
+	 * @return string The encoded password hash (salt embedded).
+	 */
 	public static function hashPassword(string $password, ?string $salt = null, int $rounds = 20000): string {
 		if ($salt === null || $salt === '') {
 			$salt = substr(bin2hex(openssl_random_pseudo_bytes(16)), 0, 16);
@@ -210,6 +235,13 @@ class Authenticator {
 		return crypt($password, $salt);
 	}
 
+	/**
+	 * Verify a plain-text password against a stored hash.
+	 *
+	 * @param string $password   Plain-text password to check.
+	 * @param string $storedHash Previously stored hash (from hashPassword()).
+	 * @return bool True if the password matches.
+	 */
 	public static function checkPassword(string $password, string $storedHash): bool {
 		return hash_equals($storedHash, crypt($password, $storedHash));
 	}

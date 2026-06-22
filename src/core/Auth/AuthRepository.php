@@ -12,6 +12,12 @@
  */
 
 class AuthRepository {
+	/**
+	 * Fetch all access codes, optionally filtered by type.
+	 *
+	 * @param int|null $rType Access-code type to filter by, or null for all.
+	 * @return array Rows keyed by access-code id.
+	 */
 	public static function getAllCodes($rType = null) {
 		global $db;
 		$rReturn = array();
@@ -31,6 +37,12 @@ class AuthRepository {
 		return $rReturn;
 	}
 
+	/**
+	 * List active access-code names from the generated nginx code configs.
+	 *
+	 * @param string $rMainHome Panel home path (trailing slash).
+	 * @return string[] Access-code names (config filenames without extension, excluding 'default').
+	 */
 	public static function getActiveCodes($rMainHome) {
 		$rCodes = array();
 		$rFiles = scandir($rMainHome . 'bin/nginx/conf/codes/');
@@ -47,6 +59,14 @@ class AuthRepository {
 		return $rCodes;
 	}
 
+	/**
+	 * Regenerate per-code nginx config files from the database and reload nginx.
+	 *
+	 * Rebuilds `bin/nginx/conf/codes/*.conf` for every enabled access code,
+	 * manages the fallback `default.conf`, and triggers an nginx reload.
+	 *
+	 * @return void
+	 */
 	public static function updateCodes() {
 		$rMainHome = MAIN_HOME;
 		$rServerId = SERVER_ID;
@@ -97,6 +117,15 @@ class AuthRepository {
 		ApiClient::systemRequest($rServerId, array('action' => 'reload_nginx'));
 	}
 
+	/**
+	 * Resolve the access code for the current request.
+	 *
+	 * Reads `XC_CODE` (set by the Front Controller via fastcgi_param), falling
+	 * back to the PHP_SELF directory name for legacy setups.
+	 *
+	 * @param bool $rInfo When true, return the full access-code DB row instead of the code string.
+	 * @return string|array|null Code string, or the DB row when $rInfo is true (null if not found).
+	 */
 	public static function getCurrentCode($rInfo = false) {
 		global $db;
 		// Front Controller передаёт XC_CODE через fastcgi_param.
@@ -116,6 +145,11 @@ class AuthRepository {
 		return $rCode;
 	}
 
+	/**
+	 * Fetch all HMAC keys.
+	 *
+	 * @return array Rows keyed by HMAC key id.
+	 */
 	public static function getAllHMAC() {
 		global $db;
 		$rReturn = array();
@@ -130,6 +164,12 @@ class AuthRepository {
 		return $rReturn;
 	}
 
+	/**
+	 * Fetch a single HMAC key by id.
+	 *
+	 * @param int $rID HMAC key id.
+	 * @return array|null The key row, or null if not found.
+	 */
 	public static function getHMACById($rID) {
 		global $db;
 		$db->query('SELECT * FROM `hmac_keys` WHERE `id` = ?;', $rID);
@@ -142,6 +182,14 @@ class AuthRepository {
 	// Permissions
 	// ──────────────────────────────────────────────
 
+	/**
+	 * Fetch the permissions row for a user group.
+	 *
+	 * Decodes the `subresellers` JSON and disables sub-reseller creation when empty.
+	 *
+	 * @param int $rID User group id.
+	 * @return array The group permissions row, or [] if not found.
+	 */
 	public static function getPermissions($rID) {
 		global $db;
 		$db->query('SELECT * FROM `users_groups` WHERE `group_id` = ?;', $rID);
@@ -160,6 +208,17 @@ class AuthRepository {
 		return [];
 	}
 
+	/**
+	 * Build the effective permission set for a user.
+	 *
+	 * Merges cached per-group permissions with package capability flags
+	 * (create line/mag/enigma) and, optionally, the user's sub-user reports.
+	 *
+	 * @param int  $rUserID  Registered user id.
+	 * @param bool $rStreams Reserved flag for stream-scope expansion.
+	 * @param bool $rUsers   When true, include sub-users and report maps.
+	 * @return array Effective permissions (create flags, stream/series/category ids, users, reports).
+	 */
 	public static function getGroupPermissions($rUserID, $rStreams = true, $rUsers = true) {
 		global $db;
 		$rStart = round(microtime(true) * 1000);
@@ -213,6 +272,12 @@ class AuthRepository {
 		return $rReturn;
 	}
 
+	/**
+	 * Fetch a single access code by id.
+	 *
+	 * @param int $rID Access-code id.
+	 * @return array|null The access-code row, or null if not found.
+	 */
 	public static function getCodeById($rID) {
 		global $db;
 		$db->query('SELECT * FROM `access_codes` WHERE `id` = ?;', $rID);
@@ -224,6 +289,12 @@ class AuthRepository {
 		return $db->get_row();
 	}
 
+	/**
+	 * Delete an access code and regenerate the nginx code configs.
+	 *
+	 * @param int $rID Access-code id.
+	 * @return bool True on deletion, false if the code does not exist.
+	 */
 	public static function deleteCode($rID) {
 		global $db;
 		$db->query('SELECT `id` FROM `access_codes` WHERE `id` = ?;', $rID);
@@ -238,6 +309,12 @@ class AuthRepository {
 		return true;
 	}
 
+	/**
+	 * Delete an HMAC key.
+	 *
+	 * @param int $rID HMAC key id.
+	 * @return bool True on deletion, false if the key does not exist.
+	 */
 	public static function deleteHMAC($rID) {
 		global $db;
 		$db->query('SELECT `id` FROM `hmac_keys` WHERE `id` = ?;', $rID);
