@@ -13,16 +13,34 @@
 class SettingsService {
 	private static $db = null;
 
+	/**
+	 * Inject the database handler (dependency injection).
+	 *
+	 * @param object $db Database handler.
+	 * @return void
+	 */
 	public static function setDb($db): void {
 		self::$db = $db;
 	}
 
+	/**
+	 * Get the injected database handler.
+	 *
+	 * @return object Database handler.
+	 * @throws \RuntimeException If setDb() was not called first.
+	 */
 	private static function db(): object {
 		if (self::$db === null) {
 			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
 		}
 		return self::$db;
 	}
+	/**
+	 * Save general panel settings from admin form data.
+	 *
+	 * @param array $rData Submitted settings.
+	 * @return array Result status payload.
+	 */
 	public static function edit($rData) {
 		$db = self::db();
 		foreach (array('user_agent', 'http_proxy', 'cookie', 'headers') as $rKey) {
@@ -84,6 +102,12 @@ class SettingsService {
 		return array('status' => STATUS_FAILURE);
 	}
 
+	/**
+	 * Save backup-related settings from admin form data.
+	 *
+	 * @param array $rData Submitted backup settings.
+	 * @return array Result status payload.
+	 */
 	public static function editBackup($rData) {
 		$db = self::db();
 		$rArray = QueryHelper::verifyPostTable('settings', $rData, true);
@@ -118,6 +142,12 @@ class SettingsService {
 		return array('status' => STATUS_FAILURE);
 	}
 
+	/**
+	 * Save cache/cron-related settings from admin form data.
+	 *
+	 * @param array $rData Submitted cache/cron settings.
+	 * @return array Result status payload.
+	 */
 	public static function editCacheCron($rData) {
 		$db = self::db();
 		$rCheck = array(false, false);

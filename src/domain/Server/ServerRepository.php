@@ -13,16 +13,34 @@
 class ServerRepository {
 	private static $db = null;
 
+	/**
+	 * Inject the database handler (dependency injection).
+	 *
+	 * @param object $db Database handler.
+	 * @return void
+	 */
 	public static function setDb($db): void {
 		self::$db = $db;
 	}
 
+	/**
+	 * Get the injected database handler.
+	 *
+	 * @return object Database handler.
+	 * @throws \RuntimeException If setDb() was not called first.
+	 */
 	private static function db(): object {
 		if (self::$db === null) {
 			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
 		}
 		return self::$db;
 	}
+	/**
+	 * Fetch all servers (cached unless forced).
+	 *
+	 * @param bool $rForce Bypass the cache and re-read from the database.
+	 * @return array Server rows keyed by id.
+	 */
 	public static function getAll($rForce = false) {
 		global $rSettings;
 		$db = self::db();
@@ -106,6 +124,11 @@ class ServerRepository {
 		return $rServers;
 	}
 
+	/**
+	 * Fetch a lightweight list of all servers.
+	 *
+	 * @return array Reduced server rows.
+	 */
 	public static function getAllSimple() {
 		$db = self::db();
 		$rReturn = array();
@@ -121,6 +144,13 @@ class ServerRepository {
 		return $rReturn;
 	}
 
+	/**
+	 * Fetch streaming servers visible to the user, filtered by state.
+	 *
+	 * @param array  $rPermissions Effective permissions.
+	 * @param string $type         State filter (e.g. 'online').
+	 * @return array Streaming server rows.
+	 */
 	public static function getStreamingSimple($rPermissions, $type = 'online') {
 		$db = self::db();
 		$rReturn = array();
@@ -145,6 +175,13 @@ class ServerRepository {
 		return $rReturn;
 	}
 
+	/**
+	 * Fetch proxy servers visible to the user.
+	 *
+	 * @param array $rPermissions Effective permissions.
+	 * @param bool  $rOnline      Restrict to online proxies.
+	 * @return array Proxy server rows.
+	 */
 	public static function getProxySimple($rPermissions, $rOnline = false) {
 		$db = self::db();
 		$rReturn = array();
@@ -167,6 +204,12 @@ class ServerRepository {
 		return $rReturn;
 	}
 
+	/**
+	 * Get free disk space for a server.
+	 *
+	 * @param int $rServerID Server id.
+	 * @return mixed Free-space information.
+	 */
 	public static function getFreeSpace($rServerID) {
 		$rReturn = array();
 		$rLines = json_decode(ApiClient::systemRequest($rServerID, array('action' => 'get_free_space')), true);
@@ -189,6 +232,12 @@ class ServerRepository {
 		return $rReturn;
 	}
 
+	/**
+	 * Get ramdisk usage/stream info for a server.
+	 *
+	 * @param int $rServerID Server id.
+	 * @return mixed Ramdisk information.
+	 */
 	public static function getStreamsRamdisk($rServerID) {
 		$response = ApiClient::systemRequest($rServerID, array('action' => 'streams_ramdisk'));
 		$rReturn = json_decode($response, true);
@@ -204,20 +253,48 @@ class ServerRepository {
 		return ($rReturn['streams'] ?? array());
 	}
 
+	/**
+	 * Kill a process on a server by PID.
+	 *
+	 * @param int $rServerID Server id.
+	 * @param int $rPID      Process id to kill.
+	 * @return mixed Result of the kill request.
+	 */
 	public static function killPID($rServerID, $rPID) {
 		ApiClient::systemRequest($rServerID, array('action' => 'kill_pid', 'pid' => $rPID));
 	}
 
+	/**
+	 * Get RTMP statistics from a server.
+	 *
+	 * @param int $rServerID Server id.
+	 * @return mixed RTMP stats.
+	 */
 	public static function getRTMPStats($rServerID) {
 		return json_decode(ApiClient::systemRequest($rServerID, array('action' => 'rtmp_stats')), true);
 	}
 
+	/**
+	 * Check/probe a source file on a server.
+	 *
+	 * @param array  $rServers  Servers configuration.
+	 * @param mixed  $rFFProbe  ffprobe path/config.
+	 * @param int    $rServerID Server id.
+	 * @param string $rFilename Source file/path.
+	 * @return mixed Probe result.
+	 */
 	public static function checkSource($rServers, $rFFProbe, $rServerID, $rFilename) {
 		$rAPI = $rServers[intval($rServerID)]['api_url_ip'] . '&action=getFile&filename=' . urlencode($rFilename);
 		$rCommand = 'timeout 10 ' . $rFFProbe . ' -user_agent "Mozilla/5.0" -show_streams -v quiet "' . $rAPI . '" -of json';
 		return json_decode(shell_exec($rCommand), true);
 	}
 
+	/**
+	 * Get the SSL/certbot log for a server.
+	 *
+	 * @param int $rServerID Server id.
+	 * @return mixed SSL log contents.
+	 */
 	public static function getSSLLog($rServerID) {
 		global $rServers;
 		$rServer = $rServers[intval($rServerID)] ?? null;
@@ -232,18 +309,48 @@ class ServerRepository {
 		return json_decode($rResponse, true);
 	}
 
+	/**
+	 * Clear temporary files on a server.
+	 *
+	 * @param int $rServerID Server id.
+	 * @return mixed Result of the request.
+	 */
 	public static function freeTemp($rServerID) {
 		ApiClient::systemRequest($rServerID, array('action' => 'free_temp'));
 	}
 
+	/**
+	 * Clear stream temp/ramdisk data on a server.
+	 *
+	 * @param int $rServerID Server id.
+	 * @return mixed Result of the request.
+	 */
 	public static function freeStreams($rServerID) {
 		ApiClient::systemRequest($rServerID, array('action' => 'free_streams'));
 	}
 
+	/**
+	 * Probe a source URL via a server (ffprobe).
+	 *
+	 * @param int         $rServerID  Server id.
+	 * @param string      $rURL       Source URL.
+	 * @param string|null $rUserAgent Optional user agent.
+	 * @param mixed       $rProxy     Optional proxy.
+	 * @param string|null $rCookies   Optional cookies.
+	 * @param mixed       $rHeaders   Optional extra headers.
+	 * @return mixed Probe result.
+	 */
 	public static function probeSource($rServerID, $rURL, $rUserAgent = null, $rProxy = null, $rCookies = null, $rHeaders = null) {
 		return json_decode(ApiClient::systemRequest($rServerID, array('action' => 'probe', 'url' => $rURL, 'user_agent' => $rUserAgent, 'http_proxy' => $rProxy, 'cookies' => $rCookies, 'headers' => $rHeaders), 30), true);
 	}
 
+	/**
+	 * Delete a server, optionally reassigning its streams to another server.
+	 *
+	 * @param int      $rID          Server id.
+	 * @param int|null $rReplaceWith Replacement server id for reassignment.
+	 * @return bool True on success.
+	 */
 	public static function deleteById($rID, $rReplaceWith = null) {
 		global $rSettings;
 		$db = self::db();
@@ -278,6 +385,12 @@ class ServerRepository {
 		return true;
 	}
 
+	/**
+	 * Get the list of allowed reseller domains (cached).
+	 *
+	 * @param bool $rForce Bypass the cache.
+	 * @return array Allowed domains.
+	 */
 	public static function getAllowedDomains($rForce = false) {
 		$db = self::db();
 		if (!$rForce) {
@@ -310,6 +423,12 @@ class ServerRepository {
 		return $rDomains;
 	}
 
+	/**
+	 * Get the list of allowed IPs (cached).
+	 *
+	 * @param bool $rForce Bypass the cache.
+	 * @return array Allowed IPs.
+	 */
 	public static function getAllowedIPs($rForce = false) {
 		global $rServers, $rSettings;
 		if ($rForce) {
@@ -351,6 +470,11 @@ class ServerRepository {
 		return array_unique($rIPs);
 	}
 
+	/**
+	 * Get RTMP statistics for the local server.
+	 *
+	 * @return mixed Local RTMP stats.
+	 */
 	public static function getLocalRTMPStats() {
 		global $rServers;
 		$rURL = $rServers[SERVER_ID]['rtmp_mport_url'] . 'stat';
@@ -359,6 +483,13 @@ class ServerRepository {
 		return json_decode(json_encode(simplexml_load_string($rXML, 'SimpleXMLElement', LIBXML_NOCDATA)), true);
 	}
 
+	/**
+	 * Get the public base URL of a server.
+	 *
+	 * @param int|null    $rServerID      Server id, or null for the current server.
+	 * @param string|null $rForceProtocol Force http/https.
+	 * @return string Public URL.
+	 */
 	public static function getPublicURL($rServerID = null, $rForceProtocol = null) {
 		global $rSettings, $rServers;
 		$rOriginatorID = null;
@@ -406,6 +537,12 @@ class ServerRepository {
 		}
 	}
 
+	/**
+	 * Fetch a single server by id.
+	 *
+	 * @param int $rID Server id.
+	 * @return array|null The server row, or null if not found.
+	 */
 	public static function getById($rID) {
 		$db = self::db();
 		$db->query('SELECT * FROM `servers` WHERE `id` = ?;', $rID);
