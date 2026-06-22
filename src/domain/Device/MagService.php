@@ -13,16 +13,34 @@
 class MagService {
 	private static $db = null;
 
+	/**
+	 * Inject the database handler (dependency injection).
+	 *
+	 * @param object $db Database handler.
+	 * @return void
+	 */
 	public static function setDb($db): void {
 		self::$db = $db;
 	}
 
+	/**
+	 * Get the injected database handler.
+	 *
+	 * @return object Database handler.
+	 * @throws \RuntimeException If setDb() was not called first.
+	 */
 	private static function db(): object {
 		if (self::$db === null) {
 			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
 		}
 		return self::$db;
 	}
+	/**
+	 * Bulk delete selected MAG devices.
+	 *
+	 * @param array $rData Selected device ids.
+	 * @return array ['status' => STATUS_* constant, ...].
+	 */
 	public static function massDelete($rData) {
 		set_time_limit(0);
 		ini_set('mysql.connect_timeout', 0);
@@ -35,6 +53,12 @@ class MagService {
 		return array('status' => STATUS_SUCCESS);
 	}
 
+	/**
+	 * Apply bulk edits to selected MAG devices.
+	 *
+	 * @param array $rData Selected ids plus the fields/values to apply.
+	 * @return array ['status' => STATUS_* constant, ...].
+	 */
 	public static function massEdit($rData) {
 		$db = self::db();
 		if (InputValidator::validate('massEditMags', $rData)) {
@@ -200,6 +224,12 @@ class MagService {
 		}
 	}
 
+	/**
+	 * Create or update a MAG device from admin form data.
+	 *
+	 * @param array $rData Submitted form data (includes `edit` id when updating).
+	 * @return array ['status' => STATUS_* constant, 'data' => insert_id or payload].
+	 */
 	public static function process($rData) {
 		$db = self::db();
 		if (InputValidator::validate('processMAG', $rData)) {
@@ -372,6 +402,13 @@ class MagService {
 		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 	}
 
+	/**
+	 * Sync MAG device(s) with their owning line's settings.
+	 *
+	 * @param int      $rUserID   Line/user id.
+	 * @param int|null $rDeviceID Limit to a single device, or null for all.
+	 * @return void
+	 */
 	public static function syncLineDevices($rUserID, $rDeviceID = null) {
 		$db = self::db();
 		$rUser = UserRepository::getLineById($rUserID);
@@ -404,6 +441,12 @@ class MagService {
 		}
 	}
 
+	/**
+	 * Fetch a single MAG device by id.
+	 *
+	 * @param int $rID Device id.
+	 * @return array|null The device row, or null if not found.
+	 */
 	public static function getById($rID) {
 		$db = self::db();
 		$db->query('SELECT * FROM `mag_devices` WHERE `mag_id` = ?;', $rID);
@@ -424,6 +467,15 @@ class MagService {
 		return $rRow;
 	}
 
+	/**
+	 * Delete a MAG device.
+	 *
+	 * @param int  $rID           Device id.
+	 * @param bool $rDeletePaired Also delete the paired line/device.
+	 * @param bool $rCloseCons    Close active connections first.
+	 * @param bool $rConvert      Convert (rather than delete) the paired line.
+	 * @return bool True on success.
+	 */
 	public static function deleteDevice($rID, $rDeletePaired = false, $rCloseCons = true, $rConvert = false) {
 		$db = self::db();
 		$rMag = self::getById($rID);
@@ -459,6 +511,12 @@ class MagService {
 		return true;
 	}
 
+	/**
+	 * Bulk delete MAG devices.
+	 *
+	 * @param int[] $rIDs Device ids.
+	 * @return bool True on success.
+	 */
 	public static function deleteDevices($rIDs) {
 		$db = self::db();
 		$rIDs = AdminHelpers::confirmIDs($rIDs);
@@ -486,6 +544,12 @@ class MagService {
 		return true;
 	}
 
+	/**
+	 * Reset a MAG STB (clear its bound state/keys).
+	 *
+	 * @param int $rID Device id.
+	 * @return bool True on success.
+	 */
 	public static function resetSTB($rID) {
 		$db = self::db();
 		$db->query("UPDATE `mag_devices` SET `ip` = '', `ver` = '', `image_version` = '', `stb_type` = '', `sn` = '', `device_id` = '', `device_id2` = '', `hw_version` = '', `token` = '' WHERE `mag_id` = ?;", $rID);

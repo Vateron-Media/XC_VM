@@ -13,16 +13,34 @@
 class EnigmaService {
 	private static $db = null;
 
+	/**
+	 * Inject the database handler (dependency injection).
+	 *
+	 * @param object $db Database handler.
+	 * @return void
+	 */
 	public static function setDb($db): void {
 		self::$db = $db;
 	}
 
+	/**
+	 * Get the injected database handler.
+	 *
+	 * @return object Database handler.
+	 * @throws \RuntimeException If setDb() was not called first.
+	 */
 	private static function db(): object {
 		if (self::$db === null) {
 			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
 		}
 		return self::$db;
 	}
+	/**
+	 * Bulk delete selected Enigma2 devices.
+	 *
+	 * @param array $rData Selected device ids.
+	 * @return array ['status' => STATUS_* constant, ...].
+	 */
 	public static function massDelete($rData) {
 		set_time_limit(0);
 		ini_set('mysql.connect_timeout', 0);
@@ -35,6 +53,12 @@ class EnigmaService {
 		return array('status' => STATUS_SUCCESS);
 	}
 
+	/**
+	 * Apply bulk edits to selected Enigma2 devices.
+	 *
+	 * @param array $rData Selected ids plus the fields/values to apply.
+	 * @return array ['status' => STATUS_* constant, ...].
+	 */
 	public static function massEdit($rData) {
 		$db = self::db();
 		if (InputValidator::validate('massEditEnigmas', $rData)) {
@@ -174,6 +198,12 @@ class EnigmaService {
 		}
 	}
 
+	/**
+	 * Create or update an Enigma2 device from admin form data.
+	 *
+	 * @param array $rData Submitted form data (includes `edit` id when updating).
+	 * @return array ['status' => STATUS_* constant, 'data' => insert_id or payload].
+	 */
 	public static function process($rData) {
 		$db = self::db();
 		if (InputValidator::validate('processEnigma', $rData)) {
@@ -355,6 +385,12 @@ class EnigmaService {
 		return array('status' => STATUS_INVALID_INPUT, 'data' => $rData);
 	}
 
+	/**
+	 * Fetch a single Enigma2 device by id.
+	 *
+	 * @param int $rID Device id.
+	 * @return array|null The device row, or null if not found.
+	 */
 	public static function getById($rID) {
 		$db = self::db();
 		$db->query('SELECT * FROM `enigma2_devices` WHERE `device_id` = ?;', $rID);
@@ -376,6 +412,12 @@ class EnigmaService {
 		return $rRow;
 	}
 
+	/**
+	 * Fetch Enigma2 device(s) belonging to a user/line.
+	 *
+	 * @param int $rID Owner/line id.
+	 * @return array Device row(s).
+	 */
 	public static function getByUserId($rID) {
 		$db = self::db();
 		$db->query('SELECT * FROM `enigma2_devices` WHERE `user_id` = ?;', $rID);
@@ -387,6 +429,15 @@ class EnigmaService {
 		return $db->get_row();
 	}
 
+	/**
+	 * Delete an Enigma2 device.
+	 *
+	 * @param int  $rID           Device id.
+	 * @param bool $rDeletePaired Also delete the paired line/device.
+	 * @param bool $rCloseCons    Close active connections first.
+	 * @param bool $rConvert      Convert (rather than delete) the paired line.
+	 * @return bool True on success.
+	 */
 	public static function deleteDevice($rID, $rDeletePaired = false, $rCloseCons = true, $rConvert = false) {
 		$db = self::db();
 		$rEnigma = self::getById($rID);
@@ -420,6 +471,12 @@ class EnigmaService {
 		return true;
 	}
 
+	/**
+	 * Bulk delete Enigma2 devices.
+	 *
+	 * @param int[] $rIDs Device ids.
+	 * @return bool True on success.
+	 */
 	public static function deleteDevices($rIDs) {
 		$db = self::db();
 		$rIDs = AdminHelpers::confirmIDs($rIDs);
