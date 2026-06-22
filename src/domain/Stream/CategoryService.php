@@ -13,16 +13,34 @@
 class CategoryService {
 	private static $db = null;
 
+	/**
+	 * Inject the database handler (dependency injection).
+	 *
+	 * @param object $db Database handler.
+	 * @return void
+	 */
 	public static function setDb($db): void {
 		self::$db = $db;
 	}
 
+	/**
+	 * Get the injected database handler.
+	 *
+	 * @return object Database handler.
+	 * @throws \RuntimeException If setDb() was not called first.
+	 */
 	private static function db(): object {
 		if (self::$db === null) {
 			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
 		}
 		return self::$db;
 	}
+	/**
+	 * Persist the display order of categories from posted data.
+	 *
+	 * @param array $rData Form data with a JSON `categories` list (id + order).
+	 * @return array ['status' => STATUS_SUCCESS].
+	 */
 	public static function reorder($rData) {
 		$db = self::db();
 		$rPostCategories = json_decode($rData['categories'], true);
@@ -37,6 +55,12 @@ class CategoryService {
 		return array('status' => STATUS_SUCCESS);
 	}
 
+	/**
+	 * Create or update a stream category from admin form data.
+	 *
+	 * @param array $rData Submitted form data (includes `edit` id when updating).
+	 * @return array ['status' => STATUS_* constant, 'data' => insert_id or payload].
+	 */
 	public static function process($rData) {
 		$db = self::db();
 		if (isset($rData['edit'])) {
@@ -82,6 +106,13 @@ class CategoryService {
 
 	// ──────────── Из CategoryRepository ────────────
 
+	/**
+	 * Load categories from the database, by type or all (cached).
+	 *
+	 * @param string|null $rType  Category type ('live'|'movie'|'series'|'radio') or null for all.
+	 * @param bool        $rForce Bypass the file cache when loading all.
+	 * @return array Categories keyed by id.
+	 */
 	public static function getFromDatabase($rType = null, $rForce = false) {
 		$db = self::db();
 		if (is_string($rType)) {
@@ -104,6 +135,13 @@ class CategoryService {
 		return $rCategories;
 	}
 
+	/**
+	 * Filter an already-loaded category list by type.
+	 *
+	 * @param array       $rCategories Loaded categories.
+	 * @param string|null $rType       Type to keep, or null for all.
+	 * @return array Filtered categories.
+	 */
 	public static function filterLoaded($rCategories, $rType = null) {
 		$rReturn = array();
 		foreach ($rCategories as $rCategory) {
@@ -131,6 +169,12 @@ class CategoryService {
 		return $rReturn;
 	}
 
+	/**
+	 * Fetch a single category by id.
+	 *
+	 * @param int $rID Category id.
+	 * @return array|false The category row, or false if not found.
+	 */
 	public static function getById($rID) {
 		$db = self::db();
 		$db->query('SELECT * FROM `streams_categories` WHERE `id` = ?;', $rID);
@@ -142,6 +186,12 @@ class CategoryService {
 		return $db->get_row();
 	}
 
+	/**
+	 * Delete a category and detach it from streams, series and watch folders.
+	 *
+	 * @param int $rID Category id.
+	 * @return bool True on deletion, false if the category does not exist.
+	 */
 	public static function deleteById($rID) {
 		$db = self::db();
 		$rCategory = self::getById($rID);

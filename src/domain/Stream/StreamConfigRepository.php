@@ -13,10 +13,22 @@
 class StreamConfigRepository {
 	private static $db = null;
 
+	/**
+	 * Inject the database handler (dependency injection).
+	 *
+	 * @param object $db Database handler.
+	 * @return void
+	 */
 	public static function setDb($db): void {
 		self::$db = $db;
 	}
 
+	/**
+	 * Get the injected database handler.
+	 *
+	 * @return object Database handler.
+	 * @throws \RuntimeException If setDb() was not called first.
+	 */
 	private static function db(): object {
 		if (self::$db === null) {
 			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
@@ -57,6 +69,12 @@ class StreamConfigRepository {
 		return $rReturn;
 	}
 
+	/**
+	 * Fetch a single transcode profile by id.
+	 *
+	 * @param int $rID Profile id.
+	 * @return array|null The profile row, or null if not found.
+	 */
 	public static function getTranscodeProfile($rID) {
 		$db = self::db();
 		$db->query('SELECT * FROM `profiles` WHERE `profile_id` = ?;', $rID);
@@ -68,6 +86,12 @@ class StreamConfigRepository {
 		return $db->get_row();
 	}
 
+	/**
+	 * Delete a transcode profile and detach it from streams and watch folders.
+	 *
+	 * @param int $rID Profile id.
+	 * @return bool True on deletion, false if the profile does not exist.
+	 */
 	public static function deleteProfile($rID) {
 		$db = self::db();
 		$rProfile = self::getTranscodeProfile($rID);
