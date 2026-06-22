@@ -25,6 +25,12 @@ function sortArrayStreamName($a, $b) {
 	return strcmp($a[$rColumn], $b[$rColumn]);
 }
 
+/**
+ * Fetch a stream row by id.
+ *
+ * @param int $rID Stream id.
+ * @return array|false The stream row, or false if not found.
+ */
 function getStream($rID) {
 	global $db;
 	$db->query('SELECT * FROM `streams` WHERE `id` = ?;', $rID);
@@ -39,6 +45,13 @@ function getStream($rID) {
 	}
 }
 
+/**
+ * Resolve subtitle entries for a stream.
+ *
+ * @param int   $rStreamID  Stream id.
+ * @param mixed $rSubtitles Raw subtitle definition(s).
+ * @return array Subtitle entries.
+ */
 function getSubtitles($rStreamID, $rSubtitles) {
 	global $rUserInfo;
 	$rDomainName = DomainResolver::resolve(SERVER_ID, !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443);
@@ -74,6 +87,13 @@ function getSubtitles($rStreamID, $rSubtitles) {
 	return $rReturn;
 }
 
+/**
+ * Order categories for a content type per the configured order.
+ *
+ * @param array  $rCategories Categories to order.
+ * @param string $rType       Content type ('movie', 'series', ...).
+ * @return array Ordered categories.
+ */
 function getOrderedCategories($rCategories, $rType = 'movie') {
 	$rReturn = array();
 
@@ -94,6 +114,21 @@ function getOrderedCategories($rCategories, $rType = 'movie') {
 	return $rReturn;
 }
 
+/**
+ * Fetch the streams visible to a user, with filtering and pagination.
+ *
+ * @param array       $rUserInfo   Authenticated user row.
+ * @param array       $rTypes      Content types to include.
+ * @param int|null    $rCategoryID Restrict to a category.
+ * @param bool|null   $rFav        Restrict to favourites.
+ * @param string|null $rOrderBy    Sort column.
+ * @param string|null $rSearchBy   Search term.
+ * @param array       $rPicking    Specific ids to pick.
+ * @param int         $rStart      Pagination offset.
+ * @param int         $rLimit      Page size.
+ * @param bool        $rIDs        Return only ids instead of full rows.
+ * @return array Streams (or ids) visible to the user.
+ */
 function getUserStreams($rUserInfo, $rTypes = array(), $rCategoryID = null, $rFav = null, $rOrderBy = null, $rSearchBy = null, $rPicking = array(), $rStart = 0, $rLimit = 10, $rIDs = false) {
 	global $db;
 	$rPicking = $rPicking ?? [];
@@ -275,6 +310,20 @@ function getUserStreams($rUserInfo, $rTypes = array(), $rCategoryID = null, $rFa
 	}
 }
 
+/**
+ * Fetch the series visible to a user, with filtering and pagination.
+ *
+ * @param array       $rUserInfo         Authenticated user row.
+ * @param int|null    $rCategoryID       Restrict to a category.
+ * @param bool|null   $rFav              Restrict to favourites.
+ * @param string|null $rOrderBy          Sort column.
+ * @param string|null $rSearchBy         Search term.
+ * @param array       $rPicking          Specific ids to pick.
+ * @param int         $rStart            Pagination offset.
+ * @param int         $rLimit            Page size.
+ * @param mixed       $additionalOptions Extra query options.
+ * @return array Series visible to the user.
+ */
 function getUserSeries($rUserInfo, $rCategoryID = null, $rFav = null, $rOrderBy = null, $rSearchBy = null, $rPicking = array(), $rStart = 0, $rLimit = 10, $additionalOptions = null) {
 	global $db;
 	$rPicking = $rPicking ?? [];
@@ -389,6 +438,12 @@ function getUserSeries($rUserInfo, $rCategoryID = null, $rFav = null, $rOrderBy 
 	}
 }
 
+/**
+ * Map content-type names to their numeric ids.
+ *
+ * @param string[] $rTypes Content-type names.
+ * @return int[] Corresponding numeric type ids.
+ */
 function mapContentTypesToNumbers($rTypes) {
 	$rReturn = array();
 	$rTypeInt = array('live' => 1, 'movie' => 2, 'created_live' => 3, 'radio_streams' => 4, 'series' => 5);
