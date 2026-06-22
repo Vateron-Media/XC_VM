@@ -17,6 +17,11 @@
 
 class UpdateLogger {
 
+	/**
+	 * Path to the update log file (outside tmp/ so cron cleanup won't delete it).
+	 *
+	 * @return string Absolute path to update.log.
+	 */
 	public static function getLogFile(): string {
 		if (defined('MAIN_HOME')) {
 			return MAIN_HOME . 'update.log';
@@ -24,19 +29,43 @@ class UpdateLogger {
 		return '/home/xc_vm/update.log';
 	}
 
+	/**
+	 * Append a timestamped, levelled line to the update log.
+	 *
+	 * @param string $level   Severity label (e.g. INFO, ERROR).
+	 * @param string $message Message text.
+	 * @return void
+	 */
 	public static function log(string $level, string $message): void {
 		$rLine = sprintf("[%s] [%s] %s\n", date('Y-m-d H:i:s'), strtoupper($level), $message);
 		file_put_contents(self::getLogFile(), $rLine, FILE_APPEND | LOCK_EX);
 	}
 
+	/**
+	 * Log an INFO-level message.
+	 *
+	 * @param string $message Message text.
+	 * @return void
+	 */
 	public static function info(string $message): void {
 		self::log('INFO', $message);
 	}
 
+	/**
+	 * Log an ERROR-level message.
+	 *
+	 * @param string $message Message text.
+	 * @return void
+	 */
 	public static function error(string $message): void {
 		self::log('ERROR', $message);
 	}
 
+	/**
+	 * Truncate the update log (start a fresh update run).
+	 *
+	 * @return void
+	 */
 	public static function reset(): void {
 		file_put_contents(self::getLogFile(), '', LOCK_EX);
 	}

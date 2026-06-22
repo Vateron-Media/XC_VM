@@ -239,6 +239,12 @@ class DiagnosticsService {
 		return $response;
 	}
 
+	/**
+	 * Fetch the list of running process PIDs from a server via the system API.
+	 *
+	 * @param int $rServerID Server id to query.
+	 * @return array Process info keyed/listed as returned by the server.
+	 */
 	public static function getPIDs($rServerID) {
 		$rReturn = array();
 		$rProcesses = json_decode(ApiClient::systemRequest($rServerID, array('action' => 'get_pids')), true);
@@ -311,6 +317,12 @@ class DiagnosticsService {
 		return $rReturn;
 	}
 
+	/**
+	 * List NVENC (GPU) encoding processes for a server.
+	 *
+	 * @param int $rServerID Server id to inspect.
+	 * @return array NVENC process details.
+	 */
 	public static function getNVENCProcesses($rServerID) {
 		global $db;
 		$rProcesses = array();

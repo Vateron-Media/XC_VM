@@ -244,6 +244,9 @@ class RedisCache implements CacheInterface {
         return $this->connect();
     }
 
+    /**
+     * Disconnect from Redis when the instance is destroyed.
+     */
     public function __destruct() {
         $this->disconnect();
     }

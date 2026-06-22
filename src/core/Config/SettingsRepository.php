@@ -11,6 +11,12 @@
  */
 
 class SettingsRepository {
+	/**
+	 * Load all panel settings, decoding JSON fields and caching the result.
+	 *
+	 * @param bool $rForce Bypass the file cache and re-read from the database.
+	 * @return array Settings map (with normalized array fields).
+	 */
 	public static function getAll($rForce = false) {
 		global $db;
 		if (!$rForce) {

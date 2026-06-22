@@ -479,6 +479,13 @@ class ServiceContainer implements ContainerInterface {
     //  Internal throw helpers (never return type — R2-4)
     // ─────────────────────────────────────────────────────────
 
+    /**
+     * Throw a CircularDependencyException describing the resolution chain.
+     *
+     * @param string $id Service id whose creation closed the cycle.
+     * @return never
+     * @throws CircularDependencyException Always.
+     */
     private function throwCircularDependency(string $id): never {
         throw new CircularDependencyException(
             "ServiceContainer: циклическая зависимость при создании сервиса '{$id}'. "
