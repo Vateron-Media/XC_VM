@@ -11,6 +11,12 @@
  */
 
 class StreamUtils {
+	/**
+	 * Ensure a cookie string carries path and domain attributes.
+	 *
+	 * @param string $rCookie Raw cookie string.
+	 * @return string Cookie string with `path=/` and `domain=` appended if missing.
+	 */
 	public static function fixCookie($rCookie) {
 		$rPath = false;
 		$rDomain = false;
@@ -41,6 +47,14 @@ class StreamUtils {
 		return $rCookie;
 	}
 
+	/**
+	 * Build the ffmpeg argument list for a stream, filtered by category/protocol.
+	 *
+	 * @param array       $rArguments Configured argument definitions.
+	 * @param string|null $rProtocol  Stream protocol to match against.
+	 * @param mixed       $rType      Argument category to include.
+	 * @return string[] Formatted command-line arguments.
+	 */
 	public static function getArguments($rArguments, $rProtocol, $rType) {
 		$rReturn = array();
 		if (!empty($rArguments)) {
@@ -60,6 +74,15 @@ class StreamUtils {
 		return $rReturn;
 	}
 
+	/**
+	 * Normalize transcode arguments for ffmpeg.
+	 *
+	 * Merges multiple `-filter_complex` clauses into one, drops control keys
+	 * (gpu/software_decoding) and orders so input (`-i`) comes first.
+	 *
+	 * @param array $rArgs Raw transcode argument map.
+	 * @return string[] Ordered, trimmed ffmpeg arguments.
+	 */
 	public static function parseTranscode($rArgs) {
 		$rFitlerComplex = array();
 		foreach ($rArgs as $rKey => $rArgument) {
@@ -91,6 +114,13 @@ class StreamUtils {
 		return array_map('trim', array_values(array_filter($rNewArgs)));
 	}
 
+	/**
+	 * Comparator that sorts `-i` input arguments before others.
+	 *
+	 * @param string $a First argument.
+	 * @param string $b Second argument.
+	 * @return int -1 if $a is an input arg, 1 otherwise.
+	 */
 	public static function customOrder($a, $b) {
 		if (substr($a, 0, 3) == '-i ') {
 			return -1;
@@ -98,6 +128,15 @@ class StreamUtils {
 		return 1;
 	}
 
+	/**
+	 * Normalize a stream source URL for ffmpeg.
+	 *
+	 * Applies rtmp options and resolves known streaming-platform pages to a
+	 * direct media URL via yt-dlp.
+	 *
+	 * @param string $rURL Source URL.
+	 * @return string Normalized/resolved URL.
+	 */
 	public static function parseStreamURL($rURL) {
 		$rProtocol = strtolower(substr($rURL, 0, 4));
 		if ($rProtocol == 'rtmp') {
@@ -119,6 +158,12 @@ class StreamUtils {
 		return $rURL;
 	}
 
+	/**
+	 * Heuristically detect whether a URL is an XC_VM stream endpoint.
+	 *
+	 * @param string $rURL URL to inspect.
+	 * @return bool True if the path matches a known XC_VM stream pattern.
+	 */
 	public static function detectXC_VM($rURL) {
 		$rPath = parse_url($rURL)['path'];
 		$rPathSize = count(explode('/', $rPath));
@@ -136,6 +181,14 @@ class StreamUtils {
 		return false;
 	}
 
+	/**
+	 * Extract `.ts` segments (or the current segment id) from an m3u8 playlist.
+	 *
+	 * @param string $rPlaylist        Path to the m3u8 file.
+	 * @param int    $rPrebuffer       Seconds of trailing segments to return; -1 for all; 0 for current id.
+	 * @param int    $rSegmentDuration Assumed segment duration in seconds.
+	 * @return array|string|null Segment list, current segment id, or null if missing.
+	 */
 	public static function getPlaylistSegments($rPlaylist, $rPrebuffer = 0, $rSegmentDuration = 10) {
 		if (!file_exists($rPlaylist)) {
 		} else {
@@ -155,6 +208,15 @@ class StreamUtils {
 		}
 	}
 
+	/**
+	 * Rewrite an m3u8 so its segments are served through the admin endpoint.
+	 *
+	 * @param string $rM3U8     Path to the source m3u8.
+	 * @param string $rPassword Admin password (used when no UI token).
+	 * @param int    $rStreamID Stream id (used when no UI token).
+	 * @param string $rUIToken  UI token; preferred auth when present.
+	 * @return string|false Rewritten playlist text, or false if unavailable.
+	 */
 	public static function generateAdminHLS($rM3U8, $rPassword, $rStreamID, $rUIToken) {
 		if (!file_exists($rM3U8)) {
 		} else {
@@ -174,10 +236,23 @@ class StreamUtils {
 		return false;
 	}
 
+	/**
+	 * Whether a stream is healthy: its process runs and its playlist exists.
+	 *
+	 * @param string $rPlaylist Playlist path.
+	 * @param int    $rPID      Process id to check (ffmpeg/php).
+	 * @return bool True if running and the playlist file exists.
+	 */
 	public static function isValidStream($rPlaylist, $rPID) {
 		return (ProcessManager::isRunning($rPID, 'ffmpeg') || ProcessManager::isRunning($rPID, 'php')) && file_exists($rPlaylist);
 	}
 
+	/**
+	 * Find the byte offset of the first keyframe in an MPEG-TS segment.
+	 *
+	 * @param string $rSegment Path to the .ts segment.
+	 * @return int Byte offset of the keyframe (0 if not found).
+	 */
 	public static function findKeyframe($rSegment) {
 		$rPacketSize = 188;
 		$rKeyframe = $rPosition = 0;
@@ -233,6 +308,14 @@ class StreamUtils {
 		return $rKeyframe;
 	}
 
+	/**
+	 * Estimate the average bitrate (kbps) of a movie file or live playlist.
+	 *
+	 * @param string      $rType          'movie' or 'live'.
+	 * @param string      $rPath          File/playlist path.
+	 * @param string|null $rForceDuration Duration "H:M:S" for movies (size-based estimate).
+	 * @return int|false Average bitrate, or false if unavailable.
+	 */
 	public static function getStreamBitrate($rType, $rPath, $rForceDuration = null) {
 		clearstatcache();
 		if (file_exists($rPath)) {
@@ -273,6 +356,12 @@ class StreamUtils {
 		return false;
 	}
 
+	/**
+	 * Probe an MPEG-TS file via the bundled `tsinfo` binary.
+	 *
+	 * @param string $rFilename Path to the .ts file.
+	 * @return array|null Decoded probe data, or null on failure.
+	 */
 	public static function getTSInfo($rFilename) {
 		return json_decode(shell_exec(BIN_PATH . 'tsinfo ' . escapeshellarg($rFilename)), true);
 	}

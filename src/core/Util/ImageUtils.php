@@ -11,6 +11,13 @@
  */
 
 class ImageUtils {
+	/**
+	 * Resolve an image URL, expanding internal `s:<serverId>:` references.
+	 *
+	 * @param string      $rURL           Image URL or internal `s:` reference.
+	 * @param string|null $rForceProtocol Force http/https when resolving server URLs.
+	 * @return string Resolved public URL ('' if the server cannot be resolved).
+	 */
 	public static function validateURL($rURL, $rForceProtocol = null) {
 		if (substr($rURL, 0, 2) == 's:') {
 			$rSplit = explode(':', $rURL, 3);
@@ -23,6 +30,14 @@ class ImageUtils {
 		return $rURL;
 	}
 
+	/**
+	 * Return the URL of a cached resized image, or the validated original.
+	 *
+	 * @param string $rURL  Source image URL.
+	 * @param int    $rMaxW Max width.
+	 * @param int    $rMaxH Max height.
+	 * @return string Public URL of the resized image, or the validated source.
+	 */
 	public static function resize($rURL, $rMaxW, $rMaxH) {
 		list($rExtension) = explode('.', strtolower(pathinfo($rURL)['extension']));
 		$rImagePath = IMAGES_PATH . 'admin/' . md5($rURL) . '_' . $rMaxW . '_' . $rMaxH . '.' . $rExtension;
@@ -37,6 +52,13 @@ class ImageUtils {
 		return self::validateURL($rURL);
 	}
 
+	/**
+	 * Generate and cache a thumbnail sized for the given stream type.
+	 *
+	 * @param string $rImage Source image path/URL.
+	 * @param int    $rType  Stream type controlling target dimensions.
+	 * @return bool True if the thumbnail exists/was created, false otherwise.
+	 */
 	public static function generateThumbnail($rImage, $rType) {
 		if ($rType == 1 || $rType == 5 || $rType == 4) {
 			$rMaxW = 96;
@@ -89,6 +111,16 @@ class ImageUtils {
 		return false;
 	}
 
+	/**
+	 * Download a remote image into the local image cache.
+	 *
+	 * Stores jpg/jpeg/png images and returns an internal `s:<serverId>:` reference;
+	 * returns the original URL unchanged when not downloadable.
+	 *
+	 * @param string   $rImage Remote image URL.
+	 * @param int|null $rType  Optional stream type (unused placeholder).
+	 * @return string Internal `s:` reference, or the original URL.
+	 */
 	public static function downloadImage($rImage, $rType = null) {
 		if (0 < strlen($rImage) && substr(strtolower($rImage), 0, 4) == 'http') {
 			$rPathInfo = pathinfo(parse_url($rImage, PHP_URL_PATH) ?: $rImage);
@@ -133,6 +165,15 @@ class ImageUtils {
 		return $rImage;
 	}
 
+	/**
+	 * Compute dimensions that fit within a bounding box, preserving aspect ratio.
+	 *
+	 * @param int $origWidth  Original width.
+	 * @param int $origHeight Original height.
+	 * @param int $maxWidth   Max width (0 = no limit).
+	 * @param int $maxHeight  Max height (0 = no limit).
+	 * @return array ['width' => int, 'height' => int].
+	 */
 	public static function getImageSizeKeepAspectRatio($origWidth, $origHeight, $maxWidth, $maxHeight) {
 		if ($maxWidth == 0) {
 			$maxWidth = $origWidth;
@@ -153,6 +194,12 @@ class ImageUtils {
 		return array('height' => round($newHeight, 0), 'width' => round($newWidth, 0));
 	}
 
+	/**
+	 * Determine whether a string is an absolute URL.
+	 *
+	 * @param string $rURL Candidate URL.
+	 * @return bool True if absolute.
+	 */
 	public static function isAbsoluteUrl($rURL) {
 		$rPattern = "/^(?:ftp|https?|feed)?:?\\/\\/(?:(?:(?:[\\w\\.\\-\\+!\$&'\\(\\)*\\+,;=]|%[0-9a-f]{2})+:)*" . "\n" . "        (?:[\\w\\.\\-\\+%!\$&'\\(\\)*\\+,;=]|%[0-9a-f]{2})+@)?(?:" . "\n" . '        (?:[a-z0-9\\-\\.]|%[0-9a-f]{2})+|(?:\\[(?:[0-9a-f]{0,4}:)*(?:[0-9a-f]{0,4})\\]))(?::[0-9]+)?(?:[\\/|\\?]' . "\n" . "        (?:[\\w#!:\\.\\?\\+\\|=&@\$'~*,;\\/\\(\\)\\[\\]\\-]|%[0-9a-f]{2})*)?\$/xi";
 		return (bool) preg_match($rPattern, $rURL);
