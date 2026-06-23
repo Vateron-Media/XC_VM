@@ -499,6 +499,12 @@ class ModuleManager {
             $modulePath      = $result['path'];
             $resolvedVersion = (string) ($result['version'] ?: $version);
 
+            // Acquire the per-machine ionCube license BEFORE installModule(): if the
+            // platform encoded the module with --with-license, the loader rejects the
+            // encoded files at require-time unless a valid .lic is already present.
+            // No-op when the platform has licensing disabled.
+            $this->acquireModuleLicense($slug, $apiKey);
+
             // Record the version the PLATFORM served (authoritative for store
             // installs); the module's module.json/getVersion() may lag behind.
             $this->installModule($slug, $resolvedVersion);
@@ -596,6 +602,75 @@ class ModuleManager {
         }
         $overrides[$name]['source'] = $source;
         $this->writeOverrides($overrides);
+    }
+
+    /**
+     * Fetch and install the per-machine ionCube license for a module.
+     *
+     * Generates this machine's ionCube server-data, asks the platform to mint a
+     * hardware-bound + expiring .lic (XC_VM::module_license) and writes it next to
+     * the encoded files (the name the encoder's --with-license expects).
+     *
+     * Best-effort: when the platform has licensing disabled, the module is not
+     * entitled, or the loader/extension lacks the needed functions, it silently
+     * writes nothing — so unlicensed-encoded modules still install normally.
+     *
+     * @return bool True if a .lic was written.
+     */
+    private function acquireModuleLicense(string $slug, ?string $apiKey): bool {
+        if (!class_exists('XC_VM') || !function_exists('ioncube_server_data')) {
+            return false;
+        }
+
+        $serverData = @ioncube_server_data();
+        if (!is_string($serverData) || $serverData === '') {
+            error_log("ModuleManager: license skipped for '{$slug}': ioncube_server_data() empty");
+            return false;
+        }
+
+        try {
+            $res = \XC_VM::module_license($slug, base64_encode($serverData), $apiKey ?? '');
+        } catch (\Throwable $e) {
+            error_log("ModuleManager: license request failed for '{$slug}': " . $e->getMessage());
+            return false;
+        }
+
+        if (!is_array($res) || empty($res['ok'])) {
+            $reason = is_array($res) ? ($res['reason'] ?? 'unknown') : 'no_response';
+            error_log("ModuleManager: license NOT issued for '{$slug}': {$reason}"
+                . (($apiKey ?? '') === '' ? ' (api_key пуст — для лицензии он обязателен)' : ''));
+            return false;
+        }
+
+        $licName  = basename((string) ($res['license_name'] ?? 'module.lic'));
+        $licBytes = base64_decode((string) ($res['license'] ?? ''), true);
+        if ($licName === '' || $licBytes === false || $licBytes === '') {
+            error_log("ModuleManager: license for '{$slug}' empty/undecodable in response");
+            return false;
+        }
+
+        $dir = $this->modulesPath . '/' . $slug;
+        if (!is_dir($dir)) {
+            error_log("ModuleManager: module dir missing for '{$slug}': {$dir}");
+            return false;
+        }
+
+        if (@file_put_contents($dir . '/' . $licName, $licBytes) === false) {
+            error_log("ModuleManager: failed to write license {$dir}/{$licName} (права?)");
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Re-issue the per-machine license for an installed platform module — call
+     * before expiry, or after a "license expired/invalid" load failure. The SaaS
+     * refusing to mint (lapsed subscription / revoked) is the effective kill.
+     *
+     * @return bool True if a fresh .lic was written.
+     */
+    public function renewModuleLicense(string $slug, ?string $apiKey = null): bool {
+        return $this->acquireModuleLicense($this->sanitizeModuleName($slug), $apiKey);
     }
 
     /** Remove the recorded previous version for a module. */

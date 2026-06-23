@@ -74,6 +74,18 @@ class ModulesController extends BaseAdminController {
                         $flash = ['type' => 'success', 'message' => 'Module rolled back to previous version: ' . $name];
                         break;
 
+                    case 'renew_license':
+                        $key = (string) (SettingsManager::getAll()['platform_api_key'] ?? '');
+                        if ($key === '') {
+                            throw new RuntimeException('Set the platform API key before renewing the license.');
+                        }
+                        if ($manager->renewModuleLicense($name, $key)) {
+                            $flash = ['type' => 'success', 'message' => 'License renewed for: ' . $name];
+                        } else {
+                            $flash = ['type' => 'warning', 'message' => 'License not renewed for ' . $name . ' (platform licensing off, not entitled, or no server data).'];
+                        }
+                        break;
+
                     case 'upload_install':
                         if (!isset($_FILES['module_zip']) || !is_array($_FILES['module_zip'])) {
                             throw new RuntimeException('Zip file was not uploaded.');
