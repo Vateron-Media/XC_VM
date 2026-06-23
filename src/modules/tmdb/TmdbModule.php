@@ -23,7 +23,7 @@ use TmdbPopularCronJob;
  * ──────────────────────────────────────────────────────────────────
  *
  *   Сервисы:
- *     - TmdbService       — поиск, получение деталей фильмов/сериалов
+ *     - TmdbApiService    — поиск, получение деталей фильмов/сериалов
  *     - TmdbCron          — крон обработки очереди watch_refresh
  *     - TmdbPopularCron   — крон сбора популярных фильмов/сериалов
  *
@@ -36,7 +36,7 @@ use TmdbPopularCronJob;
  *     - includes/libs/TMDb/         — модели (Movie, TVShow, Season, ...)
  *     - includes/libs/tmdb_release.php — парсер release-имён
  *
- * @see TmdbService
+ * @see TmdbApiService
  * @see TmdbCron
  * @see TmdbPopularCron
  *
@@ -62,7 +62,7 @@ class TmdbModule extends BaseModule {
         TmdbCron::setDb($db);
         TmdbPopularCron::setDb($db);
 
-        $container->set('tmdb.service', 'TmdbService');
+        $container->set('tmdb.service', 'TmdbApiService');
     }
 
     public function registerRoutes(Router $router): void {

@@ -1,9 +1,11 @@
 <?php
 
 /**
- * TmdbService
+ * TmdbApiService
  *
  * Сервис для работы с TMDB API.
+ * (Назван TmdbApiService, а не TmdbService, чтобы не конфликтовать с доменным
+ *  TMDbService — имена классов в PHP регистронезависимы.)
  *
  * Ответственность:
  *   - Создание экземпляра TMDB с правильной локализацией
@@ -23,7 +25,7 @@
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-class TmdbService {
+class TmdbApiService {
 
     /**
      * Создать экземпляр TMDB API-клиента
@@ -144,15 +146,15 @@ class TmdbService {
      */
     private static function fetchByID(TMDB $tmdb, string $id, string $type, ?int $season): ?array {
         if ($type === 'movie') {
-            return [json_decode($tmdb->getMovie($id)->getJSON(), true)];
+            return [json_decode($tmdb->getMovie((int) $id)->getJSON(), true)];
         }
 
         if ($type === 'series') {
-            return [json_decode($tmdb->getTVShow($id)->getJSON(), true)];
+            return [json_decode($tmdb->getTVShow((int) $id)->getJSON(), true)];
         }
 
         if ($type === 'episode' && $season !== null) {
-            $rResult = json_decode($tmdb->getSeason($id, $season)->getJSON(), true);
+            $rResult = json_decode($tmdb->getSeason((int) $id, $season)->getJSON(), true);
             if (isset($rResult['tvshow_id']) && $rResult['tvshow_id'] == 0) {
                 return null;
             }
