@@ -91,6 +91,12 @@ class StartupCommand implements CommandInterface {
 		if (file_exists(MAIN_HOME . 'cli/CronJobs/RootMysqlCronJob.php')) {
 			$rCrons[] = '* * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:root_mysql # XC_VM';
 		}
+		// Renew per-machine ionCube licenses for platform modules before they
+		// expire (runs as xc_vm so the .lic is owned by the panel user). No-op
+		// when no licensed modules are installed.
+		if (file_exists(MAIN_HOME . 'cli/CronJobs/ModuleLicensesCronJob.php')) {
+			$rCrons[] = '17 3 * * * sudo -u xc_vm ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:module_licenses # XC_VM';
+		}
 
 		foreach ((new ModuleLoader())->loadAll()->collectCronEntries() as $rEntry) {
 			$rCrons[] = $rEntry;

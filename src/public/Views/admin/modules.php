@@ -120,6 +120,17 @@
                                                             </form>
                                                         <?php endif; ?>
 
+                                                        <?php if (($module['source'] ?? '') === 'platform'): ?>
+                                                            <form action="#" method="POST" class="mr-1 js-module-form">
+                                                                <input type="hidden" name="module_name" value="<?= htmlspecialchars($module['name']) ?>">
+                                                                <input type="hidden" name="module_action" value="renew_license">
+                                                                <button type="submit" class="btn btn-sm btn-outline-secondary"
+                                                                        title="Re-issue the per-machine ionCube license (use if the module fails to load with a license error)">
+                                                                    <i class="mdi mdi-key-outline mr-1"></i>Renew license
+                                                                </button>
+                                                            </form>
+                                                        <?php endif; ?>
+
                                                         <button type="button"
                                                             class="btn btn-sm mr-1 module-toggle-btn <?= !empty($module['enabled']) ? 'btn-warning' : 'btn-success' ?>"
                                                             data-module="<?= htmlspecialchars($module['name']) ?>"
