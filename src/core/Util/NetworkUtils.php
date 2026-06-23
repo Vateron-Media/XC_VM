@@ -185,7 +185,7 @@ class NetworkUtils {
      * @param array  $rUser        User row.
      * @param int    $rDownloadPID PID of the download to remove.
      * @param int    $rFloodLimit  Configured flood limit (0 = no tracking).
-     * @return null
+     * @return void
      */
     public static function stopDownload($rType, $rUser, $rDownloadPID, $rFloodLimit) {
         if ($rFloodLimit != 0) {

@@ -61,6 +61,7 @@ class StreamRepository {
 		if ($db->num_rows() == 1) {
 			return $db->get_row();
 		}
+		return false;
 	}
 
 	/**
@@ -409,6 +410,7 @@ class StreamRepository {
 		} else {
 			return $db->get_row();
 		}
+		return false;
 	}
 
 	/**

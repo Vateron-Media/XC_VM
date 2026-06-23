@@ -839,9 +839,11 @@ class DropboxClient {
 	 * @throws DropboxException When metadata cannot be parsed and $throw_on_error is true.
 	 */
 	private static function getMetaFromHeaders(&$header_array, $throw_on_error = false) {
-		$obj = json_decode(substr(@array_shift(array_filter($header_array, function ($s) {
+		$rApiHeaders = array_filter($header_array, function ($s) {
 			return stripos($s, 'dropbox-api-result:') === 0;
-		})), 20));
+		});
+		$rApiHeader = (string) array_shift($rApiHeaders);
+		$obj = json_decode(substr($rApiHeader, 20));
 
 		if ($throw_on_error && (empty($obj) || !is_object($obj))) {
 			throw new DropboxException('Could not retrieve meta data from header data: ' . print_r($header_array, true));

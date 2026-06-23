@@ -206,6 +206,7 @@ class StreamUtils {
 				return $rCurrentSegment[1];
 			}
 		}
+		return null;
 	}
 
 	/**
