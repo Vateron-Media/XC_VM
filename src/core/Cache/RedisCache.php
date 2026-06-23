@@ -164,7 +164,7 @@ class RedisCache implements CacheInterface {
 
         $prefixedKey = $this->prefix . $key;
 
-        return $this->redis->exists($prefixedKey) > 0;
+        return (bool) $this->redis->exists($prefixedKey);
     }
 
     /**

@@ -841,7 +841,7 @@ class ResellerApiDispatcher {
 
 		$rResponse['type'] = null;
 
-		if ($rResponse['isp']['autonomous_system_number']) {
+		if (!empty($rResponse['isp']['autonomous_system_number'])) {
 			$db->query('SELECT `type` FROM `blocked_asns` WHERE `asn` = ?;', $rResponse['isp']['autonomous_system_number']);
 			if ($db->num_rows() > 0) {
 				$rResponse['type'] = $db->get_row()['type'];

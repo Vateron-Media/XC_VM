@@ -44,7 +44,7 @@ class PlaylistGenerator {
 	 * @param array       $rUserInfo  Authenticated user row.
 	 * @param string      $rDeviceKey Device/output key.
 	 * @param string      $rOutputKey Stream container/output format (default 'ts').
-	 * @param string|null $rTypeKey   Content type filter, or null for all.
+	 * @param string[]|null $rTypeKey Content type filter list, or null for all.
 	 * @param bool        $rNoCache   Bypass any cached playlist.
 	 * @param bool        $rProxy     Generate proxied URLs.
 	 * @return string The generated playlist contents.
