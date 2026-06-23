@@ -163,6 +163,7 @@ class GroupService {
 		} else {
 			return $db->get_row();
 		}
+		return false;
 	}
 
 	/**

@@ -101,11 +101,15 @@ echo " * @package XC_VM\n";
 echo " */\n\n";
 
 foreach ($consts as $name => $type) {
+    // Use mt_rand()-based expressions so PHPStan infers a GENERAL type
+    // (int/string/bool) and never constant-folds to a literal (0/'') — a
+    // literal would create false positives like division-by-zero or
+    // always-false comparisons at call sites.
     $expr = match ($type) {
-        'string' => "(string) getenv('XCVM_STUB')",
-        'int'    => "(int) getenv('XCVM_STUB')",
-        'bool'   => "(bool) getenv('XCVM_STUB')",
-        default  => "json_decode((string) getenv('XCVM_STUB'), true)",
+        'string' => "(string) mt_rand()",
+        'int'    => "mt_rand()",
+        'bool'   => "(bool) mt_rand()",
+        default  => "json_decode((string) mt_rand(), true)",
     };
     echo "if (!defined('$name')) define('$name', $expr);\n";
 }

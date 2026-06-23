@@ -20,6 +20,9 @@ parameters:
     # symbol statically from `paths` + `scanDirectories` below.
     bootstrapFiles:
         - tools/phpstan/phpstan-bootstrap.php
+        # Listed directly (not just require'd from the bootstrap) so PHPStan
+        # tracks it for result-cache invalidation when constants change.
+        - tools/phpstan/constants.stub.php
 
     # Indexed for symbol resolution (classes/interfaces/functions defined here
     # are findable) but NOT reported on directly. These cover every source dir

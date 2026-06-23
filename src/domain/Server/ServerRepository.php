@@ -535,6 +535,7 @@ class ServerRepository {
 			}
 			return $rServerURL;
 		}
+		return '';
 	}
 
 	/**
