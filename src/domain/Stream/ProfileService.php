@@ -269,55 +269,52 @@ class ProfileService {
 					}
 				}
 			} else {
-				if (!$rData['software_decoding']) {
+				if (!(0 < intval($rData['deint']) && 0 < strlen($rData['resize']))) {
 				} else {
-					if (!(0 < intval($rData['deint']) && 0 < strlen($rData['resize']))) {
-					} else {
-						$rComplex = true;
-					}
+					$rComplex = true;
+				}
 
-					if ($rComplex) {
-						if (0 < intval($rData['deint']) && 0 < strlen($rData['resize'])) {
+				if ($rComplex) {
+					if (0 < intval($rData['deint']) && 0 < strlen($rData['resize'])) {
+						if (!$rData['software_decoding']) {
+							$rScale = '[0:v]yadif,scale=' . escapeshellcmd($rData['resize']) . '[bg];[bg][1:v]';
+						} else {
+							$rScale = 'yadif,scale=' . escapeshellcmd($rData['resize']);
+						}
+
+						$rProfileOptions[9] = array('cmd' => '', 'val' => $rData['resize']);
+						$rProfileOptions[17] = array('cmd' => '', 'val' => 1);
+					} else {
+						if (0 < strlen($rData['resize'])) {
 							if (!$rData['software_decoding']) {
-								$rScale = '[0:v]yadif,scale=' . escapeshellcmd($rData['resize']) . '[bg];[bg][1:v]';
+								$rScale = '[0:v]scale=' . escapeshellcmd($rData['resize']) . '[bg];[bg][1:v]';
 							} else {
-								$rScale = 'yadif,scale=' . escapeshellcmd($rData['resize']);
+								$rScale = 'scale=' . escapeshellcmd($rData['resize']);
 							}
 
 							$rProfileOptions[9] = array('cmd' => '', 'val' => $rData['resize']);
-							$rProfileOptions[17] = array('cmd' => '', 'val' => 1);
 						} else {
-							if (0 < strlen($rData['resize'])) {
-								if (!$rData['software_decoding']) {
-									$rScale = '[0:v]scale=' . escapeshellcmd($rData['resize']) . '[bg];[bg][1:v]';
-								} else {
-									$rScale = 'scale=' . escapeshellcmd($rData['resize']);
-								}
-
-								$rProfileOptions[9] = array('cmd' => '', 'val' => $rData['resize']);
+							if (0 >= intval($rData['deint'])) {
 							} else {
-								if (0 >= intval($rData['deint'])) {
+								if (!$rData['software_decoding']) {
+									$rScale = '[0:v]yadif[bg];[bg][1:v]';
 								} else {
-									if (!$rData['software_decoding']) {
-										$rScale = '[0:v]yadif[bg];[bg][1:v]';
-									} else {
-										$rScale = 'yadif';
-									}
-
-									$rProfileOptions[17] = array('cmd' => '', 'val' => 1);
+									$rScale = 'yadif';
 								}
+
+								$rProfileOptions[17] = array('cmd' => '', 'val' => 1);
 							}
 						}
+					}
+				} else {
+					if (0 >= strlen($rData['resize'])) {
 					} else {
-						if (0 >= strlen($rData['resize'])) {
-						} else {
-							$rProfileOptions[9] = array('cmd' => '-vf scale=' . escapeshellcmd($rData['resize']), 'val' => $rData['resize']);
-						}
+						$rProfileOptions[9] = array('cmd' => '-vf scale=' . escapeshellcmd($rData['resize']), 'val' => $rData['resize']);
+					}
 
-						if (0 >= intval($rData['deint'])) {
-						} else {
-							$rProfileOptions[17] = array('cmd' => '-vf yadif', 'val' => 1);
-						}
+					if (0 >= intval($rData['deint'])) {
+					} else {
+						$rProfileOptions[17] = array('cmd' => '-vf yadif', 'val' => 1);
 					}
 				}
 			}
