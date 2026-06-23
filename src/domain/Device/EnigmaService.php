@@ -423,7 +423,7 @@ class EnigmaService {
 		$db->query('SELECT * FROM `enigma2_devices` WHERE `user_id` = ?;', $rID);
 
 		if ($db->num_rows() != 1) {
-			return '';
+			return array();
 		}
 
 		return $db->get_row();
