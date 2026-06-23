@@ -81,11 +81,34 @@ EXCLUDE_ARGS := $(addprefix --exclude=,$(EXCLUDES))
 
 .PHONY: new lb main lb_copy_files main_copy_files set_permissions create_archive \
 	lb_archive_move main_archive_move main_install_archive clean \
-	delete_files_list lb_delete_files_list generate_deleted_files syntax_check
+	delete_files_list lb_delete_files_list generate_deleted_files syntax_check \
+	phpstan phpstan-install phpstan-baseline
 
 # ─── Syntax check ───────────────────────────────────────────────
 syntax_check:
 	@bash ./tools/php_syntax_check.sh
+
+# ─── Static analysis (PHPStan) ──────────────────────────────────
+PHPSTAN := tools/phpstan/phpstan.phar
+PHPSTAN_VERSION := 2.1.17
+
+# Download the PHPStan PHAR once (no Composer required).
+phpstan-install:
+	@if [ ! -f "$(PHPSTAN)" ]; then \
+		echo "==> Downloading PHPStan $(PHPSTAN_VERSION)"; \
+		curl -fSL "https://github.com/phpstan/phpstan/releases/download/$(PHPSTAN_VERSION)/phpstan.phar" -o "$(PHPSTAN)"; \
+		chmod +x "$(PHPSTAN)"; \
+	else \
+		echo "==> PHPStan already present: $(PHPSTAN)"; \
+	fi
+
+# Run the analysis using phpstan.dist.neon.
+phpstan: phpstan-install
+	@php "$(PHPSTAN)" analyse --memory-limit=2G
+
+# Freeze all current errors into phpstan-baseline.neon (run after a level bump).
+phpstan-baseline: phpstan-install
+	@php "$(PHPSTAN)" analyse --memory-limit=2G --generate-baseline=phpstan-baseline.neon
 
 # ─── Generate deleted_files.txt from git diff ───────────────────
 # Usage: make generate_deleted_files [LAST_TAG=v1.2.3]

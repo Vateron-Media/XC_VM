@@ -1,0 +1,70 @@
+parameters:
+    # Start low for a legacy codebase, then raise one step at a time (0 → max).
+    # Every increment surfaces a new class of issues; fix or baseline, then bump.
+    level: 5
+
+    phpVersion: 80300
+
+    # Entry points to analyze. Add/remove dirs as the audit progresses.
+    paths:
+        - src/core
+        - src/domain
+        - src/infrastructure
+        - src/streaming
+        - src/modules
+        - src/cli
+
+    # No Composer + no namespaces. The bootstrap only defines global constants;
+    # it does NOT run the project autoloader (that would force a live directory
+    # rescan per class miss and crash the workers). PHPStan resolves every
+    # symbol statically from `paths` + `scanDirectories` below.
+    bootstrapFiles:
+        - tools/phpstan/phpstan-bootstrap.php
+
+    # Indexed for symbol resolution (classes/interfaces/functions defined here
+    # are findable) but NOT reported on directly. These cover every source dir
+    # outside `paths` so cross-references always resolve.
+    scanDirectories:
+        - src/public
+        - src/signals
+        - src/ministra
+        - src/content
+        - src/resources
+        - src/config
+        - src/migrations
+
+    # Root files holding global classes (XC_Bootstrap, XC_Autoloader) referenced
+    # across the codebase but living outside any scanned directory.
+    scanFiles:
+        - src/autoload.php
+        - src/bootstrap.php
+
+    excludePaths:
+        analyse:
+            - src/*/tmp/*
+            - src/tmp/*
+            - src/backups/*
+            # Vendored third-party library shipped inside core
+            - src/core/Parsing/M3uParser/*
+
+    treatPhpDocTypesAsCertain: false
+    reportUnmatchedIgnoredErrors: false
+
+    # Documented FALSE POSITIVES that static analysis cannot resolve — NOT a
+    # baseline of real bugs. Each entry is unactionable by design.
+    ignoreErrors:
+        # Dynamic require/include built from absolute runtime paths
+        # (MAIN_HOME = /home/xc_vm/ on a deployed server). The files exist at
+        # deploy time; PHPStan cannot see them on a dev/CI checkout.
+        - identifier: requireOnce.fileNotFound
+        - identifier: include.fileNotFound
+        - identifier: require.fileNotFound
+        # Proprietary ioncube-encoded class, shipped only in licensed builds.
+        # Every call site is guarded with class_exists('XC_VM').
+        - '#unknown class XC_VM\.#'
+        # External vendor library (maxmind-db/reader), installed at runtime and
+        # not part of the source tree.
+        - '#MaxMind\\Db\\Reader#'
+
+# NOTE: no baseline include — the goal here is to FIX errors, not freeze them.
+# (Re-add `includes: [phpstan-baseline.neon]` only if a temporary freeze is needed.)

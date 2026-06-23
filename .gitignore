@@ -8,3 +8,7 @@ EXTENSION.md
 src/tmp/cache/autoload_map
 tests/.cache/
 .claude/
+
+# Static analysis (PHPStan)
+tools/phpstan/phpstan.phar
+.phpstan.cache/
