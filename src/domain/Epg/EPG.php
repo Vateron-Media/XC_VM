@@ -16,7 +16,7 @@ class EPG {
 	/**
 	 * Inject the database handler (dependency injection).
 	 *
-	 * @param object $db Database handler.
+	 * @param \DatabaseHandler $db Database handler.
 	 * @return void
 	 */
 	public static function setDb($db): void {
@@ -150,13 +150,19 @@ class EPG {
 			}
 
 			// --- timestamps ---
-			$rStart = strtotime((string) $rData->attributes()->start) + ($rOffset * 60);
-			$rStop  = strtotime((string) $rData->attributes()->stop)  + ($rOffset * 60);
+			$rStartRaw = strtotime((string) $rData->attributes()->start);
+			$rStopRaw  = strtotime((string) $rData->attributes()->stop);
 
-			if ($rStart === false || $rStop === false) {
+			// Validate BEFORE applying the offset: `false + (offset*60)` would
+			// coerce false to 0, so the check below could never catch an invalid
+			// timestamp once the offset was added.
+			if ($rStartRaw === false || $rStopRaw === false) {
 				$this->log("[EPG] Warning: Invalid timestamp for channel $rChannelID");
 				continue;
 			}
+
+			$rStart = $rStartRaw + ($rOffset * 60);
+			$rStop  = $rStopRaw  + ($rOffset * 60);
 
 			$rLangTitle = '';
 			$rLangDesc  = '';

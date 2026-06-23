@@ -94,7 +94,7 @@ class AsyncFileOperations {
                 // Wait for inotify events with timeout
                 $events = @inotify_read($inotify);
 
-                if ($events === false || !is_array($events)) {
+                if ($events === false) {
                     usleep(max(1000, $delayMs * 1000));
                 }
 

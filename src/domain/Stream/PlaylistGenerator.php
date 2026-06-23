@@ -16,7 +16,7 @@ class PlaylistGenerator {
 	/**
 	 * Inject the database handler (dependency injection).
 	 *
-	 * @param object $db Database handler.
+	 * @param \DatabaseHandler $db Database handler.
 	 * @return void
 	 */
 	public static function setDb($db): void {
@@ -44,7 +44,7 @@ class PlaylistGenerator {
 	 * @param array       $rUserInfo  Authenticated user row.
 	 * @param string      $rDeviceKey Device/output key.
 	 * @param string      $rOutputKey Stream container/output format (default 'ts').
-	 * @param string|null $rTypeKey   Content type filter, or null for all.
+	 * @param string[]|null $rTypeKey Content type filter list, or null for all.
 	 * @param bool        $rNoCache   Bypass any cached playlist.
 	 * @param bool        $rProxy     Generate proxied URLs.
 	 * @return string The generated playlist contents.
@@ -447,7 +447,7 @@ class PlaylistGenerator {
 
 						$rESRID = ($rChannel['live'] == 1 ? 1 : 4097);
 						$rSID = (!empty($rChannel['custom_sid']) ? $rChannel['custom_sid'] : ':0:1:0:0:0:0:0:0:0:');
-						$rCategoryIDs = json_decode($rChannel['category_id'], true);
+						$rCategoryIDs = json_decode((string) $rChannel['category_id'], true);
 						if (empty($rCategoryIDs)) {
 							$rCategoryIDs = [0];
 						}

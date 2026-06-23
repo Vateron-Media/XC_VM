@@ -43,6 +43,7 @@ function getStream($rID) {
 
 		return $rRow;
 	}
+	return false;
 }
 
 /**

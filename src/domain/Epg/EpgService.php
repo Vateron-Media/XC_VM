@@ -16,7 +16,7 @@ class EpgService {
 	/**
 	 * Inject the database handler (dependency injection).
 	 *
-	 * @param object $db Database handler.
+	 * @param \DatabaseHandler $db Database handler.
 	 * @return void
 	 */
 	public static function setDb($db): void {
@@ -167,10 +167,10 @@ class EpgService {
 	/**
 	 * Get EPG programmes for a stream within a date range.
 	 *
-	 * @param int         $rStreamID  Stream id.
-	 * @param string|null $rStartDate Range start (or null).
-	 * @param string|null $rFinishDate Range end (or null).
-	 * @param bool        $rByID      Key results by programme id.
+	 * @param int       $rStreamID  Stream id.
+	 * @param int|null  $rStartDate Range start as a unix timestamp (or null).
+	 * @param int|null  $rFinishDate Range end as a unix timestamp (or null).
+	 * @param bool      $rByID      Key results by programme id.
 	 * @return array EPG programmes.
 	 */
 	public static function getStreamEpg($rStreamID, $rStartDate = null, $rFinishDate = null, $rByID = false) {
@@ -193,9 +193,9 @@ class EpgService {
 	/**
 	 * Get EPG programmes for multiple streams within a date range.
 	 *
-	 * @param int[]       $rStreamIDs  Stream ids.
-	 * @param string|null $rStartDate  Range start (or null).
-	 * @param string|null $rFinishDate Range end (or null).
+	 * @param int[]      $rStreamIDs  Stream ids.
+	 * @param int|null   $rStartDate  Range start as a unix timestamp (or null).
+	 * @param int|null   $rFinishDate Range end as a unix timestamp (or null).
 	 * @return array EPG programmes keyed by stream.
 	 */
 	public static function getStreamsEpg($rStreamIDs, $rStartDate = null, $rFinishDate = null) {

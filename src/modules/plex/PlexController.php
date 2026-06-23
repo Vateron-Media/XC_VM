@@ -131,7 +131,7 @@ class PlexController {
         $rUsername  = RequestManager::getAll()['username'] ?? '';
         $rPassword = RequestManager::getAll()['password'] ?? '';
 
-        $rToken = PlexAuth::getPlexToken($rIP, $rPort, $rUsername, $rPassword, true);
+        $rToken = PlexAuth::getPlexToken($rIP, $rPort, $rUsername, $rPassword);
         if (!$rToken) {
             echo json_encode(['result' => false]);
             exit();

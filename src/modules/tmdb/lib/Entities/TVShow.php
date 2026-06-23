@@ -139,7 +139,7 @@ class TVShow {
 	 *  Get a item of the array, you should not get used to use this, better use specific get's.
 	 *
 	 * 	@param string $item The item of the $data array you want
-	 * 	@return array
+	 * 	@return mixed
 	 */
 	public function get($item = '') {
 		return empty($item) ? $this->_data : $this->_data[$item];

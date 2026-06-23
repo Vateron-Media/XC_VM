@@ -574,7 +574,7 @@ class XC_Bootstrap {
      * the injected instance; db() returns it. Calling this method removes the
      * need for the global $db fallback inside each db() helper.
      *
-     * @param object $db DatabaseHandler instance
+     * @param \DatabaseHandler $db DatabaseHandler instance
      */
     private static function wireDomainDatabase(object $db): void {
         // Bouquet

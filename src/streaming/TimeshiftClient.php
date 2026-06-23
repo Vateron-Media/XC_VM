@@ -60,7 +60,7 @@ class TS {
 	public function parsePacket() {
 		$rReturn = array('sync_byte' => self::getBits(8), 'transport_error_indicator' => self::getBits(1), 'payload_unit_start_indicator' => self::getBits(1), 'transport_priority' => self::getBits(1), 'pid' => self::getBits(13), 'scrambling_control' => self::getBits(2), 'adaptation_field_exist' => self::getBits(2), 'continuity_counter' => self::getBits(4));
 
-		if (($rReturn['adaptation_field_exist'] || $rReturn['adaptation_field_exist'] == 3)) {
+		if ($rReturn['adaptation_field_exist']) {
 			$rTell = self::$rIndex;
 			$rReturn['adaptation_field_length'] = self::getBits(8);
 

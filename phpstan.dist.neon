@@ -20,6 +20,9 @@ parameters:
     # symbol statically from `paths` + `scanDirectories` below.
     bootstrapFiles:
         - tools/phpstan/phpstan-bootstrap.php
+        # Listed directly (not just require'd from the bootstrap) so PHPStan
+        # tracks it for result-cache invalidation when constants change.
+        - tools/phpstan/constants.stub.php
 
     # Indexed for symbol resolution (classes/interfaces/functions defined here
     # are findable) but NOT reported on directly. These cover every source dir
@@ -46,9 +49,148 @@ parameters:
             - src/backups/*
             # Vendored third-party library shipped inside core
             - src/core/Parsing/M3uParser/*
+            # View templates: included into a controller's scope, so their
+            # variables ($rSettings, $language, ...) are injected by the caller.
+            # PHPStan analyses files standalone and would flag every such var as
+            # undefined — not real bugs. (Still indexed via scanDirectories.)
+            - src/modules/*/views/*
 
     treatPhpDocTypesAsCertain: false
     reportUnmatchedIgnoredErrors: false
+
+    # These constants are defined at runtime with values that vary by
+    # deployment; tell PHPStan to use their type, not the literal value the
+    # stub happens to set (otherwise comparisons read as always true/false).
+    dynamicConstantNames:
+        - ARCHIVE_PATH
+        - BIN_PATH
+        - BUFFER_SIZE
+        - CACHE_TMP_PATH
+        - CIDR_TMP_PATH
+        - CLIENT_BANNED
+        - CLIENT_DISABLED
+        - CLIENT_DISALLOWED
+        - CLIENT_EXPIRED
+        - CLIENT_INVALID
+        - CLIENT_IS_E2
+        - CLIENT_IS_MAG
+        - CLIENT_IS_STALKER
+        - CLOSE_EMPTY
+        - CONFIG_PATH
+        - CONS_TMP_PATH
+        - CONTENT_PATH
+        - CREATED_PATH
+        - CRONS_TMP_PATH
+        - DB_ACCESS_ENABLED
+        - DELAY_PATH
+        - DEV_MODE
+        - DIVERGENCE_TMP_PATH
+        - E2_IMAGES_PATH
+        - EPG_PATH
+        - FFMPEG
+        - FFMPEG_BIN_40
+        - FFMPEG_BIN_71
+        - FFMPEG_BIN_80
+        - FFMPEG_FONT
+        - FFPROBE
+        - FFPROBE_BIN_40
+        - FFPROBE_BIN_71
+        - FFPROBE_BIN_80
+        - FLOOD_TMP_PATH
+        - GEOISP_BIN
+        - GEOLITE2_BIN
+        - GEOLITE2C_BIN
+        - GIT_OWNER
+        - GIT_REPO_BIN
+        - GIT_REPO_MAIN
+        - GIT_REPO_UPDATE
+        - HOST
+        - IMAGES_PATH
+        - KEYFRAME_HEADER
+        - LINES_TMP_PATH
+        - LOGS_TMP_PATH
+        - MAIN_HOME
+        - MAX_PREBUFFER
+        - MAX_SEG_BYTES
+        - MINISTRA_TMP_PATH
+        - MIN_SEG_PTS
+        - MONITOR_CALLS
+        - OPENSSL_EXTRA
+        - PACKET_SIZE
+        - PAGE_NAME
+        - PAT_HEADER
+        - PAT_PERIOD
+        - PHP_BIN
+        - PHP_ERRORS
+        - PLAYER_BOOTSTRAP_DONE
+        - PLAYER_TMP_PATH
+        - PLAYLIST_PATH
+        - SEGMENT_DURATION
+        - SERIES_TMP_PATH
+        - SERVER_ID
+        - SIGNALS_PATH
+        - SIGNALS_TMP_PATH
+        - STATUS_CERTBOT
+        - STATUS_CERTBOT_INVALID
+        - STATUS_CERTBOT_RUNNING
+        - STATUS_CODE_LENGTH
+        - STATUS_DISABLED
+        - STATUS_EXISTS_CODE
+        - STATUS_EXISTS_DIR
+        - STATUS_EXISTS_HMAC
+        - STATUS_EXISTS_IP
+        - STATUS_EXISTS_MAC
+        - STATUS_EXISTS_NAME
+        - STATUS_EXISTS_SOURCE
+        - STATUS_EXISTS_USERNAME
+        - STATUS_FAILURE
+        - STATUS_FLUSH
+        - STATUS_INSUFFICIENT_CREDITS
+        - STATUS_INVALID_CAPTCHA
+        - STATUS_INVALID_CODE
+        - STATUS_INVALID_DATA
+        - STATUS_INVALID_DATE
+        - STATUS_INVALID_DIR
+        - STATUS_INVALID_EMAIL
+        - STATUS_INVALID_FILE
+        - STATUS_INVALID_GROUP
+        - STATUS_INVALID_INPUT
+        - STATUS_INVALID_IP
+        - STATUS_INVALID_MAC
+        - STATUS_INVALID_NAME
+        - STATUS_INVALID_PACKAGE
+        - STATUS_INVALID_PASSWORD
+        - STATUS_INVALID_PLAYLIST
+        - STATUS_INVALID_SUBRESELLER
+        - STATUS_INVALID_TYPE
+        - STATUS_INVALID_USER
+        - STATUS_INVALID_USERNAME
+        - STATUS_NO_DESCRIPTION
+        - STATUS_NO_KEY
+        - STATUS_NO_SOURCE
+        - STATUS_NO_SOURCES
+        - STATUS_NOT_ADMIN
+        - STATUS_NO_TITLE
+        - STATUS_NOT_RESELLER
+        - STATUS_NO_TRIALS
+        - STATUS_RESERVED_CODE
+        - STATUS_SPACE_ISSUE
+        - STATUS_SUCCESS
+        - STATUS_SUCCESS_MULTI
+        - STATUS_SUCCESS_REPLACE
+        - STATUS_TOO_MANY_RESULTS
+        - STORAGE_PATH
+        - STORE_PREBUFFER
+        - STREAMS_PATH
+        - STREAMS_TMP_PATH
+        - TIMEOUT
+        - TIMEOUT_READ
+        - TMP_PATH
+        - VIDEO_PATH
+        - VOD_PATH
+        - WATCH_TMP_PATH
+        - XC_VM_VERSION
+        - YOUTUBE_BIN
 
     # Documented FALSE POSITIVES that static analysis cannot resolve — NOT a
     # baseline of real bugs. Each entry is unactionable by design.
@@ -65,6 +207,11 @@ parameters:
         # External vendor library (maxmind-db/reader), installed at runtime and
         # not part of the source tree.
         - '#MaxMind\\Db\\Reader#'
+        # ext-inotify stub is incomplete: inotify_init() really can return false
+        # (PHP manual), so the defensive check below is correct, not dead code.
+        -
+            message: '#=== between resource and false will always evaluate to false#'
+            path: src/streaming/AsyncFileOperations.php
 
 # NOTE: no baseline include — the goal here is to FIX errors, not freeze them.
 # (Re-add `includes: [phpstan-baseline.neon]` only if a temporary freeze is needed.)

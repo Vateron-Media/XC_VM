@@ -235,7 +235,7 @@ class DropboxClient {
 	 * @param string|object $path Dropbox path or metadata object of the file to download.
 	 * @param string $dest_path Local path for destination
 	 * @param string $rev Optional. The revision of the file to retrieve. This defaults to the most recent revision.
-	 * @param callback $progress_changed_callback Optional. Callback that will be called during download with 2 args: 1. bytes loaded, 2. file size
+	 * @param callable|null $progress_changed_callback Optional. Callback that will be called during download with 2 args: 1. bytes loaded, 2. file size
 	 *
 	 * @return object Dropbox file metadata
 	 * @throws DropboxException
@@ -429,7 +429,7 @@ class DropboxClient {
 	 * @param string     $path     Dropbox file path.
 	 * @param bool        $preview  Return a preview link rather than a direct one.
 	 * @param bool        $_short   Request a shortened URL.
-	 * @param string|null $expires  Out-param set to the link expiry, when available.
+	 * @param int|null $expires  Out-param set to the link expiry (unix timestamp), when available.
 	 * @return string The link URL.
 	 */
 	public function GetLink($path, $preview = true, $_short = true, &$expires = null) {
@@ -537,7 +537,7 @@ class DropboxClient {
 	 * Get a copy reference for a file (for cross-account copies).
 	 *
 	 * @param string|object $dropbox_file File path or metadata object.
-	 * @param string|null   $expires      Out-param set to the reference expiry.
+	 * @param int|false|null $expires     Out-param set to the reference expiry (unix timestamp, or false if unparseable).
 	 * @return object Copy-reference response.
 	 */
 	public function GetCopyRef($dropbox_file, &$expires = null) {
@@ -545,7 +545,7 @@ class DropboxClient {
 			$dropbox_file = $dropbox_file->path;
 		}
 
-		$ref = $this->apiCall('copy_ref/' . $this->rootPath . '/' . $dropbox_file, 'GET');
+		$ref = $this->apiCall('copy_ref/' . $this->rootPath . '/' . $dropbox_file);
 		$expires = strtotime($ref->expires);
 
 		return $ref->copy_ref;
@@ -688,8 +688,6 @@ class DropboxClient {
 		}
 
 		return $res;
-
-		return null;
 	}
 
 	/**
@@ -839,9 +837,11 @@ class DropboxClient {
 	 * @throws DropboxException When metadata cannot be parsed and $throw_on_error is true.
 	 */
 	private static function getMetaFromHeaders(&$header_array, $throw_on_error = false) {
-		$obj = json_decode(substr(@array_shift(array_filter($header_array, function ($s) {
+		$rApiHeaders = array_filter($header_array, function ($s) {
 			return stripos($s, 'dropbox-api-result:') === 0;
-		})), 20));
+		});
+		$rApiHeader = (string) array_shift($rApiHeaders);
+		$obj = json_decode(substr($rApiHeader, 20));
 
 		if ($throw_on_error && (empty($obj) || !is_object($obj))) {
 			throw new DropboxException('Could not retrieve meta data from header data: ' . print_r($header_array, true));

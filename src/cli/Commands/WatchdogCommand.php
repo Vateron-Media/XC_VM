@@ -73,7 +73,7 @@ class WatchdogCommand implements CommandInterface {
 			// ── Nginx stats ──────────────────────────────────────
 			$rNginx = explode("\n", file_get_contents('http://127.0.0.1:' . $rServers[SERVER_ID]['http_broadcast_port'] . '/nginx_status'));
 			list($rAccepted, $rHandled, $rRequests) = explode(' ', trim($rNginx[2]));
-			$rRequestsPerSecond = ($rLastRequests ? intval(floatval($rRequests - $rLastRequests) / (time() - $rLastRequestsTime)) : 0);
+			$rRequestsPerSecond = ($rLastRequests ? intval((floatval($rRequests) - floatval($rLastRequests)) / (time() - $rLastRequestsTime)) : 0);
 			$rLastRequests = $rRequests;
 			$rLastRequestsTime = time();
 
@@ -88,10 +88,10 @@ class WatchdogCommand implements CommandInterface {
 			$rInfoB = explode(' ', preg_replace('!cpu +!', '', $rStat[0]));
 			$rPrevStat = $rStat;
 			$rDiff = array();
-			$rDiff['user'] = $rInfoB[0] - $rInfoA[0];
-			$rDiff['nice'] = $rInfoB[1] - $rInfoA[1];
-			$rDiff['sys'] = $rInfoB[2] - $rInfoA[2];
-			$rDiff['idle'] = $rInfoB[3] - $rInfoA[3];
+			$rDiff['user'] = intval($rInfoB[0]) - intval($rInfoA[0]);
+			$rDiff['nice'] = intval($rInfoB[1]) - intval($rInfoA[1]);
+			$rDiff['sys'] = intval($rInfoB[2]) - intval($rInfoA[2]);
+			$rDiff['idle'] = intval($rInfoB[3]) - intval($rInfoA[3]);
 			$rTotal = array_sum($rDiff);
 			$rCPU = array();
 			foreach ($rDiff as $x => $y) {
