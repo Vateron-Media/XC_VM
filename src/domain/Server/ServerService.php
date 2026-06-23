@@ -361,7 +361,7 @@ class ServerService {
 	 * Change a server's listening ports.
 	 *
 	 * @param int   $rServerID Server id.
-	 * @param string $rType    Port type (http/https/...).
+	 * @param int   $rType     Port type code (0=http, 1=https, 2=rtmp, ...).
 	 * @param mixed $rPorts    New port value(s).
 	 * @param bool  $rReload   Reload services after the change.
 	 * @return mixed Result.

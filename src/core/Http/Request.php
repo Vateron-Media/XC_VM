@@ -347,7 +347,7 @@ class Request {
                 if (is_array($rValue)) {
                     self::cleanGlobals($rData[$rKey], ++$rIteration);
                 } else {
-                    $rValue = str_replace(chr('0'), '', $rValue);
+                    $rValue = str_replace(chr(0), '', $rValue);
                     $rValue = str_replace("\x0", '', $rValue);
                     $rValue = str_replace('../', '&#46;&#46;/', $rValue);
                     $rValue = str_replace('&#8238;', '', $rValue);
