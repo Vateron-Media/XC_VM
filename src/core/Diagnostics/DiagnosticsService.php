@@ -105,7 +105,7 @@ class DiagnosticsService {
 	/**
 	 * Download panel logs from database, format them and clear the logs table
 	 *
-	 * @param object $db  Database handler (must have ->query(), ->get_rows())
+	 * @param \DatabaseHandler $db  Database handler (must have ->query(), ->get_rows())
 	 * @return array ['errors' => [...], 'version' => string]
 	 * @throws Exception
 	 */
@@ -170,7 +170,7 @@ class DiagnosticsService {
 	/**
 	 * Submit panel logs to the central API server
 	 *
-	 * @param object $db  Database handler
+	 * @param \DatabaseHandler $db  Database handler
 	 * @return string|false  API response or false on failure
 	 */
 	public static function submitPanelLogs($db) {

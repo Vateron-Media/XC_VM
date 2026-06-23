@@ -176,7 +176,9 @@ class Database {
 	 * Errors are logged via FileLogger and return false.
 	 *
 	 * @param string $query    SQL with `?` placeholders.
-	 * @param bool   $buffered Disable buffered query mode when true.
+	 * @param mixed  $buffered First bind value, or boolean true to disable
+	 *                         buffered query mode (legacy positional overload;
+	 *                         all args from index 1 are collected as binds).
 	 * @return bool True on success, false on failure.
 	 */
 	public function query($query, $buffered = false) {
@@ -287,7 +289,7 @@ class Database {
 	/**
 	 * Fetch a single (cleaned) associative row from the last query.
 	 *
-	 * @return array|false The row, or false if no active result.
+	 * @return array<string, mixed>|false The row, or false if no active result.
 	 */
 	public function get_row() {
 		if (!($this->dbh && $this->result)) {
@@ -424,8 +426,8 @@ class Database {
 	/**
 	 * Apply parseCleanValue() to every column of a row.
 	 *
-	 * @param array $row Associative row.
-	 * @return array Row with sanitized values.
+	 * @param array<string, mixed> $row Associative row.
+	 * @return array<string, mixed> Row with sanitized values.
 	 */
 	public function clean_row($row) {
 		foreach ($row as $key => $value) {

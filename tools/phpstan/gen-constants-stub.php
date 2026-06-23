@@ -72,6 +72,20 @@ foreach ($dir as $f) {
     }
 }
 
+// Explicit type overrides for constants whose value the heuristic cannot
+// classify (defined from variables or function calls). Keeps the stub accurate
+// and prevents false null/mixed positives at call sites.
+$overrides = [
+    'HOST'       => 'string', // trim(explode(':', HTTP_HOST)[0])
+    'PAGE_NAME'  => 'string',
+    'PHP_ERRORS' => 'bool',   // dev-mode flag
+];
+foreach ($overrides as $name => $type) {
+    if (isset($consts[$name])) {
+        $consts[$name] = $type;
+    }
+}
+
 ksort($consts);
 
 echo "<?php\n\n";
@@ -87,11 +101,15 @@ echo " * @package XC_VM\n";
 echo " */\n\n";
 
 foreach ($consts as $name => $type) {
+    // Use mt_rand()-based expressions so PHPStan infers a GENERAL type
+    // (int/string/bool) and never constant-folds to a literal (0/'') — a
+    // literal would create false positives like division-by-zero or
+    // always-false comparisons at call sites.
     $expr = match ($type) {
-        'string' => "(string) getenv('XCVM_STUB')",
-        'int'    => "(int) getenv('XCVM_STUB')",
-        'bool'   => "(bool) getenv('XCVM_STUB')",
-        default  => "json_decode((string) getenv('XCVM_STUB'), true)",
+        'string' => "(string) mt_rand()",
+        'int'    => "mt_rand()",
+        'bool'   => "(bool) mt_rand()",
+        default  => "json_decode((string) mt_rand(), true)",
     };
     echo "if (!defined('$name')) define('$name', $expr);\n";
 }

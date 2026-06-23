@@ -16,7 +16,7 @@ class EnigmaService {
 	/**
 	 * Inject the database handler (dependency injection).
 	 *
-	 * @param object $db Database handler.
+	 * @param \DatabaseHandler $db Database handler.
 	 * @return void
 	 */
 	public static function setDb($db): void {
@@ -423,7 +423,7 @@ class EnigmaService {
 		$db->query('SELECT * FROM `enigma2_devices` WHERE `user_id` = ?;', $rID);
 
 		if ($db->num_rows() != 1) {
-			return '';
+			return array();
 		}
 
 		return $db->get_row();

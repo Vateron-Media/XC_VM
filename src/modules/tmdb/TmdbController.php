@@ -7,7 +7,7 @@
  *   - search()   — поиск фильмов/сериалов/эпизодов (action: tmdb_search)
  *   - details()  — детальная информация по TMDB ID (action: tmdb)
  *
- * @see TmdbService
+ * @see TmdbApiService
  * @see TmdbModule
  *
  * @package XC_VM_Module_Tmdb
@@ -35,7 +35,7 @@ class TmdbController {
         $language = RequestManager::getAll()['language']  ?? null;
         $season   = isset(RequestManager::getAll()['season']) ? intval(RequestManager::getAll()['season']) : null;
 
-        $response = TmdbService::search($term, $type, $language ?: null, $season);
+        $response = TmdbApiService::search($term, $type, $language ?: null, $season);
         echo json_encode($response);
         exit();
     }
@@ -50,7 +50,7 @@ class TmdbController {
         $type     = RequestManager::getAll()['type']             ?? '';
         $language = RequestManager::getAll()['language']         ?? null;
 
-        $response = TmdbService::getDetails($id, $type, $language ?: null);
+        $response = TmdbApiService::getDetails($id, $type, $language ?: null);
         echo json_encode($response);
         exit();
     }

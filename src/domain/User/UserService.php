@@ -16,7 +16,7 @@ class UserService {
 	/**
 	 * Inject the database handler (dependency injection).
 	 *
-	 * @param object $db Database handler.
+	 * @param \DatabaseHandler $db Database handler.
 	 * @return void
 	 */
 	public static function setDb($db): void {
@@ -110,7 +110,7 @@ class UserService {
 			$rUsers = AdminHelpers::confirmIDs(json_decode($rData['users_selected'], true));
 
 			if (count($rUsers) > 0) {
-				if (isset($rData['c_owner_id']) && $rUser == $rArray['owner_id']) {
+				if (isset($rData['c_owner_id']) && $rArray['owner_id'] == 0) {
 					unset($rArray['owner_id']);
 				}
 

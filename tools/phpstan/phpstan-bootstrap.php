@@ -25,6 +25,5 @@ if (!defined('MAIN_HOME')) {
     define('MAIN_HOME', $srcRoot . '/');
 }
 
-// Declare constants the app defines at runtime (inside methods) so PHPStan can
-// resolve them. Auto-generated — regenerate with gen-constants-stub.php.
-require __DIR__ . '/constants.stub.php';
+// NOTE: constants.stub.php is loaded via its own bootstrapFiles entry in
+// phpstan.dist.neon (so PHPStan tracks it for result-cache invalidation).
