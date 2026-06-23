@@ -29,6 +29,25 @@ jobs:
       - name: Check syntax
         run: bash tools/php_syntax_check.sh
 
+  phpstan:
+    name: PHPStan (static analysis)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          # Matches phpVersion (80300) the analysis targets.
+          php-version: '8.3'
+          coverage: none
+
+      # Downloads the pinned PHPStan PHAR (no Composer) and analyses against the
+      # committed baseline — fails only on NEW issues introduced by the change.
+      - name: Run PHPStan
+        run: make phpstan
+
   test:
     name: PHPUnit
     runs-on: ubuntu-latest
