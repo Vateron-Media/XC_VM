@@ -56,7 +56,7 @@ class ConnectionTracker {
 		$rRedis = RedisManager::instance();
 		$rFile = ($rProxy ? 'proxy_capacity' : 'servers_capacity');
 		if ($rSettings['redis_handler'] && $rProxy && $rSettings['split_by'] == 'maxclients') {
-			$rSettings['split_by'] == 'guar_band';
+			$rSettings['split_by'] = 'guar_band';
 		}
 
 		if ($rSettings['redis_handler'] && $rRedis) {

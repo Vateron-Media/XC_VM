@@ -42,7 +42,7 @@ class Thread {
      * Initialize an empty process-thread state.
      */
     public function __construct() {
-        $this->process = 0;
+        $this->process = null;
         $this->buffer = '';
         $this->pipes = (array) null;
         $this->output = '';
