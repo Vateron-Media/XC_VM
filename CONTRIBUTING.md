@@ -65,6 +65,37 @@ bash tools/php_syntax_check.sh src/domain/Device/EnigmaService.php
 
 Do not submit PRs with syntax errors — CI will reject them.
 
+## 🔬 Static Analysis (PHPStan)
+
+The project is analysed with **PHPStan** (level 5). There is no Composer — the
+pinned PHAR is downloaded on first run, and a bootstrap registers the project's
+constants/classes (`tools/phpstan/`).
+
+Run the analysis before submitting a PR:
+
+```sh
+make phpstan
+```
+
+This is the same check CI runs. It must report **`[OK] No errors`**.
+
+How the gate works:
+
+- A committed baseline (`phpstan-baseline.neon`) freezes the pre-existing
+  findings, so CI only fails on **new** issues your change introduces — fix
+  those before pushing.
+- The baseline is **not** a list of accepted bugs (most entries are false
+  positives from dynamic DB-row shapes or templates). Do **not** grow it to hide
+  a real problem in new code.
+- If you fix a batch of existing findings, regenerate the (smaller) baseline:
+
+  ```sh
+  make phpstan-baseline
+  ```
+
+- After editing `tools/phpstan/constants.stub.php` or any PHPDoc types, clear the
+  result cache first: `php tools/phpstan/phpstan.phar clear-result-cache`.
+
 ## 🧪 Adding Tests
 
 - Add new PHP tests under `tests/Unit/`.
