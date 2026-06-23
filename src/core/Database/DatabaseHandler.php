@@ -215,7 +215,7 @@ class DatabaseHandler extends Database {
      * @param mixed ...$params Bound parameter values
      * @return array|false
      */
-    public function fetchAll($sql) {
+    public function fetchAll($sql, ...$params) {
         $args = func_get_args();
         if (!call_user_func_array(array($this, 'query'), $args)) {
             return false;
@@ -233,7 +233,7 @@ class DatabaseHandler extends Database {
      * @param mixed ...$params Bound parameter values
      * @return array|false
      */
-    public function fetchAllKeyed($keyColumn, $sql) {
+    public function fetchAllKeyed($keyColumn, $sql, ...$params) {
         $args = func_get_args();
         array_shift($args); // remove $keyColumn
         if (!call_user_func_array(array($this, 'query'), $args)) {
@@ -251,7 +251,7 @@ class DatabaseHandler extends Database {
      * @param mixed ...$params Bound parameter values
      * @return array|false
      */
-    public function fetchOne($sql) {
+    public function fetchOne($sql, ...$params) {
         $args = func_get_args();
         if (!call_user_func_array(array($this, 'query'), $args)) {
             return false;
@@ -268,7 +268,7 @@ class DatabaseHandler extends Database {
      * @param mixed ...$params Bound parameter values
      * @return mixed|false
      */
-    public function fetchValue($sql) {
+    public function fetchValue($sql, ...$params) {
         $args = func_get_args();
         if (!call_user_func_array(array($this, 'query'), $args)) {
             return false;
@@ -285,7 +285,7 @@ class DatabaseHandler extends Database {
      * @param mixed ...$params Bound parameter values
      * @return array|false
      */
-    public function fetchColumn($sql) {
+    public function fetchColumn($sql, ...$params) {
         $args = func_get_args();
         if (!call_user_func_array(array($this, 'query'), $args)) {
             return false;
@@ -459,7 +459,7 @@ class DatabaseHandler extends Database {
      * @param mixed ...$whereParams Values for WHERE placeholders
      * @return bool
      */
-    public function update($table, array $data, $where) {
+    public function update($table, array $data, $where, ...$whereParams) {
         if (empty($data)) {
             return false;
         }
@@ -497,7 +497,7 @@ class DatabaseHandler extends Database {
      * @param mixed ...$params Values for WHERE placeholders
      * @return bool
      */
-    public function delete($table, $where) {
+    public function delete($table, $where, ...$params) {
         $sql = sprintf('DELETE FROM `%s` WHERE %s', $table, $where);
 
         $allArgs = func_get_args();
