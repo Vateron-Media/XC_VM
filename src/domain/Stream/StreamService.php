@@ -819,7 +819,7 @@ class StreamService {
 	 *
 	 * @param mixed $rData Playlist file path or raw M3U content.
 	 * @param bool  $rFile Treat $rData as a file path (true) or content (false).
-	 * @return array Parsed playlist entries.
+	 * @return array Parsed playlist entries (iterable, countable).
 	 */
 	public static function parseM3U($rData, $rFile = true) {
 		require_once MAIN_HOME . 'core/Parsing/M3uParser/bootstrap.php';

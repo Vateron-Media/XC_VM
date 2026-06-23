@@ -113,7 +113,7 @@ class UserRepository {
 	 * @param array $rPermissions Effective permissions.
 	 * @param array $rUserInfo    Current user row.
 	 * @param int   $rID          Target user id.
-	 * @return array|null Parent user row, or null.
+	 * @return int Resolved parent user id.
 	 */
 	public static function getParent($rPermissions, $rUserInfo, $rID) {
 		if (!isset($rPermissions['users'][$rID]['parent']) || $rPermissions['users'][$rID]['parent'] == 0 || $rPermissions['users'][$rID]['parent'] == $rUserInfo['id']) {
