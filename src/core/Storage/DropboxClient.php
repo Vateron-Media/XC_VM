@@ -429,7 +429,7 @@ class DropboxClient {
 	 * @param string     $path     Dropbox file path.
 	 * @param bool        $preview  Return a preview link rather than a direct one.
 	 * @param bool        $_short   Request a shortened URL.
-	 * @param string|null $expires  Out-param set to the link expiry, when available.
+	 * @param int|null $expires  Out-param set to the link expiry (unix timestamp), when available.
 	 * @return string The link URL.
 	 */
 	public function GetLink($path, $preview = true, $_short = true, &$expires = null) {
@@ -537,7 +537,7 @@ class DropboxClient {
 	 * Get a copy reference for a file (for cross-account copies).
 	 *
 	 * @param string|object $dropbox_file File path or metadata object.
-	 * @param string|null   $expires      Out-param set to the reference expiry.
+	 * @param int|false|null $expires     Out-param set to the reference expiry (unix timestamp, or false if unparseable).
 	 * @return object Copy-reference response.
 	 */
 	public function GetCopyRef($dropbox_file, &$expires = null) {
