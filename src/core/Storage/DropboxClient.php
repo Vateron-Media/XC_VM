@@ -235,7 +235,7 @@ class DropboxClient {
 	 * @param string|object $path Dropbox path or metadata object of the file to download.
 	 * @param string $dest_path Local path for destination
 	 * @param string $rev Optional. The revision of the file to retrieve. This defaults to the most recent revision.
-	 * @param callback $progress_changed_callback Optional. Callback that will be called during download with 2 args: 1. bytes loaded, 2. file size
+	 * @param callable|null $progress_changed_callback Optional. Callback that will be called during download with 2 args: 1. bytes loaded, 2. file size
 	 *
 	 * @return object Dropbox file metadata
 	 * @throws DropboxException

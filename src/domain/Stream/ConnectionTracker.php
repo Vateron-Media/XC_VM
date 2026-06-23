@@ -21,7 +21,7 @@ class ConnectionTracker {
 	/**
 	 * Inject the database handler (dependency injection).
 	 *
-	 * @param object $db Database handler.
+	 * @param \DatabaseHandler $db Database handler.
 	 * @return void
 	 */
 	public static function setDb($db): void {

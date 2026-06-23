@@ -306,7 +306,9 @@ class DatabaseHandler extends Database {
      * - Automatic reconnection on "MySQL server has gone away"
      *
      * @param string $query SQL with ? placeholders
-     * @param bool $buffered Use unbuffered query
+     * @param mixed $buffered First bind value, or boolean true to disable
+     *                        buffered query mode (legacy positional overload;
+     *                        all args from index 1 are collected as binds).
      * @return bool
      */
     public function query($query, $buffered = false) {

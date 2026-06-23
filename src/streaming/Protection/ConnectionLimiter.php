@@ -78,7 +78,7 @@ class ConnectionLimiter {
 										$rIDs[] = intval($rConnections[$i]['activity_id']);
 									}
 									$rDelUUID[] = $rConnections[$i]['uuid'];
-									$rDelSID[$rConnections[$i]['stream_id']][] = $rDelUUID;
+									$rDelSID[$rConnections[$i]['stream_id']][] = $rConnections[$i]['uuid'];
 								}
 								if ($rConnections[$i]['on_demand'] && $rConnections[$i]['server_id'] == SERVER_ID && $rSettings['on_demand_instant_off']) {
 									ConnectionTracker::removeFromQueue($rConnections[$i]['stream_id'], $rConnections[$i]['pid']);
