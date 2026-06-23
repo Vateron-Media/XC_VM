@@ -49,6 +49,11 @@ parameters:
             - src/backups/*
             # Vendored third-party library shipped inside core
             - src/core/Parsing/M3uParser/*
+            # View templates: included into a controller's scope, so their
+            # variables ($rSettings, $language, ...) are injected by the caller.
+            # PHPStan analyses files standalone and would flag every such var as
+            # undefined — not real bugs. (Still indexed via scanDirectories.)
+            - src/modules/*/views/*
 
     treatPhpDocTypesAsCertain: false
     reportUnmatchedIgnoredErrors: false

@@ -174,6 +174,9 @@ class StreamsCronJob implements CommandInterface {
             foreach ($db->get_rows() as $rStream) {
                 if (file_exists(STREAMS_PATH . $rStream['id'] . '.analyse')) {
                     $rFFProbeOutput = FFprobeRunner::probeStream(STREAMS_PATH . $rStream['id'] . '.analyse');
+                    // Defaults: the UPDATE below runs even when probing fails or
+                    // the output has no codec info, so these must always be set.
+                    $rBitrate = $rCompatible = $rAudioCodec = $rVideoCodec = $rResolution = null;
                     if ($rFFProbeOutput) {
                         $rBitrate = $rFFProbeOutput['bitrate'] / 1024;
                         $rCompatible = intval(DiagnosticsService::checkCompatibility($rFFProbeOutput, SettingsManager::getAll()['player_allow_hevc']));
