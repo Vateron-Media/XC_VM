@@ -55,7 +55,7 @@ class ResellerApiDispatcher {
 	 *
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
-	 * @param object $db           Database handler.
+	 * @param \DatabaseHandler $db           Database handler.
 	 * @return void
 	 */
 	private static function handleDashboard(array $rUserInfo, array $rPermissions, $db): void {
@@ -96,7 +96,7 @@ class ResellerApiDispatcher {
 	 *
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
-	 * @param object $db           Database handler.
+	 * @param \DatabaseHandler $db           Database handler.
 	 * @return void
 	 */
 	private static function handleConnections(array $rUserInfo, array $rPermissions, $db): void {
@@ -138,7 +138,7 @@ class ResellerApiDispatcher {
 	 *
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
-	 * @param object $db           Database handler.
+	 * @param \DatabaseHandler $db           Database handler.
 	 * @return void
 	 */
 	private static function handleLine(array $rUserInfo, array $rPermissions, $db): void {
@@ -210,7 +210,7 @@ class ResellerApiDispatcher {
 	 *
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
-	 * @param object $db           Database handler.
+	 * @param \DatabaseHandler $db           Database handler.
 	 * @return void
 	 */
 	private static function handleLineActivity(array $rUserInfo, array $rPermissions, $db): void {
@@ -256,7 +256,7 @@ class ResellerApiDispatcher {
 	 *
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
-	 * @param object $db           Database handler.
+	 * @param \DatabaseHandler $db           Database handler.
 	 * @return void
 	 */
 	private static function handleAdjustCredits(array $rUserInfo, array $rPermissions, $db): void {
@@ -293,7 +293,7 @@ class ResellerApiDispatcher {
 	 *
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
-	 * @param object $db           Database handler.
+	 * @param \DatabaseHandler $db           Database handler.
 	 * @return void
 	 */
 	private static function handleRegUser(array $rUserInfo, array $rPermissions, $db): void {
@@ -344,7 +344,7 @@ class ResellerApiDispatcher {
 	 *
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
-	 * @param object $db           Database handler.
+	 * @param \DatabaseHandler $db           Database handler.
 	 * @return void
 	 */
 	private static function handleTicket(array $rUserInfo, array $rPermissions, $db): void {
@@ -383,7 +383,7 @@ class ResellerApiDispatcher {
 	 *
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
-	 * @param object $db           Database handler.
+	 * @param \DatabaseHandler $db           Database handler.
 	 * @return void
 	 */
 	private static function handleMag(array $rUserInfo, array $rPermissions, $db): void {
@@ -463,7 +463,7 @@ class ResellerApiDispatcher {
 	 *
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
-	 * @param object $db           Database handler.
+	 * @param \DatabaseHandler $db           Database handler.
 	 * @return void
 	 */
 	private static function handleEnigma(array $rUserInfo, array $rPermissions, $db): void {
@@ -543,7 +543,7 @@ class ResellerApiDispatcher {
 	 *
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
-	 * @param object $db           Database handler.
+	 * @param \DatabaseHandler $db           Database handler.
 	 * @return void
 	 */
 	private static function handleGetPackage(array $rUserInfo, array $rPermissions, $db): void {
@@ -597,7 +597,7 @@ class ResellerApiDispatcher {
 	 *
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
-	 * @param object $db           Database handler.
+	 * @param \DatabaseHandler $db           Database handler.
 	 * @return void
 	 */
 	private static function handleGetPackageTrial(array $rUserInfo, array $rPermissions, $db): void {
@@ -629,7 +629,7 @@ class ResellerApiDispatcher {
 	 *
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
-	 * @param object $db           Database handler.
+	 * @param \DatabaseHandler $db           Database handler.
 	 * @return void
 	 */
 	private static function handleHeaderStats(array $rUserInfo, array $rPermissions, $db): void {
@@ -665,7 +665,7 @@ class ResellerApiDispatcher {
 	 *
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
-	 * @param object $db           Database handler.
+	 * @param \DatabaseHandler $db           Database handler.
 	 * @return void
 	 */
 	private static function handleStats(array $rUserInfo, array $rPermissions, $db): void {
@@ -709,7 +709,7 @@ class ResellerApiDispatcher {
 	 *
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
-	 * @param object $db           Database handler.
+	 * @param \DatabaseHandler $db           Database handler.
 	 * @return void
 	 */
 	private static function handleUserList(array $rUserInfo, array $rPermissions, $db): void {
@@ -738,7 +738,7 @@ class ResellerApiDispatcher {
 	 *
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
-	 * @param object $db           Database handler.
+	 * @param \DatabaseHandler $db           Database handler.
 	 * @return void
 	 */
 	private static function handleSendEvent(array $rUserInfo, array $rPermissions, $db): void {
@@ -786,7 +786,7 @@ class ResellerApiDispatcher {
 	 *
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
-	 * @param object $db           Database handler.
+	 * @param \DatabaseHandler $db           Database handler.
 	 * @return void
 	 */
 	private static function handleStreamList(array $rUserInfo, array $rPermissions, $db): void {
@@ -818,7 +818,7 @@ class ResellerApiDispatcher {
 	 *
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
-	 * @param object $db           Database handler.
+	 * @param \DatabaseHandler $db           Database handler.
 	 * @return void
 	 */
 	private static function handleIpWhois(array $rUserInfo, array $rPermissions, $db): void {
@@ -857,7 +857,7 @@ class ResellerApiDispatcher {
 	 *
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
-	 * @param object $db           Database handler.
+	 * @param \DatabaseHandler $db           Database handler.
 	 * @return void
 	 */
 	private static function handleGetEpg(array $rUserInfo, array $rPermissions, $db): void {
@@ -961,7 +961,7 @@ class ResellerApiDispatcher {
 	 *
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
-	 * @param object $db           Database handler.
+	 * @param \DatabaseHandler $db           Database handler.
 	 * @return void
 	 */
 	private static function handleGetProgramme(array $rUserInfo, array $rPermissions, $db): void {

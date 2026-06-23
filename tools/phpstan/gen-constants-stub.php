@@ -72,6 +72,20 @@ foreach ($dir as $f) {
     }
 }
 
+// Explicit type overrides for constants whose value the heuristic cannot
+// classify (defined from variables or function calls). Keeps the stub accurate
+// and prevents false null/mixed positives at call sites.
+$overrides = [
+    'HOST'       => 'string', // trim(explode(':', HTTP_HOST)[0])
+    'PAGE_NAME'  => 'string',
+    'PHP_ERRORS' => 'bool',   // dev-mode flag
+];
+foreach ($overrides as $name => $type) {
+    if (isset($consts[$name])) {
+        $consts[$name] = $type;
+    }
+}
+
 ksort($consts);
 
 echo "<?php\n\n";

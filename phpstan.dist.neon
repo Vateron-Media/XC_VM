@@ -65,6 +65,11 @@ parameters:
         # External vendor library (maxmind-db/reader), installed at runtime and
         # not part of the source tree.
         - '#MaxMind\\Db\\Reader#'
+        # ext-inotify stub is incomplete: inotify_init() really can return false
+        # (PHP manual), so the defensive check below is correct, not dead code.
+        -
+            message: '#=== between resource and false will always evaluate to false#'
+            path: src/streaming/AsyncFileOperations.php
 
 # NOTE: no baseline include — the goal here is to FIX errors, not freeze them.
 # (Re-add `includes: [phpstan-baseline.neon]` only if a temporary freeze is needed.)
