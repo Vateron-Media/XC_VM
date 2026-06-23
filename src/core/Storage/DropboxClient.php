@@ -545,7 +545,7 @@ class DropboxClient {
 			$dropbox_file = $dropbox_file->path;
 		}
 
-		$ref = $this->apiCall('copy_ref/' . $this->rootPath . '/' . $dropbox_file, 'GET');
+		$ref = $this->apiCall('copy_ref/' . $this->rootPath . '/' . $dropbox_file);
 		$expires = strtotime($ref->expires);
 
 		return $ref->copy_ref;

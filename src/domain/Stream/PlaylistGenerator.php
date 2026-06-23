@@ -447,7 +447,7 @@ class PlaylistGenerator {
 
 						$rESRID = ($rChannel['live'] == 1 ? 1 : 4097);
 						$rSID = (!empty($rChannel['custom_sid']) ? $rChannel['custom_sid'] : ':0:1:0:0:0:0:0:0:0:');
-						$rCategoryIDs = json_decode($rChannel['category_id'], true);
+						$rCategoryIDs = json_decode((string) $rChannel['category_id'], true);
 						if (empty($rCategoryIDs)) {
 							$rCategoryIDs = [0];
 						}
