@@ -688,8 +688,6 @@ class DropboxClient {
 		}
 
 		return $res;
-
-		return null;
 	}
 
 	/**
