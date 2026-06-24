@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Logging\Logger;
 /**
  * WebApiBootstrap — bootstrap для web API endpoint'ов
  *

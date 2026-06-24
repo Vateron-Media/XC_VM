@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Logging\DatabaseLogger;
 /**
  * Timeshift stream endpoint
  *

@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Logging\DatabaseLogger;
 /**
  * Stream authentication and session handler
  *

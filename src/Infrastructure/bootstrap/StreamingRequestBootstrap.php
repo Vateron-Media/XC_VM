@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Logging\Logger;
 /**
  * StreamingRequestBootstrap — bootstrap для streaming HTTP endpoint'ов
  *
