@@ -7,20 +7,20 @@
  * registered directories and extracting class definitions using the PHP
  * tokenizer (`token_get_all`).
  *
- * On first run the class map is generated and stored in a binary cache
- * using igbinary serialization. On subsequent runs the cache is loaded
- * directly into memory providing O(1) class resolution.
- *
  * Resolution order:
  *
  * 1. Explicit class map registered via addClass()
- * 2. Cached class map loaded from disk
+ * 2. In-memory resolved map (populated lazily / via warmCache())
  * 3. Runtime directory scan fallback
  *
- * Cache is automatically persisted during shutdown if new classes were
- * discovered during execution.
+ * During the PSR-4 migration this loader runs purely in memory and is
+ * registered at the END of the SPL autoload stack as a fallback for
+ * still-global (non-namespaced) classes. The Composer PSR-4 autoloader
+ * (registered first) resolves migrated `XcVm\*` classes. There is no
+ * persistent (igbinary) cache: PSR-4 encodes the path, so no class map is
+ * persisted to disk.
  *
- * This loader is designed for projects without Composer or namespaces.
+ * This loader is designed for legacy classes without namespaces.
  *
  * @package XC_VM
  *
@@ -42,14 +42,8 @@ class XC_Autoloader {
     /** @var string[] Directories registered for recursive class scanning */
     private static $directories = [];
 
-    /** @var array<string, string> Runtime cache of resolved classes (populated from file cache or fallback) */
+    /** @var array<string, string> Runtime (in-memory) map of resolved classes */
     private static $resolved = [];
-
-    /** @var string|null Path to the on-disk cache file (null = cache disabled) */
-    private static $cacheFile = null;
-
-    /** @var bool Whether new entries were added since the cache was loaded */
-    private static $cacheDirty = false;
 
     /** @var array<string, true> Negative cache: class names confirmed missing after full scan */
     private static $notFound = [];
@@ -61,8 +55,10 @@ class XC_Autoloader {
     /**
      * Initialize the autoloader.
      *
-     * Registers default project directories, attaches the autoload callback
-     * to the SPL autoload stack, and schedules cache persistence on shutdown.
+     * Registers default project directories and appends the autoload callback
+     * to the END of the SPL autoload stack (prepend = false) so the Composer
+     * PSR-4 loader, registered first, wins for migrated `XcVm\*` classes and
+     * only still-global classes fall through to this scanner.
      *
      * This method must be called once during application bootstrap.
      *
@@ -75,10 +71,8 @@ class XC_Autoloader {
 
         self::registerDirectories();
 
-        spl_autoload_register([__CLASS__, 'load'], true, true);
-
-        // Persist file cache on shutdown if it was modified
-        register_shutdown_function([__CLASS__, 'saveCache']);
+        // prepend = false → fallback at the end of the queue, after Composer.
+        spl_autoload_register([__CLASS__, 'load'], true, false);
     }
 
     /**
@@ -113,7 +107,7 @@ class XC_Autoloader {
             }
         }
 
-        // 2. Check resolved cache (file cache or previous runtime lookup)
+        // 2. Check in-memory resolved map (previous runtime lookup / warmCache)
         if (isset(self::$resolved[$className])) {
             $file = self::$resolved[$className];
             if (file_exists($file)) {
@@ -131,7 +125,6 @@ class XC_Autoloader {
         $file = self::findInDirectories($className);
         if ($file !== null) {
             self::$resolved[$className] = $file;
-            self::$cacheDirty = true;
             require_once $file;
             return true;
         }
@@ -191,99 +184,15 @@ class XC_Autoloader {
     }
 
     /**
-     * Enable persistent class map caching.
-     *
-     * If the cache file exists it will be loaded into memory. If the file
-     * is missing or corrupted a full cache warm-up scan will be triggered.
-     *
-     * Cache is stored using igbinary serialization for improved
-     * performance and reduced memory footprint.
-     *
-     * @param string|null $path Absolute path to cache file.
-     *                          NULL disables persistent caching.
-     *
-     * @return void
-     */
-    public static function enableFileCache($path) {
-        self::$cacheFile = $path;
-        if ($path !== null && file_exists($path)) {
-            $data = @file_get_contents($path);
-            if ($data !== false) {
-                $cached = @igbinary_unserialize($data);
-                if (is_array($cached)) {
-                    self::$resolved = $cached;
-                    return;
-                }
-            }
-        }
-
-        // Cache missing or corrupted — warm on first run
-        if ($path !== null) {
-            self::warmCache();
-        }
-    }
-
-    /**
-     * Persist the resolved class map to disk.
-     *
-     * This method is normally executed automatically via the registered
-     * shutdown handler. The cache will only be written if new class
-     * entries were discovered during execution.
-     *
-     * @return void
-     */
-    public static function saveCache() {
-        if (self::$cacheFile !== null && self::$cacheDirty) {
-            $dir = dirname(self::$cacheFile);
-            if (!is_dir($dir)) {
-                @mkdir($dir, 0755, true);
-            }
-            @file_put_contents(
-                self::$cacheFile,
-                igbinary_serialize(self::$resolved),
-                LOCK_EX
-            );
-
-            // When running as root, chown cache dir + file to xc_vm
-            // so that non-root processes can write to tmp/cache/.
-            if (function_exists('posix_geteuid') && posix_geteuid() === 0 && function_exists('posix_getpwnam')) {
-                $rUser = posix_getpwnam('xc_vm');
-                if ($rUser) {
-                    // Walk up from cache dir, chown any root-owned dirs up to MAIN_HOME
-                    $rStop = defined('MAIN_HOME') ? rtrim(MAIN_HOME, '/') : null;
-                    $rWalk = $dir;
-                    while ($rWalk && $rStop && $rWalk !== $rStop && strlen($rWalk) > strlen($rStop)) {
-                        if (is_dir($rWalk) && fileowner($rWalk) === 0) {
-                            @chown($rWalk, $rUser['uid']);
-                            @chgrp($rWalk, $rUser['gid']);
-                        }
-                        $rWalk = dirname($rWalk);
-                    }
-                    // Chown the cache file itself
-                    if (file_exists(self::$cacheFile) && fileowner(self::$cacheFile) === 0) {
-                        @chown(self::$cacheFile, $rUser['uid']);
-                        @chgrp(self::$cacheFile, $rUser['gid']);
-                    }
-                }
-            }
-
-            self::$cacheDirty = false;
-        }
-    }
-
-    /**
-     * Perform full cache warm-up.
+     * Perform a full in-memory class-map build.
      *
      * All registered directories are recursively scanned and PHP files
      * are parsed using the tokenizer to extract class, interface, trait,
-     * and enum declarations.
-     *
-     * The resulting class map is stored in memory and immediately written
-     * to the persistent cache. The negative cache is cleared so that
+     * and enum declarations. The resulting map lives only for the current
+     * request (no persistent cache). The negative cache is cleared so that
      * previously missing classes are re-evaluated.
      *
-     * This method is typically executed automatically when the cache
-     * file is missing or a class is not found in the existing cache.
+     * Triggered automatically on a class miss before the definitive reject.
      *
      * @return void
      */
@@ -293,24 +202,18 @@ class XC_Autoloader {
         foreach (self::$directories as $dir) {
             self::scanDirectoryForClasses($dir);
         }
-        self::$cacheDirty = true;
-        self::saveCache();
     }
 
     /**
-     * Clear all caches: runtime, persistent, and negative.
+     * Clear the in-memory runtime and negative caches.
      *
-     * This forces the autoloader to rebuild the class map on the next run.
+     * Forces the autoloader to rebuild the class map on the next miss.
      *
      * @return void
      */
     public static function clearCache() {
         self::$resolved = [];
         self::$notFound = [];
-        self::$cacheDirty = false;
-        if (self::$cacheFile !== null && file_exists(self::$cacheFile)) {
-            @unlink(self::$cacheFile);
-        }
     }
 
     /**
@@ -494,7 +397,6 @@ if (!defined('MAIN_HOME')) {
     define('MAIN_HOME', __DIR__ . '/');
 }
 
+// In-memory fallback scanner, appended after the Composer PSR-4 loader.
+// No persistent (igbinary) cache — resolution is per-request only.
 XC_Autoloader::init(MAIN_HOME);
-
-// File cache: warm on first run, O(1) on subsequent requests
-XC_Autoloader::enableFileCache(MAIN_HOME . 'tmp/cache/autoload_map');

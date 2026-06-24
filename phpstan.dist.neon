@@ -47,6 +47,8 @@ parameters:
             - src/*/tmp/*
             - src/tmp/*
             - src/backups/*
+            # Composer autoloader glue (committed + shipped, generated code).
+            - src/vendor/*
             # Vendored third-party library shipped inside core
             - src/core/Parsing/M3uParser/*
             # View templates: included into a controller's scope, so their

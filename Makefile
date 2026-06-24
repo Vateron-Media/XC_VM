@@ -25,7 +25,7 @@ EXCLUDES := \
 # NOTE: modules/ is intentionally excluded — all modules are MAIN-only.
 # Modules: tmdb, plex, watch, ministra
 LB_DIRS := bin cli config content core domain modules\
-	infrastructure public resources signals streaming tmp www
+	infrastructure public resources signals streaming tmp vendor www
 
 # Root-level files to copy from MAIN to LB (not inside directories)
 LB_ROOT_FILES := autoload.php bootstrap.php console.php service update

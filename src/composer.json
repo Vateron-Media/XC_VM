@@ -1,0 +1,31 @@
+{
+    "name": "vateron-media/xc-vm",
+    "description": "XC_VM IPTV panel — Composer autoloader (PSR-4) deployed as /home/xc_vm/. Regenerate with `composer dump-autoload` from this directory; never run `composer install` on the deploy path (vendor/ is committed and shipped).",
+    "type": "project",
+    "license": "AGPL-3.0-or-later",
+    "require": {
+        "php": ">=8.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "XcVm\\": "./",
+            "M3uParser\\": "core/Parsing/M3uParser/src/",
+            "Chrisyue\\PhpM3u8\\": "core/Parsing/PhpM3u8/src/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": false,
+        "classmap-authoritative": false,
+        "platform": {
+            "php": "8.1.33"
+        }
+    },
+    "scripts": {
+        "post-install-cmd": [
+            "@php -r \"fwrite(STDERR, \\\"[xc_vm] NOTE: vendor/ is committed and shipped. Use 'composer dump-autoload' to regenerate; do not run 'composer install' on the deploy path.\\n\\\");\""
+        ],
+        "post-update-cmd": [
+            "@php -r \"fwrite(STDERR, \\\"[xc_vm] NOTE: vendor/ + composer.lock are committed. Commit them after updating dependencies.\\n\\\");\""
+        ]
+    }
+}
