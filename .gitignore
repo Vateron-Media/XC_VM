@@ -7,6 +7,9 @@ __pycache__/
 EXTENSION.md
 src/tmp/cache/autoload_map
 tests/.cache/
+
+# NOTE: src/vendor/ is intentionally NOT ignored — the Composer autoloader is
+# committed and shipped (the deploy path has no Composer). Do not add it here.
 .claude/
 
 # Static analysis (PHPStan)

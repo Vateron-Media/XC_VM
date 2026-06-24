@@ -59,8 +59,11 @@ declare(strict_types=0);
 //  1. Class autoloader
 // ─────────────────────────────────────────────────────────────────
 
+// Composer PSR-4 autoloader first (resolves migrated XcVm\* classes), then the
+// legacy XC_Autoloader as an end-of-queue fallback for still-global classes.
+require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/autoload.php';
-// After this: MAIN_HOME is defined, XC_Autoloader is initialized
+// After this: MAIN_HOME is defined, Composer + XC_Autoloader are registered
 
 
 // ─────────────────────────────────────────────────────────────────

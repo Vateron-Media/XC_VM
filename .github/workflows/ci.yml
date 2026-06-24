@@ -1,8 +1,10 @@
 name: CI
 
 # Quality gate: runs on every push and pull request.
-# The project has no Composer — tests run via the committed PHAR
-# (tools/.bin/phpunit.phar) and a custom autoloader (src/autoload.php).
+# Tests run via the committed PHAR (tools/.bin/phpunit.phar). Class loading uses
+# the committed Composer PSR-4 autoloader (src/vendor/) first, with the legacy
+# src/autoload.php scanner as an end-of-queue fallback. The deploy path ships
+# vendor/ as-is and never runs `composer install`.
 
 on:
   push:
@@ -47,6 +49,27 @@ jobs:
       # committed baseline — fails only on NEW issues introduced by the change.
       - name: Run PHPStan
         run: make phpstan
+
+  composer-audit:
+    name: Composer Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+          tools: composer:v2
+
+      # Reads src/composer.lock and checks the dependency graph against the
+      # Packagist advisory database. Does NOT run `composer install` (vendor/
+      # is committed). A no-op while every dependency is path-mapped/vendored,
+      # but gates real `require` packages the moment any are added.
+      - name: Composer audit
+        run: composer audit --no-interaction --working-dir=src
 
   test:
     name: PHPUnit
