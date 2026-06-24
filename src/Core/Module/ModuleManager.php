@@ -1,6 +1,8 @@
 <?php
 
 namespace XcVm\Core\Module;
+use XcVm\Core\Events\Module\PackageInstalledEvent;
+use XcVm\Core\Events\EventDispatcher;
 use XcVm\Core\Container\ServiceContainer;
 
 use XcVm\Core\Http\Router;
@@ -480,7 +482,7 @@ class ModuleManager {
      *
      * Delegates the full download → key-unwrap → extract flow to the
      * XC_VM C extension, then runs installModule() to register it.
-     * Fires \PackageInstalledEvent and hot-reloads the module into the
+     * Fires \XcVm\Core\Events\Module\PackageInstalledEvent and hot-reloads the module into the
      * current \XcVm\Core\Container\ServiceContainer without requiring a PHP-FPM restart.
      *
      * @param string      $slug    Module slug as listed on the platform.
@@ -515,7 +517,7 @@ class ModuleManager {
             // installs); the module's module.json/getVersion() may lag behind.
             $this->installModule($slug, $resolvedVersion);
 
-            \EventDispatcher::dispatch(new \PackageInstalledEvent(
+            \XcVm\Core\Events\EventDispatcher::dispatch(new \XcVm\Core\Events\Module\PackageInstalledEvent(
                 slug:        $result['module'],
                 version:     $resolvedVersion,
                 path:        $modulePath,
@@ -760,7 +762,7 @@ class ModuleManager {
     public function deployFromPlatformFilesOnly(string $slug, string $version, ?string $apiKey = null): void {
         $result = $this->pullFilesFromPlatform($slug, $version, $apiKey);
 
-        \EventDispatcher::dispatch(new \PackageInstalledEvent(
+        \XcVm\Core\Events\EventDispatcher::dispatch(new \XcVm\Core\Events\Module\PackageInstalledEvent(
             slug:        $result['module'],
             version:     $result['version'],
             path:        $result['path'],

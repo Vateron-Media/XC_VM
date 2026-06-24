@@ -1,5 +1,8 @@
 <?php
 
+namespace XcVm\Core\Events;
+use XcVm\Core\Events\Contract\StoppableEventInterface;
+
 /**
  * Base class for stoppable events.
  *

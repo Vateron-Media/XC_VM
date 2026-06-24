@@ -5,6 +5,7 @@ use XcVm\Core\Module\ModuleLoader;
 use XcVm\Core\Module\NavbarRegistry;
 use XcVm\Core\Module\ModuleInterface;
 use XcVm\Core\Container\ServiceContainer;
+use XcVm\Core\Events\EventDispatcher;
 use PHPUnit\Framework\TestCase;
 
 // Shared tracker — loaded by PHPUnit before any module PHP file is require_once'd by ModuleLoader.

@@ -1,5 +1,8 @@
 <?php
 
+namespace XcVm\Core\Events\Stream;
+use XcVm\Core\Events\AbstractEvent;
+
 /**
  * Fired before a stream starts — stoppable.
  *

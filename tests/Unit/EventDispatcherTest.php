@@ -1,5 +1,8 @@
 <?php
 
+use XcVm\Core\Events\Contract\StoppableEventInterface;
+use XcVm\Core\Events\EventDispatcher;
+use XcVm\Core\Events\AbstractEvent;
 use PHPUnit\Framework\TestCase;
 
 final class EventDispatcherTest extends TestCase {
