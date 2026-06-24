@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Auth\SessionManager;
 /**
  * AdminLogoutController — Уничтожение сессии + редирект на login.
  *

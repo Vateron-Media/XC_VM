@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Auth\SessionManager;
 /**
  * PlayerLogoutController — player logout controller
  *

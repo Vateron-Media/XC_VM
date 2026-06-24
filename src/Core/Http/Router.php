@@ -1,6 +1,7 @@
 <?php
 
 namespace XcVm\Core\Http;
+use XcVm\Core\Auth\Authorization;
 
 /**
  * HTTP Router
@@ -470,10 +471,10 @@ class Router {
 
         $perm = $entry['permission'];
 
-        // Поддержка формата ['type', 'key'] для \Authorization::check()
+        // Поддержка формата ['type', 'key'] для \XcVm\Core\Auth\Authorization::check()
         if (is_array($perm) && count($perm) === 2 && is_string($perm[0])) {
             if (class_exists('Authorization')) {
-                return \Authorization::check($perm[0], $perm[1]);
+                return \XcVm\Core\Auth\Authorization::check($perm[0], $perm[1]);
             }
             return true; // fallback если класс недоступен
         }

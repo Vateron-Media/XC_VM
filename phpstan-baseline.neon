@@ -325,7 +325,7 @@ parameters:
 			path: src/Cli/migration_logic.php
 
 		-
-			message: '#^Method AuthRepository\:\:getHMACById\(\) should return array\|null but return statement is missing\.$#'
+			message: '#^Method XcVm\\Core\\Auth\\AuthRepository\:\:getHMACById\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
 			path: src/Core/Auth/AuthRepository.php

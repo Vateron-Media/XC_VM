@@ -1,5 +1,6 @@
 <?php
-/**
+
+use XcVm\Core\Auth\SessionManager;/**
  * ResellerLogoutController — Destroys reseller session and redirects to login.
  *
  * @package XC_VM_Public_Controllers_Reseller

@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Auth\AuthRepository;
 /**
  * HmacEditController — add/edit HMAC key.
  *

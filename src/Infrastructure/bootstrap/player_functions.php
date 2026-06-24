@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Auth\SessionManager;
 use XcVm\Core\Config\SettingsManager;/**
  * Player functions bootstrap.
  *

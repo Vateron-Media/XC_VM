@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\Request;
 /**
  * GitHubReleases PHP class - wrapper for GitHub Releases API

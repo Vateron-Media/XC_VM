@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Auth\BruteforceGuard;
 /**
  * Общий shutdown handler для streaming endpoints (live, vod, timeshift).
  *

@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Auth\SessionManager;
+use XcVm\Core\Auth\BruteforceGuard;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\SettingsManager;/**
  * PlayerLoginController — Login page for player panel.

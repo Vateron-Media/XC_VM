@@ -1,6 +1,7 @@
 <?php
 
 namespace XcVm\Core\Storage;
+use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\Response;
 use XcVm\Core\Http\Request;
 
