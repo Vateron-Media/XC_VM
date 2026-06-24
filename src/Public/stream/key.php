@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Config\ConfigReader;
 /**
  * HLS encryption key endpoint
  *

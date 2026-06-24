@@ -1,5 +1,6 @@
 <?php
-/**
+
+use XcVm\Core\Config\DomainResolver;/**
  * Player Utility Functions
  *
  * Extracted from player/functions.php — only the utility functions,

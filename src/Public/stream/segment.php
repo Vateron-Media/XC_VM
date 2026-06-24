@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Config\ConfigReader;
 /**
  * HLS segment delivery endpoint
  *

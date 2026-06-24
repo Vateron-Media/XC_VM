@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Config\ConfigReader;
 /**
  * ModuleManager — administrative operations with modules.
  *
@@ -457,7 +458,7 @@ class ModuleManager {
      * @return bool True when running on a load balancer (is_lb = 1 in config).
      */
     private function isLoadBalancer(): bool {
-        if (class_exists('ConfigReader')) {
+        if (class_exists(ConfigReader::class)) {
             return (bool) ConfigReader::get('is_lb');
         }
         if (defined('SERVER_TYPE')) {
