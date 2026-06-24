@@ -1,5 +1,9 @@
 <?php
 
+namespace XcVm\Core\Container;
+use XcVm\Core\Container\Psr\NotFoundException;
+use XcVm\Core\Container\Psr\ContainerInterface;
+
 use XcVm\Core\Module\ModuleInterface;
 use XcVm\Core\Http\Request;
 use XcVm\Core\Database\Database;
@@ -70,7 +74,7 @@ use XcVm\Core\Config\SettingsManager;
  *           $db    = $container->get('db');
  *           $cache = $container->get('cache');
  *           $container->set('plex.service', function($c) {
- *               return new PlexService($c->get('db'), $c->get('settings'));
+ *               return new \PlexService($c->get('db'), $c->get('settings'));
  *           });
  *       }
  *   }
@@ -227,24 +231,24 @@ class ServiceContainer implements ContainerInterface {
      * highest priority wraps outermost (called first by callers).
      *
      * Example:
-     *   $c->decorate('stream.service', FingerprintDecorator::class, priority: 20);
-     *   $c->decorate('stream.service', LoggingDecorator::class, priority: 10);
-     *   // Call order: FingerprintDecorator → LoggingDecorator → original
+     *   $c->decorate('stream.service', \FingerprintDecorator::class, priority: 20);
+     *   $c->decorate('stream.service', \LoggingDecorator::class, priority: 10);
+     *   // Call order: \FingerprintDecorator → \LoggingDecorator → original
      *
      * @param string               $id        Service identifier
      * @param class-string|callable $decorator Class-string or callable($inner, $container): mixed
      * @param int                  $priority  Higher = outer layer (default 0)
-     * @throws RuntimeException If the service is protected or not registered as a factory
+     * @throws \RuntimeException If the service is protected or not registered as a factory
      */
     public function decorate(string $id, string|callable $decorator, int $priority = 0): static {
         if (in_array($id, $this->protectedServices, true)) {
-            throw new ContainerException(
+            throw new \ContainerException(
                 "ServiceContainer: сервис '{$id}' защищён от декорирования модулями."
             );
         }
 
         if (!isset($this->factories[$id]) && !array_key_exists($id, $this->resolved)) {
-            throw new ContainerException(
+            throw new \ContainerException(
                 "ServiceContainer: невозможно декорировать незарегистрированный сервис '{$id}'."
             );
         }
@@ -275,7 +279,7 @@ class ServiceContainer implements ContainerInterface {
      * @param string $id Идентификатор
      * @return mixed
      * @throws NotFoundException           Если сервис не зарегистрирован
-     * @throws RuntimeException            Если обнаружена циклическая зависимость или фабрика бросила исключение
+     * @throws \RuntimeException            Если обнаружена циклическая зависимость или фабрика бросила исключение
      */
     public function get(string $id): mixed {
         // 1. Уже разрешён (singleton) — мгновенный возврат
@@ -295,12 +299,12 @@ class ServiceContainer implements ContainerInterface {
             try {
                 $service = call_user_func($this->factories[$id], $this);
                 $service = $this->applyDecorators($id, $service);
-            } catch (XcVmException $e) {
+            } catch (\XcVmException $e) {
                 unset($this->creating[$id]);
                 throw $e;
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
                 unset($this->creating[$id]);
-                throw new ServiceCreationException(
+                throw new \ServiceCreationException(
                     "ServiceContainer: ошибка при создании сервиса '{$id}': " . $e->getMessage(),
                     0,
                     $e
@@ -485,14 +489,14 @@ class ServiceContainer implements ContainerInterface {
     // ─────────────────────────────────────────────────────────
 
     /**
-     * Throw a CircularDependencyException describing the resolution chain.
+     * Throw a \CircularDependencyException describing the resolution chain.
      *
      * @param string $id Service id whose creation closed the cycle.
      * @return never
-     * @throws CircularDependencyException Always.
+     * @throws \CircularDependencyException Always.
      */
     private function throwCircularDependency(string $id): never {
-        throw new CircularDependencyException(
+        throw new \CircularDependencyException(
             "ServiceContainer: циклическая зависимость при создании сервиса '{$id}'. "
             . "Цепочка: " . implode(' → ', array_keys($this->creating)) . " → {$id}"
         );

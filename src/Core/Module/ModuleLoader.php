@@ -1,6 +1,7 @@
 <?php
 
 namespace XcVm\Core\Module;
+use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Module\Contract\StreamMiddlewareProviderInterface;
 use XcVm\Core\Module\Contract\ServiceProviderInterface;
 use XcVm\Core\Module\Contract\RouteProviderInterface;
@@ -182,12 +183,12 @@ class ModuleLoader {
      * Checks each sub-interface via instanceof so modules can implement
      * only the contracts they need. Core navbar is registered first.
      *
-     * @param \ServiceContainer $container Service container for dependency injection.
+     * @param \XcVm\Core\Container\ServiceContainer $container Service container for dependency injection.
      * @param Router|null $router Optional router for module route registration.
      * @param StreamPipeline|null $pipeline Optional stream pipeline for middleware registration.
      * @return void
      */
-    public function bootAll(\ServiceContainer $container, ?Router $router = null, ?StreamPipeline $pipeline = null): void {
+    public function bootAll(\XcVm\Core\Container\ServiceContainer $container, ?Router $router = null, ?StreamPipeline $pipeline = null): void {
         $navbarRegistry = new NavbarRegistry();
         (new CoreNavbarProvider())->registerNavbar($navbarRegistry);
 
@@ -620,10 +621,10 @@ class ModuleLoader {
      * registration time the listener is silently skipped (graceful degradation).
      *
      * @param ServiceProviderInterface $module
-     * @param \ServiceContainer $container
+     * @param \XcVm\Core\Container\ServiceContainer $container
      * @return void
      */
-    private function registerEventSubscribers(ServiceProviderInterface $module, \ServiceContainer $container): void {
+    private function registerEventSubscribers(ServiceProviderInterface $module, \XcVm\Core\Container\ServiceContainer $container): void {
         // Verify the container holds an actual \EventDispatcher instance (not just the class name).
         // Static calls below route to the same instance via \EventDispatcher::getInstance().
         if (!$container->has('events') || !$container->get('events') instanceof \EventDispatcher) {

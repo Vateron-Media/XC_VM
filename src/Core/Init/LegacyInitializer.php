@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Http\Request;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\SettingsRepository;

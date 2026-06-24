@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Container\Psr\ContainerExceptionInterface;
+use XcVm\Core\Container\ServiceContainer;
 /**
  * Base exception for ServiceContainer errors.
  *

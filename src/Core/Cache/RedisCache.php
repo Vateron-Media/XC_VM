@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Container\ServiceContainer;
 /**
  * Redis Cache Driver
  *

@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Container\Psr;
+
 /**
  * PSR-11: Thrown when an identifier is not found in the container.
  *

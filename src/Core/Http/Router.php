@@ -1,6 +1,7 @@
 <?php
 
 namespace XcVm\Core\Http;
+use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Module\ModuleInterface;
 use XcVm\Core\Auth\Authorization;
 
@@ -505,8 +506,8 @@ class Router {
             $method = $handler[1];
 
             // Попытка получить экземпляр через ServiceContainer (DI)
-            if (class_exists('ServiceContainer', false)) {
-                $container = \ServiceContainer::getInstance();
+            if (class_exists(\XcVm\Core\Container\ServiceContainer::class, false)) {
+                $container = \XcVm\Core\Container\ServiceContainer::getInstance();
                 try {
                     $obj = $container->get($class);
                 } catch (\Throwable $e) {

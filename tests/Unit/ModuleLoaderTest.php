@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Module\ModuleLoader;
 use XcVm\Core\Module\NavbarRegistry;
 use XcVm\Core\Module\ModuleInterface;
@@ -85,7 +86,7 @@ final class ModuleLoaderTest extends TestCase {
 		$php = '<?php' . "\n"
 			. 'namespace ' . $namespace . ';' . "\n"
 			. 'use XcVm\Core\Module\ModuleInterface;' . "\n"
-			. 'use ServiceContainer;' . "\n"
+			. 'use XcVm\Core\Container\ServiceContainer;' . "\n"
 			. 'use Router;' . "\n"
 			. 'use CommandRegistry;' . "\n"
 			. 'use XcVm\Core\Module\NavbarRegistry;' . "\n"

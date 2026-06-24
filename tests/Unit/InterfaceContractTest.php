@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Module\Contract\StreamMiddlewareProviderInterface;
 use XcVm\Core\Module\Contract\ServiceProviderInterface;
 use XcVm\Core\Module\Contract\RouteProviderInterface;
@@ -67,7 +68,7 @@ final class InterfaceContractTest extends TestCase {
 
     public function testServiceProviderInterfaceHasBoot(): void {
         $rc = new ReflectionClass(ServiceProviderInterface::class);
-        $this->assertInterfaceMethod($rc, 'boot', ['ServiceContainer'], 'void');
+        $this->assertInterfaceMethod($rc, 'boot', ['XcVm\Core\Container\ServiceContainer'], 'void');
     }
 
     public function testServiceProviderInterfaceHasGetEventSubscribers(): void {

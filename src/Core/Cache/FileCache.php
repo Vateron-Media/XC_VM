@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Container\ServiceContainer;
 /**
  * File Cache Driver (igbinary)
  *

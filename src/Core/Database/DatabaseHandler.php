@@ -1,6 +1,7 @@
 <?php
 
 namespace XcVm\Core\Database;
+use XcVm\Core\Container\ServiceContainer;
 
 /**
  * Менеджер базы данных (\PDO)

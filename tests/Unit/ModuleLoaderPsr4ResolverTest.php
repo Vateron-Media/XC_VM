@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Module\ModuleLoader;
 use XcVm\Core\Module\NavbarRegistry;
 use XcVm\Core\Module\BaseModule;
