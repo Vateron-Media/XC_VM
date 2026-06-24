@@ -20,11 +20,11 @@ define('DB_ACCESS_ENABLED', false);
 
 // Forces error display on-screen regardless of the DB setting (debug_show_errors).
 // Set to true locally for development; must be false in production.
-define('DEV_MODE', true);
+define('DEV_MODE', false);
 
 // ── Version & Git Configuration ────────────────────────────────
 
-define('XC_VM_VERSION', '2.2.2');
+define('XC_VM_VERSION', '2.3.0');
 
 define('GIT_OWNER',       'Vateron-Media');
 define('GIT_REPO_MAIN',   'XC_VM');
