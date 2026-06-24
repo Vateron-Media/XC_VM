@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Util\NetworkUtils;
 use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Auth\Authenticator;
 use XcVm\Core\Http\RequestManager;

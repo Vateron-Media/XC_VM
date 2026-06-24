@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Util\AdminHelpers;
 /**
  * GroupEditController — add/edit member group.
  *

@@ -529,6 +529,8 @@ renderUnifiedLayoutFooter('admin'); ?>
 		});
 		setTimeout(pingSession, 30000);
 		<?php 
+use XcVm\Core\Util\TimeUtils;
+use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\SettingsManager;if (!$rMobile && $rSettings['header_stats']): ?>
 			headerStats();

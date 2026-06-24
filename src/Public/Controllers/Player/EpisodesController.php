@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Util\ImageUtils;
+use XcVm\Core\Util\Encryption;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Config\DomainResolver;

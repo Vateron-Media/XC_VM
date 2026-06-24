@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Util;
+
 /**
  * Mobile Detect Library
  * Motto: "Every business should have a mobile detection script to detect mobile readers"
@@ -942,7 +944,7 @@ class Mobile_Detect {
 	}
 
 	/**
-	 * Retrieves a particular header. If it doesn't exist, no exception/error is caused.
+	 * Retrieves a particular header. If it doesn't exist, no \exception/error is caused.
 	 * Simply null is returned.
 	 *
 	 * @param string $header The name of the header to retrieve. Can be HTTP compliant such as
@@ -1258,12 +1260,12 @@ class Mobile_Detect {
 	 * @param  string                 $name
 	 * @param  array                  $arguments
 	 * @return mixed
-	 * @throws BadMethodCallException when the method doesn't exist and doesn't start with 'is'
+	 * @throws \BadMethodCallException when the method doesn't exist and doesn't start with 'is'
 	 */
 	public function __call($name, $arguments) {
 		// make sure the name starts with 'is', otherwise
 		if (substr($name, 0, 2) !== 'is') {
-			throw new BadMethodCallException("No such method exists: $name");
+			throw new \BadMethodCallException("No such method exists: $name");
 		}
 
 		$this->setDetectionType(self::DETECTION_TYPE_MOBILE);

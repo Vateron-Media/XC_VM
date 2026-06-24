@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Util\TimeUtils;
+use XcVm\Core\Util\Encryption;
 use XcVm\Core\Auth\BruteforceGuard;
 /**
  * PortalHandler — portal handler

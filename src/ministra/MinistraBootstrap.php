@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Util\GeoIP;
+use XcVm\Core\Localization\Translator;
 use XcVm\Core\Module\ModuleLoader;
 use XcVm\Core\Module\NavbarRegistry;
 use XcVm\Core\Http\Router;

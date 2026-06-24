@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Util\TimeUtils;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Database\Database;
 use XcVm\Core\Database\DatabaseHandler;

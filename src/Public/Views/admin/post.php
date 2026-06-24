@@ -1,5 +1,8 @@
 <?php
 
+use XcVm\Core\Util\AdminHelpers;
+use XcVm\Core\Diagnostics\DiagnosticsService;
+use XcVm\Core\Backup\BackupService;
 use XcVm\Core\Auth\PageAuthorization;
 use XcVm\Core\Auth\AuthService;
 use XcVm\Core\Auth\AuthRepository;

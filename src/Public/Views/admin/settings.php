@@ -1,5 +1,11 @@
 <?php
 
+use XcVm\Core\Util\GeoIP;
+use XcVm\Core\Util\Encryption;
+use XcVm\Core\Util\AdminHelpers;
+use XcVm\Core\Process\Thread;
+use XcVm\Core\Localization\Translator;
+use XcVm\Core\GeoIP\MaxMindUpdater;
 use XcVm\Core\Auth\PageAuthorization;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\Request;

@@ -1,10 +1,12 @@
 <?php
 
+namespace XcVm\Core\Cache;
+
 use XcVm\Core\Container\ServiceContainer;
 /**
- * Redis Cache Driver
+ * \Redis Cache Driver
  *
- * Redis-based cache driver implementing CacheInterface.
+ * \Redis-based cache driver implementing CacheInterface.
  * Wraps the phpredis extension with serialization and TTL support.
  *
  * ServiceContainer Registration:
@@ -19,9 +21,9 @@ use XcVm\Core\Container\ServiceContainer;
  *       );
  *   });
  *
- * Raw Redis Access:
+ * Raw \Redis Access:
  *
- *   During migration, legacy code may need raw Redis:
+ *   During migration, legacy code may need raw \Redis:
  *     $rawRedis = $redisCache->getConnection();
  *     $rawRedis->multi();
  *     $rawRedis->zAdd('LIVE', $timestamp, $uuid);
@@ -33,22 +35,22 @@ use XcVm\Core\Container\ServiceContainer;
  * @package XC_VM_Core_Cache
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
- * @link    https://github.com/Vateron-Media/XC_VM
+ * @link    https://github.com/Vateron-Media/\XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
 class RedisCache implements CacheInterface {
 
-    /** @var Redis|null phpredis connection */
+    /** @var \Redis|null phpredis connection */
     protected $redis = null;
 
-    /** @var string Redis host */
+    /** @var string \Redis host */
     protected $host;
 
-    /** @var int Redis port */
+    /** @var int \Redis port */
     protected $port;
 
-    /** @var string|null Redis password */
+    /** @var string|null \Redis password */
     protected $password;
 
     /** @var bool Whether connection is established */
@@ -58,9 +60,9 @@ class RedisCache implements CacheInterface {
     protected $prefix = '';
 
     /**
-     * @param string $host Redis host
-     * @param int $port Redis port
-     * @param string|null $password Redis AUTH password
+     * @param string $host \Redis host
+     * @param int $port \Redis port
+     * @param string|null $password \Redis AUTH password
      * @param string $prefix Optional key prefix
      */
     public function __construct($host = '127.0.0.1', $port = 6379, $password = null, $prefix = '') {
@@ -71,7 +73,7 @@ class RedisCache implements CacheInterface {
     }
 
     /**
-     * Establish Redis connection (lazy — called on first operation)
+     * Establish \Redis connection (lazy — called on first operation)
      *
      * @return bool
      */
@@ -117,9 +119,9 @@ class RedisCache implements CacheInterface {
             return false;
         }
 
-        // maxAge is handled by Redis TTL, not by us
-        // But if caller wants to check age, we can't — Redis doesn't store creation time
-        // For file-based TTL compat, we ignore maxAge here (Redis uses its own TTL)
+        // maxAge is handled by \Redis TTL, not by us
+        // But if caller wants to check age, we can't — \Redis doesn't store creation time
+        // For file-based TTL compat, we ignore maxAge here (\Redis uses its own TTL)
 
         return $data;
     }
@@ -171,7 +173,7 @@ class RedisCache implements CacheInterface {
     /**
      * {@inheritdoc}
      *
-     * WARNING: Flushes the ENTIRE Redis database. Use with caution.
+     * WARNING: Flushes the ENTIRE \Redis database. Use with caution.
      */
     public function flush() {
         if (!$this->ensureConnected()) {
@@ -182,16 +184,16 @@ class RedisCache implements CacheInterface {
     }
 
     // ───────────────────────────────────────────────────────────
-    //  Raw Redis Access (for migration period)
+    //  Raw \Redis Access (for migration period)
     // ───────────────────────────────────────────────────────────
 
     /**
      * Get the raw phpredis connection
      *
-     * Allows legacy code to use Redis-specific operations (sorted sets,
+     * Allows legacy code to use \Redis-specific operations (sorted sets,
      * pipelines, pub/sub, etc.) that don't fit the CacheInterface.
      *
-     * @return Redis|null
+     * @return \Redis|null
      */
     public function getConnection() {
         $this->ensureConnected();
@@ -246,7 +248,7 @@ class RedisCache implements CacheInterface {
     }
 
     /**
-     * Disconnect from Redis when the instance is destroyed.
+     * Disconnect from \Redis when the instance is destroyed.
      */
     public function __destruct() {
         $this->disconnect();

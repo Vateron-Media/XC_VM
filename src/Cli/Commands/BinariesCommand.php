@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Updates\GitHubReleases;
 use XcVm\Core\Config\SettingsManager;
 /**
  * BinariesCommand — binaries command

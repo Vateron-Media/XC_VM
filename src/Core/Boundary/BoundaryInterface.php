@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Boundary;
+
 use XcVm\Core\Module\ModuleLoader;
 use XcVm\Core\Module\NavbarRegistry;
 use XcVm\Core\Http\Router;

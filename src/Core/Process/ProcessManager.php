@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Process;
+
 /**
  * Process Manager
  *
@@ -15,7 +17,7 @@
  *   // Check if a process with specific executable is running
  *   if (ProcessManager::isRunning($pid, 'ffmpeg')) { ... }
  *
- *   // Check named process (XC_VM[123], Thumbnail[456], etc.)
+ *   // Check named process (\XC_VM[123], Thumbnail[456], etc.)
  *   if (ProcessManager::isNamedProcessRunning($pid, 'XC_VM', $streamId, PHP_BIN)) { ... }
  *
  *   // Kill a process
@@ -30,7 +32,7 @@
  * @package XC_VM_Core_Process
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
- * @link    https://github.com/Vateron-Media/XC_VM
+ * @link    https://github.com/Vateron-Media/\XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
@@ -80,7 +82,7 @@ class ProcessManager {
     }
 
     /**
-     * Check if a named process is running (e.g., XC_VM[123])
+     * Check if a named process is running (e.g., \XC_VM[123])
      *
      * Reads /proc/PID/cmdline and matches against "NAME[ID]" pattern.
      *
@@ -415,7 +417,7 @@ class ProcessManager {
      * Check if a monitor/proxy process is running.
      *
      * Extracted from ProcessManager::isMonitorAlive().
-     * Checks for XC_VM[streamID] OR XC_VMProxy[streamID] in cmdline.
+     * Checks for \XC_VM[streamID] OR XC_VMProxy[streamID] in cmdline.
      *
      * @param int $pid Process ID
      * @param int|string $streamID Stream identifier

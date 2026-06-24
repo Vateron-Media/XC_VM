@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 namespace XcVm\Core\Auth;
+use XcVm\Core\Util\NetworkUtils;
 
 use XcVm\Core\Config\SettingsManager;
 
@@ -40,8 +41,8 @@ class BruteforceGuard {
      * @return string
      */
     private static function getUserIP(): string {
-        if (class_exists('NetworkUtils', false)) {
-            return \NetworkUtils::getUserIP();
+        if (class_exists(\XcVm\Core\Util\NetworkUtils::class, false)) {
+            return \XcVm\Core\Util\NetworkUtils::getUserIP();
         }
         return $_SERVER['REMOTE_ADDR'] ?? '';
     }

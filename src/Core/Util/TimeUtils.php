@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Util;
+
 /**
  * Time Utilities
  *
@@ -8,7 +10,7 @@
  * @package XC_VM_Core_Util
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
- * @link    https://github.com/Vateron-Media/XC_VM
+ * @link    https://github.com/Vateron-Media/\XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
@@ -21,8 +23,8 @@ class TimeUtils {
      * @return int Offset in seconds
      */
     public static function getDiffTimezone($timezone) {
-        $serverTZ = new DateTime('UTC', new DateTimeZone(date_default_timezone_get()));
-        $userTZ = new DateTime('UTC', new DateTimeZone($timezone));
+        $serverTZ = new \DateTime('UTC', new \DateTimeZone(date_default_timezone_get()));
+        $userTZ = new \DateTime('UTC', new \DateTimeZone($timezone));
         return $userTZ->getTimestamp() - $serverTZ->getTimestamp();
     }
 

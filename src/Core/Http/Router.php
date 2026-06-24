@@ -1,6 +1,7 @@
 <?php
 
 namespace XcVm\Core\Http;
+use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Module\ModuleInterface;
 use XcVm\Core\Auth\Authorization;
@@ -529,7 +530,7 @@ class Router {
      */
     protected function denyAccess() {
         if (function_exists('goHome')) {
-            \AdminHelpers::goHome();
+            \XcVm\Core\Util\AdminHelpers::goHome();
         } else {
             http_response_code(403);
             echo 'Access denied';

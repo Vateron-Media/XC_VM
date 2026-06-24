@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Updates\GitHubReleases;
 use PHPUnit\Framework\TestCase;
 
 final class GitHubReleasesTest extends TestCase {

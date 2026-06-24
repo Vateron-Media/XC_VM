@@ -1,5 +1,9 @@
 <?php
 
+use XcVm\Core\Util\GeoIP;
+use XcVm\Core\Util\Encryption;
+use XcVm\Core\Init\LegacyInitializer;
+use XcVm\Core\GeoIP\GeoIPService;
 use XcVm\Core\Auth\BruteforceGuard;
 use XcVm\Core\Auth\AuthService;
 use XcVm\Core\Logging\DatabaseLogger;

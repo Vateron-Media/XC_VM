@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Util\AdminHelpers;
 /**
  * ProfileEditController — add/edit transcoding profile.
  *

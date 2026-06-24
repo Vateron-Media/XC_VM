@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Util\Encryption;
+use XcVm\Core\Init\LegacyInitializer;
 use XcVm\Core\Config\ConfigReader;
 /**
  * HLS segment delivery endpoint

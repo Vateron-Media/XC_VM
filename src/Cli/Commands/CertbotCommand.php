@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Diagnostics\DiagnosticsService;
 /**
  * CertbotCommand — certbot command
  *

@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Updates\GitHubReleases;
+use XcVm\Core\Init\LegacyInitializer;
 use XcVm\Core\Database\Database;
 use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Config\SettingsManager;
@@ -41,7 +43,7 @@ class WebApiBootstrap {
 		// ── 5. DB + LegacyInitializer ────────────────────────────
 		require_once MAIN_HOME . 'Core/Init/LegacyInitializer.php';
 		require_once MAIN_HOME . 'Core/Database/DatabaseHandler.php';
-		require_once MAIN_HOME . 'Core/Updates/GithubReleases.php';
+		require_once MAIN_HOME . 'Core/Updates/GitHubReleases.php';
 
 		global $db, $gitRelease;
 

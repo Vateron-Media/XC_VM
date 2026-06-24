@@ -379,7 +379,7 @@ parameters:
 			path: src/Core/Database/Database.php
 
 		-
-			message: '#^Method DiagnosticsService\:\:getCertificateInfo\(\) should return array but returns null\.$#'
+			message: '#^Method XcVm\\Core\\Diagnostics\\DiagnosticsService\:\:getCertificateInfo\(\) should return array but returns null\.$#'
 			identifier: return.type
 			count: 2
 			path: src/Core/Diagnostics/DiagnosticsService.php
@@ -514,7 +514,7 @@ parameters:
 			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
-			path: src/Core/Updates/GithubReleases.php
+			path: src/Core/Updates/GitHubReleases.php
 
 		-
 			message: '#^Call to function is_string\(\) with non\-falsy\-string will always evaluate to true\.$#'
@@ -529,25 +529,25 @@ parameters:
 			path: src/Core/Util/MobileDetect.php
 
 		-
-			message: '#^Parameter \#1 \$httpHeaders of method Mobile_Detect\:\:setHttpHeaders\(\) expects array\|null, string given\.$#'
+			message: '#^Parameter \#1 \$httpHeaders of method XcVm\\Core\\Util\\Mobile_Detect\:\:setHttpHeaders\(\) expects array\|null, string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: src/Core/Util/MobileDetect.php
 
 		-
-			message: '#^Property Mobile_Detect\:\:\$matchesArray \(string\) does not accept array\<string\>\.$#'
+			message: '#^Property XcVm\\Core\\Util\\Mobile_Detect\:\:\$matchesArray \(string\) does not accept array\<string\>\.$#'
 			identifier: assign.propertyType
 			count: 1
 			path: src/Core/Util/MobileDetect.php
 
 		-
-			message: '#^Property Mobile_Detect\:\:\$userAgent \(string\) does not accept null\.$#'
+			message: '#^Property XcVm\\Core\\Util\\Mobile_Detect\:\:\$userAgent \(string\) does not accept null\.$#'
 			identifier: assign.propertyType
 			count: 2
 			path: src/Core/Util/MobileDetect.php
 
 		-
-			message: '#^Method NetworkUtils\:\:stopDownload\(\) with return type void returns null but should not return anything\.$#'
+			message: '#^Method XcVm\\Core\\Util\\NetworkUtils\:\:stopDownload\(\) with return type void returns null but should not return anything\.$#'
 			identifier: return.void
 			count: 2
 			path: src/Core/Util/NetworkUtils.php

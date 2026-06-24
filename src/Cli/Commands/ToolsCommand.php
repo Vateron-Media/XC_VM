@@ -1,5 +1,8 @@
 <?php
 
+use XcVm\Core\Util\ImageUtils;
+use XcVm\Core\Util\Encryption;
+use XcVm\Core\Backup\BackupService;
 use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Database\Database;
 use XcVm\Core\Config\SettingsManager;

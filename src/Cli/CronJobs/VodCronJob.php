@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Diagnostics\DiagnosticsService;
 use XcVm\Core\Config\SettingsManager;
 /**
  * VodCronJob — vod cron job

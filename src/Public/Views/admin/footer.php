@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Util\AdminHelpers;
 if (count(get_included_files()) == 1) {
 	exit();
 }

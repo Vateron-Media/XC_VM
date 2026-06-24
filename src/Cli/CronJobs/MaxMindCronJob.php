@@ -1,5 +1,8 @@
 <?php
 
+use XcVm\Core\Util\GeoIP;
+use XcVm\Core\Updates\GitHubReleases;
+use XcVm\Core\GeoIP\MaxMindUpdater;
 use XcVm\Core\Config\SettingsManager;
 require_once __DIR__ . '/../CronTrait.php';
 

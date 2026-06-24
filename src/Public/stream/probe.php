@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Util\Encryption;
 /**
  * Stream probe endpoint
  *

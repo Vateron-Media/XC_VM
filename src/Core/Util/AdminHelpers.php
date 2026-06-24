@@ -1,10 +1,13 @@
 <?php
 
+namespace XcVm\Core\Util;
+use XcVm\Core\Validation\InputValidator;
+
 use XcVm\Core\Http\Response;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\SettingsManager;
 /*
- * XC_VM — Утилитарные функции
+ * \XC_VM — Утилитарные функции
  *
  * Статический класс для UI-хелперов, форматирования, валидации и генерации.
  */
@@ -105,14 +108,14 @@ class AdminHelpers {
 	}
 
 	/**
-	 * Find the nearest value in an array (delegates to StreamSorter::getNearest()).
+	 * Find the nearest value in an array (delegates to \StreamSorter::getNearest()).
 	 *
 	 * @param array     $arr    Values to search.
 	 * @param int|float $search Target value.
 	 * @return mixed The nearest value.
 	 */
 	public static function getNearest($arr, $search) {
-		return StreamSorter::getNearest($arr, $search);
+		return \StreamSorter::getNearest($arr, $search);
 	}
 
 	/**
@@ -223,11 +226,11 @@ class AdminHelpers {
 	 * List all timezones with their current GMT/UTC offsets.
 	 *
 	 * @return array[] Each entry: ['zone' => string, 'diff_from_GMT' => string].
-	 * @throws RuntimeException If timezone functions are unavailable or fail.
+	 * @throws \RuntimeException If timezone functions are unavailable or fail.
 	 */
 	public static function TimeZoneList() {
 		if (!function_exists('timezone_identifiers_list')) {
-			throw new RuntimeException('Timezone identifiers list function is not available.');
+			throw new \RuntimeException('Timezone identifiers list function is not available.');
 		}
 
 		$zones_array = [];
@@ -249,9 +252,9 @@ class AdminHelpers {
 					'diff_from_GMT' => '[UTC/GMT ' . date('P', $timestamp) . ']'
 				];
 			}
-		} catch (Exception $e) {
+		} catch (\Exception $e) {
 			date_default_timezone_set($original_timezone);
-			throw new RuntimeException('Error processing timezone list: ' . $e->getMessage());
+			throw new \RuntimeException('Error processing timezone list: ' . $e->getMessage());
 		}
 
 		date_default_timezone_set($original_timezone);

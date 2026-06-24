@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Util\ImageUtils;
+use XcVm\Core\Util\Encryption;
 use XcVm\Core\Database\Database;
 use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Config\DomainResolver;

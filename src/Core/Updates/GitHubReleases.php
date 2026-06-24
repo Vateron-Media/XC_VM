@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Updates;
+
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\Request;
 /**
@@ -8,10 +10,10 @@ use XcVm\Core\Http\Request;
  * @package VateronMedia_GitHubReleases
  * @author Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
- * @link https://github.com/Vateron-Media/XC_VM
+ * @link https://github.com/Vateron-Media/\XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  *
- * A PHP class created specifically for the XC_VM project to interact with the GitHub Releases API.
+ * A PHP class created specifically for the \XC_VM project to interact with the GitHub Releases API.
  * Provides methods to fetch release versions, changelogs, asset hashes, and GeoLite database information
  * with caching support.
  */
@@ -131,7 +133,7 @@ class GitHubReleases {
      * Fetch all release versions (tags) from the GitHub repository, using cache if valid.
      *
      * @return array List of version tags in descending order (latest first).
-     * @throws Exception If the request fails.
+     * @throws \Exception If the request fails.
      */
     public function getReleases(): array {
         if ($this->isCacheValid()) {
@@ -148,7 +150,7 @@ class GitHubReleases {
             $response = $this->makeRequest($this->api_url);
             $data = json_decode($response, true);
             if ($data === null) {
-                throw new Exception("Failed to parse API response: " . json_last_error_msg());
+                throw new \Exception("Failed to parse API response: " . json_last_error_msg());
             }
 
             $filtered = $this->filterReleasesByChannel($data);
@@ -157,7 +159,7 @@ class GitHubReleases {
             $releases = array_values(array_map(fn($r) => $r['tag_name'], $filtered));
             error_log("Retrieved " . count($releases) . " releases for channel '{$this->channel}'");
             return $releases;
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             error_log("Failed to fetch releases: " . $e->getMessage());
             throw $e;
         }
@@ -216,7 +218,7 @@ class GitHubReleases {
             }
             error_log("Asset '{$asset_name}' not found in hash file for version {$version}");
             return null;
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             error_log("Failed to fetch asset hash from {$hashURL}: " . $e->getMessage());
             return null;
         }
@@ -242,7 +244,7 @@ class GitHubReleases {
             }
             error_log("Successfully retrieved changelog for version {$version} with " . count($changelog['changes'] ?? []) . " changes");
             return [$changelog];
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             error_log("Failed to fetch changelog for version {$version}: " . $e->getMessage());
             return [];
         }
@@ -253,7 +255,7 @@ class GitHubReleases {
      *
      * @param string $version The version string to validate (e.g., "1.0.0").
      * @return bool True if valid, False otherwise.
-     * @throws InvalidArgumentException If the version string is too long or contains invalid parts.
+     * @throws \InvalidArgumentException If the version string is too long or contains invalid parts.
      */
     public static function isValidVersion(string $version): bool {
         if (!is_string($version)) {
@@ -263,7 +265,7 @@ class GitHubReleases {
 
         if (strlen($version) > 20) {
             error_log("Version string too long");
-            throw new InvalidArgumentException("Version string is too long");
+            throw new \InvalidArgumentException("Version string is too long");
         }
 
         if (!preg_match('/^[0-9]+\.[0-9]+\.[0-9]+$/', $version)) {
@@ -297,14 +299,14 @@ class GitHubReleases {
      *
      * @param string $url The URL to request.
      * @return string The response body.
-     * @throws Exception If the request fails.
+     * @throws \Exception If the request fails.
      */
     private function makeRequest(string $url): string {
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, $this->timeout);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $this->headers);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'Vateron-Media/XC_VM');
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Vateron-Media/\XC_VM');
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
 
@@ -314,23 +316,23 @@ class GitHubReleases {
         curl_close($ch);
 
         if ($response === false) {
-            throw new Exception("cURL error: {$error}");
+            throw new \Exception("cURL error: {$error}");
         }
 
         if ($http_code !== 200) {
             switch ($http_code) {
                 case 404:
                     error_log("Resource not found (404)");
-                    throw new Exception("Resource not found (404)");
+                    throw new \Exception("Resource not found (404)");
                 case 403:
                     error_log("Access forbidden (403) - Check API rate limits or permissions");
-                    throw new Exception("Access forbidden (403)");
+                    throw new \Exception("Access forbidden (403)");
                 case 500:
                     error_log("Server error (500)");
-                    throw new Exception("Server error (500)");
+                    throw new \Exception("Server error (500)");
                 default:
                     error_log("Unexpected HTTP status code: {$http_code}");
-                    throw new Exception("Unexpected HTTP status code: {$http_code}");
+                    throw new \Exception("Unexpected HTTP status code: {$http_code}");
             }
         }
 
@@ -343,7 +345,7 @@ class GitHubReleases {
      * @param string $file_type The type of update file (main, lb, lb_update).
      * @param string $version The current version tag (e.g., "1.0.0").
      * @return array|null Array with URL and MD5 hash, or null if no next version.
-     * @throws Exception If the file type is invalid.
+     * @throws \Exception If the file type is invalid.
      */
     public function getUpdateFile(string $file_type, string $version) {
         switch ($file_type) {
@@ -357,7 +359,7 @@ class GitHubReleases {
                 $update_file = "loadbalancer.tar.gz";
                 break;
             default:
-                throw new Exception("Not valid file type");
+                throw new \Exception("Not valid file type");
         }
         $target_version = $this->getLatestVersion($version);
         if (is_null($target_version)) {
@@ -375,7 +377,7 @@ class GitHubReleases {
      * 
      * @param string $version Current version to check for updates
      * @return array|null Array with update information or null in case of error
-     * @throws InvalidArgumentException If an incorrect version is passed
+     * @throws \InvalidArgumentException If an incorrect version is passed
      */
     public function getUpdate(string $version): ?array {
         try {
@@ -394,7 +396,7 @@ class GitHubReleases {
                 "changelog" => $changelog,
                 "url" => $url
             ];
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             error_log("Error while fetching update: " . $e->getMessage());
             return null;
         }
@@ -483,7 +485,7 @@ class GitHubReleases {
      */
     public function setChannel(string $channel): void {
         if (!in_array($channel, ['stable', 'unstable'])) {
-            throw new InvalidArgumentException("Channel must be 'stable' or 'unstable'");
+            throw new \InvalidArgumentException("Channel must be 'stable' or 'unstable'");
         }
         if ($this->channel !== $channel) {
             $oldCacheFile = $this->cache_file;

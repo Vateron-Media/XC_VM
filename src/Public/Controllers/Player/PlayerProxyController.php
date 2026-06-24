@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Util\Encryption;
 use XcVm\Core\Config\SettingsManager;/**
  * PlayerProxyController — Subtitle proxy for player.
  *

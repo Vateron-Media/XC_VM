@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Boundary\BoundaryInterface;
 use XcVm\Core\Container\ServiceContainer;
 use PHPUnit\Framework\TestCase;
 

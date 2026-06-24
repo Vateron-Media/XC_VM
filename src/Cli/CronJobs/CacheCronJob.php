@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Cache\FileCache;
 use XcVm\Core\Config\SettingsRepository;
 use XcVm\Core\Config\SettingsManager;
 /**

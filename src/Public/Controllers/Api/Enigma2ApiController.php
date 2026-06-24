@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Util\ImageUtils;
+use XcVm\Core\Util\Encryption;
 use XcVm\Core\Auth\BruteforceGuard;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Database\Database;

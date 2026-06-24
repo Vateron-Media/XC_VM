@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Util\StreamUtils;
+use XcVm\Core\Diagnostics\DiagnosticsService;
 use XcVm\Core\Http\CurlClient;
 use XcVm\Core\Database\Database;
 use XcVm\Core\Database\DatabaseHandler;

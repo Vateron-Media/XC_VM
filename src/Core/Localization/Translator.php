@@ -1,12 +1,14 @@
 <?php
 
+namespace XcVm\Core\Localization;
+
 /**
- * Translator — XC_VM multilingual support system.
+ * Translator — \XC_VM multilingual support system.
  *
  * Loads translations from INI files, switches language via cookie,
  * automatically copies missing keys from en.ini into the current language.
  *
- * @package XC_VM\Core\Localization
+ * @package \XC_VM\Core\Localization
  * @author Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html

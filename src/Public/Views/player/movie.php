@@ -6,6 +6,7 @@
 				<h1 class="details__title"><?= $rStream['stream_display_name'] ?><br/>
 					<ul class="card__list">
 						<?php 
+use XcVm\Core\Util\Encryption;
 use XcVm\Core\Config\SettingsManager;foreach (json_decode($rStream['category_id'], true) as $rCategoryID): ?>
 						<li><?= CategoryService::getFromDatabase()[$rCategoryID]['category_name'] ?></li>
 						<?php endforeach; ?>

@@ -1,5 +1,8 @@
 <?php
 
+use XcVm\Core\Util\TimeUtils;
+use XcVm\Core\Util\ImageUtils;
+use XcVm\Core\Util\Encryption;
 /**
  * PortalHelpers — статические хелперы для Ministra/Stalker портала.
  *

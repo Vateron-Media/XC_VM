@@ -5,7 +5,8 @@
 			<div class="col-12">
 				<div class="section__wrap">
 					<h2 class="section__title"><?= $rSearchBy ? strtoupper(htmlspecialchars($rSearchBy)) : ($rPopular ? 'POPULAR TV SERIES' : 'TV SERIES') ?></h2>
-					<?php if ($rSearchBy): ?>
+					<?php 
+use XcVm\Core\Util\ImageUtils;if ($rSearchBy): ?>
 					<button class="clear__btn wide" type="button">CLEAR</button>
 					<?php endif; ?>
 				</div>

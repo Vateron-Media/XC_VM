@@ -1,5 +1,9 @@
 <?php
 
+use XcVm\Core\Util\StreamUtils;
+use XcVm\Core\Util\NetworkUtils;
+use XcVm\Core\Util\Encryption;
+use XcVm\Core\Process\ProcessManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Database\Database;
 use XcVm\Core\Database\DatabaseHandler;
