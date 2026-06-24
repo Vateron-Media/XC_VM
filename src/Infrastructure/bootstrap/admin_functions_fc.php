@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Auth\SessionManager;
+use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\SettingsManager;/**
  * Admin functions bootstrap (Front Controller path).

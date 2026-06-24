@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\RequestManager;
 /**
  * EpisodeController — редактирование/добавление эпизода.

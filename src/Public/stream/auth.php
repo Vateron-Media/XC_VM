@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Auth\BruteforceGuard;
+use XcVm\Core\Auth\AuthService;
 use XcVm\Core\Logging\DatabaseLogger;
 /**
  * Stream authentication and session handler

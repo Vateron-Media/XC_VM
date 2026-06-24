@@ -1,6 +1,8 @@
 <?php
 
 declare(strict_types=1);
+namespace XcVm\Core\Auth;
+
 use XcVm\Core\Config\SettingsManager;
 
 /**
@@ -39,7 +41,7 @@ class BruteforceGuard {
      */
     private static function getUserIP(): string {
         if (class_exists('NetworkUtils', false)) {
-            return NetworkUtils::getUserIP();
+            return \NetworkUtils::getUserIP();
         }
         return $_SERVER['REMOTE_ADDR'] ?? '';
     }
@@ -51,7 +53,7 @@ class BruteforceGuard {
      */
     private static function getAllowedIPs(): array {
         if (class_exists('ServerRepository', false)) {
-            return ServerRepository::getAllowedIPs();
+            return \ServerRepository::getAllowedIPs();
         }
         if (isset($GLOBALS['rAllowedIPs'])) {
             return $GLOBALS['rAllowedIPs'];
@@ -66,7 +68,7 @@ class BruteforceGuard {
      */
     private static function getBlockedIPs(): array {
         if (class_exists('BlocklistService', false)) {
-            return BlocklistService::getBlockedIPs();
+            return \BlocklistService::getBlockedIPs();
         }
         if (isset($GLOBALS['rBlockedIPs'])) {
             return $GLOBALS['rBlockedIPs'];
@@ -80,8 +82,8 @@ class BruteforceGuard {
      * @return object|null
      */
     private static function getDB(): ?object {
-        if (class_exists('DatabaseFactory', false) && DatabaseFactory::get() !== null) {
-            return DatabaseFactory::get();
+        if (class_exists('DatabaseFactory', false) && \DatabaseFactory::get() !== null) {
+            return \DatabaseFactory::get();
         }
         global $db;
         if (is_object($db)) {
@@ -100,7 +102,7 @@ class BruteforceGuard {
     private static function blockIP(string $ip, string $reason, bool $useCachedMode = false): void {
         if ($useCachedMode && !empty($GLOBALS['rCached'])) {
             $signalKey = (stripos($reason, 'BRUTEFORCE') !== false ? 'bruteforce_attack' : 'flood_attack');
-            RedisManager::setSignal($signalKey . '/' . $ip, 1);
+            \RedisManager::setSignal($signalKey . '/' . $ip, 1);
         } else {
             $db = self::getDB();
             if ($db) {
@@ -108,7 +110,7 @@ class BruteforceGuard {
             }
             // Force-refresh blocked IPs cache
             if (class_exists('BlocklistService', false) && method_exists('BlocklistService', 'getBlockedIPs')) {
-                BlocklistService::getBlockedIPs(true);
+                \BlocklistService::getBlockedIPs(true);
             }
         }
         touch(FLOOD_TMP_PATH . 'block_' . $ip);

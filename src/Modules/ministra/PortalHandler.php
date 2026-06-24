@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Auth\BruteforceGuard;
 /**
  * PortalHandler — portal handler
  *

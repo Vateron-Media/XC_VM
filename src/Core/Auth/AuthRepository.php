@@ -1,9 +1,11 @@
 <?php
 
+namespace XcVm\Core\Auth;
+
 use XcVm\Core\Http\ApiClient;
 /**
  * Консолидированный репозиторий аутентификации.
- * Объединяет: CodeRepository, HMACRepository.
+ * Объединяет: \CodeRepository, HMACRepository.
  *
  * @package XC_VM_Domain_Auth
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -224,7 +226,7 @@ class AuthRepository {
 		global $db;
 		$rStart = round(microtime(true) * 1000);
 		$rReturn = array('create_line' => false, 'create_mag' => false, 'create_enigma' => false, 'stream_ids' => array(), 'series_ids' => array(), 'category_ids' => array(), 'users' => array(), 'direct_reports' => array(), 'all_reports' => array(), 'report_map' => array());
-		$rUser = UserRepository::getRegisteredUserById($rUserID);
+		$rUser = \UserRepository::getRegisteredUserById($rUserID);
 
 		if (!$rUser) {
 		} else {
@@ -257,7 +259,7 @@ class AuthRepository {
 
 			if (!$rUsers) {
 			} else {
-				$rReturn['users'] = UserRepository::getSubUsers($rUser['id']);
+				$rReturn['users'] = \UserRepository::getSubUsers($rUser['id']);
 
 				foreach ($rReturn['users'] as $rUserID => $rUserData) {
 					if ($rUser['id'] != $rUserData['parent']) {

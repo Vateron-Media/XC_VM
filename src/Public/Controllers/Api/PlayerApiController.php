@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Auth\BruteforceGuard;
 use XcVm\Core\Config\DomainResolver;
 /**
  * PlayerApiController — player api controller

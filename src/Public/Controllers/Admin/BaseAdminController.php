@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Auth\PageAuthorization;
+use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\Router;
 use XcVm\Core\Http\RequestManager;
 /**

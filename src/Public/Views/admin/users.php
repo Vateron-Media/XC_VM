@@ -5,6 +5,7 @@
 				<div class="page-title-box">
 					<div class="page-title-right">
 						<?php 
+use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\SettingsManager;include 'topbar.php'; ?>
 					</div>

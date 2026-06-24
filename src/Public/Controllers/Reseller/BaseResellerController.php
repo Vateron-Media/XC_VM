@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Auth\PageAuthorization;
+use XcVm\Core\Auth\Authorization;
 /**
  * BaseResellerController — базовый контроллер для reseller-страниц.
  *

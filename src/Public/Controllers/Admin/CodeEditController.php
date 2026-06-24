@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Auth\AuthRepository;
 /**
  * CodeEditController — add/edit access code.
  *

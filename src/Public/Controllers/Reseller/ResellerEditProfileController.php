@@ -1,5 +1,6 @@
 <?php
-/**
+
+use XcVm\Core\Auth\AuthRepository;/**
  * ResellerEditProfileController — Edit reseller profile.
  *
  * @package XC_VM_Public_Controllers_Reseller

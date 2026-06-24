@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Config\SettingsManager;echo '<div class="wrapper"';
 
 if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {

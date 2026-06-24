@@ -1,5 +1,6 @@
 <?php
-/**
+
+use XcVm\Core\Auth\Authorization;/**
  * ResellerMagController — MAG device edit/create.
  *
  * @package XC_VM_Public_Controllers_Reseller

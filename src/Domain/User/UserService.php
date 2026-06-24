@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Auth\Authorization;
+use XcVm\Core\Auth\Authenticator;
 use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Database\Database;
 use XcVm\Core\Database\DatabaseHandler;

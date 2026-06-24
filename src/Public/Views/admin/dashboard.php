@@ -1,6 +1,7 @@
 <div class="wrapper">
 	<div class="container-fluid">
 		<?php 
+use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Database\Database;
 use XcVm\Core\Config\SettingsManager;if (Authorization::check('adv', 'index')): ?>

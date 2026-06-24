@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Auth\AuthService;
+use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Http\ApiClient;
 use XcVm\Core\Config\SettingsManager;
