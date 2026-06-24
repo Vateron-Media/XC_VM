@@ -1,5 +1,8 @@
 <?php
 
+use XcVm\Core\Module\ModuleLoader;
+use XcVm\Core\Module\NavbarRegistry;
+use XcVm\Core\Module\ModuleInterface;
 use XcVm\Core\Http\Router;
 use PHPUnit\Framework\TestCase;
 
@@ -81,11 +84,11 @@ final class ModuleLoaderTest extends TestCase {
 
 		$php = '<?php' . "\n"
 			. 'namespace ' . $namespace . ';' . "\n"
-			. 'use ModuleInterface;' . "\n"
+			. 'use XcVm\Core\Module\ModuleInterface;' . "\n"
 			. 'use ServiceContainer;' . "\n"
 			. 'use Router;' . "\n"
 			. 'use CommandRegistry;' . "\n"
-			. 'use NavbarRegistry;' . "\n"
+			. 'use XcVm\Core\Module\NavbarRegistry;' . "\n"
 			. 'class ' . $className . ' implements ModuleInterface {' . "\n"
 			. "\tpublic function getName(): string { return '{$name}'; }" . "\n"
 			. "\tpublic function getVersion(): string { return '1.0.0'; }" . "\n"

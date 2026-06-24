@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Module\ModuleLoader;
+use XcVm\Core\Module\NavbarRegistry;
 use XcVm\Core\Http\Router;
 /**
  * Marks a subsystem as an isolated request boundary.

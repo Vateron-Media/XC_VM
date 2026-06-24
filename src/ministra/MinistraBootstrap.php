@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Module\ModuleLoader;
+use XcVm\Core\Module\NavbarRegistry;
 use XcVm\Core\Http\Router;
 use XcVm\Core\Database\Database;
 use XcVm\Core\Logging\Logger;

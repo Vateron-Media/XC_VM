@@ -1,13 +1,13 @@
 <?php
 
 namespace XcVm\Module\Plex;
+use XcVm\Core\Module\NavbarRegistry;
+use XcVm\Core\Module\NavbarItem;
+use XcVm\Core\Module\BaseModule;
 
-use BaseModule;
 use ServiceContainer;
 use XcVm\Core\Http\Router;
 use CommandRegistry;
-use NavbarRegistry;
-use NavbarItem;
 use PlexService;
 use PlexRepository;
 use PlexController;

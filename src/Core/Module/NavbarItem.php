@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Module;
+
 /**
  * NavbarItem — value object representing a single node in the admin nav tree.
  *

@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Module\Contract;
+
 /**
  * Optional contract for modules that need system-level crontab entries.
  *

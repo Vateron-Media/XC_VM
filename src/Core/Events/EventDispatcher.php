@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Module\ModuleLoader;
 /**
  * Event dispatcher with PSR-14-style typed events and priority-ordered listeners.
  *

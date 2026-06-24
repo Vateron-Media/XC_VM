@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+use XcVm\Core\Module\ModuleLoader;
 
 /**
  * Module lifecycle state stored in config/modules.php overrides.

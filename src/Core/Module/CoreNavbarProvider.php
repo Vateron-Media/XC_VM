@@ -1,5 +1,8 @@
 <?php
 
+namespace XcVm\Core\Module;
+use XcVm\Core\Module\Contract\NavbarProviderInterface;
+
 /**
  * CoreNavbarProvider — registers all built-in admin navigation items.
  *

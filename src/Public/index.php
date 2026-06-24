@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Module\ModuleLoader;
 use XcVm\Core\Http\Router;
 /**
  * Front Controller — единая точка входа для admin/reseller/player.
@@ -216,7 +217,7 @@ if (file_exists($apiRouteFile)) {
 }
 
 // 5b. Module web boot (M-1)
-if (in_array($scope, ['admin', 'reseller'], true) && class_exists('ModuleLoader')) {
+if (in_array($scope, ['admin', 'reseller'], true) && class_exists(ModuleLoader::class)) {
     $moduleLoader = new ModuleLoader();
     $router->beginModuleRegistration();
     $moduleLoader->loadAll();

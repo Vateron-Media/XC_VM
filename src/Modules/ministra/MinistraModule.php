@@ -1,8 +1,8 @@
 <?php
 
 namespace XcVm\Module\Ministra;
+use XcVm\Core\Module\BaseModule;
 
-use BaseModule;
 use BoundaryInterface;
 
 /**

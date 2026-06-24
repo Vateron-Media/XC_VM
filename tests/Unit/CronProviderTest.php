@@ -1,5 +1,8 @@
 <?php
 
+use XcVm\Core\Module\ModuleLoader;
+use XcVm\Core\Module\Contract\CronProviderInterface;
+use XcVm\Core\Module\BaseModule;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -170,7 +173,7 @@ final class CronProviderTest extends TestCase {
 
         $code = "<?php\n"
             . "namespace {$ns};\n"
-            . "use BaseModule;\n"
+            . "use XcVm\Core\Module\BaseModule;\n"
             . "use ServiceContainer;\n"
             . "class {$cls} extends BaseModule {\n"
             . "\tpublic function getName(): string    { return '{$name}'; }\n"
@@ -196,11 +199,11 @@ final class CronProviderTest extends TestCase {
 
         $code = "<?php\n"
             . "namespace {$ns};\n"
-            . "use ModuleInterface;\n"
+            . "use XcVm\Core\Module\ModuleInterface;\n"
             . "use ServiceContainer;\n"
             . "use XcVm\\Core\\Http\\Router;\n"
             . "use CommandRegistry;\n"
-            . "use NavbarRegistry;\n"
+            . "use XcVm\Core\Module\NavbarRegistry;\n"
             . "class {$cls} implements ModuleInterface {\n"
             . "\tpublic function getName(): string    { return '{$name}'; }\n"
             . "\tpublic function getVersion(): string { return '1.0.0'; }\n"

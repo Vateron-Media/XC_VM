@@ -1,6 +1,9 @@
 <?php
 
 use XcVm\Core\Http\Router;
+use XcVm\Core\Module\ModuleLoader;
+use XcVm\Core\Module\NavbarRegistry;
+use XcVm\Core\Module\ModuleInterface;
 use PHPUnit\Framework\TestCase;
 
 // Shared tracker — loaded by PHPUnit before any module PHP file is require_once'd by ModuleLoader.
@@ -221,11 +224,11 @@ final class ModuleLoaderBootTest extends TestCase {
 
         $code = "<?php\n"
             . "namespace {$ns};\n"
-            . "use ModuleInterface;\n"
+            . "use XcVm\Core\Module\ModuleInterface;\n"
             . "use ServiceContainer;\n"
             . "use XcVm\\Core\\Http\\Router;\n"
             . "use CommandRegistry;\n"
-            . "use NavbarRegistry;\n"
+            . "use XcVm\Core\Module\NavbarRegistry;\n"
             . "class {$cls} implements ModuleInterface {\n"
             . "\tpublic function getName(): string { return '{$name}'; }\n"
             . "\tpublic function getVersion(): string { return '1.0.0'; }\n"
@@ -251,7 +254,7 @@ final class ModuleLoaderBootTest extends TestCase {
 
         $code = "<?php\n"
             . "namespace {$ns};\n"
-            . "use BaseModule;\n"
+            . "use XcVm\Core\Module\BaseModule;\n"
             . "use ServiceContainer;\n"
             . "class {$cls} extends BaseModule {\n"
             . "\tpublic function getName(): string { return '{$name}'; }\n"

@@ -1,6 +1,8 @@
 #!/home/xc_vm/bin/php/bin/php
 <?php
 
+use XcVm\Core\Module\ModuleLoader;
+use XcVm\Core\Module\ModuleInterface;
 use XcVm\Core\Http\Router;/**
  * XC_VM Console — единая точка входа для CLI-команд и cron-задач.
  *

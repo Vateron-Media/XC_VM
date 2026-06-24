@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Module\Contract;
+
 use XcVm\Core\Http\Router;
 /**
  * @package XC_VM_Core_Module
