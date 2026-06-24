@@ -32,8 +32,8 @@ if (php_sapi_name() !== 'cli') {
 
 // ─── Bootstrap ───────────────────────────────────────────────────
 
-require_once __DIR__ . '/cli/CommandInterface.php';
-require_once __DIR__ . '/cli/CommandRegistry.php';
+require_once __DIR__ . '/Cli/CommandInterface.php';
+require_once __DIR__ . '/Cli/CommandRegistry.php';
 require_once __DIR__ . '/bootstrap.php';
 
 XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_CLI, [
@@ -47,8 +47,8 @@ $rRegistry = new CommandRegistry();
 // ── Auto-discover: core Commands + CronJobs ──────────────────────
 
 $rCommandDirs = [
-	__DIR__ . '/cli/Commands',
-	__DIR__ . '/cli/CronJobs',
+	__DIR__ . '/Cli/Commands',
+	__DIR__ . '/Cli/CronJobs',
 ];
 
 foreach ($rCommandDirs as $rDir) {

@@ -28,11 +28,11 @@ class ComposerStaticInit80ff86aa3df258be188ff24c30fbd1e8
         ),
         'M3uParser\\' => 
         array (
-            0 => __DIR__ . '/../..' . '/core/Parsing/M3uParser/src',
+            0 => __DIR__ . '/../..' . '/Core/Parsing/M3uParser/src',
         ),
         'Chrisyue\\PhpM3u8\\' => 
         array (
-            0 => __DIR__ . '/../..' . '/core/Parsing/PhpM3u8/src',
+            0 => __DIR__ . '/../..' . '/Core/Parsing/PhpM3u8/src',
         ),
     );
 

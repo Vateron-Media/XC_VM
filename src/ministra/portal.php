@@ -7,7 +7,7 @@ header('Pragma: no-cache');
 $rReqType = (!empty($_REQUEST['type']) ? $_REQUEST['type'] : null);
 $rReqAction = (!empty($_REQUEST['action']) ? $_REQUEST['action'] : null);
 
-require __DIR__ . '/../modules/ministra/PortalHandler.php';
+require __DIR__ . '/../Modules/ministra/PortalHandler.php';
 
 // Phase 1: Pre-init stub responses (no DB needed)
 PortalHandler::handlePreInit($rReqType, $rReqAction);

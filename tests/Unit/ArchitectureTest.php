@@ -15,7 +15,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class ArchitectureTest extends TestCase {
 
-    private const MODULES_DIR = __DIR__ . '/../../src/modules';
+    private const MODULES_DIR = __DIR__ . '/../../src/Modules';
 
     /**
      * Files that still use `global $db` because they run under a separate CLI

@@ -379,12 +379,12 @@ class XC_Autoloader {
         $base = self::$basePath;
 
         // New architecture directories
-        self::addDirectory($base . 'core');
-        self::addDirectory($base . 'domain');
-        self::addDirectory($base . 'infrastructure');
-        self::addDirectory($base . 'streaming');
-        self::addDirectory($base . 'modules');
-        self::addDirectory($base . 'public');
+        self::addDirectory($base . 'Core');
+        self::addDirectory($base . 'Domain');
+        self::addDirectory($base . 'Infrastructure');
+        self::addDirectory($base . 'Streaming');
+        self::addDirectory($base . 'Modules');
+        self::addDirectory($base . 'Public');
     }
 }
 

@@ -314,12 +314,12 @@ class XC_Bootstrap {
             return;
         }
 
-        require_once MAIN_HOME . 'core/Error/ErrorCodes.php';
-        require_once MAIN_HOME . 'core/Error/ErrorHandler.php';
-        require_once MAIN_HOME . 'core/Config/Paths.php';
-        require_once MAIN_HOME . 'core/Config/AppConfig.php';
-        require_once MAIN_HOME . 'core/Config/Binaries.php';
-        require_once MAIN_HOME . 'core/Logging/Logger.php';
+        require_once MAIN_HOME . 'Core/Error/ErrorCodes.php';
+        require_once MAIN_HOME . 'Core/Error/ErrorHandler.php';
+        require_once MAIN_HOME . 'Core/Config/Paths.php';
+        require_once MAIN_HOME . 'Core/Config/AppConfig.php';
+        require_once MAIN_HOME . 'Core/Config/Binaries.php';
+        require_once MAIN_HOME . 'Core/Logging/Logger.php';
 
         self::$devMode = DEV_MODE;
 
@@ -423,7 +423,7 @@ class XC_Bootstrap {
 
         global $db;
 
-        require_once MAIN_HOME . 'core/Database/DatabaseHandler.php';
+        require_once MAIN_HOME . 'Core/Database/DatabaseHandler.php';
 
         $db = new DatabaseHandler();
 
@@ -446,7 +446,7 @@ class XC_Bootstrap {
 
         global $db;
 
-        require_once MAIN_HOME . 'core/Init/LegacyInitializer.php';
+        require_once MAIN_HOME . 'Core/Init/LegacyInitializer.php';
 
         DatabaseFactory::set($db);
         LegacyInitializer::initCore($cached);
@@ -499,7 +499,7 @@ class XC_Bootstrap {
      * Initialize Translator (i18n).
      */
     private static function initTranslator(): void {
-        require_once MAIN_HOME . 'core/Localization/Translator.php';
+        require_once MAIN_HOME . 'Core/Localization/Translator.php';
 
         $language = Translator::class;
         $language::init(MAIN_HOME . 'resources/langs/');
@@ -695,7 +695,7 @@ class XC_Bootstrap {
             define('SERVER_ID', intval(ConfigReader::get('server_id')));
         }
 
-        require_once MAIN_HOME . 'core/Util/MobileDetect.php';
+        require_once MAIN_HOME . 'Core/Util/MobileDetect.php';
         $rDetect = new \Mobile_Detect();
         $rMobile = $rDetect->isMobile();
 
@@ -732,7 +732,7 @@ class XC_Bootstrap {
         // Some nginx configs and legacy routes expect public/assets/reseller to
         // point to public/assets/admin. Create the symlink if the target exists
         // and the link does not.
-        $assetsBase = MAIN_HOME . 'public/assets/';
+        $assetsBase = MAIN_HOME . 'Public/assets/';
         $adminAssets = $assetsBase . 'admin';
         $resellerLink = $assetsBase . 'reseller';
         if (is_dir($adminAssets) && !file_exists($resellerLink)) {
