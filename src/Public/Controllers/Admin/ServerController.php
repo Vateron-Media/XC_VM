@@ -48,7 +48,7 @@ class ServerController extends BaseAdminController {
             if (time() < $rCertificate['expiration']) {
                 $rCertValid = true;
             }
-            $rExpiration = date(\SettingsManager::getAll()['datetime_format'], $rCertificate['expiration']);
+            $rExpiration = date(SettingsManager::getAll()['datetime_format'], $rCertificate['expiration']);
         } else {
             $rHasCert = false;
             $rExpiration = 'No Certificate Installed';
