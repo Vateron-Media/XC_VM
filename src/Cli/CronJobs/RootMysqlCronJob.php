@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Config\SettingsManager;
 /**
  * RootMysqlCronJob — root mysql cron job
  *

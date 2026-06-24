@@ -1,5 +1,6 @@
 <?php
-/**
+
+use XcVm\Core\Config\SettingsManager;/**
  * ResellerEpgViewController — EPG preview.
  *
  * @package XC_VM_Public_Controllers_Reseller

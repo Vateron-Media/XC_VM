@@ -1,5 +1,6 @@
 <?php
-/**
+
+use XcVm\Core\Config\SettingsManager;/**
  * ResellerLiveConnectionsController — Live connections.
  *
  * @package XC_VM_Public_Controllers_Reseller

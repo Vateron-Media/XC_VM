@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Config\SettingsRepository;
+use XcVm\Core\Config\SettingsManager;
 /**
  * ServersCronJob — servers cron job
  *

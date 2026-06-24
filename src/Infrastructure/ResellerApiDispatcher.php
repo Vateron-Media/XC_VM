@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Config\SettingsManager;
 /**
  * ResellerApiDispatcher — dispatcher for reseller API actions.
  *

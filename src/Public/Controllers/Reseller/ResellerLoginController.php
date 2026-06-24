@@ -1,5 +1,6 @@
 <?php
-/**
+
+use XcVm\Core\Config\SettingsManager;/**
  * ResellerLoginController — Login page for reseller panel.
  *
  * Migrated from reseller/login.php.

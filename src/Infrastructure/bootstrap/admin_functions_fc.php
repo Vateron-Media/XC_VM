@@ -1,5 +1,6 @@
 <?php
-/**
+
+use XcVm\Core\Config\SettingsManager;/**
  * Admin functions bootstrap (Front Controller path).
  *
  * Extracted from admin/functions.php for FC use.

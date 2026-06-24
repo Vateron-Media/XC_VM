@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Config\SettingsManager;
 /**
  * SettingsController — General Settings (admin/settings.php).
  *

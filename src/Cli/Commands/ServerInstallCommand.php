@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Config\SettingsManager;
 /**
  * Установка/настройка сервера (Proxy/LB) через SSH.
  *

@@ -1,5 +1,6 @@
 <?php
-$xmIsDark = ($rThemes[$rUserInfo['theme']]['dark'] ?? false);
+
+use XcVm\Core\Config\SettingsManager;$xmIsDark = ($rThemes[$rUserInfo['theme']]['dark'] ?? false);
 $xmTheme  = $xmIsDark ? 'xm-dark' : 'xm-light';
 ?>
 <div class="wrapper xm-mag <?= $xmTheme ?>"

@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Config\SettingsManager;
 /**
  * ResellerTableRenderer — DataTables handler for reseller panel.
  *

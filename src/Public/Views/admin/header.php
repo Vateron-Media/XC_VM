@@ -1,4 +1,5 @@
-<?php if (count(get_included_files()) != 1 || TRUE):
+<?php 
+use XcVm\Core\Config\SettingsManager;if (count(get_included_files()) != 1 || TRUE):
     $rModal = isset(RequestManager::getAll()['modal']);
     $rUpdate = (json_decode((string) SettingsManager::getAll()['update_data'], true) ?: array());
 

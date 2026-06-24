@@ -20,7 +20,8 @@
         </div>
         <div class="row">
             <div class="col-12">
-                <?php if (!$rMobile) { ?>
+                <?php 
+use XcVm\Core\Config\SettingsManager;if (!$rMobile) { ?>
                     <?php if (count($rFS) > 0) { ?>
                         <div class="card">
                             <div class="card-body" style="overflow-x:auto;">

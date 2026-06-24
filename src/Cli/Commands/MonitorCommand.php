@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Config\SettingsRepository;
+use XcVm\Core\Config\SettingsManager;
 /**
  * Мониторинг одного стрима (из cli/monitor.php).
  *

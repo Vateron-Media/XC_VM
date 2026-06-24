@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Config;
+
 /**
  * SettingsManager — singleton-хранилище настроек приложения.
  *

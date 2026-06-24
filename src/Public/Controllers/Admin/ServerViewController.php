@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Config\SettingsManager;
 /**
  * ServerViewController — просмотр сервера (admin/server_view.php).
  *

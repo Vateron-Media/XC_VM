@@ -1,5 +1,6 @@
 <?php
-/**
+
+use XcVm\Core\Config\SettingsManager;/**
  * PlayerLoginController — Login page for player panel.
  *
  * Migrated from player/login.php.

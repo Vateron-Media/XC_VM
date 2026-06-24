@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Config\SettingsManager;
 /**
  * ModuleInstallCommand — install a module on a load balancer (files only).
  *

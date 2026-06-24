@@ -1,5 +1,6 @@
 <?php
-/**
+
+use XcVm\Core\Config\SettingsManager;/**
  * ResellerApiController — AJAX API handler for reseller panel.
  *
  * Migrated from reseller/api.php.

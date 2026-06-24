@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Config\SettingsManager;
 /**
  * TableController — DataTables JSON endpoint for admin panel.
  *

@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Config\SettingsManager;
 include 'session.php';
 include 'functions.php';
 

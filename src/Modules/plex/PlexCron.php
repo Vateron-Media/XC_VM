@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Config\SettingsManager;
 /**
  * PlexCron — модуль синхронизации Plex (крон-задача).
  *

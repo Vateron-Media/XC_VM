@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Storage\DropboxClient;
 /**
  * Backup & Database Privileges Service

@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Config\SettingsManager;
 /*
  * XC_VM — Утилитарные функции
  *

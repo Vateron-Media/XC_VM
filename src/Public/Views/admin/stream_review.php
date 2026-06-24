@@ -6,7 +6,8 @@
                 <div class="col-12">
                     <div class="page-title-box">
                         <div class="page-title-right">
-                            <?php include 'topbar.php'; ?>
+                            <?php 
+use XcVm\Core\Config\SettingsManager;include 'topbar.php'; ?>
                         </div>
                         <h4 class="page-title"><?= $language::get('mass_edit_review') ?> <small id="selected_count"></small></h4>
                     </div>

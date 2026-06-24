@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Config\SettingsManager;
 $rParams     = RequestManager::getAll();
 $rAllSettings = SettingsManager::getAll();
 

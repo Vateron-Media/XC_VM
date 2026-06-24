@@ -1,6 +1,7 @@
 <div class="wrapper">
 	<div class="container-fluid">
-		<?php if (Authorization::check('adv', 'index')): ?>
+		<?php 
+use XcVm\Core\Config\SettingsManager;if (Authorization::check('adv', 'index')): ?>
 			<div class="row">
 				<div class="col-12">
 					<div class="page-title-box">

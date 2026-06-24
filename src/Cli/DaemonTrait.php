@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Config\SettingsRepository;
+use XcVm\Core\Config\SettingsManager;
 /**
  * Общий функционал для CLI-демонов (signals, watchdog, queue, cache_handler).
  *
