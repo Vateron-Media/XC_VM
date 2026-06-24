@@ -114,16 +114,19 @@ class ModuleLoader {
             $modulePath = $this->getModulePath($name);
         }
 
-        // Register autoloader before loading so multi-file modules (including
-        // encrypted ones) can reference their own classes via require/include.
-        $this->registerModuleAutoloader($modulePath);
-
         // Resolve the class from the module's OWN manifest name, not the passed
         // $name. Platform installs use the marketplace slug (e.g. "watch-d2bho")
         // as the directory, but the module's class follows its canonical manifest
         // name (e.g. "watch" -> XcVm\Module\Watch\WatchModule). This mirrors
         // discoverModules(), which already keys class resolution on manifest name.
         $className = $this->resolveClassName($this->manifestName($modulePath, $name));
+
+        // Register a PSR-4 autoloader for this module's namespace before loading,
+        // so multi-file modules (including encrypted ones) can reference their own
+        // classes. The base namespace is the module FQCN minus its short class name
+        // (e.g. XcVm\Module\Watch), mapped onto $modulePath.
+        $baseNamespace = ($nsPos = strrpos($className, '\\')) !== false ? substr($className, 0, $nsPos) : '';
+        $this->registerModuleAutoloader($modulePath, $baseNamespace);
 
         // NB: class_exists() with autoload=false. The module's main class file is
         // at the deterministic path modulePath/{ShortName}.php and is require'd
@@ -674,39 +677,42 @@ class ModuleLoader {
     }
 
     /**
-     * Registers a PSR-style autoloader for a module directory (once per path).
+     * Registers a PSR-4 autoloader for a single module's namespace (once per path).
      *
-     * Handles two layouts:
-     *   - modules/{name}/MyClass.php          (flat)
-     *   - modules/{name}/SubDir/MyClass.php   (one level deep)
+     * The module's base namespace ({$baseNamespace}, e.g. XcVm\Module\Watch) is
+     * mapped onto its directory ({$modulePath}). The namespace remainder becomes
+     * the sub-path, exactly per PSR-4:
      *
-     * Encrypted files are loaded with require_once and transparently decrypted
-     * by the XC_VM zend_compile_file hook.
+     *   XcVm\Module\Watch\WatchModule          → {modulePath}/WatchModule.php
+     *   XcVm\Module\Watch\Service\WatchService → {modulePath}/Service/WatchService.php
+     *
+     * Classes outside the module's namespace (global legacy classes, other
+     * modules, core) fall through to the next autoloader untouched — no short-name
+     * glob, so two modules can declare same-named sub-classes without colliding.
+     * Marketplace slug directories are unaffected: {modulePath} is the real path.
+     *
+     * Encrypted files are require'd as-is and transparently decrypted by the
+     * XC_VM zend_compile_file hook.
      */
-    private function registerModuleAutoloader(string $modulePath): void {
-        if (isset(self::$autoloadedPaths[$modulePath])) {
+    private function registerModuleAutoloader(string $modulePath, string $baseNamespace): void {
+        if ($baseNamespace === '' || isset(self::$autoloadedPaths[$modulePath])) {
             return;
         }
         self::$autoloadedPaths[$modulePath] = true;
 
-        spl_autoload_register(function (string $class) use ($modulePath): void {
-            // Strip namespace prefix — use only the short class name for file lookup.
-            // NB: for a GLOBAL class (no "\"), strrpos() returns false → (int)false+1
-            // would be 1 and drop the first character ("WatchService" → "atchService").
-            $pos   = strrpos($class, '\\');
-            $short = $pos === false ? $class : substr($class, $pos + 1);
+        $prefix    = $baseNamespace . '\\';
+        $prefixLen = strlen($prefix);
 
-            // Flat: modules/{name}/MyClass.php
-            $flat = $modulePath . '/' . $short . '.php';
-            if (file_exists($flat)) {
-                require_once $flat;
+        spl_autoload_register(function (string $class) use ($modulePath, $prefix, $prefixLen): void {
+            // Only resolve classes under this module's namespace; everything else
+            // falls through to the next autoloader (Composer / legacy scanner).
+            if (strncmp($class, $prefix, $prefixLen) !== 0) {
                 return;
             }
-
-            // One level deep: modules/{name}/*/MyClass.php
-            foreach (glob($modulePath . '/*/' . $short . '.php') ?: [] as $found) {
-                require_once $found;
-                return;
+            $relative = str_replace('\\', '/', substr($class, $prefixLen));
+            $file     = $modulePath . '/' . $relative . '.php';
+            if (is_file($file)) {
+                require_once $file;
             }
         });
     }
