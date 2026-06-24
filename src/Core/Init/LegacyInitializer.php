@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Config\ConfigReader;
 /**
  * LegacyInitializer — legacy initializer
  *

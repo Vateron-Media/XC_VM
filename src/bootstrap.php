@@ -54,6 +54,7 @@
  */
 
 declare(strict_types=0);
+use XcVm\Core\Config\ConfigReader;
 use XcVm\Core\Logging\Logger;
 
 // ─────────────────────────────────────────────────────────────────

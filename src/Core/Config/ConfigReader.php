@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Config;
+
 /**
  * Доступ к серверным параметрам (singleton-кеш)
  *
@@ -9,7 +11,7 @@
  *   — возвращает параметры секции 'server' (server_id, is_lb, ...)
  *
  * Учётные данные БД и Redis расширение никогда не возвращает в PHP;
- * для подключений используйте XC_VM::db_connect() / XC_VM::redis_connect().
+ * для подключений используйте \XC_VM::db_connect() / \XC_VM::redis_connect().
  *
  * @package XC_VM_Core_Config
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -26,7 +28,7 @@ class ConfigReader {
 	 */
 	public static function getAll(): array {
 		if (self::$config === null) {
-			$result = XC_VM::config_server();
+			$result = \XC_VM::config_server();
 			self::$config = is_array($result) ? $result : [];
 		}
 		return self::$config;

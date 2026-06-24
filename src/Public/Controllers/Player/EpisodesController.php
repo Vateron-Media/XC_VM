@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Config\DomainResolver;
 /**
  * EpisodesController — episodes controller
  *

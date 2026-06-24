@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Config\ConfigReader;
 class LbInstallFlow {
 
 	// Per-distribution package lists, mirrored from the MAIN installer (install -> PACKAGES),

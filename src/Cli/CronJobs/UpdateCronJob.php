@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Config\ConfigReader;
 use XcVm\Core\Logging\FileLogger;
 /**
  * UpdateCronJob — update cron job

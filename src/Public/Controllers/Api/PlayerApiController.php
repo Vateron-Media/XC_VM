@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Config\DomainResolver;
 /**
  * PlayerApiController — player api controller
  *
